@@ -616,18 +616,20 @@ function AuthRegister({ onBack, onDone }) {
               </div>
             </div>
 
-            {/* A6 — marketing: spunta autonoma, facoltativa, mai preselezionata */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 14 }}>
+            {/* A6 — marketing: spunta autonoma, facoltativa, mai preselezionata.
+                Più leggera della riga dei Termini (stile Airbnb/Revolut): è
+                un'opzione, non una condizione — e non deve pesare come tale. */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, opacity: 0.85 }}>
               <button onClick={() => setMkt(m => !m)} aria-label="Consenso marketing" style={{
-                flex: '0 0 22px', width: 22, height: 22, borderRadius: 7, marginTop: 1, padding: 0,
-                border: `1.5px solid ${mkt ? A_PINK : '#CFC8CB'}`, background: mkt ? A_PINK : '#fff',
+                flex: '0 0 18px', width: 18, height: 18, borderRadius: 6, marginTop: 1, padding: 0,
+                border: `1.5px solid ${mkt ? A_PINK : '#D8D2D5'}`, background: mkt ? A_PINK : '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s', cursor: 'pointer',
               }}>
-                {mkt && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+                {mkt && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
               </button>
-              <div style={{ fontSize: 13.5, color: A_MUTED, lineHeight: 1.45 }}>
-                Voglio ricevere via email e notifica novità e promozioni di byup e dei locali
-                sulla piattaforma. Posso disiscrivermi in ogni momento. <span style={{ color: '#C9C2C5' }}>(Facoltativo)</span>
+              <div style={{ fontSize: 12, color: '#A79CA1', lineHeight: 1.45 }}>
+                Inviami novità e offerte di byup e dei locali via email e notifica.
+                Posso disiscrivermi in ogni momento.
               </div>
             </div>
           </>

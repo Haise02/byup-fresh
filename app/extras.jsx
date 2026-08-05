@@ -787,7 +787,7 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
         <Field label="Data di nascita" value={nascita} onChange={setNascita} type="text"/>
       </div>
 
-      {/* ─── Consensi — i cinque del registro, con stato, data dell'ultimo
+      {/* ─── Consensi — quelli del registro, con stato, data dell'ultimo
           cambio e link alla sezione dell'informativa. Ogni cambio scrive su
           consent_data con timestamp e versione: quello è il log che fa da
           prova, non lo stato del toggle. */}
@@ -2645,16 +2645,14 @@ function SocialDot({ label }) {
 
 Object.assign(window, { ProfileScreen, VenueScreen, BookingSheet });
 
-// ─── ConsensiPanel — i cinque consensi del registro in un posto solo ────────
-// A3 e A18 nascono nella sezione allergeni, A4 nella mappa, A6 alla
-// registrazione, A7 nei suggeriti: qui si RIVEDONO e si cambiano. Spegnere
+// ─── ConsensiPanel — i consensi del registro in un posto solo ───────────────
+// A3 e A18 nascono nella sezione allergeni, A6 alla registrazione: qui si
+// RIVEDONO e si cambiano. Spegnere
 // A3 cancella anche le preferenze salvate (senza consenso, niente dato).
 const CONSENSI_DEF = [
   { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', sez: 'Dati raccolti' },
   { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  sez: 'Finalità e base giuridica' },
-  { id: 'A4',  label: 'Storico posizioni',                   desc: 'Data e luogo di rilevazioni e accessi · 24 mesi', sez: 'Conservazione' },
   { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e promozioni via email e notifica',   sez: 'Finalità e base giuridica' },
-  { id: 'A7',  label: 'Suggerimenti personalizzati',         desc: 'Consigli basati su storico ordini e gusti',  sez: 'Finalità e base giuridica' },
 ];
 
 function ConsensiPanel({ onOpenPrivacy }) {

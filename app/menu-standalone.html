@@ -651,7 +651,7 @@
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A4 storico posizioni, A6 marketing, A7 suggerimenti).
+// preferenze, A6 marketing).
 // Due strutture: lo STATO corrente per consenso e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
@@ -7148,9 +7148,9 @@ Object.assign(window, {
   BookingSheet
 });
 
-// ─── ConsensiPanel — i cinque consensi del registro in un posto solo ────────
-// A3 e A18 nascono nella sezione allergeni, A4 nella mappa, A6 alla
-// registrazione, A7 nei suggeriti: qui si RIVEDONO e si cambiano. Spegnere
+// ─── ConsensiPanel — i consensi del registro in un posto solo ───────────────
+// A3 e A18 nascono nella sezione allergeni, A6 alla registrazione: qui si
+// RIVEDONO e si cambiano. Spegnere
 // A3 cancella anche le preferenze salvate (senza consenso, niente dato).
 const CONSENSI_DEF = [{
   id: 'A3',
@@ -7163,19 +7163,9 @@ const CONSENSI_DEF = [{
   desc: 'Promozioni costruite su diete e allergeni',
   sez: 'Finalità e base giuridica'
 }, {
-  id: 'A4',
-  label: 'Storico posizioni',
-  desc: 'Data e luogo di rilevazioni e accessi · 24 mesi',
-  sez: 'Conservazione'
-}, {
   id: 'A6',
   label: 'Marketing byup',
   desc: 'Novità e promozioni via email e notifica',
-  sez: 'Finalità e base giuridica'
-}, {
-  id: 'A7',
-  label: 'Suggerimenti personalizzati',
-  desc: 'Consigli basati su storico ordini e gusti',
   sez: 'Finalità e base giuridica'
 }];
 function ConsensiPanel({
@@ -10132,18 +10122,6 @@ function MapScreen({
   const mapControlsRef = React.useRef(null);
   const [searchQ, setSearchQ] = React.useState('');
 
-  // ─── Consenso A4 — storico posizioni (registro A4) ──────────────────
-  // Come le app comparabili: la mappa si apre SUBITO, il consenso al
-  // salvataggio dello storico è una card compatta in basso — il permesso
-  // GPS del sistema dice "puoi leggere dove sono ora", questa scelta dice
-  // "puoi salvare dove sono stato". Qualunque risposta la chiude per
-  // sempre; rifiutare non toglie niente (posizione al volo, non salvata).
-  const [chiediA4, setChiediA4] = React.useState(() => !ByupConsensi.stato('A4'));
-  const decidiA4 = ok => {
-    ByupConsensi.set('A4', ok);
-    setChiediA4(false);
-  };
-
   // Focus richiesto da un'altra schermata (vetrina → "Indicazioni"):
   // seleziona il locale e la mappa ci vola sopra.
   React.useEffect(() => {
@@ -10177,88 +10155,7 @@ function MapScreen({
       bottom: 118,
       size: 116
     }) : null;
-  })(), chiediA4 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 12,
-      right: 12,
-      bottom: 96,
-      zIndex: 60,
-      background: '#fff',
-      borderRadius: 16,
-      padding: '13px 14px',
-      boxShadow: '0 14px 40px rgba(28,15,21,0.22)',
-      border: '1px solid rgba(0,0,0,0.05)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      marginBottom: 6
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 15
-    }
-  }, "\uD83D\uDCCD"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      fontWeight: 800,
-      color: TEXT
-    }
-  }, "Salvare lo storico delle posizioni?")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: '#7a7176',
-      lineHeight: 1.5,
-      marginBottom: 4
-    }
-  }, "Data e luogo di rilevazioni e accessi, per sicurezza dell'account, verifiche e assistenza. Conservate 24 mesi; le vedi e le cancelli dal profilo."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: '#7a7176',
-      lineHeight: 1.5,
-      marginBottom: 10
-    }
-  }, "Se rifiuti, la scoperta dei locali ", /*#__PURE__*/React.createElement("b", {
-    style: {
-      color: TEXT
-    }
-  }, "funziona lo stesso"), ": posizione usata al volo, non salvata."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => decidiA4(true),
-    style: {
-      flex: 1,
-      padding: '10px 12px',
-      borderRadius: 999,
-      background: '#E32459',
-      color: '#fff',
-      border: 'none',
-      fontSize: 13,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer'
-    }
-  }, "Salva"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => decidiA4(false),
-    style: {
-      flex: 1,
-      padding: '10px 12px',
-      borderRadius: 999,
-      background: TINT,
-      color: TEXT,
-      border: 'none',
-      fontSize: 13,
-      fontWeight: 600,
-      fontFamily: 'inherit',
-      cursor: 'pointer'
-    }
-  }, "No, al volo"))), /*#__PURE__*/React.createElement("div", {
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '56px 14px 10px',
       background: 'rgba(255,255,255,0.97)',
@@ -15116,7 +15013,7 @@ function DisponibiliScreen({
       gap: 14,
       padding: '18px 18px 0'
     }
-  }, !ByupConsensi.stato('A7') && /*#__PURE__*/React.createElement(ConsensoA7Card, null), venues.map((v, i) => /*#__PURE__*/React.createElement("div", {
+  }, venues.map((v, i) => /*#__PURE__*/React.createElement("div", {
     key: `${moment}-${i}`,
     style: {
       animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`
@@ -22200,84 +22097,6 @@ Object.assign(window, {
 /* sync */
 const __byupRoot = document.getElementById('root');
 if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(/*#__PURE__*/React.createElement(Root, null));
-
-// ─── ConsensoA7Card — suggerimenti personalizzati (registro A7) ─────────────
-// Card di consenso in testa alla lista dei suggeriti: si decide una volta,
-// e la scelta (sì o no) finisce nel registro con timestamp. Ricompare solo
-// se si azzera dal pannello «I miei dati».
-function ConsensoA7Card() {
-  // Riga sottile, non una card: la scelta c'è ma non ruba la scena ai
-  // locali. Il testo del consenso sta sotto in piccolo; dopo la scelta
-  // sparisce (si riapre dal pannello «I miei dati»).
-  const [, forza] = useState(0);
-  const decidi = ok => {
-    ByupConsensi.set('A7', ok);
-    forza(x => x + 1);
-  };
-  if (ByupConsensi.stato('A7')) return null;
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: '#fff',
-      borderRadius: 14,
-      padding: '10px 13px',
-      border: '1px solid #F0EAEC'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14,
-      flexShrink: 0
-    }
-  }, "\u2728"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1,
-      minWidth: 0,
-      fontSize: 13,
-      fontWeight: 700,
-      color: '#1c0f15'
-    }
-  }, "Suggerimenti su misura?"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => decidi(true),
-    style: {
-      padding: '7px 14px',
-      borderRadius: 999,
-      background: '#E32459',
-      color: '#fff',
-      border: 'none',
-      fontSize: 12,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      flexShrink: 0
-    }
-  }, "Attiva"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => decidi(false),
-    style: {
-      padding: '7px 10px',
-      borderRadius: 999,
-      background: 'transparent',
-      color: '#7a7176',
-      border: 'none',
-      fontSize: 12,
-      fontWeight: 600,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      flexShrink: 0
-    }
-  }, "No")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10.5,
-      color: '#a89ba1',
-      lineHeight: 1.45,
-      marginTop: 5
-    }
-  }, "Uso dello storico ordini e delle preferenze non sensibili per suggerimenti personalizzati. Disattivabile quando vuoi da \xABI miei dati\xBB."));
-}
 })();
 </script>
 <script>/* dish-art.jsx */

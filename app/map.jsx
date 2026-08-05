@@ -549,14 +549,6 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
   const mapControlsRef              = React.useRef(null);
   const [searchQ, setSearchQ]       = React.useState('');
 
-  // ─── Consenso A4 — storico posizioni (registro A4) ──────────────────
-  // Come le app comparabili: la mappa si apre SUBITO, il consenso al
-  // salvataggio dello storico è una card compatta in basso — il permesso
-  // GPS del sistema dice "puoi leggere dove sono ora", questa scelta dice
-  // "puoi salvare dove sono stato". Qualunque risposta la chiude per
-  // sempre; rifiutare non toglie niente (posizione al volo, non salvata).
-  const [chiediA4, setChiediA4] = React.useState(() => !ByupConsensi.stato('A4'));
-  const decidiA4 = (ok) => { ByupConsensi.set('A4', ok); setChiediA4(false); };
 
   // Focus richiesto da un'altra schermata (vetrina → "Indicazioni"):
   // seleziona il locale e la mappa ci vola sopra.
@@ -581,39 +573,6 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
     <div style={{ position: 'absolute', inset: 0, background: BG_PAGE, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="phone" pageKey="map" message="Tocca un locale per sbirciare il menu." bottom={118} size={116}/> : null; })()}
 
-      {/* Card consenso A4 — compatta, non blocca la mappa */}
-      {chiediA4 && (
-        <div style={{
-          position: 'absolute', left: 12, right: 12, bottom: 96, zIndex: 60,
-          background: '#fff', borderRadius: 16, padding: '13px 14px',
-          boxShadow: '0 14px 40px rgba(28,15,21,0.22)', border: '1px solid rgba(0,0,0,0.05)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span style={{ fontSize: 15 }}>📍</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: TEXT }}>Salvare lo storico delle posizioni?</span>
-          </div>
-          <div style={{ fontSize: 11.5, color: '#7a7176', lineHeight: 1.5, marginBottom: 4 }}>
-            Data e luogo di rilevazioni e accessi, per sicurezza dell'account, verifiche e
-            assistenza. Conservate 24 mesi; le vedi e le cancelli dal profilo.
-          </div>
-          <div style={{ fontSize: 11.5, color: '#7a7176', lineHeight: 1.5, marginBottom: 10 }}>
-            Se rifiuti, la scoperta dei locali <b style={{ color: TEXT }}>funziona lo stesso</b>:
-            posizione usata al volo, non salvata.
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => decidiA4(true)} style={{
-              flex: 1, padding: '10px 12px', borderRadius: 999,
-              background: '#E32459', color: '#fff', border: 'none',
-              fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
-            }}>Salva</button>
-            <button onClick={() => decidiA4(false)} style={{
-              flex: 1, padding: '10px 12px', borderRadius: 999,
-              background: TINT, color: TEXT, border: 'none',
-              fontSize: 13, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-            }}>No, al volo</button>
-          </div>
-        </div>
-      )}
 
       {/* ── Header ── */}
       <div style={{
