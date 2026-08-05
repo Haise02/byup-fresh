@@ -1101,12 +1101,15 @@ function InviteModal({ onClose, prefill }) {
       }}>
         <div style={IMP_MODAL_HEAD}>
           <div style={IMP_MODAL_TITLE}>
-            {kind === 'person' ? 'Invita una persona' : 'Aggiungi un membro / dispositivo'}
+            {kind === 'person' ? 'Invita una persona' : 'Collega un dispositivo'}
           </div>
+          {/* La subhead racconta il flusso vero: il monitor accede con
+              credenziali locali, la stampante vuole nome e categorie —
+              niente username per lei, e niente email per nessuno. */}
           <div style={IMP_MODAL_SUB}>
             {kind === 'person'
               ? 'Invia un accesso al gestionale o all\'app staff.'
-              : 'Crea username e password per il dispositivo. Non serve un\'email'}
+              : 'Scegli il tipo e configuralo: credenziali locali per il monitor, nome e categorie per la stampante.'}
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
