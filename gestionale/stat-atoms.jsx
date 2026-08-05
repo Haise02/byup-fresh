@@ -287,28 +287,25 @@ function StatTabs({ tabs, active, onChange, action }) {
   );
 }
 
-// ─── Sub-tab — underline nera, il linguaggio sub del gestionale ──────────
-// Stesso disegno di ImpSubTabs (Impostazioni), qui con icona piccola.
-// Va montato in un contenitore flex con gap 22 e filo `PN.BORDER` sotto.
+// ─── Sub-tab — card larghe con icona, a tutta riga (scelta di Fabio) ─────
+// L'attiva è rossa su fondo tenue; le altre card bianche appena rialzate.
+// Le macro sopra sono underline rosa: qui le card danno peso alle viste.
 function StatSubTab({ active, onClick, label, icon }) {
   return (
-    <button onClick={onClick}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.color = PN.TEXT; }}
-      onMouseLeave={e => { e.currentTarget.style.color = active ? PN.TEXT : PN.MUTED; e.currentTarget.style.transform = ''; }}
-      onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
-      onMouseUp={e => { e.currentTarget.style.transform = ''; }}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 7,
-        padding: '10px 4px',
-        background: 'transparent', border: 'none',
-        borderBottom: `2px solid ${active ? PN.TEXT : 'transparent'}`,
-        marginBottom: -1,
-        color: active ? PN.TEXT : PN.MUTED,
-        fontSize: 15.5, fontWeight: active ? 700 : 500,
-        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-        transition: 'color 140ms ease, transform 130ms ease',
-      }}>
-      {icon && <Icon name={icon} size={14}/>}
+    <button onClick={onClick} style={{
+      flex: 1, minWidth: 0,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+      padding: '17px 14px', borderRadius: 14,
+      background: active ? '#FFF7F6' : PN.WHITE,
+      border: `1.5px solid ${active ? 'rgba(255, 90, 95, 0.55)' : PN.BORDER_SOFT}`,
+      boxShadow: active ? '0 2px 10px rgba(255, 90, 95, 0.10)' : '0 1px 2px rgba(15,17,21,0.04)',
+      color: active ? PN.PINK_DARK : PN.TEXT,
+      fontSize: 18, fontWeight: active ? 700 : 600,
+      cursor: 'pointer', fontFamily: 'inherit',
+      transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease',
+      whiteSpace: 'nowrap',
+    }}>
+      {icon && <Icon name={icon} size={18}/>}
       {label}
     </button>
   );

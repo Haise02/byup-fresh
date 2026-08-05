@@ -36,10 +36,10 @@ function StatisticheApp() {
               action={<StatPeriodPicker period={period} setPeriod={setPeriod}/>}/>
           </div>
 
-          {/* Operazioni sub-tabs — underline nera su filo */}
+          {/* Operazioni sub-tabs — card a tutta riga */}
           {tab === 'operazioni' && (
             <>
-              <div style={{display:'flex', gap: 22, borderBottom: `1px solid ${PN.BORDER}`, marginBottom: 18}}>
+              <div style={{display:'flex', gap: 14, marginBottom: 18}}>
                 <StatSubTab active={opSub==='prenotazioni'} onClick={() => setOpSub('prenotazioni')} label="Prenotazioni" icon="time-calendar"/>
                 <StatSubTab active={opSub==='ordini'} onClick={() => setOpSub('ordini')} label="Ordini" icon="commerce-cart"/>
                 <StatSubTab active={opSub==='staff'} onClick={() => setOpSub('staff')} label="Team" icon="people-staff-group"/>
