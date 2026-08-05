@@ -2647,13 +2647,15 @@ Object.assign(window, { ProfileScreen, VenueScreen, BookingSheet });
 
 // ─── ConsensiPanel — i consensi del registro in un posto solo ───────────────
 // A3 e A18 nascono nella sezione allergeni, A6 alla registrazione: qui si
-// RIVEDONO e si cambiano. Spegnere
+// RIVEDONO e si cambiano. Un consenso mai incontrato (nessuno stato nel
+// registro) NON compare: il pannello mostra solo ciò che esiste per questo
+// utente. `dove` dice in che punto dell'app il consenso è nato. Spegnere
 // A3 cancella anche le preferenze salvate (senza consenso, niente dato).
 const CONSENSI_DEF = [
-  { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', sez: 'Dati raccolti' },
-  { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  sez: 'Finalità e base giuridica' },
-  { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e promozioni via email e notifica',   sez: 'Finalità e base giuridica' },
-  { id: 'PROMOP', label: 'Offerte sui tuoi ordini',          desc: 'Promozioni costruite sul tuo storico ordini', sez: 'Finalità e base giuridica' },
+  { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', dove: 'impostando le preferenze alimentari' },
+  { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  dove: 'impostando le preferenze alimentari' },
+  { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e promozioni via email e notifica',   dove: 'alla registrazione' },
+  { id: 'PROMOP', label: 'Offerte sui tuoi ordini',          desc: 'Promozioni costruite sul tuo storico ordini', dove: 'dopo un ordine' },
   // Opt-out, non consenso: legittimo interesse, attivo salvo disattivazione.
   { id: 'SUGG', label: 'Suggerimenti personalizzati',        desc: 'Consigli basati sui tuoi gusti e ordini · attivo, puoi disattivarlo', optout: true },
 ];
@@ -2703,6 +2705,9 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
 
         {aperto && CONSENSI_DEF.map((c, i) => {
           const st = ByupConsensi.stato(c.id);
+          // Mai incontrato = niente riga: il pannello riflette solo i consensi
+          // che esistono per questo utente (l'opt-out SUGG è sempre vivo).
+          if (!st && !c.optout) return null;
           const data = quando(st);
           // Opt-out (SUGG): stato assente = ATTIVO — legittimo interesse.
           const acceso = c.optout ? (st ? st.ok : true) : !!(st && st.ok);
@@ -2713,9 +2718,12 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, color: TEXT_X }}>{c.label}</div>
-                <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>
-                  {c.desc}{data && !c.optout ? ` · dal ${data}` : ''}
-                </div>
+                <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>{c.desc}</div>
+                {!c.optout && data && (
+                  <div style={{ fontSize: 11, color: MUTED_X, marginTop: 2, opacity: .8 }}>
+                    {st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`}
+                  </div>
+                )}
               </div>
               <ProfileToggle value={acceso} onChange={(v) => cambia(c.id, v)}/>
             </div>
