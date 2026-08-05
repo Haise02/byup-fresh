@@ -12578,27 +12578,29 @@ function AuthRegister({
     }
   }, "Sconti riservati e novit\xE0 di byup via email e notifica. Niente spam: ti disiscrivi in un tocco.")), /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 44,
-      height: 26,
-      borderRadius: 999,
+      width: 24,
+      height: 24,
+      borderRadius: 8,
       flexShrink: 0,
-      background: mkt ? A_PINK : '#D8D2D5',
-      position: 'relative',
-      transition: 'background .18s'
+      border: `1.5px solid ${mkt ? A_PINK : '#CFC8CB'}`,
+      background: mkt ? A_PINK : '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all .18s'
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: 'absolute',
-      top: 2,
-      left: mkt ? 20 : 2,
-      width: 22,
-      height: 22,
-      borderRadius: 999,
-      background: '#fff',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
-      transition: 'left .18s'
-    }
-  }))))), /*#__PURE__*/React.createElement("div", {
+  }, mkt && /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: "3",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "20 6 9 17 4 12"
+  })))))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '12px 24px 34px'
     }

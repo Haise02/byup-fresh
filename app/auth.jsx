@@ -648,17 +648,16 @@ function AuthRegister({ onBack, onDone }) {
                   Niente spam: ti disiscrivi in un tocco.
                 </span>
               </span>
-              {/* switch, non checkbox: il gesto dell'attivazione */}
+              {/* checkbox: il consenso si SPUNTA — il segno resta quello
+                  della firma, la card intorno fa il lavoro di convincere */}
               <span style={{
-                width: 44, height: 26, borderRadius: 999, flexShrink: 0,
-                background: mkt ? A_PINK : '#D8D2D5',
-                position: 'relative', transition: 'background .18s',
+                width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+                border: `1.5px solid ${mkt ? A_PINK : '#CFC8CB'}`,
+                background: mkt ? A_PINK : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all .18s',
               }}>
-                <span style={{
-                  position: 'absolute', top: 2, left: mkt ? 20 : 2,
-                  width: 22, height: 22, borderRadius: 999, background: '#fff',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.25)', transition: 'left .18s',
-                }}/>
+                {mkt && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
               </span>
             </button>
           </>
