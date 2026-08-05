@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=1440"/>
+<title>byup — Cucina · KDS v2</title>
+<link rel="icon" type="image/png" href="/assets/byup-icon.png"/>
+<link rel="apple-touch-icon" href="/assets/byup-icon.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    /* Stesso palco delle altre pagine del gestionale. */
+    background: #ECEEF1;
+    color: #1a1a1a;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .frame {
+    width: 1440px;
+    height: 900px;
+    margin: 24px auto;
+    background: #F5F6F8;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
+  .pn-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+  .pn-scroll::-webkit-scrollbar-thumb { background: #C6CAD2; border-radius: 999px; }
+  .pn-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  /* Carosello delle sorgenti: la barra nativa qui non serve e ruberebbe
+     altezza alla riga delle chip. L'affordance sono le frecce, che a
+     differenza di una barra si vedono anche su un monitor a parete dove
+     nessun mouse ci passa mai sopra. Lo scorrimento a dito resta. */
+  .kds2-rail { scrollbar-width: none; -ms-overflow-style: none; }
+  .kds2-rail::-webkit-scrollbar { display: none; }
+
+  /* Percorso da tastiera: i bordi delle chip sono quieti, e senza questo il
+     fuoco si confonderebbe con lo stato «presa in carico». Offset negativo così
+     l'anello resta dentro il bersaglio e non invade il vicino. */
+  button:focus-visible, [tabindex]:focus-visible {
+    outline: 3px solid #0F1115;
+    outline-offset: -3px;
+  }
+
+  /* Il gestionale dà a OGNI bottone un'ombra e uno schiarimento al passaggio
+     del mouse (panoramica-tokens.jsx). Su un KDS quell'elevazione contraddice
+     il piano unico, e su un touch screen l'hover o non esiste o resta
+     appiccicato dopo il tap. Neutralizzato SOLO qui: quei token servono altri
+     venti schermi. */
+  @media (hover: hover) and (pointer: fine) {
+    #root button:not(:disabled):hover { filter: none; box-shadow: none; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Superficie touch: il dito non ha «passaggio sopra». Va dichiarato PRIMA di
+     panoramica-tokens.jsx, che al caricamento decide quale foglio di feedback
+     iniettare. Stessa scelta di cameriere e staff. -->
+<script>window.__BYUP_TOUCH_SURFACE = true;</script>
+
+<!-- Le icone di canale sono le stesse del KDS attuale e della vista Banco —
+     SVG a tratto, definite dentro la vista come già fanno quelle schermate.
+     La libreria SF condivisa non serve più e non si carica. -->
+<script type="text/babel" src="panoramica-tokens.jsx?v=14"></script>
+<script type="text/babel" src="cucina-kds2-data.jsx?v=14"></script>
+<script type="text/babel" src="cucina-kds2-mock.jsx?v=14"></script>
+<script type="text/babel" src="cucina-kds2-board.jsx?v=14"></script>
+<script type="text/babel" src="cucina-kds2-app.jsx?v=14"></script>
+
+<!-- Zoom proporzionale: identico alle altre pagine del gestionale. Su un
+     monitor di cucina più grande della finestra di disegno, tutta la UI cresce
+     insieme — è il motivo per cui i corpi qui sono tarati sul rapporto e non
+     sui pixel assoluti. -->
+<script>
+(function () {
+  var DESIGN_H = 900, MARGIN = 24, MIN_W = 1280;
+  var cur = { frame: null, zoom: null, width: null };
+  function fit() {
+    var frame = document.querySelector('.frame');
+    if (!frame) return;
+    var s = (window.innerHeight - MARGIN) / DESIGN_H;
+    s = Math.max(0.4, Math.min(2.2, s));
+    var w = Math.max(MIN_W, (window.innerWidth - MARGIN) / s);
+    if (frame !== cur.frame || s !== cur.zoom) frame.style.zoom = s;
+    if (frame !== cur.frame || w !== cur.width) frame.style.width = w + 'px';
+    cur = { frame: frame, zoom: s, width: w };
+  }
+  window.addEventListener('resize', fit);
+  new MutationObserver(fit).observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
+  fit();
+})();
+</script>
+</body>
+</html>

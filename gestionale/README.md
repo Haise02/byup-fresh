@@ -26,6 +26,11 @@ per la ristorazione.
 - `byup Configurazione Completa.html` — vetrina + personale post-onboarding
 - `byup Sala.html` — sala & prenotazioni (mappa + lista; `?tab=tavoli|vendita|calendar`)
 - `byup Cucina.html` — kitchen monitor (KDS)
+- `byup Cucina KDS v2.html` — KDS v2 sperimentale: board di produzione aggregato
+  per piatto, tema scuro, schermo fisso in cucina. Route autonoma che **convive**
+  con `byup Cucina.html` senza condividerne codice né stato
+  (`cucina-kds2-data.jsx` regole, `cucina-kds2-mock.jsx` dati finti,
+  `cucina-kds2-board.jsx` vista, `cucina-kds2-app.jsx` montaggio)
 - `byup Statistiche.html`, `byup Contabilita.html`, `byup Impostazioni.html`,
   `byup Profilo.html` (pagina Account), `byup Supporto.html`
 
