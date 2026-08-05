@@ -306,7 +306,7 @@ function AccPianiAbbonamenti() {
             WebkitBackgroundClip: 'text', backgroundClip: 'text',
             WebkitTextFillColor: 'transparent', color: 'transparent',
           }}>
-            2 mesi di {(ACC_PIANI[ACC_PIANI.length - 1] || current).nome}
+            {ACC_REFERRAL.ordiniPerInvito.toLocaleString('it-IT', {useGrouping: true})} ordini senza scadenza
           </div>
           <button onClick={() => setInvitaModal(true)} style={{
             width: '100%', marginTop: 16,
