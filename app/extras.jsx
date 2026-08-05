@@ -712,36 +712,50 @@ function SegnalaView({ onBack }) {
 }
 
 function MieiDatiView({ onBack, onOpenPrivacy }) {
-  const [nome, setNome] = useState('Mario');
-  const [cognome, setCognome] = useState('Rossi');
-  const [genere, setGenere] = useState('Uomo');
-  const [nascita, setNascita] = useState('15/04/1990');
+  // Grouped-inset alla Apple/Revolut: gruppi arrotondati con righe
+  // label-valore, non un form. Il salvataggio compare solo quando serve.
+  const INIZIALI = { nome: 'Mario', cognome: 'Rossi', genere: 'Uomo', nascita: '15/04/1990' };
+  const [dati, setDati] = useState(INIZIALI);
   const [saved, setSaved] = useState(false);
+  const dirty = Object.keys(INIZIALI).some(k => dati[k] !== INIZIALI[k]);
+  const set = (k) => (v) => { setSaved(false); setDati(d => ({ ...d, [k]: v })); };
+  const salva = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
 
-  function salva() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
+  // Export GDPR: quello che le app serie chiamano «Scarica i tuoi dati».
+  const scaricaDati = () => {
+    const blob = new Blob([JSON.stringify({
+      profilo: dati,
+      consensi: ByupConsensi.log(),
+      esportato: new Date().toISOString(),
+    }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'byup-i-miei-dati.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+  const [elimina, setElimina] = useState(0); // 0 riposo · 1 conferma · 2 richiesta inviata
 
-  const Field = ({ label, value, onChange, type = 'text' }) => (
-    <div style={{ marginBottom: 4 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>{label}</div>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{
-          width: '100%', padding: '13px 14px',
-          background: TINT_X, border: '1.5px solid transparent',
-          borderRadius: 12, fontSize: 15, color: TEXT_X,
-          fontFamily: 'inherit', outline: 'none',
-          boxSizing: 'border-box',
-          transition: 'border-color 0.15s',
-        }}
-        onFocus={e => e.target.style.borderColor = PINK_X}
-        onBlur={e => e.target.style.borderColor = 'transparent'}
-      />
+  const Gruppo = ({ label, children, footer }) => (
+    <div style={{ marginBottom: 22 }}>
+      {label && <div style={{ fontSize: 11, fontWeight: 700, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 7px 14px' }}>{label}</div>}
+      <div style={{ background: SURF_X, borderRadius: 14, overflow: 'hidden', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` }}>
+        {children}
+      </div>
+      {footer && <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, margin: '7px 14px 0' }}>{footer}</div>}
     </div>
+  );
+  const sep = { borderBottom: '1px solid ' + (__BYUP_DK_X ? 'rgba(255,255,255,0.06)' : '#F0EAEC') };
+
+  const RigaCampo = ({ label, value, onChange, ultimo }) => (
+    <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', ...(ultimo ? {} : sep), cursor: 'text' }}>
+      <span style={{ fontSize: 14.5, color: TEXT_X, width: 118, flexShrink: 0 }}>{label}</span>
+      <input value={value} onChange={e => onChange(e.target.value)} style={{
+        flex: 1, minWidth: 0, textAlign: 'right',
+        border: 'none', outline: 'none', background: 'transparent',
+        fontSize: 14.5, fontWeight: 600, color: MUTED_X,
+        fontFamily: 'inherit', padding: 0,
+      }}/>
+    </label>
   );
 
   return (
@@ -753,56 +767,81 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
-      <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 28 }}>I miei dati</div>
+      <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 22 }}>I miei dati</div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Field label="Nome" value={nome} onChange={setNome}/>
-        <Field label="Cognome" value={cognome} onChange={setCognome}/>
-
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Genere</div>
-          <div style={{ background: TINT_X, borderRadius: 12, overflow: 'hidden' }}>
-            {['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => (
-              <button key={g} onClick={() => setGenere(g)} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                width: '100%', padding: '13px 14px', background: 'transparent',
-                border: 'none', borderBottom: i < arr.length - 1 ? '1px solid #EDE8EA' : 'none',
-                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-              }}>
-                <span style={{ fontSize: 14.5, color: genere === g ? PINK_X : TEXT_X, fontWeight: genere === g ? 600 : 400 }}>{g}</span>
-                <div style={{
-                  width: 20, height: 20, borderRadius: 999,
-                  border: `2px solid ${genere === g ? PINK_X : '#C8C0C3'}`,
-                  background: genere === g ? PINK_X : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.15s', flexShrink: 0,
-                }}>
-                  {genere === g && <div style={{ width: 7, height: 7, borderRadius: 999, background: SURF_X }}/>}
-                </div>
-              </button>
-            ))}
+      {/* ── Profilo ── */}
+      <Gruppo label="Profilo">
+        <RigaCampo label="Nome" value={dati.nome} onChange={set('nome')}/>
+        <RigaCampo label="Cognome" value={dati.cognome} onChange={set('cognome')}/>
+        <RigaCampo label="Data di nascita" value={dati.nascita} onChange={set('nascita')}/>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px' }}>
+          <span style={{ fontSize: 14.5, color: TEXT_X, width: 118, flexShrink: 0 }}>Genere</span>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
+            {['Uomo', 'Donna', 'Altro', 'N.D.'].map(g => {
+              const on = dati.genere === g;
+              return (
+                <button key={g} onClick={() => set('genere')(g)} style={{
+                  padding: '6px 12px', borderRadius: 999,
+                  border: `1.5px solid ${on ? PINK_X : (__BYUP_DK_X ? 'rgba(255,255,255,0.14)' : '#E4DDE0')}`,
+                  background: on ? CORALSURF_X : 'transparent',
+                  color: on ? PINK_X : MUTED_X,
+                  fontSize: 12.5, fontWeight: on ? 700 : 500,
+                  fontFamily: 'inherit', cursor: 'pointer', transition: 'all .15s',
+                }}>{g}</button>
+              );
+            })}
           </div>
         </div>
+      </Gruppo>
 
-        <Field label="Data di nascita" value={nascita} onChange={setNascita} type="text"/>
-      </div>
+      {dirty && (
+        <button onClick={salva} style={{
+          width: '100%', margin: '-8px 0 22px', padding: '13px',
+          background: saved ? '#30D158' : PINK_X, color: '#fff',
+          border: 'none', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 14.5, fontWeight: 700, transition: 'background 0.3s',
+          animation: 'fade 0.2s ease',
+        }}>{saved ? 'Salvato ✓' : 'Salva modifiche'}</button>
+      )}
 
-      {/* ─── Consensi — quelli del registro, con stato, data dell'ultimo
-          cambio e link alla sezione dell'informativa. Ogni cambio scrive su
-          consent_data con timestamp e versione: quello è il log che fa da
-          prova, non lo stato del toggle. */}
-      <ConsensiPanel onOpenPrivacy={onOpenPrivacy}/>
+      {/* ── Privacy e consensi ── */}
+      <ConsensiPanel onOpenPrivacy={onOpenPrivacy} Gruppo={Gruppo} sep={sep}/>
 
-      <button onClick={salva} style={{
-        width: '100%', marginTop: 32, padding: '15px',
-        background: saved ? '#30D158' : PINK_X,
-        border: 'none', borderRadius: 14,
-        cursor: 'pointer', fontFamily: 'inherit',
-        fontSize: 15, fontWeight: 700, color: '#fff',
-        transition: 'background 0.3s',
-      }}>
-        {saved ? 'Salvato ✓' : 'Salva modifiche'}
-      </button>
+      {/* ── I tuoi diritti — quello che le app serie mettono sempre ── */}
+      <Gruppo label="I tuoi dati">
+        <button onClick={scaricaDati} style={{
+          display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+          padding: '13px 14px', background: 'transparent', border: 'none', ...sep,
+          cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        }}>
+          <span style={{ flex: 1, fontSize: 14.5, color: TEXT_X }}>Scarica una copia dei tuoi dati</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
+        </button>
+        <button onClick={() => setElimina(e => e === 0 ? 1 : e)} style={{
+          display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+          padding: '13px 14px', background: 'transparent', border: 'none',
+          cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+        }}>
+          <span style={{ flex: 1, fontSize: 14.5, color: elimina === 2 ? MUTED_X : '#D93025' }}>
+            {elimina === 2 ? 'Richiesta di eliminazione inviata' : "Elimina l'account e i dati"}
+          </span>
+          {elimina === 0 && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"/></svg>}
+        </button>
+        {elimina === 1 && (
+          <div style={{ padding: '0 14px 13px', display: 'flex', gap: 8 }}>
+            <button onClick={() => setElimina(2)} style={{
+              flex: 1, padding: '10px 12px', borderRadius: 999, border: 'none',
+              background: '#D93025', color: '#fff', fontSize: 13, fontWeight: 700,
+              fontFamily: 'inherit', cursor: 'pointer',
+            }}>Conferma richiesta</button>
+            <button onClick={() => setElimina(0)} style={{
+              flex: 1, padding: '10px 12px', borderRadius: 999, border: 'none',
+              background: TINT_X, color: TEXT_X, fontSize: 13, fontWeight: 600,
+              fontFamily: 'inherit', cursor: 'pointer',
+            }}>Annulla</button>
+          </div>
+        )}
+      </Gruppo>
     </div>
   );
 }
@@ -2655,7 +2694,7 @@ const CONSENSI_DEF = [
   { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e promozioni via email e notifica',   sez: 'Finalità e base giuridica' },
 ];
 
-function ConsensiPanel({ onOpenPrivacy }) {
+function ConsensiPanel({ onOpenPrivacy, Gruppo, sep }) {
   const [, forza] = useState(0);
   const cambia = (id, v) => {
     ByupConsensi.set(id, v);
@@ -2667,46 +2706,39 @@ function ConsensiPanel({ onOpenPrivacy }) {
     forza(x => x + 1);
   };
   const quando = (st) => {
-    if (!st) return 'Mai richiesto';
+    if (!st) return null;
     const d = new Date(st.quando);
-    return `Aggiornato il ${d.toLocaleDateString('it-IT')} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    return `${d.toLocaleDateString('it-IT')}`;
   };
   return (
-    <div style={{ marginTop: 28 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, paddingLeft: 2 }}>
-        Consensi
-      </div>
-      <div style={{ background: TINT_X, borderRadius: 14, overflow: 'hidden' }}>
-        {CONSENSI_DEF.map((c, i) => {
-          const st = ByupConsensi.stato(c.id);
-          return (
-            <div key={c.id} style={{
-              padding: '13px 14px',
-              borderBottom: i < CONSENSI_DEF.length - 1 ? '1px solid #EDE8EA' : 'none',
-              background: SURF_X,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 600, color: TEXT_X }}>{c.label}</div>
-                  <div style={{ fontSize: 12, color: MUTED_X, marginTop: 2, lineHeight: 1.45 }}>{c.desc}</div>
-                </div>
-                <ProfileToggle value={!!(st && st.ok)} onChange={(v) => cambia(c.id, v)}/>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 7 }}>
-                <span style={{ fontSize: 11.5, color: MUTED_X }}>{quando(st)}</span>
-                <button onClick={onOpenPrivacy} style={{
-                  padding: 0, border: 'none', background: 'transparent',
-                  fontSize: 11.5, fontWeight: 600, color: MUTED_X, fontFamily: 'inherit',
-                  cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2,
-                }}>Informativa · {c.sez}</button>
+    <Gruppo
+      label="Privacy e consensi"
+      footer={
+        <span>
+          Ogni modifica è registrata con data e versione dell'informativa
+          (v{ByupConsensi.VERSIONE_INFORMATIVA}). Il dettaglio dei trattamenti è
+          nell'<span onClick={onOpenPrivacy} style={{ color: PINK_X, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}>informativa privacy</span>.
+        </span>
+      }>
+      {CONSENSI_DEF.map((c, i) => {
+        const st = ByupConsensi.stato(c.id);
+        const data = quando(st);
+        return (
+          <div key={c.id} style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 14px',
+            ...(i < CONSENSI_DEF.length - 1 ? sep : {}),
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14.5, color: TEXT_X }}>{c.label}</div>
+              <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>
+                {c.desc}{data ? ` · dal ${data}` : ''}
               </div>
             </div>
-          );
-        })}
-      </div>
-      <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 8, lineHeight: 1.5, paddingLeft: 2 }}>
-        Ogni modifica viene registrata con data, ora e versione dell'informativa (v{ByupConsensi.VERSIONE_INFORMATIVA}).
-      </div>
-    </div>
+            <ProfileToggle value={!!(st && st.ok)} onChange={(v) => cambia(c.id, v)}/>
+          </div>
+        );
+      })}
+    </Gruppo>
   );
 }

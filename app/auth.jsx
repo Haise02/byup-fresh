@@ -616,22 +616,46 @@ function AuthRegister({ onBack, onDone }) {
               </div>
             </div>
 
-            {/* A6 — marketing: spunta autonoma, facoltativa, mai preselezionata.
-                Più leggera della riga dei Termini (stile Airbnb/Revolut): è
-                un'opzione, non una condizione — e non deve pesare come tale. */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, opacity: 0.85 }}>
-              <button onClick={() => setMkt(m => !m)} aria-label="Consenso marketing" style={{
-                flex: '0 0 18px', width: 18, height: 18, borderRadius: 6, marginTop: 1, padding: 0,
-                border: `1.5px solid ${mkt ? A_PINK : '#D8D2D5'}`, background: mkt ? A_PINK : '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s', cursor: 'pointer',
+            {/* A6 — marketing: mai preselezionata (obbligo di legge), ma
+                progettata per l'opt-in: si vende il BENEFICIO (sconti dei
+                locali che ami), non il trattamento; la rassicurazione
+                anti-spam abbassa il costo percepito del sì. Il toggle è
+                l'unico elemento colorato della card: l'occhio ci arriva. */}
+            <button onClick={() => setMkt(m => !m)} aria-label="Consenso marketing" style={{
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+              marginTop: 16, padding: '13px 14px', borderRadius: 16, textAlign: 'left',
+              background: mkt ? '#FDF0F4' : '#FAF7F8',
+              border: `1.5px solid ${mkt ? A_PINK : '#EFE9EB'}`,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all .18s',
+            }}>
+              <span style={{
+                width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+                background: mkt ? A_PINK : '#F3EBEE',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, transition: 'background .18s',
+              }}>🎁</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: A_TEXT }}>
+                  Non perderti le offerte dei locali
+                </span>
+                <span style={{ display: 'block', fontSize: 12, color: A_MUTED, marginTop: 2, lineHeight: 1.4 }}>
+                  Sconti riservati e novità di byup via email e notifica.
+                  Niente spam: ti disiscrivi in un tocco.
+                </span>
+              </span>
+              {/* switch, non checkbox: il gesto dell'attivazione */}
+              <span style={{
+                width: 44, height: 26, borderRadius: 999, flexShrink: 0,
+                background: mkt ? A_PINK : '#D8D2D5',
+                position: 'relative', transition: 'background .18s',
               }}>
-                {mkt && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-              </button>
-              <div style={{ fontSize: 12, color: '#A79CA1', lineHeight: 1.45 }}>
-                Inviami novità e offerte di byup e dei locali via email e notifica.
-                Posso disiscrivermi in ogni momento.
-              </div>
-            </div>
+                <span style={{
+                  position: 'absolute', top: 2, left: mkt ? 20 : 2,
+                  width: 22, height: 22, borderRadius: 999, background: '#fff',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.25)', transition: 'left .18s',
+                }}/>
+              </span>
+            </button>
           </>
         )}
       </div>

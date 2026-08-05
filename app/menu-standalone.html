@@ -2777,53 +2777,119 @@ function MieiDatiView({
   onBack,
   onOpenPrivacy
 }) {
-  const [nome, setNome] = useState('Mario');
-  const [cognome, setCognome] = useState('Rossi');
-  const [genere, setGenere] = useState('Uomo');
-  const [nascita, setNascita] = useState('15/04/1990');
+  // Grouped-inset alla Apple/Revolut: gruppi arrotondati con righe
+  // label-valore, non un form. Il salvataggio compare solo quando serve.
+  const INIZIALI = {
+    nome: 'Mario',
+    cognome: 'Rossi',
+    genere: 'Uomo',
+    nascita: '15/04/1990'
+  };
+  const [dati, setDati] = useState(INIZIALI);
   const [saved, setSaved] = useState(false);
-  function salva() {
+  const dirty = Object.keys(INIZIALI).some(k => dati[k] !== INIZIALI[k]);
+  const set = k => v => {
+    setSaved(false);
+    setDati(d => ({
+      ...d,
+      [k]: v
+    }));
+  };
+  const salva = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  }
-  const Field = ({
+  };
+
+  // Export GDPR: quello che le app serie chiamano «Scarica i tuoi dati».
+  const scaricaDati = () => {
+    const blob = new Blob([JSON.stringify({
+      profilo: dati,
+      consensi: ByupConsensi.log(),
+      esportato: new Date().toISOString()
+    }, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'byup-i-miei-dati.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+  const [elimina, setElimina] = useState(0); // 0 riposo · 1 conferma · 2 richiesta inviata
+
+  const Gruppo = ({
+    label,
+    children,
+    footer
+  }) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 22
+    }
+  }, label && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: MUTED_X,
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+      margin: '0 0 7px 14px'
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: SURF_X,
+      borderRadius: 14,
+      overflow: 'hidden',
+      border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`
+    }
+  }, children), footer && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      margin: '7px 14px 0'
+    }
+  }, footer));
+  const sep = {
+    borderBottom: '1px solid ' + (__BYUP_DK_X ? 'rgba(255,255,255,0.06)' : '#F0EAEC')
+  };
+  const RigaCampo = ({
     label,
     value,
     onChange,
-    type = 'text'
-  }) => /*#__PURE__*/React.createElement("div", {
+    ultimo
+  }) => /*#__PURE__*/React.createElement("label", {
     style: {
-      marginBottom: 4
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '13px 14px',
+      ...(ultimo ? {} : sep),
+      cursor: 'text'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: MUTED_X,
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      marginBottom: 6,
-      paddingLeft: 2
+      fontSize: 14.5,
+      color: TEXT_X,
+      width: 118,
+      flexShrink: 0
     }
   }, label), /*#__PURE__*/React.createElement("input", {
-    type: type,
     value: value,
     onChange: e => onChange(e.target.value),
     style: {
-      width: '100%',
-      padding: '13px 14px',
-      background: TINT_X,
-      border: '1.5px solid transparent',
-      borderRadius: 12,
-      fontSize: 15,
-      color: TEXT_X,
-      fontFamily: 'inherit',
+      flex: 1,
+      minWidth: 0,
+      textAlign: 'right',
+      border: 'none',
       outline: 'none',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.15s'
-    },
-    onFocus: e => e.target.style.borderColor = PINK_X,
-    onBlur: e => e.target.style.borderColor = 'transparent'
+      background: 'transparent',
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: MUTED_X,
+      fontFamily: 'inherit',
+      padding: 0
+    }
   }));
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2858,104 +2924,187 @@ function MieiDatiView({
     style: {
       fontSize: 22,
       fontWeight: 700,
-      marginBottom: 28
+      marginBottom: 22
     }
-  }, "I miei dati"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 16
-    }
-  }, /*#__PURE__*/React.createElement(Field, {
+  }, "I miei dati"), /*#__PURE__*/React.createElement(Gruppo, {
+    label: "Profilo"
+  }, /*#__PURE__*/React.createElement(RigaCampo, {
     label: "Nome",
-    value: nome,
-    onChange: setNome
-  }), /*#__PURE__*/React.createElement(Field, {
+    value: dati.nome,
+    onChange: set('nome')
+  }), /*#__PURE__*/React.createElement(RigaCampo, {
     label: "Cognome",
-    value: cognome,
-    onChange: setCognome
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: MUTED_X,
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      marginBottom: 6,
-      paddingLeft: 2
-    }
-  }, "Genere"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: TINT_X,
-      borderRadius: 12,
-      overflow: 'hidden'
-    }
-  }, ['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => /*#__PURE__*/React.createElement("button", {
-    key: g,
-    onClick: () => setGenere(g),
+    value: dati.cognome,
+    onChange: set('cognome')
+  }), /*#__PURE__*/React.createElement(RigaCampo, {
+    label: "Data di nascita",
+    value: dati.nascita,
+    onChange: set('nascita')
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: 12,
+      padding: '11px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14.5,
+      color: TEXT_X,
+      width: 118,
+      flexShrink: 0
+    }
+  }, "Genere"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: 6,
+      flexWrap: 'wrap'
+    }
+  }, ['Uomo', 'Donna', 'Altro', 'N.D.'].map(g => {
+    const on = dati.genere === g;
+    return /*#__PURE__*/React.createElement("button", {
+      key: g,
+      onClick: () => set('genere')(g),
+      style: {
+        padding: '6px 12px',
+        borderRadius: 999,
+        border: `1.5px solid ${on ? PINK_X : __BYUP_DK_X ? 'rgba(255,255,255,0.14)' : '#E4DDE0'}`,
+        background: on ? CORALSURF_X : 'transparent',
+        color: on ? PINK_X : MUTED_X,
+        fontSize: 12.5,
+        fontWeight: on ? 700 : 500,
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        transition: 'all .15s'
+      }
+    }, g);
+  })))), dirty && /*#__PURE__*/React.createElement("button", {
+    onClick: salva,
+    style: {
+      width: '100%',
+      margin: '-8px 0 22px',
+      padding: '13px',
+      background: saved ? '#30D158' : PINK_X,
+      color: '#fff',
+      border: 'none',
+      borderRadius: 999,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      fontSize: 14.5,
+      fontWeight: 700,
+      transition: 'background 0.3s',
+      animation: 'fade 0.2s ease'
+    }
+  }, saved ? 'Salvato ✓' : 'Salva modifiche'), /*#__PURE__*/React.createElement(ConsensiPanel, {
+    onOpenPrivacy: onOpenPrivacy,
+    Gruppo: Gruppo,
+    sep: sep
+  }), /*#__PURE__*/React.createElement(Gruppo, {
+    label: "I tuoi dati"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: scaricaDati,
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
       width: '100%',
       padding: '13px 14px',
       background: 'transparent',
       border: 'none',
-      borderBottom: i < arr.length - 1 ? '1px solid #EDE8EA' : 'none',
+      ...sep,
       cursor: 'pointer',
       fontFamily: 'inherit',
       textAlign: 'left'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
+      flex: 1,
       fontSize: 14.5,
-      color: genere === g ? PINK_X : TEXT_X,
-      fontWeight: genere === g ? 600 : 400
+      color: TEXT_X
     }
-  }, g), /*#__PURE__*/React.createElement("div", {
+  }, "Scarica una copia dei tuoi dati"), /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: MUTED_X,
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M12 4v12"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "m7 11 5 5 5-5"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M4 20h16"
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setElimina(e => e === 0 ? 1 : e),
     style: {
-      width: 20,
-      height: 20,
-      borderRadius: 999,
-      border: `2px solid ${genere === g ? PINK_X : '#C8C0C3'}`,
-      background: genere === g ? PINK_X : 'transparent',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.15s',
-      flexShrink: 0
-    }
-  }, genere === g && /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: 999,
-      background: SURF_X
-    }
-  })))))), /*#__PURE__*/React.createElement(Field, {
-    label: "Data di nascita",
-    value: nascita,
-    onChange: setNascita,
-    type: "text"
-  })), /*#__PURE__*/React.createElement(ConsensiPanel, {
-    onOpenPrivacy: onOpenPrivacy
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: salva,
-    style: {
+      gap: 12,
       width: '100%',
-      marginTop: 32,
-      padding: '15px',
-      background: saved ? '#30D158' : PINK_X,
+      padding: '13px 14px',
+      background: 'transparent',
       border: 'none',
-      borderRadius: 14,
       cursor: 'pointer',
       fontFamily: 'inherit',
-      fontSize: 15,
-      fontWeight: 700,
-      color: '#fff',
-      transition: 'background 0.3s'
+      textAlign: 'left'
     }
-  }, saved ? 'Salvato ✓' : 'Salva modifiche'));
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      fontSize: 14.5,
+      color: elimina === 2 ? MUTED_X : '#D93025'
+    }
+  }, elimina === 2 ? 'Richiesta di eliminazione inviata' : "Elimina l'account e i dati"), elimina === 0 && /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: MUTED_X,
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "9 6 15 12 9 18"
+  }))), elimina === 1 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '0 14px 13px',
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setElimina(2),
+    style: {
+      flex: 1,
+      padding: '10px 12px',
+      borderRadius: 999,
+      border: 'none',
+      background: '#D93025',
+      color: '#fff',
+      fontSize: 13,
+      fontWeight: 700,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "Conferma richiesta"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setElimina(0),
+    style: {
+      flex: 1,
+      padding: '10px 12px',
+      borderRadius: 999,
+      border: 'none',
+      background: TINT_X,
+      color: TEXT_X,
+      fontSize: 13,
+      fontWeight: 600,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "Annulla"))));
 }
 function AccountFormView({
   title,
@@ -7169,7 +7318,9 @@ const CONSENSI_DEF = [{
   sez: 'Finalità e base giuridica'
 }];
 function ConsensiPanel({
-  onOpenPrivacy
+  onOpenPrivacy,
+  Gruppo,
+  sep
 }) {
   const [, forza] = useState(0);
   const cambia = (id, v) => {
@@ -7187,44 +7338,33 @@ function ConsensiPanel({
     forza(x => x + 1);
   };
   const quando = st => {
-    if (!st) return 'Mai richiesto';
+    if (!st) return null;
     const d = new Date(st.quando);
-    return `Aggiornato il ${d.toLocaleDateString('it-IT')} · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return `${d.toLocaleDateString('it-IT')}`;
   };
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 28
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: MUTED_X,
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      marginBottom: 8,
-      paddingLeft: 2
-    }
-  }, "Consensi"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: TINT_X,
-      borderRadius: 14,
-      overflow: 'hidden'
-    }
+  return /*#__PURE__*/React.createElement(Gruppo, {
+    label: "Privacy e consensi",
+    footer: /*#__PURE__*/React.createElement("span", null, "Ogni modifica \xE8 registrata con data e versione dell'informativa (v", ByupConsensi.VERSIONE_INFORMATIVA, "). Il dettaglio dei trattamenti \xE8 nell'", /*#__PURE__*/React.createElement("span", {
+      onClick: onOpenPrivacy,
+      style: {
+        color: PINK_X,
+        fontWeight: 600,
+        cursor: 'pointer',
+        textDecoration: 'underline',
+        textUnderlineOffset: 2
+      }
+    }, "informativa privacy"), ".")
   }, CONSENSI_DEF.map((c, i) => {
     const st = ByupConsensi.stato(c.id);
+    const data = quando(st);
     return /*#__PURE__*/React.createElement("div", {
       key: c.id,
       style: {
-        padding: '13px 14px',
-        borderBottom: i < CONSENSI_DEF.length - 1 ? '1px solid #EDE8EA' : 'none',
-        background: SURF_X
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
         display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 14px',
+        ...(i < CONSENSI_DEF.length - 1 ? sep : {})
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
@@ -7234,56 +7374,20 @@ function ConsensiPanel({
     }, /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 14.5,
-        fontWeight: 600,
         color: TEXT_X
       }
     }, c.label), /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 12,
+        fontSize: 11.5,
         color: MUTED_X,
         marginTop: 2,
-        lineHeight: 1.45
+        lineHeight: 1.4
       }
-    }, c.desc)), /*#__PURE__*/React.createElement(ProfileToggle, {
+    }, c.desc, data ? ` · dal ${data}` : '')), /*#__PURE__*/React.createElement(ProfileToggle, {
       value: !!(st && st.ok),
       onChange: v => cambia(c.id, v)
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 10,
-        marginTop: 7
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11.5,
-        color: MUTED_X
-      }
-    }, quando(st)), /*#__PURE__*/React.createElement("button", {
-      onClick: onOpenPrivacy,
-      style: {
-        padding: 0,
-        border: 'none',
-        background: 'transparent',
-        fontSize: 11.5,
-        fontWeight: 600,
-        color: MUTED_X,
-        fontFamily: 'inherit',
-        cursor: 'pointer',
-        textDecoration: 'underline',
-        textUnderlineOffset: 2
-      }
-    }, "Informativa \xB7 ", c.sez)));
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: MUTED_X,
-      marginTop: 8,
-      lineHeight: 1.5,
-      paddingLeft: 2
-    }
-  }, "Ogni modifica viene registrata con data, ora e versione dell'informativa (v", ByupConsensi.VERSIONE_INFORMATIVA, ")."));
+    }));
+  }));
 }
 })();
 </script>
