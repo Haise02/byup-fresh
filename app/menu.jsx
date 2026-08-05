@@ -998,6 +998,7 @@ function MenuScreen({ state, setState, goTo }) {
 
         {/* Riga 4 (condizionale): pillole filtri attivi rimovibili */}
         {(dietFilter || Object.values(allergenFilters).some(Boolean)) && (
+          <>
           <div className="hscroll" style={{
             display: 'flex', gap: 6, padding: '10px 16px 4px',
             overflowX: 'auto', scrollbarWidth: 'none', borderTop: `1px solid ${BORDER}`,
@@ -1029,6 +1030,14 @@ function MenuScreen({ state, setState, goTo }) {
               </button>
             ))}
           </div>
+          {/* Avvertenza fissa quando il filtro allergeni agisce sul menu —
+              misura DPIA R1.5 */}
+          {Object.values(allergenFilters).some(Boolean) && (
+            <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.45, padding: '4px 16px 8px' }}>
+              Il filtro è un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala.
+            </div>
+          )}
+          </>
         )}
       </div>
 
@@ -1475,8 +1484,12 @@ function MenuScreen({ state, setState, goTo }) {
                 }}>Reset</button>
               )}
             </div>
-            <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 6, lineHeight: 1.5 }}>
               Filtra il menu in base alle tue preferenze e a ciò che vuoi evitare.
+            </div>
+            {/* Avvertenza fissa — misura DPIA R1.5 */}
+            <div style={{ fontSize: 12, color: MUTED, marginBottom: 16, lineHeight: 1.5 }}>
+              Il filtro è un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala.
             </div>
 
             {/* Diet preferences */}

@@ -193,6 +193,11 @@ function AllergensView({ onBack, prefs, setPrefs }) {
         bg="#FFF5F5"
         description="I piatti che contengono questi ingredienti verranno nascosti dal menù."
       />
+      {/* Avvertenza fissa — misura DPIA R1.5: il filtro non sostituisce
+          la comunicazione al personale di sala. */}
+      <div style={{ fontSize: 12, color: MUTED_X, lineHeight: 1.5, margin: '-4px 2px 10px' }}>
+        Il filtro è un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala.
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: TINT_X, borderRadius: 14, overflow: 'hidden' }}>
         {PROFILE_ALLERGENS.map((a, i) => {
           const on = !!prefs.allergens?.[a.id];
@@ -803,7 +808,7 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px' }}>
           <span style={{ fontSize: 14.5, color: TEXT_X, width: 118, flexShrink: 0 }}>Genere</span>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
-            {['Uomo', 'Donna', 'Altro', 'N.D.'].map(g => {
+            {['Uomo', 'Donna', 'Altro', 'Preferisco non dirlo'].map(g => {
               const on = dati.genere === g;
               return (
                 <button key={g} onClick={() => set('genere')(g)} style={{
@@ -1420,7 +1425,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
             { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
             { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento da \u201cI miei dati\u201d: torneranno proposte generiche.' },
             { h: 'Sicurezza dell\'account (accessi)', p: 'Per proteggere il tuo account, prevenire abusi e fornirti assistenza registriamo gli eventi di accesso all\'app: data e ora, indirizzo IP, città stimata e tipo di dispositivo. La base giuridica è il legittimo interesse (art. 6.1.f GDPR); NON registriamo né conserviamo un tracciato dei tuoi spostamenti. Gli eventi sono conservati per 12 mesi e sono visibili nella sezione \u201cI miei dati\u201d del profilo. Puoi opporti al trattamento scrivendo a privacy@byup.it.' },
-            { h: 'Cookie e tecnologie simili', p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.' },
+            { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup (vedi "Analisi d\'uso e sicurezza") e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento da "I miei dati".' },
             { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
           ]}/>
         )}
