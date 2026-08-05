@@ -517,7 +517,12 @@ function AuthRegister({ onBack, onDone }) {
           <>
             <LightField label="Nome" value={nome} onChange={setNome} placeholder="Mario" autoComplete="given-name" />
             <LightField label="Cognome" value={cognome} onChange={setCognome} placeholder="Rossi" autoComplete="family-name" />
-            <LightField label="Data di nascita" value={dob} onChange={setDob} type="date" max="2025-12-31" autoComplete="bday" />
+            <LightField label="Data di nascita" value={dob} onChange={setDob} type="date" max="2025-12-31" autoComplete="bday"
+              rightSlot={
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={A_MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: 'none' }}>
+                  <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/>
+                </svg>
+              } />
             {dob && !dobOk && (
               <div style={{ fontSize: 12.5, color: '#E5484D', marginTop: -8, paddingLeft: 2 }}>
                 Devi avere almeno 18 anni per registrarti.

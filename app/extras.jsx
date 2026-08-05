@@ -746,7 +746,7 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
   );
   const sep = { borderBottom: '1px solid ' + (__BYUP_DK_X ? 'rgba(255,255,255,0.06)' : '#F0EAEC') };
 
-  const RigaCampo = ({ label, value, onChange, ultimo }) => (
+  const RigaCampo = ({ label, value, onChange, ultimo, icona }) => (
     <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', ...(ultimo ? {} : sep), cursor: 'text' }}>
       <span style={{ fontSize: 14.5, color: TEXT_X, width: 118, flexShrink: 0 }}>{label}</span>
       <input value={value} onChange={e => onChange(e.target.value)} style={{
@@ -755,7 +755,13 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
         fontSize: 14.5, fontWeight: 600, color: MUTED_X,
         fontFamily: 'inherit', padding: 0,
       }}/>
+      {icona && <span style={{ display: 'inline-flex', color: MUTED_X, flexShrink: 0 }}>{icona}</span>}
     </label>
+  );
+  const IconaCalendario = (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/>
+    </svg>
   );
 
   return (
@@ -773,7 +779,7 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
       <Gruppo label="Profilo">
         <RigaCampo label="Nome" value={dati.nome} onChange={set('nome')}/>
         <RigaCampo label="Cognome" value={dati.cognome} onChange={set('cognome')}/>
-        <RigaCampo label="Data di nascita" value={dati.nascita} onChange={set('nascita')}/>
+        <RigaCampo label="Data di nascita" value={dati.nascita} onChange={set('nascita')} icona={IconaCalendario}/>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px' }}>
           <span style={{ fontSize: 14.5, color: TEXT_X, width: 118, flexShrink: 0 }}>Genere</span>
           <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
