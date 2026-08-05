@@ -411,6 +411,9 @@ function AuthRegister({ onBack, onDone }) {
   const [otp, setOtp] = useStateA(['', '', '', '', '']);
   const [prefs, setPrefs] = useStateA([]);
   const [terms, setTerms] = useStateA(false);
+  // A6 — marketing byup: facoltativa e NON preselezionata. La decisione
+  // (sì o no) si registra alla creazione dell'account, nel registro consensi.
+  const [mkt, setMkt] = useStateA(false);
   const [legal, setLegal] = useStateA(null); // null | 'terms' | 'privacy'
   const [resend, setResend] = useStateA(30); // countdown "Invia di nuovo"
 
@@ -612,20 +615,35 @@ function AuthRegister({ onBack, onDone }) {
                 Accetto i <span role="button" tabIndex={0} onClick={() => setLegal('terms')} style={{ color: A_PINK, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Termini di servizio</span> e l'<span role="button" tabIndex={0} onClick={() => setLegal('privacy')} style={{ color: A_PINK, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Informativa sulla privacy</span> di byup.
               </div>
             </div>
+
+            {/* A6 — marketing: spunta autonoma, facoltativa, mai preselezionata */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 14 }}>
+              <button onClick={() => setMkt(m => !m)} aria-label="Consenso marketing" style={{
+                flex: '0 0 22px', width: 22, height: 22, borderRadius: 7, marginTop: 1, padding: 0,
+                border: `1.5px solid ${mkt ? A_PINK : '#CFC8CB'}`, background: mkt ? A_PINK : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s', cursor: 'pointer',
+              }}>
+                {mkt && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+              </button>
+              <div style={{ fontSize: 13.5, color: A_MUTED, lineHeight: 1.45 }}>
+                Voglio ricevere via email e notifica novità e promozioni di byup e dei locali
+                sulla piattaforma. Posso disiscrivermi in ogni momento. <span style={{ color: '#C9C2C5' }}>(Facoltativo)</span>
+              </div>
+            </div>
           </>
         )}
       </div>
 
       {/* CTA */}
       <div style={{ padding: '12px 24px 34px' }}>
-        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? onDone({ nome, cognome, dob, email, prefs, terms }) : next())} style={{
+        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.set('A6', mkt), onDone({ nome, cognome, dob, email, prefs, terms })) : next())} style={{
           width: '100%', padding: '16px', border: 'none', borderRadius: 16,
           background: stepValid ? A_PINK : '#EDE7E9', color: stepValid ? '#fff' : A_MUTED,
           fontSize: 16, fontWeight: 700, cursor: stepValid ? 'pointer' : 'default', fontFamily: 'inherit',
           transition: 'background .2s',
         }}>{ctaLabel}</button>
         {step === 4 && (
-          <button disabled={!terms} onClick={() => onDone({ nome, cognome, dob, email, prefs: [], terms })} style={{
+          <button disabled={!terms} onClick={() => { ByupConsensi.set('A6', mkt); onDone({ nome, cognome, dob, email, prefs: [], terms }); }} style={{
             width: '100%', padding: '12px', marginTop: 8, background: 'none', border: 'none',
             color: terms ? A_MUTED : '#C9C2C5', fontSize: 14.5, fontWeight: 600,
             cursor: terms ? 'pointer' : 'default', fontFamily: 'inherit',

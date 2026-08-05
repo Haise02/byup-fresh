@@ -1723,6 +1723,14 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
 
         {/* Venue cards with stagger animation */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 18px 0' }}>
+          {/* ─── Consenso A7 — suggerimenti «Per te» ───
+              Appare quando la sezione diventa disponibile, una volta sola:
+              finché non decidi, i suggerimenti restano generici. La card
+              sta SOPRA la lista, non al posto suo: rifiutare non toglie
+              la sezione, toglie solo la personalizzazione. */}
+          {!ByupConsensi.stato('A7') && (
+            <ConsensoA7Card/>
+          )}
           {venues.map((v, i) => (
             <div key={`${moment}-${i}`} style={{
               animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`,
@@ -5018,3 +5026,43 @@ Object.assign(window, { HomeSections, Icon, PINK, PINK_DARK, TEXT, MUTED, BORDER
 /* sync */
 const __byupRoot = document.getElementById('root');
 if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(<Root/>);
+
+// ─── ConsensoA7Card — suggerimenti personalizzati (registro A7) ─────────────
+// Card di consenso in testa alla lista dei suggeriti: si decide una volta,
+// e la scelta (sì o no) finisce nel registro con timestamp. Ricompare solo
+// se si azzera dal pannello «I miei dati».
+function ConsensoA7Card() {
+  const [, forza] = useState(0);
+  const decidi = (ok) => { ByupConsensi.set('A7', ok); forza(x => x + 1); };
+  if (ByupConsensi.stato('A7')) return null;
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 18, padding: '16px 16px 14px',
+      border: '1.5px solid #F0EAEC', boxShadow: '0 2px 10px rgba(28,15,21,0.05)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <span style={{
+          width: 34, height: 34, borderRadius: 999, background: '#FCE9EE',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0,
+        }}>✨</span>
+        <div style={{ fontSize: 15, fontWeight: 800, color: '#1c0f15' }}>Suggerimenti su misura?</div>
+      </div>
+      <div style={{ fontSize: 13, color: '#7a7176', lineHeight: 1.5, marginBottom: 12 }}>
+        Acconsento all'uso del mio storico ordini e delle mie preferenze non sensibili
+        per ricevere suggerimenti personalizzati. Posso disattivarli quando voglio.
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => decidi(true)} style={{
+          flex: 1, padding: '11px 14px', borderRadius: 999,
+          background: '#E32459', color: '#fff', border: 'none',
+          fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+        }}>Attiva</button>
+        <button onClick={() => decidi(false)} style={{
+          flex: 1, padding: '11px 14px', borderRadius: 999,
+          background: '#F6F1F2', color: '#1c0f15', border: 'none',
+          fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+        }}>No, generici</button>
+      </div>
+    </div>
+  );
+}

@@ -87,6 +87,98 @@ function AllergensView({ onBack, prefs, setPrefs }) {
   }));
   const count = (group) => Object.values(prefs[group] || {}).filter(Boolean).length;
 
+  // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
+  // Allergeni e diete possono rivelare dati su salute o convinzioni
+  // religiose: il consenso A3 si chiede la PRIMA volta che si apre questa
+  // sezione — è qui che il dato nasce, non alla registrazione. A18
+  // (offerte costruite sulle preferenze) è una spunta AUTONOMA: mai
+  // pre-attivata, mai legata alla prima. Entrambi con timestamp, entrambi
+  // revocabili da qui.
+  const [consensi, setConsensi] = useState(() => ({
+    a3: ByupConsensi.stato('A3'), a18: ByupConsensi.stato('A18'),
+  }));
+  const [chkA3, setChkA3] = useState(false);
+  const [chkA18, setChkA18] = useState(false);
+  const confermaConsensi = () => {
+    if (!chkA3) return;
+    // A18 si scrive solo se spuntata: non registriamo un "no" mai chiesto
+    // davvero — la spunta è autonoma, non parte del gate.
+    const a3 = ByupConsensi.set('A3', true);
+    const a18 = chkA18 ? ByupConsensi.set('A18', true) : ByupConsensi.stato('A18');
+    setConsensi({ a3, a18 });
+  };
+  const cambiaA18 = (v) => setConsensi(c => ({ ...c, a18: ByupConsensi.set('A18', v) }));
+  const revocaA3 = () => {
+    // Revocare il consenso cancella anche il dato: senza base giuridica le
+    // preferenze non restano da nessuna parte. A18 senza A3 non ha oggetto.
+    setPrefs({ allergens: {}, diets: {} });
+    setChkA3(false); setChkA18(false);
+    ByupConsensi.azzera('A3');
+    if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
+    setConsensi({ a3: null, a18: ByupConsensi.stato('A18') });
+  };
+
+  const CONSENSO_A3 = 'Acconsento al trattamento dei miei allergeni e delle mie preferenze alimentari, che possono rivelare dati su salute o convinzioni religiose, per filtrare i menu e personalizzare l\'esperienza. Posso modificarli o revocare quando voglio.';
+  const CONSENSO_A18 = 'Voglio ricevere offerte e promozioni costruite sulle mie preferenze alimentari e i miei allergeni (es. proposte senza glutine). Le notifiche avranno testo generico: il dettaglio lo vedo in app.';
+
+  // Prima apertura: solo la richiesta di consenso, niente sezione.
+  if (!consensi?.a3?.ok) {
+    return (
+      <div style={{ animation: 'profileSlideIn 0.28s cubic-bezier(.2,.8,.2,1)' }}>
+        <button onClick={onBack} style={{
+          width: 36, height: 36, borderRadius: 999, background: TINT_X,
+          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', marginBottom: 22,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Preferenze alimentari</div>
+        <div style={{ fontSize: 13, color: MUTED_X, marginBottom: 24, lineHeight: 1.5 }}>
+          Prima di iniziare, una cosa importante: questi dati sono tuoi e delicati.
+        </div>
+
+        <div style={{ background: SURF_X, borderRadius: 16, padding: '18px 16px', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC'}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{
+              width: 34, height: 34, borderRadius: 999, background: CORALSURF_X,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0,
+            }}>🔒</span>
+            <div style={{ fontSize: 15, fontWeight: 700, color: TEXT_X }}>Il tuo consenso</div>
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 11, cursor: 'pointer' }}>
+            <input type="checkbox" checked={chkA3} onChange={e => setChkA3(e.target.checked)}
+              style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
+            <span style={{ fontSize: 13.5, color: TEXT_X, lineHeight: 1.55 }}>{CONSENSO_A3}</span>
+          </label>
+
+          {/* A18: autonoma, sotto, MAI attivata insieme alla prima. */}
+          <div style={{ height: 1, background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC', margin: '14px 0' }}/>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 11, cursor: 'pointer' }}>
+            <input type="checkbox" checked={chkA18} onChange={e => setChkA18(e.target.checked)}
+              style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
+            <span style={{ fontSize: 13.5, color: TEXT_X, lineHeight: 1.55 }}>
+              {CONSENSO_A18}
+              <span style={{ display: 'block', fontSize: 12, color: MUTED_X, marginTop: 3 }}>Facoltativa e indipendente dalla prima.</span>
+            </span>
+          </label>
+        </div>
+
+        <button onClick={confermaConsensi} disabled={!chkA3} style={{
+          width: '100%', marginTop: 16, padding: '14px 16px', borderRadius: 999,
+          background: chkA3 ? PINK_X : TINT_X,
+          color: chkA3 ? '#fff' : MUTED_X,
+          border: 'none', fontSize: 15.5, fontWeight: 700, fontFamily: 'inherit',
+          cursor: chkA3 ? 'pointer' : 'not-allowed',
+          transition: 'background 0.18s, color 0.18s',
+        }}>Continua</button>
+        <div style={{ fontSize: 12, color: MUTED_X, textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>
+          Senza il primo consenso questa sezione resta vuota: nessun dato viene salvato.
+        </div>
+      </div>
+    );
+  }
+
   const SectionHeader = ({ title, badge, description, icon, color, bg }) => (
     <div style={{ marginBottom: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -182,6 +274,30 @@ function AllergensView({ onBack, prefs, setPrefs }) {
             </div>
           );
         })}
+      </div>
+
+      {/* ─── I tuoi consensi — la promessa «modifico o revoco quando voglio»
+          mantenuta nello stesso posto dove è stata fatta. */}
+      <div style={{ marginTop: 28 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: TEXT_X, marginBottom: 12 }}>I tuoi consensi</div>
+        <div style={{ background: SURF_X, borderRadius: 14, padding: '13px 14px', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC'}` }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: TEXT_X }}>Offerte sulle mie preferenze</div>
+              <div style={{ fontSize: 12, color: MUTED_X, marginTop: 2, lineHeight: 1.45 }}>
+                Promozioni costruite su diete e allergeni, con notifiche dal testo generico.
+              </div>
+            </div>
+            <ProfileToggle value={!!consensi?.a18?.ok} onChange={(v) => cambiaA18(v)}/>
+          </div>
+        </div>
+        <button onClick={revocaA3} style={{
+          marginTop: 12, padding: 0, border: 'none', background: 'transparent',
+          fontSize: 12.5, fontWeight: 600, color: MUTED_X, fontFamily: 'inherit',
+          cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2,
+        }}>
+          Revoca il consenso ed elimina le mie preferenze alimentari
+        </button>
       </div>
 
     </div>
@@ -629,7 +745,7 @@ function SegnalaView({ onBack }) {
   );
 }
 
-function MieiDatiView({ onBack }) {
+function MieiDatiView({ onBack, onOpenPrivacy }) {
   const [nome, setNome] = useState('Mario');
   const [cognome, setCognome] = useState('Rossi');
   const [genere, setGenere] = useState('Uomo');
@@ -704,6 +820,12 @@ function MieiDatiView({ onBack }) {
 
         <Field label="Data di nascita" value={nascita} onChange={setNascita} type="text"/>
       </div>
+
+      {/* ─── Consensi — i cinque del registro, con stato, data dell'ultimo
+          cambio e link alla sezione dell'informativa. Ogni cambio scrive su
+          consent_data con timestamp e versione: quello è il log che fa da
+          prova, non lo stato del toggle. */}
+      <ConsensiPanel onOpenPrivacy={onOpenPrivacy}/>
 
       <button onClick={salva} style={{
         width: '100%', marginTop: 32, padding: '15px',
@@ -1277,7 +1399,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'miei-dati' && (
-          <MieiDatiView onBack={() => setView('main')}/>
+          <MieiDatiView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')}/>
         )}
 
         {view === 'terms' && (
@@ -2556,3 +2678,71 @@ function SocialDot({ label }) {
 }
 
 Object.assign(window, { ProfileScreen, VenueScreen, BookingSheet });
+
+// ─── ConsensiPanel — i cinque consensi del registro in un posto solo ────────
+// A3 e A18 nascono nella sezione allergeni, A4 nella mappa, A6 alla
+// registrazione, A7 nei suggeriti: qui si RIVEDONO e si cambiano. Spegnere
+// A3 cancella anche le preferenze salvate (senza consenso, niente dato).
+const CONSENSI_DEF = [
+  { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', sez: 'Dati raccolti' },
+  { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  sez: 'Finalità e base giuridica' },
+  { id: 'A4',  label: 'Storico posizioni',                   desc: 'Data e luogo di rilevazioni e accessi · 24 mesi', sez: 'Conservazione' },
+  { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e promozioni via email e notifica',   sez: 'Finalità e base giuridica' },
+  { id: 'A7',  label: 'Suggerimenti personalizzati',         desc: 'Consigli basati su storico ordini e gusti',  sez: 'Finalità e base giuridica' },
+];
+
+function ConsensiPanel({ onOpenPrivacy }) {
+  const [, forza] = useState(0);
+  const cambia = (id, v) => {
+    ByupConsensi.set(id, v);
+    if (id === 'A3' && !v) {
+      // niente base giuridica, niente dato
+      try { localStorage.setItem('byup_allergens', JSON.stringify({ allergens: {}, diets: {} })); } catch (e) {}
+      if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
+    }
+    forza(x => x + 1);
+  };
+  const quando = (st) => {
+    if (!st) return 'Mai richiesto';
+    const d = new Date(st.quando);
+    return `Aggiornato il ${d.toLocaleDateString('it-IT')} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  };
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8, paddingLeft: 2 }}>
+        Consensi
+      </div>
+      <div style={{ background: TINT_X, borderRadius: 14, overflow: 'hidden' }}>
+        {CONSENSI_DEF.map((c, i) => {
+          const st = ByupConsensi.stato(c.id);
+          return (
+            <div key={c.id} style={{
+              padding: '13px 14px',
+              borderBottom: i < CONSENSI_DEF.length - 1 ? '1px solid #EDE8EA' : 'none',
+              background: SURF_X,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 600, color: TEXT_X }}>{c.label}</div>
+                  <div style={{ fontSize: 12, color: MUTED_X, marginTop: 2, lineHeight: 1.45 }}>{c.desc}</div>
+                </div>
+                <ProfileToggle value={!!(st && st.ok)} onChange={(v) => cambia(c.id, v)}/>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 7 }}>
+                <span style={{ fontSize: 11.5, color: MUTED_X }}>{quando(st)}</span>
+                <button onClick={onOpenPrivacy} style={{
+                  padding: 0, border: 'none', background: 'transparent',
+                  fontSize: 11.5, fontWeight: 600, color: MUTED_X, fontFamily: 'inherit',
+                  cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2,
+                }}>Informativa · {c.sez}</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 8, lineHeight: 1.5, paddingLeft: 2 }}>
+        Ogni modifica viene registrata con data, ora e versione dell'informativa (v{ByupConsensi.VERSIONE_INFORMATIVA}).
+      </div>
+    </div>
+  );
+}

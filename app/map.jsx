@@ -549,6 +549,14 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
   const mapControlsRef              = React.useRef(null);
   const [searchQ, setSearchQ]       = React.useState('');
 
+  // ─── Consenso A4 — storico posizioni (art. 9? no: 6.1.a; registro A4) ──
+  // Schermata DISTINTA al primo uso della discovery, dopo il permesso GPS
+  // del sistema: il permesso dice "puoi leggere dove sono ORA", questo
+  // consenso dice "puoi SALVARE dove sono stato". Rifiutare non toglie
+  // niente: la discovery usa la posizione al volo senza salvarla.
+  const [chiediA4, setChiediA4] = React.useState(() => !ByupConsensi.stato('A4'));
+  const decidiA4 = (ok) => { ByupConsensi.set('A4', ok); setChiediA4(false); };
+
   // Focus richiesto da un'altra schermata (vetrina → "Indicazioni"):
   // seleziona il locale e la mappa ci vola sopra.
   React.useEffect(() => {
@@ -567,6 +575,56 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
     catFilter === 'all' ? allVenues : allVenues.filter(v => v.cuisine === catFilter),
     [catFilter, allVenues]
   );
+
+  // La schermata del consenso A4 copre tutto: è una scelta, non un banner.
+  if (chiediA4) {
+    return (
+      <div style={{
+        position: 'absolute', inset: 0, background: BG_PAGE, overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+      }}>
+        {/* La mappa intravista sotto, sfocata: si capisce dove si sta andando */}
+        <div style={{ position: 'absolute', inset: 0, filter: 'blur(6px)', opacity: 0.35, pointerEvents: 'none' }}>
+          <LeafletMap venues={[]} selectedId={null} onVenueSelect={() => {}} controlsRef={{current: null}}/>
+        </div>
+        <div style={{
+          position: 'relative', background: '#fff', borderRadius: '24px 24px 0 0',
+          padding: '26px 22px 34px', boxShadow: '0 -18px 50px rgba(28,15,21,0.18)',
+        }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 999, background: TINT,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 20, marginBottom: 14,
+          }}>📍</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: TEXT, letterSpacing: -0.3, marginBottom: 6 }}>
+            Vuoi salvare lo storico delle posizioni?
+          </div>
+          <div style={{ fontSize: 13.5, color: '#7a7176', lineHeight: 1.55, marginBottom: 14 }}>
+            Acconsento al salvataggio di data e luogo delle mie rilevazioni di posizione
+            e degli accessi all'app, per la sicurezza del mio account, verifiche e
+            assistenza. Conservate 24 mesi; le vedo e le cancello dal profilo.
+          </div>
+          <div style={{
+            padding: '10px 13px', borderRadius: 12, background: TINT,
+            fontSize: 12.5, color: '#7a7176', lineHeight: 1.5, marginBottom: 18,
+          }}>
+            Se non acconsenti, la scoperta dei locali <b style={{color: TEXT}}>funziona lo stesso</b>:
+            la posizione viene usata al volo e non salvata.
+          </div>
+          <button onClick={() => decidiA4(true)} style={{
+            width: '100%', padding: '15px 16px', borderRadius: 999,
+            background: '#E32459', color: '#fff', border: 'none',
+            fontSize: 15.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+          }}>Acconsento</button>
+          <button onClick={() => decidiA4(false)} style={{
+            width: '100%', padding: '13px 16px', marginTop: 8,
+            background: 'transparent', color: TEXT, border: 'none',
+            fontSize: 14.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+          }}>Continua senza salvare</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: BG_PAGE, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
