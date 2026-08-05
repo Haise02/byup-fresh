@@ -8,7 +8,7 @@ function StatEconomici() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      <div style={{display:'flex', gap: 14}}>
+      <div style={{display:'flex', gap: 22, borderBottom: `1px solid ${PN.BORDER}`}}>
         <StatSubTab active={sub==='ricavi'} onClick={() => setSub('ricavi')} label="Ricavi e costi" icon="commerce-money"/>
         <StatSubTab active={sub==='vendite'} onClick={() => setSub('vendite')} label="Vendite piatti" icon="food-meal"/>
       </div>
@@ -78,7 +78,7 @@ function RicaviCosti({ d, months }) {
               const path = line.arr.map((val, i) => `${i===0?'M':'L'}${36 + i * (424/(line.arr.length-1))},${172 - (val/max)*156}`).join(' ');
               return <path key={k} d={path} fill="none" stroke={line.col} strokeWidth={2}/>;
             })}
-            {months.slice(0, 12).map((m, i) => <text key={i} x={36 + i*(424/11)} y={194} fontSize="9" fill={PN.MUTED} textAnchor="middle">{m}</text>)}
+            {months.slice(0, 12).map((m, i) => <text key={i} x={36 + i*(424/11)} y={194} fontSize="11" fill={PN.MUTED} textAnchor="middle">{m}</text>)}
           </svg>
           <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 8, marginTop: 12}}>
             <Mini label="Sala" pct={43} val="34.020 €"/>
@@ -136,7 +136,7 @@ function RicaviCosti({ d, months }) {
             return (
               <g key={i}>
                 <line x1={fP.l} y1={y} x2={fW - fP.r} y2={y} stroke={PN.BORDER_SOFT}/>
-                <text x={fP.l - 8} y={y + 4} fontSize="10" fill={PN.MUTED} textAnchor="end">€{(val/1000).toFixed(0)}K</text>
+                <text x={fP.l - 8} y={y + 4} fontSize="11" fill={PN.MUTED} textAnchor="end">€{(val/1000).toFixed(0)}K</text>
               </g>
             );
           })}
@@ -153,15 +153,19 @@ function RicaviCosti({ d, months }) {
           <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK_SOFT}}/> fissi</span>
         </span>
       }>
-        <div style={{padding:'12px 16px', background: PN.WINE, borderRadius: 12, marginBottom: 16, color:'#fff', display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-          <div>
-            <div style={{fontSize: 14.5, opacity: 0.85}}>Costi totali del periodo</div>
-            <div style={{fontSize: 24, fontWeight: 700, marginTop: 2, fontVariantNumeric:'tabular-nums'}}>€ {STAT_ECONOMICI.costi.val.toLocaleString('it-IT', {useGrouping: true})}</div>
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          padding:'12px 16px', background:'#FAFAFB',
+          border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, marginBottom: 16,
+        }}>
+          <div style={{fontSize: 14.5, color: PN.MUTED}}>Costi totali del periodo</div>
+          <div style={{display:'flex', alignItems:'center', gap: 10}}>
+            <span style={{fontSize: 22, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€ {STAT_ECONOMICI.costi.val.toLocaleString('it-IT', {useGrouping: true})}</span>
+            <span style={{
+              padding:'3px 10px', background: PN.GREEN_SOFT, color: PN.GREEN,
+              borderRadius: 999, fontSize: 13, fontWeight: 700,
+            }}>↓ 4,2% vs mese scorso</span>
           </div>
-          <span style={{
-            padding:'5px 12px', background:'rgba(255,255,255,0.2)',
-            borderRadius: 999, fontSize: 14.5, fontWeight: 700,
-          }}>↓ 4.2% vs mese scorso</span>
         </div>
         <div style={{display:'flex', flexDirection:'column', gap: 12}}>
           {STAT_ECONOMICI.costiBreakdown.map((c, i) => (

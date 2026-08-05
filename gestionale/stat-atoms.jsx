@@ -269,58 +269,46 @@ function StatPeriodPicker({ period, setPeriod }) {
   );
 }
 
-// ─── Macro tab — gruppo a segmenti (dal riferimento grafico di Fabio) ────
-// Scatola bianca bordata, un segmento per tab: l'attivo ha il testo pieno e
-// la sottolineatura rossa sul filo inferiore, i vicini un filetto divisore.
-function StatTabs({ tabs, active, onChange }) {
+// ─── Macro tab — PnSectionTab su filo, come Contabilità ──────────────────
+// Il linguaggio unico delle tab di sezione (underline rosa), niente scatole:
+// la navigazione si ritira, i dati dominano. `action` (il period picker)
+// siede sullo stesso filo, allineato a destra.
+function StatTabs({ tabs, active, onChange, action }) {
   return (
     <div style={{
-      display: 'inline-flex', alignItems: 'stretch',
-      background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-      borderRadius: 16, overflow: 'hidden',
-      boxShadow: '0 1px 2px rgba(15,17,21,0.04)',
+      display: 'flex', alignItems: 'flex-end', gap: 4,
+      borderBottom: `1px solid ${PN.BORDER}`,
     }}>
-      {tabs.map((t, i) => {
-        const on = active === t.id;
-        return (
-          <button key={t.id} onClick={() => onChange(t.id)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 9,
-            padding: '13px 26px',
-            background: PN.WHITE, border: 'none',
-            borderLeft: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-            boxShadow: on ? `inset 0 -3px 0 ${PN.PINK}` : 'none',
-            color: on ? PN.TEXT : PN.MUTED,
-            fontSize: 16, fontWeight: on ? 700 : 600,
-            cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-            transition: 'color 140ms ease, box-shadow 140ms ease',
-          }}>
-            {t.icon && <Icon name={t.icon} size={15}/>}
-            {t.label}
-          </button>
-        );
-      })}
+      {tabs.map(t => (
+        <PnSectionTab key={t.id} id={t.id} active={active === t.id} onClick={onChange} label={t.label} icon={t.icon}/>
+      ))}
+      {action && <div style={{marginLeft: 'auto', marginBottom: 8}}>{action}</div>}
     </div>
   );
 }
 
-// ─── Sub-tab — card larghe con icona, a tutta riga (stesso riferimento).
-// L'attiva è rossa su fondo tenue; le altre card bianche appena rialzate.
+// ─── Sub-tab — underline nera, il linguaggio sub del gestionale ──────────
+// Stesso disegno di ImpSubTabs (Impostazioni), qui con icona piccola.
+// Va montato in un contenitore flex con gap 22 e filo `PN.BORDER` sotto.
 function StatSubTab({ active, onClick, label, icon }) {
   return (
-    <button onClick={onClick} style={{
-      flex: 1, minWidth: 0,
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 12,
-      padding: '17px 14px', borderRadius: 14,
-      background: active ? '#FFF7F6' : PN.WHITE,
-      border: `1.5px solid ${active ? 'rgba(255, 90, 95, 0.55)' : PN.BORDER_SOFT}`,
-      boxShadow: active ? '0 2px 10px rgba(255, 90, 95, 0.10)' : '0 1px 2px rgba(15,17,21,0.04)',
-      color: active ? PN.PINK_DARK : PN.TEXT,
-      fontSize: 18, fontWeight: active ? 700 : 600,
-      cursor: 'pointer', fontFamily: 'inherit',
-      transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease',
-      whiteSpace: 'nowrap',
-    }}>
-      {icon && <Icon name={icon} size={18}/>}
+    <button onClick={onClick}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.color = PN.TEXT; }}
+      onMouseLeave={e => { e.currentTarget.style.color = active ? PN.TEXT : PN.MUTED; e.currentTarget.style.transform = ''; }}
+      onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
+      onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        padding: '10px 4px',
+        background: 'transparent', border: 'none',
+        borderBottom: `2px solid ${active ? PN.TEXT : 'transparent'}`,
+        marginBottom: -1,
+        color: active ? PN.TEXT : PN.MUTED,
+        fontSize: 15.5, fontWeight: active ? 700 : 500,
+        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+        transition: 'color 140ms ease, transform 130ms ease',
+      }}>
+      {icon && <Icon name={icon} size={14}/>}
       {label}
     </button>
   );
