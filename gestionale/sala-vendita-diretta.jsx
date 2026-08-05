@@ -2465,12 +2465,13 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
               <div style={{padding: '14px 28px 0'}}>
                 <div style={SVI_LABEL}>Quanto incassi ora</div>
 
-                {/* Tutto / Metà / Altro: quanto togli dal conto. "Tutto" è già
+                {/* Tutto / Metà: quanto togli dal conto. "Tutto" è già
                     scritto nel campo all'apertura, quindi il caso normale non
-                    chiede nemmeno un tocco. */}
+                    chiede nemmeno un tocco; la cifra personalizzata è il
+                    campo qui sotto. */}
                 <div style={{
                   display: 'grid', gap: 10, marginBottom: 12,
-                  gridTemplateColumns: `repeat(${quote.length + 1}, 1fr)`,
+                  gridTemplateColumns: `repeat(${quote.length}, 1fr)`,
                 }}>
                   {quote.map(q => {
                     const on = quota === q.k;
@@ -2493,30 +2494,13 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       </button>
                     );
                   })}
-                  {/* La cifra la scrive l'operatore: gli altri pulsanti si
-                      spengono, il campo si svuota e prende il focus. */}
-                  <button
-                    onClick={() => {
-                      setQuota('altro');
-                      setImporto('');
-                      setRicevuto(null);
-                      importoRef.current?.focus();
-                    }}
-                    style={{
-                      padding: '8px 8px', borderRadius: 12,
-                      background: quota === 'altro' ? SVI_TINT : '#fff',
-                      border: `1px solid ${quota === 'altro' ? SVI_CORAL : SVI_BORDER}`,
-                      color: quota === 'altro' ? SVI_CORAL : SVI_INK,
-                      fontSize: 15, lineHeight: 1.2, fontWeight: 700,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}>Cifra personalizzata</button>
                 </div>
 
-                {/* Tutto il riquadro porta al campo: al banco si tocca la
-                    cifra, non il cursore alto due millimetri. Il select()
-                    vive SOLO nel primo focus: prima ogni click riselezionava
-                    tutto e il cursore non si poteva mai posizionare — la
-                    cifra non era davvero modificabile, solo sostituibile. */}
+                {/* La cifra personalizzata È questo campo, non un pulsante:
+                    al primo tocco si svuota (il valore che mostrava era
+                    quello di Tutto/Metà), i pulsanti sopra si spengono e
+                    resta attivo solo lui. Da lì in poi i click posizionano
+                    il cursore: quello che scrivi resta modificabile. */}
                 <div
                   onClick={() => { importoRef.current?.focus(); }}
                   style={{
@@ -2536,7 +2520,16 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       // si spengono da soli, qualunque valore ci sia.
                       setQuota('altro');
                     }}
-                    onFocus={e => e.target.select()}
+                    onFocus={() => {
+                      // Il valore mostrato era di Tutto/Metà: al tocco si
+                      // azzera e la scelta passa al campo. Se la cifra è già
+                      // tua, il focus non te la butta via.
+                      if (quota !== 'altro') {
+                        setQuota('altro');
+                        setImporto('');
+                        setRicevuto(null);
+                      }
+                    }}
                     inputMode="decimal"
                     placeholder="0,00"
                     style={{
