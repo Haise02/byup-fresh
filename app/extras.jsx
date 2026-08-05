@@ -243,13 +243,42 @@ function AllergensView({ onBack, prefs, setPrefs }) {
               <span style={{ fontSize: 12.5, color: TEXT_X, lineHeight: 1.5 }}>{CONSENSO_A3}</span>
             </label>
             <div style={{ height: 1, background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC', margin: '11px 0' }}/>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-              <input type="checkbox" checked={chkA18} onChange={e => setChkA18(e.target.checked)}
-                style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
-              <span style={{ fontSize: 12.5, color: MUTED_X, lineHeight: 1.5 }}>
-                {CONSENSO_A18} <span style={{ color: '#C9C2C5' }}>(Facoltativa)</span>
+            {/* A18 — card da opt-in come la A6 alla registrazione: si vende il
+                BENEFICIO in testa, il testo del consenso resta integrale
+                sotto. Mai preselezionata (il sì deve restare un gesto). */}
+            <button onClick={() => setChkA18(v => !v)} aria-label="Consenso offerte sulle preferenze" style={{
+              display: 'flex', alignItems: 'flex-start', gap: 11, width: '100%',
+              padding: '12px 13px', borderRadius: 16, textAlign: 'left',
+              background: chkA18 ? CORALSURF_X : TINT_X,
+              border: `1.5px solid ${chkA18 ? PINK_X : 'transparent'}`,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all .18s',
+            }}>
+              <span style={{
+                width: 36, height: 36, borderRadius: 12, flexShrink: 0,
+                background: chkA18 ? PINK_X : (__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F3EBEE'),
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 17, transition: 'background .18s',
+              }}>🏷️</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: TEXT_X }}>
+                  Offerte sui piatti giusti per te
+                </span>
+                <span style={{ display: 'block', fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.45 }}>
+                  {CONSENSO_A18} <span style={{ color: '#C9C2C5' }}>(Facoltativa)</span>
+                </span>
               </span>
-            </label>
+              <span style={{
+                width: 24, height: 24, borderRadius: 8, flexShrink: 0, marginTop: 6,
+                border: `1.5px solid ${chkA18 ? PINK_X : '#CFC8CB'}`,
+                background: chkA18 ? PINK_X : (__BYUP_DK_X ? 'transparent' : '#fff'),
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all .18s',
+              }}>
+                {chkA18 && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                )}
+              </span>
+            </button>
 
             <button onClick={confermaConsensi} disabled={!chkA3} style={{
               width: '100%', marginTop: 14, padding: '14px 16px', borderRadius: 999,

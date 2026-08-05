@@ -1605,35 +1605,86 @@ function AllergensView({
       background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC',
       margin: '11px 0'
     }
-  }), /*#__PURE__*/React.createElement("label", {
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setChkA18(v => !v),
+    "aria-label": "Consenso offerte sulle preferenze",
     style: {
       display: 'flex',
       alignItems: 'flex-start',
-      gap: 10,
-      cursor: 'pointer'
+      gap: 11,
+      width: '100%',
+      padding: '12px 13px',
+      borderRadius: 16,
+      textAlign: 'left',
+      background: chkA18 ? CORALSURF_X : TINT_X,
+      border: `1.5px solid ${chkA18 ? PINK_X : 'transparent'}`,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      transition: 'all .18s'
     }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: chkA18,
-    onChange: e => setChkA18(e.target.checked),
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      accentColor: PINK_X,
-      width: 17,
-      height: 17,
-      marginTop: 2,
-      flexShrink: 0
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      flexShrink: 0,
+      background: chkA18 ? PINK_X : __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F3EBEE',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 17,
+      transition: 'background .18s'
     }
-  }), /*#__PURE__*/React.createElement("span", {
+  }, "\uD83C\uDFF7\uFE0F"), /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 12.5,
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: TEXT_X
+    }
+  }, "Offerte sui piatti giusti per te"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 11.5,
       color: MUTED_X,
-      lineHeight: 1.5
+      marginTop: 2,
+      lineHeight: 1.45
     }
   }, CONSENSO_A18, " ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: '#C9C2C5'
     }
-  }, "(Facoltativa)"))), /*#__PURE__*/React.createElement("button", {
+  }, "(Facoltativa)"))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 8,
+      flexShrink: 0,
+      marginTop: 6,
+      border: `1.5px solid ${chkA18 ? PINK_X : '#CFC8CB'}`,
+      background: chkA18 ? PINK_X : __BYUP_DK_X ? 'transparent' : '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all .18s'
+    }
+  }, chkA18 && /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: "3.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "20 6 9 17 4 12"
+  })))), /*#__PURE__*/React.createElement("button", {
     onClick: confermaConsensi,
     disabled: !chkA3,
     style: {
