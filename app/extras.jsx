@@ -81,103 +81,40 @@ function ProfileToggle({ value, onChange }) {
 }
 
 function AllergensView({ onBack, prefs, setPrefs }) {
-  const toggle = (group, id) => setPrefs(p => ({
+  // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
+  // Just-in-time, come fanno le app comparabili: la sezione si SFOGLIA
+  // liberamente (guardare la lista non conferisce nessun dato), e il
+  // consenso A3 compare al PRIMO toggle — il momento in cui il dato nasce
+  // davvero. A18 (offerte sulle preferenze) è la spunta autonoma sotto:
+  // mai pre-attivata, mai registrata se non scelta. Il centro di controllo
+  // resta nel pannello «I miei dati».
+  const [consensoOk, setConsensoOk] = useState(() => { const st = ByupConsensi.stato('A3'); return !!(st && st.ok); });
+  const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
+  const [chkA3, setChkA3] = useState(false);
+  const [chkA18, setChkA18] = useState(false);
+
+  const applica = (group, id) => setPrefs(p => ({
     ...p,
     [group]: { ...(p[group] || {}), [id]: !(p[group]?.[id]) },
   }));
+  const toggle = (group, id) => {
+    if (!consensoOk) { setPending({ group, id }); return; }
+    applica(group, id);
+  };
   const count = (group) => Object.values(prefs[group] || {}).filter(Boolean).length;
 
-  // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
-  // Allergeni e diete possono rivelare dati su salute o convinzioni
-  // religiose: il consenso A3 si chiede la PRIMA volta che si apre questa
-  // sezione — è qui che il dato nasce, non alla registrazione. A18
-  // (offerte costruite sulle preferenze) è una spunta AUTONOMA: mai
-  // pre-attivata, mai legata alla prima. Entrambi con timestamp, entrambi
-  // revocabili da qui.
-  const [consensi, setConsensi] = useState(() => ({
-    a3: ByupConsensi.stato('A3'), a18: ByupConsensi.stato('A18'),
-  }));
-  const [chkA3, setChkA3] = useState(false);
-  const [chkA18, setChkA18] = useState(false);
   const confermaConsensi = () => {
     if (!chkA3) return;
-    // A18 si scrive solo se spuntata: non registriamo un "no" mai chiesto
-    // davvero — la spunta è autonoma, non parte del gate.
-    const a3 = ByupConsensi.set('A3', true);
-    const a18 = chkA18 ? ByupConsensi.set('A18', true) : ByupConsensi.stato('A18');
-    setConsensi({ a3, a18 });
+    ByupConsensi.set('A3', true);
+    if (chkA18) ByupConsensi.set('A18', true);
+    setConsensoOk(true);
+    if (pending) applica(pending.group, pending.id);
+    setPending(null);
   };
-  const cambiaA18 = (v) => setConsensi(c => ({ ...c, a18: ByupConsensi.set('A18', v) }));
-  const revocaA3 = () => {
-    // Revocare il consenso cancella anche il dato: senza base giuridica le
-    // preferenze non restano da nessuna parte. A18 senza A3 non ha oggetto.
-    setPrefs({ allergens: {}, diets: {} });
-    setChkA3(false); setChkA18(false);
-    ByupConsensi.azzera('A3');
-    if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
-    setConsensi({ a3: null, a18: ByupConsensi.stato('A18') });
-  };
+  const annullaConsensi = () => { setPending(null); setChkA3(false); setChkA18(false); };
 
   const CONSENSO_A3 = 'Acconsento al trattamento dei miei allergeni e delle mie preferenze alimentari, che possono rivelare dati su salute o convinzioni religiose, per filtrare i menu e personalizzare l\'esperienza. Posso modificarli o revocare quando voglio.';
   const CONSENSO_A18 = 'Voglio ricevere offerte e promozioni costruite sulle mie preferenze alimentari e i miei allergeni (es. proposte senza glutine). Le notifiche avranno testo generico: il dettaglio lo vedo in app.';
-
-  // Prima apertura: solo la richiesta di consenso, niente sezione.
-  if (!consensi?.a3?.ok) {
-    return (
-      <div style={{ animation: 'profileSlideIn 0.28s cubic-bezier(.2,.8,.2,1)' }}>
-        <button onClick={onBack} style={{
-          width: 36, height: 36, borderRadius: 999, background: TINT_X,
-          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', marginBottom: 22,
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Preferenze alimentari</div>
-        <div style={{ fontSize: 13, color: MUTED_X, marginBottom: 24, lineHeight: 1.5 }}>
-          Prima di iniziare, una cosa importante: questi dati sono tuoi e delicati.
-        </div>
-
-        <div style={{ background: SURF_X, borderRadius: 16, padding: '18px 16px', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC'}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <span style={{
-              width: 34, height: 34, borderRadius: 999, background: CORALSURF_X,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0,
-            }}>🔒</span>
-            <div style={{ fontSize: 15, fontWeight: 700, color: TEXT_X }}>Il tuo consenso</div>
-          </div>
-
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 11, cursor: 'pointer' }}>
-            <input type="checkbox" checked={chkA3} onChange={e => setChkA3(e.target.checked)}
-              style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
-            <span style={{ fontSize: 13.5, color: TEXT_X, lineHeight: 1.55 }}>{CONSENSO_A3}</span>
-          </label>
-
-          {/* A18: autonoma, sotto, MAI attivata insieme alla prima. */}
-          <div style={{ height: 1, background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC', margin: '14px 0' }}/>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 11, cursor: 'pointer' }}>
-            <input type="checkbox" checked={chkA18} onChange={e => setChkA18(e.target.checked)}
-              style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
-            <span style={{ fontSize: 13.5, color: TEXT_X, lineHeight: 1.55 }}>
-              {CONSENSO_A18}
-              <span style={{ display: 'block', fontSize: 12, color: MUTED_X, marginTop: 3 }}>Facoltativa e indipendente dalla prima.</span>
-            </span>
-          </label>
-        </div>
-
-        <button onClick={confermaConsensi} disabled={!chkA3} style={{
-          width: '100%', marginTop: 16, padding: '14px 16px', borderRadius: 999,
-          background: chkA3 ? PINK_X : TINT_X,
-          color: chkA3 ? '#fff' : MUTED_X,
-          border: 'none', fontSize: 15.5, fontWeight: 700, fontFamily: 'inherit',
-          cursor: chkA3 ? 'pointer' : 'not-allowed',
-          transition: 'background 0.18s, color 0.18s',
-        }}>Continua</button>
-        <div style={{ fontSize: 12, color: MUTED_X, textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>
-          Senza il primo consenso questa sezione resta vuota: nessun dato viene salvato.
-        </div>
-      </div>
-    );
-  }
 
   const SectionHeader = ({ title, badge, description, icon, color, bg }) => (
     <div style={{ marginBottom: 12 }}>
@@ -276,29 +213,58 @@ function AllergensView({ onBack, prefs, setPrefs }) {
         })}
       </div>
 
-      {/* ─── I tuoi consensi — la promessa «modifico o revoco quando voglio»
-          mantenuta nello stesso posto dove è stata fatta. */}
-      <div style={{ marginTop: 28 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: TEXT_X, marginBottom: 12 }}>I tuoi consensi</div>
-        <div style={{ background: SURF_X, borderRadius: 14, padding: '13px 14px', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC'}` }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: TEXT_X }}>Offerte sulle mie preferenze</div>
-              <div style={{ fontSize: 12, color: MUTED_X, marginTop: 2, lineHeight: 1.45 }}>
-                Promozioni costruite su diete e allergeni, con notifiche dal testo generico.
-              </div>
+      {/* Nota discreta: dove si gestisce tutto. */}
+      <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 20, lineHeight: 1.5 }}>
+        Gestisci consensi e revoca da Profilo → I miei dati.
+      </div>
+
+      {/* ─── Sheet just-in-time: compare al primo toggle, il momento in cui
+          il dato nasce. Conferma → applica anche la scelta in sospeso;
+          annulla → non si salva niente. */}
+      {pending && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) annullaConsensi(); }} style={{
+          position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,8,12,.5)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease',
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 520, background: SURF_X, borderRadius: '24px 24px 0 0',
+            padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+            animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <div style={{ width: 38, height: 4, borderRadius: 999, background: BORDER_X }}/>
             </div>
-            <ProfileToggle value={!!consensi?.a18?.ok} onChange={(v) => cambiaA18(v)}/>
+            <div style={{ fontSize: 17, fontWeight: 800, color: TEXT_X, marginBottom: 10 }}>Prima di salvare</div>
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={chkA3} onChange={e => setChkA3(e.target.checked)}
+                style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
+              <span style={{ fontSize: 12.5, color: TEXT_X, lineHeight: 1.5 }}>{CONSENSO_A3}</span>
+            </label>
+            <div style={{ height: 1, background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC', margin: '11px 0' }}/>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={chkA18} onChange={e => setChkA18(e.target.checked)}
+                style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
+              <span style={{ fontSize: 12.5, color: MUTED_X, lineHeight: 1.5 }}>
+                {CONSENSO_A18} <span style={{ color: '#C9C2C5' }}>(Facoltativa)</span>
+              </span>
+            </label>
+
+            <button onClick={confermaConsensi} disabled={!chkA3} style={{
+              width: '100%', marginTop: 14, padding: '14px 16px', borderRadius: 999,
+              background: chkA3 ? PINK_X : TINT_X, color: chkA3 ? '#fff' : MUTED_X,
+              border: 'none', fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+              cursor: chkA3 ? 'pointer' : 'not-allowed', transition: 'background .18s, color .18s',
+            }}>Conferma e salva</button>
+            <button onClick={annullaConsensi} style={{
+              width: '100%', padding: '11px 16px', marginTop: 4,
+              background: 'transparent', color: MUTED_X, border: 'none',
+              fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+            }}>Non ora</button>
           </div>
         </div>
-        <button onClick={revocaA3} style={{
-          marginTop: 12, padding: 0, border: 'none', background: 'transparent',
-          fontSize: 12.5, fontWeight: 600, color: MUTED_X, fontFamily: 'inherit',
-          cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2,
-        }}>
-          Revoca il consenso ed elimina le mie preferenze alimentari
-        </button>
-      </div>
+      )}
 
     </div>
   );

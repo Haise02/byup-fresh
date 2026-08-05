@@ -5032,36 +5032,34 @@ if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(<Root/>);
 // e la scelta (sì o no) finisce nel registro con timestamp. Ricompare solo
 // se si azzera dal pannello «I miei dati».
 function ConsensoA7Card() {
+  // Riga sottile, non una card: la scelta c'è ma non ruba la scena ai
+  // locali. Il testo del consenso sta sotto in piccolo; dopo la scelta
+  // sparisce (si riapre dal pannello «I miei dati»).
   const [, forza] = useState(0);
   const decidi = (ok) => { ByupConsensi.set('A7', ok); forza(x => x + 1); };
   if (ByupConsensi.stato('A7')) return null;
   return (
     <div style={{
-      background: '#fff', borderRadius: 18, padding: '16px 16px 14px',
-      border: '1.5px solid #F0EAEC', boxShadow: '0 2px 10px rgba(28,15,21,0.05)',
+      background: '#fff', borderRadius: 14, padding: '10px 13px',
+      border: '1px solid #F0EAEC',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <span style={{
-          width: 34, height: 34, borderRadius: 999, background: '#FCE9EE',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0,
-        }}>✨</span>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#1c0f15' }}>Suggerimenti su misura?</div>
-      </div>
-      <div style={{ fontSize: 13, color: '#7a7176', lineHeight: 1.5, marginBottom: 12 }}>
-        Acconsento all'uso del mio storico ordini e delle mie preferenze non sensibili
-        per ricevere suggerimenti personalizzati. Posso disattivarli quando voglio.
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 14, flexShrink: 0 }}>✨</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: '#1c0f15' }}>
+          Suggerimenti su misura?
+        </span>
         <button onClick={() => decidi(true)} style={{
-          flex: 1, padding: '11px 14px', borderRadius: 999,
-          background: '#E32459', color: '#fff', border: 'none',
-          fontSize: 14, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+          padding: '7px 14px', borderRadius: 999, background: '#E32459', color: '#fff',
+          border: 'none', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0,
         }}>Attiva</button>
         <button onClick={() => decidi(false)} style={{
-          flex: 1, padding: '11px 14px', borderRadius: 999,
-          background: '#F6F1F2', color: '#1c0f15', border: 'none',
-          fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-        }}>No, generici</button>
+          padding: '7px 10px', borderRadius: 999, background: 'transparent', color: '#7a7176',
+          border: 'none', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0,
+        }}>No</button>
+      </div>
+      <div style={{ fontSize: 10.5, color: '#a89ba1', lineHeight: 1.45, marginTop: 5 }}>
+        Uso dello storico ordini e delle preferenze non sensibili per suggerimenti
+        personalizzati. Disattivabile quando vuoi da «I miei dati».
       </div>
     </div>
   );

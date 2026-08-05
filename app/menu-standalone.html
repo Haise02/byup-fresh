@@ -1272,226 +1272,53 @@ function AllergensView({
   prefs,
   setPrefs
 }) {
-  const toggle = (group, id) => setPrefs(p => ({
+  // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
+  // Just-in-time, come fanno le app comparabili: la sezione si SFOGLIA
+  // liberamente (guardare la lista non conferisce nessun dato), e il
+  // consenso A3 compare al PRIMO toggle — il momento in cui il dato nasce
+  // davvero. A18 (offerte sulle preferenze) è la spunta autonoma sotto:
+  // mai pre-attivata, mai registrata se non scelta. Il centro di controllo
+  // resta nel pannello «I miei dati».
+  const [consensoOk, setConsensoOk] = useState(() => {
+    const st = ByupConsensi.stato('A3');
+    return !!(st && st.ok);
+  });
+  const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
+  const [chkA3, setChkA3] = useState(false);
+  const [chkA18, setChkA18] = useState(false);
+  const applica = (group, id) => setPrefs(p => ({
     ...p,
     [group]: {
       ...(p[group] || {}),
       [id]: !p[group]?.[id]
     }
   }));
+  const toggle = (group, id) => {
+    if (!consensoOk) {
+      setPending({
+        group,
+        id
+      });
+      return;
+    }
+    applica(group, id);
+  };
   const count = group => Object.values(prefs[group] || {}).filter(Boolean).length;
-
-  // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
-  // Allergeni e diete possono rivelare dati su salute o convinzioni
-  // religiose: il consenso A3 si chiede la PRIMA volta che si apre questa
-  // sezione — è qui che il dato nasce, non alla registrazione. A18
-  // (offerte costruite sulle preferenze) è una spunta AUTONOMA: mai
-  // pre-attivata, mai legata alla prima. Entrambi con timestamp, entrambi
-  // revocabili da qui.
-  const [consensi, setConsensi] = useState(() => ({
-    a3: ByupConsensi.stato('A3'),
-    a18: ByupConsensi.stato('A18')
-  }));
-  const [chkA3, setChkA3] = useState(false);
-  const [chkA18, setChkA18] = useState(false);
   const confermaConsensi = () => {
     if (!chkA3) return;
-    // A18 si scrive solo se spuntata: non registriamo un "no" mai chiesto
-    // davvero — la spunta è autonoma, non parte del gate.
-    const a3 = ByupConsensi.set('A3', true);
-    const a18 = chkA18 ? ByupConsensi.set('A18', true) : ByupConsensi.stato('A18');
-    setConsensi({
-      a3,
-      a18
-    });
+    ByupConsensi.set('A3', true);
+    if (chkA18) ByupConsensi.set('A18', true);
+    setConsensoOk(true);
+    if (pending) applica(pending.group, pending.id);
+    setPending(null);
   };
-  const cambiaA18 = v => setConsensi(c => ({
-    ...c,
-    a18: ByupConsensi.set('A18', v)
-  }));
-  const revocaA3 = () => {
-    // Revocare il consenso cancella anche il dato: senza base giuridica le
-    // preferenze non restano da nessuna parte. A18 senza A3 non ha oggetto.
-    setPrefs({
-      allergens: {},
-      diets: {}
-    });
+  const annullaConsensi = () => {
+    setPending(null);
     setChkA3(false);
     setChkA18(false);
-    ByupConsensi.azzera('A3');
-    if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
-    setConsensi({
-      a3: null,
-      a18: ByupConsensi.stato('A18')
-    });
   };
   const CONSENSO_A3 = 'Acconsento al trattamento dei miei allergeni e delle mie preferenze alimentari, che possono rivelare dati su salute o convinzioni religiose, per filtrare i menu e personalizzare l\'esperienza. Posso modificarli o revocare quando voglio.';
   const CONSENSO_A18 = 'Voglio ricevere offerte e promozioni costruite sulle mie preferenze alimentari e i miei allergeni (es. proposte senza glutine). Le notifiche avranno testo generico: il dettaglio lo vedo in app.';
-
-  // Prima apertura: solo la richiesta di consenso, niente sezione.
-  if (!consensi?.a3?.ok) {
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        animation: 'profileSlideIn 0.28s cubic-bezier(.2,.8,.2,1)'
-      }
-    }, /*#__PURE__*/React.createElement("button", {
-      onClick: onBack,
-      style: {
-        width: 36,
-        height: 36,
-        borderRadius: 999,
-        background: TINT_X,
-        border: 'none',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        marginBottom: 22
-      }
-    }, /*#__PURE__*/React.createElement("svg", {
-      width: "16",
-      height: "16",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: TEXT_X,
-      strokeWidth: "2.5",
-      strokeLinecap: "round",
-      strokeLinejoin: "round"
-    }, /*#__PURE__*/React.createElement("polyline", {
-      points: "15 18 9 12 15 6"
-    }))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 22,
-        fontWeight: 700,
-        marginBottom: 4
-      }
-    }, "Preferenze alimentari"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        color: MUTED_X,
-        marginBottom: 24,
-        lineHeight: 1.5
-      }
-    }, "Prima di iniziare, una cosa importante: questi dati sono tuoi e delicati."), /*#__PURE__*/React.createElement("div", {
-      style: {
-        background: SURF_X,
-        borderRadius: 16,
-        padding: '18px 16px',
-        border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC'}`
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 14
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 34,
-        height: 34,
-        borderRadius: 999,
-        background: CORALSURF_X,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 16,
-        flexShrink: 0
-      }
-    }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 15,
-        fontWeight: 700,
-        color: TEXT_X
-      }
-    }, "Il tuo consenso")), /*#__PURE__*/React.createElement("label", {
-      style: {
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 11,
-        cursor: 'pointer'
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "checkbox",
-      checked: chkA3,
-      onChange: e => setChkA3(e.target.checked),
-      style: {
-        accentColor: PINK_X,
-        width: 17,
-        height: 17,
-        marginTop: 2,
-        flexShrink: 0
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 13.5,
-        color: TEXT_X,
-        lineHeight: 1.55
-      }
-    }, CONSENSO_A3)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        height: 1,
-        background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC',
-        margin: '14px 0'
-      }
-    }), /*#__PURE__*/React.createElement("label", {
-      style: {
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 11,
-        cursor: 'pointer'
-      }
-    }, /*#__PURE__*/React.createElement("input", {
-      type: "checkbox",
-      checked: chkA18,
-      onChange: e => setChkA18(e.target.checked),
-      style: {
-        accentColor: PINK_X,
-        width: 17,
-        height: 17,
-        marginTop: 2,
-        flexShrink: 0
-      }
-    }), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 13.5,
-        color: TEXT_X,
-        lineHeight: 1.55
-      }
-    }, CONSENSO_A18, /*#__PURE__*/React.createElement("span", {
-      style: {
-        display: 'block',
-        fontSize: 12,
-        color: MUTED_X,
-        marginTop: 3
-      }
-    }, "Facoltativa e indipendente dalla prima.")))), /*#__PURE__*/React.createElement("button", {
-      onClick: confermaConsensi,
-      disabled: !chkA3,
-      style: {
-        width: '100%',
-        marginTop: 16,
-        padding: '14px 16px',
-        borderRadius: 999,
-        background: chkA3 ? PINK_X : TINT_X,
-        color: chkA3 ? '#fff' : MUTED_X,
-        border: 'none',
-        fontSize: 15.5,
-        fontWeight: 700,
-        fontFamily: 'inherit',
-        cursor: chkA3 ? 'pointer' : 'not-allowed',
-        transition: 'background 0.18s, color 0.18s'
-      }
-    }, "Continua"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: MUTED_X,
-        textAlign: 'center',
-        marginTop: 10,
-        lineHeight: 1.5
-      }
-    }, "Senza il primo consenso questa sezione resta vuota: nessun dato viene salvato."));
-  }
   const SectionHeader = ({
     title,
     badge,
@@ -1688,65 +1515,146 @@ function AllergensView({
     }));
   })), /*#__PURE__*/React.createElement("div", {
     style: {
-      marginTop: 28
+      fontSize: 11.5,
+      color: MUTED_X,
+      marginTop: 20,
+      lineHeight: 1.5
+    }
+  }, "Gestisci consensi e revoca da Profilo \u2192 I miei dati."), pending && /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) annullaConsensi();
+    },
+    style: {
+      position: 'fixed',
+      inset: 0,
+      zIndex: 80,
+      background: 'rgba(15,8,12,.5)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      animation: 'fade .2s ease'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      fontSize: 16,
-      fontWeight: 700,
-      color: TEXT_X,
-      marginBottom: 12
-    }
-  }, "I tuoi consensi"), /*#__PURE__*/React.createElement("div", {
-    style: {
+      width: '100%',
+      maxWidth: 520,
       background: SURF_X,
-      borderRadius: 14,
-      padding: '13px 14px',
-      border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC'}`
+      borderRadius: '24px 24px 0 0',
+      padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+      animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
+      justifyContent: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 999,
+      background: BORDER_X
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 800,
+      color: TEXT_X,
+      marginBottom: 10
+    }
+  }, "Prima di salvare"), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: 'flex',
       alignItems: 'flex-start',
-      gap: 12
+      gap: 10,
+      cursor: 'pointer'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: chkA3,
+    onChange: e => setChkA3(e.target.checked),
     style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 600,
-      color: TEXT_X
-    }
-  }, "Offerte sulle mie preferenze"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED_X,
+      accentColor: PINK_X,
+      width: 17,
+      height: 17,
       marginTop: 2,
-      lineHeight: 1.45
+      flexShrink: 0
     }
-  }, "Promozioni costruite su diete e allergeni, con notifiche dal testo generico.")), /*#__PURE__*/React.createElement(ProfileToggle, {
-    value: !!consensi?.a18?.ok,
-    onChange: v => cambiaA18(v)
-  }))), /*#__PURE__*/React.createElement("button", {
-    onClick: revocaA3,
+  }), /*#__PURE__*/React.createElement("span", {
     style: {
-      marginTop: 12,
-      padding: 0,
-      border: 'none',
-      background: 'transparent',
       fontSize: 12.5,
-      fontWeight: 600,
-      color: MUTED_X,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      textDecoration: 'underline',
-      textUnderlineOffset: 2
+      color: TEXT_X,
+      lineHeight: 1.5
     }
-  }, "Revoca il consenso ed elimina le mie preferenze alimentari")));
+  }, CONSENSO_A3)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC',
+      margin: '11px 0'
+    }
+  }), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 10,
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: chkA18,
+    onChange: e => setChkA18(e.target.checked),
+    style: {
+      accentColor: PINK_X,
+      width: 17,
+      height: 17,
+      marginTop: 2,
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: MUTED_X,
+      lineHeight: 1.5
+    }
+  }, CONSENSO_A18, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#C9C2C5'
+    }
+  }, "(Facoltativa)"))), /*#__PURE__*/React.createElement("button", {
+    onClick: confermaConsensi,
+    disabled: !chkA3,
+    style: {
+      width: '100%',
+      marginTop: 14,
+      padding: '14px 16px',
+      borderRadius: 999,
+      background: chkA3 ? PINK_X : TINT_X,
+      color: chkA3 ? '#fff' : MUTED_X,
+      border: 'none',
+      fontSize: 15,
+      fontWeight: 700,
+      fontFamily: 'inherit',
+      cursor: chkA3 ? 'pointer' : 'not-allowed',
+      transition: 'background .18s, color .18s'
+    }
+  }, "Conferma e salva"), /*#__PURE__*/React.createElement("button", {
+    onClick: annullaConsensi,
+    style: {
+      width: '100%',
+      padding: '11px 16px',
+      marginTop: 4,
+      background: 'transparent',
+      color: MUTED_X,
+      border: 'none',
+      fontSize: 13.5,
+      fontWeight: 600,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "Non ora"))));
 }
 function OrdersView({
   onBack,
@@ -10224,11 +10132,12 @@ function MapScreen({
   const mapControlsRef = React.useRef(null);
   const [searchQ, setSearchQ] = React.useState('');
 
-  // ─── Consenso A4 — storico posizioni (art. 9? no: 6.1.a; registro A4) ──
-  // Schermata DISTINTA al primo uso della discovery, dopo il permesso GPS
-  // del sistema: il permesso dice "puoi leggere dove sono ORA", questo
-  // consenso dice "puoi SALVARE dove sono stato". Rifiutare non toglie
-  // niente: la discovery usa la posizione al volo senza salvarla.
+  // ─── Consenso A4 — storico posizioni (registro A4) ──────────────────
+  // Come le app comparabili: la mappa si apre SUBITO, il consenso al
+  // salvataggio dello storico è una card compatta in basso — il permesso
+  // GPS del sistema dice "puoi leggere dove sono ora", questa scelta dice
+  // "puoi salvare dove sono stato". Qualunque risposta la chiude per
+  // sempre; rifiutare non toglie niente (posizione al volo, non salvata).
   const [chiediA4, setChiediA4] = React.useState(() => !ByupConsensi.stato('A4'));
   const decidiA4 = ok => {
     ByupConsensi.set('A4', ok);
@@ -10249,113 +10158,6 @@ function MapScreen({
   }, []);
   const allVenues = React.useMemo(() => Object.values(VENUES_BY_CITY).flat(), []);
   const filteredVenues = React.useMemo(() => catFilter === 'all' ? allVenues : allVenues.filter(v => v.cuisine === catFilter), [catFilter, allVenues]);
-
-  // La schermata del consenso A4 copre tutto: è una scelta, non un banner.
-  if (chiediA4) {
-    return /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        inset: 0,
-        background: BG_PAGE,
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'absolute',
-        inset: 0,
-        filter: 'blur(6px)',
-        opacity: 0.35,
-        pointerEvents: 'none'
-      }
-    }, /*#__PURE__*/React.createElement(LeafletMap, {
-      venues: [],
-      selectedId: null,
-      onVenueSelect: () => {},
-      controlsRef: {
-        current: null
-      }
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        position: 'relative',
-        background: '#fff',
-        borderRadius: '24px 24px 0 0',
-        padding: '26px 22px 34px',
-        boxShadow: '0 -18px 50px rgba(28,15,21,0.18)'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 44,
-        height: 44,
-        borderRadius: 999,
-        background: TINT,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 20,
-        marginBottom: 14
-      }
-    }, "\uD83D\uDCCD"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 20,
-        fontWeight: 800,
-        color: TEXT,
-        letterSpacing: -0.3,
-        marginBottom: 6
-      }
-    }, "Vuoi salvare lo storico delle posizioni?"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13.5,
-        color: '#7a7176',
-        lineHeight: 1.55,
-        marginBottom: 14
-      }
-    }, "Acconsento al salvataggio di data e luogo delle mie rilevazioni di posizione e degli accessi all'app, per la sicurezza del mio account, verifiche e assistenza. Conservate 24 mesi; le vedo e le cancello dal profilo."), /*#__PURE__*/React.createElement("div", {
-      style: {
-        padding: '10px 13px',
-        borderRadius: 12,
-        background: TINT,
-        fontSize: 12.5,
-        color: '#7a7176',
-        lineHeight: 1.5,
-        marginBottom: 18
-      }
-    }, "Se non acconsenti, la scoperta dei locali ", /*#__PURE__*/React.createElement("b", {
-      style: {
-        color: TEXT
-      }
-    }, "funziona lo stesso"), ": la posizione viene usata al volo e non salvata."), /*#__PURE__*/React.createElement("button", {
-      onClick: () => decidiA4(true),
-      style: {
-        width: '100%',
-        padding: '15px 16px',
-        borderRadius: 999,
-        background: '#E32459',
-        color: '#fff',
-        border: 'none',
-        fontSize: 15.5,
-        fontWeight: 700,
-        fontFamily: 'inherit',
-        cursor: 'pointer'
-      }
-    }, "Acconsento"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => decidiA4(false),
-      style: {
-        width: '100%',
-        padding: '13px 16px',
-        marginTop: 8,
-        background: 'transparent',
-        color: TEXT,
-        border: 'none',
-        fontSize: 14.5,
-        fontWeight: 600,
-        fontFamily: 'inherit',
-        cursor: 'pointer'
-      }
-    }, "Continua senza salvare")));
-  }
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: 'absolute',
@@ -10375,7 +10177,88 @@ function MapScreen({
       bottom: 118,
       size: 116
     }) : null;
-  })(), /*#__PURE__*/React.createElement("div", {
+  })(), chiediA4 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      left: 12,
+      right: 12,
+      bottom: 96,
+      zIndex: 60,
+      background: '#fff',
+      borderRadius: 16,
+      padding: '13px 14px',
+      boxShadow: '0 14px 40px rgba(28,15,21,0.22)',
+      border: '1px solid rgba(0,0,0,0.05)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 15
+    }
+  }, "\uD83D\uDCCD"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      fontWeight: 800,
+      color: TEXT
+    }
+  }, "Salvare lo storico delle posizioni?")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: '#7a7176',
+      lineHeight: 1.5,
+      marginBottom: 4
+    }
+  }, "Data e luogo di rilevazioni e accessi, per sicurezza dell'account, verifiche e assistenza. Conservate 24 mesi; le vedi e le cancelli dal profilo."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: '#7a7176',
+      lineHeight: 1.5,
+      marginBottom: 10
+    }
+  }, "Se rifiuti, la scoperta dei locali ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: TEXT
+    }
+  }, "funziona lo stesso"), ": posizione usata al volo, non salvata."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => decidiA4(true),
+    style: {
+      flex: 1,
+      padding: '10px 12px',
+      borderRadius: 999,
+      background: '#E32459',
+      color: '#fff',
+      border: 'none',
+      fontSize: 13,
+      fontWeight: 700,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "Salva"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => decidiA4(false),
+    style: {
+      flex: 1,
+      padding: '10px 12px',
+      borderRadius: 999,
+      background: TINT,
+      color: TEXT,
+      border: 'none',
+      fontSize: 13,
+      fontWeight: 600,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "No, al volo"))), /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '56px 14px 10px',
       background: 'rgba(255,255,255,0.97)',
@@ -22323,6 +22206,9 @@ if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(/*#__PURE__*/React.create
 // e la scelta (sì o no) finisce nel registro con timestamp. Ricompare solo
 // se si azzera dal pannello «I miei dati».
 function ConsensoA7Card() {
+  // Riga sottile, non una card: la scelta c'è ma non ruba la scena ai
+  // locali. Il testo del consenso sta sotto in piccolo; dopo la scelta
+  // sparisce (si riapre dal pannello «I miei dati»).
   const [, forza] = useState(0);
   const decidi = ok => {
     ByupConsensi.set('A7', ok);
@@ -22332,77 +22218,65 @@ function ConsensoA7Card() {
   return /*#__PURE__*/React.createElement("div", {
     style: {
       background: '#fff',
-      borderRadius: 18,
-      padding: '16px 16px 14px',
-      border: '1.5px solid #F0EAEC',
-      boxShadow: '0 2px 10px rgba(28,15,21,0.05)'
+      borderRadius: 14,
+      padding: '10px 13px',
+      border: '1px solid #F0EAEC'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
-      gap: 10,
-      marginBottom: 8
+      gap: 8
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
-      width: 34,
-      height: 34,
-      borderRadius: 999,
-      background: '#FCE9EE',
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 16,
+      fontSize: 14,
       flexShrink: 0
     }
-  }, "\u2728"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 15,
-      fontWeight: 800,
-      color: '#1c0f15'
-    }
-  }, "Suggerimenti su misura?")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: '#7a7176',
-      lineHeight: 1.5,
-      marginBottom: 12
-    }
-  }, "Acconsento all'uso del mio storico ordini e delle mie preferenze non sensibili per ricevere suggerimenti personalizzati. Posso disattivarli quando voglio."), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => decidi(true),
+  }, "\u2728"), /*#__PURE__*/React.createElement("span", {
     style: {
       flex: 1,
-      padding: '11px 14px',
+      minWidth: 0,
+      fontSize: 13,
+      fontWeight: 700,
+      color: '#1c0f15'
+    }
+  }, "Suggerimenti su misura?"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => decidi(true),
+    style: {
+      padding: '7px 14px',
       borderRadius: 999,
       background: '#E32459',
       color: '#fff',
       border: 'none',
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: 700,
       fontFamily: 'inherit',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      flexShrink: 0
     }
   }, "Attiva"), /*#__PURE__*/React.createElement("button", {
     onClick: () => decidi(false),
     style: {
-      flex: 1,
-      padding: '11px 14px',
+      padding: '7px 10px',
       borderRadius: 999,
-      background: '#F6F1F2',
-      color: '#1c0f15',
+      background: 'transparent',
+      color: '#7a7176',
       border: 'none',
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: 600,
       fontFamily: 'inherit',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      flexShrink: 0
     }
-  }, "No, generici")));
+  }, "No")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: '#a89ba1',
+      lineHeight: 1.45,
+      marginTop: 5
+    }
+  }, "Uso dello storico ordini e delle preferenze non sensibili per suggerimenti personalizzati. Disattivabile quando vuoi da \xABI miei dati\xBB."));
 }
 })();
 </script>
