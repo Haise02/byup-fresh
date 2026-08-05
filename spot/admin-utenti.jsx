@@ -221,8 +221,6 @@ function UtenteDrawer({ utente: u, onClose }) {
   // ── Mock stabili derivati dal seed utente (campi non ancora nel dataset) ──
   const seed = (u.id.charCodeAt(1) * 31 + u.id.charCodeAt(3)) % 1000;
   const rnd = (n) => ((seed * (n+1) * 9301 + 49297) % 233280) / 233280;
-  const PREF_OPTS = ['Nessuna', 'Vegetariano', 'Vegano', 'Senza glutine', 'Senza lattosio', 'Pescetariano'];
-  if (u.preferenze === undefined) u.preferenze = PREF_OPTS[seed % PREF_OPTS.length];
   if (u.byuppini === undefined) u.byuppini = 20 + (seed % 380);
   if (u.dataNascita === undefined) {
     const y = new Date().getFullYear() - u.eta;
@@ -233,11 +231,11 @@ function UtenteDrawer({ utente: u, onClose }) {
   // ── Form anagrafica (editabile con salvataggio) ──
   const [form, setForm] = useStateUtn({
     nome: u.nome, email: u.email, tel: u.tel, citta: u.citta, regione: u.regione,
-    dataNascita: u.dataNascita, sesso: u.sesso, preferenze: u.preferenze, verificato: u.verificato,
+    dataNascita: u.dataNascita, sesso: u.sesso, verificato: u.verificato,
   });
   const dirty = form.nome !== u.nome || form.email !== u.email || form.tel !== u.tel
     || form.citta !== u.citta || form.regione !== u.regione || form.dataNascita !== u.dataNascita
-    || form.sesso !== u.sesso || form.preferenze !== u.preferenze || form.verificato !== u.verificato;
+    || form.sesso !== u.sesso || form.verificato !== u.verificato;
   const [saved, setSaved] = useStateUtn(false);
   const etaCalcolata = (() => {
     const d = new Date(form.dataNascita);
@@ -443,12 +441,6 @@ function UtenteDrawer({ utente: u, onClose }) {
                     <option value="F">Donna</option>
                     <option value="M">Uomo</option>
                     <option value="X">Altro / N.D.</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Preferenze alimentari</label>
-                  <select value={form.preferenze} onChange={F('preferenze')} style={{...inputStyle, cursor:'pointer'}}>
-                    {PREF_OPTS.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
