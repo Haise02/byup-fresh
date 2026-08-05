@@ -332,19 +332,31 @@ function AuthForgot({ onBack }) {
 // Campo input chiaro (stile coerente con i form dell'app)
 function LightField({ label, value, onChange, type = 'text', placeholder, rightSlot, ...rest }) {
   const [focus, setFocus] = useStateA(false);
+  const inputRef = useRefA(null);
+  // Su Chrome desktop l'input date mostra ANCHE l'indicatore nativo accanto
+  // alla nostra icona (su iOS no): lo nascondiamo e apriamo il picker dal
+  // nostro slot, dove showPicker è disponibile.
+  const isDate = type === 'date';
   return (
     <div style={{ marginBottom: 16 }}>
+      {isDate && <style>{`input[type="date"]::-webkit-calendar-picker-indicator{ display:none; -webkit-appearance:none; }`}</style>}
       <div style={{ fontSize: 11, fontWeight: 600, color: A_MUTED, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>{label}</div>
       <div style={{
         display: 'flex', alignItems: 'center', background: A_FIELD, borderRadius: 12,
         border: `1.5px solid ${focus ? A_PINK : 'transparent'}`, transition: 'border-color .15s',
       }}>
-        <input type={type} value={value} placeholder={placeholder}
+        <input ref={inputRef} type={type} value={value} placeholder={placeholder}
           onChange={e => onChange(e.target.value)}
           onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
           style={{ flex: 1, minWidth: 0, padding: '13px 14px', border: 'none', outline: 'none', background: 'transparent', fontSize: 15, color: A_TEXT, fontFamily: 'inherit', borderRadius: 12 }}
           {...rest} />
-        {rightSlot && <div style={{ padding: '0 12px 0 4px', display: 'flex' }}>{rightSlot}</div>}
+        {rightSlot && (
+          <div
+            onClick={isDate ? () => { try { inputRef.current?.showPicker?.(); } catch {} } : undefined}
+            style={{ padding: '0 12px 0 4px', display: 'flex', cursor: isDate ? 'pointer' : undefined }}>
+            {rightSlot}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -406,7 +418,6 @@ function AuthRegister({ onBack, onDone }) {
   const [nome, setNome] = useStateA('');
   const [cognome, setCognome] = useStateA('');
   const [dob, setDob] = useStateA(''); // data di nascita (YYYY-MM-DD)
-  const [genere, setGenere] = useStateA(''); // scelta libera, non blocca lo step
   const [email, setEmail] = useStateA('');
   const [pw, setPw] = useStateA('');
   const [pw2, setPw2] = useStateA('');
@@ -532,24 +543,6 @@ function AuthRegister({ onBack, onDone }) {
                 Devi avere almeno 18 anni per registrarti.
               </div>
             )}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: A_MUTED, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Genere</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {['Uomo', 'Donna', 'Altro', 'Preferisco non dirlo'].map(g => {
-                  const on = genere === g;
-                  return (
-                    <button key={g} onClick={() => setGenere(on ? '' : g)} style={{
-                      padding: '8px 14px', borderRadius: 999,
-                      border: `1.5px solid ${on ? A_PINK : '#E4DDE0'}`,
-                      background: on ? A_FIELD : 'transparent',
-                      color: on ? A_PINK : A_MUTED,
-                      fontSize: 13, fontWeight: on ? 700 : 500,
-                      fontFamily: 'inherit', cursor: 'pointer', transition: 'all .15s',
-                    }}>{g}</button>
-                  );
-                })}
-              </div>
-            </div>
           </>
         )}
 
@@ -689,7 +682,7 @@ function AuthRegister({ onBack, onDone }) {
 
       {/* CTA */}
       <div style={{ padding: '12px 24px 34px' }}>
-        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.set('A6', mkt), onDone({ nome, cognome, dob, genere, email, prefs, terms })) : next())} style={{
+        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.set('A6', mkt), onDone({ nome, cognome, dob, email, prefs, terms })) : next())} style={{
           width: '100%', padding: '16px', border: 'none', borderRadius: 16,
           background: stepValid ? A_PINK : '#EDE7E9', color: stepValid ? '#fff' : A_MUTED,
           fontSize: 16, fontWeight: 700, cursor: stepValid ? 'pointer' : 'default', fontFamily: 'inherit',
