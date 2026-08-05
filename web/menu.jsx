@@ -810,6 +810,8 @@ function MenuScreen({ state, setState, goTo }) {
             </div>
           );
         })}
+
+        <LegalFooter/>
       </div>
 
       {/* Bottom sheet — order */}
