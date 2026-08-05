@@ -315,12 +315,12 @@ function StatSubTab({ active, onClick, label, icon }) {
       border: `1.5px solid ${active ? 'rgba(255, 90, 95, 0.55)' : PN.BORDER_SOFT}`,
       boxShadow: active ? '0 2px 10px rgba(255, 90, 95, 0.10)' : '0 1px 2px rgba(15,17,21,0.04)',
       color: active ? PN.PINK_DARK : PN.TEXT,
-      fontSize: 16, fontWeight: active ? 700 : 600,
+      fontSize: 18, fontWeight: active ? 700 : 600,
       cursor: 'pointer', fontFamily: 'inherit',
       transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease',
       whiteSpace: 'nowrap',
     }}>
-      {icon && <Icon name={icon} size={16}/>}
+      {icon && <Icon name={icon} size={18}/>}
       {label}
     </button>
   );
