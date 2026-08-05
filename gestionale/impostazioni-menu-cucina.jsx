@@ -3334,13 +3334,7 @@ function MCConfigura() {
               background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`,
               display:'flex', alignItems:'center', gap: 14,
             }}>
-              <div style={{
-                width: 56, height: 56, borderRadius: 8,
-                background: `repeating-conic-gradient(${PN.TEXT} 0% 25%, transparent 0% 50%) 0 0/8px 8px`,
-                border: `2px solid ${PN.WHITE}`,
-                boxShadow: `0 0 0 1px ${PN.BORDER}`,
-                flexShrink: 0,
-              }}/>
+              <QrAsporto size={56}/>
               <div style={{flex: 1}}>
                 <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 2}}>QR per ordini d'asporto</div>
                 <div style={{fontSize: 13.5, color: PN.MUTED}}>
@@ -3354,34 +3348,28 @@ function MCConfigura() {
         )}
       </ImpCard>
 
-      {/* QR Modal */}
+      {/* QR Modal — foglio BIANCO (MODAL_PANEL), non vetro: sopra l'overlay
+          scuro il glass legge grigio. Stessa ricetta del QR di Byup Pay. */}
       {showQr && (
         <div onClick={() => setShowQr(false)} style={{
           position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', zIndex: 100,
+          display:'grid', placeItems:'center', zIndex: 100, padding: 20,
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            ...PN.GLASS_STRONG, borderRadius: 20, padding: 28,
-            width: 360, position:'relative', textAlign:'center',
-          }}>
-            <button onClick={() => setShowQr(false)} style={{
-              position:'absolute', top: 14, right: 14,
-              width: 32, height: 32, borderRadius: 8,
-              background:'#F4F5F7', border:'none', cursor:'pointer',
-              display:'grid', placeItems:'center',
-            }}><PnI.X size={14}/></button>
-            <div style={{fontSize: 17, fontWeight: 700, marginBottom: 4}}>QR ordini d'asporto</div>
-            <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 16}}>Scansiona per ordinare e ritirare al banco</div>
-            <div style={{
-              width: 220, height: 220, margin:'0 auto 16px',
-              background: `repeating-conic-gradient(${PN.TEXT} 0% 25%, transparent 0% 50%) 0 0/14px 14px`,
-              border: `4px solid ${PN.WHITE}`,
-              boxShadow: `0 0 0 2px ${PN.BORDER}`,
-              borderRadius: 12,
-            }}/>
-            <div style={{display:'flex', gap: 8}}>
-              <ImpButton variant="ghost" style={{flex:1, justifyContent:'center'}}><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.FileText size={14}/> PDF</span></ImpButton>
-              <ImpButton variant="primary" style={{flex:1, justifyContent:'center'}}><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
+          <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 400, position:'relative'}}>
+            <div style={MODAL_HEAD}>
+              <div style={{...MODAL_TITLE, fontSize: 22}}>QR ordini d'asporto</div>
+              <div style={{...MODAL_SUB, marginTop: 2}}>Scansiona per ordinare e ritirare al banco</div>
+              <button onClick={() => setShowQr(false)} aria-label="Chiudi" style={MODAL_X}><PnI.X size={14}/></button>
+            </div>
+            <div style={{...MODAL_BODY, textAlign:'center'}}>
+              <QrAsporto size={230} style={{margin:'0 auto'}}/>
+              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 14, lineHeight: 1.45}}>
+                Esponi all'esterno o sul menù cartaceo.
+              </div>
+            </div>
+            <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost"><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.FileText size={14}/> PDF</span></ImpButton>
+              <ImpButton variant="primary"><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
             </div>
           </div>
         </div>
@@ -3993,3 +3981,47 @@ const MOCK_EXTRACTED = {
     },
   ],
 };
+
+// ─── QR asporto ─────────────────────────────────────────────────────────────
+// Stessa ricetta del QR di Byup Pay (POS e integrazioni): scacchiera, tre
+// finder angolari e il marchio byup al centro su tessera bianca. Un solo
+// disegno per tutti i QR del gestionale — scala dal francobollo in riga
+// (56px) al codice grande del popup.
+function QrAsporto({ size = 220, style }) {
+  const passo = Math.max(6, Math.round(size / 16));       // passo scacchiera
+  const f = Math.round(size * 0.16);                      // lato finder
+  const b = Math.max(2, Math.round(f * 0.11));            // tratto finder
+  const pad = Math.max(3, Math.round(size * 0.036));
+  const logo = Math.round(size * 0.20);
+  return (
+    <div style={{
+      width: size, height: size, flexShrink: 0,
+      background: `repeating-conic-gradient(${PN.TEXT} 0% 25%, transparent 0% 50%) 0 0/${passo}px ${passo}px`,
+      border: `${size > 100 ? 4 : 2}px solid ${PN.WHITE}`,
+      boxShadow: `0 0 0 ${size > 100 ? 2 : 1}px ${PN.BORDER}${size > 100 ? ', 0 8px 24px rgba(0,0,0,0.08)' : ''}`,
+      borderRadius: Math.round(size * 0.055),
+      position: 'relative',
+      ...style,
+    }}>
+      {[{top: pad, left: pad}, {top: pad, right: pad}, {bottom: pad, left: pad}].map((pos, i) => (
+        <div key={i} style={{
+          position: 'absolute', ...pos, width: f, height: f,
+          border: `${b}px solid ${PN.TEXT}`, background: PN.WHITE,
+          borderRadius: Math.max(2, b),
+        }}>
+          <div style={{position: 'absolute', inset: b, background: PN.TEXT, borderRadius: 1}}/>
+        </div>
+      ))}
+      {/* marchio byup al centro, su tessera bianca */}
+      <div style={{
+        position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+        width: logo + Math.round(size * 0.06), height: logo + Math.round(size * 0.06),
+        borderRadius: Math.round(logo * 0.3),
+        background: PN.WHITE, boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
+        display: 'grid', placeItems: 'center',
+      }}>
+        <PnI.LogoMark size={logo}/>
+      </div>
+    </div>
+  );
+}
