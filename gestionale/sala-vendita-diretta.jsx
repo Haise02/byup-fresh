@@ -2062,6 +2062,12 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   const [pagamentiOpen, setPagamentiOpen] = React.useState(false);
   const [importoTxt, setImporto] = React.useState('');
   const [ricevutoTxt, setRicevuto] = React.useState(null);
+  // Quale pulsante di «Quanto incassi ora» è attivo: 'tutto', 'meta' o
+  // 'altro'. È una SCELTA esplicita, non un confronto col valore del campo:
+  // con l'uguaglianza numerica «Cifra personalizzata» non si accendeva mai
+  // (il campo conteneva ancora il valore di Tutto), e dopo una modifica a
+  // mano Metà restava accesa o si spegneva a caso.
+  const [quota, setQuota] = React.useState('tutto');
   const importoRef = React.useRef(null);
   const ricevutoRef = React.useRef(null);
   const [fattura, setFattura] = React.useState(false);
@@ -2185,6 +2191,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
     if (!open) return;
     setImporto(residuo > 0 ? residuo.toFixed(2).replace('.', ',') : '');
     setRicevuto(null);
+    setQuota('tutto');
   }, [open, method, pagamenti.length, finalTotal]);
 
   // Tutti gli hook sono passati: solo ora si può uscire senza disegnare nulla.
@@ -2464,10 +2471,10 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   gridTemplateColumns: `repeat(${quote.length + 1}, 1fr)`,
                 }}>
                   {quote.map(q => {
-                    const on = Math.abs(importo - q.val) < 0.004;
+                    const on = quota === q.k;
                     return (
                       <button key={q.k}
-                        onClick={() => { setImporto(q.val.toFixed(2).replace('.', ',')); setRicevuto(null); }}
+                        onClick={() => { setQuota(q.k); setImporto(q.val.toFixed(2).replace('.', ',')); setRicevuto(null); }}
                         style={{
                           padding: '11px 8px', borderRadius: 12,
                           background: on ? SVI_TINT : '#fff',
@@ -2484,26 +2491,32 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       </button>
                     );
                   })}
-                  {(() => {
-                    const on = !quote.some(q => Math.abs(importo - q.val) < 0.004);
-                    return (
-                      <button
-                        onClick={() => { importoRef.current?.focus(); importoRef.current?.select(); }}
-                        style={{
-                          padding: '11px 8px', borderRadius: 12,
-                          background: on ? SVI_TINT : '#fff',
-                          border: `1px solid ${on ? SVI_CORAL : SVI_BORDER}`,
-                          color: on ? SVI_CORAL : SVI_INK,
-                          fontSize: 16.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                        }}>Altro</button>
-                    );
-                  })()}
+                  {/* La cifra la scrive l'operatore: gli altri pulsanti si
+                      spengono, il campo si svuota e prende il focus. */}
+                  <button
+                    onClick={() => {
+                      setQuota('altro');
+                      setImporto('');
+                      setRicevuto(null);
+                      importoRef.current?.focus();
+                    }}
+                    style={{
+                      padding: '11px 8px', borderRadius: 12,
+                      background: quota === 'altro' ? SVI_TINT : '#fff',
+                      border: `1px solid ${quota === 'altro' ? SVI_CORAL : SVI_BORDER}`,
+                      color: quota === 'altro' ? SVI_CORAL : SVI_INK,
+                      fontSize: 15, lineHeight: 1.2, fontWeight: 700,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}>Cifra personalizzata</button>
                 </div>
 
                 {/* Tutto il riquadro porta al campo: al banco si tocca la
-                    cifra, non il cursore alto due millimetri. */}
+                    cifra, non il cursore alto due millimetri. Il select()
+                    vive SOLO nel primo focus: prima ogni click riselezionava
+                    tutto e il cursore non si poteva mai posizionare — la
+                    cifra non era davvero modificabile, solo sostituibile. */}
                 <div
-                  onClick={() => { importoRef.current?.focus(); importoRef.current?.select(); }}
+                  onClick={() => { importoRef.current?.focus(); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '14px 18px', borderRadius: 14,
@@ -2514,9 +2527,16 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   <input
                     ref={importoRef}
                     value={importoTxt}
-                    onChange={e => { setImporto(e.target.value.replace(/[^0-9.,]/g, '')); setRicevuto(null); }}
+                    onChange={e => {
+                      setImporto(e.target.value.replace(/[^0-9.,]/g, ''));
+                      setRicevuto(null);
+                      // Scrivere a mano È scegliere la cifra: Tutto e Metà
+                      // si spengono da soli, qualunque valore ci sia.
+                      setQuota('altro');
+                    }}
                     onFocus={e => e.target.select()}
                     inputMode="decimal"
+                    placeholder="0,00"
                     style={{
                       flex: 1, minWidth: 0, border: 'none', outline: 'none',
                       background: 'transparent', fontFamily: 'inherit',
@@ -2559,8 +2579,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   })}
                 </div>
 
+                {/* Come per l'importo: select solo al primo focus, i click
+                    successivi posizionano il cursore — il contante ricevuto
+                    si deve poter correggere, non solo riscrivere. */}
                 <div
-                  onClick={() => { ricevutoRef.current?.focus(); ricevutoRef.current?.select(); }}
+                  onClick={() => { ricevutoRef.current?.focus(); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
                     padding: '12px 18px', borderRadius: 14,
