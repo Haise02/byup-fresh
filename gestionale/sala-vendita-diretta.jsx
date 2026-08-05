@@ -1954,7 +1954,7 @@ const SVI_TINT   = '#FFF3F2';
 const SVI_GREEN  = '#16A34A';
 const SVI_LABEL  = {
   fontSize: 13.5, fontWeight: 700, color: SVI_MUTED,
-  letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 11,
+  letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 8,
 };
 
 const svEur = (n, tondo) => '€' + (tondo && Math.abs(n % 1) < 0.005
@@ -1993,26 +1993,28 @@ function SvPillola({ active, onClick, title, icon, label }) {
   );
 }
 
+// Compatta: il modale INCASSA deve stare tutto in vista senza scroll, e le
+// due tessere erano la voce più alta del coro.
 function SvMetodoCard({ active, onClick, label, icon }) {
   return (
     <button onClick={onClick} style={{
       position: 'relative',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16,
-      padding: '26px 18px', borderRadius: 16,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+      padding: '14px 16px', borderRadius: 14,
       background: active ? SVI_TINT : '#fff',
       border: `1.5px solid ${active ? SVI_CORAL : SVI_BORDER}`,
       color: active ? SVI_CORAL : SVI_INK,
-      fontSize: 21, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+      fontSize: 18, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
       transition: 'background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out',
     }}>
       {active && (
         <span style={{
-          position: 'absolute', top: 12, right: 12,
-          width: 26, height: 26, borderRadius: '50%',
+          position: 'absolute', top: 9, right: 9,
+          width: 22, height: 22, borderRadius: '50%',
           background: SVI_CORAL, color: '#fff',
           display: 'grid', placeItems: 'center',
         }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
         </span>
       )}
       {icon}
@@ -2022,7 +2024,7 @@ function SvMetodoCard({ active, onClick, label, icon }) {
 }
 
 const SvIcoPos = () => (
-  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="5" y="2" width="14" height="20" rx="2.5"/>
     <rect x="7.5" y="4.5" width="9" height="4.5" rx="1"/>
     <circle cx="9" cy="12.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="12" cy="12.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12.5" r="0.9" fill="currentColor" stroke="none"/>
@@ -2032,7 +2034,7 @@ const SvIcoPos = () => (
 );
 
 const SvIcoBanconota = () => (
-  <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="6" width="20" height="12" rx="2"/>
     <circle cx="8.5" cy="12" r="2.6"/>
     <path d="M7.4 12h2.2M7.6 10.9h1.8"/>
@@ -2321,9 +2323,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 due interruttori che NON sono la vendita — correggere l'importo
                 ed emettere fattura invece della ricevuta: si usano di rado,
                 quindi stanno piccoli e in disparte, non in mezzo al flusso. */}
-            <div style={{padding: '24px 28px 0', display: 'flex', alignItems: 'center', gap: 8}}>
+            <div style={{padding: '18px 28px 0', display: 'flex', alignItems: 'center', gap: 8}}>
               <div style={{
-                flex: 1, fontSize: 34, fontWeight: 800, letterSpacing: -0.8,
+                flex: 1, fontSize: 28, fontWeight: 800, letterSpacing: -0.7,
                 color: SVI_INK, lineHeight: 1,
               }}>INCASSA</div>
               <SvPillola
@@ -2352,7 +2354,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             <div className="pn-scroll" style={{overflow: 'auto'}}>
               {/* Quanto resta da incassare: è il numero che l'operatore legge
                   al cliente, quindi si prende la riga intera. */}
-              <div style={{padding: '18px 28px 0'}}>
+              <div style={{padding: '12px 28px 0'}}>
                 <div style={{
                   fontSize: 13.5, fontWeight: 700, color: SVI_MUTED,
                   letterSpacing: 0.7, textTransform: 'uppercase',
@@ -2361,8 +2363,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap',
                 }}>
                   <span style={{
-                    fontSize: 46, fontWeight: 800, color: SVI_INK,
-                    letterSpacing: -1.6, lineHeight: 1.15, marginTop: 2,
+                    fontSize: 36, fontWeight: 800, color: SVI_INK,
+                    letterSpacing: -1.2, lineHeight: 1.15, marginTop: 2,
                     fontVariantNumeric: 'tabular-nums',
                   }}>{svEur(residuo)}</span>
                   {adjust && (
@@ -2435,11 +2437,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 </div>
               )}
 
-              <div style={{height: 1, background: SVI_BORDER, margin: '20px 28px 0'}}/>
+              <div style={{height: 1, background: SVI_BORDER, margin: '14px 28px 0'}}/>
 
               {/* Metodo: due modi di prendere i soldi, due tessere grandi.
                   Al banco si tocca, non si sceglie da una lista. */}
-              <div style={{padding: '18px 28px 0'}}>
+              <div style={{padding: '14px 28px 0'}}>
                 <div style={SVI_LABEL}>Metodo di pagamento</div>
                 <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14}}>
                   <SvMetodoCard
@@ -2460,7 +2462,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   dove il numero atterra, e resta scrivibile per gli importi
                   che un pulsante non può indovinare. Col POS non c'è niente
                   da scegliere: si addebita il residuo. */}
-              <div style={{padding: '18px 28px 0'}}>
+              <div style={{padding: '14px 28px 0'}}>
                 <div style={SVI_LABEL}>Quanto incassi ora</div>
 
                 {/* Tutto / Metà / Altro: quanto togli dal conto. "Tutto" è già
@@ -2476,7 +2478,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       <button key={q.k}
                         onClick={() => { setQuota(q.k); setImporto(q.val.toFixed(2).replace('.', ',')); setRicevuto(null); }}
                         style={{
-                          padding: '11px 8px', borderRadius: 12,
+                          padding: '8px 8px', borderRadius: 12,
                           background: on ? SVI_TINT : '#fff',
                           border: `1px solid ${on ? SVI_CORAL : SVI_BORDER}`,
                           color: on ? SVI_CORAL : SVI_INK,
@@ -2501,7 +2503,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       importoRef.current?.focus();
                     }}
                     style={{
-                      padding: '11px 8px', borderRadius: 12,
+                      padding: '8px 8px', borderRadius: 12,
                       background: quota === 'altro' ? SVI_TINT : '#fff',
                       border: `1px solid ${quota === 'altro' ? SVI_CORAL : SVI_BORDER}`,
                       color: quota === 'altro' ? SVI_CORAL : SVI_INK,
@@ -2519,11 +2521,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   onClick={() => { importoRef.current?.focus(); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '14px 18px', borderRadius: 14,
+                    padding: '10px 16px', borderRadius: 14,
                     background: SVI_TINT, border: `1.5px solid ${SVI_CORAL}`,
                     cursor: 'text',
                   }}>
-                  <span style={{fontSize: 32, fontWeight: 800, color: SVI_INK, letterSpacing: -0.8}}>€</span>
+                  <span style={{fontSize: 26, fontWeight: 800, color: SVI_INK, letterSpacing: -0.7}}>€</span>
                   <input
                     ref={importoRef}
                     value={importoTxt}
@@ -2540,8 +2542,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     style={{
                       flex: 1, minWidth: 0, border: 'none', outline: 'none',
                       background: 'transparent', fontFamily: 'inherit',
-                      fontSize: 32, fontWeight: 800, color: SVI_INK,
-                      letterSpacing: -0.8, padding: 0,
+                      fontSize: 26, fontWeight: 800, color: SVI_INK,
+                      letterSpacing: -0.7, padding: 0,
                       fontVariantNumeric: 'tabular-nums',
                     }}/>
                   <span style={{color: SVI_MUTED, flexShrink: 0, display: 'inline-flex'}}>
@@ -2555,7 +2557,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   una variante di quello sopra — e il resto sta qui attaccato,
                   sotto la cifra che lo produce. */}
               {method === 'contanti' && preso > 0 && (
-              <div style={{padding: '18px 28px 0'}}>
+              <div style={{padding: '14px 28px 0'}}>
                 <div style={SVI_LABEL}>Quanto ti dà il cliente</div>
 
                 <div style={{
@@ -2568,7 +2570,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       <button key={t.label}
                         onClick={() => setRicevuto(t.val.toFixed(2).replace('.', ','))}
                         style={{
-                          padding: '13px 8px', borderRadius: 12,
+                          padding: '9px 8px', borderRadius: 12,
                           background: on ? SVI_TINT : '#fff',
                           border: `1px solid ${on ? SVI_CORAL : SVI_BORDER}`,
                           color: on ? SVI_CORAL : SVI_INK,
@@ -2586,11 +2588,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   onClick={() => { ricevutoRef.current?.focus(); }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '12px 18px', borderRadius: 14,
+                    padding: '9px 16px', borderRadius: 14,
                     background: '#fff', border: `1.5px solid ${SVI_BORDER}`,
                     cursor: 'text',
                   }}>
-                  <span style={{fontSize: 27, fontWeight: 800, color: SVI_INK, letterSpacing: -0.8}}>€</span>
+                  <span style={{fontSize: 22, fontWeight: 800, color: SVI_INK, letterSpacing: -0.6}}>€</span>
                   <input
                     ref={ricevutoRef}
                     value={ricevutoTxt === null ? preso.toFixed(2).replace('.', ',') : ricevutoTxt}
@@ -2601,15 +2603,15 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     style={{
                       flex: 1, minWidth: 0, border: 'none', outline: 'none',
                       background: 'transparent', fontFamily: 'inherit',
-                      fontSize: 27, fontWeight: 800, color: SVI_INK,
-                      letterSpacing: -0.8, padding: 0,
+                      fontSize: 22, fontWeight: 800, color: SVI_INK,
+                      letterSpacing: -0.6, padding: 0,
                       fontVariantNumeric: 'tabular-nums',
                     }}/>
                 </div>
 
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 12,
-                  marginTop: 12, padding: '14px 18px',
+                  marginTop: 10, padding: '10px 16px',
                   borderRadius: 14,
                   background: manca > 0.004 ? '#FEF3C7' : '#F5F6F8',
                 }}>
@@ -2618,7 +2620,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     {manca > 0.004 ? 'Mancano' : 'Resto'}
                   </span>
                   <span style={{
-                    fontSize: 20, fontWeight: 800, letterSpacing: -0.3,
+                    fontSize: 18, fontWeight: 800, letterSpacing: -0.3,
                     color: manca > 0.004 ? '#B45309' : resto > 0.004 ? SVI_INK : SVI_GREEN,
                     fontVariantNumeric: 'tabular-nums',
                   }}>{svEur(manca > 0.004 ? manca : resto)}</span>
@@ -2629,7 +2631,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
 
             {/* Solo la conferma: il documento si sceglie in testata, e qui
                 resta il gesto unico che chiude la vendita. */}
-            <div style={{padding: '18px 28px 24px'}}>
+            <div style={{padding: '14px 28px 18px'}}>
               {(() => {
                 const inviaSuStaff = method === 'carta';
                 const attivo = residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004;
@@ -2643,7 +2645,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     }}
                     disabled={!attivo}
                     style={{
-                      width: '100%', padding: '16px 20px', borderRadius: 14,
+                      width: '100%', padding: '13px 18px', borderRadius: 14,
                       background: attivo ? SVI_GREEN : '#EFEFF1',
                       color: attivo ? '#fff' : '#9CA3AF',
                       border: 'none', fontSize: 18, fontWeight: 700,
