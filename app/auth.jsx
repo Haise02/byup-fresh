@@ -610,28 +610,15 @@ function AuthRegister({ onBack, onDone }) {
               })}
             </div>
 
-            {/* Consenso Termini & Privacy (obbligatorio) — link cliccabili */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 28 }}>
-              <button onClick={() => setTerms(t => !t)} aria-label="Accetto i termini" style={{
-                flex: '0 0 22px', width: 22, height: 22, borderRadius: 7, marginTop: 1, padding: 0,
-                border: `1.5px solid ${terms ? A_PINK : '#CFC8CB'}`, background: terms ? A_PINK : '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s', cursor: 'pointer',
-              }}>
-                {terms && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
-              </button>
-              <div style={{ fontSize: 13.5, color: A_MUTED, lineHeight: 1.45 }}>
-                Accetto i <span role="button" tabIndex={0} onClick={() => setLegal('terms')} style={{ color: A_PINK, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Termini di servizio</span> e l'<span role="button" tabIndex={0} onClick={() => setLegal('privacy')} style={{ color: A_PINK, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Informativa sulla privacy</span> di byup.
-              </div>
-            </div>
-
             {/* A6 — marketing: mai preselezionata (obbligo di legge), ma
-                progettata per l'opt-in: si vende il BENEFICIO (sconti dei
+                progettata per l'opt-in e SEMPRE SOPRA la spunta obbligatoria
+                (scelta di Fabio): si vende il BENEFICIO (sconti dei
                 locali che ami), non il trattamento; la rassicurazione
                 anti-spam abbassa il costo percepito del sì. Il toggle è
                 l'unico elemento colorato della card: l'occhio ci arriva. */}
             <button onClick={() => setMkt(m => !m)} aria-label="Consenso marketing" style={{
               display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-              marginTop: 16, padding: '13px 14px', borderRadius: 16, textAlign: 'left',
+              marginTop: 28, padding: '13px 14px', borderRadius: 16, textAlign: 'left',
               background: mkt ? '#FDF0F4' : '#FAF7F8',
               border: `1.5px solid ${mkt ? A_PINK : '#EFE9EB'}`,
               cursor: 'pointer', fontFamily: 'inherit', transition: 'all .18s',
@@ -663,6 +650,20 @@ function AuthRegister({ onBack, onDone }) {
                 {mkt && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
               </span>
             </button>
+
+            {/* Consenso Termini & Privacy (obbligatorio) — link cliccabili */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 16 }}>
+              <button onClick={() => setTerms(t => !t)} aria-label="Accetto i termini" style={{
+                flex: '0 0 22px', width: 22, height: 22, borderRadius: 7, marginTop: 1, padding: 0,
+                border: `1.5px solid ${terms ? A_PINK : '#CFC8CB'}`, background: terms ? A_PINK : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s', cursor: 'pointer',
+              }}>
+                {terms && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+              </button>
+              <div style={{ fontSize: 13.5, color: A_MUTED, lineHeight: 1.45 }}>
+                Accetto i <span role="button" tabIndex={0} onClick={() => setLegal('terms')} style={{ color: A_PINK, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Termini di servizio</span> e l'<span role="button" tabIndex={0} onClick={() => setLegal('privacy')} style={{ color: A_PINK, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>Informativa sulla privacy</span> di byup.
+              </div>
+            </div>
           </>
         )}
       </div>

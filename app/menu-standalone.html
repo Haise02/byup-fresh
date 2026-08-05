@@ -1579,37 +1579,7 @@ function AllergensView({
       color: TEXT_X,
       marginBottom: 10
     }
-  }, "Prima di salvare"), /*#__PURE__*/React.createElement("label", {
-    style: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: 10,
-      cursor: 'pointer'
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: chkA3,
-    onChange: e => setChkA3(e.target.checked),
-    style: {
-      accentColor: PINK_X,
-      width: 17,
-      height: 17,
-      marginTop: 2,
-      flexShrink: 0
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 12.5,
-      color: TEXT_X,
-      lineHeight: 1.5
-    }
-  }, CONSENSO_A3)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 1,
-      background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC',
-      margin: '11px 0'
-    }
-  }), /*#__PURE__*/React.createElement("button", {
+  }, "Prima di salvare"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setChkA18(v => !v),
     "aria-label": "Consenso offerte sulle preferenze",
     style: {
@@ -1688,7 +1658,37 @@ function AllergensView({
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "20 6 9 17 4 12"
-  })))), /*#__PURE__*/React.createElement("button", {
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC',
+      margin: '11px 0'
+    }
+  }), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 10,
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: chkA3,
+    onChange: e => setChkA3(e.target.checked),
+    style: {
+      accentColor: PINK_X,
+      width: 17,
+      height: 17,
+      marginTop: 2,
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: TEXT_X,
+      lineHeight: 1.5
+    }
+  }, CONSENSO_A3)), /*#__PURE__*/React.createElement("button", {
     onClick: confermaConsensi,
     disabled: !chkA3,
     style: {

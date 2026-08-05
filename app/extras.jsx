@@ -240,13 +240,8 @@ function AllergensView({ onBack, prefs, setPrefs }) {
             </div>
             <div style={{ fontSize: 17, fontWeight: 800, color: TEXT_X, marginBottom: 10 }}>Prima di salvare</div>
 
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-              <input type="checkbox" checked={chkA3} onChange={e => setChkA3(e.target.checked)}
-                style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
-              <span style={{ fontSize: 12.5, color: TEXT_X, lineHeight: 1.5 }}>{CONSENSO_A3}</span>
-            </label>
-            <div style={{ height: 1, background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC', margin: '11px 0' }}/>
-            {/* A18 — card da opt-in come la A6 alla registrazione: si vende il
+            {/* A18 — card da opt-in come la A6 alla registrazione, SEMPRE
+                SOPRA la spunta obbligatoria (scelta di Fabio): si vende il
                 BENEFICIO in testa, il testo del consenso resta integrale
                 sotto. Mai preselezionata (il sì deve restare un gesto). */}
             <button onClick={() => setChkA18(v => !v)} aria-label="Consenso offerte sulle preferenze" style={{
@@ -282,6 +277,12 @@ function AllergensView({ onBack, prefs, setPrefs }) {
                 )}
               </span>
             </button>
+            <div style={{ height: 1, background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC', margin: '11px 0' }}/>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={chkA3} onChange={e => setChkA3(e.target.checked)}
+                style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
+              <span style={{ fontSize: 12.5, color: TEXT_X, lineHeight: 1.5 }}>{CONSENSO_A3}</span>
+            </label>
 
             <button onClick={confermaConsensi} disabled={!chkA3} style={{
               width: '100%', marginTop: 14, padding: '14px 16px', borderRadius: 999,
