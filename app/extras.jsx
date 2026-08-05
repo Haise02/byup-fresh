@@ -113,8 +113,11 @@ function AllergensView({ onBack, prefs, setPrefs }) {
   };
   const annullaConsensi = () => { setPending(null); setChkA3(false); setChkA18(false); };
 
-  const CONSENSO_A3 = 'Acconsento al trattamento dei miei allergeni e delle mie preferenze alimentari, che possono rivelare dati su salute o convinzioni religiose, per filtrare i menu e personalizzare l\'esperienza. Posso modificarli o revocare quando voglio.';
-  const CONSENSO_A18 = 'Voglio ricevere offerte e promozioni costruite sulle mie preferenze alimentari e i miei allergeni (es. proposte senza glutine). Le notifiche avranno testo generico: il dettaglio lo vedo in app.';
+  // Testi brevi (informativa "a strati"): nella spunta l'essenziale — dato,
+  // sensibilità, finalità, revoca — il resto sta nella sezione dedicata
+  // dell'informativa privacy. Non allungarli di nuovo qui.
+  const CONSENSO_A3 = 'Acconsento all\'uso dei miei allergeni e preferenze alimentari — dati che possono rivelare salute o convinzioni — per filtrare i menù. Revocabile quando voglio.';
+  const CONSENSO_A18 = 'Acconsento a ricevere offerte costruite su diete e allergeni (es. proposte senza glutine).';
 
   const SectionHeader = ({ title, badge, description, icon, color, bg }) => (
     <div style={{ marginBottom: 12 }}>
@@ -1411,6 +1414,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
             { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
             { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.' },
             { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).' },
+            { h: 'Preferenze alimentari e allergeni', p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.' },
             { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
             { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
             { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento da \u201cI miei dati\u201d: torneranno proposte generiche.' },

@@ -1327,8 +1327,12 @@ function AllergensView({
     setChkA3(false);
     setChkA18(false);
   };
-  const CONSENSO_A3 = 'Acconsento al trattamento dei miei allergeni e delle mie preferenze alimentari, che possono rivelare dati su salute o convinzioni religiose, per filtrare i menu e personalizzare l\'esperienza. Posso modificarli o revocare quando voglio.';
-  const CONSENSO_A18 = 'Voglio ricevere offerte e promozioni costruite sulle mie preferenze alimentari e i miei allergeni (es. proposte senza glutine). Le notifiche avranno testo generico: il dettaglio lo vedo in app.';
+
+  // Testi brevi (informativa "a strati"): nella spunta l'essenziale — dato,
+  // sensibilità, finalità, revoca — il resto sta nella sezione dedicata
+  // dell'informativa privacy. Non allungarli di nuovo qui.
+  const CONSENSO_A3 = 'Acconsento all\'uso dei miei allergeni e preferenze alimentari — dati che possono rivelare salute o convinzioni — per filtrare i menù. Revocabile quando voglio.';
+  const CONSENSO_A18 = 'Acconsento a ricevere offerte costruite su diete e allergeni (es. proposte senza glutine).';
   const SectionHeader = ({
     title,
     badge,
@@ -4519,6 +4523,9 @@ function ProfileScreen({
     }, {
       h: 'Finalità e base giuridica',
       p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).'
+    }, {
+      h: 'Preferenze alimentari e allergeni',
+      p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.'
     }, {
       h: 'Conservazione',
       p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.'
@@ -12011,6 +12018,9 @@ const A_PRIVACY = [{
 }, {
   h: 'Finalità e base giuridica',
   p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).'
+}, {
+  h: 'Preferenze alimentari e allergeni',
+  p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.'
 }, {
   h: 'Conservazione',
   p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.'
