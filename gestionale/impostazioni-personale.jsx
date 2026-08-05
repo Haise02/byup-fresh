@@ -197,8 +197,6 @@ function ImpPersonale() {
         ruolo, gruppo: ruolo.custom ? '_custom' : ruolo.id,
         accesso: accessoDelRuolo(ruolo),
         attivo: p.active !== false,
-        quando: p.online ? 'Online ora' : p.last,
-        online: p.online,
       };
     }),
     ...DEVICES.map((d, i) => {
@@ -211,8 +209,6 @@ function ImpPersonale() {
           ? { titolo: 'Cassa', sotto: 'Scontrini e comande' }
           : { titolo: 'Cucina', sotto: 'Schermo comande' },
         attivo: d.active !== false,
-        quando: d.online ? 'Online ora' : d.last,
-        online: d.online,
         stampante,
       };
     }),
@@ -587,8 +583,8 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         </span>
       </div>
 
-      {/* Stato: la pastiglia dice se l'accesso è acceso, la riga sotto quando
-          è stato usato l'ultima volta — due domande diverse. */}
+      {/* Stato: solo la pastiglia — l'ultimo accesso («Online ora», «ieri»)
+          è stato tolto, ripeteva verde su quasi ogni riga senza dire nulla. */}
       <div>
         <span style={{
           display:'inline-flex', alignItems:'center', gap: 5,
@@ -600,9 +596,6 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
           <span style={{width: 6, height: 6, borderRadius:'50%', background: r.attivo ? PN.GREEN : '#9CA3AF'}}/>
           {r.attivo ? 'Attivo' : 'Disattivato'}
         </span>
-        <div style={{fontSize: 12.5, color: r.online ? PN.GREEN : PN.MUTED, marginTop: 3, paddingLeft: 2}}>
-          {r.quando}
-        </div>
       </div>
 
       {/* Azioni */}
