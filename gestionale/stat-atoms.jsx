@@ -269,28 +269,58 @@ function StatPeriodPicker({ period, setPeriod }) {
   );
 }
 
-// ─── Macro tab — delega al linguaggio unico delle tab di sezione ────
-// La barra contenitore (in stat-app-main) ha borderBottom 1px PN.BORDER;
-// il tab attivo la sovrascrive con l'underline pink (marginBottom -1).
-function StatTab(props) {
-  return <PnSectionTab {...props}/>;
+// ─── Macro tab — gruppo a segmenti (dal riferimento grafico di Fabio) ────
+// Scatola bianca bordata, un segmento per tab: l'attivo ha il testo pieno e
+// la sottolineatura rossa sul filo inferiore, i vicini un filetto divisore.
+function StatTabs({ tabs, active, onChange }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'stretch',
+      background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+      borderRadius: 16, overflow: 'hidden',
+      boxShadow: '0 1px 2px rgba(15,17,21,0.04)',
+    }}>
+      {tabs.map((t, i) => {
+        const on = active === t.id;
+        return (
+          <button key={t.id} onClick={() => onChange(t.id)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 9,
+            padding: '13px 26px',
+            background: PN.WHITE, border: 'none',
+            borderLeft: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+            boxShadow: on ? `inset 0 -3px 0 ${PN.PINK}` : 'none',
+            color: on ? PN.TEXT : PN.MUTED,
+            fontSize: 16, fontWeight: on ? 700 : 600,
+            cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+            transition: 'color 140ms ease, box-shadow 140ms ease',
+          }}>
+            {t.icon && <Icon name={t.icon} size={15}/>}
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
-// ─── Sub-tab — underline neutro ────────────────────────────────
+// ─── Sub-tab — card larghe con icona, a tutta riga (stesso riferimento).
+// L'attiva è rossa su fondo tenue; le altre card bianche appena rialzate.
 function StatSubTab({ active, onClick, label, icon }) {
   return (
     <button onClick={onClick} style={{
-      display:'inline-flex', alignItems:'center', gap: 7,
-      padding:'10px 4px',
-      background: 'transparent',
-      border:'none', borderBottom: `2px solid ${active ? PN.TEXT : 'transparent'}`,
-      color: active ? PN.TEXT : PN.MUTED,
-      fontSize: 15.5, fontWeight: active ? 700 : 500,
-      cursor:'pointer', fontFamily:'inherit',
-      transition:'all 0.15s',
-      whiteSpace:'nowrap',
+      flex: 1, minWidth: 0,
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+      padding: '17px 14px', borderRadius: 14,
+      background: active ? '#FFF7F6' : PN.WHITE,
+      border: `1.5px solid ${active ? 'rgba(255, 90, 95, 0.55)' : PN.BORDER_SOFT}`,
+      boxShadow: active ? '0 2px 10px rgba(255, 90, 95, 0.10)' : '0 1px 2px rgba(15,17,21,0.04)',
+      color: active ? PN.PINK_DARK : PN.TEXT,
+      fontSize: 16, fontWeight: active ? 700 : 600,
+      cursor: 'pointer', fontFamily: 'inherit',
+      transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease',
+      whiteSpace: 'nowrap',
     }}>
-      {icon && <Icon name={icon} size={14}/>}
+      {icon && <Icon name={icon} size={16}/>}
       {label}
     </button>
   );
@@ -322,6 +352,6 @@ window.StatSpark = StatSpark;
 window.StatInsight = StatInsight;
 window.StatCard = StatCard;
 window.StatPeriodPicker = StatPeriodPicker;
-window.StatTab = StatTab;
+window.StatTabs = StatTabs;
 window.StatSubTab = StatSubTab;
 window.StatBar = StatBar;

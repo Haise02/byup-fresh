@@ -24,22 +24,22 @@ function StatisticheApp() {
       <PnSidebar active="statistiche"/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
         <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'18px 28px 32px', background:'#fafafa'}}>
-          {/* Macro tabs + period picker — barra underline come Contabilità */}
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 16, borderBottom: `1px solid ${PN.BORDER}`, marginBottom: 18}}>
-            <div style={{display:'flex', gap: 4}}>
-              <StatTab id="operazioni" active={tab==='operazioni'} onClick={setTab} label="Operazioni" icon="chart-workflow"/>
-              <StatTab id="economici" active={tab==='economici'} onClick={setTab} label="Economici" icon="commerce-coins"/>
-              <StatTab id="app" active={tab==='app'} onClick={setTab} label="App" icon="chart-area"/>
-            </div>
-            <div style={{paddingBottom: 6}}>
-              <StatPeriodPicker period={period} setPeriod={setPeriod}/>
-            </div>
+          {/* Macro tabs a segmenti + period picker (riferimento grafico) */}
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 16, marginBottom: 18}}>
+            <StatTabs
+              tabs={[
+                { id: 'operazioni', label: 'Operazioni', icon: 'chart-workflow' },
+                { id: 'economici', label: 'Economici', icon: 'commerce-coins' },
+                { id: 'app', label: 'App', icon: 'chart-area' },
+              ]}
+              active={tab} onChange={setTab}/>
+            <StatPeriodPicker period={period} setPeriod={setPeriod}/>
           </div>
 
-          {/* Operazioni sub-tabs */}
+          {/* Operazioni sub-tabs — card a tutta riga */}
           {tab === 'operazioni' && (
             <>
-              <div style={{display:'flex', gap: 22, borderBottom:`1px solid ${PN.BORDER_SOFT}`, marginBottom: 16}}>
+              <div style={{display:'flex', gap: 14, marginBottom: 18}}>
                 <StatSubTab active={opSub==='prenotazioni'} onClick={() => setOpSub('prenotazioni')} label="Prenotazioni" icon="time-calendar"/>
                 <StatSubTab active={opSub==='ordini'} onClick={() => setOpSub('ordini')} label="Ordini" icon="commerce-cart"/>
                 <StatSubTab active={opSub==='staff'} onClick={() => setOpSub('staff')} label="Team" icon="people-staff-group"/>
