@@ -2725,6 +2725,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
   const [removed, setRemoved] = useState(editLine?.removed || {}); // ingredient -> true
   const [variants, setVariants] = useState(editLine?.variants || {});
   const [nutriOpen, setNutriOpen] = useState(true);
+  const [nutriInfo, setNutriInfo] = useState(false); // popover "i" del badge IA
   // Default 1: in aggiunta è la quantità di partenza; in modifica è il MINIMO
   // di "a quante porzioni applicare le modifiche" (la riga ha editLine.qty porzioni).
   const [qty, setQty] = useState(1);
@@ -2979,12 +2980,43 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
               border: `1px solid ${BORDER}`, position: 'relative',
               boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
             }}>
-              <div style={{
-                position: 'absolute', top: -10, left: 14,
-                background: PINK, color: '#fff', fontSize: 10, fontWeight: 800,
-                padding: '4px 9px', borderRadius: 999, letterSpacing: 0.5,
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}>✨ IA</div>
+              <div style={{ position: 'absolute', top: -10, left: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{
+                  background: PINK, color: '#fff', fontSize: 10, fontWeight: 800,
+                  padding: '4px 9px', borderRadius: 999, letterSpacing: 0.5,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}>✨ IA</div>
+                {/* "i" — trasparenza sui valori generati con AI */}
+                <span role="button" tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); setNutriInfo(v => !v); }}
+                  style={{
+                    width: 20, height: 20, borderRadius: 999, flexShrink: 0,
+                    background: SURF, border: `1.5px solid ${PINK}`, color: PINK,
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11.5, fontWeight: 800, fontStyle: 'italic', fontFamily: 'Georgia, serif',
+                    cursor: 'pointer', lineHeight: 1,
+                  }}>i</span>
+                {nutriInfo && (
+                  <>
+                    <div onClick={(e) => { e.stopPropagation(); setNutriInfo(false); }} style={{ position: 'fixed', inset: 0, zIndex: 24 }}/>
+                    <div style={{
+                      position: 'absolute', top: 26, left: 0, zIndex: 25,
+                      width: 250, padding: '10px 12px', borderRadius: 12,
+                      background: BADGE, color: '#fff',
+                      fontSize: 12, fontWeight: 500, lineHeight: 1.5,
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                      animation: 'fade 0.15s ease',
+                    }}>
+                      Valori generati automaticamente dagli ingredienti, possono variare. Per esigenze specifiche chiedi al locale.
+                      <span style={{
+                        position: 'absolute', top: -4, left: 42,
+                        width: 8, height: 8, background: BADGE,
+                        transform: 'rotate(45deg)',
+                      }}/>
+                    </div>
+                  </>
+                )}
+              </div>
               <div onClick={() => setNutriOpen(!nutriOpen)} style={{
                 display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
               }}>
