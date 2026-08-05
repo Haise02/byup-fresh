@@ -341,6 +341,28 @@ function ImpPersonale() {
             </div>
           </section>
 
+          {/* Il ruolo su misura: quasi nessuno lo scopre da solo, ed è
+              l'unica risposta a «questa persona non deve vedere la
+              contabilità». Sta sotto i Ruoli, che è dove si parla di ruoli. */}
+          <section style={{...PANNELLO, padding:'14px 16px', display:'flex', flexDirection:'column', gap: 11}}>
+            <div style={{display:'flex', alignItems:'flex-start', gap: 10}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: PN.AMBER_SOFT, color: '#B45309',
+                display:'grid', placeItems:'center',
+              }}>{BuIcons.bulb ? BuIcons.bulb({size: 15, color:'currentColor'}) : '💡'}</span>
+              <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>
+                <strong style={{color: PN.TEXT, fontWeight: 700}}>Suggerimento:</strong> con un ruolo su misura
+                dai a ciascuno solo le sezioni che gli servono.
+              </span>
+            </div>
+            <ImpButton
+              variant="ghost"
+              icon={<PnI.Plus size={13}/>}
+              onClick={() => setShowCreateRole(true)}
+              style={{width:'100%', justifyContent:'center'}}
+            >Crea ruolo</ImpButton>
+          </section>
         </aside>
 
         <section style={PANNELLO}>
@@ -427,28 +449,6 @@ function ImpPersonale() {
             </div>
           </section>
 
-          {/* Il ruolo su misura: quasi nessuno lo scopre da solo, ed è l'unica
-              risposta a «questa persona non deve vedere la contabilità».
-              Sta subito sotto gli accessi rapidi, col suo bottone. */}
-          <section style={{...PANNELLO, padding:'14px 16px', display:'flex', flexDirection:'column', gap: 11}}>
-            <div style={{display:'flex', alignItems:'flex-start', gap: 10}}>
-              <span style={{
-                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                background: PN.AMBER_SOFT, color: '#B45309',
-                display:'grid', placeItems:'center',
-              }}>{BuIcons.bulb ? BuIcons.bulb({size: 15, color:'currentColor'}) : '💡'}</span>
-              <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>
-                <strong style={{color: PN.TEXT, fontWeight: 700}}>Suggerimento:</strong> con un ruolo su misura
-                dai a ciascuno solo le sezioni che gli servono.
-              </span>
-            </div>
-            <ImpButton
-              variant="ghost"
-              icon={<PnI.Plus size={13}/>}
-              onClick={() => setShowCreateRole(true)}
-              style={{width:'100%', justifyContent:'center'}}
-            >Crea ruolo</ImpButton>
-          </section>
         </aside>
       </div>
 
