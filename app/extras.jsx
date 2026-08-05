@@ -813,6 +813,50 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
       {/* ── Privacy e consensi ── */}
       <ConsensiPanel onOpenPrivacy={onOpenPrivacy} Gruppo={Gruppo} sep={sep}/>
 
+      {/* ── Sicurezza: gli accessi registrati su legittimo interesse.
+          Niente consenso da chiedere, ma massima trasparenza: l'utente li
+          VEDE, come su Google o Revolut — e diventano una feature (ti
+          accorgi se entra qualcun altro). Grana grossa: data, città,
+          dispositivo. Nessun tracciato di spostamenti. */}
+      <Gruppo
+        label="Sicurezza"
+        footer={
+          <span>
+            Registriamo data, IP e città degli accessi per proteggere il tuo account
+            (interesse legittimo, 12 mesi). Nessun tracciato dei tuoi spostamenti.
+            Puoi opporti scrivendo a privacy@byup.it.
+          </span>
+        }>
+        {[
+          { disp: 'iPhone di Mario', dove: 'Roma', quando: 'Oggi, 21:14', questo: true },
+          { disp: 'iPhone di Mario', dove: 'Roma', quando: 'Ieri, 13:02' },
+          { disp: 'Safari · Mac', dove: 'Milano', quando: '28 lug, 09:41' },
+        ].map((a, i, arr) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 14px',
+            ...(i < arr.length - 1 ? sep : {}),
+          }}>
+            <span style={{
+              width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+              background: TINT_X, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {a.disp.startsWith('Safari')
+                  ? <React.Fragment><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></React.Fragment>
+                  : <React.Fragment><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18.5h2"/></React.Fragment>}
+              </svg>
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, color: TEXT_X }}>
+                {a.disp}{a.questo && <span style={{ fontSize: 10.5, fontWeight: 700, color: '#30D158', marginLeft: 6 }}>QUESTO DISPOSITIVO</span>}
+              </div>
+              <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 1 }}>{a.dove} · {a.quando}</div>
+            </div>
+          </div>
+        ))}
+      </Gruppo>
+
       {/* ── I tuoi diritti — quello che le app serie mettono sempre ── */}
       <Gruppo label="I tuoi dati">
         <button onClick={scaricaDati} style={{
@@ -1431,6 +1475,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
             { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito (art. 6.1.a GDPR).' },
             { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
             { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
+            { h: 'Sicurezza dell\'account (accessi)', p: 'Per proteggere il tuo account, prevenire abusi e fornirti assistenza registriamo gli eventi di accesso all\'app: data e ora, indirizzo IP, città stimata e tipo di dispositivo. La base giuridica è il legittimo interesse (art. 6.1.f GDPR); NON registriamo né conserviamo un tracciato dei tuoi spostamenti. Gli eventi sono conservati per 12 mesi e sono visibili nella sezione \u201cI miei dati\u201d del profilo. Puoi opporti al trattamento scrivendo a privacy@byup.it.' },
             { h: 'Cookie e tecnologie simili', p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.' },
             { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
           ]}/>
