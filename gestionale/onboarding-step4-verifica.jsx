@@ -43,16 +43,12 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
   const [menu, setMenu] = React.useState(MENU_INIZIALE);
 
   // ─── Contratto ─────────────────────────────────────────────────────────
-  // L'attivazione È la conclusione del contratto: senza accettazione qui il
-  // servizio non parte. Due firme distinte perché lo chiede la legge, non il
-  // design: l'accettazione integrale e la SECONDA approvazione specifica
-  // delle clausole vessatorie (artt. 1341-1342 c.c.), che è valida solo se
-  // le clausole sono elencate, non citate in blocco.
-  const [accTerms, setAccTerms] = React.useState(false);
-  const [accVessatorie, setAccVessatorie] = React.useState(false);
-  const contrattoOk = accTerms && accVessatorie;
+  // L'attivazione È la conclusione del contratto: al click su una delle due
+  // uscite si apre il modale dedicato alla firma (ContrattoModal), e solo
+  // l'accettazione lì dentro fa proseguire verso la destinazione scelta.
+  const [contrattoModal, setContrattoModal] = React.useState(null); // null | 'panoramica' | 'config'
   const completa = (dest) => {
-    if (!contrattoOk || !onComplete) return;
+    if (!onComplete) return;
     // La prova dell'accettazione: versione e momento. In demo resta locale;
     // in produzione è un campo del backend accanto all'account.
     try {
@@ -61,16 +57,6 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
       }));
     } catch (e) {}
     onComplete(dest);
-  };
-  // Copia su supporto durevole: il testo versionato scaricato com'è, non un
-  // link a una pagina che domani può cambiare.
-  const scaricaContratto = () => {
-    const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Termini e Condizioni Byup Fresh · v${CONTRATTO_VERSIONE}</title></head><body style="font-family:Georgia,serif;max-width:720px;margin:40px auto;line-height:1.6"><h1>Termini e Condizioni di Byup Fresh</h1><p><i>Versione ${CONTRATTO_VERSIONE} · scaricata il ${new Date().toLocaleDateString('it-IT')}</i></p>${CONTRATTO_TESTO.map(c => `<h3>${c.n}. ${c.h}</h3><p>${c.p}</p>`).join('')}</body></html>`;
-    const url = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
-    const a = document.createElement('a');
-    a.href = url; a.download = `Byup-Fresh-Termini-v${CONTRATTO_VERSIONE}.html`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
   };
 
   const totalDishes = menu.reduce((s, c) => s + c.dishes.length, 0);
@@ -230,70 +216,10 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
           </div>
         </div>
 
-        {/* ─── Contratto — il punto di firma, sopra le CTA che attivano ─── */}
-        <div style={{
-          marginTop: 22, padding: '18px 20px',
-          background: '#fff', borderRadius: 14,
-          border: '1px solid rgba(15, 17, 21, 0.08)',
-          boxShadow: '0 1px 3px rgba(15, 17, 21, 0.04)',
-          position: 'relative', zIndex: 1,
-        }}>
-          <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 10}}>
-            <div style={{fontSize: 17, fontWeight: 600, color: ONB.TEXT, letterSpacing: '-0.01em'}}>
-              Contratto di servizio
-            </div>
-            <button onClick={scaricaContratto} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: 0, background: 'transparent', border: 'none',
-              fontSize: 13.5, fontWeight: 600, color: ONB.MUTED,
-              cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
-              textUnderlineOffset: 2,
-            }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
-              Scarica copia (v{CONTRATTO_VERSIONE})
-            </button>
-          </div>
-
-          {/* Il testo integrale, scorrevole: si firma quello che si può
-              leggere qui, non un link. */}
-          <div className="pn-scroll" style={{
-            maxHeight: 148, overflowY: 'auto',
-            padding: '12px 14px', borderRadius: 10,
-            background: ONB.BG_SOFT, border: '1px solid rgba(15, 17, 21, 0.06)',
-            fontSize: 13, lineHeight: 1.55, color: ONB.MUTED,
-          }}>
-            {CONTRATTO_TESTO.map(c => (
-              <div key={c.n} style={{marginBottom: 10}}>
-                <div style={{fontWeight: 700, color: ONB.TEXT, marginBottom: 2}}>{c.n}. {c.h}</div>
-                <div>{c.p}</div>
-              </div>
-            ))}
-          </div>
-
-          <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12, cursor: 'pointer'}}>
-            <input type="checkbox" checked={accTerms} onChange={e => setAccTerms(e.target.checked)}
-              style={{accentColor: ONB.BRAND, width: 16, height: 16, marginTop: 2, flexShrink: 0}}/>
-            <span style={{fontSize: 14, color: ONB.TEXT, lineHeight: 1.5}}>
-              Ho letto e accetto integralmente i <b>Termini e Condizioni di Byup Fresh</b> (v{CONTRATTO_VERSIONE}) e ho preso visione dell'informativa privacy.
-            </span>
-          </label>
-
-          {/* La seconda firma: valida solo se le clausole sono ELENCATE. */}
-          <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 8, cursor: 'pointer'}}>
-            <input type="checkbox" checked={accVessatorie} onChange={e => setAccVessatorie(e.target.checked)}
-              style={{accentColor: ONB.BRAND, width: 16, height: 16, marginTop: 2, flexShrink: 0}}/>
-            <span style={{fontSize: 14, color: ONB.TEXT, lineHeight: 1.5}}>
-              Ai sensi degli <b>artt. 1341 e 1342 c.c.</b> approvo specificamente le clausole:{' '}
-              {CLAUSOLE_VESSATORIE.map((n, i) => {
-                const c = CONTRATTO_TESTO.find(x => x.n === n);
-                return <span key={n}><b>{n}</b> ({c.h}){i < CLAUSOLE_VESSATORIE.length - 1 ? ', ' : '.'}</span>;
-              })}
-            </span>
-          </label>
-        </div>
-
         {/* Footer CTAs — full width sotto le due colonne, sticky perché
-            l'editor del menù può far crescere la colonna oltre il canvas. */}
+            l'editor del menù può far crescere la colonna oltre il canvas.
+            Le due uscite non attivano direttamente: aprono il modale del
+            contratto, che è il vero punto di firma. */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           position: 'sticky', bottom: 0, zIndex: 6,
@@ -306,38 +232,30 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
             Indietro
           </SecondaryCta>
           <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-            {/* Le due uscite attivano il servizio: senza le due firme del
-                contratto restano spente, e il perché è scritto accanto. */}
-            {!contrattoOk && (
-              <span style={{fontSize: 13.5, fontWeight: 600, color: ONB.MUTED, marginRight: 2}}>
-                Accetta il contratto per attivare
-              </span>
-            )}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 14,
-              opacity: contrattoOk ? 1 : 0.45,
-              pointerEvents: contrattoOk ? 'auto' : 'none',
-              transition: 'opacity 160ms ease',
+            {/* Gerarchia: l'azione consigliata è chiudere il setup ("Completa la
+                configurazione") — rossa e a pillola. Entrare subito nel prodotto
+                resta possibile ma anonimo, separato da un "oppure" discreto per
+                chiarire che è un bivio, non una sequenza. */}
+            <SecondaryCta onClick={() => setContrattoModal('panoramica')}>
+              Inizia a gestire il locale
+            </SecondaryCta>
+            <span style={{
+              fontSize: 14, fontWeight: 500, color: ONB.MUTED_LIGHT,
+              letterSpacing: '0.04em',
             }}>
-              {/* Gerarchia: l'azione consigliata è chiudere il setup ("Completa la
-                  configurazione") — rossa e a pillola. Entrare subito nel prodotto
-                  resta possibile ma anonimo, separato da un "oppure" discreto per
-                  chiarire che è un bivio, non una sequenza. */}
-              <SecondaryCta onClick={() => completa('panoramica')}>
-                Inizia a gestire il locale
-              </SecondaryCta>
-              <span style={{
-                fontSize: 14, fontWeight: 500, color: ONB.MUTED_LIGHT,
-                letterSpacing: '0.04em',
-              }}>
-                oppure
-              </span>
-              <PrimaryCtaArrow onClick={() => completa('config')}>
-                Completa la configurazione
-              </PrimaryCtaArrow>
-            </div>
+              oppure
+            </span>
+            <PrimaryCtaArrow onClick={() => setContrattoModal('config')}>
+              Completa la configurazione
+            </PrimaryCtaArrow>
           </div>
         </div>
+
+        {contrattoModal && (
+          <ContrattoModal
+            onClose={() => setContrattoModal(null)}
+            onAccept={() => { const dest = contrattoModal; setContrattoModal(null); completa(dest); }}/>
+        )}
       </div>
 
       <style>{`
@@ -1107,3 +1025,141 @@ const CONTRATTO_TESTO = [
   { n: 10, h: 'Legge applicabile e foro esclusivo', p: 'I presenti Termini sono regolati dalla legge italiana. Per ogni controversia è competente in via esclusiva il Foro di Roma.' },
 ];
 const CLAUSOLE_VESSATORIE = [4, 6, 7, 8, 10];
+
+// ─── ContrattoModal — il punto di firma, da solo sulla scena ────────────────
+// Si apre da entrambe le uscite dello step 4: la schermata resta celebrativa
+// e la firma ha un momento tutto suo. Foglio bianco, testo integrale
+// scorrevole, copia scaricabile, e le due firme distinte che chiede la legge:
+// accettazione integrale + approvazione specifica delle vessatorie ex artt.
+// 1341-1342 c.c. (valida solo se le clausole sono elencate, non citate in
+// blocco). La CTA di accettazione si accende solo con entrambe le spunte.
+function ContrattoModal({ onClose, onAccept }) {
+  const [accTerms, setAccTerms] = React.useState(false);
+  const [accVessatorie, setAccVessatorie] = React.useState(false);
+  const ok = accTerms && accVessatorie;
+
+  // Copia su supporto durevole: il testo versionato scaricato com'è, non un
+  // link a una pagina che domani può cambiare.
+  const scarica = () => {
+    const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Termini e Condizioni Byup Fresh · v${CONTRATTO_VERSIONE}</title></head><body style="font-family:Georgia,serif;max-width:720px;margin:40px auto;line-height:1.6"><h1>Termini e Condizioni di Byup Fresh</h1><p><i>Versione ${CONTRATTO_VERSIONE} · scaricata il ${new Date().toLocaleDateString('it-IT')}</i></p>${CONTRATTO_TESTO.map(c => `<h3>${c.n}. ${c.h}</h3><p>${c.p}</p>`).join('')}</body></html>`;
+    const url = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
+    const a = document.createElement('a');
+    a.href = url; a.download = `Byup-Fresh-Termini-v${CONTRATTO_VERSIONE}.html`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(15, 17, 21, 0.45)',
+      backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'contratto-fade 180ms ease both',
+    }}>
+      <style>{`
+        @keyframes contratto-fade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes contratto-pop { 0% { opacity: 0; transform: scale(0.94) translateY(12px); } 100% { opacity: 1; transform: none; } }
+      `}</style>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 600, maxWidth: '100%', maxHeight: '92vh',
+        background: '#fff', borderRadius: 22,
+        boxShadow: '0 32px 80px -24px rgba(15, 17, 21, 0.40), 0 0 0 1px rgba(15, 17, 21, 0.05)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        animation: 'contratto-pop 300ms cubic-bezier(.2,.8,.25,1) both',
+      }}>
+        {/* Testata */}
+        <div style={{padding: '24px 28px 16px', borderBottom: '1px solid rgba(15, 17, 21, 0.07)', position: 'relative'}}>
+          <div style={{fontSize: 22, fontWeight: 700, color: ONB.TEXT, letterSpacing: '-0.02em', paddingRight: 44}}>
+            Un'ultima firma
+          </div>
+          <div style={{fontSize: 15, color: ONB.MUTED, marginTop: 3, lineHeight: 1.45, paddingRight: 44}}>
+            Per attivare Byup Fresh serve la tua accettazione del contratto di servizio.
+          </div>
+          <button onClick={onClose} aria-label="Chiudi" style={{
+            position: 'absolute', top: 20, right: 20, width: 34, height: 34, borderRadius: '50%',
+            background: '#fff', border: '1px solid rgba(15, 17, 21, 0.12)', color: ONB.TEXT,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        {/* Corpo: il testo integrale, protagonista e scorrevole */}
+        <div style={{padding: '18px 28px 0', display: 'flex', flexDirection: 'column', minHeight: 0}}>
+          <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 8}}>
+            <div style={{fontSize: 13, fontWeight: 700, color: ONB.MUTED, letterSpacing: '0.06em', textTransform: 'uppercase'}}>
+              Termini e Condizioni · v{CONTRATTO_VERSIONE}
+            </div>
+            <button onClick={scarica} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: 0, background: 'transparent', border: 'none',
+              fontSize: 13.5, fontWeight: 600, color: ONB.MUTED,
+              cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
+              textUnderlineOffset: 2, whiteSpace: 'nowrap',
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg>
+              Scarica copia
+            </button>
+          </div>
+          <div className="pn-scroll" style={{
+            flex: 1, minHeight: 120, maxHeight: 300, overflowY: 'auto',
+            padding: '14px 16px', borderRadius: 12,
+            background: ONB.BG_SOFT, border: '1px solid rgba(15, 17, 21, 0.06)',
+            fontSize: 13.5, lineHeight: 1.6, color: ONB.MUTED,
+          }}>
+            {CONTRATTO_TESTO.map(c => (
+              <div key={c.n} style={{marginBottom: 12}}>
+                <div style={{fontWeight: 700, color: ONB.TEXT, marginBottom: 2}}>{c.n}. {c.h}</div>
+                <div>{c.p}</div>
+              </div>
+            ))}
+          </div>
+
+          <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 14, cursor: 'pointer'}}>
+            <input type="checkbox" checked={accTerms} onChange={e => setAccTerms(e.target.checked)}
+              style={{accentColor: ONB.BRAND, width: 16, height: 16, marginTop: 2, flexShrink: 0}}/>
+            <span style={{fontSize: 14, color: ONB.TEXT, lineHeight: 1.5}}>
+              Ho letto e accetto integralmente i <b>Termini e Condizioni di Byup Fresh</b> e ho preso visione dell'informativa privacy.
+            </span>
+          </label>
+
+          {/* La seconda firma: valida solo se le clausole sono ELENCATE. */}
+          <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 8, cursor: 'pointer'}}>
+            <input type="checkbox" checked={accVessatorie} onChange={e => setAccVessatorie(e.target.checked)}
+              style={{accentColor: ONB.BRAND, width: 16, height: 16, marginTop: 2, flexShrink: 0}}/>
+            <span style={{fontSize: 14, color: ONB.TEXT, lineHeight: 1.5}}>
+              Ai sensi degli <b>artt. 1341 e 1342 c.c.</b> approvo specificamente le clausole:{' '}
+              {CLAUSOLE_VESSATORIE.map((n, i) => {
+                const c = CONTRATTO_TESTO.find(x => x.n === n);
+                return <span key={n}><b>{n}</b> ({c.h}){i < CLAUSOLE_VESSATORIE.length - 1 ? ', ' : '.'}</span>;
+              })}
+            </span>
+          </label>
+        </div>
+
+        {/* Piede: annulla + la firma vera e propria */}
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: 12,
+          padding: '18px 28px 22px',
+        }}>
+          <button onClick={onClose} style={{
+            padding: '12px 20px', borderRadius: 999,
+            background: '#fff', color: ONB.TEXT,
+            border: '1px solid rgba(15, 17, 21, 0.14)',
+            fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Annulla</button>
+          <button onClick={() => { if (ok) onAccept(); }} disabled={!ok} style={{
+            padding: '12px 26px', borderRadius: 999,
+            background: ok ? ONB.BRAND : 'rgba(15, 17, 21, 0.08)',
+            color: ok ? '#fff' : 'rgba(15, 17, 21, 0.35)',
+            border: 'none', fontSize: 15, fontWeight: 700,
+            cursor: ok ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+            boxShadow: ok ? '0 8px 20px -8px rgba(255, 90, 95, 0.55)' : 'none',
+            transition: 'background 160ms ease, color 160ms ease, box-shadow 160ms ease',
+          }}>Accetta e attiva Byup Fresh</button>
+        </div>
+      </div>
+    </div>
+  );
+}
