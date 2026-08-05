@@ -663,7 +663,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
           backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
         }}>
           <div onClick={e => e.stopPropagation()} style={{
-            ...PN.GLASS_STRONG, borderRadius: 20,
+            ...IMP_MODAL_PANEL,
             width: 380, maxWidth:'90%', padding: 24,
           }}>
             <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
@@ -860,7 +860,7 @@ function DeviceForm({ st }) {
                     style={{
                       width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                       borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                      background:'rgba(255,255,255,0.8)',
+                      background: PN.WHITE,
                     }}
                   />
                 </ImpField>
@@ -877,7 +877,7 @@ function DeviceForm({ st }) {
                     style={{
                       width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                       borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                      background:'rgba(255,255,255,0.8)',
+                      background: PN.WHITE,
                     }}
                   />
                 </ImpField>
@@ -992,7 +992,7 @@ function DeviceForm({ st }) {
                       border:`1px solid ${PN.BORDER}`, borderLeft:'none',
                       borderRadius:'0 9px 9px 0',
                       fontSize:15.5, fontFamily:'ui-monospace, Menlo, monospace',
-                      outline:'none', background:'rgba(255,255,255,0.8)',
+                      outline:'none', background: PN.WHITE,
                     }}
                   />
                 </div>
@@ -1010,7 +1010,7 @@ function DeviceForm({ st }) {
                         width:'100%', padding:'10px 40px 10px 12px',
                         border:`1px solid ${PN.BORDER}`, borderRadius:9,
                         fontSize:15.5, fontFamily:'inherit', outline:'none',
-                        background:'rgba(255,255,255,0.8)',
+                        background: PN.WHITE,
                       }}
                     />
                     <button
@@ -1044,6 +1044,23 @@ function DeviceForm({ st }) {
     </>
   );
 }
+
+// ─── Foglio modale del Personale ────────────────────────────────────────────
+// BIANCO pieno, non GLASS_STRONG: il vetro al 68% sopra l'overlay scuro legge
+// grigio — qui dentro si compilano campi e si leggono elenchi, serve una
+// superficie che si veda tutta. Stessa ricetta delle finestre di Sala e tavoli.
+const IMP_MODAL_PANEL = {
+  background: PN.WHITE, borderRadius: 22,
+  boxShadow: '0 32px 80px -24px rgba(15, 17, 21, 0.38), 0 0 0 1px rgba(15, 17, 21, 0.05)',
+};
+const IMP_MODAL_HEAD  = { padding: '22px 26px 18px', borderBottom: `1px solid ${PN.BORDER_SOFT}` };
+const IMP_MODAL_TITLE = { fontSize: 19, fontWeight: 800, letterSpacing: -0.3, color: PN.TEXT, marginBottom: 3, paddingRight: 44 };
+const IMP_MODAL_SUB   = { fontSize: 14.5, color: PN.MUTED, paddingRight: 44 };
+const IMP_MODAL_X = {
+  position: 'absolute', top: 18, right: 18, width: 34, height: 34, borderRadius: '50%',
+  background: PN.WHITE, border: `1px solid ${PN.BORDER}`, color: PN.TEXT,
+  cursor: 'pointer', display: 'grid', placeItems: 'center',
+};
 
 function InviteModal({ onClose, prefill }) {
   const initialKind = prefill?.kind === 'device' ? 'device' : 'person';
@@ -1093,25 +1110,20 @@ function InviteModal({ onClose, prefill }) {
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20,
+        ...IMP_MODAL_PANEL,
         width: kind === 'person' ? 620 : 480, maxWidth:'100%', position:'relative',
         maxHeight: '90vh', display:'flex', flexDirection:'column',
       }}>
-        <div style={{padding: '20px 24px', borderBottom: `1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 3}}>
+        <div style={IMP_MODAL_HEAD}>
+          <div style={IMP_MODAL_TITLE}>
             {kind === 'person' ? 'Invita una persona' : 'Aggiungi un membro / dispositivo'}
           </div>
-          <div style={{fontSize: 14.5, color: PN.MUTED}}>
+          <div style={IMP_MODAL_SUB}>
             {kind === 'person'
               ? 'Invia un accesso al gestionale o all\'app staff.'
               : 'Crea username e password per il dispositivo. Non serve un\'email'}
           </div>
-          <button onClick={onClose} style={{
-            position:'absolute', top: 16, right: 16,
-            width: 32, height: 32, borderRadius: 8,
-            background:'#F4F5F7', border:'none', cursor:'pointer',
-            display:'grid', placeItems:'center',
-          }}><PnI.X size={14}/></button>
+          <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
 
         <div style={{padding: '20px 24px', overflow:'auto', flex: 1}}>
@@ -1165,7 +1177,7 @@ function InviteModal({ onClose, prefill }) {
                       style={{
                         width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                         borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                        background:'rgba(255,255,255,0.8)',
+                        background: PN.WHITE,
                       }}
                     />
                   </ImpField>
@@ -1178,7 +1190,7 @@ function InviteModal({ onClose, prefill }) {
                       style={{
                         width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                         borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                        background:'rgba(255,255,255,0.8)',
+                        background: PN.WHITE,
                       }}
                     />
                   </ImpField>
@@ -1191,7 +1203,7 @@ function InviteModal({ onClose, prefill }) {
                           width:'100%', padding:'10px 34px 10px 12px',
                           border:`1px solid ${PN.BORDER}`, borderRadius: 9,
                           fontSize: 15.5, fontFamily:'inherit', outline:'none',
-                          background:'rgba(255,255,255,0.8)', color: PN.TEXT,
+                          background: PN.WHITE, color: PN.TEXT,
                           appearance:'none', WebkitAppearance:'none', cursor:'pointer',
                         }}>
                         {allRolesForInvite.filter(r => !r.locked).map(r => (
@@ -1214,7 +1226,7 @@ function InviteModal({ onClose, prefill }) {
                         style={{
                           width:'100%', padding:'10px 12px 24px', border:`1px solid ${PN.BORDER}`,
                           borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none', resize:'vertical',
-                          background:'rgba(255,255,255,0.8)',
+                          background: PN.WHITE,
                         }}
                       />
                       <span style={{position:'absolute', right: 10, bottom: 10, fontSize: 12, color: PN.MUTED}}>
@@ -1310,26 +1322,21 @@ function PendingModal({ onClose }) {
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20,
-        width: 480, maxWidth:'100%', position:'relative',
+        ...IMP_MODAL_PANEL,
+        width: 500, maxWidth:'100%', position:'relative',
         maxHeight:'90vh', display:'flex', flexDirection:'column',
       }}>
-        <div style={{padding:'20px 24px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 3}}>Inviti in sospeso</div>
-          <div style={{fontSize: 14.5, color: PN.MUTED}}>
+        <div style={IMP_MODAL_HEAD}>
+          <div style={IMP_MODAL_TITLE}>Inviti in sospeso</div>
+          <div style={IMP_MODAL_SUB}>
             {PENDING.length === 0
               ? 'Nessun invito in attesa'
               : `${PENDING.length} ${PENDING.length === 1 ? 'invito in attesa' : 'inviti in attesa'} di conferma`}
           </div>
-          <button onClick={onClose} style={{
-            position:'absolute', top: 16, right: 16,
-            width: 32, height: 32, borderRadius: 8,
-            background:'#F4F5F7', border:'none', cursor:'pointer',
-            display:'grid', placeItems:'center',
-          }}><PnI.X size={14}/></button>
+          <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
 
-        <div style={{padding:'20px 24px', overflow:'auto', flex: 1}}>
+        <div style={{padding:'18px 26px 20px', overflow:'auto', flex: 1}}>
           {PENDING.length === 0 ? (
             <div style={{padding: 30, textAlign:'center', color: PN.MUTED, fontSize: 15}}>
               Quando inviterai una persona, l'invito comparirà qui finché non viene accettato.
@@ -1338,39 +1345,52 @@ function PendingModal({ onClose }) {
             <>
               <div style={{
                 padding:'10px 14px', marginBottom: 14,
-                background: PN.AMBER_SOFT, borderRadius: 9,
-                fontSize: 14.5, color: '#92400E',
-                display:'flex', alignItems:'center', gap: 8,
+                background: '#FFFBEB', border: '1px solid #FDE9C0', borderRadius: 11,
+                fontSize: 13.5, color: '#92400E', lineHeight: 1.45,
+                display:'flex', alignItems:'flex-start', gap: 9,
               }}>
-                <span>⏳</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+                  <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>
+                </svg>
                 <span>Gli inviti scadono dopo 7 giorni. Puoi rinviarli o revocarli in qualsiasi momento.</span>
               </div>
-              <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+              <div style={{display:'flex', flexDirection:'column', gap: 10}}>
                 {PENDING.map((p, i) => {
                   const role = [...ROLES, ...CUSTOM_ROLES].find(r => r.id === p.role);
                   return (
                     <div key={i} style={{
-                      display:'flex', alignItems:'center', gap: 12,
-                      padding:'12px 16px', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
+                      padding:'14px 16px', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 13,
+                      background: PN.WHITE,
+                      boxShadow: '0 1px 3px rgba(15,17,21,0.04)',
                     }}>
-                      <div style={{
-                        width: 38, height: 38, borderRadius:'50%',
-                        background: PN.AMBER_SOFT, color: '#92400E',
-                        display:'grid', placeItems:'center', fontSize: 18,
-                      }}>✉</div>
-                      <div style={{flex: 1, minWidth: 0}}>
-                        <div style={{fontSize: 15.5, fontWeight: 700}}>{p.email}</div>
-                        <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>
-                          Invitato come <b>{role?.label}</b> · {p.sent}
+                      <div style={{display:'flex', alignItems:'center', gap: 12}}>
+                        <div style={{
+                          width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
+                          background: PN.AMBER_SOFT, color: '#B45309',
+                          display:'grid', placeItems:'center',
+                        }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/>
+                          </svg>
+                        </div>
+                        <div style={{flex: 1, minWidth: 0}}>
+                          <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.email}</div>
+                          <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>
+                            Invitato come <b style={{color: PN.TEXT}}>{role?.label}</b> · {p.sent}
+                          </div>
                         </div>
                       </div>
-                      <ImpButton variant="ghost" style={{padding:'6px 10px', fontSize: 14}}>Invita di nuovo</ImpButton>
-                      <button style={{
-                        padding:'6px 10px',
-                        background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                        border:'none', borderRadius: 7,
-                        fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                      }}>Revoca invito</button>
+                      {/* Le azioni sotto, non schiacciate accanto all'email:
+                          la riga respira e i bottoni hanno il loro spazio. */}
+                      <div style={{display:'flex', gap: 8, marginTop: 12, paddingLeft: 50}}>
+                        <ImpButton variant="ghost" style={{padding:'7px 12px', fontSize: 14}}>Invita di nuovo</ImpButton>
+                        <button className="pn-btn-feedback" style={{
+                          padding:'7px 12px',
+                          background: PN.WHITE, color: PN.PINK_DARK,
+                          border:`1px solid rgba(224, 67, 71, 0.35)`, borderRadius: 9,
+                          fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                        }}>Revoca invito</button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1380,7 +1400,7 @@ function PendingModal({ onClose }) {
         </div>
 
         <div style={{
-          padding:'14px 24px',
+          padding:'14px 26px',
           borderTop:`1px solid ${PN.BORDER_SOFT}`,
           display:'flex', justifyContent:'flex-end',
         }}>
@@ -1411,26 +1431,18 @@ function CreateRoleModal({ onClose, role }) {
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG, borderRadius: 20,
+        ...IMP_MODAL_PANEL,
         width: 480, maxWidth:'100%', position:'relative',
         maxHeight: '90vh', display:'flex', flexDirection:'column',
       }}>
-        <div style={{
-          padding: '20px 24px',
-          borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-        }}>
-          <div style={{fontSize: 17, fontWeight: 700, marginBottom: 3}}>
+        <div style={IMP_MODAL_HEAD}>
+          <div style={IMP_MODAL_TITLE}>
             {isEdit ? `Modifica permessi · ${role.label}` : 'Crea ruolo personalizzato'}
           </div>
-          <div style={{fontSize: 14.5, color: PN.MUTED}}>
+          <div style={IMP_MODAL_SUB}>
             {isEdit ? 'Aggiorna nome e aree visibili a questo ruolo' : 'Definisci nome e aree visibili'}
           </div>
-          <button onClick={onClose} style={{
-            position:'absolute', top: 16, right: 16,
-            width: 32, height: 32, borderRadius: 8,
-            background:'#F4F5F7', border:'none', cursor:'pointer',
-            display:'grid', placeItems:'center',
-          }}><PnI.X size={14}/></button>
+          <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
 
         <div style={{padding: '20px 24px', overflow:'auto', flex: 1}}>
@@ -1442,7 +1454,7 @@ function CreateRoleModal({ onClose, role }) {
               style={{
                 width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
                 borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                background:'rgba(255,255,255,0.8)',
+                background: PN.WHITE,
               }}
             />
           </ImpField>
