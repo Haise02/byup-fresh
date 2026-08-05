@@ -245,8 +245,16 @@ function ImpPersonale() {
 
   return (
     <div>
-      {/* Testata invariata: titolo, sottotitolo e le tre azioni di sempre */}
-      <section style={{...PANNELLO, marginBottom: 14, padding: '18px 22px', display:'flex', alignItems:'flex-start', gap: 16}}>
+      {/* Testata: titolo, sottotitolo e le tre azioni di sempre. STICKY sul
+          contenitore che scrolla (il .pn-scroll della shell): le azioni della
+          pagina restano a portata anche in fondo alla tabella. L'ombra stacca
+          il box dalle righe che gli passano sotto. */}
+      <section style={{
+        ...PANNELLO, marginBottom: 14, padding: '18px 22px',
+        display:'flex', alignItems:'flex-start', gap: 16,
+        position:'sticky', top: 0, zIndex: 30,
+        boxShadow: '0 10px 24px -18px rgba(15,17,21,0.28)',
+      }}>
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Personale</div>
           <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.4}}>
@@ -411,7 +419,7 @@ function ImpPersonale() {
             borderBottom:`1px solid ${PN.BORDER_SOFT}`,
             fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
           }}>
-            <span>Persona</span><span>Ruolo</span><span>Accesso</span><span>Stato</span><span/>
+            <span>Persona</span><span>Ruolo</span><span>Stato</span><span/>
           </div>
 
           {visibili.length === 0 ? (
@@ -457,7 +465,7 @@ function ImpPersonale() {
 
 // Colonne della tabella accessi — una sola definizione per testata e righe,
 // così non possono scivolare l'una rispetto all'altra.
-const GRIGLIA_ACCESSI = 'minmax(0, 2.2fr) 126px minmax(0, 1.7fr) 112px 34px';
+const GRIGLIA_ACCESSI = 'minmax(0, 2.2fr) minmax(0, 1.2fr) 112px 34px';
 
 const DEVICE_ROLE = {
   id: '_device', label: 'Dispositivo', icon: 'monitor',
@@ -568,18 +576,6 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
           {(BuIcons[r.ruolo.icon]||BuIcons.user)({size: 12, color:'currentColor'})}
           <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.ruolo.label}</span>
         </span>
-      </div>
-
-      {/* Accesso */}
-      <div style={{minWidth: 0}}>
-        <div title={r.accesso.tutte} style={{
-          fontSize: 14.5, fontWeight: 600, color: PN.TEXT,
-          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-        }}>{r.accesso.titolo}</div>
-        <div style={{
-          fontSize: 13.5, color: PN.MUTED, marginTop: 1,
-          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-        }}>{r.accesso.sotto}</div>
       </div>
 
       {/* Stato: la pastiglia dice se l'accesso è acceso, la riga sotto quando
