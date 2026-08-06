@@ -2699,6 +2699,7 @@ const CONSENSI_DEF = [
   { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica', dove: 'alla registrazione' },
   // Opt-out, non consenso: legittimo interesse, attivo salvo disattivazione.
   { id: 'SUGG', label: 'Suggerimenti personalizzati',        desc: 'Consigli basati sui tuoi gusti e ordini · attivo, puoi disattivarlo', optout: true },
+  { id: 'ANLT', label: 'Analisi d\'uso',                     desc: 'Statistiche su come usi l\'app e sui tuoi ordini, collegate al tuo profilo · attivo, puoi disattivarlo', optout: true },
 ];
 
 function ConsensiPanel({ onOpenPrivacy, sep }) {
