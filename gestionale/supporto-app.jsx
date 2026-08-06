@@ -19,12 +19,12 @@ function SupportoApp() {
         {/* Body */}
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: '20px 28px 32px', background:'#fafafa'}}>
           <div style={{display:'flex', flexDirection:'column', gap: 20}}>
+            <SupSearch value={search} onChange={setSearch}/>
             <SupChannelCards
               onChat={() => setChatOpen(true)}
               onEmail={() => setEmailOpen(true)}
               onCall={() => setCallOpen(true)}
             />
-            <SupSearch value={search} onChange={setSearch}/>
             <SupTutorials
               openCat={openCat}
               setOpenCat={setOpenCat}

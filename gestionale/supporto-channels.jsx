@@ -138,32 +138,53 @@ function SupCard({ icon, iconBg, iconColor, badge, badgeBg, badgeColor, title, d
   );
 }
 
+// La ricerca apre la pagina, sopra le card dei canali: in un centro
+// assistenza la prima mossa è cercare, chiamare o scrivere è quello che si fa
+// se la ricerca non basta. Prima stava incastrata fra due superfici bianche e
+// col bordo tenue spariva — sembrava un pannello spento, non un campo.
 function SupSearch({ value, onChange }) {
+  const [fuoco, setFuoco] = React.useState(false);
   return (
     <div style={{
-      display:'flex', alignItems:'center', gap: 10,
-      padding: '12px 16px',
+      display:'flex', alignItems:'center', gap: 12,
+      padding: '13px 16px',
       background: PN.WHITE,
-      border: `1px solid ${PN.BORDER}`,
-      borderRadius: 12,
+      border: `1px solid ${fuoco ? PN.PINK : PN.BORDER}`,
+      borderRadius: 14,
+      // L'anello al fuoco e l'ombra a riposo: sono le due cose che dicono
+      // "qui si scrive" senza aggiungere una riga di testo.
+      boxShadow: fuoco ? '0 0 0 3px rgba(255,90,95,0.16)' : PN.CARD_SHADOW,
+      transition:'border-color 140ms ease, box-shadow 140ms ease',
     }}>
-      <span style={{color: PN.MUTED, display: 'flex', alignItems: 'center'}}><PnI.Search size={16} color={PN.MUTED}/></span>
+      <span style={{
+        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+        background: PN.PINK_BG_SOFT, color: PN.PINK,
+        display:'grid', placeItems:'center',
+      }}><PnI.Search size={16} color={PN.PINK}/></span>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Cerca guide, video o domande frequenti… (es. come configurare i pagamenti)"
+        onFocus={() => setFuoco(true)}
+        onBlur={() => setFuoco(false)}
+        placeholder="Cerca una guida, un video o una domanda frequente…"
         style={{
-          flex: 1, border:'none', outline:'none',
-          fontSize: 15.5, color: PN.TEXT,
+          flex: 1, minWidth: 0, border:'none', outline:'none',
+          fontSize: 16, color: PN.TEXT,
           background:'transparent', fontFamily:'inherit',
         }}
       />
-      {value && (
-        <button onClick={() => onChange('')} style={{
-          background:'transparent', border:'none',
-          color: PN.MUTED, fontSize: 15, cursor:'pointer',
+      {value ? (
+        <button onClick={() => onChange('')} aria-label="Cancella la ricerca" style={{
+          background:'transparent', border:'none', padding: 4,
+          color: PN.MUTED, fontSize: 15, cursor:'pointer', lineHeight: 0,
         }}>✕</button>
+      ) : (
+        // L'esempio esce dal placeholder: lì dentro faceva una riga lunghissima
+        // che si leggeva come una frase, non come un suggerimento.
+        <span style={{fontSize: 13.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap', flexShrink: 0}}>
+          es. come configurare i pagamenti
+        </span>
       )}
     </div>
   );
