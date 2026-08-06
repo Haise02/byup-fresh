@@ -17,6 +17,20 @@ function ContabilitaApp() {
   const [share, setShare] = useState(false);
   const [ivaMonth, setIvaMonth] = useState(null); // mese selezionato per filtro
 
+  // Scarti fiscali non gestiti: accendono il pallino sulla voce Contabilità.
+  // Si spengono solo quando lo scarto è gestito — mai col tempo, mai per il
+  // fatto di aver aperto la pagina.
+  const [scartiFisc, setScartiFisc] = useState(() => window.byupScartiAperti ? window.byupScartiAperti() : 0);
+  React.useEffect(() => {
+    const agg = () => setScartiFisc(window.byupScartiAperti ? window.byupScartiAperti() : 0);
+    window.addEventListener('byup-fisc-change', agg);
+    window.addEventListener('storage', agg);
+    return () => {
+      window.removeEventListener('byup-fisc-change', agg);
+      window.removeEventListener('storage', agg);
+    };
+  }, []);
+
   const totalCosti = COSTS_DATA.reduce((s,c) => s+c.amount, 0);
   const cassaSaldo = CASH_MOVEMENTS.reduce((s,m) => s+m.amount, 0) + 500;
   const ivaSaldo = IVA_MONTHLY.reduce((s,m) => s+(m.deb-m.cred), 0);
@@ -25,7 +39,7 @@ function ContabilitaApp() {
   return (
     <div className="frame" style={{position:'relative'}}>
       <GlassMeshSubstrate tone="neutral"/>
-      <PnSidebar active="contabilita"/>
+      <PnSidebar active="contabilita" badges={{contabilita: scartiFisc}}/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative'}}>
         {/* Body */}
         <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'20px 28px 32px', background: C.SURF}}>

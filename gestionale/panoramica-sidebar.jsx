@@ -52,7 +52,10 @@ window.byupWriteLocale = function(l) {
   } catch(e) {}
 };
 
-function PnSidebar({ active = 'panoramica', onNav }) {
+// `badges`: mappa opzionale id-voce → numero, per le sezioni che hanno
+// qualcosa di non gestito da segnalare (es. {contabilita: 1}). Assente o 0
+// = nessun pallino, così le pagine che non la passano non cambiano.
+function PnSidebar({ active = 'panoramica', onNav, badges }) {
   const [profHover, setProfHover] = React.useState(false);
   const [profPress, setProfPress] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(() => {
@@ -182,7 +185,9 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         minHeight: 0, overflowY: 'auto',
       }}>
         {items.map(it => (
-          <PnNavItem key={it.id} {...it} collapsed={collapsed} active={active === it.id} onClick={() => navTo(it.id)} />
+          <PnNavItem key={it.id} {...it}
+            badge={badges && badges[it.id] ? badges[it.id] : undefined}
+            collapsed={collapsed} active={active === it.id} onClick={() => navTo(it.id)} />
         ))}
       </div>
 
