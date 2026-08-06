@@ -23,9 +23,21 @@ function StatisticheApp() {
       <GlassMeshSubstrate tone="neutral"/>
       <PnSidebar active="statistiche"/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'18px 28px 32px', background:'#fafafa'}}>
-          {/* Macro tabs — underline rosa su filo, period picker a destra */}
-          <div style={{marginBottom: 18}}>
+        <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'0 28px 32px', background:'#fafafa'}}>
+          {/* Macro tabs — underline rosa su filo, period picker a destra.
+              Restano incollate in alto mentre si scorre: le pagine di
+              Statistiche sono lunghe, e senza questa barra a metà lettura non
+              si sa più in che sezione si è né su che periodo.
+              Il respiro in alto sta DENTRO la barra e non nel contenitore:
+              con un margine negativo l'aggancio slittava di quei pixel e sopra
+              filtrava il contenuto. I margini laterali negativi la fanno
+              arrivare ai bordi della colonna, così niente le passa di lato. */}
+          <div style={{
+            position:'sticky', top: 0, zIndex: 20,
+            background:'#fafafa',
+            margin:'0 -28px 18px',
+            padding:'18px 28px 0',
+          }}>
             <StatTabs
               tabs={[
                 { id: 'operazioni', label: 'Operazioni', icon: 'chart-workflow' },
