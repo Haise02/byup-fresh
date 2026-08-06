@@ -370,7 +370,7 @@ window.ByupKit = {
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing). Suggerimenti (SUGG) e analisi d'uso sono
+// preferenze, A6 marketing). Suggerimenti e analisi d'uso sono
 // legittimo interesse SENZA toggle in-app: l'opposizione passa
 // dall'assistenza (dal 2026-08-06), che la registra lato backend.
 //

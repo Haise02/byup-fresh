@@ -1011,20 +1011,29 @@ window.Step4Verifica = Step4Verifica;
 // validato da un legale prima del lancio. CLAUSOLE_VESSATORIE elenca i numeri
 // delle clausole che richiedono la seconda approvazione ex artt. 1341-1342
 // c.c.: se una clausola cambia numero, va aggiornato anche qui.
-const CONTRATTO_VERSIONE = '1.0';
+const CONTRATTO_VERSIONE = '1.1';
 const CONTRATTO_TESTO = [
   { n: 1, h: 'Oggetto del servizio', p: 'Byup S.r.l. concede in licenza d\'uso, in modalità cloud (SaaS), il gestionale Byup Fresh: cassa, ordinazione al tavolo, menù digitali, vetrina, statistiche e trasmissione dei corrispettivi. Il servizio è riservato a operatori professionali del settore Food & Beverage.' },
   { n: 2, h: 'Attivazione e account', p: 'L\'account è riferito al locale e gestito dal titolare o da un suo delegato. Le credenziali sono personali; il titolare risponde dell\'uso fatto dagli utenti che autorizza (staff, dispositivi).' },
   { n: 3, h: 'Corrispettivi e fatturazione', p: 'Il servizio è offerto in abbonamento con soglie di ordini incluse e costo per ordine extra secondo il piano scelto. I corrispettivi sono fatturati elettronicamente e i pagamenti gestiti tramite il fornitore Stripe.' },
   { n: 4, h: 'Sospensione del servizio', p: 'Byup può sospendere il servizio in caso di mancato pagamento, uso illecito o rischio per la sicurezza della piattaforma, dandone comunicazione. La sospensione non estingue i corrispettivi maturati.' },
-  { n: 5, h: 'Obblighi del ristoratore', p: 'Il ristoratore garantisce la correttezza dei dati inseriti (menù, prezzi, allergeni, dati fiscali) e il rispetto delle norme applicabili alla propria attività, incluse quelle igienico-sanitarie e di informazione al consumatore.' },
+  { n: 5, h: 'Modifica delle condizioni', p: 'Byup può modificare i presenti Termini e i listini con preavviso di almeno 30 giorni tramite il gestionale o email. In caso di disaccordo il ristoratore può recedere prima dell\'efficacia delle modifiche, senza penali.' },
   { n: 6, h: 'Limitazione di responsabilità', p: 'Nei limiti consentiti dalla legge, Byup non risponde dei danni indiretti o del lucro cessante derivanti da interruzioni del servizio, e la responsabilità complessiva è limitata ai corrispettivi versati nei 12 mesi precedenti l\'evento. Restano ferme le responsabilità inderogabili di legge.' },
-  { n: 7, h: 'Modifica delle condizioni', p: 'Byup può modificare i presenti Termini e i listini con preavviso di almeno 30 giorni tramite il gestionale o email. In caso di disaccordo il ristoratore può recedere prima dell\'efficacia delle modifiche, senza penali.' },
+  { n: 7, h: 'Manleva', p: 'Il ristoratore manleva Byup da pretese di terzi derivanti da dati inseriti nel gestionale (menù, prezzi, allergeni), da violazioni di legge nella conduzione dell\'attività o dall\'uso non autorizzato dell\'account a lui riferibile.' },
   { n: 8, h: 'Recesso e chiusura dell\'account', p: 'Il ristoratore può recedere in ogni momento con effetto dalla fine del periodo di fatturazione in corso. Byup può recedere con preavviso di 30 giorni, o chiudere l\'account senza preavviso nei casi gravi di cui alla clausola 4. I dati sono esportabili prima della chiusura.' },
-  { n: 9, h: 'Trattamento dei dati personali', p: 'Byup tratta i dati secondo l\'informativa privacy disponibile nel gestionale. Per i dati dei clienti finali trattati per conto del locale, Byup opera quale responsabile del trattamento ai sensi dell\'art. 28 GDPR.' },
-  { n: 10, h: 'Legge applicabile e foro esclusivo', p: 'I presenti Termini sono regolati dalla legge italiana. Per ogni controversia è competente in via esclusiva il Foro di Roma.' },
+  { n: 9, h: 'Durata e rinnovo automatico', p: 'L\'abbonamento si rinnova tacitamente alla scadenza di ciascun periodo di fatturazione, salvo disdetta comunicata prima del rinnovo. Il piano Gratuito non ha scadenza e non si converte mai da solo in un piano a pagamento.' },
+  { n: 10, h: 'Obblighi del ristoratore', p: 'Il ristoratore garantisce la correttezza dei dati inseriti (menù, prezzi, allergeni, dati fiscali) e il rispetto delle norme applicabili alla propria attività, incluse quelle igienico-sanitarie e di informazione al consumatore.' },
+  { n: 11, h: 'Trattamento dei dati personali', p: 'Byup tratta i dati secondo l\'informativa privacy disponibile nel gestionale. Per i dati dei clienti finali trattati per conto del locale, Byup opera quale responsabile del trattamento ai sensi dell\'art. 28 GDPR.' },
+  { n: 12, h: 'Divieto di cessione', p: 'Il ristoratore non può cedere il contratto né i diritti che ne derivano senza il consenso scritto di Byup. Byup può cedere il contratto nell\'ambito di operazioni societarie, dandone comunicazione.' },
+  { n: 13, h: 'Clausola risolutiva espressa', p: 'Il contratto si risolve di diritto, previa comunicazione, in caso di violazione delle clausole 2 (uso dell\'account), 3 (pagamenti) e 10 (obblighi del ristoratore), ferma la debenza dei corrispettivi maturati.' },
+  { n: 14, h: 'Decadenze e reclami', p: 'Eventuali contestazioni su fatture o malfunzionamenti vanno comunicate entro 30 giorni da quando il ristoratore ne ha avuto conoscenza; decorso il termine, la prestazione si intende accettata.' },
+  { n: 15, h: 'Esclusione di garanzie', p: 'Il servizio è fornito "così com\'è": nei limiti di legge Byup non garantisce l\'assenza di errori o l\'idoneità a scopi specifici, fermo l\'impegno a correggere i difetti segnalati e i livelli di servizio pubblicati.' },
+  { n: 16, h: 'Modifica o dismissione di funzionalità', p: 'Byup può evolvere, sostituire o dismettere singole funzionalità del gestionale, dandone preavviso ragionevole quando la modifica riduce in modo apprezzabile le capacità del piano sottoscritto.' },
+  { n: 17, h: 'Pagamenti e facoltà di opporre eccezioni', p: 'Il ristoratore non può sospendere o ritardare i pagamenti dovuti eccependo contestazioni sul servizio; le eccezioni si fanno valere nelle forme della clausola 14, salvo quanto inderogabilmente previsto dalla legge.' },
+  { n: 18, h: 'Mediazione preventiva', p: 'Prima di adire il giudice, le parti si impegnano a esperire un tentativo di mediazione presso un organismo accreditato nel luogo del foro competente. Il tentativo non pregiudica i provvedimenti urgenti.' },
+  { n: 19, h: 'Legge applicabile e foro esclusivo', p: 'I presenti Termini sono regolati dalla legge italiana. Per ogni controversia è competente in via esclusiva il Foro di Roma.' },
 ];
-const CLAUSOLE_VESSATORIE = [4, 6, 7, 8, 10];
+const CLAUSOLE_VESSATORIE = [4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19];
 
 // ─── ContrattoModal — il punto di firma, da solo sulla scena ────────────────
 // Si apre da entrambe le uscite dello step 4: la schermata resta celebrativa
