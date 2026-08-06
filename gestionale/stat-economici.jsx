@@ -314,10 +314,14 @@ function RicaviCosti({ d, months, onVaiVendite }) {
         <StatCard title="Ricavi per canale" sub="Quota di ogni canale sui ricavi del periodo"
           style={{display:'flex', flexDirection:'column'}}>
           <div style={{flex: 1, display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
+            {/* Bianco su bianco con bordo BORDER_SOFT i tre box sparivano
+                dentro la card. Ora sono incavi: fondo del canvas e bordo
+                pieno, così il perimetro si legge senza dover alzare il
+                contrasto della linea. */}
             {canali.map(c => (
               <div key={c.id} style={{
                 padding: 14, borderRadius: 14, overflow:'hidden',
-                background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
+                background: PN.BG, border:`1px solid ${PN.BORDER}`,
                 display:'flex', flexDirection:'column', gap: 2, minWidth: 0,
               }}>
                 <span style={{
