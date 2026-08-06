@@ -316,7 +316,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
           <div style={{flex: 1, display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
             {canali.map(c => (
               <div key={c.id} style={{
-                padding: 14, borderRadius: 14,
+                padding: 14, borderRadius: 14, overflow:'hidden',
                 background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
                 display:'flex', flexDirection:'column', gap: 2, minWidth: 0,
               }}>
@@ -330,7 +330,15 @@ function RicaviCosti({ d, months, onVaiVendite }) {
                   {c.quota.toFixed(0)}%
                 </div>
                 <div style={{fontSize: 14.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>{eur(c.valore)}</div>
-                <div style={{marginTop: 8}}><StatSpark data={c.serie} color={c.colore} width={150} height={34}/></div>
+                {/* Il grafico va a filo dei bordi e prende tutto lo spazio che
+                    resta: a misura fissa lasciava un vuoto a destra, e con
+                    l'altezza bloccata restava un buco fra l'importo e il
+                    grafico quando la card si allunga per stare al passo con
+                    quella del margine. */}
+                <div style={{flex: 1, minHeight: 54, margin:'14px -14px -14px', display:'flex'}}>
+                  <StatSpark data={c.serie} color={c.colore} width={150} height={54}
+                    stretch padY={7} stroke={2}/>
+                </div>
               </div>
             ))}
           </div>

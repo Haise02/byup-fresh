@@ -23,20 +23,30 @@ function StatDelta({ value, size = 'sm' }) {
 }
 
 // ─── Sparkline minimale ────────────────────────────────────────
-function StatSpark({ data, color = PN.PINK, height = 28, width = 90 }) {
+// `stretch`: invece di una misura fissa riempie il contenitore, in larghezza e
+// in altezza — width/height restano solo il sistema di coordinate interno.
+// La linea non si ingrassa perché lo stroke è dichiarato non-scaling; `padY`
+// tiene il minimo e il massimo staccati dai bordi, così la linea non striscia
+// sul filo quando il grafico va a filo della card.
+function StatSpark({ data, color = PN.PINK, height = 28, width = 90, stretch = false, padY = 0, stroke = 1.5 }) {
   if (!data || data.length < 2) return null;
   const min = Math.min(...data), max = Math.max(...data);
   const range = max - min || 1;
+  const utile = height - padY * 2;
   const pts = data.map((v, i) => {
     const x = (i / (data.length - 1)) * width;
-    const y = height - ((v - min) / range) * height;
+    const y = (height - padY) - ((v - min) / range) * utile;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
   // area path
   const areaPts = `0,${height} ${pts} ${width},${height}`;
   const id = React.useId();
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{display:'block'}}>
+    <svg
+      width={stretch ? undefined : width} height={stretch ? undefined : height}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio={stretch ? 'none' : undefined}
+      style={stretch ? {display:'block', width:'100%', height:'100%'} : {display:'block'}}>
       <defs>
         <linearGradient id={`sg-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.18"/>
@@ -44,7 +54,9 @@ function StatSpark({ data, color = PN.PINK, height = 28, width = 90 }) {
         </linearGradient>
       </defs>
       <polygon points={areaPts} fill={`url(#sg-${id})`}/>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={stroke}
+        strokeLinecap="round" strokeLinejoin="round"
+        vectorEffect={stretch ? 'non-scaling-stroke' : undefined}/>
     </svg>
   );
 }
