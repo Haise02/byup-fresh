@@ -90,7 +90,6 @@ function EconVai({ label, onClick }) {
 }
 
 function RicaviCosti({ d, months, onVaiVendite }) {
-  const [trendRange, setTrendRange] = React.useState('12m');
   const eur = (n) => `€ ${Math.round(n).toLocaleString('it-IT', {useGrouping: true})}`;
 
   // ── Origine incassi: i tre metodi di pagamento sommano ai ricavi ──────────
@@ -131,16 +130,16 @@ function RicaviCosti({ d, months, onVaiVendite }) {
   // d'occhio senza calcolarlo. Verde scuro e rosso invece del verde e rosso
   // pieni: quella coppia sparisce col daltonismo (ΔE 5), questa regge (8,6),
   // e comunque ogni linea porta la sua etichetta in fondo.
-  const graficoRef = React.useRef(null);
   const [hover, setHover] = React.useState(null);
-  const quanti = trendRange === '6m' ? 6 : 12;
-  const etichette = months.slice(-quanti);
-  const MESI_ESTESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'].slice(-quanti);
+  const etichette = months;
+  const MESI_ESTESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
   const SERIE = [
-    { id:'ricavi', label:'Ricavi', colore:'#15803D', dati: d.fatturatoTrend.slice(-quanti) },
-    { id:'costi',  label:'Costi',  colore: PN.RED,   dati: d.costiTrend.slice(-quanti) },
+    { id:'ricavi', label:'Ricavi', colore:'#15803D', dati: d.fatturatoTrend },
+    { id:'costi',  label:'Costi',  colore: PN.RED,   dati: d.costiTrend },
   ];
-  const fW = 720, fH = 292, fP = { l: 52, r: 62, t: 16, b: 30 };
+  // Rapporto più basso di prima: la riga si accorcia e la card degli incassi,
+  // che ha meno roba dentro, non si ritrova ad allungarsi per starle dietro.
+  const fW = 720, fH = 234, fP = { l: 52, r: 62, t: 16, b: 28 };
   const maxF = Math.ceil(Math.max(...d.fatturatoTrend) / 10000) * 10000;
   const fStep = (fW - fP.l - fP.r) / (etichette.length - 1);
   const fx = (i) => fP.l + i * fStep;
@@ -170,20 +169,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 
       {/* Riga 2 — andamento a sinistra, da dove arrivano i soldi a destra */}
       <div style={{display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 16}}>
-        <StatCard title="Andamento ricavi vs costi" action={
-          <div style={{display:'inline-flex', gap: 4, padding: 4, background:'#f5f5f7', borderRadius: 999}}>
-            {[['6m','6 mesi'],['12m','12 mesi']].map(([id, label]) => (
-              <button key={id} onClick={() => setTrendRange(id)} style={{
-                padding:'6px 14px', fontSize: 14.5, fontWeight: 600,
-                background: trendRange === id ? PN.WHITE : 'transparent',
-                border:'none', borderRadius: 999,
-                color: trendRange === id ? PN.PINK_DARK : PN.MUTED,
-                cursor:'pointer', fontFamily:'inherit',
-                boxShadow: trendRange === id ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-              }}>{label}</button>
-            ))}
-          </div>
-        }>
+        <StatCard title="Andamento ricavi vs costi" sub="Ultimi 12 mesi">
           {/* Legenda sotto al titolo: due serie, quindi serve, e porta con sé
               il valore dell'ultimo mese — il totale del periodo sta già nelle
               card in testa e sarebbe un numero diverso da questo. */}
@@ -198,7 +184,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
             <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>ultimo mese</span>
           </div>
 
-          <div ref={graficoRef} style={{position:'relative'}}
+          <div style={{position:'relative'}}
             onMouseMove={e => {
               const box = e.currentTarget.getBoundingClientRect();
               const scala = box.width / fW;
