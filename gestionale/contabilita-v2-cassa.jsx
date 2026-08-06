@@ -380,11 +380,16 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   // uno scarto non smette di esistere perché stai guardando un altro giorno.
   const scartiAperti = allRows.reduce((s,r) => s + r.giornata.scartati, 0);
 
-  // minmax e non fr puri: con le sole frazioni, alla larghezza minima del
-  // frame (1280) "Totale incassato" andava a capo e "Contanti" si attaccava a
-  // "Carta e digitale". Il minimo di ogni colonna è la sua intestazione;
-  // l'ultima tiene il chip più lungo.
-  const cols = 'minmax(96px, 0.9fr) minmax(152px, 1fr) minmax(74px, 0.72fr) minmax(74px, 0.72fr) minmax(88px, 0.85fr) minmax(140px, 0.95fr) minmax(196px, 1.45fr)';
+  // Colonne larghe quanto il loro contenuto (misurato: intestazione o cella, la
+  // maggiore) e spazio residuo distribuito con space-between: i vuoti fra le
+  // colonne restano tutti uguali e crescono insieme alla finestra, senza
+  // accumularsi in fondo. Con le frazioni — uguali o no — le colonne
+  // diventavano larghe uguali e il vuoto dipendeva dalla lunghezza
+  // dell'etichetta: "Carta e digitale" e "Trasmissione" restavano appiccicate
+  // mentre "IVA 10%" nuotava. Le larghezze sono fisse perché intestazione e
+  // righe sono griglie separate: con `auto` ogni riga si misurerebbe da sé e
+  // le colonne non sarebbero più allineate fra loro.
+  const cols = '107px 135px 56px 57px 72px 122px 160px';
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -496,7 +501,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
         {/* Tabella chiusure */}
         <div style={{borderRadius: C.R_SM, overflow:'hidden', border:`1px solid ${PN.BORDER}`}}>
           <div style={{
-            display:'grid', gridTemplateColumns: cols,
+            display:'grid', gridTemplateColumns: cols, justifyContent:'space-between',
             padding:'10px 14px', background: C.TH_BG,
             fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT,
             textTransform:'uppercase', letterSpacing: 0.5,
@@ -507,7 +512,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>IVA 22%</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Contanti</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Carta e digitale</span>
-            <span style={{paddingLeft: 14, whiteSpace:'nowrap'}}>Trasmissione</span>
+            <span style={{whiteSpace:'nowrap'}}>Trasmissione</span>
           </div>
           <MaxRowsScroll maxRows={10}>
           {rows.map((r,i) => (
@@ -515,7 +520,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
               onMouseEnter={e => { e.currentTarget.style.background = '#F7F8FA'; }}
               onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}
               style={{
-              display:'grid', gridTemplateColumns: cols,
+              display:'grid', gridTemplateColumns: cols, justifyContent:'space-between',
               padding:'12px 14px', alignItems:'center',
               fontSize: C.T_SM, color: PN.TEXT,
               borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
@@ -533,7 +538,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.nonContanti.toFixed(2)}</span>
               {/* Il chip è un rimando, non un contenitore: la lista dei
                   documenti è in Conti, e lì si va. */}
-              <span style={{paddingLeft: 14, minWidth: 0}}>
+              <span style={{minWidth: 0}}>
                 <button onClick={() => onApriConti && onApriConti(r.iso, r.giornata.stato)}
                   title={`Apri i documenti del ${r.date} in Conti`}
                   onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(0.96)'; }}
