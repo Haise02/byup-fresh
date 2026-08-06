@@ -3748,7 +3748,7 @@ function AIMenuUploadModal({ onClose, onImport }) {
               <div style={{fontSize: 13.5, color: PN.MUTED}}>🔒 I tuoi dati sono privati. L'analisi richiede ~10 secondi.</div>
               <div style={{display:'flex', gap: 8}}>
                 <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-                <ImpButton variant="primary" onClick={startProcessing} disabled={!file}>✨ Analizza menu</ImpButton>
+                <ImpButton variant="primary" onClick={startProcessing} disabled={!file}><BuAiSparkle size={14}/> Analizza menu</ImpButton>
               </div>
             </>
           )}
