@@ -36,7 +36,8 @@ function SupportoApp() {
         </div>
 
         {/* Chat widget */}
-        <SupChatWidget open={chatOpen} onClose={() => setChatOpen(false)}/>
+        <SupChatWidget open={chatOpen} onClose={() => setChatOpen(false)}
+          onEmail={() => setEmailOpen(true)} onCall={() => setCallOpen(true)}/>
 
         {/* FAB bottom-right per riaprire la chat */}
         {!chatOpen && (

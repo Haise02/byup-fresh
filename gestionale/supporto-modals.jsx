@@ -1,14 +1,28 @@
 // Modali del Supporto: chat widget, email form, scheduler chiamata, tutorial player
 
+// I bottoni in fondo alla chat: stessa pillola, così "Email" e "Prenota una
+// chiamata" non sembrano due cose di peso diverso. Hover e pressione arrivano
+// dalla regola globale su <button>, non serve rifarli qui.
+const SUP_AZIONE = {
+  flex: 1, padding: '6px 10px',
+  background: '#fff', border: `1px solid ${PN.BORDER}`,
+  borderRadius: 8, fontSize: 13, fontWeight: 600,
+  color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
+  display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
+  whiteSpace:'nowrap',
+};
+
 // ─── Chat widget ───────────────────────────────────
-function SupChatWidget({ open, onClose }) {
+function SupChatWidget({ open, onClose, onEmail, onCall }) {
   const [messages, setMessages] = React.useState([
     // Il primo messaggio dice cosa sei prima di chiedere cosa serve: chi
     // scrive deve sapere che dall'altra parte non c'è una persona.
-    { from:'bot', text:'Ciao! Sono l\'assistente di byup: un\'intelligenza artificiale, non un operatore umano. Come posso aiutarti oggi?', time:'11:46' },
+    { from:'bot', text:'Ciao! Sono l\'assistente di byup: un\'intelligenza artificiale. Come posso aiutarti oggi?', time:'11:46' },
   ]);
   const [input, setInput] = React.useState('');
   const [typing, setTyping] = React.useState(false);
+  // Il passaggio a una persona non è immediato: si sceglie prima il canale.
+  const [operatore, setOperatore] = React.useState(false);
   const scrollRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -109,27 +123,38 @@ function SupChatWidget({ open, onClose }) {
         )}
       </div>
 
-      {/* Quick actions */}
+      {/* Passaggio a una persona. Non c'è una chat con operatore dal vivo:
+          si sceglie il canale con cui verrà ripresa la richiesta, e sono gli
+          stessi due della testata della pagina. */}
       <div style={{
-        display:'flex', gap: 8,
+        display:'flex', flexDirection:'column', gap: 8,
         padding: '8px 12px',
         background:'#fafafa',
         borderTop: `1px solid ${PN.BORDER_SOFT}`,
       }}>
-        <button style={{
-          flex: 1, padding: '6px 10px',
-          background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-          borderRadius: 8, fontSize: 13, fontWeight: 600,
-          color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
-          display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
-        }}><BuIcons.user size={13}/> Operatore</button>
-        <button style={{
-          flex: 1, padding: '6px 10px',
-          background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-          borderRadius: 8, fontSize: 13, fontWeight: 600,
-          color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
-          display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
-        }}><BuIcons.phone size={13}/> Richiamami</button>
+        {!operatore ? (
+          <button onClick={() => setOperatore(true)} style={SUP_AZIONE}>
+            <BuIcons.user size={13}/> Parla con un operatore umano
+          </button>
+        ) : (
+          <>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
+              <span style={{fontSize: 12.5, color: PN.MUTED}}>Come vuoi essere ricontattato?</span>
+              <button onClick={() => setOperatore(false)} aria-label="Annulla" style={{
+                background:'transparent', border:'none', padding: 2,
+                lineHeight: 0, display:'grid', placeItems:'center', color: PN.MUTED,
+              }}><BuIcons.x size={14}/></button>
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button onClick={() => { setOperatore(false); onEmail && onEmail(); }} style={SUP_AZIONE}>
+                <BuIcons.mail size={13}/> Email
+              </button>
+              <button onClick={() => { setOperatore(false); onCall && onCall(); }} style={SUP_AZIONE}>
+                <BuIcons.phone size={13}/> Prenota una chiamata
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Input */}
