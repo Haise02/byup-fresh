@@ -334,8 +334,10 @@ function RicaviCosti({ d, months, onVaiVendite }) {
                     resta: a misura fissa lasciava un vuoto a destra, e con
                     l'altezza bloccata restava un buco fra l'importo e il
                     grafico quando la card si allunga per stare al passo con
-                    quella del margine. */}
-                <div style={{flex: 1, minHeight: 54, margin:'14px -14px -14px', display:'flex'}}>
+                    quella del margine. In altezza però è a misura: `auto` in
+                    alto lo tiene incollato in fondo senza farlo diventare la
+                    metà della card. */}
+                <div style={{height: 48, margin:'0 -14px -14px', marginTop:'auto', display:'flex'}}>
                   <StatSpark data={c.serie} color={c.colore} width={150} height={54}
                     stretch padY={7} stroke={2}/>
                 </div>
