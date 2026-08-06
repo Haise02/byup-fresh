@@ -98,6 +98,31 @@ function EconVai({ label, onClick }) {
   );
 }
 
+// Le due tinte dei costi. Stanno qui perché le usano sia la legenda in testa
+// alla card sia le barre delle righe: se divergono la legenda mente.
+const COSTO_FISSO = '#FFC2BF';   // rosa chiaro, ma pieno abbastanza da staccarsi dal binario
+const COSTO_VAR   = PN.PINK;
+// Le colonne dell'elenco costi: dichiarate una volta perché intestazione e
+// righe devono restare incolonnate, altrimenti la tabella si sfalsa.
+const COSTI_COLS = 'minmax(190px, 2fr) minmax(110px, 1.5fr) 52px 96px 62px';
+
+// Delta di un costo: qui il segno si legge al contrario di un ricavo — spendere
+// meno è una buona notizia. Sotto il 5% in su resta grigio: un rialzo piccolo
+// non è un allarme, e sette pillole rosse renderebbero illeggibile la card.
+function CostoDelta({ value }) {
+  const buono = value < 0, allarme = value > 5;
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', justifyContent:'center',
+      padding:'2px 8px', borderRadius: 999,
+      background: buono ? PN.GREEN_SOFT : (allarme ? PN.RED_SOFT : '#F3F4F6'),
+      color: buono ? PN.GREEN : (allarme ? PN.RED : PN.MUTED),
+      fontSize: 12.5, fontWeight: 700, whiteSpace:'nowrap',
+      fontVariantNumeric:'tabular-nums',
+    }}>{value > 0 ? '+' : ''}{value.toFixed(1).replace('.', ',')}%</span>
+  );
+}
+
 function RicaviCosti({ d, months, onVaiVendite }) {
   const eur = (n) => `€ ${Math.round(n).toLocaleString('it-IT', {useGrouping: true})}`;
 
@@ -159,6 +184,24 @@ function RicaviCosti({ d, months, onVaiVendite }) {
   // ── Margine ───────────────────────────────────────────────────────────────
   const marginePct = (d.utile.val / d.ricavi.val) * 100;
   const anelloR = 58, anelloC = 2 * Math.PI * anelloR;
+
+  // ── Totale costi ──────────────────────────────────────────────────────────
+  // Le quote si calcolano sulla somma delle categorie, non su d.costi.val:
+  // sono lo stesso numero, ma così i pesi tornano sempre a 100 anche se un
+  // domani il breakdown non copre tutto.
+  const sommaCosti = d.costiBreakdown.reduce((s, c) => s + c.tot, 0);
+  const costiFissi = d.costiBreakdown.reduce((s, c) => s + c.tot * c.fissi / 100, 0);
+  const quotaFissi = (costiFissi / sommaCosti) * 100;
+  // In ordine di peso: una colonna di barre che scende si legge a colpo
+  // d'occhio. "Altro" resta in fondo perché è il residuo, non una categoria.
+  const costi = [...d.costiBreakdown].sort((a, b) =>
+    (a.cat === 'Altro') - (b.cat === 'Altro') || b.tot - a.tot);
+  // Le barre sono in scala sulla categoria più grossa, non sul totale:
+  // rapportate al totale sarebbero tutte monconi (la maggiore è il 35%).
+  const maxCosto = Math.max(...costi.map(c => c.tot));
+  const mix = (c) => c.fissi === 100 ? 'Solo costi fissi'
+    : c.var === 100 ? 'Solo costi variabili'
+    : `${c.fissi}% fissi · ${c.var}% variabili`;
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -386,49 +429,141 @@ function RicaviCosti({ d, months, onVaiVendite }) {
         </StatCard>
       </div>
 
-      {/* Riga 4 — il dettaglio dei costi, a tutta larghezza perché è un elenco */}
+      {/* Riga 4 — il dettaglio dei costi. La card è larga tutta la pagina:
+          a sinistra quanto si è speso e quanto di quella spesa è incomprimibile,
+          a destra in cosa se n'è andata. Prima era una riga sola con il nome a
+          sinistra, i numeri schiacciati a destra e mezzo metro di vuoto in
+          mezzo — e le barre erano tutte lunghe uguale, quindi "Altro" a 1.580 €
+          sembrava pesare come gli stipendi a 18.400 €. */}
       <StatCard title="Totale costi" sub="Suddivisi per tipologia e categoria" action={
         <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 14, color: PN.MUTED}}>
-          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> variabili</span>
-          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK_SOFT}}/> fissi</span>
+          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: COSTO_VAR}}/> variabili</span>
+          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: COSTO_FISSO}}/> fissi</span>
         </span>
       }>
-        <div style={{
-          display:'flex', alignItems:'center', justifyContent:'space-between',
-          padding:'12px 16px', background:'#FAFAFB',
-          border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, marginBottom: 16,
-        }}>
-          <div style={{fontSize: 14.5, color: PN.MUTED}}>Costi totali del periodo</div>
-          <div style={{display:'flex', alignItems:'center', gap: 10}}>
-            <span style={{fontSize: 22, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{eur(d.costi.val)}</span>
-            <span style={{
-              padding:'3px 10px', background: PN.GREEN_SOFT, color: PN.GREEN,
-              borderRadius: 999, fontSize: 13, fontWeight: 700,
-            }}>↓ 4,2% vs mese scorso</span>
-          </div>
-        </div>
-        <div style={{display:'flex', flexDirection:'column', gap: 12}}>
-          {d.costiBreakdown.map((c, i) => (
-            <div key={i}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 5}}>
-                <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{c.cat}</span>
-                <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                  <span style={{fontSize: 14, color: PN.MUTED}}>{c.fissi}% fissi · {c.var}% variabili</span>
-                  <strong style={{fontSize: 14.5, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 70, textAlign:'right'}}>€ {c.tot.toLocaleString('it-IT', {useGrouping: true})}</strong>
-                  <span style={{
-                    padding:'2px 7px', borderRadius: 999,
-                    background: c.delta < 0 ? PN.GREEN_SOFT : (c.delta > 5 ? PN.RED_SOFT : '#f3f4f6'),
-                    color: c.delta < 0 ? PN.GREEN : (c.delta > 5 ? PN.RED : PN.MUTED),
-                    fontSize: 12.5, fontWeight: 700, minWidth: 50, textAlign:'center',
-                  }}>{c.delta > 0 ? '+' : ''}{c.delta.toFixed(1)}%</span>
-                </div>
+        <div style={{display:'grid', gridTemplateColumns:'300px 1fr', gap: 22, alignItems:'stretch'}}>
+
+          {/* Colonna sinistra — il totale e di che pasta è fatto */}
+          <div style={{
+            padding: 16, borderRadius: 14, overflow:'hidden',
+            background: PN.BG, border:`1px solid ${PN.BORDER}`,
+            display:'flex', flexDirection:'column',
+          }}>
+            <div>
+              <div style={{fontSize: 14.5, color: PN.MUTED}}>Costi totali del periodo</div>
+              <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 3, flexWrap:'wrap'}}>
+                <span style={{
+                  fontSize: 30, fontWeight: 700, color: PN.TEXT,
+                  letterSpacing: -0.6, lineHeight: 1.15, fontVariantNumeric:'tabular-nums',
+                }}>{eur(d.costi.val)}</span>
+                <CostoDelta value={d.costi.delta}/>
               </div>
-              <div style={{display:'flex', height: 6, borderRadius: 999, overflow:'hidden', background: PN.BORDER_SOFT}}>
-                {c.fissi > 0 && <div style={{width: `${c.fissi}%`, background: PN.PINK_SOFT}}/>}
-                {c.var > 0 && <div style={{width: `${c.var}%`, background: PN.PINK}}/>}
+              <div style={{fontSize: 13.5, color: PN.MUTED_SOFT, marginTop: 2}}>rispetto al mese scorso</div>
+            </div>
+
+            {/* Quanto dei ricavi se ne va in costi: è il numero che trasforma
+                "52.180 €" in un giudizio, ed è il complemento del margine. */}
+            <div>
+              <div style={{height: 1, background: PN.BORDER, margin:'15px 0'}}/>
+              <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10}}>
+                <span style={{fontSize: 14.5, color: PN.MUTED}}>Incidenza sui ricavi</span>
+                <strong style={{fontSize: 17, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+                  {((d.costi.val / d.ricavi.val) * 100).toFixed(1).replace('.', ',')}%
+                </strong>
+              </div>
+              <div style={{fontSize: 13.5, color: PN.MUTED_SOFT, marginTop: 2}}>su {eur(d.ricavi.val)} di ricavi</div>
+            </div>
+
+            {/* Quanto della spesa è incomprimibile: è il numero che dice se il
+                locale può reagire a un mese storto, e finora non c'era. */}
+            <div>
+              <div style={{height: 1, background: PN.BORDER, margin:'15px 0'}}/>
+              <div style={{fontSize: 14.5, color: PN.MUTED, marginBottom: 9}}>Quanto pesa la parte fissa</div>
+              <div style={{display:'flex', height: 10, borderRadius: 999, overflow:'hidden', background: PN.WHITE}}>
+                <div style={{width: `${quotaFissi}%`, background: COSTO_FISSO}}/>
+                <div style={{width: `${100 - quotaFissi}%`, background: COSTO_VAR}}/>
+              </div>
+              <div style={{display:'flex', flexDirection:'column', gap: 9, marginTop: 13}}>
+                {[
+                  { et:'Fissi',     v: costiFissi,             q: quotaFissi,       col: COSTO_FISSO },
+                  { et:'Variabili', v: sommaCosti - costiFissi, q: 100 - quotaFissi, col: COSTO_VAR },
+                ].map(r => (
+                  <div key={r.et} style={{display:'flex', alignItems:'center', gap: 9, fontSize: 14.5}}>
+                    <span style={{width: 10, height: 10, borderRadius: 3, background: r.col, flexShrink: 0}}/>
+                    <span style={{flex: 1, color: PN.TEXT, minWidth: 0}}>{r.et}</span>
+                    <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{eur(r.v)}</strong>
+                    <span style={{color: PN.MUTED, fontVariantNumeric:'tabular-nums', width: 34, textAlign:'right'}}>{Math.round(r.q)}%</span>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
+
+            {/* L'andamento chiude la colonna, a filo dei bordi come i grafici
+                dei canali. Rosso perché è la tinta dei costi già usata dal
+                grafico in testa alla pagina — il rosa qui dentro vuol dire
+                fisso o variabile, non costo. */}
+            <div style={{flex: 1, display:'flex', flexDirection:'column', marginTop: 18}}>
+              <div style={{fontSize: 13.5, color: PN.MUTED}}>Andamento degli ultimi 12 mesi</div>
+              <div style={{flex: 1, minHeight: 62, margin:'8px -16px -16px', display:'flex'}}>
+                <StatSpark data={d.costiTrend} color={PN.RED} width={150} height={54}
+                  stretch padY={7} stroke={2}/>
+              </div>
+            </div>
+          </div>
+
+          {/* Colonna destra — le categorie, in ordine di peso */}
+          <div>
+            <div style={{
+              display:'grid', gridTemplateColumns: COSTI_COLS, gap: 14, alignItems:'center',
+              padding:'0 0 8px', borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+              fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
+              textTransform:'uppercase', letterSpacing: 0.5,
+            }}>
+              <span>Categoria</span>
+              <span>Composizione</span>
+              <span style={{textAlign:'right'}}>Quota</span>
+              <span style={{textAlign:'right'}}>Totale</span>
+              <span style={{textAlign:'right'}}>vs mese</span>
+            </div>
+
+            {costi.map((c, i) => (
+              <div key={i} style={{
+                display:'grid', gridTemplateColumns: COSTI_COLS, gap: 14, alignItems:'center',
+                padding:'11px 0',
+                borderBottom: i === costi.length - 1 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+              }}>
+                <div style={{minWidth: 0}}>
+                  {/* Sotto i 1300px "Attrezzature & ammortamento" non ci sta:
+                      si tronca, ma il nome intero resta leggibile al passaggio. */}
+                  <div title={c.cat} style={{
+                    fontSize: 14.5, fontWeight: 600, color: PN.TEXT,
+                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                  }}>{c.cat}</div>
+                  <div style={{fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 1}}>{mix(c)}</div>
+                </div>
+
+                {/* Lunghezza = quanto pesa la categoria, tinte = quanto di quel
+                    peso è fisso. Il binario resta visibile per dare la scala. */}
+                <div style={{height: 10, borderRadius: 999, background: PN.BORDER_SOFT, overflow:'hidden'}}>
+                  <div style={{
+                    width: `${(c.tot / maxCosto) * 100}%`, height:'100%',
+                    display:'flex', borderRadius: 999, overflow:'hidden',
+                  }}>
+                    {c.fissi > 0 && <div style={{width: `${c.fissi}%`, background: COSTO_FISSO}}/>}
+                    {c.var > 0 && <div style={{width: `${c.var}%`, background: COSTO_VAR}}/>}
+                  </div>
+                </div>
+
+                <span style={{fontSize: 14.5, color: PN.MUTED, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>
+                  {Math.round((c.tot / sommaCosti) * 100)}%
+                </span>
+                <strong style={{fontSize: 14.5, color: PN.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>
+                  {eur(c.tot)}
+                </strong>
+                <span style={{textAlign:'right'}}><CostoDelta value={c.delta}/></span>
+              </div>
+            ))}
+          </div>
         </div>
       </StatCard>
     </div>
