@@ -147,7 +147,7 @@ function SupChatWidget({ open, onClose, onEmail, onCall }) {
             </div>
             <div style={{display:'flex', gap: 8}}>
               <button onClick={() => { setOperatore(false); onEmail && onEmail(); }} style={SUP_AZIONE}>
-                <BuIcons.mail size={13}/> Email
+                <BuIcons.doc size={13}/> Apri un ticket
               </button>
               <button onClick={() => { setOperatore(false); onCall && onCall(); }} style={SUP_AZIONE}>
                 <BuIcons.phone size={13}/> Prenota una chiamata
@@ -206,17 +206,17 @@ function SupEmailModal({ open, onClose }) {
       }} onClick={e => e.stopPropagation()}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
           <div>
-            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Contatta il supporto via email</div>
-            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Risposta entro 4 ore lavorative</div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Apri un ticket</div>
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Risposta entro 2 giorni lavorativi</div>
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={{background:'transparent', border:'none', cursor:'pointer', padding: 4, display:'grid', placeItems:'center'}}><BuIcons.x size={18} color={PN.MUTED}/></button>
         </div>
 
         {sent ? (
           <div style={{padding: 40, textAlign:'center'}}>
-            <div style={{width: 56, height: 56, borderRadius:'50%', background: PN.GREEN_SOFT, color: PN.GREEN, display:'inline-grid', placeItems:'center', marginBottom: 14}}><BuIcons.mail size={26}/></div>
-            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Richiesta inviata!</div>
-            <div style={{fontSize: 14.5, color: PN.MUTED}}>Riceverai una risposta su <strong>admin@esempio.com</strong> entro 4 ore.</div>
+            <div style={{width: 56, height: 56, borderRadius:'50%', background: PN.GREEN_SOFT, color: PN.GREEN, display:'inline-grid', placeItems:'center', marginBottom: 14}}><BuIcons.doc size={26}/></div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Ticket aperto!</div>
+            <div style={{fontSize: 14.5, color: PN.MUTED}}>Ti rispondiamo su <strong>admin@esempio.com</strong> entro 2 giorni lavorativi.</div>
           </div>
         ) : (
           <div style={{padding: 20}}>
@@ -266,7 +266,7 @@ function SupEmailModal({ open, onClose }) {
 // ─── Scheduler chiamata ───────────────────────────
 function SupCallScheduler({ open, onClose }) {
   const [phone, setPhone] = React.useState('');
-  const [when, setWhen] = React.useState('30min');
+  const [when, setWhen] = React.useState('2h');
   const [topic, setTopic] = React.useState('');
   const [sent, setSent] = React.useState(false);
 
@@ -277,12 +277,13 @@ function SupCallScheduler({ open, onClose }) {
     setTimeout(() => { setSent(false); setPhone(''); setTopic(''); onClose(); }, 1800);
   };
   const slots = [
-    // Le finestre ricalcano le promesse dei piani: 1 ora è la garanzia
-    // Business, 2 ore quella Plus — qui non si promette più di lì.
-    { id:'1h', label:'Entro 1 ora', desc:'Operatore disponibile ora' },
-    { id:'2h', label:'Entro 2 ore', desc:'Verrai chiamato il prima possibile' },
-    { id:'oggi', label:'Oggi pomeriggio', desc:'Tra le 14:00 e le 18:00' },
-    { id:'domani', label:'Domani mattina', desc:'Tra le 9:00 e le 12:00' },
+    // Le finestre ricalcano le promesse dei piani, e stanno dentro le fasce in
+    // cui il telefono è presidiato: 1 ora è la garanzia Business, 2 ore quella
+    // Plus. "Domani mattina, 9–12" prometteva una chiamata fuori orario.
+    { id:'2h', label:'Entro 2 ore', desc:'Garanzia del piano Plus' },
+    { id:'1h', label:'Entro 1 ora', desc:'Garanzia del piano Business' },
+    { id:'pranzo', label:'Fascia 12:00–16:00', desc:'Alla prima data utile' },
+    { id:'sera', label:'Fascia 18:00–22:00', desc:'Alla prima data utile' },
   ];
 
   return (
@@ -327,6 +328,19 @@ function SupCallScheduler({ open, onClose }) {
                     <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>{s.desc}</div>
                   </button>
                 ))}
+              </div>
+              {/* Le fasce e la garanzia dipendono dal piano: scritte qui perché
+                  "entro 2 ore" senza il quando è una promessa che non regge. */}
+              <div style={{
+                display:'flex', gap: 8, marginTop: 10, padding:'9px 11px',
+                background: PN.WHITE_HUSH, borderRadius: 10,
+                fontSize: 13, color: PN.MUTED, lineHeight: 1.45,
+              }}>
+                <span style={{color: PN.MUTED_SOFT, flexShrink: 0, marginTop: 1}}><BuIcons.clock size={13}/></span>
+                <span>
+                  Richiamata <strong style={{color: PN.TEXT, fontWeight: 600}}>entro 2 ore</strong> con il piano Plus,
+                  Lun–Ven 12:00–16:00 e 18:00–22:00. Con Business entro 1 ora, H24 7 giorni su 7.
+                </span>
               </div>
             </SupField>
             <SupField label="Argomento (opzionale)">

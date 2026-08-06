@@ -13,12 +13,12 @@ function SupChannelCards({ onChat, onEmail, onCall }) {
         onClick={onChat}
       />
       <SupCard
-        icon={<PnI.Mail size={20}/>}
+        icon={<PnI.FileText size={20}/>}
         iconBg="#dbeafe" iconColor="#1d4ed8"
-        badge="Risposta entro 4 ore" badgeBg="#dbeafe" badgeColor="#1d4ed8"
-        title="Email"
-        desc="Invia una richiesta dettagliata. Ideale per problemi tecnici complessi o documentazione."
-        cta="Contattaci via email"
+        badge="Risposta entro 2 giorni lavorativi" badgeBg="#dbeafe" badgeColor="#1d4ed8"
+        title="Ticket"
+        desc="Apri una richiesta tracciata. Ideale per problemi tecnici complessi o documentazione."
+        cta="Apri un ticket"
         onClick={onEmail}
       />
       <SupCard
