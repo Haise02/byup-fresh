@@ -195,11 +195,15 @@ function StatInsight({ items = [] }) {
 }
 
 // ─── Card ──────────────────────────────────────────────────────
-function StatCard({ title, sub, action, children, padding = 20 }) {
+// `style`: override del contenitore — le card che stanno in una riga con una
+// vicina più alta lo usano per diventare colonne flex e distribuire l'altezza
+// invece di lasciare un vuoto in fondo.
+function StatCard({ title, sub, action, children, padding = 20, style }) {
   return (
     <div style={{
       background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
       borderRadius: 14, padding,
+      ...style,
     }}>
       {(title || action) && (
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 16, marginBottom: 14}}>

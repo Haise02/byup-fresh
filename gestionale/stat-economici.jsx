@@ -169,7 +169,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
       </div>
 
       {/* Riga 2 — andamento a sinistra, da dove arrivano i soldi a destra */}
-      <div style={{display:'grid', gridTemplateColumns:'1.9fr 1fr', gap: 16}}>
+      <div style={{display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 16}}>
         <StatCard title="Andamento ricavi vs costi" action={
           <div style={{display:'inline-flex', gap: 4, padding: 4, background:'#f5f5f7', borderRadius: 999}}>
             {[['6m','6 mesi'],['12m','12 mesi']].map(([id, label]) => (
@@ -282,21 +282,24 @@ function RicaviCosti({ d, months, onVaiVendite }) {
           </div>
         </StatCard>
 
-        <StatCard title="Origine incassi" sub="Distribuzione metodi di pagamento">
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap: 16}}>
-            <svg width={156} height={156} viewBox="0 0 156 156">
+        <StatCard title="Origine incassi" sub="Distribuzione metodi di pagamento"
+          style={{display:'flex', flexDirection:'column'}}>
+          {/* Donut a sinistra e legenda a destra, come nel riferimento: in
+              colonna il donut restava piccolo e la card sproporzionata. */}
+          <div style={{flex: 1, display:'flex', alignItems:'center', gap: 18, minWidth: 0}}>
+            <svg width={158} height={158} viewBox="0 0 156 156" style={{flexShrink: 0}}>
               {arcs.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"/>)}
               <circle cx={CX} cy={CY} r={42} fill={PN.WHITE}/>
               <text x={CX} y={CY - 4} textAnchor="middle" fontSize="12" fill={PN.MUTED}>Totale</text>
               <text x={CX} y={CY + 16} textAnchor="middle" fontSize="17" fontWeight="700" fill={PN.TEXT}>{eur(totRicavi)}</text>
             </svg>
-            <div style={{width:'100%', display:'flex', flexDirection:'column', gap: 10}}>
+            <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 14}}>
               {arcs.map((s, i) => (
-                <div key={i} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 14.5}}>
+                <div key={i} style={{display:'flex', alignItems:'center', gap: 9, fontSize: 14.5}}>
                   <span style={{width: 11, height: 11, background: s.color, borderRadius:'50%', flexShrink: 0}}/>
                   <span style={{flex: 1, color: PN.TEXT, minWidth: 0}}>{s.label}</span>
                   <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{Math.round((s.val/totRicavi)*100)}%</strong>
-                  <span style={{color: PN.MUTED, fontVariantNumeric:'tabular-nums', minWidth: 66, textAlign:'right'}}>{eur(s.val)}</span>
+                  <span style={{color: PN.MUTED, fontVariantNumeric:'tabular-nums', textAlign:'right', whiteSpace:'nowrap'}}>{eur(s.val)}</span>
                 </div>
               ))}
             </div>
@@ -308,8 +311,9 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 
       {/* Riga 3 — da quale canale arrivano i ricavi, e quanto margine resta */}
       <div style={{display:'grid', gridTemplateColumns:'1.55fr 1fr', gap: 16}}>
-        <StatCard title="Ricavi per canale" sub="Quota di ogni canale sui ricavi del periodo">
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
+        <StatCard title="Ricavi per canale" sub="Quota di ogni canale sui ricavi del periodo"
+          style={{display:'flex', flexDirection:'column'}}>
+          <div style={{flex: 1, display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
             {canali.map(c => (
               <div key={c.id} style={{
                 padding: 14, borderRadius: 14,
@@ -334,8 +338,9 @@ function RicaviCosti({ d, months, onVaiVendite }) {
             onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=ordini'; }}/>
         </StatCard>
 
-        <StatCard title="Margine medio" sub="Media del periodo">
-          <div style={{display:'flex', alignItems:'center', gap: 18, flexWrap:'wrap'}}>
+        <StatCard title="Margine medio" sub="Media del periodo"
+          style={{display:'flex', flexDirection:'column'}}>
+          <div style={{flex: 1, display:'flex', alignItems:'center', gap: 18, flexWrap:'wrap'}}>
             <svg width={144} height={144} viewBox="0 0 144 144" style={{flexShrink: 0}}>
               <circle cx="72" cy="72" r={anelloR} fill="none" stroke={PN.GREEN_SOFT} strokeWidth="14"/>
               <circle cx="72" cy="72" r={anelloR} fill="none" stroke={PN.GREEN} strokeWidth="14"
