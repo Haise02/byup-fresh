@@ -3,7 +3,9 @@
 // ─── Chat widget ───────────────────────────────────
 function SupChatWidget({ open, onClose }) {
   const [messages, setMessages] = React.useState([
-    { from:'bot', text:'Ciao! Sono l\'assistente virtuale di byup. Come posso aiutarti oggi?', time:'11:46' },
+    // Il primo messaggio dice cosa sei prima di chiedere cosa serve: chi
+    // scrive deve sapere che dall'altra parte non c'è una persona.
+    { from:'bot', text:'Ciao! Sono l\'assistente di byup: un\'intelligenza artificiale, non un operatore umano. Come posso aiutarti oggi?', time:'11:46' },
   ]);
   const [input, setInput] = React.useState('');
   const [typing, setTyping] = React.useState(false);
@@ -61,7 +63,9 @@ function SupChatWidget({ open, onClose }) {
         }}><BuIcons.chat size={15} color="#fff"/></div>
         <div style={{flex:1}}>
           <div style={{fontSize: 15, fontWeight: 700}}>Assistente byup</div>
-          <div style={{fontSize: 13, opacity: 0.85}}>Risponde subito</div>
+          {/* Anche in testata, non solo nel saluto: il primo messaggio scorre
+              via appena la conversazione si allunga, l'intestazione no. */}
+          <div style={{fontSize: 13, opacity: 0.85}}>Intelligenza artificiale · Risponde subito</div>
         </div>
         <button onClick={onClose} aria-label="Chiudi" style={{
           background:'transparent', border:'none', color:'#fff',
