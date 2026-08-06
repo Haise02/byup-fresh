@@ -280,8 +280,8 @@ function SupCallScheduler({ open, onClose }) {
     // Le finestre ricalcano le promesse dei piani, e stanno dentro le fasce in
     // cui il telefono è presidiato: 1 ora è la garanzia Business, 2 ore quella
     // Plus. "Domani mattina, 9–12" prometteva una chiamata fuori orario.
-    { id:'2h', label:'Entro 2 ore', desc:'Garanzia del piano Plus' },
-    { id:'1h', label:'Entro 1 ora', desc:'Garanzia del piano Business' },
+    { id:'2h', label:'Entro 2 ore', desc:'Garanzia Plus' },
+    { id:'1h', label:'Entro 1 ora', desc:'Garanzia Business, H24' },
     { id:'pranzo', label:'Fascia 12:00–16:00', desc:'Alla prima data utile' },
     { id:'sera', label:'Fascia 18:00–22:00', desc:'Alla prima data utile' },
   ];
@@ -328,19 +328,6 @@ function SupCallScheduler({ open, onClose }) {
                     <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>{s.desc}</div>
                   </button>
                 ))}
-              </div>
-              {/* Le fasce e la garanzia dipendono dal piano: scritte qui perché
-                  "entro 2 ore" senza il quando è una promessa che non regge. */}
-              <div style={{
-                display:'flex', gap: 8, marginTop: 10, padding:'9px 11px',
-                background: PN.WHITE_HUSH, borderRadius: 10,
-                fontSize: 13, color: PN.MUTED, lineHeight: 1.45,
-              }}>
-                <span style={{color: PN.MUTED_SOFT, flexShrink: 0, marginTop: 1}}><BuIcons.clock size={13}/></span>
-                <span>
-                  Richiamata <strong style={{color: PN.TEXT, fontWeight: 600}}>entro 2 ore</strong> con il piano Plus,
-                  Lun–Ven 12:00–16:00 e 18:00–22:00. Con Business entro 1 ora, H24 7 giorni su 7.
-                </span>
               </div>
             </SupField>
             <SupField label="Argomento (opzionale)">
