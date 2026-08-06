@@ -90,11 +90,77 @@ const AiIco = {
   document.head.appendChild(st);
 })();
 
+// ─── Posizione del bollino ────────────────────────────────────────────────
+const FAB = 72, MARG = 12, POS_KEY = 'byup.ai.fab.pos';
+const fra = (v, min, max) => Math.max(min, Math.min(max, v));
+
+// Il frame scala tutta la console con `zoom`, quindi un pixel di schermo NON
+// è un pixel di frame: senza dividere per il fattore, il bollino scapperebbe
+// dal puntatore appena la finestra non è alta esattamente 900.
+const zoomDi = (frame) => {
+  const dichiarata = parseFloat(frame.style.width);
+  const vera = frame.getBoundingClientRect().width;
+  return dichiarata > 0 && vera > 0 ? vera / dichiarata : 1;
+};
+
+const leggiPos = () => {
+  try {
+    const p = JSON.parse(localStorage.getItem(POS_KEY));
+    return p && isFinite(p.x) && isFinite(p.y) ? p : null;
+  } catch (e) { return null; }
+};
+
 // ─── Il bollino ───────────────────────────────────────────────────────────
 function BuAiFab() {
   const [aperto, setAperto] = React.useState(false);
   const [hover, setHover] = React.useState(false);
   const [scintille, setScintille] = React.useState(0);   // rimonta il burst a ogni clic
+  // `null` = mai spostato: resta ancorato in basso a destra e segue il frame
+  // quando la finestra cambia. Dopo il primo trascinamento diventa una
+  // coppia di coordinate, e da lì comanda l'utente.
+  const [pos, setPos] = React.useState(leggiPos);
+  const [trascino, setTrascino] = React.useState(false);
+  const [box, setBox] = React.useState(null);   // dov'è il bollino, in coordinate del frame
+  const wrapRef = React.useRef(null);
+  const mossoRef = React.useRef(false);
+
+  // Dove sta il bollino e quanto è grande il frame: serve al pannello per
+  // capire da che lato aprirsi. Si rimisura anche al resize, che il frame
+  // cambia larghezza da solo.
+  const misura = React.useCallback(() => {
+    const wrap = wrapRef.current;
+    const frame = wrap && wrap.closest('.frame');
+    if (!frame) return;
+    const z = zoomDi(frame);
+    const fr = frame.getBoundingClientRect();
+    // Il rettangolo del CONTENITORE, non del bottone: in hover il bottone ha
+    // uno scale, e un transform sposta il rettangolo senza spostare il layout.
+    const r = wrap.getBoundingClientRect();
+    setBox({
+      x: (r.left - fr.left) / z, y: (r.top - fr.top) / z,
+      fw: fr.width / z, fh: fr.height / z,
+    });
+  }, []);
+
+  React.useLayoutEffect(() => { misura(); }, [misura, pos, aperto]);
+  React.useEffect(() => {
+    const onResize = () => {
+      misura();
+      // Se la finestra si stringe, il bollino spostato a mano potrebbe
+      // finire fuori: lo si riporta dentro invece di perderlo.
+      setPos(p => {
+        const wrap = wrapRef.current, frame = wrap && wrap.closest('.frame');
+        if (!p || !frame) return p;
+        const z = zoomDi(frame), fr = frame.getBoundingClientRect();
+        return {
+          x: fra(p.x, MARG, fr.width / z - FAB - MARG),
+          y: fra(p.y, MARG, fr.height / z - FAB - MARG),
+        };
+      });
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [misura]);
 
   const apri = () => {
     setHover(false);   // col pannello aperto il bollino torna a misura
@@ -105,12 +171,64 @@ function BuAiFab() {
     setTimeout(() => setAperto(true), 200);
   };
 
+  // Un solo gesto per due azioni: si apre al rilascio solo se il puntatore
+  // non si è mosso più di 4px. Sotto quella soglia è un clic con la mano
+  // ferma male, sopra è una volontà di spostare.
+  const prendi = (e) => {
+    if (e.button != null && e.button !== 0) return;
+    const wrap = wrapRef.current;
+    const frame = wrap && wrap.closest('.frame');
+    if (!frame) return;
+    e.preventDefault();
+    const z = zoomDi(frame);
+    const fr = frame.getBoundingClientRect();
+    const r = wrap.getBoundingClientRect();
+    const offX = (e.clientX - r.left) / z, offY = (e.clientY - r.top) / z;
+    const fw = fr.width / z, fh = fr.height / z;
+    const px = e.clientX, py = e.clientY;
+    mossoRef.current = false;
+    setTrascino(true);
+    setHover(false);
+
+    const muovi = (ev) => {
+      if (Math.abs(ev.clientX - px) > 4 || Math.abs(ev.clientY - py) > 4) mossoRef.current = true;
+      if (!mossoRef.current) return;
+      setPos({
+        x: fra((ev.clientX - fr.left) / z - offX, MARG, fw - FAB - MARG),
+        y: fra((ev.clientY - fr.top) / z - offY, MARG, fh - FAB - MARG),
+      });
+    };
+    const molla = () => {
+      window.removeEventListener('pointermove', muovi);
+      window.removeEventListener('pointerup', molla);
+      window.removeEventListener('pointercancel', molla);
+      setTrascino(false);
+      // L'apertura NON si fa qui: la lasciamo al `click` che arriva subito
+      // dopo. Così il bottone continua a rispondere anche a un click che non
+      // nasce da un puntatore — tastiera, lettori di schermo, comandi vocali —
+      // e non serve duplicare la logica. Dopo un trascinamento quel click
+      // arriva lo stesso (il bollino è rimasto sotto il dito) e va ignorato:
+      // ci pensa la bandiera `mosso`.
+      if (mossoRef.current) {
+        // Il posto scelto vale su tutte le schermate: spostarlo una volta
+        // per pagina sarebbe una tortura.
+        setPos(p => { try { localStorage.setItem(POS_KEY, JSON.stringify(p)); } catch (e) {} return p; });
+      }
+    };
+    window.addEventListener('pointermove', muovi);
+    window.addEventListener('pointerup', molla);
+    window.addEventListener('pointercancel', molla);
+  };
+
   return (
     <>
-      {aperto && <BuAiChat onClose={() => setAperto(false)}/>}
+      {aperto && <BuAiChat box={box} onClose={() => setAperto(false)}/>}
 
       {/* Sopra il pannello, non sotto: le scintille devono passargli davanti. */}
-      <div style={{position:'absolute', right: 26, bottom: 26, zIndex: 72}}>
+      <div ref={wrapRef} style={{
+        position:'absolute', zIndex: 72,
+        ...(pos ? {left: pos.x, top: pos.y} : {right: 26, bottom: 26}),
+      }}>
         {/* Le scintille stanno FUORI dal bottone: dentro, lo scale dell'hover
             se le porterebbe dietro e il volo si accorcerebbe. */}
         {scintille > 0 && (
@@ -144,15 +262,20 @@ function BuAiFab() {
         )}
 
         <button
-          onClick={apri}
-          onMouseEnter={() => !aperto && setHover(true)}
+          onPointerDown={prendi}
+          onClick={() => {
+            if (mossoRef.current) { mossoRef.current = false; return; }   // era un trascinamento
+            apri();
+          }}
+          onMouseEnter={() => !aperto && !trascino && setHover(true)}
           onMouseLeave={() => setHover(false)}
-          title="Chiedi all'assistente byup"
+          title="Chiedi all'assistente byup — trascinalo dove preferisci"
           aria-label="Apri l'assistente byup"
           data-no-fx
           style={{
             position:'relative',
             width: 72, height: 72, borderRadius:'50%',
+            touchAction:'none',   // senza, su touch lo scroll ruba il gesto
             border: `1px solid ${hover ? 'transparent' : 'rgba(15,17,21,0.06)'}`,
             // A riposo è bianco col segno corallo; al passaggio si accende
             // col gradiente e il segno diventa bianco.
@@ -161,10 +284,17 @@ function BuAiFab() {
             boxShadow: hover
               ? '0 20px 46px rgba(244,114,182,0.42), 0 6px 16px rgba(167,139,250,0.30)'
               : '0 8px 24px rgba(15,17,21,0.14)',
-            // Metà in più, come chiesto: 72 → 108.
-            transform: hover ? 'scale(1.5)' : 'scale(1)',
-            transition: 'transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1), background 220ms ease, box-shadow 260ms ease, border-color 220ms ease',
-            cursor:'pointer', padding: 0,
+            // Metà in più, come chiesto: 72 → 108. Mentre lo trascini resta a
+            // misura e si stacca appena dal foglio: ingrandito, il puntatore
+            // finirebbe fuori centro e il bollino sembrerebbe sfuggire.
+            transform: trascino ? 'scale(1.08)' : hover ? 'scale(1.5)' : 'scale(1)',
+            // Niente transizione sul transform durante il trascinamento:
+            // il bollino arriverebbe al puntatore con un quarto di secondo
+            // di ritardo, come se fosse attaccato con un elastico.
+            transition: trascino
+              ? 'background 220ms ease, box-shadow 200ms ease'
+              : 'transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1), background 220ms ease, box-shadow 260ms ease, border-color 220ms ease',
+            cursor: trascino ? 'grabbing' : 'pointer', padding: 0,
             display:'grid', placeItems:'center',
             animation: hover ? 'bu-ai-shift 4s ease infinite' : 'none',
           }}>
@@ -210,13 +340,35 @@ const AI_ESEMPI = [
   'Es. attiva l\'asporto',
 ];
 
-function BuAiChat({ onClose }) {
+// Dove mettere il pannello, dato dov'è finito il bollino. Si allinea al bordo
+// vicino e si apre sopra se c'è posto, sotto altrimenti: col bollino portato
+// in alto a sinistra, aprirlo sempre in basso a destra lo staccherebbe da chi
+// l'ha chiamato. Tutto rientra nel frame, che ha overflow hidden e taglierebbe
+// quello che esce.
+const PAN_W = 384, PAN_H = 620, PAN_GAP = 14;
+function posizionaPannello(box) {
+  if (!box) return { left: null, stile: {right: 26, bottom: 112}, origine: '100% 100%' };
+  const { x, y, fw, fh } = box;
+  const aDestra = x + FAB / 2 > fw / 2;
+  const left = fra(aDestra ? x + FAB - PAN_W : x, MARG, Math.max(MARG, fw - PAN_W - MARG));
+  let top, sopra = true;
+  if (y - PAN_GAP - PAN_H >= MARG) top = y - PAN_GAP - PAN_H;
+  else if (y + FAB + PAN_GAP + PAN_H <= fh - MARG) { top = y + FAB + PAN_GAP; sopra = false; }
+  else top = fra(y + FAB / 2 - PAN_H / 2, MARG, Math.max(MARG, fh - PAN_H - MARG));
+  return {
+    stile: { left, top },
+    origine: `${aDestra ? '100%' : '0%'} ${sopra ? '100%' : '0%'}`,
+  };
+}
+
+function BuAiChat({ onClose, box }) {
   const [messaggi, setMessaggi] = React.useState([{ da:'ai', testo: AI_SALUTO }]);
   const [input, setInput] = React.useState('');
   const [scrive, setScrive] = React.useState(false);
   const [esempio, setEsempio] = React.useState(0);
   const [fuoco, setFuoco] = React.useState(false);
   const scrollRef = React.useRef(null);
+  const collocazione = posizionaPannello(box);
 
   // Gli esempi girano solo quando il campo è fermo e vuoto: col cursore
   // dentro, un testo che cambia da solo distrae mentre stai formulando la
@@ -254,19 +406,22 @@ function BuAiChat({ onClose }) {
 
   return (
     <div style={{
-      position:'absolute', right: 26, bottom: 112,
+      position:'absolute',
+      ...collocazione.stile,
       // Alto quanto serve a far stare il saluto intero: più corto, l'ultimo
       // capoverso restava tagliato a metà riga, ed è proprio quello della
       // doppia conferma. Con gli esempi finiti dentro al campo si è liberata
       // la riga delle pillole, e il pannello è tornato di ottanta più basso.
-      width: 384, height: 620, zIndex: 71,
+      width: PAN_W, height: PAN_H, zIndex: 71,
       background: PN.WHITE, borderRadius: 20,
       border:'1px solid rgba(167,139,250,0.18)',
       boxShadow:'0 28px 70px rgba(88, 42, 120, 0.22), 0 8px 22px rgba(15,17,21,0.10)',
       display:'flex', flexDirection:'column', overflow:'hidden',
       fontFamily:'inherit',
       animation:'bu-ai-open 280ms cubic-bezier(0.34, 1.3, 0.64, 1)',
-      transformOrigin:'100% 100%',
+      // Esce dall'angolo dal lato del bollino: spostato in alto a sinistra,
+      // un pannello che si apre dal basso a destra sembrerebbe di un altro.
+      transformOrigin: collocazione.origine,
     }}>
       {/* Testata — il gradiente aurora e il byuppino che saluta */}
       <div style={{
