@@ -1423,9 +1423,9 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
             { h: 'Preferenze alimentari e allergeni', p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.' },
             { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
             { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
-            { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento da \u201cI miei dati\u201d: torneranno proposte generiche.' },
+            { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento scrivendo all\'assistenza: torneranno proposte generiche.' },
             { h: 'Sicurezza dell\'account (accessi)', p: 'Per proteggere il tuo account, prevenire abusi e fornirti assistenza registriamo gli eventi di accesso all\'app: data e ora, indirizzo IP, città stimata e tipo di dispositivo. La base giuridica è il legittimo interesse (art. 6.1.f GDPR); NON registriamo né conserviamo un tracciato dei tuoi spostamenti. Gli eventi sono conservati per 12 mesi e sono visibili nella sezione \u201cI miei dati\u201d del profilo. Puoi opporti al trattamento scrivendo a privacy@byup.it.' },
-            { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup (vedi "Analisi d\'uso e sicurezza") e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento da "I miei dati".' },
+            { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup (vedi "Analisi d\'uso e sicurezza") e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento scrivendo all\'assistenza.' },
             { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
           ]}/>
         )}
@@ -2697,9 +2697,9 @@ const CONSENSI_DEF = [
   // il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
   // registrazione. Le offerte su dati alimentari restano A18 (art. 9).
   { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica', dove: 'alla registrazione' },
-  // Opt-out, non consenso: legittimo interesse, attivo salvo disattivazione.
-  { id: 'SUGG', label: 'Suggerimenti personalizzati',        desc: 'Consigli basati sui tuoi gusti e ordini · attivo, puoi disattivarlo', optout: true },
-  { id: 'ANLT', label: 'Analisi d\'uso',                     desc: 'Statistiche su come usi l\'app e sui tuoi ordini, collegate al tuo profilo · attivo, puoi disattivarlo', optout: true },
+  // Suggerimenti (SUGG) e analisi d'uso: legittimo interesse SENZA toggle qui —
+  // la via di opposizione è l'assistenza, come dichiarato nell'informativa.
+  // Il pannello mostra solo i consensi veri: A3, A18, A6.
 ];
 
 function ConsensiPanel({ onOpenPrivacy, sep }) {
@@ -2721,9 +2721,7 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
     const d = new Date(st.quando);
     return `${d.toLocaleDateString('it-IT')}`;
   };
-  // Il conteggio in testata conta solo i CONSENSI dati, non l'opt-out
-  // (che è attivo di default e non è un consenso).
-  const attivi = CONSENSI_DEF.filter(c => { if (c.optout) return false; const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
+  const attivi = CONSENSI_DEF.filter(c => { const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ background: SURF_X, borderRadius: 14, overflow: 'hidden', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` }}>
@@ -2748,11 +2746,10 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
         {aperto && CONSENSI_DEF.map((c, i) => {
           const st = ByupConsensi.stato(c.id);
           // Mai incontrato = niente riga: il pannello riflette solo i consensi
-          // che esistono per questo utente (l'opt-out SUGG è sempre vivo).
-          if (!st && !c.optout) return null;
+          // che esistono per questo utente.
+          if (!st) return null;
           const data = quando(st);
-          // Opt-out (SUGG): stato assente = ATTIVO — legittimo interesse.
-          const acceso = c.optout ? (st ? st.ok : true) : !!(st && st.ok);
+          const acceso = !!(st && st.ok);
           return (
             <div key={c.id} style={{
               display: 'flex', alignItems: 'center', gap: 12,
@@ -2761,7 +2758,7 @@ function ConsensiPanel({ onOpenPrivacy, sep }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, color: TEXT_X }}>{c.label}</div>
                 <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>{c.desc}</div>
-                {!c.optout && data && (
+                {data && (
                   <div style={{ fontSize: 11, color: MUTED_X, marginTop: 2, opacity: .8 }}>
                     {st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`}
                   </div>

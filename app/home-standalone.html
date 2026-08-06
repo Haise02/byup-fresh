@@ -651,17 +651,18 @@
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing) e per l'opt-out SUGG (suggerimenti
-// personalizzati, legittimo interesse: stato assente = ATTIVO).
+// preferenze, A6 marketing). Suggerimenti (SUGG) e analisi d'uso sono
+// legittimo interesse SENZA toggle in-app: l'opposizione passa
+// dall'assistenza (dal 2026-08-06), che la registra lato backend.
 //
 // REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
 //   promo generiche E su misura sullo storico ordini → basta A6 (che le
 //     dichiara entrambe: PROMOP è stato assorbito in A6 il 2026-08-06 —
 //     non reintrodurlo; il consenso unico NON copre i dati alimentari)
 //   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
-//   suggerimenti in-app    → SUGG non disattivato (niente consenso: LI con
-//                            opt-out; la città viene dal contesto d'uso
-//                            corrente, MAI dai log di accesso/sicurezza)
+//   suggerimenti in-app    → attivi salvo opposizione via assistenza (LI,
+//                            niente consenso; la città viene dal contesto
+//                            d'uso corrente, MAI dai log accesso/sicurezza)
 // Due strutture: lo STATO corrente per consenso e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
@@ -4541,13 +4542,13 @@ function ProfileScreen({
       p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).'
     }, {
       h: 'Suggerimenti personalizzati',
-      p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento da \u201cI miei dati\u201d: torneranno proposte generiche.'
+      p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento scrivendo all\'assistenza: torneranno proposte generiche.'
     }, {
       h: 'Sicurezza dell\'account (accessi)',
       p: 'Per proteggere il tuo account, prevenire abusi e fornirti assistenza registriamo gli eventi di accesso all\'app: data e ora, indirizzo IP, città stimata e tipo di dispositivo. La base giuridica è il legittimo interesse (art. 6.1.f GDPR); NON registriamo né conserviamo un tracciato dei tuoi spostamenti. Gli eventi sono conservati per 12 mesi e sono visibili nella sezione \u201cI miei dati\u201d del profilo. Puoi opporti al trattamento scrivendo a privacy@byup.it.'
     }, {
       h: 'Cookie e tecnologie simili',
-      p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup (vedi "Analisi d\'uso e sicurezza") e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento da "I miei dati".'
+      p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup (vedi "Analisi d\'uso e sicurezza") e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento scrivendo all\'assistenza.'
     }, {
       h: 'Trasferimenti internazionali',
       p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.'
@@ -7306,19 +7307,11 @@ const CONSENSI_DEF = [{
   label: 'Marketing byup',
   desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica',
   dove: 'alla registrazione'
-},
-// Opt-out, non consenso: legittimo interesse, attivo salvo disattivazione.
-{
-  id: 'SUGG',
-  label: 'Suggerimenti personalizzati',
-  desc: 'Consigli basati sui tuoi gusti e ordini · attivo, puoi disattivarlo',
-  optout: true
-}, {
-  id: 'ANLT',
-  label: 'Analisi d\'uso',
-  desc: 'Statistiche su come usi l\'app e sui tuoi ordini, collegate al tuo profilo · attivo, puoi disattivarlo',
-  optout: true
-}];
+}
+// Suggerimenti (SUGG) e analisi d'uso: legittimo interesse SENZA toggle qui —
+// la via di opposizione è l'assistenza, come dichiarato nell'informativa.
+// Il pannello mostra solo i consensi veri: A3, A18, A6.
+];
 function ConsensiPanel({
   onOpenPrivacy,
   sep
@@ -7346,10 +7339,7 @@ function ConsensiPanel({
     const d = new Date(st.quando);
     return `${d.toLocaleDateString('it-IT')}`;
   };
-  // Il conteggio in testata conta solo i CONSENSI dati, non l'opt-out
-  // (che è attivo di default e non è un consenso).
   const attivi = CONSENSI_DEF.filter(c => {
-    if (c.optout) return false;
     const st = ByupConsensi.stato(c.id);
     return st && st.ok;
   }).length;
@@ -7415,11 +7405,10 @@ function ConsensiPanel({
   }))), aperto && CONSENSI_DEF.map((c, i) => {
     const st = ByupConsensi.stato(c.id);
     // Mai incontrato = niente riga: il pannello riflette solo i consensi
-    // che esistono per questo utente (l'opt-out SUGG è sempre vivo).
-    if (!st && !c.optout) return null;
+    // che esistono per questo utente.
+    if (!st) return null;
     const data = quando(st);
-    // Opt-out (SUGG): stato assente = ATTIVO — legittimo interesse.
-    const acceso = c.optout ? st ? st.ok : true : !!(st && st.ok);
+    const acceso = !!(st && st.ok);
     return /*#__PURE__*/React.createElement("div", {
       key: c.id,
       style: {
@@ -7446,7 +7435,7 @@ function ConsensiPanel({
         marginTop: 2,
         lineHeight: 1.4
       }
-    }, c.desc), !c.optout && data && /*#__PURE__*/React.createElement("div", {
+    }, c.desc), data && /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 11,
         color: MUTED_X,
@@ -12053,13 +12042,13 @@ const A_PRIVACY = [{
   p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).'
 }, {
   h: 'Suggerimenti personalizzati',
-  p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento da \u201cI miei dati\u201d: torneranno proposte generiche.'
+  p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento scrivendo all\'assistenza: torneranno proposte generiche.'
 }, {
   h: 'Sicurezza dell\'account (accessi)',
   p: 'Per proteggere il tuo account, prevenire abusi e fornirti assistenza registriamo gli eventi di accesso all\'app: data e ora, indirizzo IP, città stimata e tipo di dispositivo. La base giuridica è il legittimo interesse (art. 6.1.f GDPR); NON registriamo né conserviamo un tracciato dei tuoi spostamenti. Gli eventi sono conservati per 12 mesi e sono visibili nella sezione \u201cI miei dati\u201d del profilo. Puoi opporti al trattamento scrivendo a privacy@byup.it.'
 }, {
   h: 'Cookie e tecnologie simili',
-  p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup (vedi "Analisi d\'uso e sicurezza") e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento da "I miei dati".'
+  p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup (vedi "Analisi d\'uso e sicurezza") e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento scrivendo all\'assistenza.'
 }, {
   h: 'Trasferimenti internazionali',
   p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.'
