@@ -8,7 +8,16 @@ function StatEconomici() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      <div style={{display:'flex', gap: 14}}>
+      {/* Sticky come la barra principale, agganciata sotto di essa: il padding
+          in basso e il margine negativo che lo compensa lasciano lo spazio di
+          prima, ma quando è incollata il contenuto non le passa sotto al filo. */}
+      <div style={{
+        position:'sticky', top:'var(--stat-barra, 63px)', zIndex: 19,
+        background:'#fafafa',
+        margin:'0 -28px -16px',
+        padding:'0 28px 16px',
+        display:'flex', gap: 14,
+      }}>
         <StatSubTab active={sub==='ricavi'} onClick={() => setSub('ricavi')} label="Ricavi e costi" icon="commerce-money"/>
         <StatSubTab active={sub==='vendite'} onClick={() => setSub('vendite')} label="Vendite piatti" icon="food-meal"/>
       </div>

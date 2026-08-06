@@ -18,6 +18,20 @@ function StatisticheApp() {
   const [opSub, setOpSub] = useState(urlInit.sub);
   const [period, setPeriod] = useState('mese');
 
+  // L'altezza della barra principale finisce in una variabile CSS: le sub-tab
+  // ci si agganciano sotto senza che nessuno debba scriverla a mano (e senza
+  // rompersi se un giorno cambia il corpo del testo).
+  const barraRef = React.useRef(null);
+  React.useLayoutEffect(() => {
+    const el = barraRef.current;
+    if (!el) return;
+    const applica = () => document.documentElement.style.setProperty('--stat-barra', el.offsetHeight + 'px');
+    applica();
+    const ro = new ResizeObserver(applica);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="frame" style={{position:'relative'}}>
       <GlassMeshSubstrate tone="neutral"/>
@@ -32,7 +46,7 @@ function StatisticheApp() {
               con un margine negativo l'aggancio slittava di quei pixel e sopra
               filtrava il contenuto. I margini laterali negativi la fanno
               arrivare ai bordi della colonna, così niente le passa di lato. */}
-          <div style={{
+          <div ref={barraRef} style={{
             position:'sticky', top: 0, zIndex: 20,
             background:'#fafafa',
             margin:'0 -28px 18px',
@@ -51,7 +65,13 @@ function StatisticheApp() {
           {/* Operazioni sub-tabs — card a tutta riga */}
           {tab === 'operazioni' && (
             <>
-              <div style={{display:'flex', gap: 14, marginBottom: 18}}>
+              <div style={{
+                position:'sticky', top:'var(--stat-barra, 63px)', zIndex: 19,
+                background:'#fafafa',
+                margin:'0 -28px 0',
+                padding:'0 28px 18px',
+                display:'flex', gap: 14,
+              }}>
                 <StatSubTab active={opSub==='prenotazioni'} onClick={() => setOpSub('prenotazioni')} label="Prenotazioni" icon="time-calendar"/>
                 <StatSubTab active={opSub==='ordini'} onClick={() => setOpSub('ordini')} label="Ordini" icon="commerce-cart"/>
                 <StatSubTab active={opSub==='staff'} onClick={() => setOpSub('staff')} label="Team" icon="people-staff-group"/>
