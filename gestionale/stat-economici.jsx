@@ -38,13 +38,30 @@ const ECON_TONI = {
   utile:  { bg:'linear-gradient(115deg, #E6F6EC 0%, #F5FBF7 52%, #FFFFFF 100%)', bordo:'#CFEBD9', chip:'#FFFFFF', tinta: PN.GREEN },
 };
 
+// Hover dei box: crescono di un soffio e si staccano dal foglio. L'1,5% è
+// deliberato — di più e a fianco si vede il box che spinge quello accanto,
+// visto che stanno in griglia a filo. La transizione è corta perché sopra i
+// 200ms il movimento sembra molle.
+const BOX_TRANSITION = 'transform 150ms ease, box-shadow 150ms ease';
+const boxHover = {
+  onMouseEnter: e => {
+    e.currentTarget.style.transform = 'scale(1.015)';
+    e.currentTarget.style.boxShadow = PN.CARD_SHADOW_HOVER;
+  },
+  onMouseLeave: e => {
+    e.currentTarget.style.transform = '';
+    e.currentTarget.style.boxShadow = '';
+  },
+};
+
 function EconKpi({ tono, icona, label, valore, sub, delta, spark }) {
   const t = ECON_TONI[tono];
   return (
-    <div style={{
+    <div {...boxHover} style={{
       display:'flex', alignItems:'center', gap: 12, minWidth: 0,
       padding: 15, borderRadius: 16,
       background: t.bg, border: `1px solid ${t.bordo}`,
+      transition: BOX_TRANSITION,
     }}>
       <span style={{
         width: 44, height: 44, borderRadius:'50%', flexShrink: 0,
@@ -142,8 +159,16 @@ function RicaviCosti({ d, months, onVaiVendite }) {
     const x0 = CX + R*Math.cos(a0), y0 = CY + R*Math.sin(a0);
     const x1 = CX + R*Math.cos(a1), y1 = CY + R*Math.sin(a1);
     const big = (s.val / totRicavi) > 0.5 ? 1 : 0;
-    return { ...s, path: `M ${CX} ${CY} L ${x0} ${y0} A ${R} ${R} 0 ${big} 1 ${x1} ${y1} Z` };
+    return {
+      ...s, quota: (s.val / totRicavi) * 100,
+      path: `M ${CX} ${CY} L ${x0} ${y0} A ${R} ${R} 0 ${big} 1 ${x1} ${y1} Z`,
+    };
   });
+  // Lo spicchio sotto il mouse. Cresce con una scala CSS attorno al centro
+  // invece di ricalcolare il path: l'attributo `d` non si può animare, la
+  // trasformazione sì. Al 7% l'anello arriva a 151 di 156 del viewBox, quindi
+  // resta dentro senza doverlo allargare.
+  const [inc, setInc] = React.useState(null);
 
   // ── Ricavi per canale: le quote vengono dalle serie e si riportano ai
   //    ricavi del periodo, così i tre importi tornano al totale in testa.
@@ -330,18 +355,45 @@ function RicaviCosti({ d, months, onVaiVendite }) {
                 cambia, senza mangiarsi la legenda al minimo. */}
             <svg viewBox="0 0 156 156" style={{
               width:'40%', minWidth: 128, maxWidth: 204, height:'auto', flexShrink: 0,
-            }}>
-              {arcs.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"/>)}
+            }} onMouseLeave={() => setInc(null)}>
+              {arcs.map((s, i) => (
+                <path key={i} d={s.path} fill={s.color}
+                  stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"
+                  onMouseEnter={() => setInc(i)}
+                  style={{
+                    transformOrigin: `${CX}px ${CY}px`,
+                    transform: inc === i ? 'scale(1.07)' : 'scale(1)',
+                    // Gli altri si spengono: lo spicchio sotto il mouse resta
+                    // l'unico a colore pieno, e si stacca senza doverlo
+                    // schiarire (schiarirlo cambierebbe la tinta del metodo).
+                    opacity: inc == null || inc === i ? 1 : 0.4,
+                    transition:'transform 160ms ease, opacity 160ms ease',
+                  }}/>
+              ))}
               <circle cx={CX} cy={CY} r={39} fill={PN.WHITE}/>
-              <text x={CX} y={CY - 5} textAnchor="middle" fontSize="11.5" fill={PN.MUTED}>Totale</text>
-              <text x={CX} y={CY + 14} textAnchor="middle" fontSize="16" fontWeight="700" fill={PN.TEXT}>{eur(totRicavi)}</text>
+              {/* Al centro il totale, e sotto il mouse il metodo puntato: è il
+                  posto dove l'occhio è già, e non serve un riquadro che entra
+                  ed esce. */}
+              <text x={CX} y={CY - 5} textAnchor="middle" fontSize="11.5"
+                fill={inc == null ? PN.MUTED : arcs[inc].color}>
+                {inc == null ? 'Totale' : arcs[inc].label}
+              </text>
+              <text x={CX} y={CY + 14} textAnchor="middle" fontSize="16" fontWeight="700" fill={PN.TEXT}>
+                {eur(inc == null ? totRicavi : arcs[inc].val)}
+              </text>
             </svg>
             <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 14}}>
               {arcs.map((s, i) => (
-                <div key={i} style={{display:'flex', alignItems:'center', gap: 9, fontSize: 14.5}}>
+                <div key={i}
+                  onMouseEnter={() => setInc(i)} onMouseLeave={() => setInc(null)}
+                  style={{
+                    display:'flex', alignItems:'center', gap: 9, fontSize: 14.5,
+                    opacity: inc == null || inc === i ? 1 : 0.45,
+                    transition:'opacity 160ms ease',
+                  }}>
                   <span style={{width: 11, height: 11, background: s.color, borderRadius:'50%', flexShrink: 0}}/>
                   <span style={{flex: 1, color: PN.TEXT, minWidth: 0}}>{s.label}</span>
-                  <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{Math.round((s.val/totRicavi)*100)}%</strong>
+                  <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{Math.round(s.quota)}%</strong>
                   <span style={{color: PN.MUTED, fontVariantNumeric:'tabular-nums', textAlign:'right', whiteSpace:'nowrap'}}>{eur(s.val)}</span>
                 </div>
               ))}
@@ -362,10 +414,11 @@ function RicaviCosti({ d, months, onVaiVendite }) {
                 pieno, così il perimetro si legge senza dover alzare il
                 contrasto della linea. */}
             {canali.map(c => (
-              <div key={c.id} style={{
+              <div key={c.id} {...boxHover} style={{
                 padding: 14, borderRadius: 14, overflow:'hidden',
                 background: PN.BG, border:`1px solid ${PN.BORDER}`,
                 display:'flex', flexDirection:'column', gap: 2, minWidth: 0,
+                transition: BOX_TRANSITION,
               }}>
                 <span style={{
                   width: 36, height: 36, borderRadius: 10, marginBottom: 8,
