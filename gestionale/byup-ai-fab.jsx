@@ -74,6 +74,12 @@ const AiIco = {
       50%      { transform: translateY(-6px) rotate(2deg); }
     }
     @keyframes bu-ai-blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+    /* Il suggerimento nel campo entra da sotto in dissolvenza: il cambio
+       secco fra un esempio e l'altro si legge come uno sfarfallio. */
+    @keyframes bu-ai-hint {
+      from { opacity: 0; transform: translateY(calc(-50% + 6px)); }
+      to   { opacity: 1; transform: translateY(-50%); }
+    }
     /* Il gradiente della testata scorre lentissimo: dà l'idea che sotto ci
        sia qualcosa di vivo, senza diventare una discoteca. */
     @keyframes bu-ai-shift {
@@ -190,20 +196,36 @@ const AI_SALUTO = [
   'Tranquillo, ti chiederò una seconda conferma prima di pubblicare le modifiche.',
 ];
 
-// Gli spunti sono esempi delle cose che il saluto promette: una chat vuota
-// senza appigli non dice cosa sa fare davvero. La prenotazione sta in testa
-// perché è l'unica dove i dati li scrivi tu invece di chiedere una modifica.
-const AI_SPUNTI = [
-  'Prenota per Rossi, 4 coperti alle 21',
-  'Togli la Carbonara dal menu',
-  'Unisci i tavoli 4 e 5',
+// Gli esempi girano dentro al campo invece di stare fuori come pillole da
+// premere: erano comandi già scritti, e uno che clicca non impara cosa può
+// chiedere — esegue una cosa decisa da noi. Qui invece mostrano la FORMA di
+// una richiesta, nel punto esatto in cui stai per scriverla, e non occupano
+// una riga di pannello. Uno per area, così in un giro si vede tutto il
+// perimetro: prenotazioni, menu, sala, impostazioni.
+const AI_ESEMPI = [
+  'Dimmi cosa vuoi modificare…',
+  'Es. prenota per Rossi, 4 coperti alle 21',
+  'Es. togli la Carbonara dal menu',
+  'Es. unisci i tavoli 4 e 5',
+  'Es. attiva l\'asporto',
 ];
 
 function BuAiChat({ onClose }) {
   const [messaggi, setMessaggi] = React.useState([{ da:'ai', testo: AI_SALUTO }]);
   const [input, setInput] = React.useState('');
   const [scrive, setScrive] = React.useState(false);
+  const [esempio, setEsempio] = React.useState(0);
+  const [fuoco, setFuoco] = React.useState(false);
   const scrollRef = React.useRef(null);
+
+  // Gli esempi girano solo quando il campo è fermo e vuoto: col cursore
+  // dentro, un testo che cambia da solo distrae mentre stai formulando la
+  // frase, e a campo pieno non si vede comunque.
+  React.useEffect(() => {
+    if (fuoco || input) return;
+    const t = setInterval(() => setEsempio(i => (i + 1) % AI_ESEMPI.length), 3400);
+    return () => clearInterval(t);
+  }, [fuoco, input]);
 
   React.useEffect(() => {
     // Finché c'è solo il saluto si resta in cima: è un testo da leggere
@@ -233,11 +255,11 @@ function BuAiChat({ onClose }) {
   return (
     <div style={{
       position:'absolute', right: 26, bottom: 112,
-      // Alto quanto serve a far stare il saluto intero. Più corto, l'ultimo
-      // capoverso restava tagliato a metà riga — ed è proprio quello della
-      // doppia conferma, la riga che deve rassicurare. Il tetto è 708: oltre,
-      // il pannello passerebbe sopra la testata della pagina.
-      width: 384, height: 700, zIndex: 71,
+      // Alto quanto serve a far stare il saluto intero: più corto, l'ultimo
+      // capoverso restava tagliato a metà riga, ed è proprio quello della
+      // doppia conferma. Con gli esempi finiti dentro al campo si è liberata
+      // la riga delle pillole, e il pannello è tornato di ottanta più basso.
+      width: 384, height: 620, zIndex: 71,
       background: PN.WHITE, borderRadius: 20,
       border:'1px solid rgba(167,139,250,0.18)',
       boxShadow:'0 28px 70px rgba(88, 42, 120, 0.22), 0 8px 22px rgba(15,17,21,0.10)',
@@ -357,47 +379,38 @@ function BuAiChat({ onClose }) {
 
       </div>
 
-      {/* Gli spunti stanno FUORI dallo scorrimento, appoggiati sopra il campo:
-          dentro finivano in fondo a un messaggio lungo e restavano tagliati.
-          Spariscono al primo messaggio, che a quel punto la chat parla da sé. */}
-      {messaggi.length === 1 && !scrive && (
-        <div style={{
-          display:'flex', flexWrap:'wrap', gap: 7,
-          padding:'10px 12px 0', background: PN.WHITE,
-        }}>
-          {AI_SPUNTI.map(s => (
-            <button key={s} onClick={() => manda(s)} data-no-fx style={{
-              padding:'7px 12px', borderRadius: 999,
-              background:'#FBF9FF', border:'1px solid rgba(167,139,250,0.28)',
-              fontSize: 13, fontWeight: 600, color:'#7C3AED',
-              cursor:'pointer', fontFamily:'inherit',
-              transition:'background 140ms ease, transform 120ms ease',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#F3EEFF'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#FBF9FF'; e.currentTarget.style.transform = ''; }}>
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Scrittura */}
       <div style={{
         display:'flex', gap: 8, padding: 12,
         background: PN.WHITE,
       }}>
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && manda()}
-          placeholder="Dimmi cosa vuoi modificare…"
-          style={{
-            flex: 1, minWidth: 0,
-            border:'1px solid rgba(167,139,250,0.28)', outline:'none',
-            borderRadius: 999, padding:'9px 15px',
-            fontSize: 14.5, fontFamily:'inherit', background:'#FDFBFF',
-          }}
-        />
+        {/* Il suggerimento è un testo sovrapposto, non l'attributo placeholder:
+            quello non si può dissolvere, e cambiarlo di scatto ogni tre secondi
+            sotto gli occhi sembra un difetto. */}
+        <div style={{position:'relative', flex: 1, minWidth: 0}}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && manda()}
+            onFocus={() => setFuoco(true)}
+            onBlur={() => setFuoco(false)}
+            style={{
+              width:'100%',
+              border:'1px solid rgba(167,139,250,0.28)', outline:'none',
+              borderRadius: 999, padding:'9px 15px',
+              fontSize: 14.5, fontFamily:'inherit', background:'#FDFBFF',
+            }}
+          />
+          {!input && (
+            <span key={esempio} style={{
+              position:'absolute', left: 16, right: 12, top:'50%',
+              transform:'translateY(-50%)', pointerEvents:'none',
+              fontSize: 14, color: PN.MUTED_SOFT,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+              animation:'bu-ai-hint 380ms ease',
+            }}>{AI_ESEMPI[esempio]}</span>
+          )}
+        </div>
         <button onClick={() => manda()} aria-label="Invia" data-no-fx style={{
           width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
           background: AI_GRAD, color:'#fff', border:'none', cursor:'pointer',
