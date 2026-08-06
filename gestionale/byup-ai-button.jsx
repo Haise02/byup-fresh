@@ -16,7 +16,13 @@ function BuAiSparkle({ size = 16, color = '#fff', tooltip = true }) {
     <span
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{ position: 'relative', display: 'inline-flex', flexShrink: 0, lineHeight: 0 }}>
+      style={{
+        position: 'relative', display: 'inline-flex', flexShrink: 0, lineHeight: 0,
+        // L'icona è ~13px: senza un'area di hover più generosa il tooltip
+        // è quasi impossibile da centrare. Il margin negativo pareggia il
+        // padding, così il layout del bottone non si sposta.
+        padding: 8, margin: -8, alignItems: 'center', justifyContent: 'center',
+      }}>
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
         style={{flexShrink: 0, display:'inline-block'}}>
         <path d="M12 2 L13.6 8.4 L20 10 L13.6 11.6 L12 18 L10.4 11.6 L4 10 L10.4 8.4 Z"
@@ -26,7 +32,7 @@ function BuAiSparkle({ size = 16, color = '#fff', tooltip = true }) {
       </svg>
       {tooltip && hover && (
         <span style={{
-          position: 'absolute', top: size + 12, right: -14, zIndex: 90,
+          position: 'absolute', top: size + 16, right: -14, zIndex: 90,
           width: 240, padding: '9px 12px', borderRadius: 9,
           background: '#1F2430', color: '#fff',
           fontSize: 12.5, fontWeight: 500, lineHeight: 1.5, letterSpacing: 0,
