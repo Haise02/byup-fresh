@@ -12,6 +12,12 @@ function ContabilitaApp() {
 
   const [tab, setTab] = useState(urlTab);
   const [contiFilter, setContiFilter] = useState(urlFilter);
+  // Rimando da Cassa: la giornata e lo stato di trasmissione da mostrare in
+  // Conti. Cassa riepiloga, Conti tiene la lista — una sola.
+  const [contiFisc, setContiFisc] = useState(() => {
+    const d = params.get('fiscData'), st = params.get('fiscStato');
+    return d ? { data: d, stato: st || null } : null;
+  });
   const [cassaOpen, setCassaOpen] = useState(false);
   const [newCost, setNewCost] = useState(false);
   const [share, setShare] = useState(false);
@@ -85,8 +91,9 @@ function ContabilitaApp() {
           </div>
 
           {/* Tab content */}
-          {tab==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}/>}
-          {tab==='conti' && <ContConti filter={contiFilter}/>}
+          {tab==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}
+            onApriConti={(data, stato) => { setContiFisc({ data, stato }); setTab('conti'); }}/>}
+          {tab==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} onFiscClear={() => setContiFisc(null)}/>}
           {tab==='costi' && <ContCosti openNewCost={() => setNewCost(true)}/>}
           {tab==='iva'   && <ContIva month={ivaMonth} setMonth={setIvaMonth}/>}
           {tab==='export' && <ContExport openShare={() => setShare(true)}/>}
