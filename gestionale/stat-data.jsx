@@ -144,6 +144,9 @@ const STAT_ECONOMICI = {
   },
   totaleRicavi: { byup: 36120, contanti: 21240, carte: 29060 },
   fatturatoTrend: [42500, 48200, 52000, 56800, 51400, 58200, 54800, 49600, 64200, 58800, 62400, 65800],
+  // Costi mese per mese: crescono meno dei ricavi, ed è il motivo per cui
+  // l'utile sale (+18,7%) più del fatturato (+12,5%).
+  costiTrend:     [26800, 29400, 31200, 33900, 31800, 34600, 33200, 30800, 37400, 35200, 36800, 38400],
   costiBreakdown: [
     { cat:'Stipendi',     fissi: 100, var: 0,   tot: 18400, delta: 0.5 },
     { cat:'Materie prime', fissi: 0,  var: 100, tot: 14200, delta: 8.2 },
