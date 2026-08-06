@@ -3,16 +3,18 @@
 const { useState } = React;
 
 function StatisticheApp() {
-  // Deep-link dalla Panoramica: ?tab=operazioni|economici|app e, per
+  // Deep-link dalla Panoramica: ?tab=economici|operazioni|app e, per
   // Operazioni, ?sub=prenotazioni|ordini|staff|clienti.
+  // Senza parametri si atterra su Economici: è la domanda con cui un
+  // ristoratore apre le statistiche — quanto ho incassato, quanto ho speso.
   const urlInit = (() => {
     try {
       const p = new URLSearchParams(window.location.search);
       return {
-        tab: ['operazioni', 'economici', 'app'].includes(p.get('tab')) ? p.get('tab') : 'operazioni',
+        tab: ['economici', 'operazioni', 'app'].includes(p.get('tab')) ? p.get('tab') : 'economici',
         sub: ['prenotazioni', 'ordini', 'staff', 'clienti'].includes(p.get('sub')) ? p.get('sub') : 'prenotazioni',
       };
-    } catch (e) { return { tab: 'operazioni', sub: 'prenotazioni' }; }
+    } catch (e) { return { tab: 'economici', sub: 'prenotazioni' }; }
   })();
   const [tab, setTab] = useState(urlInit.tab);
   const [opSub, setOpSub] = useState(urlInit.sub);
@@ -54,8 +56,8 @@ function StatisticheApp() {
           }}>
             <StatTabs
               tabs={[
-                { id: 'operazioni', label: 'Operazioni', icon: 'chart-workflow' },
                 { id: 'economici', label: 'Economici', icon: 'commerce-coins' },
+                { id: 'operazioni', label: 'Operazioni', icon: 'chart-workflow' },
                 { id: 'app', label: 'App', icon: 'chart-area' },
               ]}
               active={tab} onChange={setTab}
