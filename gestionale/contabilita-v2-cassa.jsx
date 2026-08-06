@@ -144,18 +144,17 @@ function ccChiusure() {
   });
   return Object.keys(perGiorno).sort().reverse().map(g => {
     const docs = perGiorno[g].slice().sort((a, b) => String(a.ora).localeCompare(String(b.ora)));
-    let totale = 0, contanti = 0, iva10 = 0, iva22 = 0;
+    let contanti = 0, nonContanti = 0, iva10 = 0, iva22 = 0;
     docs.forEach(p => {
       const iv = docIva(p);
       iva10 += iv.iva10; iva22 += iv.iva22;
-      totale += p.amount;
-      if (p.method === 'contanti') contanti += p.amount;
+      if (p.method === 'contanti') contanti += p.amount; else nonContanti += p.amount;
     });
     const [Y, M, D] = g.split('-');
     return {
       id: g, iso: g, date: `${D}/${M}/${Y}`,
-      docs, contanti: ccR2(contanti),
-      iva10: ccR2(iva10), iva22: ccR2(iva22), totale: ccR2(totale),
+      docs, contanti: ccR2(contanti), nonContanti: ccR2(nonContanti),
+      iva10: ccR2(iva10), iva22: ccR2(iva22), totale: ccR2(contanti + nonContanti),
     };
   });
 }
@@ -382,9 +381,10 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   const scartiAperti = allRows.reduce((s,r) => s + r.giornata.scartati, 0);
 
   // minmax e non fr puri: con le sole frazioni, alla larghezza minima del
-  // frame (1280) le intestazioni andavano a capo o si toccavano. Il minimo di
-  // ogni colonna è la sua intestazione; l'ultima tiene il chip più lungo.
-  const cols = 'minmax(104px, 0.95fr) minmax(158px, 1.15fr) minmax(78px, 0.8fr) minmax(78px, 0.8fr) minmax(94px, 0.9fr) minmax(196px, 1.4fr)';
+  // frame (1280) "Totale incassato" andava a capo e "Contanti" si attaccava a
+  // "Carta e digitale". Il minimo di ogni colonna è la sua intestazione;
+  // l'ultima tiene il chip più lungo.
+  const cols = 'minmax(96px, 0.9fr) minmax(152px, 1fr) minmax(74px, 0.72fr) minmax(74px, 0.72fr) minmax(88px, 0.85fr) minmax(140px, 0.95fr) minmax(196px, 1.45fr)';
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -506,6 +506,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>IVA 10%</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>IVA 22%</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Contanti</span>
+            <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Carta e digitale</span>
             <span style={{paddingLeft: 14, whiteSpace:'nowrap'}}>Trasmissione</span>
           </div>
           <MaxRowsScroll maxRows={10}>
@@ -529,6 +530,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.iva10.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.iva22.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.contanti.toFixed(2)}</span>
+              <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.nonContanti.toFixed(2)}</span>
               {/* Il chip è un rimando, non un contenitore: la lista dei
                   documenti è in Conti, e lì si va. */}
               <span style={{paddingLeft: 14, minWidth: 0}}>
