@@ -283,9 +283,35 @@ function BuAiChat({ onClose }) {
         </div>
       </div>
 
+      {/* La via d'uscita verso una persona. Sta qui, in cima e allineata a
+          destra, non sopra al campo di scrittura: là era in mezzo agli occhi
+          proprio mentre stai per chiedere qualcosa all'assistente, e sembrava
+          un invito ad andarsene. È l'ultima spiaggia, deve solo esserci. */}
+      <div style={{
+        display:'flex', justifyContent:'flex-end',
+        padding:'6px 10px 0', background: AI_GRAD_SOFT,
+      }}>
+        <button
+          onClick={() => { window.location.href = 'byup Supporto.html?chat=1'; }}
+          data-no-fx
+          onMouseEnter={e => { e.currentTarget.style.color = PN.MUTED; }}
+          onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED_SOFT; }}
+          style={{
+            display:'inline-flex', alignItems:'center', gap: 5,
+            padding:'4px 6px',
+            background:'transparent', border:'none',
+            fontSize: 12, fontWeight: 500, color: PN.MUTED_SOFT,
+            cursor:'pointer', fontFamily:'inherit',
+            transition:'color 140ms ease',
+          }}>
+          Serve una persona? Contatta l'assistenza
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+
       {/* Conversazione */}
       <div ref={scrollRef} className="pn-scroll" style={{
-        flex: 1, overflowY:'auto', padding:'16px 14px 14px',
+        flex: 1, overflowY:'auto', padding:'8px 14px 14px',
         background: AI_GRAD_SOFT,
       }}>
         {messaggi.map((m, i) => (
@@ -354,28 +380,6 @@ function BuAiChat({ onClose }) {
           ))}
         </div>
       )}
-
-      {/* La via d'uscita verso una persona. Sempre presente, e volutamente
-          quieta: è l'ultima spiaggia, non un invito. Porta al Supporto con la
-          chat dell'assistenza già aperta, così non si ricomincia da capo. */}
-      <div style={{padding:'10px 12px 0', background: PN.WHITE}}>
-        <button
-          onClick={() => { window.location.href = 'byup Supporto.html?chat=1'; }}
-          data-no-fx
-          onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-          style={{
-            display:'flex', alignItems:'center', justifyContent:'center', gap: 7,
-            width:'100%', padding:'8px 12px',
-            background:'transparent', border:'none', borderRadius: 9,
-            fontSize: 13, fontWeight: 600, color: PN.MUTED,
-            cursor:'pointer', fontFamily:'inherit',
-            transition:'background 140ms ease',
-          }}>
-          Serve una persona? Contatta l'assistenza
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-        </button>
-      </div>
 
       {/* Scrittura */}
       <div style={{
