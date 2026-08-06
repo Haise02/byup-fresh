@@ -185,13 +185,19 @@ function BuAiFab() {
 // ─── La chat ──────────────────────────────────────────────────────────────
 const AI_SALUTO = [
   'Sono l\'intelligenza artificiale di Byup. Posso aiutarti a gestire il tuo locale modificando il menu, Sala e Tavoli e configurando le impostazioni nella sezione "Operazioni".',
+  'Posso anche prenotare per conto di un cliente: scrivimi i dati minimi — nome, coperti e orario — e la registro io.',
   'Basta che mi dici quello che vuoi modificare e in pochi secondi ti riporterò la modifica fatta.',
   'Tranquillo, ti chiederò una seconda conferma prima di pubblicare le modifiche.',
 ];
 
-// Gli spunti sono le tre aree che il saluto promette: una chat vuota senza
-// appigli non dice cosa sa fare davvero.
-const AI_SPUNTI = ['Togli la Carbonara dal menu', 'Unisci i tavoli 4 e 5', 'Attiva l\'asporto'];
+// Gli spunti sono esempi delle cose che il saluto promette: una chat vuota
+// senza appigli non dice cosa sa fare davvero. La prenotazione sta in testa
+// perché è l'unica dove i dati li scrivi tu invece di chiedere una modifica.
+const AI_SPUNTI = [
+  'Prenota per Rossi, 4 coperti alle 21',
+  'Togli la Carbonara dal menu',
+  'Unisci i tavoli 4 e 5',
+];
 
 function BuAiChat({ onClose }) {
   const [messaggi, setMessaggi] = React.useState([{ da:'ai', testo: AI_SALUTO }]);
@@ -227,9 +233,11 @@ function BuAiChat({ onClose }) {
   return (
     <div style={{
       position:'absolute', right: 26, bottom: 112,
-      // 566 e non meno: sotto, il saluto — che è lungo di suo — arrivava
-      // tagliato e sembrava un errore invece che un testo da scorrere.
-      width: 384, height: 566, zIndex: 71,
+      // Alto quanto serve a far stare il saluto intero. Più corto, l'ultimo
+      // capoverso restava tagliato a metà riga — ed è proprio quello della
+      // doppia conferma, la riga che deve rassicurare. Il tetto è 708: oltre,
+      // il pannello passerebbe sopra la testata della pagina.
+      width: 384, height: 700, zIndex: 71,
       background: PN.WHITE, borderRadius: 20,
       border:'1px solid rgba(167,139,250,0.18)',
       boxShadow:'0 28px 70px rgba(88, 42, 120, 0.22), 0 8px 22px rgba(15,17,21,0.10)',
@@ -346,6 +354,28 @@ function BuAiChat({ onClose }) {
           ))}
         </div>
       )}
+
+      {/* La via d'uscita verso una persona. Sempre presente, e volutamente
+          quieta: è l'ultima spiaggia, non un invito. Porta al Supporto con la
+          chat dell'assistenza già aperta, così non si ricomincia da capo. */}
+      <div style={{padding:'10px 12px 0', background: PN.WHITE}}>
+        <button
+          onClick={() => { window.location.href = 'byup Supporto.html?chat=1'; }}
+          data-no-fx
+          onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+          style={{
+            display:'flex', alignItems:'center', justifyContent:'center', gap: 7,
+            width:'100%', padding:'8px 12px',
+            background:'transparent', border:'none', borderRadius: 9,
+            fontSize: 13, fontWeight: 600, color: PN.MUTED,
+            cursor:'pointer', fontFamily:'inherit',
+            transition:'background 140ms ease',
+          }}>
+          Serve una persona? Contatta l'assistenza
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
 
       {/* Scrittura */}
       <div style={{

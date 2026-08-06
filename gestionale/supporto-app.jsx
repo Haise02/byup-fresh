@@ -5,7 +5,13 @@ const { useState } = React;
 function SupportoApp() {
   const [search, setSearch] = useState('');
   const [openCat, setOpenCat] = useState('config');
-  const [chatOpen, setChatOpen] = useState(false);
+  // `?chat=1` — ci arriva chi ha premuto "Contatta l'assistenza" dentro
+  // l'assistente IA delle altre schermate: la chat si trova già aperta invece
+  // di doverla cercare in fondo alla pagina.
+  const [chatOpen, setChatOpen] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('chat') === '1'; }
+    catch (e) { return false; }
+  });
   const [emailOpen, setEmailOpen] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [activeTutorial, setActiveTutorial] = useState(null);
