@@ -101,7 +101,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
     { label:'Contanti', val: tr.contanti, color: PN.GREEN },
     { label:'Carte',    val: tr.carte,    color: PN.BLUE },
   ];
-  let cum = 0; const R = 62, CX = 78, CY = 78;
+  let cum = 0; const R = 68, CX = 78, CY = 78;
   const arcs = segs.map(s => {
     const start = cum; cum += s.val;
     const a0 = (start / totRicavi) * 2 * Math.PI - Math.PI/2;
@@ -287,11 +287,16 @@ function RicaviCosti({ d, months, onVaiVendite }) {
           {/* Donut a sinistra e legenda a destra, come nel riferimento: in
               colonna il donut restava piccolo e la card sproporzionata. */}
           <div style={{flex: 1, display:'flex', alignItems:'center', gap: 18, minWidth: 0}}>
-            <svg width={158} height={158} viewBox="0 0 156 156" style={{flexShrink: 0}}>
+            {/* Il cerchio è una quota della card, non una misura fissa: così
+                resta grande come nel riferimento anche quando la finestra
+                cambia, senza mangiarsi la legenda al minimo. */}
+            <svg viewBox="0 0 156 156" style={{
+              width:'40%', minWidth: 128, maxWidth: 204, height:'auto', flexShrink: 0,
+            }}>
               {arcs.map((s, i) => <path key={i} d={s.path} fill={s.color} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"/>)}
-              <circle cx={CX} cy={CY} r={42} fill={PN.WHITE}/>
-              <text x={CX} y={CY - 4} textAnchor="middle" fontSize="12" fill={PN.MUTED}>Totale</text>
-              <text x={CX} y={CY + 16} textAnchor="middle" fontSize="17" fontWeight="700" fill={PN.TEXT}>{eur(totRicavi)}</text>
+              <circle cx={CX} cy={CY} r={39} fill={PN.WHITE}/>
+              <text x={CX} y={CY - 5} textAnchor="middle" fontSize="11.5" fill={PN.MUTED}>Totale</text>
+              <text x={CX} y={CY + 14} textAnchor="middle" fontSize="16" fontWeight="700" fill={PN.TEXT}>{eur(totRicavi)}</text>
             </svg>
             <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 14}}>
               {arcs.map((s, i) => (
