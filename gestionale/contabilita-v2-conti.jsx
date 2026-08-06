@@ -5,7 +5,7 @@ const CONTI_MOCK = [
   // ─── Non saldati ───────────────────────────────────────────────
   { id:'cnt-1',  idOrdine:'#2511-0042', dataOra:'2025-11-15 19:42', tavolo:'Tavolo 4',  cliente:'Mario Rossi',       riferimento:{nome:'Mario Rossi', tipo:'byup'}, liberatoOre:5.5,  totaleConto:85.00,   daSaldare:45.00,  stato:'non_saldato', note:'Ospiti morbidi', operatore:'Marco',
     ordini: [{id:'o1-1',nome:'Tagliere salumi',qty:2,prezzo:13.00},{id:'o1-2',nome:'Pasta amatriciana',qty:2,prezzo:14.00},{id:'o1-3',nome:'Birra artigianale',qty:3,prezzo:6.00},{id:'o1-4',nome:'Acqua minerale',qty:2,prezzo:2.50},{id:'o1-5',nome:'Tiramisù',qty:1,prezzo:6.50},{id:'o1-6',nome:'Caffè',qty:1,prezzo:1.50}],
-    payments: [{id:'p1a', method:'contanti', amount:40.00, ora:'2025-11-15 19:55', scontrinoNum:'SC-2511-0042-1'}] },
+    payments: [{id:'p1a', method:'contanti', amount:40.00, ora:'2025-11-15 19:55', scontrinoNum:'SC-2511-0042-1', fisc:{ esito:'ritrasmissione', tentativo: 3, prossimo:'15:10' }}] },
   { id:'cnt-3',  idOrdine:'#2511-0040', dataOra:'2025-11-15 22:30', tavolo:'Asporto', canale:'asporto', cliente:'Simone De Luca',    liberatoOre:2.0,  totaleConto:64.50,   daSaldare:64.50,  stato:'non_saldato', note:'Allergeni richiesti', operatore:'Marco',
     ordini: [{id:'o3-1',nome:'Pizza Margherita',qty:1,prezzo:9.00},{id:'o3-2',nome:'Pizza Diavola',qty:1,prezzo:11.00},{id:'o3-3',nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{id:'o3-4',nome:'Birra media',qty:2,prezzo:5.50},{id:'o3-5',nome:'Supplì (4pz)',qty:1,prezzo:7.00},{id:'o3-6',nome:'Tiramisù',qty:1,prezzo:5.50},{id:'o3-7',nome:'Acqua minerale',qty:2,prezzo:2.50},{id:'o3-8',nome:'Patatine fritte',qty:1,prezzo:4.00}],
     payments: [] },
@@ -26,11 +26,11 @@ const CONTI_MOCK = [
 
   // ─── Saldati ───────────────────────────────────────────────────
   { id:'cnt-5',  idOrdine:'#2511-0038', dataOra:'2025-11-13 20:30', tavolo:'Tavolo 1',  cliente:'Lucia Marchesi',    riferimento:{nome:'Lucia Marchesi', tipo:'byup'}, liberatoOre:48,    totaleConto:72.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1'}] },
+    payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1', fisc:{ scarto:'delega', tentativi: 3 }}] },
   { id:'cnt-6',  idOrdine:'#2511-0037', dataOra:'2025-11-08 21:00', tavolo:'Tavolo 3',  cliente:'Francesco Rossi',   liberatoOre:168,   totaleConto:95.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p6a', method:'contanti', amount:95.50, ora:'2025-11-08 21:45', scontrinoNum:'SC-2511-0037-1'}] },
   { id:'cnt-13', idOrdine:'#2511-0035', dataOra:'2025-11-13 13:15', tavolo:'Tavolo 4',  cliente:'Pellegrini',        liberatoOre:60,    totaleConto:64.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1'}] },
+    payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1', fisc:{ scarto:'dispositivo', tentativi: 2 }}] },
   { id:'cnt-14', idOrdine:'#2511-0034', dataOra:'2025-11-12 20:00', tavolo:'Tavolo 8',  cliente:'Carlo Russo',       liberatoOre:84,    totaleConto:215.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [
       {id:'p14a', method:'carta', amount:150.00, ora:'2025-11-12 22:30', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0034-1'},
@@ -48,7 +48,7 @@ const CONTI_MOCK = [
   { id:'cnt-22', idOrdine:'#2511-0027', dataOra:'2025-11-08 13:00', tavolo:'Tavolo 5',  cliente:'Pranzo team',         liberatoOre:144,  totaleConto:156.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'byup',
     payments: [
       {id:'p22a', method:'byup', amount:35.00, ora:'2025-11-08 14:20', scontrinoNum:'SC-2511-0027-1'},
-      {id:'p22b', method:'byup', amount:42.00, ora:'2025-11-08 14:21', scontrinoNum:'SC-2511-0027-2'},
+      {id:'p22b', method:'byup', amount:42.00, ora:'2025-11-08 14:21', scontrinoNum:'SC-2511-0027-2', fisc:{ scarto:'dispositivo', tentativi: 2, gestito:{ come:'manuale', nota:'POS abbinato in Impostazioni e documento ritrasmesso.' } }},
       {id:'p22c', method:'byup', amount:28.00, ora:'2025-11-08 14:22', scontrinoNum:'SC-2511-0027-3'},
       {id:'p22d', method:'byup', amount:51.00, ora:'2025-11-08 14:23', scontrinoNum:'SC-2511-0027-4'},
     ] },
@@ -862,16 +862,23 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
   const [rimborsoPayment, setRimborsoPayment] = React.useState(null);
   const [rimborsoStep, setRimborsoStep] = React.useState(1);
 
-  const [expandedId, setExpandedId] = React.useState(null);
-  // Arrivando da Cassa il conto interessato si apre da solo: altrimenti il
-  // rimando lascerebbe l'utente davanti a una riga chiusa.
+  // Più conti aperti insieme: arrivando da Cassa una giornata può portarne
+  // due, e con l'accordion a uno solo il secondo scarto restava invisibile.
+  const [expandedIds, setExpandedIds] = React.useState(() => new Set());
+  const toggleExpanded = (id) => setExpandedIds(prev => {
+    const n = new Set(prev);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+  // Arrivando da Cassa i conti interessati si aprono da soli: altrimenti il
+  // rimando lascerebbe l'utente davanti a righe chiuse.
   const fiscKey = fisc ? `${fisc.data}|${fisc.stato}` : '';
   React.useEffect(() => {
-    if (!fisc) return;
-    const c = CONTI_MOCK.find(x => (x.payments || []).some(p =>
+    if (!fisc) { setExpandedIds(new Set()); return; }
+    const attesi = CONTI_MOCK.filter(x => (x.payments || []).some(p =>
       (!fisc.data || String(p.ora || '').startsWith(fisc.data)) &&
       (!fisc.stato || docInfo(p).tipo === { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok' }[fisc.stato])));
-    if (c) setExpandedId(c.id);
+    setExpandedIds(new Set(attesi.map(c => c.id)));
   }, [fiscKey]);
   const [sortData, setSortData] = React.useState(null); // null | 'desc' (recenti) | 'asc' (meno recenti)
 
@@ -1100,12 +1107,12 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
             </div>
             <MaxRowsScroll maxRows={10}>
             {filtered.map((conto, i) => {
-              const isExpanded = expandedId === conto.id;
+              const isExpanded = expandedIds.has(conto.id);
               return (
                 <React.Fragment key={conto.id}>
                   <div
                     data-row
-                    onClick={() => setExpandedId(isExpanded ? null : conto.id)}
+                    onClick={() => toggleExpanded(conto.id)}
                     onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = '#F7F8FA'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = isExpanded ? PN.PINK_SOFT : PN.WHITE; }}
                     style={{

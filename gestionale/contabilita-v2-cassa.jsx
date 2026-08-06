@@ -71,6 +71,20 @@ const CC_SCARTI = {
     vaiLabel: 'Apri Impostazioni → Menù',
     vaiHref:  'byup Impostazioni.html?page=menu-cucina&sub=libreria',
   },
+  delega: {
+    motivo:   'La delega all\'Agenzia delle Entrate è scaduta',
+    causa:    'La delega che autorizza byup a trasmettere i corrispettivi per il tuo locale non è più valida. Finché non la rinnovi sul portale dell\'Agenzia ogni invio viene rifiutato.',
+    azione:   'Rinnova la delega dal portale dell\'Agenzia delle Entrate, poi controlla il collegamento nei dati fiscali e ritrasmetti il documento.',
+    vaiLabel: 'Apri Impostazioni → Dati fiscali',
+    vaiHref:  'byup Impostazioni.html?page=fiscali',
+  },
+  dispositivo: {
+    motivo:   'Il punto cassa non risulta censito all\'Agenzia',
+    causa:    'Il dispositivo che ha emesso il documento non è fra quelli registrati per il locale: succede quando si incassa da un POS aggiunto da poco e non ancora abbinato.',
+    azione:   'Abbina il dispositivo nella pagina POS e integrazioni, poi ritrasmetti il documento.',
+    vaiLabel: 'Apri Impostazioni → POS e integrazioni',
+    vaiHref:  'byup Impostazioni.html?page=integrazioni',
+  },
 };
 
 // IVA del documento: aliquota decisa dall'id del pagamento (stabile), importo
@@ -130,17 +144,18 @@ function ccChiusure() {
   });
   return Object.keys(perGiorno).sort().reverse().map(g => {
     const docs = perGiorno[g].slice().sort((a, b) => String(a.ora).localeCompare(String(b.ora)));
-    let contanti = 0, nonContanti = 0, iva10 = 0, iva22 = 0;
+    let totale = 0, contanti = 0, iva10 = 0, iva22 = 0;
     docs.forEach(p => {
       const iv = docIva(p);
       iva10 += iv.iva10; iva22 += iv.iva22;
-      if (p.method === 'contanti') contanti += p.amount; else nonContanti += p.amount;
+      totale += p.amount;
+      if (p.method === 'contanti') contanti += p.amount;
     });
     const [Y, M, D] = g.split('-');
     return {
       id: g, iso: g, date: `${D}/${M}/${Y}`,
-      docs, contanti: ccR2(contanti), nonContanti: ccR2(nonContanti),
-      iva10: ccR2(iva10), iva22: ccR2(iva22), totale: ccR2(contanti + nonContanti),
+      docs, contanti: ccR2(contanti),
+      iva10: ccR2(iva10), iva22: ccR2(iva22), totale: ccR2(totale),
     };
   });
 }
@@ -367,10 +382,9 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   const scartiAperti = allRows.reduce((s,r) => s + r.giornata.scartati, 0);
 
   // minmax e non fr puri: con le sole frazioni, alla larghezza minima del
-  // frame (1280) "Totale incassato" andava a capo e "Contanti" si attaccava a
-  // "Carta e digitale". Il minimo di ogni colonna è la sua intestazione;
-  // l'ultima tiene "prossimo tentativo alle HH:MM" per intero.
-  const cols = 'minmax(96px, 0.9fr) minmax(152px, 1fr) minmax(74px, 0.72fr) minmax(74px, 0.72fr) minmax(88px, 0.85fr) minmax(140px, 0.95fr) minmax(216px, 1.56fr)';
+  // frame (1280) le intestazioni andavano a capo o si toccavano. Il minimo di
+  // ogni colonna è la sua intestazione; l'ultima tiene il chip più lungo.
+  const cols = 'minmax(104px, 0.95fr) minmax(158px, 1.15fr) minmax(78px, 0.8fr) minmax(78px, 0.8fr) minmax(94px, 0.9fr) minmax(196px, 1.4fr)';
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -492,8 +506,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>IVA 10%</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>IVA 22%</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Contanti</span>
-            <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Carta e digitale</span>
-            <span style={{paddingLeft: 14, whiteSpace:'nowrap'}}>Trasmissione AE</span>
+            <span style={{paddingLeft: 14, whiteSpace:'nowrap'}}>Trasmissione</span>
           </div>
           <MaxRowsScroll maxRows={10}>
           {rows.map((r,i) => (
@@ -516,7 +529,6 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.iva10.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.iva22.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.contanti.toFixed(2)}</span>
-              <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.nonContanti.toFixed(2)}</span>
               {/* Il chip è un rimando, non un contenitore: la lista dei
                   documenti è in Conti, e lì si va. */}
               <span style={{paddingLeft: 14, minWidth: 0}}>
