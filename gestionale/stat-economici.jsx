@@ -78,12 +78,12 @@ function EconKpi({ tono, icona, label, valore, sub, delta, spark }) {
         <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
           <div style={{minWidth: 0}}>
             <div style={{
-              fontSize: 28, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.6,
-              lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
+              fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
+              lineHeight: 1.15, marginTop: 1, whiteSpace:'nowrap',
             }}>{valore}</div>
             {/* Va a capo invece di troncarsi: al minimo del frame (1280)
                 "Margine 39,6% sui ricavi" non ci sta su una riga sola. */}
-            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{sub}</div>
+            <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.3}}>{sub}</div>
           </div>
           {spark && <StatSpark data={spark} color={t.tinta} width={82} height={32}/>}
         </div>
@@ -624,11 +624,15 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 }
 
 // ─── KPI di Vendite piatti ────────────────────────────────────────────────
-// Stessa disposizione dei KPI di Ricavi e costi: pastiglia tonda a sinistra,
-// etichetta e delta sulla prima riga, il numero grande col suo sottotitolo, e
-// l'andamento a destra invece che in fondo. Cambia solo la tinta — quattro
-// invece di tre — e la pastiglia, che qui è colorata su fondo bianco perché
-// la card non ha il gradiente su cui il bollino bianco di là si staglia.
+// Pastiglia tonda a sinistra e contenuto in colonna a destra, come i KPI di
+// Ricavi e costi. Una differenza obbligata: là il delta sta in fondo alla riga
+// dell'etichetta, qui no. Le card sono quattro invece di tre e i nomi sono
+// lunghi: dentro 229px a 1280 l'etichetta e la pillola non ci stanno insieme —
+// si troncava perfino «Margine medio». Il delta scende quindi accanto al
+// numero, dove lo spazio c'è, e l'etichetta si prende tutta la riga.
+// Le etichette restano comunque corte e la forma lunga sta nel sottotitolo,
+// che prima le ripeteva: «Articoli totali venduti» compariva due volte nella
+// stessa card.
 const VENDITE_TONI = {
   verde:  { forte: PN.GREEN,  tenue: PN.GREEN_SOFT },
   viola:  { forte: PN.PURPLE, tenue: PN.PURPLE_SOFT },
@@ -643,43 +647,48 @@ function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, t
   const t = VENDITE_TONI[tono];
   return (
     <div {...boxHover} style={{
-      display:'flex', alignItems:'center', gap: 12, minWidth: 0,
-      padding: 15, borderRadius: 16,
+      padding: 14, borderRadius: 16, minWidth: 0, overflow:'hidden',
       background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+      display:'flex', flexDirection:'column',
       transition: BOX_TRANSITION,
     }}>
-      <span style={{
-        width: 44, height: 44, borderRadius:'50%', flexShrink: 0,
-        background: t.tenue, color: t.forte,
-        display:'grid', placeItems:'center',
-      }}>{glifo
-        ? <span style={{fontSize: 21, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
-        : <Icon name={icona} size={21}/>}</span>
+      <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+        <span style={{
+          width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
+          background: t.tenue, color: t.forte,
+          display:'grid', placeItems:'center',
+        }}>{glifo
+          ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
+          : <Icon name={icona} size={19}/>}</span>
 
-      <div style={{flex: 1, minWidth: 0}}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
-          {/* Stretti in quattro colonne i nomi lunghi non ci stanno: si
-              troncano, e il nome intero resta al passaggio del mouse. */}
-          <span title={label} style={{
-            fontSize: 15, color: PN.MUTED, fontWeight: 500, minWidth: 0,
+        <div style={{flex: 1, minWidth: 0}}>
+          <div title={label} style={{
+            fontSize: 13.5, color: PN.MUTED, fontWeight: 500,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-          }}>{label}</span>
-          <StatDelta value={delta}/>
-        </div>
-        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
-          <div style={{minWidth: 0}}>
-            <div style={{
-              fontSize: 28, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.6,
-              lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
-              fontVariantNumeric:'tabular-nums',
+          }}>{label}</div>
+          <div style={{display:'flex', alignItems:'baseline', gap: 8, minWidth: 0, marginTop: 1}}>
+            <span style={{
+              fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
+              lineHeight: 1.15, whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
             }}>
-              {valore}{suffisso && <span style={{fontSize: 18, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
-            </div>
-            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{sub}</div>
+              {valore}{suffisso && <span style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+            </span>
+            <StatDelta value={delta}/>
           </div>
-          {trend && <StatSpark data={trend} color={t.forte} width={82} height={32}/>}
         </div>
       </div>
+
+      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.3}}>{sub}</div>
+
+      {/* L'andamento a tutta larghezza in fondo: di fianco al numero, in una
+          card larga 229, non resterebbe spazio per nessuno dei due. `auto` in
+          alto lo tiene sul fondo anche dove il sottotitolo va a capo. */}
+      {trend && (
+        <div style={{height: 34, marginTop:'auto', paddingTop: 10, display:'flex'}}>
+          <StatSpark data={trend} color={t.forte} width={150} height={54}
+            stretch padY={7} stroke={2}/>
+        </div>
+      )}
     </div>
   );
 }
@@ -708,21 +717,17 @@ function VenditePiatti({ v }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      {/* Due per riga e non quattro: questa disposizione — pastiglia, etichetta,
-          delta, numero, sottotitolo e andamento tutti in orizzontale — vuole la
-          larghezza che ha in Ricavi e costi. Stretta in quattro colonne si
-          troncavano tutte e quattro le etichette. */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 12}}>
-        <VenditeKpi tono="verde" icona="commerce-receipt" label="N. articoli per ordine"
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
+        <VenditeKpi tono="verde" icona="commerce-receipt" label="Articoli per ordine"
           valore={v.kpi.articoli.val.toString().replace('.', ',')}
           delta={v.kpi.articoli.delta} sub={v.kpi.articoli.sub} trend={v.kpi.articoli.trend}/>
         <VenditeKpi tono="viola" glifo="%" label="Margine medio"
           valore={v.kpi.margine.val} suffisso="%"
           delta={v.kpi.margine.delta} sub={v.kpi.margine.sub} trend={v.kpi.margine.trend}/>
-        <VenditeKpi tono="blu" icona="commerce-bag" label="Articoli totali venduti"
+        <VenditeKpi tono="blu" icona="commerce-bag" label="Articoli venduti"
           valore={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub} trend={v.kpi.venduti.trend}/>
-        <VenditeKpi tono="ambra" glifo="€" label="Ricavo medio per piatto"
+        <VenditeKpi tono="ambra" glifo="€" label="Ricavo per piatto"
           valore={`€ ${ricavoPerPiatto.toFixed(2).replace('.', ',')}`}
           delta={v.kpi.ricavoPiatto.delta} sub={v.kpi.ricavoPiatto.sub} trend={v.kpi.ricavoPiatto.trend}/>
       </div>
