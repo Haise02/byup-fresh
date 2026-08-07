@@ -650,6 +650,10 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 // Le etichette restano comunque corte e la forma lunga sta nel sottotitolo,
 // che prima le ripeteva: «Articoli totali venduti» compariva due volte nella
 // stessa card.
+// Ora è EconKpi in tutto e per tutto — pastiglia tonda a sinistra, etichetta e
+// delta sulla prima riga, numero col sottotitolo e l'andamento a destra. Con
+// quattro card non ci stava; con tre, che è la stessa larghezza che hanno di
+// là, ci sta.
 // Stessa ricetta dei toni di Ricavi e costi: sfumatura a 115°, dalla tinta
 // piena in alto a sinistra al bianco in basso a destra, bordo intonato, e il
 // bollino dell'icona BIANCO — su un fondo colorato è il bianco a staccarsi,
@@ -673,49 +677,44 @@ function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, t
   const t = VENDITE_TONI[tono];
   return (
     <div {...boxHover} style={{
-      padding: 14, borderRadius: 16, minWidth: 0, overflow:'hidden',
+      display:'flex', alignItems:'center', gap: 12, minWidth: 0,
+      padding: 15, borderRadius: 16,
       background: t.bg, border: `1px solid ${t.bordo}`,
-      display:'flex', flexDirection:'column',
       transition: BOX_TRANSITION,
     }}>
-      <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
-        <span style={{
-          width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
-          background: PN.WHITE, color: t.forte,
-          display:'grid', placeItems:'center',
-          boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
-        }}>{glifo
-          ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
-          : <Icon name={icona} size={19}/>}</span>
+      <span style={{
+        width: 44, height: 44, borderRadius:'50%', flexShrink: 0,
+        background: PN.WHITE, color: t.forte,
+        display:'grid', placeItems:'center',
+        boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
+      }}>{glifo
+        ? <span style={{fontSize: 21, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
+        : <Icon name={icona} size={21}/>}</span>
 
-        <div style={{flex: 1, minWidth: 0}}>
-          <div title={label} style={{
-            fontSize: 13.5, color: PN.MUTED, fontWeight: 500,
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
+          <span title={label} style={{
+            fontSize: 15, color: PN.MUTED, fontWeight: 500, minWidth: 0,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-          }}>{label}</div>
-          <div style={{display:'flex', alignItems:'baseline', gap: 8, minWidth: 0, marginTop: 1}}>
-            <span style={{
-              fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
-              lineHeight: 1.15, whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
+          }}>{label}</span>
+          <StatDelta value={delta}/>
+        </div>
+        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
+          <div style={{minWidth: 0}}>
+            <div style={{
+              fontSize: 28, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.6,
+              lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
+              fontVariantNumeric:'tabular-nums',
             }}>
               {valore}{suffisso && <span style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
-            </span>
-            <StatDelta value={delta}/>
+            </div>
+            {/* Va a capo invece di troncarsi, come di là: in tre colonne la
+                sottodicitura non ci sta su una riga sola. */}
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{sub}</div>
           </div>
+          {trend && <StatSpark data={trend} color={t.forte} width={82} height={32}/>}
         </div>
       </div>
-
-      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.3}}>{sub}</div>
-
-      {/* L'andamento a tutta larghezza in fondo: di fianco al numero, in una
-          card larga 229, non resterebbe spazio per nessuno dei due. `auto` in
-          alto lo tiene sul fondo anche dove il sottotitolo va a capo. */}
-      {trend && (
-        <div style={{height: 34, marginTop:'auto', paddingTop: 10, display:'flex'}}>
-          <StatSpark data={trend} color={t.forte} width={150} height={54}
-            stretch padY={7} stroke={2}/>
-        </div>
-      )}
     </div>
   );
 }
@@ -737,7 +736,8 @@ function PodioPiatti({ piatti, onVaiAlla }) {
         {ordine.map(i => {
           const p = piatti[i], primo = i === 0;
           return (
-            <div key={p.nome} style={{
+            <div key={p.nome} {...boxHover} style={{
+              transition: BOX_TRANSITION,
               flex: primo ? 1.15 : 1, minWidth: 0, position:'relative',
               display:'flex', flexDirection:'column', alignItems:'center',
               padding: primo ? '30px 12px 16px' : '26px 10px 14px',
@@ -783,12 +783,15 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
   return (
     <StatCard title="Piatto con il margine più alto" sub="Basato sul food cost medio"
       style={{display:'flex', flexDirection:'column'}}>
-      <div style={{flex: 1, display:'grid', gridTemplateColumns:'1.35fr 1fr', gap: 18, alignItems:'start'}}>
-        <div>
-          <div style={{display:'flex', alignItems:'center', gap: 16, minWidth: 0}}>
+      {/* Card stretta: i tre riquadri passano sotto a tutta larghezza invece di
+          stare schiacciati nella colonna di sinistra, dove a 74px l'uno le
+          etichette non ci stavano. */}
+      <div style={{flex: 1, display:'flex', flexDirection:'column', gap: 12}}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16, alignItems:'start'}}>
+          <div style={{display:'flex', alignItems:'center', gap: 13, minWidth: 0}}>
             <div style={{position:'relative', flexShrink: 0}}>
               <img src={re.foto} alt="" loading="lazy" style={{
-                width: 132, height: 108, borderRadius: 14, objectFit:'cover',
+                width: 96, height: 92, borderRadius: 13, objectFit:'cover',
                 background: PN.WHITE_HUSH, display:'block',
               }}/>
               {/* La stellina dice "questo" senza bisogno della parola: in
@@ -803,21 +806,49 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
             </div>
             <div style={{minWidth: 0}}>
               <div style={{
-                fontSize: 38, fontWeight: 700, color: PN.TEXT,
-                letterSpacing: -1, lineHeight: 1, fontVariantNumeric:'tabular-nums',
+                fontSize: 33, fontWeight: 700, color: PN.TEXT,
+                letterSpacing: -0.9, lineHeight: 1, fontVariantNumeric:'tabular-nums',
               }}>{re.marginePct}%</div>
-              <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3}}>Margine di {re.nome}</div>
-              <div style={{marginTop: 8}}><StatDelta value={re.deltaMargine}/></div>
+              {/* Il nome del piatto e basta: che quel 77% sia un margine lo
+                  dice già il titolo della card, e "Margine di Bruschetta"
+                  andava a capo tre volte in una colonna stretta. */}
+              <div style={{fontSize: 14, fontWeight: 600, color: PN.TEXT, marginTop: 4, lineHeight: 1.25}}>{re.nome}</div>
+              <div style={{marginTop: 7}}><StatDelta value={re.deltaMargine}/></div>
             </div>
           </div>
+        {/* Dal secondo al quinto: senza, il primo non ha un metro di paragone. */}
+          <div style={{
+            borderRadius: 14, overflow:'hidden',
+            background: PN.BG, border:`1px solid ${PN.BORDER}`,
+          }}>
+            {seguito.map((p, i) => (
+              <div key={p.nome} style={{
+                display:'flex', alignItems:'center', gap: 10,
+                padding:'8px 11px', fontSize: 14,
+                borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+              }}>
+                <span style={{
+                  width: 18, textAlign:'center', flexShrink: 0,
+                  fontSize: 12.5, fontWeight: 700, color: PN.MUTED_SOFT,
+                  fontVariantNumeric:'tabular-nums',
+                }}>{i + 2}</span>
+                <span style={{flex: 1, minWidth: 0, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.nome}</span>
+                <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{p.marginePct}%</strong>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 8, marginTop: 14}}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 8}}>
             {[
-              { et:'Food cost medio', v: eur2(re.costo) },
-              { et:'Prezzo di vendita', v: eur2(re.ricavo) },
-              { et:'Margine per piatto', v: eur2(re.margine) },
+              // Corte: in tre riquadri affiancati dentro mezza card, "Food
+              // cost medio" per esteso si troncava comunque.
+              { et:'Food cost', v: eur2(re.costo) },
+              { et:'Prezzo', v: eur2(re.ricavo) },
+              { et:'Margine', v: eur2(re.margine) },
             ].map(b => (
-              <div key={b.et} style={{
+              <div key={b.et} {...boxHover} style={{
+                transition: BOX_TRANSITION,
                 padding:'9px 11px', borderRadius: 12, minWidth: 0,
                 background: PN.BG, border:`1px solid ${PN.BORDER}`,
               }}>
@@ -825,29 +856,6 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
                 <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: 2, fontVariantNumeric:'tabular-nums'}}>{b.v}</div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Dal secondo al quinto: senza, il primo non ha un metro di paragone. */}
-        <div style={{
-          borderRadius: 14, overflow:'hidden',
-          background: PN.BG, border:`1px solid ${PN.BORDER}`,
-        }}>
-          {seguito.map((p, i) => (
-            <div key={p.nome} style={{
-              display:'flex', alignItems:'center', gap: 10,
-              padding:'10px 12px', fontSize: 14.5,
-              borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-            }}>
-              <span style={{
-                width: 20, textAlign:'center', flexShrink: 0,
-                fontSize: 13, fontWeight: 700, color: PN.MUTED_SOFT,
-                fontVariantNumeric:'tabular-nums',
-              }}>{i + 2}</span>
-              <span style={{flex: 1, minWidth: 0, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.nome}</span>
-              <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{p.marginePct}%</strong>
-            </div>
-          ))}
         </div>
       </div>
       <EconVai label="Vedi tutti i margini" onClick={onVaiAlla}/>
@@ -862,6 +870,10 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
 const CAT_TINTE = { 'Primi': PN.PINK, 'Secondi': PN.GREEN, 'Antipasti': PN.BLUE, 'Dolci': PN.AMBER, 'Bevande': PN.PURPLE, 'Contorni': '#0EA5E9' };
 
 function DistribuzioneCategorie({ piatti, onVaiAlla }) {
+  // Stesso comportamento del donut di Origine incassi: lo spicchio puntato
+  // cresce con una scala CSS attorno al centro — l'attributo `d` non si anima
+  // — e resta l'unico a colore pieno. Vale anche partendo dalla legenda.
+  const [cat, setCat] = React.useState(null);
   const perCat = new Map();
   piatti.forEach(p => perCat.set(p.cat, (perCat.get(p.cat) || 0) + p.n));
   const tot = [...perCat.values()].reduce((s, n) => s + n, 0) || 1;
@@ -882,12 +894,28 @@ function DistribuzioneCategorie({ piatti, onVaiAlla }) {
     <StatCard title="Distribuzione vendite per categoria" sub="In base al numero di articoli venduti"
       style={{display:'flex', flexDirection:'column'}}>
       <div style={{flex: 1, display:'flex', alignItems:'center', gap: 18, minWidth: 0}}>
-        <svg viewBox="0 0 156 156" style={{width:'38%', minWidth: 124, maxWidth: 180, height:'auto', flexShrink: 0}}>
-          {archi.map((a, i) => <path key={i} d={a.d} fill={a.col} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"/>)}
+        <svg viewBox="0 0 156 156" onMouseLeave={() => setCat(null)}
+          style={{width:'38%', minWidth: 124, maxWidth: 180, height:'auto', flexShrink: 0}}>
+          {archi.map((a, i) => (
+            <path key={i} d={a.d} fill={a.col} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"
+              onMouseEnter={() => setCat(a.cat)}
+              style={{
+                transformOrigin: `${C}px ${C}px`,
+                transform: cat === a.cat ? 'scale(1.07)' : 'scale(1)',
+                opacity: cat == null || cat === a.cat ? 1 : 0.4,
+                transition:'transform 160ms ease, opacity 160ms ease',
+              }}/>
+          ))}
         </svg>
         <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 12}}>
           {voci.map(v => (
-            <div key={v.cat} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 14.5}}>
+            <div key={v.cat}
+              onMouseEnter={() => setCat(v.cat)} onMouseLeave={() => setCat(null)}
+              style={{
+                display:'flex', alignItems:'center', gap: 10, fontSize: 14.5,
+                opacity: cat == null || cat === v.cat ? 1 : 0.45,
+                transition:'opacity 160ms ease',
+              }}>
               <span style={{width: 11, height: 11, borderRadius: 3, background: v.col, flexShrink: 0}}/>
               <span style={{flex: 1, color: PN.TEXT, minWidth: 0}}>{v.cat}</span>
               <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{Math.round(v.quota)}%</strong>
@@ -971,18 +999,22 @@ function VenditePiatti({ v }) {
           onVaiAlla={() => vaiAllaTabella('cat')}/>
       </div>
 
-      <PiattoTopMargine piatti={v.piatti} onVaiAlla={() => vaiAllaTabella('marginePct')}/>
-
-      <StatCard title="Trend scontrino medio" sub="Visualizzato per canale negli ultimi 12 mesi">
-        <StatAndamento
-          serie={[
-            { id:'sala',     label:'Sala',     colore: PN.PINK,  dati: v.scontrinoTrend.direta },
-            { id:'asporto',  label:'Asporto',  colore: PN.GREEN, dati: v.scontrinoTrend.asporto },
-            { id:'delivery', label:'Delivery', colore: PN.BLUE,  dati: v.scontrinoTrend.delivery },
-          ]}
-          etichette={['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']}
-          fmt={(n) => `€ ${Math.round(n).toLocaleString('it-IT', {useGrouping: true})}`}/>
-      </StatCard>
+      {/* Margine top e trend scontrino sulla stessa riga: da sola, la card del
+          margine era larga il doppio di quel che le serve e il grafico
+          scendeva sotto sprecando un'altra riga. */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1.3fr', gap: 16, alignItems:'stretch'}}>
+        <PiattoTopMargine piatti={v.piatti} onVaiAlla={() => vaiAllaTabella('marginePct')}/>
+        <StatCard title="Trend scontrino medio" sub="Visualizzato per canale negli ultimi 12 mesi">
+          <StatAndamento
+            serie={[
+              { id:'sala',     label:'Sala',     colore: PN.PINK,  dati: v.scontrinoTrend.direta },
+              { id:'asporto',  label:'Asporto',  colore: PN.GREEN, dati: v.scontrinoTrend.asporto },
+              { id:'delivery', label:'Delivery', colore: PN.BLUE,  dati: v.scontrinoTrend.delivery },
+            ]}
+            etichette={['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']}
+            fmt={(n) => `€ ${Math.round(n).toLocaleString('it-IT', {useGrouping: true})}`}/>
+        </StatCard>
+      </div>
 
       <div ref={tabellaRef} style={{scrollMarginTop: 96}}/>
       <StatCard title="Performance piatti" sub="Ordina per qualsiasi colonna · margine, ricavo, n° venduti" action={
