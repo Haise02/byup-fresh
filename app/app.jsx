@@ -3143,7 +3143,7 @@ function BypBadgeCard({ a, i, onOpen }) {
 const BYP_GAMES = [
   { id: 'wheel', bg: '#FDF3CE', ink: '#3b2a00' },
   { id: 'slot', bg: '#EBDFFC', ink: '#2c1a4d' },
-  { id: 'scratch', bg: '#FFE0EA', ink: '#4d1226' },
+  { id: 'runner', bg: '#FFE0EA', ink: '#4d1226' },
 ];
 
 // Titolo chunky multicolore stile "SPIN TO WIN!"
@@ -3274,23 +3274,26 @@ function BypGameCardArt({ id, onPlay }) {
       <Cta label="Gioca"/>
     </div>
   );
+  // Runner: il byuppino corre verso destra, la padella lo aspetta
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 62 }}>
       <div style={{ position: 'absolute', left: 14, right: 14, top: 26, bottom: 12,
-        background: '#241d22', borderRadius: 20 }}/>
-      <div style={{ position: 'absolute', left: '50%', top: 42, transform: 'translateX(-50%) rotate(-3deg)',
-        width: 150, height: 84, borderRadius: 12, overflow: 'hidden', border: '2.5px solid #fff',
-        background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        boxShadow: '0 10px 20px -8px rgba(0,0,0,.5)' }}>
-        {['✦', '?', '✦'].map((c, k) => (
-          <span key={k} style={{ fontFamily: BK.TYPE.display, fontWeight: 700,
-            fontSize: k === 1 ? 38 : 18, color: 'rgba(43,26,32,.6)' }}>{c}</span>
+        background: '#241d22', borderRadius: 20, overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '38%',
+          background: 'linear-gradient(180deg,#3a2b31,#241d22)' }}/>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: '38%', height: 2,
+          background: 'rgba(255,255,255,.14)' }}/>
+        {['pizza', 'donut', 'nigiri'].map((c, k) => (
+          <img key={c} src={'assets/runner/cibo/' + c + '.webp'} alt="" style={{
+            position: 'absolute', left: 88 + k * 34, bottom: '52%', height: 20,
+            opacity: .95, filter: 'drop-shadow(0 3px 5px rgba(0,0,0,.4))' }}/>
         ))}
+        <img src="assets/runner/byup/salita.webp" alt="" style={{ position: 'absolute', left: 22,
+          bottom: '38%', height: 54, filter: 'drop-shadow(0 6px 8px rgba(0,0,0,.45))' }}/>
+        <img src="assets/runner/padella.webp" alt="" style={{ position: 'absolute', right: 26,
+          bottom: '38%', height: 34, filter: 'drop-shadow(0 5px 8px rgba(0,0,0,.5))' }}/>
       </div>
-      <img src="assets/coin.png" alt="" style={{ position: 'absolute', right: 30, top: 26, width: 34,
-        transform: 'rotate(14deg)', filter: 'drop-shadow(0 6px 8px rgba(0,0,0,.4))' }}/>
-      <Cta label="Gratta ora"/>
+      <Cta label="Corri ora"/>
     </div>
   );
 }
@@ -3298,7 +3301,7 @@ function BypGameCardArt({ id, onPlay }) {
 const BYP_GAME_TITLES = {
   wheel: [['SPIN', '#CEFF00'], ['TO', '#ff8fae', true], ['WIN!', '#fff']],
   slot: [['BYUP', '#ff8fae'], ['SLOT', '#CEFF00']],
-  scratch: [['GRATTA', '#CEFF00'], ['&', '#ff8fae', true], ['VINCI', '#fff']],
+  runner: [['BYUPPINO', '#CEFF00'], ['RUN!', '#fff']],
 };
 
 // Stack con SWIPE MANUALE (pointer events): trascina per cambiare, tap per giocare
@@ -3547,75 +3550,6 @@ function BypSlotSheet({ onClose, onWin }) {
   );
 }
 
-// ── Pagina GRATTA & VINCI ──
-function BypScratchSheet({ onClose, onWin }) {
-  const [reveal, setReveal] = useState(0);
-  const [done, setDone] = useState(false);
-  const scratching = useRef(false);
-  const onMove = () => {
-    if (done) return;
-    setReveal(r => {
-      const n = Math.min(1, r + 0.035);
-      if (n >= 1) { setDone(true); BK.haptic.medium ? BK.haptic.medium() : BK.haptic.light(); onWin && onWin(); }
-      return n;
-    });
-  };
-  return (
-    <BypSheet center onClose={onClose}>
-      <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
-        background: '#FFE0EA', color: '#4d1226', border: '2px solid #2b1a20', borderRadius: 30,
-        padding: '20px 16px 18px', boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
-        animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
-        <style>{`@keyframes bypFoil{0%{background-position:0 0}100%{background-position:48px 48px}}
-@keyframes bypWinGlow{0%{box-shadow:0 12px 26px -10px rgba(0,0,0,.5)}100%{box-shadow:0 0 34px rgba(206,255,0,.55), 0 12px 26px -10px rgba(0,0,0,.5)}}`}</style>
-        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
-          color: '#b0246a', marginBottom: 5 }}>✦ Un gratta al giorno ✦</div>
-        <BypGameTitle parts={BYP_GAME_TITLES.scratch}/>
-        <div style={{ position: 'relative', margin: '18px 0 0', background: '#241d22', borderRadius: 24,
-          padding: '22px 14px 20px' }}>
-          <div
-            onPointerDown={(e) => { scratching.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch {} }}
-            onPointerMove={() => { if (scratching.current) onMove(); }}
-            onPointerUp={() => { scratching.current = false; }}
-            style={{ position: 'relative', width: 250, height: 150, margin: '0 auto', borderRadius: 16,
-              overflow: 'hidden', touchAction: 'none', cursor: 'pointer', border: '3px solid #fff',
-              boxShadow: '0 12px 26px -10px rgba(0,0,0,.5)',
-              animation: done ? 'bypWinGlow .8s ease forwards, bypPop .5s cubic-bezier(.2,.9,.3,1.3)' : 'none' }}>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: 4,
-              background: 'linear-gradient(150deg,#3b1420,#a01a49)' }}>
-              <img src="assets/coin.png" alt="" style={{ width: 48, height: 48 }}/>
-              <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 24, color: '#fff' }}>+50 byuppini</span>
-            </div>
-            <div style={{ position: 'absolute', inset: 0, opacity: 1 - reveal, transition: 'opacity .18s ease-out',
-              filter: `blur(${reveal * 2.5}px)`,
-              background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
-              backgroundSize: '48px 48px', animation: 'bypFoil 2.6s linear infinite',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, pointerEvents: 'none' }}>
-              <span style={{ fontSize: 18, color: 'rgba(43,26,32,.55)' }}>✦</span>
-              <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 46, color: 'rgba(43,26,32,.6)' }}>?</span>
-              <span style={{ fontSize: 18, color: 'rgba(43,26,32,.55)' }}>✦</span>
-            </div>
-          </div>
-          <div style={{ marginTop: 14, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.7)' }}>
-            {done ? '' : reveal > 0 ? 'Continua a grattare…' : '☝️ Passa il dito sulla card'}
-          </div>
-          {done && (
-            <div style={{ marginTop: 4, animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(206,255,0,.16)',
-                border: '1px solid rgba(206,255,0,.5)', color: '#CEFF00', fontWeight: 800, fontSize: 15,
-                padding: '9px 18px', borderRadius: 999 }}>🎉 Hai vinto +50 byuppini!</span>
-            </div>
-          )}
-        </div>
-        <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 10, background: 'none',
-          border: 'none', color: '#a05a72', fontSize: 13, fontWeight: 800, cursor: 'pointer',
-          fontFamily: 'inherit', padding: 6 }}>Chiudi</button>
-      </div>
-    </BypSheet>
-  );
-}
-
 function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }) {
   // Deep-link di segmento (es. "Guadagna punti" dalla roadmap → Traguardi)
   const [seg, setSeg] = useState(() => {
@@ -3631,7 +3565,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
   const [ach, setAch] = useState(null);
   const [info, setInfo] = useState(false);
   const [refSheet, setRefSheet] = useState(null); // 'locale' | 'amico'
-  const [game, setGame] = useState(null); // 'wheel' | 'slot' | 'scratch'
+  const [game, setGame] = useState(null); // 'wheel' | 'slot' | 'runner'
   const [burst, setBurst] = useState(0);
   const scrollRef = useRef(null);
 
@@ -3970,7 +3904,8 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
 
       {game === 'wheel' && <BypWheelSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
       {game === 'slot' && <BypSlotSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
-      {game === 'scratch' && <BypScratchSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
+      {game === 'runner' && window.BypRunnerSheet
+        && React.createElement(window.BypRunnerSheet, { onClose: () => setGame(null), onWin: fireConfetti })}
 
       <BypConfetti burst={burst}/>
     </div>
