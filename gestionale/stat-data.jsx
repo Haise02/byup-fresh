@@ -243,17 +243,22 @@ const STAT_APP = {
   // che l'acqua ha 2.640 ordini e appena 380 schede aperte: nessuno legge la
   // descrizione dell'acqua naturale. Il pesce spada fa il contrario, 720
   // curiosi e 280 ordini: lì a fermare è il prezzo, non la voglia.
+  // `mod`: ordini in cui il piatto è stato personalizzato — un ingrediente
+  // aggiunto o tolto — quindi non può superare gli ordini. È la voce che dice
+  // se il menù è scritto giusto: la carbonara la ordinano 1.380 volte e la
+  // toccano 486, quasi sempre per il pecorino o il guanciale; l'acqua, che non
+  // si modifica, sta a zero.
   conversionePiatti: [
-    { piatto:'Acqua naturale',      view: 3200, apri:  380, ord: 2640, conv: 82.5 },
-    { piatto:'Cacio e Pepe',        view: 2800, apri: 1980, ord: 1450, conv: 51.8 },
-    { piatto:'Carbonara',           view: 2640, apri: 1870, ord: 1380, conv: 52.3 },
-    { piatto:'Amatriciana',         view: 2380, apri: 1640, ord: 1190, conv: 50.0 },
-    { piatto:'Tiramisù',            view: 1820, apri: 1460, ord: 1310, conv: 72.0 },
-    { piatto:'Bruschetta',          view: 1640, apri: 1180, ord: 980,  conv: 59.8 },
-    { piatto:'Saltimbocca',         view: 1420, apri: 1040, ord: 580,  conv: 40.8 },
-    { piatto:'Carciofi alla giudia', view: 1280, apri:  890, ord: 720,  conv: 56.3 },
-    { piatto:'Pesce spada',         view: 920,  apri:  720, ord: 280,  conv: 30.4 },
-    { piatto:'Coda alla vaccinara', view: 720,  apri:  560, ord: 240,  conv: 33.3 },
+    { piatto:'Acqua naturale',      view: 3200, apri:  380, mod:   0, ord: 2640, conv: 82.5 },
+    { piatto:'Cacio e Pepe',        view: 2800, apri: 1980, mod: 412, ord: 1450, conv: 51.8 },
+    { piatto:'Carbonara',           view: 2640, apri: 1870, mod: 486, ord: 1380, conv: 52.3 },
+    { piatto:'Amatriciana',         view: 2380, apri: 1640, mod: 318, ord: 1190, conv: 50.0 },
+    { piatto:'Tiramisù',            view: 1820, apri: 1460, mod:  96, ord: 1310, conv: 72.0 },
+    { piatto:'Bruschetta',          view: 1640, apri: 1180, mod: 214, ord: 980,  conv: 59.8 },
+    { piatto:'Saltimbocca',         view: 1420, apri: 1040, mod: 132, ord: 580,  conv: 40.8 },
+    { piatto:'Carciofi alla giudia', view: 1280, apri:  890, mod:  88, ord: 720,  conv: 56.3 },
+    { piatto:'Pesce spada',         view: 920,  apri:  720, mod:  64, ord: 280,  conv: 30.4 },
+    { piatto:'Coda alla vaccinara', view: 720,  apri:  560, mod:  42, ord: 240,  conv: 33.3 },
   ],
 };
 

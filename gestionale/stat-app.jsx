@@ -98,7 +98,12 @@ function ConvDettaglioPiatto({ piatto, onClose }) {
               </div>
               {voce('Visto in elenco', piatto.view.toLocaleString('it-IT', {useGrouping: true}))}
               {voce('Scheda aperta', piatto.apri.toLocaleString('it-IT', {useGrouping: true}))}
-              {voce('Ordini', piatto.ord.toLocaleString('it-IT', {useGrouping: true}))}
+              {voce('Ordini da app', piatto.ord.toLocaleString('it-IT', {useGrouping: true}))}
+              {/* Le modifiche si contano sugli ordini, non sulle viste: qui la
+                  quota accanto al numero dice da sola se sono tante. */}
+              {voce('Con modifiche', piatto.mod
+                ? `${piatto.mod.toLocaleString('it-IT', {useGrouping: true})} · ${Math.round((piatto.mod / piatto.ord) * 100)}%`
+                : 'nessuna')}
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12, padding:'11px 0'}}>
                 <span style={{fontSize: 14.5, color: PN.MUTED}}>Tasso di conversione</span>
                 <span style={{
@@ -127,6 +132,20 @@ function ConvDettaglioPiatto({ piatto, onClose }) {
                 )}
               </div>
 
+              {/* Sopra un ordine su quattro toccato, la voce del menù non
+                  descrive quello che la gente vuole: è un'indicazione da dare,
+                  non un dato da lasciar leggere. */}
+              {piatto.mod / piatto.ord >= 0.25 && (
+                <div style={{
+                  marginTop: 10, padding:'11px 13px', borderRadius: 10,
+                  background: PN.AMBER_SOFT, color:'#7c4a03',
+                  fontSize: 14, lineHeight: 1.45,
+                }}>
+                  Un ordine su {Math.round(piatto.ord / piatto.mod)} arriva con ingredienti aggiunti o tolti:
+                  vale la pena vedere quali, e se conviene farne una variante a menù.
+                </div>
+              )}
+
               {vend ? (
                 <>
                   <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, margin:'22px 0 4px'}}>
@@ -152,9 +171,9 @@ function ConvDettaglioPiatto({ piatto, onClose }) {
   );
 }
 
-// Piatto (con la miniatura) · le tre misure del percorso, nell'ordine in cui
-// accadono — visto in elenco, scheda aperta, ordinato — e il tasso.
-const CONV_COLONNE = '2.6fr 1.15fr 1.35fr 1fr 1.2fr';
+// Piatto (con la miniatura) · le misure del percorso, nell'ordine in cui
+// accadono — visto in elenco, scheda aperta, modificato, ordinato — e il tasso.
+const CONV_COLONNE = '2.2fr 1.1fr 1.3fr 0.9fr 1.1fr 1.15fr';
 
 function StatApp() {
   const d = STAT_APP;
@@ -237,7 +256,7 @@ function StatApp() {
         </div>
       </StatCard>
 
-      <StatCard title="Conversione per piatto" sub="Quante volte ogni piatto viene visualizzato e quante volte viene ordinato" action={
+      <StatCard title="Conversione per piatto" sub="Dal primo sguardo all'ordine: viste in elenco, schede aperte, modifiche e ordini" action={
         <div style={{
           display:'flex', alignItems:'center', gap: 8,
           padding:'7px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
@@ -258,7 +277,11 @@ function StatApp() {
             <SortHead col="piatto" cur={sortBy} order={order} onSort={handleSort}>Piatto</SortHead>
             <SortHead col="view" cur={sortBy} order={order} onSort={handleSort}>Visualizzazioni</SortHead>
             <SortHead col="apri" cur={sortBy} order={order} onSort={handleSort}>Apertura dettaglio</SortHead>
-            <SortHead col="ord" cur={sortBy} order={order} onSort={handleSort}>Ordini</SortHead>
+            <SortHead col="mod" cur={sortBy} order={order} onSort={handleSort}>Modifiche</SortHead>
+            {/* «Da app» perché è quello che questa tabella conta: il piatto lo
+                si ordina anche al tavolo col cameriere e alla cassa, e quei
+                passaggi qui dentro non ci sono. */}
+            <SortHead col="ord" cur={sortBy} order={order} onSort={handleSort}>Ordini da App</SortHead>
             <SortHead col="conv" cur={sortBy} order={order} onSort={handleSort}>Tasso conversione</SortHead>
           </div>
           {sorted.map((p, i) => {
@@ -284,6 +307,12 @@ function StatApp() {
                 </span>
                 <span>{p.view.toLocaleString('it-IT', {useGrouping: true})}</span>
                 <span>{p.apri.toLocaleString('it-IT', {useGrouping: true})}</span>
+                {/* Lo zero resta scritto, ma in chiaro: «mai modificato» è una
+                    risposta, non un buco. */}
+                <span title={`${p.mod} ordini con ingredienti aggiunti o tolti`}
+                  style={{color: p.mod ? PN.TEXT : PN.MUTED_LIGHT}}>
+                  {p.mod.toLocaleString('it-IT', {useGrouping: true})}
+                </span>
                 <span>{p.ord.toLocaleString('it-IT', {useGrouping: true})}</span>
                 <span>
                   <span style={{
