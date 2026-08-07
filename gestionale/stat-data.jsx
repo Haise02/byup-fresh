@@ -100,6 +100,26 @@ const STAT_CLIENTI = {
   abituali: { val: 487, delta: 8, trend: [420, 435, 430, 450, 462, 475, 487] },
   rating: 4.5,
   recensioni: 543,
+  // Le recensioni arrivano da due parti, e non sono la stessa cosa. Quelle
+  // byup nascono da un ordine pagato qui dentro — si sa che quella persona c'è
+  // stata e cosa ha mangiato — quelle Google le lascia chiunque abbia un
+  // account Google. La media pesata delle due dà il 4,5 di sopra:
+  // (312 × 4,6 + 231 × 4,4) / 543.
+  fonti: {
+    byup:   { n: 312, media: 4.6 },
+    google: { n: 231, media: 4.4 },
+  },
+  // Stessa forma delle recensioni nella vetrina dell'app (nome, iniziale,
+  // stelle, quando, testo). Qui in più la provenienza e, per quelle byup, il
+  // piatto dell'ordine da cui nascono: è il dato che Google non può avere.
+  feedback: [
+    { autore:'Giulia M.',  iniziale:'G', bg:'#FF5A5F', stelle: 5, quando:'2 giorni fa',   fonte:'byup',   piatto:'Carbonara',    testo:'Atmosfera incredibile e cucina autentica. La carbonara è la migliore che abbia mangiato a Roma.' },
+    { autore:'Marco R.',   iniziale:'M', bg:'#2563EB', stelle: 5, quando:'4 giorni fa',   fonte:'google',                        testo:'Servizio impeccabile, il vino consigliato dal cameriere era perfetto per il piatto.' },
+    { autore:'Sara D.',    iniziale:'S', bg:'#7C3AED', stelle: 4, quando:'1 settimana fa', fonte:'byup',  piatto:'Amatriciana',  testo:'Ottima esperienza, tornerò con gli amici. Solo un po\' di attesa all\'arrivo, ma ne è valsa la pena.' },
+    { autore:'Luca P.',    iniziale:'L', bg:'#16A34A', stelle: 5, quando:'1 settimana fa', fonte:'byup',  piatto:'Cacio e Pepe', testo:'Ordinare e pagare dal tavolo è una svolta: il sabato sera zero attesa per il conto.' },
+    { autore:'Elena F.',   iniziale:'E', bg:'#D97706', stelle: 3, quando:'2 settimane fa', fonte:'google',                       testo:'Cucina buona ma locale molto rumoroso la sera, si fatica a parlare al tavolo.' },
+    { autore:'Davide N.',  iniziale:'D', bg:'#B53338', stelle: 5, quando:'3 settimane fa', fonte:'byup',  piatto:'Tiramisù',     testo:'Tiramisù da manuale e conto diviso in due tap. Consigliatissimo.' },
+  ],
   starBreakdown: [
     { stars: 5, count: 320 },
     { stars: 4, count: 142 },

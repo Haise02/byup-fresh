@@ -1,7 +1,62 @@
 // Statistiche — Clienti · sub-tab Fidelizzazione
 
+// ─── Le due provenienze ────────────────────────────────────────
+// Non sono la stessa cosa e la card non deve farle sembrare tali: una
+// recensione byup nasce da un ordine pagato qui — si sa che quella persona c'è
+// stata e cosa ha mangiato — una recensione Google la lascia chiunque abbia un
+// account Google. Da qui due segni diversi: il corallo del marchio da una
+// parte, la G di Google dall'altra.
+const CLI_FONTI = {
+  byup:   { et:'byup',   colore: PN.PINK,  sfondo: PN.PINK_BG_SOFT, bordo:'#FBD3D1' },
+  google: { et:'Google', colore:'#4285F4', sfondo:'#EDF3FE',        bordo:'#D6E4FB' },
+};
+
+function CliFonte({ fonte, grande }) {
+  const f = CLI_FONTI[fonte] || CLI_FONTI.byup;
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap: 5,
+      padding: grande ? '4px 10px' : '2px 8px', borderRadius: 999,
+      background: f.sfondo, border:`1px solid ${f.bordo}`, color: f.colore,
+      fontSize: grande ? 13 : 12, fontWeight: 700, whiteSpace:'nowrap',
+    }}>
+      <span style={{
+        width: 14, height: 14, borderRadius: 4, flexShrink: 0,
+        background: f.colore, color:'#fff',
+        display:'grid', placeItems:'center',
+        fontSize: 9.5, fontWeight: 800, lineHeight: 1,
+      }}>{fonte === 'google' ? 'G' : 'b'}</span>
+      {f.et}
+    </span>
+  );
+}
+
+// ─── Stelle ────────────────────────────────────────────────────
+// Cinque stelle grigie e sopra le stesse in ambra, tagliate alla frazione
+// giusta: prima ne stampava cinque piene anche per un 4,5, che è il modo più
+// veloce per far sembrare finto un numero vero.
+function CliStelle({ voto, lato = 16 }) {
+  const stella = (colore, i) => (
+    <svg key={i} width={lato} height={lato} viewBox="0 0 24 24" fill={colore} style={{display:'block'}}>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  );
+  return (
+    <span style={{position:'relative', display:'inline-flex', gap: 2, lineHeight: 0}} title={`${voto} su 5`}>
+      {[0,1,2,3,4].map(i => stella(PN.WHITE_FROST, i))}
+      <span style={{
+        position:'absolute', top: 0, left: 0, display:'inline-flex', gap: 2,
+        width: `${(voto / 5) * 100}%`, overflow:'hidden',
+      }}>
+        {[0,1,2,3,4].map(i => stella(PN.AMBER, i))}
+      </span>
+    </span>
+  );
+}
+
 function StatClienti() {
   const d = STAT_CLIENTI;
+  const [fonte, setFonte] = React.useState('tutte');
   const totRev = d.starBreakdown.reduce((s, r) => s + r.count, 0);
   const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
@@ -20,26 +75,59 @@ function StatClienti() {
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap: 16}}>
-        <StatCard title="Valutazioni" sub="Riepilogo recensioni Google · byup">
-          <div style={{display:'flex', gap: 24, alignItems:'flex-start'}}>
-            <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap: 4, paddingRight: 24, borderRight:`1px solid ${PN.BORDER_SOFT}`}}>
-              <div style={{fontSize: 40, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.8, lineHeight: 1}}>{d.rating}</div>
-              <div style={{display:'flex', gap: 2, color: PN.AMBER, fontSize: 18}}>{'★'.repeat(5)}</div>
-              <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>Sulla base di {d.recensioni} recensioni</div>
+        <StatCard title="Valutazioni" sub={`${d.recensioni} recensioni, da due posti diversi`}>
+          <div style={{display:'flex', alignItems:'center', gap: 22}}>
+            <div style={{flexShrink: 0}}>
+              <div style={{display:'flex', alignItems:'baseline', gap: 4}}>
+                <span style={{fontSize: 44, fontWeight: 700, color: PN.TEXT, letterSpacing:-1, lineHeight: 1}}>
+                  {d.rating.toFixed(1).replace('.', ',')}
+                </span>
+                <span style={{fontSize: 17, color: PN.MUTED_SOFT, fontWeight: 600}}>/5</span>
+              </div>
+              <div style={{marginTop: 8}}><CliStelle voto={d.rating} lato={18}/></div>
             </div>
-            <div style={{flex: 1, display:'flex', flexDirection:'column', gap: 6}}>
-              {[5,4,3,2,1].map(stars => {
-                const row = d.starBreakdown.find(r => r.stars === stars);
-                const pct = (row.count / totRev) * 100;
+            {/* Le fasce: barra sottile, il conteggio e la quota. Il numero di
+                stelle si legge dalla stellina accanto alla cifra, non da una
+                fila di caratteri. */}
+            <div style={{flex: 1, display:'flex', flexDirection:'column', gap: 5, minWidth: 0}}>
+              {[5,4,3,2,1].map(stelle => {
+                const riga = d.starBreakdown.find(r => r.stars === stelle);
+                const pct = (riga.count / totRev) * 100;
                 return (
-                  <div key={stars} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 14.5}}>
-                    <span style={{width: 36, color: PN.MUTED, fontWeight: 600}}>{stars} ★</span>
-                    <div style={{flex: 1}}><StatBar pct={pct} color={PN.AMBER} height={8}/></div>
-                    <span style={{width: 60, textAlign:'right', color: PN.TEXT, fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{row.count}</span>
+                  <div key={stelle} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 13.5}}>
+                    <span style={{
+                      width: 26, display:'inline-flex', alignItems:'center', gap: 3,
+                      color: PN.MUTED, fontWeight: 600, fontVariantNumeric:'tabular-nums',
+                    }}>{stelle}<span style={{color: PN.AMBER, fontSize: 11}}>★</span></span>
+                    <span style={{flex: 1, height: 7, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden', minWidth: 24}}>
+                      <span style={{display:'block', height:'100%', width:`${pct}%`, background: PN.AMBER, borderRadius: 999}}/>
+                    </span>
+                    <span style={{width: 34, textAlign:'right', color: PN.TEXT, fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{riga.count}</span>
+                    <span style={{width: 34, textAlign:'right', color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>{Math.round(pct)}%</span>
                   </div>
                 );
               })}
             </div>
+          </div>
+
+          {/* Le due provenienze con la loro media: è qui che si vede che i
+              clienti byup — quelli che hanno davvero ordinato — votano più
+              alto di chi passa da Google. */}
+          <div style={{
+            marginTop: 16, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+            display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12,
+          }}>
+            {['byup', 'google'].map(k => (
+              <div key={k} style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+                <CliFonte fonte={k} grande/>
+                <span style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
+                  <strong style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+                    {d.fonti[k].media.toFixed(1).replace('.', ',')}
+                  </strong>
+                  <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace:'nowrap'}}>su {d.fonti[k].n} recensioni</span>
+                </span>
+              </div>
+            ))}
           </div>
         </StatCard>
 
@@ -74,6 +162,67 @@ function StatClienti() {
           })()}
         </StatCard>
       </div>
+
+      <StatCard title="Cosa scrivono" sub="Le ultime recensioni, dalle due provenienze" action={
+        <div style={{display:'inline-flex', gap: 5, padding: 4, background: PN.WHITE_HUSH, borderRadius: 999}}>
+          {[
+            { id:'tutte',  et:'Tutte',  n: d.feedback.length },
+            { id:'byup',   et:'byup',   n: d.feedback.filter(r => r.fonte === 'byup').length },
+            { id:'google', et:'Google', n: d.feedback.filter(r => r.fonte === 'google').length },
+          ].map(f => (
+            <button key={f.id} onClick={() => setFonte(f.id)} style={{
+              padding:'5px 12px', borderRadius: 999, border:'none',
+              background: fonte === f.id ? PN.WHITE : 'transparent',
+              boxShadow: fonte === f.id ? '0 1px 2px rgba(15,17,21,0.10)' : 'none',
+              color: fonte === f.id ? PN.TEXT : PN.MUTED,
+              fontSize: 13.5, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
+            }}>{f.et} <span style={{color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>{f.n}</span></button>
+          ))}
+        </div>
+      }>
+        {/* Due colonne: le recensioni sono testi corti, e a tutta riga
+            lascerebbero mezza card vuota. */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
+          {d.feedback.filter(r => fonte === 'tutte' || r.fonte === fonte).map((r, i) => (
+            <div key={i} style={{
+              border:`1px solid ${PN.BORDER}`, borderRadius: 12, padding: 14,
+              background: PN.WHITE, minWidth: 0,
+              display:'flex', flexDirection:'column', gap: 9,
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+                <span style={{
+                  width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+                  background: r.bg, color:'#fff',
+                  display:'grid', placeItems:'center',
+                  fontSize: 13.5, fontWeight: 700,
+                }}>{r.iniziale}</span>
+                <span style={{flex: 1, minWidth: 0}}>
+                  <span style={{display:'block', fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.autore}</span>
+                  <span style={{display:'flex', alignItems:'center', gap: 7}}>
+                    <CliStelle voto={r.stelle} lato={12}/>
+                    <span style={{fontSize: 12.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap'}}>{r.quando}</span>
+                  </span>
+                </span>
+                <CliFonte fonte={r.fonte}/>
+              </div>
+              <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.45}}>«{r.testo}»</div>
+              {/* La riga che solo byup può scrivere: la recensione nasce da un
+                  ordine pagato qui, quindi si sa che quella persona c'è stata
+                  e cosa ha mangiato. Su Google non c'è modo di saperlo. */}
+              {r.fonte === 'byup' && (
+                <div style={{
+                  marginTop:'auto', paddingTop: 9, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+                  display:'flex', alignItems:'center', gap: 6,
+                  fontSize: 13, color: PN.GREEN,
+                }}>
+                  <Icon name="status-success" size={13}/>
+                  <span style={{color: PN.MUTED}}>Ordine verificato · ha preso <strong style={{color: PN.TEXT, fontWeight: 600}}>{r.piatto}</strong></span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </StatCard>
 
       <StatCard title="Ciclo di vita del cliente" sub="Distribuzione clienti per frequenza di ritorno">
         <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
