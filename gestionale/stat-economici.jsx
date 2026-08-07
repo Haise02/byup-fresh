@@ -38,22 +38,6 @@ const ECON_TONI = {
   utile:  { bg:'linear-gradient(115deg, #E6F6EC 0%, #F5FBF7 52%, #FFFFFF 100%)', bordo:'#CFEBD9', chip:'#FFFFFF', tinta: PN.GREEN },
 };
 
-// Hover dei box: crescono di un soffio e si staccano dal foglio. L'1,5% è
-// deliberato — di più e a fianco si vede il box che spinge quello accanto,
-// visto che stanno in griglia a filo. La transizione è corta perché sopra i
-// 200ms il movimento sembra molle.
-const BOX_TRANSITION = 'transform 150ms ease, box-shadow 150ms ease';
-const boxHover = {
-  onMouseEnter: e => {
-    e.currentTarget.style.transform = 'scale(1.015)';
-    e.currentTarget.style.boxShadow = PN.CARD_SHADOW_HOVER;
-  },
-  onMouseLeave: e => {
-    e.currentTarget.style.transform = '';
-    e.currentTarget.style.boxShadow = '';
-  },
-};
-
 function EconKpi({ tono, icona, label, valore, sub, delta, spark }) {
   const t = ECON_TONI[tono];
   return (
@@ -370,35 +354,10 @@ function RicaviCosti({ d, months, onVaiVendite }) {
             {/* Il cerchio è una quota della card, non una misura fissa: così
                 resta grande come nel riferimento anche quando la finestra
                 cambia, senza mangiarsi la legenda al minimo. */}
-            <svg viewBox="0 0 156 156" style={{
-              width:'40%', minWidth: 128, maxWidth: 204, height:'auto', flexShrink: 0,
-            }} onMouseLeave={() => setInc(null)}>
-              {arcs.map((s, i) => (
-                <path key={i} d={s.path} fill={s.color}
-                  stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"
-                  onMouseEnter={() => setInc(i)}
-                  style={{
-                    transformOrigin: `${CX}px ${CY}px`,
-                    transform: inc === i ? 'scale(1.07)' : 'scale(1)',
-                    // Gli altri si spengono: lo spicchio sotto il mouse resta
-                    // l'unico a colore pieno, e si stacca senza doverlo
-                    // schiarire (schiarirlo cambierebbe la tinta del metodo).
-                    opacity: inc == null || inc === i ? 1 : 0.4,
-                    transition:'transform 160ms ease, opacity 160ms ease',
-                  }}/>
-              ))}
-              <circle cx={CX} cy={CY} r={39} fill={PN.WHITE}/>
-              {/* Al centro il totale, e sotto il mouse il metodo puntato: è il
-                  posto dove l'occhio è già, e non serve un riquadro che entra
-                  ed esce. */}
-              <text x={CX} y={CY - 5} textAnchor="middle" fontSize="11.5"
-                fill={inc == null ? PN.MUTED : arcs[inc].color}>
-                {inc == null ? 'Totale' : arcs[inc].label}
-              </text>
-              <text x={CX} y={CY + 14} textAnchor="middle" fontSize="16" fontWeight="700" fill={PN.TEXT}>
-                {eur(inc == null ? totRicavi : arcs[inc].val)}
-              </text>
-            </svg>
+            <StatDonut
+              voci={arcs.map((a, k) => ({ id: k, label: a.label, colore: a.color, valore: a.val, centro: eur(a.val) }))}
+              attivo={inc} onAttivo={setInc}
+              centro={{ et:'Totale', val: eur(totRicavi) }}/>
             <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 14}}>
               {arcs.map((s, i) => (
                 <div key={i}
@@ -650,75 +609,6 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 // Le etichette restano comunque corte e la forma lunga sta nel sottotitolo,
 // che prima le ripeteva: «Articoli totali venduti» compariva due volte nella
 // stessa card.
-// Ora è EconKpi in tutto e per tutto — pastiglia tonda a sinistra, etichetta e
-// delta sulla prima riga, numero col sottotitolo e l'andamento a destra. Con
-// quattro card non ci stava; con tre, che è la stessa larghezza che hanno di
-// là, ci sta.
-// Stessa ricetta dei toni di Ricavi e costi: sfumatura a 115°, dalla tinta
-// piena in alto a sinistra al bianco in basso a destra, bordo intonato, e il
-// bollino dell'icona BIANCO — su un fondo colorato è il bianco a staccarsi,
-// non il colore. Il verde è preso di peso da lì (era l'utile), gli altri tre
-// sono costruiti allo stesso modo sulla loro tinta.
-const VENDITE_TONI = {
-  verde:  { forte: PN.GREEN, bg:'linear-gradient(115deg, #E6F6EC 0%, #F5FBF7 52%, #FFFFFF 100%)', bordo:'#CFEBD9' },
-  rosa:   { forte: PN.PINK,  bg:'linear-gradient(115deg, #FFE6E5 0%, #FFF6F5 52%, #FFFFFF 100%)', bordo:'#FBD3D1' },
-  blu:    { forte: PN.BLUE,  bg:'linear-gradient(115deg, #E3ECFC 0%, #F4F8FE 52%, #FFFFFF 100%)', bordo:'#CCDBF6' },
-  // Giallo scritto a mano: PN ha solo AMBER (#D97706), che a schermo vira
-  // all'arancio. Questo è un giallo pieno che resta leggibile anche a 2px
-  // di linea.
-  giallo: { forte: '#CA8A04', bg:'linear-gradient(115deg, #FAF0CD 0%, #FDF9EB 52%, #FFFFFF 100%)', bordo:'#EFDFAC' },
-  viola:  { forte: PN.PURPLE, bg:'linear-gradient(115deg, #EDE9FE 0%, #F7F5FF 52%, #FFFFFF 100%)', bordo:'#DDD5FB' },
-};
-
-// `glifo` invece di `icona` dove il simbolo È il concetto: per «margine» e
-// «ricavo» un % e un € si leggono all'istante, mentre il set non ha una
-// percentuale e il ripiego (il cartellino sconto) diceva un'altra cosa.
-function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, trend }) {
-  const t = VENDITE_TONI[tono];
-  return (
-    <div {...boxHover} style={{
-      display:'flex', alignItems:'center', gap: 12, minWidth: 0,
-      padding: 15, borderRadius: 16,
-      background: t.bg, border: `1px solid ${t.bordo}`,
-      transition: BOX_TRANSITION,
-    }}>
-      <span style={{
-        width: 44, height: 44, borderRadius:'50%', flexShrink: 0,
-        background: PN.WHITE, color: t.forte,
-        display:'grid', placeItems:'center',
-        boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
-      }}>{glifo
-        ? <span style={{fontSize: 21, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
-        : <Icon name={icona} size={21}/>}</span>
-
-      <div style={{flex: 1, minWidth: 0}}>
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
-          <span title={label} style={{
-            fontSize: 15, color: PN.MUTED, fontWeight: 500, minWidth: 0,
-            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-          }}>{label}</span>
-          <StatDelta value={delta}/>
-        </div>
-        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
-          <div style={{minWidth: 0}}>
-            <div style={{
-              fontSize: 28, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.6,
-              lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
-              fontVariantNumeric:'tabular-nums',
-            }}>
-              {valore}{suffisso && <span style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
-            </div>
-            {/* Va a capo invece di troncarsi, come di là: in tre colonne la
-                sottodicitura non ci sta su una riga sola. */}
-            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{sub}</div>
-          </div>
-          {trend && <StatSpark data={trend} color={t.forte} width={82} height={32}/>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Podio dei piatti più ordinati ────────────────────────────────────────
 // Primo al centro e più alto, secondo e terzo ai lati: è la forma che si
 // riconosce senza leggere i numeri. Le medaglie non sono tre grigi diversi
@@ -899,33 +789,15 @@ function DistribuzioneCategorie({ piatti, onVaiAlla }) {
   const voci = [...perCat.entries()].sort((a, b) => b[1] - a[1])
     .map(([cat, n]) => ({ cat, n, quota: (n / tot) * 100, col: CAT_TINTE[cat] || PN.MUTED }));
 
-  const R = 70, Rin = 42, C = 78;
-  let cum = 0;
-  const archi = voci.map(v => {
-    const a0 = (cum / 100) * 2 * Math.PI - Math.PI/2; cum += v.quota;
-    const a1 = (cum / 100) * 2 * Math.PI - Math.PI/2;
-    const big = v.quota > 50 ? 1 : 0;
-    const p = (r, a) => `${C + r*Math.cos(a)},${C + r*Math.sin(a)}`;
-    return { ...v, d: `M ${p(R,a0)} A ${R} ${R} 0 ${big} 1 ${p(R,a1)} L ${p(Rin,a1)} A ${Rin} ${Rin} 0 ${big} 0 ${p(Rin,a0)} Z` };
-  });
-
   return (
     <StatCard title="Distribuzione vendite per categoria" sub="In base al numero di articoli venduti"
       style={{display:'flex', flexDirection:'column'}}>
       <div style={{flex: 1, display:'flex', alignItems:'center', gap: 18, minWidth: 0}}>
-        <svg viewBox="0 0 156 156" onMouseLeave={() => setCat(null)}
-          style={{width:'38%', minWidth: 124, maxWidth: 180, height:'auto', flexShrink: 0}}>
-          {archi.map((a, i) => (
-            <path key={i} d={a.d} fill={a.col} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"
-              onMouseEnter={() => setCat(a.cat)}
-              style={{
-                transformOrigin: `${C}px ${C}px`,
-                transform: cat === a.cat ? 'scale(1.07)' : 'scale(1)',
-                opacity: cat == null || cat === a.cat ? 1 : 0.4,
-                transition:'transform 160ms ease, opacity 160ms ease',
-              }}/>
-          ))}
-        </svg>
+        <StatDonut
+          voci={voci.map(v => ({ id: v.cat, label: v.cat, colore: v.col, valore: v.n, centro: `${Math.round(v.quota)}%` }))}
+          attivo={cat} onAttivo={setCat}
+          centro={{ et:'Articoli', val: tot.toLocaleString('it-IT', {useGrouping: true}) }}
+          larghezza="38%"/>
         <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 12}}>
           {voci.map(v => (
             <div key={v.cat}
@@ -991,13 +863,13 @@ function VenditePiatti({ v }) {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
-        <VenditeKpi tono="blu" icona="commerce-bag" label="Articoli venduti"
+        <StatKpiTinto tono="blu" icona="commerce-bag" label="Articoli venduti"
           valore={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub} trend={v.kpi.venduti.trend}/>
-        <VenditeKpi tono="rosa" glifo="€" label="Scontrino medio"
+        <StatKpiTinto tono="rosa" glifo="€" label="Scontrino medio"
           valore={`€ ${v.kpi.scontrino.val.toFixed(2).replace('.', ',')}`}
           delta={v.kpi.scontrino.delta} sub={v.kpi.scontrino.sub} trend={v.kpi.scontrino.trend}/>
-        <VenditeKpi tono="verde" glifo="€" label="Ricavo per articolo"
+        <StatKpiTinto tono="verde" glifo="€" label="Ricavo per articolo"
           valore={`€ ${ricavoPerPiatto.toFixed(2).replace('.', ',')}`}
           delta={v.kpi.ricavoPiatto.delta} sub={v.kpi.ricavoPiatto.sub} trend={v.kpi.ricavoPiatto.trend}/>
       </div>

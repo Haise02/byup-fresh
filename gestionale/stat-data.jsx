@@ -1,11 +1,17 @@
 // Statistiche — dati realistici
 
 const STAT_PRENOTAZIONI = {
+  // `trend`: 14 settimane per le sparkline delle card KPI. La durata è in
+  // minuti — la linea vuole numeri, l'etichetta resta '1h 50m'.
   kpi: {
-    coperti: { val: 1150, delta: 12.5 },
-    occupazione: { val: 79, delta: 12.5 },
-    perTavolo: { val: 2.4, delta: 5.2 },
-    durata: { val: '1h 50m', delta: -3.1 },
+    coperti: { val: 1150, delta: 12.5,
+      trend: [980, 1010, 995, 1040, 1025, 1070, 1050, 1090, 1075, 1110, 1095, 1130, 1120, 1150] },
+    occupazione: { val: 79, delta: 12.5,
+      trend: [68, 70, 69, 71, 70.5, 73, 72, 74, 73.5, 76, 75, 77.5, 78, 79] },
+    perTavolo: { val: 2.4, delta: 5.2,
+      trend: [2.2, 2.25, 2.2, 2.3, 2.25, 2.3, 2.28, 2.35, 2.3, 2.38, 2.34, 2.4, 2.37, 2.4] },
+    durata: { val: '1h 50m', delta: -3.1,
+      trend: [118, 116, 117, 114, 115, 112, 113, 111, 112, 109, 110, 108, 111, 110] },
   },
   fasceOccupazione: [
     { ora:'12:00', tavoli: 14, max: 20 },
@@ -23,14 +29,16 @@ const STAT_PRENOTAZIONI = {
     confermate: { n: 432, pct: 79.6 },
     inAttesa: { n: 54, pct: 9.9 },
   },
+  // Niente `target`: il riferimento non è più una soglia decisa a tavolino ma
+  // la media del periodo, che si calcola da questi stessi valori.
   copertiGiorno: [
-    { d:'Lun', val: 18, target: 25 },
-    { d:'Mar', val: 32, target: 25 },
-    { d:'Mer', val: 21, target: 25 },
-    { d:'Gio', val: 38, target: 25 },
-    { d:'Ven', val: 14, target: 25 },
-    { d:'Sab', val: 28, target: 25 },
-    { d:'Dom', val: 22, target: 25 },
+    { d:'Lun', val: 18 },
+    { d:'Mar', val: 32 },
+    { d:'Mer', val: 21 },
+    { d:'Gio', val: 38 },
+    { d:'Ven', val: 14 },
+    { d:'Sab', val: 28 },
+    { d:'Dom', val: 22 },
   ],
   // Palette warm: rosso → arancione → ambra → ocra. Niente nero / verde.
   // 4 tonalità distinguibili che parlano col brand magenta senza imitarlo.
