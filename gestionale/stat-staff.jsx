@@ -10,190 +10,110 @@ const STAFF_TREND = {
 };
 const STAFF_MANCE_DELTA = 14.1;
 
-// ─── Pillola d'intestazione degli spotlight ────────────────────
-// Dice di cosa parla il riquadro in una parola sola, con la tinta del tema:
-// ambra per il migliore del periodo, verde per le mance.
-function StaffBadge({ icona, testo, colore, sfondo }) {
-  return (
-    <span style={{
-      display:'inline-flex', alignItems:'center', gap: 5,
-      padding:'3px 9px', borderRadius: 999,
-      background: sfondo, color: colore,
-      fontSize: 11.5, fontWeight: 800, letterSpacing: 0.5, textTransform:'uppercase',
-    }}>{icona} {testo}</span>
-  );
-}
-
 const STAFF_SPOT = {
   background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
   borderRadius: 14, padding: 18,
   display:'flex', flexDirection:'column', minWidth: 0,
 };
 
-// ─── Spotlight · il migliore del periodo ───────────────────────
-// Prima era una frase: «21,0% sopra la media team». Il confronto lo faceva
-// leggere, non vedere. Qui le due misure stanno sulla stessa scala, una sotto
-// l'altra — la sua a colore, quella del team in grigio — e il divario è la
-// differenza di lunghezza fra due barre. La percentuale resta, ma come
-// didascalia di una cosa già vista.
-function StaffTop({ top, teamAvg }) {
-  const pct = ((top.scontrino - teamAvg) / teamAvg) * 100;
-  const scala = top.scontrino || 1;
-  const righe = [
-    { et: top.nome.split(' ')[0], v: top.scontrino, colore: PN.PINK, forte: true },
-    { et: 'Media team', v: teamAvg, colore: PN.MUTED_LIGHT, forte: false },
-  ];
-  const micro = [
-    { v: top.ordini.toLocaleString('it-IT', {useGrouping: true}), et: 'ordini gestiti' },
-    { v: top.tavoli, et: 'tavoli serviti' },
-    { v: `€ ${top.tip}`, et: 'di mance' },
-  ];
-
+// ─── Piede della card ──────────────────────────────────────────
+// Riga sottile e numeri piccoli: i totali di contorno stanno lì, sotto la
+// classifica, senza rubarle il posto.
+function StaffPiede({ voci }) {
   return (
-    <div style={{...STAFF_SPOT, gap: 16}}>
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12}}>
-        <StaffBadge icona={<BuIcons.trophy size={11}/>} testo="Top performer" colore={PN.AMBER} sfondo={PN.AMBER_SOFT}/>
-        <span style={{fontSize: 13.5, color: PN.MUTED_SOFT}}>nel periodo</span>
-      </div>
-
-      <div style={{display:'flex', alignItems:'center', gap: 14, minWidth: 0}}>
-        <span style={{
-          width: 48, height: 48, borderRadius:'50%', flexShrink: 0,
-          background: top.avatarBg, color:'#fff',
-          display:'grid', placeItems:'center',
-          fontSize: 17.5, fontWeight: 700,
-          boxShadow:'0 1px 3px rgba(15,17,21,0.12)',
-        }}>{top.avatar}</span>
-        <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{top.nome}</div>
-          <div style={{fontSize: 14, color: PN.MUTED}}>{top.ruolo}</div>
+    <div style={{
+      marginTop:'auto', paddingTop: 13,
+      borderTop:`1px solid ${PN.BORDER_SOFT}`,
+      display:'grid', gridTemplateColumns:`repeat(${voci.length}, 1fr)`, gap: 10,
+    }}>
+      {voci.map(m => (
+        <div key={m.et} style={{minWidth: 0}}>
+          <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums', lineHeight: 1.2}}>{m.v}</div>
+          <div style={{fontSize: 13, color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.et}</div>
         </div>
-        <div style={{textAlign:'right', flexShrink: 0}}>
-          <div style={{
-            fontSize: 30, fontWeight: 700, color: PN.TEXT,
-            letterSpacing: -0.6, lineHeight: 1, fontVariantNumeric:'tabular-nums',
-          }}>€ {top.scontrino.toFixed(2).replace('.', ',')}</div>
-          <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 4}}>scontrino medio</div>
-        </div>
-      </div>
-
-      <div style={{display:'flex', flexDirection:'column', gap: 9}}>
-        {righe.map(r => (
-          <div key={r.et} style={{display:'flex', alignItems:'center', gap: 10}}>
-            <span style={{
-              width: 78, flexShrink: 0, fontSize: 13.5,
-              color: r.forte ? PN.TEXT : PN.MUTED,
-              fontWeight: r.forte ? 600 : 500,
-              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            }}>{r.et}</span>
-            <span style={{flex: 1, height: 8, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden', minWidth: 0}}>
-              <span style={{
-                display:'block', height:'100%',
-                width: `${(r.v / scala) * 100}%`,
-                background: r.colore, borderRadius: 999,
-                transition:'width 400ms ease-out',
-              }}/>
-            </span>
-            <span style={{
-              width: 62, flexShrink: 0, textAlign:'right',
-              fontSize: 14, fontWeight: r.forte ? 700 : 600,
-              color: r.forte ? PN.TEXT : PN.MUTED,
-              fontVariantNumeric:'tabular-nums',
-            }}>€ {r.v.toFixed(2).replace('.', ',')}</span>
-          </div>
-        ))}
-        <div style={{display:'flex', alignItems:'center', gap: 7, marginTop: 1}}>
-          <StatDelta value={pct}/>
-          <span style={{fontSize: 14, color: PN.MUTED}}>sopra la media del team</span>
-        </div>
-      </div>
-
-      <div style={{
-        marginTop:'auto', paddingTop: 13,
-        borderTop:`1px solid ${PN.BORDER_SOFT}`,
-        display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 10,
-      }}>
-        {micro.map(m => (
-          <div key={m.et} style={{minWidth: 0}}>
-            <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums', lineHeight: 1.2}}>{m.v}</div>
-            <div style={{fontSize: 13, color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.et}</div>
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
 
-// ─── Spotlight · mance ─────────────────────────────────────────
-// Il totale e la crescita stanno già nella card KPI qui sopra: ripeterli
-// grandi sarebbe dire due volte la stessa cosa a due centimetri di distanza.
-// Qui la domanda successiva — chi le raccoglie — con le prime tre sulla stessa
-// scala; il totale resta, piccolo, solo per dare la misura alle barre.
-function StaffMance({ tot, media }) {
-  const podio = [...STAFF].sort((a, b) => b.tip - a.tip).slice(0, 3);
-  const max = podio[0].tip || 1;
-  const quotaPodio = podio.reduce((s, x) => s + x.tip, 0);
+// ─── Spotlight · mancia per tavolo ─────────────────────────────
+// Le mance in assoluto premiano chi ha fatto più turni. Diviso i tavoli
+// serviti la domanda cambia: quanto lascia in media un tavolo passato per le
+// sue mani. Elena ne serve meno di tutti — 95 contro i 142 di Marco — ed è la
+// prima lo stesso, e questo dalla colonna delle mance non si vedeva.
+// Il trattino verticale sulle barre è la media del team: cade nello stesso
+// punto su ogni riga, quindi chi la supera e chi no si legge senza contare.
+// Una card sola, a tutta riga: la classifica per mance assolute che stava qui
+// accanto dava esattamente questi cinque nomi in quest'ordine — Elena, Chiara,
+// Sofia, Giulia, Luca — quindi era la stessa cosa detta due volte. Le mance in
+// valore restano, in grigio, accanto ai tavoli da cui vengono.
+function StaffPerTavolo({ mediaTeam, totTavoli, mediaTesta }) {
+  const classifica = [...STAFF]
+    .map(s => ({ ...s, perTavolo: s.tip / s.tavoli }))
+    .sort((a, b) => b.perTavolo - a.perTavolo)
+    .slice(0, 5);
+  const scala = classifica[0].perTavolo || 1;
+  const tacca = Math.min(100, (mediaTeam / scala) * 100);
 
   return (
     <div style={{...STAFF_SPOT, gap: 14}}>
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12}}>
-        <StaffBadge icona={<Icon name="commerce-coins" size={12}/>} testo="Mance" colore={PN.GREEN} sfondo={PN.GREEN_SOFT}/>
-        <StatDelta value={STAFF_MANCE_DELTA}/>
-      </div>
-
-      <div>
-        <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Chi le raccoglie</div>
-        <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Podio del periodo</div>
+      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 12}}>
+        <div style={{minWidth: 0}}>
+          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Mancia per tavolo</div>
+          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Quanto lascia in media un tavolo servito · primi cinque</div>
+        </div>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0, fontSize: 13.5, color: PN.MUTED}}>
+          <span style={{width: 2, height: 12, background:'rgba(15,17,21,0.42)', borderRadius: 1}}/> media del team
+        </span>
       </div>
 
       <div style={{display:'flex', flexDirection:'column', gap: 11}}>
-        {podio.map(s => (
-          <div key={s.nome} style={{display:'flex', alignItems:'center', gap: 9, minWidth: 0}}>
+        {classifica.map(s => (
+          <div key={s.nome} style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
             <span style={{
-              width: 24, height: 24, borderRadius:'50%', flexShrink: 0,
+              width: 26, height: 26, borderRadius:'50%', flexShrink: 0,
               background: s.avatarBg, color:'#fff',
               display:'grid', placeItems:'center',
-              fontSize: 11, fontWeight: 700,
+              fontSize: 11.5, fontWeight: 700,
             }}>{s.avatar}</span>
             <span style={{
-              width: 96, flexShrink: 0, fontSize: 14.5, color: PN.TEXT,
+              width: 132, flexShrink: 0, fontSize: 14.5, color: PN.TEXT,
               whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
             }}>{s.nome}</span>
-            <span style={{flex: 1, height: 6, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden', minWidth: 24}}>
+            {/* La divisione scritta per esteso: sono i due numeri da cui esce
+                la cifra in fondo alla riga, e senza si dovrebbe andare a
+                cercarli nella tabella. */}
+            <span style={{
+              width: 132, flexShrink: 0, fontSize: 13, color: PN.MUTED_SOFT,
+              fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
+            }}>€ {s.tip} su {s.tavoli} tavoli</span>
+            <span style={{position:'relative', flex: 1, height: 8, borderRadius: 999, background: PN.WHITE_FROST, minWidth: 24}}>
               <span style={{
                 display:'block', height:'100%',
-                width: `${(s.tip / max) * 100}%`,
-                background: PN.GREEN, borderRadius: 999,
+                width: `${(s.perTavolo / scala) * 100}%`,
+                background: PN.PINK, borderRadius: 999,
                 transition:'width 400ms ease-out',
+              }}/>
+              <span style={{
+                position:'absolute', top: -1, bottom: -1, left: `${tacca}%`,
+                width: 2, marginLeft: -1, borderRadius: 1,
+                background:'rgba(15,17,21,0.42)',
               }}/>
             </span>
             <strong style={{
-              flexShrink: 0, fontSize: 14.5, fontWeight: 700,
-              color: PN.GREEN, fontVariantNumeric:'tabular-nums',
-            }}>€ {s.tip}</strong>
+              width: 58, flexShrink: 0, textAlign:'right',
+              fontSize: 15, fontWeight: 700, color: PN.TEXT,
+              fontVariantNumeric:'tabular-nums',
+            }}>€ {s.perTavolo.toFixed(2).replace('.', ',')}</strong>
           </div>
         ))}
       </div>
 
-      {/* Stesso piede della card accanto — riga sottile e numeri piccoli — così
-          le due chiudono allo stesso modo. Il totale qui non c'è: sta già,
-          uguale, nella card KPI due righe sopra. Restano le due cose che da
-          lì non si vedono: quanto fa a testa e quanto se ne prende il podio. */}
-      <div style={{
-        marginTop:'auto', paddingTop: 13,
-        borderTop:`1px solid ${PN.BORDER_SOFT}`,
-        display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 10,
-      }}>
-        {[
-          { v: `€ ${media}`, et: 'di media a testa' },
-          { v: `${Math.round((quotaPodio / tot) * 100)}%`, et: 'raccolto dal podio' },
-        ].map(m => (
-          <div key={m.et} style={{minWidth: 0}}>
-            <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums', lineHeight: 1.2}}>{m.v}</div>
-            <div style={{fontSize: 13, color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.et}</div>
-          </div>
-        ))}
-      </div>
+      <StaffPiede voci={[
+        { v: `€ ${mediaTeam.toFixed(2).replace('.', ',')}`, et: 'la media del team' },
+        { v: totTavoli.toLocaleString('it-IT', {useGrouping: true}), et: 'tavoli serviti' },
+        { v: `€ ${mediaTesta}`, et: 'di mance a testa' },
+      ]}/>
     </div>
   );
 }
@@ -213,6 +133,7 @@ function StatStaff() {
   const teamAvg = (STAFF.reduce((s, x) => s + x.scontrino, 0) / STAFF.length);
   const totOrdini = STAFF.reduce((s, x) => s + x.ordini, 0);
   const totTip = STAFF.reduce((s, x) => s + x.tip, 0);
+  const totTavoli = STAFF.reduce((s, x) => s + x.tavoli, 0);
   const top = [...STAFF].sort((a, b) => b.scontrino - a.scontrino)[0];
   const maxOrdini = Math.max(...STAFF.map(x => x.ordini));
   // Composizione ricavata dai ruoli, non scritta a mano: così non può
@@ -247,14 +168,7 @@ function StatStaff() {
           delta={STAFF_MANCE_DELTA} sub="Raccolte da tutto il team" trend={STAFF_TREND.mance}/>
       </div>
 
-      {/* I due riquadri narrativi di prima, rifatti: le stesse due cose —
-          chi ha reso di più e come vanno le mance — ma mostrate invece che
-          raccontate. Larghezze diverse perché il primo ha un confronto e tre
-          numeri di rincalzo, il secondo una classifica corta. */}
-      <div style={{display:'grid', gridTemplateColumns:'1.45fr 1fr', gap: 16, alignItems:'stretch'}}>
-        <StaffTop top={top} teamAvg={teamAvg}/>
-        <StaffMance tot={totTip} media={mediaTip}/>
-      </div>
+      <StaffPerTavolo mediaTeam={totTip / totTavoli} totTavoli={totTavoli} mediaTesta={mediaTip}/>
 
       <StatCard title="Rendimento personale" sub="Vendite ed efficacia dei membri del tuo team" action={
         <div style={{
@@ -299,10 +213,9 @@ function StatStaff() {
                     fontSize: 14, fontWeight: 700, flexShrink: 0,
                   }}>{s.avatar}</div>
                   <div style={{minWidth: 0}}>
-                    {/* Niente bollino accanto al nome: chi è il migliore lo
-                        dice già la card qui sopra, con nome e faccia. Alla
-                        riga resta il fondo caldo, che la ritrova senza
-                        ripetere la parola. */}
+                    {/* Niente bollino accanto al nome: a segnare lo scontrino
+                        più alto basta il fondo caldo della riga, senza anche
+                        scriverlo. */}
                     <div style={{fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.nome}</div>
                     <div style={{fontSize: 14, color: PN.MUTED}}>{s.ruolo}</div>
                   </div>
