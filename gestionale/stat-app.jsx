@@ -116,7 +116,7 @@ function StatApp() {
         </div>
       </StatCard>
 
-      <StatCard title="Conversione per piatto" sub="Dal primo sguardo all'ordine: viste in elenco, schede aperte, modifiche e ordini" action={
+      <StatCard title="Conversione per piatto da canale digitale" sub="Dal primo sguardo all'ordine: viste in elenco, schede aperte, modifiche e ordini" action={
         <div style={{
           display:'flex', alignItems:'center', gap: 8,
           padding:'7px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
