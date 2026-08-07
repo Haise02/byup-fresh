@@ -33,123 +33,133 @@ const convTono = (conv) => conv >= 60
     : { bg: PN.RED_SOFT, fg:'#991b1b' };
 
 // ─── Il funnel ─────────────────────────────────────────────────
-// Le barre orizzontali si allungavano quanto la card: il primo passaggio era
-// un rettangolo rosso da mille e quattrocento pixel per dire «10.000», e a
-// destra restava mezzo riquadro vuoto. Qui la figura ha una larghezza sua,
-// fissa — un imbuto che si stringe davvero, centrato — e i numeri le stanno
-// a fianco in colonna. Il grafico non cresce più con la finestra: cresce solo
-// lo spazio attorno.
-// La perdita è lo spicchio che manca fra una fascia e l'altra, non una scritta
-// rossa su ogni riga; il numero di chi si ferma sta nel varco, in grigio.
+// Terzo tentativo, e il difetto era sempre lo stesso: un imbuto che scende in
+// un riquadro largo e basso o si stira per tutta la card, o si stringe e lascia
+// mezza card vuota. Allora scende in orizzontale, da sinistra a destra: quattro
+// colonne uguali, la sezione che si assottiglia da 10.000 a 2.900, e il vuoto
+// non c'è più perché la figura occupa la larghezza che ha.
+// La perdita è dove la sezione si strozza — fra una colonna e l'altra — e il
+// numero di chi si ferma sta lì sotto, in grigio.
 // La percentuale è sempre sul primo passaggio: 42% vuol dire «42 su 100 di
 // quelli entrati», non «42 di quelli del passo prima».
-const FUN_W = 260;      // larghezza dell'imbuto
-const FUN_FASCIA = 46;  // altezza di una fascia
-const FUN_VARCO = 30;   // spazio fra due fasce, dove passa il collegamento
+const FUN_H = 108;      // altezza del canale, in unità del viewBox
+const FUN_STROZZ = 76;  // quanto è larga la strozzatura fra due colonne
+const FUN_MIN = 16;     // sezione minima, perché l'ultimo passaggio si veda
 
 function ConvFunnel({ passi, rimborsi }) {
   const totale = passi[0].val || 1;
-  const alto = passi.length * FUN_FASCIA + (passi.length - 1) * FUN_VARCO;
-  // Ogni fascia larga quanto la sua quota, centrata: il bordo obliquo che si
-  // forma fra una e l'altra è la gente che si perde.
-  const geo = passi.map((s, i) => {
-    const w = Math.max(58, (s.val / totale) * FUN_W);
-    return { w, x: (FUN_W - w) / 2, y: i * (FUN_FASCIA + FUN_VARCO) };
-  });
+  const n = passi.length;
+  // Coordinate in un viewBox da 1000: l'SVG poi si stira in larghezza quanto
+  // serve — dentro non ci sono testi né linee, solo pieni, quindi lo
+  // stiramento non deforma niente di leggibile.
+  const COL = 1000 / n;
+  const sez = passi.map(s => Math.max(FUN_MIN, (s.val / totale) * FUN_H));
+  const y = (h) => (FUN_H - h) / 2;
 
   return (
     <div>
-      <div style={{display:'flex', alignItems:'flex-start', gap: 26, maxWidth: 900}}>
-        <svg viewBox={`0 0 ${FUN_W} ${alto}`} width={FUN_W} height={alto}
-          style={{flexShrink: 0, display:'block', overflow:'visible'}}>
-          {/* Una sfumatura sola per tutto l'imbuto, in coordinate assolute:
-              così le quattro fasce non sono quattro rettangoli dello stesso
-              colore ma i tratti di un oggetto unico, dal wine al corallo. */}
-          <defs>
-            <linearGradient id="fun-tinta" x1="0" y1="0" x2="0" y2={alto} gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor={PN.WINE}/>
-              <stop offset="100%" stopColor={PN.PINK}/>
-            </linearGradient>
-          </defs>
-          {geo.map((g, i) => {
-            const n = geo[i + 1];
-            return (
-              <React.Fragment key={i}>
-                {n && (
-                  <polygon
-                    points={`${g.x},${g.y + FUN_FASCIA} ${g.x + g.w},${g.y + FUN_FASCIA} ${n.x + n.w},${n.y} ${n.x},${n.y}`}
-                    fill="url(#fun-tinta)" opacity={0.20}/>
-                )}
-                <rect x={g.x} y={g.y} width={g.w} height={FUN_FASCIA} rx={7} fill="url(#fun-tinta)"/>
-                <text x={FUN_W / 2} y={g.y + FUN_FASCIA / 2 + 6}
-                  textAnchor="middle" fill="#fff" fontSize="16" fontWeight="700"
-                  style={{fontVariantNumeric:'tabular-nums'}}>
-                  {passi[i].val.toLocaleString('it-IT', {useGrouping: true})}
-                </text>
-              </React.Fragment>
-            );
-          })}
-        </svg>
-
-        {/* La colonna dei nomi: righe alte quanto le fasce e varchi alti quanto
-            i varchi, così ogni nome sta all'altezza della sua fascia senza
-            posizionamenti a mano. */}
-        <div style={{flex: 1, minWidth: 0}}>
-          {passi.map((step, i) => {
-            const prossimo = passi[i + 1];
-            const persi = prossimo ? step.val - prossimo.val : 0;
-            const caloPct = prossimo ? (1 - prossimo.val / step.val) * 100 : 0;
-            return (
-              <React.Fragment key={step.label}>
-                <div style={{height: FUN_FASCIA, display:'flex', alignItems:'center', justifyContent:'space-between', gap: 16}}>
-                  <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
-                    {/* Cerchio vuoto col filo, non una pastiglia piena: sono
-                        quattro e piene facevano quattro punti in colonna. */}
-                    <span style={{
-                      width: 22, height: 22, borderRadius:'50%', flexShrink: 0,
-                      border:`1.5px solid ${PN.PINK}`, color: PN.PINK,
-                      display:'grid', placeItems:'center',
-                      fontSize: 12, fontWeight: 700,
-                    }}>{i + 1}</span>
-                    <span style={{minWidth: 0}}>
-                      <span style={{display:'block', fontSize: 15, fontWeight: 600, color: PN.TEXT, lineHeight: 1.25}}>{step.label}</span>
-                      <span style={{
-                        display:'block', fontSize: 13, color: PN.MUTED_SOFT,
-                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-                      }}>{step.sub}</span>
-                    </span>
-                  </div>
-                  <div style={{display:'flex', alignItems:'center', gap: 11, flexShrink: 0}}>
-                    {step.trend && <StatSpark data={step.trend} color={PN.PINK} width={54} height={20}/>}
-                    <StatDelta value={step.delta}/>
-                    <span style={{
-                      width: 42, textAlign:'right', fontSize: 14, fontWeight: 600,
-                      color: PN.MUTED, fontVariantNumeric:'tabular-nums',
-                    }}>{Math.round((step.val / totale) * 100)}%</span>
-                  </div>
-                </div>
-                {prossimo && (
-                  <div style={{height: FUN_VARCO, display:'flex', alignItems:'center', gap: 6, fontSize: 13.5, color: PN.MUTED_SOFT}}>
-                    <strong style={{fontWeight: 700, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>−{persi.toLocaleString('it-IT', {useGrouping: true})}</strong>
-                    si ferma qui, il {caloPct.toFixed(0)}%
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
+      {/* I nomi in cima, una colonna per passaggio: stanno sopra la loro
+          sezione perché le colonne qui e le fasce là sotto hanno la stessa
+          larghezza e lo stesso centro. */}
+      <div style={{display:'grid', gridTemplateColumns:`repeat(${n}, 1fr)`, gap: 12, marginBottom: 14}}>
+        {passi.map((step, i) => (
+          <div key={step.label} style={{textAlign:'center', minWidth: 0}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap: 7, marginBottom: 3}}>
+              <span style={{
+                width: 20, height: 20, borderRadius:'50%', flexShrink: 0,
+                border:`1.5px solid ${PN.PINK}`, color: PN.PINK,
+                display:'grid', placeItems:'center',
+                fontSize: 11.5, fontWeight: 700,
+              }}>{i + 1}</span>
+              <span style={{
+                fontSize: 14.5, fontWeight: 600, color: PN.TEXT,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+              }}>{step.label}</span>
+            </div>
+            {/* Due righe fisse per la spiegazione, così i numeri sotto restano
+                incolonnati anche quando una frase va a capo e le altre no. */}
+            <div style={{
+              fontSize: 12.5, color: PN.MUTED_SOFT, lineHeight: 1.3,
+              height: 33, marginBottom: 6,
+            }}>{step.sub}</div>
+            <div style={{
+              fontSize: 24, fontWeight: 700, color: PN.TEXT,
+              letterSpacing:-0.5, lineHeight: 1.1, fontVariantNumeric:'tabular-nums',
+            }}>{step.val.toLocaleString('it-IT', {useGrouping: true})}</div>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap: 8, marginTop: 5}}>
+              <StatDelta value={step.delta}/>
+              {step.trend && <StatSpark data={step.trend} color={PN.PINK} width={48} height={18}/>}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* I rimborsi non sono un quinto scalino — non è gente persa per strada,
-          è denaro tornato indietro dopo un pagamento riuscito — quindi stanno
-          sotto la riga, con la loro quota sull'ultimo passaggio. */}
+      <svg viewBox={`0 0 1000 ${FUN_H}`} preserveAspectRatio="none"
+        style={{display:'block', width:'100%', height: FUN_H}}>
+        <defs>
+          {/* Una sfumatura sola per tutto il canale, da sinistra a destra: le
+              quattro sezioni non sono quattro pezzi dello stesso colore ma i
+              tratti di un oggetto unico. */}
+          <linearGradient id="fun-tinta" x1="0" y1="0" x2="1000" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor={PN.WINE}/>
+            <stop offset="100%" stopColor={PN.PINK}/>
+          </linearGradient>
+        </defs>
+        {passi.map((step, i) => {
+          const h = sez[i];
+          const x0 = i * COL + (i === 0 ? 0 : FUN_STROZZ / 2);
+          const x1 = (i + 1) * COL - (i === n - 1 ? 0 : FUN_STROZZ / 2);
+          const succ = sez[i + 1];
+          return (
+            <React.Fragment key={i}>
+              <rect x={x0} y={y(h)} width={x1 - x0} height={h} fill="url(#fun-tinta)"/>
+              {succ != null && (
+                // La strozzatura: entra alta quanto questa sezione ed esce alta
+                // quanto la prossima. È lì che si perde la gente.
+                // Sborda di mezza unità dentro le due sezioni che collega: a
+                // filo esatto il motore lascia una cucitura chiara sul giunto.
+                <polygon fill="url(#fun-tinta)" points={
+                  `${x1 - 0.5},${y(h)} ${x1 + FUN_STROZZ + 0.5},${y(succ)} ${x1 + FUN_STROZZ + 0.5},${y(succ) + succ} ${x1 - 0.5},${y(h) + h}`
+                }/>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </svg>
+
+      {/* Sotto: la quota di ogni passaggio al centro della sua colonna, e chi
+          si è perso sopra la strozzatura in cui si è perso. */}
+      <div style={{position:'relative', height: 40, marginTop: 8}}>
+        {passi.map((step, i) => (
+          <span key={`q${i}`} style={{
+            position:'absolute', top: 0, left: `${(i + 0.5) * (100 / n)}%`,
+            transform:'translateX(-50%)', whiteSpace:'nowrap',
+            fontSize: 13.5, fontWeight: 600, color: PN.MUTED, fontVariantNumeric:'tabular-nums',
+          }}>{Math.round((step.val / totale) * 100)}% di chi entra</span>
+        ))}
+        {passi.slice(0, -1).map((step, i) => {
+          const persi = step.val - passi[i + 1].val;
+          const caloPct = (1 - passi[i + 1].val / step.val) * 100;
+          return (
+            <span key={`p${i}`} style={{
+              position:'absolute', top: 21, left: `${(i + 1) * (100 / n)}%`,
+              transform:'translateX(-50%)', whiteSpace:'nowrap',
+              fontSize: 13, color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums',
+            }}>
+              <strong style={{fontWeight: 700, color: PN.MUTED}}>−{persi.toLocaleString('it-IT', {useGrouping: true})}</strong>
+              {' '}si ferma qui, il {caloPct.toFixed(0)}%
+            </span>
+          );
+        })}
+      </div>
+
+      {/* I rimborsi non sono un quinto passaggio — non è gente persa per
+          strada, è denaro tornato indietro dopo un pagamento riuscito — quindi
+          stanno sotto la riga, con la loro quota sull'ultimo passaggio. */}
       {rimborsi && (
         <div style={{
-          marginTop: 18, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
-          // Niente a capo del contenitore: se la frase è lunga va a capo lei,
-          // dentro la sua colonna, e il bollino resta al suo fianco invece di
-          // ritrovarsi da solo su una riga.
-          display:'flex', alignItems:'flex-start', gap: 12, maxWidth: 800,
+          marginTop: 16, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+          display:'flex', alignItems:'flex-start', gap: 12,
         }}>
           <span style={{
             width: 30, height: 30, borderRadius: 9, flexShrink: 0,
@@ -158,12 +168,12 @@ function ConvFunnel({ passi, rimborsi }) {
           }}><Icon name="arrow-down-right" size={15}/></span>
           {/* Una frase sola, col confronto dentro invece che in una pastiglia
               a destra: la pastiglia colora di rosso i cali, e un calo dei
-              rimborsi è una buona notizia — e da sola andava a capo. */}
+              rimborsi è una buona notizia. */}
           <span style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45, minWidth: 0}}>
-            Dei {passi[passi.length - 1].val.toLocaleString('it-IT', {useGrouping: true})} pagamenti riusciti,
+            Dei {passi[n - 1].val.toLocaleString('it-IT', {useGrouping: true})} pagamenti riusciti,
             {' '}<strong style={{color: PN.TEXT, fontWeight: 700}}>{rimborsi.n}</strong> sono stati rimborsati —
             {' '}<strong style={{color: PN.TEXT, fontWeight: 700}}>€ {rimborsi.valore.toLocaleString('it-IT', {useGrouping: true})}</strong> restituiti,
-            {' '}l'{(rimborsi.n / passi[passi.length - 1].val * 100).toFixed(1).replace('.', ',')}% degli ordini,
+            {' '}l'{(rimborsi.n / passi[n - 1].val * 100).toFixed(1).replace('.', ',')}% degli ordini,
             {' '}{rimborsi.delta <= 0 ? 'in calo' : 'in aumento'} dello {Math.abs(rimborsi.delta).toFixed(1).replace('.', ',')}% sul periodo prima.
           </span>
         </div>
