@@ -136,17 +136,22 @@ function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta,
               fontSize: 14, color: PN.MUTED, fontWeight: 500, minWidth: 0,
               whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
             }}>{label}</span>
-            <span style={{
-              display:'inline-flex', alignItems:'center', gap: 2,
-              padding:'2px 6px', borderRadius: 999, flexShrink: 0,
-              background: delta >= 0 ? PN.GREEN_SOFT : PN.RED_SOFT,
-              color: delta >= 0 ? PN.GREEN : PN.RED,
-              fontSize: 10.5, fontWeight: 700, whiteSpace:'nowrap',
-              fontVariantNumeric:'tabular-nums',
-            }}>
-              <span style={{fontSize: 9.5}}>{delta >= 0 ? '↑' : '↓'}</span>
-              {Math.abs(delta).toFixed(1)}%
-            </span>
+            {/* Senza delta niente pillola: una misura che non varia in
+                percentuale — quanti sono in squadra — con un «↑ 0,0%» accanto
+                direbbe una cosa falsa. */}
+            {delta != null && (
+              <span style={{
+                display:'inline-flex', alignItems:'center', gap: 2,
+                padding:'2px 6px', borderRadius: 999, flexShrink: 0,
+                background: delta >= 0 ? PN.GREEN_SOFT : PN.RED_SOFT,
+                color: delta >= 0 ? PN.GREEN : PN.RED,
+                fontSize: 10.5, fontWeight: 700, whiteSpace:'nowrap',
+                fontVariantNumeric:'tabular-nums',
+              }}>
+                <span style={{fontSize: 9.5}}>{delta >= 0 ? '↑' : '↓'}</span>
+                {Math.abs(delta).toFixed(1)}%
+              </span>
+            )}
           </div>
           {/* L'andamento accanto al numero, non sotto: sulla riga del numero
               restano 64px anche nella card più piena (misurati a 1280), e
