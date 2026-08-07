@@ -112,6 +112,11 @@ const STAT_ASPETTI = {
   cibo_neg:         { et:'Cibo',            emoji:'🍽️', problema: true },
   servizio_neg:     { et:'Servizio',        emoji:'🙅', problema: true },
   attesa_neg:       { et:'Attesa lunga',    emoji:'⏳', problema: true },
+  // Stessa casella dell'`attesa_neg` ma nel set dell'asporto: nell'app si
+  // chiamano diversamente (menu.jsx propone `tempi_neg` a chi ritira e
+  // `attesa_neg` a chi siede al tavolo) e senza questa riga la chip di una
+  // recensione da asporto sparirebbe senza dire niente.
+  tempi_neg:        { et:'Attesa lunga',    emoji:'⏳', problema: true },
   pulizia_neg:      { et:'Pulizia',         emoji:'🧼', problema: true },
   rumore:           { et:'Rumore',          emoji:'🔊', problema: true },
   qualita_neg:      { et:'Prezzo alto',     emoji:'💸', problema: true },
@@ -170,6 +175,42 @@ const STAT_CLIENTI = {
     { autore:'Martina L.', iniziale:'M', bg:'#7C3AED', stelle: 2, quando:'2 settimane fa', fonte:'byup',   piatto:'Carbonara',    aspetti:['attesa_neg','cibo_neg'],      testo:'Carbonara arrivata tiepida dopo mezz\'ora. Il locale però è carino.' },
     { autore:'Davide N.',  iniziale:'D', bg:'#16A34A', stelle: 5, quando:'3 settimane fa', fonte:'byup',   piatto:'Tiramisù',     aspetti:['cibo','locale'],              testo:'Tiramisù da manuale e conto diviso in due tap. Consigliatissimo.' },
   ],
+  // Le caselle che il cliente tocca nell'app dopo il pagamento, contate su
+  // tutti i dodici mesi e non sulle dodici recensioni qui sopra: quelle
+  // servono a leggere le parole, questo a sapere quanto pesa un problema.
+  // Sono due mucchi separati perché l'app propone due set diversi a seconda
+  // del voto (menu.jsx, SuccessScreen): da tre stelle in su chiede cosa è
+  // piaciuto, da due in giù cosa non ha funzionato. Le voci sono esattamente
+  // quelle del set «al tavolo» — l'asporto ne ha altre due, e le avrà solo il
+  // locale che lo fa.
+  // Solo le byup ne hanno: Google raccoglie stelle e testo, punto. Quindi la
+  // base sono le 312 byup, divise dove l'app divide: 21 da una o due stelle
+  // (le 33 di `starBreakdown` meno le 12 arrivate da Google) e 291 sopra.
+  // Una recensione può spuntarne più d'una: le somme superano la base.
+  // `prec` è lo stesso conteggio nei dodici mesi prima, per la freccia.
+  aspetti: {
+    problemi: {
+      su: 21,
+      voci: [
+        { id:'attesa_neg',   n: 12, prec: 7 },
+        { id:'cibo_neg',     n:  8, prec: 9 },
+        { id:'servizio_neg', n:  7, prec: 6 },
+        { id:'rumore',       n:  5, prec: 8 },
+        { id:'pulizia_neg',  n:  4, prec: 3 },
+        { id:'qualita_neg',  n:  3, prec: 3 },
+      ],
+    },
+    pregi: {
+      su: 291,
+      voci: [
+        { id:'cibo',      n: 214, prec: 198 },
+        { id:'servizio',  n: 176, prec: 181 },
+        { id:'atmosfera', n: 138, prec: 120 },
+        { id:'locale',    n: 121, prec: 117 },
+        { id:'qualita',   n:  96, prec:  88 },
+      ],
+    },
+  },
   starBreakdown: [
     { stars: 5, count: 320 },
     { stars: 4, count: 142 },
