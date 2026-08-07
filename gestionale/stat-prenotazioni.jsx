@@ -58,20 +58,24 @@ function StatPrenotazioni() {
       {/* KPI — tutti su una riga, quindi nella variante compatta: l'etichetta
           si prende la riga intera e il delta scende accanto al numero. Con la
           pillola di fianco al nome, in quattro colonne a 1280 restavano 72px
-          per l'etichetta e si troncavano tutte. */}
+          per l'etichetta e si troncavano tutte.
+          Niente sparkline: a destra del numero non ci sta — servirebbero 240px
+          su una riga che ne ha 151 — e in fondo alla card disturbava. Le serie
+          restano in STAT_PRENOTAZIONI se un domani le card tornano due per
+          riga, dove lo spazio a destra c'è. */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
         <StatKpiTinto compatto tono="blu" icona="people-customer" label="Coperti serviti"
           valore={d.kpi.coperti.val.toLocaleString('it-IT', {useGrouping: true})}
-          delta={d.kpi.coperti.delta} sub="Ospiti serviti nel periodo" trend={d.kpi.coperti.trend}/>
+          delta={d.kpi.coperti.delta} sub="Ospiti serviti nel periodo"/>
         <StatKpiTinto compatto tono="verde" icona="place-table" label="Tasso di occupazione"
           valore={d.kpi.occupazione.val} suffisso="%"
-          delta={d.kpi.occupazione.delta} sub="Riempimento medio delle sale" trend={d.kpi.occupazione.trend}/>
+          delta={d.kpi.occupazione.delta} sub="Riempimento medio delle sale"/>
         <StatKpiTinto compatto tono="giallo" icona="people-staff-group" label="Coperti per tavolo"
           valore={d.kpi.perTavolo.val.toString().replace('.', ',')}
-          delta={d.kpi.perTavolo.delta} sub="Media ospiti per prenotazione" trend={d.kpi.perTavolo.trend}/>
+          delta={d.kpi.perTavolo.delta} sub="Media ospiti per prenotazione"/>
         <StatKpiTinto compatto tono="viola" icona="time-clock" label="Durata media al tavolo"
           valore={d.kpi.durata.val}
-          delta={d.kpi.durata.delta} sub="Permanenza media al tavolo" trend={d.kpi.durata.trend}/>
+          delta={d.kpi.durata.delta} sub="Permanenza media al tavolo"/>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
