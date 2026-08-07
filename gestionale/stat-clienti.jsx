@@ -63,7 +63,7 @@ function CliStelle({ voto, lato = 16 }) {
 // nostra del testo: è la casella che ha spuntato lui.
 // Il filtro per problema esiste solo per le byup, perché solo lì c'è: Google
 // raccoglie stelle e testo, punto.
-function CliRecensioni({ elenco }) {
+function CliRecensioni({ elenco, totale }) {
   const [fonte, setFonte] = React.useState('tutte');
   const [stelle, setStelle] = React.useState(0);      // 0 = tutte
   const [problema, setProblema] = React.useState('');  // '' = tutti
@@ -96,7 +96,8 @@ function CliRecensioni({ elenco }) {
   });
 
   return (
-    <StatCard title="Cosa scrivono" sub={`${elenco.length} recensioni nel periodo · ne vedi ${visibili.length}`} action={
+    <StatCard title="Cosa scrivono"
+      sub={`Le ultime ${elenco.length} delle ${totale.toLocaleString('it-IT', {useGrouping: true})} · ne vedi ${visibili.length}`} action={
       <div style={{display:'inline-flex', gap: 5, padding: 4, background: PN.WHITE_HUSH, borderRadius: 999}}>
         {[
           { id:'tutte',  et:'Tutte' },
@@ -380,22 +381,20 @@ function StatClienti() {
           delta={d.abituali.delta} sub="Tornati almeno due volte negli ultimi 90 giorni" trend={d.abituali.trend}/>
       </div>
 
-      <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap: 16}}>
-        <StatCard title="Valutazioni" sub={`${d.recensioni} recensioni, da due posti diversi`}>
-          <div style={{display:'flex', alignItems:'center', gap: 22}}>
-            <div style={{flexShrink: 0}}>
-              <div style={{display:'flex', alignItems:'baseline', gap: 4}}>
-                <span style={{fontSize: 44, fontWeight: 700, color: PN.TEXT, letterSpacing:-1, lineHeight: 1}}>
-                  {d.rating.toFixed(1).replace('.', ',')}
-                </span>
-                <span style={{fontSize: 17, color: PN.MUTED_SOFT, fontWeight: 600}}>/5</span>
-              </div>
-              <div style={{marginTop: 8}}><CliStelle voto={d.rating} lato={18}/></div>
+      <StatCard title="Valutazioni" sub={`${d.recensioni} recensioni negli ultimi 12 mesi, da due posti diversi`}>
+        <div style={{display:'grid', gridTemplateColumns:'minmax(280px, 0.85fr) 1.6fr', gap: 28, alignItems:'start'}}>
+          {/* Colonna sinistra: il voto, com'è composto, e da dove arriva. */}
+          <div style={{minWidth: 0}}>
+            <div style={{display:'flex', alignItems:'baseline', gap: 5}}>
+              <span style={{fontSize: 52, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.4, lineHeight: 1}}>
+                {d.rating.toFixed(1).replace('.', ',')}
+              </span>
+              <span style={{fontSize: 18, color: PN.MUTED_SOFT, fontWeight: 600}}>/5</span>
             </div>
-            {/* Le fasce: barra sottile, il conteggio e la quota. Il numero di
-                stelle si legge dalla stellina accanto alla cifra, non da una
-                fila di caratteri. */}
-            <div style={{flex: 1, display:'flex', flexDirection:'column', gap: 5, minWidth: 0}}>
+            <div style={{margin:'9px 0 4px'}}><CliStelle voto={d.rating} lato={19}/></div>
+            <div style={{fontSize: 14, color: PN.MUTED}}>Sulla base di {d.recensioni} recensioni</div>
+
+            <div style={{display:'flex', flexDirection:'column', gap: 5, margin:'16px 0 0'}}>
               {[5,4,3,2,1].map(stelle => {
                 const riga = d.starBreakdown.find(r => r.stars === stelle);
                 const pct = (riga.count / totRev) * 100;
@@ -414,62 +413,88 @@ function StatClienti() {
                 );
               })}
             </div>
+
+            {/* Le due provenienze con la loro media: è qui che si vede che i
+                clienti byup — quelli che hanno davvero ordinato — votano più
+                alto di chi passa da Google. */}
+            <div style={{
+              marginTop: 16, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+              display:'flex', flexDirection:'column', gap: 9,
+            }}>
+              {['byup', 'google'].map(k => (
+                <div key={k} style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+                  <CliFonte fonte={k} grande/>
+                  <span style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
+                    <strong style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+                      {d.fonti[k].media.toFixed(1).replace('.', ',')}
+                    </strong>
+                    <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace:'nowrap'}}>su {d.fonti[k].n} recensioni</span>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Le due provenienze con la loro media: è qui che si vede che i
-              clienti byup — quelli che hanno davvero ordinato — votano più
-              alto di chi passa da Google. */}
-          <div style={{
-            marginTop: 16, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
-            display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12,
-          }}>
-            {['byup', 'google'].map(k => (
-              <div key={k} style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
-                <CliFonte fonte={k} grande/>
-                <span style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
-                  <strong style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
-                    {d.fonti[k].media.toFixed(1).replace('.', ',')}
-                  </strong>
-                  <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace:'nowrap'}}>su {d.fonti[k].n} recensioni</span>
-                </span>
-              </div>
-            ))}
+          {/* Colonna destra: l'andamento, che prima era una card a parte. Due
+              cose nello stesso disegno perché rispondono a due domande che si
+              fanno insieme — quante ne arrivano e come vanno.
+              Le barre sono il numero di recensioni del mese e partono da zero,
+              come devono; la media è una linea con la sua scala a destra,
+              perché una barra da 3,5 a 5 gonfierebbe differenze di un decimo. */}
+          <div style={{minWidth: 0}}>
+            <div style={{display:'flex', alignItems:'center', gap: 16, marginBottom: 10}}>
+              <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13.5, color: PN.MUTED}}>
+                <span style={{width: 10, height: 10, borderRadius: 3, background: PN.PINK, opacity: 0.32}}/>
+                recensioni del mese
+              </span>
+              <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13.5, color: PN.MUTED}}>
+                <span style={{width: 14, height: 2.5, borderRadius: 2, background: PN.AMBER}}/>
+                media, da 3,5 a 5
+              </span>
+            </div>
+            {(() => {
+              const W = 640, H = 214, P = { l: 4, r: 34, t: 20, b: 26 };
+              const mesi = d.recensioniMese;
+              const maxN = Math.max(...mesi);
+              const passo = (W - P.l - P.r) / mesi.length;
+              const larghezza = Math.min(26, passo * 0.52);
+              const xc = (i) => P.l + passo * (i + 0.5);
+              const yBarra = (n) => H - P.b - (n / maxN) * (H - P.t - P.b);
+              const yVoto = (v) => H - P.b - ((v - 3.5) / 1.5) * (H - P.t - P.b);
+              const linea = d.ratingTrend.map((v, i) => `${i === 0 ? 'M' : 'L'}${xc(i)},${yVoto(v)}`).join(' ');
+              const ultimo = d.ratingTrend[d.ratingTrend.length - 1];
+              return (
+                <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', display:'block'}}>
+                  {[3.5, 4, 4.5, 5].map(v => (
+                    <g key={v}>
+                      <line x1={P.l} y1={yVoto(v)} x2={W - P.r + 6} y2={yVoto(v)} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
+                      <text x={W - P.r + 10} y={yVoto(v) + 4} fontSize="11" fill={PN.MUTED_SOFT}>{v.toFixed(1).replace('.', ',')}</text>
+                    </g>
+                  ))}
+                  {mesi.map((n, i) => (
+                    <g key={i}>
+                      <rect x={xc(i) - larghezza / 2} y={yBarra(n)} width={larghezza} height={H - P.b - yBarra(n)}
+                        rx={4} fill={PN.PINK} opacity={0.30}/>
+                      <text x={xc(i)} y={yBarra(n) - 6} fontSize="11" fill={PN.MUTED} textAnchor="middle"
+                        style={{fontVariantNumeric:'tabular-nums'}}>{n}</text>
+                    </g>
+                  ))}
+                  {/* La linea passa sopra le barre: filo bianco sotto perché
+                      resti staccata dal colore che attraversa. */}
+                  <path d={linea} fill="none" stroke={PN.WHITE} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d={linea} fill="none" stroke={PN.AMBER} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx={xc(d.ratingTrend.length - 1)} cy={yVoto(ultimo)} r={4.5} fill={PN.AMBER} stroke={PN.WHITE} strokeWidth={2}/>
+                  {months.map((m, i) => (
+                    <text key={i} x={xc(i)} y={H - 7} fontSize="11" fill={PN.MUTED_SOFT} textAnchor="middle">{m}</text>
+                  ))}
+                </svg>
+              );
+            })()}
           </div>
-        </StatCard>
+        </div>
+      </StatCard>
 
-        <StatCard title="Trend valutazione" sub="Andamento ultimi 12 mesi">
-          {(() => {
-            // Serie unica: linea 2.4 con wash sotto, punto solo alla fine
-            // col valore corrente; assi hairline, etichette 11px.
-            const tW = 460, tH = 190, tP = { l: 30, r: 44, t: 14, b: 24 };
-            const tx = (i) => tP.l + (i / (d.ratingTrend.length - 1)) * (tW - tP.l - tP.r);
-            const ty = (v) => tH - tP.b - ((v - 3.5) / 1.5) * (tH - tP.t - tP.b);
-            const line = d.ratingTrend.map((v, i) => `${i===0?'M':'L'}${tx(i)},${ty(v)}`).join(' ');
-            const area = `${line} L ${tx(d.ratingTrend.length - 1)},${tH - tP.b} L ${tP.l},${tH - tP.b} Z`;
-            const last = d.ratingTrend[d.ratingTrend.length - 1];
-            return (
-              <svg viewBox={`0 0 ${tW} ${tH}`} style={{width:'100%', display:'block'}}>
-                {[3.5, 4.0, 4.5, 5.0].map((v, i) => (
-                  <g key={i}>
-                    <line x1={tP.l} y1={ty(v)} x2={tW - tP.r + 16} y2={ty(v)} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
-                    <text x={tP.l - 8} y={ty(v) + 4} fontSize="11" fill={PN.MUTED} textAnchor="end">{v.toFixed(1)}</text>
-                  </g>
-                ))}
-                <path d={area} fill={PN.PINK} opacity={0.08}/>
-                <path d={line} fill="none" stroke={PN.WHITE} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round"/>
-                <path d={line} fill="none" stroke={PN.PINK} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx={tx(d.ratingTrend.length - 1)} cy={ty(last)} r={4.5} fill={PN.PINK} stroke={PN.WHITE} strokeWidth={2}/>
-                <text x={tx(d.ratingTrend.length - 1) + 11} y={ty(last) + 4} fontSize="12.5" fontWeight="700" fill={PN.TEXT}>{last.toLocaleString('it-IT')}</text>
-                {months.map((m, i) => i % 2 === 0 && (
-                  <text key={i} x={tx(i)} y={tH - 6} fontSize="11" fill={PN.MUTED} textAnchor="middle">{m}</text>
-                ))}
-              </svg>
-            );
-          })()}
-        </StatCard>
-      </div>
-
-      <CliRecensioni elenco={d.feedback}/>
+      <CliRecensioni elenco={d.feedback} totale={d.recensioni}/>
 
       <StatCard title="Ciclo di vita del cliente" sub="Distribuzione clienti per frequenza di ritorno">
         <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>

@@ -178,6 +178,10 @@ const STAT_CLIENTI = {
     { stars: 1, count: 12 },
   ],
   ratingTrend: [4.2,4.3,4.4,4.4,4.3,4.5,4.6,4.5,4.6,4.7,4.6,4.8],
+  // Quante ne sono arrivate mese per mese. Sommano a 543, cioè al totale che
+  // la card mostra in grande: il volume e la media sono lo stesso mucchio di
+  // recensioni guardato in due modi, e non devono poter divergere.
+  recensioniMese: [28, 32, 35, 41, 38, 44, 52, 61, 47, 55, 49, 61],
   ciclo: [
     { stato:'Prima visita',           n: 433, pct: 35, delta: 12.5 },
     { stato:'Ritorno entro 30 giorni', n: 320, pct: 26, delta: 10.0 },
