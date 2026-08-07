@@ -8,6 +8,12 @@ function StatPrenotazioni() {
   // che cresce sotto il mouse e la legenda che si accende in coppia.
   // Verde/blu/rosa/grigio sono colori di stato, non di serie.
   const [statoSu, setStatoSu] = React.useState(null);
+  // Colonna sotto il mouse nei due grafici a barre. Stessa idea del donut:
+  // quella puntata resta a colore pieno e si allarga, le altre si spengono.
+  // Solo in larghezza — allungarla verso l'alto direbbe un numero che non è
+  // quello, e un grafico non deve mentire per farsi guardare.
+  const [oraSu, setOraSu] = React.useState(null);
+  const [giornoSu, setGiornoSu] = React.useState(null);
   const [tavoliSu, setTavoliSu] = React.useState(null);
   const statoSegs = [
     { id:'confermate', label:'Confermate', ...d.stato.confermate, color: PN.GREEN },
@@ -112,16 +118,31 @@ function StatPrenotazioni() {
               const quasiPieno = f.tavoli / f.max >= 0.85;
               const top = foY(f.tavoli);
               const x = foP.l + i * foSlot + (foSlot - foBarW) / 2;
+              const su = oraSu === i, spenta = oraSu != null && !su;
+              const cx = x + foBarW / 2;
               return (
-                <g key={i}>
-                  {/* Il binario mostra quanto NON è stato usato: senza, una
-                      colonna bassa non dice se il locale era vuoto o piccolo. */}
-                  <path d={colPath(x, foY(capienza), foBarW, (foH - foP.b) - foY(capienza), 4)} fill={PN.WHITE_FROST}/>
-                  <path d={colPath(x, top, foBarW, (foH - foP.b) - top, 4)} fill={quasiPieno ? PN.WINE : PN.PINK}/>
-                  <text x={x + foBarW/2} y={top - 7} fontSize="12.5" fontWeight="600"
+                <g key={i}
+                  onMouseEnter={() => setOraSu(i)} onMouseLeave={() => setOraSu(null)}>
+                  {/* Bersaglio invisibile su tutta la colonna: puntare una
+                      barra alta dieci pixel sarebbe un esercizio di mira. */}
+                  <rect x={foP.l + i * foSlot} y={foP.t - 10} width={foSlot} height={foH - foP.b - foP.t + 10} fill="transparent"/>
+                  <g style={{
+                    transformOrigin: `${cx}px 0`,
+                    transform: su ? 'scaleX(1.18)' : 'scaleX(1)',
+                    opacity: spenta ? 0.45 : 1,
+                    transition:'transform 160ms ease, opacity 160ms ease',
+                  }}>
+                    {/* Il binario mostra quanto NON è stato usato: senza, una
+                        colonna bassa non dice se il locale era vuoto o piccolo. */}
+                    <path d={colPath(x, foY(capienza), foBarW, (foH - foP.b) - foY(capienza), 4)} fill={PN.WHITE_FROST}/>
+                    <path d={colPath(x, top, foBarW, (foH - foP.b) - top, 4)} fill={quasiPieno ? PN.WINE : PN.PINK}/>
+                  </g>
+                  <text x={cx} y={top - 7} fontSize={su ? 14 : 12.5} fontWeight={su ? 800 : 600}
                     fill={quasiPieno ? PN.WINE : PN.TEXT} textAnchor="middle"
-                    stroke={PN.WHITE} strokeWidth={3} paintOrder="stroke">{f.tavoli}</text>
-                  <text x={x + foBarW/2} y={foH - 10} fontSize="12" fontWeight="600" fill={PN.MUTED} textAnchor="middle">{f.ora.replace(':00', '')}</text>
+                    stroke={PN.WHITE} strokeWidth={3} paintOrder="stroke"
+                    style={{opacity: spenta ? 0.45 : 1, transition:'opacity 160ms ease'}}>{f.tavoli}</text>
+                  <text x={cx} y={foH - 10} fontSize="12" fontWeight={su ? 800 : 600}
+                    fill={su ? PN.TEXT : PN.MUTED} textAnchor="middle">{f.ora.replace(':00', '')}</text>
                 </g>
               );
             })}
@@ -181,11 +202,24 @@ function StatPrenotazioni() {
               const top = cgY(g.val);
               const x = cgP.l + i * cgSlot + (cgSlot - cgBarW) / 2;
               const h = (cgH - cgP.b) - top;
+              const su = giornoSu === i, spenta = giornoSu != null && !su;
+              const cx = x + cgBarW / 2;
               return (
-                <g key={i}>
-                  <path d={colPath(x, top, cgBarW, h, 4)} fill={above ? PN.PINK : '#FFB3B5'}/>
-                  <text x={x + cgBarW/2} y={top - 7} fontSize="12.5" fontWeight="600" fill={PN.TEXT} textAnchor="middle" stroke={PN.WHITE} strokeWidth={3} paintOrder="stroke">{g.val}</text>
-                  <text x={x + cgBarW/2} y={cgH - 8} fontSize="12" fontWeight="600" fill={PN.MUTED} textAnchor="middle">{g.d}</text>
+                <g key={i}
+                  onMouseEnter={() => setGiornoSu(i)} onMouseLeave={() => setGiornoSu(null)}>
+                  <rect x={cgP.l + i * cgSlot} y={cgP.t - 10} width={cgSlot} height={cgH - cgP.b - cgP.t + 10} fill="transparent"/>
+                  <path d={colPath(x, top, cgBarW, h, 4)} fill={above ? PN.PINK : '#FFB3B5'}
+                    style={{
+                      transformOrigin: `${cx}px 0`,
+                      transform: su ? 'scaleX(1.18)' : 'scaleX(1)',
+                      opacity: spenta ? 0.45 : 1,
+                      transition:'transform 160ms ease, opacity 160ms ease',
+                    }}/>
+                  <text x={cx} y={top - 7} fontSize={su ? 14 : 12.5} fontWeight={su ? 800 : 600}
+                    fill={PN.TEXT} textAnchor="middle" stroke={PN.WHITE} strokeWidth={3} paintOrder="stroke"
+                    style={{opacity: spenta ? 0.45 : 1, transition:'opacity 160ms ease'}}>{g.val}</text>
+                  <text x={cx} y={cgH - 8} fontSize="12" fontWeight={su ? 800 : 600}
+                    fill={su ? PN.TEXT : PN.MUTED} textAnchor="middle">{g.d}</text>
                 </g>
               );
             })}
