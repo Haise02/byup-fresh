@@ -725,10 +725,18 @@ function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, t
 // ma oro, argento e bronzo, che è l'unico modo perché il secondo e il terzo
 // si distinguano a colpo d'occhio.
 const MEDAGLIE = ['#E8A317', '#9AA3AF', '#C2703B'];
+// Fondo a riposo e fondo acceso, uno per medaglia: al passaggio la tessera
+// non si limita a crescere, si illumina della sua tinta. L'ombra prende lo
+// stesso colore invece del solito grigio, o l'oro sembrerebbe appoggiato su
+// una superficie neutra.
+const PODIO_FONDI  = ['#FDF6EA', PN.WHITE_HUSH, '#FBF3EC'];
+const PODIO_ACCESI = ['#FCEDD0', '#EAEDF1', '#F9E6D5'];
+const PODIO_OMBRE  = ['rgba(232,163,23,0.30)', 'rgba(154,163,175,0.28)', 'rgba(194,112,59,0.28)'];
 
 function PodioPiatti({ piatti, onVaiAlla }) {
   // L'ordine a schermo non è quello della classifica: 2 · 1 · 3.
   const ordine = [1, 0, 2].filter(i => piatti[i]);
+  const [su, setSu] = React.useState(null);
   return (
     <StatCard title="Piatti più ordinati" sub="I più richiesti nel periodo"
       style={{display:'flex', flexDirection:'column'}}>
@@ -736,16 +744,20 @@ function PodioPiatti({ piatti, onVaiAlla }) {
         {ordine.map(i => {
           const p = piatti[i], primo = i === 0;
           return (
-            <div key={p.nome} {...boxHover} style={{
-              transition: BOX_TRANSITION,
-              flex: primo ? 1.15 : 1, minWidth: 0, position:'relative',
-              display:'flex', flexDirection:'column', alignItems:'center',
-              padding: primo ? '30px 12px 16px' : '26px 10px 14px',
-              marginTop: primo ? 0 : 26,
-              borderRadius: 16,
-              background: primo ? '#FDF6EA' : (i === 1 ? PN.WHITE_HUSH : '#FBF3EC'),
-              border: `1px solid ${primo ? '#F3E3C6' : PN.BORDER_SOFT}`,
-            }}>
+            <div key={p.nome}
+              onMouseEnter={() => setSu(i)} onMouseLeave={() => setSu(null)}
+              style={{
+                flex: primo ? 1.15 : 1, minWidth: 0, position:'relative',
+                display:'flex', flexDirection:'column', alignItems:'center',
+                padding: primo ? '30px 12px 16px' : '26px 10px 14px',
+                marginTop: primo ? 0 : 26,
+                borderRadius: 16,
+                background: su === i ? PODIO_ACCESI[i] : PODIO_FONDI[i],
+                border: `1px solid ${su === i ? MEDAGLIE[i] : (primo ? '#F3E3C6' : PN.BORDER_SOFT)}`,
+                transform: su === i ? 'scale(1.015)' : 'scale(1)',
+                boxShadow: su === i ? `0 12px 26px -6px ${PODIO_OMBRE[i]}` : 'none',
+                transition: 'transform 150ms ease, box-shadow 150ms ease, background 150ms ease, border-color 150ms ease',
+              }}>
               <span style={{
                 position:'absolute', top: primo ? -17 : -15, left:'50%', transform:'translateX(-50%)',
                 width: primo ? 34 : 30, height: primo ? 34 : 30, borderRadius:'50%',
@@ -783,79 +795,86 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
   return (
     <StatCard title="Piatto con il margine più alto" sub="Basato sul food cost medio"
       style={{display:'flex', flexDirection:'column'}}>
-      {/* Card stretta: i tre riquadri passano sotto a tutta larghezza invece di
-          stare schiacciati nella colonna di sinistra, dove a 74px l'uno le
-          etichette non ci stavano. */}
-      <div style={{flex: 1, display:'flex', flexDirection:'column', gap: 12}}>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16, alignItems:'start'}}>
-          <div style={{display:'flex', alignItems:'center', gap: 13, minWidth: 0}}>
-            <div style={{position:'relative', flexShrink: 0}}>
-              <img src={re.foto} alt="" loading="lazy" style={{
-                width: 96, height: 92, borderRadius: 13, objectFit:'cover',
-                background: PN.WHITE_HUSH, display:'block',
-              }}/>
-              {/* La stellina dice "questo" senza bisogno della parola: in
-                  questo set la corona non c'è. */}
-              <span style={{
-                position:'absolute', top: -9, left: -9,
-                width: 34, height: 34, borderRadius: 11,
-                background: PN.AMBER, color:'#fff',
-                display:'grid', placeItems:'center',
-                border:'2.5px solid #fff', boxShadow:'0 2px 8px rgba(15,17,21,0.18)',
-              }}><Icon name="star" size={16}/></span>
-            </div>
-            <div style={{minWidth: 0}}>
-              <div style={{
-                fontSize: 33, fontWeight: 700, color: PN.TEXT,
-                letterSpacing: -0.9, lineHeight: 1, fontVariantNumeric:'tabular-nums',
-              }}>{re.marginePct}%</div>
-              {/* Il nome del piatto e basta: che quel 77% sia un margine lo
-                  dice già il titolo della card, e "Margine di Bruschetta"
-                  andava a capo tre volte in una colonna stretta. */}
-              <div style={{fontSize: 14, fontWeight: 600, color: PN.TEXT, marginTop: 4, lineHeight: 1.25}}>{re.nome}</div>
-              <div style={{marginTop: 7}}><StatDelta value={re.deltaMargine}/></div>
-            </div>
+      {/* Prima era a due colonne con la classifica a destra: quella era più
+          alta del blocco a sinistra e sotto restava un buco. Ora scende tutto
+          in colonna e ogni fascia riempie la sua riga — i tre numeri stanno
+          accanto alla foto, che è alta quanto loro, e la classifica va a due
+          per riga invece che a quattro incolonnate. */}
+      <div style={{flex: 1, display:'flex', flexDirection:'column', gap: 14}}>
+        <div style={{display:'flex', alignItems:'stretch', gap: 14, minWidth: 0}}>
+          <div style={{position:'relative', flexShrink: 0}}>
+            <img src={re.foto} alt="" loading="lazy" style={{
+              width: 116, height:'100%', minHeight: 116, borderRadius: 14, objectFit:'cover',
+              background: PN.WHITE_HUSH, display:'block',
+            }}/>
+            {/* La stellina dice "questo" senza bisogno della parola: in
+                questo set la corona non c'è. */}
+            <span style={{
+              position:'absolute', top: -9, left: -9,
+              width: 32, height: 32, borderRadius: 10,
+              background: PN.AMBER, color:'#fff',
+              display:'grid', placeItems:'center',
+              border:'2.5px solid #fff', boxShadow:'0 2px 8px rgba(15,17,21,0.18)',
+            }}><Icon name="star" size={15}/></span>
           </div>
-        {/* Dal secondo al quinto: senza, il primo non ha un metro di paragone. */}
-          <div style={{
-            borderRadius: 14, overflow:'hidden',
-            background: PN.BG, border:`1px solid ${PN.BORDER}`,
-          }}>
-            {seguito.map((p, i) => (
-              <div key={p.nome} style={{
-                display:'flex', alignItems:'center', gap: 10,
-                padding:'8px 11px', fontSize: 14,
-                borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-              }}>
-                <span style={{
-                  width: 18, textAlign:'center', flexShrink: 0,
-                  fontSize: 12.5, fontWeight: 700, color: PN.MUTED_SOFT,
-                  fontVariantNumeric:'tabular-nums',
-                }}>{i + 2}</span>
-                <span style={{flex: 1, minWidth: 0, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.nome}</span>
-                <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{p.marginePct}%</strong>
-              </div>
-            ))}
+
+          <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column'}}>
+            <div style={{display:'flex', alignItems:'baseline', gap: 9, minWidth: 0}}>
+              <span style={{
+                fontSize: 32, fontWeight: 700, color: PN.TEXT,
+                letterSpacing: -0.9, lineHeight: 1, fontVariantNumeric:'tabular-nums',
+              }}>{re.marginePct}%</span>
+              <StatDelta value={re.deltaMargine}/>
+            </div>
+            <div style={{
+              fontSize: 14.5, fontWeight: 600, color: PN.TEXT, marginTop: 5,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            }}>{re.nome} <span style={{color: PN.MUTED_SOFT, fontWeight: 500}}>· {re.cat}</span></div>
+
+            {/* Food cost, prezzo e margine come righe accanto alla foto invece
+                che come tre riquadri su una fascia a parte: riempiono
+                l'altezza della foto, che prima restava scoperta. */}
+            <div style={{marginTop: 'auto', paddingTop: 10, display:'flex', flexDirection:'column', gap: 5}}>
+              {[
+                { et:'Food cost medio', v: eur2(re.costo) },
+                { et:'Prezzo di vendita', v: eur2(re.ricavo) },
+                { et:'Margine per piatto', v: eur2(re.margine), forte: true },
+              ].map(b => (
+                <div key={b.et} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, fontSize: 13.5}}>
+                  <span style={{color: PN.MUTED, minWidth: 0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{b.et}</span>
+                  <strong style={{
+                    color: b.forte ? PN.GREEN : PN.TEXT, flexShrink: 0,
+                    fontVariantNumeric:'tabular-nums',
+                  }}>{b.v}</strong>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 8}}>
-            {[
-              // Corte: in tre riquadri affiancati dentro mezza card, "Food
-              // cost medio" per esteso si troncava comunque.
-              { et:'Food cost', v: eur2(re.costo) },
-              { et:'Prezzo', v: eur2(re.ricavo) },
-              { et:'Margine', v: eur2(re.margine) },
-            ].map(b => (
-              <div key={b.et} {...boxHover} style={{
-                transition: BOX_TRANSITION,
-                padding:'9px 11px', borderRadius: 12, minWidth: 0,
-                background: PN.BG, border:`1px solid ${PN.BORDER}`,
-              }}>
-                <div style={{fontSize: 12, color: PN.MUTED_SOFT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{b.et}</div>
-                <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: 2, fontVariantNumeric:'tabular-nums'}}>{b.v}</div>
-              </div>
-            ))}
+        {/* Dal secondo al quinto: senza, il primo non ha un metro di paragone.
+            Due per riga, che in colonna singola facevano una scala di quattro
+            righe alta il doppio di quel che serviva. */}
+        <div style={{
+          display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8,
+          borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 12,
+        }}>
+          {seguito.map((p, i) => (
+            <div key={p.nome} {...boxHover} style={{
+              transition: BOX_TRANSITION,
+              display:'flex', alignItems:'center', gap: 8,
+              padding:'8px 11px', borderRadius: 11, minWidth: 0, fontSize: 14,
+              background: PN.BG, border:`1px solid ${PN.BORDER}`,
+            }}>
+              <span style={{
+                width: 16, flexShrink: 0, textAlign:'center',
+                fontSize: 12.5, fontWeight: 700, color: PN.MUTED_SOFT,
+                fontVariantNumeric:'tabular-nums',
+              }}>{i + 2}</span>
+              <span style={{flex: 1, minWidth: 0, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.nome}</span>
+              <strong style={{color: PN.TEXT, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{p.marginePct}%</strong>
+            </div>
+          ))}
         </div>
       </div>
       <EconVai label="Vedi tutti i margini" onClick={onVaiAlla}/>
