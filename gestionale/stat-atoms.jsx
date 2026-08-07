@@ -148,12 +148,24 @@ function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta,
               {Math.abs(delta).toFixed(1)}%
             </span>
           </div>
-          <div style={{
-            fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
-            lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
-            fontVariantNumeric:'tabular-nums',
-          }}>
-            {valore}{suffisso && <span style={{fontSize: 15, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+          {/* L'andamento accanto al numero, non sotto: sulla riga del numero
+              restano 64px anche nella card più piena (misurati a 1280), e
+              sono lo spazio che una linea piccola chiede. Il sottotitolo sotto
+              resta a larghezza intera, quindi va a capo come prima e la card
+              non cambia forma. */}
+          <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 8, minWidth: 0}}>
+            <div style={{
+              fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
+              lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
+              fontVariantNumeric:'tabular-nums',
+            }}>
+              {valore}{suffisso && <span style={{fontSize: 15, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+            </div>
+            {trend && trend.length > 1 && (
+              <span style={{flexShrink: 0, opacity: 0.9, marginBottom: 2}}>
+                <StatSpark data={trend} color={t.forte} width={54} height={22}/>
+              </span>
+            )}
           </div>
           <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.3}}>{sub}</div>
         </div>
