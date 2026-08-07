@@ -9,8 +9,9 @@
 // interessante (in sala ci vuole quasi il quadruplo) si vede invece di
 // doverlo calcolare. La quota la portano le pillole, il totale il sottotitolo.
 const CANALI_ORDINI = [
-  { id:'sala',    label:'In sala',   sub:'Coperti seduti',              icona:'place-table',       colore: PN.WINE },
-  { id:'asporto', label:'Asporto e delivery', sub:'Ritiro o consegna',  icona:'commerce-delivery', colore: PN.PINK },
+  { id:'sala',    label:'In sala',          sub:'Coperti seduti',    icona:'place-table',       colore: PN.WINE },
+  { id:'asporto', label:'Asporto',          sub:'Ordini da ritirare', icona:'commerce-bag',     colore: PN.PINK },
+  { id:'diretta', label:'Vendita diretta',  sub:'Ordini alla cassa',  icona:'commerce-register', colore: PN.AMBER },
 ];
 
 function OrdiniPerCanale({ d }) {
@@ -24,7 +25,7 @@ function OrdiniPerCanale({ d }) {
       sub={`Come si dividono i ${totale.toLocaleString('it-IT', {useGrouping: true})} ordini del periodo`}>
       {/* Niente barra della divisione sopra i due riquadri: la quota la
           dicono già le due pillole, e il sottotitolo dice il totale. */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 14}}>
         {canali.map(c => {
           const quota = (c.completati / totale) * 100;
           const spento = su != null && su !== c.id;
@@ -139,7 +140,7 @@ function StatOrdini() {
       {/* Heatmap */}
       <StatCard title="Heatmap oraria ordini" sub={`Ordini medi per fascia oraria · canale ${channel}`} action={
         <div style={{display:'inline-flex', gap: 6, padding: 4, background:'#f5f5f7', borderRadius: 999}}>
-          {['Sala','Asporto','Delivery','App clienti'].map(ch => (
+          {['Sala','Asporto','Vendita diretta','App clienti'].map(ch => (
             <button key={ch} onClick={() => setChannel(ch)} style={{
               padding:'5px 12px', fontSize: 14.5, fontWeight: 600,
               background: channel === ch ? PN.WHITE : 'transparent',

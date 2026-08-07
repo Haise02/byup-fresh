@@ -62,8 +62,11 @@ const STAT_ORDINI = {
     articoli: { val: 3.2, delta: 8.4, sub:'Articoli per ordine medio',
       trend: [2.8, 2.9, 2.85, 3.0, 2.95, 3.05, 3.0, 3.1, 3.05, 3.15, 3.1, 3.2, 3.15, 3.2] },
   },
-  asporto: { completati: 612, tempoMedio: '14 min' },
+  // I tre canali sommano ai 1.320 ordini completati qui sopra: sono le tre
+  // parti dello stesso totale, non tre conteggi indipendenti.
   sala:    { completati: 708, tempoMedio: '52 min' },
+  asporto: { completati: 372, tempoMedio: '14 min' },
+  diretta: { completati: 240, tempoMedio: '4 min' },
   // Heatmap: 7 giorni × 8 fasce, ogni cella = ordini medi nel giorno tipico
   heatmap: [
     // 08-09, 09-10, 10-11, 11-12, 12-13, 13-14, 19-20, 20-21
