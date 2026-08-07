@@ -25,20 +25,20 @@ function StatApp() {
           alla pillola, la forma per esteso nel sottotitolo che ha la riga
           intera. */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
-        <StatKpiTinto compatto tono="blu" icona="globe-web" label="Visite"
+        <StatKpiTinto compatto tono="rosso" icona="arrow-down-right" label="Abbandoni"
+          valore={dropTotal.toLocaleString('it-IT', {useGrouping: true})}
+          delta={-3.1} sub="Chi non arriva al pagamento" trend={d.trend.abbandoni}/>
+        <StatKpiTinto compatto tono="giallo" icona="globe-web" label="Visite"
           valore={totV.toLocaleString('it-IT', {useGrouping: true})}
           delta={14.2} sub="Visualizzazioni della tua vetrina" trend={d.trend.visite}/>
+        {/* Glifo e non icona: per un tasso il segno di percentuale è il
+            concetto, e il set non ha una percentuale. */}
+        <StatKpiTinto compatto tono="blu" glifo="%" label="Conversione"
+          valore={((last / totV) * 100).toFixed(1).replace('.', ',')} suffisso="%"
+          delta={2.4} sub="Dalla vetrina al pagamento" trend={d.trend.conversione}/>
         <StatKpiTinto compatto tono="verde" icona="commerce-bank-cards" label="Pagamenti"
           valore={last.toLocaleString('it-IT', {useGrouping: true})}
           delta={9.6} sub="Ordini conclusi con successo" trend={d.trend.pagamenti}/>
-        {/* Glifo e non icona: per un tasso il segno di percentuale è il
-            concetto, e il set non ha una percentuale. */}
-        <StatKpiTinto compatto tono="rosa" glifo="%" label="Conversione"
-          valore={((last / totV) * 100).toFixed(1).replace('.', ',')} suffisso="%"
-          delta={2.4} sub="Dalla vetrina al pagamento" trend={d.trend.conversione}/>
-        <StatKpiTinto compatto tono="giallo" icona="arrow-down-right" label="Abbandoni"
-          valore={dropTotal.toLocaleString('it-IT', {useGrouping: true})}
-          delta={-3.1} sub="Chi non arriva al pagamento" trend={d.trend.abbandoni}/>
       </div>
 
       {/* Funnel viz */}

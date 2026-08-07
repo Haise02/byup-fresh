@@ -91,6 +91,11 @@ const STAT_TONI = {
   // all'arancio. Questo resta leggibile anche a due pixel di linea.
   giallo: { forte: '#CA8A04', bg:'linear-gradient(115deg, #FAF0CD 0%, #FDF9EB 52%, #FFFFFF 100%)', bordo:'#EFDFAC' },
   viola:  { forte: PN.PURPLE, bg:'linear-gradient(115deg, #EDE9FE 0%, #F7F5FF 52%, #FFFFFF 100%)', bordo:'#DDD5FB' },
+  // Rosso ≠ rosa: il rosa è il corallo del brand e non dice niente di male,
+  // questo è il RED dei token — quello di «errore» — per le misure che contano
+  // quando calano. Il fondo è appena più freddo e più carico del rosa, perché
+  // messi vicini si distinguano.
+  rosso:  { forte: PN.RED, bg:'linear-gradient(115deg, #FCDEDE 0%, #FDF3F3 52%, #FFFFFF 100%)', bordo:'#F5C7C7' },
 };
 
 // `glifo` invece di `icona` dove il simbolo È il concetto: per «margine» e
