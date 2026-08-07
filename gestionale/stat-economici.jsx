@@ -633,16 +633,20 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 // Le etichette restano comunque corte e la forma lunga sta nel sottotitolo,
 // che prima le ripeteva: «Articoli totali venduti» compariva due volte nella
 // stessa card.
+// Stessa ricetta dei toni di Ricavi e costi: sfumatura a 115°, dalla tinta
+// piena in alto a sinistra al bianco in basso a destra, bordo intonato, e il
+// bollino dell'icona BIANCO — su un fondo colorato è il bianco a staccarsi,
+// non il colore. Il verde è preso di peso da lì (era l'utile), gli altri tre
+// sono costruiti allo stesso modo sulla loro tinta.
 const VENDITE_TONI = {
-  verde:  { forte: PN.GREEN,  tenue: PN.GREEN_SOFT },
+  verde:  { forte: PN.GREEN, bg:'linear-gradient(115deg, #E6F6EC 0%, #F5FBF7 52%, #FFFFFF 100%)', bordo:'#CFEBD9' },
+  rosa:   { forte: PN.PINK,  bg:'linear-gradient(115deg, #FFE6E5 0%, #FFF6F5 52%, #FFFFFF 100%)', bordo:'#FBD3D1' },
+  blu:    { forte: PN.BLUE,  bg:'linear-gradient(115deg, #E3ECFC 0%, #F4F8FE 52%, #FFFFFF 100%)', bordo:'#CCDBF6' },
   // Giallo scritto a mano: PN ha solo AMBER (#D97706), che a schermo vira
-  // all'arancio. Questo è un giallo pieno che resta leggibile sul bianco
-  // anche a 2px di linea.
-  giallo: { forte: '#CA8A04', tenue: '#FEF3C7' },
-  rosa:   { forte: PN.PINK,   tenue: PN.PINK_BG_SOFT },
-  viola:  { forte: PN.PURPLE, tenue: PN.PURPLE_SOFT },
-  blu:    { forte: PN.BLUE,   tenue: PN.BLUE_SOFT },
-  ambra:  { forte: PN.AMBER,  tenue: PN.AMBER_SOFT },
+  // all'arancio. Questo è un giallo pieno che resta leggibile anche a 2px
+  // di linea.
+  giallo: { forte: '#CA8A04', bg:'linear-gradient(115deg, #FAF0CD 0%, #FDF9EB 52%, #FFFFFF 100%)', bordo:'#EFDFAC' },
+  viola:  { forte: PN.PURPLE, bg:'linear-gradient(115deg, #EDE9FE 0%, #F7F5FF 52%, #FFFFFF 100%)', bordo:'#DDD5FB' },
 };
 
 // `glifo` invece di `icona` dove il simbolo È il concetto: per «margine» e
@@ -653,16 +657,16 @@ function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, t
   return (
     <div {...boxHover} style={{
       padding: 14, borderRadius: 16, minWidth: 0, overflow:'hidden',
-      flex: 1,
-      background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+      background: t.bg, border: `1px solid ${t.bordo}`,
       display:'flex', flexDirection:'column',
       transition: BOX_TRANSITION,
     }}>
       <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
         <span style={{
           width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
-          background: t.tenue, color: t.forte,
+          background: PN.WHITE, color: t.forte,
           display:'grid', placeItems:'center',
+          boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
         }}>{glifo
           ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
           : <Icon name={icona} size={19}/>}</span>
