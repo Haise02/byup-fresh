@@ -19,6 +19,16 @@ function StatOrdini() {
   const heatColor = (v) => v / maxHeat >= 0.55 ? '#fff' : PN.TEXT;
   const days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
   const [channel, setChannel] = React.useState('Sala');
+  // Cella sotto il mouse: le celle non portano più il numero dentro — 63
+  // numeri litigano col colore, e una heatmap serve a far vedere il ritmo
+  // della settimana, non a farsi leggere una casella per volta. Il valore
+  // esatto compare qui sopra al passaggio, e quello che conta di più — il
+  // picco — è scritto sempre.
+  const [cella, setCella] = React.useState(null);
+  const picco = d.heatmap.reduce((best, row, ri) => {
+    row.val.forEach((v, ci) => { if (v > best.v) best = { v, ri, ci }; });
+    return best;
+  }, { v: -1, ri: 0, ci: 0 });
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -58,41 +68,83 @@ function StatOrdini() {
           ))}
         </div>
       }>
+        {/* La lettura del momento: sotto il mouse la cella puntata, altrimenti
+            il picco della settimana, che è la domanda con cui si guarda una
+            heatmap oraria — "quando sono pieno". */}
         <div style={{
-          display:'grid',
-          gridTemplateColumns:`64px repeat(7, 1fr)`,
-          gap: 3,
+          display:'flex', alignItems:'baseline', justifyContent:'flex-end',
+          gap: 8, marginTop: -6, marginBottom: 12, minHeight: 22,
         }}>
+          {(() => {
+            const c = cella || picco;
+            const v = d.heatmap[c.ri].val[c.ci];
+            return (
+              <>
+                <span style={{fontSize: 13.5, color: PN.MUTED_SOFT}}>{cella ? '' : 'picco della settimana'}</span>
+                <span style={{fontSize: 14.5, color: PN.MUTED}}>
+                  {days[c.ci]} · {d.heatmap[c.ri].ora}
+                </span>
+                <strong style={{fontSize: 16, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{v}</strong>
+                <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>ordini</span>
+              </>
+            );
+          })()}
+        </div>
+
+        <div
+          onMouseLeave={() => setCella(null)}
+          style={{display:'grid', gridTemplateColumns:'48px repeat(7, 1fr)', gap: 4}}>
           <div></div>
-          {days.map(day => (
+          {days.map((day, ci) => (
             <div key={day} style={{
-              padding:'6px 0', fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
+              padding:'4px 0 8px', fontSize: 12.5, fontWeight: 700,
+              color: cella && cella.ci === ci ? PN.TEXT : PN.MUTED,
               textAlign:'center', textTransform:'uppercase', letterSpacing: 0.4,
+              transition:'color 140ms ease',
             }}>{day}</div>
           ))}
           {d.heatmap.map((row, ri) => (
             <React.Fragment key={ri}>
               <div style={{
-                padding:'0 10px 0 0', fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                padding:'0 10px 0 0', fontSize: 12.5, fontWeight: 600,
+                color: cella && cella.ri === ri ? PN.TEXT : PN.MUTED,
                 fontVariantNumeric:'tabular-nums', textAlign:'right', alignSelf:'center',
+                transition:'color 140ms ease',
               }}>{row.ora}</div>
-              {row.val.map((v, i) => (
-                <div key={i} style={{
-                  height: 40, borderRadius: 5,
-                  background: heatBg(v), color: heatColor(v),
-                  display:'grid', placeItems:'center',
-                  fontSize: 13, fontWeight: 600, fontVariantNumeric:'tabular-nums',
-                }}>{v}</div>
-              ))}
+              {row.val.map((v, ci) => {
+                const su = cella && cella.ri === ri && cella.ci === ci;
+                const eIlPicco = ri === picco.ri && ci === picco.ci;
+                return (
+                  <div key={ci}
+                    onMouseEnter={() => setCella({ ri, ci })}
+                    style={{
+                      // 40 e non 34: su una card a tutta pagina le celle sono
+                      // larghe 170, e a 34 sembravano strisce invece che caselle.
+                      height: 40, borderRadius: 8, background: heatBg(v),
+                      position:'relative', cursor:'default',
+                      // L'anello sta sul picco sempre e sulla cella puntata
+                      // mentre ci sei sopra: due modi di dire "guarda qui" che
+                      // non si pestano i piedi, perché il secondo è passeggero.
+                      boxShadow: su
+                        ? `0 0 0 2px ${PN.WHITE}, 0 0 0 3.5px ${PN.WINE}`
+                        : eIlPicco ? `0 0 0 2px ${PN.WHITE}, 0 0 0 3px ${PN.WINE}` : 'none',
+                      transform: su ? 'scale(1.08)' : 'scale(1)',
+                      zIndex: su || eIlPicco ? 2 : 1,
+                      transition:'transform 140ms ease, box-shadow 140ms ease',
+                    }}/>
+                );
+              })}
             </React.Fragment>
           ))}
         </div>
-        <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 16, fontSize: 14, color: PN.MUTED}}>
-          <span style={{marginRight: 4}}>Bassa attività</span>
+
+        <div style={{display:'flex', alignItems:'center', gap: 7, marginTop: 16, fontSize: 13.5, color: PN.MUTED}}>
+          <span style={{fontVariantNumeric:'tabular-nums'}}>0</span>
           {HEAT_RAMP.map(c => (
-            <span key={c} style={{width: 22, height: 10, background: c, borderRadius: 3}}/>
+            <span key={c} style={{width: 26, height: 10, background: c, borderRadius: 3}}/>
           ))}
-          <span style={{marginLeft: 4}}>Alta attività</span>
+          <span style={{fontVariantNumeric:'tabular-nums'}}>{maxHeat}</span>
+          <span style={{marginLeft: 6, color: PN.MUTED_SOFT}}>ordini in un'ora</span>
         </div>
       </StatCard>
     </div>
