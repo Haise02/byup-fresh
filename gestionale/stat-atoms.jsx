@@ -421,6 +421,28 @@ function StatInsight({ items = [] }) {
   );
 }
 
+// ─── Intestazione di colonna ordinabile ────────────────────────
+// Stava in fondo a stat-staff, che di tabelle non ne ha più: le altre due che
+// la usano — i piatti in Economici, il menu in App — se la trovavano lì solo
+// perché i file finiscono tutti nello stesso ambito globale. Qui è dove
+// dovrebbe essere stata dall'inizio.
+function SortHead({ col, cur, order, onSort, children }) {
+  const active = col === cur;
+  return (
+    <button onClick={() => onSort(col)} style={{
+      background:'transparent', border:'none', padding: 0,
+      fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
+      textTransform:'uppercase', letterSpacing: 0.5,
+      textAlign:'left', cursor:'pointer', fontFamily:'inherit',
+      display:'inline-flex', alignItems:'center', gap: 5,
+      opacity: active ? 1 : 0.85,
+    }}>
+      {children}
+      <span style={{fontSize: 12, opacity: active ? 1 : 0.4}}>{active ? (order === 'asc' ? '↑' : '↓') : '↕'}</span>
+    </button>
+  );
+}
+
 // ─── Card ──────────────────────────────────────────────────────
 // `style`: override del contenitore — le card che stanno in una riga con una
 // vicina più alta lo usano per diventare colonne flex e distribuire l'altezza
@@ -564,6 +586,7 @@ function StatBar({ pct, color = PN.PINK, height = 8, showLabel, label, animated 
 
 window.StatKpi = StatKpi;
 window.StatDelta = StatDelta;
+window.SortHead = SortHead;
 window.StatSpark = StatSpark;
 window.StatKpiTinto = StatKpiTinto;
 window.StatDonut = StatDonut;

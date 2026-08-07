@@ -10,7 +10,11 @@ const STAFF_TREND = {
 };
 const STAFF_MANCE_DELTA = 14.1;
 
-const euro = (v, dec = 2) => `€ ${v.toFixed(dec).replace('.', ',')}`;
+// Prefissata come tutto il resto qui dentro: i file di Statistiche stanno in
+// un ambito globale solo, e una `euro` generica sarebbe rimasta lì ad aspettare
+// che un'altra scheda ne dichiarasse una sua con lo stesso nome — a quel punto
+// non si rompe una funzione, si rompe la pagina.
+const staffEuro = (v, dec = 2) => `€ ${v.toFixed(dec).replace('.', ',')}`;
 
 // ─── Il valore di una riga: filo e pallino ─────────────────────
 // Era una barra piena dentro una traccia grigia: otto righe così fanno un
@@ -104,7 +108,7 @@ function StaffPannello({ metrica, media }) {
         <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.1}}>{metrica.et}</span>
         <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13, color: PN.MUTED, fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
           <span style={{width: 1.5, height: 11, background:'rgba(15,17,21,0.28)'}}/>
-          media {euro(media)}
+          media {staffEuro(media)}
         </span>
       </div>
 
@@ -144,7 +148,7 @@ function StaffPannello({ metrica, media }) {
             <strong style={{
               textAlign:'right', fontSize: 15, fontWeight: 700, color: PN.TEXT,
               fontVariantNumeric:'tabular-nums', letterSpacing: -0.2,
-            }}>{euro(s.v)}</strong>
+            }}>{staffEuro(s.v)}</strong>
           </div>
         ))}
       </div>
@@ -171,7 +175,7 @@ function StatStaff() {
           stessa di Economici, con le etichette per esteso. */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
         <StatKpiTinto tono="rosa" glifo="€" label="Scontrino medio"
-          valore={euro(teamAvg)}
+          valore={staffEuro(teamAvg)}
           delta={6.4} sub={`Media fra gli ${STAFF.length} membri attivi`} trend={STAFF_TREND.scontrino}/>
         <StatKpiTinto tono="giallo" icona="commerce-cart" label="Ordini gestiti"
           valore={totOrdini.toLocaleString('it-IT', {useGrouping: true})}
