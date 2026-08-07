@@ -28519,6 +28519,7 @@ function MenuScreen({
 const SOGLIA_TRASCINA = 28;
 function useTrascinaFoglio(mode, setMode) {
   const rif = useRef(null);
+  const trascinato = useRef(false);
   const inizio = e => {
     if (e.button != null && e.button !== 0) return;
     // Premuto su un bottone (cestino, invio ordine): quello non è un
@@ -28528,6 +28529,7 @@ function useTrascinaFoglio(mode, setMode) {
       y: e.clientY,
       risolto: false
     };
+    trascinato.current = false;
     // Senza cattura, tirando in fretta il dito esce dalla fascia e i
     // `pointermove` smettono di arrivare a metà gesto.
     try {
@@ -28540,20 +28542,38 @@ function useTrascinaFoglio(mode, setMode) {
     const dy = e.clientY - r.y;
     if (dy <= -SOGLIA_TRASCINA && mode !== 'expanded') {
       r.risolto = true;
+      trascinato.current = true;
       setMode('expanded');
     } else if (dy >= SOGLIA_TRASCINA && mode === 'expanded') {
       r.risolto = true;
+      trascinato.current = true;
       setMode('collapsed');
     }
   };
   const fine = () => {
     rif.current = null;
   };
+  // Scorciatoia sulla sola lineetta: toccare la maniglia di un foglio in
+  // fondo allo schermo è un gesto che si fa d'istinto, e senza non
+  // succedeva niente. Sulla fascia intera no: lì il tocco cadrebbe sopra il
+  // contatore e i bottoni, dove non significa "apri". Dopo un trascinamento
+  // il click arriva lo stesso e va ignorato, o riaprirebbe quel che hai
+  // appena chiuso.
+  const tocca = () => {
+    if (trascinato.current) {
+      trascinato.current = false;
+      return;
+    }
+    setMode(mode === 'expanded' ? 'collapsed' : 'expanded');
+  };
   return {
-    onPointerDown: inizio,
-    onPointerMove: muovi,
-    onPointerUp: fine,
-    onPointerCancel: fine
+    presa: {
+      onPointerDown: inizio,
+      onPointerMove: muovi,
+      onPointerUp: fine,
+      onPointerCancel: fine
+    },
+    tocca
   };
 }
 
@@ -29101,7 +29121,8 @@ function OrderSheet({
       display: 'flex',
       flexDirection: 'column'
     }
-  }, /*#__PURE__*/React.createElement("div", _extends({}, trascina, {
+  }, /*#__PURE__*/React.createElement("div", _extends({}, trascina.presa, {
+    onClick: trascina.tocca,
     style: {
       cursor: 'grab',
       padding: '10px 0 6px',
@@ -29123,7 +29144,7 @@ function OrderSheet({
   // bersaglio da mouse, non da pollice, e il dito si appoggia dove legge
   // il contatore. `touchAction: none` serve o il browser interpreta il
   // gesto verticale come uno scroll e se lo prende lui.
-  React.createElement("div", _extends({}, trascina, {
+  React.createElement("div", _extends({}, trascina.presa, {
     style: {
       padding: '4px 22px 22px',
       cursor: 'grab',
@@ -29180,7 +29201,7 @@ function OrderSheet({
       justifyContent: 'center',
       gap: 10
     }
-  }, /*#__PURE__*/React.createElement("span", null, "Invia ordine"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", _extends({}, trascina, {
+  }, /*#__PURE__*/React.createElement("span", null, "Invia ordine"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", _extends({}, trascina.presa, {
     style: {
       display: 'flex',
       alignItems: 'center',
