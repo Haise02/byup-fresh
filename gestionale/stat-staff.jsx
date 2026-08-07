@@ -11,8 +11,8 @@ const STAFF_TREND = {
 const STAFF_MANCE_DELTA = 14.1;
 
 // ─── Pillola d'intestazione degli spotlight ────────────────────
-// Stessa forma del bollino «Top» che compare nella tabella qui sotto: quando
-// l'occhio scende dalla card alla riga riconosce lo stesso segno.
+// Dice di cosa parla il riquadro in una parola sola, con la tinta del tema:
+// ambra per il migliore del periodo, verde per le mance.
 function StaffBadge({ icona, testo, colore, sfondo }) {
   return (
     <span style={{
@@ -298,16 +298,11 @@ function StatStaff() {
                     fontSize: 14, fontWeight: 700, flexShrink: 0,
                   }}>{s.avatar}</div>
                   <div style={{minWidth: 0}}>
-                    <div style={{fontWeight: 600, display:'flex', alignItems:'center', gap:6, whiteSpace:'nowrap'}}>
-                      <span style={{overflow:'hidden', textOverflow:'ellipsis'}}>{s.nome}</span>
-                      {isTop && <span style={{
-                        display:'inline-flex', alignItems:'center', gap:3,
-                        padding:'1px 6px', borderRadius: 4,
-                        background: PN.AMBER_SOFT, color: PN.AMBER,
-                        fontSize: 11.5, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
-                        flexShrink: 0,
-                      }}><BuIcons.trophy size={10}/> Top</span>}
-                    </div>
+                    {/* Niente bollino accanto al nome: chi è il migliore lo
+                        dice già la card qui sopra, con nome e faccia. Alla
+                        riga resta il fondo caldo, che la ritrova senza
+                        ripetere la parola. */}
+                    <div style={{fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.nome}</div>
                     <div style={{fontSize: 14, color: PN.MUTED}}>{s.ruolo}</div>
                   </div>
                 </div>
