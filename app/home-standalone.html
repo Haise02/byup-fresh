@@ -12005,7 +12005,7 @@ const A_TERMS = [{
   p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.'
 }, {
   h: 'Descrizione del servizio',
-  p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti maggiorenni registrati con un account personale.'
+  p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.'
 }, {
   h: 'Prenotazioni e cancellazioni',
   p: 'Le prenotazioni effettuate tramite byup sono vincolanti. La cancellazione è gratuita fino a 2 ore prima dell\'orario prenotato. Cancellazioni tardive o mancata presentazione (no-show) ripetuti possono comportare la sospensione temporanea del servizio di prenotazione.'
@@ -12167,7 +12167,11 @@ function AuthRegister({
   const phoneOk = phone.replace(/\D/g, '').length >= 8;
   const otpOk = otp.every(d => d !== '');
 
-  // età ≥ 18 a partire dalla data di nascita
+  // Età minima 14 e non 18: l'app è aperta ai minorenni, e 14 anni è l'età
+  // in cui in Italia si può prestare da soli il consenso al trattamento dei
+  // dati per i servizi online (art. 2-quinquies del Codice Privacy). Sotto,
+  // servirebbe il consenso di chi esercita la responsabilità genitoriale, che
+  // l'app oggi non raccoglie: per questo lì il blocco resta.
   const age = (() => {
     if (!dob) return null;
     const d = new Date(dob);
@@ -12178,7 +12182,7 @@ function AuthRegister({
     if (m < 0 || m === 0 && now.getDate() < d.getDate()) a--;
     return a;
   })();
-  const dobOk = age !== null && age >= 18 && age < 120;
+  const dobOk = age !== null && age >= 14 && age < 120;
   const pwMatch = pw.length > 0 && pw === pw2;
   const stepValid = [nome.trim() && cognome.trim() && dobOk, emailOk && pw.length >= 8 && pwMatch, phoneOk, otpOk, terms // preferenze opzionali, ma serve il consenso
   ][step];
@@ -12333,7 +12337,7 @@ function AuthRegister({
       marginTop: -8,
       paddingLeft: 2
     }
-  }, "Devi avere almeno 18 anni per registrarti.")), step === 1 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LightField, {
+  }, "Devi avere almeno 14 anni per registrarti.")), step === 1 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LightField, {
     label: "Email",
     value: email,
     onChange: setEmail,

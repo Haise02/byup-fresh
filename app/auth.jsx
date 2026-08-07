@@ -367,7 +367,7 @@ const CUISINES = ['Pizza', 'Sushi', 'Italiana', 'Burger', 'Vegetariana', 'Cockta
 // Contenuti legali (allineati a quelli del profilo in extras.jsx)
 const A_TERMS = [
   { h: 'Accettazione dei termini', p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.' },
-  { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti maggiorenni registrati con un account personale.' },
+  { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.' },
   { h: 'Prenotazioni e cancellazioni', p: 'Le prenotazioni effettuate tramite byup sono vincolanti. La cancellazione è gratuita fino a 2 ore prima dell\'orario prenotato. Cancellazioni tardive o mancata presentazione (no-show) ripetuti possono comportare la sospensione temporanea del servizio di prenotazione.' },
   { h: 'Responsabilità', p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.' },
   { h: 'Proprietà intellettuale', p: 'Tutti i contenuti presenti su byup (logo, testi, immagini, interfaccia) sono di proprietà di byup S.r.l. o dei rispettivi titolari. È vietata qualsiasi riproduzione o utilizzo non autorizzato.' },
@@ -456,7 +456,11 @@ function AuthRegister({ onBack, onDone }) {
   const phoneOk = phone.replace(/\D/g, '').length >= 8;
   const otpOk = otp.every(d => d !== '');
 
-  // età ≥ 18 a partire dalla data di nascita
+  // Età minima 14 e non 18: l'app è aperta ai minorenni, e 14 anni è l'età
+  // in cui in Italia si può prestare da soli il consenso al trattamento dei
+  // dati per i servizi online (art. 2-quinquies del Codice Privacy). Sotto,
+  // servirebbe il consenso di chi esercita la responsabilità genitoriale, che
+  // l'app oggi non raccoglie: per questo lì il blocco resta.
   const age = (() => {
     if (!dob) return null;
     const d = new Date(dob);
@@ -467,7 +471,7 @@ function AuthRegister({ onBack, onDone }) {
     if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
     return a;
   })();
-  const dobOk = age !== null && age >= 18 && age < 120;
+  const dobOk = age !== null && age >= 14 && age < 120;
   const pwMatch = pw.length > 0 && pw === pw2;
 
   const stepValid = [
@@ -539,7 +543,7 @@ function AuthRegister({ onBack, onDone }) {
               } />
             {dob && !dobOk && (
               <div style={{ fontSize: 12.5, color: '#E5484D', marginTop: -8, paddingLeft: 2 }}>
-                Devi avere almeno 18 anni per registrarti.
+                Devi avere almeno 14 anni per registrarti.
               </div>
             )}
           </>
