@@ -16,6 +16,24 @@ function StatPrenotazioni() {
     { id:'noshow',     label:'Non presentati', ...d.stato.noShow, color: PN.MUTED_LIGHT },
   ];
 
+  // Occupazione per fascia — colonne invece di una lista di barre. Una lista
+  // mette in fila sette percentuali; le colonne mostrano la FORMA della
+  // giornata: due gobbe, il pranzo e la cena, separate dalle ore in cui il
+  // locale è chiuso. È anche la stessa grammatica di "Coperti per giorno" qui
+  // sotto — baseline, soglia tratteggiata, valore sopra la colonna — così le
+  // due card della sezione si leggono con lo stesso occhio.
+  const capienza = Math.max(...d.fasceOccupazione.map(f => f.max));
+  const piena = d.fasceOccupazione.reduce((a, f) => f.tavoli > a.tavoli ? f : a, d.fasceOccupazione[0]);
+  // Dove si spezza la giornata: fra due fasce non consecutive c'è il buco fra
+  // i servizi, ed è lì che va la riga di stacco.
+  const stacco = d.fasceOccupazione.findIndex((f, i) =>
+    i > 0 && parseInt(f.ora) - parseInt(d.fasceOccupazione[i-1].ora) > 1);
+  const foW = 460, foH = 214, foP = { l: 6, r: 66, t: 26, b: 30 };
+  const foPlotH = foH - foP.t - foP.b;
+  const foSlot = (foW - foP.l - foP.r) / d.fasceOccupazione.length;
+  const foBarW = Math.min(26, Math.round(foSlot * 0.5));
+  const foY = (v) => foH - foP.b - (v / capienza) * foPlotH;
+
   // Coperti per giorno — colonne SVG con baseline, cap arrotondato 4px, e la
   // media del periodo come soglia tratteggiata etichettata sul margine destro.
   // Non più un target deciso a tavolino: il riferimento è quello che il locale
@@ -59,27 +77,47 @@ function StatPrenotazioni() {
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
         {/* Occupazione fasce — un solo colore di serie; il wine scatta
             solo come stato "quasi pieno" (≥85%), non come sfumatura. */}
-        <StatCard title="Occupazione tavoli per fascia oraria" sub="Tavoli occupati ordinati per orario · totale 20 tavoli">
-          <div style={{display:'flex', flexDirection:'column', gap: 13}}>
+        <StatCard title="Occupazione tavoli per fascia oraria"
+          sub={`Su ${capienza} tavoli · picco alle ${piena.ora} con ${piena.tavoli}`} action={
+          // Una sola voce: la seconda avrebbe dovuto chiamarsi "resto", che
+          // non è uno stato ma l'assenza dell'altro.
+          <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 14, color: PN.MUTED}}>
+            <span style={{width:10, height:10, borderRadius:3, background: PN.WINE}}/> quasi pieno, da 85%
+          </span>
+        }>
+          <svg viewBox={`0 0 ${foW} ${foH}`} style={{width:'100%', display:'block'}}>
+            <line x1={foP.l} y1={foH - foP.b} x2={foW - foP.r + 4} y2={foH - foP.b} stroke={PN.BORDER} strokeWidth={1}/>
+            {/* La capienza: è il tetto, non una griglia, quindi tratteggiata. */}
+            <line x1={foP.l} y1={foY(capienza)} x2={foW - foP.r + 4} y2={foY(capienza)} stroke={PN.TEXT} strokeWidth={1.3} strokeDasharray="5 4" opacity={0.55}/>
+            <text x={foW - foP.r + 10} y={foY(capienza) + 4} fontSize="11.5" fontWeight="600" fill={PN.MUTED}>{capienza} tavoli</text>
+
+            {/* Lo stacco fra pranzo e cena: senza, le due gobbe sembrano una
+                curva sola con un avvallamento, e non è quello che succede. */}
+            {stacco > 0 && (
+              <line
+                x1={foP.l + stacco * foSlot} y1={foP.t - 6}
+                x2={foP.l + stacco * foSlot} y2={foH - foP.b}
+                stroke={PN.BORDER} strokeWidth={1} strokeDasharray="3 4"/>
+            )}
+
             {d.fasceOccupazione.map((f, i) => {
-              const pct = Math.round((f.tavoli / f.max) * 100);
-              const critical = pct >= 85;
+              const quasiPieno = f.tavoli / f.max >= 0.85;
+              const top = foY(f.tavoli);
+              const x = foP.l + i * foSlot + (foSlot - foBarW) / 2;
               return (
-                <div key={i} style={{display:'grid', gridTemplateColumns:'56px 1fr 90px 48px', alignItems:'center', gap: 12}}>
-                  <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{f.ora}</span>
-                  <div style={{height: 8, background: PN.WHITE_FROST, borderRadius: 999, overflow:'hidden'}}>
-                    <div style={{
-                      height:'100%', width: `${Math.min(pct,100)}%`,
-                      background: critical ? PN.WINE : PN.PINK, borderRadius: 999,
-                      transition:'width 0.4s ease-out',
-                    }}/>
-                  </div>
-                  <span style={{fontSize: 14.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>{f.tavoli}/{f.max} tavoli</span>
-                  <span style={{fontSize: 14.5, fontWeight: 700, color: critical ? PN.WINE : PN.TEXT, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>{pct}%</span>
-                </div>
+                <g key={i}>
+                  {/* Il binario mostra quanto NON è stato usato: senza, una
+                      colonna bassa non dice se il locale era vuoto o piccolo. */}
+                  <path d={colPath(x, foY(capienza), foBarW, (foH - foP.b) - foY(capienza), 4)} fill={PN.WHITE_FROST}/>
+                  <path d={colPath(x, top, foBarW, (foH - foP.b) - top, 4)} fill={quasiPieno ? PN.WINE : PN.PINK}/>
+                  <text x={x + foBarW/2} y={top - 7} fontSize="12.5" fontWeight="600"
+                    fill={quasiPieno ? PN.WINE : PN.TEXT} textAnchor="middle"
+                    stroke={PN.WHITE} strokeWidth={3} paintOrder="stroke">{f.tavoli}</text>
+                  <text x={x + foBarW/2} y={foH - 10} fontSize="12" fontWeight="600" fill={PN.MUTED} textAnchor="middle">{f.ora.replace(':00', '')}</text>
+                </g>
               );
             })}
-          </div>
+          </svg>
         </StatCard>
 
         {/* Stato prenotazioni — totale come numero guida, proporzioni in
