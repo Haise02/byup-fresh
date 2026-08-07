@@ -156,6 +156,11 @@ const STAT_ECONOMICI = {
   ],
 };
 
+// Miniature dei piatti: 80px bastano per un bollino da 34, e il doppio per
+// gli schermi retina. Nome distinto da DISH_PHOTO di Impostazioni, che è un
+// altro global const e in questo gestionale gli script non sono isolati.
+const STAT_FOTO = (id) => `https://images.unsplash.com/${id}?w=80&h=80&q=70&auto=format&fit=crop`;
+
 const STAT_VENDITE = {
   // `trend`: 14 settimane, servono alle sparkline delle card KPI. Salgono
   // tutte perché tutti e quattro i delta sono positivi: una linea che scende
@@ -180,17 +185,21 @@ const STAT_VENDITE = {
     asporto: [2600, 2800, 3100, 3700, 3300, 4100, 3800, 3500, 4400, 3900, 4250, 4500],
     delivery:[ 800,  900, 1100, 1500, 1300, 1800, 1700, 1500, 2100, 1900, 2050, 2300],
   },
+  // Le foto sono le stesse della libreria piatti in Impostazioni → Menù, così
+  // il prototipo racconta una cucina sola. Dove il piatto lì non esiste
+  // (coda alla vaccinara, trippa, carciofi) si presta quella della stessa
+  // categoria: sono segnaposto, e i veri scatti arrivano dal menù del locale.
   piatti: [
-    { nome:'Cacio e Pepe',   costo: 4.20, ricavo: 14.00, margine: 9.80, n: 412, costiTot: 1730.4, ricavoTot: 5768, marginePct: 70 },
-    { nome:'Carbonara',      costo: 4.80, ricavo: 15.00, margine: 10.20, n: 386, costiTot: 1852.8, ricavoTot: 5790, marginePct: 68 },
-    { nome:'Amatriciana',    costo: 4.50, ricavo: 14.50, margine: 10.00, n: 342, costiTot: 1539.0, ricavoTot: 4959, marginePct: 69 },
-    { nome:'Saltimbocca',    costo: 7.20, ricavo: 22.00, margine: 14.80, n: 198, costiTot: 1425.6, ricavoTot: 4356, marginePct: 67 },
-    { nome:'Coda alla vaccinara', costo: 8.90, ricavo: 24.00, margine: 15.10, n: 142, costiTot: 1263.8, ricavoTot: 3408, marginePct: 63 },
-    { nome:'Trippa',         costo: 5.40, ricavo: 16.00, margine: 10.60, n: 124, costiTot: 669.6,  ricavoTot: 1984, marginePct: 66 },
-    { nome:'Tiramisù',       costo: 2.10, ricavo: 8.00,  margine: 5.90,  n: 386, costiTot: 810.6,  ricavoTot: 3088, marginePct: 74 },
-    { nome:'Pesce spada',    costo: 12.40,ricavo: 28.00, margine: 15.60, n: 98,  costiTot: 1215.2, ricavoTot: 2744, marginePct: 56 },
-    { nome:'Carciofi alla giudia', costo: 3.20, ricavo: 9.00, margine: 5.80, n: 264, costiTot: 844.8, ricavoTot: 2376, marginePct: 64 },
-    { nome:'Bruschetta',     costo: 1.40, ricavo: 6.00,  margine: 4.60,  n: 312, costiTot: 436.8,  ricavoTot: 1872, marginePct: 77 },
+    { nome:'Cacio e Pepe',   cat:'Primi',     foto: STAT_FOTO('photo-1608756687911-aa1599ab3bd9'), costo: 4.20, ricavo: 14.00, margine: 9.80, n: 412, costiTot: 1730.4, ricavoTot: 5768, marginePct: 70 },
+    { nome:'Carbonara',      cat:'Primi',     foto: STAT_FOTO('photo-1612874742237-6526221588e3'), costo: 4.80, ricavo: 15.00, margine: 10.20, n: 386, costiTot: 1852.8, ricavoTot: 5790, marginePct: 68 },
+    { nome:'Amatriciana',    cat:'Primi',     foto: STAT_FOTO('photo-1621996346565-e3dbc646d9a9'), costo: 4.50, ricavo: 14.50, margine: 10.00, n: 342, costiTot: 1539.0, ricavoTot: 4959, marginePct: 69 },
+    { nome:'Saltimbocca',    cat:'Secondi',   foto: STAT_FOTO('photo-1600891964092-4316c288032e'), costo: 7.20, ricavo: 22.00, margine: 14.80, n: 198, costiTot: 1425.6, ricavoTot: 4356, marginePct: 67 },
+    { nome:'Coda alla vaccinara', cat:'Secondi', foto: STAT_FOTO('photo-1541529086526-db283c563270'), costo: 8.90, ricavo: 24.00, margine: 15.10, n: 142, costiTot: 1263.8, ricavoTot: 3408, marginePct: 63 },
+    { nome:'Trippa',         cat:'Secondi',   foto: STAT_FOTO('photo-1600891964092-4316c288032e'), costo: 5.40, ricavo: 16.00, margine: 10.60, n: 124, costiTot: 669.6,  ricavoTot: 1984, marginePct: 66 },
+    { nome:'Tiramisù',       cat:'Dolci',     foto: STAT_FOTO('photo-1571877227200-a0d98ea607e9'), costo: 2.10, ricavo: 8.00,  margine: 5.90,  n: 386, costiTot: 810.6,  ricavoTot: 3088, marginePct: 74 },
+    { nome:'Pesce spada',    cat:'Secondi',   foto: STAT_FOTO('photo-1467003909585-2f8a72700288'), costo: 12.40,ricavo: 28.00, margine: 15.60, n: 98,  costiTot: 1215.2, ricavoTot: 2744, marginePct: 56 },
+    { nome:'Carciofi alla giudia', cat:'Antipasti', foto: STAT_FOTO('photo-1529312266912-b33cfce2eefd'), costo: 3.20, ricavo: 9.00, margine: 5.80, n: 264, costiTot: 844.8, ricavoTot: 2376, marginePct: 64 },
+    { nome:'Bruschetta',     cat:'Antipasti', foto: STAT_FOTO('photo-1572695157366-5e585ab2b69f'), costo: 1.40, ricavo: 6.00,  margine: 4.60,  n: 312, costiTot: 436.8,  ricavoTot: 1872, marginePct: 77 },
   ],
 };
 

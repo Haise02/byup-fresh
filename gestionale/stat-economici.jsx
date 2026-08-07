@@ -140,6 +140,130 @@ function CostoDelta({ value }) {
   );
 }
 
+// ─── Andamento a linee ────────────────────────────────────────────────────
+// Un componente solo per i due andamenti di questa tab — ricavi vs costi e
+// scontrino medio per canale. Prima erano due grafici scritti a mano: stesse
+// griglie, stesse etichette in fondo alla linea, ma uno aveva il filo del
+// mouse col riquadro del mese e l'altro no. Tenerne due significa che il
+// giorno che si tocca l'uno, l'altro resta indietro.
+const MESI_ESTESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
+function StatAndamento({ serie, etichette, fmt, nota }) {
+  const [hover, setHover] = React.useState(null);
+  const fW = 720, fH = 234, fP = { l: 52, r: 62, t: 16, b: 28 };
+  const massimo = Math.max(...serie.flatMap(s => s.dati));
+  const maxF = Math.ceil(massimo / 10000) * 10000 || 10;
+  const fStep = (fW - fP.l - fP.r) / (etichette.length - 1);
+  const fx = (i) => fP.l + i * fStep;
+  const fy = (val) => fH - fP.b - (val / maxF) * (fH - fP.t - fP.b);
+  const linea = (arr) => arr.map((val, i) => `${i===0?'M':'L'}${fx(i)},${fy(val)}`).join(' ');
+  const area = (arr) => `${linea(arr)} L ${fx(arr.length-1)},${fH-fP.b} L ${fP.l},${fH-fP.b} Z`;
+  const id = React.useId();
+
+  return (
+    <>
+      {/* Legenda sotto al titolo, col valore dell'ultimo mese accanto a ogni
+          serie: il totale del periodo sta altrove e sarebbe un numero
+          diverso da questo. */}
+      <div style={{display:'flex', alignItems:'center', gap: 18, marginTop: -8, marginBottom: 12, flexWrap:'wrap'}}>
+        {serie.map(s => (
+          <span key={s.id} style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 14.5}}>
+            <span style={{width: 10, height: 10, borderRadius: 3, background: s.colore, flexShrink: 0}}/>
+            <span style={{color: PN.MUTED}}>{s.label}</span>
+            <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{fmt(s.dati[s.dati.length-1])}</strong>
+          </span>
+        ))}
+        <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>{nota || 'ultimo mese'}</span>
+      </div>
+
+      <div style={{position:'relative'}}
+        onMouseMove={e => {
+          const box = e.currentTarget.getBoundingClientRect();
+          const scala = box.width / fW;
+          const i = Math.round(((e.clientX - box.left) / scala - fP.l) / fStep);
+          setHover(i >= 0 && i < etichette.length ? i : null);
+        }}
+        onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${fW} ${fH}`} style={{width:'100%', display:'block'}}>
+          <defs>
+            {serie.map(s => (
+              <linearGradient key={s.id} id={`grad-${id}-${s.id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={s.colore} stopOpacity="0.18"/>
+                <stop offset="100%" stopColor={s.colore} stopOpacity="0"/>
+              </linearGradient>
+            ))}
+          </defs>
+          {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+            const y = fP.t + (fH - fP.t - fP.b) * t;
+            const val = Math.round(maxF * (1 - t));
+            return (
+              <g key={i}>
+                <line x1={fP.l} y1={y} x2={fW - fP.r} y2={y} stroke={PN.BORDER_SOFT}/>
+                <text x={fP.l - 8} y={y + 4} fontSize="11" fill={PN.MUTED} textAnchor="end">
+                  {val === 0 ? '€0' : `€${(val/1000).toFixed(0)}K`}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Il filo verticale del punto sotto al mouse, sotto alle linee */}
+          {hover != null && (
+            <line x1={fx(hover)} y1={fP.t} x2={fx(hover)} y2={fH - fP.b}
+              stroke={PN.MUTED_LIGHT} strokeWidth={1} strokeDasharray="4 4"/>
+          )}
+
+          {serie.map(s => (
+            <g key={s.id}>
+              <path d={area(s.dati)} fill={`url(#grad-${id}-${s.id})`}/>
+              <path d={linea(s.dati)} fill="none" stroke={s.colore} strokeWidth={2.4}
+                strokeLinecap="round" strokeLinejoin="round"/>
+              {/* Etichetta diretta a fine linea: l'identità non dipende dal
+                  solo colore, come chiede l'accessibilità. */}
+              <text x={fx(etichette.length-1) + 10} y={fy(s.dati[s.dati.length-1]) + 4}
+                fontSize="12.5" fontWeight="600" fill={s.colore}>{s.label}</text>
+              <circle cx={fx(etichette.length-1)} cy={fy(s.dati[s.dati.length-1])} r={4}
+                fill={s.colore} stroke={PN.WHITE} strokeWidth={2}/>
+              {hover != null && (
+                <circle cx={fx(hover)} cy={fy(s.dati[hover])} r={5}
+                  fill={s.colore} stroke={PN.WHITE} strokeWidth={2.5}/>
+              )}
+            </g>
+          ))}
+
+          {etichette.map((m, i) => (
+            <text key={i} x={fx(i)} y={fH - 8} fontSize="11"
+              fill={hover === i ? PN.TEXT : PN.MUTED}
+              fontWeight={hover === i ? 700 : 400} textAnchor="middle">{m}</text>
+          ))}
+        </svg>
+
+        {/* Il riquadro col dettaglio del mese: si sposta a sinistra sugli
+            ultimi punti, altrimenti uscirebbe dalla card. */}
+        {hover != null && (
+          <div style={{
+            position:'absolute', top: 8, pointerEvents:'none',
+            left: `${(fx(hover) / fW) * 100}%`,
+            transform: hover > etichette.length - 4 ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
+            background: PN.WHITE, borderRadius: 12, padding:'10px 13px',
+            border:`1px solid ${PN.BORDER_SOFT}`,
+            boxShadow:'0 10px 28px rgba(15,17,21,0.13)',
+            minWidth: 168,
+          }}>
+            <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>{MESI_ESTESI[hover] || etichette[hover]}</div>
+            {serie.map(s => (
+              <div key={s.id} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 13.5, marginTop: 3}}>
+                <span style={{width: 9, height: 9, borderRadius: 3, background: s.colore, flexShrink: 0}}/>
+                <span style={{flex: 1, color: PN.MUTED}}>{s.label}</span>
+                <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{fmt(s.dati[hover])}</strong>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 function RicaviCosti({ d, months, onVaiVendite }) {
   const eur = (n) => `€ ${Math.round(n).toLocaleString('it-IT', {useGrouping: true})}`;
 
@@ -189,23 +313,11 @@ function RicaviCosti({ d, months, onVaiVendite }) {
   // d'occhio senza calcolarlo. Verde scuro e rosso invece del verde e rosso
   // pieni: quella coppia sparisce col daltonismo (ΔE 5), questa regge (8,6),
   // e comunque ogni linea porta la sua etichetta in fondo.
-  const [hover, setHover] = React.useState(null);
   const etichette = months;
-  const MESI_ESTESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
   const SERIE = [
     { id:'ricavi', label:'Ricavi', colore:'#15803D', dati: d.fatturatoTrend },
     { id:'costi',  label:'Costi',  colore: PN.RED,   dati: d.costiTrend },
   ];
-  // Rapporto più basso di prima: la riga si accorcia e la card degli incassi,
-  // che ha meno roba dentro, non si ritrova ad allungarsi per starle dietro.
-  const fW = 720, fH = 234, fP = { l: 52, r: 62, t: 16, b: 28 };
-  const maxF = Math.ceil(Math.max(...d.fatturatoTrend) / 10000) * 10000;
-  const fStep = (fW - fP.l - fP.r) / (etichette.length - 1);
-  const fx = (i) => fP.l + i * fStep;
-  const fy = (val) => fH - fP.b - (val / maxF) * (fH - fP.t - fP.b);
-  const linea = (arr) => arr.map((val, i) => `${i===0?'M':'L'}${fx(i)},${fy(val)}`).join(' ');
-  const area = (arr) => `${linea(arr)} L ${fx(arr.length-1)},${fH-fP.b} L ${fP.l},${fH-fP.b} Z`;
-
   // ── Margine ───────────────────────────────────────────────────────────────
   const marginePct = (d.utile.val / d.ricavi.val) * 100;
   const anelloR = 58, anelloC = 2 * Math.PI * anelloR;
@@ -247,102 +359,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
       {/* Riga 2 — andamento a sinistra, da dove arrivano i soldi a destra */}
       <div style={{display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 16}}>
         <StatCard title="Andamento ricavi vs costi" sub="Ultimi 12 mesi">
-          {/* Legenda sotto al titolo: due serie, quindi serve, e porta con sé
-              il valore dell'ultimo mese — il totale del periodo sta già nelle
-              card in testa e sarebbe un numero diverso da questo. */}
-          <div style={{display:'flex', alignItems:'center', gap: 18, marginTop: -8, marginBottom: 12, flexWrap:'wrap'}}>
-            {SERIE.map(s => (
-              <span key={s.id} style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 14.5}}>
-                <span style={{width: 10, height: 10, borderRadius: 3, background: s.colore, flexShrink: 0}}/>
-                <span style={{color: PN.MUTED}}>{s.label}</span>
-                <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{eur(s.dati[s.dati.length-1])}</strong>
-              </span>
-            ))}
-            <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>ultimo mese</span>
-          </div>
-
-          <div style={{position:'relative'}}
-            onMouseMove={e => {
-              const box = e.currentTarget.getBoundingClientRect();
-              const scala = box.width / fW;
-              const i = Math.round(((e.clientX - box.left) / scala - fP.l) / fStep);
-              setHover(i >= 0 && i < etichette.length ? i : null);
-            }}
-            onMouseLeave={() => setHover(null)}>
-            <svg viewBox={`0 0 ${fW} ${fH}`} style={{width:'100%', display:'block'}}>
-              <defs>
-                {SERIE.map(s => (
-                  <linearGradient key={s.id} id={`grad-${s.id}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={s.colore} stopOpacity="0.18"/>
-                    <stop offset="100%" stopColor={s.colore} stopOpacity="0"/>
-                  </linearGradient>
-                ))}
-              </defs>
-              {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-                const y = fP.t + (fH - fP.t - fP.b) * t;
-                const val = Math.round(maxF * (1 - t));
-                return (
-                  <g key={i}>
-                    <line x1={fP.l} y1={y} x2={fW - fP.r} y2={y} stroke={PN.BORDER_SOFT}/>
-                    <text x={fP.l - 8} y={y + 4} fontSize="11" fill={PN.MUTED} textAnchor="end">€{(val/1000).toFixed(0)}K</text>
-                  </g>
-                );
-              })}
-
-              {/* Il filo verticale del punto sotto al mouse, sotto alle linee */}
-              {hover != null && (
-                <line x1={fx(hover)} y1={fP.t} x2={fx(hover)} y2={fH - fP.b}
-                  stroke={PN.MUTED_LIGHT} strokeWidth={1} strokeDasharray="4 4"/>
-              )}
-
-              {SERIE.map(s => (
-                <g key={s.id}>
-                  <path d={area(s.dati)} fill={`url(#grad-${s.id})`}/>
-                  <path d={linea(s.dati)} fill="none" stroke={s.colore} strokeWidth={2.4}
-                    strokeLinecap="round" strokeLinejoin="round"/>
-                  {/* Etichetta diretta a fine linea: l'identità non dipende dal
-                      solo colore, come chiede l'accessibilità. */}
-                  <text x={fx(etichette.length-1) + 10} y={fy(s.dati[s.dati.length-1]) + 4}
-                    fontSize="12.5" fontWeight="600" fill={s.colore}>{s.label}</text>
-                  <circle cx={fx(etichette.length-1)} cy={fy(s.dati[s.dati.length-1])} r={4}
-                    fill={s.colore} stroke={PN.WHITE} strokeWidth={2}/>
-                  {hover != null && (
-                    <circle cx={fx(hover)} cy={fy(s.dati[hover])} r={5}
-                      fill={s.colore} stroke={PN.WHITE} strokeWidth={2.5}/>
-                  )}
-                </g>
-              ))}
-
-              {etichette.map((m, i) => (
-                <text key={i} x={fx(i)} y={fH - 8} fontSize="11"
-                  fill={hover === i ? PN.TEXT : PN.MUTED}
-                  fontWeight={hover === i ? 700 : 400} textAnchor="middle">{m}</text>
-              ))}
-            </svg>
-
-            {/* Il riquadro col dettaglio del mese: si sposta a sinistra sugli
-                ultimi punti, altrimenti uscirebbe dalla card. */}
-            {hover != null && (
-              <div style={{
-                position:'absolute', top: 8, pointerEvents:'none',
-                left: `${(fx(hover) / fW) * 100}%`,
-                transform: hover > etichette.length - 4 ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
-                background: PN.WHITE, borderRadius: 12, padding:'10px 13px',
-                border:`1px solid ${PN.BORDER_SOFT}`,
-                boxShadow:'0 10px 28px rgba(15,17,21,0.13)',
-                minWidth: 168,
-              }}>
-                <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>{MESI_ESTESI[hover] || etichette[hover]}</div>
-                {SERIE.map(s => (
-                  <div key={s.id} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 13.5, marginTop: 3}}>
-                    <span style={{width: 9, height: 9, borderRadius: 3, background: s.colore, flexShrink: 0}}/>
-                    <span style={{flex: 1, color: PN.MUTED}}>{s.label}</span>
-                    <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{eur(s.dati[hover])}</strong>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <StatAndamento serie={SERIE} etichette={etichette} fmt={eur}/>
         </StatCard>
 
         <StatCard title="Origine incassi" sub="Distribuzione metodi di pagamento"
@@ -703,6 +720,10 @@ function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, t
   );
 }
 
+// Le colonne della tabella piatti: una sola dichiarazione perché intestazione
+// e righe restino incolonnate.
+const PIATTI_COLS = 'minmax(190px, 2.1fr) 1fr 0.9fr 1.25fr 0.8fr 1.05fr 1.05fr 0.9fr';
+
 function VenditePiatti({ v }) {
   const [sortBy, setSortBy] = React.useState('ricavoTot');
   const [order, setOrder] = React.useState('desc');
@@ -719,16 +740,6 @@ function VenditePiatti({ v }) {
     if (sortBy === col) setOrder(order === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setOrder('desc'); }
   };
-
-  // Misure del grafico del trend scontrino, arrivato qui da Operazioni.
-  const W = 740, H = 240, P = { l: 50, r: 76, t: 16, b: 28 };
-  const all = [...v.scontrinoTrend.direta, ...v.scontrinoTrend.asporto, ...v.scontrinoTrend.delivery];
-  const maxV = Math.ceil(Math.max(...all) / 10000) * 10000;
-  const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-  const xStep = (W - P.l - P.r) / (months.length - 1);
-  const yScale = (val) => H - P.b - (val / maxV) * (H - P.t - P.b);
-  const xAt = (i) => P.l + i * xStep;
-  const path = (arr) => arr.map((val, i) => `${i===0?'M':'L'}${xAt(i)},${yScale(val)}`).join(' ');
 
   // Ricavo medio per piatto: ricavi del periodo diviso gli articoli venduti.
   // Ricavato invece che scritto nei dati, così non può contraddire i due
@@ -747,51 +758,23 @@ function VenditePiatti({ v }) {
         <VenditeKpi tono="rosa" glifo="€" label="Scontrino medio"
           valore={`€ ${v.kpi.scontrino.val.toFixed(2).replace('.', ',')}`}
           delta={v.kpi.scontrino.delta} sub={v.kpi.scontrino.sub} trend={v.kpi.scontrino.trend}/>
-        <VenditeKpi tono="verde" glifo="€" label="Ricavo per piatto"
+        <VenditeKpi tono="verde" glifo="€" label="Ricavo per articolo"
           valore={`€ ${ricavoPerPiatto.toFixed(2).replace('.', ',')}`}
           delta={v.kpi.ricavoPiatto.delta} sub={v.kpi.ricavoPiatto.sub} trend={v.kpi.ricavoPiatto.trend}/>
       </div>
 
-      {/* Trend scontrino */}
-      <StatCard title="Trend scontrino medio" sub="Visualizzato per canale negli ultimi 12 mesi" action={
-        <div style={{display:'inline-flex', alignItems:'center', gap: 14, fontSize: 14, color: PN.MUTED}}>
-          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> sala</span>
-          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.GREEN}}/> asporto</span>
-          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.BLUE}}/> delivery</span>
-        </div>
-      }>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', height: 240}}>
-          {/* Grid */}
-          {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-            const y = P.t + (H - P.t - P.b) * t;
-            const v = Math.round(maxV * (1 - t));
-            return (
-              <g key={i}>
-                <line x1={P.l} y1={y} x2={W - P.r} y2={y} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
-                <text x={P.l - 8} y={y + 4} fontSize="11" fill={PN.MUTED} textAnchor="end">€{v >= 1000 ? (v/1000)+'k' : v}</text>
-              </g>
-            );
-          })}
-          {/* Linee — alone bianco sotto ciascuna per gli incroci */}
-          {[
-            { key:'delivery', arr: v.scontrinoTrend.delivery, col: PN.BLUE, w: 2, label:'Delivery' },
-            { key:'asporto', arr: v.scontrinoTrend.asporto, col: PN.GREEN, w: 2, label:'Asporto' },
-            { key:'sala', arr: v.scontrinoTrend.direta, col: PN.PINK, w: 2.4, label:'Sala' },
-          ].map(s => {
-            const last = s.arr[s.arr.length - 1];
-            return (
-              <g key={s.key}>
-                <path d={path(s.arr)} fill="none" stroke={PN.WHITE} strokeWidth={s.w + 3} strokeLinecap="round" strokeLinejoin="round"/>
-                <path d={path(s.arr)} fill="none" stroke={s.col} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round"/>
-                {/* Solo il punto finale, con anello bianco 2px */}
-                <circle cx={xAt(s.arr.length - 1)} cy={yScale(last)} r={4.5} fill={s.col} stroke={PN.WHITE} strokeWidth={2}/>
-                <text x={xAt(s.arr.length - 1) + 11} y={yScale(last) + 4} fontSize="12" fontWeight="600" fill={PN.TEXT}>{s.label}</text>
-              </g>
-            );
-          })}
-          {/* Months */}
-          {months.map((m, i) => <text key={i} x={xAt(i)} y={H - 6} fontSize="11" fill={PN.MUTED} textAnchor="middle">{m}</text>)}
-        </svg>
+      {/* Stesso grafico dell'andamento ricavi vs costi: stesso componente,
+          quindi anche il filo del mouse col riquadro del mese, che qui prima
+          non c'era. Tre canali invece di due serie. */}
+      <StatCard title="Trend scontrino medio" sub="Visualizzato per canale negli ultimi 12 mesi">
+        <StatAndamento
+          serie={[
+            { id:'sala',     label:'Sala',     colore: PN.PINK,  dati: v.scontrinoTrend.direta },
+            { id:'asporto',  label:'Asporto',  colore: PN.GREEN, dati: v.scontrinoTrend.asporto },
+            { id:'delivery', label:'Delivery', colore: PN.BLUE,  dati: v.scontrinoTrend.delivery },
+          ]}
+          etichette={['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']}
+          fmt={(n) => `€ ${Math.round(n).toLocaleString('it-IT', {useGrouping: true})}`}/>
       </StatCard>
 
       <StatCard title="Performance piatti" sub="Ordina per qualsiasi colonna · margine, ricavo, n° venduti" action={
@@ -805,33 +788,48 @@ function VenditePiatti({ v }) {
       }>
         <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
           <div style={{
-            display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 0.8fr 1.2fr 1.2fr 0.9fr',
+            display:'grid', gridTemplateColumns: PIATTI_COLS,
             padding:'10px 16px', background:'#FAFAFB',
             fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
             textTransform:'uppercase', letterSpacing: 0.5,
             borderBottom:`1px solid ${PN.BORDER_SOFT}`,
           }}>
             <SortHead col="nome" cur={sortBy} order={order} onSort={handleSort}>Piatto</SortHead>
+            <SortHead col="cat" cur={sortBy} order={order} onSort={handleSort}>Categoria</SortHead>
             <SortHead col="costo" cur={sortBy} order={order} onSort={handleSort}>Costo</SortHead>
-            <SortHead col="ricavo" cur={sortBy} order={order} onSort={handleSort}>Prezzo</SortHead>
-            <SortHead col="margine" cur={sortBy} order={order} onSort={handleSort}>Margine €</SortHead>
+            <SortHead col="margine" cur={sortBy} order={order} onSort={handleSort}>Margine per piatto</SortHead>
             <SortHead col="n" cur={sortBy} order={order} onSort={handleSort}>Venduti</SortHead>
             <SortHead col="costiTot" cur={sortBy} order={order} onSort={handleSort}>Costi tot.</SortHead>
-            <SortHead col="ricavoTot" cur={sortBy} order={order} onSort={handleSort}>Ricavo tot.</SortHead>
+            <SortHead col="ricavoTot" cur={sortBy} order={order} onSort={handleSort}>Ricavo</SortHead>
             <SortHead col="marginePct" cur={sortBy} order={order} onSort={handleSort}>Margine %</SortHead>
           </div>
           {sorted.map((p, i) => (
             <div key={i} style={{
-              display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 0.8fr 1.2fr 1.2fr 0.9fr',
-              padding:'9px 16px', alignItems:'center',
+              display:'grid', gridTemplateColumns: PIATTI_COLS,
+              padding:'8px 16px', alignItems:'center',
               fontSize: 14.5, color: PN.TEXT,
               background: i % 2 === 1 ? '#FAFAFB' : PN.WHITE,
               borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
               fontVariantNumeric:'tabular-nums',
             }}>
-              <span style={{fontWeight: 600}}>{p.nome}</span>
+              <span style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+                {/* La tinta pastello resta sotto mentre la foto carica, così
+                    la riga non sfarfalla da vuota a piena. */}
+                <img src={p.foto} alt="" loading="lazy" style={{
+                  width: 34, height: 34, borderRadius: 9, objectFit:'cover', flexShrink: 0,
+                  background: PN.WHITE_HUSH, border:`1px solid ${PN.BORDER_SOFT}`,
+                }}/>
+                <span style={{fontWeight: 600, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.nome}</span>
+              </span>
+              <span>
+                <span style={{
+                  display:'inline-flex', alignItems:'center',
+                  padding:'3px 9px', borderRadius: 999,
+                  background: PN.WHITE_HUSH, color: PN.MUTED,
+                  fontSize: 13, fontWeight: 600, whiteSpace:'nowrap',
+                }}>{p.cat}</span>
+              </span>
               <span style={{color: PN.MUTED}}>€ {p.costo.toFixed(2)}</span>
-              <span>€ {p.ricavo.toFixed(2)}</span>
               <span style={{fontWeight: 600}}>€ {p.margine.toFixed(2)}</span>
               <span>{p.n}</span>
               <span style={{color: PN.MUTED}}>€ {p.costiTot.toFixed(0)}</span>
