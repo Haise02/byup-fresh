@@ -901,11 +901,13 @@ function DistribuzioneCategorie({ piatti, onVaiAlla }) {
 }
 
 // Le colonne della tabella piatti: una sola dichiarazione perché intestazione
-// e righe restino incolonnate. Via costo unitario e costi totali: la tabella
+// e righe restino incolonnate. Il margine per piatto sta accanto al margine
+// percentuale: sono lo stesso fatto detto in euro e in percentuale, e vicini
+// si confrontano. Via costo unitario e costi totali: la tabella
 // risponde a "quanto rende un piatto", e il costo lo racconta già il margine,
 // che è la differenza fra i due. Il campo `costo` resta nei dati, che serve
 // alla card del piatto più redditizio.
-const PIATTI_COLS = 'minmax(200px, 2.4fr) 1.1fr 1.35fr 0.85fr 1.15fr 0.95fr';
+const PIATTI_COLS = 'minmax(200px, 2.4fr) 1.1fr 0.85fr 1.15fr 1.35fr 0.95fr';
 
 function VenditePiatti({ v }) {
   const [sortBy, setSortBy] = React.useState('ricavoTot');
@@ -1002,9 +1004,9 @@ function VenditePiatti({ v }) {
           }}>
             <SortHead col="nome" cur={sortBy} order={order} onSort={handleSort}>Piatto</SortHead>
             <SortHead col="cat" cur={sortBy} order={order} onSort={handleSort}>Categoria</SortHead>
-            <SortHead col="margine" cur={sortBy} order={order} onSort={handleSort}>Margine per piatto</SortHead>
             <SortHead col="n" cur={sortBy} order={order} onSort={handleSort}>Venduti</SortHead>
             <SortHead col="ricavoTot" cur={sortBy} order={order} onSort={handleSort}>Ricavo</SortHead>
+            <SortHead col="margine" cur={sortBy} order={order} onSort={handleSort}>Margine per piatto</SortHead>
             <SortHead col="marginePct" cur={sortBy} order={order} onSort={handleSort}>Margine %</SortHead>
           </div>
           {sorted.map((p, i) => (
@@ -1033,9 +1035,9 @@ function VenditePiatti({ v }) {
                   fontSize: 13, fontWeight: 600, whiteSpace:'nowrap',
                 }}>{p.cat}</span>
               </span>
-              <span style={{fontWeight: 600}}>€ {p.margine.toFixed(2)}</span>
               <span>{p.n}</span>
               <span style={{fontWeight: 600}}>€ {p.ricavoTot.toFixed(0)}</span>
+              <span style={{fontWeight: 600}}>€ {p.margine.toFixed(2)}</span>
               <span>
                 <span style={{
                   display:'inline-flex', alignItems:'center',
