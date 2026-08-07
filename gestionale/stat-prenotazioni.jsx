@@ -37,21 +37,21 @@ function StatPrenotazioni() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      {/* KPI — due per riga e non quattro. Questa disposizione è orizzontale
-          e vuole la larghezza che ha in Economici, dove le card sono tre: in
-          quattro colonne, a 1280, all'etichetta restano 72px e si troncavano
-          tutte. Due per riga è anche il ritmo dei KPI di Ordini, qui accanto. */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 12}}>
-        <StatKpiTinto tono="blu" icona="people-customer" label="Coperti serviti"
+      {/* KPI — tutti su una riga, quindi nella variante compatta: l'etichetta
+          si prende la riga intera e il delta scende accanto al numero. Con la
+          pillola di fianco al nome, in quattro colonne a 1280 restavano 72px
+          per l'etichetta e si troncavano tutte. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
+        <StatKpiTinto compatto tono="blu" icona="people-customer" label="Coperti serviti"
           valore={d.kpi.coperti.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={d.kpi.coperti.delta} sub="Ospiti serviti nel periodo" trend={d.kpi.coperti.trend}/>
-        <StatKpiTinto tono="verde" icona="place-table" label="Tasso di occupazione"
+        <StatKpiTinto compatto tono="verde" icona="place-table" label="Tasso di occupazione"
           valore={d.kpi.occupazione.val} suffisso="%"
           delta={d.kpi.occupazione.delta} sub="Riempimento medio delle sale" trend={d.kpi.occupazione.trend}/>
-        <StatKpiTinto tono="giallo" icona="people-staff-group" label="Coperti per tavolo"
+        <StatKpiTinto compatto tono="giallo" icona="people-staff-group" label="Coperti per tavolo"
           valore={d.kpi.perTavolo.val.toString().replace('.', ',')}
           delta={d.kpi.perTavolo.delta} sub="Media ospiti per prenotazione" trend={d.kpi.perTavolo.trend}/>
-        <StatKpiTinto tono="viola" icona="time-clock" label="Durata media al tavolo"
+        <StatKpiTinto compatto tono="viola" icona="time-clock" label="Durata media al tavolo"
           valore={d.kpi.durata.val}
           delta={d.kpi.durata.delta} sub="Permanenza media al tavolo" trend={d.kpi.durata.trend}/>
       </div>

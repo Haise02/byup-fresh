@@ -96,8 +96,61 @@ const STAT_TONI = {
 // `glifo` invece di `icona` dove il simbolo È il concetto: per «margine» e
 // «ricavo» un % e un € si leggono all'istante, mentre il set non ha una
 // percentuale e il ripiego (il cartellino sconto) diceva un'altra cosa.
-function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta, trend }) {
+function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta, trend, compatto }) {
   const t = STAT_TONI[tono] || STAT_TONI.rosa;
+
+  // `compatto`: stessa card, ma l'etichetta si prende tutta la riga e il delta
+  // scende accanto al numero. Serve quando le card sono quattro invece di tre:
+  // in quattro colonne, a 1280, all'etichetta restano 72px con la pillola di
+  // fianco — misurati — e si troncano tutte, anche accorciandole. L'andamento
+  // per lo stesso motivo passa in fondo a tutta larghezza.
+  if (compatto) {
+    return (
+      <div {...boxHover} style={{
+        padding: 14, borderRadius: 16, minWidth: 0, overflow:'hidden',
+        background: t.bg, border: `1px solid ${t.bordo}`,
+        display:'flex', flexDirection:'column',
+        transition: BOX_TRANSITION,
+      }}>
+        <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+          <span style={{
+            width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
+            background: PN.WHITE, color: t.forte,
+            display:'grid', placeItems:'center',
+            boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
+          }}>{glifo
+            ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
+            : <Icon name={icona} size={19}/>}</span>
+
+          <div style={{flex: 1, minWidth: 0}}>
+            <div title={label} style={{
+              fontSize: 13.5, color: PN.MUTED, fontWeight: 500,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            }}>{label}</div>
+            <div style={{display:'flex', alignItems:'baseline', gap: 8, minWidth: 0, marginTop: 1}}>
+              <span style={{
+                fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
+                lineHeight: 1.15, whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
+              }}>
+                {valore}{suffisso && <span style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+              </span>
+              <StatDelta value={delta}/>
+            </div>
+          </div>
+        </div>
+
+        <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.3}}>{sub}</div>
+
+        {trend && trend.length > 1 && (
+          <div style={{height: 34, marginTop:'auto', paddingTop: 10, display:'flex'}}>
+            <StatSpark data={trend} color={t.forte} width={150} height={54}
+              stretch padY={7} stroke={2}/>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div {...boxHover} style={{
       display:'flex', alignItems:'center', gap: 12, minWidth: 0,
