@@ -29,10 +29,13 @@ function StaffFilo({ valore, scala, media, colore, primo, ultimo }) {
   const posMedia = Math.min(100, (media / scala) * 100);
   return (
     <span style={{position:'relative', display:'block', height: 20, minWidth: 40}}>
+      {/* Lo sbordo è più della distanza fra due righe — che con l'imbottitura
+          per l'evidenziazione è cresciuta — altrimenti la verticale si spezza
+          negli spazi. */}
       <span style={{
-        position:'absolute', top: primo ? 0 : -7, bottom: ultimo ? 0 : -7,
+        position:'absolute', top: primo ? 0 : -11, bottom: ultimo ? 0 : -11,
         left: `${posMedia}%`, width: 1.5, marginLeft: -0.75,
-        background:'rgba(15,17,21,0.28)',
+        background:'rgba(15,17,21,0.34)',
       }}/>
       <span style={{
         position:'absolute', top:'50%', left: 0, height: 3, marginTop: -1.5,
@@ -86,35 +89,80 @@ function StaffPannello({ metrica, media }) {
   const scala = righe[0].v || 1;
   // Posizione, avatar, nome col suo numero sotto, il filo, il valore. Griglia
   // e non flex: le colonne devono incolonnarsi da una riga all'altra.
+  // Posizione, avatar, nome col suo numero sotto, il filo, il valore. Griglia
+  // e non flex: le colonne devono incolonnarsi da una riga all'altra.
+  // L'imbottitura serve all'evidenziazione del passaggio del mouse — senza, il
+  // colore starebbe attaccato al testo — e i margini negativi la riportano a
+  // filo, così le colonne non si spostano.
   const griglia = {
     display:'grid',
     gridTemplateColumns:'14px 28px minmax(0, 1fr) minmax(56px, 0.95fr) 62px',
     alignItems:'center', gap: 10,
+    padding:'6px 8px', margin:'0 -8px', borderRadius: 10,
+    transition:'background 140ms ease, transform 140ms ease',
+  };
+
+  // La card ha un'ombra sua, e boxHover la azzera in uscita invece di
+  // ripristinarla: qui il passaggio del mouse se la gestisce da sé.
+  const hoverPannello = {
+    onMouseEnter: e => {
+      e.currentTarget.style.transform = 'scale(1.012)';
+      e.currentTarget.style.boxShadow = PN.CARD_SHADOW_HOVER;
+    },
+    onMouseLeave: e => {
+      e.currentTarget.style.transform = '';
+      e.currentTarget.style.boxShadow = PN.CARD_SHADOW;
+    },
+  };
+  // Le righe si accendono della tinta della loro misura, tenuta bassissima:
+  // deve dire «sei qui», non ridipingere l'elenco.
+  // L'ingrandimento è la metà di quello della card: la riga contiene il segno
+  // verticale della media, che è lo stesso su tutte, e ingrandendo si sposta —
+  // oltre questa misura la verticale si vede spezzarsi sulla riga puntata.
+  const hoverRiga = {
+    onMouseEnter: e => {
+      e.currentTarget.style.background = `${metrica.colore}16`;
+      e.currentTarget.style.transform = 'scale(1.006)';
+    },
+    onMouseLeave: e => {
+      e.currentTarget.style.background = '';
+      e.currentTarget.style.transform = '';
+    },
   };
 
   return (
-    <div style={{
+    <div {...hoverPannello} style={{
       background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
       borderRadius: 14, padding:'16px 18px 18px', minWidth: 0,
       boxShadow: PN.CARD_SHADOW,
+      transition: BOX_TRANSITION,
     }}>
       {/* Il trattino sta accanto al numero che rappresenta, non in cima alla
           card: così la legenda è il valore stesso, e non c'è da collegare due
           cose lontane. La riga sotto stacca l'intestazione dall'elenco. */}
       <div style={{
-        display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10,
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
         paddingBottom: 11, marginBottom: 13, borderBottom:`1px solid ${PN.BORDER_SOFT}`,
       }}>
         <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.1}}>{metrica.et}</span>
-        <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13, color: PN.MUTED, fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
-          <span style={{width: 1.5, height: 11, background:'rgba(15,17,21,0.28)'}}/>
-          media {staffEuro(media)}
+        {/* Era 13px in grigio chiaro e spariva: è il valore a cui si riferisce
+            la verticale su tutte le righe, quindi ha bisogno di leggersi. Ora
+            è una pastiglia, col numero in nero. */}
+        <span style={{
+          display:'inline-flex', alignItems:'center', gap: 7, flexShrink: 0,
+          padding:'4px 11px', borderRadius: 999,
+          background: PN.WHITE_HUSH, border:`1px solid ${PN.BORDER_SOFT}`,
+          fontSize: 14, whiteSpace:'nowrap',
+        }}>
+          <span style={{width: 2, height: 12, background:'rgba(15,17,21,0.45)', borderRadius: 1}}/>
+          <span style={{color: PN.MUTED}}>media</span>
+          <strong style={{color: PN.TEXT, fontWeight: 700, fontVariantNumeric:'tabular-nums'}}>{staffEuro(media)}</strong>
         </span>
       </div>
 
-      <div style={{display:'flex', flexDirection:'column', gap: 14}}>
+      <div style={{display:'flex', flexDirection:'column', gap: 8}}>
         {righe.map((s, i) => (
-          <div key={s.nome} style={griglia}>
+          <div key={s.nome} {...hoverRiga} style={griglia}>
             {/* Il posto in classifica: i primi tre un filo più scuri, il resto
                 appena accennato. Serve a dare la scaletta, non a gridare. */}
             <span style={{
