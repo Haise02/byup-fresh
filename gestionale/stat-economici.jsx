@@ -624,10 +624,11 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 }
 
 // ─── KPI di Vendite piatti ────────────────────────────────────────────────
-// Card alta e stretta: pastiglia dell'icona e etichetta sulla stessa riga, il
-// numero grande sotto col suo delta, la spiegazione in piccolo, e in fondo
-// l'andamento a tutta larghezza. Ogni card ha la sua tinta — la stessa per
-// pastiglia e linea — così la colonna si riconosce prima ancora di leggerla.
+// Stessa disposizione dei KPI di Ricavi e costi: pastiglia tonda a sinistra,
+// etichetta e delta sulla prima riga, il numero grande col suo sottotitolo, e
+// l'andamento a destra invece che in fondo. Cambia solo la tinta — quattro
+// invece di tre — e la pastiglia, che qui è colorata su fondo bianco perché
+// la card non ha il gradiente su cui il bollino bianco di là si staglia.
 const VENDITE_TONI = {
   verde:  { forte: PN.GREEN,  tenue: PN.GREEN_SOFT },
   viola:  { forte: PN.PURPLE, tenue: PN.PURPLE_SOFT },
@@ -642,46 +643,42 @@ function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, t
   const t = VENDITE_TONI[tono];
   return (
     <div {...boxHover} style={{
+      display:'flex', alignItems:'center', gap: 12, minWidth: 0,
+      padding: 15, borderRadius: 16,
       background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-      borderRadius: 16, padding: 16, minWidth: 0,
-      display:'flex', flexDirection:'column',
       transition: BOX_TRANSITION,
     }}>
-      <div style={{display:'flex', alignItems:'center', gap: 11, minWidth: 0}}>
-        <span style={{
-          width: 38, height: 38, borderRadius: 11, flexShrink: 0,
-          background: t.tenue, color: t.forte,
-          display:'grid', placeItems:'center',
-        }}>{glifo
-          ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
-          : <Icon name={icona} size={18}/>}</span>
-        {/* A 1280 "Ricavo medio per piatto" non ci sta: si tronca, ma il nome
-            intero resta leggibile al passaggio. */}
-        <span title={label} style={{
-          fontSize: 15, color: PN.MUTED, minWidth: 0,
-          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-        }}>{label}</span>
-      </div>
+      <span style={{
+        width: 44, height: 44, borderRadius:'50%', flexShrink: 0,
+        background: t.tenue, color: t.forte,
+        display:'grid', placeItems:'center',
+      }}>{glifo
+        ? <span style={{fontSize: 21, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
+        : <Icon name={icona} size={21}/>}</span>
 
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, marginTop: 11}}>
-        <span style={{
-          fontSize: 30, fontWeight: 700, color: PN.TEXT,
-          letterSpacing: -0.7, lineHeight: 1.1, fontVariantNumeric:'tabular-nums',
-          whiteSpace:'nowrap',
-        }}>
-          {valore}{suffisso && <span style={{fontSize: 19, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
-        </span>
-        <StatDelta value={delta}/>
-      </div>
-
-      <div style={{fontSize: 13.5, color: PN.MUTED_SOFT, marginTop: 4, lineHeight: 1.35}}>{sub}</div>
-
-      {/* L'andamento chiude la card e ne regge l'altezza: `auto` in alto lo
-          tiene in fondo anche quando una sottodicitura va a capo e le card
-          accanto restano più corte. */}
-      <div style={{height: 44, marginTop: 'auto', paddingTop: 14, display:'flex'}}>
-        <StatSpark data={trend} color={t.forte} width={150} height={54}
-          stretch padY={7} stroke={2}/>
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
+          {/* Stretti in quattro colonne i nomi lunghi non ci stanno: si
+              troncano, e il nome intero resta al passaggio del mouse. */}
+          <span title={label} style={{
+            fontSize: 15, color: PN.MUTED, fontWeight: 500, minWidth: 0,
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+          }}>{label}</span>
+          <StatDelta value={delta}/>
+        </div>
+        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
+          <div style={{minWidth: 0}}>
+            <div style={{
+              fontSize: 28, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.6,
+              lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
+              fontVariantNumeric:'tabular-nums',
+            }}>
+              {valore}{suffisso && <span style={{fontSize: 18, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+            </div>
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{sub}</div>
+          </div>
+          {trend && <StatSpark data={trend} color={t.forte} width={82} height={32}/>}
+        </div>
       </div>
     </div>
   );
@@ -711,7 +708,11 @@ function VenditePiatti({ v }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
+      {/* Due per riga e non quattro: questa disposizione — pastiglia, etichetta,
+          delta, numero, sottotitolo e andamento tutti in orizzontale — vuole la
+          larghezza che ha in Ricavi e costi. Stretta in quattro colonne si
+          troncavano tutte e quattro le etichette. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 12}}>
         <VenditeKpi tono="verde" icona="commerce-receipt" label="N. articoli per ordine"
           valore={v.kpi.articoli.val.toString().replace('.', ',')}
           delta={v.kpi.articoli.delta} sub={v.kpi.articoli.sub} trend={v.kpi.articoli.trend}/>
