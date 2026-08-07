@@ -1,4 +1,4 @@
-// Statistiche — sub-tab Clienti
+// Statistiche — Clienti · sub-tab Fidelizzazione
 
 function StatClienti() {
   const d = STAT_CLIENTI;

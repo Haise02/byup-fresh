@@ -3,29 +3,34 @@
 const { useState } = React;
 
 function StatisticheApp() {
-  // Deep-link dalla Panoramica: ?tab=economici|operazioni|app e ?sub=…
-  // Operazioni: prenotazioni|ordini|staff · App: conversione|clienti.
+  // Deep-link dalla Panoramica: ?tab=economici|operazioni|clienti e ?sub=…
+  // Operazioni: prenotazioni|ordini|staff · Clienti: conversione|fidelizzazione.
   // Senza parametri si atterra su Economici: è la domanda con cui un
   // ristoratore apre le statistiche — quanto ho incassato, quanto ho speso.
   const urlInit = (() => {
     try {
       const p = new URLSearchParams(window.location.search);
       const sub = p.get('sub');
-      let tab = ['economici', 'operazioni', 'app'].includes(p.get('tab')) ? p.get('tab') : 'economici';
-      // I clienti stavano in Operazioni e sono passati sotto App: i vecchi
-      // link `?tab=operazioni&sub=clienti` continuano ad arrivare a
-      // destinazione invece di atterrare sulle prenotazioni.
-      if (sub === 'clienti') tab = 'app';
+      const grezzo = p.get('tab');
+      // La scheda si è chiamata «App» finché parlava del canale invece che di
+      // chi lo usa; i link vecchi restano buoni.
+      const tabChiesto = grezzo === 'app' ? 'clienti' : grezzo;
+      let tab = ['economici', 'operazioni', 'clienti'].includes(tabChiesto) ? tabChiesto : 'economici';
+      // La sotto-scheda si è chiamata «clienti» quando stava in Operazioni e
+      // poi sotto App: entrambe le forme continuano ad arrivare a destinazione
+      // invece di atterrare sulle prenotazioni.
+      const fidelizzazione = sub === 'fidelizzazione' || sub === 'clienti';
+      if (fidelizzazione) tab = 'clienti';
       return {
         tab,
         sub: ['prenotazioni', 'ordini', 'staff'].includes(sub) ? sub : 'prenotazioni',
-        appSub: sub === 'clienti' ? 'clienti' : 'conversione',
+        cliSub: fidelizzazione ? 'fidelizzazione' : 'conversione',
       };
-    } catch (e) { return { tab: 'economici', sub: 'prenotazioni', appSub: 'conversione' }; }
+    } catch (e) { return { tab: 'economici', sub: 'prenotazioni', cliSub: 'conversione' }; }
   })();
   const [tab, setTab] = useState(urlInit.tab);
   const [opSub, setOpSub] = useState(urlInit.sub);
-  const [appSub, setAppSub] = useState(urlInit.appSub);
+  const [cliSub, setCliSub] = useState(urlInit.cliSub);
   const [period, setPeriod] = useState('mese');
 
   // L'altezza della barra principale finisce in una variabile CSS: le sub-tab
@@ -66,7 +71,7 @@ function StatisticheApp() {
               tabs={[
                 { id: 'economici', label: 'Economici', icon: 'commerce-coins' },
                 { id: 'operazioni', label: 'Operazioni', icon: 'chart-workflow' },
-                { id: 'app', label: 'App', icon: 'chart-area' },
+                { id: 'clienti', label: 'Clienti', icon: 'people-customer' },
               ]}
               active={tab} onChange={setTab}
               action={<StatPeriodPicker period={period} setPeriod={setPeriod}/>}/>
@@ -93,10 +98,10 @@ function StatisticheApp() {
           )}
           {tab === 'economici' && <StatEconomici/>}
 
-          {/* App sub-tabs — stessa barra appiccicata di Operazioni. I clienti
-              stanno qui: chi torna, quanto vale e che voto lascia sono cose
-              che nascono dall'app, non dal turno di sala. */}
-          {tab === 'app' && (
+          {/* Sub-tab di Clienti — stessa barra appiccicata di Operazioni. Le
+              due metà del rapporto: prima come arrivano al pagamento, poi se
+              tornano e che voto lasciano. */}
+          {tab === 'clienti' && (
             <>
               <div style={{
                 position:'sticky', top:'var(--stat-barra, 63px)', zIndex: 19,
@@ -105,11 +110,11 @@ function StatisticheApp() {
                 padding:'0 28px 18px',
                 display:'flex', gap: 14,
               }}>
-                <StatSubTab active={appSub==='conversione'} onClick={() => setAppSub('conversione')} label="Conversione" icon="chart-positive-dynamic"/>
-                <StatSubTab active={appSub==='clienti'} onClick={() => setAppSub('clienti')} label="Clienti" icon="people-customer"/>
+                <StatSubTab active={cliSub==='conversione'} onClick={() => setCliSub('conversione')} label="Conversione" icon="chart-positive-dynamic"/>
+                <StatSubTab active={cliSub==='fidelizzazione'} onClick={() => setCliSub('fidelizzazione')} label="Fidelizzazione" icon="star"/>
               </div>
-              {appSub === 'conversione' && <StatApp/>}
-              {appSub === 'clienti' && <StatClienti/>}
+              {cliSub === 'conversione' && <StatApp/>}
+              {cliSub === 'fidelizzazione' && <StatClienti/>}
             </>
           )}
         </div>

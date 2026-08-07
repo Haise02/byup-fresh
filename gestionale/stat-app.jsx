@@ -1,4 +1,4 @@
-// Statistiche — sub-tab Dati App
+// Statistiche — Clienti · sub-tab Conversione
 
 function StatApp() {
   const d = STAT_APP;
