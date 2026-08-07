@@ -159,10 +159,21 @@ const STAT_ECONOMICI = {
 };
 
 const STAT_VENDITE = {
+  // `trend`: 14 settimane, servono alle sparkline delle card KPI. Salgono
+  // tutte perché tutti e quattro i delta sono positivi: una linea che scende
+  // sotto un "+8,4%" si legge come un errore.
   kpi: {
-    articoli: { val: 3.2, delta: 8.4, sub:'Articoli per ordine medio' },
-    margine:  { val: 62, delta: 4.1, sub:'Margine medio (%)' },
-    venduti:  { val: 13560, delta: 12.5, sub:'Articoli totali venduti' },
+    articoli: { val: 3.2, delta: 8.4, sub:'Articoli per ordine medio',
+      trend: [2.8, 2.9, 2.85, 3.0, 2.95, 3.05, 3.0, 3.1, 3.05, 3.15, 3.1, 3.2, 3.15, 3.2] },
+    margine:  { val: 62, delta: 4.1, sub:'Margine medio (%)',
+      trend: [58, 59, 58.5, 60, 59.5, 60.5, 60, 61, 60.5, 61.5, 61, 62.5, 61.5, 62] },
+    venduti:  { val: 13560, delta: 12.5, sub:'Articoli totali venduti',
+      trend: [11400, 11800, 11600, 12100, 11900, 12400, 12200, 12700, 12500, 13000, 12800, 13300, 13100, 13560] },
+    // Il valore non sta qui: si ricava dai ricavi del periodo diviso gli
+    // articoli venduti, così non può divergere dai numeri accanto se un
+    // domani qualcuno tocca solo uno dei due.
+    ricavoPiatto: { delta: 6.7, sub:'Ricavi diviso articoli venduti',
+      trend: [5.6, 5.75, 5.7, 5.9, 5.85, 6.0, 5.95, 6.1, 6.05, 6.2, 6.15, 6.3, 6.25, 6.37] },
   },
   piatti: [
     { nome:'Cacio e Pepe',   costo: 4.20, ricavo: 14.00, margine: 9.80, n: 412, costiTot: 1730.4, ricavoTot: 5768, marginePct: 70 },

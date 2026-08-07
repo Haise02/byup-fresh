@@ -623,6 +623,70 @@ function RicaviCosti({ d, months, onVaiVendite }) {
   );
 }
 
+// ─── KPI di Vendite piatti ────────────────────────────────────────────────
+// Card alta e stretta: pastiglia dell'icona e etichetta sulla stessa riga, il
+// numero grande sotto col suo delta, la spiegazione in piccolo, e in fondo
+// l'andamento a tutta larghezza. Ogni card ha la sua tinta — la stessa per
+// pastiglia e linea — così la colonna si riconosce prima ancora di leggerla.
+const VENDITE_TONI = {
+  verde:  { forte: PN.GREEN,  tenue: PN.GREEN_SOFT },
+  viola:  { forte: PN.PURPLE, tenue: PN.PURPLE_SOFT },
+  blu:    { forte: PN.BLUE,   tenue: PN.BLUE_SOFT },
+  ambra:  { forte: PN.AMBER,  tenue: PN.AMBER_SOFT },
+};
+
+// `glifo` invece di `icona` dove il simbolo È il concetto: per «margine» e
+// «ricavo» un % e un € si leggono all'istante, mentre il set non ha una
+// percentuale e il ripiego (il cartellino sconto) diceva un'altra cosa.
+function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, trend }) {
+  const t = VENDITE_TONI[tono];
+  return (
+    <div {...boxHover} style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+      borderRadius: 16, padding: 16, minWidth: 0,
+      display:'flex', flexDirection:'column',
+      transition: BOX_TRANSITION,
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap: 11, minWidth: 0}}>
+        <span style={{
+          width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+          background: t.tenue, color: t.forte,
+          display:'grid', placeItems:'center',
+        }}>{glifo
+          ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
+          : <Icon name={icona} size={18}/>}</span>
+        {/* A 1280 "Ricavo medio per piatto" non ci sta: si tronca, ma il nome
+            intero resta leggibile al passaggio. */}
+        <span title={label} style={{
+          fontSize: 15, color: PN.MUTED, minWidth: 0,
+          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+        }}>{label}</span>
+      </div>
+
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, marginTop: 11}}>
+        <span style={{
+          fontSize: 30, fontWeight: 700, color: PN.TEXT,
+          letterSpacing: -0.7, lineHeight: 1.1, fontVariantNumeric:'tabular-nums',
+          whiteSpace:'nowrap',
+        }}>
+          {valore}{suffisso && <span style={{fontSize: 19, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+        </span>
+        <StatDelta value={delta}/>
+      </div>
+
+      <div style={{fontSize: 13.5, color: PN.MUTED_SOFT, marginTop: 4, lineHeight: 1.35}}>{sub}</div>
+
+      {/* L'andamento chiude la card e ne regge l'altezza: `auto` in alto lo
+          tiene in fondo anche quando una sottodicitura va a capo e le card
+          accanto restano più corte. */}
+      <div style={{height: 44, marginTop: 'auto', paddingTop: 14, display:'flex'}}>
+        <StatSpark data={trend} color={t.forte} width={150} height={54}
+          stretch padY={7} stroke={2}/>
+      </div>
+    </div>
+  );
+}
+
 function VenditePiatti({ v }) {
   const [sortBy, setSortBy] = React.useState('ricavoTot');
   const [order, setOrder] = React.useState('desc');
@@ -640,12 +704,26 @@ function VenditePiatti({ v }) {
     else { setSortBy(col); setOrder('desc'); }
   };
 
+  // Ricavo medio per piatto: ricavi del periodo diviso gli articoli venduti.
+  // Ricavato invece che scritto nei dati, così non può contraddire i due
+  // numeri da cui nasce — che stanno entrambi in questa stessa tab.
+  const ricavoPerPiatto = STAT_ECONOMICI.ricavi.val / v.kpi.venduti.val;
+
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
-        <StatKpi label="N. articoli per ordine" value={v.kpi.articoli.val} delta={v.kpi.articoli.delta} sub={v.kpi.articoli.sub}/>
-        <StatKpi label="Margine medio" value={v.kpi.margine.val} suffix="%" delta={v.kpi.margine.delta} sub={v.kpi.margine.sub}/>
-        <StatKpi label="Articoli totali venduti" value={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})} delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub}/>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
+        <VenditeKpi tono="verde" icona="commerce-receipt" label="N. articoli per ordine"
+          valore={v.kpi.articoli.val.toString().replace('.', ',')}
+          delta={v.kpi.articoli.delta} sub={v.kpi.articoli.sub} trend={v.kpi.articoli.trend}/>
+        <VenditeKpi tono="viola" glifo="%" label="Margine medio"
+          valore={v.kpi.margine.val} suffisso="%"
+          delta={v.kpi.margine.delta} sub={v.kpi.margine.sub} trend={v.kpi.margine.trend}/>
+        <VenditeKpi tono="blu" icona="commerce-bag" label="Articoli totali venduti"
+          valore={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})}
+          delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub} trend={v.kpi.venduti.trend}/>
+        <VenditeKpi tono="ambra" glifo="€" label="Ricavo medio per piatto"
+          valore={`€ ${ricavoPerPiatto.toFixed(2).replace('.', ',')}`}
+          delta={v.kpi.ricavoPiatto.delta} sub={v.kpi.ricavoPiatto.sub} trend={v.kpi.ricavoPiatto.trend}/>
       </div>
 
       <StatCard title="Performance piatti" sub="Ordina per qualsiasi colonna · margine, ricavo, n° venduti" action={
