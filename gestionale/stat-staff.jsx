@@ -132,6 +132,7 @@ function StaffTop({ top, teamAvg }) {
 function StaffMance({ tot, media }) {
   const podio = [...STAFF].sort((a, b) => b.tip - a.tip).slice(0, 3);
   const max = podio[0].tip || 1;
+  const quotaPodio = podio.reduce((s, x) => s + x.tip, 0);
 
   return (
     <div style={{...STAFF_SPOT, gap: 14}}>
@@ -174,18 +175,18 @@ function StaffMance({ tot, media }) {
         ))}
       </div>
 
-      {/* Stesso piede della card accanto — riga sottile e due numeri piccoli —
-          così le due, che hanno contenuti diversi, chiudono allo stesso modo
-          e il vuoto in fondo se lo prende lo spazio fra le due parti, non un
-          buco in mezzo. */}
+      {/* Stesso piede della card accanto — riga sottile e numeri piccoli — così
+          le due chiudono allo stesso modo. Il totale qui non c'è: sta già,
+          uguale, nella card KPI due righe sopra. Restano le due cose che da
+          lì non si vedono: quanto fa a testa e quanto se ne prende il podio. */}
       <div style={{
         marginTop:'auto', paddingTop: 13,
         borderTop:`1px solid ${PN.BORDER_SOFT}`,
         display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap: 10,
       }}>
         {[
-          { v: `€ ${tot.toLocaleString('it-IT', {useGrouping: true})}`, et: 'raccolte in tutto' },
           { v: `€ ${media}`, et: 'di media a testa' },
+          { v: `${Math.round((quotaPodio / tot) * 100)}%`, et: 'raccolto dal podio' },
         ].map(m => (
           <div key={m.et} style={{minWidth: 0}}>
             <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums', lineHeight: 1.2}}>{m.v}</div>
