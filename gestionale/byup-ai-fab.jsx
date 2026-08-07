@@ -374,16 +374,24 @@ function BuAiFab() {
             // Metà in più, come chiesto: 72 → 108. Mentre lo trascini resta a
             // misura e si stacca appena dal foglio: ingrandito, il puntatore
             // finirebbe fuori centro e il bollino sembrerebbe sfuggire.
+            // Col pannello aperto il bollino si ritira: il suo posto l'ha
+            // preso la chat, e restare lì sotto vuol dire due volte la stessa
+            // cosa a due centimetri di distanza. Rimpicciolisce invece di
+            // sparire di colpo, così si legge come "è diventato quello".
+            // Le scintille no: stanno fuori dal bottone e finiscono il volo.
+            opacity: aperto ? 0 : 1,
+            pointerEvents: aperto ? 'none' : 'auto',
             // Agganciato, l'hover non gonfia: fa rientrare. Un bollino a metà
             // fuori che si fa una volta e mezzo uscirebbe ancora di più.
-            transform: trascino ? 'scale(1.08)'
+            transform: aperto ? 'scale(0.55)'
+              : trascino ? 'scale(1.08)'
               : (hover && !(pos && pos.lato)) ? 'scale(1.5)' : 'scale(1)',
             // Niente transizione sul transform durante il trascinamento:
             // il bollino arriverebbe al puntatore con un quarto di secondo
             // di ritardo, come se fosse attaccato con un elastico.
             transition: trascino
               ? 'background 220ms ease, box-shadow 200ms ease'
-              : 'transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1), background 220ms ease, box-shadow 260ms ease, border-color 220ms ease',
+              : 'transform 260ms cubic-bezier(0.34, 1.4, 0.64, 1), opacity 200ms ease, background 220ms ease, box-shadow 260ms ease, border-color 220ms ease',
             cursor: trascino ? 'grabbing' : 'pointer', padding: 0,
             display:'grid', placeItems:'center',
             animation: hover ? 'bu-ai-shift 4s ease infinite' : 'none',
