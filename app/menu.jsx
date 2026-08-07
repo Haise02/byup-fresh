@@ -829,9 +829,20 @@ function MenuScreen({ state, setState, goTo }) {
     if (existing) return { ...s, cart: s.cart.map(i => i.lineId === existing.lineId ? { ...i, qty: i.qty + 1 } : i) };
     return { ...s, cart: [...s.cart, { lineId: id + '-' + Date.now(), dishId: id, qty: 1, variants: {}, extras: {}, removed: {} }] };
   }); };
-  const setQty = (lineId, q) => setState(s => ({
-    ...s, cart: q <= 0 ? s.cart.filter(i => i.lineId !== lineId) : s.cart.map(i => i.lineId === lineId ? { ...i, qty: q } : i),
-  }));
+  // Le divisioni sono per unità (`lineId-0`, `lineId-1`, …): calando la
+  // quantità le chiavi delle unità sparite vanno buttate, o resterebbero
+  // appese e tornerebbero a galla riportando su la quantità.
+  const setQty = (lineId, q) => setState(s => {
+    const splits = { ...(s.splits || {}) };
+    Object.keys(splits).forEach(k => {
+      const i = k.lastIndexOf('-');
+      if (k.slice(0, i) === lineId && Number(k.slice(i + 1)) >= Math.max(0, q)) delete splits[k];
+    });
+    return {
+      ...s, splits,
+      cart: q <= 0 ? s.cart.filter(i => i.lineId !== lineId) : s.cart.map(i => i.lineId === lineId ? { ...i, qty: q } : i),
+    };
+  });
   const clearCart = () => setState(s => ({ ...s, cart: [] }));
 
   const handleSubmit = () => {
@@ -1398,10 +1409,11 @@ function MenuScreen({ state, setState, goTo }) {
             { id: 'p3', name: 'Roberto', initials: 'R' },
           ]}
           onConfirm={(ids) => {
-            const it = splitPickItem;
+            const g = splitPickItem;
             setState(st => {
               const splits = { ...(st.splits || {}) };
-              for (let k = 0; k < it.qty; k++) splits[`${it.lineId}-${k}`] = { kind: 'people', people: ids };
+              // Una unità, come lo swipe verso il tavolo.
+              splits[`${g.lineId}-${g.indici[0]}`] = { kind: 'people', people: ids };
               return { ...st, splits };
             });
             setSplitPickItem(null);
@@ -1603,7 +1615,7 @@ function useTrascinaFoglio(mode, setMode) {
 // → destra: il piatto si divide con TUTTO il tavolo
 // ← sinistra: apre il popup "con chi dividi?"
 // La riga molleggia al rilascio; oltre soglia scatta l'azione con flash.
-function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty }) {
+function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDish, setQty }) {
   const [dx, setDx] = useState(0);
   const [drag, setDrag] = useState(false);
   const [flash, setFlash] = useState(null); // 'table' | 'pick'
@@ -1637,7 +1649,8 @@ function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty 
       const giaDiviso   = split && split.kind && split.kind !== 'tavolo' && split.kind !== 'me';
       if (cur > TH * 0.92) {
         try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch {}
-        if (giaTavolo) { setTimeout(onReset, 120); return 0; }
+        // Anche il ritorno è una unità per volta, come l'andata.
+        if (giaTavolo) { setTimeout(onUndoUno, 120); return 0; }
         setFlash('table'); setTimeout(() => setFlash(null), 520);
         setTimeout(onTable, 120);
       } else if (cur < -TH * 0.92) {
@@ -1666,7 +1679,7 @@ function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty 
           <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: TEXT, lineHeight: 1.3 }}>
             Togliere la divisione?
           </span>
-          <button onClick={() => { setAskUndo(false); onReset && onReset(); }} style={{
+          <button onClick={() => { setAskUndo(false); onUndoUno && onUndoUno(); }} style={{
             padding: '6px 12px', borderRadius: 999, border: 'none',
             background: WINE, color: '#fff', fontSize: 12.5, fontWeight: 800,
             fontFamily: 'inherit', cursor: 'pointer',
@@ -1741,14 +1754,21 @@ function SwipeDishRow({ it, split, onTable, onPick, onReset, onOpenDish, setQty 
           )}
           <div style={{ fontSize: 12.5, color: WINE, fontWeight: 700, marginTop: 5 }}>{it.unitPrice.toFixed(2)}€</div>
         </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: SURF, borderRadius: 999, padding: '3px 6px',
-        }}>
-          <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
-          <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center', color: TEXT }}>{it.qty}</span>
-          <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT}/></button>
-        </div>
+        {it.frazionata ? (
+          <span style={{
+            fontSize: 13, fontWeight: 800, color: MUTED, flexShrink: 0,
+            background: SURF, borderRadius: 999, padding: '5px 11px',
+          }}>×{it.qty}</span>
+        ) : (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: SURF, borderRadius: 999, padding: '3px 6px',
+          }}>
+            <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
+            <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center', color: TEXT }}>{it.qty}</span>
+            <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT}/></button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1818,18 +1838,53 @@ function SplitPickSheet({ item, participants, onConfirm, onClose }) {
 
 function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, sheetTab, setSheetTab, dishes, setQty, clearCart, onSubmit, goTo, onPickSplit }) {
   // applica la divisione a tutte le porzioni della riga
-  const applySplit = (it, sp) => {
+  // Lo swipe muove UNA unità per volta: due Carbonare sono due pezzi, e
+  // mandarne una al tavolo non deve trascinarsi dietro l'altra. Prima qui
+  // c'era un ciclo su tutte le unità della riga.
+  const spostaUno = (g, sp) => {
     setState(st => {
       const splits = { ...(st.splits || {}) };
-      for (let k = 0; k < it.qty; k++) {
-        if (sp) splits[`${it.lineId}-${k}`] = sp; else delete splits[`${it.lineId}-${k}`];
-      }
+      const k = g.indici[0];
+      if (sp) splits[`${g.lineId}-${k}`] = sp; else delete splits[`${g.lineId}-${k}`];
+      return { ...st, splits };
+    });
+  };
+  // La × sulla pillola invece riguarda tutta la riga: è l'etichetta di quel
+  // gruppo, e toglierla vuol dire "questi non sono più al tavolo".
+  const azzeraGruppo = (g) => {
+    setState(st => {
+      const splits = { ...(st.splits || {}) };
+      g.indici.forEach(k => { delete splits[`${g.lineId}-${k}`]; });
       return { ...st, splits };
     });
   };
   const expanded = mode === 'expanded';
   const trascina = useTrascinaFoglio(mode, setMode);
   const allDishes = Object.values(dishes).flat();
+  // Righe del carrello raggruppate per destinazione. Ogni unità ha la sua
+  // (`splits['lineId-2']`), ma tenere una riga per pezzo riempirebbe il
+  // carrello di ripetizioni: quelle che vanno nello stesso posto restano
+  // insieme, e la riga si sdoppia solo quando le destinazioni divergono.
+  const gruppiRiga = (voci, splits) => voci.flatMap(it => {
+    const perDestinazione = new Map();
+    for (let k = 0; k < it.qty; k++) {
+      const sp = (splits || {})[`${it.lineId}-${k}`] || null;
+      const chiave = !sp || sp.kind === 'me' ? 'me'
+        : sp.kind === 'tavolo' ? 'tavolo'
+        : 'con:' + (sp.people || []).slice().sort().join(',');
+      if (!perDestinazione.has(chiave)) perDestinazione.set(chiave, { split: sp, indici: [] });
+      perDestinazione.get(chiave).indici.push(k);
+    }
+    const gruppi = Array.from(perDestinazione.values());
+    return gruppi.map(g => ({
+      ...it, qty: g.indici.length, indici: g.indici, split: g.split,
+      // Con la riga spezzata il +/- non ha un bersaglio univoco: toglieresti
+      // un pezzo "al tavolo" o uno "per te"? Meglio mostrare solo il conteggio
+      // e lasciare che si annulli prima la divisione.
+      frazionata: gruppi.length > 1,
+    }));
+  });
+
   const cartItems = state.cart.map(li => {
     const d = allDishes.find(x => x.id === li.dishId);
     if (!d) return null;
@@ -1922,13 +1977,14 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
               <EmptyHint text="Aggiungi piatti dalla lista per vederli qui"/>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {cartItems.map(it => (
-                  <SwipeDishRow key={it.lineId} it={it}
-                    split={state.splits?.[`${it.lineId}-0`]}
-                    onTable={() => applySplit(it, { kind: 'tavolo', people: [] })}
-                    onPick={() => onPickSplit && onPickSplit(it)}
-                    onReset={() => applySplit(it, null)}
-                    onOpenDish={() => goTo('dish', { dishId: it.id, lineId: it.lineId })}
+                {gruppiRiga(cartItems, state.splits).map(g => (
+                  <SwipeDishRow key={`${g.lineId}:${g.indici[0]}`} it={g}
+                    split={g.split}
+                    onTable={() => spostaUno(g, { kind: 'tavolo', people: [] })}
+                    onPick={() => onPickSplit && onPickSplit(g)}
+                    onUndoUno={() => spostaUno(g, null)}
+                    onReset={() => azzeraGruppo(g)}
+                    onOpenDish={() => goTo('dish', { dishId: g.id, lineId: g.lineId })}
                     setQty={setQty}/>
                 ))}
               </div>
