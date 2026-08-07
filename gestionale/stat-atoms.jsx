@@ -434,10 +434,14 @@ function StatInsight({ items = [] }) {
 function SortHead({ col, cur, order, onSort, children }) {
   const active = col === cur;
   return (
+    // Il colore lo dà l'intestazione che la contiene — `inherit` esplicito
+    // perché i bottoni non ereditano da soli. Prima era grigio fisso, e nella
+    // tabella dei piatti in Clienti le colonne ordinabili restavano grigie
+    // mentre l'unica non ordinabile veniva wine come il resto della riga.
     <button onClick={() => onSort(col)} style={{
       background:'transparent', border:'none', padding: 0,
-      fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
-      textTransform:'uppercase', letterSpacing: 0.5,
+      fontSize:'inherit', fontWeight: 700, color:'inherit',
+      textTransform:'uppercase', letterSpacing:'inherit',
       textAlign:'left', cursor:'pointer', fontFamily:'inherit',
       display:'inline-flex', alignItems:'center', gap: 5,
       opacity: active ? 1 : 0.85,

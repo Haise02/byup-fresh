@@ -918,12 +918,16 @@ function VenditePiatti({ v }) {
         </div>
       }>
         <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
+          {/* Stessa intestazione della tabella dei piatti in Clienti →
+              Conversione: rosa tenue e testo wine. Sono le due tabelle di
+              piatti del gestionale e conviene che si somiglino.
+              SortHead nasce grigia: qui il colore glielo passa il contenitore,
+              e i bottoni lo ereditano. */}
           <div style={{
             display:'grid', gridTemplateColumns: PIATTI_COLS,
-            padding:'10px 16px', background:'#FAFAFB',
-            fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
-            textTransform:'uppercase', letterSpacing: 0.5,
-            borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+            padding:'12px 16px', background: PN.PINK_SOFT,
+            fontSize: 13, fontWeight: 700, color: PN.WINE,
+            textTransform:'uppercase', letterSpacing: 0.4,
           }}>
             <SortHead col="nome" cur={sortBy} order={order} onSort={handleSort}>Piatto</SortHead>
             <SortHead col="cat" cur={sortBy} order={order} onSort={handleSort}>Categoria</SortHead>
