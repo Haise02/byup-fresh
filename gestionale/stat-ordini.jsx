@@ -2,14 +2,6 @@
 
 function StatOrdini() {
   const d = STAT_ORDINI;
-  const W = 740, H = 240, P = { l: 50, r: 76, t: 16, b: 28 };
-  const all = [...d.scontrinoTrend.direta, ...d.scontrinoTrend.asporto, ...d.scontrinoTrend.delivery];
-  const maxV = Math.ceil(Math.max(...all) / 10000) * 10000;
-  const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-  const xStep = (W - P.l - P.r) / (months.length - 1);
-  const yScale = (v) => H - P.b - (v / maxV) * (H - P.t - P.b);
-  const xAt = (i) => P.l + i * xStep;
-  const path = (arr) => arr.map((v, i) => `${i===0?'M':'L'}${xAt(i)},${yScale(v)}`).join(' ');
 
   // Heatmap max
   const allHeat = d.heatmap.flatMap(r => r.val);
@@ -30,8 +22,10 @@ function StatOrdini() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
-        <StatKpi label="Scontrino medio" value={`€ ${d.kpi.scontrino.val.toFixed(2)}`} delta={d.kpi.scontrino.delta} sub="Valore medio per ordine nel periodo selezionato"/>
+      {/* Lo scontrino medio è passato in Economici → Vendite piatti, fra gli
+          altri KPI di valore. Qui resta il suo andamento per canale, che è
+          un'altra domanda: non "quanto vale un ordine" ma "da dove arriva". */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr', gap: 12}}>
         <StatKpi label="Ordini completati" value={d.kpi.completati.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.kpi.completati.delta} sub="Totale ordini completati nel periodo selezionato"/>
       </div>
 
@@ -39,48 +33,6 @@ function StatOrdini() {
         <ChannelCard title="In sala" subtitle="Coperti seduti" data={d.sala} iconKey="table" color={PN.WINE}/>
         <ChannelCard title="Da asporto / delivery" subtitle="Ordini per ritiro o consegna" data={d.asporto} iconKey="storefront" color={PN.PINK}/>
       </div>
-
-      {/* Trend scontrino */}
-      <StatCard title="Trend scontrino medio" sub="Visualizzato per canale negli ultimi 12 mesi" action={
-        <div style={{display:'inline-flex', alignItems:'center', gap: 14, fontSize: 14, color: PN.MUTED}}>
-          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.PINK}}/> sala</span>
-          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.GREEN}}/> asporto</span>
-          <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: PN.BLUE}}/> delivery</span>
-        </div>
-      }>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', height: 240}}>
-          {/* Grid */}
-          {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-            const y = P.t + (H - P.t - P.b) * t;
-            const v = Math.round(maxV * (1 - t));
-            return (
-              <g key={i}>
-                <line x1={P.l} y1={y} x2={W - P.r} y2={y} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
-                <text x={P.l - 8} y={y + 4} fontSize="11" fill={PN.MUTED} textAnchor="end">€{v >= 1000 ? (v/1000)+'k' : v}</text>
-              </g>
-            );
-          })}
-          {/* Linee — alone bianco sotto ciascuna per gli incroci */}
-          {[
-            { key:'delivery', arr: d.scontrinoTrend.delivery, col: PN.BLUE, w: 2, label:'Delivery' },
-            { key:'asporto', arr: d.scontrinoTrend.asporto, col: PN.GREEN, w: 2, label:'Asporto' },
-            { key:'sala', arr: d.scontrinoTrend.direta, col: PN.PINK, w: 2.4, label:'Sala' },
-          ].map(s => {
-            const last = s.arr[s.arr.length - 1];
-            return (
-              <g key={s.key}>
-                <path d={path(s.arr)} fill="none" stroke={PN.WHITE} strokeWidth={s.w + 3} strokeLinecap="round" strokeLinejoin="round"/>
-                <path d={path(s.arr)} fill="none" stroke={s.col} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round"/>
-                {/* Solo il punto finale, con anello bianco 2px */}
-                <circle cx={xAt(s.arr.length - 1)} cy={yScale(last)} r={4.5} fill={s.col} stroke={PN.WHITE} strokeWidth={2}/>
-                <text x={xAt(s.arr.length - 1) + 11} y={yScale(last) + 4} fontSize="12" fontWeight="600" fill={PN.TEXT}>{s.label}</text>
-              </g>
-            );
-          })}
-          {/* Months */}
-          {months.map((m, i) => <text key={i} x={xAt(i)} y={H - 6} fontSize="11" fill={PN.MUTED} textAnchor="middle">{m}</text>)}
-        </svg>
-      </StatCard>
 
       {/* Heatmap */}
       <StatCard title="Heatmap oraria ordini" sub={`Ordini medi per fascia oraria · canale ${channel}`} action={

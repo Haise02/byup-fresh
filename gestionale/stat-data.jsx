@@ -44,16 +44,14 @@ const STAT_PRENOTAZIONI = {
 
 const STAT_ORDINI = {
   kpi: {
-    scontrino: { val: 45.50, delta: 12.5 },
+    // Lo scontrino medio è passato a STAT_VENDITE: il valore di un ordine è
+    // una cosa che si legge accanto a quanto vale un piatto, non accanto a
+    // quanti ordini sono stati completati. Qui resta il trend per canale,
+    // che è un grafico e vive in Operazioni.
     completati: { val: 1320, delta: 12.5 },
   },
   asporto: { completati: 612, tempoMedio: '14 min' },
   sala:    { completati: 708, tempoMedio: '52 min' },
-  scontrinoTrend: { // 12 mesi, 3 canali
-    direta:  [4500, 4800, 5200, 6100, 5500, 6800, 6300, 5800, 7200, 6400, 7000, 7300],
-    asporto: [2600, 2800, 3100, 3700, 3300, 4100, 3800, 3500, 4400, 3900, 4250, 4500],
-    delivery:[ 800,  900, 1100, 1500, 1300, 1800, 1700, 1500, 2100, 1900, 2050, 2300],
-  },
   // Heatmap: 7 giorni × 8 fasce, ogni cella = ordini medi nel giorno tipico
   heatmap: [
     // 08-09, 09-10, 10-11, 11-12, 12-13, 13-14, 19-20, 20-21
@@ -172,8 +170,15 @@ const STAT_VENDITE = {
     // Il valore non sta qui: si ricava dai ricavi del periodo diviso gli
     // articoli venduti, così non può divergere dai numeri accanto se un
     // domani qualcuno tocca solo uno dei due.
+    scontrino: { val: 45.50, delta: 12.5, sub:'Valore medio di un ordine',
+      trend: [39.5, 40.4, 40.0, 41.3, 40.8, 42.0, 41.5, 42.8, 42.3, 43.6, 43.0, 44.4, 43.8, 45.5] },
     ricavoPiatto: { delta: 6.7, sub:'Ricavi diviso articoli venduti',
       trend: [5.6, 5.75, 5.7, 5.9, 5.85, 6.0, 5.95, 6.1, 6.05, 6.2, 6.15, 6.3, 6.25, 6.37] },
+  },
+  scontrinoTrend: { // 12 mesi, 3 canali
+    direta:  [4500, 4800, 5200, 6100, 5500, 6800, 6300, 5800, 7200, 6400, 7000, 7300],
+    asporto: [2600, 2800, 3100, 3700, 3300, 4100, 3800, 3500, 4400, 3900, 4250, 4500],
+    delivery:[ 800,  900, 1100, 1500, 1300, 1800, 1700, 1500, 2100, 1900, 2050, 2300],
   },
   piatti: [
     { nome:'Cacio e Pepe',   costo: 4.20, ricavo: 14.00, margine: 9.80, n: 412, costiTot: 1730.4, ricavoTot: 5768, marginePct: 70 },
