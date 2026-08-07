@@ -59,21 +59,25 @@ function StatPrenotazioni() {
           si prende la riga intera e il delta scende accanto al numero. Con la
           pillola di fianco al nome, in quattro colonne a 1280 restavano 72px
           per l'etichetta e si troncavano tutte.
+          Nomi corti perché ci stiano accanto alla pillola: a 1280 quella riga
+          lascia all'etichetta 89px, misurati, e «Tasso di occupazione» ne
+          chiede 143. La forma per esteso sta nel sottotitolo, che ha la
+          larghezza intera.
           Niente sparkline: a destra del numero non ci sta — servirebbero 240px
           su una riga che ne ha 151 — e in fondo alla card disturbava. Le serie
           restano in STAT_PRENOTAZIONI se un domani le card tornano due per
           riga, dove lo spazio a destra c'è. */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
-        <StatKpiTinto compatto tono="blu" icona="people-customer" label="Coperti serviti"
+        <StatKpiTinto compatto tono="blu" icona="people-customer" label="Coperti"
           valore={d.kpi.coperti.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={d.kpi.coperti.delta} sub="Ospiti serviti nel periodo"/>
-        <StatKpiTinto compatto tono="verde" icona="place-table" label="Tasso di occupazione"
+        <StatKpiTinto compatto tono="verde" icona="place-table" label="Occupazione"
           valore={d.kpi.occupazione.val} suffisso="%"
           delta={d.kpi.occupazione.delta} sub="Riempimento medio delle sale"/>
-        <StatKpiTinto compatto tono="giallo" icona="people-staff-group" label="Coperti per tavolo"
+        <StatKpiTinto compatto tono="giallo" icona="people-staff-group" label="Per tavolo"
           valore={d.kpi.perTavolo.val.toString().replace('.', ',')}
           delta={d.kpi.perTavolo.delta} sub="Media ospiti per prenotazione"/>
-        <StatKpiTinto compatto tono="viola" icona="time-clock" label="Durata media al tavolo"
+        <StatKpiTinto compatto tono="viola" icona="time-clock" label="Durata media"
           valore={d.kpi.durata.val}
           delta={d.kpi.durata.delta} sub="Permanenza media al tavolo"/>
       </div>

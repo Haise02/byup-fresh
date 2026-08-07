@@ -105,50 +105,58 @@ function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta,
   // fianco — misurati — e si troncano tutte, anche accorciandole. L'andamento
   // per lo stesso motivo passa in fondo a tutta larghezza.
   if (compatto) {
+    // Stessa impaginazione della variante piena — pastiglia a sinistra,
+    // etichetta e pillola sulla stessa riga con la pillola all'estrema destra
+    // — solo più stretta, perché qui le card sono quattro invece di tre.
+    // Pastiglia 38 invece di 44, etichetta 14 invece di 15 e pillola
+    // asciugata: sono i pixel che servono perché il nome ci stia accanto al
+    // delta anche a 1280, dove alla riga restano 151px in tutto.
     return (
       <div {...boxHover} style={{
-        padding: 14, borderRadius: 16, minWidth: 0, overflow:'hidden',
+        display:'flex', alignItems:'center', gap: 10, minWidth: 0,
+        padding: 14, borderRadius: 16,
         background: t.bg, border: `1px solid ${t.bordo}`,
-        display:'flex', flexDirection:'column',
         transition: BOX_TRANSITION,
       }}>
-        {/* Pastiglia a sinistra e delta nell'angolo opposto, sulla stessa
-            riga: sotto, l'etichetta si prende la larghezza intera della card.
-            Affiancare nome e pillola, in quattro colonne a 1280, lasciava al
-            nome 72px e li troncava tutti. */}
-        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
-          <span style={{
-            width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
-            background: PN.WHITE, color: t.forte,
-            display:'grid', placeItems:'center',
-            boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
-          }}>{glifo
-            ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
-            : <Icon name={icona} size={19}/>}</span>
-          <StatDelta value={delta}/>
-        </div>
+        <span style={{
+          width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
+          background: PN.WHITE, color: t.forte,
+          display:'grid', placeItems:'center',
+          boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
+        }}>{glifo
+          ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
+          : <Icon name={icona} size={19}/>}</span>
 
-        <div title={label} style={{
-          fontSize: 14, color: PN.MUTED, fontWeight: 500, marginTop: 11,
-          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-        }}>{label}</div>
-
-        <div style={{
-          fontSize: 26, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
-          lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
-          fontVariantNumeric:'tabular-nums',
-        }}>
-          {valore}{suffisso && <span style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
-        </div>
-
-        <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, lineHeight: 1.3}}>{sub}</div>
-
-        {trend && trend.length > 1 && (
-          <div style={{height: 34, marginTop:'auto', paddingTop: 10, display:'flex'}}>
-            <StatSpark data={trend} color={t.forte} width={150} height={54}
-              stretch padY={7} stroke={2}/>
+        <div style={{flex: 1, minWidth: 0}}>
+          {/* Divario di 6 e non 8: «Occupazione» a 1280 ne chiede 90 e ne
+              aveva 89. Due pixel, ma sono la differenza fra un nome intero e
+              un nome coi puntini. */}
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 6}}>
+            <span title={label} style={{
+              fontSize: 14, color: PN.MUTED, fontWeight: 500, minWidth: 0,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            }}>{label}</span>
+            <span style={{
+              display:'inline-flex', alignItems:'center', gap: 2,
+              padding:'2px 6px', borderRadius: 999, flexShrink: 0,
+              background: delta >= 0 ? PN.GREEN_SOFT : PN.RED_SOFT,
+              color: delta >= 0 ? PN.GREEN : PN.RED,
+              fontSize: 10.5, fontWeight: 700, whiteSpace:'nowrap',
+              fontVariantNumeric:'tabular-nums',
+            }}>
+              <span style={{fontSize: 9.5}}>{delta >= 0 ? '↑' : '↓'}</span>
+              {Math.abs(delta).toFixed(1)}%
+            </span>
           </div>
-        )}
+          <div style={{
+            fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
+            lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
+            fontVariantNumeric:'tabular-nums',
+          }}>
+            {valore}{suffisso && <span style={{fontSize: 15, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+          </div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.3}}>{sub}</div>
+        </div>
       </div>
     );
   }
