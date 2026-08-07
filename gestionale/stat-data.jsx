@@ -237,17 +237,23 @@ const STAT_APP = {
     { label:'Carrello creato',          val: 4200,  pct: 42 },
     { label:'Pagamento completato',     val: 2900,  pct: 29 },
   ],
+  // `apri`: quante volte il piatto è stato toccato per aprirne la scheda, da
+  // app o webapp. Sta fra la vista in elenco e l'ordine, ma non è un passaggio
+  // obbligato — dall'elenco si aggiunge anche senza aprire, ed è per questo
+  // che l'acqua ha 2.640 ordini e appena 380 schede aperte: nessuno legge la
+  // descrizione dell'acqua naturale. Il pesce spada fa il contrario, 720
+  // curiosi e 280 ordini: lì a fermare è il prezzo, non la voglia.
   conversionePiatti: [
-    { piatto:'Acqua naturale',      view: 3200, ord: 2640, conv: 82.5 },
-    { piatto:'Cacio e Pepe',        view: 2800, ord: 1450, conv: 51.8 },
-    { piatto:'Carbonara',           view: 2640, ord: 1380, conv: 52.3 },
-    { piatto:'Amatriciana',         view: 2380, ord: 1190, conv: 50.0 },
-    { piatto:'Tiramisù',            view: 1820, ord: 1310, conv: 72.0 },
-    { piatto:'Bruschetta',          view: 1640, ord: 980,  conv: 59.8 },
-    { piatto:'Saltimbocca',         view: 1420, ord: 580,  conv: 40.8 },
-    { piatto:'Carciofi alla giudia', view: 1280, ord: 720,  conv: 56.3 },
-    { piatto:'Pesce spada',         view: 920,  ord: 280,  conv: 30.4 },
-    { piatto:'Coda alla vaccinara', view: 720,  ord: 240,  conv: 33.3 },
+    { piatto:'Acqua naturale',      view: 3200, apri:  380, ord: 2640, conv: 82.5 },
+    { piatto:'Cacio e Pepe',        view: 2800, apri: 1980, ord: 1450, conv: 51.8 },
+    { piatto:'Carbonara',           view: 2640, apri: 1870, ord: 1380, conv: 52.3 },
+    { piatto:'Amatriciana',         view: 2380, apri: 1640, ord: 1190, conv: 50.0 },
+    { piatto:'Tiramisù',            view: 1820, apri: 1460, ord: 1310, conv: 72.0 },
+    { piatto:'Bruschetta',          view: 1640, apri: 1180, ord: 980,  conv: 59.8 },
+    { piatto:'Saltimbocca',         view: 1420, apri: 1040, ord: 580,  conv: 40.8 },
+    { piatto:'Carciofi alla giudia', view: 1280, apri:  890, ord: 720,  conv: 56.3 },
+    { piatto:'Pesce spada',         view: 920,  apri:  720, ord: 280,  conv: 30.4 },
+    { piatto:'Coda alla vaccinara', view: 720,  apri:  560, ord: 240,  conv: 33.3 },
   ],
 };
 

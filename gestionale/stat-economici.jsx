@@ -936,14 +936,23 @@ function VenditePiatti({ v }) {
             <SortHead col="margine" cur={sortBy} order={order} onSort={handleSort}>Margine per piatto</SortHead>
             <SortHead col="marginePct" cur={sortBy} order={order} onSort={handleSort}>Margine %</SortHead>
           </div>
-          {sorted.map((p, i) => (
-            <div key={i} style={{
-              display:'grid', gridTemplateColumns: PIATTI_COLS,
-              padding:'8px 16px', alignItems:'center',
-              fontSize: 14.5, color: PN.TEXT,
-              background: i % 2 === 1 ? '#FAFAFB' : PN.WHITE,
-              borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-              fontVariantNumeric:'tabular-nums',
+          {sorted.map((p, i) => {
+            const sfondo = i % 2 === 1 ? '#FAFAFB' : PN.WHITE;
+            return (
+            // Sotto il mouse la riga si accende del rosa tenue del gestionale e
+            // cresce di un soffio. Lo 0,6% è quanto basta a vedersi senza che
+            // le colonne sembrino ballare da una riga all'altra.
+            <div key={i}
+              onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.transform = 'scale(1.006)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = sfondo; e.currentTarget.style.transform = ''; }}
+              style={{
+                display:'grid', gridTemplateColumns: PIATTI_COLS,
+                padding:'8px 16px', alignItems:'center',
+                fontSize: 14.5, color: PN.TEXT,
+                background: sfondo,
+                borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+                fontVariantNumeric:'tabular-nums',
+                transition:'background 140ms ease, transform 140ms ease',
             }}>
               <span style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
                 {/* La tinta pastello resta sotto mentre la foto carica, così
@@ -975,7 +984,8 @@ function VenditePiatti({ v }) {
                 }}>{p.marginePct}%</span>
               </span>
             </div>
-          ))}
+            );
+          })}
         </div>
       </StatCard>
     </div>

@@ -96,7 +96,8 @@ function ConvDettaglioPiatto({ piatto, onClose }) {
               <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 4}}>
                 Nel percorso d'acquisto
               </div>
-              {voce('Visualizzazioni', piatto.view.toLocaleString('it-IT', {useGrouping: true}))}
+              {voce('Visto in elenco', piatto.view.toLocaleString('it-IT', {useGrouping: true}))}
+              {voce('Scheda aperta', piatto.apri.toLocaleString('it-IT', {useGrouping: true}))}
               {voce('Ordini', piatto.ord.toLocaleString('it-IT', {useGrouping: true}))}
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12, padding:'11px 0'}}>
                 <span style={{fontSize: 14.5, color: PN.MUTED}}>Tasso di conversione</span>
@@ -106,14 +107,24 @@ function ConvDettaglioPiatto({ piatto, onClose }) {
                   fontSize: 15, fontWeight: 700, fontVariantNumeric:'tabular-nums',
                 }}>{piatto.conv.toFixed(1).replace('.', ',')}%</span>
               </div>
-              {/* La frase che la percentuale da sola non dice: quante volte è
-                  stato guardato senza finire nel carrello. */}
+              {/* La frase che la percentuale da sola non dice. Aprire la scheda
+                  non è un passaggio obbligato — dall'elenco si aggiunge anche
+                  senza — quindi ci sono due storie diverse e va detta quella
+                  giusta: chi la scheda la apre e poi non ordina, o chi ordina
+                  senza nemmeno aprirla. */}
               <div style={{
                 padding:'11px 13px', borderRadius: 10, background: PN.WHITE_HUSH,
                 fontSize: 14, color: PN.MUTED, lineHeight: 1.45,
               }}>
-                Guardato {piatto.view.toLocaleString('it-IT', {useGrouping: true})} volte, ordinato {piatto.ord.toLocaleString('it-IT', {useGrouping: true})}:
-                {' '}<strong style={{color: PN.TEXT}}>{(piatto.view - piatto.ord).toLocaleString('it-IT', {useGrouping: true})}</strong> visualizzazioni non sono diventate un ordine.
+                {piatto.apri >= piatto.ord ? (
+                  <>Su {piatto.apri.toLocaleString('it-IT', {useGrouping: true})} schede aperte,
+                    {' '}<strong style={{color: PN.TEXT}}>{(piatto.apri - piatto.ord).toLocaleString('it-IT', {useGrouping: true})}</strong> non sono
+                    diventate un ordine: chi si ferma qui, si ferma dopo aver letto.</>
+                ) : (
+                  <>Ordinato {piatto.ord.toLocaleString('it-IT', {useGrouping: true})} volte ma con appena
+                    {' '}<strong style={{color: PN.TEXT}}>{piatto.apri.toLocaleString('it-IT', {useGrouping: true})}</strong> schede aperte:
+                    lo si aggiunge dall'elenco, senza bisogno di leggerne la descrizione.</>
+                )}
               </div>
 
               {vend ? (
@@ -141,8 +152,9 @@ function ConvDettaglioPiatto({ piatto, onClose }) {
   );
 }
 
-// Piatto (con la miniatura) · visualizzazioni · ordini · tasso · dettaglio.
-const CONV_COLONNE = '2.6fr 1fr 1fr 1.1fr 96px';
+// Piatto (con la miniatura) · le tre misure del percorso, nell'ordine in cui
+// accadono — visto in elenco, scheda aperta, ordinato — e il tasso.
+const CONV_COLONNE = '2.6fr 1.15fr 1.35fr 1fr 1.2fr';
 
 function StatApp() {
   const d = STAT_APP;
@@ -245,25 +257,33 @@ function StatApp() {
           }}>
             <SortHead col="piatto" cur={sortBy} order={order} onSort={handleSort}>Piatto</SortHead>
             <SortHead col="view" cur={sortBy} order={order} onSort={handleSort}>Visualizzazioni</SortHead>
+            <SortHead col="apri" cur={sortBy} order={order} onSort={handleSort}>Apertura dettaglio</SortHead>
             <SortHead col="ord" cur={sortBy} order={order} onSort={handleSort}>Ordini</SortHead>
             <SortHead col="conv" cur={sortBy} order={order} onSort={handleSort}>Tasso conversione</SortHead>
-            <span style={{textAlign:'right'}}>Dettaglio</span>
           </div>
           {sorted.map((p, i) => {
             const tono = convTono(p.conv);
+            const sfondo = i % 2 === 1 ? '#FAFAFB' : PN.WHITE;
             return (
-              <div key={i} style={{
-                display:'grid', gridTemplateColumns: CONV_COLONNE,
-                padding:'10px 16px', alignItems:'center', columnGap: 10,
-                fontSize: 14.5, color: PN.TEXT,
-                borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-                fontVariantNumeric:'tabular-nums',
-              }}>
+              <div key={i}
+                onClick={() => setDettaglio(p)}
+                title={`Vedi il dettaglio di ${p.piatto}`}
+                onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.transform = 'scale(1.006)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = sfondo; e.currentTarget.style.transform = ''; }}
+                style={{
+                  display:'grid', gridTemplateColumns: CONV_COLONNE,
+                  padding:'10px 16px', alignItems:'center', columnGap: 10,
+                  fontSize: 14.5, color: PN.TEXT, background: sfondo,
+                  borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+                  fontVariantNumeric:'tabular-nums', cursor:'pointer',
+                  transition:'background 140ms ease, transform 140ms ease',
+                }}>
                 <span style={{display:'flex', alignItems:'center', gap: 11, minWidth: 0}}>
                   <ConvFoto nome={p.piatto}/>
                   <span style={{fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.piatto}</span>
                 </span>
                 <span>{p.view.toLocaleString('it-IT', {useGrouping: true})}</span>
+                <span>{p.apri.toLocaleString('it-IT', {useGrouping: true})}</span>
                 <span>{p.ord.toLocaleString('it-IT', {useGrouping: true})}</span>
                 <span>
                   <span style={{
@@ -271,19 +291,6 @@ function StatApp() {
                     background: tono.bg, color: tono.fg,
                     fontSize: 14, fontWeight: 700, minWidth: 56, textAlign:'center',
                   }}>{p.conv.toFixed(1).replace('.', ',')}%</span>
-                </span>
-                <span style={{textAlign:'right'}}>
-                  <button onClick={() => setDettaglio(p)} title={`Dettaglio di ${p.piatto}`}
-                    onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.borderColor = PN.BORDER_MED; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
-                    style={{
-                      display:'inline-flex', alignItems:'center', gap: 5,
-                      padding:'5px 10px', borderRadius: 9,
-                      border:`1px solid ${PN.BORDER}`, background: PN.WHITE,
-                      color: PN.TEXT, fontSize: 13.5, fontWeight: 600,
-                      fontFamily:'inherit', cursor:'pointer',
-                      transition:'background 140ms ease, border-color 140ms ease, transform 90ms ease-out',
-                    }}>Apri <Icon name="chevron-right" size={11}/></button>
                 </span>
               </div>
             );
