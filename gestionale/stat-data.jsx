@@ -222,21 +222,20 @@ const STAT_VENDITE = {
 };
 
 const STAT_APP = {
-  // I quattro KPI escono dal funnel qui sotto (primo passo, ultimo passo e la
-  // loro differenza), quindi qui ci sono solo gli andamenti: l'ultima
-  // rilevazione di ognuno coincide col valore che il funnel produce.
-  trend: {
-    visite:      [8200, 8600, 8500, 9100, 9400, 9700, 10000],
-    pagamenti:   [2450, 2560, 2520, 2680, 2740, 2830, 2900],
-    conversione: [27.5, 28.0, 27.8, 28.4, 28.6, 28.8, 29.0],
-    abbandoni:   [7350, 7300, 7380, 7250, 7200, 7150, 7100],
-  },
+  // Ogni passaggio si porta il suo andamento — sette rilevazioni, l'ultima
+  // uguale al valore accanto — e il confronto col periodo prima. Stavano nelle
+  // card KPI sopra il funnel, che però ripetevano primo e ultimo passaggio:
+  // qui il numero e la sua direzione stanno nello stesso posto.
   funnel: [
-    { label:'Visualizzazioni vetrina', val: 10000, pct: 100 },
-    { label:'Visualizzazioni menu',     val: 7500,  pct: 75 },
-    { label:'Carrello creato',          val: 4200,  pct: 42 },
-    { label:'Pagamento completato',     val: 2900,  pct: 29 },
+    { label:'Visualizzazioni vetrina', sub:'Chi apre la pagina del locale',        val: 10000, pct: 100, delta: 14.2, trend: [8200, 8600, 8500, 9100, 9400, 9700, 10000] },
+    { label:'Visualizzazioni menu',    sub:'Chi arriva a sfogliare i piatti',      val: 7500,  pct: 75,  delta: 11.5, trend: [6100, 6400, 6350, 6800, 7000, 7250, 7500] },
+    { label:'Carrello creato',         sub:'Chi mette almeno un piatto nel carrello', val: 4200, pct: 42, delta: 8.1, trend: [3500, 3650, 3600, 3850, 3950, 4080, 4200] },
+    { label:'Pagamento completato',    sub:'Chi arriva in fondo e paga',           val: 2900,  pct: 29,  delta: 9.6,  trend: [2450, 2560, 2520, 2680, 2740, 2830, 2900] },
   ],
+  // Quello che succede dopo l'ultimo passaggio: un pagamento andato a buon fine
+  // può tornare indietro. Non è un quinto scalino del funnel — non è gente che
+  // si perde per strada, è denaro restituito — quindi sta a parte, in fondo.
+  rimborsi: { n: 34, valore: 1180, delta: -0.4 },
   // `apri`: quante volte il piatto è stato toccato per aprirne la scheda, da
   // app o webapp. Sta fra la vista in elenco e l'ordine, ma non è un passaggio
   // obbligato — dall'elenco si aggiunge anche senza aprire, ed è per questo
