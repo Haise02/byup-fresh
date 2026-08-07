@@ -19,11 +19,9 @@ function StatOrdini() {
   const heatColor = (v) => v / maxHeat >= 0.55 ? '#fff' : PN.TEXT;
   const days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
   const [channel, setChannel] = React.useState('Sala');
-  // Cella sotto il mouse: le celle non portano più il numero dentro — 63
-  // numeri litigano col colore, e una heatmap serve a far vedere il ritmo
-  // della settimana, non a farsi leggere una casella per volta. Il valore
-  // esatto compare qui sopra al passaggio, e quello che conta di più — il
-  // picco — è scritto sempre.
+  // Cella sotto il mouse: serve solo ad accendere la riga e la colonna, che
+  // in una griglia 9×7 è quello che aiuta a non perdere il segno. Il numero
+  // sta dentro la cella, quindi non c'è niente da mostrare altrove.
   const [cella, setCella] = React.useState(null);
   const picco = d.heatmap.reduce((best, row, ri) => {
     row.val.forEach((v, ci) => { if (v > best.v) best = { v, ri, ci }; });
@@ -75,20 +73,10 @@ function StatOrdini() {
           display:'flex', alignItems:'baseline', justifyContent:'flex-end',
           gap: 8, marginTop: -6, marginBottom: 12, minHeight: 22,
         }}>
-          {(() => {
-            const c = cella || picco;
-            const v = d.heatmap[c.ri].val[c.ci];
-            return (
-              <>
-                <span style={{fontSize: 13.5, color: PN.MUTED_SOFT}}>{cella ? '' : 'picco della settimana'}</span>
-                <span style={{fontSize: 14.5, color: PN.MUTED}}>
-                  {days[c.ci]} · {d.heatmap[c.ri].ora}
-                </span>
-                <strong style={{fontSize: 16, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{v}</strong>
-                <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>ordini</span>
-              </>
-            );
-          })()}
+          <span style={{fontSize: 13.5, color: PN.MUTED_SOFT}}>picco della settimana</span>
+          <span style={{fontSize: 14.5, color: PN.MUTED}}>{days[picco.ci]} · {d.heatmap[picco.ri].ora}</span>
+          <strong style={{fontSize: 16, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{picco.v}</strong>
+          <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>ordini</span>
         </div>
 
         <div
@@ -121,6 +109,9 @@ function StatOrdini() {
                       // 40 e non 34: su una card a tutta pagina le celle sono
                       // larghe 170, e a 34 sembravano strisce invece che caselle.
                       height: 40, borderRadius: 8, background: heatBg(v),
+                      color: heatColor(v),
+                      display:'grid', placeItems:'center',
+                      fontSize: 13.5, fontWeight: 600, fontVariantNumeric:'tabular-nums',
                       position:'relative', cursor:'default',
                       // L'anello sta sul picco sempre e sulla cella puntata
                       // mentre ci sei sopra: due modi di dire "guarda qui" che
@@ -131,7 +122,7 @@ function StatOrdini() {
                       transform: su ? 'scale(1.08)' : 'scale(1)',
                       zIndex: su || eIlPicco ? 2 : 1,
                       transition:'transform 140ms ease, box-shadow 140ms ease',
-                    }}/>
+                    }}>{v}</div>
                 );
               })}
             </React.Fragment>
