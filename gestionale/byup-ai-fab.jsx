@@ -126,6 +126,26 @@ const scostamento = (lato) => ({
   basso:    `translateY(${SPORGE * 100}%)`,
 }[lato] || '');
 
+// Il segno sta al centro del bollino, e a bollino scostato il centro è fuori
+// dal frame: resterebbe invisibile. Il contenuto si rifà avanti della metà di
+// quel che sporge, così finisce in mezzo alla mezzaluna che si vede.
+const RIENTRO = Math.round(SPORGE * FAB / 2);
+const rientroIcona = (lato) => ({
+  sinistra: `translateX(${RIENTRO}px)`,
+  destra:   `translateX(-${RIENTRO}px)`,
+  alto:     `translateY(${RIENTRO}px)`,
+  basso:    `translateY(-${RIENTRO}px)`,
+}[lato] || '');
+
+// La freccia punta verso l'interno: da agganciato non dice "sono byup", dice
+// "tirami di qua". Il segno del brand lo si è già visto prima di agganciarlo.
+const VERSO_DENTRO = {
+  sinistra: 'M9 6l6 6-6 6',
+  destra:   'M15 6l-6 6 6 6',
+  alto:     'M6 9l6 6 6-6',
+  basso:    'M6 15l6-6 6 6',
+};
+
 const leggiPos = () => {
   try {
     const p = JSON.parse(localStorage.getItem(POS_KEY));
@@ -368,19 +388,34 @@ function BuAiFab() {
             display:'grid', placeItems:'center',
             animation: hover ? 'bu-ai-shift 4s ease infinite' : 'none',
           }}>
-          {/* I due segni stanno sovrapposti e si scambiano in dissolvenza:
+          {/* I tre contenuti stanno sovrapposti e si scambiano in dissolvenza:
               cambiare `src` a metà transizione farebbe uno sfarfallio. */}
-          <span style={{position:'relative', width: 34, height: 34, display:'block'}}>
+          <span style={{
+            position:'relative', width: 34, height: 34, display:'block',
+            transform: ritirato ? rientroIcona(pos.lato) : 'translate(0, 0)',
+            transition:'transform 260ms cubic-bezier(0.34, 1.3, 0.64, 1)',
+          }}>
             <img src="Fresh-mark.png" alt="" style={{
               position:'absolute', inset: 0, width:'100%', height:'100%',
               objectFit:'contain',
-              opacity: hover ? 0 : 1, transition:'opacity 200ms ease',
+              opacity: (hover || ritirato) ? 0 : 1, transition:'opacity 200ms ease',
             }}/>
             <img src="Fresh-mark.png" alt="" style={{
               position:'absolute', inset: 0, width:'100%', height:'100%',
               objectFit:'contain', filter:'brightness(0) invert(1)',
               opacity: hover ? 1 : 0, transition:'opacity 200ms ease',
             }}/>
+            <span style={{
+              position:'absolute', inset: 0, display:'grid', placeItems:'center',
+              opacity: ritirato ? 1 : 0, transition:'opacity 200ms ease',
+              color: PN.PINK,
+            }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+                style={{display:'block'}}>
+                <path d={VERSO_DENTRO[(pos && pos.lato) || 'destra']}/>
+              </svg>
+            </span>
           </span>
         </button>
       </div>
