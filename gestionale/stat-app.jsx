@@ -24,152 +24,13 @@ function ConvFoto({ nome, lato = 38, raggio = 9 }) {
       }}><Icon name={convGlifo(nome)} size={Math.round(lato * 0.5)}/></span>;
 }
 
-// Il tasso ha tre fasce, e sono le stesse ovunque compaia: nella riga, nella
-// pastiglia e nel dettaglio.
+// Il tasso ha tre fasce: sopra il 60 va bene, sotto il 40 no, in mezzo si
+// guarda. Le stesse in tutta la tabella.
 const convTono = (conv) => conv >= 60
   ? { bg: PN.GREEN_SOFT, fg:'#15803d' }
   : conv >= 40
     ? { bg: PN.AMBER_SOFT, fg:'#9a3412' }
     : { bg: PN.RED_SOFT, fg:'#991b1b' };
-
-// ─── Dettaglio del piatto ──────────────────────────────────────
-// Il pannello risponde a «e allora?»: la riga dice che un piatto converte poco,
-// qui si vede quanto è guardato, quanto rende e quanto pesa sui ricavi — dati
-// che stanno in Economici e che altrimenti si dovrebbe andare a cercare.
-function ConvDettaglioPiatto({ piatto, onClose }) {
-  React.useEffect(() => {
-    const esc = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', esc);
-    return () => window.removeEventListener('keydown', esc);
-  }, [onClose]);
-
-  const aperto = !!piatto;
-  // I dati economici vivono nella scheda Vendite: qui si prendono per nome, e
-  // se il piatto lì non c'è la sezione non si inventa niente, sparisce.
-  const vend = aperto ? STAT_VENDITE.piatti.find(p => p.nome === piatto.piatto) : null;
-  const tono = aperto ? convTono(piatto.conv) : null;
-
-  const voce = (et, val, forte) => (
-    <div key={et} style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 12, padding:'9px 0', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
-      <span style={{fontSize: 14.5, color: PN.MUTED}}>{et}</span>
-      <strong style={{fontSize: 15, fontWeight: 700, color: forte || PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{val}</strong>
-    </div>
-  );
-
-  return (
-    <>
-      {/* Sopra tutto quello che galleggia in questa pagina: la sidebar sta a
-          60 e l'assistente a 72, e sotto di loro il velo lasciava la sidebar
-          accesa e il pallino dell'assistente sopra il pannello. */}
-      <div onClick={onClose} style={{
-        position:'absolute', inset: 0, background:'rgba(15,17,21,0.30)',
-        opacity: aperto ? 1 : 0, pointerEvents: aperto ? 'auto' : 'none',
-        transition:'opacity 0.2s', zIndex: 74,
-      }}/>
-      <div style={{
-        position:'absolute', top: 0, right: 0, bottom: 0,
-        width: 400, background: PN.WHITE,
-        boxShadow:'-12px 0 32px rgba(15,17,21,0.10)',
-        transform: aperto ? 'translateX(0)' : 'translateX(100%)',
-        transition:'transform 0.25s cubic-bezier(.4,.0,.2,1)',
-        zIndex: 75, display:'flex', flexDirection:'column',
-        pointerEvents: aperto ? 'auto' : 'none',
-      }}>
-        {aperto && (
-          <>
-            <div style={{padding:'20px 22px 16px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
-              <div style={{display:'flex', alignItems:'flex-start', gap: 13}}>
-                <ConvFoto nome={piatto.piatto} lato={52} raggio={12}/>
-                <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.2}}>{piatto.piatto}</div>
-                  <div style={{fontSize: 14, color: PN.MUTED}}>{vend ? vend.cat : 'Bevande'}</div>
-                </div>
-                <button onClick={onClose} aria-label="Chiudi" style={{
-                  width: 30, height: 30, borderRadius: 8, flexShrink: 0,
-                  border:'none', background: PN.WHITE_HUSH, color: PN.TEXT,
-                  cursor:'pointer', display:'grid', placeItems:'center',
-                }}><Icon name="xmark" size={14}/></button>
-              </div>
-            </div>
-
-            <div className="pn-scroll" style={{flex: 1, overflow:'auto', padding:'16px 22px 22px'}}>
-              <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 4}}>
-                Nel percorso d'acquisto
-              </div>
-              {voce('Visto in elenco', piatto.view.toLocaleString('it-IT', {useGrouping: true}))}
-              {voce('Scheda aperta', piatto.apri.toLocaleString('it-IT', {useGrouping: true}))}
-              {voce('Ordini da app', piatto.ord.toLocaleString('it-IT', {useGrouping: true}))}
-              {/* Le modifiche si contano sugli ordini, non sulle viste: qui la
-                  quota accanto al numero dice da sola se sono tante. */}
-              {voce('Con modifiche', piatto.mod
-                ? `${piatto.mod.toLocaleString('it-IT', {useGrouping: true})} · ${Math.round((piatto.mod / piatto.ord) * 100)}%`
-                : 'nessuna')}
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 12, padding:'11px 0'}}>
-                <span style={{fontSize: 14.5, color: PN.MUTED}}>Tasso di conversione</span>
-                <span style={{
-                  padding:'4px 11px', borderRadius: 999,
-                  background: tono.bg, color: tono.fg,
-                  fontSize: 15, fontWeight: 700, fontVariantNumeric:'tabular-nums',
-                }}>{piatto.conv.toFixed(1).replace('.', ',')}%</span>
-              </div>
-              {/* La frase che la percentuale da sola non dice. Aprire la scheda
-                  non è un passaggio obbligato — dall'elenco si aggiunge anche
-                  senza — quindi ci sono due storie diverse e va detta quella
-                  giusta: chi la scheda la apre e poi non ordina, o chi ordina
-                  senza nemmeno aprirla. */}
-              <div style={{
-                padding:'11px 13px', borderRadius: 10, background: PN.WHITE_HUSH,
-                fontSize: 14, color: PN.MUTED, lineHeight: 1.45,
-              }}>
-                {piatto.apri >= piatto.ord ? (
-                  <>Su {piatto.apri.toLocaleString('it-IT', {useGrouping: true})} schede aperte,
-                    {' '}<strong style={{color: PN.TEXT}}>{(piatto.apri - piatto.ord).toLocaleString('it-IT', {useGrouping: true})}</strong> non sono
-                    diventate un ordine: chi si ferma qui, si ferma dopo aver letto.</>
-                ) : (
-                  <>Ordinato {piatto.ord.toLocaleString('it-IT', {useGrouping: true})} volte ma con appena
-                    {' '}<strong style={{color: PN.TEXT}}>{piatto.apri.toLocaleString('it-IT', {useGrouping: true})}</strong> schede aperte:
-                    lo si aggiunge dall'elenco, senza bisogno di leggerne la descrizione.</>
-                )}
-              </div>
-
-              {/* Sopra un ordine su quattro toccato, la voce del menù non
-                  descrive quello che la gente vuole: è un'indicazione da dare,
-                  non un dato da lasciar leggere. */}
-              {piatto.mod / piatto.ord >= 0.25 && (
-                <div style={{
-                  marginTop: 10, padding:'11px 13px', borderRadius: 10,
-                  background: PN.AMBER_SOFT, color:'#7c4a03',
-                  fontSize: 14, lineHeight: 1.45,
-                }}>
-                  Un ordine su {Math.round(piatto.ord / piatto.mod)} arriva con ingredienti aggiunti o tolti:
-                  vale la pena vedere quali, e se conviene farne una variante a menù.
-                </div>
-              )}
-
-              {vend ? (
-                <>
-                  <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, margin:'22px 0 4px'}}>
-                    Quanto rende
-                  </div>
-                  {voce('Prezzo di vendita', `€ ${vend.ricavo.toFixed(2).replace('.', ',')}`)}
-                  {voce('Costo ingredienti', `€ ${vend.costo.toFixed(2).replace('.', ',')}`)}
-                  {voce('Margine per piatto', `€ ${vend.margine.toFixed(2).replace('.', ',')}`, PN.GREEN)}
-                  {voce('Margine percentuale', `${vend.marginePct}%`)}
-                  {voce('Venduti nel periodo', vend.n.toLocaleString('it-IT', {useGrouping: true}))}
-                  {voce('Ricavo generato', `€ ${vend.ricavoTot.toLocaleString('it-IT', {useGrouping: true})}`)}
-                </>
-              ) : (
-                <div style={{marginTop: 18, fontSize: 14, color: PN.MUTED_SOFT, lineHeight: 1.45}}>
-                  Per questo articolo non ci sono costi a listino, quindi niente margine da mostrare.
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </>
-  );
-}
 
 // Piatto (con la miniatura) · le misure del percorso, nell'ordine in cui
 // accadono — visto in elenco, scheda aperta, modificato, ordinato — e il tasso.
@@ -180,7 +41,6 @@ function StatApp() {
   const [search, setSearch] = React.useState('');
   const [sortBy, setSortBy] = React.useState('conv');
   const [order, setOrder] = React.useState('desc');
-  const [dettaglio, setDettaglio] = React.useState(null);
   const sorted = [...d.conversionePiatti]
     .filter(p => p.piatto.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => (a[sortBy] - b[sortBy]) * (order === 'asc' ? 1 : -1));
@@ -289,8 +149,6 @@ function StatApp() {
             const sfondo = i % 2 === 1 ? '#FAFAFB' : PN.WHITE;
             return (
               <div key={i}
-                onClick={() => setDettaglio(p)}
-                title={`Vedi il dettaglio di ${p.piatto}`}
                 onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.transform = 'scale(1.006)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = sfondo; e.currentTarget.style.transform = ''; }}
                 style={{
@@ -298,7 +156,7 @@ function StatApp() {
                   padding:'10px 16px', alignItems:'center', columnGap: 10,
                   fontSize: 14.5, color: PN.TEXT, background: sfondo,
                   borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-                  fontVariantNumeric:'tabular-nums', cursor:'pointer',
+                  fontVariantNumeric:'tabular-nums',
                   transition:'background 140ms ease, transform 140ms ease',
                 }}>
                 <span style={{display:'flex', alignItems:'center', gap: 11, minWidth: 0}}>
@@ -326,8 +184,6 @@ function StatApp() {
           })}
         </div>
       </StatCard>
-
-      <ConvDettaglioPiatto piatto={dettaglio} onClose={() => setDettaglio(null)}/>
     </div>
   );
 }
