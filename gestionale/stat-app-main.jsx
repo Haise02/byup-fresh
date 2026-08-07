@@ -3,21 +3,29 @@
 const { useState } = React;
 
 function StatisticheApp() {
-  // Deep-link dalla Panoramica: ?tab=economici|operazioni|app e, per
-  // Operazioni, ?sub=prenotazioni|ordini|staff|clienti.
+  // Deep-link dalla Panoramica: ?tab=economici|operazioni|app e ?sub=…
+  // Operazioni: prenotazioni|ordini|staff · App: conversione|clienti.
   // Senza parametri si atterra su Economici: è la domanda con cui un
   // ristoratore apre le statistiche — quanto ho incassato, quanto ho speso.
   const urlInit = (() => {
     try {
       const p = new URLSearchParams(window.location.search);
+      const sub = p.get('sub');
+      let tab = ['economici', 'operazioni', 'app'].includes(p.get('tab')) ? p.get('tab') : 'economici';
+      // I clienti stavano in Operazioni e sono passati sotto App: i vecchi
+      // link `?tab=operazioni&sub=clienti` continuano ad arrivare a
+      // destinazione invece di atterrare sulle prenotazioni.
+      if (sub === 'clienti') tab = 'app';
       return {
-        tab: ['economici', 'operazioni', 'app'].includes(p.get('tab')) ? p.get('tab') : 'economici',
-        sub: ['prenotazioni', 'ordini', 'staff', 'clienti'].includes(p.get('sub')) ? p.get('sub') : 'prenotazioni',
+        tab,
+        sub: ['prenotazioni', 'ordini', 'staff'].includes(sub) ? sub : 'prenotazioni',
+        appSub: sub === 'clienti' ? 'clienti' : 'conversione',
       };
-    } catch (e) { return { tab: 'economici', sub: 'prenotazioni' }; }
+    } catch (e) { return { tab: 'economici', sub: 'prenotazioni', appSub: 'conversione' }; }
   })();
   const [tab, setTab] = useState(urlInit.tab);
   const [opSub, setOpSub] = useState(urlInit.sub);
+  const [appSub, setAppSub] = useState(urlInit.appSub);
   const [period, setPeriod] = useState('mese');
 
   // L'altezza della barra principale finisce in una variabile CSS: le sub-tab
@@ -77,16 +85,33 @@ function StatisticheApp() {
                 <StatSubTab active={opSub==='prenotazioni'} onClick={() => setOpSub('prenotazioni')} label="Prenotazioni" icon="time-calendar"/>
                 <StatSubTab active={opSub==='ordini'} onClick={() => setOpSub('ordini')} label="Ordini" icon="commerce-cart"/>
                 <StatSubTab active={opSub==='staff'} onClick={() => setOpSub('staff')} label="Team" icon="people-staff-group"/>
-                <StatSubTab active={opSub==='clienti'} onClick={() => setOpSub('clienti')} label="Clienti" icon="people-customer"/>
               </div>
               {opSub === 'prenotazioni' && <StatPrenotazioni/>}
               {opSub === 'ordini' && <StatOrdini/>}
               {opSub === 'staff' && <StatStaff/>}
-              {opSub === 'clienti' && <StatClienti/>}
             </>
           )}
           {tab === 'economici' && <StatEconomici/>}
-          {tab === 'app' && <StatApp/>}
+
+          {/* App sub-tabs — stessa barra appiccicata di Operazioni. I clienti
+              stanno qui: chi torna, quanto vale e che voto lascia sono cose
+              che nascono dall'app, non dal turno di sala. */}
+          {tab === 'app' && (
+            <>
+              <div style={{
+                position:'sticky', top:'var(--stat-barra, 63px)', zIndex: 19,
+                background:'#fafafa',
+                margin:'0 -28px 0',
+                padding:'0 28px 18px',
+                display:'flex', gap: 14,
+              }}>
+                <StatSubTab active={appSub==='conversione'} onClick={() => setAppSub('conversione')} label="Conversione" icon="chart-positive-dynamic"/>
+                <StatSubTab active={appSub==='clienti'} onClick={() => setAppSub('clienti')} label="Clienti" icon="people-customer"/>
+              </div>
+              {appSub === 'conversione' && <StatApp/>}
+              {appSub === 'clienti' && <StatClienti/>}
+            </>
+          )}
         </div>
       </main>
     </div>

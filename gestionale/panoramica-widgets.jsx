@@ -781,7 +781,7 @@ function ReviewTile({ r }) {
   const [pressed, setPressed] = React.useState(false);
   return (
     <div
-      onClick={() => { window.location.href = 'byup Statistiche.html?tab=operazioni&sub=clienti'; }}
+      onClick={() => { window.location.href = 'byup Statistiche.html?tab=app&sub=clienti'; }}
       title="Vai alle recensioni"
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setPressed(false); }}
