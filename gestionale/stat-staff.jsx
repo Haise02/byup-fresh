@@ -10,35 +10,11 @@ const STAFF_TREND = {
 };
 const STAFF_MANCE_DELTA = 14.1;
 
-const STAFF_SPOT = {
-  background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-  borderRadius: 14, padding: 18,
-  display:'flex', flexDirection:'column', minWidth: 0,
-};
-
-// ─── Piede della card ──────────────────────────────────────────
-// Riga sottile e numeri piccoli: i totali di contorno stanno lì, sotto la
-// classifica, senza rubarle il posto.
-function StaffPiede({ voci }) {
-  return (
-    <div style={{
-      marginTop:'auto', paddingTop: 13,
-      borderTop:`1px solid ${PN.BORDER_SOFT}`,
-      display:'grid', gridTemplateColumns:`repeat(${voci.length}, 1fr)`, gap: 10,
-    }}>
-      {voci.map(m => (
-        <div key={m.et} style={{minWidth: 0}}>
-          <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums', lineHeight: 1.2}}>{m.v}</div>
-          <div style={{fontSize: 13, color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.et}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
+const euro = (v, dec = 2) => `€ ${v.toFixed(dec).replace('.', ',')}`;
 
 // ─── Barra di una metrica, col segno della media ───────────────
-// Il trattino verticale è la media del team: cade nello stesso punto su tutte
-// le righe della colonna, quindi chi la supera e chi no si legge senza
+// Il trattino verticale è la media del team: dentro un pannello cade nello
+// stesso punto su tutte le righe, quindi chi la supera e chi no si legge senza
 // contare, e senza scrivere «+21%» accanto a ogni nome.
 function StaffBarra({ valore, scala, media, colore }) {
   return (
@@ -58,125 +34,106 @@ function StaffBarra({ valore, scala, media, colore }) {
   );
 }
 
-// ─── Classifica · i primi cinque, su due misure ────────────────
-// Due colonne invece di due card: per scontrino e per mancia-su-tavolo i primi
-// cinque escono nello stesso ordine — Elena, Chiara, Sofia, Giulia, Luca — e
-// affiancate le due classifiche sarebbero state la stessa fila di nomi due
-// volte. Una riga per persona, un numero per colonna.
-// La mancia divisa i tavoli è la misura che la colonna delle mance non dà:
-// in assoluto premia chi ha fatto più turni, e infatti Elena serve meno tavoli
-// di tutti — 95 contro i 142 di Marco — ed è comunque prima.
-const STAFF_COLONNE = [
-  { id:'scontrino', et:'Scontrino medio', colore: PN.PINK,  dec: 2 },
-  { id:'perTavolo', et:'Mancia per tavolo', colore: PN.GREEN, dec: 2 },
+// ─── I due pannelli della card Team ────────────────────────────
+// Due riquadri e non due colonne di una tabella sola: sono due classifiche
+// indipendenti, ognuna col suo ordine. Oggi, su questi dati, il primo è lo
+// stesso — ma le mance rapportate ai tavoli sono un'altra misura dal conto
+// medio, e il giorno che il primo cambia i due elenchi devono poterlo dire.
+// Accanto al nome resta il numero grezzo da cui esce la barra: gli ordini per
+// il conto medio, le mance e i tavoli per la divisione.
+const STAFF_METRICHE = [
+  {
+    id: 'scontrino',
+    et: 'Scontrino medio',
+    colore: PN.PINK,
+    valore: s => s.scontrino,
+    micro: s => `${s.ordini} ordini`,
+    microEsteso: s => `${s.ordini} ordini gestiti nel periodo`,
+  },
+  {
+    id: 'perTavolo',
+    et: 'Mancia per tavolo',
+    colore: PN.GREEN,
+    valore: s => s.tip / s.tavoli,
+    // Nella colonna ci stanno due numeri e basta: per esteso lo dice il
+    // suggerimento, che è dove uno va a guardare se «su 95» non gli torna.
+    micro: s => `€ ${s.tip} su ${s.tavoli}`,
+    microEsteso: s => `€ ${s.tip} di mance su ${s.tavoli} tavoli serviti`,
+  },
 ];
 
-function StaffClassifica({ medie }) {
-  const classifica = [...STAFF]
-    .map(s => ({ ...s, perTavolo: s.tip / s.tavoli }))
-    .sort((a, b) => b.scontrino - a.scontrino)
-    .slice(0, 5);
-  const scale = {
-    scontrino: classifica[0].scontrino || 1,
-    perTavolo: Math.max(...classifica.map(s => s.perTavolo)) || 1,
-  };
-  // Avatar, nome, poi per ogni misura la barra e il suo numero. Griglia e non
-  // flex perché le intestazioni delle colonne devono cadere esattamente sopra
-  // le barre a cui si riferiscono.
+function StaffPannello({ metrica, media }) {
+  const righe = [...STAFF]
+    .map(s => ({ ...s, v: metrica.valore(s) }))
+    .sort((a, b) => b.v - a.v);
+  const scala = righe[0].v || 1;
+  // Avatar, nome, numero grezzo, barra, valore. Griglia e non flex: le cinque
+  // colonne devono incolonnarsi da una riga all'altra.
   const griglia = {
     display:'grid',
-    gridTemplateColumns:'26px minmax(96px, 168px) minmax(60px, 1fr) 64px minmax(60px, 1fr) 64px',
-    alignItems:'center', gap: 10,
+    gridTemplateColumns:'22px minmax(0, 1fr) 74px minmax(56px, 1.05fr) 56px',
+    alignItems:'center', gap: 8,
   };
 
   return (
-    <div style={{...STAFF_SPOT, gap: 12}}>
-      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 12}}>
-        <div style={{minWidth: 0}}>
-          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Chi rende di più</div>
-          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>I primi cinque del periodo, per scontrino medio</div>
-        </div>
-        <span style={{display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0, fontSize: 13.5, color: PN.MUTED}}>
-          <span style={{width: 2, height: 12, background:'rgba(15,17,21,0.42)', borderRadius: 1}}/> media del team
+    <div style={{
+      background: PN.BG, border:`1px solid ${PN.BORDER}`,
+      borderRadius: 12, padding: 14, minWidth: 0,
+    }}>
+      {/* Il trattino sta accanto al numero che rappresenta, non in cima alla
+          card: così la legenda è il valore stesso, e non c'è da collegare due
+          cose lontane. */}
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, marginBottom: 12}}>
+        <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{metrica.et}</span>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13, color: PN.MUTED, fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
+          <span style={{width: 2, height: 11, background:'rgba(15,17,21,0.42)', borderRadius: 1}}/>
+          media {euro(media)}
         </span>
       </div>
 
-      <div style={{...griglia, marginTop: 2}}>
-        <span/><span/>
-        {STAFF_COLONNE.map(c => (
-          <span key={c.id} style={{
-            gridColumn:'span 2',
-            fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
-            textTransform:'uppercase', letterSpacing: 0.5,
-          }}>{c.et}</span>
-        ))}
-      </div>
-
-      <div style={{display:'flex', flexDirection:'column', gap: 11}}>
-        {classifica.map(s => (
+      <div style={{display:'flex', flexDirection:'column', gap: 10}}>
+        {righe.map((s, i) => (
           <div key={s.nome} style={griglia}>
             <span style={{
-              width: 26, height: 26, borderRadius:'50%',
+              width: 22, height: 22, borderRadius:'50%',
               background: s.avatarBg, color:'#fff',
               display:'grid', placeItems:'center',
-              fontSize: 11.5, fontWeight: 700,
+              fontSize: 10, fontWeight: 700,
             }}>{s.avatar}</span>
-            <span style={{
-              minWidth: 0, fontSize: 14.5, color: PN.TEXT,
+            <span title={`${s.nome} · ${s.ruolo}`} style={{
+              minWidth: 0, fontSize: 14, color: PN.TEXT,
+              fontWeight: i === 0 ? 600 : 400,
               whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
             }}>{s.nome}</span>
-            {STAFF_COLONNE.map(c => (
-              <React.Fragment key={c.id}>
-                <StaffBarra valore={s[c.id]} scala={scale[c.id]} media={medie[c.id]} colore={c.colore}/>
-                <strong style={{
-                  textAlign:'right', fontSize: 15, fontWeight: 700, color: PN.TEXT,
-                  fontVariantNumeric:'tabular-nums',
-                }}>€ {s[c.id].toFixed(c.dec).replace('.', ',')}</strong>
-              </React.Fragment>
-            ))}
+            <span title={metrica.microEsteso(s)} style={{
+              fontSize: 13, color: PN.MUTED_SOFT, textAlign:'right',
+              fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
+            }}>{metrica.micro(s)}</span>
+            <StaffBarra valore={s.v} scala={scala} media={media} colore={metrica.colore}/>
+            <strong style={{
+              textAlign:'right', fontSize: 14.5, fontWeight: 700, color: PN.TEXT,
+              fontVariantNumeric:'tabular-nums',
+            }}>{euro(s.v)}</strong>
           </div>
         ))}
       </div>
-
-      <StaffPiede voci={[
-        { v: `€ ${medie.scontrino.toFixed(2).replace('.', ',')}`, et: 'scontrino medio del team' },
-        { v: `€ ${medie.perTavolo.toFixed(2).replace('.', ',')}`, et: 'di mancia per tavolo' },
-      ]}/>
     </div>
   );
 }
 
 function StatStaff() {
-  const [sortBy, setSortBy] = React.useState('scontrino');
-  const [order, setOrder] = React.useState('desc');
-  const [search, setSearch] = React.useState('');
-
-  // La mancia per tavolo si calcola qui e diventa un campo come gli altri,
-  // così l'ordinamento generico la tratta senza sapere che è una divisione.
-  const sorted = STAFF
-    .map(s => ({ ...s, perTavolo: s.tip / s.tavoli }))
-    .filter(s => s.nome.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      const dir = order === 'asc' ? 1 : -1;
-      return (a[sortBy] - b[sortBy]) * dir;
-    });
-
   const teamAvg = (STAFF.reduce((s, x) => s + x.scontrino, 0) / STAFF.length);
   const totOrdini = STAFF.reduce((s, x) => s + x.ordini, 0);
   const totTip = STAFF.reduce((s, x) => s + x.tip, 0);
   const totTavoli = STAFF.reduce((s, x) => s + x.tavoli, 0);
-  const top = [...STAFF].sort((a, b) => b.scontrino - a.scontrino)[0];
-  const maxOrdini = Math.max(...STAFF.map(x => x.ordini));
   // Composizione ricavata dai ruoli, non scritta a mano: così non può
-  // contraddire l'elenco che sta due riquadri più sotto.
+  // contraddire l'elenco che sta qui sotto.
   const nMaitre = STAFF.filter(s => s.ruolo === 'Maître').length;
   const nCamerieri = STAFF.length - nMaitre;
-  const mediaTip = Math.round(totTip / STAFF.length);
-
-  const handleSort = (col) => {
-    if (sortBy === col) setOrder(order === 'asc' ? 'desc' : 'asc');
-    else { setSortBy(col); setOrder('desc'); }
-  };
+  // La media della mancia per tavolo è quella del locale — mance totali diviso
+  // tavoli totali — non la media delle otto medie: chi ha servito più tavoli
+  // deve pesare di più.
+  const mediaPerTavolo = totTip / totTavoli;
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -189,7 +146,7 @@ function StatStaff() {
           valore={STAFF.length}
           sub={`${nCamerieri} camerieri e ${nMaitre} maître`}/>
         <StatKpiTinto compatto tono="rosa" glifo="€" label="Scontrino"
-          valore={`€ ${teamAvg.toFixed(2).replace('.', ',')}`}
+          valore={euro(teamAvg)}
           delta={6.4} sub="Scontrino medio del team" trend={STAFF_TREND.scontrino}/>
         <StatKpiTinto compatto tono="giallo" icona="commerce-cart" label="Ordini"
           valore={totOrdini.toLocaleString('it-IT', {useGrouping: true})}
@@ -199,105 +156,13 @@ function StatStaff() {
           delta={STAFF_MANCE_DELTA} sub="Raccolte da tutto il team" trend={STAFF_TREND.mance}/>
       </div>
 
-      <StaffClassifica medie={{ scontrino: teamAvg, perTavolo: totTip / totTavoli }}/>
-
-      <StatCard title="Rendimento personale" sub="Vendite ed efficacia dei membri del tuo team" action={
-        <div style={{
-          display:'flex', alignItems:'center', gap: 8,
-          padding:'7px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
-        }}>
-          <BuIcons.search size={13} color={PN.MUTED}/>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca membro…" style={{border:'none', outline:'none', fontSize: 14.5, fontFamily:'inherit', width: 160}}/>
-        </div>
-      }>
-        <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{
-            display:'grid', gridTemplateColumns:'2.2fr 1fr 1fr 1.2fr 0.8fr 1fr 1fr',
-            padding:'10px 16px', background:'#FAFAFB', columnGap: 8,
-            fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
-            textTransform:'uppercase', letterSpacing: 0.5,
-            borderBottom:`1px solid ${PN.BORDER_SOFT}`,
-          }}>
-            <span>Nome</span>
-            <SortHead col="scontrino" cur={sortBy} order={order} onSort={handleSort}>Scontrino medio</SortHead>
-            <span>vs Team</span>
-            <SortHead col="ordini" cur={sortBy} order={order} onSort={handleSort}>Ordini gestiti</SortHead>
-            <SortHead col="tavoli" cur={sortBy} order={order} onSort={handleSort}>Tavoli</SortHead>
-            <SortHead col="tip" cur={sortBy} order={order} onSort={handleSort}>Mance</SortHead>
-            {/* La colonna che la card in alto mostra solo per i primi cinque:
-                qui c'è per tutti e otto, e ordinabile. */}
-            <SortHead col="perTavolo" cur={sortBy} order={order} onSort={handleSort}>Per tavolo</SortHead>
-          </div>
-          {sorted.map((s, i) => {
-            const vsPct = ((s.scontrino - teamAvg) / teamAvg * 100);
-            const isTop = s.nome === top.nome;
-            return (
-              <div key={i} style={{
-                display:'grid', gridTemplateColumns:'2.2fr 1fr 1fr 1.2fr 0.8fr 1fr 1fr',
-                padding:'10px 16px', alignItems:'center', columnGap: 8,
-                fontSize: 15, color: PN.TEXT,
-                borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-                background: isTop ? '#FFFCF0' : (i % 2 === 1 ? '#FAFAFB' : PN.WHITE),
-              }}>
-                <div style={{display:'flex', alignItems:'center', gap: 10}}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius:'50%',
-                    background: s.avatarBg, color:'#fff',
-                    display:'grid', placeItems:'center',
-                    fontSize: 14, fontWeight: 700, flexShrink: 0,
-                  }}>{s.avatar}</div>
-                  <div style={{minWidth: 0}}>
-                    {/* Niente bollino accanto al nome: a segnare lo scontrino
-                        più alto basta il fondo caldo della riga, senza anche
-                        scriverlo. */}
-                    <div style={{fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.nome}</div>
-                    <div style={{fontSize: 14, color: PN.MUTED}}>{s.ruolo}</div>
-                  </div>
-                </div>
-                <span style={{fontVariantNumeric:'tabular-nums', fontWeight: 600}}>€ {s.scontrino.toFixed(2).replace('.', ',')}</span>
-                <span>
-                  <span style={{
-                    display:'inline-flex', alignItems:'center', gap: 4,
-                    padding:'3px 9px', borderRadius: 999,
-                    background: vsPct >= 0 ? PN.GREEN_SOFT : PN.RED_SOFT,
-                    color: vsPct >= 0 ? PN.GREEN : PN.RED,
-                    fontSize: 14, fontWeight: 700,
-                  }}>
-                    {vsPct >= 0 ? '↑' : '↓'} {Math.abs(vsPct).toFixed(1)}%
-                  </span>
-                </span>
-                <div>
-                  <div style={{fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{s.ordini.toLocaleString('it-IT', {useGrouping: true})}</div>
-                  <div style={{height: 4, background: PN.BORDER_SOFT, borderRadius: 999, marginTop: 4, overflow:'hidden'}}>
-                    <div style={{height:'100%', width: `${(s.ordini / maxOrdini) * 100}%`, background: PN.PINK, borderRadius: 999}}/>
-                  </div>
-                </div>
-                <span style={{fontVariantNumeric:'tabular-nums'}}>{s.tavoli}</span>
-                <span style={{fontVariantNumeric:'tabular-nums', fontWeight: 600, color: PN.GREEN}}>€ {s.tip}</span>
-                <span style={{fontVariantNumeric:'tabular-nums', fontWeight: 600}}>€ {s.perTavolo.toFixed(2).replace('.', ',')}</span>
-              </div>
-            );
-          })}
+      <StatCard title="Team" sub={`Tutti e ${STAFF.length} i membri attivi nel periodo, dal più alto`}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+          <StaffPannello metrica={STAFF_METRICHE[0]} media={teamAvg}/>
+          <StaffPannello metrica={STAFF_METRICHE[1]} media={mediaPerTavolo}/>
         </div>
       </StatCard>
     </div>
-  );
-}
-
-function SortHead({ col, cur, order, onSort, children }) {
-  const active = col === cur;
-  return (
-    <button onClick={() => onSort(col)} style={{
-      background:'transparent', border:'none', padding: 0,
-      fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
-      textTransform:'uppercase', letterSpacing: 0.5,
-      textAlign:'left', cursor:'pointer', fontFamily:'inherit',
-      display:'inline-flex', alignItems:'center', gap: 5,
-      opacity: active ? 1 : 0.85,
-    }}>
-      {children}
-      <span style={{fontSize: 12, opacity: active ? 1 : 0.4}}>{active ? (order === 'asc' ? '↑' : '↓') : '↕'}</span>
-    </button>
   );
 }
 
