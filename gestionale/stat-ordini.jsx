@@ -1,5 +1,105 @@
 // Statistiche — sub-tab Ordini
 
+// ─── Ordini per canale ────────────────────────────────────────────────────
+// Erano due card affiancate con due numeri ciascuna. Ma i due canali sono le
+// due metà dello stesso totale — 708 e 612 fanno esattamente i 1.320 ordini
+// del periodo — e in due riquadri separati quel rapporto non si vede: si
+// leggono due cifre e si va oltre. Qui la barra in testa lo mostra prima di
+// qualunque numero, e i tempi medi condividono una scala, così il fatto
+// interessante (in sala ci vuole quasi il quadruplo) si vede invece di
+// doverlo calcolare.
+const CANALI_ORDINI = [
+  { id:'sala',    label:'In sala',   sub:'Coperti seduti',              icona:'place-table',       colore: PN.WINE },
+  { id:'asporto', label:'Asporto e delivery', sub:'Ritiro o consegna',  icona:'commerce-delivery', colore: PN.PINK },
+];
+
+function OrdiniPerCanale({ d }) {
+  const [su, setSu] = React.useState(null);
+  const canali = CANALI_ORDINI.map(c => ({ ...c, ...d[c.id], minuti: parseInt(d[c.id].tempoMedio, 10) || 0 }));
+  const totale = canali.reduce((s, c) => s + c.completati, 0);
+  const maxMin = Math.max(...canali.map(c => c.minuti)) || 1;
+
+  return (
+    <StatCard title="Ordini per canale"
+      sub={`Come si dividono i ${totale.toLocaleString('it-IT', {useGrouping: true})} ordini del periodo`}>
+      {/* La barra unica: la divisione si legge prima di qualunque cifra. */}
+      <div style={{display:'flex', gap: 3, height: 14, marginBottom: 18}}>
+        {canali.map(c => (
+          <div key={c.id}
+            onMouseEnter={() => setSu(c.id)} onMouseLeave={() => setSu(null)}
+            style={{
+              width: `${(c.completati / totale) * 100}%`,
+              background: c.colore, borderRadius: 999,
+              opacity: su == null || su === c.id ? 1 : 0.35,
+              transition:'opacity 160ms ease',
+            }}/>
+        ))}
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+        {canali.map(c => {
+          const quota = (c.completati / totale) * 100;
+          const spento = su != null && su !== c.id;
+          return (
+            <div key={c.id} {...boxHover}
+              onMouseEnter={(e) => { setSu(c.id); boxHover.onMouseEnter(e); }}
+              onMouseLeave={(e) => { setSu(null); boxHover.onMouseLeave(e); }}
+              style={{
+                padding: 16, borderRadius: 14, minWidth: 0,
+                background: PN.BG, border:`1px solid ${PN.BORDER}`,
+                opacity: spento ? 0.5 : 1,
+                transition: `${BOX_TRANSITION}, opacity 160ms ease`,
+              }}>
+              <div style={{display:'flex', alignItems:'center', gap: 11, minWidth: 0}}>
+                <span style={{
+                  width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+                  background: `${c.colore}18`, color: c.colore,
+                  display:'grid', placeItems:'center',
+                }}><Icon name={c.icona} size={18}/></span>
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.label}</div>
+                  <div style={{fontSize: 13, color: PN.MUTED_SOFT}}>{c.sub}</div>
+                </div>
+                <span style={{
+                  flexShrink: 0, padding:'3px 10px', borderRadius: 999,
+                  background: `${c.colore}18`, color: c.colore,
+                  fontSize: 13.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
+                }}>{Math.round(quota)}%</span>
+              </div>
+
+              <div style={{display:'flex', alignItems:'baseline', gap: 7, marginTop: 12}}>
+                <span style={{
+                  fontSize: 28, fontWeight: 700, color: PN.TEXT,
+                  letterSpacing: -0.6, lineHeight: 1, fontVariantNumeric:'tabular-nums',
+                }}>{c.completati.toLocaleString('it-IT', {useGrouping: true})}</span>
+                <span style={{fontSize: 14, color: PN.MUTED}}>ordini completati</span>
+              </div>
+
+              {/* I due tempi sulla stessa scala: 52 contro 14 minuti è il
+                  fatto che vale la pena vedere, e due numeri in due riquadri
+                  lo lasciavano da calcolare. */}
+              <div style={{marginTop: 14}}>
+                <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 8, marginBottom: 6}}>
+                  <span style={{fontSize: 13.5, color: PN.MUTED}}>Tempo medio</span>
+                  <strong style={{fontSize: 14.5, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{c.tempoMedio}</strong>
+                </div>
+                <div style={{height: 8, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden'}}>
+                  <div style={{
+                    height:'100%', width: `${(c.minuti / maxMin) * 100}%`,
+                    background: c.colore, borderRadius: 999,
+                    transition:'width 400ms ease-out',
+                  }}/>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </StatCard>
+  );
+}
+
+
 function StatOrdini() {
   const d = STAT_ORDINI;
 
@@ -46,10 +146,7 @@ function StatOrdini() {
           delta={d.kpi.articoli.delta} sub={d.kpi.articoli.sub} trend={d.kpi.articoli.trend}/>
       </div>
 
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
-        <ChannelCard title="In sala" subtitle="Coperti seduti" data={d.sala} iconKey="table" color={PN.WINE}/>
-        <ChannelCard title="Da asporto / delivery" subtitle="Ordini per ritiro o consegna" data={d.asporto} iconKey="storefront" color={PN.PINK}/>
-      </div>
+      <OrdiniPerCanale d={d}/>
 
       {/* Heatmap */}
       <StatCard title="Heatmap oraria ordini" sub={`Ordini medi per fascia oraria · canale ${channel}`} action={
@@ -142,28 +239,6 @@ function StatOrdini() {
   );
 }
 
-function ChannelCard({ title, subtitle, data, iconKey, color }) {
-  const Ico = BuIcons[iconKey];
-  return (
-    <StatCard padding={20}>
-      <div style={{display:'flex', alignItems:'center', gap: 12, marginBottom: 14}}>
-        <div style={{
-          width: 38, height: 38, borderRadius: 10,
-          background: `${color}15`, color,
-          display:'grid', placeItems:'center',
-        }}>{Ico ? <Ico size={18} color={color}/> : null}</div>
-        <div>
-          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{title}</div>
-          <div style={{fontSize: 14.5, color: PN.MUTED}}>{subtitle}</div>
-        </div>
-      </div>
-      <div style={{display:'flex', gap: 10}}>
-        <Pill iconKey="check" label="Completati" value={data.completati.toLocaleString('it-IT', {useGrouping: true})}/>
-        <Pill iconKey="clock" label="Tempo medio" value={data.tempoMedio}/>
-      </div>
-    </StatCard>
-  );
-}
 function Pill({ iconKey, label, value }) {
   const Ico = BuIcons[iconKey];
   return (
