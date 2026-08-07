@@ -157,10 +157,6 @@ function StatStaff() {
   const totOrdini = STAFF.reduce((s, x) => s + x.ordini, 0);
   const totTip = STAFF.reduce((s, x) => s + x.tip, 0);
   const totTavoli = STAFF.reduce((s, x) => s + x.tavoli, 0);
-  // Composizione ricavata dai ruoli, non scritta a mano: così non può
-  // contraddire l'elenco che sta qui sotto.
-  const nMaitre = STAFF.filter(s => s.ruolo === 'Maître').length;
-  const nCamerieri = STAFF.length - nMaitre;
   // La media della mancia per tavolo è quella del locale — mance totali diviso
   // tavoli totali — non la media delle otto medie: chi ha servito più tavoli
   // deve pesare di più.
@@ -168,23 +164,21 @@ function StatStaff() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      {/* KPI in testa, come nelle altre sezioni di Operazioni: stessa card
-          tinta, stessa griglia da quattro, quindi la variante compatta —
-          etichette corte perché stiano accanto alla pillola a 1280, la forma
-          per esteso nel sottotitolo che ha la riga intera. */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
-        <StatKpiTinto compatto tono="blu" icona="people-staff-group" label="Membri"
-          valore={STAFF.length}
-          sub={`${nCamerieri} camerieri e ${nMaitre} maître`}/>
-        <StatKpiTinto compatto tono="rosa" glifo="€" label="Scontrino"
+      {/* KPI in testa, come nelle altre sezioni di Operazioni. Da quattro card
+          a tre — quanti sono in squadra non è un andamento, e lo dice già il
+          sottotitolo del riquadro qui sotto — quindi cade anche la variante
+          compatta: in tre colonne c'è la larghezza per la card piena, la
+          stessa di Economici, con le etichette per esteso. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
+        <StatKpiTinto tono="rosa" glifo="€" label="Scontrino medio"
           valore={euro(teamAvg)}
-          delta={6.4} sub="Scontrino medio del team" trend={STAFF_TREND.scontrino}/>
-        <StatKpiTinto compatto tono="giallo" icona="commerce-cart" label="Ordini"
+          delta={6.4} sub={`Media fra gli ${STAFF.length} membri attivi`} trend={STAFF_TREND.scontrino}/>
+        <StatKpiTinto tono="giallo" icona="commerce-cart" label="Ordini gestiti"
           valore={totOrdini.toLocaleString('it-IT', {useGrouping: true})}
-          delta={9.2} sub="Ordini gestiti nel periodo" trend={STAFF_TREND.ordini}/>
-        <StatKpiTinto compatto tono="verde" icona="commerce-coins" label="Mance"
+          delta={9.2} sub="Presi in carico dal team nel periodo" trend={STAFF_TREND.ordini}/>
+        <StatKpiTinto tono="verde" icona="commerce-coins" label="Mance raccolte"
           valore={`€ ${totTip.toLocaleString('it-IT', {useGrouping: true})}`}
-          delta={STAFF_MANCE_DELTA} sub="Raccolte da tutto il team" trend={STAFF_TREND.mance}/>
+          delta={STAFF_MANCE_DELTA} sub="Lasciate dai clienti al personale" trend={STAFF_TREND.mance}/>
       </div>
 
       <StatCard title="Team" sub={`Tutti e ${STAFF.length} i membri attivi nel periodo, dal più alto`}>
