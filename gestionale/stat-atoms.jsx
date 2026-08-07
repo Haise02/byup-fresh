@@ -112,7 +112,11 @@ function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta,
         display:'flex', flexDirection:'column',
         transition: BOX_TRANSITION,
       }}>
-        <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+        {/* Pastiglia a sinistra e delta nell'angolo opposto, sulla stessa
+            riga: sotto, l'etichetta si prende la larghezza intera della card.
+            Affiancare nome e pillola, in quattro colonne a 1280, lasciava al
+            nome 72px e li troncava tutti. */}
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
           <span style={{
             width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
             background: PN.WHITE, color: t.forte,
@@ -121,25 +125,23 @@ function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta,
           }}>{glifo
             ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
             : <Icon name={icona} size={19}/>}</span>
-
-          <div style={{flex: 1, minWidth: 0}}>
-            <div title={label} style={{
-              fontSize: 13.5, color: PN.MUTED, fontWeight: 500,
-              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            }}>{label}</div>
-            <div style={{display:'flex', alignItems:'baseline', gap: 8, minWidth: 0, marginTop: 1}}>
-              <span style={{
-                fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
-                lineHeight: 1.15, whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
-              }}>
-                {valore}{suffisso && <span style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
-              </span>
-              <StatDelta value={delta}/>
-            </div>
-          </div>
+          <StatDelta value={delta}/>
         </div>
 
-        <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.3}}>{sub}</div>
+        <div title={label} style={{
+          fontSize: 14, color: PN.MUTED, fontWeight: 500, marginTop: 11,
+          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+        }}>{label}</div>
+
+        <div style={{
+          fontSize: 26, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
+          lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
+          fontVariantNumeric:'tabular-nums',
+        }}>
+          {valore}{suffisso && <span style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+        </div>
+
+        <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, lineHeight: 1.3}}>{sub}</div>
 
         {trend && trend.length > 1 && (
           <div style={{height: 34, marginTop:'auto', paddingTop: 10, display:'flex'}}>
@@ -203,7 +205,7 @@ function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta,
 // sta senza allargarlo.
 // Lo stato dell'evidenziazione sta FUORI: la legenda la disegna chi chiama —
 // ogni card mostra colonne diverse — e deve potersi accendere in coppia.
-function StatDonut({ voci, attivo, onAttivo, centro, buco = 39, larghezza = '40%' }) {
+function StatDonut({ voci, attivo, onAttivo, centro, buco = 39, larghezza = '40%', maxLarghezza = 204 }) {
   // Sempre un anello, mai uno spicchio pieno: il testo al centro ha bisogno
   // del buco per essere leggibile, e su una torta piena finisce sul colore.
   const tot = voci.reduce((s, v) => s + v.valore, 0) || 1;
@@ -221,7 +223,7 @@ function StatDonut({ voci, attivo, onAttivo, centro, buco = 39, larghezza = '40%
 
   return (
     <svg viewBox="0 0 156 156" onMouseLeave={() => onAttivo && onAttivo(null)}
-      style={{width: larghezza, minWidth: 128, maxWidth: 204, height:'auto', flexShrink: 0}}>
+      style={{width: larghezza, minWidth: 128, maxWidth: maxLarghezza, height:'auto', flexShrink: 0}}>
       {archi.map(a => (
         <path key={a.id} d={a.d} fill={a.colore} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"
           onMouseEnter={() => onAttivo && onAttivo(a.id)}

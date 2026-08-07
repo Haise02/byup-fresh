@@ -11,9 +11,9 @@ function StatPrenotazioni() {
   const [tavoliSu, setTavoliSu] = React.useState(null);
   const statoSegs = [
     { id:'confermate', label:'Confermate', ...d.stato.confermate, color: PN.GREEN },
-    { id:'inattesa',   label:'In attesa di conferma', ...d.stato.inAttesa, color: PN.BLUE },
+    { id:'inattesa',   label:'In attesa', ...d.stato.inAttesa, color: PN.BLUE },
     { id:'cancellate', label:'Cancellate', ...d.stato.cancellate, color: PN.PINK },
-    { id:'noshow',     label:'Non presentati', ...d.stato.noShow, color: PN.MUTED_LIGHT },
+    { id:'noshow',     label:'Assenti', ...d.stato.noShow, color: PN.MUTED_LIGHT },
   ];
 
   // Occupazione per fascia — colonne invece di una lista di barre. Una lista
@@ -128,24 +128,28 @@ function StatPrenotazioni() {
             una barra 100% con gap 2px, righe quiete con dot di stato. */}
         <StatCard title="Stato prenotazioni" sub="Riepilogo del periodo selezionato"
           style={{display:'flex', flexDirection:'column'}}>
-          <div style={{flex: 1, display:'flex', alignItems:'center', gap: 18, minWidth: 0}}>
+          {/* Ciambella più grande e legenda più corposa che in Economici: là
+              la card ha anche il bottone in fondo, qui no, e con le misure di
+              là restava dell'aria che faceva sembrare tutto piccolo. */}
+          <div style={{flex: 1, display:'flex', alignItems:'center', gap: 24, minWidth: 0}}>
             <StatDonut
               voci={statoSegs.map(v => ({ id: v.id, label: v.label, colore: v.color, valore: v.n }))}
               attivo={statoSu} onAttivo={setStatoSu}
-              centro={{ et:'Totale', val: d.stato.totale }}/>
-            <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 13}}>
+              centro={{ et:'Totale', val: d.stato.totale }}
+              larghezza="44%" maxLarghezza={236}/>
+            <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 16}}>
               {statoSegs.map(v => (
                 <div key={v.id}
                   onMouseEnter={() => setStatoSu(v.id)} onMouseLeave={() => setStatoSu(null)}
                   style={{
-                    display:'flex', alignItems:'center', gap: 9, fontSize: 14.5,
+                    display:'flex', alignItems:'center', gap: 10, fontSize: 15.5,
                     opacity: statoSu == null || statoSu === v.id ? 1 : 0.45,
                     transition:'opacity 160ms ease',
                   }}>
-                  <span style={{width: 11, height: 11, background: v.color, borderRadius:'50%', flexShrink: 0}}/>
-                  <span style={{flex: 1, color: PN.TEXT, minWidth: 0}}>{v.label}</span>
-                  <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{v.n}</strong>
-                  <span style={{color: PN.MUTED, fontVariantNumeric:'tabular-nums', width: 48, textAlign:'right'}}>{v.pct}%</span>
+                  <span style={{width: 12, height: 12, background: v.color, borderRadius:'50%', flexShrink: 0}}/>
+                  <span style={{flex: 1, color: PN.TEXT, minWidth: 0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{v.label}</span>
+                  <strong style={{color: PN.TEXT, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{v.n}</strong>
+                  <span style={{color: PN.MUTED, fontVariantNumeric:'tabular-nums', width: 52, textAlign:'right'}}>{v.pct}%</span>
                 </div>
               ))}
             </div>
@@ -187,23 +191,24 @@ function StatPrenotazioni() {
         {/* Distribuzione tavoli — gap bianco 2px tra gli spicchi */}
         <StatCard title="Distribuzione tavoli" sub="Per numero di coperti"
           style={{display:'flex', flexDirection:'column'}}>
-          <div style={{flex: 1, display:'flex', alignItems:'center', gap: 18, minWidth: 0}}>
+          <div style={{flex: 1, display:'flex', alignItems:'center', gap: 24, minWidth: 0}}>
             <StatDonut
               voci={d.distribuzione.map(v => ({ id: v.label, label: v.label, colore: v.color, valore: v.pct, centro: `${v.pct}%` }))}
               attivo={tavoliSu} onAttivo={setTavoliSu}
-              centro={{ et:'Totale', val: d.stato.totale }}/>
-            <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 13}}>
+              centro={{ et:'Totale', val: d.stato.totale }}
+              larghezza="44%" maxLarghezza={236}/>
+            <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 16}}>
               {d.distribuzione.map(v => (
                 <div key={v.label}
                   onMouseEnter={() => setTavoliSu(v.label)} onMouseLeave={() => setTavoliSu(null)}
                   style={{
-                    display:'flex', alignItems:'center', gap: 9, fontSize: 14.5,
+                    display:'flex', alignItems:'center', gap: 10, fontSize: 15.5,
                     opacity: tavoliSu == null || tavoliSu === v.label ? 1 : 0.45,
                     transition:'opacity 160ms ease',
                   }}>
-                  <span style={{width: 11, height: 11, background: v.color, borderRadius:'50%', flexShrink: 0}}/>
-                  <span style={{flex: 1, color: PN.TEXT, minWidth: 0}}>{v.label}</span>
-                  <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{v.pct}%</strong>
+                  <span style={{width: 12, height: 12, background: v.color, borderRadius:'50%', flexShrink: 0}}/>
+                  <span style={{flex: 1, color: PN.TEXT, minWidth: 0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{v.label}</span>
+                  <strong style={{color: PN.TEXT, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{v.pct}%</strong>
                 </div>
               ))}
             </div>
