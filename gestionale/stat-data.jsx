@@ -55,10 +55,12 @@ const STAT_ORDINI = {
     // Lo scontrino medio è passato a STAT_VENDITE: il valore di un ordine è
     // una cosa che si legge accanto a quanto vale un piatto, non accanto a
     // quanti ordini sono stati completati.
-    completati: { val: 1320, delta: 12.5 },
+    completati: { val: 1320, delta: 12.5, sub:'Ordini conclusi nel periodo',
+      trend: [1080, 1110, 1095, 1140, 1125, 1170, 1150, 1195, 1180, 1225, 1210, 1260, 1290, 1320] },
     // Quanti articoli entrano in un ordine è invece una domanda su come si
     // ordina, non su quanto rende: sta qui, accanto agli ordini completati.
-    articoli: { val: 3.2, delta: 8.4, sub:'Articoli per ordine medio' },
+    articoli: { val: 3.2, delta: 8.4, sub:'Articoli per ordine medio',
+      trend: [2.8, 2.9, 2.85, 3.0, 2.95, 3.05, 3.0, 3.1, 3.05, 3.15, 3.1, 3.2, 3.15, 3.2] },
   },
   asporto: { completati: 612, tempoMedio: '14 min' },
   sala:    { completati: 708, tempoMedio: '52 min' },

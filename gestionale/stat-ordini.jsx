@@ -25,9 +25,17 @@ function StatOrdini() {
       {/* Lo scontrino medio è passato in Economici → Vendite piatti, fra gli
           altri KPI di valore. Qui resta il suo andamento per canale, che è
           un'altra domanda: non "quanto vale un ordine" ma "da dove arriva". */}
+      {/* Stessa card degli altri KPI della sezione: pastiglia a sinistra,
+          etichetta e pillola sulla stessa riga, andamento a destra. Qui le
+          card sono due, quindi c'è la larghezza per la variante piena — la
+          stessa di Economici, senza le strette di Prenotazioni. */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
-        <StatKpi label="Ordini completati" value={d.kpi.completati.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.kpi.completati.delta} sub="Totale ordini completati nel periodo selezionato"/>
-        <StatKpi label="Articoli per ordine" value={d.kpi.articoli.val.toString().replace('.', ',')} delta={d.kpi.articoli.delta} sub={d.kpi.articoli.sub}/>
+        <StatKpiTinto tono="rosa" icona="commerce-cart" label="Ordini completati"
+          valore={d.kpi.completati.val.toLocaleString('it-IT', {useGrouping: true})}
+          delta={d.kpi.completati.delta} sub={d.kpi.completati.sub} trend={d.kpi.completati.trend}/>
+        <StatKpiTinto tono="giallo" icona="commerce-receipt" label="Articoli per ordine"
+          valore={d.kpi.articoli.val.toString().replace('.', ',')}
+          delta={d.kpi.articoli.delta} sub={d.kpi.articoli.sub} trend={d.kpi.articoli.trend}/>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
