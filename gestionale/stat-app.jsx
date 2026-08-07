@@ -20,12 +20,25 @@ function StatApp() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      {/* KPI funnel */}
+      {/* KPI del funnel, nella card tinta delle altre sezioni. Sono quattro,
+          quindi la variante compatta: etichette corte perché stiano accanto
+          alla pillola, la forma per esteso nel sottotitolo che ha la riga
+          intera. */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
-        <StatKpi label="Visite vetrina" value={totV.toLocaleString('it-IT', {useGrouping: true})} delta={14.2} sub="Visualizzazioni totali della tua vetrina"/>
-        <StatKpi label="Pagamenti completati" value={last.toLocaleString('it-IT', {useGrouping: true})} delta={9.6} sub="Ordini conclusi con successo"/>
-        <StatKpi label="Tasso di conversione" value={`${((last/totV)*100).toFixed(1)}%`} delta={2.4} sub="Dalla vetrina al pagamento"/>
-        <StatKpi label="Abbandoni totali" value={dropTotal.toLocaleString('it-IT', {useGrouping: true})} delta={-3.1} sub="Utenti che non completano il percorso"/>
+        <StatKpiTinto compatto tono="blu" icona="globe-web" label="Visite"
+          valore={totV.toLocaleString('it-IT', {useGrouping: true})}
+          delta={14.2} sub="Visualizzazioni della tua vetrina" trend={d.trend.visite}/>
+        <StatKpiTinto compatto tono="verde" icona="commerce-bank-cards" label="Pagamenti"
+          valore={last.toLocaleString('it-IT', {useGrouping: true})}
+          delta={9.6} sub="Ordini conclusi con successo" trend={d.trend.pagamenti}/>
+        {/* Glifo e non icona: per un tasso il segno di percentuale è il
+            concetto, e il set non ha una percentuale. */}
+        <StatKpiTinto compatto tono="rosa" glifo="%" label="Conversione"
+          valore={((last / totV) * 100).toFixed(1).replace('.', ',')} suffisso="%"
+          delta={2.4} sub="Dalla vetrina al pagamento" trend={d.trend.conversione}/>
+        <StatKpiTinto compatto tono="giallo" icona="arrow-down-right" label="Abbandoni"
+          valore={dropTotal.toLocaleString('it-IT', {useGrouping: true})}
+          delta={-3.1} sub="Chi non arriva al pagamento" trend={d.trend.abbandoni}/>
       </div>
 
       {/* Funnel viz */}

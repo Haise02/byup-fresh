@@ -7,9 +7,16 @@ function StatClienti() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
+      {/* KPI nella card tinta delle altre sezioni. Qui sono due, quindi c'è la
+          larghezza per la variante piena — come in Ordini — e le etichette
+          stanno per esteso. */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
-        <StatKpi label="Clienti unici" value={d.unici.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.unici.delta} sub="Visitatori unici nel periodo selezionato"/>
-        <StatKpi label="Clienti abituali" value={d.abituali.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.abituali.delta} sub="Visite multiple registrate negli ultimi 90 giorni"/>
+        <StatKpiTinto tono="blu" icona="people-customer" label="Clienti unici"
+          valore={d.unici.val.toLocaleString('it-IT', {useGrouping: true})}
+          delta={d.unici.delta} sub="Persone diverse nel periodo" trend={d.unici.trend}/>
+        <StatKpiTinto tono="viola" icona="time-history" label="Clienti abituali"
+          valore={d.abituali.val.toLocaleString('it-IT', {useGrouping: true})}
+          delta={d.abituali.delta} sub="Tornati almeno due volte negli ultimi 90 giorni" trend={d.abituali.trend}/>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap: 16}}>

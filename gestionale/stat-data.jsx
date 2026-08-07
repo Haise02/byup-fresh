@@ -94,8 +94,10 @@ const STAFF = [
 ];
 
 const STAT_CLIENTI = {
-  unici: { val: 1240, delta: 12 },
-  abituali: { val: 487, delta: 8 },
+  // L'ultima rilevazione di ogni andamento coincide col valore accanto: una
+  // linea che finisce altrove racconterebbe un'altra storia dal numero.
+  unici: { val: 1240, delta: 12, trend: [1020, 1080, 1050, 1120, 1160, 1200, 1240] },
+  abituali: { val: 487, delta: 8, trend: [420, 435, 430, 450, 462, 475, 487] },
   rating: 4.5,
   recensioni: 543,
   starBreakdown: [
@@ -220,6 +222,15 @@ const STAT_VENDITE = {
 };
 
 const STAT_APP = {
+  // I quattro KPI escono dal funnel qui sotto (primo passo, ultimo passo e la
+  // loro differenza), quindi qui ci sono solo gli andamenti: l'ultima
+  // rilevazione di ognuno coincide col valore che il funnel produce.
+  trend: {
+    visite:      [8200, 8600, 8500, 9100, 9400, 9700, 10000],
+    pagamenti:   [2450, 2560, 2520, 2680, 2740, 2830, 2900],
+    conversione: [27.5, 28.0, 27.8, 28.4, 28.6, 28.8, 29.0],
+    abbandoni:   [7350, 7300, 7380, 7250, 7200, 7150, 7100],
+  },
   funnel: [
     { label:'Visualizzazioni vetrina', val: 10000, pct: 100 },
     { label:'Visualizzazioni menu',     val: 7500,  pct: 75 },
