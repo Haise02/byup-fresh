@@ -256,15 +256,12 @@ function StatStaff() {
       </div>
 
       <StatCard title="Rendimento personale" sub="Vendite ed efficacia dei membri del tuo team" action={
-        <div style={{display:'flex', gap: 8, alignItems:'center'}}>
-          <div style={{
-            display:'flex', alignItems:'center', gap: 8,
-            padding:'7px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
-          }}>
-            <BuIcons.search size={13} color={PN.MUTED}/>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca membro…" style={{border:'none', outline:'none', fontSize: 14.5, fontFamily:'inherit', width: 160}}/>
-          </div>
-          <button style={{padding:'8px 14px', background: PN.TEXT, color:'#fff', border:'none', borderRadius: 10, fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap: 6}}><BuIcons.download size={12}/> Esporta</button>
+        <div style={{
+          display:'flex', alignItems:'center', gap: 8,
+          padding:'7px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
+        }}>
+          <BuIcons.search size={13} color={PN.MUTED}/>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca membro…" style={{border:'none', outline:'none', fontSize: 14.5, fontFamily:'inherit', width: 160}}/>
         </div>
       }>
         <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
