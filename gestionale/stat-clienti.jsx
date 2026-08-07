@@ -54,9 +54,315 @@ function CliStelle({ voto, lato = 16 }) {
   );
 }
 
+// ─── Le recensioni ─────────────────────────────────────────────
+// Con dodici ci si sta, con cento no: l'elenco scorre dentro la card invece
+// di allungarla, e sopra ci sono i filtri che servono a chi le legge —
+// provenienza, stelle, e la categoria di problema che il cliente ha toccato
+// nell'app dopo il pagamento (gli `aspetti`: sotto le tre stelle l'app
+// propone «Attesa lunga», «Pulizia», «Rumore»…). Non è un'interpretazione
+// nostra del testo: è la casella che ha spuntato lui.
+// Il filtro per problema esiste solo per le byup, perché solo lì c'è: Google
+// raccoglie stelle e testo, punto.
+function CliRecensioni({ elenco }) {
+  const [fonte, setFonte] = React.useState('tutte');
+  const [stelle, setStelle] = React.useState(0);      // 0 = tutte
+  const [problema, setProblema] = React.useState('');  // '' = tutti
+  const [segnalate, setSegnalate] = React.useState({});
+  const [inSegnalazione, setInSegnalazione] = React.useState(null);
+
+  const chiave = (r) => `${r.autore}·${r.quando}`;
+  // I problemi da mettere nella tendina sono quelli davvero presenti, col loro
+  // conteggio: un elenco di categorie vuote è un elenco di vicoli ciechi.
+  const problemi = Object.entries(
+    elenco.reduce((acc, r) => {
+      (r.aspetti || []).filter(a => (STAT_ASPETTI[a] || {}).problema).forEach(a => { acc[a] = (acc[a] || 0) + 1; });
+      return acc;
+    }, {})
+  ).sort((a, b) => b[1] - a[1]);
+
+  const visibili = elenco.filter(r =>
+    (fonte === 'tutte' || r.fonte === fonte) &&
+    (!stelle || r.stelle === stelle) &&
+    (!problema || (r.aspetti || []).includes(problema))
+  );
+
+  const pillola = (attiva) => ({
+    padding:'5px 11px', borderRadius: 999, border:'none',
+    background: attiva ? PN.WHITE : 'transparent',
+    boxShadow: attiva ? '0 1px 2px rgba(15,17,21,0.10)' : 'none',
+    color: attiva ? PN.TEXT : PN.MUTED,
+    fontSize: 13.5, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
+    display:'inline-flex', alignItems:'center', gap: 5,
+  });
+
+  return (
+    <StatCard title="Cosa scrivono" sub={`${elenco.length} recensioni nel periodo · ne vedi ${visibili.length}`} action={
+      <div style={{display:'inline-flex', gap: 5, padding: 4, background: PN.WHITE_HUSH, borderRadius: 999}}>
+        {[
+          { id:'tutte',  et:'Tutte' },
+          { id:'byup',   et:'byup' },
+          { id:'google', et:'Google' },
+        ].map(f => (
+          <button key={f.id} onClick={() => { setFonte(f.id); if (f.id === 'google') setProblema(''); }} style={pillola(fonte === f.id)}>
+            {f.et}
+            <span style={{color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>
+              {f.id === 'tutte' ? elenco.length : elenco.filter(r => r.fonte === f.id).length}
+            </span>
+          </button>
+        ))}
+      </div>
+    }>
+      {/* Barra dei filtri: le stelle a pillole perché sono sei e si scelgono a
+          colpo d'occhio, i problemi in una tendina perché sono tanti e hanno
+          nomi lunghi. */}
+      <div style={{
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14, flexWrap:'wrap',
+        paddingBottom: 13, marginBottom: 13, borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+      }}>
+        <div style={{display:'inline-flex', gap: 5, padding: 4, background: PN.WHITE_HUSH, borderRadius: 999}}>
+          <button onClick={() => setStelle(0)} style={pillola(stelle === 0)}>Tutte le stelle</button>
+          {[5,4,3,2,1].map(v => {
+            const n = elenco.filter(r => r.stelle === v).length;
+            return (
+              <button key={v} onClick={() => setStelle(v)} disabled={!n} style={{
+                ...pillola(stelle === v),
+                opacity: n ? 1 : 0.4, cursor: n ? 'pointer' : 'default',
+              }}>
+                {v}<span style={{color: PN.AMBER, fontSize: 11.5}}>★</span>
+                <span style={{color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <label style={{display:'inline-flex', alignItems:'center', gap: 8, fontSize: 13.5, color: PN.MUTED}}>
+          Problema segnalato
+          <select value={problema} onChange={e => { setProblema(e.target.value); if (e.target.value) setFonte('byup'); }}
+            style={{
+              padding:'7px 11px', borderRadius: 9, border:`1px solid ${PN.BORDER}`,
+              background: PN.WHITE, color: PN.TEXT, fontSize: 14, fontFamily:'inherit',
+            }}>
+            <option value="">Tutti</option>
+            {problemi.map(([id, n]) => (
+              <option key={id} value={id}>{STAT_ASPETTI[id].emoji} {STAT_ASPETTI[id].et} ({n})</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {/* L'elenco scorre: la card resta alta uguale con dodici recensioni e
+          con cento, e i filtri restano sempre sott'occhio invece di finire
+          due schermate più su. */}
+      <div className="pn-scroll" style={{
+        maxHeight: 460, overflowY:'auto', paddingRight: 4,
+        display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12, alignContent:'start',
+      }}>
+        {visibili.map((r, i) => {
+          const segn = segnalate[chiave(r)];
+          return (
+            <div key={i} style={{
+              border:`1px solid ${segn ? PN.AMBER_SOFT : PN.BORDER}`, borderRadius: 12, padding: 14,
+              background: segn ? '#FFFCF3' : PN.WHITE, minWidth: 0,
+              display:'flex', flexDirection:'column', gap: 9,
+            }}>
+              <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+                <span style={{
+                  width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+                  background: r.bg, color:'#fff',
+                  display:'grid', placeItems:'center',
+                  fontSize: 13.5, fontWeight: 700,
+                }}>{r.iniziale}</span>
+                <span style={{flex: 1, minWidth: 0}}>
+                  <span style={{display:'block', fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.autore}</span>
+                  <span style={{display:'flex', alignItems:'center', gap: 7}}>
+                    <CliStelle voto={r.stelle} lato={12}/>
+                    <span style={{fontSize: 12.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap'}}>{r.quando}</span>
+                  </span>
+                </span>
+                <CliFonte fonte={r.fonte}/>
+              </div>
+
+              <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.45}}>«{r.testo}»</div>
+
+              {/* Gli aspetti che ha toccato nell'app. In rosso quelli negativi:
+                  sono i problemi che ha segnalato lui, e sono la ragione per
+                  cui la tendina qui sopra può filtrarli. */}
+              {(r.aspetti || []).length > 0 && (
+                <div style={{display:'flex', flexWrap:'wrap', gap: 6}}>
+                  {r.aspetti.map(a => {
+                    const asp = STAT_ASPETTI[a]; if (!asp) return null;
+                    return (
+                      <span key={a} style={{
+                        display:'inline-flex', alignItems:'center', gap: 5,
+                        padding:'3px 9px', borderRadius: 999,
+                        background: asp.problema ? PN.RED_SOFT : PN.WHITE_HUSH,
+                        color: asp.problema ? '#991b1b' : PN.MUTED,
+                        fontSize: 12.5, fontWeight: 600, whiteSpace:'nowrap',
+                      }}>{asp.emoji} {asp.et}</span>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div style={{
+                marginTop:'auto', paddingTop: 9, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
+              }}>
+                {/* La riga che solo byup può scrivere: la recensione nasce da
+                    un ordine pagato qui, quindi si sa che quella persona c'è
+                    stata e cosa ha mangiato. Su Google non c'è modo di
+                    saperlo, e infatti lì non c'è. */}
+                {r.fonte === 'byup' ? (
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13, color: PN.GREEN, minWidth: 0}}>
+                    <Icon name="status-success" size={13}/>
+                    <span style={{color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                      Ordine verificato · <strong style={{color: PN.TEXT, fontWeight: 600}}>{r.piatto}</strong>
+                    </span>
+                  </span>
+                ) : (
+                  <span style={{fontSize: 13, color: PN.MUTED_SOFT}}>Nessun ordine collegato</span>
+                )}
+
+                {segn ? (
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: PN.AMBER, whiteSpace:'nowrap'}}>
+                    <Icon name="status-pending" size={12}/> Segnalata
+                  </span>
+                ) : (
+                  <button onClick={() => setInSegnalazione(r)}
+                    onMouseEnter={e => { e.currentTarget.style.background = PN.RED_SOFT; e.currentTarget.style.color = PN.RED; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+                    style={{
+                      flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 5,
+                      padding:'4px 9px', borderRadius: 8, border:'none', background:'transparent',
+                      color: PN.MUTED, fontSize: 12.5, fontWeight: 600,
+                      fontFamily:'inherit', cursor:'pointer', transition:'background 140ms ease, color 140ms ease',
+                    }}><Icon name="status-warning" size={12}/> Segnala</button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {!visibili.length && (
+          <div style={{gridColumn:'1 / -1', padding:'26px 0', textAlign:'center', fontSize: 14.5, color: PN.MUTED_SOFT}}>
+            Nessuna recensione con questi filtri.
+          </div>
+        )}
+      </div>
+
+      {inSegnalazione && (
+        <CliSegnala recensione={inSegnalazione}
+          onChiudi={() => setInSegnalazione(null)}
+          onInvia={() => { setSegnalate(s => ({...s, [chiave(inSegnalazione)]: true})); setInSegnalazione(null); }}/>
+      )}
+    </StatCard>
+  );
+}
+
+// ─── Segnalare una recensione ──────────────────────────────────
+// Dove finisce la segnalazione dipende da dove sta la recensione, e va detto
+// prima di premere: quelle byup le esamina il team byup, che sull'archivio
+// degli ordini può verificare se quella persona c'è stata davvero; quelle
+// Google si possono solo inoltrare a Google, e decide Google.
+function CliSegnala({ recensione, onChiudi, onInvia }) {
+  const [motivo, setMotivo] = React.useState(null);
+  const [dettagli, setDettagli] = React.useState('');
+  const suGoogle = recensione.fonte === 'google';
+
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') onChiudi(); };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [onChiudi]);
+
+  return (
+    <>
+      <div onClick={onChiudi} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.32)', zIndex: 74}}/>
+      <div style={{
+        position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)',
+        width: 440, maxHeight:'82%', zIndex: 75,
+        background: PN.WHITE, borderRadius: 16, boxShadow:'0 24px 60px rgba(15,17,21,0.24)',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+      }}>
+        <div style={{padding:'18px 20px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
+          <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 12}}>
+            <div style={{minWidth: 0}}>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Segnala la recensione</div>
+              <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>
+                di {recensione.autore} · {recensione.quando}
+              </div>
+            </div>
+            <button onClick={onChiudi} aria-label="Chiudi" style={{
+              width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+              border:'none', background: PN.WHITE_HUSH, color: PN.TEXT,
+              cursor:'pointer', display:'grid', placeItems:'center',
+            }}><Icon name="xmark" size={14}/></button>
+          </div>
+        </div>
+
+        <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding:'14px 20px 18px'}}>
+          <div style={{
+            padding:'11px 13px', borderRadius: 10, marginBottom: 14,
+            background: suGoogle ? '#EDF3FE' : PN.PINK_BG_SOFT,
+            fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45,
+          }}>
+            {suGoogle
+              ? <>Questa recensione sta su <strong style={{color: PN.TEXT}}>Google</strong>: la segnalazione viene inoltrata a loro e la decisione è di Google. Noi non possiamo rimuoverla.</>
+              : <>Questa recensione è <strong style={{color: PN.TEXT}}>byup</strong>: la esamina il nostro team, che dall'ordine collegato può verificare se quella persona è stata davvero qui.</>}
+          </div>
+
+          <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 8}}>
+            Motivo
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap: 7}}>
+            {STAT_MOTIVI_SEGNALAZIONE.map(m => (
+              <button key={m} onClick={() => setMotivo(m)} style={{
+                textAlign:'left', padding:'11px 13px', borderRadius: 10,
+                border:`1.5px solid ${motivo === m ? PN.PINK : PN.BORDER}`,
+                background: motivo === m ? PN.PINK_BG_SOFT : PN.WHITE,
+                fontSize: 14.5, color: PN.TEXT, fontWeight: motivo === m ? 600 : 500,
+                fontFamily:'inherit', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
+              }}>
+                {m}
+                {motivo === m && <Icon name="check" size={14} color={PN.PINK}/>}
+              </button>
+            ))}
+          </div>
+
+          <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, margin:'16px 0 8px'}}>
+            Dettagli <span style={{fontWeight: 500, textTransform:'none', letterSpacing: 0}}>(facoltativo)</span>
+          </div>
+          <textarea value={dettagli} onChange={e => setDettagli(e.target.value)} rows={3}
+            placeholder="Quello che può servire a chi la esamina: cosa non torna, cosa è successo davvero…"
+            style={{
+              width:'100%', boxSizing:'border-box', padding:'11px 12px',
+              border:`1px solid ${PN.BORDER}`, borderRadius: 10,
+              fontSize: 14.5, fontFamily:'inherit', color: PN.TEXT, lineHeight: 1.5,
+              resize:'none', outline:'none',
+            }}/>
+        </div>
+
+        <div style={{padding:'13px 20px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', justifyContent:'flex-end', gap: 9}}>
+          <button onClick={onChiudi} style={{
+            padding:'9px 16px', borderRadius: 10, border:`1px solid ${PN.BORDER}`,
+            background: PN.WHITE, color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
+            fontFamily:'inherit', cursor:'pointer',
+          }}>Annulla</button>
+          <button onClick={onInvia} disabled={!motivo} style={{
+            padding:'9px 16px', borderRadius: 10, border:'none',
+            background: motivo ? PN.TEXT : PN.WHITE_FROST,
+            color: motivo ? '#fff' : PN.MUTED_SOFT,
+            fontSize: 14.5, fontWeight: 700, fontFamily:'inherit',
+            cursor: motivo ? 'pointer' : 'default',
+          }}>{suGoogle ? 'Inoltra a Google' : 'Invia al team byup'}</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function StatClienti() {
   const d = STAT_CLIENTI;
-  const [fonte, setFonte] = React.useState('tutte');
   const totRev = d.starBreakdown.reduce((s, r) => s + r.count, 0);
   const months = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
@@ -163,66 +469,7 @@ function StatClienti() {
         </StatCard>
       </div>
 
-      <StatCard title="Cosa scrivono" sub="Le ultime recensioni, dalle due provenienze" action={
-        <div style={{display:'inline-flex', gap: 5, padding: 4, background: PN.WHITE_HUSH, borderRadius: 999}}>
-          {[
-            { id:'tutte',  et:'Tutte',  n: d.feedback.length },
-            { id:'byup',   et:'byup',   n: d.feedback.filter(r => r.fonte === 'byup').length },
-            { id:'google', et:'Google', n: d.feedback.filter(r => r.fonte === 'google').length },
-          ].map(f => (
-            <button key={f.id} onClick={() => setFonte(f.id)} style={{
-              padding:'5px 12px', borderRadius: 999, border:'none',
-              background: fonte === f.id ? PN.WHITE : 'transparent',
-              boxShadow: fonte === f.id ? '0 1px 2px rgba(15,17,21,0.10)' : 'none',
-              color: fonte === f.id ? PN.TEXT : PN.MUTED,
-              fontSize: 13.5, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
-            }}>{f.et} <span style={{color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>{f.n}</span></button>
-          ))}
-        </div>
-      }>
-        {/* Due colonne: le recensioni sono testi corti, e a tutta riga
-            lascerebbero mezza card vuota. */}
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
-          {d.feedback.filter(r => fonte === 'tutte' || r.fonte === fonte).map((r, i) => (
-            <div key={i} style={{
-              border:`1px solid ${PN.BORDER}`, borderRadius: 12, padding: 14,
-              background: PN.WHITE, minWidth: 0,
-              display:'flex', flexDirection:'column', gap: 9,
-            }}>
-              <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
-                <span style={{
-                  width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
-                  background: r.bg, color:'#fff',
-                  display:'grid', placeItems:'center',
-                  fontSize: 13.5, fontWeight: 700,
-                }}>{r.iniziale}</span>
-                <span style={{flex: 1, minWidth: 0}}>
-                  <span style={{display:'block', fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.autore}</span>
-                  <span style={{display:'flex', alignItems:'center', gap: 7}}>
-                    <CliStelle voto={r.stelle} lato={12}/>
-                    <span style={{fontSize: 12.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap'}}>{r.quando}</span>
-                  </span>
-                </span>
-                <CliFonte fonte={r.fonte}/>
-              </div>
-              <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.45}}>«{r.testo}»</div>
-              {/* La riga che solo byup può scrivere: la recensione nasce da un
-                  ordine pagato qui, quindi si sa che quella persona c'è stata
-                  e cosa ha mangiato. Su Google non c'è modo di saperlo. */}
-              {r.fonte === 'byup' && (
-                <div style={{
-                  marginTop:'auto', paddingTop: 9, borderTop:`1px solid ${PN.BORDER_SOFT}`,
-                  display:'flex', alignItems:'center', gap: 6,
-                  fontSize: 13, color: PN.GREEN,
-                }}>
-                  <Icon name="status-success" size={13}/>
-                  <span style={{color: PN.MUTED}}>Ordine verificato · ha preso <strong style={{color: PN.TEXT, fontWeight: 600}}>{r.piatto}</strong></span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </StatCard>
+      <CliRecensioni elenco={d.feedback}/>
 
       <StatCard title="Ciclo di vita del cliente" sub="Distribuzione clienti per frequenza di ritorno">
         <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>

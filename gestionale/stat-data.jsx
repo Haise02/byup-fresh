@@ -93,6 +93,46 @@ const STAFF = [
   { nome:'Elena Costa',    ruolo:'Maître',    avatar:'EC', avatarBg:'#E04347', scontrino: 58.60, vsTeam: +12.27,ordini: 198, tavoli: 95,  tip: 460 },
 ];
 
+// Gli aspetti che l'app propone dopo il pagamento, copiati da menu.jsx
+// (SuccessScreen): il set cambia col voto — sopra le due stelle sono i pregi,
+// da due in giù sono i problemi, e l'etichetta cambia di conseguenza («Cibo»
+// resta «Cibo», ma «Qualità/prezzo» diventa «Prezzo alto»).
+// I `_neg` sono quelli che in Statistiche vale la pena poter filtrare: sono le
+// categorie di problema che il cliente ha segnalato lui, non una nostra
+// interpretazione del testo.
+const STAT_ASPETTI = {
+  cibo:             { et:'Cibo',            emoji:'🍝' },
+  servizio:         { et:'Servizio',        emoji:'🙋' },
+  locale:           { et:'Locale',          emoji:'🏛️' },
+  qualita:          { et:'Qualità/prezzo',  emoji:'💸' },
+  atmosfera:        { et:'Atmosfera',       emoji:'✨' },
+  tempi:            { et:'Tempi rapidi',    emoji:'⚡' },
+  packaging:        { et:'Packaging',       emoji:'📦' },
+  cortesia:         { et:'Cortesia',        emoji:'🙋' },
+  cibo_neg:         { et:'Cibo',            emoji:'🍽️', problema: true },
+  servizio_neg:     { et:'Servizio',        emoji:'🙅', problema: true },
+  attesa_neg:       { et:'Attesa lunga',    emoji:'⏳', problema: true },
+  pulizia_neg:      { et:'Pulizia',         emoji:'🧼', problema: true },
+  rumore:           { et:'Rumore',          emoji:'🔊', problema: true },
+  qualita_neg:      { et:'Prezzo alto',     emoji:'💸', problema: true },
+  ordine_sbagliato: { et:'Ordine sbagliato',emoji:'⚠️', problema: true },
+  packaging_neg:    { et:'Packaging',       emoji:'📦', problema: true },
+  cortesia_neg:     { et:'Personale',       emoji:'🙅', problema: true },
+};
+
+// I motivi per cui un ristoratore può contestare una recensione. Quelli che
+// contano davvero in questo mestiere: chi non è mai venuto, chi insulta, chi
+// scrive del locale sbagliato, chi ricatta.
+const STAT_MOTIVI_SEGNALAZIONE = [
+  'Non è mai stato un nostro cliente',
+  'Contenuto offensivo o volgare',
+  'Si riferisce a un altro locale',
+  'Contiene dati personali',
+  'Spam o pubblicità',
+  'Tentativo di ricatto',
+  'Altro motivo',
+];
+
 const STAT_CLIENTI = {
   // L'ultima rilevazione di ogni andamento coincide col valore accanto: una
   // linea che finisce altrove racconterebbe un'altra storia dal numero.
@@ -109,16 +149,26 @@ const STAT_CLIENTI = {
     byup:   { n: 312, media: 4.6 },
     google: { n: 231, media: 4.4 },
   },
-  // Stessa forma delle recensioni nella vetrina dell'app (nome, iniziale,
-  // stelle, quando, testo). Qui in più la provenienza e, per quelle byup, il
-  // piatto dell'ordine da cui nascono: è il dato che Google non può avere.
+  // Stessa forma delle recensioni nell'app: dopo il pagamento il cliente dà le
+  // stelle e tocca gli aspetti, e l'app cambia il set a seconda del voto —
+  // sopra le due stelle sono i pregi, sotto sono i problemi (menu.jsx,
+  // SuccessScreen). Il commento è facoltativo, gli aspetti quasi mai.
+  // Qui in più la provenienza e, per le byup, il piatto dell'ordine da cui la
+  // recensione nasce: è quello che Google non può avere — e infatti le
+  // recensioni Google non hanno né aspetti né piatto.
   feedback: [
-    { autore:'Giulia M.',  iniziale:'G', bg:'#FF5A5F', stelle: 5, quando:'2 giorni fa',   fonte:'byup',   piatto:'Carbonara',    testo:'Atmosfera incredibile e cucina autentica. La carbonara è la migliore che abbia mangiato a Roma.' },
-    { autore:'Marco R.',   iniziale:'M', bg:'#2563EB', stelle: 5, quando:'4 giorni fa',   fonte:'google',                        testo:'Servizio impeccabile, il vino consigliato dal cameriere era perfetto per il piatto.' },
-    { autore:'Sara D.',    iniziale:'S', bg:'#7C3AED', stelle: 4, quando:'1 settimana fa', fonte:'byup',  piatto:'Amatriciana',  testo:'Ottima esperienza, tornerò con gli amici. Solo un po\' di attesa all\'arrivo, ma ne è valsa la pena.' },
-    { autore:'Luca P.',    iniziale:'L', bg:'#16A34A', stelle: 5, quando:'1 settimana fa', fonte:'byup',  piatto:'Cacio e Pepe', testo:'Ordinare e pagare dal tavolo è una svolta: il sabato sera zero attesa per il conto.' },
-    { autore:'Elena F.',   iniziale:'E', bg:'#D97706', stelle: 3, quando:'2 settimane fa', fonte:'google',                       testo:'Cucina buona ma locale molto rumoroso la sera, si fatica a parlare al tavolo.' },
-    { autore:'Davide N.',  iniziale:'D', bg:'#B53338', stelle: 5, quando:'3 settimane fa', fonte:'byup',  piatto:'Tiramisù',     testo:'Tiramisù da manuale e conto diviso in due tap. Consigliatissimo.' },
+    { autore:'Giulia M.',  iniziale:'G', bg:'#FF5A5F', stelle: 5, quando:'2 giorni fa',    fonte:'byup',   piatto:'Carbonara',    aspetti:['cibo','atmosfera'],           testo:'Atmosfera incredibile e cucina autentica. La carbonara è la migliore che abbia mangiato a Roma.' },
+    { autore:'Roberto S.', iniziale:'R', bg:'#6B7280', stelle: 1, quando:'3 giorni fa',    fonte:'google',                                                                testo:'Passato davanti, sembra il solito posto per turisti. Non mi ispira per niente.' },
+    { autore:'Marco R.',   iniziale:'M', bg:'#2563EB', stelle: 5, quando:'4 giorni fa',    fonte:'google',                                                                testo:'Servizio impeccabile, il vino consigliato dal cameriere era perfetto per il piatto.' },
+    { autore:'Chiara B.',  iniziale:'C', bg:'#7C3AED', stelle: 2, quando:'5 giorni fa',    fonte:'byup',   piatto:'Saltimbocca',  aspetti:['attesa_neg','servizio_neg'],  testo:'Il piatto era buono ma abbiamo aspettato quaranta minuti e nessuno è venuto a dirci nulla.' },
+    { autore:'Alessio R.', iniziale:'A', bg:'#0F1115', stelle: 2, quando:'6 giorni fa',    fonte:'byup',   piatto:'Bruschetta',   aspetti:['pulizia_neg','rumore'],       testo:'Tavolo appiccicoso e musica altissima, peccato perché si mangia bene.' },
+    { autore:'Sara D.',    iniziale:'S', bg:'#D97706', stelle: 4, quando:'1 settimana fa', fonte:'byup',   piatto:'Amatriciana',  aspetti:['cibo','servizio'],            testo:'Ottima esperienza, tornerò con gli amici. Solo un po\' di attesa all\'arrivo, ma ne è valsa la pena.' },
+    { autore:'Luca P.',    iniziale:'L', bg:'#16A34A', stelle: 5, quando:'1 settimana fa', fonte:'byup',   piatto:'Cacio e Pepe', aspetti:['servizio','qualita'],         testo:'Ordinare e pagare dal tavolo è una svolta: il sabato sera zero attesa per il conto.' },
+    { autore:'Federico A.',iniziale:'F', bg:'#B53338', stelle: 1, quando:'1 settimana fa', fonte:'byup',   piatto:'Pesce spada',  aspetti:['cibo_neg','qualita_neg'],     testo:'Pesce non freschissimo e ventotto euro. Non ci torno.' },
+    { autore:'Anna V.',    iniziale:'A', bg:'#2563EB', stelle: 4, quando:'2 settimane fa', fonte:'google',                                                                testo:'Bel posto, prezzi onesti. Prenotate il fine settimana perché si riempie.' },
+    { autore:'Elena F.',   iniziale:'E', bg:'#E04347', stelle: 3, quando:'2 settimane fa', fonte:'google',                                                                testo:'Cucina buona ma locale molto rumoroso la sera, si fatica a parlare al tavolo.' },
+    { autore:'Martina L.', iniziale:'M', bg:'#7C3AED', stelle: 2, quando:'2 settimane fa', fonte:'byup',   piatto:'Carbonara',    aspetti:['attesa_neg','cibo_neg'],      testo:'Carbonara arrivata tiepida dopo mezz\'ora. Il locale però è carino.' },
+    { autore:'Davide N.',  iniziale:'D', bg:'#16A34A', stelle: 5, quando:'3 settimane fa', fonte:'byup',   piatto:'Tiramisù',     aspetti:['cibo','locale'],              testo:'Tiramisù da manuale e conto diviso in due tap. Consigliatissimo.' },
   ],
   starBreakdown: [
     { stars: 5, count: 320 },
@@ -285,6 +335,8 @@ window.STAT_PRENOTAZIONI = STAT_PRENOTAZIONI;
 window.STAT_ORDINI = STAT_ORDINI;
 window.STAFF = STAFF;
 window.STAT_CLIENTI = STAT_CLIENTI;
+window.STAT_ASPETTI = STAT_ASPETTI;
+window.STAT_MOTIVI_SEGNALAZIONE = STAT_MOTIVI_SEGNALAZIONE;
 window.STAT_FUORI = STAT_FUORI;
 window.STAT_ECONOMICI = STAT_ECONOMICI;
 window.STAT_VENDITE = STAT_VENDITE;
