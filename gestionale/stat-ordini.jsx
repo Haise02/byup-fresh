@@ -7,7 +7,7 @@
 // leggono due cifre e si va oltre. Qui la barra in testa lo mostra prima di
 // qualunque numero, e i tempi medi condividono una scala, così il fatto
 // interessante (in sala ci vuole quasi il quadruplo) si vede invece di
-// doverlo calcolare.
+// doverlo calcolare. La quota la portano le pillole, il totale il sottotitolo.
 const CANALI_ORDINI = [
   { id:'sala',    label:'In sala',   sub:'Coperti seduti',              icona:'place-table',       colore: PN.WINE },
   { id:'asporto', label:'Asporto e delivery', sub:'Ritiro o consegna',  icona:'commerce-delivery', colore: PN.PINK },
@@ -22,20 +22,8 @@ function OrdiniPerCanale({ d }) {
   return (
     <StatCard title="Ordini per canale"
       sub={`Come si dividono i ${totale.toLocaleString('it-IT', {useGrouping: true})} ordini del periodo`}>
-      {/* La barra unica: la divisione si legge prima di qualunque cifra. */}
-      <div style={{display:'flex', gap: 3, height: 14, marginBottom: 18}}>
-        {canali.map(c => (
-          <div key={c.id}
-            onMouseEnter={() => setSu(c.id)} onMouseLeave={() => setSu(null)}
-            style={{
-              width: `${(c.completati / totale) * 100}%`,
-              background: c.colore, borderRadius: 999,
-              opacity: su == null || su === c.id ? 1 : 0.35,
-              transition:'opacity 160ms ease',
-            }}/>
-        ))}
-      </div>
-
+      {/* Niente barra della divisione sopra i due riquadri: la quota la
+          dicono già le due pillole, e il sottotitolo dice il totale. */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
         {canali.map(c => {
           const quota = (c.completati / totale) * 100;
