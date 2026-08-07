@@ -1,31 +1,33 @@
 // Statistiche — Clienti · sub-tab Fidelizzazione
 
+// ─── Il colore, e quanto poco ───────────────────────────────────
+// Questa pagina aveva ambra, corallo, blu, verde e rosso accesi nello stesso
+// sguardo: ogni informazione si era presa una tinta e una scatola, e il
+// risultato era che nessuna aveva più peso delle altre. Vale una regola sola,
+// da qui in giù: l'ambra è delle stelle, il corallo è byup, il blu è Google,
+// il rosso è un problema. Tutto il resto è grigio, e niente ha un bordo se un
+// filetto o un po' d'aria bastano a separarlo.
+
 // ─── Le due provenienze ────────────────────────────────────────
 // Non sono la stessa cosa e la card non deve farle sembrare tali: una
 // recensione byup nasce da un ordine pagato qui — si sa che quella persona c'è
 // stata e cosa ha mangiato — una recensione Google la lascia chiunque abbia un
-// account Google. Da qui due segni diversi: il corallo del marchio da una
-// parte, la G di Google dall'altra.
+// account Google. Basta un punto del colore giusto accanto al nome: la
+// pastiglia piena con dentro la tessera e l'iniziale era tre oggetti per dire
+// una parola.
 const CLI_FONTI = {
-  byup:   { et:'byup',   colore: PN.PINK,  sfondo: PN.PINK_BG_SOFT, bordo:'#FBD3D1' },
-  google: { et:'Google', colore:'#4285F4', sfondo:'#EDF3FE',        bordo:'#D6E4FB' },
+  byup:   { et:'byup',   colore: PN.PINK },
+  google: { et:'Google', colore:'#4285F4' },
 };
 
-function CliFonte({ fonte, grande }) {
+function CliFonte({ fonte, lato = 12.5 }) {
   const f = CLI_FONTI[fonte] || CLI_FONTI.byup;
   return (
     <span style={{
-      display:'inline-flex', alignItems:'center', gap: 5,
-      padding: grande ? '4px 10px' : '2px 8px', borderRadius: 999,
-      background: f.sfondo, border:`1px solid ${f.bordo}`, color: f.colore,
-      fontSize: grande ? 13 : 12, fontWeight: 700, whiteSpace:'nowrap',
+      display:'inline-flex', alignItems:'center', gap: 6,
+      color: f.colore, fontSize: lato, fontWeight: 600, whiteSpace:'nowrap',
     }}>
-      <span style={{
-        width: 14, height: 14, borderRadius: 4, flexShrink: 0,
-        background: f.colore, color:'#fff',
-        display:'grid', placeItems:'center',
-        fontSize: 9.5, fontWeight: 800, lineHeight: 1,
-      }}>{fonte === 'google' ? 'G' : 'b'}</span>
+      <span style={{width: 6, height: 6, borderRadius:'50%', background: f.colore, flexShrink: 0}}/>
       {f.et}
     </span>
   );
@@ -98,56 +100,50 @@ function cliConta(aspetti, id) {
 }
 
 // ─── Il voto ───────────────────────────────────────────────────
-// Il pannello che risponde alla prima domanda — quanto ti votano — e subito
-// alla seconda: com'è fatto quel numero e da dove arriva. Le barre da tre
-// stelle in su sono ambra, quelle da due in giù rosse: sono le stesse
-// recensioni da cui nasce la classifica dei problemi in fondo alla card, e il
-// colore le tiene legate invece di lasciarle due tabelle scollegate.
+// Quanto ti votano, com'è fatto quel numero e da dove arriva. Stava dentro un
+// riquadro grigio con dentro altre due sezioni riquadrate: tre scatole per
+// dire una cosa sola. Adesso è contenuto e basta, tenuto insieme da due
+// filetti, e separato dal grafico da un filo verticale invece che da un bordo.
+// Un solo colore: l'ambra delle stelle, sulle stelle e sulle barre. Le barre
+// da due stelle in giù erano rosse — ma la riga è già etichettata «2 ★», e
+// colorare quello che è già scritto è rumore, non informazione.
 function CliVoto({ d }) {
   const tot = d.starBreakdown.reduce((s, r) => s + r.count, 0);
   return (
-    <div style={{
-      background: PN.WHITE_OFF, border:`1px solid ${PN.BORDER_SOFT}`,
-      borderRadius: 14, padding: 18, minWidth: 0,
-      display:'flex', flexDirection:'column', gap: 15,
-    }}>
-      <div>
-        <div style={{display:'flex', alignItems:'baseline', gap: 5}}>
-          <span style={{fontSize: 50, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.5, lineHeight: 1}}>
-            {d.rating.toFixed(1).replace('.', ',')}
-          </span>
-          <span style={{fontSize: 17, color: PN.MUTED_SOFT, fontWeight: 600}}>/5</span>
-        </div>
-        <div style={{display:'flex', alignItems:'center', gap: 9, marginTop: 10, flexWrap:'wrap'}}>
-          <CliStelle voto={d.rating} lato={18}/>
-          <span style={{fontSize: 13.5, color: PN.MUTED}}>
+    <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 18}}>
+      <div style={{display:'flex', alignItems:'flex-end', gap: 16, flexWrap:'wrap'}}>
+        <span style={{fontSize: 52, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.8, lineHeight: 0.9}}>
+          {d.rating.toFixed(1).replace('.', ',')}
+        </span>
+        <span style={{display:'flex', flexDirection:'column', gap: 5, paddingBottom: 2}}>
+          <CliStelle voto={d.rating} lato={17}/>
+          <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace:'nowrap'}}>
             su {d.recensioni.toLocaleString('it-IT', {useGrouping: true})} recensioni
           </span>
-        </div>
+        </span>
       </div>
 
-      <div style={{
-        display:'flex', flexDirection:'column', gap: 6,
-        paddingTop: 15, borderTop:`1px solid ${PN.BORDER}`,
-      }}>
+      <div style={{display:'flex', flexDirection:'column', gap: 12}}>
         {[5,4,3,2,1].map(stelle => {
           const riga = d.starBreakdown.find(r => r.stars === stelle);
-          const pct = (riga.count / tot) * 100;
-          const basso = stelle <= 2;
           return (
-            <div key={stelle} style={{display:'flex', alignItems:'center', gap: 9, fontSize: 13}}>
+            <div key={stelle} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 13}}>
               <span style={{
-                width: 24, display:'inline-flex', alignItems:'center', gap: 3,
-                color: PN.MUTED, fontWeight: 600, fontVariantNumeric:'tabular-nums',
-              }}>{stelle}<span style={{color: PN.AMBER, fontSize: 11}}>★</span></span>
-              <span style={{flex: 1, height: 6, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden', minWidth: 24}}>
+                width: 22, display:'inline-flex', alignItems:'center', gap: 3,
+                color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums',
+              }}>{stelle}<span style={{color: PN.AMBER, fontSize: 10}}>★</span></span>
+              {/* Quattro pixel, non sette: a questa altezza la barra è una
+                  riga sottolineata, non un blocco di colore. */}
+              <span style={{flex: 1, height: 4, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden', minWidth: 24}}>
                 <span style={{
-                  display:'block', height:'100%', width:`${pct}%`, borderRadius: 999,
-                  background: basso ? PN.RED : PN.AMBER, opacity: basso ? 0.75 : 1,
+                  display:'block', height:'100%', borderRadius: 999, background: PN.AMBER,
+                  width:`${Math.max((riga.count / tot) * 100, 1.2)}%`,
                 }}/>
               </span>
-              <span style={{width: 32, textAlign:'right', color: PN.TEXT, fontVariantNumeric:'tabular-nums', fontWeight: 600}}>{riga.count}</span>
-              <span style={{width: 30, textAlign:'right', color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>{Math.round(pct)}%</span>
+              <span style={{
+                width: 34, textAlign:'right', color: PN.MUTED,
+                fontVariantNumeric:'tabular-nums', fontWeight: 600,
+              }}>{riga.count}</span>
             </div>
           );
         })}
@@ -156,18 +152,22 @@ function CliVoto({ d }) {
       {/* Le due provenienze con la loro media: è qui che si vede che i clienti
           byup — quelli che hanno davvero ordinato — votano più alto di chi
           passa da Google. */}
+      {/* Attaccate alla distribuzione, non spinte in fondo alla colonna: il
+          grafico accanto è più alto, e `marginTop:auto` apriva un buco in
+          mezzo. Meglio che l'aria avanzata resti sotto, dove finire è
+          normale, che in mezzo, dove sembra un pezzo mancante. */}
       <div style={{
-        display:'flex', flexDirection:'column', gap: 9, marginTop:'auto',
-        paddingTop: 15, borderTop:`1px solid ${PN.BORDER}`,
+        display:'flex', flexDirection:'column', gap: 11,
+        paddingTop: 16, borderTop:`1px solid ${PN.BORDER_SOFT}`,
       }}>
         {['byup', 'google'].map(k => (
-          <div key={k} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, minWidth: 0}}>
-            <CliFonte fonte={k} grande/>
+          <div key={k} style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10, minWidth: 0}}>
+            <CliFonte fonte={k} lato={13.5}/>
             <span style={{display:'inline-flex', alignItems:'baseline', gap: 7, flexShrink: 0}}>
-              <strong style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+              <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
                 {d.fonti[k].media.toFixed(1).replace('.', ',')}
-              </strong>
-              <span style={{fontSize: 13, color: PN.MUTED_SOFT, whiteSpace:'nowrap'}}>su {d.fonti[k].n}</span>
+              </span>
+              <span style={{fontSize: 12.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap'}}>su {d.fonti[k].n}</span>
             </span>
           </div>
         ))}
@@ -183,52 +183,54 @@ function CliVoto({ d }) {
 // una barra da 3,5 a 5 gonfierebbe differenze di un decimo.
 function CliAndamento({ d, mesiEt }) {
   // L'altezza è tarata sulla colonna accanto: il grafico deve finire dove
-  // finisce il pannello del voto, altrimenti mezza card resta bianca a destra.
-  const W = 640, H = 272, P = { l: 4, r: 34, t: 24, b: 28 };
+  // finisce il voto, altrimenti mezza card resta bianca a destra.
+  const W = 640, H = 230, P = { l: 6, r: 30, t: 18, b: 26 };
   const mesi = d.recensioniMese;
   const maxN = Math.max(...mesi);
   const passo = (W - P.l - P.r) / mesi.length;
-  const larghezza = Math.min(26, passo * 0.52);
+  const larghezza = Math.min(22, passo * 0.44);
   const xc = (i) => P.l + passo * (i + 0.5);
   const yBarra = (n) => H - P.b - (n / maxN) * (H - P.t - P.b);
   const yVoto = (v) => H - P.b - ((v - 3.5) / 1.5) * (H - P.t - P.b);
   const linea = d.ratingTrend.map((v, i) => `${i === 0 ? 'M' : 'L'}${xc(i)},${yVoto(v)}`).join(' ');
   const ultimo = d.ratingTrend[d.ratingTrend.length - 1];
+  const xUltimo = xc(d.ratingTrend.length - 1);
 
   return (
-    <div style={{minWidth: 0, display:'flex', flexDirection:'column'}}>
-      <div style={{display:'flex', alignItems:'center', gap: 16, marginBottom: 8}}>
-        <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13.5, color: PN.MUTED}}>
-          <span style={{width: 10, height: 10, borderRadius: 3, background: PN.PINK, opacity: 0.32}}/>
+    <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column'}}>
+      <div style={{display:'flex', alignItems:'center', gap: 18, marginBottom: 4}}>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
+          <span style={{width: 8, height: 8, borderRadius: 2, background: PN.PINK, opacity: 0.28}}/>
           recensioni del mese
         </span>
-        <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13.5, color: PN.MUTED}}>
-          <span style={{width: 14, height: 2.5, borderRadius: 2, background: PN.AMBER}}/>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
+          <span style={{width: 13, height: 2, borderRadius: 2, background: PN.AMBER}}/>
           media, da 3,5 a 5
         </span>
       </div>
+      {/* Il numero sopra ogni barra erano dodici cifre in mezzo al disegno, e
+          il disegno serve proprio a non doverle leggere una per una: resta la
+          scala a destra, e l'unica cifra scritta è dove si è arrivati. */}
       <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', display:'block', margin:'auto 0'}}>
         {[3.5, 4, 4.5, 5].map(v => (
           <g key={v}>
-            <line x1={P.l} y1={yVoto(v)} x2={W - P.r + 6} y2={yVoto(v)} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
-            <text x={W - P.r + 10} y={yVoto(v) + 4} fontSize="11" fill={PN.MUTED_SOFT}>{v.toFixed(1).replace('.', ',')}</text>
+            <line x1={P.l} y1={yVoto(v)} x2={W - P.r + 4} y2={yVoto(v)} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
+            <text x={W - P.r + 8} y={yVoto(v) + 3.5} fontSize="10.5" fill={PN.MUTED_LIGHT}>{v.toFixed(1).replace('.', ',')}</text>
           </g>
         ))}
         {mesi.map((n, i) => (
-          <g key={i}>
-            <rect x={xc(i) - larghezza / 2} y={yBarra(n)} width={larghezza} height={H - P.b - yBarra(n)}
-              rx={4} fill={PN.PINK} opacity={0.30}/>
-            <text x={xc(i)} y={yBarra(n) - 6} fontSize="11" fill={PN.MUTED} textAnchor="middle"
-              style={{fontVariantNumeric:'tabular-nums'}}>{n}</text>
-          </g>
+          <rect key={i} x={xc(i) - larghezza / 2} y={yBarra(n)} width={larghezza} height={H - P.b - yBarra(n)}
+            rx={3} fill={PN.PINK} opacity={0.24}/>
         ))}
         {/* La linea passa sopra le barre: filo bianco sotto perché resti
             staccata dal colore che attraversa. */}
         <path d={linea} fill="none" stroke={PN.WHITE} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round"/>
-        <path d={linea} fill="none" stroke={PN.AMBER} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx={xc(d.ratingTrend.length - 1)} cy={yVoto(ultimo)} r={4.5} fill={PN.AMBER} stroke={PN.WHITE} strokeWidth={2}/>
+        <path d={linea} fill="none" stroke={PN.AMBER} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx={xUltimo} cy={yVoto(ultimo)} r={4} fill={PN.AMBER} stroke={PN.WHITE} strokeWidth={2}/>
+        <text x={xUltimo} y={yVoto(ultimo) - 12} fontSize="12.5" fontWeight="700" fill={PN.TEXT} textAnchor="middle"
+          style={{fontVariantNumeric:'tabular-nums'}}>{ultimo.toFixed(1).replace('.', ',')}</text>
         {mesiEt.map((m, i) => (
-          <text key={i} x={xc(i)} y={H - 7} fontSize="11" fill={PN.MUTED_SOFT} textAnchor="middle">{m}</text>
+          <text key={i} x={xc(i)} y={H - 6} fontSize="10.5" fill={PN.MUTED_LIGHT} textAnchor="middle">{m}</text>
         ))}
       </svg>
     </div>
@@ -247,28 +249,31 @@ function CliAspetti({ dati, attivo, onScegli }) {
   const g = dati[modo];
   const negativo = modo === 'problemi';
   const accento = negativo ? PN.RED : PN.GREEN;
-  const velo    = negativo ? PN.RED_SOFT : PN.GREEN_SOFT;
   const tot = g.voci.reduce((s, v) => s + v.n, 0);
   const max = Math.max(...g.voci.map(v => v.n));
+  // Prima erano sei riquadri affiancati, ognuno con emoji, etichetta, numero,
+  // base, freccia e barra: trenta dati in fila, tutti dello stesso peso, e
+  // niente che dicesse da dove cominciare. È una classifica, e una classifica
+  // si legge in colonna. Le righe scendono per numero — le prime tre a
+  // sinistra, le altre a destra — e l'unico colore è il filo della barra.
+  const perColonna = Math.ceil(g.voci.length / 2);
 
   return (
-    <div style={{marginTop: 20, paddingTop: 18, borderTop:`1px solid ${PN.BORDER}`}}>
+    <div style={{marginTop: 22, paddingTop: 20, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
       <div style={{
         display:'flex', alignItems:'flex-start', justifyContent:'space-between',
-        gap: 18, flexWrap:'wrap', marginBottom: 14,
+        gap: 18, flexWrap:'wrap', marginBottom: 16,
       }}>
-        <div style={{minWidth: 0, maxWidth: 720}}>
+        <div style={{minWidth: 0, maxWidth: 660}}>
           <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>
             {negativo ? 'Cosa non ha funzionato' : 'Cosa è piaciuto'}
           </div>
           <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.45}}>
             {negativo
               ? <>Sotto le tre stelle l'app chiede cosa non è andato e il cliente spunta le caselle:
-                  {' '}<strong style={{color: PN.TEXT, fontWeight: 600}}>{tot} segnalazioni</strong> su {g.su} recensioni
-                  byup da una o due stelle. Non è una nostra lettura del testo: l'ha spuntata lui.</>
+                  {' '}{tot} segnalazioni su {g.su} recensioni byup da una o due stelle. Le ha spuntate lui: non le abbiamo lette noi nel testo.</>
               : <>Da tre stelle in su l'app chiede invece cosa è piaciuto:
-                  {' '}<strong style={{color: PN.TEXT, fontWeight: 600}}>{tot} caselle</strong> toccate
-                  su {g.su} recensioni byup.</>}
+                  {' '}{tot} caselle toccate su {g.su} recensioni byup.</>}
           </div>
         </div>
         <div style={CLI_PILLOLE}>
@@ -277,7 +282,11 @@ function CliAspetti({ dati, attivo, onScegli }) {
         </div>
       </div>
 
-      <div style={{display:'grid', gridTemplateColumns:`repeat(${g.voci.length}, minmax(0, 1fr))`, gap: 10}}>
+      <div style={{
+        display:'grid', gridAutoFlow:'column',
+        gridTemplateColumns:'1fr 1fr', gridTemplateRows:`repeat(${perColonna}, auto)`,
+        columnGap: 40, rowGap: 2,
+      }}>
         {g.voci.map(v => {
           const asp = STAT_ASPETTI[v.id];
           if (!asp) return null;
@@ -287,39 +296,45 @@ function CliAspetti({ dati, attivo, onScegli }) {
           // che sale è rosso, un pregio che sale è verde.
           const bene = negativo ? diff < 0 : diff > 0;
           return (
+            /* `boxShadow:'none'` non è una dimenticanza: la regola globale dei
+               bottoni alza un'ombra al passaggio, e su una riga larga e senza
+               fondo quell'ombra disegna una scheda che vola. Il feedback qui
+               è il velo grigio — la pressione resta quella di tutti. */
             <button key={v.id} onClick={() => onScegli(v.id)}
               title={sel ? 'Togli il filtro' : `Leggi le recensioni con «${asp.et}»`}
+              onMouseEnter={e => { if (!sel) e.currentTarget.style.background = PN.WHITE_HUSH; }}
+              onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent'; }}
               style={{
-                textAlign:'left', padding:'11px 12px 12px', borderRadius: 12,
-                border:`1px solid ${sel ? accento : PN.BORDER}`,
-                background: sel ? velo : PN.WHITE,
-                fontFamily:'inherit', cursor:'pointer', minWidth: 0,
-                display:'flex', flexDirection:'column', gap: 9,
+                display:'flex', alignItems:'center', gap: 12, minWidth: 0,
+                padding:'9px 10px', margin:'0 -10px', borderRadius: 9,
+                border:'none', background: sel ? PN.WHITE_HUSH : 'transparent',
+                boxShadow:'none', transition:'background 130ms ease',
+                textAlign:'left', fontFamily:'inherit', cursor:'pointer',
               }}>
-              <span style={{display:'flex', alignItems:'center', gap: 7, minWidth: 0}}>
-                <span style={{fontSize: 15, lineHeight: 1, flexShrink: 0}}>{asp.emoji}</span>
-                <span style={{
-                  flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: PN.TEXT,
-                  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-                }}>{asp.et}</span>
-              </span>
+              <span style={{
+                width: 118, flexShrink: 0, fontSize: 13.5,
+                fontWeight: sel ? 700 : 500, color: PN.TEXT,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+              }}>{asp.et}</span>
 
-              <span style={{display:'flex', alignItems:'baseline', gap: 6, minWidth: 0}}>
-                <strong style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.4, fontVariantNumeric:'tabular-nums'}}>{v.n}</strong>
-                <span style={{fontSize: 12.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap'}}>su {g.su}</span>
-                {diff !== 0 && (
-                  <span title={`${Math.abs(diff)} in ${diff > 0 ? 'più' : 'meno'} dei dodici mesi prima`} style={{
-                    marginLeft:'auto', flexShrink: 0, fontSize: 12, fontWeight: 700,
-                    whiteSpace:'nowrap', color: bene ? PN.GREEN : PN.RED,
-                  }}>{diff > 0 ? '↑' : '↓'}{Math.abs(diff)}</span>
-                )}
-              </span>
-
-              <span style={{display:'block', height: 5, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden'}}>
+              <span style={{flex: 1, minWidth: 30, height: 4, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden'}}>
                 <span style={{
-                  display:'block', height:'100%', width:`${(v.n / max) * 100}%`,
-                  borderRadius: 999, background: accento, opacity: 0.78,
+                  display:'block', height:'100%', borderRadius: 999,
+                  width:`${(v.n / max) * 100}%`, background: accento, opacity: sel ? 1 : 0.7,
                 }}/>
+              </span>
+
+              <span style={{
+                width: 26, flexShrink: 0, textAlign:'right',
+                fontSize: 14, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums',
+              }}>{v.n}</span>
+
+              <span style={{
+                width: 30, flexShrink: 0, textAlign:'right', fontSize: 12,
+                fontWeight: 600, fontVariantNumeric:'tabular-nums',
+                color: diff === 0 ? PN.MUTED_LIGHT : (bene ? PN.GREEN : PN.RED),
+              }} title={diff === 0 ? 'Come nei dodici mesi prima' : `${Math.abs(diff)} in ${diff > 0 ? 'più' : 'meno'} dei dodici mesi prima`}>
+                {diff === 0 ? '—' : `${diff > 0 ? '↑' : '↓'}${Math.abs(diff)}`}
               </span>
             </button>
           );
@@ -399,23 +414,32 @@ function CliRecensioni({ elenco, totale, aspetti, aspetto, setAspetto }) {
           dirlo, «12 segnalazioni» e due schede sembrerebbero un errore. */}
       {asp && (
         <div style={{
-          display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap',
-          padding:'10px 13px', borderRadius: 11, marginBottom: 13,
-          background: asp.problema ? PN.RED_SOFT : PN.GREEN_SOFT,
+          display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap',
+          padding:'9px 0 13px', marginBottom: 13, borderBottom:`1px solid ${PN.BORDER_SOFT}`,
         }}>
-          <span style={{fontSize: 13.5, fontWeight: 700, color: asp.problema ? '#991B1B' : '#14532D', whiteSpace:'nowrap'}}>
-            {asp.emoji} {asp.et}
+          <span style={{
+            display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
+            fontSize: 13.5, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap',
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius:'50%',
+              background: asp.problema ? PN.RED : PN.GREEN,
+            }}/>
+            {asp.et}
           </span>
-          <span style={{flex: 1, minWidth: 200, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.4}}>
+          <span style={{flex: 1, minWidth: 200, fontSize: 13.5, color: PN.MUTED_SOFT, lineHeight: 1.4}}>
             {agg && <>{agg.n} segnalazioni negli ultimi 12 mesi · </>}
             {visibili.length} tra le ultime {elenco.length} recensioni qui sotto
           </span>
           <button onClick={() => setAspetto('')} style={{
             flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 5,
-            padding:'5px 11px', borderRadius: 999, border:'none',
-            background: PN.WHITE, color: PN.TEXT,
-            fontSize: 13, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
-          }}><Icon name="xmark" size={11}/> Togli il filtro</button>
+            padding:'4px 6px', border:'none', background:'transparent', boxShadow:'none',
+            color: PN.MUTED, fontSize: 13, fontWeight: 600, fontFamily:'inherit', cursor:'pointer',
+            transition:'color 140ms ease',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}
+          ><Icon name="xmark" size={11}/> Togli il filtro</button>
         </div>
       )}
 
@@ -423,38 +447,54 @@ function CliRecensioni({ elenco, totale, aspetti, aspetto, setAspetto }) {
           con cento, e i filtri restano sempre sott'occhio invece di finire
           due schermate più su. */}
       <div className="pn-scroll" style={{
-        maxHeight: 460, overflowY:'auto', paddingRight: 4,
-        display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12, alignContent:'start',
+        maxHeight: 470, overflowY:'auto', paddingRight: 4,
+        // `alignItems:'start'`: ogni scheda alta quanto quello che ha da dire.
+        // Con le schede tirate all'altezza della vicina, una recensione Google
+        // di due righe si portava dietro mezzo riquadro vuoto — e senza più il
+        // bordo a giustificarlo era solo una macchia grigia.
+        display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12,
+        alignContent:'start', alignItems:'start',
       }}>
         {visibili.map((r, i) => {
           const segn = segnalate[chiave(r)];
-          const basso = r.stelle <= 2;
           return (
+            /* Blocchi appoggiati, non scatole disegnate: dodici rettangoli col
+               bordo, ognuno con dentro un tondo colorato e una pastiglia
+               piena, facevano una griglia di cornici. Un fondo appena più
+               scuro del bianco separa quanto basta, e toglie ventiquattro
+               filetti dalla pagina. */
             <div key={i} style={{
-              border:`1px solid ${segn ? PN.AMBER_SOFT : PN.BORDER}`, borderRadius: 13, padding: 15,
-              // Le poche recensioni basse vanno trovate senza leggerle tutte:
-              // un fondo appena caldo basta, un bordo rosso sarebbe un allarme.
-              background: segn ? '#FFFCF3' : (basso ? '#FFFAFA' : PN.WHITE),
-              minWidth: 0, display:'flex', flexDirection:'column', gap: 10,
+              borderRadius: 14, padding: '15px 16px 13px',
+              background: segn ? '#FFFBF1' : PN.WHITE_HUSH,
+              minWidth: 0, display:'flex', flexDirection:'column', gap: 11,
             }}>
-              <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+              <div style={{display:'flex', alignItems:'flex-start', gap: 11, minWidth: 0}}>
+                {/* L'iniziale in un tondo neutro: i cinque colori a caso non
+                    dicevano niente di quella persona e facevano concorrenza
+                    alle stelle, che invece dicono tutto. */}
                 <span style={{
-                  width: 34, height: 34, borderRadius:'50%', flexShrink: 0,
-                  background: r.bg, color:'#fff',
+                  width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
+                  background: PN.WHITE_FROST, color: PN.MUTED,
                   display:'grid', placeItems:'center',
-                  fontSize: 14, fontWeight: 700,
+                  fontSize: 13, fontWeight: 700,
                 }}>{r.iniziale}</span>
                 <span style={{flex: 1, minWidth: 0}}>
-                  <span style={{display:'block', fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.autore}</span>
-                  <span style={{display:'flex', alignItems:'center', gap: 7, marginTop: 3}}>
+                  <span style={{
+                    display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10, minWidth: 0,
+                  }}>
+                    <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.autore}</span>
+                    <CliFonte fonte={r.fonte}/>
+                  </span>
+                  <span style={{display:'flex', alignItems:'center', gap: 7, marginTop: 4}}>
                     <CliStelle voto={r.stelle} lato={13}/>
                     <span style={{fontSize: 12.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap'}}>{r.quando}</span>
                   </span>
                 </span>
-                <CliFonte fonte={r.fonte}/>
               </div>
 
-              <div style={{flex: 1, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>«{r.testo}»</div>
+              {/* Le virgolette basse a ogni scheda erano ventiquattro segni per
+                  dire una cosa che il posto in cui sta il testo dice già. */}
+              <div style={{flex: 1, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.55}}>{r.testo}</div>
 
               {/* Le caselle che ha spuntato nell'app. In rosso quelle
                   negative: sono i problemi che ha segnalato lui, gli stessi
@@ -467,10 +507,12 @@ function CliRecensioni({ elenco, totale, aspetti, aspetto, setAspetto }) {
                     return (
                       <span key={a} style={{
                         display:'inline-flex', alignItems:'center', gap: 5,
-                        padding:'3px 9px', borderRadius: 999,
-                        background: asp2.problema ? PN.RED_SOFT : PN.WHITE_HUSH,
-                        color: asp2.problema ? '#991B1B' : PN.MUTED,
-                        boxShadow: acceso ? `0 0 0 1.5px ${asp2.problema ? PN.RED : PN.GREEN}` : 'none',
+                        padding:'3px 9px', borderRadius: 7,
+                        background: asp2.problema ? PN.RED_SOFT : PN.WHITE,
+                        color: asp2.problema ? '#9B2C2C' : PN.MUTED,
+                        boxShadow: acceso
+                          ? `0 0 0 1px ${asp2.problema ? PN.RED : PN.GREEN}`
+                          : (asp2.problema ? 'none' : `0 0 0 1px ${PN.BORDER_SOFT}`),
                         fontSize: 12.5, fontWeight: 600, whiteSpace:'nowrap',
                       }}>{asp2.emoji} {asp2.et}</span>
                     );
@@ -479,22 +521,24 @@ function CliRecensioni({ elenco, totale, aspetti, aspetto, setAspetto }) {
               )}
 
               <div style={{
-                marginTop:'auto', paddingTop: 9, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+                marginTop:'auto', paddingTop: 11, borderTop:`1px solid ${PN.BORDER_HAIR}`,
                 display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
               }}>
                 {/* La riga che solo byup può scrivere: la recensione nasce da
                     un ordine pagato qui, quindi si sa che quella persona c'è
                     stata e cosa ha mangiato. Su Google non c'è modo di
-                    saperlo, e infatti lì non c'è. */}
+                    saperlo, e infatti lì non c'è.
+                    Il segno di spunta era verde: un terzo colore per dire una
+                    cosa che dice già il nome del piatto in nero. */}
                 {r.fonte === 'byup' ? (
-                  <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13, color: PN.GREEN, minWidth: 0}}>
-                    <Icon name="status-success" size={13}/>
-                    <span style={{color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                  <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 12.5, color: PN.MUTED_SOFT, minWidth: 0}}>
+                    <Icon name="status-success" size={12}/>
+                    <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
                       Ordine verificato · <strong style={{color: PN.TEXT, fontWeight: 600}}>{r.piatto}</strong>
                     </span>
                   </span>
                 ) : (
-                  <span style={{fontSize: 13, color: PN.MUTED_SOFT}}>Nessun ordine collegato</span>
+                  <span style={{fontSize: 12.5, color: PN.MUTED_LIGHT}}>Nessun ordine collegato</span>
                 )}
 
                 {segn ? (
@@ -506,13 +550,13 @@ function CliRecensioni({ elenco, totale, aspetti, aspetto, setAspetto }) {
                      tutti i giorni: sta in ogni scheda perché deve essere lì
                      quando serve, ma spento — si accende al passaggio. */
                   <button onClick={() => setInSegnalazione(r)}
-                    onMouseEnter={e => { e.currentTarget.style.background = PN.RED_SOFT; e.currentTarget.style.color = PN.RED; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED_SOFT; }}
+                    onMouseEnter={e => { e.currentTarget.style.color = PN.RED; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED_LIGHT; }}
                     style={{
                       flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 5,
-                      padding:'4px 9px', borderRadius: 8, border:'none', background:'transparent',
-                      color: PN.MUTED_SOFT, fontSize: 12.5, fontWeight: 600,
-                      fontFamily:'inherit', cursor:'pointer', transition:'background 140ms ease, color 140ms ease',
+                      padding:'2px 4px', border:'none', background:'transparent', boxShadow:'none',
+                      color: PN.MUTED_LIGHT, fontSize: 12.5, fontWeight: 600,
+                      fontFamily:'inherit', cursor:'pointer', transition:'color 140ms ease',
                     }}><Icon name="status-warning" size={12}/> Segnala</button>
                 )}
               </div>
@@ -694,9 +738,15 @@ function StatClienti() {
             perché — le caselle che i clienti hanno spuntato nell'app. Sono la
             stessa cosa guardata a due distanze, e stavano in due card diverse
             solo perché sono nate in due momenti diversi. */}
-        <div style={{display:'grid', gridTemplateColumns:'minmax(300px, 0.82fr) 1.7fr', gap: 24, alignItems:'stretch'}}>
-          <CliVoto d={d}/>
-          <CliAndamento d={d} mesiEt={mesiEt}/>
+        {/* Un filo verticale al posto del riquadro: separa le due colonne
+            senza chiudere niente dentro una cornice. */}
+        <div style={{display:'grid', gridTemplateColumns:'minmax(280px, 0.78fr) 1.75fr', alignItems:'stretch'}}>
+          <div style={{paddingRight: 30, borderRight:`1px solid ${PN.BORDER_SOFT}`, minWidth: 0, display:'flex'}}>
+            <CliVoto d={d}/>
+          </div>
+          <div style={{paddingLeft: 30, minWidth: 0, display:'flex'}}>
+            <CliAndamento d={d} mesiEt={mesiEt}/>
+          </div>
         </div>
 
         {d.aspetti && <CliAspetti dati={d.aspetti} attivo={aspetto} onScegli={scegliAspetto}/>}
