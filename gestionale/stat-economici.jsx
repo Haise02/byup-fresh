@@ -720,6 +720,186 @@ function VenditeKpi({ tono, icona, glifo, label, valore, suffisso, sub, delta, t
   );
 }
 
+// ─── Podio dei piatti più ordinati ────────────────────────────────────────
+// Primo al centro e più alto, secondo e terzo ai lati: è la forma che si
+// riconosce senza leggere i numeri. Le medaglie non sono tre grigi diversi
+// ma oro, argento e bronzo, che è l'unico modo perché il secondo e il terzo
+// si distinguano a colpo d'occhio.
+const MEDAGLIE = ['#E8A317', '#9AA3AF', '#C2703B'];
+
+function PodioPiatti({ piatti, onVaiAlla }) {
+  // L'ordine a schermo non è quello della classifica: 2 · 1 · 3.
+  const ordine = [1, 0, 2].filter(i => piatti[i]);
+  return (
+    <StatCard title="Piatti più ordinati" sub="I più richiesti nel periodo"
+      style={{display:'flex', flexDirection:'column'}}>
+      <div style={{flex: 1, display:'flex', alignItems:'flex-end', justifyContent:'center', gap: 10}}>
+        {ordine.map(i => {
+          const p = piatti[i], primo = i === 0;
+          return (
+            <div key={p.nome} style={{
+              flex: primo ? 1.15 : 1, minWidth: 0, position:'relative',
+              display:'flex', flexDirection:'column', alignItems:'center',
+              padding: primo ? '30px 12px 16px' : '26px 10px 14px',
+              marginTop: primo ? 0 : 26,
+              borderRadius: 16,
+              background: primo ? '#FDF6EA' : (i === 1 ? PN.WHITE_HUSH : '#FBF3EC'),
+              border: `1px solid ${primo ? '#F3E3C6' : PN.BORDER_SOFT}`,
+            }}>
+              <span style={{
+                position:'absolute', top: primo ? -17 : -15, left:'50%', transform:'translateX(-50%)',
+                width: primo ? 34 : 30, height: primo ? 34 : 30, borderRadius:'50%',
+                background: MEDAGLIE[i], color:'#fff',
+                display:'grid', placeItems:'center',
+                fontSize: primo ? 16 : 14.5, fontWeight: 800,
+                border:'2.5px solid #fff', boxShadow:'0 2px 6px rgba(15,17,21,0.16)',
+              }}>{i + 1}</span>
+              <img src={p.foto} alt="" loading="lazy" style={{
+                width: primo ? 96 : 74, height: primo ? 96 : 74, borderRadius:'50%',
+                objectFit:'cover', background: PN.WHITE, marginBottom: 10,
+                boxShadow:'0 6px 16px rgba(15,17,21,0.12)',
+              }}/>
+              <div style={{
+                fontSize: primo ? 15 : 14, fontWeight: 700, color: PN.TEXT,
+                textAlign:'center', lineHeight: 1.25,
+              }}>{p.nome}</div>
+              <div style={{fontSize: 14, color: PN.MUTED, marginTop: 4, fontVariantNumeric:'tabular-nums'}}>
+                <strong style={{color: PN.TEXT}}>{p.n}</strong> venduti
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <EconVai label="Vedi tutti i piatti" onClick={onVaiAlla}/>
+    </StatCard>
+  );
+}
+
+// ─── Piatto col margine più alto ──────────────────────────────────────────
+function PiattoTopMargine({ piatti, onVaiAlla }) {
+  const eur2 = (n) => `€ ${n.toFixed(2).replace('.', ',')}`;
+  const ord = [...piatti].sort((a, b) => b.marginePct - a.marginePct);
+  const re = ord[0], seguito = ord.slice(1, 5);
+  return (
+    <StatCard title="Piatto con il margine più alto" sub="Basato sul food cost medio"
+      style={{display:'flex', flexDirection:'column'}}>
+      <div style={{flex: 1, display:'grid', gridTemplateColumns:'1.35fr 1fr', gap: 18, alignItems:'start'}}>
+        <div>
+          <div style={{display:'flex', alignItems:'center', gap: 16, minWidth: 0}}>
+            <div style={{position:'relative', flexShrink: 0}}>
+              <img src={re.foto} alt="" loading="lazy" style={{
+                width: 132, height: 108, borderRadius: 14, objectFit:'cover',
+                background: PN.WHITE_HUSH, display:'block',
+              }}/>
+              {/* La stellina dice "questo" senza bisogno della parola: in
+                  questo set la corona non c'è. */}
+              <span style={{
+                position:'absolute', top: -9, left: -9,
+                width: 34, height: 34, borderRadius: 11,
+                background: PN.AMBER, color:'#fff',
+                display:'grid', placeItems:'center',
+                border:'2.5px solid #fff', boxShadow:'0 2px 8px rgba(15,17,21,0.18)',
+              }}><Icon name="star" size={16}/></span>
+            </div>
+            <div style={{minWidth: 0}}>
+              <div style={{
+                fontSize: 38, fontWeight: 700, color: PN.TEXT,
+                letterSpacing: -1, lineHeight: 1, fontVariantNumeric:'tabular-nums',
+              }}>{re.marginePct}%</div>
+              <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3}}>Margine di {re.nome}</div>
+              <div style={{marginTop: 8}}><StatDelta value={re.deltaMargine}/></div>
+            </div>
+          </div>
+
+          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 8, marginTop: 14}}>
+            {[
+              { et:'Food cost medio', v: eur2(re.costo) },
+              { et:'Prezzo di vendita', v: eur2(re.ricavo) },
+              { et:'Margine per piatto', v: eur2(re.margine) },
+            ].map(b => (
+              <div key={b.et} style={{
+                padding:'9px 11px', borderRadius: 12, minWidth: 0,
+                background: PN.BG, border:`1px solid ${PN.BORDER}`,
+              }}>
+                <div style={{fontSize: 12, color: PN.MUTED_SOFT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{b.et}</div>
+                <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: 2, fontVariantNumeric:'tabular-nums'}}>{b.v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Dal secondo al quinto: senza, il primo non ha un metro di paragone. */}
+        <div style={{
+          borderRadius: 14, overflow:'hidden',
+          background: PN.BG, border:`1px solid ${PN.BORDER}`,
+        }}>
+          {seguito.map((p, i) => (
+            <div key={p.nome} style={{
+              display:'flex', alignItems:'center', gap: 10,
+              padding:'10px 12px', fontSize: 14.5,
+              borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+            }}>
+              <span style={{
+                width: 20, textAlign:'center', flexShrink: 0,
+                fontSize: 13, fontWeight: 700, color: PN.MUTED_SOFT,
+                fontVariantNumeric:'tabular-nums',
+              }}>{i + 2}</span>
+              <span style={{flex: 1, minWidth: 0, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.nome}</span>
+              <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{p.marginePct}%</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+      <EconVai label="Vedi tutti i margini" onClick={onVaiAlla}/>
+    </StatCard>
+  );
+}
+
+// ─── Distribuzione per categoria ──────────────────────────────────────────
+// Le quote si ricavano dai piatti della tabella qui sotto, non da un elenco
+// scritto a parte: due liste che dicono la stessa cosa divergono al primo
+// piatto aggiunto.
+const CAT_TINTE = { 'Primi': PN.PINK, 'Secondi': PN.GREEN, 'Antipasti': PN.BLUE, 'Dolci': PN.AMBER, 'Bevande': PN.PURPLE, 'Contorni': '#0EA5E9' };
+
+function DistribuzioneCategorie({ piatti, onVaiAlla }) {
+  const perCat = new Map();
+  piatti.forEach(p => perCat.set(p.cat, (perCat.get(p.cat) || 0) + p.n));
+  const tot = [...perCat.values()].reduce((s, n) => s + n, 0) || 1;
+  const voci = [...perCat.entries()].sort((a, b) => b[1] - a[1])
+    .map(([cat, n]) => ({ cat, n, quota: (n / tot) * 100, col: CAT_TINTE[cat] || PN.MUTED }));
+
+  const R = 70, Rin = 42, C = 78;
+  let cum = 0;
+  const archi = voci.map(v => {
+    const a0 = (cum / 100) * 2 * Math.PI - Math.PI/2; cum += v.quota;
+    const a1 = (cum / 100) * 2 * Math.PI - Math.PI/2;
+    const big = v.quota > 50 ? 1 : 0;
+    const p = (r, a) => `${C + r*Math.cos(a)},${C + r*Math.sin(a)}`;
+    return { ...v, d: `M ${p(R,a0)} A ${R} ${R} 0 ${big} 1 ${p(R,a1)} L ${p(Rin,a1)} A ${Rin} ${Rin} 0 ${big} 0 ${p(Rin,a0)} Z` };
+  });
+
+  return (
+    <StatCard title="Distribuzione vendite per categoria" sub="In base al numero di articoli venduti"
+      style={{display:'flex', flexDirection:'column'}}>
+      <div style={{flex: 1, display:'flex', alignItems:'center', gap: 18, minWidth: 0}}>
+        <svg viewBox="0 0 156 156" style={{width:'38%', minWidth: 124, maxWidth: 180, height:'auto', flexShrink: 0}}>
+          {archi.map((a, i) => <path key={i} d={a.d} fill={a.col} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"/>)}
+        </svg>
+        <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 12}}>
+          {voci.map(v => (
+            <div key={v.cat} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 14.5}}>
+              <span style={{width: 11, height: 11, borderRadius: 3, background: v.col, flexShrink: 0}}/>
+              <span style={{flex: 1, color: PN.TEXT, minWidth: 0}}>{v.cat}</span>
+              <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{Math.round(v.quota)}%</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+      <EconVai label="Vedi dettagli" onClick={onVaiAlla}/>
+    </StatCard>
+  );
+}
+
 // Le colonne della tabella piatti: una sola dichiarazione perché intestazione
 // e righe restino incolonnate.
 const PIATTI_COLS = 'minmax(190px, 2.1fr) 1fr 0.9fr 1.25fr 0.8fr 1.05fr 1.05fr 0.9fr';
@@ -739,6 +919,16 @@ function VenditePiatti({ v }) {
   const handleSort = (col) => {
     if (sortBy === col) setOrder(order === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setOrder('desc'); }
+  };
+
+  // "Vedi tutti…" non apre una pagina nuova: ordina la tabella qui sotto per
+  // la colonna di cui parla la card e ce la porta. È la stessa risposta, con
+  // tutte le righe invece delle prime tre.
+  const tabellaRef = React.useRef(null);
+  const vaiAllaTabella = (col) => {
+    setSortBy(col);
+    setOrder(col === 'cat' ? 'asc' : 'desc');
+    if (tabellaRef.current) tabellaRef.current.scrollIntoView({ behavior:'smooth', block:'start' });
   };
 
   // Ricavo medio per piatto: ricavi del periodo diviso gli articoli venduti.
@@ -763,6 +953,21 @@ function VenditePiatti({ v }) {
       {/* Stesso grafico dell'andamento ricavi vs costi: stesso componente,
           quindi anche il filo del mouse col riquadro del mese, che qui prima
           non c'era. Tre canali invece di due serie. */}
+      {/* Le tre card del riferimento. Quella dei margini è la più ricca — foto,
+          numerone, tre riquadri e la classifica di rincalzo — quindi si prende
+          la riga tutta per sé; le altre due, che hanno lo stesso peso, stanno
+          appaiate sopra. Tutti e tre i pulsanti portano alla tabella qui
+          sotto, già ordinata per la colonna di cui parla la card: è l'unico
+          posto dove "vedi tutti" ha davvero qualcosa da mostrare. */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
+        <PodioPiatti piatti={[...v.piatti].sort((a, b) => b.n - a.n).slice(0, 3)}
+          onVaiAlla={() => vaiAllaTabella('n')}/>
+        <DistribuzioneCategorie piatti={v.piatti}
+          onVaiAlla={() => vaiAllaTabella('cat')}/>
+      </div>
+
+      <PiattoTopMargine piatti={v.piatti} onVaiAlla={() => vaiAllaTabella('marginePct')}/>
+
       <StatCard title="Trend scontrino medio" sub="Visualizzato per canale negli ultimi 12 mesi">
         <StatAndamento
           serie={[
@@ -774,6 +979,7 @@ function VenditePiatti({ v }) {
           fmt={(n) => `€ ${Math.round(n).toLocaleString('it-IT', {useGrouping: true})}`}/>
       </StatCard>
 
+      <div ref={tabellaRef} style={{scrollMarginTop: 96}}/>
       <StatCard title="Performance piatti" sub="Ordina per qualsiasi colonna · margine, ricavo, n° venduti" action={
         <div style={{
           display:'flex', alignItems:'center', gap: 8,
