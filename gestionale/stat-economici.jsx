@@ -635,6 +635,10 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 // stessa card.
 const VENDITE_TONI = {
   verde:  { forte: PN.GREEN,  tenue: PN.GREEN_SOFT },
+  // Giallo scritto a mano: PN ha solo AMBER (#D97706), che a schermo vira
+  // all'arancio. Questo è un giallo pieno che resta leggibile sul bianco
+  // anche a 2px di linea.
+  giallo: { forte: '#CA8A04', tenue: '#FEF3C7' },
   viola:  { forte: PN.PURPLE, tenue: PN.PURPLE_SOFT },
   blu:    { forte: PN.BLUE,   tenue: PN.BLUE_SOFT },
   ambra:  { forte: PN.AMBER,  tenue: PN.AMBER_SOFT },
@@ -718,16 +722,16 @@ function VenditePiatti({ v }) {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
-        <VenditeKpi tono="verde" icona="commerce-receipt" label="Articoli per ordine"
+        <VenditeKpi tono="blu" icona="commerce-bag" label="Articoli venduti"
+          valore={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})}
+          delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub} trend={v.kpi.venduti.trend}/>
+        <VenditeKpi tono="giallo" icona="commerce-receipt" label="Articoli per ordine"
           valore={v.kpi.articoli.val.toString().replace('.', ',')}
           delta={v.kpi.articoli.delta} sub={v.kpi.articoli.sub} trend={v.kpi.articoli.trend}/>
         <VenditeKpi tono="viola" glifo="%" label="Margine medio"
           valore={v.kpi.margine.val} suffisso="%"
           delta={v.kpi.margine.delta} sub={v.kpi.margine.sub} trend={v.kpi.margine.trend}/>
-        <VenditeKpi tono="blu" icona="commerce-bag" label="Articoli venduti"
-          valore={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})}
-          delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub} trend={v.kpi.venduti.trend}/>
-        <VenditeKpi tono="ambra" glifo="€" label="Ricavo per piatto"
+        <VenditeKpi tono="verde" glifo="€" label="Ricavo per piatto"
           valore={`€ ${ricavoPerPiatto.toFixed(2).replace('.', ',')}`}
           delta={v.kpi.ricavoPiatto.delta} sub={v.kpi.ricavoPiatto.sub} trend={v.kpi.ricavoPiatto.trend}/>
       </div>
