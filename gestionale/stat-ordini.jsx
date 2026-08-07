@@ -25,8 +25,9 @@ function StatOrdini() {
       {/* Lo scontrino medio è passato in Economici → Vendite piatti, fra gli
           altri KPI di valore. Qui resta il suo andamento per canale, che è
           un'altra domanda: non "quanto vale un ordine" ma "da dove arriva". */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr', gap: 12}}>
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
         <StatKpi label="Ordini completati" value={d.kpi.completati.val.toLocaleString('it-IT', {useGrouping: true})} delta={d.kpi.completati.delta} sub="Totale ordini completati nel periodo selezionato"/>
+        <StatKpi label="Articoli per ordine" value={d.kpi.articoli.val.toString().replace('.', ',')} delta={d.kpi.articoli.delta} sub={d.kpi.articoli.sub}/>
       </div>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>

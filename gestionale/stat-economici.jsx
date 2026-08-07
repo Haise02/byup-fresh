@@ -748,13 +748,10 @@ function VenditePiatti({ v }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
         <VenditeKpi tono="blu" icona="commerce-bag" label="Articoli venduti"
           valore={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub} trend={v.kpi.venduti.trend}/>
-        <VenditeKpi tono="giallo" icona="commerce-receipt" label="Articoli per ordine"
-          valore={v.kpi.articoli.val.toString().replace('.', ',')}
-          delta={v.kpi.articoli.delta} sub={v.kpi.articoli.sub} trend={v.kpi.articoli.trend}/>
         <VenditeKpi tono="rosa" glifo="€" label="Scontrino medio"
           valore={`€ ${v.kpi.scontrino.val.toFixed(2).replace('.', ',')}`}
           delta={v.kpi.scontrino.delta} sub={v.kpi.scontrino.sub} trend={v.kpi.scontrino.trend}/>
