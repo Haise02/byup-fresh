@@ -12,23 +12,36 @@ const STAFF_MANCE_DELTA = 14.1;
 
 const euro = (v, dec = 2) => `€ ${v.toFixed(dec).replace('.', ',')}`;
 
-// ─── Barra di una metrica, col segno della media ───────────────
-// Il trattino verticale è la media del team: dentro un pannello cade nello
-// stesso punto su tutte le righe, quindi chi la supera e chi no si legge senza
-// contare, e senza scrivere «+21%» accanto a ogni nome.
-function StaffBarra({ valore, scala, media, colore }) {
+// ─── Il valore di una riga: filo e pallino ─────────────────────
+// Era una barra piena dentro una traccia grigia: otto righe così fanno un
+// muro. Qui resta un filo sottile fino al punto, e il punto è il valore —
+// stessa informazione con un quinto dell'inchiostro, e la classifica si legge
+// dalla scaletta dei pallini invece che dai bordi delle barre.
+// Il segno della media non è un trattino per riga: ogni riga ne disegna un
+// pezzo che sborda sopra e sotto quanto basta a saldarsi col pezzo vicino,
+// così sul pannello corre una riga verticale sola, continua.
+function StaffFilo({ valore, scala, media, colore, primo, ultimo }) {
+  const pos = Math.min(100, (valore / scala) * 100);
+  const posMedia = Math.min(100, (media / scala) * 100);
   return (
-    <span style={{position:'relative', display:'block', height: 8, borderRadius: 999, background: PN.WHITE_FROST, minWidth: 24}}>
+    <span style={{position:'relative', display:'block', height: 20, minWidth: 40}}>
       <span style={{
-        display:'block', height:'100%',
-        width: `${Math.min(100, (valore / scala) * 100)}%`,
-        background: colore, borderRadius: 999,
+        position:'absolute', top: primo ? 0 : -7, bottom: ultimo ? 0 : -7,
+        left: `${posMedia}%`, width: 1.5, marginLeft: -0.75,
+        background:'rgba(15,17,21,0.28)',
+      }}/>
+      <span style={{
+        position:'absolute', top:'50%', left: 0, height: 3, marginTop: -1.5,
+        width: `${pos}%`, borderRadius: 999,
+        background: colore, opacity: 0.32,
         transition:'width 400ms ease-out',
       }}/>
       <span style={{
-        position:'absolute', top: -1, bottom: -1, left: `${Math.min(100, (media / scala) * 100)}%`,
-        width: 2, marginLeft: -1, borderRadius: 1,
-        background:'rgba(15,17,21,0.42)',
+        position:'absolute', top:'50%', left: `${pos}%`,
+        width: 9, height: 9, marginTop: -4.5, marginLeft: -4.5,
+        borderRadius:'50%', background: colore,
+        boxShadow:'0 0 0 2.5px rgba(255,255,255,0.95)',
+        transition:'left 400ms ease-out',
       }}/>
     </span>
   );
@@ -57,7 +70,7 @@ const STAFF_METRICHE = [
     valore: s => s.tip / s.tavoli,
     // Nella colonna ci stanno due numeri e basta: per esteso lo dice il
     // suggerimento, che è dove uno va a guardare se «su 95» non gli torna.
-    micro: s => `€ ${s.tip} su ${s.tavoli}`,
+    micro: s => `€ ${s.tip} · ${s.tavoli} tavoli`,
     microEsteso: s => `€ ${s.tip} di mance su ${s.tavoli} tavoli serviti`,
   },
 ];
@@ -67,52 +80,70 @@ function StaffPannello({ metrica, media }) {
     .map(s => ({ ...s, v: metrica.valore(s) }))
     .sort((a, b) => b.v - a.v);
   const scala = righe[0].v || 1;
-  // Avatar, nome, numero grezzo, barra, valore. Griglia e non flex: le cinque
-  // colonne devono incolonnarsi da una riga all'altra.
+  // Posizione, avatar, nome col suo numero sotto, il filo, il valore. Griglia
+  // e non flex: le colonne devono incolonnarsi da una riga all'altra.
   const griglia = {
     display:'grid',
-    gridTemplateColumns:'22px minmax(0, 1fr) 74px minmax(56px, 1.05fr) 56px',
-    alignItems:'center', gap: 8,
+    gridTemplateColumns:'14px 28px minmax(0, 1fr) minmax(56px, 0.95fr) 62px',
+    alignItems:'center', gap: 10,
   };
 
   return (
     <div style={{
-      background: PN.BG, border:`1px solid ${PN.BORDER}`,
-      borderRadius: 12, padding: 14, minWidth: 0,
+      background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
+      borderRadius: 14, padding:'16px 18px 18px', minWidth: 0,
+      boxShadow: PN.CARD_SHADOW,
     }}>
       {/* Il trattino sta accanto al numero che rappresenta, non in cima alla
           card: così la legenda è il valore stesso, e non c'è da collegare due
-          cose lontane. */}
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, marginBottom: 12}}>
-        <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{metrica.et}</span>
+          cose lontane. La riga sotto stacca l'intestazione dall'elenco. */}
+      <div style={{
+        display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10,
+        paddingBottom: 11, marginBottom: 13, borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+      }}>
+        <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.1}}>{metrica.et}</span>
         <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13, color: PN.MUTED, fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap'}}>
-          <span style={{width: 2, height: 11, background:'rgba(15,17,21,0.42)', borderRadius: 1}}/>
+          <span style={{width: 1.5, height: 11, background:'rgba(15,17,21,0.28)'}}/>
           media {euro(media)}
         </span>
       </div>
 
-      <div style={{display:'flex', flexDirection:'column', gap: 10}}>
+      <div style={{display:'flex', flexDirection:'column', gap: 14}}>
         {righe.map((s, i) => (
           <div key={s.nome} style={griglia}>
+            {/* Il posto in classifica: i primi tre un filo più scuri, il resto
+                appena accennato. Serve a dare la scaletta, non a gridare. */}
             <span style={{
-              width: 22, height: 22, borderRadius:'50%',
+              fontSize: 12.5, fontWeight: 700, textAlign:'right',
+              color: i < 3 ? PN.MUTED : PN.MUTED_LIGHT,
+              fontVariantNumeric:'tabular-nums',
+            }}>{i + 1}</span>
+            <span style={{
+              width: 28, height: 28, borderRadius:'50%',
               background: s.avatarBg, color:'#fff',
               display:'grid', placeItems:'center',
-              fontSize: 10, fontWeight: 700,
+              fontSize: 11, fontWeight: 700,
             }}>{s.avatar}</span>
-            <span title={`${s.nome} · ${s.ruolo}`} style={{
-              minWidth: 0, fontSize: 14, color: PN.TEXT,
-              fontWeight: i === 0 ? 600 : 400,
-              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            }}>{s.nome}</span>
-            <span title={metrica.microEsteso(s)} style={{
-              fontSize: 13, color: PN.MUTED_SOFT, textAlign:'right',
-              fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
-            }}>{metrica.micro(s)}</span>
-            <StaffBarra valore={s.v} scala={scala} media={media} colore={metrica.colore}/>
+            <span title={`${s.nome} · ${s.ruolo}`} style={{minWidth: 0}}>
+              <span style={{
+                display:'block', fontSize: 14.5, color: PN.TEXT,
+                fontWeight: i === 0 ? 600 : 500, lineHeight: 1.25,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+              }}>{s.nome}</span>
+              {/* Sotto il nome solo il numero grezzo da cui esce il valore. Il
+                  ruolo stava qui e mangiava la riga — «Cameriera · 274 ord…» —
+                  quindi è passato nel suggerimento del nome. */}
+              <span style={{
+                display:'block', fontSize: 12.5, color: PN.MUTED_SOFT,
+                fontVariantNumeric:'tabular-nums',
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+              }}>{metrica.micro(s)}</span>
+            </span>
+            <StaffFilo valore={s.v} scala={scala} media={media} colore={metrica.colore}
+              primo={i === 0} ultimo={i === righe.length - 1}/>
             <strong style={{
-              textAlign:'right', fontSize: 14.5, fontWeight: 700, color: PN.TEXT,
-              fontVariantNumeric:'tabular-nums',
+              textAlign:'right', fontSize: 15, fontWeight: 700, color: PN.TEXT,
+              fontVariantNumeric:'tabular-nums', letterSpacing: -0.2,
             }}>{euro(s.v)}</strong>
           </div>
         ))}
