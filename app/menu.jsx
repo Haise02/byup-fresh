@@ -1822,19 +1822,24 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
       </div>
 
       {!expanded ? (
-        <div style={{ padding: '4px 22px 22px' }}>
+        // Il carrello si apre toccando TUTTA la fascia, non solo la lineetta:
+        // 50×5px sono un bersaglio da mouse, non da pollice, e chi vede la
+        // riga "2 piatti selezionati" tocca quella. I due bottoni qui dentro
+        // fermano la propagazione, altrimenti inviare l'ordine aprirebbe pure
+        // il carrello.
+        <div onClick={() => setMode('expanded')} style={{ padding: '4px 22px 22px', cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: TEXT }}>
               {cartCount === 0 ? 'Nessun piatto selezionato' : `${cartCount} ${cartCount === 1 ? 'piatto selezionato' : 'piatti selezionati'}`}
             </div>
             {cartCount > 0 && (
-              <button onClick={clearCart} style={{
+              <button onClick={(e) => { e.stopPropagation(); clearCart(); }} style={{
                 width: 36, height: 36, borderRadius: 10, background: BG_GRAY,
                 border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
               }}><I.Trash size={18} color={TEXT}/></button>
             )}
           </div>
-          <button onClick={onSubmit} disabled={cartCount === 0} style={{
+          <button onClick={(e) => { e.stopPropagation(); onSubmit(); }} disabled={cartCount === 0} style={{
             width: '100%', height: 52, borderRadius: 999, border: 'none',
             background: cartCount === 0 ? CTA_DEAD : CTA_GRAD, color: '#fff',
             fontSize: 15, fontWeight: 800, fontFamily: 'inherit', letterSpacing: '.01em',

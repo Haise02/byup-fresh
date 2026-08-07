@@ -29068,9 +29068,18 @@ function OrderSheet({
       borderRadius: 999,
       opacity: 0.7
     }
-  })), !expanded ? /*#__PURE__*/React.createElement("div", {
+  })), !expanded ?
+  /*#__PURE__*/
+  // Il carrello si apre toccando TUTTA la fascia, non solo la lineetta:
+  // 50×5px sono un bersaglio da mouse, non da pollice, e chi vede la
+  // riga "2 piatti selezionati" tocca quella. I due bottoni qui dentro
+  // fermano la propagazione, altrimenti inviare l'ordine aprirebbe pure
+  // il carrello.
+  React.createElement("div", {
+    onClick: () => setMode('expanded'),
     style: {
-      padding: '4px 22px 22px'
+      padding: '4px 22px 22px',
+      cursor: 'pointer'
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -29086,7 +29095,10 @@ function OrderSheet({
       color: TEXT
     }
   }, cartCount === 0 ? 'Nessun piatto selezionato' : `${cartCount} ${cartCount === 1 ? 'piatto selezionato' : 'piatti selezionati'}`), cartCount > 0 && /*#__PURE__*/React.createElement("button", {
-    onClick: clearCart,
+    onClick: e => {
+      e.stopPropagation();
+      clearCart();
+    },
     style: {
       width: 36,
       height: 36,
@@ -29102,7 +29114,10 @@ function OrderSheet({
     size: 18,
     color: TEXT
   }))), /*#__PURE__*/React.createElement("button", {
-    onClick: onSubmit,
+    onClick: e => {
+      e.stopPropagation();
+      onSubmit();
+    },
     disabled: cartCount === 0,
     style: {
       width: '100%',
