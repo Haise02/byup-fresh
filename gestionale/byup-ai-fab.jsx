@@ -103,10 +103,33 @@ const zoomDi = (frame) => {
   return dichiarata > 0 && vera > 0 ? vera / dichiarata : 1;
 };
 
+// Agganciato a un bordo il bollino si ritira quasi tutto fuori dal frame —
+// che ha overflow hidden e fa da forbice — e resta uno spicchio: abbastanza
+// per ricordarti che c'è, poco per darti fastidio mentre lavori. Torna dentro
+// da solo appena ci passi sopra.
+const BORDO = 46;      // quanto vicino a un bordo per considerarlo agganciato
+const SPORGE = 0.58;   // quanta parte del bollino esce dal frame da agganciato
+
+const latoVicino = (x, y, fw, fh) => {
+  const d = [
+    ['sinistra', x], ['destra', fw - (x + FAB)],
+    ['alto', y], ['basso', fh - (y + FAB)],
+  ].sort((a, b) => a[1] - b[1])[0];
+  return d[1] <= BORDO ? d[0] : null;
+};
+
+// Di quanto si sposta fuori, e da che parte.
+const scostamento = (lato) => ({
+  sinistra: `translateX(-${SPORGE * 100}%)`,
+  destra:   `translateX(${SPORGE * 100}%)`,
+  alto:     `translateY(-${SPORGE * 100}%)`,
+  basso:    `translateY(${SPORGE * 100}%)`,
+}[lato] || '');
+
 const leggiPos = () => {
   try {
     const p = JSON.parse(localStorage.getItem(POS_KEY));
-    return p && isFinite(p.x) && isFinite(p.y) ? p : null;
+    return p && isFinite(p.x) && isFinite(p.y) ? p : null;   // `lato` può mancare: è opzionale
   } catch (e) { return null; }
 };
 
@@ -125,46 +148,61 @@ function BuAiFab() {
   const mossoRef = React.useRef(false);
 
   // Dove sta il bollino e quanto è grande il frame: serve al pannello per
-  // capire da che lato aprirsi. Si rimisura anche al resize, che il frame
-  // cambia larghezza da solo.
-  const misura = React.useCallback(() => {
+  // capire da che lato aprirsi. È una misura a richiesta, non uno stato che
+  // si aggiorna da solo: tenerla in un effetto di layout che scriveva `box` a
+  // ogni commit faceva ripartire il render, il render rimisurava, e col
+  // bollino agganciato il giro non si chiudeva più.
+  const misuraOra = React.useCallback(() => {
     const wrap = wrapRef.current;
     const frame = wrap && wrap.closest('.frame');
-    if (!frame) return;
+    if (!frame) return null;
     const z = zoomDi(frame);
     const fr = frame.getBoundingClientRect();
     // Il rettangolo del CONTENITORE, non del bottone: in hover il bottone ha
     // uno scale, e un transform sposta il rettangolo senza spostare il layout.
     const r = wrap.getBoundingClientRect();
-    setBox({
+    return {
       x: (r.left - fr.left) / z, y: (r.top - fr.top) / z,
       fw: fr.width / z, fh: fr.height / z,
-    });
+    };
   }, []);
 
-  React.useLayoutEffect(() => { misura(); }, [misura, pos, aperto]);
   React.useEffect(() => {
     const onResize = () => {
-      misura();
+      // Il pannello, se è aperto, va riposizionato: il bollino si è mosso.
+      setBox(b => (b ? misuraOra() : b));
       // Se la finestra si stringe, il bollino spostato a mano potrebbe
       // finire fuori: lo si riporta dentro invece di perderlo.
       setPos(p => {
         const wrap = wrapRef.current, frame = wrap && wrap.closest('.frame');
         if (!p || !frame) return p;
         const z = zoomDi(frame), fr = frame.getBoundingClientRect();
-        return {
-          x: fra(p.x, MARG, fr.width / z - FAB - MARG),
-          y: fra(p.y, MARG, fr.height / z - FAB - MARG),
+        const fw = fr.width / z, fh = fr.height / z;
+        // Agganciato resta agganciato: si riallinea al suo bordo, che con la
+        // finestra più stretta si è spostato.
+        const q = {
+          x: p.lato === 'sinistra' ? 0 : p.lato === 'destra' ? fw - FAB : fra(p.x, MARG, fw - FAB - MARG),
+          y: p.lato === 'alto' ? 0 : p.lato === 'basso' ? fh - FAB : fra(p.y, MARG, fh - FAB - MARG),
+          lato: p.lato || null,
         };
+        return (q.x === p.x && q.y === p.y && q.lato === (p.lato || null)) ? p : q;
       });
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [misura]);
+  }, [misuraOra]);
+
+  // Agganciato e nessuno lo sta guardando: è il solo momento in cui si
+  // ritira. Col pannello aperto, sotto il dito o col mouse sopra torna
+  // sempre tutto dentro.
+  const ritirato = !!(pos && pos.lato) && !hover && !trascino && !aperto;
 
   const apri = () => {
     setHover(false);   // col pannello aperto il bollino torna a misura
-    if (aperto) return setAperto(false);
+    if (aperto) { setAperto(false); setBox(null); return; }
+    // Si misura qui, una volta: da dove si apre il pannello dipende da dov'è
+    // il bollino adesso.
+    setBox(misuraOra());
     // Prima le scintille, poi il pannello: aprendoli insieme la finestra
     // coprirebbe metà del volo e il clic sembrerebbe non aver fatto niente.
     setScintille(n => n + 1);
@@ -183,7 +221,11 @@ function BuAiFab() {
     const z = zoomDi(frame);
     const fr = frame.getBoundingClientRect();
     const r = wrap.getBoundingClientRect();
-    const offX = (e.clientX - r.left) / z, offY = (e.clientY - r.top) / z;
+    // Da agganciato il bollino è mezzo fuori: prenderlo dal punto esatto lo
+    // farebbe saltare via del suo scostamento. Si centra sotto il dito.
+    const agganciato = pos && pos.lato;
+    const offX = agganciato ? FAB / 2 : (e.clientX - r.left) / z;
+    const offY = agganciato ? FAB / 2 : (e.clientY - r.top) / z;
     const fw = fr.width / z, fh = fr.height / z;
     const px = e.clientX, py = e.clientY;
     mossoRef.current = false;
@@ -193,9 +235,12 @@ function BuAiFab() {
     const muovi = (ev) => {
       if (Math.abs(ev.clientX - px) > 4 || Math.abs(ev.clientY - py) > 4) mossoRef.current = true;
       if (!mossoRef.current) return;
+      // Durante il trascinamento il margine è più stretto: serve poter
+      // arrivare fino al bordo, che è proprio dove ci si aggancia.
       setPos({
-        x: fra((ev.clientX - fr.left) / z - offX, MARG, fw - FAB - MARG),
-        y: fra((ev.clientY - fr.top) / z - offY, MARG, fh - FAB - MARG),
+        x: fra((ev.clientX - fr.left) / z - offX, 0, fw - FAB),
+        y: fra((ev.clientY - fr.top) / z - offY, 0, fh - FAB),
+        lato: null,
       });
     };
     const molla = () => {
@@ -210,9 +255,21 @@ function BuAiFab() {
       // arriva lo stesso (il bollino è rimasto sotto il dito) e va ignorato:
       // ci pensa la bandiera `mosso`.
       if (mossoRef.current) {
-        // Il posto scelto vale su tutte le schermate: spostarlo una volta
-        // per pagina sarebbe una tortura.
-        setPos(p => { try { localStorage.setItem(POS_KEY, JSON.stringify(p)); } catch (e) {} return p; });
+        setPos(p => {
+          if (!p) return p;
+          // Lasciato vicino a un bordo si aggancia e ci si allinea: mezzo
+          // agganciato, con due pixel di scarto, si leggerebbe come un errore.
+          const lato = latoVicino(p.x, p.y, fw, fh);
+          const q = {
+            x: lato === 'sinistra' ? 0 : lato === 'destra' ? fw - FAB : fra(p.x, MARG, fw - FAB - MARG),
+            y: lato === 'alto' ? 0 : lato === 'basso' ? fh - FAB : fra(p.y, MARG, fh - FAB - MARG),
+            lato,
+          };
+          // Il posto scelto vale su tutte le schermate: spostarlo una volta
+          // per pagina sarebbe una tortura.
+          try { localStorage.setItem(POS_KEY, JSON.stringify(q)); } catch (e) {}
+          return q;
+        });
       }
     };
     window.addEventListener('pointermove', muovi);
@@ -222,12 +279,20 @@ function BuAiFab() {
 
   return (
     <>
-      {aperto && <BuAiChat box={box} onClose={() => setAperto(false)}/>}
+      {aperto && <BuAiChat box={box} onClose={() => { setAperto(false); setBox(null); }}/>}
 
       {/* Sopra il pannello, non sotto: le scintille devono passargli davanti. */}
       <div ref={wrapRef} style={{
         position:'absolute', zIndex: 72,
         ...(pos ? {left: pos.x, top: pos.y} : {right: 26, bottom: 26}),
+      }}>
+      <div style={{
+        // Lo scostamento sta QUI e non sul contenitore misurato: il
+        // trascinamento legge il rettangolo del wrapper, e un transform su
+        // quello gli farebbe calcolare la presa nel posto sbagliato.
+        transform: ritirato ? scostamento(pos.lato) : 'translate(0, 0)',
+        opacity: ritirato ? 0.62 : 1,
+        transition:'transform 260ms cubic-bezier(0.34, 1.3, 0.64, 1), opacity 220ms ease',
       }}>
         {/* Le scintille stanno FUORI dal bottone: dentro, lo scale dell'hover
             se le porterebbe dietro e il volo si accorcerebbe. */}
@@ -251,8 +316,10 @@ function BuAiFab() {
           </div>
         )}
 
-        {/* L'alone che respira. Sparisce in hover: lì il colore ce l'ha già. */}
-        {!aperto && !hover && (
+        {/* L'alone che respira. Sparisce in hover — lì il colore ce l'ha già —
+            e da agganciato, dove un pulsare al bordo sarebbe esattamente il
+            disturbo che l'aggancio serve a togliere. */}
+        {!aperto && !hover && !ritirato && (
           <span style={{
             position:'absolute', inset: 0, borderRadius:'50%',
             background: AI_GRAD, opacity: 0.5,
@@ -269,7 +336,7 @@ function BuAiFab() {
           }}
           onMouseEnter={() => !aperto && !trascino && setHover(true)}
           onMouseLeave={() => setHover(false)}
-          title="Chiedi all'assistente byup — trascinalo dove preferisci"
+          title="Chiedi all'assistente byup — trascinalo dove preferisci, al bordo si scosta"
           aria-label="Apri l'assistente byup"
           data-no-fx
           style={{
@@ -287,7 +354,10 @@ function BuAiFab() {
             // Metà in più, come chiesto: 72 → 108. Mentre lo trascini resta a
             // misura e si stacca appena dal foglio: ingrandito, il puntatore
             // finirebbe fuori centro e il bollino sembrerebbe sfuggire.
-            transform: trascino ? 'scale(1.08)' : hover ? 'scale(1.5)' : 'scale(1)',
+            // Agganciato, l'hover non gonfia: fa rientrare. Un bollino a metà
+            // fuori che si fa una volta e mezzo uscirebbe ancora di più.
+            transform: trascino ? 'scale(1.08)'
+              : (hover && !(pos && pos.lato)) ? 'scale(1.5)' : 'scale(1)',
             // Niente transizione sul transform durante il trascinamento:
             // il bollino arriverebbe al puntatore con un quarto di secondo
             // di ritardo, come se fosse attaccato con un elastico.
@@ -313,6 +383,7 @@ function BuAiFab() {
             }}/>
           </span>
         </button>
+      </div>
       </div>
     </>
   );
