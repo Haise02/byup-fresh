@@ -28,7 +28,12 @@ function StatDelta({ value, size = 'sm' }) {
 // La linea non si ingrassa perché lo stroke è dichiarato non-scaling; `padY`
 // tiene il minimo e il massimo staccati dai bordi, così la linea non striscia
 // sul filo quando il grafico va a filo della card.
-function StatSpark({ data, color = PN.PINK, height = 28, width = 90, stretch = false, padY = 0, stroke = 1.5 }) {
+// `dot`: un pallino sull'ultima rilevazione, con l'anello bianco che lo stacca
+// dalla linea. Serve dove la linea è l'unico grafico della riga: senza, non si
+// capisce da che parte si legge né dove finisce «adesso». L'SVG passa a
+// overflow visibile perché il pallino sta sul bordo destro del viewBox e a filo
+// verrebbe tagliato a metà.
+function StatSpark({ data, color = PN.PINK, height = 28, width = 90, stretch = false, padY = 0, stroke = 1.5, dot = false }) {
   if (!data || data.length < 2) return null;
   const min = Math.min(...data), max = Math.max(...data);
   const range = max - min || 1;
@@ -46,7 +51,9 @@ function StatSpark({ data, color = PN.PINK, height = 28, width = 90, stretch = f
       width={stretch ? undefined : width} height={stretch ? undefined : height}
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio={stretch ? 'none' : undefined}
-      style={stretch ? {display:'block', width:'100%', height:'100%'} : {display:'block'}}>
+      style={stretch
+        ? {display:'block', width:'100%', height:'100%'}
+        : {display:'block', overflow: dot ? 'visible' : undefined}}>
       <defs>
         <linearGradient id={`sg-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.18"/>
@@ -57,6 +64,12 @@ function StatSpark({ data, color = PN.PINK, height = 28, width = 90, stretch = f
       <polyline points={pts} fill="none" stroke={color} strokeWidth={stroke}
         strokeLinecap="round" strokeLinejoin="round"
         vectorEffect={stretch ? 'non-scaling-stroke' : undefined}/>
+      {dot && !stretch && (
+        <circle
+          cx={width}
+          cy={(height - padY) - ((data[data.length - 1] - min) / range) * utile}
+          r={stroke + 1.4} fill={color} stroke={PN.WHITE} strokeWidth={1.6}/>
+      )}
     </svg>
   );
 }
