@@ -54,6 +54,64 @@ const convTono = (conv) => conv >= 60
 const FUN_RAIL = 26;   // colonna del pallino e del filo che unisce i passaggi
 const FUN_BARRA = 12;  // spessore della barra
 
+// ─── Il tasso, in testa alla card ──────────────────────────────
+// Era una riga di sottotitolo grigia: la risposta alla domanda che porta un
+// ristoratore qui dentro, scritta come una didascalia. Ora è una misura, con
+// la materia delle KPI tinte del gestionale, e sta nell'angolo in alto a
+// destra della card — il posto dove si guarda per ultimo e ci si torna sempre.
+// Non rimette in piedi la riga di KPI che era stata tolta: quella ripeteva il
+// primo e l'ultimo passaggio, questo è l'unico numero della card che nessuna
+// barra dice, perché le barre contano teste e questo è un rapporto.
+//
+// Il confronto è in PUNTI: il periodo prima si ricava dal valore di ogni
+// passaggio e dalla sua variazione — 2.900/1,096 pagamenti su 10.000/1,142
+// visite — e fra due percentuali la differenza si dice così. Volumi su del
+// 14% e tasso giù di un punto è esattamente la storia che questo numero deve
+// poter raccontare.
+function ConvTasso({ passi }) {
+  const primo = passi[0];
+  const meta = passi.find(s => s.meta) || passi[passi.length - 1];
+  const tasso = (meta.val / primo.val) * 100;
+  const prima = (s) => (s.delta == null ? null : s.val / (1 + s.delta / 100));
+  const tassoPrima = (prima(primo) && prima(meta)) ? (prima(meta) / prima(primo)) * 100 : null;
+  const punti = tassoPrima == null ? null : tasso - tassoPrima;
+
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap: 13, flexShrink: 0,
+      padding:'12px 18px 12px 14px', borderRadius: 16,
+      background:'linear-gradient(115deg, #FFE6E5 0%, #FFF6F5 52%, #FFFFFF 100%)',
+      border:'1px solid #FBD3D1',
+    }}>
+      <span style={{
+        width: 42, height: 42, borderRadius:'50%', flexShrink: 0,
+        background: PN.WHITE, color: PN.PINK,
+        display:'grid', placeItems:'center',
+        fontSize: 20, fontWeight: 700, lineHeight: 1,
+        boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
+      }}>%</span>
+      <div style={{minWidth: 0}}>
+        <div style={{
+          fontSize: 11.5, fontWeight: 700, color: PN.WINE,
+          textTransform:'uppercase', letterSpacing: 0.6,
+        }}>Tasso di conversione</div>
+        <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 2}}>
+          <span style={{
+            fontSize: 29, fontWeight: 800, color: PN.TEXT,
+            letterSpacing:-1, lineHeight: 1.05, fontVariantNumeric:'tabular-nums',
+          }}>{Math.round(tasso)}%</span>
+          {/* Qui il rosso ci sta: un tasso di conversione che scende è una
+              cattiva notizia, al contrario dei rimborsi qui sotto. */}
+          <StatDelta value={punti == null ? null : Number(punti.toFixed(1))} unit=" pt"/>
+        </div>
+        <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap'}}>
+          di chi apre la pagina del locale arriva a pagare
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ConvFunnel({ passi, rimborsi }) {
   const n = passi.length;
   const massimo = Math.max(...passi.map(s => s.val)) || 1;
@@ -170,26 +228,61 @@ function ConvFunnel({ passi, rimborsi }) {
           strada, è denaro tornato indietro dopo un pagamento riuscito — quindi
           stanno sotto la riga, con la loro quota sul passaggio del pagamento.
           Sul pagamento e non sull'ultimo della fila: l'ultimo è la recensione,
-          e i rimborsi non si contano su quella. */}
+          e i rimborsi non si contano su quella.
+          Erano una frase in grigio in fondo alla card, e chi scorreva la
+          saltava: sono soldi che tornano indietro, la sola cifra di questa
+          pagina che esce dalla cassa. Ora sono un pannello a sé, coi tre
+          numeri staccati e leggibili di sguardo. */}
       {rimborsi && (
         <div style={{
-          marginTop: 18, paddingTop: 15, borderTop:`1px solid ${PN.BORDER_SOFT}`,
-          display:'flex', alignItems:'flex-start', gap: 12,
+          marginTop: 22, padding:'14px 18px', borderRadius: 14,
+          background: PN.WHITE_OFF, border:`1px solid ${PN.BORDER_SOFT}`,
+          display:'flex', alignItems:'center', gap: 18, flexWrap:'wrap',
         }}>
           <span style={{
-            width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-            background: PN.WHITE_HUSH, color: PN.MUTED,
+            width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+            background: PN.WHITE, color: PN.MUTED,
+            boxShadow:`inset 0 0 0 1px ${PN.BORDER_HAIR}`,
             display:'grid', placeItems:'center',
-          }}><Icon name="arrow-down-right" size={15}/></span>
-          {/* Una frase sola, col confronto dentro invece che in una pastiglia
-              a destra: la pastiglia colora di rosso i cali, e un calo dei
-              rimborsi è una buona notizia. */}
-          <span style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45, minWidth: 0}}>
-            Dei {num(pagati.val)} pagamenti riusciti,
-            {' '}<strong style={{color: PN.TEXT, fontWeight: 700}}>{rimborsi.n}</strong> sono stati rimborsati —
-            {' '}<strong style={{color: PN.TEXT, fontWeight: 700}}>€ {rimborsi.valore.toLocaleString('it-IT', {useGrouping: true})}</strong> restituiti,
-            {' '}l'{(rimborsi.n / pagati.val * 100).toFixed(1).replace('.', ',')}% degli ordini,
-            {' '}{rimborsi.delta <= 0 ? 'in calo' : 'in aumento'} dello {Math.abs(rimborsi.delta).toFixed(1).replace('.', ',')}% sul periodo prima.
+          }}><Icon name="arrow-down-right" size={17}/></span>
+
+          <div style={{minWidth: 0}}>
+            <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Rimborsi</div>
+            <div style={{fontSize: 12.5, color: PN.MUTED_SOFT, marginTop: 1, whiteSpace:'nowrap'}}>
+              dopo un pagamento riuscito
+            </div>
+          </div>
+
+          {/* Le tre misure, divise da un filo: quanti, quanto, su quanti. */}
+          {[
+            { v: num(rimborsi.n), et:`su ${num(pagati.val)} pagamenti` },
+            { v:`€ ${num(rimborsi.valore)}`, et:'restituiti al cliente' },
+            { v:`${(rimborsi.n / pagati.val * 100).toFixed(1).replace('.', ',')}%`, et:'degli ordini pagati' },
+          ].map((m, i) => (
+            <div key={i} style={{
+              paddingLeft: 18, borderLeft:`1px solid ${PN.BORDER_SOFT}`, minWidth: 0,
+            }}>
+              <div style={{
+                fontSize: 19, fontWeight: 700, color: PN.TEXT,
+                letterSpacing:-0.3, lineHeight: 1.15, whiteSpace:'nowrap',
+                fontVariantNumeric:'tabular-nums',
+              }}>{m.v}</div>
+              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap'}}>{m.et}</div>
+            </div>
+          ))}
+
+          {/* Il confronto resta in grigio e a parole, non in pastiglia: la
+              pastiglia dipinge di rosso i cali, e i rimborsi che calano sono
+              una buona notizia. Qui il verde e il rosso mentirebbero. */}
+          <span style={{
+            marginLeft:'auto', display:'inline-flex', alignItems:'center', gap: 5,
+            padding:'5px 11px', borderRadius: 999, flexShrink: 0,
+            background: PN.WHITE, boxShadow:`inset 0 0 0 1px ${PN.BORDER_HAIR}`,
+            fontSize: 12.5, fontWeight: 600, color: PN.MUTED,
+            whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
+          }}>
+            <span style={{fontSize: 11.5}}>{rimborsi.delta <= 0 ? '↓' : '↑'}</span>
+            {Math.abs(rimborsi.delta).toFixed(1).replace('.', ',')}% sul periodo prima
           </span>
         </div>
       )}
@@ -214,12 +307,6 @@ function StatApp() {
     else { setSortBy(col); setOrder('desc'); }
   };
 
-  // Il tasso in testa alla card è il pagamento su chi ha aperto la pagina del
-  // locale — la domanda vera. Non l'ultimo passaggio sul primo: l'ultimo è la
-  // recensione, e direbbe che il locale converte il 3%.
-  const primo = d.funnel[0].val;
-  const metaPasso = d.funnel.find(s => s.meta) || d.funnel[d.funnel.length - 1];
-
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       {/* Niente riga di KPI sopra il funnel: i quattro numeri che mostrava —
@@ -228,7 +315,8 @@ function StatApp() {
           scritto due volte. Quello che avevano di suo, il confronto col
           periodo prima e l'andamento, è finito dentro ogni passaggio. */}
       <StatCard title="Funnel di conversione"
-        sub={`Il ${Math.round((metaPasso.val / primo) * 100)}% di chi apre la pagina del locale arriva a pagare`}>
+        sub="I passaggi del cliente, dalla vetrina alla recensione"
+        action={<ConvTasso passi={d.funnel}/>}>
         <ConvFunnel passi={d.funnel} rimborsi={d.rimborsi}/>
       </StatCard>
 

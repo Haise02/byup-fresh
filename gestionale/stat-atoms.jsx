@@ -1,7 +1,10 @@
 // Stat shared atoms — redesign UX/UI
 
 // ─── Delta pill (atomic, no wrap) ──────────────────────────────
-function StatDelta({ value, size = 'sm' }) {
+// `unit`: quasi sempre è una variazione percentuale, ma il confronto fra due
+// percentuali si misura in PUNTI — dal 30,2% al 29,0% è −1,2 punti, non −1,2%,
+// che sarebbe un'altra cosa (e un altro numero: −4%).
+function StatDelta({ value, size = 'sm', unit = '%' }) {
   if (value == null) return null;
   const up = value >= 0;
   const px = size === 'lg' ? '4px 10px' : '2px 8px';
@@ -17,7 +20,7 @@ function StatDelta({ value, size = 'sm' }) {
       fontVariantNumeric:'tabular-nums',
     }}>
       <span style={{fontSize: fs - 1}}>{up ? '↑' : '↓'}</span>
-      {Math.abs(value).toFixed(1)}%
+      {Math.abs(value).toFixed(1).replace('.', ',')}{unit}
     </span>
   );
 }
@@ -167,7 +170,7 @@ function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta,
                 fontVariantNumeric:'tabular-nums',
               }}>
                 <span style={{fontSize: 9.5}}>{delta >= 0 ? '↑' : '↓'}</span>
-                {Math.abs(delta).toFixed(1)}%
+                {Math.abs(delta).toFixed(1).replace('.', ',')}%
               </span>
             )}
           </div>

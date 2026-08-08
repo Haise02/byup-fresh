@@ -791,7 +791,7 @@ function StatClienti() {
                   padding:'3px 9px', borderRadius: 999,
                   background: PN.GREEN_SOFT, color: PN.GREEN,
                   fontSize: 14, fontWeight: 700,
-                }}>↑ {r.delta}%</span>
+                }}>↑ {String(r.delta).replace('.', ',')}%</span>
               </span>
             </div>
           ))}
