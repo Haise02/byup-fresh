@@ -839,16 +839,23 @@ function Kds2Fullscreen({ onToggle, attivo }) {
 }
 
 function Kds2Header({
-  sorgenti, ora, selezione, onSeleziona, selettoreMonitor, focus, onToggleFocus,
+  sorgenti, ora, selezione, onSeleziona, focus, onToggleFocus, barra,
   canale, onCanale, canali, categoria, onCategoria, categorie,
 }) {
   const orologio = kds2Orario(ora);
+  // `barra`: dentro il gestionale la prima banda arriva da fuori, fatta con i
+  // comandi della vista Ristorante — stessi filtri, stesso tasto schermo
+  // intero, stesse misure. Due cucine dello stesso prodotto non possono avere
+  // due grammatiche. Da sola, in anteprima, la board tiene la sua.
   return (
-    <div style={{flexShrink: 0, background: K.FONDO, padding: '16px ' + PAD_X + 'px 12px'}}>
+    <div style={{flexShrink: 0, background: barra ? 'transparent' : K.FONDO,
+      padding: barra ? 0 : '16px ' + PAD_X + 'px 12px'}}>
 
-      {/* Prima banda: cromo. Orologio, filtri, allarme, schermo intero — niente
-          che si tocchi per cucinare, tutto ciò che serve a decidere COSA si
-          guarda. Sta sopra la rail perché la rail è già contenuto. */}
+      {barra ? barra({ ora, canale, onCanale, canali, categoria, onCategoria, categorie })
+        : (
+      /* Prima banda: cromo. Orologio, filtri, allarme, schermo intero — niente
+         che si tocchi per cucinare, tutto ciò che serve a decidere COSA si
+         guarda. Sta sopra la rail perché la rail è già contenuto. */
       <div style={{display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12}}>
         <span style={{
           fontSize: 34, fontWeight: 800, color: K.TESTO, letterSpacing: '-0.02em',
@@ -860,13 +867,9 @@ function Kds2Header({
 
         <span style={{flex: 1}}/>
 
-        {/* Quale schermo è questo — e, se ce n'è più d'uno, quale si guarda.
-            In un locale con due monitor è l'unica cosa che li distingue a colpo
-            d'occhio. Sta col cromo e non col contenuto: si legge una volta e
-            non serve più. */}
-        {selettoreMonitor}
         <Kds2Fullscreen onToggle={onToggleFocus} attivo={focus}/>
       </div>
+      )}
 
       {sorgenti.length === 0 ? (
         <span style={Object.assign({}, TY.corpo, {color: K.TESTO_2, display: 'block', padding: '18px 4px'})}>
@@ -1019,7 +1022,7 @@ function Kds2Demo({ righe, onNuovo }) {
 // finti — è il caso della route di anteprima. Dentro la Cucina del gestionale
 // arrivano invece gli ordini veri del servizio, convertiti da
 // cucina-kds2-da-cucina.jsx: la vista cambia, il servizio no.
-function Kds2Board({ porzioni: porzioniIniziali, selettoreMonitor, focus, onToggleFocus }) {
+function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) {
   const [porzioni, setPorzioni] = React.useState(() => porzioniIniziali || KDS2_PORZIONI);
   const [ora, setOra]           = React.useState(() => Date.now());
   const [selezione, setSel]     = React.useState(null);
@@ -1148,7 +1151,7 @@ function Kds2Board({ porzioni: porzioniIniziali, selettoreMonitor, focus, onTogg
     }}>
       <Kds2Header
         sorgenti={sorgenti} ora={ora} selezione={selezione} onSeleziona={setSel}
-        selettoreMonitor={selettoreMonitor} focus={focus} onToggleFocus={onToggleFocus}
+        focus={focus} onToggleFocus={onToggleFocus} barra={barra}
         canale={canale} onCanale={setCanale} canali={CANALI}
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}/>
 
@@ -1157,7 +1160,10 @@ function Kds2Board({ porzioni: porzioniIniziali, selettoreMonitor, focus, onTogg
           e con due colonne «più in alto» smetterebbe di voler dire «prima». */}
       <div className="pn-scroll" style={{
         flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
-        padding: '0 ' + PAD_X + 'px 12px',
+        // Dentro la card della Cucina il margine laterale è già quello della
+        // card: sommarci anche il proprio disallineerebbe le righe dalla barra
+        // che le sovrasta.
+        padding: barra ? '0 0 12px' : '0 ' + PAD_X + 'px 12px',
       }}>
         {righe.length === 0 && (
           <div style={{

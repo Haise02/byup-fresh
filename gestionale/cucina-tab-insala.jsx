@@ -1428,4 +1428,22 @@ if (typeof document !== 'undefined' && !document.getElementById('kds-anims')) {
   document.head.appendChild(s);
 }
 
+// La board Pub vive dentro la stessa card e usa gli stessi comandi di questa:
+// stessi filtri, stesso tasto schermo intero, stesso riquadro. Due cucine dello
+// stesso gestionale non possono avere due grammatiche.
+const CUC_CARD = (focus) => ({
+  flex: 1, minWidth: 0,
+  position: 'relative', isolation: 'isolate',
+  background: PN.WHITE,
+  borderRadius: focus ? 0 : 20,
+  border: focus ? 'none' : `1px solid ${PN.BORDER_HAIR}`,
+  boxShadow: focus ? 'none' : '0 1px 0 rgba(15,17,21,0.04), 0 6px 20px rgba(15,17,21,0.04)',
+  padding: focus ? '20px 28px' : 22,
+  display: 'flex', flexDirection: 'column', minHeight: 0,
+});
+
 window.CucinaInSala = CucinaInSala;
+window.KdsFilterChip = KdsFilterChip;
+window.EnterFullIcon = EnterFullIcon;
+window.ExitFullIcon  = ExitFullIcon;
+window.CUC_CARD = CUC_CARD;

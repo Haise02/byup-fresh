@@ -5,11 +5,9 @@
 // Qui si sceglie QUALE schermo si sta guardando, non come guarda: la
 // visualizzazione è del monitor e si decide dove lo si collega (Impostazioni →
 // Personale). Cambiando monitor la vista cambia da sé, perché è sua.
-// `kds`: la board del v2 ha palette e bersagli suoi, si guarda da lontano e si
-// tocca con i guanti.
 const VISTA_ETICHETTA = { pub: 'Visualizzazione Pub', ristorante: 'Visualizzazione Ristorante' };
 
-function SelettoreMonitor({ monitors, attivo, onScegli, kds }) {
+function SelettoreMonitor({ monitors, attivo, onScegli }) {
   const [aperto, setAperto] = React.useState(false);
   const box = React.useRef(null);
   React.useEffect(() => {
@@ -20,12 +18,10 @@ function SelettoreMonitor({ monitors, attivo, onScegli, kds }) {
   }, [aperto]);
 
   const solo = monitors.length < 2;
-  const ink   = kds ? '#0F1115' : PN.TEXT;
-  const ink2  = kds ? '#5C6372' : PN.MUTED;
-  const bordo = kds ? '#E5E7EB' : PN.BORDER;
+  const ink = PN.TEXT, ink2 = PN.MUTED, bordo = PN.BORDER;
 
   const Icona = () => (
-    <svg width={kds ? 16 : 14} height={kds ? 16 : 14} viewBox="0 0 24 24" fill="none"
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
       style={{flexShrink: 0}}>
       <rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>
@@ -42,7 +38,7 @@ function SelettoreMonitor({ monitors, attivo, onScegli, kds }) {
       }}>
         <Icona/>
         <span style={{
-          fontSize: kds ? 17 : 14.5, fontWeight: 600, letterSpacing: '-0.01em',
+          fontSize: 14.5, fontWeight: 600, letterSpacing: '-0.01em',
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
         }}>{attivo.nome}</span>
       </span>
@@ -56,14 +52,14 @@ function SelettoreMonitor({ monitors, attivo, onScegli, kds }) {
         title="Quale Kitchen Monitor stai guardando"
         style={{
           display:'inline-flex', alignItems:'center', gap: 8,
-          height: kds ? 40 : 34, padding:'0 10px', borderRadius: 10,
-          background: kds ? '#FFFFFF' : 'rgba(15, 17, 21, 0.04)',
-          border: kds ? ('1px solid ' + bordo) : 'none',
+          height: 36, padding:'0 10px', borderRadius: 10,
+          background: 'rgba(15, 17, 21, 0.04)',
+          border: 'none', boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
           color: ink2, cursor:'pointer', fontFamily:'inherit', maxWidth: 300,
         }}>
         <Icona/>
         <span style={{
-          fontSize: kds ? 16 : 14, fontWeight: 700, color: ink,
+          fontSize: 14, fontWeight: 700, color: ink,
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
         }}>{attivo.nome}</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -142,9 +138,60 @@ function CucinaApp() {
   const scegliMonitor = (id) => {
     if (window.byupSetMonitorAttivoKds) window.byupSetMonitorAttivoKds(id);
   };
-  const selettore = (kds) => (
-    <SelettoreMonitor monitors={monitors} attivo={attivo} onScegli={scegliMonitor} kds={kds}/>
+  const selettore = () => (
+    <SelettoreMonitor monitors={monitors} attivo={attivo} onScegli={scegliMonitor}/>
   );
+
+  // La prima banda della board Pub, fatta con i comandi della vista Ristorante:
+  // gli stessi chip dei filtri, lo stesso selettore di monitor, lo stesso tasto
+  // schermo intero, nelle stesse posizioni. L'orologio resta — su uno schermo di
+  // cucina serve — ma alla misura del testo intorno, non a 34px.
+  // I filtri della board sono a valore singolo, i chip della Ristorante a
+  // selezione multipla: si tiene l'ultima scelta, così il chip resta quello e
+  // il comportamento resta quello che la board sa gestire.
+  const barraCucina = ({ ora, canale, onCanale, canali, categoria, onCategoria, categorie }) => {
+    const tuttiC = canali[0], tutteCat = categorie[0];
+    const Chip = window.KdsFilterChip;
+    const ora2 = (typeof kds2Orario === 'function') ? kds2Orario(ora) : '';
+    return (
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 16, gap: 12}}>
+        <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
+          <span style={{
+            fontSize: 15.5, fontWeight: 700, color: PN.TEXT, letterSpacing:'-0.01em',
+            fontVariantNumeric: 'tabular-nums', flexShrink: 0, paddingRight: 4,
+          }}>{ora2}</span>
+          {Chip && (
+            <Chip label="Canali" defaultLabel={tuttiC}
+              selected={canale === tuttiC ? [] : [canale]}
+              options={canali.slice(1)}
+              onChange={(sel) => onCanale(sel.length ? sel[sel.length - 1] : tuttiC)}/>
+          )}
+          {Chip && (
+            <Chip label="Categorie" defaultLabel={tutteCat}
+              selected={categoria === tutteCat ? [] : [categoria]}
+              options={categorie.slice(1)}
+              onChange={(sel) => onCategoria(sel.length ? sel[sel.length - 1] : tutteCat)}/>
+          )}
+        </div>
+        <div style={{display:'flex', alignItems:'center', gap: 12, minWidth: 0}}>
+          {selettore()}
+          <button onClick={() => setFocus(f => !f)}
+            title={focus ? 'Esci da schermo intero' : 'Schermo intero'} style={{
+              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+              background: 'rgba(15, 17, 21, 0.04)', border: 'none',
+              boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
+              color: PN.TEXT, cursor:'pointer', display:'grid', placeItems:'center',
+              fontFamily:'inherit', transition:'background 150ms ease-out',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.04)'; }}
+          >{focus
+            ? (window.ExitFullIcon ? window.ExitFullIcon() : '×')
+            : (window.EnterFullIcon ? window.EnterFullIcon() : '⤢')}</button>
+        </div>
+      </div>
+    );
+  };
 
   // Esc per uscire da focus
   React.useEffect(() => {
@@ -187,17 +234,22 @@ function CucinaApp() {
             sotto il suo contenuto e la board sbordava a destra, portandosi via
             la coda della testata — nome del monitor e schermo intero. */}
         {pub ? (
-          <div style={{flex: 1, minWidth: 0, minHeight: 0, display: 'flex'}}>
-            {/* Gli stessi ordini della vista a colonne, riraggruppati per
-                piatto: cambiando visualizzazione cambia il modo di guardare il
-                servizio, non il servizio. */}
-            {/* «Schermo intero» toglie di mezzo il gestionale, sidebar
-                compresa, come nella vista Ristorante: la board è già senza
-                margini, quello che resta da togliere è la navigazione. */}
-            <Kds2Board selettoreMonitor={selettore(true)}
-              focus={focus} onToggleFocus={() => setFocus(f => !f)}
-              porzioni={window.kds2PorzioniDelServizio
-                ? window.kds2PorzioniDelServizio() : undefined}/>
+          <div style={{
+            flex: 1, minWidth: 0, minHeight: 0, display: 'flex',
+            padding: focus ? 0 : '22px 32px 32px', background: PN.BG,
+          }}>
+            {/* Stessa card della vista Ristorante: stesso riquadro bianco,
+                stesso raggio, stessa ombra, stessa aria. Cambia la board
+                dentro, non la pagina intorno. */}
+            <div style={window.CUC_CARD ? window.CUC_CARD(focus) : {flex: 1, minWidth: 0}}>
+              {/* Gli stessi ordini della vista a colonne, riraggruppati per
+                  piatto: cambiando visualizzazione cambia il modo di guardare
+                  il servizio, non il servizio. */}
+              <Kds2Board
+                barra={barraCucina}
+                porzioni={window.kds2PorzioniDelServizio
+                  ? window.kds2PorzioniDelServizio() : undefined}/>
+            </div>
           </div>
         ) : (
           <div className="pn-scroll" style={{
@@ -205,7 +257,7 @@ function CucinaApp() {
             padding: focus ? 0 : '22px 32px 32px',
             background: PN.BG,
           }}>
-            <CucinaInSala focus={focus} selettoreMonitor={selettore(false)}
+            <CucinaInSala focus={focus} selettoreMonitor={selettore()}
               onToggleFocus={() => setFocus(f => !f)}/>
           </div>
         )}
