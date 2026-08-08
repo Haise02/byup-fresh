@@ -501,11 +501,16 @@ const DEVICE_ROLE = {
 // a colpo d'occhio, se quello è un monitor o una stampante. La stampante prende
 // il blu che ha già nel modulo di collegamento. Il filtro a sinistra resta uno
 // solo — «Dispositivi» — perché lì si cerca la famiglia, non il pezzo.
+// Monitor e stampante condividono lo slate dei dispositivi: il blu che aveva
+// la stampante è il colore della Cassa, e due pastiglie blu nella stessa
+// colonna dicevano che quelle due righe hanno qualcosa in comune, che non è
+// vero. Le due macchine si distinguono per etichetta e icona — che è la
+// differenza vera — non per tinta.
 const DEVICE_ROLES = {
   'kitchen-monitor': { id: '_device_monitor', label: 'Kitchen Monitor', icon: 'monitor',
     color: '#475569', bg: '#F1F5F9' },
   'printer':         { id: '_device_printer', label: 'Stampante', icon: 'doc',
-    color: PN.BLUE, bg: PN.BLUE_SOFT },
+    color: '#475569', bg: '#F1F5F9' },
 };
 
 // Che cosa vede davvero un ruolo, detto in due righe: la prima le sezioni,
