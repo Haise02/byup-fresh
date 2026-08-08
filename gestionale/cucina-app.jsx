@@ -61,7 +61,11 @@ function CucinaApp() {
             intorno: è uno schermo appeso in cucina, non un documento. */}
         {pub ? (
           <div style={{flex: 1, minHeight: 0, display: 'flex'}}>
-            <Kds2Board/>
+            {/* Gli stessi ordini della vista a colonne, riraggruppati per
+                piatto: cambiando visualizzazione cambia il modo di guardare il
+                servizio, non il servizio. */}
+            <Kds2Board porzioni={window.kds2PorzioniDelServizio
+              ? window.kds2PorzioniDelServizio() : undefined}/>
           </div>
         ) : (
           <div className="pn-scroll" style={{

@@ -350,7 +350,12 @@ function Kds2Modificatori({ modifiers, spenta }) {
     <div style={{display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 7}}>
       {modifiers.map((m, i) => {
         const togli = m.type === 'remove';
-        const tinta = spenta ? K.TESTO_OFF : (togli ? K.ROSSO : K.VERDE);
+        const metti = m.type === 'add';
+        // Terzo caso: la nota che non aggiunge e non toglie — «ben cotta»,
+        // «al sangue», «salsa a parte». Nel mock non esisteva, negli ordini
+        // veri sì, e darle un «+» verde direbbe una cosa falsa. Segno neutro,
+        // stesso peso: in cucina è un'istruzione come le altre.
+        const tinta = spenta ? K.TESTO_OFF : (togli ? K.ROSSO : metti ? K.VERDE : K.TESTO_2);
         return (
           <span key={i} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
             {/* Nascosto agli assistivi: il nome accessibile della riga dice già
@@ -367,7 +372,7 @@ function Kds2Modificatori({ modifiers, spenta }) {
               border: spenta ? '2px solid ' + tinta : 'none',
               color: spenta ? tinta : K.RIGA,
               fontSize: 18, fontWeight: 900, lineHeight: 1,
-            }}>{togli ? '−' : '+'}</span>
+            }}>{togli ? '−' : metti ? '+' : '·'}</span>
             <span style={{
               fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
               color: tinta,
@@ -998,8 +1003,12 @@ function Kds2Demo({ righe, onNuovo }) {
 }
 
 // ─── Board ────────────────────────────────────────────────────────────────
-function Kds2Board() {
-  const [porzioni, setPorzioni] = React.useState(() => KDS2_PORZIONI);
+// `porzioni`: gli ordini da cui partire. Senza, la board prende i suoi dati
+// finti — è il caso della route di anteprima. Dentro la Cucina del gestionale
+// arrivano invece gli ordini veri del servizio, convertiti da
+// cucina-kds2-da-cucina.jsx: la vista cambia, il servizio no.
+function Kds2Board({ porzioni: porzioniIniziali }) {
+  const [porzioni, setPorzioni] = React.useState(() => porzioniIniziali || KDS2_PORZIONI);
   const [ora, setOra]           = React.useState(() => Date.now());
   const [selezione, setSel]     = React.useState(null);
   const [pronti, setPronti]     = React.useState([]);
@@ -1164,7 +1173,9 @@ function Kds2Board() {
         <Kds2Annulla voci={pronti} onRipristina={ripristina}/>
       </div>
 
-      <Kds2Demo righe={righe.length} onNuovo={nuovoOrdine}/>
+      {/* La barra demo genera ordini finti: ha senso nell'anteprima, non sopra
+          il servizio vero di un locale. */}
+      {!porzioniIniziali && <Kds2Demo righe={righe.length} onNuovo={nuovoOrdine}/>}
     </div>
   );
 }
