@@ -1570,13 +1570,9 @@ function InviteModal({ onClose, prefill }) {
             </div>
           )}
           <div style={{display:'flex', gap: 8, flexShrink: 0}}>
-            {/* Niente «Annulla» in modifica: uscire senza salvare è la X in
-                alto, che è il gesto di chiusura di questa e di ogni altra
-                finestra. In fondo restano le due azioni che si viene a fare —
-                una per capo, lontane l'una dall'altra. */}
-            {!editDevice && (
-              <ImpButton variant="ghost" onClick={onClose} style={{whiteSpace:'nowrap'}}>Annulla</ImpButton>
-            )}
+            {/* Niente «Annulla»: uscire senza fare niente è la X in alto, che
+                chiude questa come ogni altra finestra. In fondo resta solo
+                l'azione per cui si è aperta. */}
             {/* Associando o modificando un monitor la sua visualizzazione arriva
                 alla sezione Cucina, che è l'unico posto in cui si vede l'effetto
                 della scelta fatta qui. Chiudendo dalla X non parte niente. */}
