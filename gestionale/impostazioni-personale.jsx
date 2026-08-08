@@ -1309,6 +1309,15 @@ function InviteModal({ onClose, prefill }) {
 
   // Pre-popola da editDevice se presente
   const editDevice = prefill?.editDevice;
+  const [confermaScollega, setConfermaScollega] = React.useState(false);
+
+  // In modifica la password non si ripropone — non si mostra una password già
+  // data — e lasciarla vuota vuol dire «tienila com'è». Chiederla di nuovo per
+  // poter salvare avrebbe bloccato dietro una password chi era entrato per
+  // cambiare il nome. Vale lo stesso per le categorie di una stampante.
+  const salvabile = editDevice
+    ? (isPrinter ? deviceName.trim().length > 0 : username.trim().length > 0)
+    : deviceValid;
   React.useEffect(() => {
     if (!editDevice) return;
     if (editDevice.deviceType === 'printer') {
@@ -1336,22 +1345,29 @@ function InviteModal({ onClose, prefill }) {
       }}>
         <div style={IMP_MODAL_HEAD}>
           <div style={IMP_MODAL_TITLE}>
-            {kind === 'person' ? 'Invita una persona' : 'Collega un dispositivo'}
+            {editDevice ? 'Modifica associazione'
+              : kind === 'person' ? 'Invita una persona' : 'Collega un dispositivo'}
           </div>
           {/* La subhead racconta il flusso vero: il monitor accede con
               credenziali locali, la stampante vuole nome e categorie —
               niente username per lei, e niente email per nessuno. */}
           <div style={IMP_MODAL_SUB}>
-            {kind === 'person'
-              ? 'Invia un accesso al gestionale o all\'app staff.'
-              : 'Scegli il tipo e configuralo: credenziali locali per il monitor, nome e categorie per la stampante.'}
+            {editDevice
+              ? <>Stai modificando <b style={{color: PN.TEXT}}>{editDevice.name}</b>. Le modifiche valgono dal prossimo collegamento.</>
+              : kind === 'person'
+                ? 'Invia un accesso al gestionale o all\'app staff.'
+                : 'Scegli il tipo e configuralo: credenziali locali per il monitor, nome e categorie per la stampante.'}
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
 
         <div style={{padding: '20px 24px', overflow:'auto', flex: 1}}>
-          {/* Type switcher: Persona | Dispositivo */}
-          <ImpField label="Tipo">
+          {/* Type switcher: Persona | Dispositivo. In modifica non c'è: quel
+              dispositivo esiste già, e chiedere «è una persona o un
+              dispositivo?» a chi ha aperto la riga di un monitor è una domanda
+              a cui ha già risposto — e l'unica risposta sbagliata cambierebbe
+              il modulo sotto le mani. */}
+          {!editDevice && <ImpField label="Tipo">
             <div style={{
               display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8,
               padding: 4, background:'#F4F5F7', borderRadius: 10,
@@ -1384,7 +1400,7 @@ function InviteModal({ onClose, prefill }) {
                 );
               })}
             </div>
-          </ImpField>
+          </ImpField>}
 
           {kind === 'person' && (
             <>
@@ -1515,30 +1531,71 @@ function InviteModal({ onClose, prefill }) {
           borderTop: `1px solid ${PN.BORDER_SOFT}`,
           display:'flex', gap: 10, justifyContent:'space-between', alignItems:'center',
         }}>
-          <div style={{fontSize: 13.5, color: PN.MUTED}}>
-            {kind === 'person'
-              ? (personValid
-                  ? <>Invierà invito a <b style={{color: PN.TEXT}}>{email}</b> come <b style={{color: role.color}}>{role.label}</b></>
-                  : 'Inserisci un\'email valida')
-              : (deviceType.noCredentials
-                  ? <>{deviceName.trim() ? <>Aggiungerà <b style={{color: PN.TEXT}}>{deviceName}</b></> : 'Inserisci un nome per il dispositivo'}</>
-                  : deviceValid
-                    ? <>Username: <b style={{color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>PG1-{username}</b></>
-                    : 'Compila username e password (min. 4 caratteri)')}
-          </div>
+          {/* In modifica il piede porta l'azione distruttiva, che è l'altra
+              cosa che si viene a fare qui: o si aggiusta il collegamento, o lo
+              si taglia. Sta a sinistra, lontana dal salvataggio. */}
+          {editDevice ? (
+            <ImpButton variant="danger" onClick={() => setConfermaScollega(true)}
+              style={{whiteSpace:'nowrap'}}
+              icon={BuIcons.trash({size: 14, color:'currentColor'})}>
+              Elimina collegamento
+            </ImpButton>
+          ) : (
+            <div style={{fontSize: 13.5, color: PN.MUTED}}>
+              {kind === 'person'
+                ? (personValid
+                    ? <>Invierà invito a <b style={{color: PN.TEXT}}>{email}</b> come <b style={{color: role.color}}>{role.label}</b></>
+                    : 'Inserisci un\'email valida')
+                : (deviceType.noCredentials
+                    ? <>{deviceName.trim() ? <>Aggiungerà <b style={{color: PN.TEXT}}>{deviceName}</b></> : 'Inserisci un nome per il dispositivo'}</>
+                    : deviceValid
+                      ? <>Username: <b style={{color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>PG1-{username}</b></>
+                      : 'Compila username e password (min. 4 caratteri)')}
+            </div>
+          )}
           <div style={{display:'flex', gap: 8}}>
-            <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+            <ImpButton variant="ghost" onClick={onClose} style={{whiteSpace:'nowrap'}}>Annulla</ImpButton>
             {/* Associando o modificando un monitor la sua visualizzazione arriva
                 alla sezione Cucina, che è l'unico posto in cui si vede l'effetto
                 della scelta fatta qui. Da «Annulla» non parte niente. */}
             <ImpButton variant="primary"
               onClick={() => { if (kind === 'device' && !isPrinter) salvaVistaKds(dev.kdsView); onClose(); }}
-              disabled={kind === 'person' ? !personValid : !deviceValid}>
-              {kind === 'person' ? 'Invia invito' : 'Associa dispositivo'}
+              style={{whiteSpace:'nowrap'}}
+              disabled={kind === 'person' ? !personValid : !salvabile}>
+              {editDevice ? 'Salva modifiche' : kind === 'person' ? 'Invia invito' : 'Associa dispositivo'}
             </ImpButton>
           </div>
         </div>
       </div>
+
+      {/* Conferma dello scollegamento: stessa domanda e stesse parole di quella
+          che si apre dal menu «⋯» della riga — è la stessa azione, e chi la
+          incontra due volte da due strade non deve chiedersi se sia la stessa. */}
+      {confermaScollega && (
+        <div onClick={e => { e.stopPropagation(); setConfermaScollega(false); }} style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex:200,
+          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...IMP_MODAL_PANEL, width: 380, maxWidth:'90%', padding: 24,
+          }}>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
+              Elimina collegamento
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              Sei sicuro di voler scollegare <b style={{color: PN.TEXT}}>{editDevice && editDevice.name}</b>?
+              {' '}L'accesso viene revocato subito.
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConfermaScollega(false)}>Annulla</ImpButton>
+              <ImpButton variant="danger" onClick={() => { setConfermaScollega(false); onClose(); }}>
+                Scollega
+              </ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
