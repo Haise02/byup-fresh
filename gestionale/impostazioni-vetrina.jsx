@@ -1697,6 +1697,28 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
     setSocial(social.filter(x => x !== key));
     onChange && onChange();
   };
+  // Recensioni Google: il collegamento vero passa da Google (OAuth + scelta
+  // della scheda), qui il mock dei tre stati che l'utente vede — scollegato,
+  // in corso, collegato.
+  const [google, setGoogle] = React.useState(null); // null | {nome, voto, recensioni}
+  const [googleBusy, setGoogleBusy] = React.useState(false);
+  const [googleUnlink, setGoogleUnlink] = React.useState(false);
+  const connectGoogle = () => {
+    if (googleBusy) return;
+    setGoogleBusy(true);
+    // L'attesa non è decorativa: il giro su Google e il ritorno esistono, e un
+    // collegamento che scatta nell'istante del click sembra finto.
+    setTimeout(() => {
+      setGoogleBusy(false);
+      setGoogle({ nome: 'Ristorante Paradiso', voto: 4.6, recensioni: 312 });
+      onChange && onChange();
+    }, 900);
+  };
+  const disconnectGoogle = () => {
+    setGoogle(null);
+    setGoogleUnlink(false);
+    onChange && onChange();
+  };
   // FAQ reali: crea dal popup, riordina col drag, modifica, elimina con conferma.
   const [faqs, setFaqs] = React.useState([
     { id: 'f1', q: 'Avete prodotti senza glutine?', a: 'Sì, abbiamo un menù dedicato preparato in area separata.' },
@@ -1733,6 +1755,48 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
   };
   return (
     <div>
+      {/* Le recensioni di Google vengono prima delle FAQ e dei social perché
+          sono l'unica cosa di questa pagina che non si scrive: la reputazione
+          il locale ce l'ha già, qui la si collega e basta. */}
+      <ImpCard anchor="google" title="Recensioni Google"
+        sub="Collega la scheda Google del locale: le recensioni di Maps appaiono sulla vetrina e si aggiornano da sole">
+        {google ? (
+          <div style={{
+            display:'flex', alignItems:'center', gap: 12,
+            padding: '12px 14px', border:`1.5px solid ${PN.GREEN_SOFT}`,
+            borderRadius: 10, background: PN.WHITE,
+          }}>
+            <GoogleMark size={30}/>
+            <div style={{flex:1, minWidth: 0}}>
+              <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
+                <div style={{fontSize:15, fontWeight:700, color:PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{google.nome}</div>
+                <div style={{fontSize:10.5, fontWeight:700, color:PN.GREEN, letterSpacing:0.4, whiteSpace:'nowrap'}}>● COLLEGATO</div>
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap: 7, marginTop: 3}}>
+                <GoogleStelle voto={google.voto}/>
+                <span style={{fontSize:13.5, color:PN.MUTED}}>
+                  {google.voto.toFixed(1).replace('.', ',')} · {google.recensioni} recensioni
+                </span>
+              </div>
+            </div>
+            <ScollegaBtn onClick={() => setGoogleUnlink(true)}/>
+          </div>
+        ) : (
+          <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap'}}>
+            <div style={{flex:1, minWidth: 230, fontSize:14.5, color:PN.MUTED, lineHeight:1.45}}>
+              Nessun account collegato: le recensioni che i clienti lasciano su Google non compaiono sulla vetrina.
+            </div>
+            <GoogleConnectBtn busy={googleBusy} onClick={connectGoogle}/>
+          </div>
+        )}
+      </ImpCard>
+
+      {googleUnlink && (
+        <GoogleUnlinkModal nome={google ? google.nome : ''}
+          onClose={() => setGoogleUnlink(false)}
+          onConfirm={disconnectGoogle}/>
+      )}
+
       <ImpCard anchor="faq" title="Domande frequenti" sub="Aiuta i clienti a trovare risposte rapide. Crea, ordina e modifica le FAQ" action={
         <ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={() => setFaqModal({mode: 'new'})}>Nuova FAQ</ImpButton>
       }>
@@ -1799,6 +1863,112 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
           onClose={() => setUnlink(null)}
           onConfirm={() => { disconnectSocial(unlink.key); setUnlink(null); }}/>
       )}
+    </div>
+  );
+}
+
+// ─── Recensioni Google ──────────────────────────────────────────────────────
+
+// La G a quattro colori: su un bottone «collega il tuo account Google» il
+// marchio è quello che dice dove si sta andando, molto prima del testo.
+function GoogleMark({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" style={{display:'block', flexShrink: 0}}>
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.28-3.14.76-4.59l-7.97-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+  );
+}
+
+// Media di Google: 4,6 non sono cinque stelle piene. Le accese stanno sotto
+// alle spente, ritagliate alla frazione esatta del voto.
+function GoogleStelle({ voto, lato = 13 }) {
+  const stella = (colore, i) => (
+    <svg key={i} width={lato} height={lato} viewBox="0 0 24 24" fill={colore} style={{display:'block'}}>
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  );
+  return (
+    <span style={{position:'relative', display:'inline-flex', gap: 1.5, lineHeight: 0}} title={`${voto} su 5`}>
+      {[0,1,2,3,4].map(i => stella(PN.BORDER, i))}
+      <span style={{
+        position:'absolute', top: 0, left: 0, display:'inline-flex', gap: 1.5,
+        width: `${(voto / 5) * 100}%`, overflow:'hidden',
+      }}>
+        {[0,1,2,3,4].map(i => stella(PN.AMBER, i))}
+      </span>
+    </span>
+  );
+}
+
+// Bottone di collegamento: bianco con la G, come ogni «accedi con Google» che
+// l'utente ha già visto. Mentre il giro su Google è in corso resta occupato,
+// così non si collega due volte.
+function GoogleConnectBtn({ busy, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button onClick={busy ? undefined : onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display:'inline-flex', alignItems:'center', gap: 9, flexShrink: 0,
+        padding: '9px 16px', borderRadius: 9,
+        border: `1px solid ${PN.BORDER_LIGHT}`,
+        background: busy ? PN.BTN_NEUTRAL_PRESS : hover ? PN.BTN_NEUTRAL_HOVER : PN.BTN_NEUTRAL,
+        boxShadow: PN.INSET_HIGHLIGHT,
+        color: PN.TEXT, fontSize: 15, fontWeight: 600, fontFamily:'inherit',
+        cursor: busy ? 'default' : 'pointer',
+        opacity: busy ? 0.7 : 1,
+        transition: 'background 140ms ease, opacity 140ms ease',
+      }}>
+      <GoogleMark size={17}/>
+      {busy ? 'Collegamento in corso…' : 'Collega il tuo account Google'}
+    </button>
+  );
+}
+
+// Anche qui nessuno si scollega con un click solo: le recensioni sparirebbero
+// dalla vetrina senza che ci sia modo di accorgersene prima.
+function GoogleUnlinkModal({ nome, onClose, onConfirm }) {
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 85,
+      background: 'rgba(15, 17, 21, 0.32)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'cert-overlay-in 180ms ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 380, maxWidth: 'calc(100% - 48px)',
+        background: PN.WHITE, borderRadius: 16,
+        boxShadow: '0 30px 70px -20px rgba(15, 17, 21, 0.35)',
+        padding: '22px 22px 18px', textAlign: 'center',
+        animation: 'cert-modal-pop 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        {/* Fondo neutro, non il rosa delle azioni distruttive: la G a quattro
+            colori su un lavaggio rosa si sporca e non si legge più come marchio. */}
+        <div style={{
+          width: 48, height: 48, borderRadius: 12, margin: '0 auto 12px',
+          background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+          boxShadow: '0 2px 8px rgba(15, 17, 21, 0.08)',
+          display: 'grid', placeItems: 'center',
+        }}>
+          <GoogleMark size={24}/>
+        </div>
+        <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Scollegare l'account Google?</div>
+        <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>
+          Le recensioni di <b style={{color: PN.TEXT}}>{nome || 'questa scheda'}</b> non appariranno più sulla vetrina del locale.
+        </div>
+        <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16}}>
+          <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
+          <ImpButton variant="primary" onClick={onConfirm}>Sì, scollega</ImpButton>
+        </div>
+        <style>{`
+          @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+          @keyframes cert-modal-pop { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+        `}</style>
+      </div>
     </div>
   );
 }
