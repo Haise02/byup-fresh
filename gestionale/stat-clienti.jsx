@@ -385,29 +385,81 @@ function CliAndamento({ d, mesiEt }) {
 // leggerle si va a farlo su Google, che è dove qualcuno le ha scritte.
 //
 // Al posto di questa sezione c'era la classifica delle caselle spuntate
-// nell'app. Quei conteggi non sono spariti dalla pagina: ogni scheda porta le
-// sue caselle, che è il posto dove significano qualcosa — «Attesa lunga»
-// accanto alle parole di chi ha aspettato, non in una riga con un numero.
+// nell'app. I conteggi tornano qui come barra di filtri: la classifica era da
+// leggere, questa è da usare, ma dice le stesse due cose — quali caselle sono
+// state spuntate e quante volte.
 function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
   const [segnalate, setSegnalate] = React.useState({});
   const [inSegnalazione, setInSegnalazione] = React.useState(null);
-  // La casella si accende dalle schede stesse, quindi il filtro vive qui e non
-  // in cima alla pagina come quello delle stelle: quello lo accende la
-  // distribuzione, che sta nell'altra metà della card.
+  // La casella si accende da due punti — la barra qui sopra e le pastiglie
+  // dentro le schede — e per questo il filtro vive nell'elenco; quello delle
+  // stelle lo accende la distribuzione, che sta nell'altra metà della card.
   const [aspetto, setAspetto] = React.useState('');
 
   const chiave = (r) => `${r.autore}·${r.quando}`;
-  const visibili = elenco.filter(r =>
-    (!stelle || r.stelle === stelle) &&
-    (!aspetto || (r.aspetti || []).includes(aspetto))
-  );
+  const base = stelle ? elenco.filter(r => r.stelle === stelle) : elenco;
+  const visibili = base.filter(r => !aspetto || (r.aspetti || []).includes(aspetto));
   const suDodiciMesi = stelle ? (distribuzione.find(r => r.stars === stelle) || {}).count : null;
   const asp = aspetto ? STAT_ASPETTI[aspetto] : null;
+
+  // I conteggi della barra si contano su quello che il filtro delle stelle ha
+  // già lasciato, non su tutto: un «Rumore 1» che poi non trova niente perché
+  // le stelle escludevano quella recensione è un numero che mente. Per lo
+  // stesso motivo una casella sparisce quando arriva a zero — tranne quella
+  // accesa, che deve restare per potersi spegnere.
+  const conteggi = {};
+  base.forEach(r => (r.aspetti || []).forEach(a => { conteggi[a] = (conteggi[a] || 0) + 1; }));
+  if (aspetto && !conteggi[aspetto]) conteggi[aspetto] = 0;
+  // Prima i problemi e poi i pregi, e dentro ognuno per numero: quello su cui
+  // si può fare qualcosa lunedì mattina sta all'inizio della riga.
+  const caselle = Object.keys(conteggi)
+    .filter(a => STAT_ASPETTI[a])
+    .sort((x, y) => {
+      const px = STAT_ASPETTI[x].problema ? 0 : 1, py = STAT_ASPETTI[y].problema ? 0 : 1;
+      return px !== py ? px - py : conteggi[y] - conteggi[x];
+    });
 
   // I due filtri si sommano, e insieme possono non lasciare niente: la riga
   // sotto il titolo deve dire cosa si sta guardando prima che uno se lo chieda.
   const conto = <>{visibili.length} tra le ultime {elenco.length}</>;
   const ha = visibili.length === 1 ? 'ha' : 'hanno';
+
+  // La pastiglia di una casella, unica per i due posti in cui compare: nella
+  // barra dei filtri col suo numero, dentro una scheda senza. Se fossero due
+  // disegni diversi non si capirebbe che sono lo stesso comando.
+  // Accesa si riempie del colore pieno con la scritta in bianco invece di
+  // prendere un anello: un filo attorno a una pastiglia già colorata è un
+  // segno in più da decifrare, il pieno si vede da una scheda all'altra.
+  // `boxShadow:'none'` tiene fuori l'ombra che la regola globale dei bottoni
+  // alza al passaggio: qui il feedback è la pastiglia che si scurisce.
+  const casella = (a, n) => {
+    const x = STAT_ASPETTI[a];
+    const acceso = a === aspetto;
+    const forte = x.problema ? PN.RED : PN.GREEN;
+    const tenue = x.problema ? PN.RED_SOFT : PN.GREEN_SOFT;
+    const scuro = x.problema ? '#9B2C2C' : '#166534';
+    const sopra = x.problema ? '#FBCFCF' : '#C6F0D4';
+    return (
+      <button key={a} onClick={() => setAspetto(acceso ? '' : a)}
+        title={acceso ? 'Togli il filtro' : `Vedi le recensioni con «${x.et}»`}
+        onMouseEnter={e => { if (!acceso) e.currentTarget.style.background = sopra; }}
+        onMouseLeave={e => { if (!acceso) e.currentTarget.style.background = tenue; }}
+        style={{
+          display:'inline-flex', alignItems:'center', gap: 6,
+          padding:'5px 11px', borderRadius: 999, border:'none', boxShadow:'none',
+          background: acceso ? forte : tenue,
+          color: acceso ? PN.WHITE : scuro,
+          fontSize: 13.5, fontWeight: 600, whiteSpace:'nowrap',
+          fontFamily:'inherit', cursor:'pointer',
+          transition:'background 130ms ease, color 130ms ease',
+        }}>
+        {x.emoji} {x.et}
+        {n != null && (
+          <span style={{fontWeight: 700, fontVariantNumeric:'tabular-nums', opacity: acceso ? 0.85 : 0.6}}>{n}</span>
+        )}
+      </button>
+    );
+  };
 
   const togli = (etichetta, colore, onClick, titolo) => (
     <button onClick={onClick} title={titolo}
@@ -448,15 +500,37 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
           </div>
         </div>
 
-        <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
-          {stelle > 0 && togli(
-            <>{stelle}<svg width="13" height="13" viewBox="0 0 24 24" fill={PN.PINK} style={{display:'block'}}><polygon points={CLI_STELLA}/></svg></>,
-            PN.PINK_DARK, onPulisci, 'Torna a tutte le stelle')}
-          {asp && togli(
-            <>{asp.emoji} {asp.et}</>,
-            asp.problema ? '#9B2C2C' : '#166534', () => setAspetto(''), 'Togli il filtro sulla casella')}
-        </div>
+        {/* Il filtro delle stelle si accende nell'altra metà della card, e da
+            qui non si vede: senza questo bottone, per toglierlo bisogna
+            ricordarsi dov'era. Quello delle caselle il suo comando ce l'ha
+            due righe sotto, e non ne ha bisogno. */}
+        {stelle > 0 && togli(
+          <>{stelle}<svg width="13" height="13" viewBox="0 0 24 24" fill={PN.PINK} style={{display:'block'}}><polygon points={CLI_STELLA}/></svg></>,
+          PN.PINK_DARK, onPulisci, 'Torna a tutte le stelle')}
       </div>
+
+      {/* La barra delle caselle. Le pastiglie erano cliccabili solo dentro le
+          schede: il filtro c'era ma bisognava indovinarlo, e un comando che si
+          scopre per sbaglio non è un comando. Qui si vedono tutte insieme, con
+          quante volte sono state spuntate, prima ancora di leggere una
+          recensione. */}
+      {caselle.length > 0 && (
+        <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap', marginBottom: 15}}>
+          <button onClick={() => setAspetto('')} title="Tutte le caselle"
+            onMouseEnter={e => { if (aspetto) e.currentTarget.style.background = PN.WHITE_HUSH; }}
+            onMouseLeave={e => { if (aspetto) e.currentTarget.style.background = PN.WHITE_FROST; }}
+            style={{
+              display:'inline-flex', alignItems:'center', gap: 6,
+              padding:'5px 13px', borderRadius: 999, border:'none',
+              boxShadow: aspetto ? 'none' : `0 0 0 1.5px ${PN.TEXT}`,
+              background: aspetto ? PN.WHITE_FROST : PN.WHITE,
+              color: aspetto ? PN.MUTED : PN.TEXT,
+              fontSize: 13.5, fontWeight: 700, fontFamily:'inherit', cursor:'pointer',
+              transition:'background 130ms ease, color 130ms ease',
+            }}>Tutte</button>
+          {caselle.map(a => casella(a, conteggi[a]))}
+        </div>
+      )}
 
       {/* L'elenco scorre: la card resta alta uguale con otto recensioni e con
           cento, e il voto sopra non finisce due schermate più su.
@@ -527,37 +601,7 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
                   contrario di quello che dicono. */}
               {(r.aspetti || []).length > 0 && (
                 <div style={{display:'flex', flexWrap:'wrap', gap: 7}}>
-                  {r.aspetti.map(a => {
-                    const asp2 = STAT_ASPETTI[a]; if (!asp2) return null;
-                    const acceso = a === aspetto;
-                    const forte = asp2.problema ? PN.RED : PN.GREEN;
-                    const tenue = asp2.problema ? PN.RED_SOFT : PN.GREEN_SOFT;
-                    const scuro = asp2.problema ? '#9B2C2C' : '#166534';
-                    return (
-                      /* Acceso, la casella si riempie del colore pieno con la
-                         scritta in bianco invece di prendere un anello: un
-                         filo attorno a una pastiglia già colorata è un segno
-                         in più da decifrare, il pieno si vede da lontano e da
-                         una scheda all'altra — la stessa casella accesa su due
-                         recensioni diverse si riconosce senza cercarla.
-                         `boxShadow:'none'` tiene fuori l'ombra che la regola
-                         globale dei bottoni alza al passaggio: qui il feedback
-                         è la pastiglia che si scurisce. */
-                      <button key={a} onClick={() => setAspetto(acceso ? '' : a)}
-                        title={acceso ? 'Togli il filtro' : `Vedi le recensioni con «${asp2.et}»`}
-                        onMouseEnter={e => { if (!acceso) e.currentTarget.style.background = tenue === PN.RED_SOFT ? '#FBCFCF' : '#C6F0D4'; }}
-                        onMouseLeave={e => { if (!acceso) e.currentTarget.style.background = tenue; }}
-                        style={{
-                          display:'inline-flex', alignItems:'center', gap: 6,
-                          padding:'5px 11px', borderRadius: 999, border:'none', boxShadow:'none',
-                          background: acceso ? forte : tenue,
-                          color: acceso ? PN.WHITE : scuro,
-                          fontSize: 13.5, fontWeight: 600, whiteSpace:'nowrap',
-                          fontFamily:'inherit', cursor:'pointer',
-                          transition:'background 130ms ease, color 130ms ease',
-                        }}>{asp2.emoji} {asp2.et}</button>
-                    );
-                  })}
+                  {r.aspetti.filter(a => STAT_ASPETTI[a]).map(a => casella(a, null))}
                 </div>
               )}
 
