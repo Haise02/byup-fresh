@@ -45,33 +45,20 @@ function CliFonte({ fonte, lato = 12.5 }) {
 // La stella, unica per tutta la pagina, nella stessa forma dell'app.
 const CLI_STELLA = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2';
 
-// Nelle schede di una recensione la stella è il glifo pieno: il voto di UNA
-// recensione è un intero, sta accanto a un nome e a una data, e cinque
-// tessere lì dentro sarebbero cinque oggetti dove ne basta uno. Corallo fino
-// al voto, grigio dopo — nell'app le recensioni degli altri si leggono così.
-function CliStelle({ voto, lato = 16 }) {
-  return (
-    <span style={{display:'inline-flex', gap: 2, lineHeight: 0}} title={`${voto} su 5`}>
-      {[0,1,2,3,4].map(i => (
-        <svg key={i} width={lato} height={lato} viewBox="0 0 24 24"
-          fill={i < voto ? PN.PINK : PN.BORDER} style={{display:'block'}}>
-          <polygon points={CLI_STELLA}/>
-        </svg>
-      ))}
-    </span>
-  );
-}
-
-// Il voto medio invece è la tessera: quella che il cliente tocca nell'app per
-// dare le stelle, corallo piena e pesca da spenta, con la stella in bianco
-// ricavata dentro. È l'oggetto del prodotto, e sopra un numero grande è anche
-// l'unica resa che regge la dimensione.
+// La stella di byup è una tessera: quadrata con gli angoli tondi, corallo
+// piena e pesca da spenta, con la stella in bianco ricavata dentro. È quella
+// che il cliente tocca nell'app per votare (`menu.jsx`, SuccessScreen) ed è
+// quella della vetrina — quindi è questa, dal voto grande in cima fino alle
+// stelle di ogni singola scheda. Il glifo pieno corallo, che per un po' è
+// stato la stella delle schede, era la stessa forma di tutti: si legge come
+// una stella qualunque, non come la stella di byup.
 // Un voto medio è una frazione e va mostrata come tale — cinque tessere e
 // sopra le stesse accese, tagliate al punto giusto: stamparne cinque piene per
 // un 4,6 è il modo più veloce per far sembrare finto un numero vero. Il taglio
 // è calcolato in pixel e non in percentuale della riga, perché tra una tessera
 // e l'altra c'è aria: la percentuale sulla larghezza totale cadrebbe ogni
-// volta un po' più in là del punto giusto.
+// volta un po' più in là del punto giusto. Sul voto di una singola recensione,
+// che è un intero, il taglio non capita mai in mezzo a una tessera.
 function CliStelleTessere({ voto, lato = 30, aria = 6 }) {
   const intero = Math.floor(voto);
   const piena = Math.min(intero * (lato + aria) + (voto - intero) * lato, 5 * lato + 4 * aria);
@@ -487,8 +474,8 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
                     <span style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.autore}</span>
                     <span style={{fontSize: 13, color: PN.MUTED_SOFT, whiteSpace:'nowrap', flexShrink: 0}}>{r.quando}</span>
                   </span>
-                  <span style={{display:'flex', marginTop: 6}}>
-                    <CliStelle voto={r.stelle} lato={16}/>
+                  <span style={{display:'flex', marginTop: 7}}>
+                    <CliStelleTessere voto={r.stelle} lato={20} aria={4}/>
                   </span>
                 </span>
               </div>
@@ -524,12 +511,15 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
               }}>
                 {/* La riga che solo byup può scrivere: la recensione nasce da
                     un ordine pagato qui, quindi si sa che quella persona c'è
-                    stata e cosa ha mangiato. */}
+                    stata davvero.
+                    Il piatto stava qui accanto — «Ordine verificato ·
+                    Amatriciana» — ed è uscito: la scheda parla di quanto è
+                    andata bene la serata, e il nome di un piatto in fondo si
+                    legge come se la recensione fosse di quel piatto. Il dato
+                    resta nei dati, per quando avrà una sua colonna. */}
                 <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13.5, color: PN.MUTED_SOFT, minWidth: 0}}>
                   <Icon name="status-success" size={13}/>
-                  <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-                    Ordine verificato · <strong style={{color: PN.TEXT, fontWeight: 600}}>{r.piatto}</strong>
-                  </span>
+                  <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Ordine verificato</span>
                 </span>
 
                 {segn ? (
