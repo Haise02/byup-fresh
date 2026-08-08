@@ -442,11 +442,18 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
           `alignItems:'start'`: ogni scheda alta quanto quello che ha da dire —
           tirate all'altezza della vicina, una recensione di due righe si
           porterebbe dietro mezzo riquadro vuoto. */}
-      <div className="pn-scroll" style={{
-        maxHeight: 560, overflowY:'auto', paddingRight: 4,
-        display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14,
-        alignContent:'start', alignItems:'start',
-      }}>
+      {/* Le schede erano grigie su bianco: un testo scuro su un grigio chiaro
+          si legge meno di quanto si legga sul bianco, e a otto schede la
+          griglia diventava una macchia sola. Si invertono — schede bianche
+          dentro una vasca grigia — e ognuna torna a essere un foglio: il testo
+          sta sul fondo che gli dà più contrasto, e a staccarle è lo sfondo
+          sotto invece di un bordo attorno. */}
+      <div style={{background: PN.BG, borderRadius: 16, padding: 14}}>
+        <div className="pn-scroll" style={{
+          maxHeight: 540, overflowY:'auto', paddingRight: 4,
+          display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14,
+          alignContent:'start', alignItems:'start',
+        }}>
         {visibili.map((r, i) => {
           const segn = segnalate[chiave(r)];
           return (
@@ -457,7 +464,8 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
                recensione byup deve somigliare a una recensione byup. */
             <div key={i} style={{
               borderRadius: 18, padding:'18px 20px 15px',
-              background: segn ? '#FFFBF1' : PN.WHITE_HUSH,
+              background: segn ? '#FFFBF1' : PN.WHITE,
+              boxShadow: PN.CARD_SHADOW,
               minWidth: 0, display:'flex', flexDirection:'column', gap: 13,
             }}>
               <div style={{display:'flex', alignItems:'center', gap: 13, minWidth: 0}}>
@@ -559,6 +567,7 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
             <span style={{fontSize: 14}}>Negli ultimi 12 mesi ne sono arrivate {suDodiciMesi}.</span>
           </div>
         )}
+        </div>
       </div>
 
       {inSegnalazione && (
