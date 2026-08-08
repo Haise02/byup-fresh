@@ -1782,14 +1782,13 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
             <ScollegaBtn onClick={() => setGoogleUnlink(true)}/>
           </div>
         ) : (
-          <>
-            <GoogleConnectBtn busy={googleBusy} onClick={connectGoogle}/>
-            {/* Il requisito sta sotto al bottone, non dentro al sottotitolo:
-                serve a chi il collegamento lo sta per tentare, ed è la ragione
-                per cui a qualcuno fallirà. */}
+          // Il requisito a sinistra e il bottone sulla stessa riga, a destra:
+          // è la condizione da leggere prima del gesto, non una nota a piè di
+          // card. Sotto i 230px di testo la riga va a capo e il bottone scende.
+          <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap'}}>
             <div style={{
+              flex: 1, minWidth: 230,
               display:'flex', alignItems:'flex-start', gap: 8,
-              marginTop: 12,
               fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45,
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="1.8"
@@ -1800,7 +1799,8 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
                 Servono il profilo Google del locale già rivendicato e verificato, e il ruolo di proprietario o amministratore su quel profilo.
               </span>
             </div>
-          </>
+            <GoogleConnectBtn busy={googleBusy} onClick={connectGoogle}/>
+          </div>
         )}
       </ImpCard>
 
