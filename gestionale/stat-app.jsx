@@ -273,19 +273,6 @@ function ConvFunnel({ passi, rimborsi }) {
             </div>
           ))}
 
-          {/* Il confronto resta in grigio e a parole, non in pastiglia: la
-              pastiglia dipinge di rosso i cali, e i rimborsi che calano sono
-              una buona notizia. Qui il verde e il rosso mentirebbero. */}
-          <span style={{
-            marginLeft:'auto', display:'inline-flex', alignItems:'center', gap: 5,
-            padding:'5px 11px', borderRadius: 999, flexShrink: 0,
-            background: PN.WHITE, boxShadow:`inset 0 0 0 1px ${PN.BORDER_HAIR}`,
-            fontSize: 12.5, fontWeight: 600, color: PN.MUTED,
-            whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
-          }}>
-            <span style={{fontSize: 11.5}}>{rimborsi.delta <= 0 ? '↓' : '↑'}</span>
-            {Math.abs(rimborsi.delta).toFixed(1).replace('.', ',')}% sul periodo prima
-          </span>
         </div>
       )}
     </div>
