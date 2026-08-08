@@ -1782,12 +1782,30 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
             <ScollegaBtn onClick={() => setGoogleUnlink(true)}/>
           </div>
         ) : (
-          <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap'}}>
-            <div style={{flex:1, minWidth: 230, fontSize:14.5, color:PN.MUTED, lineHeight:1.45}}>
-              Nessun account collegato: le recensioni che i clienti lasciano su Google non compaiono sulla vetrina.
+          <>
+            <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap'}}>
+              <div style={{flex:1, minWidth: 230, fontSize:14.5, color:PN.MUTED, lineHeight:1.45}}>
+                Nessun account collegato: le recensioni che i clienti lasciano su Google non compaiono sulla vetrina.
+              </div>
+              <GoogleConnectBtn busy={googleBusy} onClick={connectGoogle}/>
             </div>
-            <GoogleConnectBtn busy={googleBusy} onClick={connectGoogle}/>
-          </div>
+            {/* Il requisito sta sotto al bottone, non dentro al sottotitolo:
+                serve a chi il collegamento lo sta per tentare, ed è la ragione
+                per cui a qualcuno fallirà. */}
+            <div style={{
+              display:'flex', alignItems:'flex-start', gap: 8,
+              marginTop: 14, paddingTop: 12, borderTop: `1px solid ${PN.BORDER_SOFT}`,
+              fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45,
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="1.8"
+                strokeLinecap="round" style={{flexShrink: 0, marginTop: 2}}>
+                <circle cx="12" cy="12" r="9.5"/><line x1="12" y1="11" x2="12" y2="16.5"/><line x1="12" y1="7.6" x2="12.01" y2="7.6"/>
+              </svg>
+              <span>
+                Servono il profilo Google del locale già rivendicato e verificato, e il ruolo di proprietario o amministratore su quel profilo.
+              </span>
+            </div>
+          </>
         )}
       </ImpCard>
 
