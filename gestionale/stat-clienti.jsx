@@ -23,23 +23,9 @@
 // account Google. Basta un punto del colore giusto accanto al nome: la
 // pastiglia piena con dentro la tessera e l'iniziale era tre oggetti per dire
 // una parola.
-const CLI_FONTI = {
-  byup:   { et:'byup',   colore: PN.PINK },
-  google: { et:'Google', colore:'#4285F4' },
-};
-
-function CliFonte({ fonte, lato = 12.5 }) {
-  const f = CLI_FONTI[fonte] || CLI_FONTI.byup;
-  return (
-    <span style={{
-      display:'inline-flex', alignItems:'center', gap: 6,
-      color: f.colore, fontSize: lato, fontWeight: 600, whiteSpace:'nowrap',
-    }}>
-      <span style={{width: 6, height: 6, borderRadius:'50%', background: f.colore, flexShrink: 0}}/>
-      {f.et}
-    </span>
-  );
-}
+// Del segno di provenienza è rimasto solo il blu, e solo per Google: byup non
+// ha più bisogno di dirsi, perché è tutto quello che c'è in questa card.
+const CLI_BLU_GOOGLE = '#4285F4';
 
 // ─── Stelle ────────────────────────────────────────────────────
 // La stella, unica per tutta la pagina, nella stessa forma dell'app.
@@ -122,8 +108,11 @@ function CliVoto({ d, stelleSel, onScegli }) {
           e mezzo con dentro stelle da dodici pixel si legge come una nota a
           piè di pagina — mentre qui c'è il voto, cioè la cosa per cui si apre
           la card. */}
+      {/* Nessuna etichetta sopra il numero: «byup» c'era, ma la riga sotto dice
+          già che sono le recensioni di chi ha ordinato e pagato qui, e Google
+          si presenta da sé in testa alla card. Erano due parole per dire una
+          cosa detta due volte più sotto. */}
       <div>
-        <div style={{marginBottom: 11}}><CliFonte fonte="byup" lato={14.5}/></div>
         <div style={{fontSize: 60, fontWeight: 700, color: PN.TEXT, letterSpacing:-2.4, lineHeight: 0.82}}>
           {b.media.toFixed(1).replace('.', ',')}
         </div>
@@ -208,7 +197,7 @@ function CliGoogle({ g }) {
       whiteSpace:'nowrap', flexShrink: 0,
     }} title="Le recensioni Google le lascia chiunque abbia un account Google, anche chi non ha mai ordinato da te: restano fuori dal voto qui accanto.">
       <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13.5, color: PN.MUTED}}>
-        <span style={{width: 7, height: 7, borderRadius:'50%', background: CLI_FONTI.google.colore, flexShrink: 0}}/>
+        <span style={{width: 7, height: 7, borderRadius:'50%', background: CLI_BLU_GOOGLE, flexShrink: 0}}/>
         Google, aperte a chiunque
       </span>
       <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
@@ -265,17 +254,22 @@ function CliAndamento({ d, mesiEt }) {
        tra la legenda — rimasta in cima — e le barre, che sembravano scivolate
        via da lei. */
     <div style={{minWidth: 0, display:'flex', flexDirection:'column', justifyContent:'center'}}>
-      <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap', marginBottom: 4}}>
+      {/* La legenda è la chiave del disegno: dice cosa sono le barre e cosa è
+          la linea, e a tredici pixel in grigio chiaro si leggeva dopo il
+          grafico invece che prima. Sale al corpo delle legende di Economici —
+          quattordici e mezzo, grigio medio — e i segni crescono con lei. Resta
+          una legenda: non prende il nero, che qui è della media. */}
+      <div style={{display:'flex', alignItems:'center', gap: 20, flexWrap:'wrap', marginBottom: 6}}>
         {/* Le barre si riprendono il corallo — sono il corpo del disegno, e
             in grigio erano lo sfondo di sé stesse — e la media passa al nero:
             due cose diverse non possono essere la stessa tinta a due
             opacità, e tra le due quella che si conta è il volume. */}
-        <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
-          <span style={{width: 8, height: 8, borderRadius: 2, background: PN.PINK}}/>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 8, fontSize: 14.5, color: PN.MUTED}}>
+          <span style={{width: 10, height: 10, borderRadius: 3, background: PN.PINK, flexShrink: 0}}/>
           recensioni del mese
         </span>
-        <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
-          <span style={{width: 13, height: 2, borderRadius: 2, background: PN.TEXT}}/>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 8, fontSize: 14.5, color: PN.MUTED}}>
+          <span style={{width: 16, height: 2.5, borderRadius: 2, background: PN.TEXT, flexShrink: 0}}/>
           media, da 3,5 a 5
         </span>
       </div>
