@@ -225,8 +225,6 @@ function ImpPersonale() {
       return {
         key: `d-${i}`, tipo: 'dispositivo', dato: d, idx: i,
         nome: d.name, sotto: stampante ? d.ip : d.username,
-        // La visualizzazione è del monitor: una stampante non ha portate.
-        vista: stampante ? null : (KDS_VIEWS.find(v => v.id === d.kdsView) || null),
         ruolo: DEVICE_ROLES[d.deviceType] || DEVICE_ROLE, gruppo: '_devices',
         accesso: stampante
           ? { titolo: 'Cassa', sotto: 'Scontrini e comande' }
@@ -253,8 +251,7 @@ function ImpPersonale() {
     if (statoFiltro === 'attivi' && !r.attivo) return false;
     if (statoFiltro === 'disattivati' && r.attivo) return false;
     if (!q) return true;
-    return [r.nome, r.sotto, r.ruolo.label, r.vista && r.vista.short]
-      .some(v => v && String(v).toLowerCase().includes(q));
+    return [r.nome, r.sotto, r.ruolo.label].some(v => String(v).toLowerCase().includes(q));
   });
 
   const PANNELLO = {
@@ -294,11 +291,7 @@ function ImpPersonale() {
 
       {/* Tre colonne: ruoli a sinistra, elenco al centro (più stretto),
           e a destra gli accessi rapidi col ruolo su misura sotto. */}
-      {/* 176 e non 248 ai lati: i 144px che tornano servono alla tabella, dove
-          il ruolo di un dispositivo dice «Kitchen Monitor» con accanto, sulla
-          stessa riga, la visualizzazione con cui lavora. I due pannelli sono
-          un elenco di parole corte e due card che vanno a capo da sole. */}
-      <div style={{display:'grid', gridTemplateColumns:'176px minmax(0, 1fr) 176px', gap: 14, alignItems:'start'}}>
+      <div style={{display:'grid', gridTemplateColumns:'248px minmax(0, 1fr) 248px', gap: 14, alignItems:'start'}}>
         <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
           <section style={PANNELLO}>
             <div style={{padding:'16px 18px 12px'}}>
@@ -322,8 +315,8 @@ function ImpPersonale() {
                       onClick={() => setGruppo(g.id)}
                       className="pn-btn-feedback"
                       style={{
-                        width:'100%', display:'flex', alignItems:'center', gap: 8,
-                        padding:'9px 9px', borderRadius: 10,
+                        width:'100%', display:'flex', alignItems:'center', gap: 10,
+                        padding:'9px 10px', borderRadius: 10,
                         border: `1.5px solid ${on ? 'rgba(255, 90, 95, 0.55)' : 'transparent'}`,
                         background: on ? '#FFF7F6' : 'transparent',
                         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
@@ -342,13 +335,10 @@ function ImpPersonale() {
                         color: on ? PN.PINK_DARK : PN.TEXT,
                         overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                       }}>{g.label}</span>
-                      {/* Niente più 24px tenuti liberi per la matita: quella è
-                          in posizione assoluta e in hover può passare sopra il
-                          numero. In una colonna da 176 quello spazio era la
-                          differenza fra «Cameriere» e «Camerie…». */}
                       <span style={{
                         fontSize: 13, fontWeight: 700, flexShrink: 0,
                         color: on ? PN.PINK_DARK : PN.MUTED,
+                        marginRight: ruoloVero ? 24 : 0,
                       }}>{n}</span>
                     </button>
                     {ruoloVero && (
@@ -430,7 +420,6 @@ function ImpPersonale() {
 
           <div style={{
             display:'grid', gridTemplateColumns: GRIGLIA_ACCESSI,
-            justifyContent:'space-between',
             gap: 10, padding:'11px 14px',
             borderBottom:`1px solid ${PN.BORDER_SOFT}`,
             fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
@@ -494,12 +483,7 @@ function ImpPersonale() {
 
 // Colonne della tabella accessi — una sola definizione per testata e righe,
 // così non possono scivolare l'una rispetto all'altra.
-// Ogni colonna larga quanto il suo contenuto chiede — il nome con l'avatar,
-// «Kitchen Monitor» con la visualizzazione in linea, la pastiglia di stato, il
-// menu — e lo spazio che avanza diviso in parti uguali fra l'una e l'altra
-// (justifyContent: space-between sulla riga). Prima una sola colonna si teneva
-// tutto l'avanzo e le altre sembravano spinte via.
-const GRIGLIA_ACCESSI = '150px 218px 112px 34px';
+const GRIGLIA_ACCESSI = 'minmax(0, 2.2fr) minmax(0, 1.2fr) 112px 34px';
 
 const DEVICE_ROLE = {
   id: '_device', label: 'Dispositivo', icon: 'monitor',
@@ -579,7 +563,6 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
   return (
     <div style={{
       display:'grid', gridTemplateColumns: GRIGLIA_ACCESSI,
-      justifyContent:'space-between',
       gap: 10, alignItems:'center', padding:'12px 14px',
       borderBottom: ultima ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
       position:'relative',
@@ -612,9 +595,10 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         </div>
       </div>
 
-      {/* Ruolo — e per un monitor, accanto, come vede gli ordini. Va a capo
-          quando la colonna non basta per tenerle in linea. */}
-      <div style={{minWidth: 0, display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap', rowGap: 4}}>
+      {/* Ruolo. La visualizzazione del monitor (Pub / Ristorante) non sta qui:
+          in questa colonna una seconda pastiglia costa più di quello che dice,
+          e chi la vuole sapere apre «Modifica», dov'è la scelta vera. */}
+      <div style={{minWidth: 0}}>
         <span style={{
           display:'inline-flex', alignItems:'center', gap: 5, maxWidth:'100%',
           padding:'4px 10px', borderRadius: 999,
@@ -628,18 +612,6 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
           {r.tipo !== 'dispositivo' && (BuIcons[r.ruolo.icon]||BuIcons.user)({size: 12, color:'currentColor'})}
           <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.ruolo.label}</span>
         </span>
-        {/* Senza icona anche qui: «Pub» e «Ristorante» si spiegano da sé, e i
-            16px risparmiati vanno al nome nella colonna accanto. */}
-        {r.vista && (
-          <span title={r.vista.desc} style={{
-            display:'inline-flex', alignItems:'center', maxWidth:'100%',
-            padding:'3px 9px', borderRadius: 999,
-            background: PN.WHITE, border:`1px solid ${PN.BORDER}`, color: PN.MUTED,
-            fontSize: 13, fontWeight: 700,
-          }}>
-            <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.vista.short}</span>
-          </span>
-        )}
       </div>
 
       {/* Stato: solo la pastiglia — l'ultimo accesso («Online ora», «ieri»)
