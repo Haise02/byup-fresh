@@ -1829,13 +1829,10 @@ function DispositivoStep({ setTeam }) {
           <DeviceForm st={dev} tipoFisso={selDevice}/>
         </div>
 
-        <div style={{display:'flex', alignItems:'center', gap: 12, marginTop: 14, flexWrap:'wrap'}}>
-          <span style={{color: PN.GREEN || '#16A34A', display:'inline-flex', flexShrink: 0}}>
-            {BuIcons.shield({size: 15, color:'currentColor'})}
-          </span>
-          <span style={{fontSize: 13, color: PN.MUTED, flex: 1, minWidth: 180}}>
-            Potrai aggiungere altri dispositivi in qualsiasi momento.
-          </span>
+        {/* Solo la CTA: la rassicurazione «potrai aggiungerne altri» la dice
+            già il cappello della sezione, e ripetuta col lucchetto verde
+            sembrava una nota legale sotto un modulo di tre campi. */}
+        <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end', marginTop: 14}}>
           {/* CTA finale: si accende quando il dispositivo e configurato davvero,
               come faceva il piede della modale che ha sostituito. */}
           <ImpButton variant="pink" disabled={!dev.deviceValid} onClick={aggiungiDispositivo}>
