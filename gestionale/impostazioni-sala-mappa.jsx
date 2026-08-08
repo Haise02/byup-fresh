@@ -93,6 +93,20 @@ function FloorPlan({
   const [paletteDrag, setPaletteDrag] = React.useState(null); // {type: 'table' | 'furniture-X'}
   const [selectedFurniture, setSelectedFurniture] = React.useState(null);
   const [hoverTable, setHoverTable] = React.useState(null);
+  // Tolleranza sull'uscita dall'hover: la barra «Ruota» sta SOPRA il tavolo e
+  // fra i due c'è un vuoto. Spegnendo l'hover appena il mouse lascia la tile,
+  // la barra spariva prima che si riuscisse a raggiungerla. Entrare — sulla
+  // tile o sulla barra — annulla il timer di uscita.
+  const hoverTimer = React.useRef(null);
+  const entraTavolo = React.useCallback((id) => {
+    clearTimeout(hoverTimer.current);
+    setHoverTable(id);
+  }, []);
+  const esceTavolo = React.useCallback(() => {
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHoverTable(null), 320);
+  }, []);
+  React.useEffect(() => () => clearTimeout(hoverTimer.current), []);
   const justDraggedRef = React.useRef(false);
   const [fullscreen, setFullscreen] = React.useState(false);
 
@@ -667,8 +681,8 @@ function FloorPlan({
                 pitch={CELL}
                 left={left}
                 top={top}
-                onEnter={() => setHoverTable(t.id)}
-                onLeave={() => setHoverTable(h => (h === t.id ? null : h))}
+                onEnter={() => entraTavolo(t.id)}
+                onLeave={esceTavolo}
                 onPointerDown={(e) => handleMouseDown(e, 'table', t.id, dims.w/2, dims.h/2)}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -819,21 +833,26 @@ function FloorPlan({
             const maxX = Math.max(...rects.map(r => r.x + r.w)) * CELL;
             const minY = Math.min(...rects.map(r => r.y)) * CELL;
             const maxY = Math.max(...rects.map(r => r.y + r.h)) * CELL;
-            const sopra = minY - 34;
+            const sopra = minY - 32;
+            const sottoIlTavolo = sopra < 2;
             return (
               <div
                 onClick={e => e.stopPropagation()}
                 onPointerDown={e => e.stopPropagation()}
                 // La barra tiene vivo l'hover: senza, passando dal tavolo alla
                 // barra questa spariva prima di essere raggiunta.
-                onMouseEnter={() => setHoverTable(t.id)}
-                onMouseLeave={() => setHoverTable(h => (h === t.id ? null : h))}
+                onMouseEnter={() => entraTavolo(t.id)}
+                onMouseLeave={esceTavolo}
                 style={{
                   position: 'absolute', left: (minX + maxX) / 2,
-                  top: sopra >= 2 ? sopra : maxY + 8,
+                  top: sottoIlTavolo ? maxY + 6 : sopra,
                   transform: 'translateX(-50%)', zIndex: 26,
                   display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '5px 7px', borderRadius: 13,
+                  // Il ponte: il padding dal lato del tavolo allarga l'area
+                  // sensibile fin quasi al corpo, così il mouse «arriva» sulla
+                  // barra senza attraversare il vuoto.
+                  padding: sottoIlTavolo ? '11px 7px 5px' : '5px 7px 11px',
+                  borderRadius: 13,
                   backgroundColor: 'rgba(255,255,255,0.72)',
                   backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)',
                   backdropFilter: 'blur(20px) saturate(140%)',
