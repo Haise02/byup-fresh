@@ -72,10 +72,12 @@ const AVAILABLE_PRINTERS = [
 // tavolo non deve ricollegare il monitor.
 // Le icone dicono il comportamento e non il tipo di locale: quello lo dice già
 // il nome, mentre la differenza che conta è tutto-insieme contro diviso.
+// `short`: in elenco la pastiglia sta accanto a «Kitchen Monitor», e «Visualizza-
+// zione» lì è la parola che si capisce da sé — resta «Pub» / «Ristorante».
 const KDS_VIEWS = [
-  { id: 'pub', label: 'Visualizzazione Pub', icon: 'bolt',
+  { id: 'pub', label: 'Visualizzazione Pub', short: 'Pub', icon: 'bolt',
     desc: 'Tutte le righe escono insieme' },
-  { id: 'ristorante', label: 'Visualizzazione Ristorante', icon: 'split',
+  { id: 'ristorante', label: 'Visualizzazione Ristorante', short: 'Ristorante', icon: 'split',
     desc: 'Le righe partono una portata alla volta' },
 ];
 
@@ -146,9 +148,12 @@ const PERSONS = [
   { name: 'Luca Ferretti', email: 'luca@delborgo.it', role: 'sommelier', last: '3 ore fa', online: false, color: '#7C3AED', active: false },
 ];
 
+// kdsView: la visualizzazione scelta al collegamento (vedi KDS_VIEWS). Sta sul
+// dispositivo e non sul locale perché due monitor dello stesso locale possono
+// lavorare in due modi — la pizza esce tutta insieme, la sala va per portate.
 const DEVICES = [
-  { name: 'Monitor cucina principale', username: 'PG1-cucina', deviceType: 'kitchen-monitor', last: 'ora', online: true },
-  { name: 'Monitor pizza', username: 'PG1-pizza', deviceType: 'kitchen-monitor', last: '5 min fa', online: true },
+  { name: 'Monitor cucina principale', username: 'PG1-cucina', deviceType: 'kitchen-monitor', kdsView: 'ristorante', last: 'ora', online: true },
+  { name: 'Monitor pizza', username: 'PG1-pizza', deviceType: 'kitchen-monitor', kdsView: 'pub', last: '5 min fa', online: true },
   { name: 'Cassa principale', printerModel: 'Epson TM-T20III', ip: '192.168.1.101', deviceType: 'printer', last: '2 min fa', online: true, menuId: 'principale', cats: ['antipasti','primi','dolci'] },
 ];
 
@@ -220,7 +225,9 @@ function ImpPersonale() {
       return {
         key: `d-${i}`, tipo: 'dispositivo', dato: d, idx: i,
         nome: d.name, sotto: stampante ? d.ip : d.username,
-        ruolo: DEVICE_ROLE, gruppo: '_devices',
+        // La visualizzazione è del monitor: una stampante non ha portate.
+        vista: stampante ? null : (KDS_VIEWS.find(v => v.id === d.kdsView) || null),
+        ruolo: DEVICE_ROLES[d.deviceType] || DEVICE_ROLE, gruppo: '_devices',
         accesso: stampante
           ? { titolo: 'Cassa', sotto: 'Scontrini e comande' }
           : { titolo: 'Cucina', sotto: 'Schermo comande' },
@@ -246,7 +253,8 @@ function ImpPersonale() {
     if (statoFiltro === 'attivi' && !r.attivo) return false;
     if (statoFiltro === 'disattivati' && r.attivo) return false;
     if (!q) return true;
-    return [r.nome, r.sotto, r.ruolo.label].some(v => String(v).toLowerCase().includes(q));
+    return [r.nome, r.sotto, r.ruolo.label, r.vista && r.vista.short]
+      .some(v => v && String(v).toLowerCase().includes(q));
   });
 
   const PANNELLO = {
@@ -286,7 +294,12 @@ function ImpPersonale() {
 
       {/* Tre colonne: ruoli a sinistra, elenco al centro (più stretto),
           e a destra gli accessi rapidi col ruolo su misura sotto. */}
-      <div style={{display:'grid', gridTemplateColumns:'248px minmax(0, 1fr) 248px', gap: 14, alignItems:'start'}}>
+      {/* 220 e non 248 ai due lati: i 56px che tornano vanno alla tabella, che
+          da quando il ruolo di un dispositivo dice «Kitchen Monitor» e non
+          «Dispositivo» ha una colonna in più da far entrare. Le due colonne
+          laterali sono elenchi di parole corte e card che vanno a capo: 28px in
+          meno non li cambia. */}
+      <div style={{display:'grid', gridTemplateColumns:'220px minmax(0, 1fr) 220px', gap: 14, alignItems:'start'}}>
         <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
           <section style={PANNELLO}>
             <div style={{padding:'16px 18px 12px'}}>
@@ -478,11 +491,27 @@ function ImpPersonale() {
 
 // Colonne della tabella accessi — una sola definizione per testata e righe,
 // così non possono scivolare l'una rispetto all'altra.
-const GRIGLIA_ACCESSI = 'minmax(0, 2.2fr) minmax(0, 1.2fr) 112px 34px';
+// La colonna del ruolo è a misura fissa e non in frazioni: deve contenere
+// «Kitchen Monitor» intero, e in 1.2fr di una tabella schiacciata fra due
+// pannelli diventava «Kitch…». Il nome, che di suo è più elastico, prende
+// quello che resta.
+const GRIGLIA_ACCESSI = 'minmax(0, 1fr) 146px 112px 34px';
 
 const DEVICE_ROLE = {
   id: '_device', label: 'Dispositivo', icon: 'monitor',
   color: '#475569', bg: '#F1F5F9',
+};
+
+// In riga il ruolo dice che cosa È il dispositivo, non che è un dispositivo:
+// «Dispositivo» su tre righe su tre nascondeva l'unica cosa che si vuole sapere
+// a colpo d'occhio, se quello è un monitor o una stampante. La stampante prende
+// il blu che ha già nel modulo di collegamento. Il filtro a sinistra resta uno
+// solo — «Dispositivi» — perché lì si cerca la famiglia, non il pezzo.
+const DEVICE_ROLES = {
+  'kitchen-monitor': { id: '_device_monitor', label: 'Kitchen Monitor', icon: 'monitor',
+    color: '#475569', bg: '#F1F5F9' },
+  'printer':         { id: '_device_printer', label: 'Stampante', icon: 'doc',
+    color: PN.BLUE, bg: PN.BLUE_SOFT },
 };
 
 // Che cosa vede davvero un ruolo, detto in due righe: la prima le sezioni,
@@ -578,8 +607,10 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         </div>
       </div>
 
-      {/* Ruolo */}
-      <div style={{minWidth: 0}}>
+      {/* Ruolo — e per un monitor, accanto, come vede gli ordini. Due pastiglie
+          che vanno a capo insieme invece di stringersi: in colonna stretta
+          «Kitchen Monitor» diventava «Kitchen M…» per far posto a «Pub». */}
+      <div style={{minWidth: 0, display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap', rowGap: 4}}>
         <span style={{
           display:'inline-flex', alignItems:'center', gap: 5, maxWidth:'100%',
           padding:'4px 10px', borderRadius: 999,
@@ -589,6 +620,17 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
           {(BuIcons[r.ruolo.icon]||BuIcons.user)({size: 12, color:'currentColor'})}
           <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.ruolo.label}</span>
         </span>
+        {r.vista && (
+          <span title={r.vista.desc} style={{
+            display:'inline-flex', alignItems:'center', gap: 4, maxWidth:'100%',
+            padding:'3px 9px', borderRadius: 999,
+            background: PN.WHITE, border:`1px solid ${PN.BORDER}`, color: PN.MUTED,
+            fontSize: 13, fontWeight: 700,
+          }}>
+            {(BuIcons[r.vista.icon]||BuIcons.monitor)({size: 11, color:'currentColor'})}
+            <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.vista.short}</span>
+          </span>
+        )}
       </div>
 
       {/* Stato: solo la pastiglia — l'ultimo accesso («Online ora», «ieri»)
@@ -1267,6 +1309,9 @@ function InviteModal({ onClose, prefill }) {
     } else {
       setDeviceTypeId(editDevice.deviceType || 'kitchen-monitor');
       if (editDevice.username) setUsername(editDevice.username.replace('PG1-', ''));
+      // Aprire la modifica di un monitor su «Pub» quando lavora per portate
+      // avrebbe cambiato la cucina a chi era entrato per cambiare il nome.
+      if (editDevice.kdsView) dev.setKdsView(editDevice.kdsView);
     }
     if (editDevice.name) setDeviceName(editDevice.name);
   }, []);
@@ -1764,7 +1809,10 @@ window.PERSONALE_TEAM_INITIAL = [
   { id: 't1', kind: 'person', name: 'Marco Rossi',    email: 'marco@delborgo.it',  role: 'Cassa',              status: 'active' },
   { id: 't2', kind: 'person', name: 'Giulia Bianchi', email: 'giulia@delborgo.it', role: 'Cameriere',          status: 'invited' },
   { id: 't3', kind: 'person', name: 'Luca Verdi',     email: 'luca@delborgo.it',   role: 'Cameriere',          status: 'active' },
-  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'PG1-cucina',         role: 'Dispositivo cucina', status: 'active' },
+  // «Kitchen Monitor» e non «Dispositivo cucina»: è quello che scrive
+  // aggiungiDispositivo qui sotto, e la riga di partenza non può chiamare la
+  // stessa cosa con un altro nome.
+  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'PG1-cucina',         role: 'Kitchen Monitor', status: 'active' },
 ];
 
 // Configurare un dispositivo e l'altra meta del passo: le persone si invitano, i
