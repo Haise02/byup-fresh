@@ -294,13 +294,7 @@ function ImpPersonale() {
 
       {/* Tre colonne: ruoli a sinistra, elenco al centro (più stretto),
           e a destra gli accessi rapidi col ruolo su misura sotto. */}
-      {/* Due colonne e non tre. La tabella è la pagina: da quando il ruolo di un
-          dispositivo dice «Kitchen Monitor · Ristorante» e non «Dispositivo»,
-          in mezzo a due pannelli le restavano 240px per nome e ruolo — i nomi
-          si tagliavano a metà e le pastiglie andavano a capo. «Accessi rapidi»
-          scende sotto i Ruoli, che è una colonna di schede laterali e li
-          ospita senza cambiare: sono due card che vanno a capo da sole. */}
-      <div style={{display:'grid', gridTemplateColumns:'236px minmax(0, 1fr)', gap: 14, alignItems:'start'}}>
+      <div style={{display:'grid', gridTemplateColumns:'248px minmax(0, 1fr) 248px', gap: 14, alignItems:'start'}}>
         <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
           <section style={PANNELLO}>
             <div style={{padding:'16px 18px 12px'}}>
@@ -393,35 +387,6 @@ function ImpPersonale() {
               style={{width:'100%', justifyContent:'center'}}
             >Crea ruolo</ImpButton>
           </section>
-
-          {/* Accessi rapidi: le due cose che da qui non si possono fare in
-              nessun altro modo. Collegare un dispositivo non ha un bottone in
-              testata — lassù si aggiungono persone — e gli inviti in sospeso
-              qui non ripetono il bottone, dicono chi sta aspettando. */}
-          <section style={PANNELLO}>
-            <div style={{padding:'16px 18px 12px'}}>
-              <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Accessi rapidi</div>
-            </div>
-            <div style={{padding:'0 12px 14px', display:'flex', flexDirection:'column', gap: 8}}>
-              <ScorciatoiaAccesso
-                icona={(BuIcons.monitor||BuIcons.phone)({size: 17, color:'currentColor'})}
-                colore={DEVICE_ROLE.color} sfondo={DEVICE_ROLE.bg}
-                titolo="Collega un dispositivo"
-                sotto="Monitor cucina, cassa o stampante"
-                onClick={() => setInvite({ roleId: null, kind: 'device' })}
-              />
-              <ScorciatoiaAccesso
-                icona={(BuIcons.mail||BuIcons.doc)({size: 17, color:'currentColor'})}
-                colore={PENDING.length ? '#B45309' : PN.MUTED}
-                sfondo={PENDING.length ? PN.AMBER_SOFT : '#F4F5F7'}
-                titolo={PENDING.length ? `${PENDING.length} inviti in attesa` : 'Nessun invito in sospeso'}
-                sotto={PENDING.length
-                  ? `${PENDING.map(p => p.email.split('@')[0]).join(', ')} non hanno ancora accettato`
-                  : 'Chi inviti comparirà qui finché non accetta'}
-                onClick={PENDING.length ? () => setShowPending(true) : undefined}
-              />
-            </div>
-          </section>
         </aside>
 
         <section style={PANNELLO}>
@@ -462,7 +427,7 @@ function ImpPersonale() {
             borderBottom:`1px solid ${PN.BORDER_SOFT}`,
             fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
           }}>
-            <span>Persona</span><span>Ruolo</span><span>Stato</span><span/><span/>
+            <span>Persona</span><span>Ruolo</span><span>Stato</span><span/>
           </div>
 
           {visibili.length === 0 ? (
@@ -478,6 +443,37 @@ function ImpPersonale() {
           ))}
         </section>
 
+        <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
+          {/* Accessi rapidi: le due cose che da qui non si possono fare in
+              nessun altro modo. Collegare un dispositivo non ha un bottone in
+              testata — lassù si aggiungono persone — e gli inviti in sospeso
+              qui non ripetono il bottone, dicono chi sta aspettando. */}
+          <section style={PANNELLO}>
+            <div style={{padding:'16px 18px 12px'}}>
+              <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Accessi rapidi</div>
+            </div>
+            <div style={{padding:'0 12px 14px', display:'flex', flexDirection:'column', gap: 8}}>
+              <ScorciatoiaAccesso
+                icona={(BuIcons.monitor||BuIcons.phone)({size: 17, color:'currentColor'})}
+                colore={DEVICE_ROLE.color} sfondo={DEVICE_ROLE.bg}
+                titolo="Collega un dispositivo"
+                sotto="Monitor cucina, cassa o stampante"
+                onClick={() => setInvite({ roleId: null, kind: 'device' })}
+              />
+              <ScorciatoiaAccesso
+                icona={(BuIcons.mail||BuIcons.doc)({size: 17, color:'currentColor'})}
+                colore={PENDING.length ? '#B45309' : PN.MUTED}
+                sfondo={PENDING.length ? PN.AMBER_SOFT : '#F4F5F7'}
+                titolo={PENDING.length ? `${PENDING.length} inviti in attesa` : 'Nessun invito in sospeso'}
+                sotto={PENDING.length
+                  ? `${PENDING.map(p => p.email.split('@')[0]).join(', ')} non hanno ancora accettato`
+                  : 'Chi inviti comparirà qui finché non accetta'}
+                onClick={PENDING.length ? () => setShowPending(true) : undefined}
+              />
+            </div>
+          </section>
+        </aside>
+
       </div>
 
       {showCreateRole && <CreateRoleModal onClose={() => setShowCreateRole(false)}/>}
@@ -490,12 +486,7 @@ function ImpPersonale() {
 
 // Colonne della tabella accessi — una sola definizione per testata e righe,
 // così non possono scivolare l'una rispetto all'altra.
-// Colonne a misura e impaccate a sinistra, con l'aria in fondo: il ruolo deve
-// contenere «Kitchen Monitor» e la sua visualizzazione sulla stessa riga, e in
-// frazioni si stringeva finché «Kitchen Monitor» diventava «Kitch…». Lo spazio
-// che avanza sta in un vuoto prima del menu, che resta appeso a destra: meglio
-// lì che spalmato a spingere le colonne l'una lontana dall'altra.
-const GRIGLIA_ACCESSI = '244px 252px 116px minmax(0, 1fr) 34px';
+const GRIGLIA_ACCESSI = 'minmax(0, 2.2fr) minmax(0, 1.2fr) 112px 34px';
 
 const DEVICE_ROLE = {
   id: '_device', label: 'Dispositivo', icon: 'monitor',
@@ -607,9 +598,9 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         </div>
       </div>
 
-      {/* Ruolo — e per un monitor, accanto sulla stessa riga, come vede gli
-          ordini: la colonna è larga apposta per tenerle in linea. */}
-      <div style={{minWidth: 0, display:'flex', alignItems:'center', gap: 6}}>
+      {/* Ruolo — e per un monitor, accanto, come vede gli ordini. Va a capo
+          quando la colonna non basta per tenerle in linea. */}
+      <div style={{minWidth: 0, display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap', rowGap: 4}}>
         <span style={{
           display:'inline-flex', alignItems:'center', gap: 5, maxWidth:'100%',
           padding:'4px 10px', borderRadius: 999,
@@ -646,9 +637,6 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
           {r.attivo ? 'Attivo' : 'Disattivato'}
         </span>
       </div>
-
-      {/* Il vuoto che tiene le colonne impaccate a sinistra e il menu a destra */}
-      <div/>
 
       {/* Azioni */}
       <div style={{display:'flex', justifyContent:'flex-end'}}>
