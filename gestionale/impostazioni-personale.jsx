@@ -1486,26 +1486,13 @@ function InviteModal({ onClose, prefill }) {
                       }}
                     />
                   </ImpField>
+                  {/* Stesso selettore del cambio ruolo: è la stessa scelta, e
+                      farla in due modi diversi in due finestre gemelle è il
+                      modo migliore per far sembrare due prodotti lo stesso. */}
                   <ImpField label="Ruolo">
-                    <div style={{position:'relative'}}>
-                      <select
-                        value={roleId}
-                        onChange={e => setRoleId(e.target.value)}
-                        style={{
-                          width:'100%', padding:'10px 34px 10px 12px',
-                          border:`1px solid ${PN.BORDER}`, borderRadius: 9,
-                          fontSize: 15.5, fontFamily:'inherit', outline:'none',
-                          background: PN.WHITE, color: PN.TEXT,
-                          appearance:'none', WebkitAppearance:'none', cursor:'pointer',
-                        }}>
-                        {allRolesForInvite.filter(r => !r.locked).map(r => (
-                          <option key={r.id} value={r.id}>{r.label}</option>
-                        ))}
-                      </select>
-                      <span style={{position:'absolute', right: 12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color: PN.MUTED, display:'inline-flex'}}>
-                        <PnI.ChevronDown size={12}/>
-                      </span>
-                    </div>
+                    <SelettoreRuolo
+                      ruoli={allRolesForInvite.filter(r => !r.locked)}
+                      valore={roleId} onScegli={setRoleId}/>
                   </ImpField>
                   <ImpField label="Messaggio opzionale">
                     <div style={{position:'relative'}}>
@@ -1694,6 +1681,92 @@ function InviteModal({ onClose, prefill }) {
   );
 }
 
+// ─── Selettore di ruolo ─────────────────────────────────────────────────────
+// Un <select> nativo apre l'elenco del sistema operativo: nessun colore, nessuna
+// descrizione, e su Windows un'altra tipografia. Ma soprattutto un ruolo non è
+// una parola in una lista — è un segno colorato e una frase che dice che cosa
+// vede chi lo ha, e sono proprio quelle due cose che servono per scegliere.
+// Stessa grammatica del menu «Tipo dispositivo»: bottone con il valore attuale,
+// elenco che si apre sotto, voce accesa in rosa.
+function SelettoreRuolo({ ruoli, valore, onScegli }) {
+  const [aperto, setAperto] = React.useState(false);
+  const box = React.useRef(null);
+  const sel = ruoli.find(r => r.id === valore) || ruoli[0];
+
+  // Click fuori: un menu che resta aperto dopo che si è guardato altrove è un
+  // menu che va chiuso a mano, e nessuno lo fa.
+  React.useEffect(() => {
+    if (!aperto) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setAperto(false); };
+    document.addEventListener('pointerdown', fuori);
+    return () => document.removeEventListener('pointerdown', fuori);
+  }, [aperto]);
+
+  const Voce = ({ r, on, onClick }) => (
+    <button onClick={onClick} style={{
+      display:'flex', width:'100%', alignItems:'center', gap: 10,
+      padding:'9px 10px', background: on ? PN.PINK_SOFT : 'transparent',
+      border:'none', borderRadius: 8, fontFamily:'inherit', cursor:'pointer', textAlign:'left',
+    }}
+      onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+      onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+    >
+      <span style={{
+        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+        background: r.bg, color: r.color, display:'grid', placeItems:'center',
+      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 14, color:'currentColor'})}</span>
+      <span style={{minWidth: 0}}>
+        <span style={{
+          display:'block', fontSize: 15, fontWeight: 700,
+          color: on ? PN.PINK_DARK : PN.TEXT,
+        }}>{r.label}</span>
+        <span style={{
+          display:'block', fontSize: 13, color: PN.MUTED, lineHeight: 1.35,
+          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+        }}>{r.desc}</span>
+      </span>
+    </button>
+  );
+
+  return (
+    <div ref={box} style={{position:'relative'}}>
+      <button onClick={() => setAperto(a => !a)} style={{
+        width:'100%', padding:'9px 12px', borderRadius: 9,
+        border:`1px solid ${aperto ? PN.PINK : PN.BORDER}`, background: PN.WHITE,
+        cursor:'pointer', fontFamily:'inherit',
+        display:'flex', alignItems:'center', gap: 10, textAlign:'left',
+        transition:'border-color 140ms ease',
+      }}>
+        <span style={{
+          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+          background: sel.bg, color: sel.color, display:'grid', placeItems:'center',
+        }}>{(BuIcons[sel.icon]||BuIcons.user)({size: 14, color:'currentColor'})}</span>
+        <span style={{flex: 1, minWidth: 0}}>
+          <span style={{display:'block', fontSize: 15.5, fontWeight: 600, color: PN.TEXT}}>{sel.label}</span>
+        </span>
+        <span style={{
+          display:'inline-flex', color: PN.MUTED, flexShrink: 0,
+          transform: aperto ? 'rotate(180deg)' : 'none', transition:'transform 140ms ease',
+        }}><PnI.ChevronDown size={14}/></span>
+      </button>
+
+      {aperto && (
+        <div style={{
+          position:'absolute', top:'calc(100% + 4px)', left: 0, right: 0, zIndex: 5,
+          background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: 10,
+          padding: 4, boxShadow:'0 10px 28px rgba(15, 17, 21, 0.12)',
+          maxHeight: 260, overflowY:'auto',
+        }} className="pn-scroll">
+          {ruoli.map(r => (
+            <Voce key={r.id} r={r} on={r.id === valore}
+              onClick={() => { onScegli(r.id); setAperto(false); }}/>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Resetta password (dal menu «⋯» della riga) ─────────────────────────────
 // Due passi, non uno: prima la password nuova, poi che cosa comporta darla. Il
 // secondo è lo stesso avviso della finestra di modifica — cambiare una password
@@ -1829,12 +1902,7 @@ function CambiaRuoloModal({ r, ruoli, onConferma, onClose }) {
             </div>
             <div style={{padding:'20px 24px'}}>
               <ImpField label="Ruolo" hint={acc.tutte}>
-                <select value={scelto} onChange={e => setScelto(e.target.value)} style={{
-                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                  borderRadius: 9, fontSize: 15.5, background: PN.WHITE, outline:'none',
-                }}>
-                  {ruoli.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
-                </select>
+                <SelettoreRuolo ruoli={ruoli} valore={scelto} onScegli={setScelto}/>
               </ImpField>
             </div>
             <div style={{
