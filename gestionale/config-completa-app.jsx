@@ -167,7 +167,7 @@ function ConfigCompletaApp() {
               <CfgStep num="1" label="Informazioni" sub="Chi sei e che atmosfera offri"
                 active={step === 'informazioni'} done={step !== 'informazioni'}
                 onClick={() => setStep('informazioni')}/>
-              <CfgStep num="2" label="Aspetto" sub="Foto, recensioni, social e FAQ"
+              <CfgStep num="2" label="Aspetto" sub="Foto, stile, social e FAQ"
                 active={step === 'aspetto'} done={step === 'personale'}
                 onClick={() => setStep('aspetto')}/>
               <CfgStep num="3" label="Personale" sub="Invita il tuo staff"
@@ -256,7 +256,7 @@ function ConfigCompletaApp() {
                   Aspetto
                 </div>
                 <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3, marginBottom: 16}}>
-                  Il volto della vetrina: foto, stile, recensioni Google, social e domande frequenti.
+                  Il volto della vetrina: foto, stile, social e domande frequenti.
                 </div>
 
                 {/* Tab fuse: foto e stile, poi social e FAQ, in un'unica pagina */}

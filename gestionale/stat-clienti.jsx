@@ -4,11 +4,14 @@
 // Questa pagina aveva ambra, corallo, blu, verde e rosso accesi nello stesso
 // sguardo: ogni informazione si era presa una tinta e una scatola, e il
 // risultato era che nessuna aveva più peso delle altre. Vale una regola sola,
-// da qui in giù: il corallo è byup — e le stelle sono byup — il blu è Google,
-// il rosso è un problema e il verde è il suo contrario (le due caselle che il
-// cliente spunta nell'app, che si leggono in coppia o non si leggono),
-// l'ambra è rimasta solo allo stato «Segnalata». Tutto il resto è grigio, e
-// niente ha un bordo se un filetto o un po' d'aria bastano a separarlo.
+// da qui in giù: il corallo è byup — e le stelle sono byup — il rosso è un
+// problema e il verde è il suo contrario (le due caselle che il cliente spunta
+// nell'app, che si leggono in coppia o non si leggono), l'ambra è rimasta solo
+// allo stato «Segnalata». Tutto il resto è grigio, e niente ha un bordo se un
+// filetto o un po' d'aria bastano a separarlo.
+// Il blu non c'è più insieme a Google: questa pagina parla delle recensioni
+// che nascono nell'app, e di un voto che sta su un'altra piattaforma non dice
+// più niente — né il numero in testa, né il pallino accanto a un nome.
 //
 // Le stelle erano ambra su fondo bianco, cioè le stelle di Google: la stessa
 // forma e lo stesso oro che il cliente vede sulla scheda Maps. Ma queste
@@ -17,16 +20,13 @@
 // corallo con dentro una stella bianca. È quello che ha visto chi ha votato,
 // ed è quello che deve vedere chi legge il voto.
 
-// ─── Le due provenienze ────────────────────────────────────────
-// Non sono la stessa cosa e la card non deve farle sembrare tali: una
-// recensione byup nasce da un ordine pagato qui — si sa che quella persona c'è
-// stata e cosa ha mangiato — una recensione Google la lascia chiunque abbia un
-// account Google. Basta un punto del colore giusto accanto al nome: la
-// pastiglia piena con dentro la tessera e l'iniziale era tre oggetti per dire
-// una parola.
-// Del segno di provenienza è rimasto solo il blu, e solo per Google: byup non
-// ha più bisogno di dirsi, perché è tutto quello che c'è in questa card.
-const CLI_BLU_GOOGLE = '#4285F4';
+// ─── Una provenienza sola ──────────────────────────────────────
+// C'erano due provenienze e un segno per distinguerle: un punto corallo per
+// byup, uno blu per Google. Poi le recensioni Google sono uscite dall'elenco —
+// senza ordine, senza caselle, senza piatto non avevano niente da mostrare in
+// una scheda fatta per queste — e alla fine è uscito anche il loro voto dalla
+// testa della card. Restava un segno per distinguere una cosa sola: qui dentro
+// è tutto byup, e dirlo su ogni riga era ripeterlo.
 
 // ─── Stelle ────────────────────────────────────────────────────
 // La stella, unica per tutta la pagina, nella stessa forma dell'app.
@@ -87,14 +87,12 @@ function CliStelleTessere({ voto, lato = 30, aria = 6 }) {
 // che lo separava dal grafico: una card sola, il voto incolonnato a sinistra e
 // il disegno che si prende tutto il resto.
 //
-// Il numero grande è quello byup, non la media delle due provenienze. Prima
+// Il numero grande è quello byup, non la media delle due provenienze. Le due
 // erano appaiate in fondo alla colonna, stessa dimensione e stesso peso, sotto
 // un 4,5 che le mescolava: la card diceva che valgono uguale, e non è vero.
 // Una recensione byup nasce da un ordine pagato qui — quella persona c'è stata
-// e si sa cosa ha mangiato — una Google la lascia chiunque abbia un account,
-// anche chi passava davanti. Quindi il voto vero è uno, con la sua media e il
-// suo totale in grande, e Google è una riga di servizio in fondo: non si
-// nasconde, ma non compete.
+// e si sa cosa ha mangiato — e su questa si prendono le decisioni, quindi il
+// voto è uno solo, con la sua media e il suo totale in grande.
 //
 // La colonna è stretta e va letta dall'alto in basso, non a righe che
 // attraversano: il numero, sotto le stelle, sotto su quante. Le tessere stanno
@@ -110,9 +108,8 @@ function CliVoto({ d, stelleSel, onScegli }) {
           piè di pagina — mentre qui c'è il voto, cioè la cosa per cui si apre
           la card. */}
       {/* Nessuna etichetta sopra il numero: «byup» c'era, ma la riga sotto dice
-          già che sono le recensioni di chi ha ordinato e pagato qui, e Google
-          si presenta da sé in testa alla card. Erano due parole per dire una
-          cosa detta due volte più sotto. */}
+          già che sono le recensioni di chi ha ordinato e pagato qui, e qui
+          dentro non c'è nient'altro da cui distinguerle. */}
       <div>
         <div style={{fontSize: 60, fontWeight: 700, color: PN.TEXT, letterSpacing:-2.4, lineHeight: 0.82}}>
           {b.media.toFixed(1).replace('.', ',')}
@@ -173,43 +170,6 @@ function CliVoto({ d, stelleSel, onScegli }) {
         })}
       </div>
 
-      {/* Google in fondo, a filo di grigio: il dato c'è — chi ha il locale lo
-          vuole sapere — ma non è quello su cui si prendono decisioni, e a
-          questa dimensione si legge come la nota che è.
-          Attaccato alla distribuzione, non spinto in fondo con
-          `marginTop:auto`: il grafico accanto ha un'altezza sua, e l'auto
-          apriva un buco in mezzo alla colonna. Meglio che l'aria avanzata
-          resti sotto, dove finire è normale. */}
-    </div>
-  );
-}
-
-// ─── Google, in testa e di lato ────────────────────────────────
-// Stava in fondo alla colonna del voto, in grigio chiarissimo: al punto giusto
-// della gerarchia ma nel punto sbagliato della pagina, perché per leggerlo
-// bisognava scendere sotto la distribuzione. In testa, allineato al titolo, si
-// vede subito e non toglie niente al 4,6 — è l'altro numero, quello che il
-// ristoratore sa di avere e che qualcuno gli chiederà.
-function CliGoogle({ g }) {
-  return (
-    <div style={{
-      display:'inline-flex', alignItems:'center', gap: 9,
-      padding:'7px 13px', borderRadius: 999, background: PN.WHITE_FROST,
-      whiteSpace:'nowrap', flexShrink: 0,
-    }} title="Le recensioni Google le lascia chiunque abbia un account Google, anche chi non ha mai ordinato da te: restano fuori dal voto qui accanto.">
-      {/* Solo «Google». La chiosa «aperte a chiunque» era il motivo per cui
-          quel voto non fa media con l'altro, e stava bene quando la riga era
-          in fondo alla colonna a giustificarsi; qui in testa, accanto al
-          titolo, è una spiegazione dove serve solo un'etichetta. Il perché
-          resta a portata di puntatore. */}
-      <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13.5, color: PN.MUTED}}>
-        <span style={{width: 7, height: 7, borderRadius:'50%', background: CLI_BLU_GOOGLE, flexShrink: 0}}/>
-        Google
-      </span>
-      <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
-        {g.media.toFixed(1).replace('.', ',')}
-      </span>
-      <span style={{fontSize: 13.5, color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>su {g.n}</span>
     </div>
   );
 }
@@ -381,8 +341,8 @@ function CliAndamento({ d, mesiEt }) {
 //
 // Solo byup. Le Google erano schede senza piatto, senza caselle e senza
 // «ordine verificato»: mezza scheda vuota a dire che di quella persona non
-// sappiamo niente. Il loro numero sta in testa alla card, che è quanto serve —
-// leggerle si va a farlo su Google, che è dove qualcuno le ha scritte.
+// sappiamo niente. Leggerle si va a farlo su Google, che è dove qualcuno le ha
+// scritte, e questa pagina non ne tiene più nemmeno il conto.
 //
 // Al posto di questa sezione c'era la classifica delle caselle spuntate
 // nell'app. I conteggi tornano qui come barra di filtri: la classifica era da
@@ -674,14 +634,14 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
 }
 
 // ─── Segnalare una recensione ──────────────────────────────────
-// Dove finisce la segnalazione dipende da dove sta la recensione, e va detto
-// prima di premere: quelle byup le esamina il team byup, che sull'archivio
-// degli ordini può verificare se quella persona c'è stata davvero; quelle
-// Google si possono solo inoltrare a Google, e decide Google.
+// Dove finisce la segnalazione va detto prima di premere: la esamina il team
+// byup, che sull'archivio degli ordini può verificare se quella persona c'è
+// stata davvero. C'era anche il caso «sta su Google, si può solo inoltrare e
+// decidono loro»: è uscito con le recensioni Google dall'elenco, perché era
+// un ramo che non poteva più aprirsi.
 function CliSegnala({ recensione, onChiudi, onInvia }) {
   const [motivo, setMotivo] = React.useState(null);
   const [dettagli, setDettagli] = React.useState('');
-  const suGoogle = recensione.fonte === 'google';
 
   React.useEffect(() => {
     const esc = (e) => { if (e.key === 'Escape') onChiudi(); };
@@ -717,12 +677,11 @@ function CliSegnala({ recensione, onChiudi, onInvia }) {
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding:'14px 20px 18px'}}>
           <div style={{
             padding:'11px 13px', borderRadius: 10, marginBottom: 14,
-            background: suGoogle ? '#EDF3FE' : PN.PINK_BG_SOFT,
+            background: PN.PINK_BG_SOFT,
             fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45,
           }}>
-            {suGoogle
-              ? <>Questa recensione sta su <strong style={{color: PN.TEXT}}>Google</strong>: la segnalazione viene inoltrata a loro e la decisione è di Google. Noi non possiamo rimuoverla.</>
-              : <>Questa recensione è <strong style={{color: PN.TEXT}}>byup</strong>: la esamina il nostro team, che dall'ordine collegato può verificare se quella persona è stata davvero qui.</>}
+            La esamina il nostro team, che dall'ordine collegato può verificare
+            se quella persona è stata davvero qui.
           </div>
 
           <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, marginBottom: 8}}>
@@ -769,7 +728,7 @@ function CliSegnala({ recensione, onChiudi, onInvia }) {
             color: motivo ? '#fff' : PN.MUTED_SOFT,
             fontSize: 14.5, fontWeight: 700, fontFamily:'inherit',
             cursor: motivo ? 'pointer' : 'default',
-          }}>{suGoogle ? 'Inoltra a Google' : 'Invia al team byup'}</button>
+          }}>Invia al team byup</button>
         </div>
       </div>
     </>
@@ -805,10 +764,8 @@ function StatClienti() {
       </div>
 
       {/* Il sottotitolo non ripete il totale: quello sta in grande due righe
-          più sotto, ed è lì che si va a leggerlo. Google sta in testa a destra,
-          allineato al titolo: è l'altro numero, quello che qualcuno gli
-          chiederà, e da lì si vede senza rubare la scena al 4,6. */}
-      <StatCard title="Valutazioni" sub="Negli ultimi 12 mesi" action={<CliGoogle g={d.fonti.google}/>}>
+          più sotto, ed è lì che si va a leggerlo. */}
+      <StatCard title="Valutazioni" sub="Negli ultimi 12 mesi">
         {/* Un box solo. Erano due — il voto di qua, il grafico di là, un filo
             verticale in mezzo — e il filo era l'unica cosa che diceva che
             fossero due cose: sono la stessa, quel numero e come ci è arrivato.
