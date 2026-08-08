@@ -243,16 +243,16 @@ function ImpMenuCucina() {
 // LIBRERIA piatti: SENZA prezzo, SENZA stato. Solo dati "ricetta".
 const DISH_PHOTO = (id) => `https://images.unsplash.com/${id}?w=200&q=70&auto=format&fit=crop`;
 const DISH_LIBRARY = [
-  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', allergens: ['glutine'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') },
-  { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['latte'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') },
-  { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['latte','frutta-guscio'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') },
-  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') },
-  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') },
-  { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') },
-  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['latte'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') },
-  { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['pesce'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') },
-  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') },
-  { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['latte'], photo: DISH_PHOTO('photo-1488477181946-6428a0291777') },
+  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', allergens: ['glutine'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') , ingredients: [{name:'Pane casereccio',removable:false,allergens:['glutine']},{name:'Pomodoro',removable:false,allergens:[]},{name:'Basilico',removable:true,allergens:[]},{name:'Aglio',removable:true,allergens:[]},{name:'Olio EVO',removable:false,allergens:[]}]},
+  { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['latte'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') , ingredients: [{name:'Burrata',removable:false,allergens:['latte']},{name:'Prosciutto crudo',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]}]},
+  { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['latte','frutta-guscio'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') , ingredients: [{name:'Salumi misti',removable:false,allergens:[]},{name:'Formaggi locali',removable:false,allergens:['latte']},{name:'Marmellata',removable:true,allergens:[]},{name:'Noci',removable:true,allergens:['frutta-guscio']}]},
+  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pecorino',removable:false,allergens:['latte']},{name:'Uovo',removable:false,allergens:['uova']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Pecorino romano DOP',removable:false,allergens:['latte']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') , ingredients: [{name:'Bucatini',removable:false,allergens:['glutine']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pomodoro San Marzano',removable:false,allergens:[]},{name:'Pecorino',removable:true,allergens:['latte']}]},
+  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['latte'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') , ingredients: [{name:'Controfiletto di scottona',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]},{name:'Scaglie di grana',removable:true,allergens:['latte']},{name:'Olio EVO',removable:false,allergens:[]}]},
+  { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['pesce'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') , ingredients: [{name:'Branzino',removable:false,allergens:['pesce']},{name:'Patate',removable:false,allergens:[]},{name:'Rosmarino',removable:true,allergens:[]},{name:'Sale grosso',removable:false,allergens:[]}]},
+  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') , ingredients: [{name:'Savoiardi',removable:false,allergens:['glutine']},{name:'Mascarpone',removable:false,allergens:['latte']},{name:'Uova',removable:false,allergens:['uova']},{name:'Caffè',removable:false,allergens:[]},{name:'Cacao',removable:true,allergens:[]}]},
+  { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['latte'], photo: DISH_PHOTO('photo-1488477181946-6428a0291777') , ingredients: [{name:'Panna fresca',removable:false,allergens:['latte']},{name:'Lamponi',removable:true,allergens:[]},{name:'Mirtilli',removable:true,allergens:[]},{name:'Zucchero',removable:false,allergens:[]}]},
 ];
 
 const CAT_ICON = { 'Antipasti':'food-salad', 'Primi':'food-pasta', 'Secondi':'food-steak', 'Contorni':'food-vegetables', 'Dolci':'food-dessert', 'Bevande':'drink-juice' };
@@ -358,6 +358,32 @@ function useAltezzaColonne(ref) {
   return h;
 }
 
+// Il fantasma che segue il cursore mentre si trascina un piatto: la sua foto
+// e il suo nome in una pillola, non lo screenshot della card intera. Serve a
+// capire cosa si sta spostando anche mentre copre l'elenco delle categorie —
+// e a non nascondere il bersaglio sotto un rettangolo grande come la card.
+function fantasmaPiatto(e, dish) {
+  if (!e.dataTransfer || !e.dataTransfer.setDragImage) return;
+  const g = document.createElement('div');
+  g.style.cssText = [
+    'position:fixed', 'top:-1000px', 'left:-1000px', 'pointer-events:none',
+    'display:flex', 'align-items:center', 'gap:10px',
+    'padding:7px 16px 7px 7px', 'border-radius:999px', 'background:#fff',
+    `box-shadow:0 12px 28px -8px rgba(255,90,95,0.6), 0 0 0 2px ${PN.PINK}`,
+    "font-family:'Plus Jakarta Sans',system-ui,sans-serif",
+    'font-size:15px', 'font-weight:700', `color:${PN.TEXT}`, 'white-space:nowrap',
+  ].join(';');
+  const foto = document.createElement('span');
+  foto.style.cssText = 'width:32px;height:32px;border-radius:50%;flex:0 0 32px;background:#F1F3F5 center/cover no-repeat' +
+    (dish.photo ? `;background-image:url("${dish.photo}")` : '');
+  g.appendChild(foto);
+  g.appendChild(document.createTextNode(dish.name));
+  document.body.appendChild(g);
+  e.dataTransfer.setDragImage(g, 26, 23);
+  // Il browser ne fa una copia subito: il nodo vero può sparire al giro dopo.
+  setTimeout(() => { if (g.parentNode) g.parentNode.removeChild(g); }, 0);
+}
+
 // Pannello di colonna: testata ferma, corpo che scorre.
 function MCPanel({ title, sub, action, children, style, bodyStyle }) {
   return (
@@ -399,6 +425,8 @@ function MCMenuComposer() {
   const [catMenuOpen, setCatMenuOpen] = React.useState(null);
   const [dragCat, setDragCat] = React.useState(null);
   const [hoverCat, setHoverCat] = React.useState(null);
+  const [sopraCat, setSopraCat] = React.useState(null);   // categoria sotto al cursore mentre si trascina
+  const [flashCat, setFlashCat] = React.useState(null);   // categoria che ha appena ricevuto un piatto
 
   // colonna 2 — piatti
   const [view, setView] = React.useState('grid');
@@ -591,6 +619,22 @@ function MCMenuComposer() {
 
   return (
     <div>
+      <style>{`
+        @keyframes mcArrivo {
+          0%   { transform: scale(1.06); box-shadow: 0 0 0 0 rgba(255,90,95,.55); background: ${PN.PINK_SOFT}; }
+          55%  { transform: scale(1); }
+          100% { transform: scale(1); box-shadow: 0 0 0 12px rgba(255,90,95,0); }
+        }
+        @keyframes mcPiuUno {
+          0%   { opacity: 0; transform: translateY(4px) scale(.8); }
+          25%  { opacity: 1; transform: translateY(-2px) scale(1.1); }
+          100% { opacity: 0; transform: translateY(-18px) scale(1); }
+        }
+        @keyframes mcInVolo {
+          0%, 100% { transform: scale(.94) rotate(-1.4deg); }
+          50%      { transform: scale(.94) rotate(1.4deg); }
+        }
+      `}</style>
       {/* Testata: il menù su cui si lavora — oppure, quando ci sono piatti
           selezionati, la barra delle azioni multiple. */}
       {selection.length > 0 ? (
@@ -626,35 +670,60 @@ function MCMenuComposer() {
             {(activeMenu ? activeMenu.categories : []).map((c, i) => {
               const on = c.name === activeCat;
               const inRinomina = renamingCat === c.name;
+              // Mentre un piatto è in volo la colonna smette di essere un elenco
+              // e diventa un tabellone di bersagli: quelle che possono
+              // riceverlo si accendono, quella sotto al cursore si riempie.
+              const riceve = !!dragDish && dragDish.cat !== c.name;
+              const rifiuta = !!dragDish && dragDish.cat === c.name;
+              const sopra = sopraCat === c.name && riceve;
+              const lineaSopra = dragCat !== null && sopraCat === c.name && dragCat !== i;
               return (
                 <div
                   key={c.name}
                   draggable={!inRinomina}
                   onDragStart={e => { setDragCat(i); e.dataTransfer.effectAllowed = 'move'; }}
-                  onDragEnd={() => setDragCat(null)}
-                  onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                  onDragEnd={() => { setDragCat(null); setSopraCat(null); }}
+                  onDragOver={e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = rifiuta ? 'none' : 'move';
+                    setSopraCat(s => s === c.name ? s : c.name);
+                  }}
+                  onDragLeave={() => setSopraCat(s => s === c.name ? null : s)}
                   onDrop={e => {
                     e.preventDefault();
-                    if (dragDish) { moveDishToCat(dragDish.cat, c.name, dragDish.dishId); setDragDish(null); }
-                    else if (dragCat !== null) { reorderCats(dragCat, i); setDragCat(null); }
+                    setSopraCat(null);
+                    if (dragDish) {
+                      if (dragDish.cat !== c.name) {
+                        moveDishToCat(dragDish.cat, c.name, dragDish.dishId);
+                        setFlashCat(c.name);
+                        setTimeout(() => setFlashCat(f => f === c.name ? null : f), 1100);
+                      }
+                      setDragDish(null);
+                    } else if (dragCat !== null) { reorderCats(dragCat, i); setDragCat(null); }
                   }}
                   onClick={() => { if (!inRinomina) { setActiveCat(c.name); setDetailId(null); setSelection([]); } }}
                   style={{
                     position: 'relative',
                     display: 'flex', alignItems: 'center', gap: 9,
-                    padding: '9px 10px', borderRadius: 9, cursor: 'pointer',
-                    background: on ? PN.PINK_SOFT : 'transparent',
-                    color: on ? PN.PINK_DARK : PN.TEXT,
-                    opacity: dragCat === i ? 0.45 : 1,
-                    transition: 'background 150ms ease-out',
+                    padding: '9px 10px', borderRadius: 9,
+                    cursor: dragDish ? (rifiuta ? 'no-drop' : 'copy') : 'pointer',
+                    background: sopra ? PN.PINK : (riceve ? PN.PINK_BG_SOFT : (on ? PN.PINK_SOFT : 'transparent')),
+                    color: sopra ? PN.WHITE : (on ? PN.PINK_DARK : PN.TEXT),
+                    boxShadow: sopra
+                      ? '0 8px 20px -8px rgba(255,90,95,0.65)'
+                      : (riceve ? `inset 0 0 0 1.5px ${PN.PINK_SOFT}` : (lineaSopra ? `inset 0 2px 0 ${PN.PINK}` : 'none')),
+                    opacity: (dragCat === i || rifiuta) ? 0.42 : 1,
+                    transform: sopra ? 'scale(1.035)' : 'none',
+                    transition: 'background 160ms ease-out, box-shadow 160ms ease-out, transform 160ms ease-out, opacity 160ms ease-out, color 160ms ease-out',
+                    animation: flashCat === c.name ? 'mcArrivo 1s cubic-bezier(.22,.9,.35,1)' : 'none',
                   }}
-                  onMouseEnter={e => { setHoverCat(c.name); if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
-                  onMouseLeave={e => { setHoverCat(h => h === c.name ? null : h); if (!on) e.currentTarget.style.background = 'transparent'; }}
+                  onMouseEnter={e => { setHoverCat(c.name); if (!on && !dragDish) e.currentTarget.style.background = '#F7F8FA'; }}
+                  onMouseLeave={e => { setHoverCat(h => h === c.name ? null : h); if (!on && !dragDish) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  <span title="Trascina per riordinare" style={{color: on ? PN.PINK : PN.MUTED_LIGHT, cursor: 'grab', display: 'inline-flex'}}>
+                  <span title="Trascina per riordinare" style={{color: sopra ? PN.WHITE : (on ? PN.PINK : PN.MUTED_LIGHT), cursor: 'grab', display: 'inline-flex'}}>
                     <PnI.Drag size={12}/>
                   </span>
-                  <span style={{display: 'inline-flex', color: on ? PN.PINK_DARK : PN.MUTED}}>
+                  <span style={{display: 'inline-flex', color: sopra ? PN.WHITE : (on ? PN.PINK_DARK : PN.MUTED)}}>
                     <Icon name={CAT_ICON[c.name] || 'star'} size={16}/>
                   </span>
                   {inRinomina ? (
@@ -672,7 +741,20 @@ function MCMenuComposer() {
                   ) : (
                     <span style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: on ? 700 : 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{c.name}</span>
                   )}
-                  <span style={{fontSize: 13, fontWeight: 700, color: on ? PN.PINK_DARK : PN.MUTED, minWidth: 16, textAlign: 'right'}}>{c.items.length}</span>
+                  {/* Il conteggio lascia il posto a un «+» quando la categoria
+                      sta per ricevere: dice cosa succede lasciando adesso. */}
+                  <span style={{position: 'relative', minWidth: 16, textAlign: 'right', flexShrink: 0}}>
+                    <span style={{fontSize: 13, fontWeight: 800, color: sopra ? PN.WHITE : (on ? PN.PINK_DARK : PN.MUTED)}}>
+                      {sopra ? '+1' : c.items.length}
+                    </span>
+                    {flashCat === c.name && (
+                      <span aria-hidden style={{
+                        position: 'absolute', right: 0, top: -2, fontSize: 12.5, fontWeight: 800,
+                        color: PN.PINK, pointerEvents: 'none',
+                        animation: 'mcPiuUno 1s cubic-bezier(.22,.9,.35,1) forwards',
+                      }}>+1</span>
+                    )}
+                  </span>
                   <button
                     onMouseDown={e => e.stopPropagation()}
                     onClick={e => { e.stopPropagation(); setCatMenuOpen(o => o === c.name ? null : c.name); }}
@@ -739,13 +821,24 @@ function MCMenuComposer() {
 
           <div style={{
             marginTop: 10, padding: '10px 12px', borderRadius: 10,
-            background: '#F7F8FA', color: PN.MUTED,
+            background: dragDish ? PN.PINK_BG_SOFT : '#F7F8FA',
+            color: dragDish ? PN.PINK_DARK : PN.MUTED,
             display: 'flex', alignItems: 'flex-start', gap: 8,
+            transition: 'background 160ms ease-out, color 160ms ease-out',
           }}>
-            <span style={{marginTop: 2, display: 'inline-flex', color: PN.MUTED_SOFT}}><PnI.Drag size={12}/></span>
+            <span style={{marginTop: 2, display: 'inline-flex', color: dragDish ? PN.PINK : PN.MUTED_SOFT}}><PnI.Drag size={12}/></span>
             <div style={{fontSize: 13, lineHeight: 1.4}}>
-              <div style={{fontWeight: 700, color: PN.MUTED}}>Trascina per riordinare</div>
-              <div style={{fontSize: 12.5, marginTop: 1}}>o sposta un piatto tra le categorie</div>
+              {dragDish ? (
+                <>
+                  <div style={{fontWeight: 700}}>Lascia su una categoria</div>
+                  <div style={{fontSize: 12.5, marginTop: 1, opacity: .85}}>«{(library.find(d => d.id === dragDish.dishId) || {}).name}» ci si sposta dentro</div>
+                </>
+              ) : (
+                <>
+                  <div style={{fontWeight: 700, color: PN.MUTED}}>Trascina per riordinare</div>
+                  <div style={{fontSize: 12.5, marginTop: 1}}>o sposta un piatto tra le categorie</div>
+                </>
+              )}
             </div>
           </div>
         </MCPanel>
@@ -1279,7 +1372,8 @@ function MCPiattiPanel({
               onPriceCommit={(v) => { onUpdateItem(catName, r.dishId, {price: v}); setEditingPrice(null); }}
               onPriceCancel={() => setEditingPrice(null)}
               onRemove={() => onRemoveDish(catName, r.dishId)}
-              onDragStart={() => setDragDish({cat: catName, dishId: r.dishId, idx: r.idx})}
+              inDrag={!!dragDish && dragDish.dishId === r.dishId}
+              onDragStart={(e) => { fantasmaPiatto(e, r.dish); setDragDish({cat: catName, dishId: r.dishId, idx: r.idx}); }}
               onDragEnd={() => setDragDish(null)}
               onDropOn={() => { if (dragDish && dragDish.cat === catName) onReorder(catName, dragDish.idx, r.idx); setDragDish(null); }}
             />
@@ -1299,28 +1393,52 @@ function MCPiattiPanel({
         </div>
       ) : (
         <div style={{border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow: 'hidden'}}>
-          {rows.map(r => (
-            <div key={r.dishId}
-              draggable
-              onDragStart={() => setDragDish({cat: catName, dishId: r.dishId, idx: r.idx})}
-              onDragEnd={() => setDragDish(null)}
-              onDragOver={e => e.preventDefault()}
-              onDrop={() => { if (dragDish && dragDish.cat === catName) onReorder(catName, dragDish.idx, r.idx); setDragDish(null); }}
-              style={{background: detailId === r.dishId ? PN.PINK_BG_SOFT : 'transparent'}}
-            >
-              <DishRow
-                dish={r.dish}
-                item={r}
-                onToggleActive={() => onUpdateItem(catName, r.dishId, {active: !r.active})}
-                onPriceClick={() => setEditingPrice({catName, dishId: r.dishId})}
-                editingPrice={editingPrice && editingPrice.dishId === r.dishId}
-                onPriceCommit={(v) => { onUpdateItem(catName, r.dishId, {price: v}); setEditingPrice(null); }}
-                onPriceCancel={() => setEditingPrice(null)}
-                onEdit={() => setDetailId(r.dishId)}
-                onRemove={() => onRemoveDish(catName, r.dishId)}
-              />
-            </div>
-          ))}
+          {rows.map(r => {
+            const sel = selection.includes(r.dishId);
+            return (
+              <div key={r.dishId}
+                draggable
+                onDragStart={() => setDragDish({cat: catName, dishId: r.dishId, idx: r.idx})}
+                onDragEnd={() => setDragDish(null)}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => { if (dragDish && dragDish.cat === catName) onReorder(catName, dragDish.idx, r.idx); setDragDish(null); }}
+                onClick={selectMode ? (e) => { e.stopPropagation(); toggleSel(r.dishId); } : undefined}
+                style={{
+                  display: 'flex', alignItems: 'center',
+                  background: sel ? PN.PINK_SOFT : (detailId === r.dishId ? PN.PINK_BG_SOFT : 'transparent'),
+                  boxShadow: sel ? `inset 4px 0 0 ${PN.PINK}` : 'none',
+                  cursor: selectMode ? 'pointer' : 'default',
+                  transition: 'background 160ms ease-out, box-shadow 160ms ease-out',
+                }}
+              >
+                {/* In elenco la spunta è una colonna sua: sulla riga non c'è una
+                    foto su cui appoggiarla come nelle card. */}
+                {(selectMode || sel) && (
+                  <button onClick={e => { e.stopPropagation(); toggleSel(r.dishId); }} title="Seleziona" style={{
+                    flexShrink: 0, marginLeft: 12, width: 22, height: 22, borderRadius: 6,
+                    border: `1.5px solid ${sel ? PN.PINK : PN.BORDER}`,
+                    background: sel ? PN.PINK : PN.WHITE,
+                    color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center',
+                    transition: 'background 160ms ease-out, border-color 160ms ease-out',
+                  }}>{sel && <PnI.Check size={12}/>}</button>
+                )}
+                <div style={{flex: 1, minWidth: 0, pointerEvents: selectMode ? 'none' : 'auto'}}>
+                  <DishRow
+                    dish={r.dish}
+                    item={r}
+                    selezionato={sel}
+                    onToggleActive={() => onUpdateItem(catName, r.dishId, {active: !r.active})}
+                    onPriceClick={() => setEditingPrice({catName, dishId: r.dishId})}
+                    editingPrice={editingPrice && editingPrice.dishId === r.dishId}
+                    onPriceCommit={(v) => { onUpdateItem(catName, r.dishId, {price: v}); setEditingPrice(null); }}
+                    onPriceCancel={() => setEditingPrice(null)}
+                    onEdit={() => setDetailId(r.dishId)}
+                    onRemove={() => onRemoveDish(catName, r.dishId)}
+                  />
+                </div>
+              </div>
+            );
+          })}
           <button onClick={onOpenPicker} style={{
             width: '100%', padding: '11px 12px', border: 'none', borderTop: `1px dashed ${PN.BORDER_SOFT}`,
             background: '#FCFCFD', color: PN.MUTED, fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -1335,7 +1453,7 @@ function MCPiattiPanel({
 function MCDishCard({
   r, catName, selectMode, selected, aperto, menuAperto, onMenu, onCloseMenu,
   onToggleSel, onOpen, onToggleActive, editingPrice, onPriceClick, onPriceCommit, onPriceCancel,
-  onRemove, onDragStart, onDragEnd, onDropOn,
+  onRemove, onDragStart, onDragEnd, onDropOn, inDrag,
 }) {
   const [hover, setHover] = React.useState(false);
   const [tmp, setTmp] = React.useState(r.price.toFixed(2).replace('.', ','));
@@ -1345,17 +1463,26 @@ function MCDishCard({
   return (
     <div
       draggable
-      onDragStart={onDragStart} onDragEnd={onDragEnd}
+      onDragStart={e => onDragStart(e)} onDragEnd={onDragEnd}
       onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); onDropOn(); }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       onClick={() => { if (selectMode) onToggleSel(); else onOpen(); }}
       style={{
         position: 'relative', borderRadius: 12, overflow: 'visible', cursor: 'pointer',
-        background: PN.WHITE,
-        border: `${(selected || aperto) ? 2 : 1}px solid ${selected ? PN.PINK : (aperto ? PN.PINK_SOFT : PN.BORDER_SOFT)}`,
-        boxShadow: hover ? PN.CARD_SHADOW_HOVER : PN.CARD_SHADOW,
-        opacity: r.active ? 1 : 0.72,
-        transition: 'box-shadow 150ms ease-out, border-color 150ms ease-out, opacity 150ms ease-out',
+        background: selected ? PN.PINK_BG_SOFT : PN.WHITE,
+        border: `1px solid ${selected ? PN.PINK : (aperto ? PN.PINK : PN.BORDER_SOFT)}`,
+        boxShadow: selected
+          ? `0 0 0 3px ${PN.PINK}59, 0 10px 22px -10px rgba(255, 90, 95, 0.55)`
+          : (aperto
+              ? `0 0 0 3px ${PN.PINK}26`
+              : (hover ? PN.CARD_SHADOW_HOVER : PN.CARD_SHADOW)),
+        // La card che si sta portando via lascia il suo posto come una sagoma
+        // tratteggiata: si vede da dove è partita, e la griglia non si richiude
+        // sotto al cursore.
+        opacity: inDrag ? 0.35 : (r.active ? 1 : 0.72),
+        filter: inDrag ? 'grayscale(0.6)' : 'none',
+        transform: selected ? 'translateY(-1px)' : 'none',
+        transition: 'box-shadow 160ms ease-out, border-color 160ms ease-out, background 160ms ease-out, transform 160ms ease-out, opacity 150ms ease-out',
       }}
     >
       <div style={{position: 'relative', aspectRatio: '16/11', background: '#F4F5F7', borderTopLeftRadius: 10, borderTopRightRadius: 10, overflow: 'hidden'}}>
@@ -1363,14 +1490,22 @@ function MCDishCard({
           ? <img src={r.dish.photo} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
           : <div style={{width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: PN.MUTED_SOFT}}><Icon name={CAT_ICON[r.dish.cat] || 'star'} size={26}/></div>}
 
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: `linear-gradient(180deg, rgba(255,90,95,0.34) 0%, rgba(255,90,95,0.16) 100%)`,
+          opacity: selected ? 1 : 0, transition: 'opacity 160ms ease-out',
+        }}/>
+
         {mostraCheck && (
           <button onClick={e => { e.stopPropagation(); onToggleSel(); }} title="Seleziona" style={{
-            position: 'absolute', top: 7, left: 7, width: 22, height: 22, borderRadius: 6,
+            position: 'absolute', top: 7, left: 7,
+            width: selected ? 25 : 22, height: selected ? 25 : 22, borderRadius: 7,
             border: `1.5px solid ${selected ? PN.PINK : 'rgba(255,255,255,0.9)'}`,
             background: selected ? PN.PINK : 'rgba(255,255,255,0.86)',
             color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
-          }}>{selected && <PnI.Check size={12}/>}</button>
+            boxShadow: selected ? '0 2px 8px rgba(255,90,95,0.55)' : '0 1px 4px rgba(0,0,0,0.18)',
+            transition: 'width 160ms ease-out, height 160ms ease-out, background 160ms ease-out',
+          }}>{selected && <PnI.Check size={14}/>}</button>
         )}
 
         <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onMenu(); }} title="Altre azioni" style={{
@@ -1398,7 +1533,7 @@ function MCDishCard({
       )}
 
       <div style={{padding: '9px 11px 11px'}}>
-        <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{r.dish.name}</div>
+        <div style={{fontSize: 14.5, fontWeight: 700, color: selected ? PN.PINK_DARK : PN.TEXT, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 160ms ease-out'}}>{r.dish.name}</div>
 
         <div onClick={e => { e.stopPropagation(); if (!editingPrice) onPriceClick(); }} title="Clicca per modificare il prezzo" style={{
           display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 3,
@@ -1415,7 +1550,7 @@ function MCDishCard({
                 style={{width: 52, fontSize: 14.5, fontWeight: 700, color: PN.TEXT, border: 'none', outline: 'none', fontFamily: 'inherit', background: 'transparent'}}/>
             </>
           ) : (
-            <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{eur(r.price)}</span>
+            <span style={{fontSize: 14.5, fontWeight: 700, color: selected ? PN.PINK_DARK : PN.TEXT}}>{eur(r.price)}</span>
           )}
         </div>
 
@@ -1887,7 +2022,9 @@ function MCDettagliPiatto({
 
             <MCSezione title="Ingredienti">
               <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 9, lineHeight: 1.45}}>
-                Spunta gli ingredienti che il cliente può <strong style={{color: PN.TEXT}}>togliere dal piatto</strong>.
+                Accendi il <span style={{display: 'inline-grid', placeItems: 'center', width: 18, height: 18, borderRadius: 5, border: `1px solid ${PN.PINK}`, background: PN.PINK_SOFT, color: PN.PINK_DARK, verticalAlign: '-4px', margin: '0 2px'}}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </span> di un ingrediente e il cliente potrà <strong style={{color: PN.TEXT}}>toglierlo dal piatto</strong> quando ordina.
               </div>
               <IngredientList ingredients={ingredients} setIngredients={setIngredients}/>
             </MCSezione>
@@ -2579,7 +2716,7 @@ function DishLibraryView({ library, menus, filters, onUpsertLibraryDish, onRemov
 }
 
 // ─── DishRow: riga ricca ─────────────────────────────────────────────────────
-function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPriceCommit, onPriceCancel, onEdit, onRemove }) {
+function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPriceCommit, onPriceCancel, onEdit, onRemove, selezionato }) {
   const [tmpPrice, setTmpPrice] = React.useState(item.price.toFixed(2));
   React.useEffect(() => { if (editingPrice) setTmpPrice(item.price.toFixed(2)); }, [editingPrice]);
 
@@ -2588,14 +2725,15 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
       display:'grid', gridTemplateColumns: '18px minmax(0, 1fr) auto auto auto',
       gap: 10, alignItems:'center',
       padding: '12px 14px',
-      background: item.active ? PN.WHITE : '#FAFBFC',
+      // Selezionata: il fondo lo mette la riga contenitore, qui si fa da parte.
+      background: selezionato ? 'transparent' : (item.active ? PN.WHITE : '#FAFBFC'),
       borderTop: `1px solid ${PN.BORDER_SOFT}`,
       opacity: item.active ? 1 : 0.7,
       transition: 'background .15s',
       cursor: editingPrice ? 'default' : 'pointer',
     }}
-    onMouseEnter={e => { if (!editingPrice) e.currentTarget.style.background = item.active ? '#F9FAFB' : '#F4F5F7'; }}
-    onMouseLeave={e => { e.currentTarget.style.background = item.active ? PN.WHITE : '#FAFBFC'; }}
+    onMouseEnter={e => { if (!editingPrice && !selezionato) e.currentTarget.style.background = item.active ? '#F9FAFB' : '#F4F5F7'; }}
+    onMouseLeave={e => { if (!selezionato) e.currentTarget.style.background = item.active ? PN.WHITE : '#FAFBFC'; }}
     >
       {/* Drag handle */}
       <div style={{color: PN.MUTED, cursor:'grab', fontSize: 16, lineHeight: 1, userSelect:'none'}}>≡</div>
