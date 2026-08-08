@@ -54,59 +54,62 @@ const convTono = (conv) => conv >= 60
 const FUN_RAIL = 26;   // colonna del pallino e del filo che unisce i passaggi
 const FUN_BARRA = 12;  // spessore della barra
 
-// ─── Il tasso, in testa alla card ──────────────────────────────
-// Era una riga di sottotitolo grigia: la risposta alla domanda che porta un
-// ristoratore qui dentro, scritta come una didascalia. Ora è una misura, con
-// la materia delle KPI tinte del gestionale, e sta nell'angolo in alto a
-// destra della card — il posto dove si guarda per ultimo e ci si torna sempre.
-// Non rimette in piedi la riga di KPI che era stata tolta: quella ripeteva il
-// primo e l'ultimo passaggio, questo è l'unico numero della card che nessuna
-// barra dice, perché le barre contano teste e questo è un rapporto.
+// ─── I tassi, in testa alla card ───────────────────────────────
+// Erano una riga di sottotitolo grigia: la risposta alla domanda che porta un
+// ristoratore qui dentro, scritta come una didascalia. Ora sono misure, con la
+// materia delle KPI tinte del gestionale, nell'angolo in alto a destra della
+// card — il posto dove si guarda per ultimo e ci si torna sempre.
+// Non rimettono in piedi la riga di KPI che era stata tolta: quella ripeteva
+// il primo e l'ultimo passaggio, questi sono gli unici numeri della card che
+// nessuna barra dice, perché le barre contano teste e questi sono rapporti.
+//
+// Qui sta il tasso della RECENSIONE: quanti, fra quelli che hanno pagato,
+// lasciano poi una recensione. È la reputazione — quello che porterà i
+// prossimi ad affacciarsi — e nessuna barra lo dice, perché le barre contano
+// teste e questo è un rapporto.
+// C'era anche il tasso di conversione (pagamenti su chi apre la pagina):
+// tolto su richiesta. Se un giorno lo si rivuole, è `misura(passi[0], meta)`.
+// Il riquadro sparisce da solo se il percorso non arriva alla recensione.
 //
 // Il confronto è in PUNTI: il periodo prima si ricava dal valore di ogni
-// passaggio e dalla sua variazione — 2.900/1,096 pagamenti su 10.000/1,142
-// visite — e fra due percentuali la differenza si dice così. Volumi su del
-// 14% e tasso giù di un punto è esattamente la storia che questo numero deve
-// poter raccontare.
+// passaggio e dalla sua variazione — 312/1,184 recensioni su 2.900/1,096
+// pagamenti — e fra due percentuali la differenza si dice così. Recensioni su
+// del 18% e tasso su di meno di un punto è esattamente la storia che questo
+// numero deve poter raccontare: crescono perché cresce chi paga.
 function ConvTasso({ passi }) {
-  const primo = passi[0];
   const meta = passi.find(s => s.meta) || passi[passi.length - 1];
-  const tasso = (meta.val / primo.val) * 100;
+  const ultimo = passi[passi.length - 1];
+  if (ultimo === meta) return null;
+
   const prima = (s) => (s.delta == null ? null : s.val / (1 + s.delta / 100));
-  const tassoPrima = (prima(primo) && prima(meta)) ? (prima(meta) / prima(primo)) * 100 : null;
-  const punti = tassoPrima == null ? null : tasso - tassoPrima;
+  const misura = (base, arrivo) => {
+    const ora = (arrivo.val / base.val) * 100;
+    const pb = prima(base), pa = prima(arrivo);
+    return { ora, punti: (pb && pa) ? ora - (pa / pb) * 100 : null };
+  };
+  const t = misura(meta, ultimo);
 
   return (
     <div style={{
-      display:'flex', alignItems:'center', gap: 13, flexShrink: 0,
-      padding:'12px 18px 12px 14px', borderRadius: 16,
+      flexShrink: 0, padding:'12px 18px', borderRadius: 16,
       background:'linear-gradient(115deg, #FFE6E5 0%, #FFF6F5 52%, #FFFFFF 100%)',
       border:'1px solid #FBD3D1',
     }}>
-      <span style={{
-        width: 42, height: 42, borderRadius:'50%', flexShrink: 0,
-        background: PN.WHITE, color: PN.PINK,
-        display:'grid', placeItems:'center',
-        fontSize: 20, fontWeight: 700, lineHeight: 1,
-        boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
-      }}>%</span>
-      <div style={{minWidth: 0}}>
-        <div style={{
-          fontSize: 11.5, fontWeight: 700, color: PN.WINE,
-          textTransform:'uppercase', letterSpacing: 0.6,
-        }}>Tasso di conversione</div>
-        <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 2}}>
-          <span style={{
-            fontSize: 29, fontWeight: 800, color: PN.TEXT,
-            letterSpacing:-1, lineHeight: 1.05, fontVariantNumeric:'tabular-nums',
-          }}>{Math.round(tasso)}%</span>
-          {/* Qui il rosso ci sta: un tasso di conversione che scende è una
-              cattiva notizia, al contrario dei rimborsi qui sotto. */}
-          <StatDelta value={punti == null ? null : Number(punti.toFixed(1))} unit=" pt"/>
-        </div>
-        <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap'}}>
-          di chi apre la pagina del locale arriva a pagare
-        </div>
+      <div style={{
+        fontSize: 11.5, fontWeight: 700, color: PN.WINE,
+        textTransform:'uppercase', letterSpacing: 0.6, whiteSpace:'nowrap',
+      }}>Tasso di recensione</div>
+      <div style={{display:'flex', alignItems:'center', gap: 9, marginTop: 2}}>
+        <span style={{
+          fontSize: 29, fontWeight: 800, color: PN.TEXT,
+          letterSpacing:-1, lineHeight: 1.05, fontVariantNumeric:'tabular-nums',
+        }}>{Math.round(t.ora)}%</span>
+        {/* Qui il verde e il rosso dicono il vero — un tasso che scende è una
+            cattiva notizia — al contrario dei rimborsi là sotto. */}
+        <StatDelta value={t.punti == null ? null : Number(t.punti.toFixed(1))} unit=" pt"/>
+      </div>
+      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, whiteSpace:'nowrap'}}>
+        di chi ha pagato lascia una recensione
       </div>
     </div>
   );
