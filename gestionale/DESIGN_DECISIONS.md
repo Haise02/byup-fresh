@@ -4,7 +4,7 @@ Riferimento per ogni nuova schermata. Le decisioni qui sono **vincolanti**: quan
 
 Standard di riferimento: Linear, Stripe Dashboard, Notion.
 
-Ultimo allineamento al codice: 2026-07-28.
+Ultimo allineamento al codice: 2026-08-09.
 
 ---
 
@@ -474,6 +474,8 @@ Dropdown notifiche ora usa `...PN.GLASS_MENU` — `blur(24px) saturate(180%)` su
 
 ## Prossimi passi possibili (non fatti in questa iterazione)
 
+> **Lista di luglio, superata dai fatti** (verificata il 2026-08-09). Alcuni file citati non esistono più con quel nome — `sala-v3-app.jsx` è oggi `sala-app.jsx`, `sala-modali.jsx` è stato assorbito, `byup Account.html` è `byup Profilo.html` — e Statistiche è stata riscritta da capo fra il 6 e l'8 agosto. Si legge come traccia di intenzioni, non come cose da fare.
+
 - `panoramica-app.jsx` e `panoramica-grid.jsx` — applicare ApBtn agli action buttons rimasti.
 - `byup Profilo.html`, `byup Account.html` — top header con `GLASS_BAR` sticky.
 - `cucina-app.jsx`, `sala-v3-app.jsx` — sostituire i bottoni colorati con le varianti BTN_* gradient.
@@ -795,6 +797,53 @@ Si prende e si porta dove si vuole. La posizione vale su tutte le schermate e so
 **Gli esempi girano dentro al campo di scrittura**, uno ogni 3,4 secondi, uno per area (prenotazione, menu, sala, impostazioni). Erano nate come pillole cliccabili sopra al campo: erano comandi già scritti, e chi li preme non impara cosa può chiedere — esegue una cosa decisa da noi. Nel campo mostrano invece la **forma** di una richiesta, nel punto esatto in cui stai per scriverla, e non occupano una riga di pannello. Il giro si ferma quando il cursore entra nel campo: un testo che cambia da solo mentre stai formulando la frase distrae. Il suggerimento è un testo sovrapposto e non l'attributo `placeholder`, che non si può dissolvere.
 
 **«Serve una persona? Contatta l'assistenza»** sta in alto a destra, prima della conversazione, piccola e grigia. Sopra al campo di scrittura era in mezzo agli occhi proprio mentre stai per chiedere qualcosa all'assistente, e a tutta larghezza sembrava un invito ad andarsene. Porta a `byup Supporto.html?chat=1`.
+
+---
+
+# Statistiche, Cucina a due monitor, Menù e ruoli — 7-9 ago 2026
+
+Batch grosso (~190 commit). Qui stanno le regole che ne escono e valgono da qui in avanti; il racconto di cosa è cambiato sta in `PROGRESS.md`.
+
+## Un fatto, una casa
+
+La regola che ha guidato quasi tutti gli spostamenti di questa sessione: **un dato sta in un posto solo, e quel posto è dove qualcuno se lo va a cercare**.
+
+- Lo **stato di trasmissione fiscale** è del pagamento, non della giornata: Conti ne è la casa, e le chiusure di cassa lo derivano. Prima stava su entrambi e le due copie divergevano.
+- La **geometria della sala** — ingombro del tavolo, test di sovrapposizione, ricerca a spirale del posto libero, disposizione in fila, rotazione di un gruppo — sta in `sala-geometria.jsx` e la usano sia Sala sia Impostazioni → Sala e tavoli. Erano due copie divergenti, e lo stesso difetto («un'unione che diventa un blocco») si è dovuto correggere due volte in due giorni. Ci entrano numeri e rettangoli, non oggetti «tavolo»: chi chiama traduce i propri dati, così le differenze fra le due pagine restano parametri espliciti invece di due implementazioni che si somigliano.
+- La **visualizzazione della cucina** è del monitor, non della pagina: si sceglie dove il monitor si collega (Impostazioni → Personale), e la Cucina sceglie solo quale monitor guardare.
+- I **KPI del servizio clienti** vivono in Statistiche, non anche nell'Assistenza.
+
+Corollario operativo: quando due schermate mostrano lo stesso fatto, una delle due lo **legge**, non lo ricalcola.
+
+## Ruoli di sistema e ruoli personalizzati
+
+Cassa, Cameriere e Titolare sono **ruoli di sistema**: hanno permessi di partenza e non si smontano. Aprire i permessi di uno di loro e salvare **non lo modifica** — si esce con un ruolo personalizzato nuovo, e il ruolo di sistema resta intatto. Un ruolo personalizzato invece si modifica sul posto, perché è roba di chi l'ha creato.
+
+Da qui discende il nome: **due ruoli non possono chiamarsi allo stesso modo**, o sono indistinguibili nel momento in cui li si assegna a qualcuno. Salvando un nome già in uso esce un popup che ferma il salvataggio e **rimanda al modulo con dentro quello che c'era**: chi ha appena scelto otto aree non le rifà perché il nome era occupato. Il confronto ignora maiuscole e spazi ai bordi — «Cassa » e «cassa» sono lo stesso nome per chi legge l'elenco, ed è l'elenco che conta.
+
+**Un meccanismo si dichiara prima, non lo si scopre dall'errore.** La modale di un ruolo di sistema lo dice in testa al modulo, e il pulsante si chiama «Crea ruolo personalizzato» invece di «Salva modifiche». Un errore che spiega una regola è una regola comunicata troppo tardi.
+
+## Aree cliccabili: la grandezza del bersaglio è quella della cosa
+
+**In una griglia un figlio si allarga per tutta la cella**, anche se è `inline-flex` e ha `padding: 0`: `justify-self` vale `stretch` finché non gli si dice altro. Le intestazioni di colonna ordinabili erano bottoni trasparenti dentro griglie, quindi a riposo non si vedeva niente — si vedeva la manina comparire a mezza colonna di distanza dalla parola, e l'hover campire un riquadro grande quanto la colonna per due parole di intestazione.
+
+Regola: **il bersaglio ha la forma di quello che si tocca**. Su un'intestazione ordinabile si tocca il nome (più il segno di ordinamento), quindi `justifySelf:'start'` — o `'end'` dove la colonna è allineata a destra, che il bersaglio segue l'allineamento della colonna e non si sposta niente a vedersi.
+
+Lo stesso vale al contrario: un bottone-icona ancorato in un angolo si mette **fuori dal flusso** (`position:absolute`) e gli si riserva la corsia con un `paddingRight` sul contenuto, invece di lasciarlo comprimere da quello che gli sta accanto. Nella card di una sala il `⋯` era l'unico elemento comprimibile della riga: bastava un badge più largo — `DISATTIVATA` invece di `ATTIVA` — perché finisse fuori dal bordo.
+
+## Lo stato attivo si dice col segno, non con la campitura
+
+Un'intestazione ordinabile attiva si riconosce dal **testo più scuro e dalla freccia**, non da un fondo colorato grande quanto la cella. La campitura di una cella intera per dire «sto ordinando per questa colonna» è una macchia che compete con i dati, che sono la cosa da leggere.
+
+## Il carattere «⋯» non esiste in Plus Jakarta Sans
+
+Lo disegna un font di ripiego, che lo appoggia dove gli pare rispetto alla linea di base: dentro un bottone quadrato resta storto, e di quanto cambia da un sistema all'altro. I tre pallini sono un **SVG** (`Puntini` in `impostazioni-shared.jsx`, `window.Puntini`), centrato per costruzione. Vale per ogni glifo decorativo: se non è nel font del progetto, si disegna.
+
+## Una porta sola per stanza
+
+La matita «permessi» sulle righe dei ruoli è stata tolta: era il secondo modo per arrivare alla stessa modale, ed era pure quello nascosto — comparivi sopra la riga e la trovavi, altrimenti no. Le righe della colonna «Ruoli» fanno quello che il loro sottotitolo dichiara, cioè filtrare l'elenco, e i permessi si aprono da «Crea ruolo», che sta lì sotto ed è sempre visibile.
+
+Quando si toglie una porta si toglie anche quello che serviva solo a lei: con la matita se ne sono andati lo stato `editRole` e il margine destro di 24px che riservava la sua corsia nei conteggi.
 
 ---
 

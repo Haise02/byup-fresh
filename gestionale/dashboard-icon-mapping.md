@@ -2,7 +2,7 @@
 
 Mappatura delle sezioni reali della dashboard Byup Fresh alle **Content icons** della Fase 2.
 
-> **Stato (2026-07-28): in gran parte implementata.** Tab di Impostazioni, Contabilità e Statistiche (macro + sub) e chip di categoria del Menù sono vivi nel codice con le icone proposte. Deviazioni principali: le tab di Sala sono diventate voci separate della sidebar (`place-table`, `commerce-register`, `time-calendar`), la Cucina non ha più tab (vista KDS unica), le notifiche non usano più icone per tipo, e diversi nomi file sono cambiati (v. note nelle sezioni).
+> **Stato (rivisto il 2026-08-09): in gran parte implementata.** Tab di Impostazioni, Contabilità e Statistiche (macro + sub) e chip di categoria del Menù sono vivi nel codice con le icone proposte. Deviazioni principali: le tab di Sala sono diventate voci separate della sidebar (`place-table`, `commerce-register`, `time-calendar`); la Cucina non ha tab ma un **selettore del monitor** in testata (la visualizzazione è del monitor, si sceglie in Impostazioni → Personale); le macro-tab di Statistiche oggi sono **Economici · Operazioni · Clienti**, non più «App»; le notifiche non usano più icone per tipo; diversi nomi file sono cambiati (v. note nelle sezioni).
 
 Vincoli di posizionamento dal prompt (Fase 4):
 - Header di sezione → **1 sola** Content icon, size 32–40px accanto a H1.

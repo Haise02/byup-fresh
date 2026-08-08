@@ -34,6 +34,7 @@ rimanda agli altri per pertinenza, così il dettaglio vive **una volta sola**.
 | **[DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)** | Design system dell'app consumer: token (`window.ByupKit` in [byup-app-kit.jsx](byup-app-kit.jsx)), temi light/dark, tipografia, componenti, build standalone. | Riferimento vivo | — |
 | **[Byuppini-Concept.md](Byuppini-Concept.md)** | Gamification/fedeltà **Byuppini**: meccaniche, economia, livelli, premi. | Durevole | — |
 | **[Byuppini-Image-Prompts.md](Byuppini-Image-Prompts.md)** | Prompt per generare gli asset immagine dei Byuppini (moneta, badge, premi, mascotte). | Supporto | — |
+| **[LIA-suggerimenti.md](LIA-suggerimenti.md)** | **LIA** — valutazione dell'interesse legittimo (art. 6.1.f GDPR) per la personalizzazione dei suggerimenti in-app: finalità, bilanciamento, opt-out. | Durevole | 🟠 BOZZA da validare con legale/DPO |
 | **[HANDOFF-prototipo-byup.md](HANDOFF-prototipo-byup.md)** | Handoff storico (lug 2026) dell'integrazione Byuppini/Roadmap/Cerca nella SPA — lavori completati, vedi il suo §8. | Storico | ✅ CHIUSO |
 
 > I 4 documenti sorgente originari (`byup-punto2/3/4`, `byup-spec-tecnica-*`) su

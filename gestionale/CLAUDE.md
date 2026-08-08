@@ -22,14 +22,20 @@ Come add-on è possibile integrare Fresh con applicazioni di terze parti per il 
 
 Il modello di pricing si basa sul volume di ordini effettuati. Per ciascun piano è previsto un numero di ordini inclusi; superata la soglia, viene applicato un costo extra per ordine aggiuntivo. Gli ordini sono pesati diversamente a seconda del canale: quelli da cassa o cameriere valgono 1, quelli tramite app valgono 0,5, incentivando così l'adozione dell'app da parte dei clienti.
 
-| Piano    | Ordini inclusi | Prezzo mensile  | Costo ordine extra |
-|----------|----------------|-----------------|---------------------|
-| Gratuito | 550            | 0 €             | 0,45 € + IVA        |
-| Starter  | 1.850          | 46,99 € + IVA   | 0,34 € + IVA        |
-| Plus     | 7.500          | 134,99 € + IVA  | 0,23 € + IVA        |
-| Business | 15.000         | 250 € + IVA     | 0,12 € + IVA        |
+Il listino ha **due prezzi per piano**: il mensile con fatturazione annuale — quello su cui sta la maggior parte della base, ed è il prezzo che si comunica — e il mensile puro, più caro. Gli «ordini inclusi» non sono ordini grezzi ma **transazioni pesate** (app 0,5 · cassa/cameriere 1,0).
 
-Il piano Gratuito (in origine "Free") funge da demo in condizioni reali. Il supporto tecnico include chat bot, tutorial e ticket via email per tutti i piani; Plus aggiunge il supporto telefonico Lun–Ven nelle fasce 12:00–16:00 e 18:00–22:00 con callback entro 2 ore; Business lo estende a H24, 7 giorni su 7, con callback entro 1 ora. Il numero di menu creabili varia da 1 (Gratuito) a 3 (Starter) a illimitati (Plus e Business). I collegamenti tra kitchen monitor e camerieri partono da 1 (Gratuito), 3 (Starter), illimitati per i piani superiori.
+| Piano    | Transazioni incluse | Con fatturazione annuale | Mensile puro | Costo transazione extra |
+|----------|---------------------|--------------------------|--------------|--------------------------|
+| Gratuito | 550                 | 0 €                      | 0 €          | 0,45 € + IVA             |
+| Starter  | 1.850               | 46,99 € + IVA            | 54,99 € + IVA| 0,34 € + IVA             |
+| Plus     | 7.500               | 134,99 € + IVA           | 155,99 € + IVA| 0,23 € + IVA            |
+| Business | 15.000              | 250 € + IVA              | 290 € + IVA  | 0,12 € + IVA             |
+
+> **Fonte di verità del listino:** `ACC_PIANI` in `gestionale/account-data.jsx`. La console Spot lo replica in `spot/admin-data.jsx` (`PIANI`) e le due copie vanno tenute allineate: quando hanno divergiuto — 49/99/249 di là, 46,99/134,99/250 di qua — ha vinto il gestionale.
+
+Il piano Gratuito (in origine "Free") funge da demo in condizioni reali. Il supporto tecnico include chat bot, tutorial e ticket via email per tutti i piani; Plus aggiunge il supporto telefonico Lun–Ven nelle fasce 12:00–16:00 e 18:00–22:00 con callback entro 2 ore; Business lo estende a H24, 7 giorni su 7, con callback entro 1 ora. Il numero di menu creabili varia da 1 (Gratuito) a 3 (Starter) a illimitati (Plus e Business), e allo stesso modo i membri dello staff: 1, fino a 3, illimitati. Nel gestionale «staff» è una cosa sola — persone e dispositivi (kitchen monitor, stampanti) stanno nello stesso elenco, in Impostazioni → Personale.
+
+Nel prototipo il canale scritto si chiama **Ticket** e non «email» (risposta entro 2 giorni lavorativi), e la chat di primo livello **dichiara di essere un'IA**: da lì si passa a una persona aprendo un ticket o prenotando una chiamata.
 
 Sono previsti anche pacchetti di transazioni acquistabili singolarmente per gestire picchi di attività senza dover passare al piano superiore.
 

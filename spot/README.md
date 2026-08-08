@@ -8,6 +8,8 @@ Entry: [byup-spot.html](byup-spot.html). Per chi: il team admin di byup.
 > sono la specifica del sistema. Per l'architettura e i flussi si parte dai
 > documenti, non da questo codice.
 
+*Contenuto verificato contro il codice il 2026-08-09: sezioni, tab, ruoli e matrice dei permessi corrispondono.*
+
 ---
 
 ## Le sezioni

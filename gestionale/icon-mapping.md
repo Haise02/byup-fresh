@@ -4,6 +4,8 @@ Mappatura 1:1 dei simboli esistenti (`PnI`, `BuIcons`) → nuovo registry `SfIco
 
 Ogni voce indica la URL Icons8 di riferimento per QA visivo.
 
+> **Documento storico (luglio 2026).** È il piano della migrazione, eseguita e chiusa: fotografa la corrispondenza di allora e non è più il registro delle icone. Oggi convivono tre registri, tutti vivi: `SfIcons` (`panoramica-sf-icons.jsx`, 94 icone, la dashboard e le tab), `BuIcons` (`byup-icons.jsx`, 65 simboli di linea) e `PnI` (`panoramica-icons.jsx`). Per sapere cosa esiste **si legge il codice**, non questa tabella.
+
 > **Stato (2026-07-28): migrazione eseguita.** Il registry vive in `panoramica-sf-icons.jsx` (`window.SfIcons` + `window.Icon`) e la dashboard lo usa. I nomi in tabella sono quelli della Fase 1: con la tassonomia (`icons-taxonomy.md`, Opzione A) le icone Content/Status hanno poi preso il prefisso famiglia — nomi attuali: `calendar`→`time-calendar`, `flame`→`food-flame`, `wallet`→`commerce-wallet`, `person`→`people-customer`, `receipt`→`commerce-receipt`, `table`→`place-table`, `credit-card`→`commerce-bank-cards`, `lightbulb`→`status-tip`, `party-popper`→`status-feature`.
 
 ## PnI → SfIcons

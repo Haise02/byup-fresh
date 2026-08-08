@@ -2,7 +2,7 @@
 
 Classificazione delle icone del registry (`panoramica-sf-icons.jsx` → `SfIcons`) + proposta per le nuove **Content icons** della Fase 2.
 
-> **Stato (2026-07-28): implementata.** Opzione A adottata (rinomina con prefisso, niente alias). Il registry conta oggi **93 icone**: UI 17, Content 69, Status 7. Scostamenti dalla proposta del §2: non implementate `people-male-user`, `chart-combo`, `event-santa`, `event-easter-egg`, `status-locked` e `food-fruit` (Food resta comunque a 15 perché è entrata `food-flame`, rinomina dal §1); aggiunte fuori lista `commerce-piggy-bank` e `commerce-register` (Content) e `trash` + `download` (UI); `calendar` esiste solo come `time-calendar`.
+> **Stato (verificato il 2026-08-09): implementata.** Opzione A adottata (rinomina con prefisso, niente alias). Il registry conta oggi **94 icone** (era 93 al 2026-07-28): Status 7, e le famiglie Content più popolate sono `food` e `commerce` con 15 ciascuna, `drink` 10, `people` e `chart` 7, `time` e `place` 6. Scostamenti dalla proposta del §2: non implementate `people-male-user`, `chart-combo`, `event-santa`, `event-easter-egg`, `status-locked` e `food-fruit` (Food resta comunque a 15 perché è entrata `food-flame`, rinomina dal §1); aggiunte fuori lista `commerce-piggy-bank` e `commerce-register` (Content) e `trash` + `download` (UI); `calendar` esiste solo come `time-calendar`.
 
 Tre famiglie (vincolo del prompt):
 

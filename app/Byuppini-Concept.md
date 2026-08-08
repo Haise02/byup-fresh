@@ -40,7 +40,9 @@ Meccanica collect-and-unlock con feedback dopaminico (numero che sale, mascotte 
 
 ## Schermate
 Nel prototipo (`app.jsx`) le prime quattro vivono come segmenti di un'unica schermata Byuppini; il percorso è una schermata a parte.
-1. **Portafoglio** — saldo grande + mascotte, livello e barra al prossimo, scorcio del percorso, Byup Games (ruota, slot, gratta e vinci), scorciatoia ai premi.
+1. **Portafoglio** — saldo grande + mascotte, livello e barra al prossimo, scorcio del percorso, scorciatoia ai premi.
+
+> **Byup Games è uscito dal prototipo il 7 ago 2026** (ruota, slot, gratta e vinci → poi «Byuppino Run»): la sezione e il file `byup-runner.jsx` sono stati rimossi. I byuppini si guadagnano ordinando e dalle sfide, non giocando. La meccanica resta descritta qui come idea di prodotto, ma **oggi non è implementata da nessuna parte**: chi la ripristina riparte da questo documento, non dal codice.
 2. **Sfide** — "guadagna oggi", missioni della settimana con progress, sfida dal vivo (QR), streak, referral, attività recente.
 3. **Premi** — catalogo a segmenti (credito / gadget / esperienze / byup card), ogni premio col costo in byuppini.
 4. **Traguardi** — collezione badge sbloccati e bloccati, ognuno col bonus.

@@ -8,7 +8,9 @@ Migrazione del gestionale Byup Fresh dai prototipi JSX (React in-browser) a comp
 
 ## Stato attuale
 
-**Sezione completata: Panoramica (Dashboard)**
+**Sezione completata: Panoramica (Dashboard)** — 29 componenti `.vue`.
+
+> **Verificato il 2026-08-09: la migrazione è ferma qui da fine luglio**, mentre il prototipo React ha continuato a correre (Statistiche riscritta da capo, Cucina a due monitor, Menù a tre colonne, Personale e Sala rifatti). Chi riprende la migrazione non ha davanti una Panoramica da completare ma un prototipo molto più avanti: conviene rileggere `../PROGRESS.md` prima di stimare il lavoro rimasto, e ripartire dai token e dai componenti glass, che sono l'unica parte già portata e ancora valida.
 
 ---
 

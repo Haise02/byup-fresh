@@ -330,7 +330,14 @@ non più da un toggle in-app (il vecchio `DevModeSwitcher` è stato rimosso).
   Gli allergeni restano visibili solo come "dots" informativi sul piatto (vedi sotto).
 - **Carrello bottom-sheet** (`OrderSheet`) collapsed/expanded, con vista
   secondaria **Divisione** (toggle "Dividi piatti tra i commensali",
-  stato `sheetTab` `piatti|divisione`).
+  stato `sheetTab` `piatti|divisione`). Si apre e si chiude **trascinando** la
+  fascia (soglia in px, non un tap sull'intera area); il **tap** resta solo
+  sulla lineetta. Lo swipe sulla riga divide **un piatto per volta**, non tutta
+  la riga. Stesso comportamento nell'app consumer — le due superfici condividono
+  la regola, non il codice (agosto 2026).
+- **Termini e Privacy**: link in fondo alla vetrina (`venue.jsx`) verso
+  `byup.it/termini` e la privacy policy. Piccoli e quieti di proposito, ma
+  devono esserci.
 - **Personalizzazione piatto** (`DishDetailScreen`): varianti, extra (con quantità),
   rimozione ingredienti → riga carrello `{ lineId, dishId, qty, variants, extras, removed }`.
 - **Allergeni** mostrati come "dots" tappabili sul piatto.

@@ -2,6 +2,8 @@
 
 Lista delle icone/decorazioni esistenti che la **Fase 4** del prompt classifica come "❌ No". Niente è stato rimosso: serve il tuo OK su ogni voce.
 
+> **Documento storico (luglio 2026): proposta mai eseguita come lotto.** Le schermate citate qui sotto sono state riscritte più volte da allora — Statistiche, Menù, Personale, Cucina — quindi righe, numeri di linea e in diversi casi gli elementi stessi non esistono più. Si tiene come traccia del criterio (quali decorazioni sono rumore), non come lista di lavoro.
+
 Per ogni voce: file, contesto, classificazione e proposta.
 
 > **Stato (2026-07-28).** Diversi punti sono stati superati dai redesign successivi: l'icona coperti nelle prenotazioni (B.1) è stata rimossa col redesign del widget, i glifi `↑ ↓` dei KPI Contabilità sono diventati SVG (`Ic.trendUp`/`Ic.trendDown`), i file `sala-v3-*` sono stati rinominati `sala-*`. Restano aperte le migrazioni delle pagine legacy su `PnI`/`BuIcons`/`Ic`/`SvIcon`. Dettagli nelle sezioni.
