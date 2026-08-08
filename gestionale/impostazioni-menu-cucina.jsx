@@ -776,7 +776,10 @@ function MCMenuComposer() {
 
         {/* ── Colonna 3: dettaglio + anteprima ─────────────────────────── */}
         <div className="pn-scroll" style={{display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, overflowY: 'auto', paddingRight: 2}}>
-          {detail ? (
+          {/* Senza un piatto aperto il pannello non c'è: un riquadro che dice
+              «scegli un piatto» occupa mezza colonna per non dire niente, e
+              l'anteprima sale in cima dove si guarda. */}
+          {detail && (
             <MCDettagliPiatto
               key={detail.dishId}
               dish={detail.dish}
@@ -791,17 +794,6 @@ function MCMenuComposer() {
               onDeleteFromLibrary={() => removeLibraryDish(detail.dishId)}
               onMoveCat={(to) => { moveDishToCat(activeCat, to, detail.dishId); setActiveCat(to); }}
             />
-          ) : (
-            <div style={{
-              background: PN.WHITE, border: `1px dashed ${PN.BORDER}`, borderRadius: 14,
-              padding: '26px 18px', textAlign: 'center', color: PN.MUTED, boxShadow: PN.CARD_SHADOW,
-            }}>
-              <div style={{display: 'inline-flex', width: 42, height: 42, borderRadius: '50%', background: PN.PINK_BG_SOFT, alignItems: 'center', justifyContent: 'center', marginBottom: 10}}>
-                <PnI.Plate size={19} color={PN.PINK}/>
-              </div>
-              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>Dettagli piatto</div>
-              <div style={{fontSize: 14, lineHeight: 1.45}}>Scegli un piatto per modificarne nome, prezzo, allergeni, varianti e canali.</div>
-            </div>
           )}
 
           <MCAnteprimaMenu
