@@ -150,8 +150,28 @@ const STAT_CLIENTI = {
   // stata e cosa ha mangiato — quelle Google le lascia chiunque abbia un
   // account Google. La media pesata delle due dà il 4,5 di sopra:
   // (312 × 4,6 + 231 × 4,4) / 543.
+  //
+  // Il dettaglio ce l'hanno solo le byup, ed è voluto: la card mostra il loro
+  // voto e basta, di Google resta una riga in fondo. Distribuzione, volume
+  // mensile e andamento sono quindi tutti sulle 312 byup.
+  //   `stelle` somma a 312 e fa media 4,6 (1435/312), e si incastra con
+  //   `aspetti`: 12 + 9 = 21 recensioni da una o due stelle (i problemi),
+  //   253 + 23 + 15 = 291 da tre in su (i pregi).
+  //   `mese` somma a 312 e cresce nel tempo, perché è l'app che si diffonde;
+  //   `trend` pesato su `mese` torna a 4,6.
   fonti: {
-    byup:   { n: 312, media: 4.6 },
+    byup: {
+      n: 312, media: 4.6,
+      stelle: [
+        { stars: 5, count: 253 },
+        { stars: 4, count:  23 },
+        { stars: 3, count:  15 },
+        { stars: 2, count:  12 },
+        { stars: 1, count:   9 },
+      ],
+      mese:  [12, 14, 16, 20, 19, 23, 30, 37, 29, 35, 32, 45],
+      trend: [4.4, 4.4, 4.5, 4.5, 4.4, 4.6, 4.6, 4.6, 4.7, 4.7, 4.7, 4.8],
+    },
     google: { n: 231, media: 4.4 },
   },
   // Stessa forma delle recensioni nell'app: dopo il pagamento il cliente dà le
@@ -184,8 +204,8 @@ const STAT_CLIENTI = {
   // quelle del set «al tavolo» — l'asporto ne ha altre due, e le avrà solo il
   // locale che lo fa.
   // Solo le byup ne hanno: Google raccoglie stelle e testo, punto. Quindi la
-  // base sono le 312 byup, divise dove l'app divide: 21 da una o due stelle
-  // (le 33 di `starBreakdown` meno le 12 arrivate da Google) e 291 sopra.
+  // base sono le 312 byup, divise dove l'app divide: 21 da una o due stelle e
+  // 291 sopra — gli stessi due mucchi di `fonti.byup.stelle`.
   // Una recensione può spuntarne più d'una: le somme superano la base.
   // `prec` è lo stesso conteggio nei dodici mesi prima, per la freccia.
   aspetti: {
@@ -211,18 +231,6 @@ const STAT_CLIENTI = {
       ],
     },
   },
-  starBreakdown: [
-    { stars: 5, count: 320 },
-    { stars: 4, count: 142 },
-    { stars: 3, count: 48 },
-    { stars: 2, count: 21 },
-    { stars: 1, count: 12 },
-  ],
-  ratingTrend: [4.2,4.3,4.4,4.4,4.3,4.5,4.6,4.5,4.6,4.7,4.6,4.8],
-  // Quante ne sono arrivate mese per mese. Sommano a 543, cioè al totale che
-  // la card mostra in grande: il volume e la media sono lo stesso mucchio di
-  // recensioni guardato in due modi, e non devono poter divergere.
-  recensioniMese: [28, 32, 35, 41, 38, 44, 52, 61, 47, 55, 49, 61],
   ciclo: [
     { stato:'Prima visita',           n: 433, pct: 35, delta: 12.5 },
     { stato:'Ritorno entro 30 giorni', n: 320, pct: 26, delta: 10.0 },

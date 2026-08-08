@@ -107,25 +107,50 @@ function cliConta(aspetti, id) {
 // Un solo colore: l'ambra delle stelle, sulle stelle e sulle barre. Le barre
 // da due stelle in giù erano rosse — ma la riga è già etichettata «2 ★», e
 // colorare quello che è già scritto è rumore, non informazione.
+//
+// Il numero grande è quello byup, non la media delle due provenienze. Prima
+// erano appaiate in fondo alla colonna, stessa dimensione e stesso peso, sotto
+// un 4,5 che le mescolava: la card diceva che valgono uguale, e non è vero.
+// Una recensione byup nasce da un ordine pagato qui — quella persona c'è stata
+// e si sa cosa ha mangiato — una Google la lascia chiunque abbia un account,
+// anche chi passava davanti. Quindi il voto vero è uno, con la sua media e il
+// suo totale in grande, e Google è una riga di servizio in fondo: non si
+// nasconde, ma non compete.
 function CliVoto({ d }) {
-  const tot = d.starBreakdown.reduce((s, r) => s + r.count, 0);
+  const b = d.fonti.byup, g = d.fonti.google;
+  const tot = b.stelle.reduce((s, r) => s + r.count, 0);
   return (
     <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 18}}>
-      <div style={{display:'flex', alignItems:'flex-end', gap: 16, flexWrap:'wrap'}}>
-        <span style={{fontSize: 52, fontWeight: 700, color: PN.TEXT, letterSpacing:-1.8, lineHeight: 0.9}}>
-          {d.rating.toFixed(1).replace('.', ',')}
-        </span>
-        <span style={{display:'flex', flexDirection:'column', gap: 5, paddingBottom: 2}}>
-          <CliStelle voto={d.rating} lato={17}/>
-          <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace:'nowrap'}}>
-            su {d.recensioni.toLocaleString('it-IT', {useGrouping: true})} recensioni
+      <div>
+        {/* Di chi è questo voto e perché conta, in una riga sola: senza, il
+            numero grande sembrerebbe la media di tutto. */}
+        <div style={{display:'flex', alignItems:'baseline', gap: 7, flexWrap:'wrap', marginBottom: 12}}>
+          <CliFonte fonte="byup" lato={13.5}/>
+          <span style={{fontSize: 13, color: PN.MUTED_SOFT}}>
+            le lascia solo chi ha ordinato e pagato qui
           </span>
-        </span>
+        </div>
+        <div style={{display:'flex', alignItems:'flex-end', gap: 16, flexWrap:'wrap'}}>
+          <span style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-2, lineHeight: 0.85}}>
+            {b.media.toFixed(1).replace('.', ',')}
+          </span>
+          <span style={{display:'flex', flexDirection:'column', gap: 6, paddingBottom: 2}}>
+            <CliStelle voto={b.media} lato={18}/>
+            {/* La media e il totale sono le due cose che si vengono a
+                sapere qui: il conteggio è scuro e in grassetto, il resto
+                della frase no. */}
+            <span style={{fontSize: 14, color: PN.MUTED, whiteSpace:'nowrap'}}>
+              su <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+                {b.n.toLocaleString('it-IT', {useGrouping: true})}
+              </span> recensioni
+            </span>
+          </span>
+        </div>
       </div>
 
       <div style={{display:'flex', flexDirection:'column', gap: 12}}>
         {[5,4,3,2,1].map(stelle => {
-          const riga = d.starBreakdown.find(r => r.stars === stelle);
+          const riga = b.stelle.find(r => r.stars === stelle);
           return (
             <div key={stelle} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 13}}>
               <span style={{
@@ -149,28 +174,25 @@ function CliVoto({ d }) {
         })}
       </div>
 
-      {/* Le due provenienze con la loro media: è qui che si vede che i clienti
-          byup — quelli che hanno davvero ordinato — votano più alto di chi
-          passa da Google. */}
-      {/* Attaccate alla distribuzione, non spinte in fondo alla colonna: il
-          grafico accanto è più alto, e `marginTop:auto` apriva un buco in
-          mezzo. Meglio che l'aria avanzata resti sotto, dove finire è
-          normale, che in mezzo, dove sembra un pezzo mancante. */}
+      {/* Google in fondo, a filo di grigio: il dato c'è — chi ha il locale lo
+          vuole sapere — ma non è quello su cui si prendono decisioni, e a
+          questa dimensione si legge come la nota che è.
+          Attaccato alla distribuzione, non spinto in fondo con
+          `marginTop:auto`: il grafico accanto ha un'altezza sua, e l'auto
+          apriva un buco in mezzo alla colonna. Meglio che l'aria avanzata
+          resti sotto, dove finire è normale. */}
       <div style={{
-        display:'flex', flexDirection:'column', gap: 11,
-        paddingTop: 16, borderTop:`1px solid ${PN.BORDER_SOFT}`,
-      }}>
-        {['byup', 'google'].map(k => (
-          <div key={k} style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10, minWidth: 0}}>
-            <CliFonte fonte={k} lato={13.5}/>
-            <span style={{display:'inline-flex', alignItems:'baseline', gap: 7, flexShrink: 0}}>
-              <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
-                {d.fonti[k].media.toFixed(1).replace('.', ',')}
-              </span>
-              <span style={{fontSize: 12.5, color: PN.MUTED_SOFT, whiteSpace:'nowrap'}}>su {d.fonti[k].n}</span>
-            </span>
-          </div>
-        ))}
+        display:'flex', alignItems:'baseline', justifyContent:'space-between',
+        gap: 10, minWidth: 0, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+        fontSize: 12.5, color: PN.MUTED_LIGHT,
+      }} title={`Su Google hai ${g.media.toFixed(1).replace('.', ',')} su ${g.n} recensioni. Le lascia chiunque abbia un account Google, anche chi non ha mai ordinato da te: restano fuori dal voto qui sopra.`}>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 6, minWidth: 0}}>
+          <span style={{width: 5, height: 5, borderRadius:'50%', background: CLI_FONTI.google.colore, opacity: 0.55, flexShrink: 0}}/>
+          <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Google, aperte a chiunque</span>
+        </span>
+        <span style={{flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>
+          {g.media.toFixed(1).replace('.', ',')} su {g.n}
+        </span>
       </div>
     </div>
   );
@@ -181,24 +203,30 @@ function CliVoto({ d }) {
 // ci si fa insieme. Le barre sono il numero di recensioni del mese e partono
 // da zero, come devono; la media è una linea con la sua scala a destra, perché
 // una barra da 3,5 a 5 gonfierebbe differenze di un decimo.
+// Le dodici rilevazioni sono quelle byup, come il voto accanto: mescolare qui
+// le Google significherebbe rimetterle dentro dalla finestra un attimo dopo
+// averle messe in fondo alla colonna di sinistra.
 function CliAndamento({ d, mesiEt }) {
-  // L'altezza è tarata sulla colonna accanto: il grafico deve finire dove
-  // finisce il voto, altrimenti mezza card resta bianca a destra.
-  const W = 640, H = 230, P = { l: 6, r: 30, t: 18, b: 26 };
-  const mesi = d.recensioniMese;
+  // La colonna adesso è larga la metà della card, non i due terzi: dentro un
+  // `viewBox` il testo scala con la larghezza, quindi un disegno tarato su 640
+  // qui stamperebbe etichette da sette pixel. Il riquadro si stringe con la
+  // colonna e le scritte tornano della misura giusta.
+  const W = 440, H = 196, P = { l: 4, r: 26, t: 16, b: 24 };
+  const mesi = d.fonti.byup.mese;
+  const voti = d.fonti.byup.trend;
   const maxN = Math.max(...mesi);
   const passo = (W - P.l - P.r) / mesi.length;
   const larghezza = Math.min(22, passo * 0.44);
   const xc = (i) => P.l + passo * (i + 0.5);
   const yBarra = (n) => H - P.b - (n / maxN) * (H - P.t - P.b);
   const yVoto = (v) => H - P.b - ((v - 3.5) / 1.5) * (H - P.t - P.b);
-  const linea = d.ratingTrend.map((v, i) => `${i === 0 ? 'M' : 'L'}${xc(i)},${yVoto(v)}`).join(' ');
-  const ultimo = d.ratingTrend[d.ratingTrend.length - 1];
-  const xUltimo = xc(d.ratingTrend.length - 1);
+  const linea = voti.map((v, i) => `${i === 0 ? 'M' : 'L'}${xc(i)},${yVoto(v)}`).join(' ');
+  const ultimo = voti[voti.length - 1];
+  const xUltimo = xc(voti.length - 1);
 
   return (
     <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column'}}>
-      <div style={{display:'flex', alignItems:'center', gap: 18, marginBottom: 4}}>
+      <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap', marginBottom: 4}}>
         <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
           <span style={{width: 8, height: 8, borderRadius: 2, background: PN.PINK, opacity: 0.28}}/>
           recensioni del mese
@@ -733,14 +761,19 @@ function StatClienti() {
           delta={d.abituali.delta} sub="Tornati almeno due volte negli ultimi 90 giorni" trend={d.abituali.trend}/>
       </div>
 
-      <StatCard title="Valutazioni" sub={`${d.recensioni} recensioni negli ultimi 12 mesi, da due posti diversi`}>
+      {/* Il sottotitolo non ripete il totale: quello sta in grande due righe
+          più sotto, ed è lì che si va a leggerlo. */}
+      <StatCard title="Valutazioni" sub="Negli ultimi 12 mesi">
         {/* Sopra: quanto ti votano e come sta andando. Sotto, oltre il filetto:
             perché — le caselle che i clienti hanno spuntato nell'app. Sono la
             stessa cosa guardata a due distanze, e stavano in due card diverse
             solo perché sono nate in due momenti diversi. */}
         {/* Un filo verticale al posto del riquadro: separa le due colonne
-            senza chiudere niente dentro una cornice. */}
-        <div style={{display:'grid', gridTemplateColumns:'minmax(280px, 0.78fr) 1.75fr', alignItems:'stretch'}}>
+            senza chiudere niente dentro una cornice.
+            Metà e metà: il grafico si prendeva quasi il doppio del voto, e a
+            quella larghezza era lui la card. L'andamento conta, ma conta
+            quanto il numero che commenta — non di più. */}
+        <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1fr)', alignItems:'stretch'}}>
           <div style={{paddingRight: 30, borderRight:`1px solid ${PN.BORDER_SOFT}`, minWidth: 0, display:'flex'}}>
             <CliVoto d={d}/>
           </div>
