@@ -184,7 +184,6 @@ const CUSTOM_ROLES = [
 function ImpPersonale() {
   const [openMenu, setOpenMenu] = React.useState(null);
   const [showCreateRole, setShowCreateRole] = React.useState(false);
-  const [editRole, setEditRole] = React.useState(null);
   const [invite, setInvite] = React.useState(null); // null | { roleId, kind }
   const [showPending, setShowPending] = React.useState(false);
   const [gruppo, setGruppo] = React.useState('all');   // filtro per ruolo (colonna sinistra)
@@ -321,19 +320,16 @@ function ImpPersonale() {
               <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Filtra le persone per ruolo</div>
             </div>
             <div style={{padding:'0 10px 12px', display:'flex', flexDirection:'column', gap: 2}}>
+              {/* Queste righe filtrano l'elenco e basta: i permessi si toccano
+                  da «Crea ruolo» qui sotto. La matita al passaggio è stata
+                  tolta — due modi per arrivare alla stessa modale, e uno dei
+                  due nascosto finché non ci passavi sopra. */}
               {gruppi.map(g => {
                 const on = gruppo === g.id;
                 const n = conta(g.id);
-                // I ruoli standard non avevano nessun punto da cui aprire i
-                // loro permessi: solo i custom mostravano «Modifica». La
-                // matita al passaggio vale per tutti.
-                const ruoloVero = allRoles.find(r => r.id === g.id && !r.locked);
                 return (
-                  <div key={g.id} style={{position:'relative'}}
-                    onMouseEnter={e => { const m = e.currentTarget.querySelector('.ruolo-matita'); if (m) m.style.opacity = 1; }}
-                    onMouseLeave={e => { const m = e.currentTarget.querySelector('.ruolo-matita'); if (m) m.style.opacity = 0; }}
-                  >
                     <button
+                      key={g.id}
                       onClick={() => setGruppo(g.id)}
                       className="pn-btn-feedback"
                       style={{
@@ -357,34 +353,13 @@ function ImpPersonale() {
                         color: on ? PN.PINK_DARK : PN.TEXT,
                         overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                       }}>{g.label}</span>
+                      {/* Niente margine destro: senza la matita da scansare i
+                          conteggi si incolonnano da soli sul bordo della riga. */}
                       <span style={{
                         fontSize: 13, fontWeight: 700, flexShrink: 0,
                         color: on ? PN.PINK_DARK : PN.MUTED,
-                        // La corsia della matita è riservata su tutte le righe,
-                        // anche dove la matita non c'è: i conteggi devono stare
-                        // in colonna. Riservandola solo ai ruoli modificabili
-                        // finivano su due incolonnamenti diversi a 24px l'uno
-                        // dall'altro — Cassa e Cameriere di qua, tutti gli altri
-                        // di là.
-                        marginRight: 24,
                       }}>{n}</span>
                     </button>
-                    {ruoloVero && (
-                      <button
-                        className="ruolo-matita"
-                        onClick={(e) => { e.stopPropagation(); setEditRole(ruoloVero); }}
-                        title={`Permessi di ${ruoloVero.label}`}
-                        aria-label={`Permessi di ${ruoloVero.label}`}
-                        style={{
-                          position:'absolute', top: '50%', right: 8, transform:'translateY(-50%)',
-                          width: 24, height: 24, borderRadius: 7,
-                          border:'none', background:'transparent', color: PN.MUTED,
-                          display:'grid', placeItems:'center', cursor:'pointer',
-                          opacity: 0, transition:'opacity .14s',
-                        }}
-                      >{BuIcons.edit({size: 13, color:'currentColor'})}</button>
-                    )}
-                  </div>
                 );
               })}
             </div>
@@ -519,14 +494,6 @@ function ImpPersonale() {
           roles={allRoles}
           onSave={(nuovo) => setCustomRoles(prev => [...prev, nuovo])}
           onClose={() => setShowCreateRole(false)}/>
-      )}
-      {editRole && (
-        <CreateRoleModal
-          role={editRole} roles={allRoles}
-          onSave={(salvato) => setCustomRoles(prev => prev.some(r => r.id === salvato.id)
-            ? prev.map(r => r.id === salvato.id ? salvato : r)
-            : [...prev, salvato])}
-          onClose={() => setEditRole(null)}/>
       )}
       {invite && <InviteModal prefill={invite} ruoli={allRoles} onClose={() => setInvite(null)}/>}
       {showPending && <PendingModal onClose={() => setShowPending(false)}/>}
@@ -2098,6 +2065,11 @@ function idLibero(nome, elenco) {
 // esce con un ruolo PERSONALIZZATO nuovo, che quindi ha bisogno di un nome suo,
 // perché due ruoli con lo stesso nome sarebbero indistinguibili nel momento in
 // cui li si assegna a qualcuno. Il ruolo di sistema resta dov'era, intatto.
+//
+// Oggi l'unica porta d'ingresso è «Crea ruolo», che apre la modale senza
+// `role`: il ramo `role` — modifica di un personalizzato, ruolo nuovo a partire
+// da uno di sistema — resta qui perché è la regola del prodotto, pronto per
+// quando ci sarà di nuovo un punto da cui aprire i permessi di un ruolo.
 function CreateRoleModal({ onClose, role, roles, onSave }) {
   const isEdit = !!role;
   // Da un ruolo di sistema si esce sempre con un ruolo nuovo; un ruolo
