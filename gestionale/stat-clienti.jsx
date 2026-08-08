@@ -472,7 +472,11 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
                     display:'flex', alignItems:'baseline', justifyContent:'space-between', gap: 10, minWidth: 0,
                   }}>
                     <span style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.autore}</span>
-                    <span style={{fontSize: 13, color: PN.MUTED_SOFT, whiteSpace:'nowrap', flexShrink: 0}}>{r.quando}</span>
+                    {/* In nero come il nome: quando è arrivata è metà di quello
+                        che dice l'intestazione — un problema di sei giorni fa e
+                        uno di sei mesi fa non sono la stessa notizia — e in
+                        grigio chiaro si leggeva come una didascalia. */}
+                    <span style={{fontSize: 13, color: PN.TEXT, whiteSpace:'nowrap', flexShrink: 0}}>{r.quando}</span>
                   </span>
                   <span style={{display:'flex', marginTop: 7}}>
                     <CliStelleTessere voto={r.stelle} lato={20} aria={4}/>
