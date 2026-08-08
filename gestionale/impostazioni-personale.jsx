@@ -209,6 +209,16 @@ function ImpPersonale() {
     return () => document.removeEventListener('click', close);
   }, [openMenu]);
 
+  // Quello che il menu «⋯» cambia davvero. I dati di partenza sono finti e
+  // fermi; queste tre mappe sono la memoria di ciò che l'utente ha fatto in
+  // questa sessione, così un accesso disattivato resta disattivato e un ruolo
+  // cambiato si vede in riga — altrimenti il menu è un elenco di bottoni che
+  // non fanno niente, che è peggio di non averli.
+  const [attivazioni, setAttivazioni] = React.useState({});   // key → attivo
+  const [ruoliCambiati, setRuoliCambiati] = React.useState({}); // key → roleId
+  const [resetPwd, setResetPwd] = React.useState(null);       // riga in reset
+  const [cambiaRuolo, setCambiaRuolo] = React.useState(null); // riga in cambio
+
   const allRoles = [...ROLES, ...CUSTOM_ROLES];
 
   // Persone e dispositivi in un elenco solo: la domanda della pagina è «chi
@@ -217,25 +227,27 @@ function ImpPersonale() {
   // costringeva a guardare in due posti per rispondere.
   const righe = [
     ...PERSONS.map(p => {
-      const ruolo = allRoles.find(r => r.id === p.role) || RUOLO_IGNOTO;
+      const key = `p-${p.email}`;
+      const ruolo = allRoles.find(r => r.id === (ruoliCambiati[key] || p.role)) || RUOLO_IGNOTO;
       return {
-        key: `p-${p.email}`, tipo: 'persona', dato: p,
+        key, tipo: 'persona', dato: p,
         nome: p.name, sotto: p.email, colore: p.color,
         ruolo, gruppo: ruolo.custom ? '_custom' : ruolo.id,
         accesso: accessoDelRuolo(ruolo),
-        attivo: p.active !== false,
+        attivo: attivazioni[key] !== undefined ? attivazioni[key] : p.active !== false,
       };
     }),
     ...DEVICES.map((d, i) => {
       const stampante = d.deviceType === 'printer';
+      const key = `d-${i}`;
       return {
-        key: `d-${i}`, tipo: 'dispositivo', dato: d, idx: i,
+        key, tipo: 'dispositivo', dato: d, idx: i,
         nome: d.name, sotto: stampante ? d.ip : d.username,
         ruolo: DEVICE_ROLES[d.deviceType] || DEVICE_ROLE, gruppo: '_devices',
         accesso: stampante
           ? { titolo: 'Cassa', sotto: 'Scontrini e comande' }
           : { titolo: 'Cucina', sotto: 'Schermo comande' },
-        attivo: d.active !== false,
+        attivo: attivazioni[key] !== undefined ? attivazioni[key] : d.active !== false,
         stampante,
       };
     }),
@@ -442,6 +454,9 @@ function ImpPersonale() {
               key={r.key} r={r} ultima={i === visibili.length - 1}
               openMenu={openMenu} setOpenMenu={setOpenMenu}
               onEditDevice={() => setInvite({ kind: 'device', editDevice: r.dato })}
+              onToggleAttivo={() => setAttivazioni(a => ({...a, [r.key]: !r.attivo}))}
+              onResetPassword={() => setResetPwd(r)}
+              onCambiaRuolo={() => setCambiaRuolo(r)}
             />
           ))}
         </section>
@@ -479,6 +494,16 @@ function ImpPersonale() {
 
       </div>
 
+      {resetPwd && <ResetPasswordModal r={resetPwd} onClose={() => setResetPwd(null)}/>}
+      {cambiaRuolo && (
+        <CambiaRuoloModal
+          r={cambiaRuolo} ruoli={allRoles.filter(x => !x.locked)}
+          onConferma={(roleId) => {
+            setRuoliCambiati(m => ({...m, [cambiaRuolo.key]: roleId}));
+            setCambiaRuolo(null);
+          }}
+          onClose={() => setCambiaRuolo(null)}/>
+      )}
       {showCreateRole && <CreateRoleModal onClose={() => setShowCreateRole(false)}/>}
       {editRole && <CreateRoleModal role={editRole} onClose={() => setEditRole(null)}/>}
       {invite && <InviteModal prefill={invite} onClose={() => setInvite(null)}/>}
@@ -563,7 +588,8 @@ function ScorciatoiaAccesso({ icona, colore, sfondo, titolo, sotto, onClick }) {
   );
 }
 
-function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
+function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
+  onToggleAttivo, onResetPassword, onCambiaRuolo }) {
   const [confermaRimozione, setConfermaRimozione] = React.useState(false);
   const aperto = openMenu === r.key;
   const iniziali = r.tipo === 'persona'
@@ -675,9 +701,12 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         }}>
           {r.tipo === 'persona' ? (
             <>
-              <MenuItem icon={BuIcons.user({size: 14, color: 'currentColor'})}>Modifica ruolo</MenuItem>
-              <MenuItem icon={<PnI.Key size={14}/>}>Resetta password</MenuItem>
-              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}>
+              <MenuItem icon={BuIcons.user({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); onCambiaRuolo?.(); }}>Modifica ruolo</MenuItem>
+              <MenuItem icon={<PnI.Key size={14}/>}
+                onClick={() => { setOpenMenu(null); onResetPassword?.(); }}>Resetta password</MenuItem>
+              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); onToggleAttivo?.(); }}>
                 {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
               </MenuItem>
               <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
@@ -688,8 +717,10 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
             <>
               <MenuItem icon={BuIcons.edit({size: 14, color: 'currentColor'})}
                 onClick={() => { setOpenMenu(null); onEditDevice?.(); }}>Modifica</MenuItem>
-              {!r.stampante && <MenuItem icon={<PnI.Key size={14}/>}>Genera nuova password</MenuItem>}
-              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}>
+              {!r.stampante && <MenuItem icon={<PnI.Key size={14}/>}
+                onClick={() => { setOpenMenu(null); onResetPassword?.(); }}>Genera nuova password</MenuItem>}
+              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); onToggleAttivo?.(); }}>
                 {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
               </MenuItem>
               <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
@@ -763,6 +794,17 @@ const PERM_ICONS = {
 // firma che nessuno avrebbe letto.
 const allCatsCount = MENUS.reduce((n, m) => n + m.categories.length, 0);
 
+// Password di un dispositivo: otto caratteri senza I, O, 0 e 1 — si detta ad
+// alta voce a chi sta davanti al monitor, e quelle quattro si sbagliano sempre.
+// Vive fuori da useDeviceState perché la chiede anche il «Resetta password» del
+// menu, che di quello stato non ha bisogno.
+function generaPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let p = '';
+  for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
+  return p;
+}
+
 // La visualizzazione scelta per un monitor va detta alla sezione Cucina, che sta
 // su un'altra pagina: passa dal ponte condiviso in panoramica-sidebar.jsx. Qui
 // non si decide niente — si riferisce quello che ha scelto chi collega.
@@ -790,12 +832,7 @@ function useDeviceState(tipoIniziale) {
   const deviceValid = isPrinter
     ? deviceName.trim().length > 0 && printerCats.size > 0
     : (username.trim().length > 0 && password.length >= 4);
-  const generatePwd = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let p = '';
-    for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
-    setPassword(p); setShowPwd(true);
-  };
+  const generatePwd = () => { setPassword(generaPassword()); setShowPwd(true); };
   const reset = () => { setDeviceName(''); setUsername(''); setPassword(''); setShowPwd(false); setPrinterCats(new Set()); setKdsView('pub'); };
   return { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
@@ -1653,6 +1690,188 @@ function InviteModal({ onClose, prefill }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Resetta password (dal menu «⋯» della riga) ─────────────────────────────
+// Due passi, non uno: prima la password nuova, poi che cosa comporta darla. Il
+// secondo è lo stesso avviso della finestra di modifica — cambiare una password
+// stacca chi la sta usando adesso — e chi arriva dal menu deve leggerlo uguale,
+// perché l'effetto è lo stesso.
+function ResetPasswordModal({ r, onClose }) {
+  const [pwd, setPwd] = React.useState('');
+  const [mostra, setMostra] = React.useState(false);
+  const [avviso, setAvviso] = React.useState(false);
+  const dispositivo = r.tipo === 'dispositivo';
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...IMP_MODAL_PANEL, width: 420, maxWidth:'100%', position:'relative',
+      }}>
+        {!avviso ? (
+          <>
+            <div style={IMP_MODAL_HEAD}>
+              <div style={IMP_MODAL_TITLE}>{dispositivo ? 'Genera nuova password' : 'Resetta password'}</div>
+              <div style={IMP_MODAL_SUB}>
+                Per <b style={{color: PN.TEXT}}>{r.nome}</b>.
+                {dispositivo ? ' Si digita sul dispositivo al collegamento.' : ' Sostituisce quella attuale.'}
+              </div>
+              <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
+            </div>
+            <div style={{padding:'20px 24px'}}>
+              <ImpField label="Nuova password" required
+                hint="Almeno 4 caratteri. Salvala in un posto sicuro: non sarà più visibile.">
+                <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
+                  <div style={{position:'relative', flex: 1}}>
+                    <input
+                      type={mostra ? 'text' : 'password'}
+                      value={pwd} onChange={e => setPwd(e.target.value)}
+                      placeholder="Inserisci nuova password"
+                      style={{
+                        width:'100%', padding:'10px 40px 10px 12px',
+                        border:`1px solid ${PN.BORDER}`, borderRadius:9,
+                        fontSize:15.5, fontFamily:'inherit', outline:'none', background: PN.WHITE,
+                      }}
+                    />
+                    <button type="button" onClick={() => setMostra(s => !s)}
+                      aria-label="Mostra/nascondi password"
+                      style={{
+                        position:'absolute', right: 8, top:'50%', transform:'translateY(-50%)',
+                        width: 28, height: 28, borderRadius: 6,
+                        background:'transparent', border:'none', cursor:'pointer',
+                        display:'grid', placeItems:'center', color: PN.MUTED,
+                      }}>{(BuIcons.eye||BuIcons.user)({size: 16, color:'currentColor'})}</button>
+                  </div>
+                  <button type="button" onClick={() => { setPwd(generaPassword()); setMostra(true); }}
+                    style={{
+                      padding:'0 14px', background:'#F4F5F7', border:`1px solid ${PN.BORDER}`,
+                      borderRadius: 9, cursor:'pointer', fontFamily:'inherit',
+                      fontSize: 14, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap',
+                    }}>Genera</button>
+                </div>
+              </ImpField>
+            </div>
+            <div style={{
+              padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`,
+              display:'flex', justifyContent:'flex-end',
+            }}>
+              <ImpButton variant="primary" disabled={pwd.length < 4}
+                style={{whiteSpace:'nowrap'}} onClick={() => setAvviso(true)}>
+                Continua
+              </ImpButton>
+            </div>
+          </>
+        ) : (
+          <div style={{padding: 24}}>
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: PN.AMBER_SOFT, color: '#B45309',
+                display:'grid', placeItems:'center',
+              }}>{(BuIcons.alert||BuIcons.bulb)({size: 15, color:'currentColor'})}</span>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Cambiare la password?</div>
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              <b style={{color: PN.TEXT}}>{r.nome}</b>{dispositivo
+                ? <> verrà disconnesso da tutti gli schermi su cui è collegato adesso. Per farlo
+                    rientrare dovrai inserire la nuova password su ognuno.</>
+                : <> uscirà da tutte le sessioni aperte, gestionale e app staff. Per rientrare
+                    dovrà usare la nuova password.</>}
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setAvviso(false)}>Indietro</ImpButton>
+              <ImpButton variant="primary" style={{whiteSpace:'nowrap'}} onClick={onClose}>
+                Cambia password
+              </ImpButton>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Modifica ruolo (dal menu «⋯» della riga) ───────────────────────────────
+// Il ruolo non è un'etichetta: sono le sezioni che una persona vede. Si sceglie
+// e poi si conferma, con davanti quello che cambia — chi tocca questa voce per
+// sbaglio se ne accorge prima e non dopo.
+function CambiaRuoloModal({ r, ruoli, onConferma, onClose }) {
+  const [scelto, setScelto] = React.useState(r.ruolo.id);
+  const [conferma, setConferma] = React.useState(false);
+  const nuovo = ruoli.find(x => x.id === scelto) || r.ruolo;
+  const cambiato = scelto !== r.ruolo.id;
+  const acc = accessoDelRuolo(nuovo);
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...IMP_MODAL_PANEL, width: 420, maxWidth:'100%', position:'relative',
+      }}>
+        {!conferma ? (
+          <>
+            <div style={IMP_MODAL_HEAD}>
+              <div style={IMP_MODAL_TITLE}>Modifica ruolo</div>
+              <div style={IMP_MODAL_SUB}>
+                <b style={{color: PN.TEXT}}>{r.nome}</b> è {r.ruolo.label}. Il ruolo decide che
+                cosa vede nel gestionale.
+              </div>
+              <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
+            </div>
+            <div style={{padding:'20px 24px'}}>
+              <ImpField label="Ruolo" hint={acc.tutte}>
+                <select value={scelto} onChange={e => setScelto(e.target.value)} style={{
+                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
+                  borderRadius: 9, fontSize: 15.5, background: PN.WHITE, outline:'none',
+                }}>
+                  {ruoli.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
+                </select>
+              </ImpField>
+            </div>
+            <div style={{
+              padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`,
+              display:'flex', justifyContent:'flex-end',
+            }}>
+              <ImpButton variant="primary" disabled={!cambiato}
+                style={{whiteSpace:'nowrap'}} onClick={() => setConferma(true)}>
+                Salva ruolo
+              </ImpButton>
+            </div>
+          </>
+        ) : (
+          <div style={{padding: 24}}>
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: PN.AMBER_SOFT, color: '#B45309',
+                display:'grid', placeItems:'center',
+              }}>{(BuIcons.alert||BuIcons.bulb)({size: 15, color:'currentColor'})}</span>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Sei sicuro?</div>
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              <b style={{color: PN.TEXT}}>{r.nome}</b> passa da <b style={{color: r.ruolo.color}}>{r.ruolo.label}</b>
+              {' '}a <b style={{color: nuovo.color}}>{nuovo.label}</b>, e da quel momento accede a:
+              {' '}<b style={{color: PN.TEXT}}>{acc.tutte}</b>. Il cambio vale subito, anche se è già dentro.
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConferma(false)}>Indietro</ImpButton>
+              <ImpButton variant="primary" style={{whiteSpace:'nowrap'}}
+                onClick={() => onConferma(scelto)}>
+                Cambia ruolo
+              </ImpButton>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
