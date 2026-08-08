@@ -811,8 +811,12 @@ function generaPassword() {
 // La visualizzazione scelta per un monitor va detta alla sezione Cucina, che sta
 // su un'altra pagina: passa dal ponte condiviso in panoramica-sidebar.jsx. Qui
 // non si decide niente — si riferisce quello che ha scelto chi collega.
-function salvaVistaKds(vista, nome) {
-  if (window.byupWriteVistaKds) window.byupWriteVistaKds(vista, nome);
+// Il monitor collegato — nome, visualizzazione e l'username che lo identifica —
+// va detto alla sezione Cucina, che sta su un'altra pagina e da lì sceglie quale
+// schermo guardare. Qui non si decide niente: si riferisce quello che ha scelto
+// chi collega.
+function salvaMonitorKds({ id, nome, vista }) {
+  if (window.byupUpsertMonitorKds) window.byupUpsertMonitorKds({ id, nome, vista });
 }
 
 function useDeviceState(tipoIniziale) {
@@ -1364,7 +1368,11 @@ function InviteModal({ onClose, prefill }) {
 
   function salvaEChiudi() {
     if (kind === 'device' && !isPrinter) {
-      salvaVistaKds(dev.kdsView, deviceName.trim() || (editDevice && editDevice.name));
+      salvaMonitorKds({
+        id: 'PG1-' + (username.trim() || (editDevice && String(editDevice.username || '').replace('PG1-', ''))),
+        nome: deviceName.trim() || (editDevice && editDevice.name),
+        vista: dev.kdsView,
+      });
     }
     onClose();
   }
@@ -2244,7 +2252,9 @@ function DispositivoStep({ setTeam }) {
   const aggiungiDispositivo = () => {
     if (!dev.deviceValid) return;
     const nome = dev.deviceName.trim() || (dev.isPrinter ? 'Stampante' : 'Monitor cucina');
-    if (!dev.isPrinter) salvaVistaKds(dev.kdsView, nome);
+    if (!dev.isPrinter) {
+      salvaMonitorKds({ id: 'PG1-' + dev.username.trim(), nome, vista: dev.kdsView });
+    }
     setTeam(t => [...t, {
       id: `d${Date.now()}`, kind: 'device', name: nome,
       email: dev.isPrinter ? (dev.selectedPrinter ? dev.selectedPrinter.ip : '—') : `PG1-${dev.username.trim()}`,

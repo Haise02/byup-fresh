@@ -833,7 +833,7 @@ function Kds2Fullscreen() {
 }
 
 function Kds2Header({
-  sorgenti, ora, selezione, onSeleziona, nomeMonitor, switchVista,
+  sorgenti, ora, selezione, onSeleziona, selettoreMonitor,
   canale, onCanale, canali, categoria, onCategoria, categorie,
 }) {
   const orologio = kds2Orario(ora);
@@ -854,28 +854,11 @@ function Kds2Header({
 
         <span style={{flex: 1}}/>
 
-        {/* Quale schermo è questo. In un locale con due monitor — pizza e sala —
-            è l'unica cosa che li distingue a colpo d'occhio, e chi lo configura
-            da Impostazioni deve poter verificare di aver toccato quello giusto.
-            Sta col cromo e non col contenuto: si legge una volta e non serve
-            più, quindi niente peso e niente colore. */}
-        {nomeMonitor && (
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0,
-            maxWidth: 260, color: K.TESTO_2,
-          }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0}}>
-              <rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>
-            </svg>
-            <span style={{
-              fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{nomeMonitor}</span>
-          </span>
-        )}
-
-        {switchVista}
+        {/* Quale schermo è questo — e, se ce n'è più d'uno, quale si guarda.
+            In un locale con due monitor è l'unica cosa che li distingue a colpo
+            d'occhio. Sta col cromo e non col contenuto: si legge una volta e
+            non serve più. */}
+        {selettoreMonitor}
         <Kds2Fullscreen/>
       </div>
 
@@ -1030,7 +1013,7 @@ function Kds2Demo({ righe, onNuovo }) {
 // finti — è il caso della route di anteprima. Dentro la Cucina del gestionale
 // arrivano invece gli ordini veri del servizio, convertiti da
 // cucina-kds2-da-cucina.jsx: la vista cambia, il servizio no.
-function Kds2Board({ porzioni: porzioniIniziali, nomeMonitor, switchVista }) {
+function Kds2Board({ porzioni: porzioniIniziali, selettoreMonitor }) {
   const [porzioni, setPorzioni] = React.useState(() => porzioniIniziali || KDS2_PORZIONI);
   const [ora, setOra]           = React.useState(() => Date.now());
   const [selezione, setSel]     = React.useState(null);
@@ -1159,7 +1142,7 @@ function Kds2Board({ porzioni: porzioniIniziali, nomeMonitor, switchVista }) {
     }}>
       <Kds2Header
         sorgenti={sorgenti} ora={ora} selezione={selezione} onSeleziona={setSel}
-        nomeMonitor={nomeMonitor} switchVista={switchVista}
+        selettoreMonitor={selettoreMonitor}
         canale={canale} onCanale={setCanale} canali={CANALI}
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}/>
 
