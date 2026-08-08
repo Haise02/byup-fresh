@@ -4,9 +4,17 @@
 // Questa pagina aveva ambra, corallo, blu, verde e rosso accesi nello stesso
 // sguardo: ogni informazione si era presa una tinta e una scatola, e il
 // risultato era che nessuna aveva più peso delle altre. Vale una regola sola,
-// da qui in giù: l'ambra è delle stelle, il corallo è byup, il blu è Google,
-// il rosso è un problema. Tutto il resto è grigio, e niente ha un bordo se un
-// filetto o un po' d'aria bastano a separarlo.
+// da qui in giù: il corallo è byup — e le stelle sono byup — il blu è Google,
+// il rosso è un problema, l'ambra è rimasta solo allo stato «Segnalata».
+// Tutto il resto è grigio, e niente ha un bordo se un filetto o un po' d'aria
+// bastano a separarlo.
+//
+// Le stelle erano ambra su fondo bianco, cioè le stelle di Google: la stessa
+// forma e lo stesso oro che il cliente vede sulla scheda Maps. Ma queste
+// recensioni nascono nell'app, e nell'app la stella è un'altra cosa —
+// `menu.jsx` (SuccessScreen) e la vetrina disegnano una tessera arrotondata
+// corallo con dentro una stella bianca. È quello che ha visto chi ha votato,
+// ed è quello che deve vedere chi legge il voto.
 
 // ─── Le due provenienze ────────────────────────────────────────
 // Non sono la stessa cosa e la card non deve farle sembrare tali: una
@@ -34,38 +42,59 @@ function CliFonte({ fonte, lato = 12.5 }) {
 }
 
 // ─── Stelle ────────────────────────────────────────────────────
-// Un voto medio è una frazione e va mostrata come tale: cinque stelle grigie e
-// sopra le stesse in ambra, tagliate al punto giusto — prima ne stampava
-// cinque piene anche per un 4,5, che è il modo più veloce per far sembrare
-// finto un numero vero.
-// Il voto di UNA recensione invece è un intero, e lì il taglio non serve: la
-// striscia ritagliata finisce sempre a filo di stella e a tredici pixel si
-// legge come un errore di disegno. Quando il voto è intero, quindi, stelle
-// intere: accese fino al voto, spente dopo.
+// La stella, unica per tutta la pagina, nella stessa forma dell'app.
+const CLI_STELLA = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2';
+
+// Nelle schede di una recensione la stella è il glifo pieno: il voto di UNA
+// recensione è un intero, sta accanto a un nome e a una data, e cinque
+// tessere lì dentro sarebbero cinque oggetti dove ne basta uno. Corallo fino
+// al voto, grigio dopo — nell'app le recensioni degli altri si leggono così.
 function CliStelle({ voto, lato = 16 }) {
-  const stella = (colore, i) => (
-    <svg key={i} width={lato} height={lato} viewBox="0 0 24 24" fill={colore} style={{display:'block'}}>
-      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-    </svg>
-  );
-  const spenta = PN.BORDER;
-
-  if (Number.isInteger(voto)) {
-    return (
-      <span style={{display:'inline-flex', gap: 2, lineHeight: 0}} title={`${voto} su 5`}>
-        {[0,1,2,3,4].map(i => stella(i < voto ? PN.AMBER : spenta, i))}
-      </span>
-    );
-  }
-
   return (
-    <span style={{position:'relative', display:'inline-flex', gap: 2, lineHeight: 0}} title={`${voto} su 5`}>
-      {[0,1,2,3,4].map(i => stella(spenta, i))}
+    <span style={{display:'inline-flex', gap: 2, lineHeight: 0}} title={`${voto} su 5`}>
+      {[0,1,2,3,4].map(i => (
+        <svg key={i} width={lato} height={lato} viewBox="0 0 24 24"
+          fill={i < voto ? PN.PINK : PN.BORDER} style={{display:'block'}}>
+          <polygon points={CLI_STELLA}/>
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+// Il voto medio invece è la tessera: quella che il cliente tocca nell'app per
+// dare le stelle, corallo piena e pesca da spenta, con la stella in bianco
+// ricavata dentro. È l'oggetto del prodotto, e sopra un numero grande è anche
+// l'unica resa che regge la dimensione.
+// Un voto medio è una frazione e va mostrata come tale — cinque tessere e
+// sopra le stesse accese, tagliate al punto giusto: stamparne cinque piene per
+// un 4,6 è il modo più veloce per far sembrare finto un numero vero. Il taglio
+// è calcolato in pixel e non in percentuale della riga, perché tra una tessera
+// e l'altra c'è aria: la percentuale sulla larghezza totale cadrebbe ogni
+// volta un po' più in là del punto giusto.
+function CliStelleTessere({ voto, lato = 30, aria = 6 }) {
+  const intero = Math.floor(voto);
+  const piena = Math.min(intero * (lato + aria) + (voto - intero) * lato, 5 * lato + 4 * aria);
+  const tessera = (sfondo, i) => (
+    <span key={i} style={{
+      width: lato, height: lato, borderRadius: Math.round(lato * 0.25), background: sfondo,
+      display:'grid', placeItems:'center', flexShrink: 0,
+    }}>
+      <svg width={Math.round(lato * 0.56)} height={Math.round(lato * 0.56)} viewBox="0 0 24 24"
+        fill={PN.WHITE} stroke={PN.WHITE} strokeWidth="1" strokeLinejoin="round" style={{display:'block'}}>
+        <polygon points={CLI_STELLA}/>
+      </svg>
+    </span>
+  );
+  return (
+    <span style={{position:'relative', display:'inline-flex', gap: aria, lineHeight: 0}}
+      title={`${String(voto).replace('.', ',')} su 5`}>
+      {[0,1,2,3,4].map(i => tessera(PN.PINK_SOFT, i))}
       <span style={{
-        position:'absolute', top: 0, left: 0, display:'inline-flex', gap: 2,
-        width: `${(voto / 5) * 100}%`, overflow:'hidden',
+        position:'absolute', top: 0, left: 0, display:'inline-flex', gap: aria,
+        width: piena, overflow:'hidden',
       }}>
-        {[0,1,2,3,4].map(i => stella(PN.AMBER, i))}
+        {[0,1,2,3,4].map(i => tessera(PN.PINK, i))}
       </span>
     </span>
   );
@@ -134,8 +163,8 @@ function CliVoto({ d }) {
           <span style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-2, lineHeight: 0.85}}>
             {b.media.toFixed(1).replace('.', ',')}
           </span>
-          <span style={{display:'flex', flexDirection:'column', gap: 6, paddingBottom: 2}}>
-            <CliStelle voto={b.media} lato={18}/>
+          <span style={{display:'flex', flexDirection:'column', gap: 9, paddingBottom: 2}}>
+            <CliStelleTessere voto={b.media} lato={28}/>
             {/* La media e il totale sono le due cose che si vengono a
                 sapere qui: il conteggio è scuro e in grassetto, il resto
                 della frase no. */}
@@ -156,12 +185,12 @@ function CliVoto({ d }) {
               <span style={{
                 width: 22, display:'inline-flex', alignItems:'center', gap: 3,
                 color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums',
-              }}>{stelle}<span style={{color: PN.AMBER, fontSize: 10}}>★</span></span>
+              }}>{stelle}<span style={{color: PN.PINK, fontSize: 10}}>★</span></span>
               {/* Quattro pixel, non sette: a questa altezza la barra è una
                   riga sottolineata, non un blocco di colore. */}
               <span style={{flex: 1, height: 4, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden', minWidth: 24}}>
                 <span style={{
-                  display:'block', height:'100%', borderRadius: 999, background: PN.AMBER,
+                  display:'block', height:'100%', borderRadius: 999, background: PN.PINK,
                   width:`${Math.max((riga.count / tot) * 100, 1.2)}%`,
                 }}/>
               </span>
@@ -227,12 +256,17 @@ function CliAndamento({ d, mesiEt }) {
   return (
     <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column'}}>
       <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap', marginBottom: 4}}>
+        {/* Le barre passano al grigio ora che il corallo è del voto: erano
+            corallo pallido, e con la media diventata corallo piena sarebbero
+            state la stessa tinta a due opacità — cioè due cose diverse dette
+            con lo stesso colore. Il volume è un conteggio, la media è il
+            voto: l'accento va al voto. */}
         <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
-          <span style={{width: 8, height: 8, borderRadius: 2, background: PN.PINK, opacity: 0.28}}/>
+          <span style={{width: 8, height: 8, borderRadius: 2, background: PN.BORDER}}/>
           recensioni del mese
         </span>
         <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
-          <span style={{width: 13, height: 2, borderRadius: 2, background: PN.AMBER}}/>
+          <span style={{width: 13, height: 2, borderRadius: 2, background: PN.PINK}}/>
           media, da 3,5 a 5
         </span>
       </div>
@@ -248,13 +282,13 @@ function CliAndamento({ d, mesiEt }) {
         ))}
         {mesi.map((n, i) => (
           <rect key={i} x={xc(i) - larghezza / 2} y={yBarra(n)} width={larghezza} height={H - P.b - yBarra(n)}
-            rx={3} fill={PN.PINK} opacity={0.24}/>
+            rx={3} fill={PN.BORDER}/>
         ))}
         {/* La linea passa sopra le barre: filo bianco sotto perché resti
             staccata dal colore che attraversa. */}
         <path d={linea} fill="none" stroke={PN.WHITE} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round"/>
-        <path d={linea} fill="none" stroke={PN.AMBER} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx={xUltimo} cy={yVoto(ultimo)} r={4} fill={PN.AMBER} stroke={PN.WHITE} strokeWidth={2}/>
+        <path d={linea} fill="none" stroke={PN.PINK} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx={xUltimo} cy={yVoto(ultimo)} r={4} fill={PN.PINK} stroke={PN.WHITE} strokeWidth={2}/>
         <text x={xUltimo} y={yVoto(ultimo) - 12} fontSize="12.5" fontWeight="700" fill={PN.TEXT} textAnchor="middle"
           style={{fontVariantNumeric:'tabular-nums'}}>{ultimo.toFixed(1).replace('.', ',')}</text>
         {mesiEt.map((m, i) => (
@@ -429,7 +463,7 @@ function CliRecensioni({ elenco, totale, aspetti, aspetto, setAspetto }) {
                 ...cliPillola(stelle === v),
                 opacity: n ? 1 : 0.4, cursor: n ? 'pointer' : 'default',
               }}>
-                {v}<span style={{color: PN.AMBER, fontSize: 11.5}}>★</span>
+                {v}<span style={{color: PN.PINK, fontSize: 11.5}}>★</span>
                 <span style={{color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums'}}>{n}</span>
               </button>
             );
