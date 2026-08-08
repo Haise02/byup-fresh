@@ -63,6 +63,22 @@ const AVAILABLE_PRINTERS = [
   { id: 'printer-cube-1',   model: 'Cube Custom 12',     ip: '192.168.1.102' },
 ];
 
+// Come la cucina vede e manda gli ordini. È la sola cosa che cambia davvero
+// fra due monitor identici, e si chiede al collegamento perché cambia il modo
+// di lavorare in cucina, non un colore: il ticket del KDS porta già `course`
+// (1 antipasto, 2 primo, 3 secondo, 4 dessert, null = portata unica), e le due
+// visualizzazioni sono i due modi di leggerlo. Resta modificabile in
+// Impostazioni → Operazioni: chi apre come pub e poi mette il servizio al
+// tavolo non deve ricollegare il monitor.
+// Le icone dicono il comportamento e non il tipo di locale: quello lo dice già
+// il nome, mentre la differenza che conta è tutto-insieme contro diviso.
+const KDS_VIEWS = [
+  { id: 'pub', label: 'Visualizzazione Pub', icon: 'bolt',
+    desc: 'Tutte le righe escono insieme' },
+  { id: 'ristorante', label: 'Visualizzazione Ristorante', icon: 'split',
+    desc: 'Le righe partono una portata alla volta' },
+];
+
 const MENUS = [
   {
     id: 'principale',
@@ -713,6 +729,9 @@ function useDeviceState(tipoIniziale) {
   const [openTypeMenu, setOpenTypeMenu] = React.useState(false);
   // printerCats: Set di chiavi composite "menuId:catId" — permette selezione tra menu diversi
   const [printerCats, setPrinterCats] = React.useState(new Set());
+  // Pub di default: è il locale a cui Fresh si rivolge per primo — alta
+  // rotazione, portata unica. Chi lavora per portate lo dice cambiando qui.
+  const [kdsView, setKdsView] = React.useState('pub');
   const isPrinter = deviceTypeId.startsWith('printer-');
   const selectedPrinter = AVAILABLE_PRINTERS.find(p => p.id === deviceTypeId);
   const deviceType = isPrinter
@@ -727,17 +746,18 @@ function useDeviceState(tipoIniziale) {
     for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
     setPassword(p); setShowPwd(true);
   };
-  const reset = () => { setDeviceName(''); setUsername(''); setPassword(''); setShowPwd(false); setPrinterCats(new Set()); };
+  const reset = () => { setDeviceName(''); setUsername(''); setPassword(''); setShowPwd(false); setPrinterCats(new Set()); setKdsView('pub'); };
   return { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
-    printerCats, setPrinterCats, isPrinter, selectedPrinter, deviceType, deviceValid,
-    generatePwd, reset };
+    printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
+    deviceType, deviceValid, generatePwd, reset };
 }
 
 function DeviceForm({ st, tipoFisso }) {
   const { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
-    printerCats, setPrinterCats, isPrinter, selectedPrinter, deviceType, generatePwd } = st;
+    printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
+    deviceType, generatePwd } = st;
 
   // `tipoFisso`: nel passo Personale la tessera qui sopra ha già detto se si
   // collega una stampante o un monitor, e il menu non deve riproporre l'altra
@@ -747,8 +767,18 @@ function DeviceForm({ st, tipoFisso }) {
   // i soli modelli trovati in rete. Senza la prop — la modale «Aggiungi
   // dispositivo», dove il menu È la scelta — resta il selettore completo.
   const soloStampanti = tipoFisso === 'printer';
+  const soloMonitor = tipoFisso === 'monitor';
   const vociMonitor = soloStampanti ? [] : DEVICE_TYPES;
-  const vociStampanti = tipoFisso === 'monitor' ? [] : AVAILABLE_PRINTERS;
+  const vociStampanti = soloMonitor ? [] : AVAILABLE_PRINTERS;
+
+  // In pagina la card è larga: due campi per riga stanno larghi il giusto e la
+  // riga dice a occhio che vanno insieme. Nella modale, che è una colonna
+  // stretta, restano impilati a piena larghezza.
+  const inRiga = !!tipoFisso;
+  const RIGA_2 = {
+    display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14,
+    alignItems:'start', marginBottom: 16,
+  };
 
   const campoTipo = (
               <ImpField label={soloStampanti ? 'Scegli stampante' : 'Tipo dispositivo'}
@@ -868,26 +898,10 @@ function DeviceForm({ st, tipoFisso }) {
                 </ImpField>
   );
 
-  return (
-    <>
-              {soloStampanti ? (
-                <div style={{
-                  display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14,
-                  alignItems:'start', marginBottom: 16,
-                }}>
-                  {campoTipo}
-                  {campoNomeStampante}
-                </div>
-              ) : (
-                <>
-                  {campoTipo}
-                  {isPrinter && campoNomeStampante}
-                </>
-              )}
-
-              {/* Nome dispositivo — solo per monitor cucina */}
-              {!isPrinter && (
-                <ImpField label="Nome dispositivo" hint="Come lo riconoscerete in lista (es. Monitor pizza, Monitor sushi)">
+  // Nome dispositivo — solo per monitor cucina
+  const campoNomeDispositivo = (
+                <ImpField label="Nome dispositivo" hint="Come lo riconoscerete in lista (es. Monitor pizza)"
+                  style={inRiga ? {marginBottom: 0} : undefined}>
                   <input
                     type="text"
                     value={deviceName}
@@ -900,7 +914,132 @@ function DeviceForm({ st, tipoFisso }) {
                     }}
                   />
                 </ImpField>
+  );
+
+  // La visualizzazione non è un'impostazione fra le altre: è il modo in cui la
+  // cucina lavorerà. Sta in cima al modulo, prima del nome e delle credenziali,
+  // e si sceglie come si è scelto il dispositivo — due tessere, non un menu.
+  const campoVisualizzazione = (
+                <div style={{marginBottom: 16}}>
+                  {/* Niente etichetta «Visualizzazione» sopra: la dicono già le
+                      due tessere, e ripeterla faceva leggere la stessa parola
+                      tre volte in due centimetri. */}
+                  {/* Affiancate in pagina, impilate nella modale: a 265px il
+                      titolo si spezzava a metà («Visualizzazione / Pub») e due
+                      tessere storte costano più di una riga in più. */}
+                  <div style={{
+                    display:'grid', gap: 12,
+                    gridTemplateColumns: inRiga ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+                  }}>
+                    {KDS_VIEWS.map(v => (
+                      <KdsViewCard key={v.id} v={v} on={kdsView === v.id}
+                        onClick={() => setKdsView(v.id)}/>
+                    ))}
+                  </div>
+                  <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6}}>
+                    Cambia come si vedono e si gestiscono gli ordini in cucina. Potrai
+                    modificarla in Impostazioni → Operazioni.
+                  </div>
+                </div>
+  );
+
+  const campoUsername = deviceType.noCredentials ? null : (
+                <ImpField label="Username" required
+                  style={inRiga ? {marginBottom: 0} : undefined}>
+                <div style={{display:'flex', alignItems:'stretch', gap: 0}}>
+                  <span style={{
+                    padding:'10px 12px',
+                    background:'#F4F5F7', border:`1px solid ${PN.BORDER}`, borderRight:'none',
+                    borderRadius:'9px 0 0 9px',
+                    fontSize: 15, fontWeight: 700, color: PN.MUTED,
+                    display:'inline-flex', alignItems:'center',
+                    fontFamily:'ui-monospace, Menlo, monospace',
+                  }}>PG1-</span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value.replace(/\s/g,'').toLowerCase())}
+                    placeholder="cucina"
+                    style={{
+                      flex: 1, padding:'10px 12px',
+                      border:`1px solid ${PN.BORDER}`, borderLeft:'none',
+                      borderRadius:'0 9px 9px 0',
+                      fontSize:15.5, fontFamily:'ui-monospace, Menlo, monospace',
+                      outline:'none', background: PN.WHITE,
+                    }}
+                  />
+                </div>
+              </ImpField>
+  );
+
+  const campoPassword = deviceType.noCredentials ? null : (
+                <ImpField label="Password" required
+                  style={inRiga ? {marginBottom: 0} : undefined}>
+                <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
+                  <div style={{position:'relative', flex: 1}}>
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Inserisci password"
+                      style={{
+                        width:'100%', padding:'10px 40px 10px 12px',
+                        border:`1px solid ${PN.BORDER}`, borderRadius:9,
+                        fontSize:15.5, fontFamily:'inherit', outline:'none',
+                        background: PN.WHITE,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(s => !s)}
+                      aria-label="Mostra/nascondi password"
+                      style={{
+                        position:'absolute', right: 8, top: '50%',
+                        transform:'translateY(-50%)',
+                        width: 28, height: 28, borderRadius: 6,
+                        background:'transparent', border:'none', cursor:'pointer',
+                        display:'grid', placeItems:'center', color: PN.MUTED,
+                      }}
+                    >{(BuIcons.eye||BuIcons.user)({size: 16, color:'currentColor'})}</button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={generatePwd}
+                    style={{
+                      padding:'0 14px',
+                      background:'#F4F5F7', border:`1px solid ${PN.BORDER}`,
+                      borderRadius: 9, cursor:'pointer', fontFamily:'inherit',
+                      fontSize: 14, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap',
+                    }}
+                  >Genera</button>
+                </div>
+                <div style={{fontSize: 13, color: PN.MUTED, marginTop: 6}}>
+                  Salvala in un posto sicuro — vale solo per questo dispositivo.
+                </div>
+              </ImpField>
+  );
+
+  return (
+    <>
+              {soloStampanti && (
+                <div style={RIGA_2}>
+                  {campoTipo}
+                  {campoNomeStampante}
+                </div>
               )}
+
+              {/* Nella modale il menu È la scelta e resta. Nel passo Personale
+                  no: con la famiglia già fissa dalla tessera, per il monitor
+                  restava un menu con una voce sola — una domanda con una sola
+                  risposta possibile. */}
+              {!tipoFisso && (
+                <>
+                  {campoTipo}
+                  {isPrinter && campoNomeStampante}
+                </>
+              )}
+
+              {!isPrinter && campoVisualizzazione}
 
               {deviceType.noCredentials && (
                 <div style={{marginBottom: 16}}>
@@ -991,78 +1130,72 @@ function DeviceForm({ st, tipoFisso }) {
                 </div>
               )}
 
-              {!deviceType.noCredentials && <ImpField label="Username" required>
-                <div style={{display:'flex', alignItems:'stretch', gap: 0}}>
-                  <span style={{
-                    padding:'10px 12px',
-                    background:'#F4F5F7', border:`1px solid ${PN.BORDER}`, borderRight:'none',
-                    borderRadius:'9px 0 0 9px',
-                    fontSize: 15, fontWeight: 700, color: PN.MUTED,
-                    display:'inline-flex', alignItems:'center',
-                    fontFamily:'ui-monospace, Menlo, monospace',
-                  }}>PG1-</span>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={e => setUsername(e.target.value.replace(/\s/g,'').toLowerCase())}
-                    placeholder="cucina"
-                    style={{
-                      flex: 1, padding:'10px 12px',
-                      border:`1px solid ${PN.BORDER}`, borderLeft:'none',
-                      borderRadius:'0 9px 9px 0',
-                      fontSize:15.5, fontFamily:'ui-monospace, Menlo, monospace',
-                      outline:'none', background: PN.WHITE,
-                    }}
-                  />
-                </div>
-              </ImpField>}
-
-              {!deviceType.noCredentials && <ImpField label="Password" required>
-                <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
-                  <div style={{position:'relative', flex: 1}}>
-                    <input
-                      type={showPwd ? 'text' : 'password'}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="Inserisci password"
-                      style={{
-                        width:'100%', padding:'10px 40px 10px 12px',
-                        border:`1px solid ${PN.BORDER}`, borderRadius:9,
-                        fontSize:15.5, fontFamily:'inherit', outline:'none',
-                        background: PN.WHITE,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPwd(s => !s)}
-                      aria-label="Mostra/nascondi password"
-                      style={{
-                        position:'absolute', right: 8, top: '50%',
-                        transform:'translateY(-50%)',
-                        width: 28, height: 28, borderRadius: 6,
-                        background:'transparent', border:'none', cursor:'pointer',
-                        display:'grid', placeItems:'center', color: PN.MUTED,
-                      }}
-                    >{(BuIcons.eye||BuIcons.user)({size: 16, color:'currentColor'})}</button>
+              {!isPrinter && (inRiga ? (
+                <>
+                  {/* Nome e username in riga: l'uno è come lo chiamiamo noi,
+                      l'altro come si chiama lui quando entra. A piena larghezza
+                      erano tre campi da 900px per scriverci dentro «cucina». */}
+                  <div style={RIGA_2}>
+                    {campoNomeDispositivo}
+                    {campoUsername}
                   </div>
-                  <button
-                    type="button"
-                    onClick={generatePwd}
-                    style={{
-                      padding:'0 14px',
-                      background:'#F4F5F7', border:`1px solid ${PN.BORDER}`,
-                      borderRadius: 9, cursor:'pointer', fontFamily:'inherit',
-                      fontSize: 14, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap',
-                    }}
-                  >Genera</button>
-                </div>
-                <div style={{fontSize: 13, color: PN.MUTED, marginTop: 6}}>
-                  Salvala in un posto sicuro — vale solo per questo dispositivo.
-                </div>
-              </ImpField>}
+                  {/* La password sta in mezza riga come le altre: allargarla
+                      perché sotto non c'è niente l'avrebbe fatta sembrare più
+                      importante di quello che è. */}
+                  <div style={RIGA_2}>
+                    {campoPassword}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {campoNomeDispositivo}
+                  {campoUsername}
+                  {campoPassword}
+                </>
+              ))}
     </>
   );
 }
+
+// Tessera della visualizzazione del KDS: stessa grammatica delle tessere
+// dispositivo — radio in alto a destra, icona, titolo, una riga di spiegazione —
+// ma di un corpo sotto, perché è una scelta dentro il modulo e non la domanda
+// che apre il passo.
+function KdsViewCard({ v, on, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button onClick={onClick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        position:'relative', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
+        display:'flex', alignItems:'flex-start', gap: 11,
+        padding:'12px 38px 12px 12px', borderRadius: 11,
+        border:`1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
+        background: on ? '#FFF7F7' : PN.WHITE,
+        transform: hover && !on ? 'translateY(-1px)' : 'none',
+        transition:'border-color 150ms ease, background 150ms ease, transform 150ms ease',
+      }}>
+      <span style={{
+        position:'absolute', top: 12, right: 12,
+        width: 15, height: 15, borderRadius:'50%',
+        border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+        display:'grid', placeItems:'center', transition:'border-color 150ms ease',
+      }}>
+        {on && <span style={{width: 7, height: 7, borderRadius:'50%', background: PN.PINK}}/>}
+      </span>
+      <span style={{
+        width: 34, height: 34, borderRadius: 9, flexShrink: 0, display:'grid', placeItems:'center',
+        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
+        transition:'background 150ms ease, color 150ms ease',
+      }}>{(BuIcons[v.icon]||BuIcons.monitor)({size: 17, color:'currentColor'})}</span>
+      <span style={{minWidth: 0}}>
+        <span style={{display:'block', fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 2}}>{v.label}</span>
+        <span style={{display:'block', fontSize: 13, color: PN.MUTED, lineHeight: 1.4}}>{v.desc}</span>
+      </span>
+    </button>
+  );
+}
+
 
 // ─── Foglio modale del Personale ────────────────────────────────────────────
 // BIANCO pieno, non GLASS_STRONG: il vetro al 68% sopra l'overlay scuro legge
