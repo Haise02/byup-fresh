@@ -1,10 +1,12 @@
 # Byup Fresh — Stato dello Sviluppo
 
-> **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` (nella root del repo) e `vue-components/WORK_IN_PROGRESS.md` (accanto a questo file). I percorsi in questo documento sono relativi alla root del repo `Byup/`, salvo dove indicato.
+> **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` per le decisioni di backend e `backend/erd/` per il modello dati (ERD v0.7, enum, documenti di progettazione). I percorsi in questo documento sono relativi alla root del repo `Byup/`, salvo dove indicato.
 
 **Ultimo aggiornamento:** 9 agosto 2026. Il registro delle sessioni sta qui sotto, dalla più recente; il dettaglio delle motivazioni è in `DESIGN_DECISIONS.md`, che ha una sezione per ogni batch. Ultimo lavoro **backend**: 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5). Dal 28 luglio il lavoro è tutto sul **prototipo**: il backend descritto dalle sezioni 2–8 non è stato toccato.
 
 ### Registro delle sessioni
+
+**9 ago — via il progetto Vue.** `gestionale/vue-components/` è stato cancellato: era la migrazione a Vue 3 + Vite, ferma da fine luglio alla sola Panoramica, cioè a una versione della dashboard che il prototipo React ha già superato. Tenerlo significava tenere in vita una seconda implementazione parziale e disallineata di una schermata sola. Quello che c'era dentro e **non era Vue** — i quattro ERD v0.7 in DBML (sorgente di verità del DB), il riferimento agli enum e i due PDF di progettazione tecnica e flussi — è stato spostato in **`backend/erd/`**, che è dove il modello dati ha senso di stare: non dipende dal frontend, e infatti è sopravvissuto a lui.
 
 **9 ago — ruoli di sistema, ruoli personalizzati, aree cliccabili delle tabelle.** In Impostazioni → Personale l'editor dei permessi era di facciata: «Salva modifiche» chiudeva e basta. Ora vale la regola vera: Cassa, Cameriere e Titolare sono **ruoli di sistema**, hanno permessi di partenza e non si smontano — aprirne i permessi e salvare non li cambia, si esce con un **ruolo personalizzato nuovo**, e il ruolo di sistema resta intatto. Un personalizzato invece si modifica sul posto. Due ruoli non possono chiamarsi allo stesso modo: salvando un nome già in uso esce un popup che ferma il salvataggio e rimanda al modulo con dentro quello che c'era. La matita «permessi» sulle righe dei ruoli è stata **tolta** — i permessi si aprono solo da «Crea ruolo» — e con lei lo stato `editRole`: il ramo `role` di `CreateRoleModal` resta nel codice come regola di prodotto, oggi senza porta d'ingresso. In tutto il repo le **intestazioni di colonna ordinabili** sono tornate cliccabili solo sul nome: erano bottoni dentro una griglia, e in griglia un figlio si allarga per tutta la cella anche con `padding: 0` — 18 intestazioni fra `SortHead` (Statistiche), i Conti della Contabilità e `PromoTable` di Spot.
 
@@ -214,14 +216,7 @@ Byup/                            ← root del repo (Desktop/Byup)
 │   ├── PROGRESS.md              ← QUESTO FILE: stato sviluppo tra sessioni
 │   ├── DESIGN_DECISIONS.md      ← design system frontend
 │   ├── README.md
-│   ├── *.jsx, *.html            ← prototipi React/HTML del gestionale
-│   └── vue-components/          ← Vue 3 + Vite frontend (in migrazione da JSX)
-│       ├── package.json
-│       ├── WORK_IN_PROGRESS.md  ← stato migrazione frontend
-│       ├── *.dbml               ← 4 file ERD v0.7 (sorgente di verità DB)
-│       ├── byup-database-enums-reference-v7*.md
-│       ├── *.pdf                ← documenti di progettazione tecnica e flussi
-│       └── src/  (App.vue, components/, …)
+│   └── *.jsx, *.html            ← prototipi React/HTML del gestionale
 ├── app/, spot/, staff/, cameriere/, web/  ← altre superfici (app consumer, console Spot, POS staff, cameriere web, webapp guest)
 │
 ├── backend/                     ← NestJS modular monolith ──────────────────
@@ -235,6 +230,10 @@ Byup/                            ← root del repo (Desktop/Byup)
 │   ├── api.http                 ← collection REST Client VS Code
 │   ├── jest-e2e.json
 │   ├── BACKEND.md               ← reference dettagliato decisioni backend
+│   ├── erd/                     ← modello dati, indipendente dal codice ─────
+│   │   ├── *.dbml               ← 4 file ERD v0.7 (sorgente di verità DB)
+│   │   ├── byup-database-enums-reference-v7.md  ← valori e stati DB
+│   │   └── *.pdf                ← progettazione tecnica e flussi applicativi
 │   ├── src/
 │   │   ├── main.ts              ← bootstrap: helmet, ValidationPipe, ExceptionFilter
 │   │   ├── app.module.ts        ← root + ThrottlerModule globale
@@ -602,7 +601,7 @@ Aggiunta una suite e2e su tre aree (input malformati, concorrenza, edge temporal
 
 ### 7.9 Niente file inutili
 
-Non si creano file `.md` di documentazione, file di "appunti" o di "decisioni" senza richiesta esplicita. La doc ufficiale è: `CLAUDE.md`, `PROGRESS.md` (questo), `BACKEND.md`, `WORK_IN_PROGRESS.md`.
+Non si creano file `.md` di documentazione, file di "appunti" o di "decisioni" senza richiesta esplicita. La doc ufficiale è: `CLAUDE.md`, `PROGRESS.md` (questo), `DESIGN_DECISIONS.md`, `BACKEND.md`.
 
 ---
 
@@ -801,9 +800,9 @@ Suggerita per **non avere un blocco gigante non navigabile**:
 
 ### Riferimenti tecnici dettagliati
 - `backend/BACKEND.md` — dettagli decisioni backend modulo per modulo
-- `gestionale/vue-components/WORK_IN_PROGRESS.md` — stato migrazione frontend Vue 3
-- `gestionale/vue-components/*.dbml` — ERD v0.7 (sorgente di verità DB)
-- `gestionale/vue-components/byup-database-enums-reference-v7*.md` — valori e stati DB
+- `backend/erd/*.dbml` — ERD v0.7 (sorgente di verità DB)
+- `backend/erd/byup-database-enums-reference-v7.md` — valori e stati DB
+- `backend/erd/*.pdf` — progettazione tecnica e specifica dei flussi applicativi
 - `gestionale/CLAUDE.md` — overview di prodotto (cosa è Byup, GTM, validation, team)
 - `gestionale/DESIGN_DECISIONS.md` — design system frontend, riallineato al codice il 2026-08-09 e tenuto aggiornato a fine sessione con una sezione datata per ogni batch; in caso di dubbio i token `PN` nel codice restano la verità
 

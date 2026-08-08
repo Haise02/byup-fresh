@@ -57,7 +57,7 @@ vale e cosa no:
 | `gestionale/CLAUDE.md` | ✅ Listino e livelli di supporto ricontrollati contro `account-data.jsx` |
 | `app/*.md` (prodotto), `web/*.md`, `staff/*.md`, `backend/BACKEND.md` | ✅ Reggono: sono documenti di **prodotto e architettura**, e il prodotto non è cambiato. Le poche divergenze trovate (Byup Games rimosso, carrello che si trascina) sono state corrette |
 | `gestionale/icon*.md`, `dashboard-icon-mapping.md` | 🕰 **Documenti storici** della migrazione icone di luglio. Marcati come tali: per sapere quali icone esistono si legge il codice |
-| `gestionale/vue-components/WORK_IN_PROGRESS.md` | 🕰 Migrazione Vue **ferma a fine luglio** alla sola Panoramica, mentre il prototipo React è andato molto avanti |
+| `backend/erd/` | ✅ Modello dati: ERD v0.7 in DBML, riferimento agli enum, PDF di progettazione. Stavano dentro il progetto Vue, ora cancellato, e non c'entravano niente con lui |
 
 Regola generale, valida sempre: **quando un documento e il codice divergono su
 come è fatto il prototipo, vince il codice**; quando divergono su *cosa deve
