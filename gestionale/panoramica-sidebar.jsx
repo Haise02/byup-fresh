@@ -35,6 +35,28 @@ window.byupWriteModules = function(m) {
   } catch(e) {}
 };
 
+// Visualizzazione del Kitchen Monitor — «pub» o «ristorante». Si sceglie dove si
+// collega il monitor (onboarding · Configurazione completa) e si cambia dove lo
+// si modifica (Impostazioni → Personale): è un attributo del dispositivo, non
+// un'impostazione del locale, e non ha un terzo interruttore da nessuna parte.
+// Vive qui, con gli altri stati condivisi fra pagine, perché la sezione Cucina
+// deve saperla pur stando su un'altra pagina.
+// Default «ristorante»: è la cucina che il gestionale ha sempre avuto, e chi non
+// ha ancora collegato un monitor non deve vedersela cambiare sotto i piedi.
+const BYUP_KDS_VISTA_KEY = 'byup_kds_vista';
+window.byupReadVistaKds = function() {
+  try {
+    const v = localStorage.getItem(BYUP_KDS_VISTA_KEY);
+    return v === 'pub' ? 'pub' : 'ristorante';
+  } catch(e) { return 'ristorante'; }
+};
+window.byupWriteVistaKds = function(v) {
+  try {
+    localStorage.setItem(BYUP_KDS_VISTA_KEY, v === 'pub' ? 'pub' : 'ristorante');
+    window.dispatchEvent(new Event('byup-kds-vista-change'));
+  } catch(e) {}
+};
+
 // Locale attivo — quello su cui opera il gestionale; condiviso via localStorage.
 // Si cambia da Profilo → I tuoi locali; la sidebar lo mostra sotto il nome utente.
 const BYUP_LOCALE_KEY = 'byup_locale_attivo';

@@ -763,6 +763,13 @@ const PERM_ICONS = {
 // firma che nessuno avrebbe letto.
 const allCatsCount = MENUS.reduce((n, m) => n + m.categories.length, 0);
 
+// La visualizzazione scelta per un monitor va detta alla sezione Cucina, che sta
+// su un'altra pagina: passa dal ponte condiviso in panoramica-sidebar.jsx. Qui
+// non si decide niente — si riferisce quello che ha scelto chi collega.
+function salvaVistaKds(vista) {
+  if (window.byupWriteVistaKds) window.byupWriteVistaKds(vista);
+}
+
 function useDeviceState(tipoIniziale) {
   const [deviceTypeId, setDeviceTypeId] = React.useState(tipoIniziale || 'kitchen-monitor');
   const [deviceName, setDeviceName] = React.useState('');
@@ -981,7 +988,7 @@ function DeviceForm({ st, tipoFisso, azione }) {
                   </div>
                   <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6}}>
                     Cambia come si vedono e si gestiscono gli ordini in cucina. Potrai
-                    modificarla in Impostazioni → Operazioni.
+                    modificarla in Impostazioni → Personale, sul dispositivo.
                   </div>
                 </div>
   );
@@ -1521,7 +1528,12 @@ function InviteModal({ onClose, prefill }) {
           </div>
           <div style={{display:'flex', gap: 8}}>
             <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-            <ImpButton variant="primary" onClick={onClose} disabled={kind === 'person' ? !personValid : !deviceValid}>
+            {/* Associando o modificando un monitor la sua visualizzazione arriva
+                alla sezione Cucina, che è l'unico posto in cui si vede l'effetto
+                della scelta fatta qui. Da «Annulla» non parte niente. */}
+            <ImpButton variant="primary"
+              onClick={() => { if (kind === 'device' && !isPrinter) salvaVistaKds(dev.kdsView); onClose(); }}
+              disabled={kind === 'person' ? !personValid : !deviceValid}>
               {kind === 'person' ? 'Invia invito' : 'Associa dispositivo'}
             </ImpButton>
           </div>
@@ -1828,6 +1840,7 @@ function DispositivoStep({ setTeam }) {
   // un'operazione, non l'apertura di un'altra schermata.
   const aggiungiDispositivo = () => {
     if (!dev.deviceValid) return;
+    if (!dev.isPrinter) salvaVistaKds(dev.kdsView);
     const nome = dev.deviceName.trim() || (dev.isPrinter ? 'Stampante' : 'Monitor cucina');
     setTeam(t => [...t, {
       id: `d${Date.now()}`, kind: 'device', name: nome,

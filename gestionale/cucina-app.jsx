@@ -4,6 +4,24 @@
 function CucinaApp() {
   const [focus, setFocus] = React.useState(false);
 
+  // Come questa cucina guarda gli ordini lo decide il Kitchen Monitor, non
+  // questa pagina: la scelta si fa dove il monitor si collega (onboarding) e
+  // dove lo si modifica (Impostazioni → Personale), e arriva fin qui via
+  // localStorage. Cambiandola da un'altra tab lo schermo si adegua da solo —
+  // un monitor appeso in cucina non lo si va a ricaricare a mano.
+  const [vista, setVista] = React.useState(
+    () => (window.byupReadVistaKds ? window.byupReadVistaKds() : 'ristorante'));
+  React.useEffect(() => {
+    const agg = () => setVista(window.byupReadVistaKds ? window.byupReadVistaKds() : 'ristorante');
+    window.addEventListener('byup-kds-vista-change', agg);
+    window.addEventListener('storage', agg);
+    return () => {
+      window.removeEventListener('byup-kds-vista-change', agg);
+      window.removeEventListener('storage', agg);
+    };
+  }, []);
+  const pub = vista === 'pub' && typeof Kds2Board === 'function';
+
   // Esc per uscire da focus
   React.useEffect(() => {
     function onKey(e) { if (e.key === 'Escape' && focus) setFocus(false); }
@@ -37,13 +55,23 @@ function CucinaApp() {
       {!focus && <PnSidebar active="cucina"/>}
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
-        <div className="pn-scroll" style={{
-          flex: 1, overflow: 'auto',
-          padding: focus ? 0 : '22px 32px 32px',
-          background: PN.BG,
-        }}>
-          <CucinaInSala focus={focus} onToggleFocus={() => setFocus(f => !f)}/>
-        </div>
+        {/* Pub: al posto della board a colonne va quella del KDS v2, che si
+            porta dietro la sua testata — orologio, filtri, schermo intero — e
+            scorre da sé. Niente contenitore che scorre e niente margini
+            intorno: è uno schermo appeso in cucina, non un documento. */}
+        {pub ? (
+          <div style={{flex: 1, minHeight: 0, display: 'flex'}}>
+            <Kds2Board/>
+          </div>
+        ) : (
+          <div className="pn-scroll" style={{
+            flex: 1, overflow: 'auto',
+            padding: focus ? 0 : '22px 32px 32px',
+            background: PN.BG,
+          }}>
+            <CucinaInSala focus={focus} onToggleFocus={() => setFocus(f => !f)}/>
+          </div>
+        )}
       </main>
     </div>
   );
