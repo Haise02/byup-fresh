@@ -734,14 +734,25 @@ function useDeviceState(tipoIniziale) {
     generatePwd, reset };
 }
 
-function DeviceForm({ st }) {
+function DeviceForm({ st, tipoFisso }) {
   const { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
     printerCats, setPrinterCats, isPrinter, selectedPrinter, deviceType, generatePwd } = st;
-  return (
-    <>
-              {/* Selettore tipo dispositivo */}
-              <ImpField label="Tipo dispositivo">
+
+  // `tipoFisso`: nel passo Personale la tessera qui sopra ha già detto se si
+  // collega una stampante o un monitor, e il menu non deve riproporre l'altra
+  // famiglia — scegliendola da qui la tessera accesa e il modulo dicevano due
+  // cose diverse. Con la famiglia già decisa il menu risponde a «quale
+  // stampante», non a «che cosa collego»: per questo cambia etichetta e mostra
+  // i soli modelli trovati in rete. Senza la prop — la modale «Aggiungi
+  // dispositivo», dove il menu È la scelta — resta il selettore completo.
+  const soloStampanti = tipoFisso === 'printer';
+  const vociMonitor = soloStampanti ? [] : DEVICE_TYPES;
+  const vociStampanti = tipoFisso === 'monitor' ? [] : AVAILABLE_PRINTERS;
+
+  const campoTipo = (
+              <ImpField label={soloStampanti ? 'Scegli stampante' : 'Tipo dispositivo'}
+                style={soloStampanti ? {marginBottom: 0} : undefined}>
                 <div style={{position:'relative'}}>
                   <button
                     onClick={() => setOpenTypeMenu(o => !o)}
@@ -764,7 +775,8 @@ function DeviceForm({ st }) {
                       }</span>
                       <span style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:1}}>
                         <span style={{fontSize:15.5}}>
-                          {isPrinter ? `Stampante (${selectedPrinter?.model})` : 'Tablet/iPad/Schermo (Monitor cucina)'}
+                          {soloStampanti ? selectedPrinter?.model
+                            : isPrinter ? `Stampante (${selectedPrinter?.model})` : 'Tablet/iPad/Schermo (Monitor cucina)'}
                         </span>
                         {isPrinter && selectedPrinter && (
                           <span style={{fontSize:13, color:PN.MUTED}}>{selectedPrinter.ip}</span>
@@ -782,7 +794,7 @@ function DeviceForm({ st }) {
                       boxShadow:'0 8px 24px rgba(0,0,0,0.08)',
                     }}>
                       {/* Monitor cucina */}
-                      {DEVICE_TYPES.map(t => (
+                      {vociMonitor.map(t => (
                         <button key={t.id} onClick={() => { setDeviceTypeId(t.id); setOpenTypeMenu(false); }}
                           style={{
                             display:'flex', width:'100%', alignItems:'center', gap: 10,
@@ -803,13 +815,13 @@ function DeviceForm({ st }) {
                         </button>
                       ))}
 
-                      {/* Separatore */}
-                      {AVAILABLE_PRINTERS.length > 0 && (
+                      {/* Separatore — solo se sopra c'è davvero un'altra famiglia */}
+                      {vociMonitor.length > 0 && vociStampanti.length > 0 && (
                         <div style={{height:1, background:PN.BORDER_SOFT, margin:'4px 0'}}/>
                       )}
 
                       {/* Stampanti scoperte */}
-                      {AVAILABLE_PRINTERS.map(p => (
+                      {vociStampanti.map(p => (
                         <button key={p.id} onClick={() => { setDeviceTypeId(p.id); setOpenTypeMenu(false); }}
                           style={{
                             display:'flex', width:'100%', alignItems:'center', gap: 10,
@@ -823,7 +835,7 @@ function DeviceForm({ st }) {
                           }}>{(BuIcons.doc||BuIcons.phone)({size: 13, color:'currentColor'})}</span>
                           <div>
                             <div style={{fontSize:15, fontWeight:600, color: deviceTypeId === p.id ? PN.PINK_DARK : PN.TEXT}}>
-                              Stampante ({p.model})
+                              {soloStampanti ? p.model : `Stampante (${p.model})`}
                             </div>
                             <div style={{fontSize:13.5, color:PN.MUTED}}>{p.ip}</div>
                           </div>
@@ -833,10 +845,15 @@ function DeviceForm({ st }) {
                   )}
                 </div>
               </ImpField>
+  );
 
-              {/* Etichetta — solo per stampanti */}
-              {isPrinter && (
-                <ImpField label="Etichetta" hint="Come la chiamerete in lista (es. Cassa, Cucina, Bar)">
+  // «Etichetta» non diceva di che cosa: il monitor qui sotto ha «Nome
+  // dispositivo», e la stampante chiede la stessa cosa. Sta in riga col menu
+  // perché sono le due metà di una frase sola — quale stampante, e come la
+  // chiamiamo.
+  const campoNomeStampante = (
+                <ImpField label="Nome stampante" hint="Come la chiamerete in lista (es. Cassa, Cucina, Bar)"
+                  style={soloStampanti ? {marginBottom: 0} : undefined}>
                   <input
                     type="text"
                     value={deviceName}
@@ -849,6 +866,23 @@ function DeviceForm({ st }) {
                     }}
                   />
                 </ImpField>
+  );
+
+  return (
+    <>
+              {soloStampanti ? (
+                <div style={{
+                  display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14,
+                  alignItems:'start', marginBottom: 16,
+                }}>
+                  {campoTipo}
+                  {campoNomeStampante}
+                </div>
+              ) : (
+                <>
+                  {campoTipo}
+                  {isPrinter && campoNomeStampante}
+                </>
               )}
 
               {/* Nome dispositivo — solo per monitor cucina */}
@@ -1656,7 +1690,7 @@ function DispositivoStep({ setTeam }) {
           marginTop: 12, padding:'16px 18px', borderRadius: 12,
           border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
         }}>
-          <DeviceForm st={dev}/>
+          <DeviceForm st={dev} tipoFisso={selDevice}/>
         </div>
 
         <div style={{display:'flex', alignItems:'center', gap: 12, marginTop: 14, flexWrap:'wrap'}}>
