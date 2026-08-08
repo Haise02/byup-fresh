@@ -803,7 +803,7 @@ function useDeviceState(tipoIniziale) {
     deviceType, deviceValid, generatePwd, reset };
 }
 
-function DeviceForm({ st, tipoFisso, azione }) {
+function DeviceForm({ st, tipoFisso, azione, modifica }) {
   const { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
     printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
@@ -1023,7 +1023,7 @@ function DeviceForm({ st, tipoFisso, azione }) {
   );
 
   const campoPassword = deviceType.noCredentials ? null : (
-                <ImpField label="Password" required
+                <ImpField label="Password" required={!modifica}
                   style={inRiga ? {marginBottom: 0} : undefined}>
                 <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
                   <div style={{position:'relative', flex: 1}}>
@@ -1031,7 +1031,7 @@ function DeviceForm({ st, tipoFisso, azione }) {
                       type={showPwd ? 'text' : 'password'}
                       value={password}
                       onChange={e => setPassword(e.target.value)}
-                      placeholder="Inserisci password"
+                      placeholder={modifica ? 'Inserisci nuova password' : 'Inserisci password'}
                       style={{
                         width:'100%', padding:'10px 40px 10px 12px',
                         border:`1px solid ${PN.BORDER}`, borderRadius:9,
@@ -1063,8 +1063,14 @@ function DeviceForm({ st, tipoFisso, azione }) {
                     }}
                   >Genera</button>
                 </div>
+                {/* In modifica il campo non ripropone la password già data —
+                    non si mostra una password — quindi lasciarlo vuoto deve
+                    voler dire qualcosa, e va detto: altrimenti si compila per
+                    scrupolo e si cambia una password che andava bene. */}
                 <div style={{fontSize: 13, color: PN.MUTED, marginTop: 6}}>
-                  Salvala in un posto sicuro — vale solo per questo dispositivo.
+                  {modifica
+                    ? 'Lasciala vuota per tenere quella attuale.'
+                    : 'Salvala in un posto sicuro — vale solo per questo dispositivo.'}
                 </div>
               </ImpField>
   );
@@ -1523,7 +1529,7 @@ function InviteModal({ onClose, prefill }) {
             </>
           )}
 
-          {kind === 'device' && <DeviceForm st={dev}/>}
+          {kind === 'device' && <DeviceForm st={dev} modifica={!!editDevice}/>}
         </div>
 
         <div style={{
