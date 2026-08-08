@@ -154,11 +154,17 @@ function PromoTable({ cols, teste, ordine, onOrdina, children }) {
           if (!t.key || !onOrdina) return <div key={i} style={base}>{t.label}</div>;
           const attiva = ordine && ordine.key === t.key;
           return (
+            // `justifySelf`: in griglia il bottone si allargava per tutta la
+            // cella anche con padding zero, quindi la manina e lo sbiadire di
+            // `.adm-textlink:hover` prendevano l'intera colonna invece del
+            // nome. Si stringe restando dov'era — a destra le numeriche,
+            // a sinistra le altre.
             <button key={i} onClick={()=>onOrdina(t.key)} className="adm-textlink"
               style={{...base, background:'none', border:'none', padding:0, margin:0,
                 fontFamily:'inherit', cursor:'pointer',
                 color: attiva ? ADM.TEXT : ADM.MUTED,
-                display:'flex', gap:3, alignItems:'center', overflow:'visible',
+                display:'inline-flex', gap:3, alignItems:'center', overflow:'visible',
+                justifySelf: t.num ? 'end' : 'start', alignSelf:'center',
                 justifyContent: t.num ? 'flex-end' : 'flex-start'}}>
               {t.label}
               {attiva && (

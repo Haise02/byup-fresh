@@ -454,12 +454,19 @@ function SortHead({ col, cur, order, onSort, children }) {
     // perché i bottoni non ereditano da soli. Prima era grigio fisso, e nella
     // tabella dei piatti in Clienti le colonne ordinabili restavano grigie
     // mentre l'unica non ordinabile veniva wine come il resto della riga.
+    // `justifySelf`/`alignSelf`: l'intestazione sta dentro una griglia, e in
+    // griglia un figlio si allarga per tutta la cella anche se è `inline-flex`.
+    // Il bottone restava trasparente, quindi non si vedeva — ma la manina e
+    // l'area di click prendevano l'intera colonna, che è tanta roba per due
+    // parole. Così si stringe su quello che c'è scritto, senza spostarsi:
+    // queste colonne sono tutte allineate a sinistra.
     <button onClick={() => onSort(col)} style={{
       background:'transparent', border:'none', padding: 0,
       fontSize:'inherit', fontWeight: 700, color:'inherit',
       textTransform:'uppercase', letterSpacing:'inherit',
       textAlign:'left', cursor:'pointer', fontFamily:'inherit',
       display:'inline-flex', alignItems:'center', gap: 5,
+      justifySelf:'start', alignSelf:'center',
       opacity: active ? 1 : 0.85,
     }}>
       {children}

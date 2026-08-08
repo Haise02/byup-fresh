@@ -1078,16 +1078,20 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
               fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT,
               textTransform:'uppercase', letterSpacing: 0.5,
             }}>
+              {/* Cliccabile è il nome, non la cella: prima si allargava per
+                  tutta la colonna — `alignSelf:'stretch'` più i margini
+                  negativi a riempire il padding della testata — e a
+                  ordinamento attivo si campiva l'intero riquadro. Che
+                  l'ordinamento sia acceso lo dicono già il testo più scuro e
+                  la freccia, senza colorare mezza intestazione. */}
               <span
                 onClick={toggleSortData}
                 style={{
                   cursor:'pointer', userSelect:'none',
-                  alignSelf:'stretch',
-                  display:'flex', alignItems:'center', gap:4,
-                  margin:'-10px 0', padding:'10px 8px',
-                  background: sortData ? C.SURF_ALT : 'transparent',
+                  justifySelf:'start', alignSelf:'center',
+                  display:'inline-flex', alignItems:'center', gap:4,
                   color: sortData ? PN.TEXT : C.TH_TEXT,
-                  transition:'background .15s',
+                  transition:'color .15s',
                 }}
                 title="Ordina per data">
                 Data
