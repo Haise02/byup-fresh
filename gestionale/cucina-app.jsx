@@ -191,7 +191,11 @@ function CucinaApp() {
             {/* Gli stessi ordini della vista a colonne, riraggruppati per
                 piatto: cambiando visualizzazione cambia il modo di guardare il
                 servizio, non il servizio. */}
+            {/* «Schermo intero» toglie di mezzo il gestionale, sidebar
+                compresa, come nella vista Ristorante: la board è già senza
+                margini, quello che resta da togliere è la navigazione. */}
             <Kds2Board selettoreMonitor={selettore(true)}
+              focus={focus} onToggleFocus={() => setFocus(f => !f)}
               porzioni={window.kds2PorzioniDelServizio
                 ? window.kds2PorzioniDelServizio() : undefined}/>
           </div>

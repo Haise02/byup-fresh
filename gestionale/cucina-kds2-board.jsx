@@ -802,14 +802,20 @@ function Kds2Filtro({ etichetta, valore, opzioni, onScegli }) {
   );
 }
 
-function Kds2Fullscreen() {
+// `onToggle` / `attivo`: dentro il gestionale «schermo intero» vuol dire prima
+// di tutto togliere di mezzo il gestionale — sidebar compresa — come già fa la
+// vista Ristorante. Chi monta la board glielo dice passando questi due; da sola,
+// nella route di anteprima, resta il fullscreen del browser.
+function Kds2Fullscreen({ onToggle, attivo }) {
   const [pieno, setPieno] = React.useState(false);
   React.useEffect(() => {
     const agg = () => setPieno(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', agg);
     return () => document.removeEventListener('fullscreenchange', agg);
   }, []);
+  const acceso = onToggle ? !!attivo : pieno;
   function commuta() {
+    if (onToggle) { onToggle(); return; }
     // In anteprima dentro un iframe l'API è spesso negata: si ignora, il resto
     // della schermata non deve accorgersene.
     try {
@@ -819,21 +825,21 @@ function Kds2Fullscreen() {
   }
   return (
     <button type="button" data-kds2-interattivo="" onClick={commuta}
-      aria-label={pieno ? 'Esci da schermo intero' : 'Schermo intero'}
-      title={pieno ? 'Esci da schermo intero' : 'Schermo intero'}
+      aria-label={acceso ? 'Esci da schermo intero' : 'Schermo intero'}
+      title={acceso ? 'Esci da schermo intero' : 'Schermo intero'}
       style={{
         width: H_BERSAGLIO, height: H_BERSAGLIO, flexShrink: 0, borderRadius: 12,
         display: 'grid', placeItems: 'center',
         background: K.RIGA, border: '2px solid ' + K.BORDO_RIGA,
         color: K.TESTO_2, cursor: 'pointer', fontFamily: 'inherit',
       }}>
-      <Kds2Espandi size={24} chiudi={pieno}/>
+      <Kds2Espandi size={24} chiudi={acceso}/>
     </button>
   );
 }
 
 function Kds2Header({
-  sorgenti, ora, selezione, onSeleziona, selettoreMonitor,
+  sorgenti, ora, selezione, onSeleziona, selettoreMonitor, focus, onToggleFocus,
   canale, onCanale, canali, categoria, onCategoria, categorie,
 }) {
   const orologio = kds2Orario(ora);
@@ -859,7 +865,7 @@ function Kds2Header({
             d'occhio. Sta col cromo e non col contenuto: si legge una volta e
             non serve più. */}
         {selettoreMonitor}
-        <Kds2Fullscreen/>
+        <Kds2Fullscreen onToggle={onToggleFocus} attivo={focus}/>
       </div>
 
       {sorgenti.length === 0 ? (
@@ -1013,7 +1019,7 @@ function Kds2Demo({ righe, onNuovo }) {
 // finti — è il caso della route di anteprima. Dentro la Cucina del gestionale
 // arrivano invece gli ordini veri del servizio, convertiti da
 // cucina-kds2-da-cucina.jsx: la vista cambia, il servizio no.
-function Kds2Board({ porzioni: porzioniIniziali, selettoreMonitor }) {
+function Kds2Board({ porzioni: porzioniIniziali, selettoreMonitor, focus, onToggleFocus }) {
   const [porzioni, setPorzioni] = React.useState(() => porzioniIniziali || KDS2_PORZIONI);
   const [ora, setOra]           = React.useState(() => Date.now());
   const [selezione, setSel]     = React.useState(null);
@@ -1142,7 +1148,7 @@ function Kds2Board({ porzioni: porzioniIniziali, selettoreMonitor }) {
     }}>
       <Kds2Header
         sorgenti={sorgenti} ora={ora} selezione={selezione} onSeleziona={setSel}
-        selettoreMonitor={selettoreMonitor}
+        selettoreMonitor={selettoreMonitor} focus={focus} onToggleFocus={onToggleFocus}
         canale={canale} onCanale={setCanale} canali={CANALI}
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}/>
 
