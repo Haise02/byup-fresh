@@ -294,7 +294,11 @@ function ImpPersonale() {
 
       {/* Tre colonne: ruoli a sinistra, elenco al centro (più stretto),
           e a destra gli accessi rapidi col ruolo su misura sotto. */}
-      <div style={{display:'grid', gridTemplateColumns:'248px minmax(0, 1fr) 248px', gap: 14, alignItems:'start'}}>
+      {/* 176 e non 248 ai lati: i 144px che tornano servono alla tabella, dove
+          il ruolo di un dispositivo dice «Kitchen Monitor» con accanto, sulla
+          stessa riga, la visualizzazione con cui lavora. I due pannelli sono
+          un elenco di parole corte e due card che vanno a capo da sole. */}
+      <div style={{display:'grid', gridTemplateColumns:'176px minmax(0, 1fr) 176px', gap: 14, alignItems:'start'}}>
         <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
           <section style={PANNELLO}>
             <div style={{padding:'16px 18px 12px'}}>
@@ -318,8 +322,8 @@ function ImpPersonale() {
                       onClick={() => setGruppo(g.id)}
                       className="pn-btn-feedback"
                       style={{
-                        width:'100%', display:'flex', alignItems:'center', gap: 10,
-                        padding:'9px 10px', borderRadius: 10,
+                        width:'100%', display:'flex', alignItems:'center', gap: 8,
+                        padding:'9px 9px', borderRadius: 10,
                         border: `1.5px solid ${on ? 'rgba(255, 90, 95, 0.55)' : 'transparent'}`,
                         background: on ? '#FFF7F6' : 'transparent',
                         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
@@ -338,10 +342,13 @@ function ImpPersonale() {
                         color: on ? PN.PINK_DARK : PN.TEXT,
                         overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                       }}>{g.label}</span>
+                      {/* Niente più 24px tenuti liberi per la matita: quella è
+                          in posizione assoluta e in hover può passare sopra il
+                          numero. In una colonna da 176 quello spazio era la
+                          differenza fra «Cameriere» e «Camerie…». */}
                       <span style={{
                         fontSize: 13, fontWeight: 700, flexShrink: 0,
                         color: on ? PN.PINK_DARK : PN.MUTED,
-                        marginRight: ruoloVero ? 24 : 0,
                       }}>{n}</span>
                     </button>
                     {ruoloVero && (
@@ -486,7 +493,10 @@ function ImpPersonale() {
 
 // Colonne della tabella accessi — una sola definizione per testata e righe,
 // così non possono scivolare l'una rispetto all'altra.
-const GRIGLIA_ACCESSI = 'minmax(0, 2.2fr) minmax(0, 1.2fr) 112px 34px';
+// Il ruolo è a misura fissa: deve tenere «Kitchen Monitor» e la sua
+// visualizzazione sulla stessa riga, e in frazioni si stringeva finché
+// «Kitchen Monitor» diventava «Kitch…». Il nome prende quello che resta.
+const GRIGLIA_ACCESSI = 'minmax(0, 1fr) 218px 112px 34px';
 
 const DEVICE_ROLE = {
   id: '_device', label: 'Dispositivo', icon: 'monitor',
@@ -607,17 +617,22 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
           background: r.ruolo.bg, color: r.ruolo.color,
           fontSize: 13.5, fontWeight: 700,
         }}>
-          {(BuIcons[r.ruolo.icon]||BuIcons.user)({size: 12, color:'currentColor'})}
+          {/* Nella riga di un dispositivo l'icona qui ripeteva quella del
+              riquadro a sinistra, che per le persone sono invece le iniziali:
+              toglierla libera i 17px che servono a tenere la visualizzazione
+              sulla stessa riga. */}
+          {r.tipo !== 'dispositivo' && (BuIcons[r.ruolo.icon]||BuIcons.user)({size: 12, color:'currentColor'})}
           <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.ruolo.label}</span>
         </span>
+        {/* Senza icona anche qui: «Pub» e «Ristorante» si spiegano da sé, e i
+            16px risparmiati vanno al nome nella colonna accanto. */}
         {r.vista && (
           <span title={r.vista.desc} style={{
-            display:'inline-flex', alignItems:'center', gap: 4, maxWidth:'100%',
+            display:'inline-flex', alignItems:'center', maxWidth:'100%',
             padding:'3px 9px', borderRadius: 999,
             background: PN.WHITE, border:`1px solid ${PN.BORDER}`, color: PN.MUTED,
             fontSize: 13, fontWeight: 700,
           }}>
-            {(BuIcons[r.vista.icon]||BuIcons.monitor)({size: 11, color:'currentColor'})}
             <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.vista.short}</span>
           </span>
         )}
