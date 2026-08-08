@@ -416,7 +416,7 @@ function AccPianiAbbonamenti() {
       />
 
       {invitaModal && (
-        <InvitaRistoranteModal current={current} fmtPrice={fmtPrice} onClose={() => setInvitaModal(false)}/>
+        <InvitaRistoranteModal current={current} onClose={() => setInvitaModal(false)}/>
       )}
 
       {/* Pacchetti ordini extra — bersaglio del CTA "Voglio più ordini".
@@ -979,7 +979,7 @@ const ACC_INVITO_CARD = {
   padding: '16px 14px 18px',
 };
 
-function InvitaRistoranteModal({ current, fmtPrice, onClose }) {
+function InvitaRistoranteModal({ current, onClose }) {
   const locale = (typeof window.byupReadLocale === 'function' ? window.byupReadLocale() : null) || { nome: 'Byup' };
   const codice = accCodiceInvito(locale.nome);
   const linkPieno = `https://byup.it/r/${codice}`;

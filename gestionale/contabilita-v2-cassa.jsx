@@ -438,7 +438,6 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
       <ChiudiCassaModal
         open={chiudiModal}
         fondoCassa={fondoCassa}
-        aperturaOra={aperturaOra}
         onClose={() => setChiudiModal(false)}
         onConfirm={confermaChiusura}
       />

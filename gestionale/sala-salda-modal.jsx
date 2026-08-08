@@ -216,9 +216,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       return ns;
     });
   }
-  function selectOnlyGroup(items) {
-    setSelectedItems(new Map(items.map(o => [o.id, o.qty])));
-  }
 
   function updateItem(id, patch) {
     setEditedOrdini(arr => arr.map(o => o.id === id ? { ...o, ...patch } : o));
@@ -449,7 +446,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       collapsedGroups={collapsedGroups}
                       toggleGroup={toggleGroup}
                       selectGroup={selectGroup}
-                      selectOnlyGroup={selectOnlyGroup}
                       onUpdate={updateItem} onDelete={deleteItem}/>
                   )}
                 </div>
@@ -523,8 +519,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       <AdjustPanel
                         subtotale={subtotale}
                         adjust={adjust}
-                        setAdjust={setAdjust}
-                        onClose={() => setAdjustOpen(false)}/>
+                        setAdjust={setAdjust}/>
                     )}
                   </div>
 
@@ -685,7 +680,7 @@ function FlatList({ ordini, selectedItems, toggleItem, setItemQty, guestById, on
 }
 
 // ────────── LISTA ARTICOLI GROUPED ──────────
-function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedGroups, toggleGroup, selectGroup, selectOnlyGroup, onUpdate, onDelete }) {
+function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedGroups, toggleGroup, selectGroup, onUpdate, onDelete }) {
   if (groups.length === 0) return <EmptyOrdini/>;
   return (
     <div style={{display:'flex', flexDirection:'column'}}>
@@ -1359,7 +1354,7 @@ const miniSplit = {
 };
 
 // ────────── PANNELLO AGGIUSTAMENTO ──────────
-function AdjustPanel({ subtotale, adjust, setAdjust, onClose }) {
+function AdjustPanel({ subtotale, adjust, setAdjust}) {
   const [mode, setMode] = React.useState(adjust?.type || 'sconto-eur');
   const [val, setVal] = React.useState(adjust?.val || '');
 

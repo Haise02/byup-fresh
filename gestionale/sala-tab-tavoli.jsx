@@ -1,6 +1,6 @@
 // Sala — Tab Tavoli (no timeline, card compatte, mappa+lista)
 
-function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, focus, onToggleFocus, onAdjustCoperti, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
+function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, focus, onToggleFocus, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit}) {
   const [search, setSearch] = React.useState('');
   const [room, setRoom] = React.useState('Sala principale');
   // Filtri multi-select: Set di chiavi KPI. Tutte attive default; vuoto = mostra tutti.
@@ -131,14 +131,6 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
     {key: 'Liberi',    label: 'Liberi',    value: counts.Liberi,       accent: '#15803D', soft: 'rgba(22, 163, 74, 0.10)',  icon: 'M5 13l4 4L19 7'},
   ];
   const totale = counts.Tutti;
-  // KPI Riempimento: preferisci coperti se disponibili, fallback su numero tavoli
-  const totalCoperti = tavoliBase.reduce((s,t) => s + (t.state === 'occupato' ? (t.coperti || 0) : 0), 0);
-  const totalPosti   = tavoliBase.reduce((s,t) => s + (t.posti || 0), 0);
-  const useCoperti = totalCoperti > 0 && totalPosti > 0;
-  const fillNum = useCoperti ? totalCoperti  : counts.Occupati;
-  const fillDen = useCoperti ? totalPosti    : totale;
-  const fillLabel = useCoperti ? 'coperti'   : 'tavoli';
-  const occPct = fillDen ? Math.round((fillNum / fillDen) * 100) : 0;
   const toggleFilter = (key) => setFilters(prev => {
     if (key === 'Tutti') return new Set(['Tutti']);
     const next = new Set(prev);
@@ -459,18 +451,16 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
             mergeMode={mergeMode} mergeSel={mergeSel}
             onToggleMergeSel={toggleMergeSel} onExitMerge={exitMergeMode}
             onOpenAdd={onOpenAdd} onOpenPay={onOpenPay}
-            onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-            expandedId={expandedId} setExpandedId={setExpandedId} onAdjustCoperti={onAdjustCoperti}
+            onAddArticle={onAddArticle}
+            expandedId={expandedId} setExpandedId={setExpandedId}
             onAdjustReservationPosti={onAdjustReservationPosti}
-            onLibera={onLibera} onEdit={onEdit} onAssignOther={onAssignOther} onNoShow={onNoShow}
-            onModificaCoperti={onModificaCoperti}/>
+            onLibera={onLibera} onEdit={onEdit}/>
         : <SalaListView tavoli={visibili} onOpenAdd={onOpenAdd} onOpenPay={onOpenPay}
-            onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-            expandedId={expandedId} setExpandedId={setExpandedId} onAdjustCoperti={onAdjustCoperti}
+            onAddArticle={onAddArticle}
+            expandedId={expandedId} setExpandedId={setExpandedId}
             onAdjustReservationPosti={onAdjustReservationPosti}
             contiCollapsed={contiCollapsed}
-            onLibera={onLibera} onEdit={onEdit} onAssignOther={onAssignOther} onNoShow={onNoShow}
-            onModificaCoperti={onModificaCoperti}/>
+            onLibera={onLibera} onEdit={onEdit}/>
       }
     </div>
   );
@@ -479,7 +469,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
 // ─────────────────────────────────────────────────────────
 // List view — griglia di card compatte
 // ─────────────────────────────────────────────────────────
-function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
+function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, expandedId, setExpandedId, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit}) {
   const sorted = tavoli; // ordinamento già applicato dal parent (stato → numero)
 
   // Griglia responsiva: pannello aperto (contiCollapsed=false) → 3 col, chiuso → 4 col
@@ -491,12 +481,9 @@ function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, cart, onCart
           expanded={expandedId === t.id}
           onToggle={()=>setExpandedId(id => id === t.id ? null : t.id)}
           onAdd={()=>onOpenAdd(t)} onPay={()=>onOpenPay(t)}
-          onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-          onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(t.id, n)}
+          onAddArticle={onAddArticle}
           onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(t.id, n)}
-          onLibera={onLibera} onEdit={onEdit}
-          onAssignOther={onAssignOther} onNoShow={onNoShow}
-          onModificaCoperti={onModificaCoperti}/>
+          onLibera={onLibera} onEdit={onEdit}/>
       ))}
       {sorted.length === 0 && (
         <div style={{
@@ -592,7 +579,7 @@ function rectsIntersectArea(a, b) {
   return w > 0 && h > 0 ? w * h : 0;
 }
 
-function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSel, onExitMerge, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
+function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSel, onExitMerge, onOpenAdd, onOpenPay, onAddArticle, expandedId, setExpandedId, onAdjustReservationPosti, onLibera, onEdit}) {
   const isDimmed = (id) => dimmedIds && dimmedIds.has(id);
   const COLS = SALA_GRID_COLS, ROWS = SALA_GRID_ROWS;
   // SCHERMATA UNICA: la griglia entra tutta (fit su larghezza E altezza,
@@ -733,32 +720,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
 
   // Snap a 0.5 unità di cella
   const snap = (v) => Math.round(v * 2) / 2;
-  const toGrid = (clientX, clientY) => {
-    const r = canvasRef.current.getBoundingClientRect();
-    const s = r.height / CANVAS_H;  // compensazione zoom CSS del frame
-    return { x: ((clientX - r.left) / s - PAD) / PX, y: ((clientY - r.top) / s - PAD) / PY };
-  };
 
   // Cerca prima posizione libera vicino a (tx, ty) per il tavolo "id" senza overlap con "occupied".
   // Stesso algoritmo di findFreeCellSpiral in sala-app.jsx ma con dims variabili e snap a 0.5:
   // espande per "anelli" Chebyshev di raggio r — il check `max(|dx|,|dy|) !== r` salta l'interno
   // del quadrato (già testato nelle iterazioni precedenti), una sola valutazione per candidata.
-  const findFreeSpot = React.useCallback((id, tx, ty, occupied) => {
-    const dims = tableRect(id);
-    if (!dims) return { x: tx, y: ty };
-    for (let r = 0; r <= 8; r += 0.5) {
-      for (let dx = -r; dx <= r; dx += 0.5) {
-        for (let dy = -r; dy <= r; dy += 0.5) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-          const nx = Math.max(0, Math.min(COLS - dims.w, snap(tx + dx)));
-          const ny = Math.max(0, Math.min(ROWS - dims.h, snap(ty + dy)));
-          const test = { x: nx, y: ny, w: dims.w, h: dims.h };
-          if (!occupied.some(o => rectsOverlap(test, o))) return { x: nx, y: ny };
-        }
-      }
-    }
-    return { x: tx, y: ty };
-  }, [tableRect]);
 
   // Dopo un cambio posti/orientamento: se il nuovo footprint collide con
   // vicini o fixture (o sfora la griglia), sposta il tavolo nella posizione
@@ -1969,12 +1935,9 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               onToggle={()=>{}}
               onAdd={closeAnd(()=>onOpenAdd(clickedTable))}
               onPay={closeAnd(()=>onOpenPay(clickedTable))}
-              onAddArticle={closeAnd(onAddArticle)} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-              onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(clickedTable.id, n)}
+              onAddArticle={closeAnd(onAddArticle)}
               onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(clickedTable.id, n)}
-              onLibera={closeAnd(onLibera)} onEdit={closeAnd(onEdit)}
-              onAssignOther={closeAnd(onAssignOther)} onNoShow={closeAnd(onNoShow)}
-              onModificaCoperti={closeAnd(onModificaCoperti)}/>
+              onLibera={closeAnd(onLibera)} onEdit={closeAnd(onEdit)}/>
           </div>
         </div>,
         document.querySelector('.frame') || document.body

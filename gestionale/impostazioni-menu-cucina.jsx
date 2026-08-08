@@ -209,7 +209,6 @@ function AllergenIcon({ id, size = 22 }) {
     </span>
   );
 }
-window.ALLERGEN_GLYPHS = ALLERGEN_GLYPHS;
 window.ALLERGENS = ALLERGENS;
 window.AllergenIcon = AllergenIcon;
 
@@ -1383,7 +1382,6 @@ function MCPiattiPanel({
             <MCDishCard
               key={r.dishId}
               r={r}
-              catName={catName}
               selectMode={selectMode}
               selected={selection.includes(r.dishId)}
               aperto={detailId === r.dishId}
@@ -1480,9 +1478,9 @@ function MCPiattiPanel({
 
 // ─── Card piatto (vista griglia) ────────────────────────────────────────────
 function MCDishCard({
-  r, catName, selectMode, selected, aperto, menuAperto, onMenu, onCloseMenu,
+  r, selectMode, selected, aperto, menuAperto, onMenu, onCloseMenu,
   onToggleSel, onOpen, onToggleActive, editingPrice, onPriceClick, onPriceCommit, onPriceCancel,
-  onRemove, onDragStart, onDragEnd, onDropOn, inDrag,
+  onRemove, onDragStart, onDragEnd, onDropOn, inDrag
 }) {
   const [hover, setHover] = React.useState(false);
   const [tmp, setTmp] = React.useState(r.price.toFixed(2).replace('.', ','));
@@ -3493,7 +3491,7 @@ function DishFlag({checked, onChange, label, accent, accentBg, accentBorder, inf
   );
 }
 
-function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onSave, onDelete, currentPrice }) {
+function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, currentPrice }) {
   const isEdit = !!dish;
   const [name, setName] = React.useState(dish?.name || '');
   const [desc, setDesc] = React.useState(dish?.desc || '');

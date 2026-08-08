@@ -460,7 +460,6 @@ function CucinaInSala({ focus = false, onToggleFocus, selettoreMonitor }) {
                 onBumpItems={(indices) => bumpItems(t.id, indices)}
                 onPrimary={() => startAll(t.id)}
                 onMarkReady={() => markReady(t.id)}
-                onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
                 registerNode={el => { if (el) cardNodes.current.set(t.id, el); else cardNodes.current.delete(t.id); }}
                 onDragHover={(x, y) => dragHoverAt(x)}
@@ -479,7 +478,6 @@ function CucinaInSala({ focus = false, onToggleFocus, selettoreMonitor }) {
                 onBumpItems={(indices) => bumpItems(t.id, indices)}
                 onPrimary={() => startAll(t.id)}
                 onMarkReady={() => markReady(t.id)}
-                onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
                 registerNode={el => { if (el) cardNodes.current.set(t.id, el); else cardNodes.current.delete(t.id); }}
                 onDragHover={(x, y) => dragHoverAt(x)}
@@ -726,7 +724,7 @@ const KDS_HOLD_MS = 800;
 const KDS_AVVIO_S = 5;
 
 // ─── Ticket ────────────────────────────────────────────────
-function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems,
+function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onRevertItems,
   registerNode, onDragHover, onDropAt, onDragCancel }) {
   const age = _ageMin(ticket.time);
   const minToPickup = ticket.pickup ? _toMin(ticket.pickup) - CUC_NOW_MIN : null;

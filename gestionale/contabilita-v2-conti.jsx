@@ -657,7 +657,7 @@ function ApriCassaModal({ open, onClose, onConfirm }) {
 }
 
 // Popup conferma chiusura cassa — riepilogo e conferma quadratura
-function ChiudiCassaModal({ open, fondoCassa, aperturaOra, onClose, onConfirm }) {
+function ChiudiCassaModal({ open, fondoCassa, onClose, onConfirm }) {
   const [show, setShow] = React.useState(false);
   const [finale, setFinale] = React.useState(''); // saldo cassa finale inserito dall'operatore
   const [step, setStep] = React.useState('form'); // 'form' | 'warn'

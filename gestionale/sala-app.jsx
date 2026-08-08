@@ -212,7 +212,6 @@ function SalaApp() {
     forceUpdate();
   }
   function handleEdit(t)        { setModalModifica(t); }
-  function handleAssignOther(t) { alert(`Assegna Tavolo ${t.id} ad altri (mock)`); }
   function handleNoShow(t)      { t.state = 'libero'; t.nextReservation = null; t.minutiAllaPrenotazione = null; forceUpdate(); }
 
   function handleUnisciConfirm(sourceTavolo, selectedIds) {
@@ -375,7 +374,6 @@ function SalaApp() {
 
 
   const sidebarActive = tab === 'vendita' ? 'vendita' : tab === 'calendar' ? 'prenotazioni' : 'sala';
-  const headerTitle = tab === 'vendita' ? 'Vendita diretta' : tab === 'calendar' ? 'Prenotazioni' : 'Sala';
 
   return (
     <div style={{display:'flex', flex:1, minHeight:0, minWidth:0}}>
@@ -407,19 +405,6 @@ function SalaApp() {
                 }}
                 onOpenPay={(t) => setModalPay(t)}
                 onAddArticle={(t) => { setArticoloSheet(t); if (cart.tableId !== t.id) setCart({tableId:t.id, items:[]}); }}
-                cart={cart}
-                onCartChange={setCart}
-                onConfirmCart={handleConfirmCart}
-                onAdjustCoperti={(id, n) => {
-                  // Lo stepper modifica i COPERTI seduti, mai la capacità:
-                  // clamp tra 1 e i posti. Gli utenti connessi (byup/byupWeb)
-                  // NON si toccano: quel numero non dipende dai coperti.
-                  const t = SALA_TAVOLI.find(x => x.id === id);
-                  if (t) {
-                    t.coperti = Math.max(1, Math.min(t.posti || n, n));
-                    forceUpdate();
-                  }
-                }}
                 onAdjustReservationPosti={(id, n) => {
                   // Pencil su libero/prenotato espansi: edita la party size della prenotazione.
                   const t = SALA_TAVOLI.find(x => x.id === id);
@@ -430,12 +415,10 @@ function SalaApp() {
                 }}
                 onLibera={handleLibera}
                 onEdit={handleEdit}
-                onAssignOther={handleAssignOther}
-                onNoShow={handleNoShow}
               />
             )}
             {tab === 'vendita' && <SalaVenditaDiretta/>}
-            {tab === 'calendar' && <SalaCalendario tweaks={tweaks}
+            {tab === 'calendar' && <SalaCalendario
               onNuova={(data) => setModalNuova(data || true)}
               onModifica={(r) => setModalNuova({
                 resId: r.id,

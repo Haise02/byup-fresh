@@ -37,7 +37,7 @@ const MENU_INIZIALE = [
   ]},
 ];
 
-function Step4Verifica({venue, rooms, onBack, onComplete}) {
+function Step4Verifica({ onBack, onComplete}) {
   // Il menù è stato, non più una costante: nomi, prezzi e categorie si
   // modificano qui. MENU_INIZIALE resta il seed dell'import AI.
   const [menu, setMenu] = React.useState(MENU_INIZIALE);
@@ -60,7 +60,6 @@ function Step4Verifica({venue, rooms, onBack, onComplete}) {
   };
 
   const totalDishes = menu.reduce((s, c) => s + c.dishes.length, 0);
-  const totalTables = rooms.reduce((s, r) => s + r.tables, 0);
 
   const updateDish = (catId, idx, patch) =>
     setMenu(m => m.map(c => c.id !== catId ? c : {

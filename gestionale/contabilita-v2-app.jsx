@@ -11,7 +11,8 @@ function ContabilitaApp() {
   const urlFilter = params.get('filter') || 'all';
 
   const [tab, setTab] = useState(urlTab);
-  const [contiFilter, setContiFilter] = useState(urlFilter);
+  // Il filtro arriva dall'URL e non cambia più: non è stato, è una costante.
+  const contiFilter = urlFilter;
   // Rimando da Cassa: la giornata e lo stato di trasmissione da mostrare in
   // Conti. Cassa riepiloga, Conti tiene la lista — una sola.
   const [contiFisc, setContiFisc] = useState(() => {

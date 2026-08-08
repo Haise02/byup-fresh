@@ -192,7 +192,6 @@ function SalaVenditaDiretta() {
   const totQty = lines.reduce((s, l) => s + l.qty, 0);
 
   // pinned: piatti più venduti (mock — primi 4)
-  const popolari = SALA_VENDITA_PIATTI.slice(0, 4);
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 14, height:'100%', minHeight: 0}}>
@@ -2073,7 +2072,6 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   const importoRef = React.useRef(null);
   const ricevutoRef = React.useRef(null);
   const [fattura, setFattura] = React.useState(false);
-  const [pay, setPay] = React.useState({ contanti: '', carta: '' });
   const [done, setDone] = React.useState(false);
   const [adjust, setAdjust] = React.useState(null);
   const [adjustOpen, setAdjustOpen] = React.useState(false);
@@ -2098,7 +2096,6 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
       setPagamentiOpen(false);
       setImporto('');
       setFattura(false);
-      setPay({ contanti: '', carta: '' });
       setDone(false);
       setOrdine(null);
       setAdjust(null);
@@ -2484,8 +2481,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   <AdjustPanel
                     subtotale={subtotale}
                     adjust={adjust}
-                    setAdjust={setAdjust}
-                    onClose={() => setAdjustOpen(false)}/>
+                    setAdjust={setAdjust}/>
                 </div>
               )}
 

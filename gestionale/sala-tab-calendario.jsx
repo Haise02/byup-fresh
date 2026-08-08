@@ -108,7 +108,7 @@ function slotCategory(r) {
 // ─────────────────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────────────────
-function SalaCalendario({ tweaks, onNuova, onModifica }) {
+function SalaCalendario({ onNuova, onModifica }) {
   const [dayView, setDayView] = React.useState('timeline'); // timeline | lista
   // Prenotazioni fatte da Byup App (badge b): non si spostano né si
   // modificano dal gestionale — qualsiasi tentativo apre la conferma di

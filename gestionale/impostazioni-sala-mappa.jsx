@@ -81,7 +81,7 @@ function FloorPlan({
   tavoli, furniture, groups, selected,
   onCreateTable, onCreateFurniture,
   onMoveTable, onBulkMoveTables, onMoveFurniture, onResizeFurniture, onDeleteFurniture,
-  onMergeTables, onUngroupTables, onSelectTable, onEditTable,
+  onMergeTables, onSelectTable, onEditTable
 }) {
   const COLS = cols || 10, ROWS = rows || 6;
   const [canvasWidth, setCanvasWidth] = React.useState(COLS * 60);

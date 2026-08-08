@@ -2355,7 +2355,6 @@ function PersonaleStep({ team, setTeam }) {
     setTeam(t => [...t, { id: `t${Date.now()}`, kind: 'person', name, email: invEmail.trim(), role: roleLabel, status: 'invited' }]);
     setInvName(''); setInvEmail('');
   };
-  const removeMember = (id) => setTeam(t => t.filter(m => m.id !== id));
 
 
   return (

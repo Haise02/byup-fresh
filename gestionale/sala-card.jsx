@@ -72,11 +72,6 @@ function formatOpenDuration(totalMinutes) {
   if (remainder === 0) return `${hours}h`;
   return `${hours}h${remainder}'`;
 }
-function getOpenDurationSeverity(totalMinutes) {
-  if (totalMinutes > CRITICAL_DURATION_MIN) return 'critical';
-  if (totalMinutes >= WARNING_DURATION_MIN) return 'warning';
-  return 'normal';
-}
 
 // ─────────────────────────────────────────────────────────
 // Tooltip leggero — appare al hover, dark, non clippato grazie a position:fixed
@@ -408,7 +403,7 @@ function salaInfoText(t, { alert, isLate, lateMin }) {
   return { text: res ? `Prossima ${res.time} · ${res.name}` : 'Nessuna prenotazione', color: '#6B7280' };
 }
 
-function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustCoperti, onAdjustReservationPosti, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti, onClose }) {
+function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustReservationPosti, onLibera, onEdit, onClose }) {
   const meta = SALA_STATE_META[t.state];
   const alert = t.state === 'occupato' ? getOccupiedAlert(t) : null;
   const note = readNote(t.note);
@@ -421,8 +416,6 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   const minAlla = t.minutiAllaPrenotazione;
   const isLate = t.state === 'prenotato' && minAlla != null && minAlla < 0;
   const lateMin = isLate ? Math.abs(minAlla) : 0;
-  const isNoShow = isLate && lateMin > NOSHOW_ALERT_MIN;
-  const urgent = t.state === 'prenotato' && !isLate && minAlla != null && minAlla < PRENOTAZIONE_BLOCCO_MIN;
   // Severity tono ordini: 'warn' ambra · 'info' grigio · 'alert' (legacy) → 'warn'
   const isAlerting = alert?.tone === 'warn';
 
@@ -444,11 +437,6 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   const isPopup = !!onClose;
   const [hover, setHover] = React.useState(false);
   // Schiarisce (f>0) o scurisce (f<0) un colore hex — per il gradiente header
-  const shade = (hex, f) => {
-    const n = parseInt(hex.slice(1), 16);
-    const ch = (v) => Math.max(0, Math.min(255, Math.round(f > 0 ? v + (255 - v) * f : v * (1 + f))));
-    return `#${(((ch((n >> 16) & 255)) << 16) | ((ch((n >> 8) & 255)) << 8) | ch(n & 255)).toString(16).padStart(6, '0')}`;
-  };
   // Accent (border + top bar) per stato. Da pulire: resta sempre grigio, anche in critical.
   let accent = meta.dot;
   if (isAlerting) accent = '#A16207'; // ambra warn — MAI rosso
@@ -640,11 +628,10 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
             )}
             <SalaCardExpanded t={t} alert={alert} cta={cta} note={note} noteMeta={noteMeta}
               extraNote={extraNote} extraNoteMeta={extraNoteMeta}
-              onAddArticle={onAddArticle} onConfirmCart={onConfirmCart} cart={cart} onCartChange={onCartChange}
+              onAddArticle={onAddArticle}
               onAdjustReservationPosti={onAdjustReservationPosti}
               onEdit={onEdit} occupatoSaldato={occupatoSaldato}
-              isLate={isLate} lateMin={lateMin} isNoShow={isNoShow}
-              onAssignOther={onAssignOther} onNoShow={onNoShow} pulireSev={pulireSev}/>
+              isLate={isLate} lateMin={lateMin} pulireSev={pulireSev}/>
           </div>
         </div>
       </div>
@@ -653,7 +640,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onConfirm
   );
 }
 
-function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onConfirmCart, cart, onCartChange, onAdjustReservationPosti, onEdit, occupatoSaldato, isLate, lateMin, isNoShow, onAssignOther, onNoShow, pulireSev }) {
+function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onAdjustReservationPosti, onEdit, occupatoSaldato, isLate, lateMin, pulireSev }) {
   return (
     <>
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>

@@ -466,12 +466,6 @@ function ImpSalaTavoli() {
     });
   };
 
-  const ungroupTables = (gid) => {
-    const group = groups.find(g => g.id === gid);
-    setGroups(prev => prev.filter(g => g.id !== gid));
-    // Sciogliendo tutto il gruppo, ogni tavolo dopo il primo si stacca dagli altri
-    if (group && group.tableIds.length > 1) separateTables(group.tableIds.slice(1), group.tableIds);
-  };
 
   const removeFromGroup = (tableId) => {
     const group = groups.find(g => g.tableIds.includes(tableId));
@@ -904,7 +898,6 @@ function ImpSalaTavoli() {
               onRotateFurniture={(id) => setFurniture(prev => prev.map(f => f.id === id ? {...f, w: f.h, h: f.w} : f))}
               onDeleteFurniture={deleteFurniture}
               onMergeTables={mergeTables}
-              onUngroupTables={ungroupTables}
               onSelectTable={toggleSelect}
               onEditTable={(id) => setEditingTable(id)}
             />
