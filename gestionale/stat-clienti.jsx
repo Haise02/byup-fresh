@@ -152,15 +152,20 @@ function CliVoto({ d }) {
   const b = d.fonti.byup, g = d.fonti.google;
   return (
     <div style={{minWidth: 0, display:'flex', flexDirection:'column', gap: 20}}>
+      {/* Le misure di questa colonna sono tarate una taglia sopra il resto
+          della pagina: è stretta, e in una colonna stretta un corpo da tredici
+          e mezzo con dentro stelle da dodici pixel si legge come una nota a
+          piè di pagina — mentre qui c'è il voto, cioè la cosa per cui si apre
+          la card. */}
       <div>
-        <div style={{marginBottom: 10}}><CliFonte fonte="byup" lato={13.5}/></div>
+        <div style={{marginBottom: 11}}><CliFonte fonte="byup" lato={14.5}/></div>
         <div style={{fontSize: 60, fontWeight: 700, color: PN.TEXT, letterSpacing:-2.4, lineHeight: 0.82}}>
           {b.media.toFixed(1).replace('.', ',')}
         </div>
-        <div style={{margin:'12px 0 9px'}}><CliStelleTessere voto={b.media} lato={22} aria={5}/></div>
+        <div style={{margin:'14px 0 11px'}}><CliStelleTessere voto={b.media} lato={27} aria={6}/></div>
         {/* La media e il totale sono le due cose che si vengono a sapere qui:
             il conteggio è scuro e in grassetto, il resto della frase no. */}
-        <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>
+        <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.5}}>
           Sulla base di <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
             {b.n.toLocaleString('it-IT', {useGrouping: true})}
           </span> recensioni, tutte da chi ha ordinato e pagato qui.
@@ -170,22 +175,22 @@ function CliVoto({ d }) {
       {/* Cinque righe e cinque numeri, senza barre: la barra diceva una
           proporzione che con 253 su 312 si legge già dalle cifre, e nella
           colonna stretta restava un filo di due centimetri. */}
-      <div style={{display:'flex', flexDirection:'column', gap: 9}}>
+      <div style={{display:'flex', flexDirection:'column', gap: 11}}>
         {[5,4,3,2,1].map(stelle => {
           const riga = b.stelle.find(r => r.stars === stelle);
           return (
-            <div key={stelle} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 13.5}}>
+            <div key={stelle} style={{display:'flex', alignItems:'center', gap: 9, fontSize: 15.5}}>
               <span style={{
-                display:'inline-flex', alignItems:'center', gap: 5,
+                display:'inline-flex', alignItems:'center', gap: 6,
                 color: PN.MUTED, fontVariantNumeric:'tabular-nums',
               }}>
                 {stelle}
-                <svg width="12" height="12" viewBox="0 0 24 24" fill={PN.PINK} style={{display:'block'}}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill={PN.PINK} style={{display:'block'}}>
                   <polygon points={CLI_STELLA}/>
                 </svg>
               </span>
               <span style={{
-                minWidth: 40, textAlign:'right', color: PN.TEXT,
+                minWidth: 46, textAlign:'right', color: PN.TEXT,
                 fontVariantNumeric:'tabular-nums', fontWeight: 600,
               }}>{riga.count}</span>
             </div>
@@ -205,7 +210,7 @@ function CliVoto({ d }) {
           mettere una cosa in un angolo facendola pure sembrare rotta. */}
       <div style={{
         paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
-        fontSize: 12.5, color: PN.MUTED_LIGHT, lineHeight: 1.5,
+        fontSize: 13.5, color: PN.MUTED_LIGHT, lineHeight: 1.5,
       }} title={`Su Google hai ${g.media.toFixed(1).replace('.', ',')} su ${g.n} recensioni. Le lascia chiunque abbia un account Google, anche chi non ha mai ordinato da te: restano fuori dal voto qui sopra.`}>
         <span style={{display:'flex', alignItems:'center', gap: 6}}>
           <span style={{width: 5, height: 5, borderRadius:'50%', background: CLI_FONTI.google.colore, opacity: 0.55, flexShrink: 0}}/>
@@ -815,7 +820,7 @@ function StatClienti() {
             fossero due cose: sono la stessa, quel numero e come ci è arrivato.
             Tolto il filo resta l'aria, il voto si incolonna stretto a sinistra
             e il disegno si prende il resto per tutta l'altezza. */}
-        <div style={{display:'grid', gridTemplateColumns:'minmax(200px, 0.8fr) minmax(0, 2.3fr)', gap: 34, alignItems:'stretch'}}>
+        <div style={{display:'grid', gridTemplateColumns:'minmax(230px, 0.92fr) minmax(0, 2.2fr)', gap: 34, alignItems:'stretch'}}>
           <CliVoto d={d}/>
           <CliAndamento d={d} mesiEt={mesiEt}/>
         </div>
