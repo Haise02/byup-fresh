@@ -753,7 +753,7 @@ function useDeviceState(tipoIniziale) {
     deviceType, deviceValid, generatePwd, reset };
 }
 
-function DeviceForm({ st, tipoFisso }) {
+function DeviceForm({ st, tipoFisso, azione }) {
   const { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
     printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
@@ -1141,9 +1141,24 @@ function DeviceForm({ st, tipoFisso }) {
                   </div>
                   {/* La password sta in mezza riga come le altre: allargarla
                       perché sotto non c'è niente l'avrebbe fatta sembrare più
-                      importante di quello che è. */}
+                      importante di quello che è. E nella metà che resta va la
+                      CTA — l'ultimo campo e il bottone che lo chiude sulla
+                      stessa riga, invece di una mezza riga vuota e un bottone
+                      sospeso sotto la card. */}
                   <div style={RIGA_2}>
                     {campoPassword}
+                    {azione && (
+                      <div style={{display:'flex', flexDirection:'column'}}>
+                        {/* Etichetta vuota, alta come le altre: allinea il
+                            bottone al campo accanto senza indovinare un
+                            padding che si scolla al primo cambio di corpo. */}
+                        <span aria-hidden="true" style={{
+                          display:'block', fontSize: 14, fontWeight: 600,
+                          marginBottom: 6, visibility:'hidden',
+                        }}>&nbsp;</span>
+                        <div style={{display:'flex', justifyContent:'flex-end'}}>{azione}</div>
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
@@ -1773,6 +1788,15 @@ function DispositivoStep({ setTeam }) {
     dev.reset();
   };
 
+  // CTA finale: si accende quando il dispositivo è configurato davvero, come
+  // faceva il piede della modale che ha sostituito. Vive qui e non nel modulo
+  // perché il posto in cui compare cambia col dispositivo, l'azione no.
+  const ctaConfigura = (
+    <ImpButton variant="pink" disabled={!dev.deviceValid} onClick={aggiungiDispositivo}>
+      Configura dispositivo
+    </ImpButton>
+  );
+
   return (
     <div>
         <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Configura un dispositivo</div>
@@ -1826,19 +1850,18 @@ function DispositivoStep({ setTeam }) {
           marginTop: 12, padding:'16px 18px', borderRadius: 12,
           border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
         }}>
-          <DeviceForm st={dev} tipoFisso={selDevice}/>
+          <DeviceForm st={dev} tipoFisso={selDevice} azione={ctaConfigura}/>
         </div>
 
-        {/* Solo la CTA: la rassicurazione «potrai aggiungerne altri» la dice
-            già il cappello della sezione, e ripetuta col lucchetto verde
-            sembrava una nota legale sotto un modulo di tre campi. */}
-        <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end', marginTop: 14}}>
-          {/* CTA finale: si accende quando il dispositivo e configurato davvero,
-              come faceva il piede della modale che ha sostituito. */}
-          <ImpButton variant="pink" disabled={!dev.deviceValid} onClick={aggiungiDispositivo}>
-            Configura dispositivo
-          </ImpButton>
-        </div>
+        {/* Il monitor si porta la CTA dentro, in riga con la password: la sua
+            ultima riga era mezza vuota. La stampante finisce con l'elenco delle
+            categorie, che è a piena larghezza e non lascia posto: là il bottone
+            resta sotto la card. */}
+        {dev.isPrinter && (
+          <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end', marginTop: 14}}>
+            {ctaConfigura}
+          </div>
+        )}
     </div>
   );
 }
