@@ -356,7 +356,13 @@ function ImpPersonale() {
                       <span style={{
                         fontSize: 13, fontWeight: 700, flexShrink: 0,
                         color: on ? PN.PINK_DARK : PN.MUTED,
-                        marginRight: ruoloVero ? 24 : 0,
+                        // La corsia della matita è riservata su tutte le righe,
+                        // anche dove la matita non c'è: i conteggi devono stare
+                        // in colonna. Riservandola solo ai ruoli modificabili
+                        // finivano su due incolonnamenti diversi a 24px l'uno
+                        // dall'altro — Cassa e Cameriere di qua, tutti gli altri
+                        // di là.
+                        marginRight: 24,
                       }}>{n}</span>
                     </button>
                     {ruoloVero && (
