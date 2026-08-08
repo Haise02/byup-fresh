@@ -430,6 +430,7 @@ function ImpPersonale() {
 
           <div style={{
             display:'grid', gridTemplateColumns: GRIGLIA_ACCESSI,
+            justifyContent:'space-between',
             gap: 10, padding:'11px 14px',
             borderBottom:`1px solid ${PN.BORDER_SOFT}`,
             fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
@@ -493,10 +494,12 @@ function ImpPersonale() {
 
 // Colonne della tabella accessi — una sola definizione per testata e righe,
 // così non possono scivolare l'una rispetto all'altra.
-// Il ruolo è a misura fissa: deve tenere «Kitchen Monitor» e la sua
-// visualizzazione sulla stessa riga, e in frazioni si stringeva finché
-// «Kitchen Monitor» diventava «Kitch…». Il nome prende quello che resta.
-const GRIGLIA_ACCESSI = 'minmax(0, 1fr) 218px 112px 34px';
+// Ogni colonna larga quanto il suo contenuto chiede — il nome con l'avatar,
+// «Kitchen Monitor» con la visualizzazione in linea, la pastiglia di stato, il
+// menu — e lo spazio che avanza diviso in parti uguali fra l'una e l'altra
+// (justifyContent: space-between sulla riga). Prima una sola colonna si teneva
+// tutto l'avanzo e le altre sembravano spinte via.
+const GRIGLIA_ACCESSI = '150px 218px 112px 34px';
 
 const DEVICE_ROLE = {
   id: '_device', label: 'Dispositivo', icon: 'monitor',
@@ -576,6 +579,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
   return (
     <div style={{
       display:'grid', gridTemplateColumns: GRIGLIA_ACCESSI,
+      justifyContent:'space-between',
       gap: 10, alignItems:'center', padding:'12px 14px',
       borderBottom: ultima ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
       position:'relative',
