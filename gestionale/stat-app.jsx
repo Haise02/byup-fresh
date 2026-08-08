@@ -41,22 +41,30 @@ const convTono = (conv) => conv >= 60
 // perché sopra a ogni passaggio c'era solo un quarto di card.
 //
 // Qui la figura non c'è più: l'imbuto SONO le barre. Un passaggio per riga,
-// ogni barra lunga quanto la sua quota su chi è entrato; impilate, il loro
-// profilo è l'imbuto. E siccome ogni riga si prende la card intera, il nome
-// sta in chiaro a sinistra, il numero grande a destra e l'andamento è una
-// linea vera da 116×34 invece di un francobollo.
-// Fra una riga e l'altra, agganciato al filo che unisce i passaggi, chi si
-// perde: −2.500, e su quale scalino è caduto.
-// La quota è sempre sul primo passaggio — «42% di chi entra» — mentre il calo
-// fra due scalini è sul passaggio prima: sono due domande diverse e stanno in
-// due posti diversi.
+// una barra lunga in proporzione; impilate, il loro profilo è il percorso. E
+// siccome ogni riga si prende la card intera, il nome sta in chiaro a
+// sinistra, il numero grande a destra e l'andamento è una linea vera da
+// 112×34 invece di un francobollo.
+//
+// Le barre sono in scala sul passaggio PIÙ ALTO, non sul primo: il menu si
+// apre anche dal QR sul tavolo senza passare dalla vetrina, quindi può
+// superarla, e col primo passaggio come metro quella barra uscirebbe dalla
+// card. Sul massimo il disegno regge qualunque ordine di grandezza — e la
+// barra piena resta comunque quella del passaggio più frequentato.
 const FUN_RAIL = 26;   // colonna del pallino e del filo che unisce i passaggi
 const FUN_BARRA = 12;  // spessore della barra
 
 function ConvFunnel({ passi, rimborsi }) {
-  const totale = passi[0].val || 1;
   const n = passi.length;
+  const massimo = Math.max(...passi.map(s => s.val)) || 1;
+  // Il passaggio che conta per i rimborsi è il pagamento, dichiarato nel dato:
+  // pescarlo per posizione — l'ultimo — vorrebbe dire contarli sulle recensioni.
+  const pagati = passi.find(s => s.meta) || passi[n - 1];
   const num = (v) => v.toLocaleString('it-IT', {useGrouping: true});
+  // La colonna dei numeri è larga quanto il più lungo di loro, uguale su tutte
+  // le righe: così i valori cadono in colonna e — soprattutto — le linee
+  // dell'andamento restano incolonnate anche accanto a un numero corto.
+  const larghezzaNum = Math.max(...passi.map(s => num(s.val).length));
 
   // Le barre entrano da zero alla loro lunghezza, una dietro l'altra: è il
   // movimento che racconta il travaso, e chi guarda vede l'ordine dei
@@ -71,38 +79,36 @@ function ConvFunnel({ passi, rimborsi }) {
   return (
     <div>
       {passi.map((step, i) => {
-        const quota = (step.val / totale) * 100;
+        const quota = (step.val / massimo) * 100;
         const ultimo = i === n - 1;
-        const persi = ultimo ? 0 : step.val - passi[i + 1].val;
-        const calo = ultimo ? 0 : (1 - passi[i + 1].val / step.val) * 100;
         return (
           <React.Fragment key={step.label}>
             <div style={{display:'grid', gridTemplateColumns:`${FUN_RAIL}px minmax(0, 1fr)`, columnGap: 14}}>
               {/* Il filo parte dal pallino e scende fino al passaggio dopo:
-                  è una spina sola dalla vetrina al pagamento, non quattro
+                  è una spina sola dalla vetrina alla recensione, non cinque
                   trattini staccati. L'ultimo pallino non ha coda. */}
               <div style={{display:'flex', flexDirection:'column', alignItems:'center'}}>
                 <span style={{
                   width: FUN_RAIL, height: FUN_RAIL, borderRadius:'50%', flexShrink: 0,
                   display:'grid', placeItems:'center',
                   fontSize: 12, fontWeight: 700, fontVariantNumeric:'tabular-nums',
-                  // L'ultimo scalino è la meta, non un passaggio come gli altri:
-                  // pieno di colore, gli altri nella sua velatura.
-                  background: ultimo ? PN.BTN_BRAND : PN.PINK_SOFT,
-                  color: ultimo ? PN.WHITE : PN.WINE,
-                  boxShadow: ultimo ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 6px rgba(255,90,95,0.32)` : 'none',
+                  // La meta è il pagamento, e non è l'ultimo della fila: dopo
+                  // c'è la recensione, che è un regalo, non l'obiettivo. Il suo
+                  // pallino è pieno di colore, gli altri nella sua velatura.
+                  background: step.meta ? PN.BTN_BRAND : PN.PINK_SOFT,
+                  color: step.meta ? PN.WHITE : PN.WINE,
+                  boxShadow: step.meta ? `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 6px rgba(255,90,95,0.32)` : 'none',
                 }}>{i + 1}</span>
                 {!ultimo && <span style={{flex: 1, width: 2, background: PN.PINK_SOFT, borderRadius: 2}}/>}
               </div>
 
-              <div style={{minWidth: 0}}>
-                {/* Nome e spiegazione a sinistra, numero e quota a destra,
-                    andamento all'estrema destra. Allineati in basso: così la
-                    spiegazione e la quota cadono sulla stessa riga d'occhio,
-                    appena sopra la barra. */}
+              <div style={{minWidth: 0, paddingBottom: ultimo ? 0 : 20}}>
+                {/* Nome e spiegazione a sinistra, andamento in mezzo, numero
+                    all'estrema destra, tutto centrato sulla stessa riga
+                    d'occhio: sopra la barra c'è una riga sola. */}
                 <div style={{
                   display:'grid', gridTemplateColumns:'minmax(0, 1fr) auto auto',
-                  columnGap: 22, alignItems:'flex-end',
+                  columnGap: 22, alignItems:'center',
                 }}>
                   <div style={{minWidth: 0}}>
                     <div style={{
@@ -120,12 +126,11 @@ function ConvFunnel({ passi, rimborsi }) {
                       vuoto, e questo è il posto giusto per riempirlo — la
                       linea sta accanto al numero di cui racconta la storia.
                       Pillola e linea in due colonne, la linea a misura fissa,
-                      così restano incolonnate su tutte e quattro le righe
-                      anche se le pillole sono larghe diverse. */}
+                      così restano incolonnate su tutte le righe anche se le
+                      pillole sono larghe diverse. */}
                   <div style={{
                     display:'grid', gridTemplateColumns:'auto 112px',
                     columnGap: 12, alignItems:'center', justifyItems:'end',
-                    paddingBottom: 3,
                   }}>
                     <StatDelta value={step.delta}/>
                     {step.trend
@@ -133,19 +138,14 @@ function ConvFunnel({ passi, rimborsi }) {
                       : <span/>}
                   </div>
 
-                  {/* Il numero all'estrema destra, in cifre tabellari: i
-                      quattro valori cadono sullo stesso filo del bordo della
-                      card e si confrontano guardandoli in colonna. */}
-                  <div style={{textAlign:'right', minWidth: 96}}>
-                    <div style={{
-                      fontSize: 26, fontWeight: 700, color: PN.TEXT,
-                      letterSpacing:-0.6, lineHeight: 1.05, fontVariantNumeric:'tabular-nums',
-                    }}>{num(step.val)}</div>
-                    <div style={{
-                      fontSize: 12.5, color: PN.MUTED, marginTop: 3,
-                      fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
-                    }}>{Math.round(quota)}% di chi entra</div>
-                  </div>
+                  {/* Il numero all'estrema destra, in cifre tabellari e in una
+                      colonna a misura fissa: i valori cadono sullo stesso filo
+                      del bordo della card e si confrontano in colonna. */}
+                  <div style={{
+                    width:`${larghezzaNum}ch`, textAlign:'right',
+                    fontSize: 26, fontWeight: 700, color: PN.TEXT,
+                    letterSpacing:-0.6, lineHeight: 1.05, fontVariantNumeric:'tabular-nums',
+                  }}>{num(step.val)}</div>
                 </div>
 
                 <div style={{
@@ -162,43 +162,15 @@ function ConvFunnel({ passi, rimborsi }) {
                 </div>
               </div>
             </div>
-
-            {/* La perdita sta fra i due scalini a cui appartiene, agganciata
-                al filo: il numero in una pastiglia — è un fatto, si legge da
-                solo — e accanto su quale scalino sono caduti. */}
-            {!ultimo && (
-              <div style={{display:'grid', gridTemplateColumns:`${FUN_RAIL}px minmax(0, 1fr)`, columnGap: 14}}>
-                <div style={{display:'grid', placeItems:'center'}}>
-                  <span style={{width: 2, height:'100%', background: PN.PINK_SOFT, borderRadius: 2}}/>
-                </div>
-                <div style={{
-                  display:'flex', alignItems:'center', gap: 9, flexWrap:'wrap',
-                  padding:'12px 0 14px',
-                }}>
-                  <span style={{
-                    display:'inline-flex', alignItems:'center', gap: 5,
-                    padding:'3px 10px 3px 7px', borderRadius: 999,
-                    background: PN.WHITE_HUSH, color: PN.MUTED,
-                    boxShadow:`inset 0 0 0 1px ${PN.BORDER_GHOST}`,
-                    fontSize: 12.5, fontWeight: 700, whiteSpace:'nowrap',
-                    fontVariantNumeric:'tabular-nums',
-                  }}>
-                    <Icon name="arrow-down-right" size={12}/>
-                    {num(persi)}
-                  </span>
-                  <span style={{fontSize: 13.5, color: PN.MUTED_SOFT}}>
-                    si fermano qui, il {calo.toFixed(0)}% di chi era arrivato
-                  </span>
-                </div>
-              </div>
-            )}
           </React.Fragment>
         );
       })}
 
-      {/* I rimborsi non sono un quinto passaggio — non è gente persa per
+      {/* I rimborsi non sono un passaggio del percorso — non è gente persa per
           strada, è denaro tornato indietro dopo un pagamento riuscito — quindi
-          stanno sotto la riga, con la loro quota sull'ultimo passaggio. */}
+          stanno sotto la riga, con la loro quota sul passaggio del pagamento.
+          Sul pagamento e non sull'ultimo della fila: l'ultimo è la recensione,
+          e i rimborsi non si contano su quella. */}
       {rimborsi && (
         <div style={{
           marginTop: 18, paddingTop: 15, borderTop:`1px solid ${PN.BORDER_SOFT}`,
@@ -213,10 +185,10 @@ function ConvFunnel({ passi, rimborsi }) {
               a destra: la pastiglia colora di rosso i cali, e un calo dei
               rimborsi è una buona notizia. */}
           <span style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45, minWidth: 0}}>
-            Dei {passi[n - 1].val.toLocaleString('it-IT', {useGrouping: true})} pagamenti riusciti,
+            Dei {num(pagati.val)} pagamenti riusciti,
             {' '}<strong style={{color: PN.TEXT, fontWeight: 700}}>{rimborsi.n}</strong> sono stati rimborsati —
             {' '}<strong style={{color: PN.TEXT, fontWeight: 700}}>€ {rimborsi.valore.toLocaleString('it-IT', {useGrouping: true})}</strong> restituiti,
-            {' '}l'{(rimborsi.n / passi[n - 1].val * 100).toFixed(1).replace('.', ',')}% degli ordini,
+            {' '}l'{(rimborsi.n / pagati.val * 100).toFixed(1).replace('.', ',')}% degli ordini,
             {' '}{rimborsi.delta <= 0 ? 'in calo' : 'in aumento'} dello {Math.abs(rimborsi.delta).toFixed(1).replace('.', ',')}% sul periodo prima.
           </span>
         </div>
@@ -242,8 +214,11 @@ function StatApp() {
     else { setSortBy(col); setOrder('desc'); }
   };
 
+  // Il tasso in testa alla card è il pagamento su chi ha aperto la pagina del
+  // locale — la domanda vera. Non l'ultimo passaggio sul primo: l'ultimo è la
+  // recensione, e direbbe che il locale converte il 3%.
   const primo = d.funnel[0].val;
-  const ultimo = d.funnel[d.funnel.length - 1].val;
+  const metaPasso = d.funnel.find(s => s.meta) || d.funnel[d.funnel.length - 1];
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -253,7 +228,7 @@ function StatApp() {
           scritto due volte. Quello che avevano di suo, il confronto col
           periodo prima e l'andamento, è finito dentro ogni passaggio. */}
       <StatCard title="Funnel di conversione"
-        sub={`Dalla vetrina al pagamento: ${Math.round((ultimo / primo) * 100)}% di chi entra arriva in fondo`}>
+        sub={`Il ${Math.round((metaPasso.val / primo) * 100)}% di chi apre la pagina del locale arriva a pagare`}>
         <ConvFunnel passi={d.funnel} rimborsi={d.rimborsi}/>
       </StatCard>
 

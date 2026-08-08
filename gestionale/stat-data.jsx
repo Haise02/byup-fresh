@@ -341,11 +341,27 @@ const STAT_APP = {
   // uguale al valore accanto — e il confronto col periodo prima. Stavano nelle
   // card KPI sopra il funnel, che però ripetevano primo e ultimo passaggio:
   // qui il numero e la sua direzione stanno nello stesso posto.
+  //
+  // Non è una scala che scende per forza. Il menu si apre anche senza passare
+  // dalla vetrina — dal QR sul tavolo, da un link mandato in chat, dai preferiti
+  // dell'app — quindi le sue visualizzazioni possono superare quelle della
+  // pagina del locale. Sono i passaggi di un percorso nell'ordine in cui
+  // accadono, non quattro gradini di un imbuto: il disegno non deve dare per
+  // scontato che ognuno sia più basso del precedente.
+  //
+  // `meta`: il passaggio che il locale vuole davvero: il pagamento. Non è
+  // l'ultimo della lista — dopo c'è la recensione, che è un regalo, non
+  // l'obiettivo — e il tasso in testa alla card si misura su questo.
   funnel: [
-    { label:'Visualizzazioni vetrina', sub:'Chi apre la pagina del locale',        val: 10000, pct: 100, delta: 14.2, trend: [8200, 8600, 8500, 9100, 9400, 9700, 10000] },
-    { label:'Visualizzazioni menu',    sub:'Chi arriva a sfogliare i piatti',      val: 7500,  pct: 75,  delta: 11.5, trend: [6100, 6400, 6350, 6800, 7000, 7250, 7500] },
-    { label:'Carrello creato',         sub:'Chi mette almeno un piatto nel carrello', val: 4200, pct: 42, delta: 8.1, trend: [3500, 3650, 3600, 3850, 3950, 4080, 4200] },
-    { label:'Pagamento completato',    sub:'Chi arriva in fondo e paga',           val: 2900,  pct: 29,  delta: 9.6,  trend: [2450, 2560, 2520, 2680, 2740, 2830, 2900] },
+    { label:'Visualizzazioni vetrina', sub:'Chi apre la pagina del locale',        val: 10000, delta: 14.2, trend: [8200, 8600, 8500, 9100, 9400, 9700, 10000] },
+    { label:'Visualizzazioni menu',    sub:'Chi arriva a sfogliare i piatti',      val: 7500,  delta: 11.5, trend: [6100, 6400, 6350, 6800, 7000, 7250, 7500] },
+    { label:'Ordine effettuato',       sub:'Chi conferma l\'ordine dall\'app',     val: 4200,  delta: 8.1,  trend: [3500, 3650, 3600, 3850, 3950, 4080, 4200] },
+    { label:'Pagamento completato',    sub:'Chi arriva in fondo e paga',           val: 2900,  delta: 9.6,  trend: [2450, 2560, 2520, 2680, 2740, 2830, 2900], meta: true },
+    // Le 312 recensioni byup di Fidelizzazione, non un numero nuovo: quelle
+    // nascono da un ordine pagato qui dentro, che è esattamente questo
+    // passaggio. Le 231 di Google non c'entrano — le lascia chiunque abbia un
+    // account Google, senza essere passato di qui.
+    { label:'Recensione inviata',      sub:'Chi lascia una recensione dopo aver pagato', val: 312, delta: 18.4, trend: [248, 262, 258, 279, 291, 302, 312] },
   ],
   // Quello che succede dopo l'ultimo passaggio: un pagamento andato a buon fine
   // può tornare indietro. Non è un quinto scalino del funnel — non è gente che
