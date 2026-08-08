@@ -144,22 +144,18 @@ function CucinaApp() {
 
   // La prima banda della board Pub, fatta con i comandi della vista Ristorante:
   // gli stessi chip dei filtri, lo stesso selettore di monitor, lo stesso tasto
-  // schermo intero, nelle stesse posizioni. L'orologio resta — su uno schermo di
-  // cucina serve — ma alla misura del testo intorno, non a 34px.
+  // schermo intero, nelle stesse posizioni. Niente orologio: dentro il
+  // gestionale l'ora ce l'ha già il computer, e la Ristorante non lo mostra.
+  // Resta nella route di anteprima, dove la board è un dispositivo a sé.
   // I filtri della board sono a valore singolo, i chip della Ristorante a
   // selezione multipla: si tiene l'ultima scelta, così il chip resta quello e
   // il comportamento resta quello che la board sa gestire.
-  const barraCucina = ({ ora, canale, onCanale, canali, categoria, onCategoria, categorie }) => {
+  const barraCucina = ({ canale, onCanale, canali, categoria, onCategoria, categorie }) => {
     const tuttiC = canali[0], tutteCat = categorie[0];
     const Chip = window.KdsFilterChip;
-    const ora2 = (typeof kds2Orario === 'function') ? kds2Orario(ora) : '';
     return (
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 16, gap: 12}}>
         <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
-          <span style={{
-            fontSize: 15.5, fontWeight: 700, color: PN.TEXT, letterSpacing:'-0.01em',
-            fontVariantNumeric: 'tabular-nums', flexShrink: 0, paddingRight: 4,
-          }}>{ora2}</span>
           {Chip && (
             <Chip label="Canali" defaultLabel={tuttiC}
               selected={canale === tuttiC ? [] : [canale]}

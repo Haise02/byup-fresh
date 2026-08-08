@@ -1147,7 +1147,12 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   return (
     <div onPointerDown={tocco} style={{
       position: 'relative', flex: 1, minWidth: 0, minHeight: 0,
-      display: 'flex', flexDirection: 'column', background: K.FONDO,
+      display: 'flex', flexDirection: 'column',
+      // Ospitata nella card della Cucina la board non porta il proprio fondo:
+      // ne uscirebbe un rettangolo grigio dentro il riquadro bianco, con i
+      // filtri di sopra rimasti fuori. La superficie è una sola, quella della
+      // card, e le righe si staccano lo stesso — hanno un bordo da 2px.
+      background: barra ? 'transparent' : K.FONDO,
     }}>
       <Kds2Header
         sorgenti={sorgenti} ora={ora} selezione={selezione} onSeleziona={setSel}
