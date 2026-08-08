@@ -1553,11 +1553,17 @@ function InviteModal({ onClose, prefill }) {
                       : 'Compila username e password (min. 4 caratteri)')}
             </div>
           )}
-          <div style={{display:'flex', gap: 8}}>
-            <ImpButton variant="ghost" onClick={onClose} style={{whiteSpace:'nowrap'}}>Annulla</ImpButton>
+          <div style={{display:'flex', gap: 8, flexShrink: 0}}>
+            {/* Niente «Annulla» in modifica: uscire senza salvare è la X in
+                alto, che è il gesto di chiusura di questa e di ogni altra
+                finestra. In fondo restano le due azioni che si viene a fare —
+                una per capo, lontane l'una dall'altra. */}
+            {!editDevice && (
+              <ImpButton variant="ghost" onClick={onClose} style={{whiteSpace:'nowrap'}}>Annulla</ImpButton>
+            )}
             {/* Associando o modificando un monitor la sua visualizzazione arriva
                 alla sezione Cucina, che è l'unico posto in cui si vede l'effetto
-                della scelta fatta qui. Da «Annulla» non parte niente. */}
+                della scelta fatta qui. Chiudendo dalla X non parte niente. */}
             <ImpButton variant="primary"
               onClick={() => { if (kind === 'device' && !isPrinter) salvaVistaKds(dev.kdsView); onClose(); }}
               style={{whiteSpace:'nowrap'}}
