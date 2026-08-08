@@ -30,7 +30,11 @@ const ROLES = [
     id: 'titolare',
     label: 'Titolare',
     desc: 'Vede tutto · uno solo, è chi ha creato il gestionale',
-    color: PN.WINE, bg: PN.WINE_SOFT,
+    // Ambra e non vinaccia: in elenco il titolare finiva in mezzo a Cassa e
+    // Cameriere, tre pastiglie rosse che di lontano erano la stessa cosa. È il
+    // ruolo che sta a sé — uno solo, vede tutto — e la corona d'oro lo dice
+    // meglio di un rosso in più.
+    color: '#B45309', bg: PN.AMBER_SOFT,
     icon: 'crown',
     locked: true,
     areas: ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni'],
@@ -615,9 +619,11 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
       </div>
 
       {/* Stato: solo la pastiglia — l'ultimo accesso («Online ora», «ieri»)
-          è stato tolto, ripeteva verde su quasi ogni riga senza dire nulla. */}
+          è stato tolto, ripeteva verde su quasi ogni riga senza dire nulla.
+          Per il titolare non c'è: è l'unico che non si può disattivare, quindi
+          «Attivo» non era un'informazione ma una casella sempre uguale. */}
       <div>
-        <span style={{
+        {!bloccato && <span style={{
           display:'inline-flex', alignItems:'center', gap: 5,
           padding:'3px 10px', borderRadius: 999,
           background: r.attivo ? PN.GREEN_SOFT : '#F1F3F5',
@@ -626,7 +632,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         }}>
           <span style={{width: 6, height: 6, borderRadius:'50%', background: r.attivo ? PN.GREEN : '#9CA3AF'}}/>
           {r.attivo ? 'Attivo' : 'Disattivato'}
-        </span>
+        </span>}
       </div>
 
       {/* Azioni */}
