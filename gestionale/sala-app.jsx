@@ -235,8 +235,21 @@ function SalaApp() {
   function handleEdit(t)        { setModalModifica(t); }
   function handleNoShow(t)      { t.state = 'libero'; t.nextReservation = null; t.minutiAllaPrenotazione = null; forceUpdate(); }
 
-  function handleUnisciConfirm(sourceTavolo, selectedIds) {
+  function handleUnisciConfirm(sourceTavolo, guestIds) {
     const all = getTavoli();
+    // Un tavolo scelto può essere già dentro un gruppo — da capo o da membro:
+    // in quel caso si porta dietro tutti i suoi. Prendendo solo l'id scelto, i
+    // compagni restavano fuori dal calcolo della fila e finivano a fare massa
+    // sotto o sopra: da lì i gruppi «quadrati» unendo due gruppi già uniti.
+    const gruppoDi = (id) => {
+      const t = all.find(x => x.id === id);
+      if (!t) return [];
+      if (t.mergedTables && t.mergedTables.length) return [id, ...t.mergedTables];
+      const capo = all.find(x => x.mergedTables && x.mergedTables.includes(id));
+      return capo ? [capo.id, ...capo.mergedTables] : [id];
+    };
+    const selectedIds = Array.from(new Set(guestIds.flatMap(gruppoDi)))
+      .filter(id => id !== sourceTavolo.id && !(sourceTavolo.mergedTables || []).includes(id));
     // Cattura i secondari già esistenti prima dell'update (serve per la direzione del gruppo)
     const existingMergedIds = [...(sourceTavolo.mergedTables || [])];
     // Stato dominante: occupato > prenotato > libero > dapulire.
@@ -281,6 +294,10 @@ function SalaApp() {
       t.timeSinceLastOrder = 0;
       t.minutiSenzaOrdine = 0;
       t.mergedWith = sourceTavolo.id;
+      // Se entrava da capo di un altro gruppo, smette di esserlo: i suoi
+      // membri sono già passati sotto al source qui sopra, e un capo dentro
+      // un capo lascerebbe due gruppi sovrapposti.
+      delete t.mergedTables;
     });
     // Allinea source e tavoli già uniti al targetState
     sourceTavolo.state = targetState;

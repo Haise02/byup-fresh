@@ -409,12 +409,21 @@ function ImpSalaTavoli() {
     const dragged = tavoli.find(t => t.id === idDragged);
     const target = tavoli.find(t => t.id === idTarget);
     if (!dragged || !target) return;
-    // Se uno dei due è già in un gruppo, estendi quel gruppo invece di crearne uno nuovo.
-    const existing = groups.find(g => g.tableIds.includes(idDragged) || g.tableIds.includes(idTarget));
+    // Se uno dei due è già in un gruppo, estendi quel gruppo invece di crearne
+    // uno nuovo. Se lo sono TUTTI E DUE, i due gruppi si fondono in uno: prima
+    // ne restava uno per conto suo, e i suoi tavoli continuavano a muoversi
+    // come un gruppo separato pur essendo attaccati.
+    const gA = groups.find(g => g.tableIds.includes(idDragged));
+    const gB = groups.find(g => g.tableIds.includes(idTarget));
+    const existing = gB || gA;
     const snapshot = [...groups];
     if (existing) {
-      const merged = { ...existing, tableIds: Array.from(new Set([...existing.tableIds, idDragged, idTarget])) };
-      setGroups(prev => prev.map(g => g.id === existing.id ? merged : g));
+      const tutti = Array.from(new Set([
+        ...(gA ? gA.tableIds : [idDragged]),
+        ...(gB ? gB.tableIds : [idTarget]),
+      ]));
+      const daTogliere = new Set([gA && gA.id, gB && gB.id].filter(x => x != null));
+      setGroups(prev => prev.filter(g => !daTogliere.has(g.id)).concat([{ ...existing, tableIds: tutti }]));
     } else {
       const newGid = (groups.reduce((m,g) => Math.max(m, g.id || 0), 0) || 0) + 1;
       setGroups(prev => [...prev, { id: newGid, tableIds: [idTarget, idDragged] }]);
@@ -953,7 +962,14 @@ function ImpSalaTavoli() {
               onCreateTable={createTable}
               onCreateFurniture={createFurniture}
               onMoveTable={(id, pos) => updateTavolo(id, {pos})}
-              onBulkMoveTables={(updates) => setTavoli(prev => prev.map(t => updates[t.id] ? {...t, pos: updates[t.id]} : t))}
+              onBulkMoveTables={(updates) => setTavoli(prev => prev.map(t => {
+                const u = updates[t.id];
+                if (!u) return t;
+                // L'unione riallinea anche l'orientamento dei membri lungo la
+                // fila, non solo la posizione.
+                const { orientation, ...pos } = u;
+                return orientation ? {...t, pos, orientation} : {...t, pos};
+              }))}
               onMoveFurniture={(id, pos) => setFurniture(prev => prev.map(f => f.id === id ? {...f, ...pos} : f))}
               onResizeFurniture={(id, dim) => setFurniture(prev => prev.map(f => f.id === id ? {...f, ...dim} : f))}
               onRotateFurniture={(id) => setFurniture(prev => prev.map(f => f.id === id ? {...f, w: f.h, h: f.w} : f))}

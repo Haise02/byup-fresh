@@ -286,16 +286,24 @@ function FloorPlan({
             // target — mai forme a L. Verticale solo se la fila non entra
             // in larghezza ma entra in altezza.
             const existing = groupMates(target.id);
-            const memberIds = Array.from(new Set([...existing, drag.id]));
+            // Anche il trascinato può essere già un gruppo: si porta dietro
+            // tutti i suoi. Contando solo lui, i compagni restavano fuori dal
+            // calcolo della fila e facevano massa sopra o sotto — è così che
+            // unendo due gruppi già uniti veniva fuori un blocco quadrato.
+            const memberIds = Array.from(new Set([...existing, ...groupMates(drag.id)]));
             const members = memberIds.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
-            const lenAlong = (a) => members.reduce((s, m) => s + (a === 'h' ? tableDims(m).w : tableDims(m).h), 0);
+            // Le misure si prendono sull'asse della fila, non sull'orientamento
+            // attuale del membro: entrando in fila i tavoli ci vengono girati
+            // sopra, e un membro rimasto per traverso alzava tutto il gruppo.
+            const dimsOn = (m, a) => ttFootprintUnits(m.coperti || 4, ttSeatShape(m.coperti || 4), a);
+            const lenAlong = (a) => members.reduce((s, m) => s + (a === 'h' ? dimsOn(m, a).w : dimsOn(m, a).h), 0);
             let axis = 'h';
             if (lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
             const exMembers = existing.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
             const anchorX = Math.min(...exMembers.map(m => m.pos.x));
             const anchorY = Math.min(...exMembers.map(m => m.pos.y));
             const total = lenAlong(axis);
-            const crossMax = Math.max(...members.map(m => axis === 'h' ? tableDims(m).h : tableDims(m).w));
+            const crossMax = Math.max(...members.map(m => axis === 'h' ? dimsOn(m, axis).h : dimsOn(m, axis).w));
             let cursor = axis === 'h'
               ? Math.max(0, Math.min(anchorX, COLS - total))
               : Math.max(0, Math.min(anchorY, ROWS - total));
@@ -303,17 +311,20 @@ function FloorPlan({
               ? Math.max(0, Math.min(anchorY, ROWS - crossMax))
               : Math.max(0, Math.min(anchorX, COLS - crossMax));
             // In fila: i membri esistenti mantengono il loro ordine, il trascinato va in coda
+            const lungoAsse = (a, b) => axis === 'h' ? a.pos.x - b.pos.x : a.pos.y - b.pos.y;
             const orderedMembers = [
-              ...members.filter(m => m.id !== drag.id).sort((a, b) => axis === 'h' ? a.pos.x - b.pos.x : a.pos.y - b.pos.y),
-              members.find(m => m.id === drag.id),
-            ].filter(Boolean);
+              ...members.filter(m => existing.includes(m.id)).sort(lungoAsse),
+              ...members.filter(m => !existing.includes(m.id)).sort(lungoAsse),
+            ];
             const updates = {};
             const lineRects = [];
             orderedMembers.forEach(m => {
-              const d = tableDims(m);
+              const d = dimsOn(m, axis);
               const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
               const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
-              updates[m.id] = { x, y };
+              // `orientation` va scritto insieme alla posizione: senza, un
+              // tavolo girato restava per traverso dentro la fila.
+              updates[m.id] = { x, y, orientation: axis };
               lineRects.push({ x, y, w: d.w, h: d.h });
               cursor += axis === 'h' ? d.w : d.h;
             });
