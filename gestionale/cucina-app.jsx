@@ -11,8 +11,15 @@ function CucinaApp() {
   // un monitor appeso in cucina non lo si va a ricaricare a mano.
   const [vista, setVista] = React.useState(
     () => (window.byupReadVistaKds ? window.byupReadVistaKds() : 'ristorante'));
+  // Il nome del monitor: in un locale con due schermi — pizza e sala — chi ci
+  // sta davanti deve sapere quale dei due sta guardando.
+  const [nomeMonitor, setNomeMonitor] = React.useState(
+    () => (window.byupReadNomeKds ? window.byupReadNomeKds() : ''));
   React.useEffect(() => {
-    const agg = () => setVista(window.byupReadVistaKds ? window.byupReadVistaKds() : 'ristorante');
+    const agg = () => {
+      setVista(window.byupReadVistaKds ? window.byupReadVistaKds() : 'ristorante');
+      setNomeMonitor(window.byupReadNomeKds ? window.byupReadNomeKds() : '');
+    };
     window.addEventListener('byup-kds-vista-change', agg);
     window.addEventListener('storage', agg);
     return () => {
@@ -51,7 +58,7 @@ function CucinaApp() {
   }, []);
 
   return (
-    <div style={{display:'flex', flex:1, minHeight:0}}>
+    <div style={{display:'flex', flex:1, minWidth:0, minHeight:0}}>
       {!focus && <PnSidebar active="cucina"/>}
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>
@@ -59,12 +66,15 @@ function CucinaApp() {
             porta dietro la sua testata — orologio, filtri, schermo intero — e
             scorre da sé. Niente contenitore che scorre e niente margini
             intorno: è uno schermo appeso in cucina, non un documento. */}
+        {/* minWidth 0 sul contenitore: senza, un figlio flex non si stringe
+            sotto il suo contenuto e la board sbordava a destra, portandosi via
+            la coda della testata — nome del monitor e schermo intero. */}
         {pub ? (
-          <div style={{flex: 1, minHeight: 0, display: 'flex'}}>
+          <div style={{flex: 1, minWidth: 0, minHeight: 0, display: 'flex'}}>
             {/* Gli stessi ordini della vista a colonne, riraggruppati per
                 piatto: cambiando visualizzazione cambia il modo di guardare il
                 servizio, non il servizio. */}
-            <Kds2Board porzioni={window.kds2PorzioniDelServizio
+            <Kds2Board nomeMonitor={nomeMonitor} porzioni={window.kds2PorzioniDelServizio
               ? window.kds2PorzioniDelServizio() : undefined}/>
           </div>
         ) : (
@@ -73,7 +83,8 @@ function CucinaApp() {
             padding: focus ? 0 : '22px 32px 32px',
             background: PN.BG,
           }}>
-            <CucinaInSala focus={focus} onToggleFocus={() => setFocus(f => !f)}/>
+            <CucinaInSala focus={focus} nomeMonitor={nomeMonitor}
+              onToggleFocus={() => setFocus(f => !f)}/>
           </div>
         )}
       </main>

@@ -703,8 +703,11 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
             <>
               <MenuItem icon={BuIcons.user({size: 14, color: 'currentColor'})}
                 onClick={() => { setOpenMenu(null); onCambiaRuolo?.(); }}>Modifica ruolo</MenuItem>
-              <MenuItem icon={<PnI.Key size={14}/>}
-                onClick={() => { setOpenMenu(null); onResetPassword?.(); }}>Resetta password</MenuItem>
+              {/* Niente «Resetta password» su una persona: la sua password è
+                  sua, la reimposta lei dal link che le arriva per email. Il
+                  titolare le toglie l'accesso, non le sceglie le credenziali —
+                  quelle le decide il titolare solo per i dispositivi, che una
+                  casella di posta non ce l'hanno. */}
               <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}
                 onClick={() => { setOpenMenu(null); onToggleAttivo?.(); }}>
                 {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
@@ -808,8 +811,8 @@ function generaPassword() {
 // La visualizzazione scelta per un monitor va detta alla sezione Cucina, che sta
 // su un'altra pagina: passa dal ponte condiviso in panoramica-sidebar.jsx. Qui
 // non si decide niente — si riferisce quello che ha scelto chi collega.
-function salvaVistaKds(vista) {
-  if (window.byupWriteVistaKds) window.byupWriteVistaKds(vista);
+function salvaVistaKds(vista, nome) {
+  if (window.byupWriteVistaKds) window.byupWriteVistaKds(vista, nome);
 }
 
 function useDeviceState(tipoIniziale) {
@@ -1360,7 +1363,9 @@ function InviteModal({ onClose, prefill }) {
   const cambiaPassword = !!editDevice && password.length > 0;
 
   function salvaEChiudi() {
-    if (kind === 'device' && !isPrinter) salvaVistaKds(dev.kdsView);
+    if (kind === 'device' && !isPrinter) {
+      salvaVistaKds(dev.kdsView, deviceName.trim() || (editDevice && editDevice.name));
+    }
     onClose();
   }
 
@@ -1767,7 +1772,9 @@ function SelettoreRuolo({ ruoli, valore, onScegli }) {
   );
 }
 
-// ─── Resetta password (dal menu «⋯» della riga) ─────────────────────────────
+// ─── Genera nuova password (dal menu «⋯» di un dispositivo) ─────────────────
+// Solo per i dispositivi: una persona la password se la reimposta da sé, il
+// monitor no — le sue credenziali sono locali e gliele dà il titolare.
 // Due passi, non uno: prima la password nuova, poi che cosa comporta darla. Il
 // secondo è lo stesso avviso della finestra di modifica — cambiare una password
 // stacca chi la sta usando adesso — e chi arriva dal menu deve leggerlo uguale,
@@ -1776,7 +1783,6 @@ function ResetPasswordModal({ r, onClose }) {
   const [pwd, setPwd] = React.useState('');
   const [mostra, setMostra] = React.useState(false);
   const [avviso, setAvviso] = React.useState(false);
-  const dispositivo = r.tipo === 'dispositivo';
 
   return (
     <div onClick={onClose} style={{
@@ -1790,10 +1796,9 @@ function ResetPasswordModal({ r, onClose }) {
         {!avviso ? (
           <>
             <div style={IMP_MODAL_HEAD}>
-              <div style={IMP_MODAL_TITLE}>{dispositivo ? 'Genera nuova password' : 'Resetta password'}</div>
+              <div style={IMP_MODAL_TITLE}>Genera nuova password</div>
               <div style={IMP_MODAL_SUB}>
-                Per <b style={{color: PN.TEXT}}>{r.nome}</b>.
-                {dispositivo ? ' Si digita sul dispositivo al collegamento.' : ' Sostituisce quella attuale.'}
+                Per <b style={{color: PN.TEXT}}>{r.nome}</b>. Si digita sul dispositivo al collegamento.
               </div>
               <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
             </div>
@@ -1851,11 +1856,8 @@ function ResetPasswordModal({ r, onClose }) {
               <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Cambiare la password?</div>
             </div>
             <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
-              <b style={{color: PN.TEXT}}>{r.nome}</b>{dispositivo
-                ? <> verrà disconnesso da tutti gli schermi su cui è collegato adesso. Per farlo
-                    rientrare dovrai inserire la nuova password su ognuno.</>
-                : <> uscirà da tutte le sessioni aperte, gestionale e app staff. Per rientrare
-                    dovrà usare la nuova password.</>}
+              <b style={{color: PN.TEXT}}>{r.nome}</b> verrà disconnesso da tutti gli schermi su cui
+              è collegato adesso. Per farlo rientrare dovrai inserire la nuova password su ognuno.
             </div>
             <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
               <ImpButton variant="ghost" onClick={() => setAvviso(false)}>Indietro</ImpButton>
@@ -2241,8 +2243,8 @@ function DispositivoStep({ setTeam }) {
   // un'operazione, non l'apertura di un'altra schermata.
   const aggiungiDispositivo = () => {
     if (!dev.deviceValid) return;
-    if (!dev.isPrinter) salvaVistaKds(dev.kdsView);
     const nome = dev.deviceName.trim() || (dev.isPrinter ? 'Stampante' : 'Monitor cucina');
+    if (!dev.isPrinter) salvaVistaKds(dev.kdsView, nome);
     setTeam(t => [...t, {
       id: `d${Date.now()}`, kind: 'device', name: nome,
       email: dev.isPrinter ? (dev.selectedPrinter ? dev.selectedPrinter.ip : '—') : `PG1-${dev.username.trim()}`,

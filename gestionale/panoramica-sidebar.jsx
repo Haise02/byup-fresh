@@ -43,16 +43,27 @@ window.byupWriteModules = function(m) {
 // deve saperla pur stando su un'altra pagina.
 // Default «ristorante»: è la cucina che il gestionale ha sempre avuto, e chi non
 // ha ancora collegato un monitor non deve vedersela cambiare sotto i piedi.
+// Col nome viaggia anche il nome del monitor: la cucina lo mostra in testata,
+// perché in un locale con due schermi — pizza e sala — chi ci sta davanti deve
+// sapere quale dei due sta guardando, e chi lo configura deve poterlo verificare
+// senza scendere in cucina.
 const BYUP_KDS_VISTA_KEY = 'byup_kds_vista';
+const BYUP_KDS_NOME_KEY  = 'byup_kds_nome';
 window.byupReadVistaKds = function() {
   try {
     const v = localStorage.getItem(BYUP_KDS_VISTA_KEY);
     return v === 'pub' ? 'pub' : 'ristorante';
   } catch(e) { return 'ristorante'; }
 };
-window.byupWriteVistaKds = function(v) {
+window.byupReadNomeKds = function() {
+  try { return localStorage.getItem(BYUP_KDS_NOME_KEY) || ''; } catch(e) { return ''; }
+};
+window.byupWriteVistaKds = function(v, nome) {
   try {
     localStorage.setItem(BYUP_KDS_VISTA_KEY, v === 'pub' ? 'pub' : 'ristorante');
+    // Nome assente = nessuno l'ha dato: si tiene quello di prima invece di
+    // svuotare la testata della cucina.
+    if (nome && String(nome).trim()) localStorage.setItem(BYUP_KDS_NOME_KEY, String(nome).trim());
     window.dispatchEvent(new Event('byup-kds-vista-change'));
   } catch(e) {}
 };

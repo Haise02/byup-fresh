@@ -22,7 +22,7 @@ function _urgencyPickup(minToPickup) {
   return                       { tone: 'late', bg: PN.RED_SOFT,   dot: PN.RED,     text: PN.RED     };
 }
 
-function CucinaInSala({ focus = false, onToggleFocus }) {
+function CucinaInSala({ focus = false, onToggleFocus, nomeMonitor }) {
   const [station, setStation]       = React.useState([]); // [] = tutte
   const [kindFilter, setKindFilter] = React.useState([]); // [] = tutti
   const [onlyLate, setOnlyLate]     = React.useState(false);   // KPI "in ritardo" cliccabile
@@ -424,6 +424,25 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
               </button>
             )}
           </div>
+          {/* Quale schermo è questo: stesso posto e stesso peso che ha nella
+              board Pub, così passando da una visualizzazione all'altra il nome
+              non si sposta. */}
+          <div style={{display:'flex', alignItems:'center', gap: 12, minWidth: 0}}>
+            {nomeMonitor && (
+              <span style={{
+                display:'inline-flex', alignItems:'center', gap: 6, minWidth: 0,
+                color: PN.MUTED,
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0}}>
+                  <rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>
+                </svg>
+                <span style={{
+                  fontSize: 14.5, fontWeight: 600,
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                }}>{nomeMonitor}</span>
+              </span>
+            )}
           <button onClick={onToggleFocus} title={focus ? 'Esci da schermo intero' : 'Schermo intero'} style={{
             width: 36, height: 36, borderRadius: 10,
             background: 'rgba(15, 17, 21, 0.04)',
@@ -436,6 +455,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.08)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.04)'; }}
           >{focus ? <ExitFullIcon/> : <EnterFullIcon/>}</button>
+          </div>
         </div>
 
         {/* Colonne fluide — scroll orizzontale morbido quando manca spazio */}
