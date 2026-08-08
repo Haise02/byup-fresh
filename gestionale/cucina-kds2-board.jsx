@@ -833,7 +833,7 @@ function Kds2Fullscreen() {
 }
 
 function Kds2Header({
-  sorgenti, ora, selezione, onSeleziona, nomeMonitor,
+  sorgenti, ora, selezione, onSeleziona, nomeMonitor, switchVista,
   canale, onCanale, canali, categoria, onCategoria, categorie,
 }) {
   const orologio = kds2Orario(ora);
@@ -875,6 +875,7 @@ function Kds2Header({
           </span>
         )}
 
+        {switchVista}
         <Kds2Fullscreen/>
       </div>
 
@@ -1029,7 +1030,7 @@ function Kds2Demo({ righe, onNuovo }) {
 // finti — è il caso della route di anteprima. Dentro la Cucina del gestionale
 // arrivano invece gli ordini veri del servizio, convertiti da
 // cucina-kds2-da-cucina.jsx: la vista cambia, il servizio no.
-function Kds2Board({ porzioni: porzioniIniziali, nomeMonitor }) {
+function Kds2Board({ porzioni: porzioniIniziali, nomeMonitor, switchVista }) {
   const [porzioni, setPorzioni] = React.useState(() => porzioniIniziali || KDS2_PORZIONI);
   const [ora, setOra]           = React.useState(() => Date.now());
   const [selezione, setSel]     = React.useState(null);
@@ -1158,7 +1159,7 @@ function Kds2Board({ porzioni: porzioniIniziali, nomeMonitor }) {
     }}>
       <Kds2Header
         sorgenti={sorgenti} ora={ora} selezione={selezione} onSeleziona={setSel}
-        nomeMonitor={nomeMonitor}
+        nomeMonitor={nomeMonitor} switchVista={switchVista}
         canale={canale} onCanale={setCanale} canali={CANALI}
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}/>
 

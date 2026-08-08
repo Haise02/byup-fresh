@@ -22,7 +22,7 @@ function _urgencyPickup(minToPickup) {
   return                       { tone: 'late', bg: PN.RED_SOFT,   dot: PN.RED,     text: PN.RED     };
 }
 
-function CucinaInSala({ focus = false, onToggleFocus, nomeMonitor }) {
+function CucinaInSala({ focus = false, onToggleFocus, nomeMonitor, switchVista }) {
   const [station, setStation]       = React.useState([]); // [] = tutte
   const [kindFilter, setKindFilter] = React.useState([]); // [] = tutti
   const [onlyLate, setOnlyLate]     = React.useState(false);   // KPI "in ritardo" cliccabile
@@ -443,6 +443,7 @@ function CucinaInSala({ focus = false, onToggleFocus, nomeMonitor }) {
                 }}>{nomeMonitor}</span>
               </span>
             )}
+            {switchVista}
           <button onClick={onToggleFocus} title={focus ? 'Esci da schermo intero' : 'Schermo intero'} style={{
             width: 36, height: 36, borderRadius: 10,
             background: 'rgba(15, 17, 21, 0.04)',
