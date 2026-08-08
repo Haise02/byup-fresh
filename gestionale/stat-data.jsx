@@ -231,12 +231,17 @@ const STAT_CLIENTI = {
       ],
     },
   },
+  // Le cinque righe stanno in fila dalla prima volta a chi viene ogni
+  // settimana, e sommano ai 1.240 clienti unici: sono le parti di un intero,
+  // non cinque numeri qualsiasi. Le etichette vanno scritte nello stesso modo —
+  // «ultimi 90gg» accanto a «entro 30 giorni» faceva sembrare che misurassero
+  // due cose diverse.
   ciclo: [
-    { stato:'Prima visita',           n: 433, pct: 35, delta: 12.5 },
+    { stato:'Prima visita',            n: 433, pct: 35, delta: 12.5 },
     { stato:'Ritorno entro 30 giorni', n: 320, pct: 26, delta: 10.0 },
     { stato:'Ritorno entro 90 giorni', n: 210, pct: 17, delta: 5.0 },
-    { stato:'3+ visite ultimi 90gg',   n: 180, pct: 14, delta: 15.0 },
-    { stato:'6+ visite ultimi 90gg',   n: 97,  pct:  8, delta: 7.5 },
+    { stato:'3+ visite in 90 giorni',  n: 180, pct: 14, delta: 15.0 },
+    { stato:'6+ visite in 90 giorni',  n: 97,  pct:  8, delta: 7.5 },
   ],
 };
 

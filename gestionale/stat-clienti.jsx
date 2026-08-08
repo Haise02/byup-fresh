@@ -826,49 +826,109 @@ function StatClienti() {
           onPulisci={() => setStelle(0)}/>
       </StatCard>
 
-      <StatCard title="Ciclo di vita del cliente" sub="Distribuzione clienti per frequenza di ritorno">
-        <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
-          <div style={{
-            display:'grid', gridTemplateColumns:'2fr 1fr 1.5fr 1fr',
-            padding:'10px 16px', background:'#FAFAFB',
-            fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
-            textTransform:'uppercase', letterSpacing: 0.5,
-            borderBottom:`1px solid ${PN.BORDER_SOFT}`,
-          }}>
-            <span>Stato cliente</span>
-            <span style={{textAlign:'right'}}>N. clienti</span>
-            <span>% sul totale</span>
-            <span style={{textAlign:'right'}}>vs periodo prec.</span>
-          </div>
-          {d.ciclo.map((r, i) => (
-            <div key={i} style={{
-              display:'grid', gridTemplateColumns:'2fr 1fr 1.5fr 1fr',
-              padding:'10px 16px', alignItems:'center',
-              fontSize: 15, color: PN.TEXT,
-              background: i % 2 === 1 ? '#FAFAFB' : PN.WHITE,
-              borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-            }}>
-              <span style={{fontWeight: 600}}>{r.stato}</span>
-              <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700}}>{r.n}</span>
-              <div style={{display:'flex', alignItems:'center', gap: 10}}>
-                <div style={{flex: 1}}><StatBar pct={r.pct} height={8}/></div>
-                <span style={{fontSize: 14.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums', minWidth: 32, textAlign:'right'}}>{r.pct}%</span>
-              </div>
-              <span style={{textAlign:'right'}}>
-                <span style={{
-                  display:'inline-flex', alignItems:'center', gap: 4,
-                  padding:'3px 9px', borderRadius: 999,
-                  background: PN.GREEN_SOFT, color: PN.GREEN,
-                  fontSize: 14, fontWeight: 700,
-                }}>↑ {String(r.delta).replace('.', ',')}%</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </StatCard>
+      <CliCiclo dati={d.ciclo}/>
 
       <StatFuori/>
     </div>
+  );
+}
+
+// ─── Il ciclo di vita ──────────────────────────────────────────
+// Cinque righe che dicono a che punto sono i clienti, dalla prima volta a chi
+// viene tutte le settimane. Era una tabella: cornice, testatina maiuscola,
+// righe a zebra e su ognuna una pastiglia verde piena. Cinque pastiglie sono
+// cinque semafori accesi insieme — se tutto è in evidenza niente lo è — e la
+// zebra serve a seguire una riga lunga venti colonne, non quattro.
+//
+// Ma soprattutto era una tabella per un dato che non è una tabella: sono le
+// parti di un intero — 1.240 clienti divisi in cinque — e cinque barre che
+// partono ognuna da capo non fanno vedere che sommano a uno. Sopra c'è quindi
+// la barra intera, divisa nelle cinque parti, e sotto le righe che la
+// spiegano. Il colore va dal pesca al vinaccia in cinque passi: non sono
+// cinque categorie, è la stessa cosa che cresce, e un dato che cresce si
+// colora con una tinta sola che si scurisce.
+const CLI_CICLO_TINTE = ['#FFE0DD', '#FFB5B3', '#FF7A7E', '#E04347', '#B53338'];
+
+function CliCiclo({ dati }) {
+  // Il legame tra una riga e la sua fetta è il colore, e cinque tinte vicine
+  // di per sé non bastano: col mouse sulla riga la fetta resta accesa e le
+  // altre si velano, così si vede quale pezzo di barra si sta leggendo.
+  const [su, setSu] = React.useState(null);
+  const totale = dati.reduce((s, r) => s + r.n, 0);
+  const tornati = totale - dati[0].n;
+
+  return (
+    <StatCard title="Ciclo di vita del cliente"
+      sub={`${totale.toLocaleString('it-IT', {useGrouping: true})} clienti unici, dalla prima visita agli abituali`}
+      action={
+        <div style={{
+          display:'inline-flex', alignItems:'baseline', gap: 7, flexShrink: 0,
+          padding:'7px 13px', borderRadius: 999, background: PN.WHITE_FROST, whiteSpace:'nowrap',
+        }} title="Tutti quelli che non sono alla prima visita: sono tornati almeno una volta.">
+          <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+            {Math.round((tornati / totale) * 100)}%
+          </span>
+          <span style={{fontSize: 13.5, color: PN.MUTED}}>è tornato almeno una volta</span>
+        </div>
+      }>
+      {/* Le fette si dividono lo spazio in proporzione, con due pixel d'aria in
+          mezzo: senza, le due tinte più vicine si toccano e sembrano una. */}
+      <div style={{display:'flex', gap: 2, height: 16, marginBottom: 20}}>
+        {dati.map((r, i) => (
+          <div key={i} title={`${r.stato}: ${r.n} clienti (${r.pct}%)`}
+            onMouseEnter={() => setSu(i)} onMouseLeave={() => setSu(null)}
+            style={{
+              flex: r.pct, background: CLI_CICLO_TINTE[i],
+              borderRadius: i === 0 ? '999px 3px 3px 999px' : i === dati.length - 1 ? '3px 999px 999px 3px' : 3,
+              opacity: su == null || su === i ? 1 : 0.3,
+              transition:'opacity 130ms ease', cursor:'default',
+            }}/>
+        ))}
+      </div>
+
+      {/* La testatina non ha più il fondo grigio né le maiuscole: erano il
+          modo di dire «qui comincia una tabella», e non c'è più una tabella. */}
+      <div style={{
+        display:'grid', gridTemplateColumns:'1fr auto 62px 82px',
+        alignItems:'center', gap: 14, padding:'0 12px 9px',
+        fontSize: 12.5, color: PN.MUTED_SOFT,
+      }}>
+        <span>Stato</span>
+        <span style={{textAlign:'right'}}>Clienti</span>
+        <span style={{textAlign:'right'}}>Quota</span>
+        <span style={{textAlign:'right'}}>vs prima</span>
+      </div>
+
+      {dati.map((r, i) => (
+        <div key={i}
+          onMouseEnter={() => setSu(i)} onMouseLeave={() => setSu(null)}
+          style={{
+            display:'grid', gridTemplateColumns:'1fr auto 62px 82px',
+            alignItems:'center', gap: 14, padding:'11px 12px',
+            borderTop:`1px solid ${PN.BORDER_SOFT}`,
+            background: su === i ? PN.WHITE_HUSH : 'transparent',
+            borderRadius: 8, transition:'background 130ms ease',
+          }}>
+          <span style={{display:'inline-flex', alignItems:'center', gap: 10, minWidth: 0}}>
+            <span style={{width: 10, height: 10, borderRadius: 3, background: CLI_CICLO_TINTE[i], flexShrink: 0}}/>
+            <span style={{fontSize: 15.5, fontWeight: 600, color: PN.TEXT}}>{r.stato}</span>
+          </span>
+          <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>
+            {r.n.toLocaleString('it-IT', {useGrouping: true})}
+          </span>
+          <span style={{fontSize: 15, color: PN.MUTED, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>{r.pct}%</span>
+          {/* La freccia e il numero, senza pastiglia: il verde sulla cifra dice
+              già che è salita, e la pastiglia lo diceva una seconda volta su
+              ogni riga. */}
+          <span style={{
+            fontSize: 14.5, fontWeight: 700, color: PN.GREEN,
+            fontVariantNumeric:'tabular-nums', textAlign:'right', whiteSpace:'nowrap',
+          }} title="Rispetto allo stesso periodo prima">
+            ↑ {String(r.delta).replace('.', ',')}%
+          </span>
+        </div>
+      ))}
+    </StatCard>
   );
 }
 
