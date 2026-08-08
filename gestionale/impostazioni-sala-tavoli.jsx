@@ -582,8 +582,13 @@ function ImpSalaTavoli() {
                       animation: isDragTarget && !isDragOver ? 'salaDropPulse 1.6s ease-in-out infinite' : 'none',
                     }}
                   >
-                    <div style={{display:'flex', alignItems:'center', gap: 6, marginBottom: 4}}>
-                      <span style={{fontSize:15.5, fontWeight:700, flex:1, color: isOpen ? PN.PINK_DARK : PN.TEXT}}>{s.name}</span>
+                    {/* Nome + stato: su colonna stretta il badge "DISATTIVATA"
+                        non ci sta accanto al nome — va a capo invece di mandare
+                        la riga in overflow. Il ⋯ è ancorato in alto a destra
+                        (fuori dal flusso) così non viene mai spinto fuori card:
+                        paddingRight riserva la sua corsia. */}
+                    <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap: 6, marginBottom: 4, paddingRight: 24}}>
+                      <span style={{fontSize:15.5, fontWeight:700, flex:'1 1 auto', minWidth: 0, color: isOpen ? PN.PINK_DARK : PN.TEXT}}>{s.name}</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -592,6 +597,7 @@ function ImpSalaTavoli() {
                         title={s.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
                         style={{
                           display:'inline-flex', alignItems:'center', gap:5,
+                          flexShrink: 0, whiteSpace:'nowrap',
                           padding:'2px 8px', borderRadius:999,
                           border:'none', cursor:'pointer', fontFamily:'inherit',
                           fontSize:12.5, fontWeight:700, letterSpacing:0.3,
@@ -608,16 +614,18 @@ function ImpSalaTavoli() {
                         }}/>
                         {s.active ? 'ATTIVA' : 'DISATTIVATA'}
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSalaMenu(menuOpen ? null : s.id); }}
-                        style={{
-                          width: 22, height: 22, borderRadius: 5,
-                          background: menuOpen ? PN.WHITE : 'transparent',
-                          border:'none', cursor:'pointer',
-                          color: PN.MUTED, fontSize: 16,
-                          display:'grid', placeItems:'center',
-                        }}>⋯</button>
                     </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSalaMenu(menuOpen ? null : s.id); }}
+                      title="Opzioni sala"
+                      style={{
+                        position:'absolute', top: 11, right: 10,
+                        width: 22, height: 22, borderRadius: 5, padding: 0,
+                        background: menuOpen ? PN.WHITE : 'transparent',
+                        border:'none', cursor:'pointer',
+                        color: PN.MUTED,
+                        display:'grid', placeItems:'center',
+                      }}><Puntini size={13}/></button>
                     <div style={{fontSize:13.5, color:PN.MUTED, display:'flex', alignItems:'center', gap:6}}>
                       {sCount > 0 ? (
                         <>
@@ -1259,11 +1267,11 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         </button>
         <button onClick={onMenuToggle} style={{
           marginLeft:'auto',
-          width: 28, height: 28, borderRadius: 6,
+          width: 28, height: 28, borderRadius: 6, padding: 0,
           background: menuOpen ? '#F4F5F7' : 'transparent',
           border:'none', cursor:'pointer', color: PN.MUTED,
-          display:'grid', placeItems:'center', fontSize: 18,
-        }}>⋯</button>
+          display:'grid', placeItems:'center',
+        }}><Puntini size={15}/></button>
         {menuOpen && (
           <div onClick={e => e.stopPropagation()} style={{
             position:'absolute', top: 38, right: 12, zIndex: 100,

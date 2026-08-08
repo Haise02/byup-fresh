@@ -264,8 +264,24 @@ function MenuItem({ icon, children, danger, onClick }) {
   );
 }
 
+// Tre pallini disegnati. Il carattere «⋯» non c'è in Plus Jakarta Sans: a
+// rispondere è un font di ripiego, che lo appoggia dove gli pare rispetto alla
+// linea di base — dentro un bottone quadrato restava sempre un filo storto,
+// e di quanto cambiava da un sistema all'altro. Un SVG è centrato per
+// costruzione, sempre.
+function Puntini({ size = 14, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{display: 'block'}}>
+      <circle cx="5" cy="12" r="2"/>
+      <circle cx="12" cy="12" r="2"/>
+      <circle cx="19" cy="12" r="2"/>
+    </svg>
+  );
+}
+
 window.ImpTabs = ImpTabs;
 window.ImpSubTabs = ImpSubTabs;
+window.Puntini = Puntini;
 window.ImpCard = ImpCard;
 window.ImpField = ImpField;
 window.ImpInput = ImpInput;

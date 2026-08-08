@@ -383,20 +383,8 @@ function fantasmaPiatto(e, dish) {
   setTimeout(() => { if (g.parentNode) g.parentNode.removeChild(g); }, 0);
 }
 
-// Tre pallini disegnati. Il carattere «⋯» non c'è in Plus Jakarta Sans: a
-// rispondere è un font di ripiego, che lo appoggia dove gli pare rispetto alla
-// linea di base — dentro un bottone quadrato restava sempre un filo storto,
-// e di quanto cambiava da un sistema all'altro. Un SVG è centrato per
-// costruzione, sempre.
-function Puntini({ size = 14, color = 'currentColor' }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{display: 'block'}}>
-      <circle cx="5" cy="12" r="2"/>
-      <circle cx="12" cy="12" r="2"/>
-      <circle cx="19" cy="12" r="2"/>
-    </svg>
-  );
-}
+// `Puntini` (i tre pallini in SVG) sta in impostazioni-shared.jsx: lo usano
+// anche le card sala e tavolo.
 
 // Pannello di colonna: testata ferma, corpo che scorre.
 function MCPanel({ title, sub, action, children, style, bodyStyle }) {
