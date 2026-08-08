@@ -632,7 +632,14 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
       {/* Azioni */}
       <div style={{display:'flex', justifyContent:'flex-end'}}>
         {bloccato ? (
-          <span title="Il titolare non si modifica" style={{fontSize: 13, opacity: 0.5}}>🔒</span>
+          // Stessa impronta del bottone «⋯» delle altre righe, così il segno
+          // cade dove cade il menu invece di penzolare più piccolo e più in su.
+          // Icona e non emoji: l'emoji cambia disegno da un sistema all'altro e
+          // qui dentro era l'unica cosa colorata di giallo.
+          <span title="Il titolare non si modifica" style={{
+            width: 32, height: 32, borderRadius: 8,
+            display:'grid', placeItems:'center', color: PN.MUTED,
+          }}>{BuIcons.lock({size: 17, color:'currentColor'})}</span>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); setOpenMenu(aperto ? null : r.key); }}
