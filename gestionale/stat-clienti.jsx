@@ -840,22 +840,49 @@ function StatClienti() {
 // cinque semafori accesi insieme — se tutto è in evidenza niente lo è — e la
 // zebra serve a seguire una riga lunga venti colonne, non quattro.
 //
-// Ma soprattutto era una tabella per un dato che non è una tabella: sono le
-// parti di un intero — 1.240 clienti divisi in cinque — e cinque barre che
-// partono ognuna da capo non fanno vedere che sommano a uno. Sopra c'è quindi
-// la barra intera, divisa nelle cinque parti, e sotto le righe che la
-// spiegano. Il colore va dal pesca al vinaccia in cinque passi: non sono
-// cinque categorie, è la stessa cosa che cresce, e un dato che cresce si
-// colora con una tinta sola che si scurisce.
+// Poi c'è stata una barra intera divisa in cinque fette, sopra le righe, che
+// si accendeva al passaggio del mouse. Diceva una cosa vera — che le cinque
+// parti fanno un intero — ma la diceva una seconda volta: la quota di ogni
+// riga sta già scritta in cifre, e per legare la fetta alla riga serviva un
+// gioco di luci. Un disegno che ha bisogno di essere spiegato da
+// un'interazione non sta spiegando niente.
+//
+// Resta la barra dentro la riga, dove non è un disegno in più ma il modo in
+// cui la riga occupa la sua larghezza: parte dal nome e arriva alle cifre,
+// lunga quanto la quota sul totale — la traccia grigia è il 100%, quindi si
+// vede a occhio che le cinque sommano a uno. Il colore va dal pesca al
+// vinaccia in cinque passi: non sono cinque categorie, è la stessa cosa che
+// cresce, e un dato che cresce si colora con una tinta sola che si scurisce.
 const CLI_CICLO_TINTE = ['#FFE0DD', '#FFB5B3', '#FF7A7E', '#E04347', '#B53338'];
 
 function CliCiclo({ dati }) {
-  // Il legame tra una riga e la sua fetta è il colore, e cinque tinte vicine
-  // di per sé non bastano: col mouse sulla riga la fetta resta accesa e le
-  // altre si velano, così si vede quale pezzo di barra si sta leggendo.
-  const [su, setSu] = React.useState(null);
   const totale = dati.reduce((s, r) => s + r.n, 0);
   const tornati = totale - dati[0].n;
+  // La colonna dei nomi è larga quanto il nome più lungo e non un pixel di
+  // più: a larghezza fissa restava un buco tra la fine della parola e l'inizio
+  // della barra, e un buco in mezzo a una riga la spezza in due.
+  // Per questo la griglia è UNA sola, con le celle come figli diretti, e non
+  // una griglia per riga: `max-content` si calcola per griglia, e con cinque
+  // griglie ogni barra partiva da un punto diverso.
+  const colonne = 'max-content minmax(80px, 1fr) 64px 58px 76px';
+  // L'aria tra le colonne sta nelle celle e non in un `columnGap`: il filetto
+  // che separa le righe è disegnato cella per cella, e col gap si interrompeva
+  // quattro volte per riga — una riga tratteggiata che nessuno aveva chiesto.
+  // L'ultima colonna tiene l'aria a sinistra invece che a destra, così la riga
+  // finisce a filo della card come comincia.
+  // Le celle si allungano all'altezza della riga e centrano dentro di sé: con
+  // `alignItems:'center'` sulla griglia ogni cella era alta quanto il suo
+  // contenuto — la barra otto pixel, il nome venti — e il filetto disegnato in
+  // cima cadeva a quote diverse, spezzandosi a ogni colonna.
+  const cella = (ultimo, aDestra) => ({
+    display:'flex', alignItems:'center', justifyContent: aDestra ? 'flex-end' : 'flex-start',
+    padding: ultimo ? '11px 0 11px 16px' : '11px 16px 11px 0',
+    borderTop:`1px solid ${PN.BORDER_SOFT}`,
+  });
+  const testata = (ultimo) => ({
+    padding: ultimo ? '0 0 9px 16px' : '0 16px 9px 0',
+    fontSize: 12.5, color: PN.MUTED_SOFT,
+  });
 
   return (
     <StatCard title="Ciclo di vita del cliente"
@@ -871,63 +898,40 @@ function CliCiclo({ dati }) {
           <span style={{fontSize: 13.5, color: PN.MUTED}}>è tornato almeno una volta</span>
         </div>
       }>
-      {/* Le fette si dividono lo spazio in proporzione, con due pixel d'aria in
-          mezzo: senza, le due tinte più vicine si toccano e sembrano una. */}
-      <div style={{display:'flex', gap: 2, height: 16, marginBottom: 20}}>
+      <div style={{display:'grid', gridTemplateColumns: colonne}}>
+        {/* La testatina non ha più il fondo grigio né le maiuscole: erano il
+            modo di dire «qui comincia una tabella», e non c'è più una tabella. */}
+        <span style={testata()}>Stato</span>
+        <span style={testata()}/>
+        <span style={{...testata(), textAlign:'right'}}>Clienti</span>
+        <span style={{...testata(), textAlign:'right'}}>Quota</span>
+        <span style={{...testata(true), textAlign:'right'}}>vs prima</span>
+
         {dati.map((r, i) => (
-          <div key={i} title={`${r.stato}: ${r.n} clienti (${r.pct}%)`}
-            onMouseEnter={() => setSu(i)} onMouseLeave={() => setSu(null)}
-            style={{
-              flex: r.pct, background: CLI_CICLO_TINTE[i],
-              borderRadius: i === 0 ? '999px 3px 3px 999px' : i === dati.length - 1 ? '3px 999px 999px 3px' : 3,
-              opacity: su == null || su === i ? 1 : 0.3,
-              transition:'opacity 130ms ease', cursor:'default',
-            }}/>
+          <React.Fragment key={i}>
+            <span style={{...cella(), fontSize: 15.5, fontWeight: 600, color: PN.TEXT}}>{r.stato}</span>
+            <span style={cella()}>
+              <span style={{flex: 1, height: 8, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden'}}
+                title={`${r.pct}% dei clienti del periodo`}>
+                <span style={{display:'block', height:'100%', borderRadius: 999, width:`${r.pct}%`, background: CLI_CICLO_TINTE[i]}}/>
+              </span>
+            </span>
+            <span style={{...cella(false, true), fontSize: 15.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+              {r.n.toLocaleString('it-IT', {useGrouping: true})}
+            </span>
+            <span style={{...cella(false, true), fontSize: 15, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>{r.pct}%</span>
+            {/* La freccia e il numero, senza pastiglia: il verde sulla cifra
+                dice già che è salita, e la pastiglia lo diceva una seconda
+                volta su ogni riga. */}
+            <span style={{
+              ...cella(true, true), fontSize: 14.5, fontWeight: 700, color: PN.GREEN,
+              fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
+            }} title="Rispetto allo stesso periodo prima">
+              ↑ {String(r.delta).replace('.', ',')}%
+            </span>
+          </React.Fragment>
         ))}
       </div>
-
-      {/* La testatina non ha più il fondo grigio né le maiuscole: erano il
-          modo di dire «qui comincia una tabella», e non c'è più una tabella. */}
-      <div style={{
-        display:'grid', gridTemplateColumns:'1fr auto 62px 82px',
-        alignItems:'center', gap: 14, padding:'0 12px 9px',
-        fontSize: 12.5, color: PN.MUTED_SOFT,
-      }}>
-        <span>Stato</span>
-        <span style={{textAlign:'right'}}>Clienti</span>
-        <span style={{textAlign:'right'}}>Quota</span>
-        <span style={{textAlign:'right'}}>vs prima</span>
-      </div>
-
-      {dati.map((r, i) => (
-        <div key={i}
-          onMouseEnter={() => setSu(i)} onMouseLeave={() => setSu(null)}
-          style={{
-            display:'grid', gridTemplateColumns:'1fr auto 62px 82px',
-            alignItems:'center', gap: 14, padding:'11px 12px',
-            borderTop:`1px solid ${PN.BORDER_SOFT}`,
-            background: su === i ? PN.WHITE_HUSH : 'transparent',
-            borderRadius: 8, transition:'background 130ms ease',
-          }}>
-          <span style={{display:'inline-flex', alignItems:'center', gap: 10, minWidth: 0}}>
-            <span style={{width: 10, height: 10, borderRadius: 3, background: CLI_CICLO_TINTE[i], flexShrink: 0}}/>
-            <span style={{fontSize: 15.5, fontWeight: 600, color: PN.TEXT}}>{r.stato}</span>
-          </span>
-          <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>
-            {r.n.toLocaleString('it-IT', {useGrouping: true})}
-          </span>
-          <span style={{fontSize: 15, color: PN.MUTED, fontVariantNumeric:'tabular-nums', textAlign:'right'}}>{r.pct}%</span>
-          {/* La freccia e il numero, senza pastiglia: il verde sulla cifra dice
-              già che è salita, e la pastiglia lo diceva una seconda volta su
-              ogni riga. */}
-          <span style={{
-            fontSize: 14.5, fontWeight: 700, color: PN.GREEN,
-            fontVariantNumeric:'tabular-nums', textAlign:'right', whiteSpace:'nowrap',
-          }} title="Rispetto allo stesso periodo prima">
-            ↑ {String(r.delta).replace('.', ',')}%
-          </span>
-        </div>
-      ))}
     </StatCard>
   );
 }
