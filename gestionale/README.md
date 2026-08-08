@@ -26,22 +26,13 @@ per la ristorazione.
 - `byup Configurazione Completa.html` — vetrina + personale post-onboarding
 - `byup Sala.html` — sala & prenotazioni (mappa + lista; `?tab=tavoli|vendita|calendar`)
 - `byup Cucina.html` — kitchen monitor (KDS)
+- `byup Cucina KDS v2.html` — KDS v2 sperimentale: board di produzione aggregato
+  per piatto, tema scuro, schermo fisso in cucina. Route autonoma che **convive**
+  con `byup Cucina.html` senza condividerne codice né stato
+  (`cucina-kds2-data.jsx` regole, `cucina-kds2-mock.jsx` dati finti,
+  `cucina-kds2-board.jsx` vista, `cucina-kds2-app.jsx` montaggio)
 - `byup Statistiche.html`, `byup Contabilita.html`, `byup Impostazioni.html`,
   `byup Profilo.html` (pagina Account), `byup Supporto.html`
-
-## Assistente IA fluttuante
-
-`byup-ai-fab.jsx` è un widget che **si monta da solo**: alle pagine serve solo
-il tag `<script>` in fondo, dopo l'app. Si aggancia dentro `.frame` (non al
-`body`: il frame ha uno `zoom` che scala tutta la UI) e mostra un bollino
-trascinabile che apre una chat con l'assistente. La posizione scelta vale su
-tutte le schermate — `localStorage`, chiave `byup.ai.fab.pos`.
-
-È caricato dalle sette schermate della console: Panoramica, Sala, Cucina,
-Statistiche, Contabilita, Impostazioni, Profilo. **Non** dal Supporto, dove
-l'angolo è già della chat dell'assistenza, né da Login, Restaurant Onboarding
-e Configurazione Completa. La mascotte è `byuppino-wave.png`, copia
-ridimensionata di `app/assets/mascot-wave.png`.
 
 > Il 2026-07-28 sono state rimosse da questa cartella le copie mai linkate delle
 > altre superfici — `byup Home.html`, `byup Menu.html` (demo Byup App consumer),
