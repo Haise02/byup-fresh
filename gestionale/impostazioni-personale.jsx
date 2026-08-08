@@ -30,11 +30,13 @@ const ROLES = [
     id: 'titolare',
     label: 'Titolare',
     desc: 'Vede tutto · uno solo, è chi ha creato il gestionale',
-    // Ambra e non vinaccia: in elenco il titolare finiva in mezzo a Cassa e
-    // Cameriere, tre pastiglie rosse che di lontano erano la stessa cosa. È il
-    // ruolo che sta a sé — uno solo, vede tutto — e la corona d'oro lo dice
-    // meglio di un rosso in più.
-    color: '#B45309', bg: PN.AMBER_SOFT,
+    // Teal, che è l'unica famiglia libera di questa pagina: il rosso è di
+    // Cameriere e Cassa, il blu della cassa e delle stampanti, lo slate dei
+    // dispositivi, il verde dello stato, il viola dei ruoli personalizzati e
+    // l'ambra degli inviti in attesa. Vinaccia com'era prima si confondeva con
+    // le altre due pastiglie rosse; il titolare è il ruolo che sta a sé — uno
+    // solo, vede tutto — e va letto come tale a colpo d'occhio.
+    color: '#0F766E', bg: '#CCFBF1',
     icon: 'crown',
     locked: true,
     areas: ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni'],
