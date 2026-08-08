@@ -775,6 +775,9 @@ function MCMenuComposer() {
                     onClick={e => { e.stopPropagation(); setCatMenuOpen(o => o === c.name ? null : c.name); }}
                     title="Azioni categoria"
                     style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                       width: 20, height: 20, borderRadius: 5, border: 'none', flexShrink: 0,
                       background: catMenuOpen === c.name ? '#EDEFF2' : 'transparent',
                       color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
@@ -1118,6 +1121,9 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDel
 function MCMiniAzione({ children, title, danger, onClick }) {
   return (
     <button onClick={onClick} title={title} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
       width: 24, height: 24, borderRadius: 6, border: 'none', background: 'transparent',
       cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 12,
       color: danger ? PN.RED : PN.MUTED, fontFamily: 'inherit',
@@ -1165,6 +1171,9 @@ function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete }) {
         {count} {count === 1 ? 'piatto selezionato' : 'piatti selezionati'}
       </span>
       <button onClick={onClear} title="Annulla selezione" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
         width: 26, height: 26, borderRadius: 7, border: 'none', background: 'transparent',
         color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
       }}
@@ -1309,6 +1318,9 @@ function MCPiattiPanel({
           {id: 'list', title: 'Elenco', svg: <><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></>},
         ].map(v => (
           <button key={v.id} onClick={() => setView(v.id)} title={v.title} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
             width: 32, height: 30, border: 'none', cursor: 'pointer',
             background: view === v.id ? PN.TEXT : PN.WHITE,
             color: view === v.id ? PN.WHITE : PN.MUTED,
@@ -1429,6 +1441,9 @@ function MCPiattiPanel({
                     foto su cui appoggiarla come nelle card. */}
                 {(selectMode || sel) && (
                   <button onClick={e => { e.stopPropagation(); toggleSel(r.dishId); }} title="Seleziona" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                     flexShrink: 0, marginLeft: 12, width: 22, height: 22, borderRadius: 6,
                     border: `1.5px solid ${sel ? PN.PINK : PN.BORDER}`,
                     background: sel ? PN.PINK : PN.WHITE,
@@ -1523,6 +1538,9 @@ function MCDishCard({
         )}
 
         <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onMenu(); }} title="Altre azioni" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
           position: 'absolute', top: 7, right: 7, width: 24, height: 24, borderRadius: 7,
           border: 'none', background: 'rgba(255,255,255,0.88)', color: PN.TEXT,
           cursor: 'pointer', display: 'grid', placeItems: 'center',
@@ -1760,6 +1778,9 @@ function MCDettagliPiatto({
       <div style={{padding: '13px 14px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 9}}>
         <div style={{flex: 1, minWidth: 0, fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Dettagli piatto</div>
         <button onClick={onClose} title="Chiudi" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
           width: 26, height: 26, borderRadius: 7, border: 'none', background: 'transparent',
           color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
         }}
@@ -1879,6 +1900,9 @@ function MCDettagliPiatto({
                       <img src={i === 0 && dish.photo ? dish.photo : PHOTO_MOCK_IMGS[i % PHOTO_MOCK_IMGS.length]} alt="" loading="lazy"
                         style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
                       <button onClick={() => setPhotos(ps => ps.filter((_, idx) => idx !== i))} aria-label={`Rimuovi foto ${i + 1}`} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                         position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: '50%',
                         background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', fontSize: 11,
                         cursor: 'pointer', display: 'grid', placeItems: 'center',
@@ -1918,6 +1942,9 @@ function MCDettagliPiatto({
                       style={{...MC_INPUT, resize: 'none', lineHeight: 1.45, background: step ? PN.WHITE : '#FAFBFC'}}/>
                     {recipeSteps.length > 1 && (
                       <button onClick={() => setRecipeSteps(s => s.filter((_, idx) => idx !== i))} aria-label={`Rimuovi passo ${i + 1}`} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                         flexShrink: 0, width: 26, height: 26, marginTop: 4, background: PN.WHITE,
                         border: '1px solid #FECACA', borderRadius: 7, cursor: 'pointer', color: PN.RED,
                         display: 'grid', placeItems: 'center',
@@ -2359,6 +2386,9 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia }) {
                 </div>
 
                 <button style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                   position: 'absolute', top: 56, left: 16, zIndex: 20,
                   width: 38, height: 38, borderRadius: 999,
                   background: 'rgba(255,255,255,0.95)', border: 'none',
@@ -2474,7 +2504,10 @@ function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, on
             <div style={{fontSize:20, fontWeight:800, color:PN.TEXT, letterSpacing:-0.2}}>Aggiungi piatti dalla libreria</div>
             <div style={{fontSize:15, color:PN.MUTED, marginTop: 3}}>Scegli i piatti da aggiungere al menù "{menuName}"</div>
           </div>
-          <button onClick={onClose} style={{width:34, height:34, borderRadius:9, border:`1px solid ${PN.BORDER}`, background:PN.WHITE, cursor:'pointer', fontSize:17, color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>✕</button>
+          <button onClick={onClose} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:34, height:34, borderRadius:9, border:`1px solid ${PN.BORDER}`, background:PN.WHITE, cursor:'pointer', fontSize:17, color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>✕</button>
         </div>
 
         {/* Ricerca */}
@@ -2840,6 +2873,9 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
 
       {/* Rimuovi dal menù */}
       <button onClick={e => { e.stopPropagation(); onRemove(); }} title="Rimuovi dal menù (resta nella libreria)" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
         width: 30, height: 30, borderRadius: 7,
         border:'none', background:'transparent', color: PN.MUTED,
         cursor:'pointer', display:'grid', placeItems:'center', fontSize: 16,
@@ -3048,6 +3084,9 @@ function IngredientList({ ingredients, setIngredients }) {
                     onClick={() => setIngredients(arr => arr.map((x, idx) => idx===i ? {...x, removable: !x.removable} : x))}
                     title={ing.removable ? 'Rimovibile dal cliente. Clicca per bloccare' : 'Il cliente non può rimuovere. Clicca per abilitare'}
                     style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                       width:28, height:28, borderRadius:6, flexShrink:0,
                       border:`1px solid ${ing.removable ? PN.PINK : PN.BORDER_MED}`,
                       background: ing.removable ? PN.PINK_SOFT : '#F4F5F7',
@@ -3063,7 +3102,10 @@ function IngredientList({ ingredients, setIngredients }) {
 
                   {/* Delete */}
                   <button onClick={() => { setIngredients(arr => arr.filter((_, idx) => idx !== i)); if(expandedIdx===i) setExpandedIdx(null); }}
-                    style={{width:26, height:26, background:'transparent', border:'none', borderRadius:6, cursor:'pointer', color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>
+                    style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:26, height:26, background:'transparent', border:'none', borderRadius:6, cursor:'pointer', color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>
                     <Icon name="xmark" size={13}/>
                   </button>
                 </div>
@@ -3205,7 +3247,10 @@ function ExtrasList({ extras, setExtras }) {
               </label>
               <button onClick={() => setExtras(arr => arr.filter((_, idx) => idx !== i))}
                 aria-label={`Rimuovi ${ex.name}`}
-                style={{width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
                 onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
               >✕</button>
@@ -3306,7 +3351,10 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
             }}>
               <input value={v.name} onChange={e => updateGroup(i, {name:e.target.value})} placeholder="Nome del gruppo (es. Cottura, Formato, Pane)" style={{padding:'8px 11px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', fontWeight:600, background:PN.WHITE}}/>
               <button onClick={() => removeGroup(i)} aria-label="Rimuovi gruppo"
-                style={{width:30, height:30, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:30, height:30, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
                 onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
               >✕</button>
@@ -3324,7 +3372,10 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
                   {v.options.length > 1 && (
                     <button onClick={() => updateGroup(i, {options: v.options.filter((_, idx) => idx !== oi)})}
                       aria-label={`Rimuovi opzione ${oi+1}`}
-                      style={{width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:13, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                      style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:13, transition:'background 150ms ease-out, color 150ms ease-out'}}
                       onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
                     >✕</button>
@@ -3604,6 +3655,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               : <><BuAiSparkle size={13} color={!name.trim() ? '#9AA0A6' : PN.PINK_DARK}/>Auto-compila</>}
           </button>
           <button onClick={onClose} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
             flexShrink:0, width:34, height:34, borderRadius:9, border:`1px solid ${PN.BORDER}`,
             background:PN.WHITE, cursor:'pointer', fontSize:17, color:PN.MUTED,
             display:'grid', placeItems:'center',
@@ -3693,6 +3747,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         />
                         <button onClick={() => setPhotos(ps => ps.filter((_,idx)=>idx!==i))} aria-label={`Rimuovi foto ${i + 1}`} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                           position:'absolute', top:5, right:5, width:20, height:20,
                           borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none',
                           color:'#fff', fontSize:12, cursor:'pointer', display:'grid', placeItems:'center',
@@ -3968,7 +4025,10 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                         {recipeSteps.length > 1 && (
                           <button onClick={() => setRecipeSteps(s => s.filter((_,idx)=>idx!==i))}
                             aria-label={`Rimuovi passo ${i+1}`}
-                            style={{flexShrink:0, width:30, height:30, marginTop:4,
+                            style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,flexShrink:0, width:30, height:30, marginTop:4,
                               background:PN.WHITE, border:'1px solid #FECACA', borderRadius:8,
                               cursor:'pointer', color:PN.RED,
                               display:'grid', placeItems:'center',
@@ -4059,6 +4119,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             }}>
               <img src={PHOTO_MOCK_IMGS[preview % PHOTO_MOCK_IMGS.length]} alt="" style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block'}}/>
               <button onClick={() => setPreview(null)} aria-label="Chiudi anteprima" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                 position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%',
                 background:'rgba(15,17,21,0.55)', border:'none', color:'#fff',
                 fontSize:16, cursor:'pointer', display:'grid', placeItems:'center',
@@ -4559,6 +4622,9 @@ function MCIngredienti() {
 
             {/* Azione rimuovi */}
             <button title="Rimuovi" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
               width: 30, height: 30, borderRadius: 7,
               border:'none', background:'transparent', cursor:'pointer',
               color: PN.MUTED, display:'grid', placeItems:'center',
@@ -5211,6 +5277,9 @@ function MCConfigura() {
             animation:'dialogIn 0.2s ease-out', position:'relative',
           }}>
             <button onClick={() => setSalaAttivataPopup(false)} title="Chiudi" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
               position:'absolute', top: 16, right: 16,
               width: 32, height: 32, borderRadius:'50%',
               background:'rgba(15,17,21,0.05)', border:'none', cursor:'pointer',
