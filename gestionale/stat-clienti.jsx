@@ -228,16 +228,19 @@ function CliVoto({ d }) {
 // le Google significherebbe rimetterle dentro dalla finestra un attimo dopo
 // averle messe in fondo alla colonna di sinistra.
 function CliAndamento({ d, mesiEt }) {
-  // Il disegno non è più mezza card ma i tre quarti, e dentro un `viewBox` il
-  // testo scala con la larghezza: un riquadro troppo stretto stamperebbe
-  // etichette da sette pixel, uno troppo largo le farebbe gigantesche. Questo
-  // è tarato sulla larghezza che ha adesso.
-  const W = 740, H = 292, P = { l: 6, r: 30, t: 30, b: 26 };
+  // Dentro un `viewBox` il testo scala con la larghezza: un riquadro troppo
+  // stretto stamperebbe etichette da sette pixel, uno troppo largo le farebbe
+  // gigantesche. Questo è tarato sulla larghezza che ha adesso.
+  // Basso e schiacciato di proposito: preso tutto lo spazio della card il
+  // disegno era alto trecento pixel e diventava lui la Valutazione, mentre il
+  // voto — che è il motivo per cui si apre questa card — stava in un angolo.
+  // Il rapporto tra i mesi si legge uguale a metà altezza.
+  const W = 740, H = 186, P = { l: 6, r: 30, t: 22, b: 24 };
   const mesi = d.fonti.byup.mese;
   const voti = d.fonti.byup.trend;
   const maxN = Math.max(...mesi);
   const passo = (W - P.l - P.r) / mesi.length;
-  const larghezza = Math.min(30, passo * 0.5);
+  const larghezza = Math.min(22, passo * 0.4);
   const xc = (i) => P.l + passo * (i + 0.5);
   const yBarra = (n) => H - P.b - (n / maxN) * (H - P.t - P.b);
   const yVoto = (v) => H - P.b - ((v - 3.5) / 1.5) * (H - P.t - P.b);
@@ -246,7 +249,11 @@ function CliAndamento({ d, mesiEt }) {
   const xUltimo = xc(voti.length - 1);
 
   return (
-    <div style={{minWidth: 0, display:'flex', flexDirection:'column'}}>
+    /* Legenda e disegno stanno insieme e si centrano insieme: il disegno è
+       basso e la colonna del voto è alta, e prima l'aria avanzata finiva tutta
+       tra la legenda — rimasta in cima — e le barre, che sembravano scivolate
+       via da lei. */
+    <div style={{minWidth: 0, display:'flex', flexDirection:'column', justifyContent:'center'}}>
       <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap', marginBottom: 4}}>
         {/* Le barre si riprendono il corallo — sono il corpo del disegno, e
             in grigio erano lo sfondo di sé stesse — e la media passa al nero:
@@ -261,7 +268,7 @@ function CliAndamento({ d, mesiEt }) {
           media, da 3,5 a 5
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', display:'block', margin:'auto 0'}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', display:'block'}}>
         {[3.5, 4, 4.5, 5].map(v => (
           <g key={v}>
             <line x1={P.l} y1={yVoto(v)} x2={W - P.r + 4} y2={yVoto(v)} stroke={PN.BORDER_SOFT} strokeWidth={1}/>
@@ -808,7 +815,7 @@ function StatClienti() {
             fossero due cose: sono la stessa, quel numero e come ci è arrivato.
             Tolto il filo resta l'aria, il voto si incolonna stretto a sinistra
             e il disegno si prende il resto per tutta l'altezza. */}
-        <div style={{display:'grid', gridTemplateColumns:'minmax(200px, 0.78fr) minmax(0, 3fr)', gap: 34, alignItems:'stretch'}}>
+        <div style={{display:'grid', gridTemplateColumns:'minmax(200px, 0.8fr) minmax(0, 2.3fr)', gap: 34, alignItems:'stretch'}}>
           <CliVoto d={d}/>
           <CliAndamento d={d} mesiEt={mesiEt}/>
         </div>
