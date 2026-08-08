@@ -1783,18 +1783,13 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
           </div>
         ) : (
           <>
-            <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap'}}>
-              <div style={{flex:1, minWidth: 230, fontSize:14.5, color:PN.MUTED, lineHeight:1.45}}>
-                Nessun account collegato: le recensioni che i clienti lasciano su Google non compaiono sulla vetrina.
-              </div>
-              <GoogleConnectBtn busy={googleBusy} onClick={connectGoogle}/>
-            </div>
+            <GoogleConnectBtn busy={googleBusy} onClick={connectGoogle}/>
             {/* Il requisito sta sotto al bottone, non dentro al sottotitolo:
                 serve a chi il collegamento lo sta per tentare, ed è la ragione
                 per cui a qualcuno fallirà. */}
             <div style={{
               display:'flex', alignItems:'flex-start', gap: 8,
-              marginTop: 14, paddingTop: 12, borderTop: `1px solid ${PN.BORDER_SOFT}`,
+              marginTop: 12,
               fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45,
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PN.MUTED} strokeWidth="1.8"
