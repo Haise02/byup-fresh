@@ -13,7 +13,7 @@ const PHOTO_MOCK_IMGS = [
 const ALLERGENS = [
   { id: 'glutine', name: 'Glutine', icon: '🌾', color: '#D97706' },
   { id: 'latte', name: 'Latte', icon: '🥛', color: '#0EA5E9' },
-  { id: 'uova', name: 'Uova', icon: '🥚', color: '#F59E0B' },
+  { id: 'uova', name: 'Uova', icon: '🥚', color: '#EAB308' },
   { id: 'pesce', name: 'Pesce', icon: '🐟', color: '#0891B2' },
   { id: 'crostacei', name: 'Crostacei', icon: '🦐', color: '#EA580C' },
   { id: 'molluschi', name: 'Molluschi', icon: '🦪', color: '#0369A1' },
@@ -24,7 +24,7 @@ const ALLERGENS = [
   { id: 'sedano', name: 'Sedano', icon: '🥬', color: '#16A34A' },
   { id: 'senape', name: 'Senape', icon: '🌾', color: '#CA8A04' },
   { id: 'sesamo', name: 'Sesamo', icon: '🌰', color: '#78350F' },
-  { id: 'solfiti', name: 'Solfiti', icon: '🍷', color: '#7C2D12' },
+  { id: 'solfiti', name: 'Solfiti', icon: '🍷', color: '#9333EA' },
 ];
 
 // Importi proposti per il servizio, per modalità. Lo 0 è "nessun servizio" e
@@ -35,19 +35,181 @@ const SERVIZIO_OPZIONI = {
   percentuale: [0, 5, 10, 12, 15],
 };
 
-function AllergenIcon({ id, size = 18 }) {
+// ─── Segni degli allergeni ───────────────────────────────────────────────────
+// Disegnati, non iniziali: «G» e «S» valevano per glutine e per sedano, e in
+// griglia non si distinguevano nemmeno guardandoli. Ogni segno è la cosa —
+// la spiga, il cartone del latte, il calice — nel colore del suo allergene,
+// coi dettagli in bianco perché si leggano anche a 14px.
+// Niente emoji: cambiano forma e colore da un sistema all'altro e su Windows
+// la metà di questi non esiste.
+const ALLERGEN_GLYPHS = {
+  // Spiga: chicchi appaiati lungo il culmo.
+  glutine: (c) => (
+    <g>
+      <path d="M12 21.6v-8.4" stroke={c} strokeWidth="1.9" strokeLinecap="round"/>
+      <g fill={c}>
+        <ellipse cx="12" cy="4.9" rx="1.9" ry="3.1"/>
+        <ellipse cx="8.9" cy="8.6" rx="1.85" ry="3" transform="rotate(-32 8.9 8.6)"/>
+        <ellipse cx="15.1" cy="8.6" rx="1.85" ry="3" transform="rotate(32 15.1 8.6)"/>
+        <ellipse cx="8.9" cy="13.4" rx="1.85" ry="3" transform="rotate(-32 8.9 13.4)"/>
+        <ellipse cx="15.1" cy="13.4" rx="1.85" ry="3" transform="rotate(32 15.1 13.4)"/>
+      </g>
+    </g>
+  ),
+  // Bicchiere pieno: il cartone, a questa taglia, leggeva come una borsa.
+  latte: (c) => (
+    <g>
+      <path d="M6.7 3.4h10.6l-1.3 16A1.9 1.9 0 0 1 14.1 21.2H9.9A1.9 1.9 0 0 1 8 19.4L6.7 3.4Z" fill={c}/>
+      <path d="M7.1 7.3h9.8" stroke="#fff" strokeWidth="1.7" opacity=".85" strokeLinecap="round"/>
+    </g>
+  ),
+  uova: (c) => (
+    <g>
+      <path d="M12 3.1c3.3 0 6 4.7 6 9 0 4.1-2.7 6.9-6 6.9s-6-2.8-6-6.9c0-4.3 2.7-9 6-9Z" fill={c}/>
+      <ellipse cx="9.6" cy="10.2" rx="1.4" ry="2.1" fill="#fff" opacity=".6" transform="rotate(-22 9.6 10.2)"/>
+    </g>
+  ),
+  pesce: (c) => (
+    <g fill={c}>
+      <path d="M15.8 12c-1.8 3.2-4.7 5.1-8 5.1S3.6 15.2 1.8 12c1.8-3.2 4.7-5.1 8-5.1s6.2 1.9 8 5.1Z"/>
+      <path d="M15.3 8.2 21.6 12l-6.3 3.8c.6-1.2.9-2.5.9-3.8s-.3-2.6-.9-3.8Z"/>
+      <circle cx="6.3" cy="11" r="1.05" fill="#fff"/>
+    </g>
+  ),
+  // Granchio: corpo, chele e zampe — più riconoscibile del gambero a 14px.
+  crostacei: (c) => (
+    <g>
+      <path d="M8.4 11.2 10.4 13.6M15.6 11.2 13.6 13.6M5.8 16.6 2.9 15.4M5.9 19.2 3.5 20.8M18.2 16.6 21.1 15.4M18.1 19.2 20.5 20.8"
+        stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="6.6" cy="9.2" r="2.9" fill={c}/>
+      <circle cx="17.4" cy="9.2" r="2.9" fill={c}/>
+      <path d="M6.9 9.2 9.4 7.8M6.9 9.2 9.4 10.6M17.1 9.2 14.6 7.8M17.1 9.2 14.6 10.6" stroke="#fff" strokeWidth="1.35" strokeLinecap="round"/>
+      <ellipse cx="12" cy="17" rx="6.5" ry="4.3" fill={c}/>
+      <circle cx="9.9" cy="15.9" r="1" fill="#fff"/>
+      <circle cx="14.1" cy="15.9" r="1" fill="#fff"/>
+    </g>
+  ),
+  // Capasanta: ventaglio con le costole e la cerniera.
+  molluschi: (c) => (
+    <g>
+      <path d="M2.7 9.8q1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0L12 19.4Z" fill={c}/>
+      <path d="M12 19 7.1 10.6M12 19l-1.3-8.4M12 19l1.3-8.4M12 19l4.9-8.4" stroke="#fff" strokeWidth="1.1" opacity=".65" strokeLinecap="round"/>
+      <rect x="10.3" y="18.4" width="3.4" height="2.4" rx="1.2" fill={c}/>
+    </g>
+  ),
+  // Nocciola: guscio pieno, cupola in trasparenza, picciolo.
+  'frutta-guscio': (c) => (
+    <g>
+      <path d="M12 21.4c-3.9 0-6.9-2.9-6.9-6.7 0-2.5 1.3-4.7 3.3-5.9h7.2c2 1.2 3.3 3.4 3.3 5.9 0 3.8-3 6.7-6.9 6.7Z" fill={c}/>
+      <path d="M6.5 8.6c1.3-1.9 3.2-2.9 5.5-2.9s4.2 1 5.5 2.9c-.9 1-2.9 1.6-5.5 1.6s-4.6-.6-5.5-1.6Z" fill="#fff" opacity=".92"/>
+      <path d="M12 6.1V3.2" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
+    </g>
+  ),
+  // Arachide: due lobi e la strozzatura.
+  arachidi: (c) => (
+    <g>
+      <g fill={c}>
+        <circle cx="8.5" cy="15.5" r="4.6"/>
+        <circle cx="15.5" cy="8.5" r="4.6"/>
+        <rect x="8.4" y="9.4" width="7.2" height="5.2" rx="2.6" transform="rotate(-45 12 12)"/>
+      </g>
+      <circle cx="8.5" cy="15.5" r="1.15" fill="#fff" opacity=".55"/>
+      <circle cx="15.5" cy="8.5" r="1.15" fill="#fff" opacity=".55"/>
+    </g>
+  ),
+  // Baccello di soia coi tre semi.
+  soia: (c) => (
+    <g>
+      <path d="M5.5 18.5a4.1 4.1 0 0 1 0-5.8l7.2-7.2a4.1 4.1 0 1 1 5.8 5.8l-7.2 7.2a4.1 4.1 0 0 1-5.8 0Z" fill={c}/>
+      <g fill="#fff" opacity=".7">
+        <circle cx="8.5" cy="15.5" r="1.5"/>
+        <circle cx="12" cy="12" r="1.5"/>
+        <circle cx="15.5" cy="8.5" r="1.5"/>
+      </g>
+    </g>
+  ),
+  // Lupini: tre semi piatti, ognuno col suo ilo.
+  lupini: (c) => (
+    <g>
+      <g fill={c}>
+        <ellipse cx="8.4" cy="9.2" rx="4.3" ry="3.4" transform="rotate(-18 8.4 9.2)"/>
+        <ellipse cx="15.7" cy="11.4" rx="4.3" ry="3.4" transform="rotate(14 15.7 11.4)"/>
+        <ellipse cx="11.3" cy="16.6" rx="4.3" ry="3.4" transform="rotate(-6 11.3 16.6)"/>
+      </g>
+      <g fill="#fff" opacity=".55">
+        <circle cx="6.6" cy="9.6" r=".85"/>
+        <circle cx="17.5" cy="11.2" r=".85"/>
+        <circle cx="9.6" cy="17" r=".85"/>
+      </g>
+    </g>
+  ),
+  // Sedano: le costole del gambo e la corona di foglie.
+  sedano: (c) => (
+    <g>
+      <path d="M12 21.4V11.8M8.4 21.4c-.7-3.4-.3-6.4 1.3-8.8M15.6 21.4c.7-3.4.3-6.4-1.3-8.8"
+        stroke={c} strokeWidth="2.3" strokeLinecap="round"/>
+      <g fill={c}>
+        <circle cx="12" cy="5.6" r="2.5"/>
+        <circle cx="8.1" cy="7.5" r="2.2"/>
+        <circle cx="15.9" cy="7.5" r="2.2"/>
+        <circle cx="9.9" cy="10.2" r="1.9"/>
+        <circle cx="14.1" cy="10.2" r="1.9"/>
+      </g>
+    </g>
+  ),
+  // Senape: il flacone da tavola.
+  senape: (c) => (
+    <g>
+      <path d="M10.3 5.7h3.4l1.5 2.2c.5.8.8 1.7.8 2.6v8.2a2.4 2.4 0 0 1-2.4 2.4h-3.2A2.4 2.4 0 0 1 8 18.7v-8.2c0-.9.3-1.8.8-2.6l1.5-2.2Z" fill={c}/>
+      <rect x="9.8" y="2.7" width="4.4" height="3.2" rx="1.1" fill={c}/>
+      <rect x="9.6" y="12.2" width="4.8" height="4.6" rx="1.1" fill="#fff" opacity=".9"/>
+    </g>
+  ),
+  // Semi di sesamo sparsi.
+  sesamo: (c) => (
+    <g fill={c}>
+      <ellipse cx="8" cy="7.4" rx="1.5" ry="2.5" transform="rotate(-28 8 7.4)"/>
+      <ellipse cx="15.6" cy="6.6" rx="1.5" ry="2.5" transform="rotate(24 15.6 6.6)"/>
+      <ellipse cx="12" cy="12.3" rx="1.5" ry="2.5" transform="rotate(-8 12 12.3)"/>
+      <ellipse cx="6.4" cy="15" rx="1.5" ry="2.5" transform="rotate(34 6.4 15)"/>
+      <ellipse cx="17.2" cy="14.6" rx="1.5" ry="2.5" transform="rotate(-20 17.2 14.6)"/>
+      <ellipse cx="11.6" cy="18.8" rx="1.5" ry="2.5" transform="rotate(14 11.6 18.8)"/>
+    </g>
+  ),
+  // Calice: i solfiti si dichiarano soprattutto sul vino.
+  solfiti: (c) => (
+    <g>
+      <path d="M6.6 3.4h10.8v3.3a5.4 5.4 0 0 1-10.8 0V3.4Z" fill={c}/>
+      <path d="M12 12.1v7.1M8.2 20h7.6" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M6.6 5.6h10.8" stroke="#fff" strokeWidth="1.2" opacity=".55" strokeLinecap="round"/>
+    </g>
+  ),
+};
+
+function AllergenIcon({ id, size = 22 }) {
   const a = ALLERGENS.find(x => x.id === id);
   if (!a) return null;
+  const glyph = ALLERGEN_GLYPHS[a.id];
   return (
-    <span title={a.name} style={{
-      width: size, height: size, borderRadius: '50%',
-      background: a.color + '22', color: a.color,
-      display:'inline-grid', placeItems:'center',
-      fontSize: size * 0.55, fontWeight: 700,
-      border: `1.5px solid ${a.color}55`,
-    }}>{a.name[0]}</span>
+    <span title={a.name} aria-label={a.name} style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: a.color + '1A',
+      // inset invece del border: il bollino resta esattamente `size`, e in
+      // fila non balla di un pixel a seconda del box-sizing.
+      boxShadow: `inset 0 0 0 1px ${a.color}38`,
+      display: 'inline-grid', placeItems: 'center',
+    }}>
+      {glyph ? (
+        <svg width={Math.round(size * 0.66)} height={Math.round(size * 0.66)} viewBox="0 0 24 24" fill="none" style={{display: 'block'}}>
+          {glyph(a.color)}
+        </svg>
+      ) : (
+        <span style={{fontSize: size * 0.5, fontWeight: 800, color: a.color}}>{a.name[0]}</span>
+      )}
+    </span>
   );
 }
+window.ALLERGEN_GLYPHS = ALLERGEN_GLYPHS;
 window.ALLERGENS = ALLERGENS;
 window.AllergenIcon = AllergenIcon;
 
@@ -1266,8 +1428,26 @@ function MCDishCard({
         </div>
 
         <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 8}}>
-          <div style={{flex: 1, minWidth: 0, display: 'flex', gap: 3, flexWrap: 'wrap'}}>
-            {(r.dish.allergens || []).slice(0, 5).map(a => <AllergenIcon key={a} id={a} size={17}/>)}
+          <div style={{flex: 1, minWidth: 0, display: 'flex', gap: 3, overflow: 'hidden'}}>
+            {/* Sopra i quattro si mostra un «+n»: incolonnare i bollini su due
+                righe faceva card di altezze diverse nella stessa griglia. */}
+            {(() => {
+              const tutti = r.dish.allergens || [];
+              const mostrati = tutti.length > 4 ? tutti.slice(0, 3) : tutti;
+              const resto = tutti.length - mostrati.length;
+              return (
+                <>
+                  {mostrati.map(a => <AllergenIcon key={a} id={a} size={22}/>)}
+                  {resto > 0 && (
+                    <span title={`Altri ${resto} allergeni`} style={{
+                      height: 22, minWidth: 22, padding: '0 5px', borderRadius: 999,
+                      background: '#F1F3F5', color: PN.MUTED, fontSize: 11.5, fontWeight: 800,
+                      display: 'inline-grid', placeItems: 'center', flexShrink: 0,
+                    }}>+{resto}</span>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <span onClick={e => e.stopPropagation()} style={{flexShrink: 0}}>
             <ImpToggle checked={r.active} onChange={onToggleActive}/>
@@ -1704,7 +1884,7 @@ function MCDettagliPiatto({
                         fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
                         cursor: (fromIng && !fromManual) ? 'not-allowed' : 'pointer',
                       }}>
-                      <AllergenIcon id={a.id} size={13}/>
+                      <AllergenIcon id={a.id} size={17}/>
                       {a.name}
                       {fromIng && <span style={{color: PN.PINK_DARK, fontSize: 13}}>•</span>}
                     </button>
@@ -2136,10 +2316,11 @@ function DishLibraryView({ library, menus, filters, onUpsertLibraryDish, onRemov
                       const al = ALLERGENS.find(x => x.id === a);
                       return (
                         <span key={a} style={{
+                          display:'inline-flex', alignItems:'center', gap: 5,
                           fontSize: 11.5, color: PN.MUTED, background:'#F4F5F7',
-                          padding:'2px 6px', borderRadius: 4,
+                          padding:'2px 8px 2px 3px', borderRadius: 999,
                           textTransform:'uppercase', letterSpacing: 0.5, fontWeight: 700,
-                        }}>{al?.name || a}</span>
+                        }}><AllergenIcon id={a} size={16}/>{al?.name || a}</span>
                       );
                     })}
                   </div>
@@ -2219,10 +2400,11 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
               const al = ALLERGENS.find(x => x.id === a);
               return (
                 <span key={a} style={{
+                  display:'inline-flex', alignItems:'center', gap: 5,
                   fontSize: 11.5, color: PN.MUTED, background:'#F4F5F7',
-                  padding:'2px 7px', borderRadius: 4,
+                  padding:'2px 8px 2px 3px', borderRadius: 999,
                   textTransform:'uppercase', letterSpacing: 0.5, fontWeight: 700,
-                }}>{al?.name || a}</span>
+                }}><AllergenIcon id={a} size={16}/>{al?.name || a}</span>
               );
             })}
           </div>
@@ -2480,7 +2662,7 @@ function IngredientList({ ingredients, setIngredients }) {
                   }}>
                     {ingAllergens.length > 0 ? (
                       <>
-                        {ingAllergens.slice(0,3).map(aid => <window.AllergenIcon key={aid} id={aid} size={13}/>)}
+                        {ingAllergens.slice(0,3).map(aid => <window.AllergenIcon key={aid} id={aid} size={16}/>)}
                         {ingAllergens.length > 3 && <span style={{fontSize:13, color:PN.MUTED, fontWeight:700}}>+{ingAllergens.length-3}</span>}
                       </>
                     ) : (
@@ -2531,7 +2713,7 @@ function IngredientList({ ingredients, setIngredients }) {
                             color: on ? PN.PINK_DARK : PN.TEXT,
                             fontSize:14.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
                           }}>
-                            <window.AllergenIcon id={a.id} size={12}/>
+                            <window.AllergenIcon id={a.id} size={16}/>
                             {a.name}
                           </button>
                         );
@@ -2585,7 +2767,7 @@ function IngredientList({ ingredients, setIngredients }) {
                 <span style={{fontSize:15.5, color:PN.TEXT, fontWeight:600, flex:1}}>{s.name}</span>
                 {s.allergens && s.allergens.length > 0 && (
                   <div style={{display:'flex', gap:3}}>
-                    {s.allergens.slice(0,4).map(aid => <window.AllergenIcon key={aid} id={aid} size={13}/>)}
+                    {s.allergens.slice(0,4).map(aid => <window.AllergenIcon key={aid} id={aid} size={16}/>)}
                   </div>
                 )}
               </button>
@@ -3241,7 +3423,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                       fontSize:15, fontWeight:600, cursor:(fromIng && !fromManual) ? 'not-allowed' : 'pointer', fontFamily:'inherit',
                       transition:'background 150ms ease-out, border-color 150ms ease-out',
                     }}>
-                      <AllergenIcon id={a.id} size={14}/>
+                      <AllergenIcon id={a.id} size={17}/>
                       {a.name}
                       {fromIng && <span style={{color:PN.PINK_DARK, fontSize:14}}>•</span>}
                     </button>
