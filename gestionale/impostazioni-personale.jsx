@@ -1023,7 +1023,7 @@ function DeviceForm({ st, tipoFisso, azione, modifica }) {
   );
 
   const campoPassword = deviceType.noCredentials ? null : (
-                <ImpField label="Password" required={!modifica}
+                <ImpField label={modifica ? 'Nuova password' : 'Password'} required={!modifica}
                   style={inRiga ? {marginBottom: 0} : undefined}>
                 <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
                   <div style={{position:'relative', flex: 1}}>
@@ -1316,6 +1316,16 @@ function InviteModal({ onClose, prefill }) {
   // Pre-popola da editDevice se presente
   const editDevice = prefill?.editDevice;
   const [confermaScollega, setConfermaScollega] = React.useState(false);
+  // Cambiare la password non è come cambiare il nome: stacca il dispositivo da
+  // dove sta lavorando adesso. Chi salva deve saperlo prima, non scoprirlo dal
+  // monitor in cucina che chiede le credenziali durante il servizio.
+  const [confermaPassword, setConfermaPassword] = React.useState(false);
+  const cambiaPassword = !!editDevice && password.length > 0;
+
+  function salvaEChiudi() {
+    if (kind === 'device' && !isPrinter) salvaVistaKds(dev.kdsView);
+    onClose();
+  }
 
   // In modifica la password non si ripropone — non si mostra una password già
   // data — e lasciarla vuota vuol dire «tienila com'è». Chiederla di nuovo per
@@ -1571,7 +1581,7 @@ function InviteModal({ onClose, prefill }) {
                 alla sezione Cucina, che è l'unico posto in cui si vede l'effetto
                 della scelta fatta qui. Chiudendo dalla X non parte niente. */}
             <ImpButton variant="primary"
-              onClick={() => { if (kind === 'device' && !isPrinter) salvaVistaKds(dev.kdsView); onClose(); }}
+              onClick={() => { if (cambiaPassword) setConfermaPassword(true); else salvaEChiudi(); }}
               style={{whiteSpace:'nowrap'}}
               disabled={kind === 'person' ? !personValid : !salvabile}>
               {editDevice ? 'Salva modifiche' : kind === 'person' ? 'Invia invito' : 'Associa dispositivo'}
@@ -1603,6 +1613,45 @@ function InviteModal({ onClose, prefill }) {
               <ImpButton variant="ghost" onClick={() => setConfermaScollega(false)}>Annulla</ImpButton>
               <ImpButton variant="danger" onClick={() => { setConfermaScollega(false); onClose(); }}>
                 Scollega
+              </ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conferma del cambio password. Non è una formalità: la nuova password
+          non arriva agli schermi già collegati, che restano fuori finché
+          qualcuno non la digita su ognuno. Detto prima è una scelta, scoperto
+          dopo è un monitor spento nel mezzo del servizio. */}
+      {confermaPassword && (
+        <div onClick={e => { e.stopPropagation(); setConfermaPassword(false); }} style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex:200,
+          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...IMP_MODAL_PANEL, width: 400, maxWidth:'90%', padding: 24,
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: PN.AMBER_SOFT, color: '#B45309',
+                display:'grid', placeItems:'center',
+              }}>{(BuIcons.alert||BuIcons.bulb)({size: 15, color:'currentColor'})}</span>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
+                Cambiare la password?
+              </div>
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              <b style={{color: PN.TEXT}}>{editDevice && editDevice.name}</b> verrà disconnesso da
+              tutti gli schermi su cui è collegato adesso. Per farlo rientrare dovrai inserire la
+              nuova password su ognuno.
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConfermaPassword(false)}>Annulla</ImpButton>
+              <ImpButton variant="primary" style={{whiteSpace:'nowrap'}}
+                onClick={() => { setConfermaPassword(false); salvaEChiudi(); }}>
+                Cambia password
               </ImpButton>
             </div>
           </div>
