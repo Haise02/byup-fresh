@@ -145,25 +145,133 @@ function MCLibreria() {
   );
 }
 
+// ─── MENU COMPOSER ───────────────────────────────────────────────────────────
+// Tre colonne: le categorie del menù, i piatti della categoria scelta, il
+// dettaglio del piatto con l'anteprima di come lo vede il cliente. Il menù su
+// cui si lavora si sceglie dal selettore in testata: i menù restano più di uno
+// (pranzo, cena, bambini…), semplicemente non occupano più una colonna intera.
+
+const CANALI = [
+  { id: 'qr',       label: 'Tavolo (QR)',      icona: 'grid' },
+  { id: 'delivery', label: 'Asporto/Delivery', icona: 'commerce-delivery' },
+  { id: 'pos',      label: 'Cassa (POS)',      icona: 'commerce-register' },
+];
+const CANALI_IDS = CANALI.map(c => c.id);
+// Un piatto senza `channels` è visibile ovunque: i menù già scritti non hanno
+// il campo e non devono sparire dai canali per una colonna che prima non c'era.
+const canaliDi = (it) => it.channels || CANALI_IDS;
+const prezzoCanale = (it, cid) => {
+  const o = it.channelPrices ? it.channelPrices[cid] : undefined;
+  if (o === undefined || o === null || o === '') return it.price;
+  const n = parseFloat(String(o).replace(',', '.'));
+  return isNaN(n) ? it.price : n;
+};
+const eur = (n) => '€ ' + Number(n || 0).toFixed(2).replace('.', ',');
+// Codice leggibile del piatto: iniziali della categoria + posizione nel menù.
+const codicePiatto = (catName, i) =>
+  '#' + String(catName || 'GEN').replace(/[^A-Za-zÀ-ÿ]/g, '').slice(0, 3).toUpperCase() +
+  '-' + String(100 + (i + 1) * 25).padStart(5, '0');
+
+// L'area di lavoro prende l'altezza che resta nello scroller e le tre colonne
+// scorrono ognuna per conto suo. Misurata in px di LAYOUT: il frame del
+// gestionale ha uno zoom e i vh non lo considerano.
+function useAltezzaColonne(ref) {
+  const [h, setH] = React.useState(null);
+  React.useLayoutEffect(() => {
+    const calc = () => {
+      const el = ref.current; if (!el) return;
+      const sc = el.closest('.pn-scroll'); if (!sc) return;
+      const frame = el.closest('.frame');
+      const z = frame ? (parseFloat(getComputedStyle(frame).zoom) || 1) : 1;
+      const top = (el.getBoundingClientRect().top - sc.getBoundingClientRect().top) / z + sc.scrollTop;
+      setH(Math.max(380, Math.round(sc.clientHeight - top - 24)));
+    };
+    calc();
+    const sc = ref.current && ref.current.closest('.pn-scroll');
+    const ro = (sc && window.ResizeObserver) ? new ResizeObserver(calc) : null;
+    if (ro) ro.observe(sc);
+    window.addEventListener('resize', calc);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', calc); };
+  }, []);
+  return h;
+}
+
+// Pannello di colonna: testata ferma, corpo che scorre.
+function MCPanel({ title, sub, action, children, style, bodyStyle }) {
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 14,
+      display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden',
+      boxShadow: PN.CARD_SHADOW, ...style,
+    }}>
+      {(title || action) && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+          padding: '13px 16px', borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+        }}>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>{title}</div>
+            {sub && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{sub}</div>}
+          </div>
+          {action}
+        </div>
+      )}
+      <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', ...bodyStyle}}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 function MCMenuComposer() {
   const [library, setLibrary] = React.useState(DISH_LIBRARY);
   const [menus, setMenus] = React.useState(MENUS_INIT);
   const [activeMenuId, setActiveMenuId] = React.useState('pranzo');
-  const [creatingMenu, setCreatingMenu] = React.useState(false);
-  const [newMenuName, setNewMenuName] = React.useState('');
-  const [openMenuDot, setOpenMenuDot] = React.useState(null); // id menu con dropdown aperto
-  const [renamingMenuId, setRenamingMenuId] = React.useState(null);
-  const [renameVal, setRenameVal] = React.useState('');
-  const [confirmDelId, setConfirmDelId] = React.useState(null);
   const [aiUpload, setAiUpload] = React.useState(false);
-  const activeMenu = menus.find(m => m.id === activeMenuId);
 
-  const createMenu = () => {
-    if (!newMenuName.trim()) return;
+  // colonna 1 — categorie
+  const [activeCat, setActiveCat] = React.useState('Primi');
+  const [addingCat, setAddingCat] = React.useState(false);
+  const [newCatName, setNewCatName] = React.useState('');
+  const [renamingCat, setRenamingCat] = React.useState(null);
+  const [catMenuOpen, setCatMenuOpen] = React.useState(null);
+  const [dragCat, setDragCat] = React.useState(null);
+  const [hoverCat, setHoverCat] = React.useState(null);
+
+  // colonna 2 — piatti
+  const [view, setView] = React.useState('grid');
+  const [sort, setSort] = React.useState('manuale');
+  const [search, setSearch] = React.useState('');
+  const [stateFilter, setStateFilter] = React.useState('all');
+  const [selectMode, setSelectMode] = React.useState(false);
+  const [selection, setSelection] = React.useState([]);
+  const [picker, setPicker] = React.useState(null);
+  const [editingDish, setEditingDish] = React.useState(null);
+  const [editingPrice, setEditingPrice] = React.useState(null);
+  const [dragDish, setDragDish] = React.useState(null);
+
+  // colonna 3 — dettaglio
+  const [detailId, setDetailId] = React.useState(null);
+
+  const gridRef = React.useRef(null);
+  const hCol = useAltezzaColonne(gridRef);
+
+  const activeMenu = menus.find(m => m.id === activeMenuId);
+  const totalDishesIn = (m) => m.categories.reduce((s, c) => s + c.items.length, 0);
+
+  // Cambiando menù cambia tutto il contesto: categoria, selezione, dettaglio.
+  React.useEffect(() => {
+    const m = menus.find(x => x.id === activeMenuId);
+    const nomi = m ? m.categories.map(c => c.name) : [];
+    setActiveCat(c => (nomi.includes(c) ? c : (nomi[0] || null)));
+    setSelection([]); setSelectMode(false); setDetailId(null); setEditingPrice(null);
+  }, [activeMenuId]);
+
+  // ── mutators: menù ────────────────────────────────────────────────────────
+  const createMenu = (nome) => {
     const id = 'm' + Date.now();
-    setMenus(prev => [...prev, { id, name: newMenuName.trim(), active: true, categories: [] }]);
+    setMenus(prev => [...prev, { id, name: nome, active: true, categories: [] }]);
     setActiveMenuId(id);
-    setNewMenuName(''); setCreatingMenu(false);
   };
   const updateMenu = (id, patch) => setMenus(prev => {
     if ('active' in patch) {
@@ -175,409 +283,386 @@ function MCMenuComposer() {
   const deleteMenu = (id) => {
     setMenus(prev => prev.filter(m => m.id !== id));
     if (activeMenuId === id) {
-      const remaining = menus.filter(m => m.id !== id);
-      if (remaining.length) setActiveMenuId(remaining[0].id);
+      const rimasti = menus.filter(m => m.id !== id);
+      if (rimasti.length) setActiveMenuId(rimasti[0].id);
     }
-    setOpenMenuDot(null);
   };
   const duplicateMenu = (id) => {
     const src = menus.find(m => m.id === id); if (!src) return;
     const newId = 'm' + Date.now();
     setMenus(prev => [...prev, { ...src, id: newId, name: src.name + ' (copia)', active: false }]);
-    setOpenMenuDot(null); setActiveMenuId(newId);
+    setActiveMenuId(newId);
   };
 
-  const totalDishesIn = (m) => m.categories.reduce((s,c) => s + c.items.length, 0);
-
-  // Mutators libreria
+  // ── mutators: libreria ────────────────────────────────────────────────────
   const upsertLibraryDish = (d) => setLibrary(prev => {
     const i = prev.findIndex(x => x.id === d.id);
     if (i >= 0) { const next = [...prev]; next[i] = {...next[i], ...d}; return next; }
     return [...prev, d];
   });
+
+  // ── mutators: menù attivo ─────────────────────────────────────────────────
+  const updateActiveMenu = (fn) => setMenus(prev => prev.map(m => m.id === activeMenuId ? fn(m) : m));
+  const addCategoryToMenu = (catName) => {
+    updateActiveMenu(m => m.categories.some(c => c.name === catName)
+      ? m
+      : {...m, categories: [...m.categories, {name: catName, items: []}]});
+    setActiveCat(catName);
+  };
+  const removeCategoryFromMenu = (catName) => {
+    updateActiveMenu(m => ({...m, categories: m.categories.filter(c => c.name !== catName)}));
+    if (activeCat === catName) {
+      const rimaste = (activeMenu ? activeMenu.categories : []).filter(c => c.name !== catName);
+      setActiveCat(rimaste.length ? rimaste[0].name : null);
+    }
+    setDetailId(null); setSelection([]);
+  };
+  const renameCategory = (oldName, newName) => {
+    updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === oldName ? {...c, name: newName} : c)}));
+    if (activeCat === oldName) setActiveCat(newName);
+  };
+  const addDishToCategory = (catName, dishId, price = 0) => updateActiveMenu(m => ({...m, categories: m.categories.map(c =>
+    c.name === catName
+      ? {...c, items: c.items.some(i => i.dishId === dishId) ? c.items : [...c.items, {dishId, price, active: true}]}
+      : c)}));
+  const removeDishFromCategory = (catName, dishId) => {
+    updateActiveMenu(m => ({...m, categories: m.categories.map(c =>
+      c.name === catName ? {...c, items: c.items.filter(i => i.dishId !== dishId)} : c)}));
+    setSelection(s => s.filter(x => x !== dishId));
+    setDetailId(d => d === dishId ? null : d);
+  };
+  const updateMenuItem = (catName, dishId, patch) => updateActiveMenu(m => ({...m, categories: m.categories.map(c =>
+    c.name === catName ? {...c, items: c.items.map(i => i.dishId === dishId ? {...i, ...patch} : i)} : c)}));
   const removeLibraryDish = (id) => {
     setLibrary(prev => prev.filter(x => x.id !== id));
     setMenus(prev => prev.map(m => ({...m, categories: m.categories.map(c => ({...c, items: c.items.filter(it => it.dishId !== id)}))})));
+    setDetailId(d => d === id ? null : d);
   };
 
-  // Mutators menù attivo
-  const updateActiveMenu = (fn) => setMenus(prev => prev.map(m => m.id === activeMenuId ? fn(m) : m));
-  const addCategoryToMenu = (catName) => updateActiveMenu(m => ({...m, categories: [...m.categories, {name: catName, items: []}]}));
-  const removeCategoryFromMenu = (catName) => updateActiveMenu(m => ({...m, categories: m.categories.filter(c => c.name !== catName)}));
-  const renameCategory = (oldName, newName) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === oldName ? {...c, name: newName} : c)}));
-  const addDishToCategory = (catName, dishId, price = 0) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === catName ? {...c, items: c.items.some(i => i.dishId === dishId) ? c.items : [...c.items, {dishId, price, active: true}]} : c)}));
-  const removeDishFromCategory = (catName, dishId) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === catName ? {...c, items: c.items.filter(i => i.dishId !== dishId)} : c)}));
-  const updateMenuItem = (catName, dishId, patch) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === catName ? {...c, items: c.items.map(i => i.dishId === dishId ? {...i, ...patch} : i)} : c)}));
-
-  return (
-    <div style={{display:'grid', gridTemplateColumns:'260px 1fr', gap: 16}}>
-      {/* Sidebar */}
-      <aside>
-        <ImpCard aurora title="I tuoi menù" sub="Crea menù differenti per pranzo, cena, eventi" action={
-              <button onClick={() => setCreatingMenu(c => !c)} title="Nuovo menù" style={{
-                width:30, height:30, borderRadius:8, border:'none',
-                background: creatingMenu ? PN.PINK : PN.TEXT, color: PN.WHITE, cursor:'pointer',
-                display:'grid', placeItems:'center', transition:'transform .2s',
-                transform: creatingMenu ? 'rotate(45deg)' : 'none',
-              }}><PnI.Plus size={14}/></button>
-            }>
-              <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-                {menus.map(m => {
-                  const isActive = m.id === activeMenuId;
-                  const dotOpen = openMenuDot === m.id;
-                  const isRenaming = renamingMenuId === m.id;
-                  const isConfirmDel = confirmDelId === m.id;
-                  return (
-                    <div key={m.id} onClick={() => setActiveMenuId(m.id)} style={{
-                      position:'relative',
-                      padding: '12px 14px',
-                      border: `1.5px solid ${isActive ? PN.PINK : PN.BORDER_SOFT}`,
-                      background: isActive ? PN.PINK_SOFT : PN.WHITE,
-                      borderRadius: 10, cursor:'pointer',
-                      transition:'border-color 0.15s, background 0.15s',
-                    }}>
-                      <div style={{display:'flex', alignItems:'center', gap: 6, marginBottom: 4}}>
-                        {isRenaming ? (
-                          <input autoFocus value={renameVal} onChange={e => setRenameVal(e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                            onKeyDown={e => { e.stopPropagation(); if (e.key==='Enter' && renameVal.trim()) { updateMenu(m.id,{name:renameVal.trim()}); setRenamingMenuId(null); } if (e.key==='Escape') setRenamingMenuId(null); }}
-                            onBlur={() => { if (renameVal.trim()) updateMenu(m.id,{name:renameVal.trim()}); setRenamingMenuId(null); }}
-                            style={{flex:1, fontSize:15.5, fontWeight:700, border:'none', outline:`2px solid ${PN.PINK}`, borderRadius:5, padding:'2px 6px', fontFamily:'inherit', background:'transparent', color: PN.PINK_DARK}}
-                          />
-                        ) : (
-                          <span style={{fontSize:15.5, fontWeight:700, flex:1, color: isActive ? PN.PINK_DARK : PN.TEXT}}>{m.name}</span>
-                        )}
-                        <button onClick={e => { e.stopPropagation(); setOpenMenuDot(dotOpen ? null : m.id); setConfirmDelId(null); }} style={{
-                          width:24, height:24, borderRadius:6,
-                          background: dotOpen ? '#F4F5F7' : 'transparent', border:'none',
-                          cursor:'pointer', color: PN.MUTED,
-                          display:'grid', placeItems:'center', fontSize:18,
-                        }}>⋯</button>
-                      </div>
-                      <div style={{display:'flex', alignItems:'center', gap:8, fontSize:13.5, color:PN.MUTED}}>
-                        <span>{totalDishesIn(m)} {totalDishesIn(m) === 1 ? 'piatto' : 'piatti'}</span>
-                        <span style={{color: PN.BORDER}}>·</span>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            updateMenu(m.id, {active: !m.active});
-                          }}
-                          title={m.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
-                          style={{
-                            display:'inline-flex', alignItems:'center', gap:5,
-                            padding:'2px 8px', borderRadius:999,
-                            border:'none', cursor:'pointer', fontFamily:'inherit',
-                            fontSize:12.5, fontWeight:700, letterSpacing:0.3,
-                            background: m.active ? PN.GREEN_SOFT : '#F1F3F5',
-                            color: m.active ? PN.GREEN : PN.MUTED,
-                            transition:'background 0.15s, color 0.15s',
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.background = m.active ? '#D6F0DC' : '#E5E7EB';
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.background = m.active ? PN.GREEN_SOFT : '#F1F3F5';
-                          }}
-                        >
-                          <span style={{
-                            width:6, height:6, borderRadius:'50%',
-                            background: m.active ? PN.GREEN : '#9CA3AF',
-                          }}/>
-                          {m.active ? 'ATTIVO' : 'DISATTIVATO'}
-                        </button>
-                      </div>
-                      {dotOpen && (
-                        <div onClick={e => e.stopPropagation()} style={{
-                          position:'absolute', top:'calc(100% + 4px)', right:0,
-                          minWidth:180, background: PN.WHITE,
-                          border:`1px solid ${PN.BORDER}`, borderRadius:10,
-                          boxShadow:'0 8px 24px rgba(0,0,0,0.10)',
-                          padding:5, zIndex:50,
-                        }}>
-                          <MenuDotItem icon="✏" onClick={() => { setRenameVal(m.name); setRenamingMenuId(m.id); setOpenMenuDot(null); }}>Rinomina</MenuDotItem>
-                          <MenuDotItem icon={m.active ? '⏸' : '▶'} onClick={() => {
-                            updateMenu(m.id, {active: !m.active});
-                            setOpenMenuDot(null);
-                          }}>
-                            {m.active ? 'Disattiva menù' : 'Attiva menù'}
-                          </MenuDotItem>
-                          <MenuDotItem icon="⧉" onClick={() => { duplicateMenu(m.id); setOpenMenuDot(null); }}>Duplica</MenuDotItem>
-                          {menus.length > 1 && <>
-                            <div style={{height:1, background:PN.BORDER_SOFT, margin:'4px 0'}}/>
-                            {isConfirmDel ? (
-                              <div style={{padding:'6px 8px', display:'flex', gap:5}}>
-                                <button onClick={() => setConfirmDelId(null)} style={{flex:1, padding:'5px 0', fontSize:13.5, fontWeight:600, background:'#F4F5F7', border:'none', borderRadius:6, cursor:'pointer', fontFamily:'inherit', color:PN.TEXT}}>Annulla</button>
-                                <button onClick={() => { deleteMenu(m.id); setOpenMenuDot(null); setConfirmDelId(null); }} style={{flex:1, padding:'5px 0', fontSize:13.5, fontWeight:700, background:'#DC2626', border:'none', borderRadius:6, cursor:'pointer', fontFamily:'inherit', color:'#fff'}}>Elimina</button>
-                              </div>
-                            ) : (
-                              <MenuDotItem icon="🗑" danger onClick={() => setConfirmDelId(m.id)}>Elimina</MenuDotItem>
-                            )}
-                          </>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {creatingMenu && (
-                  <div style={{
-                    padding:'12px 14px', border:`1.5px dashed ${PN.PINK}`, borderRadius: 10,
-                    background: PN.PINK_SOFT, animation:'fadeInDown .2s ease-out',
-                    display:'flex', flexDirection:'column', gap: 8,
-                  }}>
-                    <input autoFocus value={newMenuName} onChange={e => setNewMenuName(e.target.value)} placeholder="Nome menù (es. Cena)"
-                      onKeyDown={e => { if (e.key === 'Enter') createMenu(); if (e.key === 'Escape') setCreatingMenu(false); }}
-                      style={{padding:'7px 10px', border:`1px solid ${PN.BORDER}`, borderRadius:6, fontSize:15, fontFamily:'inherit', outline:'none', fontWeight:600}}/>
-                    <div style={{display:'flex', gap: 6, justifyContent:'flex-end'}}>
-                      <button onClick={() => { setCreatingMenu(false); setNewMenuName(''); }} style={{padding:'5px 10px', background:'transparent', border:'none', color: PN.MUTED, fontSize:14, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
-                      <button onClick={createMenu} disabled={!newMenuName.trim()} style={{padding:'5px 12px', background: newMenuName.trim() ? PN.PINK : '#E5E7EB', color:'#fff', border:'none', borderRadius:6, fontSize:14, fontWeight:700, cursor: newMenuName.trim()?'pointer':'default', fontFamily:'inherit'}}>Crea</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ImpCard>
-
-            {/* AI shortcut — magenta brand vivace, shimmer permanente, sparkle pulse */}
-            <div style={{marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 6}}>
-              <AiUploadCta onClick={() => setAiUpload(true)}/>
-              <div style={{fontSize: 13, color: PN.MUTED, textAlign: 'center', lineHeight: 1.45, marginTop: 2}}>
-                L'AI estrae piatti, prezzi, allergeni
-              </div>
-            </div>
-        </aside>
-
-      {/* Main */}
-      <main>
-        {activeMenu && (
-          <MenuComposeView
-            menu={activeMenu}
-            library={library}
-            menus={menus}
-            onAddCategory={addCategoryToMenu}
-            onRemoveCategory={removeCategoryFromMenu}
-            onRenameCategory={renameCategory}
-            onAddDish={addDishToCategory}
-            onRemoveDish={removeDishFromCategory}
-            onUpdateItem={updateMenuItem}
-            onUpsertLibraryDish={upsertLibraryDish}
-
-            activeMenuId={activeMenuId}
-          />
-        )}
-      </main>
-      {aiUpload && (
-        <AIMenuUploadModal
-          onClose={() => setAiUpload(false)}
-          onImport={({ menuName, categories, dishes }) => {
-            // Aggiungi piatti alla libreria (se non già presenti)
-            setLibrary(prev => {
-              const next = [...prev];
-              dishes.forEach(d => { if (!next.find(x => x.id === d.id)) next.push(d); });
-              return next;
-            });
-            // Crea nuovo menù
-            const id = 'm' + Date.now();
-            setMenus(prev => [...prev, { id, name: menuName, active: true, categories }]);
-            setActiveMenuId(id);
-            setAiUpload(false);
-          }}
-        />
-      )}
-
-    </div>
-  );
-}
-
-function MenuDotItem({ icon, children, danger, onClick }) {
-  return (
-    <button onClick={onClick} style={{
-      display:'flex', alignItems:'center', gap:8, width:'100%',
-      padding:'7px 10px', background:'transparent', border:'none',
-      borderRadius:7, fontSize:15, fontFamily:'inherit',
-      color: danger ? '#DC2626' : PN.TEXT,
-      cursor:'pointer', textAlign:'left',
-    }}
-    onMouseEnter={e => e.currentTarget.style.background = danger ? '#FEF2F2' : '#F4F5F7'}
-    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <span style={{width:16, fontSize:15}}>{icon}</span>{children}
-    </button>
-  );
-}
-
-function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory, onRenameCategory, onAddDish, onRemoveDish, onUpdateItem, onUpsertLibraryDish, onSwitchToLibrary, setSettingsMenuId, activeMenuId }) {
-  const [search, setSearch] = React.useState('');
-  const [stateFilter, setStateFilter] = React.useState('all');
-  const [collapsed, setCollapsed] = React.useState({});
-  const [editingDish, setEditingDish] = React.useState(null); // {dishId|null, catName, isNew}
-  const [editingPrice, setEditingPrice] = React.useState(null); // {catName, dishId}
-  const [picker, setPicker] = React.useState(null); // catName per cui aprire picker libreria
-  const [addingCat, setAddingCat] = React.useState(false);
-  const [newCatName, setNewCatName] = React.useState('');
-
-  const dishById = (id) => library.find(d => d.id === id);
-
-  // Compose rows: rows con dati piatto + dati menu-item
-  const cats = menu.categories.map(c => ({
-    ...c,
-    rows: c.items.map(it => ({...it, dish: dishById(it.dishId)})).filter(r => r.dish),
-  }));
-
-  const totalDishes = cats.reduce((s,c) => s + c.rows.length, 0);
-  const totalActive = cats.reduce((s,c) => s + c.rows.filter(r => r.active).length, 0);
-  const totalDisabled = totalDishes - totalActive;
-
-  const matchesSearch = r => !search || r.dish.name.toLowerCase().includes(search.toLowerCase()) || (r.dish.desc||'').toLowerCase().includes(search.toLowerCase());
-  const matchesState = r => stateFilter === 'all' || (stateFilter === 'active' && r.active) || (stateFilter === 'disabled' && !r.active);
-
-  const handleAddCategory = () => {
-    if (newCatName.trim()) { onAddCategory(newCatName.trim()); setNewCatName(''); setAddingCat(false); }
+  // ── riordino e spostamenti ────────────────────────────────────────────────
+  const reorderCats = (from, to) => updateActiveMenu(m => {
+    if (from === to || from == null || to == null) return m;
+    const cs = [...m.categories]; const [x] = cs.splice(from, 1); cs.splice(to, 0, x);
+    return {...m, categories: cs};
+  });
+  const reorderDishes = (catName, from, to) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => {
+    if (c.name !== catName || from === to) return c;
+    const its = [...c.items]; const [x] = its.splice(from, 1); its.splice(to, 0, x);
+    return {...c, items: its};
+  })}));
+  const moveDishToCat = (fromCat, toCat, dishId) => {
+    if (fromCat === toCat) return;
+    updateActiveMenu(m => {
+      const src = m.categories.find(c => c.name === fromCat);
+      const it = src && src.items.find(i => i.dishId === dishId);
+      if (!it) return m;
+      return {...m, categories: m.categories.map(c => {
+        if (c.name === fromCat) return {...c, items: c.items.filter(i => i.dishId !== dishId)};
+        if (c.name === toCat)   return {...c, items: c.items.some(i => i.dishId === dishId) ? c.items : [...c.items, it]};
+        return c;
+      })};
+    });
   };
+
+  // ── azioni multiple ───────────────────────────────────────────────────────
+  const bulkMove = (toCat) => {
+    selection.forEach(id => moveDishToCat(activeCat, toCat, id));
+    setSelection([]); setSelectMode(false);
+  };
+  const bulkRemove = () => {
+    updateActiveMenu(m => ({...m, categories: m.categories.map(c =>
+      c.name === activeCat ? {...c, items: c.items.filter(i => !selection.includes(i.dishId))} : c)}));
+    setDetailId(d => selection.includes(d) ? null : d);
+    setSelection([]); setSelectMode(false);
+  };
+  const bulkPrice = (mode, valore) => {
+    const v = parseFloat(String(valore).replace(',', '.'));
+    if (isNaN(v)) return;
+    const nuovoPrezzo = (p0) => {
+      let p = p0;
+      if (mode === 'set')     p = v;
+      if (mode === 'inc-eur') p = p0 + v;
+      if (mode === 'dec-eur') p = p0 - v;
+      if (mode === 'inc-pct') p = p0 * (1 + v / 100);
+      if (mode === 'dec-pct') p = p0 * (1 - v / 100);
+      return Math.max(0, Math.round(p * 100) / 100);
+    };
+    updateActiveMenu(m => ({
+      ...m,
+      categories: m.categories.map(c => c.name !== activeCat ? c : {
+        ...c,
+        items: c.items.map(i => selection.includes(i.dishId) ? {...i, price: nuovoPrezzo(i.price)} : i),
+      }),
+    }));
+    setSelection([]); setSelectMode(false);
+  };
+
+  // ── righe della categoria aperta ──────────────────────────────────────────
+  const cat = activeMenu ? activeMenu.categories.find(c => c.name === activeCat) : null;
+  const rowsAll = cat
+    ? cat.items.map((it, i) => ({...it, idx: i, dish: library.find(d => d.id === it.dishId)})).filter(r => r.dish)
+    : [];
+  const q = search.trim().toLowerCase();
+  let rows = rowsAll
+    .filter(r => !q || r.dish.name.toLowerCase().includes(q) || (r.dish.desc || '').toLowerCase().includes(q))
+    .filter(r => stateFilter === 'all' || (stateFilter === 'active' ? r.active : !r.active));
+  if (sort === 'nome')        rows = [...rows].sort((a, b) => a.dish.name.localeCompare(b.dish.name));
+  if (sort === 'prezzo-asc')  rows = [...rows].sort((a, b) => a.price - b.price);
+  if (sort === 'prezzo-desc') rows = [...rows].sort((a, b) => b.price - a.price);
+
+  const attivi = rowsAll.filter(r => r.active).length;
+  const detail = rowsAll.find(r => r.dishId === detailId) || null;
+
+  const toggleSel = (id) => setSelection(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+
+  // La testata cambia altezza quando compare la barra delle azioni multiple:
+  // le colonne si rimisurano sull'evento che già ascoltano.
+  const inSelezione = selection.length > 0;
+  React.useEffect(() => { window.dispatchEvent(new Event('resize')); }, [inSelezione]);
+
+  React.useEffect(() => {
+    if (!catMenuOpen) return;
+    const chiudi = () => setCatMenuOpen(null);
+    document.addEventListener('mousedown', chiudi);
+    return () => document.removeEventListener('mousedown', chiudi);
+  }, [catMenuOpen]);
 
   return (
     <div>
-      <ImpCard
-        title={menu.name}
-        sub={`${totalDishes} piatti · ${totalActive} attivi${totalDisabled ? ` · ${totalDisabled} disattivati` : ''}`}
-        action={
-          <span style={{
-            fontSize: 12, fontWeight: 800, letterSpacing: 0.5,
-            padding:'3px 9px', borderRadius: 5,
-            background: menu.active ? PN.GREEN_SOFT : PN.BORDER_SOFT,
-            color: menu.active ? PN.GREEN : PN.MUTED,
-          }}>{menu.active ? 'ATTIVO' : 'DISATTIVATO'}</span>
-        }
-      >
-        {/* Toolbar */}
-        <div style={{
-          display:'flex', gap: 10, alignItems:'center', marginBottom: 16,
-          padding: '12px 14px', background:'#FAFBFC',
-          border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10, flexWrap:'wrap',
-        }}>
-          <div style={{position:'relative', flex:'1 1 240px', minWidth: 200}}>
-            <span style={{position:'absolute', left: 11, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display: 'flex', alignItems: 'center'}}><PnI.Search size={13} color={PN.MUTED}/></span>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca nei piatti del menù…" style={{
-              width:'100%', padding: '9px 12px 9px 34px',
-              border:`1px solid ${PN.BORDER}`, borderRadius: 8,
-              fontSize: 15, fontFamily:'inherit', outline:'none', background: PN.WHITE,
-            }}/>
-          </div>
-          <div style={{display:'flex', background: PN.WHITE, padding:3, borderRadius:8, gap:2, border:`1px solid ${PN.BORDER}`}}>
-            {[
-              {id:'all', label:'Tutti', count: totalDishes},
-              {id:'active', label:'Attivi', count: totalActive},
-              {id:'disabled', label:'Disattivati', count: totalDisabled},
-            ].map(s => (
-              <button key={s.id} onClick={() => setStateFilter(s.id)} style={{
-                padding:'6px 12px', borderRadius: 6,
-                background: stateFilter===s.id ? PN.TEXT : 'transparent',
-                color: stateFilter===s.id ? PN.WHITE : PN.MUTED,
-                border:'none', fontSize: 14, fontWeight: 600, fontFamily:'inherit',
-                cursor:'pointer', display:'inline-flex', alignItems:'center', gap: 6,
-              }}>
-                {s.label}
-                <span style={{fontSize: 12.5, padding:'1px 6px', borderRadius: 999, background: stateFilter===s.id ? 'rgba(255,255,255,0.2)' : PN.BORDER_SOFT}}>{s.count}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Testata: il menù su cui si lavora — oppure, quando ci sono piatti
+          selezionati, la barra delle azioni multiple. */}
+      {selection.length > 0 ? (
+        <MCBulkBar
+          count={selection.length}
+          categorie={(activeMenu ? activeMenu.categories : []).map(c => c.name).filter(n => n !== activeCat)}
+          onClear={() => { setSelection([]); setSelectMode(false); }}
+          onMove={bulkMove}
+          onPrice={bulkPrice}
+          onDelete={bulkRemove}
+        />
+      ) : (
+        <MCMenuSwitcher
+          menus={menus}
+          activeMenuId={activeMenuId}
+          onPick={setActiveMenuId}
+          onCreate={createMenu}
+          onUpdate={updateMenu}
+          onDelete={deleteMenu}
+          onDuplicate={duplicateMenu}
+          totalDishesIn={totalDishesIn}
+          onAiUpload={() => setAiUpload(true)}
+        />
+      )}
 
-        {/* Categorie del menù */}
-        {cats.map((cat) => {
-          const visible = cat.rows.filter(r => matchesSearch(r) && matchesState(r));
-          if ((search || stateFilter !== 'all') && visible.length === 0) return null;
-          const isCollapsed = collapsed[cat.name];
-          return (
-            <div key={cat.name} style={{
-              border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
-              marginBottom: 14, overflow:'hidden', background: PN.WHITE,
-            }}>
-              <div style={{
-                display:'flex', alignItems:'center', gap: 12,
-                padding: '14px 18px',
-                background: !isCollapsed ? '#FAFBFC' : PN.WHITE,
-                borderBottom: !isCollapsed ? `1px solid ${PN.BORDER_SOFT}` : 'none',
-              }}>
-                <button onClick={() => setCollapsed(o => ({...o, [cat.name]: !o[cat.name]}))} style={{
-                  background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap: 12, flex: 1, padding: 0, fontFamily:'inherit', textAlign:'left',
-                }}>
-                  <span style={{fontSize: 14, color: PN.MUTED, transition:'transform .2s', transform: isCollapsed ? 'rotate(-90deg)' : 'none', display:'inline-block'}}>▼</span>
-                  <span style={{color: PN.MUTED, display:'inline-flex'}}>
-                    <Icon name={CAT_ICON[cat.name] || 'star'} size={16}/>
+      <div ref={gridRef} style={{
+        display: 'grid', gridTemplateColumns: '236px minmax(0, 1fr) 372px',
+        gap: 14, height: hCol || undefined, alignItems: 'stretch',
+      }}>
+        {/* ── Colonna 1: categorie ─────────────────────────────────────── */}
+        <MCPanel title="Categorie" bodyStyle={{padding: '10px 10px 12px'}}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 2}}>
+            {(activeMenu ? activeMenu.categories : []).map((c, i) => {
+              const on = c.name === activeCat;
+              const inRinomina = renamingCat === c.name;
+              return (
+                <div
+                  key={c.name}
+                  draggable={!inRinomina}
+                  onDragStart={e => { setDragCat(i); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragEnd={() => setDragCat(null)}
+                  onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    if (dragDish) { moveDishToCat(dragDish.cat, c.name, dragDish.dishId); setDragDish(null); }
+                    else if (dragCat !== null) { reorderCats(dragCat, i); setDragCat(null); }
+                  }}
+                  onClick={() => { if (!inRinomina) { setActiveCat(c.name); setDetailId(null); setSelection([]); } }}
+                  style={{
+                    position: 'relative',
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '9px 10px', borderRadius: 9, cursor: 'pointer',
+                    background: on ? PN.PINK_SOFT : 'transparent',
+                    color: on ? PN.PINK_DARK : PN.TEXT,
+                    opacity: dragCat === i ? 0.45 : 1,
+                    transition: 'background 150ms ease-out',
+                  }}
+                  onMouseEnter={e => { setHoverCat(c.name); if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+                  onMouseLeave={e => { setHoverCat(h => h === c.name ? null : h); if (!on) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <span title="Trascina per riordinare" style={{color: on ? PN.PINK : PN.MUTED_LIGHT, cursor: 'grab', display: 'inline-flex'}}>
+                    <PnI.Drag size={12}/>
                   </span>
-                  <span style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{cat.name}</span>
-                  <span style={{fontSize: 14, color: PN.MUTED, fontWeight: 500}}>{visible.length} di {cat.rows.length}</span>
-                </button>
-                <button onClick={() => { if (confirm(`Rimuovere la categoria "${cat.name}" da questo menù? I piatti restano nella libreria.`)) onRemoveCategory(cat.name); }} title="Rimuovi categoria dal menù" style={{
-                  background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', fontSize: 15, padding: '4px 8px', borderRadius: 6,
-                }}>✕</button>
-              </div>
-              {!isCollapsed && (
-                <div>
-                  {visible.map((r) => (
-                    <DishRow
-                      key={r.dishId}
-                      dish={r.dish}
-                      item={r}
-                      onToggleActive={() => onUpdateItem(cat.name, r.dishId, {active: !r.active})}
-                      onPriceClick={() => setEditingPrice({catName: cat.name, dishId: r.dishId})}
-                      editingPrice={editingPrice && editingPrice.catName===cat.name && editingPrice.dishId===r.dishId}
-                      onPriceCommit={(v) => { onUpdateItem(cat.name, r.dishId, {price: v}); setEditingPrice(null); }}
-                      onPriceCancel={() => setEditingPrice(null)}
-                      onEdit={() => setEditingDish({dishId: r.dishId, catName: cat.name, isNew: false, currentPrice: r.price})}
-                      onRemove={() => onRemoveDish(cat.name, r.dishId)}
+                  <span style={{display: 'inline-flex', color: on ? PN.PINK_DARK : PN.MUTED}}>
+                    <Icon name={CAT_ICON[c.name] || 'star'} size={16}/>
+                  </span>
+                  {inRinomina ? (
+                    <input
+                      autoFocus defaultValue={c.name}
+                      onClick={e => e.stopPropagation()}
+                      onKeyDown={e => {
+                        e.stopPropagation();
+                        if (e.key === 'Enter' && e.target.value.trim()) { renameCategory(c.name, e.target.value.trim()); setRenamingCat(null); }
+                        if (e.key === 'Escape') setRenamingCat(null);
+                      }}
+                      onBlur={e => { if (e.target.value.trim() && e.target.value.trim() !== c.name) renameCategory(c.name, e.target.value.trim()); setRenamingCat(null); }}
+                      style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, fontFamily: 'inherit', border: 'none', outline: `2px solid ${PN.PINK}`, borderRadius: 5, padding: '1px 5px', background: PN.WHITE, color: PN.TEXT}}
                     />
-                  ))}
-                  {visible.length === 0 && cat.rows.length === 0 && (
-                    <div style={{padding: '20px 18px', textAlign:'center', color: PN.MUTED, fontSize: 14.5, fontStyle:'italic'}}>Categoria vuota</div>
+                  ) : (
+                    <span style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: on ? 700 : 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{c.name}</span>
                   )}
-                  {/* Bottone in fondo alla categoria */}
-                  <div style={{padding: '12px 18px', borderTop: `1px dashed ${PN.BORDER_SOFT}`, background: '#FCFCFD'}}>
-                    <button onClick={() => setPicker(cat.name)} style={{
-                      width:'100%', padding:'9px 12px', borderRadius: 8,
-                      border: `1.5px dashed ${PN.BORDER}`, background: PN.BG,
-                      color: PN.MUTED_SOFT, fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                      display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
+                  <span style={{fontSize: 13, fontWeight: 700, color: on ? PN.PINK_DARK : PN.MUTED, minWidth: 16, textAlign: 'right'}}>{c.items.length}</span>
+                  <button
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); setCatMenuOpen(o => o === c.name ? null : c.name); }}
+                    title="Azioni categoria"
+                    style={{
+                      width: 20, height: 20, borderRadius: 5, border: 'none', flexShrink: 0,
+                      background: catMenuOpen === c.name ? '#EDEFF2' : 'transparent',
+                      color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+                      fontSize: 15, lineHeight: 1,
+                      // Sta lì solo quando serve: a riposo la colonna resta un elenco pulito.
+                      opacity: (hoverCat === c.name || catMenuOpen === c.name) ? 1 : 0,
+                      transition: 'opacity 120ms ease-out',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.MUTED; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = PN.BG; e.currentTarget.style.color = PN.MUTED_SOFT; }}
-                    >+ Aggiungi piatto</button>
-                  </div>
+                  >⋯</button>
+                  {catMenuOpen === c.name && (
+                    <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} style={{
+                      position: 'absolute', top: 'calc(100% - 2px)', right: 4, zIndex: 60,
+                      minWidth: 178, background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+                      borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', padding: 5,
+                    }}>
+                      <MenuDotItem icon="✏" onClick={() => { setRenamingCat(c.name); setCatMenuOpen(null); }}>Rinomina</MenuDotItem>
+                      <MenuDotItem icon="＋" onClick={() => { setActiveCat(c.name); setPicker(c.name); setCatMenuOpen(null); }}>Aggiungi piatto</MenuDotItem>
+                      <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
+                      <MenuDotItem icon="🗑" danger onClick={() => {
+                        setCatMenuOpen(null);
+                        if (confirm(`Rimuovere la categoria "${c.name}" da questo menù? I piatti restano nella libreria.`)) removeCategoryFromMenu(c.name);
+                      }}>Rimuovi dal menù</MenuDotItem>
+                    </div>
+                  )}
                 </div>
-              )}
+              );
+            })}
+          </div>
+
+          {addingCat ? (
+            <div style={{marginTop: 10, padding: 10, border: `1.5px solid ${PN.PINK}`, background: PN.PINK_SOFT, borderRadius: 10}}>
+              <input
+                autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newCatName.trim()) { addCategoryToMenu(newCatName.trim()); setNewCatName(''); setAddingCat(false); }
+                  if (e.key === 'Escape') { setAddingCat(false); setNewCatName(''); }
+                }}
+                placeholder="Nome categoria"
+                style={{width: '100%', padding: '7px 9px', border: `1px solid ${PN.BORDER}`, borderRadius: 7, fontSize: 14.5, fontFamily: 'inherit', outline: 'none', fontWeight: 600}}
+              />
+              <div style={{display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 8}}>
+                <button onClick={() => { setAddingCat(false); setNewCatName(''); }} style={{padding: '5px 9px', background: 'transparent', border: 'none', color: PN.MUTED, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit'}}>Annulla</button>
+                <button onClick={() => { if (newCatName.trim()) { addCategoryToMenu(newCatName.trim()); setNewCatName(''); setAddingCat(false); } }}
+                  style={{padding: '5px 11px', background: newCatName.trim() ? PN.PINK : '#E5E7EB', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'}}>Crea</button>
+              </div>
             </div>
-          );
-        })}
+          ) : (
+            <button onClick={() => setAddingCat(true)} style={{
+              width: '100%', marginTop: 10, padding: '11px 12px', borderRadius: 10,
+              border: `1.5px dashed ${PN.PINK_SOFT}`, background: PN.PINK_BG_SOFT,
+              color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              transition: 'background 150ms ease-out',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}
+            onMouseLeave={e => e.currentTarget.style.background = PN.PINK_BG_SOFT}
+            ><PnI.Plus size={12}/> Nuova categoria</button>
+          )}
 
-        {/* Nuova categoria */}
-        {addingCat ? (
-          <div style={{display:'flex', gap: 8, padding: '12px 14px', border:`1.5px solid ${PN.PINK}`, background: PN.PINK_SOFT, borderRadius: 10, marginBottom: 14}}>
-            <input autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => { if (e.key==='Enter') handleAddCategory(); if (e.key==='Escape') { setAddingCat(false); setNewCatName(''); } }} placeholder="Nome categoria (es. Antipasti, Pizze, Vini…)" style={{
-              flex: 1, padding: '8px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 7, fontSize: 15, fontFamily:'inherit', outline:'none',
-            }}/>
-            <button onClick={handleAddCategory} style={{padding:'8px 14px', borderRadius: 7, border:'none', background: PN.TEXT, color: PN.WHITE, fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit'}}>Crea</button>
-            <button onClick={() => { setAddingCat(false); setNewCatName(''); }} style={{padding:'8px 12px', borderRadius: 7, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, color: PN.MUTED, fontSize: 14.5, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
-          </div>
-        ) : (
-          <button onClick={() => setAddingCat(true)} style={{
-            width:'100%', padding: '14px', borderRadius: 10,
-            border: `1.5px dashed ${PN.BORDER}`, background:'#FAFBFC',
-            color: PN.MUTED, fontSize: 15, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-            marginBottom: 14,
-          }}>+ Aggiungi categoria</button>
-        )}
-
-        {totalDishes === 0 && cats.length === 0 && (
           <div style={{
-            padding: '40px 20px', textAlign:'center',
-            background:'#FAFBFC', border: `1.5px dashed ${PN.BORDER}`, borderRadius: 12,
-            color: PN.MUTED,
+            marginTop: 10, padding: '10px 12px', borderRadius: 10,
+            background: '#F7F8FA', color: PN.MUTED,
+            display: 'flex', alignItems: 'flex-start', gap: 8,
           }}>
-            <div style={{fontSize: 38, marginBottom: 10}}>🍽</div>
-            <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>Questo menù è vuoto</div>
-            <div style={{fontSize: 14.5, marginBottom: 14}}>Crea una categoria per iniziare ad aggiungere piatti</div>
+            <span style={{marginTop: 2, display: 'inline-flex', color: PN.MUTED_SOFT}}><PnI.Drag size={12}/></span>
+            <div style={{fontSize: 13, lineHeight: 1.4}}>
+              <div style={{fontWeight: 700, color: PN.MUTED}}>Trascina per riordinare</div>
+              <div style={{fontSize: 12.5, marginTop: 1}}>o sposta un piatto tra le categorie</div>
+            </div>
           </div>
-        )}
-      </ImpCard>
+        </MCPanel>
+
+        {/* ── Colonna 2: piatti della categoria ────────────────────────── */}
+        <MCPiattiPanel
+          menu={activeMenu}
+          catName={activeCat}
+          rows={rows}
+          totali={rowsAll.length}
+          attivi={attivi}
+          disattivati={rowsAll.length - attivi}
+          view={view} setView={setView}
+          sort={sort} setSort={setSort}
+          search={search} setSearch={setSearch}
+          stateFilter={stateFilter} setStateFilter={setStateFilter}
+          selectMode={selectMode} setSelectMode={setSelectMode}
+          selection={selection} setSelection={setSelection} toggleSel={toggleSel}
+          detailId={detailId} setDetailId={setDetailId}
+          editingPrice={editingPrice} setEditingPrice={setEditingPrice}
+          onUpdateItem={updateMenuItem}
+          onRemoveDish={removeDishFromCategory}
+          onOpenPicker={() => setPicker(activeCat)}
+          onNuovaCategoria={() => setAddingCat(true)}
+          dragDish={dragDish} setDragDish={setDragDish}
+          onReorder={reorderDishes}
+        />
+
+        {/* ── Colonna 3: dettaglio + anteprima ─────────────────────────── */}
+        <div className="pn-scroll" style={{display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, overflowY: 'auto', paddingRight: 2}}>
+          {detail ? (
+            <MCDettagliPiatto
+              key={detail.dishId}
+              dish={detail.dish}
+              item={detail}
+              codice={codicePiatto(activeCat, detail.idx)}
+              catName={activeCat}
+              categorie={(activeMenu ? activeMenu.categories : []).map(c => c.name)}
+              onClose={() => setDetailId(null)}
+              onSaveDish={upsertLibraryDish}
+              onUpdateItem={(patch) => updateMenuItem(activeCat, detail.dishId, patch)}
+              onRemoveFromMenu={() => removeDishFromCategory(activeCat, detail.dishId)}
+              onDeleteFromLibrary={() => removeLibraryDish(detail.dishId)}
+              onMoveCat={(to) => { moveDishToCat(activeCat, to, detail.dishId); setActiveCat(to); }}
+            />
+          ) : (
+            <div style={{
+              background: PN.WHITE, border: `1px dashed ${PN.BORDER}`, borderRadius: 14,
+              padding: '26px 18px', textAlign: 'center', color: PN.MUTED, boxShadow: PN.CARD_SHADOW,
+            }}>
+              <div style={{display: 'inline-flex', width: 42, height: 42, borderRadius: '50%', background: PN.PINK_BG_SOFT, alignItems: 'center', justifyContent: 'center', marginBottom: 10}}>
+                <PnI.Plate size={19} color={PN.PINK}/>
+              </div>
+              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>Dettagli piatto</div>
+              <div style={{fontSize: 14, lineHeight: 1.45}}>Scegli un piatto per modificarne nome, prezzo, allergeni, varianti e canali.</div>
+            </div>
+          )}
+
+          <MCAnteprimaMenu
+            menu={activeMenu}
+            catName={activeCat}
+            rows={rowsAll}
+            evidenzia={detailId}
+          />
+        </div>
+      </div>
+
+      {/* ── Modali ───────────────────────────────────────────────────────── */}
+      {picker && (
+        <DishLibraryPicker
+          library={library}
+          excludeIds={((activeMenu && activeMenu.categories.find(c => c.name === picker)) ? activeMenu.categories.find(c => c.name === picker).items : []).map(i => i.dishId)}
+          catName={picker}
+          menuName={activeMenu ? activeMenu.name : ''}
+          onClose={() => setPicker(null)}
+          onPick={(id, price) => { addDishToCategory(picker, id, price); }}
+          onCreateNew={() => { const c = picker; setPicker(null); setEditingDish({dishId: null, catName: c, isNew: true}); }}
+        />
+      )}
 
       {editingDish && (
         <DishEditModal
@@ -586,29 +671,1213 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
           onClose={() => setEditingDish(null)}
           onSave={(d) => {
             const id = d.id || ('new' + Date.now());
-            onUpsertLibraryDish({...d, id});
-            if (editingDish.isNew && editingDish.catName) {
-              onAddDish(editingDish.catName, id, d._initialPrice ?? 0);
-            } else if (!editingDish.isNew && editingDish.catName && d._initialPrice !== undefined) {
-              onUpdateItem(editingDish.catName, id, {price: d._initialPrice});
-            }
+            upsertLibraryDish({...d, id});
+            if (editingDish.isNew && editingDish.catName) addDishToCategory(editingDish.catName, id, d._initialPrice ?? 0);
+            else if (!editingDish.isNew && editingDish.catName && d._initialPrice !== undefined) updateMenuItem(editingDish.catName, id, {price: d._initialPrice});
             setEditingDish(null);
           }}
         />
       )}
 
-      {picker && (
-        <DishLibraryPicker
-          library={library}
-          excludeIds={(menu.categories.find(c => c.name === picker)?.items || []).map(i => i.dishId)}
-          catName={picker}
-          menuName={menu.name}
-          onClose={() => setPicker(null)}
-          onPick={(id, price) => { onAddDish(picker, id, price); }}
-          onCreateNew={() => { const cat = picker; setPicker(null); setEditingDish({dishId: null, catName: cat, isNew: true}); }}
+      {aiUpload && (
+        <AIMenuUploadModal
+          onClose={() => setAiUpload(false)}
+          onImport={({ menuName, categories, dishes }) => {
+            setLibrary(prev => {
+              const next = [...prev];
+              dishes.forEach(d => { if (!next.find(x => x.id === d.id)) next.push(d); });
+              return next;
+            });
+            const id = 'm' + Date.now();
+            setMenus(prev => [...prev, { id, name: menuName, active: true, categories }]);
+            setActiveMenuId(id);
+            setAiUpload(false);
+          }}
         />
       )}
     </div>
+  );
+}
+
+// ─── Testata: selettore del menù su cui si lavora ───────────────────────────
+function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDelete, onDuplicate, totalDishesIn, onAiUpload }) {
+  const [open, setOpen] = React.useState(false);
+  const [creating, setCreating] = React.useState(false);
+  const [nuovo, setNuovo] = React.useState('');
+  const [renaming, setRenaming] = React.useState(null);
+  const [confirmDel, setConfirmDel] = React.useState(null);
+  const m = menus.find(x => x.id === activeMenuId);
+  const box = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) { setOpen(false); setConfirmDel(null); } };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [open]);
+
+  if (!m) return null;
+  const crea = () => { if (!nuovo.trim()) return; onCreate(nuovo.trim()); setNuovo(''); setCreating(false); setOpen(false); };
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14,
+      padding: '10px 14px', background: PN.WHITE,
+      border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, boxShadow: PN.CARD_SHADOW,
+    }}>
+      <div ref={box} style={{position: 'relative'}}>
+        <button onClick={() => setOpen(o => !o)} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 9,
+          padding: '7px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+          border: `1px solid ${open ? PN.PINK : PN.BORDER}`, background: open ? PN.PINK_BG_SOFT : PN.WHITE,
+          transition: 'border-color 150ms ease-out, background 150ms ease-out',
+        }}>
+          <span style={{display: 'inline-flex', color: PN.PINK}}><Icon name="food-meal" size={16}/></span>
+          <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{m.name}</span>
+          <span style={{fontSize: 13, color: PN.MUTED}}>{totalDishesIn(m)} piatti</span>
+          <span style={{display: 'inline-flex', color: PN.MUTED, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out'}}>
+            <PnI.ChevronDown size={12}/>
+          </span>
+        </button>
+
+        {open && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 80,
+            width: 330, background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+            borderRadius: 12, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6,
+          }}>
+            <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', padding: '6px 8px 4px'}}>I tuoi menù</div>
+            {menus.map(x => {
+              const on = x.id === activeMenuId;
+              const inRinomina = renaming === x.id;
+              return (
+                <div key={x.id} onClick={() => { if (!inRinomina) { onPick(x.id); setOpen(false); } }} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', borderRadius: 9,
+                  background: on ? PN.PINK_SOFT : 'transparent', cursor: 'pointer',
+                }}
+                onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+                onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <div style={{flex: 1, minWidth: 0}}>
+                    {inRinomina ? (
+                      <input autoFocus defaultValue={x.name}
+                        onClick={e => e.stopPropagation()}
+                        onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter' && e.target.value.trim()) { onUpdate(x.id, {name: e.target.value.trim()}); setRenaming(null); } if (e.key === 'Escape') setRenaming(null); }}
+                        onBlur={e => { if (e.target.value.trim()) onUpdate(x.id, {name: e.target.value.trim()}); setRenaming(null); }}
+                        style={{width: '100%', fontSize: 15, fontWeight: 700, fontFamily: 'inherit', border: 'none', outline: `2px solid ${PN.PINK}`, borderRadius: 5, padding: '1px 5px', background: PN.WHITE}}
+                      />
+                    ) : (
+                      <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
+                    )}
+                    <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                      {totalDishesIn(x)} piatti{x.schedule ? ' · ' + x.schedule : ''}
+                    </div>
+                  </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); onUpdate(x.id, {active: !x.active}); }}
+                    title={x.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                      padding: '2px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: 11.5, fontWeight: 800, letterSpacing: 0.3,
+                      background: x.active ? PN.GREEN_SOFT : '#F1F3F5', color: x.active ? PN.GREEN : PN.MUTED,
+                    }}>
+                    <span style={{width: 5, height: 5, borderRadius: '50%', background: x.active ? PN.GREEN : '#9CA3AF'}}/>
+                    {x.active ? 'ATTIVO' : 'OFF'}
+                  </button>
+                  <div style={{display: 'flex', gap: 1, flexShrink: 0}}>
+                    <MCMiniAzione title="Rinomina" onClick={e => { e.stopPropagation(); setRenaming(x.id); }}><Icon name="pencil" size={12}/></MCMiniAzione>
+                    <MCMiniAzione title="Duplica" onClick={e => { e.stopPropagation(); onDuplicate(x.id); setOpen(false); }}><span style={{fontSize: 13}}>⧉</span></MCMiniAzione>
+                    {menus.length > 1 && (
+                      <MCMiniAzione title="Elimina" danger onClick={e => { e.stopPropagation(); setConfirmDel(x.id); }}><PnI.Trash size={11}/></MCMiniAzione>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {confirmDel && (
+              <div style={{margin: '6px 4px 2px', padding: 9, borderRadius: 9, background: '#FEF2F2', border: '1px solid #FECACA'}}>
+                <div style={{fontSize: 13.5, color: PN.TEXT, marginBottom: 8, lineHeight: 1.4}}>
+                  Eliminare «{(menus.find(x => x.id === confirmDel) || {}).name}»? I piatti restano nella libreria.
+                </div>
+                <div style={{display: 'flex', gap: 6}}>
+                  <button onClick={() => setConfirmDel(null)} style={{flex: 1, padding: '5px 0', fontSize: 13.5, fontWeight: 600, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', color: PN.TEXT}}>Annulla</button>
+                  <button onClick={() => { onDelete(confirmDel); setConfirmDel(null); }} style={{flex: 1, padding: '5px 0', fontSize: 13.5, fontWeight: 700, background: '#DC2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', color: '#fff'}}>Elimina</button>
+                </div>
+              </div>
+            )}
+
+            <div style={{height: 1, background: PN.BORDER_SOFT, margin: '6px 4px'}}/>
+            {creating ? (
+              <div style={{padding: '4px 4px 2px'}}>
+                <input autoFocus value={nuovo} onChange={e => setNuovo(e.target.value)} placeholder="Nome menù (es. Cena)"
+                  onKeyDown={e => { if (e.key === 'Enter') crea(); if (e.key === 'Escape') { setCreating(false); setNuovo(''); } }}
+                  style={{width: '100%', padding: '7px 10px', border: `1px solid ${PN.BORDER}`, borderRadius: 7, fontSize: 14.5, fontFamily: 'inherit', outline: 'none', fontWeight: 600}}/>
+                <div style={{display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 7}}>
+                  <button onClick={() => { setCreating(false); setNuovo(''); }} style={{padding: '5px 9px', background: 'transparent', border: 'none', color: PN.MUTED, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit'}}>Annulla</button>
+                  <button onClick={crea} disabled={!nuovo.trim()} style={{padding: '5px 12px', background: nuovo.trim() ? PN.PINK : '#E5E7EB', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: nuovo.trim() ? 'pointer' : 'default', fontFamily: 'inherit'}}>Crea</button>
+                </div>
+              </div>
+            ) : (
+              <MenuDotItem icon="＋" onClick={() => setCreating(true)}>Nuovo menù</MenuDotItem>
+            )}
+          </div>
+        )}
+      </div>
+
+      <button
+        onClick={() => onUpdate(m.id, {active: !m.active})}
+        title={m.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 12, fontWeight: 800, letterSpacing: 0.4,
+          background: m.active ? PN.GREEN_SOFT : '#F1F3F5', color: m.active ? PN.GREEN : PN.MUTED,
+        }}>
+        <span style={{width: 6, height: 6, borderRadius: '50%', background: m.active ? PN.GREEN : '#9CA3AF'}}/>
+        {m.active ? 'ATTIVO' : 'DISATTIVATO'}
+      </button>
+      {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{m.schedule}</span>}
+
+      <span style={{flex: 1}}/>
+
+      <div style={{width: 206, flexShrink: 0}}>
+        <AiUploadCta onClick={onAiUpload}>
+          <span style={{display: 'block', textAlign: 'left', lineHeight: 1.2, whiteSpace: 'nowrap'}}>
+            <span style={{display: 'block', fontSize: 14.5}}>Carica menu con AI</span>
+            <span style={{display: 'block', fontSize: 12, fontWeight: 600, opacity: 0.75}}>PDF / foto · piatti e prezzi</span>
+          </span>
+        </AiUploadCta>
+      </div>
+    </div>
+  );
+}
+
+function MCMiniAzione({ children, title, danger, onClick }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      width: 24, height: 24, borderRadius: 6, border: 'none', background: 'transparent',
+      cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 12,
+      color: danger ? PN.RED : PN.MUTED, fontFamily: 'inherit',
+    }}
+    onMouseEnter={e => e.currentTarget.style.background = danger ? '#FEF2F2' : '#EDEFF2'}
+    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >{children}</button>
+  );
+}
+
+// ─── Barra delle azioni multiple ────────────────────────────────────────────
+function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete }) {
+  const [aperto, setAperto] = React.useState(null); // 'sposta' | 'prezzo' | 'elimina'
+  const [mode, setMode] = React.useState('set');
+  const [valore, setValore] = React.useState('');
+  const box = React.useRef(null);
+  React.useEffect(() => {
+    if (!aperto) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setAperto(null); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [aperto]);
+
+  const Azione = ({ id, icona, children, danger }) => (
+    <button onClick={() => setAperto(a => a === id ? null : id)} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 7,
+      padding: '8px 14px', borderRadius: 9, fontFamily: 'inherit',
+      fontSize: 14.5, fontWeight: 600, cursor: 'pointer',
+      border: `1px solid ${aperto === id ? (danger ? PN.RED : PN.TEXT) : PN.BORDER}`,
+      background: PN.WHITE, color: danger ? PN.RED : PN.TEXT,
+      transition: 'border-color 150ms ease-out, background 150ms ease-out',
+    }}
+    onMouseEnter={e => e.currentTarget.style.background = danger ? '#FEF2F2' : '#F7F8FA'}
+    onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
+    >{icona}{children}</button>
+  );
+
+  return (
+    <div ref={box} style={{
+      position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+      padding: '10px 14px', background: PN.WHITE,
+      border: `1px solid ${PN.PINK_SOFT}`, borderRadius: 12, boxShadow: PN.CARD_SHADOW,
+    }}>
+      <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>
+        {count} {count === 1 ? 'piatto selezionato' : 'piatti selezionati'}
+      </span>
+      <button onClick={onClear} title="Annulla selezione" style={{
+        width: 26, height: 26, borderRadius: 7, border: 'none', background: 'transparent',
+        color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      ><PnI.X size={13}/></button>
+
+      <span style={{width: 1, height: 24, background: PN.BORDER_SOFT, margin: '0 4px'}}/>
+
+      <Azione id="sposta" icona={<PnI.Plus size={13}/>}>Sposta</Azione>
+      <Azione id="prezzo" icona={<span style={{fontSize: 14}}>↗</span>}>Modifica prezzo</Azione>
+      <Azione id="elimina" danger icona={<PnI.Trash size={13}/>}>Elimina</Azione>
+
+      {aperto === 'sposta' && (
+        <div style={{position: 'absolute', top: 'calc(100% + 6px)', left: 190, zIndex: 80, minWidth: 210, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 11, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6}}>
+          <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', padding: '6px 8px 4px'}}>Sposta in</div>
+          {categorie.length === 0 && <div style={{padding: '8px 10px', fontSize: 14, color: PN.MUTED}}>Non ci sono altre categorie in questo menù.</div>}
+          {categorie.map(c => (
+            <MenuDotItem key={c} icon={<Icon name={CAT_ICON[c] || 'star'} size={14}/>} onClick={() => { onMove(c); setAperto(null); }}>{c}</MenuDotItem>
+          ))}
+        </div>
+      )}
+
+      {aperto === 'prezzo' && (
+        <div style={{position: 'absolute', top: 'calc(100% + 6px)', left: 280, zIndex: 80, width: 280, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 11, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 12}}>
+          <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8}}>Modifica prezzo</div>
+          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 10}}>
+            {[
+              {id: 'set', l: 'Imposta a'}, {id: 'inc-pct', l: 'Aumenta %'},
+              {id: 'dec-pct', l: 'Riduci %'}, {id: 'inc-eur', l: 'Aumenta €'},
+              {id: 'dec-eur', l: 'Riduci €'},
+            ].map(o => (
+              <button key={o.id} onClick={() => setMode(o.id)} style={{
+                padding: '7px 8px', borderRadius: 8, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${mode === o.id ? PN.PINK : PN.BORDER}`,
+                background: mode === o.id ? PN.PINK_SOFT : PN.WHITE,
+                color: mode === o.id ? PN.PINK_DARK : PN.TEXT,
+              }}>{o.l}</button>
+            ))}
+          </div>
+          <input autoFocus value={valore} onChange={e => setValore(e.target.value)} placeholder={mode.includes('pct') ? 'es. 10' : 'es. 1,50'}
+            onKeyDown={e => { if (e.key === 'Enter') { onPrice(mode, valore); setValore(''); setAperto(null); } }}
+            style={{width: '100%', padding: '9px 11px', border: `1px solid ${PN.BORDER}`, borderRadius: 8, fontSize: 15, fontFamily: 'inherit', outline: 'none'}}/>
+          <div style={{display: 'flex', gap: 7, justifyContent: 'flex-end', marginTop: 10}}>
+            <ImpButton variant="ghost" onClick={() => setAperto(null)} style={{padding: '7px 12px', fontSize: 14}}>Annulla</ImpButton>
+            <ImpButton variant="pink" onClick={() => { onPrice(mode, valore); setValore(''); setAperto(null); }} style={{padding: '7px 12px', fontSize: 14}}>Applica</ImpButton>
+          </div>
+        </div>
+      )}
+
+      {aperto === 'elimina' && (
+        <div style={{position: 'absolute', top: 'calc(100% + 6px)', left: 430, zIndex: 80, width: 290, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 11, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 12}}>
+          <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 10}}>
+            Togliere <strong>{count}</strong> {count === 1 ? 'piatto' : 'piatti'} da questo menù? Restano nella libreria.
+          </div>
+          <div style={{display: 'flex', gap: 7, justifyContent: 'flex-end'}}>
+            <ImpButton variant="ghost" onClick={() => setAperto(null)} style={{padding: '7px 12px', fontSize: 14}}>Annulla</ImpButton>
+            <ImpButton variant="danger" onClick={() => { onDelete(); setAperto(null); }} style={{padding: '7px 12px', fontSize: 14}}>Togli dal menù</ImpButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Colonna 2: i piatti della categoria aperta ─────────────────────────────
+function MCPiattiPanel({
+  menu, catName, rows, totali, attivi, disattivati,
+  view, setView, sort, setSort, search, setSearch, stateFilter, setStateFilter,
+  selectMode, setSelectMode, selection, setSelection, toggleSel,
+  detailId, setDetailId, editingPrice, setEditingPrice,
+  onUpdateItem, onRemoveDish, onOpenPicker, onNuovaCategoria,
+  dragDish, setDragDish, onReorder,
+}) {
+  const [sortOpen, setSortOpen] = React.useState(false);
+  const [cardMenu, setCardMenu] = React.useState(null);
+  const sortBox = React.useRef(null);
+  React.useEffect(() => {
+    if (!sortOpen) return;
+    const fuori = (e) => { if (sortBox.current && !sortBox.current.contains(e.target)) setSortOpen(false); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [sortOpen]);
+
+  // Il menù ⋯ di una card si chiude al primo click altrove, come tutti gli altri.
+  React.useEffect(() => {
+    if (!cardMenu) return;
+    const chiudi = () => setCardMenu(null);
+    document.addEventListener('mousedown', chiudi);
+    return () => document.removeEventListener('mousedown', chiudi);
+  }, [cardMenu]);
+
+  const SORTS = [
+    {id: 'manuale', l: 'Ordine del menù'},
+    {id: 'nome', l: 'Nome A–Z'},
+    {id: 'prezzo-asc', l: 'Prezzo crescente'},
+    {id: 'prezzo-desc', l: 'Prezzo decrescente'},
+  ];
+
+  if (!menu) return <MCPanel title="Piatti"><div style={{color: PN.MUTED, fontSize: 15}}>Nessun menù selezionato.</div></MCPanel>;
+
+  if (!catName) {
+    return (
+      <MCPanel title={menu.name} sub="Nessuna categoria in questo menù">
+        <div style={{padding: '40px 20px', textAlign: 'center', background: '#FAFBFC', border: `1.5px dashed ${PN.BORDER}`, borderRadius: 12, color: PN.MUTED}}>
+          <div style={{fontSize: 34, marginBottom: 10}}>🍽</div>
+          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>Questo menù è vuoto</div>
+          <div style={{fontSize: 14.5, marginBottom: 14}}>Crea una categoria per iniziare ad aggiungere piatti</div>
+          <ImpButton variant="pink" icon={<PnI.Plus size={13}/>} onClick={onNuovaCategoria}>Nuova categoria</ImpButton>
+        </div>
+      </MCPanel>
+    );
+  }
+
+  const testata = (
+    <div style={{display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
+      <label style={{display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer', padding: '6px 10px', borderRadius: 8, border: `1px solid ${selectMode ? PN.PINK : PN.BORDER}`, background: selectMode ? PN.PINK_BG_SOFT : PN.WHITE}}>
+        <input type="checkbox" checked={selectMode} onChange={e => { setSelectMode(e.target.checked); if (!e.target.checked) setSelection([]); }} style={{accentColor: PN.PINK, margin: 0, width: 15, height: 15}}/>
+        <span style={{fontSize: 14, fontWeight: 600, color: selectMode ? PN.PINK_DARK : PN.TEXT}}>Seleziona</span>
+      </label>
+
+      <div ref={sortBox} style={{position: 'relative'}}>
+        <button onClick={() => setSortOpen(o => !o)} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 8,
+          border: `1px solid ${sortOpen ? PN.TEXT : PN.BORDER}`, background: PN.WHITE, cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: PN.TEXT,
+        }}>
+          Ordina <PnI.ChevronDown size={11}/>
+        </button>
+        {sortOpen && (
+          <div style={{position: 'absolute', top: 'calc(100% + 5px)', right: 0, zIndex: 70, minWidth: 190, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 10, boxShadow: '0 10px 30px rgba(15,17,21,0.13)', padding: 5}}>
+            {SORTS.map(s => (
+              <MenuDotItem key={s.id} icon={sort === s.id ? <PnI.Check size={13}/> : ' '} onClick={() => { setSort(s.id); setSortOpen(false); }}>{s.l}</MenuDotItem>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{display: 'flex', border: `1px solid ${PN.BORDER}`, borderRadius: 8, overflow: 'hidden'}}>
+        {[
+          {id: 'grid', title: 'Griglia', svg: <><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><rect x="14" y="14" width="7" height="7" rx="1.4"/></>},
+          {id: 'list', title: 'Elenco', svg: <><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></>},
+        ].map(v => (
+          <button key={v.id} onClick={() => setView(v.id)} title={v.title} style={{
+            width: 32, height: 30, border: 'none', cursor: 'pointer',
+            background: view === v.id ? PN.TEXT : PN.WHITE,
+            color: view === v.id ? PN.WHITE : PN.MUTED,
+            display: 'grid', placeItems: 'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{v.svg}</svg>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <MCPanel
+      title={<span style={{display: 'inline-flex', alignItems: 'baseline', gap: 9}}>
+        <span>{catName}</span>
+        <span style={{fontSize: 13.5, fontWeight: 500, color: PN.MUTED}}>{totali} {totali === 1 ? 'piatto' : 'piatti'}{rows.length !== totali ? ` · ${rows.length} in elenco` : ''}</span>
+      </span>}
+      action={testata}
+      bodyStyle={{padding: '12px 16px 16px'}}
+    >
+      {/* Ricerca + stato: filtri del menù, non dell'intera libreria. */}
+      <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap'}}>
+        <div style={{position: 'relative', flex: '1 1 190px', minWidth: 160}}>
+          <span style={{position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center'}}><PnI.Search size={12} color={PN.MUTED}/></span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca nei piatti del menù…" style={{
+            width: '100%', padding: '7px 10px 7px 30px', border: `1px solid ${PN.BORDER}`,
+            borderRadius: 8, fontSize: 14, fontFamily: 'inherit', outline: 'none', background: PN.WHITE,
+          }}/>
+        </div>
+        <div style={{display: 'flex', background: '#F4F5F7', padding: 2, borderRadius: 8, gap: 2}}>
+          {[
+            {id: 'all', label: 'Tutti', count: totali},
+            {id: 'active', label: 'Attivi', count: attivi},
+            {id: 'disabled', label: 'Disattivati', count: disattivati},
+          ].map(s => (
+            <button key={s.id} onClick={() => setStateFilter(s.id)} style={{
+              padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              background: stateFilter === s.id ? PN.WHITE : 'transparent',
+              color: stateFilter === s.id ? PN.TEXT : PN.MUTED,
+              boxShadow: stateFilter === s.id ? '0 1px 2px rgba(15,17,21,0.08)' : 'none',
+              fontSize: 13.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}>
+              {s.label}
+              <span style={{fontSize: 12, fontWeight: 700, color: stateFilter === s.id ? PN.MUTED : PN.MUTED_SOFT}}>{s.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {rows.length === 0 && (
+        <div style={{padding: '30px 18px', textAlign: 'center', color: PN.MUTED, fontSize: 14.5, background: '#FAFBFC', border: `1px dashed ${PN.BORDER}`, borderRadius: 12, marginBottom: 12}}>
+          {totali === 0 ? 'Categoria vuota: aggiungi il primo piatto.' : 'Nessun piatto corrisponde ai filtri.'}
+        </div>
+      )}
+
+      {view === 'grid' ? (
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(164px, 1fr))', gap: 12}}>
+          {rows.map(r => (
+            <MCDishCard
+              key={r.dishId}
+              r={r}
+              catName={catName}
+              selectMode={selectMode}
+              selected={selection.includes(r.dishId)}
+              aperto={detailId === r.dishId}
+              menuAperto={cardMenu === r.dishId}
+              onMenu={() => setCardMenu(m => m === r.dishId ? null : r.dishId)}
+              onCloseMenu={() => setCardMenu(null)}
+              onToggleSel={() => toggleSel(r.dishId)}
+              onOpen={() => setDetailId(r.dishId)}
+              onToggleActive={() => onUpdateItem(catName, r.dishId, {active: !r.active})}
+              editingPrice={editingPrice && editingPrice.dishId === r.dishId}
+              onPriceClick={() => setEditingPrice({catName, dishId: r.dishId})}
+              onPriceCommit={(v) => { onUpdateItem(catName, r.dishId, {price: v}); setEditingPrice(null); }}
+              onPriceCancel={() => setEditingPrice(null)}
+              onRemove={() => onRemoveDish(catName, r.dishId)}
+              onDragStart={() => setDragDish({cat: catName, dishId: r.dishId, idx: r.idx})}
+              onDragEnd={() => setDragDish(null)}
+              onDropOn={() => { if (dragDish && dragDish.cat === catName) onReorder(catName, dragDish.idx, r.idx); setDragDish(null); }}
+            />
+          ))}
+          <button onClick={onOpenPicker} style={{
+            minHeight: 150, borderRadius: 12, border: `1.5px dashed ${PN.BORDER}`, background: '#FAFBFC',
+            color: PN.MUTED, fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7,
+            transition: 'background 150ms ease-out, border-color 150ms ease-out',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.borderColor = PN.PINK_SOFT; }}
+          onMouseLeave={e => { e.currentTarget.style.background = '#FAFBFC'; e.currentTarget.style.borderColor = PN.BORDER; }}
+          >
+            <span style={{width: 30, height: 30, borderRadius: '50%', border: `1.5px solid ${PN.BORDER}`, display: 'grid', placeItems: 'center'}}><PnI.Plus size={13}/></span>
+            Aggiungi piatto
+          </button>
+        </div>
+      ) : (
+        <div style={{border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow: 'hidden'}}>
+          {rows.map(r => (
+            <div key={r.dishId}
+              draggable
+              onDragStart={() => setDragDish({cat: catName, dishId: r.dishId, idx: r.idx})}
+              onDragEnd={() => setDragDish(null)}
+              onDragOver={e => e.preventDefault()}
+              onDrop={() => { if (dragDish && dragDish.cat === catName) onReorder(catName, dragDish.idx, r.idx); setDragDish(null); }}
+              style={{background: detailId === r.dishId ? PN.PINK_BG_SOFT : 'transparent'}}
+            >
+              <DishRow
+                dish={r.dish}
+                item={r}
+                onToggleActive={() => onUpdateItem(catName, r.dishId, {active: !r.active})}
+                onPriceClick={() => setEditingPrice({catName, dishId: r.dishId})}
+                editingPrice={editingPrice && editingPrice.dishId === r.dishId}
+                onPriceCommit={(v) => { onUpdateItem(catName, r.dishId, {price: v}); setEditingPrice(null); }}
+                onPriceCancel={() => setEditingPrice(null)}
+                onEdit={() => setDetailId(r.dishId)}
+                onRemove={() => onRemoveDish(catName, r.dishId)}
+              />
+            </div>
+          ))}
+          <button onClick={onOpenPicker} style={{
+            width: '100%', padding: '11px 12px', border: 'none', borderTop: `1px dashed ${PN.BORDER_SOFT}`,
+            background: '#FCFCFD', color: PN.MUTED, fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          }}>+ Aggiungi piatto</button>
+        </div>
+      )}
+    </MCPanel>
+  );
+}
+
+// ─── Card piatto (vista griglia) ────────────────────────────────────────────
+function MCDishCard({
+  r, catName, selectMode, selected, aperto, menuAperto, onMenu, onCloseMenu,
+  onToggleSel, onOpen, onToggleActive, editingPrice, onPriceClick, onPriceCommit, onPriceCancel,
+  onRemove, onDragStart, onDragEnd, onDropOn,
+}) {
+  const [hover, setHover] = React.useState(false);
+  const [tmp, setTmp] = React.useState(r.price.toFixed(2).replace('.', ','));
+  React.useEffect(() => { if (editingPrice) setTmp(r.price.toFixed(2).replace('.', ',')); }, [editingPrice]);
+  const mostraCheck = selectMode || selected || hover;
+
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart} onDragEnd={onDragEnd}
+      onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); onDropOn(); }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      onClick={() => { if (selectMode) onToggleSel(); else onOpen(); }}
+      style={{
+        position: 'relative', borderRadius: 12, overflow: 'visible', cursor: 'pointer',
+        background: PN.WHITE,
+        border: `${(selected || aperto) ? 2 : 1}px solid ${selected ? PN.PINK : (aperto ? PN.PINK_SOFT : PN.BORDER_SOFT)}`,
+        boxShadow: hover ? PN.CARD_SHADOW_HOVER : PN.CARD_SHADOW,
+        opacity: r.active ? 1 : 0.72,
+        transition: 'box-shadow 150ms ease-out, border-color 150ms ease-out, opacity 150ms ease-out',
+      }}
+    >
+      <div style={{position: 'relative', aspectRatio: '16/11', background: '#F4F5F7', borderTopLeftRadius: 10, borderTopRightRadius: 10, overflow: 'hidden'}}>
+        {r.dish.photo
+          ? <img src={r.dish.photo} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+          : <div style={{width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: PN.MUTED_SOFT}}><Icon name={CAT_ICON[r.dish.cat] || 'star'} size={26}/></div>}
+
+        {mostraCheck && (
+          <button onClick={e => { e.stopPropagation(); onToggleSel(); }} title="Seleziona" style={{
+            position: 'absolute', top: 7, left: 7, width: 22, height: 22, borderRadius: 6,
+            border: `1.5px solid ${selected ? PN.PINK : 'rgba(255,255,255,0.9)'}`,
+            background: selected ? PN.PINK : 'rgba(255,255,255,0.86)',
+            color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+          }}>{selected && <PnI.Check size={12}/>}</button>
+        )}
+
+        <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onMenu(); }} title="Altre azioni" style={{
+          position: 'absolute', top: 7, right: 7, width: 24, height: 24, borderRadius: 7,
+          border: 'none', background: 'rgba(255,255,255,0.88)', color: PN.TEXT,
+          cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 16, lineHeight: 1,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+        }}>⋯</button>
+      </div>
+
+      {/* Fuori dal riquadro della foto: lì dentro l'overflow è tagliato e il
+          menù si sarebbe visto a metà. */}
+      {menuAperto && (
+        <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} style={{
+          position: 'absolute', top: 36, right: 6, zIndex: 70, minWidth: 186,
+          background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+          boxShadow: '0 10px 30px rgba(15,17,21,0.16)', padding: 5,
+        }}>
+          <MenuDotItem icon="✎" onClick={() => { onCloseMenu(); onOpen(); }}>Apri dettagli</MenuDotItem>
+          <MenuDotItem icon="€" onClick={() => { onCloseMenu(); onPriceClick(); }}>Modifica prezzo</MenuDotItem>
+          <MenuDotItem icon={r.active ? '⏸' : '▶'} onClick={() => { onCloseMenu(); onToggleActive(); }}>{r.active ? 'Disattiva nel menù' : 'Attiva nel menù'}</MenuDotItem>
+          <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
+          <MenuDotItem icon="🗑" danger onClick={() => { onCloseMenu(); onRemove(); }}>Rimuovi dal menù</MenuDotItem>
+        </div>
+      )}
+
+      <div style={{padding: '9px 11px 11px'}}>
+        <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{r.dish.name}</div>
+
+        <div onClick={e => { e.stopPropagation(); if (!editingPrice) onPriceClick(); }} title="Clicca per modificare il prezzo" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 3,
+          padding: editingPrice ? '2px 6px' : '2px 0', borderRadius: 6,
+          border: editingPrice ? `1.5px solid ${PN.PINK}` : '1.5px solid transparent',
+          background: editingPrice ? PN.WHITE : 'transparent', cursor: editingPrice ? 'text' : 'pointer',
+        }}>
+          {editingPrice ? (
+            <>
+              <span style={{fontSize: 14.5, fontWeight: 700, color: PN.MUTED}}>€</span>
+              <input autoFocus value={tmp} onChange={e => setTmp(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') onPriceCommit(parseFloat(tmp.replace(',', '.')) || 0); if (e.key === 'Escape') onPriceCancel(); }}
+                onBlur={() => onPriceCommit(parseFloat(tmp.replace(',', '.')) || 0)}
+                style={{width: 52, fontSize: 14.5, fontWeight: 700, color: PN.TEXT, border: 'none', outline: 'none', fontFamily: 'inherit', background: 'transparent'}}/>
+            </>
+          ) : (
+            <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{eur(r.price)}</span>
+          )}
+        </div>
+
+        <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 8}}>
+          <div style={{flex: 1, minWidth: 0, display: 'flex', gap: 3, flexWrap: 'wrap'}}>
+            {(r.dish.allergens || []).slice(0, 5).map(a => <AllergenIcon key={a} id={a} size={17}/>)}
+          </div>
+          <span onClick={e => e.stopPropagation()} style={{flexShrink: 0}}>
+            <ImpToggle checked={r.active} onChange={onToggleActive}/>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Voce di un menù a tendina (menù, categorie, azioni di card).
+function MenuDotItem({ icon, children, danger, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      display:'flex', alignItems:'center', gap:8, width:'100%',
+      padding:'7px 10px', background:'transparent', border:'none',
+      borderRadius:7, fontSize:14.5, fontFamily:'inherit',
+      color: danger ? '#DC2626' : PN.TEXT,
+      cursor:'pointer', textAlign:'left',
+    }}
+    onMouseEnter={e => e.currentTarget.style.background = danger ? '#FEF2F2' : '#F4F5F7'}
+    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
+      <span style={{display:'inline-flex', alignItems:'center', justifyContent:'center', width:16, flexShrink:0}}>{icon}</span>
+      <span style={{flex:1, minWidth:0}}>{children}</span>
+    </button>
+  );
+}
+
+
+// ─── Colonna 3: dettaglio del piatto ────────────────────────────────────────
+// Stesso contenuto della modale piatto, disposto in quattro schede invece che
+// in sette blocchi contratti: qui il pannello resta aperto accanto alla
+// griglia, e ogni campo va raggiunto senza scorrere tutto il resto.
+const MC_INPUT = {
+  width: '100%', padding: '8px 10px', border: `1px solid ${PN.BORDER}`, borderRadius: 8,
+  fontSize: 14.5, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT,
+};
+
+function MCCampo({ label, children, hint, style, right }) {
+  return (
+    <div style={{marginBottom: 12, ...style}}>
+      {(label || right) && (
+        <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5}}>
+          <label style={{flex: 1, fontSize: 13, fontWeight: 600, color: PN.MUTED}}>{label}</label>
+          {right}
+        </div>
+      )}
+      {children}
+      {hint && <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, lineHeight: 1.4}}>{hint}</div>}
+    </div>
+  );
+}
+
+// Campo in euro: il simbolo sta dentro al riquadro, non nell'etichetta —
+// così il valore si legge come un importo anche a colpo d'occhio.
+function MCEuro({ value, onChange, placeholder = '0,00' }) {
+  return (
+    <div style={{position: 'relative'}}>
+      <span style={{
+        position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+        fontSize: 14, fontWeight: 700, color: PN.MUTED, pointerEvents: 'none',
+      }}>€</span>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{...MC_INPUT, paddingLeft: 24, fontWeight: 700}}/>
+    </div>
+  );
+}
+
+function MCSezione({ title, children, style }) {
+  return (
+    <div style={{marginBottom: 16, ...style}}>
+      <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 9}}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function MCDettagliPiatto({
+  dish, item, codice, catName, categorie,
+  onClose, onSaveDish, onUpdateItem, onRemoveFromMenu, onDeleteFromLibrary, onMoveCat,
+}) {
+  const [tab, setTab] = React.useState('info');
+  const [name, setName] = React.useState(dish.name || '');
+  const [desc, setDesc] = React.useState(dish.desc || '');
+  const [photos, setPhotos] = React.useState(dish.photos || [true]);
+  const [foodCost, setFoodCost] = React.useState(dish.foodCost ? String(dish.foodCost.toFixed(2)).replace('.', ',') : '');
+  const [allergens, setAllergens] = React.useState(dish.allergens || []);
+  const [ingredients, setIngredients] = React.useState(dish.ingredients || []);
+  const [extras, setExtras] = React.useState(dish.extras || []);
+  const [variants, setVariants] = React.useState(dish.variants || []);
+  const [recipeSteps, setRecipeSteps] = React.useState(dish.recipeSteps || ['']);
+  const [dietaryTags, setDietaryTags] = React.useState(() =>
+    (dish.dietaryTags || []).map(t => typeof t === 'string' ? {name: t, surcharge: ''} : t));
+  const [prodottoFinito, setProdottoFinito] = React.useState(dish.prodottoFinito || false);
+  const [hasAlcohol, setHasAlcohol] = React.useState(dish.hasAlcohol || false);
+  const [hasFrozen, setHasFrozen] = React.useState(dish.hasFrozen || false);
+  const [tipOpen, setTipOpen] = React.useState(null);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [confermaElimina, setConfermaElimina] = React.useState(false);
+
+  // Dati che vivono nel MENÙ, non nella libreria: prezzo, disponibilità,
+  // canali su cui il piatto si vede e con che prezzo.
+  const [prezzo, setPrezzo] = React.useState(item.price.toFixed(2).replace('.', ','));
+  const [attivo, setAttivo] = React.useState(!!item.active);
+  const [canali, setCanali] = React.useState(canaliDi(item));
+  const [prezziCanale, setPrezziCanale] = React.useState(item.channelPrices || {});
+
+  React.useEffect(() => {
+    if (!tipOpen) return;
+    const chiudi = () => setTipOpen(null);
+    document.addEventListener('click', chiudi);
+    return () => document.removeEventListener('click', chiudi);
+  }, [tipOpen]);
+
+  const ingredientAllergens = React.useMemo(() => {
+    const s = new Set();
+    ingredients.forEach(ing => (ing.allergens || []).forEach(a => s.add(a)));
+    return s;
+  }, [ingredients]);
+  const effectiveAllergens = React.useMemo(
+    () => Array.from(new Set([...allergens, ...ingredientAllergens])), [allergens, ingredientAllergens]);
+
+  const toggleAllergen = (id) => {
+    if (ingredientAllergens.has(id) && !allergens.includes(id)) return;
+    setAllergens(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  };
+  const toggleTag = (t) => setDietaryTags(s => s.some(x => x.name === t) ? s.filter(x => x.name !== t) : [...s, {name: t, surcharge: ''}]);
+  const setTagSurcharge = (t, v) => setDietaryTags(s => s.map(x => x.name === t ? {...x, surcharge: v} : x));
+  const toggleCanale = (id) => setCanali(c => c.includes(id) ? c.filter(x => x !== id) : [...c, id]);
+
+  const scriviConAi = () => {
+    if (!name.trim()) return;
+    setAiLoading(true);
+    setTimeout(() => {
+      setDesc('Pane casereccio tostato, pomodoro fresco, basilico, aglio, olio EVO.');
+      setAiLoading(false);
+    }, 1100);
+  };
+
+  const salva = () => {
+    if (!name.trim()) { alert('Inserisci il nome del piatto'); return; }
+    onSaveDish({
+      id: dish.id, name: name.trim(), desc: desc.trim(), cat: dish.cat,
+      allergens: effectiveAllergens,
+      foodCost: foodCost ? parseFloat(String(foodCost).replace(',', '.')) : null,
+      prodottoFinito, hasAlcohol, hasFrozen, recipeSteps,
+      ingredients, extras, variants, dietaryTags, photos,
+    });
+    onUpdateItem({
+      price: parseFloat(String(prezzo).replace(',', '.')) || 0,
+      active: attivo, channels: canali, channelPrices: prezziCanale,
+    });
+  };
+
+  const TABS = [
+    {id: 'info',      l: 'Informazioni'},
+    {id: 'varianti',  l: 'Varianti'},
+    {id: 'allergeni', l: 'Allergeni e tag'},
+    {id: 'canali',    l: 'Prezzi per canale'},
+  ];
+
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 14,
+      boxShadow: PN.CARD_SHADOW, overflow: 'hidden', flexShrink: 0,
+    }}>
+      {/* Testata */}
+      <div style={{padding: '13px 14px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 9}}>
+        <div style={{flex: 1, minWidth: 0, fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Dettagli piatto</div>
+        <button onClick={onClose} title="Chiudi" style={{
+          width: 26, height: 26, borderRadius: 7, border: 'none', background: 'transparent',
+          color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        ><PnI.X size={13}/></button>
+      </div>
+
+      {/* Identità */}
+      <div style={{padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 11}}>
+        <DishThumb dish={dish} size={52}/>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{name || dish.name}</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2}}>ID: {codice}</div>
+        </div>
+        <span style={{
+          flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 800, letterSpacing: 0.4,
+          background: attivo ? PN.GREEN_SOFT : '#F1F3F5', color: attivo ? PN.GREEN : PN.MUTED,
+        }}>
+          <span style={{width: 5, height: 5, borderRadius: '50%', background: attivo ? PN.GREEN : '#9CA3AF'}}/>
+          {attivo ? 'ATTIVO' : 'OFF'}
+        </span>
+      </div>
+
+      {/* Schede */}
+      <div className="pn-scroll" style={{display: 'flex', gap: 10, padding: '0 13px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, overflowX: 'auto'}}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{
+            padding: '9px 1px', marginBottom: -1, background: 'transparent', border: 'none',
+            borderBottom: `2px solid ${tab === t.id ? PN.PINK : 'transparent'}`,
+            color: tab === t.id ? PN.PINK_DARK : PN.MUTED,
+            fontSize: 12, fontWeight: tab === t.id ? 700 : 600,
+            cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+          }}>{t.l}</button>
+        ))}
+      </div>
+
+      <div style={{padding: '14px'}}>
+        {/* ── INFORMAZIONI ───────────────────────────────────────────── */}
+        {tab === 'info' && (
+          <div>
+            <MCCampo label="Nome piatto" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{name.length}/80</span>}>
+              <input value={name} maxLength={80} onChange={e => setName(e.target.value)} style={MC_INPUT}/>
+            </MCCampo>
+
+            <MCCampo label="Descrizione breve" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{desc.length}/160</span>}>
+              <textarea value={desc} maxLength={160} rows={3} onChange={e => setDesc(e.target.value)}
+                style={{...MC_INPUT, resize: 'none', lineHeight: 1.45}}/>
+            </MCCampo>
+
+            <button onClick={scriviConAi} disabled={aiLoading || !name.trim()} style={{
+              width: '100%', marginBottom: 14, padding: '9px 12px', borderRadius: 9,
+              border: `1.5px dashed ${name.trim() ? PN.PINK : '#E3E6EA'}`,
+              background: name.trim() ? PN.PINK_BG_SOFT : '#F7F8FA',
+              color: name.trim() ? PN.PINK_DARK : PN.MUTED_SOFT,
+              fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+              cursor: (aiLoading || !name.trim()) ? 'default' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              transition: 'background 150ms ease-out',
+            }}>
+              {aiLoading ? <>⏳ Sto scrivendo…</> : <><BuAiSparkle size={12} color={name.trim() ? PN.PINK_DARK : PN.MUTED_SOFT}/> Scrivi descrizione con AI</>}
+            </button>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
+              <MCCampo label="Prezzo di vendita">
+                <MCEuro value={prezzo} onChange={setPrezzo}/>
+              </MCCampo>
+              <MCCampo label="Costo piatto (food cost)">
+                <MCEuro value={foodCost} onChange={setFoodCost}/>
+              </MCCampo>
+            </div>
+
+            <MCCampo label="Stato">
+              <div style={{display: 'flex', alignItems: 'center', gap: 9}}>
+                <ImpToggle checked={attivo} onChange={setAttivo}/>
+                <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{attivo ? 'Disponibile' : 'Non disponibile'}</span>
+              </div>
+            </MCCampo>
+
+            <MCCampo label="Visibile sui canali" hint="Toglilo da un canale per nasconderlo solo lì: il piatto resta nel menù.">
+              <div style={{display: 'flex', flexWrap: 'wrap', gap: 6}}>
+                {CANALI.map(c => {
+                  const on = canali.includes(c.id);
+                  return (
+                    <button key={c.id} onClick={() => toggleCanale(c.id)} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1px solid ${on ? PN.GREEN : PN.BORDER}`,
+                      background: on ? PN.GREEN_SOFT : PN.WHITE,
+                      color: on ? PN.GREEN : PN.MUTED,
+                      fontSize: 13, fontWeight: 600,
+                      transition: 'background 150ms ease-out, border-color 150ms ease-out',
+                    }}>
+                      <Icon name={c.icona} size={13}/>
+                      {c.label}
+                      {on && <PnI.Check size={11}/>}
+                    </button>
+                  );
+                })}
+              </div>
+            </MCCampo>
+
+            <MCCampo label="Categoria nel menù">
+              <select value={catName} onChange={e => onMoveCat(e.target.value)} style={MC_INPUT}>
+                {categorie.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </MCCampo>
+
+            <MCCampo label="Foto" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7}}>
+                {[0, 1, 2].map(i => {
+                  const piena = i < photos.length;
+                  const libera = i === photos.length;
+                  return piena ? (
+                    <div key={i} style={{position: 'relative', borderRadius: 9, overflow: 'hidden', aspectRatio: '4/3', background: PHOTO_MOCK_BG[i % PHOTO_MOCK_BG.length]}}>
+                      <img src={i === 0 && dish.photo ? dish.photo : PHOTO_MOCK_IMGS[i % PHOTO_MOCK_IMGS.length]} alt="" loading="lazy"
+                        style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                      <button onClick={() => setPhotos(ps => ps.filter((_, idx) => idx !== i))} aria-label={`Rimuovi foto ${i + 1}`} style={{
+                        position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', fontSize: 11,
+                        cursor: 'pointer', display: 'grid', placeItems: 'center',
+                      }}>✕</button>
+                    </div>
+                  ) : (
+                    <button key={i} onClick={() => libera && setPhotos(ps => ps.length < 3 ? [...ps, true] : ps)} disabled={!libera} aria-label="Aggiungi foto" style={{
+                      aspectRatio: '4/3', borderRadius: 9, border: `1.5px dashed ${PN.BORDER}`, background: '#F4F5F7',
+                      cursor: libera ? 'pointer' : 'default', opacity: libera ? 1 : 0.55,
+                      display: 'grid', placeItems: 'center', color: PN.MUTED, fontSize: 18, fontFamily: 'inherit',
+                    }}>+</button>
+                  );
+                })}
+              </div>
+            </MCCampo>
+
+            <MCSezione title="Dichiarazioni">
+              <div style={{display: 'flex', flexWrap: 'wrap', gap: 7}}>
+                <DishFlag checked={prodottoFinito} onChange={() => setProdottoFinito(v => !v)}
+                  label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
+                  info={{id: 'finito', open: tipOpen, setOpen: setTipOpen, text: "Venduto sigillato, così come arriva. Es. acqua in bottiglietta, birra in lattina, snack confezionati. IVA 22% sull'asporto anziché 10%."}}/>
+                <DishFlag checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
+                  label="Contiene alcolici" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
+                  info={{id: 'alcol', open: tipOpen, setOpen: setTipOpen, text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. IVA 22% sull'asporto e vendita vietata ai minori."}}/>
+                <DishFlag checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
+                  label="Contiene alimenti surgelati" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"/>
+              </div>
+            </MCSezione>
+
+            <MCSezione title="Ricetta · procedimento" style={{marginBottom: 0}}>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
+                {recipeSteps.map((step, i) => (
+                  <div key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7}}>
+                    <span style={{flexShrink: 0, width: 21, height: 21, borderRadius: '50%', background: PN.PINK_SOFT, color: PN.PINK_DARK, fontSize: 12.5, fontWeight: 800, display: 'grid', placeItems: 'center', marginTop: 6}}>{i + 1}</span>
+                    <textarea value={step} rows={1} placeholder={`Passo ${i + 1}…`}
+                      onChange={e => setRecipeSteps(s => s.map((x, idx) => idx === i ? e.target.value : x))}
+                      style={{...MC_INPUT, resize: 'none', lineHeight: 1.45, background: step ? PN.WHITE : '#FAFBFC'}}/>
+                    {recipeSteps.length > 1 && (
+                      <button onClick={() => setRecipeSteps(s => s.filter((_, idx) => idx !== i))} aria-label={`Rimuovi passo ${i + 1}`} style={{
+                        flexShrink: 0, width: 26, height: 26, marginTop: 4, background: PN.WHITE,
+                        border: '1px solid #FECACA', borderRadius: 7, cursor: 'pointer', color: PN.RED,
+                        display: 'grid', placeItems: 'center',
+                      }}><PnI.Trash size={11}/></button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setRecipeSteps(s => [...s, ''])} style={{
+                marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
+                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>+ Aggiungi passo</button>
+            </MCSezione>
+          </div>
+        )}
+
+        {/* ── VARIANTI ───────────────────────────────────────────────── */}
+        {tab === 'varianti' && (
+          <div>
+            <MCSezione title="Varianti">
+              <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 9}}>
+                Scelte tra cui il cliente seleziona un'opzione (es. <em>Cottura: al sangue / ben cotta</em>).
+              </div>
+              <VariantsList variants={variants} setVariants={setVariants} hideAddButton/>
+              <button onClick={() => setVariants(arr => [...arr, {name: '', options: [''], required: true}])} style={{
+                marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
+                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>+ Aggiungi gruppo di varianti</button>
+            </MCSezione>
+
+            <MCSezione title="Aggiunte a pagamento">
+              <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 9}}>
+                Extra che il cliente può aggiungere (es. tartufo, doppia mozzarella). Con <strong style={{color: PN.TEXT}}>max</strong> limiti quante volte può ripeterla.
+              </div>
+              <ExtrasList extras={extras} setExtras={setExtras}/>
+            </MCSezione>
+
+            <MCSezione title="Disponibile anche in versione" style={{marginBottom: 0}}>
+              <div style={{display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: dietaryTags.length ? 10 : 0}}>
+                {[
+                  {name: 'Vegana', glyph: '🌱'}, {name: 'Senza glutine', glyph: '🌾'}, {name: 'Vegetariana', glyph: '🥬'},
+                  {name: 'Senza lattosio', glyph: '🥛'}, {name: 'Crudo', glyph: '🍣'}, {name: 'Bio', glyph: 'BIO'},
+                  {name: 'Halal', glyph: '☪️'}, {name: 'Kosher', glyph: '✡️'}, {name: 'Parve', glyph: 'Ⓟ'},
+                ].map(({name: t, glyph}) => {
+                  const on = dietaryTags.some(x => x.name === t);
+                  return (
+                    <label key={t} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 10px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                      border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER_SOFT}`,
+                      background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                      color: on ? PN.PINK_DARK : PN.TEXT, cursor: 'pointer', userSelect: 'none',
+                    }}>
+                      <input type="checkbox" checked={on} onChange={() => toggleTag(t)} style={{margin: 0, accentColor: PN.PINK, width: 14, height: 14}}/>
+                      <span style={{fontSize: glyph === 'BIO' ? 9.5 : 13, fontWeight: glyph === 'BIO' ? 800 : 400, color: glyph === 'BIO' ? '#16A34A' : undefined}}>{glyph}</span>
+                      {t}
+                    </label>
+                  );
+                })}
+              </div>
+              {dietaryTags.length > 0 && (
+                <div style={{background: '#F8FAFC', borderRadius: 9, padding: '9px 10px', border: `1px solid ${PN.BORDER_SOFT}`}}>
+                  <div style={{fontSize: 11.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 7}}>Sovrapprezzo per versione (opzionale)</div>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: 5}}>
+                    {dietaryTags.map(t => (
+                      <div key={t.name} style={{display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: '#fff', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 7}}>
+                        <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: PN.TEXT, fontWeight: 600}}>{t.name}</span>
+                        <span style={{fontSize: 13, color: PN.MUTED, fontWeight: 600}}>+€</span>
+                        <input value={t.surcharge} onChange={e => setTagSurcharge(t.name, e.target.value.replace(/[^0-9,.]/g, ''))} placeholder="0,00"
+                          style={{width: 56, padding: '4px 7px', border: `1px solid ${PN.BORDER}`, borderRadius: 6, fontSize: 14, fontFamily: 'inherit', textAlign: 'right', outline: 'none'}}/>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </MCSezione>
+          </div>
+        )}
+
+        {/* ── ALLERGENI E TAG ────────────────────────────────────────── */}
+        {tab === 'allergeni' && (
+          <div>
+            <MCSezione title={`Allergeni · ${effectiveAllergens.length} indicati`}>
+              {ingredientAllergens.size > 0 && (
+                <div style={{fontSize: 13, color: PN.MUTED, fontStyle: 'italic', marginBottom: 8}}>
+                  <span style={{color: PN.PINK_DARK, fontWeight: 700, fontStyle: 'normal'}}>•</span> = derivati dagli ingredienti
+                </div>
+              )}
+              <div style={{display: 'flex', gap: 5, flexWrap: 'wrap'}}>
+                {ALLERGENS.map(a => {
+                  const fromIng = ingredientAllergens.has(a.id);
+                  const fromManual = allergens.includes(a.id);
+                  const on = fromIng || fromManual;
+                  return (
+                    <button key={a.id} onClick={() => toggleAllergen(a.id)} disabled={fromIng && !fromManual}
+                      title={fromIng && !fromManual ? 'Derivato dagli ingredienti' : ''}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5,
+                        padding: '5px 9px', borderRadius: 999,
+                        border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER}`,
+                        background: on ? PN.PINK_SOFT : '#FAFBFC',
+                        color: on ? PN.PINK_DARK : PN.MUTED,
+                        fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                        cursor: (fromIng && !fromManual) ? 'not-allowed' : 'pointer',
+                      }}>
+                      <AllergenIcon id={a.id} size={13}/>
+                      {a.name}
+                      {fromIng && <span style={{color: PN.PINK_DARK, fontSize: 13}}>•</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </MCSezione>
+
+            <MCSezione title="Ingredienti">
+              <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 9, lineHeight: 1.45}}>
+                Spunta gli ingredienti che il cliente può <strong style={{color: PN.TEXT}}>togliere dal piatto</strong>.
+              </div>
+              <IngredientList ingredients={ingredients} setIngredients={setIngredients}/>
+            </MCSezione>
+
+            <MCSezione title="Valori nutrizionali" style={{marginBottom: 0}}>
+              <NutritionFields/>
+            </MCSezione>
+          </div>
+        )}
+
+        {/* ── PREZZI PER CANALE ──────────────────────────────────────── */}
+        {tab === 'canali' && (
+          <div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 12}}>
+              Il prezzo di listino vale ovunque. Scrivi un importo solo dove il canale
+              deve costare diversamente — lascialo vuoto per usare quello di listino.
+            </div>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, background: '#F7F8FA', marginBottom: 12}}>
+              <span style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>Prezzo di listino</span>
+              <span style={{fontSize: 15, fontWeight: 800, color: PN.TEXT}}>{eur(parseFloat(String(prezzo).replace(',', '.')) || 0)}</span>
+            </div>
+            <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+              {CANALI.map(c => {
+                const visibile = canali.includes(c.id);
+                return (
+                  <div key={c.id} style={{
+                    border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 10, padding: '10px 11px',
+                    background: visibile ? PN.WHITE : '#FAFBFC', opacity: visibile ? 1 : 0.7,
+                  }}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8}}>
+                      <span style={{display: 'inline-flex', color: PN.MUTED}}><Icon name={c.icona} size={15}/></span>
+                      <span style={{flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: PN.TEXT}}>{c.label}</span>
+                      <ImpToggle checked={visibile} onChange={() => toggleCanale(c.id)}/>
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                      <span style={{fontSize: 13, color: PN.MUTED, flex: 1}}>Prezzo su questo canale</span>
+                      <div style={{display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${PN.BORDER}`, borderRadius: 8, padding: '4px 8px', background: PN.WHITE}}>
+                        <span style={{fontSize: 13.5, color: PN.MUTED, fontWeight: 700}}>€</span>
+                        <input
+                          value={prezziCanale[c.id] || ''}
+                          onChange={e => setPrezziCanale(p => ({...p, [c.id]: e.target.value}))}
+                          placeholder={String((parseFloat(String(prezzo).replace(',', '.')) || 0).toFixed(2)).replace('.', ',')}
+                          style={{width: 58, border: 'none', outline: 'none', textAlign: 'right', fontSize: 14, fontWeight: 700, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}/>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Piede */}
+      <div style={{padding: '11px 14px', borderTop: `1px solid ${PN.BORDER_SOFT}`, background: '#FCFCFD'}}>
+        <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onClose} style={{padding: '8px 14px', fontSize: 14}}>Annulla</ImpButton>
+          <ImpButton variant="pink" onClick={salva} style={{padding: '8px 14px', fontSize: 14}}>Salva modifiche</ImpButton>
+        </div>
+        <div style={{display: 'flex', gap: 12, marginTop: 10, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap'}}>
+          <button onClick={onRemoveFromMenu} style={{
+            background: 'transparent', border: 'none', color: PN.MUTED, fontSize: 13, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0,
+          }}>✕ Rimuovi dal menù</button>
+          <button onClick={() => setConfermaElimina(true)} style={{
+            background: 'transparent', border: 'none', color: PN.RED, fontSize: 13, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0,
+          }}><PnI.Trash size={11}/> Elimina dalla libreria</button>
+        </div>
+        {confermaElimina && (
+          <div style={{marginTop: 10, padding: 10, borderRadius: 9, background: '#FEF2F2', border: '1px solid #FECACA'}}>
+            <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 9}}>
+              «{name || dish.name}» sarà eliminato dalla libreria e <strong>tolto da tutti i menù</strong>. Non si può annullare.
+            </div>
+            <div style={{display: 'flex', gap: 7, justifyContent: 'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConfermaElimina(false)} style={{padding: '6px 11px', fontSize: 13.5}}>Annulla</ImpButton>
+              <ImpButton variant="danger" onClick={() => { setConfermaElimina(false); onDeleteFromLibrary(); }} style={{padding: '6px 11px', fontSize: 13.5}}>Sì, elimina</ImpButton>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── Anteprima: il menù come lo vede il cliente, canale per canale ──────────
+function MCAnteprimaMenu({ menu, catName, rows, evidenzia }) {
+  const [canale, setCanale] = React.useState('qr');
+  const visibili = rows.filter(r => r.active && canaliDi(r).includes(canale));
+
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 14,
+      boxShadow: PN.CARD_SHADOW, overflow: 'hidden', flexShrink: 0,
+    }}>
+      <div style={{padding: '13px 14px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 9}}>
+        <div style={{flex: 1, minWidth: 0, fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Anteprima menù</div>
+        <select value={canale} onChange={e => setCanale(e.target.value)} style={{
+          padding: '5px 8px', border: `1px solid ${PN.BORDER}`, borderRadius: 8,
+          fontSize: 13, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT, fontWeight: 600,
+        }}>
+          {CANALI.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+        </select>
+      </div>
+
+      <div style={{padding: '14px 14px 16px', display: 'grid', placeItems: 'center', background: 'linear-gradient(180deg, #FAFBFC 0%, #FFFFFF 100%)'}}>
+        {/* Scocca telefono, come nell'anteprima vetrina ma in piccolo. */}
+        <div style={{
+          width: 214, aspectRatio: '9/18.4', borderRadius: 30, padding: 3,
+          background: 'linear-gradient(150deg, #43464D 0%, #1B1D22 42%, #303338 100%)',
+          boxShadow: '0 14px 32px -14px rgba(15,17,21,0.40), inset 0 0 0 1px rgba(255,255,255,0.14)',
+        }}>
+          <div style={{width: '100%', height: '100%', background: '#0B0C0E', borderRadius: 28, padding: 4}}>
+            <div style={{width: '100%', height: '100%', borderRadius: 25, overflow: 'hidden', background: '#FFF', display: 'flex', flexDirection: 'column'}}>
+              {/* barra di stato */}
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px 2px', fontSize: 9, fontWeight: 700, color: PN.TEXT}}>
+                <span>9:41</span>
+                <span style={{display: 'inline-flex', gap: 3, alignItems: 'center', color: PN.TEXT}}>
+                  <span style={{width: 12, height: 6, borderRadius: 2, border: `1px solid ${PN.TEXT}`, display: 'inline-block'}}/>
+                </span>
+              </div>
+              {/* testata locale */}
+              <div style={{display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px 8px'}}>
+                <PnI.LogoMark size={16}/>
+                <span style={{fontSize: 12, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.2}}>byup</span>
+                <span style={{flex: 1}}/>
+                <span style={{fontSize: 9, fontWeight: 700, color: PN.MUTED, textTransform: 'uppercase', letterSpacing: 0.4}}>
+                  {(CANALI.find(c => c.id === canale) || {}).label}
+                </span>
+              </div>
+
+              <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 10px 10px'}}>
+                <div style={{fontSize: 10, fontWeight: 800, color: PN.TEXT, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 2px 7px'}}>
+                  {catName || (menu ? menu.name : '')}
+                </div>
+                {visibili.length === 0 && (
+                  <div style={{fontSize: 10.5, color: PN.MUTED, textAlign: 'center', padding: '20px 8px', lineHeight: 1.5}}>
+                    Nessun piatto visibile su questo canale.
+                  </div>
+                )}
+                {visibili.map(r => (
+                  <div key={r.dishId} style={{
+                    display: 'flex', alignItems: 'center', gap: 7, padding: '5px 4px',
+                    borderRadius: 8, background: evidenzia === r.dishId ? PN.PINK_BG_SOFT : 'transparent',
+                    transition: 'background 150ms ease-out',
+                  }}>
+                    <DishThumb dish={r.dish} size={26}/>
+                    <span style={{flex: 1, minWidth: 0, fontSize: 10, fontWeight: 600, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{r.dish.name}</span>
+                    <span style={{fontSize: 10, fontWeight: 700, color: PN.TEXT, flexShrink: 0}}>{eur(prezzoCanale(r, canale))}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div aria-hidden="true" style={{height: 3, width: 62, borderRadius: 999, background: 'rgba(15,17,21,0.28)', margin: '0 auto 6px'}}/>
+            </div>
+          </div>
+        </div>
+        <div style={{fontSize: 12.5, color: PN.MUTED, textAlign: 'center', marginTop: 10, lineHeight: 1.45}}>
+          {visibili.length} di {rows.length} piatti visibili su <strong style={{color: PN.TEXT}}>{(CANALI.find(c => c.id === canale) || {}).label}</strong>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -914,9 +2183,9 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
 
   return (
     <div onClick={!editingPrice ? onEdit : undefined} style={{
-      display:'grid', gridTemplateColumns: '20px 1fr auto auto auto auto',
-      gap: 14, alignItems:'center',
-      padding: '14px 18px',
+      display:'grid', gridTemplateColumns: '18px minmax(0, 1fr) auto auto auto',
+      gap: 10, alignItems:'center',
+      padding: '12px 14px',
       background: item.active ? PN.WHITE : '#FAFBFC',
       borderTop: `1px solid ${PN.BORDER_SOFT}`,
       opacity: item.active ? 1 : 0.7,
@@ -942,7 +2211,7 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
           )}
         </div>
         {dish.desc && (
-          <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.4, marginBottom: 6}}>{dish.desc}</div>
+          <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.4, marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{dish.desc}</div>
         )}
         {dish.allergens.length > 0 && (
           <div style={{display:'flex', gap: 4, flexWrap:'wrap'}}>
@@ -963,10 +2232,10 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
       {/* Prezzo (inline-edit) */}
       <div onClick={e => { e.stopPropagation(); if (!editingPrice) onPriceClick(); }} style={{
         cursor: editingPrice ? 'text' : 'pointer',
-        padding:'4px 10px', borderRadius: 6,
+        padding:'4px 8px', borderRadius: 6,
         background: editingPrice ? PN.WHITE : 'transparent',
         border: editingPrice ? `1.5px solid ${PN.PINK}` : '1.5px solid transparent',
-        minWidth: 84, textAlign:'right',
+        minWidth: 76, textAlign:'right',
       }}
       onMouseEnter={e => { if (!editingPrice) e.currentTarget.style.background = '#F4F5F7'; }}
       onMouseLeave={e => { if (!editingPrice) e.currentTarget.style.background = 'transparent'; }}
