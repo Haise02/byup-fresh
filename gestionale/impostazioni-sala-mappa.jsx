@@ -135,8 +135,15 @@ function FloorPlan({
 
   const toGrid = (clientX, clientY) => {
     const r = canvasRef.current.getBoundingClientRect();
-    const x = (clientX - r.left) / CELL;
-    const y = (clientY - r.top) / CELL;
+    // La cella va misurata sullo stesso rect del puntatore. `CELL` viene dal
+    // ResizeObserver ed è in px di LAYOUT, mentre clientX e r.left sono px
+    // VISIVI: il frame del gestionale ha uno zoom, e mescolare i due sistemi
+    // spostava il punto di rilascio di quasi una cella sul lato destro della
+    // mappa. Da lì i tavoli che atterravano storti e le unioni che non
+    // scattavano pur avendo mollato il tavolo sopra l'altro.
+    const cella = r.width / COLS;
+    const x = (clientX - r.left) / cella;
+    const y = (clientY - r.top) / cella;
     return { x: Math.max(0, Math.min(COLS, x)), y: Math.max(0, Math.min(ROWS, y)) };
   };
   const snap = v => Math.round(v * 2) / 2;
@@ -310,16 +317,21 @@ function FloorPlan({
               lineRects.push({ x, y, w: d.w, h: d.h });
               cursor += axis === 'h' ? d.w : d.h;
             });
-            // Sgombera i tavoli estranei finiti sotto la fila
+            // Sgombera i tavoli estranei finiti sotto la fila. Gli ostacoli
+            // sono la fila, l'arredo E gli altri tavoli estranei: contando solo
+            // i primi due, chi veniva sgomberato poteva atterrare addosso a un
+            // tavolo che stava benissimo dov'era.
             const memberSet = new Set(memberIds);
-            const occupied = [...lineRects, ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }))];
-            tavoli.filter(o => !memberSet.has(o.id)).forEach(o => {
-              const od = tableDims(o);
-              if (occupied.some(r => overlapRects(r, { x: o.pos.x, y: o.pos.y, ...od }))) {
-                const spot = placeFree(o.pos.x, o.pos.y, od.w, od.h, occupied);
-                updates[o.id] = { x: spot.x, y: spot.y };
-                occupied.push({ x: spot.x, y: spot.y, w: od.w, h: od.h });
-              }
+            const estranei = tavoli.filter(o => !memberSet.has(o.id));
+            const ingombro = new Map(estranei.map(o => [o.id, { x: o.pos.x, y: o.pos.y, ...tableDims(o) }]));
+            const fissi = [...lineRects, ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }))];
+            estranei.forEach(o => {
+              const mio = ingombro.get(o.id);
+              if (!fissi.some(r => overlapRects(r, mio))) return;
+              const occ = [...fissi, ...estranei.filter(x => x.id !== o.id).map(x => ingombro.get(x.id))];
+              const spot = placeFree(o.pos.x, o.pos.y, mio.w, mio.h, occ);
+              updates[o.id] = { x: spot.x, y: spot.y };
+              ingombro.set(o.id, { x: spot.x, y: spot.y, w: mio.w, h: mio.h });
             });
             if (onBulkMoveTables) onBulkMoveTables(updates);
             else Object.entries(updates).forEach(([id, pos]) => onMoveTable(parseInt(id, 10), pos));

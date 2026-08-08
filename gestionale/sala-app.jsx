@@ -22,22 +22,43 @@ function resetTavolo(t, newState) {
   t.minutiSenzaOrdine = 0;
 }
 
-// Trova la prima cella libera in una griglia COLS×ROWS partendo da (startX, startY),
-// escludendo `excludeId`. Espande per "anelli" Chebyshev di raggio r: il check
-// `max(|dx|,|dy|) !== r` salta l'interno del quadrato (già testato nelle iterazioni
-// precedenti), così ogni candidata viene valutata una sola volta.
-function findFreeCellSpiral(POS, startX, startY, excludeId, COLS = 12, ROWS = 8, TILE = 1) {
-  const occupied = Object.entries(POS)
-    .filter(([k]) => parseInt(k, 10) !== excludeId)
-    .map(([, p]) => ({ x: p.x, y: p.y, w: TILE, h: TILE }));
+// Trova la prima posizione libera in una griglia COLS×ROWS partendo da
+// (startX, startY), per il tavolo `movedId`. Espande per "anelli" Chebyshev di
+// raggio r: il check `max(|dx|,|dy|) !== r` salta l'interno del quadrato (già
+// testato nelle iterazioni precedenti), così ogni candidata viene valutata una
+// volta sola.
+//
+// Le misure sono quelle vere, non una cella per tutti: un tavolo da 6-8 posti
+// ne occupa due, sopra gli 8 ne occupa tre, e un rettangolare girato le occupa
+// in verticale. Contandoli tutti 1×1 — sé stesso e gli ostacoli — lo sgombero
+// dopo un'unione lasciava tavoli accavallati: del vicino largo si vedeva solo
+// l'angolo, quindi la posizione sembrava libera. Anche bancone, cucina e bagno
+// sono ostacoli: prima non lo erano affatto, e un tavolo sgomberato poteva
+// finire dentro la cucina.
+function findFreeCellSpiral(POS, startX, startY, movedId, COLS = 12, ROWS = 8) {
+  const tavoli = window.SALA_TAVOLI || [];
+  const dimsOf = (id) => {
+    const t = tavoli.find(x => x.id === id);
+    const p = POS[id] || {};
+    return (typeof window.getTableDims === 'function')
+      ? window.getTableDims(null, t && t.posti, p.orientation)
+      : { w: 1, h: 1 };
+  };
+  const mio = dimsOf(movedId);
+  const occupied = [
+    ...Object.keys(POS).map(k => parseInt(k, 10))
+      .filter(id => id !== movedId && POS[id])
+      .map(id => ({ x: POS[id].x, y: POS[id].y, ...dimsOf(id) })),
+    ...(window.SALA_FIXTURES || []).map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+  ];
   const overlaps = (a, b) => !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-  for (let r = 0; r <= 12; r += 0.5) {
+  for (let r = 0; r <= Math.max(COLS, ROWS); r += 0.5) {
     for (let dx = -r; dx <= r; dx += 0.5) {
       for (let dy = -r; dy <= r; dy += 0.5) {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r && r > 0) continue;
-        const nx = Math.max(0, Math.min(COLS - TILE, startX + dx));
-        const ny = Math.max(0, Math.min(ROWS - TILE, startY + dy));
-        const test = { x: nx, y: ny, w: TILE, h: TILE };
+        const nx = Math.max(0, Math.min(COLS - mio.w, startX + dx));
+        const ny = Math.max(0, Math.min(ROWS - mio.h, startY + dy));
+        const test = { x: nx, y: ny, w: mio.w, h: mio.h };
         if (!occupied.some(o => overlaps(test, o))) return { x: nx, y: ny };
       }
     }
@@ -203,7 +224,7 @@ function SalaApp() {
 
       // 2) Riposiziona il tavolo separato nella prima cella libera vicina.
       if (m && POS[mergedId]) {
-        const spot = findFreeCellSpiral(POS, POS[mergedId].x, POS[mergedId].y, mergedId, COLS, ROWS, TILE);
+        const spot = findFreeCellSpiral(POS, POS[mergedId].x, POS[mergedId].y, mergedId, COLS, ROWS);
         if (spot) POS[mergedId] = { ...POS[mergedId], x: spot.x, y: spot.y };
       }
       window.dispatchEvent(new Event('sala-positions-sync'));
@@ -355,7 +376,7 @@ function SalaApp() {
         .forEach(id => {
           const r = { x: POS[id].x, y: POS[id].y, ...dimsOf(id) };
           if (lineRects.some(mr => overlap(mr, r))) {
-            const spot = findFreeCellSpiral(POS, POS[id].x, POS[id].y, id, COLS, ROWS, TILE);
+            const spot = findFreeCellSpiral(POS, POS[id].x, POS[id].y, id, COLS, ROWS);
             if (spot) POS[id] = { ...POS[id], x: spot.x, y: spot.y };
           }
         });
