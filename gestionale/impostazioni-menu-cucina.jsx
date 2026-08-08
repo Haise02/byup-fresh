@@ -806,8 +806,8 @@ function MCMenuComposer() {
 
           <MCAnteprimaMenu
             menu={activeMenu}
+            library={library}
             catName={activeCat}
-            rows={rowsAll}
             evidenzia={detailId}
           />
         </div>
@@ -1981,10 +1981,190 @@ function MCDettagliPiatto({
   );
 }
 
-// ─── Anteprima: il menù come lo vede il cliente, canale per canale ──────────
-function MCAnteprimaMenu({ menu, catName, rows, evidenzia }) {
+// ─── Anteprima: il menù come lo vede il cliente nell'app byup ───────────────
+// Non è un'idea di come potrebbe essere: è la schermata Menu dell'app
+// (app/menu.jsx) rifatta uguale — stessa palette, stessa banda di categoria
+// col numero-capitolo e l'illustrazione, stesse card 130px di foto a
+// sinistra. Il contenuto è disegnato alla larghezza di design dell'app (390px)
+// e rimpicciolito con `zoom`: le proporzioni restano quelle vere invece di
+// essere reinventate in piccolo, e quello che si vede qui è quello che il
+// cliente vedrà davvero.
+const APP = {
+  PINK: '#E32459', PINK_DARK: '#B81C47', WINE: '#8B1A3A',
+  TEXT: '#1c0f15', MUTED: '#6d5a61', BORDER: '#eddfda',
+  BG: '#FBF4F1', SURF: '#fff', TINT: '#f6f1ea', BADGE: '#7a1c3e',
+};
+const APP_FONT = "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif";
+
+// Le illustrazioni di categoria sono quelle dell'app, con la loro tinta.
+// Le categorie del gestionale sono libere: quelle che non hanno un disegno
+// dedicato ricadono sull'aperitivo, come fa l'app stessa.
+const APP_CAT_ART = {
+  'Antipasti': ['cat-aperitivo.png', '#fae3de'],
+  'Primi':     ['icon-pasta.png',    '#FCE9EE'],
+  'Secondi':   ['cat-burger.png',    '#FEF0E3'],
+  'Contorni':  ['cat-poke.png',      '#EDF4E7'],
+  'Dolci':     ['icon-donut.png',    '#F9E3EE'],
+  'Bevande':   ['icon-coffee.png',   '#f4e5ef'],
+  'Pizze':     ['cat-pizza.png',     '#FEF0E3'],
+  'Panini':    ['cat-panini.png',    '#FEF0E3'],
+  'Vini':      ['cat-vino.png',      '#f4e5ef'],
+  'Birre':     ['cat-birra.png',     '#FDF3E0'],
+  'Dessert':   ['cat-torta.png',     '#F9E3EE'],
+};
+const appCatArt = (n) => APP_CAT_ART[n] || ['cat-aperitivo.png', '#fae3de'];
+
+// Banda di categoria dell'app: numero-capitolo fantasma, illustrazione,
+// «Sezione n/tot» coi pallini, titolo in Fredoka, sottolineatura brand.
+// Senza IntersectionObserver — qui è sempre a schermo.
+function AppCatBand({ name, count, index, total }) {
+  const [img, tint] = appCatArt(name);
+  return (
+    <div style={{
+      margin: '32px -18px 18px', padding: '24px 18px 20px', position: 'relative', overflow: 'hidden',
+      background: `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`,
+    }}>
+      <div aria-hidden style={{
+        position: 'absolute', left: 8, top: -20, fontFamily: "'Fredoka', sans-serif",
+        fontSize: 104, fontWeight: 600, lineHeight: 1, color: APP.PINK, letterSpacing: -5,
+        opacity: 0.09, pointerEvents: 'none',
+      }}>{String(index + 1).padStart(2, '0')}</div>
+
+      <img src={`../app/assets/${img}`} width="82" alt="" aria-hidden style={{
+        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(8deg)',
+        filter: 'drop-shadow(0 10px 16px rgba(77,18,46,.18))', pointerEvents: 'none', zIndex: 1,
+      }}/>
+
+      <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7}}>
+        <span style={{fontSize: 10.5, fontWeight: 800, color: APP.PINK, letterSpacing: 1.2, textTransform: 'uppercase'}}>
+          Sezione {index + 1}<span style={{color: APP.MUTED, fontWeight: 700}}>/{total}</span>
+        </span>
+        <div style={{display: 'flex', gap: 4, alignItems: 'center'}}>
+          {Array.from({length: total}).map((_, i) => (
+            <div key={i} style={{
+              width: i === index ? 16 : 5, height: 5, borderRadius: 999,
+              background: i === index ? APP.PINK : (i < index ? '#e79fb4' : '#e6d2d9'),
+            }}/>
+          ))}
+        </div>
+      </div>
+
+      <div style={{position: 'relative', fontFamily: "'Fredoka', sans-serif", fontSize: 27, fontWeight: 600, color: APP.TEXT, lineHeight: 1.05}}>{name}</div>
+      <div style={{position: 'relative', fontSize: 11.5, color: APP.MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, marginTop: 5}}>
+        {count} {count === 1 ? 'piatto' : 'piatti'} · scorri e gusta
+      </div>
+      <div aria-hidden style={{
+        height: 3, width: 48, borderRadius: 999, marginTop: 11,
+        background: `linear-gradient(90deg, ${APP.PINK}, ${APP.PINK_DARK})`,
+      }}/>
+    </div>
+  );
+}
+
+// Card piatto dell'app: 166px d'altezza, foto 130px a sinistra, nome, due
+// righe di descrizione, i bollini degli allergeni, prezzo e il tondo «+».
+function AppDishCard({ r, prezzo, evidenziato }) {
+  const badges = [];
+  if (r.highlight) badges.push(['★ TOP', APP.BADGE]);
+  if (r.isNew) badges.push(['NUOVO', APP.WINE]);
+  return (
+    <div style={{
+      background: APP.SURF, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
+      display: 'flex', gap: 14,
+      border: '1.5px solid transparent',
+      boxShadow: evidenziato
+        ? `0 0 0 2.5px ${APP.WINE}, 0 8px 24px rgba(90,26,46,0.25)`
+        : '0 1px 4px rgba(0,0,0,0.05)',
+      transition: 'box-shadow .3s ease',
+    }}>
+      <div style={{width: 130, height: '100%', borderRadius: 14, overflow: 'hidden', background: '#eee', flexShrink: 0, position: 'relative'}}>
+        {r.dish.photo
+          ? <img src={r.dish.photo} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+          : <div style={{width: '100%', height: '100%', background: APP.TINT, display: 'grid', placeItems: 'center', color: APP.MUTED}}>
+              <Icon name={CAT_ICON[r.dish.cat] || 'star'} size={34}/>
+            </div>}
+        {badges.length > 0 && (
+          <div style={{position: 'absolute', top: 8, left: 8, right: 8, display: 'flex', flexWrap: 'wrap', gap: 5}}>
+            {badges.map(([t, bg]) => (
+              <span key={t} style={{
+                fontSize: 10, fontWeight: 700, color: '#fff', background: bg,
+                padding: '3px 8px', borderRadius: 999, letterSpacing: 0.4,
+                textTransform: 'uppercase', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+              }}>{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column'}}>
+        <div style={{fontSize: 16, fontWeight: 700, color: APP.TEXT, lineHeight: 1.25, letterSpacing: -0.2, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{r.dish.name}</div>
+        <div style={{fontSize: 13, color: APP.MUTED, lineHeight: 1.45, flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 10}}>
+          {r.dish.desc}
+        </div>
+        {(r.dish.allergens || []).length > 0 && (
+          <div style={{display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10}}>
+            {r.dish.allergens.slice(0, 5).map(a => <AllergenIcon key={a} id={a} size={22}/>)}
+          </div>
+        )}
+        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10}}>
+          <div style={{fontSize: 16, fontWeight: 800, color: APP.TEXT, flexShrink: 0}}>
+            {Number(prezzo || 0).toFixed(2).replace('.', ',')}€
+          </div>
+          <div style={{
+            width: 32, height: 32, borderRadius: 999, background: APP.WINE, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(90,26,46,0.25)',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MCAnteprimaMenu({ menu, library, catName, evidenzia }) {
   const [canale, setCanale] = React.useState('qr');
-  const visibili = rows.filter(r => r.active && canaliDi(r).includes(canale));
+  const boxRef = React.useRef(null);
+  const scrollRef = React.useRef(null);
+  const [w, setW] = React.useState(288);
+
+  React.useEffect(() => {
+    const el = boxRef.current; if (!el) return;
+    const m = () => { if (el.offsetWidth) setW(el.offsetWidth); };
+    m();
+    if (!window.ResizeObserver) return;
+    const ro = new ResizeObserver(m); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const k = (w - 14) / 390;   // scocca 3+3 + cornice 4+4
+
+  const cats = (menu ? menu.categories : []).map(c => ({
+    name: c.name,
+    rows: c.items
+      .map(it => ({...it, dish: library.find(d => d.id === it.dishId)}))
+      .filter(r => r.dish && r.active && canaliDi(r).includes(canale)),
+  })).filter(c => c.rows.length > 0);
+
+  const visibili = cats.reduce((s, c) => s + c.rows.length, 0);
+  const inMenu = (menu ? menu.categories : []).reduce((s, c) => s + c.items.length, 0);
+  const canaleAttivo = CANALI.find(c => c.id === canale) || CANALI[0];
+
+  // L'anteprima segue il lavoro: cambiando categoria a sinistra, il telefono
+  // si porta sulla sezione corrispondente.
+  React.useEffect(() => {
+    const root = scrollRef.current; if (!root || !catName) return;
+    const el = root.querySelector(`[data-app-cat="${CSS.escape ? CSS.escape(catName) : catName}"]`);
+    if (!el) return;
+    // I rect sono px visivi (il frame del gestionale ha uno zoom), scrollTop è
+    // px di layout dello scroller: il delta va riportato in scala.
+    const frame = root.closest('.frame');
+    const z = frame ? (parseFloat(getComputedStyle(frame).zoom) || 1) : 1;
+    const delta = (el.getBoundingClientRect().top - root.getBoundingClientRect().top) / z;
+    root.scrollTo({top: Math.max(0, root.scrollTop + delta - 6), behavior: 'smooth'});
+  }, [catName, canale, evidenzia, k]);
 
   return (
     <section style={{
@@ -1992,7 +2172,10 @@ function MCAnteprimaMenu({ menu, catName, rows, evidenzia }) {
       boxShadow: PN.CARD_SHADOW, overflow: 'hidden', flexShrink: 0,
     }}>
       <div style={{padding: '13px 14px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 9}}>
-        <div style={{flex: 1, minWidth: 0, fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Anteprima menù</div>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Anteprima menù</div>
+          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Come lo vede il cliente</div>
+        </div>
         <select value={canale} onChange={e => setCanale(e.target.value)} style={{
           padding: '5px 8px', border: `1px solid ${PN.BORDER}`, borderRadius: 8,
           fontSize: 13, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT, fontWeight: 600,
@@ -2002,59 +2185,105 @@ function MCAnteprimaMenu({ menu, catName, rows, evidenzia }) {
       </div>
 
       <div style={{padding: '14px 14px 16px', display: 'grid', placeItems: 'center', background: 'linear-gradient(180deg, #FAFBFC 0%, #FFFFFF 100%)'}}>
-        {/* Scocca telefono, come nell'anteprima vetrina ma in piccolo. */}
-        <div style={{
-          width: 214, aspectRatio: '9/18.4', borderRadius: 30, padding: 3,
+        <div ref={boxRef} style={{
+          width: '100%', maxWidth: 272, aspectRatio: '9/19.4', position: 'relative',
+          borderRadius: Math.round(w * 0.155), padding: 3,
           background: 'linear-gradient(150deg, #43464D 0%, #1B1D22 42%, #303338 100%)',
-          boxShadow: '0 14px 32px -14px rgba(15,17,21,0.40), inset 0 0 0 1px rgba(255,255,255,0.14)',
+          boxShadow: '0 18px 40px -16px rgba(15,17,21,0.40), inset 0 0 0 1px rgba(255,255,255,0.15)',
         }}>
-          <div style={{width: '100%', height: '100%', background: '#0B0C0E', borderRadius: 28, padding: 4}}>
-            <div style={{width: '100%', height: '100%', borderRadius: 25, overflow: 'hidden', background: '#FFF', display: 'flex', flexDirection: 'column'}}>
-              {/* barra di stato */}
-              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px 2px', fontSize: 9, fontWeight: 700, color: PN.TEXT}}>
-                <span>9:41</span>
-                <span style={{display: 'inline-flex', gap: 3, alignItems: 'center', color: PN.TEXT}}>
-                  <span style={{width: 12, height: 6, borderRadius: 2, border: `1px solid ${PN.TEXT}`, display: 'inline-block'}}/>
-                </span>
-              </div>
-              {/* testata locale */}
-              <div style={{display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px 8px'}}>
-                <PnI.LogoMark size={16}/>
-                <span style={{fontSize: 12, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.2}}>byup</span>
-                <span style={{flex: 1}}/>
-                <span style={{fontSize: 9, fontWeight: 700, color: PN.MUTED, textTransform: 'uppercase', letterSpacing: 0.4}}>
-                  {(CANALI.find(c => c.id === canale) || {}).label}
-                </span>
-              </div>
+          <span aria-hidden style={{position: 'absolute', left: -2, top: '15%', width: 3, height: 22, borderRadius: 3, background: '#2A2D33'}}/>
+          <span aria-hidden style={{position: 'absolute', left: -2, top: '21%', width: 3, height: 38, borderRadius: 3, background: '#2A2D33'}}/>
+          <span aria-hidden style={{position: 'absolute', right: -2, top: '18%', width: 3, height: 52, borderRadius: 3, background: '#2A2D33'}}/>
 
-              <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 10px 10px'}}>
-                <div style={{fontSize: 10, fontWeight: 800, color: PN.TEXT, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 2px 7px'}}>
-                  {catName || (menu ? menu.name : '')}
+          <div style={{width: '100%', height: '100%', background: '#0B0C0E', borderRadius: Math.round(w * 0.145), padding: 4}}>
+            <div style={{
+              width: '100%', height: '100%', borderRadius: Math.round(w * 0.125),
+              overflow: 'hidden', position: 'relative', background: APP.BG,
+              fontFamily: APP_FONT, color: APP.TEXT,
+              display: 'flex', flexDirection: 'column',
+            }}>
+
+              {/* Testata dell'app: non scorre, come nel Menu vero */}
+              <div style={{zoom: k, width: 390, flexShrink: 0, background: APP.BG, position: 'relative', zIndex: 5}}>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 26px 0', fontSize: 14, fontWeight: 700}}>
+                  <span>9:41</span>
+                  <span style={{display: 'inline-flex', alignItems: 'center', gap: 5}}>
+                    <svg width="16" height="11" viewBox="0 0 16 11" fill={APP.TEXT}><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.3" y="5" width="3" height="6" rx="1"/><rect x="8.6" y="2.6" width="3" height="8.4" rx="1"/><rect x="12.9" y="0" width="3" height="11" rx="1"/></svg>
+                    <span style={{display: 'inline-block', width: 22, height: 11, borderRadius: 3, border: `1.4px solid ${APP.TEXT}`, position: 'relative', opacity: .85}}>
+                      <span style={{position: 'absolute', inset: 1.6, width: 12, background: APP.TEXT, borderRadius: 1.4}}/>
+                    </span>
+                  </span>
                 </div>
-                {visibili.length === 0 && (
-                  <div style={{fontSize: 10.5, color: PN.MUTED, textAlign: 'center', padding: '20px 8px', lineHeight: 1.5}}>
-                    Nessun piatto visibile su questo canale.
+
+                <button style={{
+                  position: 'absolute', top: 56, left: 16, zIndex: 20,
+                  width: 38, height: 38, borderRadius: 999,
+                  background: 'rgba(255,255,255,0.95)', border: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)', cursor: 'default',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={APP.TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+
+                <div style={{padding: '60px 16px 0 64px', display: 'flex', gap: 8}}>
+                  <div style={{flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: APP.SURF, borderRadius: 999, padding: '9px 14px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={APP.MUTED} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+                    <span style={{fontSize: 13.5, color: APP.MUTED}}>Cerca un piatto, un ingrediente…</span>
                   </div>
-                )}
-                {visibili.map(r => (
-                  <div key={r.dishId} style={{
-                    display: 'flex', alignItems: 'center', gap: 7, padding: '5px 4px',
-                    borderRadius: 8, background: evidenzia === r.dishId ? PN.PINK_BG_SOFT : 'transparent',
-                    transition: 'background 150ms ease-out',
-                  }}>
-                    <DishThumb dish={r.dish} size={26}/>
-                    <span style={{flex: 1, minWidth: 0, fontSize: 10, fontWeight: 600, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{r.dish.name}</span>
-                    <span style={{fontSize: 10, fontWeight: 700, color: PN.TEXT, flexShrink: 0}}>{eur(prezzoCanale(r, canale))}</span>
-                  </div>
-                ))}
+                  <span style={{width: 38, height: 38, borderRadius: 999, flexShrink: 0, background: APP.SURF, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={APP.TEXT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
+                      <circle cx="18" cy="12" r="2.5"/><circle cx="14" cy="18" r="2.5"/>
+                    </svg>
+                  </span>
+                </div>
+
+                <div className="mcprev-h" style={{display: 'flex', gap: 4, padding: '12px 16px 0', overflowX: 'auto'}}>
+                  {cats.map(c => {
+                    const on = c.name === catName;
+                    return (
+                      <span key={c.name} style={{
+                        padding: '10px 16px 12px', flex: '0 0 auto',
+                        borderBottom: `2.5px solid ${on ? APP.WINE : 'transparent'}`,
+                        fontSize: 16, fontWeight: on ? 700 : 500,
+                        color: on ? APP.WINE : APP.MUTED,
+                        letterSpacing: -0.1, whiteSpace: 'nowrap',
+                      }}>{c.name}</span>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div aria-hidden="true" style={{height: 3, width: 62, borderRadius: 999, background: 'rgba(15,17,21,0.28)', margin: '0 auto 6px'}}/>
+              {/* Lista che scorre */}
+              <div ref={scrollRef} className="mcprev-v" style={{flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden'}}>
+                <div style={{zoom: k, width: 390}}>
+                  {cats.length === 0 && (
+                    <div style={{padding: '90px 34px', textAlign: 'center', color: APP.MUTED, fontSize: 15, lineHeight: 1.55}}>
+                      Nessun piatto visibile su questo canale.
+                    </div>
+                  )}
+                  {cats.map((c, i) => (
+                    <div key={c.name} data-app-cat={c.name} style={{padding: '0 18px', marginBottom: 8}}>
+                      <AppCatBand name={c.name} count={c.rows.length} index={i} total={cats.length}/>
+                      <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28}}>
+                        {c.rows.map(r => (
+                          <AppDishCard key={r.dishId} r={r} prezzo={prezzoCanale(r, canale)} evidenziato={evidenzia === r.dishId}/>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{height: 26}}/>
+                </div>
+              </div>
+
+              <div aria-hidden style={{height: 4, width: Math.round(96 * k), borderRadius: 999, background: 'rgba(15,17,21,0.28)', margin: '0 auto 6px', flexShrink: 0}}/>
             </div>
           </div>
+          <style>{`.mcprev-h::-webkit-scrollbar,.mcprev-v::-webkit-scrollbar{display:none}.mcprev-h,.mcprev-v{scrollbar-width:none}`}</style>
         </div>
-        <div style={{fontSize: 12.5, color: PN.MUTED, textAlign: 'center', marginTop: 10, lineHeight: 1.45}}>
-          {visibili.length} di {rows.length} piatti visibili su <strong style={{color: PN.TEXT}}>{(CANALI.find(c => c.id === canale) || {}).label}</strong>
+
+        <div style={{fontSize: 12.5, color: PN.MUTED, textAlign: 'center', marginTop: 12, lineHeight: 1.45}}>
+          {visibili} di {inMenu} piatti visibili su <strong style={{color: PN.TEXT}}>{canaleAttivo.label}</strong>
         </div>
       </div>
     </section>
