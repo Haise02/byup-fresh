@@ -384,6 +384,21 @@ function fantasmaPiatto(e, dish) {
   setTimeout(() => { if (g.parentNode) g.parentNode.removeChild(g); }, 0);
 }
 
+// Tre pallini disegnati. Il carattere «⋯» non c'è in Plus Jakarta Sans: a
+// rispondere è un font di ripiego, che lo appoggia dove gli pare rispetto alla
+// linea di base — dentro un bottone quadrato restava sempre un filo storto,
+// e di quanto cambiava da un sistema all'altro. Un SVG è centrato per
+// costruzione, sempre.
+function Puntini({ size = 14, color = 'currentColor' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{display: 'block'}}>
+      <circle cx="5" cy="12" r="2"/>
+      <circle cx="12" cy="12" r="2"/>
+      <circle cx="19" cy="12" r="2"/>
+    </svg>
+  );
+}
+
 // Pannello di colonna: testata ferma, corpo che scorre.
 function MCPanel({ title, sub, action, children, style, bodyStyle }) {
   return (
@@ -763,12 +778,11 @@ function MCMenuComposer() {
                       width: 20, height: 20, borderRadius: 5, border: 'none', flexShrink: 0,
                       background: catMenuOpen === c.name ? '#EDEFF2' : 'transparent',
                       color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
-                      fontSize: 15, lineHeight: 1,
                       // Sta lì solo quando serve: a riposo la colonna resta un elenco pulito.
                       opacity: (hoverCat === c.name || catMenuOpen === c.name) ? 1 : 0,
                       transition: 'opacity 120ms ease-out',
                     }}
-                  >⋯</button>
+                  ><Puntini size={13}/></button>
                   {catMenuOpen === c.name && (
                     <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} style={{
                       position: 'absolute', top: 'calc(100% - 2px)', right: 4, zIndex: 60,
@@ -1511,9 +1525,9 @@ function MCDishCard({
         <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onMenu(); }} title="Altre azioni" style={{
           position: 'absolute', top: 7, right: 7, width: 24, height: 24, borderRadius: 7,
           border: 'none', background: 'rgba(255,255,255,0.88)', color: PN.TEXT,
-          cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 16, lineHeight: 1,
+          cursor: 'pointer', display: 'grid', placeItems: 'center',
           boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-        }}>⋯</button>
+        }}><Puntini size={14}/></button>
       </div>
 
       {/* Fuori dal riquadro della foto: lì dentro l'overflow è tagliato e il
