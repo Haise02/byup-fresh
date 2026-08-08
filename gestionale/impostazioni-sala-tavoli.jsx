@@ -440,11 +440,13 @@ function ImpSalaTavoli() {
   // continua a sembrare parte del tavolo unito.
   const separateTables = (moveIds, groupIds) => {
     const { cols, rows } = salaGrid(active);
-    const dimsOf = (t) => ttFootprintUnits(t.coperti || 4, ttSeatShape(t.coperti || 4), t.orientation || 'h');
+    const dimsOf = (t) => geoIngombro(t.coperti, t.orientation);
     setTavoli(prev => {
       const next = prev.map(t => ({...t, pos: {...t.pos}}));
-      const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-      const touches = (a, b) => a.x < b.x + b.w + 0.5 && b.x < a.x + a.w + 0.5 && a.y < b.y + b.h + 0.5 && b.y < a.y + a.h + 0.5;
+      const overlap = geoSovrappone;
+      // «Si toccano» = si sfiorano entro mezza cella: staccando un tavolo dal
+      // gruppo non basta che non si sovrapponga, deve anche allontanarsi.
+      const touches = (a, b) => geoSovrappone(a, { x: b.x - 0.5, y: b.y - 0.5, w: b.w + 1, h: b.h + 1 });
       const rectOf = (t) => ({ x: t.pos.x, y: t.pos.y, ...dimsOf(t) });
       moveIds.forEach(id => {
         const t = next.find(x => x.id === id);
@@ -476,64 +478,27 @@ function ImpSalaTavoli() {
   };
 
 
-  // Ruota — la stessa cosa che si fa in Sala sulla mappa: il singolo gira il
-  // proprio footprint (ha senso solo sui rettangolari, un quadrato girato è
-  // uguale a prima), il gruppo unito gira di 90° tutta la fila. Dopo la
-  // giratura il pezzo può sforare la griglia o finire su un altro tavolo: si
-  // cerca lo scostamento minimo che lo rimette dentro e libero — se non c'è,
-  // la rotazione resta dov'è invece di sovrapporsi.
+  // Ruota — la matematica sta in sala-geometria.jsx, la stessa che usa la
+  // mappa in Sala. Qui restano i dati di questa schermata: la griglia viene
+  // dai metri della sala, e gli ostacoli sono gli altri tavoli più l'arredo.
   const rotateTable = (id) => {
     const { cols, rows } = salaGrid(active);
     const g = groups.find(x => x.tableIds.includes(id));
     const ids = g ? g.tableIds : [id];
-    const snap05 = (v) => Math.round(v * 2) / 2;
-    const dimsOf = (t) => ttFootprintUnits(t.coperti || 4, ttSeatShape(t.coperti || 4), t.orientation || 'h');
-    const giraOrient = (o) => (o === 'v' ? 'h' : 'v');
-    const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-
     setTavoli(prev => {
-      const next = prev.map(t => ({ ...t, pos: { ...t.pos } }));
-      const membri = next.filter(t => ids.includes(t.id));
-      if (membri.length === 0) return prev;
-
-      if (membri.length === 1) {
-        const t = membri[0];
-        if (ttSeatShape(t.coperti || 4) !== 'rect') return prev;
-        t.orientation = giraOrient(t.orientation);
-      } else {
-        // 90° orari attorno al bounding box: (relX, relY, w, h) → (H − relY − h, relX)
-        const rects = membri.map(t => ({ id: t.id, x: t.pos.x, y: t.pos.y, ...dimsOf(t) }));
-        const minX = Math.min(...rects.map(r => r.x));
-        const minY = Math.min(...rects.map(r => r.y));
-        const H = Math.max(...rects.map(r => r.y + r.h)) - minY;
-        rects.forEach(r => {
-          const t = next.find(x => x.id === r.id);
-          t.orientation = giraOrient(t.orientation);
-          t.pos = { x: snap05(minX + H - (r.y - minY) - r.h), y: snap05(minY + (r.x - minX)) };
-        });
-      }
-
-      const rectOf = (t) => ({ x: t.pos.x, y: t.pos.y, ...dimsOf(t) });
-      const nuovi = next.filter(t => ids.includes(t.id)).map(rectOf);
+      const membri = prev.filter(t => ids.includes(t.id))
+        .map(t => ({ id: t.id, posti: t.coperti, x: t.pos.x, y: t.pos.y, orientation: t.orientation }));
       const ostacoli = [
-        ...next.filter(t => !ids.includes(t.id)).map(rectOf),
+        ...prev.filter(t => !ids.includes(t.id))
+          .map(t => ({ x: t.pos.x, y: t.pos.y, ...geoIngombro(t.coperti, t.orientation) })),
         ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
       ];
-      const bMinX = Math.min(...nuovi.map(r => r.x)),        bMinY = Math.min(...nuovi.map(r => r.y));
-      const bMaxX = Math.max(...nuovi.map(r => r.x + r.w)),  bMaxY = Math.max(...nuovi.map(r => r.y + r.h));
-      for (let r = 0; r <= Math.max(cols, rows); r += 0.5) {
-        for (let dx = -r; dx <= r; dx += 0.5) {
-          for (let dy = -r; dy <= r; dy += 0.5) {
-            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-            if (bMinX + dx < 0 || bMaxX + dx > cols || bMinY + dy < 0 || bMaxY + dy > rows) continue;
-            const libero = nuovi.every(nr => !ostacoli.some(o => overlap({ ...nr, x: nr.x + dx, y: nr.y + dy }, o)));
-            if (!libero) continue;
-            if (dx || dy) next.forEach(t => { if (ids.includes(t.id)) t.pos = { x: snap05(t.pos.x + dx), y: snap05(t.pos.y + dy) }; });
-            return next;
-          }
-        }
-      }
-      return next;
+      const esito = geoRuota({ membri, ostacoli, cols, rows });
+      if (!esito) return prev;
+      return prev.map(t => {
+        const e = esito.find(x => x.id === t.id);
+        return e ? { ...t, pos: { x: e.x, y: e.y }, orientation: e.orientation } : t;
+      });
     });
   };
 

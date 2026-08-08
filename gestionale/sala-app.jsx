@@ -22,48 +22,22 @@ function resetTavolo(t, newState) {
   t.minutiSenzaOrdine = 0;
 }
 
-// Trova la prima posizione libera in una griglia COLS×ROWS partendo da
-// (startX, startY), per il tavolo `movedId`. Espande per "anelli" Chebyshev di
-// raggio r: il check `max(|dx|,|dy|) !== r` salta l'interno del quadrato (già
-// testato nelle iterazioni precedenti), così ogni candidata viene valutata una
-// volta sola.
-//
-// Le misure sono quelle vere, non una cella per tutti: un tavolo da 6-8 posti
-// ne occupa due, sopra gli 8 ne occupa tre, e un rettangolare girato le occupa
-// in verticale. Contandoli tutti 1×1 — sé stesso e gli ostacoli — lo sgombero
-// dopo un'unione lasciava tavoli accavallati: del vicino largo si vedeva solo
-// l'angolo, quindi la posizione sembrava libera. Anche bancone, cucina e bagno
-// sono ostacoli: prima non lo erano affatto, e un tavolo sgomberato poteva
-// finire dentro la cucina.
+// Adattatore sulla geometria condivisa (sala-geometria.jsx): qui i dati sono
+// la mappa SALA_POSITIONS e i fixture della sala, di là sono rettangoli.
 function findFreeCellSpiral(POS, startX, startY, movedId, COLS = 12, ROWS = 8) {
   const tavoli = window.SALA_TAVOLI || [];
-  const dimsOf = (id) => {
+  const ingombroDi = (id) => {
     const t = tavoli.find(x => x.id === id);
-    const p = POS[id] || {};
-    return (typeof window.getTableDims === 'function')
-      ? window.getTableDims(null, t && t.posti, p.orientation)
-      : { w: 1, h: 1 };
+    return geoIngombro(t && t.posti, (POS[id] || {}).orientation);
   };
-  const mio = dimsOf(movedId);
-  const occupied = [
+  const mio = ingombroDi(movedId);
+  const ostacoli = [
     ...Object.keys(POS).map(k => parseInt(k, 10))
       .filter(id => id !== movedId && POS[id])
-      .map(id => ({ x: POS[id].x, y: POS[id].y, ...dimsOf(id) })),
+      .map(id => ({ x: POS[id].x, y: POS[id].y, ...ingombroDi(id) })),
     ...(window.SALA_FIXTURES || []).map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
   ];
-  const overlaps = (a, b) => !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-  for (let r = 0; r <= Math.max(COLS, ROWS); r += 0.5) {
-    for (let dx = -r; dx <= r; dx += 0.5) {
-      for (let dy = -r; dy <= r; dy += 0.5) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r && r > 0) continue;
-        const nx = Math.max(0, Math.min(COLS - mio.w, startX + dx));
-        const ny = Math.max(0, Math.min(ROWS - mio.h, startY + dy));
-        const test = { x: nx, y: ny, w: mio.w, h: mio.h };
-        if (!occupied.some(o => overlaps(test, o))) return { x: nx, y: ny };
-      }
-    }
-  }
-  return null;
+  return geoPostoLibero({ x: startX, y: startY, w: mio.w, h: mio.h, ostacoli, cols: COLS, rows: ROWS });
 }
 
 function SalaApp() {
@@ -346,57 +320,36 @@ function SalaApp() {
     // la linea; qui invece si arretra l'origine e la fila resta intera.
     const POS = window.SALA_POSITIONS;
     if (POS && POS[sourceTavolo.id]) {
-      const COLS = 12, ROWS = 8, TILE = 1;
+      const COLS = 12, ROWS = 8;
       const memberIds = [sourceTavolo.id, ...sourceTavolo.mergedTables].filter(id => POS[id]);
-      const dimsOf = (id, orientation) => {
-        const tt = all.find(x => x.id === id);
-        const o = orientation || (POS[id] && POS[id].orientation);
-        return typeof getTableDims === 'function'
-          ? getTableDims(null, tt?.posti, o)
-          : { w: TILE, h: TILE };
-      };
-      const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+      const postiDi = (id) => (all.find(x => x.id === id) || {}).posti;
 
-      // Asse della fila: mantiene quello del gruppo esistente (verticale se
-      // condivide la colonna), poi passa all'altro asse se la fila non entra.
+      // Le scelte di QUESTA schermata, che la geometria non conosce:
+      //  · l'asse lo detta il gruppo che c'era già — verticale se i suoi
+      //    membri condividevano la colonna — e si gira solo se non ci sta;
+      //  · la fila si ancora al tavolo su cui si è unito;
+      //  · l'ordine è quello con cui i tavoli sono entrati nel gruppo.
       const prevIds = [sourceTavolo.id, ...existingMergedIds].filter(id => POS[id]);
-      let axis = (prevIds.length > 1 && prevIds.every(id => Math.abs(POS[id].x - POS[prevIds[0]].x) < 0.26)) ? 'v' : 'h';
-      const lenAlong = (a) => memberIds.reduce((s, id) => s + (a === 'h' ? dimsOf(id, a).w : dimsOf(id, a).h), 0);
-      if (axis === 'h' && lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
-      else if (axis === 'v' && lenAlong('v') > ROWS && lenAlong('h') <= COLS) axis = 'h';
+      const assePreferito = (prevIds.length > 1 &&
+        prevIds.every(id => Math.abs(POS[id].x - POS[prevIds[0]].x) < 0.26)) ? 'v' : 'h';
 
-      // Origine ancorata al source, arretrata quanto basta perché tutta la
-      // fila stia nella griglia (i rettangolari si girano lungo l'asse).
-      const src = POS[sourceTavolo.id];
-      const total = lenAlong(axis);
-      let cursor = axis === 'h'
-        ? Math.max(0, Math.min(src.x, COLS - total))
-        : Math.max(0, Math.min(src.y, ROWS - total));
-      const crossMax = Math.max(...memberIds.map(id => axis === 'h' ? dimsOf(id, axis).h : dimsOf(id, axis).w));
-      const cross = axis === 'h'
-        ? Math.max(0, Math.min(src.y, ROWS - crossMax))
-        : Math.max(0, Math.min(src.x, COLS - crossMax));
-
-      const lineRects = [];
-      memberIds.forEach(id => {
-        const d = dimsOf(id, axis);
-        const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
-        const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
-        POS[id] = { ...POS[id], x, y, orientation: axis };
-        lineRects.push({ x, y, w: d.w, h: d.h });
-        cursor += axis === 'h' ? d.w : d.h;
+      const fila = geoFila({
+        membri: memberIds.map(id => ({ id, posti: postiDi(id) })),
+        ancora: { x: POS[sourceTavolo.id].x, y: POS[sourceTavolo.id].y },
+        cols: COLS, rows: ROWS, assePreferito,
       });
+      fila.forEach(f => { POS[f.id] = { ...POS[f.id], x: f.x, y: f.y, orientation: f.orientation }; });
 
-      // Sgombera i tavoli estranei finiti sotto la fila: prima cella libera vicina.
-      Object.keys(POS).map(k => parseInt(k, 10))
-        .filter(id => !memberIds.includes(id))
-        .forEach(id => {
-          const r = { x: POS[id].x, y: POS[id].y, ...dimsOf(id) };
-          if (lineRects.some(mr => overlap(mr, r))) {
-            const spot = findFreeCellSpiral(POS, POS[id].x, POS[id].y, id, COLS, ROWS);
-            if (spot) POS[id] = { ...POS[id], x: spot.x, y: spot.y };
-          }
-        });
+      const estranei = Object.keys(POS).map(k => parseInt(k, 10))
+        .filter(id => !memberIds.includes(id) && POS[id])
+        .map(id => ({ id, x: POS[id].x, y: POS[id].y, ...geoIngombro(postiDi(id), POS[id].orientation) }));
+      const spostati = geoSgombera({
+        fila: fila.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+        estranei,
+        ostacoli: (window.SALA_FIXTURES || []).map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+        cols: COLS, rows: ROWS,
+      });
+      Object.entries(spostati).forEach(([id, pos]) => { POS[id] = { ...POS[id], x: pos.x, y: pos.y }; });
       window.dispatchEvent(new Event('sala-positions-sync'));
     }
     showToast(`✓ ${selectedIds.length} tavol${selectedIds.length===1?'o unito':'i uniti'} a Tavolo ${sourceTavolo.id}`);

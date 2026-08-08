@@ -150,12 +150,8 @@ function FloorPlan({
 
   // Footprint in celle da posti+orientation, come in sala (getTableDims):
   // 2-5 posti → 1×1, 6-8 → 2 celle, >8 → 3 celle.
-  const tableDims = (t) => {
-    const seats = t?.coperti || 4;
-    return ttFootprintUnits(seats, ttSeatShape(seats), t?.orientation || 'h');
-  };
-  const overlapRects = (a, b) =>
-    !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+  const tableDims = (t) => geoIngombro(t && t.coperti, t && t.orientation);
+  const overlapRects = geoSovrappone;
   const groupOf = (id) => groups.find(g => g.tableIds.includes(id));
   const groupMates = (id) => {
     const g = groupOf(id);
@@ -172,91 +168,47 @@ function FloorPlan({
   };
 
   // Posizione libera più vicina a (tx,ty) per un rettangolo w×h, senza overlap con `occ`.
-  const placeFree = (tx, ty, w, h, occ) => {
-    const cx = Math.max(0, Math.min(COLS - w, snap(tx)));
-    const cy = Math.max(0, Math.min(ROWS - h, snap(ty)));
-    const maxR = Math.max(COLS, ROWS);
-    for (let r = 0; r <= maxR; r += 0.5) {
-      for (let dx = -r; dx <= r; dx += 0.5) {
-        for (let dy = -r; dy <= r; dy += 0.5) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-          const nx = Math.max(0, Math.min(COLS - w, snap(cx + dx)));
-          const ny = Math.max(0, Math.min(ROWS - h, snap(cy + dy)));
-          if (!occ.some(o => overlapRects({ x: nx, y: ny, w, h }, o))) return { x: nx, y: ny };
-        }
-      }
-    }
-    return { x: cx, y: cy };
-  };
+  // Adattatori sulla geometria condivisa: la firma resta quella che i punti
+  // di chiamata di questo file usano già.
+  const placeFree = (tx, ty, w, h, occ) =>
+    geoPostoLibero({ x: tx, y: ty, w, h, ostacoli: occ, cols: COLS, rows: ROWS }) || { x: tx, y: ty };
 
-  // Compone l'unione: tutti i membri dei due lati — che siano tavoli singoli
-  // o gruppi già uniti — vanno in UNA FILA SOLA, mai a L e mai a blocco.
-  // Orizzontale, o verticale se in larghezza non ci sta e in altezza sì.
-  // Ritorna gli spostamenti da applicare, orientamento compreso.
+  // Compone l'unione appoggiandosi alla geometria condivisa
+  // (sala-geometria.jsx): la fila retta la costruisce geoFila, lo sgombero di
+  // chi resta sotto lo fa geoSgombera. Qui restano le scelte di QUESTA
+  // schermata: la griglia viene dai metri della sala, gli ostacoli fissi sono
+  // l'arredo, la fila si ancora al gruppo bersaglio e si prova sempre prima in
+  // orizzontale, e l'ordine è «prima chi c'era, poi chi arriva».
   const componiUnione = (idTrascinato, idTarget) => {
-    // Unione come in sala (SALA_DO_MERGE): l'intero gruppo viene
-    // ridisposto in un'unica FILA ORIZZONTALE ancorata al gruppo
-    // target — mai forme a L. Verticale solo se la fila non entra
-    // in larghezza ma entra in altezza.
-    const existing = groupMates(idTarget);
-    // Anche il trascinato può essere già un gruppo: si porta dietro
-    // tutti i suoi. Contando solo lui, i compagni restavano fuori dal
-    // calcolo della fila e facevano massa sopra o sotto — è così che
-    // unendo due gruppi già uniti veniva fuori un blocco quadrato.
-    const memberIds = Array.from(new Set([...existing, ...groupMates(idTrascinato)]));
+    const esistenti = groupMates(idTarget);
+    const memberIds = Array.from(new Set([...esistenti, ...groupMates(idTrascinato)]));
     const members = memberIds.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
-    // Le misure si prendono sull'asse della fila, non sull'orientamento
-    // attuale del membro: entrando in fila i tavoli ci vengono girati
-    // sopra, e un membro rimasto per traverso alzava tutto il gruppo.
-    const dimsOn = (m, a) => ttFootprintUnits(m.coperti || 4, ttSeatShape(m.coperti || 4), a);
-    const lenAlong = (a) => members.reduce((s, m) => s + (a === 'h' ? dimsOn(m, a).w : dimsOn(m, a).h), 0);
-    let axis = 'h';
-    if (lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
-    const exMembers = existing.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
-    const anchorX = Math.min(...exMembers.map(m => m.pos.x));
-    const anchorY = Math.min(...exMembers.map(m => m.pos.y));
-    const total = lenAlong(axis);
-    const crossMax = Math.max(...members.map(m => axis === 'h' ? dimsOn(m, axis).h : dimsOn(m, axis).w));
-    let cursor = axis === 'h'
-      ? Math.max(0, Math.min(anchorX, COLS - total))
-      : Math.max(0, Math.min(anchorY, ROWS - total));
-    const cross = axis === 'h'
-      ? Math.max(0, Math.min(anchorY, ROWS - crossMax))
-      : Math.max(0, Math.min(anchorX, COLS - crossMax));
-    // In fila: i membri esistenti mantengono il loro ordine, il trascinato va in coda
-    const lungoAsse = (a, b) => axis === 'h' ? a.pos.x - b.pos.x : a.pos.y - b.pos.y;
-    const orderedMembers = [
-      ...members.filter(m => existing.includes(m.id)).sort(lungoAsse),
-      ...members.filter(m => !existing.includes(m.id)).sort(lungoAsse),
+    const lungoAsse = (a, b) => a.pos.x - b.pos.x || a.pos.y - b.pos.y;
+    const ordinati = [
+      ...members.filter(m => esistenti.includes(m.id)).sort(lungoAsse),
+      ...members.filter(m => !esistenti.includes(m.id)).sort(lungoAsse),
     ];
+    const exMembers = esistenti.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+    const ancora = {
+      x: Math.min(...exMembers.map(m => m.pos.x)),
+      y: Math.min(...exMembers.map(m => m.pos.y)),
+    };
+
+    const fila = geoFila({
+      membri: ordinati.map(m => ({ id: m.id, posti: m.coperti })),
+      ancora, cols: COLS, rows: ROWS, assePreferito: 'h',
+    });
     const updates = {};
-    const lineRects = [];
-    orderedMembers.forEach(m => {
-      const d = dimsOn(m, axis);
-      const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
-      const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
-      // `orientation` va scritto insieme alla posizione: senza, un
-      // tavolo girato restava per traverso dentro la fila.
-      updates[m.id] = { x, y, orientation: axis };
-      lineRects.push({ x, y, w: d.w, h: d.h });
-      cursor += axis === 'h' ? d.w : d.h;
+    fila.forEach(f => { updates[f.id] = { x: f.x, y: f.y, orientation: f.orientation }; });
+
+    const arredo = furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }));
+    const estranei = tavoli.filter(o => !memberIds.includes(o.id))
+      .map(o => ({ id: o.id, x: o.pos.x, y: o.pos.y, ...tableDims(o) }));
+    const spostati = geoSgombera({
+      fila: fila.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+      estranei, ostacoli: arredo, cols: COLS, rows: ROWS,
     });
-    // Sgombera i tavoli estranei finiti sotto la fila. Gli ostacoli
-    // sono la fila, l'arredo E gli altri tavoli estranei: contando solo
-    // i primi due, chi veniva sgomberato poteva atterrare addosso a un
-    // tavolo che stava benissimo dov'era.
-    const memberSet = new Set(memberIds);
-    const estranei = tavoli.filter(o => !memberSet.has(o.id));
-    const ingombro = new Map(estranei.map(o => [o.id, { x: o.pos.x, y: o.pos.y, ...tableDims(o) }]));
-    const fissi = [...lineRects, ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }))];
-    estranei.forEach(o => {
-      const mio = ingombro.get(o.id);
-      if (!fissi.some(r => overlapRects(r, mio))) return;
-      const occ = [...fissi, ...estranei.filter(x => x.id !== o.id).map(x => ingombro.get(x.id))];
-      const spot = placeFree(o.pos.x, o.pos.y, mio.w, mio.h, occ);
-      updates[o.id] = { x: spot.x, y: spot.y };
-      ingombro.set(o.id, { x: spot.x, y: spot.y, w: mio.w, h: mio.h });
-    });
+    Object.entries(spostati).forEach(([id, pos]) => { updates[id] = pos; });
     return updates;
   };
 
