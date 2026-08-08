@@ -864,7 +864,7 @@ function CliCiclo({ dati }) {
   // Per questo la griglia è UNA sola, con le celle come figli diretti, e non
   // una griglia per riga: `max-content` si calcola per griglia, e con cinque
   // griglie ogni barra partiva da un punto diverso.
-  const colonne = 'max-content minmax(80px, 1fr) 64px 58px 76px';
+  const colonne = 'max-content minmax(80px, 1fr) 64px 58px 132px';
   // L'aria tra le colonne sta nelle celle e non in un `columnGap`: il filetto
   // che separa le righe è disegnato cella per cella, e col gap si interrompeva
   // quattro volte per riga — una riga tratteggiata che nessuno aveva chiesto.
@@ -905,7 +905,10 @@ function CliCiclo({ dati }) {
         <span style={testata()}/>
         <span style={{...testata(), textAlign:'right'}}>Clienti</span>
         <span style={{...testata(), textAlign:'right'}}>Quota</span>
-        <span style={{...testata(true), textAlign:'right'}}>vs prima</span>
+        {/* «vs prima» non diceva prima di cosa: la colonna confronta con il
+            periodo precedente di pari durata — quello scelto in alto — e
+            l'abbreviazione risparmiava trenta pixel al prezzo del significato. */}
+        <span style={{...testata(true), textAlign:'right', whiteSpace:'nowrap'}}>vs periodo prec.</span>
 
         {dati.map((r, i) => (
           <React.Fragment key={i}>
@@ -920,14 +923,17 @@ function CliCiclo({ dati }) {
               {r.n.toLocaleString('it-IT', {useGrouping: true})}
             </span>
             <span style={{...cella(false, true), fontSize: 15, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>{r.pct}%</span>
-            {/* La freccia e il numero, senza pastiglia: il verde sulla cifra
-                dice già che è salita, e la pastiglia lo diceva una seconda
-                volta su ogni riga. */}
+            {/* La freccia e il numero, senza pastiglia: il colore sulla cifra
+                dice già da che parte va, e la pastiglia lo diceva una seconda
+                volta su ogni riga. Il segno lo decide il dato: nei dati di oggi
+                salgono tutte, ma una riga che scende non può stampare una
+                freccia in su col numero negativo accanto. */}
             <span style={{
-              ...cella(true, true), fontSize: 14.5, fontWeight: 700, color: PN.GREEN,
+              ...cella(true, true), fontSize: 14.5, fontWeight: 700,
+              color: r.delta >= 0 ? PN.GREEN : PN.RED,
               fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
-            }} title="Rispetto allo stesso periodo prima">
-              ↑ {String(r.delta).replace('.', ',')}%
+            }} title={`Nel periodo precedente di pari durata erano ${String(Math.abs(r.delta)).replace('.', ',')}% in ${r.delta >= 0 ? 'meno' : 'più'}`}>
+              {r.delta >= 0 ? '↑' : '↓'} {String(Math.abs(r.delta)).replace('.', ',')}%
             </span>
           </React.Fragment>
         ))}
