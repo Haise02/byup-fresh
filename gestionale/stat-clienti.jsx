@@ -131,11 +131,9 @@ function cliConta(aspetti, id) {
 // ─── Il voto ───────────────────────────────────────────────────
 // Quanto ti votano, com'è fatto quel numero e da dove arriva. Stava dentro un
 // riquadro grigio con dentro altre due sezioni riquadrate: tre scatole per
-// dire una cosa sola. Adesso è contenuto e basta, tenuto insieme da due
-// filetti, e separato dal grafico da un filo verticale invece che da un bordo.
-// Un solo colore: l'ambra delle stelle, sulle stelle e sulle barre. Le barre
-// da due stelle in giù erano rosse — ma la riga è già etichettata «2 ★», e
-// colorare quello che è già scritto è rumore, non informazione.
+// dire una cosa sola. Adesso è contenuto e basta, e nemmeno il filo verticale
+// che lo separava dal grafico: una card sola, il voto incolonnato a sinistra e
+// il disegno che si prende tutto il resto.
 //
 // Il numero grande è quello byup, non la media delle due provenienze. Prima
 // erano appaiate in fondo alla colonna, stessa dimensione e stesso peso, sotto
@@ -145,57 +143,49 @@ function cliConta(aspetti, id) {
 // anche chi passava davanti. Quindi il voto vero è uno, con la sua media e il
 // suo totale in grande, e Google è una riga di servizio in fondo: non si
 // nasconde, ma non compete.
+//
+// La colonna è stretta e va letta dall'alto in basso, non a righe che
+// attraversano: il numero, sotto le stelle, sotto su quante. Le tessere stanno
+// sotto il numero e non di fianco perché di fianco costringerebbero la colonna
+// a essere larga il doppio, e quella larghezza serve al grafico.
 function CliVoto({ d }) {
   const b = d.fonti.byup, g = d.fonti.google;
-  const tot = b.stelle.reduce((s, r) => s + r.count, 0);
   return (
-    <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 18}}>
+    <div style={{minWidth: 0, display:'flex', flexDirection:'column', gap: 20}}>
       <div>
-        {/* Di chi è questo voto e perché conta, in una riga sola: senza, il
-            numero grande sembrerebbe la media di tutto. */}
-        <div style={{display:'flex', alignItems:'baseline', gap: 7, flexWrap:'wrap', marginBottom: 12}}>
-          <CliFonte fonte="byup" lato={13.5}/>
-          <span style={{fontSize: 13, color: PN.MUTED_SOFT}}>
-            le lascia solo chi ha ordinato e pagato qui
-          </span>
+        <div style={{marginBottom: 10}}><CliFonte fonte="byup" lato={13.5}/></div>
+        <div style={{fontSize: 60, fontWeight: 700, color: PN.TEXT, letterSpacing:-2.4, lineHeight: 0.82}}>
+          {b.media.toFixed(1).replace('.', ',')}
         </div>
-        <div style={{display:'flex', alignItems:'flex-end', gap: 16, flexWrap:'wrap'}}>
-          <span style={{fontSize: 58, fontWeight: 700, color: PN.TEXT, letterSpacing:-2, lineHeight: 0.85}}>
-            {b.media.toFixed(1).replace('.', ',')}
-          </span>
-          <span style={{display:'flex', flexDirection:'column', gap: 9, paddingBottom: 2}}>
-            <CliStelleTessere voto={b.media} lato={28}/>
-            {/* La media e il totale sono le due cose che si vengono a
-                sapere qui: il conteggio è scuro e in grassetto, il resto
-                della frase no. */}
-            <span style={{fontSize: 14, color: PN.MUTED, whiteSpace:'nowrap'}}>
-              su <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
-                {b.n.toLocaleString('it-IT', {useGrouping: true})}
-              </span> recensioni
-            </span>
-          </span>
+        <div style={{margin:'12px 0 9px'}}><CliStelleTessere voto={b.media} lato={22} aria={5}/></div>
+        {/* La media e il totale sono le due cose che si vengono a sapere qui:
+            il conteggio è scuro e in grassetto, il resto della frase no. */}
+        <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>
+          Sulla base di <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+            {b.n.toLocaleString('it-IT', {useGrouping: true})}
+          </span> recensioni, tutte da chi ha ordinato e pagato qui.
         </div>
       </div>
 
-      <div style={{display:'flex', flexDirection:'column', gap: 12}}>
+      {/* Cinque righe e cinque numeri, senza barre: la barra diceva una
+          proporzione che con 253 su 312 si legge già dalle cifre, e nella
+          colonna stretta restava un filo di due centimetri. */}
+      <div style={{display:'flex', flexDirection:'column', gap: 9}}>
         {[5,4,3,2,1].map(stelle => {
           const riga = b.stelle.find(r => r.stars === stelle);
           return (
-            <div key={stelle} style={{display:'flex', alignItems:'center', gap: 10, fontSize: 13}}>
+            <div key={stelle} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 13.5}}>
               <span style={{
-                width: 22, display:'inline-flex', alignItems:'center', gap: 3,
-                color: PN.MUTED_SOFT, fontVariantNumeric:'tabular-nums',
-              }}>{stelle}<span style={{color: PN.PINK, fontSize: 10}}>★</span></span>
-              {/* Quattro pixel, non sette: a questa altezza la barra è una
-                  riga sottolineata, non un blocco di colore. */}
-              <span style={{flex: 1, height: 4, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden', minWidth: 24}}>
-                <span style={{
-                  display:'block', height:'100%', borderRadius: 999, background: PN.PINK,
-                  width:`${Math.max((riga.count / tot) * 100, 1.2)}%`,
-                }}/>
+                display:'inline-flex', alignItems:'center', gap: 5,
+                color: PN.MUTED, fontVariantNumeric:'tabular-nums',
+              }}>
+                {stelle}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill={PN.PINK} style={{display:'block'}}>
+                  <polygon points={CLI_STELLA}/>
+                </svg>
               </span>
               <span style={{
-                width: 34, textAlign:'right', color: PN.MUTED,
+                minWidth: 40, textAlign:'right', color: PN.TEXT,
                 fontVariantNumeric:'tabular-nums', fontWeight: 600,
               }}>{riga.count}</span>
             </div>
@@ -210,16 +200,18 @@ function CliVoto({ d }) {
           `marginTop:auto`: il grafico accanto ha un'altezza sua, e l'auto
           apriva un buco in mezzo alla colonna. Meglio che l'aria avanzata
           resti sotto, dove finire è normale. */}
+      {/* Su due righe e non su una: la colonna è stretta, e in linea l'etichetta
+          finiva in tre puntini — «Google, aperte a c…» — che è il modo di
+          mettere una cosa in un angolo facendola pure sembrare rotta. */}
       <div style={{
-        display:'flex', alignItems:'baseline', justifyContent:'space-between',
-        gap: 10, minWidth: 0, paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
-        fontSize: 12.5, color: PN.MUTED_LIGHT,
+        paddingTop: 14, borderTop:`1px solid ${PN.BORDER_SOFT}`,
+        fontSize: 12.5, color: PN.MUTED_LIGHT, lineHeight: 1.5,
       }} title={`Su Google hai ${g.media.toFixed(1).replace('.', ',')} su ${g.n} recensioni. Le lascia chiunque abbia un account Google, anche chi non ha mai ordinato da te: restano fuori dal voto qui sopra.`}>
-        <span style={{display:'inline-flex', alignItems:'center', gap: 6, minWidth: 0}}>
+        <span style={{display:'flex', alignItems:'center', gap: 6}}>
           <span style={{width: 5, height: 5, borderRadius:'50%', background: CLI_FONTI.google.colore, opacity: 0.55, flexShrink: 0}}/>
-          <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Google, aperte a chiunque</span>
+          Google, aperte a chiunque
         </span>
-        <span style={{flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>
+        <span style={{display:'block', paddingLeft: 11, fontVariantNumeric:'tabular-nums'}}>
           {g.media.toFixed(1).replace('.', ',')} su {g.n}
         </span>
       </div>
@@ -236,16 +228,16 @@ function CliVoto({ d }) {
 // le Google significherebbe rimetterle dentro dalla finestra un attimo dopo
 // averle messe in fondo alla colonna di sinistra.
 function CliAndamento({ d, mesiEt }) {
-  // La colonna adesso è larga la metà della card, non i due terzi: dentro un
-  // `viewBox` il testo scala con la larghezza, quindi un disegno tarato su 640
-  // qui stamperebbe etichette da sette pixel. Il riquadro si stringe con la
-  // colonna e le scritte tornano della misura giusta.
-  const W = 440, H = 196, P = { l: 4, r: 26, t: 16, b: 24 };
+  // Il disegno non è più mezza card ma i tre quarti, e dentro un `viewBox` il
+  // testo scala con la larghezza: un riquadro troppo stretto stamperebbe
+  // etichette da sette pixel, uno troppo largo le farebbe gigantesche. Questo
+  // è tarato sulla larghezza che ha adesso.
+  const W = 740, H = 292, P = { l: 6, r: 30, t: 30, b: 26 };
   const mesi = d.fonti.byup.mese;
   const voti = d.fonti.byup.trend;
   const maxN = Math.max(...mesi);
   const passo = (W - P.l - P.r) / mesi.length;
-  const larghezza = Math.min(22, passo * 0.44);
+  const larghezza = Math.min(30, passo * 0.5);
   const xc = (i) => P.l + passo * (i + 0.5);
   const yBarra = (n) => H - P.b - (n / maxN) * (H - P.t - P.b);
   const yVoto = (v) => H - P.b - ((v - 3.5) / 1.5) * (H - P.t - P.b);
@@ -254,25 +246,21 @@ function CliAndamento({ d, mesiEt }) {
   const xUltimo = xc(voti.length - 1);
 
   return (
-    <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column'}}>
+    <div style={{minWidth: 0, display:'flex', flexDirection:'column'}}>
       <div style={{display:'flex', alignItems:'center', gap: 16, flexWrap:'wrap', marginBottom: 4}}>
-        {/* Le barre passano al grigio ora che il corallo è del voto: erano
-            corallo pallido, e con la media diventata corallo piena sarebbero
-            state la stessa tinta a due opacità — cioè due cose diverse dette
-            con lo stesso colore. Il volume è un conteggio, la media è il
-            voto: l'accento va al voto. */}
+        {/* Le barre si riprendono il corallo — sono il corpo del disegno, e
+            in grigio erano lo sfondo di sé stesse — e la media passa al nero:
+            due cose diverse non possono essere la stessa tinta a due
+            opacità, e tra le due quella che si conta è il volume. */}
         <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
-          <span style={{width: 8, height: 8, borderRadius: 2, background: PN.BORDER}}/>
+          <span style={{width: 8, height: 8, borderRadius: 2, background: PN.PINK}}/>
           recensioni del mese
         </span>
         <span style={{display:'inline-flex', alignItems:'center', gap: 7, fontSize: 13, color: PN.MUTED_SOFT}}>
-          <span style={{width: 13, height: 2, borderRadius: 2, background: PN.PINK}}/>
+          <span style={{width: 13, height: 2, borderRadius: 2, background: PN.TEXT}}/>
           media, da 3,5 a 5
         </span>
       </div>
-      {/* Il numero sopra ogni barra erano dodici cifre in mezzo al disegno, e
-          il disegno serve proprio a non doverle leggere una per una: resta la
-          scala a destra, e l'unica cifra scritta è dove si è arrivati. */}
       <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%', display:'block', margin:'auto 0'}}>
         {[3.5, 4, 4.5, 5].map(v => (
           <g key={v}>
@@ -282,15 +270,28 @@ function CliAndamento({ d, mesiEt }) {
         ))}
         {mesi.map((n, i) => (
           <rect key={i} x={xc(i) - larghezza / 2} y={yBarra(n)} width={larghezza} height={H - P.b - yBarra(n)}
-            rx={3} fill={PN.BORDER}/>
+            rx={4} fill={PN.PINK}/>
         ))}
         {/* La linea passa sopra le barre: filo bianco sotto perché resti
-            staccata dal colore che attraversa. */}
-        <path d={linea} fill="none" stroke={PN.WHITE} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round"/>
-        <path d={linea} fill="none" stroke={PN.PINK} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx={xUltimo} cy={yVoto(ultimo)} r={4} fill={PN.PINK} stroke={PN.WHITE} strokeWidth={2}/>
-        <text x={xUltimo} y={yVoto(ultimo) - 12} fontSize="12.5" fontWeight="700" fill={PN.TEXT} textAnchor="middle"
-          style={{fontVariantNumeric:'tabular-nums'}}>{ultimo.toFixed(1).replace('.', ',')}</text>
+            staccata dal colore che attraversa. L'ultimo valore non è scritto —
+            sarebbe una seconda cifra nera a dicembre, accanto a quella della
+            barra, e si leggerebbero come due numeri della stessa cosa. */}
+        <path d={linea} fill="none" stroke={PN.WHITE} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round"/>
+        <path d={linea} fill="none" stroke={PN.TEXT} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+        <circle cx={xUltimo} cy={yVoto(ultimo)} r={4} fill={PN.TEXT} stroke={PN.WHITE} strokeWidth={2}/>
+        {/* Quante ne sono arrivate, scritto sopra ogni barra: nella colonna
+            stretta di prima erano dodici cifre in mezzo al disegno e le avevo
+            tolte, ma a questa larghezza l'aria c'è e il numero esatto è quello
+            che si va a cercare — «a settembre quante?».
+            Vanno stampate per ultime e con l'alone bianco: la media taglia il
+            disegno a mezz'altezza e passava esattamente sopra il «30» di
+            luglio e il «35» di ottobre, che si leggevano cancellati. */}
+        {mesi.map((n, i) => (
+          <text key={i} x={xc(i)} y={yBarra(n) - 8} fontSize="11.5" fontWeight="700"
+            fill={PN.TEXT} stroke={PN.WHITE} strokeWidth={3.4} paintOrder="stroke"
+            strokeLinejoin="round" textAnchor="middle"
+            style={{fontVariantNumeric:'tabular-nums'}}>{n}</text>
+        ))}
         {mesiEt.map((m, i) => (
           <text key={i} x={xc(i)} y={H - 6} fontSize="10.5" fill={PN.MUTED_LIGHT} textAnchor="middle">{m}</text>
         ))}
@@ -802,18 +803,14 @@ function StatClienti() {
             perché — le caselle che i clienti hanno spuntato nell'app. Sono la
             stessa cosa guardata a due distanze, e stavano in due card diverse
             solo perché sono nate in due momenti diversi. */}
-        {/* Un filo verticale al posto del riquadro: separa le due colonne
-            senza chiudere niente dentro una cornice.
-            Metà e metà: il grafico si prendeva quasi il doppio del voto, e a
-            quella larghezza era lui la card. L'andamento conta, ma conta
-            quanto il numero che commenta — non di più. */}
-        <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1fr)', alignItems:'stretch'}}>
-          <div style={{paddingRight: 30, borderRight:`1px solid ${PN.BORDER_SOFT}`, minWidth: 0, display:'flex'}}>
-            <CliVoto d={d}/>
-          </div>
-          <div style={{paddingLeft: 30, minWidth: 0, display:'flex'}}>
-            <CliAndamento d={d} mesiEt={mesiEt}/>
-          </div>
+        {/* Un box solo. Erano due — il voto di qua, il grafico di là, un filo
+            verticale in mezzo — e il filo era l'unica cosa che diceva che
+            fossero due cose: sono la stessa, quel numero e come ci è arrivato.
+            Tolto il filo resta l'aria, il voto si incolonna stretto a sinistra
+            e il disegno si prende il resto per tutta l'altezza. */}
+        <div style={{display:'grid', gridTemplateColumns:'minmax(200px, 0.78fr) minmax(0, 3fr)', gap: 34, alignItems:'stretch'}}>
+          <CliVoto d={d}/>
+          <CliAndamento d={d} mesiEt={mesiEt}/>
         </div>
 
         {d.aspetti && <CliAspetti dati={d.aspetti} attivo={aspetto} onScegli={scegliAspetto}/>}
