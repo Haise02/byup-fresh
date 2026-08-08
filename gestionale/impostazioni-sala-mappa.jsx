@@ -81,7 +81,7 @@ function FloorPlan({
   tavoli, furniture, groups, selected,
   onCreateTable, onCreateFurniture,
   onMoveTable, onBulkMoveTables, onMoveFurniture, onResizeFurniture, onDeleteFurniture,
-  onMergeTables, onSelectTable, onEditTable
+  onMergeTables, onRotateTable, onSelectTable, onEditTable
 }) {
   const COLS = cols || 10, ROWS = rows || 6;
   const [canvasWidth, setCanvasWidth] = React.useState(COLS * 60);
@@ -801,6 +801,69 @@ function FloorPlan({
               </React.Fragment>
             );
           })}
+
+          {/* Barra "Ruota" — la stessa della mappa in Sala: segue l'hover,
+              perché il click sul tavolo qui apre la scheda. Compare solo dove
+              girare cambia qualcosa: sui rettangolari e sui gruppi uniti (un
+              tavolo quadrato girato è identico a prima). */}
+          {hoverTable != null && !drag && !paletteDrag && typeof onRotateTable === 'function' && (() => {
+            const t = tavoli.find(x => x.id === hoverTable);
+            if (!t) return null;
+            const mates = groupMates(t.id).map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+            const isGroup = mates.length > 1;
+            if (!isGroup && ttSeatShape(t.coperti || 4) !== 'rect') return null;
+            // Il gruppo È un tavolo: la barra sta al centro del suo bounding
+            // box, ovunque cada l'hover.
+            const rects = (isGroup ? mates : [t]).map(m => ({ x: m.pos.x, y: m.pos.y, ...tableDims(m) }));
+            const minX = Math.min(...rects.map(r => r.x)) * CELL;
+            const maxX = Math.max(...rects.map(r => r.x + r.w)) * CELL;
+            const minY = Math.min(...rects.map(r => r.y)) * CELL;
+            const maxY = Math.max(...rects.map(r => r.y + r.h)) * CELL;
+            const sopra = minY - 34;
+            return (
+              <div
+                onClick={e => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
+                // La barra tiene vivo l'hover: senza, passando dal tavolo alla
+                // barra questa spariva prima di essere raggiunta.
+                onMouseEnter={() => setHoverTable(t.id)}
+                onMouseLeave={() => setHoverTable(h => (h === t.id ? null : h))}
+                style={{
+                  position: 'absolute', left: (minX + maxX) / 2,
+                  top: sopra >= 2 ? sopra : maxY + 8,
+                  transform: 'translateX(-50%)', zIndex: 26,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '5px 7px', borderRadius: 13,
+                  backgroundColor: 'rgba(255,255,255,0.72)',
+                  backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)',
+                  backdropFilter: 'blur(20px) saturate(140%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                  border: '1px solid rgba(255,255,255,0.8)',
+                  boxShadow: '0 12px 36px rgba(80,40,80,0.14), 0 2px 8px rgba(80,40,80,0.08)',
+                }}>
+                <button
+                  title={isGroup ? 'Ruota il gruppo di 90°' : 'Ruota 90°'}
+                  onClick={(e) => { e.stopPropagation(); onRotateTable(t.id); }}
+                  style={{
+                    height: 26, padding: '0 10px', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.85)',
+                    border: '1px solid rgba(15,17,21,0.08)',
+                    color: '#0F1115', cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, lineHeight: 1,
+                    transition: 'background 150ms ease-out',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#fff'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.85)'}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/>
+                  </svg>
+                  Ruota
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Hover preview while dragging from palette */}
           {hover && (
