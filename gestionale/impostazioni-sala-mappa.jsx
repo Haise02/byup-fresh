@@ -189,6 +189,77 @@ function FloorPlan({
     return { x: cx, y: cy };
   };
 
+  // Compone l'unione: tutti i membri dei due lati — che siano tavoli singoli
+  // o gruppi già uniti — vanno in UNA FILA SOLA, mai a L e mai a blocco.
+  // Orizzontale, o verticale se in larghezza non ci sta e in altezza sì.
+  // Ritorna gli spostamenti da applicare, orientamento compreso.
+  const componiUnione = (idTrascinato, idTarget) => {
+    // Unione come in sala (SALA_DO_MERGE): l'intero gruppo viene
+    // ridisposto in un'unica FILA ORIZZONTALE ancorata al gruppo
+    // target — mai forme a L. Verticale solo se la fila non entra
+    // in larghezza ma entra in altezza.
+    const existing = groupMates(idTarget);
+    // Anche il trascinato può essere già un gruppo: si porta dietro
+    // tutti i suoi. Contando solo lui, i compagni restavano fuori dal
+    // calcolo della fila e facevano massa sopra o sotto — è così che
+    // unendo due gruppi già uniti veniva fuori un blocco quadrato.
+    const memberIds = Array.from(new Set([...existing, ...groupMates(idTrascinato)]));
+    const members = memberIds.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+    // Le misure si prendono sull'asse della fila, non sull'orientamento
+    // attuale del membro: entrando in fila i tavoli ci vengono girati
+    // sopra, e un membro rimasto per traverso alzava tutto il gruppo.
+    const dimsOn = (m, a) => ttFootprintUnits(m.coperti || 4, ttSeatShape(m.coperti || 4), a);
+    const lenAlong = (a) => members.reduce((s, m) => s + (a === 'h' ? dimsOn(m, a).w : dimsOn(m, a).h), 0);
+    let axis = 'h';
+    if (lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
+    const exMembers = existing.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+    const anchorX = Math.min(...exMembers.map(m => m.pos.x));
+    const anchorY = Math.min(...exMembers.map(m => m.pos.y));
+    const total = lenAlong(axis);
+    const crossMax = Math.max(...members.map(m => axis === 'h' ? dimsOn(m, axis).h : dimsOn(m, axis).w));
+    let cursor = axis === 'h'
+      ? Math.max(0, Math.min(anchorX, COLS - total))
+      : Math.max(0, Math.min(anchorY, ROWS - total));
+    const cross = axis === 'h'
+      ? Math.max(0, Math.min(anchorY, ROWS - crossMax))
+      : Math.max(0, Math.min(anchorX, COLS - crossMax));
+    // In fila: i membri esistenti mantengono il loro ordine, il trascinato va in coda
+    const lungoAsse = (a, b) => axis === 'h' ? a.pos.x - b.pos.x : a.pos.y - b.pos.y;
+    const orderedMembers = [
+      ...members.filter(m => existing.includes(m.id)).sort(lungoAsse),
+      ...members.filter(m => !existing.includes(m.id)).sort(lungoAsse),
+    ];
+    const updates = {};
+    const lineRects = [];
+    orderedMembers.forEach(m => {
+      const d = dimsOn(m, axis);
+      const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
+      const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
+      // `orientation` va scritto insieme alla posizione: senza, un
+      // tavolo girato restava per traverso dentro la fila.
+      updates[m.id] = { x, y, orientation: axis };
+      lineRects.push({ x, y, w: d.w, h: d.h });
+      cursor += axis === 'h' ? d.w : d.h;
+    });
+    // Sgombera i tavoli estranei finiti sotto la fila. Gli ostacoli
+    // sono la fila, l'arredo E gli altri tavoli estranei: contando solo
+    // i primi due, chi veniva sgomberato poteva atterrare addosso a un
+    // tavolo che stava benissimo dov'era.
+    const memberSet = new Set(memberIds);
+    const estranei = tavoli.filter(o => !memberSet.has(o.id));
+    const ingombro = new Map(estranei.map(o => [o.id, { x: o.pos.x, y: o.pos.y, ...tableDims(o) }]));
+    const fissi = [...lineRects, ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }))];
+    estranei.forEach(o => {
+      const mio = ingombro.get(o.id);
+      if (!fissi.some(r => overlapRects(r, mio))) return;
+      const occ = [...fissi, ...estranei.filter(x => x.id !== o.id).map(x => ingombro.get(x.id))];
+      const spot = placeFree(o.pos.x, o.pos.y, mio.w, mio.h, occ);
+      updates[o.id] = { x: spot.x, y: spot.y };
+      ingombro.set(o.id, { x: spot.x, y: spot.y, w: mio.w, h: mio.h });
+    });
+    return updates;
+  };
+
   // Drag elemento esistente (pointer events: mouse + touch)
   const handleMouseDown = (e, kind, id, dx = 0, dy = 0) => {
     e.stopPropagation();
@@ -226,7 +297,29 @@ function FloorPlan({
           });
           if (onBulkMoveTables) onBulkMoveTables(updates);
           else updates && Object.entries(updates).forEach(([id, pos]) => onMoveTable(parseInt(id,10), pos));
-          setDragOverTable(null);
+          // Anche un gruppo intero può proporre l'unione: basta che UNO dei
+          // suoi membri si sovrapponga a un tavolo di fuori. Prima qui la
+          // proposta veniva spenta, quindi due gruppi non si univano mai —
+          // si potevano solo spingere a vicenda.
+          if (onMergeTables) {
+            const miei = mates.map(mid => {
+              const m = tavoli.find(t => t.id === mid);
+              const u = updates[mid];
+              return (m && u) ? { x: u.x, y: u.y, ...tableDims(m) } : null;
+            }).filter(Boolean);
+            const over = tavoli.find(o => {
+              if (mates.includes(o.id)) return false;
+              const od = tableDims(o);
+              return miei.some(r => {
+                const w = Math.min(r.x + r.w, o.pos.x + od.w) - Math.max(r.x, o.pos.x);
+                const h = Math.min(r.y + r.h, o.pos.y + od.h) - Math.max(r.y, o.pos.y);
+                return w > 0 && h > 0 && w * h >= 0.3;
+              });
+            });
+            setDragOverTable(over ? over.id : null);
+          } else {
+            setDragOverTable(null);
+          }
         } else {
           onMoveTable(drag.id, { x: newX, y: newY });
           // Sovrapposizione significativa con un altro tavolo → proposta di unione
@@ -260,7 +353,14 @@ function FloorPlan({
       // viene spostato nello spazio libero più vicino.
       if (drag.kind === 'table' && drag.hasMoved) {
         const mates = groupMates(drag.id);
-        if (mates.length > 1 && onBulkMoveTables) {
+        const bersaglioGruppo = (mates.length > 1 && dragOverTable != null && !mates.includes(dragOverTable))
+          ? tavoli.find(t => t.id === dragOverTable) : null;
+        if (bersaglioGruppo && onMergeTables && onBulkMoveTables) {
+          // Gruppo mollato sopra un altro tavolo (o un altro gruppo): si
+          // uniscono, e tutti insieme tornano in una fila sola.
+          onBulkMoveTables(componiUnione(drag.id, bersaglioGruppo.id));
+          onMergeTables(drag.id, bersaglioGruppo.id);
+        } else if (mates.length > 1 && onBulkMoveTables) {
           // Gruppo: spingi gli altri tavoli che collidono col gruppo mosso
           const movedIds = new Set(mates);
           const movedRects = tavoli.filter(t => movedIds.has(t.id)).map(t => ({ id: t.id, ...t.pos, ...tableDims(t) }));
@@ -281,69 +381,7 @@ function FloorPlan({
           const cur = tavoli.find(t => t.id === drag.id);
           const target = dragOverTable != null ? tavoli.find(t => t.id === dragOverTable) : null;
           if (cur && target && onMergeTables) {
-            // Unione come in sala (SALA_DO_MERGE): l'intero gruppo viene
-            // ridisposto in un'unica FILA ORIZZONTALE ancorata al gruppo
-            // target — mai forme a L. Verticale solo se la fila non entra
-            // in larghezza ma entra in altezza.
-            const existing = groupMates(target.id);
-            // Anche il trascinato può essere già un gruppo: si porta dietro
-            // tutti i suoi. Contando solo lui, i compagni restavano fuori dal
-            // calcolo della fila e facevano massa sopra o sotto — è così che
-            // unendo due gruppi già uniti veniva fuori un blocco quadrato.
-            const memberIds = Array.from(new Set([...existing, ...groupMates(drag.id)]));
-            const members = memberIds.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
-            // Le misure si prendono sull'asse della fila, non sull'orientamento
-            // attuale del membro: entrando in fila i tavoli ci vengono girati
-            // sopra, e un membro rimasto per traverso alzava tutto il gruppo.
-            const dimsOn = (m, a) => ttFootprintUnits(m.coperti || 4, ttSeatShape(m.coperti || 4), a);
-            const lenAlong = (a) => members.reduce((s, m) => s + (a === 'h' ? dimsOn(m, a).w : dimsOn(m, a).h), 0);
-            let axis = 'h';
-            if (lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
-            const exMembers = existing.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
-            const anchorX = Math.min(...exMembers.map(m => m.pos.x));
-            const anchorY = Math.min(...exMembers.map(m => m.pos.y));
-            const total = lenAlong(axis);
-            const crossMax = Math.max(...members.map(m => axis === 'h' ? dimsOn(m, axis).h : dimsOn(m, axis).w));
-            let cursor = axis === 'h'
-              ? Math.max(0, Math.min(anchorX, COLS - total))
-              : Math.max(0, Math.min(anchorY, ROWS - total));
-            const cross = axis === 'h'
-              ? Math.max(0, Math.min(anchorY, ROWS - crossMax))
-              : Math.max(0, Math.min(anchorX, COLS - crossMax));
-            // In fila: i membri esistenti mantengono il loro ordine, il trascinato va in coda
-            const lungoAsse = (a, b) => axis === 'h' ? a.pos.x - b.pos.x : a.pos.y - b.pos.y;
-            const orderedMembers = [
-              ...members.filter(m => existing.includes(m.id)).sort(lungoAsse),
-              ...members.filter(m => !existing.includes(m.id)).sort(lungoAsse),
-            ];
-            const updates = {};
-            const lineRects = [];
-            orderedMembers.forEach(m => {
-              const d = dimsOn(m, axis);
-              const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
-              const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
-              // `orientation` va scritto insieme alla posizione: senza, un
-              // tavolo girato restava per traverso dentro la fila.
-              updates[m.id] = { x, y, orientation: axis };
-              lineRects.push({ x, y, w: d.w, h: d.h });
-              cursor += axis === 'h' ? d.w : d.h;
-            });
-            // Sgombera i tavoli estranei finiti sotto la fila. Gli ostacoli
-            // sono la fila, l'arredo E gli altri tavoli estranei: contando solo
-            // i primi due, chi veniva sgomberato poteva atterrare addosso a un
-            // tavolo che stava benissimo dov'era.
-            const memberSet = new Set(memberIds);
-            const estranei = tavoli.filter(o => !memberSet.has(o.id));
-            const ingombro = new Map(estranei.map(o => [o.id, { x: o.pos.x, y: o.pos.y, ...tableDims(o) }]));
-            const fissi = [...lineRects, ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }))];
-            estranei.forEach(o => {
-              const mio = ingombro.get(o.id);
-              if (!fissi.some(r => overlapRects(r, mio))) return;
-              const occ = [...fissi, ...estranei.filter(x => x.id !== o.id).map(x => ingombro.get(x.id))];
-              const spot = placeFree(o.pos.x, o.pos.y, mio.w, mio.h, occ);
-              updates[o.id] = { x: spot.x, y: spot.y };
-              ingombro.set(o.id, { x: spot.x, y: spot.y, w: mio.w, h: mio.h });
-            });
+            const updates = componiUnione(drag.id, target.id);
             if (onBulkMoveTables) onBulkMoveTables(updates);
             else Object.entries(updates).forEach(([id, pos]) => onMoveTable(parseInt(id, 10), pos));
             onMergeTables(drag.id, target.id);
