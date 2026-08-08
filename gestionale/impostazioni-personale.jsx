@@ -21,7 +21,7 @@ const ROLES = [
   {
     id: 'cassa',
     label: 'Cassa',
-    desc: 'Prende ordini e incassa dalla cassa del locale',
+    desc: 'Prende ordini e incassa al bancone',
     color: PN.BLUE, bg: PN.BLUE_SOFT,
     icon: 'receipt',
     areas: ['vendita','sala'],
@@ -1757,7 +1757,7 @@ const DEVICE_STEPS = [
 // l'ha già.
 const STEP_ROLES = [
   { id: 'cameriere', label: 'Cameriere', desc: 'Usa l\'app staff per tavoli, ordini e conto',    icon: 'waiter' },
-  { id: 'cassa',     label: 'Cassa',     desc: 'Prende ordini e incassa dalla cassa del locale', icon: 'receipt' },
+  { id: 'cassa',     label: 'Cassa',     desc: 'Prende ordini e incassa al bancone', icon: 'receipt' },
 ];
 
 window.PERSONALE_TEAM_INITIAL = [
@@ -1965,6 +1965,10 @@ function StepDeviceCard({ d, on, onClick }) {
 }
 
 // Card-ruolo con radio in alto a destra: feedback in hover, brand da selezionata.
+// Orizzontale come le tessere dispositivo qui sotto — icona a sinistra, nome e
+// spiegazione a destra. Il nome sotto l'icona faceva leggere la tessera in due
+// tempi (guarda il segno, poi scendi a capire cosa vuol dire) e la stessa
+// scelta, due riquadri più in basso, si leggeva in uno.
 function StepRoleCard({ r, on, onClick }) {
   const [hover, setHover] = React.useState(false);
   return (
@@ -1972,7 +1976,8 @@ function StepRoleCard({ r, on, onClick }) {
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
         position:'relative', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
-        padding:'16px 16px 14px', borderRadius: 12,
+        display:'flex', alignItems:'center', gap: 14,
+        padding:'16px 46px 16px 16px', borderRadius: 12,
         border:`1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
         background: on ? '#FFF7F7' : PN.WHITE,
         boxShadow: hover && !on ? '0 6px 16px rgba(15, 17, 21, 0.06)' : 'none',
@@ -1981,7 +1986,7 @@ function StepRoleCard({ r, on, onClick }) {
       }}>
       {/* Radio */}
       <span style={{
-        position:'absolute', top: 12, right: 12,
+        position:'absolute', top: 14, right: 14,
         width: 16, height: 16, borderRadius:'50%',
         border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
         display:'grid', placeItems:'center',
@@ -1989,35 +1994,47 @@ function StepRoleCard({ r, on, onClick }) {
       }}>
         {on && <span style={{width: 8, height: 8, borderRadius:'50%', background: PN.PINK}}/>}
       </span>
+      {/* Tondo e non riquadro: le persone restano tonde, i dispositivi
+          squadrati — è l'unico segno che distingue le due coppie ora che hanno
+          la stessa forma. */}
       <span style={{
-        width: 44, height: 44, borderRadius:'50%', display:'grid', placeItems:'center',
+        width: 46, height: 46, borderRadius:'50%', flexShrink: 0, display:'grid', placeItems:'center',
         background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
-        marginBottom: 10, transition:'background 150ms ease, color 150ms ease',
-      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 20, color:'currentColor'})}</span>
-      <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{r.label}</div>
-      <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45}}>{r.desc}</div>
+        transition:'background 150ms ease, color 150ms ease',
+      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 21, color:'currentColor'})}</span>
+      <span style={{minWidth: 0}}>
+        <span style={{display:'block', fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{r.label}</span>
+        <span style={{display:'block', fontSize: 14, color: PN.MUTED, lineHeight: 1.4}}>{r.desc}</span>
+      </span>
     </button>
   );
 }
 
-// "+ Aggiungi invito": chip corallo tenue con feedback hover/pressione.
+// «Invita» è la CTA del mezzo passo delle persone, come «Configura dispositivo»
+// lo è di quello dei dispositivi: stesso lavoro, stesso colore acceso — corallo
+// pieno, gli stessi token della variante pink di ImpButton. Da chip tenue le due
+// azioni gemelle avevano due pesi diversi, e quella delle persone sembrava
+// facoltativa. Non riusa ImpButton perché l'altezza è tarata sui campi della
+// riga d'invito accanto, non sul piede di una card.
 function AddInviteBtn({ disabled, onClick }) {
   const [hover, setHover] = React.useState(false);
   const [pressed, setPressed] = React.useState(false);
   return (
     <button onClick={onClick} disabled={disabled}
-      onMouseEnter={() => setHover(true)}
+      onMouseEnter={() => { if (!disabled) setHover(true); }}
       onMouseLeave={() => { setHover(false); setPressed(false); }}
       onMouseDown={() => setPressed(true)} onMouseUp={() => setPressed(false)}
       style={{
         flexShrink: 0, padding:'10px 16px', borderRadius: 9,
-        border:`1.5px solid ${hover && !disabled ? PN.PINK : '#FFD5D6'}`,
-        background: PN.PINK_SOFT, color: PN.PINK_DARK,
+        border:'1px solid rgba(180, 30, 35, 0.40)',
+        background: hover && !disabled ? PN.BTN_BRAND_HOVER : PN.BTN_BRAND,
+        color: '#fff',
+        boxShadow: `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 2px rgba(255, 90, 95, 0.18)`,
         fontSize: 14, fontWeight: 700, fontFamily:'inherit',
         cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.55 : 1,
+        opacity: disabled ? 0.45 : 1,
         transform: pressed && !disabled ? 'scale(0.96)' : 'none',
-        transition:'border-color 150ms ease, transform 130ms ease, opacity 150ms ease',
+        transition:'background 150ms ease-out, box-shadow 150ms ease-out, transform 130ms ease, opacity 150ms ease-out',
         display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
       }}>
       <PnI.Plus size={12}/> Invita
