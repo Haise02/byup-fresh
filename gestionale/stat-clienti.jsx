@@ -197,9 +197,14 @@ function CliGoogle({ g }) {
       padding:'7px 13px', borderRadius: 999, background: PN.WHITE_FROST,
       whiteSpace:'nowrap', flexShrink: 0,
     }} title="Le recensioni Google le lascia chiunque abbia un account Google, anche chi non ha mai ordinato da te: restano fuori dal voto qui accanto.">
+      {/* Solo «Google». La chiosa «aperte a chiunque» era il motivo per cui
+          quel voto non fa media con l'altro, e stava bene quando la riga era
+          in fondo alla colonna a giustificarsi; qui in testa, accanto al
+          titolo, è una spiegazione dove serve solo un'etichetta. Il perché
+          resta a portata di puntatore. */}
       <span style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 13.5, color: PN.MUTED}}>
         <span style={{width: 7, height: 7, borderRadius:'50%', background: CLI_BLU_GOOGLE, flexShrink: 0}}/>
-        Google, aperte a chiunque
+        Google
       </span>
       <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
         {g.media.toFixed(1).replace('.', ',')}
