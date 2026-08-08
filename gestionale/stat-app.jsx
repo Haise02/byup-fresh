@@ -253,10 +253,9 @@ function ConvFunnel({ passi, rimborsi }) {
             </div>
           </div>
 
-          {/* Le tre misure, divise da un filo: quanti, quanto, su quanti. */}
+          {/* Le misure, divise da un filo: quanti, e su quanti. */}
           {[
             { v: num(rimborsi.n), et:`su ${num(pagati.val)} pagamenti` },
-            { v:`€ ${num(rimborsi.valore)}`, et:'restituiti al cliente' },
             { v:`${(rimborsi.n / pagati.val * 100).toFixed(1).replace('.', ',')}%`, et:'degli ordini pagati' },
           ].map((m, i) => (
             <div key={i} style={{
