@@ -5,9 +5,10 @@
 // sguardo: ogni informazione si era presa una tinta e una scatola, e il
 // risultato era che nessuna aveva più peso delle altre. Vale una regola sola,
 // da qui in giù: il corallo è byup — e le stelle sono byup — il blu è Google,
-// il rosso è un problema, l'ambra è rimasta solo allo stato «Segnalata».
-// Tutto il resto è grigio, e niente ha un bordo se un filetto o un po' d'aria
-// bastano a separarlo.
+// il rosso è un problema e il verde è il suo contrario (le due caselle che il
+// cliente spunta nell'app, che si leggono in coppia o non si leggono),
+// l'ambra è rimasta solo allo stato «Segnalata». Tutto il resto è grigio, e
+// niente ha un bordo se un filetto o un po' d'aria bastano a separarlo.
 //
 // Le stelle erano ambra su fondo bianco, cioè le stelle di Google: la stessa
 // forma e lo stesso oro che il cliente vede sulla scheda Maps. Ma queste
@@ -490,9 +491,14 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
                   cosa che il posto in cui sta il testo dice già. */}
               <div style={{flex: 1, fontSize: 15.5, color: PN.TEXT, lineHeight: 1.6}}>{r.testo}</div>
 
-              {/* Le caselle che ha spuntato nell'app dopo aver pagato. In rosso
-                  quelle negative: è un problema che ha segnalato lui, non una
-                  nostra lettura del suo testo. */}
+              {/* Le caselle che ha spuntato nell'app dopo aver pagato. Sono una
+                  coppia — cosa non ha funzionato, cosa è piaciuto — e vanno
+                  lette come tale: rosso e verde, tutte e due piene.
+                  Quelle positive erano bianche con un filo attorno: sulla
+                  scheda grigia si vedevano, su quella bianca sono diventate
+                  bianco su bianco e il filo da solo non le stacca. E metterle
+                  in grigio le avrebbe fatte leggere come spente, cioè come il
+                  contrario di quello che dicono. */}
               {(r.aspetti || []).length > 0 && (
                 <div style={{display:'flex', flexWrap:'wrap', gap: 7}}>
                   {r.aspetti.map(a => {
@@ -501,9 +507,8 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
                       <span key={a} style={{
                         display:'inline-flex', alignItems:'center', gap: 6,
                         padding:'5px 11px', borderRadius: 999,
-                        background: asp.problema ? PN.RED_SOFT : PN.WHITE,
-                        color: asp.problema ? '#9B2C2C' : PN.MUTED,
-                        boxShadow: asp.problema ? 'none' : `0 0 0 1px ${PN.BORDER_SOFT}`,
+                        background: asp.problema ? PN.RED_SOFT : PN.GREEN_SOFT,
+                        color: asp.problema ? '#9B2C2C' : '#166534',
                         fontSize: 13.5, fontWeight: 600, whiteSpace:'nowrap',
                       }}>{asp.emoji} {asp.et}</span>
                     );
