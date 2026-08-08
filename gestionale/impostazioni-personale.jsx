@@ -1583,9 +1583,12 @@ function CreateRoleModal({ onClose, role }) {
 // Le due sole cose che un locale collega il primo giorno. Il resto — seconda
 // stampante, monitor pizza — si aggiunge dopo, e dirlo evita di far scegliere
 // adesso qualcosa che non serve adesso.
+// Una riga a testa anche col corpo cresciuto: «da inviare» e il secondo «in
+// cucina» erano parole che non aggiungevano niente, e mandavano la descrizione
+// a capo su una parola orfana.
 const STEP_DEVICES = [
-  { id: 'printer', label: 'Stampante',      desc: 'Stampa gli ordini da inviare in cucina o al bar', icon: 'doc' },
-  { id: 'monitor', label: 'Kitchen Monitor', desc: 'Mostra le comande in tempo reale in cucina',      icon: 'monitor' },
+  { id: 'printer', label: 'Stampante',      desc: 'Stampa gli ordini in cucina o al bar', icon: 'doc' },
+  { id: 'monitor', label: 'Kitchen Monitor', desc: 'Mostra le comande in tempo reale',     icon: 'monitor' },
 ];
 // Due passi e non tre: il terzo — «conferma il collegamento» — descriveva quello
 // che succede DOPO aver premuto la CTA, cioe una cosa che l'utente non deve fare.
@@ -1769,6 +1772,9 @@ function PersonaleStep({ team, setTeam }) {
 // Tessera dispositivo: orizzontale — icona a sinistra, testo a destra — perche
 // i dispositivi sono due e non tre, e in orizzontale riempiono la riga invece di
 // lasciare due colonne mezze vuote.
+// Il corpo del testo e quello delle tessere-ruolo qui sotto: sono la stessa
+// scelta fatta due volte nella stessa schermata, e a due misure diverse una
+// delle due sembrava una nota a margine dell'altra.
 function StepDeviceCard({ d, on, onClick }) {
   const [hover, setHover] = React.useState(false);
   return (
@@ -1777,7 +1783,7 @@ function StepDeviceCard({ d, on, onClick }) {
       style={{
         position:'relative', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
         display:'flex', alignItems:'center', gap: 14,
-        padding:'14px 44px 14px 14px', borderRadius: 12,
+        padding:'16px 46px 16px 16px', borderRadius: 12,
         border:`1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
         background: on ? '#FFF7F7' : PN.WHITE,
         boxShadow: hover && !on ? '0 6px 16px rgba(15, 17, 21, 0.06)' : 'none',
@@ -1793,13 +1799,13 @@ function StepDeviceCard({ d, on, onClick }) {
         {on && <span style={{width: 8, height: 8, borderRadius:'50%', background: PN.PINK}}/>}
       </span>
       <span style={{
-        width: 44, height: 44, borderRadius: 12, flexShrink: 0, display:'grid', placeItems:'center',
+        width: 48, height: 48, borderRadius: 12, flexShrink: 0, display:'grid', placeItems:'center',
         background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
         transition:'background 150ms ease, color 150ms ease',
-      }}>{(BuIcons[d.icon]||BuIcons.monitor)({size: 20, color:'currentColor'})}</span>
+      }}>{(BuIcons[d.icon]||BuIcons.monitor)({size: 22, color:'currentColor'})}</span>
       <span style={{minWidth: 0}}>
-        <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 2}}>{d.label}</span>
-        <span style={{display:'block', fontSize: 13, color: PN.MUTED, lineHeight: 1.4}}>{d.desc}</span>
+        <span style={{display:'block', fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{d.label}</span>
+        <span style={{display:'block', fontSize: 14, color: PN.MUTED, lineHeight: 1.4}}>{d.desc}</span>
       </span>
     </button>
   );
@@ -1831,12 +1837,12 @@ function StepRoleCard({ r, on, onClick }) {
         {on && <span style={{width: 8, height: 8, borderRadius:'50%', background: PN.PINK}}/>}
       </span>
       <span style={{
-        width: 40, height: 40, borderRadius:'50%', display:'grid', placeItems:'center',
+        width: 44, height: 44, borderRadius:'50%', display:'grid', placeItems:'center',
         background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
         marginBottom: 10, transition:'background 150ms ease, color 150ms ease',
-      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 18, color:'currentColor'})}</span>
-      <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{r.label}</div>
-      <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>{r.desc}</div>
+      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 20, color:'currentColor'})}</span>
+      <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{r.label}</div>
+      <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45}}>{r.desc}</div>
     </button>
   );
 }
