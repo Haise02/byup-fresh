@@ -219,7 +219,11 @@ function ImpPersonale() {
   const [resetPwd, setResetPwd] = React.useState(null);       // riga in reset
   const [cambiaRuolo, setCambiaRuolo] = React.useState(null); // riga in cambio
 
-  const allRoles = [...ROLES, ...CUSTOM_ROLES];
+  // I ruoli personalizzati sono gli unici che cambiano: Cassa, Cameriere e
+  // Titolare sono di sistema e restano quelli. Modificarne i permessi non li
+  // smonta — ne nasce uno personalizzato nuovo (vedi CreateRoleModal).
+  const [customRoles, setCustomRoles] = React.useState(CUSTOM_ROLES);
+  const allRoles = [...ROLES, ...customRoles];
 
   // Persone e dispositivi in un elenco solo: la domanda della pagina è «chi
   // entra nel gestionale», e un monitor di cucina che legge le comande entra
@@ -258,7 +262,7 @@ function ImpPersonale() {
     { id: 'all', label: 'Tutti i ruoli', icon: 'users', color: PN.PINK_DARK, bg: PN.PINK_SOFT },
     ...ROLES.map(r => ({ id: r.id, label: r.label, icon: r.icon, color: r.color, bg: r.bg })),
     { id: '_devices', label: 'Dispositivi', icon: 'monitor', color: DEVICE_ROLE.color, bg: DEVICE_ROLE.bg },
-    ...(CUSTOM_ROLES.length
+    ...(customRoles.length
       ? [{ id: '_custom', label: 'Personalizzati', icon: 'sparkle', color: '#6D28D9', bg: '#EDE9FE' }]
       : []),
   ];
@@ -510,9 +514,21 @@ function ImpPersonale() {
           }}
           onClose={() => setCambiaRuolo(null)}/>
       )}
-      {showCreateRole && <CreateRoleModal onClose={() => setShowCreateRole(false)}/>}
-      {editRole && <CreateRoleModal role={editRole} onClose={() => setEditRole(null)}/>}
-      {invite && <InviteModal prefill={invite} onClose={() => setInvite(null)}/>}
+      {showCreateRole && (
+        <CreateRoleModal
+          roles={allRoles}
+          onSave={(nuovo) => setCustomRoles(prev => [...prev, nuovo])}
+          onClose={() => setShowCreateRole(false)}/>
+      )}
+      {editRole && (
+        <CreateRoleModal
+          role={editRole} roles={allRoles}
+          onSave={(salvato) => setCustomRoles(prev => prev.some(r => r.id === salvato.id)
+            ? prev.map(r => r.id === salvato.id ? salvato : r)
+            : [...prev, salvato])}
+          onClose={() => setEditRole(null)}/>
+      )}
+      {invite && <InviteModal prefill={invite} ruoli={allRoles} onClose={() => setInvite(null)}/>}
       {showPending && <PendingModal onClose={() => setShowPending(false)}/>}
     </div>
   );
@@ -1335,11 +1351,14 @@ const IMP_MODAL_X = {
   cursor: 'pointer', display: 'grid', placeItems: 'center',
 };
 
-function InviteModal({ onClose, prefill }) {
+// `ruoli`: l'elenco vivo di chi apre la modale — un ruolo personalizzato appena
+// creato dev'essere invitabile subito, e la costante di modulo non lo conosce.
+function InviteModal({ onClose, prefill, ruoli }) {
   const initialKind = prefill?.kind === 'device' ? 'device' : 'person';
+  const allRolesForInvite = ruoli || [...ROLES, ...CUSTOM_ROLES];
   // Se prefill.roleId è quello di un ruolo selezionabile, usa quello; altrimenti default
   const prefillRoleSelectable = prefill?.roleId
-    && [...ROLES, ...CUSTOM_ROLES].some(r => r.id === prefill.roleId && !r.locked);
+    && allRolesForInvite.some(r => r.id === prefill.roleId && !r.locked);
   const [kind, setKind] = React.useState(initialKind);
 
   // Persona
@@ -1347,7 +1366,6 @@ function InviteModal({ onClose, prefill }) {
   const [email, setEmail] = React.useState('');
   const [roleId, setRoleId] = React.useState(prefillRoleSelectable ? prefill.roleId : 'cameriere');
   const [msg, setMsg] = React.useState('');
-  const allRolesForInvite = [...ROLES, ...CUSTOM_ROLES];
   const role = allRolesForInvite.find(r => r.id === roleId) || ROLES[0];
   const personValid = /\S+@\S+\.\S+/.test(email);
   // Riquadro permessi del ruolo selezionato
@@ -2056,18 +2074,84 @@ function PendingModal({ onClose }) {
   );
 }
 
-function CreateRoleModal({ onClose, role }) {
+// La descrizione di un ruolo personalizzato è l'elenco di quello che vede: è
+// l'unica cosa che distingue due ruoli su misura quando li si sceglie da un
+// menu, dove il nome da solo non dice cosa può fare chi lo ha.
+function descrizioneAree(areas) {
+  if (!areas.length) return 'Nessuna area visibile';
+  return 'Vede ' + ALL_AREAS.filter(a => areas.includes(a.id)).map(a => a.label).join(' · ');
+}
+
+// Id ricavato dal nome — che è unico per costruzione — con una coda numerica
+// se per qualche motivo lo fosse già.
+function idLibero(nome, elenco) {
+  const base = 'custom-' + (nome.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'ruolo');
+  let id = base;
+  for (let n = 2; elenco.some(r => r.id === id); n++) id = `${base}-${n}`;
+  return id;
+}
+
+// Cassa, Cameriere e Titolare sono i ruoli di sistema: hanno permessi di
+// partenza e non si smontano. Aprirne i permessi e salvare non li cambia — si
+// esce con un ruolo PERSONALIZZATO nuovo, che quindi ha bisogno di un nome suo,
+// perché due ruoli con lo stesso nome sarebbero indistinguibili nel momento in
+// cui li si assegna a qualcuno. Il ruolo di sistema resta dov'era, intatto.
+function CreateRoleModal({ onClose, role, roles, onSave }) {
   const isEdit = !!role;
+  // Da un ruolo di sistema si esce sempre con un ruolo nuovo; un ruolo
+  // personalizzato invece si modifica sul posto.
+  const daStandard = isEdit && !role.custom;
   const [name, setName] = React.useState(role?.label || '');
   const [areas, setAreas] = React.useState(role?.areas || []);
-  const [settingsMode, setSettingsMode] = React.useState('all'); // 'all' | 'custom'
-  const [settingsPages, setSettingsPages] = React.useState([]);
+  const [settingsMode, setSettingsMode] = React.useState(role?.settingsPages ? 'custom' : 'all');
+  const [settingsPages, setSettingsPages] = React.useState(role?.settingsPages || []);
+  const [errore, setErrore] = React.useState(null); // { titolo, msg }
+
+  const elenco = roles || [...ROLES, ...CUSTOM_ROLES];
 
   const toggle = (id) => {
     setAreas(areas.includes(id) ? areas.filter(a => a !== id) : [...areas, id]);
   };
   const togglePage = (id) => {
     setSettingsPages(settingsPages.includes(id) ? settingsPages.filter(p => p !== id) : [...settingsPages, id]);
+  };
+
+  const salva = () => {
+    const nome = name.trim();
+    if (!nome) {
+      setErrore({ titolo: 'Manca il nome', msg: 'Dai un nome al ruolo prima di salvarlo.' });
+      return;
+    }
+    // Confronto senza maiuscole e senza spazi ai bordi: «Cassa » e «cassa»
+    // sono lo stesso nome per chi legge l'elenco, ed è l'elenco che conta.
+    // Il ruolo che si sta modificando non fa concorrenza a se stesso.
+    const collide = elenco.some(r =>
+      r.label.trim().toLowerCase() === nome.toLowerCase() &&
+      !(isEdit && !daStandard && r.id === role.id)
+    );
+    if (collide) {
+      setErrore({
+        titolo: 'Nome già in uso',
+        msg: daStandard
+          ? `«${role.label}» è un ruolo di sistema e resta com'è: quello che stai salvando è un ruolo personalizzato, e gli serve un nome suo.`
+          : `C'è già un ruolo che si chiama «${nome}». Scegline un altro.`,
+      });
+      return;
+    }
+    const dati = {
+      label: nome,
+      desc: descrizioneAree(areas),
+      areas,
+      settingsPages: areas.includes('impostazioni') && settingsMode === 'custom' ? settingsPages : undefined,
+    };
+    if (onSave) {
+      onSave(isEdit && !daStandard
+        ? { ...role, ...dati }
+        : { ...dati, id: idLibero(nome, elenco), color: '#6D28D9', bg: '#EDE9FE', icon: 'sparkle', custom: true });
+    }
+    onClose();
   };
 
   return (
@@ -2082,15 +2166,35 @@ function CreateRoleModal({ onClose, role }) {
       }}>
         <div style={IMP_MODAL_HEAD}>
           <div style={IMP_MODAL_TITLE}>
-            {isEdit ? `Modifica permessi · ${role.label}` : 'Crea ruolo personalizzato'}
+            {isEdit ? `Permessi · ${role.label}` : 'Crea ruolo personalizzato'}
           </div>
           <div style={IMP_MODAL_SUB}>
-            {isEdit ? 'Aggiorna nome e aree visibili a questo ruolo' : 'Definisci nome e aree visibili'}
+            {daStandard
+              ? 'Da qui esce un ruolo personalizzato: il ruolo di sistema resta com’è'
+              : isEdit ? 'Aggiorna nome e aree visibili a questo ruolo' : 'Definisci nome e aree visibili'}
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
 
         <div style={{padding: '20px 24px', overflow:'auto', flex: 1}}>
+          {/* Detto prima, non dopo: chi apre i permessi di Cassa si aspetta di
+              cambiare Cassa, e invece esce con un ruolo nuovo. Scoprirlo dal
+              popup d'errore sul nome sarebbe scoprirlo troppo tardi. */}
+          {daStandard && (
+            <div style={{
+              display:'flex', gap: 10, alignItems:'flex-start',
+              padding: '11px 13px', marginBottom: 16,
+              background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 10,
+            }}>
+              <span style={{display:'inline-flex', color:'#6D28D9', flexShrink: 0, marginTop: 1}}>
+                {BuIcons.sparkle({size: 15, color:'currentColor'})}
+              </span>
+              <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45}}>
+                <b>{role.label}</b> è un ruolo di sistema e non si modifica. Salvando crei un
+                ruolo personalizzato con questi permessi, quindi dagli un nome tuo.
+              </div>
+            </div>
+          )}
           <ImpField label="Nome del ruolo">
             <input
               value={name}
@@ -2191,8 +2295,35 @@ function CreateRoleModal({ onClose, role }) {
           display:'flex', gap: 10, justifyContent:'flex-end',
         }}>
           <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-          <ImpButton variant="primary" onClick={onClose}>{isEdit ? 'Salva modifiche' : 'Crea ruolo'}</ImpButton>
+          <ImpButton variant="primary" onClick={salva}>
+            {daStandard ? 'Crea ruolo personalizzato' : isEdit ? 'Salva modifiche' : 'Crea ruolo'}
+          </ImpButton>
         </div>
+
+        {/* L'errore ferma il salvataggio e rimanda al modulo con dentro quello
+            che c'era: chi ha appena scelto otto aree non deve rifarlo perché il
+            nome era occupato. */}
+        {errore && (
+          <div style={{
+            position:'absolute', inset: 0, zIndex: 5, borderRadius: 22,
+            background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', padding: 22,
+          }}>
+            <div style={{...IMP_MODAL_PANEL, width: 330, padding: '20px 22px'}}>
+              <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+                <span style={{
+                  width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                  display:'grid', placeItems:'center',
+                }}>{BuIcons.alert({size: 15, color:'currentColor'})}</span>
+                <div style={{fontSize: 16.5, fontWeight: 800, color: PN.TEXT}}>{errore.titolo}</div>
+              </div>
+              <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45}}>{errore.msg}</div>
+              <div style={{display:'flex', justifyContent:'flex-end', marginTop: 16}}>
+                <ImpButton variant="primary" onClick={() => setErrore(null)}>Torna indietro</ImpButton>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
