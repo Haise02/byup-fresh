@@ -391,10 +391,39 @@ function CliAndamento({ d, mesiEt }) {
 function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
   const [segnalate, setSegnalate] = React.useState({});
   const [inSegnalazione, setInSegnalazione] = React.useState(null);
+  // La casella si accende dalle schede stesse, quindi il filtro vive qui e non
+  // in cima alla pagina come quello delle stelle: quello lo accende la
+  // distribuzione, che sta nell'altra metà della card.
+  const [aspetto, setAspetto] = React.useState('');
 
   const chiave = (r) => `${r.autore}·${r.quando}`;
-  const visibili = stelle ? elenco.filter(r => r.stelle === stelle) : elenco;
+  const visibili = elenco.filter(r =>
+    (!stelle || r.stelle === stelle) &&
+    (!aspetto || (r.aspetti || []).includes(aspetto))
+  );
   const suDodiciMesi = stelle ? (distribuzione.find(r => r.stars === stelle) || {}).count : null;
+  const asp = aspetto ? STAT_ASPETTI[aspetto] : null;
+
+  // I due filtri si sommano, e insieme possono non lasciare niente: la riga
+  // sotto il titolo deve dire cosa si sta guardando prima che uno se lo chieda.
+  const conto = <>{visibili.length} tra le ultime {elenco.length}</>;
+  const ha = visibili.length === 1 ? 'ha' : 'hanno';
+
+  const togli = (etichetta, colore, onClick, titolo) => (
+    <button onClick={onClick} title={titolo}
+      onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
+      onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}
+      style={{
+        flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 7,
+        padding:'7px 13px', borderRadius: 999,
+        border:'none', background: PN.WHITE_FROST, boxShadow:'none',
+        color: PN.MUTED, fontSize: 14, fontWeight: 600,
+        fontFamily:'inherit', cursor:'pointer', transition:'color 140ms ease',
+      }}>
+      <span style={{display:'inline-flex', alignItems:'center', gap: 4, color: colore, fontWeight: 700}}>{etichetta}</span>
+      <Icon name="xmark" size={11}/> Togli
+    </button>
+  );
 
   return (
     <div style={{marginTop: 24, paddingTop: 20, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
@@ -404,37 +433,29 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
       }}>
         <div style={{minWidth: 0}}>
           <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Cosa scrivono</div>
-          {/* Il filtro conta su dodici mesi, l'elenco tiene le ultime otto:
-              senza dirlo, «253 da cinque stelle» e tre schede sembrerebbero un
-              errore di conto. */}
+          {/* Il filtro delle stelle conta su dodici mesi, l'elenco tiene le
+              ultime otto: senza dirlo, «253 da cinque stelle» e tre schede
+              sembrerebbero un errore di conto. */}
           <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, lineHeight: 1.45}}>
-            {stelle
-              ? <>{suDodiciMesi} recensioni da {stelle} stell{stelle === 1 ? 'a' : 'e'} negli ultimi 12 mesi
-                  {' · '}{visibili.length} tra le ultime {elenco.length} qui sotto</>
-              : <>Le ultime {elenco.length} delle {totale.toLocaleString('it-IT', {useGrouping: true})} recensioni byup</>}
+            {stelle && asp
+              ? <>{conto} {ha} {stelle} stell{stelle === 1 ? 'a' : 'e'} e la casella «{asp.et}»</>
+              : stelle
+                ? <>{suDodiciMesi} recensioni da {stelle} stell{stelle === 1 ? 'a' : 'e'} negli ultimi 12 mesi
+                    {' · '}{conto} qui sotto</>
+                : asp
+                  ? <>{conto} {ha} spuntato la casella «{asp.et}»</>
+                  : <>Le ultime {elenco.length} delle {totale.toLocaleString('it-IT', {useGrouping: true})} recensioni byup</>}
           </div>
         </div>
 
-        {stelle > 0 && (
-          <button onClick={onPulisci} title="Torna a tutte le recensioni"
-            onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
-            onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}
-            style={{
-              flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 7,
-              padding:'7px 13px', borderRadius: 999,
-              border:'none', background: PN.WHITE_FROST, boxShadow:'none',
-              color: PN.MUTED, fontSize: 14, fontWeight: 600,
-              fontFamily:'inherit', cursor:'pointer', transition:'color 140ms ease',
-            }}>
-            <span style={{display:'inline-flex', alignItems:'center', gap: 4, color: PN.PINK_DARK, fontWeight: 700}}>
-              {stelle}
-              <svg width="13" height="13" viewBox="0 0 24 24" fill={PN.PINK} style={{display:'block'}}>
-                <polygon points={CLI_STELLA}/>
-              </svg>
-            </span>
-            <Icon name="xmark" size={11}/> Togli il filtro
-          </button>
-        )}
+        <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
+          {stelle > 0 && togli(
+            <>{stelle}<svg width="13" height="13" viewBox="0 0 24 24" fill={PN.PINK} style={{display:'block'}}><polygon points={CLI_STELLA}/></svg></>,
+            PN.PINK_DARK, onPulisci, 'Torna a tutte le stelle')}
+          {asp && togli(
+            <>{asp.emoji} {asp.et}</>,
+            asp.problema ? '#9B2C2C' : '#166534', () => setAspetto(''), 'Togli il filtro sulla casella')}
+        </div>
       </div>
 
       {/* L'elenco scorre: la card resta alta uguale con otto recensioni e con
@@ -507,15 +528,34 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
               {(r.aspetti || []).length > 0 && (
                 <div style={{display:'flex', flexWrap:'wrap', gap: 7}}>
                   {r.aspetti.map(a => {
-                    const asp = STAT_ASPETTI[a]; if (!asp) return null;
+                    const asp2 = STAT_ASPETTI[a]; if (!asp2) return null;
+                    const acceso = a === aspetto;
+                    const forte = asp2.problema ? PN.RED : PN.GREEN;
+                    const tenue = asp2.problema ? PN.RED_SOFT : PN.GREEN_SOFT;
+                    const scuro = asp2.problema ? '#9B2C2C' : '#166534';
                     return (
-                      <span key={a} style={{
-                        display:'inline-flex', alignItems:'center', gap: 6,
-                        padding:'5px 11px', borderRadius: 999,
-                        background: asp.problema ? PN.RED_SOFT : PN.GREEN_SOFT,
-                        color: asp.problema ? '#9B2C2C' : '#166534',
-                        fontSize: 13.5, fontWeight: 600, whiteSpace:'nowrap',
-                      }}>{asp.emoji} {asp.et}</span>
+                      /* Acceso, la casella si riempie del colore pieno con la
+                         scritta in bianco invece di prendere un anello: un
+                         filo attorno a una pastiglia già colorata è un segno
+                         in più da decifrare, il pieno si vede da lontano e da
+                         una scheda all'altra — la stessa casella accesa su due
+                         recensioni diverse si riconosce senza cercarla.
+                         `boxShadow:'none'` tiene fuori l'ombra che la regola
+                         globale dei bottoni alza al passaggio: qui il feedback
+                         è la pastiglia che si scurisce. */
+                      <button key={a} onClick={() => setAspetto(acceso ? '' : a)}
+                        title={acceso ? 'Togli il filtro' : `Vedi le recensioni con «${asp2.et}»`}
+                        onMouseEnter={e => { if (!acceso) e.currentTarget.style.background = tenue === PN.RED_SOFT ? '#FBCFCF' : '#C6F0D4'; }}
+                        onMouseLeave={e => { if (!acceso) e.currentTarget.style.background = tenue; }}
+                        style={{
+                          display:'inline-flex', alignItems:'center', gap: 6,
+                          padding:'5px 11px', borderRadius: 999, border:'none', boxShadow:'none',
+                          background: acceso ? forte : tenue,
+                          color: acceso ? PN.WHITE : scuro,
+                          fontSize: 13.5, fontWeight: 600, whiteSpace:'nowrap',
+                          fontFamily:'inherit', cursor:'pointer',
+                          transition:'background 130ms ease, color 130ms ease',
+                        }}>{asp2.emoji} {asp2.et}</button>
                     );
                   })}
                 </div>
@@ -566,9 +606,15 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
             gridColumn:'1 / -1', padding:'30px 0', textAlign:'center',
             fontSize: 15, color: PN.MUTED_SOFT, lineHeight: 1.5,
           }}>
-            Nessuna delle ultime {elenco.length} recensioni ha {stelle} stell{stelle === 1 ? 'a' : 'e'}.
-            <br/>
-            <span style={{fontSize: 14}}>Negli ultimi 12 mesi ne sono arrivate {suDodiciMesi}.</span>
+            {stelle && asp
+              ? <>Nessuna delle ultime {elenco.length} recensioni ha {stelle} stell{stelle === 1 ? 'a' : 'e'} e la casella «{asp.et}».</>
+              : asp
+                ? <>Nessuna delle ultime {elenco.length} recensioni ha spuntato «{asp.et}».</>
+                : <>Nessuna delle ultime {elenco.length} recensioni ha {stelle} stell{stelle === 1 ? 'a' : 'e'}.</>}
+            {stelle > 0 && !asp && <>
+              <br/>
+              <span style={{fontSize: 14}}>Negli ultimi 12 mesi ne sono arrivate {suDodiciMesi}.</span>
+            </>}
           </div>
         )}
         </div>
