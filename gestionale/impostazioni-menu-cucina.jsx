@@ -2092,10 +2092,14 @@ function MCPiattiPanel({
         <div style={{border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow: 'hidden'}}>
           {rows.map(r => {
             const sel = selection.includes(r.dishId);
+            const inVolo = !!dragDish && dragDish.dishId === r.dishId;
             return (
               <div key={r.dishId}
                 draggable
-                onDragStart={() => setDragDish({cat: catName, dishId: r.dishId, idx: r.idx})}
+                // Stesso trascinamento della griglia: il fantasma col nome e la
+                // foto, e la riga di partenza che resta lì sbiadita. Prima in
+                // elenco partiva la sagoma di default del browser.
+                onDragStart={(e) => { fantasmaPiatto(e, r.dish); setDragDish({cat: catName, dishId: r.dishId, idx: r.idx}); }}
                 onDragEnd={() => setDragDish(null)}
                 onDragOver={e => e.preventDefault()}
                 onDrop={() => { if (dragDish && dragDish.cat === catName) onReorder(catName, dragDish.idx, r.idx); setDragDish(null); }}
@@ -2105,7 +2109,9 @@ function MCPiattiPanel({
                   background: sel ? PN.PINK_SOFT : (detailId === r.dishId ? PN.PINK_BG_SOFT : 'transparent'),
                   boxShadow: sel ? `inset 4px 0 0 ${PN.PINK}` : 'none',
                   cursor: selectMode ? 'pointer' : 'default',
-                  transition: 'background 160ms ease-out, box-shadow 160ms ease-out',
+                  opacity: inVolo ? 0.35 : 1,
+                  filter: inVolo ? 'grayscale(0.6)' : 'none',
+                  transition: 'background 160ms ease-out, box-shadow 160ms ease-out, opacity 150ms ease-out',
                 }}
               >
                 {/* In elenco la spunta è una colonna sua: sulla riga non c'è una
@@ -2359,6 +2365,30 @@ function MCSezione({ title, children, style }) {
       <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 9}}>{title}</div>
       {children}
     </div>
+  );
+}
+
+// Azione del piede del dettaglio piatto: bottone vero, non un link in mezzo
+// al bianco. `pericolo` la tinge di rosso — è quella che non si annulla.
+function MCAzionePiede({ icona, children, onClick, pericolo, titolo }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick} title={titolo}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        padding: '7px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+        fontSize: 13.5, fontWeight: 600,
+        border: `1px solid ${hover ? (pericolo ? '#FECACA' : PN.BORDER) : PN.BORDER_SOFT}`,
+        background: hover ? (pericolo ? '#FEF2F2' : '#F7F8FA') : PN.WHITE,
+        color: pericolo ? PN.RED : PN.MUTED,
+        transition: 'background 150ms ease-out, border-color 150ms ease-out',
+      }}>
+      <span style={{display: 'inline-flex', flexShrink: 0}}>{icona}</span>
+      {children}
+    </button>
   );
 }
 
@@ -2790,15 +2820,22 @@ function MCDettagliPiatto({
           <ImpButton variant="ghost" onClick={onClose} style={{padding: '8px 14px', fontSize: 14}}>Annulla</ImpButton>
           <ImpButton variant="pink" onClick={salva} style={{padding: '8px 14px', fontSize: 14}}>Salva modifiche</ImpButton>
         </div>
-        <div style={{display: 'flex', gap: 12, marginTop: 10, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap'}}>
-          <button onClick={onRemoveFromMenu} style={{
-            background: 'transparent', border: 'none', color: PN.MUTED, fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0,
-          }}>✕ Rimuovi dal menù</button>
-          <button onClick={() => setConfermaElimina(true)} style={{
-            background: 'transparent', border: 'none', color: PN.RED, fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0,
-          }}><PnI.Trash size={11}/> Elimina dalla libreria</button>
+        {/* Due azioni diverse, non due link buttati agli angoli: togliere il
+            piatto da questo menù lo lascia in libreria, eliminarlo lo toglie
+            da tutti. Stessa forma, colore diverso — quella rossa è l'unica
+            che non si può annullare. */}
+        <div style={{display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap'}}>
+          <MCAzionePiede
+            icona={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="8" y1="12" x2="16" y2="12"/></svg>}
+            onClick={onRemoveFromMenu}
+            titolo="Resta nella libreria, sparisce da questo menù"
+          >Rimuovi dal menù</MCAzionePiede>
+          <MCAzionePiede
+            icona={<PnI.Trash size={12}/>}
+            onClick={() => setConfermaElimina(true)}
+            pericolo
+            titolo="Sparisce dalla libreria e da tutti i menù"
+          >Elimina dalla libreria</MCAzionePiede>
         </div>
         {confermaElimina && (
           <div style={{marginTop: 10, padding: 10, borderRadius: 9, background: '#FEF2F2', border: '1px solid #FECACA'}}>
@@ -3627,7 +3664,9 @@ function NutritionFields() {
       </div>
       <div style={{fontSize:14.5, fontWeight:700, color:PN.MUTED, letterSpacing:0.3, textTransform:'uppercase', marginBottom:8}}>Per porzione</div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8}}>
-        {[{l:'Kcal', k:'kcal'},{l:'Carb. (g)', k:'carb'},{l:'Proteine (g)', k:'prot'},{l:'Grassi (g)', k:'fat'}].map(f => (
+        {/* Prima i macro, le kcal in fondo: sono la somma di quelli, e si
+            leggono come il totale in fondo a un conto. */}
+        {[{l:'Carb. (g)', k:'carb'},{l:'Proteine (g)', k:'prot'},{l:'Grassi (g)', k:'fat'},{l:'Kcal', k:'kcal'}].map(f => (
           <div key={f.k}>
             <input value={values[f.k]} onChange={e => setValues(v => ({...v, [f.k]: e.target.value}))} type="number" style={{
               width:'100%', padding:'10px 8px', border:`1px solid ${PN.BORDER}`,
