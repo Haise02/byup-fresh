@@ -897,7 +897,6 @@ function MCMenuComposer() {
 
       {nuovoMenu && (
         <MCNuovoMenuModal
-          menus={menus}
           onClose={() => setNuovoMenu(false)}
           onCreate={createMenu}
           onAiUpload={() => { setNuovoMenu(false); setAiUpload(true); }}
@@ -979,101 +978,99 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
 
   if (!m) return null;
 
+  // Elenco e gestione dei menù: sta dietro al ⋯ in fondo alla testata, dove
+  // stanno le azioni, e non più dietro al nome del menù — che ora si limita a
+  // dire su quale menù si sta lavorando.
+  const pannelloMenus = (
+      <div style={{
+        position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 80,
+        width: 330, background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+        borderRadius: 12, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6,
+      }}>
+        <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', padding: '6px 8px 4px'}}>I tuoi menù</div>
+        {menus.map(x => {
+          const on = x.id === activeMenuId;
+          const inRinomina = renaming === x.id;
+          return (
+            <div key={x.id} onClick={() => { if (!inRinomina) { onPick(x.id); setOpen(false); } }} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', borderRadius: 9,
+              background: on ? PN.PINK_SOFT : 'transparent', cursor: 'pointer',
+            }}
+            onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+            onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+            >
+              <div style={{flex: 1, minWidth: 0}}>
+                {inRinomina ? (
+                  <input autoFocus defaultValue={x.name}
+                    onClick={e => e.stopPropagation()}
+                    onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter' && e.target.value.trim()) { onUpdate(x.id, {name: e.target.value.trim()}); setRenaming(null); } if (e.key === 'Escape') setRenaming(null); }}
+                    onBlur={e => { if (e.target.value.trim()) onUpdate(x.id, {name: e.target.value.trim()}); setRenaming(null); }}
+                    style={{width: '100%', fontSize: 15, fontWeight: 700, fontFamily: 'inherit', border: 'none', outline: `2px solid ${PN.PINK}`, borderRadius: 5, padding: '1px 5px', background: PN.WHITE}}
+                  />
+                ) : (
+                  <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
+                )}
+                <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                  {totalDishesIn(x)} piatti{x.schedule ? ' · ' + x.schedule : ''}
+                </div>
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); onUpdate(x.id, {active: !x.active}); }}
+                title={x.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                  padding: '2px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 11.5, fontWeight: 800, letterSpacing: 0.3,
+                  background: x.active ? PN.GREEN_SOFT : '#F1F3F5', color: x.active ? PN.GREEN : PN.MUTED,
+                }}>
+                <span style={{width: 5, height: 5, borderRadius: '50%', background: x.active ? PN.GREEN : '#9CA3AF'}}/>
+                {x.active ? 'ATTIVO' : 'OFF'}
+              </button>
+              <div style={{display: 'flex', gap: 1, flexShrink: 0}}>
+                <MCMiniAzione title="Rinomina" onClick={e => { e.stopPropagation(); setRenaming(x.id); }}><Icon name="pencil" size={12}/></MCMiniAzione>
+                <MCMiniAzione title="Duplica" onClick={e => { e.stopPropagation(); onDuplicate(x.id); setOpen(false); }}><span style={{fontSize: 13}}>⧉</span></MCMiniAzione>
+                {menus.length > 1 && (
+                  <MCMiniAzione title="Elimina" danger onClick={e => { e.stopPropagation(); setConfirmDel(x.id); }}><PnI.Trash size={11}/></MCMiniAzione>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {confirmDel && (
+          <div style={{margin: '6px 4px 2px', padding: 9, borderRadius: 9, background: '#FEF2F2', border: '1px solid #FECACA'}}>
+            <div style={{fontSize: 13.5, color: PN.TEXT, marginBottom: 8, lineHeight: 1.4}}>
+              Eliminare «{(menus.find(x => x.id === confirmDel) || {}).name}»? I piatti restano nella libreria.
+            </div>
+            <div style={{display: 'flex', gap: 6}}>
+              <button onClick={() => setConfirmDel(null)} style={{flex: 1, padding: '5px 0', fontSize: 13.5, fontWeight: 600, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', color: PN.TEXT}}>Annulla</button>
+              <button onClick={() => { onDelete(confirmDel); setConfirmDel(null); }} style={{flex: 1, padding: '5px 0', fontSize: 13.5, fontWeight: 700, background: '#DC2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', color: '#fff'}}>Elimina</button>
+            </div>
+          </div>
+        )}
+
+        <div style={{height: 1, background: PN.BORDER_SOFT, margin: '6px 4px'}}/>
+        {/* Stessa porta del pulsante in testata: un menù si crea in un
+            posto solo, non con due flussi che si somigliano. */}
+        <MenuDotItem icon="＋" onClick={() => { setOpen(false); onNuovoMenu(); }}>Nuovo menù</MenuDotItem>
+      </div>
+  );
+
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14,
       padding: '10px 14px', background: PN.WHITE,
       border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, boxShadow: PN.CARD_SHADOW,
     }}>
-      <div ref={box} style={{position: 'relative'}}>
-        <button onClick={() => setOpen(o => !o)} style={{
-          display: 'inline-flex', alignItems: 'center', gap: 9,
-          padding: '7px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-          border: `1px solid ${open ? PN.PINK : PN.BORDER}`, background: open ? PN.PINK_BG_SOFT : PN.WHITE,
-          transition: 'border-color 150ms ease-out, background 150ms ease-out',
-        }}>
-          <span style={{display: 'inline-flex', color: PN.PINK}}><Icon name="food-meal" size={16}/></span>
-          <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{m.name}</span>
-          <span style={{fontSize: 13, color: PN.MUTED}}>{totalDishesIn(m)} piatti</span>
-          <span style={{display: 'inline-flex', color: PN.MUTED, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out'}}>
-            <PnI.ChevronDown size={12}/>
-          </span>
-        </button>
-
-        {open && (
-          <div style={{
-            position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 80,
-            width: 330, background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-            borderRadius: 12, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6,
-          }}>
-            <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', padding: '6px 8px 4px'}}>I tuoi menù</div>
-            {menus.map(x => {
-              const on = x.id === activeMenuId;
-              const inRinomina = renaming === x.id;
-              return (
-                <div key={x.id} onClick={() => { if (!inRinomina) { onPick(x.id); setOpen(false); } }} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', borderRadius: 9,
-                  background: on ? PN.PINK_SOFT : 'transparent', cursor: 'pointer',
-                }}
-                onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
-                onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
-                >
-                  <div style={{flex: 1, minWidth: 0}}>
-                    {inRinomina ? (
-                      <input autoFocus defaultValue={x.name}
-                        onClick={e => e.stopPropagation()}
-                        onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter' && e.target.value.trim()) { onUpdate(x.id, {name: e.target.value.trim()}); setRenaming(null); } if (e.key === 'Escape') setRenaming(null); }}
-                        onBlur={e => { if (e.target.value.trim()) onUpdate(x.id, {name: e.target.value.trim()}); setRenaming(null); }}
-                        style={{width: '100%', fontSize: 15, fontWeight: 700, fontFamily: 'inherit', border: 'none', outline: `2px solid ${PN.PINK}`, borderRadius: 5, padding: '1px 5px', background: PN.WHITE}}
-                      />
-                    ) : (
-                      <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
-                    )}
-                    <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                      {totalDishesIn(x)} piatti{x.schedule ? ' · ' + x.schedule : ''}
-                    </div>
-                  </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); onUpdate(x.id, {active: !x.active}); }}
-                    title={x.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                      padding: '2px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      fontSize: 11.5, fontWeight: 800, letterSpacing: 0.3,
-                      background: x.active ? PN.GREEN_SOFT : '#F1F3F5', color: x.active ? PN.GREEN : PN.MUTED,
-                    }}>
-                    <span style={{width: 5, height: 5, borderRadius: '50%', background: x.active ? PN.GREEN : '#9CA3AF'}}/>
-                    {x.active ? 'ATTIVO' : 'OFF'}
-                  </button>
-                  <div style={{display: 'flex', gap: 1, flexShrink: 0}}>
-                    <MCMiniAzione title="Rinomina" onClick={e => { e.stopPropagation(); setRenaming(x.id); }}><Icon name="pencil" size={12}/></MCMiniAzione>
-                    <MCMiniAzione title="Duplica" onClick={e => { e.stopPropagation(); onDuplicate(x.id); setOpen(false); }}><span style={{fontSize: 13}}>⧉</span></MCMiniAzione>
-                    {menus.length > 1 && (
-                      <MCMiniAzione title="Elimina" danger onClick={e => { e.stopPropagation(); setConfirmDel(x.id); }}><PnI.Trash size={11}/></MCMiniAzione>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-
-            {confirmDel && (
-              <div style={{margin: '6px 4px 2px', padding: 9, borderRadius: 9, background: '#FEF2F2', border: '1px solid #FECACA'}}>
-                <div style={{fontSize: 13.5, color: PN.TEXT, marginBottom: 8, lineHeight: 1.4}}>
-                  Eliminare «{(menus.find(x => x.id === confirmDel) || {}).name}»? I piatti restano nella libreria.
-                </div>
-                <div style={{display: 'flex', gap: 6}}>
-                  <button onClick={() => setConfirmDel(null)} style={{flex: 1, padding: '5px 0', fontSize: 13.5, fontWeight: 600, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', color: PN.TEXT}}>Annulla</button>
-                  <button onClick={() => { onDelete(confirmDel); setConfirmDel(null); }} style={{flex: 1, padding: '5px 0', fontSize: 13.5, fontWeight: 700, background: '#DC2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', color: '#fff'}}>Elimina</button>
-                </div>
-              </div>
-            )}
-
-            <div style={{height: 1, background: PN.BORDER_SOFT, margin: '6px 4px'}}/>
-            {/* Stessa porta del pulsante in testata: un menù si crea in un
-                posto solo, non con due flussi che si somigliano. */}
-            <MenuDotItem icon="＋" onClick={() => { setOpen(false); onNuovoMenu(); }}>Nuovo menù</MenuDotItem>
-          </div>
-        )}
+      {/* Il menù su cui si lavora: un'etichetta, non più una tendina */}
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 9, flexShrink: 0,
+        padding: '7px 12px', borderRadius: 9,
+        border: `1px solid ${PN.BORDER}`, background: PN.WHITE,
+      }}>
+        <span style={{display: 'inline-flex', color: PN.PINK}}><Icon name="food-meal" size={16}/></span>
+        <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{m.name}</span>
+        <span style={{fontSize: 13, color: PN.MUTED}}>{totalDishesIn(m)} piatti</span>
       </div>
 
       <button
@@ -1099,6 +1096,30 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
       <ImpButton variant="pink" icon={<PnI.Plus size={14}/>} onClick={onNuovoMenu} style={{flexShrink: 0, whiteSpace: 'nowrap'}}>
         Nuovo menù
       </ImpButton>
+
+      <div ref={box} style={{position: 'relative', flexShrink: 0}}>
+        <button
+          onClick={() => setOpen(o => !o)}
+          title="I tuoi menù"
+          aria-label="I tuoi menù"
+          style={{
+            // padding 0: il default del <button> (1px 6px) stringe la content-box
+            // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+            padding: 0,
+            width: 38, height: 38, borderRadius: 10, cursor: 'pointer',
+            border: `1px solid ${open ? PN.PINK : PN.BORDER_LIGHT}`,
+            background: open ? PN.PINK_BG_SOFT : PN.BTN_NEUTRAL,
+            color: open ? PN.PINK_DARK : PN.TEXT,
+            display: 'grid', placeItems: 'center',
+            boxShadow: PN.INSET_HIGHLIGHT,
+            transition: 'border-color 150ms ease-out, background 150ms ease-out',
+          }}
+          onMouseEnter={e => { if (!open) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
+          onMouseLeave={e => { if (!open) e.currentTarget.style.background = PN.BTN_NEUTRAL; }}
+        ><Puntini size={16}/></button>
+
+        {open && pannelloMenus}
+      </div>
     </div>
   );
 }
@@ -1108,7 +1129,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
 // qui, dove insieme al nome si dice a chi serve e — se è l'asporto — con che
 // tempi. L'import AI è una scorciatoia dentro questo flusso, non un pulsante
 // che in testata gli faceva concorrenza.
-const NUOVO_MENU_TIPOLOGIE = ['A la carte', 'Menù fisso', 'Degustazione', 'Brunch', 'Bevande', 'Bambini'];
+const NUOVO_MENU_TIPOLOGIE = ['À la carte', 'All you can eat'];
 
 const NM_LABEL  = { display: 'block', fontSize: 14, fontWeight: 600, color: PN.TEXT, marginBottom: 7 };
 const NM_SELECT = {
@@ -1116,12 +1137,10 @@ const NM_SELECT = {
   fontSize: 15, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
 };
 
-function MCNuovoMenuModal({ menus, onClose, onCreate, onAiUpload }) {
+function MCNuovoMenuModal({ onClose, onCreate, onAiUpload }) {
   const [nome, setNome] = React.useState('');
   const [tipologia, setTipologia] = React.useState(NUOVO_MENU_TIPOLOGIE[0]);
   const [tipo, setTipo] = React.useState('sala');       // sala | asporto
-  const [asportoOn, setAsportoOn] = React.useState(true);
-  const [tkMenu, setTkMenu] = React.useState(menus[0] ? menus[0].id : '');
   const [tkLeadTime, setTkLeadTime] = React.useState(20);
   const [showQr, setShowQr] = React.useState(false);
 
@@ -1206,6 +1225,26 @@ function MCNuovoMenuModal({ menus, onClose, onCreate, onAiUpload }) {
               </div>
             </div>
 
+            {/* L'asporto porta con sé una sola regola, e sta dove si sceglie */}
+            {tipo === 'asporto' && (
+              <div style={{marginBottom: 18}}>
+                <label style={NM_LABEL} htmlFor="nm-lead">Tempo di preparazione minimo</label>
+                <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                  <input id="nm-lead" type="range" min={5} max={60} step={5} value={tkLeadTime}
+                    onChange={e => setTkLeadTime(Number(e.target.value))}
+                    style={{flex: 1, minWidth: 0, accentColor: PN.PINK}}/>
+                  <div style={{
+                    padding: '7px 12px', borderRadius: 999, flexShrink: 0,
+                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                    fontSize: 14, fontWeight: 700,
+                  }}>{tkLeadTime} min</div>
+                </div>
+                <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
+                  I clienti vedono come primo slot l'orario corrente +{tkLeadTime} minuti
+                </div>
+              </div>
+            )}
+
             <button onClick={() => setShowQr(true)} style={{
               width: '100%', padding: '13px 14px', marginBottom: 18,
               border: `1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
@@ -1247,47 +1286,6 @@ function MCNuovoMenuModal({ menus, onClose, onCreate, onAiUpload }) {
             </div>
           </div>
 
-          {/* Le regole dell'asporto stanno dove si sceglie l'asporto */}
-          {tipo === 'asporto' && (
-            <>
-              <div style={{height: 1, background: PN.BORDER_SOFT}}/>
-              <div style={MODAL_BODY}>
-                <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16}}>
-                  <span style={{flex: 1, fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Impostazioni asporto</span>
-                  <ImpToggle checked={asportoOn} onChange={() => setAsportoOn(v => !v)}/>
-                </div>
-
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
-                  opacity: asportoOn ? 1 : 0.45, pointerEvents: asportoOn ? 'auto' : 'none',
-                  transition: 'opacity 150ms ease-out',
-                }}>
-                  <div>
-                    <label style={NM_LABEL} htmlFor="nm-tkmenu">Menù utilizzato per l'asporto</label>
-                    <select id="nm-tkmenu" value={tkMenu} onChange={e => setTkMenu(e.target.value)} style={NM_SELECT}>
-                      {menus.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={NM_LABEL} htmlFor="nm-lead">Tempo di preparazione minimo</label>
-                    <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
-                      <input id="nm-lead" type="range" min={5} max={60} step={5} value={tkLeadTime}
-                        onChange={e => setTkLeadTime(Number(e.target.value))}
-                        style={{flex: 1, minWidth: 0, accentColor: PN.PINK}}/>
-                      <div style={{
-                        padding: '7px 12px', borderRadius: 999, flexShrink: 0,
-                        background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                        fontSize: 14, fontWeight: 700,
-                      }}>{tkLeadTime} min</div>
-                    </div>
-                    <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
-                      I clienti vedono come primo slot l'orario corrente +{tkLeadTime} minuti
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
 
         <div style={{...MODAL_FOOT, justifyContent: 'flex-end', flexShrink: 0}}>
