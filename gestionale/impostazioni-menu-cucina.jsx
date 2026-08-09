@@ -463,7 +463,7 @@ function MCMenuComposer() {
     setMenus(prev => [...prev, {
       id, name: dati.name, active: false,
       tipologia: dati.tipologia, prezzo: dati.prezzo, tipo: dati.tipo, leadTime: dati.leadTime,
-      schedule: src ? src.schedule : undefined,
+      schedule: dati.schedule,
       categories: src ? src.categories.map(c => ({...c, items: c.items.map(i => ({...i}))})) : [],
     }]);
     setActiveMenuId(id);
@@ -1045,7 +1045,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
                   </button>
                   <span style={{color: PN.MUTED_SOFT, flexShrink: 0}}>·</span>
                   <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                    {totalDishesIn(x)} piatti{x.schedule ? ' · ' + x.schedule : ''}
+                    {totalDishesIn(x)} piatti
                   </span>
                 </div>
               </div>
@@ -1097,7 +1097,9 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
         <span style={{width: 6, height: 6, borderRadius: '50%', background: m.active ? PN.GREEN : '#9CA3AF'}}/>
         {m.active ? 'ATTIVO' : 'DISATTIVATO'}
       </button>
-      {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{m.schedule}</span>}
+      {/* La fascia oraria è del menù attivo e sta qui: nell'elenco non serve,
+          lì i menù si distinguono per nome e per quanti piatti hanno. */}
+      {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Visibile {m.schedule}</span>}
 
       <span style={{flex: 1}}/>
 
@@ -1198,6 +1200,10 @@ const NM_SELECT = {
   width: '100%', padding: '11px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
   fontSize: 15, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
 };
+const NM_ORA = {
+  flex: 1, minWidth: 0, padding: '10px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+  fontSize: 15, fontWeight: 600, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
+};
 
 // Il <select> di sistema apre una lista disegnata dal sistema operativo, che
 // dentro al popup arriva come un corpo estraneo: bordi squadrati, tipografia
@@ -1295,6 +1301,18 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   const [showQr, setShowQr] = React.useState(false);
   const [confermaElimina, setConfermaElimina] = React.useState(false);
 
+  // Fascia oraria: di default il menù è sempre visibile. I menù già scritti
+  // hanno la fascia dentro una frase («Lun–Ven · 12:00–15:00»): da lì si
+  // prendono gli orari, il resto della frase non serve più.
+  const orariDi = (s) => {
+    const m2 = /(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/.exec(s || '');
+    return m2 ? {da: m2[1].padStart(5, '0'), a: m2[2].padStart(5, '0')} : null;
+  };
+  const orariIniziali = modifica ? orariDi(menu.schedule) : null;
+  const [sempreVisibile, setSempreVisibile] = React.useState(!orariIniziali);
+  const [oraDa, setOraDa] = React.useState(orariIniziali ? orariIniziali.da : '12:00');
+  const [oraA, setOraA] = React.useState(orariIniziali ? orariIniziali.a : '16:00');
+
   // Duplicare vuol dire ripartire da com'era quel menù: le impostazioni
   // arrivano già compilate, il nome no — quello va cambiato per forza.
   const duplicaDa = (id) => {
@@ -1305,6 +1323,9 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
     setPrezzoAyce(src.prezzo || '');
     setTipo(src.tipo || 'sala');
     setTkLeadTime(src.leadTime || 20);
+    const o = orariDi(src.schedule);
+    setSempreVisibile(!o);
+    if (o) { setOraDa(o.da); setOraA(o.a); }
     setPrezzoTocco(false);
   };
 
@@ -1334,7 +1355,10 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
 
   const salva = () => {
     if (!completo) return;
-    const dati = {name: nome.trim(), tipologia, prezzo: ayce ? prezzoAyce : '', tipo, leadTime: tkLeadTime};
+    const dati = {
+      name: nome.trim(), tipologia, prezzo: ayce ? prezzoAyce : '', tipo, leadTime: tkLeadTime,
+      schedule: sempreVisibile ? '' : `${oraDa}–${oraA}`,
+    };
     if (modifica) onSave(menu.id, dati);
     else onCreate({...dati, duplicaDa: daDuplicare || null});
     onClose();
@@ -1471,6 +1495,39 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                 </div>
               </div>
             )}
+
+            {/* Quando è visibile: di default sempre. Con una fascia, fuori da
+                quella il QR non ha un menù da mostrare e ricade sulla vetrina
+                — come quando non c'è nessun menù attivo. */}
+            <div style={{marginBottom: 18}}>
+              <span style={NM_LABEL}>Quando è visibile</span>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                border: `1px solid ${PN.BORDER}`, borderRadius: 10, padding: '11px 13px',
+              }}>
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>Sempre visibile</div>
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
+                    Chi scansiona il QR lo trova a qualsiasi ora
+                  </div>
+                </div>
+                <ImpToggle checked={sempreVisibile} onChange={() => setSempreVisibile(v => !v)}/>
+              </div>
+
+              {!sempreVisibile && (
+                <>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 10}}>
+                    <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>Dalle</span>
+                    <input type="time" value={oraDa} onChange={e => setOraDa(e.target.value)} style={NM_ORA}/>
+                    <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>alle</span>
+                    <input type="time" value={oraA} onChange={e => setOraA(e.target.value)} style={NM_ORA}/>
+                  </div>
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
+                    Fuori da questa fascia il QR porta alla vetrina del locale.
+                  </div>
+                </>
+              )}
+            </div>
 
             <button onClick={() => setShowQr(true)} style={{
               width: '100%', padding: '13px 14px', marginBottom: 18,
