@@ -960,6 +960,9 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
   const [open, setOpen] = React.useState(false);
   const [renaming, setRenaming] = React.useState(null);
   const [hoverMenu, setHoverMenu] = React.useState(null);
+  // Accendere o spegnere un menù cambia quello che vede il cliente al tavolo
+  // nel momento stesso in cui si clicca: prima di farlo si dice cosa succede.
+  const [confirmStato, setConfirmStato] = React.useState(null); // {id, to}
   const [confirmDel, setConfirmDel] = React.useState(null);
   const m = menus.find(x => x.id === activeMenuId);
   const box = React.useRef(null);
@@ -971,6 +974,19 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
     return () => document.removeEventListener('mousedown', fuori);
   }, [open]);
 
+  // Esc annulla prima la conferma aperta, poi chiude la tendina.
+  React.useEffect(() => {
+    if (!open && !confirmDel && !confirmStato) return;
+    const esc = (e) => {
+      if (e.key !== 'Escape') return;
+      if (confirmDel) setConfirmDel(null);
+      else if (confirmStato) setConfirmStato(null);
+      else setOpen(false);
+    };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [open, confirmDel, confirmStato]);
+
   if (!m) return null;
 
   // Elenco e gestione dei menù: sta dietro al ⋯ in fondo alla testata, dove
@@ -979,7 +995,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
   const pannelloMenus = (
       <div style={{
         position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 80,
-        width: 344, background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+        width: 366, background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
         borderRadius: 14, padding: 7,
         boxShadow: '0 18px 44px -12px rgba(15,17,21,0.24), 0 0 0 1px rgba(15,17,21,0.03)',
       }}>
@@ -1021,8 +1037,8 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
                     facevano più rumore dell'informazione che davano. */}
                 <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 12.5, color: PN.MUTED, minWidth: 0}}>
                   <button
-                    onClick={e => { e.stopPropagation(); onUpdate(x.id, {active: !x.active}); }}
-                    title={x.active ? 'È il menù che vedono i clienti — clicca per spegnerlo' : 'Clicca per renderlo il menù che vedono i clienti'}
+                    onClick={e => { e.stopPropagation(); setConfirmStato({id: x.id, to: !x.active}); }}
+                    title={x.active ? 'È il menù che vedono i clienti — clicca per disattivarlo' : 'Clicca per renderlo il menù che vedono i clienti'}
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
                       padding: '1px 6px', marginLeft: -6, borderRadius: 999,
@@ -1034,7 +1050,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <span style={{width: 6, height: 6, borderRadius: '50%', background: x.active ? PN.GREEN : '#C7CBD1'}}/>
-                    {x.active ? 'Attivo' : 'Spento'}
+                    {x.active ? 'Attivo' : 'Disattivato'}
                   </button>
                   <span style={{color: PN.MUTED_SOFT, flexShrink: 0}}>·</span>
                   <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
@@ -1059,17 +1075,6 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
           );
         })}
 
-        {confirmDel && (
-          <div style={{margin: '7px 3px 3px', padding: 11, borderRadius: 10, background: '#FEF2F2', border: '1px solid #FECACA'}}>
-            <div style={{fontSize: 13.5, color: PN.TEXT, marginBottom: 9, lineHeight: 1.45}}>
-              Eliminare «{(menus.find(x => x.id === confirmDel) || {}).name}»? I piatti restano nella libreria.
-            </div>
-            <div style={{display: 'flex', gap: 7}}>
-              <button onClick={() => setConfirmDel(null)} style={{flex: 1, padding: '6px 0', fontSize: 13.5, fontWeight: 600, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', color: PN.TEXT}}>Annulla</button>
-              <button onClick={() => { onDelete(confirmDel); setConfirmDel(null); }} style={{flex: 1, padding: '6px 0', fontSize: 13.5, fontWeight: 700, background: '#DC2626', border: 'none', borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', color: '#fff'}}>Elimina</button>
-            </div>
-          </div>
-        )}
       </div>
   );
 
@@ -1090,7 +1095,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
       </div>
 
       <button
-        onClick={() => onUpdate(m.id, {active: !m.active})}
+        onClick={() => setConfirmStato({id: m.id, to: !m.active})}
         title={m.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
@@ -1135,6 +1140,94 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
         ><Puntini size={16}/></button>
 
         {open && pannelloMenus}
+
+        {/* Eliminare un menù è irreversibile: la conferma si prende al centro
+            dello schermo, non in un riquadro rosso in fondo a una tendina.
+            Sta dentro al wrapper del ⋯ perché il click fuori chiude entrambi:
+            da qui il mousedown è «dentro» e il dialogo resta in piedi. */}
+        {confirmDel && (
+          <div
+            onMouseDown={e => e.stopPropagation()}
+            onClick={() => setConfirmDel(null)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1000,
+              display: 'grid', placeItems: 'center', padding: 20, cursor: 'default',
+              animation: 'impOverlayIn 0.18s ease-out',
+            }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              ...MODAL_PANEL, width: 430,
+              animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+            }}>
+              <div style={{padding: '24px 26px 0', display: 'flex', alignItems: 'flex-start', gap: 14}}>
+                <div style={{
+                  width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
+                  background: '#FEF2F2', color: PN.RED, display: 'grid', placeItems: 'center',
+                }}><PnI.Trash size={19}/></div>
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, lineHeight: 1.3}}>
+                    Eliminare «{(menus.find(x => x.id === confirmDel) || {}).name}»?
+                  </div>
+                  <div style={{fontSize: 15, color: PN.MUTED, marginTop: 6, lineHeight: 1.45}}>
+                    I piatti restano nella libreria.
+                  </div>
+                </div>
+              </div>
+              <div style={{...MODAL_FOOT, justifyContent: 'flex-end', marginTop: 22, borderTop: 'none'}}>
+                <ImpButton variant="ghost" onClick={() => setConfirmDel(null)} style={{padding: '10px 20px'}}>Annulla</ImpButton>
+                <ImpButton variant="danger" onClick={() => { onDelete(confirmDel); setConfirmDel(null); setOpen(false); }} style={{padding: '10px 20px'}}>Elimina</ImpButton>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {confirmStato && (() => {
+          const bersaglio = menus.find(x => x.id === confirmStato.id) || {};
+          // Attivo ce n'è uno solo: accenderne un altro spegne quello di prima,
+          // e spegnere l'ultimo lascia il QR senza un menù da mostrare.
+          const attivoOra = menus.find(x => x.active && x.id !== confirmStato.id);
+          const accende = confirmStato.to;
+          const titolo = accende ? `Attivare «${bersaglio.name}»?` : `Disattivare «${bersaglio.name}»?`;
+          const testo = accende
+            ? (attivoOra
+                ? <>Può restare attivo un solo menù per volta: <strong style={{color: PN.TEXT}}>«{attivoOra.name}» verrà disattivato</strong>. Da subito chi scansiona il QR vedrà «{bersaglio.name}».</>
+                : <>Da subito chi scansiona il QR al tavolo vedrà «{bersaglio.name}».</>)
+            : <>Non resterà nessun menù attivo: <strong style={{color: PN.TEXT}}>il QR porterà i clienti alla vetrina del locale</strong>, non al menù.</>;
+          return (
+            <div
+              onMouseDown={e => e.stopPropagation()}
+              onClick={() => setConfirmStato(null)}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1000,
+                display: 'grid', placeItems: 'center', padding: 20, cursor: 'default',
+                animation: 'impOverlayIn 0.18s ease-out',
+              }}>
+              <div onClick={e => e.stopPropagation()} style={{
+                ...MODAL_PANEL, width: 460,
+                animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+              }}>
+                <div style={{padding: '24px 26px 0', display: 'flex', alignItems: 'flex-start', gap: 14}}>
+                  <div style={{
+                    width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+                    background: accende ? PN.GREEN_SOFT : PN.AMBER_SOFT,
+                    color: accende ? PN.GREEN : PN.AMBER,
+                  }}>{accende ? <PnI.Check size={19}/> : <PnI.Alert size={19}/>}</div>
+                  <div style={{flex: 1, minWidth: 0}}>
+                    <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, lineHeight: 1.3}}>{titolo}</div>
+                    <div style={{fontSize: 15, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>{testo}</div>
+                  </div>
+                </div>
+                <div style={{...MODAL_FOOT, justifyContent: 'flex-end', marginTop: 22, borderTop: 'none'}}>
+                  <ImpButton variant="ghost" onClick={() => setConfirmStato(null)} style={{padding: '10px 20px'}}>Annulla</ImpButton>
+                  <ImpButton
+                    variant={accende ? 'pink' : 'primary'}
+                    onClick={() => { onUpdate(confirmStato.id, {active: accende}); setConfirmStato(null); }}
+                    style={{padding: '10px 20px'}}
+                  >{accende ? 'Attiva' : 'Disattiva'}</ImpButton>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
