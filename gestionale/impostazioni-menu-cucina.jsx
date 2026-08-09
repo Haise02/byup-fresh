@@ -1019,9 +1019,6 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
 
         {menus.map(x => {
           const on = x.id === activeMenuId;
-          // Le azioni non stanno sempre accese: a riposo la riga è il menù,
-          // non una pulsantiera. Arrivano quando ci passi sopra.
-          const azioniVisibili = hoverMenu === x.id;
           return (
             <div key={x.id}
               onMouseEnter={() => setHoverMenu(x.id)}
@@ -1036,8 +1033,8 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
               <div style={{flex: 1, minWidth: 0}}>
                 <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
 
-                {/* Stato e conteggio su una riga sola: due pillole affiancate
-                    facevano più rumore dell'informazione che davano. */}
+                {/* Sotto al nome resta solo lo stato: il conteggio dei piatti
+                    lo dice il titolo del menù su cui si sta lavorando. */}
                 <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 12.5, color: PN.MUTED, minWidth: 0}}>
                   <button
                     onClick={e => { e.stopPropagation(); setConfirmStato({id: x.id, to: !x.active}); }}
@@ -1055,24 +1052,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
                     <span style={{width: 6, height: 6, borderRadius: '50%', background: x.active ? PN.GREEN : '#C7CBD1'}}/>
                     {x.active ? 'Attivo' : 'Disattivato'}
                   </button>
-                  <span style={{color: PN.MUTED_SOFT, flexShrink: 0}}>·</span>
-                  <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                    {totalDishesIn(x)} piatti
-                  </span>
                 </div>
-              </div>
-
-              {/* Un solo pulsante: rinomina, elimina e le impostazioni del
-                  menù stanno tutte nello stesso popup in cui il menù è nato. */}
-              <div style={{
-                flexShrink: 0,
-                opacity: azioniVisibili ? 1 : 0,
-                pointerEvents: azioniVisibili ? 'auto' : 'none',
-                transition: 'opacity 130ms ease-out',
-              }}>
-                <MCMiniAzione title="Modifica menù" onClick={e => { e.stopPropagation(); setOpen(false); onModificaMenu(x.id); }}>
-                  <Icon name="pencil" size={12}/>
-                </MCMiniAzione>
               </div>
             </div>
           );
@@ -1091,14 +1071,16 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
           resta un titolo, non torna a essere un pulsante incorniciato. */}
       {/* Quando la testata è piena a cedere non è il titolo: si accorcia la
           fascia oraria, che l'ellissi ce l'ha già e si legge anche a metà. */}
-      <div ref={pickerBox} style={{position: 'relative', flexShrink: 0}}>
+      <div ref={pickerBox} style={{position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 2}}>
+        {/* Cliccabile è il nome del menù, non il conteggio dei piatti: quello
+            è un dato, non un'azione. */}
         <button
           onClick={() => setPickerOpen(o => !o)}
           title="Cambia menù"
           aria-haspopup="listbox" aria-expanded={pickerOpen}
           style={{
-            display: 'flex', alignItems: 'baseline', gap: 10,
-            padding: '4px 8px', margin: '-4px -8px', borderRadius: 9,
+            display: 'flex', alignItems: 'baseline', gap: 9,
+            padding: '4px 8px', margin: '-4px 0 -4px -8px', borderRadius: 9,
             border: 'none', background: pickerOpen ? '#F1F3F5' : 'transparent',
             cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
             transition: 'background 150ms ease-out',
@@ -1112,12 +1094,13 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
             // leggono interi, senza farsi accorciare dal resto della testata.
             maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{m.name}</h2>
-          <span style={{fontSize: 13.5, color: PN.MUTED, flexShrink: 0}}>{totalDishesIn(m)} piatti</span>
           <span style={{
             display: 'inline-flex', color: PN.MUTED, flexShrink: 0, alignSelf: 'center',
             transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out',
           }}><PnI.ChevronDown size={13}/></span>
         </button>
+
+        <span style={{fontSize: 13.5, color: PN.MUTED, flexShrink: 0}}>{totalDishesIn(m)} piatti</span>
 
         {pickerOpen && (
           <div role="listbox" style={{
@@ -1808,22 +1791,6 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
         </div>
       )}
     </div>
-  );
-}
-
-function MCMiniAzione({ children, title, danger, onClick }) {
-  return (
-    <button onClick={onClick} title={title} style={{
-          // padding 0: il default del <button> (1px 6px) stringe la content-box
-          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
-          padding: 0,
-      width: 24, height: 24, borderRadius: 6, border: 'none', background: 'transparent',
-      cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 12,
-      color: danger ? PN.RED : PN.MUTED, fontFamily: 'inherit',
-    }}
-    onMouseEnter={e => e.currentTarget.style.background = danger ? '#FEF2F2' : '#EDEFF2'}
-    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >{children}</button>
   );
 }
 
