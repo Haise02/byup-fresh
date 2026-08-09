@@ -321,12 +321,6 @@ const CANALI_IDS = CANALI.map(c => c.id);
 // Un piatto senza `channels` è visibile ovunque: i menù già scritti non hanno
 // il campo e non devono sparire dai canali per una colonna che prima non c'era.
 const canaliDi = (it) => it.channels || CANALI_IDS;
-const prezzoCanale = (it, cid) => {
-  const o = it.channelPrices ? it.channelPrices[cid] : undefined;
-  if (o === undefined || o === null || o === '') return it.price;
-  const n = parseFloat(String(o).replace(',', '.'));
-  return isNaN(n) ? it.price : n;
-};
 const eur = (n) => '€ ' + Number(n || 0).toFixed(2).replace('.', ',');
 // Codice leggibile del piatto: iniziali della categoria + posizione nel menù.
 const codicePiatto = (catName, i) =>
@@ -1707,12 +1701,11 @@ function MCDettagliPiatto({
   const [aiLoading, setAiLoading] = React.useState(false);
   const [confermaElimina, setConfermaElimina] = React.useState(false);
 
-  // Dati che vivono nel MENÙ, non nella libreria: prezzo, disponibilità,
-  // canali su cui il piatto si vede e con che prezzo.
+  // Dati che vivono nel MENÙ, non nella libreria: prezzo, disponibilità e
+  // canali su cui il piatto si vede. Il prezzo è uno solo, ovunque.
   const [prezzo, setPrezzo] = React.useState(item.price.toFixed(2).replace('.', ','));
   const [attivo, setAttivo] = React.useState(!!item.active);
   const [canali, setCanali] = React.useState(canaliDi(item));
-  const [prezziCanale, setPrezziCanale] = React.useState(item.channelPrices || {});
 
   React.useEffect(() => {
     if (!tipOpen) return;
@@ -1757,7 +1750,7 @@ function MCDettagliPiatto({
     });
     onUpdateItem({
       price: parseFloat(String(prezzo).replace(',', '.')) || 0,
-      active: attivo, channels: canali, channelPrices: prezziCanale,
+      active: attivo, channels: canali,
     });
   };
 
@@ -1765,7 +1758,6 @@ function MCDettagliPiatto({
     {id: 'info',      l: 'Informazioni'},
     {id: 'varianti',  l: 'Varianti'},
     {id: 'allergeni', l: 'Allergeni e tag'},
-    {id: 'canali',    l: 'Prezzi per canale'},
   ];
 
   return (
@@ -2075,47 +2067,6 @@ function MCDettagliPiatto({
           </div>
         )}
 
-        {/* ── PREZZI PER CANALE ──────────────────────────────────────── */}
-        {tab === 'canali' && (
-          <div>
-            <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 12}}>
-              Il prezzo di listino vale ovunque. Scrivi un importo solo dove il canale
-              deve costare diversamente — lascialo vuoto per usare quello di listino.
-            </div>
-            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 11px', borderRadius: 9, background: '#F7F8FA', marginBottom: 12}}>
-              <span style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>Prezzo di listino</span>
-              <span style={{fontSize: 15, fontWeight: 800, color: PN.TEXT}}>{eur(parseFloat(String(prezzo).replace(',', '.')) || 0)}</span>
-            </div>
-            <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
-              {CANALI.map(c => {
-                const visibile = canali.includes(c.id);
-                return (
-                  <div key={c.id} style={{
-                    border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 10, padding: '10px 11px',
-                    background: visibile ? PN.WHITE : '#FAFBFC', opacity: visibile ? 1 : 0.7,
-                  }}>
-                    <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8}}>
-                      <span style={{display: 'inline-flex', color: PN.MUTED}}><Icon name={c.icona} size={15}/></span>
-                      <span style={{flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: PN.TEXT}}>{c.label}</span>
-                      <ImpToggle checked={visibile} onChange={() => toggleCanale(c.id)}/>
-                    </div>
-                    <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-                      <span style={{fontSize: 13, color: PN.MUTED, flex: 1}}>Prezzo su questo canale</span>
-                      <div style={{display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${PN.BORDER}`, borderRadius: 8, padding: '4px 8px', background: PN.WHITE}}>
-                        <span style={{fontSize: 13.5, color: PN.MUTED, fontWeight: 700}}>€</span>
-                        <input
-                          value={prezziCanale[c.id] || ''}
-                          onChange={e => setPrezziCanale(p => ({...p, [c.id]: e.target.value}))}
-                          placeholder={String((parseFloat(String(prezzo).replace(',', '.')) || 0).toFixed(2)).replace('.', ',')}
-                          style={{width: 58, border: 'none', outline: 'none', textAlign: 'right', fontSize: 14, fontWeight: 700, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}/>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Piede */}
@@ -2445,7 +2396,7 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClos
                       <AppCatBand name={c.name} count={c.rows.length} index={i} total={cats.length}/>
                       <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28}}>
                         {c.rows.map(r => (
-                          <AppDishCard key={r.dishId} r={r} prezzo={prezzoCanale(r, canale)} evidenziato={evidenzia === r.dishId}/>
+                          <AppDishCard key={r.dishId} r={r} prezzo={r.price} evidenziato={evidenzia === r.dishId}/>
                         ))}
                       </div>
                     </div>
