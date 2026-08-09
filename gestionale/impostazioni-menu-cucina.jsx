@@ -1204,7 +1204,7 @@ const NM_SELECT = {
 // sua, evidenziazione blu. Qui la tendina è la nostra e ha le forme del
 // pannello «I tuoi menù»: stesso raggio, stessa ombra, stesso rosa sul
 // selezionato.
-function NMSelect({ value, options, onChange, open, setOpen }) {
+function NMSelect({ value, options, onChange, open, setOpen, versoAlto }) {
   const box = React.useRef(null);
   React.useEffect(() => {
     if (!open) return;
@@ -1239,7 +1239,10 @@ function NMSelect({ value, options, onChange, open, setOpen }) {
 
       {open && (
         <div role="listbox" style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 30,
+          // In fondo al popup la tendina si apre verso l'alto: sotto ci sono
+          // solo i bottoni, e lo scroller la taglierebbe.
+          position: 'absolute', left: 0, right: 0, zIndex: 30,
+          ...(versoAlto ? {bottom: 'calc(100% + 6px)'} : {top: 'calc(100% + 6px)'}),
           background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 12,
           boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6,
           maxHeight: 260, overflowY: 'auto',
@@ -1279,6 +1282,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   const modifica = !!menu;
   const [daDuplicare, setDaDuplicare] = React.useState('');   // id del menù sorgente
   const [daDuplicareOpen, setDaDuplicareOpen] = React.useState(false);
+  const [duplicaAperto, setDuplicaAperto] = React.useState(false);
   const [nome, setNome] = React.useState(modifica ? menu.name : '');
   const [tipologia, setTipologia] = React.useState(modifica ? (menu.tipologia || NUOVO_MENU_TIPOLOGIE[0]) : NUOVO_MENU_TIPOLOGIE[0]);
   const [tipologiaOpen, setTipologiaOpen] = React.useState(false);
@@ -1365,26 +1369,6 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
 
         <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto'}}>
           <div style={MODAL_BODY}>
-            {/* Duplicare è un modo di iniziare, non un'azione a parte: sta in
-                cima al flusso di creazione, prima ancora del nome. */}
-            {!modifica && menus.length > 0 && (
-              <div style={{marginBottom: 18}}>
-                <span style={NM_LABEL}>Parti da un menù esistente</span>
-                <NMSelect
-                  value={daDuplicare}
-                  options={[{value: '', label: 'Parti da zero'}, ...menus.map(x => ({value: x.id, label: `Duplica «${x.name}»`}))]}
-                  onChange={duplicaDa}
-                  open={daDuplicareOpen}
-                  setOpen={setDaDuplicareOpen}
-                />
-                {daDuplicare && (
-                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
-                    Impostazioni e piatti arrivano dal menù scelto. Dai al nuovo menù un nome diverso.
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Nome — il contatore sta dentro al riquadro, dove si scrive */}
             <label style={NM_LABEL} htmlFor="nm-nome">Nome del menù</label>
             <div style={{
@@ -1530,6 +1514,44 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
                 boxShadow: '0 1px 2px rgba(15,17,21,0.06)',
               }}><PnI.FileText size={16}/> Carica Foto/Pdf</button>
             </div>
+            )}
+
+            {/* Duplicare è una scorciatoia per chi sa già di volerla: sta in
+                fondo, in tono minore e chiusa. Chi crea un menù da zero — cioè
+                quasi sempre — non deve nemmeno accorgersene. */}
+            {!modifica && menus.length > 0 && (
+              <div style={{marginTop: 18}}>
+                {!duplicaAperto ? (
+                  <button
+                    onClick={() => setDuplicaAperto(true)}
+                    style={{
+                      background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: 13, fontWeight: 600, color: PN.MUTED_SOFT,
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      transition: 'color 150ms ease-out',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = PN.MUTED}
+                    onMouseLeave={e => e.currentTarget.style.color = PN.MUTED_SOFT}
+                  >Parti da un menù esistente <PnI.ChevronDown size={10}/></button>
+                ) : (
+                  <div>
+                    <span style={{...NM_LABEL, fontSize: 13, color: PN.MUTED}}>Parti da un menù esistente</span>
+                    <NMSelect
+                      value={daDuplicare}
+                      options={[{value: '', label: 'Parti da zero'}, ...menus.map(x => ({value: x.id, label: `Duplica «${x.name}»`}))]}
+                      onChange={duplicaDa}
+                      open={daDuplicareOpen}
+                      setOpen={setDaDuplicareOpen}
+                      versoAlto
+                    />
+                    {daDuplicare && (
+                      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
+                        Impostazioni e piatti arrivano dal menù scelto. Dai al nuovo menù un nome diverso.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
