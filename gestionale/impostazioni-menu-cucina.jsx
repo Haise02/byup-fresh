@@ -1200,6 +1200,30 @@ const NM_SELECT = {
   width: '100%', padding: '11px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
   fontSize: 15, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
 };
+// Giorni della settimana: dentro al menù stanno come indici, in testata e
+// nell'anteprima come frase — «Tutti i giorni», «Lun–Ven», «Lun, Mer, Ven».
+const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+const etichettaGiorni = (sel) => {
+  if (sel.length === 7) return 'Tutti i giorni';
+  const ord = [...sel].sort((a, b) => a - b);
+  const consecutivi = ord.every((v, i) => i === 0 || v === ord[i - 1] + 1);
+  if (consecutivi && ord.length > 2) return `${GIORNI[ord[0]]}–${GIORNI[ord[ord.length - 1]]}`;
+  return ord.map(i => GIORNI[i]).join(', ');
+};
+// I menù già scritti hanno i giorni dentro la frase: da lì si rileggono,
+// così aprendone uno in modifica non si riparte da capo.
+const giorniDi = (s) => {
+  if (!s) return null;
+  if (/tutti i giorni/i.test(s)) return [0, 1, 2, 3, 4, 5, 6];
+  const range = new RegExp(`(${GIORNI.join('|')})\\s*[–-]\\s*(${GIORNI.join('|')})`).exec(s);
+  if (range) {
+    const a = GIORNI.indexOf(range[1]), b = GIORNI.indexOf(range[2]);
+    if (a >= 0 && b >= a) { const out = []; for (let i = a; i <= b; i++) out.push(i); return out; }
+  }
+  const singoli = GIORNI.map((g, i) => i).filter(i => new RegExp(`\\b${GIORNI[i]}\\b`).test(s));
+  return singoli.length ? singoli : null;
+};
+
 const NM_ORA = {
   flex: 1, minWidth: 0, padding: '10px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
   fontSize: 15, fontWeight: 600, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
@@ -1312,6 +1336,9 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   const [sempreVisibile, setSempreVisibile] = React.useState(!orariIniziali);
   const [oraDa, setOraDa] = React.useState(orariIniziali ? orariIniziali.da : '12:00');
   const [oraA, setOraA] = React.useState(orariIniziali ? orariIniziali.a : '16:00');
+  const [giorni, setGiorni] = React.useState(
+    (modifica && giorniDi(menu.schedule)) || [0, 1, 2, 3, 4, 5, 6]);
+  const toggleGiorno = (i) => setGiorni(g => (g.includes(i) ? g.filter(x => x !== i) : [...g, i].sort((a, b) => a - b)));
 
   // Duplicare vuol dire ripartire da com'era quel menù: le impostazioni
   // arrivano già compilate, il nome no — quello va cambiato per forza.
@@ -1326,6 +1353,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
     const o = orariDi(src.schedule);
     setSempreVisibile(!o);
     if (o) { setOraDa(o.da); setOraA(o.a); }
+    setGiorni(giorniDi(src.schedule) || [0, 1, 2, 3, 4, 5, 6]);
     setPrezzoTocco(false);
   };
 
@@ -1351,13 +1379,16 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   // cui compaiono — a partire da quella da cui si sceglie cosa duplicare.
   const nomePreso = menus.some(x => x.id !== (menu ? menu.id : null)
     && x.name.trim().toLowerCase() === nome.trim().toLowerCase() && !!nome.trim());
-  const completo = !!nome.trim() && prezzoOk && !nomePreso;
+  // Una fascia senza nemmeno un giorno non vale mai: sarebbe un menù che non
+  // si vede mai, cioè un menù disattivato scritto in modo complicato.
+  const giorniOk = sempreVisibile || giorni.length > 0;
+  const completo = !!nome.trim() && prezzoOk && !nomePreso && giorniOk;
 
   const salva = () => {
     if (!completo) return;
     const dati = {
       name: nome.trim(), tipologia, prezzo: ayce ? prezzoAyce : '', tipo, leadTime: tkLeadTime,
-      schedule: sempreVisibile ? '' : `${oraDa}–${oraA}`,
+      schedule: sempreVisibile ? '' : `${etichettaGiorni(giorni)} · ${oraDa}–${oraA}`,
     };
     if (modifica) onSave(menu.id, dati);
     else onCreate({...dati, duplicaDa: daDuplicare || null});
@@ -1516,14 +1547,36 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
 
               {!sempreVisibile && (
                 <>
+                  <div style={{display: 'flex', gap: 6, marginTop: 10}}>
+                    {GIORNI.map((g, i) => {
+                      const on = giorni.includes(i);
+                      return (
+                        <button key={g} onClick={() => toggleGiorno(i)} title={on ? `Togli ${g}` : `Aggiungi ${g}`} style={{
+                          flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                          border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
+                          background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                          color: on ? PN.PINK_DARK : PN.MUTED,
+                          fontSize: 13.5, fontWeight: on ? 700 : 600,
+                          transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                        }}>{g}</button>
+                      );
+                    })}
+                  </div>
+                  {!giorniOk && (
+                    <div style={{fontSize: 12.5, color: PN.PINK_DARK, marginTop: 6, lineHeight: 1.4}}>
+                      Scegli almeno un giorno, altrimenti il menù non si vedrebbe mai.
+                    </div>
+                  )}
                   <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 10}}>
                     <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>Dalle</span>
                     <input type="time" value={oraDa} onChange={e => setOraDa(e.target.value)} style={NM_ORA}/>
                     <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>alle</span>
                     <input type="time" value={oraA} onChange={e => setOraA(e.target.value)} style={NM_ORA}/>
                   </div>
-                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
-                    Fuori da questa fascia il QR porta alla vetrina del locale.
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.45}}>
+                    Fuori da questa fascia il QR porta a un altro menù, se attivato, o alla
+                    vetrina se nessuno è attivo. Dalla vetrina restano visibili tutti i menù
+                    che si attivano in determinate fasce orarie della settimana.
                   </div>
                 </>
               )}
