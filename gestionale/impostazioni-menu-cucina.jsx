@@ -966,8 +966,12 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
   // Accendere o spegnere un menù cambia quello che vede il cliente al tavolo
   // nel momento stesso in cui si clicca: prima di farlo si dice cosa succede.
   const [confirmStato, setConfirmStato] = React.useState(null); // {id, to}
+  // Due porte diverse sullo stesso elenco: dal titolo si sceglie su quale
+  // menù lavorare, dal ⋯ si va a metterci le mani dentro.
+  const [pickerOpen, setPickerOpen] = React.useState(false);
   const m = menus.find(x => x.id === activeMenuId);
   const box = React.useRef(null);
+  const pickerBox = React.useRef(null);
 
   React.useEffect(() => {
     if (!open) return;
@@ -976,17 +980,25 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
     return () => document.removeEventListener('mousedown', fuori);
   }, [open]);
 
+  React.useEffect(() => {
+    if (!pickerOpen) return;
+    const fuori = (e) => { if (pickerBox.current && !pickerBox.current.contains(e.target)) setPickerOpen(false); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [pickerOpen]);
+
   // Esc annulla prima la conferma aperta, poi chiude la tendina.
   React.useEffect(() => {
-    if (!open && !confirmStato) return;
+    if (!open && !confirmStato && !pickerOpen) return;
     const esc = (e) => {
       if (e.key !== 'Escape') return;
       if (confirmStato) setConfirmStato(null);
+      else if (pickerOpen) setPickerOpen(false);
       else setOpen(false);
     };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
-  }, [open, confirmStato]);
+  }, [open, confirmStato, pickerOpen]);
 
   if (!m) return null;
 
@@ -1014,7 +1026,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
             <div key={x.id}
               onMouseEnter={() => setHoverMenu(x.id)}
               onMouseLeave={() => setHoverMenu(null)}
-              onClick={() => { onPick(x.id); setOpen(false); }}
+              onClick={() => { setOpen(false); onModificaMenu(x.id); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '9px 10px', borderRadius: 10, cursor: 'pointer',
@@ -1075,14 +1087,68 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
       padding: '10px 14px', background: PN.WHITE,
       border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, boxShadow: PN.CARD_SHADOW,
     }}>
-      {/* Il menù su cui si lavora è il titolo della pagina. Niente cornice:
-          delimitava un pulsante che non c'è più. */}
-      <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
-        <h2 style={{
-          margin: 0, fontSize: 23, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{m.name}</h2>
-        <span style={{fontSize: 13.5, color: PN.MUTED, flexShrink: 0}}>{totalDishesIn(m)} piatti</span>
+      {/* Il menù su cui si lavora è il titolo della pagina, e da lì si cambia:
+          resta un titolo, non torna a essere un pulsante incorniciato. */}
+      {/* Quando la testata è piena a cedere non è il titolo: si accorcia la
+          fascia oraria, che l'ellissi ce l'ha già e si legge anche a metà. */}
+      <div ref={pickerBox} style={{position: 'relative', flexShrink: 0}}>
+        <button
+          onClick={() => setPickerOpen(o => !o)}
+          title="Cambia menù"
+          aria-haspopup="listbox" aria-expanded={pickerOpen}
+          style={{
+            display: 'flex', alignItems: 'baseline', gap: 10,
+            padding: '4px 8px', margin: '-4px -8px', borderRadius: 9,
+            border: 'none', background: pickerOpen ? '#F1F3F5' : 'transparent',
+            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+            transition: 'background 150ms ease-out',
+          }}
+          onMouseEnter={e => { if (!pickerOpen) e.currentTarget.style.background = '#F7F8FA'; }}
+          onMouseLeave={e => { if (!pickerOpen) e.currentTarget.style.background = 'transparent'; }}
+        >
+          <h2 style={{
+            margin: 0, fontSize: 23, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT,
+            // Il taglio scatta solo sui nomi fuori scala: quelli normali si
+            // leggono interi, senza farsi accorciare dal resto della testata.
+            maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{m.name}</h2>
+          <span style={{fontSize: 13.5, color: PN.MUTED, flexShrink: 0}}>{totalDishesIn(m)} piatti</span>
+          <span style={{
+            display: 'inline-flex', color: PN.MUTED, flexShrink: 0, alignSelf: 'center',
+            transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out',
+          }}><PnI.ChevronDown size={13}/></span>
+        </button>
+
+        {pickerOpen && (
+          <div role="listbox" style={{
+            position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 80,
+            width: 288, background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+            borderRadius: 14, padding: 7,
+            boxShadow: '0 18px 44px -12px rgba(15,17,21,0.24), 0 0 0 1px rgba(15,17,21,0.03)',
+          }}>
+            {menus.map(x => {
+              const on = x.id === activeMenuId;
+              return (
+                <div key={x.id} role="option" aria-selected={on}
+                  onClick={() => { onPick(x.id); setPickerOpen(false); }}
+                  onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+                  onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '9px 10px', borderRadius: 10, cursor: 'pointer',
+                    background: on ? PN.PINK_BG_SOFT : 'transparent',
+                    transition: 'background 130ms ease-out',
+                  }}>
+                  <div style={{flex: 1, minWidth: 0}}>
+                    <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
+                    <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2}}>{totalDishesIn(x)} piatti</div>
+                  </div>
+                  {on && <span style={{display: 'inline-flex', color: PN.PINK, flexShrink: 0}}><PnI.Check size={13}/></span>}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <button
@@ -1099,7 +1165,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
       </button>
       {/* La fascia oraria è del menù attivo e sta qui: nell'elenco non serve,
           lì i menù si distinguono per nome e per quanti piatti hanno. */}
-      {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>Visibile {m.schedule}</span>}
+      {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0}}>Visibile {m.schedule}</span>}
 
       <span style={{flex: 1}}/>
 
@@ -1675,7 +1741,12 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
               display: 'inline-flex', alignItems: 'center', gap: 7,
             }}><PnI.Trash size={13}/> Elimina menù</button>
           )}
-          <ImpButton variant="ghost" onClick={onClose} style={{padding: '11px 26px'}}>Annulla</ImpButton>
+          {/* In modifica «Annulla» non serve: le modifiche si applicano solo
+              salvando, e per uscire senza toccare niente ci sono la ✕, Esc e
+              il click fuori. */}
+          {!modifica && (
+            <ImpButton variant="ghost" onClick={onClose} style={{padding: '11px 26px'}}>Annulla</ImpButton>
+          )}
           <ImpButton variant="pink" onClick={salva} disabled={!completo} style={{padding: '11px 26px'}}>
             {modifica ? 'Salva modifiche' : 'Crea menù'}
           </ImpButton>
