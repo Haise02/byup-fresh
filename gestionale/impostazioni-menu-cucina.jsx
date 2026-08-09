@@ -2321,7 +2321,6 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClos
 
   const visibili = cats.reduce((s, c) => s + c.rows.length, 0);
   const inMenu = (menu ? menu.categories : []).reduce((s, c) => s + c.items.length, 0);
-  const canaleAttivo = CANALI.find(c => c.id === canale) || CANALI[0];
 
   // L'anteprima segue il lavoro: cambiando categoria a sinistra, il telefono
   // si porta sulla sezione corrispondente.
@@ -2462,7 +2461,7 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClos
         </div>
 
         <div style={{fontSize: 12.5, color: PN.MUTED, textAlign: 'center', marginTop: 12, lineHeight: 1.45}}>
-          {visibili} di {inMenu} piatti visibili su <strong style={{color: PN.TEXT}}>{canaleAttivo.label}</strong>
+          {visibili} di {inMenu} piatti visibili
         </div>
       </div>
     </section>
