@@ -445,6 +445,9 @@ function MCMenuComposer() {
   // colonna 3 — dettaglio
   const [detailId, setDetailId] = React.useState(null);
 
+  // L'anteprima non presidia più mezza schermata: si apre quando la si chiede.
+  const [anteprima, setAnteprima] = React.useState(false);
+
   const gridRef = React.useRef(null);
   const hCol = useAltezzaColonne(gridRef);
 
@@ -659,11 +662,15 @@ function MCMenuComposer() {
           onDuplicate={duplicateMenu}
           totalDishesIn={totalDishesIn}
           onAiUpload={() => setAiUpload(true)}
+          onAnteprima={() => setAnteprima(true)}
         />
       )}
 
       <div ref={gridRef} style={{
-        display: 'grid', gridTemplateColumns: '236px minmax(0, 1fr) 372px',
+        // Senza un piatto aperto le colonne sono due: la terza non resta lì a
+        // tenere il posto a un pannello che non c'è.
+        display: 'grid',
+        gridTemplateColumns: detail ? '236px minmax(0, 1fr) 372px' : '236px minmax(0, 1fr)',
         gap: 14, height: hCol || undefined, alignItems: 'stretch',
       }}>
         {/* ── Colonna 1: categorie ─────────────────────────────────────── */}
@@ -871,12 +878,11 @@ function MCMenuComposer() {
           onReorder={reorderDishes}
         />
 
-        {/* ── Colonna 3: dettaglio + anteprima ─────────────────────────── */}
-        <div className="pn-scroll" style={{display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, overflowY: 'auto', paddingRight: 2}}>
-          {/* Senza un piatto aperto il pannello non c'è: un riquadro che dice
-              «scegli un piatto» occupa mezza colonna per non dire niente, e
-              l'anteprima sale in cima dove si guarda. */}
-          {detail && (
+        {/* ── Colonna 3: dettaglio del piatto aperto ───────────────────── */}
+        {/* Senza un piatto aperto il pannello non c'è: un riquadro che dice
+            «scegli un piatto» occupa mezza colonna per non dire niente. */}
+        {detail && (
+          <div className="pn-scroll" style={{display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, overflowY: 'auto', paddingRight: 2}}>
             <MCDettagliPiatto
               key={detail.dishId}
               dish={detail.dish}
@@ -891,16 +897,19 @@ function MCMenuComposer() {
               onDeleteFromLibrary={() => removeLibraryDish(detail.dishId)}
               onMoveCat={(to) => { moveDishToCat(activeCat, to, detail.dishId); setActiveCat(to); }}
             />
-          )}
-
-          <MCAnteprimaMenu
-            menu={activeMenu}
-            library={library}
-            catName={activeCat}
-            evidenzia={detailId}
-          />
-        </div>
+          </div>
+        )}
       </div>
+
+      {anteprima && (
+        <MCAnteprimaModal
+          menu={activeMenu}
+          library={library}
+          catName={activeCat}
+          evidenzia={detailId}
+          onClose={() => setAnteprima(false)}
+        />
+      )}
 
       {/* ── Modali ───────────────────────────────────────────────────────── */}
       {picker && (
@@ -951,7 +960,7 @@ function MCMenuComposer() {
 }
 
 // ─── Testata: selettore del menù su cui si lavora ───────────────────────────
-function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDelete, onDuplicate, totalDishesIn, onAiUpload }) {
+function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDelete, onDuplicate, totalDishesIn, onAiUpload, onAnteprima }) {
   const [open, setOpen] = React.useState(false);
   const [creating, setCreating] = React.useState(false);
   const [nuovo, setNuovo] = React.useState('');
@@ -1092,6 +1101,10 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDel
       {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{m.schedule}</span>}
 
       <span style={{flex: 1}}/>
+
+      <ImpButton variant="ghost" icon={<PnI.Eye size={15}/>} onClick={onAnteprima} style={{flexShrink: 0, whiteSpace: 'nowrap'}}>
+        Visualizza anteprima
+      </ImpButton>
 
       <div style={{width: 206, flexShrink: 0}}>
         <AiUploadCta onClick={onAiUpload}>
@@ -2281,7 +2294,7 @@ function AppDishCard({ r, prezzo, evidenziato }) {
   );
 }
 
-function MCAnteprimaMenu({ menu, library, catName, evidenzia }) {
+function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClose }) {
   const [canale, setCanale] = React.useState('qr');
   const boxRef = React.useRef(null);
   const scrollRef = React.useRef(null);
@@ -2338,11 +2351,22 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia }) {
         }}>
           {CANALI.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
+        {onClose && (
+          <button onClick={onClose} aria-label="Chiudi anteprima" style={{
+            padding: 0, width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+            border: `1px solid ${PN.BORDER}`, background: PN.WHITE, color: PN.MUTED,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+            transition: 'background 150ms ease-out',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#F4F5F7'}
+          onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
+          ><PnI.X size={13}/></button>
+        )}
       </div>
 
       <div style={{padding: '14px 14px 16px', display: 'grid', placeItems: 'center', background: 'linear-gradient(180deg, #FAFBFC 0%, #FFFFFF 100%)'}}>
         <div ref={boxRef} style={{
-          width: '100%', maxWidth: 272, aspectRatio: '9/19.4', position: 'relative',
+          width: '100%', maxWidth: maxW, aspectRatio: '9/19.4', position: 'relative',
           borderRadius: Math.round(w * 0.155), padding: 3,
           background: 'linear-gradient(150deg, #43464D 0%, #1B1D22 42%, #303338 100%)',
           boxShadow: '0 18px 40px -16px rgba(15,17,21,0.40), inset 0 0 0 1px rgba(255,255,255,0.15)',
@@ -2446,6 +2470,41 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia }) {
         </div>
       </div>
     </section>
+  );
+}
+
+// L'anteprima si chiede: sta sopra al lavoro finché serve, poi si toglie di
+// mezzo. Fuori dalla colonna il telefono può anche essere più grande.
+function MCAnteprimaModal({ menu, library, catName, evidenzia, onClose }) {
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [onClose]);
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1000,
+      display: 'grid', placeItems: 'center', padding: 20,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        // Il tetto è in px di LAYOUT, non in vh: il frame del gestionale ha uno
+        // zoom e i vh lo ignorano — con `92vh` il telefono restava tagliato.
+        width: 400, maxWidth: '100%', maxHeight: 862, overflowY: 'auto',
+        borderRadius: 14, boxShadow: '0 24px 64px rgba(15,17,21,0.24)',
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <MCAnteprimaMenu
+          menu={menu}
+          library={library}
+          catName={catName}
+          evidenzia={evidenzia}
+          maxW={320}
+          onClose={onClose}
+        />
+      </div>
+    </div>
   );
 }
 
