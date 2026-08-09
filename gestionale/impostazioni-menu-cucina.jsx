@@ -322,11 +322,6 @@ const CANALI_IDS = CANALI.map(c => c.id);
 // il campo e non devono sparire dai canali per una colonna che prima non c'era.
 const canaliDi = (it) => it.channels || CANALI_IDS;
 const eur = (n) => '€ ' + Number(n || 0).toFixed(2).replace('.', ',');
-// Codice leggibile del piatto: iniziali della categoria + posizione nel menù.
-const codicePiatto = (catName, i) =>
-  '#' + String(catName || 'GEN').replace(/[^A-Za-zÀ-ÿ]/g, '').slice(0, 3).toUpperCase() +
-  '-' + String(100 + (i + 1) * 25).padStart(5, '0');
-
 // L'area di lavoro prende l'altezza che resta nello scroller e le tre colonne
 // scorrono ognuna per conto suo. Misurata in px di LAYOUT: il frame del
 // gestionale ha uno zoom e i vh non lo considerano.
@@ -881,7 +876,6 @@ function MCMenuComposer() {
               key={detail.dishId}
               dish={detail.dish}
               item={detail}
-              codice={codicePiatto(activeCat, detail.idx)}
               catName={activeCat}
               categorie={(activeMenu ? activeMenu.categories : []).map(c => c.name)}
               onClose={() => setDetailId(null)}
@@ -965,6 +959,7 @@ function MCMenuComposer() {
 function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDuplicate, totalDishesIn, onAnteprima, onNuovoMenu }) {
   const [open, setOpen] = React.useState(false);
   const [renaming, setRenaming] = React.useState(null);
+  const [hoverMenu, setHoverMenu] = React.useState(null);
   const [confirmDel, setConfirmDel] = React.useState(null);
   const m = menus.find(x => x.id === activeMenuId);
   const box = React.useRef(null);
@@ -983,22 +978,33 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
   // dire su quale menù si sta lavorando.
   const pannelloMenus = (
       <div style={{
-        position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 80,
-        width: 330, background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-        borderRadius: 12, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6,
+        position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 80,
+        width: 344, background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+        borderRadius: 14, padding: 7,
+        boxShadow: '0 18px 44px -12px rgba(15,17,21,0.24), 0 0 0 1px rgba(15,17,21,0.03)',
       }}>
-        <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', padding: '6px 8px 4px'}}>I tuoi menù</div>
+        <div style={{
+          fontSize: 11.5, fontWeight: 800, color: PN.MUTED_SOFT, letterSpacing: 0.8,
+          textTransform: 'uppercase', padding: '7px 10px 9px',
+        }}>I tuoi menù</div>
+
         {menus.map(x => {
           const on = x.id === activeMenuId;
           const inRinomina = renaming === x.id;
+          // Le azioni non stanno sempre accese: a riposo la riga è il menù,
+          // non una pulsantiera. Arrivano quando ci passi sopra.
+          const azioniVisibili = hoverMenu === x.id || inRinomina;
           return (
-            <div key={x.id} onClick={() => { if (!inRinomina) { onPick(x.id); setOpen(false); } }} style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', borderRadius: 9,
-              background: on ? PN.PINK_SOFT : 'transparent', cursor: 'pointer',
-            }}
-            onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
-            onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
-            >
+            <div key={x.id}
+              onMouseEnter={() => setHoverMenu(x.id)}
+              onMouseLeave={() => setHoverMenu(null)}
+              onClick={() => { if (!inRinomina) { onPick(x.id); setOpen(false); } }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 10px', borderRadius: 10, cursor: 'pointer',
+                background: on ? PN.PINK_BG_SOFT : (hoverMenu === x.id ? '#F7F8FA' : 'transparent'),
+                transition: 'background 130ms ease-out',
+              }}>
               <div style={{flex: 1, minWidth: 0}}>
                 {inRinomina ? (
                   <input autoFocus defaultValue={x.name}
@@ -1010,23 +1016,39 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
                 ) : (
                   <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
                 )}
-                <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                  {totalDishesIn(x)} piatti{x.schedule ? ' · ' + x.schedule : ''}
+
+                {/* Stato e conteggio su una riga sola: due pillole affiancate
+                    facevano più rumore dell'informazione che davano. */}
+                <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 12.5, color: PN.MUTED, minWidth: 0}}>
+                  <button
+                    onClick={e => { e.stopPropagation(); onUpdate(x.id, {active: !x.active}); }}
+                    title={x.active ? 'È il menù che vedono i clienti — clicca per spegnerlo' : 'Clicca per renderlo il menù che vedono i clienti'}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                      padding: '1px 6px', marginLeft: -6, borderRadius: 999,
+                      border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: 12.5, fontWeight: 700, color: x.active ? PN.GREEN : PN.MUTED,
+                      transition: 'background 130ms ease-out',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = x.active ? PN.GREEN_SOFT : '#EDEFF2'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{width: 6, height: 6, borderRadius: '50%', background: x.active ? PN.GREEN : '#C7CBD1'}}/>
+                    {x.active ? 'Attivo' : 'Spento'}
+                  </button>
+                  <span style={{color: PN.MUTED_SOFT, flexShrink: 0}}>·</span>
+                  <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                    {totalDishesIn(x)} piatti{x.schedule ? ' · ' + x.schedule : ''}
+                  </span>
                 </div>
               </div>
-              <button
-                onClick={e => { e.stopPropagation(); onUpdate(x.id, {active: !x.active}); }}
-                title={x.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                  padding: '2px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  fontSize: 11.5, fontWeight: 800, letterSpacing: 0.3,
-                  background: x.active ? PN.GREEN_SOFT : '#F1F3F5', color: x.active ? PN.GREEN : PN.MUTED,
-                }}>
-                <span style={{width: 5, height: 5, borderRadius: '50%', background: x.active ? PN.GREEN : '#9CA3AF'}}/>
-                {x.active ? 'ATTIVO' : 'OFF'}
-              </button>
-              <div style={{display: 'flex', gap: 1, flexShrink: 0}}>
+
+              <div style={{
+                display: 'flex', gap: 1, flexShrink: 0,
+                opacity: azioniVisibili ? 1 : 0,
+                pointerEvents: azioniVisibili ? 'auto' : 'none',
+                transition: 'opacity 130ms ease-out',
+              }}>
                 <MCMiniAzione title="Rinomina" onClick={e => { e.stopPropagation(); setRenaming(x.id); }}><Icon name="pencil" size={12}/></MCMiniAzione>
                 <MCMiniAzione title="Duplica" onClick={e => { e.stopPropagation(); onDuplicate(x.id); setOpen(false); }}><span style={{fontSize: 13}}>⧉</span></MCMiniAzione>
                 {menus.length > 1 && (
@@ -1038,21 +1060,16 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
         })}
 
         {confirmDel && (
-          <div style={{margin: '6px 4px 2px', padding: 9, borderRadius: 9, background: '#FEF2F2', border: '1px solid #FECACA'}}>
-            <div style={{fontSize: 13.5, color: PN.TEXT, marginBottom: 8, lineHeight: 1.4}}>
+          <div style={{margin: '7px 3px 3px', padding: 11, borderRadius: 10, background: '#FEF2F2', border: '1px solid #FECACA'}}>
+            <div style={{fontSize: 13.5, color: PN.TEXT, marginBottom: 9, lineHeight: 1.45}}>
               Eliminare «{(menus.find(x => x.id === confirmDel) || {}).name}»? I piatti restano nella libreria.
             </div>
-            <div style={{display: 'flex', gap: 6}}>
-              <button onClick={() => setConfirmDel(null)} style={{flex: 1, padding: '5px 0', fontSize: 13.5, fontWeight: 600, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', color: PN.TEXT}}>Annulla</button>
-              <button onClick={() => { onDelete(confirmDel); setConfirmDel(null); }} style={{flex: 1, padding: '5px 0', fontSize: 13.5, fontWeight: 700, background: '#DC2626', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit', color: '#fff'}}>Elimina</button>
+            <div style={{display: 'flex', gap: 7}}>
+              <button onClick={() => setConfirmDel(null)} style={{flex: 1, padding: '6px 0', fontSize: 13.5, fontWeight: 600, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', color: PN.TEXT}}>Annulla</button>
+              <button onClick={() => { onDelete(confirmDel); setConfirmDel(null); }} style={{flex: 1, padding: '6px 0', fontSize: 13.5, fontWeight: 700, background: '#DC2626', border: 'none', borderRadius: 7, cursor: 'pointer', fontFamily: 'inherit', color: '#fff'}}>Elimina</button>
             </div>
           </div>
         )}
-
-        <div style={{height: 1, background: PN.BORDER_SOFT, margin: '6px 4px'}}/>
-        {/* Stessa porta del pulsante in testata: un menù si crea in un
-            posto solo, non con due flussi che si somigliano. */}
-        <MenuDotItem icon="＋" onClick={() => { setOpen(false); onNuovoMenu(); }}>Nuovo menù</MenuDotItem>
       </div>
   );
 
@@ -1062,15 +1079,14 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
       padding: '10px 14px', background: PN.WHITE,
       border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, boxShadow: PN.CARD_SHADOW,
     }}>
-      {/* Il menù su cui si lavora: un'etichetta, non più una tendina */}
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 9, flexShrink: 0,
-        padding: '7px 12px', borderRadius: 9,
-        border: `1px solid ${PN.BORDER}`, background: PN.WHITE,
-      }}>
-        <span style={{display: 'inline-flex', color: PN.PINK}}><Icon name="food-meal" size={16}/></span>
-        <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{m.name}</span>
-        <span style={{fontSize: 13, color: PN.MUTED}}>{totalDishesIn(m)} piatti</span>
+      {/* Il menù su cui si lavora è il titolo della pagina. Niente cornice:
+          delimitava un pulsante che non c'è più. */}
+      <div style={{display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0}}>
+        <h2 style={{
+          margin: 0, fontSize: 23, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{m.name}</h2>
+        <span style={{fontSize: 13.5, color: PN.MUTED, flexShrink: 0}}>{totalDishesIn(m)} piatti</span>
       </div>
 
       <button
@@ -2002,7 +2018,7 @@ function MCSezione({ title, children, style }) {
 }
 
 function MCDettagliPiatto({
-  dish, item, codice, catName, categorie,
+  dish, item, catName, categorie,
   onClose, onSaveDish, onUpdateItem, onRemoveFromMenu, onDeleteFromLibrary, onMoveCat,
 }) {
   const [tab, setTab] = React.useState('info');
@@ -2108,7 +2124,7 @@ function MCDettagliPiatto({
         <DishThumb dish={dish} size={52}/>
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{name || dish.name}</div>
-          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2}}>ID: {codice}</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2}}>{catName}</div>
         </div>
         <span style={{
           flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5,
