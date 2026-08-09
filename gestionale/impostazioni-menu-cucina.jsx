@@ -441,6 +441,7 @@ function MCMenuComposer() {
 
   // L'anteprima non presidia più mezza schermata: si apre quando la si chiede.
   const [anteprima, setAnteprima] = React.useState(false);
+  const [nuovoMenu, setNuovoMenu] = React.useState(false);
 
   const gridRef = React.useRef(null);
   const hCol = useAltezzaColonne(gridRef);
@@ -650,13 +651,12 @@ function MCMenuComposer() {
           menus={menus}
           activeMenuId={activeMenuId}
           onPick={setActiveMenuId}
-          onCreate={createMenu}
           onUpdate={updateMenu}
           onDelete={deleteMenu}
           onDuplicate={duplicateMenu}
           totalDishesIn={totalDishesIn}
-          onAiUpload={() => setAiUpload(true)}
           onAnteprima={() => setAnteprima(true)}
+          onNuovoMenu={() => setNuovoMenu(true)}
         />
       )}
 
@@ -895,6 +895,15 @@ function MCMenuComposer() {
         )}
       </div>
 
+      {nuovoMenu && (
+        <MCNuovoMenuModal
+          menus={menus}
+          onClose={() => setNuovoMenu(false)}
+          onCreate={createMenu}
+          onAiUpload={() => { setNuovoMenu(false); setAiUpload(true); }}
+        />
+      )}
+
       {anteprima && (
         <MCAnteprimaModal
           menu={activeMenu}
@@ -954,10 +963,8 @@ function MCMenuComposer() {
 }
 
 // ─── Testata: selettore del menù su cui si lavora ───────────────────────────
-function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDelete, onDuplicate, totalDishesIn, onAiUpload, onAnteprima }) {
+function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDuplicate, totalDishesIn, onAnteprima, onNuovoMenu }) {
   const [open, setOpen] = React.useState(false);
-  const [creating, setCreating] = React.useState(false);
-  const [nuovo, setNuovo] = React.useState('');
   const [renaming, setRenaming] = React.useState(null);
   const [confirmDel, setConfirmDel] = React.useState(null);
   const m = menus.find(x => x.id === activeMenuId);
@@ -971,7 +978,6 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDel
   }, [open]);
 
   if (!m) return null;
-  const crea = () => { if (!nuovo.trim()) return; onCreate(nuovo.trim()); setNuovo(''); setCreating(false); setOpen(false); };
 
   return (
     <div style={{
@@ -1063,19 +1069,9 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDel
             )}
 
             <div style={{height: 1, background: PN.BORDER_SOFT, margin: '6px 4px'}}/>
-            {creating ? (
-              <div style={{padding: '4px 4px 2px'}}>
-                <input autoFocus value={nuovo} onChange={e => setNuovo(e.target.value)} placeholder="Nome menù (es. Cena)"
-                  onKeyDown={e => { if (e.key === 'Enter') crea(); if (e.key === 'Escape') { setCreating(false); setNuovo(''); } }}
-                  style={{width: '100%', padding: '7px 10px', border: `1px solid ${PN.BORDER}`, borderRadius: 7, fontSize: 14.5, fontFamily: 'inherit', outline: 'none', fontWeight: 600}}/>
-                <div style={{display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 7}}>
-                  <button onClick={() => { setCreating(false); setNuovo(''); }} style={{padding: '5px 9px', background: 'transparent', border: 'none', color: PN.MUTED, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit'}}>Annulla</button>
-                  <button onClick={crea} disabled={!nuovo.trim()} style={{padding: '5px 12px', background: nuovo.trim() ? PN.PINK : '#E5E7EB', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: nuovo.trim() ? 'pointer' : 'default', fontFamily: 'inherit'}}>Crea</button>
-                </div>
-              </div>
-            ) : (
-              <MenuDotItem icon="＋" onClick={() => setCreating(true)}>Nuovo menù</MenuDotItem>
-            )}
+            {/* Stessa porta del pulsante in testata: un menù si crea in un
+                posto solo, non con due flussi che si somigliano. */}
+            <MenuDotItem icon="＋" onClick={() => { setOpen(false); onNuovoMenu(); }}>Nuovo menù</MenuDotItem>
           </div>
         )}
       </div>
@@ -1100,14 +1096,230 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onCreate, onUpdate, onDel
         Visualizza anteprima
       </ImpButton>
 
-      <div style={{width: 206, flexShrink: 0}}>
-        <AiUploadCta onClick={onAiUpload}>
-          <span style={{display: 'block', textAlign: 'left', lineHeight: 1.2, whiteSpace: 'nowrap'}}>
-            <span style={{display: 'block', fontSize: 14.5}}>Carica menu con AI</span>
-            <span style={{display: 'block', fontSize: 12, fontWeight: 600, opacity: 0.75}}>PDF / foto · piatti e prezzi</span>
-          </span>
-        </AiUploadCta>
+      <ImpButton variant="pink" icon={<PnI.Plus size={14}/>} onClick={onNuovoMenu} style={{flexShrink: 0, whiteSpace: 'nowrap'}}>
+        Nuovo menù
+      </ImpButton>
+    </div>
+  );
+}
+
+// ─── Nuovo menù ─────────────────────────────────────────────────────────────
+// Il menù non nasce più da un campo di testo dentro una tendina: si crea da
+// qui, dove insieme al nome si dice a chi serve e — se è l'asporto — con che
+// tempi. L'import AI è una scorciatoia dentro questo flusso, non un pulsante
+// che in testata gli faceva concorrenza.
+const NUOVO_MENU_TIPOLOGIE = ['A la carte', 'Menù fisso', 'Degustazione', 'Brunch', 'Bevande', 'Bambini'];
+
+const NM_LABEL  = { display: 'block', fontSize: 14, fontWeight: 600, color: PN.TEXT, marginBottom: 7 };
+const NM_SELECT = {
+  width: '100%', padding: '11px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+  fontSize: 15, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
+};
+
+function MCNuovoMenuModal({ menus, onClose, onCreate, onAiUpload }) {
+  const [nome, setNome] = React.useState('');
+  const [tipologia, setTipologia] = React.useState(NUOVO_MENU_TIPOLOGIE[0]);
+  const [tipo, setTipo] = React.useState('sala');       // sala | asporto
+  const [asportoOn, setAsportoOn] = React.useState(true);
+  const [tkMenu, setTkMenu] = React.useState(menus[0] ? menus[0].id : '');
+  const [tkLeadTime, setTkLeadTime] = React.useState(20);
+  const [showQr, setShowQr] = React.useState(false);
+
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key !== 'Escape') return; if (showQr) setShowQr(false); else onClose(); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [onClose, showQr]);
+
+  const crea = () => { const n = nome.trim(); if (!n) return; onCreate(n); onClose(); };
+
+  const TIPI = [
+    // Il set non ha la posata singola del mock: il tavolo è l'icona con cui
+    // «Sala» si legge già in tutto il gestionale.
+    {id: 'sala',    label: 'Sala',    icona: 'place-table'},
+    {id: 'asporto', label: 'Asporto', icona: 'commerce-bag'},
+  ];
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1000,
+      display: 'grid', placeItems: 'center', padding: 20,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...MODAL_PANEL, width: 560,
+        // Tetto in px di LAYOUT: il frame ha uno zoom che i vh non vedono.
+        maxHeight: 862, display: 'flex', flexDirection: 'column',
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{...MODAL_HEAD, flexShrink: 0}}>
+          <div style={MODAL_TITLE}>Nuovo menù</div>
+          <div style={MODAL_SUB}>Crea e configura rapidamente un nuovo menù.</div>
+          <button onClick={onClose} aria-label="Chiudi" style={MODAL_X}><PnI.X size={14}/></button>
+        </div>
+
+        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto'}}>
+          <div style={MODAL_BODY}>
+            {/* Nome — il contatore sta dentro al riquadro, dove si scrive */}
+            <label style={NM_LABEL} htmlFor="nm-nome">Nome del menù</label>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              border: `1px solid ${PN.BORDER}`, borderRadius: 10, padding: '11px 13px', marginBottom: 18,
+            }}>
+              <input
+                id="nm-nome" autoFocus value={nome} maxLength={80}
+                onChange={e => setNome(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') crea(); }}
+                placeholder="Es. Menù primavera"
+                style={{flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 15.5, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}/>
+              <span style={{fontSize: 13, color: PN.MUTED_SOFT, flexShrink: 0}}>{nome.length}/80</span>
+            </div>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18}}>
+              <div>
+                <label style={NM_LABEL} htmlFor="nm-tipologia">Tipologia di menù</label>
+                <select id="nm-tipologia" value={tipologia} onChange={e => setTipologia(e.target.value)} style={NM_SELECT}>
+                  {NUOVO_MENU_TIPOLOGIE.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <span style={NM_LABEL}>Tipo di menù</span>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
+                  {TIPI.map(t => {
+                    const on = tipo === t.id;
+                    return (
+                      <button key={t.id} onClick={() => setTipo(t.id)} style={{
+                        padding: '13px 8px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                        border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                        background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                        color: on ? PN.PINK_DARK : PN.TEXT,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+                        fontSize: 14.5, fontWeight: on ? 700 : 600,
+                        transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                      }}>
+                        <Icon name={t.icona} size={21}/>
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <button onClick={() => setShowQr(true)} style={{
+              width: '100%', padding: '13px 14px', marginBottom: 18,
+              border: `1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
+              cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 600, color: PN.TEXT,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+              transition: 'background 150ms ease-out',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#F7F8FA'}
+            onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
+            ><Icon name="grid" size={17}/> Visualizza QR Code</button>
+
+            {/* L'import AI vive qui dentro: è un modo di riempire il menù che
+                si sta creando, non un'azione parallela. */}
+            <div style={{
+              background: PN.PURPLE_SOFT, borderRadius: 12, padding: '16px 18px',
+              display: 'flex', alignItems: 'center', gap: 16,
+            }}>
+              <div style={{flex: 1, minWidth: 0}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6}}>
+                  <span style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Carica un menù esistente</span>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
+                    padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,0.72)',
+                    color: PN.PURPLE, fontSize: 12.5, fontWeight: 700,
+                  }}><Icon name="sparkles" size={13}/> Auto</span>
+                </div>
+                <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>
+                  Carica le foto o il PDF del menù esistente. Analizzeremo i contenuti
+                  per aiutarti a velocizzare la creazione.
+                </div>
+              </div>
+              <button onClick={onAiUpload} style={{
+                flexShrink: 0, padding: '11px 15px', borderRadius: 10,
+                border: `1px solid ${PN.BORDER}`, background: PN.WHITE, color: PN.TEXT,
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                boxShadow: '0 1px 2px rgba(15,17,21,0.06)',
+              }}><PnI.FileText size={16}/> Carica Foto/Pdf</button>
+            </div>
+          </div>
+
+          {/* Le regole dell'asporto stanno dove si sceglie l'asporto */}
+          {tipo === 'asporto' && (
+            <>
+              <div style={{height: 1, background: PN.BORDER_SOFT}}/>
+              <div style={MODAL_BODY}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16}}>
+                  <span style={{flex: 1, fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Impostazioni asporto</span>
+                  <ImpToggle checked={asportoOn} onChange={() => setAsportoOn(v => !v)}/>
+                </div>
+
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16,
+                  opacity: asportoOn ? 1 : 0.45, pointerEvents: asportoOn ? 'auto' : 'none',
+                  transition: 'opacity 150ms ease-out',
+                }}>
+                  <div>
+                    <label style={NM_LABEL} htmlFor="nm-tkmenu">Menù utilizzato per l'asporto</label>
+                    <select id="nm-tkmenu" value={tkMenu} onChange={e => setTkMenu(e.target.value)} style={NM_SELECT}>
+                      {menus.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={NM_LABEL} htmlFor="nm-lead">Tempo di preparazione minimo</label>
+                    <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+                      <input id="nm-lead" type="range" min={5} max={60} step={5} value={tkLeadTime}
+                        onChange={e => setTkLeadTime(Number(e.target.value))}
+                        style={{flex: 1, minWidth: 0, accentColor: PN.PINK}}/>
+                      <div style={{
+                        padding: '7px 12px', borderRadius: 999, flexShrink: 0,
+                        background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                        fontSize: 14, fontWeight: 700,
+                      }}>{tkLeadTime} min</div>
+                    </div>
+                    <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
+                      I clienti vedono come primo slot l'orario corrente +{tkLeadTime} minuti
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div style={{...MODAL_FOOT, justifyContent: 'flex-end', flexShrink: 0}}>
+          <ImpButton variant="ghost" onClick={onClose} style={{padding: '11px 26px'}}>Annulla</ImpButton>
+          <ImpButton variant="pink" onClick={crea} disabled={!nome.trim()} style={{padding: '11px 26px'}}>Crea menù</ImpButton>
+        </div>
       </div>
+
+      {showQr && (
+        <div onClick={e => { e.stopPropagation(); setShowQr(false); }} style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1010,
+          display: 'grid', placeItems: 'center', padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 400, position: 'relative'}}>
+            <div style={MODAL_HEAD}>
+              <div style={{...MODAL_TITLE, fontSize: 22}}>QR del menù</div>
+              <div style={{...MODAL_SUB, marginTop: 2}}>I clienti lo scansionano e vedono questo menù</div>
+              <button onClick={() => setShowQr(false)} aria-label="Chiudi" style={MODAL_X}><PnI.X size={14}/></button>
+            </div>
+            <div style={{...MODAL_BODY, textAlign: 'center'}}>
+              <QrAsporto size={230} style={{margin: '0 auto'}}/>
+              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 14, lineHeight: 1.45}}>
+                Esponi al tavolo o sul menù cartaceo.
+              </div>
+            </div>
+            <div style={{...MODAL_FOOT, justifyContent: 'flex-end'}}>
+              <ImpButton variant="ghost"><span style={{display: 'inline-flex', alignItems: 'center', gap: 6}}><PnI.FileText size={14}/> PDF</span></ImpButton>
+              <ImpButton variant="primary"><span style={{display: 'inline-flex', alignItems: 'center', gap: 6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4770,8 +4982,6 @@ function PrenotazioniDurata() {
 
 function MCConfigura() {
 
-  const [tkMenu, setTkMenu] = React.useState('asporto');
-  const [tkLeadTime, setTkLeadTime] = React.useState(20);
   const [cucina, setCucina] = React.useState('diretto');
   const [timeout, setTimeoutMin] = React.useState(5);
   const [timeoutAction, setTimeoutAction] = React.useState('auto');
@@ -4785,7 +4995,6 @@ function MCConfigura() {
   const servizio = servizioTipo === 'fisso' ? servizioFisso : servizioPerc;
   const setServizio = servizioTipo === 'fisso' ? setServizioFisso : setServizioPerc;
   const servizioContestabile = servizioTipo === 'fisso' && servizio > 0;
-  const [showQr, setShowQr] = React.useState(false);
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
   const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true, asporto:true});
   const [modules, setModules] = React.useState(readMods);
@@ -4799,10 +5008,6 @@ function MCConfigura() {
       window.removeEventListener('storage', update);
     };
   }, []);
-  // Asporto: stesso giro degli altri moduli, così Vendita diretta si aggiorna
-  // senza ricaricare la pagina.
-  const takeaway = modules.asporto !== false;
-  const setTakeaway = (val) => setModule('asporto', val);
   // Sala e Prenotazioni si accendono insieme: il calendario prenotazioni
   // lavora sui tavoli, quindi attivare la sala senza prenotazioni lascerebbe
   // l'utente a metà. Spegnendo la sala si spengono anche le prenotazioni, che
@@ -5138,123 +5343,6 @@ function MCConfigura() {
           <PrenotazioniDurata/>
         )}
       </ImpCard>
-
-      {/* === SEZIONE 3: ASPORTO === */}
-      <ImpCard
-        title="Asporto"
-        sub={takeaway
-          ? "I clienti possono ordinare da remoto e ritirare al banco"
-          : "Attiva per permettere ai clienti di ordinare da remoto"
-        }
-        action={
-          <div style={{display:'flex', alignItems:'center', gap: 10}}>
-            <span style={{
-              fontSize: 13, fontWeight: 700, letterSpacing: 0.4,
-              padding: '3px 9px', borderRadius: 999,
-              background: takeaway ? PN.GREEN_SOFT : '#F4F5F7',
-              color: takeaway ? PN.GREEN : PN.MUTED,
-              textTransform: 'uppercase',
-            }}>
-              {takeaway ? 'Attivo' : 'Disattivato'}
-            </span>
-            <ImpToggle checked={takeaway} onChange={() => setTakeaway(!takeaway)}/>
-          </div>
-        }
-      >
-        {!takeaway ? (
-          <div style={{
-            padding: '28px 20px', textAlign:'center',
-            background:'#FAFBFC', borderRadius: 11,
-            border: `1px dashed ${PN.BORDER}`,
-          }}>
-            <div style={{
-              width: 48, height: 48, margin:'0 auto 10px',
-              borderRadius: 12, background: PN.WHITE,
-              border: `1px solid ${PN.BORDER}`,
-              display:'grid', placeItems:'center', color: PN.MUTED,
-            }}>
-              <PnI.Bag size={22}/>
-            </div>
-            <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Asporto disattivato</div>
-            <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 14, maxWidth: 360, margin:'0 auto 14px'}}>
-              Attivando l'asporto i clienti potranno ordinare da remoto tramite QR e ritirare al banco. Potrai usare un menù dedicato e definire il tempo minimo di preparazione.
-            </div>
-            <ImpButton variant="primary" onClick={() => setTakeaway(true)}>Attiva servizio asporto</ImpButton>
-          </div>
-        ) : (
-          <div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginBottom: 14}}>
-              <ImpField label="Menù utilizzato per l'asporto" hint="Puoi avere un menù dedicato all'asporto, diverso da quello in sala">
-                <select value={tkMenu} onChange={e => setTkMenu(e.target.value)} style={{
-                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                  borderRadius:9, fontSize:15.5, background:PN.WHITE, fontFamily:'inherit',
-                }}>
-                  <option value="primavera">Menù primavera</option>
-                  <option value="pranzo">Menù pranzo</option>
-                  <option value="cena">Menù cena</option>
-                  <option value="estivo">Menù estivo</option>
-                  <option value="bambini">Menù bambini</option>
-                  <option value="degustazione">Menù degustazione</option>
-                </select>
-              </ImpField>
-
-              <ImpField label="Tempo di preparazione minimo" hint={`I clienti vedono come primo slot l'orario corrente +${tkLeadTime} minuti`}>
-                <div style={{display:'flex', alignItems:'center', gap: 10}}>
-                  <input type="range" min={5} max={60} step={5} value={tkLeadTime} onChange={e => setTkLeadTime(Number(e.target.value))} style={{flex: 1, accentColor: PN.PINK}}/>
-                  <div style={{
-                    width: 70, padding:'8px 10px',
-                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                    borderRadius: 7, fontSize: 15, fontWeight: 700, textAlign:'center',
-                  }}>{tkLeadTime} min</div>
-                </div>
-              </ImpField>
-            </div>
-
-            <div style={{
-              padding: 14, borderRadius: 11,
-              background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`,
-              display:'flex', alignItems:'center', gap: 14,
-            }}>
-              <QrAsporto size={56}/>
-              <div style={{flex: 1}}>
-                <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 2}}>QR per ordini d'asporto</div>
-                <div style={{fontSize: 13.5, color: PN.MUTED}}>
-                  Esponi all'esterno o sul menu cartaceo. I clienti scansionano e ordinano da remoto.
-                </div>
-              </div>
-              <ImpButton variant="ghost" onClick={() => setShowQr(true)}>Mostra QR</ImpButton>
-              <ImpButton variant="primary"><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
-            </div>
-          </div>
-        )}
-      </ImpCard>
-
-      {/* QR Modal — foglio BIANCO (MODAL_PANEL), non vetro: sopra l'overlay
-          scuro il glass legge grigio. Stessa ricetta del QR di Byup Pay. */}
-      {showQr && (
-        <div onClick={() => setShowQr(false)} style={{
-          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', zIndex: 100, padding: 20,
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 400, position:'relative'}}>
-            <div style={MODAL_HEAD}>
-              <div style={{...MODAL_TITLE, fontSize: 22}}>QR ordini d'asporto</div>
-              <div style={{...MODAL_SUB, marginTop: 2}}>Scansiona per ordinare e ritirare al banco</div>
-              <button onClick={() => setShowQr(false)} aria-label="Chiudi" style={MODAL_X}><PnI.X size={14}/></button>
-            </div>
-            <div style={{...MODAL_BODY, textAlign:'center'}}>
-              <QrAsporto size={230} style={{margin:'0 auto'}}/>
-              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 14, lineHeight: 1.45}}>
-                Esponi all'esterno o sul menù cartaceo.
-              </div>
-            </div>
-            <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
-              <ImpButton variant="ghost"><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.FileText size={14}/> PDF</span></ImpButton>
-              <ImpButton variant="primary"><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Popup post-attivazione sala: il modulo è già attivo, si sceglie se
           andare a creare la sala (tab Sala e tavoli) o restare in Operazioni */}
