@@ -1129,7 +1129,8 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, onDelete, onDup
 // qui, dove insieme al nome si dice a chi serve e — se è l'asporto — con che
 // tempi. L'import AI è una scorciatoia dentro questo flusso, non un pulsante
 // che in testata gli faceva concorrenza.
-const NUOVO_MENU_TIPOLOGIE = ['À la carte', 'All you can eat'];
+const AYCE = 'All you can eat';
+const NUOVO_MENU_TIPOLOGIE = ['À la carte', AYCE];
 
 const NM_LABEL  = { display: 'block', fontSize: 14, fontWeight: 600, color: PN.TEXT, marginBottom: 7 };
 const NM_SELECT = {
@@ -1137,20 +1138,102 @@ const NM_SELECT = {
   fontSize: 15, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
 };
 
+// Il <select> di sistema apre una lista disegnata dal sistema operativo, che
+// dentro al popup arriva come un corpo estraneo: bordi squadrati, tipografia
+// sua, evidenziazione blu. Qui la tendina è la nostra e ha le forme del
+// pannello «I tuoi menù»: stesso raggio, stessa ombra, stesso rosa sul
+// selezionato.
+function NMSelect({ value, options, onChange, open, setOpen }) {
+  const box = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [open, setOpen]);
+
+  return (
+    <div ref={box} style={{position: 'relative'}}>
+      <button
+        type="button" onClick={() => setOpen(!open)}
+        aria-haspopup="listbox" aria-expanded={open}
+        style={{
+          ...NM_SELECT, cursor: 'pointer', textAlign: 'left',
+          border: `1px solid ${open ? PN.PINK : PN.BORDER}`,
+          display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600,
+          transition: 'border-color 150ms ease-out',
+        }}>
+        <span style={{flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{value}</span>
+        <span style={{
+          display: 'inline-flex', color: PN.MUTED, flexShrink: 0,
+          transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out',
+        }}><PnI.ChevronDown size={12}/></span>
+      </button>
+
+      {open && (
+        <div role="listbox" style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 30,
+          background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+          boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6,
+        }}>
+          {options.map(o => {
+            const on = o === value;
+            return (
+              <div
+                key={o} role="option" aria-selected={on}
+                onClick={() => { onChange(o); setOpen(false); }}
+                onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+                onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '9px 10px', borderRadius: 9, cursor: 'pointer',
+                  background: on ? PN.PINK_SOFT : 'transparent',
+                  color: on ? PN.PINK_DARK : PN.TEXT,
+                  fontSize: 15, fontWeight: on ? 700 : 600,
+                  transition: 'background 120ms ease-out',
+                }}>
+                <span style={{flex: 1, minWidth: 0}}>{o}</span>
+                {on && <PnI.Check size={13}/>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MCNuovoMenuModal({ onClose, onCreate, onAiUpload }) {
   const [nome, setNome] = React.useState('');
   const [tipologia, setTipologia] = React.useState(NUOVO_MENU_TIPOLOGIE[0]);
+  const [tipologiaOpen, setTipologiaOpen] = React.useState(false);
+  const [prezzoAyce, setPrezzoAyce] = React.useState('');
+  // Il campo si segna in rosso solo dopo che ci sei passato: appena comparso
+  // è vuoto perché non l'hai ancora compilato, non perché hai sbagliato.
+  const [prezzoTocco, setPrezzoTocco] = React.useState(false);
   const [tipo, setTipo] = React.useState('sala');       // sala | asporto
   const [tkLeadTime, setTkLeadTime] = React.useState(20);
   const [showQr, setShowQr] = React.useState(false);
 
+  // Esc chiude quello che si è aperto per ultimo, non l'intero popup.
   React.useEffect(() => {
-    const esc = (e) => { if (e.key !== 'Escape') return; if (showQr) setShowQr(false); else onClose(); };
+    const esc = (e) => {
+      if (e.key !== 'Escape') return;
+      if (showQr) setShowQr(false);
+      else if (tipologiaOpen) setTipologiaOpen(false);
+      else onClose();
+    };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
-  }, [onClose, showQr]);
+  }, [onClose, showQr, tipologiaOpen]);
 
-  const crea = () => { const n = nome.trim(); if (!n) return; onCreate(n); onClose(); };
+  // L'all you can eat non ha un prezzo per piatto: ne ha uno solo, ed è la
+  // cosa che il cliente vede per prima. Senza, il menù non sta in piedi.
+  const ayce = tipologia === AYCE;
+  const prezzoOk = !ayce || (parseFloat(String(prezzoAyce).replace(',', '.')) > 0);
+  const completo = !!nome.trim() && prezzoOk;
+
+  const crea = () => { if (!completo) return; onCreate(nome.trim()); onClose(); };
 
   const TIPI = [
     // Il set non ha la posata singola del mock: il tavolo è l'icona con cui
@@ -1196,10 +1279,14 @@ function MCNuovoMenuModal({ onClose, onCreate, onAiUpload }) {
 
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18}}>
               <div>
-                <label style={NM_LABEL} htmlFor="nm-tipologia">Tipologia di menù</label>
-                <select id="nm-tipologia" value={tipologia} onChange={e => setTipologia(e.target.value)} style={NM_SELECT}>
-                  {NUOVO_MENU_TIPOLOGIE.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <span style={NM_LABEL}>Tipologia di menù</span>
+                <NMSelect
+                  value={tipologia}
+                  options={NUOVO_MENU_TIPOLOGIE}
+                  onChange={setTipologia}
+                  open={tipologiaOpen}
+                  setOpen={setTipologiaOpen}
+                />
               </div>
               <div>
                 <span style={NM_LABEL}>Tipo di menù</span>
@@ -1224,6 +1311,33 @@ function MCNuovoMenuModal({ onClose, onCreate, onAiUpload }) {
                 </div>
               </div>
             </div>
+
+            {ayce && (
+              <div style={{marginBottom: 18}}>
+                <label style={NM_LABEL} htmlFor="nm-prezzo">
+                  Prezzo <span style={{color: PN.PINK}}>*</span>
+                </label>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  border: `1px solid ${(prezzoTocco && !prezzoOk) ? PN.PINK : PN.BORDER}`,
+                  borderRadius: 10, padding: '11px 13px', background: PN.WHITE,
+                  transition: 'border-color 150ms ease-out',
+                }}>
+                  <span style={{fontSize: 15, fontWeight: 700, color: PN.MUTED, flexShrink: 0}}>€</span>
+                  <input
+                    id="nm-prezzo" inputMode="decimal" value={prezzoAyce}
+                    onChange={e => setPrezzoAyce(e.target.value.replace(/[^\d.,]/g, ''))}
+                    onBlur={() => setPrezzoTocco(true)}
+                    onKeyDown={e => { if (e.key === 'Enter') crea(); }}
+                    placeholder="0,00"
+                    style={{flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 15.5, fontWeight: 600, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}/>
+                  <span style={{fontSize: 13, color: PN.MUTED_SOFT, flexShrink: 0}}>a persona</span>
+                </div>
+                <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
+                  Quota fissa dell'all you can eat: i piatti del menù non hanno un prezzo proprio.
+                </div>
+              </div>
+            )}
 
             {/* L'asporto porta con sé una sola regola, e sta dove si sceglie */}
             {tipo === 'asporto' && (
@@ -1290,7 +1404,7 @@ function MCNuovoMenuModal({ onClose, onCreate, onAiUpload }) {
 
         <div style={{...MODAL_FOOT, justifyContent: 'flex-end', flexShrink: 0}}>
           <ImpButton variant="ghost" onClick={onClose} style={{padding: '11px 26px'}}>Annulla</ImpButton>
-          <ImpButton variant="pink" onClick={crea} disabled={!nome.trim()} style={{padding: '11px 26px'}}>Crea menù</ImpButton>
+          <ImpButton variant="pink" onClick={crea} disabled={!completo} style={{padding: '11px 26px'}}>Crea menù</ImpButton>
         </div>
       </div>
 
@@ -1312,7 +1426,6 @@ function MCNuovoMenuModal({ onClose, onCreate, onAiUpload }) {
               </div>
             </div>
             <div style={{...MODAL_FOOT, justifyContent: 'flex-end'}}>
-              <ImpButton variant="ghost"><span style={{display: 'inline-flex', alignItems: 'center', gap: 6}}><PnI.FileText size={14}/> PDF</span></ImpButton>
               <ImpButton variant="primary"><span style={{display: 'inline-flex', alignItems: 'center', gap: 6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
             </div>
           </div>
