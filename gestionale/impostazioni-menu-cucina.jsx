@@ -662,10 +662,16 @@ function MCMenuComposer() {
         // Senza un piatto aperto le colonne sono due: la terza non resta lì a
         // tenere il posto a un pannello che non c'è.
         display: 'grid',
-        gridTemplateColumns: detail ? '236px minmax(0, 1fr) 372px' : '236px minmax(0, 1fr)',
+        // Con un piatto aperto il dettaglio si prende 600px: dentro c'è una
+        // tabella a cinque colonne, e a 372 era una lista schiacciata. Lo
+        // spazio lo cede la colonna delle categorie, che mentre si modifica un
+        // piatto non serve — la categoria in cui si sta lavorando la dice la
+        // testata dell'elenco, e chiudendo il dettaglio torna al suo posto.
+        gridTemplateColumns: detail ? 'minmax(0, 1fr) 660px' : '236px minmax(0, 1fr)',
         gap: 14, height: hCol || undefined, alignItems: 'stretch',
       }}>
         {/* ── Colonna 1: categorie ─────────────────────────────────────── */}
+        {!detail && (
         <MCPanel title="Categorie" bodyStyle={{padding: '10px 10px 12px'}}>
           <div style={{display: 'flex', flexDirection: 'column', gap: 2}}>
             {(activeMenu ? activeMenu.categories : []).map((c, i) => {
@@ -842,6 +848,7 @@ function MCMenuComposer() {
             </div>
           </div>
         </MCPanel>
+        )}
 
         {/* ── Colonna 2: piatti della categoria ────────────────────────── */}
         <MCPiattiPanel
@@ -1283,7 +1290,7 @@ const NM_ORA = {
 // sua, evidenziazione blu. Qui la tendina è la nostra e ha le forme del
 // pannello «I tuoi menù»: stesso raggio, stessa ombra, stesso rosa sul
 // selezionato.
-function NMSelect({ value, options, onChange, open, setOpen, versoAlto }) {
+function NMSelect({ value, options, onChange, open, setOpen, versoAlto, compatto }) {
   const box = React.useRef(null);
   React.useEffect(() => {
     if (!open) return;
@@ -1308,6 +1315,8 @@ function NMSelect({ value, options, onChange, open, setOpen, versoAlto }) {
           border: `1px solid ${open ? PN.PINK : PN.BORDER}`,
           display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600,
           transition: 'border-color 150ms ease-out',
+          // Dentro a una riga di tabella la stessa tendina deve stare bassa.
+          ...(compatto ? {padding: '6px 8px', fontSize: 13.5, borderRadius: 8, gap: 6} : null),
         }}>
         <span style={{flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{corrente ? corrente.label : value}</span>
         <span style={{
@@ -1339,8 +1348,9 @@ function NMSelect({ value, options, onChange, open, setOpen, versoAlto }) {
                   padding: '9px 10px', borderRadius: 9, cursor: 'pointer',
                   background: on ? PN.PINK_SOFT : 'transparent',
                   color: on ? PN.PINK_DARK : PN.TEXT,
-                  fontSize: 15, fontWeight: on ? 700 : 600,
+                  fontSize: compatto ? 13.5 : 15, fontWeight: on ? 700 : 600,
                   transition: 'background 120ms ease-out',
+                  ...(compatto ? {padding: '7px 9px'} : null),
                 }}>
                 <span style={{flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{o.label}</span>
                 {on && <PnI.Check size={13}/>}
@@ -2352,6 +2362,29 @@ function MCSezione({ title, children, style }) {
   );
 }
 
+// Scheda del dettaglio piatto: pastiglia con l'icona, titolo, una riga che
+// spiega a cosa serve. È il contenitore delle sezioni lunghe — quelle brevi
+// continuano a stare sotto la loro etichetta maiuscola (MCSezione).
+function MCScheda({ icona, titolo, sub, children }) {
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 14,
+      padding: '16px 18px 18px',
+    }}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: sub ? 6 : 14}}>
+        <span style={{
+          width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+          background: PN.PINK_BG_SOFT, color: PN.PINK,
+          display: 'grid', placeItems: 'center',
+        }}>{icona}</span>
+        <span style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>{titolo}</span>
+      </div>
+      {sub && <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45, marginBottom: 14}}>{sub}</div>}
+      {children}
+    </section>
+  );
+}
+
 function MCDettagliPiatto({
   dish, item, catName, categorie,
   onClose, onSaveDish, onUpdateItem, onRemoveFromMenu, onDeleteFromLibrary, onMoveCat,
@@ -2693,51 +2726,59 @@ function MCDettagliPiatto({
 
         {/* ── ALLERGENI E TAG ────────────────────────────────────────── */}
         {tab === 'allergeni' && (
-          <div>
-            <MCSezione title={`Allergeni · ${effectiveAllergens.length} indicati`}>
-              {ingredientAllergens.size > 0 && (
-                <div style={{fontSize: 13, color: PN.MUTED, fontStyle: 'italic', marginBottom: 8}}>
-                  <span style={{color: PN.PINK_DARK, fontWeight: 700, fontStyle: 'normal'}}>•</span> = derivati dagli ingredienti
-                </div>
-              )}
-              <div style={{display: 'flex', gap: 5, flexWrap: 'wrap'}}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+            <MCScheda
+              icona={<PnI.Alert size={15}/>}
+              titolo="Allergeni del piatto"
+              sub="Gli allergeni indicati vengono calcolati anche in base agli ingredienti associati al piatto."
+            >
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10}}>
                 {ALLERGENS.map(a => {
-                  const fromIng = ingredientAllergens.has(a.id);
-                  const fromManual = allergens.includes(a.id);
-                  const on = fromIng || fromManual;
+                  // Un allergene che arriva da un ingrediente non si toglie da
+                  // qui: si toglie l'ingrediente. Resta acceso e non cliccabile.
+                  const daIngrediente = ingredientAllergens.has(a.id);
+                  const aMano = allergens.includes(a.id);
+                  const on = daIngrediente || aMano;
+                  const bloccato = daIngrediente && !aMano;
                   return (
-                    <button key={a.id} onClick={() => toggleAllergen(a.id)} disabled={fromIng && !fromManual}
-                      title={fromIng && !fromManual ? 'Derivato dagli ingredienti' : ''}
+                    <button key={a.id} onClick={() => toggleAllergen(a.id)} disabled={bloccato}
+                      title={bloccato ? 'Arriva da un ingrediente del piatto' : (on ? `Togli ${a.name}` : `Segna ${a.name}`)}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5,
-                        padding: '5px 9px', borderRadius: 999,
-                        border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER}`,
-                        background: on ? PN.PINK_SOFT : '#FAFBFC',
+                        position: 'relative', padding: '14px 6px 11px', borderRadius: 12,
+                        border: `1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
+                        background: on ? PN.PINK_BG_SOFT : PN.WHITE,
                         color: on ? PN.PINK_DARK : PN.MUTED,
-                        fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-                        cursor: (fromIng && !fromManual) ? 'not-allowed' : 'pointer',
+                        cursor: bloccato ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                        fontSize: 13, fontWeight: on ? 700 : 600,
+                        transition: 'border-color 150ms ease-out, background 150ms ease-out',
                       }}>
-                      <AllergenIcon id={a.id} size={17}/>
-                      {a.name}
-                      {fromIng && <span style={{color: PN.PINK_DARK, fontSize: 13}}>•</span>}
+                      <AllergenIcon id={a.id} size={26}/>
+                      <span style={{lineHeight: 1.2, textAlign: 'center'}}>{a.name}</span>
+                      {on && (
+                        <span style={{
+                          position: 'absolute', top: -7, right: -7, width: 21, height: 21, borderRadius: '50%',
+                          background: PN.PINK, color: '#fff', display: 'grid', placeItems: 'center',
+                          boxShadow: '0 2px 6px rgba(255,90,95,0.35)',
+                        }}><PnI.Check size={11}/></span>
+                      )}
                     </button>
                   );
                 })}
               </div>
-            </MCSezione>
+            </MCScheda>
 
-            <MCSezione title="Ingredienti">
-              <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 9, lineHeight: 1.45}}>
-                Accendi il <span style={{display: 'inline-grid', placeItems: 'center', width: 18, height: 18, borderRadius: 5, border: `1px solid ${PN.PINK}`, background: PN.PINK_SOFT, color: PN.PINK_DARK, verticalAlign: '-4px', margin: '0 2px'}}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                </span> di un ingrediente e il cliente potrà <strong style={{color: PN.TEXT}}>toglierlo dal piatto</strong> quando ordina.
-              </div>
+            <MCScheda
+              icona={<Icon name="food-salad" size={15}/>}
+              titolo="Ingredienti del piatto"
+              sub="Gestisci gli ingredienti, assegna i relativi allergeni e scegli se il cliente può rimuoverli in fase d'ordine."
+            >
               <IngredientList ingredients={ingredients} setIngredients={setIngredients}/>
-            </MCSezione>
+            </MCScheda>
 
-            <MCSezione title="Valori nutrizionali" style={{marginBottom: 0}}>
+            <MCScheda icona={<PnI.Stats size={15}/>} titolo="Valori nutrizionali" sub="Per porzione, stimati sugli ingredienti.">
               <NutritionFields/>
-            </MCSezione>
+            </MCScheda>
           </div>
         )}
 
@@ -3636,11 +3677,28 @@ function CollapseSection({ title, subtitle, icon, iconBg, iconColor, open, onTog
   );
 }
 
+// Quantità: le voci ricorrenti si scelgono da una tendina, tutto il resto si
+// scrive a mano dalla matita accanto. Le vecchie righe hanno qty+unit: si
+// leggono da lì finché non le si tocca.
+const QTA_PRESET = ['Quanto basta', '1 fetta', '2 fette', '1 spicchio', '1 pizzico', '1 cucchiaio', '50 g', '100 g', '200 g', '1 pz'];
+const qtaDi = (ing) => {
+  if (ing.qta !== undefined && ing.qta !== null) return ing.qta;
+  if (ing.qty) return `${ing.qty} ${ing.unit || 'g'}`;
+  return '';
+};
+
+const ING_TH = {
+  fontSize: 12, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.2,
+  padding: '0 0 9px', textAlign: 'left',
+};
+
 function IngredientList({ ingredients, setIngredients }) {
   const [query, setQuery] = React.useState('');
   const [showSuggest, setShowSuggest] = React.useState(false);
-  const [expandedIdx, setExpandedIdx] = React.useState(null);
-  const [editingQtyIdx, setEditingQtyIdx] = React.useState(null);
+  const [allergeniIdx, setAllergeniIdx] = React.useState(null);  // riga col pannello allergeni aperto
+  const [qtaIdx, setQtaIdx] = React.useState(null);              // riga con la tendina quantità aperta
+  const [qtaLiberaIdx, setQtaLiberaIdx] = React.useState(null);  // riga in cui la quantità si scrive a mano
+  const [dragIdx, setDragIdx] = React.useState(null);
   const [db, setDb] = React.useState(() => window.getIngredientDB());
   React.useEffect(() => window.subscribeIngredientDB(() => setDb([...window.getIngredientDB()])), []);
 
@@ -3651,8 +3709,10 @@ function IngredientList({ ingredients, setIngredients }) {
     .slice(0, 6);
   const exactMatch = query.trim() && db.some(d => d.name.toLowerCase() === query.trim().toLowerCase());
 
+  const patch = (i, campi) => setIngredients(arr => arr.map((x, idx) => idx === i ? {...x, ...campi} : x));
+
   const addExisting = (dbItem) => {
-    setIngredients(arr => [...arr, { name: dbItem.name, removable: false, allergens: [...(dbItem.allergens || [])], qty: '', unit: 'g' }]);
+    setIngredients(arr => [...arr, { name: dbItem.name, removable: false, allergens: [...(dbItem.allergens || [])], qta: '' }]);
     setQuery(''); setShowSuggest(false);
   };
   const addNew = (name) => {
@@ -3665,7 +3725,7 @@ function IngredientList({ ingredients, setIngredients }) {
     // restano poi modificabili a mano come tutti gli altri.
     const inferred = window.inferAllergens(trimmed);
     window.upsertIngredient(trimmed, inferred);
-    setIngredients(arr => [...arr, { name: trimmed, removable: false, allergens: inferred, qty: '', unit: 'g' }]);
+    setIngredients(arr => [...arr, { name: trimmed, removable: false, allergens: inferred, qta: '' }]);
     setQuery(''); setShowSuggest(false);
   };
   const toggleIngAllergen = (i, aid) => {
@@ -3677,127 +3737,203 @@ function IngredientList({ ingredients, setIngredients }) {
       return { ...x, allergens: next };
     }));
   };
+  const sposta = (da, a) => {
+    if (da === a || da == null || a == null) return;
+    setIngredients(arr => { const next = [...arr]; const [v] = next.splice(da, 1); next.splice(a, 0, v); return next; });
+  };
+
+  const rimovibili = ingredients.filter(i => i.removable).length;
 
   return (
     <div>
-      {ingredients.length > 0 && (
-        <div style={{display:'flex', flexDirection:'column', gap:4, marginBottom:12}}>
+      {/* Cerca / aggiungi: una riga sola sopra alla tabella */}
+      <div style={{display: 'flex', gap: 10, marginBottom: 14}}>
+        <div style={{position: 'relative', flex: 1, minWidth: 0}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE}}>
+            <Icon name="magnifying-glass" size={14} color={PN.MUTED}/>
+            <input value={query}
+              onChange={e => { setQuery(e.target.value); setShowSuggest(true); }}
+              onFocus={() => setShowSuggest(true)}
+              onBlur={() => setTimeout(() => setShowSuggest(false), 200)}
+              onKeyDown={e => { if (e.key === 'Enter') addNew(query); }}
+              placeholder="Cerca ingrediente"
+              style={{flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 14.5, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}
+            />
+          </div>
+          {showSuggest && dbMatches.length > 0 && (
+            <div style={{position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 10, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', zIndex: 20, maxHeight: 240, overflowY: 'auto', padding: 5}}>
+              <div style={{padding: '6px 8px 5px', fontSize: 11.5, fontWeight: 800, color: PN.MUTED_SOFT, letterSpacing: 0.6, textTransform: 'uppercase'}}>Dal tuo archivio</div>
+              {dbMatches.map(s => (
+                <button key={s.name} onMouseDown={() => addExisting(s)}
+                  style={{width: '100%', textAlign: 'left', padding: '8px 9px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 10}}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F7F8FA'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{fontSize: 14.5, color: PN.TEXT, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{s.name}</span>
+                  {s.allergens && s.allergens.length > 0 && (
+                    <span style={{display: 'flex', gap: 3, flexShrink: 0}}>
+                      {s.allergens.slice(0, 4).map(aid => <window.AllergenIcon key={aid} id={aid} size={15}/>)}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button onMouseDown={() => addNew(query)} disabled={!query.trim() || exactMatch} style={{
+          flexShrink: 0, padding: '9px 14px', borderRadius: 10,
+          border: `1px solid ${(!query.trim() || exactMatch) ? PN.BORDER_SOFT : PN.BORDER}`,
+          background: PN.WHITE, color: (!query.trim() || exactMatch) ? PN.MUTED_SOFT : PN.TEXT,
+          cursor: (!query.trim() || exactMatch) ? 'default' : 'pointer', fontFamily: 'inherit',
+          fontSize: 14.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+        }}><PnI.Plus size={12}/> Aggiungi ingrediente</button>
+      </div>
+
+      {ingredients.length === 0 ? (
+        <div style={{padding: '26px 18px', textAlign: 'center', color: PN.MUTED, fontSize: 14, background: '#FAFBFC', border: `1px dashed ${PN.BORDER}`, borderRadius: 10}}>
+          Nessun ingrediente. Cercane uno qui sopra o creane uno nuovo.
+        </div>
+      ) : (
+        <div>
+          {/* Intestazioni: stessa griglia delle righe, così le colonne si allineano */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '14px minmax(0, 1fr) 116px 106px 112px 52px',
+            gap: 8, alignItems: 'center', borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+          }}>
+            <span/>
+            <span style={ING_TH}>Ingrediente</span>
+            <span style={ING_TH}>Quantità / nota</span>
+            <span style={ING_TH}>Allergeni associati</span>
+            <span style={ING_TH}>Rimovibile dal cliente</span>
+            <span style={{...ING_TH, textAlign: 'center'}}>Azioni</span>
+          </div>
+
           {ingredients.map((ing, i) => {
             const ingAllergens = ing.allergens || [];
-            const isExpanded = expandedIdx === i;
-            const isEditingQty = editingQtyIdx === i;
+            const qta = qtaDi(ing);
+            const aperto = allergeniIdx === i;
             return (
-              <div key={i} style={{
-                borderRadius: 9,
-                border: `1px solid ${isExpanded ? PN.BORDER : PN.BORDER_SOFT}`,
-                background: isExpanded ? PN.WHITE : '#FAFBFC',
-                overflow: 'hidden',
-                transition: 'border-color 150ms, background 150ms',
-              }}>
-                {/* Main row */}
-                <div style={{display:'flex', alignItems:'center', gap:8, padding:'8px 10px'}}>
-                  <span style={{flex:1, fontSize:15.5, fontWeight:600, color:PN.TEXT, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              <div key={i}
+                onDragOver={e => { e.preventDefault(); }}
+                onDrop={() => { sposta(dragIdx, i); setDragIdx(null); }}
+                style={{
+                  borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+                  background: dragIdx === i ? PN.PINK_BG_SOFT : 'transparent',
+                  transition: 'background 150ms ease-out',
+                }}>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '14px minmax(0, 1fr) 116px 106px 112px 52px',
+                  gap: 8, alignItems: 'center', padding: '9px 0',
+                }}>
+                  <span
+                    draggable onDragStart={() => setDragIdx(i)} onDragEnd={() => setDragIdx(null)}
+                    title="Trascina per riordinare"
+                    style={{color: PN.MUTED_SOFT, cursor: 'grab', display: 'inline-flex'}}
+                  ><PnI.Drag size={12}/></span>
+
+                  <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                     {ing.name}
                   </span>
 
-                  {/* Qty — chip click-to-edit */}
-                  {isEditingQty ? (
-                    <div style={{display:'flex', alignItems:'center', gap:3}}>
-                      <input autoFocus value={ing.qty || ''}
-                        onChange={e => setIngredients(arr => arr.map((x, idx) => idx===i ? {...x, qty: e.target.value.replace(/[^0-9,.]/g,'')} : x))}
-                        onBlur={() => setEditingQtyIdx(null)}
-                        onKeyDown={e => { if(e.key==='Enter'||e.key==='Escape') setEditingQtyIdx(null); }}
-                        placeholder="0"
-                        style={{width:44, padding:'3px 6px', border:`1px solid ${PN.PINK}`, borderRadius:5, fontSize:15, fontFamily:'inherit', textAlign:'right', outline:'none'}}
+                  {/* Quantità: tendina di preset + matita per scriverla a mano */}
+                  <div style={{display: 'flex', alignItems: 'center', gap: 4, minWidth: 0}}>
+                    {qtaLiberaIdx === i ? (
+                      <input autoFocus value={qta}
+                        onChange={e => patch(i, {qta: e.target.value})}
+                        onBlur={() => setQtaLiberaIdx(null)}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setQtaLiberaIdx(null); }}
+                        placeholder="es. 2 fette"
+                        style={{flex: 1, minWidth: 0, padding: '6px 8px', border: `1px solid ${PN.PINK}`, borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', outline: 'none', color: PN.TEXT}}
                       />
-                      <select value={ing.unit || 'g'}
-                        onChange={e => setIngredients(arr => arr.map((x, idx) => idx===i ? {...x, unit: e.target.value} : x))}
-                        style={{padding:'3px 4px', border:`1px solid ${PN.BORDER}`, borderRadius:5, fontSize:14.5, fontFamily:'inherit', outline:'none', background:'#fff', cursor:'pointer'}}
-                      >
-                        {['g','kg','ml','cl','l','pz','q.b.'].map(u => <option key={u}>{u}</option>)}
-                      </select>
-                    </div>
-                  ) : (
-                    <button onClick={() => setEditingQtyIdx(i)} title="Modifica quantità" style={{
-                      padding:'3px 8px', borderRadius:5,
-                      border:`1px solid ${ing.qty ? PN.BORDER : PN.BORDER_SOFT}`,
-                      background: ing.qty ? PN.WHITE : 'transparent',
-                      color: ing.qty ? PN.TEXT : PN.MUTED,
-                      fontSize:14.5, fontFamily:'inherit', cursor:'pointer', whiteSpace:'nowrap',
-                    }}>
-                      {ing.qty ? `${ing.qty} ${ing.unit || 'g'}` : '+ qtà'}
-                    </button>
-                  )}
-
-                  {/* Allergen dots — click to expand panel */}
-                  <button onClick={() => setExpandedIdx(isExpanded ? null : i)} title="Gestisci allergeni" style={{
-                    display:'inline-flex', alignItems:'center', gap:3,
-                    padding: ingAllergens.length ? '3px 6px' : '3px 8px',
-                    borderRadius:6,
-                    border:`1px solid ${isExpanded ? PN.PINK : (ingAllergens.length ? PN.BORDER : PN.BORDER_SOFT)}`,
-                    background: isExpanded ? PN.PINK_SOFT : (ingAllergens.length ? '#FFF6F7' : 'transparent'),
-                    color: PN.MUTED, fontSize:14.5, cursor:'pointer', fontFamily:'inherit',
-                  }}>
-                    {ingAllergens.length > 0 ? (
-                      <>
-                        {ingAllergens.slice(0,3).map(aid => <window.AllergenIcon key={aid} id={aid} size={16}/>)}
-                        {ingAllergens.length > 3 && <span style={{fontSize:13, color:PN.MUTED, fontWeight:700}}>+{ingAllergens.length-3}</span>}
-                      </>
                     ) : (
-                      <span style={{color: isExpanded ? PN.PINK_DARK : PN.MUTED}}>Allergeni</span>
+                      <>
+                        <div style={{flex: 1, minWidth: 0}}>
+                          <NMSelect
+                            compatto
+                            value={qta}
+                            options={[{value: '', label: '—'}, ...QTA_PRESET.map(q => ({value: q, label: q})), ...(qta && !QTA_PRESET.includes(qta) ? [{value: qta, label: qta}] : [])]}
+                            onChange={v => patch(i, {qta: v})}
+                            open={qtaIdx === i}
+                            setOpen={v => setQtaIdx(v ? i : null)}
+                          />
+                        </div>
+                        <button onClick={() => setQtaLiberaIdx(i)} title="Scrivi la quantità" style={{
+                          padding: 0, width: 22, height: 22, flexShrink: 0, border: 'none', background: 'transparent',
+                          color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center', borderRadius: 5,
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        ><Icon name="pencil" size={12}/></button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Allergeni associati: chip che apre il pannello di scelta */}
+                  <button onClick={() => setAllergeniIdx(aperto ? null : i)} title="Allergeni dell'ingrediente" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 0,
+                    padding: '5px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1px solid ${aperto ? PN.PINK : (ingAllergens.length ? PN.PINK_SOFT : PN.BORDER_SOFT)}`,
+                    background: ingAllergens.length ? PN.PINK_BG_SOFT : '#F4F5F7',
+                    color: ingAllergens.length ? PN.PINK_DARK : PN.MUTED,
+                    fontSize: 12.5, fontWeight: 600,
+                  }}>
+                    {ingAllergens.length === 0 ? 'Nessuno' : (
+                      <>
+                        <window.AllergenIcon id={ingAllergens[0]} size={14}/>
+                        <span style={{minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                          {(window.ALLERGENS.find(a => a.id === ingAllergens[0]) || {}).name}
+                        </span>
+                        {ingAllergens.length > 1 && <span style={{fontWeight: 800}}>+{ingAllergens.length - 1}</span>}
+                      </>
                     )}
                   </button>
 
-                  {/* Removable toggle — minus-circle = "opzionale/escludibile" */}
-                  <button
-                    onClick={() => setIngredients(arr => arr.map((x, idx) => idx===i ? {...x, removable: !x.removable} : x))}
-                    title={ing.removable ? 'Rimovibile dal cliente. Clicca per bloccare' : 'Il cliente non può rimuovere. Clicca per abilitare'}
-                    style={{
-          // padding 0: il default del <button> (1px 6px) stringe la content-box
-          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
-          padding: 0,
-                      width:28, height:28, borderRadius:6, flexShrink:0,
-                      border:`1px solid ${ing.removable ? PN.PINK : PN.BORDER_MED}`,
-                      background: ing.removable ? PN.PINK_SOFT : '#F4F5F7',
-                      color: ing.removable ? PN.PINK_DARK : PN.MUTED,
-                      cursor:'pointer', display:'grid', placeItems:'center',
-                    }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <line x1="8" y1="12" x2="16" y2="12"/>
-                    </svg>
-                  </button>
+                  {/* Rimovibile dal cliente */}
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                    <ImpToggle checked={!!ing.removable} onChange={() => patch(i, {removable: !ing.removable})}/>
+                    <span style={{fontSize: 13.5, color: ing.removable ? PN.TEXT : PN.MUTED, fontWeight: 600}}>
+                      {ing.removable ? 'Sì' : 'No'}
+                    </span>
+                  </div>
 
-                  {/* Delete */}
-                  <button onClick={() => { setIngredients(arr => arr.filter((_, idx) => idx !== i)); if(expandedIdx===i) setExpandedIdx(null); }}
-                    style={{
-          // padding 0: il default del <button> (1px 6px) stringe la content-box
-          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
-          padding: 0,width:26, height:26, background:'transparent', border:'none', borderRadius:6, cursor:'pointer', color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>
-                    <Icon name="xmark" size={13}/>
-                  </button>
+                  <div style={{display: 'flex', gap: 2, justifyContent: 'center'}}>
+                    <button onClick={() => setAllergeniIdx(aperto ? null : i)} title="Modifica allergeni" style={{
+                      padding: 0, width: 26, height: 26, border: 'none', background: 'transparent',
+                      color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center', borderRadius: 6,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    ><Icon name="pencil" size={12}/></button>
+                    <button onClick={() => { setIngredients(arr => arr.filter((_, idx) => idx !== i)); if (allergeniIdx === i) setAllergeniIdx(null); }}
+                      title="Togli dal piatto" style={{
+                        padding: 0, width: 26, height: 26, border: 'none', background: 'transparent',
+                        color: PN.RED, cursor: 'pointer', display: 'grid', placeItems: 'center', borderRadius: 6,
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    ><PnI.Trash size={12}/></button>
+                  </div>
                 </div>
 
-                {/* Inline allergen panel */}
-                {isExpanded && (
-                  <div style={{padding:'10px 12px 12px', borderTop:`1px solid ${PN.BORDER_SOFT}`, background:'#F7F8FA'}}>
-                    <div style={{fontSize:13.5, fontWeight:700, color:PN.MUTED, letterSpacing:0.4, textTransform:'uppercase', marginBottom:8}}>
-                      Allergeni · {ing.name}
+                {/* Pannello allergeni dell'ingrediente */}
+                {aperto && (
+                  <div style={{padding: '10px 12px 12px', marginBottom: 9, borderRadius: 10, background: '#F7F8FA'}}>
+                    <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 9}}>
+                      Allergeni di {ing.name}
                     </div>
-                    <div style={{display:'flex', flexWrap:'wrap', gap:5}}>
+                    <div style={{display: 'flex', flexWrap: 'wrap', gap: 6}}>
                       {window.ALLERGENS.map(a => {
                         const on = ingAllergens.includes(a.id);
                         return (
                           <button key={a.id} onClick={() => toggleIngAllergen(i, a.id)} style={{
-                            display:'inline-flex', alignItems:'center', gap:5,
-                            padding:'5px 10px', borderRadius:999,
-                            border:`1px solid ${on ? PN.PINK : PN.BORDER_MED}`,
-                            background: on ? '#FFF1F4' : '#F4F5F7',
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '5px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                            border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
+                            background: on ? PN.PINK_BG_SOFT : PN.WHITE,
                             color: on ? PN.PINK_DARK : PN.TEXT,
-                            fontSize:14.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                            fontSize: 13.5, fontWeight: on ? 700 : 600,
                           }}>
-                            <window.AllergenIcon id={a.id} size={16}/>
+                            <window.AllergenIcon id={a.id} size={15}/>
                             {a.name}
                           </button>
                         );
@@ -3808,57 +3944,21 @@ function IngredientList({ ingredients, setIngredients }) {
               </div>
             );
           })}
-          {ingredients.some(i => i.removable) && (
-            <div style={{display:'flex', alignItems:'center', gap:5, fontSize:13.5, color:PN.MUTED, paddingLeft:2}}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color:PN.PINK_DARK, flexShrink:0}}>
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="8" y1="12" x2="16" y2="12"/>
-              </svg>
-              Ingrediente rimovibile dal cliente in fase d'ordine
+
+          {rimovibili > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14,
+              padding: '11px 13px', borderRadius: 10,
+              background: '#EFF6FF', border: '1px solid #DBEAFE',
+            }}>
+              <span style={{color: '#2563EB', flexShrink: 0, display: 'inline-flex', marginTop: 1}}><Icon name="status-info" size={15}/></span>
+              <span style={{fontSize: 13, color: '#1E40AF', lineHeight: 1.45}}>
+                Gli ingredienti rimovibili potranno essere deselezionati dal cliente in fase d'ordine.
+              </span>
             </div>
           )}
         </div>
       )}
-      <div style={{position:'relative'}}>
-        <div style={{display:'flex', alignItems:'center', gap:8, padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, background:'#fff'}}>
-          <Icon name="magnifying-glass" size={14} color={PN.MUTED}/>
-          <input value={query}
-            onChange={e => { setQuery(e.target.value); setShowSuggest(true); }}
-            onFocus={() => setShowSuggest(true)}
-            onBlur={() => setTimeout(() => setShowSuggest(false), 200)}
-            onKeyDown={e => { if (e.key==='Enter') addNew(query); }}
-            placeholder="Cerca o aggiungi ingrediente…"
-            style={{flex:1, border:'none', outline:'none', fontSize:15.5, fontFamily:'inherit', background:'transparent', color:PN.TEXT}}
-          />
-          {query.trim() && !exactMatch && (
-            <button onMouseDown={() => addNew(query)} style={{
-              background: PN.PINK, color:'#fff', border:'none',
-              padding:'4px 10px', borderRadius:5, fontSize:14.5, fontWeight:700,
-              cursor:'pointer', fontFamily:'inherit', flexShrink:0,
-            }}>+ Crea</button>
-          )}
-        </div>
-        {showSuggest && dbMatches.length > 0 && (
-          <div style={{position:'absolute', top:'calc(100% + 4px)', left:0, right:0, background:'#fff', border:`1px solid ${PN.BORDER}`, borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,0.08)', zIndex:10, maxHeight:240, overflowY:'auto'}}>
-            <div style={{padding:'7px 12px', fontSize:13.5, fontWeight:700, color:PN.MUTED, letterSpacing:0.3, textTransform:'uppercase', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>Dal tuo archivio</div>
-            {dbMatches.map(s => (
-              <button key={s.name} onMouseDown={() => addExisting(s)}
-                style={{width:'100%', textAlign:'left', padding:'8px 12px', background:'transparent', border:'none', borderBottom:`1px solid ${PN.BORDER_SOFT}`, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:10}}
-                onMouseEnter={e => e.currentTarget.style.background='#FAFBFC'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}
-              >
-                <Icon name="plus" size={12} color={PN.MUTED}/>
-                <span style={{fontSize:15.5, color:PN.TEXT, fontWeight:600, flex:1}}>{s.name}</span>
-                {s.allergens && s.allergens.length > 0 && (
-                  <div style={{display:'flex', gap:3}}>
-                    {s.allergens.slice(0,4).map(aid => <window.AllergenIcon key={aid} id={aid} size={16}/>)}
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
