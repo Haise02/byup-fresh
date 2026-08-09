@@ -2534,17 +2534,27 @@ function MCDettagliPiatto({
         </span>
       </div>
 
-      {/* Schede */}
-      <div className="pn-scroll" style={{display: 'flex', gap: 10, padding: '0 13px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, overflowX: 'auto'}}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            padding: '9px 1px', marginBottom: -1, background: 'transparent', border: 'none',
-            borderBottom: `2px solid ${tab === t.id ? PN.PINK : 'transparent'}`,
-            color: tab === t.id ? PN.PINK_DARK : PN.MUTED,
-            fontSize: 12, fontWeight: tab === t.id ? 700 : 600,
-            cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-          }}>{t.l}</button>
-        ))}
+      {/* Schede: si dividono tutta la larghezza del pannello invece di
+          stringersi in un angolo. Sottolineatura rosa come le altre sezioni
+          del gestionale — le pillole restano ai filtri. */}
+      <div style={{display: 'flex', padding: '0 14px', borderBottom: `1px solid ${PN.BORDER_SOFT}`}}>
+        {TABS.map(t => {
+          const on = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              flex: 1, minWidth: 0, padding: '14px 8px 13px', marginBottom: -1,
+              background: 'transparent', border: 'none',
+              borderBottom: `2.5px solid ${on ? PN.PINK : 'transparent'}`,
+              color: on ? PN.PINK_DARK : PN.MUTED,
+              fontSize: 15, fontWeight: on ? 700 : 600, letterSpacing: -0.1,
+              cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+              transition: 'color 150ms ease-out, border-color 150ms ease-out',
+            }}
+            onMouseEnter={e => { if (!on) e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { if (!on) e.currentTarget.style.color = PN.MUTED; }}
+            >{t.l}</button>
+          );
+        })}
       </div>
 
       <div style={{padding: '14px'}}>
