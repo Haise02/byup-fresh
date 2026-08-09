@@ -2295,7 +2295,9 @@ function AppDishCard({ r, prezzo, evidenziato }) {
 }
 
 function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClose }) {
-  const [canale, setCanale] = React.useState('qr');
+  // Quella ricostruita qui è la schermata Menu della Byup App: il canale è il
+  // tavolo (QR), non uno da scegliere. Cassa e delivery hanno interfacce loro.
+  const canale = 'qr';
   const boxRef = React.useRef(null);
   const scrollRef = React.useRef(null);
   const [w, setW] = React.useState(288);
@@ -2345,12 +2347,6 @@ function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClos
           <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Anteprima menù</div>
           <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Come lo vede il cliente</div>
         </div>
-        <select value={canale} onChange={e => setCanale(e.target.value)} style={{
-          padding: '5px 8px', border: `1px solid ${PN.BORDER}`, borderRadius: 8,
-          fontSize: 13, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT, fontWeight: 600,
-        }}>
-          {CANALI.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-        </select>
         {onClose && (
           <button onClick={onClose} aria-label="Chiudi anteprima" style={{
             padding: 0, width: 32, height: 32, borderRadius: 9, flexShrink: 0,
