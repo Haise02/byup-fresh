@@ -384,11 +384,13 @@ function MCPanel({ title, sub, action, children, style, bodyStyle }) {
       boxShadow: PN.CARD_SHADOW, ...style,
     }}>
       {(title || action) && (
+        // Con il dettaglio aperto la colonna si stringe: i bottoni scendono a
+        // capo invece di finire sopra al titolo, che prima spariva sotto.
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+          display: 'flex', alignItems: 'center', gap: 10, rowGap: 9, flexWrap: 'wrap', flexShrink: 0,
           padding: '13px 16px', borderBottom: `1px solid ${PN.BORDER_SOFT}`,
         }}>
-          <div style={{flex: 1, minWidth: 0}}>
+          <div style={{flex: '1 1 150px', minWidth: 0}}>
             <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>{title}</div>
             {sub && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{sub}</div>}
           </div>
@@ -634,29 +636,19 @@ function MCMenuComposer() {
           50%      { transform: scale(.94) rotate(1.4deg); }
         }
       `}</style>
-      {/* Testata: il menù su cui si lavora — oppure, quando ci sono piatti
-          selezionati, la barra delle azioni multiple. */}
-      {selection.length > 0 ? (
-        <MCBulkBar
-          count={selection.length}
-          categorie={(activeMenu ? activeMenu.categories : []).map(c => c.name).filter(n => n !== activeCat)}
-          onClear={() => { setSelection([]); setSelectMode(false); }}
-          onMove={bulkMove}
-          onPrice={bulkPrice}
-          onDelete={bulkRemove}
-        />
-      ) : (
-        <MCMenuSwitcher
-          menus={menus}
-          activeMenuId={activeMenuId}
-          onPick={setActiveMenuId}
-          onUpdate={updateMenu}
-          totalDishesIn={totalDishesIn}
-          onAnteprima={() => setAnteprima(true)}
-          onNuovoMenu={() => setMenuModal({id: null})}
-          onModificaMenu={(id) => setMenuModal({id})}
-        />
-      )}
+      {/* Testata: il menù su cui si lavora. Resta al suo posto anche mentre si
+          selezionano piatti — le azioni multiple stanno nell'elenco, attaccate
+          ai piatti a cui si riferiscono. */}
+      <MCMenuSwitcher
+        menus={menus}
+        activeMenuId={activeMenuId}
+        onPick={setActiveMenuId}
+        onUpdate={updateMenu}
+        totalDishesIn={totalDishesIn}
+        onAnteprima={() => setAnteprima(true)}
+        onNuovoMenu={() => setMenuModal({id: null})}
+        onModificaMenu={(id) => setMenuModal({id})}
+      />
 
       <div ref={gridRef} style={{
         // Senza un piatto aperto le colonne sono due: la terza non resta lì a
@@ -864,6 +856,8 @@ function MCMenuComposer() {
           stateFilter={stateFilter} setStateFilter={setStateFilter}
           selectMode={selectMode} setSelectMode={setSelectMode}
           selection={selection} setSelection={setSelection} toggleSel={toggleSel}
+          altreCategorie={(activeMenu ? activeMenu.categories : []).map(c => c.name).filter(n => n !== activeCat)}
+          onBulkMove={bulkMove} onBulkPrice={bulkPrice} onBulkDelete={bulkRemove}
           detailId={detailId} setDetailId={setDetailId}
           editingPrice={editingPrice} setEditingPrice={setEditingPrice}
           onUpdateItem={updateMenuItem}
@@ -1806,7 +1800,7 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
 }
 
 // ─── Barra delle azioni multiple ────────────────────────────────────────────
-function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete }) {
+function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete, inline }) {
   const [aperto, setAperto] = React.useState(null); // 'sposta' | 'prezzo' | 'elimina'
   const [mode, setMode] = React.useState('set');
   const [valore, setValore] = React.useState('');
@@ -1821,8 +1815,8 @@ function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete }) {
   const Azione = ({ id, icona, children, danger }) => (
     <button onClick={() => setAperto(a => a === id ? null : id)} style={{
       display: 'inline-flex', alignItems: 'center', gap: 7,
-      padding: '8px 14px', borderRadius: 9, fontFamily: 'inherit',
-      fontSize: 14.5, fontWeight: 600, cursor: 'pointer',
+      padding: inline ? '6px 11px' : '8px 14px', borderRadius: 9, fontFamily: 'inherit',
+      fontSize: inline ? 13.5 : 14.5, fontWeight: 600, cursor: 'pointer',
       border: `1px solid ${aperto === id ? (danger ? PN.RED : PN.TEXT) : PN.BORDER}`,
       background: PN.WHITE, color: danger ? PN.RED : PN.TEXT,
       transition: 'border-color 150ms ease-out, background 150ms ease-out',
@@ -1833,12 +1827,17 @@ function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete }) {
   );
 
   return (
+    // Dentro il pannello dei piatti è una fascia, non una card sopra un'altra
+    // card: fondo rosa tenue e niente ombra, così i bottoni bianchi si vedono.
     <div ref={box} style={{
       position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
-      padding: '10px 14px', background: PN.WHITE,
-      border: `1px solid ${PN.PINK_SOFT}`, borderRadius: 12, boxShadow: PN.CARD_SHADOW,
+      padding: inline ? '9px 12px' : '10px 14px',
+      background: inline ? PN.PINK_BG_SOFT : PN.WHITE,
+      border: `1px solid ${PN.PINK_SOFT}`, borderRadius: 12,
+      boxShadow: inline ? 'none' : PN.CARD_SHADOW,
+      flexWrap: 'wrap',
     }}>
-      <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>
+      <span style={{fontSize: inline ? 14.5 : 15.5, fontWeight: 700, color: PN.TEXT}}>
         {count} {count === 1 ? 'piatto selezionato' : 'piatti selezionati'}
       </span>
       <button onClick={onClear} title="Annulla selezione" style={{
@@ -1852,7 +1851,7 @@ function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete }) {
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
       ><PnI.X size={13}/></button>
 
-      <span style={{width: 1, height: 24, background: PN.BORDER_SOFT, margin: '0 4px'}}/>
+      {!inline && <span style={{width: 1, height: 24, background: PN.BORDER_SOFT, margin: '0 4px'}}/>}
 
       <Azione id="sposta" icona={<PnI.Plus size={13}/>}>Sposta</Azione>
       <Azione id="prezzo" icona={<span style={{fontSize: 14}}>↗</span>}>Modifica prezzo</Azione>
@@ -1915,6 +1914,7 @@ function MCPiattiPanel({
   menu, catName, rows, totali, attivi, disattivati,
   view, setView, sort, setSort, search, setSearch, stateFilter, setStateFilter,
   selectMode, setSelectMode, selection, setSelection, toggleSel,
+  altreCategorie, onBulkMove, onBulkPrice, onBulkDelete,
   detailId, setDetailId, editingPrice, setEditingPrice,
   onUpdateItem, onRemoveDish, onOpenPicker, onNuovaCategoria,
   dragDish, setDragDish, onReorder,
@@ -2057,6 +2057,20 @@ function MCPiattiPanel({
           ))}
         </div>
       </div>
+
+      {/* Le azioni multiple stanno qui, sotto la ricerca e sopra i piatti a cui
+          si riferiscono, non in cima alla pagina al posto del nome del menù. */}
+      {selection.length > 0 && (
+        <MCBulkBar
+          inline
+          count={selection.length}
+          categorie={altreCategorie}
+          onClear={() => { setSelection([]); setSelectMode(false); }}
+          onMove={onBulkMove}
+          onPrice={onBulkPrice}
+          onDelete={onBulkDelete}
+        />
+      )}
 
       {rows.length === 0 && (
         <div style={{padding: '30px 18px', textAlign: 'center', color: PN.MUTED, fontSize: 14.5, background: '#FAFBFC', border: `1px dashed ${PN.BORDER}`, borderRadius: 12, marginBottom: 12}}>
@@ -2552,7 +2566,7 @@ function MCDettagliPiatto({
   const TABS = [
     {id: 'info',      l: 'Informazioni'},
     {id: 'allergeni', l: 'Ingredienti e Allergeni'},
-    {id: 'varianti',  l: 'Varianti'},
+    {id: 'avanzate',  l: 'Avanzate'},
   ];
 
   return (
@@ -2675,7 +2689,7 @@ function MCDettagliPiatto({
               </div>
             </MCCampo>
 
-            <MCCampo label="Foto" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
+            <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7}}>
                 {[0, 1, 2].map(i => {
                   const piena = i < photos.length;
@@ -2704,38 +2718,11 @@ function MCDettagliPiatto({
               </div>
             </MCCampo>
 
-            <MCSezione title="Ricetta · procedimento" style={{marginBottom: 0}}>
-              <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
-                {recipeSteps.map((step, i) => (
-                  <div key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7}}>
-                    <span style={{flexShrink: 0, width: 21, height: 21, borderRadius: '50%', background: PN.PINK_SOFT, color: PN.PINK_DARK, fontSize: 12.5, fontWeight: 800, display: 'grid', placeItems: 'center', marginTop: 6}}>{i + 1}</span>
-                    <textarea value={step} rows={1} placeholder={`Passo ${i + 1}…`}
-                      onChange={e => setRecipeSteps(s => s.map((x, idx) => idx === i ? e.target.value : x))}
-                      style={{...MC_INPUT, resize: 'none', lineHeight: 1.45, background: step ? PN.WHITE : '#FAFBFC'}}/>
-                    {recipeSteps.length > 1 && (
-                      <button onClick={() => setRecipeSteps(s => s.filter((_, idx) => idx !== i))} aria-label={`Rimuovi passo ${i + 1}`} style={{
-          // padding 0: il default del <button> (1px 6px) stringe la content-box
-          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
-          padding: 0,
-                        flexShrink: 0, width: 26, height: 26, marginTop: 4, background: PN.WHITE,
-                        border: '1px solid #FECACA', borderRadius: 7, cursor: 'pointer', color: PN.RED,
-                        display: 'grid', placeItems: 'center',
-                      }}><PnI.Trash size={11}/></button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => setRecipeSteps(s => [...s, ''])} style={{
-                marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
-                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>+ Aggiungi passo</button>
-            </MCSezione>
           </div>
         )}
 
-        {/* ── VARIANTI ───────────────────────────────────────────────── */}
-        {tab === 'varianti' && (
+        {/* ── AVANZATE ───────────────────────────────────────────────── */}
+        {tab === 'avanzate' && (
           <div>
             <MCSezione title="Varianti">
               <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 9}}>
@@ -2756,7 +2743,7 @@ function MCDettagliPiatto({
               <ExtrasList extras={extras} setExtras={setExtras}/>
             </MCSezione>
 
-            <MCSezione title="Disponibile anche in versione" style={{marginBottom: 0}}>
+            <MCSezione title="Disponibile anche in versione">
               <div style={{display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: dietaryTags.length ? 10 : 0}}>
                 {[
                   {name: 'Vegana', glyph: '🌱'}, {name: 'Senza glutine', glyph: '🌾'}, {name: 'Vegetariana', glyph: '🥬'},
@@ -2794,6 +2781,36 @@ function MCDettagliPiatto({
                   </div>
                 </div>
               )}
+            </MCSezione>
+
+            {/* La ricetta è roba di cucina, non del listino: sta qui con le
+                varianti e le versioni, non in mezzo a nome, prezzo e foto. */}
+            <MCSezione title="Ricetta · procedimento" style={{marginBottom: 0}}>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
+                {recipeSteps.map((step, i) => (
+                  <div key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7}}>
+                    <span style={{flexShrink: 0, width: 21, height: 21, borderRadius: '50%', background: PN.PINK_SOFT, color: PN.PINK_DARK, fontSize: 12.5, fontWeight: 800, display: 'grid', placeItems: 'center', marginTop: 6}}>{i + 1}</span>
+                    <textarea value={step} rows={1} placeholder={`Passo ${i + 1}…`}
+                      onChange={e => setRecipeSteps(s => s.map((x, idx) => idx === i ? e.target.value : x))}
+                      style={{...MC_INPUT, resize: 'none', lineHeight: 1.45, background: step ? PN.WHITE : '#FAFBFC'}}/>
+                    {recipeSteps.length > 1 && (
+                      <button onClick={() => setRecipeSteps(s => s.filter((_, idx) => idx !== i))} aria-label={`Rimuovi passo ${i + 1}`} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+                        flexShrink: 0, width: 26, height: 26, marginTop: 4, background: PN.WHITE,
+                        border: '1px solid #FECACA', borderRadius: 7, cursor: 'pointer', color: PN.RED,
+                        display: 'grid', placeItems: 'center',
+                      }}><PnI.Trash size={11}/></button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setRecipeSteps(s => [...s, ''])} style={{
+                marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
+                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>+ Aggiungi passo</button>
             </MCSezione>
           </div>
         )}
