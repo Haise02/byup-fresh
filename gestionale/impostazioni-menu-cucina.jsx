@@ -2145,7 +2145,7 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
             background: pronta ? '#F4FBF6' : '#FAFBFC',
             border: `1px solid ${pronta ? '#CBEBD5' : PN.BORDER_SOFT}`,
           }}>
-            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: pronta ? 9 : 0}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9}}>
               <span style={{
                 width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
                 background: pronta ? '#DDF3E4' : '#EDEFF2', color: pronta ? PN.GREEN : PN.MUTED,
@@ -2180,7 +2180,7 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
                 })}
               </div>
             ) : (
-              <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45, paddingLeft: 40, marginTop: -22}}>
+              <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45, paddingLeft: 40}}>
                 {piatti.length ? 'Scrivi un valore per vedere i nuovi prezzi.' : 'Nessun piatto da mostrare in anteprima.'}
               </div>
             )}
