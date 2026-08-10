@@ -884,6 +884,7 @@ function MCMenuComposer() {
               dish={detail.dish}
               item={detail}
               catName={activeCat}
+              menuName={activeMenu ? activeMenu.name : ''}
               categorie={(activeMenu ? activeMenu.categories : []).map(c => c.name)}
               onClose={() => setDetailId(null)}
               onSaveDish={upsertLibraryDish}
@@ -2408,6 +2409,45 @@ function MCAzionePiede({ icona, children, onClick, pericolo, titolo }) {
   );
 }
 
+// Conferma delle azioni del piede: tutte e due tolgono il piatto di mezzo e
+// nessuna parte al primo click. Esce davanti a tutto, non è un riquadro che
+// spunta in fondo al pannello dove nessuno lo vede.
+function MCConfermaModal({ icona, titolo, testo, conferma, pericolo, onAnnulla, onConferma }) {
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onAnnulla(); } };
+    document.addEventListener('keydown', esc, true);
+    return () => document.removeEventListener('keydown', esc, true);
+  }, [onAnnulla]);
+
+  return (
+    <div onClick={onAnnulla} style={{
+      position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,17,21,0.45)',
+      display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{
+        background: PN.WHITE, borderRadius: 14, padding: '22px 22px 18px',
+        width: 390, maxWidth: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.22)',
+        display: 'flex', flexDirection: 'column', gap: 13,
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
+            background: pericolo ? '#FEF2F2' : PN.PINK_BG_SOFT, color: pericolo ? PN.RED : PN.PINK_DARK,
+          }}>{icona}</div>
+          <div style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.3}}>{titolo}</div>
+        </div>
+        <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.5}}>{testo}</div>
+        <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onAnnulla} style={{padding: '9px 15px', fontSize: 14.5}}>Annulla</ImpButton>
+          <ImpButton variant={pericolo ? 'danger' : 'pink'} onClick={onConferma} style={{padding: '9px 15px', fontSize: 14.5}}>{conferma}</ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Scheda del dettaglio piatto: pastiglia con l'icona, titolo, una riga che
 // spiega a cosa serve. È il contenitore delle sezioni lunghe — quelle brevi
 // continuano a stare sotto la loro etichetta maiuscola (MCSezione).
@@ -2432,7 +2472,7 @@ function MCScheda({ icona, titolo, sub, children }) {
 }
 
 function MCDettagliPiatto({
-  dish, item, catName, categorie,
+  dish, item, catName, menuName, categorie,
   onClose, onSaveDish, onUpdateItem, onRemoveFromMenu, onDeleteFromLibrary, onMoveCat,
 }) {
   const [tab, setTab] = React.useState('info');
@@ -2452,7 +2492,8 @@ function MCDettagliPiatto({
   const [hasFrozen, setHasFrozen] = React.useState(dish.hasFrozen || false);
   const [tipOpen, setTipOpen] = React.useState(null);
   const [aiLoading, setAiLoading] = React.useState(false);
-  const [confermaElimina, setConfermaElimina] = React.useState(false);
+  // Quale conferma è aperta: 'menu' (togli da questo menù) o 'libreria' (via da tutti).
+  const [conferma, setConferma] = React.useState(null);
 
   // Dati che vivono nel MENÙ, non nella libreria: prezzo e disponibilità. Il
   // prezzo è uno solo, ovunque. I canali qui non si toccano più, ma vanno
@@ -2828,28 +2869,40 @@ function MCDettagliPiatto({
         <div style={{display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap'}}>
           <MCAzionePiede
             icona={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="8" y1="12" x2="16" y2="12"/></svg>}
-            onClick={onRemoveFromMenu}
+            onClick={() => setConferma('menu')}
             titolo="Resta nella libreria, sparisce da questo menù"
           >Rimuovi dal menù</MCAzionePiede>
           <MCAzionePiede
             icona={<PnI.Trash size={12}/>}
-            onClick={() => setConfermaElimina(true)}
+            onClick={() => setConferma('libreria')}
             pericolo
             titolo="Sparisce dalla libreria e da tutti i menù"
           >Elimina dalla libreria</MCAzionePiede>
         </div>
-        {confermaElimina && (
-          <div style={{marginTop: 10, padding: 10, borderRadius: 9, background: '#FEF2F2', border: '1px solid #FECACA'}}>
-            <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 9}}>
-              «{name || dish.name}» sarà eliminato dalla libreria e <strong>tolto da tutti i menù</strong>. Non si può annullare.
-            </div>
-            <div style={{display: 'flex', gap: 7, justifyContent: 'flex-end'}}>
-              <ImpButton variant="ghost" onClick={() => setConfermaElimina(false)} style={{padding: '6px 11px', fontSize: 13.5}}>Annulla</ImpButton>
-              <ImpButton variant="danger" onClick={() => { setConfermaElimina(false); onDeleteFromLibrary(); }} style={{padding: '6px 11px', fontSize: 13.5}}>Sì, elimina</ImpButton>
-            </div>
-          </div>
-        )}
       </div>
+
+      {conferma === 'menu' && (
+        <MCConfermaModal
+          icona={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="8" y1="12" x2="16" y2="12"/></svg>}
+          titolo={`Togliere «${name || dish.name}» dal menù?`}
+          testo={<>Sparisce da <strong style={{color: PN.TEXT}}>{menuName || 'questo menù'}</strong> ma resta nella libreria piatti: puoi rimetterlo quando vuoi.</>}
+          conferma="Sì, rimuovi"
+          onAnnulla={() => setConferma(null)}
+          onConferma={() => { setConferma(null); onRemoveFromMenu(); }}
+        />
+      )}
+
+      {conferma === 'libreria' && (
+        <MCConfermaModal
+          pericolo
+          icona={<PnI.Trash size={16}/>}
+          titolo={`Eliminare «${name || dish.name}»?`}
+          testo={<>Il piatto sarà eliminato dalla libreria e <strong style={{color: PN.TEXT}}>tolto da tutti i menù</strong> in cui si trova. Non si può annullare.</>}
+          conferma="Sì, elimina"
+          onAnnulla={() => setConferma(null)}
+          onConferma={() => { setConferma(null); onDeleteFromLibrary(); }}
+        />
+      )}
     </section>
   );
 }
