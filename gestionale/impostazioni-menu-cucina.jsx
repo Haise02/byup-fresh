@@ -2817,14 +2817,12 @@ function MCDettagliPiatto({
           <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{name || dish.name}</div>
           <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2}}>{catName}</div>
         </div>
-        <span style={{
-          flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 800, letterSpacing: 0.4,
-          background: attivo ? PN.GREEN_SOFT : '#F1F3F5', color: attivo ? PN.GREEN : PN.MUTED,
-        }}>
-          <span style={{width: 5, height: 5, borderRadius: '50%', background: attivo ? PN.GREEN : '#9CA3AF'}}/>
-          {attivo ? 'ATTIVO' : 'OFF'}
-        </span>
+        {/* La pastiglia ATTIVO/OFF diceva soltanto com'era: qui c'è
+            l'interruttore, così si cambia dove sta scritto. */}
+        <div style={{flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 9}}>
+          <span style={{fontSize: 13.5, fontWeight: 600, color: attivo ? PN.TEXT : PN.MUTED}}>Visibile agli utenti</span>
+          <ImpToggle checked={attivo} onChange={setAttivo}/>
+        </div>
       </div>
 
       {/* Schede: si dividono tutta la larghezza del pannello invece di
@@ -2900,15 +2898,6 @@ function MCDettagliPiatto({
                 <MCEuro value={foodCost} onChange={setFoodCost}/>
               </MCCampo>
             </div>
-
-            {/* Niente occhiello «Stato» sopra: la riga si legge già da sola,
-                l'etichetta ripeteva quello che dice l'interruttore. */}
-            <MCCampo>
-              <div style={{display: 'flex', alignItems: 'center', gap: 9}}>
-                <ImpToggle checked={attivo} onChange={setAttivo}/>
-                <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{attivo ? 'Visibile agli utenti' : 'Non visibile agli utenti'}</span>
-              </div>
-            </MCCampo>
 
             <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7}}>
