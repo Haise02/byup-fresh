@@ -1017,25 +1017,16 @@ function MCAzioneMenu({ titolo, pericolo, onClick, children }) {
 }
 
 function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, onAnteprima, onNuovoMenu, onModificaMenu, onDuplicaMenu, onEliminaMenu }) {
-  const [open, setOpen] = React.useState(false);
   const [hoverMenu, setHoverMenu] = React.useState(null);
   // Accendere o spegnere un menù cambia quello che vede il cliente al tavolo
   // nel momento stesso in cui si clicca: prima di farlo si dice cosa succede.
   const [confirmStato, setConfirmStato] = React.useState(null); // {id, to}
   const [confermaMenu, setConfermaMenu] = React.useState(null); // id del menù da eliminare
-  // Due porte diverse sullo stesso elenco: dal titolo si sceglie su quale
-  // menù lavorare, dal ⋯ si va a metterci le mani dentro.
+  // Una porta sola: dal nome del menù si sceglie su quale lavorare e da lì si
+  // fa tutto il resto. Il ⋯ in fondo alla testata apriva lo stesso elenco.
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const m = menus.find(x => x.id === activeMenuId);
-  const box = React.useRef(null);
   const pickerBox = React.useRef(null);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', fuori);
-    return () => document.removeEventListener('mousedown', fuori);
-  }, [open]);
 
   React.useEffect(() => {
     if (!pickerOpen) return;
@@ -1046,26 +1037,25 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
 
   // Esc annulla prima la conferma aperta, poi chiude la tendina.
   React.useEffect(() => {
-    if (!open && !confirmStato && !confermaMenu && !pickerOpen) return;
+    if (!confirmStato && !confermaMenu && !pickerOpen) return;
     const esc = (e) => {
       if (e.key !== 'Escape') return;
       if (confermaMenu) setConfermaMenu(null);
       else if (confirmStato) setConfirmStato(null);
-      else if (pickerOpen) setPickerOpen(false);
-      else setOpen(false);
+      else setPickerOpen(false);
     };
     document.addEventListener('keydown', esc);
     return () => document.removeEventListener('keydown', esc);
-  }, [open, confirmStato, confermaMenu, pickerOpen]);
+  }, [confirmStato, confermaMenu, pickerOpen]);
 
   if (!m) return null;
 
-  // Elenco e gestione dei menù: sta dietro al ⋯ in fondo alla testata, dove
-  // stanno le azioni, e non più dietro al nome del menù — che ora si limita a
-  // dire su quale menù si sta lavorando.
+  // Elenco e gestione dei menù: si apre dal nome del menù, che è già il posto
+  // dove si va a cercare su quale menù si sta lavorando. Prima scegliere e
+  // gestire erano due tendine diverse con dentro lo stesso elenco.
   const pannelloMenus = (
       <div style={{
-        position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 80,
+        position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 80,
         width: 366, background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
         borderRadius: 14, padding: 7,
         boxShadow: '0 18px 44px -12px rgba(15,17,21,0.24), 0 0 0 1px rgba(15,17,21,0.03)',
@@ -1081,7 +1071,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
             <div key={x.id}
               onMouseEnter={() => setHoverMenu(x.id)}
               onMouseLeave={() => setHoverMenu(null)}
-              onClick={() => { setOpen(false); onModificaMenu(x.id); }}
+              onClick={() => { onPick(x.id); setPickerOpen(false); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '9px 10px', borderRadius: 10, cursor: 'pointer',
@@ -1091,8 +1081,8 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
               <div style={{flex: 1, minWidth: 0}}>
                 <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
 
-                {/* Sotto al nome resta solo lo stato: il conteggio dei piatti
-                    lo dice il titolo del menù su cui si sta lavorando. */}
+                {/* Sotto al nome: lo stato — che da qui si cambia — e quanti
+                    piatti ha, che è come si sceglie su quale lavorare. */}
                 <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 12.5, color: PN.MUTED, minWidth: 0}}>
                   <button
                     onClick={e => { e.stopPropagation(); setConfirmStato({id: x.id, to: !x.active}); }}
@@ -1110,6 +1100,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
                     <span style={{width: 6, height: 6, borderRadius: '50%', background: x.active ? PN.GREEN : '#C7CBD1'}}/>
                     {x.active ? 'Attivo' : 'Disattivato'}
                   </button>
+                  <span style={{flexShrink: 0}}>· {totalDishesIn(x)} piatti</span>
                 </div>
               </div>
 
@@ -1118,12 +1109,12 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
                   maschera del nuovo menù ed eliminare solo in fondo a quella
                   di modifica. */}
               <div style={{display: 'flex', gap: 2, flexShrink: 0}}>
-                <MCAzioneMenu titolo="Modifica" onClick={e => { e.stopPropagation(); setOpen(false); onModificaMenu(x.id); }}>
+                <MCAzioneMenu titolo="Modifica" onClick={e => { e.stopPropagation(); setPickerOpen(false); onModificaMenu(x.id); }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16.8 3.9a2.1 2.1 0 0 1 3 3L8.5 18.2l-4 1 1-4z"/>
                   </svg>
                 </MCAzioneMenu>
-                <MCAzioneMenu titolo="Duplica" onClick={e => { e.stopPropagation(); setOpen(false); onDuplicaMenu(x.id); }}>
+                <MCAzioneMenu titolo="Duplica" onClick={e => { e.stopPropagation(); setPickerOpen(false); onDuplicaMenu(x.id); }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="9" y="9" width="11" height="11" rx="2"/>
                     <path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5V5.5A1.5 1.5 0 0 1 4.5 4h8A1.5 1.5 0 0 1 14 5.5V6"/>
@@ -1181,50 +1172,16 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
 
         <span style={{fontSize: 13.5, color: PN.MUTED, flexShrink: 0}}>{totalDishesIn(m)} piatti</span>
 
-        {pickerOpen && (
-          <div role="listbox" style={{
-            position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 80,
-            width: 288, background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
-            borderRadius: 14, padding: 7,
-            boxShadow: '0 18px 44px -12px rgba(15,17,21,0.24), 0 0 0 1px rgba(15,17,21,0.03)',
-          }}>
-            {menus.map(x => {
-              const on = x.id === activeMenuId;
-              return (
-                <div key={x.id} role="option" aria-selected={on}
-                  onClick={() => { onPick(x.id); setPickerOpen(false); }}
-                  onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
-                  onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '9px 10px', borderRadius: 10, cursor: 'pointer',
-                    background: on ? PN.PINK_BG_SOFT : 'transparent',
-                    transition: 'background 130ms ease-out',
-                  }}>
-                  <div style={{flex: 1, minWidth: 0}}>
-                    <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
-                    <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2}}>{totalDishesIn(x)} piatti</div>
-                  </div>
-                  {on && <span style={{display: 'inline-flex', color: PN.PINK, flexShrink: 0}}><PnI.Check size={13}/></span>}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {pickerOpen && pannelloMenus}
       </div>
 
-      <button
-        onClick={() => setConfirmStato({id: m.id, to: !m.active})}
-        title={m.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-          padding: '4px 10px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: 12, fontWeight: 800, letterSpacing: 0.4,
-          background: m.active ? PN.GREEN_SOFT : '#F1F3F5', color: m.active ? PN.GREEN : PN.MUTED,
-        }}>
-        <span style={{width: 6, height: 6, borderRadius: '50%', background: m.active ? PN.GREEN : '#9CA3AF'}}/>
-        {m.active ? 'ATTIVO' : 'DISATTIVATO'}
-      </button>
+      {/* La pastiglia diceva soltanto com'era il menù: qui c'è l'interruttore,
+          e si accende o si spegne dov'è scritto. La conferma resta — attivo ce
+          n'è uno solo, e cambiarlo cambia quello che vede il cliente. */}
+      <div style={{display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
+        <ImpToggle checked={m.active} onChange={() => setConfirmStato({id: m.id, to: !m.active})}/>
+        <span style={{fontSize: 13.5, fontWeight: 600, color: m.active ? PN.TEXT : PN.MUTED}}>{m.active ? 'Attivo' : 'Disattivato'}</span>
+      </div>
       {/* La fascia oraria è del menù attivo e sta qui: nell'elenco non serve,
           lì i menù si distinguono per nome e per quanti piatti hanno. */}
       {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0}}>Visibile {m.schedule}</span>}
@@ -1239,29 +1196,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
         Nuovo menù
       </ImpButton>
 
-      <div ref={box} style={{position: 'relative', flexShrink: 0}}>
-        <button
-          onClick={() => setOpen(o => !o)}
-          title="I tuoi menù"
-          aria-label="I tuoi menù"
-          style={{
-            // padding 0: il default del <button> (1px 6px) stringe la content-box
-            // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
-            padding: 0,
-            width: 38, height: 38, borderRadius: 10, cursor: 'pointer',
-            border: `1px solid ${open ? PN.PINK : PN.BORDER_LIGHT}`,
-            background: open ? PN.PINK_BG_SOFT : PN.BTN_NEUTRAL,
-            color: open ? PN.PINK_DARK : PN.TEXT,
-            display: 'grid', placeItems: 'center',
-            boxShadow: PN.INSET_HIGHLIGHT,
-            transition: 'border-color 150ms ease-out, background 150ms ease-out',
-          }}
-          onMouseEnter={e => { if (!open) e.currentTarget.style.background = PN.BTN_NEUTRAL_HOVER; }}
-          onMouseLeave={e => { if (!open) e.currentTarget.style.background = PN.BTN_NEUTRAL; }}
-        ><Puntini size={16}/></button>
-
-        {open && pannelloMenus}
-
+      <div style={{position: 'relative', flexShrink: 0}}>
         {confirmStato && (() => {
           const bersaglio = menus.find(x => x.id === confirmStato.id) || {};
           // Attivo ce n'è uno solo: accenderne un altro spegne quello di prima,
@@ -1342,7 +1277,7 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
                 </div>
                 <div style={{...MODAL_FOOT, justifyContent: 'flex-end', marginTop: 22, borderTop: 'none'}}>
                   <ImpButton variant="ghost" onClick={() => setConfermaMenu(null)} style={{padding: '10px 20px'}}>Annulla</ImpButton>
-                  <ImpButton variant="danger" onClick={() => { onEliminaMenu(confermaMenu); setConfermaMenu(null); setOpen(false); }} style={{padding: '10px 20px'}}>Sì, elimina</ImpButton>
+                  <ImpButton variant="danger" onClick={() => { onEliminaMenu(confermaMenu); setConfermaMenu(null); setPickerOpen(false); }} style={{padding: '10px 20px'}}>Sì, elimina</ImpButton>
                 </div>
               </div>
             </div>
