@@ -2666,10 +2666,12 @@ function MCDettagliPiatto({
               </MCCampo>
             </div>
 
-            <MCCampo label="Stato">
+            {/* Niente occhiello «Stato» sopra: la riga si legge già da sola,
+                l'etichetta ripeteva quello che dice l'interruttore. */}
+            <MCCampo>
               <div style={{display: 'flex', alignItems: 'center', gap: 9}}>
                 <ImpToggle checked={attivo} onChange={setAttivo}/>
-                <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{attivo ? 'Disponibile' : 'Non disponibile'}</span>
+                <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{attivo ? 'Visibile agli utenti' : 'Non visibile agli utenti'}</span>
               </div>
             </MCCampo>
 
