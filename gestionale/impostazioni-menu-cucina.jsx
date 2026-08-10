@@ -1799,14 +1799,34 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   );
 }
 
+// Icone delle azioni multiple: un «+» non dice sposta e una freccina di testo
+// non dice prezzo. Una freccia che entra in un contenitore e un cartellino.
+function IcSposta({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 5h3A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-3"/>
+      <line x1="4" y1="12" x2="13.5" y2="12"/>
+      <polyline points="10,8.5 14,12 10,15.5"/>
+    </svg>
+  );
+}
+function IcCartellino({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.6 13.2 13 20.8a1.7 1.7 0 0 1-2.4 0l-7.2-7.2a1.7 1.7 0 0 1-.5-1.2V5.1c0-.9.7-1.7 1.7-1.7h7.3c.5 0 .9.2 1.2.5l7.5 7.5a1.7 1.7 0 0 1 0 2.4z"/>
+      <circle cx="8" cy="8" r="1.3"/>
+    </svg>
+  );
+}
+
 // ─── Barra delle azioni multiple ────────────────────────────────────────────
-function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete, inline }) {
+function MCBulkBar({ count, categorie, esempio, onClear, onMove, onPrice, onDelete, inline }) {
   const [aperto, setAperto] = React.useState(null); // 'sposta' | 'prezzo' | 'elimina'
-  const [mode, setMode] = React.useState('set');
-  const [valore, setValore] = React.useState('');
   const box = React.useRef(null);
   React.useEffect(() => {
-    if (!aperto) return;
+    // Il popup dei prezzi vive al centro dello schermo, fuori dalla barra: il
+    // click dentro il popup non deve contare come «click fuori».
+    if (!aperto || aperto === 'prezzo') return;
     const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setAperto(null); };
     document.addEventListener('mousedown', fuori);
     return () => document.removeEventListener('mousedown', fuori);
@@ -1853,8 +1873,8 @@ function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete, inlin
 
       {!inline && <span style={{width: 1, height: 24, background: PN.BORDER_SOFT, margin: '0 4px'}}/>}
 
-      <Azione id="sposta" icona={<PnI.Plus size={13}/>}>Sposta</Azione>
-      <Azione id="prezzo" icona={<span style={{fontSize: 14}}>↗</span>}>Modifica prezzo</Azione>
+      <Azione id="sposta" icona={<IcSposta size={14}/>}>Sposta</Azione>
+      <Azione id="prezzo" icona={<IcCartellino size={14}/>}>Modifica prezzo</Azione>
       <Azione id="elimina" danger icona={<PnI.Trash size={13}/>}>Elimina</Azione>
 
       {aperto === 'sposta' && (
@@ -1867,31 +1887,15 @@ function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete, inlin
         </div>
       )}
 
+      {/* Il prezzo non è una tendina appesa alla barra: è un lavoro su più
+          piatti insieme, si fa al centro con l'anteprima di cosa succede. */}
       {aperto === 'prezzo' && (
-        <div style={{position: 'absolute', top: 'calc(100% + 6px)', left: 280, zIndex: 80, width: 280, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 11, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 12}}>
-          <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8}}>Modifica prezzo</div>
-          <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5, marginBottom: 10}}>
-            {[
-              {id: 'set', l: 'Imposta a'}, {id: 'inc-pct', l: 'Aumenta %'},
-              {id: 'dec-pct', l: 'Riduci %'}, {id: 'inc-eur', l: 'Aumenta €'},
-              {id: 'dec-eur', l: 'Riduci €'},
-            ].map(o => (
-              <button key={o.id} onClick={() => setMode(o.id)} style={{
-                padding: '7px 8px', borderRadius: 8, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, cursor: 'pointer',
-                border: `1px solid ${mode === o.id ? PN.PINK : PN.BORDER}`,
-                background: mode === o.id ? PN.PINK_SOFT : PN.WHITE,
-                color: mode === o.id ? PN.PINK_DARK : PN.TEXT,
-              }}>{o.l}</button>
-            ))}
-          </div>
-          <input autoFocus value={valore} onChange={e => setValore(e.target.value)} placeholder={mode.includes('pct') ? 'es. 10' : 'es. 1,50'}
-            onKeyDown={e => { if (e.key === 'Enter') { onPrice(mode, valore); setValore(''); setAperto(null); } }}
-            style={{width: '100%', padding: '9px 11px', border: `1px solid ${PN.BORDER}`, borderRadius: 8, fontSize: 15, fontFamily: 'inherit', outline: 'none'}}/>
-          <div style={{display: 'flex', gap: 7, justifyContent: 'flex-end', marginTop: 10}}>
-            <ImpButton variant="ghost" onClick={() => setAperto(null)} style={{padding: '7px 12px', fontSize: 14}}>Annulla</ImpButton>
-            <ImpButton variant="pink" onClick={() => { onPrice(mode, valore); setValore(''); setAperto(null); }} style={{padding: '7px 12px', fontSize: 14}}>Applica</ImpButton>
-          </div>
-        </div>
+        <MCPrezziModal
+          count={count}
+          esempio={esempio}
+          onClose={() => setAperto(null)}
+          onApply={(m, v) => { onPrice(m, v); setAperto(null); }}
+        />
       )}
 
       {aperto === 'elimina' && (
@@ -1905,6 +1909,219 @@ function MCBulkBar({ count, categorie, onClear, onMove, onPrice, onDelete, inlin
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Modifica prezzi in blocco ──────────────────────────────────────────────
+// Prima erano cinque pillole («Imposta a», «Aumenta %», «Riduci €»…) e un
+// campo: si sceglieva l'operazione e l'unità nello stesso click, e non si
+// vedeva l'effetto. Qui prima si dice cosa fare, poi di quanto, e l'anteprima
+// mostra su un piatto vero dove va a finire il prezzo.
+function MCPrezziModal({ count, esempio, onClose, onApply }) {
+  const [azione, setAzione] = React.useState('set'); // 'set' | 'aumenta' | 'riduci'
+  const [unita, setUnita] = React.useState('eur');   // 'eur' | 'pct'
+  const [valore, setValore] = React.useState('');
+
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    document.addEventListener('keydown', esc, true);
+    return () => document.removeEventListener('keydown', esc, true);
+  }, [onClose]);
+
+  // «Imposta nuovo prezzo» è sempre in euro: una percentuale di niente non
+  // vuol dire niente.
+  const perc = azione !== 'set' && unita === 'pct';
+  const mode = azione === 'set' ? 'set' : `${azione === 'aumenta' ? 'inc' : 'dec'}-${perc ? 'pct' : 'eur'}`;
+
+  const num = parseFloat(String(valore).replace(',', '.'));
+  const valido = !isNaN(num) && num >= 0 && String(valore).trim() !== '';
+  const nuovoPrezzo = (p0) => {
+    let p = p0;
+    if (mode === 'set')     p = num;
+    if (mode === 'inc-eur') p = p0 + num;
+    if (mode === 'dec-eur') p = p0 - num;
+    if (mode === 'inc-pct') p = p0 * (1 + num / 100);
+    if (mode === 'dec-pct') p = p0 * (1 - num / 100);
+    return Math.max(0, Math.round(p * 100) / 100);
+  };
+  const euro = (n) => `€ ${n.toFixed(2).replace('.', ',')}`;
+
+  const T = {
+    set:     {domanda: 'Quale prezzo vuoi impostare?', cta: 'Applica prezzo',    coda: 'avranno tutti questo prezzo.'},
+    aumenta: {domanda: 'Di quanto vuoi aumentare?',    cta: 'Applica aumento',   coda: 'verranno aggiornati con lo stesso aumento.'},
+    riduci:  {domanda: 'Di quanto vuoi ridurre?',      cta: 'Applica riduzione', coda: 'verranno aggiornati con la stessa riduzione.'},
+  }[azione];
+
+  const FrecciaSu = ({size = 17}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5"/><polyline points="6,11 12,5 18,11"/>
+    </svg>
+  );
+  const FrecciaGiu = ({size = 17}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><polyline points="6,13 12,19 18,13"/>
+    </svg>
+  );
+  const Matita = ({size = 17}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.8 3.9a2.1 2.1 0 0 1 3 3L8.5 18.2l-4 1 1-4z"/>
+    </svg>
+  );
+
+  const SCELTE = [
+    {id: 'set',     l: 'Imposta nuovo prezzo', ic: <Matita/>},
+    {id: 'aumenta', l: 'Aumenta',              ic: <FrecciaSu/>},
+    {id: 'riduci',  l: 'Riduci',               ic: <FrecciaGiu/>},
+  ];
+
+  const applica = () => { if (valido) onApply(mode, valore); };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,17,21,0.45)',
+      display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{
+        background: PN.WHITE, borderRadius: 16, width: 620, maxWidth: '100%',
+        maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+        boxShadow: '0 24px 70px rgba(0,0,0,0.24)',
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        {/* Testata */}
+        <div style={{display: 'flex', alignItems: 'flex-start', gap: 13, padding: '20px 20px 0'}}>
+          <div style={{
+            width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+            background: PN.PINK_BG_SOFT, color: PN.PINK,
+          }}><IcCartellino size={20}/></div>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 21, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.4}}>Modifica prezzi</div>
+            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>
+              Stai modificando <strong style={{color: PN.PINK}}>{count} {count === 1 ? 'piatto' : 'piatti'}</strong> {count === 1 ? 'selezionato' : 'selezionati'}
+            </div>
+          </div>
+          <button onClick={onClose} title="Chiudi" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+            flexShrink: 0, width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent',
+            color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          ><PnI.X size={15}/></button>
+        </div>
+
+        <div style={{padding: '18px 20px 0'}}>
+          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 10}}>Cosa vuoi fare?</div>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12}}>
+            {SCELTE.map(s => {
+              const on = azione === s.id;
+              return (
+                <button key={s.id} onClick={() => setAzione(s.id)} style={{
+                  padding: '16px 8px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
+                  background: on ? PN.WHITE : '#FBFCFD',
+                  color: on ? PN.PINK_DARK : PN.TEXT,
+                  fontSize: 14.5, fontWeight: on ? 700 : 600,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                  transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                }}>
+                  <span style={{
+                    width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                    background: on ? PN.PINK_BG_SOFT : '#EDEFF2', color: on ? PN.PINK : PN.MUTED,
+                  }}>{s.ic}</span>
+                  <span style={{lineHeight: 1.25, textAlign: 'center'}}>{s.l}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{height: 1, background: PN.BORDER_SOFT, margin: '18px 0 16px'}}/>
+
+          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 10}}>{T.domanda}</div>
+          <div style={{display: 'flex', gap: 10, alignItems: 'stretch'}}>
+            <div style={{flex: 1, minWidth: 0, position: 'relative'}}>
+              <span style={{
+                position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                fontSize: 16, fontWeight: 600, color: PN.MUTED,
+              }}>{perc ? '%' : '€'}</span>
+              <input autoFocus value={valore} inputMode="decimal"
+                onChange={e => setValore(e.target.value.replace(/[^0-9,.]/g, ''))}
+                onKeyDown={e => { if (e.key === 'Enter') applica(); }}
+                placeholder={perc ? '10' : '1,50'}
+                style={{
+                  width: '100%', padding: '13px 14px 13px 40px', border: `1px solid ${PN.BORDER}`,
+                  borderRadius: 10, fontSize: 17, fontWeight: 600, fontFamily: 'inherit', outline: 'none',
+                  background: PN.WHITE, color: PN.TEXT,
+                }}/>
+            </div>
+            {/* In «imposta» l'unità non si sceglie: è un prezzo, non uno scarto. */}
+            {azione !== 'set' && (
+              <div style={{display: 'flex', background: '#F4F5F7', borderRadius: 10, padding: 3, gap: 3, flexShrink: 0}}>
+                {[{id: 'eur', l: '€'}, {id: 'pct', l: '%'}].map(u => {
+                  const on = unita === u.id;
+                  return (
+                    <button key={u.id} onClick={() => setUnita(u.id)} style={{
+                      width: 54, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${on ? PN.PINK : 'transparent'}`,
+                      background: on ? PN.PINK_BG_SOFT : 'transparent',
+                      color: on ? PN.PINK : PN.MUTED, fontSize: 16, fontWeight: 700,
+                      transition: 'background 150ms ease-out, border-color 150ms ease-out',
+                    }}>{u.l}</button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Anteprima su un piatto vero: il numero che cambia si vede prima
+              di toccare 6 prezzi in una volta. */}
+          <div style={{
+            marginTop: 14, padding: '13px 14px', borderRadius: 12,
+            display: 'flex', alignItems: 'flex-start', gap: 12,
+            background: valido && esempio ? '#F4FBF6' : '#FAFBFC',
+            border: `1px solid ${valido && esempio ? '#CBEBD5' : PN.BORDER_SOFT}`,
+          }}>
+            <span style={{
+              width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+              background: valido && esempio ? '#DDF3E4' : '#EDEFF2', color: valido && esempio ? PN.GREEN : PN.MUTED,
+            }}><PnI.Eye size={14}/></span>
+            <div style={{minWidth: 0, flex: 1}}>
+              <div style={{fontSize: 14.5, fontWeight: 700, color: valido && esempio ? PN.GREEN : PN.MUTED, marginBottom: 4}}>Anteprima</div>
+              {valido && esempio ? (
+                <>
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 14.5, color: PN.TEXT}}>
+                    <span>Esempio: <strong>{esempio.name}</strong></span>
+                    <span style={{padding: '3px 9px', borderRadius: 7, background: '#EAF6EE', color: PN.TEXT, fontWeight: 600}}>{euro(esempio.price)}</span>
+                    <span style={{color: PN.MUTED}}>→</span>
+                    <span style={{padding: '3px 9px', borderRadius: 7, background: '#DDF3E4', color: PN.GREEN, fontWeight: 700}}>{euro(nuovoPrezzo(esempio.price))}</span>
+                  </div>
+                  <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.45}}>
+                    Tutti i {count} piatti selezionati {T.coda}
+                  </div>
+                </>
+              ) : (
+                <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45}}>
+                  {esempio ? 'Scrivi un valore per vedere come cambia il prezzo.' : 'Nessun piatto da mostrare in anteprima.'}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Piede */}
+        <div style={{
+          display: 'flex', gap: 9, justifyContent: 'flex-end',
+          padding: '16px 20px 18px', marginTop: 16, borderTop: `1px solid ${PN.BORDER_SOFT}`,
+        }}>
+          <ImpButton variant="ghost" onClick={onClose} style={{padding: '10px 18px', fontSize: 15}}>Annulla</ImpButton>
+          <ImpButton variant="pink" disabled={!valido} onClick={applica} style={{padding: '10px 18px', fontSize: 15}}
+            icon={azione === 'set' ? <Matita size={14}/> : azione === 'aumenta' ? <FrecciaSu size={14}/> : <FrecciaGiu size={14}/>}
+          >{T.cta}</ImpButton>
+        </div>
+      </div>
     </div>
   );
 }
@@ -2065,6 +2282,10 @@ function MCPiattiPanel({
           inline
           count={selection.length}
           categorie={altreCategorie}
+          esempio={(() => {
+            const r = rows.find(x => selection.includes(x.dishId));
+            return r && r.dish ? {name: r.dish.name, price: r.price} : null;
+          })()}
           onClear={() => { setSelection([]); setSelectMode(false); }}
           onMove={onBulkMove}
           onPrice={onBulkPrice}
