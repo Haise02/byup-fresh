@@ -1960,10 +1960,26 @@ function MCPiattiPanel({
 
   const testata = (
     <div style={{display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
-      <label style={{display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer', padding: '6px 10px', borderRadius: 8, border: `1px solid ${selectMode ? PN.PINK : PN.BORDER}`, background: selectMode ? PN.PINK_BG_SOFT : PN.WHITE}}>
-        <input type="checkbox" checked={selectMode} onChange={e => { setSelectMode(e.target.checked); if (!e.target.checked) setSelection([]); }} style={{accentColor: PN.PINK, margin: 0, width: 15, height: 15}}/>
-        <span style={{fontSize: 14, fontWeight: 600, color: selectMode ? PN.PINK_DARK : PN.TEXT}}>Seleziona</span>
-      </label>
+      {/* Un tasto solo, non una casella da spuntare prima di poter scegliere:
+          il primo click prende già tutti i piatti in elenco, e quando la
+          selezione è attiva lo stesso tasto la annulla. */}
+      <button
+        onClick={() => {
+          if (selectMode) { setSelection([]); setSelectMode(false); }
+          else { setSelectMode(true); setSelection(rows.map(r => r.dishId)); }
+        }}
+        title={selectMode ? 'Esci dalla selezione' : 'Seleziona tutti i piatti in elenco'}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 8,
+          border: `1px solid ${selectMode ? PN.PINK : PN.BORDER}`,
+          background: selectMode ? PN.PINK_BG_SOFT : PN.WHITE,
+          color: selectMode ? PN.PINK_DARK : PN.TEXT,
+          fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+          transition: 'background 150ms ease-out, border-color 150ms ease-out',
+        }}>
+        {selectMode ? <PnI.X size={11}/> : <PnI.Check size={12}/>}
+        {selectMode ? 'Annulla' : 'Seleziona tutto'}
+      </button>
 
       <div ref={sortBox} style={{position: 'relative'}}>
         <button onClick={() => setSortOpen(o => !o)} style={{
@@ -2438,11 +2454,13 @@ function MCDettagliPiatto({
   const [aiLoading, setAiLoading] = React.useState(false);
   const [confermaElimina, setConfermaElimina] = React.useState(false);
 
-  // Dati che vivono nel MENÙ, non nella libreria: prezzo, disponibilità e
-  // canali su cui il piatto si vede. Il prezzo è uno solo, ovunque.
+  // Dati che vivono nel MENÙ, non nella libreria: prezzo e disponibilità. Il
+  // prezzo è uno solo, ovunque. I canali qui non si toccano più, ma vanno
+  // riscritti tali e quali al salvataggio: chi li ha già ristretti non se li
+  // vede tornare tutti accesi.
   const [prezzo, setPrezzo] = React.useState(item.price.toFixed(2).replace('.', ','));
   const [attivo, setAttivo] = React.useState(!!item.active);
-  const [canali, setCanali] = React.useState(canaliDi(item));
+  const canali = canaliDi(item);
 
   React.useEffect(() => {
     if (!tipOpen) return;
@@ -2465,7 +2483,6 @@ function MCDettagliPiatto({
   };
   const toggleTag = (t) => setDietaryTags(s => s.some(x => x.name === t) ? s.filter(x => x.name !== t) : [...s, {name: t, surcharge: ''}]);
   const setTagSurcharge = (t, v) => setDietaryTags(s => s.map(x => x.name === t ? {...x, surcharge: v} : x));
-  const toggleCanale = (id) => setCanali(c => c.includes(id) ? c.filter(x => x !== id) : [...c, id]);
 
   const scriviConAi = () => {
     if (!name.trim()) return;
@@ -2493,8 +2510,8 @@ function MCDettagliPiatto({
 
   const TABS = [
     {id: 'info',      l: 'Informazioni'},
+    {id: 'allergeni', l: 'Ingredienti e Allergeni'},
     {id: 'varianti',  l: 'Varianti'},
-    {id: 'allergeni', l: 'Allergeni e tag'},
   ];
 
   return (
@@ -2583,6 +2600,22 @@ function MCDettagliPiatto({
               {aiLoading ? <>⏳ Sto scrivendo…</> : <><BuAiSparkle size={12} color={name.trim() ? PN.PINK_DARK : PN.MUTED_SOFT}/> Scrivi descrizione con AI</>}
             </button>
 
+            {/* Le dichiarazioni stanno con quello che descrive il piatto, non
+                in fondo dopo prezzo e foto: sono la sua carta d'identità e
+                decidono l'IVA. */}
+            <MCSezione title="Dichiarazioni">
+              <div style={{display: 'flex', flexWrap: 'wrap', gap: 7}}>
+                <DishFlag checked={prodottoFinito} onChange={() => setProdottoFinito(v => !v)}
+                  label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
+                  info={{id: 'finito', open: tipOpen, setOpen: setTipOpen, text: "Venduto sigillato, così come arriva. Es. acqua in bottiglietta, birra in lattina, snack confezionati. IVA 22% sull'asporto anziché 10%."}}/>
+                <DishFlag checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
+                  label="Contiene alcolici" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
+                  info={{id: 'alcol', open: tipOpen, setOpen: setTipOpen, text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. IVA 22% sull'asporto e vendita vietata ai minori."}}/>
+                <DishFlag checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
+                  label="Contiene alimenti surgelati" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"/>
+              </div>
+            </MCSezione>
+
             <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
               <MCCampo label="Prezzo di vendita">
                 <MCEuro value={prezzo} onChange={setPrezzo}/>
@@ -2597,35 +2630,6 @@ function MCDettagliPiatto({
                 <ImpToggle checked={attivo} onChange={setAttivo}/>
                 <span style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>{attivo ? 'Disponibile' : 'Non disponibile'}</span>
               </div>
-            </MCCampo>
-
-            <MCCampo label="Visibile sui canali" hint="Toglilo da un canale per nasconderlo solo lì: il piatto resta nel menù.">
-              <div style={{display: 'flex', flexWrap: 'wrap', gap: 6}}>
-                {CANALI.map(c => {
-                  const on = canali.includes(c.id);
-                  return (
-                    <button key={c.id} onClick={() => toggleCanale(c.id)} style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '6px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
-                      border: `1px solid ${on ? PN.GREEN : PN.BORDER}`,
-                      background: on ? PN.GREEN_SOFT : PN.WHITE,
-                      color: on ? PN.GREEN : PN.MUTED,
-                      fontSize: 13, fontWeight: 600,
-                      transition: 'background 150ms ease-out, border-color 150ms ease-out',
-                    }}>
-                      <Icon name={c.icona} size={13}/>
-                      {c.label}
-                      {on && <PnI.Check size={11}/>}
-                    </button>
-                  );
-                })}
-              </div>
-            </MCCampo>
-
-            <MCCampo label="Categoria nel menù">
-              <select value={catName} onChange={e => onMoveCat(e.target.value)} style={MC_INPUT}>
-                {categorie.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
             </MCCampo>
 
             <MCCampo label="Foto" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
@@ -2656,19 +2660,6 @@ function MCDettagliPiatto({
                 })}
               </div>
             </MCCampo>
-
-            <MCSezione title="Dichiarazioni">
-              <div style={{display: 'flex', flexWrap: 'wrap', gap: 7}}>
-                <DishFlag checked={prodottoFinito} onChange={() => setProdottoFinito(v => !v)}
-                  label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
-                  info={{id: 'finito', open: tipOpen, setOpen: setTipOpen, text: "Venduto sigillato, così come arriva. Es. acqua in bottiglietta, birra in lattina, snack confezionati. IVA 22% sull'asporto anziché 10%."}}/>
-                <DishFlag checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
-                  label="Contiene alcolici" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
-                  info={{id: 'alcol', open: tipOpen, setOpen: setTipOpen, text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. IVA 22% sull'asporto e vendita vietata ai minori."}}/>
-                <DishFlag checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
-                  label="Contiene alimenti surgelati" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"/>
-              </div>
-            </MCSezione>
 
             <MCSezione title="Ricetta · procedimento" style={{marginBottom: 0}}>
               <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
@@ -2712,7 +2703,7 @@ function MCDettagliPiatto({
                 marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
                 border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
-              }}>+ Aggiungi gruppo di varianti</button>
+              }}>+ Crea nuova variante</button>
             </MCSezione>
 
             <MCSezione title="Aggiunte a pagamento">
@@ -2764,7 +2755,7 @@ function MCDettagliPiatto({
           </div>
         )}
 
-        {/* ── ALLERGENI E TAG ────────────────────────────────────────── */}
+        {/* ── INGREDIENTI E ALLERGENI ────────────────────────────────── */}
         {tab === 'allergeni' && (
           <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
             <MCScheda
@@ -4138,21 +4129,9 @@ function ExtrasList({ extras, setExtras }) {
 
 function VariantsList({ variants, setVariants, hideAddButton }) {
   const addGroup = () => setVariants(arr => [...arr, { name:'', options:[''], required:true }]);
-  if (variants.length === 0 && hideAddButton) {
-    return (
-      <div style={{
-        display:'flex', alignItems:'flex-start', gap:10,
-        padding:'12px 14px', background:'#F8FAFC',
-        border:`1px solid ${PN.BORDER_SOFT}`, borderRadius:10,
-      }}>
-        <span style={{flexShrink:0, marginTop:1, color:PN.MUTED}}><Icon name="status-info" size={15}/></span>
-        <div style={{minWidth:0}}>
-          <div style={{fontSize:15, fontWeight:700, color:PN.TEXT}}>Nessun gruppo di varianti aggiunto</div>
-          <div style={{fontSize:14.5, color:PN.MUTED, marginTop:2, lineHeight:1.45}}>Aggiungi un gruppo per permettere al cliente di scegliere tra diverse opzioni.</div>
-        </div>
-      </div>
-    );
-  }
+  // Senza varianti non si dice niente: sopra c'è già la riga che spiega cosa
+  // sono e il tasto per crearne una.
+  if (variants.length === 0 && hideAddButton) return null;
   const updateGroup = (i, patch) => setVariants(arr => arr.map((v, idx) => idx===i ? {...v, ...patch} : v));
   const removeGroup = (i) => setVariants(arr => arr.filter((_, idx) => idx !== i));
   return (
@@ -4211,7 +4190,7 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
         ))}
       </div>
       {!hideAddButton && (
-        <button onClick={addGroup} style={{marginTop: variants.length ? 10 : 0, width:'100%', padding:'10px', background:'transparent', border:`1.5px dashed ${PN.BORDER}`, borderRadius:8, color: PN.MUTED, fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:6, justifyContent:'center'}}>+ Aggiungi gruppo di varianti</button>
+        <button onClick={addGroup} style={{marginTop: variants.length ? 10 : 0, width:'100%', padding:'10px', background:'transparent', border:`1.5px dashed ${PN.BORDER}`, borderRadius:8, color: PN.MUTED, fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:6, justifyContent:'center'}}>+ Crea nuova variante</button>
       )}
     </div>
   );
@@ -4805,7 +4784,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}
                     onMouseLeave={e => e.currentTarget.style.background = PN.PINK_BG_SOFT}
-                    >+ Aggiungi gruppo di varianti</button>
+                    >+ Crea nuova variante</button>
                   </div>
                   <VariantsList variants={variants} setVariants={setVariants} hideAddButton/>
                 </DishBlock>
