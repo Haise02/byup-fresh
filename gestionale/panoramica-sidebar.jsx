@@ -52,6 +52,70 @@ window.byupWriteLocale = function(l) {
   } catch(e) {}
 };
 
+// Fatture elettroniche emesse — condivise via localStorage tra Vendita
+// diretta (che le crea, all'incasso) e Contabilità (che le elenca). Vivono
+// qui e non nei file di Sala perché Contabilità non carica quei file: questo
+// è l'unico script incluso da entrambe le pagine.
+const BYUP_FATTURE_KEY = 'byup_fatture_emesse';
+window.byupReadFatture = function() {
+  try {
+    const s = localStorage.getItem(BYUP_FATTURE_KEY);
+    return s ? JSON.parse(s) : [];
+  } catch(e) { return []; }
+};
+function byupWriteFattureRaw(list) {
+  try {
+    localStorage.setItem(BYUP_FATTURE_KEY, JSON.stringify(list));
+    window.dispatchEvent(new Event('byup-fatture-change'));
+  } catch(e) {}
+}
+// Registra la fattura appena inviata e simula la risposta dello SdI: la
+// consegna reale arriva via webhook nei giorni successivi (fino a 5), qui
+// arriva in pochi secondi perché la finestra Fatture non resti bloccata su
+// "In attesa" per tutta la demo. 9 su 10 va a buon fine — lo scarto è raro
+// ma va mostrato, è la ragione per cui questa lista esiste.
+// Upsert e non solo insert: una fattura scartata e ritrasmessa NON è un
+// documento nuovo — la circolare 13/E/2018 vuole stesso numero e stessa data
+// entro 5 giorni dallo scarto. Quindi la riga è la stessa e riparte da capo.
+window.byupSaveFattura = function(f) {
+  const list = window.byupReadFatture();
+  const i = list.findIndex(x => x.id === f.id);
+  if (i >= 0) list[i] = f; else list.unshift(f);
+  byupWriteFattureRaw(list);
+  const esito = Math.random() < 0.9 ? 'consegnata' : 'scartata';
+  setTimeout(() => {
+    const cur = window.byupReadFatture();
+    const k = cur.findIndex(x => x.id === f.id);
+    if (k === -1) return;
+    // Sullo scarto si segna QUANDO: i 5 giorni per ritrasmettere decorrono da
+    // lì, non dalla data del documento, e senza questo il conto alla rovescia
+    // sarebbe inventato.
+    cur[k] = { ...cur[k], stato: esito, scartataIl: esito === 'scartata' ? new Date().toISOString() : undefined };
+    byupWriteFattureRaw(cur);
+  }, 4000 + Math.random() * 5000);
+};
+
+// Nota di credito. NON è una modifica della fattura: quella, una volta partita,
+// non si tocca più — l'API di OpenAPI su /IT-invoices/{id} espone solo GET,
+// mentre sugli scontrini ha PATCH e DELETE. È un documento NUOVO (TD04) che
+// storna l'originale, con una sua numerazione e un suo giro allo SdI, e per
+// questo passa dallo stesso byupSaveFattura di tutti gli altri.
+window.byupCreaNotaCredito = function(f) {
+  // Il progressivo conta anche i mock di Contabilità: sono documenti come gli
+  // altri nella lista, e ripartire da 1 ignorandoli darebbe due NC 1/26.
+  const tutte = [...(window.BYUP_FATTURE_MOCK || []), ...window.byupReadFatture()];
+  const n = tutte.filter(x => x.tipo === 'nota_credito').length + 1;
+  window.byupSaveFattura({
+    ...f,
+    id: `nc-${n}-${f.id}`,
+    numero: `NC ${n}/${String(new Date().getFullYear()).slice(2)}`,
+    data: new Date().toISOString(),
+    stato: 'in_attesa',
+    tipo: 'nota_credito',
+    storna: { id: f.id, numero: f.numero },
+  });
+};
+
 function PnSidebar({ active = 'panoramica', onNav }) {
   const [profHover, setProfHover] = React.useState(false);
   const [profPress, setProfPress] = React.useState(false);

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=1920"/>
+<title>byup — KDS</title>
+<link rel="icon" type="image/png" href="/assets/byup-icon.png"/>
+<link rel="apple-touch-icon" href="/assets/byup-icon.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  /* Il palco è un grigio chiaro appena più profondo del canvas dello schermo
+     (K.FONDO in kds-data.jsx): si vede solo se la finestra non è esattamente
+     1920×1080 e il fit lascia un margine — sul monitor vero, dove il fit
+     riempie sempre lo schermo, questo colore non si vede mai. */
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #E4E7EC;
+    color: #12151A;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Schermo intero 1920×1080 orizzontale, nessuna sidebar. La forma è quella
+     del monitor vero: se il prototipo si disegnasse su una finestra qualsiasi,
+     tutte le decisioni su quante card ci stanno per pagina sarebbero finte. */
+  .frame {
+    width: 1920px;
+    height: 1080px;
+    background: #EEF0F3;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  /* Niente flash grigio di sistema al tocco: il riscontro lo diamo noi. */
+  * { -webkit-tap-highlight-color: transparent; }
+
+  /* Riscontro di PRESSIONE, mai di passaggio. Su un monitor di cucina l'hover
+     o non esiste (è un touch screen) o resta appiccicato dopo il tap, e in
+     entrambi i casi mente. Su fondo chiaro il riscontro SCURISCE (0.90/0.93,
+     gli stessi valori del feedback di pressione condiviso del gestionale) —
+     schiarire come si fa su un fondo scuro qui sbiadirebbe verso il bianco e
+     il tocco sparirebbe. Qui NON si carica panoramica-tokens.jsx: quel foglio
+     aggiunge anche un'ombra e uno schiarimento al PASSAGGIO del mouse, cioè
+     un'elevazione che su questo schermo contraddice il piano unico. */
+  button { transition: transform 90ms ease-out, filter 110ms ease; }
+  button:not(:disabled) { cursor: pointer; }
+  button:not(:disabled):active { transform: scale(0.97); filter: brightness(0.90); }
+
+  /* Contenitori cliccabili (le card, le righe): alla pressione si scurisce
+     tutto il contenitore, così si legge come un oggetto solo. Se però a essere
+     premuto è un bottone DENTRO, reagisce solo lui — il riscontro deve dire
+     cosa hai toccato, non scurire un quarto di schermo. */
+  [style*="cursor: pointer"]:not(button):not([data-no-fx]),
+  [style*="cursor:pointer"]:not(button):not([data-no-fx]) { transition: filter 110ms ease; }
+  [style*="cursor: pointer"]:not(button):not([data-no-fx]):active,
+  [style*="cursor:pointer"]:not(button):not([data-no-fx]):active { filter: brightness(0.93); }
+
+  /* Percorso da tastiera. L'anello è scuro perché il fondo è chiaro, e sta
+     DENTRO il bersaglio così non invade il vicino. */
+  button:focus-visible, [tabindex]:focus-visible {
+    outline: 3px solid #12151A;
+    outline-offset: -3px;
+  }
+
+  /* Barre di scorrimento: esistono solo dentro le sovrapposizioni. Il board
+     operativo non scorre mai — si pagina. */
+  .kds-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+  .kds-scroll::-webkit-scrollbar-thumb { background: #7C8794; border-radius: 999px; }
+  .kds-scroll::-webkit-scrollbar-track { background: transparent; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Superficie touch. Nessun token del gestionale viene caricato: il tema è
+     dichiarato per intero in kds-data.jsx, e le quattro icone che servono
+     stanno in kds-card.jsx — importare la libreria condivisa per prenderne
+     quattro voci sarebbe una dipendenza in più e niente in meno. -->
+<script>window.__BYUP_TOUCH_SURFACE = true;</script>
+
+<script type="text/babel" src="kds-data.jsx?v=3"></script>
+<script type="text/babel" src="kds-card.jsx?v=3"></script>
+<script type="text/babel" src="kds-board.jsx?v=3"></script>
+<script type="text/babel" src="kds-app.jsx?v=3"></script>
+
+<!-- Adattamento proporzionale. Il board è disegnato a 1920×1080 e si scala
+     INTERO, senza mai rifloware: su un 43" o su un portatile ci stanno sempre
+     le stesse otto card nelle stesse posizioni. È il presupposto di tutto —
+     un layout che si riorganizza a seconda dello schermo non può promettere
+     che il tavolo 12 sia sempre il terzo in alto a sinistra. -->
+<script>
+(function () {
+  var W = 1920, H = 1080;
+  var cur = null;
+  function fit() {
+    var frame = document.querySelector('.frame');
+    if (!frame) return;
+    var s = Math.min(window.innerWidth / W, window.innerHeight / H);
+    s = Math.max(0.25, Math.min(2.5, s));
+    if (s === cur) return;
+    frame.style.zoom = s;
+    cur = s;
+  }
+  window.addEventListener('resize', fit);
+  // Il frame lo monta React dopo la compilazione Babel (asincrona, da CDN):
+  // al primo caricamento può non esistere ancora. L'observer applica il fit
+  // appena compare, senza gare perse su rete lenta.
+  new MutationObserver(fit).observe(document.getElementById('root') || document.body, { childList: true, subtree: true });
+  fit();
+})();
+</script>
+</body>
+</html>

@@ -64,6 +64,7 @@ function ContabilitaApp() {
               {id:'conti', label:'Conti', icon:'commerce-wallet'},
               {id:'costi', label:'Costi', icon:'commerce-price-tag'},
               {id:'iva',   label:'IVA',   icon:'commerce-receipt'},
+              {id:'fatture', label:'Fatture', icon:'commerce-register'},
               {id:'export', label:'Export', icon:'download'},
             ].map(t => (
               <PnSectionTab key={t.id} id={t.id} active={tab === t.id} onClick={setTab} label={t.label} icon={t.icon}/>
@@ -75,6 +76,7 @@ function ContabilitaApp() {
           {tab==='conti' && <ContConti filter={contiFilter}/>}
           {tab==='costi' && <ContCosti openNewCost={() => setNewCost(true)}/>}
           {tab==='iva'   && <ContIva month={ivaMonth} setMonth={setIvaMonth}/>}
+          {tab==='fatture' && <ContFatture/>}
           {tab==='export' && <ContExport openShare={() => setShare(true)}/>}
         </div>
 

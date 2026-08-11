@@ -28,6 +28,11 @@ const CONTI_MOCK = [
   { id:'cnt-6',  idOrdine:'#2511-0037', dataOra:'2025-11-08 21:00', tavolo:'Tavolo 3',  cliente:'Francesco Rossi',   liberatoOre:168,   totaleConto:95.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p6a', method:'contanti', amount:95.50, ora:'2025-11-08 21:45', scontrinoNum:'SC-2511-0037-1'}] },
   { id:'cnt-13', idOrdine:'#2511-0035', dataOra:'2025-11-13 13:15', tavolo:'Tavolo 4',  cliente:'Pellegrini',        liberatoOre:60,    totaleConto:64.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
+    // Unico conto saldato a pagamento singolo con righe: il reso — a
+    // differenza dell'annullo — ha bisogno di sapere COSA si sta restituendo,
+    // e lo scontrino non è itemizzato quando il conto si divide su più
+    // pagamenti (le righe condivise finirebbero rese due volte).
+    ordini: [{id:'o13-1',nome:'Cotoletta alla milanese',qty:2,prezzo:18.00},{id:'o13-2',nome:'Patate al forno',qty:2,prezzo:5.00},{id:'o13-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'o13-4',nome:'Acqua minerale',qty:2,prezzo:2.00}],
     payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1'}] },
   { id:'cnt-14', idOrdine:'#2511-0034', dataOra:'2025-11-12 20:00', tavolo:'Tavolo 8',  cliente:'Carlo Russo',       liberatoOre:84,    totaleConto:215.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [
@@ -150,7 +155,7 @@ function ByupMark({ size = 16 }) {
   );
 }
 
-function ContoExpandedPanel({ conto, onRimborso }) {
+function ContoExpandedPanel({ conto, onDettaglio, getStato }) {
   const payments = conto.payments || [];
   const fmtPayOra = (s) => {
     if (!s) return '';
@@ -199,6 +204,11 @@ function ContoExpandedPanel({ conto, onRimborso }) {
           {payments.map(p => {
             const meta = methodMeta[p.method] || methodMeta.contanti;
             const Icon = meta.icon;
+            // Lo stato del documento si legge qui, non si tocca qui: annullo
+            // e reso partono solo dal dettaglio, dove le righe si vedono
+            // prima di decidere — un pulsante rapido su una riga di elenco
+            // farebbe scegliere alla cieca.
+            const st = getStato ? getStato(p.id) : null;
             return (
               <div key={p.id} style={{
                 display:'grid',
@@ -223,14 +233,20 @@ function ContoExpandedPanel({ conto, onRimborso }) {
                   </div>
                   <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 4, display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap'}}>
                     <span>{fmtDataOra(p.ora.split(' ')[0] + ' ' + fmtPayOra(p.ora))}</span>
+                    {st && (
+                      <span style={{
+                        padding:'2px 8px', borderRadius: 999, background:'#FEE2E2', color:'#B91C1C',
+                        fontSize: 11.5, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.3,
+                      }}>{st.tipo === 'annullo' ? 'Annullato' : 'Reso'}</span>
+                    )}
                   </div>
                 </div>
-                <div style={{fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color: PN.TEXT}}>
+                <div style={{fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color: st ? PN.MUTED_SOFT : PN.TEXT, textDecoration: st && st.tipo === 'annullo' ? 'line-through' : 'none'}}>
                   €{p.amount.toFixed(2)}
                 </div>
                 <div style={{display:'inline-flex', alignItems:'center', gap: 6}} onClick={e => e.stopPropagation()}>
                   {p.scontrinoNum && (
-                    <button style={{
+                    <button onClick={() => onDettaglio && onDettaglio(conto, p)} style={{
                       padding:'6px 10px', background: PN.WHITE,
                       border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
                       fontSize: C.T_XS, fontWeight: 600, color: PN.TEXT,
@@ -241,19 +257,6 @@ function ContoExpandedPanel({ conto, onRimborso }) {
                       Scontrino
                     </button>
                   )}
-                  <button onClick={() => onRimborso && onRimborso(conto, p)} style={{
-                    padding:'6px 10px', background: PN.WHITE,
-                    border:`1px solid #FCA5A5`, borderRadius: C.R_SM,
-                    fontSize: C.T_XS, fontWeight: 600, color: '#B91C1C',
-                    cursor:'pointer', fontFamily:'inherit',
-                    display:'inline-flex', alignItems:'center', gap: 5,
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}
-                  >
-                    <PnI.RotateCcw size={12}/>
-                    Rimborso
-                  </button>
                 </div>
               </div>
             );
@@ -261,7 +264,36 @@ function ContoExpandedPanel({ conto, onRimborso }) {
         </div>
       )}
 
-      {/* Rimborso */}
+      {/* Annulli e resi — uno per scontrino, col documento collegato */}
+      {payments.map(p => {
+        const st = getStato ? getStato(p.id) : null;
+        if (!st) return null;
+        return (
+          <div key={p.id} style={{
+            marginTop: 10, padding:'10px 14px',
+            background:'#FEF2F2', border:`1px solid #FECACA`, borderRadius: C.R_SM,
+            display:'grid', gridTemplateColumns:'auto 1fr auto', gap: 12, alignItems:'center',
+          }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background:'#FEE2E2', color:'#B91C1C',
+              display:'grid', placeItems:'center',
+            }}><PnI.RotateCcw size={15}/></div>
+            <div>
+              <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>
+                {st.tipo === 'annullo' ? 'Annullo' : 'Reso'} scontrino {p.scontrinoNum}
+              </div>
+              <div style={{fontSize: C.T_XS, color:'#B91C1C', marginTop: 2, fontFamily:'ui-monospace, Menlo, monospace'}}>{st.doc}</div>
+            </div>
+            <div style={{fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color:'#991B1B'}}>
+              −€{st.amount.toFixed(2)}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Rimborso — voce storica pre-esistente al collegamento annullo/reso,
+          senza un pagamento specifico a cui agganciarsi: resta com'era. */}
       {conto.rimborso && (
         <div style={{
           marginTop: 10, padding:'10px 14px',
@@ -288,6 +320,141 @@ function ContoExpandedPanel({ conto, onRimborso }) {
         </div>
       )}
 
+    </div>
+  );
+}
+
+// Dettaglio scontrino — il documento con le sue righe, e le tre sole cose che
+// si possono fare su un corrispettivo: stamparlo, rendere alcune righe,
+// annullarlo. Diverso dalla fattura apposta: qui annullo e reso SONO chiamate
+// dirette dell'API (DELETE / PATCH su IT-e-receipts), non serve un documento
+// esterno come la nota di credito.
+//
+// Il reso è a righe intere, non a quantità: "il cliente rimanda indietro una
+// delle due cotolette" è un caso che al banco non capita mai abbastanza da
+// giustificare un contatore per riga.
+function ScontrinoDettaglioModal({ conto, payment, stato, puoRendere, onClose, onAnnulla, onReso }) {
+  const [sel, setSel] = React.useState(null); // null = sola lettura · Set(id) = selezione reso
+  const [stampato, setStampato] = React.useState(false);
+
+  const righe = conto.ordini || [];
+  const statoInfo = !stato ? { label: 'Attivo', bg: '#DCFCE7', fg: '#16A34A' }
+    : stato.tipo === 'annullo' ? { label: 'Annullato', bg: '#FEE2E2', fg: '#B91C1C' }
+    : { label: 'Reso', bg: '#FEE2E2', fg: '#B91C1C' };
+  const metodoLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : 'Contanti';
+  const totaleSel = righe.filter(r => sel && sel.has(r.id)).reduce((s, r) => s + r.qty * r.prezzo, 0);
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex: 998,
+      display:'flex', alignItems:'center', justifyContent:'center', padding: 20,
+      fontFamily:'inherit',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG, borderRadius: 20, padding: 26,
+        maxWidth: 440, width:'100%', maxHeight:'86vh', overflow:'auto',
+      }}>
+        <div style={{display:'flex', alignItems:'flex-start', gap: 10}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize: C.T_LG, fontWeight: 800, color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>
+              {payment.scontrinoNum}
+            </div>
+            <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 3}}>
+              {fmtDataOra(conto.dataOra.split(' ')[0] + ' ' + (payment.ora.split(' ')[1] || ''))} · {metodoLabel} · {conto.cliente}
+            </div>
+          </div>
+          <span style={{
+            padding:'4px 10px', borderRadius: 999, background: statoInfo.bg, color: statoInfo.fg,
+            fontSize: C.T_XS, fontWeight: 700, flexShrink: 0,
+          }}>{statoInfo.label}</span>
+          <button onClick={onClose} style={{
+            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+            background: C.SURF_ALT, border:'none', color: PN.MUTED, cursor:'pointer',
+            display:'grid', placeItems:'center',
+          }}><PnI.X size={12}/></button>
+        </div>
+
+        {righe.length === 0 ? (
+          <div style={{
+            marginTop: 16, padding:'14px', background: C.SURF_ALT, borderRadius: C.R_SM,
+            fontSize: C.T_SM, color: PN.MUTED, textAlign:'center',
+          }}>Nessuna riga associata a questo scontrino — solo l'importo totale.</div>
+        ) : (
+          <div style={{marginTop: 16, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, overflow:'hidden'}}>
+            {righe.map((r, i) => {
+              const on = sel && sel.has(r.id);
+              return (
+                <div key={r.id}
+                  onClick={sel ? () => setSel(s => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; }) : undefined}
+                  style={{
+                    display:'flex', alignItems:'center', gap: 10, padding:'9px 12px',
+                    borderTop: i ? `1px solid ${PN.BORDER_SOFT}` : 'none',
+                    background: on ? '#FFFBEB' : PN.WHITE,
+                    cursor: sel ? 'pointer' : 'default',
+                  }}>
+                  {sel && (
+                    <span style={{
+                      width: 16, height: 16, borderRadius: 5, flexShrink: 0,
+                      border:`1.5px solid ${on ? '#B45309' : PN.BORDER}`,
+                      background: on ? '#B45309' : PN.WHITE, color:'#fff',
+                      display:'grid', placeItems:'center',
+                    }}>{on && <PnI.Check size={10}/>}</span>
+                  )}
+                  <span style={{fontSize: C.T_SM, fontWeight: 700, color: PN.MUTED, minWidth: 24}}>{r.qty}×</span>
+                  <span style={{flex:1, minWidth:0, fontSize: C.T_SM, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.nome}</span>
+                  <span style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+                    €{(r.qty * r.prezzo).toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{
+          display:'flex', marginTop: 14, padding:'10px 14px', background: C.SURF_ALT, borderRadius: C.R_SM,
+          fontSize: C.T_MD, fontWeight: 800, color: stato ? '#B91C1C' : PN.TEXT,
+        }}>
+          <span style={{flex:1}}>{stato ? (stato.tipo === 'annullo' ? 'Annullato' : 'Reso') : 'Totale'}</span>
+          <span style={{fontVariantNumeric:'tabular-nums'}}>
+            {stato ? '−' : ''}€{(stato ? stato.amount : payment.amount).toFixed(2)}
+          </span>
+        </div>
+
+        {sel ? (
+          <div style={{display:'flex', gap: 10, marginTop: 16}}>
+            <button onClick={() => setSel(null)} style={{
+              flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
+              borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+            }}>Indietro</button>
+            <button onClick={() => onReso(totaleSel)} disabled={totaleSel <= 0} style={{
+              flex:2, padding:'11px 14px', border:'none', borderRadius: C.R_SM,
+              background: totaleSel > 0 ? PN.TEXT : '#E5E7EB',
+              color: totaleSel > 0 ? '#fff' : '#9CA3AF',
+              fontSize: C.T_SM, fontWeight: 700, cursor: totaleSel > 0 ? 'pointer' : 'default', fontFamily:'inherit',
+            }}>{totaleSel > 0 ? `Rendi €${totaleSel.toFixed(2)}` : 'Scegli cosa rendere'}</button>
+          </div>
+        ) : (
+          <div style={{display:'flex', gap: 8, marginTop: 16}}>
+            <button onClick={() => { setStampato(true); setTimeout(() => setStampato(false), 2000); }} style={{
+              flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
+              borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
+            }}>{stampato ? 'Stampato ✓' : 'Stampa'}</button>
+            {puoRendere && (
+              <button onClick={() => setSel(new Set())} style={{
+                flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid #FCD34D`,
+                borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, color:'#B45309', cursor:'pointer', fontFamily:'inherit',
+              }}>Rendi</button>
+            )}
+            {!stato && (
+              <button onClick={onAnnulla} style={{
+                flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid #FCA5A5`,
+                borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, color:'#B91C1C', cursor:'pointer', fontFamily:'inherit',
+              }}>Annulla</button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -606,24 +773,45 @@ function ContConti({ filter = 'all' }) {
   const [modalPagamento, setModalPagamento] = React.useState(null);
   const [saldati, setSaldati] = React.useState(new Set());
 
-  const [modalRimborso, setModalRimborso] = React.useState(null);
-  const [rimborsoPayment, setRimborsoPayment] = React.useState(null);
-  const [rimborsoStep, setRimborsoStep] = React.useState(1);
+  // Stato fiscale dello scontrino, per id pagamento: UN'AZIONE SOLA per
+  // documento — annullato oppure reso, e da lì non si tocca più. Copre tutto
+  // quello che succede davvero al banco; il reso di un reso è una
+  // complicazione che nessuno ha chiesto e che costerebbe metà di questo file.
+  const [scontriniStato, setScontriniStato] = React.useState({}); // { [paymentId]: {tipo, amount, doc} }
+  const statoDi = (paymentId) => scontriniStato[paymentId] || null;
+  // Il reso ha bisogno di sapere QUALI righe restituisce, e le righe sono del
+  // conto: attendibili solo se il conto ha un pagamento solo, altrimenti sono
+  // condivise fra scontrini diversi e non si sa quali coprisse questo.
+  const puoRendere = (conto, payment) =>
+    !statoDi(payment.id) && !!(conto.ordini || []).length && conto.payments.length === 1;
+
+  const [modalRimborso, setModalRimborso] = React.useState(null); // {conto, payment, tipo:'annullo'|'reso', amount} | null
+  const [rimborsoStep, setRimborsoStep] = React.useState('metodo'); // 'metodo' | 'conferma'
+  const [dettaglioScontrino, setDettaglioScontrino] = React.useState(null); // {conto, payment} | null
 
   const [expandedId, setExpandedId] = React.useState(null);
   const [sortData, setSortData] = React.useState(null); // null | 'desc' (recenti) | 'asc' (meno recenti)
 
-  function apriRimborso(conto, payment) {
-    setModalRimborso(conto);
-    setRimborsoPayment(payment || null);
-    setRimborsoStep(1);
+  // Cosa si restituisce l'ha già deciso il dettaglio scontrino; qui resta solo
+  // il "come tornano i soldi".
+  function apriRimborso(conto, payment, tipo, amount) {
+    setDettaglioScontrino(null);
+    setModalRimborso({ conto, payment, tipo, amount });
+    setRimborsoStep('metodo');
   }
   function chiudiRimborso() {
     setModalRimborso(null);
-    setRimborsoPayment(null);
-    setRimborsoStep(1);
+    setRimborsoStep('metodo');
   }
-  function confermaRimborso() { chiudiRimborso(); }
+  // Unico punto in cui lo stato del documento cambia. Il numero col suffisso è
+  // il documento collegato, come farebbe parent_receipt_id lato SdI.
+  function confermaRimborso() {
+    const { payment, tipo, amount } = modalRimborso;
+    setScontriniStato(st => ({ ...st, [payment.id]: {
+      tipo, amount, doc: `${payment.scontrinoNum}-${tipo === 'annullo' ? 'A' : 'R'}`,
+    }}));
+    chiudiRimborso();
+  }
 
   // KPI: tavoli in sospeso
   const nonSaldati = CONTI_MOCK.filter(c => c.stato === 'non_saldato');
@@ -870,7 +1058,8 @@ function ContConti({ filter = 'all' }) {
                   {isExpanded && (
                     <ContoExpandedPanel
                       conto={conto}
-                      onRimborso={(c, p) => apriRimborso(c, p)}
+                      getStato={statoDi}
+                      onDettaglio={(c, p) => setDettaglioScontrino({ conto: c, payment: p })}
                     />
                   )}
                 </React.Fragment>
@@ -881,13 +1070,28 @@ function ContConti({ filter = 'all' }) {
         )}
       </div>
 
-      {/* Modal rimborso — il metodo dipende dal canale del pagamento target */}
+      {/* Dettaglio scontrino: il documento, le sue righe, e da lì Stampa/Rendi/Annulla */}
+      {dettaglioScontrino && (
+        <ScontrinoDettaglioModal
+          conto={dettaglioScontrino.conto}
+          payment={dettaglioScontrino.payment}
+          stato={statoDi(dettaglioScontrino.payment.id)}
+          puoRendere={puoRendere(dettaglioScontrino.conto, dettaglioScontrino.payment)}
+          onClose={() => setDettaglioScontrino(null)}
+          onAnnulla={() => apriRimborso(dettaglioScontrino.conto, dettaglioScontrino.payment, 'annullo', dettaglioScontrino.payment.amount)}
+          onReso={(amount) => apriRimborso(dettaglioScontrino.conto, dettaglioScontrino.payment, 'reso', amount)}
+        />
+      )}
+
+      {/* Modal rimborso — SOLO il "come tornano i soldi": cosa si sta
+          restituendo (tutto o alcune righe) l'ha già deciso il dettaglio
+          scontrino. Il metodo dipende dal canale del pagamento originale. */}
       {modalRimborso && (() => {
+        const { conto, payment, tipo, amount } = modalRimborso;
         // contanti → restituzione manuale in cassa; carta/byup/altro → rimborso Stripe
-        const refundMethod = rimborsoPayment?.method || modalRimborso.metodoPagamento || 'contanti';
-        const useStripe = refundMethod !== 'contanti';
-        const amount = rimborsoPayment ? rimborsoPayment.amount : modalRimborso.totaleConto;
-        const channelLabel = refundMethod === 'byup' ? 'Byup app' : refundMethod === 'carta' ? 'Carta' : 'Contanti';
+        const useStripe = payment.method !== 'contanti';
+        const channelLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : 'Contanti';
+        const titolo = tipo === 'annullo' ? 'Annulla scontrino' : 'Reso';
         return (
         <div style={{
           position:'fixed', top:0, left:0, right:0, bottom:0,
@@ -901,18 +1105,18 @@ function ContConti({ filter = 'all' }) {
               ...PN.GLASS_STRONG, borderRadius: 20,
               padding: 32, maxWidth: 440, width:'100%',
             }}>
-            {rimborsoStep === 1 ? (
+            {rimborsoStep === 'metodo' ? (
               <React.Fragment>
                 <h2 style={{margin:'0 0 4px 0', fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>
-                  Rimborso
+                  {titolo}
                 </h2>
                 <p style={{margin:'0 0 24px 0', fontSize: C.T_SM, color: PN.MUTED}}>
-                  {modalRimborso.cliente} · {channelLabel} · €{amount.toFixed(2)}
+                  {conto.cliente} · {channelLabel} · €{amount.toFixed(2)}
                 </p>
                 <div style={{display:'flex', flexDirection:'column', gap:10, marginBottom:24}}>
                   {useStripe ? (
                     <button
-                      onClick={() => setRimborsoStep(2)}
+                      onClick={() => setRimborsoStep('conferma')}
                       style={{
                         padding:'14px 16px', background:'#4F46E5', color:'#fff',
                         border:'none', borderRadius: C.R_SM,
@@ -921,14 +1125,14 @@ function ContConti({ filter = 'all' }) {
                       }}>
                       Rimborsa tramite Stripe
                       <div style={{fontSize: C.T_XS, fontWeight:500, opacity:0.8, marginTop:3}}>
-                        {refundMethod === 'byup'
+                        {payment.method === 'byup'
                           ? 'Il cliente riceverà il rimborso sul metodo collegato all\'app Byup'
                           : 'Il cliente riceverà il rimborso sulla carta originale'}
                       </div>
                     </button>
                   ) : (
                     <button
-                      onClick={() => setRimborsoStep(2)}
+                      onClick={() => setRimborsoStep('conferma')}
                       style={{
                         padding:'14px 16px', background:'#F9FAFB', color: PN.TEXT,
                         border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
@@ -955,14 +1159,14 @@ function ContConti({ filter = 'all' }) {
             ) : (
               <React.Fragment>
                 <h2 style={{margin:'0 0 4px 0', fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>
-                  Confermi il rimborso?
+                  {tipo === 'annullo' ? 'Confermi l\'annullo?' : 'Confermi il reso?'}
                 </h2>
                 <p style={{margin:'0 0 24px 0', fontSize: C.T_SM, color: PN.MUTED}}>
-                  {useStripe ? 'Stripe' : 'Contanti'} · {modalRimborso.cliente} · €{amount.toFixed(2)}
+                  {useStripe ? 'Stripe' : 'Contanti'} · {conto.cliente} · €{amount.toFixed(2)}
                 </p>
                 <div style={{display:'flex', gap:10}}>
                   <button
-                    onClick={() => setRimborsoStep(1)}
+                    onClick={() => setRimborsoStep('metodo')}
                     style={{
                       flex:1, padding:'10px 16px', background: PN.WHITE,
                       border:`1px solid ${PN.BORDER}`, borderRadius: 9,

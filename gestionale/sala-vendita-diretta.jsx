@@ -10,6 +10,52 @@ const SV_SUNSET_BG = `
 `;
 const SV_SUNSET_SHADOW = 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)';
 const SV_SUNSET_TEXT = '#FFE9E6';
+
+// Memoria di sessione del prototipo. In produzione questa roba sta sul server
+// e la domanda non si pone; qui serve perché passare da una sezione all'altra
+// ricarica la pagina, e la coda "Da saldare" non può ripartire da capo
+// ogni volta: ci vivono i conti sospesi, cioè soldi già presi.
+// Se lo storage è negato (sessione privata, permessi) si degrada al seed senza
+// rompere niente — si perde la persistenza, non la schermata.
+function svLeggiSessione(chiave, fallback) {
+  try {
+    const grezzo = sessionStorage.getItem(chiave);
+    if (grezzo != null) return JSON.parse(grezzo);
+  } catch (e) { /* storage negato o JSON illeggibile: vale il seed */ }
+  return fallback === undefined ? null : fallback;
+}
+function svScriviSessione(chiave, valore) {
+  try { sessionStorage.setItem(chiave, JSON.stringify(valore)); } catch (e) { /* niente persistenza, pazienza */ }
+}
+
+// Come si chiama un conto quando lo cerchi a voce, che è l'unico modo in cui
+// lo si cerca davvero: arriva qualcuno al banco e dice una parola.
+//
+// Il nome del cliente vince sempre, ovunque — al banco esattamente come in
+// asporto. Se qualcuno si è presentato, quello è il suo conto e chiamarlo
+// "B-3" sarebbe dargli un numero avendo già il nome. Tutto il resto viene
+// dopo, in ordine di quanto è utile a chi sta dall'altra parte del bancone:
+//   B-3           quello che gli diamo noi quando un nome non c'è
+//   codice ritiro quello che ha in mano lui, non il nostro
+//   #1247         un numero da registro, che non pronuncia nessuno
+const svNomeConto = (r) => r.cliente || r.banco || r.codiceRitiro || r.codice;
+
+// Cosa resta di un ordine dopo i rimborsi: le righe tolte scompaiono dalla
+// lista e il totale scende di conseguenza.
+// Serve perché chi consegna deve vedere il contenuto di ADESSO, non quello
+// ordinato mezz'ora fa: se il branzino è stato tolto e rimborsato, lasciarlo
+// scritto nella card significa farlo cercare a chi prepara il sacchetto.
+const svResiduoOrdine = (r) => {
+  const rimborsato = (r.rimborsi || []).reduce((s, x) => s + x.amount, 0);
+  const tolte = (r.rimborsi || []).flatMap(x => x.righe || []);
+  const items = (r.items || [])
+    .map((it, i) => ({
+      ...it,
+      qty: it.qty - tolte.filter(t => t.i === i).reduce((s, t) => s + t.qty, 0),
+    }))
+    .filter(it => it.qty > 0);
+  return { items, rimborsato, totale: Math.max(0, r.totale - rimborsato) };
+};
 const svSunsetHoverIn  = e => { e.currentTarget.style.filter = 'brightness(1.15)'; };
 const svSunsetHoverOut = e => { e.currentTarget.style.filter = 'none'; };
 
@@ -31,11 +77,26 @@ function SalaVenditaDiretta() {
   const [search, setSearch] = React.useState('');
   const [cat, setCat] = React.useState('Tutto');
   const [lines, setLines] = React.useState([]); // [{id, piatto, qty, mods, lineTotal}]
+  // Acconti già incassati sul conto in corso. Vivono qui, accanto al carrello,
+  // e non dentro la finestra di incasso: chiudere la finestra è un gesto che
+  // si fa cento volte per servizio (arriva un ritiro, si sbaglia piatto, il
+  // cliente torna alla macchina) e non può cancellare contante che è già
+  // entrato in cassa. Stessa scelta di `tavolo.incasso` in Sala: lo stato del
+  // denaro sta sulla cosa pagata, non sulla finestra che l'ha incassato.
+  // Nessun acconto vive sul carrello. Il primo acconto trasforma il conto in
+  // una voce di coda — vedi `parcheggiaConAcconto` — perché del carrello non
+  // resta traccia: cambiare sezione ricarica la pagina e lo azzera. Un conto
+  // con dei soldi sopra deve stare su qualcosa che sopravvive, e in Vendita
+  // diretta quel qualcosa esiste già ed è la coda "Da saldare".
   const [takeaway, setTakeaway] = React.useState(false);
-  // Cliente dell'asporto: chi viene a ritirare. Vive solo finché il flag è
-  // acceso — spento l'asporto, l'ordine torna anonimo come ogni scontrino.
+  // Il cliente del conto: chi ritira, o chi sta aspettando al bancone.
+  // Non è più legato all'asporto. Prima si azzerava spegnendo quel flag,
+  // perché "al banco un ordine è anonimo come uno scontrino" — ma non è vero
+  // che al banco i nomi non servono: servono ogni volta che qualcuno aspetta
+  // e va richiamato, ed è la ragione per cui esiste B-3. Se un nome c'è, quel
+  // nome è meglio di qualunque numero, e vince (vedi `svNomeConto`).
+  // Si azzera quando si azzera il conto, non quando si cambia modalità.
   const [taCliente, setTaCliente] = React.useState(null);
-  React.useEffect(() => { if (!takeaway) setTaCliente(null); }, [takeaway]);
   React.useEffect(() => { if (!asportoOn) setTakeaway(false); }, [asportoOn]);
   const [incassaOpen, setIncassaOpen] = React.useState(false);
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
@@ -44,20 +105,36 @@ function SalaVenditaDiretta() {
   // Ritiri: coda di chi aspetta al banco — asporto dai canali digitali e ordini
   // di cassa con preparazione, che abbiano o no il sacchetto. Drawer laterale +
   // conferma con codice ritiro; "Salda ora" apre l'incasso al banco.
-  const [ritiri, setRitiri] = React.useState(() => (window.SALA_ASPORTO_CONTI || []));
+  // Il prototipo non ha un server, e cambiare sezione È un ricaricamento di
+  // pagina: senza questo, ogni stato riparte dal seed. Per la coda non va più
+  // bene — da quando ci vivono anche i conti sospesi, azzerarla vuol dire
+  // perdere dei soldi a ogni giro di sezione, cioè esattamente il problema che
+  // spostarli qui doveva risolvere.
+  // sessionStorage e non localStorage: dura quanto la scheda, così riaprendo
+  // il prototipo si riparte dai dati di esempio puliti.
+  const [ritiri, setRitiri] = React.useState(() => svLeggiSessione('byup.sala.ritiri', window.SALA_ASPORTO_CONTI || []));
+  React.useEffect(() => { svScriviSessione('byup.sala.ritiri', ritiri); }, [ritiri]);
   // Coda aperta nel pannello: 'salda' (ancora da incassare) o 'consegna'
   // (pagati, pronti da dare via). Sono i due gesti diversi del banco, quindi
   // due liste diverse — non una sola con dentro due tipi di card.
   const [coda, setCoda] = React.useState(null);
   const [consegnatiOpen, setConsegnatiOpen] = React.useState(false);
   React.useEffect(() => {
-    if (!asportoOn) { setCoda(null); setConsegnatiOpen(false); }
+    // Spegnere l'asporto chiude consegne e archivio, ma non "Pronti da
+    // saldare": lì possono esserci conti di cassa sospesi, che con l'asporto
+    // non c'entrano niente e non vanno chiusi fuori dalla vista.
+    if (!asportoOn) { setCoda(c => c === 'consegna' ? null : c); setConsegnatiOpen(false); }
   }, [asportoOn]);
   // Dettaglio di un ordine già consegnato, aperto dall'archivio.
   const [dettaglio, setDettaglio] = React.useState(null);
   // Storico del servizio: ordini già chiusi. Cresce man mano che si consegna.
-  const [storico, setStorico] = React.useState(() => (window.SALA_ORDINI_STORICO || []));
+  const [storico, setStorico] = React.useState(() => svLeggiSessione('byup.sala.storico', window.SALA_ORDINI_STORICO || []));
+  React.useEffect(() => { svScriviSessione('byup.sala.storico', storico); }, [storico]);
   const [saldaOrdine, setSaldaOrdine] = React.useState(null); // ordine da saldare al banco (modale incasso)
+  // Ordine su cui si sta facendo un rimborso. Ci si arriva da due posti — il
+  // dettaglio di un consegnato, e un conto in coda con un acconto sopra —
+  // perché sono i due momenti in cui il cliente torna indietro.
+  const [rimborsaOrdine, setRimborsaOrdine] = React.useState(null);
   const [toast, setToast] = React.useState(null);
   const showToast = (msg) => {
     setToast(msg);
@@ -72,13 +149,70 @@ function SalaVenditaDiretta() {
       return next;
     });
     setStorico(prev => [{...ordine, stato: 'consegnato'}, ...prev]);
-    showToast(`✓ Ordine ${ordine.codice} consegnato${ordine.cliente ? ` a ${ordine.cliente}` : ''}`);
+    showToast(`✓ ${svNomeConto(ordine)} consegnato`);
   };
   // Incasso confermato: l'ordine diventa pagato e passa nella coda di chi va
   // solo consegnato — lo stesso ordine, l'altro gesto.
   const confermaSaldo = (ordine) => {
+    // Un conto sospeso senza preparazione non ha niente da consegnare: il
+    // caffè è già stato bevuto, mancavano solo i soldi. Saldarlo lo chiude e
+    // basta — farlo passare da "Da consegnare" chiederebbe un secondo tocco
+    // per un gesto che non esiste.
+    if (ordine.fonte === 'banco' && !ordine.codiceRitiro) {
+      setRitiri(prev => prev.filter(r => r.id !== ordine.id));
+      setStorico(prev => [{...ordine, pagato: true, stato: 'consegnato'}, ...prev]);
+      showToast(`✓ ${svNomeConto(ordine)} saldato`);
+      return;
+    }
     setRitiri(prev => prev.map(r => r.id === ordine.id ? {...r, pagato: true} : r));
-    showToast(`✓ Ordine ${ordine.codice} saldato · ora è da consegnare`);
+    showToast(`✓ ${svNomeConto(ordine)} saldato · ora è da consegnare`);
+  };
+
+  // Un rimborso registrato. Dove finisce l'ordine dipende da due cose: dov'era
+  // e se è stato tolto tutto o solo un pezzo.
+  //
+  // Annullato per intero → esce dalla coda: non c'è più niente da incassare né
+  // da consegnare, e lo si ritrova in archivio.
+  // Tolto un pezzo a un ordine ancora da consegnare → RESTA in coda, più
+  // leggero. È la correzione tipica del banco — la cucina finisce un piatto,
+  // il cliente ci ripensa prima di ritirare — e l'ordine deve comunque uscire
+  // dalle mani di qualcuno: farlo sparire dalla coda vorrebbe dire che nessuno
+  // consegna più il resto.
+  const applicaRimborso = (ordine, rimborso) => {
+    const conRimborso = (o) => ({
+      ...o,
+      rimborsi: [...(o.rimborsi || []), rimborso],
+      annullato: o.annullato || rimborso.tipo === 'annulla',
+    });
+    const inCoda = ritiri.some(r => r.id === ordine.id);
+    const annullato = rimborso.tipo === 'annulla';
+    if (inCoda && annullato) {
+      setRitiri(prev => prev.filter(r => r.id !== ordine.id));
+      setStorico(prev => [conRimborso({...ordine, stato: 'annullato'}), ...prev]);
+    } else if (inCoda) {
+      setRitiri(prev => prev.map(r => r.id === ordine.id ? conRimborso(r) : r));
+    } else {
+      setStorico(prev => prev.map(o => o.id === ordine.id ? conRimborso(o) : o));
+    }
+    // Il dettaglio aperto sotto deve rileggere l'ordine aggiornato, non la
+    // copia di prima: senza, il rimborso appena fatto non comparirebbe.
+    setDettaglio(d => d && d.id === ordine.id ? conRimborso(d) : d);
+    // "Tolto" e non "Reso" quando niente è ancora uscito dal banco: il cliente
+    // non ha restituito nulla, l'ordine è semplicemente più corto.
+    const verbo = annullato ? 'Annullato' : (inCoda ? 'Tolto da' : 'Reso');
+    showToast(`${verbo} ${svNomeConto(ordine)} · −€${rimborso.amount.toFixed(2)} · ${rimborso.doc}`);
+  };
+
+  // Un acconto preso su un ordine già in coda resta su quell'ordine. Scrive in
+  // due posti perché sono due cose diverse: la lista è la verità, `saldaOrdine`
+  // è la copia che la finestra aperta sta guardando.
+  const aggiornaAccontiOrdine = (aggiorna) => {
+    if (!saldaOrdine) return;
+    const prossimi = typeof aggiorna === 'function'
+      ? aggiorna(saldaOrdine.acconti || [])
+      : aggiorna;
+    setSaldaOrdine(o => o && ({...o, acconti: prossimi}));
+    setRitiri(prev => prev.map(r => r.id === saldaOrdine.id ? {...r, acconti: prossimi} : r));
   };
 
   // Le due code, dalla stessa lista: il pagamento è ciò che le separa.
@@ -90,10 +224,34 @@ function SalaVenditaDiretta() {
   // tutto ed è il KDS a filtrare per stazione (un caffè semplicemente non
   // comparirà su nessuna postazione). Il numero è la ricevuta dell'invio per
   // l'operatore, l'unico punto del flusso in cui l'ordine diventa una cosa.
-  const ordineSeq = React.useRef(1246);
+  // Anche il contatore sopravvive al ricaricamento: se ripartisse da 1246, il
+  // conto sospeso #1247 lasciato in coda e il primo ordine battuto dopo un
+  // cambio di sezione porterebbero lo stesso numero — due cose diverse con lo
+  // stesso nome, in una coda dove il numero è l'unica identità.
+  const ordineSeq = React.useRef(svLeggiSessione('byup.sala.ordineSeq', 1246));
+  const numeraOrdine = () => {
+    const n = ++ordineSeq.current;
+    svScriviSessione('byup.sala.ordineSeq', n);
+    return n;
+  };
   // Codice ritiro: alfabeto senza I/O/0/1 — va dettato a voce al cliente.
   const nuovoCodiceRitiro = () => Array.from({length: 4}, () =>
     'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+
+  // Nome del conto al banco. Chi ordina al bancone non lascia un nome — non
+  // c'è un'app di mezzo e chiederlo per un caffè è assurdo — quindi glielo
+  // diamo noi: B-1, B-2, corto abbastanza da dirlo a voce e da scriverlo su
+  // un bicchiere. Il progressivo dell'ordine (#1247) non serve a questo: è un
+  // numero da registro, cresce tutto il giorno e non lo pronuncia nessuno.
+  // Riparte da 1 ogni giorno: al banco un numero vive quanto il servizio, e
+  // "B-3" alle nove di sera non deve competere con il "B-3" di stamattina.
+  const nuovoNumeroBanco = () => {
+    const oggi = new Date().toISOString().slice(0, 10);
+    const cur = svLeggiSessione('byup.sala.banco', null);
+    const n = (cur && cur.giorno === oggi) ? cur.n + 1 : 1;
+    svScriviSessione('byup.sala.banco', { giorno: oggi, n });
+    return `B-${n}`;
+  };
 
   // Un ordine entra nella coda al banco se c'è qualcosa da aspettare, non se è
   // da asporto: chi ordina una lasagna e si siede va richiamato al banco
@@ -104,7 +262,7 @@ function SalaVenditaDiretta() {
     l.piatto.cat !== 'Bar' && l.piatto.cat !== 'Personalizzato');
 
   const creaOrdine = (totale) => {
-    const numero = ++ordineSeq.current;
+    const numero = numeraOrdine();
     const ordine = { numero, codice: `#${numero}`, totale, takeaway };
     // In coda: l'ordine non finisce col pagamento, resta in attesa di ritiro.
     // Il flag asporto qui non decide nulla — dice solo se va incartato.
@@ -114,8 +272,9 @@ function SalaVenditaDiretta() {
       const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       setRitiri(prev => [...prev, {
         id: `banco-${numero}`, codice: ordine.codice,
-        cliente: takeaway ? taCliente : null, ritiro: hhmm,
+        cliente: taCliente, ritiro: hhmm,
         fonte: 'banco', pagato: true, asporto: takeaway, totale,
+        banco: takeaway ? null : nuovoNumeroBanco(),
         codiceRitiro: ordine.codiceRitiro,
         items: lines.map(l => ({
           nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
@@ -123,7 +282,51 @@ function SalaVenditaDiretta() {
       }]);
     }
     setTakeaway(false);
+    setTaCliente(null);
     return ordine;
+  };
+
+  // Primo acconto su un conto di cassa: il carrello smette di essere un
+  // carrello e diventa una voce di coda, con dentro i soldi già presi. È il
+  // "conto sospeso" di qualunque cassa, e qui la coda esiste già — quella di
+  // "Da saldare", dove stanno gli ordini ancora da incassare.
+  //
+  // Succede subito, al primo acconto, non alla chiusura della finestra: fra i
+  // due momenti ci sta un cambio di sezione, che ricarica la pagina e si
+  // porterebbe via tutto. I soldi non devono mai esistere sul carrello.
+  //
+  // La cassa resta libera: chi ha pagato metà si sposta, il prossimo cliente
+  // viene servito, e il conto si riprende da "Salda ora" quando torna.
+  const parcheggiaConAcconto = (pagamento, totaleConto) => {
+    const numero = numeraOrdine();
+    const now = new Date();
+    const voce = {
+      id: `banco-${numero}`, codice: `#${numero}`,
+      cliente: taCliente,
+      ritiro: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      fonte: 'banco', pagato: false, asporto: takeaway, totale: totaleConto,
+      // Al banco il conto prende un nome corto e detto a voce; in asporto no,
+      // perché lì il nome è quello del cliente.
+      banco: takeaway ? null : nuovoNumeroBanco(),
+      // Il codice ritiro serve a richiamare chi aspetta un piatto. Un conto
+      // sospeso di soli caffè non richiama nessuno: resta senza, ed è quello
+      // che poi gli fa saltare la coda "Da consegnare" una volta saldato.
+      codiceRitiro: haPreparazione(lines) ? nuovoCodiceRitiro() : null,
+      acconti: [pagamento],
+      items: lines.map(l => ({
+        nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
+      })),
+    };
+    setRitiri(prev => [...prev, voce]);
+    setLines([]);
+    setTakeaway(false);
+    setTaCliente(null);
+    // La finestra non si chiude: riparte sullo stesso conto, che adesso però
+    // è in coda. Chi voleva pagare il resto subito non deve andarselo a
+    // cercare, e chi voleva andarsene chiude e lo trova lì.
+    setIncassaOpen(false);
+    setSaldaOrdine(voce);
+    showToast(`${svNomeConto(voce)} in attesa · restano ${svEur(totaleConto - pagamento.importo)}`);
   };
 
   const cats = ['Tutto', ...Array.from(new Set(SALA_VENDITA_PIATTI.map(p => p.cat)))];
@@ -180,12 +383,15 @@ function SalaVenditaDiretta() {
       qty: 1, mods: null, lineTotal: price,
     }]);
   };
+  // Si apre sempre, anche su un piatto senza opzioni: da quando la riga ha un
+  // solo pulsante e si chiama "Personalizza", uscire in silenzio sarebbe un
+  // tocco che non fa niente — il modo più veloce per far credere che sia rotto.
+  // Dentro ci si trova almeno la quantità e il nome; se non c'è altro da
+  // scegliere, lo dice quella schermata invece di non aprirsi.
   const editExistingLine = (i) => {
     const line = lines[i];
-    if (isCustomizable(line.piatto)) {
-      setEditLine(i);
-      setPersonalize({ piatto: line.piatto, mods: line.mods, qty: line.qty });
-    }
+    setEditLine(i);
+    setPersonalize({ piatto: line.piatto, mods: line.mods, qty: line.qty });
   };
 
   const total = lines.reduce((s, l) => s + l.lineTotal * l.qty, 0);
@@ -236,15 +442,20 @@ function SalaVenditaDiretta() {
                 fa asporto. Sono stati, non modalità: aprono il pannello degli
                 ordini già filtrato su quello che devi fare — incassare, o
                 consegnare e basta. */}
-            {asportoOn && <>
-            <SaCodaBtn
-              label="Pronti da saldare"
+            {/* "Da saldare" non è una cosa da asporto: ci finiscono anche i
+                conti di cassa sospesi con un acconto sopra. Se ce n'è anche
+                uno solo deve esserci il modo di tornarci, pure in un locale
+                che l'asporto non lo fa — altrimenti quei soldi non hanno più
+                una porta. */}
+            {(asportoOn || daSaldare.length > 0) && <SaCodaBtn
+              label="Da saldare"
               count={daSaldare.length}
               tone="amber"
-              title="Ordini arrivati da app o webapp, ancora da incassare in cassa"
+              title="Ordini ancora da incassare: arrivati da app o webapp, e conti di cassa lasciati in sospeso con un acconto"
               onClick={() => setCoda('salda')}
               icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="13" rx="2.5"/><path d="M2 10.5h20"/><path d="M6 15h4"/></svg>}
-            />
+            />}
+            {asportoOn && <>
             <SaCodaBtn
               label="Da consegnare"
               count={daConsegnare.length}
@@ -379,7 +590,7 @@ function SalaVenditaDiretta() {
         onEdit={editExistingLine}
         onChangeName={editLineName}
         onChangePrice={editLinePrice}
-        onClear={() => setLines([])}
+        onClear={() => { setLines([]); setTaCliente(null); }}
         onIncassa={() => setIncassaOpen(true)}
       />
       </div>
@@ -387,6 +598,9 @@ function SalaVenditaDiretta() {
       <SaIncassaModal
         open={incassaOpen}
         total={total}
+        lines={lines}
+        takeaway={takeaway}
+        onAcconto={parcheggiaConAcconto}
         onClose={() => setIncassaOpen(false)}
         onConfirm={(totale) => {
           const ordine = creaOrdine(totale);
@@ -403,6 +617,7 @@ function SalaVenditaDiretta() {
         onClose={() => setCoda(null)}
         onConsegna={confermaConsegna}
         onSalda={setSaldaOrdine}
+        onRimborsa={setRimborsaOrdine}
       />
 
       {/* Consegnati — l'archivio del servizio */}
@@ -414,14 +629,41 @@ function SalaVenditaDiretta() {
         />
       )}
 
-      {/* Ordine già chiuso: non ha più una coda dove andare, si apre e basta */}
+      {/* Ordine già chiuso: si apre per guardarci dentro, e per rimborsare —
+          è l'unico posto dove un cliente che torna indietro lo ritrova. */}
       {dettaglio && (
-        <SaOrdineDettaglioModal ordine={dettaglio} onClose={() => setDettaglio(null)}/>
+        <SaOrdineDettaglioModal
+          ordine={dettaglio}
+          onClose={() => setDettaglio(null)}
+          onRimborsa={() => setRimborsaOrdine(dettaglio)}/>
       )}
-      {/* Salda ora asporto: stessa modale incasso del banco, sul totale dell'ordine */}
+
+      {rimborsaOrdine && (
+        <SaRimborsoModal
+          ordine={rimborsaOrdine}
+          preConsegna={ritiri.some(r => r.id === rimborsaOrdine.id)}
+          onClose={() => setRimborsaOrdine(null)}
+          onConfirm={(rimborso) => applicaRimborso(rimborsaOrdine, rimborso)}/>
+      )}
+      {/* Salda ora: stessa modale incasso del banco, sul totale dell'ordine.
+          Vale sia per gli asporto arrivati dai canali digitali sia per i conti
+          di cassa parcheggiati con un acconto — sono la stessa cosa, un ordine
+          che esiste e non è ancora saldato. Gli acconti sono suoi: la finestra
+          li legge e ci riscrive dentro, così un secondo acconto resta sul conto
+          in coda invece di generarne un altro. */}
+      {/* L'ordine d'asporto ha già le sue righe, in una forma sua: qui si
+          rivestono da riga di carrello perché la finestra fattura sappia
+          leggerle. Sono cessioni, non somministrazione — takeaway sempre. */}
       <SaIncassaModal
         open={!!saldaOrdine}
         total={saldaOrdine ? saldaOrdine.totale : 0}
+        lines={saldaOrdine ? saldaOrdine.items.map(it => ({
+          piatto: { name: it.nome, hasAlcohol: it.hasAlcohol, prodottoFinito: it.prodottoFinito },
+          qty: it.qty, lineTotal: it.prezzo,
+        })) : []}
+        takeaway
+        pagamenti={saldaOrdine ? (saldaOrdine.acconti || []) : []}
+        onPagamenti={aggiornaAccontiOrdine}
         onClose={() => setSaldaOrdine(null)}
         onConfirm={() => confermaSaldo(saldaOrdine)}
       />
@@ -497,14 +739,18 @@ function SaCodaBtn({ label, count, tone, icon, title, onClick }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Coda del banco — popup centrale, stessa anatomia di card per i due modi:
-//   'salda'    → arrivati da app/webapp, ancora da incassare (CTA Salda ora)
+//   'salda'    → arrivati da app/webapp, ancora da incassare (CTA Procedi al pagamento)
 //   'consegna' → già pagati, pronti da dare via (CTA Segna come consegnato)
 // L'archivio dei consegnati sta nella riga in alto, non qui dentro.
 
 const SA_CODA_MODI = {
   salda: {
-    titolo: 'Pronti da saldare',
-    sotto: 'Ordini arrivati da app e webapp, ancora da incassare. Saldati, passano nella coda di chi va consegnato.',
+    // "Da saldare" e non "Pronti da saldare": qui il tema è il pagamento, non
+    // la prontezza — un ordine appena arrivato non è pronto, è solo non
+    // pagato. E in fila con "Da consegnare" i due stati si leggono in
+    // parallelo, che è come li usa chi sta al banco.
+    titolo: 'Da saldare',
+    sotto: 'Ordini ancora da incassare: arrivati da app e webapp, o lasciati in sospeso alla cassa. Saldati, passano nella coda di chi va consegnato.',
     vuotoTitolo: 'Niente da saldare',
     vuotoTesto: 'Gli ordini che arrivano già pagati non passano di qui.',
     // Chi si presenta al banco dice un codice o un nome: qui si cerca quello,
@@ -520,12 +766,16 @@ const SA_CODA_MODI = {
   },
 };
 
-function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
+function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onRimborsa }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
   const [q, setQ] = React.useState('');
   React.useEffect(() => { setQ(''); }, [modo, open]);
   const ql = testi.ricerca ? q.trim().toLowerCase() : '';
   const visibili = !ql ? ritiri : ritiri.filter(r =>
+    // Si cerca con quello che il cliente dice: il suo nome, "B-3", il codice
+    // di ritiro. Il progressivo interno resta cercabile perché a volte lo si
+    // ha sotto gli occhi da un'altra schermata, ma non è più il primo modo.
+    svNomeConto(r).toLowerCase().includes(ql) ||
     (r.codice || '').toLowerCase().includes(ql) ||
     (r.cliente || '').toLowerCase().includes(ql) ||
     (r.items || []).some(i => i.nome.toLowerCase().includes(ql))
@@ -636,97 +886,138 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
               // di ogni card — la CTA Consegna — resta clippato da overflow:hidden.
               flexShrink: 0,
             }}>
-              {/* Testata: identità + stato; sotto, codice, orario e fonte in
-                  una riga di metadati ordinata. Un ordine di cassa non ha un
-                  nome: la sua identità è il numero, che sale a titolo — dentro
-                  un drawer già intitolato "Ritiri al banco" ripetere "al banco"
-                  su ogni card non aggiunge niente. */}
-              <div style={{padding:'13px 16px 11px', display:'flex', alignItems:'flex-start', gap: 10}}>
-                <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{fontSize: 17.5, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>{r.cliente || r.codice}</div>
-                  <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 5, minWidth: 0}}>
-                    {r.cliente && (
+              {/* Le due cose che servono per scorrere la coda stanno sulla
+                  stessa riga e sono le più grandi: CHI è (per riconoscerlo
+                  quando si presenta) e QUANTO (per dirglielo). Con queste due
+                  in cima la coda si legge senza leggere gli articoli.
+                  Il progressivo #1247 è sparito dalla card: è un numero da
+                  registro, nessuno lo pronuncia, e stava grande quanto il nome.
+                  Al suo posto il nome vero del conto — B-3 al banco, il nome
+                  del cliente in asporto, il codice di ritiro se non l'ha
+                  lasciato. */}
+              {(() => {
+                const netto = svResiduoOrdine(r);
+                const preso = (r.acconti || []).reduce((s, p) => s + p.importo, 0);
+                const resta = Math.max(0, netto.totale - preso);
+                const conAcconto = preso > 0.004 && !r.pagato;
+                return (
+                  <div style={{padding:'14px 16px 0'}}>
+                    <div style={{display:'flex', alignItems:'baseline', gap: 12}}>
                       <span style={{
-                        fontSize: 13, fontWeight: 700, color: PN.TEXT,
-                        fontVariantNumeric:'tabular-nums',
-                        background:'#F4F5F7', border:`1px solid ${PN.BORDER_SOFT}`,
-                        padding:'1px 8px', borderRadius: 7, flexShrink: 0,
-                      }}>{r.codice}</span>
-                    )}
-                    <span style={{display:'inline-flex', alignItems:'center', gap: 4, fontSize: 14, color: PN.MUTED, whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
-                      ritiro {r.ritiro}
-                    </span>
-                    {/* Un solo chip, e solo dove esiste una scelta: un ordine di
-                        cassa è da asporto o al banco, e la differenza è un gesto
-                        (incartare o no). Il canale non compare più — per gli
-                        ordini remoti lo dice già il badge di pagamento, e
-                        ripeterlo non cambia cosa fa l'operatore al ritiro. */}
-                    {r.fonte === 'banco' && (
+                        flex: 1, minWidth: 0, display:'flex', alignItems:'baseline', gap: 7,
+                        overflow:'hidden',
+                      }}>
+                        <span style={{
+                          minWidth: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.4,
+                          color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                        }}>{svNomeConto(r)}</span>
+                        {/* Un ordine dall'app ha un account dietro: il nome è
+                            vero, non uno scritto a mano al banco, e a quel
+                            cliente si può scrivere. Il bollino è lo stesso che
+                            la Sala usa sugli ordini byup — stessa cosa, stesso
+                            segno, in tutto il gestionale. */}
+                        {r.fonte === 'byup' && (
+                          <span style={{
+                            fontSize: 12, fontWeight: 800, color:'#E04347',
+                            background:'#FFE0DD', padding:'2px 6px', borderRadius: 4,
+                            letterSpacing: 0.4, textTransform:'uppercase', flexShrink: 0,
+                          }}>byup</span>
+                        )}
+                      </span>
+                      {/* Niente etichetta sopra la cifra: la coda si chiama
+                          "Da saldare", quindi cosa sia quel numero è già detto
+                          dal posto in cui stai. */}
                       <span style={{
-                        fontSize: 12, fontWeight: 800, letterSpacing: 0.4, textTransform:'uppercase',
-                        padding:'2px 8px', borderRadius: 999, flexShrink: 0,
-                        background: r.asporto ? PN.AMBER_SOFT : '#F4F5F7',
-                        color: r.asporto ? '#92400E' : PN.MUTED,
-                      }}>{r.asporto ? 'da asporto' : 'al banco'}</span>
-                    )}
+                        fontSize: 21, fontWeight: 800, letterSpacing: -0.4,
+                        color: r.pagato ? PN.MUTED : PN.TEXT,
+                        fontVariantNumeric:'tabular-nums', flexShrink: 0,
+                      }}>€{(r.pagato ? netto.totale : resta).toFixed(2)}</span>
+                    </div>
+                    <div style={{
+                      display:'flex', alignItems:'baseline', gap: 10, marginTop: 2,
+                      fontSize: 14, color: PN.MUTED,
+                    }}>
+                      <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
+                        {(r.fonte === 'banco' ? !!r.asporto : true) ? 'Asporto' : 'Sul posto'} · ritiro {r.ritiro}
+                      </span>
+                      {conAcconto && (
+                        <span style={{flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>di €{netto.totale.toFixed(2)}</span>
+                      )}
+                      {/* Quanto è già uscito dall'ordine: senza, la cifra in
+                          alto sarebbe scesa senza spiegazione. */}
+                      {netto.rimborsato > 0.004 && (
+                        <span style={{flexShrink: 0, color:'#B91C1C', fontWeight: 600, fontVariantNumeric:'tabular-nums'}}>
+                          −€{netto.rimborsato.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {r.pagato ? (
-                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 13.5, fontWeight: 700, color:'#15803D', background:'#DCFCE7', padding:'4px 11px', borderRadius: 999, flexShrink: 0}}>
-                    ✓ {r.fonte === 'banco' ? 'Pagato in cassa' : 'Pagato in app'}
-                  </span>
-                ) : (
-                  <span style={{display:'inline-flex', alignItems:'center', gap: 5, fontSize: 13.5, fontWeight: 700, color:'#92400E', background: PN.AMBER_SOFT, padding:'4px 11px', borderRadius: 999, flexShrink: 0}}>
-                    Da pagare
-                  </span>
-                )}
-              </div>
-              {/* Articoli su pannello tinto: respiro e totale in evidenza */}
-              <div style={{margin:'0 12px 12px', background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, padding:'10px 12px', display:'flex', flexDirection:'column', gap: 4}}>
-                {r.items.map((item, i) => (
+                );
+              })()}
+
+              {/* Gli articoli servono a consegnare, non a fare i conti: qui
+                  bastano quantità e nome. I prezzi riga erano cinque numeri per
+                  card che nessuno somma — il totale sta già scritto sopra, e
+                  loro competevano con quello. */}
+              <div style={{padding:'10px 16px 12px', display:'flex', flexDirection:'column', gap: 2}}>
+                {svResiduoOrdine(r).items.map((item, i) => (
                   <div key={i} style={{display:'flex', alignItems:'center', gap: 8, fontSize: 15}}>
-                    <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 24, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{item.qty}×</span>
-                    <span style={{flex: 1, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
-                    <span style={{fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{(item.prezzo * item.qty).toFixed(2)}</span>
+                    <span style={{fontWeight: 700, color: PN.MUTED_SOFT, minWidth: 22, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>{item.qty}×</span>
+                    <span style={{flex: 1, minWidth: 0, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{item.nome}</span>
                   </div>
                 ))}
-                <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 8, marginTop: 4}}>
-                  <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.4}}>{r.pagato ? 'Totale · pagato' : 'Totale da pagare'}</span>
-                  <span style={{fontSize: 18, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', letterSpacing:-0.3}}>€{r.totale.toFixed(2)}</span>
-                </div>
               </div>
               {/* CTA: mai la consegna su un ordine da saldare — prima l'incasso,
                   poi (l'ordine passa nell'altra coda) la consegna */}
-              <div style={{padding:'0 12px 12px', display:'flex', gap: 8}}>
-                {!r.pagato ? (
-                  <button onClick={() => onSalda(r)} style={{
-                    flex: 1, padding:'11px 16px', borderRadius: 999,
-                    background: PN.WHITE, color: PN.TEXT,
-                    border: `1px solid ${PN.BORDER}`,
-                    fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                    transition:'background 150ms ease-out, border-color 150ms ease, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 150ms ease',
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(15,17,21,0.12)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
-                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
-                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.03)'; }}>
-                    Salda ora
-                  </button>
-                ) : (
-                  <button onClick={() => onConsegna(r)} style={{
-                    flex: 1, padding:'11px 16px', borderRadius: 999,
+              {/* Le due code sono la stessa materia guardata in due momenti,
+                  e il gesto principale di una card ha lo stesso peso in
+                  entrambe: pulsante pieno, larghezza intera, colore del brand.
+                  Prima "Procedi al pagamento" era bianco col bordo e "Segna
+                  come consegnato" pieno — due gerarchie diverse per la stessa
+                  posizione, come se incassare contasse meno che consegnare. */}
+              <div style={{padding:'0 16px 14px'}}>
+                <button
+                  onClick={() => (r.pagato ? onConsegna(r) : onSalda(r))}
+                  style={{
+                    width:'100%', padding:'12px 16px', borderRadius: 999,
                     background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
                     border:'1px solid transparent',
                     fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                     boxShadow: SV_SUNSET_SHADOW,
                     transition:'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
                   }}
-                    onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,200,210,0.22), inset 0 0 0 1px rgba(255,130,150,0.16), 0 12px 30px -8px rgba(80,10,30,0.65), 0 4px 10px -4px rgba(80,10,30,0.35)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = SV_SUNSET_SHADOW; }}
-                    onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
-                    onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.03)'; }}>
-                    Segna come consegnato
+                  onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = 'inset 0 1px 0 rgba(255,200,210,0.22), inset 0 0 0 1px rgba(255,130,150,0.16), 0 12px 30px -8px rgba(80,10,30,0.65), 0 4px 10px -4px rgba(80,10,30,0.35)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = SV_SUNSET_SHADOW; }}
+                  onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+                  onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.02)'; }}>
+                  {r.pagato ? 'Segna come consegnato' : 'Procedi al pagamento'}
+                </button>
+
+                {/* Su un ordine pagato ma non ancora consegnato c'è l'unica
+                    finestra in cui le cose cambiano davvero: la cucina finisce
+                    un piatto, il cliente ci ripensa prima di ritirare, ti
+                    accorgi di aver battuto due birre invece di una. Senza
+                    questo, l'unica uscita era dichiarare una consegna.
+                    "Modifica" e non "Rimborsa" perché il gesto parte da lì —
+                    si toglie una riga; che i soldi tornino indietro è la
+                    conseguenza, non il motivo per cui apri.
+
+                    Sui conti da saldare invece niente: lì si storna UN incasso
+                    e quale lo si sa solo davanti alla sua riga, dentro il
+                    pagamento, dove ogni acconto ha la sua freccia. */}
+                {r.pagato && onRimborsa && (
+                  <button onClick={() => onRimborsa(r)}
+                    title="Togli un prodotto e rimborsalo, o annulla l'ordine"
+                    style={{
+                      display:'block', width:'100%', marginTop: 8,
+                      padding:'6px 4px', background:'transparent', border:'none',
+                      color: PN.MUTED, fontSize: 14.5, fontWeight: 600,
+                      cursor:'pointer', fontFamily:'inherit', textAlign:'center',
+                      transition:'color 150ms ease-out',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}>
+                    Modifica ordine
                   </button>
                 )}
               </div>
@@ -798,6 +1089,7 @@ function SaConsegnatiModal({ consegnati, onClose, onVai }) {
           {consegnati.map(o => {
             const canale = CANALE[o.fonte] || CANALE.banco;
             const nItems = o.items.reduce((s, i) => s + i.qty, 0);
+            const reso = (o.rimborsi || []).reduce((s, r) => s + r.amount, 0);
             return (
               <div key={o.id} style={{
                 display:'flex', alignItems:'center', gap: 10,
@@ -830,10 +1122,30 @@ function SaConsegnatiModal({ consegnati, onClose, onVai }) {
                     <span style={{fontSize: 14, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>
                       {o.ritiro} · {nItems} {nItems === 1 ? 'articolo' : 'articoli'}
                     </span>
+                    {/* Un ordine toccato da un rimborso si vede dalla lista:
+                        è esattamente quello che si sta cercando quando si apre
+                        l'archivio dopo una contestazione. */}
+                    {(o.annullato || reso > 0.004) && (
+                      <span style={{
+                        fontSize: 12, fontWeight: 800, letterSpacing: 0.3, textTransform:'uppercase',
+                        padding:'2px 8px', borderRadius: 999, flexShrink: 0,
+                        background: o.annullato ? '#FEE2E2' : PN.AMBER_SOFT,
+                        color: o.annullato ? '#B91C1C' : '#92400E',
+                      }}>{o.annullato ? 'annullato' : 'reso'}</span>
+                    )}
                   </span>
                 </span>
-                <span style={{fontSize: 17.5, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', minWidth: 70, textAlign:'right', flexShrink: 0}}>
-                  €{o.totale.toFixed(2)}
+                <span style={{minWidth: 70, textAlign:'right', flexShrink: 0}}>
+                  <span style={{
+                    display:'block', fontSize: 17.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
+                    color: o.annullato ? PN.MUTED : PN.TEXT,
+                    textDecoration: o.annullato ? 'line-through' : 'none',
+                  }}>€{o.totale.toFixed(2)}</span>
+                  {reso > 0.004 && !o.annullato && (
+                    <span style={{display:'block', fontSize: 13, fontWeight: 700, color:'#B91C1C', fontVariantNumeric:'tabular-nums'}}>
+                      −€{reso.toFixed(2)}
+                    </span>
+                  )}
                 </span>
                 {/* Qui non si agisce: si apre l'ordine per guardarci dentro */}
                 <button
@@ -862,7 +1174,13 @@ function SaConsegnatiModal({ consegnati, onClose, onVai }) {
 // Dettaglio di un ordine già chiuso — sola lettura: non c'è più niente da
 // fare, si viene qui per rispondere a una domanda (cosa c'era dentro,
 // quant'era, a che ora è passato).
-function SaOrdineDettaglioModal({ ordine, onClose }) {
+function SaOrdineDettaglioModal({ ordine, onClose, onRimborsa }) {
+  const resi = ordine.rimborsi || [];
+  const totReso = resi.reduce((s, r) => s + r.amount, 0);
+  const netto = Math.max(0, ordine.totale - totReso);
+  // Reso tutto: non c'è più niente da restituire e il pulsante sparisce
+  // invece di restare lì spento a farsi premere.
+  const puoRimborsare = !!onRimborsa && totReso < ordine.totale - 0.004;
   const CANALE = {
     byup:   'Byup App',
     webapp: 'Webapp guest',
@@ -904,9 +1222,11 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
           </div>
           <span style={{
             display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0,
-            fontSize: 13.5, fontWeight: 700, color: PN.MUTED,
-            background:'rgba(255,255,255,0.75)', padding:'4px 11px', borderRadius: 999,
-          }}>✓ Consegnato</span>
+            fontSize: 13.5, fontWeight: 700,
+            color: ordine.annullato ? '#B91C1C' : totReso > 0.004 ? '#92400E' : PN.MUTED,
+            background: ordine.annullato ? '#FEE2E2' : totReso > 0.004 ? PN.AMBER_SOFT : 'rgba(255,255,255,0.75)',
+            padding:'4px 11px', borderRadius: 999,
+          }}>{ordine.annullato ? 'Annullato' : totReso > 0.004 ? 'Reso parziale' : '✓ Consegnato'}</span>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius: 8, flexShrink: 0,
             border:'none', background:'rgba(255,255,255,0.75)', color: PN.TEXT,
@@ -927,15 +1247,364 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
               </div>
             ))}
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 9, marginTop: 4}}>
-              <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.4}}>Totale · pagato</span>
-              <span style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', letterSpacing:-0.3}}>€{ordine.totale.toFixed(2)}</span>
+              <span style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.4}}>
+                {totReso > 0.004 ? 'Resta incassato' : 'Totale · pagato'}
+              </span>
+              <span style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums', letterSpacing:-0.3}}>
+                €{netto.toFixed(2)}
+              </span>
             </div>
+            {totReso > 0.004 && (
+              <div style={{fontSize: 13.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>
+                Totale €{ordine.totale.toFixed(2)} · reso −€{totReso.toFixed(2)}
+              </div>
+            )}
           </div>
+
+          {/* I rimborsi fatti su questo ordine, col loro documento. È la parte
+              che qualcuno rileggerà fra un mese per capire cosa è successo,
+              quindi porta il motivo e non solo la cifra. */}
+          {resi.length > 0 && (
+            <div style={{marginTop: 14}}>
+              <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 8}}>
+                Rimborsi
+              </div>
+              <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+                {resi.map(r => (
+                  <div key={r.id} style={{
+                    background:'rgba(255,255,255,0.72)', border:`1px solid ${PN.BORDER_SOFT}`,
+                    borderRadius: 12, padding:'10px 13px',
+                  }}>
+                    <div style={{display:'flex', alignItems:'baseline', gap: 10}}>
+                      <span style={{flex: 1, minWidth: 0, fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>
+                        {r.tipo === 'annulla' ? 'Annullo' : 'Reso'}
+                        <span style={{fontWeight: 500, color: PN.MUTED}}> · {r.metodo === 'carta' ? 'Smart POS' : 'contanti'}</span>
+                      </span>
+                      <span style={{fontSize: 16, fontWeight: 800, color:'#B91C1C', fontVariantNumeric:'tabular-nums'}}>
+                        −€{r.amount.toFixed(2)}
+                      </span>
+                    </div>
+                    <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3, fontVariantNumeric:'tabular-nums'}}>
+                      {r.doc} · {r.ora}{r.motivo ? ` · ${r.motivo}` : ''}
+                    </div>
+                    {r.righe && r.righe.length > 0 && (
+                      <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 3}}>
+                        {r.righe.map(x => `${x.qty}× ${x.nome}`).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        {puoRimborsare && (
+          <div style={{padding:'0 22px 20px', flexShrink: 0}}>
+            <button onClick={onRimborsa} style={{
+              width:'100%', padding:'12px 18px', borderRadius: 14,
+              background:'transparent', color:'#B91C1C',
+              border:'1px solid rgba(185,28,28,0.28)',
+              fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+              transition:'background 150ms ease-out, border-color 150ms ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(185,28,28,0.28)'; }}>
+              Rimborsa
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rimborso al banco — stessa grammatica di Contabilità, dove il rimborso già
+// esiste: ANNULLA storna l'intero scontrino (documento con suffisso -A), RESO
+// rende righe scelte una a una e accoda un documento collegato (-R1, -R2…).
+// Sono due cose diverse e vanno chiamate coi loro nomi anche qui, altrimenti
+// lo stesso gesto ha due lingue a seconda della sezione da cui lo fai.
+//
+// Perché al banco e non solo in Contabilità: il cliente che contesta è davanti
+// alla cassa, adesso. Mandarlo ad aspettare mentre si cambia sezione è la cosa
+// che i commenti di questo file evitano ovunque; e in cassa il rimborso è la
+// normalità, mentre Contabilità è dove lo si rilegge dopo.
+//
+// Su un conto NON ancora saldato il reso per righe non esiste: chi ha lasciato
+// un acconto non ha pagato dei piatti, ha lasciato dei soldi. Lì si può solo
+// annullare il conto e restituire quello che aveva dato.
+// `preConsegna`: l'ordine è pagato ma non è ancora uscito dal banco. Cambia
+// solo le parole, non la meccanica — il documento fiscale è lo stesso — ma le
+// parole contano: "reso" dice che qualcosa è tornato indietro, e prima della
+// consegna non è tornato niente perché non era mai partito. Lì si TOGLIE.
+function SaRimborsoModal({ ordine, preConsegna, onClose, onConfirm }) {
+  const saldato = !!ordine.pagato;
+  const giaReso = (ordine.rimborsi || []).reduce((s, r) => s + r.amount, 0);
+  // Quello che è davvero entrato in cassa su questo ordine: il totale se è
+  // stato saldato, i soli acconti se è ancora sospeso. Non si può rendere più
+  // di quanto si è preso.
+  const incassato = saldato
+    ? ordine.totale
+    : (ordine.acconti || []).reduce((s, p) => s + p.importo, 0);
+  const rimborsabile = Math.max(0, incassato - giaReso);
+
+  const [tipo, setTipo] = React.useState(saldato ? 'annulla' : 'annulla');
+  // Map<indice riga, qty da rendere>
+  const [righe, setRighe] = React.useState(new Map());
+  const [metodo, setMetodo] = React.useState('contanti');
+  const [motivo, setMotivo] = React.useState('');
+  const [fatto, setFatto] = React.useState(null);
+
+  React.useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // Quantità già rese nei rimborsi precedenti, riga per riga: un secondo reso
+  // non deve poter restituire pezzi già restituiti nel primo.
+  const resoFinora = (i) => (ordine.rimborsi || [])
+    .flatMap(r => r.righe || [])
+    .filter(r => r.i === i)
+    .reduce((s, r) => s + r.qty, 0);
+
+  const totReso = ordine.items.reduce((s, it, i) => s + (righe.get(i) || 0) * it.prezzo, 0);
+  const importo = tipo === 'annulla' ? rimborsabile : Math.min(totReso, rimborsabile);
+  const puoConfermare = importo > 0.004;
+
+  const setQty = (i, q) => {
+    const max = ordine.items[i].qty - resoFinora(i);
+    const v = Math.max(0, Math.min(q, max));
+    setRighe(m => { const n = new Map(m); if (v === 0) n.delete(i); else n.set(i, v); return n; });
+  };
+
+  const conferma = () => {
+    if (!puoConfermare) return;
+    const nResi = (ordine.rimborsi || []).filter(r => r.tipo === 'reso').length;
+    const rimborso = {
+      id: `r${(ordine.rimborsi || []).length + 1}`,
+      tipo, amount: importo, metodo,
+      motivo: motivo.trim() || null,
+      righe: tipo === 'reso'
+        ? [...righe.entries()].map(([i, qty]) => ({ i, qty, nome: ordine.items[i].nome, prezzo: ordine.items[i].prezzo }))
+        : null,
+      ora: svOraHHMM(),
+      doc: tipo === 'annulla' ? `${ordine.codice}-A` : `${ordine.codice}-R${nResi + 1}`,
+    };
+    onConfirm(rimborso);
+    setFatto(rimborso);
+  };
+
+  const MOTIVI = ['Piatto reso', 'Servizio contestato', 'Errore di cassa'];
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 130, padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 22, width: 460, maxWidth:'100%', maxHeight:'100%',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+      }}>
+        {fatto ? (
+          /* La ricevuta del gesto: il documento ha un numero, ed è l'unica
+             cosa che il cliente e il commercialista ritroveranno dopo. */
+          <div style={{padding:'30px 24px 24px', textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center'}}>
+            <div style={{
+              width: 56, height: 56, borderRadius:'50%', marginBottom: 14,
+              background:'#DCFCE7', color: PN.GREEN, display:'grid', placeItems:'center',
+            }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div style={{fontSize: 21, fontWeight: 800, color: PN.TEXT, letterSpacing:-0.3}}>
+              {fatto.tipo === 'annulla' ? 'Ordine annullato'
+                : preConsegna ? 'Ordine aggiornato' : 'Reso registrato'}
+            </div>
+            <div style={{fontSize: 26, fontWeight: 800, color: PN.TEXT, marginTop: 6, fontVariantNumeric:'tabular-nums', letterSpacing:-0.5}}>
+              −€{fatto.amount.toFixed(2)}
+            </div>
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 4}}>
+              Restituiti in {fatto.metodo === 'carta' ? 'Smart POS' : 'contanti'} · documento {fatto.doc}
+            </div>
+            <button onClick={onClose} style={{
+              width:'100%', marginTop: 22, padding:'13px 18px', borderRadius: 14,
+              background: PN.TEXT, color:'#fff', border:'none',
+              fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            }}>Chiudi</button>
+          </div>
+        ) : (
+        <>
+          <div style={{padding:'20px 22px 12px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
+            <div style={{flex: 1, minWidth: 0}}>
+              <div style={{fontSize: 20, fontWeight: 800, color: PN.TEXT, letterSpacing:-0.3}}>Rimborso</div>
+              <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, fontVariantNumeric:'tabular-nums'}}>
+                Ordine {ordine.codice} · {saldato ? 'incassati' : 'acconto'} €{incassato.toFixed(2)}
+                {giaReso > 0.004 && ` · già resi €${giaReso.toFixed(2)}`}
+              </div>
+            </div>
+            <button onClick={onClose} style={{
+              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+              border:'none', background:'rgba(255,255,255,0.75)', color: PN.TEXT,
+              cursor:'pointer', display:'grid', placeItems:'center', fontSize: 18, fontFamily:'inherit',
+            }}>×</button>
+          </div>
+
+          <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding:'0 22px'}}>
+            {/* Su un conto sospeso c'è una strada sola, e mostrare una scelta
+                finta sarebbe peggio che non mostrarla. */}
+            {saldato ? (
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginBottom: 14}}>
+                {[
+                  { k:'annulla', label:'Annulla tutto', sub:'storna lo scontrino' },
+                  { k:'reso',
+                    label: preConsegna ? 'Togli un prodotto' : 'Reso parziale',
+                    sub:'scegli le righe' },
+                ].map(o => {
+                  const on = tipo === o.k;
+                  return (
+                    <button key={o.k} onClick={() => setTipo(o.k)} style={{
+                      padding:'11px 12px', borderRadius: 14, textAlign:'left',
+                      background: on ? SVI_TINT : 'rgba(255,255,255,0.75)',
+                      border:`1.5px solid ${on ? SVI_CORAL : PN.BORDER_SOFT}`,
+                      cursor:'pointer', fontFamily:'inherit',
+                    }}>
+                      <div style={{fontSize: 16, fontWeight: 700, color: on ? SVI_CORAL : PN.TEXT}}>{o.label}</div>
+                      <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>{o.sub}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{
+                display:'flex', gap: 9, alignItems:'flex-start',
+                padding:'11px 13px', borderRadius: 12, marginBottom: 14,
+                background: PN.AMBER_SOFT, color:'#92400E', fontSize: 14.5, lineHeight: 1.45,
+              }}>
+                <span style={{flexShrink: 0, marginTop: 1}}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+                </span>
+                Il conto non è ancora saldato: si può solo annullarlo e restituire l'acconto. Il reso per righe vale sui conti già pagati.
+              </div>
+            )}
+
+            {tipo === 'reso' && (
+              <div style={{
+                background:'rgba(255,255,255,0.72)', border:`1px solid ${PN.BORDER_SOFT}`,
+                borderRadius: 14, padding:'8px 12px', marginBottom: 14,
+              }}>
+                {ordine.items.map((it, i) => {
+                  const max = it.qty - resoFinora(i);
+                  const q = righe.get(i) || 0;
+                  return (
+                    <div key={i} style={{
+                      display:'flex', alignItems:'center', gap: 10, padding:'8px 0',
+                      borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+                      opacity: max === 0 ? 0.45 : 1,
+                    }}>
+                      <span style={{flex: 1, minWidth: 0, fontSize: 15.5, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                        {it.nome}
+                        <span style={{color: PN.MUTED, fontWeight: 500}}> · €{it.prezzo.toFixed(2)}</span>
+                      </span>
+                      {max === 0 ? (
+                        <span style={{fontSize: 13.5, color: PN.MUTED, fontWeight: 600}}>già reso</span>
+                      ) : (
+                        <span style={{display:'inline-flex', alignItems:'center', gap: 2, flexShrink: 0}}>
+                          <button onClick={() => setQty(i, q - 1)} disabled={q === 0} style={svRimbStep(q === 0)}>−</button>
+                          <span style={{minWidth: 34, textAlign:'center', fontSize: 15.5, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{q}/{max}</span>
+                          <button onClick={() => setQty(i, q + 1)} disabled={q >= max} style={svRimbStep(q >= max)}>+</button>
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 7}}>
+              Come restituisci
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginBottom: 14}}>
+              {[{k:'contanti', label:'Contanti'}, {k:'carta', label:'Smart POS'}].map(m => {
+                const on = metodo === m.k;
+                return (
+                  <button key={m.k} onClick={() => setMetodo(m.k)} style={{
+                    padding:'11px 12px', borderRadius: 14,
+                    background: on ? SVI_TINT : 'rgba(255,255,255,0.75)',
+                    border:`1.5px solid ${on ? SVI_CORAL : PN.BORDER_SOFT}`,
+                    color: on ? SVI_CORAL : PN.TEXT,
+                    fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  }}>{m.label}</button>
+                );
+              })}
+            </div>
+
+            {/* Il motivo non è burocrazia: è l'unica cosa che, riletta in
+                Contabilità fra un mese, distingue un errore di cassa da un
+                piatto rimandato indietro. */}
+            <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 7}}>
+              Motivo
+            </div>
+            <div style={{display:'flex', gap: 6, flexWrap:'wrap', marginBottom: 8}}>
+              {MOTIVI.map(m => (
+                <button key={m} onClick={() => setMotivo(motivo === m ? '' : m)} style={{
+                  padding:'6px 12px', borderRadius: 999,
+                  background: motivo === m ? PN.TEXT : 'rgba(255,255,255,0.75)',
+                  color: motivo === m ? '#fff' : PN.TEXT,
+                  border:`1px solid ${motivo === m ? PN.TEXT : PN.BORDER_SOFT}`,
+                  fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+                }}>{m}</button>
+              ))}
+            </div>
+            <input
+              value={motivo}
+              onChange={e => setMotivo(e.target.value)}
+              placeholder="Oppure scrivilo…"
+              style={{
+                width:'100%', boxSizing:'border-box', padding:'10px 12px', borderRadius: 10,
+                border:`1px solid ${PN.BORDER_SOFT}`, outline:'none',
+                background:'rgba(255,255,255,0.75)', fontSize: 15.5, fontFamily:'inherit', color: PN.TEXT,
+                marginBottom: 18,
+              }}/>
+          </div>
+
+          <div style={{padding:'12px 22px 20px', flexShrink: 0}}>
+            <button
+              onClick={conferma}
+              disabled={!puoConfermare}
+              style={{
+                width:'100%', padding:'14px 18px', borderRadius: 14,
+                background: puoConfermare ? '#DC2626' : '#EFEFF1',
+                color: puoConfermare ? '#fff' : '#9CA3AF',
+                border:'none', fontSize: 17.5, fontWeight: 700,
+                cursor: puoConfermare ? 'pointer' : 'not-allowed', fontFamily:'inherit',
+                boxShadow: puoConfermare ? '0 8px 20px -8px rgba(220,38,38,0.55)' : 'none',
+              }}>
+              {puoConfermare
+                ? `Rimborsa €${importo.toFixed(2)}`
+                : tipo === 'reso' ? 'Scegli cosa rendere' : 'Niente da rimborsare'}
+            </button>
+          </div>
+        </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const svRimbStep = (off) => ({
+  width: 28, height: 28, borderRadius: 8, padding: 0,
+  border:`1px solid ${PN.BORDER_SOFT}`, background:'rgba(255,255,255,0.9)',
+  color: off ? PN.MUTED_SOFT : PN.TEXT,
+  fontSize: 17, fontWeight: 800, fontFamily:'inherit',
+  cursor: off ? 'not-allowed' : 'pointer', display:'grid', placeItems:'center',
+});
+
+const svOraHHMM = () => {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Modal articolo custom — voce libera (nome + prezzo) aggiunta al conto
@@ -1420,6 +2089,10 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 // ─────────────────────────────────────────────────────────────────────────────
 // Carrello
 
+// Il carrello è solo un carrello: articoli e totale, niente pagamenti. Un
+// conto con dei soldi sopra non vive qui ma nella coda "Da saldare" —
+// vedi `parcheggiaConAcconto` — perché il carrello non sopravvive a un cambio
+// di sezione, e i soldi sì.
 function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, cliente, onCliente, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
   window.SALA_VENDITA_CLEAR = onClear;
   // Conferma prima di svuotare: il conto in corso è lavoro, non si butta per un click.
@@ -1608,10 +2281,14 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
         )}
       </div>
 
-      {/* Cliente dell'asporto — chi ritira. Sta in fondo, appoggiato al
-          totale: è l'ultima cosa che si compila prima di confermare, non la
-          prima che si guarda quando si batte l'ordine. */}
-      {takeaway && (
+      {/* Il cliente del conto — chi ritira, o chi aspetta al bancone. Sta in
+          fondo, appoggiato al totale: è l'ultima cosa che si compila prima di
+          confermare, non la prima che si guarda quando si batte l'ordine.
+          Non è più solo dell'asporto: al banco un nome serve esattamente
+          quando serve in asporto — quando qualcuno aspetta e va richiamato —
+          e se c'è batte il B-3 che gli daremmo noi. Resta facoltativo: su un
+          caffè al volo nessuno lo chiede, e il conto resta un numero. */}
+      {lines.length > 0 && (
         <div style={{padding: '0 14px 12px'}}>
           <SaClienteBar cliente={cliente} onChange={onCliente}/>
         </div>
@@ -1634,10 +2311,11 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
               </span>
-              <span style={{flex: 1, minWidth: 0}}>
-                <span style={{display:'block', fontSize: 17.5, fontWeight: 700, color: PN.TEXT}}>Totale ordine</span>
-                <span style={{display:'block', fontSize: 14.5, color: PN.MUTED, marginTop: 1}}>{totQty} {totQty === 1 ? 'articolo' : 'articoli'}</span>
-              </span>
+              {/* Niente conta articoli: la lista è qui sopra, e chi vuole
+                  sapere quanti sono li conta guardandoli. Era un numero che
+                  ripeteva una cosa già visibile, sotto a un totale che è
+                  l'unica cifra per cui si guarda questa riga. */}
+              <span style={{flex: 1, minWidth: 0, fontSize: 17.5, fontWeight: 700, color: PN.TEXT}}>Totale ordine</span>
               <span style={{fontSize: 22, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</span>
             </div>
             <button
@@ -1646,12 +2324,12 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
                 width:'100%', padding: '14px 18px', borderRadius: 14,
                 background: PN.BTN_BRAND, color: '#fff', border: 'none',
                 fontSize: 17.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
+                display:'flex', alignItems:'center', justifyContent:'center', gap: 10,
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.30), 0 8px 20px -8px rgba(255,90,95,0.55)',
                 transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
               }}>
+              {/* Senza cifra: sta scritta grande dieci pixel più su. */}
               <span>Procedi al pagamento</span>
-              <span style={{fontVariantNumeric:'tabular-nums'}}>€{total.toFixed(2)}</span>
             </button>
           </>
         ) : (
@@ -1686,7 +2364,7 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
                   fontSize: 17.5, fontWeight: 700,
                   cursor: lines.length === 0 ? 'not-allowed' : 'pointer',
                   fontFamily:'inherit',
-                  display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
                   boxShadow: lines.length === 0 ? 'none' : SV_SUNSET_SHADOW,
                   transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
                 }}
@@ -1698,7 +2376,6 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
                   )}
                   Procedi al pagamento
                 </span>
-                <span>€{total.toFixed(2)}</span>
               </button>
             </div>
           </>
@@ -1911,11 +2588,15 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
           }}>+</button>
         </div>
         <div style={{display:'flex', alignItems:'flex-end', gap: 8, marginTop: 7}}>
-          {/* Stesso slot per tutti: personalizza se il piatto ha opzioni,
-              rinomina se è una riga semplice — la card non cambia forma. */}
+          {/* Una parola sola per tutti: "Personalizza", e porta sempre nella
+              personalizzazione dell'articolo. "Rinomina" era un'altra azione
+              con un altro esito nello stesso posto, e per capire quale ti
+              toccava dovevi ricordarti se quel piatto avesse delle opzioni —
+              cosa che si scopre solo aprendo. Un caffè si personalizza poco,
+              ma il posto dove provarci è uno. */}
           <button
-            onClick={() => isCustomizable ? onEdit() : setEditingName(true)}
-            title={isCustomizable ? 'Modifica le opzioni del piatto' : 'Modifica il nome della riga'}
+            onClick={onEdit}
+            title="Personalizza questo articolo"
             style={{
               display:'inline-flex', alignItems:'center', gap: 7,
               background:'transparent', border:'none', padding: '4px 0',
@@ -1923,7 +2604,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
               cursor:'pointer', fontFamily:'inherit',
             }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-            {isCustomizable ? 'Personalizza' : 'Rinomina'}
+            Personalizza
           </button>
           <span style={{flex: 1}}/>
           <button onClick={onRemove} title="Rimuovi dall'ordine" style={{
@@ -2053,17 +2734,33 @@ const SvIcoMonete = ({ size = 18 }) => (
 // ─────────────────────────────────────────────────────────────────────────────
 // Modale incasso semplificato (solo totale + pagamento)
 
-function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
+function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti: pagamentiConto, onPagamenti, onAcconto, lines, takeaway }) {
   const [method, setMethod] = React.useState('contanti');
   // Incasso a più riprese: il residuo è quello che manca, non il totale. Chi
   // paga metà in contanti e metà col POS non sceglie un metodo "misto" — fa
   // due incassi, e la finestra tiene il conto.
   // Gli acconti già presi su questo conto, in ordine di arrivo: non un totale
   // ma le righe, perché la domanda al banco è "cosa mi ha già dato?".
-  const [pagamenti, setPagamenti] = React.useState([]);
-  const [pagamentiOpen, setPagamentiOpen] = React.useState(false);
+  //
+  // Le righe appartengono sempre al conto, mai a questa finestra: un ordine in
+  // coda se le porta dietro e ce le riscrive. Il carrello di cassa invece non
+  // è un conto e non può tenerle — non sopravvive a un cambio di sezione —
+  // quindi al primo acconto passa `onAcconto` e diventa un ordine in coda.
+  const [pagamentiLocali, setPagamentiLocali] = React.useState([]);
+  const contoEsterno = !!onPagamenti;
+  const pagamenti = contoEsterno ? (pagamentiConto || []) : pagamentiLocali;
+  const setPagamenti = onPagamenti || setPagamentiLocali;
   const [importoTxt, setImporto] = React.useState('');
   const [ricevutoTxt, setRicevuto] = React.useState(null);
+  // Da dove arriva il contante ricevuto: un taglio, o la casella libera.
+  // La differenza serve solo alla casella — se la cifra l'ha messa un
+  // pulsante lì non va riscritta, altrimenti lo stesso numero compare due
+  // volte nella stessa fila, una nel chip acceso e una nel campo accanto.
+  // È un dato a parte e non un confronto sul valore: uguagliando i numeri, la
+  // casella si svuoterebbe mentre si scrive — «150» sparisce passando da 15.
+  const [ricevutoDaTaglio, setRicevutoDaTaglio] = React.useState(false);
+  const scegliTaglio   = (txt) => { setRicevuto(txt); setRicevutoDaTaglio(true); };
+  const scriviRicevuto = (txt) => { setRicevuto(txt); setRicevutoDaTaglio(false); };
   // Quale pulsante di «Quanto incassi ora» è attivo: 'tutto', 'meta' o
   // 'altro'. È una SCELTA esplicita, non un confronto col valore del campo:
   // con l'uguaglianza numerica «Cifra personalizzata» non si accendeva mai
@@ -2072,13 +2769,21 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   const [quota, setQuota] = React.useState('tutto');
   const importoRef = React.useRef(null);
   const ricevutoRef = React.useRef(null);
-  const [fattura, setFattura] = React.useState(false);
+  // Fattura: non è più un interruttore ma il cliente, o niente. Un booleano
+  // diceva "sì, fattura" senza sapere a chi, e a chi la si fa è l'unica cosa
+  // che il documento non può dedurre da solo.
+  const [fattura, setFattura] = React.useState(null);
+  const [fatturaOpen, setFatturaOpen] = React.useState(false);
+  // Il numero nasce alla chiusura dell'incasso, insieme all'invio: prima non
+  // esiste, così una fattura abbandonata non lascia un buco nella numerazione.
+  const [numeroFattura, setNumeroFattura] = React.useState(null);
   const [pay, setPay] = React.useState({ contanti: '', carta: '' });
   const [done, setDone] = React.useState(false);
   const [adjust, setAdjust] = React.useState(null);
   const [adjustOpen, setAdjustOpen] = React.useState(false);
   const [confirmedTotal, setConfirmedTotal] = React.useState(0);
   const [confirmedPay, setConfirmedPay] = React.useState({ contanti: 0, carta: 0 });
+  const [confirmedResto, setConfirmedResto] = React.useState(0);
   // Ordine creato dal commit: lo restituisce onConfirm. Null quando l'incasso
   // non crea un ordine nuovo (es. il "Salda ora" di un asporto già esistente).
   const [ordine, setOrdine] = React.useState(null);
@@ -2089,21 +2794,54 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   // non esiste ancora. Lasciar chiudere significherebbe due vendite in volo su
   // una cassa sola, e un pagamento senza più niente a cui attaccarsi.
   const [attesa, setAttesa] = React.useState(null); // { inviato } | null
-  const [, setAttesaTick] = React.useState(0);
+
+  // Storno di UN incasso già preso, non del conto intero: il cliente ha dato
+  // due volte, o si è battuto l'importo sbagliato, e va tolta quella riga lì.
+  // Non è il rimborso di Contabilità — quello è un documento su una vendita
+  // chiusa. Qui il conto è ancora aperto e il denaro non è ancora diventato
+  // uno scontrino: si sta correggendo la cassa mentre la si fa.
+  //
+  // Una sola variabile con dentro la fase, e non tre booleani: le fasi sono
+  // in fila (conferma → attesa → fatto) e due di loro non possono coesistere.
+  const [storno, setStorno] = React.useState(null); // { p, fase, inviato } | null
+
+  // Il contante torna dal cassetto e basta: lo sa l'operatore, non il sistema.
+  // Sul POS invece la restituzione è una transazione vera, che parte sul
+  // telefono e ci mette il suo tempo — per questo passa da un'attesa.
+  const applicaStorno = React.useCallback((p) => {
+    setPagamenti(ps => ps.filter(x => x.id !== p.id));
+    setStorno({ p, fase: 'fatto' });
+  }, [setPagamenti]);
+
+  // Il tocco sull'icona non storna: apre la domanda. Sono soldi, e il gesto
+  // per sbaglio su una riga alta venti pixel è troppo facile.
+  function stornaPagamento(p) { setStorno({ p, fase: 'conferma' }); }
+
+  React.useEffect(() => {
+    if (!storno || storno.fase !== 'attesa') return;
+    const id = setInterval(() => {
+      if (Date.now() - storno.inviato >= PAY_FINE) applicaStorno(storno.p);
+    }, 400);
+    return () => clearInterval(id);
+  }, [storno, applicaStorno]);
 
   React.useEffect(() => {
     if (open) {
       setMethod('contanti');
-      setPagamenti([]);
-      setPagamentiOpen(false);
+      // Solo gli acconti di questa finestra si azzerano riaprendo. Quelli del
+      // conto stanno fuori e devono ritrovarsi dov'erano: è tutto il punto.
+      if (!contoEsterno) setPagamentiLocali([]);
       setImporto('');
-      setFattura(false);
+      setFattura(null);
+      setFatturaOpen(false);
+      setNumeroFattura(null);
       setPay({ contanti: '', carta: '' });
       setDone(false);
       setOrdine(null);
       setAdjust(null);
       setAdjustOpen(false);
       setAttesa(null);
+      setStorno(null);
     }
   }, [open]);
 
@@ -2114,7 +2852,6 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
     if (!attesa) return;
     const id = setInterval(() => {
       if (Date.now() - attesa.inviato >= PAY_FINE) registraIncasso(attesa.importo, 'carta');
-      else setAttesaTick(t => t + 1);
     }, 400);
     return () => clearInterval(id);
   }, [attesa]);
@@ -2147,6 +2884,16 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   const incassato = pagamenti.reduce((t, p) => t + p.importo, 0);
   const incassatoCarta = pagamenti.reduce((t, p) => t + (p.come === 'carta' ? p.importo : 0), 0);
   const residuo = Math.max(0, finalTotal - incassato);
+  // Conto coperto: gli acconti presi bastano, o avanzano. Non è la stessa cosa
+  // di un conto vuoto — lì non c'è niente da incassare perché non c'è niente,
+  // qui perché è già stato incassato tutto — e va detto con parole diverse,
+  // altrimenti la cassa legge un errore dove c'è una vendita finita.
+  // Ci si arriva da uno sconto applicato dopo un acconto, o da articoli tolti
+  // dal conto: pagare esatto non passa mai di qui, chiude e basta.
+  const saldato = finalTotal > 0.004 && residuo <= 0.004;
+  // Quello che è entrato oltre il dovuto. Sono soldi del cliente: tacerli qui
+  // significa tenerli, e questa è l'ultima schermata prima che il conto sparisca.
+  const eccedenza = Math.max(0, incassato - finalTotal);
   // Il campo parte sul residuo: il caso normale è che paghi tutto, e chi paga
   // con un taglio più grande (o addebita solo una parte sulla carta) lo scrive
   // o tocca un pulsante.
@@ -2166,6 +2913,10 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   const ricevuto = ricevutoTxt === null
     ? preso
     : parseFloat((ricevutoTxt || '').replace(',', '.')) || 0;
+  // Una sola cosa accesa per volta in quella fila: o un taglio, o la casella.
+  // Senza questo, scrivendo «10,00» a mano si accendevano sia il pulsante €10
+  // sia la casella, e la riga mostrava lo stesso importo due volte.
+  const ricevutoLibero = ricevutoTxt !== null && !ricevutoDaTaglio;
   const resto = method === 'carta' ? 0 : Math.max(0, ricevuto - preso);
   // Il contante in mano non copre nemmeno quello che stai incassando: non è un
   // resto, è un incasso che non si può chiudere.
@@ -2192,7 +2943,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   React.useEffect(() => {
     if (!open) return;
     setImporto(residuo > 0 ? residuo.toFixed(2).replace('.', ',') : '');
-    setRicevuto(null);
+    scriviRicevuto(null);
     setQuota('tutto');
   }, [open, method, pagamenti.length, finalTotal]);
 
@@ -2208,10 +2959,21 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
     const quota = Math.min(val, residuo);
     if (quota < residuo - 0.004) {
       const now = new Date();
-      setPagamenti(ps => [...ps, {
-        id: `p${ps.length + 1}`, come, importo: quota,
+      const riga = {
+        id: `p${pagamenti.length + 1}`, come, importo: quota,
         ora: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
-      }]);
+      };
+      // Chiude l'attesa del POS anche quando l'incasso è solo un acconto.
+      // Prima la spegneva solo `chiudiPagamento`, cioè il ramo del saldo
+      // pieno: un acconto sulla carta lasciava la finestra ferma su «In
+      // attesa» per sempre, col contatore che correva su un pagamento che
+      // era già arrivato. A pagare col POS metà conto ci si incastrava.
+      setAttesa(null);
+      // Il carrello non è un posto dove lasciare dei soldi: chi lo possiede
+      // se li prende e ne fa un conto in coda. Chi invece è già un conto —
+      // un ordine — se li tiene.
+      if (onAcconto) onAcconto(riga, finalTotal);
+      else setPagamenti(ps => [...ps, riga]);
       return;
     }
     chiudiPagamento(come, quota);
@@ -2221,20 +2983,45 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
   // conferma diretta (contanti, misto) sia il ritorno del pagamento con carta.
   function chiudiPagamento(come, quota) {
     const ultima = quota != null ? quota : residuo;
+    // Invio immediato: la fattura parte qui, non prima. È l'istante in cui si
+    // sa COME ha pagato, e la modalità (MP01 contanti, MP08 carta) è l'unico
+    // pezzo del documento che non si poteva sapere mentre lo si compilava.
+    // Quello che si scrive qui è esattamente quello che Contabilità → Fatture
+    // elenca: stesso numero, stesso cliente, stesse righe.
+    if (fattura && !numeroFattura) {
+      const numero = svfNumeroFattura();
+      setNumeroFattura(numero);
+      if (window.byupSaveFattura) {
+        window.byupSaveFattura({
+          id: numero, numero, data: new Date().toISOString(),
+          stato: 'in_attesa', cliente: fattura,
+          canale: takeaway ? 'asporto' : 'somministrazione',
+          pagamento: come === 'carta' ? 'carta' : 'contanti',
+          righe: svfRighe(lines, takeaway),
+          riepilogo: svRiepilogoIva(lines, takeaway),
+          totale: finalTotal,
+        });
+      }
+    }
     setConfirmedTotal(finalTotal);
     setConfirmedPay({
       contanti: (incassato - incassatoCarta) + (come === 'carta' ? 0 : ultima),
       carta: incassatoCarta + (come === 'carta' ? ultima : 0),
     });
+    // Nei casi normali è zero: l'incasso è clampato al residuo e non lo supera
+    // mai. Vale per il conto già coperto, ed è l'ultima volta che se ne può
+    // parlare — subito dopo il conto non esiste più.
+    setConfirmedResto(Math.max(0, incassato + ultima - finalTotal));
     setOrdine(onConfirm ? onConfirm(finalTotal) : null);
     setAttesa(null);
     setDone(true);
   }
 
   return (
-    // Con un pagamento in volo il click fuori non chiude: sarebbe l'unico modo
-    // di uscire per sbaglio da una transazione che il cliente sta pagando.
-    <div onClick={attesa ? undefined : onClose} style={{
+    <>
+    {/* Con un pagamento in volo il click fuori non chiude: sarebbe l'unico modo
+        di uscire per sbaglio da una transazione che il cliente sta pagando. */}
+    <div onClick={(attesa || storno) ? undefined : onClose} style={{
       position: 'fixed', inset: 0, background: 'rgba(10,14,24,0.62)',
       backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
       display: 'grid', placeItems: 'center', zIndex: 200, padding: 24,
@@ -2246,7 +3033,20 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
         boxShadow: '0 32px 80px rgba(5,10,25,0.45)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        {done ? (
+        {/* Lo storno prende tutta la finestra, come l'incasso e come l'attesa:
+            è la stessa scelta di sempre in questo file — invece di spegnere
+            lista, metodi e pulsante uno per uno, non c'è proprio nient'altro
+            sullo schermo. Chi lo sta facendo non deve poter fare altro. */}
+        {storno ? (
+          <SvStorno
+            p={storno.p}
+            fase={storno.fase}
+            onConferma={() => {
+              if (storno.p.come === 'carta') setStorno({ ...storno, fase: 'attesa', inviato: Date.now() });
+              else applicaStorno(storno.p);
+            }}
+            onChiudi={() => setStorno(null)}/>
+        ) : done ? (
           <div style={{
             padding: '36px 28px', textAlign: 'center',
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -2266,12 +3066,54 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             <div style={{ fontSize: 36, fontWeight: 800, color: SVI_INK, marginBottom: 6, letterSpacing: -1, fontVariantNumeric: 'tabular-nums' }}>
               {svEur(confirmedTotal)}
             </div>
-            <div style={{ fontSize: 17, color: SVI_MUTED, marginBottom: ordine ? 16 : 24 }}>
+            <div style={{ fontSize: 17, color: SVI_MUTED, marginBottom: confirmedResto > 0.004 ? 14 : (ordine ? 16 : 24) }}>
               {confirmedPay.contanti > 0 && confirmedPay.carta > 0
                 ? `${svEur(confirmedPay.contanti)} contanti + ${svEur(confirmedPay.carta)} sul POS`
                 : confirmedPay.carta > 0 ? 'Smart POS' : 'Contanti'}
-              {fattura ? ' · fattura emessa' : ''}
             </div>
+            {/* Il promemoria sopravvive alla chiusura del conto: fra il tocco
+                sul pulsante e la mano nel cassetto passa qualche secondo, e
+                questa schermata è quello che si ha davanti in quei secondi. */}
+            {confirmedResto > 0.004 && (
+              <div style={{
+                width: '100%', marginBottom: ordine ? 16 : 24,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                padding: '11px 16px', borderRadius: 12, background: '#FEF3C7',
+              }}>
+                <SvIcoMonete size={22}/>
+                <span style={{ fontSize: 16.5, color: '#B45309' }}>Da restituire al cliente</span>
+                <span style={{
+                  fontSize: 18, fontWeight: 800, letterSpacing: -0.3, color: '#B45309',
+                  fontVariantNumeric: 'tabular-nums',
+                }}>{svEur(confirmedResto)}</span>
+              </div>
+            )}
+            {/* La fattura è partita davvero: numero e destinatario si leggono
+                qui perché è l'unico momento in cui l'operatore può ancora dire
+                "no, aspetta" al cliente che ha davanti. Lo SdI però risponde
+                con comodo — può scartare fino a cinque giorni dopo — quindi
+                "inviata" e non "accettata". */}
+            {fattura && (
+              <div style={{
+                width: '100%', marginBottom: 16, padding: '11px 16px',
+                borderRadius: 12, background: '#F5F6F8', border: `1px solid ${SVI_BORDER}`,
+                display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#0F1115' }}>
+                    Fattura <span style={{ fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{numeroFattura}</span> inviata
+                  </div>
+                  <div style={{
+                    fontSize: 15, color: SVI_MUTED, marginTop: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{svfNome(fattura)}</div>
+                </div>
+                <span style={{
+                  fontSize: 13.5, fontWeight: 700, padding: '4px 9px', borderRadius: 7,
+                  background: '#FEF3C7', color: '#B45309', flexShrink: 0,
+                }}>In attesa SdI</span>
+              </div>
+            )}
             {/* Conferma della creazione: è l'unico punto in cui l'operatore vede
                 che l'ordine esiste ed è partito. Senza, l'incasso sembra
                 chiudere la transazione e basta. */}
@@ -2315,63 +3157,118 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
         ) : attesa ? (
           <SvAttesaPagamento
             total={attesa.importo != null ? attesa.importo : finalTotal}
-            elapsed={Date.now() - attesa.inviato}
             onRitira={() => setAttesa(null)}/>
         ) : (
           <>
-            {/* Testata: il nome della cosa che stai facendo, grande. A destra i
-                due interruttori che NON sono la vendita — correggere l'importo
-                ed emettere fattura invece della ricevuta: si usano di rado,
-                quindi stanno piccoli e in disparte, non in mezzo al flusso. */}
-            <div style={{padding: '18px 28px 0', display: 'flex', alignItems: 'center', gap: 8}}>
-              <div style={{
-                flex: 1, fontSize: 28, fontWeight: 800, letterSpacing: -0.7,
-                color: SVI_INK, lineHeight: 1,
-              }}>INCASSA</div>
+            {/* Testata: solo i bordi della schermata. A sinistra la via
+                d'uscita, a destra i due interruttori che NON sono la vendita
+                — sconto e fattura, che si usano di rado.
+                L'uscita sta a sinistra e non in fondo: è l'unica cosa qui
+                dentro con una conseguenza, e stare attaccata alla CTA voleva
+                dire regalare un click sbagliato a ogni incasso. Angolo opposto,
+                posizione standard del "torna indietro", e dice dove riporta.
+                Il titolo "INCASSA" è sparito: lo dice già l'etichetta sopra
+                il numero, e ripeterlo era una riga rubata al respiro. */}
+            <div style={{padding: '16px 24px 0', display: 'flex', alignItems: 'center', gap: 8}}>
+              {/* Due uscite diverse perché succedono due cose diverse.
+                  Dal carrello non è ancora successo niente: si torna indietro
+                  e l'ordine è lì come l'avevi lasciato — "Torna all'ordine",
+                  con la parola che il pannello del carrello usa già per sé.
+                  Su un conto che vive in coda uscire non è tornare indietro,
+                  è rimandare: "Salda dopo" dice il tempo invece del posto, che
+                  è quello che pensa chi lo preme — il cliente si è spostato,
+                  ci torno. In ambra perché lascia una cosa aperta, ed è la
+                  stessa ambra con cui quel conto ti aspetterà in coda. */}
+              <button onClick={onClose}
+                title={contoEsterno
+                  ? 'Esci: il conto resta in Da saldare, con quello che hai già incassato'
+                  : 'Torna all\'ordine senza incassare'}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                  padding: '8px 14px 8px 10px', borderRadius: 999,
+                  background: contoEsterno ? PN.AMBER_SOFT : 'transparent',
+                  border: `1px solid ${contoEsterno ? 'transparent' : SVI_BORDER}`,
+                  color: contoEsterno ? '#92400E' : SVI_MUTED,
+                  fontSize: 14.5, fontWeight: 700,
+                  fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
+                  transition: 'background 150ms ease-out, color 150ms ease-out',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = contoEsterno ? '#FDE9B8' : '#F5F6F8';
+                  if (!contoEsterno) e.currentTarget.style.color = SVI_INK;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = contoEsterno ? PN.AMBER_SOFT : 'transparent';
+                  if (!contoEsterno) e.currentTarget.style.color = SVI_MUTED;
+                }}>
+                {contoEsterno ? (
+                  /* Un orologio: quello che rimandi è il momento, non il posto. */
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+                ) : (
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                )}
+                {contoEsterno ? 'Salda dopo' : 'Torna all\'ordine'}
+              </button>
+              <span style={{flex: 1}}/>
               <SvPillola
                 active={adjustOpen || !!adjust}
                 onClick={() => setAdjustOpen(o => !o)}
                 title="Applica uno sconto o arrotonda l'importo"
                 icon={<span style={{fontSize: 13, fontWeight: 800, lineHeight: 1}}>%</span>}
                 label={adjust ? svEur(Math.abs(adjustDelta)) : 'Sconto'}/>
+              {/* Accesa, la pillola porta il nome del cliente e non la parola
+                  "Fattura": la domanda che ci si fa rileggendo la testata non è
+                  se la fattura c'è, è a chi si sta facendo. */}
               <SvPillola
-                active={fattura}
-                onClick={() => setFattura(f => !f)}
-                title="Emetti fattura invece della ricevuta"
+                active={!!fattura}
+                onClick={() => setFatturaOpen(true)}
+                title={fattura ? `Fattura a ${svfNome(fattura)}` : 'Emetti fattura invece della ricevuta'}
                 icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/></svg>}
-                label="Fattura"/>
-              <button onClick={onClose} title="Chiudi" style={{
-                width: 36, height: 36, borderRadius: 11, flexShrink: 0, marginLeft: 2,
-                background: '#fff', border: `1px solid ${SVI_BORDER}`,
-                color: SVI_INK, lineHeight: 1,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'grid', placeItems: 'center',
-              }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-              </button>
+                label={fattura
+                  ? (svfNome(fattura).length > 16 ? svfNome(fattura).slice(0, 15) + '…' : svfNome(fattura))
+                  : 'Fattura'}/>
             </div>
 
             <div className="pn-scroll" style={{overflow: 'auto'}}>
-              {/* ── HERO: l'UNICO numero da guardare — quello che incassi
-                  ORA. Alla cassa piena non c'è tempo di confrontare cifre:
-                  il residuo, il già incassato e lo sconto compaiono in una
-                  riga sotto SOLO quando divergono dal caso normale (paghi
-                  tutto, nessun acconto). Il numero È il campo: un tocco lo
-                  azzera e la cifra diventa tua (Tutto/Metà si spengono). */}
-              <div style={{padding: '10px 28px 0', textAlign: 'center'}}>
+              {/* ── HERO: la cifra che si dice ad alta voce al cliente.
+                  Ha un'etichetta, e non l'aveva: un numero grande da solo,
+                  con una matita accanto, non dichiara di essere il conto — e
+                  infatti il conto sembrava non esserci. Ora "DA INCASSARE"
+                  lo nomina, e sotto compare l'aritmetica solo quando serve.
+
+                  Di default NON è un campo. Prima lo era, e quel dettaglio
+                  costava caro: il numero più grande della schermata era un
+                  input che assomigliava al conto senza esserlo. Modificarlo
+                  è diventata un'azione dichiarata, sotto la CTA.
+
+                  Col conto già coperto tutto questo non ha più un lavoro: al
+                  suo posto il fatto — è saldato — e quanto va restituito. */}
+              {saldato ? (
+                <SvContoSaldato total={finalTotal} eccedenza={eccedenza}/>
+              ) : (
+              <div style={{padding: '22px 28px 0', textAlign: 'center'}}>
+                <div style={{...SVI_LABEL, marginBottom: 6}}>Incassi ora</div>
+
+                {/* Il numero si cambia toccandolo, e basta. Prima stava dietro
+                    a un interruttore in fondo alla schermata: premevi lì e
+                    cambiava questa cifra qui sopra, che per giunta cambiava
+                    anche significato. Causa ed effetto a due dita di distanza
+                    l'una dall'altro, e nessuna delle due dove guardavi.
+                    Toccare la cifra che vuoi cambiare non ha bisogno di
+                    essere spiegato. */}
                 <div
                   onClick={() => { importoRef.current?.focus(); }}
                   style={{
                     display: 'inline-flex', alignItems: 'baseline', gap: 7,
                     cursor: 'text', padding: '2px 6px',
                   }}>
-                  <span style={{fontSize: 24, fontWeight: 800, color: SVI_MUTED, letterSpacing: -0.5}}>€</span>
+                  <span style={{fontSize: 26, fontWeight: 800, color: SVI_MUTED, letterSpacing: -0.5}}>€</span>
                   <input
                     ref={importoRef}
                     value={importoTxt}
                     onChange={e => {
                       setImporto(e.target.value.replace(/[^0-9.,]/g, ''));
-                      setRicevuto(null);
+                      scriviRicevuto(null);
                       setQuota('altro');
                     }}
                     onFocus={() => {
@@ -2381,19 +3278,19 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       if (quota !== 'altro') {
                         setQuota('altro');
                         setImporto('');
-                        setRicevuto(null);
+                        scriviRicevuto(null);
                       }
                     }}
                     inputMode="decimal"
                     placeholder="0,00"
-                    aria-label="Importo da incassare"
+                    aria-label="Quanto incassi ora"
                     size={Math.max((importoTxt || '').length, 4)}
                     style={{
                       width: `${Math.max((importoTxt || '').length, 4)}ch`,
                       border: 'none', outline: 'none',
                       background: 'transparent', fontFamily: 'inherit',
-                      fontSize: 46, fontWeight: 800, color: SVI_INK,
-                      letterSpacing: -1.4, padding: 0, lineHeight: 1.1,
+                      fontSize: 52, fontWeight: 800, color: SVI_INK,
+                      letterSpacing: -1.6, padding: 0, lineHeight: 1.15,
                       fontVariantNumeric: 'tabular-nums',
                     }}/>
                   <span style={{color: quota === 'altro' ? SVI_CORAL : SVI_MUTED, display: 'inline-flex', alignSelf: 'center'}}>
@@ -2401,44 +3298,28 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   </span>
                 </div>
 
-                {/* Il contesto, solo quando esiste: acconti presi, sconto
-                    applicato o incasso parziale. Su riga propria sotto il
-                    numero (il wrapper è block), cliccabile per la lista. */}
-                {(incassato > 0.004 || Math.abs(adjustDelta) > 0.004 || preso < residuo - 0.004) && (
-                  <div style={{marginTop: 2}}>
-                  <button
-                    onClick={() => { if (pagamenti.length) setPagamentiOpen(o => !o); }}
-                    title={pagamenti.length ? 'Vedi i pagamenti già ricevuti' : undefined}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 2,
-                      padding: 0, background: 'transparent', border: 'none',
-                      fontSize: 14, color: SVI_MUTED, fontFamily: 'inherit',
-                      cursor: pagamenti.length ? 'pointer' : 'default',
-                    }}>
-                    su {svEur(residuo)} da incassare
-                    {incassato > 0.004 && <> · già dato {svEur(incassato)}</>}
-                    {adjust && <> · {adjustLabel.split(' · ')[0].toLowerCase()}</>}
-                    {pagamenti.length > 0 && (
-                      <span style={{
-                        display: 'inline-flex', color: SVI_MUTED,
-                        transform: pagamentiOpen ? 'rotate(180deg)' : 'none',
-                        transition: 'transform 150ms ease-out',
-                      }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                      </span>
-                    )}
-                  </button>
-                  </div>
-                )}
+                {/* Il conto, SEMPRE. È l'ancora della schermata: dice su cosa
+                    stai lavorando e non si muove mai — nemmeno mentre la cifra
+                    sopra cambia. Prima compariva solo quando divergeva, e così
+                    il totale sembrava non esistere.
+                    "Incassi ora" e "Totale conto" sono due fatti diversi anche
+                    quando il numero coincide: appena tocchi la cifra sopra,
+                    questa resta ferma ed è esattamente il suo lavoro. */}
+                <div style={{
+                  marginTop: 6, fontSize: 14.5, color: SVI_MUTED,
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  Totale conto {svEur(finalTotal)}
+                  {adjust && <> · {adjustLabel.split(' · ')[0].toLowerCase()}</>}
+                </div>
 
-                {/* Tutto / Metà: due gesti, senza cifre — il risultato lo
-                    scrive il numero qui sopra, non serve leggerlo due volte. */}
-                <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 8}}>
+                {/* Accanto al numero che cambiano, non in fondo alla pagina. */}
+                <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 14}}>
                   {quote.map(q => {
                     const on = quota === q.k;
                     return (
                       <button key={q.k}
-                        onClick={() => { setQuota(q.k); setImporto(q.val.toFixed(2).replace('.', ',')); setRicevuto(null); }}
+                        onClick={() => { setQuota(q.k); setImporto(q.val.toFixed(2).replace('.', ',')); scriviRicevuto(null); }}
                         style={{
                           padding: '7px 24px', borderRadius: 999,
                           background: on ? SVI_TINT : '#fff',
@@ -2449,12 +3330,25 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     );
                   })}
                 </div>
+              </div>
+              )}
 
-                {pagamentiOpen && pagamenti.length > 0 && (
-                  <div style={{
-                    marginTop: 10, borderRadius: 12,
-                    background: '#F5F6F8', padding: '6px 14px',
-                  }}>
+              {/* Quello che è GIÀ entrato in cassa su questo conto, riga per
+                  riga. Sempre aperto, mai dietro un tocco: finché la vendita
+                  non è chiusa, «cosa mi ha già dato?» è la domanda che si fa
+                  al banco col cliente davanti, e la risposta non si va a
+                  cercare. Allineato a sinistra come «Contante ricevuto» — è
+                  una lista, non un titolo, e sotto l'hero centrato leggeva
+                  come una didascalia del numero. */}
+              {pagamenti.length > 0 && (
+                <div style={{padding: '20px 28px 0'}}>
+                  {/* Niente totale nell'etichetta: con un acconto solo ripeteva
+                      la cifra della riga sottostante, e su un conto pagato a
+                      metà quel numero era pure uguale al residuo là sopra —
+                      tre volte la stessa cosa. Il totale lo somma la riga di
+                      contesto sotto l'hero; qui stanno i fatti, uno per riga. */}
+                  <div style={{...SVI_LABEL, marginBottom: 8}}>Già incassato</div>
+                  <div style={{borderRadius: 12, background: '#F5F6F8', padding: '2px 14px'}}>
                     {pagamenti.map((p, i) => (
                       <div key={p.id} style={{
                         display: 'flex', alignItems: 'center', gap: 10,
@@ -2473,11 +3367,40 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                         <span style={{fontSize: 15.5, fontWeight: 800, color: SVI_INK, fontVariantNumeric: 'tabular-nums', minWidth: 62, textAlign: 'right'}}>
                           {svEur(p.importo)}
                         </span>
+                        {/* Lo storno sta accanto al pagamento che storna, che è
+                            l'unico posto dove si sa QUALE annullare: un conto
+                            pagato in tre riprese ha tre righe, e un pulsante
+                            fuori da qui dovrebbe prima chiedere quale.
+                            Cosa succede dipende da come ha pagato: i contanti
+                            si tolgono dal cassetto e basta, la carta no — lì
+                            parte una richiesta di storno sul telefono, come per
+                            l'incasso, perché a muovere i soldi è Stripe e non
+                            questa schermata. */}
+                        <button
+                          onClick={() => stornaPagamento(p)}
+                          title={p.come === 'carta'
+                            ? `Storna ${svEur(p.importo)}: parte la richiesta su Byup Staff`
+                            : `Annulla ${svEur(p.importo)} in contanti`}
+                          style={{
+                            width: 28, height: 28, padding: 0, borderRadius: 8, flexShrink: 0,
+                            background: 'transparent', border: 'none', color: SVI_MUTED,
+                            cursor: 'pointer', fontFamily: 'inherit',
+                            display: 'grid', placeItems: 'center',
+                            transition: 'background 150ms ease-out, color 150ms ease-out',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#B91C1C'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SVI_MUTED; }}>
+                          {/* Freccia che torna indietro: il denaro rifà la
+                              strada al contrario. */}
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 8h11a5 5 0 0 1 0 10h-6"/><path d="M7 4 3 8l4 4"/>
+                          </svg>
+                        </button>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {adjustOpen && (
                 <div style={{padding: '14px 28px 0'}}>
@@ -2489,6 +3412,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                 </div>
               )}
 
+              {/* Come paga si sceglie solo se c'è ancora qualcosa da pagare:
+                  su un conto coperto le due tessere chiederebbero di decidere
+                  una cosa che non succede. */}
+              {!saldato && (
+              <>
               <div style={{height: 1, background: SVI_BORDER, margin: '14px 28px 0'}}/>
 
               {/* Metodo: due tessere parlanti — icona e nome bastano,
@@ -2507,6 +3435,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                     icon={<SvIcoBanconota/>}/>
                 </div>
               </div>
+              </>
+              )}
 
               {/* La banconota in mano al cliente: solo contanti. Una riga
                   sola — Esatto, i tagli e la casella «Altro» per le cifre
@@ -2523,10 +3453,10 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   {tagli.map((t, i) => {
                     // «Esatto» torna a seguire l'importo (ricevuto nullo):
                     // così resta giusto anche se l'importo cambia dopo.
-                    const on = ricevutoTxt === null ? i === 0 : Math.abs(ricevuto - t.val) < 0.004;
+                    const on = !ricevutoLibero && (ricevutoTxt === null ? i === 0 : Math.abs(ricevuto - t.val) < 0.004);
                     return (
                       <button key={t.label}
-                        onClick={() => setRicevuto(i === 0 ? null : t.val.toFixed(2).replace('.', ','))}
+                        onClick={() => scegliTaglio(i === 0 ? null : t.val.toFixed(2).replace('.', ','))}
                         style={{
                           padding: '9px 8px', borderRadius: 12,
                           background: on ? SVI_TINT : '#fff',
@@ -2540,7 +3470,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                   {/* La casella è l'ultimo elemento della fila, non un campo
                       a parte: vuota finché non serve. */}
                   {(() => {
-                    const custom = ricevutoTxt !== null && !tagli.some(t => Math.abs(ricevuto - t.val) < 0.004);
+                    // Libera solo se la cifra l'ha scritta qualcuno qui dentro.
+                    // Col taglio acceso la casella torna vuota: il numero è già
+                    // sul pulsante accanto, e riscriverlo faceva sembrare che
+                    // fossero due importi diversi nella stessa riga.
+                    const custom = ricevutoLibero;
                     return (
                       <div
                         onClick={() => { ricevutoRef.current?.focus(); }}
@@ -2554,8 +3488,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                         {custom && <span style={{fontSize: 16.5, fontWeight: 700, color: SVI_CORAL}}>€</span>}
                         <input
                           ref={ricevutoRef}
-                          value={ricevutoTxt === null ? '' : ricevutoTxt}
-                          onChange={e => setRicevuto(e.target.value.replace(/[^0-9.,]/g, ''))}
+                          value={custom ? ricevutoTxt : ''}
+                          onChange={e => scriviRicevuto(e.target.value.replace(/[^0-9.,]/g, ''))}
                           inputMode="decimal"
                           placeholder="Altro"
                           aria-label="Contante ricevuto"
@@ -2598,13 +3532,21 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
             <div style={{padding: '14px 28px 18px'}}>
               {(() => {
                 const inviaSuStaff = method === 'carta';
-                const attivo = residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004;
+                // Un conto coperto è pronto a chiudersi: il gesto non è più
+                // incassare — non c'è niente da prendere — ma chiudere la
+                // vendita con quello che è già dentro. Va prima di tutto il
+                // resto, perché con il residuo a zero le altre condizioni non
+                // possono essere vere e lascerebbero il pulsante spento su una
+                // vendita che è finita.
+                const attivo = saldato || (residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004);
                 return (
                   <React.Fragment>
                   <button
                     onClick={() => {
                       if (!attivo) return;
-                      if (inviaSuStaff) setAttesa({ inviato: Date.now(), importo: preso });
+                      // Ultima tranche zero: chiude su quello che è già entrato.
+                      if (saldato) chiudiPagamento('contanti', 0);
+                      else if (inviaSuStaff) setAttesa({ inviato: Date.now(), importo: preso });
                       else registraIncasso(preso, 'contanti');
                     }}
                     disabled={!attivo}
@@ -2629,15 +3571,25 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                       </span>
                     )}
+                    {/* «Nessun articolo nel conto» ora tocca solo al conto
+                        davvero vuoto: quello coperto dagli acconti passa di
+                        sopra, e chiude invece di spegnersi. */}
+                    {/* Senza cifra: sta scritta enorme venti pixel più su, e
+                        una terza copia sul pulsante era solo un numero in più
+                        da confrontare. Il pulsante dice cosa succede — non
+                        quanto — perché il quanto è già la cosa più visibile
+                        della schermata. */}
                     {!attivo
                       ? (residuo <= 0 ? 'Nessun articolo nel conto'
                         : manca > 0.004 ? 'Il contante non basta'
                         : 'Inserisci un importo')
-                      : inviaSuStaff
-                        ? `Addebita ${svEur(preso)} sul POS`
-                        : parziale
-                          ? `Incassa ${svEur(preso)} in acconto`
-                          : `Incassa ${svEur(preso)} · ${fattura ? 'fattura' : 'ricevuta'}`}
+                      : saldato
+                        ? `Chiudi il conto · ${fattura ? 'fattura' : 'ricevuta'}`
+                        : inviaSuStaff
+                          ? 'Addebita sul POS'
+                          : parziale
+                            ? 'Incassa in acconto'
+                            : `Incassa in contanti · ${fattura ? 'fattura' : 'ricevuta'}`}
                   </button>
 
                   {/* Cosa resta sul conto dopo questo incasso. Compare SOLO
@@ -2661,6 +3613,10 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
                       }}>{svEur(residuoDopo)}</span>
                     </div>
                   )}
+                  {/* Sotto la CTA non c'è più niente da premere. L'unica cosa
+                      con una conseguenza — uscire dal conto — sta in testata,
+                      nell'angolo opposto: attaccata al verde era un misclick
+                      regalato a ogni incasso. */}
                   </React.Fragment>
                 );
               })()}
@@ -2668,6 +3624,150 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
           </>
         )}
       </div>
+    </div>
+
+    {/* Sopra l'incasso, non al posto suo: si torna indietro col conto ancora
+        dov'era. Riaprirla da pillola accesa serve a correggere il cliente —
+        una P.IVA dettata male si scopre rileggendola, non prima. */}
+    <SvFatturaModal
+      open={fatturaOpen}
+      lines={lines}
+      takeaway={takeaway}
+      cliente={fattura}
+      onClose={() => setFatturaOpen(false)}
+      onConfirm={setFattura}
+      onRemove={() => setFattura(null)}/>
+    </>
+  );
+}
+
+// Il conto è già coperto: non c'è una cifra da chiedere, c'è un fatto da
+// dire. Prende il posto dell'hero — lasciare lì il campo dell'importo su un
+// conto che non deve niente è la domanda sbagliata, e chi sta in cassa la
+// risponderebbe.
+//
+// L'eccedenza non è un dettaglio contabile: è la banconota che il cliente sta
+// aspettando indietro, e questa è l'ultima schermata prima che il conto
+// sparisca. Sta in ambra e non in verde perché è una cosa DA FARE, non una
+// cosa fatta — lo stesso ambra di «Mancano» qui sopra.
+function SvContoSaldato({ total, eccedenza }) {
+  const daRestituire = eccedenza > 0.004;
+  return (
+    <div style={{padding: '18px 28px 0', textAlign: 'center'}}>
+      <div style={{
+        width: 56, height: 56, borderRadius: '50%', margin: '0 auto 12px',
+        background: '#DCFCE7', color: SVI_GREEN,
+        display: 'grid', placeItems: 'center',
+      }}>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <div style={{fontSize: 24, fontWeight: 800, color: SVI_INK, letterSpacing: -0.5}}>
+        Conto saldato
+      </div>
+      {/* «€4,00 già incassati» sarebbe falso quando è entrato di più: quella
+          cifra è il conto, non quello che è stato preso. "Coperto" resta vero
+          in tutti e due i casi, e il quanto è entrato lo dice la lista sotto. */}
+      <div style={{fontSize: 15.5, color: SVI_MUTED, marginTop: 3}}>
+        Il conto di {svEur(total)} è coperto. Non resta niente da prendere.
+      </div>
+
+      {daRestituire && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          marginTop: 14, padding: '11px 16px', borderRadius: 14,
+          background: '#FEF3C7',
+        }}>
+          <SvIcoMonete size={22}/>
+          <span style={{fontSize: 16.5, color: '#B45309'}}>Da restituire al cliente</span>
+          <span style={{
+            fontSize: 18, fontWeight: 800, letterSpacing: -0.3, color: '#B45309',
+            fontVariantNumeric: 'tabular-nums',
+          }}>{svEur(eccedenza)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Storno di un incasso già preso. Tre fasi in fila, una schermata per volta.
+//
+// La differenza fra i due metodi non è cosmetica ed è tutta qui: i contanti
+// li rende l'operatore aprendo il cassetto — il sistema può solo togliere la
+// riga e dirgli quanto ridare — mentre sulla carta i soldi li muove Stripe,
+// quindi parte una richiesta al telefono e si aspetta, esattamente come per
+// l'incasso. Un'unica schermata "storno fatto" per entrambi mentirebbe sul
+// secondo caso, dove al momento del tocco non è ancora successo niente.
+function SvStorno({ p, fase, onConferma, onChiudi }) {
+  const carta = p.come === 'carta';
+
+  const cerchio = (bg, fg, children) => (
+    <div style={{
+      width: 64, height: 64, borderRadius: '50%', marginBottom: 16,
+      background: bg, color: fg, display: 'grid', placeItems: 'center',
+    }}>{children}</div>
+  );
+
+  return (
+    <div style={{padding: '36px 28px 26px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+      {fase === 'fatto' ? (
+        cerchio('#DCFCE7', SVI_GREEN,
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>)
+      ) : (
+        cerchio(PAY_BG, PAY_INK,
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8h11a5 5 0 0 1 0 10h-6"/><path d="M7 4 3 8l4 4"/></svg>)
+      )}
+
+      <div style={{fontSize: 24, fontWeight: 800, color: SVI_INK, letterSpacing: -0.4, display: 'flex', alignItems: 'center', gap: 10}}>
+        {fase === 'attesa' && (
+          <span aria-hidden="true" style={{
+            width: 11, height: 11, borderRadius: 999, flexShrink: 0,
+            background: PAY_INK, animation: 'saldaPayPulse 1.6s ease-in-out infinite',
+          }}/>
+        )}
+        {fase === 'conferma' ? (carta ? 'Stornare sul POS?' : 'Annullare questo incasso?')
+          : fase === 'attesa' ? 'Storno in corso'
+          : 'Incasso stornato'}
+      </div>
+
+      <div style={{
+        fontSize: 34, fontWeight: 800, color: SVI_INK, marginTop: 6,
+        letterSpacing: -0.8, fontVariantNumeric: 'tabular-nums',
+      }}>{svEur(p.importo)}</div>
+
+      {/* Una riga sola, e dice il gesto che tocca a chi legge — non lo stato
+          interno del sistema. */}
+      <div style={{fontSize: 16, color: SVI_MUTED, marginTop: 6, maxWidth: 380, lineHeight: 1.45}}>
+        {fase === 'conferma'
+          ? (carta
+            ? 'La richiesta parte su Byup Staff: l\'importo torna sulla carta del cliente.'
+            : 'Esce dal conto: ridai i contanti dal cassetto.')
+          : fase === 'attesa'
+            ? 'Richiesta inviata'
+            : (carta ? 'Restituiti sulla carta del cliente.' : `Ridai ${svEur(p.importo)} dal cassetto.`)}
+      </div>
+
+      {fase === 'conferma' ? (
+        <div style={{display: 'flex', gap: 10, marginTop: 24, width: '100%'}}>
+          <button onClick={onChiudi} style={{
+            flex: 1, padding: '13px 18px', borderRadius: 14,
+            background: 'transparent', color: SVI_INK,
+            border: `1px solid ${SVI_BORDER}`,
+            fontSize: 16.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>Lascia com'è</button>
+          <button onClick={onConferma} style={{
+            flex: 1, padding: '13px 18px', borderRadius: 14,
+            background: '#DC2626', color: '#fff', border: 'none',
+            fontSize: 16.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            boxShadow: '0 8px 20px -8px rgba(220,38,38,0.55)',
+          }}>{carta ? 'Invia storno' : 'Annulla incasso'}</button>
+        </div>
+      ) : fase === 'fatto' ? (
+        <button onClick={onChiudi} style={{
+          width: '100%', marginTop: 24, padding: '13px 18px', borderRadius: 14,
+          background: SVI_INK, color: '#fff', border: 'none',
+          fontSize: 17, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+        }}>Torna al conto</button>
+      ) : null}
     </div>
   );
 }
@@ -2689,10 +3789,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm }) {
 //
 // Resta premibile fino alla fine: se arriva tardi perde la corsa e la finestra
 // passa a incassato, che è quello che è successo davvero.
-function SvAttesaPagamento({ total, elapsed, onRitira }) {
-  const secondi = Math.floor((elapsed || 0) / 1000);
-  const mmss = `${Math.floor(secondi / 60)}:${String(secondi % 60).padStart(2, '0')}`;
-
+function SvAttesaPagamento({ total, onRitira }) {
   return (
     <div style={{
       padding: '36px 28px', textAlign: 'center',
@@ -2726,10 +3823,13 @@ function SvAttesaPagamento({ total, elapsed, onRitira }) {
         letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums',
       }}>€{total.toFixed(2)}</div>
 
-      {/* Il contatore è l'unica cosa che si muove: senza, una schermata ferma
-          non distingue "sta aspettando" da "si è piantata". */}
-      <div style={{ fontSize: 17, color: '#6B7280', marginBottom: 24, fontVariantNumeric: 'tabular-nums' }}>
-        Richiesta inviata · {mmss}
+      {/* Niente cronometro: a dire che è viva basta il pallino che pulsa qui
+          sopra. I secondi che salgono non danno all'operatore niente su cui
+          decidere — l'unica scelta è aspettare o ritirare, e vale uguale al
+          quinto o al cinquantesimo — mentre l'attesa la fanno sembrare più
+          lunga di quanto sia. */}
+      <div style={{ fontSize: 17, color: '#6B7280', marginBottom: 24 }}>
+        Richiesta inviata
       </div>
 
       <button onClick={onRitira} style={{

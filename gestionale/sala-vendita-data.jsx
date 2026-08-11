@@ -10,7 +10,10 @@ const SALA_VENDITA_PIATTI = [
   { id: 3, name: 'Cornetto', price: 2.00, cat: 'Bar', emoji: '🥐',
     img: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop',
     variants: [{ group: 'Tipo', required: true, options: [{name:'Vuoto'},{name:'Crema'},{name:'Cioccolato'},{name:'Marmellata'},{name:'Vegano',extra:0.30}] }] },
-  { id: 4, name: 'Spritz', price: 6.50, cat: 'Bar', emoji: '🍹',
+  // hasAlcohol e prodottoFinito sono le due dichiarazioni che il piatto porta
+  // da Impostazioni → Menù. Non servono solo al banco: da asporto spostano
+  // l'aliquota IVA dal 10% al 22%, ed è da lì che la fattura la ricava.
+  { id: 4, name: 'Spritz', price: 6.50, cat: 'Bar', emoji: '🍹', hasAlcohol: true,
     img: 'https://images.unsplash.com/photo-1605270012917-bf357a1fae9e?w=400&auto=format&fit=crop',
     variants: [{ group: 'Aperitivo', required: true, options: [{name:'Aperol'},{name:'Campari'},{name:'Hugo'},{name:'Cynar'}] }],
     extras: [{name:'Stuzzichini',price:2.00}] },
@@ -74,20 +77,22 @@ const SALA_VENDITA_CATS = {
 // Ritiri asporto — ordini dei clienti in attesa al banco.
 // pagato:true = saldato via Byup App; pagato:false = ordinato dalla webapp
 // guest (che non permette il pagamento), da incassare al banco al ritiro.
-// L'identità segue il canale: chi ordina dall'app ha un account e quindi un
-// nome, chi ordina dalla webapp guest è solo il suo codice ordine.
+// Un asporto si chiama sempre col nome di chi ritira: dall'app arriva
+// dall'account, dalla webapp guest lo si chiede prima di chiudere l'ordine.
+// È il nome che si urla al banco quando l'ordine è pronto, quindi non può
+// mancare — il codice ordine (#A-1045) non lo grida nessuno.
 // Il codiceRitiro è mostrato al cliente in app/webapp: dettarlo al banco
-// è la prova di consegna.
+// è la prova di consegna, e resta il ripiego se il nome non c'è.
 const SALA_ASPORTO_CONTI = [
   { id:'asp-1', codice:'#A-1042', cliente:'Simone De Luca', ritiro:'19:45', fonte:'byup', pagato:true, totale:64.50, codiceRitiro:'K4F7',
-    items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{nome:'Birra media',qty:2,prezzo:5.50},{nome:'Supplì (4pz)',qty:1,prezzo:7.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:2,prezzo:2.50},{nome:'Patatine fritte',qty:1,prezzo:4.00}] },
-  { id:'asp-4', codice:'#A-1045', cliente:null, ritiro:'20:00', fonte:'webapp', pagato:false, totale:37.00, codiceRitiro:'H5W8',
-    items:[{nome:'Pizza Diavola',qty:2,prezzo:11.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Birra media',qty:2,prezzo:5.50}] },
+    items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{nome:'Birra media',qty:2,prezzo:5.50,hasAlcohol:true},{nome:'Supplì (4pz)',qty:1,prezzo:7.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:2,prezzo:2.50},{nome:'Patatine fritte',qty:1,prezzo:4.00}] },
+  { id:'asp-4', codice:'#A-1045', cliente:'Giulia Fontana', ritiro:'20:00', fonte:'webapp', pagato:false, totale:37.00, codiceRitiro:'H5W8',
+    items:[{nome:'Pizza Diavola',qty:2,prezzo:11.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Birra media',qty:2,prezzo:5.50,hasAlcohol:true}] },
   { id:'asp-2', codice:'#A-1043', cliente:'Elena Greco', ritiro:'20:15', fonte:'byup', pagato:true, totale:31.00, codiceRitiro:'B2N9',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tagliere salumi',qty:1,prezzo:13.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'asp-3', codice:'#A-1044', cliente:'Marta Ferri', ritiro:'20:30', fonte:'byup', pagato:true, totale:22.00, codiceRitiro:'Q7D3',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Acqua minerale',qty:2,prezzo:2.00}] },
-  { id:'asp-5', codice:'#A-1046', cliente:null, ritiro:'20:45', fonte:'webapp', pagato:false, totale:29.00, codiceRitiro:'T9C2',
+  { id:'asp-5', codice:'#A-1046', cliente:'Luca Bianchi', ritiro:'20:45', fonte:'webapp', pagato:false, totale:29.00, codiceRitiro:'T9C2',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tiramisù',qty:2,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
 ];
 
@@ -96,10 +101,10 @@ const SALA_ASPORTO_CONTI = [
 // arrivano dopo ("l'ordine di prima quant'era?", "è già passato a ritirare?").
 const SALA_ORDINI_STORICO = [
   { id:'sto-6', codice:'#A-1041', cliente:'Chiara Neri', ritiro:'19:38', fonte:'byup', pagato:true, totale:27.50, stato:'consegnato',
-    items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Birra media',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
+    items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Birra media',qty:1,prezzo:5.50,hasAlcohol:true},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-5', codice:'#1245', cliente:null, ritiro:'19:31', fonte:'banco', pagato:true, asporto:true, totale:19.50, stato:'consegnato',
     items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00}] },
-  { id:'sto-4', codice:'#A-1040', cliente:null, ritiro:'19:20', fonte:'webapp', pagato:true, totale:24.00, stato:'consegnato',
+  { id:'sto-4', codice:'#A-1040', cliente:'Sara Conti', ritiro:'19:20', fonte:'webapp', pagato:true, totale:24.00, stato:'consegnato',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-3', codice:'#1244', cliente:null, ritiro:'19:12', fonte:'banco', pagato:true, asporto:false, totale:9.50, stato:'consegnato',
     items:[{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
