@@ -104,6 +104,9 @@ const K = {
   BRAND:      '#FF5A5F',   // = PN.PINK — bordo della sorgente selezionata
   BRAND_BG:   '#FFF1EF',   // = PN.PINK_BG_SOFT — velatura sotto la selezione
   BRAND_INK:  '#B53338',   // = PN.WINE — 5,9:1 su bianco, per il testo su brand
+  // Il filo che separa due cose entrambe posate sulla velatura corallo: il
+  // grigio dei bordi normali, lì sopra, vira al verde e si vede.
+  BRAND_BORDO: '#F7DAD7',
 
   // Rosso: solo allergene. Sta sul BORDO, sulla barra e dentro la pastiglia
   // dell'etichetta — non su tutta la superficie della riga. Una riga campita di
@@ -296,12 +299,18 @@ function Kds2Chip({
   const presa = status !== 'incoming';
   const quieta = spenta || !presa;
 
-  // La selezione non inverte più: accende il bordo corallo e vela di rosa. Il
-  // testo resta inchiostro su fondo chiaro, quindi ambra e verde sopravvivono
-  // (invertendo sarebbero dovuti scendere a 3,2:1 su nero e cambiare tinta).
-  const colTesto = quieta ? K.TESTO_OFF : K.TESTO;
-  const colQual  = quieta ? K.TESTO_OFF : K.TESTO_2;
-  const colTempo = quieta ? K.TESTO_OFF
+  // La selezione RIEMPIE: corallo pieno, scritte bianche. La velatura rosa col
+  // solo bordo acceso non reggeva il confronto con una fila di pastiglie
+  // bianche tutte uguali — a due metri si vedeva un bordo, non uno stato.
+  // Il prezzo lo paga il tempo: sul corallo pieno ambra e verde non passano
+  // (2,1:1 e 2,4:1) e diventano bianchi, quindi la chip selezionata perde il
+  // tono d'attesa. Perde poco: è UNA chip, quella che stai già guardando, e i
+  // suoi minuti restano scritti — mentre il tono resta a colori su tutte le
+  // righe del board, che è dove serve.
+  const colTesto = selezionata ? K.RIGA : quieta ? K.TESTO_OFF : K.TESTO;
+  const colQual  = selezionata ? 'rgba(255,255,255,0.80)' : quieta ? K.TESTO_OFF : K.TESTO_2;
+  const colTempo = selezionata ? 'rgba(255,255,255,0.92)'
+    : quieta ? K.TESTO_OFF
     : (tempo.tono === 'attesa' ? K.AMBRA : K.VERDE);
 
   const Canale = source.type === 'takeaway' ? Kds2Bag
@@ -325,7 +334,7 @@ function Kds2Chip({
     // niente fondo: la chip si appiattisce sulla pagina, ed è questo che la fa
     // sparire come oggetto, non l'opacità. Altrimenti la velatura della sua
     // categoria (nulla nell'header, dove le chip non appartengono a un piatto).
-    background: selezionata ? K.BRAND_BG
+    background: selezionata ? K.BRAND
       : quieta ? 'transparent'
       : (tinta || K.RIGA),
     // Presa in carico o no: la differenza è di VALORE e di TRATTO, mai di tinta
@@ -522,14 +531,19 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
         touchAction: 'manipulation', userSelect: 'none', WebkitUserSelect: 'none',
       }}>
 
-      {/* Barra di categoria — 4 px, ancoraggio e basta. Sulla riga allergene
-          VISIBILE diventa rossa e raddoppia: tolto il fondo campito, è la
-          barra a dover reggere il segnale a colpo d'occhio, e lo fa con la
-          geometria oltre che con la tinta. Filtrata fuori, torna la barra di
-          categoria smorzata come su qualunque altra riga spenta. */}
+      {/* Barra dell'ATTESA — 6 px. Portava la categoria del piatto, che era un
+          ancoraggio e nient'altro: nessuna priorità, nessun ordinamento. Ora
+          porta la stessa cosa che dice il tempo in fondo alla riga, e le due
+          estremità della riga si rispondono — da lontano si legge la fascia di
+          colore lungo il bordo sinistro senza mettere a fuoco un solo numero.
+          Sull'allergene VISIBILE resta rossa e raddoppia: tolto il fondo
+          campito, è la barra a dover reggere quel segnale, e lo fa con la
+          geometria oltre che con la tinta. */}
       <span aria-hidden="true" style={{
-        width: allergeneVisibile ? 8 : 4, flexShrink: 0, alignSelf: 'stretch',
-        background: allergeneVisibile ? K.ROSSO : (spenta ? cat.smorta : cat.viva),
+        width: allergeneVisibile ? 10 : 6, flexShrink: 0, alignSelf: 'stretch',
+        background: allergeneVisibile ? K.ROSSO
+          : quieta ? K.BORDO_ATTESA
+          : (tonoRiga === 'attesa' ? K.AMBRA : K.VERDE),
       }}/>
 
       {/* Quanti · cosa · per chi · da quando, tutto su una linea sola. Le chip
@@ -537,10 +551,21 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
           ~90, sullo schermo ci stanno tre piatti in più, e la mano che tocca
           non deve scendere di mezzo palmo dopo aver letto il nome. */}
       <div style={{flex: 1, minWidth: 0, padding: '12px 16px'}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 18}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
+          {/* La colonna resta anche quando la cifra non c'è: è l'ascissa su cui
+              si scandiscono le quantità dall'alto in basso, e farla ballare
+              riga per riga toglierebbe proprio il servizio che rende. Sparisce
+              solo l'«1»: davanti a un piatto solo non conta niente, e in una
+              colonna di numeri è quello che si legge per sbaglio. */}
           <span style={Object.assign({}, TY.qty, {
             width: COL_QTY, flexShrink: 0, textAlign: 'right', color: colQty,
-          })}>{riga.quantity}</span>
+          })}>{riga.quantity > 1 ? riga.quantity : ''}</span>
+
+          {/* Filo verticale fra la quantità e il piatto: separa due cose che si
+              leggono in momenti diversi — quante ne devo fare, e che cosa. */}
+          <span aria-hidden="true" style={{
+            width: 1, alignSelf: 'stretch', flexShrink: 0, background: K.BORDO_RIGA,
+          }}/>
 
           {/* Larghezza del nome: quella del nome. Le chip cominciano subito
               dopo, non a un'ascissa decisa una volta per tutte. */}
@@ -557,6 +582,26 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
               <span style={Object.assign({}, TY.piatto, {
                 fontSize: nomeSize, color: colNome, whiteSpace: 'nowrap',
               })}>{nome}</span>
+
+              {/* Solo dove ce n'è più d'uno. Su una riga da un piatto solo la
+                  pressione lunga fa già esattamente questo, e la CTA sarebbe un
+                  secondo modo di fare la stessa identica cosa.
+                  `stopPropagation` sul pointerdown: senza, premere la CTA
+                  avvierebbe anche il conto della pressione lunga, e chi indugia
+                  un attimo si ritrova la riga intera in preparazione. */}
+              {riga.quantity > 1 && !quieta && (
+                <button type="button" data-kds2-interattivo=""
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => { e.stopPropagation(); onBumpPorzione(riga.portions[0]); }}
+                  title={'Invia un solo ' + nome + ' · ' + kds2Identita(riga.portions[0].source)}
+                  style={{
+                    flexShrink: 0, height: 44, padding: '0 16px', borderRadius: 10,
+                    background: K.BRAND_BG, border: '2px solid ' + K.BRAND,
+                    color: K.BRAND_INK, fontSize: 15, fontWeight: 700,
+                    letterSpacing: '-0.01em', whiteSpace: 'nowrap',
+                    fontFamily: 'inherit', cursor: 'pointer',
+                  }}>Invia singolo piatto</button>
+              )}
             </div>
             {allergene ? (
               // Solo l'etichetta, così com'è scritta sul menu. Nessun protocollo
@@ -613,10 +658,25 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
 
           {/* Attesa della riga: quella della sua porzione più vecchia. È l'età
               della produzione, sempre in minuti — l'orario di ritiro è una
-              proprietà del destinatario e vive nella sua chip. */}
-          <span style={Object.assign({}, TY.attesa, {color: colTempo, flexShrink: 0})}>
-            {attesaMin}′
-          </span>
+              proprietà del destinatario e vive nella sua chip.
+              «di attesa» sotto: il numero da solo, in fondo a una riga dove ci
+              sono già altri numeri, si può leggere come un prezzo o una
+              quantità. Due parole grigie tolgono l'equivoco per sempre. */}
+          <div style={{
+            flexShrink: 0, display: 'flex', flexDirection: 'column',
+            alignItems: 'flex-end', gap: 1,
+          }}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 7}}>
+              <span style={Object.assign({}, TY.attesa, {color: colTempo})}>{attesaMin}′</span>
+              <span style={{color: colTempo, display: 'flex', flexShrink: 0}}>
+                <Kds2Orologio size={21}/>
+              </span>
+            </div>
+            <span style={{
+              fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em',
+              color: colTempo, whiteSpace: 'nowrap',
+            }}>di attesa</span>
+          </div>
         </div>
       </div>
 
@@ -779,19 +839,33 @@ function Kds2Rail({ children }) {
 // è dove la mano arriva per prima: in testa, prima di tutti i tavoli.
 // Sta DENTRO la rail e non prima: è una scelta come le altre, e la fila deve
 // leggersi come un elenco unico di stati fra cui uno solo è acceso.
-function Kds2Tutti({ selezionata, onTap }) {
+// `totale`: quanti piatti ci sono in tutto in preparazione. Le altre chip
+// portano la quantità della loro sorgente, questa porta la somma — così la fila
+// si legge da sinistra come «in tutto ventiquattro, di cui otto al tav. 3».
+function Kds2Tutti({ selezionata, totale, onTap }) {
   return (
     <button type="button" data-kds2-interattivo="" onClick={onTap}
-      aria-label="Mostra tutte le sorgenti" title="Mostra tutto"
+      aria-label={'Mostra tutte le sorgenti · ' + totale + ' piatti in preparazione'}
+      title="Mostra tutto"
       style={Object.assign({}, TY.chipId, {
-        display: 'inline-flex', alignItems: 'center',
-        height: H_BERSAGLIO, padding: '0 22px', borderRadius: 12, flexShrink: 0,
-        background: selezionata ? K.BRAND_BG : 'transparent',
+        display: 'inline-flex', alignItems: 'center', gap: 12,
+        height: H_BERSAGLIO, padding: '0 14px 0 22px', borderRadius: 12, flexShrink: 0,
+        background: selezionata ? K.BRAND : 'transparent',
         border: '2px solid ' + (selezionata ? K.BRAND : K.BORDO),
-        color: selezionata ? K.BRAND_INK : K.TESTO,
+        color: selezionata ? K.RIGA : K.TESTO,
         letterSpacing: '0.04em',
         fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
-      })}>TUTTI</button>
+      })}>
+      TUTTI
+      <span style={{
+        display: 'grid', placeItems: 'center', flexShrink: 0,
+        minWidth: 38, height: 38, padding: '0 9px', borderRadius: 999,
+        background: selezionata ? K.RIGA : K.BRAND_BG,
+        color: selezionata ? K.BRAND_INK : K.BRAND_INK,
+        fontSize: 20, fontWeight: 800, letterSpacing: 0,
+        fontVariantNumeric: 'tabular-nums',
+      }}>{totale}</span>
+    </button>
   );
 }
 
@@ -911,7 +985,7 @@ function Kds2Fullscreen({ onToggle, attivo }) {
 }
 
 function Kds2Header({
-  sorgenti, ora, selezione, onSeleziona, focus, onToggleFocus, barra,
+  sorgenti, totale, ora, selezione, onSeleziona, focus, onToggleFocus, barra,
   canale, onCanale, canali, categoria, onCategoria, categorie,
 }) {
   const orologio = kds2Orario(ora);
@@ -949,7 +1023,7 @@ function Kds2Header({
         </span>
       ) : (
         <Kds2Rail>
-          <Kds2Tutti selezionata={selezione == null} onTap={() => onSeleziona(null)}/>
+          <Kds2Tutti selezionata={selezione == null} totale={totale} onTap={() => onSeleziona(null)}/>
           {sorgenti.map(s => {
             const sel = selezione === s.id;
             return (
@@ -978,36 +1052,32 @@ function Kds2Header({
 // che annunciasse cosa succede toccandole. In cucina, con le mani sporche e
 // dieci secondi di finestra, una funzione che non si annuncia non esiste.
 //
-// LA CTA. Scartate: «Ripristina» (parola da software, non da cucina),
-// «Rimetti in produzione» (troppo lunga da leggere di sfuggita) e un pulsante
-// generico «Annulla» separato dalle voci — perché avrebbe costretto a chiedersi
-// «annulla cosa?» proprio nei secondi in cui non c'è tempo. Vince una CTA che
-// NOMINA il proprio bersaglio: «Annulla · 1 Hamburger · tav. 12». Si legge e si
-// tocca senza decidere niente, che è ciò che serve a un annullamento.
+// UNA SCHEDA PER PIATTO, tutte uguali. C'era una CTA scura che nominava il
+// proprio bersaglio — «Annulla · 1 Hamburger · tav. 12» — e dietro le voci
+// precedenti come pastiglie secondarie: una sola cosa per volta poteva essere
+// «il prossimo tocco ovvio». Ora le schede si equivalgono, perché ognuna porta
+// il proprio tempo e il tempo è la ragione per cui la si tocca: la più urgente
+// non è l'ultima che hai premuto, è quella col numero più basso.
 //
-// L'ORDINE è invertito rispetto a prima: il più recente sta a SINISTRA. Le voci
-// si accumulavano verso destra, così l'ultima azione — cioè quella che si vuole
-// annullare nel 90% dei casi — finiva in fondo alla fila e, con abbastanza
-// voci, fuori schermo. Un annullamento che scorre via è un annullamento che non
-// c'è. Ora l'ultima azione è sempre la prima cosa a sinistra, ed è la CTA;
-// quelle prima le seguono come pastiglie secondarie, ognuna annullabile per
-// conto suo.
+// L'ORDINE resta invertito: il più recente a SINISTRA. Le voci si accumulavano
+// verso destra, così l'ultima azione — quella che si vuole annullare nel 90%
+// dei casi — finiva in fondo alla fila e, con abbastanza voci, fuori schermo.
+// Un annullamento che scorre via è un annullamento che non c'è.
 //
-// Il materiale è il VETRO del gestionale (PN.GLASS_LIGHT, lo stesso di modali,
-// dropdown e barre sticky): la riga sotto si intravede sfocata, e questo dice
-// due cose insieme — «sono sopra il board, non dentro» e «sto coprendo qualcosa
-// che è ancora lì». Un fondo pieno avrebbe detto solo la prima.
+// Il fondo è la velatura corallo del brand e non più il vetro: sotto passano
+// righe bianche, e il vetro le lasciava intravedere sfocate proprio sotto ai
+// numeri. La velatura stacca la fascia dal board senza spegnerlo, e le schede
+// bianche tornano a essere l'unica cosa che si legge.
 //
-// Ogni voce vive dieci secondi, E IL CONTO ALLA ROVESCIA SI VEDE. Prima era
-// nascosto di proposito — cinque timer che scorrono sono cinque cose che si
-// muovono in una schermata dove ciò che conta è fermo — ma quel ragionamento
-// difendeva la quiete del board e lasciava scoperta la domanda vera: chi ha
-// appena premuto non sa quanto tempo ha per tornare indietro, e senza saperlo
-// non prova nemmeno. Il timer è piccolo, rosso, e sta DENTRO il bersaglio che
-// scade, non da qualche parte a fianco: si muove solo qui, e solo mentre c'è
-// una decisione aperta. La scritta a sinistra dice che cosa succede quando
-// finisce, perché un conto alla rovescia senza conseguenza dichiarata fa più
-// paura di quanta ne meriti.
+// Ogni voce vive dieci secondi, E IL CONTO ALLA ROVESCIA SI VEDE — `00:07`,
+// come su un forno. Prima era nascosto di proposito: cinque timer che scorrono
+// sono cinque cose che si muovono in una schermata dove ciò che conta è fermo.
+// Ma quel ragionamento difendeva la quiete del board e lasciava scoperta la
+// domanda vera: chi ha appena premuto non sa quanto tempo ha per tornare
+// indietro, e senza saperlo non prova nemmeno. Il moto resta confinato qui, e
+// solo mentre c'è una decisione aperta. La scritta a sinistra dice che cosa
+// succede quando il tempo finisce, perché un conto alla rovescia senza
+// conseguenza dichiarata fa più paura di quanta ne meriti.
 function Kds2Undo({ size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1027,34 +1097,12 @@ function Kds2Orologio({ size = 20 }) {
   );
 }
 
-// Disco rosso con i secondi che restano e l'anello che si consuma. Il numero
-// serve da vicino («quanto ho?»), l'anello da lontano («sta per finire»): a due
-// metri una cifra da 16 px non si legge, un anello mezzo vuoto sì.
-function Kds2Timer({ scadenza, adesso, size = 34 }) {
-  const restano = Math.max(0, Math.ceil((scadenza - adesso) / 1000));
-  const parte = Math.max(0, Math.min(1, (scadenza - adesso) / UNDO_MS));
-  const r = (size - 5) / 2;
-  const giro = 2 * Math.PI * r;
-  return (
-    <span aria-hidden="true" style={{
-      position: 'relative', width: size, height: size, flexShrink: 0,
-      display: 'grid', placeItems: 'center',
-    }}>
-      <svg width={size} height={size} style={{
-        position: 'absolute', left: 0, top: 0, transform: 'rotate(-90deg)',
-      }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill={K.ROSSO}/>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke={K.RIGA} strokeWidth="2.5" strokeLinecap="round"
-          strokeDasharray={giro} strokeDashoffset={giro * (1 - parte)}
-          style={{transition: KDS2_MOTO_RIDOTTO ? 'none' : 'stroke-dashoffset 1s linear'}}/>
-      </svg>
-      <span style={{
-        position: 'relative', fontSize: 16, fontWeight: 800, color: K.RIGA,
-        fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
-      }}>{restano}</span>
-    </span>
-  );
+// Minuti e secondi, come su un forno. La cifra secca («7») diceva un numero
+// senza dire di che grandezza; `00:07` si legge come tempo anche di sfuggita e
+// senza etichetta accanto.
+function kds2MmSs(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 }
 
 function Kds2Annulla({ voci, onRipristina }) {
@@ -1072,59 +1120,59 @@ function Kds2Annulla({ voci, onRipristina }) {
   }, [vive]);
 
   if (!vive) return null;
-  const ultima = voci[0], precedenti = voci.slice(1);
   return (
-    <div data-kds2-interattivo="" style={Object.assign({
+    // Fascia corallo chiarissimo, non più vetro: sotto ci passano righe bianche
+    // e il vetro le lasciava intravedere sfocate proprio dove servono i numeri.
+    // La velatura del brand la stacca dal board senza spegnerlo, e le schede
+    // bianche dentro tornano a essere l'unica cosa che si legge.
+    <div data-kds2-interattivo="" style={{
       position: 'sticky', bottom: 0, zIndex: 40,
-      display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10,
-      padding: '14px 20px', borderRadius: 16, marginTop: 4,
-    }, PN.GLASS_LIGHT)}>
-      {/* Che cosa succede quando il rosso finisce. Sta a sinistra, prima di
+      display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12,
+      padding: '14px 18px', borderRadius: 16, marginTop: 4,
+      background: K.BRAND_BG, border: '1px solid ' + K.BRAND_BORDO,
+      boxShadow: '0 -6px 20px -12px rgba(15,17,21,0.18)',
+    }}>
+      {/* Che cosa succede quando il tempo finisce. Sta a sinistra, prima di
           tutto: è la regola sotto cui si legge tutta la fila, non la didascalia
-          di una delle pastiglie. */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
-        maxWidth: 340, padding: '9px 14px', borderRadius: 12,
-        background: K.RIGA, border: '1px solid ' + K.BORDO_RIGA,
+          di una delle schede. */}
+      <span style={{
+        flexShrink: 0, maxWidth: 216,
+        fontSize: 13.5, fontWeight: 600, lineHeight: 1.3, color: K.TESTO_2,
       }}>
-        <span style={{color: K.ROSSO, display: 'flex', flexShrink: 0}}><Kds2Orologio size={22}/></span>
-        <span style={{fontSize: 15, fontWeight: 600, lineHeight: 1.25, color: K.TESTO_2}}>
-          Allo scadere del timer, il piatto viene considerato pronto e scompare
-        </span>
-      </div>
+        Allo scadere del timer il piatto viene considerato pronto e scompare
+      </span>
 
-      <button type="button" onClick={() => onRipristina(ultima)}
-        aria-label={'Annulla · ' + ultima.testo}
-        title={'Annulla · ' + ultima.testo}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 10,
-          height: H_BERSAGLIO, padding: '0 22px', borderRadius: 12,
-          background: K.TESTO, border: '2px solid ' + K.TESTO, color: K.RIGA,
-          fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+      {/* Una scheda per piatto avviato, tutte uguali: nome sopra, tempo che
+          scende e il tasto per riportarlo in produzione. */}
+      {voci.map(v => (
+        <div key={v.id} style={{
+          display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0,
+          padding: '9px 12px', borderRadius: 12,
+          background: K.RIGA, border: '1px solid ' + K.BRAND_BORDO,
         }}>
-        <span style={{display: 'flex', flexShrink: 0}}><Kds2Undo size={23}/></span>
-        <span style={{fontSize: 21, fontWeight: 800, letterSpacing: '-0.01em'}}>Annulla</span>
-        <span aria-hidden="true" style={{opacity: 0.55, fontSize: 20, fontWeight: 700}}>·</span>
-        <span style={{fontSize: 20, fontWeight: 600}}>{ultima.testo}</span>
-        <Kds2Timer scadenza={ultima.scadenza} adesso={adesso}/>
-      </button>
-
-      {/* Le azioni precedenti restano annullabili, ma non si travestono da CTA:
-          una sola cosa per volta può essere «il prossimo tocco ovvio». */}
-      {precedenti.map(v => (
-        <button key={v.id} type="button" onClick={() => onRipristina(v)}
-          aria-label={'Annulla · ' + v.testo}
-          title={'Annulla · ' + v.testo}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 9,
-            height: H_BERSAGLIO, padding: '0 18px', borderRadius: 12,
-            background: K.RIGA, border: '2px solid ' + K.BORDO,
-            fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
-          <span style={{color: K.TESTO_2, display: 'flex', flexShrink: 0}}><Kds2Undo size={20}/></span>
-          <span style={Object.assign({}, TY.chipId, {color: K.TESTO})}>{v.testo}</span>
-          <Kds2Timer scadenza={v.scadenza} adesso={adesso} size={30}/>
-        </button>
+          <span style={{
+            fontSize: 14.5, fontWeight: 700, color: K.TESTO,
+            letterSpacing: '-0.01em', whiteSpace: 'nowrap',
+          }}>{v.testo}</span>
+          <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
+            <span style={{
+              flex: 1, fontSize: 25, fontWeight: 800, color: K.TESTO,
+              letterSpacing: '-0.02em', lineHeight: 1,
+              fontVariantNumeric: 'tabular-nums',
+            }}>{kds2MmSs(v.scadenza - adesso)}</span>
+            <button type="button" onClick={() => onRipristina(v)}
+              aria-label={'Annulla · ' + v.testo}
+              title={'Annulla · ' + v.testo}
+              style={{
+                width: 44, height: 44, flexShrink: 0, borderRadius: 11,
+                display: 'grid', placeItems: 'center',
+                background: K.ROSSO, border: 'none', color: K.RIGA,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+              <Kds2Undo size={22}/>
+            </button>
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -1210,6 +1258,10 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   // alto sono quelle dell'asporto. Un recap che continuasse a contare porzioni
   // non più a schermo direbbe numeri che non si possono verificare.
   const sorgenti = React.useMemo(() => kds2Sorgenti(porzioniViste), [porzioniViste]);
+  // Quanti piatti in tutto: la somma delle porzioni a schermo, non il numero di
+  // righe — «2 Pizza Diavola» sono due piatti da fare, non uno.
+  const totale = React.useMemo(
+    () => porzioniViste.reduce((s, p) => s + p.quantity, 0), [porzioniViste]);
 
   // Auto-deselezione: si azzera a ogni tocco, ovunque sullo schermo.
   React.useEffect(() => {
@@ -1303,7 +1355,7 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
       background: barra ? 'transparent' : K.FONDO,
     }}>
       <Kds2Header
-        sorgenti={sorgenti} ora={ora} selezione={selezione} onSeleziona={setSel}
+        sorgenti={sorgenti} totale={totale} ora={ora} selezione={selezione} onSeleziona={setSel}
         focus={focus} onToggleFocus={onToggleFocus} barra={barra}
         canale={canale} onCanale={setCanale} canali={CANALI}
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}/>
