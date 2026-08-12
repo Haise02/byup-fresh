@@ -47,12 +47,17 @@ const IMP_SEZIONI = [
 // il logo dell'app sta già a sinistra, dietro al velo.
 function ImpNavSidebar({ active, onChange, onClose }) {
   return (
+    // Gli angoli se li arrotonda da sola: il vetro (backdrop-filter) si
+    // compone su un livello suo e Chrome smette di ritagliarlo sul raggio del
+    // popup — il risultato erano due spigoli vivi in fondo a sinistra, fuori
+    // dalla geometria di tutto il resto.
     <aside style={{
       width: 272, flexShrink: 0,
       ...PN.GLASS_VIBRANT,
       display: 'flex', flexDirection: 'column',
       padding: '20px 14px',
       height: '100%', position: 'relative', overflow: 'hidden',
+      borderRadius: '16px 0 0 16px',
     }}>
       <GlassMeshSubstrate/>
 

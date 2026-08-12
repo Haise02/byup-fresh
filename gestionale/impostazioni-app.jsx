@@ -67,17 +67,20 @@ function ImpApp() {
 
   return (
     <div style={{display: 'flex', flex: 1, minHeight: 0, position: 'relative'}}>
-      {/* Dietro al velo non c'è una pagina finta: il menù dell'app tagliato a
-          metà dal bordo del popup e un'area contenuti vuota si leggevano come
-          un layout rotto, non come «il gestionale è là sotto». Resta il fondo
-          della shell, velato — il popup è la schermata. */}
-      <div style={{flex: 1, minWidth: 0}}/>
+      {/* Dietro al velo c'è il gestionale, non un fondo grigio: è da lì che si
+          arriva ed è lì che si torna. Un popup ordinario lascia intravedere la
+          pagina sotto — toglierla faceva sembrare le impostazioni un'altra
+          finestra aperta per conto suo. */}
+      <PnSidebar active="impostazioni"/>
+      <main style={{flex: 1, minWidth: 0, background: PN.BG}}/>
 
       <div
         onClick={chiudi}
         style={{
           position: 'absolute', inset: 0, zIndex: 200,
-          background: 'rgba(15,17,21,0.46)',
+          // Velo più leggero: deve oscurare quanto basta a mandare indietro
+          // la pagina, non cancellarla.
+          background: 'rgba(15,17,21,0.34)',
           display: 'grid', placeItems: 'center',
           animation: 'impPopupVelo 0.18s ease-out',
         }}>
@@ -94,7 +97,10 @@ function ImpApp() {
           style={{
             width: '90%', height: '90%',
             display: 'flex', minHeight: 0, overflow: 'hidden',
-            background: PN.WHITE, borderRadius: 22,
+            // 16 come il frame e come le card: il 22 di prima era il raggio
+            // delle modali piccole e su un box di questa misura si leggeva
+            // come un'altra geometria.
+            background: PN.WHITE, borderRadius: 16,
             border: `1px solid ${PN.BORDER_HAIR}`,
             boxShadow: '0 40px 100px -20px rgba(15,17,21,0.42), 0 2px 8px rgba(15,17,21,0.10)',
             animation: 'impPopupSu 0.26s cubic-bezier(0.4, 0, 0.2, 1)',
