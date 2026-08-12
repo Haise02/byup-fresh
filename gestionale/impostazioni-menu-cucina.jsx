@@ -456,6 +456,16 @@ function MCMenuComposer() {
   const gridRef = React.useRef(null);
   const hCol = useAltezzaColonne(gridRef);
 
+  // Cambiata da Servizio, la fascia oraria arriva qui: è lo stesso menù.
+  React.useEffect(() => {
+    const agg = (e) => {
+      const { id, schedule } = e.detail || {};
+      setMenus(ms => ms.map(m => m.id === id ? { ...m, schedule } : m));
+    };
+    window.addEventListener('byup-menu-schedule', agg);
+    return () => window.removeEventListener('byup-menu-schedule', agg);
+  }, []);
+
   const activeMenu = menus.find(m => m.id === activeMenuId);
   const totalDishesIn = (m) => m.categories.reduce((s, c) => s + c.items.length, 0);
 
@@ -890,7 +900,9 @@ function MCMenuComposer() {
               — finiva in fondo in grigetto: qui l'orario È la riga, e la riga
               intera è il modo di cambiarlo. */}
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', {detail: 'flussi'}))}
+            onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', {
+              detail: { id: 'flussi', anchor: 'visibilita-menu', da: 'menu-cucina' },
+            }))}
             title="Cambia gli orari in cui il menù è visibile"
             onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.borderColor = PN.BORDER; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
@@ -1373,6 +1385,15 @@ const NM_SELECT = {
 };
 // Giorni della settimana: dentro al menù stanno come indici, in testata e
 // nell'anteprima come frase — «Tutti i giorni», «Lun–Ven», «Lun, Mer, Ven».
+// La visibilità di un menù si imposta in Servizio e si legge in Menù: le due
+// schermate devono guardare la stessa lista, altrimenti il rimando porta a
+// cambiare una cosa che di là resta com'era.
+window.byupSetMenuSchedule = function (id, schedule) {
+  const m = MENUS_INIT.find(x => x.id === id);
+  if (m) m.schedule = schedule;
+  window.dispatchEvent(new CustomEvent('byup-menu-schedule', { detail: { id, schedule } }));
+};
+
 const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 const etichettaGiorni = (sel) => {
   if (sel.length === 7) return 'Tutti i giorni';
@@ -5956,6 +5977,219 @@ function PrenotazioniDurata() {
   );
 }
 
+// ─── Servizio · Visibilità dei menù ─────────────────────────────────────────
+// Quando ciascun menù si fa vedere. Stava dentro la maschera del singolo menù,
+// dove si sceglieva una fascia alla volta senza vedere le altre: qui i menù
+// sono in fila e si capisce a colpo d'occhio chi copre quale ora del giorno —
+// che è l'unica domanda vera, perché il QR al tavolo ne mostra uno solo.
+function ServizioVisibilitaMenu() {
+  const [menus, setMenus] = React.useState(() => MENUS_INIT.map(m => ({...m})));
+  const [apertoId, setApertoId] = React.useState(null);
+
+  const orariDi = (str) => {
+    const m = /(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/.exec(str || '');
+    return m ? { da: m[1].padStart(5, '0'), a: m[2].padStart(5, '0') } : null;
+  };
+
+  const salva = (id, schedule) => {
+    setMenus(ms => ms.map(m => m.id === id ? {...m, schedule} : m));
+    window.byupSetMenuSchedule(id, schedule);
+  };
+
+  return (
+    <ImpCard
+      anchor="visibilita-menu"
+      title="Visibilità dei menù"
+      sub="In quali giorni e a che ora ogni menù si fa vedere ai clienti."
+    >
+      <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+        {menus.map(m => {
+          const aperto = apertoId === m.id;
+          const orari = orariDi(m.schedule);
+          const sempre = !orari;
+          return (
+            <div key={m.id} style={{
+              border: `1px solid ${aperto ? PN.BORDER : PN.BORDER_SOFT}`,
+              borderRadius: 12, background: PN.WHITE, overflow: 'hidden',
+              transition: 'border-color 150ms ease-out',
+            }}>
+              <button
+                onClick={() => setApertoId(a => a === m.id ? null : m.id)}
+                onMouseEnter={e => { if (!aperto) e.currentTarget.style.background = '#FAFBFC'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '13px 14px', border: 'none', background: 'transparent',
+                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  transition: 'background 140ms ease-out',
+                }}>
+                <span style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  display: 'grid', placeItems: 'center',
+                  background: m.active ? PN.PINK_BG_SOFT : '#F4F5F7',
+                  color: m.active ? PN.PINK_DARK : PN.MUTED,
+                }}><Icon name="time-calendar" size={16}/></span>
+                <span style={{flex: 1, minWidth: 0}}>
+                  <span style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                    <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{m.name}</span>
+                    {/* Attivo ce n'è uno solo e lo dice qui: una fascia oraria
+                        su un menù spento non fa vedere niente a nessuno. */}
+                    {m.active && (
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
+                        background: PN.GREEN_SOFT, color: PN.GREEN,
+                      }}>Attivo</span>
+                    )}
+                  </span>
+                  <span style={{display: 'block', fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
+                    {sempre ? 'Sempre visibile' : m.schedule}
+                  </span>
+                </span>
+                <span style={{
+                  display: 'inline-flex', flexShrink: 0, color: PN.MUTED,
+                  transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out',
+                }}><PnI.ChevronDown size={13}/></span>
+              </button>
+
+              {aperto && <VisibilitaEditor menu={m} orari={orari} onSalva={(sch) => salva(m.id, sch)}/>}
+            </div>
+          );
+        })}
+      </div>
+    </ImpCard>
+  );
+}
+
+// L'editor della fascia: gli stessi pezzi che stavano nella maschera del menù
+// — sempre visibile, giorni, dalle/alle — solo che adesso stanno dove si
+// decide come lavora il locale, e non dentro l'anagrafica di un menù.
+function VisibilitaEditor({ menu, orari, onSalva }) {
+  const [sempre, setSempre] = React.useState(!orari);
+  const [giorni, setGiorni] = React.useState(() => giorniDi(menu.schedule) || [0,1,2,3,4,5,6]);
+  const [da, setDa] = React.useState(orari ? orari.da : '12:00');
+  const [a, setA] = React.useState(orari ? orari.a : '15:00');
+  const [salvato, setSalvato] = React.useState(false);
+
+  const toggleGiorno = (i) => setGiorni(g => (g.includes(i) ? g.filter(x => x !== i) : [...g, i].sort((x, y) => x - y)));
+  const giorniOk = sempre || giorni.length > 0;
+
+  const applica = () => {
+    if (!giorniOk) return;
+    onSalva(sempre ? '' : `${etichettaGiorni(giorni)} · ${da}–${a}`);
+    setSalvato(true);
+    setTimeout(() => setSalvato(false), 1800);
+  };
+
+  return (
+    <div style={{padding: '4px 14px 14px', borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12, marginTop: 12,
+        padding: '11px 13px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+      }}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>Sempre visibile</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
+            Chi scansiona il QR lo trova a qualsiasi ora
+          </div>
+        </div>
+        <ImpToggle checked={sempre} onChange={() => setSempre(v => !v)}/>
+      </div>
+
+      {!sempre && (
+        <React.Fragment>
+          <div style={{display: 'flex', gap: 6, marginTop: 10}}>
+            {GIORNI.map((g, i) => {
+              const on = giorni.includes(i);
+              return (
+                <button key={g} onClick={() => toggleGiorno(i)} title={on ? `Togli ${g}` : `Aggiungi ${g}`} style={{
+                  flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
+                  background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                  color: on ? PN.PINK_DARK : PN.MUTED,
+                  fontSize: 13.5, fontWeight: on ? 700 : 600,
+                  transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                }}>{g}</button>
+              );
+            })}
+          </div>
+          {!giorniOk && (
+            <div style={{fontSize: 12.5, color: PN.PINK_DARK, marginTop: 6}}>
+              Scegli almeno un giorno, altrimenti il menù non si vedrebbe mai.
+            </div>
+          )}
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 10}}>
+            <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>Dalle</span>
+            <input type="time" value={da} onChange={e => setDa(e.target.value)} style={NM_ORA}/>
+            <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>alle</span>
+            <input type="time" value={a} onChange={e => setA(e.target.value)} style={NM_ORA}/>
+          </div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.45}}>
+            Fuori da questa fascia il QR porta a un altro menù, se ce n'è uno attivo,
+            oppure alla vetrina del locale.
+          </div>
+        </React.Fragment>
+      )}
+
+      <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 14}}>
+        <span style={{flex: 1, fontSize: 13.5, color: PN.GREEN, fontWeight: 600}}>
+          {salvato ? 'Visibilità aggiornata' : ''}
+        </span>
+        <ImpButton variant="pink" onClick={applica} disabled={!giorniOk}>Applica</ImpButton>
+      </div>
+    </div>
+  );
+}
+
+// ─── Servizio · Asporto ─────────────────────────────────────────────────────
+// L'interruttore c'era già — lo leggono la Vendita diretta e il conto — ma non
+// aveva una schermata da cui accenderlo: si poteva solo scegliere in
+// onboarding e mai più cambiare idea.
+function ServizioAsporto({ on, onToggle }) {
+  return (
+    <ImpCard
+      anchor="asporto"
+      title="Asporto"
+      sub={on
+        ? "Il locale prepara ordini da portar via: la coda del banco è accesa in Vendita diretta"
+        : "Attiva se il locale prepara ordini da portar via"}
+      action={
+        <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+          <ImpToggle checked={on} onChange={() => onToggle(!on)}/>
+          <span style={{fontSize: 13.5, fontWeight: 600, color: on ? PN.TEXT : PN.MUTED}}>
+            {on ? 'Attivo' : 'Disattivato'}
+          </span>
+        </div>
+      }
+    >
+      {on ? (
+        <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.5}}>
+          In Vendita diretta compaiono le code del banco e un conto può essere segnato
+          come asporto. I menù pensati per il ritiro si impostano in{' '}
+          <strong style={{color: PN.TEXT}}>Menù</strong>, dove ognuno porta il proprio
+          tempo minimo di preparazione.
+        </div>
+      ) : (
+        <div style={{
+          padding: '28px 20px', textAlign: 'center',
+          background: '#FAFBFC', borderRadius: 11, border: `1px dashed ${PN.BORDER}`,
+        }}>
+          <div style={{
+            width: 48, height: 48, margin: '0 auto 10px', borderRadius: 12,
+            background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+            display: 'grid', placeItems: 'center', color: PN.MUTED,
+          }}><Icon name="commerce-bag" size={22}/></div>
+          <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Asporto disattivato</div>
+          <div style={{fontSize: 14, color: PN.MUTED, maxWidth: 380, margin: '0 auto 14px'}}>
+            Spento, il banco non ha code da preparare e nessun conto può essere segnato
+            da asporto.
+          </div>
+          <ImpButton variant="primary" onClick={() => onToggle(true)}>Attiva asporto</ImpButton>
+        </div>
+      )}
+    </ImpCard>
+  );
+}
+
 function MCConfigura() {
 
   const [cucina, setCucina] = React.useState('diretto');
@@ -6319,6 +6553,12 @@ function MCConfigura() {
           <PrenotazioniDurata/>
         )}
       </ImpCard>
+
+      {/* === SEZIONE 3: ASPORTO === */}
+      <ServizioAsporto on={modules.asporto !== false} onToggle={(v) => setModule('asporto', v)}/>
+
+      {/* === SEZIONE 4: VISIBILITÀ DEI MENÙ === */}
+      <ServizioVisibilitaMenu/>
 
       {/* Popup post-attivazione sala: il modulo è già attivo, si sceglie se
           andare a creare la sala (tab Sala e tavoli) o restare in Operazioni */}

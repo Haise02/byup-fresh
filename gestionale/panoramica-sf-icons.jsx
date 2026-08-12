@@ -774,6 +774,66 @@ const SfIcons = {
     </>
   ),
 
+  // ═══ Statistiche — le quattro voci hanno un glifo loro ════════════════════
+  // Erano prestiti: una freccia per i rimborsi, una stella per la
+  // fidelizzazione, il diagramma di flusso per le operazioni. Questi dicono
+  // la cosa: l'imbuto che finisce in moneta, la tessera col cuore, la mano
+  // che riceve indietro, lo schermo con la rotella.
+
+  'chart-funnel-conversion': () => (
+    <>
+      {/* chi entra nell'imbuto */}
+      <circle cx="8" cy="4.2" r="2.1"/>
+      <circle cx="14.7" cy="4.7" r="2.7"/>
+      {/* l'imbuto */}
+      <path d="M3.2 8.4h17.6c.86 0 1.32 1.02.75 1.66L14.7 17.4v3.1c0 .5-.56.8-.98.53l-3.2-2.05a.62.62 0 0 1-.29-.53V17.4L2.45 10.06c-.57-.64-.11-1.66.75-1.66Z"/>
+      {/* la moneta: prima lo stacco bianco, poi il disco, poi il segno */}
+      <circle cx="17.7" cy="17.7" r="6.3" fill="#fff"/>
+      <circle cx="17.7" cy="17.7" r="5.2"/>
+      <path d="M17.2 13.9h1.05v7.6H17.2z" fill="#fff"/>
+      <path d="M19.9 15.9c-.52-.5-1.26-.8-2.1-.8-1.45 0-2.5.88-2.5 2.12 0 1.14.83 1.66 2.18 1.97 1.1.26 1.4.47 1.4.88 0 .47-.47.78-1.2.78-.62 0-1.2-.23-1.6-.64l-.98 1.03c.62.62 1.55.98 2.54.98 1.55 0 2.64-.88 2.64-2.17 0-1.19-.83-1.71-2.23-2.02-.98-.21-1.35-.41-1.35-.78 0-.41.41-.67.98-.67.47 0 .88.16 1.19.47l1.03-1.15Z" fill="#fff"/>
+    </>
+  ),
+
+  'card-loyalty': () => (
+    <>
+      <rect x="1.5" y="4.5" width="21" height="15" rx="3.4"/>
+      {/* il cuore della raccolta punti */}
+      <path d="M8.4 16.1 4.9 12.8c-1.05-1-1.08-2.66-.06-3.68.98-.98 2.56-.94 3.5.04l.06.06.06-.06c.94-.98 2.52-1.02 3.5-.04 1.02 1.02.99 2.68-.06 3.68l-3.5 3.3Z" fill="#fff"/>
+      {/* i punti già messi da parte */}
+      <circle cx="15.4" cy="15.1" r="1.15" fill="#fff"/>
+      <circle cx="18.3" cy="15.1" r="1.15" fill="#fff"/>
+      <circle cx="21.2" cy="15.1" r="1.15" fill="#fff"/>
+    </>
+  ),
+
+  'hand-refund': () => (
+    <>
+      {/* i soldi che tornano indietro */}
+      <rect x="6.2" y="1.6" width="9.6" height="8" rx="1.7"/>
+      <path d="M8.9 1.6h4.2v3.1c0 .5-.56.8-.98.53l-1.12-.72-1.12.72a.62.62 0 0 1-.98-.53V1.6Z" fill="#fff"/>
+      {/* la mano che li riceve */}
+      <path d="M1.6 15.6c0-1.16.94-2.1 2.1-2.1h4.06l1.06-.9a2.75 2.75 0 0 1 3.58 4.16l-.66.57h2.9l4.9-2.66a2.2 2.2 0 0 1 2.1 3.86l-7.06 3.86c-.42.23-.9.35-1.38.35H3.7a2.1 2.1 0 0 1-2.1-2.1v-5.04Z"/>
+      <path d="M3.6 15.4h4.1v5.2H3.6z" fill="#fff"/>
+    </>
+  ),
+
+  'screen-gear': () => (
+    <>
+      <rect x="1.4" y="4" width="21.2" height="13.6" rx="2.8"/>
+      {/* il piede */}
+      <path d="M8.6 19.4h6.8l1.05 1.9c.24.42-.07.94-.55.94H8.1c-.48 0-.79-.52-.55-.94l1.05-1.9Z"/>
+      {/* la rotella, staccata dallo schermo */}
+      <circle cx="18.4" cy="4.6" r="6.2" fill="#fff"/>
+      <g transform="translate(12.4 -1.4) scale(0.5)">
+        {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => (
+          <rect key={deg} x="10.6" y="1.5" width="2.8" height="4.5" rx="1.2" transform={`rotate(${deg} 12 12)`}/>
+        ))}
+        <path fillRule="evenodd" clipRule="evenodd" d="M19 12a7 7 0 1 1-14 0 7 7 0 0 1 14 0Zm-7-3.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/>
+      </g>
+    </>
+  ),
+
   'chart-workflow': () => (
     <>
       <rect x="2" y="3" width="7" height="5" rx="1"/>

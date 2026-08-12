@@ -589,31 +589,20 @@ function ImpSalaTavoli() {
                         paddingRight riserva la sua corsia. */}
                     <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap: 6, marginBottom: 4, paddingRight: 24}}>
                       <span style={{fontSize:15.5, fontWeight:700, flex:'1 1 auto', minWidth: 0, color: isOpen ? PN.PINK_DARK : PN.TEXT}}>{s.name}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSale(prev => prev.map(x => x.id === s.id ? {...x, active: !x.active} : x));
-                        }}
-                        title={s.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
-                        style={{
-                          display:'inline-flex', alignItems:'center', gap:5,
-                          flexShrink: 0, whiteSpace:'nowrap',
-                          padding:'2px 8px', borderRadius:999,
-                          border:'none', cursor:'pointer', fontFamily:'inherit',
-                          fontSize:12.5, fontWeight:700, letterSpacing:0.3,
-                          background: s.active ? PN.GREEN_SOFT : '#F1F3F5',
-                          color: s.active ? PN.GREEN : PN.MUTED,
-                          transition:'background 0.15s, color 0.15s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.background = s.active ? '#D6F0DC' : '#E5E7EB'; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = s.active ? PN.GREEN_SOFT : '#F1F3F5'; }}
-                      >
+                      {/* Anche la sala si accende con l'interruttore: è la
+                          stessa domanda del tavolo e del menù, e si fa nello
+                          stesso modo dappertutto. */}
+                      <span onClick={(e) => e.stopPropagation()}
+                        title={s.active ? 'Disattiva la sala' : 'Attiva la sala'}
+                        style={{display:'inline-flex', alignItems:'center', gap: 7, flexShrink: 0}}>
+                        <ImpToggle
+                          checked={s.active}
+                          onChange={() => setSale(prev => prev.map(x => x.id === s.id ? {...x, active: !x.active} : x))}/>
                         <span style={{
-                          width:6, height:6, borderRadius:'50%',
-                          background: s.active ? PN.GREEN : '#9CA3AF',
-                        }}/>
-                        {s.active ? 'ATTIVA' : 'DISATTIVATA'}
-                      </button>
+                          fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+                          color: s.active ? PN.TEXT : PN.MUTED,
+                        }}>{s.active ? 'Attiva' : 'Disattivata'}</span>
+                      </span>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setSalaMenu(menuOpen ? null : s.id); }}
@@ -886,7 +875,11 @@ function ImpSalaTavoli() {
                   </div>
                 )
               ) : (
-                <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 10}}>
+                // minmax(0,…): senza, le colonne non scendono sotto il
+                // min-content delle card e la griglia sfonda il pannello —
+                // l'interruttore con la sua etichetta è più largo della
+                // pastiglia che c'era prima.
+                <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 10}}>
                   {visible.map(t => (
                     <TableCard
                       key={t.id} t={t}
@@ -1046,10 +1039,10 @@ function ImpSalaTavoli() {
 
   return (
     <div>
-      {/* Toggle modulo Sala — speculare alla tab Operazioni
+      {/* Toggle modulo Sala — speculare alla sezione Servizio
           (stessa chiave localStorage, stesso pattern pill + ImpToggle).
           Qui vive la "riattivazione" promessa dall'onboarding solo-asporto.
-          Il toggle Prenotazioni vive solo in Operazioni. */}
+          Il toggle Prenotazioni vive solo in Servizio. */}
       <ImpModuloSalaCard active={modules.sala} onToggle={(v) => {
         // Spegnere elimina tavoli e QR: passa sempre dal popup di conferma
         if (!v) { setDisattivaModal(true); return; }
@@ -1077,15 +1070,11 @@ function ImpSalaTavoli() {
 // header con pill Attivo/Disattivato + ImpToggle, body con empty-state tratteggiato
 // quando il modulo è spento. Le impostazioni complete restano in Operazioni.
 
+// L'etichetta dell'interruttore, non una pastiglia a sé: dicevano la stessa
+// cosa due volte, una in maiuscolo e una col cursore sopra.
 function ImpModuleStatusPill({ active }) {
   return (
-    <span style={{
-      fontSize: 13, fontWeight: 700, letterSpacing: 0.4,
-      padding: '3px 9px', borderRadius: 999,
-      background: active ? PN.GREEN_SOFT : '#F4F5F7',
-      color: active ? PN.GREEN : PN.MUTED,
-      textTransform: 'uppercase',
-    }}>
+    <span style={{fontSize: 13.5, fontWeight: 600, color: active ? PN.TEXT : PN.MUTED}}>
       {active ? 'Attivo' : 'Disattivato'}
     </span>
   );
@@ -1100,16 +1089,16 @@ function ImpModuloSalaCard({ active, onToggle }) {
         : "Attiva per configurare sale, tavoli e mappa del locale"
       }
       action={
-        <div style={{display:'flex', alignItems:'center', gap: 10}}>
-          <ImpModuleStatusPill active={active}/>
+        <div style={{display:'flex', alignItems:'center', gap: 8}}>
           <ImpToggle checked={active} onChange={() => onToggle(!active)}/>
+          <ImpModuleStatusPill active={active}/>
         </div>
       }
     >
       {active ? (
         <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.5}}>
           Configura qui sotto sale, tavoli e mappa. Il flusso ordini in cucina e il servizio
-          si impostano nella tab <strong style={{color: PN.TEXT}}>Operazioni</strong>.
+          si impostano nella sezione <strong style={{color: PN.TEXT}}>Servizio</strong>.
         </div>
       ) : (
         <div style={{
@@ -1154,13 +1143,11 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
   // e il colore che in questa pagina vuol dire «acceso» — uno spento il
   // grigio. Selezionato si accende del proprio colore fino alla tinta piena
   // del bottone, e la campitura della card sale allo stesso tono, appena
-  // percettibile. La pastiglia resta invece verde come il suo pallino: e
-  // l'altra cosa, dice se il tavolo lavora, non se e acceso di selezione.
+  // percettibile. Se il tavolo lavora lo dice l'interruttore, che è un'altra
+  // cosa dall'essere selezionato e ha un suo colore.
   const acc = t.disabled
-    ? { soft:'#F1F3F5', ring:'rgba(156, 163, 175, 0.55)', strong:'#9CA3AF',     glow:'rgba(156, 163, 175, 0.50)', tint:'#F7F8F9',
-        pill:{ bg:'#F1F3F5',      ink: PN.MUTED, dot:'#9CA3AF', hover:'#E5E7EB' } }
-    : { soft: PN.WHITE, ring: PN.TEXT,                   strong: PN.BTN_BRAND, glow:'rgba(255, 90, 95, 0.55)',   tint:'#FFF7F6',
-        pill:{ bg: PN.GREEN_SOFT, ink: PN.GREEN, dot: PN.GREEN, hover:'#D6F0DC' } };
+    ? { soft:'#F1F3F5', ring:'rgba(156, 163, 175, 0.55)', strong:'#9CA3AF',     glow:'rgba(156, 163, 175, 0.50)', tint:'#F7F8F9' }
+    : { soft: PN.WHITE, ring: PN.TEXT,                   strong: PN.BTN_BRAND, glow:'rgba(255, 90, 95, 0.55)',   tint:'#FFF7F6' };
 
   // Chiudi il submenu se il menu padre si richiude
   React.useEffect(() => { if (!menuOpen) setMoveSubOpen(false); }, [menuOpen]);
@@ -1219,7 +1206,7 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
       onMouseEnter={e => { setHover(true); if (!menuOpen && !moving && !anyDragging) { e.currentTarget.style.transform = selected ? 'scale(1.012) translateY(-1px)' : 'translateY(-1px)'; e.currentTarget.style.boxShadow = selected ? ombraSel : '0 4px 10px rgba(63,20,36,0.06)'; }}}
       onMouseLeave={e => { setHover(false); if (!moving && !isDragging) { e.currentTarget.style.transform = scalaSel; e.currentTarget.style.boxShadow = selected ? ombraSel : 'none'; }}}
     >
-      <div style={{display:'flex', alignItems:'center', gap: 12}}>
+      <div style={{display:'flex', alignItems:'center', gap: 12, minWidth: 0}}>
         {/* Badge tondo col numero: stesso linguaggio della Sala, dove un tavolo
             si riconosce dal numero grande e non da una stringa da leggere. Si
             tinge di verde quando e attivo, cosi lo stato si vede anche di
@@ -1244,27 +1231,18 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
 
         <div style={{flex:1, minWidth:0}}>
         <div style={{display:'flex', alignItems:'center', gap: 8}}>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDisable(); }}
-          title={t.disabled ? 'Clicca per attivare' : 'Clicca per disattivare'}
-          style={{
-            display:'inline-flex', alignItems:'center', gap:5,
-            padding:'2px 8px', borderRadius:999,
-            border:'none', cursor:'pointer', fontFamily:'inherit',
-            fontSize:12.5, fontWeight:700, letterSpacing:0.3,
-            background: acc.pill.bg,
-            color: acc.pill.ink,
-            transition:'background 0.15s, color 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = acc.pill.hover; }}
-          onMouseLeave={e => { e.currentTarget.style.background = acc.pill.bg; }}
-        >
+        {/* Acceso o spento è un interruttore, come in Menù e come sul modulo
+            qui sopra: la pastiglia cliccabile era l'ultimo posto del
+            gestionale in cui la stessa cosa si faceva in un altro modo. */}
+        <span onClick={(e) => e.stopPropagation()}
+          title={t.disabled ? 'Attiva il tavolo' : 'Disattiva il tavolo'}
+          style={{display:'inline-flex', alignItems:'center', gap: 7}}>
+          <ImpToggle checked={!t.disabled} onChange={onDisable}/>
           <span style={{
-            width:6, height:6, borderRadius:'50%',
-            background: acc.pill.dot,
-          }}/>
-          {t.disabled ? 'DISATTIVATO' : 'ATTIVO'}
-        </button>
+            fontSize: 13, fontWeight: 600,
+            color: t.disabled ? PN.MUTED : PN.TEXT,
+          }}>{t.disabled ? 'Disattivato' : 'Attivo'}</span>
+        </span>
         <button onClick={onMenuToggle} style={{
           marginLeft:'auto',
           width: 28, height: 28, borderRadius: 6, padding: 0,

@@ -16,13 +16,38 @@ function ImpApp() {
     return 'vetrina';
   });
 
-  // Salto tra sezioni richiesto dall'interno di una sezione
-  // (es. CTA "Attiva ora" in Operazioni → Sala e tavoli)
+  // Da dove sei arrivato, quando ci sei arrivato da un rimando e non dal menù.
+  // Serve solo a offrire la strada del ritorno: chi viene mandato altrove per
+  // sistemare una cosa vuole tornare a quella che stava facendo.
+  const [ritorno, setRitorno] = React.useState(null);
+
+  // Salto tra sezioni richiesto dall'interno di una sezione (es. «Modifica
+  // visibilità» in Menù → Servizio). Il rimando può portare tre cose: dove
+  // andare, su quale scheda posarsi e da dove si è partiti.
   React.useEffect(() => {
-    const go = (e) => setActive(e.detail);
+    const go = (e) => {
+      const d = e.detail;
+      const id = typeof d === 'string' ? d : d.id;
+      const da = (d && typeof d === 'object') ? d.da : null;
+      if (!id) return;
+      setActive(id);
+      setRitorno(da ? { id: da, label: (IMP_SEZIONI.find(s => s.id === da) || {}).label || 'indietro' } : null);
+      if (d && typeof d === 'object' && d.anchor) {
+        // Dopo il cambio di sezione: la scheda si accende e si porta in vista,
+        // altrimenti si atterra in cima a una pagina lunga senza sapere dove.
+        setTimeout(() => {
+          const el = window.impAccendiSezione && window.impAccendiSezione(d.anchor);
+          if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 140);
+      }
+    };
     window.addEventListener('byup-imp-goto', go);
     return () => window.removeEventListener('byup-imp-goto', go);
   }, []);
+
+  // Scegliendo una sezione dal menù il rimando è finito: non c'è più un
+  // «indietro» che voglia dire qualcosa.
+  const vaiA = (id) => { setActive(id); setRitorno(null); };
 
   // Quante modifiche non salvate ci sono in giro: lo dicono le pagine
   // registrandosi (impostazioni-shared.jsx), non un indovino sugli eventi.
@@ -106,17 +131,54 @@ function ImpApp() {
             animation: 'impPopupSu 0.26s cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
 
-          <ImpNavSidebar active={active} onChange={setActive} onClose={chiudi}/>
+          <ImpNavSidebar active={active} onChange={vaiA}/>
 
           <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: PN.BG, position: 'relative'}}>
-            {/* Niente testata: il nome della sezione lo dice già la colonna a
-                sinistra, in grande e col segno di dove sei. Una fascia bianca
-                che lo ripeteva rubava l'altezza alla cosa per cui si è entrati
-                e spingeva le sotto-sezioni a metà schermo. La chiusura è
-                salita accanto al titolo «Impostazioni», nella colonna. */}
+            {/* Non è una testata: è la riga della cornice — da dove torni a
+                sinistra, come esci a destra — alta quanto il pulsante e
+                senza titoli, che il nome della sezione lo dice già la colonna.
+                Sta fuori dal contenuto e non sopra: appoggiata sull'angolo
+                finiva addosso alla prima cosa in alto a destra della pagina,
+                che in Sala è «Aggiungi tavolo» e in Vetrina l'anteprima. */}
+            <div style={{
+              flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
+              padding: '12px 16px 0 26px', background: PN.BG,
+            }}>
+              <div style={{flex: 1, minWidth: 0}}>
+                {ritorno && (
+                  <button
+                    onClick={() => { setActive(ritorno.id); setRitorno(null); }}
+                    onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.borderColor = PN.BORDER_SOFT; }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '7px 13px 7px 10px', borderRadius: 9,
+                      border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE_HUSH,
+                      color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      transition: 'background 140ms ease, border-color 140ms ease',
+                    }}>
+                    <span style={{display: 'inline-flex', color: PN.MUTED, transform: 'rotate(180deg)'}}><PnI.ChevronRight size={12}/></span>
+                    Torna a {ritorno.label}
+                  </button>
+                )}
+              </div>
+              <button onClick={chiudi} title="Chiudi le impostazioni"
+                onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.TEXT; }}
+                onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.MUTED; }}
+                style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
+                  color: PN.MUTED, cursor: 'pointer',
+                  display: 'grid', placeItems: 'center',
+                  boxShadow: '0 1px 2px rgba(15,17,21,0.05)',
+                  transition: 'background 130ms ease, color 130ms ease',
+                }}><PnI.X size={15}/></button>
+            </div>
+
             <div className="pn-scroll" style={{
               flex: 1, overflow: 'auto', minHeight: 0,
-              padding: '18px 26px 26px',
+              padding: '14px 26px 26px',
             }}>
               {active === 'vetrina' && <ImpVetrina/>}
               {active === 'menu-cucina' && <ImpMenuCucina/>}

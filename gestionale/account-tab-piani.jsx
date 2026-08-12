@@ -899,7 +899,8 @@ const AURORA_TEXT_GRADIENT = {
 // contiene il codice): si incolla in chat; il codice da dettare al telefono
 // viaggia dentro il messaggio condiviso.
 
-// Tondo-lettera dei piani nelle card: un colore per piano, iniziale bianca.
+// Tondo dei piani nelle card dell'invito: un colore per piano, e dentro il
+// segno del piano.
 const ACC_INVITO_LETTERA_BG = {
   free: '#9AA1AB',
   starter: 'linear-gradient(135deg, #F59E0B, #F97316)',
@@ -913,9 +914,14 @@ function AcInvitoLettera({ piano }) {
       width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
       background: ACC_INVITO_LETTERA_BG[piano.id] || PN.TEXT,
       display: 'grid', placeItems: 'center',
-      color: PN.WHITE, fontSize: 20, fontWeight: 800,
+      color: PN.WHITE,
       boxShadow: '0 4px 10px rgba(15,17,21,0.16)',
-    }}>{piano.nome.charAt(0)}</div>
+    }}>
+      {/* Il segno del piano, non la sua iniziale: il boccale dello Starter è
+          quello che si vede nella sidebar tutti i giorni, una «S» non è di
+          nessuno. Monocromatico bianco perché il tondo è già colorato. */}
+      <PianoEmoji planId={piano.id} size={26} monochrome="#fff"/>
+    </div>
   );
 }
 

@@ -434,7 +434,7 @@ function BuAiFab() {
 
 // ─── La chat ──────────────────────────────────────────────────────────────
 const AI_SALUTO = [
-  'Sono l\'intelligenza artificiale di Byup. Posso aiutarti a gestire il tuo locale modificando il menu, Sala e Tavoli e configurando le impostazioni nella sezione "Operazioni".',
+  'Sono l\'intelligenza artificiale di Byup. Posso aiutarti a gestire il tuo locale modificando il menu, Sala e Tavoli e configurando le impostazioni nella sezione "Servizio".',
   'Posso anche prenotare per conto di un cliente: scrivimi i dati minimi — nome, coperti e orario — e la registro io.',
   'Basta che mi dici quello che vuoi modificare e in pochi secondi ti riporterò la modifica fatta.',
   'Tranquillo, ti chiederò una seconda conferma prima di pubblicare le modifiche.',

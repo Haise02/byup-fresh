@@ -36,7 +36,7 @@ const IMP_SEZIONI = [
   { id: 'menu-cucina', label: 'Menù', icon: 'food-meal' },
   { id: 'sala', label: 'Sala e tavoli', icon: 'place-table' },
   { id: 'personale', label: 'Personale', icon: 'people-staff-group' },
-  { id: 'flussi', label: 'Operazioni', icon: 'chart-workflow' },
+  { id: 'flussi', label: 'Servizio', icon: 'chart-workflow' },
   { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt' },
   { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },
 ];
@@ -45,7 +45,7 @@ const IMP_SEZIONI = [
 // gestionale — vetro vibrante, 272px, PnNavItem con le sue icone da 26 e
 // l'attivo in tinta brand. Al posto del logo la testata dice dove sei, perché
 // il logo dell'app sta già a sinistra, dietro al velo.
-function ImpNavSidebar({ active, onChange, onClose }) {
+function ImpNavSidebar({ active, onChange }) {
   return (
     // Gli angoli se li arrotonda da sola: il vetro (backdrop-filter) si
     // compone su un livello suo e Chrome smette di ritagliarlo sul raggio del
@@ -77,20 +77,6 @@ function ImpNavSidebar({ active, onChange, onClose }) {
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{fontSize: 20, fontWeight: 800, letterSpacing: -0.3, color: PN.TEXT}}>Impostazioni</div>
         </div>
-        {/* La via d'uscita sta qui, accanto al nome di ciò che si chiude.
-            Nell'angolo in alto a destra del popup finiva addosso al contenuto
-            — in Vetrina proprio sopra la X dell'anteprima. */}
-        {onClose && (
-          <button onClick={onClose} title="Chiudi le impostazioni"
-            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.TEXT; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.MUTED; }}
-            style={{
-              width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-              border: `1px solid ${PN.BORDER_LIGHT}`, background: PN.WHITE_HUSH,
-              color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
-              transition: 'background 130ms ease, color 130ms ease',
-            }}><PnI.X size={14}/></button>
-        )}
       </div>
 
       <div className="pn-scroll" style={{
@@ -379,7 +365,6 @@ function Puntini({ size = 14, color = 'currentColor' }) {
   );
 }
 
-window.ImpTabs = ImpTabs;
 window.ImpSubTabs = ImpSubTabs;
 window.Puntini = Puntini;
 window.ImpCard = ImpCard;

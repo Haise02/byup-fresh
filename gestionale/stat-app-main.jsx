@@ -70,7 +70,7 @@ function StatisticheApp() {
             <StatTabs
               tabs={[
                 { id: 'economici', label: 'Economici', icon: 'commerce-coins' },
-                { id: 'operazioni', label: 'Operazioni', icon: 'chart-workflow' },
+                { id: 'operazioni', label: 'Operazioni', icon: 'screen-gear' },
                 { id: 'clienti', label: 'Clienti', icon: 'people-customer' },
               ]}
               active={tab} onChange={setTab}
@@ -110,8 +110,8 @@ function StatisticheApp() {
                 padding:'0 28px 18px',
                 display:'flex', gap: 14,
               }}>
-                <StatSubTab active={cliSub==='conversione'} onClick={() => setCliSub('conversione')} label="Conversione" icon="chart-positive-dynamic"/>
-                <StatSubTab active={cliSub==='fidelizzazione'} onClick={() => setCliSub('fidelizzazione')} label="Fidelizzazione" icon="star"/>
+                <StatSubTab active={cliSub==='conversione'} onClick={() => setCliSub('conversione')} label="Conversione" icon="chart-funnel-conversion"/>
+                <StatSubTab active={cliSub==='fidelizzazione'} onClick={() => setCliSub('fidelizzazione')} label="Fidelizzazione" icon="card-loyalty"/>
               </div>
               {cliSub === 'conversione' && <StatApp/>}
               {cliSub === 'fidelizzazione' && <StatClienti/>}

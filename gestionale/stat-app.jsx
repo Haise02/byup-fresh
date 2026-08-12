@@ -247,7 +247,7 @@ function ConvFunnel({ passi, rimborsi }) {
             background: PN.WHITE, color: PN.MUTED,
             boxShadow:`inset 0 0 0 1px ${PN.BORDER_HAIR}`,
             display:'grid', placeItems:'center',
-          }}><Icon name="arrow-down-right" size={17}/></span>
+          }}><Icon name="hand-refund" size={17}/></span>
 
           <div style={{minWidth: 0}}>
             <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Rimborsi</div>

@@ -642,11 +642,15 @@ function SubStepPagamenti({payments, p}) {
 // diagonale, lettering crema appena rosato. Prima era rosso → arancio: un
 // marchio che il logo non ha più, e nella schermata il blocco leggeva come
 // un avviso invece che come byup.
+// Gli stessi valori di PN.GRAD_STAFF*, scritti a mano: l'onboarding è l'unica
+// pagina del gestionale che NON carica panoramica-tokens.jsx — ha un suo
+// sistema (ONB) e nessun PN da cui leggere. Se il marchio cambia, cambia in
+// tutti e due i posti.
 const STAFF = {
-  PINK:  PN.GRAD_STAFF_FROM,
-  MID:   PN.GRAD_STAFF_MID,
-  CORAL: PN.GRAD_STAFF_TO,
-  CREAM: PN.STAFF_CREAM,
+  PINK:  '#E5446E',
+  MID:   '#F4676F',
+  CORAL: '#FF9083',
+  CREAM: '#FDF3F0',
 };
 
 function StaffAppPromo() {

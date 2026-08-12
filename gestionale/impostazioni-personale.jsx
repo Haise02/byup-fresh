@@ -141,7 +141,7 @@ const SETTINGS_PAGES = [
   { id: 'menu-cucina', label: 'Menù', icon: 'utensils' },
   { id: 'sala', label: 'Sala e tavoli', icon: 'utensils' },
   { id: 'personale', label: 'Personale', icon: 'users' },
-  { id: 'flussi', label: 'Operazioni', icon: 'bolt' },
+  { id: 'flussi', label: 'Servizio', icon: 'bolt' },
   { id: 'fiscali', label: 'Dati fiscali', icon: 'doc' },
   { id: 'integrazioni', label: 'POS e integrazioni', icon: 'plug' },
 ];
