@@ -91,129 +91,107 @@ function ImpApp() {
   const sezione = IMP_SEZIONI.find(s => s.id === active) || {};
 
   return (
-    <div style={{display: 'flex', flex: 1, minHeight: 0, position: 'relative'}}>
-      {/* Dietro al velo c'è il gestionale, non un fondo grigio: è da lì che si
-          arriva ed è lì che si torna. Un popup ordinario lascia intravedere la
-          pagina sotto — toglierla faceva sembrare le impostazioni un'altra
-          finestra aperta per conto suo. */}
-      <PnSidebar active="impostazioni"/>
-      <main style={{flex: 1, minWidth: 0, background: PN.BG}}/>
+    // Schermata piena, non finestra: le impostazioni sono un'applicazione
+    // intera — sette sezioni, sotto-sezioni, un salvataggio, dei rimandi con
+    // ritorno — e una finestra dentro la finestra le stringeva proprio dove
+    // servono larghe (la mappa dei tavoli, il compositore dei menù, il
+    // telefono dell'anteprima). Il velo, poi, prometteva «sotto c'è quello che
+    // stavi facendo» e sotto non c'era niente di vero.
+    // Resta il senso della deviazione: entra scorrendo dal basso e la via
+    // d'uscita è dov'era, in alto a destra.
+    <div style={{
+      display: 'flex', flex: 1, minHeight: 0, position: 'relative',
+      background: PN.BG,
+      animation: 'impEntra 0.30s cubic-bezier(0.4, 0, 0.2, 1)',
+    }}>
+      <style>{`
+        @keyframes impEntra {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: none; }
+        }
+      `}</style>
 
-      <div
-        onClick={chiudi}
-        style={{
-          position: 'absolute', inset: 0, zIndex: 200,
-          // Velo più leggero: deve oscurare quanto basta a mandare indietro
-          // la pagina, non cancellarla.
-          background: 'rgba(15,17,21,0.34)',
-          display: 'grid', placeItems: 'center',
-          animation: 'impPopupVelo 0.18s ease-out',
+    <ImpNavSidebar active={active} onChange={vaiA}/>
+
+      <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: PN.BG, position: 'relative'}}>
+        {/* Non è una testata: è la riga della cornice — da dove torni a
+            sinistra, come esci a destra — alta quanto il pulsante e
+            senza titoli, che il nome della sezione lo dice già la colonna.
+            Sta fuori dal contenuto e non sopra: appoggiata sull'angolo
+            finiva addosso alla prima cosa in alto a destra della pagina,
+            che in Sala è «Aggiungi tavolo» e in Vetrina l'anteprima. */}
+        <div style={{
+          flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 16px 0 26px', background: PN.BG,
         }}>
-        <style>{`
-          @keyframes impPopupVelo { from {opacity: 0;} to {opacity: 1;} }
-          @keyframes impPopupSu {
-            from {opacity: 0; transform: scale(0.975) translateY(14px);}
-            to   {opacity: 1; transform: none;}
-          }
-        `}</style>
-
-        <div
-          onClick={e => e.stopPropagation()}
-          style={{
-            width: '90%', height: '90%',
-            display: 'flex', minHeight: 0, overflow: 'hidden',
-            // 16 come il frame e come le card: il 22 di prima era il raggio
-            // delle modali piccole e su un box di questa misura si leggeva
-            // come un'altra geometria.
-            background: PN.WHITE, borderRadius: 16,
-            border: `1px solid ${PN.BORDER_HAIR}`,
-            boxShadow: '0 40px 100px -20px rgba(15,17,21,0.42), 0 2px 8px rgba(15,17,21,0.10)',
-            animation: 'impPopupSu 0.26s cubic-bezier(0.4, 0, 0.2, 1)',
-          }}>
-
-          <ImpNavSidebar active={active} onChange={vaiA}/>
-
-          <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: PN.BG, position: 'relative'}}>
-            {/* Non è una testata: è la riga della cornice — da dove torni a
-                sinistra, come esci a destra — alta quanto il pulsante e
-                senza titoli, che il nome della sezione lo dice già la colonna.
-                Sta fuori dal contenuto e non sopra: appoggiata sull'angolo
-                finiva addosso alla prima cosa in alto a destra della pagina,
-                che in Sala è «Aggiungi tavolo» e in Vetrina l'anteprima. */}
-            <div style={{
-              flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
-              padding: '12px 16px 0 26px', background: PN.BG,
-            }}>
-              <div style={{flex: 1, minWidth: 0}}>
-                {ritorno && (
-                  <button
-                    onClick={() => { setActive(ritorno.id); setRitorno(null); }}
-                    onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.borderColor = PN.BORDER_SOFT; }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 8,
-                      padding: '7px 13px 7px 10px', borderRadius: 9,
-                      border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE_HUSH,
-                      color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      transition: 'background 140ms ease, border-color 140ms ease',
-                    }}>
-                    <span style={{display: 'inline-flex', color: PN.MUTED, transform: 'rotate(180deg)'}}><PnI.ChevronRight size={12}/></span>
-                    Torna a {ritorno.label}
-                  </button>
-                )}
-              </div>
-              <button onClick={chiudi} title="Chiudi le impostazioni"
-                onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.TEXT; }}
-                onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.MUTED; }}
+          <div style={{flex: 1, minWidth: 0}}>
+            {ritorno && (
+              <button
+                onClick={() => { setActive(ritorno.id); setRitorno(null); }}
+                onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
+                onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.borderColor = PN.BORDER_SOFT; }}
                 style={{
-                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                  border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
-                  color: PN.MUTED, cursor: 'pointer',
-                  display: 'grid', placeItems: 'center',
-                  boxShadow: '0 1px 2px rgba(15,17,21,0.05)',
-                  transition: 'background 130ms ease, color 130ms ease',
-                }}><PnI.X size={15}/></button>
-            </div>
-
-            <div className="pn-scroll" style={{
-              flex: 1, overflow: 'auto', minHeight: 0,
-              padding: '14px 26px 26px',
-            }}>
-              {active === 'vetrina' && <ImpVetrina/>}
-              {active === 'menu-cucina' && <ImpMenuCucina/>}
-              {active === 'sala' && <ImpSalaTavoli/>}
-              {active === 'personale' && <ImpPersonale/>}
-              {active === 'flussi' && <ImpFlussi/>}
-              {active === 'fiscali' && <ImpDatiFiscali/>}
-              {active === 'integrazioni' && <ImpIntegrazioni/>}
-            </div>
-
-            {/* Piede: una CTA sola, in basso a destra, per tutto il popup */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
-              padding: '13px 26px', background: PN.WHITE,
-              borderTop: `1px solid ${PN.BORDER_SOFT}`,
-            }}>
-              <div style={{flex: 1, minWidth: 0, fontSize: 14.5, display: 'flex', alignItems: 'center', gap: 8}}>
-                {modifiche ? (
-                  <React.Fragment>
-                    <span style={{width: 8, height: 8, borderRadius: '50%', background: PN.AMBER, flexShrink: 0}}/>
-                    <span style={{color: PN.TEXT, fontWeight: 600}}>Hai modifiche non salvate</span>
-                  </React.Fragment>
-                ) : salvato ? (
-                  <React.Fragment>
-                    <span style={{color: PN.GREEN, display: 'inline-flex'}}><PnI.Check size={14}/></span>
-                    <span style={{color: PN.GREEN, fontWeight: 600}}>Modifiche salvate</span>
-                  </React.Fragment>
-                ) : (
-                  <span style={{color: PN.MUTED_SOFT}}>Tutto salvato</span>
-                )}
-              </div>
-              <ImpButton variant="ghost" onClick={chiudi}>Chiudi</ImpButton>
-              <ImpButton variant="pink" onClick={salva} disabled={!modifiche}>Salva modifiche</ImpButton>
-            </div>
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '7px 13px 7px 10px', borderRadius: 9,
+                  border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE_HUSH,
+                  color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'background 140ms ease, border-color 140ms ease',
+                }}>
+                <span style={{display: 'inline-flex', color: PN.MUTED, transform: 'rotate(180deg)'}}><PnI.ChevronRight size={12}/></span>
+                Torna a {ritorno.label}
+              </button>
+            )}
           </div>
+          <button onClick={chiudi} title="Chiudi le impostazioni"
+            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.MUTED; }}
+            style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+              border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
+              color: PN.MUTED, cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+              boxShadow: '0 1px 2px rgba(15,17,21,0.05)',
+              transition: 'background 130ms ease, color 130ms ease',
+            }}><PnI.X size={15}/></button>
+        </div>
+
+        <div className="pn-scroll" style={{
+          flex: 1, overflow: 'auto', minHeight: 0,
+          padding: '14px 26px 26px',
+        }}>
+          {active === 'vetrina' && <ImpVetrina/>}
+          {active === 'menu-cucina' && <ImpMenuCucina/>}
+          {active === 'sala' && <ImpSalaTavoli/>}
+          {active === 'personale' && <ImpPersonale/>}
+          {active === 'flussi' && <ImpFlussi/>}
+          {active === 'fiscali' && <ImpDatiFiscali/>}
+          {active === 'integrazioni' && <ImpIntegrazioni/>}
+        </div>
+
+        {/* Piede: una CTA sola, in basso a destra, per tutto il popup */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+          padding: '13px 26px', background: PN.WHITE,
+          borderTop: `1px solid ${PN.BORDER_SOFT}`,
+        }}>
+          <div style={{flex: 1, minWidth: 0, fontSize: 14.5, display: 'flex', alignItems: 'center', gap: 8}}>
+            {modifiche ? (
+              <React.Fragment>
+                <span style={{width: 8, height: 8, borderRadius: '50%', background: PN.AMBER, flexShrink: 0}}/>
+                <span style={{color: PN.TEXT, fontWeight: 600}}>Hai modifiche non salvate</span>
+              </React.Fragment>
+            ) : salvato ? (
+              <React.Fragment>
+                <span style={{color: PN.GREEN, display: 'inline-flex'}}><PnI.Check size={14}/></span>
+                <span style={{color: PN.GREEN, fontWeight: 600}}>Modifiche salvate</span>
+              </React.Fragment>
+            ) : (
+              <span style={{color: PN.MUTED_SOFT}}>Tutto salvato</span>
+            )}
+          </div>
+          <ImpButton variant="ghost" onClick={chiudi}>Chiudi</ImpButton>
+          <ImpButton variant="pink" onClick={salva} disabled={!modifiche}>Salva modifiche</ImpButton>
         </div>
       </div>
 

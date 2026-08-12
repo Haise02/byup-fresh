@@ -47,20 +47,15 @@
     0% { opacity: 0; transform: scale(0.92) translateY(10px); }
     100% { opacity: 1; transform: scale(1) translateY(0); }
   }
-  /* Scheletro del popup, disegnato dal browser prima che React esista.
-     Babel compila una quindicina di file qui dentro e per qualche istante la
-     pagina resterebbe bianca: questa è la stessa forma che sta per arrivare,
-     così l'attesa somiglia al risultato invece che a un caricamento fermo. */
-  .imp-boot { position:absolute; inset:0; background:rgba(15,17,21,0.34);
-              display:grid; place-items:center; }
-  .imp-boot-box { width:90%; height:90%; display:flex; overflow:hidden;
-                  background:#fff; border-radius:16px;
-                  border:1px solid rgba(15,17,21,0.06);
-                  box-shadow:0 40px 100px -20px rgba(15,17,21,0.42), 0 2px 8px rgba(15,17,21,0.10); }
-  .imp-boot-nav { width:272px; flex-shrink:0; border-radius:16px 0 0 16px;
+  /* Scheletro disegnato dal browser prima che React esista. Babel compila una
+     quindicina di file e per qualche istante la pagina resterebbe bianca:
+     questa è la stessa forma che sta per arrivare — menù a sinistra, contenuto
+     a destra — così l'attesa somiglia al risultato invece che a niente. */
+  .imp-boot { position:absolute; inset:0; display:flex; background:#F7F8FA; }
+  .imp-boot-nav { width:272px; flex-shrink:0;
                   background:linear-gradient(180deg, rgba(250,251,252,0.85) 0%, rgba(245,245,247,0.85) 100%);
                   border-right:1px solid rgba(15,17,21,0.06); }
-  .imp-boot-main { flex:1; background:#F7F8FA; display:flex; align-items:center;
+  .imp-boot-main { flex:1; display:flex; align-items:center;
                    justify-content:center; color:#9CA3AF; font-size:15px; font-weight:600; }
   .imp-boot-main span { animation: impBootFade 1.4s ease-in-out infinite; }
   @keyframes impBootFade { 0%,100% { opacity:0.35; } 50% { opacity:0.85; } }
@@ -70,7 +65,7 @@
 </style>
 </head>
 <body>
-<div id="root"><div class="frame"><div class="imp-boot"><div class="imp-boot-box"><div class="imp-boot-nav"></div><div class="imp-boot-main"><span>Impostazioni…</span></div></div></div></div></div>
+<div id="root"><div class="frame"><div class="imp-boot"><div class="imp-boot-nav"></div><div class="imp-boot-main"><span>Impostazioni…</span></div></div></div></div>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -95,7 +90,7 @@
 <script type="text/babel" src="impostazioni-personale.jsx"></script>
 <script type="text/babel" src="impostazioni-integrazioni.jsx"></script>
 <script type="text/babel" src="impostazioni-dati-fiscali.jsx"></script>
-<script type="text/babel" src="impostazioni-app.jsx?v=7"></script>
+<script type="text/babel" src="impostazioni-app.jsx?v=8"></script>
 <!-- Niente assistente fluttuante qui: le impostazioni sono un popup che
      copre tutto, e il bollino resterebbe sotto al velo — visibile e non
      cliccabile, l'unica cosa rimasta a galleggiare nel vuoto dietro. -->
