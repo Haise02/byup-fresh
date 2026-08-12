@@ -18,6 +18,19 @@ const BYU_BRAND = '#FC585D';
 const BYU_VERDE = '#0F9D58';
 const BYU_VERDE_BG = '#E8F6EE';
 
+// La mascotte con cuffie e tablet — il byuppino che ASCOLTA, che è quello che
+// fa questo widget. Il file va messo qui accanto con questo nome; finché non
+// c'è, si ripiega sul byuppino che saluta della chat AI, così il widget non
+// mostra mai l'icona rotta.
+const BYU_MASCOTTE = 'byuppino-assistente.png';
+const BYU_RIPIEGO  = 'byuppino-wave.png';
+function byuRipiego(e) {
+  const img = e.currentTarget;
+  if (img.dataset.ripiego) return;
+  img.dataset.ripiego = '1';
+  img.src = BYU_RIPIEGO;
+}
+
 // Le animazioni vivono in un foglio e non negli stili in linea: servono
 // keyframes e uno pseudo-elemento (l'anello che gira), e nessuno dei due si
 // scrive in un oggetto style.
@@ -133,18 +146,27 @@ function byuOra(d) {
 // un telefono: ritagliata a «cover» si vedrebbero il telefono e mezzo busto,
 // cioè una macchia rossa. Si ingrandisce e si sposta finché nel cerchio resta
 // la sola testa.
+// Il ritaglio è tarato sull'immagine: le due mascotte hanno la testa in punti
+// diversi, e riusare gli stessi numeri sul ripiego inquadrerebbe la cresta.
+const BYU_RITAGLI = {
+  assistente: { w: 96, x: -30, y: -18 },
+  ripiego:    { w: 96, x: -33, y: -44 },
+};
 function ByuFaccia({ size = 34 }) {
   const k = size / 34;
+  const [giu, setGiu] = React.useState(false);
+  const c = giu ? BYU_RITAGLI.ripiego : BYU_RITAGLI.assistente;
   return (
     <span style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0,
       position: 'relative', overflow: 'hidden', display: 'block',
       background: '#FFE6E6',
     }}>
-      <img src="mascot-staff.png" alt="" style={{
-        position: 'absolute', width: 88 * k, height: 'auto',
-        left: -35 * k, top: -9 * k, maxWidth: 'none',
-      }}/>
+      <img src={giu ? BYU_RIPIEGO : BYU_MASCOTTE} alt="" onError={() => setGiu(true)}
+        style={{
+          position: 'absolute', width: c.w * k, height: 'auto',
+          left: c.x * k, top: c.y * k, maxWidth: 'none',
+        }}/>
     </span>
   );
 }
@@ -277,26 +299,33 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
               strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <polyline points="4 12.5 9.5 18 20 6"/>
             </svg>
-            Fatto
+            Confermata
           </span>
         )}
         {a.stato === 'pronta' && (
           <React.Fragment>
-            <button type="button" onClick={onFatto} title="Conferma l'azione"
-              onMouseEnter={e => { e.currentTarget.style.background = '#D7F0E2'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = BYU_VERDE_BG; }}
+            {/* Un pulsante pieno, non una pastiglia verde chiara: lì accanto c'è
+                lo stesso verde chiaro che segna le azioni GIÀ confermate, e due
+                cose identiche di cui una si preme e l'altra no sono un
+                equivoco. E dice che cosa conferma — «Fatto» descriveva uno
+                stato, non l'azione che stai per fare. */}
+            <button type="button" onClick={onFatto} title="Conferma la modifica"
+              onMouseEnter={e => { e.currentTarget.style.background = '#0C8A4C'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = BYU_VERDE; }}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '7px 13px', borderRadius: 999, border: 'none',
-                background: BYU_VERDE_BG, color: BYU_VERDE,
-                fontSize: 13.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '9px 15px', borderRadius: 10, border: 'none',
+                background: BYU_VERDE, color: '#fff',
+                fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.01em',
+                fontFamily: 'inherit', cursor: 'pointer',
+                boxShadow: '0 4px 12px -5px rgba(15, 157, 88, 0.9)',
                 transition: 'background 140ms ease',
               }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polyline points="4 12.5 9.5 18 20 6"/>
               </svg>
-              Fatto
+              Conferma modifica
             </button>
             <button type="button" onClick={onAnnulla} title="Annulla l'azione"
               onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline'; }}
@@ -417,26 +446,30 @@ function WidgetByuppino() {
   };
 
   return (
-    <div style={{
+    // IL GRADIENTE È IL WIDGET. Prima faceva da fondo alla sola colonna della
+    // mascotte e si fermava a metà, con la chat attaccata di fianco come un
+    // secondo pannello: due rettangoli affiancati, non un oggetto solo. Ora
+    // pesca-rosa-lavanda tiene tutta la scheda e la conversazione ci galleggia
+    // sopra — una card bianca con l'aria intorno su tutti e quattro i lati.
+    <div className="byu-aurora" style={{
       // A filo della scheda: il widget È la scheda, non qualcosa appoggiato
-      // dentro. Le due colonne arrivano fino al bordo e il raggio glielo dà la
-      // cornice della dashboard, che è la stessa di tutte le altre.
+      // dentro. Il raggio glielo dà la cornice della dashboard, la stessa di
+      // tutte le altre.
       margin: '-18px -18px -16px -18px', height: 'calc(100% + 34px)',
       display: 'flex', minWidth: 0, overflow: 'hidden', borderRadius: 14,
+      padding: 12, gap: 12,
+      background: 'linear-gradient(135deg, #FFE3CF 0%, #FFD9DE 30%, #FBD9F0 62%, #E4DBFF 100%)',
+      backgroundSize: '260% 260%',
+      animation: 'byu-aurora 14s ease-in-out infinite',
     }}>
       <style>{BYU_CSS}</style>
 
-      {/* ── Colonna sinistra: chi ti sta parlando ── */}
-      <div className="byu-aurora" style={{
-        width: '25%', minWidth: 200, flexShrink: 0,
+      {/* ── Colonna sinistra: chi ti sta parlando. Niente fondo suo: sta
+             direttamente sul gradiente. ── */}
+      <div style={{
+        width: '24%', minWidth: 190, flexShrink: 0,
         position: 'relative', display: 'flex', flexDirection: 'column',
-        padding: '16px 16px 14px',
-        // Pesca → rosa → lavanda, in movimento perpetuo e lentissimo: è il
-        // fondo su cui vive la mascotte, e le dà l'aria di essere accesa anche
-        // quando nessuno le sta scrivendo.
-        background: 'linear-gradient(135deg, #FFE3CF 0%, #FFD9DE 30%, #FBD9F0 62%, #E4DBFF 100%)',
-        backgroundSize: '260% 260%',
-        animation: 'byu-aurora 14s ease-in-out infinite',
+        padding: '4px 4px 0 8px',
       }}>
         <div style={{fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em', color: PN.TEXT}}>
           Byuppino <span style={{color: BYU_BRAND}}>AI</span>
@@ -456,38 +489,24 @@ function WidgetByuppino() {
         </div>
 
         {/* `height:100%` + `contain` e non `maxHeight`: dentro una colonna alta
-            quanto la scheda, un'immagine con la sola altezza massima sborda e
-            si siede sul chip di trust qui sotto. */}
-        <div style={{flex: 1, minHeight: 0, padding: '8px 0 6px'}}>
-          <img src="mascot-staff.png" alt="Byuppino" className="byu-galleggia" style={{
+            quanto la scheda, un'immagine con la sola altezza massima sborda. */}
+        <div style={{flex: 1, minHeight: 0, padding: '6px 0 0'}}>
+          <img src={BYU_MASCOTTE} alt="Byuppino" onError={byuRipiego} className="byu-galleggia" style={{
             display: 'block', height: '100%', width: '100%',
             objectFit: 'contain', objectPosition: 'center bottom',
             filter: 'drop-shadow(0 10px 18px rgba(140, 60, 90, 0.22))',
             animation: 'byu-galla 5s ease-in-out infinite',
           }}/>
         </div>
-
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0,
-          padding: '7px 11px', borderRadius: 12,
-          background: 'rgba(255,255,255,0.72)',
-          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.8)',
-        }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={BYU_BRAND}
-            strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-            style={{flexShrink: 0}}>
-            <path d="M12 3l7 3v6c0 4.2-2.9 7.7-7 9-4.1-1.3-7-4.8-7-9V6z"/>
-          </svg>
-          <span style={{fontSize: 11.5, fontWeight: 600, color: 'rgba(15,17,21,0.62)', lineHeight: 1.25}}>
-            Sicuro. Privato. Sempre al tuo fianco.
-          </span>
-        </div>
       </div>
 
-      {/* ── Colonna destra: la conversazione ── */}
+      {/* ── Colonna destra: la conversazione, una card bianca posata sul
+             gradiente. È il foglio su cui si scrive: sta sopra al colore e non
+             dentro, e per questo ha un raggio e un'ombra suoi. ── */}
       <div style={{
         flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
-        background: PN.WHITE, padding: '14px 16px 12px',
+        background: PN.WHITE, borderRadius: 18, padding: '14px 16px 12px',
+        boxShadow: '0 10px 26px -14px rgba(120, 60, 90, 0.30), 0 1px 2px rgba(15,17,21,0.04)',
       }}>
         <div ref={filo} className="byu-thread pn-scroll" style={{
           flex: 1, minHeight: 0, overflowY: 'auto',

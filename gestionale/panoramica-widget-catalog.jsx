@@ -18,6 +18,15 @@
 //                rapide — l'ultimo riquadro scuro — hanno lasciato il posto a
 //                Byuppino. Resta come variante di GlassDarkBox, che Supporto e
 //                Statistiche usano ancora.
+// Widget FISSI: stanno in cima, non si trascinano e non si tolgono. È l'unica
+// eccezione a una dashboard che per il resto si compone come si vuole, e vale
+// per l'assistente: è il posto da cui si comanda il gestionale a voce, non un
+// riquadro di dati fra gli altri, e deve stare dove l'occhio cade per primo
+// senza che ci si debba pensare. Trascinabile, sarebbe finito in fondo il
+// primo giorno; rimovibile, sparirebbe per sempre dopo un click sbagliato.
+const PN_WIDGET_FISSI = ['byuppino'];
+const pnFisso = (id) => PN_WIDGET_FISSI.indexOf(id) >= 0;
+
 const PN_WIDGET_CATALOG = [
   { id: 'andamento-coperti', name: 'Coperti', desc: 'Coperti per periodo con sparkline', component: 'WidgetAndamentoCoperti', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'andamento-scontrino', name: 'Scontrino medio', desc: 'Scontrino medio per periodo con sparkline', component: 'WidgetAndamentoScontrino', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-bar' },

@@ -71,7 +71,10 @@ function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wig
         ...dragStyle,
       }}
     >
-      {editMode && (
+      {/* Senza `onRemove` niente cerchietto: è così che un widget fisso dice
+          che non si toglie — non c'è il comando, invece di esserci e non
+          rispondere. */}
+      {editMode && onRemove && (
         <>
           {/* Rimuovi — cerchietto iOS-style a cavallo dell'angolo alto-sx:
               non copre il contenuto della card, come le X delle app icon. */}
@@ -191,17 +194,21 @@ function PnGrid({ widgets, editMode, onRemove, onReorder }) {
         // pointer-events: none sulla card draggata permette all'hit-test di trovare
         // le card SOTTO il puntatore (altrimenti elementFromPoint trova solo
         // la card mossa).
+        // Fisso: non parte in trascinamento, non fa da bersaglio a chi viene
+        // trascinato, non porta il cerchietto per toglierlo. E il puntatore lo
+        // dice prima ancora che ci si provi — niente manina da presa.
+        const fisso = pnFisso(w.id);
         return (
           <div key={w.id}
             data-widget-id={w.id}
-            onMouseDown={handleDragStart(w.id)}
+            onMouseDown={fisso ? undefined : handleDragStart(w.id)}
             style={{
               gridColumn: `span ${Math.min(size.w, cols)}`,
               gridRow:    `span ${size.h}`,
               minHeight: 0,
               borderRadius: 14,
               position: 'relative',
-              cursor: isDragging ? 'grabbing' : 'grab',
+              cursor: fisso ? 'default' : isDragging ? 'grabbing' : 'grab',
               zIndex: isDragging ? 50 : 1,
               transform: isDragging
                 ? `translate(${dragOffset.x}px, ${dragOffset.y}px)`
@@ -220,7 +227,7 @@ function PnGrid({ widgets, editMode, onRemove, onReorder }) {
               dragging={isDragging}
               otherDragging={isOtherDragging}
               wiggleDelay={wiggleDelay}
-              onRemove={() => onRemove(w.id)}
+              onRemove={fisso ? null : () => onRemove(w.id)}
               theme={def.theme}>
               <Comp size={size}/>
             </PnWidgetShell>

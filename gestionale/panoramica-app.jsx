@@ -45,6 +45,10 @@ function pnLoadLayout() {
       if (Array.isArray(arr) && arr.length && arr.every(w => w && w.id)) {
         let ids = arr.map(w => PN_ID_MIGRATE[w.id] || w.id);
         ids = ids.filter((id, i) => ids.indexOf(id) === i);
+        // I fissi tornano in testa comunque: nei layout salvati prima che
+        // esistessero non ci sono, e in quelli salvati dopo potrebbero essere
+        // finiti altrove. Qui si rimette la regola, una volta per tutte.
+        ids = PN_WIDGET_FISSI.concat(ids.filter(id => !pnFisso(id)));
         if (ids.includes('andamento-coperti') && !ids.includes('andamento-scontrino')) {
           ids.splice(ids.indexOf('andamento-coperti') + 1, 0, 'andamento-scontrino');
         }
@@ -81,7 +85,10 @@ function PnApp() {
     }
   };
 
-  const remove = (id) => setWidgets(ws => ws.filter(w => w.id !== id));
+  const remove = (id) => {
+    if (pnFisso(id)) return;
+    setWidgets(ws => ws.filter(w => w.id !== id));
+  };
   const add = (id) => {
     const def = PN_WIDGET_CATALOG.find(c => c.id === id);
     if (!def) return;
@@ -89,6 +96,8 @@ function PnApp() {
     setDrawerOpen(false);
   };
   const reorder = (fromId, toId) => {
+    // Né si sposta, né gli si scambia il posto: l'assistente resta il primo.
+    if (pnFisso(fromId) || pnFisso(toId)) return;
     setWidgets(ws => {
       const fromIdx = ws.findIndex(w => w.id === fromId);
       const toIdx = ws.findIndex(w => w.id === toId);
