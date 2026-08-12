@@ -435,7 +435,6 @@ function MCMenuComposer() {
 
   // colonna 2 — piatti
   const [view, setView] = React.useState('grid');
-  const [sort, setSort] = React.useState('manuale');
   const [search, setSearch] = React.useState('');
   const [stateFilter, setStateFilter] = React.useState('all');
   const [selectMode, setSelectMode] = React.useState(false);
@@ -622,9 +621,9 @@ function MCMenuComposer() {
   let rows = rowsAll
     .filter(r => !q || r.dish.name.toLowerCase().includes(q) || (r.dish.desc || '').toLowerCase().includes(q))
     .filter(r => stateFilter === 'all' || (stateFilter === 'active' ? r.active : !r.active));
-  if (sort === 'nome')        rows = [...rows].sort((a, b) => a.dish.name.localeCompare(b.dish.name));
-  if (sort === 'prezzo-asc')  rows = [...rows].sort((a, b) => a.price - b.price);
-  if (sort === 'prezzo-desc') rows = [...rows].sort((a, b) => b.price - a.price);
+  // L'ordine dei piatti è quello del menù e si cambia trascinandoli: da quando
+  // la tendina in testata filtra per stato, un secondo ordinamento per nome o
+  // prezzo non avrebbe più da dove accendersi.
 
   const attivi = rowsAll.filter(r => r.active).length;
   const detail = rowsAll.find(r => r.dishId === detailId) || null;
@@ -691,7 +690,11 @@ function MCMenuComposer() {
       }}>
         {/* ── Colonna 1: categorie ─────────────────────────────────────── */}
         {!detail && (
-        <MCPanel title="Categorie" bodyStyle={{padding: '10px 10px 12px'}}>
+        // Il piede della colonna non scorre con le categorie: «Nuova
+        // categoria» e la visibilità del menù devono restare sotto mano anche
+        // con venti categorie dentro, che è quando servono di più.
+        <MCPanel title="Categorie" bodyStyle={{padding: 0, display: 'flex', flexDirection: 'column', overflowY: 'hidden'}}>
+          <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 10px 12px'}}>
           <div style={{display: 'flex', flexDirection: 'column', gap: 2}}>
             {(activeMenu ? activeMenu.categories : []).map((c, i) => {
               const on = c.name === activeCat;
@@ -817,36 +820,6 @@ function MCMenuComposer() {
             })}
           </div>
 
-          {addingCat ? (
-            <div style={{marginTop: 10, padding: 10, border: `1.5px solid ${PN.PINK}`, background: PN.PINK_SOFT, borderRadius: 10}}>
-              <input
-                autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && newCatName.trim()) { addCategoryToMenu(newCatName.trim()); setNewCatName(''); setAddingCat(false); }
-                  if (e.key === 'Escape') { setAddingCat(false); setNewCatName(''); }
-                }}
-                placeholder="Nome categoria"
-                style={{width: '100%', padding: '7px 9px', border: `1px solid ${PN.BORDER}`, borderRadius: 7, fontSize: 14.5, fontFamily: 'inherit', outline: 'none', fontWeight: 600}}
-              />
-              <div style={{display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 8}}>
-                <button onClick={() => { setAddingCat(false); setNewCatName(''); }} style={{padding: '5px 9px', background: 'transparent', border: 'none', color: PN.MUTED, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit'}}>Annulla</button>
-                <button onClick={() => { if (newCatName.trim()) { addCategoryToMenu(newCatName.trim()); setNewCatName(''); setAddingCat(false); } }}
-                  style={{padding: '5px 11px', background: newCatName.trim() ? PN.PINK : '#E5E7EB', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'}}>Crea</button>
-              </div>
-            </div>
-          ) : (
-            <button onClick={() => setAddingCat(true)} style={{
-              width: '100%', marginTop: 10, padding: '11px 12px', borderRadius: 10,
-              border: `1.5px dashed ${PN.PINK_SOFT}`, background: PN.PINK_BG_SOFT,
-              color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              transition: 'background 150ms ease-out',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}
-            onMouseLeave={e => e.currentTarget.style.background = PN.PINK_BG_SOFT}
-            ><PnI.Plus size={12}/> Nuova categoria</button>
-          )}
-
           <div style={{
             marginTop: 10, padding: '10px 12px', borderRadius: 10,
             background: dragDish ? PN.PINK_BG_SOFT : '#F7F8FA',
@@ -873,6 +846,75 @@ function MCMenuComposer() {
               )}
             </div>
           </div>
+
+          </div>
+
+          {/* Piede fisso della colonna: sta in fondo al riquadro e ci resta
+              mentre l'elenco scorre sopra. */}
+          <div style={{
+            flexShrink: 0, padding: '10px 10px 12px',
+            background: PN.WHITE, borderTop: `1px solid ${PN.BORDER_SOFT}`,
+          }}>
+          {addingCat ? (
+            <div style={{padding: 10, border: `1.5px solid ${PN.PINK}`, background: PN.PINK_SOFT, borderRadius: 10}}>
+              <input
+                autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newCatName.trim()) { addCategoryToMenu(newCatName.trim()); setNewCatName(''); setAddingCat(false); }
+                  if (e.key === 'Escape') { setAddingCat(false); setNewCatName(''); }
+                }}
+                placeholder="Nome categoria"
+                style={{width: '100%', padding: '7px 9px', border: `1px solid ${PN.BORDER}`, borderRadius: 7, fontSize: 14.5, fontFamily: 'inherit', outline: 'none', fontWeight: 600}}
+              />
+              <div style={{display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 8}}>
+                <button onClick={() => { setAddingCat(false); setNewCatName(''); }} style={{padding: '5px 9px', background: 'transparent', border: 'none', color: PN.MUTED, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit'}}>Annulla</button>
+                <button onClick={() => { if (newCatName.trim()) { addCategoryToMenu(newCatName.trim()); setNewCatName(''); setAddingCat(false); } }}
+                  style={{padding: '5px 11px', background: newCatName.trim() ? PN.PINK : '#E5E7EB', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'}}>Crea</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setAddingCat(true)} style={{
+              width: '100%', padding: '11px 12px', borderRadius: 10,
+              border: `1.5px dashed ${PN.PINK_SOFT}`, background: PN.PINK_BG_SOFT,
+              color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              transition: 'background 150ms ease-out',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}
+            onMouseLeave={e => e.currentTarget.style.background = PN.PINK_BG_SOFT}
+            ><PnI.Plus size={12}/> Nuova categoria</button>
+          )}
+
+          {/* Quando il menù si fa vedere: qui si legge, e da qui si va a
+              cambiarlo. Sta sotto le categorie perché è l'ultima cosa che
+              riguarda il menù intero — la testata ormai tiene solo il nome,
+              l'interruttore e l'anteprima. */}
+          <div style={{marginTop: 10, paddingTop: 10, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', {detail: 'flussi'}))}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.background = PN.WHITE; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.background = PN.WHITE_HUSH; }}
+              style={{
+                width: '100%', padding: '9px 12px', borderRadius: 9,
+                border: `1px solid ${PN.BORDER}`, background: PN.WHITE_HUSH,
+                boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
+                color: PN.TEXT, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                transition: 'border-color 150ms ease-out, background 150ms ease-out',
+              }}>
+              <span style={{display: 'inline-flex', color: PN.MUTED}}><Icon name="time-calendar" size={13}/></span>
+              Modifica visibilità del menù
+            </button>
+            <div style={{
+              fontSize: 12, color: PN.MUTED, marginTop: 7, textAlign: 'center',
+              lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {activeMenu && activeMenu.schedule
+                ? <React.Fragment><span style={{color: PN.MUTED_SOFT}}>Ora:</span> {activeMenu.schedule}</React.Fragment>
+                : 'Nessun orario impostato'}
+            </div>
+          </div>
+          </div>
         </MCPanel>
         )}
 
@@ -885,7 +927,6 @@ function MCMenuComposer() {
           attivi={attivi}
           disattivati={rowsAll.length - attivi}
           view={view} setView={setView}
-          sort={sort} setSort={setSort}
           search={search} setSearch={setSearch}
           stateFilter={stateFilter} setStateFilter={setStateFilter}
           selectMode={selectMode} setSelectMode={setSelectMode}
@@ -1195,27 +1236,24 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
           }}><PnI.ChevronDown size={13}/></span>
         </button>
 
-        <span style={{fontSize: 13.5, color: PN.MUTED, flexShrink: 0}}>{totalDishesIn(m)} piatti</span>
-
         {pickerOpen && pannelloMenus}
       </div>
 
-      {/* La pastiglia diceva soltanto com'era il menù: qui c'è l'interruttore,
-          e si accende o si spegne dov'è scritto. La conferma resta — attivo ce
-          n'è uno solo, e cambiarlo cambia quello che vede il cliente. */}
+      <span style={{flex: 1}}/>
+
+      {/* Le due cose che si fanno a un menù intero stanno insieme a destra:
+          accenderlo per i clienti e guardarlo com'è venuto. Il conteggio dei
+          piatti è sparito da qui — è un dato, e sta nell'elenco dei menù
+          accanto a ciascuno; la fascia oraria è scesa sotto le categorie,
+          dov'è anche il modo di cambiarla. */}
       <div style={{display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
         <ImpToggle checked={m.active} onChange={() => setConfirmStato({id: m.id, to: !m.active})}/>
         <span style={{fontSize: 13.5, fontWeight: 600, color: m.active ? PN.TEXT : PN.MUTED}}>{m.active ? 'Attivo' : 'Disattivato'}</span>
       </div>
-      {/* La fascia oraria è del menù attivo e sta qui: nell'elenco non serve,
-          lì i menù si distinguono per nome e per quanti piatti hanno. */}
-      {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0}}>Visibile {m.schedule}</span>}
 
-      <span style={{flex: 1}}/>
-
-      {/* Ultima cosa a destra, e una sola: guardare il menù com'è venuto è ciò
-          che si fa dopo averlo sistemato. «Nuovo menù» è sceso nella tendina
-          dei menù, dove l'elenco dice già cosa c'è e cosa manca. */}
+      {/* Ultima cosa a destra: guardare il menù com'è venuto è ciò che si fa
+          dopo averlo sistemato. «Nuovo menù» è sceso nella tendina dei menù,
+          dove l'elenco dice già cosa c'è e cosa manca. */}
       <ImpButton variant="ghost" icon={<PnI.Eye size={15}/>} onClick={onAnteprima} style={{flexShrink: 0, whiteSpace: 'nowrap'}}>
         Visualizza anteprima
       </ImpButton>
@@ -1450,20 +1488,10 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   const [showQr, setShowQr] = React.useState(false);
   const [confermaElimina, setConfermaElimina] = React.useState(false);
 
-  // Fascia oraria: di default il menù è sempre visibile. I menù già scritti
-  // hanno la fascia dentro una frase («Lun–Ven · 12:00–15:00»): da lì si
-  // prendono gli orari, il resto della frase non serve più.
-  const orariDi = (s) => {
-    const m2 = /(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/.exec(s || '');
-    return m2 ? {da: m2[1].padStart(5, '0'), a: m2[2].padStart(5, '0')} : null;
-  };
-  const orariIniziali = modifica ? orariDi(menu.schedule) : null;
-  const [sempreVisibile, setSempreVisibile] = React.useState(!orariIniziali);
-  const [oraDa, setOraDa] = React.useState(orariIniziali ? orariIniziali.da : '12:00');
-  const [oraA, setOraA] = React.useState(orariIniziali ? orariIniziali.a : '16:00');
-  const [giorni, setGiorni] = React.useState(
-    (modifica && giorniDi(menu.schedule)) || [0, 1, 2, 3, 4, 5, 6]);
-  const toggleGiorno = (i) => setGiorni(g => (g.includes(i) ? g.filter(x => x !== i) : [...g, i].sort((a, b) => a - b)));
+  // Quando il menù si fa vedere non si decide più da qui: è una regola di
+  // esercizio e vive in Operazioni, dove si va dal piede della colonna
+  // categorie. Questa maschera dice cos'è il menù, non quando è acceso —
+  // la fascia già impostata passa di qui intatta.
 
   // Esc chiude quello che si è aperto per ultimo, non l'intero popup.
   React.useEffect(() => {
@@ -1486,16 +1514,13 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
   // cui compaiono.
   const nomePreso = menus.some(x => x.id !== (menu ? menu.id : null)
     && x.name.trim().toLowerCase() === nome.trim().toLowerCase() && !!nome.trim());
-  // Una fascia senza nemmeno un giorno non vale mai: sarebbe un menù che non
-  // si vede mai, cioè un menù disattivato scritto in modo complicato.
-  const giorniOk = sempreVisibile || giorni.length > 0;
-  const completo = !!nome.trim() && prezzoOk && !nomePreso && giorniOk;
+  const completo = !!nome.trim() && prezzoOk && !nomePreso;
 
   const salva = () => {
     if (!completo) return;
     const dati = {
       name: nome.trim(), tipologia, prezzo: ayce ? prezzoAyce : '', tipo, leadTime: tkLeadTime,
-      schedule: sempreVisibile ? '' : `${etichettaGiorni(giorni)} · ${oraDa}–${oraA}`,
+      schedule: modifica ? (menu.schedule || '') : '',
     };
     if (modifica) onSave(menu.id, dati);
     else onCreate(dati);
@@ -1634,71 +1659,30 @@ function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpl
               </div>
             )}
 
-            {/* Quando è visibile: di default sempre. Con una fascia, fuori da
-                quella il QR non ha un menù da mostrare e ricade sulla vetrina
-                — come quando non c'è nessun menù attivo. */}
-            <div style={{marginBottom: 18}}>
-              <span style={NM_LABEL}>Quando è visibile</span>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                border: `1px solid ${PN.BORDER}`, borderRadius: 10, padding: '11px 13px',
-              }}>
-                <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>Sempre visibile</div>
-                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
-                    Chi scansiona il QR lo trova a qualsiasi ora
-                  </div>
-                </div>
-                <ImpToggle checked={sempreVisibile} onChange={() => setSempreVisibile(v => !v)}/>
-              </div>
-
-              {!sempreVisibile && (
-                <>
-                  <div style={{display: 'flex', gap: 6, marginTop: 10}}>
-                    {GIORNI.map((g, i) => {
-                      const on = giorni.includes(i);
-                      return (
-                        <button key={g} onClick={() => toggleGiorno(i)} title={on ? `Togli ${g}` : `Aggiungi ${g}`} style={{
-                          flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-                          border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
-                          background: on ? PN.PINK_BG_SOFT : PN.WHITE,
-                          color: on ? PN.PINK_DARK : PN.MUTED,
-                          fontSize: 13.5, fontWeight: on ? 700 : 600,
-                          transition: 'border-color 150ms ease-out, background 150ms ease-out',
-                        }}>{g}</button>
-                      );
-                    })}
-                  </div>
-                  {!giorniOk && (
-                    <div style={{fontSize: 12.5, color: PN.PINK_DARK, marginTop: 6, lineHeight: 1.4}}>
-                      Scegli almeno un giorno, altrimenti il menù non si vedrebbe mai.
-                    </div>
-                  )}
-                  <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 10}}>
-                    <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>Dalle</span>
-                    <input type="time" value={oraDa} onChange={e => setOraDa(e.target.value)} style={NM_ORA}/>
-                    <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>alle</span>
-                    <input type="time" value={oraA} onChange={e => setOraA(e.target.value)} style={NM_ORA}/>
-                  </div>
-                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.45}}>
-                    Fuori da questa fascia il QR porta a un altro menù, se attivato, o alla
-                    vetrina se nessuno è attivo. Dalla vetrina restano visibili tutti i menù
-                    che si attivano in determinate fasce orarie della settimana.
-                  </div>
-                </>
-              )}
-            </div>
-
-            <button onClick={() => setShowQr(true)} style={{
-              width: '100%', padding: '13px 14px', marginBottom: 18,
-              border: `1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
-              cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 600, color: PN.TEXT,
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-              transition: 'background 150ms ease-out',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = '#F7F8FA'}
-            onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
-            ><Icon name="grid" size={17}/> Visualizza QR Code</button>
+            {/* Il QR non è del menù, è di dove lo si scansiona: in sala ce n'è
+                uno per tavolo e stanno in Sala e tavoli, dove i tavoli si
+                creano; per l'asporto ce n'è uno solo, del locale, e si guarda
+                da qui. Il pulsante dice quale dei due, invece di promettere
+                «il QR del menù» che non esiste. */}
+            <button
+              onClick={() => {
+                if (tipo === 'asporto') { setShowQr(true); return; }
+                onClose();
+                window.dispatchEvent(new CustomEvent('byup-imp-goto', {detail: 'sala'}));
+              }}
+              style={{
+                width: '100%', padding: '13px 14px', marginBottom: 18,
+                border: `1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 600, color: PN.TEXT,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+                transition: 'background 150ms ease-out',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F7F8FA'}
+              onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
+            >
+              <Icon name={tipo === 'asporto' ? 'grid' : 'place-table'} size={17}/>
+              {tipo === 'asporto' ? 'Visualizza QR asporto' : 'Vai ai QR dei tavoli'}
+            </button>
 
             {/* L'import AI vive qui dentro: è un modo di riempire il menù che
                 si sta creando, non un'azione parallela. In modifica non ha
@@ -2164,22 +2148,22 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
 // ─── Colonna 2: i piatti della categoria aperta ─────────────────────────────
 function MCPiattiPanel({
   menu, catName, rows, totali, attivi, disattivati,
-  view, setView, sort, setSort, search, setSearch, stateFilter, setStateFilter,
+  view, setView, search, setSearch, stateFilter, setStateFilter,
   selectMode, setSelectMode, selection, setSelection, toggleSel,
   altreCategorie, onBulkMove, onBulkPrice, onBulkDelete,
   detailId, setDetailId, editingPrice, setEditingPrice,
   onUpdateItem, onRemoveDish, onOpenPicker, onNuovaCategoria,
   dragDish, setDragDish, onReorder,
 }) {
-  const [sortOpen, setSortOpen] = React.useState(false);
+  const [statoOpen, setStatoOpen] = React.useState(false);
   const [cardMenu, setCardMenu] = React.useState(null);
-  const sortBox = React.useRef(null);
+  const statoBox = React.useRef(null);
   React.useEffect(() => {
-    if (!sortOpen) return;
-    const fuori = (e) => { if (sortBox.current && !sortBox.current.contains(e.target)) setSortOpen(false); };
+    if (!statoOpen) return;
+    const fuori = (e) => { if (statoBox.current && !statoBox.current.contains(e.target)) setStatoOpen(false); };
     document.addEventListener('mousedown', fuori);
     return () => document.removeEventListener('mousedown', fuori);
-  }, [sortOpen]);
+  }, [statoOpen]);
 
   // Afferrare un piatto che fa parte di una selezione porta via tutta la
   // selezione: chi ne ha spuntati sei non se li sposta uno per volta.
@@ -2194,12 +2178,16 @@ function MCPiattiPanel({
     return () => document.removeEventListener('mousedown', chiudi);
   }, [cardMenu]);
 
-  const SORTS = [
-    {id: 'manuale', l: 'Ordine del menù'},
-    {id: 'nome', l: 'Nome A–Z'},
-    {id: 'prezzo-asc', l: 'Prezzo crescente'},
-    {id: 'prezzo-desc', l: 'Prezzo decrescente'},
+  // Lo stato dei piatti: era una fila di pillole sotto la ricerca, che teneva
+  // occupata una riga intera per dire una cosa sola. Ora è la tendina che
+  // stava lì accanto, e la riga sotto è tutta della ricerca.
+  const STATI = [
+    {id: 'all', l: 'Tutti', n: totali},
+    {id: 'active', l: 'Attivi', n: attivi},
+    {id: 'disabled', l: 'Disattivati', n: disattivati},
   ];
+  const statoCorrente = STATI.find(s => s.id === stateFilter) || STATI[0];
+  const filtrato = stateFilter !== 'all';
 
   if (!menu) return <MCPanel title="Piatti"><div style={{color: PN.MUTED, fontSize: 15}}>Nessun menù selezionato.</div></MCPanel>;
 
@@ -2246,18 +2234,31 @@ function MCPiattiPanel({
         );
       })()}
 
-      <div ref={sortBox} style={{position: 'relative'}}>
-        <button onClick={() => setSortOpen(o => !o)} style={{
+      <div ref={statoBox} style={{position: 'relative'}}>
+        <button onClick={() => setStatoOpen(o => !o)} style={{
           display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 8,
-          border: `1px solid ${sortOpen ? PN.TEXT : PN.BORDER}`, background: PN.WHITE, cursor: 'pointer',
-          fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: PN.TEXT,
+          border: `1px solid ${statoOpen || filtrato ? PN.PINK : PN.BORDER}`,
+          background: filtrato ? PN.PINK_BG_SOFT : PN.WHITE, cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+          color: filtrato ? PN.PINK_DARK : PN.TEXT,
+          transition: 'background 150ms ease-out, border-color 150ms ease-out',
         }}>
-          Ordina <PnI.ChevronDown size={11}/>
+          {/* Col filtro acceso il pulsante dice quale: senza le pillole sotto,
+              è l'unico posto in cui si può leggere. */}
+          Stato{filtrato ? ` · ${statoCorrente.l}` : ''}
+          <span style={{display: 'inline-flex', transform: statoOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out'}}>
+            <PnI.ChevronDown size={11}/>
+          </span>
         </button>
-        {sortOpen && (
+        {statoOpen && (
           <div style={{position: 'absolute', top: 'calc(100% + 5px)', right: 0, zIndex: 70, minWidth: 190, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 10, boxShadow: '0 10px 30px rgba(15,17,21,0.13)', padding: 5}}>
-            {SORTS.map(s => (
-              <MenuDotItem key={s.id} icon={sort === s.id ? <PnI.Check size={13}/> : ' '} onClick={() => { setSort(s.id); setSortOpen(false); }}>{s.l}</MenuDotItem>
+            {STATI.map(s => (
+              <MenuDotItem key={s.id} icon={stateFilter === s.id ? <PnI.Check size={13}/> : ' '} onClick={() => { setStateFilter(s.id); setStatoOpen(false); }}>
+                <span style={{display: 'inline-flex', alignItems: 'center', gap: 8, width: '100%'}}>
+                  <span style={{flex: 1}}>{s.l}</span>
+                  <span style={{fontSize: 12.5, fontWeight: 800, color: PN.MUTED_SOFT}}>{s.n}</span>
+                </span>
+              </MenuDotItem>
             ))}
           </div>
         )}
@@ -2293,7 +2294,8 @@ function MCPiattiPanel({
       action={testata}
       bodyStyle={{padding: '12px 16px 16px'}}
     >
-      {/* Ricerca + stato: filtri del menù, non dell'intera libreria. */}
+      {/* Ricerca: filtra dentro il menù, non nell'intera libreria. Lo stato è
+          salito nella tendina «Stato» in testata, dove stavano le pillole. */}
       <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap'}}>
         <div style={{position: 'relative', flex: '1 1 190px', minWidth: 160}}>
           <span style={{position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center'}}><PnI.Search size={12} color={PN.MUTED}/></span>
@@ -2301,24 +2303,6 @@ function MCPiattiPanel({
             width: '100%', padding: '7px 10px 7px 30px', border: `1px solid ${PN.BORDER}`,
             borderRadius: 8, fontSize: 14, fontFamily: 'inherit', outline: 'none', background: PN.WHITE,
           }}/>
-        </div>
-        <div style={{display: 'flex', background: '#F4F5F7', padding: 2, borderRadius: 8, gap: 2}}>
-          {[
-            {id: 'all', label: 'Tutti', count: totali},
-            {id: 'active', label: 'Attivi', count: attivi},
-            {id: 'disabled', label: 'Disattivati', count: disattivati},
-          ].map(s => (
-            <button key={s.id} onClick={() => setStateFilter(s.id)} style={{
-              padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: stateFilter === s.id ? PN.WHITE : 'transparent',
-              color: stateFilter === s.id ? PN.TEXT : PN.MUTED,
-              boxShadow: stateFilter === s.id ? '0 1px 2px rgba(15,17,21,0.08)' : 'none',
-              fontSize: 13.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5,
-            }}>
-              {s.label}
-              <span style={{fontSize: 12, fontWeight: 700, color: stateFilter === s.id ? PN.MUTED : PN.MUTED_SOFT}}>{s.count}</span>
-            </button>
-          ))}
         </div>
       </div>
 

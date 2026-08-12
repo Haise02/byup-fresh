@@ -28,20 +28,91 @@ function ImpAtterraggioStyle() {
   );
 }
 
-// Le tab di sezione sono il componente unico PnSectionTabs (underline rosa,
-// panoramica-tokens.jsx): le pillole che vivevano qui erano l'unica sezione
-// a non usare l'underline, e le pillole restano ai filtri.
-function ImpTabs({ active, onChange }) {
-  const tabs = [
-    { id: 'vetrina', label: 'Vetrina', icon: 'place-restaurant' },
-    { id: 'menu-cucina', label: 'Menù', icon: 'food-meal' },
-    { id: 'sala', label: 'Sala e tavoli', icon: 'place-table' },
-    { id: 'personale', label: 'Personale', icon: 'people-staff-group' },
-    { id: 'flussi', label: 'Operazioni', icon: 'chart-workflow' },
-    { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt' },
-    { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },
-  ];
-  return <PnSectionTabs tabs={tabs} active={active} onChange={onChange}/>;
+// Le sezioni delle impostazioni. Erano una fila di tab in cima alla pagina;
+// ora sono la colonna di sinistra del popup, che è il posto dove nel
+// gestionale si sceglie *dove* si sta lavorando.
+const IMP_SEZIONI = [
+  { id: 'vetrina', label: 'Vetrina', icon: 'place-restaurant' },
+  { id: 'menu-cucina', label: 'Menù', icon: 'food-meal' },
+  { id: 'sala', label: 'Sala e tavoli', icon: 'place-table' },
+  { id: 'personale', label: 'Personale', icon: 'people-staff-group' },
+  { id: 'flussi', label: 'Operazioni', icon: 'chart-workflow' },
+  { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt' },
+  { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },
+];
+
+// La colonna di sinistra del popup: stessa cassa del menù globale del
+// gestionale — vetro vibrante, 272px, PnNavItem con le sue icone da 26 e
+// l'attivo in tinta brand. Al posto del logo la testata dice dove sei, perché
+// il logo dell'app sta già a sinistra, dietro al velo.
+function ImpNavSidebar({ active, onChange }) {
+  return (
+    <aside style={{
+      width: 272, flexShrink: 0,
+      ...PN.GLASS_VIBRANT,
+      display: 'flex', flexDirection: 'column',
+      padding: '20px 14px',
+      height: '100%', position: 'relative', overflow: 'hidden',
+    }}>
+      <GlassMeshSubstrate/>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 11,
+        padding: '2px 6px 24px', flexShrink: 0, position: 'relative',
+      }}>
+        <span style={{
+          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+          display: 'grid', placeItems: 'center',
+          background: PN.WHITE, border: `1px solid ${PN.BORDER_LIGHT}`,
+          boxShadow: PN.INSET_HIGHLIGHT, color: PN.TEXT,
+        }}><Icon name="gear" size={18}/></span>
+        <div style={{minWidth: 0}}>
+          <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.3, color: PN.TEXT}}>Impostazioni</div>
+          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 1}}>Come funziona il tuo locale</div>
+        </div>
+      </div>
+
+      <div className="pn-scroll" style={{
+        flex: 1, display: 'flex', flexDirection: 'column', gap: 2,
+        minHeight: 0, overflowY: 'auto', position: 'relative',
+      }}>
+        {IMP_SEZIONI.map(s => (
+          <PnNavItem key={s.id} label={s.label} icon={s.icon}
+            active={active === s.id} onClick={() => onChange(s.id)}/>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+// ─── Chi ha modifiche da salvare ────────────────────────────────────────────
+// La CTA di salvataggio è una sola, in fondo al popup, ma le modifiche nascono
+// dentro le singole pagine. Ognuna si registra qui dicendo se ha qualcosa da
+// salvare e come si salva: il popup legge il totale, per accendere il pulsante
+// e per sapere se chiudendo deve chiedere.
+const impDaSalvare = new Map();
+let impDaSalvareSeq = 0;
+function impNotificaModifiche() {
+  window.dispatchEvent(new Event('byup-imp-modifiche'));
+}
+window.byupImpHaModifiche = () => Array.from(impDaSalvare.values()).some(v => v.dirty);
+window.byupImpSalva = () => {
+  impDaSalvare.forEach(v => { if (v.dirty && v.salva) v.salva(); });
+};
+
+function useImpDaSalvare(dirty, salva) {
+  const idRef = React.useRef(null);
+  if (idRef.current === null) idRef.current = ++impDaSalvareSeq;
+  // `salva` è quasi sempre una arrow inline: tenerla in un ref evita che
+  // l'effetto si riscriva a ogni render della pagina.
+  const salvaRef = React.useRef(salva);
+  salvaRef.current = salva;
+  React.useEffect(() => {
+    const id = idRef.current;
+    impDaSalvare.set(id, { dirty, salva: () => salvaRef.current && salvaRef.current() });
+    impNotificaModifiche();
+    return () => { impDaSalvare.delete(id); impNotificaModifiche(); };
+  }, [dirty]);
 }
 
 function ImpSubTabs({ tabs, active, onChange }) {
@@ -411,34 +482,14 @@ function ImpWithPreview({ children, preview }) {
 }
 
 // Sticky save bar
+// Non disegna più niente: da quando le impostazioni sono un popup il posto del
+// salvataggio è uno solo, il piede del popup, e due «Salva modifiche» nella
+// stessa schermata erano due promesse per la stessa cosa. Resta come punto in
+// cui la pagina DICHIARA di avere modifiche — i suoi call-site non cambiano e
+// la CTA in fondo sa quando accendersi e cosa chiamare.
 function ImpSaveBar({ dirty, onCancel, onSave }) {
-  // La barra copre una striscia in fondo allo scroller: il telefono deve
-  // ricalcolarsi quando lei compare o sparisce, e l'adattamento ascolta gia
-  // il resize della finestra — glielo si fa credere.
-  React.useEffect(() => {
-    window.dispatchEvent(new Event('resize'));
-  }, [dirty]);
-  if (!dirty) return null;
-  return (
-    <div style={{
-      position:'sticky', bottom: 0, left: 0, right: 0,
-      marginTop: 14, marginLeft: -32, marginRight: -32, marginBottom: -32,
-      padding: '14px 32px',
-      background: PN.WHITE,
-      borderTop: `1px solid ${PN.BORDER}`,
-      boxShadow: '0 -4px 20px rgba(15,17,21,0.06)',
-      display:'flex', alignItems:'center', gap: 14,
-      zIndex: 10,
-    }}>
-      <span style={{
-        width: 8, height: 8, borderRadius:'50%', background: PN.AMBER, flexShrink: 0,
-      }}/>
-      <span style={{fontSize: 15, color: PN.TEXT, fontWeight: 600}}>Hai modifiche non salvate</span>
-      <span style={{flex:1}}/>
-      {onCancel && <ImpButton variant="ghost" onClick={onCancel}>Annulla</ImpButton>}
-      <ImpButton variant="pink" onClick={onSave}>Salva modifiche</ImpButton>
-    </div>
-  );
+  useImpDaSalvare(dirty, onSave);
+  return null;
 }
 
 // Phone preview della vetrina — iPhone con la replica 1:1 e COMPLETA di
