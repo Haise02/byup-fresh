@@ -653,19 +653,14 @@ function WidgetTopPiatti() {
   ];
   const max = Math.max(...dishes.map(d => d.sales));
 
-  // Sunset-theme ranking (D3): leaderboard premium dark warm. Posizione #1 in
-  // coral, altre in grigio neutro. La sunset palette accende il pattern "top X"
-  // con la stessa gravitas del night ma allineato al sistema 80/15/10.
+  // Card bianca come le altre della griglia: il fondo scuro faceva di questa
+  // classifica un oggetto a parte, e in una pagina di card chiare due
+  // rettangoli neri si leggono prima del loro contenuto. Il primo posto lo
+  // dice il corallo, che basta e avanza.
   return (
-    <GlassDarkBox
-      theme="sunset"
-      style={{
-        margin: '-18px -18px -16px -18px',
-        height: 'calc(100% + 34px)',
-        display:'flex', flexDirection:'column',
-      }}>
-      <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 14, minWidth: 0}}>
-        <div style={{fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Top piatti questa settimana</div>
+    <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
+      <div style={{display:'flex', alignItems:'baseline', gap: 10, marginBottom: 12, minWidth: 0, flexShrink: 0}}>
+        <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Top piatti questa settimana</div>
       </div>
       {/* Lista responsive: ogni dish ha flex:1 0 auto + minHeight → gli item
           crescono uniformemente quando il widget è alto (h≥2), restano compatti
@@ -673,12 +668,12 @@ function WidgetTopPiatti() {
           gap proporzionale: più aria tra dish in widget grande. */}
       {/* Respiro laterale e verticale dentro l'area scrollabile: la riga che
           si ingrandisce in hover non tocca mai il bordo di clipping. */}
-      <div style={{flex:1, display:'flex', flexDirection:'column', gap: 6, minHeight: 0, overflowY: 'auto', margin: '0 -14px', padding: '3px 14px'}}>
+      <div className="pn-scroll" style={{flex:1, display:'flex', flexDirection:'column', gap: 6, minHeight: 0, overflowY: 'auto', margin: '0 -10px', padding: '3px 10px'}}>
         {dishes.map((d, i) => (
           <TopDishRow key={i} d={d} i={i} max={max}/>
         ))}
       </div>
-    </GlassDarkBox>
+    </div>
   );
 }
 
@@ -701,8 +696,8 @@ function TopDishRow({ d, i, max }) {
         display:'flex', flexDirection:'column', justifyContent:'center',
         gap: 5,
         padding: '6px 8px', margin: '0 -8px', borderRadius: 10,
-        background: hover ? 'rgba(255,255,255,0.08)' : 'transparent',
-        boxShadow: hover ? 'inset 0 0 0 1px rgba(255,255,255,0.12)' : 'none',
+        background: hover ? '#F7F8FA' : 'transparent',
+        boxShadow: hover ? `inset 0 0 0 1px ${PN.BORDER_SOFT}` : 'none',
         cursor: 'pointer',
         transform: pressed ? 'scale(0.99)' : hover ? 'scale(1.015)' : 'scale(1)',
         transition: 'transform 160ms cubic-bezier(0.34, 1.45, 0.64, 1), background 150ms ease, box-shadow 150ms ease',
@@ -713,22 +708,22 @@ function TopDishRow({ d, i, max }) {
             <div style={{display:'flex', alignItems:'center', gap: 8, minWidth: 0}}>
               <span style={{
                 width: 18, height: 18, borderRadius: 5,
-                background: i === 0 ? '#FF6066' : 'rgba(255,255,255,0.08)',
-                color: i === 0 ? '#fff' : 'rgba(255,255,255,0.70)',
+                background: i === 0 ? PN.PINK : '#F1F2F5',
+                color: i === 0 ? '#fff' : PN.MUTED,
                 display:'grid', placeItems:'center',
                 fontSize: 12.5, fontWeight: 700,
-                boxShadow: i === 0 ? '0 0 10px rgba(255, 96, 102, 0.50)' : 'inset 0 0 0 1px rgba(255,255,255,0.10)',
+                boxShadow: i === 0 ? '0 2px 8px rgba(255, 90, 95, 0.35)' : 'none',
                 flexShrink: 0,
               }}>{i+1}</span>
-              <span style={{flex: 1, fontSize: 15, color: '#F5F5F7', fontWeight: 600, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.name}</span>
-              <span style={{fontSize: 13.5, color: d.up ? '#86EFAC' : '#FCA5A5', fontWeight: 600, flexShrink: 0}}>{d.trend}</span>
+              <span style={{flex: 1, fontSize: 15, color: PN.TEXT, fontWeight: 600, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{d.name}</span>
+              <span style={{fontSize: 13.5, color: d.up ? PN.GREEN : PN.RED, fontWeight: 700, flexShrink: 0}}>{d.trend}</span>
             </div>
             <div style={{paddingLeft: 26, fontSize: 13, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-              <span style={{color: 'rgba(255,255,255,0.55)'}}>{d.sales} ordini · </span>
-              <span style={{color: '#F5F5F7', fontWeight: 600}}>€{d.rev.toLocaleString('it-IT', {useGrouping: true})}</span>
+              <span style={{color: PN.MUTED}}>{d.sales} ordini · </span>
+              <span style={{color: PN.TEXT, fontWeight: 700}}>€{d.rev.toLocaleString('it-IT', {useGrouping: true})}</span>
             </div>
-            <div style={{height: 4, background:'rgba(255,255,255,0.08)', borderRadius: 99, overflow:'hidden'}}>
-              <div style={{height:'100%', width: `${(d.sales/max)*100}%`, background: i === 0 ? '#FF6066' : 'rgba(255,255,255,0.30)', borderRadius: 99, boxShadow: i === 0 ? '0 0 8px rgba(255, 96, 102, 0.40)' : 'none'}}/>
+            <div style={{height: 4, background:'#F1F2F5', borderRadius: 99, overflow:'hidden'}}>
+              <div style={{height:'100%', width: `${(d.sales/max)*100}%`, background: i === 0 ? PN.PINK : '#D1D5DB', borderRadius: 99}}/>
             </div>
     </div>
   );
@@ -1037,38 +1032,36 @@ function WidgetCucinaLive() {
     { table: '6',  items: 3, time: "4' 10\"",  status: 'green', label: 'Pronto' },
     { table: '11', items: 6, time: "10' 15\"", status: 'red',   label: 'In ritardo' },
   ];
+  // Su fondo chiaro i colori di stato tornano quelli del gestionale: gli
+  // stessi verdi, ambra e rossi delle pastiglie di Sala e Cucina.
   const statusStyles = {
-    amber: { bg: 'rgba(251, 146, 60, 0.18)', fg: '#FDBA74' },
-    green: { bg: 'rgba(52, 211, 153, 0.18)', fg: '#86EFAC' },
-    red:   { bg: 'rgba(248, 113, 113, 0.18)', fg: '#FCA5A5' },
+    amber: { bg: PN.AMBER_SOFT, fg: '#B45309' },
+    green: { bg: PN.GREEN_SOFT, fg: '#15803D' },
+    red:   { bg: PN.RED_SOFT,   fg: '#B91C1C' },
   };
 
+  // Card bianca come le altre della griglia: era l'unica, con Top piatti, a
+  // stare su fondo scuro — due rettangoli neri in mezzo alle card chiare si
+  // leggevano prima di quello che avevano dentro.
   return (
-    <GlassDarkBox
-      theme="sunset"
-      style={{
-        margin: '-18px -18px -16px -18px',
-        height: 'calc(100% + 34px)',
-        padding: '14px 16px',
-        display: 'flex', flexDirection: 'column',
-      }}>
-      {/* Header — kitchen-head del preview */}
+    <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+      {/* Header — nome a sinistra, quanti ne aspettano a destra */}
       <div style={{
         display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-        marginBottom: 4, gap: 8, minWidth: 0, flexShrink: 0,
+        marginBottom: 10, gap: 8, minWidth: 0, flexShrink: 0,
       }}>
         <span style={{
-          fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.65)',
+          fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
           textTransform: 'uppercase', letterSpacing: 0.5,
           minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>Cucina · in diretta</span>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontSize: 13, fontWeight: 500, color: '#9CA3AF',
+          fontSize: 13, fontWeight: 600, color: PN.MUTED,
           whiteSpace: 'nowrap', flexShrink: 0,
         }}>
           <span style={{
-            width: 6, height: 6, borderRadius: 999, background: '#F87171',
+            width: 6, height: 6, borderRadius: 999, background: PN.RED,
           }}/>
           {orders.length} in attesa
         </span>
@@ -1076,16 +1069,16 @@ function WidgetCucinaLive() {
 
       {/* Rows — kitchen-row del preview. Margine negativo + padding uguali:
           le righe scalate in hover non vengono tagliate dai bordi. */}
-      <div style={{
+      <div className="pn-scroll" style={{
         display: 'flex', flexDirection: 'column', gap: 6,
         flex: 1, minHeight: 0, overflowY: 'auto',
-        margin: '4px -8px 0', padding: '2px 8px',
+        margin: '0 -8px', padding: '2px 8px',
       }}>
         {orders.map((o, i) => (
           <KitchenLiveRow key={i} o={o} s={statusStyles[o.status]}/>
         ))}
       </div>
-    </GlassDarkBox>
+    </div>
   );
 }
 
@@ -1106,10 +1099,10 @@ function KitchenLiveRow({ o, s }) {
         display: 'grid', gridTemplateColumns: 'auto 1fr auto',
         gap: 10, alignItems: 'center',
         padding: '8px 10px', borderRadius: 9,
-        background: hover ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.06)',
+        background: hover ? '#F7F8FA' : PN.WHITE,
         boxShadow: hover
-          ? 'inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 8px 20px rgba(0, 0, 0, 0.25)'
-          : 'inset 0 1px 0 rgba(255, 255, 255, 0.10), inset 0 0 0 1px rgba(255, 255, 255, 0.06)',
+          ? `inset 0 0 0 1px ${PN.BORDER}, 0 6px 16px rgba(15, 17, 21, 0.08)`
+          : `inset 0 0 0 1px ${PN.BORDER_SOFT}`,
         cursor: 'pointer',
         transform: pressed ? 'scale(0.985)' : hover ? 'scale(1.02)' : 'scale(1)',
         position: 'relative', zIndex: hover ? 2 : 1,
@@ -1118,15 +1111,15 @@ function KitchenLiveRow({ o, s }) {
               <span style={{
                 fontSize: 14, fontWeight: 700,
                 fontVariantNumeric: 'tabular-nums',
-                color: '#F3F4F6',
-                background: 'rgba(255, 255, 255, 0.10)',
+                color: PN.TEXT,
+                background: '#F1F2F5',
                 padding: '2px 7px', borderRadius: 6,
                 minWidth: 22, textAlign: 'center',
                 whiteSpace: 'nowrap',
               }}>{o.table}</span>
               {/* minWidth:0: la colonna 1fr può stringersi sotto il contenuto
                   — il testo va a capo dentro la riga invece di sbordare. */}
-              <span style={{fontSize: 13.5, color: '#9CA3AF', minWidth: 0}}>
+              <span style={{fontSize: 13.5, color: PN.MUTED, minWidth: 0}}>
                 {o.items} {o.items === 1 ? 'portata' : 'portate'} · <span style={{color: s.fg, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap'}}>{o.time}</span>
               </span>
               <span style={{

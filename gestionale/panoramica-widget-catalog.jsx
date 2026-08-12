@@ -10,8 +10,9 @@
 // theme (per shell):
 //   undefined → W1 white classic (default, ~75% dei widget)
 //   'aurora'  → L2 aurora glass pink (warm celebrativo)
-//   sunset    → applicato dal widget internamente con GlassDarkBox (Top piatti,
-//                Cucina live) → non serve sullo shell
+//   sunset    → non più usato dai widget: Top piatti e Cucina live sono
+//                tornati bianchi come il resto della griglia. Resta come
+//                variante di GlassDarkBox, che le Azioni rapide usano ancora.
 const PN_WIDGET_CATALOG = [
   { id: 'andamento-coperti', name: 'Coperti', desc: 'Coperti per periodo con sparkline', component: 'WidgetAndamentoCoperti', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'andamento-scontrino', name: 'Scontrino medio', desc: 'Scontrino medio per periodo con sparkline', component: 'WidgetAndamentoScontrino', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-bar' },
