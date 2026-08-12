@@ -198,15 +198,11 @@ function ByuSegno({ size = 34 }) {
   );
 }
 
-function ByuSpunte({ colore }) {
-  return (
-    <svg width="15" height="11" viewBox="0 0 18 12" fill="none" stroke={colore}
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="1 6.5 4.5 10 11 3"/>
-      <polyline points="7.5 10 14 3"/>
-    </svg>
-  );
-}
+// Niente doppia spunta accanto all'orario. È un segno preso in prestito dalla
+// messaggistica, dove serve a dire «l'altro l'ha letto» — e qui l'altro è
+// l'assistente, che risponde nella riga sotto: la ricevuta di lettura la porta
+// già la risposta. Un segno che non risolve nessun dubbio è solo un segno in
+// più da guardare.
 
 // Il raggio è asimmetrico: l'angolo dal lato di chi parla resta quasi vivo. È
 // la coda del fumetto senza disegnare la coda.
@@ -229,12 +225,9 @@ function ByuBolla({ da, testo, ora }) {
         fontSize: 14.5, fontWeight: 500, lineHeight: 1.42,
       }}>{testo}</div>
       <span style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
-        fontSize: 11.5, fontWeight: 600, color: PN.MUTED_SOFT, paddingBottom: 2,
-      }}>
-        {ora}
-        {mio && <ByuSpunte colore={PN.MUTED_SOFT}/>}
-      </span>
+        flexShrink: 0, fontSize: 11.5, fontWeight: 600,
+        color: PN.MUTED_SOFT, paddingBottom: 2,
+      }}>{ora}</span>
     </div>
   );
 }
