@@ -455,6 +455,8 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onMap }) {
               <SocialDot label="yt"/>
             </div>
           </Section>
+
+          <LegalFooter/>
         </div>
       </div>
 
@@ -678,3 +680,27 @@ function SocialDot({ label }) {
 
 // La web app non ha varianti: esponiamo direttamente l'originale come VenueScreen.
 window.VenueScreen = VenueOriginal;
+
+// ─── Footer legale ──────────────────────────────────────────────────────────
+// Piccolo e quieto di proposito: i link a Termini e Privacy devono esserci
+// (obbligo informativo), non farsi notare. Colore del testo più muto della
+// pagina, sottolineatura al 50% — riconoscibili come link senza alzare la
+// voce. Vive qui (venue.jsx si carica prima di menu.jsx) e serve entrambe
+// le schermate via window.
+function LegalFooter() {
+  const link = {
+    color: '#b3a8ac', textDecoration: 'underline',
+    textDecorationColor: 'rgba(179, 168, 172, 0.5)', textUnderlineOffset: 2,
+  };
+  return (
+    <div style={{
+      textAlign: 'center', padding: '22px 16px 6px',
+      fontSize: 11, lineHeight: 1.6, color: '#b3a8ac',
+    }}>
+      <a href="https://byup.it/termini" target="_blank" rel="noopener" style={link}>Termini e condizioni</a>
+      {' · '}
+      <a href="https://byup.it/privacy" target="_blank" rel="noopener" style={link}>Informativa sulla privacy</a>
+    </div>
+  );
+}
+window.LegalFooter = LegalFooter;

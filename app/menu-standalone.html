@@ -648,6 +648,88 @@
   };
   /* sync */
 })();
+
+// ─── Registro consensi (GDPR) ───────────────────────────────────────────────
+// Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
+// preferenze, A6 marketing). Suggerimenti e analisi d'uso sono
+// legittimo interesse SENZA toggle in-app: l'opposizione passa
+// dall'assistenza (dal 2026-08-06), che la registra lato backend.
+//
+// REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
+//   promo generiche E su misura sullo storico ordini → basta A6 (che le
+//     dichiara entrambe: PROMOP è stato assorbito in A6 il 2026-08-06 —
+//     non reintrodurlo; il consenso unico NON copre i dati alimentari)
+//   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
+//   suggerimenti in-app    → attivi salvo opposizione via assistenza (LI,
+//                            niente consenso; la città viene dal contesto
+//                            d'uso corrente, MAI dai log accesso/sicurezza)
+// Due strutture: lo STATO corrente per consenso e il LOG append-only
+// (consent_data) — ogni cambio scrive una riga con timestamp e versione
+// dell'informativa: è quella la prova, non lo stato.
+(function () {
+  const K_STATO = 'byup_consent_state';
+  const K_LOG = 'byup_consent_data';
+  const VERSIONE_INFORMATIVA = '1.0';
+  const leggi = (k, fb) => {
+    try {
+      const r = localStorage.getItem(k);
+      return r ? JSON.parse(r) : fb;
+    } catch (e) {
+      return fb;
+    }
+  };
+  const scrivi = (k, v) => {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch (e) {}
+  };
+  window.ByupConsensi = {
+    VERSIONE_INFORMATIVA,
+    // {ok, quando, versione} oppure null se mai deciso
+    stato(id) {
+      return leggi(K_STATO, {})[id] || null;
+    },
+    set(id, ok) {
+      const quando = new Date().toISOString();
+      const stato = leggi(K_STATO, {});
+      stato[id] = {
+        ok: !!ok,
+        quando,
+        versione: VERSIONE_INFORMATIVA
+      };
+      scrivi(K_STATO, stato);
+      const log = leggi(K_LOG, []);
+      log.push({
+        id,
+        ok: !!ok,
+        quando,
+        versione: VERSIONE_INFORMATIVA
+      });
+      scrivi(K_LOG, log);
+      return stato[id];
+    },
+    // Revoca "profonda": azzera anche la decisione (torna "mai chiesto"),
+    // ma il log conserva la storia.
+    azzera(id) {
+      const quando = new Date().toISOString();
+      const stato = leggi(K_STATO, {});
+      delete stato[id];
+      scrivi(K_STATO, stato);
+      const log = leggi(K_LOG, []);
+      log.push({
+        id,
+        ok: false,
+        revocato: true,
+        quando,
+        versione: VERSIONE_INFORMATIVA
+      });
+      scrivi(K_LOG, log);
+    },
+    log() {
+      return leggi(K_LOG, []);
+    }
+  };
+})();
 })();
 </script>
 <script>/* ios-frame.jsx */
@@ -1201,14 +1283,57 @@ function AllergensView({
   prefs,
   setPrefs
 }) {
-  const toggle = (group, id) => setPrefs(p => ({
+  // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
+  // Just-in-time, come fanno le app comparabili: la sezione si SFOGLIA
+  // liberamente (guardare la lista non conferisce nessun dato), e il
+  // consenso A3 compare al PRIMO toggle — il momento in cui il dato nasce
+  // davvero. A18 (offerte sulle preferenze) è la spunta autonoma sotto:
+  // mai pre-attivata, mai registrata se non scelta. Il centro di controllo
+  // resta nel pannello «I miei dati».
+  const [consensoOk, setConsensoOk] = useState(() => {
+    const st = ByupConsensi.stato('A3');
+    return !!(st && st.ok);
+  });
+  const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
+  const [chkA3, setChkA3] = useState(false);
+  const [chkA18, setChkA18] = useState(false);
+  const applica = (group, id) => setPrefs(p => ({
     ...p,
     [group]: {
       ...(p[group] || {}),
       [id]: !p[group]?.[id]
     }
   }));
+  const toggle = (group, id) => {
+    if (!consensoOk) {
+      setPending({
+        group,
+        id
+      });
+      return;
+    }
+    applica(group, id);
+  };
   const count = group => Object.values(prefs[group] || {}).filter(Boolean).length;
+  const confermaConsensi = () => {
+    if (!chkA3) return;
+    ByupConsensi.set('A3', true);
+    if (chkA18) ByupConsensi.set('A18', true);
+    setConsensoOk(true);
+    if (pending) applica(pending.group, pending.id);
+    setPending(null);
+  };
+  const annullaConsensi = () => {
+    setPending(null);
+    setChkA3(false);
+    setChkA18(false);
+  };
+
+  // Testi brevi (informativa "a strati"): nella spunta l'essenziale — dato,
+  // sensibilità, finalità, revoca — il resto sta nella sezione dedicata
+  // dell'informativa privacy. Non allungarli di nuovo qui.
+  const CONSENSO_A3 = 'Acconsento all\'uso dei miei allergeni e preferenze alimentari — dati che possono rivelare salute o convinzioni — per filtrare i menù. Revocabile quando voglio.';
+  const CONSENSO_A18 = 'Acconsento a ricevere offerte costruite su diete e allergeni (es. proposte senza glutine).';
   const SectionHeader = ({
     title,
     badge,
@@ -1353,6 +1478,13 @@ function AllergensView({
     description: "I piatti che contengono questi ingredienti verranno nascosti dal men\xF9."
   }), /*#__PURE__*/React.createElement("div", {
     style: {
+      fontSize: 12,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      margin: '-4px 2px 10px'
+    }
+  }, "Il filtro \xE8 un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala."), /*#__PURE__*/React.createElement("div", {
+    style: {
       display: 'flex',
       flexDirection: 'column',
       gap: 1,
@@ -1403,7 +1535,199 @@ function AllergensView({
       value: on,
       onChange: () => toggle('allergens', a.id)
     }));
-  })));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      marginTop: 20,
+      lineHeight: 1.5
+    }
+  }, "Gestisci consensi e revoca da Profilo \u2192 I miei dati."), pending && /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) annullaConsensi();
+    },
+    style: {
+      position: 'fixed',
+      inset: 0,
+      zIndex: 80,
+      background: 'rgba(15,8,12,.5)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      animation: 'fade .2s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      maxWidth: 520,
+      background: SURF_X,
+      borderRadius: '24px 24px 0 0',
+      padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+      animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 999,
+      background: BORDER_X
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 800,
+      color: TEXT_X,
+      marginBottom: 10
+    }
+  }, "Prima di salvare"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setChkA18(v => !v),
+    "aria-label": "Consenso offerte sulle preferenze",
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 11,
+      width: '100%',
+      padding: '12px 13px',
+      borderRadius: 16,
+      textAlign: 'left',
+      background: chkA18 ? CORALSURF_X : TINT_X,
+      border: `1.5px solid ${chkA18 ? PINK_X : 'transparent'}`,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      transition: 'all .18s'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      flexShrink: 0,
+      background: chkA18 ? PINK_X : __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F3EBEE',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 17,
+      transition: 'background .18s'
+    }
+  }, "\uD83C\uDFF7\uFE0F"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: TEXT_X
+    }
+  }, "Offerte sui piatti giusti per te"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 11.5,
+      color: MUTED_X,
+      marginTop: 2,
+      lineHeight: 1.45
+    }
+  }, CONSENSO_A18, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: '#C9C2C5'
+    }
+  }, "(Facoltativa)"))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 8,
+      flexShrink: 0,
+      marginTop: 6,
+      border: `1.5px solid ${chkA18 ? PINK_X : '#CFC8CB'}`,
+      background: chkA18 ? PINK_X : __BYUP_DK_X ? 'transparent' : '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all .18s'
+    }
+  }, chkA18 && /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: "3.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "20 6 9 17 4 12"
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 1,
+      background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC',
+      margin: '11px 0'
+    }
+  }), /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: 10,
+      cursor: 'pointer'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: chkA3,
+    onChange: e => setChkA3(e.target.checked),
+    style: {
+      accentColor: PINK_X,
+      width: 17,
+      height: 17,
+      marginTop: 2,
+      flexShrink: 0
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: TEXT_X,
+      lineHeight: 1.5
+    }
+  }, CONSENSO_A3)), /*#__PURE__*/React.createElement("button", {
+    onClick: confermaConsensi,
+    disabled: !chkA3,
+    style: {
+      width: '100%',
+      marginTop: 14,
+      padding: '14px 16px',
+      borderRadius: 999,
+      background: chkA3 ? PINK_X : TINT_X,
+      color: chkA3 ? '#fff' : MUTED_X,
+      border: 'none',
+      fontSize: 15,
+      fontWeight: 700,
+      fontFamily: 'inherit',
+      cursor: chkA3 ? 'pointer' : 'not-allowed',
+      transition: 'background .18s, color .18s'
+    }
+  }, "Conferma e salva"), /*#__PURE__*/React.createElement("button", {
+    onClick: annullaConsensi,
+    style: {
+      width: '100%',
+      padding: '11px 16px',
+      marginTop: 4,
+      background: 'transparent',
+      color: MUTED_X,
+      border: 'none',
+      fontSize: 13.5,
+      fontWeight: 600,
+      fontFamily: 'inherit',
+      cursor: 'pointer'
+    }
+  }, "Non ora"))));
 }
 function OrdersView({
   onBack,
@@ -2523,55 +2847,128 @@ function SegnalaView({
   }, "Invia"));
 }
 function MieiDatiView({
-  onBack
+  onBack,
+  onOpenPrivacy
 }) {
-  const [nome, setNome] = useState('Mario');
-  const [cognome, setCognome] = useState('Rossi');
-  const [genere, setGenere] = useState('Uomo');
-  const [nascita, setNascita] = useState('15/04/1990');
+  // Grouped-inset alla Apple/Revolut: gruppi arrotondati con righe
+  // label-valore, non un form. Il salvataggio compare solo quando serve.
+  const INIZIALI = {
+    nome: 'Mario',
+    cognome: 'Rossi',
+    genere: 'Uomo',
+    nascita: '15/04/1990'
+  };
+  const [dati, setDati] = useState(INIZIALI);
   const [saved, setSaved] = useState(false);
-  function salva() {
+  const dirty = Object.keys(INIZIALI).some(k => dati[k] !== INIZIALI[k]);
+  const set = k => v => {
+    setSaved(false);
+    setDati(d => ({
+      ...d,
+      [k]: v
+    }));
+  };
+  const salva = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  }
-  const Field = ({
+  };
+  const Gruppo = ({
+    label,
+    children,
+    footer
+  }) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 22
+    }
+  }, label && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: MUTED_X,
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em',
+      margin: '0 0 7px 14px'
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: SURF_X,
+      borderRadius: 14,
+      overflow: 'hidden',
+      border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`
+    }
+  }, children), footer && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      margin: '7px 14px 0'
+    }
+  }, footer));
+  const sep = {
+    borderBottom: '1px solid ' + (__BYUP_DK_X ? 'rgba(255,255,255,0.06)' : '#F0EAEC')
+  };
+  const RigaCampo = ({
     label,
     value,
     onChange,
-    type = 'text'
-  }) => /*#__PURE__*/React.createElement("div", {
+    ultimo,
+    icona
+  }) => /*#__PURE__*/React.createElement("label", {
     style: {
-      marginBottom: 4
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '13px 14px',
+      ...(ultimo ? {} : sep),
+      cursor: 'text'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", {
     style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: MUTED_X,
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      marginBottom: 6,
-      paddingLeft: 2
+      fontSize: 14.5,
+      color: TEXT_X,
+      width: 118,
+      flexShrink: 0
     }
   }, label), /*#__PURE__*/React.createElement("input", {
-    type: type,
     value: value,
     onChange: e => onChange(e.target.value),
     style: {
-      width: '100%',
-      padding: '13px 14px',
-      background: TINT_X,
-      border: '1.5px solid transparent',
-      borderRadius: 12,
-      fontSize: 15,
-      color: TEXT_X,
-      fontFamily: 'inherit',
+      flex: 1,
+      minWidth: 0,
+      textAlign: 'right',
+      border: 'none',
       outline: 'none',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.15s'
-    },
-    onFocus: e => e.target.style.borderColor = PINK_X,
-    onBlur: e => e.target.style.borderColor = 'transparent'
+      background: 'transparent',
+      fontSize: 14.5,
+      fontWeight: 600,
+      color: MUTED_X,
+      fontFamily: 'inherit',
+      padding: 0
+    }
+  }), icona && /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'inline-flex',
+      color: MUTED_X,
+      flexShrink: 0
+    }
+  }, icona));
+  const IconaCalendario = /*#__PURE__*/React.createElement("svg", {
+    width: "15",
+    height: "15",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "3",
+    y: "5",
+    width: "18",
+    height: "16",
+    rx: "2.5"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M8 3v4M16 3v4M3 10h18"
   }));
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -2606,102 +3003,84 @@ function MieiDatiView({
     style: {
       fontSize: 22,
       fontWeight: 700,
-      marginBottom: 28
+      marginBottom: 22
     }
-  }, "I miei dati"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 16
-    }
-  }, /*#__PURE__*/React.createElement(Field, {
+  }, "I miei dati"), /*#__PURE__*/React.createElement(Gruppo, {
+    label: "Profilo"
+  }, /*#__PURE__*/React.createElement(RigaCampo, {
     label: "Nome",
-    value: nome,
-    onChange: setNome
-  }), /*#__PURE__*/React.createElement(Field, {
+    value: dati.nome,
+    onChange: set('nome')
+  }), /*#__PURE__*/React.createElement(RigaCampo, {
     label: "Cognome",
-    value: cognome,
-    onChange: setCognome
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: MUTED_X,
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      marginBottom: 6,
-      paddingLeft: 2
-    }
-  }, "Genere"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: TINT_X,
-      borderRadius: 12,
-      overflow: 'hidden'
-    }
-  }, ['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => /*#__PURE__*/React.createElement("button", {
-    key: g,
-    onClick: () => setGenere(g),
+    value: dati.cognome,
+    onChange: set('cognome')
+  }), /*#__PURE__*/React.createElement(RigaCampo, {
+    label: "Data di nascita",
+    value: dati.nascita,
+    onChange: set('nascita'),
+    icona: IconaCalendario
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      width: '100%',
-      padding: '13px 14px',
-      background: 'transparent',
-      border: 'none',
-      borderBottom: i < arr.length - 1 ? '1px solid #EDE8EA' : 'none',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      textAlign: 'left'
+      gap: 12,
+      padding: '11px 14px'
     }
   }, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14.5,
-      color: genere === g ? PINK_X : TEXT_X,
-      fontWeight: genere === g ? 600 : 400
-    }
-  }, g), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 20,
-      height: 20,
-      borderRadius: 999,
-      border: `2px solid ${genere === g ? PINK_X : '#C8C0C3'}`,
-      background: genere === g ? PINK_X : 'transparent',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.15s',
+      color: TEXT_X,
+      width: 118,
       flexShrink: 0
     }
-  }, genere === g && /*#__PURE__*/React.createElement("div", {
+  }, "Genere"), /*#__PURE__*/React.createElement("div", {
     style: {
-      width: 7,
-      height: 7,
-      borderRadius: 999,
-      background: SURF_X
+      flex: 1,
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: 6,
+      flexWrap: 'wrap'
     }
-  })))))), /*#__PURE__*/React.createElement(Field, {
-    label: "Data di nascita",
-    value: nascita,
-    onChange: setNascita,
-    type: "text"
-  })), /*#__PURE__*/React.createElement("button", {
+  }, ['Uomo', 'Donna', 'Altro', 'Preferisco non dirlo'].map(g => {
+    const on = dati.genere === g;
+    return /*#__PURE__*/React.createElement("button", {
+      key: g,
+      onClick: () => set('genere')(g),
+      style: {
+        padding: '6px 12px',
+        borderRadius: 999,
+        border: `1.5px solid ${on ? PINK_X : __BYUP_DK_X ? 'rgba(255,255,255,0.14)' : '#E4DDE0'}`,
+        background: on ? CORALSURF_X : 'transparent',
+        color: on ? PINK_X : MUTED_X,
+        fontSize: 12.5,
+        fontWeight: on ? 700 : 500,
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        transition: 'all .15s'
+      }
+    }, g);
+  })))), dirty && /*#__PURE__*/React.createElement("button", {
     onClick: salva,
     style: {
       width: '100%',
-      marginTop: 32,
-      padding: '15px',
+      margin: '-8px 0 22px',
+      padding: '13px',
       background: saved ? '#30D158' : PINK_X,
+      color: '#fff',
       border: 'none',
-      borderRadius: 14,
+      borderRadius: 999,
       cursor: 'pointer',
       fontFamily: 'inherit',
-      fontSize: 15,
+      fontSize: 14.5,
       fontWeight: 700,
-      color: '#fff',
-      transition: 'background 0.3s'
+      transition: 'background 0.3s',
+      animation: 'fade 0.2s ease'
     }
-  }, saved ? 'Salvato ✓' : 'Salva modifiche'));
+  }, saved ? 'Salvato ✓' : 'Salva modifiche'), /*#__PURE__*/React.createElement(ConsensiPanel, {
+    onOpenPrivacy: onOpenPrivacy,
+    sep: sep
+  }));
 }
 function AccountFormView({
   title,
@@ -4116,7 +4495,8 @@ function ProfileScreen({
   }), view === 'segnala' && /*#__PURE__*/React.createElement(SegnalaView, {
     onBack: () => setView('account')
   }), view === 'miei-dati' && /*#__PURE__*/React.createElement(MieiDatiView, {
-    onBack: () => setView('main')
+    onBack: () => setView('main'),
+    onOpenPrivacy: () => setView('privacy')
   }), view === 'terms' && /*#__PURE__*/React.createElement(LegalView, {
     title: "Termini e condizioni",
     onBack: () => setView('main'),
@@ -4150,7 +4530,10 @@ function ProfileScreen({
       p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.'
     }, {
       h: 'Finalità e base giuridica',
-      p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito (art. 6.1.a GDPR).'
+      p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).'
+    }, {
+      h: 'Preferenze alimentari e allergeni',
+      p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.'
     }, {
       h: 'Conservazione',
       p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.'
@@ -4158,8 +4541,11 @@ function ProfileScreen({
       h: 'I tuoi diritti',
       p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).'
     }, {
+      h: 'Suggerimenti personalizzati',
+      p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento scrivendo all\'assistenza: torneranno proposte generiche.'
+    }, {
       h: 'Cookie e tecnologie simili',
-      p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.'
+      p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto nell\'informativa privacy e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento scrivendo all\'assistenza.'
     }, {
       h: 'Trasferimenti internazionali',
       p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.'
@@ -6892,6 +7278,187 @@ Object.assign(window, {
   VenueScreen,
   BookingSheet
 });
+
+// ─── ConsensiPanel — i consensi del registro in un posto solo ───────────────
+// A3 e A18 nascono nella sezione allergeni, A6 alla registrazione: qui si
+// RIVEDONO e si cambiano. Un consenso mai incontrato (nessuno stato nel
+// registro) NON compare: il pannello mostra solo ciò che esiste per questo
+// utente. `dove` dice in che punto dell'app il consenso è nato. Spegnere
+// A3 cancella anche le preferenze salvate (senza consenso, niente dato).
+const CONSENSI_DEF = [{
+  id: 'A3',
+  label: 'Preferenze alimentari e allergeni',
+  desc: 'Filtrare i menù in base a diete e allergie',
+  dove: 'impostando le preferenze alimentari'
+}, {
+  id: 'A18',
+  label: 'Offerte sulle preferenze',
+  desc: 'Promozioni costruite su diete e allergeni',
+  dove: 'impostando le preferenze alimentari'
+},
+// A6 copre anche le promo su misura sullo storico ordini (PROMOP assorbito
+// il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
+// registrazione. Le offerte su dati alimentari restano A18 (art. 9).
+{
+  id: 'A6',
+  label: 'Marketing byup',
+  desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica',
+  dove: 'alla registrazione'
+}
+// Suggerimenti e analisi d'uso: legittimo interesse SENZA toggle qui —
+// la via di opposizione è l'assistenza, come dichiarato nell'informativa.
+// Il pannello mostra solo i consensi veri: A3, A18, A6.
+];
+function ConsensiPanel({
+  onOpenPrivacy,
+  sep
+}) {
+  // Chiuso di default: i consensi sono un cassetto, non la prima cosa da
+  // leggere ogni volta. La testata riassume (quanti attivi) e apre.
+  const [aperto, setAperto] = useState(false);
+  const [, forza] = useState(0);
+  const cambia = (id, v) => {
+    ByupConsensi.set(id, v);
+    if (id === 'A3' && !v) {
+      // niente base giuridica, niente dato
+      try {
+        localStorage.setItem('byup_allergens', JSON.stringify({
+          allergens: {},
+          diets: {}
+        }));
+      } catch (e) {}
+      if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
+    }
+    forza(x => x + 1);
+  };
+  const quando = st => {
+    if (!st) return null;
+    const d = new Date(st.quando);
+    return `${d.toLocaleDateString('it-IT')}`;
+  };
+  const attivi = CONSENSI_DEF.filter(c => {
+    const st = ByupConsensi.stato(c.id);
+    return st && st.ok;
+  }).length;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: SURF_X,
+      borderRadius: 14,
+      overflow: 'hidden',
+      border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setAperto(a => !a),
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      width: '100%',
+      padding: '13px 14px',
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      textAlign: 'left',
+      ...(aperto ? sep : {})
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      color: TEXT_X,
+      fontWeight: 600
+    }
+  }, "Privacy e consensi"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      marginTop: 1
+    }
+  }, attivi === 0 ? 'Nessun consenso attivo' : `${attivi} ${attivi === 1 ? 'consenso attivo' : 'consensi attivi'}`)), /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: MUTED_X,
+    strokeWidth: "2.2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    style: {
+      transform: aperto ? 'rotate(180deg)' : 'none',
+      transition: 'transform .18s',
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "6 9 12 15 18 9"
+  }))), aperto && CONSENSI_DEF.map((c, i) => {
+    const st = ByupConsensi.stato(c.id);
+    // Mai incontrato = niente riga: il pannello riflette solo i consensi
+    // che esistono per questo utente.
+    if (!st) return null;
+    const data = quando(st);
+    const acceso = !!(st && st.ok);
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.id,
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 14px',
+        ...sep
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14.5,
+        color: TEXT_X
+      }
+    }, c.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: MUTED_X,
+        marginTop: 2,
+        lineHeight: 1.4
+      }
+    }, c.desc), data && /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: MUTED_X,
+        marginTop: 2,
+        opacity: .8
+      }
+    }, st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`)), /*#__PURE__*/React.createElement(ProfileToggle, {
+      value: acceso,
+      onChange: v => cambia(c.id, v)
+    }));
+  }), aperto && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      padding: '10px 14px 13px'
+    }
+  }, "Per richiedere una copia dei tuoi dati consulta l'", /*#__PURE__*/React.createElement("span", {
+    onClick: onOpenPrivacy,
+    style: {
+      color: PINK_X,
+      fontWeight: 600,
+      cursor: 'pointer'
+    }
+  }, "informativa sulla privacy"), ".")));
+}
 })();
 </script>
 <script>/* venue-variants.jsx */
@@ -17699,1013 +18266,6 @@ function BypBadgeCard({
     }
   })));
 }
-
-// ─── Byup Games — card stile arcade (reference-driven) + swipe manuale ───
-const BYP_GAMES = [{
-  id: 'wheel',
-  bg: '#FDF3CE',
-  ink: '#3b2a00'
-}, {
-  id: 'slot',
-  bg: '#EBDFFC',
-  ink: '#2c1a4d'
-}, {
-  id: 'scratch',
-  bg: '#FFE0EA',
-  ink: '#4d1226'
-}];
-
-// Titolo chunky multicolore stile "SPIN TO WIN!"
-function BypGameTitle({
-  parts
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'baseline',
-      justifyContent: 'center',
-      gap: 5,
-      whiteSpace: 'nowrap'
-    }
-  }, parts.map(([txt, color, small], i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      fontFamily: BK.TYPE.display,
-      fontWeight: 700,
-      letterSpacing: -0.5,
-      fontSize: small ? 15 : 26,
-      color,
-      textShadow: '2px 2px 0 #2b1a20, -1px -1px 0 #2b1a20, 1px -1px 0 #2b1a20, -1px 1px 0 #2b1a20',
-      transform: i % 2 ? 'rotate(1.5deg)' : 'rotate(-1.5deg)'
-    }
-  }, txt)));
-}
-
-// Ruota v2: etichette RADIALI leggibili, lampadine sul bordo, hub rifinito.
-// Il puntatore giallo sta a sinistra (come reference) e "ticchetta" durante lo spin.
-function BypWheel({
-  size = 150,
-  rot = 0,
-  spinning = false
-}) {
-  const SEGS = ['+100', '30 pts', '20% OFF', 'Ritenta', '+100', '+50'];
-  const COLS = ['#CEFF00', '#fff', '#CEFF00', '#fff', '#CEFF00', '#fff'];
-  const r = size / 2;
-  const wedge = i => {
-    const a0 = (i * 60 - 90) * Math.PI / 180,
-      a1 = ((i + 1) * 60 - 90) * Math.PI / 180;
-    return `M${r},${r} L${r + r * Math.cos(a0)},${r + r * Math.sin(a0)} A${r},${r} 0 0 1 ${r + r * Math.cos(a1)},${r + r * Math.sin(a1)} Z`;
-  };
-  const mid = i => (i + 0.5) * 60; // gradi dal top, senso orario
-  const labelPos = i => {
-    const a = (mid(i) - 90) * Math.PI / 180;
-    return {
-      x: r + r * 0.58 * Math.cos(a),
-      y: r + r * 0.58 * Math.sin(a)
-    };
-  };
-  const bulbs = Array.from({
-    length: 12
-  }, (_, i) => {
-    const a = (i * 30 - 90) * Math.PI / 180;
-    return {
-      x: r + r * 0.925 * Math.cos(a),
-      y: r + r * 0.925 * Math.sin(a)
-    };
-  });
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      width: size,
-      height: size
-    }
-  }, /*#__PURE__*/React.createElement("style", null, `@keyframes bypTick{0%{transform:translateY(-50%) rotate(0)}100%{transform:translateY(-50%) rotate(-14deg)}}`), /*#__PURE__*/React.createElement("svg", {
-    width: size,
-    height: size,
-    viewBox: `0 0 ${size} ${size}`,
-    style: {
-      transform: `rotate(${rot}deg)`,
-      transition: spinning ? 'transform 4s cubic-bezier(.16,.84,.14,1)' : 'none',
-      filter: 'drop-shadow(0 10px 18px rgba(0,0,0,.4))'
-    }
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: r,
-    fill: "#2b1a20"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: r * 0.985,
-    fill: "none",
-    stroke: "rgba(255,255,255,.14)",
-    strokeWidth: size * 0.008
-  }), bulbs.map((b, i) => /*#__PURE__*/React.createElement("circle", {
-    key: 'b' + i,
-    cx: b.x,
-    cy: b.y,
-    r: size * 0.016,
-    fill: i % 2 ? '#FFD84D' : '#fff',
-    opacity: i % 2 ? 1 : .85
-  })), /*#__PURE__*/React.createElement("g", {
-    transform: `translate(${r},${r}) scale(0.855) translate(${-r},${-r})`
-  }, SEGS.map((sg, i) => /*#__PURE__*/React.createElement("path", {
-    key: i,
-    d: wedge(i),
-    fill: COLS[i],
-    stroke: "#2b1a20",
-    strokeWidth: size * 0.02
-  })), SEGS.map((sg, i) => {
-    const p = labelPos(i);
-    const a = mid(i);
-    const flip = a > 180; // metà sinistra: ruota di 180° così il testo non è mai a testa in giù
-    return /*#__PURE__*/React.createElement("text", {
-      key: 't' + i,
-      x: p.x,
-      y: p.y,
-      fill: "#2b1a20",
-      fontSize: size * (sg.length > 5 ? 0.075 : 0.092),
-      fontWeight: "800",
-      fontFamily: "'Hanken Grotesk', sans-serif",
-      textAnchor: "middle",
-      dominantBaseline: "central",
-      letterSpacing: 0.3,
-      transform: `rotate(${a - 90 + (flip ? 180 : 0)}, ${p.x}, ${p.y})`
-    }, sg);
-  })), /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: r * 0.21,
-    fill: "#2b1a20"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: r * 0.155,
-    fill: "none",
-    stroke: "rgba(255,255,255,.25)",
-    strokeWidth: size * 0.008
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: r,
-    cy: r,
-    r: r * 0.08,
-    fill: "#fff"
-  }), /*#__PURE__*/React.createElement("circle", {
-    cx: r - r * 0.03,
-    cy: r - r * 0.03,
-    r: r * 0.025,
-    fill: "rgba(43,26,32,.25)"
-  })), /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: 'absolute',
-      left: -7,
-      top: '50%',
-      transformOrigin: 'left center',
-      transform: 'translateY(-50%)',
-      animation: spinning ? 'bypTick .11s linear infinite alternate' : 'none',
-      width: 0,
-      height: 0,
-      borderTop: '11px solid transparent',
-      borderBottom: '11px solid transparent',
-      borderLeft: '18px solid #FFD84D',
-      filter: 'drop-shadow(2px 0 2px rgba(0,0,0,.35))'
-    }
-  }));
-}
-function BypGameCardArt({
-  id,
-  onPlay
-}) {
-  // Solo la CTA apre il gioco: bottone reale con pointerEvents auto
-  // (il wrapper della card ha pointerEvents none) e stopPropagation
-  // per non far partire il drag dello stack.
-  const Cta = ({
-    label
-  }) => /*#__PURE__*/React.createElement("button", {
-    className: "bk-press",
-    onPointerDown: e => e.stopPropagation(),
-    onClick: e => {
-      e.stopPropagation();
-      BK.haptic.light();
-      onPlay && onPlay();
-    },
-    style: {
-      position: 'absolute',
-      left: '50%',
-      bottom: 22,
-      transform: 'translateX(-50%)',
-      pointerEvents: 'auto',
-      border: 'none',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      background: 'linear-gradient(122deg,#E32459,#B81C47)',
-      color: '#fff',
-      fontSize: 13,
-      fontWeight: 800,
-      padding: '10px 28px',
-      borderRadius: 999,
-      whiteSpace: 'nowrap',
-      boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)'
-    }
-  }, label);
-  if (id === 'wheel') return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      top: 62
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 14,
-      right: 14,
-      top: 34,
-      bottom: 12,
-      background: '#241d22',
-      borderRadius: 20
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: '50%',
-      top: 0,
-      transform: 'translateX(-50%)'
-    }
-  }, /*#__PURE__*/React.createElement(BypWheel, {
-    size: 148
-  })), /*#__PURE__*/React.createElement(Cta, {
-    label: "Gira ora"
-  }));
-  if (id === 'slot') return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      top: 62
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 14,
-      right: 14,
-      top: 26,
-      bottom: 12,
-      background: '#241d22',
-      borderRadius: 20
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: '50%',
-      top: 12,
-      transform: 'translateX(-50%)',
-      fontSize: 10.5,
-      fontWeight: 800,
-      color: '#2c1a4d',
-      letterSpacing: .4,
-      background: '#fff',
-      padding: '3px 12px',
-      borderRadius: 999,
-      whiteSpace: 'nowrap',
-      border: '1.5px solid #2b1a20'
-    }
-  }, "3 uguali = JACKPOT"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: '50%',
-      top: 40,
-      transform: 'translateX(-50%)',
-      display: 'flex',
-      gap: 6,
-      background: '#fff',
-      borderRadius: 14,
-      padding: 7,
-      boxShadow: 'inset 0 3px 8px rgba(0,0,0,.15)'
-    }
-  }, ['assets/hero-burger.png', 'assets/coin.png', 'assets/reward-tote.png'].map((s, k) => /*#__PURE__*/React.createElement("span", {
-    key: k,
-    style: {
-      width: 40,
-      height: 48,
-      borderRadius: 8,
-      background: '#f4eee6',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: s,
-    alt: "",
-    style: {
-      width: 30,
-      height: 30,
-      objectFit: 'contain'
-    }
-  })))), /*#__PURE__*/React.createElement(Cta, {
-    label: "Gioca"
-  }));
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      top: 62
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 14,
-      right: 14,
-      top: 26,
-      bottom: 12,
-      background: '#241d22',
-      borderRadius: 20
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: '50%',
-      top: 42,
-      transform: 'translateX(-50%) rotate(-3deg)',
-      width: 150,
-      height: 84,
-      borderRadius: 12,
-      overflow: 'hidden',
-      border: '2.5px solid #fff',
-      background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      boxShadow: '0 10px 20px -8px rgba(0,0,0,.5)'
-    }
-  }, ['✦', '?', '✦'].map((c, k) => /*#__PURE__*/React.createElement("span", {
-    key: k,
-    style: {
-      fontFamily: BK.TYPE.display,
-      fontWeight: 700,
-      fontSize: k === 1 ? 38 : 18,
-      color: 'rgba(43,26,32,.6)'
-    }
-  }, c))), /*#__PURE__*/React.createElement("img", {
-    src: "assets/coin.png",
-    alt: "",
-    style: {
-      position: 'absolute',
-      right: 30,
-      top: 26,
-      width: 34,
-      transform: 'rotate(14deg)',
-      filter: 'drop-shadow(0 6px 8px rgba(0,0,0,.4))'
-    }
-  }), /*#__PURE__*/React.createElement(Cta, {
-    label: "Gratta ora"
-  }));
-}
-const BYP_GAME_TITLES = {
-  wheel: [['SPIN', '#CEFF00'], ['TO', '#ff8fae', true], ['WIN!', '#fff']],
-  slot: [['BYUP', '#ff8fae'], ['SLOT', '#CEFF00']],
-  scratch: [['GRATTA', '#CEFF00'], ['&', '#ff8fae', true], ['VINCI', '#fff']]
-};
-
-// Stack con SWIPE MANUALE (pointer events): trascina per cambiare, tap per giocare
-function BypGameStack({
-  onOpen
-}) {
-  const [idx, setIdx] = useState(0);
-  const [dx, setDx] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const dragRef = useRef(false);
-  const start = useRef(0);
-  const moved = useRef(false);
-  const N = BYP_GAMES.length;
-  const onDown = e => {
-    dragRef.current = true;
-    setDragging(true);
-    moved.current = false;
-    start.current = e.clientX;
-    try {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
-  };
-  const onMove = e => {
-    if (!dragRef.current) return;
-    const d = e.clientX - start.current;
-    if (Math.abs(d) > 8) moved.current = true;
-    setDx(d);
-  };
-  const onUp = () => {
-    if (!dragRef.current) return;
-    dragRef.current = false;
-    setDragging(false);
-    if (!moved.current) {
-      setDx(0);
-      return;
-    } // tap sulla card: non apre nulla, solo la CTA
-    setDx(cur => {
-      if (Math.abs(cur) > 70) {
-        // la card vola via, poi passa la successiva davanti
-        const out = cur > 0 ? 460 : -460;
-        setTimeout(() => {
-          setIdx(i => (i + 1) % N);
-          setDx(0);
-        }, 210);
-        return out;
-      }
-      return 0;
-    });
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      height: 302,
-      touchAction: 'pan-y'
-    }
-  }, BYP_GAMES.map((g, i) => {
-    const pos = (i - idx + N) % N; // 0 = davanti
-    const front = pos === 0;
-    return /*#__PURE__*/React.createElement("div", {
-      key: g.id,
-      onPointerDown: front ? onDown : undefined,
-      onPointerMove: front ? onMove : undefined,
-      onPointerUp: front ? onUp : undefined,
-      onPointerCancel: front ? onUp : undefined,
-      style: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        height: 268,
-        borderRadius: 26,
-        background: g.bg,
-        color: g.ink,
-        border: '1px solid rgba(20,8,12,.1)',
-        cursor: front ? 'grab' : 'default',
-        overflow: 'hidden',
-        touchAction: 'pan-y',
-        transform: front ? `translateX(${dx}px) rotate(${dx * 0.045}deg)` : pos === 1 ? 'translateY(16px) scale(.955)' : 'translateY(30px) scale(.91)',
-        zIndex: N - pos,
-        opacity: pos === 2 ? .85 : 1,
-        transition: dragging && front ? 'none' : 'transform .45s cubic-bezier(.22,1.2,.36,1), opacity .4s',
-        boxShadow: front ? '0 22px 44px -18px rgba(20,8,12,.5)' : '0 8px 20px -14px rgba(20,8,12,.35)'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        paddingTop: 16,
-        pointerEvents: 'none'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        textAlign: 'center',
-        fontSize: 9,
-        fontWeight: 800,
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        opacity: .55,
-        marginBottom: 4
-      }
-    }, "\uD83E\uDE99 Byup games \xB7 premi ogni giorno"), /*#__PURE__*/React.createElement(BypGameTitle, {
-      parts: BYP_GAME_TITLES[g.id]
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        pointerEvents: 'none',
-        position: 'absolute',
-        inset: 0
-      }
-    }, /*#__PURE__*/React.createElement(BypGameCardArt, {
-      id: g.id,
-      onPlay: front ? () => onOpen(g.id) : undefined
-    })));
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: '50%',
-      bottom: 6,
-      transform: 'translateX(-50%)',
-      display: 'flex',
-      gap: 5
-    }
-  }, BYP_GAMES.map((_, i) => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    onClick: () => setIdx(i),
-    style: {
-      width: i === idx ? 16 : 6,
-      height: 6,
-      borderRadius: 99,
-      cursor: 'pointer',
-      background: i === idx ? '#E32459' : 'rgba(246,236,233,.3)',
-      transition: 'width .25s'
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      right: 2,
-      bottom: 4,
-      fontSize: 10,
-      color: BYP.faint,
-      fontWeight: 700
-    }
-  }, "\u21C4 scorri per cambiare"));
-}
-
-// ── Pagina RUOTA: scenografia arcade completa ──
-function BypWheelSheet({
-  onClose,
-  onWin
-}) {
-  const [rot, setRot] = useState(0);
-  const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState(null);
-  const SEGS = ['+100', '30 pts', '20% OFF', 'Ritenta', '+100', '+50'];
-  const spin = () => {
-    if (spinning) return;
-    setSpinning(true);
-    setResult(null);
-    const target = Math.floor(Math.random() * 6);
-    // puntatore a SINISTRA (270° in senso orario dal top)
-    setRot(cur => {
-      const want = ((270 - (target * 60 + 30)) % 360 + 360) % 360;
-      return cur + 360 * 5 + ((want - cur % 360) % 360 + 360) % 360;
-    });
-    setTimeout(() => {
-      setSpinning(false);
-      setResult(SEGS[target]);
-      if (SEGS[target] !== 'Ritenta') onWin && onWin();
-    }, 4100);
-  };
-  return /*#__PURE__*/React.createElement(BypSheet, {
-    center: true,
-    onClose: onClose
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      width: '100%',
-      maxWidth: 340,
-      textAlign: 'center',
-      background: '#FDF3CE',
-      color: '#3b2a00',
-      border: '2px solid #2b1a20',
-      borderRadius: 30,
-      padding: '20px 16px 18px',
-      boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
-      animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 2,
-      textTransform: 'uppercase',
-      color: '#b0246a',
-      marginBottom: 5
-    }
-  }, "\u2726 Win rewards everyday \u2726"), /*#__PURE__*/React.createElement(BypGameTitle, {
-    parts: BYP_GAME_TITLES.wheel
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      margin: '18px 0 0',
-      background: '#241d22',
-      borderRadius: 24,
-      padding: '30px 0 20px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'center'
-    }
-  }, /*#__PURE__*/React.createElement(BypWheel, {
-    size: 236,
-    rot: rot,
-    spinning: spinning
-  })), result && /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: '16px 12px 2px',
-      animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 7,
-      background: result === 'Ritenta' ? 'rgba(255,255,255,.1)' : 'rgba(206,255,0,.16)',
-      border: result === 'Ritenta' ? '1px solid rgba(255,255,255,.25)' : '1px solid rgba(206,255,0,.5)',
-      color: result === 'Ritenta' ? 'rgba(255,255,255,.75)' : '#CEFF00',
-      fontWeight: 800,
-      fontSize: 15,
-      padding: '9px 18px',
-      borderRadius: 999
-    }
-  }, result === 'Ritenta' ? 'Ritenta domani!' : `🎉 Hai vinto ${result.includes('OFF') || result.includes('pts') ? result : result + ' byuppini'}!`)), /*#__PURE__*/React.createElement("button", {
-    onClick: spin,
-    style: {
-      marginTop: 16,
-      border: '2px solid #2b1a20',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      background: 'linear-gradient(122deg,#E32459,#B81C47)',
-      color: '#fff',
-      fontSize: 15,
-      fontWeight: 800,
-      padding: '13px 44px',
-      borderRadius: 999,
-      boxShadow: '0 12px 26px -8px rgba(227,36,89,.7)'
-    }
-  }, spinning ? 'In giro…' : result ? 'Gira ancora' : 'Spin now!')), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
-    style: {
-      display: 'block',
-      width: '100%',
-      marginTop: 10,
-      background: 'none',
-      border: 'none',
-      color: '#8a6d3b',
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      padding: 6
-    }
-  }, "Chiudi")));
-}
-
-// ── Pagina SLOT: macchinetta con luci ──
-function BypSlotSheet({
-  onClose,
-  onWin
-}) {
-  const ICONS = ['assets/hero-burger.png', 'assets/coin.png', 'assets/reward-tote.png', 'assets/reward-spritz.png'];
-  const [reels, setReels] = useState([0, 1, 2]);
-  const [spinning, setSpinning] = useState(false);
-  const [result, setResult] = useState(null);
-  const [lockedUI, setLockedUI] = useState([false, false, false]); // per il rimbalzo al lock
-  const timers = useRef([]);
-  const lockedRef = useRef([true, true, true]);
-  const spin = () => {
-    if (spinning) return;
-    setSpinning(true);
-    setResult(null);
-    setLockedUI([false, false, false]);
-    lockedRef.current = [false, false, false];
-    const final = [0, 1, 2].map(() => Math.floor(Math.random() * ICONS.length));
-    if (Math.random() < 0.35) {
-      final[1] = final[0];
-      final[2] = final[0];
-    }
-    const iv = setInterval(() => {
-      setReels(rs => rs.map((v, i) => lockedRef.current[i] ? v : Math.floor(Math.random() * ICONS.length)));
-    }, 85);
-    [900, 1500, 2100].forEach((t, i) => {
-      timers.current.push(setTimeout(() => {
-        lockedRef.current[i] = true;
-        setLockedUI(u => u.map((v, k) => k === i ? true : v));
-        BK.haptic.light();
-        setReels(rs => rs.map((v, k) => k === i ? final[i] : v));
-        if (i === 2) {
-          clearInterval(iv);
-          setSpinning(false);
-          const win = final[0] === final[1] && final[1] === final[2] ? 'jackpot' : final[0] === final[1] || final[1] === final[2] || final[0] === final[2] ? 'coppia' : null;
-          setResult(win || 'niente');
-          if (win) onWin && onWin();
-        }
-      }, t));
-    });
-    timers.current.push(iv);
-  };
-  useEffect(() => () => {
-    timers.current.forEach(t => {
-      clearTimeout(t);
-      clearInterval(t);
-    });
-  }, []);
-  return /*#__PURE__*/React.createElement(BypSheet, {
-    center: true,
-    onClose: onClose
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      width: '100%',
-      maxWidth: 340,
-      textAlign: 'center',
-      background: '#EBDFFC',
-      color: '#2c1a4d',
-      border: '2px solid #2b1a20',
-      borderRadius: 30,
-      padding: '20px 16px 18px',
-      boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
-      animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)'
-    }
-  }, /*#__PURE__*/React.createElement("style", null, `@keyframes bypBlink{0%,100%{opacity:.2}50%{opacity:1}}
-@keyframes bypReelPop{0%{transform:translateY(-16px) scale(1.06)}55%{transform:translateY(4px) scale(.97)}100%{transform:translateY(0) scale(1)}}
-@keyframes bypShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-6px) rotate(-.6deg)}30%{transform:translateX(6px) rotate(.6deg)}45%{transform:translateX(-5px)}60%{transform:translateX(5px)}75%{transform:translateX(-3px)}90%{transform:translateX(3px)}}`), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 2,
-      textTransform: 'uppercase',
-      color: '#b0246a',
-      marginBottom: 5
-    }
-  }, "\u2726 3 uguali = 300 byuppini \xB7 2 = 50 \u2726"), /*#__PURE__*/React.createElement(BypGameTitle, {
-    parts: BYP_GAME_TITLES.slot
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      margin: '18px 0 0',
-      background: '#241d22',
-      borderRadius: 24,
-      padding: '14px 14px 20px',
-      animation: result === 'jackpot' ? 'bypShake .55s ease' : 'none'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: 9,
-      marginBottom: 12
-    }
-  }, [0, 1, 2, 3, 4, 5, 6].map(i => /*#__PURE__*/React.createElement("span", {
-    key: i,
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: 999,
-      background: i % 2 ? '#CEFF00' : '#ff8fae',
-      animation: `bypBlink ${spinning ? '.35s' : '1.4s'} ${i * 0.12}s ease-in-out infinite`
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: 9,
-      background: '#fff',
-      borderRadius: 18,
-      padding: 12,
-      margin: '0 4px',
-      boxShadow: 'inset 0 4px 12px rgba(0,0,0,.18)'
-    }
-  }, reels.map((v, i) => /*#__PURE__*/React.createElement("div", {
-    key: `${i}-${lockedUI[i] ? 'stop' : 'run'}`,
-    style: {
-      width: 78,
-      height: 92,
-      borderRadius: 12,
-      background: '#f6efe5',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      border: '1.5px solid rgba(43,26,32,.12)',
-      animation: lockedUI[i] ? 'bypReelPop .42s cubic-bezier(.2,.9,.3,1.45)' : 'none'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: ICONS[v],
-    alt: "",
-    style: {
-      width: 54,
-      height: 54,
-      objectFit: 'contain',
-      filter: spinning && !lockedUI[i] ? 'blur(2px)' : 'none',
-      transform: spinning && !lockedUI[i] ? 'translateY(2px)' : 'none',
-      transition: 'filter .15s'
-    }
-  })))), result && /*#__PURE__*/React.createElement("div", {
-    style: {
-      margin: '14px 0 0',
-      animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 7,
-      background: result === 'niente' ? 'rgba(255,255,255,.1)' : 'rgba(206,255,0,.16)',
-      border: result === 'niente' ? '1px solid rgba(255,255,255,.25)' : '1px solid rgba(206,255,0,.5)',
-      color: result === 'niente' ? 'rgba(255,255,255,.75)' : '#CEFF00',
-      fontWeight: 800,
-      fontSize: 15,
-      padding: '9px 18px',
-      borderRadius: 999
-    }
-  }, result === 'jackpot' ? '🎰 JACKPOT! +300 byuppini' : result === 'coppia' ? 'Coppia! +50 byuppini' : 'Niente… ritenta!')), /*#__PURE__*/React.createElement("button", {
-    onClick: spin,
-    style: {
-      marginTop: 16,
-      border: '2px solid #2b1a20',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      background: 'linear-gradient(122deg,#E32459,#B81C47)',
-      color: '#fff',
-      fontSize: 15,
-      fontWeight: 800,
-      padding: '13px 44px',
-      borderRadius: 999,
-      boxShadow: '0 12px 26px -8px rgba(227,36,89,.7)'
-    }
-  }, spinning ? 'In corsa…' : result ? 'Gioca ancora' : 'Gioca!')), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
-    style: {
-      display: 'block',
-      width: '100%',
-      marginTop: 10,
-      background: 'none',
-      border: 'none',
-      color: '#6d5a8a',
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      padding: 6
-    }
-  }, "Chiudi")));
-}
-
-// ── Pagina GRATTA & VINCI ──
-function BypScratchSheet({
-  onClose,
-  onWin
-}) {
-  const [reveal, setReveal] = useState(0);
-  const [done, setDone] = useState(false);
-  const scratching = useRef(false);
-  const onMove = () => {
-    if (done) return;
-    setReveal(r => {
-      const n = Math.min(1, r + 0.035);
-      if (n >= 1) {
-        setDone(true);
-        BK.haptic.medium ? BK.haptic.medium() : BK.haptic.light();
-        onWin && onWin();
-      }
-      return n;
-    });
-  };
-  return /*#__PURE__*/React.createElement(BypSheet, {
-    center: true,
-    onClose: onClose
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      width: '100%',
-      maxWidth: 340,
-      textAlign: 'center',
-      background: '#FFE0EA',
-      color: '#4d1226',
-      border: '2px solid #2b1a20',
-      borderRadius: 30,
-      padding: '20px 16px 18px',
-      boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
-      animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)'
-    }
-  }, /*#__PURE__*/React.createElement("style", null, `@keyframes bypFoil{0%{background-position:0 0}100%{background-position:48px 48px}}
-@keyframes bypWinGlow{0%{box-shadow:0 12px 26px -10px rgba(0,0,0,.5)}100%{box-shadow:0 0 34px rgba(206,255,0,.55), 0 12px 26px -10px rgba(0,0,0,.5)}}`), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      fontWeight: 800,
-      letterSpacing: 2,
-      textTransform: 'uppercase',
-      color: '#b0246a',
-      marginBottom: 5
-    }
-  }, "\u2726 Un gratta al giorno \u2726"), /*#__PURE__*/React.createElement(BypGameTitle, {
-    parts: BYP_GAME_TITLES.scratch
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'relative',
-      margin: '18px 0 0',
-      background: '#241d22',
-      borderRadius: 24,
-      padding: '22px 14px 20px'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onPointerDown: e => {
-      scratching.current = true;
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch {}
-    },
-    onPointerMove: () => {
-      if (scratching.current) onMove();
-    },
-    onPointerUp: () => {
-      scratching.current = false;
-    },
-    style: {
-      position: 'relative',
-      width: 250,
-      height: 150,
-      margin: '0 auto',
-      borderRadius: 16,
-      overflow: 'hidden',
-      touchAction: 'none',
-      cursor: 'pointer',
-      border: '3px solid #fff',
-      boxShadow: '0 12px 26px -10px rgba(0,0,0,.5)',
-      animation: done ? 'bypWinGlow .8s ease forwards, bypPop .5s cubic-bezier(.2,.9,.3,1.3)' : 'none'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 4,
-      background: 'linear-gradient(150deg,#3b1420,#a01a49)'
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: "assets/coin.png",
-    alt: "",
-    style: {
-      width: 48,
-      height: 48
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: BK.TYPE.display,
-      fontWeight: 700,
-      fontSize: 24,
-      color: '#fff'
-    }
-  }, "+50 byuppini")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      opacity: 1 - reveal,
-      transition: 'opacity .18s ease-out',
-      filter: `blur(${reveal * 2.5}px)`,
-      background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
-      backgroundSize: '48px 48px',
-      animation: 'bypFoil 2.6s linear infinite',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 14,
-      pointerEvents: 'none'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 18,
-      color: 'rgba(43,26,32,.55)'
-    }
-  }, "\u2726"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontFamily: BK.TYPE.display,
-      fontWeight: 700,
-      fontSize: 46,
-      color: 'rgba(43,26,32,.6)'
-    }
-  }, "?"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 18,
-      color: 'rgba(43,26,32,.55)'
-    }
-  }, "\u2726"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 14,
-      fontSize: 12,
-      fontWeight: 700,
-      color: 'rgba(255,255,255,.7)'
-    }
-  }, done ? '' : reveal > 0 ? 'Continua a grattare…' : '☝️ Passa il dito sulla card'), done && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 4,
-      animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 7,
-      background: 'rgba(206,255,0,.16)',
-      border: '1px solid rgba(206,255,0,.5)',
-      color: '#CEFF00',
-      fontWeight: 800,
-      fontSize: 15,
-      padding: '9px 18px',
-      borderRadius: 999
-    }
-  }, "\uD83C\uDF89 Hai vinto +50 byuppini!"))), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
-    style: {
-      display: 'block',
-      width: '100%',
-      marginTop: 10,
-      background: 'none',
-      border: 'none',
-      color: '#a05a72',
-      fontSize: 13,
-      fontWeight: 800,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      padding: 6
-    }
-  }, "Chiudi")));
-}
 function ByuppiniScreen({
   onBack,
   onRoadmap,
@@ -18731,7 +18291,6 @@ function ByuppiniScreen({
   const [ach, setAch] = useState(null);
   const [info, setInfo] = useState(false);
   const [refSheet, setRefSheet] = useState(null); // 'locale' | 'amico'
-  const [game, setGame] = useState(null); // 'wheel' | 'slot' | 'scratch'
   const [burst, setBurst] = useState(0);
   const scrollRef = useRef(null);
   useEffect(() => {
@@ -19123,11 +18682,7 @@ function ByuppiniScreen({
       filter: 'drop-shadow(0 8px 12px rgba(0,0,0,.5))',
       animation: 'bypBob 3.2s ease-in-out infinite'
     }
-  })), /*#__PURE__*/React.createElement(BypSect, {
-    aside: "premi veri, ogni giorno"
-  }, "Byup Games"), /*#__PURE__*/React.createElement(BypGameStack, {
-    onOpen: setGame
-  }), /*#__PURE__*/React.createElement(BypCta, {
+  })), /*#__PURE__*/React.createElement(BypCta, {
     style: {
       margin: '18px 0 6px'
     },
@@ -19720,15 +19275,6 @@ function ByuppiniScreen({
   }, "Ho capito"))), refSheet && /*#__PURE__*/React.createElement(BypCodeSheet, {
     type: refSheet,
     onClose: () => setRefSheet(null)
-  }), game === 'wheel' && /*#__PURE__*/React.createElement(BypWheelSheet, {
-    onClose: () => setGame(null),
-    onWin: fireConfetti
-  }), game === 'slot' && /*#__PURE__*/React.createElement(BypSlotSheet, {
-    onClose: () => setGame(null),
-    onWin: fireConfetti
-  }), game === 'scratch' && /*#__PURE__*/React.createElement(BypScratchSheet, {
-    onClose: () => setGame(null),
-    onWin: fireConfetti
   }), /*#__PURE__*/React.createElement(BypConfetti, {
     burst: burst
   }));
@@ -22369,6 +21915,7 @@ Object.assign(window, {
 </script>
 <script>/* menu.jsx */
 (function(){
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 // byup — Menu locale + Divisione + Home con ordine attivo
 const {
   useState,
@@ -24457,13 +24004,26 @@ function MenuScreen({
       };
     });
   };
-  const setQty = (lineId, q) => setState(s => ({
-    ...s,
-    cart: q <= 0 ? s.cart.filter(i => i.lineId !== lineId) : s.cart.map(i => i.lineId === lineId ? {
-      ...i,
-      qty: q
-    } : i)
-  }));
+  // Le divisioni sono per unità (`lineId-0`, `lineId-1`, …): calando la
+  // quantità le chiavi delle unità sparite vanno buttate, o resterebbero
+  // appese e tornerebbero a galla riportando su la quantità.
+  const setQty = (lineId, q) => setState(s => {
+    const splits = {
+      ...(s.splits || {})
+    };
+    Object.keys(splits).forEach(k => {
+      const i = k.lastIndexOf('-');
+      if (k.slice(0, i) === lineId && Number(k.slice(i + 1)) >= Math.max(0, q)) delete splits[k];
+    });
+    return {
+      ...s,
+      splits,
+      cart: q <= 0 ? s.cart.filter(i => i.lineId !== lineId) : s.cart.map(i => i.lineId === lineId ? {
+        ...i,
+        qty: q
+      } : i)
+    };
+  });
   const clearCart = () => setState(s => ({
     ...s,
     cart: []
@@ -24783,7 +24343,7 @@ function MenuScreen({
         transition: 'color 0.18s'
       }
     }, t);
-  })), (dietFilter || Object.values(allergenFilters).some(Boolean)) && /*#__PURE__*/React.createElement("div", {
+  })), (dietFilter || Object.values(allergenFilters).some(Boolean)) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "hscroll",
     style: {
       display: 'flex',
@@ -24867,7 +24427,14 @@ function MenuScreen({
       lineHeight: 1,
       marginLeft: 2
     }
-  }, "\xD7"))))), /*#__PURE__*/React.createElement("div", {
+  }, "\xD7")))), Object.values(allergenFilters).some(Boolean) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: MUTED,
+      lineHeight: 1.45,
+      padding: '4px 16px 8px'
+    }
+  }, "Il filtro \xE8 un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala."))), /*#__PURE__*/React.createElement("div", {
     ref: scrollRef,
     onTouchStart: e => onSwipeBegin(e.touches[0].clientX, e.touches[0].clientY),
     onTouchEnd: e => onSwipeFinish(e.changedTouches[0].clientX, e.changedTouches[0].clientY),
@@ -25675,12 +25242,13 @@ function MenuScreen({
       initials: 'R'
     }],
     onConfirm: ids => {
-      const it = splitPickItem;
+      const g = splitPickItem;
       setState(st => {
         const splits = {
           ...(st.splits || {})
         };
-        for (let k = 0; k < it.qty; k++) splits[`${it.lineId}-${k}`] = {
+        // Una unità, come lo swipe verso il tavolo.
+        splits[`${g.lineId}-${g.indici[0]}`] = {
           kind: 'people',
           people: ids
         };
@@ -25831,10 +25399,17 @@ function MenuScreen({
     style: {
       fontSize: 12.5,
       color: MUTED,
-      marginBottom: 16,
+      marginBottom: 6,
       lineHeight: 1.5
     }
   }, "Filtra il menu in base alle tue preferenze e a ci\xF2 che vuoi evitare."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: MUTED,
+      marginBottom: 16,
+      lineHeight: 1.5
+    }
+  }, "Il filtro \xE8 un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala."), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 700,
@@ -25962,6 +25537,73 @@ function MenuScreen({
   }, "Applica filtri"))));
 }
 
+// ─── Trascinamento del foglio ordine ───────────────────────
+// La fascia si apre tirandola su e si chiude tirandola giù: è il gesto che il
+// pollice fa già da solo davanti a un foglio appoggiato in fondo allo schermo.
+// Il gesto si risolve DURANTE il movimento e non al rilascio — appena superi
+// la soglia il foglio parte, così la risposta arriva mentre il dito è ancora
+// giù invece che dopo averlo alzato.
+const SOGLIA_TRASCINA = 28;
+function useTrascinaFoglio(mode, setMode) {
+  const rif = useRef(null);
+  const trascinato = useRef(false);
+  const inizio = e => {
+    if (e.button != null && e.button !== 0) return;
+    // Premuto su un bottone (cestino, invio ordine): quello non è un
+    // trascinamento del foglio, è un comando suo.
+    if (e.target.closest && e.target.closest('button')) return;
+    rif.current = {
+      y: e.clientY,
+      risolto: false
+    };
+    trascinato.current = false;
+    // Senza cattura, tirando in fretta il dito esce dalla fascia e i
+    // `pointermove` smettono di arrivare a metà gesto.
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {}
+  };
+  const muovi = e => {
+    const r = rif.current;
+    if (!r || r.risolto) return;
+    const dy = e.clientY - r.y;
+    if (dy <= -SOGLIA_TRASCINA && mode !== 'expanded') {
+      r.risolto = true;
+      trascinato.current = true;
+      setMode('expanded');
+    } else if (dy >= SOGLIA_TRASCINA && mode === 'expanded') {
+      r.risolto = true;
+      trascinato.current = true;
+      setMode('collapsed');
+    }
+  };
+  const fine = () => {
+    rif.current = null;
+  };
+  // Scorciatoia sulla sola lineetta: toccare la maniglia di un foglio in
+  // fondo allo schermo è un gesto che si fa d'istinto, e senza non
+  // succedeva niente. Sulla fascia intera no: lì il tocco cadrebbe sopra il
+  // contatore e i bottoni, dove non significa "apri". Dopo un trascinamento
+  // il click arriva lo stesso e va ignorato, o riaprirebbe quel che hai
+  // appena chiuso.
+  const tocca = () => {
+    if (trascinato.current) {
+      trascinato.current = false;
+      return;
+    }
+    setMode(mode === 'expanded' ? 'collapsed' : 'expanded');
+  };
+  return {
+    presa: {
+      onPointerDown: inizio,
+      onPointerMove: muovi,
+      onPointerUp: fine,
+      onPointerCancel: fine
+    },
+    tocca
+  };
+}
+
 // ─── Order bottom sheet (collapsed/expanded) ───────────────
 // ─── Riga piatto con swipe stile chat ───────────────────────
 // → destra: il piatto si divide con TUTTO il tavolo
@@ -25972,6 +25614,7 @@ function SwipeDishRow({
   split,
   onTable,
   onPick,
+  onUndoUno,
   onReset,
   onOpenDish,
   setQty
@@ -26016,8 +25659,9 @@ function SwipeDishRow({
         try {
           window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light();
         } catch {}
+        // Anche il ritorno è una unità per volta, come l'andata.
         if (giaTavolo) {
-          setTimeout(onReset, 120);
+          setTimeout(onUndoUno, 120);
           return 0;
         }
         setFlash('table');
@@ -26069,7 +25713,7 @@ function SwipeDishRow({
   }, "Togliere la divisione?"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setAskUndo(false);
-      onReset && onReset();
+      onUndoUno && onUndoUno();
     },
     style: {
       padding: '6px 12px',
@@ -26260,7 +25904,17 @@ function SwipeDishRow({
       fontWeight: 700,
       marginTop: 5
     }
-  }, it.unitPrice.toFixed(2), "\u20AC")), /*#__PURE__*/React.createElement("div", {
+  }, it.unitPrice.toFixed(2), "\u20AC")), it.frazionata ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 800,
+      color: MUTED,
+      flexShrink: 0,
+      background: SURF,
+      borderRadius: 999,
+      padding: '5px 11px'
+    }
+  }, "\xD7", it.qty) : /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -26454,14 +26108,32 @@ function OrderSheet({
   onPickSplit
 }) {
   // applica la divisione a tutte le porzioni della riga
-  const applySplit = (it, sp) => {
+  // Lo swipe muove UNA unità per volta: due Carbonare sono due pezzi, e
+  // mandarne una al tavolo non deve trascinarsi dietro l'altra. Prima qui
+  // c'era un ciclo su tutte le unità della riga.
+  const spostaUno = (g, sp) => {
     setState(st => {
       const splits = {
         ...(st.splits || {})
       };
-      for (let k = 0; k < it.qty; k++) {
-        if (sp) splits[`${it.lineId}-${k}`] = sp;else delete splits[`${it.lineId}-${k}`];
-      }
+      const k = g.indici[0];
+      if (sp) splits[`${g.lineId}-${k}`] = sp;else delete splits[`${g.lineId}-${k}`];
+      return {
+        ...st,
+        splits
+      };
+    });
+  };
+  // La × sulla pillola invece riguarda tutta la riga: è l'etichetta di quel
+  // gruppo, e toglierla vuol dire "questi non sono più al tavolo".
+  const azzeraGruppo = g => {
+    setState(st => {
+      const splits = {
+        ...(st.splits || {})
+      };
+      g.indici.forEach(k => {
+        delete splits[`${g.lineId}-${k}`];
+      });
       return {
         ...st,
         splits
@@ -26469,7 +26141,35 @@ function OrderSheet({
     });
   };
   const expanded = mode === 'expanded';
+  const trascina = useTrascinaFoglio(mode, setMode);
   const allDishes = Object.values(dishes).flat();
+  // Righe del carrello raggruppate per destinazione. Ogni unità ha la sua
+  // (`splits['lineId-2']`), ma tenere una riga per pezzo riempirebbe il
+  // carrello di ripetizioni: quelle che vanno nello stesso posto restano
+  // insieme, e la riga si sdoppia solo quando le destinazioni divergono.
+  const gruppiRiga = (voci, splits) => voci.flatMap(it => {
+    const perDestinazione = new Map();
+    for (let k = 0; k < it.qty; k++) {
+      const sp = (splits || {})[`${it.lineId}-${k}`] || null;
+      const chiave = !sp || sp.kind === 'me' ? 'me' : sp.kind === 'tavolo' ? 'tavolo' : 'con:' + (sp.people || []).slice().sort().join(',');
+      if (!perDestinazione.has(chiave)) perDestinazione.set(chiave, {
+        split: sp,
+        indici: []
+      });
+      perDestinazione.get(chiave).indici.push(k);
+    }
+    const gruppi = Array.from(perDestinazione.values());
+    return gruppi.map(g => ({
+      ...it,
+      qty: g.indici.length,
+      indici: g.indici,
+      split: g.split,
+      // Con la riga spezzata il +/- non ha un bersaglio univoco: toglieresti
+      // un pezzo "al tavolo" o uno "per te"? Meglio mostrare solo il conteggio
+      // e lasciare che si annulli prima la divisione.
+      frazionata: gruppi.length > 1
+    }));
+  });
   const cartItems = state.cart.map(li => {
     const d = allDishes.find(x => x.id === li.dishId);
     if (!d) return null;
@@ -26505,15 +26205,16 @@ function OrderSheet({
       display: 'flex',
       flexDirection: 'column'
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: () => setMode(expanded ? 'collapsed' : 'expanded'),
+  }, /*#__PURE__*/React.createElement("div", _extends({}, trascina.presa, {
+    onClick: trascina.tocca,
     style: {
-      cursor: 'pointer',
+      cursor: 'grab',
       padding: '10px 0 6px',
       display: 'flex',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      touchAction: 'none'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 50,
       height: 5,
@@ -26521,11 +26222,19 @@ function OrderSheet({
       borderRadius: 999,
       opacity: 0.7
     }
-  })), !expanded ? /*#__PURE__*/React.createElement("div", {
+  })), !expanded ?
+  /*#__PURE__*/
+  // Si trascina TUTTA la fascia, non solo la lineetta: 50×5px sono un
+  // bersaglio da mouse, non da pollice, e il dito si appoggia dove legge
+  // il contatore. `touchAction: none` serve o il browser interpreta il
+  // gesto verticale come uno scroll e se lo prende lui.
+  React.createElement("div", _extends({}, trascina.presa, {
     style: {
-      padding: '4px 22px 22px'
+      padding: '4px 22px 22px',
+      cursor: 'grab',
+      touchAction: 'none'
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       justifyContent: 'space-between',
@@ -26576,14 +26285,16 @@ function OrderSheet({
       justifyContent: 'center',
       gap: 10
     }
-  }, /*#__PURE__*/React.createElement("span", null, "Invia ordine"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, "Invia ordine"))) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", _extends({}, trascina.presa, {
     style: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '4px 22px 14px'
+      padding: '4px 22px 14px',
+      cursor: 'grab',
+      touchAction: 'none'
     }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 15,
       fontWeight: 700,
@@ -26625,19 +26336,20 @@ function OrderSheet({
       flexDirection: 'column',
       gap: 12
     }
-  }, cartItems.map(it => /*#__PURE__*/React.createElement(SwipeDishRow, {
-    key: it.lineId,
-    it: it,
-    split: state.splits?.[`${it.lineId}-0`],
-    onTable: () => applySplit(it, {
+  }, gruppiRiga(cartItems, state.splits).map(g => /*#__PURE__*/React.createElement(SwipeDishRow, {
+    key: `${g.lineId}:${g.indici[0]}`,
+    it: g,
+    split: g.split,
+    onTable: () => spostaUno(g, {
       kind: 'tavolo',
       people: []
     }),
-    onPick: () => onPickSplit && onPickSplit(it),
-    onReset: () => applySplit(it, null),
+    onPick: () => onPickSplit && onPickSplit(g),
+    onUndoUno: () => spostaUno(g, null),
+    onReset: () => azzeraGruppo(g),
     onOpenDish: () => goTo('dish', {
-      dishId: it.id,
-      lineId: it.lineId
+      dishId: g.id,
+      lineId: g.lineId
     }),
     setQty: setQty
   }))), cartItems.length > 0 && /*#__PURE__*/React.createElement("div", {
@@ -28282,6 +27994,7 @@ function DishDetailScreen({
   const [removed, setRemoved] = useState(editLine?.removed || {}); // ingredient -> true
   const [variants, setVariants] = useState(editLine?.variants || {});
   const [nutriOpen, setNutriOpen] = useState(true);
+  const [nutriInfo, setNutriInfo] = useState(false); // popover "i" del badge IA
   // Default 1: in aggiunta è la quantità di partenza; in modifica è il MINIMO
   // di "a quante porzioni applicare le modifiche" (la riga ha editLine.qty porzioni).
   const [qty, setQty] = useState(1);
@@ -28829,6 +28542,12 @@ function DishDetailScreen({
       position: 'absolute',
       top: -10,
       left: 14,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
       background: PINK,
       color: '#fff',
       fontSize: 10,
@@ -28840,7 +28559,69 @@ function DishDetailScreen({
       alignItems: 'center',
       gap: 4
     }
-  }, "\u2728 IA"), /*#__PURE__*/React.createElement("div", {
+  }, "\u2728 IA"), /*#__PURE__*/React.createElement("span", {
+    role: "button",
+    tabIndex: 0,
+    onClick: e => {
+      e.stopPropagation();
+      setNutriInfo(v => !v);
+    },
+    style: {
+      width: 20,
+      height: 20,
+      borderRadius: 999,
+      flexShrink: 0,
+      background: SURF,
+      border: `1.5px solid ${PINK}`,
+      color: PINK,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 11.5,
+      fontWeight: 800,
+      fontStyle: 'italic',
+      fontFamily: 'Georgia, serif',
+      cursor: 'pointer',
+      lineHeight: 1
+    }
+  }, "i"), nutriInfo && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      e.stopPropagation();
+      setNutriInfo(false);
+    },
+    style: {
+      position: 'fixed',
+      inset: 0,
+      zIndex: 24
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 26,
+      left: 0,
+      zIndex: 25,
+      width: 250,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: BADGE,
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 500,
+      lineHeight: 1.5,
+      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+      animation: 'fade 0.15s ease'
+    }
+  }, "Valori generati automaticamente dagli ingredienti, possono variare. Per esigenze specifiche chiedi al locale.", /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      top: -4,
+      left: 42,
+      width: 8,
+      height: 8,
+      background: BADGE,
+      transform: 'rotate(45deg)'
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
     onClick: () => setNutriOpen(!nutriOpen),
     style: {
       display: 'flex',

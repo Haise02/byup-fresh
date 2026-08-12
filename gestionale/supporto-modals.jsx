@@ -1,12 +1,28 @@
 // Modali del Supporto: chat widget, email form, scheduler chiamata, tutorial player
 
+// I bottoni in fondo alla chat: stessa pillola, così "Email" e "Prenota una
+// chiamata" non sembrano due cose di peso diverso. Hover e pressione arrivano
+// dalla regola globale su <button>, non serve rifarli qui.
+const SUP_AZIONE = {
+  flex: 1, padding: '6px 10px',
+  background: '#fff', border: `1px solid ${PN.BORDER}`,
+  borderRadius: 8, fontSize: 13, fontWeight: 600,
+  color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
+  display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
+  whiteSpace:'nowrap',
+};
+
 // ─── Chat widget ───────────────────────────────────
-function SupChatWidget({ open, onClose }) {
+function SupChatWidget({ open, onClose, onEmail, onCall }) {
   const [messages, setMessages] = React.useState([
-    { from:'bot', text:'Ciao! Sono l\'assistente virtuale di byup. Come posso aiutarti oggi?', time:'11:46' },
+    // Il primo messaggio dice cosa sei prima di chiedere cosa serve: chi
+    // scrive deve sapere che dall'altra parte non c'è una persona.
+    { from:'bot', text:'Ciao! Sono l\'assistente di byup: un\'intelligenza artificiale. Come posso aiutarti oggi?', time:'11:46' },
   ]);
   const [input, setInput] = React.useState('');
   const [typing, setTyping] = React.useState(false);
+  // Il passaggio a una persona non è immediato: si sceglie prima il canale.
+  const [operatore, setOperatore] = React.useState(false);
   const scrollRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -61,7 +77,9 @@ function SupChatWidget({ open, onClose }) {
         }}><BuIcons.chat size={15} color="#fff"/></div>
         <div style={{flex:1}}>
           <div style={{fontSize: 15, fontWeight: 700}}>Assistente byup</div>
-          <div style={{fontSize: 13, opacity: 0.85}}>Risponde subito</div>
+          {/* Anche in testata, non solo nel saluto: il primo messaggio scorre
+              via appena la conversazione si allunga, l'intestazione no. */}
+          <div style={{fontSize: 13, opacity: 0.85}}>Intelligenza artificiale · Risponde subito</div>
         </div>
         <button onClick={onClose} aria-label="Chiudi" style={{
           background:'transparent', border:'none', color:'#fff',
@@ -105,27 +123,38 @@ function SupChatWidget({ open, onClose }) {
         )}
       </div>
 
-      {/* Quick actions */}
+      {/* Passaggio a una persona. Non c'è una chat con operatore dal vivo:
+          si sceglie il canale con cui verrà ripresa la richiesta, e sono gli
+          stessi due della testata della pagina. */}
       <div style={{
-        display:'flex', gap: 8,
+        display:'flex', flexDirection:'column', gap: 8,
         padding: '8px 12px',
         background:'#fafafa',
         borderTop: `1px solid ${PN.BORDER_SOFT}`,
       }}>
-        <button style={{
-          flex: 1, padding: '6px 10px',
-          background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-          borderRadius: 8, fontSize: 13, fontWeight: 600,
-          color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
-          display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
-        }}><BuIcons.user size={13}/> Operatore</button>
-        <button style={{
-          flex: 1, padding: '6px 10px',
-          background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-          borderRadius: 8, fontSize: 13, fontWeight: 600,
-          color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
-          display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
-        }}><BuIcons.phone size={13}/> Richiamami</button>
+        {!operatore ? (
+          <button onClick={() => setOperatore(true)} style={SUP_AZIONE}>
+            <BuIcons.user size={13}/> Parla con un operatore umano
+          </button>
+        ) : (
+          <>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
+              <span style={{fontSize: 12.5, color: PN.MUTED}}>Come vuoi essere ricontattato?</span>
+              <button onClick={() => setOperatore(false)} aria-label="Annulla" style={{
+                background:'transparent', border:'none', padding: 2,
+                lineHeight: 0, display:'grid', placeItems:'center', color: PN.MUTED,
+              }}><BuIcons.x size={14}/></button>
+            </div>
+            <div style={{display:'flex', gap: 8}}>
+              <button onClick={() => { setOperatore(false); onEmail && onEmail(); }} style={SUP_AZIONE}>
+                <BuIcons.doc size={13}/> Apri un ticket
+              </button>
+              <button onClick={() => { setOperatore(false); onCall && onCall(); }} style={SUP_AZIONE}>
+                <BuIcons.phone size={13}/> Prenota una chiamata
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Input */}
@@ -177,17 +206,17 @@ function SupEmailModal({ open, onClose }) {
       }} onClick={e => e.stopPropagation()}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 20px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
           <div>
-            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Contatta il supporto via email</div>
-            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Risposta entro 4 ore lavorative</div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Apri un ticket</div>
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Risposta entro 2 giorni lavorativi</div>
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={{background:'transparent', border:'none', cursor:'pointer', padding: 4, display:'grid', placeItems:'center'}}><BuIcons.x size={18} color={PN.MUTED}/></button>
         </div>
 
         {sent ? (
           <div style={{padding: 40, textAlign:'center'}}>
-            <div style={{width: 56, height: 56, borderRadius:'50%', background: PN.GREEN_SOFT, color: PN.GREEN, display:'inline-grid', placeItems:'center', marginBottom: 14}}><BuIcons.mail size={26}/></div>
-            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Richiesta inviata!</div>
-            <div style={{fontSize: 14.5, color: PN.MUTED}}>Riceverai una risposta su <strong>admin@esempio.com</strong> entro 4 ore.</div>
+            <div style={{width: 56, height: 56, borderRadius:'50%', background: PN.GREEN_SOFT, color: PN.GREEN, display:'inline-grid', placeItems:'center', marginBottom: 14}}><BuIcons.doc size={26}/></div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Ticket aperto!</div>
+            <div style={{fontSize: 14.5, color: PN.MUTED}}>Ti rispondiamo su <strong>admin@esempio.com</strong> entro 2 giorni lavorativi.</div>
           </div>
         ) : (
           <div style={{padding: 20}}>
@@ -237,7 +266,7 @@ function SupEmailModal({ open, onClose }) {
 // ─── Scheduler chiamata ───────────────────────────
 function SupCallScheduler({ open, onClose }) {
   const [phone, setPhone] = React.useState('');
-  const [when, setWhen] = React.useState('30min');
+  const [when, setWhen] = React.useState('2h');
   const [topic, setTopic] = React.useState('');
   const [sent, setSent] = React.useState(false);
 
@@ -248,12 +277,13 @@ function SupCallScheduler({ open, onClose }) {
     setTimeout(() => { setSent(false); setPhone(''); setTopic(''); onClose(); }, 1800);
   };
   const slots = [
-    // Le finestre ricalcano le promesse dei piani: 1 ora è la garanzia
-    // Business, 2 ore quella Plus — qui non si promette più di lì.
-    { id:'1h', label:'Entro 1 ora', desc:'Operatore disponibile ora' },
-    { id:'2h', label:'Entro 2 ore', desc:'Verrai chiamato il prima possibile' },
-    { id:'oggi', label:'Oggi pomeriggio', desc:'Tra le 14:00 e le 18:00' },
-    { id:'domani', label:'Domani mattina', desc:'Tra le 9:00 e le 12:00' },
+    // Le finestre ricalcano le promesse dei piani, e stanno dentro le fasce in
+    // cui il telefono è presidiato: 1 ora è la garanzia Business, 2 ore quella
+    // Plus. "Domani mattina, 9–12" prometteva una chiamata fuori orario.
+    { id:'2h', label:'Entro 2 ore', desc:'Garanzia Plus' },
+    { id:'1h', label:'Entro 1 ora', desc:'Garanzia Business, H24' },
+    { id:'pranzo', label:'Fascia 12:00–16:00', desc:'Alla prima data utile' },
+    { id:'sera', label:'Fascia 18:00–22:00', desc:'Alla prima data utile' },
   ];
 
   return (

@@ -332,19 +332,31 @@ function AuthForgot({ onBack }) {
 // Campo input chiaro (stile coerente con i form dell'app)
 function LightField({ label, value, onChange, type = 'text', placeholder, rightSlot, ...rest }) {
   const [focus, setFocus] = useStateA(false);
+  const inputRef = useRefA(null);
+  // Su Chrome desktop l'input date mostra ANCHE l'indicatore nativo accanto
+  // alla nostra icona (su iOS no): lo nascondiamo e apriamo il picker dal
+  // nostro slot, dove showPicker è disponibile.
+  const isDate = type === 'date';
   return (
     <div style={{ marginBottom: 16 }}>
+      {isDate && <style>{`input[type="date"]::-webkit-calendar-picker-indicator{ display:none; -webkit-appearance:none; }`}</style>}
       <div style={{ fontSize: 11, fontWeight: 600, color: A_MUTED, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>{label}</div>
       <div style={{
         display: 'flex', alignItems: 'center', background: A_FIELD, borderRadius: 12,
         border: `1.5px solid ${focus ? A_PINK : 'transparent'}`, transition: 'border-color .15s',
       }}>
-        <input type={type} value={value} placeholder={placeholder}
+        <input ref={inputRef} type={type} value={value} placeholder={placeholder}
           onChange={e => onChange(e.target.value)}
           onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
           style={{ flex: 1, minWidth: 0, padding: '13px 14px', border: 'none', outline: 'none', background: 'transparent', fontSize: 15, color: A_TEXT, fontFamily: 'inherit', borderRadius: 12 }}
           {...rest} />
-        {rightSlot && <div style={{ padding: '0 12px 0 4px', display: 'flex' }}>{rightSlot}</div>}
+        {rightSlot && (
+          <div
+            onClick={isDate ? () => { try { inputRef.current?.showPicker?.(); } catch {} } : undefined}
+            style={{ padding: '0 12px 0 4px', display: 'flex', cursor: isDate ? 'pointer' : undefined }}>
+            {rightSlot}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -355,7 +367,7 @@ const CUISINES = ['Pizza', 'Sushi', 'Italiana', 'Burger', 'Vegetariana', 'Cockta
 // Contenuti legali (allineati a quelli del profilo in extras.jsx)
 const A_TERMS = [
   { h: 'Accettazione dei termini', p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.' },
-  { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti maggiorenni registrati con un account personale.' },
+  { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.' },
   { h: 'Prenotazioni e cancellazioni', p: 'Le prenotazioni effettuate tramite byup sono vincolanti. La cancellazione è gratuita fino a 2 ore prima dell\'orario prenotato. Cancellazioni tardive o mancata presentazione (no-show) ripetuti possono comportare la sospensione temporanea del servizio di prenotazione.' },
   { h: 'Responsabilità', p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.' },
   { h: 'Proprietà intellettuale', p: 'Tutti i contenuti presenti su byup (logo, testi, immagini, interfaccia) sono di proprietà di byup S.r.l. o dei rispettivi titolari. È vietata qualsiasi riproduzione o utilizzo non autorizzato.' },
@@ -364,10 +376,12 @@ const A_TERMS = [
 const A_PRIVACY = [
   { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
   { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.' },
-  { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito (art. 6.1.a GDPR).' },
+  { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).' },
+  { h: 'Preferenze alimentari e allergeni', p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.' },
   { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
   { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
-  { h: 'Cookie e tecnologie simili', p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.' },
+  { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento scrivendo all\'assistenza: torneranno proposte generiche.' },
+  { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto nell\'informativa privacy e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento scrivendo all\'assistenza.' },
   { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
 ];
 
@@ -411,6 +425,9 @@ function AuthRegister({ onBack, onDone }) {
   const [otp, setOtp] = useStateA(['', '', '', '', '']);
   const [prefs, setPrefs] = useStateA([]);
   const [terms, setTerms] = useStateA(false);
+  // A6 — marketing byup: facoltativa e NON preselezionata. La decisione
+  // (sì o no) si registra alla creazione dell'account, nel registro consensi.
+  const [mkt, setMkt] = useStateA(false);
   const [legal, setLegal] = useStateA(null); // null | 'terms' | 'privacy'
   const [resend, setResend] = useStateA(30); // countdown "Invia di nuovo"
 
@@ -439,7 +456,11 @@ function AuthRegister({ onBack, onDone }) {
   const phoneOk = phone.replace(/\D/g, '').length >= 8;
   const otpOk = otp.every(d => d !== '');
 
-  // età ≥ 18 a partire dalla data di nascita
+  // Età minima 14 e non 18: l'app è aperta ai minorenni, e 14 anni è l'età
+  // in cui in Italia si può prestare da soli il consenso al trattamento dei
+  // dati per i servizi online (art. 2-quinquies del Codice Privacy). Sotto,
+  // servirebbe il consenso di chi esercita la responsabilità genitoriale, che
+  // l'app oggi non raccoglie: per questo lì il blocco resta.
   const age = (() => {
     if (!dob) return null;
     const d = new Date(dob);
@@ -450,7 +471,7 @@ function AuthRegister({ onBack, onDone }) {
     if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
     return a;
   })();
-  const dobOk = age !== null && age >= 18 && age < 120;
+  const dobOk = age !== null && age >= 14 && age < 120;
   const pwMatch = pw.length > 0 && pw === pw2;
 
   const stepValid = [
@@ -514,10 +535,15 @@ function AuthRegister({ onBack, onDone }) {
           <>
             <LightField label="Nome" value={nome} onChange={setNome} placeholder="Mario" autoComplete="given-name" />
             <LightField label="Cognome" value={cognome} onChange={setCognome} placeholder="Rossi" autoComplete="family-name" />
-            <LightField label="Data di nascita" value={dob} onChange={setDob} type="date" max="2025-12-31" autoComplete="bday" />
+            <LightField label="Data di nascita" value={dob} onChange={setDob} type="date" max="2025-12-31" autoComplete="bday"
+              rightSlot={
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={A_MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: 'none' }}>
+                  <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/>
+                </svg>
+              } />
             {dob && !dobOk && (
               <div style={{ fontSize: 12.5, color: '#E5484D', marginTop: -8, paddingLeft: 2 }}>
-                Devi avere almeno 18 anni per registrarti.
+                Devi avere almeno 14 anni per registrarti.
               </div>
             )}
           </>
@@ -599,8 +625,49 @@ function AuthRegister({ onBack, onDone }) {
               })}
             </div>
 
+            {/* A6 — marketing: mai preselezionata (obbligo di legge), ma
+                progettata per l'opt-in e SEMPRE SOPRA la spunta obbligatoria
+                (scelta di Fabio): si vende il BENEFICIO (sconti dei
+                locali che ami), non il trattamento; la rassicurazione
+                anti-spam abbassa il costo percepito del sì. Il toggle è
+                l'unico elemento colorato della card: l'occhio ci arriva. */}
+            <button onClick={() => setMkt(m => !m)} aria-label="Consenso marketing" style={{
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+              marginTop: 28, padding: '13px 14px', borderRadius: 16, textAlign: 'left',
+              background: mkt ? '#FDF0F4' : '#FAF7F8',
+              border: `1.5px solid ${mkt ? A_PINK : '#EFE9EB'}`,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all .18s',
+            }}>
+              <span style={{
+                width: 38, height: 38, borderRadius: 12, flexShrink: 0,
+                background: mkt ? A_PINK : '#F3EBEE',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, transition: 'background .18s',
+              }}>🎁</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: A_TEXT }}>
+                  Non perderti le offerte dei locali
+                </span>
+                <span style={{ display: 'block', fontSize: 12, color: A_MUTED, marginTop: 2, lineHeight: 1.4 }}>
+                  Sconti riservati e novità, anche su misura sui tuoi ordini,
+                  via email e notifica. Niente spam: ti disiscrivi in un tocco.
+                </span>
+              </span>
+              {/* checkbox: il consenso si SPUNTA — il segno resta quello
+                  della firma, la card intorno fa il lavoro di convincere */}
+              <span style={{
+                width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+                border: `1.5px solid ${mkt ? A_PINK : '#CFC8CB'}`,
+                background: mkt ? A_PINK : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all .18s',
+              }}>
+                {mkt && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              </span>
+            </button>
+
             {/* Consenso Termini & Privacy (obbligatorio) — link cliccabili */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 28 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 16 }}>
               <button onClick={() => setTerms(t => !t)} aria-label="Accetto i termini" style={{
                 flex: '0 0 22px', width: 22, height: 22, borderRadius: 7, marginTop: 1, padding: 0,
                 border: `1.5px solid ${terms ? A_PINK : '#CFC8CB'}`, background: terms ? A_PINK : '#fff',
@@ -618,14 +685,14 @@ function AuthRegister({ onBack, onDone }) {
 
       {/* CTA */}
       <div style={{ padding: '12px 24px 34px' }}>
-        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? onDone({ nome, cognome, dob, email, prefs, terms }) : next())} style={{
+        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.set('A6', mkt), onDone({ nome, cognome, dob, email, prefs, terms })) : next())} style={{
           width: '100%', padding: '16px', border: 'none', borderRadius: 16,
           background: stepValid ? A_PINK : '#EDE7E9', color: stepValid ? '#fff' : A_MUTED,
           fontSize: 16, fontWeight: 700, cursor: stepValid ? 'pointer' : 'default', fontFamily: 'inherit',
           transition: 'background .2s',
         }}>{ctaLabel}</button>
         {step === 4 && (
-          <button disabled={!terms} onClick={() => onDone({ nome, cognome, dob, email, prefs: [], terms })} style={{
+          <button disabled={!terms} onClick={() => { ByupConsensi.set('A6', mkt); onDone({ nome, cognome, dob, email, prefs: [], terms }); }} style={{
             width: '100%', padding: '12px', marginTop: 8, background: 'none', border: 'none',
             color: terms ? A_MUTED : '#C9C2C5', fontSize: 14.5, fontWeight: 600,
             cursor: terms ? 'pointer' : 'default', fontFamily: 'inherit',

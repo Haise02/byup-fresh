@@ -1,8 +1,33 @@
 # Byup Fresh — Stato dello Sviluppo
 
-> **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` (nella root del repo) e `vue-components/WORK_IN_PROGRESS.md` (accanto a questo file). I percorsi in questo documento sono relativi alla root del repo `Byup/`, salvo dove indicato.
+> **File di memoria tra sessioni.** Tutto ciò che serve sapere per riprendere dal punto giusto è qui. Riferimenti tecnici approfonditi: `backend/BACKEND.md` per le decisioni di backend e `backend/erd/` per il modello dati (ERD v0.7, enum, documenti di progettazione). I percorsi in questo documento sono relativi alla root del repo `Byup/`, salvo dove indicato.
 
-**Ultimo aggiornamento:** 31 luglio 2026 — **ruoli del personale, referral fra locali e pulizia del codice morto** (prototipo). I ruoli sono ora tre — Cassa, Titolare, Cameriere — più dispositivi e ruoli personalizzati: via «Manager», che non era un ruolo del personale, e via «Cucina» dagli inviti, perché il Kitchen Monitor si collega come dispositivo; `ALL_AREAS` guadagna **Vendita diretta** e passa a nove sezioni. Nuovo **referral fra locali** (due mesi gratis a testa): fascia in Profilo → Piani e abbonamenti che apre un popup col codice, voce nelle Azioni rapide e in ⌘K, campo «Codice invito» nello step 2 dell'onboarding. Azioni rapide portate a otto (4×2) con «Modifica menu». Rimosso il codice morto rimasto dopo la pulizia di luglio (~395 righe su 21 file: componenti senza consumatori, duplicati superati e quattro dataset di Spot calcolati a ogni avvio senza che nessuno li leggesse). Dettagli e motivazioni in `DESIGN_DECISIONS.md` § "Ruoli del personale, referral e azioni rapide — 31 lug 2026". Sessione precedente (29 lug): **batch UI sulle Impostazioni del prototipo** (Vetrina, Sala e tavoli, Personale, POS e integrazioni), dettagli e motivazioni in `DESIGN_DECISIONS.md` § "Batch Impostazioni — 29 lug 2026". In sintesi: Vetrina salva da una barra fissa in fondo (via `PublishButton`), telefono d'anteprima a tutta altezza e senza cornice iOS, i chip del completamento accendono la sezione d'arrivo; Sala e tavoli con selezione ad anello, stato in corallo brand, menu a vetro e fogli modali bianchi (`MODAL_*`); Personale rifatto come tabella unica persone+dispositivi con filtro ruoli; integrazioni a tessere quadrate 3 per fila con fascia `GRAD_STAFF`; copy dello spento unificato su «Disattivato». Sessione precedente (28 lug): riallineamento percorsi alla struttura del repo `Byup/` + rimozione codice morto (copie mai linkate delle app consumer/cameriere, token legacy `BU`, `cucina-tab-storico.jsx`, `tweaks-panel.jsx`, `_demo-card-*.html`). Ultimo lavoro backend: 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5)
+**Ultimo aggiornamento:** 9 agosto 2026. Il registro delle sessioni sta qui sotto, dalla più recente; il dettaglio delle motivazioni è in `DESIGN_DECISIONS.md`, che ha una sezione per ogni batch. Ultimo lavoro **backend**: 30 maggio 2026 — fix regressione `strictNullChecks` su colonne nullable TypeORM + warning pg (vedi §5.4, §5.5). Dal 28 luglio il lavoro è tutto sul **prototipo**: il backend descritto dalle sezioni 2–8 non è stato toccato.
+
+### Registro delle sessioni
+
+**9 ago — via il progetto Vue.** `gestionale/vue-components/` è stato cancellato: era la migrazione a Vue 3 + Vite, ferma da fine luglio alla sola Panoramica, cioè a una versione della dashboard che il prototipo React ha già superato. Tenerlo significava tenere in vita una seconda implementazione parziale e disallineata di una schermata sola. Quello che c'era dentro e **non era Vue** — i quattro ERD v0.7 in DBML (sorgente di verità del DB), il riferimento agli enum e i due PDF di progettazione tecnica e flussi — è stato spostato in **`backend/erd/`**, che è dove il modello dati ha senso di stare: non dipende dal frontend, e infatti è sopravvissuto a lui.
+
+**9 ago — ruoli di sistema, ruoli personalizzati, aree cliccabili delle tabelle.** In Impostazioni → Personale l'editor dei permessi era di facciata: «Salva modifiche» chiudeva e basta. Ora vale la regola vera: Cassa, Cameriere e Titolare sono **ruoli di sistema**, hanno permessi di partenza e non si smontano — aprirne i permessi e salvare non li cambia, si esce con un **ruolo personalizzato nuovo**, e il ruolo di sistema resta intatto. Un personalizzato invece si modifica sul posto. Due ruoli non possono chiamarsi allo stesso modo: salvando un nome già in uso esce un popup che ferma il salvataggio e rimanda al modulo con dentro quello che c'era. La matita «permessi» sulle righe dei ruoli è stata **tolta** — i permessi si aprono solo da «Crea ruolo» — e con lei lo stato `editRole`: il ramo `role` di `CreateRoleModal` resta nel codice come regola di prodotto, oggi senza porta d'ingresso. In tutto il repo le **intestazioni di colonna ordinabili** sono tornate cliccabili solo sul nome: erano bottoni dentro una griglia, e in griglia un figlio si allarga per tutta la cella anche con `padding: 0` — 18 intestazioni fra `SortHead` (Statistiche), i Conti della Contabilità e `PromoTable` di Spot.
+
+**7–8 ago — Statistiche rifatta, Cucina a due monitor, Menù a tre colonne, Personale e Sala.** La sessione più grossa dall'inizio del prototipo, ~190 commit.
+
+- **Statistiche.** Le tre schede sono ora **Economici · Operazioni · Clienti** (la scheda «App» è diventata Clienti, con sotto-schede *Conversione* e *Fidelizzazione*); barra e sub-tab restano incollate in alto mentre si scorre, e si atterra su Economici. *Vendite piatti* rifatta — KPI con il gradiente di Ricavi e costi, scontrino medio e il suo trend spostati qui, podio dei piatti, card del margine più alto, distribuzione per categoria, tabella con foto, categoria e margine per piatto accanto al margine %. *Operazioni → Ordini* distingue tre canali (sala, asporto, vendita diretta) e accoglie «Articoli per ordine»; la heatmap oraria mostra il ritmo invece di 63 numeri; *Prenotazioni* passa all'impaginazione di Economici. *Team* diventa due classifiche — scontrino e mancia per tavolo — e perde tabella ed export. Il **funnel di conversione** è quattro righe e arriva fino alla recensione. **Valutazioni** rifatta in una card sola: il voto è quello **byup**, le recensioni scorrono, si filtrano per stelle e per problema e si segnalano, la distribuzione filtra l'elenco. Le recensioni **Google sono uscite** da qui e il collegamento dell'account è uscito dalla Vetrina: erano schede senza piatto e senza caselle, e leggerle si va a farlo su Google.
+- **Cucina.** Il KDS v2 non è più solo una route a sé: in testata si sceglie **quale monitor** guardare, e la visualizzazione è del monitor (si decide in Impostazioni → Personale, non qui). Con un monitor su «Pub» la cucina mostra la board del KDS v2, alimentata dal **servizio vero** e non più dai suoi dati finti — la conversione ticket → porzioni sta in `cucina-kds2-da-cucina.jsx`, in un file solo, così sparirà con i mock. «Schermo intero» toglie anche la sidebar.
+- **Impostazioni → Menù.** Si lavora a **tre colonne** — categorie, piatti, dettaglio. L'anteprima è la schermata dell'app e non un'idea di schermata; gli allergeni hanno un segno disegnato invece dell'iniziale; i piatti hanno gli ingredienti.
+- **Impostazioni → Personale.** Persone e dispositivi in una tabella sola che si prende la pagina; in riga il dispositivo dice se è monitor o stampante; il menu «⋯» fa quello che dice; «Modifica associazione» è una finestra di modifica e il cambio password del dispositivo passa da una conferma; il ruolo si sceglie da un selettore nostro; il titolare è teal col lucchetto disegnato.
+- **Impostazioni → Sala e tavoli.** «Ruota» arriva anche sulla mappa; le unioni restano **una fila retta** in tutti i casi, gruppo su gruppo compreso. La geometria della sala — ingombro, sovrapposizione, ricerca del posto libero, fila, rotazione — è scritta **una volta sola** in `sala-geometria.jsx` e la usano sia Sala sia Impostazioni: erano due copie divergenti che facevano correggere lo stesso difetto due volte.
+- **Configurazione completa.** Tessere-ruolo orizzontali, il monitor cucina chiede Pub o Ristorante al collegamento, il menu dispositivo chiede quale stampante.
+- **App consumer.** Il gratta e vinci diventa **Byuppino Run**, l'età minima per registrarsi scende a **14 anni**, il carrello si trascina (il tap resta sulla lineetta), lo swipe divide un piatto per volta. Chiuso l'**audit privacy/legale**: cookie policy self-built, opt-out analytics nel pannello consensi, disclaimer sui valori nutrizionali generati con IA, genere esplicito in registrazione.
+- **Contabilità.** Lo stato di **trasmissione fiscale** è del pagamento e Conti ne è la casa; le chiusure di cassa la derivano.
+
+**6 ago — statistiche economiche, Supporto e assistente IA.** Ricavi e costi ridisegnata (barre che dicono la quota, «Totale costi» a due colonne con incidenza e peso della parte fissa, hover su box e spicchi del donut). Nel Supporto la chat **dichiara di essere un'IA**, il canale Email diventa **Ticket** (risposta entro 2 giorni lavorativi), «Parla con un operatore umano» apre Ticket o Prenota una chiamata, `?chat=1` apre la chat all'arrivo. Nuovo **assistente IA fluttuante** (`byup-ai-fab.jsx`): bollino trascinabile su tutte le schermate tranne il Supporto, seconda conferma prima di pubblicare, esempi a rotazione nel campo. Dettagli in `DESIGN_DECISIONS.md` § «Statistiche economiche, Supporto e assistente IA — 6 ago 2026».
+
+**31 lug — ruoli del personale, referral fra locali, pulizia del codice morto.** I ruoli diventano tre — Cassa, Titolare, Cameriere — più dispositivi e ruoli personalizzati; `ALL_AREAS` guadagna **Vendita diretta** e passa a nove sezioni. Nuovo **referral fra locali** (due mesi gratis a testa) in Profilo → Piani, nelle Azioni rapide, in ⌘K e come «Codice invito» nello step 2 dell'onboarding. Rimosse ~395 righe di codice morto su 21 file. Dettagli in `DESIGN_DECISIONS.md` § «Ruoli del personale, referral e azioni rapide — 31 lug 2026».
+
+**29 lug — batch Impostazioni** (Vetrina, Sala e tavoli, Personale, POS e integrazioni). Vetrina salva da una barra fissa in fondo, Sala e tavoli con selezione ad anello e menu a vetro, Personale come tabella unica, integrazioni a tessere quadrate. Dettagli in `DESIGN_DECISIONS.md` § «Batch Impostazioni — 29 lug 2026».
+
+**28 lug — riallineamento percorsi alla struttura del repo `Byup/`** e rimozione del codice morto: copie mai linkate delle app consumer/cameriere, token legacy `BU`, `cucina-tab-storico.jsx`, `tweaks-panel.jsx`, `_demo-card-*.html`.
 
 ---
 
@@ -191,14 +216,7 @@ Byup/                            ← root del repo (Desktop/Byup)
 │   ├── PROGRESS.md              ← QUESTO FILE: stato sviluppo tra sessioni
 │   ├── DESIGN_DECISIONS.md      ← design system frontend
 │   ├── README.md
-│   ├── *.jsx, *.html            ← prototipi React/HTML del gestionale
-│   └── vue-components/          ← Vue 3 + Vite frontend (in migrazione da JSX)
-│       ├── package.json
-│       ├── WORK_IN_PROGRESS.md  ← stato migrazione frontend
-│       ├── *.dbml               ← 4 file ERD v0.7 (sorgente di verità DB)
-│       ├── byup-database-enums-reference-v7*.md
-│       ├── *.pdf                ← documenti di progettazione tecnica e flussi
-│       └── src/  (App.vue, components/, …)
+│   └── *.jsx, *.html            ← prototipi React/HTML del gestionale
 ├── app/, spot/, staff/, cameriere/, web/  ← altre superfici (app consumer, console Spot, POS staff, cameriere web, webapp guest)
 │
 ├── backend/                     ← NestJS modular monolith ──────────────────
@@ -212,6 +230,10 @@ Byup/                            ← root del repo (Desktop/Byup)
 │   ├── api.http                 ← collection REST Client VS Code
 │   ├── jest-e2e.json
 │   ├── BACKEND.md               ← reference dettagliato decisioni backend
+│   ├── erd/                     ← modello dati, indipendente dal codice ─────
+│   │   ├── *.dbml               ← 4 file ERD v0.7 (sorgente di verità DB)
+│   │   ├── byup-database-enums-reference-v7.md  ← valori e stati DB
+│   │   └── *.pdf                ← progettazione tecnica e flussi applicativi
 │   ├── src/
 │   │   ├── main.ts              ← bootstrap: helmet, ValidationPipe, ExceptionFilter
 │   │   ├── app.module.ts        ← root + ThrottlerModule globale
@@ -579,7 +601,7 @@ Aggiunta una suite e2e su tre aree (input malformati, concorrenza, edge temporal
 
 ### 7.9 Niente file inutili
 
-Non si creano file `.md` di documentazione, file di "appunti" o di "decisioni" senza richiesta esplicita. La doc ufficiale è: `CLAUDE.md`, `PROGRESS.md` (questo), `BACKEND.md`, `WORK_IN_PROGRESS.md`.
+Non si creano file `.md` di documentazione, file di "appunti" o di "decisioni" senza richiesta esplicita. La doc ufficiale è: `CLAUDE.md`, `PROGRESS.md` (questo), `DESIGN_DECISIONS.md`, `BACKEND.md`.
 
 ---
 
@@ -778,11 +800,11 @@ Suggerita per **non avere un blocco gigante non navigabile**:
 
 ### Riferimenti tecnici dettagliati
 - `backend/BACKEND.md` — dettagli decisioni backend modulo per modulo
-- `gestionale/vue-components/WORK_IN_PROGRESS.md` — stato migrazione frontend Vue 3
-- `gestionale/vue-components/*.dbml` — ERD v0.7 (sorgente di verità DB)
-- `gestionale/vue-components/byup-database-enums-reference-v7*.md` — valori e stati DB
+- `backend/erd/*.dbml` — ERD v0.7 (sorgente di verità DB)
+- `backend/erd/byup-database-enums-reference-v7.md` — valori e stati DB
+- `backend/erd/*.pdf` — progettazione tecnica e specifica dei flussi applicativi
 - `gestionale/CLAUDE.md` — overview di prodotto (cosa è Byup, GTM, validation, team)
-- `gestionale/DESIGN_DECISIONS.md` — design system frontend, riallineato al codice il 2026-07-28 e tenuto aggiornato a fine sessione (ultima: 2026-07-29); in caso di dubbio i token `PN` nel codice restano la verità
+- `gestionale/DESIGN_DECISIONS.md` — design system frontend, riallineato al codice il 2026-08-09 e tenuto aggiornato a fine sessione con una sezione datata per ogni batch; in caso di dubbio i token `PN` nel codice restano la verità
 
 ### Memoria conversazionale Claude
 La memoria persistente fra sessioni vive sotto `~/.claude/projects/-Users-fabiomancinelli-Desktop-Byup/memory/` ed è automaticamente caricata. Contiene note su: design token (PN vivo, BU legacy), piani del gestionale (accento aurora, Free→Gratuito), console Spot, workflow di push, audit del gestionale. Le due "lezioni operative" dai bug intercettati (transazioni service-level, entity metadata) restano nella vecchia memoria `...-byup-fresh-main-3-vue-components` (vedi §8).

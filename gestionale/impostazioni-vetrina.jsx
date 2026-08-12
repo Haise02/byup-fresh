@@ -1549,12 +1549,26 @@ function MediaUploadModal({ kind, onClose, onPick }) {
   const isLogo = kind === 'logo';
   const inputRef = React.useRef(null);
   const [dragOver, setDragOver] = React.useState(false);
+  // Liberatoria: le foto della galleria possono ritrarre persone, e senza il
+  // loro consenso pubblicarle è un problema del locale (e nostro). La spunta
+  // è obbligatoria per la galleria; il logo non ritrae persone e non la chiede.
+  const [liberatoria, setLiberatoria] = React.useState(false);
+  const bloccato = !isLogo && !liberatoria;
   const handleFiles = (files) => {
+    if (bloccato) return;
     const f = files && files[0];
     if (!f || !f.type || !f.type.startsWith('image/')) return;
     const r = new FileReader();
     r.onload = () => onPick(r.result);
     r.readAsDataURL(f);
+  };
+  const scaricaModello = () => {
+    const testo = `LIBERATORIA PER L'UTILIZZO DELL'IMMAGINE\n\nIo sottoscritto/a ______________________________, nato/a a ______________ il ____________,\nautorizzo ______________________________ (il "Locale") a utilizzare le fotografie che mi\nritraggono, scattate in data ____________ presso il Locale, per la pubblicazione sulla\nvetrina digitale del Locale sulla piattaforma byup e sui canali a essa collegati.\n\nL'autorizzazione è concessa a titolo gratuito, ai sensi degli artt. 96 e 97 L. 633/1941\ne dell'art. 10 c.c. Potrò revocarla in qualsiasi momento scrivendo al Locale; la revoca\nvale per gli usi successivi.\n\nData ____________          Firma ______________________________\n`;
+    const url = URL.createObjectURL(new Blob([testo], {type: 'text/plain;charset=utf-8'}));
+    const a = document.createElement('a');
+    a.href = url; a.download = 'Modello-liberatoria-immagine.txt';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   };
   return (
     <div onClick={onClose} style={{
@@ -1588,17 +1602,37 @@ function MediaUploadModal({ kind, onClose, onPick }) {
           }}><PnI.X size={13}/></button>
         </div>
 
+        {/* La dichiarazione sta PRIMA della zona di caricamento: spiega
+            perché è spenta, non rimprovera dopo. */}
+        {!isLogo && (
+          <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12, cursor: 'pointer'}}>
+            <input type="checkbox" checked={liberatoria} onChange={e => setLiberatoria(e.target.checked)}
+              style={{accentColor: PN.PINK, width: 15, height: 15, marginTop: 2, flexShrink: 0}}/>
+            <span style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.5}}>
+              Dichiaro di avere i diritti di utilizzo delle immagini e, se ritraggono
+              persone riconoscibili, di aver ottenuto la loro liberatoria.{' '}
+              <button onClick={e => { e.preventDefault(); scaricaModello(); }} style={{
+                padding: 0, border: 'none', background: 'transparent',
+                fontSize: 13.5, color: PN.MUTED, cursor: 'pointer', fontFamily: 'inherit',
+                textDecoration: 'underline', textUnderlineOffset: 2,
+              }}>Scarica un modello</button>
+            </span>
+          </label>
+        )}
+
         <div
-          onClick={() => inputRef.current && inputRef.current.click()}
-          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onClick={() => { if (!bloccato && inputRef.current) inputRef.current.click(); }}
+          onDragOver={e => { e.preventDefault(); if (!bloccato) setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
           style={{
-            padding: '34px 16px', borderRadius: 12, cursor: 'pointer',
+            padding: '34px 16px', borderRadius: 12,
+            cursor: bloccato ? 'not-allowed' : 'pointer',
+            opacity: bloccato ? 0.5 : 1,
             border: `2px dashed ${dragOver ? PN.PINK : PN.BORDER}`,
             background: dragOver ? PN.PINK_SOFT : '#FAFBFC',
             textAlign: 'center',
-            transition: 'border-color 150ms ease, background 150ms ease',
+            transition: 'border-color 150ms ease, background 150ms ease, opacity 150ms ease',
           }}>
           <div style={{color: PN.MUTED, marginBottom: 8, display: 'flex', justifyContent: 'center'}}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">

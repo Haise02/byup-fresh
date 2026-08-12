@@ -29,6 +29,7 @@ const BuIcons = {
   waiter:    (p) => <_BuIcon {...p}><circle cx="12" cy="5" r="2.5"/><path d="M9 9h6 M3 14h18 M5 14l1 7 M19 14l-1 7"/></_BuIcon>,
   chef:      (p) => <_BuIcon {...p}><path d="M6 14V8a4 4 0 0 1 4-4 4 4 0 0 1 4 0 4 4 0 0 1 4 4v6 M6 14h12 M7 14v6h10v-6"/></_BuIcon>,
   shield:    (p) => <_BuIcon {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></_BuIcon>,
+  lock:      (p) => <_BuIcon {...p}><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></_BuIcon>,
   mail:      (p) => <_BuIcon {...p}><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></_BuIcon>,
 
   // Notifications/system

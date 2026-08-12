@@ -5,7 +5,7 @@ const CONTI_MOCK = [
   // ─── Non saldati ───────────────────────────────────────────────
   { id:'cnt-1',  idOrdine:'#2511-0042', dataOra:'2025-11-15 19:42', tavolo:'Tavolo 4',  cliente:'Mario Rossi',       riferimento:{nome:'Mario Rossi', tipo:'byup'}, liberatoOre:5.5,  totaleConto:85.00,   daSaldare:45.00,  stato:'non_saldato', note:'Ospiti morbidi', operatore:'Marco',
     ordini: [{id:'o1-1',nome:'Tagliere salumi',qty:2,prezzo:13.00},{id:'o1-2',nome:'Pasta amatriciana',qty:2,prezzo:14.00},{id:'o1-3',nome:'Birra artigianale',qty:3,prezzo:6.00},{id:'o1-4',nome:'Acqua minerale',qty:2,prezzo:2.50},{id:'o1-5',nome:'Tiramisù',qty:1,prezzo:6.50},{id:'o1-6',nome:'Caffè',qty:1,prezzo:1.50}],
-    payments: [{id:'p1a', method:'contanti', amount:40.00, ora:'2025-11-15 19:55', scontrinoNum:'SC-2511-0042-1'}] },
+    payments: [{id:'p1a', method:'contanti', amount:40.00, ora:'2025-11-15 19:55', scontrinoNum:'SC-2511-0042-1', fisc:{ esito:'ritrasmissione', tentativo: 3, prossimo:'15:10' }}] },
   { id:'cnt-3',  idOrdine:'#2511-0040', dataOra:'2025-11-15 22:30', tavolo:'Asporto', canale:'asporto', cliente:'Simone De Luca',    liberatoOre:2.0,  totaleConto:64.50,   daSaldare:64.50,  stato:'non_saldato', note:'Allergeni richiesti', operatore:'Marco',
     ordini: [{id:'o3-1',nome:'Pizza Margherita',qty:1,prezzo:9.00},{id:'o3-2',nome:'Pizza Diavola',qty:1,prezzo:11.00},{id:'o3-3',nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{id:'o3-4',nome:'Birra media',qty:2,prezzo:5.50},{id:'o3-5',nome:'Supplì (4pz)',qty:1,prezzo:7.00},{id:'o3-6',nome:'Tiramisù',qty:1,prezzo:5.50},{id:'o3-7',nome:'Acqua minerale',qty:2,prezzo:2.50},{id:'o3-8',nome:'Patatine fritte',qty:1,prezzo:4.00}],
     payments: [] },
@@ -17,14 +17,16 @@ const CONTI_MOCK = [
     payments: [
       {id:'p20a', method:'byup',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1'},
       {id:'p20b', method:'byup',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2'},
-      {id:'p20c', method:'carta',    amount:90.00, ora:'2025-11-16 14:09', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3'},
+      // Conto diviso: uno dei documenti è stato scartato, gli altri no.
+      // Lo stato sta QUI, sul pagamento: il conto non ne ha uno suo.
+      {id:'p20c', method:'carta',    amount:90.00, ora:'2025-11-16 14:09', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3', fisc:{ scarto:'aliquota', tentativi: 3 }},
       {id:'p20d', method:'contanti', amount:50.00, ora:'2025-11-16 14:11', scontrinoNum:'SC-2511-0046-4'},
       {id:'p20e', method:'carta',    amount:40.00, ora:'2025-11-16 14:13', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0046-5'},
     ] },
 
   // ─── Saldati ───────────────────────────────────────────────────
   { id:'cnt-5',  idOrdine:'#2511-0038', dataOra:'2025-11-13 20:30', tavolo:'Tavolo 1',  cliente:'Lucia Marchesi',    riferimento:{nome:'Lucia Marchesi', tipo:'byup'}, liberatoOre:48,    totaleConto:72.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1'}] },
+    payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1', fisc:{ scarto:'delega', tentativi: 3 }}] },
   { id:'cnt-6',  idOrdine:'#2511-0037', dataOra:'2025-11-08 21:00', tavolo:'Tavolo 3',  cliente:'Francesco Rossi',   liberatoOre:168,   totaleConto:95.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p6a', method:'contanti', amount:95.50, ora:'2025-11-08 21:45', scontrinoNum:'SC-2511-0037-1'}] },
   { id:'cnt-13', idOrdine:'#2511-0035', dataOra:'2025-11-13 13:15', tavolo:'Tavolo 4',  cliente:'Pellegrini',        liberatoOre:60,    totaleConto:64.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
@@ -32,8 +34,11 @@ const CONTI_MOCK = [
     // differenza dell'annullo — ha bisogno di sapere COSA si sta restituendo,
     // e lo scontrino non è itemizzato quando il conto si divide su più
     // pagamenti (le righe condivise finirebbero rese due volte).
+    // Porta anche uno scarto SdI: è il conto su cui si vedono insieme le due
+    // cose che possono capitare a un pagamento — un reso e un documento che
+    // non è passato.
     ordini: [{id:'o13-1',nome:'Cotoletta alla milanese',qty:2,prezzo:18.00},{id:'o13-2',nome:'Patate al forno',qty:2,prezzo:5.00},{id:'o13-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'o13-4',nome:'Acqua minerale',qty:2,prezzo:2.00}],
-    payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1'}] },
+    payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1', fisc:{ scarto:'dispositivo', tentativi: 2 }}] },
   { id:'cnt-14', idOrdine:'#2511-0034', dataOra:'2025-11-12 20:00', tavolo:'Tavolo 8',  cliente:'Carlo Russo',       liberatoOre:84,    totaleConto:215.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [
       {id:'p14a', method:'carta', amount:150.00, ora:'2025-11-12 22:30', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0034-1'},
@@ -44,14 +49,14 @@ const CONTI_MOCK = [
       {id:'p21a', method:'byup',     amount:60.00, ora:'2025-11-09 22:40', scontrinoNum:'SC-2511-0029-1'},
       {id:'p21b', method:'byup',     amount:60.00, ora:'2025-11-09 22:41', scontrinoNum:'SC-2511-0029-2'},
       {id:'p21c', method:'byup',     amount:60.00, ora:'2025-11-09 22:42', scontrinoNum:'SC-2511-0029-3'},
-      {id:'p21d', method:'carta',    amount:200.00, ora:'2025-11-09 22:48', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0029-4'},
+      {id:'p21d', method:'carta',    amount:200.00, ora:'2025-11-09 22:48', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0029-4', fisc:{ esito:'ritrasmissione', tentativo: 2, prossimo:'14:30' }},
       {id:'p21e', method:'contanti', amount:80.00, ora:'2025-11-09 22:50', scontrinoNum:'SC-2511-0029-5'},
       {id:'p21f', method:'carta',    amount:25.00, ora:'2025-11-09 22:52', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0029-6'},
     ] },
   { id:'cnt-22', idOrdine:'#2511-0027', dataOra:'2025-11-08 13:00', tavolo:'Tavolo 5',  cliente:'Pranzo team',         liberatoOre:144,  totaleConto:156.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'byup',
     payments: [
       {id:'p22a', method:'byup', amount:35.00, ora:'2025-11-08 14:20', scontrinoNum:'SC-2511-0027-1'},
-      {id:'p22b', method:'byup', amount:42.00, ora:'2025-11-08 14:21', scontrinoNum:'SC-2511-0027-2'},
+      {id:'p22b', method:'byup', amount:42.00, ora:'2025-11-08 14:21', scontrinoNum:'SC-2511-0027-2', fisc:{ scarto:'dispositivo', tentativi: 2, gestito:{ come:'manuale', nota:'POS abbinato in Impostazioni e documento ritrasmesso.' } }},
       {id:'p22c', method:'byup', amount:28.00, ora:'2025-11-08 14:22', scontrinoNum:'SC-2511-0027-3'},
       {id:'p22d', method:'byup', amount:51.00, ora:'2025-11-08 14:23', scontrinoNum:'SC-2511-0027-4'},
     ] },
@@ -59,7 +64,7 @@ const CONTI_MOCK = [
     payments: [
       {id:'p23a', method:'contanti', amount:45.00, ora:'2025-11-07 23:10', scontrinoNum:'SC-2511-0025-1'},
       {id:'p23b', method:'contanti', amount:50.00, ora:'2025-11-07 23:11', scontrinoNum:'SC-2511-0025-2'},
-      {id:'p23c', method:'byup',     amount:42.00, ora:'2025-11-07 23:14', scontrinoNum:'SC-2511-0025-3'},
+      {id:'p23c', method:'byup',     amount:42.00, ora:'2025-11-07 23:14', scontrinoNum:'SC-2511-0025-3', fisc:{ scarto:'aliquota', tentativi: 3, gestito:{ come:'manuale', nota:'Aliquota corretta nel catalogo e documento ritrasmesso a mano.' } }},
       {id:'p23d', method:'carta',    amount:75.00, ora:'2025-11-07 23:16', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0025-4'},
       {id:'p23e', method:'contanti', amount:55.00, ora:'2025-11-07 23:18', scontrinoNum:'SC-2511-0025-5'},
     ] },
@@ -105,6 +110,10 @@ const CONTI_MOCK = [
     if (c.rimborso) c.rimborso.ora = shiftStr(c.rimborso.ora);
   });
 })();
+
+// I pagamenti sono i documenti commerciali: Cassa ci deriva le chiusure di
+// giornata, quindi la lista deve essere raggiungibile da lì.
+window.CONTI_MOCK = CONTI_MOCK;
 
 // Format "2025-11-15 19:42" → "15 nov · 19:42"
 function fmtDataOra(s) {
@@ -155,7 +164,250 @@ function ByupMark({ size = 16 }) {
   );
 }
 
-function ContoExpandedPanel({ conto, onDettaglio, getStato }) {
+// ─── Stato di trasmissione del documento nato dal pagamento ───────────────
+// Il chip vive sulla riga del pagamento perché è lì che il documento nasce:
+// un conto diviso in tre pagamenti ha tre scontrini e tre esiti distinti.
+function PagamentoFiscChip({ payment, onOpen }) {
+  const info = docInfo(payment);
+  const apribile = !!info.scarto;
+  const pill = <FiscPill tipo={info.tipo} label={DOC_LABEL[info.tipo]}/>;
+  const sotto = info.tipo === 'ritrasmissione' ? (
+    <span style={{color: PN.MUTED, whiteSpace:'nowrap'}}>
+      tentativo {info.tentativo} di 5 · prossimo alle {info.prossimo}
+    </span>
+  ) : null;
+  if (!apribile) {
+    return (
+      <span title={info.idTrasm ? `Identificativo di ricezione ${info.idTrasm}` : undefined}
+        style={{display:'inline-flex', alignItems:'center', gap: 8}}>{pill}{sotto}</span>
+    );
+  }
+  return (
+    <button onClick={onOpen} title="Apri il dettaglio dello scarto"
+      onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(0.96)'; }}
+      onMouseLeave={e => { e.currentTarget.style.filter = ''; }}
+      style={{
+        display:'inline-flex', alignItems:'center', gap: 8,
+        background:'transparent', border:'none', padding: 0,
+        cursor:'pointer', fontFamily:'inherit', fontSize: C.T_XS,
+        transition:'filter 140ms ease',
+      }}>{pill}{sotto}</button>
+  );
+}
+
+// ─── Dettaglio dello scarto di un documento ────────────────────────────────
+// Stesso scheletro delle modali della sezione (ContNuovoCosto): overlay velato
+// ancorato al <main>, foglio bianco pieno, header con badge icona. Riguarda UN
+// pagamento: gli altri dello stesso conto restano quelli che erano.
+function DocScartoSheet({ conto, payment, onClose }) {
+  useFiscTick();
+  const info = docInfo(payment);
+  const sc = info.scarto;
+  const chiuso = !!info.gestito;
+  const [nota, setNota] = React.useState(() => info.nota || '');
+
+  // "Aperto il …" si scrive solo finché lo scarto è vivo: segnarlo su uno già
+  // chiuso metterebbe nel log un evento successivo alla gestione.
+  React.useEffect(() => { if (!chiuso) window.byupFiscVisto(payment.id); }, [payment.id, chiuso]);
+
+  // Il log in ordine di accadimento — ordinato sui timestamp, non sull'ordine
+  // in cui capita di costruirlo.
+  const passi = [
+    { txt:'Scarto rilevato', t: sc.rilevato },
+    info.visto && { txt:'Aperto', t: info.visto },
+    info.ritento && { txt:`Ritrasmissione avviata · tentativo ${info.ritento.tentativo} di 5`, t: info.ritento.quando },
+    info.gestito && { txt: info.gestito.come === 'ritrasmissione' ? 'Gestito · ritrasmissione riuscita' : 'Gestito', t: info.gestito.quando },
+  ].filter(Boolean).sort((a, b) => fiscOrdine(a.t).localeCompare(fiscOrdine(b.t)));
+
+  const Blocco = ({ titolo, children }) => (
+    <div style={{marginTop: 18}}>
+      <div style={{
+        fontSize: 12, fontWeight: 700, color: PN.MUTED,
+        textTransform:'uppercase', letterSpacing: 0.6, marginBottom: 6,
+      }}>{titolo}</div>
+      <div style={{fontSize: C.T_SM, color: PN.TEXT, lineHeight: 1.55}}>{children}</div>
+    </div>
+  );
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      zIndex: 60, display:'grid', placeItems:'center', padding: 28,
+      animation:'scartoFade 0.16s ease',
+    }}>
+      <style>{`
+        @keyframes scartoFade { from {opacity: 0;} to {opacity: 1;} }
+        @keyframes scartoPop {
+          from {opacity: 0; transform: scale(0.965) translateY(10px);}
+          to   {opacity: 1; transform: none;}
+        }
+        .cont-scarto-sheet textarea:focus {
+          border-color: ${PN.PINK};
+          box-shadow: 0 0 0 3px rgba(255, 90, 95, 0.14);
+        }
+      `}</style>
+      <div className="cont-scarto-sheet" onClick={e => e.stopPropagation()} style={{
+        width: 640, maxWidth:'100%', maxHeight:'100%', background: PN.WHITE,
+        borderRadius: 22, border: `1px solid ${PN.BORDER_HAIR}`,
+        boxShadow:'0 32px 80px rgba(15,17,21,0.24), 0 2px 6px rgba(15,17,21,0.08)',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+        animation:'scartoPop 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding:'20px 26px 18px', borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+          display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14,
+        }}>
+          <div style={{display:'flex', alignItems:'center', gap: 14, minWidth: 0}}>
+            <div style={{
+              width: 42, height: 42, borderRadius: C.R_MD, flexShrink: 0,
+              background: chiuso ? C.SURF_ALT : '#FEE2E2',
+              color: chiuso ? PN.MUTED : '#991B1B',
+              display:'grid', placeItems:'center', boxShadow: PN.INSET_HIGHLIGHT,
+            }}>{chiuso ? <Ic.check size={20}/> : <Ic.warn size={19}/>}</div>
+            <div style={{minWidth: 0}}>
+              <div style={{fontSize: C.T_LG, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3}}>
+                {chiuso ? 'Scarto gestito' : 'Documento scartato'}
+              </div>
+              <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 2, fontVariantNumeric:'tabular-nums'}}>
+                {payment.scontrinoNum} · {fiscTs(payment.ora)} · € {payment.amount.toFixed(2)}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; e.currentTarget.style.transform = ''; }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.88)'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+            style={{
+              background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer',
+              display:'flex', padding: 8, borderRadius: 10,
+              transition:'background 130ms ease, color 130ms ease, transform 120ms ease',
+            }}><Ic.close size={17}/></button>
+        </div>
+
+        <div className="pn-scroll" style={{padding:'20px 26px 22px', overflowY:'auto'}}>
+          <div style={{
+            padding:'14px 16px', borderRadius: C.R_MD,
+            background: chiuso ? C.SURF : PN.PINK_BG_SOFT,
+            border: `1px solid ${chiuso ? PN.BORDER_SOFT : '#FFD9D7'}`,
+            fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT, lineHeight: 1.4,
+          }}>{sc.motivo}</div>
+
+          <Blocco titolo="Causa probabile">{sc.causa}</Blocco>
+
+          <Blocco titolo="Cosa fare">
+            {sc.azione}
+            <div style={{marginTop: 10}}>
+              <button onClick={() => { window.location.href = sc.vaiHref; }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#9CA3AF'; e.currentTarget.style.background = PN.WHITE; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER_HAIR; e.currentTarget.style.background = PN.WHITE_HUSH; }}
+                style={{
+                  display:'inline-flex', alignItems:'center', gap: 7,
+                  padding:'8px 13px', borderRadius: C.R_SM,
+                  background: PN.WHITE_HUSH, border: `1px solid ${PN.BORDER_HAIR}`,
+                  boxShadow:'inset 0 1px 1px rgba(15,17,21,0.04)',
+                  fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT,
+                  cursor:'pointer', fontFamily:'inherit',
+                  transition:'border-color 150ms, background 150ms',
+                }}>
+                {sc.vaiLabel}
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color: PN.MUTED}}><path d="M7 17 17 7M8 7h9v9"/></svg>
+              </button>
+            </div>
+          </Blocco>
+
+          {chiuso ? (
+            info.gestito.nota && <Blocco titolo="Nota">{info.gestito.nota}</Blocco>
+          ) : (
+            <div style={{marginTop: 18}}>
+              <div style={{
+                fontSize: 12, fontWeight: 700, color: PN.MUTED,
+                textTransform:'uppercase', letterSpacing: 0.6, marginBottom: 6,
+              }}>Nota (facoltativa)</div>
+              <textarea value={nota} onChange={e => setNota(e.target.value)}
+                placeholder="Cosa hai fatto per sistemarlo — resta nel log del documento"
+                style={{
+                  width:'100%', boxSizing:'border-box',
+                  padding:'11px 13px', border:`1px solid ${PN.BORDER}`, borderRadius: 10,
+                  fontSize: C.T_SM, fontFamily:'inherit', color: PN.TEXT,
+                  outline:'none', resize:'vertical', minHeight: 78,
+                  transition:'border-color 130ms ease, box-shadow 150ms ease',
+                }}/>
+            </div>
+          )}
+
+          <Blocco titolo="Cos'è successo">
+            <div style={{position:'relative', paddingLeft: 2}}>
+              {passi.map((p, i) => (
+                <div key={i} style={{display:'flex', gap: 10, position:'relative', paddingBottom: i === passi.length - 1 ? 0 : 12}}>
+                  {i < passi.length - 1 && (
+                    <span style={{position:'absolute', left: 4.5, top: 14, bottom: -2, borderLeft:`1.5px dashed ${PN.BORDER}`}}/>
+                  )}
+                  <span style={{
+                    width: 10, height: 10, borderRadius:'50%', flexShrink: 0, marginTop: 5,
+                    background: PN.WHITE, position:'relative', zIndex: 1,
+                    boxShadow: `inset 0 0 0 2px ${i === passi.length - 1 && chiuso ? PN.GREEN : (i === 0 ? '#991B1B' : 'rgba(15,17,21,0.22)')}`,
+                  }}/>
+                  <div style={{fontSize: C.T_SM, color: PN.TEXT, lineHeight: 1.5, minWidth: 0}}>
+                    {p.txt} il <span style={{fontVariantNumeric:'tabular-nums', color: PN.MUTED}}>{p.t}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Blocco>
+
+          <div style={{fontSize: C.T_XS, color: PN.MUTED_SOFT, marginTop: 16, lineHeight: 1.5}}>
+            Lo scarto riguarda solo questo documento: gli altri pagamenti del conto {conto.idOrdine} sono stati trasmessi regolarmente.
+          </div>
+        </div>
+
+        {!chiuso && (
+          <div style={{
+            padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`,
+            background: PN.WHITE_OFF,
+            display:'flex', alignItems:'center', gap: 10,
+          }}>
+            <div style={{flex: 1, fontSize: C.T_XS, color: PN.MUTED_SOFT}}>
+              Finché lo scarto è aperto resta segnalato in Contabilità.
+            </div>
+            <button onClick={() => { window.byupFiscSegnaGestita(payment.id, nota); onClose(); }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+              style={{
+                padding:'10px 18px', background:'transparent', border:`1px solid ${PN.BORDER}`,
+                borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT,
+                cursor:'pointer', fontFamily:'inherit',
+                display:'inline-flex', alignItems:'center', gap: 6,
+                transition:'background 130ms ease, border-color 130ms ease, transform 120ms ease',
+              }}><Ic.check size={14}/> Segna come gestito</button>
+            <button onClick={() => { window.byupFiscRiprova(payment.id, nota); onClose(); }}
+              onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.08)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(255, 90, 95, 0.35)'; }}
+              onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = ''; }}
+              style={{
+                padding:'10px 22px', background: PN.PINK, color:'#fff', border:'none',
+                borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700,
+                cursor:'pointer', fontFamily:'inherit',
+                display:'inline-flex', alignItems:'center', gap: 6,
+                transition:'filter 130ms ease, box-shadow 150ms ease, transform 120ms ease',
+              }}><Ic.recurring size={13}/> Riprova ora</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Due cose diverse possono succedere a un pagamento, e questo pannello le
+// mostra entrambe: il documento può non essere passato allo SdI (`onScarto`)
+// e il denaro può tornare indietro (`onRimborso`, `onDettaglio`, `getStato`).
+// Sono indipendenti — uno scontrino scartato resta scartato anche dopo un
+// reso — quindi convivono sulla stessa riga invece di escludersi.
+function ContoExpandedPanel({ conto, onDettaglio, getStato, onRimborso, onScarto }) {
   const payments = conto.payments || [];
   const fmtPayOra = (s) => {
     if (!s) return '';
@@ -233,12 +485,26 @@ function ContoExpandedPanel({ conto, onDettaglio, getStato }) {
                   </div>
                   <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 4, display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap'}}>
                     <span>{fmtDataOra(p.ora.split(' ')[0] + ' ' + fmtPayOra(p.ora))}</span>
+                    {/* Due stati indipendenti sulla stessa riga, in quest'ordine
+                        perché rispondono a due domande diverse.
+                        Prima cos'è successo ai SOLDI: il badge annullo/reso
+                        cambia come si legge la cifra qui accanto, che infatti
+                        va barrata — quindi va visto prima di leggerla.
+                        Poi il DOCUMENTO: il suo numero e se è arrivato allo
+                        SdI. Sono una cosa sola e stanno insieme.
+                        Non si escludono: uno scontrino scartato resta scartato
+                        anche dopo che il denaro è tornato indietro, e l'ufficio
+                        deve poter vedere le due cose nello stesso colpo. */}
                     {st && (
                       <span style={{
                         padding:'2px 8px', borderRadius: 999, background:'#FEE2E2', color:'#B91C1C',
                         fontSize: 11.5, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.3,
                       }}>{st.tipo === 'annullo' ? 'Annullato' : 'Reso'}</span>
                     )}
+                    {p.scontrinoNum && (
+                      <span style={{fontFamily:'ui-monospace, Menlo, monospace', color: PN.MUTED}}>{p.scontrinoNum}</span>
+                    )}
+                    <PagamentoFiscChip payment={p} onOpen={() => onScarto && onScarto(p)}/>
                   </div>
                 </div>
                 <div style={{fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color: st ? PN.MUTED_SOFT : PN.TEXT, textDecoration: st && st.tipo === 'annullo' ? 'line-through' : 'none'}}>
@@ -574,7 +840,7 @@ function ApriCassaModal({ open, onClose, onConfirm }) {
 }
 
 // Popup conferma chiusura cassa — riepilogo e conferma quadratura
-function ChiudiCassaModal({ open, fondoCassa, aperturaOra, onClose, onConfirm }) {
+function ChiudiCassaModal({ open, fondoCassa, onClose, onConfirm }) {
   const [show, setShow] = React.useState(false);
   const [finale, setFinale] = React.useState(''); // saldo cassa finale inserito dall'operatore
   const [step, setStep] = React.useState('form'); // 'form' | 'warn'
@@ -766,9 +1032,11 @@ function ChiudiCassaModal({ open, fondoCassa, aperturaOra, onClose, onConfirm })
   );
 }
 
-function ContConti({ filter = 'all' }) {
+function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [activeFilter, setActiveFilter] = React.useState(filter);
+  const [scartoPay, setScartoPay] = React.useState(null); // {conto, payment}
+  useFiscTick();
   const [canale, setCanale] = React.useState('all'); // 'all' | 'asporto' | 'sala'
   const [modalPagamento, setModalPagamento] = React.useState(null);
   const [saldati, setSaldati] = React.useState(new Set());
@@ -789,7 +1057,24 @@ function ContConti({ filter = 'all' }) {
   const [rimborsoStep, setRimborsoStep] = React.useState('metodo'); // 'metodo' | 'conferma'
   const [dettaglioScontrino, setDettaglioScontrino] = React.useState(null); // {conto, payment} | null
 
-  const [expandedId, setExpandedId] = React.useState(null);
+  // Più conti aperti insieme: arrivando da Cassa una giornata può portarne
+  // due, e con l'accordion a uno solo il secondo scarto restava invisibile.
+  const [expandedIds, setExpandedIds] = React.useState(() => new Set());
+  const toggleExpanded = (id) => setExpandedIds(prev => {
+    const n = new Set(prev);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+  // Arrivando da Cassa i conti interessati si aprono da soli: altrimenti il
+  // rimando lascerebbe l'utente davanti a righe chiuse.
+  const fiscKey = fisc ? `${fisc.data}|${fisc.stato}` : '';
+  React.useEffect(() => {
+    if (!fisc) { setExpandedIds(new Set()); return; }
+    const attesi = CONTI_MOCK.filter(x => (x.payments || []).some(p =>
+      (!fisc.data || String(p.ora || '').startsWith(fisc.data)) &&
+      (!fisc.stato || docInfo(p).tipo === { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok' }[fisc.stato])));
+    setExpandedIds(new Set(attesi.map(c => c.id)));
+  }, [fiscKey]);
   const [sortData, setSortData] = React.useState(null); // null | 'desc' (recenti) | 'asc' (meno recenti)
 
   // Cosa si restituisce l'ha già deciso il dettaglio scontrino; qui resta solo
@@ -822,8 +1107,21 @@ function ContConti({ filter = 'all' }) {
     if (activeFilter === 'da_saldare' && nonSaldati.length === 0) setActiveFilter('all');
   }, [activeFilter, nonSaldati.length]);
 
+  // Filtro in arrivo da Cassa: la giornata e lo stato di trasmissione. È il
+  // rimando del riepilogo, non una lista parallela — la lista è questa.
+  const FISC_MAP = { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok' };
+  const fiscMatch = (p) => {
+    if (!fisc) return true;
+    if (fisc.data && !String(p.ora || '').startsWith(fisc.data)) return false;
+    if (fisc.stato && docInfo(p).tipo !== FISC_MAP[fisc.stato]) return false;
+    return true;
+  };
+
   // Filtra per stato (alert da saldare) e per canale (sala / asporto)
   let filtered = CONTI_MOCK;
+  if (fisc) {
+    filtered = filtered.filter(c => (c.payments || []).some(fiscMatch));
+  }
   if (activeFilter === 'da_saldare') {
     filtered = filtered.filter(c => c.stato === 'non_saldato');
   }
@@ -855,8 +1153,57 @@ function ContConti({ filter = 'all' }) {
     setSortData(s => s === null ? 'desc' : s === 'desc' ? 'asc' : null);
   }
 
+  const FISC_ETICHETTA = { scartato:'scartati', coda:'in ritrasmissione', gestito:'gestiti', ok:'trasmessi' };
+  // Il singolare serve dopo "Nessun documento …": il plurale ci stonava.
+  const FISC_ETICHETTA_UNO = { scartato:'scartato', coda:'in ritrasmissione', gestito:'gestito', ok:'trasmesso' };
+
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
+      {/* Da dove arrivi: il filtro che Cassa ha impostato, e come toglierlo */}
+      {fisc && (
+        <div style={{
+          display:'flex', alignItems:'center', gap: 12,
+          padding:'11px 16px', borderRadius: C.R_MD,
+          background: PN.PINK_BG_SOFT, border:`1px solid ${PN.PINK_SOFT}`,
+        }}>
+          <span style={{color: PN.PINK_DARK, display:'flex'}}><Ic.receipt size={16}/></span>
+          <span style={{flex:1, fontSize: C.T_SM, color: PN.TEXT}}>
+            Documenti <b>{FISC_ETICHETTA[fisc.stato] || ''}</b> del{' '}
+            <b>{fisc.data ? fisc.data.split('-').reverse().join('/') : ''}</b> — dal riepilogo di Cassa
+          </span>
+          <button onClick={() => onFiscClear && onFiscClear()}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+            style={{
+              display:'inline-flex', alignItems:'center', gap: 6,
+              padding:'6px 12px', borderRadius: C.R_SM,
+              background:'transparent', border:`1px solid ${PN.PINK_SOFT}`,
+              fontSize: C.T_XS, fontWeight: 600, color: PN.PINK_DARK,
+              cursor:'pointer', fontFamily:'inherit',
+              transition:'background 130ms ease',
+            }}><Ic.close size={12}/> Mostra tutti i conti</button>
+        </div>
+      )}
+
+      {/* Quando l'ultimo documento di quella giornata viene gestito la lista
+          filtrata si svuota: senza una riga di spiegazione sembrerebbe un
+          errore invece del lavoro finito. */}
+      {fisc && filtered.length === 0 && (
+        <div style={{
+          padding:'22px 20px', borderRadius: C.R_MD, textAlign:'center',
+          background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
+        }}>
+          <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>
+            Nessun documento {FISC_ETICHETTA_UNO[fisc.stato] || ''} in questa giornata
+          </div>
+          <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 4}}>
+            {fisc.stato === 'scartato'
+              ? 'Gli scarti di quel giorno sono stati tutti gestiti.'
+              : 'Non c\'è più niente con questo stato.'}
+          </div>
+        </div>
+      )}
+
       {/* Card principale */}
       <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 20}}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 16, flexWrap:'wrap', gap: 12}}>
@@ -935,16 +1282,20 @@ function ContConti({ filter = 'all' }) {
               fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT,
               textTransform:'uppercase', letterSpacing: 0.5,
             }}>
+              {/* Cliccabile è il nome, non la cella: prima si allargava per
+                  tutta la colonna — `alignSelf:'stretch'` più i margini
+                  negativi a riempire il padding della testata — e a
+                  ordinamento attivo si campiva l'intero riquadro. Che
+                  l'ordinamento sia acceso lo dicono già il testo più scuro e
+                  la freccia, senza colorare mezza intestazione. */}
               <span
                 onClick={toggleSortData}
                 style={{
                   cursor:'pointer', userSelect:'none',
-                  alignSelf:'stretch',
-                  display:'flex', alignItems:'center', gap:4,
-                  margin:'-10px 0', padding:'10px 8px',
-                  background: sortData ? C.SURF_ALT : 'transparent',
+                  justifySelf:'start', alignSelf:'center',
+                  display:'inline-flex', alignItems:'center', gap:4,
                   color: sortData ? PN.TEXT : C.TH_TEXT,
-                  transition:'background .15s',
+                  transition:'color .15s',
                 }}
                 title="Ordina per data">
                 Data
@@ -964,12 +1315,12 @@ function ContConti({ filter = 'all' }) {
             </div>
             <MaxRowsScroll maxRows={10}>
             {filtered.map((conto, i) => {
-              const isExpanded = expandedId === conto.id;
+              const isExpanded = expandedIds.has(conto.id);
               return (
                 <React.Fragment key={conto.id}>
                   <div
                     data-row
-                    onClick={() => setExpandedId(isExpanded ? null : conto.id)}
+                    onClick={() => toggleExpanded(conto.id)}
                     onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = '#F7F8FA'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = isExpanded ? PN.PINK_SOFT : PN.WHITE; }}
                     style={{
@@ -1060,6 +1411,8 @@ function ContConti({ filter = 'all' }) {
                       conto={conto}
                       getStato={statoDi}
                       onDettaglio={(c, p) => setDettaglioScontrino({ conto: c, payment: p })}
+                      onRimborso={(c, p) => apriRimborso(c, p)}
+                      onScarto={(p) => setScartoPay({ conto, payment: p })}
                     />
                   )}
                 </React.Fragment>
@@ -1207,8 +1560,19 @@ function ContConti({ filter = 'all' }) {
           onConfirm={() => setSaldati(s => new Set([...s, modalPagamento.id]))}
         />
       )}
+
+      {/* Dettaglio dello scarto del singolo documento */}
+      {scartoPay && (
+        <DocScartoSheet
+          conto={scartoPay.conto}
+          payment={scartoPay.payment}
+          onClose={() => setScartoPay(null)}
+        />
+      )}
     </div>
   );
 }
 
 window.ContConti = ContConti;
+window.PagamentoFiscChip = PagamentoFiscChip;
+window.DocScartoSheet = DocScartoSheet;

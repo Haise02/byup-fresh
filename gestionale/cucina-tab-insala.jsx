@@ -22,7 +22,7 @@ function _urgencyPickup(minToPickup) {
   return                       { tone: 'late', bg: PN.RED_SOFT,   dot: PN.RED,     text: PN.RED     };
 }
 
-function CucinaInSala({ focus = false, onToggleFocus }) {
+function CucinaInSala({ focus = false, onToggleFocus, selettoreMonitor }) {
   const [station, setStation]       = React.useState([]); // [] = tutte
   const [kindFilter, setKindFilter] = React.useState([]); // [] = tutti
   const [onlyLate, setOnlyLate]     = React.useState(false);   // KPI "in ritardo" cliccabile
@@ -424,6 +424,10 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
               </button>
             )}
           </div>
+          {/* Quale schermo è questo: stesso posto e stesso peso che ha nella
+              board Pub, così cambiando monitor la testata non si riorganizza. */}
+          <div style={{display:'flex', alignItems:'center', gap: 12, minWidth: 0}}>
+            {selettoreMonitor}
           <button onClick={onToggleFocus} title={focus ? 'Esci da schermo intero' : 'Schermo intero'} style={{
             width: 36, height: 36, borderRadius: 10,
             background: 'rgba(15, 17, 21, 0.04)',
@@ -436,6 +440,7 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.08)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.04)'; }}
           >{focus ? <ExitFullIcon/> : <EnterFullIcon/>}</button>
+          </div>
         </div>
 
         {/* Colonne fluide — scroll orizzontale morbido quando manca spazio */}
@@ -455,7 +460,6 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onBumpItems={(indices) => bumpItems(t.id, indices)}
                 onPrimary={() => startAll(t.id)}
                 onMarkReady={() => markReady(t.id)}
-                onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
                 registerNode={el => { if (el) cardNodes.current.set(t.id, el); else cardNodes.current.delete(t.id); }}
                 onDragHover={(x, y) => dragHoverAt(x)}
@@ -474,7 +478,6 @@ function CucinaInSala({ focus = false, onToggleFocus }) {
                 onBumpItems={(indices) => bumpItems(t.id, indices)}
                 onPrimary={() => startAll(t.id)}
                 onMarkReady={() => markReady(t.id)}
-                onCancel={() => requestCancel(t.id)}
                 onRevertItems={(indices) => revertItems(t.id, indices)}
                 registerNode={el => { if (el) cardNodes.current.set(t.id, el); else cardNodes.current.delete(t.id); }}
                 onDragHover={(x, y) => dragHoverAt(x)}
@@ -721,7 +724,7 @@ const KDS_HOLD_MS = 800;
 const KDS_AVVIO_S = 5;
 
 // ─── Ticket ────────────────────────────────────────────────
-function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onCancel, onRevertItems,
+function KdsTicket({ ticket, onBumpItem, onBumpItems, onPrimary, onMarkReady, onRevertItems,
   registerNode, onDragHover, onDropAt, onDragCancel }) {
   const age = _ageMin(ticket.time);
   const minToPickup = ticket.pickup ? _toMin(ticket.pickup) - CUC_NOW_MIN : null;
@@ -1423,4 +1426,22 @@ if (typeof document !== 'undefined' && !document.getElementById('kds-anims')) {
   document.head.appendChild(s);
 }
 
+// La board Pub vive dentro la stessa card e usa gli stessi comandi di questa:
+// stessi filtri, stesso tasto schermo intero, stesso riquadro. Due cucine dello
+// stesso gestionale non possono avere due grammatiche.
+const CUC_CARD = (focus) => ({
+  flex: 1, minWidth: 0,
+  position: 'relative', isolation: 'isolate',
+  background: PN.WHITE,
+  borderRadius: focus ? 0 : 20,
+  border: focus ? 'none' : `1px solid ${PN.BORDER_HAIR}`,
+  boxShadow: focus ? 'none' : '0 1px 0 rgba(15,17,21,0.04), 0 6px 20px rgba(15,17,21,0.04)',
+  padding: focus ? '20px 28px' : 22,
+  display: 'flex', flexDirection: 'column', minHeight: 0,
+});
+
 window.CucinaInSala = CucinaInSala;
+window.KdsFilterChip = KdsFilterChip;
+window.EnterFullIcon = EnterFullIcon;
+window.ExitFullIcon  = ExitFullIcon;
+window.CUC_CARD = CUC_CARD;

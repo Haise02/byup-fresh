@@ -22,27 +22,22 @@ function resetTavolo(t, newState) {
   t.minutiSenzaOrdine = 0;
 }
 
-// Trova la prima cella libera in una griglia COLS×ROWS partendo da (startX, startY),
-// escludendo `excludeId`. Espande per "anelli" Chebyshev di raggio r: il check
-// `max(|dx|,|dy|) !== r` salta l'interno del quadrato (già testato nelle iterazioni
-// precedenti), così ogni candidata viene valutata una sola volta.
-function findFreeCellSpiral(POS, startX, startY, excludeId, COLS = 12, ROWS = 8, TILE = 1) {
-  const occupied = Object.entries(POS)
-    .filter(([k]) => parseInt(k, 10) !== excludeId)
-    .map(([, p]) => ({ x: p.x, y: p.y, w: TILE, h: TILE }));
-  const overlaps = (a, b) => !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-  for (let r = 0; r <= 12; r += 0.5) {
-    for (let dx = -r; dx <= r; dx += 0.5) {
-      for (let dy = -r; dy <= r; dy += 0.5) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r && r > 0) continue;
-        const nx = Math.max(0, Math.min(COLS - TILE, startX + dx));
-        const ny = Math.max(0, Math.min(ROWS - TILE, startY + dy));
-        const test = { x: nx, y: ny, w: TILE, h: TILE };
-        if (!occupied.some(o => overlaps(test, o))) return { x: nx, y: ny };
-      }
-    }
-  }
-  return null;
+// Adattatore sulla geometria condivisa (sala-geometria.jsx): qui i dati sono
+// la mappa SALA_POSITIONS e i fixture della sala, di là sono rettangoli.
+function findFreeCellSpiral(POS, startX, startY, movedId, COLS = 12, ROWS = 8) {
+  const tavoli = window.SALA_TAVOLI || [];
+  const ingombroDi = (id) => {
+    const t = tavoli.find(x => x.id === id);
+    return geoIngombro(t && t.posti, (POS[id] || {}).orientation);
+  };
+  const mio = ingombroDi(movedId);
+  const ostacoli = [
+    ...Object.keys(POS).map(k => parseInt(k, 10))
+      .filter(id => id !== movedId && POS[id])
+      .map(id => ({ x: POS[id].x, y: POS[id].y, ...ingombroDi(id) })),
+    ...(window.SALA_FIXTURES || []).map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+  ];
+  return geoPostoLibero({ x: startX, y: startY, w: mio.w, h: mio.h, ostacoli, cols: COLS, rows: ROWS });
 }
 
 function SalaApp() {
@@ -203,7 +198,7 @@ function SalaApp() {
 
       // 2) Riposiziona il tavolo separato nella prima cella libera vicina.
       if (m && POS[mergedId]) {
-        const spot = findFreeCellSpiral(POS, POS[mergedId].x, POS[mergedId].y, mergedId, COLS, ROWS, TILE);
+        const spot = findFreeCellSpiral(POS, POS[mergedId].x, POS[mergedId].y, mergedId, COLS, ROWS);
         if (spot) POS[mergedId] = { ...POS[mergedId], x: spot.x, y: spot.y };
       }
       window.dispatchEvent(new Event('sala-positions-sync'));
@@ -212,11 +207,23 @@ function SalaApp() {
     forceUpdate();
   }
   function handleEdit(t)        { setModalModifica(t); }
-  function handleAssignOther(t) { alert(`Assegna Tavolo ${t.id} ad altri (mock)`); }
   function handleNoShow(t)      { t.state = 'libero'; t.nextReservation = null; t.minutiAllaPrenotazione = null; forceUpdate(); }
 
-  function handleUnisciConfirm(sourceTavolo, selectedIds) {
+  function handleUnisciConfirm(sourceTavolo, guestIds) {
     const all = getTavoli();
+    // Un tavolo scelto può essere già dentro un gruppo — da capo o da membro:
+    // in quel caso si porta dietro tutti i suoi. Prendendo solo l'id scelto, i
+    // compagni restavano fuori dal calcolo della fila e finivano a fare massa
+    // sotto o sopra: da lì i gruppi «quadrati» unendo due gruppi già uniti.
+    const gruppoDi = (id) => {
+      const t = all.find(x => x.id === id);
+      if (!t) return [];
+      if (t.mergedTables && t.mergedTables.length) return [id, ...t.mergedTables];
+      const capo = all.find(x => x.mergedTables && x.mergedTables.includes(id));
+      return capo ? [capo.id, ...capo.mergedTables] : [id];
+    };
+    const selectedIds = Array.from(new Set(guestIds.flatMap(gruppoDi)))
+      .filter(id => id !== sourceTavolo.id && !(sourceTavolo.mergedTables || []).includes(id));
     // Cattura i secondari già esistenti prima dell'update (serve per la direzione del gruppo)
     const existingMergedIds = [...(sourceTavolo.mergedTables || [])];
     // Stato dominante: occupato > prenotato > libero > dapulire.
@@ -261,6 +268,10 @@ function SalaApp() {
       t.timeSinceLastOrder = 0;
       t.minutiSenzaOrdine = 0;
       t.mergedWith = sourceTavolo.id;
+      // Se entrava da capo di un altro gruppo, smette di esserlo: i suoi
+      // membri sono già passati sotto al source qui sopra, e un capo dentro
+      // un capo lascerebbe due gruppi sovrapposti.
+      delete t.mergedTables;
     });
     // Allinea source e tavoli già uniti al targetState
     sourceTavolo.state = targetState;
@@ -309,57 +320,36 @@ function SalaApp() {
     // la linea; qui invece si arretra l'origine e la fila resta intera.
     const POS = window.SALA_POSITIONS;
     if (POS && POS[sourceTavolo.id]) {
-      const COLS = 12, ROWS = 8, TILE = 1;
+      const COLS = 12, ROWS = 8;
       const memberIds = [sourceTavolo.id, ...sourceTavolo.mergedTables].filter(id => POS[id]);
-      const dimsOf = (id, orientation) => {
-        const tt = all.find(x => x.id === id);
-        const o = orientation || (POS[id] && POS[id].orientation);
-        return typeof getTableDims === 'function'
-          ? getTableDims(null, tt?.posti, o)
-          : { w: TILE, h: TILE };
-      };
-      const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+      const postiDi = (id) => (all.find(x => x.id === id) || {}).posti;
 
-      // Asse della fila: mantiene quello del gruppo esistente (verticale se
-      // condivide la colonna), poi passa all'altro asse se la fila non entra.
+      // Le scelte di QUESTA schermata, che la geometria non conosce:
+      //  · l'asse lo detta il gruppo che c'era già — verticale se i suoi
+      //    membri condividevano la colonna — e si gira solo se non ci sta;
+      //  · la fila si ancora al tavolo su cui si è unito;
+      //  · l'ordine è quello con cui i tavoli sono entrati nel gruppo.
       const prevIds = [sourceTavolo.id, ...existingMergedIds].filter(id => POS[id]);
-      let axis = (prevIds.length > 1 && prevIds.every(id => Math.abs(POS[id].x - POS[prevIds[0]].x) < 0.26)) ? 'v' : 'h';
-      const lenAlong = (a) => memberIds.reduce((s, id) => s + (a === 'h' ? dimsOf(id, a).w : dimsOf(id, a).h), 0);
-      if (axis === 'h' && lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
-      else if (axis === 'v' && lenAlong('v') > ROWS && lenAlong('h') <= COLS) axis = 'h';
+      const assePreferito = (prevIds.length > 1 &&
+        prevIds.every(id => Math.abs(POS[id].x - POS[prevIds[0]].x) < 0.26)) ? 'v' : 'h';
 
-      // Origine ancorata al source, arretrata quanto basta perché tutta la
-      // fila stia nella griglia (i rettangolari si girano lungo l'asse).
-      const src = POS[sourceTavolo.id];
-      const total = lenAlong(axis);
-      let cursor = axis === 'h'
-        ? Math.max(0, Math.min(src.x, COLS - total))
-        : Math.max(0, Math.min(src.y, ROWS - total));
-      const crossMax = Math.max(...memberIds.map(id => axis === 'h' ? dimsOf(id, axis).h : dimsOf(id, axis).w));
-      const cross = axis === 'h'
-        ? Math.max(0, Math.min(src.y, ROWS - crossMax))
-        : Math.max(0, Math.min(src.x, COLS - crossMax));
-
-      const lineRects = [];
-      memberIds.forEach(id => {
-        const d = dimsOf(id, axis);
-        const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
-        const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
-        POS[id] = { ...POS[id], x, y, orientation: axis };
-        lineRects.push({ x, y, w: d.w, h: d.h });
-        cursor += axis === 'h' ? d.w : d.h;
+      const fila = geoFila({
+        membri: memberIds.map(id => ({ id, posti: postiDi(id) })),
+        ancora: { x: POS[sourceTavolo.id].x, y: POS[sourceTavolo.id].y },
+        cols: COLS, rows: ROWS, assePreferito,
       });
+      fila.forEach(f => { POS[f.id] = { ...POS[f.id], x: f.x, y: f.y, orientation: f.orientation }; });
 
-      // Sgombera i tavoli estranei finiti sotto la fila: prima cella libera vicina.
-      Object.keys(POS).map(k => parseInt(k, 10))
-        .filter(id => !memberIds.includes(id))
-        .forEach(id => {
-          const r = { x: POS[id].x, y: POS[id].y, ...dimsOf(id) };
-          if (lineRects.some(mr => overlap(mr, r))) {
-            const spot = findFreeCellSpiral(POS, POS[id].x, POS[id].y, id, COLS, ROWS, TILE);
-            if (spot) POS[id] = { ...POS[id], x: spot.x, y: spot.y };
-          }
-        });
+      const estranei = Object.keys(POS).map(k => parseInt(k, 10))
+        .filter(id => !memberIds.includes(id) && POS[id])
+        .map(id => ({ id, x: POS[id].x, y: POS[id].y, ...geoIngombro(postiDi(id), POS[id].orientation) }));
+      const spostati = geoSgombera({
+        fila: fila.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+        estranei,
+        ostacoli: (window.SALA_FIXTURES || []).map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+        cols: COLS, rows: ROWS,
+      });
+      Object.entries(spostati).forEach(([id, pos]) => { POS[id] = { ...POS[id], x: pos.x, y: pos.y }; });
       window.dispatchEvent(new Event('sala-positions-sync'));
     }
     showToast(`✓ ${selectedIds.length} tavol${selectedIds.length===1?'o unito':'i uniti'} a Tavolo ${sourceTavolo.id}`);
@@ -375,7 +365,6 @@ function SalaApp() {
 
 
   const sidebarActive = tab === 'vendita' ? 'vendita' : tab === 'calendar' ? 'prenotazioni' : 'sala';
-  const headerTitle = tab === 'vendita' ? 'Vendita diretta' : tab === 'calendar' ? 'Prenotazioni' : 'Sala';
 
   return (
     <div style={{display:'flex', flex:1, minHeight:0, minWidth:0}}>
@@ -407,19 +396,6 @@ function SalaApp() {
                 }}
                 onOpenPay={(t) => setModalPay(t)}
                 onAddArticle={(t) => { setArticoloSheet(t); if (cart.tableId !== t.id) setCart({tableId:t.id, items:[]}); }}
-                cart={cart}
-                onCartChange={setCart}
-                onConfirmCart={handleConfirmCart}
-                onAdjustCoperti={(id, n) => {
-                  // Lo stepper modifica i COPERTI seduti, mai la capacità:
-                  // clamp tra 1 e i posti. Gli utenti connessi (byup/byupWeb)
-                  // NON si toccano: quel numero non dipende dai coperti.
-                  const t = SALA_TAVOLI.find(x => x.id === id);
-                  if (t) {
-                    t.coperti = Math.max(1, Math.min(t.posti || n, n));
-                    forceUpdate();
-                  }
-                }}
                 onAdjustReservationPosti={(id, n) => {
                   // Pencil su libero/prenotato espansi: edita la party size della prenotazione.
                   const t = SALA_TAVOLI.find(x => x.id === id);
@@ -430,12 +406,10 @@ function SalaApp() {
                 }}
                 onLibera={handleLibera}
                 onEdit={handleEdit}
-                onAssignOther={handleAssignOther}
-                onNoShow={handleNoShow}
               />
             )}
             {tab === 'vendita' && <SalaVenditaDiretta/>}
-            {tab === 'calendar' && <SalaCalendario tweaks={tweaks}
+            {tab === 'calendar' && <SalaCalendario
               onNuova={(data) => setModalNuova(data || true)}
               onModifica={(r) => setModalNuova({
                 resId: r.id,

@@ -409,12 +409,21 @@ function ImpSalaTavoli() {
     const dragged = tavoli.find(t => t.id === idDragged);
     const target = tavoli.find(t => t.id === idTarget);
     if (!dragged || !target) return;
-    // Se uno dei due è già in un gruppo, estendi quel gruppo invece di crearne uno nuovo.
-    const existing = groups.find(g => g.tableIds.includes(idDragged) || g.tableIds.includes(idTarget));
+    // Se uno dei due è già in un gruppo, estendi quel gruppo invece di crearne
+    // uno nuovo. Se lo sono TUTTI E DUE, i due gruppi si fondono in uno: prima
+    // ne restava uno per conto suo, e i suoi tavoli continuavano a muoversi
+    // come un gruppo separato pur essendo attaccati.
+    const gA = groups.find(g => g.tableIds.includes(idDragged));
+    const gB = groups.find(g => g.tableIds.includes(idTarget));
+    const existing = gB || gA;
     const snapshot = [...groups];
     if (existing) {
-      const merged = { ...existing, tableIds: Array.from(new Set([...existing.tableIds, idDragged, idTarget])) };
-      setGroups(prev => prev.map(g => g.id === existing.id ? merged : g));
+      const tutti = Array.from(new Set([
+        ...(gA ? gA.tableIds : [idDragged]),
+        ...(gB ? gB.tableIds : [idTarget]),
+      ]));
+      const daTogliere = new Set([gA && gA.id, gB && gB.id].filter(x => x != null));
+      setGroups(prev => prev.filter(g => !daTogliere.has(g.id)).concat([{ ...existing, tableIds: tutti }]));
     } else {
       const newGid = (groups.reduce((m,g) => Math.max(m, g.id || 0), 0) || 0) + 1;
       setGroups(prev => [...prev, { id: newGid, tableIds: [idTarget, idDragged] }]);
@@ -431,11 +440,13 @@ function ImpSalaTavoli() {
   // continua a sembrare parte del tavolo unito.
   const separateTables = (moveIds, groupIds) => {
     const { cols, rows } = salaGrid(active);
-    const dimsOf = (t) => ttFootprintUnits(t.coperti || 4, ttSeatShape(t.coperti || 4), t.orientation || 'h');
+    const dimsOf = (t) => geoIngombro(t.coperti, t.orientation);
     setTavoli(prev => {
       const next = prev.map(t => ({...t, pos: {...t.pos}}));
-      const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
-      const touches = (a, b) => a.x < b.x + b.w + 0.5 && b.x < a.x + a.w + 0.5 && a.y < b.y + b.h + 0.5 && b.y < a.y + a.h + 0.5;
+      const overlap = geoSovrappone;
+      // «Si toccano» = si sfiorano entro mezza cella: staccando un tavolo dal
+      // gruppo non basta che non si sovrapponga, deve anche allontanarsi.
+      const touches = (a, b) => geoSovrappone(a, { x: b.x - 0.5, y: b.y - 0.5, w: b.w + 1, h: b.h + 1 });
       const rectOf = (t) => ({ x: t.pos.x, y: t.pos.y, ...dimsOf(t) });
       moveIds.forEach(id => {
         const t = next.find(x => x.id === id);
@@ -466,11 +477,29 @@ function ImpSalaTavoli() {
     });
   };
 
-  const ungroupTables = (gid) => {
-    const group = groups.find(g => g.id === gid);
-    setGroups(prev => prev.filter(g => g.id !== gid));
-    // Sciogliendo tutto il gruppo, ogni tavolo dopo il primo si stacca dagli altri
-    if (group && group.tableIds.length > 1) separateTables(group.tableIds.slice(1), group.tableIds);
+
+  // Ruota — la matematica sta in sala-geometria.jsx, la stessa che usa la
+  // mappa in Sala. Qui restano i dati di questa schermata: la griglia viene
+  // dai metri della sala, e gli ostacoli sono gli altri tavoli più l'arredo.
+  const rotateTable = (id) => {
+    const { cols, rows } = salaGrid(active);
+    const g = groups.find(x => x.tableIds.includes(id));
+    const ids = g ? g.tableIds : [id];
+    setTavoli(prev => {
+      const membri = prev.filter(t => ids.includes(t.id))
+        .map(t => ({ id: t.id, posti: t.coperti, x: t.pos.x, y: t.pos.y, orientation: t.orientation }));
+      const ostacoli = [
+        ...prev.filter(t => !ids.includes(t.id))
+          .map(t => ({ x: t.pos.x, y: t.pos.y, ...geoIngombro(t.coperti, t.orientation) })),
+        ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+      ];
+      const esito = geoRuota({ membri, ostacoli, cols, rows });
+      if (!esito) return prev;
+      return prev.map(t => {
+        const e = esito.find(x => x.id === t.id);
+        return e ? { ...t, pos: { x: e.x, y: e.y }, orientation: e.orientation } : t;
+      });
+    });
   };
 
   const removeFromGroup = (tableId) => {
@@ -553,8 +582,13 @@ function ImpSalaTavoli() {
                       animation: isDragTarget && !isDragOver ? 'salaDropPulse 1.6s ease-in-out infinite' : 'none',
                     }}
                   >
-                    <div style={{display:'flex', alignItems:'center', gap: 6, marginBottom: 4}}>
-                      <span style={{fontSize:15.5, fontWeight:700, flex:1, color: isOpen ? PN.PINK_DARK : PN.TEXT}}>{s.name}</span>
+                    {/* Nome + stato: su colonna stretta il badge "DISATTIVATA"
+                        non ci sta accanto al nome — va a capo invece di mandare
+                        la riga in overflow. Il ⋯ è ancorato in alto a destra
+                        (fuori dal flusso) così non viene mai spinto fuori card:
+                        paddingRight riserva la sua corsia. */}
+                    <div style={{display:'flex', alignItems:'center', flexWrap:'wrap', gap: 6, marginBottom: 4, paddingRight: 24}}>
+                      <span style={{fontSize:15.5, fontWeight:700, flex:'1 1 auto', minWidth: 0, color: isOpen ? PN.PINK_DARK : PN.TEXT}}>{s.name}</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -563,6 +597,7 @@ function ImpSalaTavoli() {
                         title={s.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
                         style={{
                           display:'inline-flex', alignItems:'center', gap:5,
+                          flexShrink: 0, whiteSpace:'nowrap',
                           padding:'2px 8px', borderRadius:999,
                           border:'none', cursor:'pointer', fontFamily:'inherit',
                           fontSize:12.5, fontWeight:700, letterSpacing:0.3,
@@ -579,16 +614,18 @@ function ImpSalaTavoli() {
                         }}/>
                         {s.active ? 'ATTIVA' : 'DISATTIVATA'}
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setSalaMenu(menuOpen ? null : s.id); }}
-                        style={{
-                          width: 22, height: 22, borderRadius: 5,
-                          background: menuOpen ? PN.WHITE : 'transparent',
-                          border:'none', cursor:'pointer',
-                          color: PN.MUTED, fontSize: 16,
-                          display:'grid', placeItems:'center',
-                        }}>⋯</button>
                     </div>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSalaMenu(menuOpen ? null : s.id); }}
+                      title="Opzioni sala"
+                      style={{
+                        position:'absolute', top: 11, right: 10,
+                        width: 22, height: 22, borderRadius: 5, padding: 0,
+                        background: menuOpen ? PN.WHITE : 'transparent',
+                        border:'none', cursor:'pointer',
+                        color: PN.MUTED,
+                        display:'grid', placeItems:'center',
+                      }}><Puntini size={13}/></button>
                     <div style={{fontSize:13.5, color:PN.MUTED, display:'flex', alignItems:'center', gap:6}}>
                       {sCount > 0 ? (
                         <>
@@ -898,13 +935,20 @@ function ImpSalaTavoli() {
               onCreateTable={createTable}
               onCreateFurniture={createFurniture}
               onMoveTable={(id, pos) => updateTavolo(id, {pos})}
-              onBulkMoveTables={(updates) => setTavoli(prev => prev.map(t => updates[t.id] ? {...t, pos: updates[t.id]} : t))}
+              onBulkMoveTables={(updates) => setTavoli(prev => prev.map(t => {
+                const u = updates[t.id];
+                if (!u) return t;
+                // L'unione riallinea anche l'orientamento dei membri lungo la
+                // fila, non solo la posizione.
+                const { orientation, ...pos } = u;
+                return orientation ? {...t, pos, orientation} : {...t, pos};
+              }))}
               onMoveFurniture={(id, pos) => setFurniture(prev => prev.map(f => f.id === id ? {...f, ...pos} : f))}
               onResizeFurniture={(id, dim) => setFurniture(prev => prev.map(f => f.id === id ? {...f, ...dim} : f))}
               onRotateFurniture={(id) => setFurniture(prev => prev.map(f => f.id === id ? {...f, w: f.h, h: f.w} : f))}
               onDeleteFurniture={deleteFurniture}
               onMergeTables={mergeTables}
-              onUngroupTables={ungroupTables}
+              onRotateTable={rotateTable}
               onSelectTable={toggleSelect}
               onEditTable={(id) => setEditingTable(id)}
             />
@@ -1223,11 +1267,11 @@ function TableCard({ t, sale, activeSalaId, selected, menuOpen, isDragging, anyD
         </button>
         <button onClick={onMenuToggle} style={{
           marginLeft:'auto',
-          width: 28, height: 28, borderRadius: 6,
+          width: 28, height: 28, borderRadius: 6, padding: 0,
           background: menuOpen ? '#F4F5F7' : 'transparent',
           border:'none', cursor:'pointer', color: PN.MUTED,
-          display:'grid', placeItems:'center', fontSize: 18,
-        }}>⋯</button>
+          display:'grid', placeItems:'center',
+        }}><Puntini size={15}/></button>
         {menuOpen && (
           <div onClick={e => e.stopPropagation()} style={{
             position:'absolute', top: 38, right: 12, zIndex: 100,

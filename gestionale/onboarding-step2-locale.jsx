@@ -408,6 +408,25 @@ function AdeDelegaCard({venue, v}) {
         </ol>
       </details>
 
+      {/* La rassicurazione che qui conta: la delega si dà sul portale AdE,
+          quindi le credenziali non passano MAI da byup — che è più forte di
+          «non le conserviamo in chiaro», ed è la verità del flusso. */}
+      <div style={{
+        marginTop: 12, padding: '10px 13px', borderRadius: 10,
+        background: 'rgba(22, 163, 74, 0.07)', border: '1px solid rgba(22, 163, 74, 0.18)',
+        display: 'flex', alignItems: 'flex-start', gap: 9,
+        fontSize: 13.5, color: ONB.MUTED, lineHeight: 1.5,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={ONB.GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+          <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+        </svg>
+        <span>
+          <b style={{color: ONB.TEXT, fontWeight: 600}}>byup non chiede e non conserva le tue credenziali dell'Agenzia delle Entrate.</b>{' '}
+          L'autorizzazione avviene con una delega che concedi tu sul portale AdE; i dati di collegamento
+          per la trasmissione sono conservati cifrati.
+        </span>
+      </div>
+
       {/* Verifica — chiude il giro: la delega o c'è o non c'è, e lo si sa qui
           e ora invece che al primo scontrino di sabato sera. */}
       <div style={{

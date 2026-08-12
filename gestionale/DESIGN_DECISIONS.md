@@ -4,7 +4,7 @@ Riferimento per ogni nuova schermata. Le decisioni qui sono **vincolanti**: quan
 
 Standard di riferimento: Linear, Stripe Dashboard, Notion.
 
-Ultimo allineamento al codice: 2026-07-28.
+Ultimo allineamento al codice: 2026-08-09.
 
 ---
 
@@ -474,6 +474,8 @@ Dropdown notifiche ora usa `...PN.GLASS_MENU` — `blur(24px) saturate(180%)` su
 
 ## Prossimi passi possibili (non fatti in questa iterazione)
 
+> **Lista di luglio, superata dai fatti** (verificata il 2026-08-09). Alcuni file citati non esistono più con quel nome — `sala-v3-app.jsx` è oggi `sala-app.jsx`, `sala-modali.jsx` è stato assorbito, `byup Account.html` è `byup Profilo.html` — e Statistiche è stata riscritta da capo fra il 6 e l'8 agosto. Si legge come traccia di intenzioni, non come cose da fare.
+
 - `panoramica-app.jsx` e `panoramica-grid.jsx` — applicare ApBtn agli action buttons rimasti.
 - `byup Profilo.html`, `byup Account.html` — top header con `GLASS_BAR` sticky.
 - `cucina-app.jsx`, `sala-v3-app.jsx` — sostituire i bottoni colorati con le varianti BTN_* gradient.
@@ -713,6 +715,135 @@ Due mesi gratis a testa, a chi invita e a chi arriva. Vive in **Profilo → Pian
 Otto azioni, `4×2`. **Le colonne si scelgono per stare sempre in due righe** — tre fino a sei azioni, quattro da sette in poi — perché la settima sarebbe rimasta sola in una terza riga, che è l'orfano che le tre colonne originali erano state scelte per evitare.
 
 Le due nuove: **«Modifica menu»** (matita ambra) porta al compositore dei menù (`?page=menu-cucina&sub=menu`), destinazione diversa da «Aggiungi piatto» che apre la libreria dei piatti; **«Invita un ristorante»** al popup del referral.
+
+---
+
+# Statistiche economiche, Supporto e assistente IA — 6 ago 2026
+
+Tre filoni: la sub-tab **Ricavi e costi** delle Statistiche, il **Supporto**, e un **assistente IA fluttuante** nuovo che vive su tutte le schermate della console.
+
+## Statistiche → Economici → Ricavi e costi (`stat-economici.jsx`)
+
+### Le barre di «Totale costi» mentivano
+
+Erano tutte lunghe uguale, a tutta larghezza, perché mostravano solo il mix fissi/variabili di ogni categoria. A quella lunghezza e a quel peso però si leggono come una **quantità**: «Altro» a 1.580 € sembrava pesare quanto gli stipendi a 18.400 €. Ora la **lunghezza è la quota della categoria** — in scala sulla più grossa, non sul totale, altrimenti sarebbero tutte monconi visto che la maggiore è il 35% — e le due tinte restano il mix.
+
+La card è passata a due colonne. A sinistra un incavo col totale, l'**incidenza sui ricavi** e **quanto della spesa è incomprimibile** (fissi vs variabili aggregati sull'intero breakdown), con l'andamento a 12 mesi a filo del bordo in fondo. A destra le categorie in ordine di peso, incolonnate sotto un'intestazione (categoria · composizione · quota · totale · vs mese); «Altro» resta ultimo perché è il residuo, non una categoria. Prima era una riga sola per categoria, col nome all'estrema sinistra e i numeri schiacciati a destra: su una card larga tutta la pagina restava mezzo metro di vuoto in mezzo.
+
+Le colonne stanno in `COSTI_COLS`, dichiarate una volta sola: intestazione e righe devono restare incolonnate, e due `gridTemplateColumns` gemelli divergono al primo ritocco.
+
+**Il segno dei costi si legge al contrario di un ricavo.** `CostoDelta` colora di verde quando si spende meno e lascia grigio fino al +5%: un rialzo piccolo non è un allarme, e sette pillole rosse renderebbero illeggibile la card. `StatDelta`, che assume «su = bene», qui darebbe rosso a un -4,2% che è una buona notizia. Il «↓ 4,2% vs mese scorso» in testa era peraltro **una stringa scritta a mano**: ora viene da `d.costi.delta`.
+
+### Grafici che riempiono lo spazio che hanno
+
+`StatSpark` accetta tre prop nuove, tutte opzionali e con default che lasciano intatte le chiamate esistenti:
+
+- **`stretch`** — l'SVG riempie il contenitore in larghezza e in altezza (`preserveAspectRatio="none"`), con `vector-effect="non-scaling-stroke"` sulla polilinea perché la linea non si ingrassi quando viene stirata; `width`/`height` restano solo il sistema di coordinate interno;
+- **`padY`** — stacca minimo e massimo dai bordi, così la linea non striscia sul filo quando il grafico va a filo della card;
+- **`stroke`** — spessore della linea, un filo più presente quando il grafico è grande.
+
+Nei tre box dei canali il grafico va **a filo dei bordi** (margini negativi + `overflow: hidden` sul box) con un'altezza sua di 48px ancorata in basso da `margin-top: auto`. A misura fissa lasciava un vuoto a destra; lasciandolo crescere a piacere diventava un terzo della card.
+
+### Bianco su bianco non si vede
+
+I tre box dei canali erano bianchi su una card bianca con bordo `BORDER_SOFT` (#F0F2F5): il perimetro non aveva niente da separare. Ora sono **incavi** — fondo `PN.BG`, lo stesso del canvas, e bordo `PN.BORDER` — e il bordo si legge perché divide due tinte diverse, non perché sia stato scurito. Provata anche la strada opposta (box bianchi in rilievo con ombra): resta bianco su bianco, i bordi si vedono solo su uno schermo tarato bene.
+
+### Hover
+
+- **I box** (i tre KPI in testa e i tre canali) crescono dell'**1,5%** e prendono `CARD_SHADOW_HOVER`. Non di più: stando in griglia a filo, con più ingrandimento si vede il box spingere quello accanto.
+- **Il donut di Origine incassi**: lo spicchio puntato cresce del **7%** e resta l'unico a colore pieno, gli altri scendono al 40%. Cresce con una **scala CSS attorno al centro** e non ricalcolando il path — l'attributo `d` di un `<path>` non si può animare, la trasformazione sì; al 7% l'anello arriva a 151 dei 156 del viewBox, quindi il viewBox non va allargato. Al centro compare il metodo puntato col suo incasso al posto del totale, e la legenda si accende dalla parte giusta: funziona anche partendo dalla riga della legenda.
+
+## Supporto
+
+- **La chat dichiara di essere un'IA.** «Assistente virtuale» non è la stessa cosa: chi scrive deve sapere che dall'altra parte non c'è una persona. Lo dice il primo messaggio e lo ripete l'intestazione, perché il saluto scorre via appena la conversazione si allunga.
+- **«Operatore» e «Richiamami» erano due bottoni senza `onClick`.** Al loro posto uno solo, «Parla con un operatore umano», che apre le due strade vere — Ticket e Prenota una chiamata — agganciate alle modali che già esistono in pagina. La scelta si annulla con una ×, e si richiude da sola appena la modale si apre.
+- **Il canale Email è diventato Ticket** (card, CTA, scelta nella chat, titolo e conferma della modale), con l'icona documento al posto della busta: quello che apri è una richiesta tracciata. Risposta **entro 2 giorni lavorativi**, allineata anche sul badge della card, che prometteva 4 ore — è lo stesso canale, lasciarli diversi sarebbe una promessa contraddetta due centimetri più in là.
+- **Le fasce di richiamata stanno dentro l'orario presidiato.** «Domani mattina, 9:00–12:00» prometteva una chiamata fuori orario: il telefono è presidiato Lun–Ven 12–16 e 18–22 (piano Plus). Le quattro scelte sono ora *Entro 2 ore* (garanzia Plus), *Entro 1 ora* (garanzia Business, H24), *Fascia 12:00–16:00*, *Fascia 18:00–22:00*. Lo stato iniziale era `'30min'`, un id che non esisteva fra le opzioni: all'apertura non risultava selezionata nessuna fascia.
+- **La ricerca apre la pagina.** Stava incastrata fra le card dei canali e il Centro assistenza, bianca fra due superfici bianche: non aveva niente da cui staccarsi. Ora è il primo elemento — in un centro assistenza la prima mossa è cercare, scrivere o chiamare è quello che si fa se la ricerca non basta — con la lente in una pastiglia rosa, ombra a riposo e anello rosa al fuoco. L'esempio è uscito dal placeholder, dove faceva una riga lunghissima che si leggeva come una frase invece che come un suggerimento.
+- **`?chat=1`** apre la chat dell'assistenza all'arrivo. Ci punta l'assistente IA delle altre schermate.
+
+## Assistente IA fluttuante (`byup-ai-fab.jsx`)
+
+Un bollino col segno byup in basso a destra su **tutte le schermate della console tranne il Supporto**, dove l'angolo è già della chat dell'assistenza e due bolle nello stesso posto si coprirebbero. Fuori anche Login, Restaurant Onboarding e Configurazione completa: su un login non sei autenticato, e in onboarding un assistente che offre di modificare menu e sala non ha ancora un locale su cui lavorare.
+
+### Come si aggancia
+
+**Si monta da solo dentro `.frame`.** Alle pagine serve solo il tag `<script>`, nessun componente toccato. Non sul `body`: il frame ha uno `zoom` che scala tutta la UI, e un elemento `fixed` fuori dal frame resterebbe della misura sbagliata e fuori dai bordi. Il frame lo monta React dopo la compilazione Babel, che arriva da CDN: al primo giro può non esserci ancora, quindi un `MutationObserver` aspetta e monta appena compare — stessa soluzione dello script di zoom già presente nelle pagine.
+
+**Le tre icone che gli servono sono disegnate nel file.** `byup-icons.jsx` è caricato solo da due delle sette pagine che montano il bollino: pescando da `BuIcons` l'assistente sarebbe morto al primo render sulle altre cinque. Niente spread sulle props né rest nel destructuring, per non rientrare nella collisione degli helper Babel fra script non isolati che ha già fatto sparire delle icone in passato.
+
+### Il bollino
+
+72px — quello del Supporto è 56. A riposo è bianco col segno corallo e un alone che respira piano; al passaggio cresce di **metà** (72 → 108) e si accende col **gradiente aurora** (`#FF5A5F → #F472B6 → #A78BFA`), la stessa palette che gira attorno alle card dei piani, col segno che diventa bianco in dissolvenza. I due segni stanno sovrapposti e si scambiano per opacità: cambiare `src` a metà transizione fa sfarfallare.
+
+Al clic parte un ventaglio di dodici scintille e **solo dopo 200ms** si apre il pannello: aprendoli insieme la finestra copriva metà del volo e il clic sembrava non aver fatto niente.
+
+### Trascinabile
+
+Si prende e si porta dove si vuole. La posizione vale su tutte le schermate e sopravvive al ricaricamento (`localStorage`, chiave `byup.ai.fab.pos`). Finché non lo si sposta resta ancorato in basso a destra e segue il frame quando la finestra cambia larghezza; se la finestra si stringe al punto da mandarlo fuori, rientra da solo.
+
+- **Lo `zoom` del frame va diviso.** Un pixel di schermo non è un pixel di frame: senza il fattore, il bollino scappa dal puntatore su qualsiasi finestra non alta esattamente 900. Il fattore si ricava da `frame.getBoundingClientRect().width / parseFloat(frame.style.width)`, che è quello che lo script di fit ha impostato.
+- **Clic e trascinamento sono lo stesso gesto**, separati da una soglia di 4px. L'apertura però resta sull'evento `click` e non sul rilascio del puntatore, così il bottone continua a rispondere anche a tastiera, lettori di schermo e comandi vocali, che generano un click senza eventi di puntatore; dopo un trascinamento quel click arriva lo stesso (il bollino è rimasto sotto il dito) e viene ignorato da una bandiera.
+- **Mentre lo trascini resta a misura** con un'ombra appena più marcata, invece di gonfiarsi a 1,5×: ingrandito, il puntatore finirebbe fuori centro e sembrerebbe sfuggire. Niente transizione sul `transform` durante il trascinamento, o arriverebbe al puntatore con un quarto di secondo di ritardo.
+
+### La chat
+
+384 × 620, testata col gradiente aurora che scorre lentissimo e il **byuppino** ripreso dalla mascotte dell'app (`app/assets/mascot-wave.png`, ridimensionata da 926 KB a 85 e copiata come `gestionale/byuppino-wave.png` — un `../app/assets/` avrebbe legato il gestionale a una cartella che non gli appartiene). La testata non ha `overflow: hidden`, così il byuppino sborda di una decina di pixel e si affaccia sulla conversazione; il ritaglio agli angoli lo fa già il pannello.
+
+**Il pannello si apre dal lato del bollino**: allineato al bordo vicino, sopra se c'è posto e sotto altrimenti, sempre dentro il frame — che ha `overflow: hidden` e taglierebbe quello che esce. Anche l'origine dell'animazione punta all'angolo giusto: col bollino portato in alto a sinistra, una chat che si apre dal basso a destra sembra di qualcun altro.
+
+**La seconda conferma che il saluto promette è implementata davvero**: la risposta mostra la modifica preparata e non pubblica finché non gliela si conferma. Una copy che promette una cosa che la UI non fa è una bugia, non un mockup.
+
+**Gli esempi girano dentro al campo di scrittura**, uno ogni 3,4 secondi, uno per area (prenotazione, menu, sala, impostazioni). Erano nate come pillole cliccabili sopra al campo: erano comandi già scritti, e chi li preme non impara cosa può chiedere — esegue una cosa decisa da noi. Nel campo mostrano invece la **forma** di una richiesta, nel punto esatto in cui stai per scriverla, e non occupano una riga di pannello. Il giro si ferma quando il cursore entra nel campo: un testo che cambia da solo mentre stai formulando la frase distrae. Il suggerimento è un testo sovrapposto e non l'attributo `placeholder`, che non si può dissolvere.
+
+**«Serve una persona? Contatta l'assistenza»** sta in alto a destra, prima della conversazione, piccola e grigia. Sopra al campo di scrittura era in mezzo agli occhi proprio mentre stai per chiedere qualcosa all'assistente, e a tutta larghezza sembrava un invito ad andarsene. Porta a `byup Supporto.html?chat=1`.
+
+---
+
+# Statistiche, Cucina a due monitor, Menù e ruoli — 7-9 ago 2026
+
+Batch grosso (~190 commit). Qui stanno le regole che ne escono e valgono da qui in avanti; il racconto di cosa è cambiato sta in `PROGRESS.md`.
+
+## Un fatto, una casa
+
+La regola che ha guidato quasi tutti gli spostamenti di questa sessione: **un dato sta in un posto solo, e quel posto è dove qualcuno se lo va a cercare**.
+
+- Lo **stato di trasmissione fiscale** è del pagamento, non della giornata: Conti ne è la casa, e le chiusure di cassa lo derivano. Prima stava su entrambi e le due copie divergevano.
+- La **geometria della sala** — ingombro del tavolo, test di sovrapposizione, ricerca a spirale del posto libero, disposizione in fila, rotazione di un gruppo — sta in `sala-geometria.jsx` e la usano sia Sala sia Impostazioni → Sala e tavoli. Erano due copie divergenti, e lo stesso difetto («un'unione che diventa un blocco») si è dovuto correggere due volte in due giorni. Ci entrano numeri e rettangoli, non oggetti «tavolo»: chi chiama traduce i propri dati, così le differenze fra le due pagine restano parametri espliciti invece di due implementazioni che si somigliano.
+- La **visualizzazione della cucina** è del monitor, non della pagina: si sceglie dove il monitor si collega (Impostazioni → Personale), e la Cucina sceglie solo quale monitor guardare.
+- I **KPI del servizio clienti** vivono in Statistiche, non anche nell'Assistenza.
+
+Corollario operativo: quando due schermate mostrano lo stesso fatto, una delle due lo **legge**, non lo ricalcola.
+
+## Ruoli di sistema e ruoli personalizzati
+
+Cassa, Cameriere e Titolare sono **ruoli di sistema**: hanno permessi di partenza e non si smontano. Aprire i permessi di uno di loro e salvare **non lo modifica** — si esce con un ruolo personalizzato nuovo, e il ruolo di sistema resta intatto. Un ruolo personalizzato invece si modifica sul posto, perché è roba di chi l'ha creato.
+
+Da qui discende il nome: **due ruoli non possono chiamarsi allo stesso modo**, o sono indistinguibili nel momento in cui li si assegna a qualcuno. Salvando un nome già in uso esce un popup che ferma il salvataggio e **rimanda al modulo con dentro quello che c'era**: chi ha appena scelto otto aree non le rifà perché il nome era occupato. Il confronto ignora maiuscole e spazi ai bordi — «Cassa » e «cassa» sono lo stesso nome per chi legge l'elenco, ed è l'elenco che conta.
+
+**Un meccanismo si dichiara prima, non lo si scopre dall'errore.** La modale di un ruolo di sistema lo dice in testa al modulo, e il pulsante si chiama «Crea ruolo personalizzato» invece di «Salva modifiche». Un errore che spiega una regola è una regola comunicata troppo tardi.
+
+## Aree cliccabili: la grandezza del bersaglio è quella della cosa
+
+**In una griglia un figlio si allarga per tutta la cella**, anche se è `inline-flex` e ha `padding: 0`: `justify-self` vale `stretch` finché non gli si dice altro. Le intestazioni di colonna ordinabili erano bottoni trasparenti dentro griglie, quindi a riposo non si vedeva niente — si vedeva la manina comparire a mezza colonna di distanza dalla parola, e l'hover campire un riquadro grande quanto la colonna per due parole di intestazione.
+
+Regola: **il bersaglio ha la forma di quello che si tocca**. Su un'intestazione ordinabile si tocca il nome (più il segno di ordinamento), quindi `justifySelf:'start'` — o `'end'` dove la colonna è allineata a destra, che il bersaglio segue l'allineamento della colonna e non si sposta niente a vedersi.
+
+Lo stesso vale al contrario: un bottone-icona ancorato in un angolo si mette **fuori dal flusso** (`position:absolute`) e gli si riserva la corsia con un `paddingRight` sul contenuto, invece di lasciarlo comprimere da quello che gli sta accanto. Nella card di una sala il `⋯` era l'unico elemento comprimibile della riga: bastava un badge più largo — `DISATTIVATA` invece di `ATTIVA` — perché finisse fuori dal bordo.
+
+## Lo stato attivo si dice col segno, non con la campitura
+
+Un'intestazione ordinabile attiva si riconosce dal **testo più scuro e dalla freccia**, non da un fondo colorato grande quanto la cella. La campitura di una cella intera per dire «sto ordinando per questa colonna» è una macchia che compete con i dati, che sono la cosa da leggere.
+
+## Il carattere «⋯» non esiste in Plus Jakarta Sans
+
+Lo disegna un font di ripiego, che lo appoggia dove gli pare rispetto alla linea di base: dentro un bottone quadrato resta storto, e di quanto cambia da un sistema all'altro. I tre pallini sono un **SVG** (`Puntini` in `impostazioni-shared.jsx`, `window.Puntini`), centrato per costruzione. Vale per ogni glifo decorativo: se non è nel font del progetto, si disegna.
+
+## Una porta sola per stanza
+
+La matita «permessi» sulle righe dei ruoli è stata tolta: era il secondo modo per arrivare alla stessa modale, ed era pure quello nascosto — comparivi sopra la riga e la trovavi, altrimenti no. Le righe della colonna «Ruoli» fanno quello che il loro sottotitolo dichiara, cioè filtrare l'elenco, e i permessi si aprono da «Crea ruolo», che sta lì sotto ed è sempre visibile.
+
+Quando si toglie una porta si toglie anche quello che serviva solo a lei: con la matita se ne sono andati lo stato `editRole` e il margine destro di 24px che riservava la sua corsia nei conteggi.
 
 ---
 

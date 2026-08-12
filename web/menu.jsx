@@ -810,6 +810,8 @@ function MenuScreen({ state, setState, goTo }) {
             </div>
           );
         })}
+
+        <LegalFooter/>
       </div>
 
       {/* Bottom sheet — order */}
@@ -927,9 +929,52 @@ function MenuScreen({ state, setState, goTo }) {
   );
 }
 
+// ─── Trascinamento del foglio ordine ───────────────────────
+// La fascia si apre tirandola su e si chiude tirandola giù: è il gesto che il
+// pollice fa già da solo davanti a un foglio appoggiato in fondo allo schermo.
+// Il gesto si risolve DURANTE il movimento e non al rilascio — appena superi
+// la soglia il foglio parte, così la risposta arriva mentre il dito è ancora
+// giù invece che dopo averlo alzato.
+const SOGLIA_TRASCINA = 28;
+function useTrascinaFoglio(mode, setMode) {
+  const rif = useRef(null);
+  const trascinato = useRef(false);
+  const inizio = (e) => {
+    if (e.button != null && e.button !== 0) return;
+    // Premuto su un bottone (cestino, invio ordine): quello non è un
+    // trascinamento del foglio, è un comando suo.
+    if (e.target.closest && e.target.closest('button')) return;
+    rif.current = { y: e.clientY, risolto: false };
+    trascinato.current = false;
+    // Senza cattura, tirando in fretta il dito esce dalla fascia e i
+    // `pointermove` smettono di arrivare a metà gesto.
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+  };
+  const muovi = (e) => {
+    const r = rif.current;
+    if (!r || r.risolto) return;
+    const dy = e.clientY - r.y;
+    if (dy <= -SOGLIA_TRASCINA && mode !== 'expanded') { r.risolto = true; trascinato.current = true; setMode('expanded'); }
+    else if (dy >= SOGLIA_TRASCINA && mode === 'expanded') { r.risolto = true; trascinato.current = true; setMode('collapsed'); }
+  };
+  const fine = () => { rif.current = null; };
+  // Scorciatoia sulla sola lineetta: toccare la maniglia di un foglio in
+  // fondo allo schermo è un gesto che si fa d'istinto, e senza non
+  // succedeva niente. Sulla fascia intera no: lì il tocco cadrebbe sopra il
+  // contatore e i bottoni, dove non significa "apri". Dopo un trascinamento
+  // il click arriva lo stesso e va ignorato, o riaprirebbe quel che hai
+  // appena chiuso.
+  const tocca = () => {
+    if (trascinato.current) { trascinato.current = false; return; }
+    setMode(mode === 'expanded' ? 'collapsed' : 'expanded');
+  };
+  return { presa: { onPointerDown: inizio, onPointerMove: muovi, onPointerUp: fine, onPointerCancel: fine }, tocca };
+}
+
 // ─── Order bottom sheet (collapsed/expanded) ───────────────
 function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, sheetTab, setSheetTab, dishes, setQty, clearCart, onSubmit, goTo }) {
   const expanded = mode === 'expanded';
+  const trascina = useTrascinaFoglio(mode, setMode);
   const allDishes = Object.values(dishes).flat();
   const cartItems = state.cart.map(li => {
     const d = allDishes.find(x => x.id === li.dishId);
@@ -959,14 +1004,19 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
       display: 'flex', flexDirection: 'column',
     }}>
       {/* drag handle */}
-      <div onClick={() => setMode(expanded ? 'collapsed' : 'expanded')} style={{
-        cursor: 'pointer', padding: '10px 0 6px', display: 'flex', justifyContent: 'center',
+      <div {...trascina.presa} onClick={trascina.tocca} style={{
+        cursor: 'grab', padding: '10px 0 6px', display: 'flex', justifyContent: 'center',
+        touchAction: 'none',
       }}>
         <div style={{ width: 50, height: 5, background: WINE, borderRadius: 999, opacity: 0.7 }}/>
       </div>
 
       {!expanded ? (
-        <div style={{ padding: '4px 22px 22px' }}>
+        // Si trascina TUTTA la fascia, non solo la lineetta: 50×5px sono un
+        // bersaglio da mouse, non da pollice, e il dito si appoggia dove legge
+        // il contatore. `touchAction: none` serve o il browser interpreta il
+        // gesto verticale come uno scroll e se lo prende lui.
+        <div {...trascina.presa} style={{ padding: '4px 22px 22px', cursor: 'grab', touchAction: 'none' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ fontSize: 15, fontWeight: 600, color: TEXT }}>
               {cartCount === 0 ? 'Nessun piatto selezionato' : `${cartCount} ${cartCount === 1 ? 'piatto selezionato' : 'piatti selezionati'}`}
@@ -991,8 +1041,12 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
         </div>
       ) : (
         <>
-          {/* Header: contatore + totale + cestino */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 22px 14px' }}>
+          {/* Header: contatore + totale + cestino.
+              Si trascina anche da qui, non solo dalla lineetta: da aperto è
+              la fascia che resta ferma sopra la lista, e tirarla giù è il
+              gesto naturale per richiudere. La lista sotto NON lo prende,
+              o scorrerla chiuderebbe il carrello. */}
+          <div {...trascina.presa} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 22px 14px', cursor: 'grab', touchAction: 'none' }}>
             <div>
               <span style={{ fontSize: 15, fontWeight: 700, color: TEXT }}>
                 {cartCount === 1 ? '1 piatto' : `${cartCount} piatti`}

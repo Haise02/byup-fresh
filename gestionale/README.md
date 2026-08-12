@@ -25,14 +25,24 @@ per la ristorazione.
 - `byup Panoramica.html` — dashboard widget (drag/drop + edit mode)
 - `byup Configurazione Completa.html` — vetrina + personale post-onboarding
 - `byup Sala.html` — sala & prenotazioni (mappa + lista; `?tab=tavoli|vendita|calendar`)
-- `byup Cucina.html` — kitchen monitor (KDS)
-- `byup Cucina KDS v2.html` — KDS v2 sperimentale: board di produzione aggregato
-  per piatto, tema scuro, schermo fisso in cucina. Route autonoma che **convive**
-  con `byup Cucina.html` senza condividerne codice né stato
-  (`cucina-kds2-data.jsx` regole, `cucina-kds2-mock.jsx` dati finti,
-  `cucina-kds2-board.jsx` vista, `cucina-kds2-app.jsx` montaggio)
-- `byup Statistiche.html`, `byup Contabilita.html`, `byup Impostazioni.html`,
-  `byup Profilo.html` (pagina Account), `byup Supporto.html`
+- `byup Cucina.html` — kitchen monitor. In testata si sceglie **quale monitor**
+  guardare, non come guardarlo: la visualizzazione è del monitor e si decide
+  dove lo si collega (Impostazioni → Personale). Un monitor «Ristorante» mostra
+  i ticket a colonne (`cucina-ticket.jsx`, `cucina-tab-insala.jsx`); un monitor
+  «Pub» mostra la **board del KDS v2** (`cucina-kds2-board.jsx`), alimentata dal
+  servizio vero attraverso `cucina-kds2-da-cucina.jsx`, che converte i ticket in
+  porzioni — un file solo, che sparirà insieme ai mock quando arriverà l'API
+- `byup Cucina KDS v2.html` — la stessa board come **route autonoma**, con i
+  propri dati finti da hamburgeria (`cucina-kds2-mock.jsx`, `cucina-kds2-data.jsx`
+  regole, `cucina-kds2-app.jsx` montaggio): serve a guardare il KDS v2 da solo,
+  a schermo fisso, senza passare dalla Cucina
+- `byup Statistiche.html` — tre schede: **Economici** (Ricavi e costi · Vendite
+  piatti), **Operazioni** (Prenotazioni · Ordini · Team), **Clienti**
+  (Conversione · Fidelizzazione). Deep-link `?tab=…&sub=…`
+- `byup Contabilita.html` (`?tab=cassa|conti|costi|iva|export`),
+  `byup Impostazioni.html` (`?page=vetrina|menu-cucina|sala|personale|flussi|fiscali|integrazioni`),
+  `byup Profilo.html` (pagina Account), `byup Supporto.html` (`?chat=1` apre la chat)
+- `mockup-incassa-contanti.html` — mockup statico fuori dal flusso, non linkato
 
 > Il 2026-07-28 sono state rimosse da questa cartella le copie mai linkate delle
 > altre superfici — `byup Home.html`, `byup Menu.html` (demo Byup App consumer),
@@ -43,7 +53,28 @@ per la ristorazione.
 
 Push del repo → Vercel deploy automatico (static, no build). `vercel.json`
 (nella root del repo) configura content-type `text/babel` per i `.jsx` così
-Babel-standalone li compila correttamente al fetch. `index.html` redirige a Login.
+Babel-standalone li compila correttamente al fetch, e manda `must-revalidate`
+su `.jsx` e `.html`. `index.html` redirige a Login.
 
-Vedi `DESIGN_DECISIONS.md` per palette, token, regole UX (nota: stantio sui
-pesi dei font — fanno fede i token `PN` in `panoramica-tokens.jsx`).
+**Quello che vedi in locale non è quello che vede chi guarda il sito**: il sito
+serve l'ultimo commit su `main`, quindi una modifica non è verificabile finché
+non è committata e pushata.
+
+### Cache-buster `?v=N`
+
+Quattro pagine caricano alcuni `.jsx` con un `?v=N` scritto a mano —
+`byup Impostazioni.html`, `byup Statistiche.html`, `byup Contabilita.html`,
+`byup Cucina KDS v2.html`. Serve solo quando si apre il file da `file://` o da
+un `python -m http.server`, che non manda header di cache: lì il browser tiene
+i `.jsx` e continua a eseguire codice vecchio anche dopo il reload. Su Vercel
+non serve, ci pensa `vercel.json`.
+
+## Documentazione
+
+- `PROGRESS.md` — stato dello sviluppo e registro delle sessioni. **Si legge per primo.**
+- `DESIGN_DECISIONS.md` — palette, token, regole UX, e una sezione datata per
+  ogni batch di lavoro. Allineato al codice il 2026-08-09; in caso di dubbio
+  fanno fede i token `PN` in `panoramica-tokens.jsx`.
+- `CLAUDE.md` — overview di prodotto (cos'è Byup, piani, GTM, team). Non parla di codice.
+- `icons-*.md`, `dashboard-icon-mapping.md` — **documenti storici** della
+  migrazione icone di luglio: fotografano lo stato di allora, non il codice di oggi.

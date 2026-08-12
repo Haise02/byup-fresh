@@ -81,7 +81,7 @@ function FloorPlan({
   tavoli, furniture, groups, selected,
   onCreateTable, onCreateFurniture,
   onMoveTable, onBulkMoveTables, onMoveFurniture, onResizeFurniture, onDeleteFurniture,
-  onMergeTables, onUngroupTables, onSelectTable, onEditTable,
+  onMergeTables, onRotateTable, onSelectTable, onEditTable
 }) {
   const COLS = cols || 10, ROWS = rows || 6;
   const [canvasWidth, setCanvasWidth] = React.useState(COLS * 60);
@@ -93,6 +93,20 @@ function FloorPlan({
   const [paletteDrag, setPaletteDrag] = React.useState(null); // {type: 'table' | 'furniture-X'}
   const [selectedFurniture, setSelectedFurniture] = React.useState(null);
   const [hoverTable, setHoverTable] = React.useState(null);
+  // Tolleranza sull'uscita dall'hover: la barra «Ruota» sta SOPRA il tavolo e
+  // fra i due c'è un vuoto. Spegnendo l'hover appena il mouse lascia la tile,
+  // la barra spariva prima che si riuscisse a raggiungerla. Entrare — sulla
+  // tile o sulla barra — annulla il timer di uscita.
+  const hoverTimer = React.useRef(null);
+  const entraTavolo = React.useCallback((id) => {
+    clearTimeout(hoverTimer.current);
+    setHoverTable(id);
+  }, []);
+  const esceTavolo = React.useCallback(() => {
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHoverTable(null), 320);
+  }, []);
+  React.useEffect(() => () => clearTimeout(hoverTimer.current), []);
   const justDraggedRef = React.useRef(false);
   const [fullscreen, setFullscreen] = React.useState(false);
 
@@ -121,20 +135,23 @@ function FloorPlan({
 
   const toGrid = (clientX, clientY) => {
     const r = canvasRef.current.getBoundingClientRect();
-    const x = (clientX - r.left) / CELL;
-    const y = (clientY - r.top) / CELL;
+    // La cella va misurata sullo stesso rect del puntatore. `CELL` viene dal
+    // ResizeObserver ed è in px di LAYOUT, mentre clientX e r.left sono px
+    // VISIVI: il frame del gestionale ha uno zoom, e mescolare i due sistemi
+    // spostava il punto di rilascio di quasi una cella sul lato destro della
+    // mappa. Da lì i tavoli che atterravano storti e le unioni che non
+    // scattavano pur avendo mollato il tavolo sopra l'altro.
+    const cella = r.width / COLS;
+    const x = (clientX - r.left) / cella;
+    const y = (clientY - r.top) / cella;
     return { x: Math.max(0, Math.min(COLS, x)), y: Math.max(0, Math.min(ROWS, y)) };
   };
   const snap = v => Math.round(v * 2) / 2;
 
   // Footprint in celle da posti+orientation, come in sala (getTableDims):
   // 2-5 posti → 1×1, 6-8 → 2 celle, >8 → 3 celle.
-  const tableDims = (t) => {
-    const seats = t?.coperti || 4;
-    return ttFootprintUnits(seats, ttSeatShape(seats), t?.orientation || 'h');
-  };
-  const overlapRects = (a, b) =>
-    !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
+  const tableDims = (t) => geoIngombro(t && t.coperti, t && t.orientation);
+  const overlapRects = geoSovrappone;
   const groupOf = (id) => groups.find(g => g.tableIds.includes(id));
   const groupMates = (id) => {
     const g = groupOf(id);
@@ -151,21 +168,48 @@ function FloorPlan({
   };
 
   // Posizione libera più vicina a (tx,ty) per un rettangolo w×h, senza overlap con `occ`.
-  const placeFree = (tx, ty, w, h, occ) => {
-    const cx = Math.max(0, Math.min(COLS - w, snap(tx)));
-    const cy = Math.max(0, Math.min(ROWS - h, snap(ty)));
-    const maxR = Math.max(COLS, ROWS);
-    for (let r = 0; r <= maxR; r += 0.5) {
-      for (let dx = -r; dx <= r; dx += 0.5) {
-        for (let dy = -r; dy <= r; dy += 0.5) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-          const nx = Math.max(0, Math.min(COLS - w, snap(cx + dx)));
-          const ny = Math.max(0, Math.min(ROWS - h, snap(cy + dy)));
-          if (!occ.some(o => overlapRects({ x: nx, y: ny, w, h }, o))) return { x: nx, y: ny };
-        }
-      }
-    }
-    return { x: cx, y: cy };
+  // Adattatori sulla geometria condivisa: la firma resta quella che i punti
+  // di chiamata di questo file usano già.
+  const placeFree = (tx, ty, w, h, occ) =>
+    geoPostoLibero({ x: tx, y: ty, w, h, ostacoli: occ, cols: COLS, rows: ROWS }) || { x: tx, y: ty };
+
+  // Compone l'unione appoggiandosi alla geometria condivisa
+  // (sala-geometria.jsx): la fila retta la costruisce geoFila, lo sgombero di
+  // chi resta sotto lo fa geoSgombera. Qui restano le scelte di QUESTA
+  // schermata: la griglia viene dai metri della sala, gli ostacoli fissi sono
+  // l'arredo, la fila si ancora al gruppo bersaglio e si prova sempre prima in
+  // orizzontale, e l'ordine è «prima chi c'era, poi chi arriva».
+  const componiUnione = (idTrascinato, idTarget) => {
+    const esistenti = groupMates(idTarget);
+    const memberIds = Array.from(new Set([...esistenti, ...groupMates(idTrascinato)]));
+    const members = memberIds.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+    const lungoAsse = (a, b) => a.pos.x - b.pos.x || a.pos.y - b.pos.y;
+    const ordinati = [
+      ...members.filter(m => esistenti.includes(m.id)).sort(lungoAsse),
+      ...members.filter(m => !esistenti.includes(m.id)).sort(lungoAsse),
+    ];
+    const exMembers = esistenti.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+    const ancora = {
+      x: Math.min(...exMembers.map(m => m.pos.x)),
+      y: Math.min(...exMembers.map(m => m.pos.y)),
+    };
+
+    const fila = geoFila({
+      membri: ordinati.map(m => ({ id: m.id, posti: m.coperti })),
+      ancora, cols: COLS, rows: ROWS, assePreferito: 'h',
+    });
+    const updates = {};
+    fila.forEach(f => { updates[f.id] = { x: f.x, y: f.y, orientation: f.orientation }; });
+
+    const arredo = furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }));
+    const estranei = tavoli.filter(o => !memberIds.includes(o.id))
+      .map(o => ({ id: o.id, x: o.pos.x, y: o.pos.y, ...tableDims(o) }));
+    const spostati = geoSgombera({
+      fila: fila.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h })),
+      estranei, ostacoli: arredo, cols: COLS, rows: ROWS,
+    });
+    Object.entries(spostati).forEach(([id, pos]) => { updates[id] = pos; });
+    return updates;
   };
 
   // Drag elemento esistente (pointer events: mouse + touch)
@@ -205,7 +249,29 @@ function FloorPlan({
           });
           if (onBulkMoveTables) onBulkMoveTables(updates);
           else updates && Object.entries(updates).forEach(([id, pos]) => onMoveTable(parseInt(id,10), pos));
-          setDragOverTable(null);
+          // Anche un gruppo intero può proporre l'unione: basta che UNO dei
+          // suoi membri si sovrapponga a un tavolo di fuori. Prima qui la
+          // proposta veniva spenta, quindi due gruppi non si univano mai —
+          // si potevano solo spingere a vicenda.
+          if (onMergeTables) {
+            const miei = mates.map(mid => {
+              const m = tavoli.find(t => t.id === mid);
+              const u = updates[mid];
+              return (m && u) ? { x: u.x, y: u.y, ...tableDims(m) } : null;
+            }).filter(Boolean);
+            const over = tavoli.find(o => {
+              if (mates.includes(o.id)) return false;
+              const od = tableDims(o);
+              return miei.some(r => {
+                const w = Math.min(r.x + r.w, o.pos.x + od.w) - Math.max(r.x, o.pos.x);
+                const h = Math.min(r.y + r.h, o.pos.y + od.h) - Math.max(r.y, o.pos.y);
+                return w > 0 && h > 0 && w * h >= 0.3;
+              });
+            });
+            setDragOverTable(over ? over.id : null);
+          } else {
+            setDragOverTable(null);
+          }
         } else {
           onMoveTable(drag.id, { x: newX, y: newY });
           // Sovrapposizione significativa con un altro tavolo → proposta di unione
@@ -239,7 +305,14 @@ function FloorPlan({
       // viene spostato nello spazio libero più vicino.
       if (drag.kind === 'table' && drag.hasMoved) {
         const mates = groupMates(drag.id);
-        if (mates.length > 1 && onBulkMoveTables) {
+        const bersaglioGruppo = (mates.length > 1 && dragOverTable != null && !mates.includes(dragOverTable))
+          ? tavoli.find(t => t.id === dragOverTable) : null;
+        if (bersaglioGruppo && onMergeTables && onBulkMoveTables) {
+          // Gruppo mollato sopra un altro tavolo (o un altro gruppo): si
+          // uniscono, e tutti insieme tornano in una fila sola.
+          onBulkMoveTables(componiUnione(drag.id, bersaglioGruppo.id));
+          onMergeTables(drag.id, bersaglioGruppo.id);
+        } else if (mates.length > 1 && onBulkMoveTables) {
           // Gruppo: spingi gli altri tavoli che collidono col gruppo mosso
           const movedIds = new Set(mates);
           const movedRects = tavoli.filter(t => movedIds.has(t.id)).map(t => ({ id: t.id, ...t.pos, ...tableDims(t) }));
@@ -260,53 +333,7 @@ function FloorPlan({
           const cur = tavoli.find(t => t.id === drag.id);
           const target = dragOverTable != null ? tavoli.find(t => t.id === dragOverTable) : null;
           if (cur && target && onMergeTables) {
-            // Unione come in sala (SALA_DO_MERGE): l'intero gruppo viene
-            // ridisposto in un'unica FILA ORIZZONTALE ancorata al gruppo
-            // target — mai forme a L. Verticale solo se la fila non entra
-            // in larghezza ma entra in altezza.
-            const existing = groupMates(target.id);
-            const memberIds = Array.from(new Set([...existing, drag.id]));
-            const members = memberIds.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
-            const lenAlong = (a) => members.reduce((s, m) => s + (a === 'h' ? tableDims(m).w : tableDims(m).h), 0);
-            let axis = 'h';
-            if (lenAlong('h') > COLS && lenAlong('v') <= ROWS) axis = 'v';
-            const exMembers = existing.map(id => tavoli.find(x => x.id === id)).filter(Boolean);
-            const anchorX = Math.min(...exMembers.map(m => m.pos.x));
-            const anchorY = Math.min(...exMembers.map(m => m.pos.y));
-            const total = lenAlong(axis);
-            const crossMax = Math.max(...members.map(m => axis === 'h' ? tableDims(m).h : tableDims(m).w));
-            let cursor = axis === 'h'
-              ? Math.max(0, Math.min(anchorX, COLS - total))
-              : Math.max(0, Math.min(anchorY, ROWS - total));
-            const cross = axis === 'h'
-              ? Math.max(0, Math.min(anchorY, ROWS - crossMax))
-              : Math.max(0, Math.min(anchorX, COLS - crossMax));
-            // In fila: i membri esistenti mantengono il loro ordine, il trascinato va in coda
-            const orderedMembers = [
-              ...members.filter(m => m.id !== drag.id).sort((a, b) => axis === 'h' ? a.pos.x - b.pos.x : a.pos.y - b.pos.y),
-              members.find(m => m.id === drag.id),
-            ].filter(Boolean);
-            const updates = {};
-            const lineRects = [];
-            orderedMembers.forEach(m => {
-              const d = tableDims(m);
-              const x = axis === 'h' ? Math.min(cursor, COLS - d.w) : cross;
-              const y = axis === 'h' ? cross : Math.min(cursor, ROWS - d.h);
-              updates[m.id] = { x, y };
-              lineRects.push({ x, y, w: d.w, h: d.h });
-              cursor += axis === 'h' ? d.w : d.h;
-            });
-            // Sgombera i tavoli estranei finiti sotto la fila
-            const memberSet = new Set(memberIds);
-            const occupied = [...lineRects, ...furniture.map(f => ({ x: f.x, y: f.y, w: f.w, h: f.h }))];
-            tavoli.filter(o => !memberSet.has(o.id)).forEach(o => {
-              const od = tableDims(o);
-              if (occupied.some(r => overlapRects(r, { x: o.pos.x, y: o.pos.y, ...od }))) {
-                const spot = placeFree(o.pos.x, o.pos.y, od.w, od.h, occupied);
-                updates[o.id] = { x: spot.x, y: spot.y };
-                occupied.push({ x: spot.x, y: spot.y, w: od.w, h: od.h });
-              }
-            });
+            const updates = componiUnione(drag.id, target.id);
             if (onBulkMoveTables) onBulkMoveTables(updates);
             else Object.entries(updates).forEach(([id, pos]) => onMoveTable(parseInt(id, 10), pos));
             onMergeTables(drag.id, target.id);
@@ -667,8 +694,8 @@ function FloorPlan({
                 pitch={CELL}
                 left={left}
                 top={top}
-                onEnter={() => setHoverTable(t.id)}
-                onLeave={() => setHoverTable(h => (h === t.id ? null : h))}
+                onEnter={() => entraTavolo(t.id)}
+                onLeave={esceTavolo}
                 onPointerDown={(e) => handleMouseDown(e, 'table', t.id, dims.w/2, dims.h/2)}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -801,6 +828,74 @@ function FloorPlan({
               </React.Fragment>
             );
           })}
+
+          {/* Barra "Ruota" — la stessa della mappa in Sala: segue l'hover,
+              perché il click sul tavolo qui apre la scheda. Compare solo dove
+              girare cambia qualcosa: sui rettangolari e sui gruppi uniti (un
+              tavolo quadrato girato è identico a prima). */}
+          {hoverTable != null && !drag && !paletteDrag && typeof onRotateTable === 'function' && (() => {
+            const t = tavoli.find(x => x.id === hoverTable);
+            if (!t) return null;
+            const mates = groupMates(t.id).map(id => tavoli.find(x => x.id === id)).filter(Boolean);
+            const isGroup = mates.length > 1;
+            if (!isGroup && ttSeatShape(t.coperti || 4) !== 'rect') return null;
+            // Il gruppo È un tavolo: la barra sta al centro del suo bounding
+            // box, ovunque cada l'hover.
+            const rects = (isGroup ? mates : [t]).map(m => ({ x: m.pos.x, y: m.pos.y, ...tableDims(m) }));
+            const minX = Math.min(...rects.map(r => r.x)) * CELL;
+            const maxX = Math.max(...rects.map(r => r.x + r.w)) * CELL;
+            const minY = Math.min(...rects.map(r => r.y)) * CELL;
+            const maxY = Math.max(...rects.map(r => r.y + r.h)) * CELL;
+            const sopra = minY - 32;
+            const sottoIlTavolo = sopra < 2;
+            return (
+              <div
+                onClick={e => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
+                // La barra tiene vivo l'hover: senza, passando dal tavolo alla
+                // barra questa spariva prima di essere raggiunta.
+                onMouseEnter={() => entraTavolo(t.id)}
+                onMouseLeave={esceTavolo}
+                style={{
+                  position: 'absolute', left: (minX + maxX) / 2,
+                  top: sottoIlTavolo ? maxY + 6 : sopra,
+                  transform: 'translateX(-50%)', zIndex: 26,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  // Il ponte: il padding dal lato del tavolo allarga l'area
+                  // sensibile fin quasi al corpo, così il mouse «arriva» sulla
+                  // barra senza attraversare il vuoto.
+                  padding: sottoIlTavolo ? '11px 7px 5px' : '5px 7px 11px',
+                  borderRadius: 13,
+                  backgroundColor: 'rgba(255,255,255,0.72)',
+                  backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)',
+                  backdropFilter: 'blur(20px) saturate(140%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(140%)',
+                  border: '1px solid rgba(255,255,255,0.8)',
+                  boxShadow: '0 12px 36px rgba(80,40,80,0.14), 0 2px 8px rgba(80,40,80,0.08)',
+                }}>
+                <button
+                  title={isGroup ? 'Ruota il gruppo di 90°' : 'Ruota 90°'}
+                  onClick={(e) => { e.stopPropagation(); onRotateTable(t.id); }}
+                  style={{
+                    height: 26, padding: '0 10px', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.85)',
+                    border: '1px solid rgba(15,17,21,0.08)',
+                    color: '#0F1115', cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, lineHeight: 1,
+                    transition: 'background 150ms ease-out',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#fff'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.85)'}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/>
+                  </svg>
+                  Ruota
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Hover preview while dragging from palette */}
           {hover && (

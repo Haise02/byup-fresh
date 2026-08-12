@@ -83,7 +83,7 @@ function OnboardingApp() {
     <>
       <div className="frame" data-screen-label={`Step ${step}${step === 2 ? ' · ' + subStep : ''}`}>
         <GlassMeshSubstrate/>
-        <OnbHeader step={step} subStep={subStep}/>
+        <OnbHeader step={step}/>
 
         {/* Banner "menù in elaborazione" — visibile solo in step 2 e 3, sparisce
             su step 4 (anteprima menu): la promessa è mantenuta.
@@ -118,8 +118,6 @@ function OnboardingApp() {
 
           {step === 4 && (
             <Step4Verifica
-              venue={venue}
-              rooms={rooms}
               onBack={() => setStep(3)}
               onComplete={(dest) => {
                 if (dest === 'config')     window.location.href = 'byup Configurazione Completa.html';
@@ -145,7 +143,7 @@ function OnboardingApp() {
 // HEADER — stepper principale + sub-step indicator
 // ─────────────────────────────────────────────────────────────────────────
 
-function OnbHeader({step, subStep}) {
+function OnbHeader({step}) {
   return (
     <header style={{
       borderBottom: '1px solid rgba(15, 17, 21, 0.08)',

@@ -11,11 +11,32 @@ function ContabilitaApp() {
   const urlFilter = params.get('filter') || 'all';
 
   const [tab, setTab] = useState(urlTab);
-  const [contiFilter, setContiFilter] = useState(urlFilter);
+  // Il filtro arriva dall'URL e non cambia più: non è stato, è una costante.
+  const contiFilter = urlFilter;
+  // Rimando da Cassa: la giornata e lo stato di trasmissione da mostrare in
+  // Conti. Cassa riepiloga, Conti tiene la lista — una sola.
+  const [contiFisc, setContiFisc] = useState(() => {
+    const d = params.get('fiscData'), st = params.get('fiscStato');
+    return d ? { data: d, stato: st || null } : null;
+  });
   const [cassaOpen, setCassaOpen] = useState(false);
   const [newCost, setNewCost] = useState(false);
   const [share, setShare] = useState(false);
   const [ivaMonth, setIvaMonth] = useState(null); // mese selezionato per filtro
+
+  // Scarti fiscali non gestiti: accendono il pallino sulla voce Contabilità.
+  // Si spengono solo quando lo scarto è gestito — mai col tempo, mai per il
+  // fatto di aver aperto la pagina.
+  const [scartiFisc, setScartiFisc] = useState(() => window.byupScartiAperti ? window.byupScartiAperti() : 0);
+  React.useEffect(() => {
+    const agg = () => setScartiFisc(window.byupScartiAperti ? window.byupScartiAperti() : 0);
+    window.addEventListener('byup-fisc-change', agg);
+    window.addEventListener('storage', agg);
+    return () => {
+      window.removeEventListener('byup-fisc-change', agg);
+      window.removeEventListener('storage', agg);
+    };
+  }, []);
 
   const totalCosti = COSTS_DATA.reduce((s,c) => s+c.amount, 0);
   const cassaSaldo = CASH_MOVEMENTS.reduce((s,m) => s+m.amount, 0) + 500;
@@ -25,7 +46,7 @@ function ContabilitaApp() {
   return (
     <div className="frame" style={{position:'relative'}}>
       <GlassMeshSubstrate tone="neutral"/>
-      <PnSidebar active="contabilita"/>
+      <PnSidebar active="contabilita" badges={{contabilita: scartiFisc}}/>
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative'}}>
         {/* Body */}
         <div className="pn-scroll" style={{flex:1, overflowY:'auto', padding:'20px 28px 32px', background: C.SURF}}>
@@ -72,8 +93,9 @@ function ContabilitaApp() {
           </div>
 
           {/* Tab content */}
-          {tab==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}/>}
-          {tab==='conti' && <ContConti filter={contiFilter}/>}
+          {tab==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}
+            onApriConti={(data, stato) => { setContiFisc({ data, stato }); setTab('conti'); }}/>}
+          {tab==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} onFiscClear={() => setContiFisc(null)}/>}
           {tab==='costi' && <ContCosti openNewCost={() => setNewCost(true)}/>}
           {tab==='iva'   && <ContIva month={ivaMonth} setMonth={setIvaMonth}/>}
           {tab==='fatture' && <ContFatture/>}

@@ -175,8 +175,7 @@ Feedback tattile: `.bk-press` (scale .97 al tap) + `BK.haptic` → `selection(8m
 | `CategoryScreen` | app.jsx | Griglia 2 colonne sfalsate, chips filtro, card foto 188/236px |
 | `OpenTableCard` | app.jsx | Card home "tavolo aperto" da `sessionStorage byup_table` |
 | `RoadmapScreen` | app.jsx | Mappa 864×1821 (`assets/road-city.png`), overlay `venue-N.png` posizionati da `ROAD_P` (frazioni), filler specchiato+blur sopra e sotto |
-| Byup Games (`BypWheel`…) | app.jsx | Card arcade pastello + box scuro `#241D22`; **solo la CTA apre il gioco**, la card si trascina soltanto |
-| `OrderSheet` + `SwipeDishRow` | [menu.jsx](./menu.jsx) | Carrello con swipe → tavolo / ← dividi |
+| `OrderSheet` + `SwipeDishRow` | [menu.jsx](./menu.jsx) | Carrello: la fascia si **trascina** per aprirlo (il tap resta sulla lineetta), swipe sulla riga → tavolo / ← dividi, **un piatto per volta** e non tutta la riga |
 | `SplitPickSheet` | menu.jsx | "Con chi dividi?" avatar selezionabili |
 | `PaymentScreen` + `SlideToPay` | menu.jsx | Conto: card "Tu", "Il tavolo" raggruppato, ospiti aggregati ("N Ospiti"), CTA slide |
 | `GuestsSheet` | menu.jsx | Al tavolo: app/web singoli + riga collettiva Ospiti |

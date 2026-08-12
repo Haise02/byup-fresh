@@ -167,7 +167,7 @@ function ConfigCompletaApp() {
               <CfgStep num="1" label="Informazioni" sub="Chi sei e che atmosfera offri"
                 active={step === 'informazioni'} done={step !== 'informazioni'}
                 onClick={() => setStep('informazioni')}/>
-              <CfgStep num="2" label="Aspetto" sub="Foto, social e FAQ"
+              <CfgStep num="2" label="Aspetto" sub="Foto, stile, social e FAQ"
                 active={step === 'aspetto'} done={step === 'personale'}
                 onClick={() => setStep('aspetto')}/>
               <CfgStep num="3" label="Personale" sub="Invita il tuo staff"

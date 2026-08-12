@@ -1,6 +1,6 @@
 // Sala — Tab Tavoli (no timeline, card compatte, mappa+lista)
 
-function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, focus, onToggleFocus, onAdjustCoperti, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
+function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, focus, onToggleFocus, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit}) {
   const [search, setSearch] = React.useState('');
   const [room, setRoom] = React.useState('Sala principale');
   // Filtri multi-select: Set di chiavi KPI. Tutte attive default; vuoto = mostra tutti.
@@ -131,14 +131,6 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
     {key: 'Liberi',    label: 'Liberi',    value: counts.Liberi,       accent: '#15803D', soft: 'rgba(22, 163, 74, 0.10)',  icon: 'M5 13l4 4L19 7'},
   ];
   const totale = counts.Tutti;
-  // KPI Riempimento: preferisci coperti se disponibili, fallback su numero tavoli
-  const totalCoperti = tavoliBase.reduce((s,t) => s + (t.state === 'occupato' ? (t.coperti || 0) : 0), 0);
-  const totalPosti   = tavoliBase.reduce((s,t) => s + (t.posti || 0), 0);
-  const useCoperti = totalCoperti > 0 && totalPosti > 0;
-  const fillNum = useCoperti ? totalCoperti  : counts.Occupati;
-  const fillDen = useCoperti ? totalPosti    : totale;
-  const fillLabel = useCoperti ? 'coperti'   : 'tavoli';
-  const occPct = fillDen ? Math.round((fillNum / fillDen) * 100) : 0;
   const toggleFilter = (key) => setFilters(prev => {
     if (key === 'Tutti') return new Set(['Tutti']);
     const next = new Set(prev);
@@ -459,18 +451,16 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
             mergeMode={mergeMode} mergeSel={mergeSel}
             onToggleMergeSel={toggleMergeSel} onExitMerge={exitMergeMode}
             onOpenAdd={onOpenAdd} onOpenPay={onOpenPay}
-            onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-            expandedId={expandedId} setExpandedId={setExpandedId} onAdjustCoperti={onAdjustCoperti}
+            onAddArticle={onAddArticle}
+            expandedId={expandedId} setExpandedId={setExpandedId}
             onAdjustReservationPosti={onAdjustReservationPosti}
-            onLibera={onLibera} onEdit={onEdit} onAssignOther={onAssignOther} onNoShow={onNoShow}
-            onModificaCoperti={onModificaCoperti}/>
+            onLibera={onLibera} onEdit={onEdit}/>
         : <SalaListView tavoli={visibili} onOpenAdd={onOpenAdd} onOpenPay={onOpenPay}
-            onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-            expandedId={expandedId} setExpandedId={setExpandedId} onAdjustCoperti={onAdjustCoperti}
+            onAddArticle={onAddArticle}
+            expandedId={expandedId} setExpandedId={setExpandedId}
             onAdjustReservationPosti={onAdjustReservationPosti}
             contiCollapsed={contiCollapsed}
-            onLibera={onLibera} onEdit={onEdit} onAssignOther={onAssignOther} onNoShow={onNoShow}
-            onModificaCoperti={onModificaCoperti}/>
+            onLibera={onLibera} onEdit={onEdit}/>
       }
     </div>
   );
@@ -479,7 +469,7 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, cart, onCartCh
 // ─────────────────────────────────────────────────────────
 // List view — griglia di card compatte
 // ─────────────────────────────────────────────────────────
-function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
+function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, expandedId, setExpandedId, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit}) {
   const sorted = tavoli; // ordinamento già applicato dal parent (stato → numero)
 
   // Griglia responsiva: pannello aperto (contiCollapsed=false) → 3 col, chiuso → 4 col
@@ -491,12 +481,9 @@ function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, cart, onCart
           expanded={expandedId === t.id}
           onToggle={()=>setExpandedId(id => id === t.id ? null : t.id)}
           onAdd={()=>onOpenAdd(t)} onPay={()=>onOpenPay(t)}
-          onAddArticle={onAddArticle} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-          onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(t.id, n)}
+          onAddArticle={onAddArticle}
           onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(t.id, n)}
-          onLibera={onLibera} onEdit={onEdit}
-          onAssignOther={onAssignOther} onNoShow={onNoShow}
-          onModificaCoperti={onModificaCoperti}/>
+          onLibera={onLibera} onEdit={onEdit}/>
       ))}
       {sorted.length === 0 && (
         <div style={{
@@ -540,7 +527,7 @@ const SALA_INITIAL_POSITIONS = {
 // Forma da ttSeatShape (sala-table-tile.jsx): 2-3 round, 4-5 square,
 // 6-8 rect 2u, >8 rect 3u. Il primo arg (shape legacy) è ignorato.
 function getTableDims(shape, posti, orientation) {
-  return ttFootprintUnits(posti || 4, ttSeatShape(posti || 4), orientation || 'h');
+  return geoIngombro(posti, orientation);
 }
 
 const SALA_GRID_COLS = 12, SALA_GRID_ROWS = 8;
@@ -556,29 +543,18 @@ function salaInitPositions() {
     const id = parseInt(key, 10);
     const t = all.find(x => x.id === id);
     const fp = getTableDims(null, t?.posti, 'h');
-    let pos = null;
-    outer:
-    for (let r = 0; r <= 14; r += 0.5) {
-      for (let dx = -r; dx <= r; dx += 0.5) {
-        for (let dy = -r; dy <= r; dy += 0.5) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-          const nx = Math.max(0, Math.min(SALA_GRID_COLS - fp.w, Math.round((p.x + dx) * 2) / 2));
-          const ny = Math.max(0, Math.min(SALA_GRID_ROWS - fp.h, Math.round((p.y + dy) * 2) / 2));
-          const rect = { x: nx, y: ny, w: fp.w, h: fp.h };
-          if (!placed.some(o => rectsOverlap(rect, o))) { pos = rect; break outer; }
-        }
-      }
-    }
-    if (!pos) pos = { x: p.x, y: p.y, w: fp.w, h: fp.h };
+    const libero = geoPostoLibero({
+      x: p.x, y: p.y, w: fp.w, h: fp.h, ostacoli: placed,
+      cols: SALA_GRID_COLS, rows: SALA_GRID_ROWS,
+    });
+    const pos = libero ? { ...libero, w: fp.w, h: fp.h } : { x: p.x, y: p.y, w: fp.w, h: fp.h };
     placed.push(pos);
     init[id] = { x: pos.x, y: pos.y, shape: p.shape, orientation: 'h' };
   });
   return init;
 }
 
-function rectsOverlap(a, b) {
-  return !(a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y);
-}
+const rectsOverlap = geoSovrappone;
 
 function rectsGap(a, b) {
   const gx = Math.max(0, Math.max(a.x, b.x) - Math.min(a.x + a.w, b.x + b.w));
@@ -592,7 +568,7 @@ function rectsIntersectArea(a, b) {
   return w > 0 && h > 0 ? w * h : 0;
 }
 
-function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSel, onExitMerge, onOpenAdd, onOpenPay, onAddArticle, cart, onCartChange, onConfirmCart, expandedId, setExpandedId, onAdjustCoperti, onAdjustReservationPosti, onLibera, onEdit, onAssignOther, onNoShow, onModificaCoperti }) {
+function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSel, onExitMerge, onOpenAdd, onOpenPay, onAddArticle, expandedId, setExpandedId, onAdjustReservationPosti, onLibera, onEdit}) {
   const isDimmed = (id) => dimmedIds && dimmedIds.has(id);
   const COLS = SALA_GRID_COLS, ROWS = SALA_GRID_ROWS;
   // SCHERMATA UNICA: la griglia entra tutta (fit su larghezza E altezza,
@@ -733,32 +709,11 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
 
   // Snap a 0.5 unità di cella
   const snap = (v) => Math.round(v * 2) / 2;
-  const toGrid = (clientX, clientY) => {
-    const r = canvasRef.current.getBoundingClientRect();
-    const s = r.height / CANVAS_H;  // compensazione zoom CSS del frame
-    return { x: ((clientX - r.left) / s - PAD) / PX, y: ((clientY - r.top) / s - PAD) / PY };
-  };
 
   // Cerca prima posizione libera vicino a (tx, ty) per il tavolo "id" senza overlap con "occupied".
   // Stesso algoritmo di findFreeCellSpiral in sala-app.jsx ma con dims variabili e snap a 0.5:
   // espande per "anelli" Chebyshev di raggio r — il check `max(|dx|,|dy|) !== r` salta l'interno
   // del quadrato (già testato nelle iterazioni precedenti), una sola valutazione per candidata.
-  const findFreeSpot = React.useCallback((id, tx, ty, occupied) => {
-    const dims = tableRect(id);
-    if (!dims) return { x: tx, y: ty };
-    for (let r = 0; r <= 8; r += 0.5) {
-      for (let dx = -r; dx <= r; dx += 0.5) {
-        for (let dy = -r; dy <= r; dy += 0.5) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-          const nx = Math.max(0, Math.min(COLS - dims.w, snap(tx + dx)));
-          const ny = Math.max(0, Math.min(ROWS - dims.h, snap(ty + dy)));
-          const test = { x: nx, y: ny, w: dims.w, h: dims.h };
-          if (!occupied.some(o => rectsOverlap(test, o))) return { x: nx, y: ny };
-        }
-      }
-    }
-    return { x: tx, y: ty };
-  }, [tableRect]);
 
   // Dopo un cambio posti/orientamento: se il nuovo footprint collide con
   // vicini o fixture (o sfora la griglia), sposta il tavolo nella posizione
@@ -784,20 +739,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
           }).filter(Boolean),
         ...SALA_FIXTURES,
       ];
-      for (let r = 0; r <= 14; r += 0.5) {
-        for (let dx = -r; dx <= r; dx += 0.5) {
-          for (let dy = -r; dy <= r; dy += 0.5) {
-            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-            const nx = Math.max(0, Math.min(COLS - fp.w, snap(p.x + dx)));
-            const ny = Math.max(0, Math.min(ROWS - fp.h, snap(p.y + dy)));
-            const rect = { x: nx, y: ny, w: fp.w, h: fp.h };
-            if (!obstacles.some(o => rectsOverlap(rect, o))) {
-              next[id] = { ...p, x: nx, y: ny };
-              return next;
-            }
-          }
-        }
-      }
+      const libero = geoPostoLibero({ x: p.x, y: p.y, w: fp.w, h: fp.h, ostacoli: obstacles, cols: COLS, rows: ROWS });
+      if (libero) next[id] = { ...p, x: libero.x, y: libero.y };
       return next;
     });
   };
@@ -1754,73 +1697,32 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             const cx = (aMinX + aMaxX) / 2;
             const aboveTop = aMinY - chairOut - 44;
             const barTop = aboveTop >= 2 ? aboveTop : aMaxY + chairOut + 8;
-            const doRotate = () => {
-              updatePositions(prev => ({
-                ...prev,
-                [t.id]: { ...prev[t.id], orientation: prev[t.id].orientation === 'v' ? 'h' : 'v' },
-              }));
-              resolveFootprint(t.id);
-            };
-            // Rotazione dell'intero gruppo unito: 90° orari attorno al suo
-            // bounding box (una fila orizzontale diventa verticale e viceversa),
-            // poi clamp nella griglia e — se il gruppo finisce sopra tavoli
-            // estranei — shift rigido del gruppo alla posizione libera più vicina.
-            const doRotateGroup = () => {
-              const ids = groupMatesOf(t.id);
+            // Ruota — la matematica sta in sala-geometria.jsx, condivisa con la
+            // mappa delle impostazioni. Qui restano solo i dati di questa
+            // schermata: le posizioni in SALA_POSITIONS e i fixture come
+            // ostacoli fissi. Se non c'è modo di girare senza sforare o
+            // accavallarsi, geoRuota torna null e si lascia tutto com'è.
+            const ruota = (ids) => {
               updatePositions(prev => {
-                const next = { ...prev };
-                const rectOf = (id, pp) => {
-                  const tt = all.find(x => x.id === id);
-                  const d = getTableDims(null, tt?.posti, pp.orientation);
-                  return { x: pp.x, y: pp.y, w: d.w, h: d.h };
-                };
-                const rects = ids.filter(id => next[id]).map(id => ({ id, ...rectOf(id, next[id]) }));
-                if (rects.length < 2) return prev;
-                const minX = Math.min(...rects.map(r => r.x));
-                const minY = Math.min(...rects.map(r => r.y));
-                const groupH = Math.max(...rects.map(r => r.y + r.h)) - minY;
-                rects.forEach(r => {
-                  // (relX, relY, w, h) → 90° CW → (H − relY − h, relX) con footprint girato
-                  const newOrient = next[r.id].orientation === 'v' ? 'h' : 'v';
-                  next[r.id] = {
-                    ...next[r.id],
-                    orientation: newOrient,
-                    x: minX + groupH - (r.y - minY) - r.h,
-                    y: minY + (r.x - minX),
-                  };
-                });
-                // Bounding box post-rotazione + ostacoli esterni al gruppo
-                const newRects = ids.filter(id => next[id]).map(id => rectOf(id, next[id]));
-                const obstacles = [
-                  ...Object.keys(next).map(k => parseInt(k, 10))
-                    .filter(k => !ids.includes(k))
-                    .map(k => next[k] && rectOf(k, next[k])).filter(Boolean),
+                const postiDi = (id) => (all.find(x => x.id === id) || {}).posti;
+                const membri = ids.filter(id => prev[id]).map(id => ({
+                  id, posti: postiDi(id), x: prev[id].x, y: prev[id].y, orientation: prev[id].orientation,
+                }));
+                const ostacoli = [
+                  ...Object.keys(prev).map(k => parseInt(k, 10))
+                    .filter(id => !ids.includes(id) && prev[id])
+                    .map(id => ({ x: prev[id].x, y: prev[id].y, ...geoIngombro(postiDi(id), prev[id].orientation) })),
                   ...SALA_FIXTURES,
                 ];
-                // Cerca lo shift (dx,dy) minimo che porta il gruppo in griglia e senza overlap
-                const bMinX = Math.min(...newRects.map(r => r.x));
-                const bMinY = Math.min(...newRects.map(r => r.y));
-                const bMaxX = Math.max(...newRects.map(r => r.x + r.w));
-                const bMaxY = Math.max(...newRects.map(r => r.y + r.h));
-                for (let r = 0; r <= 10; r += 0.5) {
-                  for (let dx = -r; dx <= r; dx += 0.5) {
-                    for (let dy = -r; dy <= r; dy += 0.5) {
-                      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-                      if (bMinX + dx < 0 || bMaxX + dx > COLS || bMinY + dy < 0 || bMaxY + dy > ROWS) continue;
-                      const ok = newRects.every(nr => !obstacles.some(o =>
-                        rectsOverlap({ x: nr.x + dx, y: nr.y + dy, w: nr.w, h: nr.h }, o)));
-                      if (ok) {
-                        if (dx || dy) ids.forEach(id => {
-                          if (next[id]) next[id] = { ...next[id], x: snap(next[id].x + dx), y: snap(next[id].y + dy) };
-                        });
-                        return next;
-                      }
-                    }
-                  }
-                }
-                return next; // nessuno spot: lascia la rotazione com'è
+                const esito = geoRuota({ membri, ostacoli, cols: COLS, rows: ROWS });
+                if (!esito) return prev;
+                const next = { ...prev };
+                esito.forEach(e => { next[e.id] = { ...next[e.id], x: e.x, y: e.y, orientation: e.orientation }; });
+                return next;
               });
             };
+            const doRotate = () => { ruota([t.id]); resolveFootprint(t.id); };
+            const doRotateGroup = () => ruota(groupMatesOf(t.id));
             const btnStyle = (enabled) => ({
               width: 26, height: 26, borderRadius: 8,
               background: enabled ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.40)',
@@ -1969,12 +1871,9 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               onToggle={()=>{}}
               onAdd={closeAnd(()=>onOpenAdd(clickedTable))}
               onPay={closeAnd(()=>onOpenPay(clickedTable))}
-              onAddArticle={closeAnd(onAddArticle)} cart={cart} onCartChange={onCartChange} onConfirmCart={onConfirmCart}
-              onAdjustCoperti={(n) => onAdjustCoperti && onAdjustCoperti(clickedTable.id, n)}
+              onAddArticle={closeAnd(onAddArticle)}
               onAdjustReservationPosti={(n) => onAdjustReservationPosti && onAdjustReservationPosti(clickedTable.id, n)}
-              onLibera={closeAnd(onLibera)} onEdit={closeAnd(onEdit)}
-              onAssignOther={closeAnd(onAssignOther)} onNoShow={closeAnd(onNoShow)}
-              onModificaCoperti={closeAnd(onModificaCoperti)}/>
+              onLibera={closeAnd(onLibera)} onEdit={closeAnd(onEdit)}/>
           </div>
         </div>,
         document.querySelector('.frame') || document.body

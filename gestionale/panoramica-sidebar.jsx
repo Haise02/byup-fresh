@@ -35,6 +35,72 @@ window.byupWriteModules = function(m) {
   } catch(e) {}
 };
 
+// Visualizzazione del Kitchen Monitor — «pub» o «ristorante». Si sceglie dove si
+// collega il monitor (onboarding · Configurazione completa) e si cambia dove lo
+// si modifica (Impostazioni → Personale): è un attributo del dispositivo, non
+// un'impostazione del locale, e non ha un terzo interruttore da nessuna parte.
+// Vive qui, con gli altri stati condivisi fra pagine, perché la sezione Cucina
+// deve saperla pur stando su un'altra pagina.
+// Default «ristorante»: è la cucina che il gestionale ha sempre avuto, e chi non
+// ha ancora collegato un monitor non deve vedersela cambiare sotto i piedi.
+// I Kitchen Monitor collegati, condivisi fra pagine. Ognuno porta la sua
+// visualizzazione — «pub» o «ristorante» — che si sceglie DOVE SI COLLEGA il
+// dispositivo (onboarding · Impostazioni → Personale) e in nessun altro posto:
+// è una proprietà di quello schermo, come il nome.
+// La sezione Cucina non la sceglie, sceglie QUALE MONITOR guardare; la vista
+// viene dietro. Così i due punti non possono contraddirsi: c'è una sola cosa
+// scritta in un solo posto, e la Cucina la legge.
+const BYUP_KDS_LISTA_KEY  = 'byup_kds_monitor';
+const BYUP_KDS_ATTIVO_KEY = 'byup_kds_attivo';
+// Default: i due monitor del locale d'esempio. Servono perché la Cucina si può
+// aprire senza essere mai passati da Impostazioni, e uno schermo di cucina
+// vuoto non dice niente a nessuno.
+const BYUP_KDS_DEFAULT = [
+  { id: 'PG1-cucina', nome: 'Monitor cucina principale', vista: 'ristorante' },
+  { id: 'PG1-pizza',  nome: 'Monitor pizza',             vista: 'pub' },
+];
+function _byupKdsNormalizza(m) {
+  return {
+    id: String(m && m.id || '').trim() || 'monitor',
+    nome: String(m && m.nome || '').trim() || 'Kitchen Monitor',
+    vista: m && m.vista === 'pub' ? 'pub' : 'ristorante',
+  };
+}
+window.byupReadMonitorsKds = function() {
+  try {
+    const s = localStorage.getItem(BYUP_KDS_LISTA_KEY);
+    const v = s ? JSON.parse(s) : null;
+    if (Array.isArray(v) && v.length) return v.map(_byupKdsNormalizza);
+  } catch(e) {}
+  return BYUP_KDS_DEFAULT.slice();
+};
+window.byupReadMonitorAttivoKds = function() {
+  const lista = window.byupReadMonitorsKds();
+  let id = '';
+  try { id = localStorage.getItem(BYUP_KDS_ATTIVO_KEY) || ''; } catch(e) {}
+  return lista.find(m => m.id === id) || lista[0];
+};
+window.byupSetMonitorAttivoKds = function(id) {
+  try {
+    localStorage.setItem(BYUP_KDS_ATTIVO_KEY, String(id || ''));
+    window.dispatchEvent(new Event('byup-kds-vista-change'));
+  } catch(e) {}
+};
+// Collegando o modificando un monitor: entra in elenco se è nuovo, si aggiorna
+// se c'era già. Diventa anche quello attivo, perché chi lo ha appena
+// configurato è lì per vedere l'effetto.
+window.byupUpsertMonitorKds = function(m) {
+  try {
+    const nuovo = _byupKdsNormalizza(m);
+    const lista = window.byupReadMonitorsKds();
+    const i = lista.findIndex(x => x.id === nuovo.id);
+    if (i >= 0) lista[i] = nuovo; else lista.push(nuovo);
+    localStorage.setItem(BYUP_KDS_LISTA_KEY, JSON.stringify(lista));
+    localStorage.setItem(BYUP_KDS_ATTIVO_KEY, nuovo.id);
+    window.dispatchEvent(new Event('byup-kds-vista-change'));
+  } catch(e) {}
+};
+
 // Locale attivo — quello su cui opera il gestionale; condiviso via localStorage.
 // Si cambia da Profilo → I tuoi locali; la sidebar lo mostra sotto il nome utente.
 const BYUP_LOCALE_KEY = 'byup_locale_attivo';
@@ -116,7 +182,10 @@ window.byupCreaNotaCredito = function(f) {
   });
 };
 
-function PnSidebar({ active = 'panoramica', onNav }) {
+// `badges`: mappa opzionale id-voce → numero, per le sezioni che hanno
+// qualcosa di non gestito da segnalare (es. {contabilita: 1}). Assente o 0
+// = nessun pallino, così le pagine che non la passano non cambiano.
+function PnSidebar({ active = 'panoramica', onNav, badges }) {
   const [profHover, setProfHover] = React.useState(false);
   const [profPress, setProfPress] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(() => {
@@ -246,7 +315,9 @@ function PnSidebar({ active = 'panoramica', onNav }) {
         minHeight: 0, overflowY: 'auto',
       }}>
         {items.map(it => (
-          <PnNavItem key={it.id} {...it} collapsed={collapsed} active={active === it.id} onClick={() => navTo(it.id)} />
+          <PnNavItem key={it.id} {...it}
+            badge={badges && badges[it.id] ? badges[it.id] : undefined}
+            collapsed={collapsed} active={active === it.id} onClick={() => navTo(it.id)} />
         ))}
       </div>
 

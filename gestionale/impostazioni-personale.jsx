@@ -21,7 +21,7 @@ const ROLES = [
   {
     id: 'cassa',
     label: 'Cassa',
-    desc: 'Prende ordini e incassa dalla cassa del locale',
+    desc: 'Prende ordini e incassa al bancone',
     color: PN.BLUE, bg: PN.BLUE_SOFT,
     icon: 'receipt',
     areas: ['vendita','sala'],
@@ -30,7 +30,13 @@ const ROLES = [
     id: 'titolare',
     label: 'Titolare',
     desc: 'Vede tutto · uno solo, è chi ha creato il gestionale',
-    color: PN.WINE, bg: PN.WINE_SOFT,
+    // Teal, che è l'unica famiglia libera di questa pagina: il rosso è di
+    // Cameriere e Cassa, il blu della cassa e delle stampanti, lo slate dei
+    // dispositivi, il verde dello stato, il viola dei ruoli personalizzati e
+    // l'ambra degli inviti in attesa. Vinaccia com'era prima si confondeva con
+    // le altre due pastiglie rosse; il titolare è il ruolo che sta a sé — uno
+    // solo, vede tutto — e va letto come tale a colpo d'occhio.
+    color: '#0F766E', bg: '#CCFBF1',
     icon: 'crown',
     locked: true,
     areas: ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni'],
@@ -61,6 +67,24 @@ const DEVICE_TYPES = [
 const AVAILABLE_PRINTERS = [
   { id: 'printer-epson-1',  model: 'Epson TM-T20III',   ip: '192.168.1.101' },
   { id: 'printer-cube-1',   model: 'Cube Custom 12',     ip: '192.168.1.102' },
+];
+
+// Come la cucina vede e manda gli ordini. È la sola cosa che cambia davvero
+// fra due monitor identici, e si chiede al collegamento perché cambia il modo
+// di lavorare in cucina, non un colore: il ticket del KDS porta già `course`
+// (1 antipasto, 2 primo, 3 secondo, 4 dessert, null = portata unica), e le due
+// visualizzazioni sono i due modi di leggerlo. Resta modificabile in
+// Impostazioni → Operazioni: chi apre come pub e poi mette il servizio al
+// tavolo non deve ricollegare il monitor.
+// Le icone dicono il comportamento e non il tipo di locale: quello lo dice già
+// il nome, mentre la differenza che conta è tutto-insieme contro diviso.
+// `short`: in elenco la pastiglia sta accanto a «Kitchen Monitor», e «Visualizza-
+// zione» lì è la parola che si capisce da sé — resta «Pub» / «Ristorante».
+const KDS_VIEWS = [
+  { id: 'pub', label: 'Visualizzazione Pub', short: 'Pub', icon: 'bolt',
+    desc: 'Tutte le righe escono insieme' },
+  { id: 'ristorante', label: 'Visualizzazione Ristorante', short: 'Ristorante', icon: 'split',
+    desc: 'Le righe partono una portata alla volta' },
 ];
 
 const MENUS = [
@@ -130,9 +154,12 @@ const PERSONS = [
   { name: 'Luca Ferretti', email: 'luca@delborgo.it', role: 'sommelier', last: '3 ore fa', online: false, color: '#7C3AED', active: false },
 ];
 
+// kdsView: la visualizzazione scelta al collegamento (vedi KDS_VIEWS). Sta sul
+// dispositivo e non sul locale perché due monitor dello stesso locale possono
+// lavorare in due modi — la pizza esce tutta insieme, la sala va per portate.
 const DEVICES = [
-  { name: 'Monitor cucina principale', username: 'PG1-cucina', deviceType: 'kitchen-monitor', last: 'ora', online: true },
-  { name: 'Monitor pizza', username: 'PG1-pizza', deviceType: 'kitchen-monitor', last: '5 min fa', online: true },
+  { name: 'Monitor cucina principale', username: 'PG1-cucina', deviceType: 'kitchen-monitor', kdsView: 'ristorante', last: 'ora', online: true },
+  { name: 'Monitor pizza', username: 'PG1-pizza', deviceType: 'kitchen-monitor', kdsView: 'pub', last: '5 min fa', online: true },
   { name: 'Cassa principale', printerModel: 'Epson TM-T20III', ip: '192.168.1.101', deviceType: 'printer', last: '2 min fa', online: true, menuId: 'principale', cats: ['antipasti','primi','dolci'] },
 ];
 
@@ -157,7 +184,6 @@ const CUSTOM_ROLES = [
 function ImpPersonale() {
   const [openMenu, setOpenMenu] = React.useState(null);
   const [showCreateRole, setShowCreateRole] = React.useState(false);
-  const [editRole, setEditRole] = React.useState(null);
   const [invite, setInvite] = React.useState(null); // null | { roleId, kind }
   const [showPending, setShowPending] = React.useState(false);
   const [gruppo, setGruppo] = React.useState('all');   // filtro per ruolo (colonna sinistra)
@@ -182,7 +208,21 @@ function ImpPersonale() {
     return () => document.removeEventListener('click', close);
   }, [openMenu]);
 
-  const allRoles = [...ROLES, ...CUSTOM_ROLES];
+  // Quello che il menu «⋯» cambia davvero. I dati di partenza sono finti e
+  // fermi; queste tre mappe sono la memoria di ciò che l'utente ha fatto in
+  // questa sessione, così un accesso disattivato resta disattivato e un ruolo
+  // cambiato si vede in riga — altrimenti il menu è un elenco di bottoni che
+  // non fanno niente, che è peggio di non averli.
+  const [attivazioni, setAttivazioni] = React.useState({});   // key → attivo
+  const [ruoliCambiati, setRuoliCambiati] = React.useState({}); // key → roleId
+  const [resetPwd, setResetPwd] = React.useState(null);       // riga in reset
+  const [cambiaRuolo, setCambiaRuolo] = React.useState(null); // riga in cambio
+
+  // I ruoli personalizzati sono gli unici che cambiano: Cassa, Cameriere e
+  // Titolare sono di sistema e restano quelli. Modificarne i permessi non li
+  // smonta — ne nasce uno personalizzato nuovo (vedi CreateRoleModal).
+  const [customRoles, setCustomRoles] = React.useState(CUSTOM_ROLES);
+  const allRoles = [...ROLES, ...customRoles];
 
   // Persone e dispositivi in un elenco solo: la domanda della pagina è «chi
   // entra nel gestionale», e un monitor di cucina che legge le comande entra
@@ -190,25 +230,27 @@ function ImpPersonale() {
   // costringeva a guardare in due posti per rispondere.
   const righe = [
     ...PERSONS.map(p => {
-      const ruolo = allRoles.find(r => r.id === p.role) || RUOLO_IGNOTO;
+      const key = `p-${p.email}`;
+      const ruolo = allRoles.find(r => r.id === (ruoliCambiati[key] || p.role)) || RUOLO_IGNOTO;
       return {
-        key: `p-${p.email}`, tipo: 'persona', dato: p,
+        key, tipo: 'persona', dato: p,
         nome: p.name, sotto: p.email, colore: p.color,
         ruolo, gruppo: ruolo.custom ? '_custom' : ruolo.id,
         accesso: accessoDelRuolo(ruolo),
-        attivo: p.active !== false,
+        attivo: attivazioni[key] !== undefined ? attivazioni[key] : p.active !== false,
       };
     }),
     ...DEVICES.map((d, i) => {
       const stampante = d.deviceType === 'printer';
+      const key = `d-${i}`;
       return {
-        key: `d-${i}`, tipo: 'dispositivo', dato: d, idx: i,
+        key, tipo: 'dispositivo', dato: d, idx: i,
         nome: d.name, sotto: stampante ? d.ip : d.username,
-        ruolo: DEVICE_ROLE, gruppo: '_devices',
+        ruolo: DEVICE_ROLES[d.deviceType] || DEVICE_ROLE, gruppo: '_devices',
         accesso: stampante
           ? { titolo: 'Cassa', sotto: 'Scontrini e comande' }
           : { titolo: 'Cucina', sotto: 'Schermo comande' },
-        attivo: d.active !== false,
+        attivo: attivazioni[key] !== undefined ? attivazioni[key] : d.active !== false,
         stampante,
       };
     }),
@@ -219,7 +261,7 @@ function ImpPersonale() {
     { id: 'all', label: 'Tutti i ruoli', icon: 'users', color: PN.PINK_DARK, bg: PN.PINK_SOFT },
     ...ROLES.map(r => ({ id: r.id, label: r.label, icon: r.icon, color: r.color, bg: r.bg })),
     { id: '_devices', label: 'Dispositivi', icon: 'monitor', color: DEVICE_ROLE.color, bg: DEVICE_ROLE.bg },
-    ...(CUSTOM_ROLES.length
+    ...(customRoles.length
       ? [{ id: '_custom', label: 'Personalizzati', icon: 'sparkle', color: '#6D28D9', bg: '#EDE9FE' }]
       : []),
   ];
@@ -278,19 +320,16 @@ function ImpPersonale() {
               <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2}}>Filtra le persone per ruolo</div>
             </div>
             <div style={{padding:'0 10px 12px', display:'flex', flexDirection:'column', gap: 2}}>
+              {/* Queste righe filtrano l'elenco e basta: i permessi si toccano
+                  da «Crea ruolo» qui sotto. La matita al passaggio è stata
+                  tolta — due modi per arrivare alla stessa modale, e uno dei
+                  due nascosto finché non ci passavi sopra. */}
               {gruppi.map(g => {
                 const on = gruppo === g.id;
                 const n = conta(g.id);
-                // I ruoli standard non avevano nessun punto da cui aprire i
-                // loro permessi: solo i custom mostravano «Modifica». La
-                // matita al passaggio vale per tutti.
-                const ruoloVero = allRoles.find(r => r.id === g.id && !r.locked);
                 return (
-                  <div key={g.id} style={{position:'relative'}}
-                    onMouseEnter={e => { const m = e.currentTarget.querySelector('.ruolo-matita'); if (m) m.style.opacity = 1; }}
-                    onMouseLeave={e => { const m = e.currentTarget.querySelector('.ruolo-matita'); if (m) m.style.opacity = 0; }}
-                  >
                     <button
+                      key={g.id}
                       onClick={() => setGruppo(g.id)}
                       className="pn-btn-feedback"
                       style={{
@@ -314,28 +353,13 @@ function ImpPersonale() {
                         color: on ? PN.PINK_DARK : PN.TEXT,
                         overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                       }}>{g.label}</span>
+                      {/* Niente margine destro: senza la matita da scansare i
+                          conteggi si incolonnano da soli sul bordo della riga. */}
                       <span style={{
                         fontSize: 13, fontWeight: 700, flexShrink: 0,
                         color: on ? PN.PINK_DARK : PN.MUTED,
-                        marginRight: ruoloVero ? 24 : 0,
                       }}>{n}</span>
                     </button>
-                    {ruoloVero && (
-                      <button
-                        className="ruolo-matita"
-                        onClick={(e) => { e.stopPropagation(); setEditRole(ruoloVero); }}
-                        title={`Permessi di ${ruoloVero.label}`}
-                        aria-label={`Permessi di ${ruoloVero.label}`}
-                        style={{
-                          position:'absolute', top: '50%', right: 8, transform:'translateY(-50%)',
-                          width: 24, height: 24, borderRadius: 7,
-                          border:'none', background:'transparent', color: PN.MUTED,
-                          display:'grid', placeItems:'center', cursor:'pointer',
-                          opacity: 0, transition:'opacity .14s',
-                        }}
-                      >{BuIcons.edit({size: 13, color:'currentColor'})}</button>
-                    )}
-                  </div>
                 );
               })}
             </div>
@@ -415,6 +439,9 @@ function ImpPersonale() {
               key={r.key} r={r} ultima={i === visibili.length - 1}
               openMenu={openMenu} setOpenMenu={setOpenMenu}
               onEditDevice={() => setInvite({ kind: 'device', editDevice: r.dato })}
+              onToggleAttivo={() => setAttivazioni(a => ({...a, [r.key]: !r.attivo}))}
+              onResetPassword={() => setResetPwd(r)}
+              onCambiaRuolo={() => setCambiaRuolo(r)}
             />
           ))}
         </section>
@@ -448,13 +475,27 @@ function ImpPersonale() {
               />
             </div>
           </section>
-
         </aside>
+
       </div>
 
-      {showCreateRole && <CreateRoleModal onClose={() => setShowCreateRole(false)}/>}
-      {editRole && <CreateRoleModal role={editRole} onClose={() => setEditRole(null)}/>}
-      {invite && <InviteModal prefill={invite} onClose={() => setInvite(null)}/>}
+      {resetPwd && <ResetPasswordModal r={resetPwd} onClose={() => setResetPwd(null)}/>}
+      {cambiaRuolo && (
+        <CambiaRuoloModal
+          r={cambiaRuolo} ruoli={allRoles.filter(x => !x.locked)}
+          onConferma={(roleId) => {
+            setRuoliCambiati(m => ({...m, [cambiaRuolo.key]: roleId}));
+            setCambiaRuolo(null);
+          }}
+          onClose={() => setCambiaRuolo(null)}/>
+      )}
+      {showCreateRole && (
+        <CreateRoleModal
+          roles={allRoles}
+          onSave={(nuovo) => setCustomRoles(prev => [...prev, nuovo])}
+          onClose={() => setShowCreateRole(false)}/>
+      )}
+      {invite && <InviteModal prefill={invite} ruoli={allRoles} onClose={() => setInvite(null)}/>}
       {showPending && <PendingModal onClose={() => setShowPending(false)}/>}
     </div>
   );
@@ -467,6 +508,23 @@ const GRIGLIA_ACCESSI = 'minmax(0, 2.2fr) minmax(0, 1.2fr) 112px 34px';
 const DEVICE_ROLE = {
   id: '_device', label: 'Dispositivo', icon: 'monitor',
   color: '#475569', bg: '#F1F5F9',
+};
+
+// In riga il ruolo dice che cosa È il dispositivo, non che è un dispositivo:
+// «Dispositivo» su tre righe su tre nascondeva l'unica cosa che si vuole sapere
+// a colpo d'occhio, se quello è un monitor o una stampante. La stampante prende
+// il blu che ha già nel modulo di collegamento. Il filtro a sinistra resta uno
+// solo — «Dispositivi» — perché lì si cerca la famiglia, non il pezzo.
+// Monitor e stampante condividono lo slate dei dispositivi: il blu che aveva
+// la stampante è il colore della Cassa, e due pastiglie blu nella stessa
+// colonna dicevano che quelle due righe hanno qualcosa in comune, che non è
+// vero. Le due macchine si distinguono per etichetta e icona — che è la
+// differenza vera — non per tinta.
+const DEVICE_ROLES = {
+  'kitchen-monitor': { id: '_device_monitor', label: 'Kitchen Monitor', icon: 'monitor',
+    color: '#475569', bg: '#F1F5F9' },
+  'printer':         { id: '_device_printer', label: 'Stampante', icon: 'doc',
+    color: '#475569', bg: '#F1F5F9' },
 };
 
 // Che cosa vede davvero un ruolo, detto in due righe: la prima le sezioni,
@@ -519,7 +577,8 @@ function ScorciatoiaAccesso({ icona, colore, sfondo, titolo, sotto, onClick }) {
   );
 }
 
-function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
+function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
+  onToggleAttivo, onResetPassword, onCambiaRuolo }) {
   const [confermaRimozione, setConfermaRimozione] = React.useState(false);
   const aperto = openMenu === r.key;
   const iniziali = r.tipo === 'persona'
@@ -562,7 +621,9 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         </div>
       </div>
 
-      {/* Ruolo */}
+      {/* Ruolo. La visualizzazione del monitor (Pub / Ristorante) non sta qui:
+          in questa colonna una seconda pastiglia costa più di quello che dice,
+          e chi la vuole sapere apre «Modifica», dov'è la scelta vera. */}
       <div style={{minWidth: 0}}>
         <span style={{
           display:'inline-flex', alignItems:'center', gap: 5, maxWidth:'100%',
@@ -570,15 +631,21 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
           background: r.ruolo.bg, color: r.ruolo.color,
           fontSize: 13.5, fontWeight: 700,
         }}>
-          {(BuIcons[r.ruolo.icon]||BuIcons.user)({size: 12, color:'currentColor'})}
+          {/* Nella riga di un dispositivo l'icona qui ripeteva quella del
+              riquadro a sinistra, che per le persone sono invece le iniziali:
+              toglierla libera i 17px che servono a tenere la visualizzazione
+              sulla stessa riga. */}
+          {r.tipo !== 'dispositivo' && (BuIcons[r.ruolo.icon]||BuIcons.user)({size: 12, color:'currentColor'})}
           <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.ruolo.label}</span>
         </span>
       </div>
 
       {/* Stato: solo la pastiglia — l'ultimo accesso («Online ora», «ieri»)
-          è stato tolto, ripeteva verde su quasi ogni riga senza dire nulla. */}
+          è stato tolto, ripeteva verde su quasi ogni riga senza dire nulla.
+          Per il titolare non c'è: è l'unico che non si può disattivare, quindi
+          «Attivo» non era un'informazione ma una casella sempre uguale. */}
       <div>
-        <span style={{
+        {!bloccato && <span style={{
           display:'inline-flex', alignItems:'center', gap: 5,
           padding:'3px 10px', borderRadius: 999,
           background: r.attivo ? PN.GREEN_SOFT : '#F1F3F5',
@@ -587,13 +654,20 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         }}>
           <span style={{width: 6, height: 6, borderRadius:'50%', background: r.attivo ? PN.GREEN : '#9CA3AF'}}/>
           {r.attivo ? 'Attivo' : 'Disattivato'}
-        </span>
+        </span>}
       </div>
 
       {/* Azioni */}
       <div style={{display:'flex', justifyContent:'flex-end'}}>
         {bloccato ? (
-          <span title="Il titolare non si modifica" style={{fontSize: 13, opacity: 0.5}}>🔒</span>
+          // Stessa impronta del bottone «⋯» delle altre righe, così il segno
+          // cade dove cade il menu invece di penzolare più piccolo e più in su.
+          // Icona e non emoji: l'emoji cambia disegno da un sistema all'altro e
+          // qui dentro era l'unica cosa colorata di giallo.
+          <span title="Il titolare non si modifica" style={{
+            width: 32, height: 32, borderRadius: 8,
+            display:'grid', placeItems:'center', color: PN.MUTED,
+          }}>{BuIcons.lock({size: 17, color:'currentColor'})}</span>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); setOpenMenu(aperto ? null : r.key); }}
@@ -616,9 +690,15 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
         }}>
           {r.tipo === 'persona' ? (
             <>
-              <MenuItem icon={BuIcons.user({size: 14, color: 'currentColor'})}>Modifica ruolo</MenuItem>
-              <MenuItem icon={<PnI.Key size={14}/>}>Resetta password</MenuItem>
-              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}>
+              <MenuItem icon={BuIcons.user({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); onCambiaRuolo?.(); }}>Modifica ruolo</MenuItem>
+              {/* Niente «Resetta password» su una persona: la sua password è
+                  sua, la reimposta lei dal link che le arriva per email. Il
+                  titolare le toglie l'accesso, non le sceglie le credenziali —
+                  quelle le decide il titolare solo per i dispositivi, che una
+                  casella di posta non ce l'hanno. */}
+              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); onToggleAttivo?.(); }}>
                 {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
               </MenuItem>
               <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
@@ -629,8 +709,10 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice }) {
             <>
               <MenuItem icon={BuIcons.edit({size: 14, color: 'currentColor'})}
                 onClick={() => { setOpenMenu(null); onEditDevice?.(); }}>Modifica</MenuItem>
-              {!r.stampante && <MenuItem icon={<PnI.Key size={14}/>}>Genera nuova password</MenuItem>}
-              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}>
+              {!r.stampante && <MenuItem icon={<PnI.Key size={14}/>}
+                onClick={() => { setOpenMenu(null); onResetPassword?.(); }}>Genera nuova password</MenuItem>}
+              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); onToggleAttivo?.(); }}>
                 {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
               </MenuItem>
               <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
@@ -704,6 +786,28 @@ const PERM_ICONS = {
 // firma che nessuno avrebbe letto.
 const allCatsCount = MENUS.reduce((n, m) => n + m.categories.length, 0);
 
+// Password di un dispositivo: otto caratteri senza I, O, 0 e 1 — si detta ad
+// alta voce a chi sta davanti al monitor, e quelle quattro si sbagliano sempre.
+// Vive fuori da useDeviceState perché la chiede anche il «Resetta password» del
+// menu, che di quello stato non ha bisogno.
+function generaPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let p = '';
+  for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
+  return p;
+}
+
+// La visualizzazione scelta per un monitor va detta alla sezione Cucina, che sta
+// su un'altra pagina: passa dal ponte condiviso in panoramica-sidebar.jsx. Qui
+// non si decide niente — si riferisce quello che ha scelto chi collega.
+// Il monitor collegato — nome, visualizzazione e l'username che lo identifica —
+// va detto alla sezione Cucina, che sta su un'altra pagina e da lì sceglie quale
+// schermo guardare. Qui non si decide niente: si riferisce quello che ha scelto
+// chi collega.
+function salvaMonitorKds({ id, nome, vista }) {
+  if (window.byupUpsertMonitorKds) window.byupUpsertMonitorKds({ id, nome, vista });
+}
+
 function useDeviceState(tipoIniziale) {
   const [deviceTypeId, setDeviceTypeId] = React.useState(tipoIniziale || 'kitchen-monitor');
   const [deviceName, setDeviceName] = React.useState('');
@@ -713,6 +817,9 @@ function useDeviceState(tipoIniziale) {
   const [openTypeMenu, setOpenTypeMenu] = React.useState(false);
   // printerCats: Set di chiavi composite "menuId:catId" — permette selezione tra menu diversi
   const [printerCats, setPrinterCats] = React.useState(new Set());
+  // Pub di default: è il locale a cui Fresh si rivolge per primo — alta
+  // rotazione, portata unica. Chi lavora per portate lo dice cambiando qui.
+  const [kdsView, setKdsView] = React.useState('pub');
   const isPrinter = deviceTypeId.startsWith('printer-');
   const selectedPrinter = AVAILABLE_PRINTERS.find(p => p.id === deviceTypeId);
   const deviceType = isPrinter
@@ -721,27 +828,44 @@ function useDeviceState(tipoIniziale) {
   const deviceValid = isPrinter
     ? deviceName.trim().length > 0 && printerCats.size > 0
     : (username.trim().length > 0 && password.length >= 4);
-  const generatePwd = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let p = '';
-    for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
-    setPassword(p); setShowPwd(true);
-  };
-  const reset = () => { setDeviceName(''); setUsername(''); setPassword(''); setShowPwd(false); setPrinterCats(new Set()); };
+  const generatePwd = () => { setPassword(generaPassword()); setShowPwd(true); };
+  const reset = () => { setDeviceName(''); setUsername(''); setPassword(''); setShowPwd(false); setPrinterCats(new Set()); setKdsView('pub'); };
   return { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
-    printerCats, setPrinterCats, isPrinter, selectedPrinter, deviceType, deviceValid,
-    generatePwd, reset };
+    printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
+    deviceType, deviceValid, generatePwd, reset };
 }
 
-function DeviceForm({ st }) {
+function DeviceForm({ st, tipoFisso, azione, modifica }) {
   const { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
-    printerCats, setPrinterCats, isPrinter, selectedPrinter, deviceType, generatePwd } = st;
-  return (
-    <>
-              {/* Selettore tipo dispositivo */}
-              <ImpField label="Tipo dispositivo">
+    printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
+    deviceType, generatePwd } = st;
+
+  // `tipoFisso`: nel passo Personale la tessera qui sopra ha già detto se si
+  // collega una stampante o un monitor, e il menu non deve riproporre l'altra
+  // famiglia — scegliendola da qui la tessera accesa e il modulo dicevano due
+  // cose diverse. Con la famiglia già decisa il menu risponde a «quale
+  // stampante», non a «che cosa collego»: per questo cambia etichetta e mostra
+  // i soli modelli trovati in rete. Senza la prop — la modale «Aggiungi
+  // dispositivo», dove il menu È la scelta — resta il selettore completo.
+  const soloStampanti = tipoFisso === 'printer';
+  const soloMonitor = tipoFisso === 'monitor';
+  const vociMonitor = soloStampanti ? [] : DEVICE_TYPES;
+  const vociStampanti = soloMonitor ? [] : AVAILABLE_PRINTERS;
+
+  // In pagina la card è larga: due campi per riga stanno larghi il giusto e la
+  // riga dice a occhio che vanno insieme. Nella modale, che è una colonna
+  // stretta, restano impilati a piena larghezza.
+  const inRiga = !!tipoFisso;
+  const RIGA_2 = {
+    display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14,
+    alignItems:'start', marginBottom: 16,
+  };
+
+  const campoTipo = (
+              <ImpField label={soloStampanti ? 'Scegli stampante' : 'Tipo dispositivo'}
+                style={soloStampanti ? {marginBottom: 0} : undefined}>
                 <div style={{position:'relative'}}>
                   <button
                     onClick={() => setOpenTypeMenu(o => !o)}
@@ -764,7 +888,8 @@ function DeviceForm({ st }) {
                       }</span>
                       <span style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:1}}>
                         <span style={{fontSize:15.5}}>
-                          {isPrinter ? `Stampante (${selectedPrinter?.model})` : 'Tablet/iPad/Schermo (Monitor cucina)'}
+                          {soloStampanti ? selectedPrinter?.model
+                            : isPrinter ? `Stampante (${selectedPrinter?.model})` : 'Tablet/iPad/Schermo (Monitor cucina)'}
                         </span>
                         {isPrinter && selectedPrinter && (
                           <span style={{fontSize:13, color:PN.MUTED}}>{selectedPrinter.ip}</span>
@@ -782,7 +907,7 @@ function DeviceForm({ st }) {
                       boxShadow:'0 8px 24px rgba(0,0,0,0.08)',
                     }}>
                       {/* Monitor cucina */}
-                      {DEVICE_TYPES.map(t => (
+                      {vociMonitor.map(t => (
                         <button key={t.id} onClick={() => { setDeviceTypeId(t.id); setOpenTypeMenu(false); }}
                           style={{
                             display:'flex', width:'100%', alignItems:'center', gap: 10,
@@ -803,13 +928,13 @@ function DeviceForm({ st }) {
                         </button>
                       ))}
 
-                      {/* Separatore */}
-                      {AVAILABLE_PRINTERS.length > 0 && (
+                      {/* Separatore — solo se sopra c'è davvero un'altra famiglia */}
+                      {vociMonitor.length > 0 && vociStampanti.length > 0 && (
                         <div style={{height:1, background:PN.BORDER_SOFT, margin:'4px 0'}}/>
                       )}
 
                       {/* Stampanti scoperte */}
-                      {AVAILABLE_PRINTERS.map(p => (
+                      {vociStampanti.map(p => (
                         <button key={p.id} onClick={() => { setDeviceTypeId(p.id); setOpenTypeMenu(false); }}
                           style={{
                             display:'flex', width:'100%', alignItems:'center', gap: 10,
@@ -823,7 +948,7 @@ function DeviceForm({ st }) {
                           }}>{(BuIcons.doc||BuIcons.phone)({size: 13, color:'currentColor'})}</span>
                           <div>
                             <div style={{fontSize:15, fontWeight:600, color: deviceTypeId === p.id ? PN.PINK_DARK : PN.TEXT}}>
-                              Stampante ({p.model})
+                              {soloStampanti ? p.model : `Stampante (${p.model})`}
                             </div>
                             <div style={{fontSize:13.5, color:PN.MUTED}}>{p.ip}</div>
                           </div>
@@ -833,10 +958,15 @@ function DeviceForm({ st }) {
                   )}
                 </div>
               </ImpField>
+  );
 
-              {/* Etichetta — solo per stampanti */}
-              {isPrinter && (
-                <ImpField label="Etichetta" hint="Come la chiamerete in lista (es. Cassa, Cucina, Bar)">
+  // «Etichetta» non diceva di che cosa: il monitor qui sotto ha «Nome
+  // dispositivo», e la stampante chiede la stessa cosa. Sta in riga col menu
+  // perché sono le due metà di una frase sola — quale stampante, e come la
+  // chiamiamo.
+  const campoNomeStampante = (
+                <ImpField label="Nome stampante" hint="Come la chiamerete in lista (es. Cassa, Cucina, Bar)"
+                  style={soloStampanti ? {marginBottom: 0} : undefined}>
                   <input
                     type="text"
                     value={deviceName}
@@ -849,11 +979,12 @@ function DeviceForm({ st }) {
                     }}
                   />
                 </ImpField>
-              )}
+  );
 
-              {/* Nome dispositivo — solo per monitor cucina */}
-              {!isPrinter && (
-                <ImpField label="Nome dispositivo" hint="Come lo riconoscerete in lista (es. Monitor pizza, Monitor sushi)">
+  // Nome dispositivo — solo per monitor cucina
+  const campoNomeDispositivo = (
+                <ImpField label="Nome dispositivo" hint="Come lo riconoscerete in lista (es. Monitor pizza)"
+                  style={inRiga ? {marginBottom: 0} : undefined}>
                   <input
                     type="text"
                     value={deviceName}
@@ -866,7 +997,138 @@ function DeviceForm({ st }) {
                     }}
                   />
                 </ImpField>
+  );
+
+  // La visualizzazione non è un'impostazione fra le altre: è il modo in cui la
+  // cucina lavorerà. Sta in cima al modulo, prima del nome e delle credenziali,
+  // e si sceglie come si è scelto il dispositivo — due tessere, non un menu.
+  const campoVisualizzazione = (
+                <div style={{marginBottom: 16}}>
+                  {/* Niente etichetta «Visualizzazione» sopra: la dicono già le
+                      due tessere, e ripeterla faceva leggere la stessa parola
+                      tre volte in due centimetri. */}
+                  {/* Affiancate in pagina, impilate nella modale: a 265px il
+                      titolo si spezzava a metà («Visualizzazione / Pub») e due
+                      tessere storte costano più di una riga in più. */}
+                  <div style={{
+                    display:'grid', gap: 12,
+                    gridTemplateColumns: inRiga ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+                  }}>
+                    {KDS_VIEWS.map(v => (
+                      <KdsViewCard key={v.id} v={v} on={kdsView === v.id}
+                        onClick={() => setKdsView(v.id)}/>
+                    ))}
+                  </div>
+                  <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6}}>
+                    Cambia come si vedono e si gestiscono gli ordini in cucina. Potrai
+                    modificarla in Impostazioni → Personale, sul dispositivo.
+                  </div>
+                </div>
+  );
+
+  const campoUsername = deviceType.noCredentials ? null : (
+                <ImpField label="Username" required
+                  style={inRiga ? {marginBottom: 0} : undefined}>
+                <div style={{display:'flex', alignItems:'stretch', gap: 0}}>
+                  <span style={{
+                    padding:'10px 12px',
+                    background:'#F4F5F7', border:`1px solid ${PN.BORDER}`, borderRight:'none',
+                    borderRadius:'9px 0 0 9px',
+                    fontSize: 15, fontWeight: 700, color: PN.MUTED,
+                    display:'inline-flex', alignItems:'center',
+                    fontFamily:'ui-monospace, Menlo, monospace',
+                  }}>PG1-</span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value.replace(/\s/g,'').toLowerCase())}
+                    placeholder="cucina"
+                    style={{
+                      flex: 1, padding:'10px 12px',
+                      border:`1px solid ${PN.BORDER}`, borderLeft:'none',
+                      borderRadius:'0 9px 9px 0',
+                      fontSize:15.5, fontFamily:'ui-monospace, Menlo, monospace',
+                      outline:'none', background: PN.WHITE,
+                    }}
+                  />
+                </div>
+              </ImpField>
+  );
+
+  const campoPassword = deviceType.noCredentials ? null : (
+                <ImpField label={modifica ? 'Nuova password' : 'Password'} required={!modifica}
+                  style={inRiga ? {marginBottom: 0} : undefined}>
+                <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
+                  <div style={{position:'relative', flex: 1}}>
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder={modifica ? 'Inserisci nuova password' : 'Inserisci password'}
+                      style={{
+                        width:'100%', padding:'10px 40px 10px 12px',
+                        border:`1px solid ${PN.BORDER}`, borderRadius:9,
+                        fontSize:15.5, fontFamily:'inherit', outline:'none',
+                        background: PN.WHITE,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(s => !s)}
+                      aria-label="Mostra/nascondi password"
+                      style={{
+                        position:'absolute', right: 8, top: '50%',
+                        transform:'translateY(-50%)',
+                        width: 28, height: 28, borderRadius: 6,
+                        background:'transparent', border:'none', cursor:'pointer',
+                        display:'grid', placeItems:'center', color: PN.MUTED,
+                      }}
+                    >{(BuIcons.eye||BuIcons.user)({size: 16, color:'currentColor'})}</button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={generatePwd}
+                    style={{
+                      padding:'0 14px',
+                      background:'#F4F5F7', border:`1px solid ${PN.BORDER}`,
+                      borderRadius: 9, cursor:'pointer', fontFamily:'inherit',
+                      fontSize: 14, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap',
+                    }}
+                  >Genera</button>
+                </div>
+                {/* In modifica il campo non ripropone la password già data —
+                    non si mostra una password — quindi lasciarlo vuoto deve
+                    voler dire qualcosa, e va detto: altrimenti si compila per
+                    scrupolo e si cambia una password che andava bene. */}
+                <div style={{fontSize: 13, color: PN.MUTED, marginTop: 6}}>
+                  {modifica
+                    ? 'Lasciala vuota per tenere quella attuale.'
+                    : 'Salvala in un posto sicuro — vale solo per questo dispositivo.'}
+                </div>
+              </ImpField>
+  );
+
+  return (
+    <>
+              {soloStampanti && (
+                <div style={RIGA_2}>
+                  {campoTipo}
+                  {campoNomeStampante}
+                </div>
               )}
+
+              {/* Nella modale il menu È la scelta e resta. Nel passo Personale
+                  no: con la famiglia già fissa dalla tessera, per il monitor
+                  restava un menu con una voce sola — una domanda con una sola
+                  risposta possibile. */}
+              {!tipoFisso && (
+                <>
+                  {campoTipo}
+                  {isPrinter && campoNomeStampante}
+                </>
+              )}
+
+              {!isPrinter && campoVisualizzazione}
 
               {deviceType.noCredentials && (
                 <div style={{marginBottom: 16}}>
@@ -957,78 +1219,87 @@ function DeviceForm({ st }) {
                 </div>
               )}
 
-              {!deviceType.noCredentials && <ImpField label="Username" required>
-                <div style={{display:'flex', alignItems:'stretch', gap: 0}}>
-                  <span style={{
-                    padding:'10px 12px',
-                    background:'#F4F5F7', border:`1px solid ${PN.BORDER}`, borderRight:'none',
-                    borderRadius:'9px 0 0 9px',
-                    fontSize: 15, fontWeight: 700, color: PN.MUTED,
-                    display:'inline-flex', alignItems:'center',
-                    fontFamily:'ui-monospace, Menlo, monospace',
-                  }}>PG1-</span>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={e => setUsername(e.target.value.replace(/\s/g,'').toLowerCase())}
-                    placeholder="cucina"
-                    style={{
-                      flex: 1, padding:'10px 12px',
-                      border:`1px solid ${PN.BORDER}`, borderLeft:'none',
-                      borderRadius:'0 9px 9px 0',
-                      fontSize:15.5, fontFamily:'ui-monospace, Menlo, monospace',
-                      outline:'none', background: PN.WHITE,
-                    }}
-                  />
-                </div>
-              </ImpField>}
-
-              {!deviceType.noCredentials && <ImpField label="Password" required>
-                <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
-                  <div style={{position:'relative', flex: 1}}>
-                    <input
-                      type={showPwd ? 'text' : 'password'}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="Inserisci password"
-                      style={{
-                        width:'100%', padding:'10px 40px 10px 12px',
-                        border:`1px solid ${PN.BORDER}`, borderRadius:9,
-                        fontSize:15.5, fontFamily:'inherit', outline:'none',
-                        background: PN.WHITE,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPwd(s => !s)}
-                      aria-label="Mostra/nascondi password"
-                      style={{
-                        position:'absolute', right: 8, top: '50%',
-                        transform:'translateY(-50%)',
-                        width: 28, height: 28, borderRadius: 6,
-                        background:'transparent', border:'none', cursor:'pointer',
-                        display:'grid', placeItems:'center', color: PN.MUTED,
-                      }}
-                    >{(BuIcons.eye||BuIcons.user)({size: 16, color:'currentColor'})}</button>
+              {!isPrinter && (inRiga ? (
+                <>
+                  {/* Nome e username in riga: l'uno è come lo chiamiamo noi,
+                      l'altro come si chiama lui quando entra. A piena larghezza
+                      erano tre campi da 900px per scriverci dentro «cucina». */}
+                  <div style={RIGA_2}>
+                    {campoNomeDispositivo}
+                    {campoUsername}
                   </div>
-                  <button
-                    type="button"
-                    onClick={generatePwd}
-                    style={{
-                      padding:'0 14px',
-                      background:'#F4F5F7', border:`1px solid ${PN.BORDER}`,
-                      borderRadius: 9, cursor:'pointer', fontFamily:'inherit',
-                      fontSize: 14, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap',
-                    }}
-                  >Genera</button>
-                </div>
-                <div style={{fontSize: 13, color: PN.MUTED, marginTop: 6}}>
-                  Salvala in un posto sicuro — vale solo per questo dispositivo.
-                </div>
-              </ImpField>}
+                  {/* La password sta in mezza riga come le altre: allargarla
+                      perché sotto non c'è niente l'avrebbe fatta sembrare più
+                      importante di quello che è. E nella metà che resta va la
+                      CTA — l'ultimo campo e il bottone che lo chiude sulla
+                      stessa riga, invece di una mezza riga vuota e un bottone
+                      sospeso sotto la card. */}
+                  <div style={RIGA_2}>
+                    {campoPassword}
+                    {azione && (
+                      <div style={{display:'flex', flexDirection:'column'}}>
+                        {/* Etichetta vuota, alta come le altre: allinea il
+                            bottone al campo accanto senza indovinare un
+                            padding che si scolla al primo cambio di corpo. */}
+                        <span aria-hidden="true" style={{
+                          display:'block', fontSize: 14, fontWeight: 600,
+                          marginBottom: 6, visibility:'hidden',
+                        }}>&nbsp;</span>
+                        <div style={{display:'flex', justifyContent:'flex-end'}}>{azione}</div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {campoNomeDispositivo}
+                  {campoUsername}
+                  {campoPassword}
+                </>
+              ))}
     </>
   );
 }
+
+// Tessera della visualizzazione del KDS: stessa grammatica delle tessere
+// dispositivo — radio in alto a destra, icona, titolo, una riga di spiegazione —
+// ma di un corpo sotto, perché è una scelta dentro il modulo e non la domanda
+// che apre il passo.
+function KdsViewCard({ v, on, onClick }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button onClick={onClick}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        position:'relative', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
+        display:'flex', alignItems:'flex-start', gap: 11,
+        padding:'12px 38px 12px 12px', borderRadius: 11,
+        border:`1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
+        background: on ? '#FFF7F7' : PN.WHITE,
+        transform: hover && !on ? 'translateY(-1px)' : 'none',
+        transition:'border-color 150ms ease, background 150ms ease, transform 150ms ease',
+      }}>
+      <span style={{
+        position:'absolute', top: 12, right: 12,
+        width: 15, height: 15, borderRadius:'50%',
+        border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+        display:'grid', placeItems:'center', transition:'border-color 150ms ease',
+      }}>
+        {on && <span style={{width: 7, height: 7, borderRadius:'50%', background: PN.PINK}}/>}
+      </span>
+      <span style={{
+        width: 34, height: 34, borderRadius: 9, flexShrink: 0, display:'grid', placeItems:'center',
+        background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
+        transition:'background 150ms ease, color 150ms ease',
+      }}>{(BuIcons[v.icon]||BuIcons.monitor)({size: 17, color:'currentColor'})}</span>
+      <span style={{minWidth: 0}}>
+        <span style={{display:'block', fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 2}}>{v.label}</span>
+        <span style={{display:'block', fontSize: 13, color: PN.MUTED, lineHeight: 1.4}}>{v.desc}</span>
+      </span>
+    </button>
+  );
+}
+
 
 // ─── Foglio modale del Personale ────────────────────────────────────────────
 // BIANCO pieno, non GLASS_STRONG: il vetro al 68% sopra l'overlay scuro legge
@@ -1047,11 +1318,14 @@ const IMP_MODAL_X = {
   cursor: 'pointer', display: 'grid', placeItems: 'center',
 };
 
-function InviteModal({ onClose, prefill }) {
+// `ruoli`: l'elenco vivo di chi apre la modale — un ruolo personalizzato appena
+// creato dev'essere invitabile subito, e la costante di modulo non lo conosce.
+function InviteModal({ onClose, prefill, ruoli }) {
   const initialKind = prefill?.kind === 'device' ? 'device' : 'person';
+  const allRolesForInvite = ruoli || [...ROLES, ...CUSTOM_ROLES];
   // Se prefill.roleId è quello di un ruolo selezionabile, usa quello; altrimenti default
   const prefillRoleSelectable = prefill?.roleId
-    && [...ROLES, ...CUSTOM_ROLES].some(r => r.id === prefill.roleId && !r.locked);
+    && allRolesForInvite.some(r => r.id === prefill.roleId && !r.locked);
   const [kind, setKind] = React.useState(initialKind);
 
   // Persona
@@ -1059,7 +1333,6 @@ function InviteModal({ onClose, prefill }) {
   const [email, setEmail] = React.useState('');
   const [roleId, setRoleId] = React.useState(prefillRoleSelectable ? prefill.roleId : 'cameriere');
   const [msg, setMsg] = React.useState('');
-  const allRolesForInvite = [...ROLES, ...CUSTOM_ROLES];
   const role = allRolesForInvite.find(r => r.id === roleId) || ROLES[0];
   const personValid = /\S+@\S+\.\S+/.test(email);
   // Riquadro permessi del ruolo selezionato
@@ -1077,6 +1350,31 @@ function InviteModal({ onClose, prefill }) {
 
   // Pre-popola da editDevice se presente
   const editDevice = prefill?.editDevice;
+  const [confermaScollega, setConfermaScollega] = React.useState(false);
+  // Cambiare la password non è come cambiare il nome: stacca il dispositivo da
+  // dove sta lavorando adesso. Chi salva deve saperlo prima, non scoprirlo dal
+  // monitor in cucina che chiede le credenziali durante il servizio.
+  const [confermaPassword, setConfermaPassword] = React.useState(false);
+  const cambiaPassword = !!editDevice && password.length > 0;
+
+  function salvaEChiudi() {
+    if (kind === 'device' && !isPrinter) {
+      salvaMonitorKds({
+        id: 'PG1-' + (username.trim() || (editDevice && String(editDevice.username || '').replace('PG1-', ''))),
+        nome: deviceName.trim() || (editDevice && editDevice.name),
+        vista: dev.kdsView,
+      });
+    }
+    onClose();
+  }
+
+  // In modifica la password non si ripropone — non si mostra una password già
+  // data — e lasciarla vuota vuol dire «tienila com'è». Chiederla di nuovo per
+  // poter salvare avrebbe bloccato dietro una password chi era entrato per
+  // cambiare il nome. Vale lo stesso per le categorie di una stampante.
+  const salvabile = editDevice
+    ? (isPrinter ? deviceName.trim().length > 0 : username.trim().length > 0)
+    : deviceValid;
   React.useEffect(() => {
     if (!editDevice) return;
     if (editDevice.deviceType === 'printer') {
@@ -1085,6 +1383,9 @@ function InviteModal({ onClose, prefill }) {
     } else {
       setDeviceTypeId(editDevice.deviceType || 'kitchen-monitor');
       if (editDevice.username) setUsername(editDevice.username.replace('PG1-', ''));
+      // Aprire la modifica di un monitor su «Pub» quando lavora per portate
+      // avrebbe cambiato la cucina a chi era entrato per cambiare il nome.
+      if (editDevice.kdsView) dev.setKdsView(editDevice.kdsView);
     }
     if (editDevice.name) setDeviceName(editDevice.name);
   }, []);
@@ -1101,22 +1402,29 @@ function InviteModal({ onClose, prefill }) {
       }}>
         <div style={IMP_MODAL_HEAD}>
           <div style={IMP_MODAL_TITLE}>
-            {kind === 'person' ? 'Invita una persona' : 'Collega un dispositivo'}
+            {editDevice ? 'Modifica associazione'
+              : kind === 'person' ? 'Invita una persona' : 'Collega un dispositivo'}
           </div>
           {/* La subhead racconta il flusso vero: il monitor accede con
               credenziali locali, la stampante vuole nome e categorie —
               niente username per lei, e niente email per nessuno. */}
           <div style={IMP_MODAL_SUB}>
-            {kind === 'person'
-              ? 'Invia un accesso al gestionale o all\'app staff.'
-              : 'Scegli il tipo e configuralo: credenziali locali per il monitor, nome e categorie per la stampante.'}
+            {editDevice
+              ? <>Stai modificando <b style={{color: PN.TEXT}}>{editDevice.name}</b>. Le modifiche valgono dal prossimo collegamento.</>
+              : kind === 'person'
+                ? 'Invia un accesso al gestionale o all\'app staff.'
+                : 'Scegli il tipo e configuralo: credenziali locali per il monitor, nome e categorie per la stampante.'}
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
 
         <div style={{padding: '20px 24px', overflow:'auto', flex: 1}}>
-          {/* Type switcher: Persona | Dispositivo */}
-          <ImpField label="Tipo">
+          {/* Type switcher: Persona | Dispositivo. In modifica non c'è: quel
+              dispositivo esiste già, e chiedere «è una persona o un
+              dispositivo?» a chi ha aperto la riga di un monitor è una domanda
+              a cui ha già risposto — e l'unica risposta sbagliata cambierebbe
+              il modulo sotto le mani. */}
+          {!editDevice && <ImpField label="Tipo">
             <div style={{
               display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8,
               padding: 4, background:'#F4F5F7', borderRadius: 10,
@@ -1149,7 +1457,7 @@ function InviteModal({ onClose, prefill }) {
                 );
               })}
             </div>
-          </ImpField>
+          </ImpField>}
 
           {kind === 'person' && (
             <>
@@ -1182,26 +1490,13 @@ function InviteModal({ onClose, prefill }) {
                       }}
                     />
                   </ImpField>
+                  {/* Stesso selettore del cambio ruolo: è la stessa scelta, e
+                      farla in due modi diversi in due finestre gemelle è il
+                      modo migliore per far sembrare due prodotti lo stesso. */}
                   <ImpField label="Ruolo">
-                    <div style={{position:'relative'}}>
-                      <select
-                        value={roleId}
-                        onChange={e => setRoleId(e.target.value)}
-                        style={{
-                          width:'100%', padding:'10px 34px 10px 12px',
-                          border:`1px solid ${PN.BORDER}`, borderRadius: 9,
-                          fontSize: 15.5, fontFamily:'inherit', outline:'none',
-                          background: PN.WHITE, color: PN.TEXT,
-                          appearance:'none', WebkitAppearance:'none', cursor:'pointer',
-                        }}>
-                        {allRolesForInvite.filter(r => !r.locked).map(r => (
-                          <option key={r.id} value={r.id}>{r.label}</option>
-                        ))}
-                      </select>
-                      <span style={{position:'absolute', right: 12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color: PN.MUTED, display:'inline-flex'}}>
-                        <PnI.ChevronDown size={12}/>
-                      </span>
-                    </div>
+                    <SelettoreRuolo
+                      ruoli={allRolesForInvite.filter(r => !r.locked)}
+                      valore={roleId} onScegli={setRoleId}/>
                   </ImpField>
                   <ImpField label="Messaggio opzionale">
                     <div style={{position:'relative'}}>
@@ -1272,7 +1567,7 @@ function InviteModal({ onClose, prefill }) {
             </>
           )}
 
-          {kind === 'device' && <DeviceForm st={dev}/>}
+          {kind === 'device' && <DeviceForm st={dev} modifica={!!editDevice}/>}
         </div>
 
         <div style={{
@@ -1280,24 +1575,371 @@ function InviteModal({ onClose, prefill }) {
           borderTop: `1px solid ${PN.BORDER_SOFT}`,
           display:'flex', gap: 10, justifyContent:'space-between', alignItems:'center',
         }}>
-          <div style={{fontSize: 13.5, color: PN.MUTED}}>
-            {kind === 'person'
-              ? (personValid
-                  ? <>Invierà invito a <b style={{color: PN.TEXT}}>{email}</b> come <b style={{color: role.color}}>{role.label}</b></>
-                  : 'Inserisci un\'email valida')
-              : (deviceType.noCredentials
-                  ? <>{deviceName.trim() ? <>Aggiungerà <b style={{color: PN.TEXT}}>{deviceName}</b></> : 'Inserisci un nome per il dispositivo'}</>
-                  : deviceValid
-                    ? <>Username: <b style={{color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>PG1-{username}</b></>
-                    : 'Compila username e password (min. 4 caratteri)')}
-          </div>
-          <div style={{display:'flex', gap: 8}}>
-            <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-            <ImpButton variant="primary" onClick={onClose} disabled={kind === 'person' ? !personValid : !deviceValid}>
-              {kind === 'person' ? 'Invia invito' : 'Associa dispositivo'}
+          {/* In modifica il piede porta l'azione distruttiva, che è l'altra
+              cosa che si viene a fare qui: o si aggiusta il collegamento, o lo
+              si taglia. Sta a sinistra, lontana dal salvataggio. */}
+          {editDevice ? (
+            <ImpButton variant="danger" onClick={() => setConfermaScollega(true)}
+              style={{whiteSpace:'nowrap'}}
+              icon={BuIcons.trash({size: 14, color:'currentColor'})}>
+              Elimina collegamento
+            </ImpButton>
+          ) : (
+            <div style={{fontSize: 13.5, color: PN.MUTED}}>
+              {kind === 'person'
+                ? (personValid
+                    ? <>Invierà invito a <b style={{color: PN.TEXT}}>{email}</b> come <b style={{color: role.color}}>{role.label}</b></>
+                    : 'Inserisci un\'email valida')
+                : (deviceType.noCredentials
+                    ? <>{deviceName.trim() ? <>Aggiungerà <b style={{color: PN.TEXT}}>{deviceName}</b></> : 'Inserisci un nome per il dispositivo'}</>
+                    : deviceValid
+                      ? <>Username: <b style={{color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>PG1-{username}</b></>
+                      : 'Compila username e password (min. 4 caratteri)')}
+            </div>
+          )}
+          <div style={{display:'flex', gap: 8, flexShrink: 0}}>
+            {/* Niente «Annulla»: uscire senza fare niente è la X in alto, che
+                chiude questa come ogni altra finestra. In fondo resta solo
+                l'azione per cui si è aperta. */}
+            {/* Associando o modificando un monitor la sua visualizzazione arriva
+                alla sezione Cucina, che è l'unico posto in cui si vede l'effetto
+                della scelta fatta qui. Chiudendo dalla X non parte niente. */}
+            <ImpButton variant="primary"
+              onClick={() => { if (cambiaPassword) setConfermaPassword(true); else salvaEChiudi(); }}
+              style={{whiteSpace:'nowrap'}}
+              disabled={kind === 'person' ? !personValid : !salvabile}>
+              {editDevice ? 'Salva modifiche' : kind === 'person' ? 'Invia invito' : 'Associa dispositivo'}
             </ImpButton>
           </div>
         </div>
+      </div>
+
+      {/* Conferma dello scollegamento: stessa domanda e stesse parole di quella
+          che si apre dal menu «⋯» della riga — è la stessa azione, e chi la
+          incontra due volte da due strade non deve chiedersi se sia la stessa. */}
+      {confermaScollega && (
+        <div onClick={e => { e.stopPropagation(); setConfermaScollega(false); }} style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex:200,
+          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...IMP_MODAL_PANEL, width: 380, maxWidth:'90%', padding: 24,
+          }}>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
+              Elimina collegamento
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              Sei sicuro di voler scollegare <b style={{color: PN.TEXT}}>{editDevice && editDevice.name}</b>?
+              {' '}L'accesso viene revocato subito.
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConfermaScollega(false)}>Annulla</ImpButton>
+              <ImpButton variant="danger" onClick={() => { setConfermaScollega(false); onClose(); }}>
+                Scollega
+              </ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conferma del cambio password. Non è una formalità: la nuova password
+          non arriva agli schermi già collegati, che restano fuori finché
+          qualcuno non la digita su ognuno. Detto prima è una scelta, scoperto
+          dopo è un monitor spento nel mezzo del servizio. */}
+      {confermaPassword && (
+        <div onClick={e => { e.stopPropagation(); setConfermaPassword(false); }} style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', zIndex:200,
+          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...IMP_MODAL_PANEL, width: 400, maxWidth:'90%', padding: 24,
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: PN.AMBER_SOFT, color: '#B45309',
+                display:'grid', placeItems:'center',
+              }}>{(BuIcons.alert||BuIcons.bulb)({size: 15, color:'currentColor'})}</span>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
+                Cambiare la password?
+              </div>
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              <b style={{color: PN.TEXT}}>{editDevice && editDevice.name}</b> verrà disconnesso da
+              tutti gli schermi su cui è collegato adesso. Per farlo rientrare dovrai inserire la
+              nuova password su ognuno.
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConfermaPassword(false)}>Annulla</ImpButton>
+              <ImpButton variant="primary" style={{whiteSpace:'nowrap'}}
+                onClick={() => { setConfermaPassword(false); salvaEChiudi(); }}>
+                Cambia password
+              </ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Selettore di ruolo ─────────────────────────────────────────────────────
+// Un <select> nativo apre l'elenco del sistema operativo: nessun colore, nessuna
+// descrizione, e su Windows un'altra tipografia. Ma soprattutto un ruolo non è
+// una parola in una lista — è un segno colorato e una frase che dice che cosa
+// vede chi lo ha, e sono proprio quelle due cose che servono per scegliere.
+// Stessa grammatica del menu «Tipo dispositivo»: bottone con il valore attuale,
+// elenco che si apre sotto, voce accesa in rosa.
+function SelettoreRuolo({ ruoli, valore, onScegli }) {
+  const [aperto, setAperto] = React.useState(false);
+  const box = React.useRef(null);
+  const sel = ruoli.find(r => r.id === valore) || ruoli[0];
+
+  // Click fuori: un menu che resta aperto dopo che si è guardato altrove è un
+  // menu che va chiuso a mano, e nessuno lo fa.
+  React.useEffect(() => {
+    if (!aperto) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setAperto(false); };
+    document.addEventListener('pointerdown', fuori);
+    return () => document.removeEventListener('pointerdown', fuori);
+  }, [aperto]);
+
+  const Voce = ({ r, on, onClick }) => (
+    <button onClick={onClick} style={{
+      display:'flex', width:'100%', alignItems:'center', gap: 10,
+      padding:'9px 10px', background: on ? PN.PINK_SOFT : 'transparent',
+      border:'none', borderRadius: 8, fontFamily:'inherit', cursor:'pointer', textAlign:'left',
+    }}
+      onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+      onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+    >
+      <span style={{
+        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+        background: r.bg, color: r.color, display:'grid', placeItems:'center',
+      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 14, color:'currentColor'})}</span>
+      <span style={{minWidth: 0}}>
+        <span style={{
+          display:'block', fontSize: 15, fontWeight: 700,
+          color: on ? PN.PINK_DARK : PN.TEXT,
+        }}>{r.label}</span>
+        <span style={{
+          display:'block', fontSize: 13, color: PN.MUTED, lineHeight: 1.35,
+          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+        }}>{r.desc}</span>
+      </span>
+    </button>
+  );
+
+  return (
+    <div ref={box} style={{position:'relative'}}>
+      <button onClick={() => setAperto(a => !a)} style={{
+        width:'100%', padding:'9px 12px', borderRadius: 9,
+        border:`1px solid ${aperto ? PN.PINK : PN.BORDER}`, background: PN.WHITE,
+        cursor:'pointer', fontFamily:'inherit',
+        display:'flex', alignItems:'center', gap: 10, textAlign:'left',
+        transition:'border-color 140ms ease',
+      }}>
+        <span style={{
+          width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+          background: sel.bg, color: sel.color, display:'grid', placeItems:'center',
+        }}>{(BuIcons[sel.icon]||BuIcons.user)({size: 14, color:'currentColor'})}</span>
+        <span style={{flex: 1, minWidth: 0}}>
+          <span style={{display:'block', fontSize: 15.5, fontWeight: 600, color: PN.TEXT}}>{sel.label}</span>
+        </span>
+        <span style={{
+          display:'inline-flex', color: PN.MUTED, flexShrink: 0,
+          transform: aperto ? 'rotate(180deg)' : 'none', transition:'transform 140ms ease',
+        }}><PnI.ChevronDown size={14}/></span>
+      </button>
+
+      {aperto && (
+        <div style={{
+          position:'absolute', top:'calc(100% + 4px)', left: 0, right: 0, zIndex: 5,
+          background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: 10,
+          padding: 4, boxShadow:'0 10px 28px rgba(15, 17, 21, 0.12)',
+          maxHeight: 260, overflowY:'auto',
+        }} className="pn-scroll">
+          {ruoli.map(r => (
+            <Voce key={r.id} r={r} on={r.id === valore}
+              onClick={() => { onScegli(r.id); setAperto(false); }}/>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Genera nuova password (dal menu «⋯» di un dispositivo) ─────────────────
+// Solo per i dispositivi: una persona la password se la reimposta da sé, il
+// monitor no — le sue credenziali sono locali e gliele dà il titolare.
+// Due passi, non uno: prima la password nuova, poi che cosa comporta darla. Il
+// secondo è lo stesso avviso della finestra di modifica — cambiare una password
+// stacca chi la sta usando adesso — e chi arriva dal menu deve leggerlo uguale,
+// perché l'effetto è lo stesso.
+function ResetPasswordModal({ r, onClose }) {
+  const [pwd, setPwd] = React.useState('');
+  const [mostra, setMostra] = React.useState(false);
+  const [avviso, setAvviso] = React.useState(false);
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...IMP_MODAL_PANEL, width: 420, maxWidth:'100%', position:'relative',
+      }}>
+        {!avviso ? (
+          <>
+            <div style={IMP_MODAL_HEAD}>
+              <div style={IMP_MODAL_TITLE}>Genera nuova password</div>
+              <div style={IMP_MODAL_SUB}>
+                Per <b style={{color: PN.TEXT}}>{r.nome}</b>. Si digita sul dispositivo al collegamento.
+              </div>
+              <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
+            </div>
+            <div style={{padding:'20px 24px'}}>
+              <ImpField label="Nuova password" required
+                hint="Almeno 4 caratteri. Salvala in un posto sicuro: non sarà più visibile.">
+                <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
+                  <div style={{position:'relative', flex: 1}}>
+                    <input
+                      type={mostra ? 'text' : 'password'}
+                      value={pwd} onChange={e => setPwd(e.target.value)}
+                      placeholder="Inserisci nuova password"
+                      style={{
+                        width:'100%', padding:'10px 40px 10px 12px',
+                        border:`1px solid ${PN.BORDER}`, borderRadius:9,
+                        fontSize:15.5, fontFamily:'inherit', outline:'none', background: PN.WHITE,
+                      }}
+                    />
+                    <button type="button" onClick={() => setMostra(s => !s)}
+                      aria-label="Mostra/nascondi password"
+                      style={{
+                        position:'absolute', right: 8, top:'50%', transform:'translateY(-50%)',
+                        width: 28, height: 28, borderRadius: 6,
+                        background:'transparent', border:'none', cursor:'pointer',
+                        display:'grid', placeItems:'center', color: PN.MUTED,
+                      }}>{(BuIcons.eye||BuIcons.user)({size: 16, color:'currentColor'})}</button>
+                  </div>
+                  <button type="button" onClick={() => { setPwd(generaPassword()); setMostra(true); }}
+                    style={{
+                      padding:'0 14px', background:'#F4F5F7', border:`1px solid ${PN.BORDER}`,
+                      borderRadius: 9, cursor:'pointer', fontFamily:'inherit',
+                      fontSize: 14, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap',
+                    }}>Genera</button>
+                </div>
+              </ImpField>
+            </div>
+            <div style={{
+              padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`,
+              display:'flex', justifyContent:'flex-end',
+            }}>
+              <ImpButton variant="primary" disabled={pwd.length < 4}
+                style={{whiteSpace:'nowrap'}} onClick={() => setAvviso(true)}>
+                Continua
+              </ImpButton>
+            </div>
+          </>
+        ) : (
+          <div style={{padding: 24}}>
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: PN.AMBER_SOFT, color: '#B45309',
+                display:'grid', placeItems:'center',
+              }}>{(BuIcons.alert||BuIcons.bulb)({size: 15, color:'currentColor'})}</span>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Cambiare la password?</div>
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              <b style={{color: PN.TEXT}}>{r.nome}</b> verrà disconnesso da tutti gli schermi su cui
+              è collegato adesso. Per farlo rientrare dovrai inserire la nuova password su ognuno.
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setAvviso(false)}>Indietro</ImpButton>
+              <ImpButton variant="primary" style={{whiteSpace:'nowrap'}} onClick={onClose}>
+                Cambia password
+              </ImpButton>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Modifica ruolo (dal menu «⋯» della riga) ───────────────────────────────
+// Il ruolo non è un'etichetta: sono le sezioni che una persona vede. Si sceglie
+// e poi si conferma, con davanti quello che cambia — chi tocca questa voce per
+// sbaglio se ne accorge prima e non dopo.
+function CambiaRuoloModal({ r, ruoli, onConferma, onClose }) {
+  const [scelto, setScelto] = React.useState(r.ruolo.id);
+  const [conferma, setConferma] = React.useState(false);
+  const nuovo = ruoli.find(x => x.id === scelto) || r.ruolo;
+  const cambiato = scelto !== r.ruolo.id;
+  const acc = accessoDelRuolo(nuovo);
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...IMP_MODAL_PANEL, width: 420, maxWidth:'100%', position:'relative',
+      }}>
+        {!conferma ? (
+          <>
+            <div style={IMP_MODAL_HEAD}>
+              <div style={IMP_MODAL_TITLE}>Modifica ruolo</div>
+              <div style={IMP_MODAL_SUB}>
+                <b style={{color: PN.TEXT}}>{r.nome}</b> è {r.ruolo.label}. Il ruolo decide che
+                cosa vede nel gestionale.
+              </div>
+              <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
+            </div>
+            <div style={{padding:'20px 24px'}}>
+              <ImpField label="Ruolo" hint={acc.tutte}>
+                <SelettoreRuolo ruoli={ruoli} valore={scelto} onScegli={setScelto}/>
+              </ImpField>
+            </div>
+            <div style={{
+              padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`,
+              display:'flex', justifyContent:'flex-end',
+            }}>
+              <ImpButton variant="primary" disabled={!cambiato}
+                style={{whiteSpace:'nowrap'}} onClick={() => setConferma(true)}>
+                Salva ruolo
+              </ImpButton>
+            </div>
+          </>
+        ) : (
+          <div style={{padding: 24}}>
+            <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                background: PN.AMBER_SOFT, color: '#B45309',
+                display:'grid', placeItems:'center',
+              }}>{(BuIcons.alert||BuIcons.bulb)({size: 15, color:'currentColor'})}</span>
+              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Sei sicuro?</div>
+            </div>
+            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
+              <b style={{color: PN.TEXT}}>{r.nome}</b> passa da <b style={{color: r.ruolo.color}}>{r.ruolo.label}</b>
+              {' '}a <b style={{color: nuovo.color}}>{nuovo.label}</b>, e da quel momento accede a:
+              {' '}<b style={{color: PN.TEXT}}>{acc.tutte}</b>. Il cambio vale subito, anche se è già dentro.
+            </div>
+            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConferma(false)}>Indietro</ImpButton>
+              <ImpButton variant="primary" style={{whiteSpace:'nowrap'}}
+                onClick={() => onConferma(scelto)}>
+                Cambia ruolo
+              </ImpButton>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1399,18 +2041,89 @@ function PendingModal({ onClose }) {
   );
 }
 
-function CreateRoleModal({ onClose, role }) {
+// La descrizione di un ruolo personalizzato è l'elenco di quello che vede: è
+// l'unica cosa che distingue due ruoli su misura quando li si sceglie da un
+// menu, dove il nome da solo non dice cosa può fare chi lo ha.
+function descrizioneAree(areas) {
+  if (!areas.length) return 'Nessuna area visibile';
+  return 'Vede ' + ALL_AREAS.filter(a => areas.includes(a.id)).map(a => a.label).join(' · ');
+}
+
+// Id ricavato dal nome — che è unico per costruzione — con una coda numerica
+// se per qualche motivo lo fosse già.
+function idLibero(nome, elenco) {
+  const base = 'custom-' + (nome.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'ruolo');
+  let id = base;
+  for (let n = 2; elenco.some(r => r.id === id); n++) id = `${base}-${n}`;
+  return id;
+}
+
+// Cassa, Cameriere e Titolare sono i ruoli di sistema: hanno permessi di
+// partenza e non si smontano. Aprirne i permessi e salvare non li cambia — si
+// esce con un ruolo PERSONALIZZATO nuovo, che quindi ha bisogno di un nome suo,
+// perché due ruoli con lo stesso nome sarebbero indistinguibili nel momento in
+// cui li si assegna a qualcuno. Il ruolo di sistema resta dov'era, intatto.
+//
+// Oggi l'unica porta d'ingresso è «Crea ruolo», che apre la modale senza
+// `role`: il ramo `role` — modifica di un personalizzato, ruolo nuovo a partire
+// da uno di sistema — resta qui perché è la regola del prodotto, pronto per
+// quando ci sarà di nuovo un punto da cui aprire i permessi di un ruolo.
+function CreateRoleModal({ onClose, role, roles, onSave }) {
   const isEdit = !!role;
+  // Da un ruolo di sistema si esce sempre con un ruolo nuovo; un ruolo
+  // personalizzato invece si modifica sul posto.
+  const daStandard = isEdit && !role.custom;
   const [name, setName] = React.useState(role?.label || '');
   const [areas, setAreas] = React.useState(role?.areas || []);
-  const [settingsMode, setSettingsMode] = React.useState('all'); // 'all' | 'custom'
-  const [settingsPages, setSettingsPages] = React.useState([]);
+  const [settingsMode, setSettingsMode] = React.useState(role?.settingsPages ? 'custom' : 'all');
+  const [settingsPages, setSettingsPages] = React.useState(role?.settingsPages || []);
+  const [errore, setErrore] = React.useState(null); // { titolo, msg }
+
+  const elenco = roles || [...ROLES, ...CUSTOM_ROLES];
 
   const toggle = (id) => {
     setAreas(areas.includes(id) ? areas.filter(a => a !== id) : [...areas, id]);
   };
   const togglePage = (id) => {
     setSettingsPages(settingsPages.includes(id) ? settingsPages.filter(p => p !== id) : [...settingsPages, id]);
+  };
+
+  const salva = () => {
+    const nome = name.trim();
+    if (!nome) {
+      setErrore({ titolo: 'Manca il nome', msg: 'Dai un nome al ruolo prima di salvarlo.' });
+      return;
+    }
+    // Confronto senza maiuscole e senza spazi ai bordi: «Cassa » e «cassa»
+    // sono lo stesso nome per chi legge l'elenco, ed è l'elenco che conta.
+    // Il ruolo che si sta modificando non fa concorrenza a se stesso.
+    const collide = elenco.some(r =>
+      r.label.trim().toLowerCase() === nome.toLowerCase() &&
+      !(isEdit && !daStandard && r.id === role.id)
+    );
+    if (collide) {
+      setErrore({
+        titolo: 'Nome già in uso',
+        msg: daStandard
+          ? `«${role.label}» è un ruolo di sistema e resta com'è: quello che stai salvando è un ruolo personalizzato, e gli serve un nome suo.`
+          : `C'è già un ruolo che si chiama «${nome}». Scegline un altro.`,
+      });
+      return;
+    }
+    const dati = {
+      label: nome,
+      desc: descrizioneAree(areas),
+      areas,
+      settingsPages: areas.includes('impostazioni') && settingsMode === 'custom' ? settingsPages : undefined,
+    };
+    if (onSave) {
+      onSave(isEdit && !daStandard
+        ? { ...role, ...dati }
+        : { ...dati, id: idLibero(nome, elenco), color: '#6D28D9', bg: '#EDE9FE', icon: 'sparkle', custom: true });
+    }
+    onClose();
   };
 
   return (
@@ -1425,15 +2138,35 @@ function CreateRoleModal({ onClose, role }) {
       }}>
         <div style={IMP_MODAL_HEAD}>
           <div style={IMP_MODAL_TITLE}>
-            {isEdit ? `Modifica permessi · ${role.label}` : 'Crea ruolo personalizzato'}
+            {isEdit ? `Permessi · ${role.label}` : 'Crea ruolo personalizzato'}
           </div>
           <div style={IMP_MODAL_SUB}>
-            {isEdit ? 'Aggiorna nome e aree visibili a questo ruolo' : 'Definisci nome e aree visibili'}
+            {daStandard
+              ? 'Da qui esce un ruolo personalizzato: il ruolo di sistema resta com’è'
+              : isEdit ? 'Aggiorna nome e aree visibili a questo ruolo' : 'Definisci nome e aree visibili'}
           </div>
           <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
 
         <div style={{padding: '20px 24px', overflow:'auto', flex: 1}}>
+          {/* Detto prima, non dopo: chi apre i permessi di Cassa si aspetta di
+              cambiare Cassa, e invece esce con un ruolo nuovo. Scoprirlo dal
+              popup d'errore sul nome sarebbe scoprirlo troppo tardi. */}
+          {daStandard && (
+            <div style={{
+              display:'flex', gap: 10, alignItems:'flex-start',
+              padding: '11px 13px', marginBottom: 16,
+              background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 10,
+            }}>
+              <span style={{display:'inline-flex', color:'#6D28D9', flexShrink: 0, marginTop: 1}}>
+                {BuIcons.sparkle({size: 15, color:'currentColor'})}
+              </span>
+              <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45}}>
+                <b>{role.label}</b> è un ruolo di sistema e non si modifica. Salvando crei un
+                ruolo personalizzato con questi permessi, quindi dagli un nome tuo.
+              </div>
+            </div>
+          )}
           <ImpField label="Nome del ruolo">
             <input
               value={name}
@@ -1534,8 +2267,35 @@ function CreateRoleModal({ onClose, role }) {
           display:'flex', gap: 10, justifyContent:'flex-end',
         }}>
           <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-          <ImpButton variant="primary" onClick={onClose}>{isEdit ? 'Salva modifiche' : 'Crea ruolo'}</ImpButton>
+          <ImpButton variant="primary" onClick={salva}>
+            {daStandard ? 'Crea ruolo personalizzato' : isEdit ? 'Salva modifiche' : 'Crea ruolo'}
+          </ImpButton>
         </div>
+
+        {/* L'errore ferma il salvataggio e rimanda al modulo con dentro quello
+            che c'era: chi ha appena scelto otto aree non deve rifarlo perché il
+            nome era occupato. */}
+        {errore && (
+          <div style={{
+            position:'absolute', inset: 0, zIndex: 5, borderRadius: 22,
+            background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', padding: 22,
+          }}>
+            <div style={{...IMP_MODAL_PANEL, width: 330, padding: '20px 22px'}}>
+              <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+                <span style={{
+                  width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                  display:'grid', placeItems:'center',
+                }}>{BuIcons.alert({size: 15, color:'currentColor'})}</span>
+                <div style={{fontSize: 16.5, fontWeight: 800, color: PN.TEXT}}>{errore.titolo}</div>
+              </div>
+              <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.45}}>{errore.msg}</div>
+              <div style={{display:'flex', justifyContent:'flex-end', marginTop: 16}}>
+                <ImpButton variant="primary" onClick={() => setErrore(null)}>Torna indietro</ImpButton>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1549,9 +2309,12 @@ function CreateRoleModal({ onClose, role }) {
 // Le due sole cose che un locale collega il primo giorno. Il resto — seconda
 // stampante, monitor pizza — si aggiunge dopo, e dirlo evita di far scegliere
 // adesso qualcosa che non serve adesso.
+// Una riga a testa anche col corpo cresciuto: «da inviare» e il secondo «in
+// cucina» erano parole che non aggiungevano niente, e mandavano la descrizione
+// a capo su una parola orfana.
 const STEP_DEVICES = [
-  { id: 'printer', label: 'Stampante',      desc: 'Stampa gli ordini da inviare in cucina o al bar', icon: 'doc' },
-  { id: 'monitor', label: 'Kitchen Monitor', desc: 'Mostra le comande in tempo reale in cucina',      icon: 'monitor' },
+  { id: 'printer', label: 'Stampante',      desc: 'Stampa gli ordini in cucina o al bar', icon: 'doc' },
+  { id: 'monitor', label: 'Kitchen Monitor', desc: 'Mostra le comande in tempo reale',     icon: 'monitor' },
 ];
 // Due passi e non tre: il terzo — «conferma il collegamento» — descriveva quello
 // che succede DOPO aver premuto la CTA, cioe una cosa che l'utente non deve fare.
@@ -1572,14 +2335,17 @@ const DEVICE_STEPS = [
 // l'ha già.
 const STEP_ROLES = [
   { id: 'cameriere', label: 'Cameriere', desc: 'Usa l\'app staff per tavoli, ordini e conto',    icon: 'waiter' },
-  { id: 'cassa',     label: 'Cassa',     desc: 'Prende ordini e incassa dalla cassa del locale', icon: 'receipt' },
+  { id: 'cassa',     label: 'Cassa',     desc: 'Prende ordini e incassa al bancone', icon: 'receipt' },
 ];
 
 window.PERSONALE_TEAM_INITIAL = [
   { id: 't1', kind: 'person', name: 'Marco Rossi',    email: 'marco@delborgo.it',  role: 'Cassa',              status: 'active' },
   { id: 't2', kind: 'person', name: 'Giulia Bianchi', email: 'giulia@delborgo.it', role: 'Cameriere',          status: 'invited' },
   { id: 't3', kind: 'person', name: 'Luca Verdi',     email: 'luca@delborgo.it',   role: 'Cameriere',          status: 'active' },
-  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'PG1-cucina',         role: 'Dispositivo cucina', status: 'active' },
+  // «Kitchen Monitor» e non «Dispositivo cucina»: è quello che scrive
+  // aggiungiDispositivo qui sotto, e la riga di partenza non può chiamare la
+  // stessa cosa con un altro nome.
+  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'PG1-cucina',         role: 'Kitchen Monitor', status: 'active' },
 ];
 
 // Configurare un dispositivo e l'altra meta del passo: le persone si invitano, i
@@ -1595,6 +2361,9 @@ function DispositivoStep({ setTeam }) {
   const aggiungiDispositivo = () => {
     if (!dev.deviceValid) return;
     const nome = dev.deviceName.trim() || (dev.isPrinter ? 'Stampante' : 'Monitor cucina');
+    if (!dev.isPrinter) {
+      salvaMonitorKds({ id: 'PG1-' + dev.username.trim(), nome, vista: dev.kdsView });
+    }
     setTeam(t => [...t, {
       id: `d${Date.now()}`, kind: 'device', name: nome,
       email: dev.isPrinter ? (dev.selectedPrinter ? dev.selectedPrinter.ip : '—') : `PG1-${dev.username.trim()}`,
@@ -1602,6 +2371,15 @@ function DispositivoStep({ setTeam }) {
     }]);
     dev.reset();
   };
+
+  // CTA finale: si accende quando il dispositivo è configurato davvero, come
+  // faceva il piede della modale che ha sostituito. Vive qui e non nel modulo
+  // perché il posto in cui compare cambia col dispositivo, l'azione no.
+  const ctaConfigura = (
+    <ImpButton variant="pink" disabled={!dev.deviceValid} onClick={aggiungiDispositivo}>
+      Configura dispositivo
+    </ImpButton>
+  );
 
   return (
     <div>
@@ -1656,22 +2434,18 @@ function DispositivoStep({ setTeam }) {
           marginTop: 12, padding:'16px 18px', borderRadius: 12,
           border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
         }}>
-          <DeviceForm st={dev}/>
+          <DeviceForm st={dev} tipoFisso={selDevice} azione={ctaConfigura}/>
         </div>
 
-        <div style={{display:'flex', alignItems:'center', gap: 12, marginTop: 14, flexWrap:'wrap'}}>
-          <span style={{color: PN.GREEN || '#16A34A', display:'inline-flex', flexShrink: 0}}>
-            {BuIcons.shield({size: 15, color:'currentColor'})}
-          </span>
-          <span style={{fontSize: 13, color: PN.MUTED, flex: 1, minWidth: 180}}>
-            Potrai aggiungere altri dispositivi in qualsiasi momento.
-          </span>
-          {/* CTA finale: si accende quando il dispositivo e configurato davvero,
-              come faceva il piede della modale che ha sostituito. */}
-          <ImpButton variant="pink" disabled={!dev.deviceValid} onClick={aggiungiDispositivo}>
-            Configura dispositivo
-          </ImpButton>
-        </div>
+        {/* Il monitor si porta la CTA dentro, in riga con la password: la sua
+            ultima riga era mezza vuota. La stampante finisce con l'elenco delle
+            categorie, che è a piena larghezza e non lascia posto: là il bottone
+            resta sotto la card. */}
+        {dev.isPrinter && (
+          <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end', marginTop: 14}}>
+            {ctaConfigura}
+          </div>
+        )}
     </div>
   );
 }
@@ -1690,7 +2464,6 @@ function PersonaleStep({ team, setTeam }) {
     setTeam(t => [...t, { id: `t${Date.now()}`, kind: 'person', name, email: invEmail.trim(), role: roleLabel, status: 'invited' }]);
     setInvName(''); setInvEmail('');
   };
-  const removeMember = (id) => setTeam(t => t.filter(m => m.id !== id));
 
 
   return (
@@ -1735,6 +2508,9 @@ function PersonaleStep({ team, setTeam }) {
 // Tessera dispositivo: orizzontale — icona a sinistra, testo a destra — perche
 // i dispositivi sono due e non tre, e in orizzontale riempiono la riga invece di
 // lasciare due colonne mezze vuote.
+// Il corpo del testo e quello delle tessere-ruolo qui sotto: sono la stessa
+// scelta fatta due volte nella stessa schermata, e a due misure diverse una
+// delle due sembrava una nota a margine dell'altra.
 function StepDeviceCard({ d, on, onClick }) {
   const [hover, setHover] = React.useState(false);
   return (
@@ -1743,7 +2519,7 @@ function StepDeviceCard({ d, on, onClick }) {
       style={{
         position:'relative', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
         display:'flex', alignItems:'center', gap: 14,
-        padding:'14px 44px 14px 14px', borderRadius: 12,
+        padding:'16px 46px 16px 16px', borderRadius: 12,
         border:`1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
         background: on ? '#FFF7F7' : PN.WHITE,
         boxShadow: hover && !on ? '0 6px 16px rgba(15, 17, 21, 0.06)' : 'none',
@@ -1759,19 +2535,23 @@ function StepDeviceCard({ d, on, onClick }) {
         {on && <span style={{width: 8, height: 8, borderRadius:'50%', background: PN.PINK}}/>}
       </span>
       <span style={{
-        width: 44, height: 44, borderRadius: 12, flexShrink: 0, display:'grid', placeItems:'center',
+        width: 48, height: 48, borderRadius: 12, flexShrink: 0, display:'grid', placeItems:'center',
         background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
         transition:'background 150ms ease, color 150ms ease',
-      }}>{(BuIcons[d.icon]||BuIcons.monitor)({size: 20, color:'currentColor'})}</span>
+      }}>{(BuIcons[d.icon]||BuIcons.monitor)({size: 22, color:'currentColor'})}</span>
       <span style={{minWidth: 0}}>
-        <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 2}}>{d.label}</span>
-        <span style={{display:'block', fontSize: 13, color: PN.MUTED, lineHeight: 1.4}}>{d.desc}</span>
+        <span style={{display:'block', fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{d.label}</span>
+        <span style={{display:'block', fontSize: 14, color: PN.MUTED, lineHeight: 1.4}}>{d.desc}</span>
       </span>
     </button>
   );
 }
 
 // Card-ruolo con radio in alto a destra: feedback in hover, brand da selezionata.
+// Orizzontale come le tessere dispositivo qui sotto — icona a sinistra, nome e
+// spiegazione a destra. Il nome sotto l'icona faceva leggere la tessera in due
+// tempi (guarda il segno, poi scendi a capire cosa vuol dire) e la stessa
+// scelta, due riquadri più in basso, si leggeva in uno.
 function StepRoleCard({ r, on, onClick }) {
   const [hover, setHover] = React.useState(false);
   return (
@@ -1779,7 +2559,8 @@ function StepRoleCard({ r, on, onClick }) {
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
         position:'relative', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
-        padding:'16px 16px 14px', borderRadius: 12,
+        display:'flex', alignItems:'center', gap: 14,
+        padding:'16px 46px 16px 16px', borderRadius: 12,
         border:`1.5px solid ${on ? PN.PINK : hover ? PN.BORDER : PN.BORDER_SOFT}`,
         background: on ? '#FFF7F7' : PN.WHITE,
         boxShadow: hover && !on ? '0 6px 16px rgba(15, 17, 21, 0.06)' : 'none',
@@ -1788,7 +2569,7 @@ function StepRoleCard({ r, on, onClick }) {
       }}>
       {/* Radio */}
       <span style={{
-        position:'absolute', top: 12, right: 12,
+        position:'absolute', top: 14, right: 14,
         width: 16, height: 16, borderRadius:'50%',
         border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
         display:'grid', placeItems:'center',
@@ -1796,35 +2577,47 @@ function StepRoleCard({ r, on, onClick }) {
       }}>
         {on && <span style={{width: 8, height: 8, borderRadius:'50%', background: PN.PINK}}/>}
       </span>
+      {/* Tondo e non riquadro: le persone restano tonde, i dispositivi
+          squadrati — è l'unico segno che distingue le due coppie ora che hanno
+          la stessa forma. */}
       <span style={{
-        width: 40, height: 40, borderRadius:'50%', display:'grid', placeItems:'center',
+        width: 46, height: 46, borderRadius:'50%', flexShrink: 0, display:'grid', placeItems:'center',
         background: on ? PN.PINK_SOFT : '#F4F5F7', color: on ? PN.PINK_DARK : '#475569',
-        marginBottom: 10, transition:'background 150ms ease, color 150ms ease',
-      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 18, color:'currentColor'})}</span>
-      <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{r.label}</div>
-      <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>{r.desc}</div>
+        transition:'background 150ms ease, color 150ms ease',
+      }}>{(BuIcons[r.icon]||BuIcons.user)({size: 21, color:'currentColor'})}</span>
+      <span style={{minWidth: 0}}>
+        <span style={{display:'block', fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 3}}>{r.label}</span>
+        <span style={{display:'block', fontSize: 14, color: PN.MUTED, lineHeight: 1.4}}>{r.desc}</span>
+      </span>
     </button>
   );
 }
 
-// "+ Aggiungi invito": chip corallo tenue con feedback hover/pressione.
+// «Invita» è la CTA del mezzo passo delle persone, come «Configura dispositivo»
+// lo è di quello dei dispositivi: stesso lavoro, stesso colore acceso — corallo
+// pieno, gli stessi token della variante pink di ImpButton. Da chip tenue le due
+// azioni gemelle avevano due pesi diversi, e quella delle persone sembrava
+// facoltativa. Non riusa ImpButton perché l'altezza è tarata sui campi della
+// riga d'invito accanto, non sul piede di una card.
 function AddInviteBtn({ disabled, onClick }) {
   const [hover, setHover] = React.useState(false);
   const [pressed, setPressed] = React.useState(false);
   return (
     <button onClick={onClick} disabled={disabled}
-      onMouseEnter={() => setHover(true)}
+      onMouseEnter={() => { if (!disabled) setHover(true); }}
       onMouseLeave={() => { setHover(false); setPressed(false); }}
       onMouseDown={() => setPressed(true)} onMouseUp={() => setPressed(false)}
       style={{
         flexShrink: 0, padding:'10px 16px', borderRadius: 9,
-        border:`1.5px solid ${hover && !disabled ? PN.PINK : '#FFD5D6'}`,
-        background: PN.PINK_SOFT, color: PN.PINK_DARK,
+        border:'1px solid rgba(180, 30, 35, 0.40)',
+        background: hover && !disabled ? PN.BTN_BRAND_HOVER : PN.BTN_BRAND,
+        color: '#fff',
+        boxShadow: `${PN.INSET_HIGHLIGHT_BRAND}, 0 1px 2px rgba(255, 90, 95, 0.18)`,
         fontSize: 14, fontWeight: 700, fontFamily:'inherit',
         cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.55 : 1,
+        opacity: disabled ? 0.45 : 1,
         transform: pressed && !disabled ? 'scale(0.96)' : 'none',
-        transition:'border-color 150ms ease, transform 130ms ease, opacity 150ms ease',
+        transition:'background 150ms ease-out, box-shadow 150ms ease-out, transform 130ms ease, opacity 150ms ease-out',
         display:'inline-flex', alignItems:'center', gap: 6, whiteSpace:'nowrap',
       }}>
       <PnI.Plus size={12}/> Invita

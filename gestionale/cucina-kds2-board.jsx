@@ -350,7 +350,12 @@ function Kds2Modificatori({ modifiers, spenta }) {
     <div style={{display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 7}}>
       {modifiers.map((m, i) => {
         const togli = m.type === 'remove';
-        const tinta = spenta ? K.TESTO_OFF : (togli ? K.ROSSO : K.VERDE);
+        const metti = m.type === 'add';
+        // Terzo caso: la nota che non aggiunge e non toglie — «ben cotta»,
+        // «al sangue», «salsa a parte». Nel mock non esisteva, negli ordini
+        // veri sì, e darle un «+» verde direbbe una cosa falsa. Segno neutro,
+        // stesso peso: in cucina è un'istruzione come le altre.
+        const tinta = spenta ? K.TESTO_OFF : (togli ? K.ROSSO : metti ? K.VERDE : K.TESTO_2);
         return (
           <span key={i} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
             {/* Nascosto agli assistivi: il nome accessibile della riga dice già
@@ -367,7 +372,7 @@ function Kds2Modificatori({ modifiers, spenta }) {
               border: spenta ? '2px solid ' + tinta : 'none',
               color: spenta ? tinta : K.RIGA,
               fontSize: 18, fontWeight: 900, lineHeight: 1,
-            }}>{togli ? '−' : '+'}</span>
+            }}>{togli ? '−' : metti ? '+' : '·'}</span>
             <span style={{
               fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
               color: tinta,
@@ -797,14 +802,20 @@ function Kds2Filtro({ etichetta, valore, opzioni, onScegli }) {
   );
 }
 
-function Kds2Fullscreen() {
+// `onToggle` / `attivo`: dentro il gestionale «schermo intero» vuol dire prima
+// di tutto togliere di mezzo il gestionale — sidebar compresa — come già fa la
+// vista Ristorante. Chi monta la board glielo dice passando questi due; da sola,
+// nella route di anteprima, resta il fullscreen del browser.
+function Kds2Fullscreen({ onToggle, attivo }) {
   const [pieno, setPieno] = React.useState(false);
   React.useEffect(() => {
     const agg = () => setPieno(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', agg);
     return () => document.removeEventListener('fullscreenchange', agg);
   }, []);
+  const acceso = onToggle ? !!attivo : pieno;
   function commuta() {
+    if (onToggle) { onToggle(); return; }
     // In anteprima dentro un iframe l'API è spesso negata: si ignora, il resto
     // della schermata non deve accorgersene.
     try {
@@ -814,30 +825,37 @@ function Kds2Fullscreen() {
   }
   return (
     <button type="button" data-kds2-interattivo="" onClick={commuta}
-      aria-label={pieno ? 'Esci da schermo intero' : 'Schermo intero'}
-      title={pieno ? 'Esci da schermo intero' : 'Schermo intero'}
+      aria-label={acceso ? 'Esci da schermo intero' : 'Schermo intero'}
+      title={acceso ? 'Esci da schermo intero' : 'Schermo intero'}
       style={{
         width: H_BERSAGLIO, height: H_BERSAGLIO, flexShrink: 0, borderRadius: 12,
         display: 'grid', placeItems: 'center',
         background: K.RIGA, border: '2px solid ' + K.BORDO_RIGA,
         color: K.TESTO_2, cursor: 'pointer', fontFamily: 'inherit',
       }}>
-      <Kds2Espandi size={24} chiudi={pieno}/>
+      <Kds2Espandi size={24} chiudi={acceso}/>
     </button>
   );
 }
 
 function Kds2Header({
-  sorgenti, ora, selezione, onSeleziona,
+  sorgenti, ora, selezione, onSeleziona, focus, onToggleFocus, barra,
   canale, onCanale, canali, categoria, onCategoria, categorie,
 }) {
   const orologio = kds2Orario(ora);
+  // `barra`: dentro il gestionale la prima banda arriva da fuori, fatta con i
+  // comandi della vista Ristorante — stessi filtri, stesso tasto schermo
+  // intero, stesse misure. Due cucine dello stesso prodotto non possono avere
+  // due grammatiche. Da sola, in anteprima, la board tiene la sua.
   return (
-    <div style={{flexShrink: 0, background: K.FONDO, padding: '16px ' + PAD_X + 'px 12px'}}>
+    <div style={{flexShrink: 0, background: barra ? 'transparent' : K.FONDO,
+      padding: barra ? 0 : '16px ' + PAD_X + 'px 12px'}}>
 
-      {/* Prima banda: cromo. Orologio, filtri, allarme, schermo intero — niente
-          che si tocchi per cucinare, tutto ciò che serve a decidere COSA si
-          guarda. Sta sopra la rail perché la rail è già contenuto. */}
+      {barra ? barra({ ora, canale, onCanale, canali, categoria, onCategoria, categorie })
+        : (
+      /* Prima banda: cromo. Orologio, filtri, allarme, schermo intero — niente
+         che si tocchi per cucinare, tutto ciò che serve a decidere COSA si
+         guarda. Sta sopra la rail perché la rail è già contenuto. */
       <div style={{display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12}}>
         <span style={{
           fontSize: 34, fontWeight: 800, color: K.TESTO, letterSpacing: '-0.02em',
@@ -848,8 +866,10 @@ function Kds2Header({
         <Kds2Filtro etichetta="Categorie" valore={categoria} opzioni={categorie} onScegli={onCategoria}/>
 
         <span style={{flex: 1}}/>
-        <Kds2Fullscreen/>
+
+        <Kds2Fullscreen onToggle={onToggleFocus} attivo={focus}/>
       </div>
+      )}
 
       {sorgenti.length === 0 ? (
         <span style={Object.assign({}, TY.corpo, {color: K.TESTO_2, display: 'block', padding: '18px 4px'})}>
@@ -998,8 +1018,12 @@ function Kds2Demo({ righe, onNuovo }) {
 }
 
 // ─── Board ────────────────────────────────────────────────────────────────
-function Kds2Board() {
-  const [porzioni, setPorzioni] = React.useState(() => KDS2_PORZIONI);
+// `porzioni`: gli ordini da cui partire. Senza, la board prende i suoi dati
+// finti — è il caso della route di anteprima. Dentro la Cucina del gestionale
+// arrivano invece gli ordini veri del servizio, convertiti da
+// cucina-kds2-da-cucina.jsx: la vista cambia, il servizio no.
+function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) {
+  const [porzioni, setPorzioni] = React.useState(() => porzioniIniziali || KDS2_PORZIONI);
   const [ora, setOra]           = React.useState(() => Date.now());
   const [selezione, setSel]     = React.useState(null);
   const [pronti, setPronti]     = React.useState([]);
@@ -1123,10 +1147,16 @@ function Kds2Board() {
   return (
     <div onPointerDown={tocco} style={{
       position: 'relative', flex: 1, minWidth: 0, minHeight: 0,
-      display: 'flex', flexDirection: 'column', background: K.FONDO,
+      display: 'flex', flexDirection: 'column',
+      // Ospitata nella card della Cucina la board non porta il proprio fondo:
+      // ne uscirebbe un rettangolo grigio dentro il riquadro bianco, con i
+      // filtri di sopra rimasti fuori. La superficie è una sola, quella della
+      // card, e le righe si staccano lo stesso — hanno un bordo da 2px.
+      background: barra ? 'transparent' : K.FONDO,
     }}>
       <Kds2Header
         sorgenti={sorgenti} ora={ora} selezione={selezione} onSeleziona={setSel}
+        focus={focus} onToggleFocus={onToggleFocus} barra={barra}
         canale={canale} onCanale={setCanale} canali={CANALI}
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}/>
 
@@ -1135,7 +1165,10 @@ function Kds2Board() {
           e con due colonne «più in alto» smetterebbe di voler dire «prima». */}
       <div className="pn-scroll" style={{
         flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
-        padding: '0 ' + PAD_X + 'px 12px',
+        // Dentro la card della Cucina il margine laterale è già quello della
+        // card: sommarci anche il proprio disallineerebbe le righe dalla barra
+        // che le sovrasta.
+        padding: barra ? '0 0 12px' : '0 ' + PAD_X + 'px 12px',
       }}>
         {righe.length === 0 && (
           <div style={{
@@ -1164,7 +1197,9 @@ function Kds2Board() {
         <Kds2Annulla voci={pronti} onRipristina={ripristina}/>
       </div>
 
-      <Kds2Demo righe={righe.length} onNuovo={nuovoOrdine}/>
+      {/* La barra demo genera ordini finti: ha senso nell'anteprima, non sopra
+          il servizio vero di un locale. */}
+      {!porzioniIniziali && <Kds2Demo righe={righe.length} onNuovo={nuovoOrdine}/>}
     </div>
   );
 }

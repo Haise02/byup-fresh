@@ -13,7 +13,7 @@ const PHOTO_MOCK_IMGS = [
 const ALLERGENS = [
   { id: 'glutine', name: 'Glutine', icon: '🌾', color: '#D97706' },
   { id: 'latte', name: 'Latte', icon: '🥛', color: '#0EA5E9' },
-  { id: 'uova', name: 'Uova', icon: '🥚', color: '#F59E0B' },
+  { id: 'uova', name: 'Uova', icon: '🥚', color: '#EAB308' },
   { id: 'pesce', name: 'Pesce', icon: '🐟', color: '#0891B2' },
   { id: 'crostacei', name: 'Crostacei', icon: '🦐', color: '#EA580C' },
   { id: 'molluschi', name: 'Molluschi', icon: '🦪', color: '#0369A1' },
@@ -24,7 +24,7 @@ const ALLERGENS = [
   { id: 'sedano', name: 'Sedano', icon: '🥬', color: '#16A34A' },
   { id: 'senape', name: 'Senape', icon: '🌾', color: '#CA8A04' },
   { id: 'sesamo', name: 'Sesamo', icon: '🌰', color: '#78350F' },
-  { id: 'solfiti', name: 'Solfiti', icon: '🍷', color: '#7C2D12' },
+  { id: 'solfiti', name: 'Solfiti', icon: '🍷', color: '#9333EA' },
 ];
 
 // Importi proposti per il servizio, per modalità. Lo 0 è "nessun servizio" e
@@ -35,17 +35,178 @@ const SERVIZIO_OPZIONI = {
   percentuale: [0, 5, 10, 12, 15],
 };
 
-function AllergenIcon({ id, size = 18 }) {
+// ─── Segni degli allergeni ───────────────────────────────────────────────────
+// Disegnati, non iniziali: «G» e «S» valevano per glutine e per sedano, e in
+// griglia non si distinguevano nemmeno guardandoli. Ogni segno è la cosa —
+// la spiga, il cartone del latte, il calice — nel colore del suo allergene,
+// coi dettagli in bianco perché si leggano anche a 14px.
+// Niente emoji: cambiano forma e colore da un sistema all'altro e su Windows
+// la metà di questi non esiste.
+const ALLERGEN_GLYPHS = {
+  // Spiga: chicchi appaiati lungo il culmo.
+  glutine: (c) => (
+    <g>
+      <path d="M12 21.6v-8.4" stroke={c} strokeWidth="1.9" strokeLinecap="round"/>
+      <g fill={c}>
+        <ellipse cx="12" cy="4.9" rx="1.9" ry="3.1"/>
+        <ellipse cx="8.9" cy="8.6" rx="1.85" ry="3" transform="rotate(-32 8.9 8.6)"/>
+        <ellipse cx="15.1" cy="8.6" rx="1.85" ry="3" transform="rotate(32 15.1 8.6)"/>
+        <ellipse cx="8.9" cy="13.4" rx="1.85" ry="3" transform="rotate(-32 8.9 13.4)"/>
+        <ellipse cx="15.1" cy="13.4" rx="1.85" ry="3" transform="rotate(32 15.1 13.4)"/>
+      </g>
+    </g>
+  ),
+  // Bicchiere pieno: il cartone, a questa taglia, leggeva come una borsa.
+  latte: (c) => (
+    <g>
+      <path d="M6.7 3.4h10.6l-1.3 16A1.9 1.9 0 0 1 14.1 21.2H9.9A1.9 1.9 0 0 1 8 19.4L6.7 3.4Z" fill={c}/>
+      <path d="M7.1 7.3h9.8" stroke="#fff" strokeWidth="1.7" opacity=".85" strokeLinecap="round"/>
+    </g>
+  ),
+  uova: (c) => (
+    <g>
+      <path d="M12 3.1c3.3 0 6 4.7 6 9 0 4.1-2.7 6.9-6 6.9s-6-2.8-6-6.9c0-4.3 2.7-9 6-9Z" fill={c}/>
+      <ellipse cx="9.6" cy="10.2" rx="1.4" ry="2.1" fill="#fff" opacity=".6" transform="rotate(-22 9.6 10.2)"/>
+    </g>
+  ),
+  pesce: (c) => (
+    <g fill={c}>
+      <path d="M15.8 12c-1.8 3.2-4.7 5.1-8 5.1S3.6 15.2 1.8 12c1.8-3.2 4.7-5.1 8-5.1s6.2 1.9 8 5.1Z"/>
+      <path d="M15.3 8.2 21.6 12l-6.3 3.8c.6-1.2.9-2.5.9-3.8s-.3-2.6-.9-3.8Z"/>
+      <circle cx="6.3" cy="11" r="1.05" fill="#fff"/>
+    </g>
+  ),
+  // Granchio: corpo, chele e zampe — più riconoscibile del gambero a 14px.
+  crostacei: (c) => (
+    <g>
+      <path d="M8.4 11.2 10.4 13.6M15.6 11.2 13.6 13.6M5.8 16.6 2.9 15.4M5.9 19.2 3.5 20.8M18.2 16.6 21.1 15.4M18.1 19.2 20.5 20.8"
+        stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
+      <circle cx="6.6" cy="9.2" r="2.9" fill={c}/>
+      <circle cx="17.4" cy="9.2" r="2.9" fill={c}/>
+      <path d="M6.9 9.2 9.4 7.8M6.9 9.2 9.4 10.6M17.1 9.2 14.6 7.8M17.1 9.2 14.6 10.6" stroke="#fff" strokeWidth="1.35" strokeLinecap="round"/>
+      <ellipse cx="12" cy="17" rx="6.5" ry="4.3" fill={c}/>
+      <circle cx="9.9" cy="15.9" r="1" fill="#fff"/>
+      <circle cx="14.1" cy="15.9" r="1" fill="#fff"/>
+    </g>
+  ),
+  // Capasanta: ventaglio con le costole e la cerniera.
+  molluschi: (c) => (
+    <g>
+      <path d="M2.7 9.8q1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0L12 19.4Z" fill={c}/>
+      <path d="M12 19 7.1 10.6M12 19l-1.3-8.4M12 19l1.3-8.4M12 19l4.9-8.4" stroke="#fff" strokeWidth="1.1" opacity=".65" strokeLinecap="round"/>
+      <rect x="10.3" y="18.4" width="3.4" height="2.4" rx="1.2" fill={c}/>
+    </g>
+  ),
+  // Nocciola: guscio pieno, cupola in trasparenza, picciolo.
+  'frutta-guscio': (c) => (
+    <g>
+      <path d="M12 21.4c-3.9 0-6.9-2.9-6.9-6.7 0-2.5 1.3-4.7 3.3-5.9h7.2c2 1.2 3.3 3.4 3.3 5.9 0 3.8-3 6.7-6.9 6.7Z" fill={c}/>
+      <path d="M6.5 8.6c1.3-1.9 3.2-2.9 5.5-2.9s4.2 1 5.5 2.9c-.9 1-2.9 1.6-5.5 1.6s-4.6-.6-5.5-1.6Z" fill="#fff" opacity=".92"/>
+      <path d="M12 6.1V3.2" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
+    </g>
+  ),
+  // Arachide: due lobi e la strozzatura.
+  arachidi: (c) => (
+    <g>
+      <g fill={c}>
+        <circle cx="8.5" cy="15.5" r="4.6"/>
+        <circle cx="15.5" cy="8.5" r="4.6"/>
+        <rect x="8.4" y="9.4" width="7.2" height="5.2" rx="2.6" transform="rotate(-45 12 12)"/>
+      </g>
+      <circle cx="8.5" cy="15.5" r="1.15" fill="#fff" opacity=".55"/>
+      <circle cx="15.5" cy="8.5" r="1.15" fill="#fff" opacity=".55"/>
+    </g>
+  ),
+  // Baccello di soia coi tre semi.
+  soia: (c) => (
+    <g>
+      <path d="M5.5 18.5a4.1 4.1 0 0 1 0-5.8l7.2-7.2a4.1 4.1 0 1 1 5.8 5.8l-7.2 7.2a4.1 4.1 0 0 1-5.8 0Z" fill={c}/>
+      <g fill="#fff" opacity=".7">
+        <circle cx="8.5" cy="15.5" r="1.5"/>
+        <circle cx="12" cy="12" r="1.5"/>
+        <circle cx="15.5" cy="8.5" r="1.5"/>
+      </g>
+    </g>
+  ),
+  // Lupini: tre semi piatti, ognuno col suo ilo.
+  lupini: (c) => (
+    <g>
+      <g fill={c}>
+        <ellipse cx="8.4" cy="9.2" rx="4.3" ry="3.4" transform="rotate(-18 8.4 9.2)"/>
+        <ellipse cx="15.7" cy="11.4" rx="4.3" ry="3.4" transform="rotate(14 15.7 11.4)"/>
+        <ellipse cx="11.3" cy="16.6" rx="4.3" ry="3.4" transform="rotate(-6 11.3 16.6)"/>
+      </g>
+      <g fill="#fff" opacity=".55">
+        <circle cx="6.6" cy="9.6" r=".85"/>
+        <circle cx="17.5" cy="11.2" r=".85"/>
+        <circle cx="9.6" cy="17" r=".85"/>
+      </g>
+    </g>
+  ),
+  // Sedano: le costole del gambo e la corona di foglie.
+  sedano: (c) => (
+    <g>
+      <path d="M12 21.4V11.8M8.4 21.4c-.7-3.4-.3-6.4 1.3-8.8M15.6 21.4c.7-3.4.3-6.4-1.3-8.8"
+        stroke={c} strokeWidth="2.3" strokeLinecap="round"/>
+      <g fill={c}>
+        <circle cx="12" cy="5.6" r="2.5"/>
+        <circle cx="8.1" cy="7.5" r="2.2"/>
+        <circle cx="15.9" cy="7.5" r="2.2"/>
+        <circle cx="9.9" cy="10.2" r="1.9"/>
+        <circle cx="14.1" cy="10.2" r="1.9"/>
+      </g>
+    </g>
+  ),
+  // Senape: il flacone da tavola.
+  senape: (c) => (
+    <g>
+      <path d="M10.3 5.7h3.4l1.5 2.2c.5.8.8 1.7.8 2.6v8.2a2.4 2.4 0 0 1-2.4 2.4h-3.2A2.4 2.4 0 0 1 8 18.7v-8.2c0-.9.3-1.8.8-2.6l1.5-2.2Z" fill={c}/>
+      <rect x="9.8" y="2.7" width="4.4" height="3.2" rx="1.1" fill={c}/>
+      <rect x="9.6" y="12.2" width="4.8" height="4.6" rx="1.1" fill="#fff" opacity=".9"/>
+    </g>
+  ),
+  // Semi di sesamo sparsi.
+  sesamo: (c) => (
+    <g fill={c}>
+      <ellipse cx="8" cy="7.4" rx="1.5" ry="2.5" transform="rotate(-28 8 7.4)"/>
+      <ellipse cx="15.6" cy="6.6" rx="1.5" ry="2.5" transform="rotate(24 15.6 6.6)"/>
+      <ellipse cx="12" cy="12.3" rx="1.5" ry="2.5" transform="rotate(-8 12 12.3)"/>
+      <ellipse cx="6.4" cy="15" rx="1.5" ry="2.5" transform="rotate(34 6.4 15)"/>
+      <ellipse cx="17.2" cy="14.6" rx="1.5" ry="2.5" transform="rotate(-20 17.2 14.6)"/>
+      <ellipse cx="11.6" cy="18.8" rx="1.5" ry="2.5" transform="rotate(14 11.6 18.8)"/>
+    </g>
+  ),
+  // Calice: i solfiti si dichiarano soprattutto sul vino.
+  solfiti: (c) => (
+    <g>
+      <path d="M6.6 3.4h10.8v3.3a5.4 5.4 0 0 1-10.8 0V3.4Z" fill={c}/>
+      <path d="M12 12.1v7.1M8.2 20h7.6" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M6.6 5.6h10.8" stroke="#fff" strokeWidth="1.2" opacity=".55" strokeLinecap="round"/>
+    </g>
+  ),
+};
+
+function AllergenIcon({ id, size = 22 }) {
   const a = ALLERGENS.find(x => x.id === id);
   if (!a) return null;
+  const glyph = ALLERGEN_GLYPHS[a.id];
   return (
-    <span title={a.name} style={{
-      width: size, height: size, borderRadius: '50%',
-      background: a.color + '22', color: a.color,
-      display:'inline-grid', placeItems:'center',
-      fontSize: size * 0.55, fontWeight: 700,
-      border: `1.5px solid ${a.color}55`,
-    }}>{a.name[0]}</span>
+    <span title={a.name} aria-label={a.name} style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: a.color + '1A',
+      // inset invece del border: il bollino resta esattamente `size`, e in
+      // fila non balla di un pixel a seconda del box-sizing.
+      boxShadow: `inset 0 0 0 1px ${a.color}38`,
+      display: 'inline-grid', placeItems: 'center',
+    }}>
+      {glyph ? (
+        <svg width={Math.round(size * 0.66)} height={Math.round(size * 0.66)} viewBox="0 0 24 24" fill="none" style={{display: 'block'}}>
+          {glyph(a.color)}
+        </svg>
+      ) : (
+        <span style={{fontSize: size * 0.5, fontWeight: 800, color: a.color}}>{a.name[0]}</span>
+      )}
+    </span>
   );
 }
 window.ALLERGENS = ALLERGENS;
@@ -81,16 +242,16 @@ function ImpMenuCucina() {
 // LIBRERIA piatti: SENZA prezzo, SENZA stato. Solo dati "ricetta".
 const DISH_PHOTO = (id) => `https://images.unsplash.com/${id}?w=200&q=70&auto=format&fit=crop`;
 const DISH_LIBRARY = [
-  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', allergens: ['glutine'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') },
-  { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['latte'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') },
-  { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['latte','frutta-guscio'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') },
-  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') },
-  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') },
-  { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') },
-  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['latte'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') },
-  { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['pesce'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') },
-  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') },
-  { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['latte'], photo: DISH_PHOTO('photo-1488477181946-6428a0291777') },
+  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', allergens: ['glutine'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') , ingredients: [{name:'Pane casereccio',removable:false,allergens:['glutine']},{name:'Pomodoro',removable:false,allergens:[]},{name:'Basilico',removable:true,allergens:[]},{name:'Aglio',removable:true,allergens:[]},{name:'Olio EVO',removable:false,allergens:[]}]},
+  { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['latte'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') , ingredients: [{name:'Burrata',removable:false,allergens:['latte']},{name:'Prosciutto crudo',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]}]},
+  { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['latte','frutta-guscio'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') , ingredients: [{name:'Salumi misti',removable:false,allergens:[]},{name:'Formaggi locali',removable:false,allergens:['latte']},{name:'Marmellata',removable:true,allergens:[]},{name:'Noci',removable:true,allergens:['frutta-guscio']}]},
+  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pecorino',removable:false,allergens:['latte']},{name:'Uovo',removable:false,allergens:['uova']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Pecorino romano DOP',removable:false,allergens:['latte']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') , ingredients: [{name:'Bucatini',removable:false,allergens:['glutine']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pomodoro San Marzano',removable:false,allergens:[]},{name:'Pecorino',removable:true,allergens:['latte']}]},
+  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['latte'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') , ingredients: [{name:'Controfiletto di scottona',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]},{name:'Scaglie di grana',removable:true,allergens:['latte']},{name:'Olio EVO',removable:false,allergens:[]}]},
+  { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['pesce'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') , ingredients: [{name:'Branzino',removable:false,allergens:['pesce']},{name:'Patate',removable:false,allergens:[]},{name:'Rosmarino',removable:true,allergens:[]},{name:'Sale grosso',removable:false,allergens:[]}]},
+  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') , ingredients: [{name:'Savoiardi',removable:false,allergens:['glutine']},{name:'Mascarpone',removable:false,allergens:['latte']},{name:'Uova',removable:false,allergens:['uova']},{name:'Caffè',removable:false,allergens:[]},{name:'Cacao',removable:true,allergens:[]}]},
+  { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['latte'], photo: DISH_PHOTO('photo-1488477181946-6428a0291777') , ingredients: [{name:'Panna fresca',removable:false,allergens:['latte']},{name:'Lamponi',removable:true,allergens:[]},{name:'Mirtilli',removable:true,allergens:[]},{name:'Zucchero',removable:false,allergens:[]}]},
 ];
 
 const CAT_ICON = { 'Antipasti':'food-salad', 'Primi':'food-pasta', 'Secondi':'food-steak', 'Contorni':'food-vegetables', 'Dolci':'food-dessert', 'Bevande':'drink-juice' };
@@ -145,25 +306,180 @@ function MCLibreria() {
   );
 }
 
+// ─── MENU COMPOSER ───────────────────────────────────────────────────────────
+// Tre colonne: le categorie del menù, i piatti della categoria scelta, il
+// dettaglio del piatto con l'anteprima di come lo vede il cliente. Il menù su
+// cui si lavora si sceglie dal selettore in testata: i menù restano più di uno
+// (pranzo, cena, bambini…), semplicemente non occupano più una colonna intera.
+
+const CANALI = [
+  { id: 'qr',       label: 'Tavolo (QR)',      icona: 'grid' },
+  { id: 'delivery', label: 'Asporto/Delivery', icona: 'commerce-delivery' },
+  { id: 'pos',      label: 'Cassa (POS)',      icona: 'commerce-register' },
+];
+const CANALI_IDS = CANALI.map(c => c.id);
+// Un piatto senza `channels` è visibile ovunque: i menù già scritti non hanno
+// il campo e non devono sparire dai canali per una colonna che prima non c'era.
+const canaliDi = (it) => it.channels || CANALI_IDS;
+const eur = (n) => '€ ' + Number(n || 0).toFixed(2).replace('.', ',');
+// L'area di lavoro prende l'altezza che resta nello scroller e le tre colonne
+// scorrono ognuna per conto suo. Misurata in px di LAYOUT: il frame del
+// gestionale ha uno zoom e i vh non lo considerano.
+function useAltezzaColonne(ref) {
+  const [h, setH] = React.useState(null);
+  React.useLayoutEffect(() => {
+    const calc = () => {
+      const el = ref.current; if (!el) return;
+      const sc = el.closest('.pn-scroll'); if (!sc) return;
+      const frame = el.closest('.frame');
+      const z = frame ? (parseFloat(getComputedStyle(frame).zoom) || 1) : 1;
+      const top = (el.getBoundingClientRect().top - sc.getBoundingClientRect().top) / z + sc.scrollTop;
+      setH(Math.max(380, Math.round(sc.clientHeight - top - 24)));
+    };
+    calc();
+    const sc = ref.current && ref.current.closest('.pn-scroll');
+    const ro = (sc && window.ResizeObserver) ? new ResizeObserver(calc) : null;
+    if (ro) ro.observe(sc);
+    window.addEventListener('resize', calc);
+    return () => { if (ro) ro.disconnect(); window.removeEventListener('resize', calc); };
+  }, []);
+  return h;
+}
+
+// Il fantasma che segue il cursore mentre si trascina un piatto: la sua foto
+// e il suo nome in una pillola, non lo screenshot della card intera. Serve a
+// capire cosa si sta spostando anche mentre copre l'elenco delle categorie —
+// e a non nascondere il bersaglio sotto un rettangolo grande come la card.
+// `quanti` > 1: si stanno portando via più piatti insieme, il fantasma lo dice
+// invece di far credere che si stia spostando solo quello afferrato.
+function fantasmaPiatto(e, dish, quanti = 1) {
+  if (!e.dataTransfer || !e.dataTransfer.setDragImage) return;
+  const g = document.createElement('div');
+  g.style.cssText = [
+    'position:fixed', 'top:-1000px', 'left:-1000px', 'pointer-events:none',
+    'display:flex', 'align-items:center', 'gap:10px',
+    'padding:7px 16px 7px 7px', 'border-radius:999px', 'background:#fff',
+    `box-shadow:0 12px 28px -8px rgba(255,90,95,0.6), 0 0 0 2px ${PN.PINK}`,
+    "font-family:'Plus Jakarta Sans',system-ui,sans-serif",
+    'font-size:15px', 'font-weight:700', `color:${PN.TEXT}`, 'white-space:nowrap',
+  ].join(';');
+  const foto = document.createElement('span');
+  foto.style.cssText = 'width:32px;height:32px;border-radius:50%;flex:0 0 32px;background:#F1F3F5 center/cover no-repeat' +
+    (dish.photo ? `;background-image:url("${dish.photo}")` : '');
+  g.appendChild(foto);
+  g.appendChild(document.createTextNode(quanti > 1 ? `${quanti} piatti` : dish.name));
+  if (quanti > 1) {
+    // Una pila sotto al fantasma: si vede che dietro ce ne sono altri.
+    const pila = document.createElement('span');
+    pila.style.cssText = [
+      'position:absolute', 'left:10px', 'right:10px', 'bottom:-5px', 'height:10px',
+      'border-radius:999px', 'background:#fff', `border:2px solid ${PN.PINK}`, 'z-index:-1',
+    ].join(';');
+    g.style.position = 'fixed';
+    g.appendChild(pila);
+  }
+  document.body.appendChild(g);
+  e.dataTransfer.setDragImage(g, 26, 23);
+  // Il browser ne fa una copia subito: il nodo vero può sparire al giro dopo.
+  setTimeout(() => { if (g.parentNode) g.parentNode.removeChild(g); }, 0);
+}
+
+// `Puntini` (i tre pallini in SVG) sta in impostazioni-shared.jsx: lo usano
+// anche le card sala e tavolo.
+
+// Pannello di colonna: testata ferma, corpo che scorre.
+function MCPanel({ title, sub, action, children, style, bodyStyle }) {
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 14,
+      display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden',
+      boxShadow: PN.CARD_SHADOW, ...style,
+    }}>
+      {(title || action) && (
+        // Con il dettaglio aperto la colonna si stringe: i bottoni scendono a
+        // capo invece di finire sopra al titolo, che prima spariva sotto.
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, rowGap: 9, flexWrap: 'wrap', flexShrink: 0,
+          padding: '13px 16px', borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+        }}>
+          <div style={{flex: '1 1 150px', minWidth: 0}}>
+            <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>{title}</div>
+            {sub && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>{sub}</div>}
+          </div>
+          {action}
+        </div>
+      )}
+      <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 14px', ...bodyStyle}}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 function MCMenuComposer() {
   const [library, setLibrary] = React.useState(DISH_LIBRARY);
   const [menus, setMenus] = React.useState(MENUS_INIT);
   const [activeMenuId, setActiveMenuId] = React.useState('pranzo');
-  const [creatingMenu, setCreatingMenu] = React.useState(false);
-  const [newMenuName, setNewMenuName] = React.useState('');
-  const [openMenuDot, setOpenMenuDot] = React.useState(null); // id menu con dropdown aperto
-  const [renamingMenuId, setRenamingMenuId] = React.useState(null);
-  const [renameVal, setRenameVal] = React.useState('');
-  const [confirmDelId, setConfirmDelId] = React.useState(null);
   const [aiUpload, setAiUpload] = React.useState(false);
-  const activeMenu = menus.find(m => m.id === activeMenuId);
 
-  const createMenu = () => {
-    if (!newMenuName.trim()) return;
+  // colonna 1 — categorie
+  const [activeCat, setActiveCat] = React.useState('Primi');
+  const [addingCat, setAddingCat] = React.useState(false);
+  const [newCatName, setNewCatName] = React.useState('');
+  const [renamingCat, setRenamingCat] = React.useState(null);
+  const [catMenuOpen, setCatMenuOpen] = React.useState(null);
+  const [dragCat, setDragCat] = React.useState(null);
+  const [hoverCat, setHoverCat] = React.useState(null);
+  const [sopraCat, setSopraCat] = React.useState(null);   // categoria sotto al cursore mentre si trascina
+  const [flashCat, setFlashCat] = React.useState(null);   // categoria che ha appena ricevuto un piatto
+
+  // colonna 2 — piatti
+  const [view, setView] = React.useState('grid');
+  const [sort, setSort] = React.useState('manuale');
+  const [search, setSearch] = React.useState('');
+  const [stateFilter, setStateFilter] = React.useState('all');
+  const [selectMode, setSelectMode] = React.useState(false);
+  const [selection, setSelection] = React.useState([]);
+  const [picker, setPicker] = React.useState(null);
+  const [editingDish, setEditingDish] = React.useState(null);
+  const [editingPrice, setEditingPrice] = React.useState(null);
+  const [dragDish, setDragDish] = React.useState(null);
+
+  // colonna 3 — dettaglio
+  const [detailId, setDetailId] = React.useState(null);
+
+  // L'anteprima non presidia più mezza schermata: si apre quando la si chiede.
+  const [anteprima, setAnteprima] = React.useState(false);
+  // null | {id: null}  → nuovo menù
+  // null | {id: 'm1'}  → modifica di quel menù
+  const [menuModal, setMenuModal] = React.useState(null);
+
+  const gridRef = React.useRef(null);
+  const hCol = useAltezzaColonne(gridRef);
+
+  const activeMenu = menus.find(m => m.id === activeMenuId);
+  const totalDishesIn = (m) => m.categories.reduce((s, c) => s + c.items.length, 0);
+
+  // Cambiando menù cambia tutto il contesto: categoria, selezione, dettaglio.
+  React.useEffect(() => {
+    const m = menus.find(x => x.id === activeMenuId);
+    const nomi = m ? m.categories.map(c => c.name) : [];
+    setActiveCat(c => (nomi.includes(c) ? c : (nomi[0] || null)));
+    setSelection([]); setSelectMode(false); setDetailId(null); setEditingPrice(null);
+  }, [activeMenuId]);
+
+  // ── mutators: menù ────────────────────────────────────────────────────────
+  // Un menù appena creato non è attivo: attivo ce n'è uno solo, e prendere il
+  // posto di quello acceso è una cosa che si sceglie, con il suo avviso.
+  const createMenu = (dati) => {
     const id = 'm' + Date.now();
-    setMenus(prev => [...prev, { id, name: newMenuName.trim(), active: true, categories: [] }]);
+    setMenus(prev => [...prev, {
+      id, name: dati.name, active: false,
+      tipologia: dati.tipologia, prezzo: dati.prezzo, tipo: dati.tipo, leadTime: dati.leadTime,
+      schedule: dati.schedule,
+      categories: [],
+    }]);
     setActiveMenuId(id);
-    setNewMenuName(''); setCreatingMenu(false);
   };
   const updateMenu = (id, patch) => setMenus(prev => {
     if ('active' in patch) {
@@ -175,409 +491,474 @@ function MCMenuComposer() {
   const deleteMenu = (id) => {
     setMenus(prev => prev.filter(m => m.id !== id));
     if (activeMenuId === id) {
-      const remaining = menus.filter(m => m.id !== id);
-      if (remaining.length) setActiveMenuId(remaining[0].id);
+      const rimasti = menus.filter(m => m.id !== id);
+      if (rimasti.length) setActiveMenuId(rimasti[0].id);
     }
-    setOpenMenuDot(null);
   };
-  const duplicateMenu = (id) => {
-    const src = menus.find(m => m.id === id); if (!src) return;
-    const newId = 'm' + Date.now();
-    setMenus(prev => [...prev, { ...src, id: newId, name: src.name + ' (copia)', active: false }]);
-    setOpenMenuDot(null); setActiveMenuId(newId);
+  // Duplicare è un'azione sul menù, non una scelta nascosta in fondo alla
+  // maschera di creazione: si fa dall'elenco, sulla riga di quel menù. La copia
+  // nasce spenta — attivo ce n'è uno solo.
+  const duplicaMenu = (id) => {
+    const src = menus.find(m => m.id === id);
+    if (!src) return;
+    const nuovoId = 'm' + Date.now();
+    setMenus(prev => [...prev, {
+      ...src, id: nuovoId, active: false,
+      name: `${src.name} (copia)`,
+      categories: src.categories.map(c => ({...c, items: c.items.map(i => ({...i}))})),
+    }]);
+    setActiveMenuId(nuovoId);
   };
 
-  const totalDishesIn = (m) => m.categories.reduce((s,c) => s + c.items.length, 0);
-
-  // Mutators libreria
+  // ── mutators: libreria ────────────────────────────────────────────────────
   const upsertLibraryDish = (d) => setLibrary(prev => {
     const i = prev.findIndex(x => x.id === d.id);
     if (i >= 0) { const next = [...prev]; next[i] = {...next[i], ...d}; return next; }
     return [...prev, d];
   });
+
+  // ── mutators: menù attivo ─────────────────────────────────────────────────
+  const updateActiveMenu = (fn) => setMenus(prev => prev.map(m => m.id === activeMenuId ? fn(m) : m));
+  const addCategoryToMenu = (catName) => {
+    updateActiveMenu(m => m.categories.some(c => c.name === catName)
+      ? m
+      : {...m, categories: [...m.categories, {name: catName, items: []}]});
+    setActiveCat(catName);
+  };
+  const removeCategoryFromMenu = (catName) => {
+    updateActiveMenu(m => ({...m, categories: m.categories.filter(c => c.name !== catName)}));
+    if (activeCat === catName) {
+      const rimaste = (activeMenu ? activeMenu.categories : []).filter(c => c.name !== catName);
+      setActiveCat(rimaste.length ? rimaste[0].name : null);
+    }
+    setDetailId(null); setSelection([]);
+  };
+  const renameCategory = (oldName, newName) => {
+    updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === oldName ? {...c, name: newName} : c)}));
+    if (activeCat === oldName) setActiveCat(newName);
+  };
+  const addDishToCategory = (catName, dishId, price = 0) => updateActiveMenu(m => ({...m, categories: m.categories.map(c =>
+    c.name === catName
+      ? {...c, items: c.items.some(i => i.dishId === dishId) ? c.items : [...c.items, {dishId, price, active: true}]}
+      : c)}));
+  const removeDishFromCategory = (catName, dishId) => {
+    updateActiveMenu(m => ({...m, categories: m.categories.map(c =>
+      c.name === catName ? {...c, items: c.items.filter(i => i.dishId !== dishId)} : c)}));
+    setSelection(s => s.filter(x => x !== dishId));
+    setDetailId(d => d === dishId ? null : d);
+  };
+  const updateMenuItem = (catName, dishId, patch) => updateActiveMenu(m => ({...m, categories: m.categories.map(c =>
+    c.name === catName ? {...c, items: c.items.map(i => i.dishId === dishId ? {...i, ...patch} : i)} : c)}));
   const removeLibraryDish = (id) => {
     setLibrary(prev => prev.filter(x => x.id !== id));
     setMenus(prev => prev.map(m => ({...m, categories: m.categories.map(c => ({...c, items: c.items.filter(it => it.dishId !== id)}))})));
+    setDetailId(d => d === id ? null : d);
   };
 
-  // Mutators menù attivo
-  const updateActiveMenu = (fn) => setMenus(prev => prev.map(m => m.id === activeMenuId ? fn(m) : m));
-  const addCategoryToMenu = (catName) => updateActiveMenu(m => ({...m, categories: [...m.categories, {name: catName, items: []}]}));
-  const removeCategoryFromMenu = (catName) => updateActiveMenu(m => ({...m, categories: m.categories.filter(c => c.name !== catName)}));
-  const renameCategory = (oldName, newName) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === oldName ? {...c, name: newName} : c)}));
-  const addDishToCategory = (catName, dishId, price = 0) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === catName ? {...c, items: c.items.some(i => i.dishId === dishId) ? c.items : [...c.items, {dishId, price, active: true}]} : c)}));
-  const removeDishFromCategory = (catName, dishId) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === catName ? {...c, items: c.items.filter(i => i.dishId !== dishId)} : c)}));
-  const updateMenuItem = (catName, dishId, patch) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => c.name === catName ? {...c, items: c.items.map(i => i.dishId === dishId ? {...i, ...patch} : i)} : c)}));
-
-  return (
-    <div style={{display:'grid', gridTemplateColumns:'260px 1fr', gap: 16}}>
-      {/* Sidebar */}
-      <aside>
-        <ImpCard aurora title="I tuoi menù" sub="Crea menù differenti per pranzo, cena, eventi" action={
-              <button onClick={() => setCreatingMenu(c => !c)} title="Nuovo menù" style={{
-                width:30, height:30, borderRadius:8, border:'none',
-                background: creatingMenu ? PN.PINK : PN.TEXT, color: PN.WHITE, cursor:'pointer',
-                display:'grid', placeItems:'center', transition:'transform .2s',
-                transform: creatingMenu ? 'rotate(45deg)' : 'none',
-              }}><PnI.Plus size={14}/></button>
-            }>
-              <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-                {menus.map(m => {
-                  const isActive = m.id === activeMenuId;
-                  const dotOpen = openMenuDot === m.id;
-                  const isRenaming = renamingMenuId === m.id;
-                  const isConfirmDel = confirmDelId === m.id;
-                  return (
-                    <div key={m.id} onClick={() => setActiveMenuId(m.id)} style={{
-                      position:'relative',
-                      padding: '12px 14px',
-                      border: `1.5px solid ${isActive ? PN.PINK : PN.BORDER_SOFT}`,
-                      background: isActive ? PN.PINK_SOFT : PN.WHITE,
-                      borderRadius: 10, cursor:'pointer',
-                      transition:'border-color 0.15s, background 0.15s',
-                    }}>
-                      <div style={{display:'flex', alignItems:'center', gap: 6, marginBottom: 4}}>
-                        {isRenaming ? (
-                          <input autoFocus value={renameVal} onChange={e => setRenameVal(e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                            onKeyDown={e => { e.stopPropagation(); if (e.key==='Enter' && renameVal.trim()) { updateMenu(m.id,{name:renameVal.trim()}); setRenamingMenuId(null); } if (e.key==='Escape') setRenamingMenuId(null); }}
-                            onBlur={() => { if (renameVal.trim()) updateMenu(m.id,{name:renameVal.trim()}); setRenamingMenuId(null); }}
-                            style={{flex:1, fontSize:15.5, fontWeight:700, border:'none', outline:`2px solid ${PN.PINK}`, borderRadius:5, padding:'2px 6px', fontFamily:'inherit', background:'transparent', color: PN.PINK_DARK}}
-                          />
-                        ) : (
-                          <span style={{fontSize:15.5, fontWeight:700, flex:1, color: isActive ? PN.PINK_DARK : PN.TEXT}}>{m.name}</span>
-                        )}
-                        <button onClick={e => { e.stopPropagation(); setOpenMenuDot(dotOpen ? null : m.id); setConfirmDelId(null); }} style={{
-                          width:24, height:24, borderRadius:6,
-                          background: dotOpen ? '#F4F5F7' : 'transparent', border:'none',
-                          cursor:'pointer', color: PN.MUTED,
-                          display:'grid', placeItems:'center', fontSize:18,
-                        }}>⋯</button>
-                      </div>
-                      <div style={{display:'flex', alignItems:'center', gap:8, fontSize:13.5, color:PN.MUTED}}>
-                        <span>{totalDishesIn(m)} {totalDishesIn(m) === 1 ? 'piatto' : 'piatti'}</span>
-                        <span style={{color: PN.BORDER}}>·</span>
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            updateMenu(m.id, {active: !m.active});
-                          }}
-                          title={m.active ? 'Clicca per disattivare' : 'Clicca per attivare'}
-                          style={{
-                            display:'inline-flex', alignItems:'center', gap:5,
-                            padding:'2px 8px', borderRadius:999,
-                            border:'none', cursor:'pointer', fontFamily:'inherit',
-                            fontSize:12.5, fontWeight:700, letterSpacing:0.3,
-                            background: m.active ? PN.GREEN_SOFT : '#F1F3F5',
-                            color: m.active ? PN.GREEN : PN.MUTED,
-                            transition:'background 0.15s, color 0.15s',
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.background = m.active ? '#D6F0DC' : '#E5E7EB';
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.background = m.active ? PN.GREEN_SOFT : '#F1F3F5';
-                          }}
-                        >
-                          <span style={{
-                            width:6, height:6, borderRadius:'50%',
-                            background: m.active ? PN.GREEN : '#9CA3AF',
-                          }}/>
-                          {m.active ? 'ATTIVO' : 'DISATTIVATO'}
-                        </button>
-                      </div>
-                      {dotOpen && (
-                        <div onClick={e => e.stopPropagation()} style={{
-                          position:'absolute', top:'calc(100% + 4px)', right:0,
-                          minWidth:180, background: PN.WHITE,
-                          border:`1px solid ${PN.BORDER}`, borderRadius:10,
-                          boxShadow:'0 8px 24px rgba(0,0,0,0.10)',
-                          padding:5, zIndex:50,
-                        }}>
-                          <MenuDotItem icon="✏" onClick={() => { setRenameVal(m.name); setRenamingMenuId(m.id); setOpenMenuDot(null); }}>Rinomina</MenuDotItem>
-                          <MenuDotItem icon={m.active ? '⏸' : '▶'} onClick={() => {
-                            updateMenu(m.id, {active: !m.active});
-                            setOpenMenuDot(null);
-                          }}>
-                            {m.active ? 'Disattiva menù' : 'Attiva menù'}
-                          </MenuDotItem>
-                          <MenuDotItem icon="⧉" onClick={() => { duplicateMenu(m.id); setOpenMenuDot(null); }}>Duplica</MenuDotItem>
-                          {menus.length > 1 && <>
-                            <div style={{height:1, background:PN.BORDER_SOFT, margin:'4px 0'}}/>
-                            {isConfirmDel ? (
-                              <div style={{padding:'6px 8px', display:'flex', gap:5}}>
-                                <button onClick={() => setConfirmDelId(null)} style={{flex:1, padding:'5px 0', fontSize:13.5, fontWeight:600, background:'#F4F5F7', border:'none', borderRadius:6, cursor:'pointer', fontFamily:'inherit', color:PN.TEXT}}>Annulla</button>
-                                <button onClick={() => { deleteMenu(m.id); setOpenMenuDot(null); setConfirmDelId(null); }} style={{flex:1, padding:'5px 0', fontSize:13.5, fontWeight:700, background:'#DC2626', border:'none', borderRadius:6, cursor:'pointer', fontFamily:'inherit', color:'#fff'}}>Elimina</button>
-                              </div>
-                            ) : (
-                              <MenuDotItem icon="🗑" danger onClick={() => setConfirmDelId(m.id)}>Elimina</MenuDotItem>
-                            )}
-                          </>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {creatingMenu && (
-                  <div style={{
-                    padding:'12px 14px', border:`1.5px dashed ${PN.PINK}`, borderRadius: 10,
-                    background: PN.PINK_SOFT, animation:'fadeInDown .2s ease-out',
-                    display:'flex', flexDirection:'column', gap: 8,
-                  }}>
-                    <input autoFocus value={newMenuName} onChange={e => setNewMenuName(e.target.value)} placeholder="Nome menù (es. Cena)"
-                      onKeyDown={e => { if (e.key === 'Enter') createMenu(); if (e.key === 'Escape') setCreatingMenu(false); }}
-                      style={{padding:'7px 10px', border:`1px solid ${PN.BORDER}`, borderRadius:6, fontSize:15, fontFamily:'inherit', outline:'none', fontWeight:600}}/>
-                    <div style={{display:'flex', gap: 6, justifyContent:'flex-end'}}>
-                      <button onClick={() => { setCreatingMenu(false); setNewMenuName(''); }} style={{padding:'5px 10px', background:'transparent', border:'none', color: PN.MUTED, fontSize:14, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
-                      <button onClick={createMenu} disabled={!newMenuName.trim()} style={{padding:'5px 12px', background: newMenuName.trim() ? PN.PINK : '#E5E7EB', color:'#fff', border:'none', borderRadius:6, fontSize:14, fontWeight:700, cursor: newMenuName.trim()?'pointer':'default', fontFamily:'inherit'}}>Crea</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </ImpCard>
-
-            {/* AI shortcut — magenta brand vivace, shimmer permanente, sparkle pulse */}
-            <div style={{marginTop: 12, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 6}}>
-              <AiUploadCta onClick={() => setAiUpload(true)}/>
-              <div style={{fontSize: 13, color: PN.MUTED, textAlign: 'center', lineHeight: 1.45, marginTop: 2}}>
-                L'AI estrae piatti, prezzi, allergeni
-              </div>
-            </div>
-        </aside>
-
-      {/* Main */}
-      <main>
-        {activeMenu && (
-          <MenuComposeView
-            menu={activeMenu}
-            library={library}
-            menus={menus}
-            onAddCategory={addCategoryToMenu}
-            onRemoveCategory={removeCategoryFromMenu}
-            onRenameCategory={renameCategory}
-            onAddDish={addDishToCategory}
-            onRemoveDish={removeDishFromCategory}
-            onUpdateItem={updateMenuItem}
-            onUpsertLibraryDish={upsertLibraryDish}
-
-            activeMenuId={activeMenuId}
-          />
-        )}
-      </main>
-      {aiUpload && (
-        <AIMenuUploadModal
-          onClose={() => setAiUpload(false)}
-          onImport={({ menuName, categories, dishes }) => {
-            // Aggiungi piatti alla libreria (se non già presenti)
-            setLibrary(prev => {
-              const next = [...prev];
-              dishes.forEach(d => { if (!next.find(x => x.id === d.id)) next.push(d); });
-              return next;
-            });
-            // Crea nuovo menù
-            const id = 'm' + Date.now();
-            setMenus(prev => [...prev, { id, name: menuName, active: true, categories }]);
-            setActiveMenuId(id);
-            setAiUpload(false);
-          }}
-        />
-      )}
-
-    </div>
-  );
-}
-
-function MenuDotItem({ icon, children, danger, onClick }) {
-  return (
-    <button onClick={onClick} style={{
-      display:'flex', alignItems:'center', gap:8, width:'100%',
-      padding:'7px 10px', background:'transparent', border:'none',
-      borderRadius:7, fontSize:15, fontFamily:'inherit',
-      color: danger ? '#DC2626' : PN.TEXT,
-      cursor:'pointer', textAlign:'left',
-    }}
-    onMouseEnter={e => e.currentTarget.style.background = danger ? '#FEF2F2' : '#F4F5F7'}
-    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <span style={{width:16, fontSize:15}}>{icon}</span>{children}
-    </button>
-  );
-}
-
-function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory, onRenameCategory, onAddDish, onRemoveDish, onUpdateItem, onUpsertLibraryDish, onSwitchToLibrary, setSettingsMenuId, activeMenuId }) {
-  const [search, setSearch] = React.useState('');
-  const [stateFilter, setStateFilter] = React.useState('all');
-  const [collapsed, setCollapsed] = React.useState({});
-  const [editingDish, setEditingDish] = React.useState(null); // {dishId|null, catName, isNew}
-  const [editingPrice, setEditingPrice] = React.useState(null); // {catName, dishId}
-  const [picker, setPicker] = React.useState(null); // catName per cui aprire picker libreria
-  const [addingCat, setAddingCat] = React.useState(false);
-  const [newCatName, setNewCatName] = React.useState('');
-
-  const dishById = (id) => library.find(d => d.id === id);
-
-  // Compose rows: rows con dati piatto + dati menu-item
-  const cats = menu.categories.map(c => ({
-    ...c,
-    rows: c.items.map(it => ({...it, dish: dishById(it.dishId)})).filter(r => r.dish),
-  }));
-
-  const totalDishes = cats.reduce((s,c) => s + c.rows.length, 0);
-  const totalActive = cats.reduce((s,c) => s + c.rows.filter(r => r.active).length, 0);
-  const totalDisabled = totalDishes - totalActive;
-
-  const matchesSearch = r => !search || r.dish.name.toLowerCase().includes(search.toLowerCase()) || (r.dish.desc||'').toLowerCase().includes(search.toLowerCase());
-  const matchesState = r => stateFilter === 'all' || (stateFilter === 'active' && r.active) || (stateFilter === 'disabled' && !r.active);
-
-  const handleAddCategory = () => {
-    if (newCatName.trim()) { onAddCategory(newCatName.trim()); setNewCatName(''); setAddingCat(false); }
+  // ── riordino e spostamenti ────────────────────────────────────────────────
+  const reorderCats = (from, to) => updateActiveMenu(m => {
+    if (from === to || from == null || to == null) return m;
+    const cs = [...m.categories]; const [x] = cs.splice(from, 1); cs.splice(to, 0, x);
+    return {...m, categories: cs};
+  });
+  const reorderDishes = (catName, from, to) => updateActiveMenu(m => ({...m, categories: m.categories.map(c => {
+    if (c.name !== catName || from === to) return c;
+    const its = [...c.items]; const [x] = its.splice(from, 1); its.splice(to, 0, x);
+    return {...c, items: its};
+  })}));
+  const moveDishToCat = (fromCat, toCat, dishId) => {
+    if (fromCat === toCat) return;
+    updateActiveMenu(m => {
+      const src = m.categories.find(c => c.name === fromCat);
+      const it = src && src.items.find(i => i.dishId === dishId);
+      if (!it) return m;
+      return {...m, categories: m.categories.map(c => {
+        if (c.name === fromCat) return {...c, items: c.items.filter(i => i.dishId !== dishId)};
+        if (c.name === toCat)   return {...c, items: c.items.some(i => i.dishId === dishId) ? c.items : [...c.items, it]};
+        return c;
+      })};
+    });
   };
+
+  // ── azioni multiple ───────────────────────────────────────────────────────
+  const bulkMove = (toCat) => {
+    selection.forEach(id => moveDishToCat(activeCat, toCat, id));
+    setSelection([]); setSelectMode(false);
+  };
+  const bulkRemove = () => {
+    updateActiveMenu(m => ({...m, categories: m.categories.map(c =>
+      c.name === activeCat ? {...c, items: c.items.filter(i => !selection.includes(i.dishId))} : c)}));
+    setDetailId(d => selection.includes(d) ? null : d);
+    setSelection([]); setSelectMode(false);
+  };
+  const bulkPrice = (mode, valore) => {
+    const v = parseFloat(String(valore).replace(',', '.'));
+    if (isNaN(v)) return;
+    const nuovoPrezzo = (p0) => {
+      let p = p0;
+      if (mode === 'set')     p = v;
+      if (mode === 'inc-eur') p = p0 + v;
+      if (mode === 'dec-eur') p = p0 - v;
+      if (mode === 'inc-pct') p = p0 * (1 + v / 100);
+      if (mode === 'dec-pct') p = p0 * (1 - v / 100);
+      return Math.max(0, Math.round(p * 100) / 100);
+    };
+    updateActiveMenu(m => ({
+      ...m,
+      categories: m.categories.map(c => c.name !== activeCat ? c : {
+        ...c,
+        items: c.items.map(i => selection.includes(i.dishId) ? {...i, price: nuovoPrezzo(i.price)} : i),
+      }),
+    }));
+    setSelection([]); setSelectMode(false);
+  };
+
+  // ── righe della categoria aperta ──────────────────────────────────────────
+  const cat = activeMenu ? activeMenu.categories.find(c => c.name === activeCat) : null;
+  const rowsAll = cat
+    ? cat.items.map((it, i) => ({...it, idx: i, dish: library.find(d => d.id === it.dishId)})).filter(r => r.dish)
+    : [];
+  const q = search.trim().toLowerCase();
+  let rows = rowsAll
+    .filter(r => !q || r.dish.name.toLowerCase().includes(q) || (r.dish.desc || '').toLowerCase().includes(q))
+    .filter(r => stateFilter === 'all' || (stateFilter === 'active' ? r.active : !r.active));
+  if (sort === 'nome')        rows = [...rows].sort((a, b) => a.dish.name.localeCompare(b.dish.name));
+  if (sort === 'prezzo-asc')  rows = [...rows].sort((a, b) => a.price - b.price);
+  if (sort === 'prezzo-desc') rows = [...rows].sort((a, b) => b.price - a.price);
+
+  const attivi = rowsAll.filter(r => r.active).length;
+  const detail = rowsAll.find(r => r.dishId === detailId) || null;
+
+  const toggleSel = (id) => setSelection(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+
+  // La testata cambia altezza quando compare la barra delle azioni multiple:
+  // le colonne si rimisurano sull'evento che già ascoltano.
+  const inSelezione = selection.length > 0;
+  React.useEffect(() => { window.dispatchEvent(new Event('resize')); }, [inSelezione]);
+
+  React.useEffect(() => {
+    if (!catMenuOpen) return;
+    const chiudi = () => setCatMenuOpen(null);
+    document.addEventListener('mousedown', chiudi);
+    return () => document.removeEventListener('mousedown', chiudi);
+  }, [catMenuOpen]);
 
   return (
     <div>
-      <ImpCard
-        title={menu.name}
-        sub={`${totalDishes} piatti · ${totalActive} attivi${totalDisabled ? ` · ${totalDisabled} disattivati` : ''}`}
-        action={
-          <span style={{
-            fontSize: 12, fontWeight: 800, letterSpacing: 0.5,
-            padding:'3px 9px', borderRadius: 5,
-            background: menu.active ? PN.GREEN_SOFT : PN.BORDER_SOFT,
-            color: menu.active ? PN.GREEN : PN.MUTED,
-          }}>{menu.active ? 'ATTIVO' : 'DISATTIVATO'}</span>
+      <style>{`
+        @keyframes mcArrivo {
+          0%   { transform: scale(1.06); box-shadow: 0 0 0 0 rgba(255,90,95,.55); background: ${PN.PINK_SOFT}; }
+          55%  { transform: scale(1); }
+          100% { transform: scale(1); box-shadow: 0 0 0 12px rgba(255,90,95,0); }
         }
-      >
-        {/* Toolbar */}
-        <div style={{
-          display:'flex', gap: 10, alignItems:'center', marginBottom: 16,
-          padding: '12px 14px', background:'#FAFBFC',
-          border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10, flexWrap:'wrap',
-        }}>
-          <div style={{position:'relative', flex:'1 1 240px', minWidth: 200}}>
-            <span style={{position:'absolute', left: 11, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display: 'flex', alignItems: 'center'}}><PnI.Search size={13} color={PN.MUTED}/></span>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca nei piatti del menù…" style={{
-              width:'100%', padding: '9px 12px 9px 34px',
-              border:`1px solid ${PN.BORDER}`, borderRadius: 8,
-              fontSize: 15, fontFamily:'inherit', outline:'none', background: PN.WHITE,
-            }}/>
-          </div>
-          <div style={{display:'flex', background: PN.WHITE, padding:3, borderRadius:8, gap:2, border:`1px solid ${PN.BORDER}`}}>
-            {[
-              {id:'all', label:'Tutti', count: totalDishes},
-              {id:'active', label:'Attivi', count: totalActive},
-              {id:'disabled', label:'Disattivati', count: totalDisabled},
-            ].map(s => (
-              <button key={s.id} onClick={() => setStateFilter(s.id)} style={{
-                padding:'6px 12px', borderRadius: 6,
-                background: stateFilter===s.id ? PN.TEXT : 'transparent',
-                color: stateFilter===s.id ? PN.WHITE : PN.MUTED,
-                border:'none', fontSize: 14, fontWeight: 600, fontFamily:'inherit',
-                cursor:'pointer', display:'inline-flex', alignItems:'center', gap: 6,
-              }}>
-                {s.label}
-                <span style={{fontSize: 12.5, padding:'1px 6px', borderRadius: 999, background: stateFilter===s.id ? 'rgba(255,255,255,0.2)' : PN.BORDER_SOFT}}>{s.count}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        @keyframes mcPiuUno {
+          0%   { opacity: 0; transform: translateY(4px) scale(.8); }
+          25%  { opacity: 1; transform: translateY(-2px) scale(1.1); }
+          100% { opacity: 0; transform: translateY(-18px) scale(1); }
+        }
+        @keyframes mcInVolo {
+          0%, 100% { transform: scale(.94) rotate(-1.4deg); }
+          50%      { transform: scale(.94) rotate(1.4deg); }
+        }
+      `}</style>
+      {/* Testata: il menù su cui si lavora. Resta al suo posto anche mentre si
+          selezionano piatti — le azioni multiple stanno nell'elenco, attaccate
+          ai piatti a cui si riferiscono. */}
+      <MCMenuSwitcher
+        menus={menus}
+        activeMenuId={activeMenuId}
+        onPick={setActiveMenuId}
+        onUpdate={updateMenu}
+        totalDishesIn={totalDishesIn}
+        onAnteprima={() => setAnteprima(true)}
+        onNuovoMenu={() => setMenuModal({id: null})}
+        onModificaMenu={(id) => setMenuModal({id})}
+        onDuplicaMenu={duplicaMenu}
+        onEliminaMenu={deleteMenu}
+      />
 
-        {/* Categorie del menù */}
-        {cats.map((cat) => {
-          const visible = cat.rows.filter(r => matchesSearch(r) && matchesState(r));
-          if ((search || stateFilter !== 'all') && visible.length === 0) return null;
-          const isCollapsed = collapsed[cat.name];
-          return (
-            <div key={cat.name} style={{
-              border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
-              marginBottom: 14, overflow:'hidden', background: PN.WHITE,
-            }}>
-              <div style={{
-                display:'flex', alignItems:'center', gap: 12,
-                padding: '14px 18px',
-                background: !isCollapsed ? '#FAFBFC' : PN.WHITE,
-                borderBottom: !isCollapsed ? `1px solid ${PN.BORDER_SOFT}` : 'none',
-              }}>
-                <button onClick={() => setCollapsed(o => ({...o, [cat.name]: !o[cat.name]}))} style={{
-                  background:'transparent', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap: 12, flex: 1, padding: 0, fontFamily:'inherit', textAlign:'left',
-                }}>
-                  <span style={{fontSize: 14, color: PN.MUTED, transition:'transform .2s', transform: isCollapsed ? 'rotate(-90deg)' : 'none', display:'inline-block'}}>▼</span>
-                  <span style={{color: PN.MUTED, display:'inline-flex'}}>
-                    <Icon name={CAT_ICON[cat.name] || 'star'} size={16}/>
+      <div ref={gridRef} style={{
+        // Senza un piatto aperto le colonne sono due: la terza non resta lì a
+        // tenere il posto a un pannello che non c'è.
+        display: 'grid',
+        // Con un piatto aperto il dettaglio si prende 600px: dentro c'è una
+        // tabella a cinque colonne, e a 372 era una lista schiacciata. Lo
+        // spazio lo cede la colonna delle categorie, che mentre si modifica un
+        // piatto non serve — la categoria in cui si sta lavorando la dice la
+        // testata dell'elenco, e chiudendo il dettaglio torna al suo posto.
+        gridTemplateColumns: detail ? 'minmax(0, 1fr) 660px' : '236px minmax(0, 1fr)',
+        gap: 14, height: hCol || undefined, alignItems: 'stretch',
+      }}>
+        {/* ── Colonna 1: categorie ─────────────────────────────────────── */}
+        {!detail && (
+        <MCPanel title="Categorie" bodyStyle={{padding: '10px 10px 12px'}}>
+          <div style={{display: 'flex', flexDirection: 'column', gap: 2}}>
+            {(activeMenu ? activeMenu.categories : []).map((c, i) => {
+              const on = c.name === activeCat;
+              const inRinomina = renamingCat === c.name;
+              // Mentre un piatto è in volo la colonna smette di essere un elenco
+              // e diventa un tabellone di bersagli: quelle che possono
+              // riceverlo si accendono, quella sotto al cursore si riempie.
+              const riceve = !!dragDish && dragDish.cat !== c.name;
+              const rifiuta = !!dragDish && dragDish.cat === c.name;
+              const sopra = sopraCat === c.name && riceve;
+              const lineaSopra = dragCat !== null && sopraCat === c.name && dragCat !== i;
+              return (
+                <div
+                  key={c.name}
+                  draggable={!inRinomina}
+                  onDragStart={e => { setDragCat(i); e.dataTransfer.effectAllowed = 'move'; }}
+                  onDragEnd={() => { setDragCat(null); setSopraCat(null); }}
+                  onDragOver={e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = rifiuta ? 'none' : 'move';
+                    setSopraCat(s => s === c.name ? s : c.name);
+                  }}
+                  onDragLeave={() => setSopraCat(s => s === c.name ? null : s)}
+                  onDrop={e => {
+                    e.preventDefault();
+                    setSopraCat(null);
+                    if (dragDish) {
+                      if (dragDish.cat !== c.name) {
+                        // Se il piatto afferrato faceva parte di una selezione,
+                        // in volo c'erano tutti: arrivano tutti.
+                        (dragDish.ids || [dragDish.dishId]).forEach(id => moveDishToCat(dragDish.cat, c.name, id));
+                        setSelection([]); setSelectMode(false);
+                        setFlashCat(c.name);
+                        setTimeout(() => setFlashCat(f => f === c.name ? null : f), 1100);
+                      }
+                      setDragDish(null);
+                    } else if (dragCat !== null) { reorderCats(dragCat, i); setDragCat(null); }
+                  }}
+                  onClick={() => { if (!inRinomina) { setActiveCat(c.name); setDetailId(null); setSelection([]); } }}
+                  style={{
+                    position: 'relative',
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '9px 10px', borderRadius: 9,
+                    cursor: dragDish ? (rifiuta ? 'no-drop' : 'copy') : 'pointer',
+                    background: sopra ? PN.PINK : (riceve ? PN.PINK_BG_SOFT : (on ? PN.PINK_SOFT : 'transparent')),
+                    color: sopra ? PN.WHITE : (on ? PN.PINK_DARK : PN.TEXT),
+                    boxShadow: sopra
+                      ? '0 8px 20px -8px rgba(255,90,95,0.65)'
+                      : (riceve ? `inset 0 0 0 1.5px ${PN.PINK_SOFT}` : (lineaSopra ? `inset 0 2px 0 ${PN.PINK}` : 'none')),
+                    opacity: (dragCat === i || rifiuta) ? 0.42 : 1,
+                    transform: sopra ? 'scale(1.035)' : 'none',
+                    transition: 'background 160ms ease-out, box-shadow 160ms ease-out, transform 160ms ease-out, opacity 160ms ease-out, color 160ms ease-out',
+                    animation: flashCat === c.name ? 'mcArrivo 1s cubic-bezier(.22,.9,.35,1)' : 'none',
+                  }}
+                  onMouseEnter={e => { setHoverCat(c.name); if (!on && !dragDish) e.currentTarget.style.background = '#F7F8FA'; }}
+                  onMouseLeave={e => { setHoverCat(h => h === c.name ? null : h); if (!on && !dragDish) e.currentTarget.style.background = 'transparent'; }}
+                >
+                  <span title="Trascina per riordinare" style={{color: sopra ? PN.WHITE : (on ? PN.PINK : PN.MUTED_LIGHT), cursor: 'grab', display: 'inline-flex'}}>
+                    <PnI.Drag size={12}/>
                   </span>
-                  <span style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{cat.name}</span>
-                  <span style={{fontSize: 14, color: PN.MUTED, fontWeight: 500}}>{visible.length} di {cat.rows.length}</span>
-                </button>
-                <button onClick={() => { if (confirm(`Rimuovere la categoria "${cat.name}" da questo menù? I piatti restano nella libreria.`)) onRemoveCategory(cat.name); }} title="Rimuovi categoria dal menù" style={{
-                  background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer', fontSize: 15, padding: '4px 8px', borderRadius: 6,
-                }}>✕</button>
-              </div>
-              {!isCollapsed && (
-                <div>
-                  {visible.map((r) => (
-                    <DishRow
-                      key={r.dishId}
-                      dish={r.dish}
-                      item={r}
-                      onToggleActive={() => onUpdateItem(cat.name, r.dishId, {active: !r.active})}
-                      onPriceClick={() => setEditingPrice({catName: cat.name, dishId: r.dishId})}
-                      editingPrice={editingPrice && editingPrice.catName===cat.name && editingPrice.dishId===r.dishId}
-                      onPriceCommit={(v) => { onUpdateItem(cat.name, r.dishId, {price: v}); setEditingPrice(null); }}
-                      onPriceCancel={() => setEditingPrice(null)}
-                      onEdit={() => setEditingDish({dishId: r.dishId, catName: cat.name, isNew: false, currentPrice: r.price})}
-                      onRemove={() => onRemoveDish(cat.name, r.dishId)}
+                  {inRinomina ? (
+                    <input
+                      autoFocus defaultValue={c.name}
+                      onClick={e => e.stopPropagation()}
+                      onKeyDown={e => {
+                        e.stopPropagation();
+                        if (e.key === 'Enter' && e.target.value.trim()) { renameCategory(c.name, e.target.value.trim()); setRenamingCat(null); }
+                        if (e.key === 'Escape') setRenamingCat(null);
+                      }}
+                      onBlur={e => { if (e.target.value.trim() && e.target.value.trim() !== c.name) renameCategory(c.name, e.target.value.trim()); setRenamingCat(null); }}
+                      style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: 700, fontFamily: 'inherit', border: 'none', outline: `2px solid ${PN.PINK}`, borderRadius: 5, padding: '1px 5px', background: PN.WHITE, color: PN.TEXT}}
                     />
-                  ))}
-                  {visible.length === 0 && cat.rows.length === 0 && (
-                    <div style={{padding: '20px 18px', textAlign:'center', color: PN.MUTED, fontSize: 14.5, fontStyle:'italic'}}>Categoria vuota</div>
+                  ) : (
+                    <span style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: on ? 700 : 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{c.name}</span>
                   )}
-                  {/* Bottone in fondo alla categoria */}
-                  <div style={{padding: '12px 18px', borderTop: `1px dashed ${PN.BORDER_SOFT}`, background: '#FCFCFD'}}>
-                    <button onClick={() => setPicker(cat.name)} style={{
-                      width:'100%', padding:'9px 12px', borderRadius: 8,
-                      border: `1.5px dashed ${PN.BORDER}`, background: PN.BG,
-                      color: PN.MUTED_SOFT, fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                      display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 6,
+                  {/* Il conteggio lascia il posto a un «+» quando la categoria
+                      sta per ricevere: dice cosa succede lasciando adesso. */}
+                  <span style={{position: 'relative', minWidth: 16, textAlign: 'right', flexShrink: 0}}>
+                    <span style={{fontSize: 13, fontWeight: 800, color: sopra ? PN.WHITE : (on ? PN.PINK_DARK : PN.MUTED)}}>
+                      {sopra ? '+1' : c.items.length}
+                    </span>
+                    {flashCat === c.name && (
+                      <span aria-hidden style={{
+                        position: 'absolute', right: 0, top: -2, fontSize: 12.5, fontWeight: 800,
+                        color: PN.PINK, pointerEvents: 'none',
+                        animation: 'mcPiuUno 1s cubic-bezier(.22,.9,.35,1) forwards',
+                      }}>+1</span>
+                    )}
+                  </span>
+                  <button
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => { e.stopPropagation(); setCatMenuOpen(o => o === c.name ? null : c.name); }}
+                    title="Azioni categoria"
+                    style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+                      width: 20, height: 20, borderRadius: 5, border: 'none', flexShrink: 0,
+                      background: catMenuOpen === c.name ? '#EDEFF2' : 'transparent',
+                      color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+                      // Sta lì solo quando serve: a riposo la colonna resta un elenco pulito.
+                      opacity: (hoverCat === c.name || catMenuOpen === c.name) ? 1 : 0,
+                      transition: 'opacity 120ms ease-out',
                     }}
-                    onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.MUTED; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = PN.BG; e.currentTarget.style.color = PN.MUTED_SOFT; }}
-                    >+ Aggiungi piatto</button>
-                  </div>
+                  ><Puntini size={13}/></button>
+                  {catMenuOpen === c.name && (
+                    <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} style={{
+                      position: 'absolute', top: 'calc(100% - 2px)', right: 4, zIndex: 60,
+                      minWidth: 178, background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
+                      borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.10)', padding: 5,
+                    }}>
+                      <MenuDotItem icon="✏" onClick={() => { setRenamingCat(c.name); setCatMenuOpen(null); }}>Rinomina</MenuDotItem>
+                      <MenuDotItem icon="＋" onClick={() => { setActiveCat(c.name); setPicker(c.name); setCatMenuOpen(null); }}>Aggiungi piatto</MenuDotItem>
+                      <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
+                      <MenuDotItem icon="🗑" danger onClick={() => {
+                        setCatMenuOpen(null);
+                        if (confirm(`Rimuovere la categoria "${c.name}" da questo menù? I piatti restano nella libreria.`)) removeCategoryFromMenu(c.name);
+                      }}>Rimuovi dal menù</MenuDotItem>
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+
+          {addingCat ? (
+            <div style={{marginTop: 10, padding: 10, border: `1.5px solid ${PN.PINK}`, background: PN.PINK_SOFT, borderRadius: 10}}>
+              <input
+                autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newCatName.trim()) { addCategoryToMenu(newCatName.trim()); setNewCatName(''); setAddingCat(false); }
+                  if (e.key === 'Escape') { setAddingCat(false); setNewCatName(''); }
+                }}
+                placeholder="Nome categoria"
+                style={{width: '100%', padding: '7px 9px', border: `1px solid ${PN.BORDER}`, borderRadius: 7, fontSize: 14.5, fontFamily: 'inherit', outline: 'none', fontWeight: 600}}
+              />
+              <div style={{display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 8}}>
+                <button onClick={() => { setAddingCat(false); setNewCatName(''); }} style={{padding: '5px 9px', background: 'transparent', border: 'none', color: PN.MUTED, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit'}}>Annulla</button>
+                <button onClick={() => { if (newCatName.trim()) { addCategoryToMenu(newCatName.trim()); setNewCatName(''); setAddingCat(false); } }}
+                  style={{padding: '5px 11px', background: newCatName.trim() ? PN.PINK : '#E5E7EB', color: '#fff', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'}}>Crea</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setAddingCat(true)} style={{
+              width: '100%', marginTop: 10, padding: '11px 12px', borderRadius: 10,
+              border: `1.5px dashed ${PN.PINK_SOFT}`, background: PN.PINK_BG_SOFT,
+              color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              transition: 'background 150ms ease-out',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}
+            onMouseLeave={e => e.currentTarget.style.background = PN.PINK_BG_SOFT}
+            ><PnI.Plus size={12}/> Nuova categoria</button>
+          )}
+
+          <div style={{
+            marginTop: 10, padding: '10px 12px', borderRadius: 10,
+            background: dragDish ? PN.PINK_BG_SOFT : '#F7F8FA',
+            color: dragDish ? PN.PINK_DARK : PN.MUTED,
+            display: 'flex', alignItems: 'flex-start', gap: 8,
+            transition: 'background 160ms ease-out, color 160ms ease-out',
+          }}>
+            <span style={{marginTop: 2, display: 'inline-flex', color: dragDish ? PN.PINK : PN.MUTED_SOFT}}><PnI.Drag size={12}/></span>
+            <div style={{fontSize: 13, lineHeight: 1.4}}>
+              {dragDish ? (
+                <>
+                  <div style={{fontWeight: 700}}>Lascia su una categoria</div>
+                  <div style={{fontSize: 12.5, marginTop: 1, opacity: .85}}>
+                    {(dragDish.ids || [dragDish.dishId]).length > 1
+                      ? `${dragDish.ids.length} piatti ci si spostano dentro`
+                      : `«${(library.find(d => d.id === dragDish.dishId) || {}).name}» ci si sposta dentro`}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{fontWeight: 700, color: PN.MUTED}}>Trascina per riordinare</div>
+                  <div style={{fontSize: 12.5, marginTop: 1}}>o sposta un piatto tra le categorie</div>
+                </>
               )}
             </div>
-          );
-        })}
-
-        {/* Nuova categoria */}
-        {addingCat ? (
-          <div style={{display:'flex', gap: 8, padding: '12px 14px', border:`1.5px solid ${PN.PINK}`, background: PN.PINK_SOFT, borderRadius: 10, marginBottom: 14}}>
-            <input autoFocus value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => { if (e.key==='Enter') handleAddCategory(); if (e.key==='Escape') { setAddingCat(false); setNewCatName(''); } }} placeholder="Nome categoria (es. Antipasti, Pizze, Vini…)" style={{
-              flex: 1, padding: '8px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 7, fontSize: 15, fontFamily:'inherit', outline:'none',
-            }}/>
-            <button onClick={handleAddCategory} style={{padding:'8px 14px', borderRadius: 7, border:'none', background: PN.TEXT, color: PN.WHITE, fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit'}}>Crea</button>
-            <button onClick={() => { setAddingCat(false); setNewCatName(''); }} style={{padding:'8px 12px', borderRadius: 7, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, color: PN.MUTED, fontSize: 14.5, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
           </div>
-        ) : (
-          <button onClick={() => setAddingCat(true)} style={{
-            width:'100%', padding: '14px', borderRadius: 10,
-            border: `1.5px dashed ${PN.BORDER}`, background:'#FAFBFC',
-            color: PN.MUTED, fontSize: 15, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-            marginBottom: 14,
-          }}>+ Aggiungi categoria</button>
+        </MCPanel>
         )}
 
-        {totalDishes === 0 && cats.length === 0 && (
-          <div style={{
-            padding: '40px 20px', textAlign:'center',
-            background:'#FAFBFC', border: `1.5px dashed ${PN.BORDER}`, borderRadius: 12,
-            color: PN.MUTED,
-          }}>
-            <div style={{fontSize: 38, marginBottom: 10}}>🍽</div>
-            <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>Questo menù è vuoto</div>
-            <div style={{fontSize: 14.5, marginBottom: 14}}>Crea una categoria per iniziare ad aggiungere piatti</div>
+        {/* ── Colonna 2: piatti della categoria ────────────────────────── */}
+        <MCPiattiPanel
+          menu={activeMenu}
+          catName={activeCat}
+          rows={rows}
+          totali={rowsAll.length}
+          attivi={attivi}
+          disattivati={rowsAll.length - attivi}
+          view={view} setView={setView}
+          sort={sort} setSort={setSort}
+          search={search} setSearch={setSearch}
+          stateFilter={stateFilter} setStateFilter={setStateFilter}
+          selectMode={selectMode} setSelectMode={setSelectMode}
+          selection={selection} setSelection={setSelection} toggleSel={toggleSel}
+          altreCategorie={(activeMenu ? activeMenu.categories : []).map(c => c.name).filter(n => n !== activeCat)}
+          onBulkMove={bulkMove} onBulkPrice={bulkPrice} onBulkDelete={bulkRemove}
+          detailId={detailId} setDetailId={setDetailId}
+          editingPrice={editingPrice} setEditingPrice={setEditingPrice}
+          onUpdateItem={updateMenuItem}
+          onRemoveDish={removeDishFromCategory}
+          onOpenPicker={() => setPicker(activeCat)}
+          onNuovaCategoria={() => setAddingCat(true)}
+          dragDish={dragDish} setDragDish={setDragDish}
+          onReorder={reorderDishes}
+        />
+
+        {/* ── Colonna 3: dettaglio del piatto aperto ───────────────────── */}
+        {/* Senza un piatto aperto il pannello non c'è: un riquadro che dice
+            «scegli un piatto» occupa mezza colonna per non dire niente. */}
+        {detail && (
+          <div className="pn-scroll" style={{display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0, overflowY: 'auto', paddingRight: 2}}>
+            <MCDettagliPiatto
+              key={detail.dishId}
+              dish={detail.dish}
+              item={detail}
+              catName={activeCat}
+              menuName={activeMenu ? activeMenu.name : ''}
+              categorie={(activeMenu ? activeMenu.categories : []).map(c => c.name)}
+              onClose={() => setDetailId(null)}
+              onSaveDish={upsertLibraryDish}
+              onUpdateItem={(patch) => updateMenuItem(activeCat, detail.dishId, patch)}
+              onRemoveFromMenu={() => removeDishFromCategory(activeCat, detail.dishId)}
+              onDeleteFromLibrary={() => removeLibraryDish(detail.dishId)}
+              onMoveCat={(to) => { moveDishToCat(activeCat, to, detail.dishId); setActiveCat(to); }}
+            />
           </div>
         )}
-      </ImpCard>
+      </div>
+
+      {menuModal && (
+        <MCMenuModal
+          menu={menuModal.id ? menus.find(x => x.id === menuModal.id) : null}
+          menus={menus}
+          onClose={() => setMenuModal(null)}
+          onCreate={createMenu}
+          onSave={updateMenu}
+          onDelete={deleteMenu}
+          onAiUpload={() => { setMenuModal(null); setAiUpload(true); }}
+        />
+      )}
+
+      {anteprima && (
+        <MCAnteprimaModal
+          menu={activeMenu}
+          library={library}
+          catName={activeCat}
+          evidenzia={detailId}
+          onClose={() => setAnteprima(false)}
+        />
+      )}
+
+      {/* ── Modali ───────────────────────────────────────────────────────── */}
+      {picker && (
+        <DishLibraryPicker
+          library={library}
+          excludeIds={((activeMenu && activeMenu.categories.find(c => c.name === picker)) ? activeMenu.categories.find(c => c.name === picker).items : []).map(i => i.dishId)}
+          catName={picker}
+          menuName={activeMenu ? activeMenu.name : ''}
+          onClose={() => setPicker(null)}
+          onPick={(id, price) => { addDishToCategory(picker, id, price); }}
+          onCreateNew={() => { const c = picker; setPicker(null); setEditingDish({dishId: null, catName: c, isNew: true}); }}
+        />
+      )}
 
       {editingDish && (
         <DishEditModal
@@ -586,28 +967,2554 @@ function MenuComposeView({ menu, library, menus, onAddCategory, onRemoveCategory
           onClose={() => setEditingDish(null)}
           onSave={(d) => {
             const id = d.id || ('new' + Date.now());
-            onUpsertLibraryDish({...d, id});
-            if (editingDish.isNew && editingDish.catName) {
-              onAddDish(editingDish.catName, id, d._initialPrice ?? 0);
-            } else if (!editingDish.isNew && editingDish.catName && d._initialPrice !== undefined) {
-              onUpdateItem(editingDish.catName, id, {price: d._initialPrice});
-            }
+            upsertLibraryDish({...d, id});
+            if (editingDish.isNew && editingDish.catName) addDishToCategory(editingDish.catName, id, d._initialPrice ?? 0);
+            else if (!editingDish.isNew && editingDish.catName && d._initialPrice !== undefined) updateMenuItem(editingDish.catName, id, {price: d._initialPrice});
             setEditingDish(null);
           }}
         />
       )}
 
-      {picker && (
-        <DishLibraryPicker
-          library={library}
-          excludeIds={(menu.categories.find(c => c.name === picker)?.items || []).map(i => i.dishId)}
-          catName={picker}
-          menuName={menu.name}
-          onClose={() => setPicker(null)}
-          onPick={(id, price) => { onAddDish(picker, id, price); }}
-          onCreateNew={() => { const cat = picker; setPicker(null); setEditingDish({dishId: null, catName: cat, isNew: true}); }}
+      {aiUpload && (
+        <AIMenuUploadModal
+          onClose={() => setAiUpload(false)}
+          onImport={({ menuName, categories, dishes }) => {
+            setLibrary(prev => {
+              const next = [...prev];
+              dishes.forEach(d => { if (!next.find(x => x.id === d.id)) next.push(d); });
+              return next;
+            });
+            const id = 'm' + Date.now();
+            setMenus(prev => [...prev, { id, name: menuName, active: true, categories }]);
+            setActiveMenuId(id);
+            setAiUpload(false);
+          }}
         />
       )}
+    </div>
+  );
+}
+
+// ─── Testata: selettore del menù su cui si lavora ───────────────────────────
+// Pulsantino delle azioni di un menù nell'elenco «I tuoi menù».
+function MCAzioneMenu({ titolo, pericolo, onClick, children }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick} title={titolo} aria-label={titolo}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+        width: 30, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer',
+        display: 'grid', placeItems: 'center',
+        background: hover ? (pericolo ? '#FEF2F2' : '#EDEFF2') : 'transparent',
+        color: hover ? (pericolo ? PN.RED : PN.TEXT) : PN.MUTED,
+        transition: 'background 130ms ease-out, color 130ms ease-out',
+      }}>{children}</button>
+  );
+}
+
+function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, onAnteprima, onNuovoMenu, onModificaMenu, onDuplicaMenu, onEliminaMenu }) {
+  const [hoverMenu, setHoverMenu] = React.useState(null);
+  // Accendere o spegnere un menù cambia quello che vede il cliente al tavolo
+  // nel momento stesso in cui si clicca: prima di farlo si dice cosa succede.
+  const [confirmStato, setConfirmStato] = React.useState(null); // {id, to}
+  const [confermaMenu, setConfermaMenu] = React.useState(null); // id del menù da eliminare
+  // Una porta sola: dal nome del menù si sceglie su quale lavorare e da lì si
+  // fa tutto il resto. Il ⋯ in fondo alla testata apriva lo stesso elenco.
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const m = menus.find(x => x.id === activeMenuId);
+  const pickerBox = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!pickerOpen) return;
+    const fuori = (e) => { if (pickerBox.current && !pickerBox.current.contains(e.target)) setPickerOpen(false); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [pickerOpen]);
+
+  // Esc annulla prima la conferma aperta, poi chiude la tendina.
+  React.useEffect(() => {
+    if (!confirmStato && !confermaMenu && !pickerOpen) return;
+    const esc = (e) => {
+      if (e.key !== 'Escape') return;
+      if (confermaMenu) setConfermaMenu(null);
+      else if (confirmStato) setConfirmStato(null);
+      else setPickerOpen(false);
+    };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [confirmStato, confermaMenu, pickerOpen]);
+
+  if (!m) return null;
+
+  // Elenco e gestione dei menù: si apre dal nome del menù, che è già il posto
+  // dove si va a cercare su quale menù si sta lavorando. Prima scegliere e
+  // gestire erano due tendine diverse con dentro lo stesso elenco.
+  const pannelloMenus = (
+      <div style={{
+        position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 80,
+        width: 366, background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+        borderRadius: 14, padding: 7,
+        boxShadow: '0 18px 44px -12px rgba(15,17,21,0.24), 0 0 0 1px rgba(15,17,21,0.03)',
+      }}>
+        <div style={{
+          fontSize: 11.5, fontWeight: 800, color: PN.MUTED_SOFT, letterSpacing: 0.8,
+          textTransform: 'uppercase', padding: '7px 10px 9px',
+        }}>I tuoi menù</div>
+
+        {menus.map(x => {
+          const on = x.id === activeMenuId;
+          return (
+            <div key={x.id}
+              onMouseEnter={() => setHoverMenu(x.id)}
+              onMouseLeave={() => setHoverMenu(null)}
+              onClick={() => { onPick(x.id); setPickerOpen(false); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 10px', borderRadius: 10, cursor: 'pointer',
+                background: on ? PN.PINK_BG_SOFT : (hoverMenu === x.id ? '#F7F8FA' : 'transparent'),
+                transition: 'background 130ms ease-out',
+              }}>
+              <div style={{flex: 1, minWidth: 0}}>
+                <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.name}</div>
+
+                {/* Sotto al nome: lo stato — che da qui si cambia — e quanti
+                    piatti ha, che è come si sceglie su quale lavorare. */}
+                <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 3, fontSize: 12.5, color: PN.MUTED, minWidth: 0}}>
+                  <button
+                    onClick={e => { e.stopPropagation(); setConfirmStato({id: x.id, to: !x.active}); }}
+                    title={x.active ? 'È il menù che vedono i clienti — clicca per disattivarlo' : 'Clicca per renderlo il menù che vedono i clienti'}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                      padding: '1px 6px', marginLeft: -6, borderRadius: 999,
+                      border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: 12.5, fontWeight: 700, color: x.active ? PN.GREEN : PN.MUTED,
+                      transition: 'background 130ms ease-out',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = x.active ? PN.GREEN_SOFT : '#EDEFF2'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{width: 6, height: 6, borderRadius: '50%', background: x.active ? PN.GREEN : '#C7CBD1'}}/>
+                    {x.active ? 'Attivo' : 'Disattivato'}
+                  </button>
+                  <span style={{flexShrink: 0}}>· {totalDishesIn(x)} piatti</span>
+                </div>
+              </div>
+
+              {/* Le tre azioni del menù, in chiaro sulla sua riga: prima
+                  «Modifica» era il click sulla riga, duplicare stava dentro la
+                  maschera del nuovo menù ed eliminare solo in fondo a quella
+                  di modifica. */}
+              <div style={{display: 'flex', gap: 2, flexShrink: 0}}>
+                <MCAzioneMenu titolo="Modifica" onClick={e => { e.stopPropagation(); setPickerOpen(false); onModificaMenu(x.id); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16.8 3.9a2.1 2.1 0 0 1 3 3L8.5 18.2l-4 1 1-4z"/>
+                  </svg>
+                </MCAzioneMenu>
+                <MCAzioneMenu titolo="Duplica" onClick={e => { e.stopPropagation(); setPickerOpen(false); onDuplicaMenu(x.id); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="11" height="11" rx="2"/>
+                    <path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5V5.5A1.5 1.5 0 0 1 4.5 4h8A1.5 1.5 0 0 1 14 5.5V6"/>
+                  </svg>
+                </MCAzioneMenu>
+                <MCAzioneMenu titolo="Elimina" pericolo onClick={e => { e.stopPropagation(); setConfermaMenu(x.id); }}>
+                  <PnI.Trash size={13}/>
+                </MCAzioneMenu>
+              </div>
+            </div>
+          );
+        })}
+
+      </div>
+  );
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14,
+      padding: '10px 14px', background: PN.WHITE,
+      border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, boxShadow: PN.CARD_SHADOW,
+    }}>
+      {/* Il menù su cui si lavora è il titolo della pagina, e da lì si cambia:
+          resta un titolo, non torna a essere un pulsante incorniciato. */}
+      {/* Quando la testata è piena a cedere non è il titolo: si accorcia la
+          fascia oraria, che l'ellissi ce l'ha già e si legge anche a metà. */}
+      <div ref={pickerBox} style={{position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: 2}}>
+        {/* Cliccabile è il nome del menù, non il conteggio dei piatti: quello
+            è un dato, non un'azione. */}
+        <button
+          onClick={() => setPickerOpen(o => !o)}
+          title="Cambia menù"
+          aria-haspopup="listbox" aria-expanded={pickerOpen}
+          style={{
+            display: 'flex', alignItems: 'baseline', gap: 9,
+            padding: '4px 8px', margin: '-4px 0 -4px -8px', borderRadius: 9,
+            border: 'none', background: pickerOpen ? '#F1F3F5' : 'transparent',
+            cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+            transition: 'background 150ms ease-out',
+          }}
+          onMouseEnter={e => { if (!pickerOpen) e.currentTarget.style.background = '#F7F8FA'; }}
+          onMouseLeave={e => { if (!pickerOpen) e.currentTarget.style.background = 'transparent'; }}
+        >
+          <h2 style={{
+            margin: 0, fontSize: 23, fontWeight: 800, letterSpacing: -0.5, color: PN.TEXT,
+            // Il taglio scatta solo sui nomi fuori scala: quelli normali si
+            // leggono interi, senza farsi accorciare dal resto della testata.
+            maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{m.name}</h2>
+          <span style={{
+            display: 'inline-flex', color: PN.MUTED, flexShrink: 0, alignSelf: 'center',
+            transform: pickerOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out',
+          }}><PnI.ChevronDown size={13}/></span>
+        </button>
+
+        <span style={{fontSize: 13.5, color: PN.MUTED, flexShrink: 0}}>{totalDishesIn(m)} piatti</span>
+
+        {pickerOpen && pannelloMenus}
+      </div>
+
+      {/* La pastiglia diceva soltanto com'era il menù: qui c'è l'interruttore,
+          e si accende o si spegne dov'è scritto. La conferma resta — attivo ce
+          n'è uno solo, e cambiarlo cambia quello che vede il cliente. */}
+      <div style={{display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
+        <ImpToggle checked={m.active} onChange={() => setConfirmStato({id: m.id, to: !m.active})}/>
+        <span style={{fontSize: 13.5, fontWeight: 600, color: m.active ? PN.TEXT : PN.MUTED}}>{m.active ? 'Attivo' : 'Disattivato'}</span>
+      </div>
+      {/* La fascia oraria è del menù attivo e sta qui: nell'elenco non serve,
+          lì i menù si distinguono per nome e per quanti piatti hanno. */}
+      {m.schedule && <span style={{fontSize: 13.5, color: PN.MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0}}>Visibile {m.schedule}</span>}
+
+      <span style={{flex: 1}}/>
+
+      <ImpButton variant="ghost" icon={<PnI.Eye size={15}/>} onClick={onAnteprima} style={{flexShrink: 0, whiteSpace: 'nowrap'}}>
+        Visualizza anteprima
+      </ImpButton>
+
+      <ImpButton variant="pink" icon={<PnI.Plus size={14}/>} onClick={onNuovoMenu} style={{flexShrink: 0, whiteSpace: 'nowrap'}}>
+        Nuovo menù
+      </ImpButton>
+
+      <div style={{position: 'relative', flexShrink: 0}}>
+        {confirmStato && (() => {
+          const bersaglio = menus.find(x => x.id === confirmStato.id) || {};
+          // Attivo ce n'è uno solo: accenderne un altro spegne quello di prima,
+          // e spegnere l'ultimo lascia il QR senza un menù da mostrare.
+          const attivoOra = menus.find(x => x.active && x.id !== confirmStato.id);
+          const accende = confirmStato.to;
+          const titolo = accende ? `Attivare «${bersaglio.name}»?` : `Disattivare «${bersaglio.name}»?`;
+          const testo = accende
+            ? (attivoOra
+                ? <>Può restare attivo un solo menù per volta: <strong style={{color: PN.TEXT}}>«{attivoOra.name}» verrà disattivato</strong>. Da subito chi scansiona il QR vedrà «{bersaglio.name}».</>
+                : <>Da subito chi scansiona il QR al tavolo vedrà «{bersaglio.name}».</>)
+            : <>Non resterà nessun menù attivo: <strong style={{color: PN.TEXT}}>il QR porterà i clienti alla vetrina del locale</strong>, non al menù.</>;
+          return (
+            <div
+              onMouseDown={e => e.stopPropagation()}
+              onClick={() => setConfirmStato(null)}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1000,
+                display: 'grid', placeItems: 'center', padding: 20, cursor: 'default',
+                animation: 'impOverlayIn 0.18s ease-out',
+              }}>
+              <div onClick={e => e.stopPropagation()} style={{
+                ...MODAL_PANEL, width: 460,
+                animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+              }}>
+                <div style={{padding: '24px 26px 0', display: 'flex', alignItems: 'flex-start', gap: 14}}>
+                  <div style={{
+                    width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+                    background: accende ? PN.GREEN_SOFT : PN.AMBER_SOFT,
+                    color: accende ? PN.GREEN : PN.AMBER,
+                  }}>{accende ? <PnI.Check size={19}/> : <PnI.Alert size={19}/>}</div>
+                  <div style={{flex: 1, minWidth: 0}}>
+                    <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, lineHeight: 1.3}}>{titolo}</div>
+                    <div style={{fontSize: 15, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>{testo}</div>
+                  </div>
+                </div>
+                <div style={{...MODAL_FOOT, justifyContent: 'flex-end', marginTop: 22, borderTop: 'none'}}>
+                  <ImpButton variant="ghost" onClick={() => setConfirmStato(null)} style={{padding: '10px 20px'}}>Annulla</ImpButton>
+                  <ImpButton
+                    variant={accende ? 'pink' : 'primary'}
+                    onClick={() => { onUpdate(confirmStato.id, {active: accende}); setConfirmStato(null); }}
+                    style={{padding: '10px 20px'}}
+                  >{accende ? 'Attiva' : 'Disattiva'}</ImpButton>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Eliminare un menù non si annulla: si conferma, come tutto il resto. */}
+        {confermaMenu && (() => {
+          const bersaglio = menus.find(x => x.id === confermaMenu) || {};
+          return (
+            <div
+              onMouseDown={e => e.stopPropagation()}
+              onClick={() => setConfermaMenu(null)}
+              style={{
+                position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1000,
+                display: 'grid', placeItems: 'center', padding: 20, cursor: 'default',
+                animation: 'impOverlayIn 0.18s ease-out',
+              }}>
+              <div onClick={e => e.stopPropagation()} style={{
+                ...MODAL_PANEL, width: 460,
+                animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+              }}>
+                <div style={{padding: '24px 26px 0', display: 'flex', alignItems: 'flex-start', gap: 14}}>
+                  <div style={{
+                    width: 46, height: 46, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+                    background: '#FEF2F2', color: PN.RED,
+                  }}><PnI.Trash size={19}/></div>
+                  <div style={{flex: 1, minWidth: 0}}>
+                    <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, lineHeight: 1.3}}>Eliminare «{bersaglio.name}»?</div>
+                    <div style={{fontSize: 15, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>
+                      Spariscono il menù e il modo in cui i piatti erano organizzati dentro.
+                      I piatti <strong style={{color: PN.TEXT}}>restano nella libreria</strong>. Non si può annullare.
+                    </div>
+                  </div>
+                </div>
+                <div style={{...MODAL_FOOT, justifyContent: 'flex-end', marginTop: 22, borderTop: 'none'}}>
+                  <ImpButton variant="ghost" onClick={() => setConfermaMenu(null)} style={{padding: '10px 20px'}}>Annulla</ImpButton>
+                  <ImpButton variant="danger" onClick={() => { onEliminaMenu(confermaMenu); setConfermaMenu(null); setPickerOpen(false); }} style={{padding: '10px 20px'}}>Sì, elimina</ImpButton>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
+
+// ─── Nuovo menù ─────────────────────────────────────────────────────────────
+// Il menù non nasce più da un campo di testo dentro una tendina: si crea da
+// qui, dove insieme al nome si dice a chi serve e — se è l'asporto — con che
+// tempi. L'import AI è una scorciatoia dentro questo flusso, non un pulsante
+// che in testata gli faceva concorrenza.
+const AYCE = 'All you can eat';
+const NUOVO_MENU_TIPOLOGIE = ['À la carte', AYCE];
+
+const NM_LABEL  = { display: 'block', fontSize: 14, fontWeight: 600, color: PN.TEXT, marginBottom: 7 };
+const NM_SELECT = {
+  width: '100%', padding: '11px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+  fontSize: 15, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
+};
+// Giorni della settimana: dentro al menù stanno come indici, in testata e
+// nell'anteprima come frase — «Tutti i giorni», «Lun–Ven», «Lun, Mer, Ven».
+const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+const etichettaGiorni = (sel) => {
+  if (sel.length === 7) return 'Tutti i giorni';
+  const ord = [...sel].sort((a, b) => a - b);
+  const consecutivi = ord.every((v, i) => i === 0 || v === ord[i - 1] + 1);
+  if (consecutivi && ord.length > 2) return `${GIORNI[ord[0]]}–${GIORNI[ord[ord.length - 1]]}`;
+  return ord.map(i => GIORNI[i]).join(', ');
+};
+// I menù già scritti hanno i giorni dentro la frase: da lì si rileggono,
+// così aprendone uno in modifica non si riparte da capo.
+const giorniDi = (s) => {
+  if (!s) return null;
+  if (/tutti i giorni/i.test(s)) return [0, 1, 2, 3, 4, 5, 6];
+  const range = new RegExp(`(${GIORNI.join('|')})\\s*[–-]\\s*(${GIORNI.join('|')})`).exec(s);
+  if (range) {
+    const a = GIORNI.indexOf(range[1]), b = GIORNI.indexOf(range[2]);
+    if (a >= 0 && b >= a) { const out = []; for (let i = a; i <= b; i++) out.push(i); return out; }
+  }
+  const singoli = GIORNI.map((g, i) => i).filter(i => new RegExp(`\\b${GIORNI[i]}\\b`).test(s));
+  return singoli.length ? singoli : null;
+};
+
+const NM_ORA = {
+  flex: 1, minWidth: 0, padding: '10px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+  fontSize: 15, fontWeight: 600, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
+};
+
+// Il <select> di sistema apre una lista disegnata dal sistema operativo, che
+// dentro al popup arriva come un corpo estraneo: bordi squadrati, tipografia
+// sua, evidenziazione blu. Qui la tendina è la nostra e ha le forme del
+// pannello «I tuoi menù»: stesso raggio, stessa ombra, stesso rosa sul
+// selezionato.
+function NMSelect({ value, options, onChange, open, setOpen, versoAlto, compatto }) {
+  const box = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [open, setOpen]);
+
+  // Le voci sono stringhe quando etichetta e valore coincidono, oggetti
+  // {value, label} quando no — come per i menù, che si scelgono per nome ma
+  // si identificano per id.
+  const opts = options.map(o => (typeof o === 'string' ? {value: o, label: o} : o));
+  const corrente = opts.find(o => o.value === value);
+
+  return (
+    <div ref={box} style={{position: 'relative'}}>
+      <button
+        type="button" onClick={() => setOpen(!open)}
+        aria-haspopup="listbox" aria-expanded={open}
+        style={{
+          ...NM_SELECT, cursor: 'pointer', textAlign: 'left',
+          border: `1px solid ${open ? PN.PINK : PN.BORDER}`,
+          display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600,
+          transition: 'border-color 150ms ease-out',
+          // Dentro a una riga di tabella la stessa tendina deve stare bassa.
+          ...(compatto ? {padding: '6px 8px', fontSize: 13.5, borderRadius: 8, gap: 6} : null),
+        }}>
+        <span style={{flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{corrente ? corrente.label : value}</span>
+        <span style={{
+          display: 'inline-flex', color: PN.MUTED, flexShrink: 0,
+          transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out',
+        }}><PnI.ChevronDown size={12}/></span>
+      </button>
+
+      {open && (
+        <div role="listbox" style={{
+          // In fondo al popup la tendina si apre verso l'alto: sotto ci sono
+          // solo i bottoni, e lo scroller la taglierebbe.
+          position: 'absolute', left: 0, right: 0, zIndex: 30,
+          ...(versoAlto ? {bottom: 'calc(100% + 6px)'} : {top: 'calc(100% + 6px)'}),
+          background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+          boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6,
+          maxHeight: 260, overflowY: 'auto',
+        }}>
+          {opts.map(o => {
+            const on = o.value === value;
+            return (
+              <div
+                key={o.value} role="option" aria-selected={on}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+                onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '9px 10px', borderRadius: 9, cursor: 'pointer',
+                  background: on ? PN.PINK_SOFT : 'transparent',
+                  color: on ? PN.PINK_DARK : PN.TEXT,
+                  fontSize: compatto ? 13.5 : 15, fontWeight: on ? 700 : 600,
+                  transition: 'background 120ms ease-out',
+                  ...(compatto ? {padding: '7px 9px'} : null),
+                }}>
+                <span style={{flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{o.label}</span>
+                {on && <PnI.Check size={13}/>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Un popup solo per creare e per modificare: sono le stesse domande, e
+// tenerne due sincronizzati significherebbe scordarsene uno. `menu` presente
+// vuol dire modifica; assente, creazione — e nella creazione si può partire
+// dalla copia di un menù che c'è già.
+function MCMenuModal({ menu, menus, onClose, onCreate, onSave, onDelete, onAiUpload }) {
+  const modifica = !!menu;
+  const [nome, setNome] = React.useState(modifica ? menu.name : '');
+  const [tipologia, setTipologia] = React.useState(modifica ? (menu.tipologia || NUOVO_MENU_TIPOLOGIE[0]) : NUOVO_MENU_TIPOLOGIE[0]);
+  const [tipologiaOpen, setTipologiaOpen] = React.useState(false);
+  const [prezzoAyce, setPrezzoAyce] = React.useState(modifica ? (menu.prezzo || '') : '');
+  // Il campo si segna in rosso solo dopo che ci sei passato: appena comparso
+  // è vuoto perché non l'hai ancora compilato, non perché hai sbagliato.
+  const [prezzoTocco, setPrezzoTocco] = React.useState(false);
+  const [tipo, setTipo] = React.useState(modifica ? (menu.tipo || 'sala') : 'sala');   // sala | asporto
+  const [tkLeadTime, setTkLeadTime] = React.useState(modifica ? (menu.leadTime || 20) : 20);
+  const [showQr, setShowQr] = React.useState(false);
+  const [confermaElimina, setConfermaElimina] = React.useState(false);
+
+  // Fascia oraria: di default il menù è sempre visibile. I menù già scritti
+  // hanno la fascia dentro una frase («Lun–Ven · 12:00–15:00»): da lì si
+  // prendono gli orari, il resto della frase non serve più.
+  const orariDi = (s) => {
+    const m2 = /(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})/.exec(s || '');
+    return m2 ? {da: m2[1].padStart(5, '0'), a: m2[2].padStart(5, '0')} : null;
+  };
+  const orariIniziali = modifica ? orariDi(menu.schedule) : null;
+  const [sempreVisibile, setSempreVisibile] = React.useState(!orariIniziali);
+  const [oraDa, setOraDa] = React.useState(orariIniziali ? orariIniziali.da : '12:00');
+  const [oraA, setOraA] = React.useState(orariIniziali ? orariIniziali.a : '16:00');
+  const [giorni, setGiorni] = React.useState(
+    (modifica && giorniDi(menu.schedule)) || [0, 1, 2, 3, 4, 5, 6]);
+  const toggleGiorno = (i) => setGiorni(g => (g.includes(i) ? g.filter(x => x !== i) : [...g, i].sort((a, b) => a - b)));
+
+  // Esc chiude quello che si è aperto per ultimo, non l'intero popup.
+  React.useEffect(() => {
+    const esc = (e) => {
+      if (e.key !== 'Escape') return;
+      if (confermaElimina) setConfermaElimina(false);
+      else if (showQr) setShowQr(false);
+      else if (tipologiaOpen) setTipologiaOpen(false);
+      else onClose();
+    };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [onClose, showQr, tipologiaOpen, confermaElimina]);
+
+  // L'all you can eat non ha un prezzo per piatto: ne ha uno solo, ed è la
+  // cosa che il cliente vede per prima. Senza, il menù non sta in piedi.
+  const ayce = tipologia === AYCE;
+  const prezzoOk = !ayce || (parseFloat(String(prezzoAyce).replace(',', '.')) > 0);
+  // Due menù con lo stesso nome non si distinguono in nessuna delle liste in
+  // cui compaiono.
+  const nomePreso = menus.some(x => x.id !== (menu ? menu.id : null)
+    && x.name.trim().toLowerCase() === nome.trim().toLowerCase() && !!nome.trim());
+  // Una fascia senza nemmeno un giorno non vale mai: sarebbe un menù che non
+  // si vede mai, cioè un menù disattivato scritto in modo complicato.
+  const giorniOk = sempreVisibile || giorni.length > 0;
+  const completo = !!nome.trim() && prezzoOk && !nomePreso && giorniOk;
+
+  const salva = () => {
+    if (!completo) return;
+    const dati = {
+      name: nome.trim(), tipologia, prezzo: ayce ? prezzoAyce : '', tipo, leadTime: tkLeadTime,
+      schedule: sempreVisibile ? '' : `${etichettaGiorni(giorni)} · ${oraDa}–${oraA}`,
+    };
+    if (modifica) onSave(menu.id, dati);
+    else onCreate(dati);
+    onClose();
+  };
+
+  const TIPI = [
+    // Il set non ha la posata singola del mock: il tavolo è l'icona con cui
+    // «Sala» si legge già in tutto il gestionale.
+    {id: 'sala',    label: 'Sala',    icona: 'place-table'},
+    {id: 'asporto', label: 'Asporto', icona: 'commerce-bag'},
+  ];
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1000,
+      display: 'grid', placeItems: 'center', padding: 20,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...MODAL_PANEL, width: 560,
+        // Tetto in px di LAYOUT: il frame ha uno zoom che i vh non vedono.
+        maxHeight: 862, display: 'flex', flexDirection: 'column',
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{...MODAL_HEAD, flexShrink: 0}}>
+          <div style={MODAL_TITLE}>{modifica ? 'Modifica menù' : 'Nuovo menù'}</div>
+          <div style={MODAL_SUB}>{modifica
+            ? 'Cambia le impostazioni di questo menù o eliminalo.'
+            : 'Crea e configura rapidamente un nuovo menù.'}</div>
+          <button onClick={onClose} aria-label="Chiudi" style={MODAL_X}><PnI.X size={14}/></button>
+        </div>
+
+        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto'}}>
+          <div style={MODAL_BODY}>
+            {/* Nome — il contatore sta dentro al riquadro, dove si scrive */}
+            <label style={NM_LABEL} htmlFor="nm-nome">Nome del menù</label>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              border: `1px solid ${nomePreso ? PN.PINK : PN.BORDER}`, borderRadius: 10, padding: '11px 13px',
+              marginBottom: nomePreso ? 6 : 18, transition: 'border-color 150ms ease-out',
+            }}>
+              <input
+                id="nm-nome" autoFocus value={nome} maxLength={80}
+                onChange={e => setNome(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') salva(); }}
+                placeholder="Es. Menù primavera"
+                style={{flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 15.5, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}/>
+              <span style={{fontSize: 13, color: PN.MUTED_SOFT, flexShrink: 0}}>{nome.length}/80</span>
+            </div>
+            {nomePreso && (
+              <div style={{fontSize: 12.5, color: PN.PINK_DARK, marginBottom: 18, lineHeight: 1.4}}>
+                Esiste già un menù con questo nome: scegline un altro.
+              </div>
+            )}
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 18}}>
+              <div>
+                <span style={NM_LABEL}>Tipologia di menù</span>
+                <NMSelect
+                  value={tipologia}
+                  options={NUOVO_MENU_TIPOLOGIE}
+                  onChange={setTipologia}
+                  open={tipologiaOpen}
+                  setOpen={setTipologiaOpen}
+                />
+              </div>
+              <div>
+                <span style={NM_LABEL}>Tipo di menù</span>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
+                  {TIPI.map(t => {
+                    const on = tipo === t.id;
+                    return (
+                      <button key={t.id} onClick={() => setTipo(t.id)} style={{
+                        padding: '13px 8px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                        border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                        background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                        color: on ? PN.PINK_DARK : PN.TEXT,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+                        fontSize: 14.5, fontWeight: on ? 700 : 600,
+                        transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                      }}>
+                        <Icon name={t.icona} size={21}/>
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {ayce && (
+              <div style={{marginBottom: 18}}>
+                <label style={NM_LABEL} htmlFor="nm-prezzo">
+                  Prezzo <span style={{color: PN.PINK}}>*</span>
+                </label>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  border: `1px solid ${(prezzoTocco && !prezzoOk) ? PN.PINK : PN.BORDER}`,
+                  borderRadius: 10, padding: '11px 13px', background: PN.WHITE,
+                  transition: 'border-color 150ms ease-out',
+                }}>
+                  <span style={{fontSize: 15, fontWeight: 700, color: PN.MUTED, flexShrink: 0}}>€</span>
+                  <input
+                    id="nm-prezzo" inputMode="decimal" value={prezzoAyce}
+                    onChange={e => setPrezzoAyce(e.target.value.replace(/[^\d.,]/g, ''))}
+                    onBlur={() => setPrezzoTocco(true)}
+                    onKeyDown={e => { if (e.key === 'Enter') salva(); }}
+                    placeholder="0,00"
+                    style={{flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 15.5, fontWeight: 600, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}/>
+                  <span style={{fontSize: 13, color: PN.MUTED_SOFT, flexShrink: 0}}>a persona</span>
+                </div>
+                <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
+                  Quota fissa dell'all you can eat: i piatti del menù non hanno un prezzo proprio.
+                </div>
+              </div>
+            )}
+
+            {/* L'asporto porta con sé una sola regola, e sta dove si sceglie */}
+            {tipo === 'asporto' && (
+              <div style={{marginBottom: 18}}>
+                <label style={NM_LABEL} htmlFor="nm-lead">Tempo di preparazione minimo</label>
+                <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                  <input id="nm-lead" type="range" min={5} max={60} step={5} value={tkLeadTime}
+                    onChange={e => setTkLeadTime(Number(e.target.value))}
+                    style={{flex: 1, minWidth: 0, accentColor: PN.PINK}}/>
+                  <div style={{
+                    padding: '7px 12px', borderRadius: 999, flexShrink: 0,
+                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
+                    fontSize: 14, fontWeight: 700,
+                  }}>{tkLeadTime} min</div>
+                </div>
+                <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.4}}>
+                  I clienti vedono come primo slot l'orario corrente +{tkLeadTime} minuti
+                </div>
+              </div>
+            )}
+
+            {/* Quando è visibile: di default sempre. Con una fascia, fuori da
+                quella il QR non ha un menù da mostrare e ricade sulla vetrina
+                — come quando non c'è nessun menù attivo. */}
+            <div style={{marginBottom: 18}}>
+              <span style={NM_LABEL}>Quando è visibile</span>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                border: `1px solid ${PN.BORDER}`, borderRadius: 10, padding: '11px 13px',
+              }}>
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT}}>Sempre visibile</div>
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>
+                    Chi scansiona il QR lo trova a qualsiasi ora
+                  </div>
+                </div>
+                <ImpToggle checked={sempreVisibile} onChange={() => setSempreVisibile(v => !v)}/>
+              </div>
+
+              {!sempreVisibile && (
+                <>
+                  <div style={{display: 'flex', gap: 6, marginTop: 10}}>
+                    {GIORNI.map((g, i) => {
+                      const on = giorni.includes(i);
+                      return (
+                        <button key={g} onClick={() => toggleGiorno(i)} title={on ? `Togli ${g}` : `Aggiungi ${g}`} style={{
+                          flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+                          border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
+                          background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                          color: on ? PN.PINK_DARK : PN.MUTED,
+                          fontSize: 13.5, fontWeight: on ? 700 : 600,
+                          transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                        }}>{g}</button>
+                      );
+                    })}
+                  </div>
+                  {!giorniOk && (
+                    <div style={{fontSize: 12.5, color: PN.PINK_DARK, marginTop: 6, lineHeight: 1.4}}>
+                      Scegli almeno un giorno, altrimenti il menù non si vedrebbe mai.
+                    </div>
+                  )}
+                  <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 10}}>
+                    <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>Dalle</span>
+                    <input type="time" value={oraDa} onChange={e => setOraDa(e.target.value)} style={NM_ORA}/>
+                    <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>alle</span>
+                    <input type="time" value={oraA} onChange={e => setOraA(e.target.value)} style={NM_ORA}/>
+                  </div>
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.45}}>
+                    Fuori da questa fascia il QR porta a un altro menù, se attivato, o alla
+                    vetrina se nessuno è attivo. Dalla vetrina restano visibili tutti i menù
+                    che si attivano in determinate fasce orarie della settimana.
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button onClick={() => setShowQr(true)} style={{
+              width: '100%', padding: '13px 14px', marginBottom: 18,
+              border: `1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE,
+              cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 600, color: PN.TEXT,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+              transition: 'background 150ms ease-out',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#F7F8FA'}
+            onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
+            ><Icon name="grid" size={17}/> Visualizza QR Code</button>
+
+            {/* L'import AI vive qui dentro: è un modo di riempire il menù che
+                si sta creando, non un'azione parallela. In modifica non ha
+                senso — il menù esiste già e i piatti si aggiungono dalla
+                colonna, non ricaricando un PDF sopra a quelli che ci sono. */}
+            {!modifica && (
+            <div style={{
+              background: PN.PURPLE_SOFT, borderRadius: 12, padding: '16px 18px',
+              display: 'flex', alignItems: 'center', gap: 16,
+            }}>
+              <div style={{flex: 1, minWidth: 0}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6}}>
+                  <span style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Carica un menù esistente</span>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
+                    padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,0.72)',
+                    color: PN.PURPLE, fontSize: 12.5, fontWeight: 700,
+                  }}><Icon name="sparkles" size={13}/> Auto</span>
+                </div>
+                <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>
+                  Carica le foto o il PDF del menù esistente. Analizzeremo i contenuti
+                  per aiutarti a velocizzare la creazione.
+                </div>
+              </div>
+              <button onClick={onAiUpload} style={{
+                flexShrink: 0, padding: '11px 15px', borderRadius: 10,
+                border: `1px solid ${PN.BORDER}`, background: PN.WHITE, color: PN.TEXT,
+                cursor: 'pointer', fontFamily: 'inherit', fontSize: 14.5, fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                boxShadow: '0 1px 2px rgba(15,17,21,0.06)',
+              }}><PnI.FileText size={16}/> Carica Foto/Pdf</button>
+            </div>
+            )}
+
+            {/* Duplicare non sta più qui in fondo: è un'azione sul menù e si
+                fa dalla sua riga in «I tuoi menù». */}
+          </div>
+
+        </div>
+
+        <div style={{...MODAL_FOOT, justifyContent: 'flex-end', flexShrink: 0}}>
+          {modifica && (
+            <button onClick={() => setConfermaElimina(true)} style={{
+              marginRight: 'auto', padding: '11px 0', background: 'transparent', border: 'none',
+              color: PN.RED, fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+            }}><PnI.Trash size={13}/> Elimina menù</button>
+          )}
+          {/* In modifica «Annulla» non serve: le modifiche si applicano solo
+              salvando, e per uscire senza toccare niente ci sono la ✕, Esc e
+              il click fuori. */}
+          {!modifica && (
+            <ImpButton variant="ghost" onClick={onClose} style={{padding: '11px 26px'}}>Annulla</ImpButton>
+          )}
+          <ImpButton variant="pink" onClick={salva} disabled={!completo} style={{padding: '11px 26px'}}>
+            {modifica ? 'Salva modifiche' : 'Crea menù'}
+          </ImpButton>
+        </div>
+      </div>
+
+      {confermaElimina && (
+        <div onClick={e => { e.stopPropagation(); setConfermaElimina(false); }} style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1010,
+          display: 'grid', placeItems: 'center', padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...MODAL_PANEL, width: 430,
+            animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+          }}>
+            <div style={{padding: '24px 26px 0', display: 'flex', alignItems: 'flex-start', gap: 14}}>
+              <div style={{
+                width: 46, height: 46, borderRadius: '50%', flexShrink: 0,
+                background: '#FEF2F2', color: PN.RED, display: 'grid', placeItems: 'center',
+              }}><PnI.Trash size={19}/></div>
+              <div style={{flex: 1, minWidth: 0}}>
+                <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.2, color: PN.TEXT, lineHeight: 1.3}}>
+                  Eliminare «{menu.name}»?
+                </div>
+                <div style={{fontSize: 15, color: PN.MUTED, marginTop: 6, lineHeight: 1.45}}>
+                  I piatti restano nella libreria.
+                </div>
+              </div>
+            </div>
+            <div style={{...MODAL_FOOT, justifyContent: 'flex-end', marginTop: 22, borderTop: 'none'}}>
+              <ImpButton variant="ghost" onClick={() => setConfermaElimina(false)} style={{padding: '10px 20px'}}>Annulla</ImpButton>
+              <ImpButton variant="danger" onClick={() => { onDelete(menu.id); setConfermaElimina(false); onClose(); }} style={{padding: '10px 20px'}}>Elimina</ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showQr && (
+        <div onClick={e => { e.stopPropagation(); setShowQr(false); }} style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1010,
+          display: 'grid', placeItems: 'center', padding: 20,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 400, position: 'relative'}}>
+            <div style={MODAL_HEAD}>
+              <div style={{...MODAL_TITLE, fontSize: 22}}>QR del menù</div>
+              <div style={{...MODAL_SUB, marginTop: 2}}>I clienti lo scansionano e vedono questo menù</div>
+              <button onClick={() => setShowQr(false)} aria-label="Chiudi" style={MODAL_X}><PnI.X size={14}/></button>
+            </div>
+            <div style={{...MODAL_BODY, textAlign: 'center'}}>
+              <QrAsporto size={230} style={{margin: '0 auto'}}/>
+              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 14, lineHeight: 1.45}}>
+                Esponi al tavolo o sul menù cartaceo.
+              </div>
+            </div>
+            <div style={{...MODAL_FOOT, justifyContent: 'flex-end'}}>
+              <ImpButton variant="primary"><span style={{display: 'inline-flex', alignItems: 'center', gap: 6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Icone delle azioni multiple: un «+» non dice sposta e una freccina di testo
+// non dice prezzo. Una freccia che entra in un contenitore e un cartellino.
+function IcSposta({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 5h3A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-3"/>
+      <line x1="4" y1="12" x2="13.5" y2="12"/>
+      <polyline points="10,8.5 14,12 10,15.5"/>
+    </svg>
+  );
+}
+function IcCartellino({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.6 13.2 13 20.8a1.7 1.7 0 0 1-2.4 0l-7.2-7.2a1.7 1.7 0 0 1-.5-1.2V5.1c0-.9.7-1.7 1.7-1.7h7.3c.5 0 .9.2 1.2.5l7.5 7.5a1.7 1.7 0 0 1 0 2.4z"/>
+      <circle cx="8" cy="8" r="1.3"/>
+    </svg>
+  );
+}
+
+// ─── Barra delle azioni multiple ────────────────────────────────────────────
+function MCBulkBar({ count, categorie, piatti, onClear, onMove, onPrice, onDelete, inline }) {
+  const [aperto, setAperto] = React.useState(null); // 'sposta' | 'prezzo' | 'elimina'
+  const box = React.useRef(null);
+  React.useEffect(() => {
+    // Il popup dei prezzi vive al centro dello schermo, fuori dalla barra: il
+    // click dentro il popup non deve contare come «click fuori».
+    if (!aperto || aperto === 'prezzo') return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setAperto(null); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [aperto]);
+
+  const Azione = ({ id, icona, children, danger }) => (
+    <button onClick={() => setAperto(a => a === id ? null : id)} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 7,
+      padding: inline ? '6px 11px' : '8px 14px', borderRadius: 9, fontFamily: 'inherit',
+      fontSize: inline ? 13.5 : 14.5, fontWeight: 600, cursor: 'pointer',
+      border: `1px solid ${aperto === id ? (danger ? PN.RED : PN.TEXT) : PN.BORDER}`,
+      background: PN.WHITE, color: danger ? PN.RED : PN.TEXT,
+      transition: 'border-color 150ms ease-out, background 150ms ease-out',
+    }}
+    onMouseEnter={e => e.currentTarget.style.background = danger ? '#FEF2F2' : '#F7F8FA'}
+    onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
+    >{icona}{children}</button>
+  );
+
+  return (
+    // Dentro il pannello dei piatti è una fascia, non una card sopra un'altra
+    // card: fondo rosa tenue e niente ombra, così i bottoni bianchi si vedono.
+    <div ref={box} style={{
+      position: 'relative', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14,
+      padding: inline ? '9px 12px' : '10px 14px',
+      background: inline ? PN.PINK_BG_SOFT : PN.WHITE,
+      border: `1px solid ${PN.PINK_SOFT}`, borderRadius: 12,
+      boxShadow: inline ? 'none' : PN.CARD_SHADOW,
+      flexWrap: 'wrap',
+    }}>
+      <span style={{fontSize: inline ? 14.5 : 15.5, fontWeight: 700, color: PN.TEXT}}>
+        {count} {count === 1 ? 'piatto selezionato' : 'piatti selezionati'}
+      </span>
+      <button onClick={onClear} title="Annulla selezione" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+        width: 26, height: 26, borderRadius: 7, border: 'none', background: 'transparent',
+        color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      ><PnI.X size={13}/></button>
+
+      {!inline && <span style={{width: 1, height: 24, background: PN.BORDER_SOFT, margin: '0 4px'}}/>}
+
+      <Azione id="sposta" icona={<IcSposta size={14}/>}>Sposta</Azione>
+      <Azione id="prezzo" icona={<IcCartellino size={14}/>}>Modifica prezzo</Azione>
+      <Azione id="elimina" danger icona={<PnI.Trash size={13}/>}>Elimina</Azione>
+
+      {aperto === 'sposta' && (
+        <div style={{position: 'absolute', top: 'calc(100% + 6px)', left: 190, zIndex: 80, minWidth: 210, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 11, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 6}}>
+          <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', padding: '6px 8px 4px'}}>Sposta in</div>
+          {categorie.length === 0 && <div style={{padding: '8px 10px', fontSize: 14, color: PN.MUTED}}>Non ci sono altre categorie in questo menù.</div>}
+          {categorie.map(c => (
+            <MenuDotItem key={c} icon={<Icon name={CAT_ICON[c] || 'star'} size={14}/>} onClick={() => { onMove(c); setAperto(null); }}>{c}</MenuDotItem>
+          ))}
+        </div>
+      )}
+
+      {/* Il prezzo non è una tendina appesa alla barra: è un lavoro su più
+          piatti insieme, si fa al centro con l'anteprima di cosa succede. */}
+      {aperto === 'prezzo' && (
+        <MCPrezziModal
+          count={count}
+          piatti={piatti}
+          onClose={() => setAperto(null)}
+          onApply={(m, v) => { onPrice(m, v); setAperto(null); }}
+        />
+      )}
+
+      {aperto === 'elimina' && (
+        <div style={{position: 'absolute', top: 'calc(100% + 6px)', left: 430, zIndex: 80, width: 290, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 11, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 12}}>
+          <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 10}}>
+            Togliere <strong>{count}</strong> {count === 1 ? 'piatto' : 'piatti'} da questo menù? Restano nella libreria.
+          </div>
+          <div style={{display: 'flex', gap: 7, justifyContent: 'flex-end'}}>
+            <ImpButton variant="ghost" onClick={() => setAperto(null)} style={{padding: '7px 12px', fontSize: 14}}>Annulla</ImpButton>
+            <ImpButton variant="danger" onClick={() => { onDelete(); setAperto(null); }} style={{padding: '7px 12px', fontSize: 14}}>Togli dal menù</ImpButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Modifica prezzi in blocco ──────────────────────────────────────────────
+// Prima erano cinque pillole («Imposta a», «Aumenta %», «Riduci €»…) e un
+// campo: si sceglieva l'operazione e l'unità nello stesso click, e non si
+// vedeva l'effetto. Qui prima si dice cosa fare, poi di quanto, e l'anteprima
+// mostra su un piatto vero dove va a finire il prezzo.
+function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
+  const [azione, setAzione] = React.useState('aumenta'); // 'set' | 'aumenta' | 'riduci'
+  const [unita, setUnita] = React.useState('eur');   // 'eur' | 'pct'
+  const [valore, setValore] = React.useState('');
+
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    document.addEventListener('keydown', esc, true);
+    return () => document.removeEventListener('keydown', esc, true);
+  }, [onClose]);
+
+  // «Imposta nuovo prezzo» è sempre in euro: una percentuale di niente non
+  // vuol dire niente.
+  const perc = azione !== 'set' && unita === 'pct';
+  const mode = azione === 'set' ? 'set' : `${azione === 'aumenta' ? 'inc' : 'dec'}-${perc ? 'pct' : 'eur'}`;
+
+  const num = parseFloat(String(valore).replace(',', '.'));
+  const valido = !isNaN(num) && num >= 0 && String(valore).trim() !== '';
+  const nuovoPrezzo = (p0) => {
+    let p = p0;
+    if (mode === 'set')     p = num;
+    if (mode === 'inc-eur') p = p0 + num;
+    if (mode === 'dec-eur') p = p0 - num;
+    if (mode === 'inc-pct') p = p0 * (1 + num / 100);
+    if (mode === 'dec-pct') p = p0 * (1 - num / 100);
+    return Math.max(0, Math.round(p * 100) / 100);
+  };
+  const euro = (n) => `€ ${n.toFixed(2).replace('.', ',')}`;
+  const pronta = valido && piatti.length > 0;
+
+  const T = {
+    set:     {domanda: 'Quale prezzo vuoi impostare?', cta: 'Applica prezzo'},
+    aumenta: {domanda: 'Di quanto vuoi aumentare?',    cta: 'Applica aumento'},
+    riduci:  {domanda: 'Di quanto vuoi ridurre?',      cta: 'Applica riduzione'},
+  }[azione];
+
+  const FrecciaSu = ({size = 17}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5"/><polyline points="6,11 12,5 18,11"/>
+    </svg>
+  );
+  const FrecciaGiu = ({size = 17}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><polyline points="6,13 12,19 18,13"/>
+    </svg>
+  );
+  const Matita = ({size = 17}) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.8 3.9a2.1 2.1 0 0 1 3 3L8.5 18.2l-4 1 1-4z"/>
+    </svg>
+  );
+
+  // Aumenta e Riduci per prime: sono quelle che si usano di più. «Imposta
+  // nuovo prezzo» è l'eccezione e sta in fondo.
+  const SCELTE = [
+    {id: 'aumenta', l: 'Aumenta',              ic: <FrecciaSu/>},
+    {id: 'riduci',  l: 'Riduci',               ic: <FrecciaGiu/>},
+    {id: 'set',     l: 'Imposta nuovo prezzo', ic: <Matita/>},
+  ];
+
+  const applica = () => { if (valido) onApply(mode, valore); };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,17,21,0.45)',
+      display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{
+        background: PN.WHITE, borderRadius: 16, width: 620, maxWidth: '100%',
+        maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+        boxShadow: '0 24px 70px rgba(0,0,0,0.24)',
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        {/* Testata */}
+        <div style={{display: 'flex', alignItems: 'flex-start', gap: 13, padding: '20px 20px 0'}}>
+          <div style={{
+            width: 42, height: 42, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+            background: PN.PINK_BG_SOFT, color: PN.PINK,
+          }}><IcCartellino size={20}/></div>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 21, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.4}}>Modifica prezzi</div>
+            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>
+              Stai modificando <strong style={{color: PN.PINK}}>{count} {count === 1 ? 'piatto' : 'piatti'}</strong> {count === 1 ? 'selezionato' : 'selezionati'}
+            </div>
+          </div>
+          <button onClick={onClose} title="Chiudi" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+            flexShrink: 0, width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent',
+            color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          ><PnI.X size={15}/></button>
+        </div>
+
+        <div style={{padding: '18px 20px 0'}}>
+          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 10}}>Cosa vuoi fare?</div>
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12}}>
+            {SCELTE.map(s => {
+              const on = azione === s.id;
+              return (
+                <button key={s.id} onClick={() => setAzione(s.id)} style={{
+                  padding: '16px 8px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
+                  background: on ? PN.WHITE : '#FBFCFD',
+                  color: on ? PN.PINK_DARK : PN.TEXT,
+                  fontSize: 14.5, fontWeight: on ? 700 : 600,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                  transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                }}>
+                  <span style={{
+                    width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                    background: on ? PN.PINK_BG_SOFT : '#EDEFF2', color: on ? PN.PINK : PN.MUTED,
+                  }}>{s.ic}</span>
+                  <span style={{lineHeight: 1.25, textAlign: 'center'}}>{s.l}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{height: 1, background: PN.BORDER_SOFT, margin: '18px 0 16px'}}/>
+
+          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 10}}>{T.domanda}</div>
+          <div style={{display: 'flex', gap: 10, alignItems: 'stretch'}}>
+            <div style={{flex: 1, minWidth: 0, position: 'relative'}}>
+              <span style={{
+                position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+                fontSize: 16, fontWeight: 600, color: PN.MUTED,
+              }}>{perc ? '%' : '€'}</span>
+              <input autoFocus value={valore} inputMode="decimal"
+                onChange={e => setValore(e.target.value.replace(/[^0-9,.]/g, ''))}
+                onKeyDown={e => { if (e.key === 'Enter') applica(); }}
+                placeholder={perc ? '10' : '1,50'}
+                style={{
+                  width: '100%', padding: '13px 14px 13px 40px', border: `1px solid ${PN.BORDER}`,
+                  borderRadius: 10, fontSize: 17, fontWeight: 600, fontFamily: 'inherit', outline: 'none',
+                  background: PN.WHITE, color: PN.TEXT,
+                }}/>
+            </div>
+            {/* In «imposta» l'unità non si sceglie: è un prezzo, non uno scarto. */}
+            {azione !== 'set' && (
+              <div style={{display: 'flex', background: '#F4F5F7', borderRadius: 10, padding: 3, gap: 3, flexShrink: 0}}>
+                {[{id: 'eur', l: '€'}, {id: 'pct', l: '%'}].map(u => {
+                  const on = unita === u.id;
+                  return (
+                    <button key={u.id} onClick={() => setUnita(u.id)} style={{
+                      width: 54, borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${on ? PN.PINK : 'transparent'}`,
+                      background: on ? PN.PINK_BG_SOFT : 'transparent',
+                      color: on ? PN.PINK : PN.MUTED, fontSize: 16, fontWeight: 700,
+                      transition: 'background 150ms ease-out, border-color 150ms ease-out',
+                    }}>{u.l}</button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Anteprima di tutti i piatti toccati, uno per riga: prima si
+              vedeva un esempio solo e gli altri erano un atto di fede. */}
+          <div style={{
+            marginTop: 14, padding: '13px 14px', borderRadius: 12,
+            background: pronta ? '#F4FBF6' : '#FAFBFC',
+            border: `1px solid ${pronta ? '#CBEBD5' : PN.BORDER_SOFT}`,
+          }}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: 9}}>
+              <span style={{
+                width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+                background: pronta ? '#DDF3E4' : '#EDEFF2', color: pronta ? PN.GREEN : PN.MUTED,
+              }}><PnI.Eye size={14}/></span>
+              <div style={{fontSize: 14.5, fontWeight: 700, color: pronta ? PN.GREEN : PN.MUTED}}>Anteprima</div>
+              {pronta && (
+                <div style={{marginLeft: 'auto', fontSize: 13, color: PN.MUTED, fontWeight: 600}}>
+                  {piatti.length} {piatti.length === 1 ? 'piatto' : 'piatti'}
+                </div>
+              )}
+            </div>
+
+            {pronta ? (
+              <div className="pn-scroll" style={{display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 168, overflowY: 'auto'}}>
+                {piatti.map((p, i) => {
+                  const nuovo = nuovoPrezzo(p.price);
+                  const uguale = nuovo === p.price;
+                  return (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '6px 9px', borderRadius: 8, background: PN.WHITE, border: '1px solid #E4F0E8',
+                    }}>
+                      <span style={{flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{p.name}</span>
+                      <span style={{flexShrink: 0, fontSize: 13.5, color: PN.MUTED, textDecoration: uguale ? 'none' : 'line-through'}}>{euro(p.price)}</span>
+                      <span style={{flexShrink: 0, color: PN.MUTED_SOFT}}>→</span>
+                      <span style={{
+                        flexShrink: 0, padding: '2px 9px', borderRadius: 7, fontSize: 13.5, fontWeight: 700,
+                        background: uguale ? '#F1F3F5' : '#DDF3E4', color: uguale ? PN.MUTED : PN.GREEN,
+                      }}>{euro(nuovo)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45, paddingLeft: 40}}>
+                {piatti.length ? 'Scrivi un valore per vedere i nuovi prezzi.' : 'Nessun piatto da mostrare in anteprima.'}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Piede */}
+        <div style={{
+          display: 'flex', gap: 9, justifyContent: 'flex-end',
+          padding: '16px 20px 18px', marginTop: 16, borderTop: `1px solid ${PN.BORDER_SOFT}`,
+        }}>
+          <ImpButton variant="ghost" onClick={onClose} style={{padding: '10px 18px', fontSize: 15}}>Annulla</ImpButton>
+          <ImpButton variant="pink" disabled={!valido} onClick={applica} style={{padding: '10px 18px', fontSize: 15}}
+            icon={azione === 'set' ? <Matita size={14}/> : azione === 'aumenta' ? <FrecciaSu size={14}/> : <FrecciaGiu size={14}/>}
+          >{T.cta}</ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Colonna 2: i piatti della categoria aperta ─────────────────────────────
+function MCPiattiPanel({
+  menu, catName, rows, totali, attivi, disattivati,
+  view, setView, sort, setSort, search, setSearch, stateFilter, setStateFilter,
+  selectMode, setSelectMode, selection, setSelection, toggleSel,
+  altreCategorie, onBulkMove, onBulkPrice, onBulkDelete,
+  detailId, setDetailId, editingPrice, setEditingPrice,
+  onUpdateItem, onRemoveDish, onOpenPicker, onNuovaCategoria,
+  dragDish, setDragDish, onReorder,
+}) {
+  const [sortOpen, setSortOpen] = React.useState(false);
+  const [cardMenu, setCardMenu] = React.useState(null);
+  const sortBox = React.useRef(null);
+  React.useEffect(() => {
+    if (!sortOpen) return;
+    const fuori = (e) => { if (sortBox.current && !sortBox.current.contains(e.target)) setSortOpen(false); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [sortOpen]);
+
+  // Afferrare un piatto che fa parte di una selezione porta via tutta la
+  // selezione: chi ne ha spuntati sei non se li sposta uno per volta.
+  const idsTrascinati = (dishId) => (selection.includes(dishId) && selection.length > 1) ? selection : [dishId];
+  const inDrag = (dishId) => !!dragDish && (dragDish.ids || [dragDish.dishId]).includes(dishId);
+
+  // Il menù ⋯ di una card si chiude al primo click altrove, come tutti gli altri.
+  React.useEffect(() => {
+    if (!cardMenu) return;
+    const chiudi = () => setCardMenu(null);
+    document.addEventListener('mousedown', chiudi);
+    return () => document.removeEventListener('mousedown', chiudi);
+  }, [cardMenu]);
+
+  const SORTS = [
+    {id: 'manuale', l: 'Ordine del menù'},
+    {id: 'nome', l: 'Nome A–Z'},
+    {id: 'prezzo-asc', l: 'Prezzo crescente'},
+    {id: 'prezzo-desc', l: 'Prezzo decrescente'},
+  ];
+
+  if (!menu) return <MCPanel title="Piatti"><div style={{color: PN.MUTED, fontSize: 15}}>Nessun menù selezionato.</div></MCPanel>;
+
+  if (!catName) {
+    return (
+      <MCPanel title={menu.name} sub="Nessuna categoria in questo menù">
+        <div style={{padding: '40px 20px', textAlign: 'center', background: '#FAFBFC', border: `1.5px dashed ${PN.BORDER}`, borderRadius: 12, color: PN.MUTED}}>
+          <div style={{fontSize: 34, marginBottom: 10}}>🍽</div>
+          <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>Questo menù è vuoto</div>
+          <div style={{fontSize: 14.5, marginBottom: 14}}>Crea una categoria per iniziare ad aggiungere piatti</div>
+          <ImpButton variant="pink" icon={<PnI.Plus size={13}/>} onClick={onNuovaCategoria}>Nuova categoria</ImpButton>
+        </div>
+      </MCPanel>
+    );
+  }
+
+  const testata = (
+    <div style={{display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
+      {/* Un tasto solo, non una casella da spuntare prima di poter scegliere:
+          il primo click prende già tutti i piatti in elenco, e quando la
+          selezione è attiva lo stesso tasto la annulla. */}
+      {/* «Attivo» vuol dire che c'è una selezione in corso, comunque sia
+          cominciata: dal tasto o spuntando un piatto in elenco. */}
+      {(() => {
+        const inSelezione = selectMode || selection.length > 0;
+        return (
+          <button
+            onClick={() => {
+              if (inSelezione) { setSelection([]); setSelectMode(false); }
+              else { setSelectMode(true); setSelection(rows.map(r => r.dishId)); }
+            }}
+            title={inSelezione ? 'Esci dalla selezione' : 'Seleziona tutti i piatti in elenco'}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 8,
+              border: `1px solid ${inSelezione ? PN.PINK : PN.BORDER}`,
+              background: inSelezione ? PN.PINK_BG_SOFT : PN.WHITE,
+              color: inSelezione ? PN.PINK_DARK : PN.TEXT,
+              fontSize: 14, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+              transition: 'background 150ms ease-out, border-color 150ms ease-out',
+            }}>
+            {inSelezione ? <PnI.X size={11}/> : <PnI.Check size={12}/>}
+            {inSelezione ? 'Annulla' : 'Seleziona tutto'}
+          </button>
+        );
+      })()}
+
+      <div ref={sortBox} style={{position: 'relative'}}>
+        <button onClick={() => setSortOpen(o => !o)} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 10px', borderRadius: 8,
+          border: `1px solid ${sortOpen ? PN.TEXT : PN.BORDER}`, background: PN.WHITE, cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: PN.TEXT,
+        }}>
+          Ordina <PnI.ChevronDown size={11}/>
+        </button>
+        {sortOpen && (
+          <div style={{position: 'absolute', top: 'calc(100% + 5px)', right: 0, zIndex: 70, minWidth: 190, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 10, boxShadow: '0 10px 30px rgba(15,17,21,0.13)', padding: 5}}>
+            {SORTS.map(s => (
+              <MenuDotItem key={s.id} icon={sort === s.id ? <PnI.Check size={13}/> : ' '} onClick={() => { setSort(s.id); setSortOpen(false); }}>{s.l}</MenuDotItem>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{display: 'flex', border: `1px solid ${PN.BORDER}`, borderRadius: 8, overflow: 'hidden'}}>
+        {[
+          {id: 'grid', title: 'Griglia', svg: <><rect x="3" y="3" width="7" height="7" rx="1.4"/><rect x="14" y="3" width="7" height="7" rx="1.4"/><rect x="3" y="14" width="7" height="7" rx="1.4"/><rect x="14" y="14" width="7" height="7" rx="1.4"/></>},
+          {id: 'list', title: 'Elenco', svg: <><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></>},
+        ].map(v => (
+          <button key={v.id} onClick={() => setView(v.id)} title={v.title} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+            width: 32, height: 30, border: 'none', cursor: 'pointer',
+            background: view === v.id ? PN.TEXT : PN.WHITE,
+            color: view === v.id ? PN.WHITE : PN.MUTED,
+            display: 'grid', placeItems: 'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">{v.svg}</svg>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <MCPanel
+      title={<span style={{display: 'inline-flex', alignItems: 'baseline', gap: 9}}>
+        <span>{catName}</span>
+        <span style={{fontSize: 13.5, fontWeight: 500, color: PN.MUTED}}>{totali} {totali === 1 ? 'piatto' : 'piatti'}{rows.length !== totali ? ` · ${rows.length} in elenco` : ''}</span>
+      </span>}
+      action={testata}
+      bodyStyle={{padding: '12px 16px 16px'}}
+    >
+      {/* Ricerca + stato: filtri del menù, non dell'intera libreria. */}
+      <div style={{display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap'}}>
+        <div style={{position: 'relative', flex: '1 1 190px', minWidth: 160}}>
+          <span style={{position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center'}}><PnI.Search size={12} color={PN.MUTED}/></span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca nei piatti del menù…" style={{
+            width: '100%', padding: '7px 10px 7px 30px', border: `1px solid ${PN.BORDER}`,
+            borderRadius: 8, fontSize: 14, fontFamily: 'inherit', outline: 'none', background: PN.WHITE,
+          }}/>
+        </div>
+        <div style={{display: 'flex', background: '#F4F5F7', padding: 2, borderRadius: 8, gap: 2}}>
+          {[
+            {id: 'all', label: 'Tutti', count: totali},
+            {id: 'active', label: 'Attivi', count: attivi},
+            {id: 'disabled', label: 'Disattivati', count: disattivati},
+          ].map(s => (
+            <button key={s.id} onClick={() => setStateFilter(s.id)} style={{
+              padding: '5px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              background: stateFilter === s.id ? PN.WHITE : 'transparent',
+              color: stateFilter === s.id ? PN.TEXT : PN.MUTED,
+              boxShadow: stateFilter === s.id ? '0 1px 2px rgba(15,17,21,0.08)' : 'none',
+              fontSize: 13.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5,
+            }}>
+              {s.label}
+              <span style={{fontSize: 12, fontWeight: 700, color: stateFilter === s.id ? PN.MUTED : PN.MUTED_SOFT}}>{s.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Le azioni multiple stanno qui, sotto la ricerca e sopra i piatti a cui
+          si riferiscono, non in cima alla pagina al posto del nome del menù. */}
+      {selection.length > 0 && (
+        <MCBulkBar
+          inline
+          count={selection.length}
+          categorie={altreCategorie}
+          piatti={rows.filter(x => selection.includes(x.dishId) && x.dish).map(x => ({name: x.dish.name, price: x.price}))}
+          onClear={() => { setSelection([]); setSelectMode(false); }}
+          onMove={onBulkMove}
+          onPrice={onBulkPrice}
+          onDelete={onBulkDelete}
+        />
+      )}
+
+      {rows.length === 0 && (
+        <div style={{padding: '30px 18px', textAlign: 'center', color: PN.MUTED, fontSize: 14.5, background: '#FAFBFC', border: `1px dashed ${PN.BORDER}`, borderRadius: 12, marginBottom: 12}}>
+          {totali === 0 ? 'Categoria vuota: aggiungi il primo piatto.' : 'Nessun piatto corrisponde ai filtri.'}
+        </div>
+      )}
+
+      {view === 'grid' ? (
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(164px, 1fr))', gap: 12}}>
+          {rows.map(r => (
+            <MCDishCard
+              key={r.dishId}
+              r={r}
+              selectMode={selectMode}
+              selected={selection.includes(r.dishId)}
+              aperto={detailId === r.dishId}
+              menuAperto={cardMenu === r.dishId}
+              onMenu={() => setCardMenu(m => m === r.dishId ? null : r.dishId)}
+              onCloseMenu={() => setCardMenu(null)}
+              onToggleSel={() => toggleSel(r.dishId)}
+              onOpen={() => setDetailId(r.dishId)}
+              onToggleActive={() => onUpdateItem(catName, r.dishId, {active: !r.active})}
+              editingPrice={editingPrice && editingPrice.dishId === r.dishId}
+              onPriceClick={() => setEditingPrice({catName, dishId: r.dishId})}
+              onPriceCommit={(v) => { onUpdateItem(catName, r.dishId, {price: v}); setEditingPrice(null); }}
+              onPriceCancel={() => setEditingPrice(null)}
+              onRemove={() => onRemoveDish(catName, r.dishId)}
+              inDrag={inDrag(r.dishId)}
+              onDragStart={(e) => { const ids = idsTrascinati(r.dishId); fantasmaPiatto(e, r.dish, ids.length); setDragDish({cat: catName, dishId: r.dishId, idx: r.idx, ids}); }}
+              onDragEnd={() => setDragDish(null)}
+              onDropOn={() => { if (dragDish && dragDish.cat === catName) onReorder(catName, dragDish.idx, r.idx); setDragDish(null); }}
+            />
+          ))}
+          {/* Non è un segnaposto grigio: è l'azione che fa crescere il menù,
+              e si legge nel colore del marchio come «Nuova categoria». */}
+          <button onClick={onOpenPicker} style={{
+            minHeight: 150, borderRadius: 12, border: `1.5px dashed ${PN.PINK_SOFT}`, background: PN.PINK_BG_SOFT,
+            color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7,
+            transition: 'background 150ms ease-out, border-color 150ms ease-out',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_SOFT; e.currentTarget.style.borderColor = PN.PINK; }}
+          onMouseLeave={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.borderColor = PN.PINK_SOFT; }}
+          >
+            <span style={{width: 30, height: 30, borderRadius: '50%', border: `1.5px solid ${PN.PINK}`, display: 'grid', placeItems: 'center'}}><PnI.Plus size={13}/></span>
+            Aggiungi piatto
+          </button>
+        </div>
+      ) : (
+        <div style={{border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow: 'hidden'}}>
+          {rows.map(r => {
+            const sel = selection.includes(r.dishId);
+            const inVolo = inDrag(r.dishId);
+            return (
+              <div key={r.dishId}
+                draggable
+                // Stesso trascinamento della griglia: il fantasma col nome e la
+                // foto, e la riga di partenza che resta lì sbiadita. Prima in
+                // elenco partiva la sagoma di default del browser.
+                onDragStart={(e) => { const ids = idsTrascinati(r.dishId); fantasmaPiatto(e, r.dish, ids.length); setDragDish({cat: catName, dishId: r.dishId, idx: r.idx, ids}); }}
+                onDragEnd={() => setDragDish(null)}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => { if (dragDish && dragDish.cat === catName) onReorder(catName, dragDish.idx, r.idx); setDragDish(null); }}
+                onClick={selectMode ? (e) => { e.stopPropagation(); toggleSel(r.dishId); } : undefined}
+                style={{
+                  display: 'flex', alignItems: 'center',
+                  background: sel ? PN.PINK_SOFT : (detailId === r.dishId ? PN.PINK_BG_SOFT : 'transparent'),
+                  boxShadow: sel ? `inset 4px 0 0 ${PN.PINK}` : 'none',
+                  cursor: selectMode ? 'pointer' : 'default',
+                  opacity: inVolo ? 0.35 : 1,
+                  filter: inVolo ? 'grayscale(0.6)' : 'none',
+                  transition: 'background 160ms ease-out, box-shadow 160ms ease-out, opacity 150ms ease-out',
+                }}
+              >
+                {/* In elenco la spunta è una colonna sua: sulla riga non c'è una
+                    foto su cui appoggiarla come nelle card. Sta sempre lì —
+                    prima bisognava prima accendere la selezione per vederla. */}
+                <button onClick={e => { e.stopPropagation(); toggleSel(r.dishId); }} title={sel ? 'Togli dalla selezione' : 'Seleziona'} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+                  flexShrink: 0, marginLeft: 12, width: 22, height: 22, borderRadius: 6,
+                  border: `1.5px solid ${sel ? PN.PINK : PN.BORDER}`,
+                  background: sel ? PN.PINK : PN.WHITE,
+                  color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center',
+                  transition: 'background 160ms ease-out, border-color 160ms ease-out',
+                }}>{sel && <PnI.Check size={12}/>}</button>
+                <div style={{flex: 1, minWidth: 0, pointerEvents: selectMode ? 'none' : 'auto'}}>
+                  <DishRow
+                    dish={r.dish}
+                    item={r}
+                    selezionato={sel}
+                    onToggleActive={() => onUpdateItem(catName, r.dishId, {active: !r.active})}
+                    onPriceClick={() => setEditingPrice({catName, dishId: r.dishId})}
+                    editingPrice={editingPrice && editingPrice.dishId === r.dishId}
+                    onPriceCommit={(v) => { onUpdateItem(catName, r.dishId, {price: v}); setEditingPrice(null); }}
+                    onPriceCancel={() => setEditingPrice(null)}
+                    onEdit={() => setDetailId(r.dishId)}
+                    onRemove={() => onRemoveDish(catName, r.dishId)}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          <button onClick={onOpenPicker} style={{
+            width: '100%', padding: '12px', border: 'none', borderTop: `1px dashed ${PN.PINK_SOFT}`,
+            background: PN.PINK_BG_SOFT, color: PN.PINK_DARK, fontSize: 14.5, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            transition: 'background 150ms ease-out',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}
+          onMouseLeave={e => e.currentTarget.style.background = PN.PINK_BG_SOFT}
+          ><PnI.Plus size={12}/> Aggiungi piatto</button>
+        </div>
+      )}
+    </MCPanel>
+  );
+}
+
+// ─── Card piatto (vista griglia) ────────────────────────────────────────────
+function MCDishCard({
+  r, selectMode, selected, aperto, menuAperto, onMenu, onCloseMenu,
+  onToggleSel, onOpen, onToggleActive, editingPrice, onPriceClick, onPriceCommit, onPriceCancel,
+  onRemove, onDragStart, onDragEnd, onDropOn, inDrag
+}) {
+  const [hover, setHover] = React.useState(false);
+  const [tmp, setTmp] = React.useState(r.price.toFixed(2).replace('.', ','));
+  React.useEffect(() => { if (editingPrice) setTmp(r.price.toFixed(2).replace('.', ',')); }, [editingPrice]);
+  const mostraCheck = selectMode || selected || hover;
+
+  return (
+    <div
+      draggable
+      onDragStart={e => onDragStart(e)} onDragEnd={onDragEnd}
+      onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); onDropOn(); }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      onClick={() => { if (selectMode) onToggleSel(); else onOpen(); }}
+      style={{
+        position: 'relative', borderRadius: 12, overflow: 'visible', cursor: 'pointer',
+        // Spento vuol dire spento: fondo grigio, non una card bianca appena
+        // sbiadita che in mezzo alle altre non si distingue.
+        background: selected ? PN.PINK_BG_SOFT : (r.active ? PN.WHITE : '#F2F4F6'),
+        border: `1px solid ${selected ? PN.PINK : (aperto ? PN.PINK : PN.BORDER_SOFT)}`,
+        boxShadow: selected
+          ? `0 0 0 3px ${PN.PINK}59, 0 10px 22px -10px rgba(255, 90, 95, 0.55)`
+          : (aperto
+              ? `0 0 0 3px ${PN.PINK}26`
+              : (hover ? PN.CARD_SHADOW_HOVER : PN.CARD_SHADOW)),
+        // La card che si sta portando via lascia il suo posto come una sagoma
+        // tratteggiata: si vede da dove è partita, e la griglia non si richiude
+        // sotto al cursore.
+        opacity: inDrag ? 0.35 : 1,
+        filter: inDrag ? 'grayscale(0.6)' : 'none',
+        transform: selected ? 'translateY(-1px)' : 'none',
+        transition: 'box-shadow 160ms ease-out, border-color 160ms ease-out, background 160ms ease-out, transform 160ms ease-out, opacity 150ms ease-out',
+      }}
+    >
+      <div style={{
+        position: 'relative', aspectRatio: '16/11', background: '#F4F5F7',
+        borderTopLeftRadius: 10, borderTopRightRadius: 10, overflow: 'hidden',
+        filter: r.active ? 'none' : 'grayscale(1)',
+        opacity: r.active ? 1 : 0.5,
+        transition: 'filter 160ms ease-out, opacity 160ms ease-out',
+      }}>
+        {r.dish.photo
+          ? <img src={r.dish.photo} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+          : <div style={{width: '100%', height: '100%', display: 'grid', placeItems: 'center', color: PN.MUTED_SOFT}}><Icon name={CAT_ICON[r.dish.cat] || 'star'} size={26}/></div>}
+
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: `linear-gradient(180deg, rgba(255,90,95,0.34) 0%, rgba(255,90,95,0.16) 100%)`,
+          opacity: selected ? 1 : 0, transition: 'opacity 160ms ease-out',
+        }}/>
+
+        {mostraCheck && (
+          <button onClick={e => { e.stopPropagation(); onToggleSel(); }} title="Seleziona" style={{
+            position: 'absolute', top: 7, left: 7,
+            width: selected ? 25 : 22, height: selected ? 25 : 22, borderRadius: 7,
+            border: `1.5px solid ${selected ? PN.PINK : 'rgba(255,255,255,0.9)'}`,
+            background: selected ? PN.PINK : 'rgba(255,255,255,0.86)',
+            color: '#fff', cursor: 'pointer', display: 'grid', placeItems: 'center',
+            boxShadow: selected ? '0 2px 8px rgba(255,90,95,0.55)' : '0 1px 4px rgba(0,0,0,0.18)',
+            transition: 'width 160ms ease-out, height 160ms ease-out, background 160ms ease-out',
+          }}>{selected && <PnI.Check size={14}/>}</button>
+        )}
+
+        <button onMouseDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); onMenu(); }} title="Altre azioni" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+          position: 'absolute', top: 7, right: 7, width: 24, height: 24, borderRadius: 7,
+          border: 'none', background: 'rgba(255,255,255,0.88)', color: PN.TEXT,
+          cursor: 'pointer', display: 'grid', placeItems: 'center',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+        }}><Puntini size={14}/></button>
+      </div>
+
+      {/* Fuori dal riquadro della foto: lì dentro l'overflow è tagliato e il
+          menù si sarebbe visto a metà. */}
+      {menuAperto && (
+        <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} style={{
+          position: 'absolute', top: 36, right: 6, zIndex: 70, minWidth: 186,
+          background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+          boxShadow: '0 10px 30px rgba(15,17,21,0.16)', padding: 5,
+        }}>
+          <MenuDotItem icon="✎" onClick={() => { onCloseMenu(); onOpen(); }}>Apri dettagli</MenuDotItem>
+          <MenuDotItem icon="€" onClick={() => { onCloseMenu(); onPriceClick(); }}>Modifica prezzo</MenuDotItem>
+          <MenuDotItem icon={r.active ? '⏸' : '▶'} onClick={() => { onCloseMenu(); onToggleActive(); }}>{r.active ? 'Disattiva nel menù' : 'Attiva nel menù'}</MenuDotItem>
+          <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
+          <MenuDotItem icon="🗑" danger onClick={() => { onCloseMenu(); onRemove(); }}>Rimuovi dal menù</MenuDotItem>
+        </div>
+      )}
+
+      <div style={{padding: '9px 11px 11px'}}>
+        <div style={{fontSize: 14.5, fontWeight: 700, color: selected ? PN.PINK_DARK : (r.active ? PN.TEXT : PN.MUTED), lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 160ms ease-out'}}>{r.dish.name}</div>
+
+        <div onClick={e => { e.stopPropagation(); if (!editingPrice) onPriceClick(); }} title="Clicca per modificare il prezzo" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 3, marginTop: 3,
+          padding: editingPrice ? '2px 6px' : '2px 0', borderRadius: 6,
+          border: editingPrice ? `1.5px solid ${PN.PINK}` : '1.5px solid transparent',
+          background: editingPrice ? PN.WHITE : 'transparent', cursor: editingPrice ? 'text' : 'pointer',
+        }}>
+          {editingPrice ? (
+            <>
+              <span style={{fontSize: 14.5, fontWeight: 700, color: PN.MUTED}}>€</span>
+              <input autoFocus value={tmp} onChange={e => setTmp(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') onPriceCommit(parseFloat(tmp.replace(',', '.')) || 0); if (e.key === 'Escape') onPriceCancel(); }}
+                onBlur={() => onPriceCommit(parseFloat(tmp.replace(',', '.')) || 0)}
+                style={{width: 52, fontSize: 14.5, fontWeight: 700, color: PN.TEXT, border: 'none', outline: 'none', fontFamily: 'inherit', background: 'transparent'}}/>
+            </>
+          ) : (
+            <span style={{fontSize: 14.5, fontWeight: 700, color: selected ? PN.PINK_DARK : (r.active ? PN.TEXT : PN.MUTED)}}>{eur(r.price)}</span>
+          )}
+        </div>
+
+        <div style={{display: 'flex', alignItems: 'center', gap: 6, marginTop: 8}}>
+          <div style={{
+            flex: 1, minWidth: 0, display: 'flex', gap: 3, overflow: 'hidden',
+            filter: r.active ? 'none' : 'grayscale(1)', opacity: r.active ? 1 : 0.65,
+          }}>
+            {/* Sopra i quattro si mostra un «+n»: incolonnare i bollini su due
+                righe faceva card di altezze diverse nella stessa griglia. */}
+            {(() => {
+              const tutti = r.dish.allergens || [];
+              const mostrati = tutti.length > 4 ? tutti.slice(0, 3) : tutti;
+              const resto = tutti.length - mostrati.length;
+              return (
+                <>
+                  {mostrati.map(a => <AllergenIcon key={a} id={a} size={22}/>)}
+                  {resto > 0 && (
+                    <span title={`Altri ${resto} allergeni`} style={{
+                      height: 22, minWidth: 22, padding: '0 5px', borderRadius: 999,
+                      background: '#F1F3F5', color: PN.MUTED, fontSize: 11.5, fontWeight: 800,
+                      display: 'inline-grid', placeItems: 'center', flexShrink: 0,
+                    }}>+{resto}</span>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+          <span onClick={e => e.stopPropagation()} style={{flexShrink: 0}}>
+            <ImpToggle checked={r.active} onChange={onToggleActive}/>
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Voce di un menù a tendina (menù, categorie, azioni di card).
+function MenuDotItem({ icon, children, danger, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      display:'flex', alignItems:'center', gap:8, width:'100%',
+      padding:'7px 10px', background:'transparent', border:'none',
+      borderRadius:7, fontSize:14.5, fontFamily:'inherit',
+      color: danger ? '#DC2626' : PN.TEXT,
+      cursor:'pointer', textAlign:'left',
+    }}
+    onMouseEnter={e => e.currentTarget.style.background = danger ? '#FEF2F2' : '#F4F5F7'}
+    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
+      <span style={{display:'inline-flex', alignItems:'center', justifyContent:'center', width:16, flexShrink:0}}>{icon}</span>
+      <span style={{flex:1, minWidth:0}}>{children}</span>
+    </button>
+  );
+}
+
+
+// ─── Colonna 3: dettaglio del piatto ────────────────────────────────────────
+// Stesso contenuto della modale piatto, disposto in quattro schede invece che
+// in sette blocchi contratti: qui il pannello resta aperto accanto alla
+// griglia, e ogni campo va raggiunto senza scorrere tutto il resto.
+const MC_INPUT = {
+  width: '100%', padding: '8px 10px', border: `1px solid ${PN.BORDER}`, borderRadius: 8,
+  fontSize: 14.5, fontFamily: 'inherit', outline: 'none', background: PN.WHITE, color: PN.TEXT,
+};
+
+function MCCampo({ label, children, hint, style, right }) {
+  return (
+    <div style={{marginBottom: 12, ...style}}>
+      {(label || right) && (
+        <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5}}>
+          <label style={{flex: 1, fontSize: 13, fontWeight: 600, color: PN.MUTED}}>{label}</label>
+          {right}
+        </div>
+      )}
+      {children}
+      {hint && <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 5, lineHeight: 1.4}}>{hint}</div>}
+    </div>
+  );
+}
+
+// Campo in euro: il simbolo sta dentro al riquadro, non nell'etichetta —
+// così il valore si legge come un importo anche a colpo d'occhio.
+function MCEuro({ value, onChange, placeholder = '0,00' }) {
+  return (
+    <div style={{position: 'relative'}}>
+      <span style={{
+        position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+        fontSize: 14, fontWeight: 700, color: PN.MUTED, pointerEvents: 'none',
+      }}>€</span>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{...MC_INPUT, paddingLeft: 24, fontWeight: 700}}/>
+    </div>
+  );
+}
+
+function MCSezione({ title, children, style }) {
+  return (
+    <div style={{marginBottom: 16, ...style}}>
+      <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 9}}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+// Azione del piede del dettaglio piatto: bottone vero, non un link in mezzo
+// al bianco. `pericolo` la tinge di rosso — è quella che non si annulla.
+function MCAzionePiede({ icona, children, onClick, pericolo, titolo }) {
+  const [hover, setHover] = React.useState(false);
+  return (
+    <button
+      onClick={onClick} title={titolo}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        padding: '7px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
+        fontSize: 13.5, fontWeight: 600,
+        border: `1px solid ${hover ? (pericolo ? '#FECACA' : PN.BORDER) : PN.BORDER_SOFT}`,
+        background: hover ? (pericolo ? '#FEF2F2' : '#F7F8FA') : PN.WHITE,
+        color: pericolo ? PN.RED : PN.MUTED,
+        transition: 'background 150ms ease-out, border-color 150ms ease-out',
+      }}>
+      <span style={{display: 'inline-flex', flexShrink: 0}}>{icona}</span>
+      {children}
+    </button>
+  );
+}
+
+// Conferma delle azioni del piede: tutte e due tolgono il piatto di mezzo e
+// nessuna parte al primo click. Esce davanti a tutto, non è un riquadro che
+// spunta in fondo al pannello dove nessuno lo vede.
+function MCConfermaModal({ icona, titolo, testo, conferma, pericolo, onAnnulla, onConferma }) {
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onAnnulla(); } };
+    document.addEventListener('keydown', esc, true);
+    return () => document.removeEventListener('keydown', esc, true);
+  }, [onAnnulla]);
+
+  return (
+    <div onClick={onAnnulla} style={{
+      position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,17,21,0.45)',
+      display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{
+        background: PN.WHITE, borderRadius: 14, padding: '22px 22px 18px',
+        width: 390, maxWidth: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.22)',
+        display: 'flex', flexDirection: 'column', gap: 13,
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
+            background: pericolo ? '#FEF2F2' : PN.PINK_BG_SOFT, color: pericolo ? PN.RED : PN.PINK_DARK,
+          }}>{icona}</div>
+          <div style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.3}}>{titolo}</div>
+        </div>
+        <div style={{fontSize: 15, color: PN.MUTED, lineHeight: 1.5}}>{testo}</div>
+        <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onAnnulla} style={{padding: '9px 15px', fontSize: 14.5}}>Annulla</ImpButton>
+          <ImpButton variant={pericolo ? 'danger' : 'pink'} onClick={onConferma} style={{padding: '9px 15px', fontSize: 14.5}}>{conferma}</ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Scheda del dettaglio piatto: pastiglia con l'icona, titolo, una riga che
+// spiega a cosa serve. È il contenitore delle sezioni lunghe — quelle brevi
+// continuano a stare sotto la loro etichetta maiuscola (MCSezione).
+function MCScheda({ icona, titolo, sub, children }) {
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 14,
+      padding: '16px 18px 18px',
+    }}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 10, marginBottom: sub ? 6 : 14}}>
+        <span style={{
+          width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+          background: PN.PINK_BG_SOFT, color: PN.PINK,
+          display: 'grid', placeItems: 'center',
+        }}>{icona}</span>
+        <span style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>{titolo}</span>
+      </div>
+      {sub && <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45, marginBottom: 14}}>{sub}</div>}
+      {children}
+    </section>
+  );
+}
+
+function MCDettagliPiatto({
+  dish, item, catName, menuName, categorie,
+  onClose, onSaveDish, onUpdateItem, onRemoveFromMenu, onDeleteFromLibrary, onMoveCat,
+}) {
+  const [tab, setTab] = React.useState('info');
+  const [name, setName] = React.useState(dish.name || '');
+  const [desc, setDesc] = React.useState(dish.desc || '');
+  const [photos, setPhotos] = React.useState(dish.photos || [true]);
+  const [foodCost, setFoodCost] = React.useState(dish.foodCost ? String(dish.foodCost.toFixed(2)).replace('.', ',') : '');
+  const [allergens, setAllergens] = React.useState(dish.allergens || []);
+  const [ingredients, setIngredients] = React.useState(dish.ingredients || []);
+  const [extras, setExtras] = React.useState(dish.extras || []);
+  const [variants, setVariants] = React.useState(dish.variants || []);
+  const [recipeSteps, setRecipeSteps] = React.useState(dish.recipeSteps || ['']);
+  const [dietaryTags, setDietaryTags] = React.useState(() =>
+    (dish.dietaryTags || []).map(t => typeof t === 'string' ? {name: t, surcharge: ''} : t));
+  const [prodottoFinito, setProdottoFinito] = React.useState(dish.prodottoFinito || false);
+  const [hasAlcohol, setHasAlcohol] = React.useState(dish.hasAlcohol || false);
+  const [hasFrozen, setHasFrozen] = React.useState(dish.hasFrozen || false);
+  const [tipOpen, setTipOpen] = React.useState(null);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  // Quale conferma è aperta: 'menu' (togli da questo menù) o 'libreria' (via da tutti).
+  const [conferma, setConferma] = React.useState(null);
+
+  // Dati che vivono nel MENÙ, non nella libreria: prezzo e disponibilità. Il
+  // prezzo è uno solo, ovunque. I canali qui non si toccano più, ma vanno
+  // riscritti tali e quali al salvataggio: chi li ha già ristretti non se li
+  // vede tornare tutti accesi.
+  const [prezzo, setPrezzo] = React.useState(item.price.toFixed(2).replace('.', ','));
+  const [attivo, setAttivo] = React.useState(!!item.active);
+  const canali = canaliDi(item);
+
+  React.useEffect(() => {
+    if (!tipOpen) return;
+    const chiudi = () => setTipOpen(null);
+    document.addEventListener('click', chiudi);
+    return () => document.removeEventListener('click', chiudi);
+  }, [tipOpen]);
+
+  const ingredientAllergens = React.useMemo(() => {
+    const s = new Set();
+    ingredients.forEach(ing => (ing.allergens || []).forEach(a => s.add(a)));
+    return s;
+  }, [ingredients]);
+  const effectiveAllergens = React.useMemo(
+    () => Array.from(new Set([...allergens, ...ingredientAllergens])), [allergens, ingredientAllergens]);
+
+  const toggleAllergen = (id) => {
+    if (ingredientAllergens.has(id) && !allergens.includes(id)) return;
+    setAllergens(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  };
+  const toggleTag = (t) => setDietaryTags(s => s.some(x => x.name === t) ? s.filter(x => x.name !== t) : [...s, {name: t, surcharge: ''}]);
+  const setTagSurcharge = (t, v) => setDietaryTags(s => s.map(x => x.name === t ? {...x, surcharge: v} : x));
+
+  const scriviConAi = () => {
+    if (!name.trim()) return;
+    setAiLoading(true);
+    setTimeout(() => {
+      setDesc('Pane casereccio tostato, pomodoro fresco, basilico, aglio, olio EVO.');
+      setAiLoading(false);
+    }, 1100);
+  };
+
+  const salva = () => {
+    if (!name.trim()) { alert('Inserisci il nome del piatto'); return; }
+    onSaveDish({
+      id: dish.id, name: name.trim(), desc: desc.trim(), cat: dish.cat,
+      allergens: effectiveAllergens,
+      foodCost: foodCost ? parseFloat(String(foodCost).replace(',', '.')) : null,
+      prodottoFinito, hasAlcohol, hasFrozen, recipeSteps,
+      ingredients, extras, variants, dietaryTags, photos,
+    });
+    onUpdateItem({
+      price: parseFloat(String(prezzo).replace(',', '.')) || 0,
+      active: attivo, channels: canali,
+    });
+  };
+
+  const TABS = [
+    {id: 'info',      l: 'Informazioni'},
+    {id: 'allergeni', l: 'Ingredienti e Allergeni'},
+    {id: 'avanzate',  l: 'Avanzate'},
+  ];
+
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 14,
+      boxShadow: PN.CARD_SHADOW, overflow: 'hidden', flexShrink: 0,
+    }}>
+      {/* Testata */}
+      <div style={{padding: '13px 14px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 9}}>
+        <div style={{flex: 1, minWidth: 0, fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Dettagli piatto</div>
+        <button onClick={onClose} title="Chiudi" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+          width: 26, height: 26, borderRadius: 7, border: 'none', background: 'transparent',
+          color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        ><PnI.X size={13}/></button>
+      </div>
+
+      {/* Identità */}
+      <div style={{padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 11}}>
+        <DishThumb dish={dish} size={52}/>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{name || dish.name}</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2}}>{catName}</div>
+        </div>
+        {/* La pastiglia ATTIVO/OFF diceva soltanto com'era: qui c'è
+            l'interruttore, così si cambia dove sta scritto. */}
+        <div style={{flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 9}}>
+          <span style={{fontSize: 13.5, fontWeight: 600, color: attivo ? PN.TEXT : PN.MUTED}}>Visibile agli utenti</span>
+          <ImpToggle checked={attivo} onChange={setAttivo}/>
+        </div>
+      </div>
+
+      {/* Schede: si dividono tutta la larghezza del pannello invece di
+          stringersi in un angolo. Sottolineatura rosa come le altre sezioni
+          del gestionale — le pillole restano ai filtri. */}
+      <div style={{display: 'flex', padding: '0 14px', borderBottom: `1px solid ${PN.BORDER_SOFT}`}}>
+        {TABS.map(t => {
+          const on = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              flex: 1, minWidth: 0, padding: '14px 8px 13px', marginBottom: -1,
+              background: 'transparent', border: 'none',
+              borderBottom: `2.5px solid ${on ? PN.PINK : 'transparent'}`,
+              color: on ? PN.PINK_DARK : PN.MUTED,
+              fontSize: 15, fontWeight: on ? 700 : 600, letterSpacing: -0.1,
+              cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+              transition: 'color 150ms ease-out, border-color 150ms ease-out',
+            }}
+            onMouseEnter={e => { if (!on) e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { if (!on) e.currentTarget.style.color = PN.MUTED; }}
+            >{t.l}</button>
+          );
+        })}
+      </div>
+
+      <div style={{padding: '14px'}}>
+        {/* ── INFORMAZIONI ───────────────────────────────────────────── */}
+        {tab === 'info' && (
+          <div>
+            <MCCampo label="Nome piatto" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{name.length}/80</span>}>
+              <input value={name} maxLength={80} onChange={e => setName(e.target.value)} style={MC_INPUT}/>
+            </MCCampo>
+
+            <MCCampo label="Descrizione breve" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{desc.length}/160</span>}>
+              <textarea value={desc} maxLength={160} rows={3} onChange={e => setDesc(e.target.value)}
+                style={{...MC_INPUT, resize: 'none', lineHeight: 1.45}}/>
+            </MCCampo>
+
+            <button onClick={scriviConAi} disabled={aiLoading || !name.trim()} style={{
+              width: '100%', marginBottom: 14, padding: '9px 12px', borderRadius: 9,
+              border: `1.5px dashed ${name.trim() ? PN.PINK : '#E3E6EA'}`,
+              background: name.trim() ? PN.PINK_BG_SOFT : '#F7F8FA',
+              color: name.trim() ? PN.PINK_DARK : PN.MUTED_SOFT,
+              fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+              cursor: (aiLoading || !name.trim()) ? 'default' : 'pointer',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              transition: 'background 150ms ease-out',
+            }}>
+              {aiLoading ? <>⏳ Sto scrivendo…</> : <><BuAiSparkle size={12} color={name.trim() ? PN.PINK_DARK : PN.MUTED_SOFT}/> Scrivi descrizione con AI</>}
+            </button>
+
+            {/* Le dichiarazioni stanno con quello che descrive il piatto, non
+                in fondo dopo prezzo e foto: sono la sua carta d'identità e
+                decidono l'IVA. */}
+            <MCSezione title="Dichiarazioni">
+              <div style={{display: 'flex', flexWrap: 'wrap', gap: 7}}>
+                <DishFlag checked={prodottoFinito} onChange={() => setProdottoFinito(v => !v)}
+                  label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
+                  info={{id: 'finito', open: tipOpen, setOpen: setTipOpen, text: "Venduto sigillato, così come arriva. Es. acqua in bottiglietta, birra in lattina, snack confezionati. IVA 22% sull'asporto anziché 10%."}}/>
+                <DishFlag checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
+                  label="Contiene alcolici" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
+                  info={{id: 'alcol', open: tipOpen, setOpen: setTipOpen, text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. IVA 22% sull'asporto e vendita vietata ai minori."}}/>
+                <DishFlag checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
+                  label="Contiene alimenti surgelati" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"/>
+              </div>
+            </MCSezione>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10}}>
+              <MCCampo label="Prezzo di vendita">
+                <MCEuro value={prezzo} onChange={setPrezzo}/>
+              </MCCampo>
+              <MCCampo label="Costo piatto (food cost)">
+                <MCEuro value={foodCost} onChange={setFoodCost}/>
+              </MCCampo>
+            </div>
+
+            <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7}}>
+                {[0, 1, 2].map(i => {
+                  const piena = i < photos.length;
+                  const libera = i === photos.length;
+                  return piena ? (
+                    <div key={i} style={{position: 'relative', borderRadius: 9, overflow: 'hidden', aspectRatio: '4/3', background: PHOTO_MOCK_BG[i % PHOTO_MOCK_BG.length]}}>
+                      <img src={i === 0 && dish.photo ? dish.photo : PHOTO_MOCK_IMGS[i % PHOTO_MOCK_IMGS.length]} alt="" loading="lazy"
+                        style={{position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+                      <button onClick={() => setPhotos(ps => ps.filter((_, idx) => idx !== i))} aria-label={`Rimuovi foto ${i + 1}`} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+                        position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff', fontSize: 11,
+                        cursor: 'pointer', display: 'grid', placeItems: 'center',
+                      }}>✕</button>
+                    </div>
+                  ) : (
+                    <button key={i} onClick={() => libera && setPhotos(ps => ps.length < 3 ? [...ps, true] : ps)} disabled={!libera} aria-label="Aggiungi foto" style={{
+                      aspectRatio: '4/3', borderRadius: 9, border: `1.5px dashed ${PN.BORDER}`, background: '#F4F5F7',
+                      cursor: libera ? 'pointer' : 'default', opacity: libera ? 1 : 0.55,
+                      display: 'grid', placeItems: 'center', color: PN.MUTED, fontSize: 18, fontFamily: 'inherit',
+                    }}>+</button>
+                  );
+                })}
+              </div>
+            </MCCampo>
+
+          </div>
+        )}
+
+        {/* ── AVANZATE ───────────────────────────────────────────────── */}
+        {tab === 'avanzate' && (
+          <div>
+            <MCSezione title="Varianti">
+              <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 9}}>
+                Scelte tra cui il cliente seleziona un'opzione (es. <em>Cottura: al sangue / ben cotta</em>).
+              </div>
+              <VariantsList variants={variants} setVariants={setVariants} hideAddButton/>
+              <button onClick={() => setVariants(arr => [...arr, {name: '', options: [''], required: true}])} style={{
+                marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
+                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>+ Crea nuova variante</button>
+            </MCSezione>
+
+            <MCSezione title="Aggiunte a pagamento">
+              <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 9}}>
+                Extra che il cliente può aggiungere (es. tartufo, doppia mozzarella). Con <strong style={{color: PN.TEXT}}>max</strong> limiti quante volte può ripeterla.
+              </div>
+              <ExtrasList extras={extras} setExtras={setExtras}/>
+            </MCSezione>
+
+            <MCSezione title="Disponibile anche in versione">
+              <div style={{display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: dietaryTags.length ? 10 : 0}}>
+                {[
+                  {name: 'Vegana', glyph: '🌱'}, {name: 'Senza glutine', glyph: '🌾'}, {name: 'Vegetariana', glyph: '🥬'},
+                  {name: 'Senza lattosio', glyph: '🥛'}, {name: 'Crudo', glyph: '🍣'}, {name: 'Bio', glyph: 'BIO'},
+                  {name: 'Halal', glyph: '☪️'}, {name: 'Kosher', glyph: '✡️'}, {name: 'Parve', glyph: 'Ⓟ'},
+                ].map(({name: t, glyph}) => {
+                  const on = dietaryTags.some(x => x.name === t);
+                  return (
+                    <label key={t} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '6px 10px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                      border: on ? `1.5px solid ${PN.PINK}` : `1px solid ${PN.BORDER_SOFT}`,
+                      background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                      color: on ? PN.PINK_DARK : PN.TEXT, cursor: 'pointer', userSelect: 'none',
+                    }}>
+                      <input type="checkbox" checked={on} onChange={() => toggleTag(t)} style={{margin: 0, accentColor: PN.PINK, width: 14, height: 14}}/>
+                      <span style={{fontSize: glyph === 'BIO' ? 9.5 : 13, fontWeight: glyph === 'BIO' ? 800 : 400, color: glyph === 'BIO' ? '#16A34A' : undefined}}>{glyph}</span>
+                      {t}
+                    </label>
+                  );
+                })}
+              </div>
+              {dietaryTags.length > 0 && (
+                <div style={{background: '#F8FAFC', borderRadius: 9, padding: '9px 10px', border: `1px solid ${PN.BORDER_SOFT}`}}>
+                  <div style={{fontSize: 11.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 7}}>Sovrapprezzo per versione (opzionale)</div>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: 5}}>
+                    {dietaryTags.map(t => (
+                      <div key={t.name} style={{display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', background: '#fff', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 7}}>
+                        <span style={{flex: 1, minWidth: 0, fontSize: 13.5, color: PN.TEXT, fontWeight: 600}}>{t.name}</span>
+                        <span style={{fontSize: 13, color: PN.MUTED, fontWeight: 600}}>+€</span>
+                        <input value={t.surcharge} onChange={e => setTagSurcharge(t.name, e.target.value.replace(/[^0-9,.]/g, ''))} placeholder="0,00"
+                          style={{width: 56, padding: '4px 7px', border: `1px solid ${PN.BORDER}`, borderRadius: 6, fontSize: 14, fontFamily: 'inherit', textAlign: 'right', outline: 'none'}}/>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </MCSezione>
+
+            {/* La ricetta è roba di cucina, non del listino: sta qui con le
+                varianti e le versioni, non in mezzo a nome, prezzo e foto. */}
+            <MCSezione title="Ricetta · procedimento" style={{marginBottom: 0}}>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 6}}>
+                {recipeSteps.map((step, i) => (
+                  <div key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 7}}>
+                    <span style={{flexShrink: 0, width: 21, height: 21, borderRadius: '50%', background: PN.PINK_SOFT, color: PN.PINK_DARK, fontSize: 12.5, fontWeight: 800, display: 'grid', placeItems: 'center', marginTop: 6}}>{i + 1}</span>
+                    <textarea value={step} rows={1} placeholder={`Passo ${i + 1}…`}
+                      onChange={e => setRecipeSteps(s => s.map((x, idx) => idx === i ? e.target.value : x))}
+                      style={{...MC_INPUT, resize: 'none', lineHeight: 1.45, background: step ? PN.WHITE : '#FAFBFC'}}/>
+                    {recipeSteps.length > 1 && (
+                      <button onClick={() => setRecipeSteps(s => s.filter((_, idx) => idx !== i))} aria-label={`Rimuovi passo ${i + 1}`} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+                        flexShrink: 0, width: 26, height: 26, marginTop: 4, background: PN.WHITE,
+                        border: '1px solid #FECACA', borderRadius: 7, cursor: 'pointer', color: PN.RED,
+                        display: 'grid', placeItems: 'center',
+                      }}><PnI.Trash size={11}/></button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setRecipeSteps(s => [...s, ''])} style={{
+                marginTop: 9, padding: '7px 12px', borderRadius: 8, background: PN.PINK_BG_SOFT,
+                border: `1.5px solid ${PN.PINK_SOFT}`, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 700,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>+ Aggiungi passo</button>
+            </MCSezione>
+          </div>
+        )}
+
+        {/* ── INGREDIENTI E ALLERGENI ────────────────────────────────── */}
+        {tab === 'allergeni' && (
+          <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+            <MCScheda
+              icona={<PnI.Alert size={15}/>}
+              titolo="Allergeni del piatto"
+              sub="Gli allergeni indicati vengono calcolati anche in base agli ingredienti associati al piatto."
+            >
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10}}>
+                {ALLERGENS.map(a => {
+                  // Un allergene che arriva da un ingrediente non si toglie da
+                  // qui: si toglie l'ingrediente. Resta acceso e non cliccabile.
+                  const daIngrediente = ingredientAllergens.has(a.id);
+                  const aMano = allergens.includes(a.id);
+                  const on = daIngrediente || aMano;
+                  const bloccato = daIngrediente && !aMano;
+                  return (
+                    <button key={a.id} onClick={() => toggleAllergen(a.id)} disabled={bloccato}
+                      title={bloccato ? 'Arriva da un ingrediente del piatto' : (on ? `Togli ${a.name}` : `Segna ${a.name}`)}
+                      style={{
+                        position: 'relative', padding: '14px 6px 11px', borderRadius: 12,
+                        border: `1.5px solid ${on ? PN.PINK : PN.BORDER_SOFT}`,
+                        background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                        color: on ? PN.PINK_DARK : PN.MUTED,
+                        cursor: bloccato ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                        fontSize: 13, fontWeight: on ? 700 : 600,
+                        transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                      }}>
+                      <AllergenIcon id={a.id} size={26}/>
+                      <span style={{lineHeight: 1.2, textAlign: 'center'}}>{a.name}</span>
+                      {on && (
+                        <span style={{
+                          position: 'absolute', top: -7, right: -7, width: 21, height: 21, borderRadius: '50%',
+                          background: PN.PINK, color: '#fff', display: 'grid', placeItems: 'center',
+                          boxShadow: '0 2px 6px rgba(255,90,95,0.35)',
+                        }}><PnI.Check size={11}/></span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </MCScheda>
+
+            <MCScheda
+              icona={<Icon name="food-salad" size={15}/>}
+              titolo="Ingredienti del piatto"
+              sub="Gestisci gli ingredienti, assegna i relativi allergeni e scegli se il cliente può rimuoverli in fase d'ordine."
+            >
+              <IngredientList ingredients={ingredients} setIngredients={setIngredients}/>
+            </MCScheda>
+
+            <MCScheda icona={<PnI.Stats size={15}/>} titolo="Valori nutrizionali" sub="Per porzione, stimati sugli ingredienti.">
+              <NutritionFields/>
+            </MCScheda>
+          </div>
+        )}
+
+      </div>
+
+      {/* Piede */}
+      <div style={{padding: '11px 14px', borderTop: `1px solid ${PN.BORDER_SOFT}`, background: '#FCFCFD'}}>
+        <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onClose} style={{padding: '8px 14px', fontSize: 14}}>Annulla</ImpButton>
+          <ImpButton variant="pink" onClick={salva} style={{padding: '8px 14px', fontSize: 14}}>Salva modifiche</ImpButton>
+        </div>
+        {/* Due azioni diverse, non due link buttati agli angoli: togliere il
+            piatto da questo menù lo lascia in libreria, eliminarlo lo toglie
+            da tutti. Stessa forma, colore diverso — quella rossa è l'unica
+            che non si può annullare. */}
+        <div style={{display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap'}}>
+          <MCAzionePiede
+            icona={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="8" y1="12" x2="16" y2="12"/></svg>}
+            onClick={() => setConferma('menu')}
+            titolo="Resta nella libreria, sparisce da questo menù"
+          >Rimuovi dal menù</MCAzionePiede>
+          <MCAzionePiede
+            icona={<PnI.Trash size={12}/>}
+            onClick={() => setConferma('libreria')}
+            pericolo
+            titolo="Sparisce dalla libreria e da tutti i menù"
+          >Elimina dalla libreria</MCAzionePiede>
+        </div>
+      </div>
+
+      {conferma === 'menu' && (
+        <MCConfermaModal
+          icona={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="8" y1="12" x2="16" y2="12"/></svg>}
+          titolo={`Togliere «${name || dish.name}» dal menù?`}
+          testo={<>Sparisce da <strong style={{color: PN.TEXT}}>{menuName || 'questo menù'}</strong> ma resta nella libreria piatti: puoi rimetterlo quando vuoi.</>}
+          conferma="Sì, rimuovi"
+          onAnnulla={() => setConferma(null)}
+          onConferma={() => { setConferma(null); onRemoveFromMenu(); }}
+        />
+      )}
+
+      {conferma === 'libreria' && (
+        <MCConfermaModal
+          pericolo
+          icona={<PnI.Trash size={16}/>}
+          titolo={`Eliminare «${name || dish.name}»?`}
+          testo={<>Il piatto sarà eliminato dalla libreria e <strong style={{color: PN.TEXT}}>tolto da tutti i menù</strong> in cui si trova. Non si può annullare.</>}
+          conferma="Sì, elimina"
+          onAnnulla={() => setConferma(null)}
+          onConferma={() => { setConferma(null); onDeleteFromLibrary(); }}
+        />
+      )}
+    </section>
+  );
+}
+
+// ─── Anteprima: il menù come lo vede il cliente nell'app byup ───────────────
+// Non è un'idea di come potrebbe essere: è la schermata Menu dell'app
+// (app/menu.jsx) rifatta uguale — stessa palette, stessa banda di categoria
+// col numero-capitolo e l'illustrazione, stesse card 130px di foto a
+// sinistra. Il contenuto è disegnato alla larghezza di design dell'app (390px)
+// e rimpicciolito con `zoom`: le proporzioni restano quelle vere invece di
+// essere reinventate in piccolo, e quello che si vede qui è quello che il
+// cliente vedrà davvero.
+const APP = {
+  PINK: '#E32459', PINK_DARK: '#B81C47', WINE: '#8B1A3A',
+  TEXT: '#1c0f15', MUTED: '#6d5a61', BORDER: '#eddfda',
+  BG: '#FBF4F1', SURF: '#fff', TINT: '#f6f1ea', BADGE: '#7a1c3e',
+};
+const APP_FONT = "'Hanken Grotesk', -apple-system, 'SF Pro Text', system-ui, sans-serif";
+
+// Le illustrazioni di categoria sono quelle dell'app, con la loro tinta.
+// Le categorie del gestionale sono libere: quelle che non hanno un disegno
+// dedicato ricadono sull'aperitivo, come fa l'app stessa.
+const APP_CAT_ART = {
+  'Antipasti': ['cat-aperitivo.png', '#fae3de'],
+  'Primi':     ['icon-pasta.png',    '#FCE9EE'],
+  'Secondi':   ['cat-burger.png',    '#FEF0E3'],
+  'Contorni':  ['cat-poke.png',      '#EDF4E7'],
+  'Dolci':     ['icon-donut.png',    '#F9E3EE'],
+  'Bevande':   ['icon-coffee.png',   '#f4e5ef'],
+  'Pizze':     ['cat-pizza.png',     '#FEF0E3'],
+  'Panini':    ['cat-panini.png',    '#FEF0E3'],
+  'Vini':      ['cat-vino.png',      '#f4e5ef'],
+  'Birre':     ['cat-birra.png',     '#FDF3E0'],
+  'Dessert':   ['cat-torta.png',     '#F9E3EE'],
+};
+const appCatArt = (n) => APP_CAT_ART[n] || ['cat-aperitivo.png', '#fae3de'];
+
+// Banda di categoria dell'app: numero-capitolo fantasma, illustrazione,
+// «Sezione n/tot» coi pallini, titolo in Fredoka, sottolineatura brand.
+// Senza IntersectionObserver — qui è sempre a schermo.
+function AppCatBand({ name, count, index, total }) {
+  const [img, tint] = appCatArt(name);
+  return (
+    <div style={{
+      margin: '32px -18px 18px', padding: '24px 18px 20px', position: 'relative', overflow: 'hidden',
+      background: `linear-gradient(115deg, ${tint} 0%, rgba(255,255,255,0) 82%)`,
+    }}>
+      <div aria-hidden style={{
+        position: 'absolute', left: 8, top: -20, fontFamily: "'Fredoka', sans-serif",
+        fontSize: 104, fontWeight: 600, lineHeight: 1, color: APP.PINK, letterSpacing: -5,
+        opacity: 0.09, pointerEvents: 'none',
+      }}>{String(index + 1).padStart(2, '0')}</div>
+
+      <img src={`../app/assets/${img}`} width="82" alt="" aria-hidden style={{
+        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%) rotate(8deg)',
+        filter: 'drop-shadow(0 10px 16px rgba(77,18,46,.18))', pointerEvents: 'none', zIndex: 1,
+      }}/>
+
+      <div style={{position: 'relative', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7}}>
+        <span style={{fontSize: 10.5, fontWeight: 800, color: APP.PINK, letterSpacing: 1.2, textTransform: 'uppercase'}}>
+          Sezione {index + 1}<span style={{color: APP.MUTED, fontWeight: 700}}>/{total}</span>
+        </span>
+        <div style={{display: 'flex', gap: 4, alignItems: 'center'}}>
+          {Array.from({length: total}).map((_, i) => (
+            <div key={i} style={{
+              width: i === index ? 16 : 5, height: 5, borderRadius: 999,
+              background: i === index ? APP.PINK : (i < index ? '#e79fb4' : '#e6d2d9'),
+            }}/>
+          ))}
+        </div>
+      </div>
+
+      <div style={{position: 'relative', fontFamily: "'Fredoka', sans-serif", fontSize: 27, fontWeight: 600, color: APP.TEXT, lineHeight: 1.05}}>{name}</div>
+      <div style={{position: 'relative', fontSize: 11.5, color: APP.MUTED, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, marginTop: 5}}>
+        {count} {count === 1 ? 'piatto' : 'piatti'} · scorri e gusta
+      </div>
+      <div aria-hidden style={{
+        height: 3, width: 48, borderRadius: 999, marginTop: 11,
+        background: `linear-gradient(90deg, ${APP.PINK}, ${APP.PINK_DARK})`,
+      }}/>
+    </div>
+  );
+}
+
+// Card piatto dell'app: 166px d'altezza, foto 130px a sinistra, nome, due
+// righe di descrizione, i bollini degli allergeni, prezzo e il tondo «+».
+function AppDishCard({ r, prezzo, evidenziato }) {
+  const badges = [];
+  if (r.highlight) badges.push(['★ TOP', APP.BADGE]);
+  if (r.isNew) badges.push(['NUOVO', APP.WINE]);
+  return (
+    <div style={{
+      background: APP.SURF, borderRadius: 18, padding: 14, height: 166, overflow: 'hidden',
+      display: 'flex', gap: 14,
+      border: '1.5px solid transparent',
+      boxShadow: evidenziato
+        ? `0 0 0 2.5px ${APP.WINE}, 0 8px 24px rgba(90,26,46,0.25)`
+        : '0 1px 4px rgba(0,0,0,0.05)',
+      transition: 'box-shadow .3s ease',
+    }}>
+      <div style={{width: 130, height: '100%', borderRadius: 14, overflow: 'hidden', background: '#eee', flexShrink: 0, position: 'relative'}}>
+        {r.dish.photo
+          ? <img src={r.dish.photo} alt="" loading="lazy" style={{width: '100%', height: '100%', objectFit: 'cover', display: 'block'}}/>
+          : <div style={{width: '100%', height: '100%', background: APP.TINT, display: 'grid', placeItems: 'center', color: APP.MUTED}}>
+              <Icon name={CAT_ICON[r.dish.cat] || 'star'} size={34}/>
+            </div>}
+        {badges.length > 0 && (
+          <div style={{position: 'absolute', top: 8, left: 8, right: 8, display: 'flex', flexWrap: 'wrap', gap: 5}}>
+            {badges.map(([t, bg]) => (
+              <span key={t} style={{
+                fontSize: 10, fontWeight: 700, color: '#fff', background: bg,
+                padding: '3px 8px', borderRadius: 999, letterSpacing: 0.4,
+                textTransform: 'uppercase', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+              }}>{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column'}}>
+        <div style={{fontSize: 16, fontWeight: 700, color: APP.TEXT, lineHeight: 1.25, letterSpacing: -0.2, marginBottom: 5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{r.dish.name}</div>
+        <div style={{fontSize: 13, color: APP.MUTED, lineHeight: 1.45, flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: 10}}>
+          {r.dish.desc}
+        </div>
+        {(r.dish.allergens || []).length > 0 && (
+          <div style={{display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10}}>
+            {r.dish.allergens.slice(0, 5).map(a => <AllergenIcon key={a} id={a} size={22}/>)}
+          </div>
+        )}
+        <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10}}>
+          <div style={{fontSize: 16, fontWeight: 800, color: APP.TEXT, flexShrink: 0}}>
+            {Number(prezzo || 0).toFixed(2).replace('.', ',')}€
+          </div>
+          <div style={{
+            width: 32, height: 32, borderRadius: 999, background: APP.WINE, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(90,26,46,0.25)',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MCAnteprimaMenu({ menu, library, catName, evidenzia, maxW = 272, onClose }) {
+  // Quella ricostruita qui è la schermata Menu della Byup App: il canale è il
+  // tavolo (QR), non uno da scegliere. Cassa e delivery hanno interfacce loro.
+  const canale = 'qr';
+  const boxRef = React.useRef(null);
+  const scrollRef = React.useRef(null);
+  const [w, setW] = React.useState(288);
+
+  React.useEffect(() => {
+    const el = boxRef.current; if (!el) return;
+    const m = () => { if (el.offsetWidth) setW(el.offsetWidth); };
+    m();
+    if (!window.ResizeObserver) return;
+    const ro = new ResizeObserver(m); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const k = (w - 14) / 390;   // scocca 3+3 + cornice 4+4
+
+  const cats = (menu ? menu.categories : []).map(c => ({
+    name: c.name,
+    rows: c.items
+      .map(it => ({...it, dish: library.find(d => d.id === it.dishId)}))
+      .filter(r => r.dish && r.active && canaliDi(r).includes(canale)),
+  })).filter(c => c.rows.length > 0);
+
+  const visibili = cats.reduce((s, c) => s + c.rows.length, 0);
+  const inMenu = (menu ? menu.categories : []).reduce((s, c) => s + c.items.length, 0);
+
+  // L'anteprima segue il lavoro: cambiando categoria a sinistra, il telefono
+  // si porta sulla sezione corrispondente.
+  React.useEffect(() => {
+    const root = scrollRef.current; if (!root || !catName) return;
+    const el = root.querySelector(`[data-app-cat="${CSS.escape ? CSS.escape(catName) : catName}"]`);
+    if (!el) return;
+    // I rect sono px visivi (il frame del gestionale ha uno zoom), scrollTop è
+    // px di layout dello scroller: il delta va riportato in scala.
+    const frame = root.closest('.frame');
+    const z = frame ? (parseFloat(getComputedStyle(frame).zoom) || 1) : 1;
+    const delta = (el.getBoundingClientRect().top - root.getBoundingClientRect().top) / z;
+    root.scrollTo({top: Math.max(0, root.scrollTop + delta - 6), behavior: 'smooth'});
+  }, [catName, canale, evidenzia, k]);
+
+  return (
+    <section style={{
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 14,
+      boxShadow: PN.CARD_SHADOW, overflow: 'hidden', flexShrink: 0,
+    }}>
+      <div style={{padding: '13px 14px', borderBottom: `1px solid ${PN.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 9}}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Anteprima menù</div>
+          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Come lo vede il cliente</div>
+        </div>
+        {onClose && (
+          <button onClick={onClose} aria-label="Chiudi anteprima" style={{
+            padding: 0, width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+            border: `1px solid ${PN.BORDER}`, background: PN.WHITE, color: PN.MUTED,
+            cursor: 'pointer', display: 'grid', placeItems: 'center',
+            transition: 'background 150ms ease-out',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#F4F5F7'}
+          onMouseLeave={e => e.currentTarget.style.background = PN.WHITE}
+          ><PnI.X size={13}/></button>
+        )}
+      </div>
+
+      <div style={{padding: '14px 14px 16px', display: 'grid', placeItems: 'center', background: 'linear-gradient(180deg, #FAFBFC 0%, #FFFFFF 100%)'}}>
+        <div ref={boxRef} style={{
+          width: '100%', maxWidth: maxW, aspectRatio: '9/19.4', position: 'relative',
+          borderRadius: Math.round(w * 0.155), padding: 3,
+          background: 'linear-gradient(150deg, #43464D 0%, #1B1D22 42%, #303338 100%)',
+          boxShadow: '0 18px 40px -16px rgba(15,17,21,0.40), inset 0 0 0 1px rgba(255,255,255,0.15)',
+        }}>
+          <span aria-hidden style={{position: 'absolute', left: -2, top: '15%', width: 3, height: 22, borderRadius: 3, background: '#2A2D33'}}/>
+          <span aria-hidden style={{position: 'absolute', left: -2, top: '21%', width: 3, height: 38, borderRadius: 3, background: '#2A2D33'}}/>
+          <span aria-hidden style={{position: 'absolute', right: -2, top: '18%', width: 3, height: 52, borderRadius: 3, background: '#2A2D33'}}/>
+
+          <div style={{width: '100%', height: '100%', background: '#0B0C0E', borderRadius: Math.round(w * 0.145), padding: 4}}>
+            <div style={{
+              width: '100%', height: '100%', borderRadius: Math.round(w * 0.125),
+              overflow: 'hidden', position: 'relative', background: APP.BG,
+              fontFamily: APP_FONT, color: APP.TEXT,
+              display: 'flex', flexDirection: 'column',
+            }}>
+
+              {/* Testata dell'app: non scorre, come nel Menu vero */}
+              <div style={{zoom: k, width: 390, flexShrink: 0, background: APP.BG, position: 'relative', zIndex: 5}}>
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 26px 0', fontSize: 14, fontWeight: 700}}>
+                  <span>9:41</span>
+                  <span style={{display: 'inline-flex', alignItems: 'center', gap: 5}}>
+                    <svg width="16" height="11" viewBox="0 0 16 11" fill={APP.TEXT}><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.3" y="5" width="3" height="6" rx="1"/><rect x="8.6" y="2.6" width="3" height="8.4" rx="1"/><rect x="12.9" y="0" width="3" height="11" rx="1"/></svg>
+                    <span style={{display: 'inline-block', width: 22, height: 11, borderRadius: 3, border: `1.4px solid ${APP.TEXT}`, position: 'relative', opacity: .85}}>
+                      <span style={{position: 'absolute', inset: 1.6, width: 12, background: APP.TEXT, borderRadius: 1.4}}/>
+                    </span>
+                  </span>
+                </div>
+
+                <button style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
+                  position: 'absolute', top: 56, left: 16, zIndex: 20,
+                  width: 38, height: 38, borderRadius: 999,
+                  background: 'rgba(255,255,255,0.95)', border: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)', cursor: 'default',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={APP.TEXT} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+
+                <div style={{padding: '60px 16px 0 64px', display: 'flex', gap: 8}}>
+                  <div style={{flex: 1, display: 'flex', alignItems: 'center', gap: 8, background: APP.SURF, borderRadius: 999, padding: '9px 14px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)'}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={APP.MUTED} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+                    <span style={{fontSize: 13.5, color: APP.MUTED}}>Cerca un piatto, un ingrediente…</span>
+                  </div>
+                  <span style={{width: 38, height: 38, borderRadius: 999, flexShrink: 0, background: APP.SURF, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={APP.TEXT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/>
+                      <circle cx="18" cy="12" r="2.5"/><circle cx="14" cy="18" r="2.5"/>
+                    </svg>
+                  </span>
+                </div>
+
+                <div className="mcprev-h" style={{display: 'flex', gap: 4, padding: '12px 16px 0', overflowX: 'auto'}}>
+                  {cats.map(c => {
+                    const on = c.name === catName;
+                    return (
+                      <span key={c.name} style={{
+                        padding: '10px 16px 12px', flex: '0 0 auto',
+                        borderBottom: `2.5px solid ${on ? APP.WINE : 'transparent'}`,
+                        fontSize: 16, fontWeight: on ? 700 : 500,
+                        color: on ? APP.WINE : APP.MUTED,
+                        letterSpacing: -0.1, whiteSpace: 'nowrap',
+                      }}>{c.name}</span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Lista che scorre */}
+              <div ref={scrollRef} className="mcprev-v" style={{flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden'}}>
+                <div style={{zoom: k, width: 390}}>
+                  {cats.length === 0 && (
+                    <div style={{padding: '90px 34px', textAlign: 'center', color: APP.MUTED, fontSize: 15, lineHeight: 1.55}}>
+                      Nessun piatto visibile su questo canale.
+                    </div>
+                  )}
+                  {cats.map((c, i) => (
+                    <div key={c.name} data-app-cat={c.name} style={{padding: '0 18px', marginBottom: 8}}>
+                      <AppCatBand name={c.name} count={c.rows.length} index={i} total={cats.length}/>
+                      <div style={{display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28}}>
+                        {c.rows.map(r => (
+                          <AppDishCard key={r.dishId} r={r} prezzo={r.price} evidenziato={evidenzia === r.dishId}/>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{height: 26}}/>
+                </div>
+              </div>
+
+              <div aria-hidden style={{height: 4, width: Math.round(96 * k), borderRadius: 999, background: 'rgba(15,17,21,0.28)', margin: '0 auto 6px', flexShrink: 0}}/>
+            </div>
+          </div>
+          <style>{`.mcprev-h::-webkit-scrollbar,.mcprev-v::-webkit-scrollbar{display:none}.mcprev-h,.mcprev-v{scrollbar-width:none}`}</style>
+        </div>
+
+        <div style={{fontSize: 12.5, color: PN.MUTED, textAlign: 'center', marginTop: 12, lineHeight: 1.45}}>
+          {visibili} di {inMenu} piatti visibili
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// L'anteprima si chiede: sta sopra al lavoro finché serve, poi si toglie di
+// mezzo. Fuori dalla colonna il telefono può anche essere più grande.
+function MCAnteprimaModal({ menu, library, catName, evidenzia, onClose }) {
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [onClose]);
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)', zIndex: 1000,
+      display: 'grid', placeItems: 'center', padding: 20,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        // Il tetto è in px di LAYOUT, non in vh: il frame del gestionale ha uno
+        // zoom e i vh lo ignorano — con `92vh` il telefono restava tagliato.
+        width: 400, maxWidth: '100%', maxHeight: 862, overflowY: 'auto',
+        borderRadius: 14, boxShadow: '0 24px 64px rgba(15,17,21,0.24)',
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <MCAnteprimaMenu
+          menu={menu}
+          library={library}
+          catName={catName}
+          evidenzia={evidenzia}
+          maxW={320}
+          onClose={onClose}
+        />
+      </div>
     </div>
   );
 }
@@ -653,7 +3560,10 @@ function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, on
             <div style={{fontSize:20, fontWeight:800, color:PN.TEXT, letterSpacing:-0.2}}>Aggiungi piatti dalla libreria</div>
             <div style={{fontSize:15, color:PN.MUTED, marginTop: 3}}>Scegli i piatti da aggiungere al menù "{menuName}"</div>
           </div>
-          <button onClick={onClose} style={{width:34, height:34, borderRadius:9, border:`1px solid ${PN.BORDER}`, background:PN.WHITE, cursor:'pointer', fontSize:17, color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>✕</button>
+          <button onClick={onClose} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:34, height:34, borderRadius:9, border:`1px solid ${PN.BORDER}`, background:PN.WHITE, cursor:'pointer', fontSize:17, color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>✕</button>
         </div>
 
         {/* Ricerca */}
@@ -867,10 +3777,11 @@ function DishLibraryView({ library, menus, filters, onUpsertLibraryDish, onRemov
                       const al = ALLERGENS.find(x => x.id === a);
                       return (
                         <span key={a} style={{
+                          display:'inline-flex', alignItems:'center', gap: 5,
                           fontSize: 11.5, color: PN.MUTED, background:'#F4F5F7',
-                          padding:'2px 6px', borderRadius: 4,
+                          padding:'2px 8px 2px 3px', borderRadius: 999,
                           textTransform:'uppercase', letterSpacing: 0.5, fontWeight: 700,
-                        }}>{al?.name || a}</span>
+                        }}><AllergenIcon id={a} size={16}/>{al?.name || a}</span>
                       );
                     })}
                   </div>
@@ -908,31 +3819,38 @@ function DishLibraryView({ library, menus, filters, onUpsertLibraryDish, onRemov
 }
 
 // ─── DishRow: riga ricca ─────────────────────────────────────────────────────
-function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPriceCommit, onPriceCancel, onEdit, onRemove }) {
+function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPriceCommit, onPriceCancel, onEdit, onRemove, selezionato }) {
   const [tmpPrice, setTmpPrice] = React.useState(item.price.toFixed(2));
   React.useEffect(() => { if (editingPrice) setTmpPrice(item.price.toFixed(2)); }, [editingPrice]);
 
   return (
     <div onClick={!editingPrice ? onEdit : undefined} style={{
-      display:'grid', gridTemplateColumns: '20px 1fr auto auto auto auto',
-      gap: 14, alignItems:'center',
-      padding: '14px 18px',
-      background: item.active ? PN.WHITE : '#FAFBFC',
+      display:'grid', gridTemplateColumns: '18px 52px minmax(0, 1fr) auto auto auto',
+      gap: 10, alignItems:'center',
+      padding: '12px 14px',
+      // Selezionata: il fondo lo mette la riga contenitore, qui si fa da parte.
+      // Spenta: fondo grigio pieno, non un bianco appena sporco.
+      background: selezionato ? 'transparent' : (item.active ? PN.WHITE : '#F2F4F6'),
       borderTop: `1px solid ${PN.BORDER_SOFT}`,
-      opacity: item.active ? 1 : 0.7,
       transition: 'background .15s',
       cursor: editingPrice ? 'default' : 'pointer',
     }}
-    onMouseEnter={e => { if (!editingPrice) e.currentTarget.style.background = item.active ? '#F9FAFB' : '#F4F5F7'; }}
-    onMouseLeave={e => { e.currentTarget.style.background = item.active ? PN.WHITE : '#FAFBFC'; }}
+    onMouseEnter={e => { if (!editingPrice && !selezionato) e.currentTarget.style.background = item.active ? '#F9FAFB' : '#E9ECEF'; }}
+    onMouseLeave={e => { if (!selezionato) e.currentTarget.style.background = item.active ? PN.WHITE : '#F2F4F6'; }}
     >
       {/* Drag handle */}
       <div style={{color: PN.MUTED, cursor:'grab', fontSize: 16, lineHeight: 1, userSelect:'none'}}>≡</div>
 
+      {/* La foto è quello che il cliente vede per primo: sta in elenco come
+          sta nelle card, non solo lì. Spenta, è in bianco e nero. */}
+      <span style={{display: 'inline-flex', filter: item.active ? 'none' : 'grayscale(1)', opacity: item.active ? 1 : 0.5}}>
+        <DishThumb dish={dish} size={52}/>
+      </span>
+
       {/* Nome + descrizione + allergeni */}
       <div style={{minWidth: 0}}>
         <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 3, flexWrap:'wrap'}}>
-          <span style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>{dish.name}</span>
+          <span style={{fontSize: 16, fontWeight: 700, color: item.active ? PN.TEXT : PN.MUTED}}>{dish.name}</span>
           {item.isNew && (
             <span style={{
               fontSize: 11.5, fontWeight: 800, letterSpacing: 0.4,
@@ -942,18 +3860,19 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
           )}
         </div>
         {dish.desc && (
-          <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.4, marginBottom: 6}}>{dish.desc}</div>
+          <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.4, marginBottom: 6, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{dish.desc}</div>
         )}
         {dish.allergens.length > 0 && (
-          <div style={{display:'flex', gap: 4, flexWrap:'wrap'}}>
+          <div style={{display:'flex', gap: 4, flexWrap:'wrap', filter: item.active ? 'none' : 'grayscale(1)', opacity: item.active ? 1 : 0.7}}>
             {dish.allergens.map(a => {
               const al = ALLERGENS.find(x => x.id === a);
               return (
                 <span key={a} style={{
+                  display:'inline-flex', alignItems:'center', gap: 5,
                   fontSize: 11.5, color: PN.MUTED, background:'#F4F5F7',
-                  padding:'2px 7px', borderRadius: 4,
+                  padding:'2px 8px 2px 3px', borderRadius: 999,
                   textTransform:'uppercase', letterSpacing: 0.5, fontWeight: 700,
-                }}>{al?.name || a}</span>
+                }}><AllergenIcon id={a} size={16}/>{al?.name || a}</span>
               );
             })}
           </div>
@@ -963,10 +3882,10 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
       {/* Prezzo (inline-edit) */}
       <div onClick={e => { e.stopPropagation(); if (!editingPrice) onPriceClick(); }} style={{
         cursor: editingPrice ? 'text' : 'pointer',
-        padding:'4px 10px', borderRadius: 6,
+        padding:'4px 8px', borderRadius: 6,
         background: editingPrice ? PN.WHITE : 'transparent',
         border: editingPrice ? `1.5px solid ${PN.PINK}` : '1.5px solid transparent',
-        minWidth: 84, textAlign:'right',
+        minWidth: 76, textAlign:'right',
       }}
       onMouseEnter={e => { if (!editingPrice) e.currentTarget.style.background = '#F4F5F7'; }}
       onMouseLeave={e => { if (!editingPrice) e.currentTarget.style.background = 'transparent'; }}
@@ -992,7 +3911,7 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
             />
           </div>
         ) : (
-          <span style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>€ {item.price.toFixed(2).replace('.',',')}</span>
+          <span style={{fontSize: 16, fontWeight: 700, color: item.active ? PN.TEXT : PN.MUTED}}>€ {item.price.toFixed(2).replace('.',',')}</span>
         )}
       </div>
 
@@ -1016,6 +3935,9 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
 
       {/* Rimuovi dal menù */}
       <button onClick={e => { e.stopPropagation(); onRemove(); }} title="Rimuovi dal menù (resta nella libreria)" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
         width: 30, height: 30, borderRadius: 7,
         border:'none', background:'transparent', color: PN.MUTED,
         cursor:'pointer', display:'grid', placeItems:'center', fontSize: 16,
@@ -1057,7 +3979,9 @@ function NutritionFields() {
       </div>
       <div style={{fontSize:14.5, fontWeight:700, color:PN.MUTED, letterSpacing:0.3, textTransform:'uppercase', marginBottom:8}}>Per porzione</div>
       <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8}}>
-        {[{l:'Kcal', k:'kcal'},{l:'Carb. (g)', k:'carb'},{l:'Proteine (g)', k:'prot'},{l:'Grassi (g)', k:'fat'}].map(f => (
+        {/* Prima i macro, le kcal in fondo: sono la somma di quelli, e si
+            leggono come il totale in fondo a un conto. */}
+        {[{l:'Carb. (g)', k:'carb'},{l:'Proteine (g)', k:'prot'},{l:'Grassi (g)', k:'fat'},{l:'Kcal', k:'kcal'}].map(f => (
           <div key={f.k}>
             <input value={values[f.k]} onChange={e => setValues(v => ({...v, [f.k]: e.target.value}))} type="number" style={{
               width:'100%', padding:'10px 8px', border:`1px solid ${PN.BORDER}`,
@@ -1107,11 +4031,28 @@ function CollapseSection({ title, subtitle, icon, iconBg, iconColor, open, onTog
   );
 }
 
+// Quantità: le voci ricorrenti si scelgono da una tendina, tutto il resto si
+// scrive a mano dalla matita accanto. Le vecchie righe hanno qty+unit: si
+// leggono da lì finché non le si tocca.
+const QTA_PRESET = ['Quanto basta', '1 fetta', '2 fette', '1 spicchio', '1 pizzico', '1 cucchiaio', '50 g', '100 g', '200 g', '1 pz'];
+const qtaDi = (ing) => {
+  if (ing.qta !== undefined && ing.qta !== null) return ing.qta;
+  if (ing.qty) return `${ing.qty} ${ing.unit || 'g'}`;
+  return '';
+};
+
+const ING_TH = {
+  fontSize: 12, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.2,
+  padding: '0 0 9px', textAlign: 'left',
+};
+
 function IngredientList({ ingredients, setIngredients }) {
   const [query, setQuery] = React.useState('');
   const [showSuggest, setShowSuggest] = React.useState(false);
-  const [expandedIdx, setExpandedIdx] = React.useState(null);
-  const [editingQtyIdx, setEditingQtyIdx] = React.useState(null);
+  const [allergeniIdx, setAllergeniIdx] = React.useState(null);  // riga col pannello allergeni aperto
+  const [qtaIdx, setQtaIdx] = React.useState(null);              // riga con la tendina quantità aperta
+  const [qtaLiberaIdx, setQtaLiberaIdx] = React.useState(null);  // riga in cui la quantità si scrive a mano
+  const [dragIdx, setDragIdx] = React.useState(null);
   const [db, setDb] = React.useState(() => window.getIngredientDB());
   React.useEffect(() => window.subscribeIngredientDB(() => setDb([...window.getIngredientDB()])), []);
 
@@ -1122,8 +4063,10 @@ function IngredientList({ ingredients, setIngredients }) {
     .slice(0, 6);
   const exactMatch = query.trim() && db.some(d => d.name.toLowerCase() === query.trim().toLowerCase());
 
+  const patch = (i, campi) => setIngredients(arr => arr.map((x, idx) => idx === i ? {...x, ...campi} : x));
+
   const addExisting = (dbItem) => {
-    setIngredients(arr => [...arr, { name: dbItem.name, removable: false, allergens: [...(dbItem.allergens || [])], qty: '', unit: 'g' }]);
+    setIngredients(arr => [...arr, { name: dbItem.name, removable: false, allergens: [...(dbItem.allergens || [])], qta: '' }]);
     setQuery(''); setShowSuggest(false);
   };
   const addNew = (name) => {
@@ -1136,7 +4079,7 @@ function IngredientList({ ingredients, setIngredients }) {
     // restano poi modificabili a mano come tutti gli altri.
     const inferred = window.inferAllergens(trimmed);
     window.upsertIngredient(trimmed, inferred);
-    setIngredients(arr => [...arr, { name: trimmed, removable: false, allergens: inferred, qty: '', unit: 'g' }]);
+    setIngredients(arr => [...arr, { name: trimmed, removable: false, allergens: inferred, qta: '' }]);
     setQuery(''); setShowSuggest(false);
   };
   const toggleIngAllergen = (i, aid) => {
@@ -1148,121 +4091,203 @@ function IngredientList({ ingredients, setIngredients }) {
       return { ...x, allergens: next };
     }));
   };
+  const sposta = (da, a) => {
+    if (da === a || da == null || a == null) return;
+    setIngredients(arr => { const next = [...arr]; const [v] = next.splice(da, 1); next.splice(a, 0, v); return next; });
+  };
+
+  const rimovibili = ingredients.filter(i => i.removable).length;
 
   return (
     <div>
-      {ingredients.length > 0 && (
-        <div style={{display:'flex', flexDirection:'column', gap:4, marginBottom:12}}>
+      {/* Cerca / aggiungi: una riga sola sopra alla tabella */}
+      <div style={{display: 'flex', gap: 10, marginBottom: 14}}>
+        <div style={{position: 'relative', flex: 1, minWidth: 0}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10, background: PN.WHITE}}>
+            <Icon name="magnifying-glass" size={14} color={PN.MUTED}/>
+            <input value={query}
+              onChange={e => { setQuery(e.target.value); setShowSuggest(true); }}
+              onFocus={() => setShowSuggest(true)}
+              onBlur={() => setTimeout(() => setShowSuggest(false), 200)}
+              onKeyDown={e => { if (e.key === 'Enter') addNew(query); }}
+              placeholder="Cerca ingrediente"
+              style={{flex: 1, minWidth: 0, border: 'none', outline: 'none', fontSize: 14.5, fontFamily: 'inherit', background: 'transparent', color: PN.TEXT}}
+            />
+          </div>
+          {showSuggest && dbMatches.length > 0 && (
+            <div style={{position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 10, boxShadow: '0 14px 38px rgba(15,17,21,0.14)', zIndex: 20, maxHeight: 240, overflowY: 'auto', padding: 5}}>
+              <div style={{padding: '6px 8px 5px', fontSize: 11.5, fontWeight: 800, color: PN.MUTED_SOFT, letterSpacing: 0.6, textTransform: 'uppercase'}}>Dal tuo archivio</div>
+              {dbMatches.map(s => (
+                <button key={s.name} onMouseDown={() => addExisting(s)}
+                  style={{width: '100%', textAlign: 'left', padding: '8px 9px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 10}}
+                  onMouseEnter={e => e.currentTarget.style.background = '#F7F8FA'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{fontSize: 14.5, color: PN.TEXT, fontWeight: 600, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{s.name}</span>
+                  {s.allergens && s.allergens.length > 0 && (
+                    <span style={{display: 'flex', gap: 3, flexShrink: 0}}>
+                      {s.allergens.slice(0, 4).map(aid => <window.AllergenIcon key={aid} id={aid} size={15}/>)}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button onMouseDown={() => addNew(query)} disabled={!query.trim() || exactMatch} style={{
+          flexShrink: 0, padding: '9px 14px', borderRadius: 10,
+          border: `1px solid ${(!query.trim() || exactMatch) ? PN.BORDER_SOFT : PN.BORDER}`,
+          background: PN.WHITE, color: (!query.trim() || exactMatch) ? PN.MUTED_SOFT : PN.TEXT,
+          cursor: (!query.trim() || exactMatch) ? 'default' : 'pointer', fontFamily: 'inherit',
+          fontSize: 14.5, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 7, whiteSpace: 'nowrap',
+        }}><PnI.Plus size={12}/> Aggiungi ingrediente</button>
+      </div>
+
+      {ingredients.length === 0 ? (
+        <div style={{padding: '26px 18px', textAlign: 'center', color: PN.MUTED, fontSize: 14, background: '#FAFBFC', border: `1px dashed ${PN.BORDER}`, borderRadius: 10}}>
+          Nessun ingrediente. Cercane uno qui sopra o creane uno nuovo.
+        </div>
+      ) : (
+        <div>
+          {/* Intestazioni: stessa griglia delle righe, così le colonne si allineano */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '14px minmax(0, 1fr) 116px 106px 112px 52px',
+            gap: 8, alignItems: 'center', borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+          }}>
+            <span/>
+            <span style={ING_TH}>Ingrediente</span>
+            <span style={ING_TH}>Quantità / nota</span>
+            <span style={ING_TH}>Allergeni associati</span>
+            <span style={ING_TH}>Rimovibile dal cliente</span>
+            <span style={{...ING_TH, textAlign: 'center'}}>Azioni</span>
+          </div>
+
           {ingredients.map((ing, i) => {
             const ingAllergens = ing.allergens || [];
-            const isExpanded = expandedIdx === i;
-            const isEditingQty = editingQtyIdx === i;
+            const qta = qtaDi(ing);
+            const aperto = allergeniIdx === i;
             return (
-              <div key={i} style={{
-                borderRadius: 9,
-                border: `1px solid ${isExpanded ? PN.BORDER : PN.BORDER_SOFT}`,
-                background: isExpanded ? PN.WHITE : '#FAFBFC',
-                overflow: 'hidden',
-                transition: 'border-color 150ms, background 150ms',
-              }}>
-                {/* Main row */}
-                <div style={{display:'flex', alignItems:'center', gap:8, padding:'8px 10px'}}>
-                  <span style={{flex:1, fontSize:15.5, fontWeight:600, color:PN.TEXT, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+              <div key={i}
+                onDragOver={e => { e.preventDefault(); }}
+                onDrop={() => { sposta(dragIdx, i); setDragIdx(null); }}
+                style={{
+                  borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+                  background: dragIdx === i ? PN.PINK_BG_SOFT : 'transparent',
+                  transition: 'background 150ms ease-out',
+                }}>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '14px minmax(0, 1fr) 116px 106px 112px 52px',
+                  gap: 8, alignItems: 'center', padding: '9px 0',
+                }}>
+                  <span
+                    draggable onDragStart={() => setDragIdx(i)} onDragEnd={() => setDragIdx(null)}
+                    title="Trascina per riordinare"
+                    style={{color: PN.MUTED_SOFT, cursor: 'grab', display: 'inline-flex'}}
+                  ><PnI.Drag size={12}/></span>
+
+                  <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                     {ing.name}
                   </span>
 
-                  {/* Qty — chip click-to-edit */}
-                  {isEditingQty ? (
-                    <div style={{display:'flex', alignItems:'center', gap:3}}>
-                      <input autoFocus value={ing.qty || ''}
-                        onChange={e => setIngredients(arr => arr.map((x, idx) => idx===i ? {...x, qty: e.target.value.replace(/[^0-9,.]/g,'')} : x))}
-                        onBlur={() => setEditingQtyIdx(null)}
-                        onKeyDown={e => { if(e.key==='Enter'||e.key==='Escape') setEditingQtyIdx(null); }}
-                        placeholder="0"
-                        style={{width:44, padding:'3px 6px', border:`1px solid ${PN.PINK}`, borderRadius:5, fontSize:15, fontFamily:'inherit', textAlign:'right', outline:'none'}}
+                  {/* Quantità: tendina di preset + matita per scriverla a mano */}
+                  <div style={{display: 'flex', alignItems: 'center', gap: 4, minWidth: 0}}>
+                    {qtaLiberaIdx === i ? (
+                      <input autoFocus value={qta}
+                        onChange={e => patch(i, {qta: e.target.value})}
+                        onBlur={() => setQtaLiberaIdx(null)}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setQtaLiberaIdx(null); }}
+                        placeholder="es. 2 fette"
+                        style={{flex: 1, minWidth: 0, padding: '6px 8px', border: `1px solid ${PN.PINK}`, borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', outline: 'none', color: PN.TEXT}}
                       />
-                      <select value={ing.unit || 'g'}
-                        onChange={e => setIngredients(arr => arr.map((x, idx) => idx===i ? {...x, unit: e.target.value} : x))}
-                        style={{padding:'3px 4px', border:`1px solid ${PN.BORDER}`, borderRadius:5, fontSize:14.5, fontFamily:'inherit', outline:'none', background:'#fff', cursor:'pointer'}}
-                      >
-                        {['g','kg','ml','cl','l','pz','q.b.'].map(u => <option key={u}>{u}</option>)}
-                      </select>
-                    </div>
-                  ) : (
-                    <button onClick={() => setEditingQtyIdx(i)} title="Modifica quantità" style={{
-                      padding:'3px 8px', borderRadius:5,
-                      border:`1px solid ${ing.qty ? PN.BORDER : PN.BORDER_SOFT}`,
-                      background: ing.qty ? PN.WHITE : 'transparent',
-                      color: ing.qty ? PN.TEXT : PN.MUTED,
-                      fontSize:14.5, fontFamily:'inherit', cursor:'pointer', whiteSpace:'nowrap',
-                    }}>
-                      {ing.qty ? `${ing.qty} ${ing.unit || 'g'}` : '+ qtà'}
-                    </button>
-                  )}
-
-                  {/* Allergen dots — click to expand panel */}
-                  <button onClick={() => setExpandedIdx(isExpanded ? null : i)} title="Gestisci allergeni" style={{
-                    display:'inline-flex', alignItems:'center', gap:3,
-                    padding: ingAllergens.length ? '3px 6px' : '3px 8px',
-                    borderRadius:6,
-                    border:`1px solid ${isExpanded ? PN.PINK : (ingAllergens.length ? PN.BORDER : PN.BORDER_SOFT)}`,
-                    background: isExpanded ? PN.PINK_SOFT : (ingAllergens.length ? '#FFF6F7' : 'transparent'),
-                    color: PN.MUTED, fontSize:14.5, cursor:'pointer', fontFamily:'inherit',
-                  }}>
-                    {ingAllergens.length > 0 ? (
-                      <>
-                        {ingAllergens.slice(0,3).map(aid => <window.AllergenIcon key={aid} id={aid} size={13}/>)}
-                        {ingAllergens.length > 3 && <span style={{fontSize:13, color:PN.MUTED, fontWeight:700}}>+{ingAllergens.length-3}</span>}
-                      </>
                     ) : (
-                      <span style={{color: isExpanded ? PN.PINK_DARK : PN.MUTED}}>Allergeni</span>
+                      <>
+                        <div style={{flex: 1, minWidth: 0}}>
+                          <NMSelect
+                            compatto
+                            value={qta}
+                            options={[{value: '', label: '—'}, ...QTA_PRESET.map(q => ({value: q, label: q})), ...(qta && !QTA_PRESET.includes(qta) ? [{value: qta, label: qta}] : [])]}
+                            onChange={v => patch(i, {qta: v})}
+                            open={qtaIdx === i}
+                            setOpen={v => setQtaIdx(v ? i : null)}
+                          />
+                        </div>
+                        <button onClick={() => setQtaLiberaIdx(i)} title="Scrivi la quantità" style={{
+                          padding: 0, width: 22, height: 22, flexShrink: 0, border: 'none', background: 'transparent',
+                          color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center', borderRadius: 5,
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        ><Icon name="pencil" size={12}/></button>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Allergeni associati: chip che apre il pannello di scelta */}
+                  <button onClick={() => setAllergeniIdx(aperto ? null : i)} title="Allergeni dell'ingrediente" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 0,
+                    padding: '5px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1px solid ${aperto ? PN.PINK : (ingAllergens.length ? PN.PINK_SOFT : PN.BORDER_SOFT)}`,
+                    background: ingAllergens.length ? PN.PINK_BG_SOFT : '#F4F5F7',
+                    color: ingAllergens.length ? PN.PINK_DARK : PN.MUTED,
+                    fontSize: 12.5, fontWeight: 600,
+                  }}>
+                    {ingAllergens.length === 0 ? 'Nessuno' : (
+                      <>
+                        <window.AllergenIcon id={ingAllergens[0]} size={14}/>
+                        <span style={{minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                          {(window.ALLERGENS.find(a => a.id === ingAllergens[0]) || {}).name}
+                        </span>
+                        {ingAllergens.length > 1 && <span style={{fontWeight: 800}}>+{ingAllergens.length - 1}</span>}
+                      </>
                     )}
                   </button>
 
-                  {/* Removable toggle — minus-circle = "opzionale/escludibile" */}
-                  <button
-                    onClick={() => setIngredients(arr => arr.map((x, idx) => idx===i ? {...x, removable: !x.removable} : x))}
-                    title={ing.removable ? 'Rimovibile dal cliente. Clicca per bloccare' : 'Il cliente non può rimuovere. Clicca per abilitare'}
-                    style={{
-                      width:28, height:28, borderRadius:6, flexShrink:0,
-                      border:`1px solid ${ing.removable ? PN.PINK : PN.BORDER_MED}`,
-                      background: ing.removable ? PN.PINK_SOFT : '#F4F5F7',
-                      color: ing.removable ? PN.PINK_DARK : PN.MUTED,
-                      cursor:'pointer', display:'grid', placeItems:'center',
-                    }}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/>
-                      <line x1="8" y1="12" x2="16" y2="12"/>
-                    </svg>
-                  </button>
+                  {/* Rimovibile dal cliente */}
+                  <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                    <ImpToggle checked={!!ing.removable} onChange={() => patch(i, {removable: !ing.removable})}/>
+                    <span style={{fontSize: 13.5, color: ing.removable ? PN.TEXT : PN.MUTED, fontWeight: 600}}>
+                      {ing.removable ? 'Sì' : 'No'}
+                    </span>
+                  </div>
 
-                  {/* Delete */}
-                  <button onClick={() => { setIngredients(arr => arr.filter((_, idx) => idx !== i)); if(expandedIdx===i) setExpandedIdx(null); }}
-                    style={{width:26, height:26, background:'transparent', border:'none', borderRadius:6, cursor:'pointer', color:PN.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>
-                    <Icon name="xmark" size={13}/>
-                  </button>
+                  <div style={{display: 'flex', gap: 2, justifyContent: 'center'}}>
+                    <button onClick={() => setAllergeniIdx(aperto ? null : i)} title="Modifica allergeni" style={{
+                      padding: 0, width: 26, height: 26, border: 'none', background: 'transparent',
+                      color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center', borderRadius: 6,
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    ><Icon name="pencil" size={12}/></button>
+                    <button onClick={() => { setIngredients(arr => arr.filter((_, idx) => idx !== i)); if (allergeniIdx === i) setAllergeniIdx(null); }}
+                      title="Togli dal piatto" style={{
+                        padding: 0, width: 26, height: 26, border: 'none', background: 'transparent',
+                        color: PN.RED, cursor: 'pointer', display: 'grid', placeItems: 'center', borderRadius: 6,
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    ><PnI.Trash size={12}/></button>
+                  </div>
                 </div>
 
-                {/* Inline allergen panel */}
-                {isExpanded && (
-                  <div style={{padding:'10px 12px 12px', borderTop:`1px solid ${PN.BORDER_SOFT}`, background:'#F7F8FA'}}>
-                    <div style={{fontSize:13.5, fontWeight:700, color:PN.MUTED, letterSpacing:0.4, textTransform:'uppercase', marginBottom:8}}>
-                      Allergeni · {ing.name}
+                {/* Pannello allergeni dell'ingrediente */}
+                {aperto && (
+                  <div style={{padding: '10px 12px 12px', marginBottom: 9, borderRadius: 10, background: '#F7F8FA'}}>
+                    <div style={{fontSize: 12, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 9}}>
+                      Allergeni di {ing.name}
                     </div>
-                    <div style={{display:'flex', flexWrap:'wrap', gap:5}}>
+                    <div style={{display: 'flex', flexWrap: 'wrap', gap: 6}}>
                       {window.ALLERGENS.map(a => {
                         const on = ingAllergens.includes(a.id);
                         return (
                           <button key={a.id} onClick={() => toggleIngAllergen(i, a.id)} style={{
-                            display:'inline-flex', alignItems:'center', gap:5,
-                            padding:'5px 10px', borderRadius:999,
-                            border:`1px solid ${on ? PN.PINK : PN.BORDER_MED}`,
-                            background: on ? '#FFF1F4' : '#F4F5F7',
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '5px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                            border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
+                            background: on ? PN.PINK_BG_SOFT : PN.WHITE,
                             color: on ? PN.PINK_DARK : PN.TEXT,
-                            fontSize:14.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                            fontSize: 13.5, fontWeight: on ? 700 : 600,
                           }}>
-                            <window.AllergenIcon id={a.id} size={12}/>
+                            <window.AllergenIcon id={a.id} size={15}/>
                             {a.name}
                           </button>
                         );
@@ -1273,57 +4298,21 @@ function IngredientList({ ingredients, setIngredients }) {
               </div>
             );
           })}
-          {ingredients.some(i => i.removable) && (
-            <div style={{display:'flex', alignItems:'center', gap:5, fontSize:13.5, color:PN.MUTED, paddingLeft:2}}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color:PN.PINK_DARK, flexShrink:0}}>
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="8" y1="12" x2="16" y2="12"/>
-              </svg>
-              Ingrediente rimovibile dal cliente in fase d'ordine
+
+          {rimovibili > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 9, marginTop: 14,
+              padding: '11px 13px', borderRadius: 10,
+              background: '#EFF6FF', border: '1px solid #DBEAFE',
+            }}>
+              <span style={{color: '#2563EB', flexShrink: 0, display: 'inline-flex', marginTop: 1}}><Icon name="status-info" size={15}/></span>
+              <span style={{fontSize: 13, color: '#1E40AF', lineHeight: 1.45}}>
+                Gli ingredienti rimovibili potranno essere deselezionati dal cliente in fase d'ordine.
+              </span>
             </div>
           )}
         </div>
       )}
-      <div style={{position:'relative'}}>
-        <div style={{display:'flex', alignItems:'center', gap:8, padding:'9px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:8, background:'#fff'}}>
-          <Icon name="magnifying-glass" size={14} color={PN.MUTED}/>
-          <input value={query}
-            onChange={e => { setQuery(e.target.value); setShowSuggest(true); }}
-            onFocus={() => setShowSuggest(true)}
-            onBlur={() => setTimeout(() => setShowSuggest(false), 200)}
-            onKeyDown={e => { if (e.key==='Enter') addNew(query); }}
-            placeholder="Cerca o aggiungi ingrediente…"
-            style={{flex:1, border:'none', outline:'none', fontSize:15.5, fontFamily:'inherit', background:'transparent', color:PN.TEXT}}
-          />
-          {query.trim() && !exactMatch && (
-            <button onMouseDown={() => addNew(query)} style={{
-              background: PN.PINK, color:'#fff', border:'none',
-              padding:'4px 10px', borderRadius:5, fontSize:14.5, fontWeight:700,
-              cursor:'pointer', fontFamily:'inherit', flexShrink:0,
-            }}>+ Crea</button>
-          )}
-        </div>
-        {showSuggest && dbMatches.length > 0 && (
-          <div style={{position:'absolute', top:'calc(100% + 4px)', left:0, right:0, background:'#fff', border:`1px solid ${PN.BORDER}`, borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,0.08)', zIndex:10, maxHeight:240, overflowY:'auto'}}>
-            <div style={{padding:'7px 12px', fontSize:13.5, fontWeight:700, color:PN.MUTED, letterSpacing:0.3, textTransform:'uppercase', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>Dal tuo archivio</div>
-            {dbMatches.map(s => (
-              <button key={s.name} onMouseDown={() => addExisting(s)}
-                style={{width:'100%', textAlign:'left', padding:'8px 12px', background:'transparent', border:'none', borderBottom:`1px solid ${PN.BORDER_SOFT}`, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:10}}
-                onMouseEnter={e => e.currentTarget.style.background='#FAFBFC'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}
-              >
-                <Icon name="plus" size={12} color={PN.MUTED}/>
-                <span style={{fontSize:15.5, color:PN.TEXT, fontWeight:600, flex:1}}>{s.name}</span>
-                {s.allergens && s.allergens.length > 0 && (
-                  <div style={{display:'flex', gap:3}}>
-                    {s.allergens.slice(0,4).map(aid => <window.AllergenIcon key={aid} id={aid} size={13}/>)}
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -1381,7 +4370,10 @@ function ExtrasList({ extras, setExtras }) {
               </label>
               <button onClick={() => setExtras(arr => arr.filter((_, idx) => idx !== i))}
                 aria-label={`Rimuovi ${ex.name}`}
-                style={{width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
                 onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
               >✕</button>
@@ -1451,21 +4443,9 @@ function ExtrasList({ extras, setExtras }) {
 
 function VariantsList({ variants, setVariants, hideAddButton }) {
   const addGroup = () => setVariants(arr => [...arr, { name:'', options:[''], required:true }]);
-  if (variants.length === 0 && hideAddButton) {
-    return (
-      <div style={{
-        display:'flex', alignItems:'flex-start', gap:10,
-        padding:'12px 14px', background:'#F8FAFC',
-        border:`1px solid ${PN.BORDER_SOFT}`, borderRadius:10,
-      }}>
-        <span style={{flexShrink:0, marginTop:1, color:PN.MUTED}}><Icon name="status-info" size={15}/></span>
-        <div style={{minWidth:0}}>
-          <div style={{fontSize:15, fontWeight:700, color:PN.TEXT}}>Nessun gruppo di varianti aggiunto</div>
-          <div style={{fontSize:14.5, color:PN.MUTED, marginTop:2, lineHeight:1.45}}>Aggiungi un gruppo per permettere al cliente di scegliere tra diverse opzioni.</div>
-        </div>
-      </div>
-    );
-  }
+  // Senza varianti non si dice niente: sopra c'è già la riga che spiega cosa
+  // sono e il tasto per crearne una.
+  if (variants.length === 0 && hideAddButton) return null;
   const updateGroup = (i, patch) => setVariants(arr => arr.map((v, idx) => idx===i ? {...v, ...patch} : v));
   const removeGroup = (i) => setVariants(arr => arr.filter((_, idx) => idx !== i));
   return (
@@ -1482,7 +4462,10 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
             }}>
               <input value={v.name} onChange={e => updateGroup(i, {name:e.target.value})} placeholder="Nome del gruppo (es. Cottura, Formato, Pane)" style={{padding:'8px 11px', border:`1px solid ${PN.BORDER}`, borderRadius:8, fontSize:16, fontFamily:'inherit', outline:'none', fontWeight:600, background:PN.WHITE}}/>
               <button onClick={() => removeGroup(i)} aria-label="Rimuovi gruppo"
-                style={{width:30, height:30, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:30, height:30, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:15, transition:'background 150ms ease-out, color 150ms ease-out'}}
                 onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
               >✕</button>
@@ -1500,7 +4483,10 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
                   {v.options.length > 1 && (
                     <button onClick={() => updateGroup(i, {options: v.options.filter((_, idx) => idx !== oi)})}
                       aria-label={`Rimuovi opzione ${oi+1}`}
-                      style={{width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:13, transition:'background 150ms ease-out, color 150ms ease-out'}}
+                      style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,width:28, height:28, background:'transparent', border:'none', borderRadius:7, cursor:'pointer', color: PN.MUTED, display:'grid', placeItems:'center', fontSize:13, transition:'background 150ms ease-out, color 150ms ease-out'}}
                       onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2'; e.currentTarget.style.color = PN.RED; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
                     >✕</button>
@@ -1518,7 +4504,7 @@ function VariantsList({ variants, setVariants, hideAddButton }) {
         ))}
       </div>
       {!hideAddButton && (
-        <button onClick={addGroup} style={{marginTop: variants.length ? 10 : 0, width:'100%', padding:'10px', background:'transparent', border:`1.5px dashed ${PN.BORDER}`, borderRadius:8, color: PN.MUTED, fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:6, justifyContent:'center'}}>+ Aggiungi gruppo di varianti</button>
+        <button onClick={addGroup} style={{marginTop: variants.length ? 10 : 0, width:'100%', padding:'10px', background:'transparent', border:`1.5px dashed ${PN.BORDER}`, borderRadius:8, color: PN.MUTED, fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:6, justifyContent:'center'}}>+ Crea nuova variante</button>
       )}
     </div>
   );
@@ -1618,7 +4604,7 @@ function DishFlag({checked, onChange, label, accent, accentBg, accentBorder, inf
   );
 }
 
-function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onSave, onDelete, currentPrice }) {
+function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, currentPrice }) {
   const isEdit = !!dish;
   const [name, setName] = React.useState(dish?.name || '');
   const [desc, setDesc] = React.useState(dish?.desc || '');
@@ -1780,6 +4766,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
               : <><BuAiSparkle size={13} color={!name.trim() ? '#9AA0A6' : PN.PINK_DARK}/>Auto-compila</>}
           </button>
           <button onClick={onClose} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
             flexShrink:0, width:34, height:34, borderRadius:9, border:`1px solid ${PN.BORDER}`,
             background:PN.WHITE, cursor:'pointer', fontSize:17, color:PN.MUTED,
             display:'grid', placeItems:'center',
@@ -1869,6 +4858,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                         />
                         <button onClick={() => setPhotos(ps => ps.filter((_,idx)=>idx!==i))} aria-label={`Rimuovi foto ${i + 1}`} style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                           position:'absolute', top:5, right:5, width:20, height:20,
                           borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'none',
                           color:'#fff', fontSize:12, cursor:'pointer', display:'grid', placeItems:'center',
@@ -1972,7 +4964,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                       fontSize:15, fontWeight:600, cursor:(fromIng && !fromManual) ? 'not-allowed' : 'pointer', fontFamily:'inherit',
                       transition:'background 150ms ease-out, border-color 150ms ease-out',
                     }}>
-                      <AllergenIcon id={a.id} size={14}/>
+                      <AllergenIcon id={a.id} size={17}/>
                       {a.name}
                       {fromIng && <span style={{color:PN.PINK_DARK, fontSize:14}}>•</span>}
                     </button>
@@ -2106,7 +5098,7 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                     }}
                     onMouseEnter={e => e.currentTarget.style.background = PN.PINK_SOFT}
                     onMouseLeave={e => e.currentTarget.style.background = PN.PINK_BG_SOFT}
-                    >+ Aggiungi gruppo di varianti</button>
+                    >+ Crea nuova variante</button>
                   </div>
                   <VariantsList variants={variants} setVariants={setVariants} hideAddButton/>
                 </DishBlock>
@@ -2144,7 +5136,10 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
                         {recipeSteps.length > 1 && (
                           <button onClick={() => setRecipeSteps(s => s.filter((_,idx)=>idx!==i))}
                             aria-label={`Rimuovi passo ${i+1}`}
-                            style={{flexShrink:0, width:30, height:30, marginTop:4,
+                            style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,flexShrink:0, width:30, height:30, marginTop:4,
                               background:PN.WHITE, border:'1px solid #FECACA', borderRadius:8,
                               cursor:'pointer', color:PN.RED,
                               display:'grid', placeItems:'center',
@@ -2235,6 +5230,9 @@ function DishEditModal({ dish, dishId, isNew, catName, fromLibrary, onClose, onS
             }}>
               <img src={PHOTO_MOCK_IMGS[preview % PHOTO_MOCK_IMGS.length]} alt="" style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block'}}/>
               <button onClick={() => setPreview(null)} aria-label="Chiudi anteprima" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
                 position:'absolute', top:12, right:12, width:32, height:32, borderRadius:'50%',
                 background:'rgba(15,17,21,0.55)', border:'none', color:'#fff',
                 fontSize:16, cursor:'pointer', display:'grid', placeItems:'center',
@@ -2735,6 +5733,9 @@ function MCIngredienti() {
 
             {/* Azione rimuovi */}
             <button title="Rimuovi" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
               width: 30, height: 30, borderRadius: 7,
               border:'none', background:'transparent', cursor:'pointer',
               color: PN.MUTED, display:'grid', placeItems:'center',
@@ -2889,8 +5890,6 @@ function PrenotazioniDurata() {
 
 function MCConfigura() {
 
-  const [tkMenu, setTkMenu] = React.useState('asporto');
-  const [tkLeadTime, setTkLeadTime] = React.useState(20);
   const [cucina, setCucina] = React.useState('diretto');
   const [timeout, setTimeoutMin] = React.useState(5);
   const [timeoutAction, setTimeoutAction] = React.useState('auto');
@@ -2904,7 +5903,6 @@ function MCConfigura() {
   const servizio = servizioTipo === 'fisso' ? servizioFisso : servizioPerc;
   const setServizio = servizioTipo === 'fisso' ? setServizioFisso : setServizioPerc;
   const servizioContestabile = servizioTipo === 'fisso' && servizio > 0;
-  const [showQr, setShowQr] = React.useState(false);
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
   const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true, asporto:true});
   const [modules, setModules] = React.useState(readMods);
@@ -2918,10 +5916,6 @@ function MCConfigura() {
       window.removeEventListener('storage', update);
     };
   }, []);
-  // Asporto: stesso giro degli altri moduli, così Vendita diretta si aggiorna
-  // senza ricaricare la pagina.
-  const takeaway = modules.asporto !== false;
-  const setTakeaway = (val) => setModule('asporto', val);
   // Sala e Prenotazioni si accendono insieme: il calendario prenotazioni
   // lavora sui tavoli, quindi attivare la sala senza prenotazioni lascerebbe
   // l'utente a metà. Spegnendo la sala si spengono anche le prenotazioni, che
@@ -3258,123 +6252,6 @@ function MCConfigura() {
         )}
       </ImpCard>
 
-      {/* === SEZIONE 3: ASPORTO === */}
-      <ImpCard
-        title="Asporto"
-        sub={takeaway
-          ? "I clienti possono ordinare da remoto e ritirare al banco"
-          : "Attiva per permettere ai clienti di ordinare da remoto"
-        }
-        action={
-          <div style={{display:'flex', alignItems:'center', gap: 10}}>
-            <span style={{
-              fontSize: 13, fontWeight: 700, letterSpacing: 0.4,
-              padding: '3px 9px', borderRadius: 999,
-              background: takeaway ? PN.GREEN_SOFT : '#F4F5F7',
-              color: takeaway ? PN.GREEN : PN.MUTED,
-              textTransform: 'uppercase',
-            }}>
-              {takeaway ? 'Attivo' : 'Disattivato'}
-            </span>
-            <ImpToggle checked={takeaway} onChange={() => setTakeaway(!takeaway)}/>
-          </div>
-        }
-      >
-        {!takeaway ? (
-          <div style={{
-            padding: '28px 20px', textAlign:'center',
-            background:'#FAFBFC', borderRadius: 11,
-            border: `1px dashed ${PN.BORDER}`,
-          }}>
-            <div style={{
-              width: 48, height: 48, margin:'0 auto 10px',
-              borderRadius: 12, background: PN.WHITE,
-              border: `1px solid ${PN.BORDER}`,
-              display:'grid', placeItems:'center', color: PN.MUTED,
-            }}>
-              <PnI.Bag size={22}/>
-            </div>
-            <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Asporto disattivato</div>
-            <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 14, maxWidth: 360, margin:'0 auto 14px'}}>
-              Attivando l'asporto i clienti potranno ordinare da remoto tramite QR e ritirare al banco. Potrai usare un menù dedicato e definire il tempo minimo di preparazione.
-            </div>
-            <ImpButton variant="primary" onClick={() => setTakeaway(true)}>Attiva servizio asporto</ImpButton>
-          </div>
-        ) : (
-          <div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginBottom: 14}}>
-              <ImpField label="Menù utilizzato per l'asporto" hint="Puoi avere un menù dedicato all'asporto, diverso da quello in sala">
-                <select value={tkMenu} onChange={e => setTkMenu(e.target.value)} style={{
-                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                  borderRadius:9, fontSize:15.5, background:PN.WHITE, fontFamily:'inherit',
-                }}>
-                  <option value="primavera">Menù primavera</option>
-                  <option value="pranzo">Menù pranzo</option>
-                  <option value="cena">Menù cena</option>
-                  <option value="estivo">Menù estivo</option>
-                  <option value="bambini">Menù bambini</option>
-                  <option value="degustazione">Menù degustazione</option>
-                </select>
-              </ImpField>
-
-              <ImpField label="Tempo di preparazione minimo" hint={`I clienti vedono come primo slot l'orario corrente +${tkLeadTime} minuti`}>
-                <div style={{display:'flex', alignItems:'center', gap: 10}}>
-                  <input type="range" min={5} max={60} step={5} value={tkLeadTime} onChange={e => setTkLeadTime(Number(e.target.value))} style={{flex: 1, accentColor: PN.PINK}}/>
-                  <div style={{
-                    width: 70, padding:'8px 10px',
-                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                    borderRadius: 7, fontSize: 15, fontWeight: 700, textAlign:'center',
-                  }}>{tkLeadTime} min</div>
-                </div>
-              </ImpField>
-            </div>
-
-            <div style={{
-              padding: 14, borderRadius: 11,
-              background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`,
-              display:'flex', alignItems:'center', gap: 14,
-            }}>
-              <QrAsporto size={56}/>
-              <div style={{flex: 1}}>
-                <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 2}}>QR per ordini d'asporto</div>
-                <div style={{fontSize: 13.5, color: PN.MUTED}}>
-                  Esponi all'esterno o sul menu cartaceo. I clienti scansionano e ordinano da remoto.
-                </div>
-              </div>
-              <ImpButton variant="ghost" onClick={() => setShowQr(true)}>Mostra QR</ImpButton>
-              <ImpButton variant="primary"><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
-            </div>
-          </div>
-        )}
-      </ImpCard>
-
-      {/* QR Modal — foglio BIANCO (MODAL_PANEL), non vetro: sopra l'overlay
-          scuro il glass legge grigio. Stessa ricetta del QR di Byup Pay. */}
-      {showQr && (
-        <div onClick={() => setShowQr(false)} style={{
-          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', zIndex: 100, padding: 20,
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 400, position:'relative'}}>
-            <div style={MODAL_HEAD}>
-              <div style={{...MODAL_TITLE, fontSize: 22}}>QR ordini d'asporto</div>
-              <div style={{...MODAL_SUB, marginTop: 2}}>Scansiona per ordinare e ritirare al banco</div>
-              <button onClick={() => setShowQr(false)} aria-label="Chiudi" style={MODAL_X}><PnI.X size={14}/></button>
-            </div>
-            <div style={{...MODAL_BODY, textAlign:'center'}}>
-              <QrAsporto size={230} style={{margin:'0 auto'}}/>
-              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 14, lineHeight: 1.45}}>
-                Esponi all'esterno o sul menù cartaceo.
-              </div>
-            </div>
-            <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
-              <ImpButton variant="ghost"><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.FileText size={14}/> PDF</span></ImpButton>
-              <ImpButton variant="primary"><span style={{display:'inline-flex', alignItems:'center', gap:6}}><PnI.Download size={14} color={PN.WHITE}/> Scarica</span></ImpButton>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Popup post-attivazione sala: il modulo è già attivo, si sceglie se
           andare a creare la sala (tab Sala e tavoli) o restare in Operazioni */}
       {salaAttivataPopup && (
@@ -3387,6 +6264,9 @@ function MCConfigura() {
             animation:'dialogIn 0.2s ease-out', position:'relative',
           }}>
             <button onClick={() => setSalaAttivataPopup(false)} title="Chiudi" style={{
+          // padding 0: il default del <button> (1px 6px) stringe la content-box
+          // sotto la misura dell'icona, e Chrome scarica l'eccedenza a destra.
+          padding: 0,
               position:'absolute', top: 16, right: 16,
               width: 32, height: 32, borderRadius:'50%',
               background:'rgba(15,17,21,0.05)', border:'none', cursor:'pointer',
@@ -3748,7 +6628,7 @@ function AIMenuUploadModal({ onClose, onImport }) {
               <div style={{fontSize: 13.5, color: PN.MUTED}}>🔒 I tuoi dati sono privati. L'analisi richiede ~10 secondi.</div>
               <div style={{display:'flex', gap: 8}}>
                 <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-                <ImpButton variant="primary" onClick={startProcessing} disabled={!file}>✨ Analizza menu</ImpButton>
+                <ImpButton variant="primary" onClick={startProcessing} disabled={!file}><BuAiSparkle size={14}/> Analizza menu</ImpButton>
               </div>
             </>
           )}

@@ -1,7 +1,10 @@
 // Stat shared atoms — redesign UX/UI
 
 // ─── Delta pill (atomic, no wrap) ──────────────────────────────
-function StatDelta({ value, size = 'sm' }) {
+// `unit`: quasi sempre è una variazione percentuale, ma il confronto fra due
+// percentuali si misura in PUNTI — dal 30,2% al 29,0% è −1,2 punti, non −1,2%,
+// che sarebbe un'altra cosa (e un altro numero: −4%).
+function StatDelta({ value, size = 'sm', unit = '%' }) {
   if (value == null) return null;
   const up = value >= 0;
   const px = size === 'lg' ? '4px 10px' : '2px 8px';
@@ -17,26 +20,43 @@ function StatDelta({ value, size = 'sm' }) {
       fontVariantNumeric:'tabular-nums',
     }}>
       <span style={{fontSize: fs - 1}}>{up ? '↑' : '↓'}</span>
-      {Math.abs(value).toFixed(1)}%
+      {Math.abs(value).toFixed(1).replace('.', ',')}{unit}
     </span>
   );
 }
 
 // ─── Sparkline minimale ────────────────────────────────────────
-function StatSpark({ data, color = PN.PINK, height = 28, width = 90 }) {
+// `stretch`: invece di una misura fissa riempie il contenitore, in larghezza e
+// in altezza — width/height restano solo il sistema di coordinate interno.
+// La linea non si ingrassa perché lo stroke è dichiarato non-scaling; `padY`
+// tiene il minimo e il massimo staccati dai bordi, così la linea non striscia
+// sul filo quando il grafico va a filo della card.
+// `dot`: un pallino sull'ultima rilevazione, con l'anello bianco che lo stacca
+// dalla linea. Serve dove la linea è l'unico grafico della riga: senza, non si
+// capisce da che parte si legge né dove finisce «adesso». L'SVG passa a
+// overflow visibile perché il pallino sta sul bordo destro del viewBox e a filo
+// verrebbe tagliato a metà.
+function StatSpark({ data, color = PN.PINK, height = 28, width = 90, stretch = false, padY = 0, stroke = 1.5, dot = false }) {
   if (!data || data.length < 2) return null;
   const min = Math.min(...data), max = Math.max(...data);
   const range = max - min || 1;
+  const utile = height - padY * 2;
   const pts = data.map((v, i) => {
     const x = (i / (data.length - 1)) * width;
-    const y = height - ((v - min) / range) * height;
+    const y = (height - padY) - ((v - min) / range) * utile;
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
   // area path
   const areaPts = `0,${height} ${pts} ${width},${height}`;
   const id = React.useId();
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{display:'block'}}>
+    <svg
+      width={stretch ? undefined : width} height={stretch ? undefined : height}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio={stretch ? 'none' : undefined}
+      style={stretch
+        ? {display:'block', width:'100%', height:'100%'}
+        : {display:'block', overflow: dot ? 'visible' : undefined}}>
       <defs>
         <linearGradient id={`sg-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.18"/>
@@ -44,7 +64,235 @@ function StatSpark({ data, color = PN.PINK, height = 28, width = 90 }) {
         </linearGradient>
       </defs>
       <polygon points={areaPts} fill={`url(#sg-${id})`}/>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={stroke}
+        strokeLinecap="round" strokeLinejoin="round"
+        vectorEffect={stretch ? 'non-scaling-stroke' : undefined}/>
+      {dot && !stretch && (
+        <circle
+          cx={width}
+          cy={(height - padY) - ((data[data.length - 1] - min) / range) * utile}
+          r={stroke + 1.4} fill={color} stroke={PN.WHITE} strokeWidth={1.6}/>
+      )}
+    </svg>
+  );
+}
+
+// ─── Hover dei box ─────────────────────────────────────────────
+// Crescono di un soffio e si staccano dal foglio. L'1,5% è deliberato: di più
+// e, in griglia a filo, si vede il box spingere quello accanto. La transizione
+// è corta perché sopra i 200ms il movimento sembra molle.
+const BOX_TRANSITION = 'transform 150ms ease, box-shadow 150ms ease';
+const boxHover = {
+  onMouseEnter: e => {
+    e.currentTarget.style.transform = 'scale(1.015)';
+    e.currentTarget.style.boxShadow = PN.CARD_SHADOW_HOVER;
+  },
+  onMouseLeave: e => {
+    e.currentTarget.style.transform = '';
+    e.currentTarget.style.boxShadow = '';
+  },
+};
+
+// ─── KPI col fondo sfumato ─────────────────────────────────────
+// Pastiglia tonda a sinistra, etichetta e delta sulla prima riga, il numero
+// grande col suo sottotitolo e l'andamento a destra. Sfumatura a 115°, dalla
+// tinta piena in alto a sinistra al bianco in basso a destra, bordo intonato,
+// e il bollino dell'icona BIANCO: su un fondo colorato è il bianco a
+// staccarsi, non il colore.
+const STAT_TONI = {
+  verde:  { forte: PN.GREEN, bg:'linear-gradient(115deg, #E6F6EC 0%, #F5FBF7 52%, #FFFFFF 100%)', bordo:'#CFEBD9' },
+  rosa:   { forte: PN.PINK,  bg:'linear-gradient(115deg, #FFE6E5 0%, #FFF6F5 52%, #FFFFFF 100%)', bordo:'#FBD3D1' },
+  blu:    { forte: PN.BLUE,  bg:'linear-gradient(115deg, #E3ECFC 0%, #F4F8FE 52%, #FFFFFF 100%)', bordo:'#CCDBF6' },
+  // Giallo scritto a mano: PN ha solo AMBER (#D97706), che a schermo vira
+  // all'arancio. Questo resta leggibile anche a due pixel di linea.
+  giallo: { forte: '#CA8A04', bg:'linear-gradient(115deg, #FAF0CD 0%, #FDF9EB 52%, #FFFFFF 100%)', bordo:'#EFDFAC' },
+  viola:  { forte: PN.PURPLE, bg:'linear-gradient(115deg, #EDE9FE 0%, #F7F5FF 52%, #FFFFFF 100%)', bordo:'#DDD5FB' },
+  // Rosso ≠ rosa: il rosa è il corallo del brand e non dice niente di male,
+  // questo è il RED dei token — quello di «errore» — per le misure che contano
+  // quando calano. Il fondo è appena più freddo e più carico del rosa, perché
+  // messi vicini si distinguano.
+  rosso:  { forte: PN.RED, bg:'linear-gradient(115deg, #FCDEDE 0%, #FDF3F3 52%, #FFFFFF 100%)', bordo:'#F5C7C7' },
+};
+
+// `glifo` invece di `icona` dove il simbolo È il concetto: per «margine» e
+// «ricavo» un % e un € si leggono all'istante, mentre il set non ha una
+// percentuale e il ripiego (il cartellino sconto) diceva un'altra cosa.
+function StatKpiTinto({ tono, icona, glifo, label, valore, suffisso, sub, delta, trend, compatto }) {
+  const t = STAT_TONI[tono] || STAT_TONI.rosa;
+
+  // `compatto`: stessa card, ma l'etichetta si prende tutta la riga e il delta
+  // scende accanto al numero. Serve quando le card sono quattro invece di tre:
+  // in quattro colonne, a 1280, all'etichetta restano 72px con la pillola di
+  // fianco — misurati — e si troncano tutte, anche accorciandole. L'andamento
+  // per lo stesso motivo passa in fondo a tutta larghezza.
+  if (compatto) {
+    // Stessa impaginazione della variante piena — pastiglia a sinistra,
+    // etichetta e pillola sulla stessa riga con la pillola all'estrema destra
+    // — solo più stretta, perché qui le card sono quattro invece di tre.
+    // Pastiglia 38 invece di 44, etichetta 14 invece di 15 e pillola
+    // asciugata: sono i pixel che servono perché il nome ci stia accanto al
+    // delta anche a 1280, dove alla riga restano 151px in tutto.
+    return (
+      <div {...boxHover} style={{
+        display:'flex', alignItems:'center', gap: 10, minWidth: 0,
+        padding: 14, borderRadius: 16,
+        background: t.bg, border: `1px solid ${t.bordo}`,
+        transition: BOX_TRANSITION,
+      }}>
+        <span style={{
+          width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
+          background: PN.WHITE, color: t.forte,
+          display:'grid', placeItems:'center',
+          boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
+        }}>{glifo
+          ? <span style={{fontSize: 19, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
+          : <Icon name={icona} size={19}/>}</span>
+
+        <div style={{flex: 1, minWidth: 0}}>
+          {/* Divario di 6 e non 8: «Occupazione» a 1280 ne chiede 90 e ne
+              aveva 89. Due pixel, ma sono la differenza fra un nome intero e
+              un nome coi puntini. */}
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 6}}>
+            <span title={label} style={{
+              fontSize: 14, color: PN.MUTED, fontWeight: 500, minWidth: 0,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            }}>{label}</span>
+            {/* Senza delta niente pillola: una misura che non varia in
+                percentuale — quanti sono in squadra — con un «↑ 0,0%» accanto
+                direbbe una cosa falsa. */}
+            {delta != null && (
+              <span style={{
+                display:'inline-flex', alignItems:'center', gap: 2,
+                padding:'2px 6px', borderRadius: 999, flexShrink: 0,
+                background: delta >= 0 ? PN.GREEN_SOFT : PN.RED_SOFT,
+                color: delta >= 0 ? PN.GREEN : PN.RED,
+                fontSize: 10.5, fontWeight: 700, whiteSpace:'nowrap',
+                fontVariantNumeric:'tabular-nums',
+              }}>
+                <span style={{fontSize: 9.5}}>{delta >= 0 ? '↑' : '↓'}</span>
+                {Math.abs(delta).toFixed(1).replace('.', ',')}%
+              </span>
+            )}
+          </div>
+          {/* L'andamento accanto al numero, non sotto: sulla riga del numero
+              restano 64px anche nella card più piena (misurati a 1280), e
+              sono lo spazio che una linea piccola chiede. Il sottotitolo sotto
+              resta a larghezza intera, quindi va a capo come prima e la card
+              non cambia forma. */}
+          <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 8, minWidth: 0}}>
+            <div style={{
+              fontSize: 25, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.5,
+              lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
+              fontVariantNumeric:'tabular-nums',
+            }}>
+              {valore}{suffisso && <span style={{fontSize: 15, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+            </div>
+            {trend && trend.length > 1 && (
+              <span style={{flexShrink: 0, opacity: 0.9, marginBottom: 2}}>
+                <StatSpark data={trend} color={t.forte} width={54} height={22}/>
+              </span>
+            )}
+          </div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.3}}>{sub}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div {...boxHover} style={{
+      display:'flex', alignItems:'center', gap: 12, minWidth: 0,
+      padding: 15, borderRadius: 16,
+      background: t.bg, border: `1px solid ${t.bordo}`,
+      transition: BOX_TRANSITION,
+    }}>
+      <span style={{
+        width: 44, height: 44, borderRadius:'50%', flexShrink: 0,
+        background: PN.WHITE, color: t.forte,
+        display:'grid', placeItems:'center',
+        boxShadow:'0 1px 3px rgba(15,17,21,0.08)',
+      }}>{glifo
+        ? <span style={{fontSize: 21, fontWeight: 700, lineHeight: 1}}>{glifo}</span>
+        : <Icon name={icona} size={21}/>}</span>
+
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 8}}>
+          <span title={label} style={{
+            fontSize: 15, color: PN.MUTED, fontWeight: 500, minWidth: 0,
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+          }}>{label}</span>
+          <StatDelta value={delta}/>
+        </div>
+        <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap: 12, minWidth: 0}}>
+          <div style={{minWidth: 0}}>
+            <div style={{
+              fontSize: 28, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.6,
+              lineHeight: 1.15, marginTop: 2, whiteSpace:'nowrap',
+              fontVariantNumeric:'tabular-nums',
+            }}>
+              {valore}{suffisso && <span style={{fontSize: 16, fontWeight: 600, color: PN.MUTED, marginLeft: 1}}>{suffisso}</span>}
+            </div>
+            {/* Va a capo invece di troncarsi: in colonna stretta la
+                sottodicitura non ci sta su una riga sola. */}
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.35}}>{sub}</div>
+          </div>
+          {trend && trend.length > 1 && <StatSpark data={trend} color={t.forte} width={82} height={32}/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Ciambella ─────────────────────────────────────────────────
+// Una sola per tutte le distribuzioni della sezione. Lo spicchio puntato
+// cresce con una scala CSS attorno al centro — l'attributo `d` di un path non
+// si anima, la trasformazione sì — e resta l'unico a colore pieno: gli altri
+// scendono al 40%. Al 7% l'anello arriva a 151 dei 156 del viewBox, quindi ci
+// sta senza allargarlo.
+// Lo stato dell'evidenziazione sta FUORI: la legenda la disegna chi chiama —
+// ogni card mostra colonne diverse — e deve potersi accendere in coppia.
+function StatDonut({ voci, attivo, onAttivo, centro, buco = 39, larghezza = '40%', maxLarghezza = 204 }) {
+  // Sempre un anello, mai uno spicchio pieno: il testo al centro ha bisogno
+  // del buco per essere leggibile, e su una torta piena finisce sul colore.
+  const tot = voci.reduce((s, v) => s + v.valore, 0) || 1;
+  const R = 68, C = 78;
+  let cum = 0;
+  const archi = voci.map(v => {
+    const a0 = (cum / tot) * 2 * Math.PI - Math.PI/2; cum += v.valore;
+    const a1 = (cum / tot) * 2 * Math.PI - Math.PI/2;
+    const big = (v.valore / tot) > 0.5 ? 1 : 0;
+    const px = (r, a) => `${C + r*Math.cos(a)},${C + r*Math.sin(a)}`;
+    const d = `M ${px(R,a0)} A ${R} ${R} 0 ${big} 1 ${px(R,a1)} L ${px(buco,a1)} A ${buco} ${buco} 0 ${big} 0 ${px(buco,a0)} Z`;
+    return { ...v, d };
+  });
+  const acceso = attivo != null ? voci.find(v => v.id === attivo) : null;
+
+  return (
+    <svg viewBox="0 0 156 156" onMouseLeave={() => onAttivo && onAttivo(null)}
+      style={{width: larghezza, minWidth: 128, maxWidth: maxLarghezza, height:'auto', flexShrink: 0}}>
+      {archi.map(a => (
+        <path key={a.id} d={a.d} fill={a.colore} stroke={PN.WHITE} strokeWidth={2.5} strokeLinejoin="round"
+          onMouseEnter={() => onAttivo && onAttivo(a.id)}
+          style={{
+            transformOrigin: `${C}px ${C}px`,
+            transform: attivo === a.id ? 'scale(1.07)' : 'scale(1)',
+            opacity: attivo == null || attivo === a.id ? 1 : 0.4,
+            transition:'transform 160ms ease, opacity 160ms ease',
+          }}/>
+      ))}
+      {centro && (
+        <>
+          {/* Al centro il totale, e sotto il mouse la voce puntata: è il posto
+              dove l'occhio è già, e non serve un riquadro che entra ed esce. */}
+          <text x={C} y={C - 5} textAnchor="middle" fontSize="11.5"
+            fill={acceso ? acceso.colore : PN.MUTED}>
+            {acceso ? acceso.label : centro.et}
+          </text>
+          <text x={C} y={C + 14} textAnchor="middle" fontSize="16" fontWeight="700" fill={PN.TEXT}>
+            {acceso ? (acceso.centro != null ? acceso.centro : acceso.valore) : centro.val}
+          </text>
+        </>
+      )}
     </svg>
   );
 }
@@ -194,12 +442,49 @@ function StatInsight({ items = [] }) {
   );
 }
 
+// ─── Intestazione di colonna ordinabile ────────────────────────
+// Stava in fondo a stat-staff, che di tabelle non ne ha più: le altre due che
+// la usano — i piatti in Economici, il menu in App — se la trovavano lì solo
+// perché i file finiscono tutti nello stesso ambito globale. Qui è dove
+// dovrebbe essere stata dall'inizio.
+function SortHead({ col, cur, order, onSort, children }) {
+  const active = col === cur;
+  return (
+    // Il colore lo dà l'intestazione che la contiene — `inherit` esplicito
+    // perché i bottoni non ereditano da soli. Prima era grigio fisso, e nella
+    // tabella dei piatti in Clienti le colonne ordinabili restavano grigie
+    // mentre l'unica non ordinabile veniva wine come il resto della riga.
+    // `justifySelf`/`alignSelf`: l'intestazione sta dentro una griglia, e in
+    // griglia un figlio si allarga per tutta la cella anche se è `inline-flex`.
+    // Il bottone restava trasparente, quindi non si vedeva — ma la manina e
+    // l'area di click prendevano l'intera colonna, che è tanta roba per due
+    // parole. Così si stringe su quello che c'è scritto, senza spostarsi:
+    // queste colonne sono tutte allineate a sinistra.
+    <button onClick={() => onSort(col)} style={{
+      background:'transparent', border:'none', padding: 0,
+      fontSize:'inherit', fontWeight: 700, color:'inherit',
+      textTransform:'uppercase', letterSpacing:'inherit',
+      textAlign:'left', cursor:'pointer', fontFamily:'inherit',
+      display:'inline-flex', alignItems:'center', gap: 5,
+      justifySelf:'start', alignSelf:'center',
+      opacity: active ? 1 : 0.85,
+    }}>
+      {children}
+      <span style={{fontSize: 12, opacity: active ? 1 : 0.4}}>{active ? (order === 'asc' ? '↑' : '↓') : '↕'}</span>
+    </button>
+  );
+}
+
 // ─── Card ──────────────────────────────────────────────────────
-function StatCard({ title, sub, action, children, padding = 20 }) {
+// `style`: override del contenitore — le card che stanno in una riga con una
+// vicina più alta lo usano per diventare colonne flex e distribuire l'altezza
+// invece di lasciare un vuoto in fondo.
+function StatCard({ title, sub, action, children, padding = 20, style }) {
   return (
     <div style={{
       background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
       borderRadius: 14, padding,
+      ...style,
     }}>
       {(title || action) && (
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 16, marginBottom: 14}}>
@@ -269,42 +554,27 @@ function StatPeriodPicker({ period, setPeriod }) {
   );
 }
 
-// ─── Macro tab — gruppo a segmenti (dal riferimento grafico di Fabio) ────
-// Scatola bianca bordata, un segmento per tab: l'attivo ha il testo pieno e
-// la sottolineatura rossa sul filo inferiore, i vicini un filetto divisore.
-function StatTabs({ tabs, active, onChange }) {
+// ─── Macro tab — PnSectionTab su filo, come Contabilità ──────────────────
+// Il linguaggio unico delle tab di sezione (underline rosa), niente scatole:
+// la navigazione si ritira, i dati dominano. `action` (il period picker)
+// siede sullo stesso filo, allineato a destra.
+function StatTabs({ tabs, active, onChange, action }) {
   return (
     <div style={{
-      display: 'inline-flex', alignItems: 'stretch',
-      background: PN.WHITE, border: `1px solid ${PN.BORDER}`,
-      borderRadius: 16, overflow: 'hidden',
-      boxShadow: '0 1px 2px rgba(15,17,21,0.04)',
+      display: 'flex', alignItems: 'flex-end', gap: 4,
+      borderBottom: `1px solid ${PN.BORDER}`,
     }}>
-      {tabs.map((t, i) => {
-        const on = active === t.id;
-        return (
-          <button key={t.id} onClick={() => onChange(t.id)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 9,
-            padding: '13px 26px',
-            background: PN.WHITE, border: 'none',
-            borderLeft: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-            boxShadow: on ? `inset 0 -3px 0 ${PN.PINK}` : 'none',
-            color: on ? PN.TEXT : PN.MUTED,
-            fontSize: 16, fontWeight: on ? 700 : 600,
-            cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-            transition: 'color 140ms ease, box-shadow 140ms ease',
-          }}>
-            {t.icon && <Icon name={t.icon} size={15}/>}
-            {t.label}
-          </button>
-        );
-      })}
+      {tabs.map(t => (
+        <PnSectionTab key={t.id} id={t.id} active={active === t.id} onClick={onChange} label={t.label} icon={t.icon}/>
+      ))}
+      {action && <div style={{marginLeft: 'auto', marginBottom: 8}}>{action}</div>}
     </div>
   );
 }
 
-// ─── Sub-tab — card larghe con icona, a tutta riga (stesso riferimento).
+// ─── Sub-tab — card larghe con icona, a tutta riga (scelta di Fabio) ─────
 // L'attiva è rossa su fondo tenue; le altre card bianche appena rialzate.
+// Le macro sopra sono underline rosa: qui le card danno peso alle viste.
 function StatSubTab({ active, onClick, label, icon }) {
   return (
     <button onClick={onClick} style={{
@@ -315,12 +585,12 @@ function StatSubTab({ active, onClick, label, icon }) {
       border: `1.5px solid ${active ? 'rgba(255, 90, 95, 0.55)' : PN.BORDER_SOFT}`,
       boxShadow: active ? '0 2px 10px rgba(255, 90, 95, 0.10)' : '0 1px 2px rgba(15,17,21,0.04)',
       color: active ? PN.PINK_DARK : PN.TEXT,
-      fontSize: 16, fontWeight: active ? 700 : 600,
+      fontSize: 18, fontWeight: active ? 700 : 600,
       cursor: 'pointer', fontFamily: 'inherit',
       transition: 'color 140ms ease, background 140ms ease, border-color 140ms ease',
       whiteSpace: 'nowrap',
     }}>
-      {icon && <Icon name={icon} size={16}/>}
+      {icon && <Icon name={icon} size={18}/>}
       {label}
     </button>
   );
@@ -348,7 +618,10 @@ function StatBar({ pct, color = PN.PINK, height = 8, showLabel, label, animated 
 
 window.StatKpi = StatKpi;
 window.StatDelta = StatDelta;
+window.SortHead = SortHead;
 window.StatSpark = StatSpark;
+window.StatKpiTinto = StatKpiTinto;
+window.StatDonut = StatDonut;
 window.StatInsight = StatInsight;
 window.StatCard = StatCard;
 window.StatPeriodPicker = StatPeriodPicker;

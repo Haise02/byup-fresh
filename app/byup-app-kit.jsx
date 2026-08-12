@@ -367,3 +367,55 @@ window.ByupKit = {
 };
 /* sync */
 })();
+
+// ─── Registro consensi (GDPR) ───────────────────────────────────────────────
+// Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
+// preferenze, A6 marketing). Suggerimenti e analisi d'uso sono
+// legittimo interesse SENZA toggle in-app: l'opposizione passa
+// dall'assistenza (dal 2026-08-06), che la registra lato backend.
+//
+// REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
+//   promo generiche E su misura sullo storico ordini → basta A6 (che le
+//     dichiara entrambe: PROMOP è stato assorbito in A6 il 2026-08-06 —
+//     non reintrodurlo; il consenso unico NON copre i dati alimentari)
+//   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
+//   suggerimenti in-app    → attivi salvo opposizione via assistenza (LI,
+//                            niente consenso; la città viene dal contesto
+//                            d'uso corrente, MAI dai log accesso/sicurezza)
+// Due strutture: lo STATO corrente per consenso e il LOG append-only
+// (consent_data) — ogni cambio scrive una riga con timestamp e versione
+// dell'informativa: è quella la prova, non lo stato.
+(function () {
+  const K_STATO = 'byup_consent_state';
+  const K_LOG = 'byup_consent_data';
+  const VERSIONE_INFORMATIVA = '1.0';
+  const leggi = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch (e) { return fb; } };
+  const scrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  window.ByupConsensi = {
+    VERSIONE_INFORMATIVA,
+    // {ok, quando, versione} oppure null se mai deciso
+    stato(id) { return leggi(K_STATO, {})[id] || null; },
+    set(id, ok) {
+      const quando = new Date().toISOString();
+      const stato = leggi(K_STATO, {});
+      stato[id] = { ok: !!ok, quando, versione: VERSIONE_INFORMATIVA };
+      scrivi(K_STATO, stato);
+      const log = leggi(K_LOG, []);
+      log.push({ id, ok: !!ok, quando, versione: VERSIONE_INFORMATIVA });
+      scrivi(K_LOG, log);
+      return stato[id];
+    },
+    // Revoca "profonda": azzera anche la decisione (torna "mai chiesto"),
+    // ma il log conserva la storia.
+    azzera(id) {
+      const quando = new Date().toISOString();
+      const stato = leggi(K_STATO, {});
+      delete stato[id];
+      scrivi(K_STATO, stato);
+      const log = leggi(K_LOG, []);
+      log.push({ id, ok: false, revocato: true, quando, versione: VERSIONE_INFORMATIVA });
+      scrivi(K_LOG, log);
+    },
+    log() { return leggi(K_LOG, []); },
+  };
+})();

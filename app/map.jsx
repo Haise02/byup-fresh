@@ -549,6 +549,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
   const mapControlsRef              = React.useRef(null);
   const [searchQ, setSearchQ]       = React.useState('');
 
+
   // Focus richiesto da un'altra schermata (vetrina → "Indicazioni"):
   // seleziona il locale e la mappa ci vola sopra.
   React.useEffect(() => {
@@ -571,6 +572,7 @@ function MapScreen({ onBack, onTabHome, onTabProfile, onOpenFilters, activeFilte
   return (
     <div style={{ position: 'absolute', inset: 0, background: BG_PAGE, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {(() => { const K = window.ByupKit; return K ? <K.MascotMoment absolute pose="phone" pageKey="map" message="Tocca un locale per sbirciare il menu." bottom={118} size={116}/> : null; })()}
+
 
       {/* ── Header ── */}
       <div style={{

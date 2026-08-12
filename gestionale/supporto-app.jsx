@@ -5,7 +5,13 @@ const { useState } = React;
 function SupportoApp() {
   const [search, setSearch] = useState('');
   const [openCat, setOpenCat] = useState('config');
-  const [chatOpen, setChatOpen] = useState(false);
+  // `?chat=1` — ci arriva chi ha premuto "Contatta l'assistenza" dentro
+  // l'assistente IA delle altre schermate: la chat si trova già aperta invece
+  // di doverla cercare in fondo alla pagina.
+  const [chatOpen, setChatOpen] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get('chat') === '1'; }
+    catch (e) { return false; }
+  });
   const [emailOpen, setEmailOpen] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [activeTutorial, setActiveTutorial] = useState(null);
@@ -19,12 +25,12 @@ function SupportoApp() {
         {/* Body */}
         <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding: '20px 28px 32px', background:'#fafafa'}}>
           <div style={{display:'flex', flexDirection:'column', gap: 20}}>
+            <SupSearch value={search} onChange={setSearch}/>
             <SupChannelCards
               onChat={() => setChatOpen(true)}
               onEmail={() => setEmailOpen(true)}
               onCall={() => setCallOpen(true)}
             />
-            <SupSearch value={search} onChange={setSearch}/>
             <SupTutorials
               openCat={openCat}
               setOpenCat={setOpenCat}
@@ -36,7 +42,8 @@ function SupportoApp() {
         </div>
 
         {/* Chat widget */}
-        <SupChatWidget open={chatOpen} onClose={() => setChatOpen(false)}/>
+        <SupChatWidget open={chatOpen} onClose={() => setChatOpen(false)}
+          onEmail={() => setEmailOpen(true)} onCall={() => setCallOpen(true)}/>
 
         {/* FAB bottom-right per riaprire la chat */}
         {!chatOpen && (
