@@ -1128,6 +1128,31 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
           );
         })}
 
+        {/* Creare un menù è l'ultima voce dell'elenco dei menù: è lì che si va
+            a cercare su quale lavorare, ed è lì che ci si accorge che quello
+            che serve non c'è ancora. In testata era una CTA rosa perenne che
+            chiedeva di creare un menù a chi ne stava già curando uno. */}
+        <div style={{borderTop: `1px solid ${PN.BORDER_SOFT}`, marginTop: 6, paddingTop: 6}}>
+          <button
+            onClick={() => { setPickerOpen(false); onNuovoMenu(); }}
+            onMouseEnter={e => e.currentTarget.style.background = PN.PINK_BG_SOFT}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 9, width: '100%',
+              padding: '9px 10px', borderRadius: 10, border: 'none',
+              background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 15, fontWeight: 700, color: PN.PINK_DARK, textAlign: 'left',
+              transition: 'background 130ms ease-out',
+            }}>
+            <span style={{
+              width: 22, height: 22, borderRadius: 7, flexShrink: 0,
+              display: 'grid', placeItems: 'center',
+              background: PN.PINK_SOFT, color: PN.PINK_DARK,
+            }}><PnI.Plus size={12}/></span>
+            Nuovo menù
+          </button>
+        </div>
+
       </div>
   );
 
@@ -1188,12 +1213,11 @@ function MCMenuSwitcher({ menus, activeMenuId, onPick, onUpdate, totalDishesIn, 
 
       <span style={{flex: 1}}/>
 
+      {/* Ultima cosa a destra, e una sola: guardare il menù com'è venuto è ciò
+          che si fa dopo averlo sistemato. «Nuovo menù» è sceso nella tendina
+          dei menù, dove l'elenco dice già cosa c'è e cosa manca. */}
       <ImpButton variant="ghost" icon={<PnI.Eye size={15}/>} onClick={onAnteprima} style={{flexShrink: 0, whiteSpace: 'nowrap'}}>
         Visualizza anteprima
-      </ImpButton>
-
-      <ImpButton variant="pink" icon={<PnI.Plus size={14}/>} onClick={onNuovoMenu} style={{flexShrink: 0, whiteSpace: 'nowrap'}}>
-        Nuovo menù
       </ImpButton>
 
       <div style={{position: 'relative', flexShrink: 0}}>
