@@ -35,7 +35,7 @@ const BYU_VERDE_BG = '#E8F6EE';
 // arrivava e al suo posto compariva, con tutta naturalezza, la mascotte di
 // prima. Un rimedio che nasconde il guasto è peggio del guasto: se il file non
 // c'è, si deve vedere che non c'è.
-const BYU_MASCOTTE = 'byuppino-assistente.png?v=1';
+const BYU_MASCOTTE = 'byuppino-assistente.png?v=2';
 
 // Le animazioni vivono in un foglio e non negli stili in linea: servono
 // keyframes e uno pseudo-elemento (l'anello che gira), e nessuno dei due si
@@ -499,10 +499,13 @@ function WidgetByuppino() {
 
       {/* ── Colonna sinistra: chi ti sta parlando. Niente fondo suo: sta
              direttamente sul gradiente. ── */}
+      {/* Stretta quanto basta a titolo e mascotte: fra le due c'era un corridoio
+          vuoto che non teneva niente, e la conversazione — che è il lavoro — se
+          ne stava al largo. Quello spazio è passato alla chat. */}
       <div style={{
-        width: '24%', minWidth: 190, flexShrink: 0,
+        width: '19%', minWidth: 172, flexShrink: 0,
         position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column',
-        padding: '4px 4px 0 8px',
+        padding: '4px 0 0 8px',
       }}>
         <div style={{fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em', color: PN.TEXT}}>
           Byuppino <span style={{color: BYU_BRAND}}>AI</span>
@@ -522,8 +525,15 @@ function WidgetByuppino() {
         </div>
 
         {/* `height:100%` + `contain` e non `maxHeight`: dentro una colonna alta
-            quanto la scheda, un'immagine con la sola altezza massima sborda. */}
-        <div style={{flex: 1, minHeight: 0, padding: '6px 0 0'}}>
+            quanto la scheda, un'immagine con la sola altezza massima sborda.
+            Il 10% in più sta sul contenitore e non sull'immagine: sull'immagine
+            c'è già la trasformazione che la fa galleggiare, e una seconda la
+            cancellerebbe. Cresce dai piedi — `bottom center` — così i piedi
+            restano dove sono e ad allungarsi è la mascotte, non lo stacco. */}
+        <div style={{
+          flex: 1, minHeight: 0, padding: '6px 0 0',
+          transform: 'scale(1.1)', transformOrigin: 'bottom center',
+        }}>
           <img src={BYU_MASCOTTE} alt="Byuppino" className="byu-galleggia" style={{
             display: 'block', height: '100%', width: '100%',
             objectFit: 'contain', objectPosition: 'center bottom',
