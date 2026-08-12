@@ -14,8 +14,10 @@
 //   'aurora'  → L2 aurora glass pink (warm celebrativo). Nessun widget la
 //                usa più: l'aveva Recensioni recenti, ed è tornata bianca.
 //   sunset    → non più usato dai widget: Top piatti e Cucina live sono
-//                tornati bianchi come il resto della griglia. Resta come
-//                variante di GlassDarkBox, che le Azioni rapide usano ancora.
+//                tornati bianchi come il resto della griglia, e le Azioni
+//                rapide — l'ultimo riquadro scuro — hanno lasciato il posto a
+//                Byuppino. Resta come variante di GlassDarkBox, che Supporto e
+//                Statistiche usano ancora.
 const PN_WIDGET_CATALOG = [
   { id: 'andamento-coperti', name: 'Coperti', desc: 'Coperti per periodo con sparkline', component: 'WidgetAndamentoCoperti', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'andamento-scontrino', name: 'Scontrino medio', desc: 'Scontrino medio per periodo con sparkline', component: 'WidgetAndamentoScontrino', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-bar' },
@@ -25,7 +27,7 @@ const PN_WIDGET_CATALOG = [
   { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Minimappa sala: click sul tavolo per aprirlo', component: 'WidgetTavoliStato', size: { w: 2, h: 2 }, category: 'Sala', icon: 'place-table' },
   { id: 'top-piatti', name: 'Top piatti questa settimana', desc: 'Classifica settimanale: click verso le statistiche ordini', component: 'WidgetTopPiatti', size: { w: 1, h: 2 }, category: 'Menu', icon: 'food-meal' },
   { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni: click verso le valutazioni clienti', component: 'WidgetRecensioni', size: { w: 1, h: 2 }, category: 'Reputazione', icon: 'star' },
-  { id: 'azioni', name: 'Azioni rapide', desc: 'Scorciatoie verso le funzioni delle sezioni', component: 'WidgetAzioni', size: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
+  { id: 'byuppino', name: 'Byuppino AI', desc: 'Chiedi in italiano: prenotazioni, menù, sala, impostazioni', component: 'WidgetByuppino', size: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
   { id: 'coperti-sett', name: 'Spaccato coperti questa settimana', desc: 'Coperti per giorno sui 7 giorni della settimana', component: 'WidgetCopertiSettimana', size: { w: 2, h: 2 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'cucina-live', name: 'Cucina in diretta', desc: 'Ordini in cucina: click per aprire il ticket', component: 'WidgetCucinaLive', size: { w: 1, h: 2 }, category: 'Cucina', icon: 'food-flame' },
 ];

@@ -5,7 +5,7 @@
 // Tiling a 4 colonne:
 //   fold 1-2: prenotazioni 1×2 · tavoli-stato 2×2 · cucina-live 1×2
 //   riga 3:   andamento-coperti 2×1 · andamento-scontrino 2×1
-//   righe 4-5: azioni 4×2 (launcher)
+//   righe 4-5: byuppino 4×2 (l'assistente)
 //   righe 6-7: top-piatti 1×2 · coperti-sett 2×2 · recensioni 1×2
 //   riga 8:   riempimento 2×1
 const DEFAULT_LAYOUT = [
@@ -14,7 +14,7 @@ const DEFAULT_LAYOUT = [
   { id: 'cucina-live' },
   { id: 'andamento-coperti' },
   { id: 'andamento-scontrino' },
-  { id: 'azioni' },
+  { id: 'byuppino' },
   { id: 'top-piatti' },
   { id: 'coperti-sett' },
   { id: 'recensioni' },
@@ -23,6 +23,10 @@ const DEFAULT_LAYOUT = [
 
 // Gli id storici dei layout salvati migrano sui widget nuovi.
 const PN_ID_MIGRATE = {
+  // Le Azioni rapide non ci sono più: chi ha una dashboard salvata se le
+  // ritrova sostituite dall'assistente, nella stessa posizione. Senza questa
+  // riga il widget sparirebbe e basta, lasciando un buco in mezzo al layout.
+  'azioni': 'byuppino',
   'financials': 'andamento-coperti',
   'kpi-vendita': 'andamento-scontrino',
   'scontrino-medio': 'andamento-scontrino',

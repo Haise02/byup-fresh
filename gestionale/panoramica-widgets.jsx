@@ -815,143 +815,13 @@ function ReviewTile({ r }) {
   );
 }
 
-// ─── 6. Azioni rapide ───────────────────────────────────────────────────────
-
-function WidgetAzioni({ size }) {
-  // Shortcut "app launcher" desktop. Layout adattivo in 2 modalità:
-  //  • FULL banner (w=4, h=2): grid fissa 4×2 con icona + LABEL — il
-  //    pattern "homepage premium". 4 sopra + 4 sotto, come Launchpad.
-  //  • Tutto il resto (w=1/2, qualunque h, o w=4 con h=1): grid auto-fit
-  //    SOLO icone, niente label. Le shortcut diventano una toolbar compatta
-  //    quando il widget è ridotto.
-  // Ogni azione atterra sulla funzione vera nella sua sezione (deep-link).
-  const actions = [
-    { label: 'Nuova prenotazione', icon: 'time-calendar',       color: '#FB7185', href: 'byup Sala.html?tab=calendar&nuova=1' },
-    { label: 'Aggiungi piatto',    icon: 'food-meal',           color: '#F472B6', href: 'byup Impostazioni.html?page=menu-cucina&sub=libreria&add=1' },
-    // Due azioni sul menù e due destinazioni diverse: «Aggiungi piatto» apre la
-    // libreria dei piatti, questa il compositore dei menù — dove si decide
-    // quali piatti stanno in quale menù e in che categoria.
-    { label: 'Modifica menu',      icon: 'pencil',              color: '#FBBF24', href: 'byup Impostazioni.html?page=menu-cucina&sub=menu' },
-    { label: 'Apri cassa',         icon: 'commerce-wallet',     color: '#34D399', href: 'byup Contabilita.html?tab=cassa' },
-    { label: 'Stampa QR tavolo',   icon: 'place-table',         color: '#60A5FA', href: 'byup Impostazioni.html?page=sala' },
-    { label: 'Invita membro del team', icon: 'people-staff-group',  color: '#A78BFA', href: 'byup Impostazioni.html?page=personale&invita=1' },
-    { label: 'Esporta dati del giorno', icon: 'download',            color: '#22D3EE', href: 'byup Contabilita.html?tab=export' },
-    // Il referral vive in Profilo → Piani, dove il premio si incassa. Qui c'è
-    // solo la porta: nei tab dell'account non ci va a curiosare nessuno.
-    { label: 'Invita un ristorante', icon: 'place-restaurant',     color: '#F0ABFC', href: 'byup Profilo.html?tab=piani&invita=1' },
-  ];
-
-  const w = (size && size.w) || 1;
-  const h = (size && size.h) || 1;
-  // Misura fissa 4×2 dal catalogo → sempre full banner; il ramo compatto
-  // resta per robustezza se la griglia clampa le colonne su schermi stretti.
-  const isFullBanner = w === 4 && h >= 2;
-  const showLabels = isFullBanner;
-  // Colonne scelte per far stare tutto in due righe: 3 fino a sei azioni,
-  // 4 da sette in poi.
-  const colonne = actions.length > 6 ? 4 : 3;
-
-  return (
-    <GlassDarkBox
-      theme="night"
-      nightAccent
-      style={{
-        margin: '-18px -18px -16px -18px',
-        height: 'calc(100% + 34px)',
-        display:'flex', flexDirection:'column',
-        minHeight: 0,
-      }}>
-      <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 12, flexShrink: 0, gap: 10, minWidth: 0}}>
-        <div style={{fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform:'uppercase', letterSpacing: 0.5, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-          Azioni rapide
-        </div>
-        <div style={{fontSize: 13.5, color: 'rgba(255,255,255,0.50)', whiteSpace:'nowrap', flexShrink: 0}}>
-          {actions.length} azioni
-        </div>
-      </div>
-
-      <div style={{
-        flex: 1, minHeight: 0, overflowY: 'auto',
-        // Respiro dentro l'area scrollabile: il lift in hover (translateY -2px
-        // + ombra) della prima riga non viene tagliato dal margine superiore.
-        margin: '-6px -8px -4px', padding: '6px 8px 4px',
-        display: 'grid',
-        // Launcher esteso: le colonne si scelgono per stare in DUE righe, che è
-        // l'altezza del widget a catalogo. Con sei azioni sono tre (3×2, il
-        // bilanciamento originale); da sette in poi diventano quattro (4+3),
-        // altrimenti la settima resterebbe sola in una terza riga — l'orfano
-        // che le tre colonne erano state scelte per evitare.
-        gridTemplateColumns: isFullBanner
-          ? `repeat(${colonne}, 1fr)`
-          : 'repeat(auto-fit, minmax(54px, 1fr))',
-        gridTemplateRows: isFullBanner ? `repeat(${Math.max(2, Math.ceil(actions.length / colonne))}, 1fr)` : 'none',
-        gridAutoRows: isFullBanner ? undefined : 'minmax(54px, 1fr)',
-        gap: isFullBanner ? 10 : 6,
-        alignContent: 'start',
-      }}>
-        {actions.map((a, i) => (
-          <button key={i}
-            className="glass-lift-hover"
-            title={a.label}
-            onClick={() => { window.location.href = a.href; }}
-            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.95)'; }}
-            onMouseUp={e => { e.currentTarget.style.transform = ''; }}
-            style={{
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              gap: showLabels ? 6 : 0,
-              background: 'rgba(255,255,255,0.04)',
-              border: 'none',
-              borderRadius: showLabels ? 14 : 10,
-              padding: showLabels ? '8px 6px' : '6px',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              color: '#F5F5F7',
-              boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)',
-              transition: 'background 180ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease',
-              minHeight: 0,
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = `${a.color}1A`;
-              e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${a.color}40, 0 8px 20px -6px ${a.color}55`;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-              e.currentTarget.style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.06)';
-              e.currentTarget.style.transform = '';
-            }}
-          >
-            <span style={{
-              width: showLabels ? 42 : 36,
-              height: showLabels ? 42 : 36,
-              borderRadius: showLabels ? 12 : 10,
-              background: `linear-gradient(135deg, ${a.color}DD 0%, ${a.color}88 100%)`,
-              color: '#fff',
-              display: 'grid', placeItems: 'center',
-              flexShrink: 0,
-              boxShadow:
-                `inset 0 1px 0 rgba(255,255,255,0.30), ` +
-                `0 4px 12px -2px ${a.color}77`,
-            }}>
-              <Icon name={a.icon} size={showLabels ? 20 : 18} color="#fff"/>
-            </span>
-            {showLabels && (
-              <span style={{
-                fontSize: 12.5, fontWeight: 600, textAlign: 'center', lineHeight: 1.2,
-                color: 'rgba(255,255,255,0.92)',
-                maxWidth: '100%',
-                overflow: 'hidden',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-              }}>{a.label}</span>
-            )}
-          </button>
-        ))}
-      </div>
-    </GlassDarkBox>
-  );
-}
+// ─── 6. Byuppino AI ─────────────────────────────────────────────────────────
+// Qui stavano le Azioni rapide: otto scorciatoie in un banner scuro. Le ha
+// sostituite l'assistente, che vive in panoramica-byuppino.jsx — un launcher
+// insegna otto cose e si ferma lì, una riga di testo non ha un elenco da
+// imparare. Il file resta separato perché il widget è una schermata intera in
+// miniatura (conversazione, schede azione, dettatura) e qui dentro sarebbe la
+// metà del file.
 
 // ─── 7. Coperti settimana (bar chart) ────────────────────────────────────────
 
@@ -1261,6 +1131,6 @@ window.PnWidgets = {
   WidgetAndamentoCoperti, WidgetAndamentoScontrino,
   WidgetIncassi, WidgetRiempimento,
   WidgetPrenotazioniOggi, WidgetTavoliStato, WidgetTopPiatti,
-  WidgetRecensioni, WidgetAzioni, WidgetCopertiSettimana,
+  WidgetRecensioni, WidgetCopertiSettimana,
   WidgetCucinaLive,
 };
