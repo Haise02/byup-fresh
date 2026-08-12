@@ -37,6 +37,11 @@ const PAY_FINE = 16000;
   document.head.appendChild(el);
 })();
 
+// Euro, non float. Qui si sommano e si sottraggono prezzi tutto il giorno:
+// senza arrotondare, un residuo che deve essere zero esce 0.000000000004 e il
+// conto resta aperto per niente.
+const r2 = (n) => Math.round(n * 100) / 100;
+
 function nuovaVoceCoda(tavolo, importo) {
   const t = Date.now();
   return {
@@ -63,7 +68,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
   // Aggiustamento totale
   const [adjust, setAdjust] = React.useState(null);
-  // adjust: null | { type:'sconto-eur', val } | { type:'sconto-pct', val } | { type:'arrotonda', val } | { type:'custom', val }
+  // adjust: null | { type:'sconto-eur', val } | { type:'sconto-pct', val } | { type:'arrotonda', val }
+  // Il vecchio type 'custom' non vive più qui: sostituire il totale non è una
+  // correzione del conto, è un altro modo di incassare, e sta nel suo modo.
 
   const [pay, setPay] = React.useState({ contanti: '', carta: '' });
   const [method, setMethod] = React.useState('contanti'); // contanti | carta
@@ -89,6 +96,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // e ora sono due schermate. La lista prende tutta la larghezza, come le righe
   // del monitor di cucina: una cosa per riga e niente da cercare di lato.
   const [passo, setPasso] = React.useState('conto');   // conto | pagamento
+
+  // DUE MODI DI SALDARE, non uno nascosto dentro l'altro. «Il cliente mi dà
+  // 50 euro» è quello che succede tutte le sere a un tavolo che si divide il
+  // conto, e finora era in fondo a «Sconto o correzione», sotto una linguetta
+  // che diceva «Custom»: una funzione di rettifica, non un modo di incassare.
+  // Ora i modi sono due, dichiarati e alternativi — o scegli i piatti, o
+  // scrivi una cifra — perché sono davvero due cose diverse, e la seconda
+  // spegne la prima invece di correggerla di nascosto.
+  const [modo, setModo] = React.useState('articoli');  // articoli | libero
+  const [importoLibero, setImportoLibero] = React.useState('');
   const [toast, setToast] = React.useState(null);
 
   // Conto messo in coda di incasso su Byup Staff. La voce vive sul TAVOLO,
@@ -135,6 +152,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       // Si riapre sempre dal conto: il passo dov'era rimasta la volta scorsa
       // non è dove si vuole ricominciare — prima si guarda cosa c'è sul tavolo.
       setPasso('conto');
+      setModo('articoli');
+      setImportoLibero('');
       setAdjust(null);
       setPay({ contanti:'', carta:'' });
       // Riaprendo un conto con un pagamento ancora in volo si torna dov'era:
@@ -198,26 +217,51 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       const delta = total - sub;
       return { total, delta, label: `Arrotondato · ${delta < 0 ? '' : '+'}€${delta.toFixed(2)}` };
     },
-    'custom': (sub, val) => {
-      const total = val || 0;
-      const delta = total - sub;
-      return { total, delta, label: `Importo personalizzato · ${delta < 0 ? '−' : '+'}€${Math.abs(delta).toFixed(2)}` };
-    },
   };
   const adjustResult = adjust ? ADJUST_STRATEGIES[adjust.type]?.(subtotale, adjust.val) : null;
   const naturalTotal = adjustResult?.total ?? subtotale;
   const adjustDelta = adjustResult?.delta ?? 0;
   const adjustLabel = adjustResult?.label ?? null;
-  const total = Math.max(0, naturalTotal);
 
-  // Quanto resta del conto dopo questo incasso: se avanza qualcosa il conto
-  // non si chiude, si aggiorna. Sta QUI e non più in alto perché legge
-  // `subtotale`: dichiarato prima, valeva NaN e il conto parziale non si
-  // accorgeva di essere parziale.
   // Su `incassabili` e non su tutti gli ordini: le quote già arrivate
   // dall'app non sono soldi che il tavolo deve ancora.
   const apertoTotale = incassabili.reduce((s, o) => s + qtyAperta(o) * o.prezzo, 0);
-  const residuoDopo = Math.max(0, Math.round((apertoTotale - subtotale) * 100) / 100);
+
+  // GLI ACCONTI sono i pagamenti senza righe: importi liberi, incassati qui o
+  // in un giro precedente. Non coprono nessun piatto — infatti nell'elenco
+  // resta tutto acceso — ma tolgono euro al conto. Da qui nasce la regola che
+  // governa tutto il resto: quello che il tavolo deve ancora è il valore dei
+  // piatti aperti MENO gli acconti, e nessun incasso può superarlo.
+  // ATTENZIONE alle quote dall'app: anche quelle non portano righe, ma non
+  // sono acconti — sono già scontate dal conto perché i piatti di chi ha
+  // pagato risultano spenti nell'elenco. Contarle qui vorrebbe dire togliere
+  // quei soldi due volte e chiudere il conto con la cassa in meno.
+  const nomiOspiti = new Set(guests.map(g => String(g.name || '').trim().toLowerCase()));
+  const acconti = (tavolo.pagamenti || []).filter(p =>
+    (!p.items || p.items.length === 0) &&
+    !nomiOspiti.has(String(p.chi || '').trim().toLowerCase()));
+  const accontiIds = new Set(acconti.map(p => p.id));
+  const accontiTotale = acconti.reduce((s, p) => s + (p.amount || 0), 0);
+  const residuoTavolo = Math.max(0, r2(apertoTotale - accontiTotale));
+
+  // Quanto chiede questo incasso: la selezione (già scontata) oppure la cifra
+  // scritta a mano. Sono due sorgenti, un numero solo da qui in giù.
+  const importoLiberoNum = parseFloat(String(importoLibero).replace(',', '.')) || 0;
+  const richiesto = Math.max(0, modo === 'libero' ? importoLiberoNum : naturalTotal);
+  // IL TETTO. Se il tavolo ha già versato un acconto, i piatti selezionati
+  // valgono più di quello che resta da dare: si incassa il residuo, non la
+  // selezione — altrimenti la cassa prenderebbe due volte gli stessi soldi.
+  const total = Math.min(richiesto, residuoTavolo);
+  const eccedenza = r2(richiesto - total);
+  const capped = eccedenza > 0.004;
+
+  // Lo sconto è un abbuono: quei soldi il locale ci rinuncia, e il conto non
+  // deve restare aperto per la differenza.
+  const abbuono = modo === 'libero' ? 0 : Math.max(0, -adjustDelta);
+  const abbuonoEffettivo = Math.min(abbuono, Math.max(0, r2(residuoTavolo - total)));
+  // Quanto resta del conto dopo questo incasso: se avanza qualcosa il conto
+  // non si chiude, si aggiorna.
+  const residuoDopo = Math.max(0, r2(residuoTavolo - total - abbuonoEffettivo));
   const parziale = residuoDopo > 0.004;
 
   // Contanti col campo vuoto = ESATTO: segue il totale senza che nessuno
@@ -301,9 +345,19 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // risultano pagati e il totale chiede solo quello che manca. È la stessa
   // cosa che l'acconto fa al banco, in Vendita diretta.
   function registraIncasso(metodo) {
-    const items = selectedOrdini
-      .map(o => ({ id: o.id, qty: Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) }))
-      .filter(r => r.qty > 0);
+    // L'importo libero nasce SENZA righe, ed è questa la sua definizione: non
+    // ha comprato dei piatti, ha tolto dei soldi. Le righe restano aperte e il
+    // conto se lo ricorda come acconto — è così che il prossimo incasso sa di
+    // non poter chiedere più del residuo.
+    // Se questo incasso chiude il conto copre TUTTO quello che era ancora
+    // aperto — anche l'importo libero, anche le righe non spuntate: quando il
+    // tavolo non deve più niente non può restare un piatto che risulta da
+    // pagare. Solo finché il conto resta aperto la differenza conta.
+    const items = !parziale
+      ? incassabili.map(o => ({ id: o.id, qty: qtyAperta(o) })).filter(r => r.qty > 0)
+      : (modo === 'libero' ? [] : selectedOrdini
+          .map(o => ({ id: o.id, qty: Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) }))
+          .filter(r => r.qty > 0));
     const ora = new Date();
     const pagamento = {
       id: 'pg-' + ora.getTime(),
@@ -312,6 +366,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       ora: `${String(ora.getHours()).padStart(2,'0')}:${String(ora.getMinutes()).padStart(2,'0')}`,
       chi: 'Cassa',
       items,
+      libero: modo === 'libero',
     };
     tavolo.pagamenti = [...(tavolo.pagamenti || []), pagamento];
     return pagamento;
@@ -382,8 +437,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
         {done ? (
           <SaldaDoneV2 tavolo={tavolo} esito={esito || {
             // Incassato da un telefono mentre la finestra era in attesa: qui
-            // il resto non esiste, la carta ha pagato l'importo esatto.
+            // il resto non esiste, la carta ha pagato l'importo esatto. Quello
+            // che resta sul tavolo però va detto anche in questo caso: la
+            // carta può aver pagato un acconto come qualunque altro incasso.
             total, contanti, carta, resto: 0, metodo: 'carta', invoice, invoiceData: fattura,
+            residuo: residuoDopo, parziale, libero: modo === 'libero',
           }} onClose={onClose}/>
         ) : paying ? (
           <SaldaAttesaPagamento
@@ -455,10 +513,49 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
               <div style={{
                 flex: 1, display:'flex', flexDirection:'column', minWidth: 0,
               }}>
-                {/* Niente più «Tutti articoli / Per ordinante»: due viste della
-                    stessa lista, e quella per ordinante serviva a dividere il
-                    conto — cosa che si fa già spuntando le righe, senza dover
-                    prima cambiare modo di guardarle. */}
+                {/* COME SI SALDA — la prima domanda, non una voce nascosta in
+                    fondo. Sono le stesse due linguette con cui più avanti si
+                    sceglie contanti o carta: qui dicono che i modi di comporre
+                    l'incasso sono due, e che sono alternativi. */}
+                <div style={{
+                  padding:'0 24px 14px', flexShrink: 0,
+                  display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8,
+                }}>
+                  <MethodTab active={modo === 'articoli'} onClick={() => setModo('articoli')}
+                    icon={<IconLista/>} label="Scegli i piatti"/>
+                  <MethodTab active={modo === 'libero'} onClick={() => setModo('libero')}
+                    icon={<IconEuroLibero/>} label="Importo libero"/>
+                </div>
+
+                {/* Detto prima, non dopo: chi passa all'importo libero deve
+                    sapere subito che l'elenco qui sotto smette di contare. Il
+                    grigio della lista lo fa vedere, questa riga lo dice. */}
+                {modo === 'libero' && (
+                  <div style={{
+                    margin:'0 24px 12px', padding:'12px 14px', borderRadius: 12,
+                    background: PAY_BG, color: PAY_INK, flexShrink: 0,
+                    display:'flex', gap: 10, fontSize: 16, lineHeight: 1.45,
+                  }}>
+                    <span style={{flexShrink: 0, marginTop: 1, display:'inline-flex'}}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                    </span>
+                    <span>
+                      <b>Le righe non contano.</b> Stai incassando dei soldi, non dei piatti:
+                      nessuna riga risulterà pagata, dal conto scende solo la cifra che scrivi.
+                    </span>
+                  </div>
+                )}
+
+                {/* L'elenco si spegne quando non decide più niente: resta
+                    leggibile — serve per dire al cliente cosa ha preso — ma
+                    non si può toccare, perché toccarlo non cambierebbe la
+                    cifra da incassare. */}
+                <div style={{
+                  flex: 1, display:'flex', flexDirection:'column', minHeight: 0,
+                  opacity: modo === 'libero' ? 0.4 : 1,
+                  pointerEvents: modo === 'libero' ? 'none' : 'auto',
+                  transition:'opacity 180ms ease-out',
+                }}>
                 <div style={{
                   padding:'0 24px 12px',
                   display:'flex', alignItems:'center', gap: 8, flexShrink: 0,
@@ -503,6 +600,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     isPagato={isPagato}
                     onUpdate={updateItem} onDelete={deleteItem}/>
                 </div>
+                </div>
 
                 {/* Piede del conto: quanto fa, come si corregge, e la strada
                     per andare avanti. Una sola cosa da premere. */}
@@ -510,7 +608,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   flexShrink: 0, borderTop:'1px solid #EDEFF2', background:'#fff',
                   padding:'14px 24px 18px',
                 }}>
-                  {(adjust || selectedOrdini.length < incassabili.length) && (
+                  {modo === 'articoli' ? (
+                  <React.Fragment>
+                  {(adjust || capped || selectedOrdini.length < incassabili.length) && (
                     <div style={{display:'flex', flexDirection:'column', gap: 5, marginBottom: 10}}>
                       <ReceiptRow
                         label={`Subtotale${selectedOrdini.length < incassabili.length ? ` · ${selectedOrdini.length} di ${incassabili.length}` : ''}`}
@@ -521,6 +621,14 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           value={(adjustDelta >= 0 ? '+' : '−') + '€' + Math.abs(adjustDelta).toFixed(2)}
                           tone={adjustDelta < 0 ? 'success' : 'danger'}
                           onRemove={() => setAdjust(null)}/>
+                      )}
+                      {/* La riga che fa tornare i conti: senza, il totale
+                          scenderebbe da solo e sembrerebbe uno sbaglio. */}
+                      {capped && (
+                        <ReceiptRow
+                          label="Già coperti dall'acconto"
+                          value={`−€${eccedenza.toFixed(2)}`}
+                          tone="success"/>
                       )}
                     </div>
                   )}
@@ -545,6 +653,15 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       }}>›</span>
                     </button>
                     <span style={{flex:1}}/>
+                    {/* Quanto valeva la selezione, sbarrato accanto a quanto si
+                        incassa davvero: il numero cambiato si vede cambiare. */}
+                    {capped && (
+                      <span style={{
+                        fontSize: 22, fontWeight: 700, color:'#9CA3AF',
+                        textDecoration:'line-through', letterSpacing:-0.4,
+                        fontVariantNumeric:'tabular-nums',
+                      }}>€{richiesto.toFixed(2)}</span>
+                    )}
                     <span style={{
                       fontSize: 42, fontWeight: 800, color:'#0F1115',
                       letterSpacing:-1.4, lineHeight: 1,
@@ -555,6 +672,107 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   {adjustOpen && (
                     <div style={{marginBottom: 12}}>
                       <AdjustPanel subtotale={subtotale} adjust={adjust} setAdjust={setAdjust}/>
+                    </div>
+                  )}
+                  </React.Fragment>
+                  ) : (
+                  // IMPORTO LIBERO — un campo solo, grande quanto il totale che
+                  // sostituisce, e i tagli che si usano davvero: metà, un
+                  // terzo, tutto quello che resta. Prima era una casellina in
+                  // fondo a un pannello di sconti.
+                  <div style={{marginBottom: 12}}>
+                    <div style={{
+                      fontSize: 15, fontWeight: 800, color:'#6B7280',
+                      letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 8,
+                    }}>Quanto incassi</div>
+
+                    <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 10}}>
+                      <div style={{
+                        flex: 1, display:'flex', alignItems:'center', gap: 8,
+                        padding:'8px 16px', borderRadius: 14,
+                        background:'#fff',
+                        border: `1.5px solid ${importoLiberoNum > 0 ? SALDA_BRAND : '#E5E7EB'}`,
+                        transition:'border-color 150ms ease-out',
+                      }}>
+                        <span style={{
+                          fontSize: 30, fontWeight: 800, color:'#9CA3AF', letterSpacing:-1,
+                        }}>€</span>
+                        <input
+                          type="number" inputMode="decimal" autoFocus
+                          value={importoLibero}
+                          onChange={e => setImportoLibero(e.target.value)}
+                          placeholder="0.00"
+                          style={{
+                            flex: 1, minWidth: 0, border:'none', outline:'none',
+                            background:'transparent', fontFamily:'inherit',
+                            fontSize: 36, fontWeight: 800, color:'#0F1115',
+                            letterSpacing:-1.2, padding:'4px 0',
+                            fontVariantNumeric:'tabular-nums',
+                          }}/>
+                      </div>
+                    </div>
+
+                    {residuoTavolo > 0.004 && (
+                      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 6, marginBottom: 10}}>
+                        {[
+                          { label:'Metà', val: r2(residuoTavolo / 2) },
+                          { label:'Un terzo', val: r2(residuoTavolo / 3) },
+                          { label:'Tutto il resto', val: r2(residuoTavolo) },
+                        ].map(c => {
+                          const sel = Math.abs(importoLiberoNum - c.val) < 0.005;
+                          return (
+                            <button key={c.label} onClick={() => setImportoLibero(String(c.val.toFixed(2)))}
+                              style={{
+                                padding:'9px 8px', borderRadius: 10,
+                                background: sel ? SALDA_BRAND : '#fff',
+                                color: sel ? '#fff' : '#0F1115',
+                                border: `1px solid ${sel ? SALDA_BRAND : '#E5E7EB'}`,
+                                fontSize: 15.5, fontWeight: 700, cursor:'pointer',
+                                fontFamily:'inherit', whiteSpace:'nowrap',
+                                overflow:'hidden', textOverflow:'ellipsis',
+                                transition:'background 140ms ease, border-color 140ms ease, color 140ms ease',
+                              }}>
+                              {c.label} <span style={{opacity: sel ? 0.85 : 0.5}}>€{c.val.toFixed(2)}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Il tetto, detto prima di premere: più del dovuto non si
+                        incassa, e la cifra scritta viene riportata al residuo. */}
+                    <div style={{
+                      fontSize: 15.5, lineHeight: 1.45,
+                      color: capped ? PAY_INK : '#6B7280',
+                      background: capped ? PAY_BG : 'transparent',
+                      padding: capped ? '10px 12px' : 0,
+                      borderRadius: 10,
+                    }}>
+                      {capped
+                        ? <>Sul tavolo restano <b>€{residuoTavolo.toFixed(2)}</b>: incassi quelli, non €{richiesto.toFixed(2)}.</>
+                        : <>Sul tavolo restano <b style={{color:'#0F1115'}}>€{residuoTavolo.toFixed(2)}</b>{accontiTotale > 0.004 ? ` · già in acconto €${accontiTotale.toFixed(2)}` : ''}</>}
+                    </div>
+                  </div>
+                  )}
+
+                  {/* Il caso che il conto sa e chi sta in cassa no: i piatti
+                      scelti valgono più di quello che il tavolo deve ancora,
+                      perché una parte è già stata pagata alla cieca. */}
+                  {modo === 'articoli' && capped && (
+                    <div style={{
+                      display:'flex', gap: 10, marginBottom: 12,
+                      padding:'11px 13px', borderRadius: 12,
+                      background: PAY_BG, color: PAY_INK,
+                      fontSize: 15.5, lineHeight: 1.45,
+                    }}>
+                      <span style={{flexShrink: 0, marginTop: 1, display:'inline-flex'}}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                      </span>
+                      <span>
+                        Il tavolo ha già versato <b>€{accontiTotale.toFixed(2)}</b> senza indicare i piatti.
+                        Di quelli che hai scelto restano da incassare <b>€{total.toFixed(2)}</b>
+                        {residuoDopo > 0.004 ? '.' : ' — e con questi il conto si chiude.'}
+                      </span>
                     </div>
                   )}
 
@@ -578,7 +796,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       cursor: total > 0 ? 'pointer' : 'not-allowed', fontFamily:'inherit',
                       transition:'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
                     }}>
-                    {total > 0 ? 'Procedi al pagamento' : 'Scegli cosa saldare'}
+                    {total > 0
+                      ? <>Procedi al pagamento <span style={{opacity:0.55}}>·</span> €{total.toFixed(2)}</>
+                      // Selezione piena e niente da incassare: gli acconti hanno
+                      // già coperto tutto. Dirlo, invece di chiedere di
+                      // scegliere qualcosa che è già stato pagato.
+                      : (capped ? 'Il conto è già coperto dagli acconti'
+                        : modo === 'libero' ? 'Scrivi quanto incassi' : 'Scegli cosa saldare')}
                   </button>
                 </div>
               </div>
@@ -626,9 +850,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   }}>
                     {/* Il dettaglio (subtotale, sconto) compare SOLO quando
                         racconta qualcosa che il Totale da solo non dice:
-                        selezione parziale o aggiustamento. Nel caso normale
-                        il primo numero che leggi è l'unico. */}
-                    {(adjust || selectedOrdini.length < incassabili.length) && (
+                        selezione parziale, aggiustamento, o un acconto che ha
+                        già mangiato una parte del conto. Nel caso normale il
+                        primo numero che leggi è l'unico. */}
+                    {modo === 'articoli' && (adjust || capped || selectedOrdini.length < incassabili.length) && (
                     <div style={{display:'flex', flexDirection:'column', gap: 5, marginBottom: 12}}>
                       <ReceiptRow
                         label={`Subtotale${selectedOrdini.length < incassabili.length ? ` · ${selectedOrdini.length} di ${incassabili.length}` : ''}`}
@@ -640,19 +865,25 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           tone={adjustDelta < 0 ? 'success' : 'danger'}
                           onRemove={() => setAdjust(null)}/>
                       )}
+                      {capped && (
+                        <ReceiptRow
+                          label="Già coperti dall'acconto"
+                          value={`−€${eccedenza.toFixed(2)}`}
+                          tone="success"/>
+                      )}
                     </div>
                     )}
 
                     {/* HERO TOTAL */}
                     <div style={{
-                      paddingTop: (adjust || selectedOrdini.length < incassabili.length) ? 14 : 0,
-                      borderTop: (adjust || selectedOrdini.length < incassabili.length) ? '1px solid rgba(15,17,21,0.08)' : 'none',
+                      paddingTop: (modo === 'articoli' && (adjust || capped || selectedOrdini.length < incassabili.length)) ? 14 : 0,
+                      borderTop: (modo === 'articoli' && (adjust || capped || selectedOrdini.length < incassabili.length)) ? '1px solid rgba(15,17,21,0.08)' : 'none',
                       display:'flex', alignItems:'baseline', gap: 8,
                     }}>
                       <span style={{
                         fontSize: 15, fontWeight: 800, color:'#6B7280',
                         letterSpacing: 0.6, textTransform:'uppercase', flex: 1,
-                      }}>Totale</span>
+                      }}>{modo === 'libero' ? 'Importo libero' : 'Totale'}</span>
                       <span style={{
                         fontSize: 42, fontWeight: 800, color:'#0F1115',
                         letterSpacing:-1.4, lineHeight: 1,
@@ -666,11 +897,33 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         sconta. */}
                   </div>
 
+                  {/* Anche qui, alla riga prima di premere: un importo libero
+                      non salda piatti, e una selezione più grande del dovuto
+                      incassa solo il dovuto. Ripeterlo nel passo dell'incasso
+                      non è una ridondanza — è l'ultimo posto dove si può
+                      cambiare idea senza aver già preso i soldi. */}
+                  {(modo === 'libero' || capped) && (
+                    <div style={{
+                      margin:'12px 22px 0', padding:'11px 13px', borderRadius: 12,
+                      background: PAY_BG, color: PAY_INK,
+                      display:'flex', gap: 10, fontSize: 15.5, lineHeight: 1.45,
+                    }}>
+                      <span style={{flexShrink: 0, marginTop: 1, display:'inline-flex'}}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                      </span>
+                      <span>
+                        {modo === 'libero'
+                          ? <>Nessun piatto risulterà pagato: dal conto scendono <b>€{total.toFixed(2)}</b>, e il tavolo resta {residuoDopo > 0.004 ? <>aperto con <b>€{residuoDopo.toFixed(2)}</b></> : <>senza altro da dare</>}.</>
+                          : <>Il tavolo ha già versato <b>€{accontiTotale.toFixed(2)}</b> in acconto: dei piatti scelti restano da incassare <b>€{total.toFixed(2)}</b>, non €{richiesto.toFixed(2)}.</>}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Quello che è già arrivato su questo conto. I piatti che
                       queste quote coprono sono spenti nell'elenco a sinistra,
                       quindi il totale qui sopra è già al netto: non c'è più
                       niente da mettere in relazione a mente. */}
-                  <PagamentiConto pagamenti={tavolo.pagamenti} />
+                  <PagamentiConto pagamenti={tavolo.pagamenti} accontiIds={accontiIds} />
 
                   <div style={{padding:'18px 22px 0'}}>
 
@@ -771,7 +1024,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             setEsito({
                               total, contanti, carta, resto: Math.max(0, resto),
                               metodo: method, invoice, invoiceData: fattura,
-                              residuo: residuoDopo, parziale,
+                              residuo: residuoDopo, parziale, libero: modo === 'libero',
                             });
                             setDone(true);
                             onConfirm && onConfirm({
@@ -843,12 +1096,18 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
               <SvFatturaModal
                 open={fatturaOpen}
                 dentro
-                lines={selectedOrdini.map(o => ({
-                  displayName: o.nome,
-                  piatto: { name: o.nome },
-                  qty: selectedItems.get(o.id) || o.qty,
-                  lineTotal: o.prezzo,
-                }))}
+                // Un acconto non ha righe da fatturare: la fattura porta una
+                // voce sola, l'importo. Passare i piatti selezionati sarebbe un
+                // documento che dice il falso — quei piatti non li ha pagati
+                // nessuno.
+                lines={modo === 'libero'
+                  ? [{ displayName: 'Acconto sul conto', piatto: { name: 'Acconto sul conto' }, qty: 1, lineTotal: total }]
+                  : selectedOrdini.map(o => ({
+                      displayName: o.nome,
+                      piatto: { name: o.nome },
+                      qty: selectedItems.get(o.id) || o.qty,
+                      lineTotal: o.prezzo,
+                    }))}
                 takeaway={false}
                 cliente={fattura}
                 onClose={() => setFatturaOpen(false)}
@@ -1342,7 +1601,7 @@ const PAG_META = {
   byup:     { label:'Byup app', ink:'#7C3AED', bg:'#EDE9FE' },
 };
 
-function PagamentiConto({ pagamenti }) {
+function PagamentiConto({ pagamenti, accontiIds }) {
   // Chiuso di suo: quanto è già arrivato è un numero solo, e alla cassa serve
   // quello. Chi ha pagato e a che ora è la risposta a una domanda che si fa
   // di rado — quando un cliente dice «ma io ho già pagato» — e allora si apre.
@@ -1407,6 +1666,18 @@ function PagamentiConto({ pagamenti }) {
                   background: meta.bg, color: meta.ink,
                   fontSize: 14, fontWeight: 700,
                 }}>{meta.label}</span>
+                {/* Un incasso senza righe e senza un ospite dietro è un
+                    acconto: si dice, perché è la ragione per cui quei piatti
+                    sono ancora tutti aperti anche se dei soldi sono entrati.
+                    Le quote dall'app invece i piatti li hanno spenti, e infatti
+                    questo bollino non ce l'hanno. */}
+                {accontiIds && accontiIds.has(p.id) && (
+                  <span style={{
+                    padding:'3px 8px', borderRadius: 999, flexShrink: 0,
+                    background: PAY_BG, color: PAY_INK,
+                    fontSize: 13.5, fontWeight: 700,
+                  }}>acconto</span>
+                )}
                 <span style={{
                   flex: 1, minWidth: 0, fontSize: 15, color:'#9CA3AF',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
@@ -1461,7 +1732,6 @@ function AdjustPanel({ subtotale, adjust, setAdjust}) {
           { id:'sconto-eur', label:'Sconto €' },
           { id:'sconto-pct', label:'Sconto %' },
           { id:'arrotonda',  label:'Arrotonda' },
-          { id:'custom',     label:'Custom' },
         ].map(opt => (
           <button key={opt.id} onClick={()=>{setMode(opt.id); setVal(''); }} style={{
             flex:1, padding:'6px 4px', borderRadius: 6,
@@ -1510,16 +1780,10 @@ function AdjustPanel({ subtotale, adjust, setAdjust}) {
         </button>
       )}
 
-      {mode === 'custom' && (
-        <div>
-          <input type="number" value={val} onChange={e=>{setVal(e.target.value); apply('custom', e.target.value);}}
-            placeholder={`Naturale: €${subtotale.toFixed(2)}`}
-            style={{...inputV2, fontSize: 20, fontWeight: 800}}/>
-          <div style={{fontSize: 14.5, color:'#6B7280', marginTop: 4}}>
-            Sostituisce il totale naturale di €{subtotale.toFixed(2)}
-          </div>
-        </div>
-      )}
+      {/* Qui c'era «Custom»: un campo che sostituiva il totale e lasciava
+          credere che i piatti spuntati fossero saldati lo stesso. Adesso è
+          «Importo libero», una delle due strade in testa al conto, e dice
+          per intero cosa fa. */}
     </div>
   );
 }
@@ -1533,7 +1797,7 @@ function AdjustPanel({ subtotale, adjust, setAdjust}) {
 // Stessa lingua e stessi colori della conferma d'incasso in Vendita diretta:
 // è lo stesso gesto, fatto dalla stessa persona dietro allo stesso bancone.
 function SaldaDoneV2({ tavolo, esito, onClose }) {
-  const { total, contanti, carta, resto, invoice, invoiceData, residuo, parziale } = esito;
+  const { total, contanti, carta, resto, invoice, invoiceData, residuo, parziale, libero } = esito;
   // Un incasso, un modo: tolto il «misto», contanti e carta non possono più
   // essere pieni insieme nello stesso pagamento.
   const comeHaPagato = carta > 0 ? 'Con la carta, su Byup Staff' : 'In contanti, alla cassa';
@@ -1555,8 +1819,11 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
           <path d="M5 13 L9 17 L19 7"/>
         </svg>
       </div>
+      {/* «Acconto incassato» e non «Incassato»: chi legge deve ricordarsi che
+          quei soldi non hanno pagato dei piatti, e che l'elenco del tavolo è
+          rimasto tutto acceso. */}
       <div style={{fontSize: 25, fontWeight: 800, color:'#0F1115', marginBottom: 3, letterSpacing:-0.4}}>
-        {parziale ? 'Incassato' : 'Conto saldato'}
+        {parziale ? (libero ? 'Acconto incassato' : 'Incassato') : 'Conto saldato'}
       </div>
       <div style={{fontSize: 36, fontWeight: 800, color:'#0F1115', marginBottom: 4, letterSpacing:-1, fontVariantNumeric:'tabular-nums'}}>
         €{total.toFixed(2)}
@@ -1646,6 +1913,19 @@ function IconCash() { return (
 function IconCard() { return (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10 H22"/>
+  </svg>
+); }
+// I due modi di comporre l'incasso: righe spuntate da una parte, una cifra
+// scritta a mano dall'altra. Si leggono a colpo d'occhio anche da lontano,
+// che è come si guarda una cassa quando c'è gente al bancone.
+function IconLista() { return (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.2 1.2L7 5"/><path d="M3.5 12l1.2 1.2L7 11"/><path d="M3.5 18l1.2 1.2L7 17"/>
+  </svg>
+); }
+function IconEuroLibero() { return (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.5 6.5A6.5 6.5 0 0 0 8 12a6.5 6.5 0 0 0 9.5 5.5"/><path d="M4 10h8M4 14h8"/>
   </svg>
 ); }
 // ────────── STILI ──────────
