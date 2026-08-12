@@ -410,7 +410,7 @@ function WidgetByuppino() {
     const prima = new Date(t.getTime() - 60000);
     return [
       { k: 'm0', tipo: 'bolla', da: 'ai', ora: byuOra(prima),
-        testo: 'Ciao Mario! Posso occuparmi io delle cose noiose. Cosa ti serve?' },
+        testo: 'Ciao Mario! Posso occuparmi io delle cose noiose? Cosa ti serve?' },
       { k: 'm1', tipo: 'bolla', da: 'io', ora: byuOra(prima),
         testo: 'Sposta la prenotazione di Bianchi alle 21:30' },
       { k: 'm2', tipo: 'azione', stato: 'pronta', ora: byuOra(t),
