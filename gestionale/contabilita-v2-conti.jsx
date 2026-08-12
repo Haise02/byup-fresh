@@ -402,190 +402,371 @@ function DocScartoSheet({ conto, payment, onClose }) {
   );
 }
 
-// Due cose diverse possono succedere a un pagamento, e questo pannello le
-// mostra entrambe: il documento può non essere passato allo SdI (`onScarto`)
-// e il denaro può tornare indietro (`onRimborso`, `onDettaglio`, `getStato`).
-// Sono indipendenti — uno scontrino scartato resta scartato anche dopo un
-// reso — quindi convivono sulla stessa riga invece di escludersi.
-function ContoExpandedPanel({ conto, onDettaglio, getStato, onRimborso, onScarto }) {
+// ─── Dettaglio del conto ───────────────────────────────────────────────────
+// Prima la riga si apriva in un pannello sotto e la tabella si spezzava in due:
+// con più conti aperti insieme le colonne non si leggevano più. Il conto è un
+// oggetto solo, e va guardato come tale — foglio sopra la lista, stesso
+// scheletro di DocScartoSheet: in testa chi/quando/quanto, sotto i pagamenti.
+//
+// Due cose diverse possono succedere a un pagamento, e il foglio le mostra
+// entrambe: il documento può non essere passato allo SdI (`onScarto`) e il
+// denaro può tornare indietro (`onDettaglio`, `getStato`). Sono indipendenti —
+// uno scontrino scartato resta scartato anche dopo un reso — quindi convivono
+// sulla stessa riga invece di escludersi.
+function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, onScarto, onSalda }) {
   const payments = conto.payments || [];
-  const fmtPayOra = (s) => {
-    if (!s) return '';
-    const [, time] = s.split(' ');
-    return time || '';
-  };
+  const storni = payments.reduce((s, p) => s + ((getStato && getStato(p.id)) ? getStato(p.id).amount : 0), 0);
+  // Quanto è davvero entrato: i pagamenti meno quello che è tornato indietro.
+  // Al lordo sarebbe una cifra smentita dalle righe barrate lì sotto.
+  const incassato = payments.reduce((s, p) => s + p.amount, 0) - storni - (conto.rimborso ? conto.rimborso.amount : 0);
+  const isSaldato = conto.stato === 'saldato' || saldato;
+  const daSaldare = isSaldato ? 0 : conto.daSaldare;
   const methodMeta = {
     contanti: { label:'Contanti', icon: PnI.Coin,       color:'#0F766E', bg:'#CCFBF1' },
     carta:    { label:'Carta',    icon: PnI.Card,       color:'#1D4ED8', bg:'#DBEAFE' },
     byup:     { label:'Byup app', icon: PnI.Smartphone, color:'#7C3AED', bg:'#EDE9FE' },
   };
-  return (
-    <div style={{
-      padding:'16px 18px 18px',
-      background:'#F8FAFC',
-      borderTop:`1px solid ${PN.BORDER_SOFT}`,
-      borderBottom:`1px solid ${PN.BORDER_SOFT}`,
-    }}>
-      <div style={{
-        display:'flex', alignItems:'center', justifyContent:'space-between',
-        gap: 10, marginBottom: 10,
-      }}>
-        <span style={{
-          fontSize: C.T_XS, fontWeight: 700, color: PN.MUTED,
-          textTransform:'uppercase', letterSpacing: 0.5,
-        }}>Canali di pagamento</span>
-        {conto.idOrdine && (
-          <span style={{
-            display:'inline-flex', alignItems:'center', gap: 6,
-            fontSize: C.T_XS, color: PN.MUTED, fontWeight: 600,
-          }}>
-            <span style={{textTransform:'uppercase', letterSpacing: 0.5, color: PN.MUTED_SOFT || PN.MUTED}}>ID ordine</span>
-            <span style={{fontFamily:'ui-monospace, Menlo, monospace', color: PN.TEXT}}>{conto.idOrdine}</span>
-          </span>
-        )}
-      </div>
 
-      {payments.length === 0 ? (
+  // Le celle del riepilogo: etichetta piccola sopra, valore sotto.
+  const Cifra = ({ label, children, color }) => (
+    <div style={{minWidth: 0}}>
+      <div style={{
+        fontSize: 11, fontWeight: 700, color: PN.MUTED_SOFT,
+        textTransform:'uppercase', letterSpacing: 0.6, marginBottom: 4,
+      }}>{label}</div>
+      <div style={{
+        fontSize: C.T_MD, fontWeight: 800, color: color || PN.TEXT,
+        fontVariantNumeric:'tabular-nums',
+        display:'flex', alignItems:'center', gap: 6, minWidth: 0,
+      }}>{children}</div>
+    </div>
+  );
+
+  const Sep = () => <span style={{color: PN.MUTED_LIGHT}}>·</span>;
+  const Titolo = ({ children }) => (
+    <div style={{
+      fontSize: 11, fontWeight: 700, color: PN.MUTED,
+      textTransform:'uppercase', letterSpacing: 0.6, marginBottom: 10,
+      display:'flex', alignItems:'center', gap: 8,
+    }}>{children}</div>
+  );
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
+      zIndex: 60, display:'grid', placeItems:'center', padding: 28,
+      animation:'scartoFade 0.16s ease',
+    }}>
+      {/* Le stesse keyframes del foglio scarto: qui possono aprirsi da sole,
+          senza che quello sia montato. */}
+      <style>{`
+        @keyframes scartoFade { from {opacity: 0;} to {opacity: 1;} }
+        @keyframes scartoPop {
+          from {opacity: 0; transform: scale(0.965) translateY(10px);}
+          to   {opacity: 1; transform: none;}
+        }
+      `}</style>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 760, maxWidth:'100%', maxHeight:'100%', background: PN.WHITE,
+        borderRadius: 22, border: `1px solid ${PN.BORDER_HAIR}`,
+        boxShadow:'0 32px 80px rgba(15,17,21,0.24), 0 2px 6px rgba(15,17,21,0.08)',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+        animation:'scartoPop 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        {/* Testata: di chi è il conto, quando è nato, com'è messo */}
         <div style={{
-          padding:'14px', background: PN.WHITE,
-          border:`1px dashed ${PN.BORDER}`, borderRadius: C.R_SM,
-          fontSize: C.T_SM, color: PN.MUTED, textAlign:'center',
-        }}>Nessun pagamento ancora registrato per questo conto</div>
-      ) : (
-        <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-          {payments.map(p => {
-            const meta = methodMeta[p.method] || methodMeta.contanti;
-            const Icon = meta.icon;
-            // Lo stato del documento si legge qui, non si tocca qui: annullo
-            // e reso partono solo dal dettaglio, dove le righe si vedono
-            // prima di decidere — un pulsante rapido su una riga di elenco
-            // farebbe scegliere alla cieca.
-            const st = getStato ? getStato(p.id) : null;
-            return (
-              <div key={p.id} style={{
-                display:'grid',
-                gridTemplateColumns:'auto 1fr auto auto',
-                gap: 12, alignItems:'center',
-                padding:'10px 14px', background: PN.WHITE,
-                border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: C.R_SM,
+          padding:'20px 26px 18px',
+          display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14,
+        }}>
+          <div style={{display:'flex', alignItems:'center', gap: 14, minWidth: 0}}>
+            <div style={{
+              width: 42, height: 42, borderRadius: C.R_MD, flexShrink: 0,
+              background: C.SURF_ALT, color: PN.TEXT,
+              display:'grid', placeItems:'center', boxShadow: PN.INSET_HIGHLIGHT,
+            }}><Ic.receipt size={19}/></div>
+            <div style={{minWidth: 0}}>
+              <div style={{
+                fontSize: C.T_LG, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3,
+                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+              }}>{conto.tavolo}</div>
+              <div style={{
+                fontSize: C.T_SM, color: PN.MUTED, marginTop: 2,
+                display:'flex', alignItems:'center', gap: 7, flexWrap:'wrap',
               }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  background: meta.bg, color: meta.color,
-                  display:'grid', placeItems:'center',
-                }}>{Icon ? <Icon size={15}/> : null}</div>
-                <div style={{minWidth: 0, display:'flex', flexDirection:'column'}}>
-                  <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, display:'flex', alignItems:'baseline', gap: 8, flexWrap:'wrap'}}>
-                    <span>{meta.label}</span>
-                    {p.posRef && (p.posRef.nome || p.posRef.email || p.posRef.device) && (
-                      <span style={{fontSize: C.T_XS, fontWeight: 500, color: PN.MUTED}}>
-                        · <span style={{fontWeight: 700, color: PN.MUTED}}>Dispositivo:</span> {[p.posRef.nome || p.posRef.device, p.posRef.email].filter(Boolean).join(' · ')}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 4, display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap'}}>
-                    <span>{fmtDataOra(p.ora.split(' ')[0] + ' ' + fmtPayOra(p.ora))}</span>
-                    {/* Due stati indipendenti sulla stessa riga, in quest'ordine
-                        perché rispondono a due domande diverse.
+                <span style={{fontVariantNumeric:'tabular-nums'}}>{fmtDataOra(conto.dataOra)}</span>
+                {conto.idOrdine && (
+                  <React.Fragment>
+                    <Sep/>
+                    <span style={{fontFamily:'ui-monospace, Menlo, monospace', color: PN.TEXT}}>{conto.idOrdine}</span>
+                  </React.Fragment>
+                )}
+              </div>
+            </div>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap: 10, flexShrink: 0}}>
+            <span style={{
+              display:'inline-flex', alignItems:'center', gap: 6,
+              padding:'5px 12px', borderRadius: C.R_PILL,
+              background: isSaldato ? '#D1FAE5' : '#FEF2F2',
+              border: `1px solid ${isSaldato ? '#A7F3D0' : '#FECACA'}`,
+              color: isSaldato ? '#065F46' : '#991B1B',
+              fontSize: C.T_XS, fontWeight: 700, whiteSpace:'nowrap',
+            }}>
+              <span style={{
+                width: 7, height: 7, borderRadius:'50%',
+                background: isSaldato ? '#065F46' : '#DC2626',
+              }}/>
+              {isSaldato ? 'Saldato' : 'Da saldare'}
+            </span>
+            <button onClick={onClose}
+              onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.TEXT; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+              style={{
+                background:'transparent', border:'none', color: PN.MUTED, cursor:'pointer',
+                display:'flex', padding: 8, borderRadius: 10,
+                transition:'background 130ms ease, color 130ms ease',
+              }}><Ic.close size={17}/></button>
+          </div>
+        </div>
+
+        {/* Riepilogo: i numeri del conto su una riga sola */}
+        <div style={{
+          display:'grid', gridTemplateColumns:'1.4fr 1fr 1fr 1fr',
+          gap: 18, padding:'14px 26px 16px',
+          background: C.SURF,
+          borderTop:`1px solid ${PN.BORDER_SOFT}`,
+          borderBottom:`1px solid ${PN.BORDER_SOFT}`,
+        }}>
+          <Cifra label="Riferimento">
+            {conto.riferimento ? (
+              <React.Fragment>
+                {conto.riferimento.tipo === 'byup' && <ByupMark size={16}/>}
+                <span style={{
+                  fontSize: C.T_SM, fontWeight: 700,
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                }}>{conto.riferimento.nome}</span>
+              </React.Fragment>
+            ) : (
+              <span style={{fontSize: C.T_SM, fontWeight: 600, color: PN.MUTED}}>{conto.cliente || '—'}</span>
+            )}
+          </Cifra>
+          <Cifra label="Totale">€{conto.totaleConto.toFixed(2)}</Cifra>
+          <Cifra label="Incassato" color={incassato > 0 ? PN.TEXT : PN.MUTED_SOFT}>
+            €{incassato.toFixed(2)}
+          </Cifra>
+          <Cifra label="Da saldare" color={daSaldare > 0 ? '#B91C1C' : PN.MUTED_SOFT}>
+            {daSaldare > 0 ? `€${daSaldare.toFixed(2)}` : '—'}
+          </Cifra>
+        </div>
+
+        {/* Corpo: i pagamenti, uno per riga — ognuno col suo documento */}
+        <div className="pn-scroll" style={{
+          padding:'16px 26px 20px', overflowY:'auto', background: C.SURF,
+        }}>
+          <Titolo>
+            Canali di pagamento
+            {payments.length > 0 && (
+              <span style={{
+                padding:'1px 7px', borderRadius: C.R_PILL,
+                background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
+                color: PN.MUTED, fontVariantNumeric:'tabular-nums',
+              }}>{payments.length}</span>
+            )}
+          </Titolo>
+
+          {payments.length === 0 ? (
+            <div style={{
+              padding:'22px 14px', background: PN.WHITE,
+              border:`1px dashed ${PN.BORDER}`, borderRadius: C.R_MD,
+              fontSize: C.T_SM, color: PN.MUTED, textAlign:'center',
+            }}>Nessun pagamento ancora registrato per questo conto</div>
+          ) : (
+            <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+              {payments.map(p => {
+                const meta = methodMeta[p.method] || methodMeta.contanti;
+                const Icon = meta.icon;
+                // Lo stato del documento si legge qui, non si tocca qui: annullo
+                // e reso partono solo dal dettaglio, dove le righe si vedono
+                // prima di decidere — un pulsante rapido su una riga di elenco
+                // farebbe scegliere alla cieca.
+                const st = getStato ? getStato(p.id) : null;
+                const device = p.posRef && [p.posRef.nome || p.posRef.device, p.posRef.email].filter(Boolean).join(' · ');
+                return (
+                  <div key={p.id} style={{
+                    display:'grid',
+                    gridTemplateColumns:'auto minmax(0, 1fr) auto',
+                    columnGap: 12, rowGap: 8, alignItems:'center',
+                    padding:'12px 14px', background: PN.WHITE,
+                    border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: C.R_MD,
+                    boxShadow:'0 1px 2px rgba(15,17,21,0.04)',
+                  }}>
+                    <div style={{
+                      gridRow:'1 / span 2',
+                      width: 36, height: 36, borderRadius: 10,
+                      background: meta.bg, color: meta.color,
+                      display:'grid', placeItems:'center',
+                    }}>{Icon ? <Icon size={16}/> : null}</div>
+
+                    {/* Riga 1 — due stati indipendenti, in quest'ordine perché
+                        rispondono a due domande diverse.
                         Prima cos'è successo ai SOLDI: il badge annullo/reso
-                        cambia come si legge la cifra qui accanto, che infatti
+                        cambia come si legge la cifra qui a destra, che infatti
                         va barrata — quindi va visto prima di leggerla.
-                        Poi il DOCUMENTO: il suo numero e se è arrivato allo
-                        SdI. Sono una cosa sola e stanno insieme.
+                        Poi il DOCUMENTO, se è arrivato allo SdI.
                         Non si escludono: uno scontrino scartato resta scartato
                         anche dopo che il denaro è tornato indietro, e l'ufficio
                         deve poter vedere le due cose nello stesso colpo. */}
-                    {st && (
-                      <span style={{
-                        padding:'2px 8px', borderRadius: 999, background:'#FEE2E2', color:'#B91C1C',
-                        fontSize: 11.5, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.3,
-                      }}>{st.tipo === 'annullo' ? 'Annullato' : 'Reso'}</span>
-                    )}
-                    {p.scontrinoNum && (
-                      <span style={{fontFamily:'ui-monospace, Menlo, monospace', color: PN.MUTED}}>{p.scontrinoNum}</span>
-                    )}
-                    <PagamentoFiscChip payment={p} onOpen={() => onScarto && onScarto(p)}/>
+                    <div style={{display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap', minWidth: 0}}>
+                      <span style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT}}>{meta.label}</span>
+                      {st && (
+                        <span style={{
+                          padding:'2px 8px', borderRadius: C.R_PILL, background:'#FEE2E2', color:'#B91C1C',
+                          fontSize: 11.5, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.3,
+                        }}>{st.tipo === 'annullo' ? 'Annullato' : 'Reso'}</span>
+                      )}
+                      <PagamentoFiscChip payment={p} onOpen={() => onScarto && onScarto(p)}/>
+                    </div>
+                    <div style={{
+                      fontWeight: 800, fontVariantNumeric:'tabular-nums',
+                      fontSize: C.T_MD, textAlign:'right',
+                      color: st ? PN.MUTED_SOFT : PN.TEXT,
+                      textDecoration: st && st.tipo === 'annullo' ? 'line-through' : 'none',
+                    }}>€{p.amount.toFixed(2)}</div>
+
+                    {/* Riga 2 — quando e quale scontrino; il dispositivo sotto,
+                        su una riga sua: in linea mandava a capo il separatore
+                        e restava un puntino appeso in fondo. */}
+                    <div style={{
+                      fontSize: C.T_XS, color: PN.MUTED, minWidth: 0,
+                      display:'flex', flexDirection:'column', gap: 3,
+                    }}>
+                      <span style={{display:'flex', alignItems:'center', gap: 7, flexWrap:'wrap'}}>
+                        <span style={{fontVariantNumeric:'tabular-nums'}}>{fmtDataOra(p.ora)}</span>
+                        {p.scontrinoNum && (
+                          <React.Fragment>
+                            <Sep/>
+                            <span style={{fontFamily:'ui-monospace, Menlo, monospace'}}>{p.scontrinoNum}</span>
+                          </React.Fragment>
+                        )}
+                      </span>
+                      {device && (
+                        <span style={{minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                          <span style={{fontWeight: 700}}>Dispositivo:</span> {device}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{display:'inline-flex', alignItems:'center', gap: 6, justifySelf:'end'}}>
+                      {p.scontrinoNum && (
+                        <button onClick={() => onDettaglio && onDettaglio(conto, p)} style={{
+                          padding:'6px 10px', background: PN.WHITE,
+                          border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
+                          fontSize: C.T_XS, fontWeight: 600, color: PN.TEXT,
+                          cursor:'pointer', fontFamily:'inherit',
+                          display:'inline-flex', alignItems:'center', gap: 5,
+                        }}>
+                          {PnI.FileText ? <PnI.FileText size={12}/> : null}
+                          Scontrino
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Annulli e resi — uno per scontrino, col documento collegato */}
+          {payments.some(p => getStato && getStato(p.id)) && (
+            <div style={{marginTop: 18}}>
+              <Titolo>Annulli e resi</Titolo>
+              <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+                {payments.map(p => {
+                  const st = getStato ? getStato(p.id) : null;
+                  if (!st) return null;
+                  return (
+                    <div key={p.id} style={{
+                      padding:'12px 14px',
+                      background:'#FEF2F2', border:`1px solid #FECACA`, borderRadius: C.R_MD,
+                      display:'grid', gridTemplateColumns:'auto 1fr auto', gap: 12, alignItems:'center',
+                    }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background:'#FEE2E2', color:'#B91C1C',
+                        display:'grid', placeItems:'center',
+                      }}><PnI.RotateCcw size={16}/></div>
+                      <div style={{minWidth: 0}}>
+                        <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>
+                          {st.tipo === 'annullo' ? 'Annullo' : 'Reso'} scontrino {p.scontrinoNum}
+                        </div>
+                        <div style={{fontSize: C.T_XS, color:'#B91C1C', marginTop: 3, fontFamily:'ui-monospace, Menlo, monospace'}}>{st.doc}</div>
+                      </div>
+                      <div style={{fontWeight: 800, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color:'#991B1B'}}>
+                        −€{st.amount.toFixed(2)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Rimborso — voce storica pre-esistente al collegamento annullo/reso,
+              senza un pagamento specifico a cui agganciarsi: resta com'era. */}
+          {conto.rimborso && (
+            <div style={{marginTop: 18}}>
+              <Titolo>Rimborso</Titolo>
+              <div style={{
+                padding:'12px 14px',
+                background:'#FEF2F2', border:`1px solid #FECACA`, borderRadius: C.R_MD,
+                display:'grid', gridTemplateColumns:'auto 1fr auto', gap: 12, alignItems:'center',
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background:'#FEE2E2', color:'#B91C1C',
+                  display:'grid', placeItems:'center',
+                }}><PnI.RotateCcw size={16}/></div>
+                <div style={{minWidth: 0}}>
+                  <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>
+                    {conto.rimborso.method === 'carta' ? 'Carta' : 'Contanti'}
+                  </div>
+                  <div style={{fontSize: C.T_XS, color:'#B91C1C', marginTop: 3}}>
+                    <span style={{fontVariantNumeric:'tabular-nums'}}>{fmtDataOra(conto.rimborso.ora)}</span>
+                    {conto.rimborso.reason && ` · ${conto.rimborso.reason}`}
                   </div>
                 </div>
-                <div style={{fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color: st ? PN.MUTED_SOFT : PN.TEXT, textDecoration: st && st.tipo === 'annullo' ? 'line-through' : 'none'}}>
-                  €{p.amount.toFixed(2)}
-                </div>
-                <div style={{display:'inline-flex', alignItems:'center', gap: 6}} onClick={e => e.stopPropagation()}>
-                  {p.scontrinoNum && (
-                    <button onClick={() => onDettaglio && onDettaglio(conto, p)} style={{
-                      padding:'6px 10px', background: PN.WHITE,
-                      border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM,
-                      fontSize: C.T_XS, fontWeight: 600, color: PN.TEXT,
-                      cursor:'pointer', fontFamily:'inherit',
-                      display:'inline-flex', alignItems:'center', gap: 5,
-                    }}>
-                      {PnI.FileText ? <PnI.FileText size={12}/> : null}
-                      Scontrino
-                    </button>
-                  )}
+                <div style={{fontWeight: 800, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color:'#991B1B'}}>
+                  −€{conto.rimborso.amount.toFixed(2)}
                 </div>
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Annulli e resi — uno per scontrino, col documento collegato */}
-      {payments.map(p => {
-        const st = getStato ? getStato(p.id) : null;
-        if (!st) return null;
-        return (
-          <div key={p.id} style={{
-            marginTop: 10, padding:'10px 14px',
-            background:'#FEF2F2', border:`1px solid #FECACA`, borderRadius: C.R_SM,
-            display:'grid', gridTemplateColumns:'auto 1fr auto', gap: 12, alignItems:'center',
-          }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background:'#FEE2E2', color:'#B91C1C',
-              display:'grid', placeItems:'center',
-            }}><PnI.RotateCcw size={15}/></div>
-            <div>
-              <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>
-                {st.tipo === 'annullo' ? 'Annullo' : 'Reso'} scontrino {p.scontrinoNum}
-              </div>
-              <div style={{fontSize: C.T_XS, color:'#B91C1C', marginTop: 2, fontFamily:'ui-monospace, Menlo, monospace'}}>{st.doc}</div>
-            </div>
-            <div style={{fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color:'#991B1B'}}>
-              −€{st.amount.toFixed(2)}
-            </div>
-          </div>
-        );
-      })}
-
-      {/* Rimborso — voce storica pre-esistente al collegamento annullo/reso,
-          senza un pagamento specifico a cui agganciarsi: resta com'era. */}
-      {conto.rimborso && (
+        {/* Piede: la chiusura, e se il conto è aperto anche il modo di chiuderlo */}
         <div style={{
-          marginTop: 10, padding:'10px 14px',
-          background:'#FEF2F2', border:`1px solid #FECACA`, borderRadius: C.R_SM,
-          display:'grid', gridTemplateColumns:'auto 1fr auto', gap: 12, alignItems:'center',
+          padding:'14px 22px', borderTop:`1px solid ${PN.BORDER_SOFT}`,
+          background: PN.WHITE_OFF,
+          display:'flex', alignItems:'center', justifyContent:'flex-end', gap: 10,
         }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background:'#FEE2E2', color:'#B91C1C',
-            display:'grid', placeItems:'center',
-          }}><PnI.RotateCcw size={15}/></div>
-          <div>
-            <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>
-              Rimborso · {conto.rimborso.method === 'carta' ? 'Carta' : 'Contanti'}
-            </div>
-            <div style={{fontSize: C.T_XS, color:'#B91C1C', marginTop: 2}}>
-              {fmtDataOra(conto.rimborso.ora.split(' ')[0] + ' ' + (conto.rimborso.ora.split(' ')[1] || ''))}
-              {conto.rimborso.reason && ` · ${conto.rimborso.reason}`}
-            </div>
-          </div>
-          <div style={{fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color:'#991B1B'}}>
-            −€{conto.rimborso.amount.toFixed(2)}
-          </div>
+          <button onClick={onClose}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = PN.BORDER; }}
+            style={{
+              padding:'10px 18px', background:'transparent', border:`1px solid ${PN.BORDER}`,
+              borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT,
+              cursor:'pointer', fontFamily:'inherit',
+              transition:'background 130ms ease, border-color 130ms ease',
+            }}>Chiudi</button>
+          {!isSaldato && (
+            <button onClick={() => onSalda && onSalda(conto)}
+              style={{
+                padding:'10px 22px', background: PN.TEXT, color:'#fff', border:'none',
+                borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700,
+                cursor:'pointer', fontFamily:'inherit',
+              }}>Salda ora</button>
+          )}
         </div>
-      )}
-
+      </div>
     </div>
   );
 }
@@ -1057,23 +1238,19 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
   const [rimborsoStep, setRimborsoStep] = React.useState('metodo'); // 'metodo' | 'conferma'
   const [dettaglioScontrino, setDettaglioScontrino] = React.useState(null); // {conto, payment} | null
 
-  // Più conti aperti insieme: arrivando da Cassa una giornata può portarne
-  // due, e con l'accordion a uno solo il secondo scarto restava invisibile.
-  const [expandedIds, setExpandedIds] = React.useState(() => new Set());
-  const toggleExpanded = (id) => setExpandedIds(prev => {
-    const n = new Set(prev);
-    if (n.has(id)) n.delete(id); else n.add(id);
-    return n;
-  });
-  // Arrivando da Cassa i conti interessati si aprono da soli: altrimenti il
-  // rimando lascerebbe l'utente davanti a righe chiuse.
+  // Il conto che stai guardando: uno solo, perché il dettaglio è un foglio
+  // sopra la lista e non un pannello che spezza la tabella.
+  const [contoAperto, setContoAperto] = React.useState(null);
+  // Arrivando da Cassa, se la giornata rimanda a un conto solo lo si apre
+  // subito: è il documento su cui hai cliccato. Se ne rimanda più d'uno la
+  // lista resta la lista — è già filtrata su quelli, e scegli tu.
   const fiscKey = fisc ? `${fisc.data}|${fisc.stato}` : '';
   React.useEffect(() => {
-    if (!fisc) { setExpandedIds(new Set()); return; }
+    if (!fisc) { setContoAperto(null); return; }
     const attesi = CONTI_MOCK.filter(x => (x.payments || []).some(p =>
       (!fisc.data || String(p.ora || '').startsWith(fisc.data)) &&
       (!fisc.stato || docInfo(p).tipo === { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok' }[fisc.stato])));
-    setExpandedIds(new Set(attesi.map(c => c.id)));
+    setContoAperto(attesi.length === 1 ? attesi[0] : null);
   }, [fiscKey]);
   const [sortData, setSortData] = React.useState(null); // null | 'desc' (recenti) | 'asc' (meno recenti)
 
@@ -1315,22 +1492,24 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
             </div>
             <MaxRowsScroll maxRows={10}>
             {filtered.map((conto, i) => {
-              const isExpanded = expandedIds.has(conto.id);
+              // La riga aperta resta marcata sotto al foglio: chiudendolo si
+              // vede subito da dove si è tornati.
+              const isAperto = !!contoAperto && contoAperto.id === conto.id;
               return (
                 <React.Fragment key={conto.id}>
                   <div
                     data-row
-                    onClick={() => toggleExpanded(conto.id)}
-                    onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.background = '#F7F8FA'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = isExpanded ? PN.PINK_SOFT : PN.WHITE; }}
+                    onClick={() => setContoAperto(conto)}
+                    onMouseEnter={e => { if (!isAperto) e.currentTarget.style.background = '#F7F8FA'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = isAperto ? PN.PINK_SOFT : PN.WHITE; }}
                     style={{
                       display:'grid',
                       gridTemplateColumns:'0.7fr 0.7fr 0.7fr 1.1fr 0.9fr 0.8fr 110px',
                       padding:'12px 14px', alignItems:'center',
                       fontSize: C.T_SM, color: PN.TEXT,
                       borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-                      background: isExpanded ? PN.PINK_SOFT : PN.WHITE,
-                      boxShadow: isExpanded ? `inset 3px 0 0 ${PN.PINK}` : 'none',
+                      background: isAperto ? PN.PINK_SOFT : PN.WHITE,
+                      boxShadow: isAperto ? `inset 3px 0 0 ${PN.PINK}` : 'none',
                       cursor:'pointer',
                       transition:'background 0.12s, box-shadow 0.12s',
                     }}>
@@ -1351,9 +1530,8 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
                     <span style={{fontWeight:600, color: PN.TEXT, display:'inline-flex', alignItems:'center', gap:6}}>
                       <span style={{
                         display:'inline-flex',
-                        color: PN.MUTED_LIGHT,
-                        transform: isExpanded ? 'rotate(90deg)' : 'none',
-                        transition:'transform .15s',
+                        color: isAperto ? PN.PINK_DARK : PN.MUTED_LIGHT,
+                        transition:'color .15s',
                       }}><PnI.ChevronRight size={11}/></span>
                       {conto.tavolo}
                     </span>
@@ -1406,15 +1584,6 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
                       )}
                     </span>
                   </div>
-                  {isExpanded && (
-                    <ContoExpandedPanel
-                      conto={conto}
-                      getStato={statoDi}
-                      onDettaglio={(c, p) => setDettaglioScontrino({ conto: c, payment: p })}
-                      onRimborso={(c, p) => apriRimborso(c, p)}
-                      onScarto={(p) => setScartoPay({ conto, payment: p })}
-                    />
-                  )}
                 </React.Fragment>
               );
             })}
@@ -1422,6 +1591,19 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
           </div>
         )}
       </div>
+
+      {/* Dettaglio del conto — al posto del pannello che si apriva sotto la riga */}
+      {contoAperto && (
+        <ContoDettaglioSheet
+          conto={contoAperto}
+          saldato={saldati.has(contoAperto.id)}
+          getStato={statoDi}
+          onClose={() => setContoAperto(null)}
+          onDettaglio={(c, p) => setDettaglioScontrino({ conto: c, payment: p })}
+          onScarto={(p) => setScartoPay({ conto: contoAperto, payment: p })}
+          onSalda={(c) => { setContoAperto(null); setModalPagamento(c); }}
+        />
+      )}
 
       {/* Dettaglio scontrino: il documento, le sue righe, e da lì Stampa/Rendi/Annulla */}
       {dettaglioScontrino && (
