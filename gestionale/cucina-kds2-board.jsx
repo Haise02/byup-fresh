@@ -583,25 +583,6 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
                 fontSize: nomeSize, color: colNome, whiteSpace: 'nowrap',
               })}>{nome}</span>
 
-              {/* Solo dove ce n'è più d'uno. Su una riga da un piatto solo la
-                  pressione lunga fa già esattamente questo, e la CTA sarebbe un
-                  secondo modo di fare la stessa identica cosa.
-                  `stopPropagation` sul pointerdown: senza, premere la CTA
-                  avvierebbe anche il conto della pressione lunga, e chi indugia
-                  un attimo si ritrova la riga intera in preparazione. */}
-              {riga.quantity > 1 && !quieta && (
-                <button type="button" data-kds2-interattivo=""
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={e => { e.stopPropagation(); onBumpPorzione(riga.portions[0]); }}
-                  title={'Invia un solo ' + nome + ' · ' + kds2Identita(riga.portions[0].source)}
-                  style={{
-                    flexShrink: 0, height: 44, padding: '0 16px', borderRadius: 10,
-                    background: K.BRAND_BG, border: '2px solid ' + K.BRAND,
-                    color: K.BRAND_INK, fontSize: 15, fontWeight: 700,
-                    letterSpacing: '-0.01em', whiteSpace: 'nowrap',
-                    fontFamily: 'inherit', cursor: 'pointer',
-                  }}>Invia singolo piatto</button>
-              )}
             </div>
             {allergene ? (
               // Solo l'etichetta, così com'è scritta sul menu. Nessun protocollo
@@ -655,6 +636,30 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
               );
             })}
           </div>
+
+          {/* Il tasto sta a DESTRA, in fondo alla riga: a sinistra, incollato
+              al nome, spingeva via le chip dei tavoli e faceva ballare l'inizio
+              della fila da riga a riga. Qui è in colonna con quello di sopra e
+              di sotto — la mano lo trova sempre nello stesso punto — e non
+              tocca niente di ciò che si legge.
+              Solo dove ce n'è più d'uno: su una riga da un piatto solo la
+              pressione lunga fa già esattamente questo.
+              `stopPropagation` sul pointerdown: senza, premere il tasto
+              avvierebbe anche il conto della pressione lunga, e chi indugia un
+              attimo si ritrova la riga intera in preparazione. */}
+          {riga.quantity > 1 && !quieta && (
+            <button type="button" data-kds2-interattivo=""
+              onPointerDown={e => e.stopPropagation()}
+              onClick={e => { e.stopPropagation(); onBumpPorzione(riga.portions[0]); }}
+              title={'Invia un solo ' + nome + ' · ' + kds2Identita(riga.portions[0].source)}
+              style={{
+                flexShrink: 0, height: 44, padding: '0 16px', borderRadius: 10,
+                background: K.BRAND_BG, border: '2px solid ' + K.BRAND,
+                color: K.BRAND_INK, fontSize: 15, fontWeight: 700,
+                letterSpacing: '-0.01em', whiteSpace: 'nowrap',
+                fontFamily: 'inherit', cursor: 'pointer',
+              }}>Invia singolo piatto</button>
+          )}
 
           {/* Attesa della riga: quella della sua porzione più vecchia. È l'età
               della produzione, sempre in minuti — l'orario di ritiro è una
@@ -1127,51 +1132,54 @@ function Kds2Annulla({ voci, onRipristina }) {
     // bianche dentro tornano a essere l'unica cosa che si legge.
     <div data-kds2-interattivo="" style={{
       position: 'sticky', bottom: 0, zIndex: 40,
-      display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12,
-      padding: '14px 18px', borderRadius: 16, marginTop: 4,
+      display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10,
+      padding: '9px 16px', borderRadius: 16, marginTop: 4,
       background: K.BRAND_BG, border: '1px solid ' + K.BRAND_BORDO,
       boxShadow: '0 -6px 20px -12px rgba(15,17,21,0.18)',
     }}>
       {/* Che cosa succede quando il tempo finisce. Sta a sinistra, prima di
           tutto: è la regola sotto cui si legge tutta la fila, non la didascalia
-          di una delle schede. */}
+          di una delle schede. Su una riga sola, come le schede. */}
       <span style={{
-        flexShrink: 0, maxWidth: 216,
-        fontSize: 13.5, fontWeight: 600, lineHeight: 1.3, color: K.TESTO_2,
+        flexShrink: 0, maxWidth: 300,
+        fontSize: 13.5, fontWeight: 600, lineHeight: 1.25, color: K.TESTO_2,
       }}>
         Allo scadere del timer il piatto viene considerato pronto e scompare
       </span>
 
-      {/* Una scheda per piatto avviato, tutte uguali: nome sopra, tempo che
-          scende e il tasto per riportarlo in produzione. */}
+      {/* Una scheda per piatto avviato, tutte uguali e tutte su UNA RIGA: nome,
+          tempo, tasto per riportarlo in produzione. Prima il nome stava sopra e
+          il resto sotto — due piani di scheda che alzavano la fascia di una
+          trentina di pixel, e ogni pixel qui è tolto ai piatti da fare. In
+          orizzontale la fascia si allunga, ma quello è spazio che c'era già. */}
       {voci.map(v => (
         <div key={v.id} style={{
-          display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0,
-          padding: '9px 12px', borderRadius: 12,
+          display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+          padding: '6px 6px 6px 14px', borderRadius: 12,
           background: K.RIGA, border: '1px solid ' + K.BRAND_BORDO,
         }}>
           <span style={{
-            fontSize: 14.5, fontWeight: 700, color: K.TESTO,
+            fontSize: 15, fontWeight: 700, color: K.TESTO,
             letterSpacing: '-0.01em', whiteSpace: 'nowrap',
           }}>{v.testo}</span>
-          <div style={{display: 'flex', alignItems: 'center', gap: 14}}>
-            <span style={{
-              flex: 1, fontSize: 25, fontWeight: 800, color: K.TESTO,
-              letterSpacing: '-0.02em', lineHeight: 1,
-              fontVariantNumeric: 'tabular-nums',
-            }}>{kds2MmSs(v.scadenza - adesso)}</span>
-            <button type="button" onClick={() => onRipristina(v)}
-              aria-label={'Annulla · ' + v.testo}
-              title={'Annulla · ' + v.testo}
-              style={{
-                width: 44, height: 44, flexShrink: 0, borderRadius: 11,
-                display: 'grid', placeItems: 'center',
-                background: K.ROSSO, border: 'none', color: K.RIGA,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-              <Kds2Undo size={22}/>
-            </button>
-          </div>
+          {/* Rosso: è il tempo che si consuma, l'unica cosa che sta scadendo
+              in tutta la schermata. Nero era un dato come gli altri. */}
+          <span style={{
+            fontSize: 23, fontWeight: 800, color: K.ROSSO,
+            letterSpacing: '-0.02em', lineHeight: 1,
+            fontVariantNumeric: 'tabular-nums',
+          }}>{kds2MmSs(v.scadenza - adesso)}</span>
+          <button type="button" onClick={() => onRipristina(v)}
+            aria-label={'Annulla · ' + v.testo}
+            title={'Annulla · ' + v.testo}
+            style={{
+              width: 40, height: 40, flexShrink: 0, borderRadius: 10,
+              display: 'grid', placeItems: 'center',
+              background: K.ROSSO, border: 'none', color: K.RIGA,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+            <Kds2Undo size={21}/>
+          </button>
         </div>
       ))}
     </div>
