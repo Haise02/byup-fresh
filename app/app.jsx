@@ -18,6 +18,7 @@ const BG_GRAY = __BYUP_DARK ? '#262229' : '#f7ece8';
 const BG_PAGE = __BYUP_DARK ? '#161514' : '#FBF4F1';
 const SURF = __BYUP_DARK ? '#211f22' : '#fff';
 const TINT = __BYUP_DARK ? '#2b272c' : '#f6f1ea';
+const BG_CHIP = '#f6e9e4';
 
 // Design system condiviso — byup-app-kit.jsx DEVE essere caricato prima di questo file.
 const BK = window.ByupKit;
@@ -252,6 +253,19 @@ function Photo({ src, label, tone = 'a', duotone = true }) {
 const PhotoPlaceholder = Photo; // alias for back-compat
 
 // ─── Category chip ──────────────────────────────────────────
+const CAT_GRADIENTS = {
+  pizza:   'linear-gradient(135deg,#FF6B35 0%,#FF9457 100%)',
+  sushi:   'linear-gradient(135deg,#2EC4B6 0%,#1AA99F 100%)',
+  burger:  'linear-gradient(135deg,#FF9F1C 0%,#FFBF69 100%)',
+  gelato:  'linear-gradient(135deg,#FF6B9D 0%,#FF8FB1 100%)',
+  panini:  'linear-gradient(135deg,#F4D03F 0%,#E8B429 100%)',
+  brunch:  'linear-gradient(135deg,#FFB347 0%,#FF8C00 100%)',
+  cock:    'linear-gradient(135deg,#9B59B6 0%,#7D3C98 100%)',
+  vegan:   'linear-gradient(135deg,#27AE60 0%,#1E8449 100%)',
+  gf:      'linear-gradient(135deg,#D4A574 0%,#B8855A 100%)',
+  healthy: 'linear-gradient(135deg,#A8E063 0%,#56AB2F 100%)',
+};
+
 // Rail categorie: icone kawaii brand (mai emoji). `id` deve matchare BK.ASSETS.cat.
 function Category({ id, icon: I, art: Art, emoji, label, active, onClick }) {
   const [T] = BK.useByupTheme();
@@ -288,22 +302,26 @@ function Category({ id, icon: I, art: Art, emoji, label, active, onClick }) {
   );
 }
 
-// Le 12 categorie brand — id allineati a BK.ASSETS.cat (icone kawaii, mai emoji).
-// Condivise tra Home ("Esplora per categoria") e Ricerca ("Cerca per tipologia").
-const BRAND_CATS = [
-  { id: 'pizza',     label: 'Pizza' },
-  { id: 'burger',    label: 'Burger' },
-  { id: 'aperitivo', label: 'Aperitivo' },
-  { id: 'poke',      label: 'Poke' },
-  { id: 'panini',    label: 'Panini' },
-  { id: 'birra',     label: 'Birra' },
-  { id: 'dolce',     label: 'Dolce' },
-  { id: 'vino',      label: 'Vino' },
-  { id: 'taco',      label: 'Taco' },
-  { id: 'brunch',    label: 'Brunch' },
-  { id: 'cocktail',  label: 'Sushi' },
-  { id: 'torta',     label: 'Torta' },
-];
+// ─── Quick filter chip ──────────────────────────────────────
+function FilterChip({ label, active, onClick, leading }) {
+  const [T] = BK.useByupTheme();
+  return (
+    <button className="bk-press" onClick={() => { BK.haptic.selection(); onClick?.(); }} style={{
+      flex: '0 0 auto', height: 36, padding: '0 15px',
+      borderRadius: 999, border: `1.5px solid ${active ? T.primary : T.line}`,
+      background: active ? T.accentSoft : T.surface,
+      color: active ? T.primary : T.text,
+      fontSize: 13.5, fontWeight: active ? 700 : 600,
+      fontFamily: BK.TYPE.sans, cursor: 'pointer',
+      display: 'flex', alignItems: 'center', gap: 6,
+      transition: `all 0.2s ${BK.SPRING}`,
+      boxShadow: active ? T.shadowSoft : 'none',
+    }}>
+      {leading}
+      {label}
+    </button>
+  );
+}
 
 // ─── Favorite card (compact, horizontal) ────────────────────
 function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, closeHour, open, premium, onClick, onUnfav }) {
@@ -362,6 +380,107 @@ function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, clos
         <div style={{ fontSize: 11, color: T.textDim, marginTop: 4 }}>
           <span>{oh} – {ch}</span>
         </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Event card (large with date badge) ─────────────────────
+function EventCard({ title, place, tone, photo, date, time, onClick }) {
+  return (
+    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      flex: '0 0 auto', width: 210, height: 175, borderRadius: 22, overflow: 'hidden',
+      position: 'relative', border: 'none', padding: 0, cursor: 'pointer',
+      boxShadow: '0 14px 32px -18px rgba(227,36,89,.38)',
+      fontFamily: BK.TYPE.sans, textAlign: 'left',
+    }}>
+      <Photo src={photo} label={title} tone={tone}/>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(28,6,16,0.08) 0%, rgba(28,6,16,0.78) 100%)',
+      }}/>
+      {/* EVENTO label top-right */}
+      <div style={{
+        position: 'absolute', top: 11, right: 11,
+        background: 'rgba(250,227,222,0.2)', backdropFilter: 'blur(8px)',
+        border: '1px solid rgba(250,227,222,0.35)',
+        color: '#fff', fontSize: 9.5, fontWeight: 800, letterSpacing: 1,
+        padding: '3px 8px', borderRadius: 999, textTransform: 'uppercase',
+      }}>Evento</div>
+      {/* date badge top-left */}
+      {date && (
+        <div style={{
+          position: 'absolute', top: 11, left: 11,
+          background: SURF, borderRadius: 12,
+          padding: '4px 9px', textAlign: 'center', minWidth: 38,
+        }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: PINK, letterSpacing: 0.6, lineHeight: 1.1 }}>{date.month}</div>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 18, fontWeight: 600, color: '#1c0f15', lineHeight: 1, marginTop: 1 }}>{date.day}</div>
+        </div>
+      )}
+      <div style={{ position: 'absolute', left: 8, right: 8, bottom: 8, color: '#fff',
+        borderRadius: 15, padding: '9px 11px',
+        background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.28)',
+        backdropFilter: 'blur(12px) saturate(170%)', WebkitBackdropFilter: 'blur(12px) saturate(170%)',
+        boxShadow: '0 8px 20px -10px rgba(20,8,12,.45)' }}>
+        <div style={{ fontFamily: BK.TYPE.display, fontSize: 16.5, fontWeight: 600, lineHeight: 1.15,
+          textShadow: '0 2px 8px rgba(20,8,12,.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 11.5,
+          fontWeight: 600, color: 'rgba(255,255,255,.9)' }}>
+          <Icon.Pin size={10} color="#ffd3de"/>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place}</span>
+          {time && <>
+            <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)', flexShrink: 0 }}/>
+            <Icon.Clock size={10} color="#ffd3de"/>
+            <span style={{ flexShrink: 0 }}>{time}</span>
+          </>}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Promo card ──────────────────────────────────────────────
+function PromoCard({ title, place, tone, photo, discount, hours, onClick }) {
+  return (
+    <button className="bk-press" onClick={() => { BK.haptic.light(); onClick?.(); }} style={{
+      flex: '0 0 auto', width: 175, height: 210, borderRadius: 22, overflow: 'hidden',
+      position: 'relative', border: 'none', padding: 0, cursor: 'pointer',
+      boxShadow: '0 14px 32px -18px rgba(227,36,89,.38)',
+      fontFamily: BK.TYPE.sans, textAlign: 'left',
+    }}>
+      <Photo src={photo} label={place} tone={tone}/>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(28,6,16,0) 30%, rgba(28,6,16,0.8) 100%)',
+      }}/>
+      {discount && (
+        <div style={{
+          position: 'absolute', top: 12, left: 12,
+          background: PINK, color: '#fff',
+          padding: '7px 12px', borderRadius: 14,
+          boxShadow: '0 8px 20px -6px rgba(227,36,89,0.6)',
+          transform: 'rotate(-3deg)',
+        }}>
+          <div style={{ fontFamily: BK.TYPE.display, fontSize: 22, fontWeight: 600, lineHeight: 1 }}>{discount}</div>
+        </div>
+      )}
+      <div style={{ position: 'absolute', left: 8, right: 8, bottom: 8, color: '#fff',
+        borderRadius: 15, padding: '9px 11px',
+        background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.28)',
+        backdropFilter: 'blur(12px) saturate(170%)', WebkitBackdropFilter: 'blur(12px) saturate(170%)',
+        boxShadow: '0 8px 20px -10px rgba(20,8,12,.45)' }}>
+        <div style={{ fontFamily: BK.TYPE.display, fontSize: 15.5, fontWeight: 600, lineHeight: 1.15,
+          textShadow: '0 2px 8px rgba(20,8,12,.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 11,
+          fontWeight: 600, color: 'rgba(255,255,255,.9)' }}>
+          <Icon.Pin size={10} color="#ffd3de"/>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place}</span>
+        </div>
+        {hours && <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, fontSize: 10.5,
+          fontWeight: 600, color: 'rgba(255,255,255,.8)' }}>
+          <Icon.Clock size={10} color="#ffd3de"/> {hours}
+        </div>}
       </div>
     </button>
   );
@@ -628,6 +747,13 @@ function NotifSheet({ open, onClose }) {
 }
 
 // ─── Search overlay (recenti + popolari) ────────────────────
+const SEARCH_RECENTS = [
+  'Pizzeria napoletana',
+  'Sushi all you can eat',
+  'Aperitivo con vista',
+  'Brunch domenicale',
+  'Cocktail bar',
+];
 const SEARCH_POPULAR = [
   'Ristorante italiano',
   'Ristorante giapponese',
@@ -794,18 +920,9 @@ function CategoryScreen({ cat, onBack, onOpenVenue }) {
 
 function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
   const [q, setQ] = useState('');
-  const [activeCat, setActiveCat] = useState(null);
   const inputRef = useRef(null);
   // niente autofocus: la tastiera si apre solo quando l'utente tocca il campo
   const submit = (term) => onSubmit(term);
-  // Categoria attiva → la griglia mostra i locali di quella categoria
-  const catObj = activeCat ? BRAND_CATS.find(c => c.id === activeCat) : null;
-  const tiles = catObj
-    ? (CAT_SCREEN_NAMES[activeCat] || CAT_SCREEN_NAMES.pizza).map((name, i) => {
-        const ph = CAT_SCREEN_PHOTOS[activeCat] || CAT_SCREEN_PHOTOS.pizza;
-        return { src: `https://images.unsplash.com/photo-${ph[i % ph.length]}?w=600&q=70&auto=format&fit=crop`, name, q: name };
-      })
-    : EXPLORE_TILES;
   return (
     <div style={{
       width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
@@ -857,28 +974,15 @@ function SearchScreen({ onBack, onSubmit, onOpenFilters, activeFilterCount }) {
           </div>
         </div>
 
-        {/* Cerca per tipologia — le stesse categorie della home, qui da filtro:
-            tap → si illumina e la griglia mostra i locali della categoria */}
-        {q.trim().length === 0 && (
-          <div style={{ display: 'flex', gap: 4, overflowX: 'auto', padding: '16px 22px 0',
-            scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-            {BRAND_CATS.map(c => (
-              <Category key={c.id} id={c.id} label={c.label}
-                active={activeCat === c.id}
-                onClick={() => setActiveCat(a => a === c.id ? null : c.id)}/>
-            ))}
-          </div>
-        )}
-
         {q.trim().length === 0 && (
           <>
             <div style={{ padding: '20px 22px 12px', fontFamily: BK.TYPE.display, fontSize: 17, fontWeight: 600, color: TEXT,
               display: 'flex', alignItems: 'center', gap: 8 }}>
               <img src="assets/icon-sushi.png" alt="" width="22" height="22" style={{ filter: 'drop-shadow(0 3px 5px rgba(77,18,46,.2))' }}/>
-              {catObj ? catObj.label + ' vicino a te' : 'Esplora i locali'}
+              Esplora i locali
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridAutoRows: '124px', gap: 3, padding: '0 3px' }}>
-              {tiles.map((t, i) => {
+              {EXPLORE_TILES.map((t, i) => {
                 const big = i % 7 === 0;
                 return (
                   <button key={i} onClick={() => submit(t.q)} style={{
@@ -957,21 +1061,6 @@ const RESULT_VENUES = [
 function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpenVenue, onMenu }) {
   const [sort, setSort] = useState('Top offer');
   const [sortOpen, setSortOpen] = useState(false);
-  // Filtro per categoria: stessa rail di "Esplora per categoria" in home
-  const [activeCat, setActiveCat] = useState(null);
-  const catObj = activeCat ? BRAND_CATS.find(c => c.id === activeCat) : null;
-  const catVenues = catObj ? (CAT_SCREEN_NAMES[activeCat] || CAT_SCREEN_NAMES.pizza).map((n, i) => {
-    const ph = CAT_SCREEN_PHOTOS[activeCat] || CAT_SCREEN_PHOTOS.pizza;
-    return {
-      name: n, cuisine: catObj.label, city: 'Roma, Italia',
-      distance: (0.3 + i * 0.4).toFixed(1) + 'km',
-      rating: +(4.2 + ((i * 7) % 8) / 10).toFixed(1),
-      open: i % 4 !== 3, hours: i % 4 !== 3 ? 'chiude alle ore 23:00' : 'apre alle 18:00',
-      topOffer: i % 3 === 0,
-      photo: `https://images.unsplash.com/photo-${ph[i % ph.length]}?w=800&q=70&auto=format&fit=crop`,
-    };
-  }) : null;
-  const list = catVenues || RESULT_VENUES;
   return (
     <div style={{
       width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
@@ -1026,19 +1115,9 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
           </div>
         </div>
 
-        {/* Esplora per categoria — tap per filtrare i risultati */}
-        <div style={{ display: 'flex', gap: 4, overflowX: 'auto', padding: '16px 22px 0',
-          scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-          {BRAND_CATS.map(c => (
-            <Category key={c.id} id={c.id} label={c.label}
-              active={activeCat === c.id}
-              onClick={() => setActiveCat(a => a === c.id ? null : c.id)}/>
-          ))}
-        </div>
-
         <div style={{ padding: '18px 22px 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>
-            {list.length} Risultati{catObj ? ` · ${catObj.label}` : ''}
+            {RESULT_VENUES.length} Risultati
           </div>
           <button onClick={() => setSortOpen(o=>!o)} style={{
             background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -1067,8 +1146,8 @@ function ResultsScreen({ query, onBack, onOpenFilters, activeFilterCount, onOpen
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '14px 18px 0' }}>
-          {list.map((v, i) => (
-            <ResultCard key={activeCat ? `${activeCat}-${i}` : i} {...v}
+          {RESULT_VENUES.map((v, i) => (
+            <ResultCard key={i} {...v}
               onClick={() => onOpenVenue({ ...v, _from: 'results' })}
               onMenu={onMenu}/>
           ))}
@@ -1184,7 +1263,7 @@ function BookingHomeCard({ booking, onModify, onScanQr }) {
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              {booking.people} partecipanti
+              {booking.people} coperti
             </div>
             <button onClick={() => setExpanded(!expanded)} style={{
               width: 30, height: 30, borderRadius: 999, background: SAND_PILL_BG,
@@ -1216,7 +1295,7 @@ function BookingHomeCard({ booking, onModify, onScanQr }) {
               background: 'rgba(255,255,255,0.55)',
               fontSize: 12.5, color: '#4d122e', lineHeight: 1.45,
             }}>
-              <span style={{ fontWeight: 700 }}>Quando arrivi al locale</span>, scansiona il QR sul tavolo per associarti e ordinare dall'app insieme agli altri partecipanti.
+              <span style={{ fontWeight: 700 }}>Quando arrivi al locale</span>, scansiona il QR sul tavolo per associarti e ordinare dall'app insieme ai tuoi coperti.
             </div>
 
             {/* CTAs */}
@@ -2143,7 +2222,7 @@ function PaymentCard({ onClick }) {
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: BK.TYPE.display, fontSize: 15.5, fontWeight: 600, lineHeight: 1.2 }}>La tua carta si sente sola.</div>
-            <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 3 }}>Apple Pay · Google Pay · Carte. 30 secondi e paghi in un tap.</div>
+            <div style={{ fontFamily: BK.TYPE.sans, fontSize: 11.5, opacity: .85, marginTop: 3 }}>Apple Pay · Google Pay · Carte — 30 secondi e paghi in un tap.</div>
           </div>
           <div style={{
             background: '#ceff00', color: '#141414', flexShrink: 0,
@@ -2308,12 +2387,10 @@ function HomeSections({
   onCategory,
   quickFilters, setQuickFilters,
   activeFilterCount = 0,
-  onMap, onPosta, onSearch, onSearchSubmit, onFilters,
+  onMap, onPosta, onSearch, onFilters,
   onCardClick, onSlotClick, onDisponibili,
   noVenues = false,
 }) {
-  // Ricerca inline dalla home: si scrive qui, invio → risultati con la query
-  const [searchQ, setSearchQ] = useState('');
   // Allow internal moment management when parent doesn't provide it (legacy callers).
   const [intMoment, intSetMoment] = useState('ora');
   const moment = extMoment ?? intMoment;
@@ -2326,7 +2403,21 @@ function HomeSections({
   const md = MOMENT_DATA[moment] || MOMENT_DATA.ora;
   const heroPhoto = HERO_PHOTO[moment] || HERO_PHOTO.ora;
 
-  const cats = BRAND_CATS;
+  // Le 12 categorie brand — id allineati a BK.ASSETS.cat (icone kawaii, mai emoji).
+  const cats = [
+    { id: 'pizza',     label: 'Pizza' },
+    { id: 'burger',    label: 'Burger' },
+    { id: 'aperitivo', label: 'Aperitivo' },
+    { id: 'poke',      label: 'Poke' },
+    { id: 'panini',    label: 'Panini' },
+    { id: 'birra',     label: 'Birra' },
+    { id: 'dolce',     label: 'Dolce' },
+    { id: 'vino',      label: 'Vino' },
+    { id: 'taco',      label: 'Taco' },
+    { id: 'brunch',    label: 'Brunch' },
+    { id: 'cocktail',  label: 'Sushi' },
+    { id: 'torta',     label: 'Torta' },
+  ];
   const favorites = [
     { premium: true, name: 'Al Settembrini', type: 'Ristorante', distance: '0.4 km', hours: '12:30 – 23:00', open: true,
       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=70&auto=format&fit=crop' },
@@ -2353,6 +2444,7 @@ function HomeSections({
       photo: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&q=70&auto=format&fit=crop' },
   ];
   const click = (item) => onCardClick?.(item);
+  const slotClick = (item) => onSlotClick?.(item);
   const [T] = BK.useByupTheme();
 
   return (
@@ -2416,31 +2508,18 @@ function HomeSections({
         {/* Search — nascosta quando non ci sono locali */}
         {!noVenues && (
           <div style={{ padding: '14px 22px 14px' }}>
-            <div style={{
+            <div onClick={onSearch} style={{
               display: 'flex', alignItems: 'center', gap: 10,
               height: 50, borderRadius: 999,
               border: `1px solid ${T.glassBorder}`,
-              padding: '0 16px', background: T.glass, cursor: 'text',
+              padding: '0 16px', background: T.glass, cursor: 'pointer',
               backdropFilter: 'blur(24px) saturate(160%)', WebkitBackdropFilter: 'blur(24px) saturate(160%)',
               boxShadow: T.shadowSoft,
             }}>
               <Icon.Search/>
-              <input
-                value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && searchQ.trim()) {
-                    if (onSearchSubmit) onSearchSubmit(searchQ.trim());
-                    else onSearch?.(searchQ.trim());
-                    setSearchQ('');
-                    e.target.blur();
-                  }
-                }}
-                enterKeyHint="search"
-                placeholder="Cerca un locale, un piatto..."
-                style={{ flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent',
-                  fontSize: 14.5, color: T.text, fontFamily: BK.TYPE.sans }}
-              />
+              <span style={{ flex: 1, fontSize: 14.5, color: T.textDim, fontFamily: BK.TYPE.sans }}>
+                Cerca un locale, un piatto...
+              </span>
               <button onClick={(e) => { e.stopPropagation(); onFilters?.(); }} style={{
                 border: 'none', background: 'transparent', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2771,20 +2850,6 @@ const BYP_CSS = `
 .byp-badgecard:active{transform:scale(.96)}
 `;
 const BYP_LEVEL_NAMES = { 1: 'Novizio', 2: 'Esploratore', 3: 'Buongustaio', 4: 'Intenditore', 5: 'Gourmet', 6: 'Maestro', 7: 'Leggenda', 8: 'Icona' };
-// Ricompensa crescente e mascotte diversa per ogni livello della roadmap.
-// rank-1..8 sono i ritagli delle tavole byuppini: prime armi → cameriere →
-// caposala → chef → executive chef → proprietario → proprietario dorato →
-// imprenditore miliardario.
-const BYP_LEVEL_INFO = {
-  1: { img: 'assets/rank-1.png?v=2', mult: '×1',   bonus: 0 },
-  2: { img: 'assets/rank-2.png?v=2', mult: '×1,2', bonus: 100 },
-  3: { img: 'assets/rank-3.png?v=2', mult: '×1,3', bonus: 250 },
-  4: { img: 'assets/rank-4.png?v=2', mult: '×1,5', bonus: 500 },
-  5: { img: 'assets/rank-5.png?v=2', mult: '×1,8', bonus: 1000 },
-  6: { img: 'assets/rank-6.png?v=2', mult: '×2',   bonus: 2000 },
-  7: { img: 'assets/rank-7.png?v=2', mult: '×2,5', bonus: 3500 },
-  8: { img: 'assets/rank-8.png?v=2', mult: '×3',   bonus: 5000 },
-};
 const BYP_CUR_LEVEL = 3;
 const BYP_ACH = [
   { e: '🍕', t: 'Pizza lover', s: 'done', pts: 100, d: 'Hai ordinato 10 pizze dai locali byup.' },
@@ -3134,21 +3199,522 @@ function BypBadgeCard({ a, i, onOpen }) {
   );
 }
 
-function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }) {
-  // Deep-link di segmento (es. "Guadagna punti" dalla roadmap → Traguardi)
-  const [seg, setSeg] = useState(() => {
-    try {
-      const s = sessionStorage.getItem('byup_byuppini_seg');
-      if (s) { sessionStorage.removeItem('byup_byuppini_seg'); return s; }
-    } catch {}
-    return 'wallet';
+function BypChal({ emo, title, desc, rew, pct, meta1, meta2, live, cta, onCta }) {
+  return (
+    <div style={{ background: live ? 'linear-gradient(158deg,#20303a,#12212b)' : BYP.surf,
+      border: `1px solid ${live ? 'rgba(120,200,255,.2)' : BYP.line}`, borderRadius: 18, padding: 15, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 13, flex: 'none', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: 22,
+          background: live ? 'linear-gradient(155deg,#123044,#0c4a63)' : 'linear-gradient(155deg,#3b2530,#6b1e39)' }}>{emo}</div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 700, color: BYP.text }}>{title}</div>
+          <div style={{ fontSize: 12, color: BYP.muted, marginTop: 2 }}>{desc}</div>
+        </div>
+        <div style={{ marginLeft: 'auto', flex: 'none', fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 13, color: BYP.lime, whiteSpace: 'nowrap' }}>{rew}</div>
+      </div>
+      {pct != null && (
+        <>
+          <div style={{ height: 9, borderRadius: 999, background: BYP.surf2, marginTop: 12, overflow: 'hidden' }}>
+            <span style={{ display: 'block', height: '100%', width: `${pct}%`, borderRadius: 999,
+              background: 'linear-gradient(90deg,#e32459,#ff3d6e)' }}/>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: BYP.muted, marginTop: 6, fontWeight: 600 }}>
+            <span>{meta1}</span><span>{meta2}</span>
+          </div>
+        </>
+      )}
+      {cta && <BypCta style={{ height: 46, marginTop: 12 }} onClick={onCta}>{cta}</BypCta>}
+    </div>
+  );
+}
+
+// ─── Byup Games — card stile arcade (reference-driven) + swipe manuale ───
+const BYP_GAMES = [
+  { id: 'wheel', bg: '#FDF3CE', ink: '#3b2a00' },
+  { id: 'slot', bg: '#EBDFFC', ink: '#2c1a4d' },
+  { id: 'scratch', bg: '#FFE0EA', ink: '#4d1226' },
+];
+
+// Titolo chunky multicolore stile "SPIN TO WIN!"
+function BypGameTitle({ parts }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 5, whiteSpace: 'nowrap' }}>
+      {parts.map(([txt, color, small], i) => (
+        <span key={i} style={{
+          fontFamily: BK.TYPE.display, fontWeight: 700, letterSpacing: -0.5,
+          fontSize: small ? 15 : 26, color,
+          textShadow: '2px 2px 0 #2b1a20, -1px -1px 0 #2b1a20, 1px -1px 0 #2b1a20, -1px 1px 0 #2b1a20',
+          transform: i % 2 ? 'rotate(1.5deg)' : 'rotate(-1.5deg)',
+        }}>{txt}</span>
+      ))}
+    </div>
+  );
+}
+
+// Ruota v2: etichette RADIALI leggibili, lampadine sul bordo, hub rifinito.
+// Il puntatore giallo sta a sinistra (come reference) e "ticchetta" durante lo spin.
+function BypWheel({ size = 150, rot = 0, spinning = false }) {
+  const SEGS = ['+100', '30 pts', '20% OFF', 'Ritenta', '+100', '+50'];
+  const COLS = ['#CEFF00', '#fff', '#CEFF00', '#fff', '#CEFF00', '#fff'];
+  const r = size / 2;
+  const wedge = (i) => {
+    const a0 = (i * 60 - 90) * Math.PI / 180, a1 = ((i + 1) * 60 - 90) * Math.PI / 180;
+    return `M${r},${r} L${r + r * Math.cos(a0)},${r + r * Math.sin(a0)} A${r},${r} 0 0 1 ${r + r * Math.cos(a1)},${r + r * Math.sin(a1)} Z`;
+  };
+  const mid = (i) => (i + 0.5) * 60; // gradi dal top, senso orario
+  const labelPos = (i) => {
+    const a = (mid(i) - 90) * Math.PI / 180;
+    return { x: r + r * 0.58 * Math.cos(a), y: r + r * 0.58 * Math.sin(a) };
+  };
+  const bulbs = Array.from({ length: 12 }, (_, i) => {
+    const a = (i * 30 - 90) * Math.PI / 180;
+    return { x: r + r * 0.925 * Math.cos(a), y: r + r * 0.925 * Math.sin(a) };
   });
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <style>{`@keyframes bypTick{0%{transform:translateY(-50%) rotate(0)}100%{transform:translateY(-50%) rotate(-14deg)}}`}</style>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{
+        transform: `rotate(${rot}deg)`,
+        transition: spinning ? 'transform 4s cubic-bezier(.16,.84,.14,1)' : 'none',
+        filter: 'drop-shadow(0 10px 18px rgba(0,0,0,.4))' }}>
+        {/* cornice scura + lampadine */}
+        <circle cx={r} cy={r} r={r} fill="#2b1a20"/>
+        <circle cx={r} cy={r} r={r * 0.985} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth={size * 0.008}/>
+        {bulbs.map((b, i) => (
+          <circle key={'b' + i} cx={b.x} cy={b.y} r={size * 0.016}
+            fill={i % 2 ? '#FFD84D' : '#fff'} opacity={i % 2 ? 1 : .85}/>
+        ))}
+        {/* spicchi */}
+        <g transform={`translate(${r},${r}) scale(0.855) translate(${-r},${-r})`}>
+          {SEGS.map((sg, i) => <path key={i} d={wedge(i)} fill={COLS[i]} stroke="#2b1a20" strokeWidth={size * 0.02}/>)}
+          {/* etichette radiali: si leggono dal centro verso fuori, mai storte */}
+          {SEGS.map((sg, i) => {
+            const p = labelPos(i);
+            const a = mid(i);
+            const flip = a > 180; // metà sinistra: ruota di 180° così il testo non è mai a testa in giù
+            return (
+              <text key={'t' + i} x={p.x} y={p.y} fill="#2b1a20"
+                fontSize={size * (sg.length > 5 ? 0.075 : 0.092)} fontWeight="800"
+                fontFamily="'Hanken Grotesk', sans-serif" textAnchor="middle" dominantBaseline="central"
+                letterSpacing={0.3}
+                transform={`rotate(${a - 90 + (flip ? 180 : 0)}, ${p.x}, ${p.y})`}>{sg}</text>
+            );
+          })}
+        </g>
+        {/* hub */}
+        <circle cx={r} cy={r} r={r * 0.21} fill="#2b1a20"/>
+        <circle cx={r} cy={r} r={r * 0.155} fill="none" stroke="rgba(255,255,255,.25)" strokeWidth={size * 0.008}/>
+        <circle cx={r} cy={r} r={r * 0.08} fill="#fff"/>
+        <circle cx={r - r * 0.03} cy={r - r * 0.03} r={r * 0.025} fill="rgba(43,26,32,.25)"/>
+      </svg>
+      {/* puntatore giallo a sinistra, ticchetta mentre gira */}
+      <span style={{ position: 'absolute', left: -7, top: '50%', transformOrigin: 'left center',
+        transform: 'translateY(-50%)',
+        animation: spinning ? 'bypTick .11s linear infinite alternate' : 'none',
+        width: 0, height: 0, borderTop: '11px solid transparent', borderBottom: '11px solid transparent',
+        borderLeft: '18px solid #FFD84D', filter: 'drop-shadow(2px 0 2px rgba(0,0,0,.35))' }}/>
+    </div>
+  );
+}
+
+function BypGameCardArt({ id, onPlay }) {
+  // Solo la CTA apre il gioco: bottone reale con pointerEvents auto
+  // (il wrapper della card ha pointerEvents none) e stopPropagation
+  // per non far partire il drag dello stack.
+  const Cta = ({ label }) => (
+    <button className="bk-press"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); BK.haptic.light(); onPlay && onPlay(); }}
+      style={{ position: 'absolute', left: '50%', bottom: 22, transform: 'translateX(-50%)',
+        pointerEvents: 'auto', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+        background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff', fontSize: 13, fontWeight: 800,
+        padding: '10px 28px', borderRadius: 999, whiteSpace: 'nowrap',
+        boxShadow: '0 10px 22px -8px rgba(227,36,89,.7)' }}>{label}</button>
+  );
+  if (id === 'wheel') return (
+    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 62 }}>
+      {/* box scuro con la ruota incastonata, stile reference */}
+      <div style={{ position: 'absolute', left: 14, right: 14, top: 34, bottom: 12,
+        background: '#241d22', borderRadius: 20 }}/>
+      <div style={{ position: 'absolute', left: '50%', top: 0, transform: 'translateX(-50%)' }}>
+        <BypWheel size={148}/>
+      </div>
+      <Cta label="Gira ora"/>
+    </div>
+  );
+  if (id === 'slot') return (
+    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 62 }}>
+      <div style={{ position: 'absolute', left: 14, right: 14, top: 26, bottom: 12,
+        background: '#241d22', borderRadius: 20 }}/>
+      <div style={{ position: 'absolute', left: '50%', top: 12, transform: 'translateX(-50%)',
+        fontSize: 10.5, fontWeight: 800, color: '#2c1a4d', letterSpacing: .4,
+        background: '#fff', padding: '3px 12px', borderRadius: 999, whiteSpace: 'nowrap',
+        border: '1.5px solid #2b1a20' }}>3 uguali = JACKPOT</div>
+      <div style={{ position: 'absolute', left: '50%', top: 40, transform: 'translateX(-50%)',
+        display: 'flex', gap: 6, background: '#fff', borderRadius: 14, padding: 7,
+        boxShadow: 'inset 0 3px 8px rgba(0,0,0,.15)' }}>
+        {['assets/hero-burger.png', 'assets/coin.png', 'assets/reward-tote.png'].map((s, k) => (
+          <span key={k} style={{ width: 40, height: 48, borderRadius: 8, background: '#f4eee6',
+            display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={s} alt="" style={{ width: 30, height: 30, objectFit: 'contain' }}/>
+          </span>
+        ))}
+      </div>
+      <Cta label="Gioca"/>
+    </div>
+  );
+  return (
+    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 62 }}>
+      <div style={{ position: 'absolute', left: 14, right: 14, top: 26, bottom: 12,
+        background: '#241d22', borderRadius: 20 }}/>
+      <div style={{ position: 'absolute', left: '50%', top: 42, transform: 'translateX(-50%) rotate(-3deg)',
+        width: 150, height: 84, borderRadius: 12, overflow: 'hidden', border: '2.5px solid #fff',
+        background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        boxShadow: '0 10px 20px -8px rgba(0,0,0,.5)' }}>
+        {['✦', '?', '✦'].map((c, k) => (
+          <span key={k} style={{ fontFamily: BK.TYPE.display, fontWeight: 700,
+            fontSize: k === 1 ? 38 : 18, color: 'rgba(43,26,32,.6)' }}>{c}</span>
+        ))}
+      </div>
+      <img src="assets/coin.png" alt="" style={{ position: 'absolute', right: 30, top: 26, width: 34,
+        transform: 'rotate(14deg)', filter: 'drop-shadow(0 6px 8px rgba(0,0,0,.4))' }}/>
+      <Cta label="Gratta ora"/>
+    </div>
+  );
+}
+
+const BYP_GAME_TITLES = {
+  wheel: [['SPIN', '#CEFF00'], ['TO', '#ff8fae', true], ['WIN!', '#fff']],
+  slot: [['BYUP', '#ff8fae'], ['SLOT', '#CEFF00']],
+  scratch: [['GRATTA', '#CEFF00'], ['&', '#ff8fae', true], ['VINCI', '#fff']],
+};
+
+// Stack con SWIPE MANUALE (pointer events): trascina per cambiare, tap per giocare
+function BypGameStack({ onOpen }) {
+  const [idx, setIdx] = useState(0);
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef(false);
+  const start = useRef(0);
+  const moved = useRef(false);
+  const N = BYP_GAMES.length;
+  const onDown = (e) => {
+    dragRef.current = true;
+    setDragging(true);
+    moved.current = false;
+    start.current = e.clientX;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onMove = (e) => {
+    if (!dragRef.current) return;
+    const d = e.clientX - start.current;
+    if (Math.abs(d) > 8) moved.current = true;
+    setDx(d);
+  };
+  const onUp = () => {
+    if (!dragRef.current) return;
+    dragRef.current = false;
+    setDragging(false);
+    if (!moved.current) { setDx(0); return; } // tap sulla card: non apre nulla, solo la CTA
+    setDx(cur => {
+      if (Math.abs(cur) > 70) {
+        // la card vola via, poi passa la successiva davanti
+        const out = cur > 0 ? 460 : -460;
+        setTimeout(() => { setIdx(i => (i + 1) % N); setDx(0); }, 210);
+        return out;
+      }
+      return 0;
+    });
+  };
+  return (
+    <div style={{ position: 'relative', height: 302, touchAction: 'pan-y' }}>
+      {BYP_GAMES.map((g, i) => {
+        const pos = (i - idx + N) % N; // 0 = davanti
+        const front = pos === 0;
+        return (
+          <div key={g.id}
+            onPointerDown={front ? onDown : undefined}
+            onPointerMove={front ? onMove : undefined}
+            onPointerUp={front ? onUp : undefined}
+            onPointerCancel={front ? onUp : undefined}
+            style={{
+              position: 'absolute', left: 0, right: 0, top: 0, height: 268,
+              borderRadius: 26, background: g.bg, color: g.ink,
+              border: '1px solid rgba(20,8,12,.1)', cursor: front ? 'grab' : 'default',
+              overflow: 'hidden', touchAction: 'pan-y',
+              transform: front
+                ? `translateX(${dx}px) rotate(${dx * 0.045}deg)`
+                : pos === 1 ? 'translateY(16px) scale(.955)' : 'translateY(30px) scale(.91)',
+              zIndex: N - pos, opacity: pos === 2 ? .85 : 1,
+              transition: dragging && front ? 'none' : 'transform .45s cubic-bezier(.22,1.2,.36,1), opacity .4s',
+              boxShadow: front ? '0 22px 44px -18px rgba(20,8,12,.5)' : '0 8px 20px -14px rgba(20,8,12,.35)',
+            }}>
+            <div style={{ paddingTop: 16, pointerEvents: 'none' }}>
+              <div style={{ textAlign: 'center', fontSize: 9, fontWeight: 800, letterSpacing: 2,
+                textTransform: 'uppercase', opacity: .55, marginBottom: 4 }}>🪙 Byup games · premi ogni giorno</div>
+              <BypGameTitle parts={BYP_GAME_TITLES[g.id]}/>
+            </div>
+            <div style={{ pointerEvents: 'none', position: 'absolute', inset: 0 }}>
+              <BypGameCardArt id={g.id} onPlay={front ? () => onOpen(g.id) : undefined}/>
+            </div>
+          </div>
+        );
+      })}
+      <div style={{ position: 'absolute', left: '50%', bottom: 6, transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
+        {BYP_GAMES.map((_, i) => (
+          <span key={i} onClick={() => setIdx(i)} style={{
+            width: i === idx ? 16 : 6, height: 6, borderRadius: 99, cursor: 'pointer',
+            background: i === idx ? '#E32459' : 'rgba(246,236,233,.3)', transition: 'width .25s' }}/>
+        ))}
+      </div>
+      <div style={{ position: 'absolute', right: 2, bottom: 4, fontSize: 10, color: BYP.faint, fontWeight: 700 }}>
+        ⇄ scorri per cambiare</div>
+    </div>
+  );
+}
+
+// ── Pagina RUOTA: scenografia arcade completa ──
+function BypWheelSheet({ onClose, onWin }) {
+  const [rot, setRot] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState(null);
+  const SEGS = ['+100', '30 pts', '20% OFF', 'Ritenta', '+100', '+50'];
+  const spin = () => {
+    if (spinning) return;
+    setSpinning(true);
+    setResult(null);
+    const target = Math.floor(Math.random() * 6);
+    // puntatore a SINISTRA (270° in senso orario dal top)
+    setRot(cur => {
+      const want = ((270 - (target * 60 + 30)) % 360 + 360) % 360;
+      return cur + 360 * 5 + ((want - (cur % 360)) % 360 + 360) % 360;
+    });
+    setTimeout(() => {
+      setSpinning(false);
+      setResult(SEGS[target]);
+      if (SEGS[target] !== 'Ritenta') onWin && onWin();
+    }, 4100);
+  };
+  return (
+    <BypSheet center onClose={onClose}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
+        background: '#FDF3CE', color: '#3b2a00', border: '2px solid #2b1a20', borderRadius: 30,
+        padding: '20px 16px 18px', boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
+        animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
+          color: '#b0246a', marginBottom: 5 }}>✦ Win rewards everyday ✦</div>
+        <BypGameTitle parts={BYP_GAME_TITLES.wheel}/>
+        <div style={{ position: 'relative', margin: '18px 0 0', background: '#241d22', borderRadius: 24,
+          padding: '30px 0 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <BypWheel size={236} rot={rot} spinning={spinning}/>
+          </div>
+          {result && (
+            <div style={{ margin: '16px 12px 2px', animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
+                background: result === 'Ritenta' ? 'rgba(255,255,255,.1)' : 'rgba(206,255,0,.16)',
+                border: result === 'Ritenta' ? '1px solid rgba(255,255,255,.25)' : '1px solid rgba(206,255,0,.5)',
+                color: result === 'Ritenta' ? 'rgba(255,255,255,.75)' : '#CEFF00',
+                fontWeight: 800, fontSize: 15, padding: '9px 18px', borderRadius: 999 }}>
+                {result === 'Ritenta' ? 'Ritenta domani!' : `🎉 Hai vinto ${result.includes('OFF') || result.includes('pts') ? result : result + ' byuppini'}!`}
+              </span>
+            </div>
+          )}
+          <button onClick={spin} style={{ marginTop: 16, border: '2px solid #2b1a20', cursor: 'pointer',
+            fontFamily: 'inherit', background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff',
+            fontSize: 15, fontWeight: 800, padding: '13px 44px', borderRadius: 999,
+            boxShadow: '0 12px 26px -8px rgba(227,36,89,.7)' }}>
+            {spinning ? 'In giro…' : result ? 'Gira ancora' : 'Spin now!'}</button>
+        </div>
+        <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 10, background: 'none',
+          border: 'none', color: '#8a6d3b', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+          fontFamily: 'inherit', padding: 6 }}>Chiudi</button>
+      </div>
+    </BypSheet>
+  );
+}
+
+// ── Pagina SLOT: macchinetta con luci ──
+function BypSlotSheet({ onClose, onWin }) {
+  const ICONS = ['assets/hero-burger.png', 'assets/coin.png', 'assets/reward-tote.png', 'assets/reward-spritz.png'];
+  const [reels, setReels] = useState([0, 1, 2]);
+  const [spinning, setSpinning] = useState(false);
+  const [result, setResult] = useState(null);
+  const [lockedUI, setLockedUI] = useState([false, false, false]); // per il rimbalzo al lock
+  const timers = useRef([]);
+  const lockedRef = useRef([true, true, true]);
+  const spin = () => {
+    if (spinning) return;
+    setSpinning(true);
+    setResult(null);
+    setLockedUI([false, false, false]);
+    lockedRef.current = [false, false, false];
+    const final = [0, 1, 2].map(() => Math.floor(Math.random() * ICONS.length));
+    if (Math.random() < 0.35) { final[1] = final[0]; final[2] = final[0]; }
+    const iv = setInterval(() => {
+      setReels(rs => rs.map((v, i) => (lockedRef.current[i] ? v : Math.floor(Math.random() * ICONS.length))));
+    }, 85);
+    [900, 1500, 2100].forEach((t, i) => {
+      timers.current.push(setTimeout(() => {
+        lockedRef.current[i] = true;
+        setLockedUI(u => u.map((v, k) => (k === i ? true : v)));
+        BK.haptic.light();
+        setReels(rs => rs.map((v, k) => (k === i ? final[i] : v)));
+        if (i === 2) {
+          clearInterval(iv);
+          setSpinning(false);
+          const win = final[0] === final[1] && final[1] === final[2] ? 'jackpot'
+            : (final[0] === final[1] || final[1] === final[2] || final[0] === final[2]) ? 'coppia' : null;
+          setResult(win || 'niente');
+          if (win) onWin && onWin();
+        }
+      }, t));
+    });
+    timers.current.push(iv);
+  };
+  useEffect(() => () => { timers.current.forEach(t => { clearTimeout(t); clearInterval(t); }); }, []);
+  return (
+    <BypSheet center onClose={onClose}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
+        background: '#EBDFFC', color: '#2c1a4d', border: '2px solid #2b1a20', borderRadius: 30,
+        padding: '20px 16px 18px', boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
+        animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
+        <style>{`@keyframes bypBlink{0%,100%{opacity:.2}50%{opacity:1}}
+@keyframes bypReelPop{0%{transform:translateY(-16px) scale(1.06)}55%{transform:translateY(4px) scale(.97)}100%{transform:translateY(0) scale(1)}}
+@keyframes bypShake{0%,100%{transform:translateX(0)}15%{transform:translateX(-6px) rotate(-.6deg)}30%{transform:translateX(6px) rotate(.6deg)}45%{transform:translateX(-5px)}60%{transform:translateX(5px)}75%{transform:translateX(-3px)}90%{transform:translateX(3px)}}`}</style>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
+          color: '#b0246a', marginBottom: 5 }}>✦ 3 uguali = 300 byuppini · 2 = 50 ✦</div>
+        <BypGameTitle parts={BYP_GAME_TITLES.slot}/>
+        <div style={{ position: 'relative', margin: '18px 0 0', background: '#241d22', borderRadius: 24,
+          padding: '14px 14px 20px',
+          animation: result === 'jackpot' ? 'bypShake .55s ease' : 'none' }}>
+          {/* luci */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 9, marginBottom: 12 }}>
+            {[0, 1, 2, 3, 4, 5, 6].map(i => (
+              <span key={i} style={{ width: 7, height: 7, borderRadius: 999,
+                background: i % 2 ? '#CEFF00' : '#ff8fae',
+                animation: `bypBlink ${spinning ? '.35s' : '1.4s'} ${i * 0.12}s ease-in-out infinite` }}/>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 9, background: '#fff',
+            borderRadius: 18, padding: 12, margin: '0 4px', boxShadow: 'inset 0 4px 12px rgba(0,0,0,.18)' }}>
+            {reels.map((v, i) => (
+              <div key={`${i}-${lockedUI[i] ? 'stop' : 'run'}`} style={{ width: 78, height: 92, borderRadius: 12, background: '#f6efe5',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                border: '1.5px solid rgba(43,26,32,.12)',
+                animation: lockedUI[i] ? 'bypReelPop .42s cubic-bezier(.2,.9,.3,1.45)' : 'none' }}>
+                <img src={ICONS[v]} alt="" style={{ width: 54, height: 54, objectFit: 'contain',
+                  filter: spinning && !lockedUI[i] ? 'blur(2px)' : 'none',
+                  transform: spinning && !lockedUI[i] ? 'translateY(2px)' : 'none',
+                  transition: 'filter .15s' }}/>
+              </div>
+            ))}
+          </div>
+          {result && (
+            <div style={{ margin: '14px 0 0', animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7,
+                background: result === 'niente' ? 'rgba(255,255,255,.1)' : 'rgba(206,255,0,.16)',
+                border: result === 'niente' ? '1px solid rgba(255,255,255,.25)' : '1px solid rgba(206,255,0,.5)',
+                color: result === 'niente' ? 'rgba(255,255,255,.75)' : '#CEFF00',
+                fontWeight: 800, fontSize: 15, padding: '9px 18px', borderRadius: 999 }}>
+                {result === 'jackpot' ? '🎰 JACKPOT! +300 byuppini' : result === 'coppia' ? 'Coppia! +50 byuppini' : 'Niente… ritenta!'}
+              </span>
+            </div>
+          )}
+          <button onClick={spin} style={{ marginTop: 16, border: '2px solid #2b1a20', cursor: 'pointer',
+            fontFamily: 'inherit', background: 'linear-gradient(122deg,#E32459,#B81C47)', color: '#fff',
+            fontSize: 15, fontWeight: 800, padding: '13px 44px', borderRadius: 999,
+            boxShadow: '0 12px 26px -8px rgba(227,36,89,.7)' }}>
+            {spinning ? 'In corsa…' : result ? 'Gioca ancora' : 'Gioca!'}</button>
+        </div>
+        <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 10, background: 'none',
+          border: 'none', color: '#6d5a8a', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+          fontFamily: 'inherit', padding: 6 }}>Chiudi</button>
+      </div>
+    </BypSheet>
+  );
+}
+
+// ── Pagina GRATTA & VINCI ──
+function BypScratchSheet({ onClose, onWin }) {
+  const [reveal, setReveal] = useState(0);
+  const [done, setDone] = useState(false);
+  const scratching = useRef(false);
+  const onMove = () => {
+    if (done) return;
+    setReveal(r => {
+      const n = Math.min(1, r + 0.035);
+      if (n >= 1) { setDone(true); BK.haptic.medium ? BK.haptic.medium() : BK.haptic.light(); onWin && onWin(); }
+      return n;
+    });
+  };
+  return (
+    <BypSheet center onClose={onClose}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
+        background: '#FFE0EA', color: '#4d1226', border: '2px solid #2b1a20', borderRadius: 30,
+        padding: '20px 16px 18px', boxShadow: '0 30px 70px -20px rgba(0,0,0,.75)',
+        animation: 'bypPop .45s cubic-bezier(.2,.9,.3,1.15)' }}>
+        <style>{`@keyframes bypFoil{0%{background-position:0 0}100%{background-position:48px 48px}}
+@keyframes bypWinGlow{0%{box-shadow:0 12px 26px -10px rgba(0,0,0,.5)}100%{box-shadow:0 0 34px rgba(206,255,0,.55), 0 12px 26px -10px rgba(0,0,0,.5)}}`}</style>
+        <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase',
+          color: '#b0246a', marginBottom: 5 }}>✦ Un gratta al giorno ✦</div>
+        <BypGameTitle parts={BYP_GAME_TITLES.scratch}/>
+        <div style={{ position: 'relative', margin: '18px 0 0', background: '#241d22', borderRadius: 24,
+          padding: '22px 14px 20px' }}>
+          <div
+            onPointerDown={(e) => { scratching.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch {} }}
+            onPointerMove={() => { if (scratching.current) onMove(); }}
+            onPointerUp={() => { scratching.current = false; }}
+            style={{ position: 'relative', width: 250, height: 150, margin: '0 auto', borderRadius: 16,
+              overflow: 'hidden', touchAction: 'none', cursor: 'pointer', border: '3px solid #fff',
+              boxShadow: '0 12px 26px -10px rgba(0,0,0,.5)',
+              animation: done ? 'bypWinGlow .8s ease forwards, bypPop .5s cubic-bezier(.2,.9,.3,1.3)' : 'none' }}>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 4,
+              background: 'linear-gradient(150deg,#3b1420,#a01a49)' }}>
+              <img src="assets/coin.png" alt="" style={{ width: 48, height: 48 }}/>
+              <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 24, color: '#fff' }}>+50 byuppini</span>
+            </div>
+            <div style={{ position: 'absolute', inset: 0, opacity: 1 - reveal, transition: 'opacity .18s ease-out',
+              filter: `blur(${reveal * 2.5}px)`,
+              background: 'repeating-linear-gradient(135deg, #a99ea6 0 12px, #c3b8bf 12px 24px)',
+              backgroundSize: '48px 48px', animation: 'bypFoil 2.6s linear infinite',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, pointerEvents: 'none' }}>
+              <span style={{ fontSize: 18, color: 'rgba(43,26,32,.55)' }}>✦</span>
+              <span style={{ fontFamily: BK.TYPE.display, fontWeight: 700, fontSize: 46, color: 'rgba(43,26,32,.6)' }}>?</span>
+              <span style={{ fontSize: 18, color: 'rgba(43,26,32,.55)' }}>✦</span>
+            </div>
+          </div>
+          <div style={{ marginTop: 14, fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.7)' }}>
+            {done ? '' : reveal > 0 ? 'Continua a grattare…' : '☝️ Passa il dito sulla card'}
+          </div>
+          {done && (
+            <div style={{ marginTop: 4, animation: 'bypPop .4s cubic-bezier(.2,.9,.3,1.3)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: 'rgba(206,255,0,.16)',
+                border: '1px solid rgba(206,255,0,.5)', color: '#CEFF00', fontWeight: 800, fontSize: 15,
+                padding: '9px 18px', borderRadius: 999 }}>🎉 Hai vinto +50 byuppini!</span>
+            </div>
+          )}
+        </div>
+        <button onClick={onClose} style={{ display: 'block', width: '100%', marginTop: 10, background: 'none',
+          border: 'none', color: '#a05a72', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+          fontFamily: 'inherit', padding: 6 }}>Chiudi</button>
+      </div>
+    </BypSheet>
+  );
+}
+
+function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }) {
+  const [seg, setSeg] = useState('wallet');
   const [bal, setBal] = useState(0);
   const [xp, setXp] = useState(0);
   const [levelUp, setLevelUp] = useState(false);
   const [ach, setAch] = useState(null);
   const [info, setInfo] = useState(false);
   const [refSheet, setRefSheet] = useState(null); // 'locale' | 'amico'
+  const [game, setGame] = useState(null); // 'wheel' | 'slot' | 'scratch'
   const [burst, setBurst] = useState(0);
   const scrollRef = useRef(null);
 
@@ -3273,6 +3839,8 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
               <img src="assets/mascot-wave.png" alt="" style={{ position: 'absolute', right: 8, bottom: -6, width: 72,
                 filter: 'drop-shadow(0 8px 12px rgba(0,0,0,.5))', animation: 'bypBob 3.2s ease-in-out infinite' }}/>
             </button>
+            <BypSect aside="premi veri, ogni giorno">Byup Games</BypSect>
+            <BypGameStack onOpen={setGame}/>
             <BypCta style={{ margin: '18px 0 6px' }} onClick={() => goSeg('premi')}>Riscatta i tuoi byuppini</BypCta>
             <BypCta ghost style={{ margin: '10px 0 6px' }} onClick={openLevelUp}>Cosa succede al prossimo livello?</BypCta>
           </div>
@@ -3352,7 +3920,7 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
                 <i style={{ display: 'block', height: '100%', width: '24%', borderRadius: 999, background: `linear-gradient(90deg, ${BYP.lime}, #a6d400)` }}/>
               </span>
               <span style={{ display: 'block', fontSize: 11.5, color: 'rgba(246,236,233,.7)', marginTop: 8, fontWeight: 600, maxWidth: '60%' }}>
-                Sbloccala a <b style={{ color: BYP.lime }}>LIV.5 · 5.000 byuppini</b>. Sei al 24%</span>
+                Sbloccala a <b style={{ color: BYP.lime }}>LIV.5 · 5.000 byuppini</b> — sei al 24%</span>
               <span style={{ position: 'absolute', right: -14, top: '50%', width: 196, zIndex: 1,
                 filter: 'drop-shadow(0 22px 30px rgba(0,0,0,.6))', animation: 'bypCardFloat 5.5s ease-in-out infinite' }}>
                 <img src="assets/reward-byupcard.png" alt="byup card" style={{ display: 'block', width: '100%' }}/>
@@ -3401,27 +3969,23 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
       <BottomTabBar active="byuppini" forceDark onQR={onQR} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={() => {}}/>
 
       {/* Level-up */}
-      {levelUp && (() => {
-        const nextLvl = Math.min(8, BYP_CUR_LEVEL + 1);
-        const info = BYP_LEVEL_INFO[nextLvl];
-        return (
+      {levelUp && (
         <BypSheet center onClose={() => setLevelUp(false)}>
           <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
             background: `radial-gradient(90% 60% at 50% 0%, rgba(227,36,89,.35), transparent 60%), ${BYP.surf}`,
             border: '1px solid rgba(255,90,130,.4)', borderRadius: 28, padding: '30px 24px 24px',
             boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)' }}>
-            <img src={info.img} onError={(e) => { e.currentTarget.src = 'assets/mascot-wink.png'; }} alt=""
+            <img src="assets/mascot-happy.png" onError={(e) => { e.currentTarget.src = 'assets/mascot-wink.png'; }} alt=""
               style={{ width: 130, margin: '-70px 0 4px', filter: 'drop-shadow(0 14px 24px rgba(0,0,0,.5))' }}/>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: BYP.lime, textTransform: 'uppercase' }}>Prossimo livello</div>
-            <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 30, margin: '4px 0 2px' }}>LIV.{nextLvl} · {BYP_LEVEL_NAMES[nextLvl]}</div>
-            <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>Sbloccherai il moltiplicatore <b style={{ color: '#fff' }}>{info.mult}</b> su tutti i byuppini che guadagni</div>
+            <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 30, margin: '4px 0 2px' }}>LIV.4 · {BYP_LEVEL_NAMES[4]}</div>
+            <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>Sbloccherai il moltiplicatore <b style={{ color: '#fff' }}>×1,5</b> su tutti i byuppini che guadagni</div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(206,255,0,.12)', border: '1px solid rgba(206,255,0,.35)',
-              color: BYP.lime, fontWeight: 800, fontSize: 13, padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>🎁 Riceverai +{info.bonus.toLocaleString('it-IT')} byuppini bonus</div>
+              color: BYP.lime, fontWeight: 800, fontSize: 13, padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>🎁 Riceverai +250 byuppini bonus</div>
             <BypCta onClick={() => setLevelUp(false)}>Non vedo l'ora</BypCta>
           </div>
         </BypSheet>
-        );
-      })()}
+      )}
 
       {/* Dettaglio traguardo */}
       {ach && (
@@ -3483,6 +4047,9 @@ function ByuppiniScreen({ onBack, onRoadmap, onHome, onProfile, onSearch, onQR }
 
       {refSheet && <BypCodeSheet type={refSheet} onClose={() => setRefSheet(null)}/>}
 
+      {game === 'wheel' && <BypWheelSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
+      {game === 'slot' && <BypSlotSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
+      {game === 'scratch' && <BypScratchSheet onClose={() => setGame(null)} onWin={fireConfetti}/>}
 
       <BypConfetti burst={burst}/>
     </div>
@@ -3500,7 +4067,7 @@ const ROAD_P = [
   { lvl: 5, left: 0.5837, top: 0.3674, w: 0.2594, pcx: 0.7134, pcy: 0.4452, pw: 0.273 },
   { lvl: 6, left: 0.1709, top: 0.2331, w: 0.3164, pcx: 0.3291, pcy: 0.3279, pw: 0.333 },
   { lvl: 7, left: 0.5715, top: 0.1354, w: 0.3078, pcx: 0.7254, pcy: 0.2276, pw: 0.324 },
-  { lvl: 8, left: 0.1898, top: -0.003, w: 0.2945, pcx: 0.337, pcy: 0.150,  pw: 0.310 },
+  { lvl: 8, left: 0.1825, top: 0.0368, w: 0.2945, pcx: 0.337, pcy: 0.150,  pw: 0.310 },
 ];
 const ROAD_RA = 864 / 1821;
 // Due tratte: i segmenti già percorsi (fino al livello corrente) in magenta
@@ -3521,11 +4088,10 @@ const ROAD_PATHS = (() => {
   return { done, todo };
 })();
 
-function RoadmapScreen({ onBack, onByuppini, onTraguardi, onHome, onProfile, onSearch, onQR }) {
+function RoadmapScreen({ onBack, onByuppini, onHome, onProfile, onSearch, onQR }) {
   const sceneRef = useRef(null);
   const worldRef = useRef(null);
   const [imgOk, setImgOk] = useState(false);
-  const [lvlPopup, setLvlPopup] = useState(null); // numero livello aperto nel popup
   const pc = (v) => (v * 100).toFixed(3) + '%';
 
   useEffect(() => {
@@ -3591,9 +4157,8 @@ function RoadmapScreen({ onBack, onByuppini, onTraguardi, onHome, onProfile, onS
                 <div style={{ position: 'absolute', transform: 'translate(-50%,-50%)', borderRadius: '50%', zIndex: 2,
                   pointerEvents: 'none', left: pc(p.pcx), top: pc(p.pcy + 0.004), width: pc(sw), height: pc(sw * 0.5 * ROAD_RA),
                   background: 'radial-gradient(closest-side, rgba(30,10,18,.5), rgba(30,10,18,.22) 55%, transparent 78%)' }}/>
-                <img src={`assets/venue-${p.lvl}.png`} alt="" onClick={() => setLvlPopup(p.lvl)}
+                <img src={`assets/venue-${p.lvl}.png`} alt=""
                   style={{ position: 'absolute', zIndex: 3, left: pc(p.left), top: pc(p.top), width: pc(p.w),
-                    cursor: 'pointer',
                     filter: state === 'lock'
                       ? 'grayscale(.72) brightness(.62) drop-shadow(0 8px 10px rgba(20,6,14,.5))'
                       : 'drop-shadow(0 10px 12px rgba(20,6,14,.45))',
@@ -3684,55 +4249,6 @@ function RoadmapScreen({ onBack, onByuppini, onTraguardi, onHome, onProfile, onS
           strokeLinecap="round" style={{ flex: 'none' }}><polyline points="9 6 15 12 9 18"/></svg>
       </button>
 
-      {/* Popup livello — stesso stile di "Cosa succede al prossimo livello?";
-          lockato → CTA "Guadagna punti" verso i Traguardi */}
-      {lvlPopup && (() => {
-        const lvl = lvlPopup;
-        const lstate = lvl < ROAD_CUR ? 'done' : lvl === ROAD_CUR ? 'cur' : 'lock';
-        const info = BYP_LEVEL_INFO[lvl];
-        const locked = lstate === 'lock';
-        return (
-          <BypSheet center onClose={() => setLvlPopup(null)}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 340, textAlign: 'center',
-              background: `radial-gradient(90% 60% at 50% 0%, ${locked ? 'rgba(120,110,120,.30)' : 'rgba(227,36,89,.35)'}, transparent 60%), ${BYP.surf}`,
-              border: `1px solid ${locked ? 'rgba(255,255,255,.22)' : 'rgba(255,90,130,.4)'}`, borderRadius: 28, padding: '30px 24px 24px',
-              boxShadow: '0 30px 70px -20px rgba(0,0,0,.7)', animation: 'bypPop .5s cubic-bezier(.2,.9,.3,1.2)' }}>
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img src={info.img} onError={(e) => { e.currentTarget.src = 'assets/mascot-wink.png'; }} alt=""
-                  style={{ width: 130, margin: '-70px 0 4px',
-                    filter: locked ? 'grayscale(.8) brightness(.72) drop-shadow(0 14px 24px rgba(0,0,0,.5))' : 'drop-shadow(0 14px 24px rgba(0,0,0,.5))' }}/>
-                {locked && (
-                  <span style={{ position: 'absolute', right: -4, bottom: 12, width: 32, height: 32, borderRadius: '50%',
-                    background: '#2a262b', border: '2px solid rgba(255,255,255,.75)', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>🔒</span>
-                )}
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: locked ? 'rgba(246,236,233,.6)' : BYP.lime, textTransform: 'uppercase' }}>
-                {locked ? 'Livello bloccato' : lstate === 'cur' ? 'Il tuo livello' : 'Livello raggiunto'}
-              </div>
-              <div style={{ fontFamily: BK.TYPE.display, fontWeight: 600, fontSize: 30, margin: '4px 0 2px' }}>LIV.{lvl} · {BYP_LEVEL_NAMES[lvl]}</div>
-              <div style={{ fontSize: 13.5, color: BYP.muted, marginBottom: 16 }}>
-                {lvl === 1
-                  ? 'Il punto di partenza del percorso byuppini.'
-                  : <>{locked ? 'Sbloccherai il moltiplicatore' : 'Moltiplicatore'} <b style={{ color: '#fff' }}>{info.mult}</b> su tutti i byuppini che guadagni</>}
-              </div>
-              {info.bonus > 0 && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8,
-                  background: locked ? 'rgba(255,255,255,.08)' : 'rgba(206,255,0,.12)',
-                  border: `1px solid ${locked ? 'rgba(255,255,255,.25)' : 'rgba(206,255,0,.35)'}`,
-                  color: locked ? 'rgba(246,236,233,.85)' : BYP.lime, fontWeight: 800, fontSize: 13,
-                  padding: '9px 16px', borderRadius: 999, marginBottom: 18 }}>
-                  🎁 {locked ? 'Ricompensa' : 'Bonus'} +{info.bonus.toLocaleString('it-IT')} byuppini
-                </div>
-              )}
-              {locked
-                ? <BypCta onClick={() => { setLvlPopup(null); onTraguardi ? onTraguardi() : onByuppini?.(); }}>Guadagna punti</BypCta>
-                : <BypCta onClick={() => setLvlPopup(null)}>Non vedo l'ora</BypCta>}
-            </div>
-          </BypSheet>
-        );
-      })()}
-
       <BottomTabBar active="byuppini" forceDark onQR={onQR} onHome={onHome} onProfile={onProfile} onSearch={onSearch} onByuppini={onByuppini}/>
     </div>
   );
@@ -3742,6 +4258,9 @@ function App({ recoveryArmed = false }) {
   const [T] = BK.useByupTheme();
   const [activeCat, setActiveCat] = useState(null);
   const [catSel, setCatSel] = useState(null); // categoria aperta a schermo intero
+  const [activeTab, setActiveTab] = useState('home');
+  const [search, setSearch] = useState('');
+  const [searchFocus, setSearchFocus] = useState(false);
   // Navigation stack: every setPage pushes; goBack pops. The top-left back
   // arrow on every screen calls goBack() and always returns to the previous
   // page, regardless of how the user got there.
@@ -3749,9 +4268,7 @@ function App({ recoveryArmed = false }) {
     try {
       const p = new URLSearchParams(window.location.search).get('page');
       if (p === 'venue' || p === 'profile' || p === 'map' || p === 'posta' || p === 'search') return ['home', p];
-      if (p === 'byuppini') return ['home', 'byuppini'];
       if (p === 'menu') return ['home', 'menu'];
-      if (p === 'roadmap') return ['home', 'byuppini', 'roadmap'];
       if (p === 'home-empty') return ['home-empty'];
     } catch {}
     return ['home'];
@@ -3868,71 +4385,10 @@ function App({ recoveryArmed = false }) {
     try { init = sessionStorage.getItem('byup_menu_route'); if (init) sessionStorage.removeItem('byup_menu_route'); } catch {}
     return <MA initial={init || undefined}/>;
   }
-  if (page === 'byuppini') {
-    return (
-      <ByuppiniScreen
-        onBack={goBack}
-        onRoadmap={() => setPage('roadmap')}
-        onHome={resetToHome}
-        onProfile={() => setPage('profile')}
-        onSearch={() => setPage('search')}
-        onQR={() => setQrOpen(true)}
-      />
-    );
-  }
-  if (page === 'roadmap') {
-    return (
-      <RoadmapScreen
-        onBack={goBack}
-        onByuppini={() => setPage('byuppini')}
-        onTraguardi={() => {
-          try { sessionStorage.setItem('byup_byuppini_seg', 'tra'); } catch {}
-          setPage('byuppini');
-        }}
-        onHome={resetToHome}
-        onProfile={() => setPage('profile')}
-        onSearch={() => setPage('search')}
-        onQR={() => setQrOpen(true)}
-      />
-    );
-  }
   if (page === 'category' && catSel) {
     return (
       <CategoryScreen cat={catSel} onBack={goBack}
         onOpenVenue={(v) => { setActiveVenue({ ...v, _from: 'category' }); setPage('venue'); }}/>
-    );
-  }
-  if (page === 'search') {
-    return (
-      <>
-        <SearchScreen
-          onBack={goBack}
-          onSubmit={(q) => { setSearchQuery(q); setPage('results'); }}
-          onOpenFilters={() => setFiltersOpen(true)}
-          activeFilterCount={activeFilterCount}
-        />
-        <BottomTabBar active="search" onHome={resetToHome}
-          onProfile={() => setPage('profile')} onSearch={() => setPage('search')}
-          onQR={() => setQrOpen(true)}/>
-        <FilterSheet open={filtersOpen} onClose={() => setFiltersOpen(false)}
-          filters={filters} setFilters={setFilters}/>
-      </>
-    );
-  }
-  if (page === 'results') {
-    return (
-      <>
-        <ResultsScreen
-          query={searchQuery}
-          onBack={goBack}
-          onOpenFilters={() => setFiltersOpen(true)}
-          activeFilterCount={activeFilterCount}
-          onOpenVenue={(v) => { setActiveVenue({ ...v, _from: 'results' }); setPage('venue'); }}
-          onMenu={() => { try { sessionStorage.setItem('byup_menu_from', 'venue'); } catch {} setPage('menu'); }}
-        />
-        <FilterSheet open={filtersOpen} onClose={() => setFiltersOpen(false)}
-          filters={filters} setFilters={setFilters}/>
-      </>
     );
   }
   if (page === 'profile') {
@@ -3954,7 +4410,7 @@ function App({ recoveryArmed = false }) {
         />}
         <FilterSheet open={filtersOpen} onClose={() => setFiltersOpen(false)}
           filters={filters} setFilters={setFilters}/>
-        <BottomTabBar active="home" onHome={resetToHome} onProfile={() => setPage('profile')} onSearch={() => setPage('search')} onQR={() => setQrOpen(true)}/>
+        <BottomTabBar active="home" onHome={resetToHome} onProfile={() => setPage('profile')} onSearch={() => setPage('disponibili')} onQR={() => setQrOpen(true)}/>
       </>
     );
   }
@@ -4012,7 +4468,7 @@ function App({ recoveryArmed = false }) {
         <BottomTabBar active="home"
           onHome={resetToHome}
           onProfile={() => setPage('profile')}
-          onSearch={() => setPage('search')}
+          onSearch={() => setPage('disponibili')}
           onQR={() => setQrOpen(true)}/>
 
         {BS && <BS open={bookingOpen} venue={activeVenue} defaultTime={bookingSlot}
@@ -4084,8 +4540,7 @@ function App({ recoveryArmed = false }) {
           noVenues={page === 'home-empty'}
           onMap={() => setPage('map')}
           onPosta={() => setPage('posta')}
-          onSearch={() => setPage('search')}
-          onSearchSubmit={(q) => { setSearchQuery(q); setPage('results'); }}
+          onSearch={() => setPage('disponibili')}
           onFilters={() => setFiltersOpen(true)}
           onDisponibili={() => setPage('disponibili')}
           onCardClick={(item) => {
@@ -4104,7 +4559,7 @@ function App({ recoveryArmed = false }) {
       <BottomTabBar active="home"
         onHome={resetToHome}
         onProfile={() => setPage('profile')}
-        onSearch={() => setPage('search')}
+        onSearch={() => setPage('disponibili')}
         onQR={() => setQrOpen(true)}/>
 
       {/* Mascotte — prima visita della Home */}
@@ -4314,17 +4769,18 @@ function QRScanOverlay({ onDone, onClose }) {
   );
 }
 
+// Reusable bottom tab bar — uses the provided 390×88 vector path.
+// The wrapper has `aspect-ratio: 390 / 88`, so its height auto-derives from the
+// width set by left/right insets. With matching aspect ratios on the wrapper and
+// the SVG (preserveAspectRatio="none"), the path scales uniformly without any
+// distortion of corner radii or the swooping notch curve, on any device width.
+// Same SVG path on every page — notch always visible, QR button optional.
+const TABBAR_PATH = 'M0 24C0 10.745 10.745 0 24 0H135C141.667 0 148.496 1.74568 154 8C159.504 14.2543 162.5 18 170 22C177.5 26 185 28 195 28C205 28 213 25.5 220 22C227 18.5 231.989 14.6813 237 8.00003C242.011 1.31871 248.333 0 255 0H366C379.255 0 390 10.745 390 24V88H0V24Z';
+const TABBAR_NOTCH_DEPTH_PCT = (28 / 88) * 100; // 31.818…% — deepest point of the notch
+
 function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini, onQR, showQR = true, forceDark = false }) {
   const [T] = BK.useByupTheme();
   const dark = forceDark || T.dark;
-  const goByuppini = onByuppini || (() => {
-    if (window.__byupNav) window.__byupNav.go('byuppini');
-    else window.location.href = 'byup Home.html?page=byuppini';
-  });
-  const goSearch = onSearch || (() => {
-    if (window.__byupNav) window.__byupNav.go('search');
-    else window.location.href = 'byup Home.html?page=search';
-  });
   const islandStyle = {
     flex: 1, height: 60, borderRadius: 999, position: 'relative',
     background: dark ? 'rgba(32,30,28,.48)' : 'rgba(255,255,255,.34)',
@@ -4342,7 +4798,7 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
   // cambia identità a ogni render e React lo rimonterebbe (animazione in loop).
   const renderTile = (pos) => (
     <span aria-hidden style={{
-      position: 'absolute', top: '50%', left: pos === 0 ? '25%' : '75%',
+      position: 'absolute', top: '50%', left: '50%',
       width: 48, height: 48, zIndex: 1,
       transform: 'translate(-50%,-50%)',
       transition: 'left .45s cubic-bezier(.3,.9,.3,1)',
@@ -4366,8 +4822,8 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
       <I size={size} color={act ? coral : inactive} fill={act ? coral : 'none'}/>
     </button>
   );
-  const leftPos = active === 'home' ? 0 : active === 'byuppini' ? 1 : null;
-  const rightPos = active === 'search' ? 0 : active === 'profile' ? 1 : null;
+  const leftPos = active === 'home' ? 0 : null;
+  const rightPos = active === 'profile' ? 0 : null;
   return (
     <div style={{
       position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20,
@@ -4385,7 +4841,6 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
         <div style={islandStyle}>
           {leftPos !== null && renderTile(leftPos)}
           {renderBtn(Icon.Home, active === 'home', onHome)}
-          {renderBtn(Icon.Coin, active === 'byuppini', goByuppini, 23)}
         </div>
         {showQR && (
           <button className="bk-press" onClick={() => { BK.haptic.light(); (onQR || window.__byupQR)?.(); }} style={{
@@ -4403,7 +4858,6 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
         )}
         <div style={islandStyle}>
           {rightPos !== null && renderTile(rightPos)}
-          {renderBtn(Icon.Search, active === 'search', goSearch, 22)}
           {renderBtn(Icon.User, active === 'profile', onProfile)}
         </div>
       </div>
@@ -4412,6 +4866,16 @@ function BottomTabBar({ active = 'home', onHome, onProfile, onSearch, onByuppini
 }
 window.BottomTabBar = BottomTabBar;
 
+function HScroll({ children }) {
+  return (
+    <div style={{
+      display: 'flex', gap: 12, padding: '0 22px', overflowX: 'auto',
+      scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+    }} className="hscroll">
+      {children}
+    </div>
+  );
+}
 
 // ─── Mount ─────────────────────────────────────────────────
 function ShortcutsPanel() {
@@ -4422,7 +4886,7 @@ function ShortcutsPanel() {
     { id: 'login',      label: 'Login',                 href: 'byup Home.html?auth=login' },
     { id: 'register',   label: 'Registrazione',         href: 'byup Home.html?auth=register' },
     { id: 'home',       label: 'Home',                  href: 'byup Home.html' },
-    { id: 'home-empty', label: 'Home · nessun locale',  href: 'byup Home.html?page=home-empty' },
+    { id: 'home-empty', label: 'Home — nessun locale',  href: 'byup Home.html?page=home-empty' },
     { id: 'map',        label: 'Mappa',                 href: 'byup Home.html?page=map' },
     { id: 'byuppini',   label: 'Byuppini',              href: 'byup Home.html?page=byuppini' },
     { id: 'roadmap',    label: 'Roadmap livelli',       href: 'byup Home.html?page=roadmap' },
@@ -4437,6 +4901,9 @@ function ShortcutsPanel() {
   // Stili di vetrina (in produzione li sceglie il ristoratore dal gestionale).
   const venueStyles = [
     { id: 'original', label: 'Classico',  desc: 'Classico (default)' },
+    { id: 'a',        label: 'A',         desc: 'Editorial / Magazine' },
+    { id: 'b',        label: 'B',         desc: 'Cinematic / Tasting' },
+    { id: 'c',        label: 'C',         desc: 'Operativo / Resy' },
     { id: 'premium',  label: '★',         desc: 'Premium byup' },
   ];
   const row = (s) => {
@@ -4469,7 +4936,7 @@ function ShortcutsPanel() {
           const active = cur === 'venue' && curVenue === v.id;
           return (
             <a key={v.id} href={`byup Home.html?page=venue&venue=${v.id}`} title={v.desc} style={{
-              flex: 1,
+              flex: v.id === 'original' ? 1.6 : 1,
               padding: '6px 4px', fontSize: 12, borderRadius: 8,
               background: active ? '#E32459' : TINT,
               color: active ? '#fff' : '#1a1a1a',
@@ -4535,4 +5002,3 @@ Object.assign(window, { HomeSections, Icon, PINK, PINK_DARK, TEXT, MUTED, BORDER
 /* sync */
 const __byupRoot = document.getElementById('root');
 if (__byupRoot) ReactDOM.createRoot(__byupRoot).render(<Root/>);
-

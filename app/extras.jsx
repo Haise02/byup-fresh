@@ -23,32 +23,23 @@ const MUTESURF_X = __BYUP_DK_X ? '#39333b' : '#e7e1d8'; // muta
 const CORALSURF_X = __BYUP_DK_X ? 'rgba(239,99,137,.16)' : '#FCE9EE'; // chip coral
 
 // ─── Profile screen ─────────────────────────────────────────
-// I 14 allergeni del Reg. UE 1169/2011, tutti presenti.
 const PROFILE_ALLERGENS = [
-  { id: 'glutine',     label: 'Glutine',         hint: 'Pane, pasta, dolci',    emoji: '🌾' },
-  { id: 'crostacei',   label: 'Crostacei',       hint: 'Gamberi, scampi, granchio', emoji: '🦐' },
-  { id: 'uova',        label: 'Uova',            hint: 'Frittate, dolci, salse', emoji: '🥚' },
-  { id: 'pesce',       label: 'Pesce',           hint: 'Acciughe, salse di pesce', emoji: '🐟' },
-  { id: 'arachidi',    label: 'Arachidi',        hint: 'Burro di arachidi, snack', emoji: '🥜' },
-  { id: 'soia',        label: 'Soia',            hint: 'Tofu, tempeh, salsa di soia', emoji: '🫘' },
-  { id: 'lattosio',    label: 'Latte e lattosio', hint: 'Latte, formaggi, burro', emoji: '🥛' },
-  { id: 'noci',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle', emoji: '🌰' },
-  { id: 'sedano',      label: 'Sedano',          hint: 'Brodi, soffritti', emoji: '🥬' },
-  { id: 'senape',      label: 'Senape',          hint: 'Salse, condimenti, marinature', emoji: '🌭' },
-  { id: 'sesamo',      label: 'Sesamo',          hint: 'Pane, grissini, tahina', emoji: '🥯' },
-  { id: 'solfiti',     label: 'Anidride solforosa e solfiti', hint: 'Vino, frutta secca, sottaceti', emoji: '🍷' },
-  { id: 'lupini',      label: 'Lupini',          hint: 'Snack, farine vegetali', emoji: '🌼' },
-  { id: 'molluschi',   label: 'Molluschi',       hint: 'Cozze, vongole, calamari', emoji: '🦪' },
+  { id: 'glutine',     label: 'Glutine',       hint: 'Pane, pasta, dolci',    emoji: '🌾' },
+  { id: 'lattosio',    label: 'Lattosio',      hint: 'Latte, formaggi, burro', emoji: '🥛' },
+  { id: 'noci',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle', emoji: '🥜' },
+  { id: 'uova',        label: 'Uova',          hint: 'Frittate, dolci, salse', emoji: '🥚' },
+  { id: 'crostacei',   label: 'Crostacei',     hint: 'Gamberi, scampi, granchio', emoji: '🦐' },
+  { id: 'pesce',       label: 'Pesce',         hint: 'Acciughe, salse di pesce', emoji: '🐟' },
+  { id: 'soia',        label: 'Soia',          hint: 'Tofu, tempeh, salsa di soia', emoji: '🫘' },
+  { id: 'sedano',      label: 'Sedano',        hint: 'Brodi, soffritti', emoji: '🥬' },
 ];
 const PROFILE_DIETS = [
   { id: 'vegetariano',   label: 'Vegetariano',   emoji: '🥗' },
   { id: 'vegano',        label: 'Vegano',        emoji: '🌱' },
   { id: 'senzaglutine',  label: 'Senza glutine', emoji: '🌾' },
   { id: 'halal',         label: 'Halal',         emoji: '🌙' },
-  { id: 'kosher',        label: 'Kosher',        emoji: 'Ⓚ' },
+  { id: 'kosher',        label: 'Kosher',        emoji: '✡️' },
   { id: 'pescetariano',  label: 'Pescetariano',  emoji: '🐟' },
-  { id: 'astemio',       label: 'Astemio',       emoji: '🧃' },
-  { id: 'proteico',      label: 'Proteico',      emoji: '💪' },
 ];
 const PROFILE_ORDERS = [
   { id: 'ORD-1042', venue: 'Trattoria Lucia',    address: 'Via della Lungaretta 10, Trastevere', cuisine: 'Cucina romana',   date: '12 mar', time: '20:45', items: [{n:'Cacio e pepe',p:16}, {n:'Saltimbocca alla romana',p:18}, {n:'Tiramisù',p:7}], total: 56.50, status: 'completato',
@@ -81,43 +72,11 @@ function ProfileToggle({ value, onChange }) {
 }
 
 function AllergensView({ onBack, prefs, setPrefs }) {
-  // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
-  // Just-in-time, come fanno le app comparabili: la sezione si SFOGLIA
-  // liberamente (guardare la lista non conferisce nessun dato), e il
-  // consenso A3 compare al PRIMO toggle — il momento in cui il dato nasce
-  // davvero. A18 (offerte sulle preferenze) è la spunta autonoma sotto:
-  // mai pre-attivata, mai registrata se non scelta. Il centro di controllo
-  // resta nel pannello «I miei dati».
-  const [consensoOk, setConsensoOk] = useState(() => { const st = ByupConsensi.stato('A3'); return !!(st && st.ok); });
-  const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
-  const [chkA3, setChkA3] = useState(false);
-  const [chkA18, setChkA18] = useState(false);
-
-  const applica = (group, id) => setPrefs(p => ({
+  const toggle = (group, id) => setPrefs(p => ({
     ...p,
     [group]: { ...(p[group] || {}), [id]: !(p[group]?.[id]) },
   }));
-  const toggle = (group, id) => {
-    if (!consensoOk) { setPending({ group, id }); return; }
-    applica(group, id);
-  };
   const count = (group) => Object.values(prefs[group] || {}).filter(Boolean).length;
-
-  const confermaConsensi = () => {
-    if (!chkA3) return;
-    ByupConsensi.set('A3', true);
-    if (chkA18) ByupConsensi.set('A18', true);
-    setConsensoOk(true);
-    if (pending) applica(pending.group, pending.id);
-    setPending(null);
-  };
-  const annullaConsensi = () => { setPending(null); setChkA3(false); setChkA18(false); };
-
-  // Testi brevi (informativa "a strati"): nella spunta l'essenziale — dato,
-  // sensibilità, finalità, revoca — il resto sta nella sezione dedicata
-  // dell'informativa privacy. Non allungarli di nuovo qui.
-  const CONSENSO_A3 = 'Acconsento all\'uso dei miei allergeni e preferenze alimentari — dati che possono rivelare salute o convinzioni — per filtrare i menù. Revocabile quando voglio.';
-  const CONSENSO_A18 = 'Acconsento a ricevere offerte costruite su diete e allergeni (es. proposte senza glutine).';
 
   const SectionHeader = ({ title, badge, description, icon, color, bg }) => (
     <div style={{ marginBottom: 12 }}>
@@ -193,11 +152,6 @@ function AllergensView({ onBack, prefs, setPrefs }) {
         bg="#FFF5F5"
         description="I piatti che contengono questi ingredienti verranno nascosti dal menù."
       />
-      {/* Avvertenza fissa — misura DPIA R1.5: il filtro non sostituisce
-          la comunicazione al personale di sala. */}
-      <div style={{ fontSize: 12, color: MUTED_X, lineHeight: 1.5, margin: '-4px 2px 10px' }}>
-        Il filtro è un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala.
-      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: TINT_X, borderRadius: 14, overflow: 'hidden' }}>
         {PROFILE_ALLERGENS.map((a, i) => {
           const on = !!prefs.allergens?.[a.id];
@@ -220,89 +174,6 @@ function AllergensView({ onBack, prefs, setPrefs }) {
           );
         })}
       </div>
-
-      {/* Nota discreta: dove si gestisce tutto. */}
-      <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 20, lineHeight: 1.5 }}>
-        Gestisci consensi e revoca da Profilo → I miei dati.
-      </div>
-
-      {/* ─── Sheet just-in-time: compare al primo toggle, il momento in cui
-          il dato nasce. Conferma → applica anche la scelta in sospeso;
-          annulla → non si salva niente. */}
-      {pending && (
-        <div onClick={(e) => { if (e.target === e.currentTarget) annullaConsensi(); }} style={{
-          position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,8,12,.5)',
-          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease',
-        }}>
-          <div style={{
-            width: '100%', maxWidth: 520, background: SURF_X, borderRadius: '24px 24px 0 0',
-            padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
-            animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <div style={{ width: 38, height: 4, borderRadius: 999, background: BORDER_X }}/>
-            </div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: TEXT_X, marginBottom: 10 }}>Prima di salvare</div>
-
-            {/* A18 — card da opt-in come la A6 alla registrazione, SEMPRE
-                SOPRA la spunta obbligatoria (scelta di Fabio): si vende il
-                BENEFICIO in testa, il testo del consenso resta integrale
-                sotto. Mai preselezionata (il sì deve restare un gesto). */}
-            <button onClick={() => setChkA18(v => !v)} aria-label="Consenso offerte sulle preferenze" style={{
-              display: 'flex', alignItems: 'flex-start', gap: 11, width: '100%',
-              padding: '12px 13px', borderRadius: 16, textAlign: 'left',
-              background: chkA18 ? CORALSURF_X : TINT_X,
-              border: `1.5px solid ${chkA18 ? PINK_X : 'transparent'}`,
-              cursor: 'pointer', fontFamily: 'inherit', transition: 'all .18s',
-            }}>
-              <span style={{
-                width: 36, height: 36, borderRadius: 12, flexShrink: 0,
-                background: chkA18 ? PINK_X : (__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F3EBEE'),
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 17, transition: 'background .18s',
-              }}>🏷️</span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: TEXT_X }}>
-                  Offerte sui piatti giusti per te
-                </span>
-                <span style={{ display: 'block', fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.45 }}>
-                  {CONSENSO_A18} <span style={{ color: '#C9C2C5' }}>(Facoltativa)</span>
-                </span>
-              </span>
-              <span style={{
-                width: 24, height: 24, borderRadius: 8, flexShrink: 0, marginTop: 6,
-                border: `1.5px solid ${chkA18 ? PINK_X : '#CFC8CB'}`,
-                background: chkA18 ? PINK_X : (__BYUP_DK_X ? 'transparent' : '#fff'),
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all .18s',
-              }}>
-                {chkA18 && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                )}
-              </span>
-            </button>
-            <div style={{ height: 1, background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC', margin: '11px 0' }}/>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-              <input type="checkbox" checked={chkA3} onChange={e => setChkA3(e.target.checked)}
-                style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
-              <span style={{ fontSize: 12.5, color: TEXT_X, lineHeight: 1.5 }}>{CONSENSO_A3}</span>
-            </label>
-
-            <button onClick={confermaConsensi} disabled={!chkA3} style={{
-              width: '100%', marginTop: 14, padding: '14px 16px', borderRadius: 999,
-              background: chkA3 ? PINK_X : TINT_X, color: chkA3 ? '#fff' : MUTED_X,
-              border: 'none', fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
-              cursor: chkA3 ? 'pointer' : 'not-allowed', transition: 'background .18s, color .18s',
-            }}>Conferma e salva</button>
-            <button onClick={annullaConsensi} style={{
-              width: '100%', padding: '11px 16px', marginTop: 4,
-              background: 'transparent', color: MUTED_X, border: 'none',
-              fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-            }}>Non ora</button>
-          </div>
-        </div>
-      )}
 
     </div>
   );
@@ -749,44 +620,37 @@ function SegnalaView({ onBack }) {
   );
 }
 
-function MieiDatiView({ onBack, onOpenPrivacy }) {
-  // Grouped-inset alla Apple/Revolut: gruppi arrotondati con righe
-  // label-valore, non un form. Il salvataggio compare solo quando serve.
-  const INIZIALI = { nome: 'Mario', cognome: 'Rossi', genere: 'Uomo', nascita: '15/04/1990' };
-  const [dati, setDati] = useState(INIZIALI);
+function MieiDatiView({ onBack }) {
+  const [nome, setNome] = useState('Mario');
+  const [cognome, setCognome] = useState('Rossi');
+  const [genere, setGenere] = useState('Uomo');
+  const [nascita, setNascita] = useState('15/04/1990');
   const [saved, setSaved] = useState(false);
-  const dirty = Object.keys(INIZIALI).some(k => dati[k] !== INIZIALI[k]);
-  const set = (k) => (v) => { setSaved(false); setDati(d => ({ ...d, [k]: v })); };
-  const salva = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
 
+  function salva() {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
 
-  const Gruppo = ({ label, children, footer }) => (
-    <div style={{ marginBottom: 22 }}>
-      {label && <div style={{ fontSize: 11, fontWeight: 700, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 7px 14px' }}>{label}</div>}
-      <div style={{ background: SURF_X, borderRadius: 14, overflow: 'hidden', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` }}>
-        {children}
-      </div>
-      {footer && <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, margin: '7px 14px 0' }}>{footer}</div>}
+  const Field = ({ label, value, onChange, type = 'text' }) => (
+    <div style={{ marginBottom: 4 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>{label}</div>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        style={{
+          width: '100%', padding: '13px 14px',
+          background: TINT_X, border: '1.5px solid transparent',
+          borderRadius: 12, fontSize: 15, color: TEXT_X,
+          fontFamily: 'inherit', outline: 'none',
+          boxSizing: 'border-box',
+          transition: 'border-color 0.15s',
+        }}
+        onFocus={e => e.target.style.borderColor = PINK_X}
+        onBlur={e => e.target.style.borderColor = 'transparent'}
+      />
     </div>
-  );
-  const sep = { borderBottom: '1px solid ' + (__BYUP_DK_X ? 'rgba(255,255,255,0.06)' : '#F0EAEC') };
-
-  const RigaCampo = ({ label, value, onChange, ultimo, icona }) => (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px', ...(ultimo ? {} : sep), cursor: 'text' }}>
-      <span style={{ fontSize: 14.5, color: TEXT_X, width: 118, flexShrink: 0 }}>{label}</span>
-      <input value={value} onChange={e => onChange(e.target.value)} style={{
-        flex: 1, minWidth: 0, textAlign: 'right',
-        border: 'none', outline: 'none', background: 'transparent',
-        fontSize: 14.5, fontWeight: 600, color: MUTED_X,
-        fontFamily: 'inherit', padding: 0,
-      }}/>
-      {icona && <span style={{ display: 'inline-flex', color: MUTED_X, flexShrink: 0 }}>{icona}</span>}
-    </label>
-  );
-  const IconaCalendario = (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/>
-    </svg>
   );
 
   return (
@@ -798,52 +662,55 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
-      <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 22 }}>I miei dati</div>
+      <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 28 }}>I miei dati</div>
 
-      {/* ── Profilo ── */}
-      <Gruppo label="Profilo">
-        <RigaCampo label="Nome" value={dati.nome} onChange={set('nome')}/>
-        <RigaCampo label="Cognome" value={dati.cognome} onChange={set('cognome')}/>
-        <RigaCampo label="Data di nascita" value={dati.nascita} onChange={set('nascita')} icona={IconaCalendario}/>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px' }}>
-          <span style={{ fontSize: 14.5, color: TEXT_X, width: 118, flexShrink: 0 }}>Genere</span>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 6, flexWrap: 'wrap' }}>
-            {['Uomo', 'Donna', 'Altro', 'Preferisco non dirlo'].map(g => {
-              const on = dati.genere === g;
-              return (
-                <button key={g} onClick={() => set('genere')(g)} style={{
-                  padding: '6px 12px', borderRadius: 999,
-                  border: `1.5px solid ${on ? PINK_X : (__BYUP_DK_X ? 'rgba(255,255,255,0.14)' : '#E4DDE0')}`,
-                  background: on ? CORALSURF_X : 'transparent',
-                  color: on ? PINK_X : MUTED_X,
-                  fontSize: 12.5, fontWeight: on ? 700 : 500,
-                  fontFamily: 'inherit', cursor: 'pointer', transition: 'all .15s',
-                }}>{g}</button>
-              );
-            })}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <Field label="Nome" value={nome} onChange={setNome}/>
+        <Field label="Cognome" value={cognome} onChange={setCognome}/>
+
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Genere</div>
+          <div style={{ background: TINT_X, borderRadius: 12, overflow: 'hidden' }}>
+            {['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => (
+              <button key={g} onClick={() => setGenere(g)} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', padding: '13px 14px', background: 'transparent',
+                border: 'none', borderBottom: i < arr.length - 1 ? '1px solid #EDE8EA' : 'none',
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              }}>
+                <span style={{ fontSize: 14.5, color: genere === g ? PINK_X : TEXT_X, fontWeight: genere === g ? 600 : 400 }}>{g}</span>
+                <div style={{
+                  width: 20, height: 20, borderRadius: 999,
+                  border: `2px solid ${genere === g ? PINK_X : '#C8C0C3'}`,
+                  background: genere === g ? PINK_X : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s', flexShrink: 0,
+                }}>
+                  {genere === g && <div style={{ width: 7, height: 7, borderRadius: 999, background: SURF_X }}/>}
+                </div>
+              </button>
+            ))}
           </div>
         </div>
-      </Gruppo>
 
-      {dirty && (
-        <button onClick={salva} style={{
-          width: '100%', margin: '-8px 0 22px', padding: '13px',
-          background: saved ? '#30D158' : PINK_X, color: '#fff',
-          border: 'none', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-          fontSize: 14.5, fontWeight: 700, transition: 'background 0.3s',
-          animation: 'fade 0.2s ease',
-        }}>{saved ? 'Salvato ✓' : 'Salva modifiche'}</button>
-      )}
+        <Field label="Data di nascita" value={nascita} onChange={setNascita} type="text"/>
+      </div>
 
-      {/* ── Privacy e consensi ── */}
-      <ConsensiPanel onOpenPrivacy={onOpenPrivacy} sep={sep}/>
-
-
+      <button onClick={salva} style={{
+        width: '100%', marginTop: 32, padding: '15px',
+        background: saved ? '#30D158' : PINK_X,
+        border: 'none', borderRadius: 14,
+        cursor: 'pointer', fontFamily: 'inherit',
+        fontSize: 15, fontWeight: 700, color: '#fff',
+        transition: 'background 0.3s',
+      }}>
+        {saved ? 'Salvato ✓' : 'Salva modifiche'}
+      </button>
     </div>
   );
 }
 
-function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onBack, footer }) {
+function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onBack }) {
   const [values, setValues] = useState(() => Object.fromEntries(fields.map((f, i) => [i, f.defaultValue || ''])));
   const [done, setDone] = useState(false);
 
@@ -911,7 +778,6 @@ function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onB
         color: allFilled ? '#fff' : MUTED_X,
         transition: 'background 0.2s',
       }}>{submitLabel}</button>
-      {footer && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 18 }}>{footer}</div>}
     </div>
   );
 }
@@ -1150,6 +1016,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                   </svg>
                 </button>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', fontWeight: 600 }}>@mariorossi · Roma</div>
               </div>
             </div>
 
@@ -1164,7 +1031,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                 boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
                 animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards',
               }}>
-                {[['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')], ['1.240', 'Byuppini', () => { if (window.__byupNav) window.__byupNav.go('byuppini'); }]].map(([n, l, fn], i) => (
+                {[['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => (
                   <React.Fragment key={l}>
                     {i > 0 && <div style={{ width: 1, background: 'rgba(77,18,46,.1)', margin: '4px 0' }}/>}
                     <button onClick={fn || undefined} style={{ flex: 1, background: 'none', border: 'none', cursor: fn ? 'pointer' : 'default', fontFamily: 'inherit', padding: '2px 0' }}>
@@ -1252,10 +1119,10 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 28 }}>
               <button className="bk-press" onClick={() => setConfirmLogout(true)} style={{
-                padding: '8px 12px', background: 'none', border: 'none',
+                padding: '10px 32px', background: 'rgba(227,36,89,.08)',
+                border: '1.5px solid rgba(227,36,89,.3)', borderRadius: 999,
                 cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13.5, fontWeight: 500, color: MUTED_X,
-                textDecoration: 'underline', textUnderlineOffset: 3,
+                fontSize: 13.5, fontWeight: 700, color: PINK_X,
               }}>Esci</button>
             </div>
 
@@ -1263,7 +1130,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'account' && (
-          <div className="acct-view-x" style={{ animation: 'fade 0.2s ease', position: 'relative' }}>
+          <div style={{ animation: 'fade 0.2s ease', position: 'relative', minHeight: 'calc(100vh - 260px)' }}>
             <button onClick={() => setView('main')} style={{
               width: 36, height: 36, borderRadius: 999, background: TINT_X,
               border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1277,6 +1144,9 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <Row label="Cambia password" onClick={() => setView('cambia-password')}
                 iconColor={PINK_X}
                 iconSvg={<><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>}/>
+              <Row label="Recupera password" onClick={() => setView('recupera-password')}
+                iconColor={PINK_X}
+                iconSvg={<><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></>}/>
               <Row label="Modifica email" onClick={() => setView('modifica-email')}
                 iconColor={PINK_X}
                 iconSvg={<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>}/>
@@ -1284,19 +1154,18 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
             {/* Elimina account: staccato dal gruppo, entra dal fondo dello schermo */}
             <div style={{
-              position: 'absolute', left: 0, right: 0, bottom: 24,
+              position: 'absolute', left: 0, right: 0,
+              bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
               display: 'flex', justifyContent: 'center', pointerEvents: 'none',
               animation: 'slideUpDanger .5s .15s cubic-bezier(.2,1.1,.3,1) backwards',
             }}>
-              <style>{`@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}
-.acct-view-x{min-height:620px}
-@media (hover:none) and (pointer:coarse){.acct-view-x{min-height:650px}}`}</style>
+              <style>{`@keyframes slideUpDanger{from{transform:translateY(90px);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
               <button onClick={() => setConfirmDeleteAccount(true)} style={{
                 pointerEvents: 'auto',
-                padding: '8px 12px', background: 'none', border: 'none',
+                padding: '11px 30px', background: __BYUP_DK_X ? 'rgba(255,255,255,.07)' : MUTESURF_X,
+                border: `1px solid ${__BYUP_DK_X ? 'rgba(255,107,107,.5)' : 'rgba(180,30,30,.35)'}`, borderRadius: 999,
                 cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13.5, fontWeight: 500, color: MUTED_X,
-                textDecoration: 'underline', textUnderlineOffset: 3,
+                fontSize: 13.5, fontWeight: 700, color: __BYUP_DK_X ? '#ff8a8a' : '#b42222',
               }}>Elimina account</button>
             </div>
 
@@ -1349,14 +1218,6 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
             ]}
             submitLabel="Salva password"
             successMsg="Password aggiornata con successo."
-            footer={
-              <button onClick={() => setView('recupera-password')} style={{
-                background: 'none', border: 'none', padding: '6px 10px',
-                cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13, fontWeight: 500,
-                color: __BYUP_DK_X ? 'rgba(246,236,233,.5)' : '#9a9096',
-              }}>Hai dimenticato la password? <span style={{ color: PINK_X, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3 }}>Recuperala ora</span></button>
-            }
           />
         )}
 
@@ -1401,7 +1262,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'miei-dati' && (
-          <MieiDatiView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')}/>
+          <MieiDatiView onBack={() => setView('main')}/>
         )}
 
         {view === 'terms' && (
@@ -1417,14 +1278,12 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
 
         {view === 'privacy' && (
           <LegalView title="Privacy policy" onBack={() => setView('main')} content={[
-            { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
+            { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM) — C.F. / P.IVA 12345678901 — è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
             { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.' },
-            { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).' },
-            { h: 'Preferenze alimentari e allergeni', p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.' },
+            { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio — art. 6.1.b GDPR; (b) adempiere a obblighi legali — art. 6.1.c GDPR; (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito — art. 6.1.a GDPR.' },
             { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
             { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
-            { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento scrivendo all\'assistenza: torneranno proposte generiche.' },
-            { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto nell\'informativa privacy e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento scrivendo all\'assistenza.' },
+            { h: 'Cookie e tecnologie simili', p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.' },
             { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
           ]}/>
         )}
@@ -1702,7 +1561,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
               <button onClick={() => setPeople(p => Math.min(20, p + 1))} style={{
                 marginTop: 8, background: 'none', border: 'none', color: people > 6 ? PINK_X : MUTED_X,
                 fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 4 }}>
-                {people > 6 ? `${people} persone · tocca per aggiungere` : 'Siete di più? Tocca qui'}
+                {people > 6 ? `${people} persone — tocca per aggiungere` : 'Siete di più? Tocca qui'}
               </button>
 
               {/* Dati già compilati, ripiegati */}
@@ -1775,7 +1634,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
               <RowKV k="Locale" v={venue?.name || editBooking?.venue || 'Ristorante'}/>
               <RowKV k="Data" v={date}/>
               <RowKV k="Orario" v={time}/>
-              <RowKV k="Partecipanti" v={people}/>
+              <RowKV k="Coperti" v={people}/>
               <RowKV k="A nome di" v={name}/>
               {note && <RowKV k="Note" v={note}/>}
             </div>
@@ -1793,6 +1652,12 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
   );
 }
 
+const stepperBtn = {
+  width: 42, height: 42, borderRadius: 999, border: '1.5px solid #f4d9e1',
+  background: CORALSURF_X, fontSize: 22, fontWeight: 600, cursor: 'pointer',
+  fontFamily: 'inherit', color: PINK_X, lineHeight: 1,
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+};
 function Field({ label, children }) {
   return (
     <div style={{ marginBottom: 18 }}>
@@ -1840,15 +1705,15 @@ function RowKV({ k, v }) {
 // Il locale può avere stili di vetrina diversi. In produzione lo stile sarà
 // scelto dal RISTORATORE nel gestionale e arriverà dal backend insieme ai dati
 // del locale. Qui (prototipo, nessun backend) lo stile si forza via:
-//   • URL  ?venue=original|premium   → utile per ShortcutsPanel / demo
+//   • URL  ?venue=a|b|c|original     → utile per ShortcutsPanel / demo
 //   • window.__venueVariant = '…'    → override da console
 // Default = 'original' (stile classico, definito sotto in questo file).
-// Lo stile 'premium' vive in venue-variants.jsx. Vedi Contesto-App.md §3.1.
+// Gli altri stili (a/b/c) vivono in venue-variants.jsx. Vedi Contesto-App.md §3.1.
 function VenueScreen(props) {
   const variant = (() => {
     try {
       const v = new URLSearchParams(window.location.search).get('venue');
-      if (['original','premium'].includes(v)) return v;
+      if (['a','b','c','original','premium'].includes(v)) return v;
     } catch {}
     return window.__venueVariant || null;
   })();
@@ -1857,6 +1722,9 @@ function VenueScreen(props) {
   if ((variant === 'premium' || (!variant && props.venue && props.venue.premium)) && window.VenuePremium) {
     return <window.VenuePremium {...props}/>;
   }
+  if (variant === 'a' && window.VenueA) return <window.VenueA {...props}/>;   // Editorial / Magazine
+  if (variant === 'b' && window.VenueB) return <window.VenueB {...props}/>;   // Cinematic / Tasting menu
+  if (variant === 'c' && window.VenueC) return <window.VenueC {...props}/>;   // Operativo / Resy-style
   return <VenueOriginal {...props}/>;                                         // Classico (default)
 }
 
@@ -2257,19 +2125,14 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
             </div>
           </Section>
 
-          {/* Piatti in evidenza — tap: apre il menu già scrollato sul piatto */}
-          <Section title="I più ordinati">
+          {/* Piatti in evidenza */}
+          <Section title="Chef consiglia">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
               {dishes.slice(0, 3).map((p, i) => {
                 const names = ['Cacio e Pepe', 'Carbonara', 'Amatriciana'];
                 return (
-                  <div key={i} className="bk-press"
-                    onClick={() => {
-                      try { sessionStorage.setItem('byup_menu_dish', names[i]); } catch (e) {}
-                      onMenu && onMenu();
-                    }}
-                    style={{
-                    borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+                  <div key={i} className="bk-press" style={{
+                    borderRadius: 16, overflow: 'hidden',
                     background: SURF_X, boxShadow: '0 8px 20px -14px rgba(77,18,46,.4)',
                     border: '1px solid rgba(77,18,46,.06)',
                   }}>
@@ -2682,97 +2545,3 @@ function SocialDot({ label }) {
 }
 
 Object.assign(window, { ProfileScreen, VenueScreen, BookingSheet });
-
-// ─── ConsensiPanel — i consensi del registro in un posto solo ───────────────
-// A3 e A18 nascono nella sezione allergeni, A6 alla registrazione: qui si
-// RIVEDONO e si cambiano. Un consenso mai incontrato (nessuno stato nel
-// registro) NON compare: il pannello mostra solo ciò che esiste per questo
-// utente. `dove` dice in che punto dell'app il consenso è nato. Spegnere
-// A3 cancella anche le preferenze salvate (senza consenso, niente dato).
-const CONSENSI_DEF = [
-  { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', dove: 'impostando le preferenze alimentari' },
-  { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  dove: 'impostando le preferenze alimentari' },
-  // A6 copre anche le promo su misura sullo storico ordini (PROMOP assorbito
-  // il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
-  // registrazione. Le offerte su dati alimentari restano A18 (art. 9).
-  { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica', dove: 'alla registrazione' },
-  // Suggerimenti e analisi d'uso: legittimo interesse SENZA toggle qui —
-  // la via di opposizione è l'assistenza, come dichiarato nell'informativa.
-  // Il pannello mostra solo i consensi veri: A3, A18, A6.
-];
-
-function ConsensiPanel({ onOpenPrivacy, sep }) {
-  // Chiuso di default: i consensi sono un cassetto, non la prima cosa da
-  // leggere ogni volta. La testata riassume (quanti attivi) e apre.
-  const [aperto, setAperto] = useState(false);
-  const [, forza] = useState(0);
-  const cambia = (id, v) => {
-    ByupConsensi.set(id, v);
-    if (id === 'A3' && !v) {
-      // niente base giuridica, niente dato
-      try { localStorage.setItem('byup_allergens', JSON.stringify({ allergens: {}, diets: {} })); } catch (e) {}
-      if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
-    }
-    forza(x => x + 1);
-  };
-  const quando = (st) => {
-    if (!st) return null;
-    const d = new Date(st.quando);
-    return `${d.toLocaleDateString('it-IT')}`;
-  };
-  const attivi = CONSENSI_DEF.filter(c => { const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
-  return (
-    <div style={{ marginBottom: 22 }}>
-      <div style={{ background: SURF_X, borderRadius: 14, overflow: 'hidden', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` }}>
-        <button onClick={() => setAperto(a => !a)} style={{
-          display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-          padding: '13px 14px', background: 'transparent', border: 'none',
-          cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-          ...(aperto ? sep : {}),
-        }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14.5, color: TEXT_X, fontWeight: 600 }}>Privacy e consensi</div>
-            <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 1 }}>
-              {attivi === 0 ? 'Nessun consenso attivo' : `${attivi} ${attivi === 1 ? 'consenso attivo' : 'consensi attivi'}`}
-            </div>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform .18s', flexShrink: 0 }}>
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
-
-        {aperto && CONSENSI_DEF.map((c, i) => {
-          const st = ByupConsensi.stato(c.id);
-          // Mai incontrato = niente riga: il pannello riflette solo i consensi
-          // che esistono per questo utente.
-          if (!st) return null;
-          const data = quando(st);
-          const acceso = !!(st && st.ok);
-          return (
-            <div key={c.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '12px 14px', ...sep,
-            }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14.5, color: TEXT_X }}>{c.label}</div>
-                <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>{c.desc}</div>
-                {data && (
-                  <div style={{ fontSize: 11, color: MUTED_X, marginTop: 2, opacity: .8 }}>
-                    {st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`}
-                  </div>
-                )}
-              </div>
-              <ProfileToggle value={acceso} onChange={(v) => cambia(c.id, v)}/>
-            </div>
-          );
-        })}
-        {aperto && (
-          <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, padding: '10px 14px 13px' }}>
-            Per richiedere una copia dei tuoi dati consulta l'<span onClick={onOpenPrivacy} style={{ color: PINK_X, fontWeight: 600, cursor: 'pointer' }}>informativa sulla privacy</span>.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
