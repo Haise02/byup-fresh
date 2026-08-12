@@ -885,35 +885,43 @@ function MCMenuComposer() {
             ><PnI.Plus size={12}/> Nuova categoria</button>
           )}
 
-          {/* Quando il menù si fa vedere: qui si legge, e da qui si va a
-              cambiarlo. Sta sotto le categorie perché è l'ultima cosa che
-              riguarda il menù intero — la testata ormai tiene solo il nome,
-              l'interruttore e l'anteprima. */}
-          <div style={{marginTop: 10, paddingTop: 10, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', {detail: 'flussi'}))}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = PN.TEXT; e.currentTarget.style.background = PN.WHITE; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.background = PN.WHITE_HUSH; }}
-              style={{
-                width: '100%', padding: '9px 12px', borderRadius: 9,
-                border: `1px solid ${PN.BORDER}`, background: PN.WHITE_HUSH,
-                boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.04)',
-                color: PN.TEXT, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                transition: 'border-color 150ms ease-out, background 150ms ease-out',
-              }}>
-              <span style={{display: 'inline-flex', color: PN.MUTED}}><Icon name="time-calendar" size={13}/></span>
-              Modifica visibilità del menù
-            </button>
-            <div style={{
-              fontSize: 12, color: PN.MUTED, marginTop: 7, textAlign: 'center',
-              lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          {/* Quando il menù si fa vedere. Il pulsante con la didascalia sotto
+              erano due oggetti per una cosa sola, e quello che conta — l'orario
+              — finiva in fondo in grigetto: qui l'orario È la riga, e la riga
+              intera è il modo di cambiarlo. */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', {detail: 'flussi'}))}
+            title="Cambia gli orari in cui il menù è visibile"
+            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.borderColor = PN.BORDER; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
+            style={{
+              width: '100%', marginTop: 10, padding: '9px 10px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              borderRadius: 10, border: '1px solid transparent', background: 'transparent',
+              cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+              transition: 'background 150ms ease-out, border-color 150ms ease-out',
             }}>
-              {activeMenu && activeMenu.schedule
-                ? <React.Fragment><span style={{color: PN.MUTED_SOFT}}>Ora:</span> {activeMenu.schedule}</React.Fragment>
-                : 'Nessun orario impostato'}
-            </div>
-          </div>
+            <span style={{
+              width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+              display: 'grid', placeItems: 'center',
+              background: PN.WHITE_HUSH, color: PN.MUTED,
+            }}><Icon name="time-calendar" size={14}/></span>
+            <span style={{flex: 1, minWidth: 0}}>
+              <span style={{
+                display: 'block', fontSize: 11.5, fontWeight: 700, color: PN.MUTED_SOFT,
+                textTransform: 'uppercase', letterSpacing: 0.6,
+              }}>Visibilità</span>
+              {/* Va a capo invece di finire in «12:00–1…»: l'orario è il
+                  contenuto della riga, tagliarlo la svuota. */}
+              <span style={{
+                display: 'block', fontSize: 13.5, fontWeight: 700, color: PN.TEXT,
+                marginTop: 1, lineHeight: 1.3,
+              }}>{(activeMenu && activeMenu.schedule) || 'Sempre visibile'}</span>
+            </span>
+            <span style={{display: 'inline-flex', color: PN.MUTED_LIGHT, flexShrink: 0}}>
+              <PnI.ChevronRight size={12}/>
+            </span>
+          </button>
           </div>
         </MCPanel>
         )}

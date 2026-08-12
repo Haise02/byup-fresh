@@ -45,7 +45,7 @@ const IMP_SEZIONI = [
 // gestionale — vetro vibrante, 272px, PnNavItem con le sue icone da 26 e
 // l'attivo in tinta brand. Al posto del logo la testata dice dove sei, perché
 // il logo dell'app sta già a sinistra, dietro al velo.
-function ImpNavSidebar({ active, onChange }) {
+function ImpNavSidebar({ active, onChange, onClose }) {
   return (
     <aside style={{
       width: 272, flexShrink: 0,
@@ -66,10 +66,26 @@ function ImpNavSidebar({ active, onChange }) {
           background: PN.WHITE, border: `1px solid ${PN.BORDER_LIGHT}`,
           boxShadow: PN.INSET_HIGHLIGHT, color: PN.TEXT,
         }}><Icon name="gear" size={18}/></span>
-        <div style={{minWidth: 0}}>
-          <div style={{fontSize: 19, fontWeight: 800, letterSpacing: -0.3, color: PN.TEXT}}>Impostazioni</div>
-          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 1}}>Come funziona il tuo locale</div>
+        {/* Solo il nome: la didascalia che c'era andava a capo per far posto
+            alla X e faceva due righe di spiegazione sopra a un elenco che si
+            spiega da sé. */}
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 20, fontWeight: 800, letterSpacing: -0.3, color: PN.TEXT}}>Impostazioni</div>
         </div>
+        {/* La via d'uscita sta qui, accanto al nome di ciò che si chiude.
+            Nell'angolo in alto a destra del popup finiva addosso al contenuto
+            — in Vetrina proprio sopra la X dell'anteprima. */}
+        {onClose && (
+          <button onClick={onClose} title="Chiudi le impostazioni"
+            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.MUTED; }}
+            style={{
+              width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+              border: `1px solid ${PN.BORDER_LIGHT}`, background: PN.WHITE_HUSH,
+              color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+              transition: 'background 130ms ease, color 130ms ease',
+            }}><PnI.X size={14}/></button>
+        )}
       </div>
 
       <div className="pn-scroll" style={{
@@ -115,25 +131,33 @@ function useImpDaSalvare(dirty, salva) {
   }, [dirty]);
 }
 
+// Da quando il popup non ha più una testata, queste sono la prima riga della
+// schermata: sono loro a dire dove sei dentro la sezione, e vanno lette da
+// lontano come un titolo, non come una didascalia sopra al contenuto.
 function ImpSubTabs({ tabs, active, onChange }) {
   return (
     <div style={{
-      display:'flex', gap: 22,
+      display:'flex', gap: 26,
       borderBottom: `1px solid ${PN.BORDER}`,
       marginBottom: 22,
     }}>
       {tabs.map(t => {
         const isActive = active === t.id;
         return (
-          <button key={t.id} onClick={() => onChange(t.id)} style={{
-            padding: '10px 4px',
-            background:'transparent', border:'none',
-            borderBottom: `2px solid ${isActive ? PN.TEXT : 'transparent'}`,
-            marginBottom: -1,
-            color: isActive ? PN.TEXT : PN.MUTED,
-            fontSize: 15.5, fontWeight: isActive ? 700 : 500,
-            cursor:'pointer', fontFamily:'inherit',
-          }}>{t.label}</button>
+          <button key={t.id} onClick={() => onChange(t.id)}
+            onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = PN.TEXT; }}
+            onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = PN.MUTED; }}
+            style={{
+              padding: '8px 2px 12px',
+              background:'transparent', border:'none',
+              borderBottom: `2.5px solid ${isActive ? PN.TEXT : 'transparent'}`,
+              marginBottom: -1,
+              color: isActive ? PN.TEXT : PN.MUTED,
+              fontSize: 21, fontWeight: isActive ? 800 : 600,
+              letterSpacing: -0.3,
+              cursor:'pointer', fontFamily:'inherit',
+              transition: 'color 140ms ease-out',
+            }}>{t.label}</button>
         );
       })}
     </div>

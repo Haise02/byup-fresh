@@ -67,9 +67,11 @@ function ImpApp() {
 
   return (
     <div style={{display: 'flex', flex: 1, minHeight: 0, position: 'relative'}}>
-      {/* Il gestionale sotto: resta al suo posto, velato. */}
-      <PnSidebar active="impostazioni"/>
-      <main style={{flex: 1, minWidth: 0, background: PN.BG}}/>
+      {/* Dietro al velo non c'è una pagina finta: il menù dell'app tagliato a
+          metà dal bordo del popup e un'area contenuti vuota si leggevano come
+          un layout rotto, non come «il gestionale è là sotto». Resta il fondo
+          della shell, velato — il popup è la schermata. */}
+      <div style={{flex: 1, minWidth: 0}}/>
 
       <div
         onClick={chiudi}
@@ -98,32 +100,17 @@ function ImpApp() {
             animation: 'impPopupSu 0.26s cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
 
-          <ImpNavSidebar active={active} onChange={setActive}/>
+          <ImpNavSidebar active={active} onChange={setActive} onClose={chiudi}/>
 
-          <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: PN.BG}}>
-            {/* Testata: quale sezione stai guardando, e la via d'uscita */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0,
-              padding: '18px 26px 16px', background: PN.WHITE,
-              borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-            }}>
-              <div style={{flex: 1, minWidth: 0}}>
-                <div style={{fontSize: 22, fontWeight: 800, letterSpacing: -0.4, color: PN.TEXT}}>{sezione.label || 'Impostazioni'}</div>
-              </div>
-              <button onClick={chiudi} title="Chiudi le impostazioni"
-                onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.TEXT; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
-                style={{
-                  padding: 9, borderRadius: 10, border: 'none', flexShrink: 0,
-                  background: 'transparent', color: PN.MUTED, cursor: 'pointer',
-                  display: 'grid', placeItems: 'center',
-                  transition: 'background 130ms ease, color 130ms ease',
-                }}><PnI.X size={16}/></button>
-            </div>
-
+          <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: PN.BG, position: 'relative'}}>
+            {/* Niente testata: il nome della sezione lo dice già la colonna a
+                sinistra, in grande e col segno di dove sei. Una fascia bianca
+                che lo ripeteva rubava l'altezza alla cosa per cui si è entrati
+                e spingeva le sotto-sezioni a metà schermo. La chiusura è
+                salita accanto al titolo «Impostazioni», nella colonna. */}
             <div className="pn-scroll" style={{
               flex: 1, overflow: 'auto', minHeight: 0,
-              padding: '22px 26px 26px',
+              padding: '18px 26px 26px',
             }}>
               {active === 'vetrina' && <ImpVetrina/>}
               {active === 'menu-cucina' && <ImpMenuCucina/>}
