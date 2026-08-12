@@ -120,8 +120,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       const pagati = new Set((tavolo.pagamenti || []).map(p => String(p.chi || '').trim().toLowerCase()));
       const giaPagato = (o) => !!o.guestId && gById[o.guestId]
         && pagati.has(String(gById[o.guestId].name || '').trim().toLowerCase());
+      const qPagata = (o) => (tavolo.pagamenti || []).reduce((n, p) =>
+        n + ((p.items || []).find(r => r.id === o.id)?.qty || 0), 0);
       setEditedOrdini(cloned);
-      setSelectedItems(new Map(cloned.filter(o => !giaPagato(o)).map(o => [o.id, o.qty])));
+      setSelectedItems(new Map(cloned
+        .filter(o => !giaPagato(o) && o.qty - qPagata(o) > 0)
+        .map(o => [o.id, o.qty - qPagata(o)])));
       setGroupBy('flat');
       setCollapsedGroups(new Set());
       setAdjust(null);
@@ -148,23 +152,28 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const guests = tavolo.guests || [];
   const guestById = Object.fromEntries(guests.map(g => [g.id, g]));
 
-  // Chi ha già pagato la sua parte dall'app: i suoi piatti non si incassano
-  // una seconda volta. Prima restavano in elenco selezionabili e il totale
-  // chiedeva alla cassa soldi già arrivati — la riga «Già incassato» diceva la
-  // stessa cosa in fondo alla colonna, da mettere in relazione a mente.
+  // Che cosa di questo conto è già stato pagato. Due strade portano allo
+  // stesso posto: la quota di un ospite arrivata dall'app (il pagamento porta
+  // il suo nome) e un incasso parziale fatto qui in cassa (il pagamento porta
+  // le righe che copre, con le quantità). In tutti e due i casi quei piatti
+  // non si incassano una seconda volta.
   const nomiPagati = new Set((tavolo.pagamenti || []).map(p => String(p.chi || '').trim().toLowerCase()));
   const guestPagato = (gid) => {
     const g = guestById[gid];
     return !!g && nomiPagati.has(String(g.name || '').trim().toLowerCase());
   };
-  const isPagato = (o) => !!o.guestId && guestPagato(o.guestId);
+  const qtyPagata = (o) => (tavolo.pagamenti || []).reduce((n, p) =>
+    n + ((p.items || []).find(r => r.id === o.id)?.qty || 0), 0);
+  // Quante ne restano da incassare su quella riga.
+  const qtyAperta = (o) => Math.max(0, o.qty - qtyPagata(o));
+  const isPagato = (o) => (!!o.guestId && guestPagato(o.guestId)) || qtyAperta(o) === 0;
 
   // Quello che la cassa può ancora incassare: i piatti già pagati non sono
   // «deselezionati», sono fuori dal conto — se contassero, il riepilogo
   // direbbe «4 di 6» a chi non ha toccato niente.
   const incassabili = allOrdini.filter(o => !isPagato(o));
   const selectedOrdini = allOrdini.filter(o => (selectedItems.get(o.id) || 0) > 0);
-  const subtotale = selectedOrdini.reduce((s,o) => s + (selectedItems.get(o.id) || 0) * o.prezzo, 0);
+  const subtotale = selectedOrdini.reduce((s,o) => s + Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) * o.prezzo, 0);
 
   // Calcolo aggiustamento — una strategia per ciascun type; restituisce { total, delta, label }.
   // Lo sconto in euro è clampato al subtotale per non generare totali negativi.
@@ -194,6 +203,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const adjustLabel = adjustResult?.label ?? null;
   const total = Math.max(0, naturalTotal);
 
+  // Quanto resta del conto dopo questo incasso: se avanza qualcosa il conto
+  // non si chiude, si aggiorna. Sta QUI e non più in alto perché legge
+  // `subtotale`: dichiarato prima, valeva NaN e il conto parziale non si
+  // accorgeva di essere parziale.
+  // Su `incassabili` e non su tutti gli ordini: le quote già arrivate
+  // dall'app non sono soldi che il tavolo deve ancora.
+  const apertoTotale = incassabili.reduce((s, o) => s + qtyAperta(o) * o.prezzo, 0);
+  const residuoDopo = Math.max(0, Math.round((apertoTotale - subtotale) * 100) / 100);
+  const parziale = residuoDopo > 0.004;
+
   // Contanti col campo vuoto = ESATTO: segue il totale senza che nessuno
   // scriva niente. Prima la CTA partiva spenta («Manca €65») finché non si
   // toccava un chip — un tocco obbligato per il caso più comune alla cassa.
@@ -211,14 +230,14 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     setSelectedItems(s => {
       const ns = new Map(s);
       if ((ns.get(id) || 0) > 0) ns.delete(id);
-      else ns.set(id, o.qty);
+      else ns.set(id, qtyAperta(o));
       return ns;
     });
   }
   function setItemQty(id, qty) {
     const o = allOrdini.find(x => x.id === id);
     if (!o) return;
-    const clamped = Math.max(0, Math.min(qty, o.qty));
+    const clamped = Math.max(0, Math.min(qty, qtyAperta(o)));
     setSelectedItems(s => {
       const ns = new Map(s);
       if (clamped === 0) ns.delete(id);
@@ -233,7 +252,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       return ns;
     });
   }
-  function selectAll() { setSelectedItems(new Map(allOrdini.filter(o => !isPagato(o)).map(o => [o.id, o.qty]))); }
+  function selectAll() { setSelectedItems(new Map(allOrdini.filter(o => !isPagato(o)).map(o => [o.id, qtyAperta(o)]))); }
   function selectNone() { setSelectedItems(new Map()); }
   function selectGroup(items) {
     setSelectedItems(s => {
@@ -287,6 +306,27 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   function setTendered(v)  { setPay({ contanti: v, carta: '' }); }
   function setMistoCash(v) { setPay(p => ({ ...p, contanti: v })); }
   function setMistoCard(v) { setPay(p => ({ ...p, carta: v })); }
+
+  // Scrive l'incasso sul TAVOLO, non nello stato della finestra: un incasso
+  // parziale deve sopravvivere alla chiusura: riaprendo il conto quei piatti
+  // risultano pagati e il totale chiede solo quello che manca. È la stessa
+  // cosa che l'acconto fa al banco, in Vendita diretta.
+  function registraIncasso(metodo) {
+    const items = selectedOrdini
+      .map(o => ({ id: o.id, qty: Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) }))
+      .filter(r => r.qty > 0);
+    const ora = new Date();
+    const pagamento = {
+      id: 'pg-' + ora.getTime(),
+      method: metodo === 'misto' ? (contanti >= carta ? 'contanti' : 'carta') : metodo,
+      amount: total,
+      ora: `${String(ora.getHours()).padStart(2,'0')}:${String(ora.getMinutes()).padStart(2,'0')}`,
+      chi: 'Cassa',
+      items,
+    };
+    tavolo.pagamenti = [...(tavolo.pagamenti || []), pagamento];
+    return pagamento;
+  }
 
   // Il conto entra nella coda di incasso, visibile a tutti i Byup Staff
   // collegati. Scrivere la voce sul tavolo (e non nello stato della
@@ -696,18 +736,25 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     const attivo = inviaSuStaff ? total > 0 : canConfirm;
                     const manca = total - paid;
                     return (
+                      <React.Fragment>
                       <button onClick={() => {
                           if (!attivo) return;
                           if (inviaSuStaff) avviaPagamento();
                           else {
+                            const pagamento = registraIncasso(method);
                             // Fotografia del momento in cui si incassa: la
                             // schermata di conferma deve poter dire quanto
-                            // resto dare anche dopo che il conto è chiuso.
+                            // resto dare e quanto manca ancora, anche dopo che
+                            // il conto è cambiato sotto.
                             setEsito({
                               total, contanti, carta, resto: Math.max(0, resto),
                               metodo: method, invoice, invoiceData: fattura,
+                              residuo: residuoDopo, parziale,
                             });
-                            setDone(true); onConfirm && onConfirm();
+                            setDone(true);
+                            onConfirm && onConfirm({
+                              saldato: !parziale, residuo: residuoDopo, pagamento,
+                            });
                           }
                         }}
                         disabled={!attivo}
@@ -732,6 +779,18 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             ? <>Invia a Byup Staff <span style={{opacity:0.6}}>·</span> €{total.toFixed(2)}</>
                             : <>Incassa <span style={{opacity:0.6}}>·</span> €{total.toFixed(2)}</>}
                       </button>
+                      {/* Incassare una parte è normale — si paga in due, si
+                          divide il tavolo — e va detto prima di premere: il
+                          conto non si chiude, resta aperto per il resto. */}
+                      {attivo && !inviaSuStaff && parziale && (
+                        <div style={{
+                          fontSize: 15, color:'#6B7280', textAlign:'center', lineHeight: 1.4,
+                        }}>
+                          Incasso parziale: il conto resta aperto con{' '}
+                          <b style={{color:'#0F1115'}}>€{residuoDopo.toFixed(2)}</b> da saldare
+                        </div>
+                      )}
+                      </React.Fragment>
                     );
                   })()}
 
@@ -757,6 +816,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
             {window.SvFatturaModal && (
               <SvFatturaModal
                 open={fatturaOpen}
+                larghezza={1080} raggio={20} maxAltezza="92%"
                 lines={selectedOrdini.map(o => ({
                   displayName: o.nome,
                   piatto: { name: o.nome },
@@ -814,35 +874,51 @@ function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedG
       {groups.map((g, gi) => {
         const collapsed = collapsedGroups.has(g.id);
         const groupTotal = g.items.reduce((s,o)=>s+o.qty*o.prezzo, 0);
-        const allSelected = g.items.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
-        const someSelected = g.items.some(o => (selectedItems.get(o.id) || 0) > 0);
+        // Un ordinante che ha già pagato la sua parte non è «da selezionare»:
+        // è fuori dal conto, come i suoi piatti qui sotto.
+        const pagati = !!isPagato && g.items.every(o => isPagato(o));
+        const daPrendere = g.items.filter(o => !isPagato || !isPagato(o));
+        const allSelected = daPrendere.length > 0 && daPrendere.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
+        const someSelected = daPrendere.some(o => (selectedItems.get(o.id) || 0) > 0);
         const isLast = gi === groups.length - 1;
         return (
-          <div key={g.id} style={{
-            borderBottom: isLast ? 'none' : '1px solid #F0F2F5',
-            paddingBottom: isLast ? 0 : 8, marginBottom: isLast ? 0 : 8,
-          }}>
-            {/* Group header */}
-            <div style={{
-              display:'flex', alignItems:'center', gap: 10,
-              padding:'4px 4px 6px',
-            }}>
-              <button onClick={() => selectGroup(g.items)} title={allSelected ? 'Deseleziona gruppo' : 'Seleziona gruppo'} style={{
-                width: 18, height: 18, borderRadius: 4, padding: 0,
-                border: allSelected ? '2px solid #0F1115' : someSelected ? '1.5px solid #0F1115' : '1.5px solid #D1D5DB',
-                background: allSelected ? '#0F1115' : someSelected ? '#E5E7EB' : '#fff',
-                display:'grid', placeItems:'center', flexShrink: 0,
-                cursor:'pointer',
+          <div key={g.id} style={{marginBottom: isLast ? 0 : 14}}>
+            {/* La testata dell'ordinante è fatta della stessa materia delle
+                card che contiene: stesso riquadro, stesso raggio, stesso
+                acceso quando è selezionata, stesso schiarirsi sotto al mouse.
+                Prima era una riga nuda su fondo bianco e sembrava un titolo di
+                paragrafo, non una cosa da cliccare come le altre. */}
+            <div
+              onMouseEnter={e => { if (!someSelected && !pagati) e.currentTarget.style.background = '#FAFBFC'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = pagati ? '#F7F8FA' : ((allSelected || someSelected) ? SALDA_BRAND_SOFT : '#fff'); }}
+              title={pagati ? 'Ha già pagato la sua parte' : undefined}
+              style={{
+                display:'flex', alignItems:'center', gap: 12,
+                padding:'12px 14px', marginBottom: 8,
+                background: pagati ? '#F7F8FA' : ((allSelected || someSelected) ? SALDA_BRAND_SOFT : '#fff'),
+                border: `1px solid ${pagati ? '#EDEFF2' : ((allSelected || someSelected) ? '#FFD4D4' : '#EDEFF2')}`,
+                borderRadius: 12, cursor: pagati ? 'not-allowed' : 'pointer',
+                opacity: pagati ? 0.72 : 1,
+                transition:'background 0.12s, border-color 0.12s',
+              }}
+              onClick={() => { if (!pagati) selectGroup(daPrendere); }}>
+              {/* Stessa spunta delle card: stato, non bersaglio — si clicca
+                  la testata, tutta. */}
+              <span aria-hidden="true" style={{
+                width: 22, height: 22, borderRadius: 6, flexShrink: 0, pointerEvents:'none',
+                display:'grid', placeItems:'center',
+                background: pagati ? '#D6D9DE' : (allSelected ? SALDA_BRAND : '#fff'),
+                border: `1.5px solid ${pagati ? '#D6D9DE' : ((allSelected || someSelected) ? SALDA_BRAND : '#D1D5DB')}`,
               }}>
-                {allSelected && (
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                {(allSelected || pagati) && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 13 L9 17 L19 7"/>
                   </svg>
                 )}
                 {someSelected && !allSelected && (
-                  <span style={{display:'block', width: 8, height: 2, background:'#0F1115', borderRadius:1}}/>
+                  <span style={{display:'block', width: 10, height: 2.5, background: SALDA_BRAND, borderRadius: 2}}/>
                 )}
-              </button>
+              </span>
 
               {g.type === 'guest' ? (
                 <GuestAvatarV2 g={g.meta}/>
@@ -858,10 +934,9 @@ function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedG
                 </div>
               )}
 
-              <button onClick={() => toggleGroup(g.id)} style={{
-                flex: 1, padding: 0, border:'none', background:'none',
-                cursor:'pointer', textAlign:'left', fontFamily:'inherit',
-                display:'flex', alignItems:'center', gap: 6,
+              <span style={{
+                flex: 1, minWidth: 0,
+                display:'flex', alignItems:'center', gap: 8,
               }}>
                 <div style={{flex:1, minWidth: 0}}>
                   <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115', display:'flex', alignItems:'center', gap: 6}}>
@@ -875,10 +950,21 @@ function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedG
                     )}
                   </div>
                   <div style={{fontSize: 14.5, color:'#9CA3AF', fontWeight: 600}}>
-                    {g.sub} · {g.items.length} articol{g.items.length === 1 ? 'o' : 'i'}
+                    {pagati ? 'Ha già pagato la sua parte' : `${g.sub} · ${g.items.length} articol${g.items.length === 1 ? 'o' : 'i'}`}
                   </div>
                 </div>
                 <span style={{fontSize: 17, fontWeight:800, color:'#0F1115', fontVariantNumeric:'tabular-nums'}}>€{groupTotal.toFixed(2)}</span>
+              </span>
+              {/* Aprire e chiudere il gruppo è un gesto suo: se lo prendesse
+                  la testata intera, chi vuole scegliere l'ordinante lo
+                  chiuderebbe ogni volta. */}
+              <button onClick={(e) => { e.stopPropagation(); toggleGroup(g.id); }}
+                title={collapsed ? 'Mostra i piatti' : 'Nascondi i piatti'}
+                style={{
+                  width: 26, height: 26, padding: 0, borderRadius: 7, flexShrink: 0,
+                  background:'transparent', border:'none', cursor:'pointer',
+                  display:'grid', placeItems:'center',
+                }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{
                   transform: collapsed ? 'rotate(-90deg)' : 'rotate(0)',
                   transition:'transform 0.15s',
@@ -890,7 +976,7 @@ function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedG
 
             {/* Group items */}
             {!collapsed && (
-              <div style={{paddingLeft: 38, display:'flex', flexDirection:'column', gap: 1}}>
+              <div style={{paddingLeft: 22, display:'flex', flexDirection:'column', gap: 8}}>
                 {g.items.map(o => (
                   <ItemRowV2 key={o.id} o={o}
                     selectedQty={selectedItems.get(o.id) || 0}
@@ -1620,7 +1706,7 @@ function AdjustPanel({ subtotale, adjust, setAdjust}) {
 // Stessa lingua e stessi colori della conferma d'incasso in Vendita diretta:
 // è lo stesso gesto, fatto dalla stessa persona dietro allo stesso bancone.
 function SaldaDoneV2({ tavolo, esito, onClose }) {
-  const { total, contanti, carta, resto, invoice, invoiceData } = esito;
+  const { total, contanti, carta, resto, invoice, invoiceData, residuo, parziale } = esito;
   const misto = contanti > 0 && carta > 0;
   const comeHaPagato = misto
     ? `€${contanti.toFixed(2)} in contanti + €${carta.toFixed(2)} con la carta`
@@ -1634,7 +1720,8 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
     }}>
       <div style={{
         width: 64, height: 64, borderRadius: '50%',
-        background:'#DCFCE7', color:'#16A34A',
+        background: parziale ? '#FEF3C7' : '#DCFCE7',
+        color: parziale ? PAY_INK : '#16A34A',
         marginBottom: 14,
         display:'grid', placeItems:'center',
       }}>
@@ -1643,7 +1730,7 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
         </svg>
       </div>
       <div style={{fontSize: 25, fontWeight: 800, color:'#0F1115', marginBottom: 3, letterSpacing:-0.4}}>
-        Conto saldato
+        {parziale ? 'Incassato' : 'Conto saldato'}
       </div>
       <div style={{fontSize: 36, fontWeight: 800, color:'#0F1115', marginBottom: 4, letterSpacing:-1, fontVariantNumeric:'tabular-nums'}}>
         €{total.toFixed(2)}
@@ -1651,6 +1738,23 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
       <div style={{fontSize: 16.5, color:'#6B7280', marginBottom: 18, textAlign:'center'}}>
         Tavolo {tavolo.id} · {comeHaPagato}
       </div>
+
+      {/* Quanto resta sul tavolo: il conto non si è chiuso, e chi torna in
+          sala deve sapere che quel tavolo ha ancora da dare. */}
+      {parziale && residuo > 0.004 && (
+        <div style={{
+          width:'100%', marginBottom: 14,
+          display:'flex', alignItems:'center', justifyContent:'center', gap: 10,
+          padding:'12px 16px', borderRadius: 12,
+          background:'#F5F6F8', border:'1px solid #EDEFF2',
+        }}>
+          <span style={{fontSize: 16.5, color:'#6B7280'}}>Resta da saldare sul tavolo</span>
+          <span style={{
+            fontSize: 20, fontWeight: 800, letterSpacing:-0.3, color:'#0F1115',
+            fontVariantNumeric:'tabular-nums',
+          }}>€{residuo.toFixed(2)}</span>
+        </div>
+      )}
 
       {/* Il numero che serve adesso, e che nessun altro schermo ha */}
       {resto > 0.004 && (

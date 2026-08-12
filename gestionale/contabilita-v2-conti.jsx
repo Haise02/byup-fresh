@@ -1754,7 +1754,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
             ordini: modalPagamento.ordini || [{ id: modalPagamento.id + '-1', nome: 'Saldo conto', prezzo: modalPagamento.daSaldare, qty: 1 }],
           }}
           onClose={() => setModalPagamento(null)}
-          onConfirm={() => setSaldati(s => new Set([...s, modalPagamento.id]))}
+          onConfirm={(esito) => { if (!esito || esito.saldato !== false) setSaldati(s => new Set([...s, modalPagamento.id])); }}
         />
       )}
 

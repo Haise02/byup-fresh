@@ -220,7 +220,12 @@ function SvfSegmento({ seg, onSeg }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, onRemove }) {
+// `larghezza`/`raggio`/`maxAltezza`: la finestra si apre sopra due schermate
+// di misura diversa — l'incasso al banco (620) e il salda conto in sala
+// (1080) — e una finestrella centrata sopra a quella grande si legge come un
+// oggetto capitato lì per sbaglio. Chi la apre le dice quanto è larga la casa.
+function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, onRemove,
+  larghezza = 720, raggio = 26, maxAltezza = '100%' }) {
   const [c, setC] = React.useState(SVF_VUOTO);
   const [query, setQuery] = React.useState('');
   // Le due sorgenti arrivano in due momenti: la rubrica è in casa e risponde
@@ -301,29 +306,35 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
       display: 'grid', placeItems: 'center', zIndex: 240, padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: 26,
-        width: 720, maxWidth: '100%', maxHeight: '100%',
+        background: '#fff', borderRadius: raggio,
+        width: larghezza, maxWidth: '100%', maxHeight: maxAltezza,
         boxShadow: '0 32px 80px rgba(5,10,25,0.45)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        {/* Testata */}
-        <div style={{ padding: '18px 26px 0', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.7, color: SVI_INK, lineHeight: 1 }}>
-              FATTURA
-            </div>
-            <div style={{ fontSize: 15, color: SVI_MUTED, marginTop: 5 }}>
-              Il numero e l'invio arrivano quando incassi
-            </div>
-          </div>
-          <button onClick={onClose} title="Chiudi" style={{
-            width: 36, height: 36, borderRadius: 11, flexShrink: 0,
-            background: '#fff', border: `1px solid ${SVI_BORDER}`,
-            color: SVI_INK, cursor: 'pointer', fontFamily: 'inherit',
-            display: 'grid', placeItems: 'center',
-          }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        {/* Testata. Non una X: da qui non si chiude niente, si torna
+            all'incasso che sta ancora lì sotto col conto dov'era — e la strada
+            del ritorno si mette dove si comincia a leggere, in alto a
+            sinistra. */}
+        <div style={{ padding: '16px 26px 0' }}>
+          <button onClick={onClose} title="Torna all'incasso"
+            onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SVI_INK; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SVI_MUTED; }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              padding: '7px 12px 7px 8px', marginLeft: -8, borderRadius: 9,
+              background: 'transparent', border: 'none', color: SVI_MUTED,
+              fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+              transition: 'background 150ms ease-out, color 150ms ease-out',
+            }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Indietro
           </button>
+          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.7, color: SVI_INK, lineHeight: 1, marginTop: 8 }}>
+            FATTURA
+          </div>
+          <div style={{ fontSize: 15, color: SVI_MUTED, marginTop: 5 }}>
+            Il numero e l'invio arrivano quando incassi
+          </div>
         </div>
 
         <div className="pn-scroll" style={{ overflow: 'auto', padding: '16px 26px 4px' }}>

@@ -466,13 +466,24 @@ function SalaApp() {
           }}/>
 
         <SalaSaldaModal open={!!modalPay} onClose={() => setModalPay(null)} tavolo={modalPay}
-          onConfirm={() => {
+          onConfirm={(esito) => {
+            // Un incasso può chiudere il conto o coprirne una parte: nel
+            // secondo caso il tavolo resta occupato e porta il residuo, che è
+            // quello che la sala legge sulla card.
+            const parziale = esito && esito.saldato === false;
             if (modalPay && !modalPay._isBanco) {
-              modalPay.daIncassare = 0;
-              modalPay.contoSaldato = true;
+              if (parziale) {
+                modalPay.daIncassare = esito.residuo;
+              } else {
+                modalPay.daIncassare = 0;
+                modalPay.contoSaldato = true;
+              }
               forceUpdate();
             }
-            if (modalPay?._isBanco && window.SALA_VENDITA_CLEAR) window.SALA_VENDITA_CLEAR();
+            // Il carrello del banco si svuota solo se il conto è chiuso: con un
+            // incasso parziale resta un conto da saldare, come l'acconto in
+            // Vendita diretta lascia la sua voce in coda.
+            if (modalPay?._isBanco && !parziale && window.SALA_VENDITA_CLEAR) window.SALA_VENDITA_CLEAR();
           }}/>
         <SalaModalNuova open={!!modalNuova} initData={modalNuova && typeof modalNuova === 'object' ? modalNuova : null} onClose={() => setModalNuova(null)}
           onConfirm={(p) => {
