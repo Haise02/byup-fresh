@@ -19,17 +19,23 @@ const BYU_VERDE = '#0F9D58';
 const BYU_VERDE_BG = '#E8F6EE';
 
 // La mascotte con cuffie e tablet — il byuppino che ASCOLTA, che è quello che
-// fa questo widget. Il file va messo qui accanto con questo nome; finché non
-// c'è, si ripiega sul byuppino che saluta della chat AI, così il widget non
-// mostra mai l'icona rotta.
-const BYU_MASCOTTE = 'byuppino-assistente.png';
-const BYU_RIPIEGO  = 'byuppino-wave.png';
-function byuRipiego(e) {
-  const img = e.currentTarget;
-  if (img.dataset.ripiego) return;
-  img.dataset.ripiego = '1';
-  img.src = BYU_RIPIEGO;
-}
+// fa questo widget.
+//
+// `?v=1` NON è superstizione. I .png qui escono con `max-age=86400`
+// (vercel.json), e per un giorno intero il browser e la CDN tengono per buono
+// quello che hanno preso la prima volta — 404 compreso. Questo nome è stato
+// scritto nel codice PRIMA che il file esistesse: chi ha aperto la Panoramica
+// in quella finestra si è portato a casa un 404 valido ventiquattr'ore, e da
+// allora vedeva la mascotte vecchia per quanto ricaricasse. La query cambia
+// l'indirizzo, e un indirizzo nuovo non ha passato da smaltire.
+//
+// E NIENTE RIPIEGO. C'era un onError che al posto dell'immagine mancante
+// infilava il byuppino della chat AI: nato per non mostrare l'icona rotta
+// mentre il file non c'era, si è trasformato in un bugiardo — l'immagine non
+// arrivava e al suo posto compariva, con tutta naturalezza, la mascotte di
+// prima. Un rimedio che nasconde il guasto è peggio del guasto: se il file non
+// c'è, si deve vedere che non c'è.
+const BYU_MASCOTTE = 'byuppino-assistente.png?v=1';
 
 // Le animazioni vivono in un foglio e non negli stili in linea: servono
 // keyframes e uno pseudo-elemento (l'anello che gira), e nessuno dei due si
@@ -518,7 +524,7 @@ function WidgetByuppino() {
         {/* `height:100%` + `contain` e non `maxHeight`: dentro una colonna alta
             quanto la scheda, un'immagine con la sola altezza massima sborda. */}
         <div style={{flex: 1, minHeight: 0, padding: '6px 0 0'}}>
-          <img src={BYU_MASCOTTE} alt="Byuppino" onError={byuRipiego} className="byu-galleggia" style={{
+          <img src={BYU_MASCOTTE} alt="Byuppino" className="byu-galleggia" style={{
             display: 'block', height: '100%', width: '100%',
             objectFit: 'contain', objectPosition: 'center bottom',
             filter: 'drop-shadow(0 10px 18px rgba(140, 60, 90, 0.22))',
