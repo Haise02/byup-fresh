@@ -11,8 +11,9 @@ function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wig
   // editMode (wiggle iOS edit-mode), idle.
   const inEditWiggle = editMode && !dragging;
   // Theme surface tokens — solo "aurora" intercepted qui. "sunset"/dark passa
-  // di solito via GlassDarkBox interno con margine negativo (es. Top piatti,
-  // Cucina live), quindi non serve verniciare lo shell. Default = white W1.
+  // di solito via GlassDarkBox interno con margine negativo, quindi non serve
+  // verniciare lo shell. Default = white W1, ed è la veste di tutta la griglia:
+  // oggi nessun widget chiede un tema, l'ultimo era Recensioni recenti.
   //
   // L2 aurora soft wash multi-color: pink + lavender + cream mesh su base
   // sfumata pink→lavender. Stesso DNA della variant L2 nella preview themes.

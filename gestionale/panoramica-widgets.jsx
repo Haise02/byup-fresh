@@ -769,8 +769,12 @@ function WidgetRecensioni() {
   );
 }
 
-// Tile recensione: soft-glass che si ingrandisce in hover; al click porta
-// alla sezione recensioni (Statistiche · Clienti · Valutazioni).
+// Tile recensione: scheda bianca come le righe degli altri widget — si
+// illumina in hover e al click porta alla sezione recensioni
+// (Statistiche · Clienti · Valutazioni). Il vetro rosa che aveva prima era
+// tarato sul fondo aurora della card: tolto quello restava una macchia rosa
+// su bianco, e comunque faceva di questo riquadro l'unico diverso nella
+// griglia. Le stelle ambra bastano a dire di che si parla.
 function ReviewTile({ r }) {
   const [hover, setHover] = React.useState(false);
   const [pressed, setPressed] = React.useState(false);
@@ -787,18 +791,14 @@ function ReviewTile({ r }) {
         minHeight: 64,
         display: 'flex', flexDirection: 'column', justifyContent: 'center',
         padding: 12, borderRadius: 10,
-        background: 'rgba(255, 245, 248, 0.55)',
-        backgroundImage:
-          'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.10) 45%, rgba(255,255,255,0) 100%)',
-        backdropFilter: 'blur(12px) saturate(160%)',
-        WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+        background: hover ? '#F7F8FA' : PN.WHITE,
         boxShadow: hover
-          ? 'inset 0 1px 0 rgba(255,255,255,0.70), inset 0 0 0 1px rgba(242, 107, 122, 0.18), 0 10px 24px rgba(15, 17, 21, 0.10)'
-          : 'inset 0 1px 0 rgba(255,255,255,0.70), inset 0 0 0 1px rgba(242, 107, 122, 0.08), 0 1px 2px rgba(15, 17, 21, 0.03)',
+          ? `inset 0 0 0 1px ${PN.BORDER}, 0 6px 16px rgba(15, 17, 21, 0.08)`
+          : `inset 0 0 0 1px ${PN.BORDER_SOFT}`,
         cursor: 'pointer',
         transform: pressed ? 'scale(0.99)' : hover ? 'scale(1.02)' : 'scale(1)',
         position: 'relative', zIndex: hover ? 2 : 1,
-        transition: 'transform 170ms cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 170ms ease',
+        transition: 'transform 170ms cubic-bezier(0.34, 1.45, 0.64, 1), background 150ms ease, box-shadow 170ms ease',
       }}>
       <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 5, minWidth: 0}}>
         <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap', flexShrink: 0}}>{r.name}</div>

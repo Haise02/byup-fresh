@@ -8,8 +8,11 @@
 // Le dimensioni non sono modificabili dall'utente.
 //
 // theme (per shell):
-//   undefined → W1 white classic (default, ~75% dei widget)
-//   'aurora'  → L2 aurora glass pink (warm celebrativo)
+//   undefined → W1 white classic — ora è la sola veste in uso: la griglia è
+//                una griglia, e un riquadro che si veste diverso dagli altri
+//                si legge come «più importante» anche quando non lo è.
+//   'aurora'  → L2 aurora glass pink (warm celebrativo). Nessun widget la
+//                usa più: l'aveva Recensioni recenti, ed è tornata bianca.
 //   sunset    → non più usato dai widget: Top piatti e Cucina live sono
 //                tornati bianchi come il resto della griglia. Resta come
 //                variante di GlassDarkBox, che le Azioni rapide usano ancora.
@@ -21,7 +24,7 @@ const PN_WIDGET_CATALOG = [
   { id: 'prenotazioni-oggi', name: 'Prenotazioni oggi', desc: 'Le prenotazioni del giorno: click per aprirle in Sala', component: 'WidgetPrenotazioniOggi', size: { w: 1, h: 2 }, category: 'Sala', icon: 'time-calendar' },
   { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Minimappa sala: click sul tavolo per aprirlo', component: 'WidgetTavoliStato', size: { w: 2, h: 2 }, category: 'Sala', icon: 'place-table' },
   { id: 'top-piatti', name: 'Top piatti questa settimana', desc: 'Classifica settimanale: click verso le statistiche ordini', component: 'WidgetTopPiatti', size: { w: 1, h: 2 }, category: 'Menu', icon: 'food-meal' },
-  { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni: click verso le valutazioni clienti', component: 'WidgetRecensioni', size: { w: 1, h: 2 }, category: 'Reputazione', theme: 'aurora', icon: 'star' },
+  { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni: click verso le valutazioni clienti', component: 'WidgetRecensioni', size: { w: 1, h: 2 }, category: 'Reputazione', icon: 'star' },
   { id: 'azioni', name: 'Azioni rapide', desc: 'Scorciatoie verso le funzioni delle sezioni', component: 'WidgetAzioni', size: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
   { id: 'coperti-sett', name: 'Spaccato coperti questa settimana', desc: 'Coperti per giorno sui 7 giorni della settimana', component: 'WidgetCopertiSettimana', size: { w: 2, h: 2 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'cucina-live', name: 'Cucina in diretta', desc: 'Ordini in cucina: click per aprire il ticket', component: 'WidgetCucinaLive', size: { w: 1, h: 2 }, category: 'Cucina', icon: 'food-flame' },
