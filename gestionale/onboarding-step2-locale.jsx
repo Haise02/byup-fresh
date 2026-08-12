@@ -638,12 +638,15 @@ function SubStepPagamenti({payments, p}) {
 // ignorare senza restare indietro.
 // ─────────────────────────────────────────────────────────────────────────
 
-// Palette del marchio byup Staff (dal logo): rosso → arancio, lettering crema.
+// Palette del marchio byup Staff, presa dal logo: rosa profondo → corallo in
+// diagonale, lettering crema appena rosato. Prima era rosso → arancio: un
+// marchio che il logo non ha più, e nella schermata il blocco leggeva come
+// un avviso invece che come byup.
 const STAFF = {
-  RED:    '#FF3B2E',
-  MID:    '#FF6A3D',
-  ORANGE: '#FF9B52',
-  CREAM:  '#FFF2E7',
+  PINK:  '#E5446E',
+  MID:   '#F4676F',
+  CORAL: '#FF9083',
+  CREAM: '#FDF3F0',
 };
 
 function StaffAppPromo() {
@@ -656,15 +659,16 @@ function StaffAppPromo() {
   };
 
   return (
-    /* Palette del marchio byup Staff: gradiente rosso→arancio in diagonale e
-       lettering crema. È l'unico blocco pieno della schermata — è anche l'unico
-       che non chiede di completare un passo, ma di portarsi via qualcosa. */
+    /* Palette del marchio byup Staff: lo stesso gradiente del logo, rosa
+       profondo → corallo in diagonale, e lettering crema. È l'unico blocco
+       pieno della schermata — è anche l'unico che non chiede di completare un
+       passo, ma di portarsi via qualcosa. */
     <div style={{
       display: 'flex', alignItems: 'center', gap: 16,
       padding: '18px 20px 0', borderRadius: 14,
       overflow: 'hidden',   /* la mascotte poggia sul bordo inferiore */
-      background: `linear-gradient(115deg, ${STAFF.RED} 0%, ${STAFF.MID} 52%, ${STAFF.ORANGE} 100%)`,
-      boxShadow: '0 12px 32px -14px rgba(255, 76, 45, 0.55)',
+      background: `linear-gradient(115deg, ${STAFF.PINK} 0%, ${STAFF.MID} 52%, ${STAFF.CORAL} 100%)`,
+      boxShadow: '0 12px 32px -14px rgba(229, 68, 110, 0.50)',
     }}>
       {/* Mascotte — poggia sul bordo inferiore del box (overflow:hidden la
           taglia netta a filo). Se il file manca si toglie da sola e il box
@@ -680,7 +684,7 @@ function StaffAppPromo() {
         style={{
           width: 152, alignSelf: 'flex-end', flexShrink: 0,
           marginBottom: -14,
-          filter: 'drop-shadow(0 10px 20px rgba(120, 20, 0, 0.30))',
+          filter: 'drop-shadow(0 10px 20px rgba(120, 15, 45, 0.30))',
         }}
       />
 
@@ -785,7 +789,7 @@ function QrMock({size = 132}) {
         transform: 'translate(-50%, -50%)',
         width: size * 0.26, height: size * 0.26,
         borderRadius: size * 0.075,
-        background: `linear-gradient(135deg, ${STAFF.RED}, ${STAFF.ORANGE})`,
+        background: `linear-gradient(135deg, ${STAFF.PINK}, ${STAFF.CORAL})`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         border: `${Math.round(size * 0.028)}px solid ${STAFF.CREAM}`,
       }}>
