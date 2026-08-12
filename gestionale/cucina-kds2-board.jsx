@@ -192,6 +192,14 @@ const CATEGORIE = {
   'Bevande':    { viva: '#1D4ED8', smorta: '#BBCAF3', tinta: '#EFF4FE' },
 };
 const CATEGORIA_ALTRO = { viva: '#64748B', smorta: '#CBD0D7', tinta: '#F2F4F6' };
+
+// Il colore dei tre gradini d'attesa, in un posto solo: lo usano il numero in
+// fondo alla riga, la barra a sinistra e il tempo dentro le chip, e se vivesse
+// in tre punti in due settimane sarebbero tre scale.
+// Il rosso qui NON è quello dell'allergene: quello è una pastiglia PIENA con il
+// triangolo accanto, questo è inchiostro e una barra da 6 px. Forma e
+// riempimento li tengono distinti anche a due metri.
+const kds2ColoreTono = t => t === 'critica' ? K.ROSSO : t === 'attesa' ? K.AMBRA : K.VERDE;
 const kds2Categoria = nome => CATEGORIE[nome] || CATEGORIA_ALTRO;
 
 // Chi ha ridotto le animazioni di sistema non deve vedere nulla muoversi — ma
@@ -288,6 +296,7 @@ function Kds2Espandi({ size = 24, chiudi = false }) {
 function Kds2Chip({
   source, quantity, tempo, status,
   spenta = false, selezionata = false, tinta = null,
+  mostraQty = true, mostraTempo = true,
   onTap, titolo,
 }) {
   const identita = kds2Identita(source);
@@ -311,19 +320,28 @@ function Kds2Chip({
   const colQual  = selezionata ? 'rgba(255,255,255,0.80)' : quieta ? K.TESTO_OFF : K.TESTO_2;
   const colTempo = selezionata ? 'rgba(255,255,255,0.92)'
     : quieta ? K.TESTO_OFF
-    : (tempo.tono === 'attesa' ? K.AMBRA : K.VERDE);
+    : kds2ColoreTono(tempo.tono);
 
   const Canale = source.type === 'takeaway' ? Kds2Bag
     : source.type === 'delivery' ? Kds2Scooter : null;
 
+  // Il TEMPO su una chip di tavolo è un doppione: i minuti d'attesa stanno già
+  // in fondo alla riga, grandi, con la loro etichetta — e ripetuti dentro ogni
+  // chip diventavano una seconda fila di numeri da scartare con gli occhi. Su
+  // asporto e delivery invece resta, perche li non e un'attesa ma un'ORA di
+  // ritiro: quella non e scritta da nessun'altra parte.
+  const conTempo = mostraTempo && (source.type !== 'table');
+
   const dentro = (
     <React.Fragment>
-      {quantity > 1 && (
+      {mostraQty && quantity > 1 && (
         <span style={Object.assign({}, TY.chipQty, {color: colTesto})}>{quantity}</span>
       )}
       {Canale && <span style={{color: colQual, display: 'flex', flexShrink: 0}}><Canale size={24}/></span>}
       <span style={Object.assign({}, TY.chipId, {color: colTesto})}>{identita}</span>
-      <span style={Object.assign({}, TY.chipOra, {color: colTempo})}>{tempo.testo}</span>
+      {conTempo && (
+        <span style={Object.assign({}, TY.chipOra, {color: colTempo})}>{tempo.testo}</span>
+      )}
     </React.Fragment>
   );
 
@@ -489,7 +507,7 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
 
   const colNome  = quieta ? K.TESTO_OFF : K.TESTO;
   const colQty   = colNome;
-  const colTempo = quieta ? K.TESTO_OFF : (tonoRiga === 'attesa' ? K.AMBRA : K.VERDE);
+  const colTempo = quieta ? K.TESTO_OFF : kds2ColoreTono(tonoRiga);
 
   return (
     <div
@@ -543,7 +561,7 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
         width: allergeneVisibile ? 10 : 6, flexShrink: 0, alignSelf: 'stretch',
         background: allergeneVisibile ? K.ROSSO
           : quieta ? K.BORDO_ATTESA
-          : (tonoRiga === 'attesa' ? K.AMBRA : K.VERDE),
+          : kds2ColoreTono(tonoRiga),
       }}/>
 
       {/* Quanti · cosa · per chi · da quando, tutto su una linea sola. Le chip
@@ -992,6 +1010,7 @@ function Kds2Fullscreen({ onToggle, attivo }) {
 function Kds2Header({
   sorgenti, totale, ora, selezione, onSeleziona, focus, onToggleFocus, barra,
   canale, onCanale, canali, categoria, onCategoria, categorie,
+  consegnati, onConsegnati,
 }) {
   const orologio = kds2Orario(ora);
   // `barra`: dentro il gestionale la prima banda arriva da fuori, fatta con i
@@ -1002,7 +1021,8 @@ function Kds2Header({
     <div style={{flexShrink: 0, background: barra ? 'transparent' : K.FONDO,
       padding: barra ? 0 : '16px ' + PAD_X + 'px 12px'}}>
 
-      {barra ? barra({ ora, canale, onCanale, canali, categoria, onCategoria, categorie })
+      {barra ? barra({ ora, canale, onCanale, canali, categoria, onCategoria, categorie,
+                       consegnati, onConsegnati })
         : (
       /* Prima banda: cromo. Orologio, filtri, allarme, schermo intero — niente
          che si tocchi per cucinare, tutto ciò che serve a decidere COSA si
@@ -1018,6 +1038,26 @@ function Kds2Header({
 
         <span style={{flex: 1}}/>
 
+        <button type="button" data-kds2-interattivo="" onClick={onConsegnati}
+          title="Ordini consegnati"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 9, flexShrink: 0,
+            height: H_BERSAGLIO, padding: '0 18px', borderRadius: 12,
+            background: K.RIGA, border: '2px solid ' + K.BORDO_RIGA,
+            color: K.TESTO, fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
+            fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
+          }}>
+          Ordini consegnati
+          {consegnati > 0 && (
+            <span style={{
+              minWidth: 30, height: 30, padding: '0 8px', borderRadius: 999,
+              display: 'grid', placeItems: 'center',
+              background: K.FONDO, color: K.TESTO_2,
+              fontSize: 16, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
+            }}>{consegnati}</span>
+          )}
+        </button>
+
         <Kds2Fullscreen onToggle={onToggleFocus} attivo={focus}/>
       </div>
       )}
@@ -1032,9 +1072,17 @@ function Kds2Header({
           {sorgenti.map(s => {
             const sel = selezione === s.id;
             return (
+              // Quassù la chip porta SOLO il nome del destinatario. È un
+              // interruttore — «fammi vedere il tavolo 9» — non un dato da
+              // leggere: quante porzioni e da quanto aspettano sono scritti
+              // nelle righe, dove si lavora. Con quantità e minuti addosso la
+              // fila diventava una seconda tabella sopra alla tabella, e per
+              // trovare un tavolo bisognava leggerla tutta invece di
+              // riconoscerne il nome.
               <Kds2Chip key={s.id}
                 source={s.source} quantity={s.quantity} status={s.status}
                 tempo={kds2ChipTempo(s.source, s.firedAt, s.dueAt, ora)}
+                mostraQty={false} mostraTempo={false}
                 selezionata={sel}
                 spenta={selezione != null && !sel}
                 onTap={() => onSeleziona(sel ? null : s.id)}
@@ -1093,6 +1141,82 @@ function Kds2Undo({ size = 22 }) {
   );
 }
 
+// ─── Ordini consegnati ────────────────────────────────────────────────────
+// Quello che è già uscito. Non è il board — non ci si lavora, non si tocca —
+// ed è per questo che vive in un pannello e non in una colonna: si apre quando
+// serve rispondere a una domanda sola, «questo l'ho già mandato?», e si chiude.
+function Kds2Consegnati({ voci, onChiudi }) {
+  return (
+    <div data-kds2-interattivo="" onPointerDown={e => e.stopPropagation()}
+      style={{
+        position: 'absolute', inset: 0, zIndex: 70,
+        background: 'rgba(15,17,21,0.28)',
+        display: 'flex', justifyContent: 'flex-end',
+      }}
+      onClick={onChiudi}>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 420, maxWidth: '100%', height: '100%',
+        background: K.RIGA, borderLeft: '1px solid ' + K.BORDO_RIGA,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '-18px 0 40px -20px rgba(15,17,21,0.35)',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '18px 18px 14px', flexShrink: 0,
+          borderBottom: '1px solid ' + K.BORDO_RIGA,
+        }}>
+          <span style={{flex: 1, fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', color: K.TESTO}}>
+            Ordini consegnati
+          </span>
+          <button type="button" onClick={onChiudi} aria-label="Chiudi" title="Chiudi"
+            style={{
+              width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+              display: 'grid', placeItems: 'center',
+              background: K.FONDO, border: '2px solid ' + K.BORDO_RIGA,
+              color: K.TESTO, cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.6" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 18px 18px'}}>
+          {voci.length === 0 ? (
+            <div style={Object.assign({}, TY.corpo, {color: K.TESTO_2, padding: '28px 2px'})}>
+              Ancora niente. Qui finiscono i piatti quando il loro timer scade.
+            </div>
+          ) : voci.map(v => (
+            <div key={v.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '13px 2px', borderBottom: '1px solid ' + K.BORDO_RIGA,
+            }}>
+              <span style={{color: K.VERDE, display: 'flex', flexShrink: 0}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 12.5 9.5 18 20 6"/></svg>
+              </span>
+              <span style={{flex: 1, minWidth: 0, fontSize: 19, fontWeight: 700, color: K.TESTO, letterSpacing: '-0.01em'}}>
+                {v.testo}
+              </span>
+              <span style={{fontSize: 17, fontWeight: 600, color: K.TESTO_2, fontVariantNumeric: 'tabular-nums'}}>
+                {kds2Orario(v.quando)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Kds2Info({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.1"/>
+    </svg>
+  );
+}
+
 function Kds2Orologio({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1132,21 +1256,11 @@ function Kds2Annulla({ voci, onRipristina }) {
     // bianche dentro tornano a essere l'unica cosa che si legge.
     <div data-kds2-interattivo="" style={{
       position: 'sticky', bottom: 0, zIndex: 40,
-      display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10,
-      padding: '9px 16px', borderRadius: 16, marginTop: 4,
+      padding: '9px 16px 7px', borderRadius: 16, marginTop: 4,
       background: K.BRAND_BG, border: '1px solid ' + K.BRAND_BORDO,
       boxShadow: '0 -6px 20px -12px rgba(15,17,21,0.18)',
     }}>
-      {/* Che cosa succede quando il tempo finisce. Sta a sinistra, prima di
-          tutto: è la regola sotto cui si legge tutta la fila, non la didascalia
-          di una delle schede. Su una riga sola, come le schede. */}
-      <span style={{
-        flexShrink: 0, maxWidth: 300,
-        fontSize: 13.5, fontWeight: 600, lineHeight: 1.25, color: K.TESTO_2,
-      }}>
-        Allo scadere del timer il piatto viene considerato pronto e scompare
-      </span>
-
+      <div style={{display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10}}>
       {/* Una scheda per piatto avviato, tutte uguali e tutte su UNA RIGA: nome,
           tempo, tasto per riportarlo in produzione. Prima il nome stava sopra e
           il resto sotto — due piani di scheda che alzavano la fascia di una
@@ -1182,6 +1296,21 @@ function Kds2Annulla({ voci, onRipristina }) {
           </button>
         </div>
       ))}
+      </div>
+
+      {/* La regola sta SOTTO la fila, non prima: è la nota a piè di pagina di
+          quello che si vede sopra, e in testa rubava il posto alla prima
+          scheda — cioè al piatto appena avviato, quello che più probabilmente
+          si vuole annullare. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginTop: 8,
+        color: K.TESTO_2,
+      }}>
+        <span style={{display: 'flex', flexShrink: 0}}><Kds2Info size={17}/></span>
+        <span style={{fontSize: 13.5, fontWeight: 600, letterSpacing: '-0.01em'}}>
+          Allo scadere del timer il piatto viene considerato pronto e scompare
+        </span>
+      </div>
     </div>
   );
 }
@@ -1231,6 +1360,10 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   const [ora, setOra]           = React.useState(() => Date.now());
   const [selezione, setSel]     = React.useState(null);
   const [pronti, setPronti]     = React.useState([]);
+  // Quello che è uscito dalla fascia: piatti dati per consegnati. Non tornano
+  // sul board — si guardano e basta.
+  const [consegnati, setConsegnati] = React.useState([]);
+  const [consegnatiAperti, setConsegnatiAperti] = React.useState(false);
   const [tocchi, setTocchi]     = React.useState(0);
   const [canale, setCanale]       = React.useState(CANALI[0]);
   const [categoria, setCategoria] = React.useState(TUTTE_CATEGORIE);
@@ -1287,12 +1420,26 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   // Scadenza delle voci annullabili. Hanno tutte la stessa durata e la fila è
   // ordinata dal più recente, quindi la prossima a scadere è l'ULTIMA: basta un
   // timer solo, puntato in fondo.
+  //
+  // Scadere non vuol dire sparire: la voce passa in CONSEGNATI. Finora un
+  // piatto che usciva dalla fascia non esisteva più da nessuna parte, e
+  // «l'avevo mandato o me lo sono immaginato?» era una domanda senza risposta —
+  // in mezzo al servizio si finiva a rifarlo.
   React.useEffect(() => {
     if (pronti.length === 0) return;
-    const t = setTimeout(
-      () => setPronti(s => s.filter(v => v.scadenza > Date.now())),
-      Math.max(0, pronti[pronti.length - 1].scadenza - Date.now()) + 20
-    );
+    const t = setTimeout(() => {
+      const ora = Date.now();
+      setPronti(s => {
+        const scadute = s.filter(v => v.scadenza <= ora);
+        if (scadute.length) {
+          setConsegnati(c => scadute
+            .map(v => ({ id: v.id, testo: v.testo, quando: v.scadenza }))
+            .concat(c)
+            .slice(0, 60));   // la memoria di un servizio, non un archivio
+        }
+        return s.filter(v => v.scadenza > ora);
+      });
+    }, Math.max(0, pronti[pronti.length - 1].scadenza - Date.now()) + 20);
     return () => clearTimeout(t);
   }, [pronti]);
 
@@ -1366,7 +1513,8 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
         sorgenti={sorgenti} totale={totale} ora={ora} selezione={selezione} onSeleziona={setSel}
         focus={focus} onToggleFocus={onToggleFocus} barra={barra}
         canale={canale} onCanale={setCanale} canali={CANALI}
-        categoria={categoria} onCategoria={setCategoria} categorie={categorie}/>
+        categoria={categoria} onCategoria={setCategoria} categorie={categorie}
+        consegnati={consegnati.length} onConsegnati={() => setConsegnatiAperti(true)}/>
 
       {/* Fra la fila delle sorgenti e la prima card: allineata alle righe, non
           alla testata, perché parla di loro. */}
@@ -1414,6 +1562,10 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
       {/* La barra demo genera ordini finti: ha senso nell'anteprima, non sopra
           il servizio vero di un locale. */}
       {!porzioniIniziali && <Kds2Demo righe={righe.length} onNuovo={nuovoOrdine}/>}
+
+      {consegnatiAperti && (
+        <Kds2Consegnati voci={consegnati} onChiudi={() => setConsegnatiAperti(false)}/>
+      )}
     </div>
   );
 }

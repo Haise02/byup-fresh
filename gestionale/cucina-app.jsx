@@ -150,7 +150,8 @@ function CucinaApp() {
   // I filtri della board sono a valore singolo, i chip della Ristorante a
   // selezione multipla: si tiene l'ultima scelta, così il chip resta quello e
   // il comportamento resta quello che la board sa gestire.
-  const barraCucina = ({ canale, onCanale, canali, categoria, onCategoria, categorie }) => {
+  const barraCucina = ({ canale, onCanale, canali, categoria, onCategoria, categorie,
+                         consegnati, onConsegnati }) => {
     const tuttiC = canali[0], tutteCat = categorie[0];
     const Chip = window.KdsFilterChip;
     return (
@@ -171,6 +172,34 @@ function CucinaApp() {
         </div>
         <div style={{display:'flex', alignItems:'center', gap: 12, minWidth: 0}}>
           {selettore()}
+          {/* Quello che è già uscito dalla cucina. Non è un filtro del board:
+              è la risposta a una domanda che in mezzo al servizio non ne aveva
+              — «questo l'ho già mandato?» — e per questo apre un pannello e non
+              cambia quello che si sta guardando. */}
+          {onConsegnati && (
+            <button onClick={onConsegnati} title="Ordini consegnati"
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.06)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+              style={{
+                display:'inline-flex', alignItems:'center', gap: 8, flexShrink: 0,
+                height: 36, padding:'0 14px', borderRadius: 10,
+                background:'#fff', border:'none',
+                boxShadow:'inset 0 0 0 1px rgba(15, 17, 21, 0.10)',
+                color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
+                cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+                transition:'background 150ms ease-out',
+              }}>
+              Ordini consegnati
+              {consegnati > 0 && (
+                <span style={{
+                  minWidth: 22, height: 22, padding:'0 6px', borderRadius: 999,
+                  display:'grid', placeItems:'center',
+                  background: PN.BG, color: PN.MUTED,
+                  fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
+                }}>{consegnati}</span>
+              )}
+            </button>
+          )}
           <button onClick={() => setFocus(f => !f)}
             title={focus ? 'Esci da schermo intero' : 'Schermo intero'} style={{
               width: 36, height: 36, borderRadius: 10, flexShrink: 0,

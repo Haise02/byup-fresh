@@ -39,8 +39,12 @@ const UNDO_MS = 10000;
 // Riverniciatura dei soli timer. NON ricalcola l'aggregazione: vedi kds2Aggrega.
 const TICK_MS = 30000;
 
-// Attesa di un tavolo: oltre questa soglia il tempo passa in ambra.
+// Attesa di un tavolo, due soglie. Oltre la prima il tempo passa in ambra,
+// oltre la seconda in rosso: fra «sta aspettando» e «sta aspettando troppo» c'è
+// una differenza che in cucina si paga, e con un solo scalino i tredici minuti
+// e i venti si leggevano uguali.
 const SOGLIA_ATTESA_MIN = 10;
+const SOGLIA_CRITICA_MIN = 14;
 
 // Asporto e delivery non hanno un'attesa ma una scadenza: da qui in giù al
 // ritiro il tempo passa in ambra.
@@ -208,10 +212,11 @@ function kds2Orario(ts) {
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
-// Due grandezze, due soglie. 'attesa' è il tono ambra, 'ok' il verde: il colore
-// non porta mai da solo l'informazione — il numero c'è comunque, e la priorità
-// vera la porta la posizione in lista.
+// Tre gradini per l'attesa: 'ok' verde, 'attesa' ambra, 'critica' rosso. Il
+// colore non porta mai da solo l'informazione — il numero c'è comunque, e la
+// priorità vera la porta la posizione in lista.
 function kds2TonoAttesa(min) {
+  if (min > SOGLIA_CRITICA_MIN) return 'critica';
   return min > SOGLIA_ATTESA_MIN ? 'attesa' : 'ok';
 }
 function kds2TonoRitiro(dueAt, ora) {
