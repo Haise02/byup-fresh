@@ -532,7 +532,9 @@ function WidgetByuppino() {
             restano dove sono e ad allungarsi è la mascotte, non lo stacco. */}
         <div style={{
           flex: 1, minHeight: 0, padding: '6px 0 0',
-          transform: 'scale(1.1)', transformOrigin: 'bottom center',
+          // 1.1 × 1.05: il 5% è in più su quanto era già cresciuta, non un
+          // ritorno a 1,05 sull'originale.
+          transform: 'scale(1.155)', transformOrigin: 'bottom center',
         }}>
           <img src={BYU_MASCOTTE} alt="Byuppino" className="byu-galleggia" style={{
             display: 'block', height: '100%', width: '100%',
