@@ -68,7 +68,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // adjust: null | { type:'sconto-eur', val } | { type:'sconto-pct', val } | { type:'arrotonda', val } | { type:'custom', val }
 
   const [pay, setPay] = React.useState({ contanti: '', carta: '' });
-  const [method, setMethod] = React.useState('contanti'); // contanti | carta | misto
+  const [method, setMethod] = React.useState('contanti'); // contanti | carta
   // La fattura è la stessa di Vendita diretta: una finestra sua, con la
   // ricerca in rubrica e nel registro imprese, i segmenti e il codice
   // destinatario. Qui c'erano tre campi liberi e un interruttore — la stessa
@@ -299,13 +299,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
   function chooseMethod(m) {
     setMethod(m);
-    if (m === 'contanti') setPay({ contanti: '', carta: '' });
-    else if (m === 'carta')    setPay({ contanti: '', carta: total.toFixed(2) });
-    else                       setPay({ contanti: '', carta: '' });
+    if (m === 'carta') setPay({ contanti: '', carta: total.toFixed(2) });
+    else               setPay({ contanti: '', carta: '' });
   }
   function setTendered(v)  { setPay({ contanti: v, carta: '' }); }
-  function setMistoCash(v) { setPay(p => ({ ...p, contanti: v })); }
-  function setMistoCard(v) { setPay(p => ({ ...p, carta: v })); }
 
   // Scrive l'incasso sul TAVOLO, non nello stato della finestra: un incasso
   // parziale deve sopravvivere alla chiusura: riaprendo il conto quei piatti
@@ -318,7 +315,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     const ora = new Date();
     const pagamento = {
       id: 'pg-' + ora.getTime(),
-      method: metodo === 'misto' ? (contanti >= carta ? 'contanti' : 'carta') : metodo,
+      method: metodo,
       amount: total,
       ora: `${String(ora.getHours()).padStart(2,'0')}:${String(ora.getMinutes()).padStart(2,'0')}`,
       chi: 'Cassa',
@@ -650,38 +647,36 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       letterSpacing:-0.2, marginBottom: 10,
                     }}>Come paga il cliente?</div>
 
-                    {/* Method tabs */}
+                    {/* Due modi, non tre. Il «misto» chiedeva di spezzare a
+                        mano l'importo fra contanti e carta e di far quadrare la
+                        somma col totale: un'aritmetica da fare col cliente
+                        davanti, per un caso che si risolve già — chi paga metà
+                        e metà lo fa saldando due volte lo stesso conto, e il
+                        conto sa restare aperto per il resto. */}
                     <div style={{
-                      display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 6,
+                      display:'grid', gridTemplateColumns:'1fr 1fr', gap: 6,
                       marginBottom: 12,
                     }}>
                       <MethodTab active={method==='contanti'} onClick={()=>chooseMethod('contanti')}
                         icon={<IconCash/>} label="Contanti"/>
                       <MethodTab active={method==='carta'} onClick={()=>chooseMethod('carta')}
                         icon={<IconCard/>} label="Carta"/>
-                      <MethodTab active={method==='misto'} onClick={()=>chooseMethod('misto')}
-                        icon={<IconSplit/>} label="Misto"/>
                     </div>
 
-                    {/* Cosa succede scegliendo questo metodo. Con la carta il
-                        pulsante non incassa — manda il conto sul telefono — e
-                        finora non lo diceva nessuno: lo si scopriva premendo,
-                        con il cliente davanti. */}
-                    {method !== 'contanti' && (
+                    {/* Cosa succede scegliendo la carta: il pulsante non
+                        incassa — manda il conto sul telefono — e finora non lo
+                        diceva nessuno, lo si scopriva premendo col cliente
+                        davanti. */}
+                    {method === 'carta' && (
                       <div style={{
                         display:'flex', gap: 8, marginBottom: 12,
                         padding:'10px 12px', borderRadius: 10,
-                        background: method === 'carta' ? PAY_BG : '#F3F4F6',
-                        color: method === 'carta' ? PAY_INK : '#4B5563',
+                        background: PAY_BG, color: PAY_INK,
                         fontSize: 15.5, lineHeight: 1.4,
                       }}>
-                        <span style={{flexShrink: 0, marginTop: 1}}>
-                          {method === 'carta' ? <IconCard/> : <IconSplit/>}
-                        </span>
+                        <span style={{flexShrink: 0, marginTop: 1}}><IconCard/></span>
                         <span>
-                          {method === 'carta'
-                            ? <>La carta si passa da <b>Byup Staff</b>: il conto entra in coda sul telefono e si chiude appena il pagamento va a buon fine.</>
-                            : <>Scrivi quanto ti dà in contanti e quanto sulla carta: la somma deve arrivare al totale.</>}
+                          La carta si passa da <b>Byup Staff</b>: il conto entra in coda sul telefono e si chiude appena il pagamento va a buon fine.
                         </span>
                       </div>
                     )}
@@ -696,12 +691,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
                     {/* Carta: nessun campo. Non c'è niente da inserire —
                         l'importo è già scritto qui sopra e sul pulsante. */}
-
-                    {method === 'misto' && (
-                      <MixedPay
-                        total={total} pay={pay} contanti={contanti} carta={carta} paid={paid}
-                        onCash={setMistoCash} onCard={setMistoCard}/>
-                    )}
                   </div>
 
                   {/* La fattura non sta più qui: è salita in testata, accanto
@@ -1533,102 +1522,11 @@ function PagamentiConto({ pagamenti }) {
   );
 }
 
-function MixedPay({ total, pay, contanti, carta, paid, onCash, onCard }) {
-  const remaining = Math.max(0, total - paid);
-  const pct = total > 0 ? Math.min(100, (paid / total) * 100) : 0;
-  const enough = paid >= total - 0.01;
-  return (
-    <div>
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginBottom: 10}}>
-        <SmallPayInput label="Contanti" icon={<IconCash/>} value={pay.contanti} onChange={onCash}/>
-        <SmallPayInput label="Carta" icon={<IconCard/>} value={pay.carta} onChange={onCard}/>
-      </div>
-
-      {/* split helpers */}
-      <div style={{display:'flex', gap: 6, marginBottom: 12}}>
-        <button onClick={() => { onCash((total/2).toFixed(2)); onCard((total/2).toFixed(2)); }} style={miniSplit}>
-          Dividi 50/50
-        </button>
-        {remaining > 0 && contanti > 0 && (
-          <button onClick={() => onCard(remaining.toFixed(2))} style={miniSplit}>
-            Resto su carta · €{remaining.toFixed(2)}
-          </button>
-        )}
-        {remaining > 0 && carta > 0 && contanti === 0 && (
-          <button onClick={() => onCash(remaining.toFixed(2))} style={miniSplit}>
-            Resto in contanti · €{remaining.toFixed(2)}
-          </button>
-        )}
-      </div>
-
-      {/* Progress bar */}
-      <div style={{
-        height: 6, borderRadius: 999,
-        background:'#E5E7EB', overflow:'hidden', marginBottom: 8,
-      }}>
-        <div style={{
-          width: `${pct}%`, height:'100%',
-          background: enough ? '#16A34A' : '#0F1115',
-          transition:'width 0.2s',
-        }}/>
-      </div>
-      <div style={{
-        display:'flex', justifyContent:'space-between',
-        fontSize: 16, fontWeight: 700,
-      }}>
-        <span style={{color: enough ? '#166534' : '#6B7280'}}>
-          Pagato €{paid.toFixed(2)} / €{total.toFixed(2)}
-        </span>
-        <span style={{color: enough ? '#166534' : '#DC2626'}}>
-          {enough ? '✓ Completo' : `Manca €${remaining.toFixed(2)}`}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function SmallPayInput({ label, icon, value, onChange }) {
-  return (
-    <label style={{
-      display:'flex', flexDirection:'column', gap: 4,
-      background:'#fff', borderRadius: 10,
-      border: parseFloat(value) > 0 ? '1.5px solid #0F1115' : '1.5px solid #E5E7EB',
-      padding:'8px 10px', transition:'border 0.15s',
-    }}>
-      <div style={{display:'flex', alignItems:'center', gap: 5, color:'#6B7280'}}>
-        {icon}
-        <span style={{fontSize: 15, fontWeight: 700}}>{label}</span>
-      </div>
-      <div style={{display:'flex', alignItems:'baseline', gap: 3}}>
-        <span style={{fontSize: 17, fontWeight: 700, color:'#9CA3AF'}}>€</span>
-        <input type="number" value={value} onChange={e => onChange(e.target.value)}
-          placeholder="0.00"
-          style={{
-            border:'none', outline:'none',
-            fontSize: 20, fontWeight: 800, color:'#0F1115',
-            width:'100%', padding: 0, fontFamily:'inherit',
-            background:'transparent',
-            fontVariantNumeric:'tabular-nums',
-          }}/>
-      </div>
-    </label>
-  );
-}
-
-function IconSplit() { return (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 6 H10 a4 4 0 0 1 4 4 V14 a4 4 0 0 0 4 4 H21 M3 18 H10 a4 4 0 0 0 4 -4"/>
-    <path d="M18 3 L21 6 L18 9 M18 15 L21 18 L18 21"/>
-  </svg>
-); }
-
-const miniSplit = {
-  flex: 1, padding:'7px 8px', borderRadius: 8,
-  background:'#fff', color:'#0F1115',
-  border:'1px solid #E5E7EB', cursor:'pointer',
-  fontSize: 15, fontWeight: 700, fontFamily:'inherit',
-  whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-};
+// Qui vivevano MixedPay, SmallPayInput, IconSplit e miniSplit: i pezzi del
+// pagamento «misto», che chiedeva di spezzare a mano l'importo fra contanti e
+// carta e di far quadrare la somma col totale. Tolto il metodo, non li usava
+// più nessuno. Chi paga metà e metà salda due volte lo stesso conto: il
+// parziale è già previsto, e il conto sa restare aperto per il resto.
 
 // ────────── PANNELLO AGGIUSTAMENTO ──────────
 function AdjustPanel({ subtotale, adjust, setAdjust}) {
@@ -1728,10 +1626,9 @@ function AdjustPanel({ subtotale, adjust, setAdjust}) {
 // è lo stesso gesto, fatto dalla stessa persona dietro allo stesso bancone.
 function SaldaDoneV2({ tavolo, esito, onClose }) {
   const { total, contanti, carta, resto, invoice, invoiceData, residuo, parziale } = esito;
-  const misto = contanti > 0 && carta > 0;
-  const comeHaPagato = misto
-    ? `€${contanti.toFixed(2)} in contanti + €${carta.toFixed(2)} con la carta`
-    : carta > 0 ? 'Con la carta, su Byup Staff' : 'In contanti, alla cassa';
+  // Un incasso, un modo: tolto il «misto», contanti e carta non possono più
+  // essere pieni insieme nello stesso pagamento.
+  const comeHaPagato = carta > 0 ? 'Con la carta, su Byup Staff' : 'In contanti, alla cassa';
   const [stampato, setStampato] = React.useState(false);
 
   return (
