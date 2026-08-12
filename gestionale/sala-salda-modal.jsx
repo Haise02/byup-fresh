@@ -1291,8 +1291,13 @@ function CashTendered({ total, value, onChange, chips }) {
             }}>{c.label}</button>
           );
         })}
-        {/* La cifra libera è l'ultimo posto della fila, non un campo a
-            parte: vuota finché non serve. */}
+        {/* L'ultimo posto della fila NON è più «Altro» e basta: è il campo che
+            dice quanto hai in mano, comunque tu l'abbia scelto. Restava sul
+            segnaposto anche con «Esatto» premuto o una cifra scelta — la fila
+            diceva la scelta, il campo restava muto, e per sapere il contante
+            ricevuto bisognava rileggere quale pastiglia fosse accesa.
+            Ora porta sempre il numero, incolonnato al centro. Cliccandolo si
+            seleziona tutto: si scrive sopra senza cancellare prima. */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap: 3,
           padding:'11px 4px', borderRadius: 10,
@@ -1300,10 +1305,14 @@ function CashTendered({ total, value, onChange, chips }) {
           border: `1px solid ${custom ? SALDA_BRAND : '#E5E7EB'}`,
           cursor:'text',
         }}>
-          {custom && <span style={{fontSize: 16, fontWeight: 700, color:'#fff'}}>€</span>}
+          <span style={{
+            fontSize: 16, fontWeight: 700, flexShrink: 0,
+            color: custom ? '#fff' : '#9CA3AF',
+          }}>€</span>
           <input
-            value={esatto ? '' : value}
+            value={esatto ? total.toFixed(2) : value}
             onChange={e => onChange(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
+            onFocus={e => e.currentTarget.select()}
             inputMode="decimal"
             placeholder="Altro"
             aria-label="Contante ricevuto"
