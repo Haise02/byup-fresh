@@ -111,50 +111,32 @@ function ImpApp() {
         }
       `}</style>
 
-    <ImpNavSidebar active={active} onChange={vaiA}/>
+    <ImpNavSidebar active={active} onChange={vaiA} onIndietro={chiudi}/>
 
       <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: PN.BG, position: 'relative'}}>
-        {/* Non è una testata: è la riga della cornice — da dove torni a
-            sinistra, come esci a destra — alta quanto il pulsante e
-            senza titoli, che il nome della sezione lo dice già la colonna.
-            Sta fuori dal contenuto e non sopra: appoggiata sull'angolo
-            finiva addosso alla prima cosa in alto a destra della pagina,
-            che in Sala è «Aggiungi tavolo» e in Vetrina l'anteprima. */}
-        <div style={{
-          flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 16px 0 26px', background: PN.BG,
-        }}>
-          <div style={{flex: 1, minWidth: 0}}>
-            {ritorno && (
-              <button
-                onClick={() => { setActive(ritorno.id); setRitorno(null); }}
-                onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
-                onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.borderColor = PN.BORDER_SOFT; }}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '7px 13px 7px 10px', borderRadius: 9,
-                  border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE_HUSH,
-                  color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  transition: 'background 140ms ease, border-color 140ms ease',
-                }}>
-                <span style={{display: 'inline-flex', color: PN.MUTED, transform: 'rotate(180deg)'}}><PnI.ChevronRight size={12}/></span>
-                Torna a {ritorno.label}
-              </button>
-            )}
+        {/* Quando ci si è arrivati da un rimando, la strada per tornare a
+            quello che si stava facendo. È un'altra cosa dall'uscire dalle
+            impostazioni, che sta in cima alla colonna: questa riporta alla
+            sezione di prima, e c'è solo se una sezione di prima esiste. */}
+        {ritorno && (
+          <div style={{flexShrink: 0, padding: '14px 26px 0', background: PN.BG}}>
+            <button
+              onClick={() => { setActive(ritorno.id); setRitorno(null); }}
+              onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; }}
+              onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.borderColor = PN.BORDER_SOFT; }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '7px 13px 7px 10px', borderRadius: 9,
+                border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE_HUSH,
+                color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'background 140ms ease, border-color 140ms ease',
+              }}>
+              <span style={{display: 'inline-flex', color: PN.MUTED, transform: 'rotate(180deg)'}}><PnI.ChevronRight size={12}/></span>
+              Torna a {ritorno.label}
+            </button>
           </div>
-          <button onClick={chiudi} title="Chiudi le impostazioni"
-            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE_HUSH; e.currentTarget.style.color = PN.TEXT; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.MUTED; }}
-            style={{
-              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-              border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
-              color: PN.MUTED, cursor: 'pointer',
-              display: 'grid', placeItems: 'center',
-              boxShadow: '0 1px 2px rgba(15,17,21,0.05)',
-              transition: 'background 130ms ease, color 130ms ease',
-            }}><PnI.X size={15}/></button>
-        </div>
+        )}
 
         <div className="pn-scroll" style={{
           flex: 1, overflow: 'auto', minHeight: 0,
@@ -190,7 +172,8 @@ function ImpApp() {
               <span style={{color: PN.MUTED_SOFT}}>Tutto salvato</span>
             )}
           </div>
-          <ImpButton variant="ghost" onClick={chiudi}>Chiudi</ImpButton>
+          {/* Una sola cosa da fare qui: salvare. Uscire non è un'azione del
+              piede — è tornare indietro, e sta in cima alla colonna. */}
           <ImpButton variant="pink" onClick={salva} disabled={!modifiche}>Salva modifiche</ImpButton>
         </div>
       </div>

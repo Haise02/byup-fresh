@@ -45,7 +45,7 @@ const IMP_SEZIONI = [
 // gestionale — vetro vibrante, 272px, PnNavItem con le sue icone da 26 e
 // l'attivo in tinta brand. Al posto del logo la testata dice dove sei, perché
 // il logo dell'app sta già a sinistra, dietro al velo.
-function ImpNavSidebar({ active, onChange }) {
+function ImpNavSidebar({ active, onChange, onIndietro }) {
   return (
     // Gli angoli se li arrotonda da sola: il vetro (backdrop-filter) si
     // compone su un livello suo e Chrome smette di ritagliarlo sul raggio del
@@ -61,9 +61,30 @@ function ImpNavSidebar({ active, onChange }) {
     }}>
       <GlassMeshSubstrate/>
 
+      {/* La via d'uscita sta in cima alla colonna, sopra al nome di dove sei:
+          da una schermata piena non si «chiude», si torna indietro — ed è
+          l'app che si lascia, quindi l'uscita vive nella sua cornice e non
+          appoggiata sul contenuto. */}
+      {onIndietro && (
+        <button onClick={onIndietro}
+          onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.TEXT; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+            padding: '7px 12px 7px 8px', marginBottom: 14, borderRadius: 9,
+            border: 'none', background: 'transparent', color: PN.MUTED,
+            fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            position: 'relative', flexShrink: 0,
+            transition: 'background 140ms ease, color 140ms ease',
+          }}>
+          <span style={{display: 'inline-flex', transform: 'rotate(180deg)'}}><PnI.ChevronRight size={13}/></span>
+          Torna al gestionale
+        </button>
+      )}
+
       <div style={{
         display: 'flex', alignItems: 'center', gap: 11,
-        padding: '2px 6px 24px', flexShrink: 0, position: 'relative',
+        padding: '2px 6px 22px', flexShrink: 0, position: 'relative',
       }}>
         <span style={{
           width: 34, height: 34, borderRadius: 10, flexShrink: 0,

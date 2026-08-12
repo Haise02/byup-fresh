@@ -6515,17 +6515,11 @@ function MCConfigura() {
           : "Attiva per gestire agenda, orari e conferme"
         }
         action={
-          <div style={{display:'flex', alignItems:'center', gap: 10}}>
-            <span style={{
-              fontSize: 13, fontWeight: 700, letterSpacing: 0.4,
-              padding: '3px 9px', borderRadius: 999,
-              background: modules.prenotazioni ? PN.GREEN_SOFT : '#F4F5F7',
-              color: modules.prenotazioni ? PN.GREEN : PN.MUTED,
-              textTransform: 'uppercase',
-            }}>
+          <div style={{display:'flex', alignItems:'center', gap: 8}}>
+            <ImpToggle checked={modules.prenotazioni} onChange={() => setModule('prenotazioni', !modules.prenotazioni)}/>
+            <span style={{fontSize: 13.5, fontWeight: 600, color: modules.prenotazioni ? PN.TEXT : PN.MUTED}}>
               {modules.prenotazioni ? 'Attivo' : 'Disattivato'}
             </span>
-            <ImpToggle checked={modules.prenotazioni} onChange={() => setModule('prenotazioni', !modules.prenotazioni)}/>
           </div>
         }
       >
