@@ -9,6 +9,9 @@ function ContabilitaApp() {
   const params = new URLSearchParams(window.location.search);
   const urlTab = params.get('tab') || 'conti';
   const urlFilter = params.get('filter') || 'all';
+  // Rimando dal dettaglio di un ordine consegnato in Vendita diretta: il conto
+  // da aprire, non un filtro. Come il filtro, arriva dall'URL e non cambia più.
+  const contoApri = params.get('conto') || null;
 
   const [tab, setTab] = useState(urlTab);
   // Il filtro arriva dall'URL e non cambia più: non è stato, è una costante.
@@ -95,7 +98,7 @@ function ContabilitaApp() {
           {/* Tab content */}
           {tab==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}
             onApriConti={(data, stato) => { setContiFisc({ data, stato }); setTab('conti'); }}/>}
-          {tab==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} onFiscClear={() => setContiFisc(null)}/>}
+          {tab==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} apri={contoApri} onFiscClear={() => setContiFisc(null)}/>}
           {tab==='costi' && <ContCosti openNewCost={() => setNewCost(true)}/>}
           {tab==='iva'   && <ContIva month={ivaMonth} setMonth={setIvaMonth}/>}
           {tab==='fatture' && <ContFatture/>}

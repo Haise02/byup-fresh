@@ -131,10 +131,6 @@ function SalaVenditaDiretta() {
   const [storico, setStorico] = React.useState(() => svLeggiSessione('byup.sala.storico', window.SALA_ORDINI_STORICO || []));
   React.useEffect(() => { svScriviSessione('byup.sala.storico', storico); }, [storico]);
   const [saldaOrdine, setSaldaOrdine] = React.useState(null); // ordine da saldare al banco (modale incasso)
-  // Ordine su cui si sta facendo un rimborso. Ci si arriva da due posti — il
-  // dettaglio di un consegnato, e un conto in coda con un acconto sopra —
-  // perché sono i due momenti in cui il cliente torna indietro.
-  const [rimborsaOrdine, setRimborsaOrdine] = React.useState(null);
   const [toast, setToast] = React.useState(null);
   const showToast = (msg) => {
     setToast(msg);
@@ -166,41 +162,6 @@ function SalaVenditaDiretta() {
     }
     setRitiri(prev => prev.map(r => r.id === ordine.id ? {...r, pagato: true} : r));
     showToast(`✓ ${svNomeConto(ordine)} saldato · ora è da consegnare`);
-  };
-
-  // Un rimborso registrato. Dove finisce l'ordine dipende da due cose: dov'era
-  // e se è stato tolto tutto o solo un pezzo.
-  //
-  // Annullato per intero → esce dalla coda: non c'è più niente da incassare né
-  // da consegnare, e lo si ritrova in archivio.
-  // Tolto un pezzo a un ordine ancora da consegnare → RESTA in coda, più
-  // leggero. È la correzione tipica del banco — la cucina finisce un piatto,
-  // il cliente ci ripensa prima di ritirare — e l'ordine deve comunque uscire
-  // dalle mani di qualcuno: farlo sparire dalla coda vorrebbe dire che nessuno
-  // consegna più il resto.
-  const applicaRimborso = (ordine, rimborso) => {
-    const conRimborso = (o) => ({
-      ...o,
-      rimborsi: [...(o.rimborsi || []), rimborso],
-      annullato: o.annullato || rimborso.tipo === 'annulla',
-    });
-    const inCoda = ritiri.some(r => r.id === ordine.id);
-    const annullato = rimborso.tipo === 'annulla';
-    if (inCoda && annullato) {
-      setRitiri(prev => prev.filter(r => r.id !== ordine.id));
-      setStorico(prev => [conRimborso({...ordine, stato: 'annullato'}), ...prev]);
-    } else if (inCoda) {
-      setRitiri(prev => prev.map(r => r.id === ordine.id ? conRimborso(r) : r));
-    } else {
-      setStorico(prev => prev.map(o => o.id === ordine.id ? conRimborso(o) : o));
-    }
-    // Il dettaglio aperto sotto deve rileggere l'ordine aggiornato, non la
-    // copia di prima: senza, il rimborso appena fatto non comparirebbe.
-    setDettaglio(d => d && d.id === ordine.id ? conRimborso(d) : d);
-    // "Tolto" e non "Reso" quando niente è ancora uscito dal banco: il cliente
-    // non ha restituito nulla, l'ordine è semplicemente più corto.
-    const verbo = annullato ? 'Annullato' : (inCoda ? 'Tolto da' : 'Reso');
-    showToast(`${verbo} ${svNomeConto(ordine)} · −€${rimborso.amount.toFixed(2)} · ${rimborso.doc}`);
   };
 
   // Un acconto preso su un ordine già in coda resta su quell'ordine. Scrive in
@@ -616,7 +577,6 @@ function SalaVenditaDiretta() {
         onClose={() => setCoda(null)}
         onConsegna={confermaConsegna}
         onSalda={setSaldaOrdine}
-        onRimborsa={setRimborsaOrdine}
       />
 
       {/* Consegnati — l'archivio del servizio */}
@@ -628,22 +588,14 @@ function SalaVenditaDiretta() {
         />
       )}
 
-      {/* Ordine già chiuso: si apre per guardarci dentro, e per rimborsare —
-          è l'unico posto dove un cliente che torna indietro lo ritrova. */}
+      {/* Ordine già chiuso: si apre in sola lettura, per rispondere alle
+          domande che arrivano dopo — e per raggiungere i suoi documenti. */}
       {dettaglio && (
         <SaOrdineDettaglioModal
           ordine={dettaglio}
-          onClose={() => setDettaglio(null)}
-          onRimborsa={() => setRimborsaOrdine(dettaglio)}/>
+          onClose={() => setDettaglio(null)}/>
       )}
 
-      {rimborsaOrdine && (
-        <SaRimborsoModal
-          ordine={rimborsaOrdine}
-          preConsegna={ritiri.some(r => r.id === rimborsaOrdine.id)}
-          onClose={() => setRimborsaOrdine(null)}
-          onConfirm={(rimborso) => applicaRimborso(rimborsaOrdine, rimborso)}/>
-      )}
       {/* Salda ora: stessa modale incasso del banco, sul totale dell'ordine.
           Vale sia per gli asporto arrivati dai canali digitali sia per i conti
           di cassa parcheggiati con un acconto — sono la stessa cosa, un ordine
@@ -765,7 +717,7 @@ const SA_CODA_MODI = {
   },
 };
 
-function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onRimborsa }) {
+function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
   const [q, setQ] = React.useState('');
   React.useEffect(() => { setQ(''); }, [modo, open]);
@@ -991,34 +943,6 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onRimbo
                   onMouseUp={e => { e.currentTarget.style.transform = 'scale(1.02)'; }}>
                   {r.pagato ? 'Segna come consegnato' : 'Procedi al pagamento'}
                 </button>
-
-                {/* Su un ordine pagato ma non ancora consegnato c'è l'unica
-                    finestra in cui le cose cambiano davvero: la cucina finisce
-                    un piatto, il cliente ci ripensa prima di ritirare, ti
-                    accorgi di aver battuto due birre invece di una. Senza
-                    questo, l'unica uscita era dichiarare una consegna.
-                    "Modifica" e non "Rimborsa" perché il gesto parte da lì —
-                    si toglie una riga; che i soldi tornino indietro è la
-                    conseguenza, non il motivo per cui apri.
-
-                    Sui conti da saldare invece niente: lì si storna UN incasso
-                    e quale lo si sa solo davanti alla sua riga, dentro il
-                    pagamento, dove ogni acconto ha la sua freccia. */}
-                {r.pagato && onRimborsa && (
-                  <button onClick={() => onRimborsa(r)}
-                    title="Togli un prodotto e rimborsalo, o annulla l'ordine"
-                    style={{
-                      display:'block', width:'100%', marginTop: 8,
-                      padding:'6px 4px', background:'transparent', border:'none',
-                      color: PN.MUTED, fontSize: 14.5, fontWeight: 600,
-                      cursor:'pointer', fontFamily:'inherit', textAlign:'center',
-                      transition:'color 150ms ease-out',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }}
-                    onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED; }}>
-                    Modifica ordine
-                  </button>
-                )}
               </div>
             </div>
           ))}
@@ -1173,13 +1097,10 @@ function SaConsegnatiModal({ consegnati, onClose, onVai }) {
 // Dettaglio di un ordine già chiuso — sola lettura: non c'è più niente da
 // fare, si viene qui per rispondere a una domanda (cosa c'era dentro,
 // quant'era, a che ora è passato).
-function SaOrdineDettaglioModal({ ordine, onClose, onRimborsa }) {
+function SaOrdineDettaglioModal({ ordine, onClose }) {
   const resi = ordine.rimborsi || [];
   const totReso = resi.reduce((s, r) => s + r.amount, 0);
   const netto = Math.max(0, ordine.totale - totReso);
-  // Reso tutto: non c'è più niente da restituire e il pulsante sparisce
-  // invece di restare lì spento a farsi premere.
-  const puoRimborsare = !!onRimborsa && totReso < ordine.totale - 0.004;
   const CANALE = {
     byup:   'Byup App',
     webapp: 'Webapp guest',
@@ -1298,312 +1219,35 @@ function SaOrdineDettaglioModal({ ordine, onClose, onRimborsa }) {
           )}
         </div>
 
-        {puoRimborsare && (
-          <div style={{padding:'0 22px 20px', flexShrink: 0}}>
-            <button onClick={onRimborsa} style={{
-              width:'100%', padding:'12px 18px', borderRadius: 14,
-              background:'transparent', color:'#B91C1C',
-              border:'1px solid rgba(185,28,28,0.28)',
-              fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        {/* Le domande che arrivano su un ordine chiuso finiscono quasi sempre
+            sulla carta: lo scontrino, il suo numero, se è passato all'Agenzia.
+            Quella roba vive in Contabilità → Conti, e senza un rimando la si
+            raggiungeva ricominciando da capo — cambia sezione, cerca il nome,
+            apri la riga. Qui il conto è già quello, e già aperto.
+            "Ricevute fiscali" e non "conto": è quello che si sta cercando
+            quando si preme, il conto è solo dove stanno. */}
+        <div style={{padding:'0 22px 16px', flexShrink: 0}}>
+          <button
+            onClick={() => { window.location.href = `byup Contabilita.html?tab=conti&conto=${encodeURIComponent(window.svContoIdDiOrdine(ordine))}`; }}
+            title="Apri il conto di questo ordine in Contabilità, con i suoi documenti"
+            style={{
+              display:'flex', alignItems:'center', justifyContent:'center', gap: 7,
+              width:'100%', padding:'11px 16px', borderRadius: 14,
+              background:'rgba(255,255,255,0.72)', color: PN.TEXT,
+              border:`1px solid ${PN.BORDER_SOFT}`,
+              fontSize: 15.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
               transition:'background 150ms ease-out, border-color 150ms ease',
             }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.borderColor = '#FCA5A5'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(185,28,28,0.28)'; }}>
-              Rimborsa
-            </button>
-          </div>
-        )}
+            onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = '#9CA3AF'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.72)'; e.currentTarget.style.borderColor = PN.BORDER_SOFT; }}>
+            Vai alle ricevute fiscali associate
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{color: PN.MUTED}}><path d="M7 17 17 7M8 7h9v9"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Rimborso al banco — stessa grammatica di Contabilità, dove il rimborso già
-// esiste: ANNULLA storna l'intero scontrino (documento con suffisso -A), RESO
-// rende righe scelte una a una e accoda un documento collegato (-R1, -R2…).
-// Sono due cose diverse e vanno chiamate coi loro nomi anche qui, altrimenti
-// lo stesso gesto ha due lingue a seconda della sezione da cui lo fai.
-//
-// Perché al banco e non solo in Contabilità: il cliente che contesta è davanti
-// alla cassa, adesso. Mandarlo ad aspettare mentre si cambia sezione è la cosa
-// che i commenti di questo file evitano ovunque; e in cassa il rimborso è la
-// normalità, mentre Contabilità è dove lo si rilegge dopo.
-//
-// Su un conto NON ancora saldato il reso per righe non esiste: chi ha lasciato
-// un acconto non ha pagato dei piatti, ha lasciato dei soldi. Lì si può solo
-// annullare il conto e restituire quello che aveva dato.
-// `preConsegna`: l'ordine è pagato ma non è ancora uscito dal banco. Cambia
-// solo le parole, non la meccanica — il documento fiscale è lo stesso — ma le
-// parole contano: "reso" dice che qualcosa è tornato indietro, e prima della
-// consegna non è tornato niente perché non era mai partito. Lì si TOGLIE.
-function SaRimborsoModal({ ordine, preConsegna, onClose, onConfirm }) {
-  const saldato = !!ordine.pagato;
-  const giaReso = (ordine.rimborsi || []).reduce((s, r) => s + r.amount, 0);
-  // Quello che è davvero entrato in cassa su questo ordine: il totale se è
-  // stato saldato, i soli acconti se è ancora sospeso. Non si può rendere più
-  // di quanto si è preso.
-  const incassato = saldato
-    ? ordine.totale
-    : (ordine.acconti || []).reduce((s, p) => s + p.importo, 0);
-  const rimborsabile = Math.max(0, incassato - giaReso);
-
-  const [tipo, setTipo] = React.useState(saldato ? 'annulla' : 'annulla');
-  // Map<indice riga, qty da rendere>
-  const [righe, setRighe] = React.useState(new Map());
-  const [metodo, setMetodo] = React.useState('contanti');
-  const [motivo, setMotivo] = React.useState('');
-  const [fatto, setFatto] = React.useState(null);
-
-  React.useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  // Quantità già rese nei rimborsi precedenti, riga per riga: un secondo reso
-  // non deve poter restituire pezzi già restituiti nel primo.
-  const resoFinora = (i) => (ordine.rimborsi || [])
-    .flatMap(r => r.righe || [])
-    .filter(r => r.i === i)
-    .reduce((s, r) => s + r.qty, 0);
-
-  const totReso = ordine.items.reduce((s, it, i) => s + (righe.get(i) || 0) * it.prezzo, 0);
-  const importo = tipo === 'annulla' ? rimborsabile : Math.min(totReso, rimborsabile);
-  const puoConfermare = importo > 0.004;
-
-  const setQty = (i, q) => {
-    const max = ordine.items[i].qty - resoFinora(i);
-    const v = Math.max(0, Math.min(q, max));
-    setRighe(m => { const n = new Map(m); if (v === 0) n.delete(i); else n.set(i, v); return n; });
-  };
-
-  const conferma = () => {
-    if (!puoConfermare) return;
-    const nResi = (ordine.rimborsi || []).filter(r => r.tipo === 'reso').length;
-    const rimborso = {
-      id: `r${(ordine.rimborsi || []).length + 1}`,
-      tipo, amount: importo, metodo,
-      motivo: motivo.trim() || null,
-      righe: tipo === 'reso'
-        ? [...righe.entries()].map(([i, qty]) => ({ i, qty, nome: ordine.items[i].nome, prezzo: ordine.items[i].prezzo }))
-        : null,
-      ora: svOraHHMM(),
-      doc: tipo === 'annulla' ? `${ordine.codice}-A` : `${ordine.codice}-R${nResi + 1}`,
-    };
-    onConfirm(rimborso);
-    setFatto(rimborso);
-  };
-
-  const MOTIVI = ['Piatto reso', 'Servizio contestato', 'Errore di cassa'];
-
-  return (
-    <div onClick={onClose} style={{
-      position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)',
-      display:'grid', placeItems:'center', zIndex: 130, padding: 24,
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG,
-        borderRadius: 22, width: 460, maxWidth:'100%', maxHeight:'100%',
-        display:'flex', flexDirection:'column', overflow:'hidden',
-      }}>
-        {fatto ? (
-          /* La ricevuta del gesto: il documento ha un numero, ed è l'unica
-             cosa che il cliente e il commercialista ritroveranno dopo. */
-          <div style={{padding:'30px 24px 24px', textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center'}}>
-            <div style={{
-              width: 56, height: 56, borderRadius:'50%', marginBottom: 14,
-              background:'#DCFCE7', color: PN.GREEN, display:'grid', placeItems:'center',
-            }}>
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-            </div>
-            <div style={{fontSize: 21, fontWeight: 800, color: PN.TEXT, letterSpacing:-0.3}}>
-              {fatto.tipo === 'annulla' ? 'Ordine annullato'
-                : preConsegna ? 'Ordine aggiornato' : 'Reso registrato'}
-            </div>
-            <div style={{fontSize: 26, fontWeight: 800, color: PN.TEXT, marginTop: 6, fontVariantNumeric:'tabular-nums', letterSpacing:-0.5}}>
-              −€{fatto.amount.toFixed(2)}
-            </div>
-            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 4}}>
-              Restituiti in {fatto.metodo === 'carta' ? 'Smart POS' : 'contanti'} · documento {fatto.doc}
-            </div>
-            <button onClick={onClose} style={{
-              width:'100%', marginTop: 22, padding:'13px 18px', borderRadius: 14,
-              background: PN.TEXT, color:'#fff', border:'none',
-              fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            }}>Chiudi</button>
-          </div>
-        ) : (
-        <>
-          <div style={{padding:'20px 22px 12px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
-            <div style={{flex: 1, minWidth: 0}}>
-              <div style={{fontSize: 20, fontWeight: 800, color: PN.TEXT, letterSpacing:-0.3}}>Rimborso</div>
-              <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, fontVariantNumeric:'tabular-nums'}}>
-                Ordine {ordine.codice} · {saldato ? 'incassati' : 'acconto'} €{incassato.toFixed(2)}
-                {giaReso > 0.004 && ` · già resi €${giaReso.toFixed(2)}`}
-              </div>
-            </div>
-            <button onClick={onClose} style={{
-              width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-              border:'none', background:'rgba(255,255,255,0.75)', color: PN.TEXT,
-              cursor:'pointer', display:'grid', placeItems:'center', fontSize: 18, fontFamily:'inherit',
-            }}>×</button>
-          </div>
-
-          <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflow:'auto', padding:'0 22px'}}>
-            {/* Su un conto sospeso c'è una strada sola, e mostrare una scelta
-                finta sarebbe peggio che non mostrarla. */}
-            {saldato ? (
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginBottom: 14}}>
-                {[
-                  { k:'annulla', label:'Annulla tutto', sub:'storna lo scontrino' },
-                  { k:'reso',
-                    label: preConsegna ? 'Togli un prodotto' : 'Reso parziale',
-                    sub:'scegli le righe' },
-                ].map(o => {
-                  const on = tipo === o.k;
-                  return (
-                    <button key={o.k} onClick={() => setTipo(o.k)} style={{
-                      padding:'11px 12px', borderRadius: 14, textAlign:'left',
-                      background: on ? SVI_TINT : 'rgba(255,255,255,0.75)',
-                      border:`1.5px solid ${on ? SVI_CORAL : PN.BORDER_SOFT}`,
-                      cursor:'pointer', fontFamily:'inherit',
-                    }}>
-                      <div style={{fontSize: 16, fontWeight: 700, color: on ? SVI_CORAL : PN.TEXT}}>{o.label}</div>
-                      <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>{o.sub}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{
-                display:'flex', gap: 9, alignItems:'flex-start',
-                padding:'11px 13px', borderRadius: 12, marginBottom: 14,
-                background: PN.AMBER_SOFT, color:'#92400E', fontSize: 14.5, lineHeight: 1.45,
-              }}>
-                <span style={{flexShrink: 0, marginTop: 1}}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
-                </span>
-                Il conto non è ancora saldato: si può solo annullarlo e restituire l'acconto. Il reso per righe vale sui conti già pagati.
-              </div>
-            )}
-
-            {tipo === 'reso' && (
-              <div style={{
-                background:'rgba(255,255,255,0.72)', border:`1px solid ${PN.BORDER_SOFT}`,
-                borderRadius: 14, padding:'8px 12px', marginBottom: 14,
-              }}>
-                {ordine.items.map((it, i) => {
-                  const max = it.qty - resoFinora(i);
-                  const q = righe.get(i) || 0;
-                  return (
-                    <div key={i} style={{
-                      display:'flex', alignItems:'center', gap: 10, padding:'8px 0',
-                      borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-                      opacity: max === 0 ? 0.45 : 1,
-                    }}>
-                      <span style={{flex: 1, minWidth: 0, fontSize: 15.5, color: PN.TEXT, fontWeight: 600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                        {it.nome}
-                        <span style={{color: PN.MUTED, fontWeight: 500}}> · €{it.prezzo.toFixed(2)}</span>
-                      </span>
-                      {max === 0 ? (
-                        <span style={{fontSize: 13.5, color: PN.MUTED, fontWeight: 600}}>già reso</span>
-                      ) : (
-                        <span style={{display:'inline-flex', alignItems:'center', gap: 2, flexShrink: 0}}>
-                          <button onClick={() => setQty(i, q - 1)} disabled={q === 0} style={svRimbStep(q === 0)}>−</button>
-                          <span style={{minWidth: 34, textAlign:'center', fontSize: 15.5, fontWeight: 800, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{q}/{max}</span>
-                          <button onClick={() => setQty(i, q + 1)} disabled={q >= max} style={svRimbStep(q >= max)}>+</button>
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 7}}>
-              Come restituisci
-            </div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8, marginBottom: 14}}>
-              {[{k:'contanti', label:'Contanti'}, {k:'carta', label:'Smart POS'}].map(m => {
-                const on = metodo === m.k;
-                return (
-                  <button key={m.k} onClick={() => setMetodo(m.k)} style={{
-                    padding:'11px 12px', borderRadius: 14,
-                    background: on ? SVI_TINT : 'rgba(255,255,255,0.75)',
-                    border:`1.5px solid ${on ? SVI_CORAL : PN.BORDER_SOFT}`,
-                    color: on ? SVI_CORAL : PN.TEXT,
-                    fontSize: 16, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                  }}>{m.label}</button>
-                );
-              })}
-            </div>
-
-            {/* Il motivo non è burocrazia: è l'unica cosa che, riletta in
-                Contabilità fra un mese, distingue un errore di cassa da un
-                piatto rimandato indietro. */}
-            <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.6, textTransform:'uppercase', marginBottom: 7}}>
-              Motivo
-            </div>
-            <div style={{display:'flex', gap: 6, flexWrap:'wrap', marginBottom: 8}}>
-              {MOTIVI.map(m => (
-                <button key={m} onClick={() => setMotivo(motivo === m ? '' : m)} style={{
-                  padding:'6px 12px', borderRadius: 999,
-                  background: motivo === m ? PN.TEXT : 'rgba(255,255,255,0.75)',
-                  color: motivo === m ? '#fff' : PN.TEXT,
-                  border:`1px solid ${motivo === m ? PN.TEXT : PN.BORDER_SOFT}`,
-                  fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                }}>{m}</button>
-              ))}
-            </div>
-            <input
-              value={motivo}
-              onChange={e => setMotivo(e.target.value)}
-              placeholder="Oppure scrivilo…"
-              style={{
-                width:'100%', boxSizing:'border-box', padding:'10px 12px', borderRadius: 10,
-                border:`1px solid ${PN.BORDER_SOFT}`, outline:'none',
-                background:'rgba(255,255,255,0.75)', fontSize: 15.5, fontFamily:'inherit', color: PN.TEXT,
-                marginBottom: 18,
-              }}/>
-          </div>
-
-          <div style={{padding:'12px 22px 20px', flexShrink: 0}}>
-            <button
-              onClick={conferma}
-              disabled={!puoConfermare}
-              style={{
-                width:'100%', padding:'14px 18px', borderRadius: 14,
-                background: puoConfermare ? '#DC2626' : '#EFEFF1',
-                color: puoConfermare ? '#fff' : '#9CA3AF',
-                border:'none', fontSize: 17.5, fontWeight: 700,
-                cursor: puoConfermare ? 'pointer' : 'not-allowed', fontFamily:'inherit',
-                boxShadow: puoConfermare ? '0 8px 20px -8px rgba(220,38,38,0.55)' : 'none',
-              }}>
-              {puoConfermare
-                ? `Rimborsa €${importo.toFixed(2)}`
-                : tipo === 'reso' ? 'Scegli cosa rendere' : 'Niente da rimborsare'}
-            </button>
-          </div>
-        </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const svRimbStep = (off) => ({
-  width: 28, height: 28, borderRadius: 8, padding: 0,
-  border:`1px solid ${PN.BORDER_SOFT}`, background:'rgba(255,255,255,0.9)',
-  color: off ? PN.MUTED_SOFT : PN.TEXT,
-  fontSize: 17, fontWeight: 800, fontFamily:'inherit',
-  cursor: off ? 'not-allowed' : 'pointer', display:'grid', placeItems:'center',
-});
-
-const svOraHHMM = () => {
-  const d = new Date();
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Modal articolo custom — voce libera (nome + prezzo) aggiunta al conto

@@ -111,6 +111,16 @@ const CONTI_MOCK = [
   });
 })();
 
+// Gli incassi del banco sono conti come gli altri: la Vendita diretta li tiene
+// nella sua forma (ordini in coda, consegnati) e qui entrano tradotti, in cima
+// perché sono di oggi. Senza, il rimando "ricevute fiscali associate" dal
+// dettaglio di un ordine consegnato porterebbe a una lista che non lo contiene.
+// Il push, e non una lista a parte: Cassa, filtri e ricerca leggono tutti da
+// qui, e una seconda lista parallela si sarebbe scordata metà di loro.
+if (typeof svContiVenditaDiretta === 'function') {
+  CONTI_MOCK.unshift(...svContiVenditaDiretta());
+}
+
 // I pagamenti sono i documenti commerciali: Cassa ci deriva le chiusure di
 // giornata, quindi la lista deve essere raggiungibile da lì.
 window.CONTI_MOCK = CONTI_MOCK;
@@ -1213,7 +1223,7 @@ function ChiudiCassaModal({ open, fondoCassa, onClose, onConfirm }) {
   );
 }
 
-function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
+function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [activeFilter, setActiveFilter] = React.useState(filter);
   const [scartoPay, setScartoPay] = React.useState(null); // {conto, payment}
@@ -1240,13 +1250,17 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
 
   // Il conto che stai guardando: uno solo, perché il dettaglio è un foglio
   // sopra la lista e non un pannello che spezza la tabella.
-  const [contoAperto, setContoAperto] = React.useState(null);
+  // Arrivando dal dettaglio di un ordine in Vendita diretta il conto è già
+  // deciso — è quello che si stava guardando dall'altra parte del locale —
+  // e il foglio si apre subito sui suoi documenti.
+  const contoDaUrl = () => apri ? CONTI_MOCK.find(c => c.id === apri) || null : null;
+  const [contoAperto, setContoAperto] = React.useState(contoDaUrl);
   // Arrivando da Cassa, se la giornata rimanda a un conto solo lo si apre
   // subito: è il documento su cui hai cliccato. Se ne rimanda più d'uno la
   // lista resta la lista — è già filtrata su quelli, e scegli tu.
   const fiscKey = fisc ? `${fisc.data}|${fisc.stato}` : '';
   React.useEffect(() => {
-    if (!fisc) { setContoAperto(null); return; }
+    if (!fisc) { setContoAperto(contoDaUrl()); return; }
     const attesi = CONTI_MOCK.filter(x => (x.payments || []).some(p =>
       (!fisc.data || String(p.ora || '').startsWith(fisc.data)) &&
       (!fisc.stato || docInfo(p).tipo === { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok' }[fisc.stato])));
@@ -1499,6 +1513,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear }) {
                 <React.Fragment key={conto.id}>
                   <div
                     data-row
+                    data-conto-id={conto.id}
                     onClick={() => setContoAperto(conto)}
                     onMouseEnter={e => { if (!isAperto) e.currentTarget.style.background = '#F7F8FA'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = isAperto ? PN.PINK_SOFT : PN.WHITE; }}

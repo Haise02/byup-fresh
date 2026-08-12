@@ -118,3 +118,74 @@ window.SALA_VENDITA_PIATTI = SALA_VENDITA_PIATTI;
 window.SALA_VENDITA_CATS = SALA_VENDITA_CATS;
 window.SALA_ASPORTO_CONTI = SALA_ASPORTO_CONTI;
 window.SALA_ORDINI_STORICO = SALA_ORDINI_STORICO;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Un ordine chiuso al banco È un conto in Contabilità: stesso incasso, stesso
+// scontrino, guardato dall'altra parte del locale. Qui c'è la traduzione fra
+// le due forme, in un posto solo, perché il rimando dal dettaglio ordine
+// ("Vai alle ricevute fiscali associate") deve atterrare su una riga vera —
+// non su una lista in cui l'ordine non compare.
+//
+// L'id è derivato dall'id dell'ordine e non generato: è quello che viaggia
+// nell'URL, quindi deve essere lo stesso ad ogni caricamento delle due pagine.
+const svContoIdDiOrdine = (ordine) => `cnt-sv-${ordine.id}`;
+
+function svOrdineAConto(ordine) {
+  const oggi = new Date();
+  const data = `${oggi.getFullYear()}-${String(oggi.getMonth()+1).padStart(2,'0')}-${String(oggi.getDate()).padStart(2,'0')}`;
+  const asporto = ordine.fonte === 'banco' ? !!ordine.asporto : true;
+  // Chi ha pagato con l'app lo dice l'origine dell'ordine. Per il resto
+  // l'incasso è passato dal banco, e in cassa il default è la carta.
+  const metodo = ordine.fonte === 'byup' ? 'byup' : 'carta';
+  const rimborsi = ordine.rimborsi || [];
+  const reso = rimborsi.reduce((s, r) => s + r.amount, 0);
+  // Il numero dello scontrino ricalca quello dei conti di sala (SC-YYMM-…):
+  // è il formato con cui il documento esiste nel resto della Contabilità.
+  const serie = data.slice(2,4) + data.slice(5,7);
+  const num = String(ordine.codice || '').replace(/\D/g, '').padStart(4, '0');
+  return {
+    id: svContoIdDiOrdine(ordine),
+    idOrdine: ordine.codice,
+    dataOra: `${data} ${ordine.ritiro || '00:00'}`,
+    tavolo: asporto ? 'Asporto' : 'Banco',
+    canale: asporto ? 'asporto' : 'sala',
+    cliente: ordine.cliente || ordine.codice,
+    // Il nome di chi ha ritirato è l'unica cosa che lega la riga all'ordine da
+    // cui si arriva: senza, in lista restano solo un'ora e un totale. Chi ha
+    // ordinato dall'app porta il suo bollino, come i conti di sala.
+    riferimento: ordine.cliente
+      ? { nome: ordine.cliente, tipo: ordine.fonte === 'byup' ? 'byup' : 'asporto' }
+      : null,
+    liberatoOre: 0,
+    totaleConto: ordine.totale,
+    daSaldare: 0,
+    stato: 'saldato',
+    metodoPagamento: metodo,
+    operatore: 'Cassa',
+    origine: 'vendita_diretta',
+    ordini: (ordine.items || []).map((it, i) => ({
+      id: `${ordine.id}-r${i}`, nome: it.nome, qty: it.qty, prezzo: it.prezzo,
+    })),
+    payments: [{
+      id: `${ordine.id}-p1`, method: metodo,
+      amount: Math.max(0, ordine.totale - reso),
+      ora: `${data} ${ordine.ritiro || '00:00'}`,
+      scontrinoNum: `SC-${serie}-${num}-1`,
+    }],
+  };
+}
+
+// I conti della vendita diretta di oggi. Si leggono dalla sessione perché è lì
+// che il banco scrive man mano che consegna: un ordine battuto due minuti fa
+// deve essere raggiungibile dal suo rimando, non solo quelli del seed.
+function svContiVenditaDiretta() {
+  let storico = SALA_ORDINI_STORICO;
+  try {
+    const grezzo = sessionStorage.getItem('byup.sala.storico');
+    if (grezzo != null) storico = JSON.parse(grezzo);
+  } catch (e) { /* storage negato o JSON illeggibile: vale il seed */ }
+  return (storico || []).map(svOrdineAConto);
+}
+
+window.svContoIdDiOrdine = svContoIdDiOrdine;
+window.svContiVenditaDiretta = svContiVenditaDiretta;
