@@ -69,9 +69,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
   const [pay, setPay] = React.useState({ contanti: '', carta: '' });
   const [method, setMethod] = React.useState('contanti'); // contanti | carta | misto
-  const [invoice, setInvoice] = React.useState(false);
-  const [invoiceData, setInvoiceData] = React.useState({ ragione:'', piva:'', sdi:'' });
-  const [invoiceOpen, setInvoiceOpen] = React.useState(false);
+  // La fattura è la stessa di Vendita diretta: una finestra sua, con la
+  // ricerca in rubrica e nel registro imprese, i segmenti e il codice
+  // destinatario. Qui c'erano tre campi liberi e un interruttore — la stessa
+  // domanda posta in due modi diversi nei due punti in cui si incassa.
+  const [fattura, setFattura] = React.useState(null);   // dati cliente o null
+  const [fatturaOpen, setFatturaOpen] = React.useState(false);
+  const invoice = !!fattura;
   const [adjustOpen, setAdjustOpen] = React.useState(false);
 
   const [done, setDone] = React.useState(false);
@@ -126,8 +130,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       // ripartire da "Contanti" nasconderebbe la transazione in corso e
       // l'unico modo per annullarla.
       setMethod(tavolo.incasso ? 'carta' : 'contanti');
-      setInvoice(false);
-      setInvoiceOpen(false);
+      setFattura(null);
+      setFatturaOpen(false);
       setAdjustOpen(false);
       setDone(false);
       setEsito(null);
@@ -371,7 +375,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
           <SaldaDoneV2 tavolo={tavolo} esito={esito || {
             // Incassato da un telefono mentre la finestra era in attesa: qui
             // il resto non esiste, la carta ha pagato l'importo esatto.
-            total, contanti, carta, resto: 0, metodo: 'carta', invoice, invoiceData,
+            total, contanti, carta, resto: 0, metodo: 'carta', invoice, invoiceData: fattura,
           }} onClose={onClose}/>
         ) : paying ? (
           <SaldaAttesaPagamento
@@ -632,27 +636,48 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
                   <div style={{height: 1, background:'#EDEFF2', margin:'0 -22px 16px'}}/>
 
-                  {/* FATTURA */}
-                  <div>
-                    <div style={{
-                      display:'flex', alignItems:'center', gap: 10,
-                      padding:'4px 0',
+                  {/* FATTURA — non un interruttore: un pulsante che apre la
+                      finestra dei dati del cliente, la stessa dell'incasso in
+                      Vendita diretta. Acceso, porta il nome di chi la riceve:
+                      la domanda che ci si fa rileggendo non è se la fattura
+                      c'è, è a chi si sta facendo. */}
+                  <button
+                    onClick={() => setFatturaOpen(true)}
+                    title={fattura ? `Fattura a ${window.svfNome ? window.svfNome(fattura) : ''}` : 'Emetti fattura invece della ricevuta'}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#D1D5DB'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#E5E7EB'; }}
+                    style={{
+                      width:'100%', display:'flex', alignItems:'center', gap: 12,
+                      padding:'13px 14px', borderRadius: 12,
+                      background: fattura ? SALDA_BRAND_SOFT : '#fff',
+                      border: `1px solid ${fattura ? SALDA_BRAND : '#E5E7EB'}`,
+                      cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+                      transition:'background 150ms ease-out, border-color 150ms ease-out',
                     }}>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize: 17, fontWeight: 700, color:'#0F1115'}}>Emetti fattura</div>
-                        <div style={{fontSize: 15, color:'#9CA3AF', marginTop: 1}}>
-                          {invoice && invoiceData.ragione
-                            ? `${invoiceData.ragione}${invoiceData.piva ? ' · '+invoiceData.piva : ''}`
-                            : 'Solo se richiesta dal cliente'}
-                        </div>
-                      </div>
-                      <SwitchToggle on={invoice} onChange={() => { setInvoice(v => !v); setInvoiceOpen(!invoice); }}/>
-                    </div>
-
-                    {invoice && invoiceOpen && (
-                      <InvoiceForm data={invoiceData} setData={setInvoiceData}/>
-                    )}
-                  </div>
+                    <span style={{
+                      width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                      display:'grid', placeItems:'center',
+                      background: fattura ? '#fff' : '#F4F5F7',
+                      color: fattura ? SALDA_BRAND : '#6B7280',
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/></svg>
+                    </span>
+                    <span style={{flex:1, minWidth: 0}}>
+                      <span style={{display:'block', fontSize: 17, fontWeight: 700, color:'#0F1115'}}>
+                        {fattura ? (window.svfNome ? window.svfNome(fattura) : 'Fattura') : 'Emetti fattura'}
+                      </span>
+                      <span style={{
+                        display:'block', fontSize: 15, marginTop: 1,
+                        color: fattura ? SALDA_BRAND : '#9CA3AF',
+                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                      }}>
+                        {fattura ? (fattura.piva ? `P.IVA ${fattura.piva} · tocca per correggere` : 'Tocca per correggere i dati') : 'Solo se richiesta dal cliente'}
+                      </span>
+                    </span>
+                    <span style={{display:'inline-flex', color: fattura ? SALDA_BRAND : '#C7CBD1', flexShrink: 0}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                    </span>
+                  </button>
                   </div>
                 </div>
 
@@ -680,7 +705,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             // resto dare anche dopo che il conto è chiuso.
                             setEsito({
                               total, contanti, carta, resto: Math.max(0, resto),
-                              metodo: method, invoice, invoiceData,
+                              metodo: method, invoice, invoiceData: fattura,
                             });
                             setDone(true); onConfirm && onConfirm();
                           }
@@ -726,6 +751,24 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 </div>
               </div>
             </div>
+
+            {/* Sopra il conto, non al posto suo: si torna indietro con la
+                selezione e il metodo dov'erano. */}
+            {window.SvFatturaModal && (
+              <SvFatturaModal
+                open={fatturaOpen}
+                lines={selectedOrdini.map(o => ({
+                  displayName: o.nome,
+                  piatto: { name: o.nome },
+                  qty: selectedItems.get(o.id) || o.qty,
+                  lineTotal: o.prezzo,
+                }))}
+                takeaway={false}
+                cliente={fattura}
+                onClose={() => setFatturaOpen(false)}
+                onConfirm={setFattura}
+                onRemove={() => setFattura(null)}/>
+            )}
 
             {toast && (
               <div style={{
@@ -1465,25 +1508,6 @@ function SmallPayInput({ label, icon, value, onChange }) {
   );
 }
 
-function SwitchToggle({ on, onChange }) {
-  return (
-    <button onClick={onChange} style={{
-      width: 40, height: 22, borderRadius: 999, padding: 0,
-      border: 'none', cursor:'pointer', flexShrink: 0,
-      background: on ? '#0F1115' : '#D1D5DB',
-      position:'relative', transition:'background 0.15s',
-    }}>
-      <span style={{
-        position:'absolute', top: 2, left: on ? 20 : 2,
-        width: 18, height: 18, borderRadius:'50%',
-        background:'#fff',
-        boxShadow:'0 1px 3px rgba(0,0,0,0.2)',
-        transition:'left 0.15s',
-      }}/>
-    </button>
-  );
-}
-
 function IconSplit() { return (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 6 H10 a4 4 0 0 1 4 4 V14 a4 4 0 0 0 4 4 H21 M3 18 H10 a4 4 0 0 0 4 -4"/>
@@ -1583,27 +1607,6 @@ function AdjustPanel({ subtotale, adjust, setAdjust}) {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ────────── FATTURA ──────────
-function InvoiceForm({ data, setData }) {
-  return (
-    <div style={{
-      marginTop: 8, padding: 12, borderRadius: 10,
-      background:'#fff', border:'1px solid #E5E7EB',
-      display:'flex', flexDirection:'column', gap: 8,
-    }}>
-      <input value={data.ragione} onChange={e=>setData({...data, ragione: e.target.value})}
-        placeholder="Ragione sociale"
-        style={inputV2}/>
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 6}}>
-        <input value={data.piva} onChange={e=>setData({...data, piva: e.target.value})}
-          placeholder="P.IVA" style={inputV2}/>
-        <input value={data.sdi} onChange={e=>setData({...data, sdi: e.target.value})}
-          placeholder="Codice SDI" style={inputV2}/>
-      </div>
     </div>
   );
 }
