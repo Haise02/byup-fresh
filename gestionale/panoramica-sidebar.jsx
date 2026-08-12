@@ -185,18 +185,28 @@ window.byupCreaNotaCredito = function(f) {
 // `badges`: mappa opzionale id-voce → numero, per le sezioni che hanno
 // qualcosa di non gestito da segnalare (es. {contabilita: 1}). Assente o 0
 // = nessun pallino, così le pagine che non la passano non cambiano.
-function PnSidebar({ active = 'panoramica', onNav, badges }) {
+// `collapsed` + `onToggle`: modalità controllata — è la pagina a decidere se il
+// menu è largo o a barretta. La usa Impostazioni, dove le due colonne di menu si
+// danno il cambio: aperta l'una, l'altra si stringe. In questa modalità NON si
+// scrive in localStorage — la riduzione vale lì e non deve seguire l'utente
+// nelle altre schermate.
+function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedProp, onToggle }) {
   const [profHover, setProfHover] = React.useState(false);
   const [profPress, setProfPress] = React.useState(false);
-  const [collapsed, setCollapsed] = React.useState(() => {
+  const [collapsedSelf, setCollapsedSelf] = React.useState(() => {
     try { return localStorage.getItem('pn_sidebar_collapsed') === '1'; } catch(e) { return false; }
   });
+  const controlled = collapsedProp != null;
+  const collapsed = controlled ? collapsedProp : collapsedSelf;
 
-  const toggle = () => setCollapsed(c => {
-    const next = !c;
-    try { localStorage.setItem('pn_sidebar_collapsed', next ? '1' : '0'); } catch(e) {}
-    return next;
-  });
+  const toggle = () => {
+    if (controlled) { if (onToggle) onToggle(); return; }
+    setCollapsedSelf(c => {
+      const next = !c;
+      try { localStorage.setItem('pn_sidebar_collapsed', next ? '1' : '0'); } catch(e) {}
+      return next;
+    });
+  };
 
   // Moduli abilitati — reattivi a cambi di localStorage (stessa pagina + cross-tab)
   const [modules, setModulesState] = React.useState(() => window.byupReadModules());

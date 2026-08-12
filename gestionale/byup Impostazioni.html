@@ -49,12 +49,21 @@
   }
   /* Scheletro disegnato dal browser prima che React esista. Babel compila una
      quindicina di file e per qualche istante la pagina resterebbe bianca:
-     questa è la stessa forma che sta per arrivare — menù a sinistra, contenuto
-     a destra — così l'attesa somiglia al risultato invece che a niente. */
+     questa è la stessa forma che sta per arrivare — i due menù a sinistra,
+     contenuto a destra — così l'attesa somiglia al risultato invece che a
+     niente. Le larghezze sono quelle con cui la pagina si aprirà davvero:
+     il menù del gestionale arriva com'era nella schermata di prima (la classe
+     la mette lo script qui sotto), e si stringe dopo, quando React c'è.
+     Senza, allo scoccare del mount la colonna saltava di 200px. */
   .imp-boot { position:absolute; inset:0; display:flex; background:#F7F8FA; }
-  .imp-boot-nav { width:272px; flex-shrink:0;
+  .imp-boot-nav { width:68px; flex-shrink:0;
                   background:linear-gradient(180deg, rgba(250,251,252,0.85) 0%, rgba(245,245,247,0.85) 100%);
                   border-right:1px solid rgba(15,17,21,0.06); }
+  .imp-boot-sez { width:272px; flex-shrink:0;
+                  background:linear-gradient(180deg, rgba(250,251,252,0.85) 0%, rgba(245,245,247,0.85) 100%);
+                  border-right:1px solid rgba(15,17,21,0.06); }
+  .gest-largo .imp-boot-nav { width:272px; }
+  .gest-largo .imp-boot-sez { width:68px; }
   .imp-boot-main { flex:1; display:flex; align-items:center;
                    justify-content:center; color:#9CA3AF; font-size:15px; font-weight:600; }
   .imp-boot-main span { animation: impBootFade 1.4s ease-in-out infinite; }
@@ -63,9 +72,15 @@
   button { transition: transform 90ms ease-out; }
   button:active:not(:disabled) { transform: scale(0.96); }
 </style>
+<script>
+  /* Com'era il menù del gestionale nella schermata da cui arrivi: lo scheletro
+     lo disegna della stessa larghezza, così il primo fotogramma di React non
+     sposta niente. */
+  try { if (localStorage.getItem('pn_sidebar_collapsed') !== '1') document.documentElement.classList.add('gest-largo'); } catch (e) {}
+</script>
 </head>
 <body>
-<div id="root"><div class="frame"><div class="imp-boot"><div class="imp-boot-nav"></div><div class="imp-boot-main"><span>Impostazioni…</span></div></div></div></div>
+<div id="root"><div class="frame"><div class="imp-boot"><div class="imp-boot-nav"></div><div class="imp-boot-sez"></div><div class="imp-boot-main"><span>Impostazioni…</span></div></div></div></div>
 
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
@@ -80,7 +95,7 @@
 <script type="text/babel" src="panoramica-sidebar.jsx"></script>
 <script type="text/babel" src="panoramica-plan-card.jsx"></script>
 <script type="text/babel" src="panoramica-notif-bell.jsx"></script>
-<script type="text/babel" src="impostazioni-shared.jsx?v=9"></script>
+<script type="text/babel" src="impostazioni-shared.jsx?v=10"></script>
 <script type="text/babel" src="impostazioni-vetrina.jsx"></script>
 <script type="text/babel" src="impostazioni-menu-cucina.jsx?v=10"></script>
 <script type="text/babel" src="sala-table-tile.jsx"></script>
@@ -90,10 +105,9 @@
 <script type="text/babel" src="impostazioni-personale.jsx"></script>
 <script type="text/babel" src="impostazioni-integrazioni.jsx"></script>
 <script type="text/babel" src="impostazioni-dati-fiscali.jsx"></script>
-<script type="text/babel" src="impostazioni-app.jsx?v=10"></script>
-<!-- Niente assistente fluttuante qui: le impostazioni sono un popup che
-     copre tutto, e il bollino resterebbe sotto al velo — visibile e non
-     cliccabile, l'unica cosa rimasta a galleggiare nel vuoto dietro. -->
+<script type="text/babel" src="impostazioni-app.jsx?v=11"></script>
+<!-- Niente assistente fluttuante qui: in basso a destra c'è già la CTA di
+     salvataggio, e il bollino le si siederebbe sopra. -->
 
 <!-- Zoom proporzionale: scala l'intero gestionale in base alla finestra del desktop -->
 <script>

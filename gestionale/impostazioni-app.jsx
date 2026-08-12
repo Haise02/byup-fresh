@@ -1,10 +1,11 @@
 // App shell for Impostazioni
 //
 // Le impostazioni non sono una pagina come le altre: ci si entra per sistemare
-// una cosa e si torna al lavoro. Per questo sono un popup grande sopra il
-// gestionale — la sidebar dell'app resta lì sotto, velata, a dire da dove sei
-// venuto — e non una schermata che sostituisce tutto e da cui bisogna trovare
-// la strada per uscire.
+// una cosa e si torna al lavoro. Per questo il gestionale non sparisce — il suo
+// menù resta a sinistra, stretto a barretta, e le sezioni delle impostazioni si
+// aprono in una seconda colonna accanto. Non si è usciti da nessuna parte: si è
+// aperto un cassetto, e per tornare al lavoro si clicca dove si sarebbe
+// cliccato comunque.
 
 function ImpApp() {
   // Deep-link: ?page=<tab> apre direttamente la pagina di impostazioni.
@@ -61,32 +62,54 @@ function ImpApp() {
     return () => window.removeEventListener('byup-imp-modifiche', agg);
   }, []);
 
-  const [chiedi, setChiedi] = React.useState(false);   // conferma di uscita
+  const [chiedi, setChiedi] = React.useState(null);    // dove si sta andando, in attesa di conferma
   const [salvato, setSalvato] = React.useState(false); // conferma di salvataggio
 
-  // Uscire dal popup vuol dire tornare da dove si è arrivati: il gestionale.
-  const esci = () => {
-    if (window.history.length > 1) window.history.back();
-    else window.location.href = 'byup Panoramica.html';
+  // Uscire da qui è cliccare un'altra voce del gestionale: la via d'uscita è il
+  // menù accanto, non un pulsante «indietro» che non saprebbe dove riportare.
+  // Il guardiano delle modifiche non salvate viveva su quel pulsante e ora vive
+  // qui: si chiede prima di lasciare la pagina, perché lasciarla è ricaricare.
+  const vaiPagina = (id) => {
+    if (id === 'impostazioni') return;   // ci sei già
+    const url = PN_PAGES[id];
+    if (!url) return;
+    if (modifiche) setChiedi(url);
+    else window.location.href = url;
   };
-  const chiudi = () => { if (modifiche) setChiedi(true); else esci(); };
+
   const salva = () => {
     window.byupImpSalva();
     setSalvato(true);
     setTimeout(() => setSalvato(false), 2200);
   };
 
-  // Esc chiude prima la domanda, poi il popup — e se ci sono modifiche il
-  // popup non se ne va zitto, chiede.
+  // Esc chiude la domanda. Non chiude le impostazioni: non sono più una
+  // finestra posata sopra a qualcosa, sono la schermata su cui stai lavorando.
   React.useEffect(() => {
-    const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      if (chiedi) setChiedi(false);
-      else chiudi();
-    };
+    const onKey = (e) => { if (e.key === 'Escape' && chiedi) setChiedi(null); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [chiedi, modifiche]);
+  }, [chiedi]);
+
+  // ─── Le due colonne di menù ────────────────────────────────────────────────
+  // Impostazioni non sostituisce il menù del gestionale, gli si apre accanto.
+  // Ma due menù larghi affiancati sono 544px di sola navigazione: si danno il
+  // cambio, uno solo per volta porta le parole e l'altro resta la sua fila di
+  // icone. Il comando è uno — la freccetta del gestionale, dov'è sempre stata:
+  // è lei a dire quale dei due è aperto.
+  // Lo stato iniziale è quello con cui hai lasciato la schermata precedente,
+  // così la riduzione si vede accadere: è il gesto che racconta da dove arriva
+  // questa colonna. Non si salva da nessuna parte — vale qui, e uscendo il
+  // menù del gestionale è come l'avevi lasciato.
+  const [menuLargo, setMenuLargo] = React.useState(() => {
+    try { return localStorage.getItem('pn_sidebar_collapsed') === '1' ? 'impostazioni' : 'gestionale'; }
+    catch (e) { return 'impostazioni'; }
+  });
+  React.useEffect(() => {
+    if (menuLargo !== 'gestionale') return;
+    const t = setTimeout(() => setMenuLargo('impostazioni'), 140);
+    return () => clearTimeout(t);
+  }, []);
 
   const sezione = IMP_SEZIONI.find(s => s.id === active) || {};
 
@@ -95,14 +118,13 @@ function ImpApp() {
     // intera — sette sezioni, sotto-sezioni, un salvataggio, dei rimandi con
     // ritorno — e una finestra dentro la finestra le stringeva proprio dove
     // servono larghe (la mappa dei tavoli, il compositore dei menù, il
-    // telefono dell'anteprima). Il velo, poi, prometteva «sotto c'è quello che
-    // stavi facendo» e sotto non c'era niente di vero.
-    // Resta il senso della deviazione: entra scorrendo dal basso e la via
-    // d'uscita è dov'era, in alto a destra.
+    // telefono dell'anteprima).
+    // Piena, però, non vuol dire sola: il gestionale resta a sinistra. Prima
+    // spariva del tutto e per tornare al lavoro bisognava ricordarsi di un
+    // pulsante; ora la strada di casa è sempre in vista.
     <div style={{
       display: 'flex', flex: 1, minHeight: 0, position: 'relative',
       background: PN.BG,
-      animation: 'impEntra 0.30s cubic-bezier(0.4, 0, 0.2, 1)',
     }}>
       <style>{`
         @keyframes impEntra {
@@ -111,9 +133,22 @@ function ImpApp() {
         }
       `}</style>
 
-    <ImpNavSidebar active={active} onChange={vaiA} onIndietro={chiudi}/>
+      {/* Il menù del gestionale, in modalità controllata: la larghezza la
+          decide questa schermata, e non finisce in memoria. */}
+      <PnSidebar active="impostazioni" onNav={vaiPagina}
+        collapsed={menuLargo !== 'gestionale'}
+        onToggle={() => setMenuLargo(m => m === 'gestionale' ? 'impostazioni' : 'gestionale')}/>
 
-      <div style={{flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: PN.BG, position: 'relative'}}>
+      <ImpNavSidebar active={active} onChange={vaiA} collapsed={menuLargo !== 'impostazioni'}/>
+
+      {/* Solo il contenuto entra scorrendo dal basso: le due colonne di menù
+          devono sembrare già lì — una perché c'era davvero, l'altra perché la
+          sua entrata è la larghezza che prende, non uno scivolamento. */}
+      <div style={{
+        flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
+        background: PN.BG, position: 'relative',
+        animation: 'impEntra 0.30s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
         {/* Quando ci si è arrivati da un rimando, la strada per tornare a
             quello che si stava facendo. È un'altra cosa dall'uscire dalle
             impostazioni, che sta in cima alla colonna: questa riporta alla
@@ -178,10 +213,10 @@ function ImpApp() {
         </div>
       </div>
 
-      {/* Uscire buttando via il lavoro non deve poter succedere per sbaglio */}
+      {/* Andarsene buttando via il lavoro non deve poter succedere per sbaglio */}
       {chiedi && (
         <div
-          onClick={() => setChiedi(false)}
+          onClick={() => setChiedi(null)}
           style={{
             position: 'absolute', inset: 0, zIndex: 300,
             background: 'rgba(15,17,21,0.42)', display: 'grid', placeItems: 'center', padding: 20,
@@ -202,15 +237,15 @@ function ImpApp() {
                 </div>
                 <div style={{fontSize: 15, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>
                   In <strong style={{color: PN.TEXT}}>{sezione.label || 'questa sezione'}</strong> c'è qualcosa che non hai
-                  ancora salvato. Uscendo senza salvare lo perdi.
+                  ancora salvato. Andando via senza salvare lo perdi.
                 </div>
               </div>
             </div>
             <div style={{...MODAL_FOOT, justifyContent: 'flex-end', marginTop: 22, borderTop: 'none'}}>
-              <ImpButton variant="ghost" onClick={() => { setChiedi(false); esci(); }} style={{padding: '10px 20px'}}>
+              <ImpButton variant="ghost" onClick={() => { window.location.href = chiedi; }} style={{padding: '10px 20px'}}>
                 Esci senza salvare
               </ImpButton>
-              <ImpButton variant="pink" onClick={() => { window.byupImpSalva(); setChiedi(false); esci(); }} style={{padding: '10px 20px'}}>
+              <ImpButton variant="pink" onClick={() => { window.byupImpSalva(); window.location.href = chiedi; }} style={{padding: '10px 20px'}}>
                 Salva ed esci
               </ImpButton>
             </div>

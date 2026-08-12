@@ -41,50 +41,34 @@ const IMP_SEZIONI = [
   { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },
 ];
 
-// La colonna di sinistra del popup: stessa cassa del menù globale del
-// gestionale — vetro vibrante, 272px, PnNavItem con le sue icone da 26 e
-// l'attivo in tinta brand. Al posto del logo la testata dice dove sei, perché
-// il logo dell'app sta già a sinistra, dietro al velo.
-function ImpNavSidebar({ active, onChange, onIndietro }) {
+// La seconda colonna: stessa cassa del menù globale del gestionale — vetro
+// vibrante, 272px, PnNavItem con le sue icone da 26 e l'attivo in tinta brand.
+// Non sostituisce quel menù, gli si apre accanto: a sinistra resta il
+// gestionale, stretto a barretta, perché da qui non si è usciti dall'app.
+// Al posto del logo la testata dice dove sei — il logo sta nella colonna
+// accanto, e ripeterlo direbbe che sono due app.
+//
+// `collapsed`: le due colonne si danno il cambio, una sola per volta è larga.
+// Da stretta questa resta la stessa fila di icone, solo senza le parole.
+function ImpNavSidebar({ active, onChange, collapsed }) {
   return (
-    // Gli angoli se li arrotonda da sola: il vetro (backdrop-filter) si
-    // compone su un livello suo e Chrome smette di ritagliarlo sul raggio del
-    // popup — il risultato erano due spigoli vivi in fondo a sinistra, fuori
-    // dalla geometria di tutto il resto.
     <aside style={{
-      width: 272, flexShrink: 0,
+      width: collapsed ? 68 : 272, flexShrink: 0,
       ...PN.GLASS_VIBRANT,
       display: 'flex', flexDirection: 'column',
-      padding: '20px 14px',
+      padding: collapsed ? '20px 10px' : '20px 14px',
       height: '100%', position: 'relative', overflow: 'hidden',
-      borderRadius: '16px 0 0 16px',
+      // Stessa curva e stessa durata del menù del gestionale: le due colonne
+      // si scambiano la larghezza, e devono farlo con un movimento solo.
+      transition: 'width 220ms cubic-bezier(0.4, 0, 0.2, 1), padding 220ms cubic-bezier(0.4, 0, 0.2, 1)',
     }}>
       <GlassMeshSubstrate/>
 
-      {/* La via d'uscita sta in cima alla colonna, sopra al nome di dove sei:
-          da una schermata piena non si «chiude», si torna indietro — ed è
-          l'app che si lascia, quindi l'uscita vive nella sua cornice e non
-          appoggiata sul contenuto. */}
-      {onIndietro && (
-        <button onClick={onIndietro}
-          onMouseEnter={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.TEXT; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
-            padding: '7px 12px 7px 8px', marginBottom: 14, borderRadius: 9,
-            border: 'none', background: 'transparent', color: PN.MUTED,
-            fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            position: 'relative', flexShrink: 0,
-            transition: 'background 140ms ease, color 140ms ease',
-          }}>
-          <span style={{display: 'inline-flex', transform: 'rotate(180deg)'}}><PnI.ChevronRight size={13}/></span>
-          Torna al gestionale
-        </button>
-      )}
-
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 11,
-        padding: '2px 6px 22px', flexShrink: 0, position: 'relative',
+        display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 11,
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: collapsed ? '2px 0 22px' : '2px 6px 22px',
+        flexShrink: 0, position: 'relative',
       }}>
         <span style={{
           width: 34, height: 34, borderRadius: 10, flexShrink: 0,
@@ -95,9 +79,11 @@ function ImpNavSidebar({ active, onChange, onIndietro }) {
         {/* Solo il nome: la didascalia che c'era andava a capo per far posto
             alla X e faceva due righe di spiegazione sopra a un elenco che si
             spiega da sé. */}
-        <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 20, fontWeight: 800, letterSpacing: -0.3, color: PN.TEXT}}>Impostazioni</div>
-        </div>
+        {!collapsed && (
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 20, fontWeight: 800, letterSpacing: -0.3, color: PN.TEXT}}>Impostazioni</div>
+          </div>
+        )}
       </div>
 
       <div className="pn-scroll" style={{
@@ -105,7 +91,7 @@ function ImpNavSidebar({ active, onChange, onIndietro }) {
         minHeight: 0, overflowY: 'auto', position: 'relative',
       }}>
         {IMP_SEZIONI.map(s => (
-          <PnNavItem key={s.id} label={s.label} icon={s.icon}
+          <PnNavItem key={s.id} label={s.label} icon={s.icon} collapsed={collapsed}
             active={active === s.id} onClick={() => onChange(s.id)}/>
         ))}
       </div>
