@@ -446,6 +446,36 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 <IconPrinter/>
                 {preContoStampato ? 'Ristampa pre-conto' : 'Stampa pre-conto'}
               </button>
+              {/* FATTURA — accanto al pre-conto, perché sono la stessa cosa:
+                  i due documenti che il tavolo può chiedere. Stava in fondo
+                  alla colonna del pagamento, dove la si trovava solo dopo aver
+                  scelto come incassare — e invece è la prima cosa che dice il
+                  cliente («mi fa fattura?»), spesso prima ancora del conto.
+                  Non è un interruttore: apre la finestra dei dati del cliente,
+                  la stessa dell'incasso in Vendita diretta. Accesa, porta il
+                  nome di chi la riceve — rileggendo, la domanda non è se la
+                  fattura c'è, è a chi si sta facendo. */}
+              <button
+                onClick={() => setFatturaOpen(true)}
+                title={fattura
+                  ? `Fattura a ${window.svfNome ? window.svfNome(fattura) : ''} · tocca per correggere`
+                  : 'Emetti fattura invece della ricevuta'}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#D1D5DB'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#E5E7EB'; }}
+                style={{
+                  ...btnGhost, maxWidth: 260,
+                  background: fattura ? SALDA_BRAND_SOFT : '#fff',
+                  border: `1px solid ${fattura ? SALDA_BRAND : '#E5E7EB'}`,
+                  color: fattura ? SALDA_BRAND : '#0F1115',
+                  transition: 'background 150ms ease-out, border-color 150ms ease-out',
+                }}>
+                <span style={{display:'inline-flex', flexShrink: 0}}>
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/></svg>
+                </span>
+                <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                  {fattura ? (window.svfNome ? window.svfNome(fattura) : 'Fattura') : 'Emetti fattura'}
+                </span>
+              </button>
               <button onClick={onClose} title="Chiudi" style={saldaIconBtn}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
               </button>
@@ -674,50 +704,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     )}
                   </div>
 
-                  <div style={{height: 1, background:'#EDEFF2', margin:'0 -22px 16px'}}/>
-
-                  {/* FATTURA — non un interruttore: un pulsante che apre la
-                      finestra dei dati del cliente, la stessa dell'incasso in
-                      Vendita diretta. Acceso, porta il nome di chi la riceve:
-                      la domanda che ci si fa rileggendo non è se la fattura
-                      c'è, è a chi si sta facendo. */}
-                  <button
-                    onClick={() => setFatturaOpen(true)}
-                    title={fattura ? `Fattura a ${window.svfNome ? window.svfNome(fattura) : ''}` : 'Emetti fattura invece della ricevuta'}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#D1D5DB'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#E5E7EB'; }}
-                    style={{
-                      width:'100%', display:'flex', alignItems:'center', gap: 12,
-                      padding:'13px 14px', borderRadius: 12,
-                      background: fattura ? SALDA_BRAND_SOFT : '#fff',
-                      border: `1px solid ${fattura ? SALDA_BRAND : '#E5E7EB'}`,
-                      cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-                      transition:'background 150ms ease-out, border-color 150ms ease-out',
-                    }}>
-                    <span style={{
-                      width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                      display:'grid', placeItems:'center',
-                      background: fattura ? '#fff' : '#F4F5F7',
-                      color: fattura ? SALDA_BRAND : '#6B7280',
-                    }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/></svg>
-                    </span>
-                    <span style={{flex:1, minWidth: 0}}>
-                      <span style={{display:'block', fontSize: 17, fontWeight: 700, color:'#0F1115'}}>
-                        {fattura ? (window.svfNome ? window.svfNome(fattura) : 'Fattura') : 'Emetti fattura'}
-                      </span>
-                      <span style={{
-                        display:'block', fontSize: 15, marginTop: 1,
-                        color: fattura ? SALDA_BRAND : '#9CA3AF',
-                        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                      }}>
-                        {fattura ? (fattura.piva ? `P.IVA ${fattura.piva} · tocca per correggere` : 'Tocca per correggere i dati') : 'Solo se richiesta dal cliente'}
-                      </span>
-                    </span>
-                    <span style={{display:'inline-flex', color: fattura ? SALDA_BRAND : '#C7CBD1', flexShrink: 0}}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-                    </span>
-                  </button>
+                  {/* La fattura non sta più qui: è salita in testata, accanto
+                      al pre-conto. Con lei se n'è andato anche il filo che la
+                      separava dai campi del pagamento — un separatore che non
+                      separa più niente è una riga di grigio e basta. */}
                   </div>
                 </div>
 
