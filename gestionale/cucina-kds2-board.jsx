@@ -448,15 +448,15 @@ function Kds2Modificatori({ modifiers, spenta }) {
 }
 
 // ─── Riga ─────────────────────────────────────────────────────────────────
-// UN TOCCO manda la riga in preparazione. Prima ci voleva una pressione lunga
-// di 600 ms, con una barra che cresceva sul bordo basso a dire «sto contando»:
+// UN TOCCO, UN PIATTO. Prima ci voleva una pressione lunga di 600 ms — e
+// spegneva la riga intera — con una barra che cresceva sul bordo basso:
 // difendeva dalle manate accidentali, ma faceva pagare a ogni piatto — decine
 // per servizio — un'attesa che serviva a evitare l'errore raro. La difesa vera
 // è già in fondo allo schermo e non costa niente a nessuno: la fascia tiene il
 // piatto dieci secondi e lo si rimette con un tocco.
 // Tocco su una CHIP = una porzione sola: la chip è un bersaglio suo dentro la
 // riga, e il suo click non deve valere anche per tutto il resto.
-function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpPorzione, onBumpRiga }) {
+function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpPorzione }) {
   const [premuta, setPremuta] = React.useState(false);
 
   const allergene = !!riga.allergen;
@@ -476,11 +476,17 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
   function giu(e) { if (e.button != null && e.button !== 0) return; setPremuta(true); }
   function su() { setPremuta(false); }
 
+  // UN TOCCO, UN PIATTO. Non la riga intera: «4 Patatine» sono quattro porzioni
+  // che escono dalla cucina una alla volta, non un blocco unico, e chi ne
+  // consegna una e tocca lo schermo si aspetta che ne resti una in meno — non
+  // che spariscano tutte. Si tocca quattro volte, e la cifra a sinistra
+  // scende sotto gli occhi.
+  // Esce sempre la porzione più vecchia (la prima): l'ordine è già quello.
   // Il click delle chip e della CTA sale fin qui: se non lo si lascia passare,
-  // toccare «tav. 12» manderebbe via anche tutte le altre porzioni della riga.
+  // toccare «tav. 12» ne toglierebbe una anche a un altro tavolo.
   function tap(e) {
     if (e.target && e.target.closest && e.target.closest('button')) return;
-    onBumpRiga(riga);
+    onBumpPorzione(riga.portions[0]);
   }
 
   // Nome lungo: si scende di gradino, non si tronca mai. «Insalata di mare» e
@@ -650,26 +656,12 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
             })}
           </div>
 
-          {/* Il tasto sta a DESTRA, in fondo alla riga: a sinistra, incollato
-              al nome, spingeva via le chip dei tavoli e faceva ballare l'inizio
-              della fila da riga a riga. Qui è in colonna con quello di sopra e
-              di sotto — la mano lo trova sempre nello stesso punto — e non
-              tocca niente di ciò che si legge.
-              Solo dove ce n'è più d'uno: su una riga da un piatto solo il
-              tocco fa già esattamente questo. */}
-          {riga.quantity > 1 && !quieta && (
-            <button type="button" data-kds2-interattivo=""
-              onPointerDown={e => e.stopPropagation()}
-              onClick={e => { e.stopPropagation(); onBumpPorzione(riga.portions[0]); }}
-              title={'Invia un solo ' + nome + ' · ' + kds2Identita(riga.portions[0].source)}
-              style={{
-                flexShrink: 0, height: 44, padding: '0 16px', borderRadius: 10,
-                background: K.BRAND_BG, border: '2px solid ' + K.BRAND,
-                color: K.BRAND_INK, fontSize: 15, fontWeight: 700,
-                letterSpacing: '-0.01em', whiteSpace: 'nowrap',
-                fontFamily: 'inherit', cursor: 'pointer',
-              }}>Invia singolo piatto</button>
-          )}
+          {/* Qui stava «Invia singolo piatto». Aveva senso finché il tocco
+              svuotava la riga intera: era il modo di mandarne via uno solo.
+              Da quando ogni tocco vale un piatto fa esattamente quello che fa
+              toccare la riga, e due modi identici per la stessa cosa sono uno
+              di troppo — per giunta occupava la fascia più preziosa della riga,
+              quella accanto al tempo. */}
 
           {/* Attesa della riga: quella della sua porzione più vecchia. È l'età
               della produzione, sempre in minuti — l'orario di ritiro è una
@@ -1441,16 +1433,19 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   }
 
   function bumpPorzione(p) {
+    // Nessun «1» davanti al nome. Serviva a dire «una di quelle due», quando il
+    // gesto poteva mandarne via anche più d'una; ora ne esce sempre uno, e la
+    // cifra faceva solo sì che due tocchi sullo stesso piatto lasciassero in
+    // fascia due voci scritte in modo diverso.
     registra(
-      (p.quantity > 1 ? '1 ' : '') + p.dishName + ' · ' + kds2Identita(p.source),
+      p.dishName + ' · ' + kds2Identita(p.source),
       [Object.assign({}, p, { quantity: 1 })]
     );
     setPorzioni(kds2BumpUna(porzioni, p.id));
   }
-  function bumpRiga(riga) {
-    registra(riga.quantity + ' ' + riga.dishName, riga.portions.slice());
-    setPorzioni(kds2BumpRiga(porzioni, riga));
-  }
+  // `kds2BumpRiga` (spegnere una riga intera in un colpo) resta nei dati ma qui
+  // non lo chiama più nessuno: da quando ogni tocco vale un piatto, non c'è più
+  // un gesto che svuoti la riga tutta insieme.
 
   // Rimette in produzione. Se la porzione è ancora viva (spenta a unità) le si
   // ridà la quantità tolta; se era uscita del tutto, rientra tale e quale.
@@ -1532,7 +1527,7 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
               spenta={selezione != null && !sua}
               evidenziata={sua}
               sorgenteSelezionata={selezione}
-              onBumpPorzione={bumpPorzione} onBumpRiga={bumpRiga}/>
+              onBumpPorzione={bumpPorzione}/>
           );
         })}
 
