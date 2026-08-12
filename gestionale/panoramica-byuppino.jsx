@@ -35,9 +35,30 @@ function byuRipiego(e) {
 // keyframes e uno pseudo-elemento (l'anello che gira), e nessuno dei due si
 // scrive in un oggetto style.
 const BYU_CSS = `
-/* Il fondo dietro la mascotte: pesca → rosa → lavanda, lentissimo. È l'unica
-   superficie della Panoramica che si muove da sola, quindi si muove piano. */
-@keyframes byu-aurora { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+/* IL GRADIENTE SI MUOVE, non cambia colore. Prima era una sola sfumatura larga
+   il doppio della scheda, fatta scorrere: a schermo si vedeva una tinta sola
+   per volta che virava — cioè un fondo che cambia colore, non un gradiente
+   animato. Ora le tre tinte ci sono TUTTE INSIEME, ognuna in una macchia sua,
+   e sono le macchie a spostarsi e respirare, ognuna con il suo tempo e il suo
+   verso. Nessuna combacia con le altre: il disegno non si ripete mai uguale, e
+   il movimento si vede senza che nulla lampeggi.
+   Tempi lunghi e diversi fra loro (19-27s) apposta: su una dashboard che si
+   guarda per ore, un moto veloce diventa la cosa che si guarda. */
+@keyframes byu-macchia-1 {
+  0%,100% { transform: translate(-6%, -4%) scale(1);    }
+  33%     { transform: translate(12%,  6%) scale(1.22); }
+  66%     { transform: translate(4%,  12%) scale(0.92); }
+}
+@keyframes byu-macchia-2 {
+  0%,100% { transform: translate(8%,   6%) scale(1.1);  }
+  40%     { transform: translate(-10%, -2%) scale(0.9); }
+  70%     { transform: translate(2%,  10%) scale(1.25); }
+}
+@keyframes byu-macchia-3 {
+  0%,100% { transform: translate(2%,   8%) scale(0.95); }
+  45%     { transform: translate(14%, -8%) scale(1.2);  }
+  75%     { transform: translate(-8%,  2%) scale(1.05); }
+}
 @keyframes byu-galla  { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
 /* Il fondo della scheda azione: stesso giro di tinte, in pastello. */
 @keyframes byu-scheda { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
@@ -54,10 +75,21 @@ const BYU_CSS = `
 .byu-thread::-webkit-scrollbar-thumb { background: rgba(15,17,21,0.14); border-radius: 999px; }
 .byu-thread::-webkit-scrollbar-track { background: transparent; }
 
+.byu-macchia { position: absolute; inset: -30%; pointer-events: none; will-change: transform; }
+
 @media (prefers-reduced-motion: reduce) {
-  .byu-aurora, .byu-scheda, .byu-anello, .byu-galleggia { animation: none !important; }
+  .byu-macchia, .byu-scheda, .byu-anello, .byu-galleggia { animation: none !important; }
 }
 `;
+
+// Le tre macchie del gradiente. Stanno tutte a schermo insieme — pesca in alto
+// a sinistra, corallo al centro, lavanda in basso a destra — e ognuna si muove
+// per conto suo.
+const BYU_MACCHIE = [
+  { c: 'rgba(255, 196, 150, 0.95)', pos: '22% 18%', anim: 'byu-macchia-1 21s ease-in-out infinite' },
+  { c: 'rgba(255, 158, 170, 0.90)', pos: '68% 34%', anim: 'byu-macchia-2 27s ease-in-out infinite' },
+  { c: 'rgba(196, 178, 255, 0.85)', pos: '44% 88%', anim: 'byu-macchia-3 19s ease-in-out infinite' },
+];
 
 // ─── Che cosa sa fare ──────────────────────────────────────────────────────
 // Le stesse aree che l'assistente dichiara nel pannello grande: prenotazioni,
@@ -146,27 +178,22 @@ function byuOra(d) {
 // un telefono: ritagliata a «cover» si vedrebbero il telefono e mezzo busto,
 // cioè una macchia rossa. Si ingrandisce e si sposta finché nel cerchio resta
 // la sola testa.
-// Il ritaglio è tarato sull'immagine: le due mascotte hanno la testa in punti
-// diversi, e riusare gli stessi numeri sul ripiego inquadrerebbe la cresta.
-const BYU_RITAGLI = {
-  assistente: { w: 96, x: -30, y: -18 },
-  ripiego:    { w: 96, x: -33, y: -44 },
-};
-function ByuFaccia({ size = 34 }) {
-  const k = size / 34;
-  const [giu, setGiu] = React.useState(false);
-  const c = giu ? BYU_RITAGLI.ripiego : BYU_RITAGLI.assistente;
+// Accanto alle bolle va il SEGNO del marchio, non la faccia della mascotte. La
+// mascotte è già lì di fianco, grande, e ripeterla rimpicciolita a 34 px la
+// riduceva a una macchia rossa in cui non si riconosceva niente. Il segno
+// invece a quella taglia è nato per essere letto — è lo stesso che sta nella
+// sidebar chiusa — e dice la cosa giusta: a parlare è byup.
+function ByuSegno({ size = 34 }) {
   return (
     <span style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      position: 'relative', overflow: 'hidden', display: 'block',
-      background: '#FFE6E6',
+      display: 'grid', placeItems: 'center',
+      background: PN.WHITE,
+      boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.07)',
     }}>
-      <img src={giu ? BYU_RIPIEGO : BYU_MASCOTTE} alt="" onError={() => setGiu(true)}
-        style={{
-          position: 'absolute', width: c.w * k, height: 'auto',
-          left: c.x * k, top: c.y * k, maxWidth: 'none',
-        }}/>
+      <img src="Fresh-mark.png" alt="byup" style={{
+        width: size * 0.6, height: size * 0.6, objectFit: 'contain', display: 'block',
+      }}/>
     </span>
   );
 }
@@ -192,7 +219,7 @@ function ByuBolla({ da, testo, ora }) {
       animation: 'byu-entra 260ms cubic-bezier(0.34, 1.2, 0.64, 1)',
     }}>
       {!mio && (
-        <ByuFaccia/>
+        <ByuSegno/>
       )}
       <div style={{
         maxWidth: '72%', padding: '9px 13px',
@@ -215,7 +242,7 @@ function ByuBolla({ da, testo, ora }) {
 function ByuScrive() {
   return (
     <div style={{display: 'flex', alignItems: 'flex-end', gap: 9}}>
-      <ByuFaccia/>
+      <ByuSegno/>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 5,
         padding: '12px 14px', borderRadius: '16px 16px 16px 5px', background: '#F4F5F7',
@@ -451,24 +478,31 @@ function WidgetByuppino() {
     // secondo pannello: due rettangoli affiancati, non un oggetto solo. Ora
     // pesca-rosa-lavanda tiene tutta la scheda e la conversazione ci galleggia
     // sopra — una card bianca con l'aria intorno su tutti e quattro i lati.
-    <div className="byu-aurora" style={{
+    <div style={{
       // A filo della scheda: il widget È la scheda, non qualcosa appoggiato
       // dentro. Il raggio glielo dà la cornice della dashboard, la stessa di
       // tutte le altre.
       margin: '-18px -18px -16px -18px', height: 'calc(100% + 34px)',
       display: 'flex', minWidth: 0, overflow: 'hidden', borderRadius: 14,
-      padding: 12, gap: 12,
-      background: 'linear-gradient(135deg, #FFE3CF 0%, #FFD9DE 30%, #FBD9F0 62%, #E4DBFF 100%)',
-      backgroundSize: '260% 260%',
-      animation: 'byu-aurora 14s ease-in-out infinite',
+      padding: 12, gap: 12, position: 'relative',
+      // Il fondo fermo su cui si muovono le macchie: se restassero scoperti
+      // dei bordi durante il movimento, sotto c'è comunque il colore giusto.
+      background: 'linear-gradient(135deg, #FFE7D6 0%, #FFDCE2 45%, #EFE0FF 100%)',
     }}>
       <style>{BYU_CSS}</style>
+
+      {BYU_MACCHIE.map((m, i) => (
+        <span key={i} aria-hidden="true" className="byu-macchia" style={{
+          background: `radial-gradient(circle at ${m.pos}, ${m.c} 0%, transparent 58%)`,
+          animation: m.anim,
+        }}/>
+      ))}
 
       {/* ── Colonna sinistra: chi ti sta parlando. Niente fondo suo: sta
              direttamente sul gradiente. ── */}
       <div style={{
         width: '24%', minWidth: 190, flexShrink: 0,
-        position: 'relative', display: 'flex', flexDirection: 'column',
+        position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column',
         padding: '4px 4px 0 8px',
       }}>
         <div style={{fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em', color: PN.TEXT}}>
@@ -504,7 +538,8 @@ function WidgetByuppino() {
              gradiente. È il foglio su cui si scrive: sta sopra al colore e non
              dentro, e per questo ha un raggio e un'ombra suoi. ── */}
       <div style={{
-        flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column',
+        flex: 1, minWidth: 0, position: 'relative', zIndex: 1,
+        display: 'flex', flexDirection: 'column',
         background: PN.WHITE, borderRadius: 18, padding: '14px 16px 12px',
         boxShadow: '0 10px 26px -14px rgba(120, 60, 90, 0.30), 0 1px 2px rgba(15,17,21,0.04)',
       }}>

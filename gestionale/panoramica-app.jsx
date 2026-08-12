@@ -3,18 +3,18 @@
 // Layout default — solo l'ORDINE dei widget: le misure sono fisse e vivono
 // nel catalogo (PN_WIDGET_CATALOG[].size), pensate per il dato che mostrano.
 // Tiling a 4 colonne:
-//   fold 1-2: prenotazioni 1×2 · tavoli-stato 2×2 · cucina-live 1×2
-//   riga 3:   andamento-coperti 2×1 · andamento-scontrino 2×1
-//   righe 4-5: byuppino 4×2 (l'assistente)
+//   righe 1-2: byuppino 4×2 — l'assistente apre la pagina, ed è fisso lì
+//   righe 3-4: prenotazioni 1×2 · tavoli-stato 2×2 · cucina-live 1×2
+//   riga 5:    andamento-coperti 2×1 · andamento-scontrino 2×1
 //   righe 6-7: top-piatti 1×2 · coperti-sett 2×2 · recensioni 1×2
-//   riga 8:   riempimento 2×1
+//   riga 8:    riempimento 2×1
 const DEFAULT_LAYOUT = [
+  { id: 'byuppino' },
   { id: 'prenotazioni-oggi' },
   { id: 'tavoli-stato' },
   { id: 'cucina-live' },
   { id: 'andamento-coperti' },
   { id: 'andamento-scontrino' },
-  { id: 'byuppino' },
   { id: 'top-piatti' },
   { id: 'coperti-sett' },
   { id: 'recensioni' },

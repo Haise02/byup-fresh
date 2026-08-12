@@ -3,13 +3,16 @@
 // glass-ice (GLASS_DRAG) e leggermente scaled. Le altre card durante il drag
 // scaleno a 0.99 + opacity 0.92 — comunicano "lo strato sottostante è cedevole".
 
-function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wiggleDelay, children, theme }) {
+function PnWidgetShell({ title, editMode, onRemove, dragging, otherDragging, wiggleDelay, children, theme, fisso }) {
   const [hover, setHover] = React.useState(false);
   // Le dimensioni sono fisse (dal catalogo): la shell non offre resize —
   // ogni widget ha la misura pensata per il dato che mostra.
   // 4 stati: dragging (la mossa, glass-ice), otherDragging (un'altra in moto, scaled),
   // editMode (wiggle iOS edit-mode), idle.
-  const inEditWiggle = editMode && !dragging;
+  // Il widget fisso NON trema: il tremolio è la promessa che quella card si può
+  // prendere e spostare, e qui non è vero. Sta fermo mentre le altre ballano, e
+  // si capisce da solo che è di un'altra natura.
+  const inEditWiggle = editMode && !dragging && !fisso;
   // Theme surface tokens — solo "aurora" intercepted qui. "sunset"/dark passa
   // di solito via GlassDarkBox interno con margine negativo, quindi non serve
   // verniciare lo shell. Default = white W1, ed è la veste di tutta la griglia:
@@ -228,6 +231,7 @@ function PnGrid({ widgets, editMode, onRemove, onReorder }) {
               otherDragging={isOtherDragging}
               wiggleDelay={wiggleDelay}
               onRemove={fisso ? null : () => onRemove(w.id)}
+              fisso={fisso}
               theme={def.theme}>
               <Comp size={size}/>
             </PnWidgetShell>
