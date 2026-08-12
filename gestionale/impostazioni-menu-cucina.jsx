@@ -3108,7 +3108,9 @@ function MCDettagliPiatto({
             </MCScheda>
 
             <MCScheda icona={<PnI.Stats size={15}/>} titolo="Valori nutrizionali" sub="Per porzione, stimati sugli ingredienti.">
-              <NutritionFields/>
+              {/* La spunta «Contiene alcolici» sta in Avanzate, ma il numero che
+                  ne discende si scrive qui, insieme agli altri. */}
+              <NutritionFields alcolico={hasAlcohol}/>
             </MCScheda>
           </div>
         )}
@@ -3950,13 +3952,18 @@ function DishRow({ dish, item, onToggleActive, onPriceClick, editingPrice, onPri
 }
 
 // ─── NutritionFields AI: stima ingredienti → kcal/macro ──────────────────────
-function NutritionFields() {
-  const [values, setValues] = React.useState({ kcal: '478', carb: '52', prot: '18', fat: '21' });
+// Se il piatto è dichiarato alcolico compare anche la gradazione: per una
+// bevanda è il numero che il cliente cerca — e l'unico che la legge non lo
+// ricava dai macro, perché l'alcol non è né carboidrato né grasso.
+function NutritionFields({ alcolico = false }) {
+  const [values, setValues] = React.useState({ kcal: '478', carb: '52', prot: '18', fat: '21', vol: '' });
   const [regenerating, setRegenerating] = React.useState(false);
   const regenerate = () => {
     setRegenerating(true);
     setTimeout(() => {
-      setValues({ kcal: '482', carb: '54', prot: '17', fat: '22' });
+      // La gradazione non si rigenera: non è una stima sugli ingredienti ma un
+      // dato dichiarato, e sovrascriverlo cancellerebbe quello che hai scritto.
+      setValues(v => ({ ...v, kcal: '482', carb: '54', prot: '17', fat: '22' }));
       setRegenerating(false);
     }, 800);
   };
@@ -3992,6 +3999,38 @@ function NutritionFields() {
           </div>
         ))}
       </div>
+
+      {/* Gradazione — fuori dalla griglia dei macro perché non è una quantità
+          per porzione ma una percentuale sul volume, e mescolarla ai grammi
+          farebbe leggere "5" come cinque grammi di qualcosa. Ambra come la
+          spunta «Contiene alcolici» da cui questo campo arriva. */}
+      {alcolico && (
+        <div style={{
+          marginTop: 12, padding: '10px 12px', borderRadius: 8,
+          background: '#FFFBEB', border: '1px solid #FCD34D',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{color: '#B45309', display: 'inline-flex', flexShrink: 0}}>
+            <Icon name="drink-wine" size={16}/>
+          </span>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 15, fontWeight: 700, color: '#B45309'}}>Gradazione alcolica</div>
+            <div style={{fontSize: 13.5, color: '#92400E', marginTop: 1, lineHeight: 1.35}}>
+              Va in menù accanto al piatto, non tra i valori per porzione.
+            </div>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0}}>
+            <input value={values.vol} onChange={e => setValues(v => ({...v, vol: e.target.value}))}
+              type="text" inputMode="decimal" placeholder="es. 5,2"
+              style={{
+                width: 84, padding: '10px 8px', border: '1px solid #FCD34D',
+                borderRadius: 8, fontSize: 17, fontFamily: 'inherit', outline: 'none',
+                textAlign: 'center', fontWeight: 700, color: PN.TEXT, background: PN.WHITE,
+              }}/>
+            <span style={{fontSize: 14.5, fontWeight: 700, color: '#B45309'}}>% vol</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -5008,7 +5047,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
               open={openSection === 'nutrition'}
               onToggle={() => setOpenSection(s => s === 'nutrition' ? null : 'nutrition')}
             >
-              <NutritionFields/>
+              <NutritionFields alcolico={hasAlcohol}/>
             </CollapseSection>
 
             {/* Avanzate — non e' una sezione come le altre ma il contenitore di
