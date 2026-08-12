@@ -218,6 +218,43 @@ function Kds2Chevron({ size = 24, verso = 1 }) {
   const giro = verso === 0 ? 'rotate(90deg)' : verso < 0 ? 'scaleX(-1)' : 'none';
   return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{transform: giro}}><polyline points="9 5 16 12 9 19"/></svg>);
 }
+// Un dito che preme, con l'onda del contatto. Non è il puntatore del mouse: qui
+// si tocca uno schermo, e il glifo deve somigliare al gesto che si chiede.
+function Kds2Dito({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 10.5V5a1.8 1.8 0 0 1 3.6 0v7.2"/>
+      <path d="M13.6 11.4a1.7 1.7 0 0 1 3.4 0v1.1"/>
+      <path d="M17 12.2a1.7 1.7 0 0 1 3.4 0v3.4a5.9 5.9 0 0 1-5.9 5.9h-2.2a5.6 5.6 0 0 1-4-1.7l-3-3a1.8 1.8 0 0 1 2.5-2.5l1.2 1.1"/>
+      {/* L'onda del tocco: due archi che si aprono dal polpastrello */}
+      <path d="M5.6 5.6a4.4 4.4 0 0 1 1.2-2.3" opacity="0.55"/>
+      <path d="M3.2 8.4a7.4 7.4 0 0 1 2-5.2" opacity="0.35"/>
+    </svg>
+  );
+}
+
+// ─── L'istruzione ─────────────────────────────────────────────────────────
+// La pressione lunga è l'unico gesto della schermata che non si vede: il tap
+// sulla chip ha un bersaglio disegnato, questo no. Finora si imparava per caso —
+// o non si imparava, e la riga intera si spegneva una porzione alla volta.
+// Una riga sola, grigia, sotto la fila delle sorgenti e sopra la prima card:
+// dove l'occhio passa comunque prima di scendere sui piatti, e senza rubare
+// altezza al lavoro.
+function Kds2Istruzione() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '2px 4px 12px', color: K.TESTO_2, flexShrink: 0,
+    }}>
+      <span style={{display: 'flex', flexShrink: 0}}><Kds2Dito size={26}/></span>
+      <span style={Object.assign({}, TY.corpo, {letterSpacing: '-0.01em'})}>
+        Tieni premuto un piatto per avviare la preparazione
+      </span>
+    </div>
+  );
+}
+
 // Schermo intero — stessa coppia di glifi della vista Banco.
 function Kds2Espandi({ size = 24, chiudi = false }) {
   return chiudi
@@ -616,15 +653,19 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
 // c'è un mouse che passa sopra a rivelare una barra, e nessuno prova a
 // trascinare qualcosa che non sembra trascinabile.
 //
-// Stanno SEMPRE a schermo, spente quando non portano da nessuna parte. La
-// prima versione le montava solo in caso di traboccamento, ed era un cane che
-// si morde la coda: le frecce occupano larghezza, quindi montarle poteva far
-// rientrare il contenuto, che le smontava, che lo faceva traboccare di nuovo.
-// React lo tronca con «Maximum update depth exceeded» e la schermata sparisce —
-// in cucina, nel mezzo del servizio. Renderle permanenti toglie il ciclo alla
-// radice invece che smorzarlo: la larghezza della rail non dipende più da ciò
-// che si sta misurando. Costa due frecce spente quando tutto ci sta, che è un
-// prezzo onesto — e per giunta dicono «qui si scorre» prima ancora che serva.
+// C'È SOLO LA FRECCIA CHE PORTA DA QUALCHE PARTE. Una freccia spenta è un
+// bersaglio che invita e non risponde: da due metri il grigio chiaro non si
+// legge come «disabilitata», si legge come «freccia», e la mano ci va.
+//
+// Toglierle quando non servono era però proprio ciò che aveva fatto sparire la
+// schermata la prima volta: stando in fila con la rail, montarle e smontarle ne
+// cambiava la larghezza, quindi il traboccamento che le aveva accese le
+// spegneva, il che lo faceva tornare — «Maximum update depth exceeded», in
+// cucina, nel mezzo del servizio. Il ciclo non si spezza tenendole sempre
+// accese: si spezza TOGLIENDOLE DAL FLUSSO. Ora galleggiano sui due bordi della
+// rail, in posizione assoluta, e la larghezza di ciò che si misura non dipende
+// più da ciò che la misura decide. Coprono un pezzo della chip che sta sotto,
+// ed è giusto così: l'ombra sotto la freccia dice «qui sotto continua».
 const GAP_RAIL = 10;
 
 function Kds2Rail({ children }) {
@@ -692,34 +733,65 @@ function Kds2Rail({ children }) {
     });
   }
 
-  const freccia = (verso, spento) => (
+  // Fuori dal flusso: la freccia si posa SOPRA il bordo della rail, non accanto.
+  // È la sola forma in cui può andare e venire senza spostare di un pixel ciò
+  // che la fa comparire.
+  const freccia = (verso) => (
     <button type="button" data-kds2-interattivo=""
-      onClick={() => scorri(verso)} disabled={spento}
+      onClick={() => scorri(verso)}
       aria-label={verso < 0 ? 'Sorgenti precedenti' : 'Altre sorgenti'}
       title={verso < 0 ? 'Sorgenti precedenti' : 'Altre sorgenti'}
       style={{
-        width: 56, height: H_BERSAGLIO, flexShrink: 0, borderRadius: 12,
+        position: 'absolute', top: '50%', transform: 'translateY(-50%)',
+        left:  verso < 0 ? 0 : 'auto',
+        right: verso < 0 ? 'auto' : 0,
+        zIndex: 5,
+        width: 56, height: H_BERSAGLIO, borderRadius: 12,
         display: 'grid', placeItems: 'center',
-        background: K.RIGA, border: '2px solid ' + (spento ? K.BORDO_ATTESA : K.BORDO),
-        color: spento ? K.BORDO_ATTESA : K.TESTO,
-        cursor: spento ? 'default' : 'pointer', fontFamily: 'inherit',
+        background: K.RIGA, border: '2px solid ' + K.BORDO, color: K.TESTO,
+        // L'ombra della card del gestionale: dice che la freccia sta SOPRA la
+        // fila, e che la chip che sparisce sotto non è finita, è coperta.
+        boxShadow: PN.CARD_SHADOW_HOVER,
+        cursor: 'pointer', fontFamily: 'inherit',
       }}>
       <Kds2Chevron size={28} verso={verso}/>
     </button>
   );
 
   return (
-    <div style={{display: 'flex', alignItems: 'center', gap: GAP_RAIL}}>
-      {freccia(-1, stato.inizio)}
+    <div style={{position: 'relative'}}>
       <div ref={rif} className="kds2-rail" data-kds2-interattivo="" style={{
-        flex: 1, minWidth: 0,
         display: 'flex', flexWrap: 'nowrap', gap: GAP_RAIL,
         overflowX: 'auto', overflowY: 'hidden',
       }}>
         {children}
       </div>
-      {freccia(1, stato.fine)}
+      {!stato.inizio && freccia(-1)}
+      {!stato.fine   && freccia(1)}
     </div>
+  );
+}
+
+// ─── Tutti ────────────────────────────────────────────────────────────────
+// Prima chip della fila, e la sola che c'è sempre. Evidenziare una sorgente si
+// disfaceva solo ritoccando la stessa chip — un gesto che bisogna sapere — o
+// aspettando che l'evidenza scadesse da sé. Ora c'è il posto dove si torna, ed
+// è dove la mano arriva per prima: in testa, prima di tutti i tavoli.
+// Sta DENTRO la rail e non prima: è una scelta come le altre, e la fila deve
+// leggersi come un elenco unico di stati fra cui uno solo è acceso.
+function Kds2Tutti({ selezionata, onTap }) {
+  return (
+    <button type="button" data-kds2-interattivo="" onClick={onTap}
+      aria-label="Mostra tutte le sorgenti" title="Mostra tutto"
+      style={Object.assign({}, TY.chipId, {
+        display: 'inline-flex', alignItems: 'center',
+        height: H_BERSAGLIO, padding: '0 22px', borderRadius: 12, flexShrink: 0,
+        background: selezionata ? K.BRAND_BG : 'transparent',
+        border: '2px solid ' + (selezionata ? K.BRAND : K.BORDO),
+        color: selezionata ? K.BRAND_INK : K.TESTO,
+        letterSpacing: '0.04em',
+        fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
+      })}>TUTTI</button>
   );
 }
 
@@ -877,6 +949,7 @@ function Kds2Header({
         </span>
       ) : (
         <Kds2Rail>
+          <Kds2Tutti selezionata={selezione == null} onTap={() => onSeleziona(null)}/>
           {sorgenti.map(s => {
             const sel = selezione === s.id;
             return (
@@ -925,9 +998,16 @@ function Kds2Header({
 // due cose insieme — «sono sopra il board, non dentro» e «sto coprendo qualcosa
 // che è ancora lì». Un fondo pieno avrebbe detto solo la prima.
 //
-// Ogni voce vive dieci secondi. Il conto alla rovescia NON si vede: un timer
-// che scorre su cinque pastiglie diventa la cosa che si muove sullo schermo,
-// cioè l'unica che l'occhio guarda, in una schermata dove ciò che conta è fermo.
+// Ogni voce vive dieci secondi, E IL CONTO ALLA ROVESCIA SI VEDE. Prima era
+// nascosto di proposito — cinque timer che scorrono sono cinque cose che si
+// muovono in una schermata dove ciò che conta è fermo — ma quel ragionamento
+// difendeva la quiete del board e lasciava scoperta la domanda vera: chi ha
+// appena premuto non sa quanto tempo ha per tornare indietro, e senza saperlo
+// non prova nemmeno. Il timer è piccolo, rosso, e sta DENTRO il bersaglio che
+// scade, non da qualche parte a fianco: si muove solo qui, e solo mentre c'è
+// una decisione aperta. La scritta a sinistra dice che cosa succede quando
+// finisce, perché un conto alla rovescia senza conseguenza dichiarata fa più
+// paura di quanta ne meriti.
 function Kds2Undo({ size = 22 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -938,8 +1018,60 @@ function Kds2Undo({ size = 22 }) {
   );
 }
 
+function Kds2Orologio({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/>
+    </svg>
+  );
+}
+
+// Disco rosso con i secondi che restano e l'anello che si consuma. Il numero
+// serve da vicino («quanto ho?»), l'anello da lontano («sta per finire»): a due
+// metri una cifra da 16 px non si legge, un anello mezzo vuoto sì.
+function Kds2Timer({ scadenza, adesso, size = 34 }) {
+  const restano = Math.max(0, Math.ceil((scadenza - adesso) / 1000));
+  const parte = Math.max(0, Math.min(1, (scadenza - adesso) / UNDO_MS));
+  const r = (size - 5) / 2;
+  const giro = 2 * Math.PI * r;
+  return (
+    <span aria-hidden="true" style={{
+      position: 'relative', width: size, height: size, flexShrink: 0,
+      display: 'grid', placeItems: 'center',
+    }}>
+      <svg width={size} height={size} style={{
+        position: 'absolute', left: 0, top: 0, transform: 'rotate(-90deg)',
+      }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill={K.ROSSO}/>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke={K.RIGA} strokeWidth="2.5" strokeLinecap="round"
+          strokeDasharray={giro} strokeDashoffset={giro * (1 - parte)}
+          style={{transition: KDS2_MOTO_RIDOTTO ? 'none' : 'stroke-dashoffset 1s linear'}}/>
+      </svg>
+      <span style={{
+        position: 'relative', fontSize: 16, fontWeight: 800, color: K.RIGA,
+        fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+      }}>{restano}</span>
+    </span>
+  );
+}
+
 function Kds2Annulla({ voci, onRipristina }) {
-  if (voci.length === 0) return null;
+  // Un battito al secondo, e solo finché c'è qualcosa da annullare: la board
+  // gira a trenta secondi e non deve accelerare per colpa di questa fascia.
+  // Vive qui dentro perché qui dentro sta tutto ciò che si rinfresca — le righe
+  // dei piatti non si rirenderizzano per un timer che non le riguarda.
+  const [adesso, setAdesso] = React.useState(() => Date.now());
+  const vive = voci.length > 0;
+  React.useEffect(() => {
+    if (!vive) return;
+    setAdesso(Date.now());
+    const id = setInterval(() => setAdesso(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [vive]);
+
+  if (!vive) return null;
   const ultima = voci[0], precedenti = voci.slice(1);
   return (
     <div data-kds2-interattivo="" style={Object.assign({
@@ -947,6 +1079,20 @@ function Kds2Annulla({ voci, onRipristina }) {
       display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10,
       padding: '14px 20px', borderRadius: 16, marginTop: 4,
     }, PN.GLASS_LIGHT)}>
+      {/* Che cosa succede quando il rosso finisce. Sta a sinistra, prima di
+          tutto: è la regola sotto cui si legge tutta la fila, non la didascalia
+          di una delle pastiglie. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+        maxWidth: 340, padding: '9px 14px', borderRadius: 12,
+        background: K.RIGA, border: '1px solid ' + K.BORDO_RIGA,
+      }}>
+        <span style={{color: K.ROSSO, display: 'flex', flexShrink: 0}}><Kds2Orologio size={22}/></span>
+        <span style={{fontSize: 15, fontWeight: 600, lineHeight: 1.25, color: K.TESTO_2}}>
+          Allo scadere del timer, il piatto viene considerato pronto e scompare
+        </span>
+      </div>
+
       <button type="button" onClick={() => onRipristina(ultima)}
         aria-label={'Annulla · ' + ultima.testo}
         title={'Annulla · ' + ultima.testo}
@@ -960,6 +1106,7 @@ function Kds2Annulla({ voci, onRipristina }) {
         <span style={{fontSize: 21, fontWeight: 800, letterSpacing: '-0.01em'}}>Annulla</span>
         <span aria-hidden="true" style={{opacity: 0.55, fontSize: 20, fontWeight: 700}}>·</span>
         <span style={{fontSize: 20, fontWeight: 600}}>{ultima.testo}</span>
+        <Kds2Timer scadenza={ultima.scadenza} adesso={adesso}/>
       </button>
 
       {/* Le azioni precedenti restano annullabili, ma non si travestono da CTA:
@@ -976,6 +1123,7 @@ function Kds2Annulla({ voci, onRipristina }) {
           }}>
           <span style={{color: K.TESTO_2, display: 'flex', flexShrink: 0}}><Kds2Undo size={20}/></span>
           <span style={Object.assign({}, TY.chipId, {color: K.TESTO})}>{v.testo}</span>
+          <Kds2Timer scadenza={v.scadenza} adesso={adesso} size={30}/>
         </button>
       ))}
     </div>
@@ -1159,6 +1307,12 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
         focus={focus} onToggleFocus={onToggleFocus} barra={barra}
         canale={canale} onCanale={setCanale} canali={CANALI}
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}/>
+
+      {/* Fra la fila delle sorgenti e la prima card: allineata alle righe, non
+          alla testata, perché parla di loro. */}
+      <div style={{padding: barra ? 0 : '0 ' + PAD_X + 'px'}}>
+        <Kds2Istruzione/>
+      </div>
 
       {/* UN SOLO contenitore che scorre, per qualunque numero di righe: niente
           scroll annidato, niente colonne — la posizione in lista è la priorità,
