@@ -4151,7 +4151,7 @@ function IngredientList({ ingredients, setIngredients }) {
         <div>
           {/* Intestazioni: stessa griglia delle righe, così le colonne si allineano */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '14px minmax(0, 1fr) 116px 106px 112px 52px',
+            display: 'grid', gridTemplateColumns: '14px minmax(0, 1fr) 116px 122px 112px 52px',
             gap: 8, alignItems: 'center', borderBottom: `1px solid ${PN.BORDER_SOFT}`,
           }}>
             <span/>
@@ -4159,7 +4159,8 @@ function IngredientList({ ingredients, setIngredients }) {
             <span style={ING_TH}>Quantità / nota</span>
             <span style={ING_TH}>Allergeni associati</span>
             <span style={ING_TH}>Rimovibile dal cliente</span>
-            <span style={{...ING_TH, textAlign: 'center'}}>Azioni</span>
+            {/* Una colonna, un'azione: si chiama con quello che fa. */}
+            <span style={{...ING_TH, textAlign: 'center'}}>Elimina</span>
           </div>
 
           {ingredients.map((ing, i) => {
@@ -4176,7 +4177,7 @@ function IngredientList({ ingredients, setIngredients }) {
                   transition: 'background 150ms ease-out',
                 }}>
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '14px minmax(0, 1fr) 116px 106px 112px 52px',
+                  display: 'grid', gridTemplateColumns: '14px minmax(0, 1fr) 116px 122px 112px 52px',
                   gap: 8, alignItems: 'center', padding: '9px 0',
                 }}>
                   <span
@@ -4222,24 +4223,40 @@ function IngredientList({ ingredients, setIngredients }) {
                     )}
                   </div>
 
-                  {/* Allergeni associati: chip che apre il pannello di scelta */}
-                  <button onClick={() => setAllergeniIdx(aperto ? null : i)} title="Allergeni dell'ingrediente" style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 0,
-                    padding: '5px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-                    border: `1px solid ${aperto ? PN.PINK : (ingAllergens.length ? PN.PINK_SOFT : PN.BORDER_SOFT)}`,
-                    background: ingAllergens.length ? PN.PINK_BG_SOFT : '#F4F5F7',
-                    color: ingAllergens.length ? PN.PINK_DARK : PN.MUTED,
-                    fontSize: 12.5, fontWeight: 600,
-                  }}>
-                    {ingAllergens.length === 0 ? 'Nessuno' : (
+                  {/* Allergeni associati: è l'unico modo per aprire il pannello
+                      di scelta — la matita in Azioni non c'è più — quindi deve
+                      dire da solo che si clicca. La freccia è la stessa della
+                      tendina Quantità qui accanto e gira quando il pannello è
+                      aperto: chi ha appena usato quella riconosce il gesto. */}
+                  <button onClick={() => setAllergeniIdx(aperto ? null : i)}
+                    title={aperto ? 'Chiudi gli allergeni di ' + ing.name : 'Scegli gli allergeni di ' + ing.name}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = PN.PINK; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = aperto ? PN.PINK : (ingAllergens.length ? PN.PINK_SOFT : PN.BORDER); }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 0, width: '100%',
+                      padding: '5px 7px 5px 9px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1px solid ${aperto ? PN.PINK : (ingAllergens.length ? PN.PINK_SOFT : PN.BORDER)}`,
+                      background: ingAllergens.length ? PN.PINK_BG_SOFT : PN.WHITE,
+                      color: ingAllergens.length ? PN.PINK_DARK : PN.MUTED,
+                      fontSize: 12.5, fontWeight: 600,
+                      transition: 'border-color 150ms ease-out',
+                    }}>
+                    {ingAllergens.length === 0 ? (
+                      <span style={{flex: 1, minWidth: 0, textAlign: 'left'}}>Nessuno</span>
+                    ) : (
                       <>
                         <window.AllergenIcon id={ingAllergens[0]} size={14}/>
-                        <span style={{minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                        <span style={{flex: 1, minWidth: 0, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
                           {(window.ALLERGENS.find(a => a.id === ingAllergens[0]) || {}).name}
                         </span>
                         {ingAllergens.length > 1 && <span style={{fontWeight: 800}}>+{ingAllergens.length - 1}</span>}
                       </>
                     )}
+                    <span style={{
+                      display: 'inline-flex', flexShrink: 0,
+                      color: ingAllergens.length ? PN.PINK_DARK : PN.MUTED,
+                      transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out',
+                    }}><PnI.ChevronDown size={11}/></span>
                   </button>
 
                   {/* Rimovibile dal cliente */}
@@ -4250,14 +4267,10 @@ function IngredientList({ ingredients, setIngredients }) {
                     </span>
                   </div>
 
-                  <div style={{display: 'flex', gap: 2, justifyContent: 'center'}}>
-                    <button onClick={() => setAllergeniIdx(aperto ? null : i)} title="Modifica allergeni" style={{
-                      padding: 0, width: 26, height: 26, border: 'none', background: 'transparent',
-                      color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center', borderRadius: 6,
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    ><Icon name="pencil" size={12}/></button>
+                  {/* Una sola azione: gli allergeni si aprono dal chip qui a
+                      fianco, dove si vedono anche. La matita duplicava quel
+                      gesto in una colonna che sembrava fatta per altro. */}
+                  <div style={{display: 'flex', justifyContent: 'center'}}>
                     <button onClick={() => { setIngredients(arr => arr.filter((_, idx) => idx !== i)); if (allergeniIdx === i) setAllergeniIdx(null); }}
                       title="Togli dal piatto" style={{
                         padding: 0, width: 26, height: 26, border: 'none', background: 'transparent',
