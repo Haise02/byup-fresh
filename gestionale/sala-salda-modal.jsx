@@ -112,8 +112,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   React.useEffect(() => {
     if (open && tavolo) {
       const cloned = (tavolo.ordini || []).map(o => ({...o}));
+      const gById = Object.fromEntries((tavolo.guests || []).map(g => [g.id, g]));
+      const pagati = new Set((tavolo.pagamenti || []).map(p => String(p.chi || '').trim().toLowerCase()));
+      const giaPagato = (o) => !!o.guestId && gById[o.guestId]
+        && pagati.has(String(gById[o.guestId].name || '').trim().toLowerCase());
       setEditedOrdini(cloned);
-      setSelectedItems(new Map(cloned.map(o => [o.id, o.qty])));
+      setSelectedItems(new Map(cloned.filter(o => !giaPagato(o)).map(o => [o.id, o.qty])));
       setGroupBy('flat');
       setCollapsedGroups(new Set());
       setAdjust(null);
@@ -140,6 +144,21 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const guests = tavolo.guests || [];
   const guestById = Object.fromEntries(guests.map(g => [g.id, g]));
 
+  // Chi ha già pagato la sua parte dall'app: i suoi piatti non si incassano
+  // una seconda volta. Prima restavano in elenco selezionabili e il totale
+  // chiedeva alla cassa soldi già arrivati — la riga «Già incassato» diceva la
+  // stessa cosa in fondo alla colonna, da mettere in relazione a mente.
+  const nomiPagati = new Set((tavolo.pagamenti || []).map(p => String(p.chi || '').trim().toLowerCase()));
+  const guestPagato = (gid) => {
+    const g = guestById[gid];
+    return !!g && nomiPagati.has(String(g.name || '').trim().toLowerCase());
+  };
+  const isPagato = (o) => !!o.guestId && guestPagato(o.guestId);
+
+  // Quello che la cassa può ancora incassare: i piatti già pagati non sono
+  // «deselezionati», sono fuori dal conto — se contassero, il riepilogo
+  // direbbe «4 di 6» a chi non ha toccato niente.
+  const incassabili = allOrdini.filter(o => !isPagato(o));
   const selectedOrdini = allOrdini.filter(o => (selectedItems.get(o.id) || 0) > 0);
   const subtotale = selectedOrdini.reduce((s,o) => s + (selectedItems.get(o.id) || 0) * o.prezzo, 0);
 
@@ -184,7 +203,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
   function toggleItem(id) {
     const o = allOrdini.find(x => x.id === id);
-    if (!o) return;
+    if (!o || isPagato(o)) return;
     setSelectedItems(s => {
       const ns = new Map(s);
       if ((ns.get(id) || 0) > 0) ns.delete(id);
@@ -210,7 +229,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       return ns;
     });
   }
-  function selectAll() { setSelectedItems(new Map(allOrdini.map(o => [o.id, o.qty]))); }
+  function selectAll() { setSelectedItems(new Map(allOrdini.filter(o => !isPagato(o)).map(o => [o.id, o.qty]))); }
   function selectNone() { setSelectedItems(new Map()); }
   function selectGroup(items) {
     setSelectedItems(s => {
@@ -341,9 +360,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       <div style={{
         position:'absolute', top:'50%', left:'50%',
         transform:'translate(-50%, -50%)',
-        width: (paying || done) ? 420 : 880,
-        maxWidth:'88%', height:'auto', maxHeight:'88%',
-        background:'#fff', borderRadius: 16,
+        width: (paying || done) ? 420 : 1080,
+        maxWidth:'93%', height:'auto', maxHeight:'92%',
+        background:'#fff', borderRadius: 20,
         boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
         zIndex: 61, display:'flex', flexDirection:'column', overflow:'hidden',
         transition:'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -365,17 +384,17 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
           <>
             {/* Header */}
             <div style={{
-              padding:'14px 20px', borderBottom:'1px solid #F0F2F5',
-              display:'flex', alignItems:'center', gap: 12, flexShrink: 0,
+              padding:'20px 24px 16px',
+              display:'flex', alignItems:'flex-start', gap: 12, flexShrink: 0,
             }}>
-              <div style={{flex:1}}>
-                <div style={{fontSize: 14.5, color:'#6B7280', fontWeight:800, letterSpacing:0.6, textTransform:'uppercase'}}>
+              <div style={{flex:1, minWidth: 0}}>
+                <div style={{fontSize: 14, color:'#6B7280', fontWeight:800, letterSpacing:0.8, textTransform:'uppercase'}}>
                   Salda conto
                 </div>
-                <div style={{fontSize: 22, fontWeight: 800, color:'#0F1115', marginTop: 1, letterSpacing:-0.2}}>
-                  Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}
-                  <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', marginLeft:8}}>
-                    · {tavolo.coperti || 1} coperti
+                <div style={{fontSize: 27, fontWeight: 800, color:'#0F1115', marginTop: 2, letterSpacing:-0.6, display:'flex', alignItems:'baseline', gap: 10, flexWrap:'wrap'}}>
+                  <span>Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}</span>
+                  <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', letterSpacing: 0}}>
+                    {tavolo.coperti || 1} coperti
                   </span>
                 </div>
               </div>
@@ -383,7 +402,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 <IconPrinter/>
                 {preContoStampato ? 'Ristampa pre-conto' : 'Stampa pre-conto'}
               </button>
-              <button onClick={onClose} style={saldaIconBtn}>×</button>
+              <button onClick={onClose} title="Chiudi" style={saldaIconBtn}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
             </div>
 
             {/* Body 2 colonne */}
@@ -391,15 +412,14 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
               {/* Sinistra: articoli */}
               <div style={{
                 flex: '1.5 1 0', display:'flex', flexDirection:'column',
-                borderRight:'1px solid #F0F2F5', minWidth: 0,
+                minWidth: 0,
               }}>
                 {/* Toolbar selezione */}
                 <div style={{
-                  padding:'10px 18px', borderBottom:'1px solid #F0F2F5',
+                  padding:'0 24px 12px',
                   display:'flex', alignItems:'center', gap: 8, flexShrink: 0,
-                  background:'#FAFBFC',
                 }}>
-                  <div style={{display:'inline-flex', borderRadius: 8, overflow:'hidden', background:'#fff', border:'1px solid #E5E7EB'}}>
+                  <div style={{display:'inline-flex', borderRadius: 12, overflow:'hidden', background:'#fff', border:'1px solid #E5E7EB', padding: 3, gap: 3}}>
                     <button onClick={()=>setGroupBy('flat')} style={segBtn(groupBy === 'flat')}>
                       Tutti articoli
                     </button>
@@ -409,7 +429,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   </div>
                   <span style={{flex:1}}/>
                   {(() => {
-                    const allSel = allOrdini.length > 0 && allOrdini.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
+                    const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
                     const someSel = !allSel && selectedItems.size > 0;
                     return (
                       <button
@@ -417,16 +437,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         style={{...miniLink, gap: 6, color: '#374151'}}
                       >
                         <span style={{
-                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                          border: `2px solid ${allSel || someSel ? '#0F1115' : '#D1D5DB'}`,
-                          background: allSel ? '#0F1115' : 'transparent',
+                          width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                          border: `1.5px solid ${allSel || someSel ? SALDA_BRAND : '#D1D5DB'}`,
+                          background: allSel ? SALDA_BRAND : '#fff',
                           display: 'grid', placeItems: 'center', position: 'relative',
                         }}>
                           {allSel && (
-                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                           )}
                           {someSel && (
-                            <span style={{width: 8, height: 2, background: '#0F1115', borderRadius: 1, display:'block'}}/>
+                            <span style={{width: 9, height: 2.5, background: SALDA_BRAND, borderRadius: 2, display:'block'}}/>
                           )}
                         </span>
                         Seleziona tutti
@@ -445,6 +465,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'10px 18px 14px'}}>
                   {groupBy === 'flat' ? (
                     <FlatList ordini={allOrdini} selectedItems={selectedItems} toggleItem={toggleItem} setItemQty={setItemQty} guestById={guestById}
+                      isPagato={isPagato}
                       onUpdate={updateItem} onDelete={deleteItem}/>
                   ) : (
                     <GroupedList groups={groups}
@@ -454,6 +475,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       collapsedGroups={collapsedGroups}
                       toggleGroup={toggleGroup}
                       selectGroup={selectGroup}
+                      isPagato={isPagato}
                       onUpdate={updateItem} onDelete={deleteItem}/>
                   )}
                 </div>
@@ -462,20 +484,23 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
               {/* Destra: riepilogo + pagamento */}
               <div style={{
                 flex: '1 1 0', display:'flex', flexDirection:'column',
-                background:'#FAFBFC', minWidth: 340,
+                background:'#fff', minWidth: 380, maxWidth: 460,
+                borderLeft:'1px solid #EDEFF2',
               }}>
-                <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'18px 22px'}}>
+                <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'0 0 18px'}}>
 
-                  {/* RIEPILOGO TOTALE */}
-                  <div style={{marginBottom: 18}}>
+                  {/* RIEPILOGO TOTALE — un blocco in tinta brand: è il numero
+                      per cui questa finestra esiste, e prima era una riga di
+                      testo su fondo grigio come tutto il resto. */}
+                  <div style={{background: SALDA_BRAND_SOFT, padding:'18px 22px 14px'}}>
                     {/* Il dettaglio (subtotale, sconto) compare SOLO quando
                         racconta qualcosa che il Totale da solo non dice:
                         selezione parziale o aggiustamento. Nel caso normale
                         il primo numero che leggi è l'unico. */}
-                    {(adjust || selectedOrdini.length < allOrdini.length) && (
+                    {(adjust || selectedOrdini.length < incassabili.length) && (
                     <div style={{display:'flex', flexDirection:'column', gap: 5, marginBottom: 12}}>
                       <ReceiptRow
-                        label={`Subtotale${selectedOrdini.length < allOrdini.length ? ` · ${selectedOrdini.length} di ${allOrdini.length}` : ''}`}
+                        label={`Subtotale${selectedOrdini.length < incassabili.length ? ` · ${selectedOrdini.length} di ${incassabili.length}` : ''}`}
                         value={`€${subtotale.toFixed(2)}`}/>
                       {adjust && (
                         <ReceiptRow
@@ -489,8 +514,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
                     {/* HERO TOTAL */}
                     <div style={{
-                      paddingTop: (adjust || selectedOrdini.length < allOrdini.length) ? 14 : 0,
-                      borderTop: (adjust || selectedOrdini.length < allOrdini.length) ? '1px solid #E5E7EB' : 'none',
+                      paddingTop: (adjust || selectedOrdini.length < incassabili.length) ? 14 : 0,
+                      borderTop: (adjust || selectedOrdini.length < incassabili.length) ? '1px solid rgba(15,17,21,0.08)' : 'none',
                       display:'flex', alignItems:'baseline', gap: 8,
                     }}>
                       <span style={{
@@ -498,8 +523,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         letterSpacing: 0.6, textTransform:'uppercase', flex: 1,
                       }}>Totale</span>
                       <span style={{
-                        fontSize: 40, fontWeight: 800, color:'#0F1115',
-                        letterSpacing:-1, lineHeight: 1,
+                        fontSize: 42, fontWeight: 800, color:'#0F1115',
+                        letterSpacing:-1.4, lineHeight: 1,
                         fontVariantNumeric:'tabular-nums',
                       }}>€{total.toFixed(2)}</span>
                     </div>
@@ -511,17 +536,17 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       <button onClick={() => setAdjustOpen(o => !o)} style={{
                         background:'transparent', border:'none', padding: 0,
                         fontFamily:'inherit', fontSize: 15.5, fontWeight: 700,
-                        color: adjustOpen ? '#0F1115' : '#6B7280',
-                        cursor:'pointer',
+                        color: SALDA_BRAND, cursor:'pointer',
                         display:'inline-flex', alignItems:'center', gap: 4,
+                        textDecoration:'underline', textUnderlineOffset: 3,
                       }}>
                         {adjust ? 'Modifica la correzione' : 'Sconto o correzione'}
                         <span style={{
                           display:'inline-block',
-                          transform: adjustOpen ? 'rotate(180deg)' : 'none',
+                          transform: adjustOpen ? 'rotate(90deg)' : 'none',
                           transition:'transform 0.15s',
-                          fontSize: 13,
-                        }}>▾</span>
+                          fontSize: 15,
+                        }}>›</span>
                       </button>
                     </div>
 
@@ -533,15 +558,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     )}
                   </div>
 
-                  {/* Quello che è già stato incassato su questo conto: chi ha
-                      pagato con l'app, chi in contanti. Sta qui, attaccato al
-                      totale, perché sono soldi dello stesso conto — in fondo
-                      alla colonna lo si leggeva dopo aver già scelto come far
-                      pagare. Sola lettura: il rimborso resta in Contabilità,
-                      dove si può motivare e tracciare. */}
+                  {/* Quello che è già arrivato su questo conto. I piatti che
+                      queste quote coprono sono spenti nell'elenco a sinistra,
+                      quindi il totale qui sopra è già al netto: non c'è più
+                      niente da mettere in relazione a mente. */}
                   <PagamentiConto pagamenti={tavolo.pagamenti} />
 
-                  <div style={{height: 1, background:'#E5E7EB', margin:'0 -22px 18px'}}/>
+                  <div style={{padding:'18px 22px 0'}}>
 
                   {/* PAGAMENTO — la sola domanda a cui l'operatore deve
                       rispondere in questa colonna. Era un'etichetta maiuscola
@@ -607,7 +630,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     )}
                   </div>
 
-                  <div style={{height: 1, background:'#E5E7EB', margin:'0 -22px 16px'}}/>
+                  <div style={{height: 1, background:'#EDEFF2', margin:'0 -22px 16px'}}/>
 
                   {/* FATTURA */}
                   <div>
@@ -630,11 +653,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       <InvoiceForm data={invoiceData} setData={setInvoiceData}/>
                     )}
                   </div>
+                  </div>
                 </div>
 
                 {/* Footer di destra: CTA principale */}
                 <div style={{
-                  padding:'14px 22px', borderTop:'1px solid #F0F2F5',
+                  padding:'16px 22px 20px', borderTop:'1px solid #EDEFF2',
                   background:'#fff', flexShrink: 0,
                   display:'flex', flexDirection:'column', gap: 8,
                 }}>
@@ -663,10 +687,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         }}
                         disabled={!attivo}
                         style={{
-                          width:'100%', padding:'15px 16px', borderRadius: 10,
-                          background: attivo ? '#0F1115' : '#E5E7EB',
+                          width:'100%', padding:'18px 16px', borderRadius: 14,
+                          background: attivo ? SALDA_BRAND : '#EDEFF2',
                           color: attivo ? '#fff' : '#9CA3AF',
                           border:'none',
+                          boxShadow: attivo ? '0 10px 22px -10px rgba(255,59,65,0.65)' : 'none',
                           // "Invia a Byup Staff · €65.00" è più lunga di
                           // "Incassa": mezzo punto in meno la tiene su una
                           // riga sola invece di spezzarla in due.
@@ -721,16 +746,17 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 }
 
 // ────────── LISTA ARTICOLI FLAT ──────────
-function FlatList({ ordini, selectedItems, toggleItem, setItemQty, guestById, onUpdate, onDelete }) {
+function FlatList({ ordini, selectedItems, toggleItem, setItemQty, guestById, isPagato, onUpdate, onDelete }) {
   if (ordini.length === 0) return <EmptyOrdini/>;
   return (
-    <div style={{display:'flex', flexDirection:'column', gap: 2}}>
+    <div style={{display:'flex', flexDirection:'column', gap: 8}}>
       {ordini.map(o => (
         <ItemRowV2 key={o.id} o={o}
           selectedQty={selectedItems.get(o.id) || 0}
           onToggle={()=>toggleItem(o.id)}
           onSetQty={(q)=>setItemQty(o.id, q)}
           guest={o.guestId ? guestById[o.guestId] : null}
+          pagato={!!isPagato && isPagato(o)}
           onUpdate={onUpdate} onDelete={onDelete}/>
       ))}
     </div>
@@ -738,7 +764,7 @@ function FlatList({ ordini, selectedItems, toggleItem, setItemQty, guestById, on
 }
 
 // ────────── LISTA ARTICOLI GROUPED ──────────
-function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedGroups, toggleGroup, selectGroup, onUpdate, onDelete }) {
+function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedGroups, toggleGroup, selectGroup, isPagato, onUpdate, onDelete }) {
   if (groups.length === 0) return <EmptyOrdini/>;
   return (
     <div style={{display:'flex', flexDirection:'column'}}>
@@ -829,6 +855,7 @@ function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedG
                     onSetQty={(q)=>setItemQty(o.id, q)}
                     guest={null}
                     hideBayupBadge={g.type === 'guest' && g.meta?.source === 'byup'}
+                    pagato={!!isPagato && isPagato(o)}
                     onUpdate={onUpdate} onDelete={onDelete}/>
                 ))}
               </div>
@@ -840,7 +867,7 @@ function GroupedList({ groups, selectedItems, toggleItem, setItemQty, collapsedG
   );
 }
 
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, onUpdate, onDelete }) {
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, pagato, onUpdate, onDelete }) {
   const allSel = selectedQty >= o.qty;
   const noneSel = selectedQty === 0;
   const partialSel = !allSel && !noneSel;
@@ -868,39 +895,58 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
     setEditingPrice(false);
   };
 
+  // Si sceglie cliccando la card, tutta: la spunta dice se è dentro, non è un
+  // bersaglio a parte da centrare col mouse mentre si ha il cliente davanti.
   return (
     <div
-      onClick={editingName || editingPrice ? undefined : onToggle}
+      onClick={(editingName || editingPrice || pagato) ? undefined : onToggle}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      title={pagato ? 'Già pagato dall\u2019app: non si incassa di nuovo' : undefined}
       style={{
-        display:'flex', alignItems:'center', gap: 10,
-        padding:'7px 8px', cursor: (editingName || editingPrice) ? 'default' : 'pointer',
-        background: allSel ? '#EFF6FF' : partialSel ? '#F5F9FF' : (hover ? '#F9FAFB' : 'transparent'),
-        borderRadius: 6, transition:'background 0.1s',
-        borderLeft: allSel ? '3px solid #3B82F6' : partialSel ? '3px solid #93C5FD' : '3px solid transparent',
+        display:'flex', alignItems:'center', gap: 12,
+        padding:'12px 14px',
+        cursor: (editingName || editingPrice) ? 'default' : (pagato ? 'not-allowed' : 'pointer'),
+        background: pagato ? '#F7F8FA' : (allSel || partialSel ? SALDA_BRAND_SOFT : (hover ? '#FAFBFC' : '#fff')),
+        border: `1px solid ${pagato ? '#EDEFF2' : (allSel || partialSel ? '#FFD4D4' : '#EDEFF2')}`,
+        borderRadius: 12, transition:'background 0.12s, border-color 0.12s',
+        opacity: pagato ? 0.72 : 1,
       }}>
-      {showStepper && !noneSel ? (
+      {/* La spunta: stato, non comando — il click lo prende la card */}
+      <span aria-hidden="true" style={{
+        width: 22, height: 22, borderRadius: 6, flexShrink: 0, pointerEvents:'none',
+        display:'grid', placeItems:'center',
+        background: pagato ? '#D6D9DE' : (noneSel ? '#fff' : SALDA_BRAND),
+        border: `1.5px solid ${pagato ? '#D6D9DE' : (noneSel ? '#D1D5DB' : SALDA_BRAND)}`,
+        transition:'background 0.12s, border-color 0.12s',
+      }}>
+        {(allSel || pagato) && (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        )}
+        {partialSel && <span style={{width: 10, height: 2.5, background:'#fff', borderRadius: 2}}/>}
+      </span>
+
+      {showStepper && !noneSel && !pagato ? (
         <div onClick={stop} style={{
           display:'inline-flex', alignItems:'center',
-          background:'#fff', border:'1px solid #D1D5DB', borderRadius: 6,
+          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
           overflow:'hidden', flexShrink: 0,
         }}>
           <button onClick={() => onSetQty(selectedQty - 1)} style={qtyBtn} title="Togli uno">−</button>
           <span style={{
             fontSize: 16, fontWeight: 800, color:'#0F1115',
-            minWidth: 38, textAlign:'center', padding:'0 4px',
+            minWidth: 30, textAlign:'center', padding:'0 2px',
             whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
-          }}>{selectedQty}/{o.qty}</span>
+          }}>{selectedQty}</span>
           <button onClick={() => onSetQty(selectedQty + 1)} disabled={selectedQty >= o.qty} style={{...qtyBtn, opacity: selectedQty >= o.qty ? 0.3 : 1}} title="Aggiungi uno">+</button>
         </div>
       ) : (
         <span style={{
-          fontSize: 16, fontWeight: 800, color:'#0F1115',
-          background:'#F1F2F5', borderRadius: 4,
-          padding:'1px 6px', minWidth: 22, textAlign:'center',
-          fontVariantNumeric:'tabular-nums',
-        }}>{o.qty}×</span>
+          fontSize: 16, fontWeight: 800, color: pagato ? '#9CA3AF' : '#0F1115',
+          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
+          padding:'6px 0', minWidth: 40, textAlign:'center',
+          fontVariantNumeric:'tabular-nums', flexShrink: 0,
+        }}>{o.qty}</span>
       )}
 
       {/* NOME — display o editing inline */}
@@ -943,14 +989,32 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
         )}
       </span>
 
+      {/* Di chi è il piatto, e se quella parte è già stata pagata: una
+          pastiglia sola invece del nome in corsivo più il marchio staccato. */}
       {guest && (
-        <span style={{fontSize: 14.5, color:'#9CA3AF', fontStyle:'italic'}}>{guest.name.split(' ')[0]}</span>
-      )}
-      {o.origin === 'byup' && o.guestId && !hideBayupBadge && (
         <span style={{
-          fontSize: 13, fontWeight: 800, color:'#E04347',
-          background:'#FFE0DD', padding:'1px 5px', borderRadius: 3,
-          letterSpacing: 0.4, textTransform:'uppercase',
+          display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
+          padding:'5px 10px', borderRadius: 999,
+          background: pagato ? '#EEF0F3' : (o.origin === 'byup' && !hideBayupBadge ? '#FFE9E9' : '#F4F5F7'),
+          fontSize: 14, fontWeight: 600,
+          color: pagato ? '#9CA3AF' : '#6B7280',
+        }}>
+          {guest.name.split(' ')[0]}
+          <span style={{color:'#C7CBD1'}}>·</span>
+          {pagato ? (
+            <span style={{fontWeight: 700}}>Pagato</span>
+          ) : (o.origin === 'byup' && !hideBayupBadge) ? (
+            <span style={{fontWeight: 800, color: SALDA_BRAND, letterSpacing: 0.3, textTransform:'uppercase', fontSize: 12.5}}>byup</span>
+          ) : (
+            <span style={{fontWeight: 600}}>{o.origin === 'guest' ? 'Webapp' : 'Cameriere'}</span>
+          )}
+        </span>
+      )}
+      {!guest && o.origin === 'byup' && o.guestId && !hideBayupBadge && (
+        <span style={{
+          fontSize: 12.5, fontWeight: 800, color: SALDA_BRAND,
+          background:'#FFE9E9', padding:'3px 8px', borderRadius: 999,
+          letterSpacing: 0.3, textTransform:'uppercase', flexShrink: 0,
         }}>byup</span>
       )}
 
@@ -976,8 +1040,8 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
           onClick={(e) => { e.stopPropagation(); setEditingPrice(true); }}
           title="Modifica prezzo unitario"
           style={{
-            fontSize: 17, fontWeight: 700, color:'#0F1115',
-            minWidth: 56, textAlign:'right', fontVariantNumeric:'tabular-nums',
+            fontSize: 17, fontWeight: 700, color: pagato ? '#9CA3AF' : '#0F1115',
+            minWidth: 66, textAlign:'right', fontVariantNumeric:'tabular-nums',
             background:'transparent', border:'none', cursor:'pointer',
             padding:'2px 4px', borderRadius: 4, fontFamily:'inherit',
             transition:'background 120ms',
@@ -989,20 +1053,22 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
         </button>
       )}
 
-      {/* DELETE */}
+      {/* DELETE — non su un piatto già pagato: quella riga è la prova di un
+          incasso, e toglierla farebbe sparire i soldi dal conto. */}
       <button
-        onClick={(e) => { e.stopPropagation(); if (onDelete) onDelete(o.id); }}
+        disabled={pagato}
+        onClick={(e) => { e.stopPropagation(); if (!pagato && onDelete) onDelete(o.id); }}
         title="Elimina articolo"
         style={{
           width: 22, height: 22, padding: 0, borderRadius: 4,
           background:'transparent', border:'none', cursor:'pointer',
-          color: hover ? '#9CA3AF' : 'transparent',
+          color: (hover && !pagato) ? '#9CA3AF' : 'transparent',
           display:'inline-flex', alignItems:'center', justifyContent:'center',
           fontFamily:'inherit', transition:'color 120ms, background 120ms',
           flexShrink: 0,
         }}
-        onMouseEnter={e => { e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.background = '#FEE2E2'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = hover ? '#9CA3AF' : 'transparent'; e.currentTarget.style.background = 'transparent'; }}
+        onMouseEnter={e => { if (pagato) return; e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.background = '#FEE2E2'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = (hover && !pagato) ? '#9CA3AF' : 'transparent'; e.currentTarget.style.background = 'transparent'; }}
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6 M10 11v6 M14 11v6"/>
@@ -1065,16 +1131,16 @@ function ReceiptRow({ label, value, tone, onRemove }) {
 function MethodTab({ active, onClick, icon, label }) {
   return (
     <button onClick={onClick} style={{
-      display:'flex', flexDirection:'column', alignItems:'center', gap: 5,
-      padding:'12px 6px', borderRadius: 10,
-      background: active ? '#0F1115' : '#fff',
-      color: active ? '#fff' : '#0F1115',
-      border: active ? '1px solid #0F1115' : '1px solid #E5E7EB',
+      display:'flex', flexDirection:'column', alignItems:'center', gap: 7,
+      padding:'14px 6px', borderRadius: 12,
+      background: active ? SALDA_BRAND_SOFT : '#fff',
+      color: active ? SALDA_BRAND : '#0F1115',
+      border: `1.5px solid ${active ? SALDA_BRAND : '#E5E7EB'}`,
       cursor:'pointer', fontFamily:'inherit',
       fontSize: 16, fontWeight: 700,
-      transition:'all 0.15s',
+      transition:'background 0.15s, border-color 0.15s, color 0.15s',
     }}>
-      <span style={{opacity: active ? 1 : 0.7}}>{icon}</span>
+      <span style={{opacity: active ? 1 : 0.65}}>{icon}</span>
       {label}
     </button>
   );
@@ -1105,12 +1171,13 @@ function CashTendered({ total, value, onChange, chips }) {
           const sel = i === 0 ? esatto : (!esatto && parseFloat(c.val) === tendered);
           return (
             <button key={c.label} onClick={() => onChange(i === 0 ? '' : c.val)} style={{
-              padding:'9px 4px', borderRadius: 8,
-              background: sel ? '#0F1115' : '#fff',
+              padding:'11px 4px', borderRadius: 10,
+              background: sel ? SALDA_BRAND : '#fff',
               color: sel ? '#fff' : '#0F1115',
-              border: sel ? '1px solid #0F1115' : '1px solid #E5E7EB',
+              border: `1px solid ${sel ? SALDA_BRAND : '#E5E7EB'}`,
               fontSize: 16, fontWeight: 700, cursor:'pointer',
               fontFamily:'inherit', whiteSpace:'nowrap',
+              transition:'background 0.14s, border-color 0.14s, color 0.14s',
             }}>{c.label}</button>
           );
         })}
@@ -1118,9 +1185,9 @@ function CashTendered({ total, value, onChange, chips }) {
             parte: vuota finché non serve. */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap: 3,
-          padding:'9px 4px', borderRadius: 8,
-          background: custom ? '#0F1115' : '#fff',
-          border: custom ? '1px solid #0F1115' : '1px solid #E5E7EB',
+          padding:'11px 4px', borderRadius: 10,
+          background: custom ? SALDA_BRAND : '#fff',
+          border: `1px solid ${custom ? SALDA_BRAND : '#E5E7EB'}`,
           cursor:'text',
         }}>
           {custom && <span style={{fontSize: 16, fontWeight: 700, color:'#fff'}}>€</span>}
@@ -1265,30 +1332,21 @@ function PagamentiConto({ pagamenti }) {
 
   return (
     <>
-      <div style={{height: 1, background:'#E5E7EB', margin:'0 -22px 16px'}}/>
-      <div style={{marginBottom: 18}}>
-        <div style={{
-          display:'flex', alignItems:'baseline', justifyContent:'space-between',
-          gap: 10, marginBottom: 10,
-        }}>
-          <span style={{
-            fontSize: 14.5, color:'#6B7280', fontWeight: 800,
-            letterSpacing: 0.6, textTransform:'uppercase',
-          }}>Già incassato su questo conto</span>
-          <span style={{
-            fontSize: 16.5, fontWeight: 800, color:'#0F1115',
-            fontVariantNumeric:'tabular-nums',
-          }}>€{totale.toFixed(2)}</span>
-        </div>
+      <div style={{
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        gap: 10, padding:'14px 22px', borderTop:'1px solid #EDEFF2', borderBottom:'1px solid #EDEFF2',
+      }}>
+        <span style={{
+          fontSize: 14.5, color:'#6B7280', fontWeight: 800,
+          letterSpacing: 0.8, textTransform:'uppercase',
+        }}>Già incassato</span>
+        <span style={{
+          fontSize: 17, fontWeight: 800, color:'#0F1115',
+          fontVariantNumeric:'tabular-nums',
+        }}>€{totale.toFixed(2)}</span>
+      </div>
 
-        {/* Il totale qui sopra è quello degli articoli selezionati e queste
-            quote non ci sono dentro: senza dirlo, chi legge due cifre vicine
-            non sa se una comprenda l'altra. Chi ha già pagato lo si toglie
-            dalla selezione a sinistra. */}
-        <div style={{fontSize: 15, color:'#9CA3AF', lineHeight: 1.4, marginBottom: 10, marginTop: -4}}>
-          Non è compreso nel totale: togli dalla selezione gli articoli già pagati.
-        </div>
-
+      <div style={{padding:'12px 22px 0'}}>
         <div style={{display:'flex', flexDirection:'column', gap: 6}}>
           {pagamenti.map(p => {
             const meta = PAG_META[p.method] || PAG_META.contanti;
@@ -1658,16 +1716,22 @@ function IconCard() { return (
   </svg>
 ); }
 // ────────── STILI ──────────
+// Corallo del marchio: qui è il colore di ciò che è scelto e di ciò che
+// incassa. Sta in una costante perché lo portano otto punti di questa
+// finestra e devono essere lo stesso.
+const SALDA_BRAND = '#FF3B41';
+const SALDA_BRAND_SOFT = '#FFF1F1';
 const btnGhost = {
-  display:'inline-flex', alignItems:'center', gap: 6,
-  padding:'7px 12px', background:'#F1F2F5', color:'#0F1115',
-  border:'none', borderRadius: 8, fontSize: 16, fontWeight: 700,
-  cursor:'pointer', fontFamily:'inherit',
+  display:'inline-flex', alignItems:'center', gap: 8,
+  padding:'11px 16px', background:'#fff', color:'#0F1115',
+  border:'1px solid #E5E7EB', borderRadius: 11, fontSize: 16, fontWeight: 700,
+  cursor:'pointer', fontFamily:'inherit', flexShrink: 0,
 };
 const saldaIconBtn = {
-  width: 32, height: 32, borderRadius: 8,
-  background:'#F1F2F5', border:'none', cursor:'pointer',
-  fontSize: 22, fontFamily:'inherit', color:'#6B7280',
+  width: 42, height: 42, borderRadius: 11, flexShrink: 0,
+  background:'#fff', border:'1px solid #E5E7EB', cursor:'pointer',
+  fontFamily:'inherit', color:'#6B7280',
+  display:'grid', placeItems:'center',
 };
 const sectionLabel = {
   fontSize: 14.5, fontWeight: 800, color:'#6B7280',
@@ -1685,13 +1749,17 @@ const btnSecondaryV2 = {
   border:'1px solid #E5E7EB', borderRadius: 8, fontSize: 17, fontWeight: 700,
   cursor:'pointer', fontFamily:'inherit',
 };
+// Il segmento acceso è in tinta brand, non nero: in questa finestra il nero
+// resta ai numeri, e il corallo dice cosa è selezionato — le spunte, i chip
+// del contante, il pulsante che incassa.
 function segBtn(on) {
   return {
-    padding:'6px 12px', background: on ? '#0F1115' : 'transparent',
+    padding:'9px 16px', borderRadius: 9,
+    background: on ? SALDA_BRAND : 'transparent',
     color: on ? '#fff' : '#0F1115',
     border:'none', fontSize: 16, fontWeight: 700,
     cursor:'pointer', fontFamily:'inherit',
-    whiteSpace:'nowrap',
+    whiteSpace:'nowrap', transition:'background 140ms ease, color 140ms ease',
   };
 }
 const miniLink = {
