@@ -1456,6 +1456,10 @@ const PAG_META = {
 };
 
 function PagamentiConto({ pagamenti }) {
+  // Chiuso di suo: quanto è già arrivato è un numero solo, e alla cassa serve
+  // quello. Chi ha pagato e a che ora è la risposta a una domanda che si fa
+  // di rado — quando un cliente dice «ma io ho già pagato» — e allora si apre.
+  const [aperto, setAperto] = React.useState(false);
   // Niente pagamenti, niente blocco: uno stato vuoto qui sarebbe solo
   // un'altra cosa da leggere in una schermata già piena.
   if (!pagamenti || pagamenti.length === 0) return null;
@@ -1463,20 +1467,44 @@ function PagamentiConto({ pagamenti }) {
 
   return (
     <>
-      <div style={{
-        display:'flex', alignItems:'center', justifyContent:'space-between',
-        gap: 10, padding:'14px 22px', borderTop:'1px solid #EDEFF2', borderBottom:'1px solid #EDEFF2',
-      }}>
-        <span style={{
-          fontSize: 14.5, color:'#6B7280', fontWeight: 800,
-          letterSpacing: 0.8, textTransform:'uppercase',
-        }}>Già incassato</span>
-        <span style={{
-          fontSize: 17, fontWeight: 800, color:'#0F1115',
-          fontVariantNumeric:'tabular-nums',
-        }}>€{totale.toFixed(2)}</span>
-      </div>
+      <button
+        onClick={() => setAperto(a => !a)}
+        title={aperto ? 'Nascondi chi ha pagato' : 'Vedi chi ha pagato e quando'}
+        onMouseEnter={e => { e.currentTarget.style.background = '#FAFBFC'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', justifyContent:'space-between',
+          gap: 10, padding:'14px 22px', background:'#fff',
+          border:'none', borderTop:'1px solid #EDEFF2', borderBottom:'1px solid #EDEFF2',
+          cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+          transition:'background 140ms ease-out',
+        }}>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 8, minWidth: 0}}>
+          <span style={{
+            fontSize: 14.5, color:'#6B7280', fontWeight: 800,
+            letterSpacing: 0.8, textTransform:'uppercase',
+          }}>Già incassato</span>
+          <span style={{
+            fontSize: 12.5, fontWeight: 700, color:'#9CA3AF',
+            padding:'1px 7px', borderRadius: 999, background:'#F4F5F7',
+            fontVariantNumeric:'tabular-nums',
+          }}>{pagamenti.length}</span>
+        </span>
+        <span style={{display:'inline-flex', alignItems:'center', gap: 8}}>
+          <span style={{
+            fontSize: 17, fontWeight: 800, color:'#0F1115',
+            fontVariantNumeric:'tabular-nums',
+          }}>€{totale.toFixed(2)}</span>
+          <span style={{
+            display:'inline-flex', color:'#9CA3AF',
+            transform: aperto ? 'rotate(180deg)' : 'none', transition:'transform 180ms ease-out',
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </span>
+      </button>
 
+      {aperto && (
       <div style={{padding:'12px 22px 0'}}>
         <div style={{display:'flex', flexDirection:'column', gap: 6}}>
           {pagamenti.map(p => {
@@ -1510,6 +1538,7 @@ function PagamentiConto({ pagamenti }) {
             si fa da lì quando è il suo momento — qui basta vedere che quei
             soldi sono già arrivati. */}
       </div>
+      )}
     </>
   );
 }
