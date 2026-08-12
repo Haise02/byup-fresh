@@ -202,11 +202,9 @@ const CATEGORIA_ALTRO = { viva: '#64748B', smorta: '#CBD0D7', tinta: '#F2F4F6' }
 const kds2ColoreTono = t => t === 'critica' ? K.ROSSO : t === 'attesa' ? K.AMBRA : K.VERDE;
 const kds2Categoria = nome => CATEGORIE[nome] || CATEGORIA_ALTRO;
 
-// Chi ha ridotto le animazioni di sistema non deve vedere nulla muoversi — ma
-// la barra che avanza durante la pressione lunga, azzerata la durata, scatta a
-// pieno al primo istante e si legge come «fatto» quando non è successo niente.
-// Lì l'animazione È l'informazione: dove non si può animare, la si toglie e
-// resta il solo riscontro statico (il bordo della riga che va a inchiostro).
+// Chi ha ridotto le animazioni di sistema non deve vedere nulla muoversi. Qui
+// resta usata dall'anello dell'azione in corso e dal respiro delle schede: dove
+// non si può animare, il riscontro è statico e basta.
 const KDS2_MOTO_RIDOTTO = typeof window.matchMedia === 'function'
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -246,9 +244,10 @@ function Kds2Dito({ size = 24 }) {
 }
 
 // ─── L'istruzione ─────────────────────────────────────────────────────────
-// La pressione lunga è l'unico gesto della schermata che non si vede: il tap
-// sulla chip ha un bersaglio disegnato, questo no. Finora si imparava per caso —
-// o non si imparava, e la riga intera si spegneva una porzione alla volta.
+// Il tocco sulla riga è l'unico gesto della schermata che non ha un bersaglio
+// disegnato: la chip è un pulsante e si vede, la riga no. Senza questa riga si
+// impara per caso — o non si impara, e la riga intera si spegne una porzione
+// alla volta.
 // Una riga sola, grigia, sotto la fila delle sorgenti e sopra la prima card:
 // dove l'occhio passa comunque prima di scendere sui piatti, e senza rubare
 // altezza al lavoro.
@@ -260,7 +259,7 @@ function Kds2Istruzione() {
     }}>
       <span style={{display: 'flex', flexShrink: 0}}><Kds2Dito size={26}/></span>
       <span style={Object.assign({}, TY.corpo, {letterSpacing: '-0.01em'})}>
-        Tieni premuto un piatto per avviare la preparazione
+        Tocca un piatto per avviare la preparazione
       </span>
     </div>
   );
@@ -449,14 +448,16 @@ function Kds2Modificatori({ modifiers, spenta }) {
 }
 
 // ─── Riga ─────────────────────────────────────────────────────────────────
-// Tap su una chip = una porzione fatta. Pressione lunga ovunque sulla riga =
-// riga intera. Il gesto lungo ha un riscontro che cresce sul bordo basso: 600 ms
-// senza risposta sono 600 ms in cui sembra rotto.
+// UN TOCCO manda la riga in preparazione. Prima ci voleva una pressione lunga
+// di 600 ms, con una barra che cresceva sul bordo basso a dire «sto contando»:
+// difendeva dalle manate accidentali, ma faceva pagare a ogni piatto — decine
+// per servizio — un'attesa che serviva a evitare l'errore raro. La difesa vera
+// è già in fondo allo schermo e non costa niente a nessuno: la fascia tiene il
+// piatto dieci secondi e lo si rimette con un tocco.
+// Tocco su una CHIP = una porzione sola: la chip è un bersaglio suo dentro la
+// riga, e il suo click non deve valere anche per tutto il resto.
 function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpPorzione, onBumpRiga }) {
   const [premuta, setPremuta] = React.useState(false);
-  const timer = React.useRef(null);
-  const scattato = React.useRef(false);
-  React.useEffect(() => () => clearTimeout(timer.current), []);
 
   const allergene = !!riga.allergen;
   // Rosso solo quando la riga È allergene E non è stata smorzata dal filtro:
@@ -468,25 +469,18 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
   const attesaMin = kds2AttesaMin(riga.firedAt, ora);
   const tonoRiga = kds2TonoAttesa(attesaMin);
 
-  function giu(e) {
-    if (e.button != null && e.button !== 0) return;
-    scattato.current = false;
-    setPremuta(true);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      scattato.current = true;
-      setPremuta(false);
-      onBumpRiga(riga);
-    }, LONG_PRESS_MS);
-  }
-  function su() { clearTimeout(timer.current); setPremuta(false); }
+  // Sotto il dito la riga sprofonda: è il riscontro che diceva «sto contando»
+  // e ora dice «ti ho sentito». Resta perché su un monitor a parete, senza
+  // cursore e senza hover, è l'unico segno che il tocco è arrivato prima che
+  // la riga sparisca.
+  function giu(e) { if (e.button != null && e.button !== 0) return; setPremuta(true); }
+  function su() { setPremuta(false); }
 
-  // Il click sulla chip arriva DOPO il pointerup: se nel frattempo è scattata
-  // la pressione lunga, la riga è già stata chiusa e il tap non deve valere una
-  // seconda volta.
-  function tapChip(p) {
-    if (scattato.current) { scattato.current = false; return; }
-    onBumpPorzione(p);
+  // Il click delle chip e della CTA sale fin qui: se non lo si lascia passare,
+  // toccare «tav. 12» manderebbe via anche tutte le altre porzioni della riga.
+  function tap(e) {
+    if (e.target && e.target.closest && e.target.closest('button')) return;
+    onBumpRiga(riga);
   }
 
   // Nome lungo: si scende di gradino, non si tronca mai. «Insalata di mare» e
@@ -521,6 +515,7 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
       ].concat((riga.modifiers || []).map(m => (m.type === 'remove' ? 'senza ' : 'con ') + m.label))
         .filter(Boolean).join(' · ')}
       data-kds2-interattivo=""
+      onClick={tap}
       onPointerDown={giu} onPointerUp={su} onPointerLeave={su} onPointerCancel={su}
       onContextMenu={e => e.preventDefault()}
       style={{
@@ -649,7 +644,7 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
                   selezionata={suaSorgente}
                   tinta={cat.tinta}
                   spenta={!allergene && sorgenteSelezionata != null && !suaSorgente}
-                  onTap={() => tapChip(p)}
+                  onTap={() => onBumpPorzione(p)}
                   titolo={'Fatta 1 · ' + nome + ' · ' + kds2Identita(p.source)}/>
               );
             })}
@@ -660,11 +655,8 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
               della fila da riga a riga. Qui è in colonna con quello di sopra e
               di sotto — la mano lo trova sempre nello stesso punto — e non
               tocca niente di ciò che si legge.
-              Solo dove ce n'è più d'uno: su una riga da un piatto solo la
-              pressione lunga fa già esattamente questo.
-              `stopPropagation` sul pointerdown: senza, premere il tasto
-              avvierebbe anche il conto della pressione lunga, e chi indugia un
-              attimo si ritrova la riga intera in preparazione. */}
+              Solo dove ce n'è più d'uno: su una riga da un piatto solo il
+              tocco fa già esattamente questo. */}
           {riga.quantity > 1 && !quieta && (
             <button type="button" data-kds2-interattivo=""
               onPointerDown={e => e.stopPropagation()}
@@ -703,18 +695,9 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
         </div>
       </div>
 
-      {/* Riscontro della pressione lunga: 600 ms senza risposta sono 600 ms in
-          cui lo schermo sembra rotto, e il dito si stacca prima. */}
-      {!KDS2_MOTO_RIDOTTO && (
-        <span aria-hidden="true" style={{
-          position: 'absolute', left: 0, bottom: 0, height: 5,
-          width: premuta ? '100%' : 0,
-          background: allergeneVisibile ? K.ROSSO : K.TESTO,
-          transition: premuta
-            ? 'width ' + LONG_PRESS_MS + 'ms linear'
-            : 'width 140ms ease-out',
-        }}/>
-      )}
+      {/* La barra che cresceva sul bordo basso se n'è andata con la pressione
+          lunga: misurava un'attesa che non c'è più. Il riscontro del tocco è la
+          riga che sprofonda, immediato e senza niente da aspettare. */}
     </div>
   );
 }
