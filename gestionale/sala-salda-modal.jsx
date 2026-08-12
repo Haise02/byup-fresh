@@ -811,12 +811,14 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
               </div>
             </div>
 
-            {/* Sopra il conto, non al posto suo: si torna indietro con la
-                selezione e il metodo dov'erano. */}
+            {/* Dentro la finestra, non sopra: prende tutto il riquadro del
+                salda conto e ne cambia il contenuto — niente velo, niente
+                seconda cornice. Si torna indietro con la selezione e il metodo
+                dov'erano. */}
             {window.SvFatturaModal && (
               <SvFatturaModal
                 open={fatturaOpen}
-                larghezza={1080} raggio={20} maxAltezza="92%"
+                dentro
                 lines={selectedOrdini.map(o => ({
                   displayName: o.nome,
                   piatto: { name: o.nome },

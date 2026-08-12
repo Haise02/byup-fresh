@@ -24,6 +24,21 @@
 // domani qualcuno spunta "Contiene alcolici" su un prodotto, le fatture già
 // emesse non devono cambiare e una nota di credito deve usare l'aliquota
 // originale. Qui la riga arriva dal carrello e la porta con sé.
+// Tinte della finestra. Sono le stesse dell'incasso al banco ma scritte qui:
+// questa finestra la aprono due schermate — la Vendita diretta e il salda
+// conto in sala — e Contabilità carica solo lei. Dipendere dai token di un
+// altro file la faceva esplodere dove quel file non c'è.
+const SVF_INK    = '#0F1729';
+const SVF_MUTED  = '#7A8394';
+const SVF_BORDER = '#E7EAEF';
+const SVF_CORAL  = PN.PINK;
+const SVF_TINT   = '#FFF3F2';
+const SVF_GREEN  = '#16A34A';
+const SVF_LABEL  = {
+  fontSize: 13.5, fontWeight: 700, color: SVF_MUTED,
+  letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 8,
+};
+
 function svAliquota(piatto, takeaway) {
   if (!takeaway) return 10;
   return (piatto && (piatto.prodottoFinito || piatto.hasAlcohol)) ? 22 : 10;
@@ -163,14 +178,14 @@ function svfManca(c) {
 
 const SVF_INPUT = {
   width: '100%', padding: '11px 13px', borderRadius: 11,
-  border: `1px solid ${SVI_BORDER}`, background: '#fff',
-  fontSize: 16.5, color: SVI_INK, fontFamily: 'inherit', outline: 'none',
+  border: `1px solid ${SVF_BORDER}`, background: '#fff',
+  fontSize: 16.5, color: SVF_INK, fontFamily: 'inherit', outline: 'none',
 };
 
 function SvfCampo({ label, hint, children, span }) {
   return (
     <div style={{ gridColumn: span ? `span ${span}` : undefined, minWidth: 0 }}>
-      <div style={{ fontSize: 13.5, fontWeight: 700, color: SVI_MUTED, marginBottom: 5 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 700, color: SVF_MUTED, marginBottom: 5 }}>
         {label}{hint && <span style={{ fontWeight: 500, color: '#AFB6C2' }}> · {hint}</span>}
       </div>
       {children}
@@ -185,9 +200,9 @@ function SvfInput({ value, onChange, placeholder, mono, disabled, invalid }) {
       placeholder={placeholder} disabled={disabled}
       style={{
         ...SVF_INPUT,
-        borderColor: invalid ? '#F0A0A8' : SVI_BORDER,
+        borderColor: invalid ? '#F0A0A8' : SVF_BORDER,
         background: disabled ? '#F5F6F8' : '#fff',
-        color: disabled ? SVI_MUTED : SVI_INK,
+        color: disabled ? SVF_MUTED : SVF_INK,
         fontFamily: mono ? 'ui-monospace, SFMono-Regular, monospace' : 'inherit',
         letterSpacing: mono ? 0.6 : 0,
         textTransform: mono ? 'uppercase' : 'none',
@@ -203,14 +218,14 @@ function SvfSegmento({ seg, onSeg }) {
         return (
           <button key={s.k} onClick={() => onSeg(s.k)} style={{
             padding: '9px 8px 10px', borderRadius: 13,
-            background: on ? SVI_TINT : '#fff',
-            border: `1.5px solid ${on ? SVI_CORAL : SVI_BORDER}`,
-            color: on ? SVI_CORAL : SVI_INK,
+            background: on ? SVF_TINT : '#fff',
+            border: `1.5px solid ${on ? SVF_CORAL : SVF_BORDER}`,
+            color: on ? SVF_CORAL : SVF_INK,
             cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center',
             transition: 'background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out',
           }}>
             <div style={{ fontSize: 16.5, fontWeight: 700, lineHeight: 1.15 }}>{s.label}</div>
-            <div style={{ fontSize: 12.5, fontWeight: 600, color: on ? SVI_CORAL : '#AFB6C2', marginTop: 2 }}>{s.sub}</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: on ? SVF_CORAL : '#AFB6C2', marginTop: 2 }}>{s.sub}</div>
           </button>
         );
       })}
@@ -220,12 +235,19 @@ function SvfSegmento({ seg, onSeg }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-// `larghezza`/`raggio`/`maxAltezza`: la finestra si apre sopra due schermate
-// di misura diversa — l'incasso al banco (620) e il salda conto in sala
-// (1080) — e una finestrella centrata sopra a quella grande si legge come un
-// oggetto capitato lì per sbaglio. Chi la apre le dice quanto è larga la casa.
+// Due modi di stare sullo schermo, e il secondo è quello buono quando la
+// schermata che la apre è già una finestra:
+//
+//   finestra (default) — velo scuro e pannello centrato. Sopra l'incasso al
+//   banco, che occupa mezzo schermo, funziona: si vede che c'è una cosa sotto.
+//
+//   `dentro` — foglio che riempie ESATTAMENTE il riquadro che la ospita, senza
+//   velo. Sopra il salda conto, che è già un pannello grande, il velo lasciava
+//   in giro una cornice di finestra dentro la finestra: due bordi, due ombre e
+//   una striscia sfocata in mezzo. Così invece è la stessa finestra che cambia
+//   contenuto — che è quello che succede davvero.
 function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, onRemove,
-  larghezza = 720, raggio = 26, maxAltezza = '100%' }) {
+  larghezza = 720, raggio = 26, maxAltezza = '100%', dentro = false }) {
   const [c, setC] = React.useState(SVF_VUOTO);
   const [query, setQuery] = React.useState('');
   // Le due sorgenti arrivano in due momenti: la rubrica è in casa e risponde
@@ -300,12 +322,27 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
   const estero = c.seg === 'estero';
 
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(10,14,24,0.62)',
-      backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-      display: 'grid', placeItems: 'center', zIndex: 240, padding: 24,
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
+    <div
+      onClick={dentro ? undefined : onClose}
+      style={dentro ? {
+        position: 'absolute', inset: 0, zIndex: 80,
+        background: '#fff', display: 'flex', flexDirection: 'column',
+        animation: 'svfEntra 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+      } : {
+        position: 'fixed', inset: 0, background: 'rgba(10,14,24,0.62)',
+        backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+        display: 'grid', placeItems: 'center', zIndex: 240, padding: 24,
+      }}>
+      <style>{`
+        @keyframes svfEntra {
+          from { opacity: 0; transform: translateX(14px); }
+          to   { opacity: 1; transform: none; }
+        }
+      `}</style>
+      <div onClick={dentro ? undefined : (e => e.stopPropagation())} style={dentro ? {
+        background: '#fff', flex: 1, minHeight: 0,
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+      } : {
         background: '#fff', borderRadius: raggio,
         width: larghezza, maxWidth: '100%', maxHeight: maxAltezza,
         boxShadow: '0 32px 80px rgba(5,10,25,0.45)',
@@ -317,22 +354,22 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
             sinistra. */}
         <div style={{ padding: '16px 26px 0' }}>
           <button onClick={onClose} title="Torna all'incasso"
-            onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SVI_INK; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SVI_MUTED; }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SVF_INK; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SVF_MUTED; }}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 7,
               padding: '7px 12px 7px 8px', marginLeft: -8, borderRadius: 9,
-              background: 'transparent', border: 'none', color: SVI_MUTED,
+              background: 'transparent', border: 'none', color: SVF_MUTED,
               fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
               transition: 'background 150ms ease-out, color 150ms ease-out',
             }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
             Indietro
           </button>
-          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.7, color: SVI_INK, lineHeight: 1, marginTop: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.7, color: SVF_INK, lineHeight: 1, marginTop: 8 }}>
             FATTURA
           </div>
-          <div style={{ fontSize: 15, color: SVI_MUTED, marginTop: 5 }}>
+          <div style={{ fontSize: 15, color: SVF_MUTED, marginTop: 5 }}>
             Il numero e l'invio arrivano quando incassi
           </div>
         </div>
@@ -344,7 +381,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
               fattura di ieri detta la P.IVA, chi non ce l'ha detta il nome:
               separare i due campi obbliga a scegliere prima di sapere. */}
           <div style={{ position: 'relative', marginTop: 16 }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={SVI_MUTED} strokeWidth="2.1" strokeLinecap="round" style={{
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={SVF_MUTED} strokeWidth="2.1" strokeLinecap="round" style={{
               position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none',
             }}><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
             <input
@@ -357,24 +394,24 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
             {mostraLista && (
               <div style={{
                 position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 5,
-                background: '#fff', border: `1px solid ${SVI_BORDER}`, borderRadius: 14,
+                background: '#fff', border: `1px solid ${SVF_BORDER}`, borderRadius: 14,
                 boxShadow: '0 18px 40px -18px rgba(10,20,40,0.35)', overflow: 'hidden',
                 maxHeight: 300, overflowY: 'auto',
               }}>
                 {locali.length > 0 && (
-                  <div style={{ ...SVI_LABEL, margin: 0, padding: '10px 14px 6px' }}>Già fatturati qui</div>
+                  <div style={{ ...SVF_LABEL, margin: 0, padding: '10px 14px 6px' }}>Già fatturati qui</div>
                 )}
                 {locali.map((r, i) => <SvfSuggerimento key={`l${i}`} r={r} onClick={() => scegli(r)}/>)}
 
-                <div style={{ ...SVI_LABEL, margin: 0, padding: '10px 14px 6px', borderTop: locali.length ? `1px solid ${SVI_BORDER}` : 'none' }}>
+                <div style={{ ...SVF_LABEL, margin: 0, padding: '10px 14px 6px', borderTop: locali.length ? `1px solid ${SVF_BORDER}` : 'none' }}>
                   Registro imprese
                 </div>
                 {cercando && (
-                  <div style={{ padding: '8px 14px 14px', fontSize: 15.5, color: SVI_MUTED }}>Cerco…</div>
+                  <div style={{ padding: '8px 14px 14px', fontSize: 15.5, color: SVF_MUTED }}>Cerco…</div>
                 )}
                 {!cercando && remoti.map((r, i) => <SvfSuggerimento key={`r${i}`} r={r} onClick={() => scegli(r)}/>)}
                 {!cercando && remoti.length === 0 && (
-                  <div style={{ padding: '8px 14px 14px', fontSize: 15.5, color: SVI_MUTED }}>
+                  <div style={{ padding: '8px 14px 14px', fontSize: 15.5, color: SVF_MUTED }}>
                     Nessuna impresa trovata — scrivi i dati qui sotto
                   </div>
                 )}
@@ -418,7 +455,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
           {/* Sede — il blocco che nessuno si aspetta e senza cui lo SdI scarta.
               Sta in chiaro e non dietro un "altri dati": è obbligatorio quanto
               la partita IVA. */}
-          <div style={{ ...SVI_LABEL, marginTop: 20 }}>Sede del cliente</div>
+          <div style={{ ...SVF_LABEL, marginTop: 20 }}>Sede del cliente</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
             <SvfCampo label="Indirizzo e civico" span={6}>
               <SvfInput value={c.indirizzo} onChange={v => set('indirizzo', v)}
@@ -447,7 +484,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
 
           {/* Dove va consegnata. Su privato ed estero non è una domanda: il
               valore è uno solo e si mostra bloccato, con scritto perché. */}
-          <div style={{ ...SVI_LABEL, marginTop: 20 }}>Dove arriva la fattura</div>
+          <div style={{ ...SVF_LABEL, marginTop: 20 }}>Dove arriva la fattura</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
             <SvfCampo
               label={c.seg === 'pa' ? 'Codice ufficio' : 'Codice destinatario'}
@@ -463,7 +500,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
             </SvfCampo>
           </div>
           {sdiBloccato && (
-            <div style={{ fontSize: 14.5, color: SVI_MUTED, marginTop: 8, lineHeight: 1.45 }}>
+            <div style={{ fontSize: 14.5, color: SVF_MUTED, marginTop: 8, lineHeight: 1.45 }}>
               {privato
                 ? 'Al privato la fattura arriva nel cassetto fiscale dell\'Agenzia. Stampa o manda la copia di cortesia.'
                 : 'Al cliente estero la fattura non viene recapitata dallo SdI: la copia gliela mandi tu.'}
@@ -474,44 +511,44 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
               l'aliquota è l'unica cosa che il cliente non ha visto scegliere e
               che finisce sul documento — e perché il totale della fattura deve
               coincidere con quello che sta per pagare, a occhio, subito. */}
-          <div style={{ ...SVI_LABEL, marginTop: 22, display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ ...SVF_LABEL, marginTop: 22, display: 'flex', justifyContent: 'space-between' }}>
             <span>Cosa fatturi</span>
             <span style={{ letterSpacing: 0, textTransform: 'none', fontWeight: 600 }}>
               dal carrello · {takeaway ? 'asporto' : 'somministrazione'}
             </span>
           </div>
-          <div style={{ border: `1px solid ${SVI_BORDER}`, borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ border: `1px solid ${SVF_BORDER}`, borderRadius: 14, overflow: 'hidden' }}>
             {righe.length === 0 && (
-              <div style={{ padding: '16px 14px', fontSize: 16, color: SVI_MUTED }}>Il carrello è vuoto.</div>
+              <div style={{ padding: '16px 14px', fontSize: 16, color: SVF_MUTED }}>Il carrello è vuoto.</div>
             )}
             {righe.map((r, i) => (
               <div key={i} style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-                borderTop: i ? `1px solid ${SVI_BORDER}` : 'none',
+                borderTop: i ? `1px solid ${SVF_BORDER}` : 'none',
               }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: SVI_MUTED, minWidth: 26, fontVariantNumeric: 'tabular-nums' }}>{r.qty}×</span>
-                <span style={{ flex: 1, fontSize: 16.5, color: SVI_INK, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.nome}</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: SVF_MUTED, minWidth: 26, fontVariantNumeric: 'tabular-nums' }}>{r.qty}×</span>
+                <span style={{ flex: 1, fontSize: 16.5, color: SVF_INK, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.nome}</span>
                 <span style={{
                   fontSize: 13.5, fontWeight: 700, padding: '3px 8px', borderRadius: 7,
                   background: r.aliquota === 22 ? '#FFF7ED' : '#F1F5F9',
                   color: r.aliquota === 22 ? '#B45309' : '#475569',
                 }}>IVA {r.aliquota}%</span>
-                <span style={{ fontSize: 16.5, fontWeight: 700, color: SVI_INK, fontVariantNumeric: 'tabular-nums', minWidth: 74, textAlign: 'right' }}>{svEur(r.lordo)}</span>
+                <span style={{ fontSize: 16.5, fontWeight: 700, color: SVF_INK, fontVariantNumeric: 'tabular-nums', minWidth: 74, textAlign: 'right' }}>{svEur(r.lordo)}</span>
               </div>
             ))}
 
             {riepilogo.length > 0 && (
-              <div style={{ borderTop: `1px solid ${SVI_BORDER}`, background: '#FAFBFC', padding: '10px 14px' }}>
+              <div style={{ borderTop: `1px solid ${SVF_BORDER}`, background: '#FAFBFC', padding: '10px 14px' }}>
                 {riepilogo.map(r => (
-                  <div key={r.aliquota} style={{ display: 'flex', gap: 10, fontSize: 15, color: SVI_MUTED, padding: '2px 0' }}>
+                  <div key={r.aliquota} style={{ display: 'flex', gap: 10, fontSize: 15, color: SVF_MUTED, padding: '2px 0' }}>
                     <span style={{ flex: 1 }}>Imponibile {r.aliquota}%</span>
                     <span style={{ fontVariantNumeric: 'tabular-nums' }}>{svEur(r.imponibile)}</span>
                     <span style={{ minWidth: 96, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>IVA {svEur(r.imposta)}</span>
                   </div>
                 ))}
                 <div style={{
-                  display: 'flex', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${SVI_BORDER}`,
-                  fontSize: 18, fontWeight: 800, color: SVI_INK,
+                  display: 'flex', marginTop: 8, paddingTop: 8, borderTop: `1px solid ${SVF_BORDER}`,
+                  fontSize: 18, fontWeight: 800, color: SVF_INK,
                 }}>
                   <span style={{ flex: 1 }}>Totale documento</span>
                   <span style={{ fontVariantNumeric: 'tabular-nums' }}>{svEur(totale)}</span>
@@ -522,12 +559,12 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '14px 26px 18px', borderTop: `1px solid ${SVI_BORDER}`, background: '#fff', flexShrink: 0 }}>
+        <div style={{ padding: '14px 26px 18px', borderTop: `1px solid ${SVF_BORDER}`, background: '#fff', flexShrink: 0 }}>
           <div style={{ display: 'flex', gap: 10 }}>
             {cliente && (
               <button onClick={() => { onRemove && onRemove(); onClose(); }} style={{
                 padding: '14px 18px', borderRadius: 14, flexShrink: 0,
-                background: '#fff', border: `1px solid ${SVI_BORDER}`, color: SVI_MUTED,
+                background: '#fff', border: `1px solid ${SVF_BORDER}`, color: SVF_MUTED,
                 fontSize: 16.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
               }}>Togli fattura</button>
             )}
@@ -536,7 +573,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
               disabled={!pronto}
               style={{
                 flex: 1, padding: '15px 20px', borderRadius: 14,
-                background: pronto ? SVI_GREEN : '#EFEFF1',
+                background: pronto ? SVF_GREEN : '#EFEFF1',
                 color: pronto ? '#fff' : '#9CA3AF',
                 border: 'none', fontSize: 18, fontWeight: 700,
                 cursor: pronto ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
@@ -564,8 +601,8 @@ function SvfSuggerimento({ r, onClick }) {
     }}
     onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; }}
     onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}>
-      <div style={{ fontSize: 16.5, fontWeight: 600, color: SVI_INK }}>{svfNome(r)}</div>
-      <div style={{ fontSize: 14.5, color: SVI_MUTED, marginTop: 1 }}>
+      <div style={{ fontSize: 16.5, fontWeight: 600, color: SVF_INK }}>{svfNome(r)}</div>
+      <div style={{ fontSize: 14.5, color: SVF_MUTED, marginTop: 1 }}>
         {id} · {r.comune} ({r.provincia})
       </div>
     </button>
