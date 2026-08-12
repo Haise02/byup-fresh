@@ -424,6 +424,14 @@ function GlassMeshSubstrate({ tone }) {
 //
 // Note: il componente fornisce SOLO il fondo + l'overlay. I children
 // devono usare le color appropriate al tema (light = scuri, night = chiari).
+// Niente `...rest` qui, e non è pignoleria: le pagine caricano una ventina di
+// file .jsx come <script> non isolati, e la destrutturazione con rest fa
+// generare a Babel un `var _excluded = [...]` in cima a OGNI file che la usa.
+// Sono tutti lo stesso `var` globale: vince l'ultimo caricato. GlassDarkBox si
+// ritrovava a escludere la lista di un altro file, quindi `style` restava
+// dentro rest e lo spread finale ci riscriveva sopra lo stile calcolato —
+// niente raggio, niente padding, niente position: relative (e l'overlay scuro
+// che andava a piazzarsi chissà dove). Le props che servono passano per nome.
 function GlassDarkBox({
   theme = 'light',
   nightAccent = false,
@@ -434,8 +442,9 @@ function GlassDarkBox({
   className = '',
   style,
   liftHover = false,
+  onClick,
+  title,
   children,
-  ...rest
 }) {
   const isNight  = theme === 'night';
   const isSunset = theme === 'sunset';
@@ -483,6 +492,8 @@ function GlassDarkBox({
   return (
     <Tag
       className={cls}
+      onClick={onClick}
+      title={title}
       style={{
         position: 'relative',
         isolation: 'isolate',
@@ -491,7 +502,6 @@ function GlassDarkBox({
         borderRadius,
         ...style,
       }}
-      {...rest}
     >
       {/* Backdrop blur dell'overlay: sunset usa 22px come la variant D3 preview
           themes, così il warm wine wash "lensa" la mesh sottostante e dà l'effetto
