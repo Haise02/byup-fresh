@@ -30,6 +30,15 @@ const ST = {
   WINE:       PN.WINE,
   WINE_SOFT:  PN.WINE_SOFT,
 
+  // ─── Marchio byup Staff — ereditato ────────────────────────
+  // Il passaggio del logo, lo stesso del POS e della tessera in Impostazioni.
+  // Sta in PN come tutti gli altri colori di marca: qui si referenzia.
+  // Solo superfici PICCOLE che PORTANO IL MARCHIO (avatar, tile del logo),
+  // mai i CTA — su cui resta il rosa pieno — e mai sotto testo piccolo:
+  // l'estremo chiaro col bianco fa 2,08:1.
+  GRAD_MARK:  PN.GRAD_STAFF_MARK,
+  MARK_INK:   PN.STAFF_CREAM,
+
   // ─── Neutrals — ereditati ──────────────────────────────────
   TEXT:       PN.TEXT,
   TEXT_SOFT:  '#1F2937',

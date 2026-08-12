@@ -523,11 +523,15 @@ function ScreenProfilo({ nav }) {
           Profilo
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 8 }}>
+          {/* Chi sei dentro Byup Staff: l'avatar porta il gradiente del
+              marchio, non un rosa qualsiasi. Le iniziali sono nella crema del
+              logo — grandi e in grassetto, che è l'unico testo che quel
+              passaggio regge. */}
           <div style={{
             width: 64, height: 64, borderRadius: ST.R_PILL,
-            background: `linear-gradient(135deg, ${ST.PINK} 0%, ${ST.PINK_DARK} 100%)`,
+            background: ST.GRAD_MARK,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24, fontWeight: 800, color: '#fff',
+            fontSize: 24, fontWeight: 800, color: ST.MARK_INK,
             boxShadow: ST.SH_MD,
           }}>MR</div>
           <div style={{ flex: 1, minWidth: 0 }}>

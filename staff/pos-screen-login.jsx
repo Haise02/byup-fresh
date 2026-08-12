@@ -4,10 +4,11 @@ const { useState: useStateL, useEffect: useEffectL } = React;
 
 // ─── Stili condivisi (tema scuro) ─────────────────────────────
 // Resta un tema SCURO: il login è tutto testo bianco su fondo pieno, e le
-// sfumature brand chiare non reggono il bianco (2,2:1). Qui il brand entra
-// come tinta dei due aloni radiali, riportati sul nuovo corallo/lampone.
+// sfumature brand chiare non reggono il bianco (2,1:1). Qui il brand entra
+// come tinta dei due aloni radiali: in alto il rosa profondo del logo
+// (#E5446E), in basso il vinaccia che tiene giù il fondo scuro.
 const LOGIN_BG = `
-  radial-gradient(110% 55% at 50% -8%, rgba(224,31,90,0.32), transparent 60%),
+  radial-gradient(110% 55% at 50% -8%, rgba(229,68,110,0.34), transparent 60%),
   radial-gradient(130% 80% at 50% 112%, rgba(181,51,56,0.55), transparent 62%),
   linear-gradient(180deg, #1e1216 0%, #150d10 100%)`;
 

@@ -19,6 +19,23 @@ const PN = {
   PINK_BG_SOFT: '#FFF1EF',
   WINE: '#B53338',
   WINE_SOFT: '#FFE0DD',
+  // ─── Marchio byup Staff ──────────────────────────────────────────────────
+  // Il gradiente del logo: rosa profondo → corallo chiaro in diagonale,
+  // lettering crema. Lo portano quattro superfici in tre applicazioni — il
+  // banner in onboarding, la tessera in POS e integrazioni, il POS mobile e
+  // la webapp cameriere — quindi vive qui, non in una di loro.
+  // MARK è lo stesso passaggio a 135°: sulle superfici piccole e quadrate
+  // (logo, avatar, badge) la diagonale piena si legge meglio della sbieca.
+  // CONTRASTO col bianco, misurato: #E5446E 3,90:1 · #FF9083 2,08:1.
+  // Quindi mai testo bianco PICCOLO qui sopra: va bene il marchio, vanno bene
+  // i numeri grandi, non va bene una didascalia da 12px.
+  GRAD_STAFF:      'linear-gradient(115deg, #E5446E 0%, #F4676F 52%, #FF9083 100%)',
+  GRAD_STAFF_MARK: 'linear-gradient(135deg, #E5446E 0%, #FF9083 100%)',
+  GRAD_STAFF_FROM: '#E5446E',
+  GRAD_STAFF_MID:  '#F4676F',
+  GRAD_STAFF_TO:   '#FF9083',
+  // La crema del logo: non è bianco puro.
+  STAFF_CREAM:     '#FDF3F0',
   // sidebar
   SIDE_BG: '#FAFAFB',
   SIDE_ACTIVE_BG: '#FFE0DD',

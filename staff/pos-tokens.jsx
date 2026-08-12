@@ -28,8 +28,11 @@ const ST = {
   WINE:       PN.WINE,
 
   // ─── Sfumature brand ───────────────────────────────────────
-  // Campionate dal logo "byup staff" di riferimento. Sono le UNICHE due
-  // sfumature ammesse, e hanno ruoli distinti — non sono intercambiabili:
+  // Prese dal logo "byup staff" — che ora vive nei token del gestionale
+  // (PN.GRAD_STAFF*), perché lo stesso passaggio lo portano anche il banner
+  // in onboarding, la tessera in POS e integrazioni e la webapp cameriere.
+  // Qui restano i due RUOLI, che sono del POS e non del marchio, e non sono
+  // intercambiabili:
   //
   //   GRAD_MARK  intensa, escursione lunga (lampone → salmone).
   //              Solo superfici PICCOLE: logo, mark, badge, avatar.
@@ -49,21 +52,22 @@ const ST = {
   // (BTN_BRAND). Su un POS l'unica cosa che deve gridare è "Incassa".
   //
   // VINCOLO DI CONTRASTO — misurato, non stimato. Col bianco:
-  //   #E01F5A 4,65:1 ok  ·  #DE6E88 3,14:1 solo testo grande
-  //   #EF938A 2,28:1 NO  ·  #EE9C8E 2,15:1 NO
-  // Quindi: mai testo bianco piccolo sopra il capo chiaro. Sulle superfici
-  // dense di testo (login, schermo pagamento) si usa un fondo pieno scuro,
-  // non queste sfumature.
-  GRAD_MARK: 'linear-gradient(135deg, #E01F5A 0%, #EF938A 100%)',
-  GRAD_HERO: 'linear-gradient(135deg, #DE6E88 0%, #EE9C8E 100%)',
+  //   #E5446E 3,90:1 solo testo grande  ·  #E7748A 2,86:1 solo testo grande
+  //   #FF9083 2,08:1 NO                 ·  #FFA898 1,86:1 NO
+  // Col logo nuovo il capo scuro perde i 4,5:1 che aveva (era #E01F5A): ora
+  // NESSUN estremo regge il testo piccolo, bianco o crema che sia. Vanno
+  // bene il marchio, un numero grande e nient'altro. Sulle superfici dense
+  // di testo (login, schermo pagamento) si usa un fondo pieno scuro.
+  GRAD_MARK: PN.GRAD_STAFF_MARK,
+  GRAD_HERO: 'linear-gradient(135deg, #E7748A 0%, #FFA898 100%)',
   // Estremi esposti per bordi/ombre coordinati e per il fallback su
   // superfici che non possono portare un gradient (es. color di un'icona).
   // Crema del mark: NON e' bianco puro, e' il colore ufficiale del logo.
-  MARK_INK: '#F9E3DE',
-  GRAD_MARK_FROM: '#E01F5A',
-  GRAD_MARK_TO:   '#EF938A',
-  GRAD_HERO_FROM: '#DE6E88',
-  GRAD_HERO_TO:   '#EE9C8E',
+  MARK_INK: PN.STAFF_CREAM,
+  GRAD_MARK_FROM: PN.GRAD_STAFF_FROM,
+  GRAD_MARK_TO:   PN.GRAD_STAFF_TO,
+  GRAD_HERO_FROM: '#E7748A',
+  GRAD_HERO_TO:   '#FFA898',
 
   // ─── Neutrals — ereditati ──────────────────────────────────
   TEXT:       PN.TEXT,

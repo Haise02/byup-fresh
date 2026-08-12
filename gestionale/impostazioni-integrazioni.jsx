@@ -25,11 +25,11 @@ const INTEGRATIONS = [
   { id:'zapier', name:'Zapier', cat:'automazione', logo:'Z', bg:'#FF4F00', desc:'Automazioni e flussi', status:'available' },
 ];
 
-// Gradiente del logo Byup Staff: rosa acceso in alto a sinistra, corallo di
-// brand al centro, salmone in basso a destra. Vive qui perche per ora e la
-// sola superficie che porta quel marchio; se ne servisse una seconda, sale
-// nei token.
-const GRAD_STAFF = 'linear-gradient(115deg, #FF1F5A 0%, #FF5A5F 46%, #FF9C8B 100%)';
+// Il gradiente del logo Byup Staff. Non vive più qui: da quando lo portano
+// anche il banner in onboarding, il POS e la webapp cameriere è salito nei
+// token, che è dove stava scritto di metterlo appena servisse una seconda
+// superficie.
+const GRAD_STAFF = PN.GRAD_STAFF;
 
 const STATUS_LABEL = {
   connected: { label: 'Connesso', color: PN.GREEN, bg: PN.GREEN_SOFT, dot: PN.GREEN },
@@ -198,7 +198,7 @@ function ByupPayHero({ devices, onAdd }) {
         }}/>
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 3}}>
-            <span style={{fontSize: 19, fontWeight: 800, color: '#FFF6F3', letterSpacing: -0.2}}>Byup Staff</span>
+            <span style={{fontSize: 19, fontWeight: 800, color: PN.STAFF_CREAM, letterSpacing: -0.2}}>Byup Staff</span>
           </div>
           <div style={{fontSize: 14.5, color: 'rgba(255, 255, 255, 0.88)'}}>
             {list.length === 0

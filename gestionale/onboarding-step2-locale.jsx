@@ -643,10 +643,10 @@ function SubStepPagamenti({payments, p}) {
 // marchio che il logo non ha più, e nella schermata il blocco leggeva come
 // un avviso invece che come byup.
 const STAFF = {
-  PINK:  '#E5446E',
-  MID:   '#F4676F',
-  CORAL: '#FF9083',
-  CREAM: '#FDF3F0',
+  PINK:  PN.GRAD_STAFF_FROM,
+  MID:   PN.GRAD_STAFF_MID,
+  CORAL: PN.GRAD_STAFF_TO,
+  CREAM: PN.STAFF_CREAM,
 };
 
 function StaffAppPromo() {
