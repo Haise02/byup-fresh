@@ -658,7 +658,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
                 <div className="pn-scroll" style={{
                   flex:1, overflow:'auto', padding:'0 0 18px',
-                  width:'100%', maxWidth: SALDA_PAGA_COL,
+                  width:'100%',
                 }}>
 
                   {/* HERO — la cifra che si dice ad alta voce al cliente, con
@@ -667,13 +667,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       fianco: un riquadro dentro un riquadro, in una finestra
                       che di riquadri ne ha già. Qui il numero sta al centro e
                       non ha bisogno di una scatola per farsi vedere. */}
-                  <div style={{padding:'20px 28px 0', textAlign:'center'}}>
+                  <div style={{padding:'18px 24px 0', textAlign:'center'}}>
                     <div style={SALDA_LABEL}>Da incassare</div>
                     <div style={{display:'inline-flex', alignItems:'baseline', gap: 7}}>
-                      <span style={{fontSize: 28, fontWeight: 800, color: SALDA_MUTED, letterSpacing:-0.5}}>€</span>
+                      <span style={{fontSize: 32, fontWeight: 800, color: SALDA_MUTED, letterSpacing:-0.6}}>€</span>
                       <span style={{
-                        fontSize: 56, fontWeight: 800, color: SALDA_INK,
-                        letterSpacing:-1.8, lineHeight: 1.1,
+                        fontSize: 64, fontWeight: 800, color: SALDA_INK,
+                        letterSpacing:-2.2, lineHeight: 1.1,
                         fontVariantNumeric:'tabular-nums',
                       }}>{total.toFixed(2)}</span>
                     </div>
@@ -726,7 +726,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       disposizione le tessere respirano invece di allargarsi:
                       una finestra grande non è una finestra con gli oggetti
                       grandi. */}
-                  <div style={{padding:'20px 28px 0'}}>
+                  <div style={{padding:'22px 24px 0'}}>
                     <div style={SALDA_LABEL}>Come paga il cliente</div>
                     <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
                       <SaldaMetodoCard active={method==='contanti'} onClick={()=>chooseMethod('contanti')}
@@ -755,7 +755,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   </div>
 
                   {method === 'contanti' && (
-                    <div style={{padding:'18px 28px 0'}}>
+                    <div style={{padding:'18px 24px 0'}}>
                       <CashTendered
                         total={total}
                         value={pay.contanti}
@@ -768,16 +768,15 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       l'importo è già scritto grande qui sopra. */}
                 </div>
 
-                {/* Piede dell'incasso: la riga che chiude la finestra corre da
-                    bordo a bordo, il pulsante sta nella colonna, allineato a
-                    tutto quello che gli sta sopra. */}
+                {/* Piede dell'incasso: la riga corre da bordo a bordo e il
+                    pulsante con lei, dentro lo stesso margine di tutto il
+                    resto. */}
                 <div style={{
                   borderTop:'1px solid #EDEFF2',
                   background:'#fff', flexShrink: 0, width:'100%',
                 }}>
                 <div style={{
-                  padding:'16px 28px 20px', margin:'0 auto',
-                  maxWidth: SALDA_PAGA_COL,
+                  padding:'16px 24px 20px',
                   display:'flex', flexDirection:'column', gap: 10,
                 }}>
                   {/* Il pulsante dice il gesto che compie, non «conferma»:
@@ -820,7 +819,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           // cioè lo stesso colore delle spunte di selezione due
                           // schermate prima. Il corallo qui dentro dice «scelto»,
                           // il verde dice «fatto».
-                          width:'100%', padding:'15px 18px', borderRadius: 14,
+                          width:'100%', padding:'17px 18px', borderRadius: 14,
                           background: attivo ? SALDA_VERDE : '#EFEFF1',
                           color: attivo ? '#fff' : '#9CA3AF',
                           border:'none',
@@ -1358,11 +1357,11 @@ function SaldaMetodoCard({ active, onClick, icon, label }) {
     <button onClick={onClick} style={{
       position:'relative',
       display:'flex', alignItems:'center', justifyContent:'center', gap: 12,
-      padding:'16px 18px', borderRadius: 14,
+      padding:'20px 18px', borderRadius: 14,
       background: active ? SALDA_BRAND_SOFT : '#fff',
       border: `1.5px solid ${active ? SALDA_BRAND : SALDA_BORDO}`,
       color: active ? SALDA_BRAND : SALDA_INK,
-      fontSize: 17.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+      fontSize: 18.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
       transition:'background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out',
     }}>
       {active && (
@@ -1391,7 +1390,13 @@ function CashTendered({ total, value, onChange, chips }) {
   const tendered = esatto ? total : parseFloat(value) || 0;
   const enough = tendered >= total - 0.01 && tendered > 0;
   const resto = tendered - total;
-  const custom = !esatto && !chips.some(c => parseFloat(c.val) === tendered);
+  // La casella in fondo alla fila resta «Altro» finché non ci si scrive
+  // dentro: premendo un taglio la cifra è già scritta sul pulsante accanto, e
+  // ricopiarla qui faceva sembrare che nella stessa riga ci fossero due
+  // contanti diversi. Serve saperlo, non dedurlo dal numero: chi scrive a mano
+  // «85» ha scelto la casella, anche se il taglio da 85 esiste.
+  const [libero, setLibero] = React.useState(false);
+  const custom = libero && value !== '';
   return (
     <div>
       <div style={SALDA_LABEL}>Contante ricevuto</div>
@@ -1400,13 +1405,13 @@ function CashTendered({ total, value, onChange, chips }) {
         {chips.map((c, i) => {
           // Il primo chip è «Esatto»: torna a SEGUIRE il totale (campo
           // vuoto), così resta giusto anche se il totale cambia dopo.
-          const sel = i === 0 ? esatto : (!esatto && parseFloat(c.val) === tendered);
+          const sel = libero ? false : (i === 0 ? esatto : (!esatto && parseFloat(c.val) === tendered));
           return (
-            <button key={c.label} onClick={() => onChange(i === 0 ? '' : c.val)} style={{
+            <button key={c.label} onClick={() => { setLibero(false); onChange(i === 0 ? '' : c.val); }} style={{
               // Scelto = velatura corallo col bordo acceso, non corallo pieno:
               // in una fila di cinque, il pieno gridava più della cifra grande
               // che sta trenta pixel sopra. Stessa mano della finestra Incassa.
-              padding:'11px 8px', borderRadius: 12,
+              padding:'13px 8px', borderRadius: 12,
               background: sel ? SALDA_BRAND_SOFT : '#fff',
               color: sel ? SALDA_BRAND : SALDA_INK,
               border: `1px solid ${sel ? SALDA_BRAND : SALDA_BORDO}`,
@@ -1426,18 +1431,19 @@ function CashTendered({ total, value, onChange, chips }) {
             seleziona tutto: si scrive sopra senza cancellare prima. */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap: 3,
-          padding:'11px 8px', borderRadius: 12,
+          padding:'13px 8px', borderRadius: 12,
           background: custom ? SALDA_BRAND_SOFT : '#fff',
           border: `1px solid ${custom ? SALDA_BRAND : SALDA_BORDO}`,
           cursor:'text',
         }}>
-          <span style={{
-            fontSize: 16.5, fontWeight: 700, flexShrink: 0,
-            color: custom ? SALDA_BRAND : '#9CA3AF',
-          }}>€</span>
+          {custom && (
+            <span style={{
+              fontSize: 16.5, fontWeight: 700, flexShrink: 0, color: SALDA_BRAND,
+            }}>€</span>
+          )}
           <input
-            value={esatto ? total.toFixed(2) : value}
-            onChange={e => onChange(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
+            value={custom ? value : ''}
+            onChange={e => { const v = e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'); setLibero(v !== ''); onChange(v); }}
             onFocus={e => e.currentTarget.select()}
             inputMode="decimal"
             placeholder="Altro"
@@ -1687,6 +1693,11 @@ function PagamentiConto({ pagamenti }) {
 function AdjustPanel({ subtotale, adjust, setAdjust }) {
   const [mode, setMode] = React.useState(adjust?.type === 'sconto-pct' ? 'sconto-pct' : 'sconto-eur');
   const [val, setVal] = React.useState(adjust?.val ?? '');
+  // La cifra l'ha scritta qualcuno QUI DENTRO, o l'ha messa un chip? La
+  // casella deve restare «Altro» finché non ci si scrive: col chip acceso il
+  // numero è già scritto sul pulsante accanto, e riscriverlo nella casella fa
+  // sembrare che nella stessa fila ci siano due sconti diversi.
+  const [libero, setLibero] = React.useState(false);
   const pct = mode === 'sconto-pct';
 
   React.useEffect(() => {
@@ -1705,11 +1716,13 @@ function AdjustPanel({ subtotale, adjust, setAdjust }) {
     // Dieci euro e dieci per cento non sono lo stesso sconto: cambiando unità
     // il numero non si porta dietro, si riparte.
     if (t === mode) return;
-    setMode(t); setVal(''); setAdjust(null);
+    setMode(t); setVal(''); setLibero(false); setAdjust(null);
   }
 
   const num = parseFloat(String(val).replace(',', '.')) || 0;
-  const scritto = num > 0;
+  // Acceso solo se la cifra è nata QUI: un chip premuto illumina il chip, non
+  // la casella.
+  const suMisura = libero && num > 0;
 
   return (
     <div style={{
@@ -1745,35 +1758,37 @@ function AdjustPanel({ subtotale, adjust, setAdjust }) {
           due gesti uguali non possono avere due forme diverse. */}
       <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 6}}>
         {[5, 10, 15, 20].map(v => {
-          const sel = num === v;
+          const sel = !libero && num === v;
           return (
-            <button key={v} onClick={() => { setVal(v); apply(mode, v); }} style={{
-              padding:'11px 4px', borderRadius: 10,
-              background: sel ? SALDA_BRAND : '#fff',
-              color: sel ? '#fff' : '#0F1115',
-              border: `1px solid ${sel ? SALDA_BRAND : '#E5E7EB'}`,
-              fontSize: 16, fontWeight: 700, cursor:'pointer',
+            <button key={v} onClick={() => { setLibero(false); setVal(v); apply(mode, v); }} style={{
+              padding:'13px 4px', borderRadius: 12,
+              background: sel ? SALDA_BRAND_SOFT : '#fff',
+              color: sel ? SALDA_BRAND : SALDA_INK,
+              border: `1px solid ${sel ? SALDA_BRAND : SALDA_BORDO}`,
+              fontSize: 16.5, fontWeight: 700, cursor:'pointer',
               fontFamily:'inherit', whiteSpace:'nowrap',
-              transition:'background 0.14s, border-color 0.14s, color 0.14s',
+              fontVariantNumeric:'tabular-nums',
+              transition:'background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out',
             }}>{pct ? `−${v}%` : `−€${v}`}</button>
           );
         })}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap: 3,
-          padding:'11px 4px', borderRadius: 10,
-          background: scritto && ![5,10,15,20].includes(num) ? SALDA_BRAND : '#fff',
-          border: `1px solid ${scritto && ![5,10,15,20].includes(num) ? SALDA_BRAND : '#E5E7EB'}`,
+          padding:'13px 4px', borderRadius: 12,
+          background: suMisura ? SALDA_BRAND_SOFT : '#fff',
+          border: `1px solid ${suMisura ? SALDA_BRAND : SALDA_BORDO}`,
           cursor:'text',
         }}>
-          {!pct && (
+          {/* L'unità compare con la cifra: sulla casella vuota resta solo
+              «Altro», che è tutto quello che quel posto deve dire. */}
+          {!pct && suMisura && (
             <span style={{
-              fontSize: 16, fontWeight: 700, flexShrink: 0,
-              color: scritto && ![5,10,15,20].includes(num) ? '#fff' : '#9CA3AF',
+              fontSize: 16, fontWeight: 700, flexShrink: 0, color: SALDA_BRAND,
             }}>€</span>
           )}
           <input
-            value={val}
-            onChange={e => { const v = e.target.value.replace(/[^0-9.,]/g, ''); setVal(v); apply(mode, v); }}
+            value={suMisura ? val : ''}
+            onChange={e => { const v = e.target.value.replace(/[^0-9.,]/g, ''); setLibero(v !== ''); setVal(v); apply(mode, v); }}
             onFocus={e => e.currentTarget.select()}
             inputMode="decimal"
             placeholder="Altro"
@@ -1782,13 +1797,12 @@ function AdjustPanel({ subtotale, adjust, setAdjust }) {
               width:'100%', minWidth: 0, border:'none', outline:'none',
               background:'transparent', fontFamily:'inherit', textAlign:'center',
               fontSize: 16, fontWeight: 700,
-              color: scritto && ![5,10,15,20].includes(num) ? '#fff' : '#0F1115',
+              color: suMisura ? SALDA_BRAND : SALDA_INK,
               padding: 0, fontVariantNumeric:'tabular-nums',
             }}/>
-          {pct && (
+          {pct && suMisura && (
             <span style={{
-              fontSize: 16, fontWeight: 700, flexShrink: 0,
-              color: scritto && ![5,10,15,20].includes(num) ? '#fff' : '#9CA3AF',
+              fontSize: 16, fontWeight: 700, flexShrink: 0, color: SALDA_BRAND,
             }}>%</span>
           )}
         </div>
@@ -1798,7 +1812,7 @@ function AdjustPanel({ subtotale, adjust, setAdjust }) {
           percentuale è una promessa finché non si vede la cifra che toglie.
           Il totale grande qui sopra la mostra già aggiornata — questa riga
           serve al passaggio, non al risultato. */}
-      {pct && scritto && (
+      {pct && num > 0 && (
         <div style={{fontSize: 15, color:'#6B7280', marginTop: 8}}>
           {num}% di €{subtotale.toFixed(2)} · <b style={{color:'#0F1115'}}>−€{(subtotale * num / 100).toFixed(2)}</b>
         </div>
@@ -1999,11 +2013,11 @@ const SALDA_LABEL = {
   letterSpacing: 0.7, textTransform:'uppercase', marginBottom: 8,
 };
 
-// Quanto è larga la colonna del pagamento dentro la finestra da 1080: la
-// misura di una ricevuta, non di un tavolo. Sotto ci sta il campo del
-// contante con i suoi chip e il pulsante che incassa, e niente si allontana
-// dal proprio vicino.
-const SALDA_PAGA_COL = 620;
+// Qui viveva SALDA_PAGA_COL, la colonna da 620 in cui stava stretto il passo
+// del pagamento: teneva vicini i suoi pezzi ma lasciava due fasce di bianco ai
+// lati di una finestra da 1080, e una finestra grande con dentro una colonna
+// stretta non sembra ordinata — sembra rotta. Adesso il pagamento prende la
+// larghezza che ha, con lo stesso margine di tutto il resto.
 
 // La CTA scura di Vendita diretta, quella sulle card «Da saldare»: stesso
 // gesto, stesso pulsante. I valori sono ricopiati da sala-vendita-diretta.jsx
