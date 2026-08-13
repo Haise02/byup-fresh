@@ -63,7 +63,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
   // Aggiustamento totale
   const [adjust, setAdjust] = React.useState(null);
-  // adjust: null | { type:'sconto-eur', val } | { type:'sconto-pct', val } | { type:'arrotonda', val } | { type:'custom', val }
+  // adjust: null | { type:'sconto-eur', val } | { type:'sconto-pct', val } | { type:'arrotonda', val }
+  // Correzioni, tutte e tre: partono dal totale dei piatti scelti e lo
+  // ritoccano. Scriverne uno da zero non è una correzione — è un altro conto —
+  // e infatti «Custom» non è più qui.
 
   const [pay, setPay] = React.useState({ contanti: '', carta: '' });
   const [method, setMethod] = React.useState('contanti'); // contanti | carta
@@ -208,11 +211,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       const total = Math.floor(sub);
       const delta = total - sub;
       return { total, delta, label: `Arrotondato · ${delta < 0 ? '' : '+'}€${delta.toFixed(2)}` };
-    },
-    'custom': (sub, val) => {
-      const total = val || 0;
-      const delta = total - sub;
-      return { total, delta, label: `Importo personalizzato · ${delta < 0 ? '−' : '+'}€${Math.abs(delta).toFixed(2)}` };
     },
   };
   const adjustResult = adjust ? ADJUST_STRATEGIES[adjust.type]?.(subtotale, adjust.val) : null;
@@ -1634,7 +1632,6 @@ function AdjustPanel({ subtotale, adjust, setAdjust}) {
           { id:'sconto-eur', label:'Sconto €' },
           { id:'sconto-pct', label:'Sconto %' },
           { id:'arrotonda',  label:'Arrotonda' },
-          { id:'custom',     label:'Custom' },
         ].map(opt => (
           <button key={opt.id} onClick={()=>{setMode(opt.id); setVal(''); }} style={{
             flex:1, padding:'6px 4px', borderRadius: 6,
@@ -1683,16 +1680,10 @@ function AdjustPanel({ subtotale, adjust, setAdjust}) {
         </button>
       )}
 
-      {mode === 'custom' && (
-        <div>
-          <input type="number" value={val} onChange={e=>{setVal(e.target.value); apply('custom', e.target.value);}}
-            placeholder={`Naturale: €${subtotale.toFixed(2)}`}
-            style={{...inputV2, fontSize: 20, fontWeight: 800}}/>
-          <div style={{fontSize: 14.5, color:'#6B7280', marginTop: 4}}>
-            Sostituisce il totale naturale di €{subtotale.toFixed(2)}
-          </div>
-        </div>
-      )}
+      {/* Qui c'era «Custom»: un campo che sostituiva il totale in un pannello
+          che si chiama «Sconto o correzione». Non correggeva niente — riscriveva
+          la cifra — e lasciava spuntate le righe, così quei piatti risultavano
+          saldati da soldi che non li avevano pagati. */}
     </div>
   );
 }
