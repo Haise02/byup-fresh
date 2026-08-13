@@ -224,6 +224,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const apertoTotale = incassabili.reduce((s, o) => s + qtyAperta(o) * o.prezzo, 0);
   const residuoDopo = Math.max(0, Math.round((apertoTotale - subtotale) * 100) / 100);
   const parziale = residuoDopo > 0.004;
+  // Si sta prendendo tutto il conto o solo una parte? Sulle cifre, non sul
+  // conteggio delle righe: due bottiglie d'acqua su tre sono la stessa riga ma
+  // non lo stesso importo, e chi guarda il totale sta guardando i soldi.
+  const parzialeSelezione = Math.abs(subtotale - apertoTotale) > 0.004;
 
   // Contanti col campo vuoto = ESATTO: segue il totale senza che nessuno
   // scriva niente. Prima la CTA partiva spenta («Manca €65») finché non si
@@ -528,18 +532,18 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   flexShrink: 0, borderTop:'1px solid #EDEFF2', background:'#fff',
                   padding:'14px 24px 18px',
                 }}>
-                  {(adjust || selectedOrdini.length < incassabili.length) && (
+                  {/* Il «Subtotale · 0 di 4 · €0.00» non c'è più: era una riga
+                      che ripeteva in piccolo il numero scritto grande qui sotto,
+                      e che a selezione vuota diceva zero due volte. Quello che
+                      la selezione parziale deve dire — «di quanto?» — sta ora
+                      accanto al totale, dove si legge senza spostare gli occhi. */}
+                  {adjust && (
                     <div style={{display:'flex', flexDirection:'column', gap: 5, marginBottom: 10}}>
                       <ReceiptRow
-                        label={`Subtotale${selectedOrdini.length < incassabili.length ? ` · ${selectedOrdini.length} di ${incassabili.length}` : ''}`}
-                        value={`€${subtotale.toFixed(2)}`}/>
-                      {adjust && (
-                        <ReceiptRow
-                          label={adjustLabel.split(' · ')[0]}
-                          value={(adjustDelta >= 0 ? '+' : '−') + '€' + Math.abs(adjustDelta).toFixed(2)}
-                          tone={adjustDelta < 0 ? 'success' : 'danger'}
-                          onRemove={() => setAdjust(null)}/>
-                      )}
+                        label={adjustLabel.split(' · ')[0]}
+                        value={(adjustDelta >= 0 ? '+' : '−') + '€' + Math.abs(adjustDelta).toFixed(2)}
+                        tone={adjustDelta < 0 ? 'success' : 'danger'}
+                        onRemove={() => setAdjust(null)}/>
                     </div>
                   )}
 
@@ -566,6 +570,18 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       }}>›</span>
                     </button>
                     <span style={{flex:1}}/>
+                    {/* Grande quello che stai incassando, piccolo quanto fa
+                        tutto il conto: due numeri diversi esistono solo quando
+                        stai prendendo una parte, e allora il secondo è la
+                        domanda che viene subito dopo — «e il resto?». Se il
+                        conto è preso tutto sono lo stesso numero, e uno dei due
+                        sparisce invece di ripetersi. */}
+                    {parzialeSelezione && (
+                      <span style={{
+                        fontSize: 17, fontWeight: 700, color:'#9CA3AF',
+                        letterSpacing:-0.2, fontVariantNumeric:'tabular-nums',
+                      }}>di €{apertoTotale.toFixed(2)}</span>
+                    )}
                     <span style={{
                       fontSize: 42, fontWeight: 800, color:'#0F1115',
                       letterSpacing:-1.4, lineHeight: 1,
@@ -615,110 +631,108 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 background:'#fff', minWidth: 0,
                 alignItems:'center',
               }}>
+                {/* La via d'uscita in alto a sinistra, come nella finestra
+                    Incassa di Vendita diretta: è l'unica cosa qui dentro con
+                    una conseguenza — cambiare cosa si sta saldando — e stare
+                    attaccata alla CTA vorrebbe dire regalare un tocco sbagliato
+                    a ogni incasso. Angolo opposto, e allineata al titolo: sta
+                    sul bordo della finestra, non sul bordo della colonna, o
+                    sembrerebbe appesa in mezzo al bianco. */}
+                <div style={{width:'100%', flexShrink: 0, padding:'0 24px 6px'}}>
+                    <button onClick={() => setPasso('conto')}
+                      title="Torna a scegliere cosa saldare"
+                      onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SALDA_INK; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SALDA_MUTED; }}
+                      style={{
+                        display:'inline-flex', alignItems:'center', gap: 6,
+                        padding:'8px 14px 8px 10px', borderRadius: 999,
+                        background:'transparent', border:`1px solid ${SALDA_BORDO}`,
+                        color: SALDA_MUTED, fontSize: 14.5, fontWeight: 700,
+                        cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+                        transition:'background 150ms ease-out, color 150ms ease-out',
+                      }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                      Torna al conto
+                    </button>
+                </div>
+
                 <div className="pn-scroll" style={{
                   flex:1, overflow:'auto', padding:'0 0 18px',
                   width:'100%', maxWidth: SALDA_PAGA_COL,
                 }}>
 
-                  {/* La strada per tornare al conto. Da qui si cambia idea su
-                      che cosa saldare, e senza non ci si potrebbe più. */}
-                  <div style={{padding:'0 22px 12px'}}>
-                    <button onClick={() => setPasso('conto')}
-                      onMouseEnter={e => { e.currentTarget.style.color = '#0F1115'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = '#6B7280'; }}
-                      style={{
-                        display:'inline-flex', alignItems:'center', gap: 7,
-                        background:'transparent', border:'none', padding:'6px 0',
-                        color:'#6B7280', fontSize: 16, fontWeight: 700,
-                        cursor:'pointer', fontFamily:'inherit',
-                        transition:'color 140ms ease',
-                      }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-                      Torna al conto
-                    </button>
-                  </div>
-
-                  {/* RIEPILOGO TOTALE — un blocco in tinta brand: è il numero
-                      per cui questa finestra esiste, e prima era una riga di
-                      testo su fondo grigio come tutto il resto. */}
-                  <div style={{
-                    background: SALDA_BRAND_SOFT, padding:'18px 22px 14px',
-                    margin:'0 22px', borderRadius: 14,
-                  }}>
-                    {/* Il dettaglio (subtotale, sconto) compare SOLO quando
-                        racconta qualcosa che il Totale da solo non dice:
-                        selezione parziale o aggiustamento. Nel caso normale
-                        il primo numero che leggi è l'unico. */}
-                    {(adjust || selectedOrdini.length < incassabili.length) && (
-                    <div style={{display:'flex', flexDirection:'column', gap: 5, marginBottom: 12}}>
-                      <ReceiptRow
-                        label={`Subtotale${selectedOrdini.length < incassabili.length ? ` · ${selectedOrdini.length} di ${incassabili.length}` : ''}`}
-                        value={`€${subtotale.toFixed(2)}`}/>
-                      {adjust && (
-                        <ReceiptRow
-                          label={adjustLabel.split(' · ')[0]}
-                          value={(adjustDelta >= 0 ? '+' : '−') + '€' + Math.abs(adjustDelta).toFixed(2)}
-                          tone={adjustDelta < 0 ? 'success' : 'danger'}
-                          onRemove={() => setAdjust(null)}/>
-                      )}
-                    </div>
-                    )}
-
-                    {/* HERO TOTAL */}
-                    <div style={{
-                      paddingTop: (adjust || selectedOrdini.length < incassabili.length) ? 14 : 0,
-                      borderTop: (adjust || selectedOrdini.length < incassabili.length) ? '1px solid rgba(15,17,21,0.08)' : 'none',
-                      display:'flex', alignItems:'baseline', gap: 8,
-                    }}>
+                  {/* HERO — la cifra che si dice ad alta voce al cliente, con
+                      la sua etichetta sopra e il conto sotto. Prima era un
+                      blocco rosa allineato a sinistra con l'etichetta di
+                      fianco: un riquadro dentro un riquadro, in una finestra
+                      che di riquadri ne ha già. Qui il numero sta al centro e
+                      non ha bisogno di una scatola per farsi vedere. */}
+                  <div style={{padding:'20px 28px 0', textAlign:'center'}}>
+                    <div style={SALDA_LABEL}>Da incassare</div>
+                    <div style={{display:'inline-flex', alignItems:'baseline', gap: 7}}>
+                      <span style={{fontSize: 28, fontWeight: 800, color: SALDA_MUTED, letterSpacing:-0.5}}>€</span>
                       <span style={{
-                        fontSize: 15, fontWeight: 800, color:'#6B7280',
-                        letterSpacing: 0.6, textTransform:'uppercase', flex: 1,
-                      }}>Totale</span>
-                      <span style={{
-                        fontSize: 42, fontWeight: 800, color:'#0F1115',
-                        letterSpacing:-1.4, lineHeight: 1,
+                        fontSize: 56, fontWeight: 800, color: SALDA_INK,
+                        letterSpacing:-1.8, lineHeight: 1.1,
                         fontVariantNumeric:'tabular-nums',
-                      }}>€{total.toFixed(2)}</span>
+                      }}>{total.toFixed(2)}</span>
                     </div>
 
-                    {/* Lo sconto si fa sul CONTO, non qui: al momento di
-                        incassare il totale è una cosa decisa. Si torna
-                        indietro e lo si cambia là, dove ci sono le righe che
-                        sconta. */}
+                    {/* Il conto, SEMPRE: dice su cosa si sta lavorando e non si
+                        muove. «Da incassare» e «totale conto» sono due fatti
+                        diversi anche quando il numero coincide. */}
+                    <div style={{
+                      marginTop: 4, fontSize: 15, color: SALDA_MUTED,
+                      fontVariantNumeric:'tabular-nums',
+                    }}>
+                      Totale conto €{apertoTotale.toFixed(2)}
+                      {parzialeSelezione && <> · {selectedOrdini.length} {selectedOrdini.length === 1 ? 'piatto' : 'piatti'} di {incassabili.length}</>}
+                    </div>
+
+                    {/* Lo sconto si applica sul CONTO — al momento di incassare
+                        il totale è una cosa decisa — ma qui va detto che c'è, e
+                        da qui si può togliere senza tornare indietro. */}
+                    {adjust && (
+                      <div style={{
+                        display:'inline-flex', alignItems:'center', gap: 8,
+                        marginTop: 10, padding:'6px 8px 6px 14px', borderRadius: 999,
+                        background:'#DCFCE7', color:'#166534',
+                        fontSize: 15, fontWeight: 700,
+                      }}>
+                        {adjustLabel.split(' · ')[0]} · −€{Math.abs(adjustDelta).toFixed(2)}
+                        <button onClick={() => setAdjust(null)} title="Togli lo sconto" style={{
+                          width: 24, height: 24, padding: 0, borderRadius: '50%',
+                          background:'rgba(22,101,52,0.10)', border:'none', color:'#166534',
+                          cursor:'pointer', display:'grid', placeItems:'center', fontFamily:'inherit',
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Quello che è già arrivato su questo conto. I piatti che
-                      queste quote coprono sono spenti nell'elenco a sinistra,
-                      quindi il totale qui sopra è già al netto: non c'è più
+                      queste quote coprono sono spenti nell'elenco del conto,
+                      quindi la cifra qui sopra è già al netto: non c'è più
                       niente da mettere in relazione a mente. */}
-                  <PagamentiConto pagamenti={tavolo.pagamenti} />
+                  <div style={{marginTop: 18}}>
+                    <PagamentiConto pagamenti={tavolo.pagamenti} />
+                  </div>
 
-                  <div style={{padding:'18px 22px 0'}}>
-
-                  {/* PAGAMENTO — la sola domanda a cui l'operatore deve
-                      rispondere in questa colonna. Era un'etichetta maiuscola
-                      come tutte le altre e si perdeva in mezzo a loro: una
-                      domanda si scrive come una domanda. */}
-                  <div style={{marginBottom: 18}}>
-                    <div style={{
-                      fontSize: 17.5, fontWeight: 800, color:'#0F1115',
-                      letterSpacing:-0.2, marginBottom: 10,
-                    }}>Come paga il cliente?</div>
-
-                    {/* Due modi, non tre. Il «misto» chiedeva di spezzare a
-                        mano l'importo fra contanti e carta e di far quadrare la
-                        somma col totale: un'aritmetica da fare col cliente
-                        davanti, per un caso che si risolve già — chi paga metà
-                        e metà lo fa saldando due volte lo stesso conto, e il
-                        conto sa restare aperto per il resto. */}
-                    <div style={{
-                      display:'grid', gridTemplateColumns:'1fr 1fr', gap: 6,
-                      marginBottom: 12,
-                    }}>
-                      <MethodTab active={method==='contanti'} onClick={()=>chooseMethod('contanti')}
-                        icon={<IconCash/>} label="Contanti"/>
-                      <MethodTab active={method==='carta'} onClick={()=>chooseMethod('carta')}
-                        icon={<IconCard/>} label="Carta"/>
+                  {/* COME PAGA — due tessere parlanti, la stessa misura e la
+                      stessa spunta d'angolo della finestra Incassa: è lo stesso
+                      gesto fatto dalla stessa persona, e le due finestre non
+                      possono chiederlo in due modi diversi. Con più spazio a
+                      disposizione le tessere respirano invece di allargarsi:
+                      una finestra grande non è una finestra con gli oggetti
+                      grandi. */}
+                  <div style={{padding:'20px 28px 0'}}>
+                    <div style={SALDA_LABEL}>Come paga il cliente</div>
+                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+                      <SaldaMetodoCard active={method==='contanti'} onClick={()=>chooseMethod('contanti')}
+                        icon={<IconBanconota/>} label="Contanti"/>
+                      <SaldaMetodoCard active={method==='carta'} onClick={()=>chooseMethod('carta')}
+                        icon={<IconPos/>} label="Carta · Byup Staff"/>
                     </div>
 
                     {/* Cosa succede scegliendo la carta: il pulsante non
@@ -727,35 +741,31 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         davanti. */}
                     {method === 'carta' && (
                       <div style={{
-                        display:'flex', gap: 8, marginBottom: 12,
-                        padding:'10px 12px', borderRadius: 10,
+                        display:'flex', gap: 10, marginTop: 14,
+                        padding:'12px 16px', borderRadius: 14,
                         background: PAY_BG, color: PAY_INK,
-                        fontSize: 15.5, lineHeight: 1.4,
+                        fontSize: 15.5, lineHeight: 1.45,
                       }}>
-                        <span style={{flexShrink: 0, marginTop: 1}}><IconCard/></span>
+                        <span style={{flexShrink: 0, marginTop: 2}}><IconCard/></span>
                         <span>
-                          La carta si passa da <b>Byup Staff</b>: il conto entra in coda sul telefono e si chiude appena il pagamento va a buon fine.
+                          Il conto entra in coda su <b>Byup Staff</b> e si chiude appena il pagamento va a buon fine.
                         </span>
                       </div>
                     )}
+                  </div>
 
-                    {method === 'contanti' && (
+                  {method === 'contanti' && (
+                    <div style={{padding:'18px 28px 0'}}>
                       <CashTendered
                         total={total}
                         value={pay.contanti}
                         onChange={setTendered}
                         chips={smartCashChips(total)}/>
-                    )}
+                    </div>
+                  )}
 
-                    {/* Carta: nessun campo. Non c'è niente da inserire —
-                        l'importo è già scritto qui sopra e sul pulsante. */}
-                  </div>
-
-                  {/* La fattura non sta più qui: è salita in testata, accanto
-                      al pre-conto. Con lei se n'è andato anche il filo che la
-                      separava dai campi del pagamento — un separatore che non
-                      separa più niente è una riga di grigio e basta. */}
-                  </div>
+                  {/* Carta: nessun campo. Non c'è niente da inserire —
+                      l'importo è già scritto grande qui sopra. */}
                 </div>
 
                 {/* Piede dell'incasso: la riga che chiude la finestra corre da
@@ -766,9 +776,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   background:'#fff', flexShrink: 0, width:'100%',
                 }}>
                 <div style={{
-                  padding:'16px 22px 20px', margin:'0 auto',
+                  padding:'16px 28px 20px', margin:'0 auto',
                   maxWidth: SALDA_PAGA_COL,
-                  display:'flex', flexDirection:'column', gap: 8,
+                  display:'flex', flexDirection:'column', gap: 10,
                 }}>
                   {/* Il pulsante dice il gesto che compie, non «conferma»:
                       con i contanti incassa qui, con la carta manda il conto
@@ -801,36 +811,66 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           }
                         }}
                         disabled={!attivo}
+                        onMouseEnter={e => { if (attivo) e.currentTarget.style.filter = 'brightness(1.06)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.filter = 'none'; }}
                         style={{
-                          width:'100%', padding:'18px 16px', borderRadius: 14,
-                          background: attivo ? SALDA_BRAND : '#EDEFF2',
+                          // Verde come l'INCASSA di Vendita diretta, con la
+                          // stessa spunta nel cerchio: è lo stesso gesto —
+                          // prendere i soldi e chiudere — e finora era corallo,
+                          // cioè lo stesso colore delle spunte di selezione due
+                          // schermate prima. Il corallo qui dentro dice «scelto»,
+                          // il verde dice «fatto».
+                          width:'100%', padding:'15px 18px', borderRadius: 14,
+                          background: attivo ? SALDA_VERDE : '#EFEFF1',
                           color: attivo ? '#fff' : '#9CA3AF',
                           border:'none',
-                          boxShadow: attivo ? '0 10px 22px -10px rgba(255,59,65,0.65)' : 'none',
-                          // "Invia a Byup Staff · €65.00" è più lunga di
-                          // "Incassa": mezzo punto in meno la tiene su una
-                          // riga sola invece di spezzarla in due.
-                          fontSize: inviaSuStaff ? 18 : 19, fontWeight: 800,
+                          boxShadow: attivo ? '0 8px 20px -8px rgba(22,163,74,0.55)' : 'none',
+                          fontSize: 18, fontWeight: 700,
                           cursor: attivo ? 'pointer' : 'not-allowed',
                           fontFamily:'inherit',
-                          letterSpacing:-0.2, whiteSpace:'nowrap',
-                          display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
+                          letterSpacing:-0.1, whiteSpace:'nowrap',
+                          display:'flex', alignItems:'center', justifyContent:'center', gap: 11,
+                          transition:'filter 150ms ease-out',
                         }}>
+                        {attivo && (
+                          <span style={{
+                            width: 26, height: 26, borderRadius:'50%', flexShrink: 0,
+                            background:'rgba(255,255,255,0.22)',
+                            display:'grid', placeItems:'center',
+                          }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+                          </span>
+                        )}
+                        {/* Senza cifra: sta scritta enorme trenta pixel più su,
+                            e una seconda copia sul pulsante era solo un numero
+                            in più da confrontare. Il pulsante dice cosa succede
+                            — non quanto. */}
                         {!attivo
                           ? (total === 0 ? 'Scegli cosa saldare' : `Mancano €${manca.toFixed(2)}`)
                           : inviaSuStaff
-                            ? <>Invia a Byup Staff <span style={{opacity:0.6}}>·</span> €{total.toFixed(2)}</>
-                            : <>Incassa <span style={{opacity:0.6}}>·</span> €{total.toFixed(2)}</>}
+                            ? 'Manda su Byup Staff'
+                            : parziale
+                              ? 'Incassa in acconto'
+                              : `Incassa in contanti · ${invoice ? 'fattura' : 'ricevuta'}`}
                       </button>
                       {/* Incassare una parte è normale — si paga in due, si
                           divide il tavolo — e va detto prima di premere: il
-                          conto non si chiude, resta aperto per il resto. */}
-                      {attivo && !inviaSuStaff && parziale && (
+                          conto non si chiude, resta aperto per il resto. In
+                          ambra, che in questa finestra è il colore di ciò che
+                          resta in sospeso. */}
+                      {attivo && parziale && (
                         <div style={{
-                          fontSize: 15, color:'#6B7280', textAlign:'center', lineHeight: 1.4,
+                          display:'flex', alignItems:'center', gap: 10,
+                          padding:'12px 16px', borderRadius: 12,
+                          background: PAY_BG, color: PAY_INK,
+                          fontSize: 16, fontWeight: 600,
                         }}>
-                          Incasso parziale: il conto resta aperto con{' '}
-                          <b style={{color:'#0F1115'}}>€{residuoDopo.toFixed(2)}</b> da saldare
+                          <span>Il conto resta aperto con</span>
+                          <span style={{
+                            fontWeight: 800, letterSpacing:-0.3,
+                            fontVariantNumeric:'tabular-nums',
+                          }}>€{residuoDopo.toFixed(2)}</span>
+                          <span>da saldare</span>
                         </div>
                       )}
                       </React.Fragment>
@@ -1307,19 +1347,35 @@ function ReceiptRow({ label, value, tone, onRemove }) {
   );
 }
 
-function MethodTab({ active, onClick, icon, label }) {
+// La tessera del metodo, gemella di quella in Vendita diretta: icona e nome
+// su una riga sola, e la spunta nell'angolo quando è scelta. La spunta serve
+// perché il colore da solo, su due tessere affiancate, dice «una è diversa» ma
+// non «questa è quella scelta» — e a chi ha un cliente davanti serve la
+// seconda. Le vecchie linguette erano alte 14 px con l'icona sopra al nome:
+// due tessere impilate in verticale in una finestra larga il doppio.
+function SaldaMetodoCard({ active, onClick, icon, label }) {
   return (
     <button onClick={onClick} style={{
-      display:'flex', flexDirection:'column', alignItems:'center', gap: 7,
-      padding:'14px 6px', borderRadius: 12,
+      position:'relative',
+      display:'flex', alignItems:'center', justifyContent:'center', gap: 12,
+      padding:'16px 18px', borderRadius: 14,
       background: active ? SALDA_BRAND_SOFT : '#fff',
-      color: active ? SALDA_BRAND : '#0F1115',
-      border: `1.5px solid ${active ? SALDA_BRAND : '#E5E7EB'}`,
-      cursor:'pointer', fontFamily:'inherit',
-      fontSize: 16, fontWeight: 700,
-      transition:'background 0.15s, border-color 0.15s, color 0.15s',
+      border: `1.5px solid ${active ? SALDA_BRAND : SALDA_BORDO}`,
+      color: active ? SALDA_BRAND : SALDA_INK,
+      fontSize: 17.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+      transition:'background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out',
     }}>
-      <span style={{opacity: active ? 1 : 0.65}}>{icon}</span>
+      {active && (
+        <span style={{
+          position:'absolute', top: 9, right: 9,
+          width: 22, height: 22, borderRadius:'50%',
+          background: SALDA_BRAND, color:'#fff',
+          display:'grid', placeItems:'center',
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+        </span>
+      )}
+      {icon}
       {label}
     </button>
   );
@@ -1338,25 +1394,26 @@ function CashTendered({ total, value, onChange, chips }) {
   const custom = !esatto && !chips.some(c => parseFloat(c.val) === tendered);
   return (
     <div>
-      <div style={{
-        fontSize: 15, fontWeight: 700, color:'#6B7280',
-        marginBottom: 6,
-      }}>Contante ricevuto</div>
+      <div style={SALDA_LABEL}>Contante ricevuto</div>
 
-      <div style={{display:'grid', gridTemplateColumns:`repeat(${chips.length + 1}, 1fr)`, gap: 6}}>
+      <div style={{display:'grid', gridTemplateColumns:`repeat(${chips.length + 1}, 1fr)`, gap: 10}}>
         {chips.map((c, i) => {
           // Il primo chip è «Esatto»: torna a SEGUIRE il totale (campo
           // vuoto), così resta giusto anche se il totale cambia dopo.
           const sel = i === 0 ? esatto : (!esatto && parseFloat(c.val) === tendered);
           return (
             <button key={c.label} onClick={() => onChange(i === 0 ? '' : c.val)} style={{
-              padding:'11px 4px', borderRadius: 10,
-              background: sel ? SALDA_BRAND : '#fff',
-              color: sel ? '#fff' : '#0F1115',
-              border: `1px solid ${sel ? SALDA_BRAND : '#E5E7EB'}`,
-              fontSize: 16, fontWeight: 700, cursor:'pointer',
+              // Scelto = velatura corallo col bordo acceso, non corallo pieno:
+              // in una fila di cinque, il pieno gridava più della cifra grande
+              // che sta trenta pixel sopra. Stessa mano della finestra Incassa.
+              padding:'11px 8px', borderRadius: 12,
+              background: sel ? SALDA_BRAND_SOFT : '#fff',
+              color: sel ? SALDA_BRAND : SALDA_INK,
+              border: `1px solid ${sel ? SALDA_BRAND : SALDA_BORDO}`,
+              fontSize: 16.5, fontWeight: 700, cursor:'pointer',
               fontFamily:'inherit', whiteSpace:'nowrap',
-              transition:'background 0.14s, border-color 0.14s, color 0.14s',
+              fontVariantNumeric:'tabular-nums',
+              transition:'background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out',
             }}>{c.label}</button>
           );
         })}
@@ -1369,14 +1426,14 @@ function CashTendered({ total, value, onChange, chips }) {
             seleziona tutto: si scrive sopra senza cancellare prima. */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap: 3,
-          padding:'11px 4px', borderRadius: 10,
-          background: custom ? SALDA_BRAND : '#fff',
-          border: `1px solid ${custom ? SALDA_BRAND : '#E5E7EB'}`,
+          padding:'11px 8px', borderRadius: 12,
+          background: custom ? SALDA_BRAND_SOFT : '#fff',
+          border: `1px solid ${custom ? SALDA_BRAND : SALDA_BORDO}`,
           cursor:'text',
         }}>
           <span style={{
-            fontSize: 16, fontWeight: 700, flexShrink: 0,
-            color: custom ? '#fff' : '#9CA3AF',
+            fontSize: 16.5, fontWeight: 700, flexShrink: 0,
+            color: custom ? SALDA_BRAND : '#9CA3AF',
           }}>€</span>
           <input
             value={esatto ? total.toFixed(2) : value}
@@ -1388,26 +1445,34 @@ function CashTendered({ total, value, onChange, chips }) {
             style={{
               width:'100%', minWidth: 0, border:'none', outline:'none',
               background:'transparent', fontFamily:'inherit', textAlign:'center',
-              fontSize: 16, fontWeight: 700,
-              color: custom ? '#fff' : '#0F1115',
+              fontSize: 16.5, fontWeight: 700,
+              color: custom ? SALDA_BRAND : SALDA_INK,
               padding: 0, fontVariantNumeric:'tabular-nums',
             }}/>
         </div>
       </div>
 
+      {/* Il resto — o quanto manca — con le monete accanto, come al banco.
+          Compare solo quando esiste: col pagamento esatto è una riga che dice
+          zero. */}
       {!esatto && (resto > 0.01 || !enough) && tendered > 0 && (
         <div style={{
-          marginTop: 10, padding:'10px 14px', borderRadius: 10,
-          background: enough ? '#DCFCE7' : '#FEF3C7',
-          color: enough ? '#166534' : '#92400E',
-          display:'flex', justifyContent:'space-between', alignItems:'center',
+          display:'flex', alignItems:'center', gap: 12,
+          marginTop: 12, padding:'12px 16px', borderRadius: 14,
+          background: enough ? '#F5F6F8' : PAY_BG,
         }}>
-          <span style={{fontSize: 16, fontWeight: 700}}>
-            {enough ? 'Resto da dare' : 'Manca ancora'}
+          <span style={{color: enough ? SALDA_BRAND : PAY_INK, display:'inline-flex', flexShrink: 0}}>
+            <IconMonete/>
           </span>
-          <span style={{fontSize: 22, fontWeight: 800, fontVariantNumeric:'tabular-nums'}}>
-            €{Math.abs(enough ? resto : total - tendered).toFixed(2)}
+          <span style={{fontSize: 16.5, color: enough ? SALDA_MUTED : PAY_INK}}>
+            {enough ? 'Resto da dare' : 'Mancano'}
           </span>
+          <span style={{flex:1}}/>
+          <span style={{
+            fontSize: 19, fontWeight: 800, letterSpacing:-0.3,
+            color: enough ? SALDA_INK : PAY_INK,
+            fontVariantNumeric:'tabular-nums',
+          }}>€{Math.abs(enough ? resto : total - tendered).toFixed(2)}</span>
         </div>
       )}
     </div>
@@ -1866,6 +1931,32 @@ function IconCard() { return (
     <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10 H22"/>
   </svg>
 ); }
+// Le monete del resto: lo stesso mucchietto della finestra Incassa.
+function IconMonete() { return (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <ellipse cx="12" cy="6" rx="7.5" ry="3"/>
+    <path d="M4.5 6v4.5c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V6"/>
+    <path d="M4.5 10.5V15c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-4.5"/>
+  </svg>
+); }
+
+// Le due tessere del metodo, disegnate come in Vendita diretta: una banconota
+// e un terminale, riconoscibili di sagoma prima che si legga il nome.
+function IconBanconota() { return (
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="8.5" cy="12" r="2.6"/>
+    <path d="M7.4 12h2.2M7.6 10.9h1.8"/><circle cx="17.5" cy="12" r="0.9" fill="currentColor" stroke="none"/>
+  </svg>
+); }
+function IconPos() { return (
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="2" width="14" height="20" rx="2.5"/><rect x="7.5" y="4.5" width="9" height="4.5" rx="1"/>
+    <circle cx="9" cy="12.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="12" cy="12.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12.5" r="0.9" fill="currentColor" stroke="none"/>
+    <circle cx="9" cy="15.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="12" cy="15.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="15" cy="15.5" r="0.9" fill="currentColor" stroke="none"/>
+    <circle cx="9" cy="18.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="12" cy="18.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="15" cy="18.5" r="0.9" fill="currentColor" stroke="none"/>
+  </svg>
+); }
+
 // I tre canali, in tre oggetti: il telefono dell'ospite, lo schermo di chi ha
 // inquadrato il QR, le persone al tavolo. Si riconoscono di sagoma, prima di
 // leggere l'etichetta accanto — che è quello che serve quando si scorre un
@@ -1891,6 +1982,22 @@ function IconPersone() { return (
 // finestra e devono essere lo stesso.
 const SALDA_BRAND = '#FF3B41';
 const SALDA_BRAND_SOFT = '#FFF1F1';
+
+// La stessa scala della finestra Incassa di Vendita diretta: inchiostro,
+// grigio di servizio, bordo, verde della conferma. Ricopiati e non importati
+// perché questa finestra vive anche in Contabilità, che quel file non lo
+// carica — leggerli da lì farebbe esplodere la pagina invece di colorare un
+// pulsante.
+const SALDA_INK   = '#0F1729';
+const SALDA_MUTED = '#7A8394';
+const SALDA_BORDO = '#E7EAEF';
+const SALDA_VERDE = '#16A34A';
+// L'etichetta di sezione: piccola, in maiuscoletto, sempre uguale. È quella
+// che dice a ogni blocco come si chiama senza rubare spazio al suo contenuto.
+const SALDA_LABEL = {
+  fontSize: 13.5, fontWeight: 800, color: SALDA_MUTED,
+  letterSpacing: 0.7, textTransform:'uppercase', marginBottom: 8,
+};
 
 // Quanto è larga la colonna del pagamento dentro la finestra da 1080: la
 // misura di una ricevuta, non di un tavolo. Sotto ci sta il campo del

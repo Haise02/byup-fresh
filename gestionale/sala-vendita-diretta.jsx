@@ -2510,15 +2510,11 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
       adjustDelta = -(subtotale * (adjust.val || 0) / 100);
       naturalTotal = subtotale + adjustDelta;
       adjustLabel = `Sconto ${adjust.val}% · −€${(-adjustDelta).toFixed(2)}`;
-    } else if (adjust.type === 'arrotonda') {
-      naturalTotal = Math.floor(subtotale);
-      adjustDelta = naturalTotal - subtotale;
-      adjustLabel = `Arrotondato · ${adjustDelta < 0 ? '' : '+'}€${adjustDelta.toFixed(2)}`;
-    } else if (adjust.type === 'custom') {
-      naturalTotal = adjust.val || 0;
-      adjustDelta = naturalTotal - subtotale;
-      adjustLabel = `Importo personalizzato`;
     }
+    // Qui stavano anche 'arrotonda' e 'custom': il pannello che li produceva
+    // è uno solo e vive in sala-salda-modal.jsx, e quelle due voci non ci
+    // sono più. Tenerne il calcolo qui vorrebbe dire lasciare in piedi due
+    // rami che nessuno può più raggiungere.
   }
   const finalTotal = Math.max(0, naturalTotal);
 
@@ -2854,7 +2850,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
               <SvPillola
                 active={adjustOpen || !!adjust}
                 onClick={() => setAdjustOpen(o => !o)}
-                title="Applica uno sconto o arrotonda l'importo"
+                title="Applica uno sconto in euro o in percentuale"
                 icon={<span style={{fontSize: 13, fontWeight: 800, lineHeight: 1}}>%</span>}
                 label={adjust ? svEur(Math.abs(adjustDelta)) : 'Sconto'}/>
               {/* Accesa, la pillola porta il nome del cliente e non la parola
