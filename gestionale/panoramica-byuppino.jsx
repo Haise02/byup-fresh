@@ -436,11 +436,13 @@ function WidgetByuppino() {
     // orizzontale con la mascotte di fianco al filo: due colonne per un
     // dialogo che si legge dall'alto in basso.
     <div style={{
-      height: '100%', minHeight: 0,
+      // A filo della scheda: il widget È la scheda, come tutte le tessere del
+      // bento — margini negativi contro il padding della cornice, raggio e
+      // ombra glieli dà lei.
+      margin: '-18px -18px -16px -18px', height: 'calc(100% + 34px)',
       display: 'flex', flexDirection: 'column', minWidth: 0,
-      overflow: 'hidden', borderRadius: 18, position: 'relative',
+      overflow: 'hidden', borderRadius: 14, position: 'relative',
       background: PN.WHITE,
-      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 10px 30px -12px rgba(120, 60, 90, 0.28)',
     }}>
       <style>{BYU_CSS}</style>
 
@@ -460,14 +462,17 @@ function WidgetByuppino() {
           }}/>
         ))}
 
-        <div style={{position: 'relative', zIndex: 1, paddingRight: 150}}>
+        {/* 118 e non 150: nella tessera da una colonna il titolo andava a
+            capo — «Byuppino / AI» — per lasciare posto a una mascotte che non
+            ne chiede tanto. */}
+        <div style={{position: 'relative', zIndex: 1, paddingRight: 118}}>
           <div style={{
             fontSize: 12, fontWeight: 800, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)',
           }}>Assistente di sala</div>
           <div style={{
-            fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em',
-            color: '#fff', marginTop: 3,
+            fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em',
+            color: '#fff', marginTop: 3, whiteSpace: 'nowrap',
           }}>Byuppino AI</div>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 7,
@@ -484,7 +489,7 @@ function WidgetByuppino() {
             sotto la cucitura: è lei a tenere insieme i due piani. */}
         <img src={BYU_MASCOTTE} alt="Byuppino" className="byu-galleggia" style={{
           position: 'absolute', right: -4, bottom: -14, zIndex: 1,
-          height: 'calc(100% - 4px)', maxHeight: 190, width: 'auto',
+          height: 'calc(100% - 4px)', maxHeight: 168, width: 'auto',
           objectFit: 'contain', objectPosition: 'right bottom',
           filter: 'drop-shadow(0 10px 18px rgba(120, 30, 60, 0.35))',
           animation: 'byu-galla 5s ease-in-out infinite',

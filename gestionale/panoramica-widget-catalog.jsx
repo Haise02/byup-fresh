@@ -24,13 +24,18 @@
 // riquadro di dati fra gli altri, e deve stare dove l'occhio cade per primo
 // senza che ci si debba pensare. Trascinabile, sarebbe finito in fondo il
 // primo giorno; rimovibile, sparirebbe per sempre dopo un click sbagliato.
-// Nessun widget fisso: l'unico che lo era — Byuppino — non è più un widget.
-// È la colonna destra della Panoramica, cromo della pagina come la sidebar,
-// e la griglia non lo conosce.
-const PN_WIDGET_FISSI = [];
+// L'assistente è FISSO: non si trascina, non si toglie, non fa da bersaglio.
+// Sta nel bento con gli altri — tessera alta, ancorata all'ultima colonna —
+// perché una rail fuori griglia lasciava un pozzo di vuoto sotto di sé
+// appena la dashboard cresceva: dentro il bento, il `dense` riempie.
+const PN_WIDGET_FISSI = ['byuppino'];
 const pnFisso = (id) => PN_WIDGET_FISSI.indexOf(id) >= 0;
 
 const PN_WIDGET_CATALOG = [
+  // `pin: 'end'`: la tessera parte sempre dall'ultima colonna disponibile —
+  // l'assistente vive a destra, e il resto del bento gli si impacchetta
+  // intorno senza buchi (grid-auto-flow: dense).
+  { id: 'byuppino', name: 'Byuppino AI', desc: 'Chiedi in italiano: prenotazioni, menù, sala, impostazioni', component: 'WidgetByuppino', size: { w: 1, h: 6 }, pin: 'end', category: 'Utilità', icon: 'sparkles' },
   { id: 'andamento-coperti', name: 'Coperti', desc: 'Coperti per periodo con sparkline', component: 'WidgetAndamentoCoperti', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'andamento-scontrino', name: 'Scontrino medio', desc: 'Scontrino medio per periodo con sparkline', component: 'WidgetAndamentoScontrino', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-bar' },
   { id: 'incassi', name: 'Incassi', desc: 'Incassi per periodo con sparkline', component: 'WidgetIncassi', size: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },
