@@ -173,75 +173,38 @@ function byuInterpreta(testo) {
   return Object.assign({ icona: area.icona }, area.componi(testo));
 }
 
-function byuOra(d) {
-  const t = d || new Date();
-  return String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
-}
-
 // ─── Pezzi ─────────────────────────────────────────────────────────────────
 
-// La faccia della mascotte dentro un cerchio da 34. La foto è in piedi e tiene
-// un telefono: ritagliata a «cover» si vedrebbero il telefono e mezzo busto,
-// cioè una macchia rossa. Si ingrandisce e si sposta finché nel cerchio resta
-// la sola testa.
-// Accanto alle bolle va il SEGNO del marchio, non la faccia della mascotte. La
-// mascotte è già lì di fianco, grande, e ripeterla rimpicciolita a 34 px la
-// riduceva a una macchia rossa in cui non si riconosceva niente. Il segno
-// invece a quella taglia è nato per essere letto — è lo stesso che sta nella
-// sidebar chiusa — e dice la cosa giusta: a parlare è byup.
-function ByuSegno({ size = 34 }) {
-  return (
-    <span style={{
-      width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      display: 'grid', placeItems: 'center',
-      background: PN.WHITE,
-      boxShadow: 'inset 0 0 0 1px rgba(15, 17, 21, 0.07)',
-    }}>
-      <img src="Fresh-mark.png" alt="byup" style={{
-        width: size * 0.6, height: size * 0.6, objectFit: 'contain', display: 'block',
-      }}/>
-    </span>
-  );
-}
-
-// Niente doppia spunta accanto all'orario. È un segno preso in prestito dalla
-// messaggistica, dove serve a dire «l'altro l'ha letto» — e qui l'altro è
-// l'assistente, che risponde nella riga sotto: la ricevuta di lettura la porta
-// già la risposta. Un segno che non risolve nessun dubbio è solo un segno in
-// più da guardare.
+// Qui vivevano ByuSegno (il marchio accanto alle bolle) e l'orario in coda a
+// ogni messaggio. In colonna se ne vanno tutti e due: chi parla lo dicono già
+// il lato e il colore della bolla — la mascotte è trenta pixel più su — e i
+// minuti di una chat che vive sulla stessa schermata non decidono niente.
+// Nella colonna stretta ogni etichetta in più è larghezza tolta alle parole.
 
 // Il raggio è asimmetrico: l'angolo dal lato di chi parla resta quasi vivo. È
 // la coda del fumetto senza disegnare la coda.
-function ByuBolla({ da, testo, ora }) {
+function ByuBolla({ da, testo }) {
   const mio = da === 'io';
   return (
     <div style={{
-      display: 'flex', alignItems: 'flex-end', gap: 9,
+      display: 'flex',
       justifyContent: mio ? 'flex-end' : 'flex-start',
       animation: 'byu-entra 260ms cubic-bezier(0.34, 1.2, 0.64, 1)',
     }}>
-      {!mio && (
-        <ByuSegno/>
-      )}
       <div style={{
-        maxWidth: '72%', padding: '9px 13px',
+        maxWidth: '84%', padding: '10px 14px',
         borderRadius: mio ? '16px 16px 5px 16px' : '16px 16px 16px 5px',
         background: mio ? BYU_BRAND : '#F4F5F7',
         color: mio ? '#fff' : PN.TEXT,
-        fontSize: 14.5, fontWeight: 500, lineHeight: 1.42,
+        fontSize: 14.5, fontWeight: 500, lineHeight: 1.45,
       }}>{testo}</div>
-      <span style={{
-        flexShrink: 0, fontSize: 11.5, fontWeight: 600,
-        color: PN.MUTED_SOFT, paddingBottom: 2,
-      }}>{ora}</span>
     </div>
   );
 }
 
 function ByuScrive() {
   return (
-    <div style={{display: 'flex', alignItems: 'flex-end', gap: 9}}>
-      <ByuSegno/>
+    <div style={{display: 'flex', alignItems: 'flex-end'}}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 5,
         padding: '12px 14px', borderRadius: '16px 16px 16px 5px', background: '#F4F5F7',
@@ -269,8 +232,8 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
 
   const dentro = (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 13,
-      padding: '11px 13px', borderRadius: 14,
+      display: 'flex', flexDirection: 'column', gap: 10,
+      padding: '13px 14px', borderRadius: 14,
       // Il fondo compie il giro di tinte del brand — corallo, lavanda, pesca —
       // ma in pastello: sopra ci sta del testo che deve restare nero su chiaro,
       // e un corallo pieno che passa sotto le lettere le cancellerebbe per tre
@@ -280,35 +243,32 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
       animation: 'byu-scheda 12s ease-in-out infinite',
       border: '1px solid rgba(252, 88, 93, 0.16)',
     }} className="byu-scheda">
-      <span style={{
-        width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-        display: 'grid', placeItems: 'center',
-        background: 'rgba(252, 88, 93, 0.12)', color: BYU_BRAND,
-      }}><Icon name={a.icona} size={22}/></span>
-
-      <div style={{flex: 1, minWidth: 0}}>
-        <div style={{
-          fontSize: 14.5, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {a.titolo}
-          {a.dettagli.map((d, i) => (
-            <React.Fragment key={i}>
-              <span style={{color: PN.MUTED_SOFT, fontWeight: 600, margin: '0 7px'}}>·</span>
-              <span style={{fontWeight: 600}}>{d}</span>
-            </React.Fragment>
-          ))}
-        </div>
-        {corso && (
-          <div style={{fontSize: 12.5, fontWeight: 600, color: PN.MUTED, marginTop: 2}}>
-            Sto eseguendo…
+      {/* Testa: icona, titolo, e i dati su una riga loro — in colonna il
+          titolo e i dettagli in fila unica si troncavano a metà orario. */}
+      <div style={{display: 'flex', alignItems: 'center', gap: 12, minWidth: 0}}>
+        <span style={{
+          width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+          display: 'grid', placeItems: 'center',
+          background: 'rgba(252, 88, 93, 0.12)', color: BYU_BRAND,
+        }}><Icon name={a.icona} size={22}/></span>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{
+            fontSize: 15, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{a.titolo}</div>
+          <div style={{
+            fontSize: 13.5, fontWeight: 600, color: PN.MUTED, marginTop: 2,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {corso ? 'Sto eseguendo…' : a.dettagli.join(' · ')}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* A destra: che cosa si può ancora decidere. Da annullata resta solo il
-          verdetto, perché non c'è più niente da premere. */}
-      <div style={{display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0}}>
+      {/* Sotto: che cosa si può ancora decidere, allineato a destra. Da
+          annullata resta solo il verdetto, perché non c'è più niente da
+          premere. */}
+      <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0}}>
         {annullata && (
           <span style={{
             fontSize: 13, fontWeight: 700, color: PN.MUTED,
@@ -335,12 +295,26 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
                 cose identiche di cui una si preme e l'altra no sono un
                 equivoco. E dice che cosa conferma — «Fatto» descriveva uno
                 stato, non l'azione che stai per fare. */}
+            {/* «Annulla» prima, «Conferma» ultima: la mano che scende
+                lungo la scheda finisce sul gesto che chiude. Pillole piene,
+                come nel resto del prodotto: qui il testo nudo si perdeva
+                sotto la scheda colorata. */}
+            <button type="button" onClick={onAnnulla} title="Annulla l'azione"
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.10)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.06)'; }}
+              style={{
+                padding: '9px 16px', borderRadius: 999, border: 'none',
+                background: 'rgba(15,17,21,0.06)', color: PN.TEXT,
+                fontSize: 13.5, fontWeight: 700,
+                fontFamily: 'inherit', cursor: 'pointer',
+                transition: 'background 140ms ease',
+              }}>Annulla</button>
             <button type="button" onClick={onFatto} title="Conferma la modifica"
               onMouseEnter={e => { e.currentTarget.style.background = '#0C8A4C'; }}
               onMouseLeave={e => { e.currentTarget.style.background = BYU_VERDE; }}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
-                padding: '9px 15px', borderRadius: 10, border: 'none',
+                padding: '9px 18px', borderRadius: 999, border: 'none',
                 background: BYU_VERDE, color: '#fff',
                 fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.01em',
                 fontFamily: 'inherit', cursor: 'pointer',
@@ -351,16 +325,8 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
                 strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <polyline points="4 12.5 9.5 18 20 6"/>
               </svg>
-              Conferma modifica
+              Conferma
             </button>
-            <button type="button" onClick={onAnnulla} title="Annulla l'azione"
-              onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline'; }}
-              onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none'; }}
-              style={{
-                padding: '7px 6px', border: 'none', background: 'transparent',
-                color: BYU_BRAND, fontSize: 13.5, fontWeight: 700,
-                fontFamily: 'inherit', cursor: 'pointer',
-              }}>Annulla</button>
           </React.Fragment>
         )}
       </div>
@@ -388,11 +354,6 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
           <div style={{position: 'relative'}}>{dentro}</div>
         </div>
       ) : dentro}
-
-      <div style={{
-        textAlign: 'right', fontSize: 11.5, fontWeight: 600,
-        color: PN.MUTED_SOFT, marginTop: 4, paddingRight: 2,
-      }}>{a.ora}</div>
     </div>
   );
 }
@@ -404,19 +365,17 @@ function WidgetByuppino() {
   // chiedere né che forma ha la risposta: lo scambio d'esempio insegna
   // entrambe le cose senza una riga di istruzioni, e la scheda che ne esce è
   // già toccabile — «Fatto» e «Annulla» fanno quello che dicono.
-  const [messaggi, setMessaggi] = React.useState(() => {
-    const t = new Date();
-    const prima = new Date(t.getTime() - 60000);
-    return [
-      { k: 'm0', tipo: 'bolla', da: 'ai', ora: byuOra(prima),
-        testo: 'Ciao Mario! Posso occuparmi io delle cose noiose? Cosa ti serve?' },
-      { k: 'm1', tipo: 'bolla', da: 'io', ora: byuOra(prima),
-        testo: 'Sposta la prenotazione di Bianchi alle 21:30' },
-      { k: 'm2', tipo: 'azione', stato: 'pronta', ora: byuOra(t),
-        icona: 'time-calendar', titolo: 'Prenotazione Bianchi',
-        dettagli: ['Tavolo 12', '21:30'] },
-    ];
-  });
+  const [messaggi, setMessaggi] = React.useState(() => ([
+    { k: 'm0', tipo: 'bolla', da: 'ai',
+      testo: 'Ciao Mario! Posso occuparmi io delle cose noiose?' },
+    { k: 'm1', tipo: 'bolla', da: 'io', testo: 'Come siamo messi stasera?' },
+    { k: 'm2', tipo: 'bolla', da: 'ai',
+      testo: '23 prenotazioni, 6 tavoli occupati. Picco alle 20:45.' },
+    { k: 'm3', tipo: 'bolla', da: 'io', testo: 'Sposta Bianchi alle 21:30' },
+    { k: 'm4', tipo: 'azione', stato: 'pronta',
+      icona: 'time-calendar', titolo: 'Prenotazione Bianchi',
+      dettagli: ['Tavolo 12', '4 coperti', '21:00 → 21:30'] },
+  ]));
   const [testo, setTesto] = React.useState('');
   const [scrive, setScrive] = React.useState(false);
   const [ascolta, setAscolta] = React.useState(false);
@@ -452,7 +411,7 @@ function WidgetByuppino() {
     if (!t) return;
     seq.current += 1;
     const n = seq.current;
-    setMessaggi(m => m.concat({ k: 'u' + n, tipo: 'bolla', da: 'io', testo: t, ora: byuOra() }));
+    setMessaggi(m => m.concat({ k: 'u' + n, tipo: 'bolla', da: 'io', testo: t }));
     setTesto('');
     setAscolta(false);
     setScrive(true);
@@ -461,8 +420,8 @@ function WidgetByuppino() {
     fra(750, () => {
       setScrive(false);
       setMessaggi(m => m.concat(
-        { k: 'a' + n, tipo: 'bolla', da: 'ai', testo: letta.risposta, ora: byuOra() },
-        { k: 'c' + n, tipo: 'azione', stato: 'corso', ora: byuOra(),
+        { k: 'a' + n, tipo: 'bolla', da: 'ai', testo: letta.risposta },
+        { k: 'c' + n, tipo: 'azione', stato: 'corso',
           icona: letta.icona, titolo: letta.titolo, dettagli: letta.dettagli }
       ));
       // L'anello si ferma da solo: un'azione non può restare «in corso» per
@@ -472,87 +431,73 @@ function WidgetByuppino() {
   };
 
   return (
-    // IL GRADIENTE È IL WIDGET. Prima faceva da fondo alla sola colonna della
-    // mascotte e si fermava a metà, con la chat attaccata di fianco come un
-    // secondo pannello: due rettangoli affiancati, non un oggetto solo. Ora
-    // pesca-rosa-lavanda tiene tutta la scheda e la conversazione ci galleggia
-    // sopra — una card bianca con l'aria intorno su tutti e quattro i lati.
+    // IN VERTICALE: testata a gradiente sopra, conversazione sotto, campo in
+    // fondo — la forma di una chat, perché è una chat. Prima era un nastro
+    // orizzontale con la mascotte di fianco al filo: due colonne per un
+    // dialogo che si legge dall'alto in basso.
     <div style={{
-      // A filo della scheda: il widget È la scheda, non qualcosa appoggiato
-      // dentro. Il raggio glielo dà la cornice della dashboard, la stessa di
-      // tutte le altre.
-      margin: '-18px -18px -16px -18px', height: 'calc(100% + 34px)',
-      display: 'flex', minWidth: 0, overflow: 'hidden', borderRadius: 14,
-      padding: 12, gap: 12, position: 'relative',
-      // Il fondo fermo su cui si muovono le macchie: se restassero scoperti
-      // dei bordi durante il movimento, sotto c'è comunque il colore giusto.
-      background: 'linear-gradient(135deg, #FFE7D6 0%, #FFDCE2 45%, #EFE0FF 100%)',
+      height: '100%', minHeight: 0,
+      display: 'flex', flexDirection: 'column', minWidth: 0,
+      overflow: 'hidden', borderRadius: 18, position: 'relative',
+      background: PN.WHITE,
+      boxShadow: '0 1px 0 rgba(15,17,21,0.04), 0 10px 30px -12px rgba(120, 60, 90, 0.28)',
     }}>
       <style>{BYU_CSS}</style>
 
-      {BYU_MACCHIE.map((m, i) => (
-        <span key={i} aria-hidden="true" className="byu-macchia" style={{
-          background: `radial-gradient(circle at ${m.pos}, ${m.c} 0%, transparent 58%)`,
-          animation: m.anim,
-        }}/>
-      ))}
-
-      {/* ── Colonna sinistra: chi ti sta parlando. Niente fondo suo: sta
-             direttamente sul gradiente. ── */}
-      {/* Stretta quanto basta a titolo e mascotte: fra le due c'era un corridoio
-          vuoto che non teneva niente, e la conversazione — che è il lavoro — se
-          ne stava al largo. Quello spazio è passato alla chat. */}
+      {/* ── Testata: il gradiente, sceso di tono pastello e salito di voce.
+             Qui il testo è bianco, quindi le tinte sono piene — pesca che vira
+             al corallo e poi alla lavanda — e le macchie animate ci girano
+             sopra come luci, non come colori. ── */}
       <div style={{
-        width: '19%', minWidth: 172, flexShrink: 0,
-        position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column',
-        padding: '4px 0 0 8px',
+        position: 'relative', flexShrink: 0, overflow: 'hidden',
+        padding: '20px 22px 46px',
+        background: 'linear-gradient(140deg, #FF9159 0%, #FA4B6B 52%, #C05BD6 100%)',
       }}>
-        <div style={{fontSize: 21, fontWeight: 800, letterSpacing: '-0.02em', color: PN.TEXT}}>
-          Byuppino <span style={{color: BYU_BRAND}}>AI</span>
-        </div>
-        <div style={{fontSize: 13, fontWeight: 600, color: 'rgba(15,17,21,0.52)', marginTop: 1}}>
-          Il tuo assistente in sala
-        </div>
-
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7, alignSelf: 'flex-start',
-          marginTop: 9, padding: '5px 11px', borderRadius: 999,
-          background: 'rgba(255,255,255,0.72)',
-          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.8)',
-        }}>
-          <span style={{width: 8, height: 8, borderRadius: '50%', background: BYU_VERDE}}/>
-          <span style={{fontSize: 12.5, fontWeight: 700, color: PN.TEXT}}>Online</span>
-        </div>
-
-        {/* `height:100%` + `contain` e non `maxHeight`: dentro una colonna alta
-            quanto la scheda, un'immagine con la sola altezza massima sborda.
-            Il 10% in più sta sul contenitore e non sull'immagine: sull'immagine
-            c'è già la trasformazione che la fa galleggiare, e una seconda la
-            cancellerebbe. Cresce dai piedi — `bottom center` — così i piedi
-            restano dove sono e ad allungarsi è la mascotte, non lo stacco. */}
-        <div style={{
-          flex: 1, minHeight: 0, padding: '6px 0 0',
-          // 1.1 × 1.05: il 5% è in più su quanto era già cresciuta, non un
-          // ritorno a 1,05 sull'originale.
-          transform: 'scale(1.155)', transformOrigin: 'bottom center',
-        }}>
-          <img src={BYU_MASCOTTE} alt="Byuppino" className="byu-galleggia" style={{
-            display: 'block', height: '100%', width: '100%',
-            objectFit: 'contain', objectPosition: 'center bottom',
-            filter: 'drop-shadow(0 10px 18px rgba(140, 60, 90, 0.22))',
-            animation: 'byu-galla 5s ease-in-out infinite',
+        {BYU_MACCHIE.map((m, i) => (
+          <span key={i} aria-hidden="true" className="byu-macchia" style={{
+            background: `radial-gradient(circle at ${m.pos}, rgba(255,255,255,0.30) 0%, transparent 58%)`,
+            animation: m.anim,
           }}/>
+        ))}
+
+        <div style={{position: 'relative', zIndex: 1, paddingRight: 150}}>
+          <div style={{
+            fontSize: 12, fontWeight: 800, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)',
+          }}>Assistente di sala</div>
+          <div style={{
+            fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em',
+            color: '#fff', marginTop: 3,
+          }}>Byuppino AI</div>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            marginTop: 11, padding: '6px 12px', borderRadius: 999,
+            background: 'rgba(255,255,255,0.22)',
+            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.28)',
+          }}>
+            <span style={{width: 8, height: 8, borderRadius: '50%', background: '#7DF7B2'}}/>
+            <span style={{fontSize: 12.5, fontWeight: 700, color: '#fff'}}>Online · risponde in 1s</span>
+          </div>
         </div>
+
+        {/* La mascotte abita l'angolo destro della testata e sborda un filo
+            sotto la cucitura: è lei a tenere insieme i due piani. */}
+        <img src={BYU_MASCOTTE} alt="Byuppino" className="byu-galleggia" style={{
+          position: 'absolute', right: -4, bottom: -14, zIndex: 1,
+          height: 'calc(100% - 4px)', maxHeight: 190, width: 'auto',
+          objectFit: 'contain', objectPosition: 'right bottom',
+          filter: 'drop-shadow(0 10px 18px rgba(120, 30, 60, 0.35))',
+          animation: 'byu-galla 5s ease-in-out infinite',
+        }}/>
       </div>
 
-      {/* ── Colonna destra: la conversazione, una card bianca posata sul
-             gradiente. È il foglio su cui si scrive: sta sopra al colore e non
-             dentro, e per questo ha un raggio e un'ombra suoi. ── */}
+      {/* ── La conversazione: il foglio bianco risale sul gradiente con la
+             sua curva — è la cucitura del mock, non un bordo dritto. ── */}
       <div style={{
-        flex: 1, minWidth: 0, position: 'relative', zIndex: 1,
+        flex: 1, minWidth: 0, minHeight: 0, position: 'relative', zIndex: 2,
         display: 'flex', flexDirection: 'column',
-        background: PN.WHITE, borderRadius: 18, padding: '14px 16px 12px',
-        boxShadow: '0 10px 26px -14px rgba(120, 60, 90, 0.30), 0 1px 2px rgba(15,17,21,0.04)',
+        background: PN.WHITE, borderRadius: '24px 24px 0 0',
+        marginTop: -26, padding: '18px 16px 12px',
       }}>
         <div ref={filo} className="byu-thread pn-scroll" style={{
           flex: 1, minHeight: 0, overflowY: 'auto',
@@ -562,7 +507,7 @@ function WidgetByuppino() {
             ? <ByuAzione key={m.k} a={m}
                 onFatto={() => aggiorna(m.k, { stato: 'fatta' })}
                 onAnnulla={() => aggiorna(m.k, { stato: 'annullata' })}/>
-            : <ByuBolla key={m.k} da={m.da} testo={m.testo} ora={m.ora}/>
+            : <ByuBolla key={m.k} da={m.da} testo={m.testo}/>
           )}
           {scrive && <ByuScrive/>}
         </div>

@@ -2,14 +2,15 @@
 
 // Layout default — solo l'ORDINE dei widget: le misure sono fisse e vivono
 // nel catalogo (PN_WIDGET_CATALOG[].size), pensate per il dato che mostrano.
+// Byuppino NON è più qui: l'assistente è la colonna destra della pagina, fuori
+// dalla griglia e fuori da Personalizza — si sviluppa in verticale, come una
+// chat, e resta fermo mentre la dashboard scorre.
 // Tiling a 4 colonne:
-//   righe 1-2: byuppino 4×2 — l'assistente apre la pagina, ed è fisso lì
-//   righe 3-4: prenotazioni 1×2 · tavoli-stato 2×2 · cucina-live 1×2
-//   riga 5:    andamento-coperti 2×1 · andamento-scontrino 2×1
-//   righe 6-7: top-piatti 1×2 · coperti-sett 2×2 · recensioni 1×2
-//   riga 8:    riempimento 2×1
+//   righe 1-2: prenotazioni 1×2 · tavoli-stato 2×2 · cucina-live 1×2
+//   riga 3:    andamento-coperti 2×1 · andamento-scontrino 2×1
+//   righe 4-5: top-piatti 1×2 · coperti-sett 2×2 · recensioni 1×2
+//   riga 6:    riempimento 2×1
 const DEFAULT_LAYOUT = [
-  { id: 'byuppino' },
   { id: 'prenotazioni-oggi' },
   { id: 'tavoli-stato' },
   { id: 'cucina-live' },
@@ -23,10 +24,11 @@ const DEFAULT_LAYOUT = [
 
 // Gli id storici dei layout salvati migrano sui widget nuovi.
 const PN_ID_MIGRATE = {
-  // Le Azioni rapide non ci sono più: chi ha una dashboard salvata se le
-  // ritrova sostituite dall'assistente, nella stessa posizione. Senza questa
-  // riga il widget sparirebbe e basta, lasciando un buco in mezzo al layout.
-  'azioni': 'byuppino',
+  // Le Azioni rapide non ci sono più, e nemmeno il widget dell'assistente che
+  // le aveva sostituite: 'azioni' e 'byuppino' spariscono dal layout salvato —
+  // l'assistente ora è la colonna destra, non una tessera della griglia.
+  'azioni': null,
+  'byuppino': null,
   'financials': 'andamento-coperti',
   'kpi-vendita': 'andamento-scontrino',
   'scontrino-medio': 'andamento-scontrino',
@@ -43,7 +45,7 @@ function pnLoadLayout() {
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr) && arr.length && arr.every(w => w && w.id)) {
-        let ids = arr.map(w => PN_ID_MIGRATE[w.id] || w.id);
+        let ids = arr.map(w => PN_ID_MIGRATE.hasOwnProperty(w.id) ? PN_ID_MIGRATE[w.id] : w.id).filter(Boolean);
         ids = ids.filter((id, i) => ids.indexOf(id) === i);
         // I fissi tornano in testa comunque: nei layout salvati prima che
         // esistessero non ci sono, e in quelli salvati dopo potrebbero essere
@@ -149,6 +151,12 @@ function PnApp() {
             </div>
           )}
 
+          {/* Due colonne: la dashboard a sinistra, l'assistente a destra —
+              fisso, in verticale, sempre in vista mentre la griglia scorre.
+              È `sticky` dentro il contenitore che scorre: la chat non è un
+              widget che passa, è un interlocutore che resta. */}
+          <div style={{display:'flex', alignItems:'flex-start', gap: 14, minHeight: 0}}>
+          <div style={{flex: 1, minWidth: 0, display:'flex', flexDirection:'column', gap: 14}}>
           {widgets.length === 0 ? (
             /* Empty state — dashboard senza widget: shortcut centrale */
             <div style={{flex: 1, display:'grid', placeItems:'center', minHeight: 320}}>
@@ -200,6 +208,18 @@ function PnApp() {
               <Icon name="plus" size={16}/> Aggiungi widget
             </button>
           )}
+          </div>
+
+          <aside style={{
+            width: 392, flexShrink: 0,
+            position: 'sticky', top: 0,
+            // Alta quanto la finestra meno il cromo della pagina: la chat si
+            // scorre dentro, mai insieme alla dashboard.
+            height: 'min(720px, calc(100vh - 150px))', minHeight: 520,
+          }}>
+            <WidgetByuppino/>
+          </aside>
+          </div>
         </div>
 
         <PnAddWidgetDrawer

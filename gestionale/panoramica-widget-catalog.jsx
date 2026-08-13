@@ -24,7 +24,10 @@
 // riquadro di dati fra gli altri, e deve stare dove l'occhio cade per primo
 // senza che ci si debba pensare. Trascinabile, sarebbe finito in fondo il
 // primo giorno; rimovibile, sparirebbe per sempre dopo un click sbagliato.
-const PN_WIDGET_FISSI = ['byuppino'];
+// Nessun widget fisso: l'unico che lo era — Byuppino — non è più un widget.
+// È la colonna destra della Panoramica, cromo della pagina come la sidebar,
+// e la griglia non lo conosce.
+const PN_WIDGET_FISSI = [];
 const pnFisso = (id) => PN_WIDGET_FISSI.indexOf(id) >= 0;
 
 const PN_WIDGET_CATALOG = [
@@ -36,7 +39,6 @@ const PN_WIDGET_CATALOG = [
   { id: 'tavoli-stato', name: 'Stato tavoli', desc: 'Minimappa sala: click sul tavolo per aprirlo', component: 'WidgetTavoliStato', size: { w: 2, h: 2 }, category: 'Sala', icon: 'place-table' },
   { id: 'top-piatti', name: 'Top piatti questa settimana', desc: 'Classifica settimanale: click verso le statistiche ordini', component: 'WidgetTopPiatti', size: { w: 1, h: 2 }, category: 'Menu', icon: 'food-meal' },
   { id: 'recensioni', name: 'Recensioni recenti', desc: 'Ultime recensioni: click verso le valutazioni clienti', component: 'WidgetRecensioni', size: { w: 1, h: 2 }, category: 'Reputazione', icon: 'star' },
-  { id: 'byuppino', name: 'Byuppino AI', desc: 'Chiedi in italiano: prenotazioni, menù, sala, impostazioni', component: 'WidgetByuppino', size: { w: 4, h: 2 }, category: 'Utilità', icon: 'sparkles' },
   { id: 'coperti-sett', name: 'Spaccato coperti questa settimana', desc: 'Coperti per giorno sui 7 giorni della settimana', component: 'WidgetCopertiSettimana', size: { w: 2, h: 2 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'cucina-live', name: 'Cucina in diretta', desc: 'Ordini in cucina: click per aprire il ticket', component: 'WidgetCucinaLive', size: { w: 1, h: 2 }, category: 'Cucina', icon: 'food-flame' },
 ];
