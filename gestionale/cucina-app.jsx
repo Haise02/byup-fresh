@@ -169,6 +169,9 @@ function CucinaApp() {
               options={categorie.slice(1)}
               onChange={(sel) => onCategoria(sel.length ? sel[sel.length - 1] : tutteCat)}/>
           )}
+          {/* Il promemoria del gesto sta nella banda, col cromo, non fra i
+              piatti: compatto, perché qui la banda è quella del gestionale. */}
+          {window.Kds2Istruzione && <window.Kds2Istruzione compatta/>}
         </div>
         <div style={{display:'flex', alignItems:'center', gap: 12, minWidth: 0}}>
           {selettore()}

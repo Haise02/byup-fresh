@@ -291,24 +291,28 @@ function Kds2Dito({ size = 24 }) {
 }
 
 // ─── L'istruzione ─────────────────────────────────────────────────────────
-// Il tocco sulla riga è l'unico gesto della schermata che non ha un bersaglio
-// disegnato: la chip è un pulsante e si vede, la riga no. Senza questa riga si
-// impara per caso — o non si impara, e la riga intera si spegne una porzione
-// alla volta.
-// Una riga sola, grigia, sotto la fila delle sorgenti e sopra la prima card:
-// dove l'occhio passa comunque prima di scendere sui piatti, e senza rubare
-// altezza al lavoro.
-function Kds2Istruzione() {
+// Da quando ogni piatto ha il suo pulsante, il gesto ha un bersaglio
+// disegnato e l'istruzione non deve più difendere un tocco invisibile: è un
+// promemoria, e sta nella banda in alto — il posto del cromo, non del lavoro
+// — invece di rubare una riga fra i filtri e la prima card.
+function Kds2Istruzione({ compatta }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '2px 4px 12px', color: K.TESTO_2, flexShrink: 0,
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 8,
+      color: K.TESTO_2, minWidth: 0,
     }}>
-      <span style={{display: 'flex', flexShrink: 0}}><Kds2Dito size={26}/></span>
-      <span style={Object.assign({}, TY.corpo, {letterSpacing: '-0.01em'})}>
-        Tocca un piatto per avviare la preparazione
+      <span style={{display: 'flex', flexShrink: 0}}><Kds2Dito size={compatta ? 18 : 22}/></span>
+      <span style={{
+        fontSize: compatta ? 14.5 : 17, fontWeight: 600, letterSpacing: '-0.01em',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {/* Nella banda del gestionale lo spazio è conteso coi filtri e col
+            selettore: la frase corta dice la stessa cosa senza farsi troncare
+            — un'istruzione con i puntini insegna soprattutto che manca
+            qualcosa. */}
+        {compatta ? 'Tocca un piatto per avviarlo' : 'Tocca un piatto per avviare la preparazione'}
       </span>
-    </div>
+    </span>
   );
 }
 
@@ -534,11 +538,12 @@ function Kds2Modificatori({ modifiers, spenta }) {
 // per servizio — un'attesa che serviva a evitare l'errore raro. La difesa vera
 // è già in fondo allo schermo e non costa niente a nessuno: la fascia tiene il
 // piatto dieci secondi e lo si rimette con un tocco.
-// Tocco su una CHIP = una porzione sola: la chip è un bersaglio suo dentro la
-// riga, e il suo click non deve valere anche per tutto il resto.
-function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpPorzione }) {
-  const [premuta, setPremuta] = React.useState(false);
-
+// IL BERSAGLIO È LA CHIP, non la riga: ogni piatto ha il suo pulsante col nome
+// del destinatario sopra, e la riga sotto le dita è solo carta. Un bersaglio
+// grande quanto tutta la riga sembrava comodo ma decideva lui QUALE piatto
+// mandare (il più vecchio), e in cucina si vuole scegliere col dito, non per
+// anzianità. Per svuotare la riga intera c'è «Avvia tutti», che lo dice.
+function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpPorzione, onBumpRiga }) {
   const allergene = !!riga.allergen;
   // Rosso solo quando la riga È allergene E non è stata smorzata dal filtro:
   // la sostanza dell'allergene non cambia, ma il segnale visivo sì. Fuori
@@ -548,29 +553,6 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
   const cat = kds2Categoria(riga.category);
   const attesaMin = kds2AttesaMin(riga.firedAt, ora);
   const tonoRiga = kds2TonoAttesa(attesaMin);
-
-  // Sotto il dito la riga sprofonda: è il riscontro che diceva «sto contando»
-  // e ora dice «ti ho sentito». Resta perché su un monitor a parete, senza
-  // cursore e senza hover, è l'unico segno che il tocco è arrivato prima che
-  // la riga sparisca.
-  function giu(e) { if (e.button != null && e.button !== 0) return; setPremuta(true); }
-  function su() { setPremuta(false); }
-
-  // UN TOCCO, UN PIATTO. Non la riga intera: «4 Patatine» sono quattro porzioni
-  // che escono dalla cucina una alla volta, non un blocco unico, e chi ne
-  // consegna una e tocca lo schermo si aspetta che ne resti una in meno — non
-  // che spariscano tutte. Si tocca quattro volte, e la cifra a sinistra
-  // scende sotto gli occhi.
-  // Esce sempre la porzione più vecchia (la prima): l'ordine è già quello.
-  // Le chip dei destinatari non sono più pulsanti e il tocco su «Tavolo 12» vale
-  // come il tocco sulla riga: si toglie una porzione, la più vecchia, non
-  // quella del tavolo che si è centrato col dito. È il punto della regola —
-  // un tocco, un piatto — e vale su tutta la riga, bordi compresi.
-  // La guardia resta per i pulsanti veri che possono capitare qui dentro.
-  function tap(e) {
-    if (e.target && e.target.closest && e.target.closest('button')) return;
-    onBumpPorzione(riga.portions[0]);
-  }
 
   // Nome lungo: si scende di gradino, non si tronca mai. «Insalata di mare» e
   // «Insalata di polpo» ridotte alla stessa stringa sono la ricetta sbagliata.
@@ -604,8 +586,6 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
       ].concat((riga.modifiers || []).map(m => (m.type === 'remove' ? 'senza ' : 'con ') + m.label))
         .filter(Boolean).join(' · ')}
       data-kds2-interattivo=""
-      onClick={tap}
-      onPointerDown={giu} onPointerUp={su} onPointerLeave={su} onPointerCancel={su}
       onContextMenu={e => e.preventDefault()}
       style={{
         position: 'relative', display: 'flex', alignItems: 'stretch',
@@ -615,13 +595,12 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
         // riga scende al livello della pagina, e un'ombra sotto qualcosa che
         // non è sollevato è la contraddizione che rende finto tutto il resto.
         borderRadius: 16, overflow: 'hidden', marginBottom: 10,
-        boxShadow: (premuta || spenta) ? 'none' : PN.CARD_SHADOW,
-        // Sotto il dito la riga «sprofonda» al livello della pagina. Lo stesso
-        // fa quando è smorzata: perdere la superficie bianca la toglie dal
-        // piano delle card senza toccare il contrasto del testo, ed è un
-        // cambiamento che si vede da due metri — mentre uno scarto di grigio
-        // sul solo testo, su fondo chiaro, da lontano non si vede affatto.
-        background: (premuta || spenta) ? K.FONDO : K.RIGA,
+        boxShadow: spenta ? 'none' : PN.CARD_SHADOW,
+        // Smorzata, la riga «sprofonda» al livello della pagina: perdere la
+        // superficie bianca la toglie dal piano delle card senza toccare il
+        // contrasto del testo, ed è un cambiamento che si vede da due metri —
+        // mentre uno scarto di grigio sul solo testo, da lontano, non si vede.
+        background: spenta ? K.FONDO : K.RIGA,
         // Il bordo a inchiostro è il marcatore POSITIVO dell'evidenziazione:
         // dice «questi sono i piatti del tavolo che hai toccato». Smorzare gli
         // altri non basta a rispondere a quella domanda — indica dove NON
@@ -722,32 +701,64 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
             {riga.portions.map(p => {
               const suaSorgente = sorgenteSelezionata != null
                 && kds2SorgenteId(p.source) === sorgenteSelezionata;
-              return (
-                <Kds2Chip key={p.id}
-                  source={p.source} quantity={p.quantity} status={p.status}
-                  tempo={kds2ChipTempo(p.source, p.firedAt, p.dueAt, ora)}
-                  // La porzione della sorgente evidenziata si inverte, esattamente
-                  // come la chip che l'ha accesa in alto: l'occhio segue il nero
-                  // dell'header fino ai neri sparsi nel board, e la domanda «dove
-                  // sta il tavolo 12?» ha una risposta che si vede da lontano
-                  // senza leggere una sola etichetta.
+              const spentaChip = !allergene && sorgenteSelezionata != null && !suaSorgente;
+              const tempoChip = kds2ChipTempo(p.source, p.firedAt, p.dueAt, ora);
+              // UNA CHIP PER PIATTO: «2 Tavolo 6» diceva la quantità, ma per
+              // avviarne uno solo bisognava fidarsi di un tocco che decideva
+              // lui. Due piatti, due pulsanti «Tavolo 6»: se ne tocca uno e
+              // parte quello. Le porzioni non ancora inviate restano UNA
+              // etichetta aggregata, tratteggiata: non sono lavoro, e sei
+              // segnaposto tratteggiati direbbero sei volte la stessa attesa.
+              if (p.status === 'incoming') {
+                return (
+                  <Kds2Chip key={p.id}
+                    source={p.source} quantity={p.quantity} status={p.status}
+                    tempo={tempoChip}
+                    selezionata={suaSorgente}
+                    tinta={cat.tinta}
+                    spenta={spentaChip}/>
+                );
+              }
+              return Array.from({ length: p.quantity }, (_, i) => (
+                <Kds2Chip key={p.id + '-' + i}
+                  source={p.source} quantity={1} status={p.status}
+                  tempo={tempoChip}
+                  // La porzione della sorgente evidenziata si inverte, come la
+                  // chip che l'ha accesa in alto: «dove sta il tavolo 12?» ha
+                  // una risposta che si vede da lontano.
                   selezionata={suaSorgente}
                   tinta={cat.tinta}
-                  spenta={!allergene && sorgenteSelezionata != null && !suaSorgente}
-                  // Niente onTap: qui dice per CHI è il piatto, non lo manda
-                  // via. A mandarlo via è il tocco sulla riga, uno per volta,
-                  // e nell'ordine in cui è stato ordinato.
-                  />
-              );
+                  spenta={spentaChip}
+                  onTap={() => onBumpPorzione(p)}
+                  titolo={'Avvia · ' + nome + ' · ' + kds2Identita(p.source)}/>
+              ));
             })}
-          </div>
 
-          {/* Qui stava «Invia singolo piatto». Aveva senso finché il tocco
-              svuotava la riga intera: era il modo di mandarne via uno solo.
-              Da quando ogni tocco vale un piatto fa esattamente quello che fa
-              toccare la riga, e due modi identici per la stessa cosa sono uno
-              di troppo — per giunta occupava la fascia più preziosa della riga,
-              quella accanto al tempo. */}
+            {/* AVVIA TUTTI — il gesto per la riga intera, scritto col suo nome.
+                Non è il tocco sulla riga (che non esiste più): è un pulsante
+                a inchiostro pieno in coda alle chip, dove finisce l'elenco dei
+                destinatari — «questi, tutti». Compare solo quando c'è più di
+                un piatto avviabile: su uno solo sarebbe un doppione della sua
+                chip. */}
+            {onBumpRiga && !quieta && riga.portions.reduce((n, p) => n + (p.status !== 'incoming' ? p.quantity : 0), 0) > 1 && (
+              <button type="button" data-kds2-interattivo=""
+                onClick={() => onBumpRiga(riga)}
+                title={'Avvia tutti i piatti · ' + nome}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 9,
+                  height: H_BERSAGLIO, padding: '0 20px', borderRadius: 12,
+                  background: spenta ? K.BORDO_RIGA : K.TESTO,
+                  border: '2px solid transparent',
+                  color: spenta ? K.TESTO_OFF : K.RIGA,
+                  fontSize: 20, fontWeight: 700, letterSpacing: '-0.01em',
+                  fontFamily: 'inherit', cursor: 'pointer',
+                  whiteSpace: 'nowrap', flexShrink: 0,
+                }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 4.5 19 12 7 19.5Z"/></svg>
+                Avvia tutti
+              </button>
+            )}
+          </div>
 
           {/* Attesa della riga: quella della sua porzione più vecchia. È l'età
               della produzione, sempre in minuti — l'orario di ritiro è una
@@ -1097,6 +1108,9 @@ function Kds2Header({
         <Kds2Filtro etichetta="Canali" valore={canale} opzioni={canali} onScegli={onCanale}/>
         <Kds2Filtro etichetta="Categorie" valore={categoria} opzioni={categorie} onScegli={onCategoria}/>
 
+        <span style={{width: 6}}/>
+        <Kds2Istruzione/>
+
         <span style={{flex: 1}}/>
 
         <button type="button" data-kds2-interattivo="" onClick={onConsegnati}
@@ -1359,19 +1373,10 @@ function Kds2Annulla({ voci, onRipristina }) {
       ))}
       </div>
 
-      {/* La regola sta SOTTO la fila, non prima: è la nota a piè di pagina di
-          quello che si vede sopra, e in testa rubava il posto alla prima
-          scheda — cioè al piatto appena avviato, quello che più probabilmente
-          si vuole annullare. */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, marginTop: 8,
-        color: K.TESTO_2,
-      }}>
-        <span style={{display: 'flex', flexShrink: 0}}><Kds2Info size={17}/></span>
-        <span style={{fontSize: 13.5, fontWeight: 600, letterSpacing: '-0.01em'}}>
-          Allo scadere del timer il piatto viene considerato pronto e scompare
-        </span>
-      </div>
+      {/* Qui c'era la nota «Allo scadere del timer il piatto viene considerato
+          pronto e scompare»: spiegava il meccanismo, ma il meccanismo si vede
+          da solo — il cerchio si svuota e la scheda se ne va. Una regola che
+          si dimostra ogni dieci secondi non ha bisogno di una didascalia. */}
     </div>
   );
 }
@@ -1529,9 +1534,22 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
     );
     setPorzioni(kds2BumpUna(porzioni, p.id));
   }
-  // `kds2BumpRiga` (spegnere una riga intera in un colpo) resta nei dati ma qui
-  // non lo chiama più nessuno: da quando ogni tocco vale un piatto, non c'è più
-  // un gesto che svuoti la riga tutta insieme.
+  // «Avvia tutti»: la riga intera in un colpo — ma solo il lavoro vero. Le
+  // porzioni non ancora inviate restano dove sono: non si avvia quello che la
+  // sala non ha ancora mandato. In fascia va UNA voce sola con tutto quello
+  // che è uscito: un annulla, un ripristino intero.
+  function bumpRiga(riga) {
+    const attive = riga.portions.filter(p => p.status !== 'incoming');
+    if (!attive.length) return;
+    registra(
+      riga.dishName + ' · tutta la riga',
+      attive.map(p => Object.assign({}, p))
+    );
+    setPorzioni(prev => {
+      const ids = new Set(attive.map(p => p.id));
+      return prev.filter(p => !ids.has(p.id));
+    });
+  }
 
   // Rimette in produzione. Se la porzione è ancora viva (spenta a unità) le si
   // ridà la quantità tolta; se era uscita del tutto, rientra tale e quale.
@@ -1580,12 +1598,6 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
         categoria={categoria} onCategoria={setCategoria} categorie={categorie}
         consegnati={consegnati.length} onConsegnati={() => setConsegnatiAperti(true)}/>
 
-      {/* Fra la fila delle sorgenti e la prima card: allineata alle righe, non
-          alla testata, perché parla di loro. */}
-      <div style={{padding: barra ? 0 : '0 ' + PAD_X + 'px'}}>
-        <Kds2Istruzione/>
-      </div>
-
       {/* UN SOLO contenitore che scorre, per qualunque numero di righe: niente
           scroll annidato, niente colonne — la posizione in lista è la priorità,
           e con due colonne «più in alto» smetterebbe di voler dire «prima». */}
@@ -1613,7 +1625,8 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
               spenta={selezione != null && !sua}
               evidenziata={sua}
               sorgenteSelezionata={selezione}
-              onBumpPorzione={bumpPorzione}/>
+              onBumpPorzione={bumpPorzione}
+              onBumpRiga={bumpRiga}/>
           );
         })}
 
@@ -1636,3 +1649,6 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
 
 window.Kds2Board = Kds2Board;
 window.Kds2Chip  = Kds2Chip;
+// La banda della vista Cucina (cucina-app) ospita la stessa istruzione della
+// banda interna: un promemoria solo, scritto una volta.
+window.Kds2Istruzione = Kds2Istruzione;

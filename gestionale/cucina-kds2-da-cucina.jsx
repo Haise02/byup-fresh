@@ -34,7 +34,9 @@ function _kds2Sorgente(t) {
   const type = _KDS2_TIPO_SORGENTE[t.kind] || 'table';
   if (t.kind === 'sala')  return { type, label: 'T' + t.table };
   if (t.kind === 'banco') return { type, label: String(t.orderN || '').replace(/\D+/g, '') || 'Banco' };
-  return { type, label: String(t.customer || 'Ordine').split(' ')[0] };
+  // Il delivery porta anche la piattaforma: è lei che manda il rider, e il
+  // board la disegna al posto dello scooter.
+  return { type, label: String(t.customer || 'Ordine').split(' ')[0], partner: t.partner };
 }
 
 // La nota del ticket è testo libero: «senza basilico», «extra mozzarella»,

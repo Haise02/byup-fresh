@@ -11,6 +11,9 @@ function _toMin(hhmm) {
 
 // Ticket items: state = 'todo' | 'doing' | 'done'
 // kind = 'sala' | 'asporto' | 'delivery' | 'banco'
+// partner (solo delivery) = piattaforma che manda il rider: 'justeat' | 'glovo'
+//   | 'deliveroo' — gli id di impostazioni-integrazioni.jsx, il KDS ci disegna
+//   il marchio al posto dello scooter.
 // 'banco' = ordine creato dalla cassa in Vendita diretta: niente tavolo né
 // cliente. Il KDS riceve tutte le righe e filtra da sé per stazione.
 // course: 1=antipasto, 2=primo, 3=secondo, 4=dessert (null=portata unica)
@@ -32,7 +35,7 @@ const CUC_TICKETS_ATTIVI = [
     { qty: 1, name: 'Lasagna',            note: 'senza glutine',       allergen: true,  state: 'todo', course: null },
     { qty: 1, name: 'Tiramisu',           note: 'porzione singola',    allergen: false, state: 'todo', course: null },
   ]},
-  { id: 'a5', kind: 'delivery', customer: 'Sara Rossi', pickup: '15:20', orderN: '#1239', time: '14:52', station: 'Secondi', items: [
+  { id: 'a5', kind: 'delivery', partner: 'justeat', customer: 'Sara Rossi', pickup: '15:20', orderN: '#1239', time: '14:52', station: 'Secondi', items: [
     { qty: 1, name: 'Pollo alla Griglia', note: 'salsa barbecue a parte', allergen: false, state: 'todo', course: null },
     { qty: 1, name: 'Purè di Patate',     note: '',                       allergen: false, state: 'todo', course: null },
   ]},
@@ -47,7 +50,7 @@ const CUC_TICKETS_PREP = [
     { qty: 2, name: 'Pizza Diavola',      note: '',                    allergen: false, state: 'doing', course: null },
     { qty: 1, name: 'Pizza Marinara',     note: 'ben cotta',           allergen: false, state: 'todo',  course: null },
   ]},
-  { id: 'p4', kind: 'delivery', customer: 'Luca Verdi', pickup: '15:05', orderN: '#1236', time: '14:38', station: 'Primi', items: [
+  { id: 'p4', kind: 'delivery', partner: 'glovo', customer: 'Luca Verdi', pickup: '15:05', orderN: '#1236', time: '14:38', station: 'Primi', items: [
     { qty: 1, name: 'Lasagna',            note: '',                    allergen: false, state: 'doing', course: null },
     { qty: 1, name: 'Tiramisu',           note: '',                    allergen: false, state: 'done',  course: null },
   ]},
