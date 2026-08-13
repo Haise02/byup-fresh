@@ -430,7 +430,10 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
     if (t.state === 'prenotato') return { label: 'Apri tavolo', onClick: onAdd };
     if (t.state === 'occupato')  return occupatoSaldato
       ? { label: 'Libera tavolo', onClick: () => onLibera && onLibera(t) }
-      : { label: 'Salda ora', onClick: onPay };
+      // «Vai al conto», non più «Salda ora»: quel pulsante apre il CONTO —
+      // riepilogo e correzioni — e l'incasso è un passo dopo. Promettere il
+      // saldo su un tasto che porta a un riepilogo era una promessa sbagliata.
+      : { label: 'Vai al conto', onClick: onPay };
     if (t.state === 'dapulire')  return { label: 'Segna come pronto', onClick: onAdd };
   })();
   // Le azioni sul tavolo (sposta / dividi / unisci + azioni di stato) vivono

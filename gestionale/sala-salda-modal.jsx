@@ -250,13 +250,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // dall'app non sono soldi che il tavolo deve ancora.
   const apertoTotale = incassabili.reduce((s, o) => s + qtyAperta(o) * o.prezzo, 0);
 
-  // ── SOLDI E PIATTI SONO DUE COSE DIVERSE ────────────────────────────────
-  // Un incasso porta due informazioni: QUALI piatti chiude (le righe spuntate)
-  // e QUANTI SOLDI entrano (la cifra, che si può scrivere a mano). Di solito
-  // coincidono, ma non devono: chi prende 20 euro per due primi da 26 chiude
-  // lo stesso quei due primi — la differenza è un abbuono deciso al volo col
-  // cliente davanti — e chi ne prende 40 lascia 14 euro di credito sul resto
-  // del conto.
+  // ── DUE MODI DI INCASSARE, MAI INSIEME ──────────────────────────────────
+  // O si scelgono i PIATTI — e la cifra è il loro valore, semmai scontato —
+  // o si scrive una CIFRA a mano, e allora è un acconto puro: nessun piatto
+  // risulta pagato, la selezione si svuota da sola nel momento in cui si
+  // scrive. Tenerli insieme voleva dire chiudere piatti per cifre che non
+  // c'entravano, e nessuno dei due numeri diceva più la verità.
   //
   // Il credito è la parte di un pagamento che eccede il valore dei piatti che
   // copriva: è un ACCONTO, e va tolto da quello che il tavolo deve ancora, o
@@ -278,28 +277,27 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const residuoTavolo = Math.max(0, r2(apertoTotale - accontiTotale));
 
   // La cifra proposta è quella dei piatti scelti (già scontata), mai più di
-  // quello che il tavolo deve. Da lì in poi la decide chi sta in cassa.
-  const proposto = Math.min(naturalTotal, residuoTavolo);
+  // quello che il tavolo deve. Scritta a mano, comanda lei — e i piatti sono
+  // fuori dal discorso.
   const importoScritto = parseFloat(String(importo).replace(',', '.'));
   const richiesto = importoTocco
     ? (isNaN(importoScritto) ? 0 : Math.max(0, importoScritto))
-    : proposto;
+    : Math.min(naturalTotal, residuoTavolo);
   const total = Math.min(richiesto, residuoTavolo);
-  // Sopra il valore dei piatti scelti: resta come acconto sul resto.
-  const eccedenza = Math.max(0, r2(total - naturalTotal));
-  // Quanto dei piatti scelti è già stato coperto da un acconto versato prima:
-  // NON è un abbuono, sono soldi già entrati in cassa in un altro momento, e
-  // chiamarli «restano al locale» sarebbe dire una bugia a chi legge.
-  const copertoDaAcconto = Math.max(0, r2(naturalTotal - residuoTavolo));
-  // Quello che resta scoperto è invece una rinuncia decisa adesso: i piatti si
-  // chiudono lo stesso e quei soldi il locale non li vede.
-  const abbuono = Math.max(0, r2(naturalTotal - copertoDaAcconto - total));
+  // Quanto dei piatti scelti è già coperto da un acconto versato prima: è il
+  // caso in cui la selezione vale PIÙ del saldo residuo, e va detto — si
+  // incassa il residuo, non il valore dei piatti, o quei soldi entrerebbero
+  // due volte.
+  const copertoDaAcconto = importoTocco ? 0 : Math.max(0, r2(naturalTotal - residuoTavolo));
   // Più di quello che il tavolo deve non si incassa.
   const oltreIlDovuto = richiesto - total > 0.004;
 
-  // Quanto resta del conto dopo questo incasso: i piatti scelti escono, e il
-  // credito in più scende dal resto.
-  const residuoDopo = Math.max(0, r2(residuoTavolo - subtotale - eccedenza));
+  // Quanto resta del conto dopo questo incasso. Con i piatti: escono i
+  // selezionati (lo sconto è una rinuncia, non un residuo). Con la cifra a
+  // mano: scendono solo gli euro scritti.
+  const residuoDopo = importoTocco
+    ? Math.max(0, r2(residuoTavolo - total))
+    : Math.max(0, r2(residuoTavolo - subtotale));
   const parziale = residuoDopo > 0.004;
   // Si sta prendendo tutto il conto o solo una parte? Sulle cifre, non sul
   // conteggio delle righe: due bottiglie d'acqua su tre sono la stessa riga ma
@@ -317,7 +315,15 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // Epsilon 0.01€ (1 centesimo) per tollerare rounding di float su somme parziali — es. 33.33 + 66.67.
   const canConfirm = paid >= total - 0.01 && total > 0;
 
+  // Un gesto sulla lista fa decadere la cifra scritta a mano: comanda di
+  // nuovo la selezione. È la regola simmetrica dello scrivere, che svuota la
+  // selezione — i due modi non convivono mai, vince l'ultimo gesto.
+  function lasciaComandareLaSelezione() {
+    if (importoTocco) { setImportoTocco(false); setImporto(''); }
+  }
+
   function toggleItem(id) {
+    lasciaComandareLaSelezione();
     const o = allOrdini.find(x => x.id === id);
     if (!o || isPagato(o)) return;
     setSelectedItems(s => {
@@ -328,6 +334,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     });
   }
   function setItemQty(id, qty) {
+    lasciaComandareLaSelezione();
     const o = allOrdini.find(x => x.id === id);
     if (!o) return;
     const clamped = Math.max(0, Math.min(qty, qtyAperta(o)));
@@ -338,12 +345,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       return ns;
     });
   }
-  function selectAll() { setSelectedItems(new Map(allOrdini.filter(o => !isPagato(o)).map(o => [o.id, qtyAperta(o)]))); }
+  function selectAll() { lasciaComandareLaSelezione(); setSelectedItems(new Map(allOrdini.filter(o => !isPagato(o)).map(o => [o.id, qtyAperta(o)]))); }
   function selectNone() { setSelectedItems(new Map()); }
   // Un canale intero, in un gesto: se è già tutto preso lo lascia, altrimenti
   // lo prende per intero. Un solo tocco che va nei due versi, come la spunta
   // «Seleziona tutti» in cima.
   function selezionaCanale(items) {
+    lasciaComandareLaSelezione();
     setSelectedItems(s => {
       const ns = new Map(s);
       const tutti = items.every(o => (ns.get(o.id) || 0) >= o.qty);
@@ -794,12 +802,25 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       );
                     })()}
                   </div>
+                  {/* Lista PIATTA, non per canale: qui si scelgono piatti, e
+                      le testate di gruppo erano tre titoli in mezzo alle
+                      spunte. Da dove arriva un piatto lo dice la sua riga —
+                      «Marco · BYUP», «Guest 4 · Webapp» — solo quando c'è un
+                      ospite dietro; per il resto è un piatto e basta. */}
                   <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'0 20px 14px'}}>
-                    <ListaPerCanale gruppi={gruppiCanale}
-                      selezione
-                      selectedItems={selectedItems} toggleItem={toggleItem} setItemQty={setItemQty}
-                      guestById={guestById} isPagato={isPagato}
-                      selezionaCanale={selezionaCanale}/>
+                    {allOrdini.length === 0 ? <EmptyOrdini/> : (
+                      <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+                        {allOrdini.map(o => (
+                          <ItemRowV2 key={o.id} o={o}
+                            selectedQty={selectedItems.get(o.id) || 0}
+                            onToggle={()=>toggleItem(o.id)}
+                            onSetQty={(q)=>setItemQty(o.id, q)}
+                            guest={o.guestId ? guestById[o.guestId] : null}
+                            pagato={!!isPagato(o)}
+                            selezione/>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -838,6 +859,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         onChange={e => {
                           setImportoTocco(true);
                           setImporto(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
+                          // La cifra scritta a mano è un ACCONTO: nessun piatto
+                          // risulterà pagato, e la selezione si svuota qui —
+                          // vederla restare accesa direbbe il contrario.
+                          setSelectedItems(new Map());
                           // Il contante ricevuto torna a «Esatto»: seguiva una
                           // cifra che non c'è più.
                           setPay({ contanti:'', carta:'' });
@@ -868,13 +893,19 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     }}>
                       Totale conto €{apertoTotale.toFixed(2)}
                       {accontiTotale > 0.004 && <> · già in acconto €{accontiTotale.toFixed(2)}</>}
-                      {parzialeSelezione && <> · {selectedOrdini.length} {selectedOrdini.length === 1 ? 'piatto' : 'piatti'} di {incassabili.length}</>}
+                      {importoTocco
+                        ? <> · acconto</>
+                        : parzialeSelezione && <> · {selectedOrdini.length} {selectedOrdini.length === 1 ? 'piatto' : 'piatti'} di {incassabili.length}</>}
                     </div>
 
-                    {/* COSA COMPORTA la cifra scritta a mano. È il punto in cui
-                        soldi e piatti si separano, e va detto qui — dopo, sulla
-                        conferma, sarebbe una scoperta. */}
-                    {(abbuono > 0.004 || eccedenza > 0.004 || oltreIlDovuto || copertoDaAcconto > 0.004) && (
+                    {/* COSA COMPORTA quello che si è appena fatto. Due soli
+                        casi la cifra da sola non li racconta: la cifra scritta
+                        a mano — che è un acconto, e nessun piatto risulterà
+                        pagato — e i piatti scelti che valgono più del saldo
+                        residuo, dove si incassa il residuo e non il loro
+                        valore. Va detto qui: sulla conferma sarebbe una
+                        scoperta. */}
+                    {(importoTocco || oltreIlDovuto || copertoDaAcconto > 0.004) && (
                       <div style={{
                         display:'inline-flex', alignItems:'flex-start', gap: 9,
                         marginTop: 12, padding:'11px 15px', borderRadius: 12,
@@ -888,21 +919,19 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         <span>
                           {oltreIlDovuto
                             ? <>Il tavolo deve <b>€{residuoTavolo.toFixed(2)}</b>: incassi quelli, non €{richiesto.toFixed(2)}.</>
-                            : abbuono > 0.004
-                              ? <>I piatti scelti si chiudono lo stesso: <b>€{abbuono.toFixed(2)}</b> {subtotale > 0.004 ? 'restano al locale' : 'in meno'}.</>
-                              : eccedenza > 0.004
-                                ? (subtotale > 0.004
-                                  ? <><b>€{eccedenza.toFixed(2)}</b> in più dei piatti scelti: restano come acconto sul resto del conto.</>
-                                  : <>Nessun piatto scelto: <b>€{total.toFixed(2)}</b> scendono dal conto come acconto, e l'elenco resta tutto aperto.</>)
-                                : <>Il tavolo ha già versato <b>€{accontiTotale.toFixed(2)}</b> in acconto: dei piatti scelti restano da incassare <b>€{total.toFixed(2)}</b>.</>}
+                            : importoTocco
+                              ? <>Acconto: nessun piatto risulterà pagato — dal conto scendono <b>€{total.toFixed(2)}</b>{parziale ? <>, restano €{residuoDopo.toFixed(2)}</> : <> e il conto si chiude</>}.</>
+                              : <>Il tavolo ha già versato <b>€{accontiTotale.toFixed(2)}</b> in acconto: dei piatti scelti incassi il residuo, <b>€{total.toFixed(2)}</b>.</>}
                         </span>
                       </div>
                     )}
 
-                    {/* SCONTO — si applica da qui, accanto alla cifra su cui
-                        agisce: nel conto non si sceglie più niente, quindi
-                        nemmeno lo sconto ci abita. Applicato, diventa la
-                        pastiglia verde: il testo la riapre, la × lo toglie. */}
+                    {/* SCONTO — agisce sui piatti selezionati, e quindi vive
+                        solo quando comanda la selezione: sull'acconto scritto a
+                        mano uno sconto non significa niente — la cifra è già
+                        quella che si vuole. Applicato, diventa la pastiglia
+                        verde: il testo la riapre, la × lo toglie. */}
+                    {!importoTocco && (
                     <div style={{marginTop: 10}}>
                       {adjust ? (
                         <span style={{
@@ -944,7 +973,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         </button>
                       )}
                     </div>
-                    {adjustOpen && (
+                    )}
+                    {!importoTocco && adjustOpen && (
                       <div style={{marginTop: 12, textAlign:'left'}}>
                         <AdjustPanel subtotale={subtotale} adjust={adjust} setAdjust={setAdjust}/>
                       </div>

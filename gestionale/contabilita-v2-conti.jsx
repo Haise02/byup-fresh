@@ -773,7 +773,7 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
                 padding:'10px 22px', background: PN.TEXT, color:'#fff', border:'none',
                 borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700,
                 cursor:'pointer', fontFamily:'inherit',
-              }}>Salda ora</button>
+              }}>Vai al conto</button>
           )}
         </div>
       </div>
@@ -1586,7 +1586,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                             fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
                             transition:'background 130ms ease, box-shadow 150ms ease, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
                           }}>
-                          Salda ora
+                          Vai al conto
                         </button>
                       )}
                       {conto.stato === 'non_saldato' && saldati.has(conto.id) && (
