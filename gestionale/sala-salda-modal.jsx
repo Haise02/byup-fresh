@@ -37,6 +37,11 @@ const PAY_FINE = 16000;
   document.head.appendChild(el);
 })();
 
+// Euro, non float. Qui si sommano e si sottraggono prezzi tutto il giorno:
+// senza arrotondare, un residuo che deve essere zero esce 0.000000000004 e il
+// conto resta aperto per niente.
+const r2 = (n) => Math.round(n * 100) / 100;
+
 function nuovaVoceCoda(tavolo, importo) {
   const t = Date.now();
   return {
@@ -97,6 +102,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // Le fasi sono le stesse dell'incasso al contrario — si chiede, si aspetta
   // (solo se i soldi sono passati da una carta), è fatto.
   const [storno, setStorno] = React.useState(null);
+  // Quanto si sta incassando davvero. Vuoto = la cifra dei piatti scelti; se
+  // qualcuno la riscrive, `importoTocco` dice che comanda lei — e da quel
+  // momento cambiare la selezione non gliela sposta più sotto le dita.
+  const [importo, setImporto] = React.useState('');
+  const [importoTocco, setImportoTocco] = React.useState(false);
+  const importoRef = React.useRef(null);
   const [toast, setToast] = React.useState(null);
 
   // Conto messo in coda di incasso su Byup Staff. La voce vive sul TAVOLO,
@@ -158,6 +169,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       // non è dove si vuole ricominciare — prima si guarda cosa c'è sul tavolo.
       setPasso('conto');
       setStorno(null);
+      setImporto('');
+      setImportoTocco(false);
       setAdjust(null);
       setPay({ contanti:'', carta:'' });
       // Riaprendo un conto con un pagamento ancora in volo si torna dov'era:
@@ -229,19 +242,64 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     },
   };
   const adjustResult = adjust ? ADJUST_STRATEGIES[adjust.type]?.(subtotale, adjust.val) : null;
-  const naturalTotal = adjustResult?.total ?? subtotale;
+  const naturalTotal = Math.max(0, adjustResult?.total ?? subtotale);
   const adjustDelta = adjustResult?.delta ?? 0;
   const adjustLabel = adjustResult?.label ?? null;
-  const total = Math.max(0, naturalTotal);
 
-  // Quanto resta del conto dopo questo incasso: se avanza qualcosa il conto
-  // non si chiude, si aggiorna. Sta QUI e non più in alto perché legge
-  // `subtotale`: dichiarato prima, valeva NaN e il conto parziale non si
-  // accorgeva di essere parziale.
   // Su `incassabili` e non su tutti gli ordini: le quote già arrivate
   // dall'app non sono soldi che il tavolo deve ancora.
   const apertoTotale = incassabili.reduce((s, o) => s + qtyAperta(o) * o.prezzo, 0);
-  const residuoDopo = Math.max(0, Math.round((apertoTotale - subtotale) * 100) / 100);
+
+  // ── SOLDI E PIATTI SONO DUE COSE DIVERSE ────────────────────────────────
+  // Un incasso porta due informazioni: QUALI piatti chiude (le righe spuntate)
+  // e QUANTI SOLDI entrano (la cifra, che si può scrivere a mano). Di solito
+  // coincidono, ma non devono: chi prende 20 euro per due primi da 26 chiude
+  // lo stesso quei due primi — la differenza è un abbuono deciso al volo col
+  // cliente davanti — e chi ne prende 40 lascia 14 euro di credito sul resto
+  // del conto.
+  //
+  // Il credito è la parte di un pagamento che eccede il valore dei piatti che
+  // copriva: è un ACCONTO, e va tolto da quello che il tavolo deve ancora, o
+  // riaprendo il conto quei soldi si chiederebbero due volte.
+  // ATTENZIONE alle quote dall'app: non portano righe, ma i piatti di chi ha
+  // pagato risultano già spenti per nome — contarle qui vorrebbe dire togliere
+  // quei soldi due volte.
+  const nomiOspiti = new Set(guests.map(g => String(g.name || '').trim().toLowerCase()));
+  const valoreRighe = (items) => (items || []).reduce((s, r) => {
+    const o = allOrdini.find(x => x.id === r.id);
+    return s + (o ? o.prezzo * r.qty : 0);
+  }, 0);
+  const creditoDi = (p) => nomiOspiti.has(String(p.chi || '').trim().toLowerCase())
+    ? 0
+    : Math.max(0, r2((p.amount || 0) - valoreRighe(p.items)));
+  const accontiTotale = (tavolo.pagamenti || []).reduce((s, p) => s + creditoDi(p), 0);
+  // Quello che il tavolo deve ancora, in euro: il valore dei piatti aperti
+  // meno gli acconti già versati. È il tetto di qualunque incasso.
+  const residuoTavolo = Math.max(0, r2(apertoTotale - accontiTotale));
+
+  // La cifra proposta è quella dei piatti scelti (già scontata), mai più di
+  // quello che il tavolo deve. Da lì in poi la decide chi sta in cassa.
+  const proposto = Math.min(naturalTotal, residuoTavolo);
+  const importoScritto = parseFloat(String(importo).replace(',', '.'));
+  const richiesto = importoTocco
+    ? (isNaN(importoScritto) ? 0 : Math.max(0, importoScritto))
+    : proposto;
+  const total = Math.min(richiesto, residuoTavolo);
+  // Sopra il valore dei piatti scelti: resta come acconto sul resto.
+  const eccedenza = Math.max(0, r2(total - naturalTotal));
+  // Quanto dei piatti scelti è già stato coperto da un acconto versato prima:
+  // NON è un abbuono, sono soldi già entrati in cassa in un altro momento, e
+  // chiamarli «restano al locale» sarebbe dire una bugia a chi legge.
+  const copertoDaAcconto = Math.max(0, r2(naturalTotal - residuoTavolo));
+  // Quello che resta scoperto è invece una rinuncia decisa adesso: i piatti si
+  // chiudono lo stesso e quei soldi il locale non li vede.
+  const abbuono = Math.max(0, r2(naturalTotal - copertoDaAcconto - total));
+  // Più di quello che il tavolo deve non si incassa.
+  const oltreIlDovuto = richiesto - total > 0.004;
+
+  // Quanto resta del conto dopo questo incasso: i piatti scelti escono, e il
+  // credito in più scende dal resto.
+  const residuoDopo = Math.max(0, r2(residuoTavolo - subtotale - eccedenza));
   const parziale = residuoDopo > 0.004;
   // Si sta prendendo tutto il conto o solo una parte? Sulle cifre, non sul
   // conteggio delle righe: due bottiglie d'acqua su tre sono la stessa riga ma
@@ -340,9 +398,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // risultano pagati e il totale chiede solo quello che manca. È la stessa
   // cosa che l'acconto fa al banco, in Vendita diretta.
   function registraIncasso(metodo) {
-    const items = selectedOrdini
-      .map(o => ({ id: o.id, qty: Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) }))
-      .filter(r => r.qty > 0);
+    // Le righe che questo incasso chiude sono quelle spuntate, qualunque cifra
+    // sia entrata: è la selezione a dire QUALI piatti sono a posto. Se però il
+    // conto si chiude del tutto, copre anche quello che era rimasto fuori —
+    // quando il tavolo non deve più niente non può restare un piatto che
+    // risulta da pagare.
+    const items = !parziale
+      ? incassabili.map(o => ({ id: o.id, qty: qtyAperta(o) })).filter(r => r.qty > 0)
+      : selectedOrdini
+          .map(o => ({ id: o.id, qty: Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) }))
+          .filter(r => r.qty > 0);
     const ora = new Date();
     const pagamento = {
       id: 'pg-' + ora.getTime(),
@@ -371,14 +436,23 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     tavolo.contoSaldato = false;
     setPayTick(t => t + 1);
     setStorno({ p, fase:'fatto' });
+    // Il residuo si rifà da zero sui pagamenti rimasti, con la stessa regola
+    // di sempre: piatti ancora aperti meno gli acconti. Ricalcolarlo qui a
+    // mano — invece di leggere `residuoDopo`, che parla dell'incasso in corso
+    // — è l'unico modo di sapere quanto deve il tavolo DOPO aver tolto questo.
+    const nomi = new Set(rimasti.map(x => String(x.chi || '').trim().toLowerCase()));
     const apertoOra = allOrdini.reduce((s, o) => {
       const qPag = rimasti.reduce((n, x) => n + ((x.items || []).find(r => r.id === o.id)?.qty || 0), 0);
-      const nomi = new Set(rimasti.map(x => String(x.chi || '').trim().toLowerCase()));
       const g = o.guestId ? guestById[o.guestId] : null;
       if (g && nomi.has(String(g.name || '').trim().toLowerCase())) return s;
       return s + Math.max(0, o.qty - qPag) * o.prezzo;
     }, 0);
-    onConfirm && onConfirm({ saldato: false, residuo: Math.round(apertoOra * 100) / 100, storno: p });
+    const accontiOra = rimasti.reduce((s, x) => s + creditoDi(x), 0);
+    onConfirm && onConfirm({
+      saldato: false,
+      residuo: Math.max(0, r2(apertoOra - accontiOra)),
+      storno: p,
+    });
   }
 
   // Il conto entra nella coda di incasso, visibile a tutti i Byup Staff
@@ -697,7 +771,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     sul bordo della finestra, non sul bordo della colonna, o
                     sembrerebbe appesa in mezzo al bianco. */}
                 <div style={{width:'100%', flexShrink: 0, padding:'0 24px 6px'}}>
-                    <button onClick={() => setPasso('conto')}
+                    {/* Tornando indietro la cifra scritta a mano si dimentica:
+                        era la risposta a una selezione che si sta per cambiare,
+                        e ritrovarsela addosso sul conto nuovo sarebbe un numero
+                        vecchio travestito da proposta. */}
+                    <button onClick={() => { setPasso('conto'); setImporto(''); setImportoTocco(false); }}
                       title="Torna a scegliere cosa saldare"
                       onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SALDA_INK; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SALDA_MUTED; }}
@@ -727,25 +805,83 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       non ha bisogno di una scatola per farsi vedere. */}
                   <div style={{padding:'18px 24px 0', textAlign:'center'}}>
                     <div style={SALDA_LABEL}>Da incassare</div>
-                    <div style={{display:'inline-flex', alignItems:'baseline', gap: 7}}>
+
+                    {/* LA CIFRA SI SCRIVE. Non è più solo il totale dei piatti
+                        scelti: quello è la proposta, e chi sta in cassa la può
+                        riscrivere — «me ne dà venti» succede tutte le sere.
+                        Come nella finestra Incassa di Vendita diretta, il
+                        numero è il campo: si tocca e si scrive sopra, senza un
+                        interruttore da cercare da un'altra parte. */}
+                    <div
+                      onClick={() => importoRef.current && importoRef.current.focus()}
+                      style={{display:'inline-flex', alignItems:'baseline', gap: 7, cursor:'text', padding:'2px 6px'}}>
                       <span style={{fontSize: 32, fontWeight: 800, color: SALDA_MUTED, letterSpacing:-0.6}}>€</span>
-                      <span style={{
-                        fontSize: 64, fontWeight: 800, color: SALDA_INK,
-                        letterSpacing:-2.2, lineHeight: 1.1,
-                        fontVariantNumeric:'tabular-nums',
-                      }}>{total.toFixed(2)}</span>
+                      <input
+                        ref={importoRef}
+                        value={importoTocco ? importo : total.toFixed(2)}
+                        onChange={e => {
+                          setImportoTocco(true);
+                          setImporto(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'));
+                          // Il contante ricevuto torna a «Esatto»: seguiva una
+                          // cifra che non c'è più.
+                          setPay({ contanti:'', carta:'' });
+                        }}
+                        onFocus={e => e.currentTarget.select()}
+                        inputMode="decimal"
+                        aria-label="Quanto incassi ora"
+                        style={{
+                          width: `${Math.max((importoTocco ? importo : total.toFixed(2)).length, 4)}ch`,
+                          border:'none', outline:'none', background:'transparent',
+                          fontFamily:'inherit', textAlign:'left',
+                          fontSize: 64, fontWeight: 800, color: SALDA_INK,
+                          letterSpacing:-2.2, lineHeight: 1.15, padding: 0,
+                          fontVariantNumeric:'tabular-nums',
+                        }}/>
+                      <span style={{color: importoTocco ? SALDA_BRAND : SALDA_MUTED, display:'inline-flex', alignSelf:'center'}}>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                      </span>
                     </div>
 
                     {/* Il conto, SEMPRE: dice su cosa si sta lavorando e non si
-                        muove. «Da incassare» e «totale conto» sono due fatti
-                        diversi anche quando il numero coincide. */}
+                        muove — nemmeno mentre la cifra sopra cambia. «Da
+                        incassare» e «totale conto» sono due fatti diversi anche
+                        quando il numero coincide. */}
                     <div style={{
                       marginTop: 4, fontSize: 15, color: SALDA_MUTED,
                       fontVariantNumeric:'tabular-nums',
                     }}>
                       Totale conto €{apertoTotale.toFixed(2)}
+                      {accontiTotale > 0.004 && <> · già in acconto €{accontiTotale.toFixed(2)}</>}
                       {parzialeSelezione && <> · {selectedOrdini.length} {selectedOrdini.length === 1 ? 'piatto' : 'piatti'} di {incassabili.length}</>}
                     </div>
+
+                    {/* COSA COMPORTA la cifra scritta a mano. È il punto in cui
+                        soldi e piatti si separano, e va detto qui — dopo, sulla
+                        conferma, sarebbe una scoperta. */}
+                    {(abbuono > 0.004 || eccedenza > 0.004 || oltreIlDovuto || copertoDaAcconto > 0.004) && (
+                      <div style={{
+                        display:'inline-flex', alignItems:'flex-start', gap: 9,
+                        marginTop: 12, padding:'11px 15px', borderRadius: 12,
+                        maxWidth: 560, textAlign:'left',
+                        background: PAY_BG, color: PAY_INK,
+                        fontSize: 15.5, lineHeight: 1.45,
+                      }}>
+                        <span style={{flexShrink: 0, marginTop: 1, display:'inline-flex'}}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                        </span>
+                        <span>
+                          {oltreIlDovuto
+                            ? <>Il tavolo deve <b>€{residuoTavolo.toFixed(2)}</b>: incassi quelli, non €{richiesto.toFixed(2)}.</>
+                            : abbuono > 0.004
+                              ? <>I piatti scelti si chiudono lo stesso: <b>€{abbuono.toFixed(2)}</b> {subtotale > 0.004 ? 'restano al locale' : 'in meno'}.</>
+                              : eccedenza > 0.004
+                                ? (subtotale > 0.004
+                                  ? <><b>€{eccedenza.toFixed(2)}</b> in più dei piatti scelti: restano come acconto sul resto del conto.</>
+                                  : <>Nessun piatto scelto: <b>€{total.toFixed(2)}</b> scendono dal conto come acconto, e l'elenco resta tutto aperto.</>)
+                                : <>Il tavolo ha già versato <b>€{accontiTotale.toFixed(2)}</b> in acconto: dei piatti scelti restano da incassare <b>€{total.toFixed(2)}</b>.</>}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Lo sconto si applica sul CONTO — al momento di incassare
                         il totale è una cosa decisa — ma qui va detto che c'è, e
@@ -903,7 +1039,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             in più da confrontare. Il pulsante dice cosa succede
                             — non quanto. */}
                         {!attivo
-                          ? (total === 0 ? 'Scegli cosa saldare' : `Mancano €${manca.toFixed(2)}`)
+                          ? (total === 0
+                              ? (importoTocco ? 'Scrivi quanto incassi' : 'Scegli cosa saldare')
+                              : `Mancano €${manca.toFixed(2)}`)
                           : inviaSuStaff
                             ? 'Manda su Byup Staff'
                             : parziale
