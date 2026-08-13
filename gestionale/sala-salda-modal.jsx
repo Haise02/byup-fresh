@@ -178,6 +178,17 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // Quello che la cassa può ancora incassare: i piatti già pagati non sono
   // «deselezionati», sono fuori dal conto — se contassero, il riepilogo
   // direbbe «4 di 6» a chi non ha toccato niente.
+  // Da che schermo è arrivato il piatto lo dice l'OSPITE che l'ha ordinato,
+  // non la riga: `origin` racconta chi l'ha battuto, l'ospite da dove. Senza un
+  // ospite dietro è roba del tavolo, e finisce in «Altro».
+  const canaleDi = (o) => {
+    const g = o.guestId ? guestById[o.guestId] : null;
+    return g && g.source === 'byup' ? 'byup' : g && g.source === 'guest' ? 'guest' : 'altro';
+  };
+  const gruppiCanale = SALDA_CANALI
+    .map(c => Object.assign({}, c, { items: allOrdini.filter(o => canaleDi(o) === c.id) }))
+    .filter(g => g.items.length > 0);
+
   const incassabili = allOrdini.filter(o => !isPagato(o));
   const selectedOrdini = allOrdini.filter(o => (selectedItems.get(o.id) || 0) > 0);
   const subtotale = selectedOrdini.reduce((s,o) => s + Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) * o.prezzo, 0);
@@ -254,6 +265,17 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   }
   function selectAll() { setSelectedItems(new Map(allOrdini.filter(o => !isPagato(o)).map(o => [o.id, qtyAperta(o)]))); }
   function selectNone() { setSelectedItems(new Map()); }
+  // Un canale intero, in un gesto: se è già tutto preso lo lascia, altrimenti
+  // lo prende per intero. Un solo tocco che va nei due versi, come la spunta
+  // «Seleziona tutti» in cima.
+  function selezionaCanale(items) {
+    setSelectedItems(s => {
+      const ns = new Map(s);
+      const tutti = items.every(o => (ns.get(o.id) || 0) >= o.qty);
+      items.forEach(o => tutti ? ns.delete(o.id) : ns.set(o.id, qtyAperta(o)));
+      return ns;
+    });
+  }
 
   function updateItem(id, patch) {
     setEditedOrdini(arr => arr.map(o => o.id === id ? { ...o, ...patch } : o));
@@ -499,8 +521,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
                 {/* Lista articoli */}
                 <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'10px 24px 14px'}}>
-                  <FlatList ordini={allOrdini} selectedItems={selectedItems} toggleItem={toggleItem} setItemQty={setItemQty} guestById={guestById}
-                    isPagato={isPagato}
+                  <ListaPerCanale gruppi={gruppiCanale}
+                    selectedItems={selectedItems} toggleItem={toggleItem} setItemQty={setItemQty}
+                    guestById={guestById} isPagato={isPagato}
+                    selezionaCanale={selezionaCanale}
                     onUpdate={updateItem} onDelete={deleteItem}/>
                 </div>
 
@@ -874,25 +898,117 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   );
 }
 
-// ────────── LISTA ARTICOLI FLAT ──────────
-function FlatList({ ordini, selectedItems, toggleItem, setItemQty, guestById, isPagato, onUpdate, onDelete }) {
-  if (ordini.length === 0) return <EmptyOrdini/>;
+// ────────── LISTA ARTICOLI PER CANALE ──────────
+// Da dove è arrivato l'ordine è la prima cosa che divide un conto: i piatti
+// battuti in cassa e quelli arrivati dai telefoni degli ospiti non si saldano
+// nello stesso momento, e cercarli in una lista piatta vuol dire leggere ogni
+// riga fino in fondo per scoprire di chi è. Raggruppati, la domanda «cosa
+// hanno preso quelli dell'app?» ha una risposta che si vede, non si cerca.
+//
+// L'ordine dei gruppi è fisso — App, Webapp, Altro — e non segue i piatti:
+// una lista che si riordina da sola sotto le mani non si impara mai.
+function ListaPerCanale({ gruppi, selectedItems, toggleItem, setItemQty, guestById, isPagato, selezionaCanale, onUpdate, onDelete }) {
+  if (gruppi.length === 0) return <EmptyOrdini/>;
   return (
-    <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-      {ordini.map(o => (
-        <ItemRowV2 key={o.id} o={o}
-          selectedQty={selectedItems.get(o.id) || 0}
-          onToggle={()=>toggleItem(o.id)}
-          onSetQty={(q)=>setItemQty(o.id, q)}
-          guest={o.guestId ? guestById[o.guestId] : null}
-          pagato={!!isPagato && isPagato(o)}
-          onUpdate={onUpdate} onDelete={onDelete}/>
-      ))}
+    <div style={{display:'flex', flexDirection:'column', gap: 14}}>
+      {gruppi.map(g => {
+        // Il conteggio dice cosa c'è nel gruppo, spunta compresa la roba già
+        // pagata: è il contenuto della sezione, e le righe pagate si vedono
+        // spente. La SPUNTA invece lavora solo su quello che si può ancora
+        // incassare — prendere un piatto già pagato non vuol dire niente.
+        const daPrendere = g.items.filter(o => !isPagato || !isPagato(o));
+        const tutti = daPrendere.length > 0 && daPrendere.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
+        const alcuni = !tutti && daPrendere.some(o => (selectedItems.get(o.id) || 0) > 0);
+        return (
+          <div key={g.id} style={{
+            border:'1px solid #EDEFF2', borderRadius: 14,
+            background:'#fff', overflow:'hidden',
+          }}>
+            {/* Testata del canale. È premibile e prende tutto il gruppo in un
+                gesto: senza, dividere il conto per canale vorrebbe dire
+                spuntare otto righe a mano, e il raggruppamento sarebbe solo
+                un disegno. La spunta sta a sinistra, incolonnata con quelle
+                delle righe che governa. */}
+            <button
+              onClick={() => { if (daPrendere.length) selezionaCanale(daPrendere); }}
+              disabled={!daPrendere.length}
+              onMouseEnter={e => { if (daPrendere.length) e.currentTarget.style.background = '#FAFBFC'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+              title={daPrendere.length ? (tutti ? `Togli ${g.label}` : `Prendi tutto ${g.label}`) : 'Già pagato'}
+              style={{
+                width:'100%', display:'flex', alignItems:'center', gap: 12,
+                padding:'12px 14px', background:'#fff', border:'none',
+                borderBottom:'1px solid #F1F3F5',
+                cursor: daPrendere.length ? 'pointer' : 'default',
+                fontFamily:'inherit', textAlign:'left',
+                transition:'background 130ms ease-out',
+              }}>
+              <span aria-hidden="true" style={{
+                width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                display:'grid', placeItems:'center',
+                background: tutti ? SALDA_BRAND : '#fff',
+                border: `1.5px solid ${tutti || alcuni ? SALDA_BRAND : '#D1D5DB'}`,
+                opacity: daPrendere.length ? 1 : 0.4,
+              }}>
+                {tutti && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13 L9 17 L19 7"/></svg>
+                )}
+                {alcuni && <span style={{display:'block', width: 10, height: 2.5, background: SALDA_BRAND, borderRadius: 2}}/>}
+              </span>
+
+              <span style={{
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                display:'grid', placeItems:'center',
+                background: g.bg, color: g.ink,
+              }}>{g.icona}</span>
+
+              <span style={{fontSize: 17.5, fontWeight: 800, color:'#0F1115', letterSpacing:-0.2}}>
+                {g.label}
+              </span>
+              <span style={{color:'#D1D5DB', fontWeight: 700}}>·</span>
+              <span style={{
+                fontSize: 14.5, fontWeight: 700, color:'#6B7280',
+                background:'#F4F5F7', padding:'3px 10px', borderRadius: 999,
+              }}>
+                {g.items.length} articol{g.items.length === 1 ? 'o' : 'i'}
+              </span>
+            </button>
+
+            <div style={{display:'flex', flexDirection:'column', gap: 8, padding:'10px 12px 12px'}}>
+              {g.items.map(o => (
+                <ItemRowV2 key={o.id} o={o}
+                  selectedQty={selectedItems.get(o.id) || 0}
+                  onToggle={()=>toggleItem(o.id)}
+                  onSetQty={(q)=>setItemQty(o.id, q)}
+                  guest={o.guestId ? guestById[o.guestId] : null}
+                  // Il canale è già scritto sulla testata: ripeterlo su ogni
+                  // riga dentro il suo stesso gruppo è la definizione di
+                  // rumore. Della pastiglia resta il nome — che lì dentro è
+                  // l'unica cosa che distingue una riga dall'altra.
+                  canaleNoto
+                  pagato={!!isPagato && isPagato(o)}
+                  onUpdate={onUpdate} onDelete={onDelete}/>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, pagato, onUpdate, onDelete }) {
+// I tre canali da cui può arrivare un piatto, nell'ordine in cui si leggono.
+// «Altro» tiene insieme quello che non è nato da un ospite: la comanda del
+// cameriere, il piatto aggiunto qui in cassa, l'acqua per il tavolo. Sono cose
+// diverse fra loro ma hanno in comune la sola cosa che conta qui — non c'è un
+// telefono a cui chiedere conto.
+const SALDA_CANALI = [
+  { id:'byup',  label:'Byup App',    bg:'#FFE0DD', ink:'#E04347', icona: <IconTelefono/> },
+  { id:'guest', label:'Byup Webapp', bg:'#DDE7FF', ink:'#3B5BDB', icona: <IconSchermo/> },
+  { id:'altro', label:'Altro',       bg:'#F1F2F5', ink:'#6B7280', icona: <IconPersone/> },
+];
+
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, onUpdate, onDelete }) {
   const allSel = selectedQty >= o.qty;
   const noneSel = selectedQty === 0;
   const partialSel = !allSel && !noneSel;
@@ -1020,22 +1136,29 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, hideBayupBadge, 
         <span style={{
           display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
           padding:'5px 10px', borderRadius: 999,
-          background: pagato ? '#EEF0F3' : (o.origin === 'byup' && !hideBayupBadge ? '#FFE9E9' : '#F4F5F7'),
+          background: pagato ? '#EEF0F3' : (o.origin === 'byup' && !canaleNoto ? '#FFE9E9' : '#F4F5F7'),
           fontSize: 14, fontWeight: 600,
           color: pagato ? '#9CA3AF' : '#6B7280',
         }}>
-          {guest.name.split(' ')[0]}
-          <span style={{color:'#C7CBD1'}}>·</span>
+          {/* Dentro il gruppo il nome sta per intero: «Guest 4» accorciato a
+              «Guest» non distingue più due persone diverse, ed è esattamente
+              il lavoro che quella pastiglia deve fare lì. Fuori resta il nome
+              di battesimo, che accanto al canale basta e occupa meno. */}
+          {canaleNoto ? guest.name : guest.name.split(' ')[0]}
+          {/* Dentro il suo gruppo il canale è già scritto in testata: la
+              pastiglia si accorcia al nome. Resta invece «Pagato», che non è
+              una provenienza ma uno stato — e quello nessuna testata lo dice. */}
+          {(!canaleNoto || pagato) && <span style={{color:'#C7CBD1'}}>·</span>}
           {pagato ? (
             <span style={{fontWeight: 700}}>Pagato</span>
-          ) : (o.origin === 'byup' && !hideBayupBadge) ? (
+          ) : canaleNoto ? null : o.origin === 'byup' ? (
             <span style={{fontWeight: 800, color: SALDA_BRAND, letterSpacing: 0.3, textTransform:'uppercase', fontSize: 12.5}}>byup</span>
           ) : (
             <span style={{fontWeight: 600}}>{o.origin === 'guest' ? 'Webapp' : 'Cameriere'}</span>
           )}
         </span>
       )}
-      {!guest && o.origin === 'byup' && o.guestId && !hideBayupBadge && (
+      {!guest && o.origin === 'byup' && o.guestId && !canaleNoto && (
         <span style={{
           fontSize: 12.5, fontWeight: 800, color: SALDA_BRAND,
           background:'#FFE9E9', padding:'3px 8px', borderRadius: 999,
@@ -1646,6 +1769,25 @@ function IconCash() { return (
 function IconCard() { return (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10 H22"/>
+  </svg>
+); }
+// I tre canali, in tre oggetti: il telefono dell'ospite, lo schermo di chi ha
+// inquadrato il QR, le persone al tavolo. Si riconoscono di sagoma, prima di
+// leggere l'etichetta accanto — che è quello che serve quando si scorre un
+// conto lungo cercando una sola sezione.
+function IconTelefono() { return (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="6" y="2.5" width="12" height="19" rx="2.6"/><path d="M10.5 18.5h3"/>
+  </svg>
+); }
+function IconSchermo() { return (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M9 20.5h6M12 16.5v4"/>
+  </svg>
+); }
+function IconPersone() { return (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="8" r="3.2"/><path d="M2.5 19.5c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M16.5 5.4a3.2 3.2 0 0 1 0 5.2M18 14.4c2.1.6 3.5 2.3 3.5 5.1"/>
   </svg>
 ); }
 // ────────── STILI ──────────

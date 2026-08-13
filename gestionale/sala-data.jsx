@@ -36,7 +36,11 @@ const SALA_TAVOLI = [
       { id:'g3e', name:'Guest 5',    source:'guest' },
     ],
     ordini: [
-      { id:'o5',  nome:'Bruschette miste',    qty:2, prezzo:8,  stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
+      // Le bruschette le ha ordinate chi ha inquadrato il QR: il tavolo
+      // dichiara `byupWeb: 1` e finora nessun piatto era suo, così la webapp
+      // guest non compariva da nessuna parte — né nel conto, né nei gruppi
+      // per canale del salda conto.
+      { id:'o5',  nome:'Bruschette miste',    qty:2, prezzo:8,  stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'guest',    guestId:'g3d' },
       { id:'o6a', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3a' },
       { id:'o6b', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3b' },
       { id:'o6c', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3c' },
