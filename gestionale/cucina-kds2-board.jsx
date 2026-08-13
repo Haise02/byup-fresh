@@ -598,14 +598,15 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
           non deve scendere di mezzo palmo dopo aver letto il nome. */}
       <div style={{flex: 1, minWidth: 0, padding: '12px 16px'}}>
         <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
-          {/* La colonna resta anche quando la cifra non c'è: è l'ascissa su cui
-              si scandiscono le quantità dall'alto in basso, e farla ballare
-              riga per riga toglierebbe proprio il servizio che rende. Sparisce
-              solo l'«1»: davanti a un piatto solo non conta niente, e in una
-              colonna di numeri è quello che si legge per sbaglio. */}
+          {/* La colonna delle quantità porta SEMPRE la sua cifra, «1» compreso.
+              Prima l'uno si ometteva — davanti a un piatto solo sembrava non
+              contare niente — ma una colonna di numeri con dei buchi si legge
+              peggio di una piena: chi scorre dall'alto in basso deve trovare
+              una cifra a ogni riga, non chiedersi se quel vuoto vuol dire uno
+              o vuol dire che il numero non è arrivato. */}
           <span style={Object.assign({}, TY.qty, {
             width: COL_QTY, flexShrink: 0, textAlign: 'right', color: colQty,
-          })}>{riga.quantity > 1 ? riga.quantity : ''}</span>
+          })}>{riga.quantity}</span>
 
           {/* Filo verticale fra la quantità e il piatto: separa due cose che si
               leggono in momenti diversi — quante ne devo fare, e che cosa. */}
