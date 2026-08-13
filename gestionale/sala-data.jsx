@@ -79,7 +79,7 @@ const SALA_TAVOLI = [
     nextReservation: { time: '21:30', name: 'Conti', posti: 4, inMin: 95 },
     minutiAllaPrenotazione: 95 },
 
-  { id: 7,  state: 'occupato', posti: 8, coperti: 7, byup: 4, byupWeb: 0, party: 'Tommy Shelby', sittingMin: 48, conto: 184.00, daIncassare: 130.00, contoSaldato: false,
+  { id: 7,  state: 'occupato', posti: 8, coperti: 7, byup: 4, byupWeb: 0, party: 'Tommy Shelby', sittingMin: 48, conto: 184.00, daIncassare: 118.00, contoSaldato: false,
     guests: [
       { id:'g7a', name:'Paolo N.',  source:'byup' },
       { id:'g7b', name:'Elena N.',  source:'byup' },
@@ -97,10 +97,14 @@ const SALA_TAVOLI = [
     ],
     // Conto lungo pagato a pezzi: due quote dall'app, una in contanti al
     // banco. Serve a vedere i tre canali insieme nella finestra di saldo.
+    // L'ultima è un PIATTO DIVISO: Marco ha spartito il vino dall'app e ha
+    // pagato la sua metà — il pagamento porta la riga con la quota (qty 0.5),
+    // non il nome che spegne tutto: le sue pappardelle restano da incassare.
     pagamenti: [
       { id:'p7a', method:'byup',     amount: 21.00, ora:'21:02', chi:'Paolo N.' },
       { id:'p7b', method:'byup',     amount: 18.00, ora:'21:05', chi:'Elena N.' },
       { id:'p7c', method:'contanti', amount: 15.00, ora:'21:11', chi:null },
+      { id:'p7d', method:'byup',     amount: 12.00, ora:'21:14', chi:'Marco T.', items:[{ id:'o15', qty: 0.5 }] },
     ],
     minutiSenzaOrdine: 6, timeSinceLastOrder: 6,
     note: { tipo:'allergia', testo:'Allergia glutine', ospite:'Marco R.' },

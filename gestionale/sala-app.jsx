@@ -99,12 +99,16 @@ function SalaApp() {
   }/*EDITMODE-END*/;
   const tweaks = TWEAK_DEFAULTS;
 
-  // Apri salda modal se arrivato da contabilità con ?openSalda=1
+  // Apri salda modal se arrivato da contabilità con ?openSalda=1.
+  // Con anche &tavolo=<id> apre QUEL tavolo: serve ai controlli headless, che
+  // senza un aggancio diretto devono attraversare la griglia a click.
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('openSalda') === '1') {
       const all = getTavoli();
-      const tavolo = all.find(t => t.state === 'occupato') || all[0];
+      const wanted = parseInt(params.get('tavolo'), 10);
+      const tavolo = all.find(t => t.id === wanted)
+        || all.find(t => t.state === 'occupato') || all[0];
       if (tavolo) setModalPay(tavolo);
     }
   }, []);

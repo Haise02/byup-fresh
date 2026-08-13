@@ -42,6 +42,16 @@ const PAY_FINE = 16000;
 // conto resta aperto per niente.
 const r2 = (n) => Math.round(n * 100) / 100;
 
+// Le quote di un piatto diviso dall'app sono mezze porzioni: «½» si legge al
+// volo, «0.5» si calcola. Gli interi restano interi, il resto (un terzo, un
+// quarto) resta in cifre — meglio un numero brutto di una frazione sbagliata.
+const fmtQty = (n) => {
+  if (Number.isInteger(n)) return String(n);
+  const intera = Math.floor(n);
+  if (Math.abs(n - intera - 0.5) < 0.01) return intera > 0 ? `${intera}½` : '½';
+  return String(r2(n));
+};
+
 function nuovaVoceCoda(tavolo, importo) {
   const t = Date.now();
   return {
@@ -156,7 +166,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     if (open && tavolo) {
       const cloned = (tavolo.ordini || []).map(o => ({...o}));
       const gById = Object.fromEntries((tavolo.guests || []).map(g => [g.id, g]));
-      const pagati = new Set((tavolo.pagamenti || []).map(p => String(p.chi || '').trim().toLowerCase()));
+      // Stessa regola di `nomiPagati` più sotto: il pagamento che porta righe
+      // (la quota di un piatto diviso) non spegne l'ospite per nome.
+      const pagati = new Set((tavolo.pagamenti || [])
+        .filter(p => !(p.items && p.items.length))
+        .map(p => String(p.chi || '').trim().toLowerCase()));
       const giaPagato = (o) => !!o.guestId && gById[o.guestId]
         && pagati.has(String(gById[o.guestId].name || '').trim().toLowerCase());
       const qPagata = (o) => (tavolo.pagamenti || []).reduce((n, p) =>
@@ -200,7 +214,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // il suo nome) e un incasso parziale fatto qui in cassa (il pagamento porta
   // le righe che copre, con le quantità). In tutti e due i casi quei piatti
   // non si incassano una seconda volta.
-  const nomiPagati = new Set((tavolo.pagamenti || []).map(p => String(p.chi || '').trim().toLowerCase()));
+  // Un pagamento che porta righe si giudica SOLO dalle righe, anche quando
+  // porta un nome: è la quota di un piatto diviso dall'app — mezza bottiglia,
+  // qty 0.5 — e chi l'ha pagata non ha saldato il resto del suo conto.
+  const nomiPagati = new Set((tavolo.pagamenti || [])
+    .filter(p => !(p.items && p.items.length))
+    .map(p => String(p.chi || '').trim().toLowerCase()));
   const guestPagato = (gid) => {
     const g = guestById[gid];
     return !!g && nomiPagati.has(String(g.name || '').trim().toLowerCase());
@@ -263,17 +282,23 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // Il credito è la parte di un pagamento che eccede il valore dei piatti che
   // copriva: è un ACCONTO, e va tolto da quello che il tavolo deve ancora, o
   // riaprendo il conto quei soldi si chiederebbero due volte.
-  // ATTENZIONE alle quote dall'app: non portano righe, ma i piatti di chi ha
-  // pagato risultano già spenti per nome — contarle qui vorrebbe dire togliere
-  // quei soldi due volte.
+  // ATTENZIONE alle quote PER NOME dall'app: non portano righe, ma i piatti
+  // di chi ha pagato risultano già spenti per nome — contarle qui vorrebbe
+  // dire togliere quei soldi due volte. La quota di un piatto DIVISO invece
+  // le righe le porta (mezza bottiglia, qty 0.5) ed è già dentro qtyAperta.
   const nomiOspiti = new Set(guests.map(g => String(g.name || '').trim().toLowerCase()));
   const valoreRighe = (items) => (items || []).reduce((s, r) => {
     const o = allOrdini.find(x => x.id === r.id);
     return s + (o ? o.prezzo * r.qty : 0);
   }, 0);
-  const creditoDi = (p) => nomiOspiti.has(String(p.chi || '').trim().toLowerCase())
-    ? 0
-    : Math.max(0, r2((p.amount || 0) - valoreRighe(p.items)));
+  // Il pagamento CON righe si misura sulle righe che copre, chiunque lo
+  // firmi: la quota del piatto diviso vale esattamente la sua metà, e non
+  // diventa un acconto solo perché porta il nome di chi l'ha versata.
+  const creditoDi = (p) => (p.items && p.items.length)
+    ? Math.max(0, r2((p.amount || 0) - valoreRighe(p.items)))
+    : nomiOspiti.has(String(p.chi || '').trim().toLowerCase())
+      ? 0
+      : Math.max(0, r2(p.amount || 0));
   const accontiTotale = (tavolo.pagamenti || []).reduce((s, p) => s + creditoDi(p), 0);
   // Quello che il tavolo deve ancora, in euro: il valore dei piatti aperti
   // meno gli acconti già versati. È il tetto di qualunque incasso.
@@ -357,7 +382,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     lasciaComandareLaSelezione();
     setSelectedItems(s => {
       const ns = new Map(s);
-      const tutti = items.every(o => (ns.get(o.id) || 0) >= o.qty);
+      // «Tutto preso» si misura su quanto è APERTO, non su quanto è stato
+      // ordinato: della bottiglia divisa a metà dall'app resta mezza, e
+      // quella mezza selezionata È tutto il selezionabile.
+      const tutti = items.every(o => (ns.get(o.id) || 0) >= qtyAperta(o));
       items.forEach(o => tutti ? ns.delete(o.id) : ns.set(o.id, qtyAperta(o)));
       return ns;
     });
@@ -525,7 +553,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     // di sempre: piatti ancora aperti meno gli acconti. Ricalcolarlo qui a
     // mano — invece di leggere `residuoDopo`, che parla dell'incasso in corso
     // — è l'unico modo di sapere quanto deve il tavolo DOPO aver tolto questo.
-    const nomi = new Set(rimasti.map(x => String(x.chi || '').trim().toLowerCase()));
+    const nomi = new Set(rimasti
+      // Come per `nomiPagati`: la quota di un piatto diviso porta un nome ma
+      // spegne solo le sue righe, non tutto il conto di chi l'ha versata.
+      .filter(x => !(x.items && x.items.length))
+      .map(x => String(x.chi || '').trim().toLowerCase()));
     const apertoOra = allOrdini.reduce((s, o) => {
       const qPag = rimasti.reduce((n, x) => n + ((x.items || []).find(r => r.id === o.id)?.qty || 0), 0);
       const g = o.guestId ? guestById[o.guestId] : null;
@@ -828,17 +860,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   borderRight:'1px solid #EDEFF2',
                 }}>
                   <div style={{
-                    padding:'6px 20px 10px',
+                    padding:'6px 20px 4px',
                     display:'flex', alignItems:'center', gap: 8, flexShrink: 0,
                   }}>
                     <span style={{...SALDA_LABEL, marginBottom: 0}}>Cosa saldi</span>
-                    {/* Il nome della colonna dei numeri a destra: senza,
-                        quelle cifre si leggerebbero come prezzi di listino —
-                        e invece sono quello che ogni riga deve ANCORA. */}
-                    <span style={{...SALDA_LABEL, marginBottom: 0, marginLeft: 10}}>· Saldo per riga</span>
                     <span style={{flex:1}}/>
                     {(() => {
-                      const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
+                      const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= qtyAperta(o));
                       const someSel = !allSel && selectedItems.size > 0;
                       return (
                         <button
@@ -863,6 +891,15 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       );
                     })()}
                   </div>
+                  {/* L'intestazione della colonna dei numeri, allineata sopra
+                      le cifre (20px di lista + 14px di card): senza, quei
+                      numeri si leggerebbero come prezzi di listino — e invece
+                      sono quello che ogni riga deve ANCORA. Sul piatto diviso
+                      dall'app la riga aggiunge «di €X»: il residuo e il valore
+                      pieno, e il pagato è la distanza tra i due. */}
+                  <div style={{padding:'0 34px 6px', textAlign:'right', flexShrink: 0}}>
+                    <span style={{...SALDA_LABEL, marginBottom: 0}}>Saldo residuo</span>
+                  </div>
                   {/* Lista PIATTA, non per canale: qui si scelgono piatti, e
                       le testate di gruppo erano tre titoli in mezzo alle
                       spunte. Da dove arriva un piatto lo dice la sua riga —
@@ -883,6 +920,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             // questo, una pizza già pagata direbbe €9.00 di
                             // saldo a chi sta per incassarla di nuovo.
                             saldoRiga={isPagato(o) ? 0 : r2(qtyAperta(o) * o.prezzo)}
+                            // Il tetto del − e del +: del piatto diviso
+                            // dall'app resta mezza porzione, e più di quella
+                            // non si può mettere in questo incasso.
+                            maxQty={qtyAperta(o)}
                             selezione/>
                         ))}
                       </div>
@@ -1439,12 +1480,16 @@ function StatoPiatto({ stato, spento }) {
 // `selezione` decide che riga è: nel passo del pagamento la card si spunta e
 // porta il − e il +; nel conto è una riga di documento — si legge, si corregge
 // (le correzioni arrivano con onUpdate/onDelete), non si sceglie.
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, selezione = true, saldoRiga, onChangeQty, onUpdate, onDelete }) {
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, selezione = true, saldoRiga, maxQty, onChangeQty, onUpdate, onDelete }) {
   // La webapp è anonima: «Guest 4» non è un nome, è un segnaposto, e una
   // pastiglia che dice un segnaposto non dice niente. Sulla riga compare solo
   // chi un nome ce l'ha — gli ospiti dell'app.
   const ospite = guest && guest.source !== 'guest' ? guest : null;
-  const allSel = selectedQty >= o.qty;
+  // Quanto di questa riga si può mettere nell'incasso: di solito la quantità
+  // ordinata, ma del piatto diviso dall'app resta solo la quota aperta — e la
+  // spunta piena vuol dire «tutto il selezionabile», non «tutto l'ordinato».
+  const maxSel = maxQty != null ? Math.min(maxQty, o.qty) : o.qty;
+  const allSel = maxSel > 0 && selectedQty >= maxSel;
   const noneSel = selectedQty === 0;
   const partialSel = !allSel && !noneSel;
   const stop = (e) => e.stopPropagation();
@@ -1563,8 +1608,8 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
             color: selectedQty === 0 ? '#C7CBD1' : '#0F1115',
             minWidth: 30, textAlign:'center', padding:'0 2px',
             whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
-          }}>{selectedQty}{o.qty > 1 && <span style={{fontWeight: 600, color:'#C7CBD1'}}>/{o.qty}</span>}</span>
-          <button onClick={() => onSetQty(selectedQty + 1)} disabled={selectedQty >= o.qty} style={{...qtyBtn, opacity: selectedQty >= o.qty ? 0.3 : 1}} title="Aggiungi uno">+</button>
+          }}>{fmtQty(selectedQty)}{o.qty > 1 && <span style={{fontWeight: 600, color:'#C7CBD1'}}>/{o.qty}</span>}</span>
+          <button onClick={() => onSetQty(selectedQty + 1)} disabled={selectedQty >= maxSel} style={{...qtyBtn, opacity: selectedQty >= maxSel ? 0.3 : 1}} title="Aggiungi uno">+</button>
         </div>
       )}
 
@@ -1687,8 +1732,8 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           €{((!selezione || noneSel) ? o.qty * o.prezzo : selectedQty * o.prezzo).toFixed(2)}
         </button>
       ) : saldoRiga != null ? (
-        // SALDO — quanto di questa riga resta da incassare. Non è il prezzo
-        // pieno (che sta nel conto) né il valore selezionato (che sta
+        // SALDO RESIDUO — quanto di questa riga resta da incassare. Non è il
+        // prezzo pieno (che sta nel conto) né il valore selezionato (che sta
         // nell'hero): è la parte ancora aperta, e quando è zero non dice
         // «€0.00» — dice il fatto, «Saldato».
         saldoRiga <= 0.004 ? (
@@ -1699,10 +1744,23 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           }}>Saldato</span>
         ) : (
           <span style={{
-            fontSize: 17, fontWeight: 700, color:'#0F1115',
-            minWidth: 66, textAlign:'right', fontVariantNumeric:'tabular-nums',
-            padding:'2px 4px', flexShrink: 0,
-          }}>€{saldoRiga.toFixed(2)}</span>
+            display:'inline-flex', flexDirection:'column', alignItems:'flex-end',
+            minWidth: 66, padding:'2px 4px', flexShrink: 0,
+          }}>
+            <span style={{
+              fontSize: 17, fontWeight: 700, color:'#0F1115',
+              fontVariantNumeric:'tabular-nums', lineHeight: 1.2,
+            }}>€{saldoRiga.toFixed(2)}</span>
+            {/* Il piatto diviso dall'app: sotto il residuo, il valore pieno.
+                Quanto è già stato saldato è la distanza tra i due numeri —
+                €12 di €24 dice «metà pagata» senza una parola in più. */}
+            {saldoRiga < o.qty * o.prezzo - 0.004 && (
+              <span style={{
+                fontSize: 12.5, fontWeight: 600, color:'#9CA3AF',
+                fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
+              }}>di €{(o.qty * o.prezzo).toFixed(2)}</span>
+            )}
+          </span>
         )
       ) : (
         <span style={{
