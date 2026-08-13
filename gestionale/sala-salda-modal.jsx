@@ -355,6 +355,26 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   function updateItem(id, patch) {
     setEditedOrdini(arr => arr.map(o => o.id === id ? { ...o, ...patch } : o));
   }
+  // La QUANTITÀ ORDINATA si corregge nel conto, come il nome e il prezzo: il
+  // cameriere ha battuto tre birre ma erano due. Non scende mai sotto quello
+  // che è già stato pagato — quelle porzioni sono un incasso, non un refuso —
+  // né sotto uno: la riga da zero si toglie con il cestino, che dice quello
+  // che fa. La selezione del passo dopo si riallinea da sola: quello che è
+  // aperto torna tutto selezionato, coerente con l'apertura.
+  function cambiaQtyOrdine(id, q) {
+    const o = allOrdini.find(x => x.id === id);
+    if (!o) return;
+    const minQ = Math.max(1, qtyPagata(o));
+    const v = Math.max(minQ, Math.round(q));
+    if (v === o.qty) return;
+    updateItem(id, { qty: v });
+    setSelectedItems(s => {
+      const ns = new Map(s);
+      const aperta = v - qtyPagata(o);
+      if (aperta <= 0) ns.delete(id); else ns.set(id, aperta);
+      return ns;
+    });
+  }
   function deleteItem(id) {
     setEditedOrdini(arr => arr.filter(o => o.id !== id));
     setSelectedItems(s => { const ns = new Map(s); ns.delete(id); return ns; });
@@ -631,6 +651,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     selectedItems={selectedItems} toggleItem={toggleItem} setItemQty={setItemQty}
                     guestById={guestById} isPagato={isPagato}
                     selezionaCanale={selezionaCanale}
+                    onChangeQty={cambiaQtyOrdine}
                     onUpdate={updateItem} onDelete={deleteItem}/>
                 </div>
 
@@ -1169,7 +1190,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 // `selezione` sceglie la faccia della lista: nel pagamento le testate e le
 // righe si spuntano; nel conto sono un documento — la stessa carta, letta in
 // due momenti diversi.
-function ListaPerCanale({ gruppi, selezione = true, selectedItems, toggleItem, setItemQty, guestById, isPagato, selezionaCanale, onUpdate, onDelete }) {
+function ListaPerCanale({ gruppi, selezione = true, selectedItems, toggleItem, setItemQty, guestById, isPagato, selezionaCanale, onChangeQty, onUpdate, onDelete }) {
   if (gruppi.length === 0) return <EmptyOrdini/>;
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 14}}>
@@ -1263,6 +1284,7 @@ function ListaPerCanale({ gruppi, selezione = true, selectedItems, toggleItem, s
                   canaleNoto
                   selezione={selezione}
                   pagato={!!isPagato && isPagato(o)}
+                  onChangeQty={onChangeQty}
                   onUpdate={onUpdate} onDelete={onDelete}/>
               ))}
             </div>
@@ -1321,7 +1343,7 @@ function StatoPiatto({ stato, spento }) {
 // `selezione` decide che riga è: nel passo del pagamento la card si spunta e
 // porta il − e il +; nel conto è una riga di documento — si legge, si corregge
 // (le correzioni arrivano con onUpdate/onDelete), non si sceglie.
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, selezione = true, onUpdate, onDelete }) {
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, selezione = true, onChangeQty, onUpdate, onDelete }) {
   const allSel = selectedQty >= o.qty;
   const noneSel = selectedQty === 0;
   const partialSel = !allSel && !noneSel;
@@ -1389,13 +1411,42 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           Prima comparivano solo sulle righe da più di uno e solo se selezionate:
           due condizioni da ricordare per un comando che deve essere lì e basta.
           Su un piatto già pagato restano fuori: non c'è niente da contare. */}
-      {(pagato || !selezione) ? (
+      {pagato ? (
         <span style={{
-          fontSize: 16, fontWeight: 800, color: pagato ? '#9CA3AF' : '#0F1115',
+          fontSize: 16, fontWeight: 800, color:'#9CA3AF',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
           padding:'6px 0', minWidth: 40, textAlign:'center',
           fontVariantNumeric:'tabular-nums', flexShrink: 0,
         }}>{o.qty}</span>
+      ) : !selezione ? (
+        // Nel conto il − e il + correggono la QUANTITÀ ORDINATA — tre birre
+        // battute per due — non quante se ne saldano: quello è il lavoro
+        // dello stesso stepper nel passo dopo. Stessa forma, due grandezze:
+        // qui cambia il conto, là cambia l'incasso.
+        onChangeQty ? (
+          <div onClick={stop} style={{
+            display:'inline-flex', alignItems:'center',
+            background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
+            overflow:'hidden', flexShrink: 0,
+          }}>
+            <button onClick={() => onChangeQty(o.id, o.qty - 1)} disabled={o.qty <= 1}
+              style={{...qtyBtn, opacity: o.qty <= 1 ? 0.3 : 1}} title="Una in meno">−</button>
+            <span style={{
+              fontSize: 16, fontWeight: 800, color:'#0F1115',
+              minWidth: 30, textAlign:'center', padding:'0 2px',
+              whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
+            }}>{o.qty}</span>
+            <button onClick={() => onChangeQty(o.id, o.qty + 1)}
+              style={qtyBtn} title="Una in più">+</button>
+          </div>
+        ) : (
+          <span style={{
+            fontSize: 16, fontWeight: 800, color:'#0F1115',
+            background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
+            padding:'6px 0', minWidth: 40, textAlign:'center',
+            fontVariantNumeric:'tabular-nums', flexShrink: 0,
+          }}>{o.qty}</span>
+        )
       ) : (
         <div onClick={stop} style={{
           display:'inline-flex', alignItems:'center',
