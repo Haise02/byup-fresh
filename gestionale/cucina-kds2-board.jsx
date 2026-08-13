@@ -291,15 +291,7 @@ function Kds2Espandi({ size = 24, chiudi = false }) {
 // Quantità e identità non si confondono nemmeno quando sono due numeri vicini
 // («4 tav. 3»): il peso le separa, e «tav.» sta in mezzo.
 //
-// DUE GUSCI, UNA GRAMMATICA. In testata la chip è un interruttore — «fammi
-// vedere il tavolo 9» — e ha il peso di un pulsante: 64 px di bersaglio per un
-// dito col guanto, e il bordo che lo dichiara. Dentro le righe non si tocca
-// più: il gesto è della riga, un tocco un piatto, e una pastiglia bordata che
-// non fa niente è una promessa che il monitor non mantiene — la si prova, non
-// succede nulla, e da lì in poi non ci si fida più nemmeno delle altre. Lì
-// diventa un'etichetta: stesso ordine, stessi corpi, ma senza bordo, più
-// bassa e più stretta. Quello che cambia è il guscio, che è esattamente ciò
-// che distingue un comando da un dato.
+// 56 px di altezza reale: è il bersaglio minimo per un dito col guanto.
 function Kds2Chip({
   source, quantity, tempo, status,
   spenta = false, selezionata = false, tinta = null,
@@ -352,17 +344,9 @@ function Kds2Chip({
     </React.Fragment>
   );
 
-  // Senza gesto è un'etichetta: si stringe. I 64 px erano la misura di un
-  // bersaglio, e un bersaglio che non c'è non va occupato — quello spazio lo
-  // prendono i destinatari, che su una riga con quattro tavoli è la cosa che
-  // serve davvero.
-  const etichetta = !onTap;
-
   const stile = {
-    display: 'inline-flex', alignItems: 'center', gap: etichetta ? 8 : 10,
-    height: etichetta ? 44 : H_BERSAGLIO,
-    padding: etichetta ? '0 13px' : '0 20px',
-    borderRadius: etichetta ? 10 : 12,
+    display: 'inline-flex', alignItems: 'center', gap: 10,
+    height: H_BERSAGLIO, padding: '0 20px', borderRadius: 12,
     // Selezionata → velatura corallo. Non ancora inviata o filtrata fuori →
     // niente fondo: la chip si appiattisce sulla pagina, ed è questo che la fa
     // sparire come oggetto, non l'opacità. Altrimenti la velatura della sua
@@ -377,19 +361,11 @@ function Kds2Chip({
     // della scala — quello su cui si sta lavorando è definito, quello che deve
     // ancora partire è provvisorio — ed è anche l'idioma che la vista Banco usa
     // già per «ordinato ma non ancora lanciato».
-    //
-    // Sull'etichetta il bordo pieno sparisce — è quello che diceva «premimi» —
-    // ma il tratteggio dell'attesa resta: lì non sta disegnando un bordo, sta
-    // dicendo «non è ancora partito», ed è l'unico posto in cui quella cosa si
-    // può leggere. Trasparente e non assente, così la riga non balla di due
-    // pixel quando la comanda parte.
     border: '2px '
       + (!selezionata && !presa ? 'dashed ' : 'solid ')
-      + (!presa && !selezionata ? (spenta ? K.BORDO_RIGA : K.BORDO_ATTESA)
-         : etichetta ? 'transparent'
-         : selezionata ? K.BRAND
+      + (selezionata ? K.BRAND
          : spenta ? K.BORDO_RIGA
-         : K.BORDO),
+         : presa ? K.BORDO : K.BORDO_ATTESA),
     fontFamily: 'inherit', cursor: onTap ? 'pointer' : 'default',
     whiteSpace: 'nowrap', flexShrink: 0,
   };
@@ -506,11 +482,8 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
   // che spariscano tutte. Si tocca quattro volte, e la cifra a sinistra
   // scende sotto gli occhi.
   // Esce sempre la porzione più vecchia (la prima): l'ordine è già quello.
-  // Le chip dei destinatari non sono più pulsanti e il tocco su «tav. 12» vale
-  // come il tocco sulla riga: si toglie una porzione, la più vecchia, non
-  // quella del tavolo che si è centrato col dito. È il punto della regola —
-  // un tocco, un piatto — e vale su tutta la riga, bordi compresi.
-  // La guardia resta per i pulsanti veri che possono capitare qui dentro.
+  // Il click delle chip e della CTA sale fin qui: se non lo si lascia passare,
+  // toccare «tav. 12» ne toglierebbe una anche a un altro tavolo.
   function tap(e) {
     if (e.target && e.target.closest && e.target.closest('button')) return;
     onBumpPorzione(riga.portions[0]);
@@ -677,10 +650,8 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
                   selezionata={suaSorgente}
                   tinta={cat.tinta}
                   spenta={!allergene && sorgenteSelezionata != null && !suaSorgente}
-                  // Niente onTap: qui dice per CHI è il piatto, non lo manda
-                  // via. A mandarlo via è il tocco sulla riga, uno per volta,
-                  // e nell'ordine in cui è stato ordinato.
-                  />
+                  onTap={() => onBumpPorzione(p)}
+                  titolo={'Fatta 1 · ' + nome + ' · ' + kds2Identita(p.source)}/>
               );
             })}
           </div>
