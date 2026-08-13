@@ -125,7 +125,9 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
           )}
           <div style={{flex:1, minWidth: 0}}>
             <div style={{fontSize: 14.5, color: PN.MUTED, fontWeight: 700, letterSpacing: 0.6, textTransform:'uppercase'}}>
-              {customizing ? 'Personalizza' : 'Aggiungi articolo'}
+              {/* Lo stesso nome del link nella card che apre questa finestra:
+                  un gesto, un nome. */}
+              {customizing ? 'Personalizza' : 'Crea ordine'}
             </div>
             <div style={{fontSize: 21, fontWeight: 800, color: PN.TEXT, marginTop: 1, letterSpacing:-0.3,
               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>

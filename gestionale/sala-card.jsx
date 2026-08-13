@@ -728,10 +728,10 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                 una seconda copia della stessa lista a un tocco dall'originale:
                 la card dice lo stato del TAVOLO, il dettaglio vive nel conto. */}
 
-            {/* Aggiungi articolo — link testuale: niente sfondo, si
+            {/* Crea ordine — link testuale: niente sfondo, si
                 ingrandisce in hover */}
             <button onClick={(e)=>{e.stopPropagation(); onAddArticle && onAddArticle(t);}}
-              title="Aggiungi articolo al conto" style={{
+              title="Crea un ordine sul conto" style={{
               display:'inline-flex', alignItems:'center', gap: 5, alignSelf:'center',
               background:'transparent', border:'none', padding:'5px 8px',
               fontSize: 15.5, fontWeight: 700, color:'#0F1115',
@@ -743,7 +743,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                 strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
-              Aggiungi articolo
+              Crea ordine
             </button>
 
             {/* Blocco conto a scontrino: etichette a sinistra, importi

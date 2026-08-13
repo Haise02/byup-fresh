@@ -47,14 +47,22 @@ function SalaModificaModal({ tavolo, onClose, onSposta, onUnisciConfirm, onDetac
       || (t.nextReservation?.name || '').toLowerCase().includes(q);
   };
 
+  // L'elenco parte da dove ha senso ATTERRARE: prima i liberi, poi quelli
+  // che si stanno per liberare, poi i prenotati; gli occupati in fondo —
+  // finirci sopra è l'eccezione, non la proposta. A parità di stato comanda
+  // il numero del tavolo.
+  const STATO_ORDINE = { libero: 0, dapulire: 1, prenotato: 2, occupato: 3 };
+  const perStato = (a, b) =>
+    (STATO_ORDINE[a.state] ?? 9) - (STATO_ORDINE[b.state] ?? 9) || a.id - b.id;
+
   // Candidati per operazione
-  const spostaCandidates = all.filter(t => t.id !== tavolo.id && !t.mergedWith && matchSearch(t));
+  const spostaCandidates = all.filter(t => t.id !== tavolo.id && !t.mergedWith && matchSearch(t)).sort(perStato);
   // Unisci: anche occupati o prenotati, come nel drag-merge sulla mappa
   // (il conto dei tavoli occupati confluisce nel conto unico del gruppo).
   const unisciCandidates = all.filter(t =>
     t.id !== tavolo.id
     && !t.mergedWith && !(t.mergedTables && t.mergedTables.length > 0)
-    && matchSearch(t));
+    && matchSearch(t)).sort(perStato);
   const dividiCandidates = merged.map(id => all.find(t => t.id === id)).filter(Boolean);
 
   const toggleSet = (setter) => (id) => setter(s => {
