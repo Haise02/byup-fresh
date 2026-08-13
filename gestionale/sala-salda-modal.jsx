@@ -375,6 +375,55 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   function cambiaQtyOrdine(id, q) {
     const o = allOrdini.find(x => x.id === id);
     if (!o) return;
+    const delta = Math.round(q) - o.qty;
+    if (delta === 0) return;
+
+    // UNO IN PIÙ su un piatto che la cucina ha già preso in carico — in
+    // preparazione, pronto o consegnato — non gonfia quella riga: quella
+    // racconta piatti già lavorati, e un «4» al posto del «3» direbbe alla
+    // cucina che il quarto è già in forno. Il piatto in più è una comanda
+    // NUOVA: nasce su una riga sua, subito sotto, in attesa — come quella che
+    // farebbe «Aggiungi articolo». Solo una riga ancora in coda («In attesa»)
+    // si può gonfiare davvero: là il numero è ancora una richiesta.
+    if (delta > 0 && o.stato !== 'ordinato') {
+      const gemella = allOrdini.find(x => x._extraDi === id);
+      if (gemella) {
+        // La riga in più esiste già: il secondo «+» va lì, non apre una
+        // terza riga — un piatto, una comanda nuova, una riga.
+        updateItem(gemella.id, { qty: gemella.qty + delta });
+        setSelectedItems(s => {
+          const ns = new Map(s);
+          ns.set(gemella.id, gemella.qty + delta - qtyPagata(gemella));
+          return ns;
+        });
+        return;
+      }
+      const nuova = {
+        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        nome: o.nome,
+        prezzo: o.prezzo,
+        qty: delta,
+        stato: 'ordinato',
+        minutiInPreparazione: 0,
+        minutiInCoda: 0,
+        // È la cassa che lo sta battendo, non l'ospite della riga di partenza:
+        // ereditare il guestId direbbe che l'ha ordinato lui — e se quell'
+        // ospite ha già pagato la sua parte, la riga nascerebbe «pagata».
+        origin: 'cameriere',
+        guestId: null,
+        _added: true,
+        _extraDi: id,
+      };
+      setEditedOrdini(arr => {
+        const i = arr.findIndex(x => x.id === id);
+        const copia = arr.slice();
+        copia.splice(i + 1, 0, nuova);
+        return copia;
+      });
+      setSelectedItems(s => { const ns = new Map(s); ns.set(nuova.id, delta); return ns; });
+      return;
+    }
+
     const minQ = Math.max(1, qtyPagata(o));
     const v = Math.max(minQ, Math.round(q));
     if (v === o.qty) return;
