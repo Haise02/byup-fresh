@@ -35,7 +35,10 @@ const PN_WIDGET_CATALOG = [
   // `pin: 'end'`: la tessera parte sempre dall'ultima colonna disponibile —
   // l'assistente vive a destra, e il resto del bento gli si impacchetta
   // intorno senza buchi (grid-auto-flow: dense).
-  { id: 'byuppino', name: 'Byuppino AI', desc: 'Chiedi in italiano: prenotazioni, menù, sala, impostazioni', component: 'WidgetByuppino', size: { w: 1, h: 6 }, pin: 'end', category: 'Utilità', icon: 'sparkles' },
+  // 1×4 e non di più: l'assistente chiude a filo con la pila che gli sta di
+  // fianco — Scontrino medio (1) + Incassi (1) + Stato tavoli (2) — invece di
+  // scendere da solo oltre il resto della prima fascia.
+  { id: 'byuppino', name: 'Byuppino AI', desc: 'Chiedi in italiano: prenotazioni, menù, sala, impostazioni', component: 'WidgetByuppino', size: { w: 1, h: 4 }, pin: 'end', category: 'Utilità', icon: 'sparkles' },
   { id: 'andamento-coperti', name: 'Coperti', desc: 'Coperti per periodo con sparkline', component: 'WidgetAndamentoCoperti', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'andamento-scontrino', name: 'Scontrino medio', desc: 'Scontrino medio per periodo con sparkline', component: 'WidgetAndamentoScontrino', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-bar' },
   { id: 'incassi', name: 'Incassi', desc: 'Incassi per periodo con sparkline', component: 'WidgetIncassi', size: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },

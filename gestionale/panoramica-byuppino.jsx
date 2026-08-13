@@ -449,10 +449,13 @@ function WidgetByuppino() {
       {/* ── Testata: il gradiente, sceso di tono pastello e salito di voce.
              Qui il testo è bianco, quindi le tinte sono piene — pesca che vira
              al corallo e poi alla lavanda — e le macchie animate ci girano
-             sopra come luci, non come colori. ── */}
+             sopra come luci, non come colori.
+             COMPATTA: nella tessera 1×4 ogni riga di testata è una riga tolta
+             alla conversazione, che è il lavoro vero del widget — la chat
+             deve cominciare più in alto possibile. ── */}
       <div style={{
         position: 'relative', flexShrink: 0, overflow: 'hidden',
-        padding: '20px 22px 46px',
+        padding: '14px 20px 38px',
         background: 'linear-gradient(140deg, #FF9159 0%, #FA4B6B 52%, #C05BD6 100%)',
       }}>
         {BYU_MACCHIE.map((m, i) => (
@@ -462,34 +465,34 @@ function WidgetByuppino() {
           }}/>
         ))}
 
-        {/* 118 e non 150: nella tessera da una colonna il titolo andava a
+        {/* 104 e non 150: nella tessera da una colonna il titolo andava a
             capo — «Byuppino / AI» — per lasciare posto a una mascotte che non
             ne chiede tanto. */}
-        <div style={{position: 'relative', zIndex: 1, paddingRight: 118}}>
+        <div style={{position: 'relative', zIndex: 1, paddingRight: 104}}>
           <div style={{
-            fontSize: 12, fontWeight: 800, letterSpacing: '0.14em',
+            fontSize: 11.5, fontWeight: 800, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)',
           }}>Assistente di sala</div>
           <div style={{
-            fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em',
-            color: '#fff', marginTop: 3, whiteSpace: 'nowrap',
+            fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em',
+            color: '#fff', marginTop: 2, whiteSpace: 'nowrap',
           }}>Byuppino AI</div>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 7,
-            marginTop: 11, padding: '6px 12px', borderRadius: 999,
+            marginTop: 8, padding: '5px 11px', borderRadius: 999,
             background: 'rgba(255,255,255,0.22)',
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.28)',
           }}>
             <span style={{width: 8, height: 8, borderRadius: '50%', background: '#7DF7B2'}}/>
-            <span style={{fontSize: 12.5, fontWeight: 700, color: '#fff'}}>Online · risponde in 1s</span>
+            <span style={{fontSize: 12, fontWeight: 700, color: '#fff'}}>Online · risponde in 1s</span>
           </div>
         </div>
 
         {/* La mascotte abita l'angolo destro della testata e sborda un filo
             sotto la cucitura: è lei a tenere insieme i due piani. */}
         <img src={BYU_MASCOTTE} alt="Byuppino" className="byu-galleggia" style={{
-          position: 'absolute', right: -4, bottom: -14, zIndex: 1,
-          height: 'calc(100% - 4px)', maxHeight: 168, width: 'auto',
+          position: 'absolute', right: -4, bottom: -12, zIndex: 1,
+          height: 'calc(100% - 4px)', maxHeight: 122, width: 'auto',
           objectFit: 'contain', objectPosition: 'right bottom',
           filter: 'drop-shadow(0 10px 18px rgba(120, 30, 60, 0.35))',
           animation: 'byu-galla 5s ease-in-out infinite',
@@ -501,8 +504,8 @@ function WidgetByuppino() {
       <div style={{
         flex: 1, minWidth: 0, minHeight: 0, position: 'relative', zIndex: 2,
         display: 'flex', flexDirection: 'column',
-        background: PN.WHITE, borderRadius: '24px 24px 0 0',
-        marginTop: -26, padding: '18px 16px 12px',
+        background: PN.WHITE, borderRadius: '22px 22px 0 0',
+        marginTop: -22, padding: '14px 16px 12px',
       }}>
         <div ref={filo} className="byu-thread pn-scroll" style={{
           flex: 1, minHeight: 0, overflowY: 'auto',

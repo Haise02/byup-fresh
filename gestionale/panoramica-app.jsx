@@ -3,30 +3,32 @@
 // Layout default — solo l'ORDINE dei widget: le misure sono fisse e vivono
 // nel catalogo (PN_WIDGET_CATALOG[].size), pensate per il dato che mostrano.
 // Il TETRIS È RISOLTO PER TRE COLONNE, che è la larghezza vera della griglia
-// dentro il gestionale (~1125 px). L'area totale dei widget fa 30 celle —
-// l'assistente è salito a 1×6 apposta, e ci guadagna fiato la chat — cioè un
-// rettangolo 3×10 esatto, zero buchi:
-//   righe 1-2:  prenotazioni 1×2 · cucina 1×2       · byuppino ↓
+// dentro il gestionale (~1125 px). L'assistente è 1×4: chiude a filo con la
+// pila che gli sta accanto — Scontrino medio, Incassi, Stato tavoli — che è
+// la prima fascia della dashboard, tutta alla stessa altezza:
+//   riga  1:    scontrino 2×1                       · byuppino ↓
+//   riga  2:    incassi 2×1                         · byuppino ↓
 //   righe 3-4:  tavoli-stato 2×2                    · byuppino ↓
-//   righe 5-6:  riempimento 2×2                     · byuppino ↓
-//   righe 7-8:  top-piatti 1×2  · coperti-sett 2×2 (fino al bordo destro)
-//   righe 9-10: recensioni 1×2 · coperti 2×1 / scontrino 2×1 impilati
+//   righe 5-6:  prenotazioni 1×2 · cucina 1×2 · top-piatti 1×2
+//   righe 7-8:  riempimento 2×2                     · recensioni 1×2
+//   righe 9-10: coperti-sett 2×2                    · (una tessera 1×2 d'aria)
 // L'ORDINE di questa lista è l'incastro: spostare una tessera sposta i vuoti —
 // il dense tappa quel che può, ma l'aritmetica delle aree la decide la lista.
-// A quattro colonne (schermi larghissimi) il rettangolo non può chiudere
-// (30 celle su 4 colonne): il dense compatta e restano due celle d'aria in
-// fondo, che è il meglio che la matematica conceda.
+// Le 28 celle non fanno un rettangolo 3×N: l'angolo in basso a destra resta
+// d'aria, e qualunque widget 1×2 aggiunto dal cassetto lo tappa. La card
+// «Coperti» (sparkline) è uscita dal default — i coperti li racconta già lo
+// spaccato settimanale — ma resta nel catalogo per chi la vuole.
 const DEFAULT_LAYOUT = [
   { id: 'byuppino' },
+  { id: 'andamento-scontrino' },
+  { id: 'incassi' },
+  { id: 'tavoli-stato' },
   { id: 'prenotazioni-oggi' },
   { id: 'cucina-live' },
-  { id: 'tavoli-stato' },
-  { id: 'riempimento' },
   { id: 'top-piatti' },
-  { id: 'coperti-sett' },
+  { id: 'riempimento' },
   { id: 'recensioni' },
-  { id: 'andamento-coperti' },
-  { id: 'andamento-scontrino' },
+  { id: 'coperti-sett' },
 ];
 
 // Gli id storici dei layout salvati migrano sui widget nuovi.
