@@ -63,10 +63,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
   // Aggiustamento totale
   const [adjust, setAdjust] = React.useState(null);
-  // adjust: null | { type:'sconto-eur', val } | { type:'sconto-pct', val } | { type:'arrotonda', val }
-  // Correzioni, tutte e tre: partono dal totale dei piatti scelti e lo
-  // ritoccano. Scriverne uno da zero non è una correzione — è un altro conto —
-  // e infatti «Custom» non è più qui.
+  // adjust: null | { type:'sconto-eur', val } | { type:'sconto-pct', val }
+  // Uno sconto, in euro o in percentuale: parte dal totale dei piatti scelti e
+  // lo abbassa. Scrivere un totale da zero non è una correzione — è un altro
+  // conto — e infatti «Custom» non è più qui; «Arrotonda» era uno sconto già
+  // deciso, l'unico che non si poteva dosare.
 
   const [pay, setPay] = React.useState({ contanti: '', carta: '' });
   const [method, setMethod] = React.useState('contanti'); // contanti | carta
@@ -206,11 +207,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     'sconto-pct': (sub, val) => {
       const delta = -(sub * (val || 0) / 100);
       return { total: sub + delta, delta, label: `Sconto ${val}% · −€${(-delta).toFixed(2)}` };
-    },
-    'arrotonda': (sub) => {
-      const total = Math.floor(sub);
-      const delta = total - sub;
-      return { total, delta, label: `Arrotondato · ${delta < 0 ? '' : '+'}€${delta.toFixed(2)}` };
     },
   };
   const adjustResult = adjust ? ADJUST_STRATEGIES[adjust.type]?.(subtotale, adjust.val) : null;
@@ -559,7 +555,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       display:'inline-flex', alignItems:'center', gap: 4,
                       textDecoration:'underline', textUnderlineOffset: 3,
                     }}>
-                      {adjust ? 'Modifica la correzione' : 'Sconto o correzione'}
+                      {/* Dice quello che c'è dietro, ora che dietro c'è una
+                          cosa sola: «correzione» prometteva anche di riscrivere
+                          il totale, e quel campo non esiste più. */}
+                      {adjust ? 'Modifica lo sconto' : 'Applica uno sconto'}
                       <span style={{
                         display:'inline-block',
                         transform: adjustOpen ? 'rotate(90deg)' : 'none',
@@ -1607,83 +1606,138 @@ function PagamentiConto({ pagamenti }) {
 // più nessuno. Chi paga metà e metà salda due volte lo stesso conto: il
 // parziale è già previsto, e il conto sa restare aperto per il resto.
 
-// ────────── PANNELLO AGGIUSTAMENTO ──────────
-function AdjustPanel({ subtotale, adjust, setAdjust}) {
-  const [mode, setMode] = React.useState(adjust?.type || 'sconto-eur');
-  const [val, setVal] = React.useState(adjust?.val || '');
+// ────────── PANNELLO SCONTO ──────────
+// UNA COSA SOLA, IN UNA FILA SOLA. Erano quattro linguette scure sopra a una
+// fila di pastiglie grigie e a un campo largo quanto il pannello: tre livelli
+// per scegliere un numero, con un nero che in questa finestra non appartiene a
+// nessun altro comando. Adesso è la stessa fila del «Contante ricevuto» —
+// quattro tagli e la casella per scriverne uno qualunque — e l'unità (€ o %)
+// è un interruttore da due caselle accanto all'etichetta, perché è l'unica
+// altra domanda: quanto, e in che unità.
+//
+// «Arrotonda» non c'è più: faceva una cosa sola e non chiedeva niente
+// («arrotonda per difetto a €46»), cioè era uno sconto già scritto — e per
+// giunta l'unico dei quattro che non si poteva dosare. Chi vuole togliere
+// quei centesimi scrive la cifra, che è il gesto che sta già facendo.
+function AdjustPanel({ subtotale, adjust, setAdjust }) {
+  const [mode, setMode] = React.useState(adjust?.type === 'sconto-pct' ? 'sconto-pct' : 'sconto-eur');
+  const [val, setVal] = React.useState(adjust?.val ?? '');
+  const pct = mode === 'sconto-pct';
 
   React.useEffect(() => {
-    if (adjust) { setMode(adjust.type); setVal(adjust.val || ''); }
+    if (adjust) { setMode(adjust.type); setVal(adjust.val ?? ''); }
   }, [adjust]);
 
+  // Zero, vuoto o una cifra che non è una cifra vogliono dire la stessa cosa:
+  // nessuno sconto. Meglio togliere la correzione che tenerne una da €0,00
+  // scritta nel riepilogo.
   function apply(t, v) {
-    if (!v && v !== 0) { setAdjust(null); return; }
-    setAdjust({ type: t, val: parseFloat(v) || 0 });
+    const n = parseFloat(String(v).replace(',', '.'));
+    if (!n || isNaN(n) || n <= 0) { setAdjust(null); return; }
+    setAdjust({ type: t, val: n });
   }
+  function cambiaUnita(t) {
+    // Dieci euro e dieci per cento non sono lo stesso sconto: cambiando unità
+    // il numero non si porta dietro, si riparte.
+    if (t === mode) return;
+    setMode(t); setVal(''); setAdjust(null);
+  }
+
+  const num = parseFloat(String(val).replace(',', '.')) || 0;
+  const scritto = num > 0;
 
   return (
     <div style={{
-      marginTop: 10, padding: 12, borderRadius: 10,
-      background:'#fff', border:'1px solid #E5E7EB',
-      boxShadow:'0 4px 12px rgba(15,17,21,0.06)',
+      padding: 12, borderRadius: 12,
+      background:'#FAFBFC', border:'1px solid #EDEFF2',
     }}>
-      <div style={{display:'flex', gap: 4, marginBottom: 10}}>
-        {[
-          { id:'sconto-eur', label:'Sconto €' },
-          { id:'sconto-pct', label:'Sconto %' },
-          { id:'arrotonda',  label:'Arrotonda' },
-        ].map(opt => (
-          <button key={opt.id} onClick={()=>{setMode(opt.id); setVal(''); }} style={{
-            flex:1, padding:'6px 4px', borderRadius: 6,
-            background: mode === opt.id ? '#0F1115' : '#F8F9FB',
-            color: mode === opt.id ? '#fff' : '#0F1115',
-            border:'none', fontSize: 15, fontWeight: 700,
-            cursor:'pointer', fontFamily:'inherit',
-          }}>{opt.label}</button>
-        ))}
+      <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
+        <span style={{fontSize: 15, fontWeight: 700, color:'#6B7280'}}>
+          Sconto sul totale
+        </span>
+        <span style={{flex:1}}/>
+        {/* Due caselle, non due linguette: la stessa forma delle pastiglie qui
+            sotto, perché scelgono nella stessa fila di pensiero. */}
+        <div style={{display:'inline-flex', gap: 4}}>
+          {[{id:'sconto-eur', label:'€'}, {id:'sconto-pct', label:'%'}].map(u => {
+            const sel = mode === u.id;
+            return (
+              <button key={u.id} onClick={() => cambiaUnita(u.id)} title={u.id === 'sconto-eur' ? 'Sconto in euro' : 'Sconto in percentuale'} style={{
+                width: 38, padding:'6px 0', borderRadius: 9,
+                background: sel ? SALDA_BRAND : '#fff',
+                color: sel ? '#fff' : '#6B7280',
+                border: `1px solid ${sel ? SALDA_BRAND : '#E5E7EB'}`,
+                fontSize: 16, fontWeight: 800, cursor:'pointer', fontFamily:'inherit',
+                transition:'background 0.14s, border-color 0.14s, color 0.14s',
+              }}>{u.label}</button>
+            );
+          })}
+        </div>
       </div>
 
-      {mode === 'sconto-eur' && (
-        <div>
-          <div style={{display:'flex', gap: 4, marginBottom: 8}}>
-            {[5, 10, 15, 20].map(v => (
-              <button key={v} onClick={()=>{setVal(v); apply('sconto-eur', v);}} style={chipQuick}>−€{v}</button>
-            ))}
-          </div>
-          <input type="number" value={val} onChange={e=>{setVal(e.target.value); apply('sconto-eur', e.target.value);}}
-            placeholder="Importo sconto in €"
-            style={inputV2}/>
-        </div>
-      )}
-
-      {mode === 'sconto-pct' && (
-        <div>
-          <div style={{display:'flex', gap: 4, marginBottom: 8}}>
-            {[5, 10, 15, 20].map(v => (
-              <button key={v} onClick={()=>{setVal(v); apply('sconto-pct', v);}} style={chipQuick}>−{v}%</button>
-            ))}
-          </div>
-          <input type="number" value={val} onChange={e=>{setVal(e.target.value); apply('sconto-pct', e.target.value);}}
-            placeholder="Percentuale sconto"
-            style={inputV2}/>
-        </div>
-      )}
-
-      {mode === 'arrotonda' && (
-        <button onClick={()=>setAdjust({ type:'arrotonda', val: 0 })} style={{
-          width:'100%', padding:'10px 12px', borderRadius: 8,
-          background:'#F1F2F5', color:'#0F1115',
-          border:'1px solid #E5E7EB', cursor:'pointer',
-          fontSize: 17, fontWeight: 700, fontFamily:'inherit',
+      {/* Quattro tagli e la casella libera, esattamente come il contante: chi
+          sta in cassa fa lo stesso gesto due volte nella stessa finestra, e
+          due gesti uguali non possono avere due forme diverse. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 6}}>
+        {[5, 10, 15, 20].map(v => {
+          const sel = num === v;
+          return (
+            <button key={v} onClick={() => { setVal(v); apply(mode, v); }} style={{
+              padding:'11px 4px', borderRadius: 10,
+              background: sel ? SALDA_BRAND : '#fff',
+              color: sel ? '#fff' : '#0F1115',
+              border: `1px solid ${sel ? SALDA_BRAND : '#E5E7EB'}`,
+              fontSize: 16, fontWeight: 700, cursor:'pointer',
+              fontFamily:'inherit', whiteSpace:'nowrap',
+              transition:'background 0.14s, border-color 0.14s, color 0.14s',
+            }}>{pct ? `−${v}%` : `−€${v}`}</button>
+          );
+        })}
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'center', gap: 3,
+          padding:'11px 4px', borderRadius: 10,
+          background: scritto && ![5,10,15,20].includes(num) ? SALDA_BRAND : '#fff',
+          border: `1px solid ${scritto && ![5,10,15,20].includes(num) ? SALDA_BRAND : '#E5E7EB'}`,
+          cursor:'text',
         }}>
-          Arrotonda per difetto a €{Math.floor(subtotale).toFixed(0)}
-        </button>
-      )}
+          {!pct && (
+            <span style={{
+              fontSize: 16, fontWeight: 700, flexShrink: 0,
+              color: scritto && ![5,10,15,20].includes(num) ? '#fff' : '#9CA3AF',
+            }}>€</span>
+          )}
+          <input
+            value={val}
+            onChange={e => { const v = e.target.value.replace(/[^0-9.,]/g, ''); setVal(v); apply(mode, v); }}
+            onFocus={e => e.currentTarget.select()}
+            inputMode="decimal"
+            placeholder="Altro"
+            aria-label={pct ? 'Percentuale di sconto' : 'Importo dello sconto in euro'}
+            style={{
+              width:'100%', minWidth: 0, border:'none', outline:'none',
+              background:'transparent', fontFamily:'inherit', textAlign:'center',
+              fontSize: 16, fontWeight: 700,
+              color: scritto && ![5,10,15,20].includes(num) ? '#fff' : '#0F1115',
+              padding: 0, fontVariantNumeric:'tabular-nums',
+            }}/>
+          {pct && (
+            <span style={{
+              fontSize: 16, fontWeight: 700, flexShrink: 0,
+              color: scritto && ![5,10,15,20].includes(num) ? '#fff' : '#9CA3AF',
+            }}>%</span>
+          )}
+        </div>
+      </div>
 
-      {/* Qui c'era «Custom»: un campo che sostituiva il totale in un pannello
-          che si chiama «Sconto o correzione». Non correggeva niente — riscriveva
-          la cifra — e lasciava spuntate le righe, così quei piatti risultavano
-          saldati da soldi che non li avevano pagati. */}
+      {/* Quanto vale davvero, in euro, mentre lo si sceglie: uno sconto in
+          percentuale è una promessa finché non si vede la cifra che toglie.
+          Il totale grande qui sopra la mostra già aggiornata — questa riga
+          serve al passaggio, non al risultato. */}
+      {pct && scritto && (
+        <div style={{fontSize: 15, color:'#6B7280', marginTop: 8}}>
+          {num}% di €{subtotale.toFixed(2)} · <b style={{color:'#0F1115'}}>−€{(subtotale * num / 100).toFixed(2)}</b>
+        </div>
+      )}
     </div>
   );
 }
@@ -1890,19 +1944,10 @@ const miniLink = {
   cursor:'pointer', fontFamily:'inherit',
   display:'inline-flex', alignItems:'center', gap: 4,
 };
-const chipQuick = {
-  flex: 1, padding:'5px 8px', borderRadius: 6,
-  background:'#F8F9FB', color:'#0F1115',
-  border:'1px solid #E5E7EB', cursor:'pointer',
-  fontSize: 15, fontWeight: 700, fontFamily:'inherit',
-};
-const inputV2 = {
-  padding:'8px 10px', border:'1px solid #E5E7EB',
-  borderRadius: 6, fontSize: 17,
-  fontFamily:'inherit', outline:'none',
-  width:'100%', background:'#fff',
-  boxSizing:'border-box',
-};
+// `chipQuick` e `inputV2` vivevano qui per il vecchio pannello degli
+// aggiustamenti: pastiglie grigie da 6 px di raggio e un campo da 17, misure
+// che non erano di nessun altro pezzo di questa finestra. Il pannello ora usa
+// la fila del contante, e con lui se ne vanno anche le sue due eccezioni.
 
 // ────────── ADD ARTICLE BAR ──────────
 function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
