@@ -219,6 +219,47 @@ function Kds2Bag({ size = 22 }) {
 function Kds2Scooter({ size = 22 }) {
   return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M14 6h3l3 8M8 17l3-8h6"/></svg>);
 }
+
+// ─── Piattaforme di delivery ──────────────────────────────────────────────
+// Uno scooter uguale per tutti diceva «arriva un rider» e si fermava lì. Ma i
+// rider non sono intercambiabili: hanno borse diverse, tempi diversi e code
+// diverse, e chi impiatta decide in che ordine mandare fuori anche in base a
+// chi sta per arrivare. La piattaforma va vista, non dedotta dal nome.
+//
+// Le sigle e i colori sono gli stessi di Impostazioni → Integrazioni: se un
+// giorno arrivano i loghi veri si sostituiscono lì e qui, e restano una cosa
+// sola. Un marchio disegnato a mano invece sarebbe un logo falso — meglio la
+// sigla, che è vera.
+const KDS2_PARTNER = {
+  justeat:   { sigla:'JE', nome:'Just Eat',  bg:'#FF8000', ink:'#FFFFFF' },
+  glovo:     { sigla:'G',  nome:'Glovo',     bg:'#FFC244', ink:'#0A1929' },
+  deliveroo: { sigla:'D',  nome:'Deliveroo', bg:'#00CCBC', ink:'#0A1929' },
+};
+
+function Kds2Partner({ id, size = 24, tono = 'normale' }) {
+  const p = KDS2_PARTNER[id];
+  if (!p) return null;
+  // tre toni per tre stati della chip che lo ospita:
+  //  · spento — fuori dal filtro o non ancora inviato: il marchio perde il
+  //    colore come tutto il resto, o resterebbe l'unica cosa accesa proprio
+  //    sulla riga che stiamo mettendo da parte;
+  //  · inverso — chip selezionata, che è corallo pieno: il marchio si mette su
+  //    fondo bianco, perché arancione su corallo sono due tinte che litigano
+  //    invece di distinguersi;
+  //  · normale — i suoi colori.
+  const fondo = tono === 'spento' ? K.BORDO_RIGA : tono === 'inverso' ? K.RIGA : p.bg;
+  const inchiostro = tono === 'spento' ? K.TESTO_OFF : tono === 'inverso' ? p.bg : p.ink;
+  return (
+    <span title={p.nome} aria-label={p.nome} style={{
+      width: size, height: size, borderRadius: 7, flexShrink: 0,
+      background: fondo, color: inchiostro,
+      display:'grid', placeItems:'center',
+      fontSize: p.sigla.length > 1 ? 11.5 : 14,
+      fontWeight: 800, letterSpacing: p.sigla.length > 1 ? -0.2 : 0,
+      lineHeight: 1, fontFamily:'inherit',
+    }}>{p.sigla}</span>
+  );
+}
 function Kds2Alert({ size = 26 }) {
   return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>);
 }
@@ -344,7 +385,14 @@ function Kds2Chip({
       {mostraQty && quantity > 1 && (
         <span style={Object.assign({}, TY.chipQty, {color: colTesto})}>{quantity}</span>
       )}
-      {Canale && <span style={{color: colQual, display: 'flex', flexShrink: 0}}><Canale size={24}/></span>}
+      {/* Se l'ordine arriva da una piattaforma, al posto dello scooter c'è la
+          piattaforma: dice la stessa cosa — è un delivery — e in più dice
+          quale, che è l'informazione che manca a chi impiatta. Lo scooter
+          resta per i delivery del locale, quelli senza intermediario. */}
+      {source.partner
+        ? <Kds2Partner id={source.partner} size={24}
+            tono={quieta ? 'spento' : selezionata ? 'inverso' : 'normale'}/>
+        : Canale && <span style={{color: colQual, display: 'flex', flexShrink: 0}}><Canale size={24}/></span>}
       <span style={Object.assign({}, TY.chipId, {color: colTesto})}>{identita}</span>
       {conTempo && (
         <span style={Object.assign({}, TY.chipOra, {color: colTempo})}>{tempo.testo}</span>

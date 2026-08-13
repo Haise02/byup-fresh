@@ -20,18 +20,25 @@ const KDS2_T0 = Date.now();
 const fa  = m => KDS2_T0 - m * 60000;   // firedAt — inviata m minuti fa
 const fra = m => KDS2_T0 + m * 60000;   // dueAt   — ritiro fra m minuti
 
-// Sorgenti aperte: cinque tavoli, tre asporti, un delivery.
+// Sorgenti aperte: cinque tavoli, due asporti, due delivery.
 // 'Marco' è un asporto battuto in cassa: nessun orario di ritiro, il cliente
 // aspetta al banco. Il suo tempo è un'attesa, non una scadenza.
+//
+// I due delivery arrivano da fuori, e `partner` dice da quale piattaforma:
+// per la cucina non è un dettaglio amministrativo — è chi verrà a ritirare,
+// con quale borsa e con quali tempi, e a un rider che sbaglia ordine si
+// rimedia solo prima che esca dalla porta. Gli id sono quelli di
+// impostazioni-integrazioni.jsx: la piattaforma si chiama con lo stesso nome
+// in tutto il prodotto.
 const T3  = { type: 'table',    label: 'T3'  };
 const T7  = { type: 'table',    label: 'T7'  };
 const T9  = { type: 'table',    label: 'T9'  };
 const T12 = { type: 'table',    label: 'T12' };
 const T15 = { type: 'table',    label: 'T15' };
 const ANNA  = { type: 'takeaway', label: 'Anna'  };
-const SARA  = { type: 'takeaway', label: 'Sara'  };
+const SARA  = { type: 'delivery', label: 'Sara',  partner: 'justeat' };
 const MARCO = { type: 'takeaway', label: 'Marco' };
-const LUCA  = { type: 'delivery', label: 'Luca'  };
+const LUCA  = { type: 'delivery', label: 'Luca',  partner: 'glovo'   };
 
 const KDS2_PORZIONI = [
   // ── Hamburger: tre porzioni standard da tre sorgenti diverse, dentro la
