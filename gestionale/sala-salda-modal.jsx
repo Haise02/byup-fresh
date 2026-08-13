@@ -215,11 +215,14 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // «deselezionati», sono fuori dal conto — se contassero, il riepilogo
   // direbbe «4 di 6» a chi non ha toccato niente.
   // Da che schermo è arrivato il piatto lo dice l'OSPITE che l'ha ordinato,
-  // non la riga: `origin` racconta chi l'ha battuto, l'ospite da dove. Senza un
-  // ospite dietro è roba del tavolo, e finisce in «Altro».
+  // non la riga: `origin` racconta chi l'ha battuto, l'ospite da dove.
+  // Due sole sezioni: Byup App e Altro. La webapp è anonima — chi inquadra il
+  // QR non si registra, non paga, non ha un nome da chiamare — e una sezione
+  // per gente che non si può nominare non divide niente: sta in «Altro»
+  // insieme al cameriere e alla cassa, senza etichette sulla riga.
   const canaleDi = (o) => {
     const g = o.guestId ? guestById[o.guestId] : null;
-    return g && g.source === 'byup' ? 'byup' : g && g.source === 'guest' ? 'guest' : 'altro';
+    return g && g.source === 'byup' ? 'byup' : 'altro';
   };
   const gruppiCanale = SALDA_CANALI
     .map(c => Object.assign({}, c, { items: allOrdini.filter(o => canaleDi(o) === c.id) }))
@@ -388,12 +391,17 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     setSelectedItems(s => { const ns = new Map(s); ns.delete(id); return ns; });
   }
   function addItemFromMenu(menuItem) {
+    // Il piatto aggiunto da qui è un ORDINE NUOVO: nasce su una riga sua —
+    // mai dentro una riga esistente, qualunque stato abbia — e in attesa,
+    // perché per la cucina è una comanda appena inviata, non un piatto già
+    // fatto. Nascesse «pronto», il pass mostrerebbe un piatto che nessuno ha
+    // mai cucinato.
     const newItem = {
       id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       nome: menuItem.nome,
       prezzo: menuItem.prezzo,
       qty: 1,
-      stato: 'pronto',
+      stato: 'ordinato',
       minutiInPreparazione: 0,
       minutiInCoda: 0,
       origin: 'cameriere',
@@ -775,6 +783,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     display:'flex', alignItems:'center', gap: 8, flexShrink: 0,
                   }}>
                     <span style={{...SALDA_LABEL, marginBottom: 0}}>Cosa saldi</span>
+                    {/* Il nome della colonna dei numeri a destra: senza,
+                        quelle cifre si leggerebbero come prezzi di listino —
+                        e invece sono quello che ogni riga deve ANCORA. */}
+                    <span style={{...SALDA_LABEL, marginBottom: 0, marginLeft: 10}}>· Saldo per riga</span>
                     <span style={{flex:1}}/>
                     {(() => {
                       const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
@@ -817,6 +829,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             onSetQty={(q)=>setItemQty(o.id, q)}
                             guest={o.guestId ? guestById[o.guestId] : null}
                             pagato={!!isPagato(o)}
+                            // Zero anche per le quote pagate PER NOME (l'app
+                            // non spegne le quantità, spegne l'ospite): senza
+                            // questo, una pizza già pagata direbbe €9.00 di
+                            // saldo a chi sta per incassarla di nuovo.
+                            saldoRiga={isPagato(o) ? 0 : r2(qtyAperta(o) * o.prezzo)}
                             selezione/>
                         ))}
                       </div>
@@ -1325,15 +1342,15 @@ function ListaPerCanale({ gruppi, selezione = true, selectedItems, toggleItem, s
   );
 }
 
-// I tre canali da cui può arrivare un piatto, nell'ordine in cui si leggono.
-// «Altro» tiene insieme quello che non è nato da un ospite: la comanda del
-// cameriere, il piatto aggiunto qui in cassa, l'acqua per il tavolo. Sono cose
-// diverse fra loro ma hanno in comune la sola cosa che conta qui — non c'è un
-// telefono a cui chiedere conto.
+// I due canali da cui può arrivare un piatto. «Altro» tiene insieme tutto
+// quello che non è nato da un utente dell'app: la comanda del cameriere, il
+// piatto di cassa, e anche la webapp — chi inquadra il QR è anonimo, e una
+// sezione per gente senza nome non divide niente. Qui c'era anche «Byup
+// Webapp» come terza voce, con la sua icona: tre titoli per due distinzioni
+// vere.
 const SALDA_CANALI = [
-  { id:'byup',  label:'Byup App',    bg:'#FFE0DD', ink:'#E04347', icona: <IconTelefono/> },
-  { id:'guest', label:'Byup Webapp', bg:'#DDE7FF', ink:'#3B5BDB', icona: <IconSchermo/> },
-  { id:'altro', label:'Altro',       bg:'#F1F2F5', ink:'#6B7280', icona: <IconPersone/> },
+  { id:'byup',  label:'Byup App', bg:'#FFE0DD', ink:'#E04347', icona: <IconTelefono/> },
+  { id:'altro', label:'Altro',    bg:'#F1F2F5', ink:'#6B7280', icona: <IconPersone/> },
 ];
 
 // A che punto è il piatto, con le parole e i colori della card in sala: chi
@@ -1373,7 +1390,11 @@ function StatoPiatto({ stato, spento }) {
 // `selezione` decide che riga è: nel passo del pagamento la card si spunta e
 // porta il − e il +; nel conto è una riga di documento — si legge, si corregge
 // (le correzioni arrivano con onUpdate/onDelete), non si sceglie.
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, selezione = true, onChangeQty, onUpdate, onDelete }) {
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, selezione = true, saldoRiga, onChangeQty, onUpdate, onDelete }) {
+  // La webapp è anonima: «Guest 4» non è un nome, è un segnaposto, e una
+  // pastiglia che dice un segnaposto non dice niente. Sulla riga compare solo
+  // chi un nome ce l'ha — gli ospiti dell'app.
+  const ospite = guest && guest.source !== 'guest' ? guest : null;
   const allSel = selectedQty >= o.qty;
   const noneSel = selectedQty === 0;
   const partialSel = !allSel && !noneSel;
@@ -1549,7 +1570,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
 
       {/* Di chi è il piatto, e se quella parte è già stata pagata: una
           pastiglia sola invece del nome in corsivo più il marchio staccato. */}
-      {guest && (
+      {ospite && (
         <span style={{
           display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
           padding:'5px 10px', borderRadius: 999,
@@ -1561,7 +1582,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
               «Guest» non distingue più due persone diverse, ed è esattamente
               il lavoro che quella pastiglia deve fare lì. Fuori resta il nome
               di battesimo, che accanto al canale basta e occupa meno. */}
-          {canaleNoto ? guest.name : guest.name.split(' ')[0]}
+          {canaleNoto ? ospite.name : ospite.name.split(' ')[0]}
           {/* Dentro il suo gruppo il canale è già scritto in testata: la
               pastiglia si accorcia al nome. Resta invece «Pagato», che non è
               una provenienza ma uno stato — e quello nessuna testata lo dice. */}
@@ -1575,7 +1596,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           )}
         </span>
       )}
-      {!guest && o.origin === 'byup' && o.guestId && !canaleNoto && (
+      {!ospite && o.origin === 'byup' && o.guestId && !canaleNoto && (
         <span style={{
           fontSize: 12.5, fontWeight: 800, color: SALDA_BRAND,
           background:'#FFE9E9', padding:'3px 8px', borderRadius: 999,
@@ -1616,6 +1637,24 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         >
           €{((!selezione || noneSel) ? o.qty * o.prezzo : selectedQty * o.prezzo).toFixed(2)}
         </button>
+      ) : saldoRiga != null ? (
+        // SALDO — quanto di questa riga resta da incassare. Non è il prezzo
+        // pieno (che sta nel conto) né il valore selezionato (che sta
+        // nell'hero): è la parte ancora aperta, e quando è zero non dice
+        // «€0.00» — dice il fatto, «Saldato».
+        saldoRiga <= 0.004 ? (
+          <span style={{
+            fontSize: 14.5, fontWeight: 800, color:'#16A34A',
+            letterSpacing: 0.3, textTransform:'uppercase',
+            minWidth: 66, textAlign:'right', padding:'2px 4px', flexShrink: 0,
+          }}>Saldato</span>
+        ) : (
+          <span style={{
+            fontSize: 17, fontWeight: 700, color:'#0F1115',
+            minWidth: 66, textAlign:'right', fontVariantNumeric:'tabular-nums',
+            padding:'2px 4px', flexShrink: 0,
+          }}>€{saldoRiga.toFixed(2)}</span>
+        )
       ) : (
         <span style={{
           fontSize: 17, fontWeight: 700, color: pagato ? '#9CA3AF' : '#0F1115',
@@ -2450,11 +2489,8 @@ function IconTelefono() { return (
     <rect x="6" y="2.5" width="12" height="19" rx="2.6"/><path d="M10.5 18.5h3"/>
   </svg>
 ); }
-function IconSchermo() { return (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M9 20.5h6M12 16.5v4"/>
-  </svg>
-); }
+// Qui c'era IconSchermo, lo schermo della webapp: se n'è andata con la sua
+// sezione — la webapp confluisce in «Altro», senza icona e senza nome.
 function IconPersone() { return (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="9" cy="8" r="3.2"/><path d="M2.5 19.5c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M16.5 5.4a3.2 3.2 0 0 1 0 5.2M18 14.4c2.1.6 3.5 2.3 3.5 5.1"/>
