@@ -93,6 +93,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // e ora sono due schermate. La lista prende tutta la larghezza, come le righe
   // del monitor di cucina: una cosa per riga e niente da cercare di lato.
   const [passo, setPasso] = React.useState('conto');   // conto | pagamento
+  // Storno di un incasso già preso: { p, fase, inviato } | null.
+  // Le fasi sono le stesse dell'incasso al contrario — si chiede, si aspetta
+  // (solo se i soldi sono passati da una carta), è fatto.
+  const [storno, setStorno] = React.useState(null);
   const [toast, setToast] = React.useState(null);
 
   // Conto messo in coda di incasso su Byup Staff. La voce vive sul TAVOLO,
@@ -108,6 +112,20 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     const id = setInterval(() => setPayTick(t => t + 1), 400);
     return () => clearInterval(id);
   }, [inCoda?.inviato]);
+
+  // Storno su carta: la richiesta parte su Byup Staff e i soldi li rimanda
+  // Stripe, quindi qui si aspetta l'esito come per l'incasso. Il contante
+  // invece esce dal cassetto e basta, e non passa mai da qui.
+  // Sta insieme agli altri hook, sopra alla riga che chiude la finestra: un
+  // effetto dichiarato più in basso esisterebbe solo a finestra aperta, e
+  // React conta gli hook, non le intenzioni.
+  React.useEffect(() => {
+    if (!open || !storno || storno.fase !== 'attesa') return;
+    const id = setInterval(() => {
+      if (Date.now() - storno.inviato >= PAY_FINE) applicaStorno(storno.p);
+    }, 400);
+    return () => clearInterval(id);
+  }, [open, storno]);
 
   // Chi chiude il pagamento è la Sala, non questa finestra: qui si guarda
   // solo se il conto è ancora in coda. Se la finestra tenesse un suo timer,
@@ -139,6 +157,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       // Si riapre sempre dal conto: il passo dov'era rimasta la volta scorsa
       // non è dove si vuole ricominciare — prima si guarda cosa c'è sul tavolo.
       setPasso('conto');
+      setStorno(null);
       setAdjust(null);
       setPay({ contanti:'', carta:'' });
       // Riaprendo un conto con un pagamento ancora in volo si torna dov'era:
@@ -337,6 +356,31 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     return pagamento;
   }
 
+  // ── Storno di un incasso già preso ──────────────────────────────────────
+  // Il tocco sulla freccia NON storna: apre la domanda. Sono soldi, e il gesto
+  // per sbaglio su una riga alta venti pixel è troppo facile.
+  function stornaPagamento(p) { setStorno({ p, fase:'conferma' }); }
+
+  // Toglie l'incasso dal conto. Le righe che copriva tornano da pagare — le
+  // legge `isPagato` dai pagamenti, quindi basta togliere la voce — e il
+  // tavolo torna aperto per quella cifra: la Sala lo deve sapere subito, o la
+  // card continuerebbe a dire «saldato» su un conto che ha ripreso a dovere.
+  function applicaStorno(p) {
+    const rimasti = (tavolo.pagamenti || []).filter(x => x.id !== p.id);
+    tavolo.pagamenti = rimasti;
+    tavolo.contoSaldato = false;
+    setPayTick(t => t + 1);
+    setStorno({ p, fase:'fatto' });
+    const apertoOra = allOrdini.reduce((s, o) => {
+      const qPag = rimasti.reduce((n, x) => n + ((x.items || []).find(r => r.id === o.id)?.qty || 0), 0);
+      const nomi = new Set(rimasti.map(x => String(x.chi || '').trim().toLowerCase()));
+      const g = o.guestId ? guestById[o.guestId] : null;
+      if (g && nomi.has(String(g.name || '').trim().toLowerCase())) return s;
+      return s + Math.max(0, o.qty - qPag) * o.prezzo;
+    }, 0);
+    onConfirm && onConfirm({ saldato: false, residuo: Math.round(apertoOra * 100) / 100, storno: p });
+  }
+
   // Il conto entra nella coda di incasso, visibile a tutti i Byup Staff
   // collegati. Scrivere la voce sul tavolo (e non nello stato della
   // finestra) è ciò che le permette di sopravvivere alla chiusura: la cassa
@@ -392,14 +436,28 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       <div style={{
         position:'absolute', top:'50%', left:'50%',
         transform:'translate(-50%, -50%)',
-        width: (paying || done) ? 420 : 1080,
+        width: (paying || done || storno) ? 420 : 1080,
         maxWidth:'93%', height:'auto', maxHeight:'92%',
         background:'#fff', borderRadius: 20,
         boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
         zIndex: 61, display:'flex', flexDirection:'column', overflow:'hidden',
         transition:'width 220ms cubic-bezier(0.4, 0, 0.2, 1)',
       }}>
-        {done ? (
+        {/* Lo storno prende tutta la finestra, come l'attesa e come la
+            conferma: invece di spegnere lista, metodi e pulsante uno per uno,
+            non c'è proprio nient'altro sullo schermo. Chi sta annullando dei
+            soldi non deve poter fare altro. */}
+        {storno ? (
+          <SaldaStorno
+            p={storno.p}
+            fase={storno.fase}
+            residuoDopo={residuoDopo}
+            onConferma={() => {
+              if (storno.p.method === 'contanti') applicaStorno(storno.p);
+              else setStorno({ ...storno, fase:'attesa', inviato: Date.now() });
+            }}
+            onChiudi={() => setStorno(null)}/>
+        ) : done ? (
           <SaldaDoneV2 tavolo={tavolo} esito={esito || {
             // Incassato da un telefono mentre la finestra era in attesa: qui
             // il resto non esiste, la carta ha pagato l'importo esatto.
@@ -716,7 +774,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       quindi la cifra qui sopra è già al netto: non c'è più
                       niente da mettere in relazione a mente. */}
                   <div style={{marginTop: 18}}>
-                    <PagamentiConto pagamenti={tavolo.pagamenti} />
+                    <PagamentiConto pagamenti={tavolo.pagamenti} onStorna={stornaPagamento} />
                   </div>
 
                   {/* COME PAGA — due tessere parlanti, la stessa misura e la
@@ -1583,7 +1641,7 @@ const PAG_META = {
   byup:     { label:'Byup app', ink:'#7C3AED', bg:'#EDE9FE' },
 };
 
-function PagamentiConto({ pagamenti }) {
+function PagamentiConto({ pagamenti, onStorna }) {
   // Chiuso di suo: quanto è già arrivato è un numero solo, e alla cassa serve
   // quello. Chi ha pagato e a che ora è la risposta a una domanda che si fa
   // di rado — quando un cliente dice «ma io ho già pagato» — e allora si apre.
@@ -1654,8 +1712,33 @@ function PagamentiConto({ pagamenti }) {
                 }}>{[p.chi, p.ora].filter(Boolean).join(' · ')}</span>
                 <span style={{
                   fontSize: 16, fontWeight: 700, color:'#0F1115',
-                  fontVariantNumeric:'tabular-nums',
+                  fontVariantNumeric:'tabular-nums', minWidth: 62, textAlign:'right',
                 }}>€{p.amount.toFixed(2)}</span>
+                {/* Lo storno sta accanto al pagamento che storna, che è l'unico
+                    posto dove si sa QUALE annullare: un conto pagato in tre
+                    riprese ha tre righe, e un pulsante fuori da qui dovrebbe
+                    prima chiedere quale. La freccia torna indietro: il denaro
+                    rifà la strada al contrario. */}
+                {onStorna && (
+                  <button
+                    onClick={() => onStorna(p)}
+                    title={p.method === 'contanti'
+                      ? `Annulla €${p.amount.toFixed(2)} in contanti`
+                      : `Storna €${p.amount.toFixed(2)}: parte la richiesta su Byup Staff`}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#B91C1C'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9CA3AF'; }}
+                    style={{
+                      width: 30, height: 30, padding: 0, borderRadius: 8, flexShrink: 0,
+                      background:'transparent', border:'none', color:'#9CA3AF',
+                      cursor:'pointer', fontFamily:'inherit',
+                      display:'grid', placeItems:'center',
+                      transition:'background 150ms ease-out, color 150ms ease-out',
+                    }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 8h11a5 5 0 0 1 0 10h-6"/><path d="M7 4 3 8l4 4"/>
+                    </svg>
+                  </button>
+                )}
               </div>
             );
           })}
@@ -1668,6 +1751,109 @@ function PagamentiConto({ pagamenti }) {
       </div>
       )}
     </>
+  );
+}
+
+// ────────── STORNO ──────────
+// Il contrario dell'incasso, e si legge come lui al contrario: si chiede, si
+// aspetta se i soldi devono rifare la strada su una carta, è fatto. Tre
+// schermate no: una sola che cambia poche parole, perché è sempre lo stesso
+// fatto in tre momenti.
+//
+// Il tasto che conferma è rosso e non corallo: qui non si sta scegliendo,
+// si sta togliendo — ed è l'unico posto di questa finestra dove un tocco
+// fa uscire dei soldi invece di farli entrare.
+function SaldaStorno({ p, fase, residuoDopo, onConferma, onChiudi }) {
+  const carta = p.method !== 'contanti';
+  const cerchio = (bg, fg, children) => (
+    <div style={{
+      width: 64, height: 64, borderRadius:'50%', marginBottom: 16,
+      background: bg, color: fg, display:'grid', placeItems:'center',
+    }}>{children}</div>
+  );
+
+  return (
+    <div style={{padding:'36px 28px 26px', textAlign:'center', display:'flex', flexDirection:'column', alignItems:'center'}}>
+      {fase === 'fatto'
+        ? cerchio('#DCFCE7', SALDA_VERDE,
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>)
+        : cerchio(PAY_BG, PAY_INK,
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8h11a5 5 0 0 1 0 10h-6"/><path d="M7 4 3 8l4 4"/></svg>)}
+
+      <div style={{
+        fontSize: 24, fontWeight: 800, color: SALDA_INK, letterSpacing:-0.4,
+        display:'flex', alignItems:'center', gap: 10,
+      }}>
+        {fase === 'attesa' && (
+          <span aria-hidden="true" style={{
+            width: 11, height: 11, borderRadius: 999, flexShrink: 0,
+            background: PAY_INK, animation:'saldaPayPulse 1.6s ease-in-out infinite',
+          }}/>
+        )}
+        {fase === 'conferma' ? (carta ? 'Stornare sulla carta?' : 'Annullare questo incasso?')
+          : fase === 'attesa' ? 'Storno in corso'
+          : 'Incasso stornato'}
+      </div>
+
+      <div style={{
+        fontSize: 34, fontWeight: 800, color: SALDA_INK, marginTop: 6,
+        letterSpacing:-0.8, fontVariantNumeric:'tabular-nums',
+      }}>€{p.amount.toFixed(2)}</div>
+
+      {/* Una riga sola, e dice il gesto che tocca a chi legge — non lo stato
+          interno del sistema. Alla fine dice l'altra metà della cosa: il conto
+          è tornato aperto, e di quanto. */}
+      <div style={{fontSize: 16, color: SALDA_MUTED, marginTop: 6, maxWidth: 380, lineHeight: 1.45}}>
+        {fase === 'conferma'
+          ? (carta
+            ? 'La richiesta parte su Byup Staff: l’importo torna sulla carta del cliente.'
+            : 'Esce dal conto: ridai i contanti dal cassetto.')
+          : fase === 'attesa'
+            ? 'Richiesta inviata'
+            : (carta ? 'Restituiti sulla carta del cliente.' : `Ridai €${p.amount.toFixed(2)} dal cassetto.`)}
+      </div>
+
+      {fase === 'conferma' ? (
+        <div style={{display:'flex', gap: 10, marginTop: 24, width:'100%'}}>
+          <button onClick={onChiudi} style={{
+            flex: 1, padding:'13px 18px', borderRadius: 14,
+            background:'transparent', color: SALDA_INK,
+            border:`1px solid ${SALDA_BORDO}`,
+            fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+          }}>Lascia com'è</button>
+          <button onClick={onConferma} style={{
+            flex: 1, padding:'13px 18px', borderRadius: 14,
+            background:'#DC2626', color:'#fff', border:'none',
+            fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+          }}>{carta ? 'Storna' : 'Annulla l’incasso'}</button>
+        </div>
+      ) : fase === 'attesa' ? (
+        <button onClick={onChiudi} style={{
+          marginTop: 24, width:'100%', padding:'13px 18px', borderRadius: 14,
+          background:'transparent', color: SALDA_MUTED,
+          border:`1px solid ${SALDA_BORDO}`,
+          fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        }}>Torna al conto</button>
+      ) : (
+        <React.Fragment>
+          {residuoDopo > 0.004 && (
+            <div style={{
+              marginTop: 18, width:'100%', padding:'12px 16px', borderRadius: 12,
+              background: PAY_BG, color: PAY_INK,
+              display:'flex', alignItems:'center', justifyContent:'center', gap: 10,
+              fontSize: 16, fontWeight: 600,
+            }}>
+              <span>Il conto è tornato aperto</span>
+            </div>
+          )}
+          <button onClick={onChiudi} style={{
+            marginTop: 18, width:'100%', padding:'13px 18px', borderRadius: 14,
+            background: SALDA_INK, color:'#fff', border:'none',
+            fontSize: 16.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+          }}>Torna al conto</button>
+        </React.Fragment>
+      )}
+    </div>
   );
 }
 
