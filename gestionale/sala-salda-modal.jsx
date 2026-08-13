@@ -1008,11 +1008,44 @@ const SALDA_CANALI = [
   { id:'altro', label:'Altro',       bg:'#F1F2F5', ink:'#6B7280', icona: <IconPersone/> },
 ];
 
+// A che punto è il piatto, con le parole e i colori della card in sala: chi
+// legge il conto e chi guarda i tavoli devono vedere la stessa cosa chiamata
+// nello stesso modo, o «Pronto» qui e «Servito» là diventano due stati diversi
+// nella testa di chi lavora. Quattro tinte distinte perché la domanda alla
+// cassa è «cosa manca ancora?» e la risposta si prende con la coda dell'occhio.
+const SALDA_STATO_META = {
+  ordinato:   { label:'In attesa',       ink:'#6B7280', bg:'#F3F4F6' },
+  in_cottura: { label:'In preparazione', ink:'#A16207', bg:'#FEF3C7' },
+  pronto:     { label:'Pronto',          ink:'#5B21B6', bg:'#EDE9FE' },
+  consegnato: { label:'Consegnato',      ink:'#065F46', bg:'#D1FAE5' },
+};
+
+function StatoPiatto({ stato, spento }) {
+  const m = SALDA_STATO_META[stato];
+  // Uno stato che non conosciamo non si inventa: meglio niente che una
+  // pastiglia che dice una cosa a caso sopra un conto da incassare.
+  if (!m) return null;
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
+      padding:'4px 10px', borderRadius: 999,
+      background: spento ? '#F1F3F5' : m.bg,
+      color: spento ? '#9CA3AF' : m.ink,
+      fontSize: 14, fontWeight: 700, whiteSpace:'nowrap',
+    }}>
+      <span style={{
+        width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+        background: 'currentColor', opacity: spento ? 0.5 : 0.85,
+      }}/>
+      {m.label}
+    </span>
+  );
+}
+
 function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, onUpdate, onDelete }) {
   const allSel = selectedQty >= o.qty;
   const noneSel = selectedQty === 0;
   const partialSel = !allSel && !noneSel;
-  const showStepper = o.qty > 1;
   const stop = (e) => e.stopPropagation();
   const [editingName, setEditingName] = React.useState(false);
   const [editingPrice, setEditingPrice] = React.useState(false);
@@ -1067,27 +1100,38 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         {partialSel && <span style={{width: 10, height: 2.5, background:'#fff', borderRadius: 2}}/>}
       </span>
 
-      {showStepper && !noneSel && !pagato ? (
+      {/* IL − E IL + SU OGNI RIGA, anche da uno solo e anche quando la riga
+          non è presa: il numero dice quanti se ne stanno saldando, e per
+          cambiarlo si preme dov'è — sempre nello stesso posto, riga per riga.
+          Prima comparivano solo sulle righe da più di uno e solo se selezionate:
+          due condizioni da ricordare per un comando che deve essere lì e basta.
+          Su un piatto già pagato restano fuori: non c'è niente da contare. */}
+      {pagato ? (
+        <span style={{
+          fontSize: 16, fontWeight: 800, color:'#9CA3AF',
+          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
+          padding:'6px 0', minWidth: 40, textAlign:'center',
+          fontVariantNumeric:'tabular-nums', flexShrink: 0,
+        }}>{o.qty}</span>
+      ) : (
         <div onClick={stop} style={{
           display:'inline-flex', alignItems:'center',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
           overflow:'hidden', flexShrink: 0,
         }}>
-          <button onClick={() => onSetQty(selectedQty - 1)} style={qtyBtn} title="Togli uno">−</button>
+          <button onClick={() => onSetQty(selectedQty - 1)} disabled={selectedQty <= 0}
+            style={{...qtyBtn, opacity: selectedQty <= 0 ? 0.3 : 1}} title="Togli uno">−</button>
           <span style={{
-            fontSize: 16, fontWeight: 800, color:'#0F1115',
+            // Zero non è un numero come gli altri: è «questa riga non la stai
+            // saldando», e si legge spento — accanto alla quantità ordinata,
+            // che resta lì a dire di quante si sta parlando.
+            fontSize: 16, fontWeight: 800,
+            color: selectedQty === 0 ? '#C7CBD1' : '#0F1115',
             minWidth: 30, textAlign:'center', padding:'0 2px',
             whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
-          }}>{selectedQty}</span>
+          }}>{selectedQty}{o.qty > 1 && <span style={{fontWeight: 600, color:'#C7CBD1'}}>/{o.qty}</span>}</span>
           <button onClick={() => onSetQty(selectedQty + 1)} disabled={selectedQty >= o.qty} style={{...qtyBtn, opacity: selectedQty >= o.qty ? 0.3 : 1}} title="Aggiungi uno">+</button>
         </div>
-      ) : (
-        <span style={{
-          fontSize: 16, fontWeight: 800, color: pagato ? '#9CA3AF' : '#0F1115',
-          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
-          padding:'6px 0', minWidth: 40, textAlign:'center',
-          fontVariantNumeric:'tabular-nums', flexShrink: 0,
-        }}>{o.qty}</span>
       )}
 
       {/* NOME — display o editing inline */}
@@ -1129,6 +1173,12 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           </span>
         )}
       </span>
+
+      {/* A che punto è il piatto. Alla cassa serve prima di chiudere: un conto
+          con una bistecca ancora in cottura non si salda e basta — o si aspetta,
+          o si toglie. Finora quell'informazione stava solo sulla card in sala,
+          e per averla bisognava chiudere la finestra del conto. */}
+      <StatoPiatto stato={o.stato} spento={pagato}/>
 
       {/* Di chi è il piatto, e se quella parte è già stata pagata: una
           pastiglia sola invece del nome in corsivo più il marchio staccato. */}

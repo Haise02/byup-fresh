@@ -52,10 +52,14 @@ function readNote(note) {
   return { tipo, testo, ospite };
 }
 
+// «Pronto» non è più «Servito»: da quando il monitor di cucina sa dire che un
+// piatto è uscito, i due momenti sono distinti — sul pass, e al tavolo. Erano
+// la stessa parola perché mancava il secondo.
 const ORDINE_STATO_META = {
-  ordinato:   { color:'#6B7280', bg:'#F3F4F6', label:'In attesa',         icon:'M12 7v5l3 2' },
+  ordinato:   { color:'#6B7280', bg:'#F3F4F6', label:'In attesa',       icon:'M12 7v5l3 2' },
   in_cottura: { color:'#A16207', bg:'#FEF3C7', label:'In preparazione', icon:'M12 3 v3 M9 6 c0 2 -3 2 -3 5 c0 4 6 4 6 0 c0 -3 -3 -3 -3 -5 M3 14 H21' },
-  pronto:     { color:'#065F46', bg:'#D1FAE5', label:'Servito',         icon:'M5 13 L9 17 L19 7' },
+  pronto:     { color:'#5B21B6', bg:'#EDE9FE', label:'Pronto',          icon:'M5 3h14l-1.2 7.2a6 6 0 0 1-11.6 0Z M9 21h6 M12 15v6' },
+  consegnato: { color:'#065F46', bg:'#D1FAE5', label:'Consegnato',      icon:'M5 13 L9 17 L19 7' },
 };
 const ORDINE_CODA_WARN_META = { color:'#92400E', bg:'#FEF3C7' };
 
@@ -950,8 +954,9 @@ function OrdiniList({ ordini }) {
 
   const groupedList = Object.values(grouped);
 
-  // Ordina: pronto → in_cottura → ordinato
-  const order = { pronto: 0, in_cottura: 1, ordinato: 2 };
+  // Ordina per quanto chiede attenzione: pronto (va portato ORA) → in cottura
+  // → in coda → consegnato, che non chiede più niente e sta in fondo.
+  const order = { pronto: 0, in_cottura: 1, ordinato: 2, consegnato: 3 };
   const sorted = groupedList.sort((a, b) => order[a.stato] - order[b.stato]);
 
   const totQty = ordini.reduce((s, o) => s + (o.qty || 0), 0);
@@ -979,12 +984,16 @@ function OrdiniList({ ordini }) {
         </svg>
       </button>
       {open && sorted.map((o, idx) => {
-        const s = ORDINE_STATO_META[o.stato];
+        // Uno stato che il vocabolario non conosce non deve far cadere la
+        // card: si legge come «in attesa», che è il caso più prudente.
+        const s = ORDINE_STATO_META[o.stato] || ORDINE_STATO_META.ordinato;
         const isAlert = o.alert === 'allergia';
         // Pill state — label + minuti per stato
         let pillColor = s.color, pillBg = s.bg, pillLabel = s.label, tipText = '';
-        if (o.stato === 'pronto') {
-          tipText = 'Servito';
+        if (o.stato === 'consegnato') {
+          tipText = 'Portato al tavolo';
+        } else if (o.stato === 'pronto') {
+          tipText = 'Sul pass, da portare';
         } else if (o.stato === 'in_cottura') {
           pillLabel = o.minutiInPreparazione > 0 ? `In preparazione · ${o.minutiInPreparazione}min` : 'In preparazione';
           tipText = o.minutiInPreparazione > 0 ? `In cucina da ${o.minutiInPreparazione} minuti` : 'In cucina';

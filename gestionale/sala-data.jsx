@@ -1,6 +1,10 @@
 // Sala — dati estesi con modello ordini realistico
-// Stati articolo: 'ordinato' (in coda cucina) | 'in_cottura' (preso in carico) | 'pronto' (sul pass)
-// Niente 'consegnato' — il sistema non lo sa.
+// Stati articolo: 'ordinato' (in coda cucina) | 'in_cottura' (preso in carico)
+//   | 'pronto' (sul pass, ancora da portare) | 'consegnato' (è al tavolo)
+// «Consegnato» il sistema lo sa da quando il monitor di cucina lo dice: un
+// tocco sul piatto lo manda fuori, e quel tocco è il momento in cui esce dalla
+// cucina. Prima qui c'era scritto che non poteva saperlo, ed era vero finché
+// il KDS non aveva un gesto per dirlo.
 // Origin: 'cameriere' | 'byup' (per distinguere chi ha mandato l'ordine)
 
 const SALA_TAVOLI = [
@@ -12,11 +16,11 @@ const SALA_TAVOLI = [
       { id:'g4', name:'Guest 4',      source:'guest' },
     ],
     ordini: [
-      { id:'o1', nome:'Tagliere misto',     qty:1, prezzo:14, stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
+      { id:'o1', nome:'Tagliere misto',     qty:1, prezzo:14, stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
       { id:'o2', nome:'Tagliatelle al ragù',qty:1, prezzo:13, stato:'in_cottura', minutiInPreparazione:8, minutiInCoda:0,  origin:'byup',     guestId:'g1' },
       { id:'o2b',nome:'Tagliatelle al ragù',qty:1, prezzo:13, stato:'in_cottura', minutiInPreparazione:8, minutiInCoda:0,  origin:'byup',     guestId:'g2' },
       { id:'o3', nome:'Bistecca fiorentina',qty:1, prezzo:38, stato:'in_cottura', minutiInPreparazione:14,minutiInCoda:0,  origin:'cameriere',guestId:null },
-      { id:'o4', nome:'Acqua naturale',     qty:2, prezzo:3,  stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere',guestId:null },
+      { id:'o4', nome:'Acqua naturale',     qty:2, prezzo:3,  stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere',guestId:null },
     ],
     minutiSenzaOrdine: 8, timeSinceLastOrder: 8, note: null,
     nextReservation: null, minutiAllaPrenotazione: null },
@@ -40,7 +44,7 @@ const SALA_TAVOLI = [
       // dichiara `byupWeb: 1` e finora nessun piatto era suo, così la webapp
       // guest non compariva da nessuna parte — né nel conto, né nei gruppi
       // per canale del salda conto.
-      { id:'o5',  nome:'Bruschette miste',    qty:2, prezzo:8,  stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'guest',    guestId:'g3d' },
+      { id:'o5',  nome:'Bruschette miste',    qty:2, prezzo:8,  stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'guest',    guestId:'g3d' },
       { id:'o6a', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3a' },
       { id:'o6b', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3b' },
       { id:'o6c', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3c' },
@@ -64,8 +68,8 @@ const SALA_TAVOLI = [
 
   { id: 5,  state: 'occupato', posti: 2, coperti: 2, byup: 0, byupWeb: 0, party: null, sittingMin: 65, conto: 56.00, contoSaldato: true,
     ordini: [
-      { id:'o8',  nome:'Antipasto della casa',qty:2, prezzo:10, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
-      { id:'o9',  nome:'Risotto ai funghi',   qty:2, prezzo:14, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
+      { id:'o8',  nome:'Antipasto della casa',qty:2, prezzo:10, stato:'consegnato', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
+      { id:'o9',  nome:'Risotto ai funghi',   qty:2, prezzo:14, stato:'consegnato', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
       { id:'o10', nome:'Tiramisù',            qty:2, prezzo:6,  stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
     ],
     minutiSenzaOrdine: 18, timeSinceLastOrder: 18, note: null,
@@ -83,13 +87,13 @@ const SALA_TAVOLI = [
       { id:'g7d', name:'Chiara R.', source:'byup' },
     ],
     ordini: [
-      { id:'o11', nome:'Crostini misti',     qty:4, prezzo:7,  stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
+      { id:'o11', nome:'Crostini misti',     qty:4, prezzo:7,  stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
       { id:'o12a',nome:'Pappardelle cinghiale',qty:2, prezzo:14, stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7a' },
       { id:'o12b',nome:'Pappardelle cinghiale',qty:1, prezzo:14, stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7b' },
       { id:'o12c',nome:'Pappardelle cinghiale',qty:2, prezzo:14, stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7c' },
       { id:'o13', nome:'Tagliata di manzo',  qty:3, prezzo:22, stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:18, origin:'cameriere', guestId:null },
       { id:'o14', nome:'Pasta s/ glutine',   qty:1, prezzo:14, stato:'in_cottura', minutiInPreparazione:7, minutiInCoda:0,  origin:'byup',     guestId:'g7d', alert:'allergia' },
-      { id:'o15', nome:'Vino rosso',         qty:1, prezzo:24, stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere', guestId:null },
+      { id:'o15', nome:'Vino rosso',         qty:1, prezzo:24, stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere', guestId:null },
     ],
     // Conto lungo pagato a pezzi: due quote dall'app, una in contanti al
     // banco. Serve a vedere i tre canali insieme nella finestra di saldo.
@@ -326,7 +330,7 @@ function getOccupiedAlert(t) {
     return null;
   }
   // Articoli ancora in cottura/coda e tempo dall'ultimo ordine elevato
-  const hasPending = t.ordini.some(o => o.stato !== 'pronto');
+  const hasPending = t.ordini.some(o => o.stato !== 'pronto' && o.stato !== 'consegnato');
   if (hasPending && t.timeSinceLastOrder != null) {
     const sev = getOrdineSeverity(t.timeSinceLastOrder);
     if (sev === 'warning') return { tone:'warn', label:`Ordine in attesa da ${t.timeSinceLastOrder}'` };
