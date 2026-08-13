@@ -689,12 +689,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       fontFamily:'inherit', fontSize: 15.5, fontWeight: 700,
                       color: SALDA_BRAND, cursor:'pointer',
                       display:'inline-flex', alignItems:'center', gap: 4,
-                      textDecoration:'underline', textUnderlineOffset: 3,
                     }}>
                       {/* Dice quello che c'è dietro, ora che dietro c'è una
                           cosa sola: «correzione» prometteva anche di riscrivere
-                          il totale, e quel campo non esiste più. */}
-                      {adjust ? 'Modifica lo sconto' : 'Applica uno sconto'}
+                          il totale, e quel campo non esiste più.
+                          La sottolineatura sta sulle PAROLE e non sul pulsante:
+                          il «›» è una freccia, non testo, e una freccia con la
+                          riga sotto sembra un refuso. */}
+                      <span style={{textDecoration:'underline', textUnderlineOffset: 3}}>
+                        {adjust ? 'Modifica lo sconto' : 'Applica uno sconto'}
+                      </span>
                       <span style={{
                         display:'inline-block',
                         transform: adjustOpen ? 'rotate(90deg)' : 'none',

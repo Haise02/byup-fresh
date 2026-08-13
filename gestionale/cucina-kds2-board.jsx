@@ -219,6 +219,12 @@ function Kds2Bag({ size = 22 }) {
 function Kds2Scooter({ size = 22 }) {
   return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M14 6h3l3 8M8 17l3-8h6"/></svg>);
 }
+// Lo scontrino: un ordine di cassa non ha un posto in sala né un nome da
+// chiamare, ha un numero stampato — e l'icona mostra il pezzo di carta su cui
+// sta scritto.
+function Kds2Scontrino({ size = 22 }) {
+  return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 2h14v20l-2.3-1.8L14.4 22l-2.4-1.8L9.6 22l-2.3-1.8L5 22Z"/><path d="M9 7h6M9 11h6"/></svg>);
+}
 
 // ─── Piattaforme di delivery ──────────────────────────────────────────────
 // Uno scooter uguale per tutti diceva «arriva un rider» e si fermava lì. Ma i
@@ -319,18 +325,19 @@ function Kds2Espandi({ size = 24, chiudi = false }) {
 //
 // ORDINE FISSO, sempre: QUANTITÀ → IDENTITÀ → TEMPO.
 //  · quantità — cifra nuda in testa, il corpo più grande della chip. Omessa
-//    quando è 1: «1 tav. 3» è rumore, e in un elenco di chip una cifra in testa
+//    quando è 1: «1 Tavolo 3» è rumore, e in un elenco di chip una cifra in testa
 //    diventa il segnale che lì ce n'è più di uno da fare. Niente prefisso '×':
 //    davanti al numero non moltiplica niente, e toglierlo lascia parlare la
 //    cifra, che è la cosa che si esegue.
-//  · identità — «tav. »+numero per i tavoli; per asporto e delivery il nome,
+//  · identità — «Tavolo »+numero per i tavoli, «Ordine »+numero per la cassa
+//    (con lo scontrino davanti); per asporto e delivery il nome,
 //    preceduto dall'icona di canale (borsa / scooter).
 //  · tempo — minuti con apice per i tavoli, ORARIO DI RITIRO per asporto e
 //    delivery. Sono due grandezze diverse e non si annotano: a distinguerle
 //    bastano l'icona di canale e i due punti dell'orario.
 //
 // Quantità e identità non si confondono nemmeno quando sono due numeri vicini
-// («4 tav. 3»): il peso le separa, e «tav.» sta in mezzo.
+// («4 Tavolo 3»): il peso le separa, e «Tavolo» sta in mezzo.
 //
 // DUE GUSCI, UNA GRAMMATICA. In testata la chip è un interruttore — «fammi
 // vedere il tavolo 9» — e ha il peso di un pulsante: 64 px di bersaglio per un
@@ -371,7 +378,8 @@ function Kds2Chip({
     : kds2ColoreTono(tempo.tono);
 
   const Canale = source.type === 'takeaway' ? Kds2Bag
-    : source.type === 'delivery' ? Kds2Scooter : null;
+    : source.type === 'delivery' ? Kds2Scooter
+    : source.type === 'order' ? Kds2Scontrino : null;
 
   // Il TEMPO su una chip di tavolo è un doppione: i minuti d'attesa stanno già
   // in fondo alla riga, grandi, con la loro etichetta — e ripetuti dentro ogni
@@ -554,7 +562,7 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
   // che spariscano tutte. Si tocca quattro volte, e la cifra a sinistra
   // scende sotto gli occhi.
   // Esce sempre la porzione più vecchia (la prima): l'ordine è già quello.
-  // Le chip dei destinatari non sono più pulsanti e il tocco su «tav. 12» vale
+  // Le chip dei destinatari non sono più pulsanti e il tocco su «Tavolo 12» vale
   // come il tocco sulla riga: si toglie una porzione, la più vecchia, non
   // quella del tavolo che si è centrato col dito. È il punto della regola —
   // un tocco, un piatto — e vale su tutta la riga, bordi compresi.
@@ -917,7 +925,7 @@ function Kds2Rail({ children }) {
 // leggersi come un elenco unico di stati fra cui uno solo è acceso.
 // `totale`: quanti piatti ci sono in tutto in preparazione. Le altre chip
 // portano la quantità della loro sorgente, questa porta la somma — così la fila
-// si legge da sinistra come «in tutto ventiquattro, di cui otto al tav. 3».
+// si legge da sinistra come «in tutto ventiquattro, di cui otto al Tavolo 3».
 function Kds2Tutti({ selezionata, totale, onTap }) {
   return (
     <button type="button" data-kds2-interattivo="" onClick={onTap}
@@ -1159,7 +1167,7 @@ function Kds2Header({
 // dieci secondi di finestra, una funzione che non si annuncia non esiste.
 //
 // UNA SCHEDA PER PIATTO, tutte uguali. C'era una CTA scura che nominava il
-// proprio bersaglio — «Annulla · 1 Hamburger · tav. 12» — e dietro le voci
+// proprio bersaglio — «Annulla · 1 Hamburger · Tavolo 12» — e dietro le voci
 // precedenti come pastiglie secondarie: una sola cosa per volta poteva essere
 // «il prossimo tocco ovvio». Ora le schede si equivalgono, perché ognuna porta
 // il proprio tempo e il tempo è la ragione per cui la si tocca: la più urgente

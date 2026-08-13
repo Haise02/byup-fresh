@@ -54,8 +54,9 @@ const SOGLIA_RITIRO_MIN = 5;
 /**
  * @typedef {{ type: 'add'|'remove', label: string }} Kds2Modifier
  *
- * @typedef {{ type: 'table'|'takeaway'|'delivery', label: string }} Kds2Source
- *   label: 'T12' per i tavoli, il nome di battesimo per asporto e delivery.
+ * @typedef {{ type: 'table'|'takeaway'|'delivery'|'order', label: string }} Kds2Source
+ *   label: 'T12' per i tavoli, il nome di battesimo per asporto e delivery,
+ *   il numero d'ordine ('042') per gli ordini di cassa senza tavolo.
  *
  * @typedef {Object} Kds2Portion
  * @property {string}   id
@@ -97,16 +98,28 @@ function kds2SorgenteId(source) {
 }
 
 // Primo posto della grammatica delle chip: IDENTITÀ.
-// Per i tavoli si normalizza a «tav. » + numero, qualunque cosa arrivi dal dato
-// ('12', 'Tav 12', 'T12'): la grammatica non può dipendere da come batte il
-// cameriere. Per asporto e delivery vale il nome, e il primo basta — in cucina
-// si chiama «Anna», non «Anna Bianchi».
-const KDS2_PREFISSO_TAVOLO = 'tav. ';
+// Per i tavoli si normalizza a «Tavolo » + numero, qualunque cosa arrivi dal
+// dato ('12', 'Tav 12', 'T12'): la grammatica non può dipendere da come batte
+// il cameriere. Per parola intera e non «tav.»: è il nome con cui il tavolo si
+// chiama in tutto il resto del prodotto — la Sala, il conto, la conferma — e
+// la cucina non ha una lingua sua. Un'abbreviazione si decifra; un nome si
+// legge.
+// Un ordine SENZA tavolo battuto in cassa si chiama «Ordine » + numero: non
+// c'è un posto in sala da nominare né un cliente da chiamare per nome, c'è il
+// codice sullo scontrino — ed è quello che il banco griderà al ritiro.
+// Per asporto e delivery vale il nome, e il primo basta — in cucina si chiama
+// «Anna», non «Anna Bianchi».
+const KDS2_PREFISSO_TAVOLO = 'Tavolo ';
+const KDS2_PREFISSO_ORDINE = 'Ordine ';
 
 function kds2Identita(source) {
   if (source.type === 'table') {
     const num = String(source.label).replace(/\D+/g, '');
     return KDS2_PREFISSO_TAVOLO + (num || String(source.label));
+  }
+  if (source.type === 'order') {
+    const num = String(source.label).replace(/\D+/g, '');
+    return KDS2_PREFISSO_ORDINE + (num || String(source.label));
   }
   return String(source.label).trim().split(/\s+/)[0];
 }

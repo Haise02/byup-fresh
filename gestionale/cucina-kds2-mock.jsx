@@ -39,6 +39,10 @@ const ANNA  = { type: 'takeaway', label: 'Anna'  };
 const SARA  = { type: 'delivery', label: 'Sara',  partner: 'justeat' };
 const MARCO = { type: 'takeaway', label: 'Marco' };
 const LUCA  = { type: 'delivery', label: 'Luca',  partner: 'glovo'   };
+// Ordini di cassa: niente tavolo, niente nome — il numero dello scontrino.
+// Come Marco, il loro tempo è un'attesa: il cliente sta lì davanti.
+const ORD42 = { type: 'order', label: '042' };
+const ORD57 = { type: 'order', label: '057' };
 
 const KDS2_PORZIONI = [
   // ── Hamburger: tre porzioni standard da tre sorgenti diverse, dentro la
@@ -102,6 +106,17 @@ const KDS2_PORZIONI = [
   { id: 'p18', dishId: 'wings', dishName: 'Alette di pollo', category: 'Antipasti',
     quantity: 1, source: LUCA, firedAt: fa(4), dueAt: fra(22), modifiers: [],
     allergen: { label: 'senza sesamo' }, status: 'incoming' },
+
+  // ── Ordini di cassa: la chip dice «Ordine 042», con lo scontrino davanti.
+  //    Le patatine di ORD42 sono standard come quelle dei tavoli: finiscono
+  //    nella STESSA riga, a dimostrare che l'aggregazione non guarda da dove
+  //    arriva la porzione ma solo cosa c'è da cuocere.
+  { id: 'p19', dishId: 'fries', dishName: 'Patatine fritte', category: 'Antipasti',
+    quantity: 2, source: ORD42, firedAt: fa(6), modifiers: [], status: 'active' },
+  { id: 'p20', dishId: 'cheese', dishName: 'Cheeseburger', category: 'Principali',
+    quantity: 1, source: ORD57, firedAt: fa(3), modifiers: [
+      { type: 'add', label: 'doppio cheddar' },
+    ], status: 'active' },
 ];
 
 // ─── Coda dimostrativa ────────────────────────────────────────────────────

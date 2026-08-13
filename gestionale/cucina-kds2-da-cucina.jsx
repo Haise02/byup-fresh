@@ -22,15 +22,18 @@ function _kds2Quando(hhmm) {
 }
 
 const _KDS2_TIPO_SORGENTE = {
-  sala: 'table', asporto: 'takeaway', delivery: 'delivery', banco: 'takeaway',
+  sala: 'table', asporto: 'takeaway', delivery: 'delivery', banco: 'order',
 };
 
 // L'etichetta della sorgente sta in una chip che si legge a tre metri: «T12»,
 // «Anna». Il cognome non serve a nessuno in cucina e ruberebbe la riga.
+// Il banco non ha né tavolo né cliente: ha il numero d'ordine, che è quello
+// che si grida al ritiro — prima qui c'era la parola «Banco», che con due
+// ordini di cassa aperti li incollava in una sorgente sola.
 function _kds2Sorgente(t) {
   const type = _KDS2_TIPO_SORGENTE[t.kind] || 'table';
   if (t.kind === 'sala')  return { type, label: 'T' + t.table };
-  if (t.kind === 'banco') return { type, label: 'Banco' };
+  if (t.kind === 'banco') return { type, label: String(t.orderN || '').replace(/\D+/g, '') || 'Banco' };
   return { type, label: String(t.customer || 'Ordine').split(' ')[0] };
 }
 
