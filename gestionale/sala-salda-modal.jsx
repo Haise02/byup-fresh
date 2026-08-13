@@ -552,8 +552,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
               display:'flex', alignItems:'flex-start', gap: 12, flexShrink: 0,
             }}>
               <div style={{flex:1, minWidth: 0}}>
+                {/* Il primo passo si chiama CONTO: lì non si incassa, si
+                    guarda cosa c'è sul tavolo e semmai lo si corregge.
+                    «Salda conto» è il nome del secondo, dove i soldi passano
+                    di mano davvero. */}
                 <div style={{fontSize: 14, color:'#6B7280', fontWeight:800, letterSpacing:0.8, textTransform:'uppercase'}}>
-                  Salda conto
+                  {passo === 'conto' ? 'Conto' : 'Salda conto'}
                 </div>
                 <div style={{fontSize: 27, fontWeight: 800, color:'#0F1115', marginTop: 2, letterSpacing:-0.6, display:'flex', alignItems:'baseline', gap: 10, flexWrap:'wrap'}}>
                   <span>Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}</span>
@@ -604,168 +608,96 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
             {/* Body 2 colonne */}
             <div style={{flex:1, display:'flex', minHeight: 0}}>
               {passo === 'conto' ? (
+              // ── PRIMO PASSO: IL CONTO ─────────────────────────────────────
+              // Qui non si sceglie cosa pagare: si legge cosa c'è sul tavolo —
+              // ogni piatto con il suo stato — e semmai lo si corregge:
+              // aggiungere un articolo, ritoccare un nome o un prezzo, togliere
+              // una riga battuta per sbaglio. La selezione sta nel passo dopo,
+              // accanto ai soldi che muove: qui una spunta non avrebbe ancora
+              // un significato, e infatti non c'è.
               <div style={{
                 flex: 1, display:'flex', flexDirection:'column', minWidth: 0,
               }}>
-                {/* Niente più «Tutti articoli / Per ordinante»: due viste della
-                    stessa lista, e quella per ordinante serviva a dividere il
-                    conto — cosa che si fa già spuntando le righe, senza dover
-                    prima cambiare modo di guardarle. */}
-                <div style={{
-                  padding:'0 24px 12px',
-                  display:'flex', alignItems:'center', gap: 8, flexShrink: 0,
-                }}>
-                  <span style={{flex:1}}/>
-                  {(() => {
-                    const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
-                    const someSel = !allSel && selectedItems.size > 0;
-                    return (
-                      <button
-                        onClick={allSel ? selectNone : selectAll}
-                        style={{...miniLink, gap: 6, color: '#374151'}}
-                      >
-                        <span style={{
-                          width: 20, height: 20, borderRadius: 6, flexShrink: 0,
-                          border: `1.5px solid ${allSel || someSel ? SALDA_BRAND : '#D1D5DB'}`,
-                          background: allSel ? SALDA_BRAND : '#fff',
-                          display: 'grid', placeItems: 'center', position: 'relative',
-                        }}>
-                          {allSel && (
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                          )}
-                          {someSel && (
-                            <span style={{width: 9, height: 2.5, background: SALDA_BRAND, borderRadius: 2, display:'block'}}/>
-                          )}
-                        </span>
-                        Seleziona tutti
-                      </button>
-                    );
-                  })()}
-                </div>
-
                 {/* Add-article search bar */}
                 <AddArticleBar
                   query={addQuery} setQuery={setAddQuery}
                   open={addOpen} setOpen={setAddOpen}
                   onPick={addItemFromMenu}/>
 
-                {/* Lista articoli */}
+                {/* Lista articoli — solo lettura e correzione */}
                 <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'10px 24px 14px'}}>
                   <ListaPerCanale gruppi={gruppiCanale}
+                    selezione={false}
                     selectedItems={selectedItems} toggleItem={toggleItem} setItemQty={setItemQty}
                     guestById={guestById} isPagato={isPagato}
                     selezionaCanale={selezionaCanale}
                     onUpdate={updateItem} onDelete={deleteItem}/>
                 </div>
 
-                {/* Piede del conto: quanto fa, come si corregge, e la strada
+                {/* Piede del conto: quanto deve ancora il tavolo, e la strada
                     per andare avanti. Una sola cosa da premere. */}
                 <div style={{
                   flexShrink: 0, borderTop:'1px solid #EDEFF2', background:'#fff',
                   padding:'14px 24px 18px',
                 }}>
-                  {/* Il «Subtotale · 0 di 4 · €0.00» non c'è più: era una riga
-                      che ripeteva in piccolo il numero scritto grande qui sotto,
-                      e che a selezione vuota diceva zero due volte. Quello che
-                      la selezione parziale deve dire — «di quanto?» — sta ora
-                      accanto al totale, dove si legge senza spostare gli occhi. */}
-                  {adjust && (
-                    <div style={{display:'flex', flexDirection:'column', gap: 5, marginBottom: 10}}>
-                      <ReceiptRow
-                        label={adjustLabel.split(' · ')[0]}
-                        value={(adjustDelta >= 0 ? '+' : '−') + '€' + Math.abs(adjustDelta).toFixed(2)}
-                        tone={adjustDelta < 0 ? 'success' : 'danger'}
-                        onRemove={() => setAdjust(null)}/>
-                    </div>
-                  )}
-
                   <div style={{display:'flex', alignItems:'baseline', gap: 14, marginBottom: 12}}>
                     <span style={{
                       fontSize: 15, fontWeight: 800, color:'#6B7280',
                       letterSpacing: 0.6, textTransform:'uppercase',
-                    }}>Totale</span>
-                    <button onClick={() => setAdjustOpen(o => !o)} style={{
-                      background:'transparent', border:'none', padding: 0,
-                      fontFamily:'inherit', fontSize: 15.5, fontWeight: 700,
-                      color: SALDA_BRAND, cursor:'pointer',
-                      display:'inline-flex', alignItems:'center', gap: 4,
-                    }}>
-                      {/* Dice quello che c'è dietro, ora che dietro c'è una
-                          cosa sola: «correzione» prometteva anche di riscrivere
-                          il totale, e quel campo non esiste più.
-                          La sottolineatura sta sulle PAROLE e non sul pulsante:
-                          il «›» è una freccia, non testo, e una freccia con la
-                          riga sotto sembra un refuso. */}
-                      <span style={{textDecoration:'underline', textUnderlineOffset: 3}}>
-                        {adjust ? 'Modifica lo sconto' : 'Applica uno sconto'}
-                      </span>
-                      <span style={{
-                        display:'inline-block',
-                        transform: adjustOpen ? 'rotate(90deg)' : 'none',
-                        transition:'transform 0.15s', fontSize: 15,
-                      }}>›</span>
-                    </button>
+                    }}>Da incassare</span>
                     <span style={{flex:1}}/>
-                    {/* Grande quello che stai incassando, piccolo quanto fa
-                        tutto il conto: due numeri diversi esistono solo quando
-                        stai prendendo una parte, e allora il secondo è la
-                        domanda che viene subito dopo — «e il resto?». Se il
-                        conto è preso tutto sono lo stesso numero, e uno dei due
-                        sparisce invece di ripetersi. */}
-                    {parzialeSelezione && (
+                    {/* Se c'è già un acconto, il valore dei piatti e quello che
+                        il tavolo deve sono due numeri diversi: si vede da qui,
+                        non si scopre nel passo dopo. */}
+                    {accontiTotale > 0.004 && (
                       <span style={{
-                        fontSize: 17, fontWeight: 700, color:'#9CA3AF',
-                        letterSpacing:-0.2, fontVariantNumeric:'tabular-nums',
-                      }}>di €{apertoTotale.toFixed(2)}</span>
+                        fontSize: 15, fontWeight: 600, color:'#9CA3AF',
+                        fontVariantNumeric:'tabular-nums',
+                      }}>già in acconto €{accontiTotale.toFixed(2)}</span>
                     )}
                     <span style={{
                       fontSize: 42, fontWeight: 800, color:'#0F1115',
                       letterSpacing:-1.4, lineHeight: 1,
                       fontVariantNumeric:'tabular-nums',
-                    }}>€{total.toFixed(2)}</span>
+                    }}>€{residuoTavolo.toFixed(2)}</span>
                   </div>
-
-                  {adjustOpen && (
-                    <div style={{marginBottom: 12}}>
-                      <AdjustPanel subtotale={subtotale} adjust={adjust} setAdjust={setAdjust}/>
-                    </div>
-                  )}
 
                   {/* La stessa CTA delle card «Da saldare» in Vendita diretta:
                       è lo stesso gesto — il conto è pronto, si va a incassare —
                       e due gesti uguali non possono avere due pulsanti diversi. */}
                   <button
-                    onClick={() => { if (total > 0) setPasso('pagamento'); }}
-                    disabled={total <= 0}
-                    onMouseEnter={e => { if (total <= 0) return; e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)'; }}
+                    onClick={() => { if (residuoTavolo > 0.004) setPasso('pagamento'); }}
+                    disabled={residuoTavolo <= 0.004}
+                    onMouseEnter={e => { if (residuoTavolo <= 0.004) return; e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)'; }}
                     onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
-                    onMouseDown={e => { if (total > 0) e.currentTarget.style.transform = 'scale(0.99)'; }}
-                    onMouseUp={e => { if (total > 0) e.currentTarget.style.transform = 'scale(1.01)'; }}
+                    onMouseDown={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(0.99)'; }}
+                    onMouseUp={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(1.01)'; }}
                     style={{
                       width:'100%', padding:'16px 16px', borderRadius: 999,
-                      background: total > 0 ? SALDA_SUNSET_BG : '#EDEFF2',
-                      color: total > 0 ? SALDA_SUNSET_TEXT : '#9CA3AF',
+                      background: residuoTavolo > 0.004 ? SALDA_SUNSET_BG : '#EDEFF2',
+                      color: residuoTavolo > 0.004 ? SALDA_SUNSET_TEXT : '#9CA3AF',
                       border:'1px solid transparent',
-                      boxShadow: total > 0 ? SALDA_SUNSET_SHADOW : 'none',
+                      boxShadow: residuoTavolo > 0.004 ? SALDA_SUNSET_SHADOW : 'none',
                       fontSize: 18, fontWeight: 700, letterSpacing:-0.1,
-                      cursor: total > 0 ? 'pointer' : 'not-allowed', fontFamily:'inherit',
+                      cursor: residuoTavolo > 0.004 ? 'pointer' : 'not-allowed', fontFamily:'inherit',
                       transition:'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
                     }}>
-                    {total > 0 ? 'Procedi al pagamento' : 'Scegli cosa saldare'}
+                    {residuoTavolo > 0.004 ? 'Procedi al pagamento' : 'Niente da incassare'}
                   </button>
                 </div>
               </div>
               ) : (
 
-              // Secondo passo: l'incasso. La finestra resta larga — la testata
-              // con pre-conto e fattura ha bisogno del suo spazio — ma quello
-              // che si legge qui sta in una colonna sola, al centro: una
-              // domanda, un campo, un pulsante. Stirati su 1080 px sarebbero
-              // stati tre oggetti lontani fra loro senza motivo.
+              // ── SECONDO PASSO: SALDA CONTO ───────────────────────────────
+              // Due colonne. A sinistra i piatti, ed è QUI che si sceglie cosa
+              // saldare: la spunta sta accanto ai soldi che muove, non due
+              // schermate prima. A destra la cifra — che si può riscrivere —
+              // il metodo e la conferma. All'apertura è tutto selezionato: il
+              // caso più comune, il tavolo che paga tutto, è a un tocco; chi
+              // divide il conto toglie, invece di dover mettere.
               <div style={{
                 flex: 1, display:'flex', flexDirection:'column',
                 background:'#fff', minWidth: 0,
-                alignItems:'center',
               }}>
                 {/* La via d'uscita in alto a sinistra, come nella finestra
                     Incassa di Vendita diretta: è l'unica cosa qui dentro con
@@ -796,6 +728,65 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     </button>
                 </div>
 
+                <div style={{flex:1, display:'flex', minHeight: 0}}>
+
+                {/* ── SINISTRA: cosa si salda ──────────────────────────────
+                    La stessa lista del conto, ma qui le righe si spuntano: il
+                    − e il + dicono quante porzioni entrano in questo incasso.
+                    Niente correzioni da questo lato — nome, prezzo e righe si
+                    sistemano nel passo prima, dove il conto è ancora un
+                    documento e non un incasso a metà. */}
+                <div style={{
+                  flex:'1.35 1 0', minWidth: 0,
+                  display:'flex', flexDirection:'column',
+                  borderRight:'1px solid #EDEFF2',
+                }}>
+                  <div style={{
+                    padding:'6px 20px 10px',
+                    display:'flex', alignItems:'center', gap: 8, flexShrink: 0,
+                  }}>
+                    <span style={{...SALDA_LABEL, marginBottom: 0}}>Cosa saldi</span>
+                    <span style={{flex:1}}/>
+                    {(() => {
+                      const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
+                      const someSel = !allSel && selectedItems.size > 0;
+                      return (
+                        <button
+                          onClick={allSel ? selectNone : selectAll}
+                          style={{...miniLink, gap: 6, color: '#374151'}}
+                        >
+                          <span style={{
+                            width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                            border: `1.5px solid ${allSel || someSel ? SALDA_BRAND : '#D1D5DB'}`,
+                            background: allSel ? SALDA_BRAND : '#fff',
+                            display: 'grid', placeItems: 'center', position: 'relative',
+                          }}>
+                            {allSel && (
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            )}
+                            {someSel && (
+                              <span style={{width: 9, height: 2.5, background: SALDA_BRAND, borderRadius: 2, display:'block'}}/>
+                            )}
+                          </span>
+                          Seleziona tutti
+                        </button>
+                      );
+                    })()}
+                  </div>
+                  <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'0 20px 14px'}}>
+                    <ListaPerCanale gruppi={gruppiCanale}
+                      selezione
+                      selectedItems={selectedItems} toggleItem={toggleItem} setItemQty={setItemQty}
+                      guestById={guestById} isPagato={isPagato}
+                      selezionaCanale={selezionaCanale}/>
+                  </div>
+                </div>
+
+                {/* ── DESTRA: quanto e come ─────────────────────────────── */}
+                <div style={{
+                  flex:'1 1 0', minWidth: 380, maxWidth: 470,
+                  display:'flex', flexDirection:'column', background:'#fff',
+                }}>
                 <div className="pn-scroll" style={{
                   flex:1, overflow:'auto', padding:'0 0 18px',
                   width:'100%',
@@ -807,7 +798,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       fianco: un riquadro dentro un riquadro, in una finestra
                       che di riquadri ne ha già. Qui il numero sta al centro e
                       non ha bisogno di una scatola per farsi vedere. */}
-                  <div style={{padding:'18px 24px 0', textAlign:'center'}}>
+                  <div style={{padding:'12px 22px 0', textAlign:'center'}}>
                     <div style={SALDA_LABEL}>Da incassare</div>
 
                     {/* LA CIFRA SI SCRIVE. Non è più solo il totale dei piatti
@@ -819,7 +810,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     <div
                       onClick={() => importoRef.current && importoRef.current.focus()}
                       style={{display:'inline-flex', alignItems:'baseline', gap: 7, cursor:'text', padding:'2px 6px'}}>
-                      <span style={{fontSize: 32, fontWeight: 800, color: SALDA_MUTED, letterSpacing:-0.6}}>€</span>
+                      <span style={{fontSize: 24, fontWeight: 800, color: SALDA_MUTED, letterSpacing:-0.5}}>€</span>
                       <input
                         ref={importoRef}
                         value={importoTocco ? importo : total.toFixed(2)}
@@ -837,8 +828,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           width: `${Math.max((importoTocco ? importo : total.toFixed(2)).length, 4)}ch`,
                           border:'none', outline:'none', background:'transparent',
                           fontFamily:'inherit', textAlign:'left',
-                          fontSize: 64, fontWeight: 800, color: SALDA_INK,
-                          letterSpacing:-2.2, lineHeight: 1.15, padding: 0,
+                          fontSize: 46, fontWeight: 800, color: SALDA_INK,
+                          letterSpacing:-1.5, lineHeight: 1.15, padding: 0,
                           fontVariantNumeric:'tabular-nums',
                         }}/>
                       <span style={{color: importoTocco ? SALDA_BRAND : SALDA_MUTED, display:'inline-flex', alignSelf:'center'}}>
@@ -887,24 +878,54 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       </div>
                     )}
 
-                    {/* Lo sconto si applica sul CONTO — al momento di incassare
-                        il totale è una cosa decisa — ma qui va detto che c'è, e
-                        da qui si può togliere senza tornare indietro. */}
-                    {adjust && (
-                      <div style={{
-                        display:'inline-flex', alignItems:'center', gap: 8,
-                        marginTop: 10, padding:'6px 8px 6px 14px', borderRadius: 999,
-                        background:'#DCFCE7', color:'#166534',
-                        fontSize: 15, fontWeight: 700,
-                      }}>
-                        {adjustLabel.split(' · ')[0]} · −€{Math.abs(adjustDelta).toFixed(2)}
-                        <button onClick={() => setAdjust(null)} title="Togli lo sconto" style={{
-                          width: 24, height: 24, padding: 0, borderRadius: '50%',
-                          background:'rgba(22,101,52,0.10)', border:'none', color:'#166534',
-                          cursor:'pointer', display:'grid', placeItems:'center', fontFamily:'inherit',
+                    {/* SCONTO — si applica da qui, accanto alla cifra su cui
+                        agisce: nel conto non si sceglie più niente, quindi
+                        nemmeno lo sconto ci abita. Applicato, diventa la
+                        pastiglia verde: il testo la riapre, la × lo toglie. */}
+                    <div style={{marginTop: 10}}>
+                      {adjust ? (
+                        <span style={{
+                          display:'inline-flex', alignItems:'center', gap: 8,
+                          padding:'6px 8px 6px 14px', borderRadius: 999,
+                          background:'#DCFCE7', color:'#166534',
+                          fontSize: 15, fontWeight: 700,
                         }}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                          <button onClick={() => setAdjustOpen(o => !o)} title="Modifica lo sconto" style={{
+                            background:'transparent', border:'none', padding: 0,
+                            fontFamily:'inherit', fontSize: 15, fontWeight: 700,
+                            color:'#166534', cursor:'pointer',
+                          }}>
+                            {adjustLabel.split(' · ')[0]} · −€{Math.abs(adjustDelta).toFixed(2)}
+                          </button>
+                          <button onClick={() => { setAdjust(null); setAdjustOpen(false); }} title="Togli lo sconto" style={{
+                            width: 24, height: 24, padding: 0, borderRadius: '50%',
+                            background:'rgba(22,101,52,0.10)', border:'none', color:'#166534',
+                            cursor:'pointer', display:'grid', placeItems:'center', fontFamily:'inherit',
+                          }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                          </button>
+                        </span>
+                      ) : (
+                        <button onClick={() => setAdjustOpen(o => !o)} style={{
+                          background:'transparent', border:'none', padding: 0,
+                          fontFamily:'inherit', fontSize: 15, fontWeight: 700,
+                          color: SALDA_BRAND, cursor:'pointer',
+                          display:'inline-flex', alignItems:'center', gap: 4,
+                        }}>
+                          <span style={{textDecoration:'underline', textUnderlineOffset: 3}}>
+                            Applica uno sconto
+                          </span>
+                          <span style={{
+                            display:'inline-block',
+                            transform: adjustOpen ? 'rotate(90deg)' : 'none',
+                            transition:'transform 0.15s', fontSize: 15,
+                          }}>›</span>
                         </button>
+                      )}
+                    </div>
+                    {adjustOpen && (
+                      <div style={{marginTop: 12, textAlign:'left'}}>
+                        <AdjustPanel subtotale={subtotale} adjust={adjust} setAdjust={setAdjust}/>
                       </div>
                     )}
                   </div>
@@ -1091,6 +1112,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   )}
                 </div>
                 </div>
+                </div>
+                </div>
               </div>
               )}
             </div>
@@ -1143,7 +1166,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 //
 // L'ordine dei gruppi è fisso — App, Webapp, Altro — e non segue i piatti:
 // una lista che si riordina da sola sotto le mani non si impara mai.
-function ListaPerCanale({ gruppi, selectedItems, toggleItem, setItemQty, guestById, isPagato, selezionaCanale, onUpdate, onDelete }) {
+// `selezione` sceglie la faccia della lista: nel pagamento le testate e le
+// righe si spuntano; nel conto sono un documento — la stessa carta, letta in
+// due momenti diversi.
+function ListaPerCanale({ gruppi, selezione = true, selectedItems, toggleItem, setItemQty, guestById, isPagato, selezionaCanale, onUpdate, onDelete }) {
   if (gruppi.length === 0) return <EmptyOrdini/>;
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 14}}>
@@ -1160,55 +1186,68 @@ function ListaPerCanale({ gruppi, selectedItems, toggleItem, setItemQty, guestBy
             border:'1px solid #EDEFF2', borderRadius: 14,
             background:'#fff', overflow:'hidden',
           }}>
-            {/* Testata del canale. È premibile e prende tutto il gruppo in un
-                gesto: senza, dividere il conto per canale vorrebbe dire
-                spuntare otto righe a mano, e il raggruppamento sarebbe solo
-                un disegno. La spunta sta a sinistra, incolonnata con quelle
-                delle righe che governa. */}
-            <button
-              onClick={() => { if (daPrendere.length) selezionaCanale(daPrendere); }}
-              disabled={!daPrendere.length}
-              onMouseEnter={e => { if (daPrendere.length) e.currentTarget.style.background = '#FAFBFC'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
-              title={daPrendere.length ? (tutti ? `Togli ${g.label}` : `Prendi tutto ${g.label}`) : 'Già pagato'}
-              style={{
+            {/* Testata del canale. Dove si seleziona è premibile e prende
+                tutto il gruppo in un gesto — senza, dividere il conto per
+                canale vorrebbe dire spuntare otto righe a mano. Nel conto è
+                una testata e basta: dice chi ha ordinato cosa, non chiede
+                niente. */}
+            {(() => {
+              const dentroTestata = (
+                <React.Fragment>
+                  {selezione && (
+                  <span aria-hidden="true" style={{
+                    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                    display:'grid', placeItems:'center',
+                    background: tutti ? SALDA_BRAND : '#fff',
+                    border: `1.5px solid ${tutti || alcuni ? SALDA_BRAND : '#D1D5DB'}`,
+                    opacity: daPrendere.length ? 1 : 0.4,
+                  }}>
+                    {tutti && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13 L9 17 L19 7"/></svg>
+                    )}
+                    {alcuni && <span style={{display:'block', width: 10, height: 2.5, background: SALDA_BRAND, borderRadius: 2}}/>}
+                  </span>
+                  )}
+                  <span style={{
+                    width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                    display:'grid', placeItems:'center',
+                    background: g.bg, color: g.ink,
+                  }}>{g.icona}</span>
+                  <span style={{fontSize: 17.5, fontWeight: 800, color:'#0F1115', letterSpacing:-0.2}}>
+                    {g.label}
+                  </span>
+                  <span style={{color:'#D1D5DB', fontWeight: 700}}>·</span>
+                  <span style={{
+                    fontSize: 14.5, fontWeight: 700, color:'#6B7280',
+                    background:'#F4F5F7', padding:'3px 10px', borderRadius: 999,
+                  }}>
+                    {g.items.length} articol{g.items.length === 1 ? 'o' : 'i'}
+                  </span>
+                </React.Fragment>
+              );
+              const base = {
                 width:'100%', display:'flex', alignItems:'center', gap: 12,
                 padding:'12px 14px', background:'#fff', border:'none',
                 borderBottom:'1px solid #F1F3F5',
-                cursor: daPrendere.length ? 'pointer' : 'default',
                 fontFamily:'inherit', textAlign:'left',
-                transition:'background 130ms ease-out',
-              }}>
-              <span aria-hidden="true" style={{
-                width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                display:'grid', placeItems:'center',
-                background: tutti ? SALDA_BRAND : '#fff',
-                border: `1.5px solid ${tutti || alcuni ? SALDA_BRAND : '#D1D5DB'}`,
-                opacity: daPrendere.length ? 1 : 0.4,
-              }}>
-                {tutti && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13 L9 17 L19 7"/></svg>
-                )}
-                {alcuni && <span style={{display:'block', width: 10, height: 2.5, background: SALDA_BRAND, borderRadius: 2}}/>}
-              </span>
-
-              <span style={{
-                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                display:'grid', placeItems:'center',
-                background: g.bg, color: g.ink,
-              }}>{g.icona}</span>
-
-              <span style={{fontSize: 17.5, fontWeight: 800, color:'#0F1115', letterSpacing:-0.2}}>
-                {g.label}
-              </span>
-              <span style={{color:'#D1D5DB', fontWeight: 700}}>·</span>
-              <span style={{
-                fontSize: 14.5, fontWeight: 700, color:'#6B7280',
-                background:'#F4F5F7', padding:'3px 10px', borderRadius: 999,
-              }}>
-                {g.items.length} articol{g.items.length === 1 ? 'o' : 'i'}
-              </span>
-            </button>
+              };
+              if (!selezione) return <div style={base}>{dentroTestata}</div>;
+              return (
+                <button
+                  onClick={() => { if (daPrendere.length) selezionaCanale(daPrendere); }}
+                  disabled={!daPrendere.length}
+                  onMouseEnter={e => { if (daPrendere.length) e.currentTarget.style.background = '#FAFBFC'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+                  title={daPrendere.length ? (tutti ? `Togli ${g.label}` : `Prendi tutto ${g.label}`) : 'Già pagato'}
+                  style={{
+                    ...base,
+                    cursor: daPrendere.length ? 'pointer' : 'default',
+                    transition:'background 130ms ease-out',
+                  }}>
+                  {dentroTestata}
+                </button>
+              );
+            })()}
 
             <div style={{display:'flex', flexDirection:'column', gap: 8, padding:'10px 12px 12px'}}>
               {g.items.map(o => (
@@ -1222,6 +1261,7 @@ function ListaPerCanale({ gruppi, selectedItems, toggleItem, setItemQty, guestBy
                   // rumore. Della pastiglia resta il nome — che lì dentro è
                   // l'unica cosa che distingue una riga dall'altra.
                   canaleNoto
+                  selezione={selezione}
                   pagato={!!isPagato && isPagato(o)}
                   onUpdate={onUpdate} onDelete={onDelete}/>
               ))}
@@ -1278,7 +1318,10 @@ function StatoPiatto({ stato, spento }) {
   );
 }
 
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, onUpdate, onDelete }) {
+// `selezione` decide che riga è: nel passo del pagamento la card si spunta e
+// porta il − e il +; nel conto è una riga di documento — si legge, si corregge
+// (le correzioni arrivano con onUpdate/onDelete), non si sceglie.
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, selezione = true, onUpdate, onDelete }) {
   const allSel = selectedQty >= o.qty;
   const noneSel = selectedQty === 0;
   const partialSel = !allSel && !noneSel;
@@ -1309,20 +1352,23 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
   // bersaglio a parte da centrare col mouse mentre si ha il cliente davanti.
   return (
     <div
-      onClick={(editingName || editingPrice || pagato) ? undefined : onToggle}
+      onClick={(!selezione || editingName || editingPrice || pagato) ? undefined : onToggle}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       title={pagato ? 'Già pagato dall\u2019app: non si incassa di nuovo' : undefined}
       style={{
         display:'flex', alignItems:'center', gap: 12,
         padding:'12px 14px',
-        cursor: (editingName || editingPrice) ? 'default' : (pagato ? 'not-allowed' : 'pointer'),
-        background: pagato ? '#F7F8FA' : (allSel || partialSel ? SALDA_BRAND_SOFT : (hover ? '#FAFBFC' : '#fff')),
-        border: `1px solid ${pagato ? '#EDEFF2' : (allSel || partialSel ? '#FFD4D4' : '#EDEFF2')}`,
+        cursor: (!selezione || editingName || editingPrice) ? 'default' : (pagato ? 'not-allowed' : 'pointer'),
+        background: pagato ? '#F7F8FA' : (selezione && (allSel || partialSel) ? SALDA_BRAND_SOFT : (selezione && hover ? '#FAFBFC' : '#fff')),
+        border: `1px solid ${pagato ? '#EDEFF2' : (selezione && (allSel || partialSel) ? '#FFD4D4' : '#EDEFF2')}`,
         borderRadius: 12, transition:'background 0.12s, border-color 0.12s',
         opacity: pagato ? 0.72 : 1,
       }}>
-      {/* La spunta: stato, non comando — il click lo prende la card */}
+      {/* La spunta: stato, non comando — il click lo prende la card.
+          Nel conto non c'è: una spunta che non decide niente insegnerebbe
+          solo a non fidarsi delle spunte. */}
+      {selezione && (
       <span aria-hidden="true" style={{
         width: 22, height: 22, borderRadius: 6, flexShrink: 0, pointerEvents:'none',
         display:'grid', placeItems:'center',
@@ -1335,6 +1381,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         )}
         {partialSel && <span style={{width: 10, height: 2.5, background:'#fff', borderRadius: 2}}/>}
       </span>
+      )}
 
       {/* IL − E IL + SU OGNI RIGA, anche da uno solo e anche quando la riga
           non è presa: il numero dice quanti se ne stanno saldando, e per
@@ -1342,9 +1389,9 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           Prima comparivano solo sulle righe da più di uno e solo se selezionate:
           due condizioni da ricordare per un comando che deve essere lì e basta.
           Su un piatto già pagato restano fuori: non c'è niente da contare. */}
-      {pagato ? (
+      {(pagato || !selezione) ? (
         <span style={{
-          fontSize: 16, fontWeight: 800, color:'#9CA3AF',
+          fontSize: 16, fontWeight: 800, color: pagato ? '#9CA3AF' : '#0F1115',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
           padding:'6px 0', minWidth: 40, textAlign:'center',
           fontVariantNumeric:'tabular-nums', flexShrink: 0,
@@ -1390,16 +1437,18 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         ) : (
           <span
             onClick={(e) => {
+              if (!selezione) return;
               e.stopPropagation();
               if (clickTimer.current) clearTimeout(clickTimer.current);
               clickTimer.current = setTimeout(() => { onToggle(); clickTimer.current = null; }, 280);
             }}
             onDoubleClick={(e) => {
+              if (!onUpdate) return;
               e.stopPropagation();
               if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
               setEditingName(true);
             }}
-            title="Doppio click per modificare il nome"
+            title={onUpdate ? 'Doppio click per modificare il nome' : undefined}
             style={{
               fontSize: 17, color:'#0F1115', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
               cursor:'default', borderRadius: 3, padding:'1px 3px', marginLeft: -3,
@@ -1410,11 +1459,12 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         )}
       </span>
 
-      {/* A che punto è il piatto. Alla cassa serve prima di chiudere: un conto
-          con una bistecca ancora in cottura non si salda e basta — o si aspetta,
-          o si toglie. Finora quell'informazione stava solo sulla card in sala,
-          e per averla bisognava chiudere la finestra del conto. */}
-      <StatoPiatto stato={o.stato} spento={pagato}/>
+      {/* A che punto è il piatto. Alla cassa serve PRIMA di incassare — un
+          conto con una bistecca in cottura non si salda e basta — ed è per
+          questo che vive nel passo del conto, dove il conto si legge. Nella
+          colonna di selezione ruberebbe il posto al nome del piatto, che lì è
+          la cosa da riconoscere. */}
+      {!selezione && <StatoPiatto stato={o.stato} spento={pagato}/>}
 
       {/* Di chi è il piatto, e se quella parte è già stata pagata: una
           pastiglia sola invece del nome in corsivo più il marchio staccato. */}
@@ -1469,7 +1519,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
             textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700,
           }}
         />
-      ) : (
+      ) : onUpdate ? (
         <button
           onClick={(e) => { e.stopPropagation(); setEditingPrice(true); }}
           title="Modifica prezzo unitario"
@@ -1483,12 +1533,22 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           onMouseEnter={e => { e.currentTarget.style.background = '#F1F2F5'; }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
         >
-          €{((noneSel ? o.qty : selectedQty) * o.prezzo).toFixed(2)}
+          €{((!selezione || noneSel) ? o.qty * o.prezzo : selectedQty * o.prezzo).toFixed(2)}
         </button>
+      ) : (
+        <span style={{
+          fontSize: 17, fontWeight: 700, color: pagato ? '#9CA3AF' : '#0F1115',
+          minWidth: 66, textAlign:'right', fontVariantNumeric:'tabular-nums',
+          padding:'2px 4px', flexShrink: 0,
+        }}>
+          €{((noneSel) ? o.qty * o.prezzo : selectedQty * o.prezzo).toFixed(2)}
+        </span>
       )}
 
       {/* DELETE — non su un piatto già pagato: quella riga è la prova di un
-          incasso, e toglierla farebbe sparire i soldi dal conto. */}
+          incasso, e toglierla farebbe sparire i soldi dal conto. E solo nel
+          conto: nel pagamento le righe non si correggono, si scelgono. */}
+      {onDelete && (
       <button
         disabled={pagato}
         onClick={(e) => { e.stopPropagation(); if (!pagato && onDelete) onDelete(o.id); }}
@@ -1508,6 +1568,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           <path d="M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6 M10 11v6 M14 11v6"/>
         </svg>
       </button>
+      )}
     </div>
   );
 }
