@@ -127,7 +127,9 @@ function HubPanoramicaPage({ onNav }) {
           <div style={{ flex: 1, minWidth: 280 }}>
             <div style={{ fontSize: 11.6, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.85 }}>Buongiorno, Marco</div>
             <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.03em', marginTop: 7, lineHeight: 1.2 }}>
-              {dafare.length ? `${dafare.length} cose chiedono una decisione oggi` : 'Non c\'è niente in sospeso'}
+              {dafare.length === 0 ? 'Non c\'è niente in sospeso'
+                : dafare.length === 1 ? '1 attività richiede la tua attenzione'
+                : `${dafare.length} attività richiedono la tua attenzione`}
             </div>
             <div style={{ fontSize: 14.2, opacity: 0.88, marginTop: 6, maxWidth: 560, lineHeight: 1.5 }}>
               La piattaforma in un colpo d'occhio: come crescono locali e utenti, quanto valgono i piani attivi, che cosa gira da solo e come sta il supporto.
