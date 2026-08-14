@@ -7,9 +7,12 @@ const { useState: useStateApp } = React;
 // le icone + label bastano, e la sidebar respira.
 const NAV_MAIN = [
   { id: 'dashboard',    label: 'Analisi Dati', icon: 'chartFill' },
-  { id: 'locali',       label: 'Locali',       icon: 'storeFill', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
-  { id: 'camerieri',    label: 'Staff',        icon: 'staffFill' },
-  { id: 'utenti',       label: 'Utenti App',   icon: 'phoneFill' },
+  // Una voce sola per l'anagrafe. Locali, Staff e Utenti App erano tre liste
+  // separate, ma chi amministra cerca UNA persona — «di chi è questa mail?» —
+  // e non deve sapere in anticipo in quale delle tre vive. La rubrica le
+  // fonde su quattro colonne comuni; il dettaglio resta quello giusto per
+  // ciascun tipo. Il badge è lo stesso di prima: i locali in onboarding.
+  { id: 'contatti',     label: 'Contatti',     icon: 'staffFill', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
   // Una voce sola per l'assistenza. Ticket e chiamate erano due sezioni
   // separate, ma sono lo stesso lavoro fatto su due canali: chi sta al
   // supporto passa dall'una all'altra di continuo, e con due voci di menu non
@@ -147,9 +150,7 @@ function GlobalSearch({ onClose, go }) {
 function AdminApp({ tweaks }) {
   const [route, setRouteRaw] = useStateApp('dashboard');
   const [messageModal, setMessageModal] = useStateApp(null);
-  const [localiOpenLocale, setLocaliOpenLocale] = useStateApp(null);
-  const [utentiOpen, setUtentiOpen] = useStateApp(null);
-  const [staffOpen, setStaffOpen] = useStateApp(null);
+  const [contattoOpen, setContattoOpen] = useStateApp(null); // {tipo, ref} → drawer in Contatti
   const [commOpen, setCommOpen] = useStateApp(null);
   const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
   const [teamTab, setTeamTab] = useStateApp(null);   // tab di Sicurezza/Piattaforma aperta da un link esterno
@@ -184,19 +185,27 @@ function AdminApp({ tweaks }) {
 
   // setRoute esteso: setRoute('locali', { openLocale: l }) apre direttamente
   // il drawer di dettaglio sul locale passato. Navigando altrove o tornando
-  // su 'locali' senza opts, il prefill è azzerato.
+  // sulla rubrica senza opts, il prefill è azzerato.
   //
-  // I ticket non hanno più una rotta propria: sono un tab di Assistenza. Qui
-  // si traduce `comunicazioni` in `assistenza` + tab, così le notifiche, la
-  // striscia della Dashboard e la ricerca globale continuano a puntare dove
-  // puntavano senza doverle riscrivere una per una — e senza lasciare in giro
-  // una rotta morta che un domani nessuno saprebbe più perché esiste.
+  // I ticket non hanno più una rotta propria: sono un tab di Assistenza. E
+  // locali, camerieri e utenti non hanno più una pagina propria: sono la
+  // rubrica Contatti. Qui le rotte vecchie si traducono nelle nuove, così le
+  // notifiche, la striscia della Dashboard e la ricerca globale continuano a
+  // puntare dove puntavano senza doverle riscrivere una per una — e senza
+  // lasciare in giro rotte morte che un domani nessuno saprebbe più perché
+  // esistono.
   const setRoute = (nextRaw, opts) => {
-    const verso = nextRaw === 'comunicazioni' ? 'assistenza' : nextRaw;
+    const verso = nextRaw === 'comunicazioni' ? 'assistenza'
+      : (nextRaw === 'locali' || nextRaw === 'camerieri' || nextRaw === 'utenti') ? 'contatti'
+      : nextRaw;
     const tab = nextRaw === 'comunicazioni' ? 'ticket' : (opts && opts.tab) || null;
-    setLocaliOpenLocale(verso === 'locali' && opts?.openLocale ? opts.openLocale : null);
-    setUtentiOpen(verso === 'utenti' && opts?.openUtente ? opts.openUtente : null);
-    setStaffOpen(verso === 'camerieri' && opts?.openStaff ? opts.openStaff : null);
+    // Le tre vecchie forme di apertura diretta diventano un {tipo, ref} solo:
+    // la rubrica sceglie da lì quale dei tre drawer montare.
+    setContattoOpen(verso !== 'contatti' || !opts ? null
+      : opts.openLocale ? { tipo: 'locale', ref: opts.openLocale }
+      : opts.openStaff ? { tipo: 'staff', ref: opts.openStaff }
+      : opts.openUtente ? { tipo: 'utente', ref: opts.openUtente }
+      : opts.openContatto || null);
     setCommOpen(verso === 'assistenza' && opts?.openComm ? opts.openComm : null);
     setAssistenzaTab(verso === 'assistenza' ? tab : null);
     // Anche Sicurezza e sistemi ha i suoi tab: chi ci arriva da un avviso
@@ -210,9 +219,7 @@ function AdminApp({ tweaks }) {
 
   const pageTitles = {
     dashboard:    { t:'Analisi Dati', s:'Come sta la piattaforma, letta dai numeri' },
-    locali:       { t:'Locali', s:'Ristoranti registrati e relativo onboarding' },
-    camerieri:    { t:'Staff', s:'Staff registrato sui locali · camerieri, cassa, proprietari, dispositivi' },
-    utenti:       { t:'Utenti App', s:'Clienti finali che usano l\'app byup' },
+    contatti:     { t:'Contatti', s:'Locali, staff e utenti app in un\'unica rubrica' },
     assistenza:   { t:'Assistenza', s:'Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
     team:         { t:'Piattaforma', s:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app' },
@@ -371,9 +378,7 @@ function AdminApp({ tweaks }) {
 
         <div style={{flex:1, overflow:'auto'}}>
           {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
-          {route === 'locali'       && <AdmLocaliPage search={''} openLocale={localiOpenLocale}/>}
-          {route === 'camerieri'    && <AdmCamerieriPage search={''} openStaff={staffOpen}/>}
-          {route === 'utenti'       && <AdmUtentiPage search={''} openUtente={utentiOpen}/>}
+          {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
           {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
           {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
           {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
