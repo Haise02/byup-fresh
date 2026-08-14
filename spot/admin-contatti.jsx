@@ -43,12 +43,13 @@ const CNT_STATO_RANGO = { attivo: 0, onboarding: 1, inattivo: 2 };
 const CONTATTI = (() => {
   const rows = [];
 
+  // Nessun sottotitolo sotto i nomi, per NESSUNO dei tre tipi: la riga è il
+  // nome e le sue quattro colonne, il resto vive nel dettaglio. Quello che il
+  // sottotitolo diceva (tipo e città, ruolo e locale, città e ID) resta però
+  // RICERCABILE dal campo `cerca`.
   LOCALI.forEach(l => rows.push({
     key: 'loc-' + l.id, tipo: 'locale', ref: l,
     nome: l.nome,
-    // Niente sottotitolo sotto il nome del locale: «Osteria · Bari» ripeteva
-    // cose che vivono nel dettaglio. Tipo e città restano però RICERCABILI.
-    sub: null,
     cerca: l.tipo + ' ' + l.citta,
     email: l.email,
     stato: l.stato === 'active' ? 'attivo'
@@ -69,7 +70,7 @@ const CONTATTI = (() => {
     rows.push({
       key: 'stf-' + s.id, tipo: 'staff', ref: s,
       nome: s.nome,
-      sub: ruolo + ' · ' + s.localeNome,
+      cerca: ruolo + ' ' + s.localeNome + ' ' + s.localeCitta,
       email: (device || !dominio) ? null
         : s.nome.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.') + '@' + dominio,
       // Vivo se s'è visto nell'ultima settimana: «attivo oggi» è un dettaglio
@@ -82,7 +83,7 @@ const CONTATTI = (() => {
   UTENTI.forEach(u => rows.push({
     key: 'utn-' + u.id, tipo: 'utente', ref: u,
     nome: u.nome,
-    sub: u.citta + ' · ' + u.id,
+    cerca: u.citta + ' ' + u.regione,
     email: u.email,
     stato: u.attivo ? 'attivo' : 'inattivo',
     iscritto: u.dataRegistrazione,
@@ -121,7 +122,7 @@ function AdmContattiPage({ search, openContatto }) {
       r = r.filter(c =>
         c.nome.toLowerCase().includes(q) ||
         (c.email || '').toLowerCase().includes(q) ||
-        (c.cerca || c.sub || '').toLowerCase().includes(q) ||
+        (c.cerca || '').toLowerCase().includes(q) ||
         c.ref.id.toLowerCase().includes(q)
       );
     }
@@ -363,9 +364,6 @@ function ContattoRow({ contatto: c, onClick, striped }) {
           : <AdmAvatar name={c.nome} size={36} bg={`hsl(${(c.ref.id.charCodeAt(1) + c.ref.id.charCodeAt(c.ref.id.length - 1)) * 5 % 360}, 42%, 55%)`}/>}
         <div style={{minWidth: 0}}>
           <div style={{fontSize: 14.4, fontWeight: 600, color: ADM.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: device ? 'ui-monospace,monospace' : 'inherit'}}>{c.nome}</div>
-          {c.sub && (
-            <div style={{fontSize: 13, color: ADM.MUTED, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{c.sub}</div>
-          )}
         </div>
       </div>
 
