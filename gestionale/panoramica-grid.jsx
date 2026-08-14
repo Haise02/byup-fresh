@@ -206,12 +206,14 @@ function PnGrid({ widgets, editMode, onRemove, onReorder }) {
             data-widget-id={w.id}
             onMouseDown={fisso ? undefined : handleDragStart(w.id)}
             style={{
-              // `pin:'end'` ancora la tessera all'ultima colonna: l'assistente
-              // sta a destra e il dense impacchetta il resto intorno. Con una
-              // colonna sola l'ancora coincide con l'unica colonna che c'è.
-              gridColumn: def.pin === 'end'
-                ? `${Math.max(1, cols - Math.min(size.w, cols) + 1)} / span ${Math.min(size.w, cols)}`
-                : `span ${Math.min(size.w, cols)}`,
+              // `pin:'start'` ancora la tessera alla prima colonna (l'assistente
+              // sta a sinistra), `pin:'end'` all'ultima: il dense impacchetta il
+              // resto intorno. Con una colonna sola le due ancore coincidono.
+              gridColumn: def.pin === 'start'
+                ? `1 / span ${Math.min(size.w, cols)}`
+                : def.pin === 'end'
+                  ? `${Math.max(1, cols - Math.min(size.w, cols) + 1)} / span ${Math.min(size.w, cols)}`
+                  : `span ${Math.min(size.w, cols)}`,
               gridRow:    `span ${size.h}`,
               minHeight: 0,
               borderRadius: 14,

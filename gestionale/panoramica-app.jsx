@@ -3,12 +3,13 @@
 // Layout default — solo l'ORDINE dei widget: le misure sono fisse e vivono
 // nel catalogo (PN_WIDGET_CATALOG[].size), pensate per il dato che mostrano.
 // Il TETRIS È RISOLTO PER TRE COLONNE, che è la larghezza vera della griglia
-// dentro il gestionale (~1125 px). L'assistente è 1×4: chiude a filo con la
-// pila che gli sta accanto — Scontrino medio, Incassi, Stato tavoli — che è
-// la prima fascia della dashboard, tutta alla stessa altezza:
-//   riga  1:    scontrino 2×1                       · byuppino ↓
-//   riga  2:    incassi 2×1                         · byuppino ↓
-//   righe 3-4:  tavoli-stato 2×2                    · byuppino ↓
+// dentro il gestionale (~1125 px). L'assistente è 1×4 e sta A SINISTRA,
+// prima colonna: chiude a filo con la pila che gli sta accanto — Scontrino
+// medio, Incassi, Stato tavoli — che è la prima fascia della dashboard,
+// tutta alla stessa altezza:
+//   riga  1:    byuppino ↓ · scontrino 2×1
+//   riga  2:    byuppino ↓ · incassi 2×1
+//   righe 3-4:  byuppino ↓ · tavoli-stato 2×2
 //   righe 5-6:  prenotazioni 1×2 · cucina 1×2 · top-piatti 1×2
 //   righe 7-8:  riempimento 2×2                     · recensioni 1×2
 //   righe 9-10: coperti-sett 2×2                    · (una tessera 1×2 d'aria)

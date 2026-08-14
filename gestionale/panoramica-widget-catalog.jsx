@@ -25,20 +25,20 @@
 // senza che ci si debba pensare. Trascinabile, sarebbe finito in fondo il
 // primo giorno; rimovibile, sparirebbe per sempre dopo un click sbagliato.
 // L'assistente è FISSO: non si trascina, non si toglie, non fa da bersaglio.
-// Sta nel bento con gli altri — tessera alta, ancorata all'ultima colonna —
+// Sta nel bento con gli altri — tessera alta, ancorata alla prima colonna —
 // perché una rail fuori griglia lasciava un pozzo di vuoto sotto di sé
 // appena la dashboard cresceva: dentro il bento, il `dense` riempie.
 const PN_WIDGET_FISSI = ['byuppino'];
 const pnFisso = (id) => PN_WIDGET_FISSI.indexOf(id) >= 0;
 
 const PN_WIDGET_CATALOG = [
-  // `pin: 'end'`: la tessera parte sempre dall'ultima colonna disponibile —
-  // l'assistente vive a destra, e il resto del bento gli si impacchetta
-  // intorno senza buchi (grid-auto-flow: dense).
+  // `pin: 'start'`: la tessera parte sempre dalla prima colonna —
+  // l'assistente vive a sinistra, prima cosa che l'occhio incontra, e il
+  // resto del bento gli si impacchetta intorno senza buchi (auto-flow dense).
   // 1×4 e non di più: l'assistente chiude a filo con la pila che gli sta di
   // fianco — Scontrino medio (1) + Incassi (1) + Stato tavoli (2) — invece di
   // scendere da solo oltre il resto della prima fascia.
-  { id: 'byuppino', name: 'Byuppino AI', desc: 'Chiedi in italiano: prenotazioni, menù, sala, impostazioni', component: 'WidgetByuppino', size: { w: 1, h: 4 }, pin: 'end', category: 'Utilità', icon: 'sparkles' },
+  { id: 'byuppino', name: 'Byuppino AI', desc: 'Chiedi in italiano: prenotazioni, menù, sala, impostazioni', component: 'WidgetByuppino', size: { w: 1, h: 4 }, pin: 'start', category: 'Utilità', icon: 'sparkles' },
   { id: 'andamento-coperti', name: 'Coperti', desc: 'Coperti per periodo con sparkline', component: 'WidgetAndamentoCoperti', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'people-staff-group' },
   { id: 'andamento-scontrino', name: 'Scontrino medio', desc: 'Scontrino medio per periodo con sparkline', component: 'WidgetAndamentoScontrino', size: { w: 2, h: 1 }, category: 'Statistiche', icon: 'chart-bar' },
   { id: 'incassi', name: 'Incassi', desc: 'Incassi per periodo con sparkline', component: 'WidgetIncassi', size: { w: 2, h: 1 }, category: 'Incassi', icon: 'commerce-money' },
