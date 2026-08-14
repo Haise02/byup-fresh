@@ -41,7 +41,7 @@ const CNT_CICLO = {
 
 // ─── Piano ──────────────────────────────────────────────────────────────────
 // La colonna dei piani, separata dal ciclo di vita: per i locali il piano
-// Fresh (coi colori che i piani hanno già in tutto Spot), per gli utenti app
+// Fresh (coi colori che i piani hanno già in tutto Hubble), per gli utenti app
 // il piano dell'app (Base/Pro), per lo staff niente — un trattino.
 const CNT_PIANI = {
   free:     { label: 'Gratuito', color: 'PLAN_FREE',     rango: 0 },
@@ -53,23 +53,24 @@ const CNT_PIANI = {
 };
 
 // ─── Le colonne ─────────────────────────────────────────────────────────────
-// Il catalogo delle SEI colonne possibili. Quali si vedono e in che ordine lo
-// decide chi guarda («Modifica colonne» + trascinamento delle intestazioni),
-// e la scelta resta in localStorage. «Contatto» è fissa: una rubrica senza
-// l'identità non è una lista, è un foglio di celle.
-const CNT_COLONNE = {
-  nome:     { label: 'Contatto',           w: 'minmax(0,2.2fr)', fissa: true },
-  email:    { label: 'Email',              w: 'minmax(0,1.9fr)' },
-  tipo:     { label: 'Tipologia contatto', w: '1.2fr' },
-  ciclo:    { label: 'Ciclo di vita',      w: '1.15fr' },
-  piano:    { label: 'Piano',              w: '0.9fr' },
-  citta:    { label: 'Città',              w: '0.95fr' },
-  iscritto: { label: 'Data iscrizione',    w: '1.05fr' },
-};
+// Non più un catalogo scritto qui: le colonne sono le PROPRIETÀ del contatto
+// (hub-data.jsx), le stesse su cui si filtra e su cui si costruisce un elenco.
+// Erano due elenchi separati che dicevano quasi le stesse cose, e ogni
+// proprietà nuova andava aggiunta due volte — con il rischio, ogni volta, di
+// poter filtrare per una cosa che non si può mostrare, o viceversa.
+// Quali colonne si vedono e in che ordine lo decide chi guarda («Modifica
+// colonne» + trascinamento delle intestazioni), e la scelta resta in
+// localStorage. «Contatto» è fissa: una rubrica senza l'identità non è una
+// lista, è un foglio di celle.
+const CNT_COLONNE = HUB_PROPRIETA.reduce((m, p) => {
+  if (p.colonna) m[p.id] = { label: p.colonna.label || p.label, w: p.colonna.w, fissa: !!p.colonna.fissa };
+  return m;
+}, {});
 const CNT_COLONNE_DEFAULT = ['nome', 'email', 'tipo', 'ciclo', 'piano', 'citta'];
-// v2: è entrata la colonna Piano — la chiave nuova fa ripartire tutti dal
-// default aggiornato invece di nasconderla a chi aveva già una disposizione.
-const CNT_COLONNE_KEY = 'adm_contatti_colonne_v2';
+// v3: le colonne ora escono dal catalogo delle proprietà e ce ne sono molte di
+// più — la chiave nuova fa ripartire tutti dal default aggiornato invece di
+// lasciarli con una disposizione che non conosce metà del listino.
+const CNT_COLONNE_KEY = 'adm_contatti_colonne_v3';
 
 // Il vestito del trascinamento: la barra d'inserimento entra con un mezzo
 // scatto (nascere di colpo sembra un glitch), e i puntini-maniglia si vedono
@@ -166,19 +167,26 @@ const CONTATTI = (() => {
     iscritto: u.dataRegistrazione,
   }));
 
+  // Le proprietà di marketing (referral, canale, consensi, interessi, ultima
+  // attività…) non stanno nei mock dell'anagrafica: si derivano qui, stabili
+  // sull'id, perché una rubrica che cambia valori a ogni ricarica non si può
+  // né leggere né filtrare. Vedi hubArricchisci in hub-data.jsx.
+  rows.forEach(hubArricchisci);
+
   return rows;
 })();
 
 function AdmContattiPage({ search, openContatto }) {
-  // TUTTI i filtri vivono nel pannello di «Aggiungi filtro», a SPUNTA e
-  // multipli: tipologia, regione, città. Dentro una dimensione le spunte si
-  // sommano in OR («Puglia e Campania»), tra dimensioni si intersecano in
-  // AND. Nessuna spunta = nessun filtro. La fila di tab in testa (Tutti ·
-  // Locali · …) diceva una dimensione sola con un'altra grammatica, ed è
-  // stata assorbita qui.
-  const [fTipi, setFTipi] = useStateCnt([]);
-  const [fRegioni, setFRegioni] = useStateCnt([]);
-  const [fCitta, setFCitta] = useStateCnt([]);
+  // I filtri sono una LISTA DI FRASI, non una griglia di spunte: proprietà,
+  // operatore, valore. «Referral è noto». «Data di creazione successiva al 3
+  // luglio 2026». Le spunte sapevano dire una cosa sola — «è una di queste
+  // voci» — e per tutto il resto non c'era grammatica.
+  // Vivono in un PANNELLO LATERALE, non in una tendina: comporre tre frasi
+  // dentro un popover da 250px non si riesce, e da lì i filtri restano in
+  // vista mentre la lista si accorcia sotto.
+  const [filtri, setFiltri] = useStateCnt([]);
+  const [pannelloAperto, setPannelloAperto] = useStateCnt(false);
+  const [colonneAperte, setColonneAperte] = useStateCnt(false);
   // L'ordinamento vive nelle INTESTAZIONI: si clicca la cima di una colonna e
   // la lista si ordina su quel campo; un secondo click inverte il verso.
   // A riposo è una rubrica: nomi in ordine alfabetico.
@@ -238,10 +246,7 @@ function AdmContattiPage({ search, openContatto }) {
   const effectiveSearch = (localSearch || search || '').trim();
 
   const filtered = useMemoCnt(() => {
-    let r = CONTATTI;
-    if (fTipi.length)        r = r.filter(c => fTipi.includes(CNT_TIPI[c.tipo].label));
-    if (fRegioni.length)     r = r.filter(c => fRegioni.includes(c.regione));
-    if (fCitta.length)       r = r.filter(c => fCitta.includes(c.citta));
+    let r = hubApplica(CONTATTI, filtri, null);
     if (effectiveSearch) {
       const q = effectiveSearch.toLowerCase();
       r = r.filter(c =>
@@ -257,33 +262,38 @@ function AdmContattiPage({ search, openContatto }) {
     // business → base → pro), non per alfabeto.
     const rangoCiclo = (c) => c.ciclo ? CNT_CICLO[c.ciclo].rango : 99;
     const rangoPiano = (c) => c.piano ? CNT_PIANI[c.piano].rango : 99;
-    const confronta = {
-      nome:     (a, b) => a.nome.localeCompare(b.nome),
-      email:    (a, b) => String(a.email || '').localeCompare(String(b.email || '')),
-      tipo:     (a, b) => CNT_TIPI[a.tipo].label.localeCompare(CNT_TIPI[b.tipo].label),
-      ciclo:    (a, b) => rangoCiclo(a) - rangoCiclo(b),
-      piano:    (a, b) => rangoPiano(a) - rangoPiano(b),
-      citta:    (a, b) => a.citta.localeCompare(b.citta),
-      iscritto: (a, b) => a.iscritto - b.iscritto,
+    // Le colonne particolari hanno il loro confronto; per tutte le altre —
+    // e ora sono tante, quante le proprietà — decide il TIPO della proprietà:
+    // i numeri come numeri, le date come date, il resto in ordine alfabetico.
+    const speciali = {
+      ciclo: (a, b) => rangoCiclo(a) - rangoCiclo(b),
+      piano: (a, b) => rangoPiano(a) - rangoPiano(b),
+      tipo:  (a, b) => CNT_TIPI[a.tipo].label.localeCompare(CNT_TIPI[b.tipo].label),
     };
-    const cmp = confronta[sort.campo] || confronta.nome;
+    const prop = HUB_PROP[sort.campo];
+    const generico = (a, b) => {
+      const va = hubLeggi(a, sort.campo), vb = hubLeggi(b, sort.campo);
+      if (prop && (prop.tipo === 'numero' || prop.tipo === 'valuta')) return (Number(va) || 0) - (Number(vb) || 0);
+      if (prop && prop.tipo === 'data') return new Date(va || 0) - new Date(vb || 0);
+      if (prop && prop.tipo === 'bool') return (va === true ? 1 : 0) - (vb === true ? 1 : 0);
+      if (prop && prop.tipo === 'multi') return (Array.isArray(va) ? va.length : 0) - (Array.isArray(vb) ? vb.length : 0);
+      return String(va == null ? '' : va).localeCompare(String(vb == null ? '' : vb));
+    };
+    const cmp = speciali[sort.campo] || generico;
     const segno = sort.verso === 'asc' ? 1 : -1;
     return [...r].sort((a, b) => {
-      // I trattini (email dei dispositivi, ciclo e piano di chi non li ha)
-      // stanno in fondo IN ENTRAMBI i versi — fuori dal segno: un trattino
-      // non è «prima della A» né «dopo la Z».
-      const vuoto = { email: c => c.email == null, ciclo: c => c.ciclo == null, piano: c => c.piano == null }[sort.campo];
-      if (vuoto && vuoto(a) !== vuoto(b)) return vuoto(a) ? 1 : -1;
+      // I trattini (una proprietà che quel contatto non ha) stanno in fondo IN
+      // ENTRAMBI i versi — fuori dal segno: un vuoto non è «prima della A» né
+      // «dopo la Z».
+      const va = hubLeggi(a, sort.campo), vb = hubLeggi(b, sort.campo);
+      const vuotoA = va == null || va === '' || (Array.isArray(va) && !va.length);
+      const vuotoB = vb == null || vb === '' || (Array.isArray(vb) && !vb.length);
+      if (vuotoA !== vuotoB) return vuotoA ? 1 : -1;
       // A parità (stessa tipologia, stesso stato) comanda il nome: l'ordine
       // deve essere lo stesso a ogni render, o le righe ballano sotto il mouse.
       return segno * cmp(a, b) || a.nome.localeCompare(b.nome);
     });
-  }, [fTipi, fRegioni, fCitta, effectiveSearch, sort]);
-
-  // Le due geografie escono dai contatti che ci sono davvero: una regione
-  // senza nessuno non deve comparire nella tendina.
-  const regioni = useMemoCnt(() => [...new Set(CONTATTI.map(c => c.regione))].filter(r => r && r !== '—').sort((a, b) => a.localeCompare(b)), []);
-  const cittaList = useMemoCnt(() => [...new Set(CONTATTI.map(c => c.citta))].filter(Boolean).sort((a, b) => a.localeCompare(b)), []);
+  }, [filtri, effectiveSearch, sort]);
 
   // Click sull'intestazione: nuova colonna → il suo verso naturale (i testi
   // dalla A, il ciclo dal lead in su, le date dalla più recente); stessa
@@ -336,47 +346,68 @@ function AdmContattiPage({ search, openContatto }) {
   return (
     <div style={{padding: 28, display: 'flex', flexDirection: 'column', gap: 16}}>
       <style>{CNT_CSS}</style>
+      <HubStile/>
+
+      <HubTestata
+        occhiello="CRM · Rubrica"
+        titolo="Contatti"
+        sotto="Locali, utenti staff e utenti app in un'unica rubrica. Filtra per qualunque proprietà, salva la vista come elenco."
+        azioni={
+          <React.Fragment>
+            <HubStrumento icona="layers" onClick={() => window.__hubNav && window.__hubNav('elenchi', { daFiltri: filtri })}
+              title="Trasforma questi filtri in un elenco che si aggiorna da solo">Salva come elenco</HubStrumento>
+            <HubStrumento forte icona="plus">Nuovo contatto</HubStrumento>
+          </React.Fragment>
+        }/>
+
       <AdmCard padding={0}>
         {/* La barra: ricerca a sinistra, gli STRUMENTI a destra — filtri e
             colonne configurano la vista, e i comandi di configurazione
             stanno dal lato dei comandi, non in mezzo alla strada. */}
         <div style={{padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${ADM.BORDER}`, flexWrap: 'wrap'}}>
-          <div style={{position: 'relative', display: 'flex', alignItems: 'center'}}>
-            <span style={{position: 'absolute', left: 10, color: ADM.MUTED, pointerEvents: 'none', display: 'inline-flex'}}>
-              <BuIcons.search size={18}/>
-            </span>
-            <input
-              value={localSearch}
-              onChange={e => setLocalSearch(e.target.value)}
-              placeholder="Cerca nome, email, locale, ID…"
-              style={{
-                padding: '7px 12px 7px 30px',
-                border: `1px solid ${ADM.BORDER}`, borderRadius: 7,
-                fontSize: 14, fontFamily: 'inherit',
-                width: 280, color: ADM.TEXT, background: '#fff',
-                outline: 'none',
-              }}
-            />
-            {localSearch && (
-              <button onClick={() => setLocalSearch('')} style={{
-                position: 'absolute', right: 6, background: 'transparent', border: 'none', cursor: 'pointer',
-                color: ADM.MUTED, padding: 4, display: 'inline-flex', borderRadius: 4,
-              }}><BuIcons.x size={17}/></button>
-            )}
-          </div>
-
+          <HubRicerca valore={localSearch} onCambia={setLocalSearch} placeholder="Cerca nome, email, locale, ID…"/>
           <div style={{flex: 1}}/>
-          <span style={{fontSize: 13.7, color: ADM.MUTED}}>{filtered.length} risultati</span>
-          <CntFiltri
-            gruppi={[
-              { id: 'tipo',    titolo: 'Tipologia contatto',
-                voci: Object.keys(CNT_TIPI).map(k => CNT_TIPI[k].label),
-                scelte: fTipi, cambia: setFTipi },
-              { id: 'regione', titolo: 'Regione', voci: regioni,   scelte: fRegioni, cambia: setFRegioni },
-              { id: 'citta',   titolo: 'Città',   voci: cittaList, scelte: fCitta,   cambia: setFCitta },
-            ]}/>
-          <CntColonne colonne={colonne} onCambia={cambiaColonne}/>
+          <span style={{fontSize: 13.7, color: ADM.MUTED}}>
+            <strong style={{color: ADM.TEXT, fontWeight: 700}}>{fmtNum(filtered.length)}</strong> contatti
+            {filtri.length > 0 && <span style={{color: ADM.MUTED_SOFT}}> su {fmtNum(CONTATTI.length)}</span>}
+          </span>
+          <HubStrumento icona="filter" acceso={filtri.length > 0} badge={filtri.length}
+            onClick={() => setPannelloAperto(true)}>Filtri</HubStrumento>
+          <HubStrumento icona="columns" onClick={() => setColonneAperte(true)}>Modifica colonne</HubStrumento>
         </div>
+
+        {/* I filtri applicati, in chiaro. Un filtro acceso che si vede solo
+            aprendo il pannello è un filtro che qualcuno dimenticherà acceso e
+            poi giurerà che «mancano dei contatti». */}
+        {filtri.length > 0 && (
+          <div style={{
+            padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap',
+            borderBottom: `1px solid ${ADM.BORDER}`, background: ADM.PINK_BG_SOFT,
+          }}>
+            <span style={{fontSize: 11.5, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.PINK_DARK, marginRight: 2}}>Filtri</span>
+            {filtri.map((f, i) => (
+              <button key={i} onClick={() => setPannelloAperto(true)}
+                title="Apri il pannello per modificarlo"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 5px 4px 10px',
+                  borderRadius: 999, border: `1px solid ${ADM.PINK_SOFT}`, background: '#fff',
+                  fontSize: 12.8, fontWeight: 600, color: ADM.TEXT, cursor: 'pointer', fontFamily: 'inherit',
+                }}>
+                {hubDescriviFiltro(f)}
+                <span onClick={e => { e.stopPropagation(); setFiltri(filtri.filter((_, j) => j !== i)); }}
+                  title="Togli questo filtro"
+                  style={{
+                    width: 17, height: 17, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                    background: ADM.PINK_SOFT, color: ADM.PINK_DARK, flexShrink: 0,
+                  }}><BuIcons.x size={11}/></span>
+              </button>
+            ))}
+            <button onClick={() => setFiltri([])} style={{
+              background: 'transparent', border: 'none', color: ADM.PINK_DARK, fontSize: 12.8,
+              fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: '4px 6px',
+            }}>Azzera tutto</button>
+          </div>
+        )}
 
         {/* Le colonne scelte, nell'ordine scelto. Ogni cima di colonna è il
             comando di ordinamento (click) E la maniglia di riordino
@@ -457,7 +488,7 @@ function AdmContattiPage({ search, openContatto }) {
                       left: bersaglio.dopo ? 'auto' : -2,
                       right: bersaglio.dopo ? -2 : 'auto',
                       width: 3, borderRadius: 99, background: ADM.PINK,
-                      boxShadow: '0 0 0 1px #fff, 0 2px 10px rgba(255,90,95,0.55)',
+                      boxShadow: '0 0 0 1px #fff, 0 2px 10px rgba(255,31,90,0.55)',
                       animation: 'cntBarraIn 0.12s ease',
                     }}/>
                   )}
@@ -467,7 +498,11 @@ function AdmContattiPage({ search, openContatto }) {
             <div></div>
           </div>
           <div>
-            {filtered.length === 0 && <AdmEmpty title="Nessun contatto trovato" desc="Modifica i filtri o cancella la ricerca"/>}
+            {filtered.length === 0 && (
+              <HubVuoto icona="filter" titolo="Nessun contatto con questi filtri"
+                desc="Allarga una condizione o togline una: il conteggio in cima ti dice quanti ne restano fuori."
+                azione={filtri.length > 0 ? <HubStrumento icona="x" onClick={() => setFiltri([])}>Azzera i filtri</HubStrumento> : null}/>
+            )}
             {filtered.map((c, i) => (
               <ContattoRow key={c.key} contatto={c} striped={i % 2 === 1}
                 colonne={colonne} griglia={griglia} trascinata={trascinata}
@@ -477,6 +512,29 @@ function AdmContattiPage({ search, openContatto }) {
         </div>
       </AdmCard>
 
+      {/* Il pannello dei filtri: entra da destra e resta lì mentre la lista si
+          accorcia sotto. Il conteggio in fondo si aggiorna mentre si compone —
+          si vede subito se una condizione ha svuotato tutto. */}
+      <HubPannello open={pannelloAperto} onClose={() => setPannelloAperto(false)}
+        icona="filter" titolo="Filtra i contatti"
+        sotto="Una condizione per riga. Si sommano tutte."
+        larghezza={420}
+        footer={
+          <React.Fragment>
+            <HubStrumento onClick={() => setFiltri([])}>Azzera</HubStrumento>
+            <div style={{flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 4}}>
+              <span style={{fontSize: 13.4, color: ADM.MUTED}}>
+                <strong style={{color: ADM.TEXT, fontWeight: 800}}>{fmtNum(filtered.length)}</strong> contatti
+              </span>
+            </div>
+            <HubStrumento forte icona="check" onClick={() => setPannelloAperto(false)}>Fatto</HubStrumento>
+          </React.Fragment>
+        }>
+        <HubFiltri righe={CONTATTI} includi={filtri} onIncludi={setFiltri}/>
+      </HubPannello>
+
+      <HubColonne open={colonneAperte} onClose={() => setColonneAperte(false)}
+        colonne={colonne} onSalva={cambiaColonne}/>
     </div>
   );
 }
@@ -528,7 +586,7 @@ function CntStrumento({ icona, acceso, badge, onClick, children }) {
         fontSize: 13.7, fontWeight: 600,
         color: acceso ? ADM.PINK_DARK : ADM.TEXT,
         background: acceso
-          ? (sopra ? '#FFD9D5' : ADM.PINK_BG_SOFT)
+          ? (sopra ? '#FFCBD8' : ADM.PINK_BG_SOFT)
           : (sopra ? '#F5F6F8' : '#fff'),
         boxShadow: premuto ? 'none'
           : sopra ? '0 2px 8px rgba(15,17,21,0.10)'
@@ -554,111 +612,13 @@ function CntStrumento({ icona, acceso, badge, onClick, children }) {
   );
 }
 
-// ─── Aggiungi filtro ────────────────────────────────────────────────────────
-// UN pulsante al posto della fila di tendine: si apre un pannello con i
-// filtri a SPUNTA, raggruppati per dimensione (Regione, Città), e si spunta
-// quello che serve — anche più voci insieme. Il conto dei filtri applicati
-// sta sul pulsante, nel tondino corallo in alto a destra: la barra non deve
-// crescere di una tendina per ogni dimensione nuova, e un filtro acceso non
-// deve mai essere invisibile.
-function CntFiltri({ gruppi }) {
-  const [aperto, setAperto] = useStateCnt(false);
-  const [sopra, setSopra] = useStateCnt(null);
-  const totale = gruppi.reduce((s, g) => s + g.scelte.length, 0);
-
-  React.useEffect(() => {
-    if (!aperto) return;
-    const chiudi = () => setAperto(false);
-    const onKey = (e) => { if (e.key === 'Escape') setAperto(false); };
-    window.addEventListener('pointerdown', chiudi);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('pointerdown', chiudi);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [aperto]);
-
-  const spunta = (g, voce) => g.cambia(
-    g.scelte.includes(voce) ? g.scelte.filter(v => v !== voce) : [...g.scelte, voce]
-  );
-
-  return (
-    <div style={{position: 'relative', display: 'inline-flex'}} onPointerDown={e => e.stopPropagation()}>
-      <CntStrumento icona="filter" acceso={totale > 0} badge={totale}
-        onClick={() => setAperto(a => !a)}>Aggiungi filtro</CntStrumento>
-
-      {aperto && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 120,
-          width: 250, padding: 6, borderRadius: 12,
-          background: '#fff', border: `1px solid ${ADM.BORDER}`,
-          boxShadow: '0 18px 44px -10px rgba(15,17,21,0.22)',
-          maxHeight: 400, overflowY: 'auto',
-        }}>
-          {gruppi.map(g => (
-            <div key={g.id}>
-              <div style={{
-                padding: '9px 10px 5px',
-                fontSize: 11, fontWeight: 700, color: ADM.MUTED_SOFT,
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}>{g.titolo}</div>
-              {g.voci.map(voce => {
-                const acceso = g.scelte.includes(voce);
-                const chiave = g.id + '|' + voce;
-                return (
-                  <button key={voce} type="button"
-                    onClick={() => spunta(g, voce)}
-                    onMouseEnter={() => setSopra(chiave)}
-                    onMouseLeave={() => setSopra(s => (s === chiave ? null : s))}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 9,
-                      width: '100%', textAlign: 'left',
-                      padding: '7px 10px', borderRadius: 8, border: 'none',
-                      background: sopra === chiave ? ADM.NEUTRAL_SOFT : 'transparent',
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      transition: 'background 0.1s ease',
-                    }}>
-                    {/* La spunta: quadratino vuoto a riposo, corallo pieno con
-                        il segno quando è accesa. */}
-                    <span style={{
-                      width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                      border: `1.5px solid ${acceso ? ADM.PINK : ADM.BORDER}`,
-                      background: acceso ? ADM.PINK : '#fff',
-                      display: 'grid', placeItems: 'center',
-                      transition: 'background 0.1s ease, border-color 0.1s ease',
-                    }}>
-                      {acceso && <BuIcons.check size={11} color="#fff"/>}
-                    </span>
-                    <span style={{
-                      flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap', fontSize: 13.5,
-                      fontWeight: acceso ? 600 : 500,
-                      color: acceso ? ADM.TEXT : ADM.TEXT,
-                    }}>{voce}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-
-          {/* La via d'uscita da tutti i filtri insieme: c'è solo quando ce
-              n'è almeno uno — a pannello pulito non promette niente. */}
-          {totale > 0 && (
-            <button type="button"
-              onClick={() => gruppi.forEach(g => g.cambia([]))}
-              style={{
-                display: 'block', width: '100%', textAlign: 'center',
-                marginTop: 6, padding: '8px 10px', borderRadius: 8,
-                border: 'none', background: ADM.PINK_BG_SOFT,
-                color: ADM.PINK_DARK, fontSize: 13, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>Azzera filtri ({totale})</button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+// I due componenti che stavano qui — «Aggiungi filtro» a spunte e «Modifica
+// colonne» a tendina — sono passati a hub-ui.jsx come HubFiltri e HubColonne,
+// e per strada hanno cambiato mestiere: le spunte sapevano dire una cosa sola
+// («è una di queste voci»), la tendina sapeva accendere e spegnere ma non
+// riordinare. Ora sono un pannello laterale con proprietà/operatore/valore e
+// una modale a due liste — e li montano anche gli Elenchi e il pubblico delle
+// campagne, che prima non avevano niente di simile.
 
 // La cima della colonna è un pulsante: si clicca e la lista si ordina su quel
 // campo, si riclicca e si inverte. L'icona c'è SEMPRE — è lei a dire che la
@@ -769,8 +729,43 @@ function CntCella({ id, c }) {
     const pianoDef = c.piano ? CNT_PIANI[c.piano] : null;
     return <div>{pianoDef ? <CntPillola color={pianoDef.color}>{pianoDef.label}</CntPillola> : tratto}</div>;
   }
-  if (id === 'iscritto') return <div style={testo}>{fmtDate(c.iscritto)}</div>;
-  return <div style={testo}>{c.citta}</div>;
+  // Tutte le altre colonne escono dal catalogo delle proprietà: il TIPO dice
+  // come si stampano. Una proprietà nuova aggiunta in hub-data.jsx compare in
+  // lista vestita bene, senza toccare questo file.
+  const prop = HUB_PROP[id];
+  const v = hubLeggi(c, id);
+  if (v == null || v === '' || (Array.isArray(v) && !v.length)) return <div>{tratto}</div>;
+  if (!prop) return <div style={testo}>{String(v)}</div>;
+
+  switch (prop.tipo) {
+    case 'data':
+      return <div style={testo}>{fmtDate(v)}</div>;
+    case 'valuta':
+      return <div style={Object.assign({}, testo, {fontVariantNumeric: 'tabular-nums'})}>{fmtEur(v)}</div>;
+    case 'numero':
+      return <div style={Object.assign({}, testo, {fontVariantNumeric: 'tabular-nums'})}>{fmtNum(v)}</div>;
+    case 'bool':
+      return <div><CntPillola color={v ? 'OK' : 'PLAN_FREE'}>{v ? 'Sì' : 'No'}</CntPillola></div>;
+    case 'multi': {
+      // Due voci per esteso, il resto in un «+n»: la colonna deve restare
+      // scorrevole anche su chi ha spuntato tutto.
+      const l = v.map(x => hubEtichettaOpzione(prop, x));
+      return (
+        <div style={{display: 'flex', alignItems: 'center', gap: 4, minWidth: 0}}>
+          {l.slice(0, 2).map(x => <CntPillola key={x} color="TEAL">{x}</CntPillola>)}
+          {l.length > 2 && <span style={{fontSize: 12.5, fontWeight: 700, color: ADM.MUTED_SOFT}}>+{l.length - 2}</span>}
+        </div>
+      );
+    }
+    case 'elenco':
+      return <div style={testo}>{hubEtichettaOpzione(prop, v)}</div>;
+    default:
+      return (
+        <div style={{minWidth: 0}}>
+          <span style={Object.assign({}, testo, {whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block'})}>{String(v)}</span>
+        </div>
+      );
+  }
 }
 
 function ContattoRow({ contatto: c, colonne, griglia, trascinata, onClick, striped }) {
@@ -799,85 +794,6 @@ function ContattoRow({ contatto: c, colonne, griglia, trascinata, onClick, strip
       <div style={{textAlign: 'right', color: ADM.MUTED}}>
         <span className="adm-row-chev"><BuIcons.chevronRight size={20}/></span>
       </div>
-    </div>
-  );
-}
-
-// ─── Modifica colonne ───────────────────────────────────────────────────────
-// Il catalogo delle sei colonne con le spunte: cosa si vede lo decide chi
-// guarda. «Contatto» resta accesa e basta — è l'identità della riga. Le
-// colonne riaccese entrano in coda; il posto giusto glielo si dà poi
-// trascinando la sua intestazione.
-function CntColonne({ colonne, onCambia }) {
-  const [aperto, setAperto] = useStateCnt(false);
-  const [sopra, setSopra] = useStateCnt(null);
-
-  React.useEffect(() => {
-    if (!aperto) return;
-    const chiudi = () => setAperto(false);
-    const onKey = (e) => { if (e.key === 'Escape') setAperto(false); };
-    window.addEventListener('pointerdown', chiudi);
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('pointerdown', chiudi);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [aperto]);
-
-  const commuta = (id) => {
-    if (CNT_COLONNE[id].fissa) return;
-    onCambia(colonne.includes(id) ? colonne.filter(x => x !== id) : [...colonne, id]);
-  };
-
-  return (
-    <div style={{position: 'relative', display: 'inline-flex'}} onPointerDown={e => e.stopPropagation()}>
-      <CntStrumento icona="table" onClick={() => setAperto(a => !a)}>Modifica colonne</CntStrumento>
-
-      {aperto && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 120,
-          width: 240, padding: 6, borderRadius: 12,
-          background: '#fff', border: `1px solid ${ADM.BORDER}`,
-          boxShadow: '0 18px 44px -10px rgba(15,17,21,0.22)',
-        }}>
-          {Object.keys(CNT_COLONNE).map(id => {
-            const def = CNT_COLONNE[id];
-            const accesa = colonne.includes(id);
-            return (
-              <button key={id} type="button"
-                onClick={() => commuta(id)}
-                onMouseEnter={() => setSopra(id)}
-                onMouseLeave={() => setSopra(s => (s === id ? null : s))}
-                disabled={def.fissa}
-                title={def.fissa ? 'L\'identità del contatto non si nasconde' : undefined}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 9,
-                  width: '100%', textAlign: 'left',
-                  padding: '7px 10px', borderRadius: 8, border: 'none',
-                  background: sopra === id && !def.fissa ? ADM.NEUTRAL_SOFT : 'transparent',
-                  cursor: def.fissa ? 'default' : 'pointer', fontFamily: 'inherit',
-                  opacity: def.fissa ? 0.55 : 1,
-                  transition: 'background 0.1s ease',
-                }}>
-                <span style={{
-                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                  border: `1.5px solid ${accesa ? ADM.PINK : ADM.BORDER}`,
-                  background: accesa ? ADM.PINK : '#fff',
-                  display: 'grid', placeItems: 'center',
-                }}>
-                  {accesa && <BuIcons.check size={11} color="#fff"/>}
-                </span>
-                <span style={{flex: 1, fontSize: 13.5, fontWeight: accesa ? 600 : 500, color: ADM.TEXT}}>{def.label}</span>
-              </button>
-            );
-          })}
-          <div style={{
-            margin: '6px 4px 4px', padding: '8px 6px 2px',
-            borderTop: `1px solid ${ADM.BORDER_SOFT}`,
-            fontSize: 11.8, color: ADM.MUTED_SOFT, lineHeight: 1.45,
-          }}>Trascina le intestazioni per riordinare le colonne</div>
-        </div>
-      )}
     </div>
   );
 }

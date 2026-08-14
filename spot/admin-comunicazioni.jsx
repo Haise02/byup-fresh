@@ -1,4 +1,4 @@
-// Ticket — inbox unificata Byup Spot
+// Ticket — inbox unificata Hubble
 // La sezione si chiama Ticket in interfaccia: quello che arriva qui non è
 // posta da leggere, è una pratica che si apre, si assegna e si chiude. Gli
 // identificatori interni (rotta, componente, file) restano «comunicazioni».
@@ -873,13 +873,13 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                   <button onClick={handleSend} disabled={!reply.trim()} style={{
                     display:'inline-flex', alignItems:'center', gap:6,
                     padding:'8px 14px',
-                    background: !reply.trim() ? '#E5E7EB' : 'linear-gradient(135deg, #FF5A5F, #E04347)',
+                    background: !reply.trim() ? '#E5E7EB' : 'linear-gradient(135deg, #FF1F5A, #C40B45)',
                     color:'#fff', border:'none', borderRadius:8,
                     fontSize:14, fontWeight:700,
                     cursor: !reply.trim() ? 'not-allowed' : 'pointer',
                     fontFamily:'inherit', letterSpacing:'-0.005em',
                     whiteSpace:'nowrap',
-                    boxShadow: !reply.trim() ? 'none' : '0 4px 12px -4px rgba(255,90,95,0.55)',
+                    boxShadow: !reply.trim() ? 'none' : '0 4px 12px -4px rgba(255,31,90,0.55)',
                     transition:'all 0.15s',
                   }}>
                     <BuIcons.send size={17}/>

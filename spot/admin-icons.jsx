@@ -1,4 +1,4 @@
-// Icon set for byup Spot Admin — paths-only, single Icon component
+// Icone di Hubble — paths-only, single Icon component
 
 const ICON_PATHS = {
   home:          'M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2v-9z',
@@ -62,6 +62,41 @@ const ICON_PATHS = {
   trash:         'M4 7h16|M10 4h4a1 1 0 0 1 1 1v2H9V5a1 1 0 0 1 1-1z|M6.5 7l.9 12.1a2 2 0 0 0 2 1.9h5.2a2 2 0 0 0 2-1.9L17.5 7|M10.5 11v6M13.5 11v6',
   thumbUp:       'M7.5 21V10.2l4.6-6.6a1.9 1.9 0 0 1 3.3 1.7L14.5 10h4.7a2 2 0 0 1 2 2.3l-1.1 6.9a2.4 2.4 0 0 1-2.4 2H7.5z|M7.5 10.2H4.4a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h3.1',
   thumbDown:     'M16.5 3v10.8l-4.6 6.6a1.9 1.9 0 0 1-3.3-1.7L9.5 14H4.8a2 2 0 0 1-2-2.3l1.1-6.9A2.4 2.4 0 0 1 6.3 3h10.2z|M16.5 13.8h3.1a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1h-3.1',
+
+  // ─── Hubble: CRM, marketing, automazioni ─────────────────────────────────
+  grid:          'rect:3,3,7.5,7.5,2|rect:13.5,3,7.5,7.5,2|rect:3,13.5,7.5,7.5,2|rect:13.5,13.5,7.5,7.5,2',
+  layers:        'M12 3l9 5-9 5-9-5 9-5z|M3 13l9 5 9-5|M3 17.5l9 5 9-5',
+  segment:       'circle:12,12,9|M12 3v9l7 4.5',
+  bolt:          'M13.5 2L4 13.5h6.5L10 22l9.5-11.5H13L13.5 2z',
+  wand:          'M4 20L16.5 7.5|M14.5 5.5l4 4|M6 3v3M4.5 4.5h3|M18 15v2.5M16.75 16.25h2.5',
+  sparkles:      'M11 3l1.8 4.7L17.5 9.5l-4.7 1.8L11 16l-1.8-4.7L4.5 9.5l4.7-1.8L11 3z|M18 14l.9 2.35L21.25 17.25l-2.35.9L18 20.5l-.9-2.35L14.75 17.25l2.35-.9L18 14z',
+  robot:         'rect:4,8,16,12,3|M12 4v4|circle:12,3,1.5,fill|circle:9,13,1.2,fill|circle:15,13,1.2,fill|M9.5 17h5',
+  flow:          'rect:2.5,4,6,5,1.5|rect:15.5,4,6,5,1.5|rect:9,15,6,5,1.5|M5.5 9v3.5h13V9|M12 12.5V15',
+  branch:        'circle:6,5,2.5|circle:6,19,2.5|circle:18,12,2.5|M6 7.5v9|M8.5 5h4a3 3 0 0 1 3 3v1.5|M8.5 19h4a3 3 0 0 0 3-3v-1.5',
+  play:          'M7 4.5l12 7.5-12 7.5V4.5z',
+  target:        'circle:12,12,9|circle:12,12,5|circle:12,12,1.3,fill',
+  globe:         'circle:12,12,9|M3 12h18|M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z',
+  tag:           'M3 11.5V4a1 1 0 0 1 1-1h7.5a1 1 0 0 1 .7.3l8 8a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0l-8-8a1 1 0 0 1-.3-.7z|circle:7.5,7.5,1.6',
+  sliders:       'M4 6h10M18 6h2|M4 12h4M12 12h8|M4 18h10M18 18h2|circle:16,6,2|circle:10,12,2|circle:16,18,2',
+  columns:       'rect:3,4,18,16,2|M9 4v16M15 4v16',
+  upload:        'M12 20V8M7 13l5-5 5 5|M4 4h16',
+  refresh:       'M20 11a8 8 0 1 0-.6 4|M20 5v6h-6',
+  code:          'M8.5 8L4 12l4.5 4|M15.5 8l4.5 4-4.5 4|M13.5 5l-3 14',
+  type:          'M5 6h14M12 6v13M9 19h6',
+  paint:         'M12 3a9 9 0 0 0 0 18c1 0 1.6-.7 1.6-1.5 0-.4-.2-.8-.5-1.1-.3-.3-.4-.6-.4-1 0-.8.7-1.4 1.5-1.4H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8z|circle:7.5,10.5,1.2,fill|circle:11,7,1.2,fill|circle:15.5,8.5,1.2,fill',
+  cursorClick:   'M9 3v4M4.2 4.2l2.8 2.8M3 9h4|M12.5 12.5l8.5 3-3.6 1.4L15.9 21z',
+  smartphone:    'rect:6,2,12,20,3|M10.5 18.5h3',
+  split:         'M6 4v6a4 4 0 0 0 4 4h8|M6 20v-6|M15 11l3 3-3 3',
+  hourglass:     'M6 3h12M6 21h12|M8 3v3.5c0 2 4 3.5 4 5.5s-4 3.5-4 5.5V21|M16 3v3.5c0 2-4 3.5-4 5.5s4 3.5 4 5.5V21',
+  gauge:         'M4 18a9 9 0 1 1 16 0|M12 14l4-4|circle:12,15,1.6,fill',
+  bookmark:      'M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z',
+  arrowRight:    'M4 12h15M13 6l6 6-6 6',
+  arrowLeft:     'M20 12H5M11 6l-6 6 6 6',
+  gripDots:      'circle:9,5,1.4,fill|circle:15,5,1.4,fill|circle:9,12,1.4,fill|circle:15,12,1.4,fill|circle:9,19,1.4,fill|circle:15,19,1.4,fill',
+  externalLink:  'M14 4h6v6|M20 4l-9 9|M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5',
+  save:          'M5 3h11l3 3v15H5V3z|M8 3v6h7V3|M8 14h8v7H8v-7z',
+  archive:       'rect:3,4,18,4,1|M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8|M10 12h4',
+  users3:        'circle:8,8,3|M2 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5|circle:17,9,2.4|M15.5 14.8c3 .2 5.5 2.2 5.5 5.2',
 };
 
 // ─── Icone PIENE per la sidebar (stile gestionale). fill=colore, niente stroke;
@@ -105,6 +140,55 @@ const ICON_FILLED = {
   // «qualcuno dall'altra parte che risponde». Cinque forme che si uniscono per
   // sovrapposizione: archetto, due padiglioni, braccio e capsula.
   headsetFill: 'M2.4 13.6A9.6 9.6 0 0 1 21.6 13.6H19.8A7.8 7.8 0 0 0 4.2 13.6Z|M2.4 14.2a2.5 2.5 0 0 1 5 0v3.2a2.5 2.5 0 0 1-5 0z|M16.6 14.2a2.5 2.5 0 0 1 5 0v3.2a2.5 2.5 0 0 1-5 0z|M19.1 18.6h2.5v1.6a2.3 2.3 0 0 1-2.3 2.3h-4a1.25 1.25 0 0 1 0-2.5h2.55a1.25 1.25 0 0 0 1.25-1.25z|M15.3 19.3a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8z',
+
+  // ─── Hubble ────────────────────────────────────────────────────────────────
+  // Le voci nuove della nav. Stessa famiglia: forme piene, nessuno stroke, i
+  // dettagli interni sono FORI (evenodd) nello stesso tracciato — un pallino
+  // bianco sovrapposto si vedrebbe sul fondo rosa della voce attiva.
+
+  // Dashboard: quattro riquadri di misure diverse — una PANORAMICA fatta di
+  // widget, non un grafico. Il grafico a barre è già di Analisi Dati, e due
+  // sezioni contigue con la stessa icona sono due sezioni indistinguibili.
+  gridFill: 'rect:2.6,2.6,9,9,2.2|rect:13.8,2.6,7.6,5.4,1.9|rect:13.8,10.2,7.6,11.2,2.2|rect:2.6,13.8,9,7.6,2.2',
+
+  // Elenchi: tre righe con il pallino di spunta a sinistra. È una LISTA di
+  // contatti, e la lista si riconosce dai suoi elementi in fila.
+  listFill: 'circle:4.6,6.3,2.1|rect:9.2,4.7,12.2,3.2,1.6|circle:4.6,12,2.1|rect:9.2,10.4,12.2,3.2,1.6|circle:4.6,17.7,2.1|rect:9.2,16.1,12.2,3.2,1.6',
+
+  // Mail: corpo e lembo, due forme che si incastrano. La V del lembo è il
+  // profilo del corpo, non una linea disegnata sopra.
+  mailFill: 'M2.6 7.75 11.35 13.6a1.15 1.15 0 0 0 1.3 0l8.75-5.85V17.1a2.6 2.6 0 0 1-2.6 2.6H5.2a2.6 2.6 0 0 1-2.6-2.6z|M5.2 4.3h13.6a2.6 2.6 0 0 1 2.5 1.9L12 12.4 2.7 6.2a2.6 2.6 0 0 1 2.5-1.9z',
+
+  // SMS: la nuvoletta con i tre puntini bucati dentro. La nuvoletta liscia
+  // (chatFill) è già dell'Assistenza: qui i puntini dicono «messaggio scritto».
+  smsFill: 'M12 3.1c5.3 0 9.6 3.5 9.6 7.9 0 4.35-4.3 7.9-9.6 7.9-.92 0-1.82-.11-2.67-.31-1.58 1.2-3.55 1.96-5.32 1.96a.62.62 0 0 1-.45-1.05c.83-.87 1.4-1.9 1.65-2.98A8.1 8.1 0 0 1 2.4 11c0-4.4 4.3-7.9 9.6-7.9zM7.7 9.6a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8zm4.3 0a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8zm4.3 0a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8z',
+
+  // Push: campanella piena e battacchio staccato. È la notifica che ARRIVA,
+  // non la campanella delle notifiche di sistema (tolta dall'header).
+  bellFill: 'M12 2a6.8 6.8 0 0 0-6.8 6.8c0 4.3-.93 6.06-1.9 7.24A1.06 1.06 0 0 0 4.12 17.8h15.76a1.06 1.06 0 0 0 .82-1.76c-.97-1.18-1.9-2.94-1.9-7.24A6.8 6.8 0 0 0 12 2z|M9.5 19.3h5a2.5 2.5 0 0 1-5 0z',
+
+  // Form: foglio con l'orecchia piegata e i campi bucati dentro. La riga corta
+  // in fondo è il campo ancora da compilare.
+  formFill: 'M6.2 2h8a1.1 1.1 0 0 1 .78.32l5 5a1.1 1.1 0 0 1 .32.78V20a2.2 2.2 0 0 1-2.2 2.2H6.2A2.2 2.2 0 0 1 4 20V4.2A2.2 2.2 0 0 1 6.2 2zm2.1 9.2a1 1 0 0 0 0 2h7.4a1 1 0 0 0 0-2zm0 4.2a1 1 0 0 0 0 2h4.4a1 1 0 0 0 0-2z|M14.9 2.5 20.5 8.1h-4.5a1.1 1.1 0 0 1-1.1-1.1z',
+
+  // Workflow: due nodi in cima, uno in fondo, e i rami che li uniscono. Il
+  // disegno DICE la biforcazione — è quello che un workflow fa.
+  flowFill: 'rect:1.6,3.4,8,5.2,1.8|rect:14.4,3.4,8,5.2,1.8|rect:8,15.4,8,5.2,1.8|M4.75 8.6h1.7v2.55h11.1V8.6h1.7v3.4a1.05 1.05 0 0 1-1.05 1.05h-4.9v2.35h-1.7V13.05h-4.9A1.05 1.05 0 0 1 4.75 12z',
+
+  // Agent: la scintilla a quattro punte, grande e piccola. Non un robot: gli
+  // agenti qui non sono automi, sono lavoro che si fa da sé.
+  sparkFill: 'M10.2 2.2a.75.75 0 0 1 1.42 0l1.63 4.42a2 2 0 0 0 1.18 1.18l4.42 1.63a.75.75 0 0 1 0 1.42l-4.42 1.63a2 2 0 0 0-1.18 1.18l-1.63 4.42a.75.75 0 0 1-1.42 0l-1.63-4.42a2 2 0 0 0-1.18-1.18l-4.42-1.63a.75.75 0 0 1 0-1.42l4.42-1.63a2 2 0 0 0 1.18-1.18z|M18.1 15.1a.6.6 0 0 1 1.14 0l.72 1.94a1.4 1.4 0 0 0 .83.83l1.94.72a.6.6 0 0 1 0 1.14l-1.94.72a1.4 1.4 0 0 0-.83.83l-.72 1.94a.6.6 0 0 1-1.14 0l-.72-1.94a1.4 1.4 0 0 0-.83-.83l-1.94-.72a.6.6 0 0 1 0-1.14l1.94-.72a1.4 1.4 0 0 0 .83-.83z',
+
+  // Domini: globo con i paralleli cavati dentro. Il dominio è l'indirizzo con
+  // cui la piattaforma si presenta al mondo.
+  globeFill: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM9.85 4.4a15.6 15.6 0 0 0-1.6 5.5H4.3a7.8 7.8 0 0 1 5.55-5.5zM12 4.05c.83 0 2.02 2.13 2.5 5.85h-5c.48-3.72 1.67-5.85 2.5-5.85zm2.15.35a7.8 7.8 0 0 1 5.55 5.5h-3.95a15.6 15.6 0 0 0-1.6-5.5zM4.05 11.9h4.05c.05 1.42.2 2.77.45 4H4.68a7.85 7.85 0 0 1-.63-4zm6.05 0h3.8a20 20 0 0 1-.48 4h-2.84a20 20 0 0 1-.48-4zm5.8 0h4.05a7.85 7.85 0 0 1-.63 4h-3.87c.25-1.23.4-2.58.45-4zM5.75 17.9h2.83c.36 1.24.83 2.3 1.37 3.1a7.83 7.83 0 0 1-4.2-3.1zm4.92 0h2.66c-.5 1.75-1.2 2.95-1.33 2.95s-.83-1.2-1.33-2.95zm4.75 0h2.83a7.83 7.83 0 0 1-4.2 3.1c.54-.8 1.01-1.86 1.37-3.1z',
+
+  // Proprietà: il cartellino con il foro. Una proprietà è un'etichetta che si
+  // appende a un contatto.
+  tagFill: 'M3.2 4.4a1.4 1.4 0 0 1 1.4-1.4h6.9a1.4 1.4 0 0 1 1 .41l9.1 9.1a1.4 1.4 0 0 1 0 1.98l-6.9 6.9a1.4 1.4 0 0 1-1.98 0l-9.1-9.1a1.4 1.4 0 0 1-.42-1zM8 6.15a1.85 1.85 0 1 0 0 3.7 1.85 1.85 0 0 0 0-3.7z',
+
+  // Impostazioni: la ruota dentata con il mozzo bucato.
+  gearFill: 'M10.35 1.8h3.3a1.1 1.1 0 0 1 1.08.9l.3 1.63c.55.2 1.07.5 1.53.87l1.56-.55a1.1 1.1 0 0 1 1.32.5l1.65 2.86a1.1 1.1 0 0 1-.24 1.39l-1.26 1.08a6.9 6.9 0 0 1 0 1.76l1.26 1.08a1.1 1.1 0 0 1 .24 1.39l-1.65 2.86a1.1 1.1 0 0 1-1.32.5l-1.56-.55c-.46.37-.98.67-1.53.87l-.3 1.63a1.1 1.1 0 0 1-1.08.9h-3.3a1.1 1.1 0 0 1-1.08-.9l-.3-1.63a6.9 6.9 0 0 1-1.53-.87l-1.56.55a1.1 1.1 0 0 1-1.32-.5L2.81 15.2a1.1 1.1 0 0 1 .24-1.39l1.26-1.08a6.9 6.9 0 0 1 0-1.76L3.05 9.89a1.1 1.1 0 0 1-.24-1.39l1.65-2.86a1.1 1.1 0 0 1 1.32-.5l1.56.55c.46-.37.98-.67 1.53-.87l.3-1.63a1.1 1.1 0 0 1 1.08-.9zM12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2z',
 };
 
 function renderIconParts(spec) {
@@ -125,9 +209,24 @@ const BuIcons = new Proxy({}, {
   get(_, name) {
     const fspec = ICON_FILLED[name];
     if (fspec) {
+      // Le icone piene accettano anche `rect:` e `circle:` come quelle di
+      // contorno: un riquadro arrotondato scritto a mano in comandi d'arco è
+      // illeggibile e si sbaglia di un decimo senza accorgersene. I FORI
+      // restano appannaggio dei `path` con evenodd — un cerchio separato si
+      // stamperebbe sopra, non sotto.
       return ({ size = 21, color = 'currentColor' }) => (
         <svg viewBox="0 0 24 24" width={size} height={size} fill={color} style={{display:'inline-block', flexShrink:0, verticalAlign:'middle'}}>
-          {fspec.split('|').map((d, i) => <path key={i} d={d} fillRule="evenodd" clipRule="evenodd"/>)}
+          {fspec.split('|').map((seg, i) => {
+            if (seg.startsWith('circle:')) {
+              const [cx, cy, r] = seg.slice(7).split(',');
+              return <circle key={i} cx={cx} cy={cy} r={r}/>;
+            }
+            if (seg.startsWith('rect:')) {
+              const [x, y, w, h, rx] = seg.slice(5).split(',');
+              return <rect key={i} x={x} y={y} width={w} height={h} rx={rx || 0}/>;
+            }
+            return <path key={i} d={seg} fillRule="evenodd" clipRule="evenodd"/>;
+          })}
         </svg>
       );
     }

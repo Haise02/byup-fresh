@@ -1,0 +1,1189 @@
+// Hubble · Marketing — Mail, SMS, Push, Form.
+//
+// «Promozioni» era una sezione sola con tre tab dentro: broadcast, workflow
+// email, campagne di acquisizione. Andava bene finché il marketing era una
+// cosa che si faceva ogni tanto. Ora i canali sono quattro, ognuno con il suo
+// storico, le sue statistiche e il suo modo di costruire un materiale — e
+// stanno a pari livello nel menu, raggiungibili in un colpo dal flyout.
+//
+// Ogni pagina fa le stesse quattro cose, nello stesso ordine: dice come sta
+// andando il canale (i riquadri in cima), elenca quello che è già stato fatto,
+// lascia aprire un pezzo per vederne i numeri, e lascia crearne uno nuovo.
+
+const { useState: useStateMk, useMemo: useMemoMk } = React;
+
+// ─── Pezzi condivisi ────────────────────────────────────────────────────────
+
+// La percentuale di un tasso, scritta come si legge: «56,1%».
+const mkPc = (a, b) => b > 0 ? (a / b * 100).toFixed(1).replace('.', ',') + '%' : '—';
+
+// Il nome dell'elenco usato come pubblico, o la frase che dice che non ce n'è.
+function mkPubblicoLabel(id) {
+  if (!id) return 'Nessun pubblico scelto';
+  const e = HUB_ELENCHI.find(x => x.id === id);
+  return e ? e.nome : id;
+}
+function mkPubblicoConta(id) {
+  const e = HUB_ELENCHI.find(x => x.id === id);
+  return e ? elMembri(e) : 0;
+}
+
+// Il selettore del pubblico: o un elenco già fatto, o dei criteri scritti al
+// volo. Sono la stessa cosa — la seconda è la prima senza il nome — e infatti
+// il pannello dei filtri è lo stesso di Contatti.
+function MktPubblico({ elencoId, onElenco, filtri, onFiltri }) {
+  const [modo, setModo] = useStateMk(filtri && filtri.length ? 'filtri' : 'elenco');
+  const conta = modo === 'elenco' ? mkPubblicoConta(elencoId) : hubApplica(CONTATTI, filtri, null).length;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 13, flexWrap: 'wrap' }}>
+        <HubSegmenti attivo={modo} onCambia={setModo} voci={[
+          { id: 'elenco', label: 'Un elenco' }, { id: 'filtri', label: 'Criteri al volo' },
+        ]}/>
+        <div style={{ flex: 1 }}/>
+        <span style={{ fontSize: 13.6, color: ADM.MUTED }}>
+          <strong style={{ color: ADM.TEXT, fontWeight: 800, fontSize: 15 }}>{fmtNum(conta)}</strong> destinatari
+        </span>
+      </div>
+
+      {modo === 'elenco' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 9 }}>
+          {HUB_ELENCHI.map(e => {
+            const on = elencoId === e.id;
+            const t = EL_TIPI[e.tipo];
+            return (
+              <button key={e.id} onClick={() => onElenco(e.id)} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10, textAlign: 'left', padding: 12,
+                borderRadius: 11, cursor: 'pointer', fontFamily: 'inherit',
+                border: `1.5px solid ${on ? ADM.PINK : ADM.BORDER}`,
+                background: on ? ADM.PINK_BG_SOFT : '#fff',
+              }}>
+                <span style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center',
+                  background: on ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: on ? ADM.PINK : ADM[t.color],
+                }}>{React.createElement(BuIcons[t.icona], { size: 14 })}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 13.6, fontWeight: 700, color: on ? ADM.PINK_DARK : ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.nome}</span>
+                  <span style={{ display: 'block', fontSize: 12.2, color: ADM.MUTED, marginTop: 2 }}>{fmtNum(elMembri(e))} contatti · {t.label.toLowerCase()}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div style={{ padding: 14, border: `1px solid ${ADM.BORDER}`, borderRadius: 12, background: ADM.PANEL_SOFT }}>
+          <HubFiltri righe={CONTATTI} includi={filtri || []} onIncludi={onFiltri}/>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// La barra dei passi in cima a una creazione. Numerata: dice quanti sono, a
+// che punto siamo, e lascia tornare indietro senza perdere quello che si è
+// scritto — un percorso a senso unico si abbandona alla prima esitazione.
+function MktPassi({ passi, attivo, onVai }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+      {passi.map((p, i) => {
+        const fatto = i < attivo, on = i === attivo;
+        return (
+          <React.Fragment key={p}>
+            {i > 0 && <span style={{ width: 22, height: 1.5, background: fatto || on ? ADM.PINK_SOFT : ADM.BORDER, flexShrink: 0 }}/>}
+            <button onClick={() => onVai(i)} disabled={i > attivo} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px 6px 7px',
+              borderRadius: 999, border: `1px solid ${on ? ADM.PINK : 'transparent'}`,
+              background: on ? ADM.PINK_BG_SOFT : fatto ? '#fff' : 'transparent',
+              cursor: i > attivo ? 'default' : 'pointer', fontFamily: 'inherit',
+              opacity: i > attivo ? 0.5 : 1,
+            }}>
+              <span style={{
+                width: 21, height: 21, borderRadius: '50%', display: 'grid', placeItems: 'center', flexShrink: 0,
+                background: on ? ADM.PINK : fatto ? ADM.OK : ADM.NEUTRAL_SOFT,
+                color: on || fatto ? '#fff' : ADM.MUTED, fontSize: 11.5, fontWeight: 800,
+              }}>{fatto ? <BuIcons.check size={12}/> : i + 1}</span>
+              <span style={{ fontSize: 13.4, fontWeight: on ? 700 : 600, color: on ? ADM.PINK_DARK : ADM.TEXT }}>{p}</span>
+            </button>
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+// Un riquadro di statistica con la barra sotto: valore assoluto, percentuale
+// sul consegnato, e quanto pesa rispetto al massimo della riga.
+function MktStat({ label, valore, base, color = 'PINK', sotto }) {
+  return (
+    <div style={{ background: '#fff', border: `1px solid ${ADM.BORDER}`, borderRadius: 12, padding: '13px 15px', boxShadow: ADM.CARD_SHADOW }}>
+      <div style={{ fontSize: 11.3, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '7px 0 9px' }}>
+        <span style={{ fontSize: 25, fontWeight: 800, letterSpacing: '-0.03em', color: ADM.TEXT, lineHeight: 1 }}>{fmtNum(valore)}</span>
+        {base > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: ADM[color] }}>{mkPc(valore, base)}</span>}
+      </div>
+      <HubBarra valore={valore} max={base || 1} color={color} altezza={5}/>
+      {sotto && <div style={{ fontSize: 12.2, color: ADM.MUTED, marginTop: 7 }}>{sotto}</div>}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIL
+// ═══════════════════════════════════════════════════════════════════════════
+
+function HubMailPage() {
+  const [vista, setVista] = useStateMk('tutte');
+  const [cerca, setCerca] = useStateMk('');
+  const [aperta, setAperta] = useStateMk(null);
+  const [nuova, setNuova] = useStateMk(false);
+
+  const lista = useMemoMk(() => {
+    let r = HUB_MAIL.slice();
+    if (vista === 'normale') r = r.filter(m => m.tipo === 'normale');
+    if (vista === 'automatica') r = r.filter(m => m.tipo === 'automatica');
+    const q = cerca.trim().toLowerCase();
+    if (q) r = r.filter(m => (m.nome + ' ' + m.oggetto).toLowerCase().includes(q));
+    return r;
+  }, [vista, cerca]);
+
+  if (nuova) return <HubMailComposer onChiudi={() => setNuova(false)}/>;
+  if (aperta) return <HubMailDettaglio mail={aperta} onChiudi={() => setAperta(null)}/>;
+
+  const inviate = HUB_MAIL.filter(m => m.stato === 'inviata');
+  const totDest = inviate.reduce((s, m) => s + m.consegnate, 0);
+  const totAperte = inviate.reduce((s, m) => s + m.aperte, 0);
+  const totClick = inviate.reduce((s, m) => s + m.click, 0);
+
+  const colonne = [
+    { id: 'nome',      label: 'Campagna',    w: 'minmax(0,2.4fr)' },
+    { id: 'stato',     label: 'Stato',       w: '1.05fr' },
+    { id: 'pubblico',  label: 'Pubblico',    w: '1.5fr', ordinabile: false },
+    { id: 'dest',      label: 'Inviate',     w: '0.85fr', destra: true },
+    { id: 'aperture',  label: 'Aperture',    w: '0.9fr',  destra: true },
+    { id: 'click',     label: 'Click',       w: '0.9fr',  destra: true },
+    { id: 'quando',    label: 'Quando',      w: '1.15fr' },
+  ];
+
+  const cella = (id, m) => {
+    if (id === 'nome') return (
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 14.3, fontWeight: 700, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</div>
+        <div style={{ fontSize: 12.5, color: ADM.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ color: ADM.MUTED_SOFT }}>Oggetto:</span> {m.oggetto}
+        </div>
+      </div>
+    );
+    if (id === 'stato') return <HubStato stato={m.stato} mappa={HUB_STATI_INVIO}/>;
+    if (id === 'pubblico') return m.trigger
+      ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <BuIcons.bolt size={13} color={ADM.HUB_VIOLA}/>
+          <span style={{ fontSize: 12.8, color: ADM.MUTED, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.trigger}</span>
+        </span>
+      : <span style={{ fontSize: 13.2, color: m.pubblico ? ADM.TEXT : ADM.MUTED_LIGHT }}>{mkPubblicoLabel(m.pubblico)}</span>;
+    if (id === 'dest') return <span style={{ fontSize: 13.8, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{m.consegnate ? fmtNum(m.consegnate) : '—'}</span>;
+    if (id === 'aperture') return m.consegnate
+      ? <span style={{ fontSize: 13.8, fontWeight: 700, color: ADM.OK, fontVariantNumeric: 'tabular-nums' }}>{mkPc(m.aperte, m.consegnate)}</span>
+      : <span style={{ color: ADM.MUTED_LIGHT }}>—</span>;
+    if (id === 'click') return m.consegnate
+      ? <span style={{ fontSize: 13.8, fontWeight: 700, color: ADM.HUB_MAGENTA_DARK, fontVariantNumeric: 'tabular-nums' }}>{mkPc(m.click, m.consegnate)}</span>
+      : <span style={{ color: ADM.MUTED_LIGHT }}>—</span>;
+    const q = m.inviata || m.programmata;
+    return <span style={{ fontSize: 13.2, color: ADM.MUTED }}>{q ? fmtDateTime(q) : m.trigger ? 'A ogni innesco' : '—'}</span>;
+  };
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <HubTestata occhiello="Marketing · Email" titolo="Mail" colore="HUB_MAGENTA"
+        sotto="Le campagne una tantum e i modelli che partono da soli — conferme, ritardi, sequenze. Stesso costruttore, innesco diverso."
+        azioni={<HubStrumento forte icona="plus" onClick={() => setNuova(true)}>Crea email</HubStrumento>}/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
+        <HubTile etichetta="Email consegnate" valore={fmtNum(totDest)} icona="mail" sotto="Sulle campagne già partite"/>
+        <HubTile etichetta="Tasso di apertura" valore={mkPc(totAperte, totDest)} tono="OK" icona="eye" sotto={`${fmtNum(totAperte)} aperture`}/>
+        <HubTile etichetta="Tasso di click" valore={mkPc(totClick, totDest)} tono="HUB_MAGENTA" icona="cursorClick" sotto={`${fmtNum(totClick)} click`}/>
+        <HubTile etichetta="Modelli automatici" valore={HUB_MAIL.filter(m => m.tipo === 'automatica').length} icona="bolt" tono="HUB_VIOLA"
+          sotto="Legati a form e workflow"/>
+      </div>
+
+      <AdmCard padding={0}>
+        <div style={{ padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${ADM.BORDER}`, flexWrap: 'wrap' }}>
+          <HubSegmenti attivo={vista} onCambia={setVista} voci={[
+            { id: 'tutte', label: 'Tutte', conteggio: HUB_MAIL.length },
+            { id: 'normale', label: 'Una tantum', conteggio: HUB_MAIL.filter(m => m.tipo === 'normale').length },
+            { id: 'automatica', label: 'Automatiche', conteggio: HUB_MAIL.filter(m => m.tipo === 'automatica').length },
+          ]}/>
+          <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca per nome o oggetto…" larghezza={260}/>
+        </div>
+        <HubTabella colonne={colonne} righe={lista} chiave={m => m.id} cella={cella} onRiga={setAperta}
+          vuoto={<HubVuoto icona="mail" titolo="Nessuna email qui" desc="Cambia vista o crea la prima campagna."/>}/>
+      </AdmCard>
+    </div>
+  );
+}
+
+function HubMailDettaglio({ mail, onChiudi }) {
+  const [tab, setTab] = useStateMk('numeri');
+  const [doc] = useStateMk(mbDocIniziale);
+  const inviata = mail.consegnate > 0;
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Mail</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{mail.nome}</span>
+      </div>
+
+      <HubTestata occhiello={`Email · ${HUB_STATI_INVIO[mail.stato].label}`} titolo={mail.nome} colore="HUB_MAGENTA"
+        sotto={`Oggetto: «${mail.oggetto}» · Anteprima: «${mail.anteprima}»`}
+        azioni={
+          <React.Fragment>
+            <HubStrumento icona="copy">Duplica</HubStrumento>
+            <HubStrumento icona="pencil" forte>Modifica</HubStrumento>
+          </React.Fragment>
+        }/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 340px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <HubSegmenti attivo={tab} onCambia={setTab} voci={[
+              { id: 'numeri', label: 'Andamento' }, { id: 'contenuto', label: 'Contenuto' },
+            ]}/>
+          </div>
+
+          {tab === 'numeri' && (inviata ? (
+            <React.Fragment>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
+                <MktStat label="Consegnate" valore={mail.consegnate} base={mail.dest} color="INFO" sotto={`${mail.rimbalzi} rimbalzi su ${fmtNum(mail.dest)} inviate`}/>
+                <MktStat label="Aperte" valore={mail.aperte} base={mail.consegnate} color="OK" sotto="Sul consegnato, non sull'inviato"/>
+                <MktStat label="Click" valore={mail.click} base={mail.consegnate} color="HUB_MAGENTA" sotto={`${mkPc(mail.click, mail.aperte)} di chi ha aperto`}/>
+              </div>
+              <AdmCard padding={18}>
+                <HubSezione titolo="Che cosa dicono questi numeri">
+                  <div style={{ fontSize: 14, color: ADM.TEXT, lineHeight: 1.65 }}>
+                    {mail.aperte / Math.max(1, mail.consegnate) > 0.5
+                      ? 'Apertura sopra la media del settore: l\'oggetto funziona. Se il click resta basso rispetto alle aperture, il problema è dentro la mail, non nell\'oggetto.'
+                      : 'Apertura sotto la metà: prima di riscrivere la mail conviene provare due oggetti diversi sullo stesso pubblico.'}
+                    {mail.disiscritti > 3 && ' Attenzione alle disiscrizioni: ' + mail.disiscritti + ' su questo invio, sopra la soglia che ci siamo dati.'}
+                  </div>
+                </HubSezione>
+              </AdmCard>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
+                <HubTile etichetta="Disiscritti" valore={mail.disiscritti} tono={mail.disiscritti > 3 ? 'DANGER' : 'TEXT'} icona="x"/>
+                <HubTile etichetta="Rimbalzi" valore={mail.rimbalzi} icona="alertTriangle" tono={mail.rimbalzi > 10 ? 'WARN' : undefined}/>
+                <HubTile etichetta="Mittente" valore={mail.mittente} icona="user" sotto={mail.mittenteMail}/>
+              </div>
+            </React.Fragment>
+          ) : (
+            <HubVuoto icona="clock" titolo="Non è ancora partita"
+              desc={mail.stato === 'programmata' ? `Parte il ${fmtDateTime(mail.programmata)}. I numeri compaiono qui appena finisce l'invio.` : 'È una bozza: scegli il pubblico e programmala per vedere i numeri.'}/>
+          ))}
+
+          {tab === 'contenuto' && (
+            <AdmCard padding={0} style={{ overflow: 'hidden' }}>
+              <div style={{ background: ADM.PANEL_SOFT, padding: 24, display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: 520, maxWidth: '100%', background: '#fff', borderRadius: 12, boxShadow: '0 12px 30px -14px rgba(15,17,21,0.24)', overflow: 'hidden' }}>
+                  {doc.blocchi.map(b => (
+                    <MbBlocco key={b.id} b={b} doc={doc} selezionato={false} onSeleziona={() => {}}
+                      onSu={() => {}} onGiu={() => {}} onElimina={() => {}} onDuplica={() => {}}/>
+                  ))}
+                </div>
+              </div>
+            </AdmCard>
+          )}
+        </div>
+
+        <AdmCard padding={18}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>La scheda</div>
+          {[
+            ['Tipo', mail.tipo === 'automatica' ? 'Automatica' : 'Una tantum'],
+            ['Stato', HUB_STATI_INVIO[mail.stato].label],
+            [mail.trigger ? 'Innesco' : 'Pubblico', mail.trigger || mkPubblicoLabel(mail.pubblico)],
+            ['Mittente', `${mail.mittente} · ${mail.mittenteMail}`],
+            ['Oggetto', mail.oggetto],
+            ['Anteprima', mail.anteprima],
+            ['Quando', mail.inviata ? fmtDateTime(mail.inviata) : mail.programmata ? fmtDateTime(mail.programmata) : '—'],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: `1px solid ${ADM.BORDER_SOFT}` }}>
+              <span style={{ fontSize: 12.6, color: ADM.MUTED, width: 92, flexShrink: 0, fontWeight: 600 }}>{k}</span>
+              <span style={{ fontSize: 13.2, color: ADM.TEXT, flex: 1, minWidth: 0, lineHeight: 1.45 }}>{v}</span>
+            </div>
+          ))}
+        </AdmCard>
+      </div>
+    </div>
+  );
+}
+
+function HubMailComposer({ onChiudi }) {
+  const [passo, setPasso] = useStateMk(0);
+  const [tipo, setTipo] = useStateMk('normale');
+  const [nome, setNome] = useStateMk('');
+  const [oggetto, setOggetto] = useStateMk('');
+  const [anteprima, setAnteprima] = useStateMk('');
+  const [mittente, setMittente] = useStateMk('MT-1');
+  const [elencoId, setElencoId] = useStateMk(null);
+  const [filtri, setFiltri] = useStateMk([]);
+  const [trigger, setTrigger] = useStateMk('');
+  const [doc, setDoc] = useStateMk(mbDocIniziale);
+  const [quando, setQuando] = useStateMk('subito');
+  const [data, setData] = useStateMk(null);
+  const [ora, setOra] = useStateMk('09:00');
+
+  const mt = HUB_MITTENTI.find(m => m.id === mittente) || HUB_MITTENTI[0];
+  const passi = ['Tipo e destinatari', 'Oggetto e mittente', 'Grafica', 'Invio'];
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Mail</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuova email'}</span>
+      </div>
+
+      <HubTestata occhiello="Marketing · Email" titolo="Crea un'email" colore="HUB_MAGENTA"
+        sotto="Quattro passi. Si può tornare indietro in qualunque momento senza perdere niente."
+        azioni={
+          <React.Fragment>
+            <HubStrumento icona="save">Salva bozza</HubStrumento>
+            {passo > 0 && <HubStrumento icona="arrowLeft" onClick={() => setPasso(p => p - 1)}>Indietro</HubStrumento>}
+            {passo < passi.length - 1
+              ? <HubStrumento forte icona="arrowRight" onClick={() => setPasso(p => p + 1)}>Avanti</HubStrumento>
+              : <HubStrumento forte icona="send" onClick={onChiudi}>{quando === 'subito' ? 'Invia adesso' : 'Programma'}</HubStrumento>}
+          </React.Fragment>
+        }/>
+
+      <MktPassi passi={passi} attivo={passo} onVai={setPasso}/>
+
+      {passo === 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 11 }}>Che email è</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { id: 'normale', l: 'Una tantum', d: 'La mandi tu, una volta, a un pubblico che scegli adesso.', i: 'send' },
+                { id: 'automatica', l: 'Automatica', d: 'Diventa un modello: la manda un form o un workflow, ogni volta che serve.', i: 'bolt' },
+              ].map(o => {
+                const on = tipo === o.id;
+                const Ic = BuIcons[o.i];
+                return (
+                  <button key={o.id} onClick={() => setTipo(o.id)} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 11, textAlign: 'left', padding: 14, borderRadius: 12,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1.5px solid ${on ? ADM.PINK : ADM.BORDER}`, background: on ? ADM.PINK_BG_SOFT : '#fff',
+                  }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0, display: 'grid', placeItems: 'center', background: on ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: on ? ADM.PINK : ADM.MUTED }}><Ic size={17}/></span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: 'block', fontSize: 14.4, fontWeight: 700, color: on ? ADM.PINK_DARK : ADM.TEXT }}>{o.l}</span>
+                      <span style={{ display: 'block', fontSize: 12.6, color: ADM.MUTED, marginTop: 3, lineHeight: 1.45 }}>{o.d}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <HubCampo label="Nome della campagna" nota="Serve a te, non a chi la riceve: è il nome con cui la ritrovi nello storico.">
+              <HubInput valore={nome} onCambia={setNome} placeholder="es. Novità di primavera · rilascio 4.2"/>
+            </HubCampo>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>
+              {tipo === 'normale' ? 'A chi la mandiamo' : 'Che cosa la fa partire'}
+            </div>
+            {tipo === 'normale'
+              ? <MktPubblico elencoId={elencoId} onElenco={setElencoId} filtri={filtri} onFiltri={setFiltri}/>
+              : <HubCampo label="Innesco" nota="Il modello resta fermo finché un form o un workflow non lo chiama.">
+                  <AdmSelect block value={trigger} onChange={setTrigger} options={[
+                    { value: '', label: 'Scegli l\'innesco…' },
+                    ...HUB_FORM.map(f => ({ value: 'form:' + f.id, label: 'Submission form · ' + f.nome })),
+                    ...HUB_WORKFLOW.map(w => ({ value: 'wf:' + w.id, label: 'Workflow · ' + w.nome })),
+                  ]}/>
+                </HubCampo>}
+          </AdmCard>
+        </div>
+      )}
+
+      {passo === 1 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 340px', gap: 14, alignItems: 'start' }}>
+          <AdmCard padding={18}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <HubCampo label="Oggetto" nota="È la sola cosa che decide se la mail viene aperta. Sotto i 50 caratteri non viene tagliato sul telefono.">
+                <HubInput valore={oggetto} onCambia={setOggetto} placeholder="es. Le prenotazioni ora si gestiscono da sole"/>
+              </HubCampo>
+              <HubCampo label="Testo di anteprima" nota="La riga grigia sotto l'oggetto nella lista della posta. Se la lasci vuota, le app ci mettono la prima riga della mail — che spesso è «Se non vedi bene questa email…».">
+                <HubInput valore={anteprima} onCambia={setAnteprima} placeholder="es. Tre cose nuove che ti tolgono lavoro dalle mani"/>
+              </HubCampo>
+              <HubCampo label="Mittente" nota="Solo gli indirizzi su domini verificati possono spedire: gli altri finiscono nello spam.">
+                <AdmSelect block value={mittente} onChange={setMittente}
+                  options={HUB_MITTENTI.filter(m => m.stato === 'verificato').map(m => ({ value: m.id, label: `${m.nome} · ${m.indirizzo}` }))}/>
+              </HubCampo>
+            </div>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 12 }}>Come si vedrà nella posta</div>
+            <div style={{ border: `1px solid ${ADM.BORDER}`, borderRadius: 12, padding: 14, background: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 9 }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', background: ADM.HUB_GRAD_DIAG, color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 13, flexShrink: 0 }}>
+                  {mt.nome.slice(0, 1)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.6, fontWeight: 700, color: ADM.TEXT }}>{mt.nome}</div>
+                  <div style={{ fontSize: 11.8, color: ADM.MUTED_SOFT }}>{mt.indirizzo}</div>
+                </div>
+                <span style={{ fontSize: 11.8, color: ADM.MUTED_SOFT }}>ora</span>
+              </div>
+              <div style={{ fontSize: 14.2, fontWeight: 700, color: ADM.TEXT, lineHeight: 1.35 }}>
+                {oggetto || <span style={{ color: ADM.MUTED_LIGHT, fontWeight: 500 }}>(oggetto vuoto)</span>}
+              </div>
+              <div style={{ fontSize: 13, color: ADM.MUTED, marginTop: 3, lineHeight: 1.45 }}>
+                {anteprima || <span style={{ color: ADM.MUTED_LIGHT }}>(nessun testo di anteprima)</span>}
+              </div>
+            </div>
+            <div style={{ fontSize: 12.2, color: ADM.MUTED, marginTop: 11, lineHeight: 1.5 }}>
+              {oggetto.length > 50
+                ? `L'oggetto è di ${oggetto.length} caratteri: su iPhone se ne leggono circa 40.`
+                : `Oggetto di ${oggetto.length} caratteri — sta dentro il taglio dei telefoni.`}
+            </div>
+          </AdmCard>
+        </div>
+      )}
+
+      {passo === 2 && <HubMailBuilder doc={doc} onDoc={setDoc} meta={{ oggetto, anteprima }}/>}
+
+      {passo === 3 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 340px', gap: 14, alignItems: 'start' }}>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 12 }}>Quando parte</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+              {[
+                { id: 'subito', l: 'Adesso', d: 'Parte appena confermi.', i: 'send' },
+                { id: 'programmato', l: 'A una data', d: 'Scegli giorno e ora: puoi ancora fermarla prima.', i: 'calendar' },
+              ].map(o => {
+                const on = quando === o.id;
+                const Ic = BuIcons[o.i];
+                return (
+                  <button key={o.id} onClick={() => setQuando(o.id)} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 11, textAlign: 'left', padding: 14, borderRadius: 12,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1.5px solid ${on ? ADM.PINK : ADM.BORDER}`, background: on ? ADM.PINK_BG_SOFT : '#fff',
+                  }}>
+                    <span style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: 'grid', placeItems: 'center', background: on ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: on ? ADM.PINK : ADM.MUTED }}><Ic size={16}/></span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: 'block', fontSize: 14.2, fontWeight: 700, color: on ? ADM.PINK_DARK : ADM.TEXT }}>{o.l}</span>
+                      <span style={{ display: 'block', fontSize: 12.5, color: ADM.MUTED, marginTop: 3 }}>{o.d}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {quando === 'programmato' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: 10 }}>
+                <HubCampo label="Giorno"><HubData valore={data} onCambia={setData}/></HubCampo>
+                <HubCampo label="Ora"><HubInput valore={ora} onCambia={setOra} placeholder="09:00"/></HubCampo>
+              </div>
+            )}
+            <div style={{ marginTop: 16, padding: 14, borderRadius: 11, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', display: 'flex', gap: 10 }}>
+              <BuIcons.alertTriangle size={17} color="#92400E"/>
+              <div style={{ fontSize: 13, color: '#7A4A0B', lineHeight: 1.55 }}>
+                Chi ha il consenso email spento non riceve questa mail, anche se è dentro il pubblico. È la regola, non un'opzione.
+              </div>
+            </div>
+          </AdmCard>
+
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>Prima di partire</div>
+            {[
+              ['Nome', nome || '—'],
+              ['Tipo', tipo === 'normale' ? 'Una tantum' : 'Automatica'],
+              ['Destinatari', tipo === 'normale' ? fmtNum(elencoId ? mkPubblicoConta(elencoId) : hubApplica(CONTATTI, filtri, null).length) : 'A ogni innesco'],
+              ['Oggetto', oggetto || '—'],
+              ['Mittente', `${mt.nome} · ${mt.indirizzo}`],
+              ['Blocchi', doc.blocchi.length + ' nella grafica'],
+            ].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: `1px solid ${ADM.BORDER_SOFT}` }}>
+                <span style={{ fontSize: 12.6, color: ADM.MUTED, width: 96, flexShrink: 0, fontWeight: 600 }}>{k}</span>
+                <span style={{ fontSize: 13.2, color: ADM.TEXT, flex: 1, minWidth: 0 }}>{v}</span>
+              </div>
+            ))}
+            <div style={{ marginTop: 14 }}>
+              <HubStrumento icona="send">Mandami una prova</HubStrumento>
+            </div>
+          </AdmCard>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SMS
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Un SMS si conta in segmenti da 160 caratteri, e ogni segmento si paga. Il
+// contatore va scritto in chiaro mentre si scrive: scoprire il costo dopo è
+// il modo più veloce per mandare mille messaggi in doppio.
+function smsSegmenti(t) {
+  const n = (t || '').length;
+  if (n === 0) return 0;
+  return n <= 160 ? 1 : Math.ceil(n / 153);
+}
+
+function HubSmsPage() {
+  const [cerca, setCerca] = useStateMk('');
+  const [aperto, setAperto] = useStateMk(null);
+  const [nuovo, setNuovo] = useStateMk(false);
+
+  const lista = useMemoMk(() => {
+    const q = cerca.trim().toLowerCase();
+    return HUB_SMS.filter(s => !q || (s.nome + ' ' + s.testo).toLowerCase().includes(q));
+  }, [cerca]);
+
+  if (nuovo) return <HubSmsComposer onChiudi={() => setNuovo(false)}/>;
+
+  const spesa = HUB_SMS.reduce((s, x) => s + x.costo, 0);
+  const consegnati = HUB_SMS.reduce((s, x) => s + x.consegnati, 0);
+  const inviati = HUB_SMS.reduce((s, x) => s + (x.consegnati ? x.dest : 0), 0);
+
+  const colonne = [
+    { id: 'nome',   label: 'Messaggio',  w: 'minmax(0,2.6fr)' },
+    { id: 'stato',  label: 'Stato',      w: '1.05fr' },
+    { id: 'segm',   label: 'Segmenti',   w: '0.85fr', destra: true },
+    { id: 'dest',   label: 'Destinatari',w: '0.95fr', destra: true },
+    { id: 'resa',   label: 'Consegna',   w: '0.9fr',  destra: true },
+    { id: 'costo',  label: 'Costo',      w: '0.9fr',  destra: true },
+    { id: 'quando', label: 'Quando',     w: '1.15fr' },
+  ];
+
+  const cella = (id, s) => {
+    if (id === 'nome') return (
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 14.3, fontWeight: 700, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.nome}</div>
+        <div style={{ fontSize: 12.5, color: ADM.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.testo || '(vuoto)'}</div>
+      </div>
+    );
+    if (id === 'stato') return <HubStato stato={s.stato} mappa={HUB_STATI_INVIO}/>;
+    if (id === 'segm') return <span style={{ fontSize: 13.6, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{smsSegmenti(s.testo) || '—'}</span>;
+    if (id === 'dest') return <span style={{ fontSize: 13.6, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(s.dest)}</span>;
+    if (id === 'resa') return s.consegnati
+      ? <span style={{ fontSize: 13.6, fontWeight: 700, color: ADM.OK, fontVariantNumeric: 'tabular-nums' }}>{mkPc(s.consegnati, s.dest)}</span>
+      : <span style={{ color: ADM.MUTED_LIGHT }}>—</span>;
+    if (id === 'costo') return <span style={{ fontSize: 13.6, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{s.costo ? fmtEur(s.costo) : '—'}</span>;
+    const q = s.inviata || s.programmata;
+    return <span style={{ fontSize: 13.2, color: ADM.MUTED }}>{q ? fmtDateTime(q) : s.trigger ? 'A ogni innesco' : '—'}</span>;
+  };
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <HubTestata occhiello="Marketing · SMS" titolo="SMS" colore="HUB_MAGENTA"
+        sotto="Centosessanta caratteri arrivano ovunque e li legge quasi chiunque. Costano a segmento, quindi il contatore sta sempre in vista."
+        azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea SMS</HubStrumento>}/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
+        <HubTile etichetta="SMS inviati" valore={fmtNum(inviati)} icona="smartphone" sotto="Su tutte le campagne"/>
+        <HubTile etichetta="Tasso di consegna" valore={mkPc(consegnati, inviati)} tono="OK" icona="check" sotto="Il resto sono numeri non validi"/>
+        <HubTile etichetta="Spesa complessiva" valore={fmtEur(spesa)} icona="money" sotto="A €0,07 per segmento"/>
+        <HubTile etichetta="Mittenti attivi" valore={HUB_NUMERI.filter(n => n.stato === 'attivo').length} icona="tag" sotto="Registrati e approvati" tono="HUB_MAGENTA"/>
+      </div>
+
+      <AdmCard padding={0}>
+        <div style={{ padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${ADM.BORDER}` }}>
+          <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca fra gli SMS…" larghezza={260}/>
+        </div>
+        <HubTabella colonne={colonne} righe={lista} chiave={s => s.id} cella={cella} onRiga={() => {}}
+          vuoto={<HubVuoto icona="smartphone" titolo="Nessun SMS" desc="Creane uno: si scrive in un minuto."/>}/>
+      </AdmCard>
+    </div>
+  );
+}
+
+// L'anteprima su schermo di telefono: il testo va guardato dentro una bolla,
+// non dentro una textarea, perché è lì che finirà.
+function MktTelefono({ mittente, testo, ora = 'ora' }) {
+  return (
+    <div style={{
+      width: 268, margin: '0 auto', background: '#0F1115', borderRadius: 30, padding: 10,
+      boxShadow: '0 20px 44px -18px rgba(15,17,21,0.5)',
+    }}>
+      <div style={{ background: '#F5F5F7', borderRadius: 22, overflow: 'hidden', minHeight: 340, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '13px 14px 10px', borderBottom: '1px solid rgba(0,0,0,0.07)', textAlign: 'center', background: 'rgba(255,255,255,0.8)' }}>
+          <div style={{ fontSize: 13.4, fontWeight: 700, color: '#16181D' }}>{mittente}</div>
+          <div style={{ fontSize: 11, color: '#8A8A90', marginTop: 1 }}>SMS · {ora}</div>
+        </div>
+        <div style={{ flex: 1, padding: 12 }}>
+          <div style={{
+            background: '#E9E9EB', color: '#16181D', borderRadius: '16px 16px 16px 5px',
+            padding: '9px 12px', fontSize: 13.2, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          }}>{testo || <span style={{ color: '#A0A0A6' }}>Il messaggio comparirà qui.</span>}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HubSmsComposer({ onChiudi }) {
+  const [nome, setNome] = useStateMk('');
+  const [testo, setTesto] = useStateMk('');
+  const [numero, setNumero] = useStateMk('NM-1');
+  const [elencoId, setElencoId] = useStateMk(null);
+  const [filtri, setFiltri] = useStateMk([]);
+  const [quando, setQuando] = useStateMk('subito');
+  const [data, setData] = useStateMk(null);
+  const [ora, setOra] = useStateMk('10:00');
+
+  const seg = smsSegmenti(testo);
+  const dest = elencoId ? mkPubblicoConta(elencoId) : hubApplica(CONTATTI, filtri, null).length;
+  const costo = seg * dest * 0.07;
+  const num = HUB_NUMERI.find(n => n.id === numero) || HUB_NUMERI[0];
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>SMS</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuovo SMS'}</span>
+      </div>
+      <HubTestata occhiello="Marketing · SMS" titolo="Crea un SMS" colore="HUB_MAGENTA"
+        sotto="Un messaggio, un pubblico, un orario. Il costo si aggiorna mentre scrivi."
+        azioni={
+          <React.Fragment>
+            <HubStrumento icona="save">Salva bozza</HubStrumento>
+            <HubStrumento forte icona="send" onClick={onChiudi}>{quando === 'subito' ? 'Invia adesso' : 'Programma'}</HubStrumento>
+          </React.Fragment>
+        }/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={18}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: 12, marginBottom: 14 }}>
+              <HubCampo label="Nome"><HubInput valore={nome} onCambia={setNome} placeholder="es. Promemoria rinnovo Plus"/></HubCampo>
+              <HubCampo label="Mittente">
+                <AdmSelect block value={numero} onChange={setNumero}
+                  options={HUB_NUMERI.filter(n => n.stato === 'attivo').map(n => ({ value: n.id, label: n.etichetta }))}/>
+              </HubCampo>
+            </div>
+            <HubCampo label="Testo"
+              nota={`${testo.length} caratteri · ${seg || 0} ${seg === 1 ? 'segmento' : 'segmenti'} · usa {{nome}} per il nome del contatto`}>
+              <HubArea valore={testo} onCambia={setTesto} righe={5}
+                placeholder="Ciao {{nome}}, il tuo piano byup Plus si rinnova domani…"/>
+            </HubCampo>
+            {testo.length > 160 && (
+              <div style={{ marginTop: 10, padding: 11, borderRadius: 10, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', fontSize: 12.8, color: '#7A4A0B', lineHeight: 1.5 }}>
+                Oltre 160 caratteri il messaggio si spezza in più segmenti e il costo si moltiplica. Con {seg} segmenti stai pagando {seg} volte ogni destinatario.
+              </div>
+            )}
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>A chi</div>
+            <MktPubblico elencoId={elencoId} onElenco={setElencoId} filtri={filtri} onFiltri={setFiltri}/>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>Quando</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <HubSegmenti attivo={quando} onCambia={setQuando} voci={[
+                { id: 'subito', label: 'Adesso' }, { id: 'programmato', label: 'A una data' },
+              ]}/>
+              {quando === 'programmato' && (
+                <React.Fragment>
+                  <HubCampo label="Giorno" larghezza={170}><HubData valore={data} onCambia={setData}/></HubCampo>
+                  <HubCampo label="Ora" larghezza={110}><HubInput valore={ora} onCambia={setOra}/></HubCampo>
+                </React.Fragment>
+              )}
+            </div>
+          </AdmCard>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={18}>
+            <MktTelefono mittente={num.etichetta} testo={testo}/>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 12 }}>Il conto</div>
+            {[
+              ['Destinatari', fmtNum(dest)],
+              ['Segmenti a testa', String(seg)],
+              ['Prezzo al segmento', '€ 0,07'],
+            ].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', fontSize: 13.2 }}>
+                <span style={{ color: ADM.MUTED }}>{k}</span><span style={{ fontWeight: 600, color: ADM.TEXT }}>{v}</span>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 11, marginTop: 6, borderTop: `1px solid ${ADM.BORDER}` }}>
+              <span style={{ fontSize: 13.6, fontWeight: 700, color: ADM.TEXT }}>Totale stimato</span>
+              <span style={{ fontSize: 19, fontWeight: 800, color: ADM.PINK_DARK, letterSpacing: '-0.02em' }}>{fmtEur(costo)}</span>
+            </div>
+          </AdmCard>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUSH
+// ═══════════════════════════════════════════════════════════════════════════
+
+function HubPushPage() {
+  const [cerca, setCerca] = useStateMk('');
+  const [nuovo, setNuovo] = useStateMk(false);
+  if (nuovo) return <HubPushComposer onChiudi={() => setNuovo(false)}/>;
+
+  const lista = HUB_PUSH.filter(p => !cerca || (p.nome + p.titolo + p.corpo).toLowerCase().includes(cerca.toLowerCase()));
+  const ricevute = HUB_PUSH.reduce((s, p) => s + p.ricevute, 0);
+  const aperte = HUB_PUSH.reduce((s, p) => s + p.aperte, 0);
+
+  const colonne = [
+    { id: 'nome',    label: 'Notifica',   w: 'minmax(0,2.6fr)' },
+    { id: 'dove',    label: 'Dove',       w: '1.1fr' },
+    { id: 'stato',   label: 'Stato',      w: '1fr' },
+    { id: 'dest',    label: 'Inviate',    w: '0.9fr', destra: true },
+    { id: 'aperte',  label: 'Aperture',   w: '0.9fr', destra: true },
+    { id: 'quando',  label: 'Quando',     w: '1.15fr' },
+  ];
+  const cella = (id, p) => {
+    if (id === 'nome') return (
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 14.3, fontWeight: 700, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nome}</div>
+        <div style={{ fontSize: 12.5, color: ADM.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.titolo || '(senza titolo)'}</div>
+      </div>
+    );
+    if (id === 'dove') return <HubPillola color={p.dove === 'app' ? 'PURPLE' : 'TEAL'}>{p.dove === 'app' ? 'App byup' : 'Gestionale'}</HubPillola>;
+    if (id === 'stato') return <HubStato stato={p.stato} mappa={HUB_STATI_INVIO}/>;
+    if (id === 'dest') return <span style={{ fontSize: 13.6, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{p.dest ? fmtNum(p.dest) : '—'}</span>;
+    if (id === 'aperte') return p.ricevute
+      ? <span style={{ fontSize: 13.6, fontWeight: 700, color: ADM.OK, fontVariantNumeric: 'tabular-nums' }}>{mkPc(p.aperte, p.ricevute)}</span>
+      : <span style={{ color: ADM.MUTED_LIGHT }}>—</span>;
+    return <span style={{ fontSize: 13.2, color: ADM.MUTED }}>{p.inviata ? fmtDateTime(p.inviata) : p.trigger ? 'A ogni innesco' : '—'}</span>;
+  };
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <HubTestata occhiello="Marketing · Notifiche" titolo="Push" colore="HUB_MAGENTA"
+        sotto="Due destinazioni diverse: l'app dei clienti finali e il gestionale dei ristoratori. Stesso strumento, tono opposto."
+        azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea notifica</HubStrumento>}/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
+        <HubTile etichetta="Notifiche recapitate" valore={fmtNum(ricevute)} icona="bell"/>
+        <HubTile etichetta="Tasso di apertura" valore={mkPc(aperte, ricevute)} tono="OK" icona="eye" sotto={`${fmtNum(aperte)} toccate`}/>
+        <HubTile etichetta="Nell'app" valore={HUB_PUSH.filter(p => p.dove === 'app').length} icona="smartphone" tono="PURPLE"/>
+        <HubTile etichetta="Nel gestionale" valore={HUB_PUSH.filter(p => p.dove === 'gestionale').length} icona="monitor" tono="TEAL"/>
+      </div>
+
+      <AdmCard padding={0}>
+        <div style={{ padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}` }}>
+          <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca fra le notifiche…" larghezza={260}/>
+        </div>
+        <HubTabella colonne={colonne} righe={lista} chiave={p => p.id} cella={cella} onRiga={() => {}}
+          vuoto={<HubVuoto icona="bell" titolo="Nessuna notifica" desc="Creane una e guardala nell'anteprima prima di mandarla."/>}/>
+      </AdmCard>
+    </div>
+  );
+}
+
+function HubPushComposer({ onChiudi }) {
+  const [nome, setNome] = useStateMk('');
+  const [dove, setDove] = useStateMk('app');
+  const [titolo, setTitolo] = useStateMk('');
+  const [corpo, setCorpo] = useStateMk('');
+  const [elencoId, setElencoId] = useStateMk(null);
+  const [filtri, setFiltri] = useStateMk([]);
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Push</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuova notifica'}</span>
+      </div>
+      <HubTestata occhiello="Marketing · Notifiche" titolo="Crea una notifica push" colore="HUB_MAGENTA"
+        sotto="Titolo corto, corpo che sta in due righe. Sul telefono si legge solo quello."
+        azioni={
+          <React.Fragment>
+            <HubStrumento icona="send">Prova su di me</HubStrumento>
+            <HubStrumento forte icona="send" onClick={onChiudi}>Invia</HubStrumento>
+          </React.Fragment>
+        }/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={18}>
+            <HubCampo label="Nome"><HubInput valore={nome} onCambia={setNome} placeholder="es. Beta prenotazioni"/></HubCampo>
+            <div style={{ marginTop: 14 }}>
+              <HubCampo label="Dove arriva">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {[
+                    { id: 'app', l: 'App byup', d: 'I clienti finali. Tono da consumatore.', i: 'smartphone' },
+                    { id: 'gestionale', l: 'Gestionale', d: 'Titolari e staff. Tono operativo.', i: 'monitor' },
+                  ].map(o => {
+                    const on = dove === o.id;
+                    const Ic = BuIcons[o.i];
+                    return (
+                      <button key={o.id} onClick={() => setDove(o.id)} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: 10, textAlign: 'left', padding: 13, borderRadius: 11,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        border: `1.5px solid ${on ? ADM.PINK : ADM.BORDER}`, background: on ? ADM.PINK_BG_SOFT : '#fff',
+                      }}>
+                        <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center', background: on ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: on ? ADM.PINK : ADM.MUTED }}><Ic size={15}/></span>
+                        <span style={{ flex: 1 }}>
+                          <span style={{ display: 'block', fontSize: 13.8, fontWeight: 700, color: on ? ADM.PINK_DARK : ADM.TEXT }}>{o.l}</span>
+                          <span style={{ display: 'block', fontSize: 12.3, color: ADM.MUTED, marginTop: 2 }}>{o.d}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </HubCampo>
+            </div>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <HubCampo label="Titolo" nota={`${titolo.length}/40 caratteri — oltre viene tagliato`}>
+                <HubInput valore={titolo} onCambia={setTitolo} placeholder="es. Sei tra i primi"/>
+              </HubCampo>
+              <HubCampo label="Corpo" nota={`${corpo.length}/120 caratteri`}>
+                <HubArea valore={corpo} onCambia={setCorpo} righe={3}
+                  placeholder="es. Le prenotazioni intelligenti sono in prova sul tuo account."/>
+              </HubCampo>
+            </div>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>A chi</div>
+            <MktPubblico elencoId={elencoId} onElenco={setElencoId} filtri={filtri} onFiltri={setFiltri}/>
+          </AdmCard>
+        </div>
+
+        <AdmCard padding={18}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 14 }}>Anteprima</div>
+          <div style={{
+            background: dove === 'app'
+              ? 'linear-gradient(160deg, #2A1B3D 0%, #44107A 60%, #7A1E8C 100%)'
+              : 'linear-gradient(160deg, #1D2430 0%, #2B3646 100%)',
+            borderRadius: 20, padding: '38px 14px 20px', minHeight: 240,
+          }}>
+            <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.9)', marginBottom: 20 }}>
+              <div style={{ fontSize: 34, fontWeight: 300, letterSpacing: '-0.02em' }}>09:41</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>venerdì 14 agosto</div>
+            </div>
+            <div style={{
+              background: 'rgba(255,255,255,0.90)', backdropFilter: 'blur(14px)',
+              borderRadius: 15, padding: '11px 12px', boxShadow: '0 8px 22px -8px rgba(0,0,0,0.4)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+                <img src="hubble-mark.png" alt="" style={{ width: 15, height: 'auto', borderRadius: 3 }}/>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#3A3D45', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  {dove === 'app' ? 'byup' : 'byup gestionale'}
+                </span>
+                <span style={{ flex: 1 }}/>
+                <span style={{ fontSize: 10.5, color: '#8A8A90' }}>ora</span>
+              </div>
+              <div style={{ fontSize: 13.4, fontWeight: 700, color: '#16181D', lineHeight: 1.3 }}>
+                {titolo || <span style={{ color: '#A0A0A6', fontWeight: 500 }}>Titolo della notifica</span>}
+              </div>
+              <div style={{ fontSize: 12.8, color: '#3A3D45', marginTop: 2, lineHeight: 1.4 }}>
+                {corpo || <span style={{ color: '#A0A0A6' }}>Il corpo del messaggio, due righe al massimo.</span>}
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 12.3, color: ADM.MUTED, marginTop: 12, lineHeight: 1.5 }}>
+            Sul telefono bloccato si vedono due righe di corpo. Quello che scrivi dopo esiste solo per chi apre la notifica.
+          </div>
+        </AdmCard>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FORM
+// ═══════════════════════════════════════════════════════════════════════════
+
+const FRM_CAMPI = {
+  testo:    { label: 'Testo breve',   icona: 'type' },
+  email:    { label: 'Email',         icona: 'mail' },
+  telefono: { label: 'Telefono',      icona: 'phone' },
+  area:     { label: 'Testo lungo',   icona: 'list' },
+  scelta:   { label: 'Menu a tendina',icona: 'chevronDown' },
+  spunta:   { label: 'Spunta',        icona: 'check' },
+  consenso: { label: 'Consenso',      icona: 'shield' },
+};
+
+function HubFormPage() {
+  const [cerca, setCerca] = useStateMk('');
+  const [nuovo, setNuovo] = useStateMk(false);
+  if (nuovo) return <HubFormEditor onChiudi={() => setNuovo(false)}/>;
+
+  const lista = HUB_FORM.filter(f => !cerca || f.nome.toLowerCase().includes(cerca.toLowerCase()));
+  const sub = HUB_FORM.reduce((s, f) => s + f.submission, 0);
+  const viste = HUB_FORM.reduce((s, f) => s + f.viste, 0);
+
+  const colonne = [
+    { id: 'nome',   label: 'Form',        w: 'minmax(0,2.4fr)' },
+    { id: 'stato',  label: 'Stato',       w: '1fr' },
+    { id: 'campi',  label: 'Campi',       w: '0.7fr', destra: true },
+    { id: 'viste',  label: 'Viste',       w: '0.9fr', destra: true },
+    { id: 'sub',    label: 'Invii',       w: '0.9fr', destra: true },
+    { id: 'tasso',  label: 'Conversione', w: '1.05fr', destra: true },
+    { id: 'auto',   label: 'Automazione', w: '1.5fr', ordinabile: false },
+  ];
+  const cella = (id, f) => {
+    if (id === 'nome') return (
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 14.3, fontWeight: 700, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.nome}</div>
+        <div style={{ fontSize: 12.4, color: ADM.MUTED, marginTop: 2 }}>{f.pagina}</div>
+      </div>
+    );
+    if (id === 'stato') return <HubPillola color={f.stato === 'pubblicato' ? 'OK' : 'PLAN_FREE'}>{f.stato === 'pubblicato' ? 'Pubblicato' : 'Bozza'}</HubPillola>;
+    if (id === 'campi') return <span style={{ fontSize: 13.6, fontWeight: 600 }}>{f.campi}</span>;
+    if (id === 'viste') return <span style={{ fontSize: 13.6, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(f.viste)}</span>;
+    if (id === 'sub') return <span style={{ fontSize: 13.6, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(f.submission)}</span>;
+    if (id === 'tasso') return f.viste
+      ? <span style={{ fontSize: 13.6, fontWeight: 700, color: f.tasso >= 10 ? ADM.OK : ADM.TEXT }}>{String(f.tasso).replace('.', ',')}%</span>
+      : <span style={{ color: ADM.MUTED_LIGHT }}>—</span>;
+    const a = f.automazione;
+    const pezzi = [a.mail && 'email di conferma', a.redirect && 'redirect', a.proprieta && 'scrive ' + (HUB_PROP[a.proprieta] || {}).label].filter(Boolean);
+    return pezzi.length
+      ? <span style={{ fontSize: 12.8, color: ADM.MUTED, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{pezzi.join(' · ')}</span>
+      : <span style={{ fontSize: 13.2, color: ADM.MUTED_LIGHT }}>Nessuna</span>;
+  };
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <HubTestata occhiello="Marketing · Acquisizione" titolo="Form" colore="HUB_MAGENTA"
+        sotto="Moduli da mettere sul sito. Ogni submission crea o aggiorna un contatto, e può far partire una mail, un redirect o un workflow."
+        azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea form</HubStrumento>}/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
+        <HubTile etichetta="Invii raccolti" valore={fmtNum(sub)} icona="formFill" sotto="Su tutti i form pubblicati"/>
+        <HubTile etichetta="Conversione media" valore={mkPc(sub, viste)} tono="OK" icona="target" sotto={`${fmtNum(viste)} visualizzazioni`}/>
+        <HubTile etichetta="Form pubblicati" valore={HUB_FORM.filter(f => f.stato === 'pubblicato').length} icona="globe"/>
+        <HubTile etichetta="Con automazione" valore={HUB_FORM.filter(f => f.automazione.mail || f.automazione.redirect).length}
+          icona="bolt" tono="HUB_VIOLA" sotto="Gli altri raccolgono e basta"/>
+      </div>
+
+      <AdmCard padding={0}>
+        <div style={{ padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}` }}>
+          <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca fra i form…" larghezza={260}/>
+        </div>
+        <HubTabella colonne={colonne} righe={lista} chiave={f => f.id} cella={cella} onRiga={() => {}}
+          vuoto={<HubVuoto icona="formFill" titolo="Nessun form" desc="Creane uno: campi, grafica e automazione stanno nella stessa schermata."/>}/>
+      </AdmCard>
+    </div>
+  );
+}
+
+function HubFormEditor({ onChiudi }) {
+  const [nome, setNome] = useStateMk('');
+  const [campi, setCampi] = useStateMk([
+    { id: 'c1', tipo: 'testo', label: 'Nome del locale', obbligatorio: true },
+    { id: 'c2', tipo: 'email', label: 'Email', obbligatorio: true },
+    { id: 'c3', tipo: 'scelta', label: 'Come ci hai conosciuto', obbligatorio: false, opzioni: 'Passaparola\nGoogle\nFiera\nSocial', mappa: 'referral' },
+    { id: 'c4', tipo: 'consenso', label: 'Acconsento a ricevere comunicazioni da byup', obbligatorio: true, mappa: 'consensoMail' },
+  ]);
+  const [sel, setSel] = useStateMk(null);
+  const [stile, setStile] = useStateMk({ accento: '#FF1F5A', raggio: 10, sfondo: '#FFFFFF', bottone: 'Invia la richiesta' });
+  const [auto, setAuto] = useStateMk({ mail: 'ML-010', redirect: 'byup.it/grazie', messaggio: 'Grazie! Ti ricontattiamo entro un giorno lavorativo.', esito: 'messaggio' });
+  const [tab, setTab] = useStateMk('campi');
+
+  const campo = campi.find(c => c.id === sel) || null;
+  const setCampo = (k, v) => setCampi(cs => cs.map(c => c.id === sel ? Object.assign({}, c, { [k]: v }) : c));
+  const aggiungi = (tipo) => {
+    const n = { id: 'c' + Date.now(), tipo, label: FRM_CAMPI[tipo].label, obbligatorio: false };
+    setCampi(cs => [...cs, n]); setSel(n.id); setTab('campi');
+  };
+  const muovi = (i, d) => {
+    const j = i + d; if (j < 0 || j >= campi.length) return;
+    const cs = campi.slice(); [cs[i], cs[j]] = [cs[j], cs[i]]; setCampi(cs);
+  };
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Form</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuovo form'}</span>
+      </div>
+      <HubTestata occhiello="Marketing · Acquisizione" titolo="Crea un form" colore="HUB_MAGENTA"
+        sotto="I campi a sinistra, l'aspetto reale al centro, e sotto quello che succede dopo l'invio."
+        azioni={
+          <React.Fragment>
+            <HubStrumento icona="code">Codice da incorporare</HubStrumento>
+            <HubStrumento forte icona="check" onClick={onChiudi}>Pubblica</HubStrumento>
+          </React.Fragment>
+        }/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '272px minmax(0,1fr) 300px', gap: 14, alignItems: 'start' }}>
+        {/* Campi e struttura */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={16}>
+            <HubCampo label="Nome del form"><HubInput valore={nome} onCambia={setNome} placeholder="es. Richiedi una demo"/></HubCampo>
+          </AdmCard>
+          <AdmCard padding={16}>
+            <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 10 }}>I campi</div>
+            {campi.map((c, i) => {
+              const on = sel === c.id;
+              const Ic = BuIcons[FRM_CAMPI[c.tipo].icona];
+              return (
+                <div key={c.id} onClick={() => setSel(c.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 9px', marginBottom: 5, borderRadius: 9,
+                  cursor: 'pointer', border: `1px solid ${on ? ADM.PINK : ADM.BORDER}`, background: on ? ADM.PINK_BG_SOFT : '#fff',
+                }}>
+                  <span style={{ width: 24, height: 24, borderRadius: 6, display: 'grid', placeItems: 'center', background: on ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: on ? ADM.PINK : ADM.MUTED, flexShrink: 0 }}><Ic size={13}/></span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                  <button onClick={e => { e.stopPropagation(); muovi(i, -1); }} title="Su" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: ADM.MUTED_LIGHT, padding: 1 }}><BuIcons.chevronUp size={13}/></button>
+                  <button onClick={e => { e.stopPropagation(); muovi(i, 1); }} title="Giù" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: ADM.MUTED_LIGHT, padding: 1 }}><BuIcons.chevronDown size={13}/></button>
+                  <button onClick={e => { e.stopPropagation(); setCampi(cs => cs.filter(x => x.id !== c.id)); }} title="Elimina" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: ADM.MUTED_LIGHT, padding: 1 }}><BuIcons.x size={13}/></button>
+                </div>
+              );
+            })}
+            <div style={{ borderTop: `1px solid ${ADM.BORDER_SOFT}`, marginTop: 10, paddingTop: 10 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 8 }}>Aggiungi</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {Object.keys(FRM_CAMPI).map(t => (
+                  <button key={t} onClick={() => aggiungi(t)} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', borderRadius: 999,
+                    border: `1px solid ${ADM.BORDER}`, background: '#fff', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: 12.2, fontWeight: 600, color: ADM.TEXT,
+                  }}>
+                    <BuIcons.plus size={11} color={ADM.MUTED}/>{FRM_CAMPI[t].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </AdmCard>
+        </div>
+
+        {/* Anteprima + automazione */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={0} style={{ overflow: 'hidden' }}>
+            <div style={{ padding: '10px 16px', borderBottom: `1px solid ${ADM.BORDER}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <HubSegmenti attivo={tab} onCambia={setTab} voci={[
+                { id: 'campi', label: 'Anteprima' }, { id: 'stile', label: 'Aspetto' },
+              ]}/>
+            </div>
+            <div style={{ background: ADM.PANEL_SOFT, padding: 26 }}>
+              <div style={{
+                maxWidth: 440, margin: '0 auto', background: stile.sfondo, borderRadius: 16, padding: 26,
+                boxShadow: '0 14px 34px -16px rgba(15,17,21,0.26)', border: `1px solid ${ADM.BORDER}`,
+              }}>
+                <div style={{ fontSize: 19, fontWeight: 800, color: ADM.TEXT, letterSpacing: '-0.02em', marginBottom: 4 }}>{nome || 'Richiedi una demo'}</div>
+                <div style={{ fontSize: 13.4, color: ADM.MUTED, marginBottom: 18, lineHeight: 1.5 }}>Compila e ti ricontattiamo entro un giorno lavorativo.</div>
+                {campi.map(c => (
+                  <div key={c.id} onClick={() => setSel(c.id)} style={{
+                    marginBottom: 13, padding: sel === c.id ? 8 : 0, margin: sel === c.id ? '-8px -8px 5px' : undefined,
+                    borderRadius: 9, background: sel === c.id ? ADM.PINK_BG_SOFT : 'transparent', cursor: 'pointer',
+                  }}>
+                    {c.tipo === 'consenso' || c.tipo === 'spunta' ? (
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: ADM.TEXT, lineHeight: 1.45 }}>
+                        <span style={{ width: 17, height: 17, borderRadius: 4, border: `1.5px solid ${ADM.BORDER}`, flexShrink: 0, marginTop: 1 }}/>
+                        <span>{c.label}{c.obbligatorio && <span style={{ color: stile.accento }}> *</span>}</span>
+                      </label>
+                    ) : (
+                      <React.Fragment>
+                        <label style={{ display: 'block', fontSize: 12.6, fontWeight: 700, color: ADM.TEXT, marginBottom: 6 }}>
+                          {c.label}{c.obbligatorio && <span style={{ color: stile.accento }}> *</span>}
+                        </label>
+                        {c.tipo === 'area'
+                          ? <div style={{ height: 74, border: `1px solid ${ADM.BORDER}`, borderRadius: stile.raggio, background: '#fff' }}/>
+                          : c.tipo === 'scelta'
+                          ? <div style={{ height: 40, border: `1px solid ${ADM.BORDER}`, borderRadius: stile.raggio, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', fontSize: 13.4, color: ADM.MUTED_SOFT }}>
+                              <span>Scegli…</span><BuIcons.chevronDown size={15} color={ADM.MUTED}/>
+                            </div>
+                          : <div style={{ height: 40, border: `1px solid ${ADM.BORDER}`, borderRadius: stile.raggio, background: '#fff' }}/>}
+                      </React.Fragment>
+                    )}
+                  </div>
+                ))}
+                <button style={{
+                  width: '100%', marginTop: 6, padding: '12px 18px', border: 'none', borderRadius: stile.raggio,
+                  background: stile.accento, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                }}>{stile.bottone}</button>
+              </div>
+            </div>
+          </AdmCard>
+
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 4 }}>Che cosa succede dopo l'invio</div>
+            <div style={{ fontSize: 13.2, color: ADM.MUTED, marginBottom: 14, lineHeight: 1.5 }}>
+              È il workflow semplice del form: si crea insieme al form e lo trovi anche in Workflow, dove puoi complicarlo quanto vuoi.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <HubCampo label="Email di conferma" nota="Parte subito, al contatto che ha compilato.">
+                <AdmSelect block value={auto.mail || ''} onChange={v => setAuto(a => ({ ...a, mail: v || null }))}
+                  options={[{ value: '', label: 'Nessuna email' }, ...HUB_MAIL.filter(m => m.tipo === 'automatica').map(m => ({ value: m.id, label: m.nome }))]}/>
+              </HubCampo>
+              <HubCampo label="Dopo l'invio">
+                <AdmSelect block value={auto.esito} onChange={v => setAuto(a => ({ ...a, esito: v }))} options={[
+                  { value: 'messaggio', label: 'Mostra un messaggio di ringraziamento' },
+                  { value: 'redirect', label: 'Manda a un altro indirizzo' },
+                ]}/>
+              </HubCampo>
+              {auto.esito === 'redirect'
+                ? <HubCampo label="Indirizzo di destinazione"><HubInput valore={auto.redirect} onCambia={v => setAuto(a => ({ ...a, redirect: v }))} placeholder="https://byup.it/grazie"/></HubCampo>
+                : <HubCampo label="Messaggio"><HubInput valore={auto.messaggio} onCambia={v => setAuto(a => ({ ...a, messaggio: v }))}/></HubCampo>}
+              <HubCampo label="Aggiungi a un elenco">
+                <AdmSelect block value={auto.elenco || ''} onChange={v => setAuto(a => ({ ...a, elenco: v || null }))}
+                  options={[{ value: '', label: 'Nessuno' }, ...HUB_ELENCHI.filter(e => e.tipo === 'statico').map(e => ({ value: e.id, label: e.nome }))]}/>
+              </HubCampo>
+            </div>
+          </AdmCard>
+        </div>
+
+        {/* Ispettore del campo / dello stile */}
+        <AdmCard padding={16}>
+          {tab === 'stile' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Aspetto</div>
+              <MbColore label="Colore d'accento" valore={stile.accento} onCambia={v => setStile(s => ({ ...s, accento: v }))}/>
+              <MbColore label="Sfondo del modulo" valore={stile.sfondo} onCambia={v => setStile(s => ({ ...s, sfondo: v }))}/>
+              <MbCursore label="Angoli" valore={stile.raggio} onCambia={v => setStile(s => ({ ...s, raggio: v }))} min={0} max={22}/>
+              <HubCampo label="Testo del pulsante"><HubInput valore={stile.bottone} onCambia={v => setStile(s => ({ ...s, bottone: v }))}/></HubCampo>
+            </div>
+          ) : campo ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Il campo</div>
+              <HubCampo label="Etichetta"><HubInput valore={campo.label} onCambia={v => setCampo('label', v)}/></HubCampo>
+              <HubCampo label="Tipo">
+                <AdmSelect block value={campo.tipo} onChange={v => setCampo('tipo', v)}
+                  options={Object.keys(FRM_CAMPI).map(t => ({ value: t, label: FRM_CAMPI[t].label }))}/>
+              </HubCampo>
+              {campo.tipo === 'scelta' && (
+                <HubCampo label="Voci" nota="Una per riga."><HubArea valore={campo.opzioni || ''} onCambia={v => setCampo('opzioni', v)} righe={4}/></HubCampo>
+              )}
+              <HubCampo label="Dove finisce il valore"
+                nota="La proprietà del contatto che questa risposta riempie. È così che «Come ci hai conosciuto» diventa il campo Referral su cui poi filtri.">
+                <AdmSelect block value={campo.mappa || ''} onChange={v => setCampo('mappa', v || null)}
+                  options={[{ value: '', label: 'Non salvare' }, ...HUB_PROPRIETA.map(p => ({ value: p.id, label: p.label }))]}/>
+              </HubCampo>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+                <AdmSwitch size="sm" checked={campo.obbligatorio} onChange={v => setCampo('obbligatorio', v)}/>
+                <span style={{ fontSize: 13.4, fontWeight: 600, color: ADM.TEXT }}>Campo obbligatorio</span>
+              </label>
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: ADM.MUTED, lineHeight: 1.55, padding: '10px 2px' }}>
+              Clicca un campo — nell'elenco a sinistra o direttamente nell'anteprima — per modificarlo.
+            </div>
+          )}
+        </AdmCard>
+      </div>
+    </div>
+  );
+}
+
+window.HubMailPage = HubMailPage;
+window.HubSmsPage = HubSmsPage;
+window.HubPushPage = HubPushPage;
+window.HubFormPage = HubFormPage;
+window.MktPubblico = MktPubblico;
+window.MktStat = MktStat;
+window.MktPassi = MktPassi;
+window.mkPc = mkPc;
+window.mkPubblicoConta = mkPubblicoConta;

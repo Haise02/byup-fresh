@@ -32,9 +32,9 @@ const MAP_STATI = {
 // Scala del calore: un solo colore che si satura. Due tinte direbbero "due
 // cose diverse", e qui la cosa è una sola misurata di più o di meno.
 const MAP_GRADIENTE = {
-  0.15: 'rgba(255,90,95,0.20)',
-  0.40: 'rgba(255,90,95,0.45)',
-  0.70: 'rgba(224,67,71,0.75)',
+  0.15: 'rgba(255,31,90,0.20)',
+  0.40: 'rgba(255,31,90,0.45)',
+  0.70: 'rgba(196,11,69,0.75)',
   1.00: 'rgba(181,51,56,0.92)',
 };
 
@@ -238,7 +238,7 @@ function AnMappa() {
                 Pochi accessi
                 <span style={{
                   width:96, height:9, borderRadius:999,
-                  background:'linear-gradient(90deg, rgba(255,90,95,0.20), rgba(255,90,95,0.55), rgba(181,51,56,0.92))',
+                  background:'linear-gradient(90deg, rgba(255,31,90,0.20), rgba(255,31,90,0.55), rgba(181,51,56,0.92))',
                 }}/>
                 Molti
               </span>

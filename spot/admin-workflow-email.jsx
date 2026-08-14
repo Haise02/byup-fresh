@@ -2231,7 +2231,7 @@ function SmallInput({ value, onChange, type='text', placeholder, width, block, s
   );
 }
 
-// Le opzioni le apre AdmSelect nel popover di Spot, non la tendina nativa.
+// Le opzioni le apre AdmSelect nel popover di Hubble, non la tendina nativa.
 function SmallSelect({ value, onChange, options, width }) {
   return (
     <AdmSelect value={value} onChange={onChange} options={options}

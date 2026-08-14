@@ -1,4 +1,4 @@
-// Byup Spot — Chiamata assistenza · dati
+// Hubble — Chiamata assistenza · dati
 //
 // Sei corpi di dati che vivono nella stessa sezione perché rispondono alla
 // stessa domanda — «come stiamo andando con chi ci usa?» — da lati diversi:

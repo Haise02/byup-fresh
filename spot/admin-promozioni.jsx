@@ -210,23 +210,16 @@ function PromoVuoto({ testo }) {
 }
 
 // ═════════════════════════ MAIN PAGE ═════════════════════════════════════════
+// I tre tab di «Promozioni» erano: campagne di acquisizione, broadcast push &
+// email, workflow email. Gli ultimi due sono diventati sezioni intere di
+// Marketing (Mail, SMS, Push) e di Workflow, con lo storico, le statistiche e
+// gli strumenti per crearne di nuovi — cose che un tab dentro un'altra pagina
+// non poteva avere. Qui resta quello che è davvero un'altra materia: quanto
+// costa acquisire un cliente e in quanto tempo si ripaga.
+// I due pannelli restano nel file: sono il riferimento da cui le sezioni nuove
+// hanno preso i dati, e cancellarli avrebbe portato via anche quelli.
 function AdmPromozioniPage({ onNew }) {
-  const [tab, setTab] = useStatePromo('campagne');
-
-  return (
-    <div style={{display:'flex', flexDirection:'column'}}>
-      <div style={{padding:'0 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, position:'sticky', top:0, zIndex:5}}>
-        <AdmTabBar tabs={[
-          { id:'campagne',  label:'Campagne di acquisizione' },
-          { id:'broadcast', label:'Broadcast push & email' },
-          { id:'workflow',  label:'Workflow email' },
-        ]} active={tab} onChange={setTab}/>
-      </div>
-      {tab === 'campagne'  && <CampagnePane onNew={onNew}/>}
-      {tab === 'broadcast' && <BroadcastPane onNew={onNew}/>}
-      {tab === 'workflow'  && <WorkflowEmailPane/>}
-    </div>
-  );
+  return <CampagnePane onNew={onNew}/>;
 }
 
 // ═════════════════════════ TAB 1 · CAMPAGNE ══════════════════════════════════
@@ -512,7 +505,7 @@ function TipoTile({ label, desc, icon, active, onClick }) {
       border:`1px solid ${active ? ADM.PINK : ADM.BORDER}`,
       borderRadius:10, cursor:'pointer', fontFamily:'inherit',
       display:'flex', gap:11, alignItems:'flex-start',
-      boxShadow: active ? `0 0 0 3px rgba(255,90,95,0.12)` : 'none',
+      boxShadow: active ? `0 0 0 3px rgba(255,31,90,0.12)` : 'none',
     }}>
       <span style={{width:28, height:28, borderRadius:7, flexShrink:0, display:'grid', placeItems:'center',
         background: active ? ADM.PINK : '#F0F1F3', color: active ? '#fff' : ADM.MUTED}}><Icon size={17}/></span>

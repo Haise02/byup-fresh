@@ -255,7 +255,7 @@ function AdmLocaliPage({ search, openLocale }) {
 }
 
 // Il guscio è lo stesso di prima; le OPZIONI non sono più il menu del sistema
-// operativo ma il popover di AdmSelect, vestito come il resto di Spot.
+// operativo ma il popover di AdmSelect, vestito come il resto di Hubble.
 function FilterDropdown({ label, value, onChange, options }) {
   return (
     <AdmSelect value={value} onChange={onChange} options={options}

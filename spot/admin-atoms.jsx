@@ -168,7 +168,7 @@ function AdmEmpty({ icon = 'eye', title, desc }) {
 function AdmButton({ children, onClick, variant = 'primary', size = 'md', icon, disabled, style = {}, className }) {
   const styles = {
     primary:   { bg: 'linear-gradient(180deg, #1F2229 0%, #0F1115 100%)', fg: '#fff', border: 'transparent', shadow:'0 1px 2px rgba(15,17,21,0.20), 0 1px 0 rgba(255,255,255,0.06) inset' },
-    cta:       { bg: 'linear-gradient(180deg, #FF6F73 0%, #E04347 100%)', fg: '#fff', border: 'transparent', shadow:'0 4px 12px -4px rgba(255,90,95,0.55), 0 1px 0 rgba(255,255,255,0.20) inset' },
+    cta:       { bg: 'linear-gradient(180deg, #FF4A78 0%, #C40B45 100%)', fg: '#fff', border: 'transparent', shadow:'0 4px 12px -4px rgba(255,31,90,0.55), 0 1px 0 rgba(255,255,255,0.20) inset' },
     ghost:     { bg: 'transparent', fg: ADM.TEXT, border: ADM.BORDER },
     secondary: { bg: '#fff', fg: ADM.TEXT, border: ADM.BORDER, shadow:'0 1px 2px rgba(15,17,21,0.04)' },
     danger:    { bg: 'linear-gradient(180deg, #EF4444 0%, #DC2626 100%)', fg: '#fff', border: 'transparent', shadow:'0 1px 2px rgba(220,38,38,0.30)' },
@@ -296,9 +296,9 @@ function AdmSwitch({ checked, onChange, size = 'md', disabled }) {
 
 // ─── Select con popover ─────────────────────────────────────────────────────
 // Il <select> nativo apre il menu del SISTEMA OPERATIVO: font di sistema,
-// spunta blu, righe attaccate — un pezzo di macOS in mezzo a Spot. Questo
+// spunta blu, righe attaccate — un pezzo di macOS in mezzo a Hubble. Questo
 // componente tiene il guscio di chi lo monta (via `buttonStyle`) e apre un
-// pannello nostro: stessa carta bianca dei popover di Spot, voce attiva in
+// pannello nostro: stessa carta bianca dei popover di Hubble, voce attiva in
 // pesca come la nav, spunta sulla scelta corrente.
 //   · options: [{value, label}] oppure stringhe semplici
 //   · block: il select riempie la riga (per i form nei drawer)
@@ -366,7 +366,7 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
                   padding:'8px 10px', borderRadius:8, border:'none',
                   // Il passaggio del mouse SI VEDE: grigio pieno sulle voci a
                   // riposo, pesca più carico su quella già attiva.
-                  background: attiva ? (hover ? '#FFD2CD' : ADM.PINK_SOFT)
+                  background: attiva ? (hover ? '#FFCBD8' : ADM.PINK_SOFT)
                     : hover ? ADM.NEUTRAL_SOFT : 'transparent',
                   color: attiva ? ADM.PINK_DARK : ADM.TEXT,
                   fontSize:13.5, fontWeight: attiva ? 700 : 500,

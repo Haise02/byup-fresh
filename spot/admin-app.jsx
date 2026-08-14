@@ -1,66 +1,94 @@
-// Byup Spot — shell principale con sidebar e router
+// Hubble — shell principale con sidebar e router
+//
+// La console si chiamava «byup Spot». Il nome è cambiato, ma soprattutto è
+// cambiato il mestiere: non è più solo il posto da cui si guardano i numeri e
+// si risponde ai ticket, è il CRM con cui si parla ai locali e agli utenti. La
+// nav lo dice: prima la panoramica, poi i contatti, poi quello che si fa ai
+// contatti (marketing, workflow, agenti), e in fondo l'assistenza.
 
 const { useState: useStateApp } = React;
 
-// Nav piatta come nel gestionale: una lista principale + un gruppo "sistema"
-// staccato in basso. Niente micro-header maiuscoli (Operatività/Marketing…):
-// le icone + label bastano, e la sidebar respira.
-const NAV_MAIN = [
-  { id: 'dashboard',    label: 'Analisi Dati', icon: 'chartFill' },
+// ─── La nav ─────────────────────────────────────────────────────────────────
+// Alcune voci hanno dei FIGLI. Passandoci sopra si apre un pannello a fianco
+// con le sotto-sezioni, ciascuna con la sua riga di spiegazione: «Elenchi» da
+// solo non dice se sono cartelle o segmenti, e una voce di menu che va provata
+// per capire cosa fa è una voce di menu scritta male.
+// Cliccando la voce madre si va comunque alla prima figlia — il flyout è una
+// scorciatoia, non un pedaggio.
+const HUB_NAV = [
+  { id: 'panoramica', label: 'Dashboard', icon: 'gridFill',
+    desc: 'I numeri di tutta la piattaforma in una schermata' },
+  { id: 'dashboard', label: 'Analisi Dati', icon: 'chartFill',
+    desc: 'Sette letture: locali, valore, utenti, mercato' },
   // Una voce sola per l'anagrafe. Locali, Staff e Utenti App erano tre liste
   // separate, ma chi amministra cerca UNA persona — «di chi è questa mail?» —
-  // e non deve sapere in anticipo in quale delle tre vive. La rubrica le
-  // fonde su quattro colonne comuni; il dettaglio resta quello giusto per
-  // ciascun tipo. NIENTE badge: la voce Locali contava gli onboarding, ma su
-  // una rubrica un numero senza etichetta non dice niente — quel conteggio
-  // vive nel filtro di stato e in Dashboard.
-  { id: 'contatti',     label: 'Contatti',     icon: 'staffFill' },
-  // Una voce sola per l'assistenza. Ticket e chiamate erano due sezioni
-  // separate, ma sono lo stesso lavoro fatto su due canali: chi sta al
-  // supporto passa dall'una all'altra di continuo, e con due voci di menu non
-  // esisteva un posto dove vedere tutto quello che un locale ha aperto con
-  // noi. Dentro ci stanno anche le FAQ e le guide, che sono la stessa
-  // assistenza scritta una volta per tutte invece che ripetuta al telefono.
-  // Il badge somma le due code; il dettaglio lo danno i tab.
-  { id: 'assistenza',   label: 'Assistenza', icon: 'headsetFill',
+  // e non deve sapere in anticipo in quale delle tre vive.
+  { id: 'contatti', label: 'Contatti', icon: 'staffFill', colore: 'PINK',
+    figli: [
+      { id: 'contatti',  label: 'Contatti',  icon: 'staffFill', desc: 'La rubrica: locali, staff e utenti app insieme' },
+      { id: 'elenchi',   label: 'Elenchi',   icon: 'listFill',  desc: 'Segmenti che si aggiornano da soli e liste fisse' },
+      { id: 'proprieta', label: 'Proprietà', icon: 'tagFill',   desc: 'I campi di un contatto, e quelli che crei tu' },
+    ] },
+  // «Promozioni» era una sezione sola con tre tab dentro. Ora i canali sono
+  // quattro e ognuno ha il suo storico, le sue statistiche e il suo modo di
+  // costruire un materiale: stanno a pari livello, non annidati in una tendina.
+  { id: 'marketing', label: 'Marketing', icon: 'megaphoneFill', colore: 'HUB_MAGENTA',
+    figli: [
+      { id: 'mkt-mail', label: 'Mail',  icon: 'mailFill', desc: 'Campagne una tantum e modelli automatici' },
+      { id: 'mkt-sms',  label: 'SMS',   icon: 'smsFill',  desc: 'Messaggi brevi, subito o programmati' },
+      { id: 'mkt-push', label: 'Push',  icon: 'bellFill', desc: 'Notifiche nell\'app e nel gestionale' },
+      { id: 'mkt-form', label: 'Form',  icon: 'formFill', desc: 'Moduli da pubblicare, con la loro automazione' },
+      { id: 'promozioni', label: 'Campagne di acquisizione', icon: 'target', desc: 'Link tracciati, CAC, MRR e payback' },
+    ] },
+  { id: 'workflow', label: 'Workflow', icon: 'flowFill', colore: 'HUB_VIOLA',
+    desc: 'Le automazioni: cosa succede, e quando' },
+  { id: 'agent', label: 'Agent', icon: 'sparkFill', colore: 'HUB_VIOLA',
+    desc: 'Agenti che lavorano sui tuoi dati mentre non guardi' },
+  // Una voce sola per l'assistenza. Ticket e chiamate sono lo stesso lavoro
+  // fatto su due canali. Il badge somma le due code; il dettaglio lo danno i tab.
+  { id: 'assistenza', label: 'Assistenza', icon: 'headsetFill',
+    desc: 'Ticket, chiamate, FAQ e guide',
     badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length
           + CERTIFICAZIONI.filter(c=>c.stato==='pending').length
           + RICHIAMATE.filter(r=>r.stato==='attesa').length) },
-  { id: 'promozioni',   label: 'Promozioni',   icon: 'megaphoneFill' },
-];
-const NAV_SYSTEM = [
-  // La nav di sistema è per la governance, non per l'operatività quotidiana:
-  // si consulta quando serve, come le impostazioni.
-  //
-  // Chi ha accesso, che cosa ha fatto e come stanno i sistemi sono la stessa
-  // domanda vista da tre lati: stanno insieme e non dentro le impostazioni,
-  // dove finivano solo perche non c'era un altro posto.
-  { id: 'sicurezza',    label: 'Sicurezza e sistemi', icon: 'lockFill' },
-  { id: 'team',         label: 'Piattaforma', icon: 'shieldUserFill' },
 ];
 
-// Nav item — stile gestionale: attivo = fondo pesca + testo/coral, icona
-// prominente. `muted` per il gruppo sistema (tono più tenue, icona più piccola).
-function AdmNavItem({ item, active, onClick, muted, collapsed }) {
+// Le voci di governance non stanno più nella barra: si consultano quando
+// serve, come le impostazioni, e ora vivono nel menu del profilo. La barra è
+// tornata a parlare solo del lavoro di tutti i giorni.
+const HUB_MENU_PROFILO = [
+  { id: 'profilo',   label: 'Il mio profilo',      icon: 'user',       desc: 'Password, 2FA, sessioni attive' },
+  { id: 'domini',    label: 'Domini e mittenti',   icon: 'globe',      desc: 'Domini di invio, indirizzi, numeri SMS' },
+  { id: 'proprieta', label: 'Proprietà',           icon: 'tag',        desc: 'I campi dei contatti, di sistema e personalizzati' },
+  { id: 'sicurezza', label: 'Sicurezza e sistemi', icon: 'lock',       desc: 'Accessi, audit log, diagnostica' },
+  { id: 'team',      label: 'Piattaforma',         icon: 'shield',     desc: 'Piani e prezzi, peso ordini, discovery' },
+];
+
+// Nav item — attivo = fondo rosa tenue + testo/rosa, icona prominente.
+// Con `figli`, il passaggio del mouse apre il pannello a fianco.
+function AdmNavItem({ item, active, onClick, collapsed, onFly, flyAperto }) {
   const Icon = BuIcons[item.icon];
   const hasBadge = item.badge !== undefined && item.badge > 0;
+  const acceso = active || flyAperto;
   return (
     <button onClick={onClick} className={`adm-nav-item${active ? ' is-active' : ''}`}
       title={collapsed ? item.label : undefined}
+      onMouseEnter={(e) => onFly && onFly(item, e.currentTarget)}
       style={{
+        position:'relative',
         width:'100%', display:'flex', alignItems:'center',
         gap: collapsed ? 0 : 12,
         justifyContent: collapsed ? 'center' : 'flex-start',
         padding: collapsed ? '9px' : '9px 10px',
-        background: active ? ADM.PINK_SOFT : 'transparent',
-        color: active ? ADM.PINK_DARK : (muted ? ADM.MUTED : ADM.TEXT),
+        background: active ? ADM.PINK_SOFT : flyAperto ? 'rgba(0,0,0,0.04)' : 'transparent',
+        color: active ? ADM.PINK_DARK : ADM.TEXT,
         border:'none', borderRadius:10,
-        fontSize: muted ? 17.5 : 19.5,
+        fontSize: 19.5,
         fontWeight: active ? 600 : 500,
         cursor:'pointer', fontFamily:'inherit', textAlign:'left',
       }}>
       <span style={{position:'relative', display:'inline-flex'}}>
-        <Icon size={muted ? 21 : 26} color={active ? ADM.PINK : ADM.MUTED}/>
+        <Icon size={26} color={active ? ADM.PINK : ADM.MUTED}/>
         {collapsed && hasBadge && (
           <span style={{position:'absolute', top:-2, right:-3, width:8, height:8, borderRadius:'50%', background:ADM.PINK, boxShadow:'0 0 0 2px #F7F8FA'}}/>
         )}
@@ -74,7 +102,61 @@ function AdmNavItem({ item, active, onClick, muted, collapsed }) {
           boxShadow:'0 1px 2px rgba(0,0,0,0.10)',
         }}>{item.badge}</span>
       )}
+      {/* Le voci con figli lo dichiarano: un chevron tenue che si accende. Un
+          pannello che appare senza che niente lo annunciasse è un pannello che
+          si scopre per caso. */}
+      {!collapsed && item.figli && !hasBadge && (
+        <span style={{display:'inline-flex', color: acceso ? ADM.PINK : ADM.MUTED_LIGHT, transition:'color 0.14s ease'}}>
+          <BuIcons.chevronRight size={15}/>
+        </span>
+      )}
     </button>
+  );
+}
+
+// Il pannello che si apre a fianco della voce. Una card per figlio: icona,
+// nome e la riga che dice a cosa serve.
+function HubFlyout({ voce, x, y, onVai, onEnter, onLeave, rotta }) {
+  if (!voce || !voce.figli) return null;
+  const tinta = ADM[voce.colore] || ADM.PINK;
+  return (
+    <div onMouseEnter={onEnter} onMouseLeave={onLeave}
+      style={{
+        position:'fixed', left:x, top:y, zIndex:150, width:322,
+        background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:16,
+        boxShadow:'0 28px 64px -18px rgba(15,17,21,0.30), 0 0 0 1px rgba(15,17,21,0.03)',
+        padding:8, animation:'hubFlyIn 0.15s cubic-bezier(0.34,1.2,0.64,1)',
+      }}>
+      <div style={{
+        padding:'8px 10px 9px', display:'flex', alignItems:'center', gap:8,
+        borderBottom:`1px solid ${ADM.BORDER_SOFT}`, marginBottom:5,
+      }}>
+        <span style={{width:5, height:5, borderRadius:2, background:tinta}}/>
+        <span style={{fontSize:11.2, fontWeight:800, letterSpacing:'0.09em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>{voce.label}</span>
+      </div>
+      {voce.figli.map(f => {
+        const Icona = BuIcons[f.icon];
+        const attiva = rotta === f.id;
+        return (
+          <button key={f.id} onClick={() => onVai(f.id)} className="adm-actionrow"
+            style={{
+              display:'flex', alignItems:'flex-start', gap:11, width:'100%', textAlign:'left',
+              padding:'9px 10px', borderRadius:10, border:'none', cursor:'pointer', fontFamily:'inherit',
+              background: attiva ? ADM.PINK_BG_SOFT : 'transparent',
+            }}>
+            <span style={{
+              width:32, height:32, borderRadius:9, flexShrink:0, display:'grid', placeItems:'center',
+              background: attiva ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT,
+              color: attiva ? ADM.PINK : tinta,
+            }}><Icona size={17}/></span>
+            <span style={{flex:1, minWidth:0, paddingTop:1}}>
+              <span style={{display:'block', fontSize:14.2, fontWeight:700, color: attiva ? ADM.PINK_DARK : ADM.TEXT, letterSpacing:'-0.01em'}}>{f.label}</span>
+              <span style={{display:'block', fontSize:12.2, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{f.desc}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -149,14 +231,48 @@ function GlobalSearch({ onClose, go }) {
   );
 }
 
+// Il nome della sezione per la briciola di pane in testata. Cerca prima tra le
+// voci di primo livello, poi tra i figli, poi nel menu del profilo.
+function hubBriciola(rotta) {
+  for (const v of HUB_NAV) {
+    if (v.id === rotta) return v.label;
+    if (v.figli) {
+      const f = v.figli.find(x => x.id === rotta);
+      if (f) return v.label + ' · ' + f.label;
+    }
+  }
+  const p = HUB_MENU_PROFILO.find(v => v.id === rotta);
+  return p ? p.label : 'Hubble';
+}
+
 function AdminApp({ tweaks }) {
-  const [route, setRouteRaw] = useStateApp('dashboard');
+  const [route, setRouteRaw] = useStateApp('panoramica');
   const [messageModal, setMessageModal] = useStateApp(null);
   const [contattoOpen, setContattoOpen] = useStateApp(null); // {tipo, ref} → drawer in Contatti
   const [commOpen, setCommOpen] = useStateApp(null);
   const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
   const [teamTab, setTeamTab] = useStateApp(null);   // tab di Sicurezza/Piattaforma aperta da un link esterno
   const [searchOpen, setSearchOpen] = useStateApp(false);
+  // Il flyout della nav: {voce, x, y}. Vive qui e non dentro la voce perché
+  // deve stare SOPRA la sidebar (position:fixed), e una sidebar con
+  // overflow:auto taglierebbe qualunque figlio che ne esce.
+  const [fly, setFly] = useStateApp(null);
+  const [menuProfilo, setMenuProfilo] = useStateApp(false);
+  // Il ritardo di chiusura: senza, il pannello sparisce nel millimetro di
+  // vuoto tra la voce e la card, e non ci si arriva mai col mouse.
+  const flyTimer = React.useRef(null);
+  const apriFly = (voce, el) => {
+    clearTimeout(flyTimer.current);
+    if (!voce.figli) { setFly(null); return; }
+    const r = el.getBoundingClientRect();
+    // Il frame è scalato con `zoom`: i rect sono pixel VISIVI e il pannello,
+    // essendo dentro lo stesso frame, li vuole di LAYOUT. Si divide per lo zoom.
+    const z = (() => { const f = document.querySelector('.frame'); const v = f && parseFloat(f.style.zoom); return v > 0 ? v : 1; })();
+    setFly({ voce, x: (r.right / z) + 8, y: Math.max(12, (r.top / z) - 6) });
+  };
+  const chiudiFly = () => { clearTimeout(flyTimer.current); flyTimer.current = setTimeout(() => setFly(null), 160); };
+  const tieniFly = () => clearTimeout(flyTimer.current);
+  React.useEffect(() => () => clearTimeout(flyTimer.current), []);
 
   // ⌘K / Ctrl+K apre la ricerca globale ovunque
   React.useEffect(() => {
@@ -197,7 +313,11 @@ function AdminApp({ tweaks }) {
   const setRoute = (nextRaw, opts) => {
     const verso = nextRaw === 'comunicazioni' ? 'assistenza'
       : (nextRaw === 'locali' || nextRaw === 'camerieri' || nextRaw === 'utenti') ? 'contatti'
+      // «Marketing» non è una pagina: è una famiglia. Chi ci arriva senza dire
+      // quale canale atterra sulla mail, che è quello da cui si parte.
+      : nextRaw === 'marketing' ? 'mkt-mail'
       : nextRaw;
+    setFly(null); setMenuProfilo(false);
     const tab = nextRaw === 'comunicazioni' ? 'ticket' : (opts && opts.tab) || null;
     // Le tre vecchie forme di apertura diretta diventano un {tipo, ref} solo:
     // la rubrica sceglie da lì quale dei tre drawer montare.
@@ -217,17 +337,24 @@ function AdminApp({ tweaks }) {
   const openMessageModal = (type, ids = []) => setMessageModal({ type, ids });
   const closeMessageModal = () => setMessageModal(null);
 
+  // Una scorciatoia globale per navigare da dentro le pagine senza passare le
+  // callback di mano in mano attraverso cinque livelli di componenti.
+  React.useEffect(() => { window.__hubNav = setRoute; return () => { delete window.__hubNav; }; });
+
   const pageTitles = {
     dashboard:    { t:'Analisi Dati', s:'Come sta la piattaforma, letta dai numeri' },
-    contatti:     { t:'Contatti', s:'Locali, utenti staff e utenti app in un\'unica rubrica' },
     assistenza:   { t:'Assistenza', s:'Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
-    promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
+    promozioni:   { t:'Campagne di acquisizione', s:'Link tracciati, costo per acquisizione e payback per campagna' },
     team:         { t:'Piattaforma', s:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app' },
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
     profilo:      { t:'Profilo', s:'Account e sicurezza' },
   };
 
-  const pt = pageTitles[route] || pageTitles.dashboard;
+  // Le pagine nuove si presentano da sole, con la loro testata dentro il
+  // contenuto: qui sopra basta la briciola di pane. Le vecchie si aspettano
+  // ancora il titolone nell'header, e finché è così se lo tengono — due
+  // titoli identici uno sopra l'altro erano la prima cosa che si notava.
+  const pt = pageTitles[route];
 
   return (
     <div className="frame" style={{
@@ -235,6 +362,7 @@ function AdminApp({ tweaks }) {
       fontFamily: "'Plus Jakarta Sans', -apple-system, system-ui, sans-serif",
       background: ADM.PANEL_SOFT, color: ADM.TEXT,
     }}>
+      <HubStile/>
       {/* Sidebar — vetro tenue, logo reale, nav piatta (come il gestionale) */}
       <aside style={{
         width: collapsed ? 68 : 272, flexShrink:0,
@@ -247,68 +375,128 @@ function AdminApp({ tweaks }) {
         padding: collapsed ? '20px 10px 56px' : '20px 14px 56px',
         transition:'width 220ms cubic-bezier(0.4,0,0.2,1), padding 220ms cubic-bezier(0.4,0,0.2,1)',
       }}>
-        {/* Logo + pulsante comprimi/espandi (come il gestionale) */}
+        {/* Logo Hubble: il lockup intero da espansa, il solo marchio da
+            compressa. Il gradiente è nel file — niente testo colorato a mano
+            che poi diverge dal logo vero alla prima revisione del marchio. */}
         {!collapsed ? (
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 6px 24px'}}>
-            <div style={{display:'flex', alignItems:'baseline', gap:9}}>
-              <img src="byup.png" alt="byup" style={{height:31, width:'auto', display:'block', transform:'translateY(6px)'}}/>
-              <span style={{fontSize:27, fontWeight:800, fontStyle:'italic', color:ADM.PINK, letterSpacing:'-0.01em', lineHeight:1}}>Spot</span>
-            </div>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 6px 22px'}}>
+            <img src="hubble.png" alt="Hubble" style={{height:29, width:'auto', display:'block'}}/>
             <button onClick={toggleCollapsed} title="Comprimi menu" className="adm-iconbtn" style={sidebarToggleStyle}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           </div>
         ) : (
           <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:10, paddingBottom:20}}>
-            <img src="byup-mark.png" alt="byup" style={{height:30, width:'auto', display:'block'}}/>
+            <img src="hubble-mark.png" alt="Hubble" style={{height:28, width:'auto', display:'block'}}/>
             <button onClick={toggleCollapsed} title="Espandi menu" className="adm-iconbtn" style={sidebarToggleStyle}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
         )}
 
-        <nav style={{flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:2}}>
-          {NAV_MAIN.map(item => (
-            <AdmNavItem key={item.id} item={item} active={route===item.id} onClick={()=>setRoute(item.id)} collapsed={collapsed}/>
-          ))}
+        <nav onMouseLeave={chiudiFly}
+          style={{flex:1, overflowY:'auto', overflowX:'visible', display:'flex', flexDirection:'column', gap:2}}>
+          {HUB_NAV.map(item => {
+            const figlio = item.figli && item.figli.some(f => f.id === route);
+            return (
+              <AdmNavItem key={item.id} item={item}
+                active={route === item.id || figlio}
+                flyAperto={!!fly && fly.voce.id === item.id}
+                onClick={() => setRoute(item.figli ? item.figli[0].id : item.id)}
+                onFly={apriFly}
+                collapsed={collapsed}/>
+            );
+          })}
         </nav>
 
-        {/* Gruppo sistema — staccato in basso, tono più tenue */}
-        <div style={{display:'flex', flexDirection:'column', gap:2, paddingTop:10, marginTop:6, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-          {NAV_SYSTEM.map(item => (
-            <AdmNavItem key={item.id} item={item} active={route===item.id} onClick={()=>setRoute(item.id)} muted collapsed={collapsed}/>
-          ))}
-        </div>
+        {/* Profilo — la card apre il MENU, non una pagina. Dentro ci stanno
+            l'account e tutte le impostazioni della piattaforma: domini e
+            mittenti, il catalogo delle proprietà, sicurezza e sistemi, le leve
+            commerciali. Erano voci di barra, ma sono cose che si toccano una
+            volta al mese: occupavano lo spazio del lavoro quotidiano. */}
+        <div style={{position:'relative', marginTop:10}}>
+          <button onClick={()=>setMenuProfilo(m => !m)} title={collapsed ? "Profilo e impostazioni" : undefined}
+            className="adm-card-interactive"
+            style={{
+              width:'100%', boxSizing:'border-box',
+              padding: collapsed ? '8px 0' : '9px 10px',
+              display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'flex-start', gap:10,
+              background: (menuProfilo || HUB_MENU_PROFILO.some(v => v.id === route)) ? ADM.PINK_SOFT : '#fff',
+              border:`1px solid ${(menuProfilo || HUB_MENU_PROFILO.some(v => v.id === route)) ? '#FFA9BF' : 'rgba(15,17,21,0.07)'}`,
+              borderRadius:12, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+              boxShadow:'0 1px 2px rgba(15,17,21,0.04)',
+            }}>
+            <div style={{
+              width:36, height:36, borderRadius:'50%',
+              background: ADM.HUB_GRAD_DIAG,
+              color:'#fff', display:'grid', placeItems:'center',
+              fontWeight:700, fontSize:14, flexShrink:0, letterSpacing:'0.01em',
+            }}>MR</div>
+            {!collapsed && (
+              <React.Fragment>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:14.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.2}}>Marco Rinaldi</div>
+                  <div style={{fontSize:12, color:ADM.MUTED, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Super Admin · byup</div>
+                </div>
+                <span style={{display:'inline-flex', color:ADM.MUTED, transform: menuProfilo ? 'rotate(180deg)' : 'none', transition:'transform 0.16s ease'}}>
+                  <BuIcons.chevronUp size={15}/>
+                </span>
+              </React.Fragment>
+            )}
+          </button>
 
-        {/* Profilo — card a tutta larghezza: avatar a sinistra, testo che
-            riempie, freccia ancorata a destra. Niente contenuto "galleggiante". */}
-        <button onClick={()=>setRoute('profilo')} title={collapsed ? "Profilo" : undefined} className="adm-card-interactive"
-          style={{
-            marginTop:10, width:'100%', boxSizing:'border-box',
-            padding: collapsed ? '8px 0' : '9px 10px',
-            display:'flex', alignItems:'center', justifyContent: collapsed ? 'center' : 'flex-start', gap:10,
-            background: route === 'profilo' ? ADM.PINK_SOFT : '#fff',
-            border:`1px solid ${route === 'profilo' ? '#FFB3B5' : 'rgba(15,17,21,0.07)'}`,
-            borderRadius:12, cursor:'pointer', fontFamily:'inherit', textAlign:'left',
-            boxShadow:'0 1px 2px rgba(15,17,21,0.04)',
-          }}>
-          <div style={{
-            width:36, height:36, borderRadius:'50%',
-            background:'linear-gradient(135deg, #FF5A5F, #B53338)',
-            color:'#fff', display:'grid', placeItems:'center',
-            fontWeight:700, fontSize:14, flexShrink:0, letterSpacing:'0.01em',
-          }}>MR</div>
-          {!collapsed && (
+          {menuProfilo && (
             <React.Fragment>
-              <div style={{flex:1, minWidth:0}}>
-                <div style={{fontSize:14.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', lineHeight:1.2}}>Marco Rinaldi</div>
-                <div style={{fontSize:12, color:ADM.MUTED, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>Super Admin · byup</div>
+              <div onClick={()=>setMenuProfilo(false)} style={{position:'fixed', inset:0, zIndex:140}}/>
+              <div style={{
+                position:'absolute', bottom:'calc(100% + 8px)', left:0, zIndex:145,
+                width: collapsed ? 288 : '100%', minWidth:262,
+                background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14,
+                boxShadow:'0 24px 60px -18px rgba(15,17,21,0.32)', padding:7,
+                animation:'hubFlyIn 0.15s cubic-bezier(0.34,1.2,0.64,1)',
+              }}>
+                {HUB_MENU_PROFILO.map(v => {
+                  const Icona = BuIcons[v.icon];
+                  const attiva = route === v.id;
+                  return (
+                    <button key={v.id} onClick={()=>setRoute(v.id)} className="adm-actionrow"
+                      style={{
+                        display:'flex', alignItems:'flex-start', gap:10, width:'100%', textAlign:'left',
+                        padding:'8px 9px', borderRadius:9, border:'none', cursor:'pointer', fontFamily:'inherit',
+                        background: attiva ? ADM.PINK_BG_SOFT : 'transparent',
+                      }}>
+                      <span style={{
+                        width:28, height:28, borderRadius:8, flexShrink:0, display:'grid', placeItems:'center',
+                        background: attiva ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: attiva ? ADM.PINK : ADM.MUTED,
+                      }}><Icona size={15}/></span>
+                      <span style={{flex:1, minWidth:0, paddingTop:1}}>
+                        <span style={{display:'block', fontSize:13.8, fontWeight:700, color: attiva ? ADM.PINK_DARK : ADM.TEXT}}>{v.label}</span>
+                        <span style={{display:'block', fontSize:11.8, color:ADM.MUTED, marginTop:1, lineHeight:1.4}}>{v.desc}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+                <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, margin:'6px 4px 4px', paddingTop:5}}>
+                  <button className="adm-actionrow" style={{
+                    display:'flex', alignItems:'center', gap:10, width:'100%', textAlign:'left',
+                    padding:'8px 9px', borderRadius:9, border:'none', cursor:'pointer',
+                    fontFamily:'inherit', background:'transparent',
+                  }}>
+                    <span style={{width:28, height:28, borderRadius:8, display:'grid', placeItems:'center', color:ADM.MUTED}}>
+                      <BuIcons.arrowRight size={15}/>
+                    </span>
+                    <span style={{fontSize:13.8, fontWeight:600, color:ADM.MUTED}}>Esci da Hubble</span>
+                  </button>
+                </div>
               </div>
-              <span className="adm-open-chip" style={{width:22, height:22}}><BuIcons.chevronRight size={13}/></span>
             </React.Fragment>
           )}
-        </button>
+        </div>
       </aside>
+
+      {/* Il pannello delle sotto-sezioni, sopra a tutto */}
+      {fly && <HubFlyout voce={fly.voce} x={fly.x} y={fly.y} rotta={route}
+        onVai={(id)=>setRoute(id)} onEnter={tieniFly} onLeave={chiudiFly}/>}
 
       {/* Main */}
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
@@ -319,8 +507,21 @@ function AdminApp({ tweaks }) {
           display:'flex', alignItems:'center', gap:14, flexShrink:0,
         }}>
           <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:22, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.2}}>{pt.t}</div>
-            <div style={{fontSize:14, color:ADM.MUTED, marginTop:2, letterSpacing:'-0.005em'}}>{pt.s}</div>
+            {pt ? (
+              <React.Fragment>
+                <div style={{fontSize:22, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.2}}>{pt.t}</div>
+                <div style={{fontSize:14, color:ADM.MUTED, marginTop:2, letterSpacing:'-0.005em'}}>{pt.s}</div>
+              </React.Fragment>
+            ) : (
+              // La pagina si presenta da sola più in basso: qui basta dire dove
+              // siamo. Ripetere il titolo due volte a otto pixel di distanza è
+              // rumore, non orientamento.
+              <div style={{display:'flex', alignItems:'center', gap:8, fontSize:14, minHeight:39}}>
+                <span className="hub-marchio" style={{fontWeight:800, letterSpacing:'-0.01em'}}>Hubble</span>
+                <span style={{color:ADM.MUTED_LIGHT}}>/</span>
+                <span style={{fontWeight:600, color:ADM.TEXT}}>{hubBriciola(route)}</span>
+              </div>
+            )}
           </div>
           {/* Ricerca globale */}
           <button onClick={()=>setSearchOpen(true)} className="adm-pill" style={{
@@ -338,8 +539,18 @@ function AdminApp({ tweaks }) {
         </header>
 
         <div style={{flex:1, overflow:'auto'}}>
+          {route === 'panoramica'   && <HubPanoramicaPage onNav={setRoute}/>}
           {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
           {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
+          {route === 'elenchi'      && <HubElenchiPage/>}
+          {route === 'mkt-mail'     && <HubMailPage/>}
+          {route === 'mkt-sms'      && <HubSmsPage/>}
+          {route === 'mkt-push'     && <HubPushPage/>}
+          {route === 'mkt-form'     && <HubFormPage/>}
+          {route === 'workflow'     && <HubWorkflowPage/>}
+          {route === 'agent'        && <HubAgentPage/>}
+          {route === 'domini'       && <HubDominiPage/>}
+          {route === 'proprieta'    && <HubProprietaPage/>}
           {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
           {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
           {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
@@ -376,7 +587,7 @@ function ProfiloPage() {
         <div style={{display:'flex', alignItems:'center', gap:18}}>
           <div style={{
             width:52, height:52, borderRadius:'50%',
-            background:'linear-gradient(135deg, #FF5A5F, #B53338)',
+            background:'linear-gradient(135deg, #FF1F5A, #9E0B3C)',
             color:'#fff', display:'grid', placeItems:'center',
             fontWeight:700, fontSize:20, flexShrink:0, letterSpacing:'0.01em',
           }}>MR</div>

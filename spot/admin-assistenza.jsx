@@ -1,4 +1,4 @@
-// Byup Spot — Assistenza
+// Hubble — Assistenza
 //
 // Quattro tab, un solo tema: il rapporto fra byup e il ristoratore quando
 // qualcosa non va.
@@ -23,7 +23,7 @@
 //
 // ─── Impianto visivo ────────────────────────────────────────────────────────
 // La sezione non inventa un proprio linguaggio: prende in prestito i due
-// idiomi che Spot ha già.
+// idiomi che Hubble ha già.
 //
 //   Chiamate, Ticket, Guide → l'inbox a due pannelli: elenco fitto a
 //     sinistra, contenuto a destra. La versione a card impilate a tutta
@@ -522,7 +522,7 @@ function SrvDettaglioRichiamata({ r, tutte, onRegistra }) {
               c'è nulla registrato per quel protocollo e il click non fa
               niente, senza dire perché. Il numero grande e il copia bastano —
               chi ha il centralino a parte incolla, chi ha il telefono in mano
-              legge. Se un giorno Spot avrà un centralino integrato, quello
+              legge. Se un giorno Hubble avrà un centralino integrato, quello
               sarà un pulsante che compone davvero e registra la durata. */}
           <AdmCard padding={0} style={{overflow:'hidden'}}>
             <div style={{padding:'14px 18px 16px'}}>
@@ -958,9 +958,9 @@ function SrvMailInviata({ r, onChiudi }) {
             <div style={{fontSize:13.8, color:ADM.TEXT, lineHeight:1.65}}>{m.corpo}</div>
             <div style={{fontSize:13.8, color:ADM.TEXT, lineHeight:1.65}}>{m.chiusura}</div>
             <span style={{alignSelf:'flex-start', marginTop:2, padding:'9px 16px', borderRadius:9,
-              background:'linear-gradient(180deg, #FF6F73 0%, #E04347 100%)', color:'#fff',
+              background:'linear-gradient(180deg, #FF4A78 0%, #C40B45 100%)', color:'#fff',
               fontSize:13.4, fontWeight:700,
-              boxShadow:'0 4px 12px -4px rgba(255,90,95,0.55)'}}>{m.cta}</span>
+              boxShadow:'0 4px 12px -4px rgba(255,31,90,0.55)'}}>{m.cta}</span>
           </div>
         </div>
       </div>
@@ -1164,7 +1164,7 @@ function SrvInterruttorePubblica({ live, onChange, acceso, spento }) {
 // 3. Guide — due pannelli: gli argomenti a sinistra, le loro guide a destra
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// Stesso impianto di Chiamate e Ticket, che è l'idioma che Spot già usa per
+// Stesso impianto di Chiamate e Ticket, che è l'idioma che Hubble già usa per
 // «scegli a sinistra, lavora a destra». Prima era un elenco unico lungo con le
 // guide raggruppate: per arrivare a un argomento si scorreva tutto, e le
 // azioni sull'argomento stavano in mezzo alle sue guide.

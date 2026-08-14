@@ -2745,7 +2745,7 @@ function DashUtentiApp() {
   const monthsLabel = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   const SEASONAL_REGIONS = ['Tutta Italia','Nord-Ovest','Nord-Est','Centro','Sud','Isole'];
   // Palette per linee piatto (max 10)
-  const dishPalette = ['#0F1115', '#FF5A5F', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#EF4444'];
+  const dishPalette = ['#0F1115', '#FF1F5A', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#EF4444'];
   const [seasonalRegion, setSeasonalRegion] = useStateDash('Tutta Italia');
   const [seasonalSel, setSeasonalSel] = useStateDash(['Pizza Margherita', 'Carbonara', 'Pasta fredda & insalatone']);
   const [seasonalQuery, setSeasonalQuery] = useStateDash('');
@@ -3402,7 +3402,7 @@ function DashUtentiApp() {
                 return (
                   <div key={j} style={{
                     padding:'14px 4px', borderRadius:6, textAlign:'center',
-                    background: intensity < 0.05 ? '#F4F5F7' : `rgba(255,90,95,${0.08 + intensity*0.85})`,
+                    background: intensity < 0.05 ? '#F4F5F7' : `rgba(255,31,90,${0.08 + intensity*0.85})`,
                     border: intensity > 0.8 ? `1px solid ${ADM.PINK_DARK}` : '1px solid transparent',
                   }}>
                     <span style={{fontSize:13.3, fontWeight:700, color: intensity > 0.5 ? '#fff' : ADM.TEXT}}>{v}</span>
@@ -3864,7 +3864,7 @@ function DashMercato() {
   const priceMonths = ['Giu 25','Lug 25','Ago 25','Set 25','Ott 25','Nov 25','Dic 25','Gen 26','Feb 26','Mar 26','Apr 26','Mag 26'];
   const priceCities = Object.keys(CITY_PRICE_MULT);
   const priceCityList = ['Tutta Italia', ...priceCities];
-  const pricePalette = ['#0F1115', '#FF5A5F', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#EF4444'];
+  const pricePalette = ['#0F1115', '#FF1F5A', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16', '#EF4444'];
   // Prezzo mensile T+i per piatto×città (Mag 26 = base attuale, cioè i=11)
   const priceSeries = (dish, city) => {
     const base = dishPriceForCity(dish, city);

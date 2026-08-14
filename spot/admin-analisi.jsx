@@ -108,7 +108,7 @@ function anFiltra(locali, f) {
 function AnBarraFiltri({ filtri, onChange, attivo }) {
   const regioni = [...new Set(AN_LOCALI.map(l => l.regione))].sort();
   // Solo il guscio: la freccia e il menu li disegna AdmSelect, che apre il
-  // popover di Spot al posto della tendina del sistema operativo.
+  // popover di Hubble al posto della tendina del sistema operativo.
   const box = {
     padding:'6px 9px 6px 11px', borderRadius:8,
     fontSize:13, fontWeight:600,
