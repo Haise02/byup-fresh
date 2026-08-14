@@ -132,7 +132,7 @@ function HubPanoramicaPage({ onNav }) {
                 : `${dafare.length} attività richiedono la tua attenzione`}
             </div>
             <div style={{ fontSize: 14.2, opacity: 0.88, marginTop: 6, maxWidth: 560, lineHeight: 1.5 }}>
-              La piattaforma in un colpo d'occhio: come crescono locali e utenti, quanto valgono i piani attivi, che cosa gira da solo e come sta il supporto.
+              Byup a colpo d'occhio: come crescono locali e utenti.
             </div>
           </div>
           <div style={{ display: 'flex', gap: 26, flexShrink: 0 }}>
