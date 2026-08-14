@@ -16,10 +16,12 @@ const { useState: useStateCnt, useMemo: useMemoCnt, useEffect: useEffectCnt } = 
 // e non blu: blu e viola a colpo d'occhio si confondevano con Utente App, e
 // la tipologia è la colonna che si scandisce per colore. «Utente Staff»
 // rima con «Utente App»: sono entrambi utenti, di due prodotti diversi.
+// Solo parola e colore, niente icona: nella pillola l'icona ripeteva quello
+// che la parola già dice, e la colonna deve scorrere pulita.
 const CNT_TIPI = {
-  locale: { label: 'Locale',       icon: 'storeFill', color: 'PINK'   },
-  staff:  { label: 'Utente Staff', icon: 'staffFill', color: 'TEAL'   },
-  utente: { label: 'Utente App',   icon: 'phoneFill', color: 'PURPLE' },
+  locale: { label: 'Locale',       color: 'PINK'   },
+  staff:  { label: 'Utente Staff', color: 'TEAL'   },
+  utente: { label: 'Utente App',   color: 'PURPLE' },
 };
 
 // Stato unificato su tre gradini. Le tre anagrafi parlano lingue diverse
@@ -323,7 +325,6 @@ function ContattoRow({ contatto: c, onClick, striped }) {
   const [hover, setHover] = useStateCnt(false);
   const tipoDef = CNT_TIPI[c.tipo];
   const statoDef = CNT_STATI[c.stato];
-  const TipoIcon = BuIcons[tipoDef.icon];
   const device = c.tipo === 'staff' && c.ref.ruolo === 'dispositivo';
   return (
     <div onClick={onClick} className="adm-row-open"
@@ -357,25 +358,22 @@ function ContattoRow({ contatto: c, onClick, striped }) {
 
       <div>
         <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
+          display: 'inline-flex', alignItems: 'center',
           padding: '3px 9px', borderRadius: 5,
           background: ADM[tipoDef.color + '_SOFT'], color: ADM[tipoDef.color],
           fontSize: 13, fontWeight: 700,
         }}>
-          <TipoIcon size={14}/>
           {tipoDef.label}
         </span>
       </div>
 
       <div>
         {/* UN SOLO layout di stato per tutti e tre i tipi: stessa pillola,
-            stessi tre gradini, pieno = vivo e vuoto = fermo. Prima il locale
-            portava il suo badge fine (Iscritto, Onboarding saltato…) e gli
-            altri la pillola: due vesti nella stessa colonna si leggevano come
-            due colonne. Il vocabolario fine del locale resta nel drawer. */}
-        <AdmBadge color={statoDef.color} size="xs">
-          {(c.stato === 'inattivo' ? '○ ' : '● ') + statoDef.label}
-        </AdmBadge>
+            stessi tre gradini, solo la parola — il colore dice già il tono, e
+            il pallino era un secondo segnale per la stessa cosa. Prima il
+            locale portava il suo badge fine (Iscritto, Onboarding saltato…):
+            quel vocabolario resta nel drawer. */}
+        <AdmBadge color={statoDef.color} size="xs">{statoDef.label}</AdmBadge>
       </div>
 
       <div>
