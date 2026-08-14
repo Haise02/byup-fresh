@@ -76,6 +76,15 @@ const BYU_CSS = `
 /* L'annullamento non fa sparire la scheda: la fa sbiadire sul posto, così si
    vede CHE COSA si è annullato. */
 @keyframes byu-sbiadisce { from { opacity: 1; } to { opacity: 0.55; } }
+/* L'anello di benvenuto quando si arriva dal bollino delle altre pagine:
+   due respiri di luce corallo lungo il bordo della tessera, poi niente.
+   Inset e non alone esterno: la tessera ritaglia (overflow hidden) e una
+   luce fuori bordo verrebbe tranciata. */
+@keyframes byu-benvenuto {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(252,88,93,0); }
+  16%, 58% { box-shadow: inset 0 0 0 3px rgba(252,88,93,0.9), inset 0 0 48px rgba(252,88,93,0.22); }
+  36%      { box-shadow: inset 0 0 0 2px rgba(252,88,93,0.4), inset 0 0 20px rgba(252,88,93,0.1); }
+}
 
 .byu-thread::-webkit-scrollbar { width: 6px; }
 .byu-thread::-webkit-scrollbar-thumb { background: rgba(15,17,21,0.14); border-radius: 999px; }
@@ -84,7 +93,7 @@ const BYU_CSS = `
 .byu-macchia { position: absolute; inset: -30%; pointer-events: none; will-change: transform; }
 
 @media (prefers-reduced-motion: reduce) {
-  .byu-macchia, .byu-scheda, .byu-anello, .byu-galleggia { animation: none !important; }
+  .byu-macchia, .byu-scheda, .byu-anello, .byu-galleggia, .byu-benvenuto { animation: none !important; }
 }
 `;
 
@@ -383,21 +392,24 @@ function WidgetByuppino() {
   const [ascolta, setAscolta] = React.useState(false);
   const [esempio, setEsempio] = React.useState(0);
   const [fuoco, setFuoco] = React.useState(false);
+  const [benvenuto, setBenvenuto] = React.useState(false);
   const seq = React.useRef(0);
   const filo = React.useRef(null);
   const campo = React.useRef(null);
   const orologi = React.useRef([]);
 
   // Arrivo dal bollino delle altre schermate (`?byuppino=1`, byup-ai-fab.jsx):
-  // il campo si prende il fuoco, così il viaggio finisce DENTRO la
-  // conversazione — il bordo rosa dice «eccomi» senza bisogno di un
-  // riflettore. Si legge una volta al montaggio: la Panoramica non cambia
-  // URL da sola.
+  // il campo si prende il fuoco e la tessera si accende per un paio di
+  // secondi. Due segnali per due sguardi — il bordo rosa del campo dice
+  // «scrivi qui» a chi è già sulla tessera, l'anello di luce dice «eccomi» a
+  // chi atterra guardando altrove. Si legge una volta al montaggio: la
+  // Panoramica non cambia URL da sola.
   React.useEffect(() => {
     try {
-      if (new URLSearchParams(window.location.search).has('byuppino') && campo.current) {
-        campo.current.focus();
-      }
+      if (!new URLSearchParams(window.location.search).has('byuppino')) return;
+      if (campo.current) campo.current.focus();
+      setBenvenuto(true);
+      fra(2600, () => setBenvenuto(false));
     } catch (e) {}
   }, []);
 
@@ -461,6 +473,18 @@ function WidgetByuppino() {
       background: PN.WHITE,
     }}>
       <style>{BYU_CSS}</style>
+
+      {/* L'anello di benvenuto: si accende quando si arriva dal bollino e
+          respira un paio di volte prima di svanire. Sta sopra a tutto
+          (la conversazione ha zIndex 2) e non si tocca: è un riflettore,
+          non un contenuto. */}
+      {benvenuto && (
+        <span aria-hidden="true" className="byu-benvenuto" style={{
+          position: 'absolute', inset: 0, zIndex: 3, pointerEvents: 'none',
+          borderRadius: 14,
+          animation: 'byu-benvenuto 2.6s ease-out forwards',
+        }}/>
+      )}
 
       {/* ── Testata: il gradiente, sceso di tono pastello e salito di voce.
              Qui il testo è bianco, quindi le tinte sono piene — pesca che vira

@@ -339,6 +339,14 @@ function BuAiFab() {
               <img src="byuppino-assistente.png?v=2" alt="" style={{
                 width:'100%', height:'100%', objectFit:'cover',
                 objectPosition:'50% 0%', display:'block',
+                // La testa sta un paio di percento a destra del centro
+                // dell'immagine (il corpo è in tre quarti): senza questo
+                // scarto la faccina pende verso destra nel medaglione.
+                // Un translate e non objectPosition: in orizzontale il
+                // ritaglio è a filo e la percentuale non ha spazio su cui
+                // lavorare. Il velo che resta scoperto a destra è bianco su
+                // bianco, non si vede.
+                transform:'translateX(-2px)',
               }}/>
             </span>
             <span style={{
