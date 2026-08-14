@@ -45,25 +45,14 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
             color:'#fff', display:'grid', placeItems:'center',
             fontWeight:700, fontSize:16.6, flexShrink:0,
           }}>{l.nome.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase()}</div>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3}}>
-              <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{l.nome}</div>
-              <AdmPlanBadge piano={l.piano}/>
-              {/* Lo stato è BINARIO: o il rapporto è in piedi o non lo è. Il
-                  gradino commerciale (lead, onboarding, piano) sta nella
-                  colonna «Ciclo di vita» della rubrica, non qui. */}
-              <AdmBadge color={l.stato === 'active' ? 'OK' : 'PLAN_FREE'} size="xs">
-                {l.stato === 'active' ? 'Attivo' : 'Inattivo'}
-              </AdmBadge>
-            </div>
-            <div style={{fontSize:13.7, color:ADM.MUTED, display:'flex', gap:10}}>
-              <span style={{fontFamily:'ui-monospace,monospace'}}>{l.id}</span>
-              <span style={{color:ADM.MUTED_LIGHT}}>·</span>
-              <span>{l.tipo}, {l.citta}</span>
-              <span style={{color:ADM.MUTED_LIGHT}}>·</span>
-              <span>Iscritto {fmtDate(l.dataIscrizione)}</span>
-            </div>
-          </div>
+          {/* SOLO il nome: piano, stato, codice e data d'iscrizione sono
+              anagrafe e vivono nella tab Anagrafica — la testata presenta il
+              locale, non lo riassume. */}
+          <div style={{
+            flex:1, minWidth:0,
+            fontSize:19, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em',
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+          }}>{l.nome}</div>
         </div>
         </div>
 
@@ -430,6 +419,37 @@ function DrwAnagrafica({ locale: l }) {
   );
   return (
     <div style={{padding:'20px 24px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
+      {/* La carta d'identità del rapporto — quello che prima stava
+          appiccicato al nome in testata: codice, piano, stato e data
+          d'iscrizione sono anagrafe, e si leggono qui. */}
+      <AdmCard padding={20} style={{gridColumn:'span 2'}}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+          <div>
+            <label style={lab}>Codice locale</label>
+            <div style={{...mono, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+              {l.id}
+              <span style={{fontSize:10.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:ADM.MUTED_SOFT}}>non modificabile</span>
+            </div>
+          </div>
+          <div>
+            <label style={lab}>Piano</label>
+            <div style={{display:'flex', alignItems:'center', minHeight:36}}><AdmPlanBadge piano={l.piano}/></div>
+          </div>
+          <div>
+            <label style={lab}>Stato</label>
+            <div style={{display:'flex', alignItems:'center', minHeight:36}}>
+              <AdmBadge color={l.stato === 'active' ? 'OK' : 'PLAN_FREE'} size="xs">
+                {l.stato === 'active' ? 'Attivo' : 'Inattivo'}
+              </AdmBadge>
+            </div>
+          </div>
+          <div>
+            <label style={lab}>Iscritto dal</label>
+            <div style={{...inp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{fmtDate(l.dataIscrizione)}</div>
+          </div>
+        </div>
+      </AdmCard>
+
       <AdmCard padding={20}>
         <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Anagrafica locale</div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
@@ -463,40 +483,17 @@ function DrwAnagrafica({ locale: l }) {
               <span style={{fontSize:10.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:ADM.MUTED_SOFT}}>gestito da Stripe</span>
             </div>
           </div>
-          <div>
-            <label style={lab}>Iscritto dal</label>
-            <div style={{...inp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{fmtDate(l.dataIscrizione)}</div>
-          </div>
         </div>
       </AdmCard>
 
+      {/* Qui viveva una card «Certificazioni» con tre voci scritte a mano:
+          era il posto delle certificazioni PRIMA che avessero la loro tab, e
+          raccontava dati finti accanto a quella vera. Via: il fascicolo è
+          uno, nella tab Certificazioni. */}
       <div style={{gridColumn:'span 2', display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10}}>
         {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
         <AdmButton variant="primary" size="md" icon="check" disabled={!dirty} onClick={saveForm}>Salva modifiche</AdmButton>
       </div>
-
-      <AdmCard padding={20} style={{gridColumn:'span 2'}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
-          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Certificazioni</div>
-          <AdmButton variant="secondary" size="sm" icon="plus">Richiedi documento</AdmButton>
-        </div>
-        <div style={{display:'flex', flexDirection:'column', gap:8}}>
-          {[
-            { tipo: 'Senza glutine · AIC', stato: 'approvata', data: '15 ott 2024' },
-            { tipo: 'Vegetariano · V-Label', stato: 'approvata', data: '02 set 2024' },
-            { tipo: 'Biologico · ICEA', stato: 'pending', data: 'In revisione' },
-          ].map((c, i) => (
-            <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'10px 12px', background:ADM.PANEL_SOFT, borderRadius:8, border:`1px solid ${ADM.BORDER_SOFT}`}}>
-              <BuIcons.filePdf size={21} color={ADM.MUTED}/>
-              <div style={{flex:1, fontSize:14, color:ADM.TEXT, fontWeight:500}}>{c.tipo}</div>
-              <div style={{fontSize:13.3, color:ADM.MUTED}}>{c.data}</div>
-              <AdmBadge color={c.stato==='approvata' ? 'OK' : 'WARN'} size="xs">
-                {c.stato === 'approvata' ? 'Approvata' : 'In revisione'}
-              </AdmBadge>
-            </div>
-          ))}
-        </div>
-      </AdmCard>
     </div>
   );
 }
