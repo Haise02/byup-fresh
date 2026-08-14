@@ -515,8 +515,12 @@ function WidgetByuppino() {
         // La cucitura sale (-26): il foglio bianco copre più gradiente e la
         // conversazione parte più in alto — la testata è un'insegna, non una
         // stanza.
+        // TUTTO IL BLOCCO STA IN BASSO (flex-end): messaggi, scheda, campo e
+        // didascalia chiudono sul fondo della tessera senza margine bianco
+        // sotto — l'aria che avanza sta sopra il primo messaggio, dove una
+        // chat corta la tiene per natura.
         flex: 1, minWidth: 0, minHeight: 0, position: 'relative', zIndex: 2,
-        display: 'flex', flexDirection: 'column',
+        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
         background: PN.WHITE, borderRadius: '22px 22px 0 0',
         marginTop: -26, padding: '14px 16px 12px',
       }}>
