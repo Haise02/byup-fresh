@@ -226,14 +226,9 @@ function MktElasticita() {
         titolo="Elasticità al prezzo, misurata"
         sotto="Quanto cala la domanda quando il prezzo sale · per piatto e per città"
         destra={
-          <select value={sel} onChange={(e)=>setSel(e.target.value)} style={{
-            padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-            fontSize:13.4, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer', appearance:'none',
-            backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
-            backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
-          }}>
-            {MKT_ELASTICITA.map(p => <option key={p.piatto} value={p.piatto}>{p.piatto}</option>)}
-          </select>
+          <AdmSelect value={sel} onChange={setSel} align="right"
+            buttonStyle={{borderRadius:8, fontSize:13.4, fontWeight:600}}
+            options={MKT_ELASTICITA.map(p => p.piatto)}/>
         }
       />
 

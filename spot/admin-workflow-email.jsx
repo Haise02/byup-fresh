@@ -1771,11 +1771,9 @@ function DelayEditor({ delay, onChange }) {
         onChange={e => onChange({...delay, n: Number(e.target.value)})}
         style={{width:42, border:'none', outline:'none', fontSize:14, fontWeight:700, color:ADM.PURPLE, fontFamily:'inherit', padding:0, background:'transparent'}}
       />
-      <select value={delay.unit}
-        onChange={e => onChange({...delay, unit: e.target.value})}
-        style={{border:'none', outline:'none', fontSize:13.3, fontWeight:700, color:ADM.PURPLE, fontFamily:'inherit', background:'transparent', cursor:'pointer'}}>
-        {TIME_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-      </select>
+      <AdmSelect value={delay.unit} onChange={u => onChange({...delay, unit: u})}
+        buttonStyle={{border:'none', padding:'2px 2px', fontSize:13.3, fontWeight:700, color:ADM.PURPLE, background:'transparent'}}
+        options={TIME_UNITS}/>
     </span>
   );
 }
@@ -2233,23 +2231,14 @@ function SmallInput({ value, onChange, type='text', placeholder, width, block, s
   );
 }
 
+// Le opzioni le apre AdmSelect nel popover di Spot, non la tendina nativa.
 function SmallSelect({ value, onChange, options, width }) {
   return (
-    <div style={{position:'relative', display:'inline-flex'}}>
-      <select value={value} onChange={e => onChange(e.target.value)} style={{
-        padding:'5px 24px 5px 9px',
-        border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:6,
-        fontSize:14, fontFamily:'inherit', color:ADM.TEXT,
-        outline:'none', background:'#fff', appearance:'none',
-        cursor:'pointer',
-        width: width ? `${width}px` : 'auto',
-      }}>
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-      <span style={{position:'absolute', right:6, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}>
-        <BuIcons.chevronDown size={16}/>
-      </span>
-    </div>
+    <AdmSelect value={value} onChange={onChange} options={options}
+      buttonStyle={{
+        padding:'5px 7px 5px 9px', borderColor:ADM.BORDER_SOFT, borderRadius:6,
+        fontSize:14, width: width ? `${width}px` : undefined,
+      }}/>
   );
 }
 

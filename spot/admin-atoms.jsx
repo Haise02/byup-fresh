@@ -294,7 +294,88 @@ function AdmSwitch({ checked, onChange, size = 'md', disabled }) {
   );
 }
 
+// ─── Select con popover ─────────────────────────────────────────────────────
+// Il <select> nativo apre il menu del SISTEMA OPERATIVO: font di sistema,
+// spunta blu, righe attaccate — un pezzo di macOS in mezzo a Spot. Questo
+// componente tiene il guscio di chi lo monta (via `buttonStyle`) e apre un
+// pannello nostro: stessa carta bianca dei popover di Spot, voce attiva in
+// pesca come la nav, spunta sulla scelta corrente.
+//   · options: [{value, label}] oppure stringhe semplici
+//   · block: il select riempie la riga (per i form nei drawer)
+//   · align: da che bordo del bottone si apre il pannello
+function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, align = 'left', maxHeight = 320, title }) {
+  const [open, setOpen] = React.useState(false);
+  const opts = (options || []).map(o => (o && typeof o === 'object') ? o : { value: o, label: String(o) });
+  const current = opts.find(o => String(o.value) === String(value));
+
+  React.useEffect(() => {
+    if (!open) return;
+    const chiudi = () => setOpen(false);
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('pointerdown', chiudi);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('pointerdown', chiudi);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div style={{position:'relative', display: block ? 'block' : 'inline-flex', width: block ? '100%' : undefined}}
+      onPointerDown={e => e.stopPropagation()}>
+      <button type="button" onClick={() => setOpen(o => !o)} title={title}
+        style={{
+          display:'inline-flex', alignItems:'center', justifyContent:'space-between', gap:8,
+          width: block ? '100%' : undefined, minWidth:0, boxSizing:'border-box',
+          padding:'7px 10px 7px 12px',
+          border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+          fontSize:13.7, fontWeight:500, color:ADM.TEXT,
+          background:'#fff', cursor:'pointer', fontFamily:'inherit', textAlign:'left',
+          ...buttonStyle,
+        }}>
+        <span style={{minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{current ? current.label : '—'}</span>
+        <span style={{display:'inline-flex', flexShrink:0, color:ADM.MUTED,
+          transform: open ? 'rotate(180deg)' : 'none', transition:'transform 0.15s ease'}}>
+          <BuIcons.chevronDown size={16}/>
+        </span>
+      </button>
+
+      {open && (
+        <div className="adm-select-pop" style={{
+          position:'absolute', top:'calc(100% + 6px)', zIndex:120,
+          left: align === 'right' ? 'auto' : 0,
+          right: align === 'right' ? 0 : 'auto',
+          minWidth:'100%', maxWidth:340, padding:6, borderRadius:12,
+          background:'#fff', border:`1px solid ${ADM.BORDER}`,
+          boxShadow:'0 18px 44px -10px rgba(15,17,21,0.22)',
+          maxHeight, overflowY:'auto',
+        }}>
+          {opts.map(o => {
+            const attiva = String(o.value) === String(value);
+            return (
+              <button key={String(o.value)} type="button" className="adm-actionrow"
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                style={{
+                  display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left',
+                  padding:'8px 10px', borderRadius:8, border:'none',
+                  background: attiva ? ADM.PINK_SOFT : 'transparent',
+                  color: attiva ? ADM.PINK_DARK : ADM.TEXT,
+                  fontSize:13.5, fontWeight: attiva ? 700 : 500,
+                  cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+                }}>
+                <span style={{flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis'}}>{o.label}</span>
+                {attiva && <BuIcons.check size={14}/>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 window.AdmBadge = AdmBadge;
+window.AdmSelect = AdmSelect;
 window.AdmPlanBadge = AdmPlanBadge;
 window.AdmStatoBadge = AdmStatoBadge;
 window.AdmCard = AdmCard;

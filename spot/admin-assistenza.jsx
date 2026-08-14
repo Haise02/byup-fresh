@@ -48,10 +48,8 @@ const SRV_INP = { width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORD
   fontSize:13.6, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
   boxSizing:'border-box', lineHeight:1.4 };
 const SRV_TXT = { ...SRV_INP, minHeight:96, resize:'vertical' };
-const SRV_SEL = { ...SRV_INP, appearance:'none', WebkitAppearance:'none', MozAppearance:'none',
-  paddingRight:34, cursor:'pointer',
-  backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.6L6 6.4L11 1.6' stroke='%238A9099' stroke-width='1.9' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
-  backgroundRepeat:'no-repeat', backgroundPosition:'right 12px center' };
+// (Il vecchio SRV_SEL per i <select> nativi non serve più: le tendine sono
+// AdmSelect, che si porta il suo guscio e il suo popover.)
 const SRV_SEZ = { fontSize:11.4, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase',
   letterSpacing:'0.06em', marginBottom:12 };
 // Etichetta dei riquadri dentro il dettaglio.
@@ -1128,9 +1126,9 @@ function SrvFaqEditor({ stato, onChiudi, onSalva, onElimina }) {
       }>
       <div style={{display:'flex', flexDirection:'column', gap:18}}>
         <SrvCampo etichetta="Categoria">
-          <select value={d.categoria} onChange={e=>agg('categoria', e.target.value)} style={SRV_SEL}>
-            {FAQ_CATEGORIE.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <AdmSelect value={d.categoria} onChange={v=>agg('categoria', v)} block
+            buttonStyle={{padding:'9px 12px', borderRadius:9, fontSize:13.6}}
+            options={FAQ_CATEGORIE}/>
         </SrvCampo>
         <SrvCampo etichetta="Domanda">
           <input value={d.domanda} onChange={e=>agg('domanda', e.target.value)} style={SRV_INP}
@@ -1617,12 +1615,10 @@ function SrvCardGuida({ g, nuova, argomenti, onCambia, onElimina }) {
         <span style={{display:'flex', alignItems:'center', gap:8,
           opacity: hoverCard ? 1 : 0.45, transition:'opacity 140ms ease'}}>
           <span style={{fontSize:12.2, color:ADM.MUTED_LIGHT}}>Argomento</span>
-          <select value={g.argomentoId} onChange={e=>onCambia({ argomentoId:e.target.value })}
-            title="Sposta la guida in un altro argomento"
-            style={{...SRV_SEL, width:'auto', maxWidth:200, padding:'4px 28px 4px 9px', fontSize:12.4,
-              borderColor:ADM.BORDER_SOFT, backgroundPosition:'right 9px center'}}>
-            {argomenti.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-          </select>
+          <AdmSelect value={g.argomentoId} onChange={v=>onCambia({ argomentoId:v })}
+            title="Sposta la guida in un altro argomento" align="right"
+            buttonStyle={{maxWidth:200, padding:'4px 7px 4px 9px', fontSize:12.4, borderColor:ADM.BORDER_SOFT, borderRadius:9}}
+            options={argomenti.map(a => ({value:a.id, label:a.nome}))}/>
           <SrvEliminaInline onElimina={onElimina}/>
         </span>
       </div>

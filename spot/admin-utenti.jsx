@@ -437,11 +437,13 @@ function UtenteDrawer({ utente: u, onClose }) {
                 </div>
                 <div>
                   <label style={labelStyle}>Genere</label>
-                  <select value={form.sesso} onChange={F('sesso')} style={{...inputStyle, cursor:'pointer'}}>
-                    <option value="F">Donna</option>
-                    <option value="M">Uomo</option>
-                    <option value="X">Altro / N.D.</option>
-                  </select>
+                  <AdmSelect value={form.sesso} onChange={F('sesso')} block
+                    buttonStyle={{padding:'8px 11px', borderRadius:8, fontSize:13.5}}
+                    options={[
+                      {value:'F', label:'Donna'},
+                      {value:'M', label:'Uomo'},
+                      {value:'X', label:'Altro / N.D.'},
+                    ]}/>
                 </div>
                 <div>
                   <label style={labelStyle}>Codice utente</label>

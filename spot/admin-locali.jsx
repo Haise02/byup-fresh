@@ -254,26 +254,12 @@ function AdmLocaliPage({ search, openLocale }) {
   );
 }
 
+// Il guscio è lo stesso di prima; le OPZIONI non sono più il menu del sistema
+// operativo ma il popover di AdmSelect, vestito come il resto di Spot.
 function FilterDropdown({ label, value, onChange, options }) {
   return (
-    <div style={{position:'relative', display:'inline-flex', alignItems:'center'}}>
-      <select value={value} onChange={e=>onChange(e.target.value)} style={{
-        padding:'7px 30px 7px 12px',
-        border:`1px solid ${ADM.BORDER}`,
-        borderRadius:7,
-        fontSize:13.7, fontWeight:500, color:ADM.TEXT,
-        background:'#fff',
-        appearance:'none',
-        cursor:'pointer',
-        fontFamily:'inherit',
-        minWidth: 140,
-      }}>
-        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-      <span style={{position:'absolute', right:8, pointerEvents:'none', color:ADM.MUTED}}>
-        <BuIcons.chevronDown size={18}/>
-      </span>
-    </div>
+    <AdmSelect value={value} onChange={onChange} options={options}
+      title={label} buttonStyle={{minWidth: 140}}/>
   );
 }
 

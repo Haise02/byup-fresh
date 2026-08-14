@@ -107,12 +107,11 @@ function anFiltra(locali, f) {
 
 function AnBarraFiltri({ filtri, onChange, attivo }) {
   const regioni = [...new Set(AN_LOCALI.map(l => l.regione))].sort();
+  // Solo il guscio: la freccia e il menu li disegna AdmSelect, che apre il
+  // popover di Spot al posto della tendina del sistema operativo.
   const box = {
-    padding:'6px 26px 6px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-    fontSize:13, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit',
-    cursor:'pointer', appearance:'none',
-    backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
-    backgroundRepeat:'no-repeat', backgroundPosition:'right 9px center',
+    padding:'6px 9px 6px 11px', borderRadius:8,
+    fontSize:13, fontWeight:600,
   };
   const filtrati = anFiltra(AN_LOCALI, filtri).length;
   const tutti = AN_LOCALI.length;
@@ -134,14 +133,12 @@ function AnBarraFiltri({ filtri, onChange, attivo }) {
           }}>{p.label}</button>
         ))}
       </div>
-      <select value={filtri.piano} onChange={(e)=>onChange({ ...filtri, piano:e.target.value })} style={box}>
-        <option value="tutti">Tutti i piani</option>
-        {PIANI.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-      </select>
-      <select value={filtri.regione} onChange={(e)=>onChange({ ...filtri, regione:e.target.value })} style={box}>
-        <option value="tutte">Tutte le regioni</option>
-        {regioni.map(r => <option key={r} value={r}>{r}</option>)}
-      </select>
+      <AdmSelect value={filtri.piano} onChange={(v)=>onChange({ ...filtri, piano:v })}
+        buttonStyle={box}
+        options={[{value:'tutti', label:'Tutti i piani'}, ...PIANI.map(p => ({value:p.id, label:p.label}))]}/>
+      <AdmSelect value={filtri.regione} onChange={(v)=>onChange({ ...filtri, regione:v })}
+        buttonStyle={box}
+        options={[{value:'tutte', label:'Tutte le regioni'}, ...regioni.map(r => ({value:r, label:r}))]}/>
       {attivoQualcosa && (
         <button onClick={()=>onChange({ ...AN_FILTRI_VUOTI, periodo: filtri.periodo })} className="adm-btn" style={{
           padding:'5px 10px', borderRadius:8, border:`1px solid ${ADM.PINK_SOFT}`, background:'#fff',

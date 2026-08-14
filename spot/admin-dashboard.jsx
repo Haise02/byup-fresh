@@ -3484,14 +3484,9 @@ function DashUtentiApp() {
           {/* Region selector */}
           <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
             <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
-            <select value={seasonalRegion} onChange={(e)=>setSeasonalRegion(e.target.value)} style={{
-              padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:13.7, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
-              appearance:'none', backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
-              backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
-            }}>
-              {SEASONAL_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <AdmSelect value={seasonalRegion} onChange={setSeasonalRegion} align="right"
+              buttonStyle={{borderRadius:8, fontWeight:600}}
+              options={SEASONAL_REGIONS}/>
           </div>
         </div>
 
@@ -3717,14 +3712,9 @@ function DashUtentiApp() {
           </div>
           <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
             <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
-            <select value={macroRegion} onChange={(e)=>setMacroRegion(e.target.value)} style={{
-              padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:13.7, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
-              appearance:'none', backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
-              backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
-            }}>
-              {FOOD_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <AdmSelect value={macroRegion} onChange={setMacroRegion} align="right"
+              buttonStyle={{borderRadius:8, fontWeight:600}}
+              options={FOOD_REGIONS}/>
           </div>
         </div>
 
@@ -3982,14 +3972,9 @@ function DashMercato() {
           {/* Region selector */}
           <div style={{display:'inline-flex', alignItems:'center', gap:8}}>
             <span style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em'}}>Area</span>
-            <select value={priceRegion} onChange={(e)=>setPriceRegion(e.target.value)} style={{
-              padding:'7px 28px 7px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
-              fontSize:13.7, fontWeight:600, color:ADM.TEXT, background:'#fff', fontFamily:'inherit', cursor:'pointer',
-              appearance:'none', backgroundImage:`url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%2370727A' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>")`,
-              backgroundRepeat:'no-repeat', backgroundPosition:'right 10px center',
-            }}>
-              {priceCityList.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <AdmSelect value={priceRegion} onChange={setPriceRegion} align="right"
+              buttonStyle={{borderRadius:8, fontWeight:600}}
+              options={priceCityList}/>
           </div>
         </div>
 
