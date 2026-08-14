@@ -61,6 +61,65 @@ const PN_NOTIFICATIONS = [
   },
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Stato notifiche CONDIVISO fra pagine (localStorage + evento).
+// La voce "Notifiche" in fondo alla sidebar non esiste più: il conteggio vive
+// sull'avatar del profilo e l'elenco sta in Profilo → Notifiche. Due punti
+// diversi della UI leggono la stessa cosa, quindi lo stato non può più stare
+// dentro un solo componente.
+// ═══════════════════════════════════════════════════════════════════════════
+const BYUP_NOTIF_KEY = 'byup_notifiche_stato';
+function _byupNotifStato() {
+  try {
+    const s = localStorage.getItem(BYUP_NOTIF_KEY);
+    const v = s ? JSON.parse(s) : null;
+    return { lette: (v && v.lette) || [], eliminate: (v && v.eliminate) || [] };
+  } catch(e) { return { lette: [], eliminate: [] }; }
+}
+function _byupNotifSalva(st) {
+  try {
+    localStorage.setItem(BYUP_NOTIF_KEY, JSON.stringify(st));
+    window.dispatchEvent(new Event('byup-notifiche-change'));
+  } catch(e) {}
+}
+window.byupReadNotifiche = function() {
+  const st = _byupNotifStato();
+  return PN_NOTIFICATIONS
+    .filter(n => !st.eliminate.includes(n.id))
+    .map(n => ({ ...n, unread: n.unread && !st.lette.includes(n.id) }));
+};
+window.byupNotificheNonLette = function() {
+  return window.byupReadNotifiche().filter(n => n.unread).length;
+};
+window.byupNotificaLetta = function(id) {
+  const st = _byupNotifStato();
+  if (!st.lette.includes(id)) { st.lette.push(id); _byupNotifSalva(st); }
+};
+window.byupNotificheTutteLette = function() {
+  const st = _byupNotifStato();
+  st.lette = PN_NOTIFICATIONS.map(n => n.id);
+  _byupNotifSalva(st);
+};
+window.byupNotificaElimina = function(id) {
+  const st = _byupNotifStato();
+  if (!st.eliminate.includes(id)) { st.eliminate.push(id); _byupNotifSalva(st); }
+};
+// Hook condiviso: tiene allineati badge e sezione senza passaggi di props fra
+// componenti che vivono in pagine diverse.
+window.byupUseNotifiche = function() {
+  const [items, setItems] = React.useState(() => window.byupReadNotifiche());
+  React.useEffect(() => {
+    const up = () => setItems(window.byupReadNotifiche());
+    window.addEventListener('byup-notifiche-change', up);
+    window.addEventListener('storage', up);
+    return () => {
+      window.removeEventListener('byup-notifiche-change', up);
+      window.removeEventListener('storage', up);
+    };
+  }, []);
+  return items;
+};
+
 function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState(PN_NOTIFICATIONS);
@@ -269,6 +328,149 @@ function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
 }
 
 window.PnNotifBell = PnNotifBell;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PnNotificheSection — l'elenco completo, dentro Profilo → Notifiche.
+// Sostituisce la tendina: qui c'è spazio per leggere davvero, filtrare e
+// gestire, senza una voce di menu che occupava il fondo della sidebar per una
+// cosa che si guarda due volte al giorno.
+// ═══════════════════════════════════════════════════════════════════════════
+function PnNotificheSection() {
+  const items = window.byupUseNotifiche();
+  const [filtro, setFiltro] = React.useState('tutte');
+  const nonLette = items.filter(n => n.unread).length;
+  const visibili = filtro === 'nonlette' ? items.filter(n => n.unread) : items;
+
+  const Filtro = ({ id, label, count }) => {
+    const on = filtro === id;
+    return (
+      <button onClick={() => setFiltro(id)} style={{
+        display:'inline-flex', alignItems:'center', gap: 6,
+        padding:'6px 13px', borderRadius: 999,
+        background: on ? PN.SIDE_ACTIVE_BG : '#fff',
+        color: on ? PN.PINK_DARK : PN.MUTED,
+        border: `1px solid ${on ? 'rgba(255,90,95,0.30)' : PN.BORDER}`,
+        fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+        transition:'background 150ms ease, color 150ms ease, border-color 150ms ease',
+      }}>
+        {label}
+        {count != null && (
+          <span style={{
+            fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
+            color: on ? PN.PINK_DARK : '#9CA3AF',
+          }}>{count}</span>
+        )}
+      </button>
+    );
+  };
+
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap: 14}}>
+      {/* Header: stato in chiaro + azione di massa */}
+      <div style={{
+        background: PN.WHITE, borderRadius: 14, border: `1px solid ${PN.BORDER_SOFT}`,
+        padding: 22, display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap',
+      }}>
+        <div style={{flex: 1, minWidth: 220}}>
+          <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Le tue notifiche</div>
+          <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3}}>
+            {nonLette > 0
+              ? `${nonLette} da leggere · il conteggio compare sul tuo profilo, in fondo al menu.`
+              : 'Sei in pari: nessuna notifica da leggere.'}
+          </div>
+        </div>
+        <div style={{display:'flex', alignItems:'center', gap: 8, flexShrink: 0}}>
+          <Filtro id="tutte" label="Tutte" count={items.length}/>
+          <Filtro id="nonlette" label="Non lette" count={nonLette}/>
+          {nonLette > 0 && (
+            <button onClick={() => window.byupNotificheTutteLette()} style={{
+              padding:'8px 15px', borderRadius: 999,
+              background: PN.BTN_DARK, color:'#fff', border:'none',
+              fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+              transition:'background 150ms ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = PN.BTN_DARK_HOVER; }}
+              onMouseLeave={e => { e.currentTarget.style.background = PN.BTN_DARK; }}
+            >Segna tutte come lette</button>
+          )}
+        </div>
+      </div>
+
+      {/* Elenco */}
+      <div style={{
+        background: PN.WHITE, borderRadius: 14, border: `1px solid ${PN.BORDER_SOFT}`,
+        overflow:'hidden',
+      }}>
+        {visibili.length === 0 ? (
+          <div style={{padding:'54px 22px', textAlign:'center'}}>
+            <div style={{
+              width: 46, height: 46, borderRadius:'50%', margin:'0 auto 12px',
+              background: PN.SIDE_ACTIVE_BG, color: PN.PINK_DARK,
+              display:'grid', placeItems:'center',
+            }}>
+              <Icon name="bell" size={20} color={PN.PINK_DARK}/>
+            </div>
+            <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>
+              {filtro === 'nonlette' ? 'Nessuna notifica da leggere' : 'Nessuna notifica'}
+            </div>
+            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 4}}>
+              Ti avvisiamo qui quando succede qualcosa di importante.
+            </div>
+          </div>
+        ) : visibili.map((n, i) => (
+          <div key={n.id}
+            onClick={() => { window.byupNotificaLetta(n.id); if (n.href) window.location.href = n.href; }}
+            style={{
+              display:'flex', alignItems:'flex-start', gap: 12,
+              padding:'16px 20px',
+              borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+              background: n.unread ? '#FFF7F8' : PN.WHITE,
+              cursor:'pointer', transition:'background 140ms ease',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = n.unread ? '#FFEEF1' : '#FAFAFB'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = n.unread ? '#FFF7F8' : PN.WHITE; }}
+          >
+            {/* Pallino di stato: pieno coral = da leggere, cavo = già letta */}
+            <span style={{
+              width: 9, height: 9, borderRadius:'50%', flexShrink: 0, marginTop: 6,
+              background: n.unread ? PN.PINK : 'transparent',
+              boxShadow: n.unread ? 'none' : 'inset 0 0 0 1.5px #D9DBE0',
+            }}/>
+            <div style={{flex: 1, minWidth: 0}}>
+              <div style={{
+                fontSize: 15.5, fontWeight: n.unread ? 700 : 600, color: PN.TEXT,
+                lineHeight: 1.35, marginBottom: 3,
+              }}>{n.title}</div>
+              <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5}}>{n.body}</div>
+              <div style={{fontSize: 13.5, color:'#A3A3AD', fontWeight: 500, marginTop: 5}}>{n.time}</div>
+            </div>
+            <button
+              title="Elimina notifica"
+              onClick={(e) => { e.stopPropagation(); window.byupNotificaElimina(n.id); }}
+              style={{
+                flexShrink: 0, width: 32, height: 32, borderRadius: 9,
+                background:'transparent', border:'none', cursor:'pointer',
+                color: PN.MUTED, display:'grid', placeItems:'center',
+                transition:'background 140ms ease, color 140ms ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#DC2626'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
+            >
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+              </svg>
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+window.PnNotificheSection = PnNotificheSection;
 
 function PnWifiIcon({ color = '#9CA3AF', size = 15, weak = false }) {
   return (
