@@ -4,7 +4,6 @@ const { useState: useStateDrw } = React;
 
 function LocaleDrawer({ locale: l, onClose }) {
   const [tab, setTab] = useStateDrw('anagrafica');
-  const [viewAs, setViewAs] = useStateDrw(false);
 
   return (
     <div style={{
@@ -51,7 +50,6 @@ function LocaleDrawer({ locale: l, onClose }) {
               <span>Iscritto {fmtDate(l.dataIscrizione)}</span>
             </div>
           </div>
-          <AdmButton variant="secondary" icon="eye" size="sm" onClick={()=>setViewAs(true)}>Visualizza come</AdmButton>
         </div>
         </div>
 
@@ -70,20 +68,6 @@ function LocaleDrawer({ locale: l, onClose }) {
         </div>
       </div>
 
-      {viewAs && (
-        <div onClick={e=>{e.stopPropagation(); setViewAs(false);}} style={{position:'fixed', inset:0, zIndex:70, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:420, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Aprire il gestionale come {l.nome}?</div>
-            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
-              Vedrai il gestionale con gli occhi del titolare, in <strong style={{color:ADM.TEXT}}>sola lettura</strong>. La sessione di impersonificazione viene registrata nell'audit log.
-            </div>
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-              <AdmButton variant="ghost" size="md" onClick={()=>setViewAs(false)}>Annulla</AdmButton>
-              <AdmButton variant="primary" size="md" icon="eye" onClick={()=>{ setViewAs(false); window.open('/gestionale/byup%20Panoramica.html', '_blank'); }}>Apri gestionale</AdmButton>
-            </div>
-          </div>
-        </div>
-      )}
       <style>{`
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
