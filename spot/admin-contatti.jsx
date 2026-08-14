@@ -12,12 +12,14 @@
 
 const { useState: useStateCnt, useMemo: useMemoCnt, useEffect: useEffectCnt } = React;
 
-// Le tre tipologie, con la veste che le distingue in lista. I colori sono
-// quelli che le tre sezioni avevano già addosso nella nav (store/staff/phone).
+// Le tre tipologie, con la veste che le distingue in lista. Lo staff è TEAL
+// e non blu: blu e viola a colpo d'occhio si confondevano con Utente App, e
+// la tipologia è la colonna che si scandisce per colore. «Utente Staff»
+// rima con «Utente App»: sono entrambi utenti, di due prodotti diversi.
 const CNT_TIPI = {
-  locale: { label: 'Locale',     icon: 'storeFill', color: 'PINK'   },
-  staff:  { label: 'Staff',      icon: 'staffFill', color: 'INFO'   },
-  utente: { label: 'Utente App', icon: 'phoneFill', color: 'PURPLE' },
+  locale: { label: 'Locale',       icon: 'storeFill', color: 'PINK'   },
+  staff:  { label: 'Utente Staff', icon: 'staffFill', color: 'TEAL'   },
+  utente: { label: 'Utente App',   icon: 'phoneFill', color: 'PURPLE' },
 };
 
 // Stato unificato su tre gradini. Le tre anagrafi parlano lingue diverse
@@ -149,10 +151,10 @@ function AdmContattiPage({ search, openContatto }) {
   };
 
   const tabsList = [
-    { id: 'tutti',  label: 'Tutti',      badge: counts.tutti },
-    { id: 'locale', label: 'Locali',     badge: counts.locale },
-    { id: 'staff',  label: 'Staff',      badge: counts.staff },
-    { id: 'utente', label: 'Utenti App', badge: counts.utente },
+    { id: 'tutti',  label: 'Tutti',        badge: counts.tutti },
+    { id: 'locale', label: 'Locali',       badge: counts.locale },
+    { id: 'staff',  label: 'Utenti Staff', badge: counts.staff },
+    { id: 'utente', label: 'Utenti App',   badge: counts.utente },
   ];
 
   // CSV della vista filtrata: le quattro colonne della rubrica più l'identità.
@@ -268,16 +270,26 @@ function AdmContattiPage({ search, openContatto }) {
 }
 
 // La cima della colonna è un pulsante: si clicca e la lista si ordina su quel
-// campo, si riclicca e si inverte. La freccia compare solo sulla colonna
-// attiva e punta nel verso della lista; sulle altre resta il posto (un glifo
-// trasparente), così le intestazioni non si spostano di un pixel al cambio.
+// campo, si riclicca e si inverte. L'icona c'è SEMPRE — è lei a dire che la
+// cima si può cliccare: sulle colonne a riposo è il doppio verso (⇅) in
+// grigio tenue, sull'attiva diventa la freccia corallo che punta nel verso
+// della lista. Stesso ingombro nei due stati: al cambio niente si sposta.
 function CntIntestazione({ campo, label, sort, onSort }) {
   const attiva = sort.campo === campo;
+  // L'icona scorre IN LINEA col testo e sta INCOLLATA all'ultima parola
+  // (nowrap sui due insieme): su una colonna stretta «Tipologia contatto» va
+  // a capo tra le parole, mai tra parola e icona — un glifo a mezz'aria
+  // sembrava dell'intestazione dopo, o di nessuna.
+  const icona = {
+    display: 'inline-flex', verticalAlign: 'middle',
+    marginLeft: 4, marginTop: -2,
+  };
+  const parole = label.split(' ');
+  const ultima = parole.pop();
   return (
     <button type="button" onClick={() => onSort(campo)}
       title={'Ordina per ' + label.toLowerCase()}
       style={{
-        display: 'inline-flex', alignItems: 'center', gap: 4,
         justifySelf: 'start', minWidth: 0,
         background: 'transparent', border: 'none', padding: 0,
         fontSize: 12.6, fontWeight: 700,
@@ -285,13 +297,24 @@ function CntIntestazione({ campo, label, sort, onSort }) {
         textTransform: 'uppercase', letterSpacing: '0.06em',
         cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
       }}>
-      {label}
-      <span style={{
-        display: 'inline-flex', flexShrink: 0,
-        color: attiva ? ADM.PINK : 'transparent',
-        transform: attiva && sort.verso === 'asc' ? 'rotate(180deg)' : 'none',
-        transition: 'transform 0.15s ease',
-      }}><BuIcons.chevronDown size={14}/></span>
+      {parole.length > 0 ? parole.join(' ') + ' ' : ''}
+      <span style={{whiteSpace: 'nowrap'}}>
+      {ultima}
+      {attiva ? (
+        <span style={Object.assign({}, icona, {
+          color: ADM.PINK,
+          transform: sort.verso === 'asc' ? 'rotate(180deg)' : 'none',
+          transition: 'transform 0.15s ease',
+        })}><BuIcons.chevronDown size={14}/></span>
+      ) : (
+        <span style={Object.assign({}, icona, {color: ADM.MUTED_LIGHT})}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor"
+            strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 5.4 7 2.4l3 3"/><path d="M4 8.6l3 3 3-3"/>
+          </svg>
+        </span>
+      )}
+      </span>
     </button>
   );
 }
@@ -345,12 +368,14 @@ function ContattoRow({ contatto: c, onClick, striped }) {
       </div>
 
       <div>
-        {/* Il locale tiene il suo badge di stato, che è più fine dei tre
-            gradini (pending, churned…): la rubrica unifica il filtro, non
-            appiattisce quello che si vede. */}
-        {c.tipo === 'locale'
-          ? <AdmStatoBadge stato={c.ref.stato}/>
-          : <AdmBadge color={statoDef.color} size="xs">{(c.stato === 'attivo' ? '● ' : '○ ') + statoDef.label}</AdmBadge>}
+        {/* UN SOLO layout di stato per tutti e tre i tipi: stessa pillola,
+            stessi tre gradini, pieno = vivo e vuoto = fermo. Prima il locale
+            portava il suo badge fine (Iscritto, Onboarding saltato…) e gli
+            altri la pillola: due vesti nella stessa colonna si leggevano come
+            due colonne. Il vocabolario fine del locale resta nel drawer. */}
+        <AdmBadge color={statoDef.color} size="xs">
+          {(c.stato === 'inattivo' ? '○ ' : '● ') + statoDef.label}
+        </AdmBadge>
       </div>
 
       <div>

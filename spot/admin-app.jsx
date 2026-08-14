@@ -11,8 +11,10 @@ const NAV_MAIN = [
   // separate, ma chi amministra cerca UNA persona — «di chi è questa mail?» —
   // e non deve sapere in anticipo in quale delle tre vive. La rubrica le
   // fonde su quattro colonne comuni; il dettaglio resta quello giusto per
-  // ciascun tipo. Il badge è lo stesso di prima: i locali in onboarding.
-  { id: 'contatti',     label: 'Contatti',     icon: 'staffFill', badge: LOCALI.filter(l=>l.stato==='onboarding').length },
+  // ciascun tipo. NIENTE badge: la voce Locali contava gli onboarding, ma su
+  // una rubrica un numero senza etichetta non dice niente — quel conteggio
+  // vive nel filtro di stato e in Dashboard.
+  { id: 'contatti',     label: 'Contatti',     icon: 'staffFill' },
   // Una voce sola per l'assistenza. Ticket e chiamate erano due sezioni
   // separate, ma sono lo stesso lavoro fatto su due canali: chi sta al
   // supporto passa dall'una all'altra di continuo, e con due voci di menu non
@@ -86,7 +88,7 @@ function GlobalSearch({ onClose, go }) {
         .map(l => ({ key:l.id, title:l.nome, sub:`${l.tipo} · ${l.citta} · ${l.id}`, go:()=>go('locali',{openLocale:l}) })) },
     { group:'Utenti App', icon:'phoneFill', items: (window.UTENTI||[]).filter(u => match(u.nome, u.citta, u.id, u.email)).slice(0,5)
         .map(u => ({ key:u.id, title:u.nome, sub:`${u.citta} · ${u.id}`, go:()=>go('utenti',{openUtente:u}) })) },
-    { group:'Staff', icon:'staffFill', items: (typeof STAFF !== 'undefined' ? STAFF : []).filter(st => match(st.nome, st.localeNome, st.id)).slice(0,5)
+    { group:'Utenti Staff', icon:'staffFill', items: (typeof STAFF !== 'undefined' ? STAFF : []).filter(st => match(st.nome, st.localeNome, st.id)).slice(0,5)
         .map(st => ({ key:st.id, title:st.nome, sub:`${st.localeNome} · ${st.id}`, go:()=>go('camerieri',{openStaff:st}) })) },
     { group:'Ticket', icon:'ticketFill', items: (typeof COMUNICAZIONI !== 'undefined' ? COMUNICAZIONI : []).filter(c => match(c.oggetto, c.senderName, c.id)).slice(0,5)
         .map(c => ({ key:c.id, title:c.oggetto, sub:`${c.senderName} · ${c.id}`, go:()=>go('comunicazioni',{openComm:c.id}) })) },
@@ -155,14 +157,12 @@ function AdminApp({ tweaks }) {
   const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
   const [teamTab, setTeamTab] = useStateApp(null);   // tab di Sicurezza/Piattaforma aperta da un link esterno
   const [searchOpen, setSearchOpen] = useStateApp(false);
-  const [notifOpen, setNotifOpen] = useStateApp(false);
-  const [notifRead, setNotifRead] = useStateApp(false);
 
   // ⌘K / Ctrl+K apre la ricerca globale ovunque
   React.useEffect(() => {
     const onKey = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearchOpen(o => !o); }
-      if (e.key === 'Escape') { setSearchOpen(false); setNotifOpen(false); }
+      if (e.key === 'Escape') setSearchOpen(false);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -219,7 +219,7 @@ function AdminApp({ tweaks }) {
 
   const pageTitles = {
     dashboard:    { t:'Analisi Dati', s:'Come sta la piattaforma, letta dai numeri' },
-    contatti:     { t:'Contatti', s:'Locali, staff e utenti app in un\'unica rubrica' },
+    contatti:     { t:'Contatti', s:'Locali, utenti staff e utenti app in un\'unica rubrica' },
     assistenza:   { t:'Assistenza', s:'Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
     promozioni:   { t:'Promozioni', s:'Campagne e messaggi promozionali inviati' },
     team:         { t:'Piattaforma', s:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app' },
@@ -331,49 +331,10 @@ function AdminApp({ tweaks }) {
             <BuIcons.search size={16}/> Cerca…
             <span style={{fontSize:11, fontWeight:700, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:5, padding:'1px 5px', color:ADM.MUTED_SOFT}}>⌘K</span>
           </button>
-          {/* Notifiche */}
-          <div style={{position:'relative', flexShrink:0}}>
-            <button onClick={()=>setNotifOpen(o=>!o)} className="adm-iconbtn" style={{
-              width:38, height:38, borderRadius:10, border:`1px solid ${ADM.BORDER}`, background:'#fff',
-              color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center', position:'relative',
-            }}>
-              <BuIcons.bell size={19}/>
-              {!notifRead && <span style={{position:'absolute', top:7, right:8, width:8, height:8, borderRadius:'50%', background:ADM.PINK, boxShadow:'0 0 0 2px #fff'}}/>}
-            </button>
-            {notifOpen && (
-              <React.Fragment>
-                <div onClick={()=>setNotifOpen(false)} style={{position:'fixed', inset:0, zIndex:69}}/>
-                <div style={{position:'absolute', top:'calc(100% + 8px)', right:0, width:360, zIndex:70,
-                  background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14,
-                  boxShadow:'0 24px 56px -12px rgba(15,17,21,0.25)', overflow:'hidden'}}>
-                  <div style={{padding:'12px 16px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                    <span style={{fontSize:13.5, fontWeight:700, color:ADM.TEXT}}>Notifiche</span>
-                    <button className="adm-textlink" onClick={()=>setNotifRead(true)} style={{background:'none', border:'none', color:ADM.PINK_DARK, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>Segna tutte come lette</button>
-                  </div>
-                  {[
-                    { icon:'card', tone:ADM.DANGER, text:`${LOCALI.filter(l=>l.pagamentoFallito).length} addebiti falliti da recuperare`, when:'2 g fa', go:()=>setRoute('locali') },
-                    { icon:'shield', tone:ADM.WARN, text:`${CERTIFICAZIONI.filter(c=>c.stato==='pending').length} certificazioni in attesa di revisione`, when:'oggi', go:()=>setRoute('comunicazioni') },
-                    { icon:'ticket', tone:ADM.PINK, text:`${SEGNALAZIONI.filter(x=>x.stato==='nuova').length} nuove segnalazioni dai locali`, when:'35 min fa', go:()=>setRoute('comunicazioni') },
-                    { icon:'clock', tone:ADM.WARN, text:'13 onboarding fermi da oltre 7 giorni', when:'ieri', go:()=>setRoute('locali') },
-                  ].map((n, i) => {
-                    const NIcon = BuIcons[n.icon];
-                    return (
-                      <button key={i} className="adm-actionrow" onClick={()=>{ setNotifOpen(false); n.go(); }} style={{
-                        display:'flex', alignItems:'center', gap:11, width:'100%', textAlign:'left',
-                        padding:'11px 16px', background:'transparent', border:'none',
-                        borderBottom: i === 3 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-                        cursor:'pointer', fontFamily:'inherit',
-                      }}>
-                        <span style={{width:30, height:30, borderRadius:8, background:`${n.tone}18`, color:n.tone, display:'grid', placeItems:'center', flexShrink:0}}><NIcon size={16}/></span>
-                        <span style={{flex:1, fontSize:13, color:ADM.TEXT, lineHeight:1.35}}>{n.text}</span>
-                        <span style={{fontSize:11.5, color:ADM.MUTED_SOFT, flexShrink:0}}>{n.when}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </React.Fragment>
-            )}
-          </div>
+          {/* Qui c'era la campanella delle notifiche: quattro avvisi finti che
+              rimandavano a code (addebiti, certificazioni, segnalazioni) già
+              visibili nei badge della sidebar e in Dashboard. Due posti che
+              dicono la stessa cosa sono un posto di troppo — tolta. */}
         </header>
 
         <div style={{flex:1, overflow:'auto'}}>
