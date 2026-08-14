@@ -25,20 +25,31 @@ const CNT_TIPI = {
 };
 
 // ─── Ciclo di vita ──────────────────────────────────────────────────────────
-// Il gradino COMMERCIALE del contatto, come su un CRM — non la salute del
-// rapporto (quella è lo Stato, Attivo/Inattivo, e vive nel dettaglio). Per un
-// locale la scala va dal lead al piano pagato; per un utente app è il piano
-// dell'app; lo staff un ciclo di vita commerciale non ce l'ha — trattino.
+// La TAPPA DEL RAPPORTO, senza i piani dentro (quelli sono una colonna a
+// parte): dal lead al cliente che torna, fino al piano annullato e
+// all'eliminazione. È una scala dei LOCALI — un utente app non ha un ciclo
+// commerciale con byup — con una sola eccezione: «Eliminato» vale per
+// chiunque sia stato cancellato, staff compreso.
 // `rango` è l'ordine della scala quando si clicca la cima della colonna.
 const CNT_CICLO = {
-  lead:       { label: 'Lead',           color: 'INFO',          rango: 0 },
-  onboarding: { label: 'In onboarding',  color: 'WARN',          rango: 1 },
-  free:       { label: 'Piano Gratuito', color: 'PLAN_FREE',     rango: 2 },
-  starter:    { label: 'Piano Starter',  color: 'PLAN_STARTER',  rango: 3 },
-  plus:       { label: 'Piano Plus',     color: 'PLAN_PLUS',     rango: 4 },
-  business:   { label: 'Piano Business', color: 'PLAN_BUSINESS', rango: 5 },
-  base:       { label: 'Base',           color: 'PLAN_FREE',     rango: 6 },
-  pro:        { label: 'Pro',            color: 'PURPLE',        rango: 7 },
+  lead:       { label: 'Lead',            color: 'INFO',      rango: 0 },
+  onboarding: { label: 'In onboarding',   color: 'WARN',      rango: 1 },
+  returning:  { label: 'Returning',       color: 'OK',        rango: 2 },
+  annullato:  { label: 'Piano annullato', color: 'DANGER',    rango: 3 },
+  eliminato:  { label: 'Eliminato',       color: 'PLAN_FREE', rango: 4 },
+};
+
+// ─── Piano ──────────────────────────────────────────────────────────────────
+// La colonna dei piani, separata dal ciclo di vita: per i locali il piano
+// Fresh (coi colori che i piani hanno già in tutto Spot), per gli utenti app
+// il piano dell'app (Base/Pro), per lo staff niente — un trattino.
+const CNT_PIANI = {
+  free:     { label: 'Gratuito', color: 'PLAN_FREE',     rango: 0 },
+  starter:  { label: 'Starter',  color: 'PLAN_STARTER',  rango: 1 },
+  plus:     { label: 'Plus',     color: 'PLAN_PLUS',     rango: 2 },
+  business: { label: 'Business', color: 'PLAN_BUSINESS', rango: 3 },
+  base:     { label: 'Base',     color: 'PLAN_FREE',     rango: 4 },
+  pro:      { label: 'Pro',      color: 'PURPLE',        rango: 5 },
 };
 
 // ─── Le colonne ─────────────────────────────────────────────────────────────
@@ -48,14 +59,17 @@ const CNT_CICLO = {
 // l'identità non è una lista, è un foglio di celle.
 const CNT_COLONNE = {
   nome:     { label: 'Contatto',           w: 'minmax(0,2.2fr)', fissa: true },
-  email:    { label: 'Email',              w: 'minmax(0,2fr)' },
-  tipo:     { label: 'Tipologia contatto', w: '1.25fr' },
+  email:    { label: 'Email',              w: 'minmax(0,1.9fr)' },
+  tipo:     { label: 'Tipologia contatto', w: '1.2fr' },
   ciclo:    { label: 'Ciclo di vita',      w: '1.15fr' },
-  citta:    { label: 'Città',              w: '1.05fr' },
-  iscritto: { label: 'Data iscrizione',    w: '1.1fr' },
+  piano:    { label: 'Piano',              w: '0.9fr' },
+  citta:    { label: 'Città',              w: '0.95fr' },
+  iscritto: { label: 'Data iscrizione',    w: '1.05fr' },
 };
-const CNT_COLONNE_DEFAULT = ['nome', 'email', 'tipo', 'ciclo', 'citta'];
-const CNT_COLONNE_KEY = 'adm_contatti_colonne';
+const CNT_COLONNE_DEFAULT = ['nome', 'email', 'tipo', 'ciclo', 'piano', 'citta'];
+// v2: è entrata la colonna Piano — la chiave nuova fa ripartire tutti dal
+// default aggiornato invece di nasconderla a chi aveva già una disposizione.
+const CNT_COLONNE_KEY = 'adm_contatti_colonne_v2';
 
 // Il vestito del trascinamento: la barra d'inserimento entra con un mezzo
 // scatto (nascere di colpo sembra un glitch), e i puntini-maniglia si vedono
@@ -99,13 +113,15 @@ const CONTATTI = (() => {
     cerca: l.tipo + ' ' + l.citta,
     citta: l.citta, regione: l.regione,
     email: l.email,
-    // La scala commerciale: chi si è appena affacciato è un lead, chi sta
-    // configurando è in onboarding, chi lavora ha il suo piano — anche se
-    // oggi è fermo: il piano resta il suo gradino, la salute la dice lo
-    // Stato nel dettaglio.
+    // La tappa del rapporto: chi si è affacciato è un lead, chi configura è
+    // in onboarding, chi lavora è un cliente che torna; chi si è fermato ha
+    // annullato il piano, chi se n'è andato del tutto è eliminato.
     ciclo: l.stato === 'pending' ? 'lead'
       : (l.stato === 'onboarding' || l.stato === 'skipped') ? 'onboarding'
-      : l.piano,
+      : l.stato === 'active' ? 'returning'
+      : l.stato === 'churned' ? 'eliminato'
+      : 'annullato',
+    piano: l.piano,
     iscritto: l.dataIscrizione,
   }));
 
@@ -126,9 +142,11 @@ const CONTATTI = (() => {
       citta: s.localeCitta, regione: loc ? loc.regione : '—',
       email: (device || !dominio) ? null
         : s.nome.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.') + '@' + dominio,
-      // Lo staff non ha un ciclo di vita commerciale: non compra niente da
-      // byup. In colonna è un trattino, non un gradino inventato.
-      ciclo: null,
+      // Lo staff non ha un ciclo di vita commerciale — trattino — con una
+      // eccezione: le utenze CANCELLATE dal locale restano in rubrica come
+      // «Eliminato». Il mock non porta il flag: qualcuna, stabile sull'id.
+      ciclo: (s.id.charCodeAt(3) * 3 + s.id.charCodeAt(4)) % 9 === 0 ? 'eliminato' : null,
+      piano: null,
       iscritto: s.dataAssunzione,
     });
   });
@@ -139,10 +157,12 @@ const CONTATTI = (() => {
     cerca: u.citta + ' ' + u.regione,
     citta: u.citta, regione: u.regione,
     email: u.email,
+    // L'utente app non ha un ciclo di vita commerciale con byup: trattino.
+    ciclo: null,
     // Il piano dell'app. Il mock non lo porta: lo si deriva stabile dalle
     // ULTIME cifre dell'id (le prime sono uguali per tutti, 'U20…'), circa un
     // utente su sette è Pro — abbastanza da vederli in lista.
-    ciclo: (u.id.charCodeAt(3) * 3 + u.id.charCodeAt(4)) % 7 === 0 ? 'pro' : 'base',
+    piano: (u.id.charCodeAt(3) * 3 + u.id.charCodeAt(4)) % 7 === 0 ? 'pro' : 'base',
     iscritto: u.dataRegistrazione,
   }));
 
@@ -233,30 +253,27 @@ function AdmContattiPage({ search, openContatto }) {
     }
     // Un confronto per campo, sempre in verso crescente: il verso lo applica
     // il segno qui sotto.
-    // Il ciclo di vita ordina per RANGO (lead → business, base → pro), non
-    // per alfabeto; lo staff senza ciclo finisce in fondo in entrambi i versi
-    // — un trattino non sta né prima né dopo un gradino.
+    // Ciclo di vita e piano ordinano per RANGO (lead → eliminato, gratuito →
+    // business → base → pro), non per alfabeto.
     const rangoCiclo = (c) => c.ciclo ? CNT_CICLO[c.ciclo].rango : 99;
+    const rangoPiano = (c) => c.piano ? CNT_PIANI[c.piano].rango : 99;
     const confronta = {
       nome:     (a, b) => a.nome.localeCompare(b.nome),
       email:    (a, b) => String(a.email || '').localeCompare(String(b.email || '')),
       tipo:     (a, b) => CNT_TIPI[a.tipo].label.localeCompare(CNT_TIPI[b.tipo].label),
       ciclo:    (a, b) => rangoCiclo(a) - rangoCiclo(b),
+      piano:    (a, b) => rangoPiano(a) - rangoPiano(b),
       citta:    (a, b) => a.citta.localeCompare(b.citta),
       iscritto: (a, b) => a.iscritto - b.iscritto,
     };
     const cmp = confronta[sort.campo] || confronta.nome;
     const segno = sort.verso === 'asc' ? 1 : -1;
     return [...r].sort((a, b) => {
-      // I trattini (email dei dispositivi, ciclo dello staff) stanno in fondo
-      // IN ENTRAMBI i versi — fuori dal segno: un trattino non è «prima
-      // della A» né «dopo la Z».
-      if (sort.campo === 'email' && (a.email == null) !== (b.email == null)) {
-        return a.email == null ? 1 : -1;
-      }
-      if (sort.campo === 'ciclo' && (a.ciclo == null) !== (b.ciclo == null)) {
-        return a.ciclo == null ? 1 : -1;
-      }
+      // I trattini (email dei dispositivi, ciclo e piano di chi non li ha)
+      // stanno in fondo IN ENTRAMBI i versi — fuori dal segno: un trattino
+      // non è «prima della A» né «dopo la Z».
+      const vuoto = { email: c => c.email == null, ciclo: c => c.ciclo == null, piano: c => c.piano == null }[sort.campo];
+      if (vuoto && vuoto(a) !== vuoto(b)) return vuoto(a) ? 1 : -1;
       // A parità (stessa tipologia, stesso stato) comanda il nome: l'ordine
       // deve essere lo stesso a ogni render, o le righe ballano sotto il mouse.
       return segno * cmp(a, b) || a.nome.localeCompare(b.nome);
@@ -283,6 +300,38 @@ function AdmContattiPage({ search, openContatto }) {
   };
 
   const griglia = colonne.map(id => CNT_COLONNE[id].w).join(' ') + ' 60px';
+
+  // ── Il dettaglio: UNA PAGINA, non un popup. Cliccando un contatto la
+  //    lista lascia il posto alla sua scheda a tutta finestra, con la barra
+  //    per tornare (e il tasto Esc). Il velo con la finestrella centrata
+  //    andava bene per sbirciare; una scheda CRM con sei tab è un posto in
+  //    cui si LAVORA, e un posto di lavoro merita la pagina intera. ──
+  React.useEffect(() => {
+    if (!selected) return;
+    const onKey = (e) => { if (e.key === 'Escape') setSelected(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected]);
+
+  if (selected) {
+    const chiudi = () => setSelected(null);
+    const tipoDef = CNT_TIPI[selected.tipo];
+    return (
+      <div style={{padding: 28, display: 'flex', flexDirection: 'column', gap: 14}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+          <CntTorna onClick={chiudi}/>
+          <span style={{fontSize: 13.5, color: ADM.MUTED_LIGHT}}>/</span>
+          <span style={{fontSize: 13.5, fontWeight: 700, color: ADM.TEXT}}>{selected.ref.nome}</span>
+          <CntPillola color={tipoDef.color}>{tipoDef.label}</CntPillola>
+        </div>
+        <AdmCard padding={0} style={{overflow: 'hidden'}}>
+          {selected.tipo === 'locale' && <LocaleDrawer pieno locale={selected.ref} onClose={chiudi}/>}
+          {selected.tipo === 'staff'  && <StaffDrawer  pieno staff={selected.ref}  onClose={chiudi}/>}
+          {selected.tipo === 'utente' && <UtenteDrawer pieno utente={selected.ref} onClose={chiudi}/>}
+        </AdmCard>
+      </div>
+    );
+  }
 
   return (
     <div style={{padding: 28, display: 'flex', flexDirection: 'column', gap: 16}}>
@@ -428,13 +477,30 @@ function AdmContattiPage({ search, openContatto }) {
         </div>
       </AdmCard>
 
-      {/* Il dettaglio pertinente per ciascuno: il drawer del locale, la
-          scheda dello staff, la scheda dell'utente app — gli stessi di
-          quando erano tre sezioni, nessuna informazione persa per strada. */}
-      {selected && selected.tipo === 'locale' && <LocaleDrawer locale={selected.ref} onClose={() => setSelected(null)}/>}
-      {selected && selected.tipo === 'staff'  && <StaffDrawer  staff={selected.ref}  onClose={() => setSelected(null)}/>}
-      {selected && selected.tipo === 'utente' && <UtenteDrawer utente={selected.ref} onClose={() => setSelected(null)}/>}
     </div>
+  );
+}
+
+// «Torna ai contatti»: il pulsante che chiude la pagina di dettaglio. Stesso
+// registro degli strumenti della barra — bianco, si scurisce sotto il mouse.
+function CntTorna({ onClick }) {
+  const [sopra, setSopra] = useStateCnt(false);
+  return (
+    <button type="button" onClick={onClick} title="Torna alla rubrica"
+      onMouseEnter={() => setSopra(true)} onMouseLeave={() => setSopra(false)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '7px 12px 7px 8px', borderRadius: 8,
+        border: `1px solid ${sopra ? ADM.INK_SOFT : ADM.BORDER}`,
+        background: sopra ? '#F5F6F8' : '#fff',
+        color: ADM.TEXT, fontSize: 13.5, fontWeight: 600,
+        cursor: 'pointer', fontFamily: 'inherit',
+        boxShadow: sopra ? '0 2px 8px rgba(15,17,21,0.10)' : '0 1px 2px rgba(15,17,21,0.04)',
+        transition: 'background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease',
+      }}>
+      <BuIcons.chevronLeft size={16} color={ADM.MUTED}/>
+      Contatti
+    </button>
   );
 }
 
@@ -694,10 +760,14 @@ function CntCella({ id, c }) {
     return <div><CntPillola color={tipoDef.color}>{tipoDef.label}</CntPillola></div>;
   }
   if (id === 'ciclo') {
-    // Il gradino commerciale, nella stessa pillola della tipologia. Lo
-    // staff non ne ha uno: trattino, non un gradino inventato.
+    // La tappa del rapporto, nella stessa pillola della tipologia. Chi non
+    // ha un ciclo di vita con byup ha un trattino, non un gradino inventato.
     const cicloDef = c.ciclo ? CNT_CICLO[c.ciclo] : null;
     return <div>{cicloDef ? <CntPillola color={cicloDef.color}>{cicloDef.label}</CntPillola> : tratto}</div>;
+  }
+  if (id === 'piano') {
+    const pianoDef = c.piano ? CNT_PIANI[c.piano] : null;
+    return <div>{pianoDef ? <CntPillola color={pianoDef.color}>{pianoDef.label}</CntPillola> : tratto}</div>;
   }
   if (id === 'iscritto') return <div style={testo}>{fmtDate(c.iscritto)}</div>;
   return <div style={testo}>{c.citta}</div>;

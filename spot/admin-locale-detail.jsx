@@ -2,18 +2,24 @@
 
 const { useState: useStateDrw } = React;
 
-function LocaleDrawer({ locale: l, onClose }) {
+// `pieno`: la stessa scheda, ma A PAGINA INTERA — niente velo, niente
+// finestra centrata: riempie il posto che il chiamante le dà (la rotta
+// Contatti), e a chiudere ci pensa la barra «torna» del chiamante.
+function LocaleDrawer({ locale: l, onClose, pieno }) {
   const [tab, setTab] = useStateDrw('anagrafica');
 
   return (
-    <div style={{
+    <div onClick={pieno ? undefined : onClose} style={pieno ? {} : {
       position:'fixed', inset:0, zIndex:50,
       display:'grid', placeItems:'center', padding:24,
       background:'rgba(15,17,21,0.45)',
       backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
       animation:'fadeIn 0.15s ease',
-    }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{
+    }}>
+      <div onClick={e=>e.stopPropagation()} style={pieno ? {
+        width:'100%', background:'#fff',
+        display:'flex', flexDirection:'column', position:'relative',
+      } : {
         // Largo come una scheda contatto di un CRM, non come una finestra di
         // servizio: dentro ci vivono sei tab e le card a due colonne
         // respirano solo se la riga non le schiaccia.
@@ -30,7 +36,7 @@ function LocaleDrawer({ locale: l, onClose }) {
         <div style={{padding:'16px 24px 14px', borderBottom:`1px solid ${ADM.BORDER}`}}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
           <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Dettaglio locale</span>
-          <AdmIconBtn icon="x" onClick={onClose} label="Chiudi"/>
+          {!pieno && <AdmIconBtn icon="x" onClick={onClose} label="Chiudi"/>}
         </div>
         <div style={{display:'flex', alignItems:'center', gap:14}}>
           <div style={{

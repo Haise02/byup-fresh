@@ -433,16 +433,22 @@ function staffDescrizioneUtenza(s) {
   return (RUOLI_STAFF.find(r => r.id === s.ruolo) || {}).label || s.ruolo;
 }
 
-function StaffDrawer({ staff: s, onClose }) {
+// `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
+// — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
+// barra «torna» del chiamante.
+function StaffDrawer({ staff: s, onClose, pieno }) {
   const ruoloDef = RUOLI_STAFF.find(r => r.id === s.ruolo);
   return (
-    <div style={{
+    <div onClick={pieno ? undefined : onClose} style={pieno ? {} : {
       position:'fixed', inset:0, zIndex:50,
       display:'grid', placeItems:'center', padding:24,
       background:'rgba(15,17,21,0.45)',
       backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
-    }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{
+    }}>
+      <div onClick={e=>e.stopPropagation()} style={pieno ? {
+        width:'100%', background:'#fff',
+        display:'flex', flexDirection:'column',
+      } : {
         width:640, maxWidth:'94%', background:'#fff', maxHeight:'88%',
         borderRadius:18, overflow:'hidden',
         display:'flex', flexDirection:'column',
@@ -464,7 +470,7 @@ function StaffDrawer({ staff: s, onClose }) {
               <span>{s.localeNome}, {s.localeCitta}</span>
             </div>
           </div>
-          <AdmIconBtn icon="x" onClick={onClose}/>
+          {!pieno && <AdmIconBtn icon="x" onClick={onClose}/>}
         </div>
 
         <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>

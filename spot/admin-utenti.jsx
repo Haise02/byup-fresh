@@ -214,7 +214,10 @@ function UtenteRow({ utente: u, onClick, striped }) {
   );
 }
 
-function UtenteDrawer({ utente: u, onClose }) {
+// `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
+// — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
+// barra «torna» del chiamante.
+function UtenteDrawer({ utente: u, onClose, pieno }) {
   const [tab, setTab] = useStateUtn('anagrafica');
   const [period, setPeriod] = useStateUtn('total');
 
@@ -349,13 +352,16 @@ function UtenteDrawer({ utente: u, onClose }) {
   const labelStyle = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
 
   return (
-    <div style={{
+    <div onClick={pieno ? undefined : onClose} style={pieno ? {} : {
       position:'fixed', inset:0, zIndex:50,
       display:'grid', placeItems:'center', padding:24,
       background:'rgba(15,17,21,0.45)',
       backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)',
-    }} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{
+    }}>
+      <div onClick={e=>e.stopPropagation()} style={pieno ? {
+        width:'100%', background:'#fff',
+        display:'flex', flexDirection:'column', position:'relative',
+      } : {
         width:760, maxWidth:'94%', background:'#fff', maxHeight:'88%',
         borderRadius:18, overflow:'hidden',
         display:'flex', flexDirection:'column',
@@ -367,7 +373,7 @@ function UtenteDrawer({ utente: u, onClose }) {
         <div style={{padding:'16px 24px 0', borderBottom:`1px solid ${ADM.BORDER}`, flexShrink:0}}>
           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
             <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.07em'}}>Dettaglio utente</span>
-            <AdmIconBtn icon="x" onClick={onClose}/>
+            {!pieno && <AdmIconBtn icon="x" onClick={onClose}/>}
           </div>
           <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
             <AdmAvatar name={form.nome} size={46} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
