@@ -61,9 +61,15 @@ const CNT_PIANI = {
 // Quali colonne si vedono e in che ordine lo decide chi guarda («Modifica
 // colonne» + trascinamento delle intestazioni), e la scelta resta in
 // localStorage. «Contatto» è fissa: una rubrica senza l'identità non è una
-// lista, è un foglio di celle.
+// lista, è un foglio di celle. Il `min` è il respiro sotto cui la colonna non
+// deve mai finire, ricavato dal suo peso fr: fino a sei colonne non serve,
+// dalla settima in su la somma dei minimi dà la larghezza da cui la tabella
+// comincia a scorrere in orizzontale invece di strizzarsi.
 const CNT_COLONNE = HUB_PROPRIETA.reduce((m, p) => {
-  if (p.colonna) m[p.id] = { label: p.colonna.label || p.label, w: p.colonna.w, fissa: !!p.colonna.fissa };
+  if (p.colonna) m[p.id] = {
+    label: p.colonna.label || p.label, w: p.colonna.w, fissa: !!p.colonna.fissa,
+    min: Math.round(140 * (parseFloat(String(p.colonna.w).replace(/^minmax\(0,/, '')) || 1)),
+  };
   return m;
 }, {});
 const CNT_COLONNE_DEFAULT = ['nome', 'email', 'tipo', 'ciclo', 'piano', 'citta'];
@@ -79,6 +85,11 @@ const CNT_CSS = `
 @keyframes cntBarraIn { from { transform: scaleY(0.4); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
 .cnt-testata .cnt-grip { opacity: 0; transition: opacity 0.12s ease; }
 .cnt-testata:hover .cnt-grip { opacity: 1; }
+.cnt-scorri { overflow-x: auto; }
+.cnt-scorri::-webkit-scrollbar { height: 9px; }
+.cnt-scorri::-webkit-scrollbar-track { background: transparent; }
+.cnt-scorri::-webkit-scrollbar-thumb { background: #D8DBE2; border-radius: 99px; border: 2px solid #fff; }
+.cnt-scorri::-webkit-scrollbar-thumb:hover { background: #C2C6CF; }
 `;
 
 // Il browser, da solo, solleva uno screenshot sbiadito del bottone: brutto e
@@ -311,6 +322,14 @@ function AdmContattiPage({ search, openContatto }) {
 
   const griglia = colonne.map(id => CNT_COLONNE[id].w).join(' ') + ' 60px';
 
+  // Fino a sei colonne la tabella respira nella larghezza che ha; dalla
+  // settima in su non si strizza più — somma i minimi delle colonne accese
+  // (più la colonnina della freccia e i bordi di padding) e sotto quella
+  // soglia si fa scorrere in orizzontale, testata e righe insieme.
+  const minTabella = colonne.length > 6
+    ? colonne.reduce((s, id) => s + CNT_COLONNE[id].min, 0) + 60 + 36
+    : undefined;
+
   // ── Il dettaglio: UNA PAGINA, non un popup. Cliccando un contatto la
   //    lista lascia il posto alla sua scheda a tutta finestra, con la barra
   //    per tornare (e il tasto Esc). Il velo con la finestrella centrata
@@ -412,8 +431,10 @@ function AdmContattiPage({ search, openContatto }) {
         {/* Le colonne scelte, nell'ordine scelto. Ogni cima di colonna è il
             comando di ordinamento (click) E la maniglia di riordino
             (trascinamento): la si prende per il nome e la si posa dove deve
-            stare — la riga sotto indica il lato su cui atterrerà. */}
-        <div>
+            stare — la riga sotto indica il lato su cui atterrerà. Oltre le
+            sei colonne il blocco scorre in orizzontale dentro la card. */}
+        <div className="cnt-scorri">
+          <div style={{minWidth: minTabella}}>
           <div style={{
             display: 'grid',
             gridTemplateColumns: griglia,
@@ -508,6 +529,7 @@ function AdmContattiPage({ search, openContatto }) {
                 colonne={colonne} griglia={griglia} trascinata={trascinata}
                 onClick={() => setSelected({ tipo: c.tipo, ref: c.ref })}/>
             ))}
+          </div>
           </div>
         </div>
       </AdmCard>
