@@ -455,10 +455,18 @@ function WidgetByuppino() {
              COMPATTA: nella tessera 1×4 ogni riga di testata è una riga tolta
              alla conversazione, che è il lavoro vero del widget — la chat
              deve cominciare più in alto possibile. ── */}
-      <div style={{
+      {/* IL GRADIENTE È VIVO: scorre con gli stop SPECCHIATI — pesca,
+          corallo, lavanda, corallo, pesca — così a schermo le tinte ci sono
+          sempre tutte insieme e il movimento si vede senza che il fondo
+          «cambi colore». Il giro dura 16s, fuori fase con la scheda azione
+          (12s): niente respira all'unisono. La classe byu-scheda è quella
+          che prefers-reduced-motion sa già fermare. */}
+      <div className="byu-scheda" style={{
         position: 'relative', flexShrink: 0, overflow: 'hidden',
-        padding: '14px 20px 38px',
-        background: 'linear-gradient(140deg, #FF9159 0%, #FA4B6B 52%, #C05BD6 100%)',
+        padding: '12px 20px 32px',
+        background: 'linear-gradient(120deg, #FF9159 0%, #FA4B6B 26%, #C05BD6 50%, #FA4B6B 74%, #FF9159 100%)',
+        backgroundSize: '260% 260%',
+        animation: 'byu-scheda 16s ease-in-out infinite',
       }}>
         {BYU_MACCHIE.map((m, i) => (
           <span key={i} aria-hidden="true" className="byu-macchia" style={{
@@ -504,13 +512,21 @@ function WidgetByuppino() {
       {/* ── La conversazione: il foglio bianco risale sul gradiente con la
              sua curva — è la cucitura del mock, non un bordo dritto. ── */}
       <div style={{
+        // La cucitura sale (-26): il foglio bianco copre più gradiente e la
+        // conversazione parte più in alto — la testata è un'insegna, non una
+        // stanza.
         flex: 1, minWidth: 0, minHeight: 0, position: 'relative', zIndex: 2,
         display: 'flex', flexDirection: 'column',
         background: PN.WHITE, borderRadius: '22px 22px 0 0',
-        marginTop: -22, padding: '14px 16px 12px',
+        marginTop: -26, padding: '14px 16px 12px',
       }}>
+        {/* Il filo NON riempie a forza la scheda: è alto quanto i messaggi
+            che porta, così il campo di scrittura segue l'ultima cosa detta —
+            niente buco bianco tra la scheda in corso e la box del messaggio.
+            Quando la conversazione cresce oltre lo spazio, si stringe al
+            disponibile e si scrolla come prima. */}
         <div ref={filo} className="byu-thread pn-scroll" style={{
-          flex: 1, minHeight: 0, overflowY: 'auto',
+          flex: '0 1 auto', minHeight: 0, overflowY: 'auto',
           display: 'flex', flexDirection: 'column', gap: 11, paddingRight: 4,
         }}>
           {messaggi.map(m => m.tipo === 'azione'
@@ -522,8 +538,9 @@ function WidgetByuppino() {
           {scrive && <ByuScrive/>}
         </div>
 
-        {/* ── Barra di scrittura ── */}
-        <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 11, flexShrink: 0}}>
+        {/* ── Barra di scrittura — attaccata all'ultimo messaggio, non al
+               fondo della scheda: 8px e basta. ── */}
+        <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexShrink: 0}}>
           <div style={{
             flex: 1, minWidth: 0, position: 'relative',
             display: 'flex', alignItems: 'center',
