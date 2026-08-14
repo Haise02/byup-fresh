@@ -73,7 +73,6 @@ function HubPanoramicaPage({ onNav }) {
   const dati = useMemoPn(() => {
     // La settimana è mobile: gli ultimi 7 giorni da adesso, non dal lunedì.
     const inSettimana = (d) => d && (Date.now() - new Date(d).getTime()) < 7 * 86400000;
-    const lead = CONTATTI.filter(c => c.ciclo === 'lead').length;
     const senzaConsenso = CONTATTI.filter(c => c.consensoMail === false).length;
     // I ricavi settimanali: il canone mensile dei locali col piano a
     // pagamento ancora vivo (né annullato né eliminato), spalmato sulla
@@ -83,7 +82,7 @@ function HubPanoramicaPage({ onNav }) {
     const ricaviSettimana = Math.round(
       paganti.reduce((s, c) => s + ((PIANI.find(p => p.id === c.piano) || {}).price || 0), 0) / 4.345);
     return {
-      lead, senzaConsenso,
+      senzaConsenso,
       locali: CONTATTI.filter(c => c.tipo === 'locale').length,
       utentiApp: CONTATTI.filter(c => c.tipo === 'utente').length,
       staff: CONTATTI.filter(c => c.tipo === 'staff').length,
@@ -154,7 +153,7 @@ function HubPanoramicaPage({ onNav }) {
           locali paganti. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
         <HubTile etichetta="Locali negli ultimi 7 giorni" valore={fmtNum(dati.localiSettimana)} icona="store" tono="OK"
-          sotto={`${dati.lead} sono lead da qualificare`} onClick={() => vai('contatti')}/>
+          sotto={`su ${fmtNum(dati.locali)} locali in rubrica`} onClick={() => vai('contatti')}/>
         <HubTile etichetta="Utenti negli ultimi 7 giorni" valore={fmtNum(dati.utentiSettimana)} icona="smartphone"
           sotto={`su ${fmtNum(dati.utentiApp)} utenti app in rubrica`} onClick={() => vai('contatti')}/>
         <HubTile etichetta="Ricavi settimanali" valore={fmtEur(dati.ricaviSettimana)} icona="money" tono="HUB_MAGENTA"
