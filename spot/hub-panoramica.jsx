@@ -127,11 +127,6 @@ function HubPanoramicaPage({ onNav }) {
           <div style={{ flex: 1, minWidth: 280 }}>
             <div style={{ fontSize: 11.6, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.85 }}>Buongiorno, Marco</div>
             <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.03em', marginTop: 7, lineHeight: 1.2 }}>
-              {dafare.length === 0 ? 'Non c\'è niente in sospeso'
-                : dafare.length === 1 ? '1 attività richiede la tua attenzione'
-                : `${dafare.length} attività richiedono la tua attenzione`}
-            </div>
-            <div style={{ fontSize: 14.2, opacity: 0.88, marginTop: 6, maxWidth: 560, lineHeight: 1.5 }}>
               Byup a colpo d'occhio: come crescono locali e utenti.
             </div>
           </div>
