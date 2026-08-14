@@ -533,26 +533,16 @@ function AccFatturazione() {
         </div>
       </AcCard>
 
-      {/* Zona pericolosa — Annulla abbonamento */}
-      <AcCard title="Annulla abbonamento" subtitle="L'abbonamento resterà attivo fino alla fine del periodo già pagato. Dopo, il tuo account passerà al piano Gratuito.">
-        <div style={{
-          // Warning ambra, non rosso: il rosso è il colore brand di Byup.
-          display:'flex', alignItems:'center', justifyContent:'space-between', gap: 14,
-          padding: 16, borderRadius: 12,
-          background:'#FFFBEB', border:'1px solid #FDE68A',
-        }}>
-          <div style={{flex: 1, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-            Una volta annullato, perderai accesso ai menu digitali extra, ai membri staff aggiuntivi e al supporto telefonico (se inclusi nel tuo piano).
-          </div>
-          <button onClick={() => setCancelStep('motivi')} style={{
-            padding:'9px 16px', borderRadius: 999,
-            background: PN.WHITE, color: PN.MUTED,
-            border:`1px solid ${PN.BORDER}`,
-            fontSize: 14.5, fontWeight: 700, cursor:'pointer',
-            fontFamily:'inherit', flexShrink: 0,
-          }}>Annulla abbonamento</button>
-        </div>
-      </AcCard>
+      {/* Zona pericolosa — Annulla abbonamento. Stesso trattamento d'allarme
+          rosso di "Elimina account": chi arriva qui deve capire subito che
+          non è un bottone come gli altri. */}
+      <AcDangerZone
+        titolo="Annulla abbonamento"
+        testo="Perderai i menu digitali extra, i membri staff aggiuntivi e il supporto telefonico inclusi nel tuo piano."
+        nota="L'abbonamento resta attivo fino alla fine del periodo già pagato: dopo, l'account passa al piano Gratuito."
+        cta="Annulla abbonamento"
+        onCta={() => setCancelStep('motivi')}
+      />
 
       {/* Annulla abbonamento — passo 1: perché te ne vai */}
       {cancelStep === 'motivi' && (
