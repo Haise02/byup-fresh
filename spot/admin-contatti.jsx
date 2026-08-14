@@ -51,6 +51,7 @@ const CONTATTI = (() => {
     key: 'loc-' + l.id, tipo: 'locale', ref: l,
     nome: l.nome,
     cerca: l.tipo + ' ' + l.citta,
+    citta: l.citta, regione: l.regione,
     email: l.email,
     stato: l.stato === 'active' ? 'attivo'
       : (l.stato === 'inactive' || l.stato === 'churned') ? 'inattivo'
@@ -71,6 +72,8 @@ const CONTATTI = (() => {
       key: 'stf-' + s.id, tipo: 'staff', ref: s,
       nome: s.nome,
       cerca: ruolo + ' ' + s.localeNome + ' ' + s.localeCitta,
+      // Lo staff sta dove sta il suo locale: città e regione sono le sue.
+      citta: s.localeCitta, regione: loc ? loc.regione : '—',
       email: (device || !dominio) ? null
         : s.nome.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.') + '@' + dominio,
       // Vivo se s'è visto nell'ultima settimana: «attivo oggi» è un dettaglio
@@ -84,6 +87,7 @@ const CONTATTI = (() => {
     key: 'utn-' + u.id, tipo: 'utente', ref: u,
     nome: u.nome,
     cerca: u.citta + ' ' + u.regione,
+    citta: u.citta, regione: u.regione,
     email: u.email,
     stato: u.attivo ? 'attivo' : 'inattivo',
     iscritto: u.dataRegistrazione,
@@ -94,7 +98,11 @@ const CONTATTI = (() => {
 
 function AdmContattiPage({ search, openContatto }) {
   const [tipo, setTipo] = useStateCnt('tutti');
-  const [stato, setStato] = useStateCnt('all');
+  // Si filtra per DOVE, non per stato: regione e città — la geografia è la
+  // domanda vera di chi lavora la rubrica («chi abbiamo a Roma?»). Lo stato
+  // resta in colonna, leggibile e ordinabile dalla sua cima.
+  const [regione, setRegione] = useStateCnt('all');
+  const [citta, setCitta] = useStateCnt('all');
   // L'ordinamento vive nelle INTESTAZIONI: si clicca la cima di una colonna e
   // la lista si ordina su quel campo; un secondo click inverte il verso. Il
   // menu «Ordina» che stava qui accanto diceva le stesse cose in un posto
@@ -115,8 +123,9 @@ function AdmContattiPage({ search, openContatto }) {
 
   const filtered = useMemoCnt(() => {
     let r = CONTATTI;
-    if (tipo !== 'tutti')  r = r.filter(c => c.tipo === tipo);
-    if (stato !== 'all')   r = r.filter(c => c.stato === stato);
+    if (tipo !== 'tutti')    r = r.filter(c => c.tipo === tipo);
+    if (regione !== 'all')   r = r.filter(c => c.regione === regione);
+    if (citta !== 'all')     r = r.filter(c => c.citta === citta);
     if (effectiveSearch) {
       const q = effectiveSearch.toLowerCase();
       r = r.filter(c =>
@@ -147,7 +156,12 @@ function AdmContattiPage({ search, openContatto }) {
       // deve essere lo stesso a ogni render, o le righe ballano sotto il mouse.
       return segno * cmp(a, b) || a.nome.localeCompare(b.nome);
     });
-  }, [tipo, stato, effectiveSearch, sort]);
+  }, [tipo, regione, citta, effectiveSearch, sort]);
+
+  // Le due geografie escono dai contatti che ci sono davvero: una regione
+  // senza nessuno non deve comparire nella tendina.
+  const regioni = useMemoCnt(() => [...new Set(CONTATTI.map(c => c.regione))].filter(r => r && r !== '—').sort((a, b) => a.localeCompare(b)), []);
+  const cittaList = useMemoCnt(() => [...new Set(CONTATTI.map(c => c.citta))].filter(Boolean).sort((a, b) => a.localeCompare(b)), []);
 
   const counts = {
     tutti:  CONTATTI.length,
@@ -162,30 +176,6 @@ function AdmContattiPage({ search, openContatto }) {
     { id: 'staff',  label: 'Utenti Staff', badge: counts.staff },
     { id: 'utente', label: 'Utenti App',   badge: counts.utente },
   ];
-
-  // CSV della vista filtrata: le quattro colonne della rubrica più l'identità.
-  const downloadCSV = () => {
-    const esc = (v) => {
-      if (v == null) return '';
-      const s = String(v);
-      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    };
-    const fmt = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
-    const head = ['Nome', 'ID', 'Email', 'Tipologia contatto', 'Stato', 'Data iscrizione'];
-    const rows = filtered.map(c => [
-      c.nome, c.ref.id, c.email || '', CNT_TIPI[c.tipo].label, CNT_STATI[c.stato].label, fmt(c.iscritto),
-    ].map(esc).join(';'));
-    const csv = '\uFEFF' + head.map(esc).join(';') + '\n' + rows.join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `byup-contatti-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
 
   // Click sull'intestazione: nuova colonna → parte dal suo verso naturale
   // (le date dalla più recente, i testi dalla A, gli stati dal più vivo);
@@ -224,15 +214,16 @@ function AdmContattiPage({ search, openContatto }) {
             )}
           </div>
 
-          <FilterDropdown label="Stato" value={stato} onChange={setStato} options={[
-            { value: 'all', label: 'Tutti gli stati' },
-            { value: 'attivo', label: 'Attivi' },
-            { value: 'onboarding', label: 'In onboarding' },
-            { value: 'inattivo', label: 'Inattivi' },
+          <FilterDropdown label="Regione" value={regione} onChange={setRegione} options={[
+            { value: 'all', label: 'Tutte le regioni' },
+            ...regioni.map(r => ({ value: r, label: r })),
+          ]}/>
+          <FilterDropdown label="Città" value={citta} onChange={setCitta} options={[
+            { value: 'all', label: 'Tutte le città' },
+            ...cittaList.map(x => ({ value: x, label: x })),
           ]}/>
           <div style={{flex: 1}}/>
           <span style={{fontSize: 13.7, color: ADM.MUTED}}>{filtered.length} risultati</span>
-          <AdmButton variant="secondary" icon="download" size="sm" onClick={downloadCSV}>Scarica CSV</AdmButton>
         </div>
 
         {/* Le quattro colonne chieste alla rubrica — email, tipologia, stato,
