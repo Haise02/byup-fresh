@@ -46,7 +46,10 @@ const CONTATTI = (() => {
   LOCALI.forEach(l => rows.push({
     key: 'loc-' + l.id, tipo: 'locale', ref: l,
     nome: l.nome,
-    sub: l.tipo + ' · ' + l.citta,
+    // Niente sottotitolo sotto il nome del locale: «Osteria · Bari» ripeteva
+    // cose che vivono nel dettaglio. Tipo e città restano però RICERCABILI.
+    sub: null,
+    cerca: l.tipo + ' ' + l.citta,
     email: l.email,
     stato: l.stato === 'active' ? 'attivo'
       : (l.stato === 'inactive' || l.stato === 'churned') ? 'inattivo'
@@ -118,7 +121,7 @@ function AdmContattiPage({ search, openContatto }) {
       r = r.filter(c =>
         c.nome.toLowerCase().includes(q) ||
         (c.email || '').toLowerCase().includes(q) ||
-        c.sub.toLowerCase().includes(q) ||
+        (c.cerca || c.sub || '').toLowerCase().includes(q) ||
         c.ref.id.toLowerCase().includes(q)
       );
     }
@@ -321,6 +324,20 @@ function CntIntestazione({ campo, label, sort, onSort }) {
   );
 }
 
+// La stessa pillola per tipologia e stato: UN corpo solo (13/700, raggio 5).
+// Prima lo stato usava AdmBadge, che qui accanto risultava più grande e più
+// tondo della pillola gemella: due colonne sorelle con due vesti.
+function CntPillola({ color, children }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '3px 9px', borderRadius: 5,
+      background: ADM[color + '_SOFT'], color: ADM[color],
+      fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
+    }}>{children}</span>
+  );
+}
+
 function ContattoRow({ contatto: c, onClick, striped }) {
   const [hover, setHover] = useStateCnt(false);
   const tipoDef = CNT_TIPI[c.tipo];
@@ -346,34 +363,28 @@ function ContattoRow({ contatto: c, onClick, striped }) {
           : <AdmAvatar name={c.nome} size={36} bg={`hsl(${(c.ref.id.charCodeAt(1) + c.ref.id.charCodeAt(c.ref.id.length - 1)) * 5 % 360}, 42%, 55%)`}/>}
         <div style={{minWidth: 0}}>
           <div style={{fontSize: 14.4, fontWeight: 600, color: ADM.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: device ? 'ui-monospace,monospace' : 'inherit'}}>{c.nome}</div>
-          <div style={{fontSize: 13, color: ADM.MUTED, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{c.sub}</div>
+          {c.sub && (
+            <div style={{fontSize: 13, color: ADM.MUTED, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{c.sub}</div>
+          )}
         </div>
       </div>
 
+      {/* Un corpo solo per tutte le celle di testo della riga (13.7/500, il
+          font della pagina): l'email in monospazio più piccola faceva sembrare
+          la colonna di un'altra tabella. */}
       <div style={{minWidth: 0}}>
         {c.email
-          ? <span style={{fontSize: 12.8, color: ADM.TEXT, fontFamily: 'ui-monospace,monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block'}}>{c.email}</span>
-          : <span style={{fontSize: 13, color: ADM.MUTED_LIGHT}}>—</span>}
+          ? <span style={{fontSize: 13.7, fontWeight: 500, color: ADM.TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block'}}>{c.email}</span>
+          : <span style={{fontSize: 13.7, color: ADM.MUTED_LIGHT}}>—</span>}
       </div>
 
-      <div>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center',
-          padding: '3px 9px', borderRadius: 5,
-          background: ADM[tipoDef.color + '_SOFT'], color: ADM[tipoDef.color],
-          fontSize: 13, fontWeight: 700,
-        }}>
-          {tipoDef.label}
-        </span>
-      </div>
+      <div><CntPillola color={tipoDef.color}>{tipoDef.label}</CntPillola></div>
 
       <div>
-        {/* UN SOLO layout di stato per tutti e tre i tipi: stessa pillola,
-            stessi tre gradini, solo la parola — il colore dice già il tono, e
-            il pallino era un secondo segnale per la stessa cosa. Prima il
-            locale portava il suo badge fine (Iscritto, Onboarding saltato…):
-            quel vocabolario resta nel drawer. */}
-        <AdmBadge color={statoDef.color} size="xs">{statoDef.label}</AdmBadge>
+        {/* Stessa pillola della tipologia, tre gradini, solo la parola — il
+            colore dice già il tono. Il vocabolario fine del locale (Iscritto,
+            Onboarding saltato…) resta nel drawer. */}
+        <CntPillola color={statoDef.color}>{statoDef.label}</CntPillola>
       </div>
 
       <div>
