@@ -370,14 +370,8 @@ function AdmContattiPage({ search, openContatto }) {
       <HubTestata
         occhiello="CRM · Rubrica"
         titolo="Contatti"
-        sotto="Locali, utenti staff e utenti app in un'unica rubrica. Filtra per qualunque proprietà, salva la vista come elenco."
-        azioni={
-          <React.Fragment>
-            <HubStrumento icona="layers" onClick={() => window.__hubNav && window.__hubNav('elenchi', { daFiltri: filtri })}
-              title="Trasforma questi filtri in un elenco che si aggiorna da solo">Salva come elenco</HubStrumento>
-            <HubStrumento forte icona="plus">Nuovo contatto</HubStrumento>
-          </React.Fragment>
-        }/>
+        sotto="Locali, utenti staff e utenti app in un'unica rubrica. Filtra per qualunque proprietà."
+        azioni={<HubStrumento forte icona="plus">Nuovo contatto</HubStrumento>}/>
 
       <AdmCard padding={0}>
         {/* La barra: ricerca a sinistra, gli STRUMENTI a destra — filtri e

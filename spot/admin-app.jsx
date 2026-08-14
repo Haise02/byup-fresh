@@ -38,7 +38,6 @@ const HUB_NAV = [
       { id: 'mkt-sms',  label: 'SMS',   icon: 'smsFill',  desc: 'Messaggi brevi, subito o programmati' },
       { id: 'mkt-push', label: 'Push',  icon: 'bellFill', desc: 'Notifiche nell\'app e nel gestionale' },
       { id: 'mkt-form', label: 'Form',  icon: 'formFill', desc: 'Moduli da pubblicare, con la loro automazione' },
-      { id: 'promozioni', label: 'Campagne di acquisizione', icon: 'target', desc: 'Link tracciati, CAC, MRR e payback' },
     ] },
   { id: 'workflow', label: 'Workflow', icon: 'flowFill', colore: 'HUB_VIOLA',
     desc: 'Le automazioni: cosa succede, e quando' },
@@ -316,6 +315,9 @@ function AdminApp({ tweaks }) {
       // «Marketing» non è una pagina: è una famiglia. Chi ci arriva senza dire
       // quale canale atterra sulla mail, che è quello da cui si parte.
       : nextRaw === 'marketing' ? 'mkt-mail'
+      // Campagne di acquisizione non è più una voce: un link rimasto in giro
+      // atterra sulla famiglia Marketing, non su una pagina fantasma.
+      : nextRaw === 'promozioni' ? 'mkt-mail'
       : nextRaw;
     setFly(null); setMenuProfilo(false);
     const tab = nextRaw === 'comunicazioni' ? 'ticket' : (opts && opts.tab) || null;
@@ -342,12 +344,8 @@ function AdminApp({ tweaks }) {
   React.useEffect(() => { window.__hubNav = setRoute; return () => { delete window.__hubNav; }; });
 
   const pageTitles = {
-    dashboard:    { t:'Analisi Dati', s:'Come sta la piattaforma, letta dai numeri' },
     assistenza:   { t:'Assistenza', s:'Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
-    promozioni:   { t:'Campagne di acquisizione', s:'Link tracciati, costo per acquisizione e payback per campagna' },
-    team:         { t:'Piattaforma', s:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app' },
     sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
-    profilo:      { t:'Profilo', s:'Account e sicurezza' },
   };
 
   // Le pagine nuove si presentano da sole, con la loro testata dentro il
@@ -554,7 +552,6 @@ function AdminApp({ tweaks }) {
           {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
           {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
           {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
-          {route === 'promozioni'   && <AdmPromozioniPage onNew={()=>openMessageModal('utenti', [])}/>}
           {route === 'profilo'      && <ProfiloPage/>}
         </div>
       </main>
@@ -581,7 +578,11 @@ function ProfiloPage() {
   const pwdOk = pwd2.length >= 8 && pwd2 === pwd3 && pwd1.length > 0;
 
   return (
-    <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:14}}>
+    <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
+      {/* La testata alla maniera di Hubble: la pagina si presenta da sola,
+          nell'header resta la briciola. */}
+      <HubTestata occhiello="Account" titolo="Il mio profilo"
+        sotto="Password, autenticazione a due fattori e sessioni attive: la sicurezza del tuo accesso a Hubble."/>
       {/* Header card */}
       <AdmCard padding={22}>
         <div style={{display:'flex', alignItems:'center', gap:18}}>

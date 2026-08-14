@@ -15,7 +15,11 @@ const ADM_SEZIONI = {
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'] },
   // Niente `hr`: Risorse Umane non esiste più come sezione, e il registro della
   // formazione se n'è andato con Risk Management.
-  impostazioni: { pred:'piattaforma', tabs:['piattaforma'] },
+  // La testata alla maniera di Hubble: Piattaforma si presenta da sola nel
+  // contenuto; Sicurezza per ora tiene il titolone nell'header (pageTitles).
+  impostazioni: { pred:'piattaforma', tabs:['piattaforma'],
+    testata: { occhiello:'Impostazioni', titolo:'Piattaforma',
+      sotto:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app.' } },
 };
 
 function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
@@ -51,6 +55,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
+      {sez.testata && <HubTestata occhiello={sez.testata.occhiello} titolo={sez.testata.titolo} sotto={sez.testata.sotto}/>}
       <AdmCard padding={0}>
         {/* Con una sola tab la barra non offre nessuna scelta: mostrarla
             sarebbe un comando che non comanda niente. */}

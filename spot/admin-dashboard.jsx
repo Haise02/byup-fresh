@@ -418,7 +418,14 @@ function AdmDashboard({ onNav }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column'}}>
-      <div style={{padding:'0 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
+      {/* La testata alla maniera di Hubble: la pagina si presenta da sola,
+          nell'header resta la briciola. La banda bianca delle tab, che prima
+          toccava l'header, ora è una striscia con i suoi due bordi. */}
+      <div style={{padding:'28px 28px 18px'}}>
+        <HubTestata occhiello="Numeri · Piattaforma" titolo="Analisi Dati"
+          sotto="Come sta la piattaforma, letta dai numeri: locali, valore per il locale, utenti app, staff, servizio clienti e mercato."/>
+      </div>
+      <div style={{padding:'0 28px', background:'#fff', borderTop:`1px solid ${ADM.BORDER}`, borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:12}}>
         <AdmTabBar tabs={[
           { id:'generale', label:'Generale' },
           { id:'locali',   label:'Locali' },

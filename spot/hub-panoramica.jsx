@@ -157,7 +157,7 @@ function HubPanoramicaPage({ onNav }) {
         <HubTile etichetta="Utenti negli ultimi 7 giorni" valore={fmtNum(dati.utentiSettimana)} icona="smartphone"
           sotto={`su ${fmtNum(dati.utentiApp)} utenti app in rubrica`} onClick={() => vai('contatti')}/>
         <HubTile etichetta="Ricavi settimanali" valore={fmtEur(dati.ricaviSettimana)} icona="money" tono="HUB_MAGENTA"
-          sotto={`da ${dati.paganti} locali con piano a pagamento`} onClick={() => vai('promozioni')}/>
+          sotto={`da ${dati.paganti} locali con piano a pagamento`} onClick={() => vai('team')}/>
       </div>
 
       {/* La griglia dei riquadri */}
