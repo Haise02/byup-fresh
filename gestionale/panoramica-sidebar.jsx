@@ -233,6 +233,24 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
     };
   }, []);
 
+  // Notifiche non lette — mostrate come badge sull'avatar del profilo: la voce
+  // di menu dedicata non c'è più, l'elenco vive in Profilo → Notifiche.
+  const [notifNonLette, setNotifNonLette] = React.useState(
+    () => (window.byupNotificheNonLette ? window.byupNotificheNonLette() : 0)
+  );
+
+  React.useEffect(() => {
+    if (!window.byupNotificheNonLette) return;
+    const update = () => setNotifNonLette(window.byupNotificheNonLette());
+    update();
+    window.addEventListener('byup-notifiche-change', update);
+    window.addEventListener('storage', update);
+    return () => {
+      window.removeEventListener('byup-notifiche-change', update);
+      window.removeEventListener('storage', update);
+    };
+  }, []);
+
   const items = [
     { id: 'panoramica',   label: 'Panoramica',        icon: 'grid' },
     modules.sala         && { id: 'sala',         label: 'Sala',              icon: 'place-table' },
@@ -351,15 +369,6 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
         ))}
       </div>
 
-      {/* Notifiche — voce di sistema con badge (l'header è stato eliminato). */}
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        marginBottom: 10,
-        position: 'relative',
-      }}>
-        {window.PnNotifBell && <window.PnNotifBell sidebar collapsed={collapsed}/>}
-      </div>
-
       {/* Profilo — card a tutta larghezza, come in Spot: a riposo e una scheda
           bianca posata sul fondo, in hover si solleva di due pixel e prende il
           bordo coral con l'ombra della stessa tinta. La freccia e un chip che si
@@ -392,12 +401,29 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
             transition: 'box-shadow 180ms ease, transform 180ms cubic-bezier(0.34,1.2,0.64,1), border-color 180ms ease',
           }}
         >
-          <div style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
-            color: '#fff', display: 'grid', placeItems: 'center',
-            fontWeight: 700, fontSize: 15, flexShrink: 0,
-          }}>MR</div>
+          {/* Avatar + badge notifiche: il conteggio non ha più una voce di menu
+              sua, vive qui sopra la faccia dell'utente — che è dove si guarda
+              per capire "c'è qualcosa per me?". Le notifiche si leggono in
+              Profilo → Notifiche. */}
+          <div style={{position: 'relative', flexShrink: 0}}>
+            <div style={{
+              width: 34, height: 34, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #FF5A5F, #B53338)',
+              color: '#fff', display: 'grid', placeItems: 'center',
+              fontWeight: 700, fontSize: 15,
+            }}>MR</div>
+            {notifNonLette > 0 && (
+              <span title={`${notifNonLette} notifiche da leggere`} style={{
+                position: 'absolute', top: -5, right: -6,
+                minWidth: 20, height: 19, padding: '0 5px', borderRadius: 999,
+                background: '#DC2626', border: '2px solid #fff',
+                color: '#fff', fontSize: 11.5, fontWeight: 800, lineHeight: 1,
+                display: 'grid', placeItems: 'center',
+                fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em',
+                boxShadow: '0 2px 6px -1px rgba(220,38,38,0.45)',
+              }}>+{notifNonLette > 9 ? '9' : notifNonLette}</span>
+            )}
+          </div>
           {!collapsed && (
             <React.Fragment>
               <div style={{minWidth: 0, flex: 1}}>
