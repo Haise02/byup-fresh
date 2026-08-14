@@ -11,8 +11,15 @@ const RUOLI_STAFF = [
   { id: 'dispositivo',   label: 'Dispositivo',    color: 'PLAN_FREE', pct: 0.10 },
 ];
 
-// Modelli dispositivo (cassa / tablet sala) per i record di tipo "Dispositivo"
-const DEVICE_MODELS = ['iPad 10.9"', 'iPad mini', 'Sunmi T2', 'Samsung Galaxy Tab A9', 'Elo PayPoint', 'iPad Air'];
+// I dispositivi sono di due nature — SCHERMI e STAMPANTI — e la scheda le
+// distingue nella «Descrizione utenza»: un kitchen monitor e una termica per
+// gli scontrini non si sostituiscono a vicenda.
+const DEVICE_MONITOR   = ['iPad 10.9"', 'iPad mini', 'Samsung Galaxy Tab A9', 'Elo PayPoint', 'iPad Air'];
+const DEVICE_STAMPANTI = ['Epson TM-T20III', 'Star TSP143IV', 'Bixolon SRP-350III', 'Epson TM-m30II'];
+
+// I ruoli personalizzati hanno un NOME dato dal locale: è quello che la
+// scheda mostra come «Custom - …», non la parola generica.
+const CUSTOM_NOMI = ['Responsabile sala', 'Turno serale', 'Cassa weekend', 'Vice direttore', 'Barman'];
 
 // Aree del gestionale (per i ruoli di tipo "Personalizzato")
 const AREE_GESTIONALE = ['Sala', 'Vendita diretta', 'Prenotazioni', 'Panoramica', 'Impostazioni', 'Supporto', 'Statistiche', 'Contabilità'];
@@ -44,8 +51,12 @@ const STAFF = (() => {
     if (!ruolo) ruolo = 'cameriere';
     const lastDays = Math.floor(rnd() * 14);
     const isDevice = ruolo === 'dispositivo';
-    const modello = DEVICE_MODELS[Math.floor(rnd() * DEVICE_MODELS.length)];
-    const deviceCode = 'POS-' + localeIdx + '-' + String(11 + (i % 9)); // es. POS-23-14
+    // Metà schermi, metà stampanti — stabile sul seed, come tutto il resto.
+    const deviceKind = rnd() < 0.5 ? 'monitor' : 'stampante';
+    const modello = deviceKind === 'stampante'
+      ? DEVICE_STAMPANTI[Math.floor(rnd() * DEVICE_STAMPANTI.length)]
+      : DEVICE_MONITOR[Math.floor(rnd() * DEVICE_MONITOR.length)];
+    const deviceCode = (deviceKind === 'stampante' ? 'PRN-' : 'KDS-') + localeIdx + '-' + String(11 + (i % 9));
     // Per i ruoli personalizzati: sottoinsieme di aree del gestionale (2-4)
     const aree = ruolo === 'personalizzato'
       ? [...AREE_GESTIONALE].sort(() => rnd() - 0.5).slice(0, 2 + Math.floor(rnd() * 3))
@@ -55,6 +66,8 @@ const STAFF = (() => {
       // Per i dispositivi il "nome" è il codice del dispositivo (non una persona)
       nome: isDevice ? deviceCode : n,
       modello: isDevice ? modello : null,
+      deviceKind: isDevice ? deviceKind : null,
+      customNome: ruolo === 'personalizzato' ? CUSTOM_NOMI[Math.floor(rnd() * CUSTOM_NOMI.length)] : null,
       aree,
       ruolo,
       localeId,
@@ -409,6 +422,17 @@ function StaffRow({ staff: s, onClick, striped, indented }) {
   );
 }
 
+// La «Descrizione utenza»: che cosa È questa utenza, in una riga sola —
+// il ruolo per le persone, «Custom - nome» per i ruoli su misura, e per i
+// dispositivi la natura (Monitor / Stampante) col modello.
+function staffDescrizioneUtenza(s) {
+  if (s.ruolo === 'dispositivo') {
+    return 'Dispositivo - ' + (s.deviceKind === 'stampante' ? 'Stampante' : 'Monitor') + ': ' + s.modello;
+  }
+  if (s.ruolo === 'personalizzato') return 'Custom - ' + (s.customNome || 'Ruolo personalizzato');
+  return (RUOLI_STAFF.find(r => r.id === s.ruolo) || {}).label || s.ruolo;
+}
+
 function StaffDrawer({ staff: s, onClose }) {
   const ruoloDef = RUOLI_STAFF.find(r => r.id === s.ruolo);
   return (
@@ -483,14 +507,18 @@ function StaffDrawer({ staff: s, onClose }) {
 
           <AdmCard padding={20}>
             <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>{s.ruolo === 'dispositivo' ? 'Dettagli dispositivo' : 'Dati anagrafici'}</div>
-            <DataRow label="Tipo" value={ruoloDef.label}/>
+            {/* Al posto del generico «Tipo»: che cosa è questa utenza, per
+                esteso — ruolo, nome del ruolo custom, o natura e modello del
+                dispositivo. */}
+            <DataRow label="Descrizione utenza" value={staffDescrizioneUtenza(s)}/>
             {s.ruolo === 'dispositivo' && <DataRow label="Codice" value={s.nome} mono/>}
-            {s.ruolo === 'dispositivo' && <DataRow label="Modello" value={s.modello}/>}
             <DataRow label="Locale" value={`${s.localeNome} (${s.localeCitta})`}/>
             <DataRow label="ID Locale" value={s.localeId} mono/>
             <DataRow label={s.ruolo === 'dispositivo' ? 'Registrato il' : 'Assunto il'} value={fmtDate(s.dataAssunzione)}/>
             <DataRow label="Ultima attività" value={fmtRelative(s.lastActive)}/>
-            <DataRow label="Stato" value={s.attivoOggi ? 'Attivo oggi' : 'Non attivo oggi'} last/>
+            {/* Binario, come per gli altri contatti: o l'utenza è viva o non
+                lo è — «attivo oggi» lo racconta già «Ultima attività». */}
+            <DataRow label="Stato" value={(Date.now() - s.lastActive) <= 7 * 86400000 ? 'Attivo' : 'Inattivo'} last/>
           </AdmCard>
         </div>
       </div>

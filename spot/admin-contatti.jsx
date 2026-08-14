@@ -3,8 +3,8 @@
 // Tre voci di menu (Locali · Staff · Utenti App) sono diventate una: chi
 // amministra la piattaforma cerca UNA persona — «di chi è questa mail?» — e
 // non deve sapere in anticipo in quale delle tre liste vive. La lista porta
-// le quattro colonne che identificano un contatto (email, tipologia, stato,
-// data di iscrizione); tutto il resto sta nel dettaglio, che resta QUELLO
+// le quattro colonne che identificano un contatto (email, tipologia, ciclo
+// di vita, città); tutto il resto sta nel dettaglio, che resta QUELLO
 // GIUSTO per ciascun tipo: il drawer del locale, la scheda dello staff, la
 // scheda dell'utente app. Le vecchie pagine non sono montate da nessuna
 // rotta, ma i loro file restano caricati: lì dentro vivono i loro dataset
@@ -24,20 +24,22 @@ const CNT_TIPI = {
   utente: { label: 'Utente App',   color: 'PURPLE' },
 };
 
-// Stato unificato su tre gradini. Le tre anagrafi parlano lingue diverse
-// (active/pending/churned, «attivo oggi», cluster di utilizzo) ma la domanda
-// della rubrica è una sola: questo contatto è vivo, sta arrivando, o è fermo?
-// Il vocabolario fine resta nel dettaglio — la lista non lo butta, lo rimanda.
-const CNT_STATI = {
-  attivo:     { label: 'Attivo',        color: 'OK' },
-  onboarding: { label: 'In onboarding', color: 'WARN' },
-  inattivo:   { label: 'Inattivo',      color: 'PLAN_FREE' },
+// ─── Ciclo di vita ──────────────────────────────────────────────────────────
+// Il gradino COMMERCIALE del contatto, come su un CRM — non la salute del
+// rapporto (quella è lo Stato, Attivo/Inattivo, e vive nel dettaglio). Per un
+// locale la scala va dal lead al piano pagato; per un utente app è il piano
+// dell'app; lo staff un ciclo di vita commerciale non ce l'ha — trattino.
+// `rango` è l'ordine della scala quando si clicca la cima della colonna.
+const CNT_CICLO = {
+  lead:       { label: 'Lead',           color: 'INFO',          rango: 0 },
+  onboarding: { label: 'In onboarding',  color: 'WARN',          rango: 1 },
+  free:       { label: 'Piano Gratuito', color: 'PLAN_FREE',     rango: 2 },
+  starter:    { label: 'Piano Starter',  color: 'PLAN_STARTER',  rango: 3 },
+  plus:       { label: 'Piano Plus',     color: 'PLAN_PLUS',     rango: 4 },
+  business:   { label: 'Piano Business', color: 'PLAN_BUSINESS', rango: 5 },
+  base:       { label: 'Base',           color: 'PLAN_FREE',     rango: 6 },
+  pro:        { label: 'Pro',            color: 'PURPLE',        rango: 7 },
 };
-
-// Il «maggiore» di uno stato è quanto è vivo il rapporto: attivo, poi in
-// arrivo, poi fermo. È l'ordine con cui si legge la colonna quando la si
-// ordina, non un giudizio nuovo — la rubrica già filtra su questi tre gradini.
-const CNT_STATO_RANGO = { attivo: 0, onboarding: 1, inattivo: 2 };
 
 // Un solo elenco, costruito una volta: i mock non cambiano a runtime.
 const CONTATTI = (() => {
@@ -53,10 +55,13 @@ const CONTATTI = (() => {
     cerca: l.tipo + ' ' + l.citta,
     citta: l.citta, regione: l.regione,
     email: l.email,
-    stato: l.stato === 'active' ? 'attivo'
-      : (l.stato === 'inactive' || l.stato === 'churned') ? 'inattivo'
-      : 'onboarding',
-    iscritto: l.dataIscrizione,
+    // La scala commerciale: chi si è appena affacciato è un lead, chi sta
+    // configurando è in onboarding, chi lavora ha il suo piano — anche se
+    // oggi è fermo: il piano resta il suo gradino, la salute la dice lo
+    // Stato nel dettaglio.
+    ciclo: l.stato === 'pending' ? 'lead'
+      : (l.stato === 'onboarding' || l.stato === 'skipped') ? 'onboarding'
+      : l.piano,
   }));
 
   STAFF.forEach(s => {
@@ -76,10 +81,9 @@ const CONTATTI = (() => {
       citta: s.localeCitta, regione: loc ? loc.regione : '—',
       email: (device || !dominio) ? null
         : s.nome.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.') + '@' + dominio,
-      // Vivo se s'è visto nell'ultima settimana: «attivo oggi» è un dettaglio
-      // da scheda, per la rubrica conta se il rapporto è in piedi.
-      stato: (Date.now() - s.lastActive.getTime()) <= 7 * 86400000 ? 'attivo' : 'inattivo',
-      iscritto: s.dataAssunzione,
+      // Lo staff non ha un ciclo di vita commerciale: non compra niente da
+      // byup. In colonna è un trattino, non un gradino inventato.
+      ciclo: null,
     });
   });
 
@@ -89,8 +93,10 @@ const CONTATTI = (() => {
     cerca: u.citta + ' ' + u.regione,
     citta: u.citta, regione: u.regione,
     email: u.email,
-    stato: u.attivo ? 'attivo' : 'inattivo',
-    iscritto: u.dataRegistrazione,
+    // Il piano dell'app. Il mock non lo porta: lo si deriva stabile dalle
+    // ULTIME cifre dell'id (le prime sono uguali per tutti, 'U20…'), circa un
+    // utente su sette è Pro — abbastanza da vederli in lista.
+    ciclo: (u.id.charCodeAt(3) * 3 + u.id.charCodeAt(4)) % 7 === 0 ? 'pro' : 'base',
   }));
 
   return rows;
@@ -98,16 +104,14 @@ const CONTATTI = (() => {
 
 function AdmContattiPage({ search, openContatto }) {
   const [tipo, setTipo] = useStateCnt('tutti');
-  // Si filtra per DOVE, non per stato: regione e città — la geografia è la
-  // domanda vera di chi lavora la rubrica («chi abbiamo a Roma?»). Lo stato
-  // resta in colonna, leggibile e ordinabile dalla sua cima.
+  // Si filtra per DOVE: regione e città — la geografia è la domanda vera di
+  // chi lavora la rubrica («chi abbiamo a Roma?»).
   const [regione, setRegione] = useStateCnt('all');
   const [citta, setCitta] = useStateCnt('all');
   // L'ordinamento vive nelle INTESTAZIONI: si clicca la cima di una colonna e
-  // la lista si ordina su quel campo; un secondo click inverte il verso. Il
-  // menu «Ordina» che stava qui accanto diceva le stesse cose in un posto
-  // meno ovvio, ed è stato assorbito dalle colonne.
-  const [sort, setSort] = useStateCnt({ campo: 'iscritto', verso: 'desc' });
+  // la lista si ordina su quel campo; un secondo click inverte il verso.
+  // A riposo è una rubrica: nomi in ordine alfabetico.
+  const [sort, setSort] = useStateCnt({ campo: 'nome', verso: 'asc' });
   const [localSearch, setLocalSearch] = useStateCnt('');
   // {tipo, ref}: quale drawer aprire lo decide la tipologia — il dettaglio
   // giusto per ciascuno, non un dettaglio unico appiattito sui tre.
@@ -137,20 +141,28 @@ function AdmContattiPage({ search, openContatto }) {
     }
     // Un confronto per campo, sempre in verso crescente: il verso lo applica
     // il segno qui sotto.
+    // Il ciclo di vita ordina per RANGO (lead → business, base → pro), non
+    // per alfabeto; lo staff senza ciclo finisce in fondo in entrambi i versi
+    // — un trattino non sta né prima né dopo un gradino.
+    const rangoCiclo = (c) => c.ciclo ? CNT_CICLO[c.ciclo].rango : 99;
     const confronta = {
-      nome:     (a, b) => a.nome.localeCompare(b.nome),
-      email:    (a, b) => String(a.email || '').localeCompare(String(b.email || '')),
-      tipo:     (a, b) => CNT_TIPI[a.tipo].label.localeCompare(CNT_TIPI[b.tipo].label),
-      stato:    (a, b) => CNT_STATO_RANGO[a.stato] - CNT_STATO_RANGO[b.stato],
-      iscritto: (a, b) => a.iscritto - b.iscritto,
+      nome:  (a, b) => a.nome.localeCompare(b.nome),
+      email: (a, b) => String(a.email || '').localeCompare(String(b.email || '')),
+      tipo:  (a, b) => CNT_TIPI[a.tipo].label.localeCompare(CNT_TIPI[b.tipo].label),
+      ciclo: (a, b) => rangoCiclo(a) - rangoCiclo(b),
+      citta: (a, b) => a.citta.localeCompare(b.citta),
     };
-    const cmp = confronta[sort.campo] || confronta.iscritto;
+    const cmp = confronta[sort.campo] || confronta.nome;
     const segno = sort.verso === 'asc' ? 1 : -1;
     return [...r].sort((a, b) => {
-      // Le email mancanti (dispositivi) stanno in fondo IN ENTRAMBI i versi —
-      // fuori dal segno: un trattino non è «prima della A» né «dopo la Z».
+      // I trattini (email dei dispositivi, ciclo dello staff) stanno in fondo
+      // IN ENTRAMBI i versi — fuori dal segno: un trattino non è «prima
+      // della A» né «dopo la Z».
       if (sort.campo === 'email' && (a.email == null) !== (b.email == null)) {
         return a.email == null ? 1 : -1;
+      }
+      if (sort.campo === 'ciclo' && (a.ciclo == null) !== (b.ciclo == null)) {
+        return a.ciclo == null ? 1 : -1;
       }
       // A parità (stessa tipologia, stesso stato) comanda il nome: l'ordine
       // deve essere lo stesso a ogni render, o le righe ballano sotto il mouse.
@@ -177,12 +189,11 @@ function AdmContattiPage({ search, openContatto }) {
     { id: 'utente', label: 'Utenti App',   badge: counts.utente },
   ];
 
-  // Click sull'intestazione: nuova colonna → parte dal suo verso naturale
-  // (le date dalla più recente, i testi dalla A, gli stati dal più vivo);
-  // stessa colonna → il verso si inverte.
+  // Click sull'intestazione: nuova colonna → verso crescente (i testi dalla
+  // A, il ciclo di vita dal lead in su); stessa colonna → il verso si inverte.
   const ordina = (campo) => setSort(s => s.campo === campo
     ? { campo, verso: s.verso === 'asc' ? 'desc' : 'asc' }
-    : { campo, verso: campo === 'iscritto' ? 'desc' : 'asc' });
+    : { campo, verso: 'asc' });
 
   return (
     <div style={{padding: 28, display: 'flex', flexDirection: 'column', gap: 16}}>
@@ -226,10 +237,11 @@ function AdmContattiPage({ search, openContatto }) {
           <span style={{fontSize: 13.7, color: ADM.MUTED}}>{filtered.length} risultati</span>
         </div>
 
-        {/* Le quattro colonne chieste alla rubrica — email, tipologia, stato,
-            iscrizione — più l'identità in testa: una lista di sole email
+        {/* Le quattro colonne della rubrica — email, tipologia, ciclo di
+            vita, città — più l'identità in testa: una lista di sole email
             si legge col dizionario in mano. Ogni cima di colonna È il comando
-            di ordinamento su quel campo. */}
+            di ordinamento su quel campo. Lo stato (Attivo/Inattivo) e la data
+            di iscrizione vivono nel dettaglio, non qui. */}
         <div>
           <div style={{
             display: 'grid',
@@ -239,11 +251,11 @@ function AdmContattiPage({ search, openContatto }) {
             borderBottom: `1px solid ${ADM.BORDER}`,
             alignItems: 'center',
           }}>
-            <CntIntestazione campo="nome"     label="Contatto"           sort={sort} onSort={ordina}/>
-            <CntIntestazione campo="email"    label="Email"              sort={sort} onSort={ordina}/>
-            <CntIntestazione campo="tipo"     label="Tipologia contatto" sort={sort} onSort={ordina}/>
-            <CntIntestazione campo="stato"    label="Stato"              sort={sort} onSort={ordina}/>
-            <CntIntestazione campo="iscritto" label="Data iscrizione"    sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="nome"  label="Contatto"           sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="email" label="Email"              sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="tipo"  label="Tipologia contatto" sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="ciclo" label="Ciclo di vita"      sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="citta" label="Città"              sort={sort} onSort={ordina}/>
             <div></div>
           </div>
           <div>
@@ -333,7 +345,7 @@ function CntPillola({ color, children }) {
 function ContattoRow({ contatto: c, onClick, striped }) {
   const [hover, setHover] = useStateCnt(false);
   const tipoDef = CNT_TIPI[c.tipo];
-  const statoDef = CNT_STATI[c.stato];
+  const cicloDef = c.ciclo ? CNT_CICLO[c.ciclo] : null;
   const device = c.tipo === 'staff' && c.ref.ruolo === 'dispositivo';
   return (
     <div onClick={onClick} className="adm-row-open"
@@ -370,14 +382,15 @@ function ContattoRow({ contatto: c, onClick, striped }) {
       <div><CntPillola color={tipoDef.color}>{tipoDef.label}</CntPillola></div>
 
       <div>
-        {/* Stessa pillola della tipologia, tre gradini, solo la parola — il
-            colore dice già il tono. Il vocabolario fine del locale (Iscritto,
-            Onboarding saltato…) resta nel drawer. */}
-        <CntPillola color={statoDef.color}>{statoDef.label}</CntPillola>
+        {/* Il gradino commerciale, nella stessa pillola della tipologia. Lo
+            staff non ne ha uno: trattino, non un gradino inventato. */}
+        {cicloDef
+          ? <CntPillola color={cicloDef.color}>{cicloDef.label}</CntPillola>
+          : <span style={{fontSize: 13.7, color: ADM.MUTED_LIGHT}}>—</span>}
       </div>
 
       <div>
-        <div style={{fontSize: 13.7, color: ADM.TEXT, fontWeight: 500}}>{fmtDate(c.iscritto)}</div>
+        <div style={{fontSize: 13.7, color: ADM.TEXT, fontWeight: 500}}>{c.citta}</div>
       </div>
 
       <div style={{textAlign: 'right', color: ADM.MUTED}}>

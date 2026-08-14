@@ -43,7 +43,12 @@ function LocaleDrawer({ locale: l, onClose }) {
             <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3}}>
               <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{l.nome}</div>
               <AdmPlanBadge piano={l.piano}/>
-              <AdmStatoBadge stato={l.stato}/>
+              {/* Lo stato è BINARIO: o il rapporto è in piedi o non lo è. Il
+                  gradino commerciale (lead, onboarding, piano) sta nella
+                  colonna «Ciclo di vita» della rubrica, non qui. */}
+              <AdmBadge color={l.stato === 'active' ? 'OK' : 'PLAN_FREE'} size="xs">
+                {l.stato === 'active' ? 'Attivo' : 'Inattivo'}
+              </AdmBadge>
             </div>
             <div style={{fontSize:13.7, color:ADM.MUTED, display:'flex', gap:10}}>
               <span style={{fontFamily:'ui-monospace,monospace'}}>{l.id}</span>

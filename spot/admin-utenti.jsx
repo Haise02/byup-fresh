@@ -378,8 +378,8 @@ function UtenteDrawer({ utente: u, onClose }) {
                 : shadow
                 ? <AdmBadge color="WARN" size="xs">◐ Shadowban</AdmBadge>
                 : u.attivo
-                ? <AdmBadge color="OK" size="xs">● Attivo</AdmBadge>
-                : <AdmBadge color="PLAN_FREE" size="xs">○ Inattivo</AdmBadge>}
+                ? <AdmBadge color="OK" size="xs">Attivo</AdmBadge>
+                : <AdmBadge color="PLAN_FREE" size="xs">Inattivo</AdmBadge>}
               {form.verificato && (
                 <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:99, background:ADM.INFO_SOFT, color:ADM.INFO, fontSize:12, fontWeight:700}}>
                   <BuIcons.check size={13}/> Verificato
