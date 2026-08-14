@@ -14,7 +14,10 @@ function LocaleDrawer({ locale: l, onClose }) {
       animation:'fadeIn 0.15s ease',
     }} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{
-        width: 880, maxWidth:'94%',
+        // Largo come una scheda contatto di un CRM, non come una finestra di
+        // servizio: dentro ci vivono sei tab e le card a due colonne
+        // respirano solo se la riga non le schiaccia.
+        width: 1060, maxWidth:'96%',
         background:'#fff',
         maxHeight:'88%',
         borderRadius:18, overflow:'hidden',
@@ -53,17 +56,27 @@ function LocaleDrawer({ locale: l, onClose }) {
         </div>
         </div>
 
+        {/* La scheda si legge come un contatto di CRM: prima chi è
+            (anagrafica e proprietà libere), poi come va, poi i fascicoli.
+            Le certificazioni hanno la LORO tab: prima si andavano a cercare
+            dentro i ticket dell'Assistenza. */}
         <AdmTabBar tabs={[
           { id:'anagrafica', label:'Anagrafica' },
+          { id:'proprieta', label:'Proprietà' },
           { id:'panoramica', label:'Panoramica' },
           { id:'attivita', label:'Attività' },
+          { id:'certificazioni', label:'Certificazioni',
+            ...(CERTIFICAZIONI.filter(c=>c.localeId===l.id).length
+              ? { badge: CERTIFICAZIONI.filter(c=>c.localeId===l.id).length } : {}) },
           { id:'fatturazione', label:'Fatturazione & Piano' },
         ]} active={tab} onChange={setTab}/>
 
         <div style={{flex:1, overflow:'auto', background: ADM.PANEL_SOFT}}>
           {tab==='panoramica' && <DrwPanoramica locale={l}/>}
           {tab==='anagrafica' && <DrwAnagrafica locale={l}/>}
+          {tab==='proprieta' && <DrwProprieta locale={l}/>}
           {tab==='attivita' && <DrwAttivita locale={l}/>}
+          {tab==='certificazioni' && <DrwCertificazioni locale={l}/>}
           {tab==='fatturazione' && <DrwFatturazione locale={l}/>}
         </div>
       </div>
@@ -688,6 +701,158 @@ function DrwFatturazione({ locale: l }) {
               <AdmIconBtn icon="download" label="Scarica"/>
             </div>
           ))}
+        </div>
+      </AdmCard>
+    </div>
+  );
+}
+
+// ─── Certificazioni — la tab dedicata ───────────────────────────────────────
+// Prima le certificazioni di un locale si andavano a cercare in Assistenza →
+// Ticket (tag «Certificazione alimentare»): dal suo dettaglio non si vedevano.
+// Questa tab è il suo FASCICOLO — cosa ha inviato, cosa è approvato, cosa è
+// stato rifiutato e perché. La revisione resta in Assistenza: qui si legge,
+// là si lavora.
+const CERT_STATI_DRW = {
+  pending:   { label: 'In revisione', color: 'WARN' },
+  approvata: { label: 'Approvata',    color: 'OK' },
+  rifiutata: { label: 'Rifiutata',    color: 'DANGER' },
+};
+
+function DrwCertificazioni({ locale: l }) {
+  const certs = CERTIFICAZIONI.filter(c => c.localeId === l.id)
+    .slice().sort((a, b) => b.dataInvio - a.dataInvio);
+
+  if (certs.length === 0) return (
+    <div style={{padding:20}}>
+      <AdmCard padding={0}>
+        <AdmEmpty icon="shield" title="Nessuna certificazione"
+          desc="Questo locale non ha ancora inviato certificazioni alimentari. Quando ne invia una, la richiesta arriva in Assistenza → Ticket e il fascicolo compare qui."/>
+      </AdmCard>
+    </div>
+  );
+
+  return (
+    <div style={{padding:20, display:'flex', flexDirection:'column', gap:14}}>
+      {certs.map(c => {
+        const tipo = CERT_TIPI[c.tipo] || { label: c.tipo, ente: '—' };
+        const st = CERT_STATI_DRW[c.stato] || { label: c.stato, color: 'PLAN_FREE' };
+        return (
+          <AdmCard key={c.id} padding={20}>
+            <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
+              <span style={{width:36, height:36, borderRadius:9, background:ADM[st.color+'_SOFT'], color:ADM[st.color], display:'grid', placeItems:'center', flexShrink:0}}>
+                <BuIcons.shield size={19}/>
+              </span>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontSize:14.6, fontWeight:700, color:ADM.TEXT}}>{tipo.label}</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>Ente {tipo.ente} · {c.id}</div>
+              </div>
+              <AdmBadge color={st.color} size="xs">{st.label}</AdmBadge>
+            </div>
+            <DataRow label="Documento" value={`${c.file} (${c.size})`} mono/>
+            <DataRow label="Inviata il" value={fmtDate(c.dataInvio)}/>
+            {c.scadenzaCert && <DataRow label="Scade il" value={fmtDate(c.scadenzaCert)}/>}
+            {c.revisedAt && <DataRow label="Revisionata il" value={`${fmtDate(c.revisedAt)} · ${c.revisedBy}`} last={!c.motivo}/>}
+            {/* Il motivo del rifiuto per esteso: è la risposta alla domanda
+                con cui si apre questo fascicolo — «perché non è passata?» */}
+            {c.motivo && (
+              <div style={{marginTop:12, padding:'10px 13px', borderRadius:9, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:12.8, lineHeight:1.5, fontWeight:500}}>
+                {c.motivo}
+              </div>
+            )}
+          </AdmCard>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Proprietà — il locale come contatto di CRM ────────────────────────────
+// Campi LIBERI per contatto, in stile CRM: il marketing aggiunge «Canale di
+// acquisizione», il commerciale il suo referente, senza chiedere una colonna
+// nuova a nessuno. Il nome della proprietà è la chiave: riaggiungerla con lo
+// stesso nome la sovrascrive, non la duplica. Nel mock vivono in localStorage
+// per locale; due proprietà nascono già compilate per far vedere che cosa
+// sono — un pannello vuoto insegnerebbe solo che è vuoto.
+const PROP_CANALI = ['Passaparola', 'Fiera Host Milano', 'Campagna Meta', 'Outbound commerciale', 'Sito web'];
+const PROP_REFERENTI = ['Fabio M.', 'Marco D.', 'Sara P.'];
+
+function drwPropSeed(l) {
+  const seed = l.id.charCodeAt(1) * 7 + l.id.charCodeAt(3) * 3;
+  return [
+    { k: 'Canale di acquisizione', v: PROP_CANALI[seed % PROP_CANALI.length] },
+    { k: 'Referente commerciale',  v: PROP_REFERENTI[seed % PROP_REFERENTI.length] },
+  ];
+}
+
+function DrwProprieta({ locale: l }) {
+  const KEY = 'adm_prop_' + l.id;
+  const [props, setProps] = useStateDrw(() => {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY));
+      if (Array.isArray(s)) return s;
+    } catch(e) {}
+    return drwPropSeed(l);
+  });
+  const [nome, setNome] = useStateDrw('');
+  const [valore, setValore] = useStateDrw('');
+
+  const salva = (next) => {
+    setProps(next);
+    try { localStorage.setItem(KEY, JSON.stringify(next)); } catch(e) {}
+  };
+  const aggiungi = () => {
+    const k = nome.trim();
+    if (!k) return;
+    salva([...props.filter(p => p.k.toLowerCase() !== k.toLowerCase()), { k, v: valore.trim() }]);
+    setNome(''); setValore('');
+  };
+  const cambia = (k, v) => salva(props.map(p => p.k === k ? { k, v } : p));
+  const togli = (k) => salva(props.filter(p => p.k !== k));
+
+  const inputStyle = {
+    width:'100%', boxSizing:'border-box', padding:'8px 11px',
+    border:`1px solid ${ADM.BORDER}`, borderRadius:8,
+    fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, outline:'none', background:'#fff',
+  };
+
+  return (
+    <div style={{padding:20, display:'flex', flexDirection:'column', gap:14}}>
+      <AdmCard padding={20}>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:4}}>Proprietà del contatto</div>
+        <div style={{fontSize:12.6, color:ADM.MUTED, marginBottom:16, lineHeight:1.5}}>
+          Campi liberi, come su un CRM: ogni team aggiunge i suoi — il marketing il canale, il commerciale il referente — e valgono solo per questo locale.
+        </div>
+
+        {props.length === 0 && (
+          <div style={{fontSize:13, color:ADM.MUTED_SOFT, padding:'10px 0 16px'}}>Nessuna proprietà: aggiungi la prima qui sotto.</div>
+        )}
+        {props.map(p => (
+          <div key={p.k} style={{
+            display:'grid', gridTemplateColumns:'240px 1fr 34px', gap:10,
+            alignItems:'center', padding:'8px 0',
+            borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+          }}>
+            <div style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}} title={p.k}>{p.k}</div>
+            <input value={p.v} onChange={e=>cambia(p.k, e.target.value)} placeholder="—" style={inputStyle}/>
+            <button onClick={()=>togli(p.k)} title={`Rimuovi «${p.k}»`} style={{
+              width:30, height:30, borderRadius:7, border:'none', background:'transparent',
+              color:ADM.MUTED_SOFT, cursor:'pointer', display:'grid', placeItems:'center',
+            }}><BuIcons.trash size={15}/></button>
+          </div>
+        ))}
+
+        <div style={{
+          display:'grid', gridTemplateColumns:'240px 1fr auto', gap:10,
+          alignItems:'center', marginTop:16,
+        }}>
+          <input value={nome} onChange={e=>setNome(e.target.value)}
+            onKeyDown={e=>{ if (e.key === 'Enter') aggiungi(); }}
+            placeholder="Nuova proprietà (es. Segmento)" style={inputStyle}/>
+          <input value={valore} onChange={e=>setValore(e.target.value)}
+            onKeyDown={e=>{ if (e.key === 'Enter') aggiungi(); }}
+            placeholder="Valore" style={inputStyle}/>
+          <AdmButton variant="secondary" size="sm" icon="plus" disabled={!nome.trim()} onClick={aggiungi}>Aggiungi proprietà</AdmButton>
         </div>
       </AdmCard>
     </div>
