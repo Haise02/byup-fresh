@@ -71,17 +71,25 @@ function HubPanoramicaPage({ onNav }) {
   const vai = (r, o) => (onNav || window.__hubNav || (() => {}))(r, o);
 
   const dati = useMemoPn(() => {
-    const nuoviSettimana = CONTATTI.filter(c => c.iscritto && (Date.now() - new Date(c.iscritto).getTime()) < 7 * 86400000).length;
+    // La settimana è mobile: gli ultimi 7 giorni da adesso, non dal lunedì.
+    const inSettimana = (d) => d && (Date.now() - new Date(d).getTime()) < 7 * 86400000;
     const lead = CONTATTI.filter(c => c.ciclo === 'lead').length;
     const senzaConsenso = CONTATTI.filter(c => c.consensoMail === false).length;
-    const inviate = HUB_MAIL.filter(m => m.consegnate > 0);
-    const consegnate = inviate.reduce((s, m) => s + m.consegnate, 0);
-    const aperte = inviate.reduce((s, m) => s + m.aperte, 0);
-    const click = inviate.reduce((s, m) => s + m.click, 0);
+    // I ricavi settimanali: il canone mensile dei locali col piano a
+    // pagamento ancora vivo (né annullato né eliminato), spalmato sulla
+    // settimana. È la stima del mock, non la contabilità.
+    const paganti = CONTATTI.filter(c => c.tipo === 'locale' && c.piano && c.piano !== 'free'
+      && c.ciclo !== 'annullato' && c.ciclo !== 'eliminato');
+    const ricaviSettimana = Math.round(
+      paganti.reduce((s, c) => s + ((PIANI.find(p => p.id === c.piano) || {}).price || 0), 0) / 4.345);
     return {
-      nuoviSettimana, lead, senzaConsenso, consegnate, aperte, click,
-      inCorso: HUB_WORKFLOW.reduce((s, w) => s + w.inCorso, 0),
-      wfAttivi: HUB_WORKFLOW.filter(w => w.stato === 'attivo').length,
+      lead, senzaConsenso,
+      locali: CONTATTI.filter(c => c.tipo === 'locale').length,
+      utentiApp: CONTATTI.filter(c => c.tipo === 'utente').length,
+      staff: CONTATTI.filter(c => c.tipo === 'staff').length,
+      localiSettimana: CONTATTI.filter(c => c.tipo === 'locale' && inSettimana(c.iscritto)).length,
+      utentiSettimana: CONTATTI.filter(c => c.tipo === 'utente' && inSettimana(c.iscritto)).length,
+      paganti: paganti.length, ricaviSettimana,
       agentiErrore: HUB_AGENTI.filter(a => a.stato === 'errore'),
       ticket: SEGNALAZIONI.filter(s => s.stato === 'nuova').length,
       chiamate: RICHIAMATE.filter(r => r.stato === 'attesa').length,
@@ -128,9 +136,9 @@ function HubPanoramicaPage({ onNav }) {
           </div>
           <div style={{ display: 'flex', gap: 26, flexShrink: 0 }}>
             {[
-              { l: 'Contatti', v: fmtNum(CONTATTI.length) },
-              { l: 'Elenchi', v: HUB_ELENCHI.length },
-              { l: 'Automazioni', v: dati.wfAttivi },
+              { l: 'Locali', v: fmtNum(dati.locali) },
+              { l: 'Utenti App', v: fmtNum(dati.utentiApp) },
+              { l: 'Utenti Staff', v: fmtNum(dati.staff) },
             ].map(x => (
               <div key={x.l}>
                 <div style={{ fontSize: 11.2, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', opacity: 0.72 }}>{x.l}</div>
@@ -141,19 +149,16 @@ function HubPanoramicaPage({ onNav }) {
         </div>
       </div>
 
-      {/* Riga di numeri trasversali */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 12 }}>
-        <HubTile etichetta="Nuovi · 7 giorni" valore={fmtNum(dati.nuoviSettimana)} icona="users3" tono="OK"
+      {/* Riga di numeri trasversali: la crescita della settimana (locali e
+          utenti app entrati in rubrica) e quanto vale, in canoni, la base dei
+          locali paganti. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
+        <HubTile etichetta="Locali negli ultimi 7 giorni" valore={fmtNum(dati.localiSettimana)} icona="store" tono="OK"
           sotto={`${dati.lead} sono lead da qualificare`} onClick={() => vai('contatti')}/>
-        <HubTile etichetta="Email consegnate" valore={fmtNum(dati.consegnate)} icona="mail"
-          sotto={`${mkPc(dati.aperte, dati.consegnate)} aperte`} onClick={() => vai('mkt-mail')}/>
-        <HubTile etichetta="Click" valore={fmtNum(dati.click)} icona="cursorClick" tono="HUB_MAGENTA"
-          sotto={`${mkPc(dati.click, dati.consegnate)} del consegnato`} onClick={() => vai('mkt-mail')}/>
-        <HubTile etichetta="In automazione" valore={fmtNum(dati.inCorso)} icona="flow" tono="HUB_VIOLA"
-          sotto={`${dati.wfAttivi} workflow accesi`} onClick={() => vai('workflow')}/>
-        <HubTile etichetta="Code supporto" valore={dati.ticket + dati.chiamate} icona="headsetFill"
-          tono={dati.ticket + dati.chiamate > 10 ? 'WARN' : undefined}
-          sotto={`${dati.ticket} ticket · ${dati.chiamate} richiami`} onClick={() => vai('assistenza')}/>
+        <HubTile etichetta="Utenti negli ultimi 7 giorni" valore={fmtNum(dati.utentiSettimana)} icona="smartphone"
+          sotto={`su ${fmtNum(dati.utentiApp)} utenti app in rubrica`} onClick={() => vai('contatti')}/>
+        <HubTile etichetta="Ricavi settimanali" valore={fmtEur(dati.ricaviSettimana)} icona="money" tono="HUB_MAGENTA"
+          sotto={`da ${dati.paganti} locali con piano a pagamento`} onClick={() => vai('promozioni')}/>
       </div>
 
       {/* La griglia dei riquadri */}
