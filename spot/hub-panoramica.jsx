@@ -130,7 +130,7 @@ function HubPanoramicaPage({ onNav }) {
               {dafare.length ? `${dafare.length} cose chiedono una decisione oggi` : 'Non c\'è niente in sospeso'}
             </div>
             <div style={{ fontSize: 14.2, opacity: 0.88, marginTop: 6, maxWidth: 560, lineHeight: 1.5 }}>
-              Sotto trovi tutto insieme: chi è entrato in rubrica, che cosa sta girando nel marketing, quanto lavorano le automazioni e come sta il supporto.
+              La piattaforma in un colpo d'occhio: come crescono locali e utenti, quanto valgono i piani attivi, che cosa gira da solo e come sta il supporto.
             </div>
           </div>
           <div style={{ display: 'flex', gap: 26, flexShrink: 0 }}>
