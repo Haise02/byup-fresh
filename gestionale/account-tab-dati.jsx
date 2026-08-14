@@ -481,30 +481,15 @@ function AccDatiGenerali() {
         </div>
       )}
 
-      <AcCard title="Zona pericolosa" danger subtitle="Azioni irreversibili.">
-        <div style={{display:'flex', alignItems:'center', gap: 14}}>
-          <div style={{flex:1}}>
-            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Elimina account</div>
-            <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2}}>
-              Tutti i dati del ristorante verranno cancellati definitivamente.
-            </div>
-          </div>
-          <button
-            onClick={() => setDeleteConfirm(true)}
-            style={{
-              // Spento, grigio: il rosso è riservato al brand, non al pericolo.
-              padding:'10px 18px', borderRadius: 999,
-              background: PN.WHITE, color: PN.MUTED,
-              border:`1px solid ${PN.BORDER}`,
-              fontSize: 15, fontWeight: 700, cursor:'pointer',
-              fontFamily:'inherit',
-              transition:'background 150ms, color 150ms',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.color = PN.TEXT; }}
-            onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.color = PN.MUTED; }}
-          >Elimina account</button>
-        </div>
-      </AcCard>
+      {/* ZONA PERICOLOSA — trattamento d'allarme: nastro a strisce, bordo e
+          fondo rossi, CTA rossa piena. Deve leggersi a colpo d'occhio come
+          "qui non si entra per sbaglio", diverso dal coral del brand. */}
+      <AcDangerZone
+        titolo="Elimina account"
+        testo="Tutti i dati del ristorante — menu, ordini, conti e statistiche — verranno cancellati definitivamente."
+        cta="Elimina account"
+        onCta={() => setDeleteConfirm(true)}
+      />
 
       {/* Popup conferma eliminazione — danger, ancorato al frame */}
       {deleteConfirm && (
@@ -521,7 +506,7 @@ function AccDatiGenerali() {
             <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
               <div style={{
                 width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                background: '#FEF3C7', color: '#B45309',
+                background: '#FEE2E2', color: '#DC2626',
                 display:'grid', placeItems:'center',
               }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6"/></svg>
@@ -548,10 +533,14 @@ function AccDatiGenerali() {
                 onClick={() => { window.location.href = 'byup Login.html'; }}
                 style={{
                   flex: 1, padding: '11px 14px', borderRadius: 999,
-                  background: '#0F1115', color: '#fff',
-                  border: '1px solid rgba(15,17,21,0.5)',
+                  background: '#DC2626', color: '#fff',
+                  border: 'none',
                   fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                }}>
+                  boxShadow:'0 4px 12px -4px rgba(220,38,38,0.55)',
+                  transition:'background 150ms ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#DC2626'; }}>
                 Elimina definitivamente
               </button>
             </div>
@@ -561,6 +550,79 @@ function AccDatiGenerali() {
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AcDangerZone — il blocco delle azioni irreversibili.
+// Rosso allarme #DC2626 (non il coral del brand): nastro a strisce diagonali
+// da cantiere in testa, fondo e bordo rossi, icona di pericolo, CTA rossa
+// piena. Esposto su window perché lo usano sia Dati generali (elimina account)
+// sia Account e fatturazione (annulla abbonamento).
+// ═══════════════════════════════════════════════════════════════════════════
+function AcDangerZone({ titolo, testo, cta, onCta, nota }) {
+  return (
+    <div style={{
+      borderRadius: 14, overflow:'hidden',
+      border: '1.5px solid #FCA5A5',
+      background: '#FFF5F5',
+      boxShadow: '0 6px 20px -12px rgba(220, 38, 38, 0.45)',
+    }}>
+      {/* Nastro a strisce: segnale di cantiere, si legge prima delle parole */}
+      <div style={{
+        height: 8,
+        backgroundImage: 'repeating-linear-gradient(135deg, #DC2626 0 12px, #FCA5A5 12px 24px)',
+      }}/>
+
+      <div style={{padding: 22}}>
+        <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 14}}>
+          <span style={{
+            width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+            background:'#DC2626', color:'#fff',
+            display:'grid', placeItems:'center',
+          }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <path d="M12 9v4M12 17h.01"/>
+            </svg>
+          </span>
+          <div>
+            <div style={{
+              fontSize: 13, fontWeight: 800, color:'#DC2626',
+              textTransform:'uppercase', letterSpacing:'0.10em', lineHeight: 1,
+            }}>Zona pericolosa</div>
+            <div style={{fontSize: 13.5, color:'#B91C1C', marginTop: 4, fontWeight: 600}}>
+              Azioni irreversibili — nessuno può annullarle, nemmeno noi.
+            </div>
+          </div>
+        </div>
+
+        <div style={{
+          display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap',
+          padding: 16, borderRadius: 12,
+          background:'#fff', border:'1px solid #FECACA',
+        }}>
+          <div style={{flex: 1, minWidth: 220}}>
+            <div style={{fontSize: 15.5, fontWeight: 700, color:'#7F1D1D'}}>{titolo}</div>
+            <div style={{fontSize: 14.5, color:'#B91C1C', marginTop: 3, lineHeight: 1.5}}>{testo}</div>
+            {nota && <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6}}>{nota}</div>}
+          </div>
+          <button onClick={onCta} style={{
+            padding:'11px 20px', borderRadius: 999, flexShrink: 0,
+            background:'#DC2626', color:'#fff', border:'none',
+            fontSize: 15, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            boxShadow:'0 4px 12px -4px rgba(220,38,38,0.55)',
+            transition:'background 150ms ease',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#B91C1C'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#DC2626'; }}
+          >{cta}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+window.AcDangerZone = AcDangerZone;
 
 function AcCard({ title, subtitle, children, danger, aurora, action }) {
   // L2 Aurora soft wash multi-color (pink + lavender + cream mesh).
