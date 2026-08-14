@@ -460,9 +460,14 @@ function WidgetByuppino() {
           sempre tutte insieme e il movimento si vede senza che il fondo
           «cambi colore». Il giro dura 16s, fuori fase con la scheda azione
           (12s): niente respira all'unisono. La classe byu-scheda è quella
-          che prefers-reduced-motion sa già fermare. */}
+          che prefers-reduced-motion sa già fermare.
+          È LA TESTATA L'ELEMENTO FLESSIBILE della tessera (flex: 1 0 auto):
+          l'aria che la chat non usa la assorbe il gradiente, non il bianco —
+          il primo messaggio sta sempre subito sotto la cucitura. Quando la
+          conversazione chiede spazio, la testata torna alla sua altezza
+          naturale e il filo scrolla. */}
       <div className="byu-scheda" style={{
-        position: 'relative', flexShrink: 0, overflow: 'hidden',
+        position: 'relative', flex: '1 0 auto', overflow: 'hidden',
         padding: '12px 20px 32px',
         background: 'linear-gradient(120deg, #FF9159 0%, #FA4B6B 26%, #C05BD6 50%, #FA4B6B 74%, #FF9159 100%)',
         backgroundSize: '260% 260%',
@@ -512,15 +517,12 @@ function WidgetByuppino() {
       {/* ── La conversazione: il foglio bianco risale sul gradiente con la
              sua curva — è la cucitura del mock, non un bordo dritto. ── */}
       <div style={{
-        // La cucitura sale (-26): il foglio bianco copre più gradiente e la
-        // conversazione parte più in alto — la testata è un'insegna, non una
-        // stanza.
-        // TUTTO IL BLOCCO STA IN BASSO (flex-end): messaggi, scheda, campo e
-        // didascalia chiudono sul fondo della tessera senza margine bianco
-        // sotto — l'aria che avanza sta sopra il primo messaggio, dove una
-        // chat corta la tiene per natura.
-        flex: 1, minWidth: 0, minHeight: 0, position: 'relative', zIndex: 2,
-        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+        // La cucitura sale (-26) e il foglio bianco è alto quanto i suoi
+        // contenuti (flex: 0 1 auto): messaggi, scheda, campo e didascalia
+        // chiudono sul fondo della tessera, e sopra di loro non c'è margine —
+        // lo spazio che avanza è tutto del gradiente qui sopra.
+        flex: '0 1 auto', minWidth: 0, minHeight: 0, position: 'relative', zIndex: 2,
+        display: 'flex', flexDirection: 'column',
         background: PN.WHITE, borderRadius: '22px 22px 0 0',
         marginTop: -26, padding: '14px 16px 12px',
       }}>
