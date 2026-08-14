@@ -2,33 +2,32 @@
 
 // Layout default — solo l'ORDINE dei widget: le misure sono fisse e vivono
 // nel catalogo (PN_WIDGET_CATALOG[].size), pensate per il dato che mostrano.
-// Il TETRIS È RISOLTO PER TRE COLONNE, che è la larghezza vera della griglia
-// dentro il gestionale (~1125 px). L'assistente è 1×4 e sta A SINISTRA,
-// prima colonna: chiude a filo con la pila che gli sta accanto — Scontrino
-// medio, Incassi, Stato tavoli — che è la prima fascia della dashboard,
-// tutta alla stessa altezza:
-//   riga  1:    byuppino ↓ · scontrino 2×1
-//   riga  2:    byuppino ↓ · incassi 2×1
-//   righe 3-4:  byuppino ↓ · tavoli-stato 2×2
-//   righe 5-6:  prenotazioni 1×2 · cucina 1×2 · top-piatti 1×2
-//   righe 7-8:  riempimento 2×2                     · recensioni 1×2
-//   righe 9-10: coperti-sett 2×2                    · (una tessera 1×2 d'aria)
+// Il TETRIS È RISOLTO PER QUATTRO COLONNE: con l'assistente raddoppiato
+// (2×4, ancorato a destra) la dashboard vive da schermo largo, e le 32 celle
+// fanno un rettangolo 4×8 esatto, zero buchi:
+//   riga  1:    incassi 2×1                  · byuppino ↓ (2 colonne)
+//   righe 2-3:  tavoli-stato 2×2             · byuppino ↓
+//   righe 4-5:  recensioni 1×2 · cucina 1×2  · byuppino ↓ (fino a riga 4)
+//                                            · pren 1×2 · top-piatti 1×2 (r5-6)
+//   riga  6:    scontrino 2×1                · pren/top ↓
+//   righe 7-8:  riempimento 2×2              · coperti-sett 2×2
 // L'ORDINE di questa lista è l'incastro: spostare una tessera sposta i vuoti —
 // il dense tappa quel che può, ma l'aritmetica delle aree la decide la lista.
-// Le 28 celle non fanno un rettangolo 3×N: l'angolo in basso a destra resta
-// d'aria, e qualunque widget 1×2 aggiunto dal cassetto lo tappa. La card
-// «Coperti» (sparkline) è uscita dal default — i coperti li racconta già lo
-// spaccato settimanale — ma resta nel catalogo per chi la vuole.
+// A tre colonne (finestra più stretta) il rettangolo non chiude: l'assistente
+// prende due colonne su tre, di fianco gli resta la colonna singola con
+// Recensioni e Cucina, e Incassi + Stato tavoli scendono sotto. La card
+// «Coperti» (sparkline) resta fuori dal default — i coperti li racconta già
+// lo spaccato settimanale — ma vive nel catalogo per chi la vuole.
 const DEFAULT_LAYOUT = [
   { id: 'byuppino' },
-  { id: 'andamento-scontrino' },
   { id: 'incassi' },
   { id: 'tavoli-stato' },
-  { id: 'prenotazioni-oggi' },
-  { id: 'cucina-live' },
-  { id: 'top-piatti' },
-  { id: 'riempimento' },
   { id: 'recensioni' },
+  { id: 'cucina-live' },
+  { id: 'prenotazioni-oggi' },
+  { id: 'top-piatti' },
+  { id: 'andamento-scontrino' },
+  { id: 'riempimento' },
   { id: 'coperti-sett' },
 ];
 
