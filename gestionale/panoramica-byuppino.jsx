@@ -192,11 +192,13 @@ function ByuBolla({ da, testo }) {
       animation: 'byu-entra 260ms cubic-bezier(0.34, 1.2, 0.64, 1)',
     }}>
       <div style={{
-        maxWidth: '84%', padding: '10px 14px',
+        // Nella tessera larga due colonne il testo può crescere: 16 e non
+        // 14.5 — la chat è il contenuto, non una didascalia.
+        maxWidth: '84%', padding: '11px 16px',
         borderRadius: mio ? '16px 16px 5px 16px' : '16px 16px 16px 5px',
         background: mio ? BYU_BRAND : '#F4F5F7',
         color: mio ? '#fff' : PN.TEXT,
-        fontSize: 14.5, fontWeight: 500, lineHeight: 1.45,
+        fontSize: 16, fontWeight: 500, lineHeight: 1.45,
       }}>{testo}</div>
     </div>
   );
@@ -247,17 +249,17 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
           titolo e i dettagli in fila unica si troncavano a metà orario. */}
       <div style={{display: 'flex', alignItems: 'center', gap: 12, minWidth: 0}}>
         <span style={{
-          width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+          width: 46, height: 46, borderRadius: 13, flexShrink: 0,
           display: 'grid', placeItems: 'center',
           background: 'rgba(252, 88, 93, 0.12)', color: BYU_BRAND,
-        }}><Icon name={a.icona} size={22}/></span>
+        }}><Icon name={a.icona} size={24}/></span>
         <div style={{flex: 1, minWidth: 0}}>
           <div style={{
-            fontSize: 15, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em',
+            fontSize: 16.5, fontWeight: 700, color: PN.TEXT, letterSpacing: '-0.01em',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{a.titolo}</div>
           <div style={{
-            fontSize: 13.5, fontWeight: 600, color: PN.MUTED, marginTop: 2,
+            fontSize: 15, fontWeight: 600, color: PN.MUTED, marginTop: 2,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {corso ? 'Sto eseguendo…' : a.dettagli.join(' · ')}
@@ -271,15 +273,15 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
       <div style={{display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, flexShrink: 0}}>
         {annullata && (
           <span style={{
-            fontSize: 13, fontWeight: 700, color: PN.MUTED,
-            background: 'rgba(15,17,21,0.06)', padding: '6px 11px', borderRadius: 999,
+            fontSize: 14.5, fontWeight: 700, color: PN.MUTED,
+            background: 'rgba(15,17,21,0.06)', padding: '7px 13px', borderRadius: 999,
           }}>Annullato</span>
         )}
         {fatta && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontSize: 13.5, fontWeight: 700, color: BYU_VERDE,
-            background: BYU_VERDE_BG, padding: '6px 12px', borderRadius: 999,
+            fontSize: 15, fontWeight: 700, color: BYU_VERDE,
+            background: BYU_VERDE_BG, padding: '7px 14px', borderRadius: 999,
           }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -303,9 +305,9 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.10)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.06)'; }}
               style={{
-                padding: '9px 16px', borderRadius: 999, border: 'none',
+                padding: '10px 18px', borderRadius: 999, border: 'none',
                 background: 'rgba(15,17,21,0.06)', color: PN.TEXT,
-                fontSize: 13.5, fontWeight: 700,
+                fontSize: 15, fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer',
                 transition: 'background 140ms ease',
               }}>Annulla</button>
@@ -314,9 +316,9 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
               onMouseLeave={e => { e.currentTarget.style.background = BYU_VERDE; }}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 7,
-                padding: '9px 18px', borderRadius: 999, border: 'none',
+                padding: '10px 20px', borderRadius: 999, border: 'none',
                 background: BYU_VERDE, color: '#fff',
-                fontSize: 13.5, fontWeight: 700, letterSpacing: '-0.01em',
+                fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em',
                 fontFamily: 'inherit', cursor: 'pointer',
                 boxShadow: '0 4px 12px -5px rgba(15, 157, 88, 0.9)',
                 transition: 'background 140ms ease',
@@ -470,21 +472,21 @@ function WidgetByuppino() {
             ne chiede tanto. */}
         <div style={{position: 'relative', zIndex: 1, paddingRight: 104}}>
           <div style={{
-            fontSize: 11.5, fontWeight: 800, letterSpacing: '0.14em',
+            fontSize: 13, fontWeight: 800, letterSpacing: '0.14em',
             textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)',
           }}>Assistente di sala</div>
           <div style={{
-            fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em',
+            fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em',
             color: '#fff', marginTop: 2, whiteSpace: 'nowrap',
           }}>Byuppino AI</div>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 7,
-            marginTop: 8, padding: '5px 11px', borderRadius: 999,
+            marginTop: 8, padding: '5px 12px', borderRadius: 999,
             background: 'rgba(255,255,255,0.22)',
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.28)',
           }}>
             <span style={{width: 8, height: 8, borderRadius: '50%', background: '#7DF7B2'}}/>
-            <span style={{fontSize: 12, fontWeight: 700, color: '#fff'}}>Online · risponde in 1s</span>
+            <span style={{fontSize: 13.5, fontWeight: 700, color: '#fff'}}>Online · risponde in 1s</span>
           </div>
         </div>
 
@@ -537,9 +539,9 @@ function WidgetByuppino() {
               onKeyDown={e => { if (e.key === 'Enter') manda(); }}
               placeholder={fuoco || testo ? 'Scrivi cosa vuoi fare…' : BYU_ESEMPI[esempio]}
               style={{
-                flex: 1, minWidth: 0, padding: '11px 6px 11px 16px',
+                flex: 1, minWidth: 0, padding: '12px 6px 12px 17px',
                 background: 'transparent', border: 'none', outline: 'none',
-                fontSize: 14.5, fontWeight: 500, color: PN.TEXT, fontFamily: 'inherit',
+                fontSize: 16, fontWeight: 500, color: PN.TEXT, fontFamily: 'inherit',
               }}/>
             {/* Il microfono sta DENTRO il campo: è un altro modo di riempire
                 quella riga, non un'altra azione. In ascolto pulsa — senza, non
@@ -584,7 +586,7 @@ function WidgetByuppino() {
         </div>
 
         <div style={{
-          fontSize: 11.5, fontWeight: 500, color: PN.MUTED_SOFT,
+          fontSize: 13, fontWeight: 500, color: PN.MUTED_SOFT,
           marginTop: 7, flexShrink: 0,
         }}>
           Byuppino esegue le azioni per te — puoi sempre annullarle.
