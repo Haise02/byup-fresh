@@ -57,6 +57,34 @@ const CNT_COLONNE = {
 const CNT_COLONNE_DEFAULT = ['nome', 'email', 'tipo', 'ciclo', 'citta'];
 const CNT_COLONNE_KEY = 'adm_contatti_colonne';
 
+// Il vestito del trascinamento: la barra d'inserimento entra con un mezzo
+// scatto (nascere di colpo sembra un glitch), e i puntini-maniglia si vedono
+// solo passando sull'intestazione — sono un invito, non un ornamento fisso.
+const CNT_CSS = `
+@keyframes cntBarraIn { from { transform: scaleY(0.4); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
+.cnt-testata .cnt-grip { opacity: 0; transition: opacity 0.12s ease; }
+.cnt-testata:hover .cnt-grip { opacity: 1; }
+`;
+
+// Il browser, da solo, solleva uno screenshot sbiadito del bottone: brutto e
+// storto. Qui il fantasma è una pillola disegnata apposta — il nome della
+// colonna dentro un cartellino bianco bordato di corallo — montata fuori
+// schermo giusto il tempo dello scatto e poi tolta.
+function cntFantasma(e, label) {
+  try {
+    const g = document.createElement('div');
+    g.textContent = label;
+    g.style.cssText = 'position:fixed;top:-200px;left:-200px;z-index:9999;padding:7px 14px;'
+      + 'background:#fff;border:1.5px solid ' + ADM.PINK + ';border-radius:9px;'
+      + "font-family:'Plus Jakarta Sans',sans-serif;font-size:12.5px;font-weight:700;"
+      + 'letter-spacing:0.05em;text-transform:uppercase;color:' + ADM.PINK_DARK + ';'
+      + 'box-shadow:0 14px 30px -8px rgba(15,17,21,0.35);white-space:nowrap;';
+    document.body.appendChild(g);
+    e.dataTransfer.setDragImage(g, Math.round(g.offsetWidth / 2), Math.round(g.offsetHeight / 2));
+    setTimeout(() => g.remove(), 0);
+  } catch (err) {}
+}
+
 // Un solo elenco, costruito una volta: i mock non cambiano a runtime.
 const CONTATTI = (() => {
   const rows = [];
@@ -162,6 +190,16 @@ function AdmContattiPage({ search, openContatto }) {
   const [trascinata, setTrascinata] = useStateCnt(null);
   const [bersaglio, setBersaglio] = useStateCnt(null);
   const trascinataRef = React.useRef(null);
+  // Il lampo di conferma: la colonna appena posata si accende di pesca per
+  // mezzo secondo — il drop è riuscito e si vede DOVE è finita.
+  const [appenaMossa, setAppenaMossa] = useStateCnt(null);
+  const lampoRef = React.useRef(null);
+  React.useEffect(() => () => clearTimeout(lampoRef.current), []);
+  const segnaMossa = (id) => {
+    setAppenaMossa(id);
+    clearTimeout(lampoRef.current);
+    lampoRef.current = setTimeout(() => setAppenaMossa(null), 650);
+  };
   const sposta = (da, a, dopo) => {
     if (!da || da === a) return;
     const senza = colonne.filter(x => x !== da);
@@ -248,7 +286,11 @@ function AdmContattiPage({ search, openContatto }) {
 
   return (
     <div style={{padding: 28, display: 'flex', flexDirection: 'column', gap: 16}}>
+      <style>{CNT_CSS}</style>
       <AdmCard padding={0}>
+        {/* La barra: ricerca a sinistra, gli STRUMENTI a destra — filtri e
+            colonne configurano la vista, e i comandi di configurazione
+            stanno dal lato dei comandi, non in mezzo alla strada. */}
         <div style={{padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${ADM.BORDER}`, flexWrap: 'wrap'}}>
           <div style={{position: 'relative', display: 'flex', alignItems: 'center'}}>
             <span style={{position: 'absolute', left: 10, color: ADM.MUTED, pointerEvents: 'none', display: 'inline-flex'}}>
@@ -274,6 +316,8 @@ function AdmContattiPage({ search, openContatto }) {
             )}
           </div>
 
+          <div style={{flex: 1}}/>
+          <span style={{fontSize: 13.7, color: ADM.MUTED}}>{filtered.length} risultati</span>
           <CntFiltri
             gruppi={[
               { id: 'tipo',    titolo: 'Tipologia contatto',
@@ -282,8 +326,6 @@ function AdmContattiPage({ search, openContatto }) {
               { id: 'regione', titolo: 'Regione', voci: regioni,   scelte: fRegioni, cambia: setFRegioni },
               { id: 'citta',   titolo: 'Città',   voci: cittaList, scelte: fCitta,   cambia: setFCitta },
             ]}/>
-          <div style={{flex: 1}}/>
-          <span style={{fontSize: 13.7, color: ADM.MUTED}}>{filtered.length} risultati</span>
           <CntColonne colonne={colonne} onCambia={cambiaColonne}/>
         </div>
 
@@ -303,7 +345,7 @@ function AdmContattiPage({ search, openContatto }) {
             {colonne.map(id => {
               const mira = bersaglio && bersaglio.id === id && trascinata && trascinata !== id;
               return (
-                <div key={id}
+                <div key={id} className="cnt-testata"
                   onDragOver={e => {
                     e.preventDefault();
                     const r = e.currentTarget.getBoundingClientRect();
@@ -318,28 +360,58 @@ function AdmContattiPage({ search, openContatto }) {
                     // volo lo dice prima il dataTransfer, poi la ref.
                     let da = '';
                     try { da = e.dataTransfer.getData('text/plain'); } catch (err) {}
+                    da = da || trascinataRef.current;
                     const r = e.currentTarget.getBoundingClientRect();
-                    sposta(da || trascinataRef.current, id, e.clientX > r.left + r.width / 2);
+                    sposta(da, id, e.clientX > r.left + r.width / 2);
+                    if (da && da !== id) segnaMossa(da);
                     trascinataRef.current = null;
                     setTrascinata(null); setBersaglio(null);
                   }}
                   style={{
-                    minWidth: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center',
+                    position: 'relative', minWidth: 0, alignSelf: 'stretch',
+                    display: 'flex', alignItems: 'center',
+                    // In volo la colonna si ATTENUA (qui e giù nelle righe):
+                    // si vede che cosa stai spostando. Appena posata, un lampo
+                    // pesca che sfuma: il drop è riuscito, ed è finita QUI.
                     opacity: trascinata === id ? 0.35 : 1,
-                    // La riga corallo sul bordo dice DOVE atterra la colonna
-                    // in volo: prima o dopo questa, secondo la metà su cui
-                    // sta il puntatore.
-                    boxShadow: mira
-                      ? `inset ${bersaglio.dopo ? '-2px' : '2px'} 0 0 ${ADM.PINK}`
-                      : 'none',
+                    borderRadius: 6,
+                    background: appenaMossa === id ? ADM.PINK_SOFT : 'transparent',
+                    transition: 'opacity 0.15s ease, background 0.55s ease',
                   }}>
+                  {/* La maniglia: sei puntini che compaiono al passaggio del
+                      mouse, appena fuori dal testo — dicono «mi puoi
+                      prendere» senza sporcare la testata a riposo. */}
+                  <span className="cnt-grip" aria-hidden="true" style={{
+                    position: 'absolute', left: -13, top: '50%', transform: 'translateY(-50%)',
+                    color: ADM.INK_SOFT, display: 'inline-flex', cursor: 'grab',
+                  }}>
+                    <svg width="9" height="13" viewBox="0 0 9 13" fill="currentColor">
+                      <circle cx="2.2" cy="2.4" r="1.25"/><circle cx="6.8" cy="2.4" r="1.25"/>
+                      <circle cx="2.2" cy="6.5" r="1.25"/><circle cx="6.8" cy="6.5" r="1.25"/>
+                      <circle cx="2.2" cy="10.6" r="1.25"/><circle cx="6.8" cy="10.6" r="1.25"/>
+                    </svg>
+                  </span>
                   <CntIntestazione campo={id} label={CNT_COLONNE[id].label} sort={sort} onSort={ordina}
                     onDragStart={(e) => {
                       trascinataRef.current = id;
                       setTrascinata(id);
                       try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch (err) {}
+                      cntFantasma(e, CNT_COLONNE[id].label);
                     }}
                     onDragEnd={() => { trascinataRef.current = null; setTrascinata(null); setBersaglio(null); }}/>
+                  {/* La barra d'atterraggio: piena altezza della testata, con
+                      un filo di bagliore — sul lato dove la colonna in volo
+                      verrà posata. */}
+                  {mira && (
+                    <span aria-hidden="true" style={{
+                      position: 'absolute', top: -10, bottom: -10,
+                      left: bersaglio.dopo ? 'auto' : -2,
+                      right: bersaglio.dopo ? -2 : 'auto',
+                      width: 3, borderRadius: 99, background: ADM.PINK,
+                      boxShadow: '0 0 0 1px #fff, 0 2px 10px rgba(255,90,95,0.55)',
+                      animation: 'cntBarraIn 0.12s ease',
+                    }}/>
+                  )}
                 </div>
               );
             })}
@@ -349,7 +421,7 @@ function AdmContattiPage({ search, openContatto }) {
             {filtered.length === 0 && <AdmEmpty title="Nessun contatto trovato" desc="Modifica i filtri o cancella la ricerca"/>}
             {filtered.map((c, i) => (
               <ContattoRow key={c.key} contatto={c} striped={i % 2 === 1}
-                colonne={colonne} griglia={griglia}
+                colonne={colonne} griglia={griglia} trascinata={trascinata}
                 onClick={() => setSelected({ tipo: c.tipo, ref: c.ref })}/>
             ))}
           </div>
@@ -363,6 +435,56 @@ function AdmContattiPage({ search, openContatto }) {
       {selected && selected.tipo === 'staff'  && <StaffDrawer  staff={selected.ref}  onClose={() => setSelected(null)}/>}
       {selected && selected.tipo === 'utente' && <UtenteDrawer utente={selected.ref} onClose={() => setSelected(null)}/>}
     </div>
+  );
+}
+
+// ─── Il pulsante-strumento ──────────────────────────────────────────────────
+// Il guscio comune di «Aggiungi filtro» e «Modifica colonne»: bianco a
+// riposo, si scurisce sotto il mouse e si abbassa di un pixel alla pressione;
+// da ACCESO (filtri attivi) veste il corallo. Il feedback vive in JS perché
+// il fondo è uno stile inline e una classe :hover non lo batterebbe.
+function CntStrumento({ icona, acceso, badge, onClick, children }) {
+  const [sopra, setSopra] = useStateCnt(false);
+  const [premuto, setPremuto] = useStateCnt(false);
+  const Icona = BuIcons[icona];
+  return (
+    <button type="button" onClick={onClick}
+      onMouseEnter={() => setSopra(true)}
+      onMouseLeave={() => { setSopra(false); setPremuto(false); }}
+      onMouseDown={() => setPremuto(true)}
+      onMouseUp={() => setPremuto(false)}
+      style={{
+        position: 'relative',
+        display: 'inline-flex', alignItems: 'center', gap: 7,
+        padding: '8px 13px',
+        border: `1px solid ${acceso ? ADM.PINK : sopra ? ADM.INK_SOFT : ADM.BORDER}`,
+        borderRadius: 8,
+        fontSize: 13.7, fontWeight: 600,
+        color: acceso ? ADM.PINK_DARK : ADM.TEXT,
+        background: acceso
+          ? (sopra ? '#FFD9D5' : ADM.PINK_BG_SOFT)
+          : (sopra ? '#F5F6F8' : '#fff'),
+        boxShadow: premuto ? 'none'
+          : sopra ? '0 2px 8px rgba(15,17,21,0.10)'
+          : '0 1px 2px rgba(15,17,21,0.04)',
+        transform: premuto ? 'translateY(1px)' : 'none',
+        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+        transition: 'background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, transform 0.05s ease',
+      }}>
+      <Icona size={15} color={acceso ? ADM.PINK : sopra ? ADM.TEXT : ADM.MUTED}/>
+      {children}
+      {/* Il conto dei filtri accesi, sull'angolo come i badge della nav. */}
+      {badge > 0 && (
+        <span style={{
+          position: 'absolute', top: -7, right: -7,
+          minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999,
+          background: ADM.PINK, color: '#fff',
+          fontSize: 11.5, fontWeight: 800, lineHeight: 1,
+          display: 'grid', placeItems: 'center',
+          boxShadow: '0 0 0 2px #fff',
+        }}>{badge}</span>
+      )}
+    </button>
   );
 }
 
@@ -396,35 +518,12 @@ function CntFiltri({ gruppi }) {
 
   return (
     <div style={{position: 'relative', display: 'inline-flex'}} onPointerDown={e => e.stopPropagation()}>
-      <button type="button" onClick={() => setAperto(a => !a)}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7,
-          padding: '7px 12px',
-          border: `1px solid ${totale ? ADM.PINK : ADM.BORDER}`, borderRadius: 7,
-          fontSize: 13.7, fontWeight: totale ? 600 : 500,
-          color: totale ? ADM.PINK_DARK : ADM.TEXT,
-          background: totale ? ADM.PINK_BG_SOFT : '#fff',
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-        <BuIcons.filter size={15} color={totale ? ADM.PINK : ADM.MUTED}/>
-        Aggiungi filtro
-        {/* Il conto dei filtri accesi, sull'angolo come i badge della nav:
-            si vede anche da lontano che la lista NON è tutta la rubrica. */}
-        {totale > 0 && (
-          <span style={{
-            position: 'absolute', top: -7, right: -7,
-            minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999,
-            background: ADM.PINK, color: '#fff',
-            fontSize: 11.5, fontWeight: 800, lineHeight: 1,
-            display: 'grid', placeItems: 'center',
-            boxShadow: '0 0 0 2px #fff',
-          }}>{totale}</span>
-        )}
-      </button>
+      <CntStrumento icona="filter" acceso={totale > 0} badge={totale}
+        onClick={() => setAperto(a => !a)}>Aggiungi filtro</CntStrumento>
 
       {aperto && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 120,
+          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 120,
           width: 250, padding: 6, borderRadius: 12,
           background: '#fff', border: `1px solid ${ADM.BORDER}`,
           boxShadow: '0 18px 44px -10px rgba(15,17,21,0.22)',
@@ -604,7 +703,7 @@ function CntCella({ id, c }) {
   return <div style={testo}>{c.citta}</div>;
 }
 
-function ContattoRow({ contatto: c, colonne, griglia, onClick, striped }) {
+function ContattoRow({ contatto: c, colonne, griglia, trascinata, onClick, striped }) {
   const [hover, setHover] = useStateCnt(false);
   return (
     <div onClick={onClick} className="adm-row-open"
@@ -620,7 +719,13 @@ function ContattoRow({ contatto: c, colonne, griglia, onClick, striped }) {
         alignItems: 'center',
         transition: 'background 0.08s',
       }}>
-      {colonne.map(id => <CntCella key={id} id={id} c={c}/>)}
+      {/* Mentre una colonna è in volo si attenua per TUTTA la sua altezza,
+          non solo in testata: si vede l'intera cosa che si sta spostando. */}
+      {colonne.map(id => (
+        <div key={id} style={{minWidth: 0, opacity: trascinata === id ? 0.3 : 1, transition: 'opacity 0.15s ease'}}>
+          <CntCella id={id} c={c}/>
+        </div>
+      ))}
       <div style={{textAlign: 'right', color: ADM.MUTED}}>
         <span className="adm-row-chev"><BuIcons.chevronRight size={20}/></span>
       </div>
@@ -656,17 +761,7 @@ function CntColonne({ colonne, onCambia }) {
 
   return (
     <div style={{position: 'relative', display: 'inline-flex'}} onPointerDown={e => e.stopPropagation()}>
-      <button type="button" onClick={() => setAperto(a => !a)}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 7,
-          padding: '7px 12px',
-          border: `1px solid ${ADM.BORDER}`, borderRadius: 7,
-          fontSize: 13.7, fontWeight: 500, color: ADM.TEXT,
-          background: '#fff', cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-        <BuIcons.table size={15} color={ADM.MUTED}/>
-        Modifica colonne
-      </button>
+      <CntStrumento icona="table" onClick={() => setAperto(a => !a)}>Modifica colonne</CntStrumento>
 
       {aperto && (
         <div style={{
