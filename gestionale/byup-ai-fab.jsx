@@ -1,8 +1,11 @@
-// byup — assistente IA fluttuante
+// byup — il bollino del byuppino AI
 //
-// Il bollino col segno byup che sta in basso a destra su tutte le schermate
-// della console tranne il Supporto, dove il posto è già occupato dalla chat
-// dell'assistenza e due bolle nello stesso angolo si coprirebbero.
+// La faccina del byuppino che sta in basso a destra su tutte le schermate
+// della console tranne due: il Supporto, dove il posto è già occupato dalla
+// chat dell'assistenza, e la Panoramica, dove il byuppino c'è già in persona
+// — è il suo widget. Il bollino non apre più una chat propria: porta LÀ.
+// Un assistente solo, una casa sola: la chat che viveva qui dentro diceva le
+// stesse cose del widget in un pannello diverso, ed è stata tolta.
 //
 // Si monta da solo: basta caricare questo file dopo l'app della pagina, non
 // serve toccare i componenti. Si aggancia dentro `.frame` e non al body,
@@ -14,35 +17,6 @@
 // gira attorno alle card dei piani, ed è il registro con cui qui dentro si
 // dice "questa cosa è speciale".
 const AI_GRAD = 'linear-gradient(135deg, #FF5A5F 0%, #F472B6 52%, #A78BFA 100%)';
-const AI_GRAD_SOFT = 'linear-gradient(135deg, #FFF1F2 0%, #FDF2F8 50%, #F5F3FF 100%)';
-
-// La testata del pannello porta l'insegna del widget in Panoramica
-// (panoramica-byuppino.jsx), e ne prende anche il gradiente: stop SPECCHIATI —
-// pesca, corallo, lavanda, corallo, pesca — così a schermo le tinte ci sono
-// sempre tutte insieme e lo scorrimento non si legge come un fondo che cambia
-// colore, che era il difetto della sfumatura larga fatta scorrere.
-const AI_HERO_GRAD = 'linear-gradient(120deg, #FF9159 0%, #FA4B6B 26%, #C05BD6 50%, #FA4B6B 74%, #FF9159 100%)';
-
-// ─── Icone ────────────────────────────────────────────────────────────────
-// Disegnate qui invece di pescarle da BuIcons: quel file è caricato solo da
-// due delle sette pagine che montano il bollino, e sulle altre cinque
-// l'assistente sarebbe morto al primo render.
-// Niente spread sulle props né rest nel destructuring: in questo gestionale
-// gli script non sono isolati e gli helper che Babel genera per quelle forme
-// hanno già fatto sparire delle icone in passato. Props passate a mano.
-function _AiSvg({ size, color, children }) {
-  return (
-    <svg width={size || 16} height={size || 16} viewBox="0 0 24 24" fill="none"
-      stroke={color || 'currentColor'} strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round"
-      style={{display:'block', flexShrink: 0}}>{children}</svg>
-  );
-}
-const AiIco = {
-  x:     ({ size, color }) => <_AiSvg size={size} color={color}><path d="M18 6 6 18M6 6l12 12"/></_AiSvg>,
-  check: ({ size, color }) => <_AiSvg size={size} color={color}><path d="m20 6-11 11-5-5"/></_AiSvg>,
-  send:  ({ size, color }) => <_AiSvg size={size} color={color}><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></_AiSvg>,
-};
 
 // ─── Animazioni ───────────────────────────────────────────────────────────
 // Iniettate una volta sola: sono keyframe, e in stile inline non esistono.
@@ -66,28 +40,7 @@ const AiIco = {
       22%  { transform: rotate(var(--a)) translateX(calc(var(--d) * 0.34)) scale(1); opacity: 1; }
       100% { transform: rotate(var(--a)) translateX(var(--d)) scale(0.25); opacity: 0; }
     }
-    /* Il pannello esce dall'angolo del bollino, non dal nulla. */
-    @keyframes bu-ai-open {
-      from { opacity: 0; transform: translateY(16px) scale(0.94); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes bu-ai-bubble {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    /* La mascotte ondeggia piano, come se stesse salutando davvero. */
-    @keyframes bu-ai-float {
-      0%, 100% { transform: translateY(0) rotate(-2deg); }
-      50%      { transform: translateY(-6px) rotate(2deg); }
-    }
-    @keyframes bu-ai-blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
-    /* Il suggerimento nel campo entra da sotto in dissolvenza: il cambio
-       secco fra un esempio e l'altro si legge come uno sfarfallio. */
-    @keyframes bu-ai-hint {
-      from { opacity: 0; transform: translateY(calc(-50% + 6px)); }
-      to   { opacity: 1; transform: translateY(-50%); }
-    }
-    /* Il gradiente della testata scorre lentissimo: dà l'idea che sotto ci
+    /* Il gradiente dell'hover scorre lentissimo: dà l'idea che sotto ci
        sia qualcosa di vivo, senza diventare una discoteca. */
     @keyframes bu-ai-shift {
       0%, 100% { background-position: 0% 50%; }
@@ -144,8 +97,8 @@ const rientroIcona = (lato) => ({
   basso:    `translateY(-${RIENTRO}px)`,
 }[lato] || '');
 
-// La freccia punta verso l'interno: da agganciato non dice "sono byup", dice
-// "tirami di qua". Il segno del brand lo si è già visto prima di agganciarlo.
+// La freccia punta verso l'interno: da agganciato non dice "sono il
+// byuppino", dice "tirami di qua". La faccina la si è già vista prima.
 const VERSO_DENTRO = {
   sinistra: 'M9 6l6 6-6 6',
   destra:   'M15 6l-6 6 6 6',
@@ -162,7 +115,6 @@ const leggiPos = () => {
 
 // ─── Il bollino ───────────────────────────────────────────────────────────
 function BuAiFab() {
-  const [aperto, setAperto] = React.useState(false);
   const [hover, setHover] = React.useState(false);
   const [scintille, setScintille] = React.useState(0);   // rimonta il burst a ogni clic
   // `null` = mai spostato: resta ancorato in basso a destra e segue il frame
@@ -170,34 +122,11 @@ function BuAiFab() {
   // coppia di coordinate, e da lì comanda l'utente.
   const [pos, setPos] = React.useState(leggiPos);
   const [trascino, setTrascino] = React.useState(false);
-  const [box, setBox] = React.useState(null);   // dov'è il bollino, in coordinate del frame
   const wrapRef = React.useRef(null);
   const mossoRef = React.useRef(false);
 
-  // Dove sta il bollino e quanto è grande il frame: serve al pannello per
-  // capire da che lato aprirsi. È una misura a richiesta, non uno stato che
-  // si aggiorna da solo: tenerla in un effetto di layout che scriveva `box` a
-  // ogni commit faceva ripartire il render, il render rimisurava, e col
-  // bollino agganciato il giro non si chiudeva più.
-  const misuraOra = React.useCallback(() => {
-    const wrap = wrapRef.current;
-    const frame = wrap && wrap.closest('.frame');
-    if (!frame) return null;
-    const z = zoomDi(frame);
-    const fr = frame.getBoundingClientRect();
-    // Il rettangolo del CONTENITORE, non del bottone: in hover il bottone ha
-    // uno scale, e un transform sposta il rettangolo senza spostare il layout.
-    const r = wrap.getBoundingClientRect();
-    return {
-      x: (r.left - fr.left) / z, y: (r.top - fr.top) / z,
-      fw: fr.width / z, fh: fr.height / z,
-    };
-  }, []);
-
   React.useEffect(() => {
     const onResize = () => {
-      // Il pannello, se è aperto, va riposizionato: il bollino si è mosso.
-      setBox(b => (b ? misuraOra() : b));
       // Se la finestra si stringe, il bollino spostato a mano potrebbe
       // finire fuori: lo si riporta dentro invece di perderlo.
       setPos(p => {
@@ -217,23 +146,21 @@ function BuAiFab() {
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
-  }, [misuraOra]);
+  }, []);
 
   // Agganciato e nessuno lo sta guardando: è il solo momento in cui si
-  // ritira. Col pannello aperto, sotto il dito o col mouse sopra torna
-  // sempre tutto dentro.
-  const ritirato = !!(pos && pos.lato) && !hover && !trascino && !aperto;
+  // ritira. Sotto il dito o col mouse sopra torna sempre tutto dentro.
+  const ritirato = !!(pos && pos.lato) && !hover && !trascino;
 
-  const apri = () => {
-    setHover(false);   // col pannello aperto il bollino torna a misura
-    if (aperto) { setAperto(false); setBox(null); return; }
-    // Si misura qui, una volta: da dove si apre il pannello dipende da dov'è
-    // il bollino adesso.
-    setBox(misuraOra());
-    // Prima le scintille, poi il pannello: aprendoli insieme la finestra
-    // coprirebbe metà del volo e il clic sembrerebbe non aver fatto niente.
+  // Niente più chat qui: il byuppino vive nel suo widget in Panoramica, e il
+  // bollino è la strada per raggiungerlo dalle altre schermate. Il parametro
+  // dice al widget di prendersi il fuoco all'arrivo, così il viaggio finisce
+  // dentro la conversazione. Le scintille partono PRIMA di navigare:
+  // cambiando pagina subito il clic sembrerebbe non aver fatto niente.
+  const vai = () => {
+    setHover(false);
     setScintille(n => n + 1);
-    setTimeout(() => setAperto(true), 200);
+    setTimeout(() => { window.location.href = 'byup Panoramica.html?byuppino=1'; }, 320);
   };
 
   // Un solo gesto per due azioni: si apre al rilascio solo se il puntatore
@@ -275,7 +202,7 @@ function BuAiFab() {
       window.removeEventListener('pointerup', molla);
       window.removeEventListener('pointercancel', molla);
       setTrascino(false);
-      // L'apertura NON si fa qui: la lasciamo al `click` che arriva subito
+      // Il viaggio NON parte da qui: lo lasciamo al `click` che arriva subito
       // dopo. Così il bottone continua a rispondere anche a un click che non
       // nasce da un puntatore — tastiera, lettori di schermo, comandi vocali —
       // e non serve duplicare la logica. Dopo un trascinamento quel click
@@ -305,10 +232,6 @@ function BuAiFab() {
   };
 
   return (
-    <>
-      {aperto && <BuAiChat box={box} onClose={() => { setAperto(false); setBox(null); }}/>}
-
-      {/* Sopra il pannello, non sotto: le scintille devono passargli davanti. */}
       <div ref={wrapRef} style={{
         position:'absolute', zIndex: 72,
         ...(pos ? {left: pos.x, top: pos.y} : {right: 26, bottom: 26}),
@@ -346,7 +269,7 @@ function BuAiFab() {
         {/* L'alone che respira. Sparisce in hover — lì il colore ce l'ha già —
             e da agganciato, dove un pulsare al bordo sarebbe esattamente il
             disturbo che l'aggancio serve a togliere. */}
-        {!aperto && !hover && !ritirato && (
+        {!hover && !ritirato && (
           <span style={{
             position:'absolute', inset: 0, borderRadius:'50%',
             background: AI_GRAD, opacity: 0.5,
@@ -359,20 +282,20 @@ function BuAiFab() {
           onPointerDown={prendi}
           onClick={() => {
             if (mossoRef.current) { mossoRef.current = false; return; }   // era un trascinamento
-            apri();
+            vai();
           }}
-          onMouseEnter={() => !aperto && !trascino && setHover(true)}
+          onMouseEnter={() => !trascino && setHover(true)}
           onMouseLeave={() => setHover(false)}
-          title="Chiedi all'assistente byup — trascinalo dove preferisci, al bordo si scosta"
-          aria-label="Apri l'assistente byup"
+          title="Vai dal byuppino AI in Panoramica — trascinalo dove preferisci, al bordo si scosta"
+          aria-label="Vai dal byuppino AI in Panoramica"
           data-no-fx
           style={{
             position:'relative',
             width: 72, height: 72, borderRadius:'50%',
             touchAction:'none',   // senza, su touch lo scroll ruba il gesto
             border: `1px solid ${hover ? 'transparent' : 'rgba(15,17,21,0.06)'}`,
-            // A riposo è bianco col segno corallo; al passaggio si accende
-            // col gradiente e il segno diventa bianco.
+            // A riposo è bianco con la faccina; al passaggio si accende col
+            // gradiente e la faccina resta nel suo medaglione bianco.
             background: hover ? AI_GRAD : 'linear-gradient(180deg, #FFFFFF 0%, #FDFDFE 100%)',
             backgroundSize: '200% 200%',
             boxShadow: hover
@@ -381,17 +304,9 @@ function BuAiFab() {
             // Metà in più, come chiesto: 72 → 108. Mentre lo trascini resta a
             // misura e si stacca appena dal foglio: ingrandito, il puntatore
             // finirebbe fuori centro e il bollino sembrerebbe sfuggire.
-            // Col pannello aperto il bollino si ritira: il suo posto l'ha
-            // preso la chat, e restare lì sotto vuol dire due volte la stessa
-            // cosa a due centimetri di distanza. Rimpicciolisce invece di
-            // sparire di colpo, così si legge come "è diventato quello".
-            // Le scintille no: stanno fuori dal bottone e finiscono il volo.
-            opacity: aperto ? 0 : 1,
-            pointerEvents: aperto ? 'none' : 'auto',
             // Agganciato, l'hover non gonfia: fa rientrare. Un bollino a metà
             // fuori che si fa una volta e mezzo uscirebbe ancora di più.
-            transform: aperto ? 'scale(0.55)'
-              : trascino ? 'scale(1.08)'
+            transform: trascino ? 'scale(1.08)'
               : (hover && !(pos && pos.lato)) ? 'scale(1.5)' : 'scale(1)',
             // Niente transizione sul transform durante il trascinamento:
             // il bollino arriverebbe al puntatore con un quarto di secondo
@@ -403,23 +318,29 @@ function BuAiFab() {
             display:'grid', placeItems:'center',
             animation: hover ? 'bu-ai-shift 4s ease infinite' : 'none',
           }}>
-          {/* I tre contenuti stanno sovrapposti e si scambiano in dissolvenza:
-              cambiare `src` a metà transizione farebbe uno sfarfallio. */}
+          {/* La faccina e la freccia stanno sovrapposte e si scambiano in
+              dissolvenza quando il bollino si aggancia a un bordo. */}
           <span style={{
-            position:'relative', width: 34, height: 34, display:'block',
+            position:'relative', width: 44, height: 44, display:'block',
             transform: ritirato ? rientroIcona(pos.lato) : 'translate(0, 0)',
             transition:'transform 260ms cubic-bezier(0.34, 1.3, 0.64, 1)',
           }}>
-            <img src="Fresh-mark.png" alt="" style={{
-              position:'absolute', inset: 0, width:'100%', height:'100%',
-              objectFit:'contain',
-              opacity: (hover || ritirato) ? 0 : 1, transition:'opacity 200ms ease',
-            }}/>
-            <img src="Fresh-mark.png" alt="" style={{
-              position:'absolute', inset: 0, width:'100%', height:'100%',
-              objectFit:'contain', filter:'brightness(0) invert(1)',
-              opacity: hover ? 1 : 0, transition:'opacity 200ms ease',
-            }}/>
+            {/* La faccina del byuppino AI: la stessa mascotte del widget,
+                inquadrata sulla testa. L'immagine è alta il doppio della sua
+                larghezza e la testa — ciuffo compreso — sta tutta nel primo
+                quadrato, quindi basta `cover` ancorato in cima. Il cerchio
+                bianco che la ritaglia a riposo non si vede (bollino bianco su
+                bianco) e sull'hover a gradiente diventa il suo medaglione. */}
+            <span style={{
+              position:'absolute', inset: 0, borderRadius:'50%',
+              overflow:'hidden', background:'#fff',
+              opacity: ritirato ? 0 : 1, transition:'opacity 200ms ease',
+            }}>
+              <img src="byuppino-assistente.png?v=2" alt="" style={{
+                width:'100%', height:'100%', objectFit:'cover',
+                objectPosition:'50% 0%', display:'block',
+              }}/>
+            </span>
             <span style={{
               position:'absolute', inset: 0, display:'grid', placeItems:'center',
               opacity: ritirato ? 1 : 0, transition:'opacity 200ms ease',
@@ -435,343 +356,6 @@ function BuAiFab() {
         </button>
       </div>
       </div>
-    </>
-  );
-}
-
-// ─── La chat ──────────────────────────────────────────────────────────────
-const AI_SALUTO = [
-  'Sono l\'intelligenza artificiale di Byup. Posso aiutarti a gestire il tuo locale modificando il menu, Sala e Tavoli e configurando le impostazioni nella sezione "Servizio".',
-  'Posso anche prenotare per conto di un cliente: scrivimi i dati minimi — nome, coperti e orario — e la registro io.',
-  'Basta che mi dici quello che vuoi modificare e in pochi secondi ti riporterò la modifica fatta.',
-  'Tranquillo, ti chiederò una seconda conferma prima di pubblicare le modifiche.',
-];
-
-// Gli esempi girano dentro al campo invece di stare fuori come pillole da
-// premere: erano comandi già scritti, e uno che clicca non impara cosa può
-// chiedere — esegue una cosa decisa da noi. Qui invece mostrano la FORMA di
-// una richiesta, nel punto esatto in cui stai per scriverla, e non occupano
-// una riga di pannello. Uno per area, così in un giro si vede tutto il
-// perimetro: prenotazioni, menu, sala, impostazioni.
-const AI_ESEMPI = [
-  'Dimmi cosa vuoi modificare…',
-  'Es. prenota per Rossi, 4 coperti alle 21',
-  'Es. togli la Carbonara dal menu',
-  'Es. unisci i tavoli 4 e 5',
-  'Es. attiva l\'asporto',
-];
-
-// Dove mettere il pannello, dato dov'è finito il bollino. Si allinea al bordo
-// vicino e si apre sopra se c'è posto, sotto altrimenti: col bollino portato
-// in alto a sinistra, aprirlo sempre in basso a destra lo staccherebbe da chi
-// l'ha chiamato. Tutto rientra nel frame, che ha overflow hidden e taglierebbe
-// quello che esce.
-const PAN_W = 384, PAN_H = 652, PAN_GAP = 14;
-function posizionaPannello(box) {
-  if (!box) return { left: null, stile: {right: 26, bottom: 112}, origine: '100% 100%' };
-  const { x, y, fw, fh } = box;
-  const aDestra = x + FAB / 2 > fw / 2;
-  const left = fra(aDestra ? x + FAB - PAN_W : x, MARG, Math.max(MARG, fw - PAN_W - MARG));
-  let top, sopra = true;
-  if (y - PAN_GAP - PAN_H >= MARG) top = y - PAN_GAP - PAN_H;
-  else if (y + FAB + PAN_GAP + PAN_H <= fh - MARG) { top = y + FAB + PAN_GAP; sopra = false; }
-  else top = fra(y + FAB / 2 - PAN_H / 2, MARG, Math.max(MARG, fh - PAN_H - MARG));
-  return {
-    stile: { left, top },
-    origine: `${aDestra ? '100%' : '0%'} ${sopra ? '100%' : '0%'}`,
-  };
-}
-
-function BuAiChat({ onClose, box }) {
-  const [messaggi, setMessaggi] = React.useState([{ da:'ai', testo: AI_SALUTO }]);
-  const [input, setInput] = React.useState('');
-  const [scrive, setScrive] = React.useState(false);
-  const [esempio, setEsempio] = React.useState(0);
-  const [fuoco, setFuoco] = React.useState(false);
-  const scrollRef = React.useRef(null);
-  const collocazione = posizionaPannello(box);
-
-  // Gli esempi girano solo quando il campo è fermo e vuoto: col cursore
-  // dentro, un testo che cambia da solo distrae mentre stai formulando la
-  // frase, e a campo pieno non si vede comunque.
-  React.useEffect(() => {
-    if (fuoco || input) return;
-    const t = setInterval(() => setEsempio(i => (i + 1) % AI_ESEMPI.length), 3400);
-    return () => clearInterval(t);
-  }, [fuoco, input]);
-
-  React.useEffect(() => {
-    // Finché c'è solo il saluto si resta in cima: è un testo da leggere
-    // dall'inizio, e portarlo in fondo lo mostrava tagliato a metà parola.
-    if (messaggi.length < 2 && !scrive) return;
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messaggi, scrive]);
-
-  const manda = (testo) => {
-    const t = (testo != null ? testo : input).trim();
-    if (!t) return;
-    setMessaggi(m => [...m, { da:'io', testo: [t] }]);
-    setInput('');
-    setScrive(true);
-    setTimeout(() => {
-      setScrive(false);
-      // La seconda conferma non è un dettaglio di copy: il saluto la promette,
-      // quindi la risposta la deve chiedere davvero.
-      setMessaggi(m => [...m, {
-        da:'ai',
-        testo: ['Ho preparato la modifica. Ecco cosa cambierà:'],
-        conferma: t,
-      }]);
-    }, 1300);
-  };
-
-  return (
-    <div style={{
-      position:'absolute',
-      ...collocazione.stile,
-      // Alto quanto serve a far stare il saluto intero: più corto, l'ultimo
-      // capoverso restava tagliato a metà riga, ed è proprio quello della
-      // doppia conferma. Con gli esempi finiti dentro al campo si è liberata
-      // la riga delle pillole, e il pannello è tornato di ottanta più basso.
-      // L'insegna del widget ha poi alzato la testata di una trentina di
-      // pixel, e il pannello se li è ripresi qui: il saluto non si ridiscute.
-      width: PAN_W, height: PAN_H, zIndex: 71,
-      background: PN.WHITE, borderRadius: 20,
-      border:'1px solid rgba(167,139,250,0.18)',
-      boxShadow:'0 28px 70px rgba(88, 42, 120, 0.22), 0 8px 22px rgba(15,17,21,0.10)',
-      display:'flex', flexDirection:'column', overflow:'hidden',
-      fontFamily:'inherit',
-      animation:'bu-ai-open 280ms cubic-bezier(0.34, 1.3, 0.64, 1)',
-      // Esce dall'angolo dal lato del bollino: spostato in alto a sinistra,
-      // un pannello che si apre dal basso a destra sembrerebbe di un altro.
-      transformOrigin: collocazione.origine,
-    }}>
-      {/* Testata — la stessa insegna del widget in Panoramica: qualifica,
-          nome, pastiglia «Online», e la mascotte con le cuffie nello sfondo.
-          Stesse parole e stessa immagine perché sono la stessa cosa: pannello
-          e widget rispondono allo stesso byuppino, e due insegne diverse
-          farebbero pensare a due assistenti. */}
-      <div style={{
-        position:'relative', padding:'12px 16px 14px 18px',
-        background: AI_HERO_GRAD, backgroundSize:'260% 260%',
-        animation:'bu-ai-shift 16s ease infinite',
-        color:'#fff',
-        // Non `hidden`: il byuppino deve poter sbordare in basso e affacciarsi
-        // sulla conversazione. Il ritaglio agli angoli lo fa già il pannello.
-        // Lo zIndex serve perché la conversazione viene dopo nel DOM e
-        // altrimenti gli passerebbe sopra i piedi.
-        zIndex: 2,
-      }}>
-        {/* Un velo chiaro in alto: senza, il gradiente sembra una fascia
-            stampata invece di una superficie. */}
-        <span style={{
-          position:'absolute', inset: 0, pointerEvents:'none',
-          background:'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 60%)',
-        }}/>
-        {/* La mascotte del widget — quella che ASCOLTA, con cuffie e tablet —
-            nello sfondo della testata, ancorata a destra come in Panoramica.
-            Stesso `?v=2` del widget: stesso indirizzo, quindi stessa voce di
-            cache (la query è la lezione dei .png con max-age=86400, raccontata
-            in panoramica-byuppino.jsx). `right: 46` la tiene fuori dalla
-            colonna del tasto Chiudi. Lo sbordo è di POCHI pixel, non i
-            ventisei della mascotte che salutava: qui sotto non c'è la
-            conversazione ma la riga «Contatta l'assistenza», e i piedi le
-            coprivano il testo. I clic le passano comunque attraverso. */}
-        <img src="byuppino-assistente.png?v=2" alt="" style={{
-          position:'absolute', right: 46, bottom: -6,
-          height: 106, width:'auto', pointerEvents:'none',
-          filter:'drop-shadow(0 8px 14px rgba(120,30,60,0.32))',
-          animation:'bu-ai-float 4.2s ease-in-out infinite',
-        }}/>
-        <div style={{position:'relative', display:'flex', alignItems:'flex-start', gap: 10}}>
-          {/* Il margine destro tiene libero il posto della mascotte. */}
-          <div style={{flex: 1, minWidth: 0, paddingRight: 68}}>
-            <div style={{
-              fontSize: 10.5, fontWeight: 800, letterSpacing:'0.14em',
-              textTransform:'uppercase', color:'rgba(255,255,255,0.85)',
-            }}>Assistente di sala</div>
-            <div style={{
-              fontSize: 21, fontWeight: 800, letterSpacing:'-0.02em',
-              marginTop: 2, whiteSpace:'nowrap',
-              textShadow:'0 2px 12px rgba(120, 30, 60, 0.18)',
-            }}>Byuppino AI</div>
-            <div style={{
-              display:'inline-flex', alignItems:'center', gap: 6,
-              marginTop: 8, padding:'4px 11px', borderRadius: 999,
-              background:'rgba(255,255,255,0.22)',
-              boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.28)',
-            }}>
-              <span style={{width: 7, height: 7, borderRadius:'50%', background:'#7DF7B2'}}/>
-              <span style={{fontSize: 12, fontWeight: 700}}>Online · risponde in 1s</span>
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Chiudi" data-no-fx style={{
-            background:'rgba(255,255,255,0.18)', border:'none', borderRadius:'50%',
-            width: 28, height: 28, color:'#fff', cursor:'pointer',
-            display:'grid', placeItems:'center', flexShrink: 0, alignSelf:'flex-start',
-          }}><AiIco.x size={15} color="#fff"/></button>
-        </div>
-      </div>
-
-      {/* La via d'uscita verso una persona. Sta qui, in cima e allineata a
-          destra, non sopra al campo di scrittura: là era in mezzo agli occhi
-          proprio mentre stai per chiedere qualcosa all'assistente, e sembrava
-          un invito ad andarsene. È l'ultima spiaggia, deve solo esserci. */}
-      <div style={{
-        display:'flex', justifyContent:'flex-end',
-        padding:'6px 10px 0', background: AI_GRAD_SOFT,
-      }}>
-        <button
-          onClick={() => { window.location.href = 'byup Supporto.html?chat=1'; }}
-          data-no-fx
-          onMouseEnter={e => { e.currentTarget.style.color = PN.MUTED; }}
-          onMouseLeave={e => { e.currentTarget.style.color = PN.MUTED_SOFT; }}
-          style={{
-            display:'inline-flex', alignItems:'center', gap: 5,
-            padding:'4px 6px',
-            background:'transparent', border:'none',
-            fontSize: 12, fontWeight: 500, color: PN.MUTED_SOFT,
-            cursor:'pointer', fontFamily:'inherit',
-            transition:'color 140ms ease',
-          }}>
-          Serve una persona? Contatta l'assistenza
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-        </button>
-      </div>
-
-      {/* Conversazione */}
-      <div ref={scrollRef} className="pn-scroll" style={{
-        flex: 1, overflowY:'auto', padding:'8px 14px 14px',
-        background: AI_GRAD_SOFT,
-      }}>
-        {messaggi.map((m, i) => (
-          <div key={i} style={{
-            display:'flex', justifyContent: m.da === 'io' ? 'flex-end' : 'flex-start',
-            marginBottom: 10, animation:'bu-ai-bubble 260ms ease both',
-          }}>
-            <div style={{
-              maxWidth:'86%',
-              background: m.da === 'io' ? AI_GRAD : PN.WHITE,
-              color: m.da === 'io' ? '#fff' : PN.TEXT,
-              padding:'10px 13px', borderRadius: 14,
-              borderBottomRightRadius: m.da === 'io' ? 4 : 14,
-              borderBottomLeftRadius: m.da === 'io' ? 14 : 4,
-              fontSize: 14.5, lineHeight: 1.5,
-              border: m.da === 'io' ? 'none' : '1px solid rgba(167,139,250,0.16)',
-              boxShadow: m.da === 'io' ? 'none' : '0 2px 8px rgba(88,42,120,0.06)',
-            }}>
-              {m.testo.map((p, j) => (
-                <p key={j} style={{margin: j === 0 ? 0 : '9px 0 0'}}>{p}</p>
-              ))}
-              {m.conferma && <BuAiConferma richiesta={m.conferma}/>}
-            </div>
-          </div>
-        ))}
-
-        {scrive && (
-          <div style={{display:'flex', justifyContent:'flex-start', marginBottom: 10}}>
-            <div style={{
-              background: PN.WHITE, border:'1px solid rgba(167,139,250,0.16)',
-              padding:'11px 14px', borderRadius: 14, borderBottomLeftRadius: 4,
-              display:'flex', gap: 4,
-            }}>
-              {[0, 1, 2].map(i => (
-                <span key={i} style={{
-                  width: 6, height: 6, borderRadius:'50%', background:'#A78BFA',
-                  animation:`bu-ai-blink 1.2s infinite ${i * 0.18}s`,
-                }}/>
-              ))}
-            </div>
-          </div>
-        )}
-
-      </div>
-
-      {/* Scrittura */}
-      <div style={{
-        display:'flex', gap: 8, padding: 12,
-        background: PN.WHITE,
-      }}>
-        {/* Il suggerimento è un testo sovrapposto, non l'attributo placeholder:
-            quello non si può dissolvere, e cambiarlo di scatto ogni tre secondi
-            sotto gli occhi sembra un difetto. */}
-        <div style={{position:'relative', flex: 1, minWidth: 0}}>
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && manda()}
-            onFocus={() => setFuoco(true)}
-            onBlur={() => setFuoco(false)}
-            style={{
-              width:'100%',
-              border:'1px solid rgba(167,139,250,0.28)', outline:'none',
-              borderRadius: 999, padding:'9px 15px',
-              fontSize: 14.5, fontFamily:'inherit', background:'#FDFBFF',
-            }}
-          />
-          {!input && (
-            <span key={esempio} style={{
-              position:'absolute', left: 16, right: 12, top:'50%',
-              transform:'translateY(-50%)', pointerEvents:'none',
-              fontSize: 14, color: PN.MUTED_SOFT,
-              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-              animation:'bu-ai-hint 380ms ease',
-            }}>{AI_ESEMPI[esempio]}</span>
-          )}
-        </div>
-        <button onClick={() => manda()} aria-label="Invia" data-no-fx style={{
-          width: 38, height: 38, borderRadius:'50%', flexShrink: 0,
-          background: AI_GRAD, color:'#fff', border:'none', cursor:'pointer',
-          display:'grid', placeItems:'center',
-          boxShadow:'0 4px 12px rgba(244,114,182,0.35)',
-        }}><AiIco.send size={15} color="#fff"/></button>
-      </div>
-    </div>
-  );
-}
-
-// La seconda conferma promessa dal saluto: finché non si preme Pubblica non
-// esce niente, e una volta deciso i bottoni spariscono — non si annulla una
-// pubblicazione già fatta da qui.
-function BuAiConferma({ richiesta }) {
-  const [esito, setEsito] = React.useState(null);
-
-  if (esito) return (
-    <div style={{
-      marginTop: 10, padding:'9px 11px', borderRadius: 10,
-      background: esito === 'ok' ? PN.GREEN_SOFT : '#F3F4F6',
-      color: esito === 'ok' ? PN.GREEN : PN.MUTED,
-      fontSize: 13.5, fontWeight: 600,
-      display:'flex', alignItems:'center', gap: 7,
-    }}>
-      {esito === 'ok' ? <AiIco.check size={14}/> : <AiIco.x size={14}/>}
-      {esito === 'ok' ? 'Modifica pubblicata' : 'Modifica annullata'}
-    </div>
-  );
-
-  return (
-    <>
-      <div style={{
-        marginTop: 9, padding:'9px 11px', borderRadius: 10,
-        background:'#FBF9FF', border:'1px solid rgba(167,139,250,0.24)',
-        fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45,
-      }}>{richiesta}</div>
-      <div style={{fontSize: 12.5, color: PN.MUTED, margin:'9px 0 8px'}}>
-        Non pubblico niente finché non me lo confermi.
-      </div>
-      <div style={{display:'flex', gap: 7}}>
-        <button onClick={() => setEsito('ok')} data-no-fx style={{
-          flex: 1, padding:'8px 12px', borderRadius: 9,
-          background: AI_GRAD, color:'#fff', border:'none',
-          fontSize: 13.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-        }}>Pubblica</button>
-        <button onClick={() => setEsito('no')} data-no-fx style={{
-          flex: 1, padding:'8px 12px', borderRadius: 9,
-          background: PN.WHITE, color: PN.TEXT, border:`1px solid ${PN.BORDER}`,
-          fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-        }}>Annulla</button>
-      </div>
-    </>
   );
 }
 
@@ -783,6 +367,11 @@ window.BuAiFab = BuAiFab;
 // nelle pagine — un observer che aspetta il frame e monta appena compare.
 (function () {
   if (typeof document === 'undefined') return;
+  // In Panoramica il bollino non si monta: il byuppino è già lì, nel suo
+  // widget, e un bollino che porta dove sei già è un bottone rotto. La pagina
+  // nemmeno carica questo file; la guardia resta per quando qualcuno copierà
+  // la fila degli script da un'altra pagina senza pensarci.
+  if (/panoramica/i.test(window.location.pathname)) return;
   let montato = false;
   const monta = () => {
     if (montato) return;

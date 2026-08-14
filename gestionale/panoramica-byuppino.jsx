@@ -385,7 +385,21 @@ function WidgetByuppino() {
   const [fuoco, setFuoco] = React.useState(false);
   const seq = React.useRef(0);
   const filo = React.useRef(null);
+  const campo = React.useRef(null);
   const orologi = React.useRef([]);
+
+  // Arrivo dal bollino delle altre schermate (`?byuppino=1`, byup-ai-fab.jsx):
+  // il campo si prende il fuoco, così il viaggio finisce DENTRO la
+  // conversazione — il bordo rosa dice «eccomi» senza bisogno di un
+  // riflettore. Si legge una volta al montaggio: la Panoramica non cambia
+  // URL da sola.
+  React.useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).has('byuppino') && campo.current) {
+        campo.current.focus();
+      }
+    } catch (e) {}
+  }, []);
 
   // I timer della finta esecuzione vanno spenti se il widget se ne va (basta
   // togliere la scheda dalla dashboard): altrimenti scrivono su un componente
@@ -562,6 +576,7 @@ function WidgetByuppino() {
             transition: 'border-color 160ms ease',
           }}>
             <input
+              ref={campo}
               value={testo}
               onChange={e => setTesto(e.target.value)}
               onFocus={() => setFuoco(true)}
