@@ -5,13 +5,16 @@ function AccountApp() {
   const initialTab = (() => {
     try {
       const p = new URLSearchParams(window.location.search).get('tab');
-      if (['dati','password','piani','fatturazione'].includes(p)) return p;
+      if (['dati','notifiche','password','piani','fatturazione'].includes(p)) return p;
     } catch(e) {}
     return 'dati';
   })();
   const [tab, setTab] = React.useState(initialTab);
   const tabs = [
     { id: 'dati', label: 'Dati generali', icon: 'people-customer' },
+    // Notifiche: erano una voce in fondo alla sidebar, ora stanno qui — sono
+    // roba dell'account, non una sezione del gestionale.
+    { id: 'notifiche', label: 'Notifiche', icon: 'bell' },
     { id: 'password', label: 'Password e sicurezza', icon: 'gear' },
     { id: 'piani', label: 'Piani e abbonamenti', icon: 'commerce-coins' },
     { id: 'fatturazione', label: 'Account e fatturazione', icon: 'commerce-bank-cards' },
@@ -30,6 +33,7 @@ function AccountApp() {
           background: PN.BG,
         }}>
           {tab === 'dati' && <AccDatiGenerali/>}
+          {tab === 'notifiche' && window.PnNotificheSection && <window.PnNotificheSection/>}
           {tab === 'password' && <AccPasswordSicurezza/>}
           {tab === 'piani' && <AccPianiAbbonamenti/>}
           {tab === 'fatturazione' && <AccFatturazione/>}
