@@ -30,6 +30,11 @@ const CNT_STATI = {
   inattivo:   { label: 'Inattivo',      color: 'PLAN_FREE' },
 };
 
+// Il «maggiore» di uno stato è quanto è vivo il rapporto: attivo, poi in
+// arrivo, poi fermo. È l'ordine con cui si legge la colonna quando la si
+// ordina, non un giudizio nuovo — la rubrica già filtra su questi tre gradini.
+const CNT_STATO_RANGO = { attivo: 0, onboarding: 1, inattivo: 2 };
+
 // Un solo elenco, costruito una volta: i mock non cambiano a runtime.
 const CONTATTI = (() => {
   const rows = [];
@@ -82,7 +87,11 @@ const CONTATTI = (() => {
 function AdmContattiPage({ search, openContatto }) {
   const [tipo, setTipo] = useStateCnt('tutti');
   const [stato, setStato] = useStateCnt('all');
-  const [sort, setSort] = useStateCnt('iscrizione_desc');
+  // L'ordinamento vive nelle INTESTAZIONI: si clicca la cima di una colonna e
+  // la lista si ordina su quel campo; un secondo click inverte il verso. Il
+  // menu «Ordina» che stava qui accanto diceva le stesse cose in un posto
+  // meno ovvio, ed è stato assorbito dalle colonne.
+  const [sort, setSort] = useStateCnt({ campo: 'iscritto', verso: 'desc' });
   const [localSearch, setLocalSearch] = useStateCnt('');
   // {tipo, ref}: quale drawer aprire lo decide la tipologia — il dettaglio
   // giusto per ciascuno, non un dettaglio unico appiattito sui tre.
@@ -109,13 +118,27 @@ function AdmContattiPage({ search, openContatto }) {
         c.ref.id.toLowerCase().includes(q)
       );
     }
-    const sorts = {
-      iscrizione_desc: (a, b) => b.iscritto - a.iscritto,
-      iscrizione_asc:  (a, b) => a.iscritto - b.iscritto,
-      nome_asc:        (a, b) => a.nome.localeCompare(b.nome),
-      email_asc:       (a, b) => String(a.email || 'zz').localeCompare(String(b.email || 'zz')),
+    // Un confronto per campo, sempre in verso crescente: il verso lo applica
+    // il segno qui sotto.
+    const confronta = {
+      nome:     (a, b) => a.nome.localeCompare(b.nome),
+      email:    (a, b) => String(a.email || '').localeCompare(String(b.email || '')),
+      tipo:     (a, b) => CNT_TIPI[a.tipo].label.localeCompare(CNT_TIPI[b.tipo].label),
+      stato:    (a, b) => CNT_STATO_RANGO[a.stato] - CNT_STATO_RANGO[b.stato],
+      iscritto: (a, b) => a.iscritto - b.iscritto,
     };
-    return [...r].sort(sorts[sort]);
+    const cmp = confronta[sort.campo] || confronta.iscritto;
+    const segno = sort.verso === 'asc' ? 1 : -1;
+    return [...r].sort((a, b) => {
+      // Le email mancanti (dispositivi) stanno in fondo IN ENTRAMBI i versi —
+      // fuori dal segno: un trattino non è «prima della A» né «dopo la Z».
+      if (sort.campo === 'email' && (a.email == null) !== (b.email == null)) {
+        return a.email == null ? 1 : -1;
+      }
+      // A parità (stessa tipologia, stesso stato) comanda il nome: l'ordine
+      // deve essere lo stesso a ogni render, o le righe ballano sotto il mouse.
+      return segno * cmp(a, b) || a.nome.localeCompare(b.nome);
+    });
   }, [tipo, stato, effectiveSearch, sort]);
 
   const counts = {
@@ -156,6 +179,13 @@ function AdmContattiPage({ search, openContatto }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  // Click sull'intestazione: nuova colonna → parte dal suo verso naturale
+  // (le date dalla più recente, i testi dalla A, gli stati dal più vivo);
+  // stessa colonna → il verso si inverte.
+  const ordina = (campo) => setSort(s => s.campo === campo
+    ? { campo, verso: s.verso === 'asc' ? 'desc' : 'asc' }
+    : { campo, verso: campo === 'iscritto' ? 'desc' : 'asc' });
+
   return (
     <div style={{padding: 28, display: 'flex', flexDirection: 'column', gap: 16}}>
       <AdmCard padding={0}>
@@ -194,18 +224,13 @@ function AdmContattiPage({ search, openContatto }) {
           ]}/>
           <div style={{flex: 1}}/>
           <span style={{fontSize: 13.7, color: ADM.MUTED}}>{filtered.length} risultati</span>
-          <FilterDropdown label="Ordina" value={sort} onChange={setSort} options={[
-            { value: 'iscrizione_desc', label: 'Iscrizione più recente' },
-            { value: 'iscrizione_asc',  label: 'Iscrizione meno recente' },
-            { value: 'nome_asc',        label: 'Nome A→Z' },
-            { value: 'email_asc',       label: 'Email A→Z' },
-          ]}/>
           <AdmButton variant="secondary" icon="download" size="sm" onClick={downloadCSV}>Scarica CSV</AdmButton>
         </div>
 
         {/* Le quattro colonne chieste alla rubrica — email, tipologia, stato,
             iscrizione — più l'identità in testa: una lista di sole email
-            si legge col dizionario in mano. */}
+            si legge col dizionario in mano. Ogni cima di colonna È il comando
+            di ordinamento su quel campo. */}
         <div>
           <div style={{
             display: 'grid',
@@ -213,13 +238,13 @@ function AdmContattiPage({ search, openContatto }) {
             gap: 0,
             padding: '10px 18px',
             borderBottom: `1px solid ${ADM.BORDER}`,
-            fontSize: 12.6, fontWeight: 700, color: ADM.MUTED, textTransform: 'uppercase', letterSpacing: '0.06em',
+            alignItems: 'center',
           }}>
-            <div>Contatto</div>
-            <div>Email</div>
-            <div>Tipologia contatto</div>
-            <div>Stato</div>
-            <div>Data iscrizione</div>
+            <CntIntestazione campo="nome"     label="Contatto"           sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="email"    label="Email"              sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="tipo"     label="Tipologia contatto" sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="stato"    label="Stato"              sort={sort} onSort={ordina}/>
+            <CntIntestazione campo="iscritto" label="Data iscrizione"    sort={sort} onSort={ordina}/>
             <div></div>
           </div>
           <div>
@@ -239,6 +264,35 @@ function AdmContattiPage({ search, openContatto }) {
       {selected && selected.tipo === 'staff'  && <StaffDrawer  staff={selected.ref}  onClose={() => setSelected(null)}/>}
       {selected && selected.tipo === 'utente' && <UtenteDrawer utente={selected.ref} onClose={() => setSelected(null)}/>}
     </div>
+  );
+}
+
+// La cima della colonna è un pulsante: si clicca e la lista si ordina su quel
+// campo, si riclicca e si inverte. La freccia compare solo sulla colonna
+// attiva e punta nel verso della lista; sulle altre resta il posto (un glifo
+// trasparente), così le intestazioni non si spostano di un pixel al cambio.
+function CntIntestazione({ campo, label, sort, onSort }) {
+  const attiva = sort.campo === campo;
+  return (
+    <button type="button" onClick={() => onSort(campo)}
+      title={'Ordina per ' + label.toLowerCase()}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        justifySelf: 'start', minWidth: 0,
+        background: 'transparent', border: 'none', padding: 0,
+        fontSize: 12.6, fontWeight: 700,
+        color: attiva ? ADM.PINK_DARK : ADM.MUTED,
+        textTransform: 'uppercase', letterSpacing: '0.06em',
+        cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+      }}>
+      {label}
+      <span style={{
+        display: 'inline-flex', flexShrink: 0,
+        color: attiva ? ADM.PINK : 'transparent',
+        transform: attiva && sort.verso === 'asc' ? 'rotate(180deg)' : 'none',
+        transition: 'transform 0.15s ease',
+      }}><BuIcons.chevronDown size={14}/></span>
+    </button>
   );
 }
 
