@@ -122,12 +122,13 @@ const CONTATTI = (() => {
 })();
 
 function AdmContattiPage({ search, openContatto }) {
-  const [tipo, setTipo] = useStateCnt('tutti');
-  // Si filtra per DOVE: regione e città — la geografia è la domanda vera di
-  // chi lavora la rubrica («chi abbiamo a Roma?»). I filtri sono a SPUNTA e
-  // multipli («Puglia e Campania insieme»), scelti dal pannello del pulsante
-  // «Aggiungi filtro»: dentro una dimensione le spunte si sommano in OR, tra
-  // dimensioni si intersecano in AND. Nessuna spunta = nessun filtro.
+  // TUTTI i filtri vivono nel pannello di «Aggiungi filtro», a SPUNTA e
+  // multipli: tipologia, regione, città. Dentro una dimensione le spunte si
+  // sommano in OR («Puglia e Campania»), tra dimensioni si intersecano in
+  // AND. Nessuna spunta = nessun filtro. La fila di tab in testa (Tutti ·
+  // Locali · …) diceva una dimensione sola con un'altra grammatica, ed è
+  // stata assorbita qui.
+  const [fTipi, setFTipi] = useStateCnt([]);
   const [fRegioni, setFRegioni] = useStateCnt([]);
   const [fCitta, setFCitta] = useStateCnt([]);
   // L'ordinamento vive nelle INTESTAZIONI: si clicca la cima di una colonna e
@@ -180,7 +181,7 @@ function AdmContattiPage({ search, openContatto }) {
 
   const filtered = useMemoCnt(() => {
     let r = CONTATTI;
-    if (tipo !== 'tutti')    r = r.filter(c => c.tipo === tipo);
+    if (fTipi.length)        r = r.filter(c => fTipi.includes(CNT_TIPI[c.tipo].label));
     if (fRegioni.length)     r = r.filter(c => fRegioni.includes(c.regione));
     if (fCitta.length)       r = r.filter(c => fCitta.includes(c.citta));
     if (effectiveSearch) {
@@ -222,26 +223,12 @@ function AdmContattiPage({ search, openContatto }) {
       // deve essere lo stesso a ogni render, o le righe ballano sotto il mouse.
       return segno * cmp(a, b) || a.nome.localeCompare(b.nome);
     });
-  }, [tipo, fRegioni, fCitta, effectiveSearch, sort]);
+  }, [fTipi, fRegioni, fCitta, effectiveSearch, sort]);
 
   // Le due geografie escono dai contatti che ci sono davvero: una regione
   // senza nessuno non deve comparire nella tendina.
   const regioni = useMemoCnt(() => [...new Set(CONTATTI.map(c => c.regione))].filter(r => r && r !== '—').sort((a, b) => a.localeCompare(b)), []);
   const cittaList = useMemoCnt(() => [...new Set(CONTATTI.map(c => c.citta))].filter(Boolean).sort((a, b) => a.localeCompare(b)), []);
-
-  const counts = {
-    tutti:  CONTATTI.length,
-    locale: CONTATTI.filter(c => c.tipo === 'locale').length,
-    staff:  CONTATTI.filter(c => c.tipo === 'staff').length,
-    utente: CONTATTI.filter(c => c.tipo === 'utente').length,
-  };
-
-  const tabsList = [
-    { id: 'tutti',  label: 'Tutti',        badge: counts.tutti },
-    { id: 'locale', label: 'Locali',       badge: counts.locale },
-    { id: 'staff',  label: 'Utenti Staff', badge: counts.staff },
-    { id: 'utente', label: 'Utenti App',   badge: counts.utente },
-  ];
 
   // Click sull'intestazione: nuova colonna → il suo verso naturale (i testi
   // dalla A, il ciclo dal lead in su, le date dalla più recente); stessa
@@ -262,8 +249,6 @@ function AdmContattiPage({ search, openContatto }) {
   return (
     <div style={{padding: 28, display: 'flex', flexDirection: 'column', gap: 16}}>
       <AdmCard padding={0}>
-        <AdmTabBar tabs={tabsList} active={tipo} onChange={setTipo}/>
-
         <div style={{padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${ADM.BORDER}`, flexWrap: 'wrap'}}>
           <div style={{position: 'relative', display: 'flex', alignItems: 'center'}}>
             <span style={{position: 'absolute', left: 10, color: ADM.MUTED, pointerEvents: 'none', display: 'inline-flex'}}>
@@ -291,6 +276,9 @@ function AdmContattiPage({ search, openContatto }) {
 
           <CntFiltri
             gruppi={[
+              { id: 'tipo',    titolo: 'Tipologia contatto',
+                voci: Object.keys(CNT_TIPI).map(k => CNT_TIPI[k].label),
+                scelte: fTipi, cambia: setFTipi },
               { id: 'regione', titolo: 'Regione', voci: regioni,   scelte: fRegioni, cambia: setFRegioni },
               { id: 'citta',   titolo: 'Città',   voci: cittaList, scelte: fCitta,   cambia: setFCitta },
             ]}/>
