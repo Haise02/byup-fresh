@@ -127,7 +127,7 @@ function HubPanoramicaPage({ onNav }) {
           <div style={{ flex: 1, minWidth: 280 }}>
             <div style={{ fontSize: 11.6, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.85 }}>Buongiorno, Marco</div>
             <div style={{ fontSize: 27, fontWeight: 800, letterSpacing: '-0.03em', marginTop: 7, lineHeight: 1.2 }}>
-              Byup a colpo d'occhio: come crescono locali e utenti.
+              Byup a colpo d'occhio
             </div>
           </div>
           <div style={{ display: 'flex', gap: 26, flexShrink: 0 }}>
