@@ -459,17 +459,15 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
           {s.ruolo === 'dispositivo'
             ? <div style={{width:48, height:48, borderRadius:10, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.monitor size={27}/></div>
             : <AdmAvatar name={s.nome} size={53} bg={`hsl(${(s.id.charCodeAt(2)+s.id.charCodeAt(3))*7 % 360}, 45%, 55%)`}/>}
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:3}}>
-              <div style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', fontFamily: s.ruolo === 'dispositivo' ? 'ui-monospace,monospace' : 'inherit'}}>{s.nome}</div>
-              <span style={{padding:'3px 9px', borderRadius:5, background: ADM[ruoloDef.color+'_SOFT'], color: ADM[ruoloDef.color], fontSize:13, fontWeight:700}}>{ruoloDef.label}</span>
-            </div>
-            <div style={{fontSize:13.7, color:ADM.MUTED, display:'flex', gap:8}}>
-              <span style={{fontFamily: s.ruolo === 'dispositivo' ? 'inherit' : 'ui-monospace,monospace'}}>{s.ruolo === 'dispositivo' ? s.modello : s.id}</span>
-              <span>·</span>
-              <span>{s.localeNome}, {s.localeCitta}</span>
-            </div>
-          </div>
+          {/* SOLO il nome: ruolo, id, locale e modello sono anagrafe e
+              vivono nella scheda qui sotto — la testata presenta, non
+              riassume. */}
+          <div style={{
+            flex:1, minWidth:0,
+            fontSize:19, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em',
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            fontFamily: s.ruolo === 'dispositivo' ? 'ui-monospace,monospace' : 'inherit',
+          }}>{s.nome}</div>
           {!pieno && <AdmIconBtn icon="x" onClick={onClose}/>}
         </div>
 
@@ -517,6 +515,7 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
                 esteso — ruolo, nome del ruolo custom, o natura e modello del
                 dispositivo. */}
             <DataRow label="Descrizione utenza" value={staffDescrizioneUtenza(s)}/>
+            <DataRow label="ID utenza" value={s.id} mono/>
             {s.ruolo === 'dispositivo' && <DataRow label="Codice" value={s.nome} mono/>}
             <DataRow label="Locale" value={`${s.localeNome} (${s.localeCitta})`}/>
             <DataRow label="ID Locale" value={s.localeId} mono/>

@@ -377,21 +377,13 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
           </div>
           <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
             <AdmAvatar name={form.nome} size={46} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
-            <div style={{flex:1, minWidth:0, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
-              <span style={{fontSize:18, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{form.nome}</span>
-              {banned
-                ? <AdmBadge color="DANGER" size="xs">⊘ Bannato</AdmBadge>
-                : shadow
-                ? <AdmBadge color="WARN" size="xs">◐ Shadowban</AdmBadge>
-                : u.attivo
-                ? <AdmBadge color="OK" size="xs">Attivo</AdmBadge>
-                : <AdmBadge color="PLAN_FREE" size="xs">Inattivo</AdmBadge>}
-              {form.verificato && (
-                <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:99, background:ADM.INFO_SOFT, color:ADM.INFO, fontSize:12, fontWeight:700}}>
-                  <BuIcons.check size={13}/> Verificato
-                </span>
-              )}
-            </div>
+            {/* SOLO il nome: stato e verifica sono anagrafe e vivono nella
+                tab Anagrafica — la testata presenta, non riassume. */}
+            <div style={{
+              flex:1, minWidth:0,
+              fontSize:19, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em',
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            }}>{form.nome}</div>
           </div>
           {/* Tabs */}
           <div style={{display:'flex', gap:2}}>
@@ -456,6 +448,20 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                   <div style={{...inputStyle, background:ADM.PANEL_SOFT, color:ADM.MUTED, fontFamily:'ui-monospace,monospace', fontSize:12.5, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                     {u.id}
                     <span style={{fontSize:10.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:ADM.MUTED_SOFT}}>non modificabile</span>
+                  </div>
+                </div>
+                <div>
+                  {/* Lo stato che prima stava appiccicato al nome in testata:
+                      è anagrafe, si legge qui — restrizioni comprese. */}
+                  <label style={labelStyle}>Stato</label>
+                  <div style={{display:'flex', alignItems:'center', minHeight:34}}>
+                    {banned
+                      ? <AdmBadge color="DANGER" size="xs">Bannato</AdmBadge>
+                      : shadow
+                      ? <AdmBadge color="WARN" size="xs">Shadowban</AdmBadge>
+                      : u.attivo
+                      ? <AdmBadge color="OK" size="xs">Attivo</AdmBadge>
+                      : <AdmBadge color="PLAN_FREE" size="xs">Inattivo</AdmBadge>}
                   </div>
                 </div>
               </div>
