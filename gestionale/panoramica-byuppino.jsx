@@ -467,8 +467,12 @@ function WidgetByuppino() {
           conversazione chiede spazio, la testata torna alla sua altezza
           naturale e il filo scrolla. */}
       <div className="byu-scheda" style={{
+        // L'hero è un flex verticale: il blocco dei testi si centra da solo
+        // nell'altezza che il gradiente si è preso, invece di restare
+        // appiccicato in alto con il colore vuoto sotto.
         position: 'relative', flex: '1 0 auto', overflow: 'hidden',
-        padding: '12px 20px 32px',
+        padding: '12px 20px 34px',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
         background: 'linear-gradient(120deg, #FF9159 0%, #FA4B6B 26%, #C05BD6 50%, #FA4B6B 74%, #FF9159 100%)',
         backgroundSize: '260% 260%',
         animation: 'byu-scheda 16s ease-in-out infinite',
@@ -480,21 +484,21 @@ function WidgetByuppino() {
           }}/>
         ))}
 
-        {/* 104 e non 150: nella tessera da una colonna il titolo andava a
-            capo — «Byuppino / AI» — per lasciare posto a una mascotte che non
-            ne chiede tanto. */}
-        <div style={{position: 'relative', zIndex: 1, paddingRight: 104}}>
+        {/* Il margine destro tiene libero il posto della mascotte, che
+            nell'hero alto è cresciuta anche lei. */}
+        <div style={{position: 'relative', zIndex: 1, paddingRight: 170}}>
           <div style={{
-            fontSize: 13, fontWeight: 800, letterSpacing: '0.14em',
+            fontSize: 13, fontWeight: 800, letterSpacing: '0.16em',
             textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)',
           }}>Assistente di sala</div>
           <div style={{
-            fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em',
-            color: '#fff', marginTop: 2, whiteSpace: 'nowrap',
+            fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em',
+            color: '#fff', marginTop: 4, whiteSpace: 'nowrap',
+            textShadow: '0 2px 12px rgba(120, 30, 60, 0.18)',
           }}>Byuppino AI</div>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 7,
-            marginTop: 8, padding: '5px 12px', borderRadius: 999,
+            marginTop: 12, padding: '6px 13px', borderRadius: 999,
             background: 'rgba(255,255,255,0.22)',
             boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.28)',
           }}>
@@ -506,8 +510,11 @@ function WidgetByuppino() {
         {/* La mascotte abita l'angolo destro della testata e sborda un filo
             sotto la cucitura: è lei a tenere insieme i due piani. */}
         <img src={BYU_MASCOTTE} alt="Byuppino" className="byu-galleggia" style={{
-          position: 'absolute', right: -4, bottom: -12, zIndex: 1,
-          height: 'calc(100% - 4px)', maxHeight: 122, width: 'auto',
+          // Cresce con l'hero (il tetto è 178, non più 122) e si ritira con
+          // lui quando la conversazione riprende spazio: l'altezza resta
+          // agganciata alla testata, il tetto evita il gigante.
+          position: 'absolute', right: 6, bottom: -10, zIndex: 1,
+          height: 'calc(100% - 14px)', maxHeight: 178, width: 'auto',
           objectFit: 'contain', objectPosition: 'right bottom',
           filter: 'drop-shadow(0 10px 18px rgba(120, 30, 60, 0.35))',
           animation: 'byu-galla 5s ease-in-out infinite',
