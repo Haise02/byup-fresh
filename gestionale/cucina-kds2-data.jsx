@@ -1,4 +1,4 @@
-// Cucina · KDS v2 — modello, taratura, regole di aggregazione
+// Cucina · KDS v2 — modello, taratura, regole delle righe
 //
 // Route sperimentale e autonoma: non tocca né riusa il KDS attuale
 // (`byup Cucina.html`, `cucina-*.jsx`) né la vista Banco
@@ -12,18 +12,15 @@
 //
 // L'unità del modello è la PORZIONE: la parte di un piatto che appartiene a una
 // sorgente (un tavolo, un asporto, un delivery). La RIGA — quello che il cuoco
-// vede — non esiste nei dati: è il risultato dell'aggregazione, ricalcolato solo
-// quando cambiano le porzioni.
+// vede — non esiste nei dati: è UNA CARTA PER PIATTO FISICO, ricalcolata solo
+// quando cambiano le porzioni. NIENTE CUMULO: «2 Margherita» non è una riga
+// con un 2 davanti, sono due carte identiche una sotto l'altra — in cucina si
+// spunta il piatto che si ha in mano, non una quantità.
 
 // ─── Costanti di taratura ─────────────────────────────────────────────────
 // Tutto quello che si tara sta qui, anche ciò che serve solo alla vista: un
 // KDS si regola sul campo, dopo un servizio, e chi lo fa non deve cercare le
 // soglie in tre file diversi.
-
-// Dentro un gruppo, una porzione che aspetta più di così rispetto alla più
-// vecchia della riga apre una riga nuova. È la costante che decide se il board
-// dice «otto hamburger» o «cinque hamburger, e altri tre fra poco».
-const SPLIT_THRESHOLD_MIN = 6;
 
 // Evidenziazione di una sorgente: si spegne da sola, perché lo schermo è
 // condiviso e chi ha toccato per ultimo se n'è già andato.
@@ -36,7 +33,7 @@ const LONG_PRESS_MS = 600;
 // Finestra di annullamento. Non è un toast: resta fermo per tutto il tempo.
 const UNDO_MS = 10000;
 
-// Riverniciatura dei soli timer. NON ricalcola l'aggregazione: vedi kds2Aggrega.
+// Riverniciatura dei soli timer. NON ricalcola le righe: vedi kds2Righe.
 const TICK_MS = 30000;
 
 // Attesa di un tavolo, due soglie. Oltre la prima il tempo passa in ambra,
@@ -77,16 +74,16 @@ const SOGLIA_RITIRO_MIN = 5;
  *                spezzato, nessun tempo colorato. Non è lavoro, è preavviso.
  *   'active'    = inviata in cucina, in produzione.
  *
- * @typedef {Object} Kds2Row     // prodotta da kds2Aggrega, mai persistita
+ * @typedef {Object} Kds2Row     // prodotta da kds2Righe, mai persistita
  * @property {string}   id
  * @property {string}   dishId
  * @property {string}   dishName
  * @property {string}   category
  * @property {Kds2Modifier[]} modifiers
  * @property {{label: string}} [allergen]
- * @property {Kds2Portion[]} portions
- * @property {number}   quantity    somma delle porzioni della riga
- * @property {number}   firedAt     la più vecchia della riga — è l'ordinamento
+ * @property {Kds2Portion[]} portions  sempre UNA: la porzione madre della carta
+ * @property {number}   quantity      sempre 1 — la carta è un piatto fisico
+ * @property {number}   firedAt       della porzione madre — è l'ordinamento
  */
 
 // ─── Identità di una sorgente ─────────────────────────────────────────────
@@ -124,89 +121,48 @@ function kds2Identita(source) {
   return String(source.label).trim().split(/\s+/)[0];
 }
 
-// ─── Aggregazione ─────────────────────────────────────────────────────────
-
-// Firma del set di modificatori. Ordinata, così «senza cipolla + extra bacon» e
-// «extra bacon + senza cipolla» sono lo stesso set: la sequenza in cui li ha
-// battuti la sala non è un'informazione di cucina.
-function kds2FirmaModificatori(mods) {
-  if (!mods || mods.length === 0) return '';
-  return mods
-    .map(m => m.type + ':' + String(m.label).trim().toLowerCase())
-    .sort()
-    .join('+');
-}
-
-// Chiave di gruppo — regole 1 e 3.
-// Regola 3 vince su tutto: una porzione con allergene sta da sola, quindi la sua
-// chiave è unica per porzione. Non si aggrega mai con un'altra porzione, nemmeno
-// con un'altra che porti lo stesso allergene e lo stesso piatto: due «senza
-// glutine» nella stessa riga sono due piatti che si possono scambiare, ed è
-// esattamente l'incidente che la riga dedicata esiste per impedire.
-function kds2ChiaveGruppo(p) {
-  if (p.allergen) return 'ALG§' + p.id;
-  return p.dishId + '§' + kds2FirmaModificatori(p.modifiers);
-}
+// ─── Le righe ─────────────────────────────────────────────────────────────
 
 /**
- * Porzioni → righe. Funzione PURA e senza orologio: legge solo `firedAt`, mai
- * `Date.now()`. È la ragione per cui il board non può riordinarsi da solo
- * mentre i timer avanzano — non è una precauzione nel componente, è che il
- * tempo non entra proprio nel calcolo.
+ * Porzioni → carte, UNA PER PIATTO FISICO. Qui viveva l'aggregazione per
+ * piatto («8 Hamburger» con le chip dei destinatari dentro): se n'è andata con
+ * una decisione di prodotto — in un pub si spunta il piatto che si ha in mano,
+ * e un numero davanti al nome è una cosa in più da leggere e da sbagliare.
+ * Una porzione con quantità 3 diventa tre carte identiche, una sotto l'altra.
+ *
+ * Resta PURA e senza orologio: legge solo `firedAt`, mai `Date.now()`. È la
+ * ragione per cui il board non può riordinarsi da solo mentre i timer avanzano
+ * — non è una precauzione nel componente, è che il tempo non entra nel calcolo.
  *
  * @param {Kds2Portion[]} porzioni
  * @returns {Kds2Row[]} ordinate: la più vecchia in cima
  */
-function kds2Aggrega(porzioni) {
-  // 1 · stesso piatto + stesso set di modificatori + stesso allergene
-  const gruppi = new Map();
-  porzioni.forEach(p => {
-    const k = kds2ChiaveGruppo(p);
-    if (!gruppi.has(k)) gruppi.set(k, []);
-    gruppi.get(k).push(p);
-  });
-
+function kds2Righe(porzioni) {
   const righe = [];
-  gruppi.forEach((lista, chiave) => {
-    // 2 · split per finestra temporale.
-    // Il riferimento è la più vecchia DELLA RIGA, non del gruppo, e si riapre a
-    // ogni riga nuova: tenendo fisso il riferimento originale, la seconda riga
-    // finirebbe per raccogliere tutto il resto del servizio in un unico blocco
-    // che copre mezz'ora — cioè il problema che lo split doveva risolvere.
-    const ordinate = lista.slice().sort((a, b) => a.firedAt - b.firedAt);
-    const finestre = [];
-    ordinate.forEach(p => {
-      const corrente = finestre[finestre.length - 1];
-      if (!corrente || (p.firedAt - corrente[0].firedAt) > SPLIT_THRESHOLD_MIN * 60000) {
-        finestre.push([p]);
-      } else {
-        corrente.push(p);
-      }
-    });
-
-    finestre.forEach(finestra => {
-      const p0 = finestra[0];
+  porzioni.forEach(p => {
+    for (let i = 0; i < p.quantity; i++) {
       righe.push({
-        // La chiave React resta stabile finché la porzione capofila resta in
-        // riga: quando esce, la riga è comunque un'altra cosa.
-        id: chiave + '#' + p0.id,
-        dishId: p0.dishId,
-        dishName: p0.dishName,
-        category: p0.category,
-        modifiers: p0.modifiers || [],
-        allergen: p0.allergen || null,
-        portions: finestra,
-        quantity: finestra.reduce((s, p) => s + p.quantity, 0),
-        firedAt: p0.firedAt,
+        // L'indice parte da zero e cresce: un bump scala la quantità di uno e
+        // fa sparire l'ULTIMA carta, mentre le altre tengono la loro chiave —
+        // così React non rimonta carte che non sono cambiate.
+        id: p.id + '#' + i,
+        dishId: p.dishId,
+        dishName: p.dishName,
+        category: p.category,
+        modifiers: p.modifiers || [],
+        allergen: p.allergen || null,
+        portions: [p],
+        quantity: 1,
+        firedAt: p.firedAt,
       });
-    });
+    }
   });
 
-  // Ordinamento: attesa della porzione più vecchia, decrescente — cioè firedAt
-  // crescente. La categoria non entra: raggruppare per categoria vorrebbe dire
-  // far scendere sotto un antipasto in ritardo perché è un antipasto.
-  // I pareggi si sciolgono su chiavi stabili, altrimenti due porzioni battute
-  // nello stesso secondo si scambierebbero di posto a ogni ricalcolo.
+  // Ordinamento: attesa decrescente — cioè firedAt crescente. La categoria non
+  // entra: raggruppare per categoria vorrebbe dire far scendere sotto un
+  // antipasto in ritardo perché è un antipasto. I pareggi si sciolgono su
+  // chiavi stabili, altrimenti due porzioni battute nello stesso secondo si
+  // scambierebbero di posto a ogni ricalcolo.
   return righe.sort((a, b) =>
     (a.firedAt - b.firedAt) ||
     a.dishName.localeCompare(b.dishName, 'it') ||
@@ -294,13 +250,6 @@ function kds2BumpUna(porzioni, portionId) {
     .filter(p => p.quantity > 0);
 }
 
-/** Riga intera completata. */
-function kds2BumpRiga(porzioni, riga) {
-  const dentro = new Set(riga.portions.map(p => p.id));
-  return porzioni.filter(p => !dentro.has(p.id));
-}
-
-window.SPLIT_THRESHOLD_MIN  = SPLIT_THRESHOLD_MIN;
 window.HIGHLIGHT_TIMEOUT_MS = HIGHLIGHT_TIMEOUT_MS;
 window.LONG_PRESS_MS        = LONG_PRESS_MS;
 window.UNDO_MS              = UNDO_MS;
@@ -309,9 +258,7 @@ window.SOGLIA_ATTESA_MIN    = SOGLIA_ATTESA_MIN;
 window.SOGLIA_RITIRO_MIN    = SOGLIA_RITIRO_MIN;
 window.kds2SorgenteId       = kds2SorgenteId;
 window.kds2Identita         = kds2Identita;
-window.kds2FirmaModificatori = kds2FirmaModificatori;
-window.kds2ChiaveGruppo     = kds2ChiaveGruppo;
-window.kds2Aggrega          = kds2Aggrega;
+window.kds2Righe            = kds2Righe;
 window.kds2AttesaMin        = kds2AttesaMin;
 window.kds2Orario           = kds2Orario;
 window.kds2TonoAttesa       = kds2TonoAttesa;
@@ -319,4 +266,3 @@ window.kds2TonoRitiro       = kds2TonoRitiro;
 window.kds2ChipTempo        = kds2ChipTempo;
 window.kds2Sorgenti         = kds2Sorgenti;
 window.kds2BumpUna          = kds2BumpUna;
-window.kds2BumpRiga         = kds2BumpRiga;
