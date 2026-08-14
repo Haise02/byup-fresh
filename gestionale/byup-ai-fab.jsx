@@ -16,6 +16,13 @@
 const AI_GRAD = 'linear-gradient(135deg, #FF5A5F 0%, #F472B6 52%, #A78BFA 100%)';
 const AI_GRAD_SOFT = 'linear-gradient(135deg, #FFF1F2 0%, #FDF2F8 50%, #F5F3FF 100%)';
 
+// La testata del pannello porta l'insegna del widget in Panoramica
+// (panoramica-byuppino.jsx), e ne prende anche il gradiente: stop SPECCHIATI —
+// pesca, corallo, lavanda, corallo, pesca — così a schermo le tinte ci sono
+// sempre tutte insieme e lo scorrimento non si legge come un fondo che cambia
+// colore, che era il difetto della sfumatura larga fatta scorrere.
+const AI_HERO_GRAD = 'linear-gradient(120deg, #FF9159 0%, #FA4B6B 26%, #C05BD6 50%, #FA4B6B 74%, #FF9159 100%)';
+
 // ─── Icone ────────────────────────────────────────────────────────────────
 // Disegnate qui invece di pescarle da BuIcons: quel file è caricato solo da
 // due delle sette pagine che montano il bollino, e sulle altre cinque
@@ -459,7 +466,7 @@ const AI_ESEMPI = [
 // in alto a sinistra, aprirlo sempre in basso a destra lo staccherebbe da chi
 // l'ha chiamato. Tutto rientra nel frame, che ha overflow hidden e taglierebbe
 // quello che esce.
-const PAN_W = 384, PAN_H = 620, PAN_GAP = 14;
+const PAN_W = 384, PAN_H = 652, PAN_GAP = 14;
 function posizionaPannello(box) {
   if (!box) return { left: null, stile: {right: 26, bottom: 112}, origine: '100% 100%' };
   const { x, y, fw, fh } = box;
@@ -526,6 +533,8 @@ function BuAiChat({ onClose, box }) {
       // capoverso restava tagliato a metà riga, ed è proprio quello della
       // doppia conferma. Con gli esempi finiti dentro al campo si è liberata
       // la riga delle pillole, e il pannello è tornato di ottanta più basso.
+      // L'insegna del widget ha poi alzato la testata di una trentina di
+      // pixel, e il pannello se li è ripresi qui: il saluto non si ridiscute.
       width: PAN_W, height: PAN_H, zIndex: 71,
       background: PN.WHITE, borderRadius: 20,
       border:'1px solid rgba(167,139,250,0.18)',
@@ -537,11 +546,15 @@ function BuAiChat({ onClose, box }) {
       // un pannello che si apre dal basso a destra sembrerebbe di un altro.
       transformOrigin: collocazione.origine,
     }}>
-      {/* Testata — il gradiente aurora e il byuppino che saluta */}
+      {/* Testata — la stessa insegna del widget in Panoramica: qualifica,
+          nome, pastiglia «Online», e la mascotte con le cuffie nello sfondo.
+          Stesse parole e stessa immagine perché sono la stessa cosa: pannello
+          e widget rispondono allo stesso byuppino, e due insegne diverse
+          farebbero pensare a due assistenti. */}
       <div style={{
-        position:'relative', padding:'15px 16px 15px 18px',
-        background: AI_GRAD, backgroundSize:'200% 200%',
-        animation:'bu-ai-shift 9s ease infinite',
+        position:'relative', padding:'12px 16px 14px 18px',
+        background: AI_HERO_GRAD, backgroundSize:'260% 260%',
+        animation:'bu-ai-shift 16s ease infinite',
         color:'#fff',
         // Non `hidden`: il byuppino deve poter sbordare in basso e affacciarsi
         // sulla conversazione. Il ritaglio agli angoli lo fa già il pannello.
@@ -555,17 +568,43 @@ function BuAiChat({ onClose, box }) {
           position:'absolute', inset: 0, pointerEvents:'none',
           background:'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 60%)',
         }}/>
-        <div style={{position:'relative', display:'flex', alignItems:'center', gap: 10}}>
-          <div style={{flex: 1, minWidth: 0}}>
-            <div style={{fontSize: 16, fontWeight: 700, letterSpacing: -0.2}}>byuppino</div>
-            <div style={{fontSize: 12.5, opacity: 0.92, marginTop: 1}}>Intelligenza artificiale di byup</div>
+        {/* La mascotte del widget — quella che ASCOLTA, con cuffie e tablet —
+            nello sfondo della testata, ancorata a destra come in Panoramica.
+            Stesso `?v=2` del widget: stesso indirizzo, quindi stessa voce di
+            cache (la query è la lezione dei .png con max-age=86400, raccontata
+            in panoramica-byuppino.jsx). `right: 46` la tiene fuori dalla
+            colonna del tasto Chiudi. Lo sbordo è di POCHI pixel, non i
+            ventisei della mascotte che salutava: qui sotto non c'è la
+            conversazione ma la riga «Contatta l'assistenza», e i piedi le
+            coprivano il testo. I clic le passano comunque attraverso. */}
+        <img src="byuppino-assistente.png?v=2" alt="" style={{
+          position:'absolute', right: 46, bottom: -6,
+          height: 106, width:'auto', pointerEvents:'none',
+          filter:'drop-shadow(0 8px 14px rgba(120,30,60,0.32))',
+          animation:'bu-ai-float 4.2s ease-in-out infinite',
+        }}/>
+        <div style={{position:'relative', display:'flex', alignItems:'flex-start', gap: 10}}>
+          {/* Il margine destro tiene libero il posto della mascotte. */}
+          <div style={{flex: 1, minWidth: 0, paddingRight: 68}}>
+            <div style={{
+              fontSize: 10.5, fontWeight: 800, letterSpacing:'0.14em',
+              textTransform:'uppercase', color:'rgba(255,255,255,0.85)',
+            }}>Assistente di sala</div>
+            <div style={{
+              fontSize: 21, fontWeight: 800, letterSpacing:'-0.02em',
+              marginTop: 2, whiteSpace:'nowrap',
+              textShadow:'0 2px 12px rgba(120, 30, 60, 0.18)',
+            }}>Byuppino AI</div>
+            <div style={{
+              display:'inline-flex', alignItems:'center', gap: 6,
+              marginTop: 8, padding:'4px 11px', borderRadius: 999,
+              background:'rgba(255,255,255,0.22)',
+              boxShadow:'inset 0 0 0 1px rgba(255,255,255,0.28)',
+            }}>
+              <span style={{width: 7, height: 7, borderRadius:'50%', background:'#7DF7B2'}}/>
+              <span style={{fontSize: 12, fontWeight: 700}}>Online · risponde in 1s</span>
+            </div>
           </div>
-          {/* La mascotte sborda in basso: sembra affacciata dentro la chat. */}
-          <img src="byuppino-wave.png" alt="" style={{
-            width: 74, height:'auto', marginBottom: -26, flexShrink: 0,
-            filter:'drop-shadow(0 6px 12px rgba(88,42,120,0.28))',
-            animation:'bu-ai-float 4.2s ease-in-out infinite',
-          }}/>
           <button onClick={onClose} aria-label="Chiudi" data-no-fx style={{
             background:'rgba(255,255,255,0.18)', border:'none', borderRadius:'50%',
             width: 28, height: 28, color:'#fff', cursor:'pointer',
