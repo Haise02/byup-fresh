@@ -305,6 +305,10 @@ function AdmSwitch({ checked, onChange, size = 'md', disabled }) {
 //   · align: da che bordo del bottone si apre il pannello
 function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, align = 'left', maxHeight = 320, title }) {
   const [open, setOpen] = React.useState(false);
+  // Hover gestito QUI e non da una classe CSS: le voci portano il fondo in
+  // stile inline (serve per la voce attiva), e uno stile inline vince sempre
+  // su una regola :hover del foglio — la classe c'era e non si vedeva mai.
+  const [sopra, setSopra] = React.useState(null);
   const opts = (options || []).map(o => (o && typeof o === 'object') ? o : { value: o, label: String(o) });
   const current = opts.find(o => String(o.value) === String(value));
 
@@ -341,7 +345,7 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
       </button>
 
       {open && (
-        <div className="adm-select-pop" style={{
+        <div className="adm-select-pop" onMouseLeave={() => setSopra(null)} style={{
           position:'absolute', top:'calc(100% + 6px)', zIndex:120,
           left: align === 'right' ? 'auto' : 0,
           right: align === 'right' ? 0 : 'auto',
@@ -350,18 +354,24 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
           boxShadow:'0 18px 44px -10px rgba(15,17,21,0.22)',
           maxHeight, overflowY:'auto',
         }}>
-          {opts.map(o => {
+          {opts.map((o, i) => {
             const attiva = String(o.value) === String(value);
+            const hover = sopra === i;
             return (
-              <button key={String(o.value)} type="button" className="adm-actionrow"
+              <button key={String(o.value)} type="button"
                 onClick={() => { onChange(o.value); setOpen(false); }}
+                onMouseEnter={() => setSopra(i)}
                 style={{
                   display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left',
                   padding:'8px 10px', borderRadius:8, border:'none',
-                  background: attiva ? ADM.PINK_SOFT : 'transparent',
+                  // Il passaggio del mouse SI VEDE: grigio pieno sulle voci a
+                  // riposo, pesca più carico su quella già attiva.
+                  background: attiva ? (hover ? '#FFD2CD' : ADM.PINK_SOFT)
+                    : hover ? ADM.NEUTRAL_SOFT : 'transparent',
                   color: attiva ? ADM.PINK_DARK : ADM.TEXT,
                   fontSize:13.5, fontWeight: attiva ? 700 : 500,
                   cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+                  transition:'background 0.1s ease',
                 }}>
                 <span style={{flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis'}}>{o.label}</span>
                 {attiva && <BuIcons.check size={14}/>}
