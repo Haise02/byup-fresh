@@ -68,6 +68,7 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
           { id:'certificazioni', label:'Certificazioni',
             ...(CERTIFICAZIONI.filter(c=>c.localeId===l.id).length
               ? { badge: CERTIFICAZIONI.filter(c=>c.localeId===l.id).length } : {}) },
+          { id:'contratti', label:'Contratti' },
           { id:'fatturazione', label:'Fatturazione & Piano' },
         ]} active={tab} onChange={setTab}/>
 
@@ -77,6 +78,7 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
           {tab==='proprieta' && <DrwProprieta locale={l}/>}
           {tab==='attivita' && <DrwAttivita locale={l}/>}
           {tab==='certificazioni' && <DrwCertificazioni locale={l}/>}
+          {tab==='contratti' && <DrwContratti locale={l}/>}
           {tab==='fatturazione' && <DrwFatturazione locale={l}/>}
         </div>
       </div>
@@ -867,4 +869,462 @@ function DrwProprieta({ locale: l }) {
   );
 }
 
+// ─── Contratti — il fascicolo contrattuale ──────────────────────────────────
+// L'evidenza che si esibisce in un contenzioso o a un auditor P2B: che cosa
+// questo contatto aveva accettato, in quale versione, e se il preavviso
+// dovuto è stato dato nei termini. Da qui NON si accetta niente:
+// un'accettazione nasce dal gesto del cliente, non da un operatore interno.
+// L'unica azione scrivibile è la sospensione (o la sua revoca).
+//
+// Il pannello interno lavora su (soggetto, codici): quando arriveranno le tab
+// di staff e utenti app basterà passare CONTRATTI_PER_TIPO.staff / .utente.
+
+// Art. 13: elenco CHIUSO. Il motivo tipizzato è ciò che rende la sospensione
+// difendibile — un testo libero non si audita.
+const CTR_MOTIVI = [
+  { value:'morosita',          label:'Morosità (art. 4)' },
+  { value:'uso-illecito',      label:'Uso illecito o pregiudizievole' },
+  { value:'ordine-autorita',   label:'Ordine dell\'autorità' },
+  { value:'rischio-sicurezza', label:'Rischio di sicurezza' },
+];
+const ctrMotivoLabel = (v) => (CTR_MOTIVI.find(m => m.value === v) || { label: v }).label;
+
+const CTR_SUPERFICI = { onboarding:'Onboarding', gestionale:'Gestionale', 'app-staff':'App Staff', app:'Byup App' };
+
+const ctrDoc = (codice) => DOCUMENTI.find(d => d.codice === codice);
+const ctrCorrente = (doc) => doc.versioni ? doc.versioni[doc.versioni.length - 1] : null;
+const ctrGiorni = (d) => Math.ceil((d.getTime() - Date.now()) / 86400000);
+
+// L'ultima accettazione per documento: è LEI la versione che vincola.
+function ctrAccettazione(sogId, codice) {
+  return ACCETTAZIONI.filter(a => a.soggettoId === sogId && a.codice === codice)
+    .sort((a, b) => b.quando - a.quando)[0] || null;
+}
+
+// «Scaduto senza risposta» non è un evento, è l'assenza di uno: si deriva
+// dall'orologio, mai dai mock — un «in corso» con la data passata mentirebbe
+// alla prima ricarica.
+function ctrEsito(p) {
+  if (p.esito !== 'in-corso') return p.esito;
+  return Date.now() < p.efficace.getTime() ? 'in-corso' : 'scaduto';
+}
+const CTR_ESITI = {
+  'accettato': { label:'Accettato',              color:'OK' },
+  'opposto':   { label:'Opposizione',            color:'WARN' },
+  'recesso':   { label:'Recesso',                color:'DANGER' },
+  'in-corso':  { label:'Finestra aperta',        color:'INFO' },
+  'scaduto':   { label:'Scaduto senza risposta', color:'WARN' },
+};
+
+// Lo stato in cima: i problemi attivi in ordine di gravità. Il banner prende
+// colore e frase dal PEGGIORE; gli altri diventano chip. Funzione pura: la
+// stessa servirà a un badge di tab o a una colonna in rubrica.
+function ctrProblemi(sog, codici) {
+  const out = [];
+  const sospAttiva = SOSPENSIONI.find(s => s.soggettoId === sog.id && !s.revoca);
+  if (sospAttiva) {
+    const ris = sospAttiva.sospesa ? new Date(sospAttiva.sospesa.getTime() + 15 * 86400000) : null;
+    const scatto = !sospAttiva.sospesa && sospAttiva.diffida ? new Date(sospAttiva.diffida.getTime() + 15 * 86400000) : null;
+    out.push({ sev:0, color:'DANGER', icona:'lock',
+      testo: sospAttiva.sospesa
+        ? `Sospeso per ${ctrMotivoLabel(sospAttiva.motivo).toLowerCase()} dal ${fmtDate(sospAttiva.sospesa)} — risoluzione contrattuale il ${fmtDate(ris)}. I canoni continuano a maturare (art. 4).`
+        : `Diffida inviata il ${fmtDate(sospAttiva.diffida)} — sospensione dal ${fmtDate(scatto)} (art. 4).`,
+      chip: 'Sospensione' });
+  }
+  if (sog.stato === 'churned') {
+    const cess = ctrCessazione(sog);
+    const ggExport = 60 + ctrGiorni(cess), ggBackup = 35 + ctrGiorni(cess);
+    out.push({ sev:1, color: ggExport > 0 ? 'WARN' : 'PLAN_FREE', icona:'clock',
+      testo: `Contratto cessato il ${fmtDate(cess)} (art. 5). Esportazione dati: ${ggExport > 0 ? `ancora ${ggExport} giorni` : 'finestra chiusa'} · backup: ${ggBackup > 0 ? `si estinguono fra ${ggBackup} giorni` : 'estinti'} (DPA art. 11).`,
+      chip: 'Post-cessazione' });
+  }
+  codici.map(ctrDoc).filter(d => d && d.versioni && !d.informativa).forEach(doc => {
+    const a = ctrAccettazione(sog.id, doc.codice);
+    const corrente = ctrCorrente(doc);
+    const vAcc = a ? doc.versioni.find(x => x.v === a.v) : null;
+    if (a && a.tipo === 'tacita' && vAcc && vAcc.peggiorativa) {
+      out.push({ sev:2, color:'WARN', icona:'alertTriangle',
+        testo: `${doc.codice} v${a.v}: modifica peggiorativa mai accettata esplicitamente — vale solo l'uso successivo (art. 15). Il recesso era esercitabile fino al ${fmtDate(vAcc.efficace)}.`,
+        chip: `${doc.codice} tacita` });
+    }
+    // «Scaduto senza risposta» vale solo finché la risposta non c'è: se poi
+    // è arrivata una tacita per condotta, il problema è QUELLA (già sopra),
+    // non il silenzio che l'ha preceduta.
+    PREAVVISI.filter(p => p.soggettoId === sog.id && p.codice === doc.codice && ctrEsito(p) === 'scaduto'
+      && !ACCETTAZIONI.some(x => x.soggettoId === sog.id && x.codice === doc.codice && x.v === p.v)).forEach(p => {
+      out.push({ sev:2, color:'WARN', icona:'alertTriangle',
+        testo: `Preavviso ${doc.codice} ${p.v ? 'v' + p.v : ''} scaduto senza risposta: efficace dal ${fmtDate(p.efficace)}, nessuna accettazione registrata.`,
+        chip: `${doc.codice} senza risposta` });
+    });
+    if (a && a.v !== corrente.v && sog.stato !== 'churned') {
+      const pCorr = PREAVVISI.find(p => p.soggettoId === sog.id && p.codice === doc.codice && p.v === corrente.v);
+      if (!pCorr) {
+        // Il buco è NOSTRO: la versione corrente non gli è mai stata
+        // notificata. Più grave di una finestra che corre regolare.
+        out.push({ sev:2, color:'WARN', icona:'alertTriangle',
+          testo: `${doc.codice} fermo alla v${a.v}: la v${corrente.v} non risulta mai notificata — il preavviso dell'art. 15 è dovuto.`,
+          chip: `${doc.codice} non notificato` });
+      } else if (ctrEsito(pCorr) === 'in-corso') {
+        out.push({ sev:4, color:'INFO', icona:'clock',
+          testo: `Finestra ${doc.codice} v${corrente.v} aperta: efficace il ${fmtDate(pCorr.efficace)}, fra ${ctrGiorni(pCorr.efficace)} giorni.`,
+          chip: `${doc.codice} in finestra` });
+      }
+    }
+  });
+  return out.sort((a, b) => a.sev - b.sev);
+}
+
+// La riga di un documento contrattuale: versione accettata contro corrente,
+// chi e da dove, e il bottone che apre ESATTAMENTE la versione accettata —
+// il punto dell'intera schermata (art. 3: copia conservata da Byup).
+function CtrRigaDoc({ sog, codice, onApri }) {
+  const doc = ctrDoc(codice);
+  if (!doc) return null;
+  const a = ctrAccettazione(sog.id, codice);
+  const fotoPiano = doc.particolare;
+  const corrente = fotoPiano ? null : ctrCorrente(doc);
+  const allineato = fotoPiano || (a && corrente && a.v === corrente.v);
+  const vAcc = a && doc.versioni ? doc.versioni.find(x => x.v === a.v) : null;
+  const tacita = a && a.tipo === 'tacita';
+  const visione = a && a.tipo === 'presa-visione';
+  const pRel = !fotoPiano && a && corrente && a.v !== corrente.v
+    ? PREAVVISI.find(p => p.soggettoId === sog.id && p.codice === codice && p.v === corrente.v) : null;
+
+  return (
+    <AdmCard padding={18}>
+      <div style={{display:'flex', alignItems:'center', gap:12}}>
+        <span style={{width:36, height:36, borderRadius:9, flexShrink:0, display:'grid', placeItems:'center',
+          background: ADM[(a ? (tacita ? 'WARN' : 'OK') : 'PLAN_FREE') + '_SOFT'],
+          color: ADM[a ? (tacita ? 'WARN' : 'OK') : 'MUTED']}}>
+          <BuIcons.filePdf size={18}/>
+        </span>
+        <div style={{flex:1, minWidth:0}}>
+          <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>
+            {doc.nome} <span style={{fontWeight:600, color:ADM.MUTED_SOFT}}>· {doc.codice}</span>
+          </div>
+          <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:1}}>
+            {fotoPiano
+              ? 'Condizioni del piano attivo'
+              : `Versione corrente v${corrente.v} · efficace ${fmtDate(corrente.efficace)}`}
+          </div>
+        </div>
+        {a
+          ? (visione
+              ? <AdmBadge color="INFO" size="xs">Presa visione</AdmBadge>
+              : tacita
+                ? <AdmBadge color="WARN" size="xs">Tacita · art. 15</AdmBadge>
+                : <AdmBadge color="OK" size="xs">Esplicita</AdmBadge>)
+          : <AdmBadge color="PLAN_FREE" size="xs">Mai accettato</AdmBadge>}
+      </div>
+
+      {a && (
+        <div style={{marginTop:12}}>
+          <DataRow label={visione ? 'Versione visionata' : 'Versione accettata'}
+            value={fotoPiano ? (PIANI.find(x => x.id === a.v) || {label:a.v}).label : 'v' + a.v} mono/>
+          <DataRow label="Quando" value={fmtDateTime(a.quando)}/>
+          {/* La tacita non ha una persona: è la sua debolezza, e la riga la
+              dichiara invece di nasconderla dietro un trattino qualunque. */}
+          <DataRow label="Chi" value={a.nome ? `${a.nome} · ${a.ruolo} · ${a.email}` : 'Nessuno — uso del servizio dopo la data di efficacia'}/>
+          <DataRow label="Da dove" value={`${CTR_SUPERFICI[a.superficie] || a.superficie} · IP ${a.ip}`} last={allineato && !tacita}/>
+          {tacita && vAcc && (
+            <div style={{marginTop:10, padding:'9px 12px', borderRadius:9, background:ADM.WARN_SOFT, color:'#92400E', fontSize:12.6, lineHeight:1.5}}>
+              Nessuna dichiarazione di poteri (art. 3): vale il solo uso successivo all'efficacia
+              {vAcc.peggiorativa && <> — su una <b>modifica peggiorativa</b>, con recesso esercitabile fino al {fmtDate(vAcc.efficace)}</>}.
+            </div>
+          )}
+          {/* A contratto cessato la versione corrente non gli è dovuta:
+              niente allarme di disallineamento su un churned. E su
+              un'INFORMATIVA niente art. 15: si riceve, non si accetta — la
+              versione nuova si segnala senza suonare nessun allarme. */}
+          {!allineato && sog.stato !== 'churned' && (doc.informativa ? (
+            <div style={{marginTop:10, padding:'9px 12px', borderRadius:9, background:ADM.NEUTRAL_SOFT,
+              color:ADM.MUTED, fontSize:12.6, lineHeight:1.5}}>
+              Pubblicata la v{corrente.v}: la presa visione si registra al prossimo accesso. Nessun preavviso dovuto.
+            </div>
+          ) : (
+            <div style={{marginTop:10, padding:'9px 12px', borderRadius:9,
+              background: pRel && ctrEsito(pRel) === 'in-corso' ? ADM.INFO_SOFT : ADM.WARN_SOFT,
+              color: pRel && ctrEsito(pRel) === 'in-corso' ? ADM.INFO : '#92400E', fontSize:12.6, lineHeight:1.5}}>
+              {pRel
+                ? (ctrEsito(pRel) === 'in-corso'
+                    ? <>Non allineato alla v{corrente.v}: preavviso inviato il {fmtDate(pRel.inviato)}, finestra aperta fino al {fmtDate(pRel.efficace)} ({ctrGiorni(pRel.efficace)} giorni).</>
+                    : <>Non allineato alla v{corrente.v}: preavviso del {fmtDate(pRel.inviato)} <b>scaduto senza risposta</b> il {fmtDate(pRel.efficace)}.</>)
+                : <>Non allineato alla v{corrente.v}: <b>nessun preavviso risulta inviato</b> — l'art. 15 lo dovrebbe.</>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{marginTop:12, display:'flex', justifyContent:'flex-end'}}>
+        <AdmButton variant="ghost" size="sm" icon="eye" disabled={!a}
+          onClick={() => onApri({ doc, a, vAcc })}>
+          {fotoPiano ? 'Apri le condizioni accettate' : a ? `Apri la v${a.v} accettata` : 'Nessuna copia'}
+        </AdmButton>
+      </div>
+    </AdmCard>
+  );
+}
+
+function DrwContratti({ locale: l }) {
+  const [, ridisegna] = useStateDrw(0);
+  const [aperto, setAperto] = useStateDrw(null);       // {doc, a, vAcc} → modale versione
+  const [popup, setPopup] = useStateDrw(false);        // sospensione / revoca
+  const [motivo, setMotivo] = useStateDrw('morosita');
+  const [nota, setNota] = useStateDrw('');
+
+  const codici = CONTRATTI_PER_TIPO.locale;
+  const contrattuali = codici.filter(c => { const d = ctrDoc(c); return d && !d.informativa; });
+  const informative  = codici.filter(c => { const d = ctrDoc(c); return d && d.informativa; });
+
+  // Un pending non ha firmato niente: fascicolo legittimamente vuoto.
+  if (!ACCETTAZIONI.some(a => a.soggettoId === l.id)) return (
+    <div style={{padding:20}}>
+      <AdmCard padding={0}>
+        <AdmEmpty icon="filePdf" title="Nessun contratto"
+          desc="Il locale non ha completato l'attivazione: la firma del pacchetto contrattuale (Piano, TC-01, DPA-01) avviene in onboarding."/>
+      </AdmCard>
+    </div>
+  );
+
+  const problemi = ctrProblemi(l, codici);
+  const peggiore = problemi[0] || null;
+  const sospAttiva = SOSPENSIONI.find(s => s.soggettoId === l.id && !s.revoca);
+
+  const scrivi = (action, target, icon, color) => {
+    AUDIT_EVENTS.unshift({
+      who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
+      action, target, icon, color, tipo: 'contratto', when: new Date(),
+    });
+  };
+  const confermaSospensione = () => {
+    if (!nota.trim()) return;
+    // Art. 4 contro art. 13: la morosità passa dalla diffida (la sospensione
+    // scatta da sola 15 giorni dopo), gli altri motivi sono immediati.
+    const ora = new Date();
+    SOSPENSIONI.unshift(motivo === 'morosita'
+      ? { soggettoId:l.id, motivo, nota:nota.trim(), diffida:ora, sospesa:null, decisaDa:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', revoca:null }
+      : { soggettoId:l.id, motivo, nota:nota.trim(), diffida:null, sospesa:ora, decisaDa:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', revoca:null });
+    scrivi(motivo === 'morosita' ? 'ha inviato la diffida a' : 'ha sospeso il servizio di',
+      `${l.nome} · ${ctrMotivoLabel(motivo)}`, 'lock', 'DANGER');
+    setPopup(false); setNota(''); ridisegna(x => x + 1);
+  };
+  const confermaRevoca = () => {
+    if (!nota.trim() || !sospAttiva) return;
+    sospAttiva.revoca = { quando:new Date(), who:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', nota:nota.trim() };
+    scrivi('ha revocato la sospensione di', l.nome, 'check', 'OK');
+    setPopup(false); setNota(''); ridisegna(x => x + 1);
+  };
+
+  // Lo storico: accettazioni, preavvisi col loro esito, sospensioni e
+  // revoche, in un solo filo temporale — è la narrazione che si racconta a
+  // un auditor, e una narrazione ha un ordine solo.
+  const storico = [
+    ...ACCETTAZIONI.filter(a => a.soggettoId === l.id).map(a => ({
+      when: a.quando, icona: a.tipo === 'tacita' ? 'clock' : 'check',
+      color: a.tipo === 'tacita' ? 'WARN' : a.tipo === 'presa-visione' ? 'INFO' : 'OK',
+      testo: a.tipo === 'presa-visione'
+        ? `Presa visione ${a.codice} v${a.v}`
+        : a.codice === 'PIANO'
+          ? `Attivazione piano ${(PIANI.find(x => x.id === a.v) || {label:a.v}).label}`
+          : `Accettazione ${a.tipo} ${a.codice} v${a.v}`,
+      sub: a.nome ? `${a.nome} (${a.ruolo}) · ${CTR_SUPERFICI[a.superficie] || a.superficie}` : `Uso successivo · ${CTR_SUPERFICI[a.superficie] || a.superficie}`,
+    })),
+    ...PREAVVISI.filter(p => p.soggettoId === l.id).map(p => {
+      const e = CTR_ESITI[ctrEsito(p)];
+      return { when: p.inviato, icona:'send', color: e.color,
+        testo: p.tipo === 'sub-responsabile'
+          ? `Preavviso sub-responsabile (art. 5 DPA) — ${e.label.toLowerCase()}`
+          : p.tipo === 'listino'
+            ? `Preavviso di listino${p.oltreFoi ? ' oltre FOI' : ''} (art. 4) — ${e.label.toLowerCase()}`
+            : `Preavviso ${p.codice} v${p.v} — ${e.label.toLowerCase()}`,
+        sub: (p.sub ? p.sub + ' · ' : '') + `efficace ${fmtDate(p.efficace)}` + (p.nota ? ` · ${p.nota}` : '') };
+    }),
+    ...SOSPENSIONI.filter(s => s.soggettoId === l.id).flatMap(s => [
+      { when: s.diffida || s.sospesa, icona:'lock', color:'DANGER',
+        testo: s.diffida ? 'Diffida per morosità (art. 4)' : `Sospensione — ${ctrMotivoLabel(s.motivo).toLowerCase()}`,
+        sub: `${s.decisaDa} · ${s.nota}` },
+      ...(s.diffida && s.sospesa ? [{ when: s.sospesa, icona:'lock', color:'DANGER', testo:'Sospensione del servizio', sub:'15 giorni dopo la diffida, come da art. 4' }] : []),
+      ...(s.revoca ? [{ when: s.revoca.quando, icona:'check', color:'OK', testo:'Revoca della sospensione', sub:`${s.revoca.who} · ${s.revoca.nota}` }] : []),
+    ]),
+  ].sort((a, b) => b.when - a.when);
+
+  const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
+  const lab = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
+
+  return (
+    <div style={{padding:20, display:'flex', flexDirection:'column', gap:14}}>
+
+      {/* Lo stato in cima: il caso peggiore per esteso, gli altri come chip.
+          Un elenco piatto qui costringerebbe a leggere per capire se c'è un
+          problema: il colore deve bastare. */}
+      {peggiore ? (
+        <div style={{padding:'14px 16px', borderRadius:12, display:'flex', gap:12, alignItems:'flex-start',
+          background: ADM[peggiore.color + '_SOFT'], border:`1px solid ${ADM[peggiore.color]}40`}}>
+          <div style={{width:34, height:34, borderRadius:9, background:ADM[peggiore.color], color:'#fff', display:'grid', placeItems:'center', flexShrink:0}}>
+            {React.createElement(BuIcons[peggiore.icona] || BuIcons.alertTriangle, { size: 19 })}
+          </div>
+          <div style={{flex:1, minWidth:200}}>
+            <div style={{fontSize:13.6, fontWeight:600, color:ADM.TEXT, lineHeight:1.5}}>{peggiore.testo}</div>
+            {problemi.length > 1 && (
+              <div style={{display:'flex', gap:6, flexWrap:'wrap', marginTop:8}}>
+                {problemi.slice(1).map((p, i) => <AdmBadge key={i} color={p.color} size="xs">{p.chip}</AdmBadge>)}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div style={{padding:'12px 16px', borderRadius:12, display:'flex', gap:10, alignItems:'center',
+          background:ADM.OK_SOFT, border:`1px solid ${ADM.OK}40`, fontSize:13.4, fontWeight:600, color:ADM.TEXT}}>
+          <BuIcons.check size={17} color={ADM.OK}/> Tutte le versioni correnti risultano accettate esplicitamente.
+        </div>
+      )}
+
+      {/* I documenti nell'ordine di PREVALENZA dell'art. 1 — Piano, TC, DPA —
+          non in quello alfabetico: in un conflitto fra clausole vince chi
+          sta più in alto in questa lista. */}
+      {contrattuali
+        .map(ctrDoc).sort((a, b) => a.prevalenza - b.prevalenza)
+        .map(d => <CtrRigaDoc key={d.codice} sog={l} codice={d.codice} onApri={setAperto}/>)}
+
+      {/* Le informative, a parte: si RICEVONO, non si accettano — niente
+          prevalenza, niente finestre di recesso, etichetta «presa visione». */}
+      <div style={{fontSize:11.5, fontWeight:800, letterSpacing:'0.07em', textTransform:'uppercase', color:ADM.MUTED_SOFT, marginTop:4}}>Informative</div>
+      {informative.map(c => <CtrRigaDoc key={c} sog={l} codice={c} onApri={setAperto}/>)}
+
+      {/* Sospensione: l'unica azione scrivibile della tab. */}
+      <AdmCard padding={18}>
+        <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+          <div style={{flex:1, minWidth:220}}>
+            <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Sospensione del servizio</div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
+              {sospAttiva
+                ? (sospAttiva.sospesa
+                    ? `In corso dal ${fmtDate(sospAttiva.sospesa)} · ${ctrMotivoLabel(sospAttiva.motivo)} · decisa da ${sospAttiva.decisaDa}`
+                    : `Diffida del ${fmtDate(sospAttiva.diffida)} · la sospensione scatta il ${fmtDate(new Date(sospAttiva.diffida.getTime() + 15 * 86400000))}`)
+                : 'Nessuna sospensione in corso. Motivi tipizzati dall\'art. 13; la morosità passa dalla diffida dell\'art. 4.'}
+            </div>
+          </div>
+          {sospAttiva
+            ? <AdmButton variant="secondary" size="sm" icon="check" onClick={() => { setPopup('revoca'); setNota(''); }}>Revoca sospensione</AdmButton>
+            : <AdmButton variant="danger" size="sm" icon="lock" onClick={() => { setPopup('sospendi'); setNota(''); setMotivo('morosita'); }}>Sospendi</AdmButton>}
+        </div>
+      </AdmCard>
+
+      {/* Lo storico, in fondo: il filo temporale completo. */}
+      <AdmCard padding={0}>
+        <div style={{padding:'14px 18px 10px', fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>Storico contrattuale</div>
+        {storico.map((e, i) => (
+          <div key={i} style={{display:'flex', gap:12, padding:'10px 18px', borderTop:`1px solid ${ADM.BORDER_SOFT}`, alignItems:'flex-start'}}>
+            <span style={{width:28, height:28, borderRadius:8, flexShrink:0, display:'grid', placeItems:'center',
+              background:ADM[e.color + '_SOFT'], color:ADM[e.color]}}>
+              {React.createElement(BuIcons[e.icona] || BuIcons.filePdf, { size: 15 })}
+            </span>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:13.2, fontWeight:600, color:ADM.TEXT}}>{e.testo}</div>
+              <div style={{fontSize:12, color:ADM.MUTED, marginTop:1, lineHeight:1.45}}>{e.sub}</div>
+            </div>
+            <span style={{fontSize:12, color:ADM.MUTED_SOFT, whiteSpace:'nowrap', flexShrink:0}} title={fmtDateTime(e.when)}>{fmtDate(e.when)}</span>
+          </div>
+        ))}
+      </AdmCard>
+
+      {/* La copia conservata (art. 3): si apre ESATTAMENTE la versione
+          accettata, non quella di oggi. Il testo integrale nel mock non
+          esiste e non si finge: intestazione, date e riga dei cambiamenti
+          SONO la scheda della copia. */}
+      {aperto && (
+        <div onClick={() => setAperto(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e => e.stopPropagation()} style={{width:560, maxWidth:'94%', background:'#fff', borderRadius:14,
+            boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', padding:22}}>
+            <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:14}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT}}>{aperto.doc.nome}</div>
+                <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:1}}>
+                  {aperto.doc.codice}{aperto.doc.particolare ? '' : ` · v${aperto.a.v}`} · copia conservata da Byup (art. 3)
+                </div>
+              </div>
+              {aperto.vAcc && aperto.vAcc.peggiorativa && <AdmBadge color="WARN" size="xs">Peggiorativa</AdmBadge>}
+              <AdmIconBtn icon="x" onClick={() => setAperto(null)} label="Chiudi"/>
+            </div>
+            {aperto.doc.particolare ? (() => {
+              // La fotografia delle condizioni particolari. I coefficienti di
+              // peso CI DEVONO essere: è la clausola su cui nascerà il
+              // contenzioso, non un dettaglio tecnico. Il mock non versiona il
+              // listino: la fotografia usa i valori correnti del piano.
+              const p = PIANI.find(x => x.id === aperto.a.v) || {};
+              return (
+                <div>
+                  <DataRow label="Piano" value={p.label || aperto.a.v}/>
+                  <DataRow label="Canone (fatturazione annuale)" value={fmtEur(p.price) + ' /mese + IVA'}/>
+                  <DataRow label="Canone (mensile puro)" value={fmtEur(p.priceMensile) + ' /mese + IVA'}/>
+                  <DataRow label="Transazioni pesate incluse" value={fmtNum(p.ordiniInclusi)}/>
+                  <DataRow label="Corrispettivo per transazione eccedente" value={fmtEur(p.ordineExtra) + ' + IVA'}/>
+                  <DataRow label="Coefficienti di peso" value="0,5 ordine pagato in app · 1,0 cassa e cameriere" last/>
+                  <div style={{marginTop:12, fontSize:12.2, color:ADM.MUTED_SOFT, lineHeight:1.5}}>
+                    Accettate il {fmtDateTime(aperto.a.quando)} da {aperto.a.nome} ({aperto.a.ruolo}).
+                  </div>
+                </div>
+              );
+            })() : (
+              <div>
+                <DataRow label="Versione" value={'v' + aperto.a.v} mono/>
+                <DataRow label="Pubblicata" value={fmtDate(aperto.vAcc.pubblicata)}/>
+                <DataRow label="Efficace dal" value={fmtDate(aperto.vAcc.efficace)}/>
+                <DataRow label="Che cosa è cambiato" value={aperto.vAcc.cambiamento} last/>
+                <div style={{marginTop:12, fontSize:12.2, color:ADM.MUTED_SOFT, lineHeight:1.5}}>
+                  {aperto.a.tipo === 'tacita'
+                    ? <>Vincolante per uso successivo dal {fmtDateTime(aperto.a.quando)} (art. 15) — nessuna sottoscrizione individuale.</>
+                    : <>{aperto.a.tipo === 'presa-visione' ? 'Presa visione' : 'Accettata'} il {fmtDateTime(aperto.a.quando)}{aperto.a.nome ? <> da {aperto.a.nome} ({aperto.a.ruolo})</> : null}.</>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Sospensione / revoca: motivo da elenco CHIUSO e nota OBBLIGATORIA,
+          come il rimborso di Fatturazione — un'azione che tocca un contratto
+          senza una ragione scritta non è auditabile. */}
+      {popup && (
+        <div onClick={() => setPopup(false)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e => e.stopPropagation()} style={{width:460, maxWidth:'94%', background:'#fff', borderRadius:14,
+            boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', padding:22}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>
+              {popup === 'revoca' ? 'Revoca la sospensione' : 'Sospendi il servizio'}
+            </div>
+            <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
+              {popup === 'revoca'
+                ? 'La revoca riattiva il servizio e resta a registro con la sua motivazione.'
+                : 'Per la morosità parte la diffida: la sospensione scatta da sola dopo 15 giorni (art. 4). Gli altri motivi sospendono con effetto immediato (art. 13).'}
+            </div>
+            {popup === 'sospendi' && (
+              <div style={{marginBottom:12}}>
+                <span style={lab}>Motivo (art. 13)</span>
+                <AdmSelect value={motivo} onChange={setMotivo} options={CTR_MOTIVI} block/>
+              </div>
+            )}
+            <div style={{marginBottom:14}}>
+              <span style={lab}>Nota obbligatoria</span>
+              <textarea value={nota} onChange={e => setNota(e.target.value)} rows={3}
+                placeholder={popup === 'revoca' ? 'Perché il motivo è rientrato' : 'I fatti che motivano la decisione'}
+                style={Object.assign({}, inp, {resize:'vertical'})}/>
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="sm" onClick={() => setPopup(false)}>Annulla</AdmButton>
+              {popup === 'revoca'
+                ? <AdmButton variant="primary" size="sm" icon="check" disabled={!nota.trim()} onClick={confermaRevoca}>Revoca</AdmButton>
+                : <AdmButton variant="danger" size="sm" icon="lock" disabled={!nota.trim()} onClick={confermaSospensione}>
+                    {motivo === 'morosita' ? 'Invia diffida' : 'Sospendi ora'}
+                  </AdmButton>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 window.LocaleDrawer = LocaleDrawer;
+window.DrwContratti = DrwContratti;

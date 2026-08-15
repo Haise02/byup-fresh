@@ -8,7 +8,7 @@ Entry: [byup-spot.html](byup-spot.html). Per chi: il team di byup.
 > sono la specifica del sistema. Per l'architettura e i flussi si parte dai
 > documenti, non da questo codice.
 
-*Contenuto verificato contro il codice il 2026-08-14.*
+*Contenuto verificato contro il codice il 2026-08-15.*
 
 ---
 
@@ -36,13 +36,15 @@ un pannello che si apre passandoci sopra col mouse.
 
 | Sezione | Cosa contiene |
 |---|---|
-| **Dashboard** | La panoramica trasversale: che cosa chiede una decisione oggi, il team IA, gli elenchi più popolati, le ultime campagne, i workflow al lavoro, la rubrica per ciclo di vita, i consensi |
 | **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato |
-| **Contatti** → | **Contatti** (la rubrica), **Elenchi** (segmenti attivi e liste statiche), **Proprietà** |
-| **Marketing** → | **Mail**, **SMS**, **Push**, **Form**, **Campagne di acquisizione** |
+| **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche), **Proprietà**. Il dettaglio di un locale è una scheda CRM a tab: Anagrafica, Proprietà, Panoramica, Attività, Certificazioni, **Contratti** (il fascicolo contrattuale: versioni accettate contro correnti, esplicita/tacita, preavvisi con finestre e scadenze, sospensioni tipizzate art. 13, storico — dati in `DOCUMENTI`/`ACCETTAZIONI`/`PREAVVISI`/`SOSPENSIONI` di admin-data.jsx, casi limite fissati in `CTR_CASI`), Fatturazione & Piano |
+| **Marketing** → | **Mail**, **SMS**, **Push**, **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
 | **Agent** | Agenti IA sui dati della piattaforma e cruscotto del team |
 | **Assistenza** | Quattro tab: Chiamate, Ticket, FAQ, Guide |
+
+La **Dashboard** (panoramica trasversale, `hub-panoramica.jsx`) è stata tolta
+dalla barra il 2026-08-15: il file resta caricato ma nessuna rotta lo monta.
 
 Nel **menu del profilo** (card in fondo alla barra): Il mio profilo, Domini e
 mittenti, Proprietà, **Sicurezza e sistemi**, **Piattaforma**.
@@ -83,7 +85,7 @@ ricarica non si può né leggere né filtrare.
 | `admin-icons.jsx` | Icone di contorno (`ICON_PATHS`) e piene per la barra (`ICON_FILLED`). Le piene accettano anche `rect:` e `circle:`; i **fori** vanno fatti con `evenodd` dentro lo **stesso** `path` |
 | `hub-data.jsx` | Proprietà, operatori, motore dei filtri, e i mock di elenchi, mail, SMS, push, form, workflow, agenti, domini |
 | `hub-ui.jsx` | Modale, pannello laterale, pannello dei filtri, modale delle colonne, tabella, testate, riquadri |
-| `hub-panoramica.jsx` | La Dashboard |
+| `hub-panoramica.jsx` | La vecchia Dashboard (caricato, non più montato) |
 | `hub-elenchi.jsx` | Elenchi: lista, dettaglio, creazione con conteggio dal vivo |
 | `hub-mail-builder.jsx` | Il costruttore visuale delle email e il generatore di HTML |
 | `hub-marketing.jsx` | Mail, SMS, Push, Form |

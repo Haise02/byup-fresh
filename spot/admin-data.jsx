@@ -1161,6 +1161,218 @@ const TOTAL_REVENUE_HISTORICAL = {
   meseAvvio: 'Dic 2024',
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTRATTI · il fascicolo contrattuale dei contatti
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Non un archivio di PDF: l'evidenza che si esibisce in un contenzioso o a un
+// auditor P2B — che cosa il contatto aveva accettato, in quale versione, e se
+// il preavviso dovuto è stato dato nei termini.
+//
+// ⚠ RICOSTRUZIONI: i documenti reali del 04/08/2026 sono TC-01 v0.22, DPA-01
+// v0.9, INF-02 v0.5. Tutte le versioni PRECEDENTI (v0.20/v0.21, v0.8, v0.4),
+// le loro date e le righe «cosa è cambiato» sono invenzioni di comodo del
+// mock: servono a far esistere lo storico, non documentano nulla di reale.
+
+// Le date di pubblicazione sono fatti di calendario, non offset da oggi: qui
+// niente ri-ancoraggio. Mese 1-based per leggerle come si scrivono.
+const ctrData = (g, m, y, h, min) => new Date(y, m - 1, g, h || 10, min || 0);
+
+const DOCUMENTI = [
+  // L'ordine di prevalenza è dell'art. 1 TC-01 — (1) Piano, (2) TC, (3) DPA —
+  // ed è un numero esplicito, non l'ordine dell'array: è una regola
+  // contrattuale, non una coincidenza di scrittura. Le informative non sono
+  // nell'elenco dell'art. 1: si RICEVONO, non si accettano (flag
+  // `informativa`), e vanno rese in una sezione a parte, senza finestre.
+  { codice:'PIANO',  nome:'Condizioni particolari di attivazione', destinatario:'locale', prevalenza:1, particolare:true },
+  { codice:'TC-01',  nome:'Termini e Condizioni di servizio',      destinatario:'locale', prevalenza:2, versioni:[
+    { v:'0.20', pubblicata:ctrData(6,10,2025),  efficace:ctrData(5,11,2025), peggiorativa:false,
+      cambiamento:'Prima versione a catalogo (ricostruzione).' },
+    // La peggiorativa sta QUI, nel passato, e non sulla corrente: se fosse la
+    // v0.22, ogni locale non ancora allineato avrebbe una finestra di recesso
+    // aperta e il banner urlerebbe su mezza rubrica.
+    { v:'0.21', pubblicata:ctrData(9,2,2026),   efficace:ctrData(11,3,2026), peggiorativa:true,
+      cambiamento:'Ridotti i massimali di responsabilità; finestra di contestazione degli addebiti da 60 a 30 giorni.' },
+    { v:'0.22', pubblicata:ctrData(4,8,2026),   efficace:ctrData(3,9,2026),  peggiorativa:false,
+      cambiamento:'Recepito il canale Ticket dell\'assistenza; chiarito il calcolo delle transazioni pesate. Nessuna modifica economica.' },
+  ]},
+  { codice:'DPA-01', nome:'Accordo sul trattamento dati (art. 28)', destinatario:'locale', prevalenza:3, versioni:[
+    { v:'0.8', pubblicata:ctrData(19,1,2026), efficace:ctrData(18,2,2026), peggiorativa:false,
+      cambiamento:'Prima versione a catalogo (ricostruzione).' },
+    { v:'0.9', pubblicata:ctrData(4,8,2026),  efficace:ctrData(3,9,2026),  peggiorativa:false,
+      cambiamento:'Aggiornato l\'elenco dei sub-responsabili e i termini di notifica delle violazioni.' },
+  ]},
+  // Per un'informativa l'efficacia coincide con la pubblicazione: non c'è
+  // preavviso da attendere né recesso da esercitare.
+  { codice:'INF-02', nome:'Informativa privacy business', destinatario:'locale', prevalenza:4, informativa:true, versioni:[
+    { v:'0.4', pubblicata:ctrData(2,3,2026), efficace:ctrData(2,3,2026), peggiorativa:false,
+      cambiamento:'Prima versione a catalogo (ricostruzione).' },
+    { v:'0.5', pubblicata:ctrData(4,8,2026), efficace:ctrData(4,8,2026), peggiorativa:false,
+      cambiamento:'Aggiornata la sezione sui tempi di conservazione.' },
+  ]},
+  // Staff e utenti app: catalogati ORA perché il componente riceva l'elenco
+  // giusto per tipo, popolati quando le loro tab arriveranno. Versione unica
+  // corrente: lo storico di questi non è ancora stato ricostruito.
+  { codice:'TOS-02', nome:'Termini di servizio utente staff', destinatario:'staff',  prevalenza:1, versioni:[
+    { v:'0.7', pubblicata:ctrData(4,8,2026), efficace:ctrData(3,9,2026), peggiorativa:false, cambiamento:'Versione corrente.' } ]},
+  { codice:'TOS-01', nome:'Termini di servizio utente app',   destinatario:'utente', prevalenza:1, versioni:[
+    { v:'1.1', pubblicata:ctrData(4,8,2026), efficace:ctrData(3,9,2026), peggiorativa:false, cambiamento:'Versione corrente.' } ]},
+  { codice:'INF-01', nome:'Informativa privacy consumer', destinatario:'utente', prevalenza:2, informativa:true, versioni:[
+    { v:'0.6', pubblicata:ctrData(4,8,2026), efficace:ctrData(4,8,2026), peggiorativa:false, cambiamento:'Versione corrente.' } ]},
+];
+
+// Il set pertinente per tipo di contatto. Lo staff ha un contratto DIRETTO
+// con Byup, indipendente dal locale che lo associa; l'utente app aggiunge i
+// consensi facoltativi, che però vivono già nelle proprietà del CRM.
+const CONTRATTI_PER_TIPO = {
+  locale: ['PIANO', 'TC-01', 'DPA-01', 'INF-02'],
+  staff:  ['TOS-02', 'INF-02'],
+  utente: ['TOS-01', 'INF-01'],
+};
+
+// I casi limite vivono su id FISSI, non sul caso del seme: devono esserci a
+// ogni ricarica e potersi nominare in una demo. Gli id sono agganciati al
+// build deterministico di LOCALI di oggi (L1017-23 attivi, L1044-46
+// inattivi): se la distribuzione degli stati cambia, questi vanno rivisti.
+const CTR_CASI = {
+  fermoSenzaPreavviso:  'L1021', // fermo a v0.21 e MAI notificato della v0.22: il buco è nostro
+  tacitaSuPeggiorativa: 'L1023', // mai cliccato la v0.21 peggiorativa: solo uso successivo (art. 15)
+  scadutoSenzaRisposta: 'L1046', // preavviso v0.21 scaduto; dall'11/03 solo token dispositivo (KDS),
+                                 // e un token non è una persona: niente tacita
+  sospesoMorosita:      'L1045', // diffida 21/07, sospeso 05/08 (art. 4)
+  sospensioneRevocata:  'L1044', // rischio sicurezza, immediata (art. 13) e poi revocata
+  subOpposto:           'L1022', // opposizione documentata a un sub-responsabile (art. 5 DPA)
+  subRecesso:           'L1017', // recesso LIMITATO ai servizi interessati, non churn
+  listinoOltreFoi:      'L1020', // aumento sopra l'indice FOI, accettato: il recesso c'era e non è stato usato
+};
+
+const { ACCETTAZIONI, PREAVVISI, SOSPENSIONI } = (() => {
+  const acc = [], pre = [], sosp = [];
+  const seme = (id) => { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return h; };
+  const ip = (s) => '93.' + (40 + s % 20) + '.' + ((s >> 3) % 200) + '.' + (10 + ((s >> 7) % 240));
+  // L'orario si FISSA (9-18), non si somma: un'accettazione alle 03:08 non
+  // si è mai vista e in un'evidenza si noterebbe.
+  const ORA = (d, s) => { const x = new Date(d); x.setHours(9 + s % 10, s % 60, 0, 0); return x; };
+  // Chi agisce «in nome e per conto dell'Esercente dichiarando di averne i
+  // poteri» (art. 3): quasi sempre il titolare; ogni tanto un responsabile
+  // delegato, perché il campo `ruolo` deve dimostrare di esistere.
+  const RESP = ['Davide Neri', 'Martina Villa', 'Stefano Gatti'];
+  const persona = (l, s) => (s % 7 === 0)
+    ? { nome: RESP[s % RESP.length], ruolo: 'Responsabile delegato' }
+    : { nome: l.titolare, ruolo: 'Titolare' };
+
+  const tc  = DOCUMENTI.find(d => d.codice === 'TC-01').versioni;
+  const dpa = DOCUMENTI.find(d => d.codice === 'DPA-01').versioni;
+  const inf = DOCUMENTI.find(d => d.codice === 'INF-02').versioni;
+
+  LOCALI.forEach(l => {
+    // Un pending non ha firmato niente: il suo fascicolo è legittimamente vuoto.
+    if (l.stato === 'pending') return;
+    const s = seme(l.id);
+    const p = persona(l, s);
+    const firma = (codice, v, quando, superficie, tipo) => acc.push({
+      soggettoId: l.id, codice, v, tipo: tipo || 'esplicita', quando,
+      nome: p.nome, ruolo: p.ruolo, email: l.email, ip: ip(s), superficie,
+    });
+
+    // All'attivazione si firma il pacchetto intero: Piano, TC e DPA nella
+    // versione allora corrente, informativa in presa visione. Per gli iscritti
+    // PRIMA del catalogo, la prima firma a registro è la versione più vecchia
+    // ricostruita, alla sua efficacia.
+    const dopo = (vv) => l.dataIscrizione.getTime() >= vv.pubblicata.getTime();
+    const tcFirma  = [...tc].reverse().find(dopo)  || null;
+    const dpaFirma = [...dpa].reverse().find(dopo) || null;
+    const infFirma = [...inf].reverse().find(dopo) || null;
+    const tIscr = ORA(l.dataIscrizione, s);
+    firma('PIANO', l.piano, tIscr, 'onboarding');
+    firma('TC-01',  (tcFirma  || tc[0]).v,  tcFirma  ? tIscr : ORA(tc[0].efficace, s),  tcFirma  ? 'onboarding' : 'gestionale');
+    firma('DPA-01', (dpaFirma || dpa[0]).v, dpaFirma ? tIscr : ORA(dpa[0].efficace, s), dpaFirma ? 'onboarding' : 'gestionale');
+    firma('INF-02', (infFirma || inf[0]).v, infFirma ? tIscr : ORA(inf[0].efficace, s), infFirma ? 'onboarding' : 'gestionale', 'presa-visione');
+
+    // Ogni versione successiva alla firma apre un preavviso di 30 giorni
+    // (art. 15). L'esito «scaduto senza risposta» NON si scrive: si deriva
+    // dall'orologio, così la schermata non mente mai rispetto a oggi. Un
+    // churned riceve i preavvisi partiti PRIMA della cessazione — mentre era
+    // vivo il contratto correva anche per lui.
+    const transizione = (codice, vv, chain) => {
+      const cessato = l.stato === 'churned' ? new Date(l.lastLogin.getTime() + 30 * 86400000) : null;
+      if (cessato && vv.pubblicata.getTime() > cessato.getTime()) return;
+      const base = chain === 'tc' ? (tcFirma || tc[0]) : (dpaFirma || dpa[0]);
+      if (vv.v <= base.v) return;                      // versione di firma (o precedente): nessuna transizione
+      if (codice === 'TC-01' && vv.v === '0.22' && l.id === CTR_CASI.fermoSenzaPreavviso) return; // il buco di notifica
+      const daAccettare = !(
+        (vv.v === '0.21' && (l.id === CTR_CASI.tacitaSuPeggiorativa || l.id === CTR_CASI.scadutoSenzaRisposta)) ||
+        // Finestra ancora aperta: ha già cliccato solo un attivo su cinque.
+        // Un inattivo non clicca niente — non entra proprio.
+        (vv.efficace.getTime() > Date.now() && (s % 5 !== 0 || l.stato !== 'active'))
+      );
+      pre.push({
+        soggettoId: l.id, tipo: 'termini', codice, v: vv.v, sub: null,
+        inviato: vv.pubblicata, efficace: vv.efficace,
+        esito: daAccettare ? 'accettato' : 'in-corso', nota: null,
+      });
+      if (daAccettare) {
+        // Il click arriva qualche giorno dopo la comunicazione — mai nel
+        // futuro: un'evidenza datata domani non è un'evidenza.
+        const t = Math.min(vv.pubblicata.getTime() + (2 + s % 18) * 86400000, Date.now() - 86400000);
+        acc.push({ soggettoId: l.id, codice, v: vv.v, tipo: 'esplicita', quando: ORA(new Date(t), s),
+          nome: p.nome, ruolo: p.ruolo, email: l.email, ip: ip(s), superficie: 'gestionale' });
+      }
+    };
+    tc.forEach(vv => transizione('TC-01', vv, 'tc'));
+    dpa.forEach(vv => transizione('DPA-01', vv, 'dpa'));
+    // L'informativa nuova non apre finestre: chi rientra dopo la
+    // pubblicazione la prende in visione al primo accesso.
+    if (infFirma && infFirma.v < inf[inf.length - 1].v && l.stato === 'active' && s % 3 !== 0) {
+      firma('INF-02', inf[inf.length - 1].v, ORA(ctrData(5 + s % 9, 8, 2026), s), 'gestionale', 'presa-visione');
+    }
+  });
+
+  // La tacita dell'art. 15 non ha una persona — è ESATTAMENTE ciò che la
+  // rende più debole: manca la dichiarazione di poteri dell'art. 3. Restano
+  // come evidenza il primo uso autenticato successivo all'efficacia, la
+  // superficie e l'IP di quell'uso.
+  acc.push({ soggettoId: CTR_CASI.tacitaSuPeggiorativa, codice: 'TC-01', v: '0.21',
+    tipo: 'tacita', quando: ctrData(14, 3, 2026, 11, 12),
+    nome: null, ruolo: null, email: null, ip: '93.51.114.86', superficie: 'gestionale' });
+
+  // Preavvisi fuori serie: sub-responsabili (art. 5 DPA) e listino (art. 4).
+  pre.push(
+    { soggettoId: CTR_CASI.subOpposto, tipo: 'sub-responsabile', codice: 'DPA-01', v: null,
+      sub: 'CDN media assets — nuovo sub-responsabile hosting', inviato: ctrData(15, 6, 2026), efficace: ctrData(15, 7, 2026),
+      esito: 'opposto', nota: 'Opposizione documentata: il locale richiede hosting in territorio UE con certificazione ISO 27001, il fornitore proposto non la esibisce.' },
+    { soggettoId: CTR_CASI.subRecesso, tipo: 'sub-responsabile', codice: 'DPA-01', v: null,
+      sub: 'CDN media assets — nuovo sub-responsabile hosting', inviato: ctrData(15, 6, 2026), efficace: ctrData(15, 7, 2026),
+      esito: 'recesso', nota: 'Nessuna alternativa disponibile: recesso limitato al modulo media (art. 5 DPA), il resto del servizio prosegue.' },
+    { soggettoId: CTR_CASI.listinoOltreFoi, tipo: 'listino', codice: 'PIANO', v: null, sub: null,
+      inviato: ctrData(10, 6, 2026), efficace: ctrData(10, 7, 2026), oltreFoi: true,
+      esito: 'accettato', nota: null },
+  );
+
+  // Sospensioni: la morosità segue la cadenza dell'art. 4 (diffida → 15gg →
+  // sospensione → 15gg → risoluzione); gli altri motivi dell'art. 13 sono
+  // «con effetto immediato e dandone comunicazione» — niente diffida.
+  sosp.push(
+    { soggettoId: CTR_CASI.sospesoMorosita, motivo: 'morosita',
+      nota: 'Tre canoni consecutivi insoluti dopo il fallimento dei riaddebiti automatici.',
+      diffida: ctrData(21, 7, 2026), sospesa: ctrData(5, 8, 2026), decisaDa: 'Giulia Romano', revoca: null },
+    { soggettoId: CTR_CASI.sospensioneRevocata, motivo: 'rischio-sicurezza',
+      nota: 'Credenziali del titolare comparse in un data breach di terzi: accesso congelato in via cautelativa.',
+      diffida: null, sospesa: ctrData(10, 5, 2026), decisaDa: 'Marco Rinaldi',
+      revoca: { quando: ctrData(18, 5, 2026), who: 'Marco Rinaldi', nota: 'Password ruotata e 2FA attivata: rischio rientrato.' } },
+  );
+
+  return { ACCETTAZIONI: acc, PREAVVISI: pre, SOSPENSIONI: sosp };
+})();
+
+// La cessazione di un churned non è l'ultimo accesso: la disdetta parte
+// quando il locale smette di usare il servizio, ma l'effetto arriva al
+// rinnovo, 30 giorni dopo (art. 5). Da qui partono i due contatori del DPA
+// (art. 11): esportazione 60 giorni, backup estinti in 35.
+function ctrCessazione(l) {
+  return l.stato === 'churned' ? new Date(l.lastLogin.getTime() + 30 * 86400000) : null;
+}
+
 window.ONB_STEPS = ONB_STEPS;
 window.REGIONI = REGIONI;
 window.PIANI = PIANI;
@@ -1197,3 +1409,10 @@ window.ESPANSIONE = ESPANSIONE;
 window.TOTAL_REVENUE_HISTORICAL = TOTAL_REVENUE_HISTORICAL;
 window.RIESAME_CORRENTE = RIESAME_CORRENTE;
 window.RIESAMI_CHIUSI = RIESAMI_CHIUSI;
+window.DOCUMENTI = DOCUMENTI;
+window.CONTRATTI_PER_TIPO = CONTRATTI_PER_TIPO;
+window.CTR_CASI = CTR_CASI;
+window.ACCETTAZIONI = ACCETTAZIONI;
+window.PREAVVISI = PREAVVISI;
+window.SOSPENSIONI = SOSPENSIONI;
+window.ctrCessazione = ctrCessazione;

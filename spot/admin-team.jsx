@@ -410,6 +410,7 @@ function InvitiPending() {
 
 const AUDIT_TIPI = [
   { value:'cert',         label:'Certificazioni' },
+  { value:'contratto',    label:'Contratti' },
   { value:'team',         label:'Ruoli & team' },
   { value:'accessi',      label:'Riesame accessi' },
   { value:'segnalazione', label:'Segnalazioni' },
