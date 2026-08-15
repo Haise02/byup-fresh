@@ -16,8 +16,6 @@ const { useState: useStateApp } = React;
 // Cliccando la voce madre si va comunque alla prima figlia — il flyout è una
 // scorciatoia, non un pedaggio.
 const HUB_NAV = [
-  { id: 'panoramica', label: 'Dashboard', icon: 'gridFill',
-    desc: 'I numeri di tutta la piattaforma in una schermata' },
   { id: 'dashboard', label: 'Analisi Dati', icon: 'chartFill',
     desc: 'Sette letture: locali, valore, utenti, mercato' },
   // Una voce sola per l'anagrafe. Locali, Staff e Utenti App erano tre liste
@@ -245,7 +243,7 @@ function hubBriciola(rotta) {
 }
 
 function AdminApp({ tweaks }) {
-  const [route, setRouteRaw] = useStateApp('panoramica');
+  const [route, setRouteRaw] = useStateApp('contatti');
   const [messageModal, setMessageModal] = useStateApp(null);
   const [contattoOpen, setContattoOpen] = useStateApp(null); // {tipo, ref} → drawer in Contatti
   const [commOpen, setCommOpen] = useStateApp(null);
@@ -537,7 +535,6 @@ function AdminApp({ tweaks }) {
         </header>
 
         <div style={{flex:1, overflow:'auto'}}>
-          {route === 'panoramica'   && <HubPanoramicaPage onNav={setRoute}/>}
           {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
           {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
           {route === 'elenchi'      && <HubElenchiPage/>}
