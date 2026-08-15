@@ -213,6 +213,12 @@ function AdmContattiPage({ search, openContatto }) {
   const [filtri, setFiltri] = useStateCnt([]);
   const [pannelloAperto, setPannelloAperto] = useStateCnt(false);
   const [colonneAperte, setColonneAperte] = useStateCnt(false);
+  const [creaAperta, setCreaAperta] = useStateCnt(false);
+  const [tabDett, setTabDett] = useStateCnt('scheda');
+  // I contatti creati a mano entrano davvero in CONTATTI: `rev` è il segnale
+  // che dice alla lista di ricalcolarsi. Un pulsante «Crea» che apre un modulo
+  // e poi non lascia traccia è peggio di un pulsante assente.
+  const [rev, setRev] = useStateCnt(0);
   // L'ordinamento vive nelle INTESTAZIONI: si clicca la cima di una colonna e
   // la lista si ordina su quel campo; un secondo click inverte il verso.
   // A riposo è una rubrica: nomi in ordine alfabetico.
@@ -269,6 +275,11 @@ function AdmContattiPage({ search, openContatto }) {
     if (openContatto) setSelected(openContatto);
   }, [openContatto && openContatto.ref && openContatto.ref.id]);
 
+  // Aprendo un contatto si atterra sempre sulla scheda: restare sul diario di
+  // quello di prima, con davanti il nome di un altro, è il modo più rapido per
+  // leggere la storia sbagliata.
+  useEffectCnt(() => { setTabDett('scheda'); }, [selected && selected.ref && selected.ref.id]);
+
   const effectiveSearch = (localSearch || search || '').trim();
 
   const filtered = useMemoCnt(() => {
@@ -319,7 +330,7 @@ function AdmContattiPage({ search, openContatto }) {
       // deve essere lo stesso a ogni render, o le righe ballano sotto il mouse.
       return segno * cmp(a, b) || a.nome.localeCompare(b.nome);
     });
-  }, [filtri, effectiveSearch, sort]);
+  }, [filtri, effectiveSearch, sort, rev]);
 
   // Click sull'intestazione: nuova colonna → il suo verso naturale (i testi
   // dalla A, il ciclo dal lead in su, le date dalla più recente); stessa
@@ -360,19 +371,43 @@ function AdmContattiPage({ search, openContatto }) {
   if (selected) {
     const chiudi = () => setSelected(null);
     const tipoDef = CNT_TIPI[selected.tipo];
+    // La riga della rubrica che corrisponde a questo dettaglio: il drawer
+    // conosce il locale/staff/utente, ma le proprietà di marketing e il diario
+    // stanno sulla riga, che è quella arricchita.
+    const riga = CONTATTI.find(x => x.ref === selected.ref) || selected.riga;
     return (
       <div style={{padding: 28, display: 'flex', flexDirection: 'column', gap: 14}}>
+        <style>{CNT_CSS}</style>
+        <HubStile/>
         <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
           <CntTorna onClick={chiudi}/>
           <span style={{fontSize: 13.5, color: ADM.MUTED_LIGHT}}>/</span>
           <span style={{fontSize: 13.5, fontWeight: 700, color: ADM.TEXT}}>{selected.ref.nome}</span>
           <CntPillola color={tipoDef.color}>{tipoDef.label}</CntPillola>
+          <div style={{flex: 1}}/>
+          {/* Due viste sullo stesso contatto: CHI È (la scheda, diversa per
+              tipologia) e CHE COSA È SUCCESSO (il diario, uguale per tutti). */}
+          <HubSegmenti attivo={tabDett} onCambia={setTabDett} voci={[
+            { id: 'scheda', label: 'Scheda' },
+            { id: 'attivita', label: 'Attività', conteggio: riga ? hubAttivita(riga).length : 0 },
+          ]}/>
         </div>
-        <AdmCard padding={0} style={{overflow: 'hidden'}}>
-          {selected.tipo === 'locale' && <LocaleDrawer pieno locale={selected.ref} onClose={chiudi}/>}
-          {selected.tipo === 'staff'  && <StaffDrawer  pieno staff={selected.ref}  onClose={chiudi}/>}
-          {selected.tipo === 'utente' && <UtenteDrawer pieno utente={selected.ref} onClose={chiudi}/>}
-        </AdmCard>
+        {tabDett === 'scheda' ? (
+          // I tre drawer sanno leggere i record di byup — un locale con i suoi
+          // addebiti, le sue certificazioni, i suoi passi di onboarding. Un
+          // contatto creato QUI quei campi non li ha, e passarglielo lo mandava
+          // in errore: per lui (e per chiunque non venga dai mock) la scheda è
+          // il listino delle proprietà, che vale per qualunque contatto.
+          cntRecordCompleto(selected) ? (
+            <AdmCard padding={0} style={{overflow: 'hidden'}}>
+              {selected.tipo === 'locale' && <LocaleDrawer pieno locale={selected.ref} onClose={chiudi}/>}
+              {selected.tipo === 'staff'  && <StaffDrawer  pieno staff={selected.ref}  onClose={chiudi}/>}
+              {selected.tipo === 'utente' && <UtenteDrawer pieno utente={selected.ref} onClose={chiudi}/>}
+            </AdmCard>
+          ) : <CntSchedaProprieta riga={riga}/>
+        ) : (
+          <CntAttivita contatto={riga}/>
+        )}
       </div>
     );
   }
@@ -386,7 +421,7 @@ function AdmContattiPage({ search, openContatto }) {
         occhiello="CRM · Rubrica"
         titolo="Contatti"
         sotto="Locali, utenti staff e utenti app in un'unica rubrica. Filtra per qualunque proprietà."
-        azioni={<HubStrumento forte icona="plus">Nuovo contatto</HubStrumento>}/>
+        azioni={<HubStrumento forte icona="plus" onClick={() => setCreaAperta(true)}>Nuovo contatto</HubStrumento>}/>
 
       <AdmCard padding={0}>
         {/* La barra: ricerca a sinistra, gli STRUMENTI a destra — filtri e
@@ -566,6 +601,9 @@ function AdmContattiPage({ search, openContatto }) {
 
       <HubColonne open={colonneAperte} onClose={() => setColonneAperte(false)}
         colonne={colonne} onSalva={cambiaColonne}/>
+
+      <CntCrea open={creaAperta} onChiudi={() => setCreaAperta(false)}
+        onCreato={(riga) => { setRev(r => r + 1); setTabDett('scheda'); setSelected({ tipo: riga.tipo, ref: riga.ref, riga }); }}/>
     </div>
   );
 }
@@ -834,5 +872,404 @@ function ContattoRow({ contatto: c, colonne, griglia, trascinata, onClick, strip
     </div>
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ATTIVITÀ — il diario del contatto
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Ordine di tempo, dal più recente. Ogni riga dice CHE COSA è successo e —
+// quando c'è — su quale link ha cliccato, chi l'ha chiamato, quale workflow
+// gliel'ha mandata. I filtri in cima non nascondono: restringono a un canale,
+// perché la domanda vera è quasi sempre «gli abbiamo già scritto?» oppure
+// «da dove è arrivato?», e sono due letture diverse dello stesso elenco.
+
+function CntAttivita({ contatto }) {
+  const [gruppo, setGruppo] = useStateCnt('tutto');
+  const [rev, setRev] = useStateCnt(0);
+  const [nota, setNota] = useStateCnt('');
+  const [scrivo, setScrivo] = useStateCnt(false);
+
+  if (!contatto) return <HubVuoto icona="clock" titolo="Nessun diario per questo contatto"
+    desc="Le attività si registrano sui contatti della rubrica."/>;
+
+  const tutte = useMemoCnt(() => hubAttivita(contatto), [contatto.key, rev]);
+  const eventi = gruppo === 'tutto' ? tutte
+    : tutte.filter(e => (HUB_ATT_TIPI[e.tipo] || {}).gruppo === gruppo);
+
+  // I numeri in cima escono dal diario stesso: sono la sua sintesi, non un
+  // dato a parte che un giorno potrebbe non tornare.
+  const conta = (t) => tutte.filter(e => e.tipo === t).length;
+  const inviate = conta('mailInviata'), aperte = conta('mailAperta'), click = conta('mailClick');
+
+  // Le righe si raggruppano per giorno: senza, una colonna di quaranta date
+  // ravvicinate diventa illeggibile.
+  const perGiorno = [];
+  eventi.forEach(e => {
+    const g = new Date(e.quando).toDateString();
+    const ultimo = perGiorno[perGiorno.length - 1];
+    if (ultimo && ultimo.g === g) ultimo.righe.push(e);
+    else perGiorno.push({ g, data: e.quando, righe: [e] });
+  });
+
+  const salvaNota = () => {
+    if (!nota.trim()) return;
+    hubAggiungiAttivita(contatto, { tipo: 'nota', titolo: 'Nota di Marco Rinaldi', dettaglio: nota.trim() });
+    setNota(''); setScrivo(false); setRev(r => r + 1);
+  };
+
+  return (
+    <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12}}>
+        <HubTile etichetta="Email ricevute" valore={inviate} icona="mailFill"
+          sotto={inviate ? `${aperte} aperte · ${click} click` : 'Nessun invio finora'}/>
+        <HubTile etichetta="Tasso di apertura" valore={inviate ? mkPc(aperte, inviate) : '—'}
+          tono={inviate && aperte / inviate > 0.4 ? 'OK' : undefined} icona="eye"
+          sotto="Solo le campagne, non le transazionali"/>
+        <HubTile etichetta="Eventi in tutto" valore={tutte.length} icona="clock"
+          sotto={`Dal ${fmtDate(tutte.length ? tutte[tutte.length - 1].quando : new Date())}`}/>
+        <HubTile etichetta="Ultima attività" valore={tutte.length ? fmtRelative(tutte[0].quando) : '—'}
+          icona="refresh" sotto={tutte.length ? (HUB_ATT_TIPI[tutte[0].tipo] || {}).label : ''}/>
+      </div>
+
+      <AdmCard padding={0}>
+        <div style={{padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}`, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap'}}>
+          <HubSegmenti attivo={gruppo} onCambia={setGruppo} voci={HUB_ATT_GRUPPI.map(g => ({
+            id: g.id, label: g.label,
+            conteggio: g.id === 'tutto' ? tutte.length : tutte.filter(e => (HUB_ATT_TIPI[e.tipo] || {}).gruppo === g.id).length,
+          })).filter(g => g.conteggio > 0)}/>
+          <div style={{flex: 1}}/>
+          <HubStrumento icona="pencil" acceso={scrivo} onClick={() => setScrivo(v => !v)}>Aggiungi una nota</HubStrumento>
+        </div>
+
+        {scrivo && (
+          <div style={{padding: 16, borderBottom: `1px solid ${ADM.BORDER}`, background: ADM.PANEL_SOFT}}>
+            <HubArea valore={nota} onCambia={setNota} righe={3}
+              placeholder="Che cosa è successo? es. «Chiamato il titolare, richiamare lunedì dopo le 15»"/>
+            <div style={{display: 'flex', gap: 8, marginTop: 10}}>
+              <HubStrumento forte icona="check" onClick={salvaNota}>Salva la nota</HubStrumento>
+              <HubStrumento onClick={() => { setScrivo(false); setNota(''); }}>Annulla</HubStrumento>
+            </div>
+          </div>
+        )}
+
+        {eventi.length === 0 && <HubVuoto icona="clock" titolo="Niente su questo canale"
+          desc="Prova «Tutto»: il contatto potrebbe avere attività di altro tipo."/>}
+
+        <div style={{padding: '4px 0 10px'}}>
+          {perGiorno.map(g => (
+            <div key={g.g}>
+              <div style={{
+                position: 'sticky', top: 0, zIndex: 2, background: '#fff',
+                padding: '11px 18px 7px', fontSize: 11.4, fontWeight: 800,
+                letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT,
+                borderBottom: `1px solid ${ADM.BORDER_SOFT}`,
+              }}>{fmtDate(g.data)} · {fmtRelative(g.data)}</div>
+              {g.righe.map(e => <CntEvento key={e.id} ev={e}/>)}
+            </div>
+          ))}
+        </div>
+      </AdmCard>
+    </div>
+  );
+}
+
+// Una riga del diario. La linea verticale che unisce i pallini è quella che
+// rende un elenco una STORIA: senza, sono venti righe scollegate.
+function CntEvento({ ev }) {
+  const d = HUB_ATT_TIPI[ev.tipo] || { label: ev.tipo, icona: 'info', color: 'PLAN_FREE' };
+  const Ic = BuIcons[d.icona];
+  return (
+    <div style={{display: 'flex', gap: 13, padding: '11px 18px', position: 'relative'}}>
+      <div style={{position: 'relative', flexShrink: 0, width: 30}}>
+        <span aria-hidden="true" style={{
+          position: 'absolute', left: 15, top: -11, bottom: -11, width: 1.5,
+          background: ADM.BORDER, transform: 'translateX(-50%)',
+        }}/>
+        <span style={{
+          position: 'relative', width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center',
+          background: ADM[d.color + '_SOFT'] || ADM.NEUTRAL_SOFT, color: ADM[d.color] || ADM.MUTED,
+          boxShadow: '0 0 0 3px #fff',
+        }}><Ic size={15}/></span>
+      </div>
+      <div style={{flex: 1, minWidth: 0, paddingTop: 1}}>
+        <div style={{display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap'}}>
+          <span style={{fontSize: 11.2, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: ADM[d.color] || ADM.MUTED}}>{d.label}</span>
+          <span style={{fontSize: 14, fontWeight: 600, color: ADM.TEXT}}>{ev.titolo}</span>
+        </div>
+        {ev.dettaglio && <div style={{fontSize: 13.3, color: ADM.MUTED, marginTop: 3, lineHeight: 1.5}}>{ev.dettaglio}</div>}
+        {ev.meta && (
+          <div style={{display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 7}}>
+            {Object.keys(ev.meta).map(k => (
+              <span key={k} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 6,
+                background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}`, fontSize: 12.2, maxWidth: '100%',
+              }}>
+                <span style={{color: ADM.MUTED_SOFT, fontWeight: 700}}>{k}</span>
+                <span style={{color: ADM.TEXT, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{ev.meta[k]}</span>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <span style={{fontSize: 12.4, color: ADM.MUTED_SOFT, flexShrink: 0, paddingTop: 3, fontVariantNumeric: 'tabular-nums'}}>
+        {new Date(ev.quando).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}
+      </span>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CREA CONTATTO
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Il contatto creato entra davvero in rubrica: compare in lista, risponde ai
+// filtri, finisce negli elenchi attivi di cui soddisfa i criteri e si apre con
+// il suo diario. Nel prototipo vive finché non si ricarica la pagina — ma
+// finché c'è, si comporta come tutti gli altri.
+
+let cntProgressivo = 0;
+
+function CntCrea({ open, onChiudi, onCreato }) {
+  const vuoto = { tipo: 'locale', nome: '', email: '', telefono: '', citta: '', regione: '',
+    ciclo: 'lead', piano: '', proprietario: 'Marco Rinaldi', referral: '', canale: 'organico',
+    consensoMail: true, consensoSms: false };
+  const [f, setF] = useStateCnt(vuoto);
+  const set = (k, v) => setF(x => Object.assign({}, x, { [k]: v }));
+
+  useEffectCnt(() => { if (open) setF(vuoto); }, [open]);
+
+  const nomeOk = f.nome.trim().length > 1;
+  const mailOk = !f.email || /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(f.email.trim());
+  const pronto = nomeOk && mailOk;
+
+  const citta = useMemoCnt(() => [...new Set(CONTATTI.map(c => c.citta))].filter(Boolean).sort(), [open]);
+
+  const crea = () => {
+    if (!pronto) return;
+    const id = 'NEW' + String(++cntProgressivo).padStart(3, '0');
+    const loc = LOCALI.find(l => l.citta === f.citta);
+    const riga = hubArricchisci({
+      key: 'new-' + id, tipo: f.tipo,
+      ref: { id, nome: f.nome.trim() },
+      nome: f.nome.trim(),
+      cerca: f.citta + ' ' + (f.referral || ''),
+      citta: f.citta || '—', regione: f.regione || (loc ? loc.regione : '—'),
+      email: f.email.trim() || null,
+      ciclo: f.tipo === 'locale' ? f.ciclo : null,
+      piano: f.piano || null,
+      iscritto: new Date(),
+    });
+    // L'arricchimento deriva le proprietà di marketing dall'id; quelle che ha
+    // scritto chi crea il contatto vincono sulle derivate.
+    Object.assign(riga, {
+      telefono: f.telefono.trim() || riga.telefono,
+      referral: f.referral.trim() || null,
+      canale: f.canale,
+      proprietario: f.proprietario,
+      consensoMail: f.consensoMail,
+      consensoSms: f.consensoSms,
+      primoForm: null, campagnaId: null,
+      ultimaAttivita: new Date(), ordini: 0, sessioni: 0,
+      valore: f.tipo === 'staff' ? null : 0,
+    });
+    CONTATTI.unshift(riga);
+    onCreato(riga);
+    onChiudi();
+  };
+
+  return (
+    <HubModale open={open} onClose={onChiudi} larghezza={640}
+      titolo="Nuovo contatto"
+      sotto="Il minimo per esistere è il nome. Tutto il resto si può aggiungere dopo, o lasciare che lo scrivano i form e i workflow."
+      footer={
+        <React.Fragment>
+          <span style={{fontSize: 12.8, color: ADM.MUTED}}>
+            {pronto ? 'Entra subito in rubrica' : !nomeOk ? 'Serve almeno il nome' : 'L\'email non sembra valida'}
+          </span>
+          <div style={{flex: 1}}/>
+          <HubStrumento onClick={onChiudi}>Annulla</HubStrumento>
+          <HubStrumento forte icona="check" onClick={crea}>Crea contatto</HubStrumento>
+        </React.Fragment>
+      }>
+      <div style={{display: 'flex', flexDirection: 'column', gap: 15}}>
+        <HubCampo label="Tipologia">
+          <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 8}}>
+            {Object.keys(CNT_TIPI).map(k => {
+              const on = f.tipo === k;
+              return (
+                <button key={k} onClick={() => set('tipo', k)} style={{
+                  padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                  border: `1.5px solid ${on ? ADM.PINK : ADM.BORDER}`,
+                  background: on ? ADM.PINK_BG_SOFT : '#fff',
+                  color: on ? ADM.PINK_DARK : ADM.TEXT, fontSize: 13.6, fontWeight: 700,
+                }}>{CNT_TIPI[k].label}</button>
+              );
+            })}
+          </div>
+        </HubCampo>
+
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 12}}>
+          <HubCampo label={f.tipo === 'locale' ? 'Nome del locale' : 'Nome e cognome'}>
+            <HubInput valore={f.nome} onCambia={v => set('nome', v)}
+              placeholder={f.tipo === 'locale' ? 'es. Trattoria da Nino' : 'es. Giulia Bianchi'}/>
+          </HubCampo>
+          <HubCampo label="Email" nota={f.email && !mailOk ? 'Manca la chiocciola o il dominio' : undefined}>
+            <HubInput valore={f.email} onCambia={v => set('email', v)} placeholder="nome@dominio.it"/>
+          </HubCampo>
+          <HubCampo label="Telefono">
+            <HubInput valore={f.telefono} onCambia={v => set('telefono', v)} placeholder="+39 …"/>
+          </HubCampo>
+          <HubCampo label="Città">
+            <AdmSelect block value={f.citta} onChange={v => set('citta', v)}
+              options={[{ value: '', label: 'Non indicata' }, ...citta.map(c => ({ value: c, label: c }))]}/>
+          </HubCampo>
+          {f.tipo === 'locale' && (
+            <React.Fragment>
+              <HubCampo label="Ciclo di vita">
+                <AdmSelect block value={f.ciclo} onChange={v => set('ciclo', v)}
+                  options={Object.keys(CNT_CICLO).map(k => ({ value: k, label: CNT_CICLO[k].label }))}/>
+              </HubCampo>
+              <HubCampo label="Piano">
+                <AdmSelect block value={f.piano} onChange={v => set('piano', v)}
+                  options={[{ value: '', label: 'Nessuno ancora' },
+                    ...['free', 'starter', 'plus', 'business'].map(k => ({ value: k, label: CNT_PIANI[k].label }))]}/>
+              </HubCampo>
+            </React.Fragment>
+          )}
+          {f.tipo === 'utente' && (
+            <HubCampo label="Piano dell'app">
+              <AdmSelect block value={f.piano} onChange={v => set('piano', v)}
+                options={[{ value: 'base', label: 'Base' }, { value: 'pro', label: 'Pro' }]}/>
+            </HubCampo>
+          )}
+          <HubCampo label="Proprietario del contatto">
+            <AdmSelect block value={f.proprietario} onChange={v => set('proprietario', v)}
+              options={(HUB_PROP.proprietario.opzioni || []).map(o => ({ value: o.value, label: o.label }))}/>
+          </HubCampo>
+          <HubCampo label="Canale di acquisizione">
+            <AdmSelect block value={f.canale} onChange={v => set('canale', v)}
+              options={(HUB_PROP.canale.opzioni || []).map(o => ({ value: o.value, label: o.label }))}/>
+          </HubCampo>
+        </div>
+
+        <HubCampo label="Referral" nota="Da chi o da dove arriva. È la proprietà che i form riempiono da soli — qui la scrivi a mano.">
+          <HubInput valore={f.referral} onCambia={v => set('referral', v)} placeholder="es. Passaparola cliente"/>
+        </HubCampo>
+
+        <div style={{display: 'flex', gap: 22, padding: '12px 14px', borderRadius: 11, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}`}}>
+          {[['consensoMail', 'Consenso email'], ['consensoSms', 'Consenso SMS']].map(([k, l]) => (
+            <label key={k} style={{display: 'inline-flex', alignItems: 'center', gap: 9, cursor: 'pointer'}}>
+              <AdmSwitch size="sm" checked={f[k]} onChange={v => set(k, v)}/>
+              <span style={{fontSize: 13.4, fontWeight: 600, color: ADM.TEXT}}>{l}</span>
+            </label>
+          ))}
+          <span style={{fontSize: 12.4, color: ADM.MUTED, flex: 1, lineHeight: 1.45, minWidth: 180}}>
+            Senza consenso il contatto resta in rubrica e resta contattabile dal supporto: quello che non riceve sono le campagne.
+          </span>
+        </div>
+      </div>
+    </HubModale>
+  );
+}
+
+// Un contatto «completo» è uno dei record che byup già conosce: solo per
+// quelli i drawer hanno i dati che si aspettano.
+function cntRecordCompleto(sel) {
+  if (!sel || !sel.ref) return false;
+  if (sel.tipo === 'locale') return LOCALI.indexOf(sel.ref) >= 0;
+  if (sel.tipo === 'staff')  return STAFF.indexOf(sel.ref) >= 0;
+  if (sel.tipo === 'utente') return (window.UTENTI || []).indexOf(sel.ref) >= 0;
+  return false;
+}
+
+// La scheda fatta di PROPRIETÀ: gli stessi campi su cui si filtra, raggruppati
+// come nel catalogo. Vale per qualunque contatto, anche per uno appena creato
+// che non ha ancora una storia dentro byup.
+function CntSchedaProprieta({ riga }) {
+  if (!riga) return null;
+  const gruppi = HUB_GRUPPI_PROP.map(g => ({
+    ...g, voci: HUB_PROPRIETA.filter(p => p.gruppo === g.id && p.id !== 'nome'),
+  })).filter(g => g.voci.length);
+
+  const valore = (p) => {
+    const v = hubLeggi(riga, p.id);
+    if (v == null || v === '' || (Array.isArray(v) && !v.length))
+      return <span style={{fontSize: 13.8, color: ADM.MUTED_LIGHT}}>—</span>;
+    if (p.tipo === 'data')   return <span style={{fontSize: 13.8, color: ADM.TEXT}}>{fmtDate(v)}</span>;
+    if (p.tipo === 'valuta') return <span style={{fontSize: 13.8, color: ADM.TEXT, fontVariantNumeric: 'tabular-nums'}}>{fmtEur(v)}</span>;
+    if (p.tipo === 'numero') return <span style={{fontSize: 13.8, color: ADM.TEXT, fontVariantNumeric: 'tabular-nums'}}>{fmtNum(v)}</span>;
+    if (p.tipo === 'bool')   return <CntPillola color={v ? 'OK' : 'PLAN_FREE'}>{v ? 'Sì' : 'No'}</CntPillola>;
+    if (p.tipo === 'multi')  return (
+      <span style={{display: 'inline-flex', flexWrap: 'wrap', gap: 4}}>
+        {v.map(x => <CntPillola key={x} color="TEAL">{hubEtichettaOpzione(p, x)}</CntPillola>)}
+      </span>
+    );
+    if (p.id === 'ciclo') return <CntPillola color={CNT_CICLO[v].color}>{CNT_CICLO[v].label}</CntPillola>;
+    if (p.id === 'piano') return <CntPillola color={CNT_PIANI[v].color}>{CNT_PIANI[v].label}</CntPillola>;
+    if (p.id === 'tipo')  return <CntPillola color={CNT_TIPI[v].color}>{CNT_TIPI[v].label}</CntPillola>;
+    if (p.tipo === 'elenco') return <span style={{fontSize: 13.8, color: ADM.TEXT}}>{hubEtichettaOpzione(p, v)}</span>;
+    return <span style={{fontSize: 13.8, color: ADM.TEXT, wordBreak: 'break-word'}}>{String(v)}</span>;
+  };
+
+  const elenchi = HUB_ELENCHI.filter(e => e.tipo === 'attivo' && hubPassa(riga, e.includi)
+    && !(e.escludi && e.escludi.length && hubPassa(riga, e.escludi)));
+
+  return (
+    <div style={{display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start'}}>
+      <AdmCard padding={0}>
+        <div style={{padding: '15px 18px', borderBottom: `1px solid ${ADM.BORDER}`, display: 'flex', alignItems: 'center', gap: 13}}>
+          <AdmAvatar name={riga.nome} size={44}
+            bg={`hsl(${(riga.ref.id.charCodeAt(1) + riga.ref.id.charCodeAt(riga.ref.id.length - 1)) * 5 % 360}, 42%, 55%)`}/>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 18, fontWeight: 700, color: ADM.TEXT, letterSpacing: '-0.02em'}}>{riga.nome}</div>
+            <div style={{fontSize: 13.2, color: ADM.MUTED, marginTop: 2}}>{riga.email || 'Nessuna email'} · {riga.ref.id}</div>
+          </div>
+          <HubStrumento icona="mail">Scrivigli</HubStrumento>
+        </div>
+        <div style={{padding: '4px 18px 16px'}}>
+          {gruppi.map(g => (
+            <div key={g.id} style={{marginTop: 14}}>
+              <div style={{fontSize: 11.2, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 6}}>{g.label}</div>
+              {g.voci.map(pr => (
+                <div key={pr.id} style={{display: 'flex', gap: 14, padding: '8px 0', borderBottom: `1px solid ${ADM.BORDER_SOFT}`, alignItems: 'flex-start'}}>
+                  <span style={{fontSize: 13, color: ADM.MUTED, width: 190, flexShrink: 0, fontWeight: 600}}>{pr.label}</span>
+                  <span style={{flex: 1, minWidth: 0}}>{valore(pr)}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </AdmCard>
+
+      <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+        <AdmCard padding={18}>
+          <div style={{fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 11}}>Elenchi di cui fa parte</div>
+          {elenchi.length === 0 && <div style={{fontSize: 13.2, color: ADM.MUTED, lineHeight: 1.55}}>
+            Nessuno, per ora. Gli elenchi attivi lo prenderanno da soli appena risponderà ai loro criteri.
+          </div>}
+          {elenchi.map(e => (
+            <div key={e.id} style={{display: 'flex', alignItems: 'center', gap: 9, padding: '7px 0'}}>
+              <span style={{width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center', background: ADM.OK_SOFT, color: ADM.OK, flexShrink: 0}}>
+                <BuIcons.refresh size={13}/>
+              </span>
+              <span style={{flex: 1, minWidth: 0, fontSize: 13.4, fontWeight: 600, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{e.nome}</span>
+            </div>
+          ))}
+        </AdmCard>
+        <AdmCard padding={18}>
+          <div style={{fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 9}}>Che cosa manca</div>
+          <div style={{fontSize: 13.2, color: ADM.MUTED, lineHeight: 1.6}}>
+            Questo contatto è nato in Hubble: non ha ancora un record operativo in byup — niente ordini, niente configurazione, niente certificazioni. Quelle schede compaiono da sole quando il locale entra in piattaforma.
+          </div>
+        </AdmCard>
+      </div>
+    </div>
+  );
+}
+
+window.CntSchedaProprieta = CntSchedaProprieta;
+
+window.CntAttivita = CntAttivita;
+window.CntCrea = CntCrea;
 
 window.AdmContattiPage = AdmContattiPage;

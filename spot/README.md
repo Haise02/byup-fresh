@@ -43,7 +43,6 @@ un pannello che si apre passandoci sopra col mouse.
 | **Agent** | Agenti IA sui dati della piattaforma e cruscotto del team |
 | **Assistenza** | Quattro tab: Chiamate, Ticket, FAQ, Guide |
 
-La **Dashboard** (panoramica trasversale, `hub-panoramica.jsx`) è stata tolta
 dalla barra il 2026-08-15: il file resta caricato ma nessuna rotta lo monta.
 
 Nel **menu del profilo** (card in fondo alla barra): Il mio profilo, Domini e
@@ -85,14 +84,33 @@ ricarica non si può né leggere né filtrare.
 | `admin-icons.jsx` | Icone di contorno (`ICON_PATHS`) e piene per la barra (`ICON_FILLED`). Le piene accettano anche `rect:` e `circle:`; i **fori** vanno fatti con `evenodd` dentro lo **stesso** `path` |
 | `hub-data.jsx` | Proprietà, operatori, motore dei filtri, e i mock di elenchi, mail, SMS, push, form, workflow, agenti, domini |
 | `hub-ui.jsx` | Modale, pannello laterale, pannello dei filtri, modale delle colonne, tabella, testate, riquadri |
-| `hub-panoramica.jsx` | La vecchia Dashboard (caricato, non più montato) |
 | `hub-elenchi.jsx` | Elenchi: lista, dettaglio, creazione con conteggio dal vivo |
 | `hub-mail-builder.jsx` | Il costruttore visuale delle email e il generatore di HTML |
 | `hub-marketing.jsx` | Mail, SMS, Push, Form |
-| `hub-workflow.jsx` | Workflow (canvas) e Agent |
+| `hub-workflow.jsx` | Workflow (elenco e canvas) e Agent |
+| `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
+| `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
 | `hub-impostazioni.jsx` | Domini e mittenti, catalogo delle proprietà |
 | `admin-contatti.jsx` | La rubrica |
 | `admin-*.jsx` | Le sezioni preesistenti |
+
+### Il diario del contatto
+
+`hubAttivita(riga)` costruisce quello che è successo fra noi e una persona:
+email inviate, aperte e **su quale link ha cliccato**, SMS e push, form
+compilati, elenchi in cui è entrata, workflow, proprietà cambiate e da chi,
+telefonate, ticket, note. È deterministico sull'id e messo in cache: un diario
+che cambia date a ogni render non si può leggere. Due paletti: niente nel
+futuro, e **niente prima che il contatto esistesse**.
+
+### I workflow sono alberi
+
+Una `condizione` ha dei `rami`; ogni ramo ha `criteri` (le stesse frasi
+proprietà/operatore/valore dei filtri) e una `congiunzione` — `E` (tutte vere)
+oppure `O` (ne basta una). L'ultimo ramo può essere `altrimenti`: prende quello
+che non è rientrato altrove, e non ha criteri perché la sua regola è non
+averne. I rami contengono `nodi`, e un nodo può essere un'altra condizione.
+`hubContaNodi` conta i passi rami compresi.
 
 ### Il costruttore delle email
 
@@ -135,15 +153,28 @@ per ultimo.
 il browser serve la versione vecchia e sembra che la modifica non abbia avuto
 effetto.
 
-Il frame è fisso a 1440×900 con uno `zoom` applicato via JS. Tre conseguenze
-che mordono:
+### Gli strati sopra — la regola che evita metà dei bug visivi
 
-- le unità `vh` dentro il frame vengono scalate una seconda volta e sfondano;
-- `getBoundingClientRect()` restituisce pixel **visivi**, mentre `maxHeight` li
-  vuole di **layout**: per fissare l'altezza di N righe si misura col rect e si
-  **divide per lo zoom**;
-- vale anche per i pannelli in `position: fixed` posizionati a partire da un
-  rect — è quello che fa `apriFly` in [admin-app.jsx](admin-app.jsx).
+Il frame è fisso a 1440×900 con uno `zoom` applicato via JS. Da lì discendono
+due regole, e non sono opinioni: sono i due modi in cui un menu sparisce.
+
+1. **Niente `position: fixed` dentro il frame.** Un elemento fisso dentro uno
+   `zoom` ha coordinate che non corrispondono a dove lo si vede: si disegna in
+   un punto e riceve i click in un altro. Il menu sembra «coperto» perché il
+   click atterra sulla pagina sotto.
+2. **Niente tendina dentro un contenitore che scorre.** Basta un antenato con
+   `overflow: auto` — il pannello dei filtri, una modale, una card — e la
+   tendina viene tagliata al bordo.
+
+La soluzione è una sola per entrambe: c'è **un contenitore degli strati**,
+`#hub-strati`, montato dentro `.frame` e senza antenati che taglino. Modali,
+pannelli laterali, tendine e flyout ci finiscono dentro con un portale
+(`AdmPortale`), in `position: absolute`. Le coordinate le calcola `admAncora`,
+che misura la scala sull'host stesso (`rect.width / offsetWidth`) e divide —
+perché i rect sono pixel **visivi** e `left`/`top` sono pixel di **layout**.
+
+Vale la stessa cautela per le unità `vh` dentro il frame: vengono scalate una
+seconda volta e sfondano.
 
 ---
 

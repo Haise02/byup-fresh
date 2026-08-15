@@ -9,7 +9,7 @@
 // quelli scritti a mano. Sono la stessa cosa: quello del form ha tre passi e
 // nessuno l'ha disegnato, ma se serve lo si apre e gliene si aggiunge un quarto.
 
-const { useState: useStateWf, useMemo: useMemoWf } = React;
+const { useState: useStateWf, useMemo: useMemoWf, useRef: useRefWf } = React;
 
 const WF_STATI = {
   attivo:  { label: 'Attivo',  color: 'OK' },
@@ -17,57 +17,8 @@ const WF_STATI = {
   bozza:   { label: 'Bozza',   color: 'PLAN_FREE' },
 };
 
-// ─── Il nodo disegnato ──────────────────────────────────────────────────────
-function WfNodo({ nodo, primo, ultimo, selezionato, onClick }) {
-  const d = HUB_WF_NODI[nodo.tipo] || HUB_WF_NODI.script;
-  const Ic = BuIcons[d.icona];
-  const tinta = ADM[d.color] || ADM.INK;
-  const soft = ADM[d.color + '_SOFT'] || ADM.NEUTRAL_SOFT;
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-      {!primo && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ width: 2, height: 18, background: ADM.BORDER }}/>
-          {nodo.ramo && (
-            <span style={{
-              fontSize: 11, fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase',
-              background: '#fff', border: `1px solid ${ADM.BORDER}`, borderRadius: 999,
-              padding: '2px 9px', color: ADM.MUTED, margin: '-1px 0',
-            }}>ramo «{nodo.ramo}»</span>
-          )}
-          {nodo.ramo && <div style={{ width: 2, height: 18, background: ADM.BORDER }}/>}
-        </div>
-      )}
-      <button onClick={onClick} className="hub-card" style={{
-        width: '100%', maxWidth: 460, display: 'flex', alignItems: 'flex-start', gap: 12,
-        padding: '13px 15px', textAlign: 'left', fontFamily: 'inherit',
-        border: `1.5px solid ${selezionato ? ADM.PINK : ADM.BORDER}`,
-        borderRadius: 13, background: '#fff',
-        boxShadow: selezionato ? `0 10px 26px -12px ${ADM.HUB_GLOW}` : ADM.CARD_SHADOW,
-      }}>
-        <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center', background: soft, color: tinta }}>
-          <Ic size={17}/>
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 11.4, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: tinta }}>{d.label}</span>
-          <span style={{ display: 'block', fontSize: 14.2, fontWeight: 600, color: ADM.TEXT, marginTop: 3, lineHeight: 1.4 }}>{nodo.testo || '—'}</span>
-        </span>
-      </button>
-      {nodo.rami && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-          {nodo.rami.map(r => (
-            <span key={r} style={{
-              fontSize: 11.5, fontWeight: 800, padding: '3px 11px', borderRadius: 999,
-              background: r === 'Sì' ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT,
-              color: r === 'Sì' ? ADM.OK : ADM.MUTED,
-            }}>{r}</span>
-          ))}
-        </div>
-      )}
-      {ultimo && <div style={{ width: 2, height: 14, background: 'transparent' }}/>}
-    </div>
-  );
-}
+// Il nodo disegnato, l'albero dei rami e l'ispettore del ramo stanno in
+// hub-workflow-canvas.jsx: qui resta l'elenco, il canvas e gli agenti.
 
 function HubWorkflowPage() {
   const [cerca, setCerca] = useStateWf('');
@@ -92,7 +43,7 @@ function HubWorkflowPage() {
   const colonne = [
     { id: 'nome',       label: 'Workflow',   w: 'minmax(0,2.6fr)' },
     { id: 'stato',      label: 'Stato',      w: '1fr' },
-    { id: 'passi',      label: 'Passi',      w: '0.7fr', destra: true },
+    { id: 'passi',      label: 'Passi',      w: '0.75fr', destra: true },
     { id: 'iscritti',   label: 'Iscritti',   w: '0.9fr', destra: true },
     { id: 'inCorso',    label: 'In corso',   w: '0.9fr', destra: true },
     { id: 'modificato', label: 'Modificato', w: '1.1fr' },
@@ -108,7 +59,7 @@ function HubWorkflowPage() {
       </div>
     );
     if (id === 'stato') return <HubStato stato={w.stato} mappa={WF_STATI}/>;
-    if (id === 'passi') return <span style={{ fontSize: 13.6, fontWeight: 600 }}>{w.nodi.length}</span>;
+    if (id === 'passi') return <span style={{ fontSize: 13.6, fontWeight: 600 }}>{hubContaNodi(w.nodi)}</span>;
     if (id === 'iscritti') return <span style={{ fontSize: 13.6, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(w.iscritti)}</span>;
     if (id === 'inCorso') return w.inCorso
       ? <span style={{ fontSize: 13.6, fontWeight: 700, color: ADM.WARN, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(w.inCorso)}</span>
@@ -152,26 +103,79 @@ function HubWorkflowPage() {
 // ─── Il canvas ──────────────────────────────────────────────────────────────
 function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
   const [nodi, setNodi] = useStateWf(wf.nodi);
-  const [sel, setSel] = useStateWf(null);
+  const [sel, setSel] = useStateWf(null);   // percorso: [2] oppure [2,'r3',1]
   const [nome, setNome] = useStateWf(wf.nome);
   const [attivo, setAttivo] = useStateWf(wf.stato === 'attivo');
 
+  // Il selezionato può essere un NODO (percorso che finisce con un numero) o
+  // un RAMO (percorso che finisce con l'id del ramo): sono due cose diverse e
+  // l'ispettore mostra due pannelli diversi.
+  const suRamo = !!sel && typeof sel[sel.length - 1] === 'string';
+  const scelto = sel ? wcLeggi(nodi, sel) : null;
+
+  const cambiaNodo = (k, v) => setNodi(ns => wcMappa(ns, sel, n => Object.assign({}, n, { [k]: v })));
+  const cambiaRamo = (r) => setNodi(ns => wcMappa(ns, sel, () => r));
+
+  // Aggiungere un passo: se è selezionato un nodo, entra subito dopo di lui,
+  // nella SUA corsia. Se è selezionato un ramo, entra in fondo a quel ramo.
   const aggiungi = (tipo) => {
     const n = { tipo, testo: HUB_WF_NODI[tipo].label };
-    const i = sel != null ? sel : nodi.length - 2;
-    const ns = nodi.slice();
-    ns.splice(Math.max(1, i + 1), 0, n);
-    setNodi(ns); setSel(Math.max(1, i + 1));
+    if (tipo === 'condizione') {
+      n.testo = 'Che cosa vale per questo contatto?';
+      n.rami = [
+        { id: 'r' + Date.now(), label: 'Primo caso', congiunzione: 'E', criteri: [], nodi: [] },
+        { id: 'a' + Date.now(), label: 'Tutti gli altri', altrimenti: true, congiunzione: 'E', criteri: [], nodi: [] },
+      ];
+    }
+    if (!sel) {
+      setNodi(ns => { const c = ns.slice(); c.splice(Math.max(1, c.length - 1), 0, n); return c; });
+      return;
+    }
+    if (suRamo) {
+      setNodi(ns => wcMappa(ns, sel, r => Object.assign({}, r, { nodi: [...(r.nodi || []), n] })));
+      return;
+    }
+    const dove = sel.slice(0, -1), i = sel[sel.length - 1];
+    setNodi(ns => dove.length === 0
+      ? (() => { const c = ns.slice(); c.splice(i + 1, 0, n); return c; })()
+      : wcMappa(ns, dove, r => { const c = (r.nodi || []).slice(); c.splice(i + 1, 0, n); return Object.assign({}, r, { nodi: c }); }));
   };
-  const elimina = (i) => { setNodi(nodi.filter((_, j) => j !== i)); setSel(null); };
-  const muovi = (i, d) => {
-    const j = i + d;
-    if (j < 1 || j >= nodi.length - 1 || i < 1 || i >= nodi.length - 1) return;
-    const ns = nodi.slice(); [ns[i], ns[j]] = [ns[j], ns[i]]; setNodi(ns); setSel(j);
-  };
-  const cambia = (i, k, v) => setNodi(nodi.map((n, j) => j === i ? Object.assign({}, n, { [k]: v }) : n));
 
-  const nodo = sel != null ? nodi[sel] : null;
+  const aggiungiRamo = (path) => setNodi(ns => wcMappa(ns, path, n => Object.assign({}, n, {
+    rami: (() => {
+      const r = (n.rami || []).slice();
+      const nuovoR = { id: 'r' + Date.now(), label: 'Nuovo caso', congiunzione: 'E', criteri: [], nodi: [] };
+      const i = r.findIndex(x => x.altrimenti);
+      if (i >= 0) r.splice(i, 0, nuovoR); else r.push(nuovoR);
+      return r;
+    })(),
+  })));
+
+  const eliminaSelezionato = () => {
+    if (!sel) return;
+    if (suRamo) {
+      const dove = sel.slice(0, -1), id = sel[sel.length - 1];
+      setNodi(ns => wcMappa(ns, dove, n => Object.assign({}, n, { rami: (n.rami || []).filter(r => r.id !== id) })));
+    } else {
+      const dove = sel.slice(0, -1), i = sel[sel.length - 1];
+      setNodi(ns => dove.length === 0
+        ? ns.filter((_, j) => j !== i)
+        : wcMappa(ns, dove, r => Object.assign({}, r, { nodi: (r.nodi || []).filter((_, j) => j !== i) })));
+    }
+    setSel(null);
+  };
+
+  const passi = hubContaNodi(nodi);
+
+  // L'albero è più largo della colonna appena c'è una condizione con tre rami:
+  // il contenitore scorre, ma parte da sinistra e il tronco — che sta in mezzo
+  // — si vede tagliato. Alla prima resa lo si centra, così si apre su quello
+  // che conta e i rami laterali si raggiungono scorrendo.
+  const telaRef = useRefWf(null);
+  React.useLayoutEffect(() => {
+    const el = telaRef.current;
+    if (el && el.scrollWidth > el.clientWidth) el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+  }, [nodi]);
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -184,7 +188,7 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
 
       <HubTestata occhiello={nuovo ? 'Automazioni' : `Automazioni · ${WF_STATI[wf.stato].label}`}
         titolo={nuovo ? 'Crea un workflow' : wf.nome} colore="HUB_VIOLA"
-        sotto={nuovo ? 'Si parte dall\'innesco, si aggiungono i passi in mezzo, si finisce.' : wf.descrizione}
+        sotto={nuovo ? 'Si parte dall\'innesco. Dove serve decidere, si mette una condizione: apre più rami, e ogni ramo dice a quali contatti tocca.' : wf.descrizione}
         azioni={
           <React.Fragment>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 9, marginRight: 4 }}>
@@ -201,79 +205,94 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
           <HubTile etichetta="Iscritti in tutto" valore={fmtNum(wf.iscritti)} icona="users3"/>
           <HubTile etichetta="In corso adesso" valore={fmtNum(wf.inCorso)} tono="WARN" icona="hourglass"/>
           <HubTile etichetta="Completati" valore={fmtNum(wf.completati)} tono="OK" icona="check"/>
-          <HubTile etichetta="Ultima modifica" valore={fmtDate(wf.modificato)} icona="clock" sotto={`da ${wf.autore}`}/>
+          <HubTile etichetta="Passi, rami compresi" valore={passi} icona="flow" sotto={`Ultima modifica ${fmtDate(wf.modificato)}`}/>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '232px minmax(0,1fr) 300px', gap: 14, alignItems: 'start' }}>
-        {/* Palette dei passi */}
+      <div style={{ display: 'grid', gridTemplateColumns: '206px minmax(0,1fr) 306px', gap: 12, alignItems: 'start' }}>
+        {/* La cassetta degli attrezzi, divisa per mestiere */}
         <AdmCard padding={14}>
           {nuovo && (
             <HubCampo label="Nome del workflow">
               <HubInput valore={nome} onCambia={setNome} placeholder="es. Onboarding nuovo locale"/>
             </HubCampo>
           )}
-          <div style={{ fontSize: 11.4, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, margin: nuovo ? '16px 0 9px' : '0 0 9px' }}>
-            Aggiungi un passo
+          <div style={{ fontSize: 12.2, color: ADM.MUTED, margin: nuovo ? '14px 0 10px' : '0 0 10px', lineHeight: 1.45 }}>
+            {sel ? (suRamo ? 'Il passo entra in fondo al ramo selezionato.' : 'Il passo entra subito dopo quello selezionato.')
+                 : 'Seleziona un passo per scegliere dove inserire; altrimenti va in fondo.'}
           </div>
-          {Object.keys(HUB_WF_NODI).filter(t => t !== 'trigger' && t !== 'fine').map(t => {
-            const d = HUB_WF_NODI[t];
-            const Ic = BuIcons[d.icona];
+          {HUB_WF_FAMIGLIE.map(fam => {
+            const voci = Object.keys(HUB_WF_NODI).filter(t => HUB_WF_NODI[t].famiglia === fam.id && t !== 'trigger' && t !== 'fine');
+            if (!voci.length) return null;
             return (
-              <button key={t} onClick={() => aggiungi(t)} className="adm-actionrow" style={{
-                display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left',
-                padding: '7px 8px', marginBottom: 2, borderRadius: 9, border: 'none',
-                background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                <span style={{
-                  width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center', flexShrink: 0,
-                  background: ADM[d.color + '_SOFT'] || ADM.NEUTRAL_SOFT, color: ADM[d.color] || ADM.INK,
-                }}><Ic size={13}/></span>
-                <span style={{ flex: 1, fontSize: 13.2, fontWeight: 600, color: ADM.TEXT }}>{d.label}</span>
-                <BuIcons.plus size={12} color={ADM.MUTED_LIGHT}/>
-              </button>
+              <div key={fam.id} style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10.8, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 5 }}>{fam.label}</div>
+                {voci.map(t => {
+                  const d = HUB_WF_NODI[t];
+                  const Ic = BuIcons[d.icona];
+                  return (
+                    <button key={t} onClick={() => aggiungi(t)} className="adm-actionrow" style={{
+                      display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left',
+                      padding: '7px 8px', marginBottom: 2, borderRadius: 9, border: 'none',
+                      background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+                    }}>
+                      <span style={{
+                        width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center', flexShrink: 0,
+                        background: ADM[d.color + '_SOFT'] || ADM.NEUTRAL_SOFT, color: ADM[d.color] || ADM.INK,
+                      }}><Ic size={13}/></span>
+                      <span style={{ flex: 1, fontSize: 13.1, fontWeight: 600, color: ADM.TEXT }}>{d.label}</span>
+                      <BuIcons.plus size={12} color={ADM.MUTED_LIGHT}/>
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
-          <div style={{
-            marginTop: 12, padding: 11, borderRadius: 10, background: ADM.HUB_VIOLA_SOFT,
-            fontSize: 12.2, color: ADM.HUB_VIOLA_DARK, lineHeight: 1.5,
-          }}>
-            <strong>Script custom</strong> e <strong>webhook</strong> sono la via d'uscita: quando serve una cosa che qui non c'è, la si chiama fuori.
+          <div style={{ padding: 11, borderRadius: 10, background: ADM.HUB_VIOLA_SOFT, fontSize: 12.2, color: ADM.HUB_VIOLA_DARK, lineHeight: 1.5 }}>
+            <strong>Se / allora</strong> apre due rami: il primo con i suoi criteri, e l'«altrimenti» che raccoglie tutti gli altri.
           </div>
         </AdmCard>
 
         {/* Il flusso */}
         <AdmCard padding={0} style={{ overflow: 'hidden' }}>
-          <div style={{
+          <div ref={telaRef} onClick={() => setSel(null)} className="hub-scroll" style={{
             background: `radial-gradient(circle at 1px 1px, ${ADM.BORDER} 1px, transparent 0)`,
             backgroundSize: '18px 18px', backgroundColor: ADM.PANEL_SOFT,
-            padding: '26px 24px 34px', display: 'flex', flexDirection: 'column', alignItems: 'center',
+            padding: '26px 22px 34px', overflowX: 'auto',
           }}>
-            {nodi.map((n, i) => (
-              <WfNodo key={i} nodo={n} primo={i === 0} ultimo={i === nodi.length - 1}
-                selezionato={sel === i} onClick={() => setSel(i)}/>
-            ))}
+            {/* L'albero si allarga a ogni ramo. Il contenitore scorre in
+                orizzontale e il contenuto si CENTRA solo quando ci sta:
+                con `align-items: center` in un contenitore che scorre, quello
+                che esce a sinistra non si raggiunge più. */}
+            <div style={{ width: 'max-content', minWidth: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              {nodi.map((n, i) => (
+                n.tipo === 'condizione'
+                  ? <WcCondizione key={i} nodo={n} path={[i]} sel={sel} onSel={setSel} onAggiungiRamo={aggiungiRamo}/>
+                  : <WcNodo key={i} nodo={n} path={[i]} primo={i === 0} selezionato={wcUguali(sel, [i])} onClick={setSel}/>
+              ))}
+            </div>
           </div>
         </AdmCard>
 
-        {/* Ispettore del passo */}
+        {/* L'ispettore */}
         <AdmCard padding={16}>
-          {nodo ? (
+          {suRamo && scelto ? (
+            <WcIspettoreRamo ramo={scelto} onCambia={cambiaRamo} onElimina={eliminaSelezionato}/>
+          ) : scelto ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{
                   width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center',
-                  background: ADM[HUB_WF_NODI[nodo.tipo].color + '_SOFT'] || ADM.NEUTRAL_SOFT,
-                  color: ADM[HUB_WF_NODI[nodo.tipo].color] || ADM.INK,
-                }}>{React.createElement(BuIcons[HUB_WF_NODI[nodo.tipo].icona], { size: 14 })}</span>
-                <span style={{ flex: 1, fontSize: 14.2, fontWeight: 700, color: ADM.TEXT }}>{HUB_WF_NODI[nodo.tipo].label}</span>
-                <span style={{ fontSize: 11.5, color: ADM.MUTED_SOFT, fontWeight: 700 }}>passo {sel + 1}</span>
+                  background: ADM[HUB_WF_NODI[scelto.tipo].color + '_SOFT'] || ADM.NEUTRAL_SOFT,
+                  color: ADM[HUB_WF_NODI[scelto.tipo].color] || ADM.INK,
+                }}>{React.createElement(BuIcons[HUB_WF_NODI[scelto.tipo].icona], { size: 14 })}</span>
+                <span style={{ flex: 1, fontSize: 14.2, fontWeight: 700, color: ADM.TEXT }}>{HUB_WF_NODI[scelto.tipo].label}</span>
               </div>
 
-              {nodo.tipo === 'trigger' && (
+              {scelto.tipo === 'trigger' && (
                 <HubCampo label="Che cosa lo fa partire" nota="Un innesco solo per workflow: se ne servono due, si fanno due workflow.">
-                  <AdmSelect block value={nodo.testo} onChange={v => cambia(sel, 'testo', v)} options={[
-                    { value: nodo.testo, label: nodo.testo },
+                  <AdmSelect block value={scelto.testo} onChange={v => cambiaNodo('testo', v)} options={[
+                    { value: scelto.testo, label: scelto.testo },
                     ...HUB_FORM.map(f => ({ value: 'Submission form «' + f.nome + '»', label: 'Submission form · ' + f.nome })),
                     ...HUB_ELENCHI.map(e => ({ value: 'Entra nell\'elenco «' + e.nome + '»', label: 'Entra nell\'elenco · ' + e.nome })),
                     { value: 'Una proprietà cambia valore', label: 'Una proprietà cambia valore' },
@@ -281,66 +300,74 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
                   ]}/>
                 </HubCampo>
               )}
-              {nodo.tipo === 'attesa' && (
-                <HubCampo label="Quanto aspetta"><HubInput valore={nodo.testo} onCambia={v => cambia(sel, 'testo', v)} placeholder="es. 2 giorni"/></HubCampo>
+              {scelto.tipo === 'attesa' && (
+                <HubCampo label="Quanto aspetta"><HubInput valore={scelto.testo} onCambia={v => cambiaNodo('testo', v)} placeholder="es. 2 giorni"/></HubCampo>
               )}
-              {nodo.tipo === 'condizione' && (
+              {scelto.tipo === 'condizione' && (
                 <React.Fragment>
-                  <HubCampo label="La domanda"><HubInput valore={nodo.testo} onCambia={v => cambia(sel, 'testo', v)} placeholder="es. Ha aperto la mail?"/></HubCampo>
-                  <div style={{ fontSize: 12.4, color: ADM.MUTED, lineHeight: 1.5 }}>
-                    I passi che vengono dopo possono essere legati a un ramo: si sceglie qui sotto, sul passo.
+                  <HubCampo label="La domanda" nota="Il titolo del bivio. La logica vera sta sui rami: clicca un ramo per scrivere i suoi criteri.">
+                    <HubInput valore={scelto.testo} onCambia={v => cambiaNodo('testo', v)} placeholder="es. Ha aperto la mail?"/>
+                  </HubCampo>
+                  <div style={{ padding: 12, borderRadius: 10, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}` }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 8 }}>I rami</div>
+                    {(scelto.rami || []).map((r, i) => (
+                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: ADM.MUTED_SOFT, minWidth: 68 }}>
+                          {r.altrimenti ? 'ALTRIMENTI' : i === 0 ? 'SE' : 'ALTR. SE'}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
+                        <span style={{ fontSize: 11.5, color: ADM.MUTED_SOFT }}>{(r.criteri || []).length || '—'}</span>
+                      </div>
+                    ))}
+                    <button onClick={() => aggiungiRamo(sel)} style={{
+                      marginTop: 8, width: '100%', padding: '7px 10px', borderRadius: 8,
+                      border: `1px dashed ${ADM.BORDER}`, background: '#fff', color: ADM.TEXT,
+                      fontSize: 12.8, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    }}>+ Aggiungi un ramo</button>
                   </div>
                 </React.Fragment>
               )}
-              {(nodo.tipo === 'mail' || nodo.tipo === 'sms' || nodo.tipo === 'push') && (
+              {(scelto.tipo === 'mail' || scelto.tipo === 'sms' || scelto.tipo === 'push') && (
                 <HubCampo label="Che cosa manda">
-                  <AdmSelect block value={nodo.testo} onChange={v => cambia(sel, 'testo', v)}
-                    options={[{ value: nodo.testo, label: nodo.testo },
-                      ...(nodo.tipo === 'mail' ? HUB_MAIL : nodo.tipo === 'sms' ? HUB_SMS : HUB_PUSH).map(x => ({ value: x.nome, label: x.nome }))]}/>
+                  <AdmSelect block value={scelto.testo} onChange={v => cambiaNodo('testo', v)}
+                    options={[{ value: scelto.testo, label: scelto.testo },
+                      ...(scelto.tipo === 'mail' ? HUB_MAIL : scelto.tipo === 'sms' ? HUB_SMS : HUB_PUSH).map(x => ({ value: x.nome, label: x.nome }))]}/>
                 </HubCampo>
               )}
-              {nodo.tipo === 'proprieta' && (
+              {scelto.tipo === 'proprieta' && (
                 <HubCampo label="Che cosa scrive" nota="È così che «ID campagna» e «Referral» si riempiono da soli.">
-                  <HubInput valore={nodo.testo} onCambia={v => cambia(sel, 'testo', v)} placeholder="es. Ciclo di vita → In onboarding"/>
+                  <HubInput valore={scelto.testo} onCambia={v => cambiaNodo('testo', v)} placeholder="es. Ciclo di vita → In onboarding"/>
                 </HubCampo>
               )}
-              {nodo.tipo === 'elenco' && (
+              {scelto.tipo === 'elenco' && (
                 <HubCampo label="In quale elenco">
-                  <AdmSelect block value={nodo.testo} onChange={v => cambia(sel, 'testo', v)}
-                    options={[{ value: nodo.testo, label: nodo.testo }, ...HUB_ELENCHI.filter(e => e.tipo === 'statico').map(e => ({ value: e.nome, label: e.nome }))]}/>
+                  <AdmSelect block value={scelto.testo} onChange={v => cambiaNodo('testo', v)}
+                    options={[{ value: scelto.testo, label: scelto.testo }, ...HUB_ELENCHI.filter(e => e.tipo === 'statico').map(e => ({ value: e.nome, label: e.nome }))]}/>
                 </HubCampo>
               )}
-              {nodo.tipo === 'agente' && (
+              {scelto.tipo === 'agente' && (
                 <HubCampo label="Quale agente e per fare cosa">
-                  <AdmSelect block value={nodo.testo} onChange={v => cambia(sel, 'testo', v)}
-                    options={[{ value: nodo.testo, label: nodo.testo }, ...HUB_AGENTI.map(a => ({ value: a.nome, label: a.nome + ' · ' + a.ruolo }))]}/>
+                  <AdmSelect block value={scelto.testo} onChange={v => cambiaNodo('testo', v)}
+                    options={[{ value: scelto.testo, label: scelto.testo }, ...HUB_AGENTI.map(a => ({ value: a.nome, label: a.nome + ' · ' + a.ruolo }))]}/>
                 </HubCampo>
               )}
-              {(nodo.tipo === 'script' || nodo.tipo === 'webhook') && (
-                <HubCampo label={nodo.tipo === 'script' ? 'Che cosa esegue' : 'Indirizzo da chiamare'}
+              {(scelto.tipo === 'script' || scelto.tipo === 'webhook') && (
+                <HubCampo label={scelto.tipo === 'script' ? 'Che cosa esegue' : 'Indirizzo da chiamare'}
                   nota="Nel prototipo è una descrizione; in produzione qui ci va il codice o l'endpoint.">
-                  <HubArea valore={nodo.testo} onCambia={v => cambia(sel, 'testo', v)} righe={3}/>
+                  <HubArea valore={scelto.testo} onCambia={v => cambiaNodo('testo', v)} righe={3}/>
                 </HubCampo>
               )}
 
-              {sel > 0 && sel < nodi.length - 1 && (
-                <React.Fragment>
-                  <HubCampo label="Sta su un ramo?" nota="Solo se sopra c'è una condizione.">
-                    <AdmSelect block value={nodo.ramo || ''} onChange={v => cambia(sel, 'ramo', v || undefined)}
-                      options={[{ value: '', label: 'No, è nel flusso principale' }, { value: 'Sì', label: 'Ramo «Sì»' }, { value: 'No', label: 'Ramo «No»' }]}/>
-                  </HubCampo>
-                  <div style={{ display: 'flex', gap: 7, paddingTop: 4 }}>
-                    <HubStrumento icona="chevronUp" onClick={() => muovi(sel, -1)}>Su</HubStrumento>
-                    <HubStrumento icona="chevronDown" onClick={() => muovi(sel, 1)}>Giù</HubStrumento>
-                    <div style={{ flex: 1 }}/>
-                    <HubStrumento icona="trash" onClick={() => elimina(sel)}>Elimina</HubStrumento>
-                  </div>
-                </React.Fragment>
+              {scelto.tipo !== 'trigger' && scelto.tipo !== 'fine' && (
+                <button onClick={eliminaSelezionato} style={{
+                  marginTop: 2, padding: '8px 10px', borderRadius: 9, border: `1px solid ${ADM.BORDER}`,
+                  background: '#fff', color: ADM.DANGER, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                }}>Elimina il passo</button>
               )}
             </div>
           ) : (
-            <div style={{ fontSize: 13, color: ADM.MUTED, lineHeight: 1.55, padding: '8px 2px' }}>
-              Clicca un passo nel flusso per modificarlo, o aggiungine uno dalla colonna di sinistra.
+            <div style={{ fontSize: 13, color: ADM.MUTED, lineHeight: 1.6, padding: '8px 2px' }}>
+              Clicca un <strong>passo</strong> per modificarlo, o l'etichetta di un <strong>ramo</strong> per scrivere quando si prende — proprietà, operatore, valore, esattamente come nei filtri della rubrica.
             </div>
           )}
         </AdmCard>

@@ -275,7 +275,12 @@ function hubSeme(s) {
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return Math.abs(h);
 }
-const hubScegli = (seme, arr) => arr[seme % arr.length];
+// `>>` in JavaScript lavora su interi CON SEGNO: su un seme grande il
+// risultato è negativo, e `negativo % lunghezza` è negativo — l'indice cade
+// fuori dall'array e si prende `undefined`. Qui si normalizza una volta per
+// tutte, così nessun chiamante deve ricordarsene.
+const hubIdx = (n, len) => len > 0 ? ((Math.trunc(n) % len) + len) % len : 0;
+const hubScegli = (seme, arr) => arr[hubIdx(seme, arr.length)];
 
 const HUB_REFERRAL = ['Gambero Rosso', 'Fiera Host Milano', 'Passaparola cliente', 'Campagna Meta Q2', 'Newsletter TheFork', 'Agente Sud', 'Google Ads brand', ''];
 const HUB_FORM_NOMI = ['Richiedi una demo', 'Scarica il listino', 'Iscrizione newsletter', 'Prova gratuita 14 giorni', 'Contattaci'];
@@ -291,9 +296,9 @@ function hubArricchisci(c) {
     telefono: (s % 11 === 0) ? null : '+39 3' + String(20 + (s % 60)) + ' ' + String(1000000 + (s % 8999999)).slice(0, 7),
     referral: ref || null,
     campagnaId: ref ? ('CMP-' + (2026 + (s % 2)) + '-' + String(100 + (s % 400))) : null,
-    canale: hubScegli(s >> 3, ['organico', 'passaparola', 'ads', 'fiera', 'agente', 'form']),
-    primoForm: (s % 3 === 0) ? hubScegli(s >> 5, HUB_FORM_NOMI) : null,
-    proprietario: hubScegli(s >> 7, HUB_OWNER),
+    canale: hubScegli(s >>> 3, ['organico', 'passaparola', 'ads', 'fiera', 'agente', 'form']),
+    primoForm: (s % 3 === 0) ? hubScegli(s >>> 5, HUB_FORM_NOMI) : null,
+    proprietario: hubScegli(s >>> 7, HUB_OWNER),
     consensoMail: s % 5 !== 0,
     consensoSms: s % 3 === 0,
     interessi: interessiPool.filter((_, i) => ((s >> i) & 1) === 1).slice(0, nInt + 1),
@@ -460,20 +465,47 @@ const HUB_FORM = [
 // 7 · WORKFLOW
 // ═══════════════════════════════════════════════════════════════════════════
 
+// I passi, raggruppati per mestiere: chi costruisce un'automazione pensa
+// «adesso gli scrivo» oppure «adesso segno una cosa», non scorre una lista
+// piatta di undici voci in ordine di quando le abbiamo implementate.
+const HUB_WF_FAMIGLIE = [
+  { id: 'comunica',   label: 'Parlagli',        desc: 'Manda qualcosa al contatto' },
+  { id: 'dati',       label: 'Segna qualcosa',  desc: 'Cambia lo stato nel CRM' },
+  { id: 'intelligenza', label: 'Fai ragionare', desc: 'Chiedi a un agente' },
+  { id: 'controllo',  label: 'Decidi e aspetta', desc: 'Rami e tempi' },
+  { id: 'tecnici',    label: 'Esci da Hubble',  desc: 'Codice e sistemi esterni' },
+];
+
 const HUB_WF_NODI = {
-  trigger:    { label: 'Innesco',        icona: 'bolt',        color: 'HUB_VIOLA' },
-  attesa:     { label: 'Attendi',        icona: 'hourglass',   color: 'INFO' },
-  condizione: { label: 'Se / allora',    icona: 'split',       color: 'WARN' },
-  mail:       { label: 'Invia email',    icona: 'mail',        color: 'HUB_MAGENTA' },
-  sms:        { label: 'Invia SMS',      icona: 'smartphone',  color: 'HUB_MAGENTA' },
-  push:       { label: 'Invia push',     icona: 'bell',        color: 'HUB_MAGENTA' },
-  proprieta:  { label: 'Scrivi proprietà', icona: 'tag',       color: 'TEAL' },
-  elenco:     { label: 'Aggiungi a elenco', icona: 'layers',   color: 'TEAL' },
-  agente:     { label: 'Chiedi a un agente', icona: 'sparkles', color: 'HUB_VIOLA' },
-  script:     { label: 'Script custom',  icona: 'code',        color: 'INK' },
-  webhook:    { label: 'Chiama un webhook', icona: 'externalLink', color: 'INK' },
-  fine:       { label: 'Fine',           icona: 'check',       color: 'PLAN_FREE' },
+  trigger:    { label: 'Innesco',        icona: 'bolt',        color: 'HUB_VIOLA', famiglia: 'controllo' },
+  attesa:     { label: 'Attendi',        icona: 'hourglass',   color: 'INFO',      famiglia: 'controllo' },
+  condizione: { label: 'Se / allora',    icona: 'split',       color: 'WARN',      famiglia: 'controllo' },
+  mail:       { label: 'Invia email',    icona: 'mail',        color: 'HUB_MAGENTA', famiglia: 'comunica' },
+  sms:        { label: 'Invia SMS',      icona: 'smartphone',  color: 'HUB_MAGENTA', famiglia: 'comunica' },
+  push:       { label: 'Invia push',     icona: 'bell',        color: 'HUB_MAGENTA', famiglia: 'comunica' },
+  proprieta:  { label: 'Scrivi proprietà', icona: 'tag',       color: 'TEAL',      famiglia: 'dati' },
+  elenco:     { label: 'Aggiungi a elenco', icona: 'layers',   color: 'TEAL',      famiglia: 'dati' },
+  agente:     { label: 'Chiedi a un agente', icona: 'sparkles', color: 'HUB_VIOLA', famiglia: 'intelligenza' },
+  script:     { label: 'Script custom',  icona: 'code',        color: 'INK',       famiglia: 'tecnici' },
+  webhook:    { label: 'Chiama un webhook', icona: 'externalLink', color: 'INK',    famiglia: 'tecnici' },
+  fine:       { label: 'Fine',           icona: 'check',       color: 'PLAN_FREE', famiglia: 'controllo' },
 };
+
+// Un workflow è un ALBERO, non una lista. Una condizione apre più rami, ogni
+// ramo ha le sue condizioni e i suoi passi, e i passi dentro un ramo possono
+// aprire altre condizioni. Prima i rami erano una stringa appiccicata al passo
+// («ramo: No»): bastava per disegnarli, non per dire QUANDO si prende un ramo
+// invece di un altro.
+//
+// Ogni ramo porta `criteri` — le stesse frasi proprietà/operatore/valore dei
+// filtri — e una `congiunzione` che dice se devono essere vere TUTTE (E) o
+// ne basta UNA (O). L'ultimo ramo può essere `altrimenti`: si prende quando
+// nessuno degli altri ha risposto, e non ha criteri perché è la sua
+// definizione a essere «tutto il resto».
+//
+// I passi sono SCISSI per mestiere — comunicazione, dati, intelligenza,
+// tecnici — perché «invia una mail» e «chiama un webhook» finiscono nello
+// stesso elenco solo se quell'elenco non lo deve leggere nessuno.
 
 const HUB_WORKFLOW = [
   { id: 'WF-006', nome: 'Onboarding nuovo locale', origine: 'custom', stato: 'attivo',
@@ -483,11 +515,35 @@ const HUB_WORKFLOW = [
       { tipo: 'trigger', testo: 'Submission form «Prova gratuita 14 giorni»' },
       { tipo: 'mail', testo: 'Conferma iscrizione' },
       { tipo: 'attesa', testo: '2 giorni' },
-      { tipo: 'condizione', testo: 'Ha completato la configurazione?', rami: ['Sì', 'No'] },
-      { tipo: 'mail', testo: 'Ti serve una mano?', ramo: 'No' },
-      { tipo: 'proprieta', testo: 'Ciclo di vita → In onboarding' },
+      { tipo: 'condizione', testo: 'Ha completato la configurazione?', rami: [
+        { id: 'r1', label: 'Sì, ed è un piano alto', congiunzione: 'E',
+          criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] }, { prop: 'piano', op: 'unoDi', valore: ['plus', 'business'] } ],
+          nodi: [
+            { tipo: 'proprieta', testo: 'Ciclo di vita → Returning' },
+            { tipo: 'elenco', testo: 'Locali Plus e Business attivi' },
+            { tipo: 'push', testo: 'Avvisa il commerciale di zona' },
+          ] },
+        { id: 'r2', label: 'Sì, piano base', congiunzione: 'E',
+          criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] } ],
+          nodi: [
+            { tipo: 'proprieta', testo: 'Ciclo di vita → Returning' },
+            { tipo: 'mail', testo: 'Delivery: come funziona' },
+          ] },
+        { id: 'r3', label: 'Non ancora', altrimenti: true, congiunzione: 'E', criteri: [],
+          nodi: [
+            { tipo: 'mail', testo: 'Ti serve una mano?' },
+            { tipo: 'attesa', testo: '3 giorni' },
+            { tipo: 'condizione', testo: 'Adesso ha configurato?', rami: [
+              { id: 'r3a', label: 'Sì', congiunzione: 'E', criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] } ],
+                nodi: [ { tipo: 'proprieta', testo: 'Ciclo di vita → Returning' } ] },
+              { id: 'r3b', label: 'No', altrimenti: true, congiunzione: 'E', criteri: [],
+                nodi: [ { tipo: 'script', testo: 'Apri un ticket al commerciale: onboarding fermo da 5 giorni' } ] },
+            ] },
+          ] },
+      ] },
       { tipo: 'fine', testo: '' },
     ] },
+
   { id: 'WF-005', nome: 'Win-back 3 passi', origine: 'custom', stato: 'sospeso',
     descrizione: 'Tre contatti in tre settimane a chi ha annullato, poi si smette.',
     iscritti: 214, inCorso: 0, completati: 198, autore: 'Giulia Ferrari', modificato: new Date(2026, 5, 12),
@@ -495,10 +551,16 @@ const HUB_WORKFLOW = [
       { tipo: 'trigger', testo: 'Entra nell\'elenco «Piano annullato negli ultimi 90 giorni»' },
       { tipo: 'mail', testo: 'Win-back · ci manchi' },
       { tipo: 'attesa', testo: '7 giorni' },
-      { tipo: 'condizione', testo: 'Ha aperto la mail?', rami: ['Sì', 'No'] },
-      { tipo: 'sms', testo: 'Win-back · ultimo passo', ramo: 'No' },
+      { tipo: 'condizione', testo: 'Come ha reagito?', rami: [
+        { id: 'w1', label: 'Ha riaperto o ha il consenso SMS', congiunzione: 'O',
+          criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] }, { prop: 'consensoSms', op: 'vero', valore: null } ],
+          nodi: [ { tipo: 'sms', testo: 'Win-back · ultimo passo' } ] },
+        { id: 'w2', label: 'Nessun segnale', altrimenti: true, congiunzione: 'E', criteri: [],
+          nodi: [ { tipo: 'proprieta', testo: 'Esito win-back → nessuna risposta' } ] },
+      ] },
       { tipo: 'fine', testo: '' },
     ] },
+
   { id: 'WF-004', nome: 'Qualifica lead', origine: 'custom', stato: 'attivo',
     descrizione: 'Un agente legge il sito del locale e propone il piano giusto al commerciale.',
     iscritti: 640, inCorso: 23, completati: 601, autore: 'Davide Neri', modificato: new Date(2026, 7, 8),
@@ -506,10 +568,22 @@ const HUB_WORKFLOW = [
       { tipo: 'trigger', testo: 'Entra nell\'elenco «Lead senza referral noto»' },
       { tipo: 'agente', testo: 'Ricercatore di mercato → stima coperti e scontrino' },
       { tipo: 'proprieta', testo: 'Piano consigliato ← risposta dell\'agente' },
-      { tipo: 'condizione', testo: 'Piano consigliato = Business?', rami: ['Sì', 'No'] },
-      { tipo: 'push', testo: 'Avvisa il commerciale di zona', ramo: 'Sì' },
+      { tipo: 'condizione', testo: 'Quanto vale questo lead?', rami: [
+        { id: 'q1', label: 'Grande: Business o molti ordini', congiunzione: 'O',
+          criteri: [ { prop: 'piano', op: 'unoDi', valore: ['business'] }, { prop: 'ordini', op: 'maggiore', valore: 200 } ],
+          nodi: [
+            { tipo: 'push', testo: 'Avvisa il commerciale di zona' },
+            { tipo: 'proprieta', testo: 'Priorità → alta' },
+          ] },
+        { id: 'q2', label: 'Medio, ma raggiungibile', congiunzione: 'E',
+          criteri: [ { prop: 'email', op: 'noto', valore: null }, { prop: 'consensoMail', op: 'vero', valore: null } ],
+          nodi: [ { tipo: 'mail', testo: 'Novità di primavera · rilascio 4.2' } ] },
+        { id: 'q3', label: 'Da rilavorare', altrimenti: true, congiunzione: 'E', criteri: [],
+          nodi: [ { tipo: 'elenco', testo: 'Lead da riqualificare' } ] },
+      ] },
       { tipo: 'fine', testo: '' },
     ] },
+
   { id: 'WF-003', nome: 'Certificazioni in scadenza', origine: 'custom', stato: 'attivo',
     descrizione: 'Quindici giorni prima della scadenza avvisa il titolare, poi il supporto.',
     iscritti: 480, inCorso: 41, completati: 402, autore: 'Chiara Rossi', modificato: new Date(2026, 4, 26),
@@ -517,10 +591,18 @@ const HUB_WORKFLOW = [
       { tipo: 'trigger', testo: 'Certificazione a 15 giorni dalla scadenza' },
       { tipo: 'push', testo: 'Documento in scadenza' },
       { tipo: 'attesa', testo: '10 giorni' },
-      { tipo: 'condizione', testo: 'Documento caricato?', rami: ['Sì', 'No'] },
-      { tipo: 'script', testo: 'Apri un ticket al supporto', ramo: 'No' },
+      { tipo: 'condizione', testo: 'Documento caricato?', rami: [
+        { id: 'c1', label: 'Sì', congiunzione: 'E', criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] } ],
+          nodi: [ { tipo: 'proprieta', testo: 'Certificazione → in regola' } ] },
+        { id: 'c2', label: 'No', altrimenti: true, congiunzione: 'E', criteri: [],
+          nodi: [
+            { tipo: 'script', testo: 'Apri un ticket al supporto' },
+            { tipo: 'webhook', testo: 'POST /haccp/blocca-servizi' },
+          ] },
+      ] },
       { tipo: 'fine', testo: '' },
     ] },
+
   { id: 'WF-002', nome: 'Form «Richiedi una demo»', origine: 'form', formId: 'FR-005', stato: 'attivo',
     descrizione: 'Il workflow semplice creato insieme al form: ringrazia e assegna.',
     iscritti: 386, inCorso: 2, completati: 384, autore: 'Automatico', modificato: new Date(2026, 1, 14),
@@ -530,6 +612,7 @@ const HUB_WORKFLOW = [
       { tipo: 'proprieta', testo: 'Referral ← campo «Come ci hai conosciuto»' },
       { tipo: 'fine', testo: '' },
     ] },
+
   { id: 'WF-001', nome: 'Form «Contattaci»', origine: 'form', formId: 'FR-002', stato: 'attivo',
     descrizione: 'Ringrazia chi scrive e mette il messaggio in coda al supporto.',
     iscritti: 743, inCorso: 5, completati: 738, autore: 'Automatico', modificato: new Date(2025, 5, 2),
@@ -540,6 +623,12 @@ const HUB_WORKFLOW = [
       { tipo: 'fine', testo: '' },
     ] },
 ];
+
+// Quanti passi ha davvero un workflow, rami compresi.
+function hubContaNodi(nodi) {
+  return (nodi || []).reduce((n, x) =>
+    n + 1 + (x.rami || []).reduce((m, r) => m + hubContaNodi(r.nodi), 0), 0);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 8 · AGENT
@@ -622,6 +711,7 @@ window.hubDescriviFiltro = hubDescriviFiltro;
 window.hubEtichettaOpzione = hubEtichettaOpzione;
 window.hubArricchisci = hubArricchisci;
 window.hubSeme = hubSeme;
+window.hubIdx = hubIdx;
 window.HUB_ELENCHI = HUB_ELENCHI;
 window.HUB_CARTELLE = HUB_CARTELLE;
 window.HUB_STATI_INVIO = HUB_STATI_INVIO;
@@ -630,9 +720,218 @@ window.HUB_SMS = HUB_SMS;
 window.HUB_PUSH = HUB_PUSH;
 window.HUB_FORM = HUB_FORM;
 window.HUB_WF_NODI = HUB_WF_NODI;
+window.HUB_WF_FAMIGLIE = HUB_WF_FAMIGLIE;
+window.hubContaNodi = hubContaNodi;
 window.HUB_WORKFLOW = HUB_WORKFLOW;
 window.HUB_AGENTI = HUB_AGENTI;
 window.HUB_AGENTI_MODELLI = HUB_AGENTI_MODELLI;
 window.HUB_DOMINI = HUB_DOMINI;
 window.HUB_MITTENTI = HUB_MITTENTI;
 window.HUB_NUMERI = HUB_NUMERI;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 10 · IL DIARIO DI UN CONTATTO
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Tutto quello che è successo fra noi e questa persona, in ordine di tempo:
+// le mail che le abbiamo mandato e se le ha aperte, su quale link ha
+// cliccato, gli SMS e le push, i form che ha compilato, i workflow in cui è
+// entrata, le proprietà che sono cambiate e chi le ha cambiate, le telefonate,
+// i ticket, le note scritte a mano.
+//
+// È la schermata che dice se un contatto è vivo. Un CRM che sa dirti l'email
+// di qualcuno ma non se gli hai già scritto tre volte questa settimana non
+// serve a niente — e serve a meno di niente quando due persone del team gli
+// scrivono lo stesso giorno senza saperlo.
+
+const HUB_ATT_TIPI = {
+  mailInviata:   { label: 'Email inviata',       icona: 'mailFill',    color: 'HUB_MAGENTA', gruppo: 'email' },
+  mailAperta:    { label: 'Email aperta',        icona: 'eye',         color: 'OK',          gruppo: 'email' },
+  mailClick:     { label: 'Click nell\'email',   icona: 'cursorClick', color: 'HUB_MAGENTA', gruppo: 'email' },
+  mailRimbalzo:  { label: 'Email respinta',      icona: 'alertTriangle', color: 'DANGER',    gruppo: 'email' },
+  mailDisiscr:   { label: 'Disiscrizione',       icona: 'x',           color: 'DANGER',      gruppo: 'email' },
+  smsInviato:    { label: 'SMS inviato',         icona: 'smsFill',     color: 'HUB_MAGENTA', gruppo: 'messaggi' },
+  smsClick:      { label: 'Click nell\'SMS',     icona: 'cursorClick', color: 'HUB_MAGENTA', gruppo: 'messaggi' },
+  pushInviata:   { label: 'Push inviata',        icona: 'bellFill',    color: 'PURPLE',      gruppo: 'messaggi' },
+  pushAperta:    { label: 'Push aperta',         icona: 'eye',         color: 'OK',          gruppo: 'messaggi' },
+  form:          { label: 'Form compilato',      icona: 'formFill',    color: 'TEAL',        gruppo: 'form' },
+  pagina:        { label: 'Pagina vista',        icona: 'globe',       color: 'PLAN_FREE',   gruppo: 'form' },
+  wfEntrato:     { label: 'Entrato in workflow', icona: 'flowFill',    color: 'HUB_VIOLA',   gruppo: 'automazioni' },
+  wfUscito:      { label: 'Workflow completato', icona: 'check',       color: 'HUB_VIOLA',   gruppo: 'automazioni' },
+  elencoEntrato: { label: 'Aggiunto a un elenco',icona: 'listFill',    color: 'INFO',        gruppo: 'automazioni' },
+  elencoUscito:  { label: 'Uscito da un elenco', icona: 'listFill',    color: 'PLAN_FREE',   gruppo: 'automazioni' },
+  proprieta:     { label: 'Proprietà cambiata',  icona: 'tagFill',     color: 'INFO',        gruppo: 'sistema' },
+  chiamata:      { label: 'Telefonata',          icona: 'headsetFill', color: 'WARN',        gruppo: 'persone' },
+  nota:          { label: 'Nota',                icona: 'pencil',      color: 'INK',         gruppo: 'persone' },
+  ticket:        { label: 'Ticket',              icona: 'ticket',      color: 'WARN',        gruppo: 'persone' },
+  accesso:       { label: 'Accesso',             icona: 'user',        color: 'PLAN_FREE',   gruppo: 'sistema' },
+  creato:        { label: 'Contatto creato',     icona: 'plus',        color: 'OK',          gruppo: 'sistema' },
+};
+
+const HUB_ATT_GRUPPI = [
+  { id: 'tutto',       label: 'Tutto' },
+  { id: 'email',       label: 'Email' },
+  { id: 'messaggi',    label: 'SMS e push' },
+  { id: 'form',        label: 'Form e pagine' },
+  { id: 'automazioni', label: 'Automazioni' },
+  { id: 'persone',     label: 'Note e chiamate' },
+  { id: 'sistema',     label: 'Sistema' },
+];
+
+const HUB_LINK_TRACCIATI = [
+  { url: 'byup.it/prenotazioni', testo: 'Scopri come funziona' },
+  { url: 'byup.it/prezzi', testo: 'Vedi i piani' },
+  { url: 'app.byup.it/onboarding', testo: 'Completa la configurazione' },
+  { url: 'byup.it/delivery', testo: 'Il delivery senza commissioni' },
+  { url: 'byup.it/demo', testo: 'Prenota una demo' },
+  { url: 'byup.it/guide/kds', testo: 'Guida al KDS' },
+];
+const HUB_PAGINE = ['byup.it/prezzi', 'byup.it/prenotazioni', 'byup.it/demo', 'byup.it/chi-siamo', 'byup.it/delivery'];
+const HUB_OPERATORI_TEAM = ['Marco Rinaldi', 'Giulia Ferrari', 'Davide Neri', 'Chiara Rossi'];
+
+// Il diario si costruisce una volta per contatto e resta in cache: rigenerarlo
+// a ogni render farebbe ballare le date sotto gli occhi di chi legge.
+const HUB_ATT_CACHE = {};
+
+function hubAttivita(c) {
+  if (!c) return [];
+  const chiave = c.key || (c.ref && c.ref.id) || c.nome;
+  if (HUB_ATT_CACHE[chiave]) return HUB_ATT_CACHE[chiave];
+
+  const s = hubSeme(chiave);
+  const ev = [];
+  let n = 0;
+  const rnd = (i) => (((s >>> (i % 20)) ^ (s * (i + 3))) >>> 0);
+  const quando = (giorniFa, ora) => new Date(Date.now() - giorniFa * 86400000 - (ora || 0) * 3600000);
+  const push = (giorniFa, ora, tipo, titolo, dettaglio, meta) =>
+    ev.push({ id: chiave + '-' + (++n), tipo, quando: quando(giorniFa, ora), titolo, dettaglio, meta: meta || null });
+
+  // ── la nascita del contatto ──
+  const eta = Math.max(3, Math.round((Date.now() - new Date(c.iscritto || Date.now()).getTime()) / 86400000));
+  push(eta, 9, 'creato', 'Contatto creato in Hubble',
+    c.primoForm ? `Dalla submission del form «${c.primoForm}»` : c.canale ? `Origine: ${hubEtichettaOpzione(HUB_PROP.canale, c.canale)}` : 'Inserito manualmente',
+    c.referral ? { Referral: c.referral } : null);
+
+  if (c.primoForm) {
+    push(eta, 9, 'form', `Ha compilato «${c.primoForm}»`, 'Su byup.it',
+      Object.assign({ Nome: c.nome }, c.email ? { Email: c.email } : {}, c.referral ? { 'Come ci hai conosciuto': c.referral } : {}));
+    push(eta, 10, 'pagina', 'Ha visitato ' + hubScegli(s, HUB_PAGINE), 'Prima del form, stessa sessione');
+  }
+
+  // ── la storia delle campagne: ogni invio può essere aperto e cliccato ──
+  const campagne = HUB_MAIL.filter(m => m.consegnate > 0);
+  campagne.forEach((m, i) => {
+    const r = rnd(i);
+    const giorni = Math.max(1, Math.round(eta * 0.8) - i * 11 - (r % 5));
+    if (giorni > eta) return;
+    push(giorni, 9, 'mailInviata', m.nome, `Oggetto: «${m.oggetto}» · da ${m.mittenteMail}`);
+    // Il tasso di apertura della campagna decide se questo contatto l'ha
+    // aperta: i numeri del singolo devono tornare con quelli dell'invio.
+    const apre = (r % 100) < Math.round(m.aperte / m.consegnate * 100);
+    if (apre) {
+      push(giorni, 8, 'mailAperta', m.nome, 'Aperta ' + ((r >>> 3) % 3 + 1) + ' volte · ' + (r % 2 ? 'iPhone · Mail' : 'Mac · Gmail'));
+      const clicca = ((r >>> 5) % 100) < Math.round(m.click / Math.max(1, m.aperte) * 100);
+      if (clicca) {
+        const l = HUB_LINK_TRACCIATI[hubIdx(r >>> 7, HUB_LINK_TRACCIATI.length)];
+        push(giorni, 7.5, 'mailClick', m.nome, `Ha cliccato «${l.testo}»`, { Link: l.url });
+        if ((r >>> 9) % 3 === 0) push(giorni, 7.4, 'pagina', 'Ha visitato ' + l.url, 'Arrivato dal link della campagna');
+      }
+    }
+    if ((r >>> 11) % 40 === 0) push(giorni, 9, 'mailRimbalzo', m.nome, 'Casella piena — riprovato 2 volte');
+  });
+
+  if (c.consensoMail === false) push(Math.round(eta * 0.35), 11, 'mailDisiscr', 'Si è disiscritto dalle comunicazioni',
+    'Dal piè di pagina di una campagna. Da qui non riceve più email di marketing.');
+
+  // ── SMS e push ──
+  if (c.consensoSms) {
+    const r = rnd(31);
+    push(Math.max(2, Math.round(eta * 0.2)), 11, 'smsInviato', 'Promemoria rinnovo Plus', '1 segmento · consegnato');
+    if (r % 3 === 0) push(Math.max(2, Math.round(eta * 0.2)), 10.8, 'smsClick', 'Promemoria rinnovo Plus', 'Ha aperto il link accorciato', { Link: 'byup.it/r/8fk2' });
+  }
+  if (c.tipo === 'utente' || c.tipo === 'locale') {
+    const r = rnd(47);
+    const p = HUB_PUSH[hubIdx(r, HUB_PUSH.length)];
+    if (p.titolo) {
+      push(Math.max(1, r % Math.max(4, eta - 1)), 18, 'pushInviata', p.nome, p.titolo + ' — ' + p.corpo.slice(0, 60));
+      if (r % 2 === 0) push(Math.max(1, r % Math.max(4, eta - 1)), 17.7, 'pushAperta', p.nome, 'Ha toccato la notifica');
+    }
+  }
+
+  // ── automazioni ed elenchi ──
+  HUB_ELENCHI.filter(e => e.tipo === 'attivo').forEach((e, i) => {
+    if (!hubPassa(c, e.includi)) return;
+    const g = Math.max(1, Math.round(eta * 0.6) - i * 7);
+    push(g, 12, 'elencoEntrato', e.nome, 'Ha iniziato a rispondere ai criteri dell\'elenco');
+  });
+  HUB_WORKFLOW.filter(w => w.stato === 'attivo').slice(0, 2).forEach((w, i) => {
+    const r = rnd(60 + i);
+    if (r % 3 !== 0) return;
+    const g = Math.max(1, Math.round(eta * 0.5) - i * 9);
+    push(g, 12, 'wfEntrato', w.nome, 'Iscritto all\'automazione');
+    if (r % 2 === 0) push(Math.max(0, g - 3), 12, 'wfUscito', w.nome, 'Percorso completato');
+  });
+
+  // ── proprietà che cambiano ──
+  if (c.ciclo && c.ciclo !== 'lead') {
+    push(Math.round(eta * 0.55), 14, 'proprieta', 'Ciclo di vita',
+      'Da «Lead» a «' + hubEtichettaOpzione(HUB_PROP.ciclo, c.ciclo) + '»',
+      { Chi: 'Workflow · Onboarding nuovo locale' });
+  }
+  if (c.campagnaId) {
+    push(eta, 9, 'proprieta', 'ID campagna', 'Impostata a «' + c.campagnaId + '»', { Chi: 'Submission form' });
+  }
+  if (c.proprietario) {
+    push(Math.round(eta * 0.9), 10, 'proprieta', 'Proprietario del contatto',
+      'Assegnato a ' + c.proprietario, { Chi: 'Assegnazione automatica per zona' });
+  }
+
+  // ── persone: chiamate, note, ticket ──
+  const r2 = rnd(91);
+  if (c.tipo === 'locale') {
+    push(Math.max(1, r2 % Math.max(3, Math.round(eta * 0.3))), 15, 'chiamata',
+      'Chiamata in uscita · ' + (4 + r2 % 9) + ' min',
+      hubScegli(r2, ['Presentato il piano Plus, richiamare fra due settimane.',
+        'Voleva capire il delivery. Mandato il listino.',
+        'Non risponde. Lasciato messaggio in segreteria.',
+        'Tutto bene, nessuna richiesta aperta.']),
+      { Operatore: hubScegli(r2 >>> 3, HUB_OPERATORI_TEAM) });
+    if (r2 % 4 === 0) push(Math.max(1, (r2 >>> 5) % Math.max(3, Math.round(eta * 0.25))), 16, 'nota',
+      'Nota di ' + hubScegli(r2 >>> 7, HUB_OPERATORI_TEAM),
+      hubScegli(r2 >>> 9, ['Il titolare preferisce essere contattato dopo le 15.',
+        'Ha due sedi, la seconda apre a primavera.',
+        'Attenzione: fattura intestata alla società, non al locale.']));
+  }
+  if (r2 % 5 === 0) push(Math.max(1, (r2 >>> 11) % Math.max(3, eta)), 11, 'ticket',
+    'Ticket #' + (2100 + (r2 % 400)) + ' aperto',
+    hubScegli(r2 >>> 13, ['Non riesco a stampare gli scontrini', 'Il menu non si aggiorna sull\'app', 'Problema con il pagamento']));
+
+  // ── accessi ──
+  if (c.ultimaAttivita) push(Math.max(0, Math.round((Date.now() - new Date(c.ultimaAttivita).getTime()) / 86400000)), 9,
+    'accesso', 'Ultimo accesso', c.tipo === 'utente' ? 'App byup · iPhone' : 'Gestionale · Chrome su Mac');
+
+  // Due paletti, e sono di buon senso: niente nel futuro, e niente PRIMA che
+  // il contatto esistesse. Il secondo serve davvero — un contatto creato
+  // stamattina si ritrovava sei campagne ricevute la settimana scorsa, perché
+  // le date degli eventi si calcolano all'indietro dalla sua età.
+  const nascita = ev.find(e => e.tipo === 'creato');
+  const daQuando = nascita ? nascita.quando.getTime() : 0;
+  const out = ev
+    .filter(e => e.quando <= new Date() && (e.tipo === 'creato' || e.quando.getTime() >= daQuando - 3600000))
+    .sort((a, b) => b.quando - a.quando);
+  HUB_ATT_CACHE[chiave] = out;
+  return out;
+}
+
+// Le note scritte a mano si aggiungono in testa e restano per la sessione.
+function hubAggiungiAttivita(c, ev) {
+  const chiave = c.key || (c.ref && c.ref.id) || c.nome;
+  const lista = hubAttivita(c);
+  HUB_ATT_CACHE[chiave] = [Object.assign({ id: chiave + '-m' + Date.now(), quando: new Date() }, ev), ...lista];
+  return HUB_ATT_CACHE[chiave];
+}
+
+window.HUB_ATT_TIPI = HUB_ATT_TIPI;
+window.HUB_ATT_GRUPPI = HUB_ATT_GRUPPI;
+window.hubAttivita = hubAttivita;
+window.hubAggiungiAttivita = hubAggiungiAttivita;
