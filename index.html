@@ -85,15 +85,22 @@
   .card:hover::after{transform:scale(1.5);opacity:1;}
   .card:focus-visible{outline:3px solid rgba(255,90,95,.5);outline-offset:3px;}
 
-  .icon{width:50px;height:50px;border-radius:15px;flex:none;display:grid;place-items:center;margin-bottom:18px;
+  .icon{position:relative;width:50px;height:50px;border-radius:15px;flex:none;display:grid;place-items:center;margin-bottom:18px;
     background:linear-gradient(150deg,#FF7A7E,#FF5A5F 60%,#E84B50);
     box-shadow:0 12px 24px -12px rgba(255,90,95,.8),inset 0 1px 0 rgba(255,255,255,.3);}
-  .icon svg{width:26px;height:26px;stroke:#fff;}
+  /* Il marchio vero del prodotto, reso in bianco: la PNG fa da maschera e il
+     tile porta il colore. Stesso byuppino per la famiglia byup, glifo Hubble
+     per la console — come i loro favicon. */
+  .icon .mark{width:27px;height:27px;background:#fff;display:block;
+    -webkit-mask:var(--mark) center/contain no-repeat;mask:var(--mark) center/contain no-repeat;}
+  /* Il papillon della mascotte Staff: è il tratto che veste il byuppino
+     nella coppia dell'incasso (Staff + Cameriere). */
+  .icon .fiocco{position:absolute;width:14px;height:auto;left:50%;bottom:7px;transform:translateX(-56%);}
   .icon.v-app{background:linear-gradient(150deg,#8C9BFF,#5B6CF0 60%,#4453D6);box-shadow:0 12px 24px -12px rgba(91,108,240,.8),inset 0 1px 0 rgba(255,255,255,.3);}
   .icon.v-web{background:linear-gradient(150deg,#3DE0AE,#12B886 60%,#0CA678);box-shadow:0 12px 24px -12px rgba(18,184,134,.75),inset 0 1px 0 rgba(255,255,255,.3);}
   .icon.v-staff{background:linear-gradient(150deg,#FFC15E,#FA8C16 60%,#E8730A);box-shadow:0 12px 24px -12px rgba(250,140,22,.8),inset 0 1px 0 rgba(255,255,255,.3);}
   .icon.v-cam{background:linear-gradient(150deg,#A985FF,#7C4DFF 60%,#6539E0);box-shadow:0 12px 24px -12px rgba(124,77,255,.8),inset 0 1px 0 rgba(255,255,255,.3);}
-  .icon.v-spot{background:linear-gradient(150deg,#3AE0F0,#0EA5E9 60%,#0B84C2);box-shadow:0 12px 24px -12px rgba(14,165,233,.8),inset 0 1px 0 rgba(255,255,255,.3);}
+  .icon.v-spot{background:linear-gradient(150deg,#FF1F5A,#E01372 55%,#A50FC4);box-shadow:0 12px 24px -12px rgba(224,19,114,.8),inset 0 1px 0 rgba(255,255,255,.3);}
 
   .badge{position:absolute;top:20px;right:18px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
     color:var(--muted-soft);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:5px 9px;border-radius:999px;}
@@ -133,7 +140,7 @@
       <a class="card" href="gestionale/byup%20Login.html">
         <span class="badge">Ristoratore</span>
         <span class="icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <i class="mark" style="--mark:url('gestionale/Fresh-mark.png')"></i>
         </span>
         <h2>byup Gestionale</h2>
         <p>La piattaforma del locale: panoramica, sala &amp; prenotazioni, cucina (KDS), contabilità, statistiche, menu e impostazioni.</p>
@@ -143,7 +150,7 @@
       <a class="card" href="app/byup%20Home.html">
         <span class="badge">Consumer</span>
         <span class="icon v-app" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><line x1="10.5" y1="18.2" x2="13.5" y2="18.2"/></svg>
+          <i class="mark" style="--mark:url('assets/byup-icon.png')"></i>
         </span>
         <h2>byup App</h2>
         <p>L'app dei clienti: scopri i locali sulla mappa, sfoglia il menu, ordina, dividi il conto e paga dal telefono.</p>
@@ -153,7 +160,7 @@
       <a class="card" href="web/index.html">
         <span class="badge">Consumer</span>
         <span class="icon v-web" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><path d="M14 14h3v3M20 14v.01M14 20h.01M17 20h.01M20 17v4"/></svg>
+          <i class="mark" style="--mark:url('assets/byup-icon.png')"></i>
         </span>
         <h2>byup Web</h2>
         <p>La webapp per ordinare al tavolo via QR — senza installare nulla. Menu, divisione del conto in tempo reale, recupero ordine.</p>
@@ -163,7 +170,8 @@
       <a class="card" href="staff/index.html">
         <span class="badge">Staff</span>
         <span class="icon v-staff" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><line x1="2.5" y1="9.5" x2="21.5" y2="9.5"/><line x1="6" y1="14.5" x2="10" y2="14.5"/></svg>
+          <i class="mark" style="--mark:url('assets/byup-icon.png')"></i>
+          <svg class="fiocco" viewBox="0 0 24 12"><path d="M2.2 1.4 10 4.9v2.2L2.2 10.6C1.4 11 .8 10.6.8 9.7V2.3c0-.9.6-1.3 1.4-.9Zm19.6 0L14 4.9v2.2l7.8 3.5c.8.4 1.4 0 1.4-.9V2.3c0-.9-.6-1.3-1.4-.9Z" fill="#16181D"/><rect x="9.7" y="3.9" width="4.6" height="4.2" rx="1.2" fill="#16181D"/></svg>
         </span>
         <h2>byup Staff</h2>
         <p>L'app di incasso per esercenti: Tap to Pay su iPhone e Android, pagamenti con carta processati da Stripe Terminal.</p>
@@ -173,7 +181,8 @@
       <a class="card" href="cameriere/cameriereweb.html">
         <span class="badge">Staff</span>
         <span class="icon v-cam" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a2 2 0 0 1 2 2v.5"/><rect x="5" y="4.5" width="14" height="17" rx="2.5"/><path d="M9 4a3 3 0 0 1 6 0"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="13" y2="15"/></svg>
+          <i class="mark" style="--mark:url('assets/byup-icon.png')"></i>
+          <svg class="fiocco" viewBox="0 0 24 12"><path d="M2.2 1.4 10 4.9v2.2L2.2 10.6C1.4 11 .8 10.6.8 9.7V2.3c0-.9.6-1.3 1.4-.9Zm19.6 0L14 4.9v2.2l7.8 3.5c.8.4 1.4 0 1.4-.9V2.3c0-.9-.6-1.3-1.4-.9Z" fill="#16181D"/><rect x="9.7" y="3.9" width="4.6" height="4.2" rx="1.2" fill="#16181D"/></svg>
         </span>
         <h2>byup Cameriere</h2>
         <p>La presa ordini in sala: piantina dei tavoli, comande, gestione del conto e pagamento direttamente dal palmare.</p>
@@ -183,11 +192,11 @@
       <a class="card" href="spot/byup-spot.html">
         <span class="badge">Admin</span>
         <span class="icon v-spot" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="9" cy="7" r="2.3" fill="#0EA5E9"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="15" cy="17" r="2.3" fill="#0EA5E9"/></svg>
+          <i class="mark" style="--mark:url('spot/hubble-mark.png')"></i>
         </span>
         <h2>Hubble</h2>
         <p>La console interna: il CRM dei contatti, gli elenchi, il marketing (mail, SMS, push, form), i workflow, gli agenti e le statistiche di piattaforma.</p>
-        <span class="open">Apri Spot <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <span class="open">Apri Hubble <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
       </a>
 
     </main>
