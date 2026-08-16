@@ -311,8 +311,22 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
   // stile inline (serve per la voce attiva), e uno stile inline vince sempre
   // su una regola :hover del foglio — la classe c'era e non si vedeva mai.
   const [sopra, setSopra] = React.useState(null);
+  // Verso d'apertura: vicino al fondo della finestra il pannello si apre
+  // VERSO L'ALTO — aperto in giù finiva sotto la piega dello scroll (o sotto
+  // il bordo di una card che clippa) e le voci restavano invisibili.
+  const [verso, setVerso] = React.useState('giu');
+  const box = React.useRef(null);
   const opts = (options || []).map(o => (o && typeof o === 'object') ? o : { value: o, label: String(o) });
   const current = opts.find(o => String(o.value) === String(value));
+  const commuta = () => {
+    if (!open && box.current) {
+      const r = box.current.getBoundingClientRect();
+      const serve = Math.min(maxHeight, opts.length * 38 + 14) + 10;
+      const spazioSotto = window.innerHeight - r.bottom;
+      setVerso(spazioSotto < serve && r.top > spazioSotto ? 'su' : 'giu');
+    }
+    setOpen(o => !o);
+  };
 
   React.useEffect(() => {
     if (!open) return;
@@ -327,9 +341,9 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
   }, [open]);
 
   return (
-    <div style={{position:'relative', display: block ? 'block' : 'inline-flex', width: block ? '100%' : undefined}}
+    <div ref={box} style={{position:'relative', display: block ? 'block' : 'inline-flex', width: block ? '100%' : undefined}}
       onPointerDown={e => e.stopPropagation()}>
-      <button type="button" onClick={() => setOpen(o => !o)} title={title}
+      <button type="button" onClick={commuta} title={title}
         style={{
           display:'inline-flex', alignItems:'center', justifyContent:'space-between', gap:8,
           width: block ? '100%' : undefined, minWidth:0, boxSizing:'border-box',
@@ -348,7 +362,9 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
 
       {open && (
         <div className="adm-select-pop" onMouseLeave={() => setSopra(null)} style={{
-          position:'absolute', top:'calc(100% + 6px)', zIndex:120,
+          position:'absolute', zIndex:120,
+          top: verso === 'su' ? 'auto' : 'calc(100% + 6px)',
+          bottom: verso === 'su' ? 'calc(100% + 6px)' : 'auto',
           left: align === 'right' ? 'auto' : 0,
           right: align === 'right' ? 0 : 'auto',
           minWidth:'100%', maxWidth:340, padding:6, borderRadius:12,

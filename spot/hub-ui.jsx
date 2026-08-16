@@ -382,7 +382,20 @@ function HubScelteMultiple({ opzioni, scelte, onCambia, placeholder = 'Scegli…
   const [aperto, setAperto] = useStateHub(false);
   const [q, setQ] = useStateHub('');
   const [sopra, setSopra] = useStateHub(null);
+  // Verso d'apertura: a ridosso del fondo della finestra la tendina si apre
+  // VERSO L'ALTO — aperta in giù finiva sotto la piega dello scroll e si
+  // vedeva solo il campo «Cerca…», con l'elenco invisibile.
+  const [verso, setVerso] = useStateHub('giu');
+  const box = React.useRef(null);
   const sel = Array.isArray(scelte) ? scelte : [];
+  const commuta = () => {
+    if (!aperto && box.current) {
+      const r = box.current.getBoundingClientRect();
+      const spazioSotto = window.innerHeight - r.bottom;
+      setVerso(spazioSotto < 290 && r.top > spazioSotto ? 'su' : 'giu');
+    }
+    setAperto(a => !a);
+  };
 
   useEffectHub(() => {
     if (!aperto) return;
@@ -399,8 +412,8 @@ function HubScelteMultiple({ opzioni, scelte, onCambia, placeholder = 'Scegli…
     : `${sel.length} voci scelte`;
 
   return (
-    <div style={{ position: 'relative' }} onPointerDown={e => e.stopPropagation()}>
-      <button type="button" onClick={() => setAperto(a => !a)} style={Object.assign({}, HUB_INPUT, {
+    <div ref={box} style={{ position: 'relative' }} onPointerDown={e => e.stopPropagation()}>
+      <button type="button" onClick={commuta} style={Object.assign({}, HUB_INPUT, {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
         cursor: 'pointer', textAlign: 'left', fontWeight: sel.length ? 600 : 400,
         color: sel.length ? ADM.TEXT : ADM.MUTED_SOFT,
@@ -412,7 +425,9 @@ function HubScelteMultiple({ opzioni, scelte, onCambia, placeholder = 'Scegli…
       </button>
       {aperto && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 5px)', left: 0, right: 0, zIndex: 220,
+          position: 'absolute', left: 0, right: 0, zIndex: 220,
+          top: verso === 'su' ? 'auto' : 'calc(100% + 5px)',
+          bottom: verso === 'su' ? 'calc(100% + 5px)' : 'auto',
           background: '#fff', border: `1px solid ${ADM.BORDER}`, borderRadius: 11, padding: 6,
           boxShadow: '0 20px 46px -12px rgba(15,17,21,0.26)', maxHeight: 260, display: 'flex', flexDirection: 'column',
           animation: 'hubFlyIn 0.13s ease',
@@ -503,13 +518,19 @@ function HubFiltroCard({ filtro, righe, onCambia, onElimina, indice }) {
   };
 
   return (
+    // NIENTE overflow:hidden qui: dentro la card vivono due tendine a
+    // posizionamento assoluto (l'operatore e le scelte del valore), e il
+    // clip le decapitava al bordo — si vedeva il campo «Cerca…» e l'elenco
+    // delle voci restava invisibile. Gli angoli della testata si arrotondano
+    // da soli, senza chiedere alla card di tagliare i figli.
     <div style={{
       border: `1px solid ${ADM.BORDER}`, borderRadius: 11, background: '#fff',
-      boxShadow: '0 1px 2px rgba(15,17,21,0.04)', overflow: 'hidden',
+      boxShadow: '0 1px 2px rgba(15,17,21,0.04)',
     }}>
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, padding: '9px 10px 9px 12px',
         background: ADM.PANEL_SOFT, borderBottom: `1px solid ${ADM.BORDER_SOFT}`,
+        borderRadius: '10px 10px 0 0',
       }}>
         <span style={{
           fontSize: 10.5, fontWeight: 800, color: ADM.MUTED_SOFT, letterSpacing: '0.08em',

@@ -104,6 +104,48 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
 
 function DrwPanoramica({ locale: l }) {
   const stoppedStep = l.stoppedAt ? ONB_STEPS.find(s => s.id === l.stoppedAt) : null;
+
+  // ── Gli andamenti: UN periodo, scelto col filtro, comanda tutti e due i
+  // grafici (ordini e fatturato) — e sotto le barre ci sono i riferimenti
+  // temporali veri: i mesi per gli orizzonti lunghi, i giorni per i corti.
+  const [periodo, setPeriodo] = useStateDrw('12m');
+  const PERIODI = [
+    { id: '12m',  label: '12 mesi' },
+    { id: '6m',   label: '6 mesi' },
+    { id: 'mese', label: 'Ultimo mese' },
+    { id: 'sett', label: 'Settimana' },
+  ];
+  const serie = (() => {
+    const s = hubSeme('trend-' + l.id) % 1000;
+    const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
+    const MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+    const GG = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+    if (periodo === 'sett') {
+      return Array.from({ length: 7 }).map((_, i) => {
+        const d = new Date(Date.now() - (6 - i) * 86400000);
+        return { v: l.ordiniGiorno * (0.55 + r(i) * 0.9), label: GG[d.getDay()] };
+      });
+    }
+    if (periodo === 'mese') {
+      // Trenta barre: l'etichetta ogni cinque giorni, o sarebbe un muro.
+      return Array.from({ length: 30 }).map((_, i) => {
+        const d = new Date(Date.now() - (29 - i) * 86400000);
+        return { v: l.ordiniGiorno * (0.55 + r(10 + i) * 0.9), label: (i % 5 === 0 || i === 29) ? String(d.getDate()) : '' };
+      });
+    }
+    const n = periodo === '6m' ? 6 : 12;
+    const oggi = new Date();
+    return Array.from({ length: n }).map((_, i) => {
+      const d = new Date(oggi.getFullYear(), oggi.getMonth() - (n - 1 - i), 1);
+      // I mesi vecchi pesano meno: la curva cresce verso oggi, come il locale.
+      const f = 0.55 + 0.45 * (i / (n - 1));
+      return { v: l.ordiniMese * f * (0.75 + r(40 + i) * 0.5), label: MESI[d.getMonth()] };
+    });
+  })();
+  const etichette = serie.map(x => x.label);
+  const ordiniSerie = serie.map(x => x.v);
+  const fattSerie = serie.map(x => x.v * l.ticketMedio);
+  const periodoLabel = { '12m': 'ultimi 12 mesi', '6m': 'ultimi 6 mesi', mese: 'ultimo mese', sett: 'ultima settimana' }[periodo];
   return (
     <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:16}}>
       {/* Alert se bloccato */}
@@ -139,23 +181,37 @@ function DrwPanoramica({ locale: l }) {
       </AdmCard>
 
       {/* I due andamenti, uno sotto l'altro: gli ordini e il fatturato che
-          ne discende (ordini × scontrino — stessa curva, altra unità). */}
+          ne discende (ordini × scontrino — stessa curva, altra unità). Il
+          filtro del periodo è UNO e comanda entrambi. */}
+      <div style={{display:'flex', alignItems:'center', gap:8, flexWrap:'wrap'}}>
+        <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Periodo</span>
+        <div style={{display:'flex', gap:4}}>
+          {PERIODI.map(pp => (
+            <button key={pp.id} className="adm-pill" onClick={()=>setPeriodo(pp.id)} style={{
+              padding:'6px 12px',
+              background: periodo === pp.id ? ADM.TEXT : '#fff',
+              color: periodo === pp.id ? '#fff' : ADM.MUTED,
+              border: periodo === pp.id ? '1px solid transparent' : `1px solid ${ADM.BORDER}`,
+              borderRadius:7, fontSize:12.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+            }}>{pp.label}</button>
+          ))}
+        </div>
+      </div>
+
       <AdmCard padding={18}>
         <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:12}}>
           <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Andamento ordini</div>
-          <div style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>ultimi 14 giorni</div>
+          <div style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>{periodoLabel} · {fmtNum(Math.round(ordiniSerie.reduce((a, b) => a + b, 0)))} ordini</div>
         </div>
-        <AdmBarChart data={[12,18,14,22,28,32,24,30,38,42,36,44,48,52].map(x=>x*(l.ordiniGiorno/30))} labels={Array(14).fill('')} height={140}/>
+        <AdmBarChart data={ordiniSerie} labels={etichette} height={140}/>
       </AdmCard>
 
       <AdmCard padding={18}>
         <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:12}}>
           <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Andamento fatturato</div>
-          <div style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>
-            ultimi 14 giorni · {fmtEur([12,18,14,22,28,32,24,30,38,42,36,44,48,52].reduce((s,x)=>s + x*(l.ordiniGiorno/30)*l.ticketMedio, 0))} totali
-          </div>
+          <div style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>{periodoLabel} · {fmtEur(fattSerie.reduce((a, b) => a + b, 0))} totali</div>
         </div>
-        <AdmBarChart data={[12,18,14,22,28,32,24,30,38,42,36,44,48,52].map(x=>x*(l.ordiniGiorno/30)*l.ticketMedio)} labels={Array(14).fill('')} height={140}/>
+        <AdmBarChart data={fattSerie} labels={etichette} height={140}/>
       </AdmCard>
 
       <DrwAdozioneDigitale locale={l}/>
