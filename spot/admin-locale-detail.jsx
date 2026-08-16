@@ -7,6 +7,11 @@ const { useState: useStateDrw } = React;
 // Contatti), e a chiudere ci pensa la barra «torna» del chiamante.
 function LocaleDrawer({ locale: l, onClose, pieno }) {
   const [tab, setTab] = useStateDrw('anagrafica');
+  // Il tick dei conteggi: quando una tab cambia i dati che la BARRA mostra
+  // (eliminare una certificazione ne muove il badge), lo dice al drawer —
+  // altrimenti il badge resta stantio fino al prossimo cambio tab.
+  const [, aggiornaConteggi] = useStateDrw(0);
+  const contaCambio = () => aggiornaConteggi(x => x + 1);
 
   return (
     <div onClick={pieno ? undefined : onClose} style={pieno ? {} : {
@@ -68,11 +73,10 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
           { id:'panoramica', label:'Panoramica' },
           { id:'statistiche', label:'Statistiche' },
           { id:'attivita', label:'Log' },
-          { id:'consensi', label:'Consensi' },
           { id:'certificazioni', label:'Certificazioni',
             ...(CERTIFICAZIONI.filter(c=>c.localeId===l.id).length
               ? { badge: CERTIFICAZIONI.filter(c=>c.localeId===l.id).length } : {}) },
-          { id:'contratti', label:'Contratti' },
+          { id:'contratti', label:'Contratti e consensi' },
           { id:'fatturazione', label:'Fatturazione' },
           { id:'account', label:'Account' },
         ]} active={tab} onChange={setTab}/>
@@ -82,10 +86,9 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
           {tab==='anagrafica' && <DrwAnagrafica locale={l}/>}
           {tab==='fiscale' && <DrwFiscali locale={l}/>}
           {tab==='statistiche' && <DrwStatisticheLocale locale={l}/>}
-          {tab==='consensi' && <DrwConsensiLocale locale={l}/>}
           {tab==='proprieta' && <DrwProprieta locale={l}/>}
           {tab==='attivita' && <DrwAttivita locale={l}/>}
-          {tab==='certificazioni' && <DrwCertificazioni locale={l}/>}
+          {tab==='certificazioni' && <DrwCertificazioni locale={l} onCambia={contaCambio}/>}
           {tab==='contratti' && <DrwContratti locale={l}/>}
           {tab==='fatturazione' && <DrwFatturazione locale={l}/>}
           {tab==='account' && <DrwAccount locale={l}/>}
@@ -475,10 +478,19 @@ function DrwAnagrafica({ locale: l }) {
           </div>
           <div>
             <label style={drwLab}>Stato</label>
+            {/* La sospensione È lo stato, non un dettaglio di un'altra tab:
+                un locale sospeso che qui si presenta «Attivo» mente. */}
             <div style={{display:'flex', alignItems:'center', minHeight:36}}>
-              <AdmBadge color={l.stato === 'active' ? 'OK' : 'PLAN_FREE'} size="xs">
-                {l.stato === 'active' ? 'Attivo' : 'Inattivo'}
-              </AdmBadge>
+              {(() => {
+                const sosp = SOSPENSIONI.find(x => x.soggettoId === l.id && !x.revoca);
+                if (sosp && sosp.sospesa) return <AdmBadge color="DANGER" size="xs">Sospeso</AdmBadge>;
+                if (sosp) return <AdmBadge color="WARN" size="xs">Diffidato</AdmBadge>;
+                return (
+                  <AdmBadge color={l.stato === 'active' ? 'OK' : 'PLAN_FREE'} size="xs">
+                    {l.stato === 'active' ? 'Attivo' : 'Inattivo'}
+                  </AdmBadge>
+                );
+              })()}
             </div>
           </div>
           <div>
@@ -552,8 +564,12 @@ function DrwFiscali({ locale: l }) {
   if (l.ateco === undefined) l.ateco = '56.10.' + String(11 + (s % 9)).padStart(2, '0');
   if (l.pec === undefined) l.pec = 'fatture@pec.' + (l.email || 'locale@x.it').split('@')[1];
   if (l.rea === undefined) l.rea = (l.citta || 'RM').slice(0, 2).toUpperCase() + '-' + (1000000 + s % 900000);
+  // La sede LEGALE è un campo suo: nasce uguale all'operativa (per i più
+  // coincidono) ma da qui in poi vive di vita propria — il gestionale le
+  // distingue, l'operativa va sullo scontrino e la legale in fattura.
+  if (l.sedeLegale === undefined) l.sedeLegale = `${l.indirizzo}, ${l.cap} ${l.citta}`;
 
-  const FIELDS = ['piva', 'cf', 'regime', 'ateco', 'sdi', 'pec', 'rea'];
+  const FIELDS = ['piva', 'cf', 'regime', 'ateco', 'sdi', 'pec', 'rea', 'sedeLegale'];
   const [form, setForm] = useStateDrw(Object.fromEntries(FIELDS.map(k => [k, l[k] ?? ''])));
   const dirty = FIELDS.some(k => String(form[k]) !== String(l[k] ?? ''));
   const [saved, setSaved] = useStateDrw(false);
@@ -619,8 +635,14 @@ function DrwFiscali({ locale: l }) {
             <input value={form.rea} onChange={F('rea')} style={drwMono}/>
           </div>
           <div>
+            <label style={drwLab}>Sede operativa</label>
+            {/* Derivata dall'anagrafica: è quella stampata sullo scontrino,
+                si corregge di là. */}
+            <div style={{...drwInp, background:ADM.PANEL_SOFT, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}} title="Dall'anagrafica · stampata sullo scontrino">{l.indirizzo}, {l.cap} {l.citta}</div>
+          </div>
+          <div style={{gridColumn:'1 / -1'}}>
             <label style={drwLab}>Sede legale</label>
-            <div style={{...drwInp, background:ADM.PANEL_SOFT, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.indirizzo}, {l.cap} {l.citta}</div>
+            <input value={form.sedeLegale} onChange={F('sedeLegale')} style={drwInp}/>
           </div>
         </div>
       </AdmCard>
@@ -659,65 +681,131 @@ function DataRow({ label, value, mono, last }) {
 // Anche l'utenza del locale prende ordini al tavolo, come un cameriere: le
 // sue statistiche sono le STESSE della scheda staff — mesi di lavoro,
 // scontrino medio, mancia media, e sotto l'operatività del mese.
-function DrwStatisticheLocale({ locale: l }) {
+
+// La mediana accanto al numero: un metro, non un giudizio. La usa questa
+// scheda e la usa quella dello staff — una veste sola.
+function drwVsMediana(v, m, fmt) {
+  if (m == null || v == null) return null;
+  return (
+    <React.Fragment>
+      {' · '}
+      <span style={{fontWeight:700, color: v >= m ? ADM.OK : ADM.MUTED_SOFT}}>{v >= m ? '↑' : '↓'}</span>
+      {' mediana ' + fmt(m)}
+    </React.Fragment>
+  );
+}
+
+// Le derivate da sala di un locale ATTIVO: lo scontrino è quello VERO del
+// business (l.ticketMedio, lo stesso numero della Panoramica — due
+// «scontrini medi» diversi nella stessa scheda erano una contraddizione),
+// il resto è stabile sul seme. Una formula sola: la usano la scheda e le
+// mediane qui sotto.
+function drwStatSala(l) {
   const s = hubSeme('sta-' + l.id) % 1000;
   const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
+  return {
+    scontrino: l.ticketMedio || 14 + Math.round(r(1) * 52) / 2,
+    mancia: Math.round((0.8 + r(2) * 3.4) * 10) / 10,
+    ordiniMese: 40 + Math.floor(r(3) * 280),
+    coperti: 60 + Math.floor(r(4) * 380),
+  };
+}
+const DRW_STA_MEDIANE = (() => {
+  const med = (a) => {
+    const v = a.filter(x => x != null).sort((x, y) => x - y);
+    if (!v.length) return null;
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  };
+  const righe = LOCALI.filter(x => x.stato === 'active').map(drwStatSala);
+  return {
+    scontrino: med(righe.map(x => x.scontrino)),
+    mancia: med(righe.map(x => x.mancia)),
+    ordiniMese: med(righe.map(x => x.ordiniMese)),
+    coperti: med(righe.map(x => x.coperti)),
+  };
+})();
+
+function DrwStatisticheLocale({ locale: l }) {
+  // Un locale che non lavora non prende ordini: le cifre da sala esistono
+  // solo per gli ATTIVI — per gli altri la tab dice perché non ci sono,
+  // invece di inventare un titolare che serve tavoli in un locale fermo.
+  if (l.stato !== 'active') {
+    const perche = l.stato === 'churned'
+      ? 'Il contratto è cessato: le cifre da sala si sono fermate con il servizio.'
+      : 'Il locale non è ancora operativo: quando comincerà a lavorare, qui compariranno scontrino, mance e ordini del titolare.';
+    return (
+      <div style={{padding:'20px 24px'}}>
+        <AdmCard padding={0}>
+          <AdmEmpty icon="receipt" title="Nessuna cifra da sala" desc={perche}/>
+        </AdmCard>
+      </div>
+    );
+  }
+  const st = drwStatSala(l);
   const mesi = Math.max(1, Math.floor((Date.now() - l.dataIscrizione.getTime()) / (30.44 * 86400000)));
-  const scontrino = 14 + Math.round(r(1) * 52) / 2;
-  const mancia = Math.round((0.8 + r(2) * 3.4) * 10) / 10;
-  const ordiniMese = 40 + Math.floor(r(3) * 280);
-  const coperti = 60 + Math.floor(r(4) * 380);
   // camEur2 è il formatter delle cifre da sala (admin-camerieri): al centesimo.
   return (
     <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
       <AdmCard padding={0}>
         <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
           <MiniStat first label="Mesi di lavoro" value={fmtNum(mesi)} sub={'Dal ' + fmtDate(l.dataIscrizione)}/>
-          <MiniStat label="Scontrino medio" value={camEur2(scontrino)} sub="Per ordine preso"/>
-          <MiniStat label="Mancia media" value={camEur2(mancia)} sub="Per conto chiuso"/>
+          <MiniStat label="Scontrino medio" value={camEur2(st.scontrino)}
+            sub={<React.Fragment>Per ordine preso{drwVsMediana(st.scontrino, DRW_STA_MEDIANE.scontrino, camEur2)}</React.Fragment>}/>
+          <MiniStat label="Mancia media" value={camEur2(st.mancia)}
+            sub={<React.Fragment>Per conto chiuso{drwVsMediana(st.mancia, DRW_STA_MEDIANE.mancia, camEur2)}</React.Fragment>}/>
         </div>
       </AdmCard>
       <AdmCard padding={0}>
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
-          <MiniStat first label="Ordini mese" value={fmtNum(ordiniMese)} sub="Presi al tavolo"/>
-          <MiniStat label="Coperti gestiti" value={fmtNum(coperti)} sub="Mese corrente"/>
+          <MiniStat first label="Ordini mese" value={fmtNum(st.ordiniMese)}
+            sub={<React.Fragment>Presi al tavolo{drwVsMediana(st.ordiniMese, DRW_STA_MEDIANE.ordiniMese, fmtNum)}</React.Fragment>}/>
+          <MiniStat label="Coperti gestiti" value={fmtNum(st.coperti)}
+            sub={<React.Fragment>Mese corrente{drwVsMediana(st.coperti, DRW_STA_MEDIANE.coperti, fmtNum)}</React.Fragment>}/>
         </div>
       </AdmCard>
     </div>
   );
 }
 
-// ─── Consensi — il pannello condiviso ───────────────────────────────────────
-// Lo stesso vestito della scheda utente app, e lo usano anche il locale e lo
-// staff: righe {id, label, desc, deciso, ok, quando, versione} e documenti
-// {nome, versione, nota, quando, rif}. Una veste sola per tre schede.
+// ─── Consensi — la card e il pannello condivisi ─────────────────────────────
+// Lo stesso vestito della scheda utente app. La CARD da sola la monta la tab
+// «Contratti e consensi» del locale (i documenti li elenca già il fascicolo);
+// il PANNELLO completo (card + documenti) lo usa lo staff.
+// Righe {id, label, desc, deciso, ok, quando, versione}.
+function DrwConsensiCard({ righe, nota }) {
+  return (
+    <AdmCard padding={0}>
+      <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Consensi espressi</div>
+        <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Lo stato corrente per ciascun codice, con la versione dell'informativa contro cui vale.</div>
+      </div>
+      {righe.map((c) => (
+        <div key={c.id} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+          <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.5, fontWeight:700, color:ADM.TEXT, width:52, flexShrink:0}}>{c.id}</span>
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{c.label}</div>
+            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{c.desc}</div>
+          </div>
+          <div style={{textAlign:'right', flexShrink:0}}>
+            {c.deciso
+              ? <span style={{padding:'3px 10px', borderRadius:5, background: c.ok ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: c.ok ? ADM.OK : ADM.MUTED, fontSize:13, fontWeight:700}}>{c.ok ? 'Sì' : 'No'}</span>
+              : <span style={{padding:'3px 10px', borderRadius:5, background:ADM.NEUTRAL_SOFT, color:ADM.MUTED_SOFT, fontSize:13, fontWeight:700}}>Mai chiesto</span>}
+            {c.deciso && <div style={{fontSize:12, color:ADM.MUTED, marginTop:3}}>{fmtDate(c.quando)} · Informativa v{c.versione}</div>}
+          </div>
+        </div>
+      ))}
+      {nota && (
+        <div style={{padding:'11px 20px', fontSize:12.5, color:ADM.MUTED_SOFT, lineHeight:1.5}}>{nota}</div>
+      )}
+    </AdmCard>
+  );
+}
+
 function DrwConsensiPannello({ righe, documenti, nota }) {
   return (
     <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
-      <AdmCard padding={0}>
-        <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Consensi espressi</div>
-          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Lo stato corrente per ciascun codice, con la versione dell'informativa contro cui vale.</div>
-        </div>
-        {righe.map((c) => (
-          <div key={c.id} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
-            <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.5, fontWeight:700, color:ADM.TEXT, width:52, flexShrink:0}}>{c.id}</span>
-            <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{c.label}</div>
-              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{c.desc}</div>
-            </div>
-            <div style={{textAlign:'right', flexShrink:0}}>
-              {c.deciso
-                ? <span style={{padding:'3px 10px', borderRadius:5, background: c.ok ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: c.ok ? ADM.OK : ADM.MUTED, fontSize:13, fontWeight:700}}>{c.ok ? 'Sì' : 'No'}</span>
-                : <span style={{padding:'3px 10px', borderRadius:5, background:ADM.NEUTRAL_SOFT, color:ADM.MUTED_SOFT, fontSize:13, fontWeight:700}}>Mai chiesto</span>}
-              {c.deciso && <div style={{fontSize:12, color:ADM.MUTED, marginTop:3}}>{fmtDate(c.quando)} · Informativa v{c.versione}</div>}
-            </div>
-          </div>
-        ))}
-        {nota && (
-          <div style={{padding:'11px 20px', fontSize:12.5, color:ADM.MUTED_SOFT, lineHeight:1.5}}>{nota}</div>
-        )}
-      </AdmCard>
+      <DrwConsensiCard righe={righe} nota={nota}/>
 
       <AdmCard padding={0}>
         <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
@@ -747,12 +835,14 @@ function DrwConsensiPannello({ righe, documenti, nota }) {
 // ─── Consensi del locale ────────────────────────────────────────────────────
 // Lo stato di email e SMS è LO STESSO delle proprietà CRM della rubrica
 // (stesse formule di hubArricchisci sul seme della riga 'loc-…'): il filtro
-// «Consenso email è sì» e questa tab non possono raccontare due cose diverse.
-function DrwConsensiLocale({ locale: l }) {
+// «Consenso email è sì» e la scheda non possono raccontare due cose diverse.
+// La card vive DENTRO «Contratti e consensi»: consensi e contratti sono lo
+// stesso fascicolo — che cosa ha firmato, a che cosa ha detto sì.
+function drwConsensiLocale(l) {
   const s = hubSeme('loc-' + l.id);
   const giorno = (k, max) => new Date(Math.min(Date.now() - 86400000,
     l.dataIscrizione.getTime() + ((s >> k) % max) * 86400000));
-  const righe = [
+  return [
     { id: 'M-EM',  label: 'Comunicazioni commerciali via email',
       desc: 'Novità di prodotto, promozioni e newsletter ai referenti del locale',
       deciso: true, ok: s % 5 !== 0, quando: giorno(2, 120), versione: '1.0' },
@@ -763,14 +853,8 @@ function DrwConsensiLocale({ locale: l }) {
       desc: 'Uso del locale nei materiali marketing di byup (case study, sito)',
       deciso: s % 7 !== 0, ok: s % 7 !== 0 && s % 4 === 0, quando: giorno(6, 200), versione: '1.0' },
   ];
-  const documenti = [
-    { nome: 'Informativa privacy titolari', versione: '1.0',
-      nota: 'Presa visione alla registrazione · è la versione scritta accanto a ogni consenso',
-      quando: l.dataIscrizione, rif: righe.filter(c => c.deciso).map(c => c.id).join(', ') || '—' },
-  ];
-  return <DrwConsensiPannello righe={righe} documenti={documenti}
-    nota="Le comunicazioni di servizio (fatture, avvisi tecnici, sicurezza) viaggiano senza consenso: sono esecuzione del contratto. Contratti e informative con le versioni accettate vivono nella tab Contratti."/>;
 }
+const DRW_CONSENSI_NOTA = 'Le comunicazioni di servizio (fatture, avvisi tecnici, sicurezza) viaggiano senza consenso: sono esecuzione del contratto.';
 
 // ─── Account — la gestione del rapporto ─────────────────────────────────────
 // La sospensione del servizio stava dentro Contratti, ma quella tab è un
@@ -781,6 +865,8 @@ function DrwAccount({ locale: l }) {
   const [popup, setPopup] = useStateDrw(false);        // 'sospendi' | 'revoca' | false
   const [motivo, setMotivo] = useStateDrw('morosita');
   const [nota, setNota] = useStateDrw('');
+  const [resetInviato, setResetInviato] = useStateDrw(false);
+  const [exportAvviato, setExportAvviato] = useStateDrw(false);
   const sospAttiva = SOSPENSIONI.find(x => x.soggettoId === l.id && !x.revoca);
 
   const scrivi = (action, target, icon, color) => {
@@ -810,6 +896,38 @@ function DrwAccount({ locale: l }) {
 
   return (
     <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
+      {/* Le credenziali del titolare: il reset parte verso l'email SALVATA
+          dell'anagrafica — la stessa regola della scheda utente app. */}
+      <AdmCard padding={18}>
+        <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+          <div style={{flex:1, minWidth:220}}>
+            <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Reset password del titolare</div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2}}>
+              {resetInviato
+                ? <span style={{color:ADM.OK, fontWeight:700}}>✓ Email di reset inviata a {l.email}</span>
+                : `Invia un link di reimpostazione a ${l.email}`}
+            </div>
+          </div>
+          <AdmButton variant="secondary" size="sm" icon="mail" disabled={resetInviato} onClick={()=>setResetInviato(true)}>Invia email di reset</AdmButton>
+        </div>
+      </AdmCard>
+
+      {/* L'esportazione: la portabilità non aspetta la cessazione — e a
+          contratto cessato è la finestra dei 60 giorni dell'art. 5. */}
+      <AdmCard padding={18}>
+        <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+          <div style={{flex:1, minWidth:220}}>
+            <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Esportazione dati</div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
+              {exportAvviato
+                ? <span style={{color:ADM.OK, fontWeight:700}}>✓ Export in preparazione: il link arriva a {l.email}</span>
+                : 'Menu, ordini e anagrafiche del locale in un archivio. A contratto cessato resta la finestra di 60 giorni (art. 5).'}
+            </div>
+          </div>
+          <AdmButton variant="secondary" size="sm" icon="download" disabled={exportAvviato} onClick={()=>setExportAvviato(true)}>Genera export</AdmButton>
+        </div>
+      </AdmCard>
+
       <AdmCard padding={18}>
         <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
           <div style={{flex:1, minWidth:220}}>
@@ -887,28 +1005,33 @@ const DRW_EVENTI = {
 
 function DrwAttivita({ locale: l }) {
   // Deterministico sul seme del locale, con i due eventi VERI in mezzo:
-  // l'ultimo login del titolare e la sottoscrizione del piano.
+  // l'ultimo login del titolare e la sottoscrizione del piano. Gli eventi
+  // OPERATIVI (ordini, prenotazioni, accrediti) esistono solo per un locale
+  // attivo: un pending o un cessato con «ordine ricevuto 3 ore fa» sarebbe
+  // un log che contraddice lo stato che dovrebbe provare.
   const eventi = (() => {
     const s = hubSeme('log-' + l.id) % 1000;
     const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
     const out = [];
     const push = (tipo, quando, dettaglio) => out.push({ id: l.id + '-E' + out.length, tipo, quando, dettaglio });
-    let ore = 1 + Math.floor(r(1) * 12);
-    const n = 9 + Math.floor(r(2) * 6);
-    for (let i = 0; i < n; i++) {
-      const rr = r(10 + i * 3);
-      const tipo = ['order_received', 'order_received', 'order_received', 'reservation_confirmed', 'menu_updated', 'staff_login', 'payout_sent'][Math.floor(rr * 6.999)];
-      const dett = {
-        order_received:        `#${2800 + Math.floor(rr * 90)} · € ${(14 + rr * 52).toFixed(2).replace('.', ',')}`,
-        reservation_confirmed: `${2 + Math.floor(rr * 6)} persone · ${19 + Math.floor(rr * 3)}:${rr < 0.5 ? '30' : '00'}`,
-        menu_updated:          `${1 + Math.floor(rr * 4)} piatti nuovi`,
-        staff_login:           `${l.titolare}`,
-        payout_sent:           `€ ${(180 + rr * 900).toFixed(2).replace('.', ',')} · Stripe`,
-      }[tipo];
-      push(tipo, new Date(Date.now() - ore * 3600000), dett);
-      ore += 3 + Math.floor(r(11 + i * 3) * 40);
+    if (l.stato === 'active') {
+      let ore = 1 + Math.floor(r(1) * 12);
+      const n = 9 + Math.floor(r(2) * 6);
+      for (let i = 0; i < n; i++) {
+        const rr = r(10 + i * 3);
+        const tipo = ['order_received', 'order_received', 'order_received', 'reservation_confirmed', 'menu_updated', 'staff_login', 'payout_sent'][Math.floor(rr * 6.999)];
+        const dett = {
+          order_received:        `#${2800 + Math.floor(rr * 90)} · € ${(14 + rr * 52).toFixed(2).replace('.', ',')}`,
+          reservation_confirmed: `${2 + Math.floor(rr * 6)} persone · ${19 + Math.floor(rr * 3)}:${rr < 0.5 ? '30' : '00'}`,
+          menu_updated:          `${1 + Math.floor(rr * 4)} piatti nuovi`,
+          staff_login:           `${l.titolare}`,
+          payout_sent:           `€ ${(180 + rr * 900).toFixed(2).replace('.', ',')} · Stripe`,
+        }[tipo];
+        push(tipo, new Date(Date.now() - ore * 3600000), dett);
+        ore += 3 + Math.floor(r(11 + i * 3) * 40);
+      }
+      if (r(90) < 0.4) push('support_request', new Date(Date.now() - (40 + Math.floor(r(91) * 400)) * 3600000), 'Stampante scontrini');
     }
-    if (r(90) < 0.4) push('support_request', new Date(Date.now() - (40 + Math.floor(r(91) * 400)) * 3600000), 'Stampante scontrini');
     push('staff_login', l.lastLogin, l.titolare);
     push('plan_subscribed', l.dataIscrizione, (PIANI.find(p => p.id === l.piano) || {}).label || l.piano);
     return out.sort((a, b) => b.quando - a.quando);
@@ -1156,8 +1279,11 @@ const CERT_STATI_DRW = {
   rifiutata: { label: 'Rifiutata',    color: 'DANGER' },
 };
 
-function DrwCertificazioni({ locale: l }) {
-  const [, ridisegna] = useStateDrw(0);
+function DrwCertificazioni({ locale: l, onCambia }) {
+  const [, tick] = useStateDrw(0);
+  // Ogni scrittura ridisegna QUI e avvisa il drawer (il badge della tab
+  // conta le certificazioni: se ne elimini una deve muoversi subito).
+  const ridisegna = () => { tick(x => x + 1); onCambia && onCambia(); };
   // 'rifiuta' | 'elimina' | 'scadenza' — sempre con la certificazione dentro.
   const [popup, setPopup] = useStateDrw(null);
   const [motivo, setMotivo] = useStateDrw('');
@@ -1166,6 +1292,20 @@ function DrwCertificazioni({ locale: l }) {
   const flash = (msg) => { setFeedback(msg); setTimeout(() => setFeedback(null), 2600); };
   const chiudi = () => { setPopup(null); setMotivo(''); setDataScad(''); };
   const io = () => (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu';
+  const oggi = new Date().toISOString().slice(0, 10);
+
+  // La stessa pratica vive anche come ticket in Assistenza (stesso id):
+  // una decisione presa QUI deve arrivare anche là, o le due superfici
+  // raccontano due storie. (Il verso opposto lo fa updateItem dei Ticket.)
+  const sincronizzaTicket = (c, patch) => {
+    if (typeof COMUNICAZIONI === 'undefined') return;
+    const t = COMUNICAZIONI.find(x => x.id === c.id);
+    if (t) Object.assign(t, patch);
+  };
+
+  // «Scaduta» non è uno stato che qualcuno scrive: è l'orologio. Si deriva,
+  // così una cert approvata col certificato scaduto non si presenta valida.
+  const scaduta = (c) => c.stato === 'approvata' && c.scadenzaCert && c.scadenzaCert.getTime() < Date.now();
 
   const certs = CERTIFICAZIONI.filter(c => c.localeId === l.id)
     .slice().sort((a, b) => b.dataInvio - a.dataInvio);
@@ -1182,24 +1322,32 @@ function DrwCertificazioni({ locale: l }) {
   };
   const approva = (c) => {
     c.stato = 'approvata'; c.revisedAt = new Date(); c.revisedBy = io(); c.motivo = null;
-    flash(`${c.file} approvata`); ridisegna(x => x + 1);
+    sincronizzaTicket(c, { stato: 'approvata', revisedAt: c.revisedAt, revisedBy: c.revisedBy, motivo: null });
+    flash(`${c.file} approvata — anche il ticket in Assistenza si chiude`); ridisegna();
   };
   const confermaRifiuto = () => {
     if (!motivo.trim() || !popup) return;
     const c = popup.cert;
     c.stato = 'rifiutata'; c.revisedAt = new Date(); c.revisedBy = io(); c.motivo = motivo.trim();
-    flash(`${c.file} rifiutata`); chiudi(); ridisegna(x => x + 1);
+    sincronizzaTicket(c, { stato: 'rifiutata', revisedAt: c.revisedAt, revisedBy: c.revisedBy, motivo: c.motivo });
+    flash(`${c.file} rifiutata — anche il ticket in Assistenza si chiude`); chiudi(); ridisegna();
   };
   const confermaElimina = () => {
     if (!popup) return;
     const i = CERTIFICAZIONI.indexOf(popup.cert);
     if (i >= 0) CERTIFICAZIONI.splice(i, 1);
-    flash('Certificazione eliminata dal fascicolo'); chiudi(); ridisegna(x => x + 1);
+    if (typeof COMUNICAZIONI !== 'undefined') {
+      const j = COMUNICAZIONI.findIndex(x => x.id === popup.cert.id);
+      if (j >= 0) COMUNICAZIONI.splice(j, 1);
+    }
+    flash('Certificazione eliminata dal fascicolo e dai Ticket'); chiudi(); ridisegna();
   };
   const confermaScadenza = () => {
-    if (!dataScad || !popup) return;
+    // Una scadenza nel passato non si «imposta»: al massimo si constata.
+    if (!dataScad || dataScad < oggi || !popup) return;
     popup.cert.scadenzaCert = new Date(dataScad);
-    flash(`Scadenza impostata al ${fmtDate(new Date(dataScad))}`); chiudi(); ridisegna(x => x + 1);
+    sincronizzaTicket(popup.cert, { scadenzaCert: popup.cert.scadenzaCert });
+    flash(`Scadenza impostata al ${fmtDate(new Date(dataScad))}`); chiudi(); ridisegna();
   };
 
   if (certs.length === 0) return (
@@ -1218,7 +1366,9 @@ function DrwCertificazioni({ locale: l }) {
       )}
       {certs.map(c => {
         const tipo = CERT_TIPI[c.tipo] || { label: c.tipo, ente: '—' };
-        const st = CERT_STATI_DRW[c.stato] || { label: c.stato, color: 'PLAN_FREE' };
+        const st = scaduta(c)
+          ? { label: 'Scaduta', color: 'WARN' }
+          : CERT_STATI_DRW[c.stato] || { label: c.stato, color: 'PLAN_FREE' };
         return (
           <AdmCard key={c.id} padding={20}>
             <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
@@ -1238,7 +1388,11 @@ function DrwCertificazioni({ locale: l }) {
               <AdmButton variant="ghost" size="sm" icon="download" onClick={() => scarica(c)}>Scarica</AdmButton>
             </div>
             <DataRow label="Inviata il" value={fmtDate(c.dataInvio)}/>
-            {c.scadenzaCert && <DataRow label="Scade il" value={fmtDate(c.scadenzaCert)}/>}
+            {c.scadenzaCert && <DataRow label="Scade il" value={
+              scaduta(c)
+                ? <span style={{color:ADM.DANGER, fontWeight:700}}>{fmtDate(c.scadenzaCert)} — scaduta</span>
+                : fmtDate(c.scadenzaCert)
+            }/>}
             {c.revisedAt && <DataRow label="Revisionata il" value={`${fmtDate(c.revisedAt)} · ${c.revisedBy}`} last={!c.motivo}/>}
             {/* Il motivo del rifiuto per esteso: è la risposta alla domanda
                 con cui si apre questo fascicolo — «perché non è passata?» */}
@@ -1306,10 +1460,14 @@ function DrwCertificazioni({ locale: l }) {
                   {popup.cert.file} · alla scadenza il workflow «Certificazioni» avvisa il locale 15 giorni prima.
                 </div>
                 <span style={drwLab}>Scade il</span>
-                <input type="date" autoFocus value={dataScad} onChange={e => setDataScad(e.target.value)} style={{...drwInp, marginBottom:14}}/>
+                {/* min = oggi: una scadenza nel passato non si imposta. */}
+                <input type="date" autoFocus min={oggi} value={dataScad} onChange={e => setDataScad(e.target.value)} style={{...drwInp, marginBottom: dataScad && dataScad < oggi ? 6 : 14}}/>
+                {dataScad && dataScad < oggi && (
+                  <div style={{fontSize:12.5, color:ADM.DANGER, fontWeight:600, marginBottom:10}}>La data è nel passato: scegli una scadenza da oggi in avanti.</div>
+                )}
                 <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                   <AdmButton variant="ghost" size="md" onClick={chiudi}>Annulla</AdmButton>
-                  <AdmButton variant="primary" size="md" icon="check" disabled={!dataScad} onClick={confermaScadenza}>Imposta scadenza</AdmButton>
+                  <AdmButton variant="primary" size="md" icon="check" disabled={!dataScad || dataScad < oggi} onClick={confermaScadenza}>Imposta scadenza</AdmButton>
                 </div>
               </React.Fragment>
             )}
@@ -1562,15 +1720,13 @@ function CtrRigaDoc({ sog, codice }) {
           : <AdmBadge color="PLAN_FREE" size="xs">Mai accettato</AdmBadge>}
       </div>
 
+      {/* Niente più «chi», «da dove» e IP in scheda: la data e la versione
+          (nel rimando al documento qui sotto) bastano a leggere il
+          fascicolo — il dettaglio di chi ha cliccato e da quale indirizzo
+          resta nel registro accettazioni, dove un audit va comunque a
+          guardare. Qui restano solo gli AVVISI, che sono la parte che pesa. */}
       {a && (
-        <div style={{marginTop:12}}>
-          <DataRow label={visione ? 'Versione visionata' : 'Versione accettata'}
-            value={fotoPiano ? (PIANI.find(x => x.id === a.v) || {label:a.v}).label : 'v' + a.v} mono/>
-          <DataRow label="Quando" value={fmtDateTime(a.quando)}/>
-          {/* La tacita non ha una persona: è la sua debolezza, e la riga la
-              dichiara invece di nasconderla dietro un trattino qualunque. */}
-          <DataRow label="Chi" value={a.nome ? `${a.nome} · ${a.ruolo} · ${a.email}` : 'Nessuno — uso del servizio dopo la data di efficacia'}/>
-          <DataRow label="Da dove" value={`${CTR_SUPERFICI[a.superficie] || a.superficie} · IP ${a.ip}`} last={allineato && !tacita}/>
+        <div>
           {tacita && vAcc && (
             <div style={{marginTop:10, padding:'9px 12px', borderRadius:9, background:ADM.WARN_SOFT, color:'#92400E', fontSize:12.6, lineHeight:1.5}}>
               Nessuna dichiarazione di poteri (art. 3): vale il solo uso successivo all'efficacia
@@ -1638,39 +1794,6 @@ function DrwContratti({ locale: l }) {
   const problemi = ctrProblemi(l, codici);
   const peggiore = problemi[0] || null;
 
-  // Lo storico: accettazioni, preavvisi col loro esito, sospensioni e
-  // revoche, in un solo filo temporale — è la narrazione che si racconta a
-  // un auditor, e una narrazione ha un ordine solo.
-  const storico = [
-    ...ACCETTAZIONI.filter(a => a.soggettoId === l.id).map(a => ({
-      when: a.quando, icona: a.tipo === 'tacita' ? 'clock' : 'check',
-      color: a.tipo === 'tacita' ? 'WARN' : a.tipo === 'presa-visione' ? 'INFO' : 'OK',
-      testo: a.tipo === 'presa-visione'
-        ? `Presa visione ${a.codice} v${a.v}`
-        : a.codice === 'PIANO'
-          ? `Attivazione piano ${(PIANI.find(x => x.id === a.v) || {label:a.v}).label}`
-          : `Accettazione ${a.tipo} ${a.codice} v${a.v}`,
-      sub: a.nome ? `${a.nome} (${a.ruolo}) · ${CTR_SUPERFICI[a.superficie] || a.superficie}` : `Uso successivo · ${CTR_SUPERFICI[a.superficie] || a.superficie}`,
-    })),
-    ...PREAVVISI.filter(p => p.soggettoId === l.id).map(p => {
-      const e = CTR_ESITI[ctrEsito(p)];
-      return { when: p.inviato, icona:'send', color: e.color,
-        testo: p.tipo === 'sub-responsabile'
-          ? `Preavviso sub-responsabile (art. 5 DPA) — ${e.label.toLowerCase()}`
-          : p.tipo === 'listino'
-            ? `Preavviso di listino${p.oltreFoi ? ' oltre FOI' : ''} (art. 4) — ${e.label.toLowerCase()}`
-            : `Preavviso ${p.codice} v${p.v} — ${e.label.toLowerCase()}`,
-        sub: (p.sub ? p.sub + ' · ' : '') + `efficace ${fmtDate(p.efficace)}` + (p.nota ? ` · ${p.nota}` : '') };
-    }),
-    ...SOSPENSIONI.filter(s => s.soggettoId === l.id).flatMap(s => [
-      { when: s.diffida || s.sospesa, icona:'lock', color:'DANGER',
-        testo: s.diffida ? 'Diffida per morosità (art. 4)' : `Sospensione — ${ctrMotivoLabel(s.motivo).toLowerCase()}`,
-        sub: `${s.decisaDa} · ${s.nota}` },
-      ...(s.diffida && s.sospesa ? [{ when: s.sospesa, icona:'lock', color:'DANGER', testo:'Sospensione del servizio', sub:'15 giorni dopo la diffida, come da art. 4' }] : []),
-      ...(s.revoca ? [{ when: s.revoca.quando, icona:'check', color:'OK', testo:'Revoca della sospensione', sub:`${s.revoca.who} · ${s.revoca.nota}` }] : []),
-    ]),
-  ].sort((a, b) => b.when - a.when);
-
   return (
     <div style={{padding:20, display:'flex', flexDirection:'column', gap:14}}>
 
@@ -1711,28 +1834,13 @@ function DrwContratti({ locale: l }) {
       <div style={{fontSize:11.5, fontWeight:800, letterSpacing:'0.07em', textTransform:'uppercase', color:ADM.MUTED_SOFT, marginTop:4}}>Informative</div>
       {informative.map(c => <CtrRigaDoc key={c} sog={l} codice={c}/>)}
 
-      {/* La sospensione del servizio non vive più qui: questa tab è un
-          fascicolo che si legge, l'azione sta nella tab Account. Lo storico
-          qui sotto continua a raccontarla. */}
-
-      {/* Lo storico, in fondo: il filo temporale completo. */}
-      <AdmCard padding={0}>
-        <div style={{padding:'14px 18px 10px', fontSize:13.4, fontWeight:700, color:ADM.TEXT}}>Storico contrattuale</div>
-        {storico.map((e, i) => (
-          <div key={i} style={{display:'flex', gap:12, padding:'10px 18px', borderTop:`1px solid ${ADM.BORDER_SOFT}`, alignItems:'flex-start'}}>
-            <span style={{width:28, height:28, borderRadius:8, flexShrink:0, display:'grid', placeItems:'center',
-              background:ADM[e.color + '_SOFT'], color:ADM[e.color]}}>
-              {React.createElement(BuIcons[e.icona] || BuIcons.filePdf, { size: 15 })}
-            </span>
-            <div style={{flex:1, minWidth:0}}>
-              <div style={{fontSize:13.2, fontWeight:600, color:ADM.TEXT}}>{e.testo}</div>
-              <div style={{fontSize:12, color:ADM.MUTED, marginTop:1, lineHeight:1.45}}>{e.sub}</div>
-            </div>
-            <span style={{fontSize:12, color:ADM.MUTED_SOFT, whiteSpace:'nowrap', flexShrink:0}} title={fmtDateTime(e.when)}>{fmtDate(e.when)}</span>
-          </div>
-        ))}
-      </AdmCard>
-
+      {/* La sospensione vive in Account; lo storico contrattuale che stava
+          qui in fondo è andato: raccontava per la terza volta cose che i
+          documenti qui sopra dicono già, e l'audit completo vive nel
+          registro. Al suo posto, i CONSENSI: contratti e consensi sono lo
+          stesso fascicolo — che cosa ha firmato, a che cosa ha detto sì. */}
+      <div style={{fontSize:11.5, fontWeight:800, letterSpacing:'0.07em', textTransform:'uppercase', color:ADM.MUTED_SOFT, marginTop:4}}>Consensi</div>
+      <DrwConsensiCard righe={drwConsensiLocale(l)} nota={DRW_CONSENSI_NOTA}/>
     </div>
   );
 }

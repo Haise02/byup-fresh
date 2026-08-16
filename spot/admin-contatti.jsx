@@ -119,11 +119,18 @@ const CONTATTI = (() => {
   // nome e le sue quattro colonne, il resto vive nel dettaglio. Quello che il
   // sottotitolo diceva (tipo e città, ruolo e locale, città e ID) resta però
   // RICERCABILE dal campo `cerca`.
-  LOCALI.forEach(l => rows.push({
+  LOCALI.forEach(l => {
+    // Il gruppo dell'utenza del titolare: la STESSA fonte della scheda
+    // locale e dello staff proprietario (drwLocaliAssociati) — la proprietà
+    // «Locali associati» vale anche per i titolari multi-sede, e le tre
+    // superfici non possono raccontare tre liste diverse.
+    const gruppo = typeof drwLocaliAssociati === 'function' ? drwLocaliAssociati(l) : [];
+    rows.push({
     key: 'loc-' + l.id, tipo: 'locale', ref: l,
     nome: l.nome,
     cerca: l.tipo + ' ' + l.citta,
     citta: l.citta, regione: l.regione,
+    locali: gruppo.length > 1 ? gruppo.map(x => x.nome).join(' · ') : null,
     email: l.email,
     // La tappa del rapporto: chi si è affacciato è un lead, chi configura è
     // in onboarding, chi lavora è un cliente che torna; chi si è fermato ha
@@ -135,7 +142,8 @@ const CONTATTI = (() => {
       : 'annullato',
     piano: l.piano,
     iscritto: l.dataIscrizione,
-  }));
+    });
+  });
 
   STAFF.forEach(s => {
     const ruolo = (RUOLI_STAFF.find(r => r.id === s.ruolo) || {}).label || s.ruolo;

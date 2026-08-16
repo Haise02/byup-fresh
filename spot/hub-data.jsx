@@ -150,11 +150,12 @@ const HUB_PROPRIETA = [
   // — Geografia —
   { id: 'citta',    label: 'Città',               gruppo: 'geografia', tipo: 'elenco', sistema: true, colonna: { w: '0.95fr' }, opzioniDaDati: 'citta' },
   { id: 'regione',  label: 'Regione',             gruppo: 'geografia', tipo: 'elenco', sistema: true, colonna: { w: '1.05fr' }, opzioniDaDati: 'regione' },
-  // Un'utenza staff può essere associata a PIÙ locali: qui stanno tutti, in
-  // fila, così «contiene Osteria del Borgo» pesca anche chi ci lavora solo il
-  // weekend. Per locali e utenti app è un tratto: non sono utenze di nessuno.
+  // Un'utenza può essere associata a PIÙ locali — lo staff che gira tra le
+  // sedi, il titolare col gruppo: qui stanno tutti, in fila, così «contiene
+  // Osteria del Borgo» pesca anche chi ci lavora solo il weekend. Per gli
+  // utenti app è un tratto: non sono utenze di nessun locale.
   { id: 'locali',   label: 'Locali associati',    gruppo: 'geografia', tipo: 'testo', sistema: true, colonna: { w: 'minmax(0,1.7fr)' },
-    nota: 'Solo per gli utenti staff: tutti i locali su cui vale l\'utenza' },
+    nota: 'Per utenti staff e titolari multi-sede: i locali su cui vale l\'utenza' },
 
   // — Acquisizione — le proprietà che si compilano da sole
   { id: 'referral', label: 'Referral',            gruppo: 'acquisizione', tipo: 'testo', colonna: { w: '1.1fr' },

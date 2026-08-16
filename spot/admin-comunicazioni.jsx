@@ -140,6 +140,21 @@ function AdmComunicazioniPage({ openId }) {
 
   const updateItem = (id, patch) => {
     setItems(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i));
+    // Write-through al dataset: lo stato deciso qui deve sopravvivere al
+    // prossimo montaggio, e una certificazione approvata o rifiutata dal
+    // ticket deve dirlo anche al fascicolo del locale (tab Certificazioni) —
+    // due superfici, una pratica sola.
+    const src = COMUNICAZIONI.find(i => i.id === id);
+    if (src) Object.assign(src, patch);
+    if (src && src.certRequest && (patch.stato === 'approvata' || patch.stato === 'rifiutata')) {
+      const cert = CERTIFICAZIONI.find(c => c.id === id);
+      if (cert) {
+        cert.stato = patch.stato;
+        cert.revisedAt = patch.revisedAt || new Date();
+        cert.revisedBy = patch.revisedBy || MY_ID;
+        cert.motivo = patch.stato === 'rifiutata' ? (patch.motivo || null) : null;
+      }
+    }
   };
   const addTag = (id, tag) => {
     const t = tag.trim().replace(/^#/, '');

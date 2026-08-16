@@ -113,11 +113,18 @@ const STAFF = (() => {
     // locale e basta. Circa un terzo delle persone ne ha più d'uno.
     membro.locali = [{ id: localeId, nome: membro.localeNome, citta: membro.localeCitta }];
     if (!isDevice) {
-      const extra = rnd() < 0.32 ? 1 + (rnd() < 0.25 ? 1 : 0) : 0;
-      for (let k = 0; k < extra; k++) {
-        const alt = LOCALI.find(l => l.id === 'L' + (1000 + 17 + Math.floor(rnd() * 25)));
-        if (alt && !membro.locali.some(x => x.id === alt.id)) {
-          membro.locali.push({ id: alt.id, nome: alt.nome, citta: alt.citta });
+      if (ruolo === 'proprietario' && local && typeof drwLocaliAssociati === 'function') {
+        // Il TITOLARE: il suo gruppo è quello della scheda locale — stessa
+        // fonte (drwLocaliAssociati), così le due schede non possono
+        // raccontare due liste diverse per la stessa persona.
+        membro.locali = drwLocaliAssociati(local);
+      } else {
+        const extra = rnd() < 0.32 ? 1 + (rnd() < 0.25 ? 1 : 0) : 0;
+        for (let k = 0; k < extra; k++) {
+          const alt = LOCALI.find(l => l.id === 'L' + (1000 + 17 + Math.floor(rnd() * 25)));
+          if (alt && !membro.locali.some(x => x.id === alt.id)) {
+            membro.locali.push({ id: alt.id, nome: alt.nome, citta: alt.citta });
+          }
         }
       }
     }
@@ -536,11 +543,53 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
   // Le utenze nate prima del multi-locale hanno solo i campi del principale.
   const locali = s.locali || [{ id: s.localeId, nome: s.localeNome, citta: s.localeCitta }];
 
+  // Il log dell'utenza: come nelle schede utente app e locale — niente
+  // icone, chiave tecnica in chiaro, dal più recente (ancorato all'ultima
+  // attività VERA). I dispositivi loggano anche loro: ping e stampe.
+  const eventiStaff = (() => {
+    const ss = hubSeme('log-' + s.id) % 1000;
+    const r = (n) => ((ss * (n + 1) * 9301 + 49297) % 233280) / 233280;
+    const out = [];
+    let t = s.lastActive.getTime();
+    const n = 8 + Math.floor(r(1) * 6);
+    for (let i = 0; i < n; i++) {
+      const rr = r(10 + i * 3);
+      let tipo, dett;
+      if (device) {
+        tipo = s.deviceKind === 'stampante' ? (rr < 0.75 ? 'print_job' : 'device_online') : 'device_online';
+        dett = tipo === 'print_job' ? `Scontrino #${3200 + Math.floor(rr * 400)}` : `${s.modello} · ping ok`;
+      } else {
+        const pool = s.ruolo === 'cameriere'
+          ? ['order_taken', 'order_taken', 'payment_collected', 'staff_login', 'shift_closed']
+          : s.ruolo === 'cassa'
+            ? ['payment_collected', 'payment_collected', 'staff_login', 'shift_closed']
+            : ['staff_login', 'staff_login', 'shift_closed'];
+        tipo = pool[Math.floor(rr * (pool.length - 0.001))];
+        dett = {
+          order_taken: `Tavolo ${1 + Math.floor(rr * 14)} · € ${(9 + rr * 46).toFixed(2).replace('.', ',')}`,
+          payment_collected: `€ ${(12 + rr * 80).toFixed(2).replace('.', ',')} · ${rr < 0.5 ? 'carta' : 'contanti'}`,
+          staff_login: s.localeNome,
+          shift_closed: `${4 + Math.floor(rr * 5)} h di turno`,
+        }[tipo];
+      }
+      out.push({ id: s.id + '-E' + i, tipo, quando: new Date(t), dettaglio: dett });
+      t -= (3 + Math.floor(r(11 + i * 3) * 30)) * 3600000;
+    }
+    return out;
+  })();
+  const [logDal, setLogDal] = useStateCam('');
+  const [logAl, setLogAl] = useStateCam('');
+  React.useEffect(() => { setLogDal(''); setLogAl(''); }, [s.id]);
+  const eventiFiltrati = eventiStaff.filter(e =>
+    (!logDal || e.quando >= new Date(logDal)) &&
+    (!logAl || e.quando < new Date(new Date(logAl).getTime() + 86400000)));
+
   const tabs = [{ id: 'anagrafica', label: 'Anagrafica' }];
   if (s.ruolo === 'cameriere') tabs.push({ id: 'statistiche', label: 'Statistiche' });
   // Anche l'utenza staff esprime consensi: la tab c'è per le PERSONE, un
   // dispositivo non ha niente da consentire.
   if (!device) tabs.push({ id: 'consensi', label: 'Consensi' });
+  tabs.push({ id: 'log', label: `Log (${eventiStaff.length})` });
   const mesiLavoro = Math.max(1, Math.floor((Date.now() - s.dataAssunzione) / (30.44 * 86400000)));
 
   // I consensi della persona, stabili sul seme dell'utenza: lo stato per
@@ -735,8 +784,12 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
           <AdmCard padding={0}>
             <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
               <MiniStat first label="Mesi di lavoro" value={fmtNum(mesiLavoro)} sub={'Dal ' + fmtDate(s.dataAssunzione)}/>
-              <MiniStat label="Scontrino medio" value={camEur2(s.scontrinoMedio)} sub="Per ordine preso"/>
-              <MiniStat label="Mancia media" value={camEur2(s.manciaMedia)} sub="Per conto chiuso"/>
+              {/* Il metro: la mediana dei CAMERIERI accanto al numero —
+                  drwVsMediana è lo stesso helper della scheda locale. */}
+              <MiniStat label="Scontrino medio" value={camEur2(s.scontrinoMedio)}
+                sub={<React.Fragment>Per ordine preso{drwVsMediana(s.scontrinoMedio, CAM_MEDIANE.scontrino, camEur2)}</React.Fragment>}/>
+              <MiniStat label="Mancia media" value={camEur2(s.manciaMedia)}
+                sub={<React.Fragment>Per conto chiuso{drwVsMediana(s.manciaMedia, CAM_MEDIANE.mancia, camEur2)}</React.Fragment>}/>
             </div>
           </AdmCard>
 
@@ -744,8 +797,10 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
               scheda: qui, sotto le cifre di sala. */}
           <AdmCard padding={0}>
             <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
-              <MiniStat first label="Ordini mese" value={fmtNum(s.ordiniMese)} sub="Presi al tavolo"/>
-              <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)} sub="Mese corrente"/>
+              <MiniStat first label="Ordini mese" value={fmtNum(s.ordiniMese)}
+                sub={<React.Fragment>Presi al tavolo{drwVsMediana(s.ordiniMese, CAM_MEDIANE.ordini, fmtNum)}</React.Fragment>}/>
+              <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)}
+                sub={<React.Fragment>Mese corrente{drwVsMediana(s.coperti, CAM_MEDIANE.coperti, fmtNum)}</React.Fragment>}/>
             </div>
           </AdmCard>
         </div>
@@ -758,6 +813,56 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
             nota="Le comunicazioni operative dell'utenza (turni, avvisi del locale, sicurezza) viaggiano senza consenso: sono necessarie al servizio."/>
         </div>
         )}
+
+        {/* ═══ TAB LOG — la stessa veste delle schede utente app e locale ═══ */}
+        {tab === 'log' && (
+        <div style={{flex:1, overflow:'auto', padding:'20px 24px', background:ADM.PANEL_SOFT}}>
+          <AdmCard padding={0}>
+            <div style={{padding:'14px 20px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+              <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Eventi tracciati</div>
+              <div style={{fontSize:13, color:ADM.MUTED}}>
+                {(logDal || logAl) ? `${eventiFiltrati.length} di ${eventiStaff.length}` : `${eventiStaff.length} eventi dal ${fmtDate(eventiStaff[eventiStaff.length - 1].quando)}`}
+              </div>
+              <div style={{flex:1}}/>
+              <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Dal</span>
+              <input type="date" value={logDal} onChange={e=>setLogDal(e.target.value)} style={{
+                padding:'6px 9px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+                fontSize:12.8, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+              }}/>
+              <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Al</span>
+              <input type="date" value={logAl} onChange={e=>setLogAl(e.target.value)} style={{
+                padding:'6px 9px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+                fontSize:12.8, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+              }}/>
+              {(logDal || logAl) && (
+                <button className="adm-textlink" onClick={()=>{ setLogDal(''); setLogAl(''); }} style={{
+                  background:'transparent', border:'none', color:ADM.PINK_DARK, fontSize:12.5, fontWeight:700,
+                  cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+                }}>Azzera</button>
+              )}
+            </div>
+            {eventiFiltrati.length === 0 && (
+              <div style={{padding:'26px 0', textAlign:'center', fontSize:13.5, color:ADM.MUTED}}>Nessun evento tra le date scelte.</div>
+            )}
+            {eventiFiltrati.map((e, i) => (
+              <div key={e.id} style={{
+                display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
+                borderBottom: i === eventiFiltrati.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+                background: i % 2 === 1 ? ADM.ROW_STRIPE : 'transparent',
+              }}>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{CAM_EVENTI[e.tipo] || e.tipo}</div>
+                  <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{e.dettaglio}</div>
+                </div>
+                <div style={{textAlign:'right', flexShrink:0}}>
+                  <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT}}>{e.tipo}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2}}>{fmtDateTime(e.quando)}</div>
+                </div>
+              </div>
+            ))}
+          </AdmCard>
+        </div>
+        )}
       </div>
     </div>
   );
@@ -767,5 +872,33 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
 // scontrino e mancia si leggono al centesimo.
 const camEur2 = (n) => n == null ? '—'
   : '€ ' + new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+// Le mediane dei CAMERIERI: il metro accanto alle cifre da sala — sui campi
+// veri del mock, non su formule doppie.
+const CAM_MEDIANE = (() => {
+  const med = (a) => {
+    const v = a.filter(x => x != null).sort((x, y) => x - y);
+    if (!v.length) return null;
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  };
+  const cam = STAFF.filter(x => x.ruolo === 'cameriere');
+  return {
+    scontrino: med(cam.map(x => x.scontrinoMedio)),
+    mancia: med(cam.map(x => x.manciaMedia)),
+    ordini: med(cam.map(x => x.ordiniMese)),
+    coperti: med(cam.map(x => x.coperti)),
+  };
+})();
+
+// Il vocabolario del log staff: gli eventi dell'app Staff e dei dispositivi.
+const CAM_EVENTI = {
+  staff_login:       'Accesso utenza',
+  order_taken:       'Ordine preso al tavolo',
+  payment_collected: 'Conto incassato',
+  shift_closed:      'Turno chiuso',
+  print_job:         'Stampa scontrino',
+  device_online:     'Dispositivo online',
+};
 
 window.AdmCamerieriPage = AdmCamerieriPage;
