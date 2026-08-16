@@ -93,8 +93,18 @@ const STAFF = (() => {
     const dominio = local && local.email ? local.email.split('@')[1] : null;
     membro.email = (isDevice || !dominio) ? null
       : n.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.') + '@' + dominio;
-    membro.eta = isDevice ? null : 19 + Math.floor(rnd() * 40);
+    // La DATA DI NASCITA, non l'età: l'età è un numero che invecchia male,
+    // da qui si calcola ed è sempre giusta. Una sola chiamata a rnd(), come
+    // il campo che rimpiazza: l'intero fa gli anni (19–58), la coda decimale
+    // sparge mese e giorno.
+    if (isDevice) { membro.dataNascita = null; } else {
+      const rEta = rnd() * 40;
+      membro.dataNascita = new Date(Date.now() - Math.round((19 + rEta) * 365.25 * 86400000)).toISOString().slice(0, 10);
+    }
     membro.genere = isDevice ? null : (NOMI_FEMMINILI.has(n.split(' ')[0]) ? 'F' : 'M');
+    // Il luogo principale della persona: dove sta, non dove timbra. Parte
+    // dalla città del locale principale e da lì si corregge in scheda.
+    membro.luogo = isDevice ? null : (local?.citta || null);
 
     // MULTI-LOCALE: un'utenza staff può essere associata a più locali — il
     // titolare con due sedi, il cameriere che gira tra i locali del gruppo.
@@ -498,14 +508,20 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
   const [tab, setTab] = useStateCam('anagrafica');
 
   // ── Form anagrafica: editabile con salvataggio, come la scheda utente ──
-  const formDa = (x) => ({ nome: x.nome, email: x.email || '', eta: x.eta == null ? '' : String(x.eta), genere: x.genere || 'M' });
+  const formDa = (x) => ({ nome: x.nome, email: x.email || '', dataNascita: x.dataNascita || '', genere: x.genere || 'M', luogo: x.luogo || '' });
   const [form, setForm] = useStateCam(formDa(s));
   const [saved, setSaved] = useStateCam(false);
   React.useEffect(() => { setTab('anagrafica'); setForm(formDa(s)); setSaved(false); }, [s.id]);
   const base = formDa(s);
-  const dirty = form.nome !== base.nome || form.email !== base.email || form.eta !== base.eta || form.genere !== base.genere;
+  const dirty = form.nome !== base.nome || form.email !== base.email || form.dataNascita !== base.dataNascita || form.genere !== base.genere || form.luogo !== base.luogo;
+  // L'età non è un campo: si legge sotto la data, sempre aggiornata.
+  const etaCalcolata = (() => {
+    const d = new Date(form.dataNascita);
+    if (!form.dataNascita || isNaN(d)) return null;
+    return Math.max(0, Math.floor((Date.now() - d.getTime()) / (365.25 * 86400000)));
+  })();
   const salva = () => {
-    Object.assign(s, { nome: form.nome, email: form.email || null, eta: parseInt(form.eta, 10) || s.eta, genere: form.genere });
+    Object.assign(s, { nome: form.nome, email: form.email || null, dataNascita: form.dataNascita || null, genere: form.genere, luogo: form.luogo || null });
     setSaved(true); setTimeout(() => setSaved(false), 2200);
   };
   const F = (k) => (e) => { setSaved(false); setForm(prev => ({ ...prev, [k]: e.target ? e.target.value : e })); };
@@ -579,8 +595,11 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
                   <input value={form.email} onChange={F('email')} placeholder="Nessuna email" style={{...inputStyle, fontFamily:'ui-monospace,monospace', fontSize:12.5}}/>
                 </div>
                 <div>
-                  <label style={labelStyle}>Età</label>
-                  <input type="number" min="16" max="90" value={form.eta} onChange={F('eta')} placeholder="—" style={inputStyle}/>
+                  <label style={labelStyle}>Data di nascita</label>
+                  <input type="date" value={form.dataNascita} onChange={F('dataNascita')} style={inputStyle}/>
+                  {/* L'età non è un campo da tenere aggiornato a mano: si
+                      legge qui sotto, calcolata dalla data. */}
+                  {etaCalcolata !== null && <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:4}}>{etaCalcolata} anni</div>}
                 </div>
                 <div>
                   <label style={labelStyle}>Genere</label>
@@ -591,6 +610,10 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
                       {value:'M', label:'Uomo'},
                       {value:'X', label:'Altro / N.D.'},
                     ]}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Luogo principale</label>
+                  <input value={form.luogo} onChange={F('luogo')} placeholder="—" style={inputStyle}/>
                 </div>
               </div>
               <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:14, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
