@@ -475,47 +475,62 @@ function HubScelteMultiple({ opzioni, scelte, onCambia, placeholder = 'Scegli…
 // spunte sull'elenco delle voci possibili. Il pannello non chiede mai di
 // scrivere a mano un valore che può offrire.
 
+// Il campo del VALORE di un filtro, da solo. Sta fuori dalla card perché lo
+// stesso identico campo serve anche alle regole di un ramo di workflow: la
+// domanda «che valore?» dipende solo da proprietà e operatore, non da dove la
+// si sta scrivendo. Duplicarlo voleva dire due elenchi di `case` da tenere
+// allineati a mano, e uno dei due sarebbe rimasto indietro.
+function HubValore({ prop, op, valore, onCambia, righe }) {
+  const p = typeof prop === 'string' ? HUB_PROP[prop] : prop;
+  const opzioni = useMemoHub(() => (p ? hubOpzioni(p, righe) : []), [p && p.id, righe]);
+  if (!p || !op) return null;
+  const parte = (i, v) => {
+    const a = Array.isArray(valore) ? [...valore] : [null, null];
+    a[i] = v; onCambia(a);
+  };
+  switch (op.arg) {
+    case 'nessuno': return null;
+    case 'testo':   return <HubInput valore={valore} onCambia={onCambia} placeholder="Scrivi il testo…"/>;
+    case 'numero':  return <HubInput tipo="number" valore={valore} onCambia={onCambia} placeholder="0"/>;
+    case 'data':    return <HubData valore={valore} onCambia={onCambia}/>;
+    case 'giorni':  return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <HubInput tipo="number" valore={valore} onCambia={onCambia} placeholder="30" style={{ width: 92 }}/>
+        <span style={{ fontSize: 13.4, color: ADM.MUTED, fontWeight: 600 }}>giorni</span>
+      </div>
+    );
+    case 'scelte':  return <HubScelteMultiple opzioni={opzioni} scelte={valore} onCambia={onCambia}/>;
+    case 'intervallo': {
+      const [a, b] = Array.isArray(valore) ? valore : [null, null];
+      const C = p.tipo === 'data' ? HubData : HubInput;
+      const extra = p.tipo === 'data' ? {} : { tipo: 'number' };
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}><C {...extra} valore={a} onCambia={v => parte(0, v)} placeholder="da"/></div>
+          <span style={{ fontSize: 13, color: ADM.MUTED_SOFT, fontWeight: 700 }}>e</span>
+          <div style={{ flex: 1, minWidth: 0 }}><C {...extra} valore={b} onCambia={v => parte(1, v)} placeholder="a"/></div>
+        </div>
+      );
+    }
+    default: return null;
+  }
+}
+
+// Cambiando operatore il valore vecchio spesso non ha più senso (un testo
+// dentro «è uno di», una data dentro «contiene»): si riparte pulito, tranne
+// quando la forma dell'argomento è la stessa.
+function hubValoreIniziale(op, opPrec, valorePrec) {
+  if (opPrec && op && op.arg === opPrec.arg) return valorePrec;
+  return op.arg === 'scelte' ? [] : op.arg === 'intervallo' ? [null, null] : null;
+}
+
 function HubFiltroCard({ filtro, righe, onCambia, onElimina, indice }) {
   const p = HUB_PROP[filtro.prop];
   if (!p) return null;
   const operatori = HUB_OPERATORI[p.tipo] || [];
   const op = operatori.find(o => o.id === filtro.op) || operatori[0];
-  const opzioni = useMemoHub(() => hubOpzioni(p, righe), [p.id, righe]);
-
   const valore = (v) => onCambia(Object.assign({}, filtro, { valore: v }));
-  const parte = (i, v) => {
-    const a = Array.isArray(filtro.valore) ? [...filtro.valore] : [null, null];
-    a[i] = v; valore(a);
-  };
-
-  const campoValore = () => {
-    switch (op.arg) {
-      case 'nessuno': return null;
-      case 'testo':   return <HubInput valore={filtro.valore} onCambia={valore} placeholder="Scrivi il testo…"/>;
-      case 'numero':  return <HubInput tipo="number" valore={filtro.valore} onCambia={valore} placeholder="0"/>;
-      case 'data':    return <HubData valore={filtro.valore} onCambia={valore}/>;
-      case 'giorni':  return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <HubInput tipo="number" valore={filtro.valore} onCambia={valore} placeholder="30" style={{ width: 92 }}/>
-          <span style={{ fontSize: 13.4, color: ADM.MUTED, fontWeight: 600 }}>giorni</span>
-        </div>
-      );
-      case 'scelte':  return <HubScelteMultiple opzioni={opzioni} scelte={filtro.valore} onCambia={valore}/>;
-      case 'intervallo': {
-        const [a, b] = Array.isArray(filtro.valore) ? filtro.valore : [null, null];
-        const C = p.tipo === 'data' ? HubData : HubInput;
-        const extra = p.tipo === 'data' ? {} : { tipo: 'number' };
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ flex: 1, minWidth: 0 }}><C {...extra} valore={a} onCambia={v => parte(0, v)} placeholder="da"/></div>
-            <span style={{ fontSize: 13, color: ADM.MUTED_SOFT, fontWeight: 700 }}>e</span>
-            <div style={{ flex: 1, minWidth: 0 }}><C {...extra} valore={b} onCambia={v => parte(1, v)} placeholder="a"/></div>
-          </div>
-        );
-      }
-      default: return null;
-    }
-  };
+  const campoValore = () => <HubValore prop={p} op={op} valore={filtro.valore} onCambia={valore} righe={righe}/>;
 
   return (
     // NIENTE overflow:hidden qui: dentro la card vivono due tendine a
@@ -545,11 +560,7 @@ function HubFiltroCard({ filtro, righe, onCambia, onElimina, indice }) {
       <div style={{ padding: 11, display: 'flex', flexDirection: 'column', gap: 9 }}>
         <AdmSelect block value={op.id} onChange={id => {
           const nuovo = operatori.find(o => o.id === id);
-          // Cambiando operatore il valore vecchio spesso non ha più senso
-          // (un testo dentro «è uno di», una data dentro «contiene»): si
-          // riparte pulito, tranne quando la forma dell'argomento è la stessa.
-          const stessaForma = nuovo && op && nuovo.arg === op.arg;
-          onCambia(Object.assign({}, filtro, { op: id, valore: stessaForma ? filtro.valore : (nuovo.arg === 'scelte' ? [] : nuovo.arg === 'intervallo' ? [null, null] : null) }));
+          onCambia(Object.assign({}, filtro, { op: id, valore: hubValoreIniziale(nuovo, op, filtro.valore) }));
         }} options={operatori.map(o => ({ value: o.id, label: o.label }))}/>
         {campoValore()}
       </div>
@@ -928,6 +939,8 @@ window.HubData = HubData;
 window.HubScelteMultiple = HubScelteMultiple;
 window.HubFiltri = HubFiltri;
 window.HubFiltroCard = HubFiltroCard;
+window.HubValore = HubValore;
+window.hubValoreIniziale = hubValoreIniziale;
 window.HubSceltaProprieta = HubSceltaProprieta;
 window.HubColonne = HubColonne;
 window.HubTabella = HubTabella;

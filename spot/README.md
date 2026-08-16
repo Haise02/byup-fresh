@@ -8,7 +8,7 @@ Entry: [byup-spot.html](byup-spot.html). Per chi: il team di byup.
 > sono la specifica del sistema. Per l'architettura e i flussi si parte dai
 > documenti, non da questo codice.
 
-*Contenuto verificato contro il codice il 2026-08-15.*
+*Contenuto verificato contro il codice il 2026-08-16.*
 
 ---
 
@@ -40,10 +40,11 @@ un pannello che si apre passandoci sopra col mouse.
 | **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche), **Proprietà**. Il dettaglio di un locale è una scheda CRM a tab: Anagrafica, Proprietà, Panoramica, Attività, Certificazioni, **Contratti** (il fascicolo contrattuale: versioni accettate contro correnti, esplicita/tacita, preavvisi con finestre e scadenze, sospensioni tipizzate art. 13, storico — dati in `DOCUMENTI`/`ACCETTAZIONI`/`PREAVVISI`/`SOSPENSIONI` di admin-data.jsx, casi limite fissati in `CTR_CASI`), Fatturazione & Piano |
 | **Marketing** → | **Mail**, **SMS**, **Push**, **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
-| **Agent** | Agenti IA sui dati della piattaforma e cruscotto del team |
+| **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente** (quello che fanno insieme) |
 | **Assistenza** | Quattro tab: Chiamate, Ticket, FAQ, Guide |
 
-dalla barra il 2026-08-15: il file resta caricato ma nessuna rotta lo monta.
+La Dashboard è stata **tolta** dalla barra il 2026-08-15: il file resta caricato
+ma nessuna rotta lo monta.
 
 Nel **menu del profilo** (card in fondo alla barra): Il mio profilo, Domini e
 mittenti, Proprietà, **Sicurezza e sistemi**, **Piattaforma**.
@@ -87,9 +88,10 @@ ricarica non si può né leggere né filtrare.
 | `hub-elenchi.jsx` | Elenchi: lista, dettaglio, creazione con conteggio dal vivo |
 | `hub-mail-builder.jsx` | Il costruttore visuale delle email e il generatore di HTML |
 | `hub-marketing.jsx` | Mail, SMS, Push, Form |
-| `hub-workflow.jsx` | Workflow (elenco e canvas) e Agent |
+| `hub-workflow.jsx` | Workflow (elenco, canvas, campi dei passi) e Agent |
 | `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
-| `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
+| `hub-workflow-regole.jsx` | L'editor delle condizioni di ramo e delle attese |
+| `hub-agent-ambiente.jsx` | L'Ambiente: catene, lavagna, coda, registro, guardie |
 | `hub-impostazioni.jsx` | Domini e mittenti, catalogo delle proprietà |
 | `admin-contatti.jsx` | La rubrica |
 | `admin-*.jsx` | Le sezioni preesistenti |
@@ -99,26 +101,122 @@ ricarica non si può né leggere né filtrare.
 `hubAttivita(riga)` costruisce quello che è successo fra noi e una persona:
 email inviate, aperte e **su quale link ha cliccato**, SMS e push, form
 compilati, elenchi in cui è entrata, workflow, proprietà cambiate e da chi,
-telefonate, ticket, note. È deterministico sull'id e messo in cache: un diario
-che cambia date a ogni render non si può leggere. Due paletti: niente nel
-futuro, e **niente prima che il contatto esistesse**.
+telefonate, **ticket con la loro chiusura**, **interventi di assistenza svolti
+e in programma**, **promozioni chieste**, preventivi, rinnovi, note. È
+deterministico sull'id e messo in cache: un diario che cambia date a ogni
+render non si può leggere. Due paletti: **niente prima che il contatto
+esistesse**, e niente nel futuro — tranne quello che è marcato `futuro`, cioè
+le cose ancora da fare, che sono esattamente quello che serve sapere prima di
+richiamare qualcuno.
+
+Sopra al diario ci sono due funzioni che fanno la differenza fra un registro e
+una schermata che si legge:
+
+- `hubSintesi(c)` risponde alle domande che uno si fa **prima** di leggere —
+  quando l'abbiamo sentito e come, che cosa ha in programma, quanti ticket ha
+  ancora aperti, che assistenza ha ricevuto e per che cosa, che cosa ci ha
+  chiesto — più un semaforo (`temperatura`) che riassume tre segnali.
+- `hubEpisodi(eventi)` raggruppa le righe che raccontano **la stessa cosa**:
+  un invio con le sue aperture e i suoi click era tre righe a giorni di
+  distanza, adesso è una scheda che dice com'è finita. La parentela sta in
+  `HUB_ATT_SEGUITI`. Una scheda si data sull'**ultima** cosa successa.
 
 ### I workflow sono alberi
 
-Una `condizione` ha dei `rami`; ogni ramo ha `criteri` (le stesse frasi
-proprietà/operatore/valore dei filtri) e una `congiunzione` — `E` (tutte vere)
-oppure `O` (ne basta una). L'ultimo ramo può essere `altrimenti`: prende quello
-che non è rientrato altrove, e non ha criteri perché la sua regola è non
-averne. I rami contengono `nodi`, e un nodo può essere un'altra condizione.
-`hubContaNodi` conta i passi rami compresi.
+Una `condizione` ha dei `rami`; ogni ramo ha un `quando`. Un `quando` è fatto
+di **gruppi**, e ogni gruppo di **regole**: dentro un gruppo le regole si
+legano con `E` o con `O`, e fra i gruppi vale un'altra `E`/`O` scelta a parte.
+Due livelli bastano a scrivere `(A e B) oppure (C e D)` e si continuano a
+leggere; un editor di espressioni annidate all'infinito è più potente e non lo
+usa nessuno.
 
-### Il costruttore delle email
+Una regola ha un **genere**, e questa è la parte che prima mancava:
+
+| Genere | Che cosa chiede |
+|---|---|
+| `proprieta` | Com'è fatto il contatto — le stesse frasi dei filtri |
+| `evento` | Che cosa **ha fatto**: aperture, click su un link preciso, form, ticket, pagine viste. Con una **finestra** (`entro 3 giorni`) e un **NON** |
+| `elenco` | È dentro o fuori da un elenco |
+| `esito` | Com'è andato il passo prima: consegnata, rimbalzata, saltata per consenso, errore |
+
+L'ultimo ramo può essere `altrimenti`: prende quello che non è rientrato
+altrove, e non ha regole perché la sua regola è non averne. Un ramo **senza
+regole** che non sia l'altrimenti si colora di rosso sul canvas: ci passano
+tutti, ed è quasi sempre un errore. Il bottone **«Aggiungi un ramo»** sta sul
+canvas, in fondo al ventaglio, largo come una corsia — la ramificazione è
+l'operazione centrale della pagina, non una preferenza da ispettore.
+
+I rami vecchi (`criteri` + `congiunzione`) si leggono ancora: `hubRamoQuando`
+li converte al volo. `hubContaNodi` conta i passi rami compresi.
+
+### Le attese
+
+`Attendi` non è «quanti giorni». Ha cinque modi (`HUB_ATTESA_MODI`): per un
+tempo fisso, fino a una data, fino a un giorno e un'ora (il «prossimo lunedì
+alle 9», che serve a non spedire di notte), **finché non succede qualcosa** —
+con un tetto oltre il quale si prosegue comunque, perché un'attesa senza tetto
+è un workflow che non finisce — e la finestra oraria, che trattiene il passo
+fuori orario e lo rilascia dentro. Il testo sulla scatola lo **genera**
+`hubDescriviAttesa`: due sorgenti di verità e sul canvas resta scritto
+«2 giorni» mentre l'attesa aspetta un click.
+
+Un'attesa scritta a mano dichiara solo i campi che le servono: **chi la legge
+passa da `hubAttesaPiena`**, che completa il resto. Senza, bastava cambiare
+modo nell'editor per leggere `a.tetto.n` su un `undefined`.
+
+### L'Ambiente degli agenti
+
+Gli agenti **non si chiamano fra loro**. Un grafo di chiamate a cinque agenti
+sono venti collegamenti da tenere allineati, e il primo che cambia formato ne
+rompe tre in silenzio. Qui scrivono una nota su un **argomento** della lavagna,
+e chi è iscritto a quell'argomento si sveglia: aggiungere un agente è
+iscriverlo, non ricablare gli altri. Sopra la lavagna ci sono quattro
+meccanismi:
+
+- **il patto** — ogni consegna dichiara i campi che passa; se mancano, la
+  consegna fallisce **e si vede**, invece di far lavorare il secondo agente su
+  una nota mezza vuota (che risponderebbe lo stesso, benissimo, a caso);
+- **il secondo parere** — prima di scrivere nel CRM o di far uscire qualcosa
+  verso un cliente, un altro agente deve confermare. Se non conferma non vince
+  la maggioranza: sale a una persona;
+- **il tetto** — budget al giorno e profondità massima per catena;
+- **la coda** — i compiti non si assegnano tutti subito: uno per volta, per
+  priorità, e dopo due tentativi falliti il compito passa a una persona. Per
+  questo «A una persona» è una colonna e non un errore.
+
+Il **registro** è la quinta scheda e non è un extra: un ambiente senza registro
+è un gruppo di agenti che si accusano a vicenda.
+
+### Il costruttore delle email (e dei form)
 
 Il documento è una **lista di blocchi**, non HTML modificato a mano; l'HTML lo
 genera `mbHtml()` quando serve, ed è HTML da email vera: **tabelle**, stili in
 linea, larghezza fissa a 600px. Le mail non si renderizzano in un browser
 moderno, si renderizzano in Outlook — un builder che produce `<div>` con
 flexbox fa anteprime bellissime e mail rotte.
+
+Il **testo è ricco** e si scrive **dentro l'anteprima**, non in una casella
+laterale: grassetto, corsivo, sottolineato, corpo, **colore su una parola
+sola**, link, simboli e **campi dinamici** presi da `HUB_PROPRIETA`. L'editor
+(`MbRicco`) è **non controllato** di proposito — se React riscrivesse
+l'`innerHTML` a ogni battuta il cursore tornerebbe a inizio riga a ogni
+lettera. Quello che si incolla passa da `mbPulisci`, che tiene solo i tag e gli
+stili che la posta capisce: un incollato da Word porta `<o:p>`, classi e font
+che in Gmail diventano un pasticcio e in Outlook un altro pasticcio.
+
+Ogni blocco ha un **fondo** (`mbFondoCss`): niente, tinta unita o **sfumatura**
+— ed è così che si fa una sezione colorata senza inventare un blocco «sezione»
+da spiegare. Nell'HTML la sfumatura esce **sempre con un `background-color` di
+ripiego** pari al primo colore, perché Outlook su Windows ignora
+`background-image`: meglio una tinta che una banda vuota in mezzo alla mail.
+
+Le immagini si **caricano davvero** (`MbCarica`, drag&drop, GIF comprese, tetto
+di 2 MB): nel prototipo diventano un data URL, in produzione vanno su una CDN e
+nell'HTML ci finisce l'indirizzo.
+
+Il **form** usa gli stessi pezzi: titolo e introduzione ricchi, blocchi
+`Paragrafo` e `Immagine o GIF` accanto ai campi veri, fondo del modulo, della
+pagina e del pulsante con tinta o sfumatura.
 
 ---
 

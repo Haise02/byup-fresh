@@ -903,6 +903,10 @@ function HubPushComposer({ onChiudi }) {
 // FORM
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Due famiglie e non una lista sola: c'è quello che CHIEDE qualcosa a chi
+// compila, e quello che gli DICE qualcosa. Un'immagine e un paragrafo non
+// sono campi — non producono un valore — ma stanno nello stesso modulo, e
+// tenerli fuori vuol dire farli aggiungere «dal sito» a qualcun altro.
 const FRM_CAMPI = {
   testo:    { label: 'Testo breve',   icona: 'type' },
   email:    { label: 'Email',         icona: 'mail' },
@@ -911,6 +915,9 @@ const FRM_CAMPI = {
   scelta:   { label: 'Menu a tendina',icona: 'chevronDown' },
   spunta:   { label: 'Spunta',        icona: 'check' },
   consenso: { label: 'Consenso',      icona: 'shield' },
+  paragrafo:{ label: 'Paragrafo',     icona: 'pencil',  decorativo: true },
+  immagine: { label: 'Immagine o GIF',icona: 'image',   decorativo: true },
+  separa:   { label: 'Separatore',    icona: 'sliders', decorativo: true },
 };
 
 function HubFormPage() {
@@ -987,14 +994,26 @@ function HubFormEditor({ onChiudi }) {
     { id: 'c4', tipo: 'consenso', label: 'Acconsento a ricevere comunicazioni da byup', obbligatorio: true, mappa: 'consensoMail' },
   ]);
   const [sel, setSel] = useStateMk(null);
-  const [stile, setStile] = useStateMk({ accento: '#FF1F5A', raggio: 10, sfondo: '#FFFFFF', bottone: 'Invia la richiesta' });
+  const [testa, setTesta] = useStateMk({
+    titolo: 'Richiedi una <span style="color: #FF1F5A">demo</span>',
+    sotto: 'Compila e ti ricontattiamo entro <b>un giorno lavorativo</b>.',
+  });
+  const [stile, setStile] = useStateMk({
+    accento: '#FF1F5A', raggio: 10, sfondo: '#FFFFFF', bottone: 'Invia la richiesta',
+    fondo: mbFondoVuoto(),                                              // il modulo
+    pagina: { tipo: 'tinta', colore: '#FAFAFB', da: '#FF1F5A', a: '#D410F1', angolo: 135 }, // la pagina attorno
+    bottoneFondo: { tipo: 'gradiente', colore: '#FF1F5A', da: '#FF1F5A', a: '#D410F1', angolo: 90 },
+  });
   const [auto, setAuto] = useStateMk({ mail: 'ML-010', redirect: 'byup.it/grazie', messaggio: 'Grazie! Ti ricontattiamo entro un giorno lavorativo.', esito: 'messaggio' });
   const [tab, setTab] = useStateMk('campi');
 
   const campo = campi.find(c => c.id === sel) || null;
   const setCampo = (k, v) => setCampi(cs => cs.map(c => c.id === sel ? Object.assign({}, c, { [k]: v }) : c));
+  const setCampoId = (id, k, v) => setCampi(cs => cs.map(c => c.id === id ? Object.assign({}, c, { [k]: v }) : c));
   const aggiungi = (tipo) => {
     const n = { id: 'c' + Date.now(), tipo, label: FRM_CAMPI[tipo].label, obbligatorio: false };
+    if (tipo === 'paragrafo') n.html = 'Scrivi qui. Serve a spiegare <b>perché</b> vale la pena compilare — non a riempire spazio.';
+    if (tipo === 'immagine') { n.src = ''; n.raggio = 10; }
     setCampi(cs => [...cs, n]); setSel(n.id); setTab('campi');
   };
   const muovi = (i, d) => {
@@ -1068,19 +1087,36 @@ function HubFormEditor({ onChiudi }) {
                 { id: 'campi', label: 'Anteprima' }, { id: 'stile', label: 'Aspetto' },
               ]}/>
             </div>
-            <div style={{ background: ADM.PANEL_SOFT, padding: 26 }}>
+            <div style={{ background: mbFondoCss(stile.pagina) || ADM.PANEL_SOFT, padding: 26 }}>
               <div style={{
-                maxWidth: 440, margin: '0 auto', background: stile.sfondo, borderRadius: 16, padding: 26,
+                maxWidth: 440, margin: '0 auto', background: mbFondoCss(stile.fondo) || stile.sfondo, borderRadius: 16, padding: 26,
                 boxShadow: '0 14px 34px -16px rgba(15,17,21,0.26)', border: `1px solid ${ADM.BORDER}`,
               }}>
-                <div style={{ fontSize: 19, fontWeight: 800, color: ADM.TEXT, letterSpacing: '-0.02em', marginBottom: 4 }}>{nome || 'Richiedi una demo'}</div>
-                <div style={{ fontSize: 13.4, color: ADM.MUTED, marginBottom: 18, lineHeight: 1.5 }}>Compila e ti ricontattiamo entro un giorno lavorativo.</div>
+                {/* Titolo e sottotitolo si scrivono qui dentro, con la stessa
+                    barra di formattazione della mail: una parola colorata nel
+                    titolo di un form fa lo stesso lavoro che fa in una mail. */}
+                <MbRicco chiave="frm-titolo" valore={testa.titolo} onFuoco={() => { setSel('__testa'); setTab('campi'); }}
+                  onCambia={v => setTesta(t => ({ ...t, titolo: v }))}
+                  stile={{ fontSize: 19, fontWeight: 800, color: ADM.TEXT, letterSpacing: '-0.02em', marginBottom: 4 }}/>
+                <MbRicco chiave="frm-sotto" valore={testa.sotto} onFuoco={() => { setSel('__testa'); setTab('campi'); }}
+                  onCambia={v => setTesta(t => ({ ...t, sotto: v }))}
+                  stile={{ fontSize: 13.4, color: ADM.MUTED, marginBottom: 18, lineHeight: 1.5 }}/>
                 {campi.map(c => (
                   <div key={c.id} onClick={() => setSel(c.id)} style={{
                     marginBottom: 13, padding: sel === c.id ? 8 : 0, margin: sel === c.id ? '-8px -8px 5px' : undefined,
                     borderRadius: 9, background: sel === c.id ? ADM.PINK_BG_SOFT : 'transparent', cursor: 'pointer',
                   }}>
-                    {c.tipo === 'consenso' || c.tipo === 'spunta' ? (
+                    {c.tipo === 'paragrafo' ? (
+                      <MbRicco chiave={'frm-' + c.id} valore={c.html} onFuoco={() => setSel(c.id)}
+                        onCambia={v => setCampoId(c.id, 'html', v)}
+                        stile={{ fontSize: 13.4, color: ADM.MUTED, lineHeight: 1.55 }}/>
+                    ) : c.tipo === 'immagine' ? (
+                      c.src
+                        ? <img src={c.src} alt="" style={{ width: '100%', display: 'block', borderRadius: c.raggio || 10 }}/>
+                        : <div style={{ background: ADM.NEUTRAL_SOFT, borderRadius: 10, padding: '30px 0', textAlign: 'center', fontSize: 12.4, color: ADM.MUTED_SOFT }}>Nessuna immagine — caricala a destra</div>
+                    ) : c.tipo === 'separa' ? (
+                      <div style={{ borderTop: `1px solid ${ADM.BORDER}`, margin: '4px 0' }}/>
+                    ) : c.tipo === 'consenso' || c.tipo === 'spunta' ? (
                       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, color: ADM.TEXT, lineHeight: 1.45 }}>
                         <span style={{ width: 17, height: 17, borderRadius: 4, border: `1.5px solid ${ADM.BORDER}`, flexShrink: 0, marginTop: 1 }}/>
                         <span>{c.label}{c.obbligatorio && <span style={{ color: stile.accento }}> *</span>}</span>
@@ -1091,19 +1127,20 @@ function HubFormEditor({ onChiudi }) {
                           {c.label}{c.obbligatorio && <span style={{ color: stile.accento }}> *</span>}
                         </label>
                         {c.tipo === 'area'
-                          ? <div style={{ height: 74, border: `1px solid ${ADM.BORDER}`, borderRadius: stile.raggio, background: '#fff' }}/>
+                          ? <div style={{ minHeight: 74, border: `1px solid ${ADM.BORDER}`, borderRadius: stile.raggio, background: '#fff', padding: '10px 12px', fontSize: 13.4, color: ADM.MUTED_LIGHT }}>{c.segnaposto || ''}</div>
                           : c.tipo === 'scelta'
                           ? <div style={{ height: 40, border: `1px solid ${ADM.BORDER}`, borderRadius: stile.raggio, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', fontSize: 13.4, color: ADM.MUTED_SOFT }}>
-                              <span>Scegli…</span><BuIcons.chevronDown size={15} color={ADM.MUTED}/>
+                              <span>{c.segnaposto || 'Scegli…'}</span><BuIcons.chevronDown size={15} color={ADM.MUTED}/>
                             </div>
-                          : <div style={{ height: 40, border: `1px solid ${ADM.BORDER}`, borderRadius: stile.raggio, background: '#fff' }}/>}
+                          : <div style={{ height: 40, border: `1px solid ${ADM.BORDER}`, borderRadius: stile.raggio, background: '#fff', display: 'flex', alignItems: 'center', padding: '0 12px', fontSize: 13.4, color: ADM.MUTED_LIGHT }}>{c.segnaposto || ''}</div>}
                       </React.Fragment>
                     )}
                   </div>
                 ))}
                 <button style={{
                   width: '100%', marginTop: 6, padding: '12px 18px', border: 'none', borderRadius: stile.raggio,
-                  background: stile.accento, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  background: mbFondoCss(stile.bottoneFondo) || stile.accento,
+                  color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 }}>{stile.bottone}</button>
               </div>
             </div>
@@ -1141,35 +1178,71 @@ function HubFormEditor({ onChiudi }) {
           {tab === 'stile' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
               <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Aspetto</div>
+              <MbFondo titolo="Fondo del modulo" valore={stile.fondo} onCambia={v => setStile(s => ({ ...s, fondo: v }))}/>
+              {(!stile.fondo || stile.fondo.tipo === 'nessuno') &&
+                <MbColore label="…o una tinta semplice" valore={stile.sfondo} onCambia={v => setStile(s => ({ ...s, sfondo: v }))}/>}
+              <MbFondo titolo="Fondo della pagina attorno" valore={stile.pagina} onCambia={v => setStile(s => ({ ...s, pagina: v }))}/>
+              <MbFondo titolo="Fondo del pulsante" valore={stile.bottoneFondo} onCambia={v => setStile(s => ({ ...s, bottoneFondo: v }))}/>
               <MbColore label="Colore d'accento" valore={stile.accento} onCambia={v => setStile(s => ({ ...s, accento: v }))}/>
-              <MbColore label="Sfondo del modulo" valore={stile.sfondo} onCambia={v => setStile(s => ({ ...s, sfondo: v }))}/>
               <MbCursore label="Angoli" valore={stile.raggio} onCambia={v => setStile(s => ({ ...s, raggio: v }))} min={0} max={22}/>
               <HubCampo label="Testo del pulsante"><HubInput valore={stile.bottone} onCambia={v => setStile(s => ({ ...s, bottone: v }))}/></HubCampo>
             </div>
+          ) : sel === '__testa' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Titolo e introduzione</div>
+              <MbBarraTesto/>
+              <div style={{ fontSize: 12.4, color: ADM.MUTED, lineHeight: 1.5 }}>
+                Si scrivono direttamente nell'anteprima. Vale la stessa barra della mail: grassetto, corsivo, colore su una parola sola, link, simboli e campi dinamici.
+              </div>
+            </div>
           ) : campo ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Il campo</div>
-              <HubCampo label="Etichetta"><HubInput valore={campo.label} onCambia={v => setCampo('label', v)}/></HubCampo>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>
+                {FRM_CAMPI[campo.tipo].decorativo ? 'Il blocco' : 'Il campo'}
+              </div>
               <HubCampo label="Tipo">
                 <AdmSelect block value={campo.tipo} onChange={v => setCampo('tipo', v)}
                   options={Object.keys(FRM_CAMPI).map(t => ({ value: t, label: FRM_CAMPI[t].label }))}/>
               </HubCampo>
-              {campo.tipo === 'scelta' && (
-                <HubCampo label="Voci" nota="Una per riga."><HubArea valore={campo.opzioni || ''} onCambia={v => setCampo('opzioni', v)} righe={4}/></HubCampo>
+
+              {campo.tipo === 'paragrafo' && (
+                <React.Fragment>
+                  <MbBarraTesto/>
+                  <div style={{ fontSize: 12.4, color: ADM.MUTED, lineHeight: 1.5 }}>Il testo si scrive nell'anteprima.</div>
+                </React.Fragment>
               )}
-              <HubCampo label="Dove finisce il valore"
-                nota="La proprietà del contatto che questa risposta riempie. È così che «Come ci hai conosciuto» diventa il campo Referral su cui poi filtri.">
-                <AdmSelect block value={campo.mappa || ''} onChange={v => setCampo('mappa', v || null)}
-                  options={[{ value: '', label: 'Non salvare' }, ...HUB_PROPRIETA.map(p => ({ value: p.id, label: p.label }))]}/>
-              </HubCampo>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
-                <AdmSwitch size="sm" checked={campo.obbligatorio} onChange={v => setCampo('obbligatorio', v)}/>
-                <span style={{ fontSize: 13.4, fontWeight: 600, color: ADM.TEXT }}>Campo obbligatorio</span>
-              </label>
+              {campo.tipo === 'immagine' && (
+                <React.Fragment>
+                  <MbCarica valore={campo.src} onCambia={v => setCampo('src', v)}/>
+                  <MbCursore label="Angoli" valore={campo.raggio || 10} onCambia={v => setCampo('raggio', v)} min={0} max={24}/>
+                </React.Fragment>
+              )}
+
+              {!FRM_CAMPI[campo.tipo].decorativo && (
+                <React.Fragment>
+                  <HubCampo label="Etichetta"><HubInput valore={campo.label} onCambia={v => setCampo('label', v)}/></HubCampo>
+                  <HubCampo label="Segnaposto" nota="Il testo grigio dentro al campo. Non sostituisce l'etichetta: sparisce appena si scrive.">
+                    <HubInput valore={campo.segnaposto || ''} onCambia={v => setCampo('segnaposto', v)} placeholder="es. mario@osteria.it"/>
+                  </HubCampo>
+                  {campo.tipo === 'scelta' && (
+                    <HubCampo label="Voci" nota="Una per riga."><HubArea valore={campo.opzioni || ''} onCambia={v => setCampo('opzioni', v)} righe={4}/></HubCampo>
+                  )}
+                  <HubCampo label="Dove finisce il valore"
+                    nota="La proprietà del contatto che questa risposta riempie. È così che «Come ci hai conosciuto» diventa il campo Referral su cui poi filtri.">
+                    <AdmSelect block value={campo.mappa || ''} onChange={v => setCampo('mappa', v || null)}
+                      options={[{ value: '', label: 'Non salvare' }, ...HUB_PROPRIETA.map(p => ({ value: p.id, label: p.label }))]}/>
+                  </HubCampo>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+                    <AdmSwitch size="sm" checked={campo.obbligatorio} onChange={v => setCampo('obbligatorio', v)}/>
+                    <span style={{ fontSize: 13.4, fontWeight: 600, color: ADM.TEXT }}>Campo obbligatorio</span>
+                  </label>
+                </React.Fragment>
+              )}
             </div>
           ) : (
             <div style={{ fontSize: 13, color: ADM.MUTED, lineHeight: 1.55, padding: '10px 2px' }}>
               Clicca un campo — nell'elenco a sinistra o direttamente nell'anteprima — per modificarlo.
+              Titolo, introduzione e paragrafi si scrivono direttamente dentro il modulo.
             </div>
           )}
         </AdmCard>

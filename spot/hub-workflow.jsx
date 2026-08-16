@@ -101,6 +101,199 @@ function HubWorkflowPage() {
 }
 
 // ─── Il canvas ──────────────────────────────────────────────────────────────
+// ─── I campi di un passo ────────────────────────────────────────────────────
+//
+// Prima quasi ogni passo era una casella di testo libero: «Ciclo di vita →
+// Returning» lo si scriveva a mano, virgola compresa. Funzionava per finta —
+// il canvas mostrava una frase giusta e sotto non c'era niente da eseguire.
+//
+// Adesso ogni passo ha i suoi campi veri e la frase sul canvas la GENERA il
+// passo. Il processo resta complesso quanto prima (un invio ha il messaggio,
+// il consenso e la finestra oraria; una scrittura ha proprietà, modo e valore):
+// quello che cambia è che non bisogna più indovinare come si scrive.
+
+// Il valore da scrivere in una proprietà, con il controllo giusto per il tipo.
+function WfValoreProp({ p, valore, onCambia }) {
+  if (!p) return null;
+  const opzioni = hubOpzioni(p, CONTATTI);
+  if (p.tipo === 'bool') {
+    return <WrSegmento attivo={valore ? 'si' : 'no'} onCambia={v => onCambia(v === 'si')}
+      voci={[{ id: 'si', l: 'Sì' }, { id: 'no', l: 'No' }]}/>;
+  }
+  if (p.tipo === 'elenco') return <AdmSelect block value={valore} onChange={onCambia} options={opzioni}/>;
+  if (p.tipo === 'multi')  return <HubScelteMultiple opzioni={opzioni} scelte={valore} onCambia={onCambia}/>;
+  if (p.tipo === 'data')   return <HubData valore={valore} onCambia={onCambia}/>;
+  if (p.tipo === 'numero' || p.tipo === 'valuta') return <HubInput tipo="number" valore={valore} onCambia={onCambia} placeholder="0"/>;
+  return <HubInput valore={valore} onCambia={onCambia} placeholder="Il valore da scrivere"/>;
+}
+
+const WF_MODI_PROP = [
+  { id: 'imposta',   l: 'Imposta' },
+  { id: 'svuota',    l: 'Svuota' },
+  { id: 'daAgente',  l: 'Dalla risposta dell\'agente' },
+];
+
+function WfScriviProprieta({ nodo, onCambia }) {
+  const [scelta, setScelta] = useStateWf(false);
+  const p = HUB_PROP[nodo.prop];
+  const modo = nodo.modo || 'imposta';
+  const frase = (np, nmodo, nval) => {
+    const pp = HUB_PROP[np];
+    if (!pp) return 'Scrivi una proprietà';
+    if (nmodo === 'svuota')   return pp.label + ' → svuota';
+    if (nmodo === 'daAgente') return pp.label + ' ← risposta dell\'agente';
+    const v = Array.isArray(nval) ? nval.map(x => hubEtichettaOpzione(pp, x)).join(', ')
+      : pp.tipo === 'bool' ? (nval ? 'sì' : 'no')
+      : pp.tipo === 'data' ? (nval ? fmtDate(nval) : '…')
+      : (nval == null || nval === '') ? '…' : hubEtichettaOpzione(pp, nval);
+    return pp.label + ' → ' + v;
+  };
+  const set = (patch) => {
+    const np = Object.assign({ prop: nodo.prop, modo, valore: nodo.valore }, patch);
+    onCambia('__molti', { prop: np.prop, modo: np.modo, valore: np.valore, testo: frase(np.prop, np.modo, np.valore) });
+  };
+
+  return (
+    <React.Fragment>
+      <HubCampo label="Quale proprietà" nota="È così che «Ciclo di vita» e «Referral» si riempiono da soli.">
+        {scelta || !p ? (
+          <div style={{ padding: 8, border: `1px solid ${ADM.PINK}`, borderRadius: 10, background: '#fff' }}>
+            <HubSceltaProprieta altezza={220} onScegli={np => { set({ prop: np.id, valore: null }); setScelta(false); }}/>
+            {p && <button onClick={() => setScelta(false)} style={{
+              marginTop: 6, width: '100%', padding: '6px 10px', borderRadius: 7, border: 'none',
+              background: ADM.NEUTRAL_SOFT, color: ADM.MUTED, fontSize: 12.6, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            }}>Annulla</button>}
+          </div>
+        ) : (
+          <button onClick={() => setScelta(true)} style={{
+            display: 'flex', alignItems: 'center', gap: 7, width: '100%', textAlign: 'left',
+            padding: '8px 10px', borderRadius: 9, border: `1px solid ${ADM.BORDER}`, background: ADM.PANEL_SOFT,
+            cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.4, fontWeight: 700, color: ADM.TEXT,
+          }}>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.label}</span>
+            <BuIcons.pencil size={13} color={ADM.MUTED_LIGHT}/>
+          </button>
+        )}
+      </HubCampo>
+      {p && (
+        <React.Fragment>
+          <HubCampo label="Che cosa ci scrive">
+            <WrSegmento attivo={modo} onCambia={v => set({ modo: v })} voci={WF_MODI_PROP} piccolo/>
+          </HubCampo>
+          {modo === 'imposta' && (
+            <HubCampo label="Il valore">
+              <WfValoreProp p={p} valore={nodo.valore} onCambia={v => set({ valore: v })}/>
+            </HubCampo>
+          )}
+        </React.Fragment>
+      )}
+    </React.Fragment>
+  );
+}
+
+function WfInvio({ nodo, onCambia }) {
+  const cat = nodo.tipo === 'mail' ? HUB_MAIL : nodo.tipo === 'sms' ? HUB_SMS : HUB_PUSH;
+  const scelto = cat.find(x => x.id === nodo.rif) || cat.find(x => x.nome === nodo.testo);
+  const consenso = nodo.tipo === 'mail' ? 'consensoMail' : nodo.tipo === 'sms' ? 'consensoSms' : 'consensoPush';
+  return (
+    <React.Fragment>
+      <HubCampo label="Che cosa manda">
+        <AdmSelect block value={scelto ? scelto.id : ''} onChange={v => {
+          const m = cat.find(x => x.id === v);
+          onCambia('__molti', { rif: v, testo: m ? m.nome : nodo.testo });
+        }} options={cat.map(x => ({ value: x.id, label: x.nome }))}/>
+      </HubCampo>
+      {scelto && (
+        <div style={{ padding: '10px 11px', borderRadius: 10, background: ADM.HUB_MAGENTA_SOFT }}>
+          <div style={{ fontSize: 10.4, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.HUB_MAGENTA_DARK, marginBottom: 4 }}>Anteprima</div>
+          <div style={{ fontSize: 12.6, color: ADM.TEXT, lineHeight: 1.45, fontWeight: 600 }}>{scelto.oggetto || scelto.titolo || scelto.nome}</div>
+          <div style={{ fontSize: 12, color: ADM.MUTED, lineHeight: 1.45, marginTop: 2 }}>{scelto.anteprima || scelto.corpo || scelto.testo || ''}</div>
+        </div>
+      )}
+      {/* Il consenso non è una spunta di cortesia: senza, il passo va saltato,
+          e chi costruisce il workflow deve poterlo vedere qui. */}
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 11, borderRadius: 10, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}`, cursor: 'pointer' }}>
+        <AdmSwitch size="sm" checked={nodo.rispettaConsenso !== false} onChange={v => onCambia('rispettaConsenso', v)}/>
+        <span style={{ flex: 1 }}>
+          <span style={{ display: 'block', fontSize: 13.2, fontWeight: 700, color: ADM.TEXT }}>Salta chi non ha il consenso</span>
+          <span style={{ display: 'block', fontSize: 12, color: ADM.MUTED, marginTop: 3, lineHeight: 1.45 }}>
+            Controlla «{(HUB_PROP[consenso] || {}).label || consenso}». Chi non ce l'ha prosegue al passo dopo senza ricevere niente.
+          </span>
+        </span>
+      </label>
+    </React.Fragment>
+  );
+}
+
+function WfElenco({ nodo, onCambia }) {
+  const statici = HUB_ELENCHI.filter(e => e.tipo === 'statico');
+  const scelto = statici.find(e => e.id === nodo.rif) || statici.find(e => e.nome === nodo.testo);
+  const azione = nodo.azione || 'aggiungi';
+  const frase = (e, a) => (a === 'togli' ? 'Togli da ' : 'Aggiungi a ') + '«' + (e ? e.nome : '—') + '»';
+  return (
+    <React.Fragment>
+      <HubCampo label="Che cosa fa">
+        <WrSegmento attivo={azione} onCambia={v => onCambia('__molti', { azione: v, testo: frase(scelto, v) })}
+          voci={[{ id: 'aggiungi', l: 'Aggiungi' }, { id: 'togli', l: 'Togli' }]}/>
+      </HubCampo>
+      <HubCampo label="In quale elenco" nota="Solo elenchi statici: uno attivo si calcola da sé, e scriverci dentro non vorrebbe dire niente.">
+        <AdmSelect block value={scelto ? scelto.id : ''} onChange={v => {
+          const e = statici.find(x => x.id === v);
+          onCambia('__molti', { rif: v, testo: frase(e, azione) });
+        }} options={statici.map(e => ({ value: e.id, label: e.nome }))}/>
+      </HubCampo>
+    </React.Fragment>
+  );
+}
+
+function WfAgente({ nodo, onCambia }) {
+  const a = HUB_AGENTI.find(x => x.id === nodo.rif) || HUB_AGENTI.find(x => nodo.testo && nodo.testo.startsWith(x.nome));
+  return (
+    <React.Fragment>
+      <HubCampo label="Quale agente">
+        <AdmSelect block value={a ? a.id : ''} onChange={v => {
+          const na = HUB_AGENTI.find(x => x.id === v);
+          onCambia('__molti', { rif: v, testo: na ? na.nome + (nodo.compito ? ' → ' + nodo.compito : '') : nodo.testo });
+        }} options={HUB_AGENTI.map(x => ({ value: x.id, label: x.nome + ' · ' + x.ruolo }))}/>
+      </HubCampo>
+      {a && <div style={{ fontSize: 12.2, color: ADM.MUTED, lineHeight: 1.5, padding: '0 2px' }}>{a.obiettivo}</div>}
+      <HubCampo label="Che cosa deve fare qui" nota="L'obiettivo dell'agente vale sempre; questo è il compito di questo passo.">
+        <HubArea righe={2} valore={nodo.compito} onCambia={v => onCambia('__molti', { compito: v, testo: (a ? a.nome : 'Agente') + (v ? ' → ' + v : '') })}
+          placeholder="es. stima coperti e scontrino dal sito"/>
+      </HubCampo>
+      <HubCampo label="Quanto può aspettare" nota="Oltre questo tempo il passo si chiude con «l'agente non ha concluso», e i rami possono prenderlo.">
+        <WrDurata n={(nodo.tetto || {}).n || 10} unita={(nodo.tetto || {}).unita || 'minuti'} onCambia={(n, u) => onCambia('tetto', { n, unita: u })}/>
+      </HubCampo>
+    </React.Fragment>
+  );
+}
+
+const WF_METODI = [{ id: 'GET', l: 'GET' }, { id: 'POST', l: 'POST' }, { id: 'PUT', l: 'PUT' }, { id: 'DELETE', l: 'DEL' }];
+
+function WfWebhook({ nodo, onCambia }) {
+  const metodo = nodo.metodo || 'POST';
+  const url = nodo.url || (nodo.testo || '').replace(/^(GET|POST|PUT|DELETE)\s+/, '');
+  return (
+    <React.Fragment>
+      <HubCampo label="Chiamata">
+        <div style={{ display: 'flex', gap: 7 }}>
+          <WrSegmento piccolo attivo={metodo} onCambia={v => onCambia('__molti', { metodo: v, testo: v + ' ' + url })} voci={WF_METODI}/>
+        </div>
+      </HubCampo>
+      <HubCampo label="Indirizzo">
+        <HubInput valore={url} onCambia={v => onCambia('__molti', { url: v, testo: metodo + ' ' + v })} placeholder="https://…"/>
+      </HubCampo>
+      <HubCampo label="Corpo della richiesta" nota="Le doppie graffe prendono i valori del contatto: {{nome}}, {{email}}.">
+        <HubArea righe={3} valore={nodo.corpo} onCambia={v => onCambia('corpo', v)} placeholder={'{ "locale": "{{nome}}", "piano": "{{piano}}" }'}/>
+      </HubCampo>
+      <HubCampo label="Se non risponde">
+        <WrSegmento attivo={nodo.seErrore || 'prosegui'} onCambia={v => onCambia('seErrore', v)}
+          voci={[{ id: 'prosegui', l: 'Prosegue' }, { id: 'ferma', l: 'Ferma il contatto' }, { id: 'riprova', l: 'Riprova 3 volte' }]} piccolo/>
+      </HubCampo>
+    </React.Fragment>
+  );
+}
+
 function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
   const [nodi, setNodi] = useStateWf(wf.nodi);
   const [sel, setSel] = useStateWf(null);   // percorso: [2] oppure [2,'r3',1]
@@ -113,7 +306,11 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
   const suRamo = !!sel && typeof sel[sel.length - 1] === 'string';
   const scelto = sel ? wcLeggi(nodi, sel) : null;
 
-  const cambiaNodo = (k, v) => setNodi(ns => wcMappa(ns, sel, n => Object.assign({}, n, { [k]: v })));
+  // `'__molti'` cambia più campi in un colpo solo: quasi tutti i passi
+  // riscrivono `testo` insieme al campo vero, e farlo in due `setNodi` di
+  // fila fa vincere l'ultimo — la frase restava indietro di una modifica.
+  const cambiaNodo = (k, v) => setNodi(ns => wcMappa(ns, sel, n =>
+    k === '__molti' ? Object.assign({}, n, v) : Object.assign({}, n, { [k]: v })));
   const cambiaRamo = (r) => setNodi(ns => wcMappa(ns, sel, () => r));
 
   // Aggiungere un passo: se è selezionato un nodo, entra subito dopo di lui,
@@ -123,10 +320,14 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
     if (tipo === 'condizione') {
       n.testo = 'Che cosa vale per questo contatto?';
       n.rami = [
-        { id: 'r' + Date.now(), label: 'Primo caso', congiunzione: 'E', criteri: [], nodi: [] },
-        { id: 'a' + Date.now(), label: 'Tutti gli altri', altrimenti: true, congiunzione: 'E', criteri: [], nodi: [] },
+        { id: 'r' + Date.now(), label: 'Primo caso', quando: hubQuandoVuoto(), nodi: [] },
+        { id: 'a' + (Date.now() + 1), label: 'Tutti gli altri', altrimenti: true,
+          quando: { tipo: 'altrimenti', congiunzione: 'E', gruppi: [] }, nodi: [] },
       ];
     }
+    // Un'attesa nasce già configurata («2 giorni»): un passo che appare vuoto e
+    // va aperto per dire qualcosa di ovvio è un giro a vuoto per tutti.
+    if (tipo === 'attesa') { n.attesa = hubAttesaVuota(); n.testo = hubDescriviAttesa(n.attesa); }
     if (!sel) {
       setNodi(ns => { const c = ns.slice(); c.splice(Math.max(1, c.length - 1), 0, n); return c; });
       return;
@@ -141,15 +342,21 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
       : wcMappa(ns, dove, r => { const c = (r.nodi || []).slice(); c.splice(i + 1, 0, n); return Object.assign({}, r, { nodi: c }); }));
   };
 
-  const aggiungiRamo = (path) => setNodi(ns => wcMappa(ns, path, n => Object.assign({}, n, {
-    rami: (() => {
-      const r = (n.rami || []).slice();
-      const nuovoR = { id: 'r' + Date.now(), label: 'Nuovo caso', congiunzione: 'E', criteri: [], nodi: [] };
-      const i = r.findIndex(x => x.altrimenti);
-      if (i >= 0) r.splice(i, 0, nuovoR); else r.push(nuovoR);
-      return r;
-    })(),
-  })));
+  // Aggiungere un ramo lo SELEZIONA: chi lo crea vuole scriverne le regole
+  // adesso, e un ramo nuovo senza regole se le prende tutte.
+  const aggiungiRamo = (path) => {
+    const id = 'r' + Date.now();
+    setNodi(ns => wcMappa(ns, path, n => Object.assign({}, n, {
+      rami: (() => {
+        const r = (n.rami || []).slice();
+        const nuovoR = { id, label: 'Nuovo caso', quando: hubQuandoVuoto(), nodi: [] };
+        const i = r.findIndex(x => x.altrimenti);
+        if (i >= 0) r.splice(i, 0, nuovoR); else r.push(nuovoR);
+        return r;
+      })(),
+    })));
+    setSel([...path, id]);
+  };
 
   const eliminaSelezionato = () => {
     if (!sel) return;
@@ -209,7 +416,9 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '206px minmax(0,1fr) 306px', gap: 12, alignItems: 'start' }}>
+      {/* L'ispettore è la colonna larga: è lì che si scrive la logica, e una
+          regola con proprietà, operatore e valore in 306px si impila male. */}
+      <div style={{ display: 'grid', gridTemplateColumns: '196px minmax(0,1fr) 350px', gap: 12, alignItems: 'start' }}>
         {/* La cassetta degli attrezzi, divisa per mestiere */}
         <AdmCard padding={14}>
           {nuovo && (
@@ -301,59 +510,54 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
                 </HubCampo>
               )}
               {scelto.tipo === 'attesa' && (
-                <HubCampo label="Quanto aspetta"><HubInput valore={scelto.testo} onCambia={v => cambiaNodo('testo', v)} placeholder="es. 2 giorni"/></HubCampo>
+                <WrAttesa attesa={hubNodoAttesa(scelto) || hubAttesaVuota()} onCambia={a => {
+                  // Il testo della scatola si riscrive da solo dalla
+                  // configurazione: due sorgenti di verità e sul canvas
+                  // resta scritto «2 giorni» mentre l'attesa aspetta un click.
+                  setNodi(ns => wcMappa(ns, sel, n => Object.assign({}, n, { attesa: a, testo: hubDescriviAttesa(a) })));
+                }}/>
               )}
               {scelto.tipo === 'condizione' && (
                 <React.Fragment>
-                  <HubCampo label="La domanda" nota="Il titolo del bivio. La logica vera sta sui rami: clicca un ramo per scrivere i suoi criteri.">
+                  <HubCampo label="La domanda" nota="Il titolo del bivio. La logica vera sta sui rami: clicca un ramo per scrivere le sue regole.">
                     <HubInput valore={scelto.testo} onCambia={v => cambiaNodo('testo', v)} placeholder="es. Ha aperto la mail?"/>
                   </HubCampo>
                   <div style={{ padding: 12, borderRadius: 10, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}` }}>
                     <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 8 }}>I rami</div>
-                    {(scelto.rami || []).map((r, i) => (
-                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: ADM.MUTED_SOFT, minWidth: 68 }}>
-                          {r.altrimenti ? 'ALTRIMENTI' : i === 0 ? 'SE' : 'ALTR. SE'}
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
-                        <span style={{ fontSize: 11.5, color: ADM.MUTED_SOFT }}>{(r.criteri || []).length || '—'}</span>
-                      </div>
-                    ))}
+                    {(scelto.rami || []).map((r, i) => {
+                      const q = hubRamoQuando(r), n = hubConteggioRegole(q);
+                      return (
+                        <button key={r.id} onClick={() => setSel([...sel, r.id])} className="adm-actionrow" style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '6px 5px', width: '100%',
+                          textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer',
+                          fontFamily: 'inherit', borderRadius: 7,
+                        }}>
+                          <span style={{ fontSize: 9.6, fontWeight: 800, color: ADM.MUTED_SOFT, minWidth: 62, flexShrink: 0 }}>
+                            {r.altrimenti ? 'ALTRIMENTI' : i === 0 ? 'SE' : 'ALTR. SE'}
+                          </span>
+                          <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</span>
+                          {!r.altrimenti && <HubPillola size="sm" color={n ? 'OK' : 'DANGER'}>{n || '0'}</HubPillola>}
+                        </button>
+                      );
+                    })}
                     <button onClick={() => aggiungiRamo(sel)} style={{
                       marginTop: 8, width: '100%', padding: '7px 10px', borderRadius: 8,
-                      border: `1px dashed ${ADM.BORDER}`, background: '#fff', color: ADM.TEXT,
-                      fontSize: 12.8, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1px dashed ${ADM.HUB_VIOLA}`, background: '#fff', color: ADM.HUB_VIOLA_DARK,
+                      fontSize: 12.8, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                     }}>+ Aggiungi un ramo</button>
                   </div>
                 </React.Fragment>
               )}
               {(scelto.tipo === 'mail' || scelto.tipo === 'sms' || scelto.tipo === 'push') && (
-                <HubCampo label="Che cosa manda">
-                  <AdmSelect block value={scelto.testo} onChange={v => cambiaNodo('testo', v)}
-                    options={[{ value: scelto.testo, label: scelto.testo },
-                      ...(scelto.tipo === 'mail' ? HUB_MAIL : scelto.tipo === 'sms' ? HUB_SMS : HUB_PUSH).map(x => ({ value: x.nome, label: x.nome }))]}/>
-                </HubCampo>
+                <WfInvio nodo={scelto} onCambia={cambiaNodo}/>
               )}
-              {scelto.tipo === 'proprieta' && (
-                <HubCampo label="Che cosa scrive" nota="È così che «ID campagna» e «Referral» si riempiono da soli.">
-                  <HubInput valore={scelto.testo} onCambia={v => cambiaNodo('testo', v)} placeholder="es. Ciclo di vita → In onboarding"/>
-                </HubCampo>
-              )}
-              {scelto.tipo === 'elenco' && (
-                <HubCampo label="In quale elenco">
-                  <AdmSelect block value={scelto.testo} onChange={v => cambiaNodo('testo', v)}
-                    options={[{ value: scelto.testo, label: scelto.testo }, ...HUB_ELENCHI.filter(e => e.tipo === 'statico').map(e => ({ value: e.nome, label: e.nome }))]}/>
-                </HubCampo>
-              )}
-              {scelto.tipo === 'agente' && (
-                <HubCampo label="Quale agente e per fare cosa">
-                  <AdmSelect block value={scelto.testo} onChange={v => cambiaNodo('testo', v)}
-                    options={[{ value: scelto.testo, label: scelto.testo }, ...HUB_AGENTI.map(a => ({ value: a.nome, label: a.nome + ' · ' + a.ruolo }))]}/>
-                </HubCampo>
-              )}
-              {(scelto.tipo === 'script' || scelto.tipo === 'webhook') && (
-                <HubCampo label={scelto.tipo === 'script' ? 'Che cosa esegue' : 'Indirizzo da chiamare'}
-                  nota="Nel prototipo è una descrizione; in produzione qui ci va il codice o l'endpoint.">
+              {scelto.tipo === 'proprieta' && <WfScriviProprieta nodo={scelto} onCambia={cambiaNodo}/>}
+              {scelto.tipo === 'elenco' && <WfElenco nodo={scelto} onCambia={cambiaNodo}/>}
+              {scelto.tipo === 'agente' && <WfAgente nodo={scelto} onCambia={cambiaNodo}/>}
+              {scelto.tipo === 'webhook' && <WfWebhook nodo={scelto} onCambia={cambiaNodo}/>}
+              {scelto.tipo === 'script' && (
+                <HubCampo label="Che cosa esegue"
+                  nota="Nel prototipo è una descrizione; in produzione qui ci va il codice.">
                   <HubArea valore={scelto.testo} onCambia={v => cambiaNodo('testo', v)} righe={3}/>
                 </HubCampo>
               )}
@@ -398,6 +602,9 @@ const AG_STATI = {
 function HubAgentPage() {
   const [aperto, setAperto] = useStateWf(null);
   const [nuovo, setNuovo] = useStateWf(false);
+  // Due schermate, e la seconda non è un dettaglio della prima: «Squadra» sono
+  // gli agenti uno per uno, «Ambiente» è quello che fanno insieme.
+  const [vistaAg, setVistaAg] = useStateWf('squadra');
   if (nuovo) return <HubAgentEditor onChiudi={() => setNuovo(false)}/>;
   if (aperto) return <HubAgentDettaglio agente={aperto} onChiudi={() => setAperto(null)}/>;
 
@@ -410,9 +617,19 @@ function HubAgentPage() {
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
       <HubTestata occhiello="Intelligenza" titolo="Agent" colore="HUB_VIOLA"
-        sotto="Agenti costruiti su quello che Hubble già sa dei tuoi clienti. Gli dai un obiettivo e delle fonti; il resto lo decidono loro, e qui vedi che cosa hanno prodotto."
+        sotto={vistaAg === 'squadra'
+          ? 'Agenti costruiti su quello che Hubble già sa dei tuoi clienti. Gli dai un obiettivo e delle fonti; il resto lo decidono loro, e qui vedi che cosa hanno prodotto.'
+          : 'Dove gli agenti lavorano insieme. Non si chiamano fra loro: scrivono su una lavagna per argomento, e chi è iscritto si sveglia.'}
+        colore="HUB_VIOLA"
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea agente</HubStrumento>}/>
 
+      <HubSegmenti attivo={vistaAg} onCambia={setVistaAg} voci={[
+        { id: 'squadra',  label: 'La squadra', conteggio: HUB_AGENTI.length },
+        { id: 'ambiente', label: 'Ambiente',   conteggio: HUB_AMB_CATENE.length },
+      ]}/>
+
+      {vistaAg === 'ambiente' ? <HubAmbientePage/> : (
+      <React.Fragment>
       {/* Il cruscotto del team IA */}
       <div style={{
         borderRadius: 16, padding: 20, color: '#fff', position: 'relative', overflow: 'hidden',
@@ -489,6 +706,8 @@ function HubAgentPage() {
           );
         })}
       </div>
+      </React.Fragment>
+      )}
     </div>
   );
 }

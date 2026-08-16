@@ -883,32 +883,41 @@ function ContattoRow({ contatto: c, colonne, griglia, trascinata, onClick, strip
 // perché la domanda vera è quasi sempre «gli abbiamo già scritto?» oppure
 // «da dove è arrivato?», e sono due letture diverse dello stesso elenco.
 
+// `fmtRelative` guarda solo all'indietro: su una data futura risponde «ora»,
+// che su un intervento fissato fra otto giorni è semplicemente falso.
+function cntQuando(d) {
+  const ms = new Date(d).getTime() - Date.now();
+  if (ms <= 60000) return fmtRelative(d);
+  const g = Math.round(ms / 86400000);
+  if (g >= 1) return 'fra ' + g + (g === 1 ? ' giorno' : ' giorni');
+  return 'fra ' + Math.max(1, Math.round(ms / 3600000)) + ' ore';
+}
+
 function CntAttivita({ contatto }) {
   const [gruppo, setGruppo] = useStateCnt('tutto');
   const [rev, setRev] = useStateCnt(0);
   const [nota, setNota] = useStateCnt('');
   const [scrivo, setScrivo] = useStateCnt(false);
+  const [aperto, setAperto] = useStateCnt(null);
 
   if (!contatto) return <HubVuoto icona="clock" titolo="Nessun diario per questo contatto"
     desc="Le attività si registrano sui contatti della rubrica."/>;
 
-  const tutte = useMemoCnt(() => hubAttivita(contatto), [contatto.key, rev]);
+  const S = useMemoCnt(() => hubSintesi(contatto), [contatto.key, rev]);
+  const tutte = S.eventi;
   const eventi = gruppo === 'tutto' ? tutte
     : tutte.filter(e => (HUB_ATT_TIPI[e.tipo] || {}).gruppo === gruppo);
 
-  // I numeri in cima escono dal diario stesso: sono la sua sintesi, non un
-  // dato a parte che un giorno potrebbe non tornare.
-  const conta = (t) => tutte.filter(e => e.tipo === t).length;
-  const inviate = conta('mailInviata'), aperte = conta('mailAperta'), click = conta('mailClick');
+  // Gli episodi, non le righe. È tutta la differenza fra un diario che si
+  // legge e un registro che si scorre.
+  const episodi = useMemoCnt(() => hubEpisodi(eventi), [eventi]);
 
-  // Le righe si raggruppano per giorno: senza, una colonna di quaranta date
-  // ravvicinate diventa illeggibile.
   const perGiorno = [];
-  eventi.forEach(e => {
-    const g = new Date(e.quando).toDateString();
+  episodi.forEach(ep => {
+    const g = new Date(ep.ultimo).toDateString();
     const ultimo = perGiorno[perGiorno.length - 1];
-    if (ultimo && ultimo.g === g) ultimo.righe.push(e);
-    else perGiorno.push({ g, data: e.quando, righe: [e] });
+    if (ultimo && ultimo.g === g) ultimo.righe.push(ep);
+    else perGiorno.push({ g, data: ep.ultimo, righe: [ep] });
   });
 
   const salvaNota = () => {
@@ -919,25 +928,34 @@ function CntAttivita({ contatto }) {
 
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
-      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12}}>
-        <HubTile etichetta="Email ricevute" valore={inviate} icona="mailFill"
-          sotto={inviate ? `${aperte} aperte · ${click} click` : 'Nessun invio finora'}/>
-        <HubTile etichetta="Tasso di apertura" valore={inviate ? mkPc(aperte, inviate) : '—'}
-          tono={inviate && aperte / inviate > 0.4 ? 'OK' : undefined} icona="eye"
-          sotto="Solo le campagne, non le transazionali"/>
-        <HubTile etichetta="Eventi in tutto" valore={tutte.length} icona="clock"
-          sotto={`Dal ${fmtDate(tutte.length ? tutte[tutte.length - 1].quando : new Date())}`}/>
-        <HubTile etichetta="Ultima attività" valore={tutte.length ? fmtRelative(tutte[0].quando) : '—'}
-          icona="refresh" sotto={tutte.length ? (HUB_ATT_TIPI[tutte[0].tipo] || {}).label : ''}/>
-      </div>
+      <CntQuadro S={S} contatto={contatto}/>
 
       <AdmCard padding={0}>
-        <div style={{padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}`, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap'}}>
-          <HubSegmenti attivo={gruppo} onCambia={setGruppo} voci={HUB_ATT_GRUPPI.map(g => ({
-            id: g.id, label: g.label,
-            conteggio: g.id === 'tutto' ? tutte.length : tutte.filter(e => (HUB_ATT_TIPI[e.tipo] || {}).gruppo === g.id).length,
-          })).filter(g => g.conteggio > 0)}/>
-          <div style={{flex: 1}}/>
+        {/* Nove gruppi non stanno in un segmentato: quello non va a capo e
+            l'ultimo canale finisce fuori dalla card. Chip che si dispongono
+            su due righe — costano una riga di altezza e si vedono tutti. */}
+        <div style={{padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}`, display: 'flex', alignItems: 'flex-start', gap: 10}}>
+          <div style={{flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', gap: 5}}>
+            {HUB_ATT_GRUPPI.map(g => {
+              const n = g.id === 'tutto' ? tutte.length : tutte.filter(e => (HUB_ATT_TIPI[e.tipo] || {}).gruppo === g.id).length;
+              if (!n) return null;
+              const on = gruppo === g.id;
+              return (
+                <button key={g.id} onClick={() => setGruppo(g.id)} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 11px', borderRadius: 999,
+                  border: `1px solid ${on ? ADM.PINK : ADM.BORDER}`, background: on ? ADM.PINK_BG_SOFT : '#fff',
+                  color: on ? ADM.PINK_DARK : ADM.TEXT, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 12.8, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                }}>
+                  {g.label}
+                  <span style={{
+                    fontSize: 11.2, fontWeight: 800, padding: '0 6px', borderRadius: 99,
+                    background: on ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: on ? ADM.PINK_DARK : ADM.MUTED_SOFT,
+                  }}>{n}</span>
+                </button>
+              );
+            })}
+          </div>
           <HubStrumento icona="pencil" acceso={scrivo} onClick={() => setScrivo(v => !v)}>Aggiungi una nota</HubStrumento>
         </div>
 
@@ -952,10 +970,10 @@ function CntAttivita({ contatto }) {
           </div>
         )}
 
-        {eventi.length === 0 && <HubVuoto icona="clock" titolo="Niente su questo canale"
+        {episodi.length === 0 && <HubVuoto icona="clock" titolo="Niente su questo canale"
           desc="Prova «Tutto»: il contatto potrebbe avere attività di altro tipo."/>}
 
-        <div style={{padding: '4px 0 10px'}}>
+        <div style={{padding: '2px 0 12px'}}>
           {perGiorno.map(g => (
             <div key={g.g}>
               <div style={{
@@ -963,8 +981,11 @@ function CntAttivita({ contatto }) {
                 padding: '11px 18px 7px', fontSize: 11.4, fontWeight: 800,
                 letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT,
                 borderBottom: `1px solid ${ADM.BORDER_SOFT}`,
-              }}>{fmtDate(g.data)} · {fmtRelative(g.data)}</div>
-              {g.righe.map(e => <CntEvento key={e.id} ev={e}/>)}
+              }}>{fmtDate(g.data)} · {cntQuando(g.data)}</div>
+              {g.righe.map(ep => (
+                <CntEpisodio key={ep.id} ep={ep} aperto={aperto === ep.id}
+                  onApri={() => setAperto(a => a === ep.id ? null : ep.id)}/>
+              ))}
             </div>
           ))}
         </div>
@@ -973,13 +994,146 @@ function CntAttivita({ contatto }) {
   );
 }
 
-// Una riga del diario. La linea verticale che unisce i pallini è quella che
-// rende un elenco una STORIA: senza, sono venti righe scollegate.
-function CntEvento({ ev }) {
-  const d = HUB_ATT_TIPI[ev.tipo] || { label: ev.tipo, icona: 'info', color: 'PLAN_FREE' };
-  const Ic = BuIcons[d.icona];
+// ─── Il quadro: le sei domande che si fanno prima di leggere ────────────────
+//
+// Prima qui c'erano quattro numeri sulle email. Erano veri e non rispondevano
+// a nessuna delle domande che uno si fa davvero aprendo la scheda di un
+// cliente: quando l'abbiamo sentito, ha qualcosa in sospeso, che assistenza
+// ha avuto, che cosa ci ha chiesto.
+
+function CntQuadro({ S, contatto }) {
+  const t = S.temperatura;
+  const cella = (icona, colore, etichetta, valore, sotto, allarme) => {
+    const Ic = BuIcons[icona];
+    return (
+      <div style={{
+        padding: 13, borderRadius: 12, background: allarme ? ADM.DANGER_SOFT : '#fff',
+        border: `1px solid ${allarme ? '#F3C9C9' : ADM.BORDER}`, minWidth: 0,
+      }}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7}}>
+          <span style={{
+            width: 22, height: 22, borderRadius: 6, display: 'grid', placeItems: 'center', flexShrink: 0,
+            background: ADM[colore + '_SOFT'] || ADM.NEUTRAL_SOFT, color: ADM[colore] || ADM.MUTED,
+          }}><Ic size={12}/></span>
+          <span style={{fontSize: 10.6, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT}}>{etichetta}</span>
+        </div>
+        <div style={{fontSize: 15.4, fontWeight: 700, color: allarme ? '#8B1A1A' : ADM.TEXT, lineHeight: 1.3, letterSpacing: '-0.01em'}}>{valore}</div>
+        {sotto && <div style={{fontSize: 12.2, color: ADM.MUTED, marginTop: 3, lineHeight: 1.45}}>{sotto}</div>}
+      </div>
+    );
+  };
+
+  const uc = S.ultimoContatto;
+  const pr = S.prossima;
+  const ua = S.ultimaAssistenza;
+  const promo = S.promozioni[0];
+
   return (
-    <div style={{display: 'flex', gap: 13, padding: '11px 18px', position: 'relative'}}>
+    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+      {/* La riga che riassume tutto in una frase, col semaforo. */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderRadius: 12,
+        background: ADM[t.color + '_SOFT'] || ADM.NEUTRAL_SOFT,
+        border: `1px solid ${ADM[t.color] ? ADM[t.color] + '33' : ADM.BORDER}`,
+      }}>
+        <span style={{
+          width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', flexShrink: 0,
+          background: '#fff', color: ADM[t.color] || ADM.MUTED,
+        }}><BuIcons.gauge size={17}/></span>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 15, fontWeight: 800, color: ADM[t.color + '_DARK'] || ADM[t.color] || ADM.TEXT, letterSpacing: '-0.015em'}}>{t.label}</div>
+          <div style={{fontSize: 12.8, color: ADM.MUTED, marginTop: 1}}>{t.perche}</div>
+        </div>
+        <div style={{display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0}}>
+          {[['Email ricevute', S.inviate], ['Aperte', S.aperte], ['Click', S.click],
+            ['Assistenze', S.assistenze.length], ['Ticket', S.ticketTotali]].map(([l, v]) => (
+            <div key={l} style={{textAlign: 'right'}}>
+              <div style={{fontSize: 17, fontWeight: 800, color: ADM.TEXT, lineHeight: 1, fontVariantNumeric: 'tabular-nums'}}>{v}</div>
+              <div style={{fontSize: 10.6, color: ADM.MUTED_SOFT, fontWeight: 700, marginTop: 3}}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 11}}>
+        {cella('headsetFill', 'WARN', 'Ultimo contatto',
+          uc ? fmtRelative(uc.quando) : 'Mai',
+          uc ? (HUB_ATT_TIPI[uc.tipo] || {}).label + ' · ' + uc.titolo : 'Nessuno del team l\'ha ancora sentito')}
+
+        {cella('calendar', pr ? 'INFO' : 'PLAN_FREE', 'Prossima cosa in programma',
+          pr ? cntQuando(pr.quando) : 'Niente in agenda',
+          pr ? fmtDate(pr.quando) + ' · ' + pr.titolo : 'Se serve, fissa un intervento o una chiamata')}
+
+        {cella('ticket', S.ticketAperti.length ? 'DANGER' : 'OK', 'Ticket aperti',
+          S.ticketAperti.length || 'Nessuno',
+          S.ticketAperti.length
+            ? S.ticketAperti.map(t2 => t2.titolo).join(', ') + ' — ' + (S.ticketAperti[0].dettaglio || '')
+            : `${S.ticketRisolti} risolti su ${S.ticketTotali} aperti in tutto`,
+          S.ticketAperti.length >= 2)}
+
+        {cella('lifebuoy', 'TEAL', 'Assistenza ricevuta',
+          S.assistenze.length ? S.assistenze.length + (S.assistenze.length === 1 ? ' intervento' : ' interventi') : 'Nessuna',
+          ua ? 'L\'ultima ' + fmtRelative(ua.quando) + ' per ' + ((ua.meta && ua.meta.Motivo) || ua.titolo.replace(/^Intervento · /, ''))
+             : 'Non ha mai avuto bisogno di un intervento')}
+      </div>
+
+      {promo && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 11,
+          background: ADM.HUB_MAGENTA_SOFT, border: `1px solid #F6C7E6`,
+        }}>
+          <BuIcons.megaphoneFill size={15} color={ADM.HUB_MAGENTA_DARK}/>
+          <span style={{flex: 1, minWidth: 0, fontSize: 13.2, color: ADM.TEXT, lineHeight: 1.45}}>
+            <strong style={{fontWeight: 700}}>{promo.titolo}</strong> · {fmtRelative(promo.quando)}
+          </span>
+          {promo.meta && promo.meta.Stato && (
+            <HubPillola size="sm" forte color={promo.meta.Stato === 'Approvata' ? 'OK' : promo.meta.Stato === 'Rifiutata' ? 'DANGER' : 'WARN'}>
+              {promo.meta.Stato}
+            </HubPillola>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Un episodio ────────────────────────────────────────────────────────────
+//
+// Una scheda per cosa successa, non per riga di log. «Email inviata», «Email
+// aperta», «Click nell'email» erano tre righe a giorni di distanza: adesso
+// sono una scheda che dice com'è andata, con i passaggi in una riga sola. Il
+// dettaglio completo c'è ancora — si apre cliccando, e serve raramente.
+
+function CntEsito({ ep }) {
+  const t = ep.testa.tipo;
+  const ha = (x) => ep.seguiti.some(s => s.tipo === x);
+  if (t === 'mailInviata') {
+    if (ha('mailRimbalzo')) return { l: 'Respinta', c: 'DANGER' };
+    if (ha('mailClick'))    return { l: 'Ha cliccato', c: 'OK' };
+    if (ha('mailAperta'))   return { l: 'Aperta', c: 'OK' };
+    return { l: 'Non aperta', c: 'PLAN_FREE' };
+  }
+  if (t === 'smsInviato')  return ha('smsClick') ? { l: 'Ha cliccato', c: 'OK' } : { l: 'Consegnato', c: 'PLAN_FREE' };
+  if (t === 'pushInviata') return ha('pushAperta') ? { l: 'Aperta', c: 'OK' } : { l: 'Non aperta', c: 'PLAN_FREE' };
+  if (t === 'ticket')      return ha('ticketRisolto') ? { l: 'Risolto', c: 'OK' } : { l: 'Ancora aperto', c: 'DANGER' };
+  if (t === 'wfEntrato')   return ha('wfUscito') ? { l: 'Completato', c: 'OK' } : { l: 'In corso', c: 'INFO' };
+  if (t === 'assistenzaPian') return ha('assistenzaFatta') ? { l: 'Svolta', c: 'OK' } : { l: 'In programma', c: 'INFO' };
+  return null;
+}
+
+function CntEpisodio({ ep, aperto, onApri }) {
+  const e = ep.testa;
+  const d = HUB_ATT_TIPI[e.tipo] || { label: e.tipo, icona: 'info', color: 'PLAN_FREE' };
+  const Ic = BuIcons[d.icona];
+  const esito = CntEsito({ ep });
+  const futuro = e.futuro;
+  const link = [e, ...ep.seguiti].map(x => x.meta && x.meta.Link).filter(Boolean)[0];
+
+  return (
+    <div style={{
+      display: 'flex', gap: 13, padding: '11px 18px', position: 'relative',
+      background: futuro ? '#F7FAFF' : 'transparent',
+    }}>
       <div style={{position: 'relative', flexShrink: 0, width: 30}}>
         <span aria-hidden="true" style={{
           position: 'absolute', left: 15, top: -11, bottom: -11, width: 1.5,
@@ -989,30 +1143,95 @@ function CntEvento({ ev }) {
           position: 'relative', width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center',
           background: ADM[d.color + '_SOFT'] || ADM.NEUTRAL_SOFT, color: ADM[d.color] || ADM.MUTED,
           boxShadow: '0 0 0 3px #fff',
+          border: futuro ? `1.5px dashed ${ADM.INFO}` : 'none',
         }}><Ic size={15}/></span>
       </div>
+
       <div style={{flex: 1, minWidth: 0, paddingTop: 1}}>
         <div style={{display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap'}}>
           <span style={{fontSize: 11.2, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: ADM[d.color] || ADM.MUTED}}>{d.label}</span>
-          <span style={{fontSize: 14, fontWeight: 600, color: ADM.TEXT}}>{ev.titolo}</span>
+          <span style={{fontSize: 14, fontWeight: 600, color: ADM.TEXT}}>{e.titolo}</span>
+          {futuro && <HubPillola size="sm" color="INFO" forte>da fare</HubPillola>}
+          {esito && <HubPillola size="sm" color={esito.c}>{esito.l}</HubPillola>}
         </div>
-        {ev.dettaglio && <div style={{fontSize: 13.3, color: ADM.MUTED, marginTop: 3, lineHeight: 1.5}}>{ev.dettaglio}</div>}
-        {ev.meta && (
-          <div style={{display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 7}}>
-            {Object.keys(ev.meta).map(k => (
-              <span key={k} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 6,
-                background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}`, fontSize: 12.2, maxWidth: '100%',
-              }}>
-                <span style={{color: ADM.MUTED_SOFT, fontWeight: 700}}>{k}</span>
-                <span style={{color: ADM.TEXT, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{ev.meta[k]}</span>
-              </span>
+
+        {e.dettaglio && <div style={{fontSize: 13.3, color: ADM.MUTED, marginTop: 3, lineHeight: 1.5}}>{e.dettaglio}</div>}
+
+        {/* La catena dei seguiti: una riga sola con quello che è successo dopo.
+            È il pezzo che rende leggibile il diario — «inviata, aperta 3 volte,
+            cliccato Vedi i piani» invece di tre righe da cercare fra le altre. */}
+        {ep.seguiti.length > 0 && (
+          <div style={{display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 7}}>
+            {ep.seguiti.map((s, i) => {
+              const sd = HUB_ATT_TIPI[s.tipo] || {};
+              const SIc = BuIcons[sd.icona] || BuIcons.check;
+              return (
+                <React.Fragment key={s.id}>
+                  {i > 0 && <BuIcons.chevronRight size={11} color={ADM.MUTED_LIGHT}/>}
+                  <span title={s.dettaglio || ''} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 999,
+                    background: ADM[sd.color + '_SOFT'] || ADM.NEUTRAL_SOFT, color: ADM[sd.color + '_DARK'] || ADM[sd.color] || ADM.MUTED,
+                    fontSize: 11.8, fontWeight: 700, maxWidth: 300,
+                  }}>
+                    <SIc size={11}/>
+                    <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                      {sd.label} · {cntQuando(s.quando)}
+                    </span>
+                  </span>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
+
+        {link && (
+          <div style={{display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 7, padding: '3px 9px',
+            borderRadius: 6, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}`, maxWidth: '100%'}}>
+            <BuIcons.link size={11} color={ADM.MUTED_SOFT}/>
+            <span style={{fontSize: 12, color: ADM.TEXT, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{link}</span>
+          </div>
+        )}
+
+        {(e.meta || ep.seguiti.some(s => s.meta || s.dettaglio)) && (
+          <button onClick={onApri} style={{
+            marginTop: 7, padding: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: ADM.MUTED_SOFT,
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+          }}>
+            {aperto ? 'Nascondi il dettaglio' : 'Vedi il dettaglio'}
+            {aperto ? <BuIcons.chevronUp size={11}/> : <BuIcons.chevronDown size={11}/>}
+          </button>
+        )}
+
+        {aperto && (
+          <div style={{marginTop: 8, padding: 11, borderRadius: 10, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}`}}>
+            {[e, ...ep.seguiti].map(x => (
+              <div key={x.id} style={{marginBottom: 8}}>
+                <div style={{fontSize: 11.6, fontWeight: 800, color: ADM.MUTED_SOFT, textTransform: 'uppercase', letterSpacing: '0.05em'}}>
+                  {(HUB_ATT_TIPI[x.tipo] || {}).label} · {fmtDate(x.quando)} {new Date(x.quando).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}
+                </div>
+                {x.dettaglio && <div style={{fontSize: 12.8, color: ADM.TEXT, marginTop: 2, lineHeight: 1.5}}>{x.dettaglio}</div>}
+                {x.meta && (
+                  <div style={{display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 5}}>
+                    {Object.keys(x.meta).map(k => (
+                      <span key={k} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6,
+                        background: '#fff', border: `1px solid ${ADM.BORDER}`, fontSize: 11.8, maxWidth: '100%',
+                      }}>
+                        <span style={{color: ADM.MUTED_SOFT, fontWeight: 700}}>{k}</span>
+                        <span style={{color: ADM.TEXT, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{x.meta[k]}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
       </div>
+
       <span style={{fontSize: 12.4, color: ADM.MUTED_SOFT, flexShrink: 0, paddingTop: 3, fontVariantNumeric: 'tabular-nums'}}>
-        {new Date(ev.quando).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}
+        {new Date(ep.ultimo).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})}
       </span>
     </div>
   );

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=1440"/>
+<title>byup — Liquid Glass Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    color: #0F1115;
+    -webkit-font-smoothing: antialiased;
+    background: #ECEEF1;
+  }
+
+  /* ── Page chrome ─────────────────────────────────────────── */
+  .page-header {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 40px 32px 16px;
+  }
+  .page-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    margin: 0 0 8px;
+  }
+  .page-header p {
+    font-size: 14px;
+    color: #6B7280;
+    margin: 0;
+    max-width: 720px;
+    line-height: 1.5;
+  }
+
+  /* ── Section grid: 3 substrati in colonne ────────────────── */
+  .substrate-grid {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 32px 64px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  /* Card-wrapper per ogni substrato — la card ha overflow:hidden
+     così il substrato fixed non sfora. Ogni card è "una pagina"
+     in miniatura. */
+  .substrate-card {
+    position: relative;
+    height: 480px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    isolation: isolate;
+  }
+  .substrate-card .label {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 50;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    background: rgba(15, 17, 21, 0.85);
+    color: #fff;
+    padding: 5px 9px;
+    border-radius: 999px;
+  }
+  .substrate-card .sub-note {
+    position: absolute;
+    top: 12px; right: 12px;
+    z-index: 50;
+    font-size: 11px;
+    color: rgba(15, 17, 21, 0.55);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px);
+    padding: 5px 9px;
+    border-radius: 999px;
+  }
+
+  /* Substrato A — bianco puro (worst case per il glass) */
+  .sub-white { background: #FFFFFF; }
+
+  /* Substrato B — mesh background coerente con byup-glass.jsx */
+  .sub-mesh {
+    background:
+      radial-gradient(circle at 15% 20%, rgba(242, 107, 122, 0.35), transparent 45%),
+      radial-gradient(circle at 85% 75%, rgba(124,  45,  60, 0.28), transparent 45%),
+      radial-gradient(circle at 50% 50%, rgba( 37,  99, 235, 0.18), transparent 55%),
+      linear-gradient(135deg, #FFF5F8 0%, #FAFBFC 100%);
+  }
+
+  /* Substrato C — "foto" simulata (gradient + pattern) */
+  .sub-photo {
+    background:
+      linear-gradient(135deg, rgba(15,23,42,0.10) 0%, transparent 60%),
+      radial-gradient(circle at 30% 30%, #F26B7A 0%, transparent 50%),
+      radial-gradient(circle at 75% 70%, #7C2D3C 0%, transparent 55%),
+      radial-gradient(circle at 50% 90%, #2563EB 0%, transparent 60%),
+      #1A1D24;
+  }
+
+  /* ── Posizionamento dei sample dentro la card ──────────────── */
+  .stage {
+    position: absolute;
+    inset: 48px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 10;
+  }
+
+  /* Stack per modal-on-overlay */
+  .modal-stage {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 20;
+  }
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 17, 21, 0.32);
+    -webkit-backdrop-filter: blur(2px);
+            backdrop-filter: blur(2px);
+  }
+
+  /* ── Section: WRONG vs RIGHT ──────────────────────────────── */
+  .wrong-right {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 32px 80px;
+  }
+  .wrong-right h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 0 0 4px;
+  }
+  .wrong-right > p {
+    font-size: 13px;
+    color: #6B7280;
+    margin: 0 0 20px;
+  }
+  .wrong-right-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .wr-card {
+    background: #FFFFFF;
+    border-radius: 16px;
+    border: 1px solid #E5E7EB;
+    padding: 24px;
+  }
+  .wr-card .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  .wr-card.wrong .tag { background: #FEE2E2; color: #B91C1C; }
+  .wr-card.right .tag { background: #DCFCE7; color: #166534; }
+  .wr-card h3 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+  .wr-card p {
+    font-size: 12px;
+    color: #6B7280;
+    margin: 0 0 18px;
+    line-height: 1.5;
+  }
+  .wr-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .wr-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #F0F2F5;
+  }
+  .wr-table td {
+    padding: 12px;
+    border-bottom: 1px solid #F0F2F5;
+  }
+  .wr-table tr:last-child td { border-bottom: 0; }
+  .wr-table .actions { text-align: right; }
+
+  /* Pulsanti dimostrazione (per WRONG vs RIGHT) */
+  .pill-fake-glass {
+    /* Quello che la gente fa "pensando" sia glass — su tabella bianca diventa piatto */
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.6);
+    -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+    font-size: 12px;
+    font-weight: 600;
+    color: #1F2937;
+    cursor: pointer;
+    margin-left: 6px;
+    font-family: inherit;
+  }
+  .pill-solid-soft {
+    /* Soluzione corretta su sfondo neutro: solido con ring sottile */
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #FAFBFC;
+    box-shadow: inset 0 0 0 1px rgba(229, 231, 235, 0.9), 0 1px 2px rgba(0,0,0,0.04);
+    font-size: 12px;
+    font-weight: 600;
+    color: #1F2937;
+    cursor: pointer;
+    margin-left: 6px;
+    border: none;
+    font-family: inherit;
+    transition: background 120ms ease;
+  }
+  .pill-solid-soft:hover { background: #F3F4F6; }
+  .pill-solid-soft.danger { color: #B91C1C; }
+  .pill-solid-soft.danger:hover { background: #FEF2F2; }
+
+  /* Dark band per dimostrare prefers-color-scheme + .glass-dark */
+  .dark-band {
+    background: #0F1115;
+    padding: 64px 32px;
+  }
+  .dark-band-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .dark-band h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #F5F5F7;
+    margin: 0 0 4px;
+  }
+  .dark-band > .dark-band-inner > p {
+    font-size: 13px;
+    color: #9CA3AF;
+    margin: 0 0 20px;
+  }
+  .dark-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .dark-substrate {
+    position: relative;
+    height: 360px;
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 25% 25%, #6D28D9 0%, transparent 40%),
+      radial-gradient(circle at 75% 70%, #DB2777 0%, transparent 45%),
+      radial-gradient(circle at 50% 50%, #0EA5E9 0%, transparent 55%),
+      #14141A;
+    isolation: isolate;
+  }
+
+  /* ── Sample UI helpers ─────────────────────────────────────── */
+  .sample-modal {
+    width: 320px;
+    padding: 22px;
+    position: relative;
+    z-index: 10;
+  }
+  .sample-modal h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 6px;
+    letter-spacing: -0.2px;
+  }
+  .sample-modal p {
+    font-size: 13px;
+    color: inherit;
+    opacity: 0.75;
+    margin: 0 0 18px;
+    line-height: 1.5;
+  }
+  .sample-modal .row {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .btn-glass-action {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(15, 17, 21, 0.85);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-glass-ghost {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    opacity: 0.7;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .sample-dropdown {
+    width: 200px;
+    padding: 6px;
+    position: relative;
+    z-index: 10;
+  }
+  .sample-dropdown .item {
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .sample-dropdown .item:hover { background: rgba(15, 17, 21, 0.08); }
+  .sample-dropdown .sep {
+    height: 1px;
+    background: rgba(15, 17, 21, 0.10);
+    margin: 4px 2px;
+  }
+
+  .sample-toast {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    max-width: 280px;
+  }
+  .sample-toast .dot {
+    width: 8px; height: 8px;
+    background: #16A34A;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+  }
+
+  .sample-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 999px;
+  }
+
+  .sample-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 999px;
+    cursor: pointer;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+  }
+
+  /* Anchor labels per i sample */
+  .sample-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(15, 17, 21, 0.55);
+    margin: 0 0 6px;
+  }
+  .sub-photo .sample-label { color: rgba(255, 255, 255, 0.85); }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="byup-tokens.jsx"></script>
+<script type="text/babel" src="byup-glass.jsx"></script>
+
+<script type="text/babel">
+// ─── Showcase root ──────────────────────────────────────────────
+const { useState } = React;
+
+function SubstrateCard({ kind, label, note, children }) {
+  const cls = 'substrate-card sub-' + kind;
+  return (
+    <div className={cls}>
+      <span className="label">{label}</span>
+      {note && <span className="sub-note">{note}</span>}
+      {children}
+    </div>
+  );
+}
+
+function GlassSamples({ forceMode }) {
+  // Una colonna verticale di sample. Ogni sample è una vera istanza
+  // dei tre variant del componente <GlassSurface>.
+  return (
+    <div className="stage">
+      <div>
+        <p className="sample-label">glass-subtle · chip</p>
+        <GlassSurface variant="subtle" forceMode={forceMode}
+          className="sample-chip" style={{ borderRadius: 999 }}>
+          <span style={{ width: 6, height: 6, background: '#16A34A',
+            borderRadius: '50%' }} />
+          Online
+        </GlassSurface>
+      </div>
+      <div>
+        <p className="sample-label">glass · dropdown</p>
+        <GlassSurface forceMode={forceMode} className="sample-dropdown">
+          <div className="item">Modifica</div>
+          <div className="item">Duplica</div>
+          <div className="sep" />
+          <div className="item" style={{ color: '#DC2626' }}>Elimina</div>
+        </GlassSurface>
+      </div>
+      <div>
+        <p className="sample-label">glass · toast</p>
+        <GlassSurface forceMode={forceMode} className="sample-toast"
+          style={{ borderRadius: 14 }}>
+          <span className="dot" />
+          Modifiche salvate
+        </GlassSurface>
+      </div>
+      <div>
+        <p className="sample-label">glass-subtle · pulsante</p>
+        <GlassSurface as="button" variant="subtle" forceMode={forceMode}
+          className="sample-btn" style={{ borderRadius: 999 }}>
+          Esplora menù →
+        </GlassSurface>
+      </div>
+    </div>
+  );
+}
+
+function ModalSample({ substrate }) {
+  return (
+    <div className="modal-stage">
+      <div className="modal-overlay" />
+      <GlassSurface variant="strong" className="sample-modal">
+        <h4>Conferma eliminazione</h4>
+        <p>Stai per eliminare 3 articoli dal menù. Questa azione non può essere annullata.</p>
+        <div className="row">
+          <button className="btn-glass-ghost">Annulla</button>
+          <button className="btn-glass-action">Elimina</button>
+        </div>
+      </GlassSurface>
+    </div>
+  );
+}
+
+function WrongRightSection() {
+  // Riproduzione del caso "Modifica ruolo / Resetta password":
+  // sinistra → finto glass su sfondo bianco piatto (invisibile, piatto)
+  // destra  → solid soft con ring sottile (leggibile, coerente)
+  const rows = [
+    { name: 'Marco Bianchi',  role: 'Manager',  email: 'marco@locale.it' },
+    { name: 'Giulia Conti',   role: 'Staff',    email: 'giulia@locale.it' },
+    { name: 'Davide Rossi',   role: 'Cucina',   email: 'davide@locale.it' },
+  ];
+  return (
+    <section className="wrong-right">
+      <h2>Caso reale: pill in tabella su sfondo bianco</h2>
+      <p>
+        Quello che succede oggi nella dashboard: l'utility glass viene applicata a pulsanti
+        in tabella su <code>#fff</code> piatto. Senza substrato non c'è nulla da rifrangere,
+        il vetro collassa in una pill grigina. Soluzione: NON è glass, è "solid soft" del design system.
+      </p>
+      <div className="wrong-right-grid">
+        <div className="wr-card wrong">
+          <span className="tag">✕ NO — Glass su bianco piatto</span>
+          <h3>Pill "fake glass"</h3>
+          <p><code>bg-white/60 backdrop-blur-md</code> su una table-row bianca produce questo: piatto, senza volume, senza highlight.</p>
+          <table className="wr-table">
+            <thead><tr><th>Membro</th><th>Ruolo</th><th className="actions"></th></tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.email}>
+                  <td><strong>{r.name}</strong><br/><span style={{ color: '#6B7280', fontSize: 11 }}>{r.email}</span></td>
+                  <td>{r.role}</td>
+                  <td className="actions">
+                    <button className="pill-fake-glass">Modifica ruolo</button>
+                    <button className="pill-fake-glass">Resetta password</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="wr-card right">
+          <span className="tag">✓ SÌ — Solid soft</span>
+          <h3>Pill "solid soft"</h3>
+          <p><code>bg-zinc-50 ring-1 ring-zinc-200 shadow-sm</code>. Stesso peso visivo del glass ma onesto sul medium che usa.</p>
+          <table className="wr-table">
+            <thead><tr><th>Membro</th><th>Ruolo</th><th className="actions"></th></tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.email}>
+                  <td><strong>{r.name}</strong><br/><span style={{ color: '#6B7280', fontSize: 11 }}>{r.email}</span></td>
+                  <td>{r.role}</td>
+                  <td className="actions">
+                    <button className="pill-solid-soft">Modifica ruolo</button>
+                    <button className="pill-solid-soft danger">Resetta password</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DarkBand() {
+  return (
+    <section className="dark-band">
+      <div className="dark-band-inner">
+        <h2>Dark mode (forzato via <code>forceMode="dark"</code>)</h2>
+        <p>Highlight, tinta e ombre si adattano. Substrato colorato di base.</p>
+        <div className="dark-grid">
+          <div className="dark-substrate">
+            <div className="stage">
+              <div>
+                <p className="sample-label" style={{ color: 'rgba(255,255,255,0.7)' }}>glass-subtle</p>
+                <GlassSurface variant="subtle" forceMode="dark"
+                  className="sample-chip">
+                  <span style={{ width: 6, height: 6, background: '#22C55E',
+                    borderRadius: '50%' }} />
+                  Online
+                </GlassSurface>
+              </div>
+              <div>
+                <p className="sample-label" style={{ color: 'rgba(255,255,255,0.7)' }}>glass · dropdown</p>
+                <GlassSurface forceMode="dark" className="sample-dropdown">
+                  <div className="item">Modifica</div>
+                  <div className="item">Duplica</div>
+                  <div className="sep" style={{ background: 'rgba(255,255,255,0.12)' }}/>
+                  <div className="item" style={{ color: '#FCA5A5' }}>Elimina</div>
+                </GlassSurface>
+              </div>
+            </div>
+          </div>
+          <div className="dark-substrate">
+            <ModalSampleDark />
+          </div>
+          <div className="dark-substrate">
+            <div className="stage">
+              <div>
+                <p className="sample-label" style={{ color: 'rgba(255,255,255,0.7)' }}>glass · toast</p>
+                <GlassSurface forceMode="dark" className="sample-toast"
+                  style={{ borderRadius: 14 }}>
+                  <span style={{ width: 8, height: 8, background: '#22C55E',
+                    borderRadius: '50%',
+                    boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.25)'}} />
+                  Modifiche salvate
+                </GlassSurface>
+              </div>
+              <div>
+                <p className="sample-label" style={{ color: 'rgba(255,255,255,0.7)' }}>glass-subtle · pulsante</p>
+                <GlassSurface as="button" variant="subtle" forceMode="dark"
+                  className="sample-btn" style={{ borderRadius: 999 }}>
+                  Esplora menù →
+                </GlassSurface>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ModalSampleDark() {
+  return (
+    <div className="modal-stage">
+      <div className="modal-overlay" style={{ background: 'rgba(0,0,0,0.45)' }}/>
+      <GlassSurface variant="strong" forceMode="dark" className="sample-modal">
+        <h4>Conferma eliminazione</h4>
+        <p>Stai per eliminare 3 articoli dal menù. Questa azione non può essere annullata.</p>
+        <div className="row">
+          <button className="btn-glass-ghost" style={{ color: '#F5F5F7' }}>Annulla</button>
+          <button className="btn-glass-action"
+            style={{ background: '#fff', color: '#0F1115' }}>Elimina</button>
+        </div>
+      </GlassSurface>
+    </div>
+  );
+}
+
+function Showcase() {
+  // Sezione 1: 3 substrati × set di sample varianti
+  // Ogni colonna mostra: chip (subtle), dropdown (default), toast (default),
+  // bottone (subtle). Substrato A è bianco puro (caso "rotto"),
+  // B è il mesh che useremo come fallback nelle pagine neutre,
+  // C è un substrato fotografico/colorato (caso ideale).
+  return (
+    <div>
+      <header className="page-header">
+        <h1>Liquid Glass — Showcase</h1>
+        <p>
+          Tre substrati × tre varianti di vetro. Il primo (bianco puro) dimostra
+          perché il glass collassa in una pill grigina senza materia dietro.
+          Il secondo è il <strong>mesh substrato</strong> che useremo come default
+          nelle pagine neutre. Il terzo è il caso ideale: substrato colorato/fotografico
+          dove il vetro lavora da solo.
+        </p>
+      </header>
+
+      <div className="substrate-grid">
+        <SubstrateCard kind="white" label="A — Bianco puro"
+          note="❌ Glass collassa">
+          <GlassSamples forceMode="light" />
+        </SubstrateCard>
+        <SubstrateCard kind="mesh" label="B — Mesh substrato"
+          note="✓ Glass legge correttamente">
+          <GlassSamples forceMode="light" />
+        </SubstrateCard>
+        <SubstrateCard kind="photo" label="C — Foto / colorato"
+          note="✓ Caso ideale">
+          <GlassSamples forceMode="light" />
+        </SubstrateCard>
+
+        <SubstrateCard kind="white" label="Modal · bianco" note="con overlay scuro">
+          <ModalSample />
+        </SubstrateCard>
+        <SubstrateCard kind="mesh" label="Modal · mesh" note="con overlay scuro">
+          <ModalSample />
+        </SubstrateCard>
+        <SubstrateCard kind="photo" label="Modal · foto" note="con overlay scuro">
+          <ModalSample />
+        </SubstrateCard>
+      </div>
+
+      <WrongRightSection />
+      <DarkBand />
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<Showcase />);
+</script>
+</body>
+</html>

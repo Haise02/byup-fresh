@@ -514,29 +514,47 @@ const HUB_WORKFLOW = [
     nodi: [
       { tipo: 'trigger', testo: 'Submission form «Prova gratuita 14 giorni»' },
       { tipo: 'mail', testo: 'Conferma iscrizione' },
-      { tipo: 'attesa', testo: '2 giorni' },
+      { tipo: 'attesa', testo: '2 giorni', attesa: { modo: 'durata', n: 2, unita: 'giorni' } },
       { tipo: 'condizione', testo: 'Ha completato la configurazione?', rami: [
-        { id: 'r1', label: 'Sì, ed è un piano alto', congiunzione: 'E',
-          criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] }, { prop: 'piano', op: 'unoDi', valore: ['plus', 'business'] } ],
+        { id: 'r1', label: 'Sì, ed è un piano alto',
+          quando: { tipo: 'regole', congiunzione: 'E', gruppi: [
+            { id: 'g1', congiunzione: 'E', regole: [
+              { genere: 'proprieta', prop: 'ciclo', op: 'unoDi', valore: ['returning'] },
+              { genere: 'proprieta', prop: 'piano', op: 'unoDi', valore: ['plus', 'business'] },
+            ] },
+          ] },
           nodi: [
             { tipo: 'proprieta', testo: 'Ciclo di vita → Returning' },
             { tipo: 'elenco', testo: 'Locali Plus e Business attivi' },
             { tipo: 'push', testo: 'Avvisa il commerciale di zona' },
           ] },
-        { id: 'r2', label: 'Sì, piano base', congiunzione: 'E',
-          criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] } ],
+        { id: 'r2', label: 'Sì, piano base',
+          quando: { tipo: 'regole', congiunzione: 'E', gruppi: [
+            { id: 'g1', congiunzione: 'E', regole: [
+              { genere: 'proprieta', prop: 'ciclo', op: 'unoDi', valore: ['returning'] },
+            ] },
+          ] },
           nodi: [
             { tipo: 'proprieta', testo: 'Ciclo di vita → Returning' },
             { tipo: 'mail', testo: 'Delivery: come funziona' },
           ] },
-        { id: 'r3', label: 'Non ancora', altrimenti: true, congiunzione: 'E', criteri: [],
+        { id: 'r3', label: 'Non ancora', altrimenti: true,
+          quando: { tipo: 'altrimenti', congiunzione: 'E', gruppi: [] },
           nodi: [
             { tipo: 'mail', testo: 'Ti serve una mano?' },
-            { tipo: 'attesa', testo: '3 giorni' },
+            { tipo: 'attesa', testo: '3 giorni', attesa: { modo: 'evento', n: 3, unita: 'giorni',
+              evento: { evento: 'mailAperta', rif: 'ML-009', negato: false },
+              tetto: { n: 3, unita: 'giorni' } } },
             { tipo: 'condizione', testo: 'Adesso ha configurato?', rami: [
-              { id: 'r3a', label: 'Sì', congiunzione: 'E', criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] } ],
+              { id: 'r3a', label: 'Sì',
+                quando: { tipo: 'regole', congiunzione: 'E', gruppi: [
+                  { id: 'g1', congiunzione: 'E', regole: [
+                    { genere: 'proprieta', prop: 'ciclo', op: 'unoDi', valore: ['returning'] },
+                  ] },
+                ] },
                 nodi: [ { tipo: 'proprieta', testo: 'Ciclo di vita → Returning' } ] },
-              { id: 'r3b', label: 'No', altrimenti: true, congiunzione: 'E', criteri: [],
+              { id: 'r3b', label: 'No', altrimenti: true,
+                quando: { tipo: 'altrimenti', congiunzione: 'E', gruppi: [] },
                 nodi: [ { tipo: 'script', testo: 'Apri un ticket al commerciale: onboarding fermo da 5 giorni' } ] },
             ] },
           ] },
@@ -550,12 +568,26 @@ const HUB_WORKFLOW = [
     nodi: [
       { tipo: 'trigger', testo: 'Entra nell\'elenco «Piano annullato negli ultimi 90 giorni»' },
       { tipo: 'mail', testo: 'Win-back · ci manchi' },
-      { tipo: 'attesa', testo: '7 giorni' },
+      { tipo: 'attesa', testo: '7 giorni', attesa: { modo: 'evento', n: 7, unita: 'giorni',
+        evento: { evento: 'mailCliccata', rif: 'ML-011', negato: false }, tetto: { n: 7, unita: 'giorni' } } },
       { tipo: 'condizione', testo: 'Come ha reagito?', rami: [
-        { id: 'w1', label: 'Ha riaperto o ha il consenso SMS', congiunzione: 'O',
-          criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] }, { prop: 'consensoSms', op: 'vero', valore: null } ],
+        // L'esempio che il vecchio motore non sapeva scrivere: «ha aperto ma
+        // non ha cliccato» sono due eventi, uno negato, sulla stessa mail —
+        // OPPURE, in alternativa, il canale SMS aperto.
+        { id: 'w1', label: 'Ha aperto ma non ha cliccato',
+          quando: { tipo: 'regole', congiunzione: 'O', gruppi: [
+            { id: 'g1', congiunzione: 'E', regole: [
+              { genere: 'evento', evento: 'mailAperta',   rif: 'ML-011', negato: false, finestra: { n: 7, unita: 'giorni' } },
+              { genere: 'evento', evento: 'mailCliccata', rif: 'ML-011', negato: true,  finestra: { n: 7, unita: 'giorni' } },
+            ] },
+            { id: 'g2', congiunzione: 'E', regole: [
+              { genere: 'proprieta', prop: 'consensoSms', op: 'vero', valore: null },
+              { genere: 'esito', esito: 'consegnata' },
+            ] },
+          ] },
           nodi: [ { tipo: 'sms', testo: 'Win-back · ultimo passo' } ] },
-        { id: 'w2', label: 'Nessun segnale', altrimenti: true, congiunzione: 'E', criteri: [],
+        { id: 'w2', label: 'Nessun segnale', altrimenti: true,
+          quando: { tipo: 'altrimenti', congiunzione: 'E', gruppi: [] },
           nodi: [ { tipo: 'proprieta', testo: 'Esito win-back → nessuna risposta' } ] },
       ] },
       { tipo: 'fine', testo: '' },
@@ -569,16 +601,31 @@ const HUB_WORKFLOW = [
       { tipo: 'agente', testo: 'Ricercatore di mercato → stima coperti e scontrino' },
       { tipo: 'proprieta', testo: 'Piano consigliato ← risposta dell\'agente' },
       { tipo: 'condizione', testo: 'Quanto vale questo lead?', rami: [
-        { id: 'q1', label: 'Grande: Business o molti ordini', congiunzione: 'O',
-          criteri: [ { prop: 'piano', op: 'unoDi', valore: ['business'] }, { prop: 'ordini', op: 'maggiore', valore: 200 } ],
+        { id: 'q1', label: 'Grande: Business o molti ordini',
+          quando: { tipo: 'regole', congiunzione: 'E', gruppi: [
+            { id: 'g1', congiunzione: 'O', regole: [
+              { genere: 'proprieta', prop: 'piano', op: 'unoDi', valore: ['business'] },
+              { genere: 'proprieta', prop: 'ordini', op: 'maggiore', valore: 200 },
+            ] },
+            { id: 'g2', congiunzione: 'E', regole: [
+              { genere: 'esito', esito: 'agenteOk' },
+            ] },
+          ] },
           nodi: [
             { tipo: 'push', testo: 'Avvisa il commerciale di zona' },
             { tipo: 'proprieta', testo: 'Priorità → alta' },
           ] },
-        { id: 'q2', label: 'Medio, ma raggiungibile', congiunzione: 'E',
-          criteri: [ { prop: 'email', op: 'noto', valore: null }, { prop: 'consensoMail', op: 'vero', valore: null } ],
+        { id: 'q2', label: 'Medio, ma raggiungibile',
+          quando: { tipo: 'regole', congiunzione: 'E', gruppi: [
+            { id: 'g1', congiunzione: 'E', regole: [
+              { genere: 'proprieta', prop: 'email', op: 'noto', valore: null },
+              { genere: 'proprieta', prop: 'consensoMail', op: 'vero', valore: null },
+              { genere: 'evento', evento: 'paginaVista', rif: '/prezzi', negato: false, finestra: { n: 14, unita: 'giorni' } },
+            ] },
+          ] },
           nodi: [ { tipo: 'mail', testo: 'Novità di primavera · rilascio 4.2' } ] },
-        { id: 'q3', label: 'Da rilavorare', altrimenti: true, congiunzione: 'E', criteri: [],
+        { id: 'q3', label: 'Da rilavorare', altrimenti: true,
+          quando: { tipo: 'altrimenti', congiunzione: 'E', gruppi: [] },
           nodi: [ { tipo: 'elenco', testo: 'Lead da riqualificare' } ] },
       ] },
       { tipo: 'fine', testo: '' },
@@ -590,11 +637,18 @@ const HUB_WORKFLOW = [
     nodi: [
       { tipo: 'trigger', testo: 'Certificazione a 15 giorni dalla scadenza' },
       { tipo: 'push', testo: 'Documento in scadenza' },
-      { tipo: 'attesa', testo: '10 giorni' },
+      { tipo: 'attesa', testo: '10 giorni', attesa: { modo: 'durata', n: 10, unita: 'giorni' } },
       { tipo: 'condizione', testo: 'Documento caricato?', rami: [
-        { id: 'c1', label: 'Sì', congiunzione: 'E', criteri: [ { prop: 'ciclo', op: 'unoDi', valore: ['returning'] } ],
+        { id: 'c1', label: 'Sì',
+          quando: { tipo: 'regole', congiunzione: 'E', gruppi: [
+            { id: 'g1', congiunzione: 'O', regole: [
+              { genere: 'evento', evento: 'formInviato', rif: 'FR-004', negato: false, finestra: { n: 10, unita: 'giorni' } },
+              { genere: 'proprieta', prop: 'ciclo', op: 'unoDi', valore: ['returning'] },
+            ] },
+          ] },
           nodi: [ { tipo: 'proprieta', testo: 'Certificazione → in regola' } ] },
-        { id: 'c2', label: 'No', altrimenti: true, congiunzione: 'E', criteri: [],
+        { id: 'c2', label: 'No', altrimenti: true,
+          quando: { tipo: 'altrimenti', congiunzione: 'E', gruppi: [] },
           nodi: [
             { tipo: 'script', testo: 'Apri un ticket al supporto' },
             { tipo: 'webhook', testo: 'POST /haccp/blocca-servizi' },
@@ -763,9 +817,24 @@ const HUB_ATT_TIPI = {
   proprieta:     { label: 'Proprietà cambiata',  icona: 'tagFill',     color: 'INFO',        gruppo: 'sistema' },
   chiamata:      { label: 'Telefonata',          icona: 'headsetFill', color: 'WARN',        gruppo: 'persone' },
   nota:          { label: 'Nota',                icona: 'pencil',      color: 'INK',         gruppo: 'persone' },
-  ticket:        { label: 'Ticket',              icona: 'ticket',      color: 'WARN',        gruppo: 'persone' },
   accesso:       { label: 'Accesso',             icona: 'user',        color: 'PLAN_FREE',   gruppo: 'sistema' },
   creato:        { label: 'Contatto creato',     icona: 'plus',        color: 'OK',          gruppo: 'sistema' },
+
+  // Assistenza: il ticket non è un evento solo. Si apre, magari si risolve, e
+  // fra i due c'è chi ci ha lavorato. Tenerli separati faceva tre righe
+  // scollegate a distanza di giorni, e per capire com'era finita bisognava
+  // leggere tutto il diario.
+  ticket:        { label: 'Ticket aperto',       icona: 'ticket',      color: 'WARN',        gruppo: 'assistenza' },
+  ticketRisolto: { label: 'Ticket risolto',      icona: 'check',       color: 'OK',          gruppo: 'assistenza' },
+  assistenzaPian:{ label: 'Assistenza pianificata', icona: 'calendar', color: 'INFO',        gruppo: 'assistenza' },
+  assistenzaFatta:{ label: 'Assistenza svolta',  icona: 'lifebuoy',    color: 'TEAL',        gruppo: 'assistenza' },
+
+  // Commerciale: quello che il contatto CHIEDE, non quello che gli mandiamo.
+  promozione:    { label: 'Promozione richiesta', icona: 'megaphoneFill', color: 'HUB_MAGENTA', gruppo: 'commerciale' },
+  preventivo:    { label: 'Preventivo',          icona: 'filePdf',     color: 'INFO',        gruppo: 'commerciale' },
+  ordine:        { label: 'Ordine',              icona: 'receipt',     color: 'OK',          gruppo: 'commerciale' },
+  rinnovo:       { label: 'Rinnovo del piano',   icona: 'refresh',     color: 'OK',          gruppo: 'commerciale' },
+  appuntamento:  { label: 'Appuntamento',        icona: 'calendar',    color: 'HUB_VIOLA',   gruppo: 'persone' },
 };
 
 const HUB_ATT_GRUPPI = [
@@ -773,10 +842,21 @@ const HUB_ATT_GRUPPI = [
   { id: 'email',       label: 'Email' },
   { id: 'messaggi',    label: 'SMS e push' },
   { id: 'form',        label: 'Form e pagine' },
+  { id: 'assistenza',  label: 'Assistenza' },
+  { id: 'commerciale', label: 'Commerciale' },
   { id: 'automazioni', label: 'Automazioni' },
   { id: 'persone',     label: 'Note e chiamate' },
   { id: 'sistema',     label: 'Sistema' },
 ];
+
+// Quello che un evento «chiude». Serve a legare fra loro le righe che
+// raccontano la stessa cosa — un invio e le sue aperture, un ticket e la sua
+// risoluzione — così il diario si legge per episodi e non per righe.
+const HUB_ATT_SEGUITI = {
+  mailAperta: 'mailInviata', mailClick: 'mailInviata', mailRimbalzo: 'mailInviata',
+  smsClick: 'smsInviato', pushAperta: 'pushInviata',
+  wfUscito: 'wfEntrato', ticketRisolto: 'ticket', assistenzaFatta: 'assistenzaPian',
+};
 
 const HUB_LINK_TRACCIATI = [
   { url: 'byup.it/prenotazioni', testo: 'Scopri come funziona' },
@@ -803,8 +883,11 @@ function hubAttivita(c) {
   let n = 0;
   const rnd = (i) => (((s >>> (i % 20)) ^ (s * (i + 3))) >>> 0);
   const quando = (giorniFa, ora) => new Date(Date.now() - giorniFa * 86400000 - (ora || 0) * 3600000);
-  const push = (giorniFa, ora, tipo, titolo, dettaglio, meta) =>
-    ev.push({ id: chiave + '-' + (++n), tipo, quando: quando(giorniFa, ora), titolo, dettaglio, meta: meta || null });
+  // `futuro` marca le cose ancora da fare — un intervento fissato, un
+  // appuntamento. Senza, il filtro «niente nel futuro» le buttava via, ed è
+  // proprio l'informazione che serve prima di richiamare qualcuno.
+  const push = (giorniFa, ora, tipo, titolo, dettaglio, meta, futuro) =>
+    ev.push({ id: chiave + '-' + (++n), tipo, quando: quando(giorniFa, ora), titolo, dettaglio, meta: meta || null, futuro: !!futuro });
 
   // ── la nascita del contatto ──
   const eta = Math.max(3, Math.round((Date.now() - new Date(c.iscritto || Date.now()).getTime()) / 86400000));
@@ -902,9 +985,71 @@ function hubAttivita(c) {
         'Ha due sedi, la seconda apre a primavera.',
         'Attenzione: fattura intestata alla società, non al locale.']));
   }
-  if (r2 % 5 === 0) push(Math.max(1, (r2 >>> 11) % Math.max(3, eta)), 11, 'ticket',
-    'Ticket #' + (2100 + (r2 % 400)) + ' aperto',
-    hubScegli(r2 >>> 13, ['Non riesco a stampare gli scontrini', 'Il menu non si aggiorna sull\'app', 'Problema con il pagamento']));
+  // ── assistenza: ticket, interventi svolti, interventi in programma ──
+  //
+  // È la parte che mancava del tutto. «Ha aperto un ticket» senza sapere se è
+  // stato chiuso, e per che cosa, non serve a chi deve chiamare quel locale:
+  // la prima domanda che gli farà è proprio «com'è finita quella volta lì».
+  const rA = rnd(101);
+  const MOTIVI = ['stampante delle comande', 'aggiornamento del gestionale', 'formazione sul KDS',
+    'configurazione del delivery', 'lettore di carte', 'sincronizzazione del menu'];
+  const TECNICI = ['Chiara Rossi', 'Davide Neri', 'Luca Bianchi'];
+
+  const nTicket = rA % 4;                       // da 0 a 3 ticket nella storia
+  for (let i = 0; i < nTicket; i++) {
+    const r = rnd(110 + i);
+    const g = Math.max(1, Math.round(eta * 0.7) - i * 19 - (r % 9));
+    if (g > eta) continue;
+    const num = 2100 + ((r + i * 37) % 400);
+    const motivo = hubScegli(r + i, MOTIVI);
+    push(g, 11, 'ticket', 'Ticket #' + num, 'Per ' + motivo,
+      { Canale: hubScegli(r >>> 3, ['Email', 'Telefono', 'Chat nel gestionale']), Priorità: (r % 5 === 0 ? 'Alta' : 'Normale') });
+    // Non tutti si chiudono: quelli aperti sono il numero che conta in cima.
+    if ((r >>> 5) % 4 !== 0) {
+      push(Math.max(0, g - 1 - (r % 3)), 15, 'ticketRisolto', 'Ticket #' + num,
+        hubScegli(r >>> 7, ['Risolto da remoto, nessun ricambio.', 'Sostituito il cavo, chiuso in giornata.',
+          'Era una impostazione: spiegata al titolare.', 'Rientrato dopo l\'aggiornamento.']),
+        { 'Ticket': '#' + num, Chi: hubScegli(r >>> 9, TECNICI), 'Tempo di chiusura': (1 + r % 3) + ' giorni' });
+    }
+  }
+
+  const nAss = (rA >>> 4) % 3;                  // interventi già svolti
+  for (let i = 0; i < nAss; i++) {
+    const r = rnd(130 + i);
+    const g = Math.max(1, Math.round(eta * 0.45) - i * 27 - (r % 6));
+    if (g > eta) continue;
+    push(g, 14, 'assistenzaFatta', 'Intervento · ' + hubScegli(r + i, MOTIVI),
+      ((r % 2) ? 'Da remoto' : 'In sede') + ' · ' + (25 + r % 70) + ' minuti · esito positivo',
+      { Tecnico: hubScegli(r >>> 3, TECNICI), Motivo: hubScegli(r + i, MOTIVI) });
+  }
+
+  // Una in programma, nel futuro: è la riga che dice «non richiamarlo, ha già
+  // un appuntamento». Il diario la mostra in cima, marcata come da fare.
+  if (rA % 3 === 0) {
+    const fra = 2 + (rA >>> 6) % 9;
+    push(-fra, 10, 'assistenzaPian', 'Assistenza in programma · ' + hubScegli(rA >>> 8, MOTIVI),
+      'Fissata con ' + hubScegli(rA >>> 10, TECNICI) + ' · ' + ((rA % 2) ? 'da remoto' : 'in sede'),
+      { Quando: 'fra ' + fra + ' giorni' }, true);
+  }
+
+  // ── commerciale: quello che ha chiesto lui ──
+  const rC = rnd(151);
+  if (rC % 3 !== 2) {
+    push(Math.max(1, Math.round(eta * 0.3) - (rC % 5)), 13, 'promozione',
+      'Ha chiesto la promozione «' + hubScegli(rC, ['Secondo mese gratis', 'Sconto 20% sul Plus annuale', 'Setup gratuito', 'Delivery senza canone per 3 mesi']) + '»',
+      hubScegli(rC >>> 3, ['Richiesta dal gestionale, in attesa di approvazione.',
+        'Chiesta al telefono al commerciale di zona.', 'Arrivata dal form «Richiedi una demo».']),
+      { Stato: hubScegli(rC >>> 5, ['In attesa', 'Approvata', 'Rifiutata']) });
+  }
+  if (c.piano && c.piano !== 'free' && (rC >>> 7) % 2 === 0) {
+    push(Math.max(1, Math.round(eta * 0.15)), 9, 'rinnovo', 'Piano ' + hubEtichettaOpzione(HUB_PROP.piano, c.piano) + ' rinnovato',
+      'Rinnovo automatico andato a buon fine.', { Importo: '€' + (49 + (rC % 120)) + '/mese' });
+  }
+  if ((rC >>> 9) % 4 === 0) {
+    push(Math.max(1, Math.round(eta * 0.25)), 16, 'preventivo', 'Preventivo inviato',
+      'Passaggio a ' + hubScegli(rC >>> 11, ['Plus', 'Business']) + ' con due postazioni in più.',
+      { Valore: '€' + (900 + (rC % 2600)), Validità: '30 giorni' });
+  }
 
   // ── accessi ──
   if (c.ultimaAttivita) push(Math.max(0, Math.round((Date.now() - new Date(c.ultimaAttivita).getTime()) / 86400000)), 9,
@@ -917,10 +1062,89 @@ function hubAttivita(c) {
   const nascita = ev.find(e => e.tipo === 'creato');
   const daQuando = nascita ? nascita.quando.getTime() : 0;
   const out = ev
-    .filter(e => e.quando <= new Date() && (e.tipo === 'creato' || e.quando.getTime() >= daQuando - 3600000))
+    .filter(e => (e.futuro || e.quando <= new Date()) && (e.tipo === 'creato' || e.quando.getTime() >= daQuando - 3600000))
     .sort((a, b) => b.quando - a.quando);
   HUB_ATT_CACHE[chiave] = out;
   return out;
+}
+
+// ─── La sintesi del diario ──────────────────────────────────────────────────
+//
+// Le sei domande che uno si fa PRIMA di leggere il diario: quando l'abbiamo
+// sentito l'ultima volta e come, che cosa ha in programma, quanti ticket ha
+// aperti, che assistenza ha ricevuto e per che cosa, che cosa ha chiesto, e
+// se le nostre email le apre o le ignora. Stanno qui e non nella schermata
+// perché sono un fatto sul contatto, non una decisione di grafica.
+const HUB_ATT_CONTATTO = ['chiamata', 'assistenzaFatta', 'ticket', 'nota', 'appuntamento'];
+
+function hubSintesi(c) {
+  const ev = hubAttivita(c);
+  const ora = Date.now();
+  const passati = ev.filter(e => !e.futuro);
+  const conta = (t) => passati.filter(e => e.tipo === t).length;
+
+  const ultimoContatto = passati.find(e => HUB_ATT_CONTATTO.includes(e.tipo)) || null;
+  const prossima = ev.filter(e => e.futuro).sort((a, b) => a.quando - b.quando)[0] || null;
+
+  const aperti = passati.filter(e => e.tipo === 'ticket');
+  const risolti = passati.filter(e => e.tipo === 'ticketRisolto');
+  const risoltiNum = new Set(risolti.map(e => e.titolo));
+  const ticketAperti = aperti.filter(t => !risoltiNum.has(t.titolo));
+
+  const assistenze = passati.filter(e => e.tipo === 'assistenzaFatta');
+  const promozioni = passati.filter(e => e.tipo === 'promozione');
+
+  const inviate = conta('mailInviata'), aperte = conta('mailAperta'), click = conta('mailClick');
+
+  return {
+    eventi: ev,
+    ultimoContatto,
+    giorniDaUltimo: ultimoContatto ? Math.round((ora - ultimoContatto.quando) / 86400000) : null,
+    prossima,
+    ticketAperti, ticketTotali: aperti.length, ticketRisolti: risolti.length,
+    assistenze, ultimaAssistenza: assistenze[0] || null,
+    promozioni,
+    inviate, aperte, click,
+    // Quanto è «vivo». Non è un punteggio predittivo: è un semaforo che
+    // riassume tre segnali che si guarderebbero comunque a mano.
+    temperatura: (() => {
+      const recente = ultimoContatto && (ora - ultimoContatto.quando) < 30 * 86400000;
+      const apre = inviate > 0 && aperte / inviate >= 0.4;
+      if (ticketAperti.length >= 2) return { id: 'attenzione', label: 'Da guardare', color: 'DANGER', perche: `${ticketAperti.length} ticket ancora aperti` };
+      if (recente && apre) return { id: 'caldo', label: 'Attivo', color: 'OK', perche: 'Sentito di recente e apre le email' };
+      if (apre) return { id: 'tiepido', label: 'Reattivo', color: 'INFO', perche: 'Apre le email, ma non lo sentiamo da un po\'' };
+      if (recente) return { id: 'tiepido', label: 'Seguito', color: 'INFO', perche: 'Contattato di recente' };
+      return { id: 'freddo', label: 'Silenzioso', color: 'PLAN_FREE', perche: inviate ? 'Non apre le email e non lo sentiamo' : 'Nessun contatto finora' };
+    })(),
+  };
+}
+
+// Il diario per EPISODI: le righe che raccontano la stessa cosa diventano una
+// scheda sola. Un invio con le sue aperture e i suoi click era tre righe
+// sparse su tre giorni diversi; ora è una scheda che dice come è andata.
+function hubEpisodi(eventi) {
+  const per = {};
+  const out = [];
+  // Si va dal più vecchio al più recente, così l'evento «capostipite» esiste
+  // già quando arriva il suo seguito.
+  [...eventi].sort((a, b) => a.quando - b.quando).forEach(e => {
+    const radice = HUB_ATT_SEGUITI[e.tipo];
+    const chiave = (radice || e.tipo) + '|' + e.titolo;
+    if (radice && per[chiave]) { per[chiave].seguiti.push(e); return; }
+    if (radice) {
+      // Il seguito è arrivato senza il suo capostipite (succede: la campagna
+      // è più vecchia del contatto). Diventa lui la testa dell'episodio.
+      const ep = { id: e.id, testa: e, seguiti: [], quando: e.quando };
+      per[chiave] = ep; out.push(ep);
+      return;
+    }
+    const ep = { id: e.id, testa: e, seguiti: [], quando: e.quando };
+    per[chiave] = ep; out.push(ep);
+  });
+  // La scheda si data sull'ultima cosa successa: un'email aperta ieri è
+  // «ieri», non «tre settimane fa quando è partita».
+  out.forEach(ep => { ep.ultimo = ep.seguiti.length ? ep.seguiti[ep.seguiti.length - 1].quando : ep.testa.quando; });
+  return out.sort((a, b) => b.ultimo - a.ultimo);
 }
 
 // Le note scritte a mano si aggiungono in testa e restano per la sessione.
@@ -933,5 +1157,411 @@ function hubAggiungiAttivita(c, ev) {
 
 window.HUB_ATT_TIPI = HUB_ATT_TIPI;
 window.HUB_ATT_GRUPPI = HUB_ATT_GRUPPI;
+window.HUB_ATT_SEGUITI = HUB_ATT_SEGUITI;
 window.hubAttivita = hubAttivita;
 window.hubAggiungiAttivita = hubAggiungiAttivita;
+window.hubSintesi = hubSintesi;
+window.hubEpisodi = hubEpisodi;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 11 · LA LOGICA DEI RAMI E DELLE ATTESE
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Un ramo di workflow non si sceglie solo per com'È un contatto, ma per quello
+// che HA FATTO: ha aperto la mail, non ha cliccato entro tre giorni, ha aperto
+// un ticket, è entrato in un elenco. Prima si potevano scrivere solo condizioni
+// sulle proprietà, e con quelle un ramo «ha aperto la mail?» non si esprime.
+//
+// Una condizione di ramo è fatta di GRUPPI, e ogni gruppo di REGOLE. Dentro un
+// gruppo le regole si legano con E oppure con O; fra i gruppi vale la stessa
+// scelta, fatta a parte. Due livelli bastano per scrivere (A e B) oppure
+// (C e D) — che è il 99% di quello che serve — e si continuano a leggere.
+
+const HUB_WF_EVENTI = {
+  mailAperta:   { label: 'ha aperto l\'email',        rif: 'mail',  icona: 'eye' },
+  mailCliccata: { label: 'ha cliccato nell\'email',   rif: 'mail',  icona: 'cursorClick', conLink: true },
+  mailRimbalzo: { label: 'ha fatto rimbalzare l\'email', rif: 'mail', icona: 'alertTriangle' },
+  disiscritto:  { label: 'si è disiscritto',          rif: null,    icona: 'x' },
+  smsCliccato:  { label: 'ha cliccato nell\'SMS',     rif: 'sms',   icona: 'cursorClick' },
+  pushAperta:   { label: 'ha aperto la notifica',     rif: 'push',  icona: 'bell' },
+  formInviato:  { label: 'ha compilato il form',      rif: 'form',  icona: 'formFill' },
+  paginaVista:  { label: 'ha visitato la pagina',     rif: 'url',   icona: 'globe' },
+  ticketAperto: { label: 'ha aperto un ticket',       rif: null,    icona: 'ticket' },
+  chiamato:     { label: 'è stato chiamato',          rif: null,    icona: 'headsetFill' },
+  ordine:       { label: 'ha fatto un ordine',        rif: null,    icona: 'receipt' },
+  entrataElenco:{ label: 'è entrato nell\'elenco',    rif: 'elenco',icona: 'listFill' },
+  propCambiata: { label: 'ha cambiato la proprietà',  rif: 'prop',  icona: 'tagFill' },
+};
+
+// Gli esiti del passo immediatamente precedente: sono l'altra domanda che un
+// ramo fa spesso — «la mail è partita davvero?», «l'agente ha risposto?».
+const HUB_WF_ESITI = {
+  consegnata:  { label: 'il messaggio è stato consegnato' },
+  rimbalzata:  { label: 'il messaggio è rimbalzato' },
+  saltato:     { label: 'il passo è stato saltato (niente consenso)' },
+  agenteOk:    { label: 'l\'agente ha prodotto una risposta' },
+  agenteKo:    { label: 'l\'agente non ha concluso' },
+  erroreTec:   { label: 'c\'è stato un errore tecnico' },
+};
+
+const HUB_UNITA = [
+  { id: 'minuti', label: 'minuti' }, { id: 'ore', label: 'ore' },
+  { id: 'giorni', label: 'giorni' }, { id: 'settimane', label: 'settimane' },
+];
+const HUB_GIORNI = [
+  { id: 'lun', label: 'lunedì' }, { id: 'mar', label: 'martedì' }, { id: 'mer', label: 'mercoledì' },
+  { id: 'gio', label: 'giovedì' }, { id: 'ven', label: 'venerdì' }, { id: 'sab', label: 'sabato' }, { id: 'dom', label: 'domenica' },
+];
+
+// I modi di aspettare. «Un ritardo» non è una cosa sola: c'è il ritardo fisso,
+// l'appuntamento a una data, il «lunedì mattina» che serve per non far partire
+// una campagna di sabato sera, e l'attesa di un evento con un tetto — che è la
+// più utile di tutte, perché lega il tempo a quello che fa il contatto.
+const HUB_ATTESA_MODI = {
+  durata:    { label: 'Per un tempo fisso',      desc: 'Es. due giorni dopo il passo prima.', icona: 'hourglass' },
+  data:      { label: 'Fino a una data',         desc: 'Un appuntamento preciso sul calendario.', icona: 'calendar' },
+  giornoOra: { label: 'Fino a un giorno e ora',  desc: 'Il prossimo lunedì alle 9. Serve a non spedire di notte.', icona: 'clock' },
+  evento:    { label: 'Finché non succede…',     desc: 'Aspetta che il contatto faccia qualcosa, con un tetto di tempo.', icona: 'target' },
+  finestra:  { label: 'Solo in certe ore',       desc: 'Trattiene il passo fuori dalla finestra e lo rilascia dentro.', icona: 'sliders' },
+};
+
+function hubAttesaVuota() {
+  return { modo: 'durata', n: 2, unita: 'giorni', data: null, giorno: 'lun', ora: '09:00',
+    evento: { evento: 'mailAperta', rif: null, negato: false },
+    tetto: { n: 3, unita: 'giorni' },
+    finestra: { giorni: ['lun', 'mar', 'mer', 'gio', 'ven'], da: '09:00', a: '18:00' } };
+}
+
+// Un'attesa scritta a mano nei mock dichiara solo il modo che le serve:
+// `{modo:'durata', n:2}` non ha né tetto né finestra. Chiunque la legga deve
+// poter contare su tutti i campi — altrimenti basta cambiare modo nell'editor
+// per leggere `a.tetto.n` su un `undefined` e portarsi giù la pagina.
+// Il completamento sta QUI e non in ogni lettore: uno solo si dimentica.
+function hubAttesaPiena(a) {
+  const base = hubAttesaVuota();
+  if (!a) return base;
+  return Object.assign(base, a, {
+    evento:   Object.assign({}, base.evento, a.evento || {}),
+    tetto:    Object.assign({}, base.tetto, a.tetto || {}),
+    finestra: Object.assign({}, base.finestra, a.finestra || {}),
+  });
+}
+
+// L'attesa scritta come la si direbbe: è il testo che finisce sulla scatola nel
+// canvas, e deve bastare a capire il passo senza aprirlo.
+function hubDescriviAttesa(attesa) {
+  if (!attesa) return '—';
+  const a = hubAttesaPiena(attesa);
+  const u = (n, unita) => `${n} ${(HUB_UNITA.find(x => x.id === unita) || {}).label || unita}`;
+  switch (a.modo) {
+    case 'durata':    return `Aspetta ${u(a.n, a.unita)}`;
+    case 'data':      return a.data ? `Aspetta fino al ${fmtDate(a.data)}` : 'Aspetta fino a una data da scegliere';
+    case 'giornoOra': return `Aspetta il prossimo ${(HUB_GIORNI.find(g => g.id === a.giorno) || {}).label} alle ${a.ora}`;
+    case 'evento':    return `Aspetta finché ${hubDescriviEvento(a.evento)} · al massimo ${u(a.tetto.n, a.tetto.unita)}`;
+    case 'finestra':  return `Rilascia ${a.finestra.giorni.length === 5 ? 'nei giorni feriali' : a.finestra.giorni.join('/')} fra le ${a.finestra.da} e le ${a.finestra.a}`;
+    default: return '—';
+  }
+}
+
+// L'id non è il nome. «ha aperto l'email ML-011» è vero e non dice niente: chi
+// legge il canvas conosce «Report mensile ai titolari», non il codice.
+function hubNomeRif(genere, id) {
+  if (!id) return null;
+  const cat = { mail: HUB_MAIL, sms: HUB_SMS, push: HUB_PUSH, form: HUB_FORM, elenco: HUB_ELENCHI }[genere];
+  if (cat) { const x = cat.find(v => v.id === id); return x ? x.nome : id; }
+  if (genere === 'prop') { const p = HUB_PROP[id]; return p ? p.label : id; }
+  return id;
+}
+
+function hubDescriviEvento(e) {
+  if (!e) return '—';
+  const d = HUB_WF_EVENTI[e.evento];
+  if (!d) return '—';
+  let s = (e.negato ? 'NON ' : '') + d.label;
+  if (e.rif) s += ' «' + hubNomeRif(d.rif, e.rif) + '»';
+  if (e.link) s += ' sul link ' + e.link;
+  if (e.finestra && e.finestra.n) s += ` entro ${e.finestra.n} ${(HUB_UNITA.find(x => x.id === e.finestra.unita) || {}).label || e.finestra.unita}`;
+  return s;
+}
+
+// Una regola sola, in italiano.
+function hubDescriviRegola(r) {
+  if (!r) return '—';
+  if (r.genere === 'proprieta') return hubDescriviFiltro(r);
+  if (r.genere === 'evento')    return hubDescriviEvento(r);
+  if (r.genere === 'elenco') {
+    const e = HUB_ELENCHI.find(x => x.id === r.elencoId);
+    return (r.dentro === false ? 'non è ' : 'è ') + 'nell\'elenco «' + (e ? e.nome : '—') + '»';
+  }
+  if (r.genere === 'esito') return (HUB_WF_ESITI[r.esito] || {}).label || '—';
+  return '—';
+}
+
+// La condizione intera. Con un gruppo solo si legge come un elenco di regole;
+// con più gruppi si mettono le parentesi, perché senza non si capisce più.
+function hubDescriviQuando(q) {
+  if (!q || q.tipo === 'altrimenti') return 'Tutti quelli che non rientrano nei rami sopra';
+  const gruppi = (q.gruppi || []).filter(g => (g.regole || []).length);
+  if (!gruppi.length) return 'Nessuna condizione — ci passano tutti';
+  const frasi = gruppi.map(g => (g.regole || []).map(hubDescriviRegola)
+    .join(g.congiunzione === 'O' ? ' oppure ' : ' e '));
+  if (frasi.length === 1) return frasi[0];
+  return frasi.map(f => '(' + f + ')').join(q.congiunzione === 'O' ? ' oppure ' : ' e ');
+}
+
+function hubQuandoVuoto() {
+  return { tipo: 'regole', congiunzione: 'E', gruppi: [{ id: 'g1', congiunzione: 'E', regole: [] }] };
+}
+function hubRegolaVuota(genere) {
+  if (genere === 'evento')  return { genere: 'evento', evento: 'mailAperta', rif: null, negato: false, finestra: { n: 3, unita: 'giorni' } };
+  if (genere === 'elenco')  return { genere: 'elenco', elencoId: (HUB_ELENCHI[0] || {}).id, dentro: true };
+  if (genere === 'esito')   return { genere: 'esito', esito: 'consegnata' };
+  return { genere: 'proprieta', prop: 'ciclo', op: 'unoDi', valore: [] };
+}
+
+// Quante regole ha in tutto una condizione: serve al canvas per dire se un ramo
+// è configurato o è ancora vuoto.
+function hubConteggioRegole(q) {
+  return !q || q.tipo === 'altrimenti' ? 0 : (q.gruppi || []).reduce((n, g) => n + (g.regole || []).length, 0);
+}
+
+// I rami vecchi avevano `criteri` + `congiunzione` e sapevano parlare solo di
+// proprietà. Si leggono ancora: qui diventano un `quando` con un gruppo solo.
+// Vale la pena tenerlo anche a mock aggiornati — è la garanzia che un ramo
+// scritto prima non sparisca dal canvas senza dire niente.
+function hubRamoQuando(r) {
+  if (!r) return hubQuandoVuoto();
+  if (r.quando) return r.quando;
+  if (r.altrimenti) return { tipo: 'altrimenti', congiunzione: 'E', gruppi: [] };
+  return { tipo: 'regole', congiunzione: 'E', gruppi: [{ id: 'g1', congiunzione: r.congiunzione || 'E',
+    regole: (r.criteri || []).map(c => Object.assign({ genere: 'proprieta' }, c)) }] };
+}
+
+// L'attesa scritta nei mock come stringa («2 giorni») resta leggibile: si
+// prova a capirla, e se non ci si riesce si mostra com'è.
+function hubNodoAttesa(n) {
+  if (n && n.attesa) return hubAttesaPiena(n.attesa);
+  const m = /^\s*(\d+)\s*(minut|or|giorn|settiman)/i.exec((n && n.testo) || '');
+  if (!m) return null;
+  const u = { minut: 'minuti', or: 'ore', giorn: 'giorni', settiman: 'settimane' }[m[2].toLowerCase()];
+  return Object.assign(hubAttesaVuota(), { modo: 'durata', n: parseInt(m[1], 10), unita: u });
+}
+
+window.HUB_WF_EVENTI = HUB_WF_EVENTI;
+window.HUB_WF_ESITI = HUB_WF_ESITI;
+window.HUB_UNITA = HUB_UNITA;
+window.HUB_GIORNI = HUB_GIORNI;
+window.HUB_ATTESA_MODI = HUB_ATTESA_MODI;
+window.hubAttesaVuota = hubAttesaVuota;
+window.hubAttesaPiena = hubAttesaPiena;
+window.hubDescriviAttesa = hubDescriviAttesa;
+window.hubDescriviEvento = hubDescriviEvento;
+window.hubDescriviRegola = hubDescriviRegola;
+window.hubDescriviQuando = hubDescriviQuando;
+window.hubQuandoVuoto = hubQuandoVuoto;
+window.hubRegolaVuota = hubRegolaVuota;
+window.hubConteggioRegole = hubConteggioRegole;
+window.hubRamoQuando = hubRamoQuando;
+window.hubNomeRif = hubNomeRif;
+window.hubNodoAttesa = hubNodoAttesa;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 12 · L'AMBIENTE DEGLI AGENTI
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Un agente da solo è un impiegato bravo che non parla con nessuno. Il salto
+// non è farne di più: è dargli un posto dove lavorare insieme agli altri.
+//
+// La tentazione facile sarebbe far chiamare un agente dall'altro. Non si fa,
+// e per un motivo pratico: cinque agenti che si chiamano a vicenda sono venti
+// collegamenti da tenere aggiornati, e il primo che cambia formato rompe tre
+// catene in silenzio. Qui gli agenti NON si chiamano. Ci sono quattro
+// meccanismi, e sono la parte inventata di questa pagina:
+//
+//  1 · LA LAVAGNA — un agente non manda niente a nessuno: SCRIVE una nota su
+//      un argomento. Chi è iscritto a quell'argomento si sveglia. Aggiungere
+//      un agente è iscriverlo, non ricablare gli altri.
+//
+//  2 · IL PATTO — ogni consegna dichiara che cosa passa e che cosa si aspetta
+//      indietro. Se la nota non ha i campi promessi la consegna FALLISCE e si
+//      vede; senza patto passerebbe una nota mezza vuota e il secondo agente
+//      lavorerebbe su niente, producendo una risposta plausibile e sbagliata.
+//
+//  3 · IL SECONDO PARERE — prima di scrivere nel CRM o di far uscire qualcosa
+//      verso un cliente, un secondo agente deve essere d'accordo. Se non lo è,
+//      non decide la maggioranza: sale a una persona.
+//
+//  4 · IL TETTO — ogni catena ha un budget al giorno e una profondità massima.
+//      È la differenza fra un ambiente e un ciclo infinito che costa.
+//
+// E poi la CODA: i compiti non si assegnano tutti subito. Stanno in una coda
+// con una priorità, un agente ne prende uno per volta, e se sbaglia due volte
+// il compito passa a una persona invece di essere ritentato per sempre.
+
+const HUB_AMB_ARGOMENTI = [
+  { id: 'rischio',    label: 'Locali a rischio',    icona: 'alertTriangle', color: 'DANGER',
+    desc: 'Segnali di abbandono: ordini fermi, ticket in salita, servizi spenti.' },
+  { id: 'qualifica',  label: 'Lead da qualificare', icona: 'target', color: 'INFO',
+    desc: 'Lead nuovi con abbastanza contesto per stimare il piano giusto.' },
+  { id: 'materiali',  label: 'Materiali pronti',    icona: 'pencil', color: 'HUB_MAGENTA',
+    desc: 'Oggetti, testi e varianti scritti e in attesa di revisione.' },
+  { id: 'assistenza', label: 'Assistenza',          icona: 'lifebuoy', color: 'TEAL',
+    desc: 'Ticket smistati, risposte proposte, casi che tornano.' },
+  { id: 'anomalie',   label: 'Anomalie',            icona: 'bolt', color: 'WARN',
+    desc: 'Numeri che non tornano: quote, costi, code, tempi di risposta.' },
+];
+
+const HUB_AMB_RUOLI = {
+  esecutore: { label: 'Esegue',      desc: 'Fa il lavoro e scrive la nota.',            color: 'HUB_VIOLA' },
+  revisore:  { label: 'Rivede',      desc: 'Deve essere d\'accordo prima che esca.',    color: 'INFO' },
+  arbitro:   { label: 'Decide',      desc: 'Sceglie fra proposte in disaccordo.',       color: 'WARN' },
+  persona:   { label: 'Una persona', desc: 'Il punto in cui l\'ambiente si ferma e chiede.', color: 'OK' },
+};
+
+// Le catene: chi passa a chi, su quale argomento, con quale patto.
+const HUB_AMB_CATENE = [
+  { id: 'CT-001', nome: 'Dal segnale alla telefonata', stato: 'attiva', argomento: 'rischio',
+    descrizione: 'Quando un locale mostra segnali di abbandono, l\'ambiente prepara la chiamata invece di aprire un ticket generico.',
+    girati: 214, conclusi: 186, aPersona: 22, costoGiorno: 4.20, tetto: 12, profondita: 3,
+    tappe: [
+      { agente: 'AG-005', ruolo: 'esecutore', fa: 'Trova i locali a rischio e scrive perché',
+        patto: ['locale', 'motivo', 'gravità 1-5'] },
+      { agente: 'AG-004', ruolo: 'esecutore', fa: 'Aggiunge il contesto commerciale: piano, storico, margine',
+        patto: ['piano attuale', 'valore annuo', 'occasione'] },
+      { agente: 'AG-003', ruolo: 'esecutore', fa: 'Scrive la traccia della telefonata e due alternative',
+        patto: ['apertura', 'obiezioni previste', 'offerta'] },
+      { agente: null, ruolo: 'persona', fa: 'Il commerciale di zona conferma e chiama', patto: [] },
+    ] },
+  { id: 'CT-002', nome: 'Lead nuovo, piano proposto', stato: 'attiva', argomento: 'qualifica',
+    descrizione: 'Il lead entra, viene stimato, e la proposta passa da una revisione prima di toccare il CRM.',
+    girati: 640, conclusi: 601, aPersona: 14, costoGiorno: 6.80, tetto: 15, profondita: 2,
+    tappe: [
+      { agente: 'AG-004', ruolo: 'esecutore', fa: 'Stima coperti e scontrino dal sito e dalle recensioni',
+        patto: ['coperti', 'scontrino', 'confidenza'] },
+      { agente: 'AG-005', ruolo: 'revisore', fa: 'Controlla la stima contro i locali simili che già abbiamo',
+        patto: ['d\'accordo sì/no', 'scarto rispetto ai simili'] },
+      { agente: null, ruolo: 'persona', fa: 'Se i due non concordano, decide il commerciale', patto: [] },
+    ] },
+  { id: 'CT-003', nome: 'Campagna scritta e rivista', stato: 'in prova', argomento: 'materiali',
+    descrizione: 'Tre varianti scritte, una scelta con i numeri dello storico, e il testo non esce senza una persona.',
+    girati: 89, conclusi: 71, aPersona: 89, costoGiorno: 2.10, tetto: 8, profondita: 2,
+    tappe: [
+      { agente: 'AG-003', ruolo: 'esecutore', fa: 'Scrive oggetto e anteprima in tre varianti', patto: ['3 varianti', 'per chi'] },
+      { agente: 'AG-002', ruolo: 'arbitro', fa: 'Sceglie la variante più promettente sullo storico', patto: ['variante scelta', 'perché'] },
+      { agente: null, ruolo: 'persona', fa: 'Marketing approva prima dell\'invio', patto: [] },
+    ] },
+  { id: 'CT-004', nome: 'Ticket smistato e risposto', stato: 'ferma', argomento: 'assistenza',
+    descrizione: 'Ferma da quando la chiave del fornitore ha superato la quota: i compiti si accumulano in coda.',
+    girati: 1902, conclusi: 1743, aPersona: 159, costoGiorno: 0, tetto: 20, profondita: 2,
+    tappe: [
+      { agente: 'AG-001', ruolo: 'esecutore', fa: 'Legge il ticket, lo assegna e propone una risposta', patto: ['reparto', 'urgenza', 'bozza'] },
+      { agente: null, ruolo: 'persona', fa: 'Chi è di turno manda o riscrive', patto: [] },
+    ] },
+];
+
+// Le note sulla lavagna: quello che gli agenti si sono detti, in ordine.
+const HUB_AMB_NOTE = [
+  { id: 'NT-011', argomento: 'rischio', agente: 'AG-005', quando: new Date(Date.now() - 900000),
+    titolo: '4 locali a rischio questa mattina',
+    corpo: 'Osteria del Borgo non ordina da 21 giorni; Pizzeria Aurora ha aperto 3 ticket in una settimana; altri 2 hanno spento il delivery.',
+    campi: { gravità: '4 su 5', locali: 4 }, letta: ['AG-004'], catena: 'CT-001' },
+  { id: 'NT-010', argomento: 'rischio', agente: 'AG-004', quando: new Date(Date.now() - 780000),
+    titolo: 'Contesto commerciale dei 4',
+    corpo: 'Due sono Plus da oltre due anni: valore annuo sopra i €4.000 ciascuno. Uno è in prova e non è mai partito.',
+    campi: { 'valore a rischio': '€11.400', occasione: 'rinnovo fra 40 giorni' }, letta: ['AG-003'], catena: 'CT-001' },
+  { id: 'NT-009', argomento: 'materiali', agente: 'AG-003', quando: new Date(Date.now() - 690000),
+    titolo: 'Traccia telefonata · 3 aperture',
+    corpo: 'Apertura consigliata: partire dal calo ordini senza nominarlo come problema. Due alternative se risponde il titolare o se risponde il personale di sala.',
+    campi: { varianti: 3, tono: 'diretto, non allarmista' }, letta: [], catena: 'CT-001' },
+  { id: 'NT-008', argomento: 'anomalie', agente: 'AG-001', quando: new Date(Date.now() - 3600000),
+    titolo: 'Quota del fornitore superata',
+    corpo: 'Le ultime 12 esecuzioni non sono partite. La catena «Ticket smistato» è ferma e la coda sta crescendo.',
+    campi: { 'esecuzioni perse': 12, 'in coda': 31 }, letta: ['AG-002'], catena: 'CT-004', allarme: true },
+  { id: 'NT-007', argomento: 'qualifica', agente: 'AG-004', quando: new Date(Date.now() - 5400000),
+    titolo: 'Trattoria da Nino · stima',
+    corpo: '60 coperti stimati, scontrino medio €28. Il sito ha menu e prenotazioni ma nessun delivery.',
+    campi: { coperti: 60, scontrino: '€28', confidenza: 'media' }, letta: ['AG-005'], catena: 'CT-002' },
+  { id: 'NT-006', argomento: 'qualifica', agente: 'AG-005', quando: new Date(Date.now() - 5100000),
+    titolo: 'Non sono d\'accordo sulla stima',
+    corpo: 'I locali simili per zona e coperti stanno sotto i €22 di scontrino. La stima di €28 mi sembra alta del 25%: propongo Standard e non Plus.',
+    campi: { 'd\'accordo': 'no', scarto: '+25%' }, letta: [], catena: 'CT-002', disaccordo: true },
+];
+
+// La coda: i compiti che aspettano, quelli presi, quelli finiti a una persona.
+const HUB_AMB_COMPITI = [
+  { id: 'CP-031', titolo: 'Ticket #4821 · cassa non chiude', catena: 'CT-004', stato: 'coda', priorita: 'alta',
+    creato: new Date(Date.now() - 3300000), agente: null, tentativi: 0, nota: 'In attesa: la catena è ferma.' },
+  { id: 'CP-030', titolo: 'Ticket #4820 · stampante comande', catena: 'CT-004', stato: 'coda', priorita: 'media',
+    creato: new Date(Date.now() - 3200000), agente: null, tentativi: 0, nota: 'In attesa: la catena è ferma.' },
+  { id: 'CP-029', titolo: 'Osteria del Borgo · preparare la chiamata', catena: 'CT-001', stato: 'preso', priorita: 'alta',
+    creato: new Date(Date.now() - 900000), agente: 'AG-003', tentativi: 1, nota: 'Sta scrivendo la traccia.' },
+  { id: 'CP-028', titolo: 'Trattoria da Nino · piano consigliato', catena: 'CT-002', stato: 'persona', priorita: 'alta',
+    creato: new Date(Date.now() - 5400000), agente: null, tentativi: 2, nota: 'I due agenti non concordano: Plus contro Standard.' },
+  { id: 'CP-027', titolo: 'Pizzeria Aurora · contesto commerciale', catena: 'CT-001', stato: 'fatto', priorita: 'media',
+    creato: new Date(Date.now() - 1500000), agente: 'AG-004', tentativi: 1, nota: 'Nota NT-010 sulla lavagna.' },
+  { id: 'CP-026', titolo: 'Report settimanale · bozza', catena: 'CT-003', stato: 'fatto', priorita: 'bassa',
+    creato: new Date(Date.now() - 172800000), agente: 'AG-002', tentativi: 1, nota: 'Consegnato lunedì.' },
+];
+
+const HUB_AMB_STATI_COMPITO = {
+  coda:    { label: 'In coda',      color: 'PLAN_FREE', icona: 'hourglass' },
+  preso:   { label: 'Preso',        color: 'INFO',      icona: 'play' },
+  fatto:   { label: 'Fatto',        color: 'OK',        icona: 'check' },
+  persona: { label: 'A una persona', color: 'WARN',     icona: 'user' },
+};
+
+// Il registro: che cosa è successo davvero, in ordine di tempo. Un ambiente
+// senza registro è un gruppo di agenti che si accusano a vicenda.
+const HUB_AMB_TRACCIA = [
+  { t: new Date(Date.now() - 900000),  chi: 'AG-005', cosa: 'scrive',   dettaglio: 'Nota «4 locali a rischio questa mattina» su Locali a rischio', catena: 'CT-001' },
+  { t: new Date(Date.now() - 880000),  chi: 'AG-004', cosa: 'sveglia',  dettaglio: 'Iscritto a Locali a rischio — si sveglia per la nota NT-011', catena: 'CT-001' },
+  { t: new Date(Date.now() - 800000),  chi: 'AG-004', cosa: 'legge',    dettaglio: 'Contatti, Ordini, Fatturazione', catena: 'CT-001' },
+  { t: new Date(Date.now() - 780000),  chi: 'AG-004', cosa: 'scrive',   dettaglio: 'Nota «Contesto commerciale dei 4»', catena: 'CT-001' },
+  { t: new Date(Date.now() - 700000),  chi: 'AG-003', cosa: 'sveglia',  dettaglio: 'Consegna accettata: il patto chiedeva piano, valore, occasione — ci sono tutti', catena: 'CT-001' },
+  { t: new Date(Date.now() - 690000),  chi: 'AG-003', cosa: 'scrive',   dettaglio: 'Nota «Traccia telefonata · 3 aperture»', catena: 'CT-001' },
+  { t: new Date(Date.now() - 660000),  chi: null,     cosa: 'persona',  dettaglio: 'La catena si ferma: tocca al commerciale di zona confermare', catena: 'CT-001' },
+  { t: new Date(Date.now() - 5100000), chi: 'AG-005', cosa: 'disaccordo', dettaglio: 'Non conferma la stima di AG-004: scarto del 25% sui locali simili', catena: 'CT-002' },
+  { t: new Date(Date.now() - 5080000), chi: null,     cosa: 'persona',  dettaglio: 'Nessun arbitro configurato: il compito CP-028 sale a una persona', catena: 'CT-002' },
+  { t: new Date(Date.now() - 3600000), chi: 'AG-001', cosa: 'errore',   dettaglio: 'Quota del fornitore superata — catena ferma, 31 compiti in coda', catena: 'CT-004' },
+];
+
+const HUB_AMB_AZIONI = {
+  scrive:     { label: 'scrive',        icona: 'pencil',        color: 'HUB_VIOLA' },
+  sveglia:    { label: 'si sveglia',    icona: 'bolt',          color: 'INFO' },
+  legge:      { label: 'legge',         icona: 'eye',           color: 'PLAN_FREE' },
+  persona:    { label: 'a una persona', icona: 'user',          color: 'WARN' },
+  disaccordo: { label: 'non è d\'accordo', icona: 'alertTriangle', color: 'WARN' },
+  errore:     { label: 'errore',        icona: 'x',             color: 'DANGER' },
+};
+
+const HUB_AMB_STATI_CATENA = {
+  attiva:    { label: 'Attiva',   color: 'OK' },
+  'in prova':{ label: 'In prova', color: 'INFO' },
+  ferma:     { label: 'Ferma',    color: 'DANGER' },
+};
+
+// Le regole dell'ambiente: valgono per tutte le catene, e sono il motivo per
+// cui un ambiente si può lasciare acceso di notte.
+const HUB_AMB_GUARDIE = [
+  { id: 'scritture', label: 'Niente scritture sul CRM senza una persona', acceso: true,
+    desc: 'Gli agenti propongono; la proprietà del contatto la cambia qualcuno che se ne prende la responsabilità.' },
+  { id: 'uscita',    label: 'Niente messaggi al cliente senza approvazione', acceso: true,
+    desc: 'Un agente può scrivere una mail, non spedirla.' },
+  { id: 'profondita',label: 'Al massimo 3 passaggi per catena', acceso: true,
+    desc: 'Oltre il terzo passaggio l\'ambiente si ferma: è quasi sempre un giro su sé stesso.' },
+  { id: 'tetto',     label: 'Tetto di spesa giornaliero per catena', acceso: true,
+    desc: 'Raggiunto il tetto la catena si mette in pausa e lo dice, invece di continuare a costare.' },
+  { id: 'silenzio',  label: 'Segnala le catene mute da 24 ore', acceso: false,
+    desc: 'Una catena che non produce niente è rotta o inutile: in entrambi i casi va guardata.' },
+];
+
+window.HUB_AMB_ARGOMENTI = HUB_AMB_ARGOMENTI;
+window.HUB_AMB_RUOLI = HUB_AMB_RUOLI;
+window.HUB_AMB_CATENE = HUB_AMB_CATENE;
+window.HUB_AMB_NOTE = HUB_AMB_NOTE;
+window.HUB_AMB_COMPITI = HUB_AMB_COMPITI;
+window.HUB_AMB_STATI_COMPITO = HUB_AMB_STATI_COMPITO;
+window.HUB_AMB_TRACCIA = HUB_AMB_TRACCIA;
+window.HUB_AMB_AZIONI = HUB_AMB_AZIONI;
+window.HUB_AMB_STATI_CATENA = HUB_AMB_STATI_CATENA;
+window.HUB_AMB_GUARDIE = HUB_AMB_GUARDIE;

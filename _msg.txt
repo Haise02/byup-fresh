@@ -1,0 +1,86 @@
+feat(hubble): rami con logica vera, attese a cinque modi, Ambiente degli agenti, builder ricchi e un diario che si legge
+
+I RAMI DEI WORKFLOW · prima un ramo sapeva chiedere una cosa sola: com'È il
+contatto. Bastava per «i clienti Business» e non bastava per l'unica domanda
+che i workflow fanno davvero — «ha aperto la mail che gli ho appena mandato?».
+Adesso un ramo ha un `quando` fatto di GRUPPI di REGOLE: dentro un gruppo si
+legano con E o con O, fra i gruppi con un'altra E/O scelta a parte — due
+livelli, che bastano a scrivere (A e B) oppure (C e D) e si continuano a
+leggere. Una regola ha un genere: proprietà (le frasi dei filtri), EVENTO (ha
+aperto, ha cliccato quel link, ha compilato quel form, ha aperto un ticket,
+ha visitato quella pagina — con una finestra «entro 3 giorni» e un NON),
+elenco (dentro/fuori) ed ESITO del passo prima (consegnata, rimbalzata,
+saltata per consenso, errore tecnico). Il bottone «Aggiungi un ramo» è sul
+canvas, largo come una corsia e con scritto che cosa fa: era un quadratino da
+38px con un «+» e non lo trovava nessuno. Il canvas mostra la regola scritta
+in italiano, gruppi compresi, e colora di rosso un ramo senza regole — ci
+passano tutti, ed è quasi sempre un errore. I rami vecchi si leggono ancora:
+hubRamoQuando li converte al volo.
+
+LE ATTESE · «Attendi» non è più una casella di testo. Cinque modi: tempo
+fisso, fino a una data, fino a un giorno e un'ora (il prossimo lunedì alle 9,
+che serve a non spedire di notte), FINCHÉ NON SUCCEDE qualcosa con un tetto
+oltre il quale si prosegue — un'attesa senza tetto è un workflow che non
+finisce — e la finestra oraria, che trattiene il passo fuori orario. Il testo
+sulla scatola lo genera la configurazione: due sorgenti di verità e sul canvas
+resta scritto «2 giorni» mentre l'attesa aspetta un click.
+
+GLI ALTRI PASSI · ognuno ha i suoi campi veri e la frase sul canvas se la
+genera: l'invio sceglie il messaggio dal catalogo e mostra l'anteprima e il
+controllo del consenso; «scrivi proprietà» sceglie la proprietà dal catalogo e
+il valore col controllo giusto per il tipo, invece di far scrivere a mano
+«Ciclo di vita → Returning» virgola compresa; elenco, agente e webhook idem.
+
+AGENT · ARRIVA «AMBIENTE» · la seconda schermata, dove gli agenti lavorano
+insieme. La scelta di fondo è che NON si chiamano fra loro: scrivono una nota
+su un argomento della lavagna e chi è iscritto si sveglia — aggiungere un
+agente è iscriverlo, non ricablare gli altri. Sopra ci sono quattro
+meccanismi: il PATTO (ogni consegna dichiara i campi che passa; se mancano
+fallisce e si vede, invece di far lavorare il secondo agente su una nota mezza
+vuota, che risponderebbe lo stesso, benissimo, a caso), il SECONDO PARERE
+(prima di toccare il CRM o di far uscire qualcosa serve l'accordo di un altro
+agente; se non c'è, non vince la maggioranza: sale a una persona), il TETTO
+(budget al giorno e profondità massima) e la CODA (un compito per volta, per
+priorità, e al secondo fallimento passa a una persona — per questo «A una
+persona» è una colonna e non un errore). Cinque schede: catene, lavagna, coda,
+registro e guardie.
+
+I BUILDER · il testo si scrive DENTRO l'anteprima ed è ricco: grassetto,
+corsivo, sottolineato, corpo, colore su una parola sola, evidenziato, link,
+simboli e campi dinamici presi da HUB_PROPRIETA. L'editor è non controllato di
+proposito — se React riscrivesse l'innerHTML a ogni battuta il cursore
+tornerebbe a inizio riga a ogni lettera — e quello che si incolla passa da un
+filtro che tiene solo i tag che la posta capisce. Ogni blocco ha un fondo:
+niente, tinta unita o SFUMATURA, ed è così che si fa una sezione colorata
+senza inventare un blocco «sezione» da spiegare; nell'HTML la sfumatura esce
+sempre con un background-color di ripiego pari al primo colore, perché Outlook
+su Windows ignora background-image. Le immagini si caricano davvero, GIF
+comprese, drag&drop, tetto di 2 MB. Il form usa gli stessi pezzi: titolo e
+introduzione ricchi, blocchi Paragrafo e Immagine accanto ai campi veri, fondo
+del modulo, della pagina e del pulsante.
+
+IL DIARIO DEL CONTATTO · era un registro e adesso è una storia. In cima le sei
+domande che uno si fa PRIMA di leggere: quando l'abbiamo sentito e come, che
+cosa ha in programma, quanti ticket ha ancora aperti, che assistenza ha
+ricevuto e per che cosa, che promozione ha chiesto, e un semaforo. Sotto, gli
+EPISODI e non le righe: un invio con le sue aperture e i suoi click era tre
+righe a giorni di distanza, adesso è una scheda che dice com'è finita — «Ha
+cliccato», con la catena dei passaggi e il link tracciato. E ci sono le cose
+che mancavano del tutto: ticket con la loro chiusura e il perché, interventi
+di assistenza svolti, uno in programma nel futuro (la riga che dice «non
+richiamarlo, ha già un appuntamento»), promozioni richieste col loro stato,
+preventivi e rinnovi.
+
+UN CRASH TROVATO E CHIUSO · un'attesa scritta a mano nei mock dichiara solo i
+campi che le servono; bastava cambiare modo nell'editor per leggere a.tetto.n
+su un undefined e portarsi giù la pagina. Adesso chi legge un'attesa passa da
+hubAttesaPiena, che completa il resto — una volta sola, non in ogni lettore.
+
+Verificato in Chromium headless: tutti i .jsx compilano, giro completo su ogni
+sezione e ogni tab senza errori in console, i cinque modi di attesa aperti uno
+per uno, e il grassetto e il colore messi su una parola finiscono davvero
+nell'HTML generato, sfumatura e ripiego compresi.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01FEJKd3HA4rUiNka4FJT8KR
+
