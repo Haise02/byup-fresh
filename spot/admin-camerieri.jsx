@@ -21,6 +21,10 @@ const DEVICE_STAMPANTI = ['Epson TM-T20III', 'Star TSP143IV', 'Bixolon SRP-350II
 // scheda mostra come «Custom - …», non la parola generica.
 const CUSTOM_NOMI = ['Responsabile sala', 'Turno serale', 'Cassa weekend', 'Vice direttore', 'Barman'];
 
+// Il genere non sta nei mock: si legge dal nome di battesimo, per la tab
+// Anagrafica della scheda. Chi non è in lista è un uomo.
+const NOMI_FEMMINILI = new Set(['Sara', 'Giulia', 'Martina', 'Chiara', 'Elena', 'Sofia', 'Valentina', 'Beatrice', 'Aurora', 'Camilla', 'Vittoria', 'Ludovica', 'Anna', 'Greta', 'Asia', 'Federica', 'Maria', 'Bianca', 'Ginevra']);
+
 // Aree del gestionale (per i ruoli di tipo "Personalizzato")
 const AREE_GESTIONALE = ['Sala', 'Vendita diretta', 'Prenotazioni', 'Panoramica', 'Impostazioni', 'Supporto', 'Statistiche', 'Contabilità'];
 
@@ -61,7 +65,7 @@ const STAFF = (() => {
     const aree = ruolo === 'personalizzato'
       ? [...AREE_GESTIONALE].sort(() => rnd() - 0.5).slice(0, 2 + Math.floor(rnd() * 3))
       : null;
-    return {
+    const membro = {
       id: 'S' + String(3000 + i),
       // Per i dispositivi il "nome" è il codice del dispositivo (non una persona)
       nome: isDevice ? deviceCode : n,
@@ -79,6 +83,42 @@ const STAFF = (() => {
       attivoOggi: lastDays === 0,
       dataAssunzione: new Date(Date.now() - (60 + Math.floor(rnd() * 700)) * 86400000),
     };
+
+    // I campi nuovi si derivano in coda: le chiamate a rnd() vengono DOPO
+    // quelle dei campi storici, che così non cambiano valore.
+    //
+    // L'anagrafica della persona. L'email vive sul dominio del locale
+    // PRINCIPALE, lo stesso da cui scrive il titolare; i dispositivi non
+    // sono persone — niente email, età o genere.
+    const dominio = local && local.email ? local.email.split('@')[1] : null;
+    membro.email = (isDevice || !dominio) ? null
+      : n.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.') + '@' + dominio;
+    membro.eta = isDevice ? null : 19 + Math.floor(rnd() * 40);
+    membro.genere = isDevice ? null : (NOMI_FEMMINILI.has(n.split(' ')[0]) ? 'F' : 'M');
+
+    // MULTI-LOCALE: un'utenza staff può essere associata a più locali — il
+    // titolare con due sedi, il cameriere che gira tra i locali del gruppo.
+    // Il PRIMO della lista è il principale, quello che righe e raggruppamenti
+    // continuano a mostrare; i dispositivi restano dove sono montati: un
+    // locale e basta. Circa un terzo delle persone ne ha più d'uno.
+    membro.locali = [{ id: localeId, nome: membro.localeNome, citta: membro.localeCitta }];
+    if (!isDevice) {
+      const extra = rnd() < 0.32 ? 1 + (rnd() < 0.25 ? 1 : 0) : 0;
+      for (let k = 0; k < extra; k++) {
+        const alt = LOCALI.find(l => l.id === 'L' + (1000 + 17 + Math.floor(rnd() * 25)));
+        if (alt && !membro.locali.some(x => x.id === alt.id)) {
+          membro.locali.push({ id: alt.id, nome: alt.nome, citta: alt.citta });
+        }
+      }
+    }
+
+    // Le statistiche da sala esistono solo per chi ha un'utenza CAMERIERE:
+    // sono loro a prendere ordini, servire coperti e ricevere mance.
+    if (ruolo === 'cameriere') {
+      membro.scontrinoMedio = 14 + Math.round(rnd() * 52) / 2;          // 14–40 €, a mezzi euro
+      membro.manciaMedia = Math.round((0.8 + rnd() * 3.4) * 10) / 10;   // 0,80–4,20 €
+    }
+    return membro;
   });
 })();
 
@@ -410,7 +450,18 @@ function StaffRow({ staff: s, onClick, striped, indented }) {
         }}>{ruoloDef.label}</span>
       </div>
       <div>
-        <div style={{fontSize:14, color:ADM.TEXT, fontWeight:500}}>{s.localeNome}</div>
+        <div style={{fontSize:14, color:ADM.TEXT, fontWeight:500}}>
+          {s.localeNome}
+          {/* L'utenza vale anche su altri locali: il «+N» lo dice già in
+              lista, l'elenco completo sta nella scheda. */}
+          {s.locali && s.locali.length > 1 && (
+            <span title={s.locali.slice(1).map(x => x.nome).join(' · ')} style={{
+              marginLeft: 6, padding: '1px 7px', borderRadius: 999,
+              background: ADM.TEAL_SOFT, color: ADM.TEAL,
+              fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+            }}>+{s.locali.length - 1}</span>
+          )}
+        </div>
         <div style={{fontSize:13, color:ADM.MUTED}}>{s.localeCitta}</div>
       </div>
       <div style={{display:'flex', alignItems:'center', gap:6}}>
@@ -436,8 +487,43 @@ function staffDescrizioneUtenza(s) {
 // `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
 // — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
 // barra «torna» del chiamante.
+//
+// La scheda vive in DUE tab, come le sorelle (locale e utente app):
+// Anagrafica — chi è la persona (nome, email, età, genere, editabili), su
+// quali locali vale la sua utenza, i dettagli dell'utenza — e Statistiche,
+// che esiste SOLO per chi ha un'utenza cameriere: mesi di lavoro, scontrino
+// medio e mancia media sono cose da sala, una cassa non le ha.
 function StaffDrawer({ staff: s, onClose, pieno }) {
-  const ruoloDef = RUOLI_STAFF.find(r => r.id === s.ruolo);
+  const device = s.ruolo === 'dispositivo';
+  const [tab, setTab] = useStateCam('anagrafica');
+
+  // ── Form anagrafica: editabile con salvataggio, come la scheda utente ──
+  const formDa = (x) => ({ nome: x.nome, email: x.email || '', eta: x.eta == null ? '' : String(x.eta), genere: x.genere || 'M' });
+  const [form, setForm] = useStateCam(formDa(s));
+  const [saved, setSaved] = useStateCam(false);
+  React.useEffect(() => { setTab('anagrafica'); setForm(formDa(s)); setSaved(false); }, [s.id]);
+  const base = formDa(s);
+  const dirty = form.nome !== base.nome || form.email !== base.email || form.eta !== base.eta || form.genere !== base.genere;
+  const salva = () => {
+    Object.assign(s, { nome: form.nome, email: form.email || null, eta: parseInt(form.eta, 10) || s.eta, genere: form.genere });
+    setSaved(true); setTimeout(() => setSaved(false), 2200);
+  };
+  const F = (k) => (e) => { setSaved(false); setForm(prev => ({ ...prev, [k]: e.target ? e.target.value : e })); };
+
+  const inputStyle = {
+    width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
+    fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff',
+    outline:'none', boxSizing:'border-box',
+  };
+  const labelStyle = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
+
+  // Le utenze nate prima del multi-locale hanno solo i campi del principale.
+  const locali = s.locali || [{ id: s.localeId, nome: s.localeNome, citta: s.localeCitta }];
+
+  const tabs = [{ id: 'anagrafica', label: 'Anagrafica' }];
+  if (s.ruolo === 'cameriere') tabs.push({ id: 'statistiche', label: 'Statistiche' });
+  const mesiLavoro = Math.max(1, Math.floor((Date.now() - s.dataAssunzione) / (30.44 * 86400000)));
+
   return (
     <div onClick={pieno ? undefined : onClose} style={pieno ? {} : {
       position:'fixed', inset:0, zIndex:50,
@@ -449,39 +535,105 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
         width:'100%', background:'#fff',
         display:'flex', flexDirection:'column',
       } : {
-        width:640, maxWidth:'94%', background:'#fff', maxHeight:'88%',
+        width:760, maxWidth:'94%', background:'#fff', maxHeight:'88%',
         borderRadius:18, overflow:'hidden',
         display:'flex', flexDirection:'column',
         boxShadow:'0 32px 80px rgba(15,17,21,0.30)',
         animation:'admModalIn 0.22s cubic-bezier(0.22,0.9,0.35,1)',
       }}>
-        <div style={{padding:'20px 24px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:14}}>
-          {s.ruolo === 'dispositivo'
+        <div style={{padding:'20px 24px 14px', display:'flex', alignItems:'center', gap:14}}>
+          {device
             ? <div style={{width:48, height:48, borderRadius:10, background:ADM.NEUTRAL_SOFT, color:ADM.NEUTRAL, display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.monitor size={27}/></div>
-            : <AdmAvatar name={s.nome} size={53} bg={`hsl(${(s.id.charCodeAt(2)+s.id.charCodeAt(3))*7 % 360}, 45%, 55%)`}/>}
-          {/* SOLO il nome: ruolo, id, locale e modello sono anagrafe e
-              vivono nella scheda qui sotto — la testata presenta, non
+            : <AdmAvatar name={form.nome} size={53} bg={`hsl(${(s.id.charCodeAt(2)+s.id.charCodeAt(3))*7 % 360}, 45%, 55%)`}/>}
+          {/* SOLO il nome: ruolo, id, locali e modello sono anagrafe e
+              vivono nelle tab qui sotto — la testata presenta, non
               riassume. */}
           <div style={{
             flex:1, minWidth:0,
             fontSize:19, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            fontFamily: s.ruolo === 'dispositivo' ? 'ui-monospace,monospace' : 'inherit',
-          }}>{s.nome}</div>
+            fontFamily: device ? 'ui-monospace,monospace' : 'inherit',
+          }}>{device ? s.nome : form.nome}</div>
           {!pieno && <AdmIconBtn icon="x" onClick={onClose}/>}
         </div>
 
+        <AdmTabBar tabs={tabs} active={tab} onChange={setTab}/>
+
+        {/* ═══ TAB ANAGRAFICA ═══ */}
+        {tab === 'anagrafica' && (
         <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
-          {/* Statistiche operative solo per i camerieri (prendono ordini al tavolo) */}
-          {s.ruolo === 'cameriere' && (
-            <AdmCard padding={0}>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
-                <MiniStat first label="Ordini mese" value={fmtNum(s.ordiniMese)} sub="Presi al tavolo"/>
-                <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)} sub="Mese corrente"/>
-                <MiniStat label="Scontrino medio" value={fmtEur(Math.round(s.ordiniMese * 0.6))} sub="Per ordine"/>
+          {/* I dati della PERSONA, editabili: un dispositivo non ne ha. */}
+          {!device && (
+            <AdmCard padding={20}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Dati anagrafici</div>
+                {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
+                <div style={{gridColumn:'1 / -1'}}>
+                  <label style={labelStyle}>Nome e cognome</label>
+                  <input value={form.nome} onChange={F('nome')} style={inputStyle}/>
+                </div>
+                <div style={{gridColumn:'1 / -1'}}>
+                  <label style={labelStyle}>Email</label>
+                  <input value={form.email} onChange={F('email')} placeholder="Nessuna email" style={{...inputStyle, fontFamily:'ui-monospace,monospace', fontSize:12.5}}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Età</label>
+                  <input type="number" min="16" max="90" value={form.eta} onChange={F('eta')} placeholder="—" style={inputStyle}/>
+                </div>
+                <div>
+                  <label style={labelStyle}>Genere</label>
+                  <AdmSelect value={form.genere} onChange={F('genere')} block
+                    buttonStyle={{padding:'8px 11px', borderRadius:8, fontSize:13.5}}
+                    options={[
+                      {value:'F', label:'Donna'},
+                      {value:'M', label:'Uomo'},
+                      {value:'X', label:'Altro / N.D.'},
+                    ]}/>
+                </div>
+              </div>
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:14, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+                <AdmButton variant="primary" size="md" icon="check" disabled={!dirty} onClick={salva}>Salva modifiche</AdmButton>
               </div>
             </AdmCard>
           )}
+
+          {/* I LOCALI dell'utenza: possono essere più d'uno, e la scheda lo
+              dice per esteso — il primo è il principale, gli altri valgono
+              con le stesse credenziali. Prima qui c'erano due righe («Locale»
+              e «ID Locale») che sapevano raccontarne uno solo. */}
+          <AdmCard padding={20}>
+            <div style={{display:'flex', alignItems:'center', gap:8}}>
+              <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Locali associati</div>
+              <span style={{padding:'1px 8px', borderRadius:999, background:ADM.TEAL_SOFT, color:ADM.TEAL, fontSize:12.5, fontWeight:800}}>{locali.length}</span>
+            </div>
+            <div style={{fontSize:13, color:ADM.MUTED, marginTop:3, marginBottom:12}}>
+              {device
+                ? 'Un dispositivo appartiene al locale in cui è montato.'
+                : 'Un’utenza staff può essere associata a più locali: le stesse credenziali valgono su tutti quelli elencati. Il primo è il principale.'}
+            </div>
+            {locali.map((l, i) => (
+              <div key={l.id} style={{
+                display:'flex', alignItems:'center', gap:12, padding:'10px 0',
+                borderBottom: i === locali.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+              }}>
+                <div style={{width:34, height:34, borderRadius:8, background:ADM.PINK_SOFT, color:ADM.PINK, display:'grid', placeItems:'center', flexShrink:0}}>
+                  <BuIcons.store size={20}/>
+                </div>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, display:'flex', alignItems:'center', gap:7}}>
+                    <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</span>
+                    {i === 0 && locali.length > 1 && (
+                      <span style={{padding:'1px 7px', borderRadius:4, background:ADM.PINK_BG_SOFT, color:ADM.PINK_DARK, fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', flexShrink:0}}>Principale</span>
+                    )}
+                  </div>
+                  <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{l.citta}</div>
+                </div>
+                <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.6, color:ADM.MUTED}}>{l.id}</span>
+              </div>
+            ))}
+          </AdmCard>
 
           {/* Aree del gestionale coperte — solo per i ruoli personalizzati */}
           {s.ruolo === 'personalizzato' && s.aree && (
@@ -510,25 +662,54 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
           )}
 
           <AdmCard padding={20}>
-            <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>{s.ruolo === 'dispositivo' ? 'Dettagli dispositivo' : 'Dati anagrafici'}</div>
+            <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>{device ? 'Dettagli dispositivo' : 'Dettagli utenza'}</div>
             {/* Al posto del generico «Tipo»: che cosa è questa utenza, per
                 esteso — ruolo, nome del ruolo custom, o natura e modello del
                 dispositivo. */}
             <DataRow label="Descrizione utenza" value={staffDescrizioneUtenza(s)}/>
             <DataRow label="ID utenza" value={s.id} mono/>
-            {s.ruolo === 'dispositivo' && <DataRow label="Codice" value={s.nome} mono/>}
-            <DataRow label="Locale" value={`${s.localeNome} (${s.localeCitta})`}/>
-            <DataRow label="ID Locale" value={s.localeId} mono/>
-            <DataRow label={s.ruolo === 'dispositivo' ? 'Registrato il' : 'Assunto il'} value={fmtDate(s.dataAssunzione)}/>
+            {device && <DataRow label="Codice" value={s.nome} mono/>}
+            <DataRow label={device ? 'Registrato il' : 'Assunto il'} value={fmtDate(s.dataAssunzione)}/>
             <DataRow label="Ultima attività" value={fmtRelative(s.lastActive)}/>
             {/* Binario, come per gli altri contatti: o l'utenza è viva o non
                 lo è — «attivo oggi» lo racconta già «Ultima attività». */}
             <DataRow label="Stato" value={(Date.now() - s.lastActive) <= 7 * 86400000 ? 'Attivo' : 'Inattivo'} last/>
           </AdmCard>
         </div>
+        )}
+
+        {/* ═══ TAB STATISTICHE — solo utenze cameriere ═══ */}
+        {tab === 'statistiche' && (
+        <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
+          {/* Le tre cifre della persona in sala: da quanto lavora, quanto
+              vale un suo ordine, quanto le lasciano. Al centesimo — uno
+              scontrino medio «€ 23» non è uno scontrino medio. */}
+          <AdmCard padding={0}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+              <MiniStat first label="Mesi di lavoro" value={fmtNum(mesiLavoro)} sub={'Dal ' + fmtDate(s.dataAssunzione)}/>
+              <MiniStat label="Scontrino medio" value={camEur2(s.scontrinoMedio)} sub="Per ordine preso"/>
+              <MiniStat label="Mancia media" value={camEur2(s.manciaMedia)} sub="Per conto chiuso"/>
+            </div>
+          </AdmCard>
+
+          {/* L'operatività del mese, che prima stava sparsa in cima alla
+              scheda: qui, sotto le cifre di sala. */}
+          <AdmCard padding={0}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
+              <MiniStat first label="Ordini mese" value={fmtNum(s.ordiniMese)} sub="Presi al tavolo"/>
+              <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)} sub="Mese corrente"/>
+            </div>
+          </AdmCard>
+        </div>
+        )}
       </div>
     </div>
   );
 }
+
+// fmtEur taglia i decimali, e sulle cifre da sala i decimali sono la cifra:
+// scontrino e mancia si leggono al centesimo.
+const camEur2 = (n) => n == null ? '—'
+  : '€ ' + new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
 window.AdmCamerieriPage = AdmCamerieriPage;

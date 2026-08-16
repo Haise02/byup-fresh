@@ -138,22 +138,25 @@ const CONTATTI = (() => {
   }));
 
   STAFF.forEach(s => {
-    const device = s.ruolo === 'dispositivo';
     const ruolo = (RUOLI_STAFF.find(r => r.id === s.ruolo) || {}).label || s.ruolo;
-    // L'email dello staff vive sul dominio del suo locale, lo stesso da cui
-    // scrive il titolare: il mock non la porta e qui la si deriva, come fa
-    // il locale stesso. I dispositivi un'email non ce l'hanno: sono contatti
-    // del locale, non persone, e la colonna lo dice con un tratto.
     const loc = LOCALI.find(l => l.id === s.localeId);
-    const dominio = loc && loc.email ? loc.email.split('@')[1] : null;
+    // Un'utenza staff può essere associata a PIÙ locali (il primo è il
+    // principale): la si deve trovare cercando uno qualunque di essi, e la
+    // proprietà «Locali associati» li mette in colonna e nei filtri.
+    const locali = s.locali || [];
     rows.push({
       key: 'stf-' + s.id, tipo: 'staff', ref: s,
       nome: s.nome,
-      cerca: ruolo + ' ' + s.localeNome + ' ' + s.localeCitta,
-      // Lo staff sta dove sta il suo locale: città e regione sono le sue.
+      cerca: ruolo + ' ' + locali.map(x => x.nome + ' ' + x.citta).join(' '),
+      // Lo staff sta dove sta il suo locale PRINCIPALE: città e regione sono
+      // le sue; l'elenco completo dei locali vive nella proprietà dedicata.
       citta: s.localeCitta, regione: loc ? loc.regione : '—',
-      email: (device || !dominio) ? null
-        : s.nome.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.') + '@' + dominio,
+      locali: locali.map(x => x.nome).join(' · ') || null,
+      // L'email vive nel mock dello staff (dominio del locale principale, lo
+      // stesso da cui scrive il titolare) ed è la stessa che si legge e si
+      // corregge nella tab Anagrafica della scheda. I dispositivi un'email
+      // non ce l'hanno: sono contatti del locale, non persone — un tratto.
+      email: s.email,
       // Lo staff non ha un ciclo di vita commerciale — trattino — con una
       // eccezione: le utenze CANCELLATE dal locale restano in rubrica come
       // «Eliminato». Il mock non porta il flag: qualcuna, stabile sull'id.
