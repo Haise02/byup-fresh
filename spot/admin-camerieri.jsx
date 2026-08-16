@@ -538,7 +538,32 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
 
   const tabs = [{ id: 'anagrafica', label: 'Anagrafica' }];
   if (s.ruolo === 'cameriere') tabs.push({ id: 'statistiche', label: 'Statistiche' });
+  // Anche l'utenza staff esprime consensi: la tab c'è per le PERSONE, un
+  // dispositivo non ha niente da consentire.
+  if (!device) tabs.push({ id: 'consensi', label: 'Consensi' });
   const mesiLavoro = Math.max(1, Math.floor((Date.now() - s.dataAssunzione) / (30.44 * 86400000)));
+
+  // I consensi della persona, stabili sul seme dell'utenza: lo stato per
+  // codice e i documenti contro cui vale — la stessa veste delle schede
+  // locale e utente app (DrwConsensiPannello).
+  const consensiStaff = (() => {
+    const ss = hubSeme('cns-' + s.id);
+    const giorno = (k, max) => new Date(Math.min(Date.now() - 86400000,
+      s.dataAssunzione.getTime() + ((ss >> k) % max) * 86400000));
+    return [
+      { id: 'A6', label: 'Marketing',
+        desc: 'Comunicazioni promozionali di byup alla persona',
+        deciso: ss % 6 !== 0, ok: ss % 6 !== 0 && ss % 3 !== 0, quando: giorno(2, 90), versione: '1.0' },
+      { id: 'S1', label: 'Comunicazioni di prodotto e formazione',
+        desc: 'Novità del gestionale e materiale formativo per l\'utenza staff',
+        deciso: true, ok: ss % 4 !== 0, quando: giorno(4, 60), versione: '1.0' },
+    ];
+  })();
+  const documentiStaff = [
+    { nome: 'Informativa privacy utenze staff', versione: '1.0',
+      nota: 'Presa visione alla creazione dell\'utenza · è la versione scritta accanto a ogni consenso',
+      quando: s.dataAssunzione, rif: consensiStaff.filter(c => c.deciso).map(c => c.id).join(', ') || '—' },
+  ];
 
   return (
     <div onClick={pieno ? undefined : onClose} style={pieno ? {} : {
@@ -723,6 +748,14 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
               <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)} sub="Mese corrente"/>
             </div>
           </AdmCard>
+        </div>
+        )}
+
+        {/* ═══ TAB CONSENSI — la stessa veste delle altre schede ═══ */}
+        {tab === 'consensi' && (
+        <div style={{flex:1, overflow:'auto', background:ADM.PANEL_SOFT}}>
+          <DrwConsensiPannello righe={consensiStaff} documenti={documentiStaff}
+            nota="Le comunicazioni operative dell'utenza (turni, avvisi del locale, sicurezza) viaggiano senza consenso: sono necessarie al servizio."/>
         </div>
         )}
       </div>

@@ -113,7 +113,9 @@ function AdmTabBar({ tabs, active, onChange, variant = 'underline' }) {
     );
   }
   return (
-    <div style={{display:'flex', gap:4, borderBottom:`1px solid ${ADM.BORDER}`, padding:'0 0'}}>
+    // flexWrap: una scheda con molte tab (il dettaglio locale ne ha undici)
+    // manda le ultime a capo invece di tagliarle fuori dallo schermo.
+    <div style={{display:'flex', gap:4, borderBottom:`1px solid ${ADM.BORDER}`, padding:'0 0', flexWrap:'wrap'}}>
       {tabs.map(t => {
         const isActive = active === t.id;
         return (

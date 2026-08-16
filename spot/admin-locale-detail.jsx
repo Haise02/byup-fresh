@@ -57,29 +57,38 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
         </div>
 
         {/* La scheda si legge come un contatto di CRM: prima chi è
-            (anagrafica e proprietà libere), poi come va, poi i fascicoli.
-            Le certificazioni hanno la LORO tab: prima si andavano a cercare
-            dentro i ticket dell'Assistenza. */}
+            (anagrafica, dati fiscali, proprietà libere), poi come va
+            (panoramica, statistiche, log), poi i fascicoli (consensi,
+            certificazioni, contratti, fatturazione), e per ultima la
+            gestione (Account, dove vive la sospensione). */}
         <AdmTabBar tabs={[
           { id:'anagrafica', label:'Anagrafica' },
+          { id:'fiscale', label:'Dati fiscali' },
           { id:'proprieta', label:'Proprietà' },
           { id:'panoramica', label:'Panoramica' },
-          { id:'attivita', label:'Attività' },
+          { id:'statistiche', label:'Statistiche' },
+          { id:'attivita', label:'Log' },
+          { id:'consensi', label:'Consensi' },
           { id:'certificazioni', label:'Certificazioni',
             ...(CERTIFICAZIONI.filter(c=>c.localeId===l.id).length
               ? { badge: CERTIFICAZIONI.filter(c=>c.localeId===l.id).length } : {}) },
           { id:'contratti', label:'Contratti' },
-          { id:'fatturazione', label:'Fatturazione & Piano' },
+          { id:'fatturazione', label:'Fatturazione' },
+          { id:'account', label:'Account' },
         ]} active={tab} onChange={setTab}/>
 
         <div style={{flex:1, overflow:'auto', background: ADM.PANEL_SOFT}}>
           {tab==='panoramica' && <DrwPanoramica locale={l}/>}
           {tab==='anagrafica' && <DrwAnagrafica locale={l}/>}
+          {tab==='fiscale' && <DrwFiscali locale={l}/>}
+          {tab==='statistiche' && <DrwStatisticheLocale locale={l}/>}
+          {tab==='consensi' && <DrwConsensiLocale locale={l}/>}
           {tab==='proprieta' && <DrwProprieta locale={l}/>}
           {tab==='attivita' && <DrwAttivita locale={l}/>}
           {tab==='certificazioni' && <DrwCertificazioni locale={l}/>}
           {tab==='contratti' && <DrwContratti locale={l}/>}
           {tab==='fatturazione' && <DrwFatturazione locale={l}/>}
+          {tab==='account' && <DrwAccount locale={l}/>}
         </div>
       </div>
 
@@ -400,8 +409,33 @@ function FunnelStepper({ locale: l, variant = 'full' }) {
   );
 }
 
+// Gli stili condivisi dei form del dettaglio locale.
+const drwInp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
+const drwMono = {...drwInp, fontFamily:'ui-monospace,monospace', fontSize:12.5};
+const drwLab = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
+
+// I locali associati all'UTENZA del titolare: l'utenza e il locale sono due
+// cose distinte — questo fascicolo riguarda QUESTO locale, ma chi lo
+// amministra può averne altri. Derivazione stabile: un titolare su quattro.
+function drwLocaliAssociati(l) {
+  const out = [{ id: l.id, nome: l.nome, citta: l.citta }];
+  const s = hubSeme('grp-' + l.id);
+  if (s % 4 === 0) {
+    const attivi = LOCALI.filter(x => x.stato === 'active' && x.id !== l.id);
+    const n = 1 + (s % 2);
+    for (let k = 0; k < n; k++) {
+      const alt = attivi[(s >> (3 + k * 4)) % Math.max(attivi.length, 1)];
+      if (alt && !out.some(x => x.id === alt.id)) out.push({ id: alt.id, nome: alt.nome, citta: alt.citta });
+    }
+  }
+  return out;
+}
+
 function DrwAnagrafica({ locale: l }) {
-  const FIELDS = ['nome','tipo','indirizzo','cap','citta','regione','titolare','email','tel','coperti','piva','cf','sdi'];
+  // I campi sono QUELLI dell'onboarding (Nome del locale, indirizzo con
+  // civico, CAP, città, telefono) più il profilo: quello che il locale ha
+  // compilato di là si legge e si corregge qui. Il fiscale ha la SUA tab.
+  const FIELDS = ['nome','tipo','indirizzo','cap','citta','regione','titolare','email','tel','coperti'];
   const [form, setForm] = useStateDrw(Object.fromEntries(FIELDS.map(k => [k, l[k] ?? ''])));
   const dirty = FIELDS.some(k => String(form[k]) !== String(l[k] ?? ''));
   const [saved, setSaved] = useStateDrw(false);
@@ -410,35 +444,37 @@ function DrwAnagrafica({ locale: l }) {
     Object.assign(l, { ...form, coperti: Number(form.coperti) || l.coperti });
     setSaved(true); setTimeout(()=>setSaved(false), 2200);
   };
-  const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
-  const mono = {...inp, fontFamily:'ui-monospace,monospace', fontSize:12.5};
-  const lab = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
   const Fld = ({k, label, span, monoStyle, type}) => (
     <div style={span ? {gridColumn:'1 / -1'} : undefined}>
-      <label style={lab}>{label}</label>
-      <input type={type || 'text'} value={form[k]} onChange={F(k)} style={monoStyle ? mono : inp}/>
+      <label style={drwLab}>{label}</label>
+      <input type={type || 'text'} value={form[k]} onChange={F(k)} style={monoStyle ? drwMono : drwInp}/>
     </div>
   );
+  const locali = drwLocaliAssociati(l);
   return (
-    <div style={{padding:'20px 24px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
-      {/* La carta d'identità del rapporto — quello che prima stava
-          appiccicato al nome in testata: codice, piano, stato e data
-          d'iscrizione sono anagrafe, e si leggono qui. */}
-      <AdmCard padding={20} style={{gridColumn:'span 2'}}>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+    <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
+      <AdmCard padding={20}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+          <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Anagrafica locale</div>
+          {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
+        </div>
+        {/* La carta d'identità del rapporto — codice, piano, stato, data di
+            iscrizione — INCORPORATA in testa alla stessa card dei campi: è
+            anagrafe anche lei, non merita una card a parte. */}
+        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14, marginBottom:14, paddingBottom:14, borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
           <div>
-            <label style={lab}>Codice locale</label>
-            <div style={{...mono, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+            <label style={drwLab}>Codice locale</label>
+            <div style={{...drwMono, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
               {l.id}
               <span style={{fontSize:10.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:ADM.MUTED_SOFT}}>non modificabile</span>
             </div>
           </div>
           <div>
-            <label style={lab}>Piano</label>
+            <label style={drwLab}>Piano</label>
             <div style={{display:'flex', alignItems:'center', minHeight:36}}><AdmPlanBadge piano={l.piano}/></div>
           </div>
           <div>
-            <label style={lab}>Stato</label>
+            <label style={drwLab}>Stato</label>
             <div style={{display:'flex', alignItems:'center', minHeight:36}}>
               <AdmBadge color={l.stato === 'active' ? 'OK' : 'PLAN_FREE'} size="xs">
                 {l.stato === 'active' ? 'Attivo' : 'Inattivo'}
@@ -446,19 +482,15 @@ function DrwAnagrafica({ locale: l }) {
             </div>
           </div>
           <div>
-            <label style={lab}>Iscritto dal</label>
-            <div style={{...inp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{fmtDate(l.dataIscrizione)}</div>
+            <label style={drwLab}>Iscritto dal</label>
+            <div style={{...drwInp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{fmtDate(l.dataIscrizione)}</div>
           </div>
         </div>
-      </AdmCard>
-
-      <AdmCard padding={20}>
-        <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Anagrafica locale</div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
-          {Fld({k:'nome', label:'Ragione sociale', span:true})}
+          {Fld({k:'nome', label:'Nome del locale (insegna)', span:true})}
           {Fld({k:'tipo', label:'Tipologia'})}
           {Fld({k:'titolare', label:'Titolare'})}
-          {Fld({k:'indirizzo', label:'Indirizzo', span:true})}
+          {Fld({k:'indirizzo', label:'Indirizzo e civico', span:true})}
           {Fld({k:'cap', label:'CAP', monoStyle:true})}
           {Fld({k:'citta', label:'Città'})}
           {Fld({k:'regione', label:'Regione'})}
@@ -466,21 +498,140 @@ function DrwAnagrafica({ locale: l }) {
           {Fld({k:'email', label:'Email', monoStyle:true, span:true})}
           {Fld({k:'tel', label:'Telefono', monoStyle:true})}
         </div>
+        <div style={{display:'flex', justifyContent:'flex-end', marginTop:14, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+          <AdmButton variant="primary" size="md" icon="check" disabled={!dirty} onClick={saveForm}>Salva modifiche</AdmButton>
+        </div>
+      </AdmCard>
+
+      {/* L'utenza del titolare e il locale sono DUE cose: qui si dice su
+          quali altri locali vale la stessa utenza — come nella scheda staff. */}
+      <AdmCard padding={20}>
+        <div style={{display:'flex', alignItems:'center', gap:8}}>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Locali associati all'utenza</div>
+          <span style={{padding:'1px 8px', borderRadius:999, background:ADM.TEAL_SOFT, color:ADM.TEAL, fontSize:12.5, fontWeight:800}}>{locali.length}</span>
+        </div>
+        <div style={{fontSize:13, color:ADM.MUTED, marginTop:3, marginBottom:12}}>
+          L'utenza del titolare e il locale sono due cose distinte: questo fascicolo riguarda solo {l.nome},
+          ma le stesse credenziali {locali.length > 1 ? 'amministrano anche i locali qui sotto' : 'potrebbero amministrare più locali'}.
+        </div>
+        {locali.map((x, i) => (
+          <div key={x.id} style={{
+            display:'flex', alignItems:'center', gap:12, padding:'10px 0',
+            borderBottom: i === locali.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+          }}>
+            <div style={{width:34, height:34, borderRadius:8, background:ADM.PINK_SOFT, color:ADM.PINK, display:'grid', placeItems:'center', flexShrink:0}}>
+              <BuIcons.store size={20}/>
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, display:'flex', alignItems:'center', gap:7}}>
+                <span style={{whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{x.nome}</span>
+                {i === 0 && (
+                  <span style={{padding:'1px 7px', borderRadius:4, background:ADM.PINK_BG_SOFT, color:ADM.PINK_DARK, fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em', flexShrink:0}}>Questo fascicolo</span>
+                )}
+              </div>
+              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{x.citta}</div>
+            </div>
+            <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.6, color:ADM.MUTED}}>{x.id}</span>
+          </div>
+        ))}
+      </AdmCard>
+    </div>
+  );
+}
+
+// ─── Dati fiscali — la tab dedicata ─────────────────────────────────────────
+// Gli stessi campi di Impostazioni → Dati fiscali del gestionale: identità
+// fiscale (P.IVA verificata AdE, regime, ATECO), fatturazione elettronica
+// (SDI, PEC, REA) e incassi (IBAN gestito da Stripe). Prima vivevano in una
+// mezza card dentro l'anagrafica; il fiscale è un mestiere a parte.
+function DrwFiscali({ locale: l }) {
+  // I campi che il mock del locale non porta si derivano stabili dall'id,
+  // ricalcando i default del gestionale.
+  const s = hubSeme('fis-' + l.id);
+  if (l.regime === undefined) l.regime = ['Ordinario', 'Ordinario', 'Ordinario', 'Forfettario', 'Agricolo / Speciale'][s % 5];
+  if (l.ateco === undefined) l.ateco = '56.10.' + String(11 + (s % 9)).padStart(2, '0');
+  if (l.pec === undefined) l.pec = 'fatture@pec.' + (l.email || 'locale@x.it').split('@')[1];
+  if (l.rea === undefined) l.rea = (l.citta || 'RM').slice(0, 2).toUpperCase() + '-' + (1000000 + s % 900000);
+
+  const FIELDS = ['piva', 'cf', 'regime', 'ateco', 'sdi', 'pec', 'rea'];
+  const [form, setForm] = useStateDrw(Object.fromEntries(FIELDS.map(k => [k, l[k] ?? ''])));
+  const dirty = FIELDS.some(k => String(form[k]) !== String(l[k] ?? ''));
+  const [saved, setSaved] = useStateDrw(false);
+  const F = (k) => (e) => { setSaved(false); setForm(prev => ({ ...prev, [k]: e.target && e.target.value !== undefined ? e.target.value : e })); };
+  const saveForm = () => { Object.assign(l, form); setSaved(true); setTimeout(()=>setSaved(false), 2200); };
+
+  return (
+    <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
+      <AdmCard padding={20}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+          <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Identità fiscale</div>
+          {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
+          <div style={{gridColumn:'1 / -1'}}>
+            <label style={drwLab}>Ragione sociale</label>
+            <div style={{...drwInp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{l.nome} S.r.l.</div>
+          </div>
+          <div>
+            <label style={drwLab}>Partita IVA</label>
+            <div style={{position:'relative'}}>
+              <input value={form.piva} onChange={F('piva')} style={{...drwMono, paddingRight:110}}/>
+              {/* La spunta del gestionale: la P.IVA è passata dal controllo AdE. */}
+              <span style={{position:'absolute', right:9, top:'50%', transform:'translateY(-50%)', display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:999, background:ADM.OK_SOFT, color:ADM.OK, fontSize:11, fontWeight:800}}>
+                <BuIcons.check size={12}/> Verificata (AdE)
+              </span>
+            </div>
+          </div>
+          <div>
+            <label style={drwLab}>Codice fiscale</label>
+            <input value={form.cf} onChange={F('cf')} style={drwMono}/>
+          </div>
+          <div>
+            <label style={drwLab}>Regime fiscale</label>
+            <AdmSelect value={form.regime} onChange={F('regime')} block
+              buttonStyle={{padding:'8px 11px', borderRadius:8, fontSize:13.5}}
+              options={[
+                {value:'Ordinario', label:'Ordinario'},
+                {value:'Forfettario', label:'Forfettario'},
+                {value:'Agricolo / Speciale', label:'Agricolo / Speciale'},
+              ]}/>
+          </div>
+          <div>
+            <label style={drwLab}>Codice ATECO</label>
+            <input value={form.ateco} onChange={F('ateco')} style={drwMono}/>
+          </div>
+        </div>
       </AdmCard>
 
       <AdmCard padding={20}>
-        <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Dati fiscali</div>
-        <div style={{display:'flex', flexDirection:'column', gap:12}}>
-          {Fld({k:'piva', label:'Partita IVA', monoStyle:true})}
-          {Fld({k:'cf', label:'Codice fiscale', monoStyle:true})}
-          <Fld k="sdi" label="Codice SDI / PEC" monoStyle/>
+        <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:14}}>Fatturazione elettronica</div>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
           <div>
-            <label style={lab}>Regime fiscale</label>
-            <div style={{...inp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>Ordinario</div>
+            <label style={drwLab}>Codice SDI</label>
+            <input value={form.sdi} onChange={F('sdi')} style={drwMono}/>
           </div>
           <div>
-            <label style={lab}>IBAN</label>
-            <div style={{...mono, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+            <label style={drwLab}>PEC</label>
+            <input value={form.pec} onChange={F('pec')} style={drwMono}/>
+          </div>
+          <div>
+            <label style={drwLab}>REA</label>
+            <input value={form.rea} onChange={F('rea')} style={drwMono}/>
+          </div>
+          <div>
+            <label style={drwLab}>Sede legale</label>
+            <div style={{...drwInp, background:ADM.PANEL_SOFT, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.indirizzo}, {l.cap} {l.citta}</div>
+          </div>
+        </div>
+      </AdmCard>
+
+      <AdmCard padding={20}>
+        <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Incassi</div>
+        <div style={{fontSize:12.5, color:ADM.MUTED, marginBottom:14}}>Le coordinate di accredito vivono su Stripe: qui si leggono, non si toccano.</div>
+        <div style={{display:'flex', flexDirection:'column', gap:12}}>
+          <div>
+            <label style={drwLab}>IBAN</label>
+            <div style={{...drwMono, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
               IT60 X054 2811 1010 0000 ******78
               <span style={{fontSize:10.5, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:ADM.MUTED_SOFT}}>gestito da Stripe</span>
             </div>
@@ -488,12 +639,7 @@ function DrwAnagrafica({ locale: l }) {
         </div>
       </AdmCard>
 
-      {/* Qui viveva una card «Certificazioni» con tre voci scritte a mano:
-          era il posto delle certificazioni PRIMA che avessero la loro tab, e
-          raccontava dati finti accanto a quella vera. Via: il fascicolo è
-          uno, nella tab Certificazioni. */}
-      <div style={{gridColumn:'span 2', display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10}}>
-        {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
+      <div style={{display:'flex', justifyContent:'flex-end'}}>
         <AdmButton variant="primary" size="md" icon="check" disabled={!dirty} onClick={saveForm}>Salva modifiche</AdmButton>
       </div>
     </div>
@@ -509,35 +655,316 @@ function DataRow({ label, value, mono, last }) {
   );
 }
 
-function DrwAttivita({ locale: l }) {
-  const events = [
-    { type:'order', text:'Nuovo ordine #2841 · €42,50', when: new Date(Date.now() - 600000) },
-    { type:'reservation', text:'Prenotazione confermata · 4 persone · 20:30', when: new Date(Date.now() - 1800000) },
-    { type:'login', text:`Login da ${l.titolare}`, when: l.lastLogin },
-    { type:'menu', text:'Aggiornato menu · 3 nuovi piatti', when: new Date(Date.now() - 86400000 * 2) },
-    { type:'order', text:'Nuovo ordine #2840 · €28,00', when: new Date(Date.now() - 86400000 * 2 - 3600000) },
-    { type:'support', text:'Richiesta supporto · Stampante scontrini', when: new Date(Date.now() - 86400000 * 3) },
-    { type:'plan', text:`Sottoscritto piano ${PIANI.find(p=>p.id===l.piano).label}`, when: l.dataIscrizione },
+// ─── Statistiche — le cifre da sala del TITOLARE ────────────────────────────
+// Anche l'utenza del locale prende ordini al tavolo, come un cameriere: le
+// sue statistiche sono le STESSE della scheda staff — mesi di lavoro,
+// scontrino medio, mancia media, e sotto l'operatività del mese.
+function DrwStatisticheLocale({ locale: l }) {
+  const s = hubSeme('sta-' + l.id) % 1000;
+  const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
+  const mesi = Math.max(1, Math.floor((Date.now() - l.dataIscrizione.getTime()) / (30.44 * 86400000)));
+  const scontrino = 14 + Math.round(r(1) * 52) / 2;
+  const mancia = Math.round((0.8 + r(2) * 3.4) * 10) / 10;
+  const ordiniMese = 40 + Math.floor(r(3) * 280);
+  const coperti = 60 + Math.floor(r(4) * 380);
+  // camEur2 è il formatter delle cifre da sala (admin-camerieri): al centesimo.
+  return (
+    <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
+      <AdmCard padding={0}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+          <MiniStat first label="Mesi di lavoro" value={fmtNum(mesi)} sub={'Dal ' + fmtDate(l.dataIscrizione)}/>
+          <MiniStat label="Scontrino medio" value={camEur2(scontrino)} sub="Per ordine preso"/>
+          <MiniStat label="Mancia media" value={camEur2(mancia)} sub="Per conto chiuso"/>
+        </div>
+      </AdmCard>
+      <AdmCard padding={0}>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
+          <MiniStat first label="Ordini mese" value={fmtNum(ordiniMese)} sub="Presi al tavolo"/>
+          <MiniStat label="Coperti gestiti" value={fmtNum(coperti)} sub="Mese corrente"/>
+        </div>
+      </AdmCard>
+    </div>
+  );
+}
+
+// ─── Consensi — il pannello condiviso ───────────────────────────────────────
+// Lo stesso vestito della scheda utente app, e lo usano anche il locale e lo
+// staff: righe {id, label, desc, deciso, ok, quando, versione} e documenti
+// {nome, versione, nota, quando, rif}. Una veste sola per tre schede.
+function DrwConsensiPannello({ righe, documenti, nota }) {
+  return (
+    <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
+      <AdmCard padding={0}>
+        <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Consensi espressi</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Lo stato corrente per ciascun codice, con la versione dell'informativa contro cui vale.</div>
+        </div>
+        {righe.map((c) => (
+          <div key={c.id} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+            <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.5, fontWeight:700, color:ADM.TEXT, width:52, flexShrink:0}}>{c.id}</span>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{c.label}</div>
+              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{c.desc}</div>
+            </div>
+            <div style={{textAlign:'right', flexShrink:0}}>
+              {c.deciso
+                ? <span style={{padding:'3px 10px', borderRadius:5, background: c.ok ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: c.ok ? ADM.OK : ADM.MUTED, fontSize:13, fontWeight:700}}>{c.ok ? 'Sì' : 'No'}</span>
+                : <span style={{padding:'3px 10px', borderRadius:5, background:ADM.NEUTRAL_SOFT, color:ADM.MUTED_SOFT, fontSize:13, fontWeight:700}}>Mai chiesto</span>}
+              {c.deciso && <div style={{fontSize:12, color:ADM.MUTED, marginTop:3}}>{fmtDate(c.quando)} · Informativa v{c.versione}</div>}
+            </div>
+          </div>
+        ))}
+        {nota && (
+          <div style={{padding:'11px 20px', fontSize:12.5, color:ADM.MUTED_SOFT, lineHeight:1.5}}>{nota}</div>
+        )}
+      </AdmCard>
+
+      <AdmCard padding={0}>
+        <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Documenti sottoscritti</div>
+          <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Le versioni contro cui valgono i consensi qui sopra.</div>
+        </div>
+        {documenti.map((d, i, arr) => (
+          <div key={d.nome} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+            <div style={{width:34, height:34, borderRadius:8, background:ADM.PINK_SOFT, color:ADM.PINK, display:'grid', placeItems:'center', flexShrink:0}}>
+              <BuIcons.filePdf size={18}/>
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{d.nome} <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED, fontWeight:600}}>v{d.versione}</span></div>
+              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{d.nota}</div>
+            </div>
+            <div style={{textAlign:'right', flexShrink:0}}>
+              <div style={{fontSize:12.6, color:ADM.MUTED}}>{fmtDate(d.quando)}</div>
+              {d.rif && <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:2}}>{d.rif}</div>}
+            </div>
+          </div>
+        ))}
+      </AdmCard>
+    </div>
+  );
+}
+
+// ─── Consensi del locale ────────────────────────────────────────────────────
+// Lo stato di email e SMS è LO STESSO delle proprietà CRM della rubrica
+// (stesse formule di hubArricchisci sul seme della riga 'loc-…'): il filtro
+// «Consenso email è sì» e questa tab non possono raccontare due cose diverse.
+function DrwConsensiLocale({ locale: l }) {
+  const s = hubSeme('loc-' + l.id);
+  const giorno = (k, max) => new Date(Math.min(Date.now() - 86400000,
+    l.dataIscrizione.getTime() + ((s >> k) % max) * 86400000));
+  const righe = [
+    { id: 'M-EM',  label: 'Comunicazioni commerciali via email',
+      desc: 'Novità di prodotto, promozioni e newsletter ai referenti del locale',
+      deciso: true, ok: s % 5 !== 0, quando: giorno(2, 120), versione: '1.0' },
+    { id: 'M-SMS', label: 'Comunicazioni via SMS',
+      desc: 'Avvisi commerciali sul numero del locale',
+      deciso: true, ok: s % 3 === 0, quando: giorno(4, 120), versione: '1.0' },
+    { id: 'M-REF', label: 'Nome e logo come referenza',
+      desc: 'Uso del locale nei materiali marketing di byup (case study, sito)',
+      deciso: s % 7 !== 0, ok: s % 7 !== 0 && s % 4 === 0, quando: giorno(6, 200), versione: '1.0' },
   ];
-  const icons = { order:'receipt', reservation:'calendar', login:'user', menu:'utensils', support:'chat', plan:'card' };
+  const documenti = [
+    { nome: 'Informativa privacy titolari', versione: '1.0',
+      nota: 'Presa visione alla registrazione · è la versione scritta accanto a ogni consenso',
+      quando: l.dataIscrizione, rif: righe.filter(c => c.deciso).map(c => c.id).join(', ') || '—' },
+  ];
+  return <DrwConsensiPannello righe={righe} documenti={documenti}
+    nota="Le comunicazioni di servizio (fatture, avvisi tecnici, sicurezza) viaggiano senza consenso: sono esecuzione del contratto. Contratti e informative con le versioni accettate vivono nella tab Contratti."/>;
+}
+
+// ─── Account — la gestione del rapporto ─────────────────────────────────────
+// La sospensione del servizio stava dentro Contratti, ma quella tab è un
+// fascicolo che si LEGGE: l'azione di gestione vive qui, con il suo popup
+// (motivo tipizzato art. 13, nota obbligatoria) e la scrittura nell'audit.
+function DrwAccount({ locale: l }) {
+  const [, ridisegna] = useStateDrw(0);
+  const [popup, setPopup] = useStateDrw(false);        // 'sospendi' | 'revoca' | false
+  const [motivo, setMotivo] = useStateDrw('morosita');
+  const [nota, setNota] = useStateDrw('');
+  const sospAttiva = SOSPENSIONI.find(x => x.soggettoId === l.id && !x.revoca);
+
+  const scrivi = (action, target, icon, color) => {
+    AUDIT_EVENTS.unshift({
+      who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
+      action, target, icon, color, tipo: 'contratto', when: new Date(),
+    });
+  };
+  const confermaSospensione = () => {
+    if (!nota.trim()) return;
+    // Art. 4 contro art. 13: la morosità passa dalla diffida (la sospensione
+    // scatta da sola 15 giorni dopo), gli altri motivi sono immediati.
+    const ora = new Date();
+    SOSPENSIONI.unshift(motivo === 'morosita'
+      ? { soggettoId:l.id, motivo, nota:nota.trim(), diffida:ora, sospesa:null, decisaDa:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', revoca:null }
+      : { soggettoId:l.id, motivo, nota:nota.trim(), diffida:null, sospesa:ora, decisaDa:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', revoca:null });
+    scrivi(motivo === 'morosita' ? 'ha inviato la diffida a' : 'ha sospeso il servizio di',
+      `${l.nome} · ${ctrMotivoLabel(motivo)}`, 'lock', 'DANGER');
+    setPopup(false); setNota(''); ridisegna(x => x + 1);
+  };
+  const confermaRevoca = () => {
+    if (!nota.trim() || !sospAttiva) return;
+    sospAttiva.revoca = { quando:new Date(), who:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', nota:nota.trim() };
+    scrivi('ha revocato la sospensione di', l.nome, 'check', 'OK');
+    setPopup(false); setNota(''); ridisegna(x => x + 1);
+  };
+
+  return (
+    <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
+      <AdmCard padding={18}>
+        <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+          <div style={{flex:1, minWidth:220}}>
+            <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Sospensione del servizio</div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
+              {sospAttiva
+                ? (sospAttiva.sospesa
+                    ? `In corso dal ${fmtDate(sospAttiva.sospesa)} · ${ctrMotivoLabel(sospAttiva.motivo)} · decisa da ${sospAttiva.decisaDa}`
+                    : `Diffida del ${fmtDate(sospAttiva.diffida)} · la sospensione scatta il ${fmtDate(new Date(sospAttiva.diffida.getTime() + 15 * 86400000))}`)
+                : 'Nessuna sospensione in corso. Motivi tipizzati dall\'art. 13; la morosità passa dalla diffida dell\'art. 4. Ogni decisione resta a registro nei Contratti.'}
+            </div>
+          </div>
+          {sospAttiva
+            ? <AdmButton variant="secondary" size="sm" icon="check" onClick={() => { setPopup('revoca'); setNota(''); }}>Revoca sospensione</AdmButton>
+            : <AdmButton variant="danger" size="sm" icon="lock" onClick={() => { setPopup('sospendi'); setNota(''); setMotivo('morosita'); }}>Sospendi</AdmButton>}
+        </div>
+      </AdmCard>
+
+      {/* Sospensione / revoca: motivo da elenco CHIUSO e nota OBBLIGATORIA —
+          un'azione che tocca un contratto senza una ragione scritta non è
+          auditabile. */}
+      {popup && (
+        <div onClick={() => setPopup(false)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e => e.stopPropagation()} style={{width:460, maxWidth:'94%', background:'#fff', borderRadius:14,
+            boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', padding:22}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>
+              {popup === 'revoca' ? 'Revoca la sospensione' : 'Sospendi il servizio'}
+            </div>
+            <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
+              {popup === 'revoca'
+                ? 'La revoca riattiva il servizio e resta a registro con la sua motivazione.'
+                : 'Per la morosità parte la diffida: la sospensione scatta da sola dopo 15 giorni (art. 4). Gli altri motivi sospendono con effetto immediato (art. 13).'}
+            </div>
+            {popup === 'sospendi' && (
+              <div style={{marginBottom:12}}>
+                <span style={drwLab}>Motivo (art. 13)</span>
+                <AdmSelect value={motivo} onChange={setMotivo} options={CTR_MOTIVI} block/>
+              </div>
+            )}
+            <div style={{marginBottom:14}}>
+              <span style={drwLab}>Nota obbligatoria</span>
+              <textarea value={nota} onChange={e => setNota(e.target.value)} rows={3}
+                placeholder={popup === 'revoca' ? 'Perché il motivo è rientrato' : 'I fatti che motivano la decisione'}
+                style={Object.assign({}, drwInp, {resize:'vertical'})}/>
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="sm" onClick={() => setPopup(false)}>Annulla</AdmButton>
+              {popup === 'revoca'
+                ? <AdmButton variant="primary" size="sm" icon="check" disabled={!nota.trim()} onClick={confermaRevoca}>Revoca</AdmButton>
+                : <AdmButton variant="danger" size="sm" icon="lock" disabled={!nota.trim()} onClick={confermaSospensione}>
+                    {motivo === 'morosita' ? 'Invia diffida' : 'Sospendi ora'}
+                  </AdmButton>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+window.DrwConsensiPannello = DrwConsensiPannello;
+
+// ─── Log — gli eventi del locale, nella veste della scheda utente app ───────
+// Niente icone: un log si scandisce per testo e data, con la chiave tecnica
+// in chiaro — la stessa che si ritrova negli export — e il filtro per data.
+const DRW_EVENTI = {
+  order_received:        'Ordine ricevuto',
+  reservation_confirmed: 'Prenotazione confermata',
+  staff_login:           'Accesso al gestionale',
+  menu_updated:          'Menu aggiornato',
+  support_request:       'Richiesta di assistenza',
+  plan_subscribed:       'Piano sottoscritto',
+  payout_sent:           'Accredito incassi',
+};
+
+function DrwAttivita({ locale: l }) {
+  // Deterministico sul seme del locale, con i due eventi VERI in mezzo:
+  // l'ultimo login del titolare e la sottoscrizione del piano.
+  const eventi = (() => {
+    const s = hubSeme('log-' + l.id) % 1000;
+    const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
+    const out = [];
+    const push = (tipo, quando, dettaglio) => out.push({ id: l.id + '-E' + out.length, tipo, quando, dettaglio });
+    let ore = 1 + Math.floor(r(1) * 12);
+    const n = 9 + Math.floor(r(2) * 6);
+    for (let i = 0; i < n; i++) {
+      const rr = r(10 + i * 3);
+      const tipo = ['order_received', 'order_received', 'order_received', 'reservation_confirmed', 'menu_updated', 'staff_login', 'payout_sent'][Math.floor(rr * 6.999)];
+      const dett = {
+        order_received:        `#${2800 + Math.floor(rr * 90)} · € ${(14 + rr * 52).toFixed(2).replace('.', ',')}`,
+        reservation_confirmed: `${2 + Math.floor(rr * 6)} persone · ${19 + Math.floor(rr * 3)}:${rr < 0.5 ? '30' : '00'}`,
+        menu_updated:          `${1 + Math.floor(rr * 4)} piatti nuovi`,
+        staff_login:           `${l.titolare}`,
+        payout_sent:           `€ ${(180 + rr * 900).toFixed(2).replace('.', ',')} · Stripe`,
+      }[tipo];
+      push(tipo, new Date(Date.now() - ore * 3600000), dett);
+      ore += 3 + Math.floor(r(11 + i * 3) * 40);
+    }
+    if (r(90) < 0.4) push('support_request', new Date(Date.now() - (40 + Math.floor(r(91) * 400)) * 3600000), 'Stampante scontrini');
+    push('staff_login', l.lastLogin, l.titolare);
+    push('plan_subscribed', l.dataIscrizione, (PIANI.find(p => p.id === l.piano) || {}).label || l.piano);
+    return out.sort((a, b) => b.quando - a.quando);
+  })();
+
+  const [dal, setDal] = useStateDrw('');
+  const [al, setAl] = useStateDrw('');
+  const filtrati = eventi.filter(e =>
+    (!dal || e.quando >= new Date(dal)) &&
+    (!al || e.quando < new Date(new Date(al).getTime() + 86400000)));
+
   return (
     <div style={{padding:'20px 24px'}}>
-      <AdmCard padding={20}>
-        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Log attività</div>
-        <div style={{display:'flex', flexDirection:'column'}}>
-          {events.map((e, i) => {
-            const Icon = BuIcons[icons[e.type]];
-            return (
-              <div key={i} style={{display:'flex', gap:12, alignItems:'center', padding:'10px 0', borderBottom: i === events.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
-                <div style={{width:30, height:30, borderRadius:7, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'grid', placeItems:'center', flexShrink:0}}>
-                  <Icon size={19}/>
-                </div>
-                <div style={{flex:1, fontSize:14, color:ADM.TEXT}}>{e.text}</div>
-                <div style={{fontSize:13, color:ADM.MUTED_SOFT}}>{fmtRelative(e.when)}</div>
-              </div>
-            );
-          })}
+      <AdmCard padding={0}>
+        <div style={{padding:'14px 20px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Eventi tracciati</div>
+          <div style={{fontSize:13, color:ADM.MUTED}}>
+            {(dal || al) ? `${filtrati.length} di ${eventi.length}` : `${eventi.length} eventi dal ${fmtDate(eventi[eventi.length - 1].quando)}`}
+          </div>
+          <div style={{flex:1}}/>
+          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Dal</span>
+          <input type="date" value={dal} onChange={e=>setDal(e.target.value)} style={{
+            padding:'6px 9px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+            fontSize:12.8, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+          }}/>
+          <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Al</span>
+          <input type="date" value={al} onChange={e=>setAl(e.target.value)} style={{
+            padding:'6px 9px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+            fontSize:12.8, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+          }}/>
+          {(dal || al) && (
+            <button className="adm-textlink" onClick={()=>{ setDal(''); setAl(''); }} style={{
+              background:'transparent', border:'none', color:ADM.PINK_DARK, fontSize:12.5, fontWeight:700,
+              cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+            }}>Azzera</button>
+          )}
         </div>
+        {filtrati.length === 0 && (
+          <div style={{padding:'26px 0', textAlign:'center', fontSize:13.5, color:ADM.MUTED}}>Nessun evento tra le date scelte.</div>
+        )}
+        {filtrati.map((e, i) => (
+          <div key={e.id} style={{
+            display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
+            borderBottom: i === filtrati.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+            background: i % 2 === 1 ? ADM.ROW_STRIPE : 'transparent',
+          }}>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{DRW_EVENTI[e.tipo] || e.tipo}</div>
+              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{e.dettaglio}</div>
+            </div>
+            <div style={{textAlign:'right', flexShrink:0}}>
+              <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT}}>{e.tipo}</div>
+              <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2}}>{fmtDateTime(e.quando)}</div>
+            </div>
+          </div>
+        ))}
       </AdmCard>
     </div>
   );
@@ -594,7 +1021,6 @@ function DrwFatturazione({ locale: l }) {
             {dunningFeedback && <div style={{fontSize:12.5, color:ADM.OK, fontWeight:700, marginTop:4}}>✓ {dunningFeedback}</div>}
           </div>
           <AdmButton variant="danger" size="sm" icon="card" onClick={()=>setDunningFeedback('Nuovo tentativo di addebito avviato via Stripe')}>Riprova addebito</AdmButton>
-          <AdmButton variant="secondary" size="sm" icon="mail" onClick={()=>setDunningFeedback(`Promemoria inviato a ${l.email}`)}>Invia promemoria</AdmButton>
         </div>
       )}
       <AdmCard padding={20}>
@@ -610,8 +1036,9 @@ function DrwFatturazione({ locale: l }) {
             <div style={{fontSize:19.4, fontWeight:700, color:ADM.TEXT, marginTop:2}}>{piano.label} · {fmtEur(piano.price)}/mese</div>
             {l.extras > 0 && <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:3, fontWeight:600}}>+ {fmtEur(l.extras)}/mese in extra</div>}
           </div>
+          {/* La sospensione non sta più qui: è gestione del rapporto e vive
+              nella tab Account, col suo motivo tipizzato e la nota. */}
           <AdmButton variant="secondary" size="sm" onClick={()=>setPopup('piano')}>Cambia piano</AdmButton>
-          <AdmButton variant="ghost" size="sm">Sospendi</AdmButton>
         </div>
         {feedback && <div style={{marginTop:12, padding:'9px 12px', background:ADM.OK_SOFT, borderRadius:8, fontSize:13, color:'#065F46', fontWeight:600}}>✓ {feedback}</div>}
       </AdmCard>
@@ -730,8 +1157,50 @@ const CERT_STATI_DRW = {
 };
 
 function DrwCertificazioni({ locale: l }) {
+  const [, ridisegna] = useStateDrw(0);
+  // 'rifiuta' | 'elimina' | 'scadenza' — sempre con la certificazione dentro.
+  const [popup, setPopup] = useStateDrw(null);
+  const [motivo, setMotivo] = useStateDrw('');
+  const [dataScad, setDataScad] = useStateDrw('');
+  const [feedback, setFeedback] = useStateDrw(null);
+  const flash = (msg) => { setFeedback(msg); setTimeout(() => setFeedback(null), 2600); };
+  const chiudi = () => { setPopup(null); setMotivo(''); setDataScad(''); };
+  const io = () => (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu';
+
   const certs = CERTIFICAZIONI.filter(c => c.localeId === l.id)
     .slice().sort((a, b) => b.dataInvio - a.dataInvio);
+
+  // Il PDF nel mock non esiste: il download consegna un segnaposto col nome
+  // vero del file, così il gesto è completo senza fingere il contenuto.
+  const scarica = (c) => {
+    const blob = new Blob([`Copia del documento ${c.file} · certificazione ${c.id} di ${l.nome} (mock Hubble)`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = c.file;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+  const approva = (c) => {
+    c.stato = 'approvata'; c.revisedAt = new Date(); c.revisedBy = io(); c.motivo = null;
+    flash(`${c.file} approvata`); ridisegna(x => x + 1);
+  };
+  const confermaRifiuto = () => {
+    if (!motivo.trim() || !popup) return;
+    const c = popup.cert;
+    c.stato = 'rifiutata'; c.revisedAt = new Date(); c.revisedBy = io(); c.motivo = motivo.trim();
+    flash(`${c.file} rifiutata`); chiudi(); ridisegna(x => x + 1);
+  };
+  const confermaElimina = () => {
+    if (!popup) return;
+    const i = CERTIFICAZIONI.indexOf(popup.cert);
+    if (i >= 0) CERTIFICAZIONI.splice(i, 1);
+    flash('Certificazione eliminata dal fascicolo'); chiudi(); ridisegna(x => x + 1);
+  };
+  const confermaScadenza = () => {
+    if (!dataScad || !popup) return;
+    popup.cert.scadenzaCert = new Date(dataScad);
+    flash(`Scadenza impostata al ${fmtDate(new Date(dataScad))}`); chiudi(); ridisegna(x => x + 1);
+  };
 
   if (certs.length === 0) return (
     <div style={{padding:20}}>
@@ -744,6 +1213,9 @@ function DrwCertificazioni({ locale: l }) {
 
   return (
     <div style={{padding:20, display:'flex', flexDirection:'column', gap:14}}>
+      {feedback && (
+        <div style={{padding:'9px 14px', background:ADM.OK_SOFT, borderRadius:9, fontSize:13, color:'#065F46', fontWeight:600}}>✓ {feedback}</div>
+      )}
       {certs.map(c => {
         const tipo = CERT_TIPI[c.tipo] || { label: c.tipo, ente: '—' };
         const st = CERT_STATI_DRW[c.stato] || { label: c.stato, color: 'PLAN_FREE' };
@@ -759,7 +1231,12 @@ function DrwCertificazioni({ locale: l }) {
               </div>
               <AdmBadge color={st.color} size="xs">{st.label}</AdmBadge>
             </div>
-            <DataRow label="Documento" value={`${c.file} (${c.size})`} mono/>
+            {/* Il documento SI SCARICA: la riga porta il suo bottone. */}
+            <div style={{display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:ADM.PANEL_SOFT, borderRadius:9, marginBottom:4}}>
+              <BuIcons.filePdf size={18} color={ADM.PINK}/>
+              <span style={{flex:1, minWidth:0, fontFamily:'ui-monospace,monospace', fontSize:12.6, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.file} <span style={{color:ADM.MUTED_SOFT}}>({c.size})</span></span>
+              <AdmButton variant="ghost" size="sm" icon="download" onClick={() => scarica(c)}>Scarica</AdmButton>
+            </div>
             <DataRow label="Inviata il" value={fmtDate(c.dataInvio)}/>
             {c.scadenzaCert && <DataRow label="Scade il" value={fmtDate(c.scadenzaCert)}/>}
             {c.revisedAt && <DataRow label="Revisionata il" value={`${fmtDate(c.revisedAt)} · ${c.revisedBy}`} last={!c.motivo}/>}
@@ -770,9 +1247,75 @@ function DrwCertificazioni({ locale: l }) {
                 {c.motivo}
               </div>
             )}
+            {/* Le azioni: in revisione si decide (approva / rifiuta con
+                motivo); in QUALUNQUE stato si può impostare la scadenza o
+                eliminare la certificazione dal fascicolo. */}
+            <div style={{display:'flex', alignItems:'center', gap:8, marginTop:14, paddingTop:12, borderTop:`1px solid ${ADM.BORDER_SOFT}`, flexWrap:'wrap'}}>
+              {c.stato === 'pending' && (
+                <React.Fragment>
+                  <AdmButton variant="primary" size="sm" icon="check" onClick={() => approva(c)}>Approva</AdmButton>
+                  <AdmButton variant="danger" size="sm" icon="x" onClick={() => { setPopup({ tipo: 'rifiuta', cert: c }); setMotivo(''); }}>Rifiuta…</AdmButton>
+                </React.Fragment>
+              )}
+              <div style={{flex:1}}/>
+              <AdmButton variant="ghost" size="sm" icon="calendar" onClick={() => { setPopup({ tipo: 'scadenza', cert: c }); setDataScad(c.scadenzaCert ? c.scadenzaCert.toISOString().slice(0, 10) : ''); }}>Imposta scadenza…</AdmButton>
+              <AdmButton variant="ghost" size="sm" icon="trash" onClick={() => setPopup({ tipo: 'elimina', cert: c })}>Elimina…</AdmButton>
+            </div>
           </AdmCard>
         );
       })}
+
+      {/* ═══ Popup: rifiuto (motivo obbligatorio) / eliminazione / scadenza ═══ */}
+      {popup && (
+        <div onClick={chiudi} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e => e.stopPropagation()} style={{width:440, maxWidth:'94%', background:'#fff', borderRadius:14,
+            boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', padding:22}}>
+            {popup.tipo === 'rifiuta' && (
+              <React.Fragment>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rifiuta la certificazione</div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
+                  {popup.cert.file} · il locale riceve una notifica col motivo, che resta scritto nel fascicolo.
+                </div>
+                <span style={drwLab}>Motivo (obbligatorio)</span>
+                <textarea autoFocus value={motivo} onChange={e => setMotivo(e.target.value)} rows={3}
+                  placeholder="Es. documento scaduto, ente non riconosciuto, file illeggibile…"
+                  style={{...drwInp, resize:'vertical', marginBottom:14}}/>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                  <AdmButton variant="ghost" size="md" onClick={chiudi}>Annulla</AdmButton>
+                  <AdmButton variant="danger" size="md" icon="x" disabled={!motivo.trim()} onClick={confermaRifiuto}>Rifiuta certificazione</AdmButton>
+                </div>
+              </React.Fragment>
+            )}
+            {popup.tipo === 'elimina' && (
+              <React.Fragment>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Eliminare la certificazione?</div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:16, lineHeight:1.5}}>
+                  {popup.cert.file} sparisce dal fascicolo di {l.nome} e dai badge sulle superfici pubbliche. L'azione non si annulla.
+                </div>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                  <AdmButton variant="ghost" size="md" onClick={chiudi}>Annulla</AdmButton>
+                  <AdmButton variant="danger" size="md" icon="trash" onClick={confermaElimina}>Elimina</AdmButton>
+                </div>
+              </React.Fragment>
+            )}
+            {popup.tipo === 'scadenza' && (
+              <React.Fragment>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Imposta la data di scadenza</div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
+                  {popup.cert.file} · alla scadenza il workflow «Certificazioni» avvisa il locale 15 giorni prima.
+                </div>
+                <span style={drwLab}>Scade il</span>
+                <input type="date" autoFocus value={dataScad} onChange={e => setDataScad(e.target.value)} style={{...drwInp, marginBottom:14}}/>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                  <AdmButton variant="ghost" size="md" onClick={chiudi}>Annulla</AdmButton>
+                  <AdmButton variant="primary" size="md" icon="check" disabled={!dataScad} onClick={confermaScadenza}>Imposta scadenza</AdmButton>
+                </div>
+              </React.Fragment>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -975,9 +1518,11 @@ function ctrProblemi(sog, codici) {
 }
 
 // La riga di un documento contrattuale: versione accettata contro corrente,
-// chi e da dove, e il bottone che apre ESATTAMENTE la versione accettata —
-// il punto dell'intera schermata (art. 3: copia conservata da Byup).
-function CtrRigaDoc({ sog, codice, onApri }) {
+// chi e da dove, e in fondo la RIGA DEL DOCUMENTO — nome e versione
+// accettata, come nella scheda utente (art. 3: copia conservata da Byup).
+// Prima c'era un bottone «Apri le condizioni accettate» con una modale
+// dietro: un giro in più per dire quello che una riga dice da ferma.
+function CtrRigaDoc({ sog, codice }) {
   const doc = ctrDoc(codice);
   if (!doc) return null;
   const a = ctrAccettazione(sog.id, codice);
@@ -1055,23 +1600,27 @@ function CtrRigaDoc({ sog, codice, onApri }) {
         </div>
       )}
 
-      <div style={{marginTop:12, display:'flex', justifyContent:'flex-end'}}>
-        <AdmButton variant="ghost" size="sm" icon="eye" disabled={!a}
-          onClick={() => onApri({ doc, a, vAcc })}>
-          {fotoPiano ? 'Apri le condizioni accettate' : a ? `Apri la v${a.v} accettata` : 'Nessuna copia'}
-        </AdmButton>
-      </div>
+      {/* Il rimando al documento, nome e versione accettata: come i
+          «Documenti sottoscritti» della scheda utente. */}
+      {a && (
+        <div style={{marginTop:12, display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:ADM.PANEL_SOFT, borderRadius:9}}>
+          <BuIcons.filePdf size={18} color={ADM.PINK}/>
+          <span style={{flex:1, minWidth:0, fontSize:13, color:ADM.TEXT, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+            {doc.nome}{' '}
+            <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED, fontWeight:600}}>
+              {fotoPiano ? (PIANI.find(x => x.id === a.v) || {label:a.v}).label : 'v' + a.v}
+            </span>
+          </span>
+          <span style={{fontSize:12.4, color:ADM.MUTED, flexShrink:0}}>
+            {a.tipo === 'presa-visione' ? 'presa visione' : 'accettata'} {fmtDate(a.quando)}
+          </span>
+        </div>
+      )}
     </AdmCard>
   );
 }
 
 function DrwContratti({ locale: l }) {
-  const [, ridisegna] = useStateDrw(0);
-  const [aperto, setAperto] = useStateDrw(null);       // {doc, a, vAcc} → modale versione
-  const [popup, setPopup] = useStateDrw(false);        // sospensione / revoca
-  const [motivo, setMotivo] = useStateDrw('morosita');
-  const [nota, setNota] = useStateDrw('');
-
   const codici = CONTRATTI_PER_TIPO.locale;
   const contrattuali = codici.filter(c => { const d = ctrDoc(c); return d && !d.informativa; });
   const informative  = codici.filter(c => { const d = ctrDoc(c); return d && d.informativa; });
@@ -1088,32 +1637,6 @@ function DrwContratti({ locale: l }) {
 
   const problemi = ctrProblemi(l, codici);
   const peggiore = problemi[0] || null;
-  const sospAttiva = SOSPENSIONI.find(s => s.soggettoId === l.id && !s.revoca);
-
-  const scrivi = (action, target, icon, color) => {
-    AUDIT_EVENTS.unshift({
-      who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
-      action, target, icon, color, tipo: 'contratto', when: new Date(),
-    });
-  };
-  const confermaSospensione = () => {
-    if (!nota.trim()) return;
-    // Art. 4 contro art. 13: la morosità passa dalla diffida (la sospensione
-    // scatta da sola 15 giorni dopo), gli altri motivi sono immediati.
-    const ora = new Date();
-    SOSPENSIONI.unshift(motivo === 'morosita'
-      ? { soggettoId:l.id, motivo, nota:nota.trim(), diffida:ora, sospesa:null, decisaDa:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', revoca:null }
-      : { soggettoId:l.id, motivo, nota:nota.trim(), diffida:null, sospesa:ora, decisaDa:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', revoca:null });
-    scrivi(motivo === 'morosita' ? 'ha inviato la diffida a' : 'ha sospeso il servizio di',
-      `${l.nome} · ${ctrMotivoLabel(motivo)}`, 'lock', 'DANGER');
-    setPopup(false); setNota(''); ridisegna(x => x + 1);
-  };
-  const confermaRevoca = () => {
-    if (!nota.trim() || !sospAttiva) return;
-    sospAttiva.revoca = { quando:new Date(), who:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', nota:nota.trim() };
-    scrivi('ha revocato la sospensione di', l.nome, 'check', 'OK');
-    setPopup(false); setNota(''); ridisegna(x => x + 1);
-  };
 
   // Lo storico: accettazioni, preavvisi col loro esito, sospensioni e
   // revoche, in un solo filo temporale — è la narrazione che si racconta a
@@ -1148,9 +1671,6 @@ function DrwContratti({ locale: l }) {
     ]),
   ].sort((a, b) => b.when - a.when);
 
-  const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
-  const lab = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
-
   return (
     <div style={{padding:20, display:'flex', flexDirection:'column', gap:14}}>
 
@@ -1184,31 +1704,16 @@ function DrwContratti({ locale: l }) {
           sta più in alto in questa lista. */}
       {contrattuali
         .map(ctrDoc).sort((a, b) => a.prevalenza - b.prevalenza)
-        .map(d => <CtrRigaDoc key={d.codice} sog={l} codice={d.codice} onApri={setAperto}/>)}
+        .map(d => <CtrRigaDoc key={d.codice} sog={l} codice={d.codice}/>)}
 
       {/* Le informative, a parte: si RICEVONO, non si accettano — niente
           prevalenza, niente finestre di recesso, etichetta «presa visione». */}
       <div style={{fontSize:11.5, fontWeight:800, letterSpacing:'0.07em', textTransform:'uppercase', color:ADM.MUTED_SOFT, marginTop:4}}>Informative</div>
-      {informative.map(c => <CtrRigaDoc key={c} sog={l} codice={c} onApri={setAperto}/>)}
+      {informative.map(c => <CtrRigaDoc key={c} sog={l} codice={c}/>)}
 
-      {/* Sospensione: l'unica azione scrivibile della tab. */}
-      <AdmCard padding={18}>
-        <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
-          <div style={{flex:1, minWidth:220}}>
-            <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Sospensione del servizio</div>
-            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
-              {sospAttiva
-                ? (sospAttiva.sospesa
-                    ? `In corso dal ${fmtDate(sospAttiva.sospesa)} · ${ctrMotivoLabel(sospAttiva.motivo)} · decisa da ${sospAttiva.decisaDa}`
-                    : `Diffida del ${fmtDate(sospAttiva.diffida)} · la sospensione scatta il ${fmtDate(new Date(sospAttiva.diffida.getTime() + 15 * 86400000))}`)
-                : 'Nessuna sospensione in corso. Motivi tipizzati dall\'art. 13; la morosità passa dalla diffida dell\'art. 4.'}
-            </div>
-          </div>
-          {sospAttiva
-            ? <AdmButton variant="secondary" size="sm" icon="check" onClick={() => { setPopup('revoca'); setNota(''); }}>Revoca sospensione</AdmButton>
-            : <AdmButton variant="danger" size="sm" icon="lock" onClick={() => { setPopup('sospendi'); setNota(''); setMotivo('morosita'); }}>Sospendi</AdmButton>}
-        </div>
-      </AdmCard>
+      {/* La sospensione del servizio non vive più qui: questa tab è un
+          fascicolo che si legge, l'azione sta nella tab Account. Lo storico
+          qui sotto continua a raccontarla. */}
 
       {/* Lo storico, in fondo: il filo temporale completo. */}
       <AdmCard padding={0}>
@@ -1228,100 +1733,6 @@ function DrwContratti({ locale: l }) {
         ))}
       </AdmCard>
 
-      {/* La copia conservata (art. 3): si apre ESATTAMENTE la versione
-          accettata, non quella di oggi. Il testo integrale nel mock non
-          esiste e non si finge: intestazione, date e riga dei cambiamenti
-          SONO la scheda della copia. */}
-      {aperto && (
-        <div onClick={() => setAperto(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-          <div onClick={e => e.stopPropagation()} style={{width:560, maxWidth:'94%', background:'#fff', borderRadius:14,
-            boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', padding:22}}>
-            <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:14}}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT}}>{aperto.doc.nome}</div>
-                <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:1}}>
-                  {aperto.doc.codice}{aperto.doc.particolare ? '' : ` · v${aperto.a.v}`} · copia conservata da Byup (art. 3)
-                </div>
-              </div>
-              {aperto.vAcc && aperto.vAcc.peggiorativa && <AdmBadge color="WARN" size="xs">Peggiorativa</AdmBadge>}
-              <AdmIconBtn icon="x" onClick={() => setAperto(null)} label="Chiudi"/>
-            </div>
-            {aperto.doc.particolare ? (() => {
-              // La fotografia delle condizioni particolari. I coefficienti di
-              // peso CI DEVONO essere: è la clausola su cui nascerà il
-              // contenzioso, non un dettaglio tecnico. Il mock non versiona il
-              // listino: la fotografia usa i valori correnti del piano.
-              const p = PIANI.find(x => x.id === aperto.a.v) || {};
-              return (
-                <div>
-                  <DataRow label="Piano" value={p.label || aperto.a.v}/>
-                  <DataRow label="Canone (fatturazione annuale)" value={fmtEur(p.price) + ' /mese + IVA'}/>
-                  <DataRow label="Canone (mensile puro)" value={fmtEur(p.priceMensile) + ' /mese + IVA'}/>
-                  <DataRow label="Transazioni pesate incluse" value={fmtNum(p.ordiniInclusi)}/>
-                  <DataRow label="Corrispettivo per transazione eccedente" value={fmtEur(p.ordineExtra) + ' + IVA'}/>
-                  <DataRow label="Coefficienti di peso" value="0,5 ordine pagato in app · 1,0 cassa e cameriere" last/>
-                  <div style={{marginTop:12, fontSize:12.2, color:ADM.MUTED_SOFT, lineHeight:1.5}}>
-                    Accettate il {fmtDateTime(aperto.a.quando)} da {aperto.a.nome} ({aperto.a.ruolo}).
-                  </div>
-                </div>
-              );
-            })() : (
-              <div>
-                <DataRow label="Versione" value={'v' + aperto.a.v} mono/>
-                <DataRow label="Pubblicata" value={fmtDate(aperto.vAcc.pubblicata)}/>
-                <DataRow label="Efficace dal" value={fmtDate(aperto.vAcc.efficace)}/>
-                <DataRow label="Che cosa è cambiato" value={aperto.vAcc.cambiamento} last/>
-                <div style={{marginTop:12, fontSize:12.2, color:ADM.MUTED_SOFT, lineHeight:1.5}}>
-                  {aperto.a.tipo === 'tacita'
-                    ? <>Vincolante per uso successivo dal {fmtDateTime(aperto.a.quando)} (art. 15) — nessuna sottoscrizione individuale.</>
-                    : <>{aperto.a.tipo === 'presa-visione' ? 'Presa visione' : 'Accettata'} il {fmtDateTime(aperto.a.quando)}{aperto.a.nome ? <> da {aperto.a.nome} ({aperto.a.ruolo})</> : null}.</>}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Sospensione / revoca: motivo da elenco CHIUSO e nota OBBLIGATORIA,
-          come il rimborso di Fatturazione — un'azione che tocca un contratto
-          senza una ragione scritta non è auditabile. */}
-      {popup && (
-        <div onClick={() => setPopup(false)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-          <div onClick={e => e.stopPropagation()} style={{width:460, maxWidth:'94%', background:'#fff', borderRadius:14,
-            boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', padding:22}}>
-            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>
-              {popup === 'revoca' ? 'Revoca la sospensione' : 'Sospendi il servizio'}
-            </div>
-            <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
-              {popup === 'revoca'
-                ? 'La revoca riattiva il servizio e resta a registro con la sua motivazione.'
-                : 'Per la morosità parte la diffida: la sospensione scatta da sola dopo 15 giorni (art. 4). Gli altri motivi sospendono con effetto immediato (art. 13).'}
-            </div>
-            {popup === 'sospendi' && (
-              <div style={{marginBottom:12}}>
-                <span style={lab}>Motivo (art. 13)</span>
-                <AdmSelect value={motivo} onChange={setMotivo} options={CTR_MOTIVI} block/>
-              </div>
-            )}
-            <div style={{marginBottom:14}}>
-              <span style={lab}>Nota obbligatoria</span>
-              <textarea value={nota} onChange={e => setNota(e.target.value)} rows={3}
-                placeholder={popup === 'revoca' ? 'Perché il motivo è rientrato' : 'I fatti che motivano la decisione'}
-                style={Object.assign({}, inp, {resize:'vertical'})}/>
-            </div>
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-              <AdmButton variant="ghost" size="sm" onClick={() => setPopup(false)}>Annulla</AdmButton>
-              {popup === 'revoca'
-                ? <AdmButton variant="primary" size="sm" icon="check" disabled={!nota.trim()} onClick={confermaRevoca}>Revoca</AdmButton>
-                : <AdmButton variant="danger" size="sm" icon="lock" disabled={!nota.trim()} onClick={confermaSospensione}>
-                    {motivo === 'morosita' ? 'Invia diffida' : 'Sospendi ora'}
-                  </AdmButton>}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
