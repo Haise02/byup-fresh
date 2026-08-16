@@ -214,12 +214,30 @@ function UtenteRow({ utente: u, onClick, striped }) {
   );
 }
 
+// ─── Gli eventi dell'app ────────────────────────────────────────────────────
+// Il vocabolario del tracking: quello che l'app emette quando l'utente fa
+// qualcosa, ed è ciò che serve a NOI per tracciare l'attività. La tab Log
+// li mostra così come arrivano, con la chiave tecnica in chiaro — la stessa
+// che si ritrova negli export e in Analisi Dati.
+const UTN_EVENTI = {
+  app_open:        { label: 'Apertura app',          icona: 'smartphone',  color: 'INFO' },
+  qr_scan:         { label: 'QR scansionato',        icona: 'cursorClick', color: 'TEAL' },
+  menu_view:       { label: 'Menu sfogliato',        icona: 'utensils',    color: 'TEAL' },
+  order_placed:    { label: 'Ordine inviato',        icona: 'receipt',     color: 'OK' },
+  payment_done:    { label: 'Conto pagato in app',   icona: 'money',       color: 'OK' },
+  reservation_new: { label: 'Prenotazione creata',   icona: 'calendar',    color: 'PURPLE' },
+  review_posted:   { label: 'Recensione pubblicata', icona: 'star',        color: 'WARN' },
+  byuppini_earned: { label: 'Byuppini accreditati',  icona: 'sparkles',    color: 'PINK' },
+  byuppini_spent:  { label: 'Byuppini riscattati',   icona: 'tag',         color: 'PINK' },
+  push_opened:     { label: 'Notifica push aperta',  icona: 'bell',        color: 'PURPLE' },
+  consent_update:  { label: 'Consenso aggiornato',   icona: 'shield',      color: 'NEUTRAL' },
+};
+
 // `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
 // — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
 // barra «torna» del chiamante.
 function UtenteDrawer({ utente: u, onClose, pieno }) {
   const [tab, setTab] = useStateUtn('anagrafica');
-  const [period, setPeriod] = useStateUtn('total');
 
   // ── Mock stabili derivati dal seed utente (campi non ancora nel dataset) ──
   const seed = (u.id.charCodeAt(1) * 31 + u.id.charCodeAt(3)) % 1000;
@@ -325,24 +343,43 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
     setTimeout(()=>setByupFeedback(null), 2500);
   };
 
-  // ── Spese (tab 2) ──
-  const localiPreferiti = LOCALI.filter(l => l.stato === 'active').slice(0, 6).map((l, i) => {
-    const baseSpesa = Math.round(u.spesaTotale * (0.3 - i*0.04) * (0.7 + rnd(i)*0.6));
-    return {
-      id: l.id, nome: l.nome, citta: l.citta, tipo: l.tipo,
-      spesaTotale: Math.max(baseSpesa, 12),
-      ordini: 3 + Math.floor(rnd(i+10) * 12),
-      ultimoOrdine: new Date(Date.now() - Math.floor(rnd(i+20) * 90) * 86400000),
-    };
-  }).sort((a,b) => b.spesaTotale - a.spesaTotale);
-  const periodFactors = { '30d': 0.18, '90d': 0.35, '12m': 0.78, 'total': 1.0 };
-  const periodLabels = { '30d': 'Ultimi 30g', '90d': 'Ultimi 90g', '12m': 'Ultimi 12 mesi', 'total': 'Totale' };
-  const factor = periodFactors[period];
-  const spesaP = Math.round(u.spesaTotale * factor);
-  const ordiniP = Math.round(u.ordini * factor);
-  const prenP = Math.round(u.prenotazioni * factor);
-  const localiP = localiPreferiti.map(l => ({...l, spesaTotale: Math.round(l.spesaTotale * factor), ordini: Math.max(1, Math.round(l.ordini * factor))})).filter(l => l.ordini > 0);
-  const maxSpesa = Math.max(...localiP.map(l => l.spesaTotale), 1);
+  // ── Log (tab 2): gli eventi che l'app ha emesso per questo utente ──
+  // Deterministici sul seme, dal più recente. Il sacchetto dei tipi è PESATO:
+  // le aperture e i menu sfogliati capitano più spesso di una recensione,
+  // e un log verosimile lo deve far vedere.
+  const eventi = (() => {
+    const attivi = LOCALI.filter(l => l.stato === 'active');
+    const pool = ['app_open', 'app_open', 'app_open', 'menu_view', 'menu_view', 'qr_scan', 'qr_scan',
+      'order_placed', 'order_placed', 'payment_done', 'byuppini_earned', 'reservation_new',
+      'push_opened', 'review_posted', 'byuppini_spent', 'consent_update'];
+    const n = 14 + Math.floor(rnd(80) * 10);
+    const out = [];
+    let ore = 1 + Math.floor(rnd(81) * 30);
+    for (let i = 0; i < n; i++) {
+      const tipo = pool[Math.floor(rnd(90 + i * 4) * pool.length)];
+      const l = attivi[Math.floor(rnd(91 + i * 4) * attivi.length)] || attivi[0];
+      const r = rnd(92 + i * 4);
+      const dettagli = {
+        app_open:        `Sessione di ${2 + Math.floor(r * 22)} min`,
+        qr_scan:         `Tavolo ${1 + Math.floor(r * 14)} · ${l.nome}`,
+        menu_view:       `${l.nome} · ${3 + Math.floor(r * 14)} piatti visti`,
+        order_placed:    `${l.nome} · € ${(9 + r * 46).toFixed(2).replace('.', ',')}`,
+        payment_done:    r < 0.4 ? `${l.nome} · conto diviso in ${2 + Math.floor(r * 5)}` : `${l.nome} · conto intero`,
+        reservation_new: `${l.nome} · ${2 + Math.floor(r * 6)} persone · ${19 + Math.floor(r * 3)}:${r < 0.5 ? '30' : '00'}`,
+        review_posted:   `${l.nome} · ${2 + Math.floor(r * 4)} stelle`,
+        byuppini_earned: `+${5 + Math.floor(r * 40)} byuppini · ordine da ${l.nome}`,
+        byuppini_spent:  `−${10 + Math.floor(r * 60)} byuppini · premio riscattato`,
+        push_opened:     `«${['Menu della settimana', 'Beta prenotazioni', 'C\'è un nuovo locale vicino a te'][Math.floor(r * 3)]}»`,
+        // La prova del consenso: l'evento scrive nel registro consent_data,
+        // ed è quello che si esibisce quando qualcuno chiede «quando ha
+        // detto sì?».
+        consent_update:  `Marketing → ${r < 0.5 ? 'Sì' : 'No'} · scritto in consent_data`,
+      };
+      out.push({ id: u.id + '-E' + i, tipo, quando: new Date(Date.now() - ore * 3600000), dettaglio: dettagli[tipo] });
+      ore += 2 + Math.floor(rnd(93 + i * 4) * 88);
+    }
+    return out;
+  })();
 
   const inputStyle = {
     width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
@@ -387,7 +424,7 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
           </div>
           {/* Tabs */}
           <div style={{display:'flex', gap:2}}>
-            {[{id:'anagrafica', label:'Anagrafica'},{id:'spese', label:'Spese e abitudini'},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
+            {[{id:'anagrafica', label:'Anagrafica'},{id:'log', label:`Log (${eventi.length})`},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
               <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
                 padding:'9px 14px', background:'transparent', border:'none',
                 borderBottom:`2px solid ${tab === t.id ? ADM.PINK : 'transparent'}`,
@@ -524,70 +561,51 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
           </div>
         )}
 
-        {/* ═══ TAB SPESE E ABITUDINI ═══ */}
-        {tab === 'spese' && (
+        {/* ═══ TAB LOG — gli eventi che l'app emette ═══ */}
+        {tab === 'log' && (
           <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
-            <div style={{display:'flex', alignItems:'center', gap:10}}>
-              <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Periodo</span>
-              <div style={{display:'flex', gap:4}}>
-                {Object.entries(periodLabels).map(([k, label]) => (
-                  <button key={k} className="adm-pill" onClick={()=>setPeriod(k)} style={{
-                    padding:'6px 12px',
-                    background: period === k ? ADM.TEXT : '#fff',
-                    color: period === k ? '#fff' : ADM.MUTED,
-                    border: period === k ? 'none' : `1px solid ${ADM.BORDER}`,
-                    borderRadius:7, fontSize:12.5, fontWeight:600, cursor:'pointer', fontFamily:'inherit',
-                  }}>{label}</button>
-                ))}
-              </div>
-            </div>
-
-            <AdmCard padding={0}>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>
-                <MiniStat first label="Spesa" value={fmtEur(spesaP)} sub={periodLabels[period]}/>
-                <MiniStat label="Ordini delivery" value={ordiniP} sub={periodLabels[period]}/>
-                <MiniStat label="Asporto" value={Math.round(ordiniP*0.42)} sub={periodLabels[period]}/>
-                <MiniStat label="Prenotazioni" value={prenP} sub={periodLabels[period]}/>
-              </div>
-            </AdmCard>
-
-            <AdmCard padding={20}>
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
-                <div>
-                  <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Spesa storica per locale</div>
-                  <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>{periodLabels[period]} · ordinato per spesa</div>
-                </div>
-                <div style={{fontSize:13.3, color:ADM.MUTED}}>Totale: <span style={{fontWeight:700, color:ADM.TEXT}}>{fmtEur(spesaP)}</span></div>
-              </div>
-              {localiP.length === 0 && <div style={{fontSize:13.7, color:ADM.MUTED, padding:'18px 0', textAlign:'center'}}>Nessuna spesa registrata nel periodo selezionato</div>}
-              <div style={{display:'flex', flexDirection:'column', gap:11}}>
-                {localiP.map((l, i) => {
-                  const pct = (l.spesaTotale / maxSpesa) * 100;
-                  return (
-                    <div key={l.id}>
-                      <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:5}}>
-                        <div style={{flex:1, minWidth:0}}>
-                          <div style={{fontSize:14, color:ADM.TEXT, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{l.nome}</div>
-                          <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.tipo} · {l.citta} · ultimo ordine {fmtRelative(l.ultimoOrdine)}</div>
-                        </div>
-                        <div style={{textAlign:'right'}}>
-                          <div style={{fontSize:14.4, color:ADM.TEXT, fontWeight:700}}>{fmtEur(l.spesaTotale)}</div>
-                          <div style={{fontSize:13, color:ADM.MUTED, marginTop:1}}>{l.ordini} ordini</div>
-                        </div>
-                      </div>
-                      <div style={{height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
-                        <div style={{width:`${pct}%`, height:'100%', background: i === 0 ? ADM.PINK : ADM.INK, opacity: i === 0 ? 1 : 0.55, borderRadius:99}}/>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </AdmCard>
-
+            {/* L'inquadratura del tracciato: da quando esiste l'account e
+                quando si è visto l'ultima volta. Stava nella tab delle spese;
+                è attività, e l'attività ora vive qui. */}
             <AdmCard padding={20}>
               <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Attività account</div>
               <DataRow label="Registrato il" value={fmtDate(u.dataRegistrazione)}/>
               <DataRow label="Ultima sessione" value={fmtRelative(u.lastSession)} last/>
+            </AdmCard>
+
+            {/* Il log così come arriva dal tracking: un evento per riga, la
+                chiave tecnica in chiaro accanto al racconto — è la stessa
+                che si ritrova negli export e in Analisi Dati. Nessun
+                riassunto: la risposta a «che cosa ha fatto in app?» sono gli
+                eventi stessi, dal più recente. */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Eventi tracciati</div>
+                <div style={{fontSize:13, color:ADM.MUTED}}>{eventi.length} eventi dal {fmtDate(eventi[eventi.length - 1].quando)} · dal più recente</div>
+              </div>
+              {eventi.map((e, i) => {
+                const def = UTN_EVENTI[e.tipo];
+                const Icona = BuIcons[def.icona];
+                return (
+                  <div key={e.id} style={{
+                    display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
+                    borderBottom: i === eventi.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+                    background: i % 2 === 1 ? ADM.ROW_STRIPE : 'transparent',
+                  }}>
+                    <div style={{width:32, height:32, borderRadius:8, background:ADM[def.color+'_SOFT'], color:ADM[def.color], display:'grid', placeItems:'center', flexShrink:0}}>
+                      <Icona size={17}/>
+                    </div>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{def.label}</div>
+                      <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{e.dettaglio}</div>
+                    </div>
+                    <div style={{textAlign:'right', flexShrink:0}}>
+                      <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT}}>{e.tipo}</div>
+                      <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2}}>{fmtDateTime(e.quando)}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </AdmCard>
           </div>
         )}
