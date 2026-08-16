@@ -254,7 +254,11 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   const [tab, setTab] = useStateUtn('anagrafica');
 
   // ── Mock stabili derivati dal seed utente (campi non ancora nel dataset) ──
-  const seed = (u.id.charCodeAt(1) * 31 + u.id.charCodeAt(3)) % 1000;
+  // Il seme è l'hash dell'ID INTERO (hubSeme): la vecchia formula leggeva due
+  // caratteri soli, e sugli id 'U20xx' uno dei due è uguale per tutti —
+  // restavano cinque semi in croce, utenti fotocopia ogni dieci, e certi rami
+  // derivati (il consenso A3, per dire) non uscivano MAI per nessuno.
+  const seed = hubSeme(u.id) % 1000;
   const rnd = (n) => ((seed * (n+1) * 9301 + 49297) % 233280) / 233280;
   if (u.byuppini === undefined) u.byuppini = 20 + (seed % 380);
   if (u.dataNascita === undefined) {
@@ -426,6 +430,36 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   const refRiscattati = Math.round(refTotali * (0.2 + rnd(307) * 0.5));
   const refConversione = refTotali ? Math.round((refRiscattati / refTotali) * 100) : null;
 
+  // ── Consensi (tab): lo specchio di ByupConsensi dell'app ──
+  // Tre codici, gli stessi del registro vero: A3 (dato alimentare nel
+  // profilo), A18 (offerte sul dato alimentare — vale solo INSIEME ad A6,
+  // mai da sola: il dato è sensibile), A6 (marketing, che dal 2026-08-06 ha
+  // assorbito PROMOP). Ogni consenso porta {ok, quando, versione}: la
+  // versione è il documento contro cui è stato espresso. Qualcuno non è mai
+  // stato interpellato: quello è un terzo stato, non un «no».
+  const consensi = [
+    { id: 'A3',  label: 'Preferenze alimentari nel profilo',
+      desc: 'Salvataggio di dieta e allergie per filtrare i menu — dato sensibile' },
+    { id: 'A18', label: 'Offerte su preferenze alimentari',
+      desc: 'Promozioni costruite sul dato alimentare — vale solo insieme ad A6' },
+    { id: 'A6',  label: 'Marketing',
+      desc: 'Comunicazioni promozionali, generiche e su misura sullo storico ordini' },
+  ].map((c, i) => {
+    const deciso = rnd(400 + i * 3) > 0.15;
+    const ok = deciso && rnd(401 + i * 3) > 0.35;
+    const quando = new Date(Math.min(Date.now() - 86400000,
+      u.dataRegistrazione.getTime() + Math.floor(rnd(402 + i * 3) * 200) * 86400000));
+    return { ...c, deciso, ok, quando: deciso ? quando : null, versione: '1.0' };
+  });
+  const consensoA3 = consensi.find(c => c.id === 'A3');
+
+  // ── Preferenze alimentari (tab Statistiche): SOLO col consenso A3 ──
+  // Senza consenso il dato non si mostra — non «non c'è»: non si guarda.
+  const dietaOpz = ['Vegetariano', 'Vegano', 'Senza glutine', 'Halal', 'Kosher', 'Pescetariano'];
+  const allergOpz = ['Glutine', 'Lattosio', 'Frutta a guscio', 'Uova', 'Crostacei', 'Pesce', 'Soia', 'Sedano'];
+  const dieta = rnd(410) < 0.45 ? dietaOpz[Math.floor(rnd(411) * dietaOpz.length)] : null;
+  const allergie = allergOpz.filter((_, i) => rnd(412 + i) < 0.18);
+
   const inputStyle = {
     width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
     fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff',
@@ -469,7 +503,7 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
           </div>
           {/* Tabs */}
           <div style={{display:'flex', gap:2}}>
-            {[{id:'anagrafica', label:'Anagrafica'},{id:'statistiche', label:'Statistiche'},{id:'log', label:`Log (${eventi.length})`},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
+            {[{id:'anagrafica', label:'Anagrafica'},{id:'statistiche', label:'Statistiche'},{id:'consensi', label:'Consensi'},{id:'log', label:`Log (${eventi.length})`},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
               <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
                 padding:'9px 14px', background:'transparent', border:'none',
                 borderBottom:`2px solid ${tab === t.id ? ADM.PINK : 'transparent'}`,
@@ -488,6 +522,15 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
                 <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Informazioni account</div>
                 {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
+              </div>
+              {/* La verifica sta IN CIMA: è la prima cosa che si guarda su
+                  un account, prima ancora di com'è compilato. */}
+              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:14, paddingBottom:14, borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13.5, fontWeight:600, color:ADM.TEXT}}>Account verificato</div>
+                  <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>Identità confermata via documento o pagamento</div>
+                </div>
+                <AdmSwitch checked={form.verificato} onChange={(v)=>{ setSaved(false); setForm(prev=>({...prev, verificato:v})); }}/>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
                 <div style={{gridColumn:'1 / -1'}}>
@@ -546,13 +589,6 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                       : <AdmBadge color="PLAN_FREE" size="xs">Inattivo</AdmBadge>}
                   </div>
                 </div>
-              </div>
-              <div style={{display:'flex', alignItems:'center', gap:10, marginTop:14, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13.5, fontWeight:600, color:ADM.TEXT}}>Account verificato</div>
-                  <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:1}}>Identità confermata via documento o pagamento</div>
-                </div>
-                <AdmSwitch checked={form.verificato} onChange={(v)=>{ setSaved(false); setForm(prev=>({...prev, verificato:v})); }}/>
               </div>
               <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:14}}>
                 <AdmButton variant="primary" size="md" icon="check" disabled={!dirty} onClick={saveForm}>Salva modifiche</AdmButton>
@@ -656,6 +692,101 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                 <MiniStat label="Riscattati" value={fmtNum(refRiscattati)} sub={`Su ${fmtNum(refTotali)} inviati`}/>
                 <MiniStat label="Conversione" value={refConversione == null ? '—' : refConversione + '%'} sub="Riscattati su inviati"/>
               </div>
+            </AdmCard>
+
+            {/* Il dato alimentare si guarda SOLO col consenso A3: senza,
+                la card non dice «niente allergie» — dice che non si guarda.
+                È la differenza tra un dato assente e un dato non nostro. */}
+            <AdmCard padding={20}>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Preferenze alimentari</div>
+                <span style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, fontWeight:700, padding:'2px 7px', borderRadius:5, background: consensoA3.ok ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: consensoA3.ok ? ADM.OK : ADM.MUTED}}>A3 {consensoA3.ok ? '✓' : '—'}</span>
+              </div>
+              {consensoA3.ok ? (
+                <React.Fragment>
+                  <div style={{fontSize:13, color:ADM.MUTED, marginTop:3, marginBottom:14}}>Quello che ha attivato nel profilo, col consenso al trattamento del dato.</div>
+                  <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+                    <span style={{width:70, flexShrink:0, fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Dieta</span>
+                    {dieta
+                      ? <span style={{padding:'3px 10px', borderRadius:999, background:ADM.OK_SOFT, color:ADM.OK, fontSize:13, fontWeight:700}}>{dieta}</span>
+                      : <span style={{fontSize:13.5, color:ADM.MUTED_LIGHT}}>Nessuna dieta attiva</span>}
+                  </div>
+                  <div style={{display:'flex', alignItems:'baseline', gap:10}}>
+                    <span style={{width:70, flexShrink:0, fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Allergie</span>
+                    {allergie.length
+                      ? <div style={{display:'flex', flexWrap:'wrap', gap:6}}>
+                          {allergie.map(a => <span key={a} style={{padding:'3px 10px', borderRadius:999, background:ADM.WARN_SOFT, color:'#92400E', fontSize:13, fontWeight:700}}>{a}</span>)}
+                        </div>
+                      : <span style={{fontSize:13.5, color:ADM.MUTED_LIGHT}}>Nessuna allergia attiva</span>}
+                  </div>
+                </React.Fragment>
+              ) : (
+                <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:8, lineHeight:1.5}}>
+                  Non ha espresso il consenso al salvataggio delle preferenze alimentari (A3):
+                  il dato non si raccoglie e non si mostra. Lo stato del consenso è nella tab Consensi.
+                </div>
+              )}
+            </AdmCard>
+          </div>
+        )}
+
+        {/* ═══ TAB CONSENSI — a cosa ha detto sì, e su quale documento ═══ */}
+        {tab === 'consensi' && (
+          <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
+            {/* Lo stato corrente per codice. La PROVA non è questa: è il log
+                append-only consent_data, riga per riga nella tab Log. */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Consensi espressi</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Lo stato corrente per ciascun codice. La prova è il log consent_data: ogni cambio è una riga nella tab Log.</div>
+              </div>
+              {consensi.map((c, i) => (
+                <div key={c.id} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+                  <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.5, fontWeight:700, color:ADM.TEXT, width:34, flexShrink:0}}>{c.id}</span>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{c.label}</div>
+                    <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{c.desc}</div>
+                  </div>
+                  <div style={{textAlign:'right', flexShrink:0}}>
+                    {c.deciso
+                      ? <span style={{padding:'3px 10px', borderRadius:5, background: c.ok ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: c.ok ? ADM.OK : ADM.MUTED, fontSize:13, fontWeight:700}}>{c.ok ? 'Sì' : 'No'}</span>
+                      : <span style={{padding:'3px 10px', borderRadius:5, background:ADM.NEUTRAL_SOFT, color:ADM.MUTED_SOFT, fontSize:13, fontWeight:700}}>Mai chiesto</span>}
+                    {c.deciso && <div style={{fontSize:12, color:ADM.MUTED, marginTop:3}}>{fmtDate(c.quando)} · Informativa v{c.versione}</div>}
+                  </div>
+                </div>
+              ))}
+              <div style={{padding:'11px 20px', fontSize:12.5, color:ADM.MUTED_SOFT, lineHeight:1.5}}>
+                Suggerimenti in-app e analisi d'uso corrono su legittimo interesse: nessun toggle
+                — l'opposizione passa dall'assistenza e si registra lato backend.
+              </div>
+            </AdmCard>
+
+            {/* I documenti: le versioni contro cui i consensi valgono. I
+                Termini non sono un consenso — sono il contratto — ma è qui
+                che si viene a cercare che cosa ha firmato. */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Documenti sottoscritti</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Le versioni contro cui valgono i consensi qui sopra.</div>
+              </div>
+              {[
+                { nome: 'Informativa privacy', versione: '1.0', nota: 'Presa visione alla registrazione · è la versione scritta accanto a ogni consenso', rif: consensi.filter(c => c.deciso).map(c => c.id).join(', ') || '—' },
+                { nome: 'Termini e condizioni', versione: '1.0', nota: 'Accettati alla registrazione · base contrattuale, non un consenso', rif: 'Contratto' },
+              ].map((d, i, arr) => (
+                <div key={d.nome} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+                  <div style={{width:34, height:34, borderRadius:8, background:ADM.PINK_SOFT, color:ADM.PINK, display:'grid', placeItems:'center', flexShrink:0}}>
+                    <BuIcons.filePdf size={18}/>
+                  </div>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{d.nome} <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED, fontWeight:600}}>v{d.versione}</span></div>
+                    <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{d.nota}</div>
+                  </div>
+                  <div style={{textAlign:'right', flexShrink:0}}>
+                    <div style={{fontSize:12.6, color:ADM.MUTED}}>{fmtDate(u.dataRegistrazione)}</div>
+                    <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:2}}>{d.rif}</div>
+                  </div>
+                </div>
+              ))}
             </AdmCard>
           </div>
         )}
