@@ -620,16 +620,28 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
             zona sensibile per ultima, sobria com'era. */}
         {tab === 'account' && (
           <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
-            {/* Byuppini */}
-            <AdmCard padding={20}>
-              <div style={{display:'flex', alignItems:'center', gap:14}}>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Byuppini</div>
-                  <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:2}}>Saldo attuale del programma fedeltà</div>
-                  {byupFeedback && <div style={{fontSize:12.5, color: byupFeedback.startsWith('−') ? ADM.DANGER : ADM.OK, fontWeight:700, marginTop:4}}>✓ {byupFeedback}</div>}
+            {/* Byuppini: il saldo è il PROTAGONISTA della card — cifra
+                grande con la sua unità accanto — e le azioni stanno sul
+                loro lato, non appiccicate al numero. */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+                <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Byuppini</div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:2}}>Il saldo del programma fedeltà. Carichi e storni sono manuali e finiscono nell'audit log.</div>
+              </div>
+              <div style={{padding:'16px 20px', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+                <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+                  <span style={{fontSize:32, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1, fontVariantNumeric:'tabular-nums'}}>{fmtNum(u.byuppini)}</span>
+                  <span style={{fontSize:12, fontWeight:800, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em'}}>byuppini</span>
                 </div>
-                <div style={{fontSize:26, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em'}}>{fmtNum(u.byuppini)}</div>
-                <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setByupPopup('add')}>Carica</AdmButton>
+                {byupFeedback && (
+                  <span style={{
+                    padding:'4px 11px', borderRadius:999, fontSize:12.5, fontWeight:700,
+                    background: byupFeedback.startsWith('−') ? ADM.DANGER_SOFT : ADM.OK_SOFT,
+                    color: byupFeedback.startsWith('−') ? ADM.DANGER : ADM.OK,
+                  }}>✓ {byupFeedback}</span>
+                )}
+                <div style={{flex:1}}/>
+                <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setByupPopup('add')}>Carica…</AdmButton>
                 <AdmButton variant="ghost" size="md" onClick={()=>setByupPopup('sub')}>Storna…</AdmButton>
               </div>
             </AdmCard>
@@ -647,14 +659,12 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
               </div>
             </AdmCard>
 
-            {/* Zona sensibile — volutamente sobria e in fondo */}
+            {/* Zona sensibile — volutamente sobria e in fondo. Lo shadowban
+                non sta qui: agisce sulle recensioni, e il suo comando vive
+                nella loro tab, accanto a quello che nasconde. */}
             <div style={{display:'flex', alignItems:'center', gap:10, padding:'4px 6px 10px'}}>
               <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Zona sensibile</span>
               <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
-              <button className="adm-textlink" onClick={()=>setBanPopup(shadow ? 'unshadow' : 'shadow')} style={{
-                background:'transparent', border:'none', color: shadow ? ADM.MUTED : ADM.WARN, fontSize:12.5, fontWeight:600,
-                cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
-              }}>{shadow ? 'Rimuovi shadowban…' : 'Shadowban…'}</button>
               <button className="adm-textlink" onClick={()=>setBanPopup(banned ? 'unban' : 'ban')} style={{
                 background:'transparent', border:'none', color: banned ? ADM.MUTED : ADM.DANGER, fontSize:12.5, fontWeight:600,
                 cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
@@ -915,10 +925,26 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
         {/* ═══ TAB RECENSIONI ═══ */}
         {tab === 'recensioni' && (
           <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:12, background:ADM.PANEL_SOFT}}>
-            {shadow && (
-              <div style={{padding:'11px 14px', background:'#FFF7E6', border:'1px solid #FDE68A', borderRadius:10, fontSize:13, color:'#78350F', display:'flex', alignItems:'center', gap:8}}>
-                <BuIcons.shield size={17}/>
-                <span><strong>Shadowban attivo</strong> — queste recensioni sono visibili solo all'utente, non compaiono sulle schede dei locali.</span>
+            {/* Lo shadowban vive QUI, accanto a quello che nasconde: da
+                attivo è un banner con il comando per toglierlo, da spento
+                una riga di moderazione sobria — stesso registro della zona
+                sensibile, perché resta un'azione da pesare. */}
+            {shadow ? (
+              <div style={{padding:'12px 14px', background:'#FFF7E6', border:'1px solid #FDE68A', borderRadius:10, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+                <BuIcons.shield size={18} color="#B45309"/>
+                <div style={{flex:1, minWidth:200, fontSize:13, color:'#78350F', lineHeight:1.45}}>
+                  <strong>Shadowban attivo</strong> — queste recensioni sono visibili solo all'utente, non compaiono sulle schede dei locali.
+                </div>
+                <AdmButton variant="secondary" size="sm" onClick={()=>setBanPopup('unshadow')}>Rimuovi shadowban…</AdmButton>
+              </div>
+            ) : (
+              <div style={{display:'flex', alignItems:'center', gap:10, padding:'0 6px'}}>
+                <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Moderazione</span>
+                <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
+                <button className="adm-textlink" onClick={()=>setBanPopup('shadow')} style={{
+                  background:'transparent', border:'none', color:ADM.WARN, fontSize:12.5, fontWeight:600,
+                  cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+                }}>Shadowban…</button>
               </div>
             )}
             {recensioni.map(r => (
@@ -971,30 +997,79 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
           </div>
         )}
 
-        {/* ═══ Popup conferma: carica / storna byuppini ═══ */}
-        {byupPopup && (
-          <div style={{position:'fixed', inset:0, zIndex:20, display:'grid', placeItems:'center', padding:24, background:'rgba(15,17,21,0.35)'}} onClick={()=>setByupPopup(null)}>
-            <div onClick={e=>e.stopPropagation()} style={{width:380, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>{byupPopup === 'sub' ? 'Storna byuppini' : 'Carica byuppini'}</div>
-              <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>
-                {byupPopup === 'sub' ? 'Storno manuale dal saldo di ' : 'Accredito manuale sul saldo di '}{form.nome} (attuale: <strong style={{color:ADM.TEXT}}>{fmtNum(u.byuppini)}</strong>)
+        {/* ═══ Popup: carica / storna byuppini ═══
+            Il movimento si LEGGE prima di confermarlo: cifra grande con
+            l'unità dentro il campo, le quantità ricorrenti a portata di
+            click, e il riepilogo saldo → movimento → nuovo saldo. Chi
+            conferma sa esattamente dove atterra il numero. */}
+        {byupPopup && (() => {
+          const sub = byupPopup === 'sub';
+          const nuovo = sub ? u.byuppini - byupN : u.byuppini + byupN;
+          return (
+          <div style={{position:'fixed', inset:0, zIndex:20, display:'grid', placeItems:'center', padding:24, background:'rgba(15,17,21,0.35)'}} onClick={()=>{ setByupPopup(null); setByupAmount(''); }}>
+            <div onClick={e=>e.stopPropagation()} style={{width:420, maxWidth:'92%', background:'#fff', borderRadius:14, overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+              <div style={{padding:'18px 22px 13px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT}}>{sub ? 'Storna byuppini' : 'Carica byuppini'}</div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:2}}>Sul saldo di {form.nome} · movimento manuale, registrato nell'audit log</div>
               </div>
-              <label style={labelStyle}>{byupPopup === 'sub' ? 'Quantità da stornare' : 'Quantità da accreditare'}</label>
-              <input type="number" min="1" max={byupPopup === 'sub' ? u.byuppini : undefined} autoFocus value={byupAmount} onChange={e=>setByupAmount(e.target.value)}
-                onKeyDown={e=>{ if (e.key === 'Enter') confirmByup(); }}
-                placeholder="Es. 100" style={{...inputStyle, marginBottom: byupPopup === 'sub' && byupN > u.byuppini ? 6 : 14}}/>
-              {byupPopup === 'sub' && byupN > u.byuppini && (
-                <div style={{fontSize:12.5, color:ADM.DANGER, fontWeight:600, marginBottom:10}}>Massimo stornabile: {fmtNum(u.byuppini)} (il saldo non può andare sotto zero)</div>
-              )}
-              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <div style={{padding:'16px 22px 18px'}}>
+                <div style={{position:'relative', marginBottom:8}}>
+                  <input type="number" min="1" max={sub ? u.byuppini : undefined} autoFocus value={byupAmount}
+                    onChange={e=>setByupAmount(e.target.value)}
+                    onKeyDown={e=>{ if (e.key === 'Enter') confirmByup(); }}
+                    placeholder="0"
+                    style={{...inputStyle, padding:'12px 104px 12px 14px', fontSize:20, fontWeight:800, fontVariantNumeric:'tabular-nums', letterSpacing:'-0.01em'}}/>
+                  <span style={{position:'absolute', right:14, top:'50%', transform:'translateY(-50%)', fontSize:11.5, fontWeight:800, textTransform:'uppercase', letterSpacing:'0.06em', color:ADM.MUTED_SOFT, pointerEvents:'none'}}>byuppini</span>
+                </div>
+                {/* Le quantità ricorrenti: un click invece di tre tasti. */}
+                <div style={{display:'flex', gap:6, marginBottom:14}}>
+                  {[25, 50, 100, 250].map(q => {
+                    const fuori = sub && q > u.byuppini;
+                    const attivo = byupN === q;
+                    return (
+                      <button key={q} type="button" disabled={fuori} onClick={()=>setByupAmount(String(q))} style={{
+                        padding:'5px 12px', borderRadius:999,
+                        border:`1px solid ${attivo ? ADM.PINK : ADM.BORDER}`,
+                        background: attivo ? ADM.PINK_BG_SOFT : '#fff',
+                        color: fuori ? ADM.MUTED_LIGHT : attivo ? ADM.PINK_DARK : ADM.TEXT,
+                        fontSize:12.8, fontWeight:700, fontFamily:'inherit',
+                        cursor: fuori ? 'default' : 'pointer',
+                      }}>{sub ? '−' : '+'}{q}</button>
+                    );
+                  })}
+                </div>
+                {/* Il riepilogo: da dove parte, cosa succede, dove arriva. */}
+                <div style={{background:ADM.PANEL_SOFT, borderRadius:10, padding:'11px 14px'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', padding:'3px 0', fontSize:13.3, color:ADM.MUTED}}>
+                    <span>Saldo attuale</span>
+                    <span style={{fontVariantNumeric:'tabular-nums', fontWeight:600, color:ADM.TEXT}}>{fmtNum(u.byuppini)}</span>
+                  </div>
+                  <div style={{display:'flex', justifyContent:'space-between', padding:'3px 0', fontSize:13.3, color:ADM.MUTED}}>
+                    <span>{sub ? 'Storno' : 'Accredito'}</span>
+                    <span style={{fontVariantNumeric:'tabular-nums', fontWeight:700, color: byupN > 0 ? (sub ? ADM.DANGER : ADM.OK) : ADM.MUTED_LIGHT}}>
+                      {byupN > 0 ? (sub ? '−' : '+') + fmtNum(byupN) : '—'}
+                    </span>
+                  </div>
+                  <div style={{height:1, background:ADM.BORDER_SOFT, margin:'6px 0'}}/>
+                  <div style={{display:'flex', justifyContent:'space-between', padding:'3px 0', fontSize:13.5, fontWeight:700, color:ADM.TEXT}}>
+                    <span>Nuovo saldo</span>
+                    <span style={{fontVariantNumeric:'tabular-nums', fontWeight:800}}>{byupValid ? fmtNum(nuovo) : '—'}</span>
+                  </div>
+                </div>
+                {sub && byupN > u.byuppini && (
+                  <div style={{fontSize:12.5, color:ADM.DANGER, fontWeight:600, marginTop:10}}>Massimo stornabile: {fmtNum(u.byuppini)} — il saldo non può andare sotto zero.</div>
+                )}
+              </div>
+              <div style={{padding:'13px 22px', borderTop:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', justifyContent:'flex-end', gap:8, background:'#fff'}}>
                 <AdmButton variant="ghost" size="md" onClick={()=>{ setByupPopup(null); setByupAmount(''); }}>Annulla</AdmButton>
-                {byupPopup === 'sub'
-                  ? <AdmButton variant="danger" size="md" icon="x" disabled={!byupValid} onClick={confirmByup}>Conferma storno</AdmButton>
-                  : <AdmButton variant="primary" size="md" icon="check" disabled={!byupValid} onClick={confirmByup}>Conferma accredito</AdmButton>}
+                {sub
+                  ? <AdmButton variant="danger" size="md" icon="x" disabled={!byupValid} onClick={confirmByup}>Storna {byupValid ? fmtNum(byupN) : ''}</AdmButton>
+                  : <AdmButton variant="primary" size="md" icon="check" disabled={!byupValid} onClick={confirmByup}>Carica {byupValid ? fmtNum(byupN) : ''}</AdmButton>}
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ═══ Popup conferma: ban / rimozione ban ═══ */}
         {banPopup && (
