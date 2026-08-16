@@ -174,6 +174,10 @@ const CONTATTI = (() => {
     email: u.email,
     // L'utente app non ha un ciclo di vita commerciale con byup: trattino.
     ciclo: null,
+    // La restrizione attiva: i flag li ha già allineati il seed del registro
+    // (admin-restrizioni carica prima di questo file). Un bannato non deve
+    // essere una riga identica a tutte le altre.
+    restrizione: u.bannato ? 'ban' : u.shadowban ? 'shadowban' : null,
     // Il piano dell'app. Il mock non lo porta: lo si deriva stabile dalle
     // ULTIME cifre dell'id (le prime sono uguali per tutti, 'U20…'), circa un
     // utente su sette è Pro — abbastanza da vederli in lista.
@@ -747,6 +751,12 @@ function CntCella({ id, c }) {
   if (id === 'piano') {
     const pianoDef = c.piano ? CNT_PIANI[c.piano] : null;
     return <div>{pianoDef ? <CntPillola color={pianoDef.color}>{pianoDef.label}</CntPillola> : tratto}</div>;
+  }
+  if (id === 'restrizione') {
+    // Rosso per il ban, ambra per lo shadowban: la stessa coppia di colori
+    // del registro restrizioni.
+    if (!c.restrizione) return <div>{tratto}</div>;
+    return <div><CntPillola color={c.restrizione === 'ban' ? 'DANGER' : 'WARN'}>{c.restrizione === 'ban' ? 'Bannato' : 'Shadowban'}</CntPillola></div>;
   }
   // Tutte le altre colonne escono dal catalogo delle proprietà: il TIPO dice
   // come si stampano. Una proprietà nuova aggiunta in hub-data.jsx compare in

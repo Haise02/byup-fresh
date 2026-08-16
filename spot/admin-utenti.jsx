@@ -252,6 +252,50 @@ function utnDurata(sec) {
 const utnEur2 = (n) => n == null ? '—'
   : '€ ' + new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
+// ─── Le statistiche derivate di un utente — UNA formula sola ────────────────
+// Le usa la scheda per i suoi numeri e le usa il calcolo delle mediane qui
+// sotto: se vivessero in due posti, prima o poi divergerebbero e il
+// confronto confronterebbe cose diverse.
+function utnStatDerivate(x) {
+  const s = hubSeme(x.id) % 1000;
+  const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
+  const sessioniAnno = 60 + Math.floor(r(300) * 420);
+  const etaGiorniAccount = Math.max(1, (Date.now() - x.dataRegistrazione.getTime()) / 86400000);
+  return {
+    sessioniAnno,
+    etaGiorniAccount,
+    tempoSessione: (6 + r(301) * 18) * 60,               // 6–24 min per sessione
+    tempoOrdine: (2 + r(302) * 6) * 60,                  // 2–8 min dal menu all'invio
+    // A quest'ordine di grandezza i secondi sono rumore: minuti interi.
+    tempoPagamento: Math.round(25 + r(303) * 70) * 60,   // 25–95 min dall'ordine al conto
+    tempoPrenotazione: 40 + r(304) * 140,                // 40 s – 3 min in sessione
+    spesaMedia: x.ordini ? x.spesaTotale / x.ordini : null,
+    // Le annue: il totale VERO del dataset riportato a 12 mesi sull'età
+    // dell'account.
+    prenAnno: etaGiorniAccount > 365 ? Math.round(x.prenotazioni * (365 / etaGiorniAccount)) : x.prenotazioni,
+  };
+}
+
+// ─── Le mediane della base utenti ───────────────────────────────────────────
+// Il metro accanto ai numeri della tab Statistiche: 34 sessioni al mese è
+// tanto o poco? Senza un metro sono anagrafe di numeri, non uno strumento.
+// Si calcolano una volta sola, su tutta la base, con la STESSA formula.
+const UTN_MEDIANE = (() => {
+  const med = (arr) => {
+    const v = arr.filter(x => x != null).sort((a, b) => a - b);
+    if (!v.length) return null;
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
+  };
+  const righe = (typeof UTENTI !== 'undefined' ? UTENTI : []).map(utnStatDerivate);
+  return {
+    sesMese: med(righe.map(x => Math.round(x.sessioniAnno / 12))),
+    tempoSessione: med(righe.map(x => x.tempoSessione)),
+    spesaMedia: med(righe.map(x => x.spesaMedia)),
+    prenAnno: med(righe.map(x => x.prenAnno)),
+  };
+})();
+
 // `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
 // — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
 // barra «torna» del chiamante.
@@ -328,11 +372,13 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
     'Il migliore della città per rapporto qualità/prezzo. Consigliato!',
     'Menu ricco e ben spiegato nell\'app, il QR al tavolo funziona benissimo.',
   ];
-  const [recensioni, setRecensioni] = useStateUtn([]);
-  React.useEffect(() => {
+  // La BASE deterministica: la usa la tab Recensioni (che ci aggiunge lo
+  // stato di rimozione) e la usa il Log, che deve raccontare le STESSE
+  // recensioni — una fonte sola, niente doppioni che divergono.
+  const recensioniBase = (() => {
     const attivi = LOCALI.filter(l => l.stato === 'active');
     const n = 2 + Math.floor(rnd(31) * 3); // 2-4 recensioni
-    setRecensioni(Array.from({length: n}).map((_, i) => {
+    return Array.from({length: n}).map((_, i) => {
       const l = attivi[Math.floor(rnd(40 + i) * attivi.length)] || attivi[0];
       return {
         id: u.id + '-R' + i,
@@ -342,8 +388,10 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
         data: new Date(Date.now() - Math.floor(rnd(70 + i) * 200 + 3) * 86400000),
         rimossa: null,
       };
-    }));
-  }, [u.id]);
+    });
+  })();
+  const [recensioni, setRecensioni] = useStateUtn(recensioniBase);
+  React.useEffect(() => { setRecensioni(recensioniBase.map(r => ({ ...r }))); }, [u.id]);
   const [revPopup, setRevPopup] = useStateUtn(null); // recensione da rimuovere
   const [revMotivo, setRevMotivo] = useStateUtn('');
   const confirmRimuoviRev = () => {
@@ -351,6 +399,27 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
     setRecensioni(prev => prev.map(r => r.id === revPopup.id ? { ...r, rimossa: revMotivo.trim() } : r));
     setRevPopup(null); setRevMotivo('');
   };
+  // ── Movimenti byuppini: l'audit che la card promette, in vista ──
+  // La base è derivata dal seme (benvenuto + qualche movimento dall'app);
+  // carichi e storni fatti da QUI si accodano in cima, con l'operatore.
+  const movimentiBase = (() => {
+    const out = [{ quando: u.dataRegistrazione, delta: 50, causale: 'Bonus di benvenuto', operatore: 'Sistema' }];
+    const nm = 2 + Math.floor(rnd(430) * 3);
+    for (let i = 0; i < nm; i++) {
+      const r = rnd(431 + i * 2);
+      const spesa = r < 0.35;
+      out.push({
+        quando: new Date(Date.now() - Math.floor(rnd(432 + i * 2) * 120 + 2) * 86400000),
+        delta: spesa ? -(10 + Math.floor(r * 60)) : (5 + Math.floor(r * 40)),
+        causale: spesa ? 'Premio riscattato in app' : 'Ordine pagato in app',
+        operatore: 'App',
+      });
+    }
+    return out.sort((a, b) => b.quando - a.quando);
+  })();
+  const [movimenti, setMovimenti] = useStateUtn(movimentiBase);
+  React.useEffect(() => { setMovimenti(movimentiBase); }, [u.id]);
+
   const byupN = parseInt(byupAmount, 10) || 0;
   const byupValid = byupPopup === 'sub' ? (byupN > 0 && byupN <= u.byuppini) : byupN > 0;
   const confirmByup = () => {
@@ -362,60 +431,24 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
       u.byuppini += byupN;
       setByupFeedback(`+${byupN} byuppini caricati`);
     }
+    setMovimenti(prev => [{
+      quando: new Date(),
+      delta: byupPopup === 'sub' ? -byupN : byupN,
+      causale: byupPopup === 'sub' ? 'Storno manuale' : 'Accredito manuale',
+      operatore: 'Tu',
+    }, ...prev]);
     setByupPopup(null); setByupAmount('');
     setTimeout(()=>setByupFeedback(null), 2500);
   };
 
-  // ── Log (tab 2): gli eventi che l'app ha emesso per questo utente ──
-  // Deterministici sul seme, dal più recente. Il sacchetto dei tipi è PESATO:
-  // le aperture e i menu sfogliati capitano più spesso di una recensione,
-  // e un log verosimile lo deve far vedere.
-  const eventi = (() => {
-    const attivi = LOCALI.filter(l => l.stato === 'active');
-    const pool = ['app_open', 'app_open', 'app_open', 'menu_view', 'menu_view', 'qr_scan', 'qr_scan',
-      'order_placed', 'order_placed', 'payment_done', 'byuppini_earned', 'reservation_new',
-      'push_opened', 'review_posted', 'byuppini_spent', 'consent_update'];
-    const n = 14 + Math.floor(rnd(80) * 10);
-    const out = [];
-    let ore = 1 + Math.floor(rnd(81) * 30);
-    for (let i = 0; i < n; i++) {
-      const tipo = pool[Math.floor(rnd(90 + i * 4) * pool.length)];
-      const l = attivi[Math.floor(rnd(91 + i * 4) * attivi.length)] || attivi[0];
-      const r = rnd(92 + i * 4);
-      const dettagli = {
-        app_open:        `Sessione di ${2 + Math.floor(r * 22)} min`,
-        qr_scan:         `Tavolo ${1 + Math.floor(r * 14)} · ${l.nome}`,
-        menu_view:       `${l.nome} · ${3 + Math.floor(r * 14)} piatti visti`,
-        order_placed:    `${l.nome} · € ${(9 + r * 46).toFixed(2).replace('.', ',')}`,
-        payment_done:    r < 0.4 ? `${l.nome} · conto diviso in ${2 + Math.floor(r * 5)}` : `${l.nome} · conto intero`,
-        reservation_new: `${l.nome} · ${2 + Math.floor(r * 6)} persone · ${19 + Math.floor(r * 3)}:${r < 0.5 ? '30' : '00'}`,
-        review_posted:   `${l.nome} · ${2 + Math.floor(r * 4)} stelle`,
-        byuppini_earned: `+${5 + Math.floor(r * 40)} byuppini · ordine da ${l.nome}`,
-        byuppini_spent:  `−${10 + Math.floor(r * 60)} byuppini · premio riscattato`,
-        push_opened:     `«${['Menu della settimana', 'Beta prenotazioni', 'C\'è un nuovo locale vicino a te'][Math.floor(r * 3)]}»`,
-        // La prova del consenso: l'evento scrive nel registro consent_data,
-        // ed è quello che si esibisce quando qualcuno chiede «quando ha
-        // detto sì?».
-        consent_update:  `Marketing → ${r < 0.5 ? 'Sì' : 'No'} · scritto in consent_data`,
-      };
-      out.push({ id: u.id + '-E' + i, tipo, quando: new Date(Date.now() - ore * 3600000), dettaglio: dettagli[tipo] });
-      ore += 2 + Math.floor(rnd(93 + i * 4) * 88);
-    }
-    return out;
-  })();
-  // Il filtro per data del log: due estremi, entrambi facoltativi. L'«al» è
-  // compreso — chi scrive una data intende quel giorno, non la sua mezzanotte.
-  const [logDal, setLogDal] = useStateUtn('');
-  const [logAl, setLogAl] = useStateUtn('');
-  const eventiFiltrati = eventi.filter(e =>
-    (!logDal || e.quando >= new Date(logDal)) &&
-    (!logAl || e.quando < new Date(new Date(logAl).getTime() + 86400000)));
-
-  // ── Statistiche (tab 2): le abitudini d'uso della piattaforma ──
-  // Deterministiche sul seme. Le sessioni si estraggono UNA volta — quelle
-  // dell'anno — e gli altri orizzonti si dividono da lì: cinque numeri
-  // estratti a caso non starebbero mai in colonna tra loro.
-  const sessioniAnno = 60 + Math.floor(rnd(300) * 420);
+  // ── Statistiche (tab): le abitudini d'uso della piattaforma ──
+  // Le derivate escono da utnStatDerivate — la STESSA formula che fa le
+  // mediane della base utenti, così il confronto confronta la stessa cosa.
+  // Le sessioni si estraggono una volta — quelle dell'anno — e gli altri
+  // orizzonti si dividono da lì: cinque numeri estratti a caso non
+  // starebbero mai in colonna tra loro.
+  const der = utnStatDerivate(u);
+  const { sessioniAnno, tempoSessione, tempoOrdine, tempoPagamento, tempoPrenotazione, spesaMedia, etaGiorniAccount, prenAnno } = der;
   const sessioni = {
     settimana: Math.max(1, Math.round(sessioniAnno / 52)),
     mese: Math.round(sessioniAnno / 12),
@@ -423,27 +456,21 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
     semestre: Math.round(sessioniAnno / 2),
     anno: sessioniAnno,
   };
-  const tempoSessione = (6 + rnd(301) * 18) * 60;      // 6–24 min per sessione
-  const tempoOrdine = (2 + rnd(302) * 6) * 60;         // 2–8 min dal menu all'invio
-  // A quest'ordine di grandezza i secondi sono rumore («49 min 59 s» si
-  // legge come un glitch): minuti interi.
-  const tempoPagamento = Math.round(25 + rnd(303) * 70) * 60;  // 25–95 min dall'ordine al conto
-  const tempoPrenotazione = 40 + rnd(304) * 140;       // 40 s – 3 min in sessione
   const refLocali = Math.floor(rnd(305) * 9);          // inviti a ristoranti
   const refUtenti = Math.floor(rnd(306) * 15);         // inviti ad altri utenti
   const refTotali = refLocali + refUtenti;
   const refRiscattati = Math.round(refTotali * (0.2 + rnd(307) * 0.5));
   const refConversione = refTotali ? Math.round((refRiscattati / refTotali) * 100) : null;
 
-  // ── Prenotazioni: l'anno, il ritmo mensile, e quante volte non s'è visto ──
-  // Le annue si ricavano dal totale VERO del dataset riportato a 12 mesi
-  // sull'età dell'account; la media mensile ne è un dodicesimo, con una
-  // cifra decimale perché il ritmo si veda. Il no show è pescato basso
-  // (rnd·rnd): quasi tutti onorano, qualcuno è recidivo.
-  const etaGiorniAccount = Math.max(1, (Date.now() - u.dataRegistrazione.getTime()) / 86400000);
-  const prenAnno = etaGiorniAccount > 365 ? Math.round(u.prenotazioni * (365 / etaGiorniAccount)) : u.prenotazioni;
+  // ── Prenotazioni: il ritmo mensile e quante volte non s'è visto ──
+  // La media mensile è un dodicesimo delle annue, con una cifra decimale
+  // perché il ritmo si veda. Il no show si CONTA (rnd·rnd lo pesca basso:
+  // quasi tutti onorano) e il tasso ne discende: su pochi appuntamenti la
+  // percentuale mente — «3% di 1 prenotazione» non esiste — e lì la scheda
+  // mostra il conteggio, non il tasso.
   const prenMese = Math.round((prenAnno / 12) * 10) / 10;
-  const noShow = prenAnno ? Math.round(rnd(420) * rnd(421) * 25) : null;
+  const noShowN = prenAnno ? Math.min(prenAnno, Math.round(rnd(420) * rnd(421) * prenAnno * 0.3)) : 0;
+  const noShowPct = prenAnno ? Math.round((noShowN / prenAnno) * 100) : null;
 
   // ── Consensi (tab): lo specchio di ByupConsensi dell'app ──
   // Tre codici, gli stessi del registro vero: A3 (dato alimentare nel
@@ -475,12 +502,100 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   const dieta = rnd(410) < 0.45 ? dietaOpz[Math.floor(rnd(411) * dietaOpz.length)] : null;
   const allergie = allergOpz.filter((_, i) => rnd(412 + i) < 0.18);
 
+  // ── Log (tab): gli eventi si costruiscono DAI dati delle ALTRE tab ──
+  // Il log è la prova, e una prova che contraddice ciò che dovrebbe provare
+  // è peggio di niente: i consent_update sono ESATTAMENTE i consensi della
+  // tab Consensi (stessa data, stessa versione), le recensioni sono quelle
+  // della tab Recensioni riga per riga, ordini e prenotazioni compaiono solo
+  // se i totali veri li prevedono, il pagamento arriva dopo l'ordine alla
+  // distanza media della tab Statistiche, e uno storno di byuppini non
+  // supera mai il saldo. Resta un CAMPIONE recente, non l'archivio completo.
+  const eventi = (() => {
+    const attivi = LOCALI.filter(l => l.stato === 'active');
+    const out = [];
+    const push = (tipo, quando, dettaglio) => out.push({ id: u.id + '-E' + out.length, tipo, quando, dettaglio });
+
+    // Il tappeto delle sessioni: aperture, menu sfogliati, QR al tavolo.
+    const nSess = 8 + Math.floor(rnd(80) * 6);
+    let ore = 1 + Math.floor(rnd(81) * 30);
+    for (let i = 0; i < nSess; i++) {
+      const r = rnd(90 + i * 4);
+      const l = attivi[Math.floor(rnd(91 + i * 4) * attivi.length)] || attivi[0];
+      const tipo = ['app_open', 'app_open', 'menu_view', 'qr_scan'][Math.floor(r * 3.999)];
+      push(tipo, new Date(Date.now() - ore * 3600000),
+        tipo === 'app_open' ? `Sessione di ${2 + Math.floor(r * 22)} min`
+        : tipo === 'menu_view' ? `${l.nome} · ${3 + Math.floor(r * 14)} piatti visti`
+        : `Tavolo ${1 + Math.floor(r * 14)} · ${l.nome}`);
+      ore += 4 + Math.floor(rnd(93 + i * 4) * 80);
+    }
+
+    // Ordini col loro seguito: solo se l'utente ne HA, e il pagamento segue
+    // l'ordine alla distanza media che la tab Statistiche dichiara.
+    for (let i = 0; i < Math.min(3, u.ordini); i++) {
+      const r = rnd(200 + i * 5);
+      const l = attivi[Math.floor(rnd(201 + i * 5) * attivi.length)] || attivi[0];
+      const q = new Date(Date.now() - (20 + Math.floor(rnd(202 + i * 5) * 900)) * 3600000);
+      push('order_placed', q, `${l.nome} · € ${(9 + r * 46).toFixed(2).replace('.', ',')}`);
+      push('payment_done', new Date(q.getTime() + tempoPagamento * 1000),
+        r < 0.4 ? `${l.nome} · conto diviso in ${2 + Math.floor(r * 5)}` : `${l.nome} · conto intero`);
+      if (r < 0.7) push('byuppini_earned', new Date(q.getTime() + tempoPagamento * 1000 + 60000),
+        `+${5 + Math.floor(r * 40)} byuppini · ordine da ${l.nome}`);
+    }
+
+    // Byuppini spesi: mai più del saldo che si legge in Account.
+    if (u.byuppini >= 20 && rnd(210) < 0.6) {
+      push('byuppini_spent', new Date(Date.now() - (30 + Math.floor(rnd(211) * 700)) * 3600000),
+        `−${10 + Math.floor(rnd(212) * Math.min(u.byuppini - 10, 80))} byuppini · premio riscattato`);
+    }
+
+    // Prenotazioni: solo se la tab Statistiche ne conta.
+    for (let i = 0; i < Math.min(2, prenAnno); i++) {
+      const r = rnd(230 + i * 3);
+      const l = attivi[Math.floor(rnd(231 + i * 3) * attivi.length)] || attivi[0];
+      push('reservation_new', new Date(Date.now() - (24 + Math.floor(rnd(232 + i * 3) * 900)) * 3600000),
+        `${l.nome} · ${2 + Math.floor(r * 6)} persone · ${19 + Math.floor(r * 3)}:${r < 0.5 ? '30' : '00'}`);
+    }
+
+    // Push aperte.
+    if (rnd(220) < 0.75) {
+      push('push_opened', new Date(Date.now() - (10 + Math.floor(rnd(221) * 800)) * 3600000),
+        `«${['Menu della settimana', 'Beta prenotazioni', 'C\'è un nuovo locale vicino a te'][Math.floor(rnd(222) * 3)]}»`);
+    }
+
+    // Le recensioni della tab Recensioni, riga per riga.
+    recensioniBase.forEach(r => push('review_posted', r.data, `${r.locale.nome} · ${r.rating} stelle`));
+
+    // I consensi della tab Consensi, con le LORO date e versioni: è la riga
+    // di consent_data che quella tab promette.
+    consensi.filter(c => c.deciso).forEach(c =>
+      push('consent_update', c.quando, `${c.id} · ${c.label} → ${c.ok ? 'Sì' : 'No'} · Informativa v${c.versione} · scritto in consent_data`));
+
+    return out.sort((a, b) => b.quando - a.quando);
+  })();
+  // Il filtro per data del log: due estremi, entrambi facoltativi. L'«al» è
+  // compreso — chi scrive una data intende quel giorno, non la sua mezzanotte.
+  const [logDal, setLogDal] = useStateUtn('');
+  const [logAl, setLogAl] = useStateUtn('');
+  const eventiFiltrati = eventi.filter(e =>
+    (!logDal || e.quando >= new Date(logDal)) &&
+    (!logAl || e.quando < new Date(new Date(logAl).getTime() + 86400000)));
+
   const inputStyle = {
     width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
     fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff',
     outline:'none', boxSizing:'border-box',
   };
   const labelStyle = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
+
+  // La mediana accanto al numero: un metro, non un giudizio — la freccia
+  // dice solo da che parte stai rispetto alla base utenti.
+  const vsMediana = (v, m, fmt) => (m == null || v == null) ? null : (
+    <React.Fragment>
+      {' · '}
+      <span style={{fontWeight:700, color: v >= m ? ADM.OK : ADM.MUTED_SOFT}}>{v >= m ? '↑' : '↓'}</span>
+      {' mediana ' + fmt(m)}
+    </React.Fragment>
+  );
 
   return (
     <div onClick={pieno ? undefined : onClose} style={pieno ? {} : {
@@ -644,6 +759,26 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                 <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setByupPopup('add')}>Carica…</AdmButton>
                 <AdmButton variant="ghost" size="md" onClick={()=>setByupPopup('sub')}>Storna…</AdmButton>
               </div>
+              {/* L'audit che la testata promette, IN VISTA: gli ultimi
+                  movimenti, con chi li ha fatti. Un carico fatto da qui
+                  compare in cima appena confermato. */}
+              <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+                <div style={{padding:'10px 20px 4px', fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.06em'}}>Ultimi movimenti</div>
+                {movimenti.slice(0, 6).map((m, i, arr) => (
+                  <div key={i} style={{
+                    display:'flex', alignItems:'center', gap:12, padding:'8px 20px',
+                    borderBottom: i === arr.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+                  }}>
+                    <span style={{fontSize:12.6, color:ADM.MUTED, width:88, flexShrink:0}}>{fmtDate(m.quando)}</span>
+                    <span style={{flex:1, minWidth:0, fontSize:13.3, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+                      {m.causale} <span style={{color:ADM.MUTED_SOFT}}>· {m.operatore}</span>
+                    </span>
+                    <span style={{fontVariantNumeric:'tabular-nums', fontSize:13.3, fontWeight:800, color: m.delta < 0 ? ADM.DANGER : ADM.OK, flexShrink:0}}>
+                      {m.delta < 0 ? '−' : '+'}{fmtNum(Math.abs(m.delta))}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </AdmCard>
 
             {/* Sicurezza */}
@@ -651,8 +786,11 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
               <div style={{display:'flex', alignItems:'center', gap:14}}>
                 <div style={{flex:1}}>
                   <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Reset password</div>
+                  {/* L'email SALVATA (u.email), non quella del form: una
+                      modifica non ancora salvata in Anagrafica non deve
+                      diventare l'indirizzo a cui parte un reset. */}
                   <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:2}}>
-                    {resetSent ? <span style={{color:ADM.OK, fontWeight:700}}>✓ Email di reset inviata a {form.email}</span> : `Invia un link di reimpostazione a ${form.email}`}
+                    {resetSent ? <span style={{color:ADM.OK, fontWeight:700}}>✓ Email di reset inviata a {u.email}</span> : `Invia un link di reimpostazione a ${u.email}`}
                   </div>
                 </div>
                 <AdmButton variant="secondary" size="md" icon="mail" disabled={resetSent} onClick={()=>setResetSent(true)}>Invia email di reset</AdmButton>
@@ -689,9 +827,11 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                 <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Quanto sta nell'app e con che ritmo ci torna.</div>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
-                <MiniStat first label="Tempo medio di utilizzo" value={utnDurata(tempoSessione)} sub="Per sessione"/>
+                <MiniStat first label="Tempo medio di utilizzo" value={utnDurata(tempoSessione)}
+                  sub={<React.Fragment>Per sessione{vsMediana(tempoSessione, UTN_MEDIANE.tempoSessione, utnDurata)}</React.Fragment>}/>
                 <MiniStat label="Sessioni settimanali" value={fmtNum(sessioni.settimana)} sub="Media a settimana"/>
-                <MiniStat label="Sessioni mensili" value={fmtNum(sessioni.mese)} sub="Media al mese"/>
+                <MiniStat label="Sessioni mensili" value={fmtNum(sessioni.mese)}
+                  sub={<React.Fragment>Media al mese{vsMediana(sessioni.mese, UTN_MEDIANE.sesMese, fmtNum)}</React.Fragment>}/>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
                 <MiniStat first label="Sessioni trimestrali" value={fmtNum(sessioni.trimestre)} sub="Media a trimestre"/>
@@ -709,7 +849,8 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                 <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Quanto vale, in media, un suo ordine.</div>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
-                <MiniStat first label="Spesa media" value={utnEur2(u.ordini ? u.spesaTotale / u.ordini : null)} sub="Per ordine pagato in app"/>
+                <MiniStat first label="Spesa media" value={utnEur2(spesaMedia)}
+                  sub={<React.Fragment>Per ordine pagato in app{vsMediana(spesaMedia, UTN_MEDIANE.spesaMedia, utnEur2)}</React.Fragment>}/>
                 <MiniStat label="Spesa totale" value={fmtEur(u.spesaTotale)} sub={`${fmtNum(u.ordini)} ordini dall'iscrizione`}/>
               </div>
             </AdmCard>
@@ -722,9 +863,15 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                 <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Quanto prenota, e quanto ci si può contare.</div>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
-                <MiniStat first label="Prenotazioni annue" value={fmtNum(prenAnno)} sub="Ultimi 12 mesi"/>
+                <MiniStat first label="Prenotazioni annue" value={fmtNum(prenAnno)}
+                  sub={<React.Fragment>Ultimi 12 mesi{vsMediana(prenAnno, UTN_MEDIANE.prenAnno, fmtNum)}</React.Fragment>}/>
                 <MiniStat label="Media mensile" value={String(prenMese).replace('.', ',')} sub="Prenotazioni al mese"/>
-                <MiniStat label="Tasso di no show" value={noShow == null ? '—' : noShow + '%'} sub="Prenotazioni non onorate"/>
+                {/* Sotto le dieci prenotazioni la percentuale mente («3% di
+                    1» non esiste): si mostra il conteggio, non il tasso. */}
+                {prenAnno >= 10
+                  ? <MiniStat label="Tasso di no show" value={noShowPct + '%'} sub={`${fmtNum(noShowN)} non onorate su ${fmtNum(prenAnno)}`}/>
+                  : <MiniStat label="No show" value={prenAnno ? `${fmtNum(noShowN)} su ${fmtNum(prenAnno)}` : '—'}
+                      sub={prenAnno ? 'Troppo poche per un tasso' : 'Nessuna prenotazione'}/>}
               </div>
             </AdmCard>
 
@@ -742,11 +889,13 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
               </div>
             </AdmCard>
 
-            {/* I referral: quanti inviti ha mandato, a chi, e quanti sono
-                diventati qualcosa. */}
+            {/* Gli inviti che l'utente MANDA: si chiamano così, non
+                «Referral», perché nelle proprietà CRM della rubrica
+                «Referral» è chi ha portato il contatto — stessa parola,
+                verso opposto, e una parola sola per due sensi confonde. */}
             <AdmCard padding={0}>
               <div style={{padding:'16px 20px 4px'}}>
-                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Referral</div>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Inviti</div>
                 <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Gli inviti che ha mandato e quanti sono stati riscattati.</div>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>

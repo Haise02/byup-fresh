@@ -131,6 +131,12 @@ const HUB_PROPRIETA = [
     opzioni: [{ value: 'locale', label: 'Locale' }, { value: 'staff', label: 'Utente Staff' }, { value: 'utente', label: 'Utente App' }] },
   { id: 'ciclo',    label: 'Ciclo di vita',       gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
     opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'returning', label: 'Returning' }, { value: 'annullato', label: 'Piano annullato' }, { value: 'eliminato', label: 'Eliminato' }] },
+  // Un utente bannato non deve essere invisibile in rubrica: la restrizione
+  // attiva (dal registro di Utenti app) è una proprietà come le altre — la
+  // si mette in colonna e ci si filtra sopra.
+  { id: 'restrizione', label: 'Restrizione',      gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.05fr' },
+    opzioni: [{ value: 'ban', label: 'Bannato' }, { value: 'shadowban', label: 'Shadowban' }],
+    nota: 'Solo per gli utenti app: shadowban o ban attivi nel registro restrizioni' },
   { id: 'iscritto', label: 'Data di creazione',   gruppo: 'contatto', tipo: 'data',   sistema: true, colonna: { w: '1.15fr' } },
   { id: 'idRecord', label: 'ID record',           gruppo: 'contatto', tipo: 'testo',  sistema: true, colonna: { w: '0.85fr' } },
 
