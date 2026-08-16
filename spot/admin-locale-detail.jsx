@@ -127,18 +127,35 @@ function DrwPanoramica({ locale: l }) {
         </div>
       )}
 
+      {/* La striscia in alto: TRE numeri e basta — ordini medi al mese,
+          tasso di coperti occupati, scontrino medio. Prenotazioni e ultimo
+          login stavano qui a fare rumore. */}
       <AdmCard padding={0}>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>
-          <MiniStat first label="Ordini/giorno" value={l.ordiniGiorno} sub={`${fmtNum(l.ordiniMese)}/mese`}/>
-          <MiniStat label="Prenotaz./giorno" value={l.prenotazioniGiorno} sub={`${l.copertura}% copertura`}/>
-          <MiniStat label="Scontrino medio" value={fmtEur(l.ticketMedio)} sub="per ordine"/>
-          <MiniStat label="Ultimo login" value={fmtRelative(l.lastLogin)} sub={fmtDate(l.lastLogin)}/>
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+          <MiniStat first label="Ordini medi al mese" value={fmtNum(l.ordiniMese)} sub={`${l.ordiniGiorno} al giorno`}/>
+          <MiniStat label="Tasso di coperti occupati" value={(42 + hubSeme('occ-' + l.id) % 46) + '%'} sub={`Su ${fmtNum(l.coperti)} coperti in sala`}/>
+          <MiniStat label="Scontrino medio" value={fmtEur(l.ticketMedio)} sub="Per ordine"/>
         </div>
       </AdmCard>
 
+      {/* I due andamenti, uno sotto l'altro: gli ordini e il fatturato che
+          ne discende (ordini × scontrino — stessa curva, altra unità). */}
       <AdmCard padding={18}>
-        <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:12}}>Andamento ordini · 14 giorni</div>
+        <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:12}}>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Andamento ordini</div>
+          <div style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>ultimi 14 giorni</div>
+        </div>
         <AdmBarChart data={[12,18,14,22,28,32,24,30,38,42,36,44,48,52].map(x=>x*(l.ordiniGiorno/30))} labels={Array(14).fill('')} height={140}/>
+      </AdmCard>
+
+      <AdmCard padding={18}>
+        <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:12}}>
+          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Andamento fatturato</div>
+          <div style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>
+            ultimi 14 giorni · {fmtEur([12,18,14,22,28,32,24,30,38,42,36,44,48,52].reduce((s,x)=>s + x*(l.ordiniGiorno/30)*l.ticketMedio, 0))} totali
+          </div>
+        </div>
+        <AdmBarChart data={[12,18,14,22,28,32,24,30,38,42,36,44,48,52].map(x=>x*(l.ordiniGiorno/30)*l.ticketMedio)} labels={Array(14).fill('')} height={140}/>
       </AdmCard>
 
       <DrwAdozioneDigitale locale={l}/>
