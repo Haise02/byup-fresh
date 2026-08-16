@@ -435,6 +435,16 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   const refRiscattati = Math.round(refTotali * (0.2 + rnd(307) * 0.5));
   const refConversione = refTotali ? Math.round((refRiscattati / refTotali) * 100) : null;
 
+  // ── Prenotazioni: l'anno, il ritmo mensile, e quante volte non s'è visto ──
+  // Le annue si ricavano dal totale VERO del dataset riportato a 12 mesi
+  // sull'età dell'account; la media mensile ne è un dodicesimo, con una
+  // cifra decimale perché il ritmo si veda. Il no show è pescato basso
+  // (rnd·rnd): quasi tutti onorano, qualcuno è recidivo.
+  const etaGiorniAccount = Math.max(1, (Date.now() - u.dataRegistrazione.getTime()) / 86400000);
+  const prenAnno = etaGiorniAccount > 365 ? Math.round(u.prenotazioni * (365 / etaGiorniAccount)) : u.prenotazioni;
+  const prenMese = Math.round((prenAnno / 12) * 10) / 10;
+  const noShow = prenAnno ? Math.round(rnd(420) * rnd(421) * 25) : null;
+
   // ── Consensi (tab): lo specchio di ByupConsensi dell'app ──
   // Tre codici, gli stessi del registro vero: A3 (dato alimentare nel
   // profilo), A18 (offerte sul dato alimentare — vale solo INSIEME ad A6,
@@ -691,6 +701,20 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
               <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
                 <MiniStat first label="Spesa media" value={utnEur2(u.ordini ? u.spesaTotale / u.ordini : null)} sub="Per ordine pagato in app"/>
                 <MiniStat label="Spesa totale" value={fmtEur(u.spesaTotale)} sub={`${fmtNum(u.ordini)} ordini dall'iscrizione`}/>
+              </div>
+            </AdmCard>
+
+            {/* Le prenotazioni: quante in un anno, con che ritmo, e quante
+                volte ha prenotato senza presentarsi. */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 4px'}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Prenotazioni</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Quanto prenota, e quanto ci si può contare.</div>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+                <MiniStat first label="Prenotazioni annue" value={fmtNum(prenAnno)} sub="Ultimi 12 mesi"/>
+                <MiniStat label="Media mensile" value={String(prenMese).replace('.', ',')} sub="Prenotazioni al mese"/>
+                <MiniStat label="Tasso di no show" value={noShow == null ? '—' : noShow + '%'} sub="Prenotazioni non onorate"/>
               </div>
             </AdmCard>
 
