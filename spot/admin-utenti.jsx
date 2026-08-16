@@ -218,20 +218,34 @@ function UtenteRow({ utente: u, onClick, striped }) {
 // Il vocabolario del tracking: quello che l'app emette quando l'utente fa
 // qualcosa, ed è ciò che serve a NOI per tracciare l'attività. La tab Log
 // li mostra così come arrivano, con la chiave tecnica in chiaro — la stessa
-// che si ritrova negli export e in Analisi Dati.
+// che si ritrova negli export e in Analisi Dati. Solo l'etichetta, niente
+// icone o colori: è un log, si scandisce per testo e data.
 const UTN_EVENTI = {
-  app_open:        { label: 'Apertura app',          icona: 'smartphone',  color: 'INFO' },
-  qr_scan:         { label: 'QR scansionato',        icona: 'cursorClick', color: 'TEAL' },
-  menu_view:       { label: 'Menu sfogliato',        icona: 'utensils',    color: 'TEAL' },
-  order_placed:    { label: 'Ordine inviato',        icona: 'receipt',     color: 'OK' },
-  payment_done:    { label: 'Conto pagato in app',   icona: 'money',       color: 'OK' },
-  reservation_new: { label: 'Prenotazione creata',   icona: 'calendar',    color: 'PURPLE' },
-  review_posted:   { label: 'Recensione pubblicata', icona: 'star',        color: 'WARN' },
-  byuppini_earned: { label: 'Byuppini accreditati',  icona: 'sparkles',    color: 'PINK' },
-  byuppini_spent:  { label: 'Byuppini riscattati',   icona: 'tag',         color: 'PINK' },
-  push_opened:     { label: 'Notifica push aperta',  icona: 'bell',        color: 'PURPLE' },
-  consent_update:  { label: 'Consenso aggiornato',   icona: 'shield',      color: 'NEUTRAL' },
+  app_open:        { label: 'Apertura app' },
+  qr_scan:         { label: 'QR scansionato' },
+  menu_view:       { label: 'Menu sfogliato' },
+  order_placed:    { label: 'Ordine inviato' },
+  payment_done:    { label: 'Conto pagato in app' },
+  reservation_new: { label: 'Prenotazione creata' },
+  review_posted:   { label: 'Recensione pubblicata' },
+  byuppini_earned: { label: 'Byuppini accreditati' },
+  byuppini_spent:  { label: 'Byuppini riscattati' },
+  push_opened:     { label: 'Notifica push aperta' },
+  consent_update:  { label: 'Consenso aggiornato' },
 };
+
+// Le durate si leggono come le dice un umano: secondi fino al minuto, minuti
+// con la coda in secondi fino all'ora, poi ore e minuti. «4 min 20 s», non
+// «260 s» né «0,07 h».
+function utnDurata(sec) {
+  if (sec < 60) return Math.round(sec) + ' s';
+  if (sec < 3600) {
+    const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+    return s ? m + ' min ' + s + ' s' : m + ' min';
+  }
+  const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+  return m ? h + ' h ' + m + ' min' : h + ' h';
+}
 
 // `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
 // — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
@@ -380,6 +394,37 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
     }
     return out;
   })();
+  // Il filtro per data del log: due estremi, entrambi facoltativi. L'«al» è
+  // compreso — chi scrive una data intende quel giorno, non la sua mezzanotte.
+  const [logDal, setLogDal] = useStateUtn('');
+  const [logAl, setLogAl] = useStateUtn('');
+  const eventiFiltrati = eventi.filter(e =>
+    (!logDal || e.quando >= new Date(logDal)) &&
+    (!logAl || e.quando < new Date(new Date(logAl).getTime() + 86400000)));
+
+  // ── Statistiche (tab 2): le abitudini d'uso della piattaforma ──
+  // Deterministiche sul seme. Le sessioni si estraggono UNA volta — quelle
+  // dell'anno — e gli altri orizzonti si dividono da lì: cinque numeri
+  // estratti a caso non starebbero mai in colonna tra loro.
+  const sessioniAnno = 60 + Math.floor(rnd(300) * 420);
+  const sessioni = {
+    settimana: Math.max(1, Math.round(sessioniAnno / 52)),
+    mese: Math.round(sessioniAnno / 12),
+    trimestre: Math.round(sessioniAnno / 4),
+    semestre: Math.round(sessioniAnno / 2),
+    anno: sessioniAnno,
+  };
+  const tempoSessione = (6 + rnd(301) * 18) * 60;      // 6–24 min per sessione
+  const tempoOrdine = (2 + rnd(302) * 6) * 60;         // 2–8 min dal menu all'invio
+  // A quest'ordine di grandezza i secondi sono rumore («49 min 59 s» si
+  // legge come un glitch): minuti interi.
+  const tempoPagamento = Math.round(25 + rnd(303) * 70) * 60;  // 25–95 min dall'ordine al conto
+  const tempoPrenotazione = 40 + rnd(304) * 140;       // 40 s – 3 min in sessione
+  const refLocali = Math.floor(rnd(305) * 9);          // inviti a ristoranti
+  const refUtenti = Math.floor(rnd(306) * 15);         // inviti ad altri utenti
+  const refTotali = refLocali + refUtenti;
+  const refRiscattati = Math.round(refTotali * (0.2 + rnd(307) * 0.5));
+  const refConversione = refTotali ? Math.round((refRiscattati / refTotali) * 100) : null;
 
   const inputStyle = {
     width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8,
@@ -424,7 +469,7 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
           </div>
           {/* Tabs */}
           <div style={{display:'flex', gap:2}}>
-            {[{id:'anagrafica', label:'Anagrafica'},{id:'log', label:`Log (${eventi.length})`},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
+            {[{id:'anagrafica', label:'Anagrafica'},{id:'statistiche', label:'Statistiche'},{id:'log', label:`Log (${eventi.length})`},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
               <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
                 padding:'9px 14px', background:'transparent', border:'none',
                 borderBottom:`2px solid ${tab === t.id ? ADM.PINK : 'transparent'}`,
@@ -561,6 +606,60 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
           </div>
         )}
 
+        {/* ═══ TAB STATISTICHE — le abitudini d'uso della piattaforma ═══ */}
+        {tab === 'statistiche' && (
+          <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
+            {/* Quanto sta nell'app e con che ritmo torna: il tempo di una
+                sessione e le sessioni sui cinque orizzonti, divise da un
+                unico numero annuale perché stiano in colonna tra loro. */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 4px'}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Abitudini di utilizzo</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Quanto sta nell'app e con che ritmo ci torna.</div>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+                <MiniStat first label="Tempo medio di utilizzo" value={utnDurata(tempoSessione)} sub="Per sessione"/>
+                <MiniStat label="Sessioni settimanali" value={fmtNum(sessioni.settimana)} sub="Media a settimana"/>
+                <MiniStat label="Sessioni mensili" value={fmtNum(sessioni.mese)} sub="Media al mese"/>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+                <MiniStat first label="Sessioni trimestrali" value={fmtNum(sessioni.trimestre)} sub="Media a trimestre"/>
+                <MiniStat label="Sessioni semestrali" value={fmtNum(sessioni.semestre)} sub="Media a semestre"/>
+                <MiniStat label="Sessioni annuali" value={fmtNum(sessioni.anno)} sub="Ultimi 12 mesi"/>
+              </div>
+            </AdmCard>
+
+            {/* I tempi dentro i tre flussi principali: quanto ci mette a
+                mandare un ordine, a pagarlo, a prendere una prenotazione. */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 4px'}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Tempi medi</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Quanto ci mette, in media, dentro i tre flussi principali.</div>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+                <MiniStat first label="Ordine inviato" value={utnDurata(tempoOrdine)} sub="Dal menu aperto all'invio"/>
+                <MiniStat label="Pagamento dopo l'ordine" value={utnDurata(tempoPagamento)} sub="Dall'ordine al conto pagato"/>
+                <MiniStat label="Prenotazione presa" value={utnDurata(tempoPrenotazione)} sub="Dentro una sessione"/>
+              </div>
+            </AdmCard>
+
+            {/* I referral: quanti inviti ha mandato, a chi, e quanti sono
+                diventati qualcosa. */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 4px'}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Referral</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Gli inviti che ha mandato e quanti sono stati riscattati.</div>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>
+                <MiniStat first label="Inviati a ristoranti" value={fmtNum(refLocali)} sub="Locali invitati su byup"/>
+                <MiniStat label="Inviati a utenti" value={fmtNum(refUtenti)} sub="Amici invitati in app"/>
+                <MiniStat label="Riscattati" value={fmtNum(refRiscattati)} sub={`Su ${fmtNum(refTotali)} inviati`}/>
+                <MiniStat label="Conversione" value={refConversione == null ? '—' : refConversione + '%'} sub="Riscattati su inviati"/>
+              </div>
+            </AdmCard>
+          </div>
+        )}
+
         {/* ═══ TAB LOG — gli eventi che l'app emette ═══ */}
         {tab === 'log' && (
           <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
@@ -577,35 +676,54 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                 chiave tecnica in chiaro accanto al racconto — è la stessa
                 che si ritrova negli export e in Analisi Dati. Nessun
                 riassunto: la risposta a «che cosa ha fatto in app?» sono gli
-                eventi stessi, dal più recente. */}
+                eventi stessi, dal più recente. Niente icone: è un log, e un
+                log si scandisce per testo e data, non per figurine. */}
             <AdmCard padding={0}>
-              <div style={{padding:'16px 20px 12px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap'}}>
+              <div style={{padding:'14px 20px', borderBottom:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
                 <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Eventi tracciati</div>
-                <div style={{fontSize:13, color:ADM.MUTED}}>{eventi.length} eventi dal {fmtDate(eventi[eventi.length - 1].quando)} · dal più recente</div>
+                <div style={{fontSize:13, color:ADM.MUTED}}>
+                  {(logDal || logAl) ? `${eventiFiltrati.length} di ${eventi.length}` : `${eventi.length} eventi dal ${fmtDate(eventi[eventi.length - 1].quando)}`}
+                </div>
+                <div style={{flex:1}}/>
+                {/* Il filtro per data: due estremi, entrambi facoltativi. */}
+                <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Dal</span>
+                <input type="date" value={logDal} onChange={e=>setLogDal(e.target.value)} style={{
+                  padding:'6px 9px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+                  fontSize:12.8, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+                }}/>
+                <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Al</span>
+                <input type="date" value={logAl} onChange={e=>setLogAl(e.target.value)} style={{
+                  padding:'6px 9px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
+                  fontSize:12.8, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
+                }}/>
+                {(logDal || logAl) && (
+                  <button className="adm-textlink" onClick={()=>{ setLogDal(''); setLogAl(''); }} style={{
+                    background:'transparent', border:'none', color:ADM.PINK_DARK, fontSize:12.5, fontWeight:700,
+                    cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+                  }}>Azzera</button>
+                )}
               </div>
-              {eventi.map((e, i) => {
-                const def = UTN_EVENTI[e.tipo];
-                const Icona = BuIcons[def.icona];
-                return (
-                  <div key={e.id} style={{
-                    display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
-                    borderBottom: i === eventi.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
-                    background: i % 2 === 1 ? ADM.ROW_STRIPE : 'transparent',
-                  }}>
-                    <div style={{width:32, height:32, borderRadius:8, background:ADM[def.color+'_SOFT'], color:ADM[def.color], display:'grid', placeItems:'center', flexShrink:0}}>
-                      <Icona size={17}/>
-                    </div>
-                    <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{def.label}</div>
-                      <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{e.dettaglio}</div>
-                    </div>
-                    <div style={{textAlign:'right', flexShrink:0}}>
-                      <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT}}>{e.tipo}</div>
-                      <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2}}>{fmtDateTime(e.quando)}</div>
-                    </div>
+              {eventiFiltrati.length === 0 && (
+                <div style={{padding:'26px 0', textAlign:'center', fontSize:13.5, color:ADM.MUTED}}>
+                  Nessun evento tra le date scelte.
+                </div>
+              )}
+              {eventiFiltrati.map((e, i) => (
+                <div key={e.id} style={{
+                  display:'flex', alignItems:'center', gap:12, padding:'11px 20px',
+                  borderBottom: i === eventiFiltrati.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+                  background: i % 2 === 1 ? ADM.ROW_STRIPE : 'transparent',
+                }}>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{UTN_EVENTI[e.tipo].label}</div>
+                    <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{e.dettaglio}</div>
                   </div>
-                );
-              })}
+                  <div style={{textAlign:'right', flexShrink:0}}>
+                    <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT}}>{e.tipo}</div>
+                    <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2}}>{fmtDateTime(e.quando)}</div>
+                  </div>
+                </div>
+              ))}
             </AdmCard>
           </div>
         )}
