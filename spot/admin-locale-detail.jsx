@@ -63,14 +63,14 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
 
         {/* La scheda si legge come un contatto di CRM: prima chi è
             (anagrafica, dati fiscali, proprietà libere), poi come va
-            (panoramica, statistiche, log), poi i fascicoli (consensi,
-            certificazioni, contratti, fatturazione), e per ultima la
-            gestione (Account, dove vive la sospensione). */}
+            (Statistiche — che dentro distingue i dati del LOCALE, l'ex
+            Panoramica, dai dati da CAMERIERE del titolare — e il log), poi
+            i fascicoli (certificazioni, contratti e consensi, fatturazione),
+            e per ultima la gestione (Account, dove vive la sospensione). */}
         <AdmTabBar tabs={[
           { id:'anagrafica', label:'Anagrafica' },
           { id:'fiscale', label:'Dati fiscali' },
           { id:'proprieta', label:'Proprietà' },
-          { id:'panoramica', label:'Panoramica' },
           { id:'statistiche', label:'Statistiche' },
           { id:'attivita', label:'Log' },
           { id:'certificazioni', label:'Certificazioni',
@@ -82,7 +82,6 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
         ]} active={tab} onChange={setTab}/>
 
         <div style={{flex:1, overflow:'auto', background: ADM.PANEL_SOFT}}>
-          {tab==='panoramica' && <DrwPanoramica locale={l}/>}
           {tab==='anagrafica' && <DrwAnagrafica locale={l}/>}
           {tab==='fiscale' && <DrwFiscali locale={l}/>}
           {tab==='statistiche' && <DrwStatisticheLocale locale={l}/>}
@@ -727,43 +726,62 @@ const DRW_STA_MEDIANE = (() => {
 })();
 
 function DrwStatisticheLocale({ locale: l }) {
-  // Un locale che non lavora non prende ordini: le cifre da sala esistono
-  // solo per gli ATTIVI — per gli altri la tab dice perché non ci sono,
-  // invece di inventare un titolare che serve tavoli in un locale fermo.
-  if (l.stato !== 'active') {
-    const perche = l.stato === 'churned'
-      ? 'Il contratto è cessato: le cifre da sala si sono fermate con il servizio.'
-      : 'Il locale non è ancora operativo: quando comincerà a lavorare, qui compariranno scontrino, mance e ordini del titolare.';
-    return (
-      <div style={{padding:'20px 24px'}}>
-        <AdmCard padding={0}>
-          <AdmEmpty icon="receipt" title="Nessuna cifra da sala" desc={perche}/>
-        </AdmCard>
-      </div>
-    );
-  }
+  // La tab tiene INSIEME due cose che non vanno confuse, e le etichetta:
+  // i dati del LOCALE (l'ex tab Panoramica: il business) e i dati da
+  // CAMERIERE dell'utenza del titolare (la persona al tavolo, le stesse
+  // cifre della scheda staff).
+  const sezione = (titolo, sub) => (
+    <div>
+      <div style={{fontSize:11.5, fontWeight:800, letterSpacing:'0.07em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>{titolo}</div>
+      <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:2}}>{sub}</div>
+    </div>
+  );
   const st = drwStatSala(l);
   const mesi = Math.max(1, Math.floor((Date.now() - l.dataIscrizione.getTime()) / (30.44 * 86400000)));
   // camEur2 è il formatter delle cifre da sala (admin-camerieri): al centesimo.
   return (
-    <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
-      <AdmCard padding={0}>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
-          <MiniStat first label="Mesi di lavoro" value={fmtNum(mesi)} sub={'Dal ' + fmtDate(l.dataIscrizione)}/>
-          <MiniStat label="Scontrino medio" value={camEur2(st.scontrino)}
-            sub={<React.Fragment>Per ordine preso{drwVsMediana(st.scontrino, DRW_STA_MEDIANE.scontrino, camEur2)}</React.Fragment>}/>
-          <MiniStat label="Mancia media" value={camEur2(st.mancia)}
-            sub={<React.Fragment>Per conto chiuso{drwVsMediana(st.mancia, DRW_STA_MEDIANE.mancia, camEur2)}</React.Fragment>}/>
+    <div>
+      <div style={{padding:'20px 24px 0'}}>
+        {sezione('Dati del locale', 'Come va il business: volumi, adozione digitale, funnel.')}
+      </div>
+      {/* L'ex Panoramica, per intero: vive qui dentro, non in una tab sua. */}
+      <DrwPanoramica locale={l}/>
+
+      <div style={{padding:'0 24px 14px'}}>
+        {sezione('Dati da cameriere', 'L\'utenza del titolare al tavolo — le stesse cifre della scheda staff: la persona, non il business.')}
+      </div>
+      {l.stato !== 'active' ? (
+        // Un locale che non lavora non prende ordini: la sezione dice perché
+        // è vuota invece di inventare un titolare che serve tavoli.
+        <div style={{padding:'0 24px 24px'}}>
+          <AdmCard padding={0}>
+            <AdmEmpty icon="receipt" title="Nessuna cifra da sala"
+              desc={l.stato === 'churned'
+                ? 'Il contratto è cessato: le cifre da sala si sono fermate con il servizio.'
+                : 'Il locale non è ancora operativo: quando comincerà a lavorare, qui compariranno scontrino, mance e ordini del titolare.'}/>
+          </AdmCard>
         </div>
-      </AdmCard>
-      <AdmCard padding={0}>
-        <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
-          <MiniStat first label="Ordini mese" value={fmtNum(st.ordiniMese)}
-            sub={<React.Fragment>Presi al tavolo{drwVsMediana(st.ordiniMese, DRW_STA_MEDIANE.ordiniMese, fmtNum)}</React.Fragment>}/>
-          <MiniStat label="Coperti gestiti" value={fmtNum(st.coperti)}
-            sub={<React.Fragment>Mese corrente{drwVsMediana(st.coperti, DRW_STA_MEDIANE.coperti, fmtNum)}</React.Fragment>}/>
+      ) : (
+        <div style={{padding:'0 24px 24px', display:'flex', flexDirection:'column', gap:14}}>
+          <AdmCard padding={0}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+              <MiniStat first label="Mesi di lavoro" value={fmtNum(mesi)} sub={'Dal ' + fmtDate(l.dataIscrizione)}/>
+              <MiniStat label="Scontrino medio" value={camEur2(st.scontrino)}
+                sub={<React.Fragment>Per ordine preso{drwVsMediana(st.scontrino, DRW_STA_MEDIANE.scontrino, camEur2)}</React.Fragment>}/>
+              <MiniStat label="Mancia media" value={camEur2(st.mancia)}
+                sub={<React.Fragment>Per conto chiuso{drwVsMediana(st.mancia, DRW_STA_MEDIANE.mancia, camEur2)}</React.Fragment>}/>
+            </div>
+          </AdmCard>
+          <AdmCard padding={0}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
+              <MiniStat first label="Ordini mese" value={fmtNum(st.ordiniMese)}
+                sub={<React.Fragment>Presi al tavolo{drwVsMediana(st.ordiniMese, DRW_STA_MEDIANE.ordiniMese, fmtNum)}</React.Fragment>}/>
+              <MiniStat label="Coperti gestiti" value={fmtNum(st.coperti)}
+                sub={<React.Fragment>Mese corrente{drwVsMediana(st.coperti, DRW_STA_MEDIANE.coperti, fmtNum)}</React.Fragment>}/>
+            </div>
+          </AdmCard>
         </div>
-      </AdmCard>
+      )}
     </div>
   );
 }
