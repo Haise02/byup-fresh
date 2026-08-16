@@ -247,6 +247,11 @@ function utnDurata(sec) {
   return m ? h + ' h ' + m + ' min' : h + ' h';
 }
 
+// Una spesa MEDIA si legge al centesimo (fmtEur taglia i decimali, e una
+// media da «€ 23» non è una media).
+const utnEur2 = (n) => n == null ? '—'
+  : '€ ' + new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
 // `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
 // — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
 // barra «torna» del chiamante.
@@ -503,7 +508,7 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
           </div>
           {/* Tabs */}
           <div style={{display:'flex', gap:2}}>
-            {[{id:'anagrafica', label:'Anagrafica'},{id:'statistiche', label:'Statistiche'},{id:'consensi', label:'Consensi'},{id:'log', label:`Log (${eventi.length})`},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
+            {[{id:'anagrafica', label:'Anagrafica'},{id:'account', label:'Account'},{id:'statistiche', label:'Statistiche'},{id:'consensi', label:'Consensi'},{id:'log', label:`Log (${eventi.length})`},{id:'recensioni', label:`Recensioni (${recensioni.length})`}].map(t => (
               <button key={t.id} className="adm-pill" onClick={()=>setTab(t.id)} style={{
                 padding:'9px 14px', background:'transparent', border:'none',
                 borderBottom:`2px solid ${tab === t.id ? ADM.PINK : 'transparent'}`,
@@ -595,6 +600,16 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
               </div>
             </AdmCard>
 
+          </div>
+        )}
+
+        {/* ═══ TAB ACCOUNT — la gestione dell'utenza ═══ */}
+        {/* Le AZIONI sull'account — saldo fedeltà, credenziali, restrizioni —
+            stavano in coda all'anagrafica, ma l'anagrafica dice chi è la
+            persona: qui c'è quello che si può FARE al suo account, con la
+            zona sensibile per ultima, sobria com'era. */}
+        {tab === 'account' && (
+          <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
             {/* Byuppini */}
             <AdmCard padding={20}>
               <div style={{display:'flex', alignItems:'center', gap:14}}>
@@ -662,6 +677,20 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                 <MiniStat first label="Sessioni trimestrali" value={fmtNum(sessioni.trimestre)} sub="Media a trimestre"/>
                 <MiniStat label="Sessioni semestrali" value={fmtNum(sessioni.semestre)} sub="Media a semestre"/>
                 <MiniStat label="Sessioni annuali" value={fmtNum(sessioni.anno)} sub="Ultimi 12 mesi"/>
+              </div>
+            </AdmCard>
+
+            {/* La spesa: la media al centesimo, col totale accanto che le fa
+                da ancora — una media da sola non dice se pesa. I numeri sono
+                quelli veri del dataset (spesa totale / ordini totali). */}
+            <AdmCard padding={0}>
+              <div style={{padding:'16px 20px 4px'}}>
+                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Spesa</div>
+                <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Quanto vale, in media, un suo ordine.</div>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
+                <MiniStat first label="Spesa media" value={utnEur2(u.ordini ? u.spesaTotale / u.ordini : null)} sub="Per ordine pagato in app"/>
+                <MiniStat label="Spesa totale" value={fmtEur(u.spesaTotale)} sub={`${fmtNum(u.ordini)} ordini dall'iscrizione`}/>
               </div>
             </AdmCard>
 
