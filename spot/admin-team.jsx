@@ -375,14 +375,6 @@ function RuoliMatrix() {
           </div>
         ))}
       </div>
-      {/* La regola detta a voce: chi legge la matrice non deve chiedersi dove
-          sia finita la riga che non c'è. */}
-      <div style={{marginTop:12, padding:'11px 14px', borderRadius:10, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:9}}>
-        <BuIcons.lock size={16} color={ADM.MUTED}/>
-        <span style={{fontSize:13.2, color:ADM.MUTED, lineHeight:1.5}}>
-          <b style={{color:ADM.TEXT}}>Piattaforma</b> (piani e prezzi, peso ordini, discovery) non compare: non è un permesso assegnabile — è del solo Super Admin, e non viene mostrata nemmeno regolando un account personalizzato.
-        </span>
-      </div>
     </div>
   );
 }
