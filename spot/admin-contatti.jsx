@@ -6,9 +6,9 @@
 // le quattro colonne che identificano un contatto (email, tipologia, ciclo
 // di vita, città); tutto il resto sta nel dettaglio, che resta QUELLO
 // GIUSTO per ciascun tipo: il drawer del locale, la scheda dello staff, la
-// scheda dell'utente app. Le vecchie pagine non sono montate da nessuna
-// rotta, ma i loro file restano caricati: lì dentro vivono i loro dataset
-// (STAFF, i drawer) e le rotte vecchie vengono tradotte qui da admin-app.
+// scheda dell'utente app. Le vecchie pagine di sezione sono state
+// RIMOSSE: restano i loro file per dataset e schede (STAFF, i drawer), e le
+// rotte vecchie vengono tradotte qui da admin-app.
 
 const { useState: useStateCnt, useMemo: useMemoCnt, useEffect: useEffectCnt } = React;
 
@@ -219,6 +219,10 @@ function AdmContattiPage({ search, openContatto }) {
   // che dice alla lista di ricalcolarsi. Un pulsante «Crea» che apre un modulo
   // e poi non lascia traccia è peggio di un pulsante assente.
   const [rev, setRev] = useStateCnt(0);
+  // Il registro delle restrizioni (shadowban/ban): il suo ingresso viveva
+  // nella vecchia pagina Utenti app; gli utenti ora vivono qui, e qui sta
+  // anche il registro.
+  const [restrizioniAperte, setRestrizioniAperte] = useStateCnt(false);
   // L'ordinamento vive nelle INTESTAZIONI: si clicca la cima di una colonna e
   // la lista si ordina su quel campo; un secondo click inverte il verso.
   // A riposo è una rubrica: nomi in ordine alfabetico.
@@ -421,7 +425,13 @@ function AdmContattiPage({ search, openContatto }) {
         occhiello="CRM · Rubrica"
         titolo="Contatti"
         sotto="Locali, utenti staff e utenti app in un'unica rubrica. Filtra per qualunque proprietà."
-        azioni={<HubStrumento forte icona="plus" onClick={() => setCreaAperta(true)}>Nuovo contatto</HubStrumento>}/>
+        azioni={
+          <React.Fragment>
+            <HubStrumento icona="shield" badge={RESTRIZIONI.filter(r => !r.revocataIl).length}
+              onClick={() => setRestrizioniAperte(true)}>Restrizioni</HubStrumento>
+            <HubStrumento forte icona="plus" onClick={() => setCreaAperta(true)}>Nuovo contatto</HubStrumento>
+          </React.Fragment>
+        }/>
 
       <AdmCard padding={0}>
         {/* La barra: ricerca a sinistra, gli STRUMENTI a destra — filtri e
@@ -604,6 +614,13 @@ function AdmContattiPage({ search, openContatto }) {
 
       <CntCrea open={creaAperta} onChiudi={() => setCreaAperta(false)}
         onCreato={(riga) => { setRev(r => r + 1); setTabDett('scheda'); setSelected({ tipo: riga.tipo, ref: riga.ref, riga }); }}/>
+
+      {/* Il registro restrizioni: da qui si apre anche la scheda dell'utente
+          ristretto, come faceva dalla vecchia pagina Utenti app. */}
+      {restrizioniAperte && (
+        <AdmRestrizioniModal onClose={() => setRestrizioniAperte(false)}
+          onOpenUtente={(u) => setSelected({ tipo: 'utente', ref: u })}/>
+      )}
     </div>
   );
 }
@@ -627,56 +644,6 @@ function CntTorna({ onClick }) {
       }}>
       <BuIcons.chevronLeft size={16} color={ADM.MUTED}/>
       Contatti
-    </button>
-  );
-}
-
-// ─── Il pulsante-strumento ──────────────────────────────────────────────────
-// Il guscio comune di «Aggiungi filtro» e «Modifica colonne»: bianco a
-// riposo, si scurisce sotto il mouse e si abbassa di un pixel alla pressione;
-// da ACCESO (filtri attivi) veste il corallo. Il feedback vive in JS perché
-// il fondo è uno stile inline e una classe :hover non lo batterebbe.
-function CntStrumento({ icona, acceso, badge, onClick, children }) {
-  const [sopra, setSopra] = useStateCnt(false);
-  const [premuto, setPremuto] = useStateCnt(false);
-  const Icona = BuIcons[icona];
-  return (
-    <button type="button" onClick={onClick}
-      onMouseEnter={() => setSopra(true)}
-      onMouseLeave={() => { setSopra(false); setPremuto(false); }}
-      onMouseDown={() => setPremuto(true)}
-      onMouseUp={() => setPremuto(false)}
-      style={{
-        position: 'relative',
-        display: 'inline-flex', alignItems: 'center', gap: 7,
-        padding: '8px 13px',
-        border: `1px solid ${acceso ? ADM.PINK : sopra ? ADM.INK_SOFT : ADM.BORDER}`,
-        borderRadius: 8,
-        fontSize: 13.7, fontWeight: 600,
-        color: acceso ? ADM.PINK_DARK : ADM.TEXT,
-        background: acceso
-          ? (sopra ? '#FFCBD8' : ADM.PINK_BG_SOFT)
-          : (sopra ? '#F5F6F8' : '#fff'),
-        boxShadow: premuto ? 'none'
-          : sopra ? '0 2px 8px rgba(15,17,21,0.10)'
-          : '0 1px 2px rgba(15,17,21,0.04)',
-        transform: premuto ? 'translateY(1px)' : 'none',
-        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-        transition: 'background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, transform 0.05s ease',
-      }}>
-      <Icona size={15} color={acceso ? ADM.PINK : sopra ? ADM.TEXT : ADM.MUTED}/>
-      {children}
-      {/* Il conto dei filtri accesi, sull'angolo come i badge della nav. */}
-      {badge > 0 && (
-        <span style={{
-          position: 'absolute', top: -7, right: -7,
-          minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999,
-          background: ADM.PINK, color: '#fff',
-          fontSize: 11.5, fontWeight: 800, lineHeight: 1,
-          display: 'grid', placeItems: 'center',
-          boxShadow: '0 0 0 2px #fff',
-        }}>{badge}</span>
-      )}
     </button>
   );
 }

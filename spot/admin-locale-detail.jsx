@@ -1681,8 +1681,6 @@ const CTR_MOTIVI = [
 ];
 const ctrMotivoLabel = (v) => (CTR_MOTIVI.find(m => m.value === v) || { label: v }).label;
 
-const CTR_SUPERFICI = { onboarding:'Onboarding', gestionale:'Gestionale', 'app-staff':'App Staff', app:'Byup App' };
-
 const ctrDoc = (codice) => DOCUMENTI.find(d => d.codice === codice);
 const ctrCorrente = (doc) => doc.versioni ? doc.versioni[doc.versioni.length - 1] : null;
 const ctrGiorni = (d) => Math.ceil((d.getTime() - Date.now()) / 86400000);
@@ -1700,14 +1698,6 @@ function ctrEsito(p) {
   if (p.esito !== 'in-corso') return p.esito;
   return Date.now() < p.efficace.getTime() ? 'in-corso' : 'scaduto';
 }
-const CTR_ESITI = {
-  'accettato': { label:'Accettato',              color:'OK' },
-  'opposto':   { label:'Opposizione',            color:'WARN' },
-  'recesso':   { label:'Recesso',                color:'DANGER' },
-  'in-corso':  { label:'Finestra aperta',        color:'INFO' },
-  'scaduto':   { label:'Scaduto senza risposta', color:'WARN' },
-};
-
 // Lo stato in cima: i problemi attivi in ordine di gravità. Il banner prende
 // colore e frase dal PEGGIORE; gli altri diventano chip. Funzione pura: la
 // stessa servirà a un badge di tab o a una colonna in rubrica.

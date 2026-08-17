@@ -1,113 +1,9 @@
-// Sezione Utenti App: lista + drawer dettaglio
+// Utenti App — la scheda (UtenteDrawer) e i suoi attrezzi; la lista di
+// sezione non esiste più, si arriva qui dalla rubrica Contatti.
+// SpesaMediaCard resta: la monta Analisi Dati (admin-dashboard).
 
 const { useState: useStateUtn, useMemo: useMemoUtn } = React;
 
-function AdmUtentiPage({ search: searchProp, openUtente }) {
-  const [search, setSearch] = useStateUtn(searchProp || '');
-  const [sesso, setSesso] = useStateUtn('all');
-  const [fascia, setFascia] = useStateUtn('all');
-  const [regione, setRegione] = useStateUtn('all');
-  const [statoFiltro, setStatoFiltro] = useStateUtn('all');
-  const [selected, setSelected] = useStateUtn(null);
-  const [restrizioniOpen, setRestrizioniOpen] = useStateUtn(false);
-  React.useEffect(() => { if (openUtente) setSelected(openUtente); }, [openUtente && openUtente.id]);
-  // Il conteggio si legge dal registro a ogni render: applicare o togliere una
-  // restrizione dal drawer lo aggiorna senza passarsi stato avanti e indietro.
-  const restrizioniAttive = (window.RESTRIZIONI || []).filter(r => !r.revocataIl).length;
-
-  const filtered = useMemoUtn(() => {
-    let r = UTENTI;
-    if (sesso !== 'all') r = r.filter(u => u.sesso === sesso);
-    if (fascia !== 'all') {
-      const [a, b] = fascia.split('-').map(Number);
-      r = r.filter(u => u.eta >= a && u.eta <= b);
-    }
-    if (regione !== 'all') r = r.filter(u => u.regione === regione);
-    if (statoFiltro === 'attivi')    r = r.filter(u => u.attivo);
-    if (statoFiltro === 'inattivi')  r = r.filter(u => !u.attivo);
-    if (search) {
-      const q = search.toLowerCase();
-      r = r.filter(u => u.nome.toLowerCase().includes(q) || u.citta.toLowerCase().includes(q));
-    }
-    return r;
-  }, [sesso, fascia, regione, statoFiltro, search]);
-
-  const totUtenti = UTENTI.length;
-
-  return (
-    <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
-      <AdmCard padding={0}>
-        <div style={{padding:'14px 18px', display:'flex', alignItems:'center', gap:10, borderBottom:`1px solid ${ADM.BORDER}`, flexWrap:'wrap'}}>
-          <div style={{position:'relative', flex:'0 0 240px'}}>
-            <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={19}/></span>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca per nome o città…" style={{
-              width:'100%', padding:'7px 10px 7px 32px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
-              fontSize:14, fontFamily:'inherit', outline:'none', background:'#fff',
-            }}/>
-          </div>
-          <FilterDropdown label="Stato" value={statoFiltro} onChange={setStatoFiltro} options={[
-            {value:'all', label:'Tutti gli stati'}, {value:'attivi', label:'Attivi'}, {value:'inattivi', label:'Inattivi'},
-          ]}/>
-          <FilterDropdown label="Sesso" value={sesso} onChange={setSesso} options={[
-            {value:'all', label:'Tutti'}, {value:'F', label:'Donne'}, {value:'M', label:'Uomini'},
-          ]}/>
-          <FilterDropdown label="Età" value={fascia} onChange={setFascia} options={[
-            {value:'all', label:'Tutte le età'}, {value:'18-25', label:'18-25'}, {value:'26-35', label:'26-35'}, {value:'36-45', label:'36-45'}, {value:'46-60', label:'46-60'}, {value:'61-99', label:'60+'},
-          ]}/>
-          <FilterDropdown label="Regione" value={regione} onChange={setRegione} options={[
-            {value:'all', label:'Tutte le regioni'},
-            ...REGIONI.map(r => ({value:r, label:r})),
-          ]}/>
-          {/* Conteggio e restrizioni stanno insieme in coda alla barra: con
-              marginLeft:auto restano a destra anche quando i filtri mandano la
-              riga a capo, invece di ricomparire a sinistra sotto la ricerca.
-              Le restrizioni non sono un filtro della lista — sono un registro a
-              parte: chi è ristretto, da quando e per quale recensione. */}
-          <div style={{display:'flex', alignItems:'center', gap:10, marginLeft:'auto'}}>
-            <span style={{fontSize:13.7, color:ADM.MUTED}}>{filtered.length} di {totUtenti}</span>
-            <AdmButton variant="secondary" size="sm" icon="shield" onClick={()=>setRestrizioniOpen(true)}>
-              Restrizioni
-              {restrizioniAttive > 0 && (
-                <span style={{
-                  fontSize:12, fontWeight:700, marginLeft:2,
-                  background:ADM.WARN_SOFT, color:ADM.WARN,
-                  padding:'0 6px', borderRadius:99,
-                }}>{restrizioniAttive}</span>
-              )}
-            </AdmButton>
-          </div>
-        </div>
-
-        <div style={{
-          display:'grid',
-          gridTemplateColumns:'minmax(0,2.4fr) 0.7fr 0.6fr 1.3fr 1.1fr 60px',
-          padding:'10px 18px',
-          borderBottom:`1px solid ${ADM.BORDER}`,
-          fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em',
-        }}>
-          <div>Utente</div>
-          <div>Sesso</div>
-          <div>Età</div>
-          <div>Geografia</div>
-          <div>Stato</div>
-          <div></div>
-        </div>
-
-        <div>
-          {filtered.length === 0 && <AdmEmpty title="Nessun utente trovato" desc="Modifica i filtri di ricerca"/>}
-          {filtered.map((u, i) => <UtenteRow key={u.id} utente={u} onClick={()=>setSelected(u)} striped={i%2===1}/>)}
-        </div>
-      </AdmCard>
-
-      {selected && <UtenteDrawer utente={selected} onClose={()=>setSelected(null)}/>}
-      {restrizioniOpen && (
-        <AdmRestrizioniModal
-          onClose={()=>setRestrizioniOpen(false)}
-          onOpenUtente={(u)=>setSelected(u)}/>
-      )}
-    </div>
-  );
-}
 
 // ─── Spesa media card · period-aware ────────────────────────────────────────
 // Risolve l'ambiguità: ogni KPI di spesa ha un orizzonte temporale esplicito.
@@ -172,47 +68,8 @@ function SpesaMediaCard({ lifetime, anno, mese, horizonDays }) {
   );
 }
 
-function UtenteRow({ utente: u, onClick, striped }) {
-  const [hover, setHover] = useStateUtn(false);
-  return (
-    <div onClick={onClick} className="adm-row-open"
-      onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
-      style={{
-        display:'grid',
-        gridTemplateColumns:'minmax(0,2.4fr) 0.7fr 0.6fr 1.3fr 1.1fr 60px',
-        padding:'12px 18px',
-        borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
-        background: hover ? ADM.ROW_HOVER : (striped ? ADM.ROW_STRIPE : 'transparent'),
-        cursor:'pointer',
-        alignItems:'center',
-      }}>
-      <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
-        <AdmAvatar name={u.nome} size={39} bg={`hsl(${(u.id.charCodeAt(1)+u.id.charCodeAt(3))*5 % 360}, 45%, 55%)`}/>
-        <div style={{minWidth:0}}>
-          <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{u.nome}</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:1}}>{u.email}</div>
-        </div>
-      </div>
-      <div style={{fontSize:14, color:ADM.TEXT}}>{u.sesso === 'F' ? 'Donna' : 'Uomo'}</div>
-      <div style={{fontSize:14, color:ADM.TEXT}}>{u.eta}</div>
-      <div>
-        <div style={{fontSize:14, color:ADM.TEXT, fontWeight:500}}>{u.citta}</div>
-        <div style={{fontSize:13, color:ADM.MUTED}}>{u.regione}</div>
-      </div>
-      <div>
-        {u.attivo
-          ? <AdmBadge color="OK" size="xs">● Attivo</AdmBadge>
-          : (
-            <div>
-              <AdmBadge color="PLAN_FREE" size="xs">○ Inattivo</AdmBadge>
-              <div style={{fontSize:12.6, color:ADM.MUTED_SOFT, marginTop:3}}>Ultima: {fmtRelative(u.lastSession)}</div>
-            </div>
-          )}
-      </div>
-      <div style={{textAlign:'right', color:ADM.MUTED}}><span className="adm-row-chev"><BuIcons.chevronRight size={20}/></span></div>
-    </div>
-  );
-}
+// La riga della vecchia lista (UtenteRow) e la pagina di sezione
+// (AdmUtentiPage) sono state rimosse: la rotta è tradotta in Contatti.
 
 // ─── Gli eventi dell'app ────────────────────────────────────────────────────
 // Il vocabolario del tracking: quello che l'app emette quando l'utente fa
@@ -1285,4 +1142,3 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   );
 }
 
-window.AdmUtentiPage = AdmUtentiPage;

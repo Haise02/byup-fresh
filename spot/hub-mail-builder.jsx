@@ -233,7 +233,6 @@ function mbInserisci(html) { mbComando('insertHTML', html); }
 
 const mbEsc = (s) => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const mbNl = (s) => mbEsc(s).replace(/\n/g, '<br/>');
 
 function mbBloccoHtml(b, doc) {
   const pad = `padding:${b.padTop}px 28px ${b.padBottom}px;`;

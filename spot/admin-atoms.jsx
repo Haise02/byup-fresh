@@ -19,33 +19,12 @@ function AdmBadge({ children, color = 'PLAN_FREE', soft = true, size = 'sm' }) {
   );
 }
 
-function AdmDot({ color = 'OK' }) {
-  return <span style={{width:6, height:6, background:ADM[color]||color, borderRadius:'50%', display:'inline-block'}}/>;
-}
-
 function AdmPlanBadge({ piano }) {
   const p = PIANI.find(x => x.id === piano);
   if (!p) return null;
   return <AdmBadge color={p.color} size="xs">{p.label}</AdmBadge>;
 }
 
-function AdmStatoBadge({ stato }) {
-  const map = {
-    pending:    { label: 'Iscritto', color: 'PLAN_FREE' },
-    onboarding: { label: 'In onboarding', color: 'WARN' },
-    skipped:    { label: 'Onboarding saltato', color: 'INFO' },
-    active:     { label: 'Attivo', color: 'OK' },
-    inactive:   { label: 'Inattivo', color: 'PLAN_FREE' },
-    churned:    { label: 'Disdetto', color: 'DANGER' },
-  };
-  const s = map[stato] || map.pending;
-  return (
-    <span style={{display:'inline-flex', alignItems:'center', gap:6}}>
-      <AdmDot color={s.color}/>
-      <span style={{fontSize:13.7, color:ADM.TEXT, fontWeight:500}}>{s.label}</span>
-    </span>
-  );
-}
 
 function AdmCard({ children, padding = 20, interactive = false, style = {}, className, ...rest }) {
   return (
@@ -402,10 +381,20 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
   );
 }
 
+// Il select coi panni da barra filtri: larghezza minima e titolo. Viveva in
+// admin-locali; la pagina è morta, il vestito serve ancora (modale messaggi,
+// team).
+function FilterDropdown({ label, value, onChange, options }) {
+  return (
+    <AdmSelect value={value} onChange={onChange} options={options}
+      title={label} buttonStyle={{minWidth: 140}}/>
+  );
+}
+
 window.AdmBadge = AdmBadge;
 window.AdmSelect = AdmSelect;
+window.FilterDropdown = FilterDropdown;
 window.AdmPlanBadge = AdmPlanBadge;
-window.AdmStatoBadge = AdmStatoBadge;
 window.AdmCard = AdmCard;
 window.AdmAvatar = AdmAvatar;
 window.AdmTabBar = AdmTabBar;

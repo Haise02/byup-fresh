@@ -8,7 +8,7 @@ Entry: [byup-spot.html](byup-spot.html). Per chi: il team di byup.
 > sono la specifica del sistema. Per l'architettura e i flussi si parte dai
 > documenti, non da questo codice.
 
-*Contenuto verificato contro il codice il 2026-08-16.*
+*Contenuto verificato contro il codice il 2026-08-17.*
 
 ---
 
@@ -37,17 +37,106 @@ un pannello che si apre passandoci sopra col mouse.
 | Sezione | Cosa contiene |
 |---|---|
 | **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato |
-| **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche), **Proprietà**. Il dettaglio di un locale è una scheda CRM a tab: Anagrafica, Proprietà, Panoramica, Attività, Certificazioni, **Contratti** (il fascicolo contrattuale: versioni accettate contro correnti, esplicita/tacita, preavvisi con finestre e scadenze, sospensioni tipizzate art. 13, storico — dati in `DOCUMENTI`/`ACCETTAZIONI`/`PREAVVISI`/`SOSPENSIONI` di admin-data.jsx, casi limite fissati in `CTR_CASI`), Fatturazione & Piano |
+| **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche), **Proprietà**. Dalla testata della rubrica si apre anche il **registro Restrizioni** (shadowban/ban con motivi, note e revoche). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
 | **Marketing** → | **Mail**, **SMS**, **Push**, **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
 | **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente** (quello che fanno insieme) |
 | **Assistenza** | Quattro tab: Chiamate, Ticket, FAQ, Guide |
 
-La Dashboard è stata **tolta** dalla barra il 2026-08-15: il file resta caricato
-ma nessuna rotta lo monta.
+Le vecchie pagine di sezione **Locali / Staff / Utenti App / Promozioni** e la
+vecchia **Dashboard** sono state **eliminate** (2026-08-17) insieme al vecchio
+editor «workflow email»: le rotte storiche vengono tradotte da `admin-app.jsx`
+(locali/camerieri/utenti → Contatti, promozioni → Marketing). I file di staff e
+utenti sopravvivono solo per i **dataset** e le **schede**.
 
 Nel **menu del profilo** (card in fondo alla barra): Il mio profilo, Domini e
 mittenti, Proprietà, **Sicurezza e sistemi**, **Piattaforma**.
+
+---
+
+## Le tre schede (la spec UX/UI)
+
+Ogni contatto si apre a **pagina intera** dalla rubrica, con la barra «torna» e
+il tasto Esc. La testata **presenta, non riassume**: solo avatar e nome — tutto
+il resto vive nelle tab.
+
+**Locale** (`admin-locale-detail.jsx`) — nove tab:
+1. **Anagrafica** — l'identità del rapporto (codice non modificabile, piano,
+   stato, iscritto dal) incorporata in testa alla card dei campi; i campi sono
+   quelli dell'onboarding del gestionale (insegna, indirizzo e civico, CAP,
+   città, telefono…). Lo **stato dice la sospensione** (Sospeso/Diffidato)
+   quando ce n'è una viva. Sotto, i **Locali associati all'utenza** del
+   titolare: utenza e locale sono due cose distinte.
+2. **Dati fiscali** — P.IVA col badge «Verificata (AdE)», regime a scelta,
+   ATECO, SDI, PEC, REA, sede operativa (derivata, quella dello scontrino) e
+   sede legale (campo suo), IBAN in sola lettura «gestito da Stripe».
+3. **Proprietà** — campi liberi in stile CRM.
+4. **Statistiche** — due sezioni etichettate: **Dati del locale** (tre KPI:
+   ordini medi al mese, tasso di coperti occupati, scontrino medio; poi
+   andamento ordini e andamento fatturato con **filtro periodo** 12 mesi/6
+   mesi/ultimo mese/settimana e riferimenti temporali sotto le barre; adozione
+   digitale, scan ordini, funnel) e **Dati da cameriere** (l'utenza del
+   titolare al tavolo: mesi di lavoro, scontrino, mancia, ordini, coperti — le
+   stesse cifre della scheda staff, con le mediane accanto). Un locale non
+   attivo non mostra cifre da sala: la sezione spiega perché.
+5. **Log** — eventi con chiave tecnica in chiaro, coerenti con lo stato del
+   locale, filtro Dal/Al.
+6. **Certificazioni** — fascicolo operativo: documento scaricabile, approva /
+   rifiuta con motivazione, elimina, imposta scadenza (mai nel passato);
+   «Scaduta» si deriva dall'orologio; ogni decisione si **sincronizza col
+   ticket** in Assistenza (stessa pratica, due superfici).
+7. **Contratti e consensi** — versioni accettate contro correnti (esplicita /
+   tacita art. 15 / presa visione), avvisi di disallineamento e preavvisi; il
+   rimando al documento porta **nome, versione e data** (chi/IP restano al
+   registro); in fondo la card dei **consensi** (M-EM, M-SMS, M-REF), con lo
+   stesso stato delle proprietà CRM della rubrica.
+8. **Fatturazione** — piano, cambio piano, rimborsi e accrediti, fatture.
+9. **Account** — reset password del titolare, esportazione dati, **sospensione
+   del servizio** (motivo tipizzato art. 13, nota obbligatoria, audit).
+
+**Utente Staff** (`admin-camerieri.jsx`) — Anagrafica (dati persona editabili:
+nome, email, data di nascita con età calcolata, genere, luogo principale; card
+Locali associati col principale in evidenza; dettagli utenza), **Statistiche**
+(solo camerieri: mesi di lavoro, scontrino medio, mancia media con mediane dei
+camerieri, ordini e coperti), **Consensi** (solo persone), **Log** (anche i
+dispositivi: ping e stampe). I dispositivi sono utenze senza persona: niente
+form, niente consensi.
+
+**Utente App** (`admin-utenti.jsx`) — Anagrafica (verificato **in cima**, poi i
+campi), **Account** (byuppini con storico movimenti e popup carica/storna col
+riepilogo saldo → movimento → nuovo saldo; reset password sull'email salvata;
+zona sensibile con ban ed eliminazione), **Statistiche** (abitudini con sessioni
+sui cinque orizzonti, spesa, prenotazioni con no-show onesto sui denominatori
+piccoli, tempi medi, inviti, preferenze alimentari **solo col consenso A3**),
+**Consensi** (A3/A18/A6, specchio di ByupConsensi dell'app, con documenti e
+versioni), **Log** (generato **dai** dati delle altre tab: i consent_update
+sono i consensi, le recensioni sono quelle della tab), **Recensioni** (con lo
+shadowban accanto a ciò che nasconde).
+
+## Il linguaggio comune
+
+Regole che valgono in tutta la console — se una schermata nuova le rompe, è
+la schermata a essere sbagliata:
+
+- **La testata presenta, non riassume**; lo stato vive in Anagrafica.
+- **Un log si scandisce per testo e data**: niente icone, etichetta + dettaglio
+  a sinistra, chiave tecnica mono + timestamp a destra, filtro Dal/Al, righe
+  zebrate. Stessa veste su locale, staff e utente app.
+- **I consensi hanno un codice, uno stato a tre valori (Sì / No / Mai chiesto),
+  una data e la versione dell'informativa**. Senza consenso il dato sensibile
+  «non si guarda», non «non c'è».
+- **Le cifre hanno un metro**: mediana accanto al numero (↑/↓), formati onesti
+  (valute da sala al centesimo, niente percentuali su denominatori piccoli).
+- **Una fonte sola per ogni fatto**: i gruppi di locali (`drwLocaliAssociati`)
+  valgono per scheda locale, staff proprietario e rubrica; lo scontrino del
+  titolare è il `ticketMedio` del business; il log non contraddice le tab che
+  dovrebbe provare.
+- **I mock sono deterministici sul seme** (`hubSeme` sull'id intero): stessa
+  scheda, stessi valori a ogni ricarica.
+- **Le tendine non si tagliano mai**: niente `overflow: hidden` sui contenitori
+  di popover, e vicino al fondo della finestra si aprono verso l'alto.
+- **Le azioni pesanti chiedono un motivo scritto** (rifiuti, sospensioni,
+  storni): senza ragione a registro non sono auditabili.
 
 ---
 
@@ -93,8 +182,17 @@ ricarica non si può né leggere né filtrare.
 | `hub-workflow-regole.jsx` | L'editor delle condizioni di ramo e delle attese |
 | `hub-agent-ambiente.jsx` | L'Ambiente: catene, lavagna, coda, registro, guardie |
 | `hub-impostazioni.jsx` | Domini e mittenti, catalogo delle proprietà |
-| `admin-contatti.jsx` | La rubrica |
-| `admin-*.jsx` | Le sezioni preesistenti |
+| `admin-contatti.jsx` | La rubrica e l'apertura delle tre schede |
+| `admin-locale-detail.jsx` | La scheda del locale (nove tab) e il pannello consensi condiviso |
+| `admin-camerieri.jsx` | Dataset `STAFF` + scheda staff (nessuna pagina di sezione) |
+| `admin-utenti.jsx` | Scheda utente app + `SpesaMediaCard` per Analisi Dati (nessuna pagina di sezione) |
+| `admin-restrizioni.jsx` | Registro shadowban/ban, aperto dalla rubrica |
+| `admin-*.jsx` | Le altre sezioni (Analisi Dati, Assistenza, Team, Mappa, Mercato, Valore) |
+
+Il 2026-08-17 sono stati **eliminati** i file morti `admin-locali.jsx`,
+`admin-promozioni.jsx`, `admin-workflow-email.jsx` e `hub-panoramica.jsx`
+(pagine non più montate da nessuna rotta), insieme alle liste di sezione di
+staff e utenti. `FilterDropdown` è passato in `admin-atoms.jsx`.
 
 ### Il diario del contatto
 
