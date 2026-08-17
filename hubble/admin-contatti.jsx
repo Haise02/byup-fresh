@@ -39,8 +39,12 @@ const CNT_CICLO = {
   // è LA distinzione, e la scala la deve dire.
   clienteFree:    { label: 'Cliente Free',     color: 'TEAL',      rango: 2 },
   clientePagante: { label: 'Cliente Pagante',  color: 'OK',        rango: 3 },
-  annullato:      { label: 'Piano annullato',  color: 'DANGER',    rango: 4 },
-  eliminato:      { label: 'Eliminato',        color: 'PLAN_FREE', rango: 5 },
+  // Returning è il RIENTRATO: aveva annullato il piano ed è tornato — l'esito
+  // del win-back, che è un rapporto diverso sia dal cliente mai andato via
+  // sia dall'annullato ancora fuori.
+  returning:      { label: 'Returning',        color: 'PURPLE',    rango: 4 },
+  annullato:      { label: 'Piano annullato',  color: 'DANGER',    rango: 5 },
+  eliminato:      { label: 'Eliminato',        color: 'PLAN_FREE', rango: 6 },
 };
 
 // ─── Piano ──────────────────────────────────────────────────────────────────
@@ -141,7 +145,11 @@ const CONTATTI = (() => {
     // annullato il piano, chi se n'è andato del tutto è eliminato.
     ciclo: l.stato === 'pending' ? 'lead'
       : (l.stato === 'onboarding' || l.stato === 'skipped') ? 'onboarding'
-      : l.stato === 'active' ? (l.piano === 'free' ? 'clienteFree' : 'clientePagante')
+      // Il rientro dopo un annullamento nel sistema vero sta nello storico di
+      // fatturazione; nel mock si deriva dal seme dell'id, deterministico —
+      // circa un attivo su sette è un win-back riuscito.
+      : l.stato === 'active' ? ((parseInt(l.id.slice(1), 10) % 7 === 3) ? 'returning'
+        : l.piano === 'free' ? 'clienteFree' : 'clientePagante')
       : l.stato === 'churned' ? 'eliminato'
       : 'annullato',
     piano: l.piano,

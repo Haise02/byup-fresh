@@ -130,7 +130,7 @@ const HUB_PROPRIETA = [
   { id: 'tipo',     label: 'Tipologia contatto',  gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.2fr' },
     opzioni: [{ value: 'locale', label: 'Locale' }, { value: 'staff', label: 'Utente Staff' }, { value: 'utente', label: 'Utente App' }] },
   { id: 'ciclo',    label: 'Ciclo di vita',       gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
-    opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'clienteFree', label: 'Cliente Free' }, { value: 'clientePagante', label: 'Cliente Pagante' }, { value: 'annullato', label: 'Piano annullato' }, { value: 'eliminato', label: 'Eliminato' }] },
+    opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'clienteFree', label: 'Cliente Free' }, { value: 'clientePagante', label: 'Cliente Pagante' }, { value: 'returning', label: 'Returning' }, { value: 'annullato', label: 'Piano annullato' }, { value: 'eliminato', label: 'Eliminato' }] },
   // Un utente bannato non deve essere invisibile in rubrica: la restrizione
   // attiva (dal registro di Utenti app) è una proprietà come le altre — la
   // si mette in colonna e ci si filtra sopra.
@@ -336,7 +336,7 @@ const HUB_ELENCHI = [
     descrizione: 'Base installata dei piani alti — il pubblico degli annunci di prodotto.',
     autore: 'Marco Rinaldi', creato: new Date(2026, 2, 12), aggiornato: new Date(Date.now() - 1800000),
     usatoIn: ['Novità di primavera', 'Workflow · Upsell Business'],
-    includi: [ { prop: 'tipo', op: 'unoDi', valore: ['locale'] }, { prop: 'piano', op: 'unoDi', valore: ['plus', 'business'] }, { prop: 'ciclo', op: 'unoDi', valore: ['clientePagante'] } ],
+    includi: [ { prop: 'tipo', op: 'unoDi', valore: ['locale'] }, { prop: 'piano', op: 'unoDi', valore: ['plus', 'business'] }, { prop: 'ciclo', op: 'unoDi', valore: ['clientePagante', 'returning'] } ],
     escludi: [] },
   { id: 'EL-002', nome: 'Lead senza referral noto', tipo: 'attivo', cartella: 'Acquisizione',
     descrizione: 'Chi è entrato senza che sappiamo da dove: da chiamare e da qualificare.',
@@ -660,7 +660,7 @@ const HUB_WORKFLOW = [
           quando: { tipo: 'regole', congiunzione: 'E', gruppi: [
             { id: 'g1', congiunzione: 'O', regole: [
               { genere: 'evento', evento: 'formInviato', rif: 'FR-004', negato: false, finestra: { n: 10, unita: 'giorni' } },
-              { genere: 'proprieta', prop: 'ciclo', op: 'unoDi', valore: ['clienteFree', 'clientePagante'] },
+              { genere: 'proprieta', prop: 'ciclo', op: 'unoDi', valore: ['clienteFree', 'clientePagante', 'returning'] },
             ] },
           ] },
           nodi: [ { tipo: 'proprieta', testo: 'Certificazione → in regola' } ] },
