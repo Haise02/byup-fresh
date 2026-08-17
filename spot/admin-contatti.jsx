@@ -653,8 +653,8 @@ function CntTorna({ onClick }) {
 // e per strada hanno cambiato mestiere: le spunte sapevano dire una cosa sola
 // («è una di queste voci»), la tendina sapeva accendere e spegnere ma non
 // riordinare. Ora sono un pannello laterale con proprietà/operatore/valore e
-// una modale a due liste — e li monta anche il pubblico delle campagne, che
-// prima non aveva niente di simile.
+// una modale a due liste — e li montano anche gli Elenchi e il pubblico delle
+// campagne, che prima non avevano niente di simile.
 
 // La cima della colonna è un pulsante: si clicca e la lista si ordina su quel
 // campo, si riclicca e si inverte. L'icona c'è SEMPRE — è lei a dire che la

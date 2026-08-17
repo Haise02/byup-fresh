@@ -1,10 +1,11 @@
 // Hubble — i pezzi condivisi: modale, pannello laterale, filtri, colonne,
 // testate di pagina, riquadri e tabelle.
 //
-// Contatti, Marketing, Workflow e Agent montano tutti questi stessi
+// Contatti, Elenchi, Marketing, Workflow e Agent montano tutti questi stessi
 // componenti. Il pannello dei filtri in particolare è UNO SOLO: quello che si
-// compone nella rubrica è lo stesso oggetto che sceglie il pubblico di una
-// campagna. Schermate diverse, una grammatica sola.
+// compone nella rubrica è lo stesso oggetto che definisce un elenco attivo e
+// lo stesso che sceglie il pubblico di una campagna. Tre schermate diverse,
+// una grammatica sola.
 
 const { useState: useStateHub, useMemo: useMemoHub, useEffect: useEffectHub, useRef: useRefHub } = React;
 

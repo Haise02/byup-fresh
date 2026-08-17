@@ -10,9 +10,9 @@ const { useState: useStateApp } = React;
 
 // ─── La nav ─────────────────────────────────────────────────────────────────
 // Alcune voci hanno dei FIGLI. Passandoci sopra si apre un pannello a fianco
-// con le sotto-sezioni, ciascuna con la sua riga di spiegazione: «Proprietà»
-// da solo non dice se sono impostazioni o campi del contatto, e una voce di
-// menu che va provata per capire cosa fa è una voce di menu scritta male.
+// con le sotto-sezioni, ciascuna con la sua riga di spiegazione: «Elenchi» da
+// solo non dice se sono cartelle o segmenti, e una voce di menu che va provata
+// per capire cosa fa è una voce di menu scritta male.
 // Cliccando la voce madre si va comunque alla prima figlia — il flyout è una
 // scorciatoia, non un pedaggio.
 const HUB_NAV = [
@@ -21,10 +21,13 @@ const HUB_NAV = [
   // Una voce sola per l'anagrafe. Locali, Staff e Utenti App erano tre liste
   // separate, ma chi amministra cerca UNA persona — «di chi è questa mail?» —
   // e non deve sapere in anticipo in quale delle tre vive.
+  // Proprietà non è più una figlia: la stessa pagina vive già nel menu del
+  // profilo insieme al resto della governance, e due ingressi per la stessa
+  // sezione sono un ingresso di troppo.
   { id: 'contatti', label: 'Contatti', icon: 'staffFill', colore: 'PINK',
     figli: [
       { id: 'contatti',  label: 'Contatti',  icon: 'staffFill', desc: 'La rubrica: locali, staff e utenti app insieme' },
-      { id: 'proprieta', label: 'Proprietà', icon: 'tagFill',   desc: 'I campi di un contatto, e quelli che crei tu' },
+      { id: 'elenchi',   label: 'Elenchi',   icon: 'listFill',  desc: 'Segmenti che si aggiornano da soli e liste fisse' },
     ] },
   // «Promozioni» era una sezione sola con tre tab dentro. Ora i canali sono
   // quattro e ognuno ha il suo storico, le sue statistiche e il suo modo di
@@ -536,6 +539,7 @@ function AdminApp({ tweaks }) {
         <div style={{flex:1, overflow:'auto'}}>
           {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
           {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
+          {route === 'elenchi'      && <HubElenchiPage/>}
           {route === 'mkt-mail'     && <HubMailPage/>}
           {route === 'mkt-sms'      && <HubSmsPage/>}
           {route === 'mkt-push'     && <HubPushPage/>}

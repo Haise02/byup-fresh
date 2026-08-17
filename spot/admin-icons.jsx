@@ -151,7 +151,7 @@ const ICON_FILLED = {
   // sezioni contigue con la stessa icona sono due sezioni indistinguibili.
   gridFill: 'rect:2.6,2.6,9,9,2.2|rect:13.8,2.6,7.6,5.4,1.9|rect:13.8,10.2,7.6,11.2,2.2|rect:2.6,13.8,9,7.6,2.2',
 
-  // Elenco: tre righe con il pallino di spunta a sinistra. È una LISTA di
+  // Elenchi: tre righe con il pallino di spunta a sinistra. È una LISTA di
   // contatti, e la lista si riconosce dai suoi elementi in fila.
   listFill: 'circle:4.6,6.3,2.1|rect:9.2,4.7,12.2,3.2,1.6|circle:4.6,12,2.1|rect:9.2,10.4,12.2,3.2,1.6|circle:4.6,17.7,2.1|rect:9.2,16.1,12.2,3.2,1.6',
 
