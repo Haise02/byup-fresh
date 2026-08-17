@@ -156,17 +156,15 @@ function HubRicerca({ valore, onCambia, placeholder = 'Cerca…', larghezza = 28
   );
 }
 
-// Testata di pagina: occhiello, titolo, riga di spiegazione, azioni a destra.
-function HubTestata({ occhiello, titolo, sotto, azioni, colore = 'PINK' }) {
+// Testata di pagina: titolo, riga di spiegazione, azioni a destra. C'era
+// anche un occhiello — la riga maiuscola sopra il titolo, «Servizio»,
+// «CRM · Rubrica» — ma ripeteva la sezione che la sidebar già dice; dov'era
+// un DATO (lo stato di un invio, il tipo di un elenco) ora è una pillola
+// accanto alle azioni.
+function HubTestata({ titolo, sotto, azioni }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
       <div style={{ flex: 1, minWidth: 240 }}>
-        {occhiello && (
-          <div style={{
-            fontSize: 11.5, fontWeight: 800, letterSpacing: '0.09em', textTransform: 'uppercase',
-            color: ADM[colore + '_DARK'] || ADM[colore] || ADM.MUTED, marginBottom: 5,
-          }}>{occhiello}</div>
-        )}
         <div style={{ fontSize: 24, fontWeight: 800, color: ADM.TEXT, letterSpacing: '-0.025em', lineHeight: 1.15 }}>{titolo}</div>
         {sotto && <div style={{ fontSize: 14.2, color: ADM.MUTED, marginTop: 5, maxWidth: 720, lineHeight: 1.5 }}>{sotto}</div>}
       </div>

@@ -88,7 +88,7 @@ function HubDominiPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="Impostazioni" titolo="Domini e mittenti"
+      <HubTestata titolo="Domini e mittenti"
         sotto="Da quali domini partono le email, con quali indirizzi si firmano, e con che nome arrivano gli SMS. Se qui qualcosa non è a posto, i messaggi partono lo stesso — e finiscono nello spam."
         azioni={<HubStrumento forte icona="plus" onClick={() => setAggiungi(true)}>Aggiungi dominio</HubStrumento>}/>
 
@@ -315,7 +315,7 @@ function HubProprietaPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="Impostazioni" titolo="Proprietà"
+      <HubTestata titolo="Proprietà"
         sotto="I campi di un contatto. Quelle di sistema le scrive byup; le altre le crei tu — e si riempiono da sole con le submission dei form e con i workflow."
         azioni={<HubStrumento forte icona="plus" onClick={() => setCrea(true)}>Crea proprietà</HubStrumento>}/>
 

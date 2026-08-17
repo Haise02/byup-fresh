@@ -70,7 +70,7 @@ function HubWorkflowPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="Automazioni" titolo="Workflow" colore="HUB_VIOLA"
+      <HubTestata titolo="Workflow"
         sotto="Quello che la piattaforma fa da sola: mail di conferma, promemoria, escalation, arricchimento dei contatti. Anche i workflow nati insieme a un form stanno qui."
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea workflow</HubStrumento>}/>
 
@@ -435,9 +435,9 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
   const [attivo, setAttivo] = useStateWf(wf.stato === 'attivo');
   const [prova, setProva] = useStateWf(false);
 
-  // Lo stato raccontato dall'occhiello e quello che «Salva» scrive sono lo
-  // stesso, derivato dallo switch: leggerlo da wf.stato metteva «Automazioni ·
-  // Sospeso» sopra uno switch che diceva «Attivo». Una bozza mai accesa
+  // Lo stato raccontato dalla pillola in testata e quello che «Salva» scrive
+  // sono lo stesso, derivato dallo switch: leggerlo da wf.stato metteva
+  // «Sospeso» accanto a uno switch che diceva «Attivo». Una bozza mai accesa
   // resta bozza, non diventa «sospesa».
   const statoCanvas = attivo ? 'attivo' : (wf.stato === 'bozza' ? 'bozza' : 'sospeso');
 
@@ -571,11 +571,11 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuovo workflow'}</span>
       </div>
 
-      <HubTestata occhiello={nuovo ? 'Automazioni' : `Automazioni · ${WF_STATI[statoCanvas].label}`}
-        titolo={nuovo ? 'Crea un workflow' : wf.nome} colore="HUB_VIOLA"
+      <HubTestata titolo={nuovo ? 'Crea un workflow' : wf.nome}
         sotto={nuovo ? 'Si parte dall\'innesco. Dove serve decidere, si mette una condizione: apre più rami, e ogni ramo dice a quali contatti tocca.' : wf.descrizione}
         azioni={
           <React.Fragment>
+            {!nuovo && <HubPillola color={WF_STATI[statoCanvas].color}>{WF_STATI[statoCanvas].label}</HubPillola>}
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 9, marginRight: 4 }}>
               <AdmSwitch size="sm" checked={attivo} onChange={setAttivo}/>
               <span style={{ fontSize: 13.4, fontWeight: 700, color: attivo ? ADM.OK : ADM.MUTED }}>{attivo ? 'Attivo' : 'In pausa'}</span>
@@ -800,11 +800,10 @@ function HubAgentPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="Intelligenza" titolo="Agent" colore="HUB_VIOLA"
+      <HubTestata titolo="Agent"
         sotto={vistaAg === 'squadra'
           ? 'Agenti costruiti su quello che Hubble già sa dei tuoi clienti. Gli dai un obiettivo e delle fonti; il resto lo decidono loro, e qui vedi che cosa hanno prodotto.'
           : 'Dove gli agenti lavorano insieme. Non si chiamano fra loro: scrivono su una lavagna per argomento, e chi è iscritto si sveglia.'}
-        colore="HUB_VIOLA"
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea agente</HubStrumento>}/>
 
       <HubSegmenti attivo={vistaAg} onCambia={setVistaAg} voci={[
@@ -923,9 +922,10 @@ function HubAgentDettaglio({ agente: a, onChiudi }) {
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{a.nome}</span>
       </div>
-      <HubTestata occhiello={`Agente · ${AG_STATI[a.stato].label}`} titolo={a.nome} colore="HUB_VIOLA" sotto={a.obiettivo}
+      <HubTestata titolo={a.nome} sotto={a.obiettivo}
         azioni={
           <React.Fragment>
+            <HubPillola color={AG_STATI[a.stato].color}>{AG_STATI[a.stato].label}</HubPillola>
             <HubStrumento icona={inCorsa ? 'hourglass' : 'play'} acceso={inCorsa} onClick={esegui}>
               {inCorsa ? 'In esecuzione…' : 'Esegui adesso'}
             </HubStrumento>
@@ -1045,7 +1045,7 @@ function HubAgentEditor({ agente, onChiudi }) {
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuovo agente'}</span>
       </div>
-      <HubTestata occhiello="Intelligenza" titolo={agente ? 'Modifica l\'agente' : 'Crea un agente'} colore="HUB_VIOLA"
+      <HubTestata titolo={agente ? 'Modifica l\'agente' : 'Crea un agente'}
         sotto="Un obiettivo scritto come lo diresti a una persona, le fonti che può leggere, e quando deve svegliarsi."
         azioni={
           <React.Fragment>

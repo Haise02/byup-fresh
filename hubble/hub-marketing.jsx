@@ -211,7 +211,7 @@ function HubMailPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="Marketing · Email" titolo="Mail" colore="HUB_MAGENTA"
+      <HubTestata titolo="Mail"
         sotto="Le campagne una tantum e i modelli che partono da soli — conferme, ritardi, sequenze. Stesso costruttore, innesco diverso."
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuova(true)}>Crea email</HubStrumento>}/>
 
@@ -264,10 +264,13 @@ function HubMailDettaglio({ mail, onChiudi, onAggiungi }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{mail.nome}</span>
       </div>
 
-      <HubTestata occhiello={`Email · ${HUB_STATI_INVIO[mail.stato].label}`} titolo={mail.nome} colore="HUB_MAGENTA"
+      <HubTestata titolo={mail.nome}
         sotto={`Oggetto: «${mail.oggetto}» · Anteprima: «${mail.anteprima}»`}
         azioni={
           <React.Fragment>
+            {/* Lo stato stava nell'occhiello sopra il titolo: l'occhiello è
+                morto, lo stato no — è una pillola accanto alle azioni. */}
+            <HubPillola color={HUB_STATI_INVIO[mail.stato].color}>{HUB_STATI_INVIO[mail.stato].label}</HubPillola>
             <HubStrumento icona="copy" onClick={duplica}>Duplica</HubStrumento>
             <HubStrumento icona="pencil" forte onClick={() => setModifica(true)}>Modifica</HubStrumento>
           </React.Fragment>
@@ -392,7 +395,7 @@ function HubMailComposer({ onChiudi, iniziale, onBozza }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{iniziale ? 'Modifica' : nome || 'Nuova email'}</span>
       </div>
 
-      <HubTestata occhiello="Marketing · Email" titolo={iniziale ? 'Modifica l\'email' : 'Crea un\'email'} colore="HUB_MAGENTA"
+      <HubTestata titolo={iniziale ? 'Modifica l\'email' : 'Crea un\'email'}
         sotto="Quattro passi. Si può tornare indietro in qualunque momento senza perdere niente."
         azioni={
           <React.Fragment>
@@ -638,7 +641,7 @@ function HubSmsPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="Marketing · SMS" titolo="SMS" colore="HUB_MAGENTA"
+      <HubTestata titolo="SMS"
         sotto="Centosessanta caratteri arrivano ovunque e li legge quasi chiunque. Costano a segmento, quindi il contatore sta sempre in vista."
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea SMS</HubStrumento>}/>
 
@@ -700,8 +703,9 @@ function HubSmsDettaglio({ sms, onChiudi }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{sms.nome}</span>
       </div>
 
-      <HubTestata occhiello={`SMS · ${HUB_STATI_INVIO[sms.stato].label}`} titolo={sms.nome} colore="HUB_MAGENTA"
-        sotto={sms.trigger ? `Parte da solo: ${sms.trigger}.` : sms.testo ? `«${sms.testo}»` : 'Ancora senza testo.'}/>
+      <HubTestata titolo={sms.nome}
+        sotto={sms.trigger ? `Parte da solo: ${sms.trigger}.` : sms.testo ? `«${sms.testo}»` : 'Ancora senza testo.'}
+        azioni={<HubPillola color={HUB_STATI_INVIO[sms.stato].color}>{HUB_STATI_INVIO[sms.stato].label}</HubPillola>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -774,7 +778,7 @@ function HubSmsComposer({ onChiudi, onBozza }) {
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuovo SMS'}</span>
       </div>
-      <HubTestata occhiello="Marketing · SMS" titolo="Crea un SMS" colore="HUB_MAGENTA"
+      <HubTestata titolo="Crea un SMS"
         sotto="Un messaggio, un pubblico, un orario. Il costo si aggiorna mentre scrivi."
         azioni={
           <React.Fragment>
@@ -897,7 +901,7 @@ function HubPushPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="Marketing · Notifiche" titolo="Push" colore="HUB_MAGENTA"
+      <HubTestata titolo="Push"
         sotto="Due destinazioni diverse: l'app dei clienti finali e il gestionale dei ristoratori. Stesso strumento, tono opposto."
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea notifica</HubStrumento>}/>
 
@@ -970,8 +974,9 @@ function HubPushDettaglio({ push, onChiudi }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{push.nome}</span>
       </div>
 
-      <HubTestata occhiello={`Push · ${HUB_STATI_INVIO[push.stato].label}`} titolo={push.nome} colore="HUB_MAGENTA"
-        sotto={push.dove === 'app' ? 'Arriva sull\'app dei clienti finali.' : 'Arriva sul gestionale dei ristoratori.'}/>
+      <HubTestata titolo={push.nome}
+        sotto={push.dove === 'app' ? 'Arriva sull\'app dei clienti finali.' : 'Arriva sul gestionale dei ristoratori.'}
+        azioni={<HubPillola color={HUB_STATI_INVIO[push.stato].color}>{HUB_STATI_INVIO[push.stato].label}</HubPillola>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1030,7 +1035,7 @@ function HubPushComposer({ onChiudi }) {
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuova notifica'}</span>
       </div>
-      <HubTestata occhiello="Marketing · Notifiche" titolo="Crea una notifica push" colore="HUB_MAGENTA"
+      <HubTestata titolo="Crea una notifica push"
         sotto="Titolo corto, corpo che sta in due righe. Sul telefono si legge solo quello."
         azioni={
           <React.Fragment>
@@ -1167,7 +1172,7 @@ function HubFormPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="Marketing · Acquisizione" titolo="Form" colore="HUB_MAGENTA"
+      <HubTestata titolo="Form"
         sotto="Moduli da mettere sul sito. Ogni submission crea o aggiorna un contatto, e può far partire una mail, un redirect o un workflow."
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea form</HubStrumento>}/>
 
@@ -1214,8 +1219,9 @@ function HubFormDettaglio({ form, onChiudi }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{form.nome}</span>
       </div>
 
-      <HubTestata occhiello={`Form · ${pubblicato ? 'Pubblicato' : 'Bozza'}`} titolo={form.nome} colore="HUB_MAGENTA"
-        sotto={pubblicato ? `Vive su ${form.pagina}, con ${form.campi} campi.` : 'È una bozza: non è ancora su nessuna pagina.'}/>
+      <HubTestata titolo={form.nome}
+        sotto={pubblicato ? `Vive su ${form.pagina}, con ${form.campi} campi.` : 'È una bozza: non è ancora su nessuna pagina.'}
+        azioni={<HubPillola color={pubblicato ? 'OK' : 'PLAN_FREE'}>{pubblicato ? 'Pubblicato' : 'Bozza'}</HubPillola>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 340px', gap: 14, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1320,7 +1326,7 @@ function HubFormEditor({ onChiudi }) {
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuovo form'}</span>
       </div>
-      <HubTestata occhiello="Marketing · Acquisizione" titolo="Crea un form" colore="HUB_MAGENTA"
+      <HubTestata titolo="Crea un form"
         sotto="I campi a sinistra, l'aspetto reale al centro, e sotto quello che succede dopo l'invio."
         azioni={
           <React.Fragment>

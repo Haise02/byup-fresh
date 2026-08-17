@@ -434,7 +434,6 @@ function AdmContattiPage({ search, openContatto }) {
       <HubStile/>
 
       <HubTestata
-        occhiello="CRM · Rubrica"
         titolo="Contatti"
         sotto="Locali, utenti staff e utenti app in un'unica rubrica. Filtra per qualunque proprietà."
         azioni={

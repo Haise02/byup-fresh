@@ -604,7 +604,7 @@ function ProfiloPage() {
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
       {/* La testata alla maniera di Hubble: la pagina si presenta da sola —
           la shell non ha più un header con titoli o briciole. */}
-      <HubTestata occhiello="Account" titolo="Il mio profilo"
+      <HubTestata titolo="Il mio profilo"
         sotto="Password, autenticazione a due fattori e sessioni attive: la sicurezza del tuo accesso a Hubble."/>
       {/* Header card */}
       <AdmCard padding={22}>

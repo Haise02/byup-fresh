@@ -9,14 +9,13 @@ const ADM_SEZIONI = {
   // Niente `hr`: Risorse Umane non esiste più come sezione, e il registro della
   // formazione se n'è andato con Risk Management.
   // Le testate alla maniera di Hubble: entrambe le sezioni si presentano da
-  // sole nel contenuto, con lo stesso occhiello «Impostazioni» — da quando la
-  // governance è una voce sola, il titolone di pagina non arriva più
-  // dall'header della shell.
+  // sole nel contenuto — da quando la governance è una voce sola, il titolone
+  // di pagina non arriva più dall'header della shell.
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'],
-    testata: { occhiello:'Impostazioni', titolo:'Sicurezza e sistemi',
+    testata: { titolo:'Sicurezza e sistemi',
       sotto:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma.' } },
   impostazioni: { pred:'piattaforma', tabs:['piattaforma'],
-    testata: { occhiello:'Impostazioni', titolo:'Piattaforma',
+    testata: { titolo:'Piattaforma',
       sotto:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app.' } },
 };
 
@@ -54,7 +53,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
-      {sez.testata && <HubTestata occhiello={sez.testata.occhiello} titolo={sez.testata.titolo} sotto={sez.testata.sotto}/>}
+      {sez.testata && <HubTestata titolo={sez.testata.titolo} sotto={sez.testata.sotto}/>}
       <AdmCard padding={0}>
         {/* Con una sola tab la barra non offre nessuna scelta: mostrarla
             sarebbe un comando che non comanda niente. */}

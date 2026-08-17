@@ -117,7 +117,7 @@ function HubElenchiPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata occhiello="CRM · Segmentazione" titolo="Elenchi"
+      <HubTestata titolo="Elenchi"
         sotto="Gruppi di contatti da usare come pubblico di una campagna o come innesco di un workflow. Gli attivi si tengono aggiornati da soli."
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo({
           nome: '', descrizione: '', tipo: 'attivo', cartella: 'Commerciale', includi: [], escludi: [],
@@ -194,9 +194,12 @@ function HubElencoDettaglio({ elenco, onChiudi, membri, onModifica }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{elenco.nome}</span>
       </div>
 
-      <HubTestata occhiello={`${t.label} · ${elenco.cartella}`} titolo={elenco.nome} sotto={elenco.descrizione}
+      <HubTestata titolo={elenco.nome} sotto={elenco.descrizione}
         azioni={
           <React.Fragment>
+            {/* Tipo e cartella stavano nell'occhiello: l'occhiello è morto,
+                il dato no. Il tipo ha anche il suo tile qui sotto. */}
+            <HubPillola color={t.color}>{t.label} · {elenco.cartella}</HubPillola>
             <HubStrumento icona="megaphone" onClick={() => setScegli(true)}>Usa in una campagna</HubStrumento>
             <HubStrumento icona="pencil" forte onClick={onModifica}>Modifica criteri</HubStrumento>
           </React.Fragment>
@@ -370,7 +373,7 @@ function HubElencoEditor({ bozza, onChiudi }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{esistente ? 'Modifica criteri' : 'Nuovo elenco'}</span>
       </div>
 
-      <HubTestata occhiello="CRM · Segmentazione" titolo={esistente ? 'Modifica i criteri' : 'Crea un elenco'}
+      <HubTestata titolo={esistente ? 'Modifica i criteri' : 'Crea un elenco'}
         sotto={esistente
           ? 'Cambi i criteri e il conteggio a destra si muove: si vede chi entra e chi esce prima di salvare.'
           : 'Dagli un nome, scegli se deve aggiornarsi da solo, e componi i criteri. Il conteggio a destra si muove mentre scegli.'}
