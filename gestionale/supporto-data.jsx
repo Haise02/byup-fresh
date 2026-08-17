@@ -1,7 +1,7 @@
 // Dati statici per il supporto
 
 // I tutorial qui non hanno un file dietro: i video li pubblica il team dalla
-// console (Spot → Assistenza → Guide) e senza server non arrivano fin qui. In
+// console (Hubble → Assistenza → Guide) e senza server non arrivano fin qui. In
 // mancanza il player suona questo, l'unico mp4 del repo, perché un tutorial
 // che si apre deve potersi guardare. Un tutorial con `video` usa il suo.
 const SUP_VIDEO_DEMO = 'login-bg-0518.mp4';

@@ -217,7 +217,7 @@ Byup/                            ← root del repo (Desktop/Byup)
 │   ├── DESIGN_DECISIONS.md      ← design system frontend
 │   ├── README.md
 │   └── *.jsx, *.html            ← prototipi React/HTML del gestionale
-├── app/, spot/, staff/, cameriere/, web/  ← altre superfici (app consumer, console Spot, POS staff, cameriere web, webapp guest)
+├── app/, hubble/, staff/, cameriere/, web/  ← altre superfici (app consumer, console Hubble, POS staff, cameriere web, webapp guest)
 │
 ├── backend/                     ← NestJS modular monolith ──────────────────
 │   ├── package.json
@@ -656,7 +656,7 @@ Apri `backend/api.http` in VS Code con l'estensione "REST Client" e clicca **Sen
 
 ### Memoria persistente Claude
 
-Quella attiva per questo repo è `~/.claude/projects/-Users-fabiomancinelli-Desktop-Byup/memory/` (indice `MEMORY.md`; note su design token PN/BU, piani gestionale, Spot, workflow push). La vecchia memoria `~/.claude/projects/-Users-fabiomancinelli-Desktop-byup-fresh-main-3-vue-components/memory/` esiste ancora ma non viene più caricata; conteneva:
+Quella attiva per questo repo è `~/.claude/projects/-Users-fabiomancinelli-Desktop-Byup/memory/` (indice `MEMORY.md`; note su design token PN/BU, piani gestionale, Hubble, workflow push). La vecchia memoria `~/.claude/projects/-Users-fabiomancinelli-Desktop-byup-fresh-main-3-vue-components/memory/` esiste ancora ma non viene più caricata; conteneva:
 - `MEMORY.md` — indice
 - `user-fabio.md` — profilo utente
 - `project-byup.md` — contesto progetto
@@ -807,7 +807,7 @@ Suggerita per **non avere un blocco gigante non navigabile**:
 - `gestionale/DESIGN_DECISIONS.md` — design system frontend, riallineato al codice il 2026-08-09 e tenuto aggiornato a fine sessione con una sezione datata per ogni batch; in caso di dubbio i token `PN` nel codice restano la verità
 
 ### Memoria conversazionale Claude
-La memoria persistente fra sessioni vive sotto `~/.claude/projects/-Users-fabiomancinelli-Desktop-Byup/memory/` ed è automaticamente caricata. Contiene note su: design token (PN vivo, BU legacy), piani del gestionale (accento aurora, Free→Gratuito), console Spot, workflow di push, audit del gestionale. Le due "lezioni operative" dai bug intercettati (transazioni service-level, entity metadata) restano nella vecchia memoria `...-byup-fresh-main-3-vue-components` (vedi §8).
+La memoria persistente fra sessioni vive sotto `~/.claude/projects/-Users-fabiomancinelli-Desktop-Byup/memory/` ed è automaticamente caricata. Contiene note su: design token (PN vivo, BU legacy), piani del gestionale (accento aurora, Free→Gratuito), console Hubble, workflow di push, audit del gestionale. Le due "lezioni operative" dai bug intercettati (transazioni service-level, entity metadata) restano nella vecchia memoria `...-byup-fresh-main-3-vue-components` (vedi §8).
 
 ### Frequenza aggiornamento di questo file
 

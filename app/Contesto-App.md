@@ -63,10 +63,10 @@ gestionale Byup Fresh, App Staff): il dettaglio è in §C.
 | **Byup Fresh** | Gestionale web | Ristoratore | Configura locale/menu/vetrina; **fonte dati**; **dove byup incassa** (abbonamento) |
 | **App Staff** | App nativa | Cassa del locale | **Solo cassa** (per ora): incassa i pagamenti **con carta** dei clienti che vanno al banco/cassa. **Non** gestisce gli ordini |
 | **Webapp cameriere** | Web | Cameriere | **Presa ordini** (la parte ordini è qui). In **futuro** si fonderà con App Staff in un'unica app |
-| **Byup Spot** | Piattaforma web | Backoffice byup | Backoffice interno di byup; tra l'altro **alimenta "Posta"** (vedi §D) |
+| **Byup Hubble** | Piattaforma web | Backoffice byup | Backoffice interno di byup; tra l'altro **alimenta "Posta"** (vedi §D) |
 
 > Questo repo è **solo l'app consumer**. Gli altri cinque prodotti sono codebase
-> separate, ma l'app dipende dai loro dati/comportamenti (Fresh = dati, Spot =
+> separate, ma l'app dipende dai loro dati/comportamenti (Fresh = dati, Hubble =
 > Posta, **App Staff = pagamenti in cassa**, **webapp cameriere = ordini**).
 
 ### App consumer vs WebApp consumer
@@ -155,7 +155,7 @@ dominio backend, vedi §E)
 - ✅ **Lingua** (it/en/es/fr/de): l'app è **multi-lingua** → serve i18n e
   localizzazione dei contenuti.
 - ✅ **Segnala un problema**: valutazione + descrizione → **feedback a byup**
-  (canale verso Byup Spot, non verso il locale).
+  (canale verso Byup Hubble, non verso il locale).
 - ✅ **Notifiche** in-app (pannello `NotifSheet`) → in produzione **push** +
   centro notifiche (legate a Posta e allo stato ordini).
 - ✅ **Termini & condizioni / Privacy** (testi legali).
@@ -214,7 +214,7 @@ dominio backend, vedi §E)
     lampeggia.
   - **Quando si valuta**: all'**apertura app** e ai *significant location
     change*, con esito **cachato** — non a ogni aggiornamento GPS.
-- **Posta** = il canale con cui **byup** (dal backoffice **Byup Spot**) parla agli
+- **Posta** = il canale con cui **byup** (dal backoffice **Byup Hubble**) parla agli
   utenti app: **novità** (aggiornamenti, informazioni) e **promo** mirate (es.
   "vai in quel ristorante e hai X€ di sconto", "se ordini quel menu quel giorno un
   piatto è gratis"). Non è generata dai locali: è **editoriale/promozionale di
@@ -299,14 +299,14 @@ gestionale) quando si passa a Flutter.
 | **Preferenze profilo** | `localStorage.byup_allergens` | Profilo utente lato backend |
 | **Discovery + gate densità** | sempre mostrata (o `?page=home-empty` a mano) | **Conteggio locali attivi entro due raggi GPS** dalla posizione → decide se mostrare discovery o `home-empty` (soglie 125 raggio urbano / 150 raggio largo, in OR, con isteresi, §D) |
 | **Locale "in discovery"** | tutti gli `EXPLORE_VENUES` finti | Solo locali con **onboarding vetrina completato** su Byup Fresh |
-| **Posta** | contenuti demo in [map.jsx](map.jsx) (`PostaScreen`) | Novità + promo pubblicate da byup via **Byup Spot** (§D) |
+| **Posta** | contenuti demo in [map.jsx](map.jsx) (`PostaScreen`) | Novità + promo pubblicate da byup via **Byup Hubble** (§D) |
 | **Anagrafica utente** | stato locale (`MieiDatiView`) | Profilo utente (nome, cognome, genere, data di nascita) |
 | **Gestione account** | UI finta (cambia/recupera password, modifica email) | Operazioni auth reali (password, email, verifica) |
 | **Metodi di pagamento** | `PagamentiView` con carte demo + carta preferita | Carte **tokenizzate** dal gateway (mai PAN in chiaro), preferita per-utente |
 | **Preferiti** | `PROFILE_PREFERITI` demo (add/remove locale) | Lista preferiti **persistita per utente** |
 | **Recensioni** | submit a vuoto (`SuccessScreen`) | Recensioni **persistite + aggregate** → alimentano ★ TOP e rating vetrina |
 | **Lingua / i18n** | selettore locale (`lingua`) | App **multi-lingua**: stringhe + contenuti localizzati |
-| **Segnala un problema** | UI finta (`SegnalaView`) | **Feedback a byup** (→ Byup Spot), non al locale |
+| **Segnala un problema** | UI finta (`SegnalaView`) | **Feedback a byup** (→ Byup Hubble), non al locale |
 | **Notifiche** | `NotifSheet` demo | **Push** + centro notifiche (legate a Posta e stato ordini) |
 | **Elimina account** | conferma demo | Cancellazione dati **irreversibile** (GDPR) |
 

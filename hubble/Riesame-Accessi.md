@@ -1,4 +1,4 @@
-# Riesame periodico dei diritti di accesso — Spot
+# Riesame periodico dei diritti di accesso — Hubble
 
 Vive in **Sicurezza e sistemi → Accessi**. Serve il controllo **ISO/IEC 27001
 A.5.18** (riesame dei diritti di accesso), quello su cui più aziende vengono

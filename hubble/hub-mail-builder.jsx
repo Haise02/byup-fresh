@@ -449,7 +449,7 @@ function MbCursore({ label, valore, onCambia, min, max, unita = 'px' }) {
 
 // Il preventDefault sul mousedown — necessario per non far collassare la
 // selezione quando si preme un comando — sopprime anche lo :active globale di
-// byup-spot.html: senza aiuto questi bottoni non mostrerebbero mai la
+// byup-hubble.html: senza aiuto questi bottoni non mostrerebbero mai la
 // pressione. L'hover arriva dalla classe (funziona su qualunque fondo, anche
 // le tinte della palette); la pressione la simuliamo a mano nel mousedown.
 const MB_TASTO_CSS = `

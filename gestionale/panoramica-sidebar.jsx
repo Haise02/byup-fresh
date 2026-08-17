@@ -369,7 +369,7 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
         ))}
       </div>
 
-      {/* Profilo — card a tutta larghezza, come in Spot: a riposo e una scheda
+      {/* Profilo — card a tutta larghezza, come in Hubble: a riposo e una scheda
           bianca posata sul fondo, in hover si solleva di due pixel e prende il
           bordo coral con l'ombra della stessa tinta. La freccia e un chip che si
           riempie e scivola: e il segnale che la card porta da qualche parte.
@@ -390,7 +390,7 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
             textAlign: 'left', width: '100%', boxSizing: 'border-box',
             borderRadius: 12,
             background: '#fff',
-            // #FFB3B5 e la stessa tinta di bordo che usa Spot: PINK_SOFT (#FFE0DD)
+            // #FFB3B5 e la stessa tinta di bordo che usa Hubble: PINK_SOFT (#FFE0DD)
             // e troppo chiara e il contorno non si accende, che e proprio l'effetto
             // per cui quel bottone piace.
             border: `1px solid ${profHover ? '#FFB3B5' : 'rgba(15, 17, 21, 0.07)'}`,

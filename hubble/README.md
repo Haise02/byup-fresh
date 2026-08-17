@@ -1,6 +1,6 @@
 # Hubble — la console interna di byup
 
-Entry: [byup-spot.html](byup-spot.html). Per chi: il team di byup.
+Entry: [byup-hubble.html](byup-hubble.html). Per chi: il team di byup.
 
 > **È un prototipo di UX/UI.** Vale quanto scritto nel
 > [README della monorepo](../README.md): i dati sono finti, niente si salva, e le
@@ -8,19 +8,18 @@ Entry: [byup-spot.html](byup-spot.html). Per chi: il team di byup.
 > sono la specifica del sistema. Per l'architettura e i flussi si parte dai
 > documenti, non da questo codice.
 
-*Contenuto verificato contro il codice il 2026-08-17.*
+*Contenuto verificato contro il codice il 2026-08-18.*
 
 ---
 
 ## Il nome
 
 La console si chiamava **byup Spot**. Dal 2026-08-14 si chiama **Hubble**, con
-un marchio proprio (gradiente rosa → magenta → viola). **La cartella e il file
-di ingresso NON sono stati rinominati**: restano `spot/` e `byup-spot.html`.
-È una scelta: rinominarli avrebbe rotto i link da `index.html`, gli URL di
-Vercel già in giro e la leggibilità di ogni diff futuro, in cambio di niente
-che si veda a schermo. Se un giorno il rename servirà davvero, si fa in un
-commit dedicato che non contiene altro.
+un marchio proprio (gradiente rosa → magenta → viola). Il 2026-08-18 anche
+cartella e file di ingresso si sono allineati al nome: `spot/` è diventata
+`hubble/` e l'entry è `byup-hubble.html` — il commit dedicato che questo
+paragrafo prometteva. Gli URL vecchi non si rompono: `vercel.json` fa il
+redirect permanente da `/spot/*` alle nuove posizioni.
 
 Gli asset del marchio sono `hubble.png` (lockup a colori), `hubble-mark.png`
 (solo il marchio, per la barra compressa) e `hubble-badge.png` (versione
@@ -361,7 +360,7 @@ sistemi ma non decide quanto costa un piano.
 
 Nessun build step: `.jsx` serviti come `text/babel` e compilati nel browser.
 I componenti si espongono su `window`; **l'ordine dei tag `<script>` in
-[byup-spot.html](byup-spot.html) conta** — `hub-data.jsx` va dopo
+[byup-hubble.html](byup-hubble.html) conta** — `hub-data.jsx` va dopo
 `admin-data.jsx`, `hub-ui.jsx` dopo `admin-atoms.jsx`, e `admin-app.jsx`
 per ultimo.
 
@@ -397,7 +396,7 @@ seconda volta e sfondano.
 ## Prima di un rilascio
 
 ```
-grep -rn "data-demo-only" spot/
+grep -rn "data-demo-only" hubble/
 ```
 
 Marca le affordance che esistono solo per la demo e **non devono finire in

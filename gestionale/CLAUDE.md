@@ -31,7 +31,7 @@ Il listino ha **due prezzi per piano**: il mensile con fatturazione annuale — 
 | Plus     | 7.500               | 134,99 € + IVA           | 155,99 € + IVA| 0,23 € + IVA            |
 | Business | 15.000              | 250 € + IVA              | 290 € + IVA  | 0,12 € + IVA             |
 
-> **Fonte di verità del listino:** `ACC_PIANI` in `gestionale/account-data.jsx`. La console Spot lo replica in `spot/admin-data.jsx` (`PIANI`) e le due copie vanno tenute allineate: quando hanno divergiuto — 49/99/249 di là, 46,99/134,99/250 di qua — ha vinto il gestionale.
+> **Fonte di verità del listino:** `ACC_PIANI` in `gestionale/account-data.jsx`. La console Hubble lo replica in `hubble/admin-data.jsx` (`PIANI`) e le due copie vanno tenute allineate: quando hanno divergiuto — 49/99/249 di là, 46,99/134,99/250 di qua — ha vinto il gestionale.
 
 Il piano Gratuito (in origine "Free") funge da demo in condizioni reali. Il supporto tecnico include chat bot, tutorial e ticket via email per tutti i piani; Plus aggiunge il supporto telefonico Lun–Ven nelle fasce 12:00–16:00 e 18:00–22:00 con callback entro 2 ore; Business lo estende a H24, 7 giorni su 7, con callback entro 1 ora. Il numero di menu creabili varia da 1 (Gratuito) a 3 (Starter) a illimitati (Plus e Business), e allo stesso modo i membri dello staff: 1, fino a 3, illimitati. Nel gestionale «staff» è una cosa sola — persone e dispositivi (kitchen monitor, stampanti) stanno nello stesso elenco, in Impostazioni → Personale.
 
@@ -47,7 +47,7 @@ Il pagamento dal tavolo è una funzionalità esclusiva dell'app nativa e richied
 
 Per chi non ha l'app, è disponibile una webapp guest accessibile via QR code che permette di ordinare dal tavolo senza registrazione, ma non consente il pagamento, incentivando il download dell'app.
 
-La sezione Discovery funziona come motore di scoperta dei locali aderenti, con filtri per stato (aperto/chiuso), distanza, promozioni attive, rating, tipo di cucina, fascia di prezzo, e tag alimentari (senza glutine, vegano, vegetariano). La discovery si attiva solo sopra la soglia di 125 locali entro 6 km dal GPS dell'utente, oppure 150 entro 50 km come fallback regionale. Raggi e soglie sono parametri configurabili da Spot (Impostazioni Admin → Piattaforma), non costanti di codice.
+La sezione Discovery funziona come motore di scoperta dei locali aderenti, con filtri per stato (aperto/chiuso), distanza, promozioni attive, rating, tipo di cucina, fascia di prezzo, e tag alimentari (senza glutine, vegano, vegetariano). La discovery si attiva solo sopra la soglia di 125 locali entro 6 km dal GPS dell'utente, oppure 150 entro 50 km come fallback regionale. Raggi e soglie sono parametri configurabili da Hubble (Impostazioni → Piattaforma), non costanti di codice.
 
 In una fase successiva (post 4 anni), l'app sarà disponibile anche in versione Pro a 2,99 € + IVA al mese, con funzionalità avanzate basate su intelligenza artificiale per ricerche e prenotazioni più rapide, sconti dedicati e contenuti personalizzati.
 

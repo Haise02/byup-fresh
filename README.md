@@ -41,7 +41,7 @@ si torna alla home con il pulsante fluttuante in basso a sinistra (byup App non 
 | `web/`         | byup Web          | `index.html`                | Consumer       | [contesto](web/Contesto-WebApp.md) |
 | `staff/`       | byup Staff        | `index.html`                | Staff (incassi)| [contesto](staff/Contesto.md) |
 | `cameriere/`   | byup Cameriere    | `cameriereweb.html`         | Staff (sala)   | — |
-| `spot/`        | Hubble (ex byup Spot) | `byup-spot.html`            | Interno        | [README](spot/README.md) · [riesame accessi](spot/Riesame-Accessi.md) |
+| `hubble/`        | Hubble (ex byup Spot) | `byup-hubble.html`            | Interno        | [README](hubble/README.md) · [riesame accessi](hubble/Riesame-Accessi.md) |
 | `backend/`     | API (NestJS)      | servizio Node separato      | —              | [BACKEND.md](backend/BACKEND.md) |
 
 ## Stato della documentazione
@@ -53,7 +53,7 @@ vale e cosa no:
 |---|---|
 | `gestionale/PROGRESS.md` | ✅ **Da leggere per primo.** Registro delle sessioni riscritto e portato al 9 ago; le sezioni backend (2–8) fotografano il 30 maggio e da allora il backend non è stato toccato |
 | `gestionale/DESIGN_DECISIONS.md` | ✅ Allineato, con una sezione datata per ogni batch. In caso di dubbio vincono i token `PN` nel codice |
-| `gestionale/README.md` · `spot/README.md` · `app/README.md` | ✅ Verificati riga per riga contro il codice |
+| `gestionale/README.md` · `hubble/README.md` · `app/README.md` | ✅ Verificati riga per riga contro il codice |
 | `gestionale/CLAUDE.md` | ✅ Listino e livelli di supporto ricontrollati contro `account-data.jsx` |
 | `app/*.md` (prodotto), `web/*.md`, `staff/*.md`, `backend/BACKEND.md` | ✅ Reggono: sono documenti di **prodotto e architettura**, e il prodotto non è cambiato. Le poche divergenze trovate (Byup Games rimosso, carrello che si trascina) sono state corrette |
 | `gestionale/icon*.md`, `dashboard-icon-mapping.md` | 🕰 **Documenti storici** della migrazione icone di luglio. Marcati come tali: per sapere quali icone esistono si legge il codice |
@@ -78,7 +78,7 @@ fare il prodotto*, vince il documento.
 - `assets/` contiene icone e loghi condivisi (favicon, apple-touch icon, logo completo).
 - `byup_SaldaConto_redesign.html` (in root) è un mockup standalone del redesign della
   schermata "Salda conto".
-- **Il cache-buster `?v=N`** lo usano `spot/byup-spot.html`, `staff/index.html` e
+- **Il cache-buster `?v=N`** lo usano `hubble/byup-hubble.html`, `staff/index.html` e
   quattro pagine del gestionale (`byup Impostazioni.html`, `byup Statistiche.html`,
   `byup Contabilita.html`, `byup Cucina KDS v2.html`), su alcuni `.jsx` e non su
   tutti. Va incrementato a mano quando si modifica uno di quei file: senza, il
@@ -90,9 +90,9 @@ fare il prodotto*, vince il documento.
 - **Se una modifica «non si vede»**, la prima cosa da guardare è `git status`, non
   la cache: il sito serve l'ultimo commit su `main`, quindi finché una modifica
   resta nel working tree non esiste per chi guarda il sito.
-- **Prima di un rilascio**: `grep -rn "data-demo-only" spot/` — marca le affordance
+- **Prima di un rilascio**: `grep -rn "data-demo-only" hubble/` — marca le affordance
   che esistono solo per la demo e non devono finire in produzione. **Oggi non ce n'è
-  nessuna** (l'unico riscontro è lo stesso comando scritto in `spot/README.md`): l'ultima era il
+  nessuna** (l'unico riscontro è lo stesso comando scritto in `hubble/README.md`): l'ultima era il
   "simula manomissione" del riesame accessi, sparito insieme alla catena di impronte
-  che dimostrava (vedi [spot/Riesame-Accessi.md](spot/Riesame-Accessi.md)). Il
+  che dimostrava (vedi [hubble/Riesame-Accessi.md](hubble/Riesame-Accessi.md)). Il
   controllo resta perché la prossima ci sarà.

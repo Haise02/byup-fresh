@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": false,
   "trailingSlash": false,
+  "redirects": [
+    { "source": "/spot/byup-spot.html", "destination": "/hubble/byup-hubble.html", "permanent": true },
+    { "source": "/spot/:path*", "destination": "/hubble/:path*", "permanent": true }
+  ],
   "headers": [
     {
       "source": "/(.*)\\.jsx",

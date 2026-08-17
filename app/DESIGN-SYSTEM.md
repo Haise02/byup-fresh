@@ -240,4 +240,4 @@ Icone di sistema: SVG inline stroke 2–2.6, `strokeLinecap/Join round`, 11–17
 - `MascotMoment` intercetta i click (nei test E2E: usare click programmatici via `evaluate`).
 - Gli standalone (`home-standalone.html`, `menu-standalone.html`) sono **generati**: non editarli a mano, modificare i `.jsx` e rilanciare `build-standalone.js`.
 - Le foto dei locali/piatti demo sono URL Unsplash: prima di aggiungerne di nuove verificare che l'ID esista e che il soggetto sia coerente.
-- Repo condiviso: la cartella `app/` è dell'app consumer — non toccare `gestionale/`, `cameriere/`, `spot/`, `staff/`, `web/` (altri stream di lavoro).
+- Repo condiviso: la cartella `app/` è dell'app consumer — non toccare `gestionale/`, `cameriere/`, `hubble/`, `staff/`, `web/` (altri stream di lavoro).

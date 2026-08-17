@@ -24,7 +24,7 @@ d'asporto) e per **scoprire** locali. Due attori:
   mostrano.
 
 L'ecosistema completo: app consumer · **webapp consumer (qui)** · Byup Fresh
-(gestionale) · App Staff (cassa) · Webapp cameriere (presa ordini) · Byup Spot
+(gestionale) · App Staff (cassa) · Webapp cameriere (presa ordini) · Byup Hubble
 (backoffice). Sono **codebase separate**; la webapp dipende dai loro
 dati/comportamenti (Fresh = dati e menu, **sessione tavolo** lato backend,
 cassa via App Staff per il pagamento).

@@ -19,7 +19,7 @@
 >
 > Convenzioni: **identità account = numero di telefono** (OTP/biometria);
 > l'ecosistema è App consumer · Webapp consumer · **Byup Fresh** (gestionale) ·
-> **App Staff** · **Webapp cameriere** · **Byup Spot** (backoffice).
+> **App Staff** · **Webapp cameriere** · **Byup Hubble** (backoffice).
 
 ---
 
@@ -80,7 +80,7 @@
 - `availability`: `{ dates[], slotsByDate{}, maxPeople }` (nuove disponibilità per la modifica)
 - `booking`: `{ id, venueId, venueName, date, time, people, name, phone, note, assignedTable, status (active|cancelled) }`
 
-### 1.9 Posta (req: Posta, da **Byup Spot**)
+### 1.9 Posta (req: Posta, da **Byup Hubble**)
 - `news[]`: `{ id, title, preview, ago, kind (welcome|points|feature|review) }`
 - `promo[]`: `{ id, venueId, venueName, preview, ago, discount }`
 - È un canale **editoriale/promozionale di byup**, non del locale.
@@ -120,9 +120,9 @@
 ### 2.4 → Backend recensioni (alimenta ★ TOP e rating vetrina)
 - `{ venueId, orderId, rating (1–5), aspects[] (cibo/servizio/…), comment }`
 
-### 2.5 → Team byup / Byup Spot (segnalazioni & feedback)
+### 2.5 → Team byup / Byup Hubble (segnalazioni & feedback)
 - **Segnala questo locale**: `{ venueId, reason, details }` (anonimo per il locale)
-- **Segnala un problema** (profilo): `{ rating, description }` → **Byup Spot**
+- **Segnala un problema** (profilo): `{ rating, description }` → **Byup Hubble**
 
 ### 2.6 → Backend profilo (scritture)
 - `preferences` allergeni/diete; `anagrafica` (nome, cognome, genere, nascita); `email`/`password` (gestione account); `lingua`; **preferiti** add/remove `{ venueId }`; **metodi di pagamento** (token dal gateway, set preferita, rimozione); **elimina account** (cancellazione irreversibile, GDPR).
