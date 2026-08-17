@@ -39,9 +39,11 @@ const CNT_CICLO = {
   // è LA distinzione, e la scala la deve dire.
   clienteFree:    { label: 'Cliente Free',     color: 'TEAL',      rango: 2 },
   clientePagante: { label: 'Cliente Pagante',  color: 'OK',        rango: 3 },
-  // Returning è il RIENTRATO: aveva annullato il piano ed è tornato — l'esito
-  // del win-back, che è un rapporto diverso sia dal cliente mai andato via
-  // sia dall'annullato ancora fuori.
+  // Returning è il RIENTRATO, e SCADE: aveva annullato ed è tornato — l'esito
+  // del win-back — ma lo stadio dura i primi 90 giorni dal rientro (la stessa
+  // finestra della coda win-back), poi ci si laurea in Cliente Free o
+  // Pagante. Un rientrato di tre anni fa è solo un cliente; il fatto
+  // permanente sta nella proprietà «Rientrato il», non nel badge.
   returning:      { label: 'Returning',        color: 'PURPLE',    rango: 4 },
   annullato:      { label: 'Piano annullato',  color: 'DANGER',    rango: 5 },
   eliminato:      { label: 'Eliminato',        color: 'PLAN_FREE', rango: 6 },
@@ -133,6 +135,15 @@ const CONTATTI = (() => {
     // «Locali associati» vale anche per i titolari multi-sede, e le tre
     // superfici non possono raccontare tre liste diverse.
     const gruppo = typeof drwLocaliAssociati === 'function' ? drwLocaliAssociati(l) : [];
+    // Il rientro dopo un annullamento: nel sistema vero sta nello storico di
+    // fatturazione, qui si deriva dal seme dell'id — circa un attivo su sette
+    // ha un win-back alle spalle, sparso negli ultimi 10–200 giorni. La DATA
+    // è il fatto permanente (proprietà «Rientrato il»); lo STADIO Returning
+    // dura i primi 90 giorni, poi ci si laurea in Cliente Free o Pagante.
+    const seme = parseInt(l.id.slice(1), 10);
+    const rientratoIl = l.stato === 'active' && seme % 7 === 3
+      ? new Date(Date.now() - (10 + (seme * 37) % 190) * 86400000)
+      : null;
     rows.push({
     key: 'loc-' + l.id, tipo: 'locale', ref: l,
     nome: l.nome,
@@ -145,15 +156,13 @@ const CONTATTI = (() => {
     // annullato il piano, chi se n'è andato del tutto è eliminato.
     ciclo: l.stato === 'pending' ? 'lead'
       : (l.stato === 'onboarding' || l.stato === 'skipped') ? 'onboarding'
-      // Il rientro dopo un annullamento nel sistema vero sta nello storico di
-      // fatturazione; nel mock si deriva dal seme dell'id, deterministico —
-      // circa un attivo su sette è un win-back riuscito.
-      : l.stato === 'active' ? ((parseInt(l.id.slice(1), 10) % 7 === 3) ? 'returning'
+      : l.stato === 'active' ? ((rientratoIl && (Date.now() - rientratoIl.getTime()) / 86400000 <= 90) ? 'returning'
         : l.piano === 'free' ? 'clienteFree' : 'clientePagante')
       : l.stato === 'churned' ? 'eliminato'
       : 'annullato',
     piano: l.piano,
     iscritto: l.dataIscrizione,
+    rientrato: rientratoIl,
     });
   });
 

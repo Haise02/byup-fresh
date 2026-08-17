@@ -145,6 +145,10 @@ const HUB_PROPRIETA = [
       : admRestrizioneAttiva(c.ref.id, 'shadowban') ? 'shadowban' : null,
     nota: 'Solo per gli utenti app: shadowban o ban attivi nel registro restrizioni' },
   { id: 'iscritto', label: 'Data di creazione',   gruppo: 'contatto', tipo: 'data',   sistema: true, colonna: { w: '1.15fr' } },
+  // Il fatto permanente del win-back: lo stadio Returning scade a 90 giorni,
+  // la data del rientro resta qui — filtrabile da rubrica ed elenchi come
+  // ogni altra proprietà. Vuota = mai annullato e rientrato.
+  { id: 'rientrato', label: 'Rientrato il',       gruppo: 'contatto', tipo: 'data',   sistema: true, colonna: { w: '1.15fr' } },
   { id: 'idRecord', label: 'ID record',           gruppo: 'contatto', tipo: 'testo',  sistema: true, colonna: { w: '0.85fr' } },
 
   // — Commerciale —
