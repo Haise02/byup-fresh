@@ -635,8 +635,8 @@ function AnDispositivi({ filtri }) {
 
       <AnCard
         titolo="Chi è configurato, e chi manca"
-        sotto="Un monitor senza un utente di cucina è un monitor spento · i ruoli dicono se il prodotto è stato davvero acceso"
-        piede={<>Il confronto fra «con» e «senza» è descrittivo: chi configura un ruolo di cucina è probabilmente anche il locale
+        sotto="Titolare, Cameriere e Cassa sono i ruoli di sistema, tutto il resto è personalizzato · monitor e stampanti non sono ruoli: sono dispositivi, e stanno nella dotazione"
+        piede={<>Il confronto fra «con» e «senza» è descrittivo: chi si costruisce ruoli personalizzati è probabilmente anche il locale
           più organizzato. Serve a decidere <strong style={{color:ADM.TEXT}}>dove intervenire</strong>, non a dimostrare un effetto.</>}
       >
         <div style={{padding:'16px 22px', display:'flex', flexDirection:'column', gap:12}}>

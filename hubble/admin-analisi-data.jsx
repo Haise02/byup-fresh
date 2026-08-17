@@ -44,13 +44,16 @@ const AN_DOTAZIONI = {
   stampa:  { label:'Comande stampate', desc:'Byup genera, la stampante del locale stampa', tono:'WARN' },
   niente:  { label:'Nessun collegamento', desc:'La comanda la porta il cameriere', tono:'DANGER' },
 };
-// I ruoli sono l'altra faccia: senza un utente di cucina il monitor non lo
-// guarda nessuno, e senza un manager nessuno legge i numeri.
+// I ruoli sono l'altra faccia della dotazione. Nel gestionale i ruoli di
+// sistema sono TRE — Titolare, Cameriere, Cassa — e tutto il resto è un
+// ruolo personalizzato creato dal locale. «Cucina» e «Manager» qui erano
+// un'invenzione: monitor e stampanti non sono ruoli, sono utenze-dispositivo
+// e vivono nella DOTAZIONE qui sopra.
 const AN_RUOLI = [
-  { id:'cassa',       label:'Cassa',       serve:'Incassa e chiude i conti' },
-  { id:'cameriere',   label:'Cameriere',   serve:'Prende le comande al tavolo' },
-  { id:'cucina',      label:'Cucina',      serve:'Vede le comande sul monitor' },
-  { id:'manager',     label:'Manager',     serve:'Legge statistiche e contabilità' },
+  { id:'titolare',       label:'Titolare',       serve:'C\'è per definizione: l\'utenza nasce col locale' },
+  { id:'cassa',          label:'Cassa',          serve:'Incassa e chiude i conti' },
+  { id:'cameriere',      label:'Cameriere',      serve:'Prende le comande al tavolo' },
+  { id:'personalizzati', label:'Personalizzati', serve:'Ruoli su misura del locale, fuori dai tre di sistema' },
 ];
 
 const AN_CANALI_ID = ['passaparola', 'diretto', 'ricerca', 'campagna', 'evento'];
@@ -68,13 +71,14 @@ const AN_LOCALI = AN_UNIVERSO.map((l, i) => {
                   : roll < 0.62 + spinta * 0.28 ? 'stampa'
                   : 'niente';
 
-  // Ruoli configurati: la cassa ce l'hanno tutti (è il minimo per incassare),
-  // il resto segue la dotazione.
-  const ruoli = ['cassa'];
+  // Ruoli configurati: titolare e cassa ce li hanno tutti — il primo nasce
+  // col locale, la seconda è il minimo per incassare. Il cameriere dice se la
+  // sala è accesa; i personalizzati seguono l'organizzazione (la stessa
+  // spinta dell'adozione: chi è digitale si costruisce anche i ruoli su
+  // misura).
+  const ruoli = ['titolare', 'cassa'];
   if (r() < 0.55 + spinta * 0.4) ruoli.push('cameriere');
-  if (dotazione === 'monitor' && r() < 0.88) ruoli.push('cucina');
-  else if (dotazione === 'stampa' && r() < 0.34) ruoli.push('cucina');
-  if (r() < 0.30 + spinta * 0.35) ruoli.push('manager');
+  if (r() < 0.30 + spinta * 0.35) ruoli.push('personalizzati');
 
   // Byup Staff è il POS: l'app che incassa in presenza con Tap to Pay. Un
   // locale può avere zero dispositivi (incassa dalla cassa fissa) o averne
@@ -111,7 +115,6 @@ const AN_LOCALI = AN_UNIVERSO.map((l, i) => {
     coperti: l.coperti, lastLogin: l.lastLogin, sdi: l.sdi,
     dotazione, ruoli, posAttivi, quotaIncassoPos, minutiInCucina, comandeRifatte,
     canale,
-    haCucina: ruoli.includes('cucina'), haManager: ruoli.includes('manager'),
   };
 });
 
@@ -543,14 +546,16 @@ const AN_QUALITA = (() => {
     elenco: menuFermi.slice(0, 5).map(l => l.nome),
   });
 
-  // Nessun ruolo di cucina: il monitor c'è ma non lo guarda nessuno.
-  const senzaCucina = AN_LOCALI.filter(l => l.dotazione === 'monitor' && !l.haCucina);
+  // Monitor acceso ma sala spenta: il KDS è un'utenza-dispositivo e le
+  // comande al tavolo gliele mandano i camerieri — senza nemmeno un utente
+  // cameriere, sul monitor arriva solo quello che batte la cassa.
+  const senzaSala = AN_LOCALI.filter(l => l.dotazione === 'monitor' && !l.ruoli.includes('cameriere'));
   controlli.push({
-    k:'ruoli', label:'Kitchen monitor senza un utente di cucina',
-    n: senzaCucina.length, su: AN_LOCALI.filter(l => l.dotazione === 'monitor').length,
-    regola:'dotazione = monitor e nessun ruolo cucina configurato',
-    effetto:'I tempi di cucina risultano vuoti: il monitor è acceso ma non lo spunta nessuno',
-    elenco: senzaCucina.slice(0, 5).map(l => l.nome),
+    k:'ruoli', label:'Kitchen monitor ma sala non configurata',
+    n: senzaSala.length, su: AN_LOCALI.filter(l => l.dotazione === 'monitor').length,
+    regola:'dotazione = monitor e nessun utente cameriere',
+    effetto:'Le comande arrivano solo dalla cassa: il flusso di sala non è acceso',
+    elenco: senzaSala.slice(0, 5).map(l => l.nome),
   });
 
   // Anagrafica fiscale incompleta
