@@ -72,11 +72,46 @@ function ProfileToggle({ value, onChange }) {
 }
 
 function AllergensView({ onBack, prefs, setPrefs }) {
-  const toggle = (group, id) => setPrefs(p => ({
+  // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
+  // Just-in-time, come fanno le app comparabili: la sezione si SFOGLIA
+  // liberamente (guardare la lista non conferisce nessun dato), e il
+  // consenso A3 compare al PRIMO toggle — il momento in cui il dato nasce
+  // davvero. A18 (offerte sulle preferenze) è la spunta autonoma sopra:
+  // mai pre-attivata, mai registrata se non scelta. Il centro di controllo
+  // resta nel pannello «I miei dati».
+  // (Il flusso era stato travolto dal rewrite «Beta v2» del 2026-08-12:
+  // ripristinato il 2026-08-17 — i toggle scrivevano un dato art. 9 senza
+  // chiedere niente.)
+  const [consensoOk, setConsensoOk] = useState(() => { const st = ByupConsensi.stato('A3'); return !!(st && st.ok); });
+  const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
+  const [chkA3, setChkA3] = useState(false);
+  const [chkA18, setChkA18] = useState(false);
+
+  const applica = (group, id) => setPrefs(p => ({
     ...p,
     [group]: { ...(p[group] || {}), [id]: !(p[group]?.[id]) },
   }));
+  const toggle = (group, id) => {
+    if (!consensoOk) { setPending({ group, id }); return; }
+    applica(group, id);
+  };
   const count = (group) => Object.values(prefs[group] || {}).filter(Boolean).length;
+
+  const confermaConsensi = () => {
+    if (!chkA3) return;
+    ByupConsensi.set('A3', true);
+    if (chkA18) ByupConsensi.set('A18', true);
+    setConsensoOk(true);
+    if (pending) applica(pending.group, pending.id);
+    setPending(null);
+  };
+  const annullaConsensi = () => { setPending(null); setChkA3(false); setChkA18(false); };
+
+  // Testi brevi (informativa "a strati"): nella spunta l'essenziale — dato,
+  // sensibilità, finalità, revoca — il resto sta nella sezione dedicata
+  // dell'informativa privacy. Non allungarli di nuovo qui.
+  const CONSENSO_A3 = 'Acconsento all\'uso dei miei allergeni e preferenze alimentari — dati che possono rivelare salute o convinzioni — per filtrare i menù. Revocabile quando voglio.';
+  const CONSENSO_A18 = 'Acconsento a ricevere offerte costruite su diete e allergeni (es. proposte senza glutine).';
 
   const SectionHeader = ({ title, badge, description, icon, color, bg }) => (
     <div style={{ marginBottom: 12 }}>
@@ -152,6 +187,11 @@ function AllergensView({ onBack, prefs, setPrefs }) {
         bg="#FFF5F5"
         description="I piatti che contengono questi ingredienti verranno nascosti dal menù."
       />
+      {/* Avvertenza fissa — misura DPIA R1.5: il filtro non sostituisce
+          la comunicazione al personale di sala. */}
+      <div style={{ fontSize: 12, color: MUTED_X, lineHeight: 1.5, margin: '-4px 2px 10px' }}>
+        Il filtro è un ausilio informativo basato sui dati inseriti dal locale. Comunica sempre allergie e intolleranze al personale di sala.
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: TINT_X, borderRadius: 14, overflow: 'hidden' }}>
         {PROFILE_ALLERGENS.map((a, i) => {
           const on = !!prefs.allergens?.[a.id];
@@ -174,6 +214,89 @@ function AllergensView({ onBack, prefs, setPrefs }) {
           );
         })}
       </div>
+
+      {/* Nota discreta: dove si gestisce tutto. */}
+      <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 20, lineHeight: 1.5 }}>
+        Gestisci consensi e revoca da Profilo → I miei dati.
+      </div>
+
+      {/* ─── Sheet just-in-time: compare al primo toggle, il momento in cui
+          il dato nasce. Conferma → applica anche la scelta in sospeso;
+          annulla → non si salva niente. */}
+      {pending && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) annullaConsensi(); }} style={{
+          position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,8,12,.5)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease',
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 520, background: SURF_X, borderRadius: '24px 24px 0 0',
+            padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+            animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <div style={{ width: 38, height: 4, borderRadius: 999, background: BORDER_X }}/>
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: TEXT_X, marginBottom: 10 }}>Prima di salvare</div>
+
+            {/* A18 — card da opt-in come la A6 alla registrazione, SEMPRE
+                SOPRA la spunta obbligatoria (scelta di Fabio): si vende il
+                BENEFICIO in testa, il testo del consenso resta integrale
+                sotto. Mai preselezionata (il sì deve restare un gesto). */}
+            <button onClick={() => setChkA18(v => !v)} aria-label="Consenso offerte sulle preferenze" style={{
+              display: 'flex', alignItems: 'flex-start', gap: 11, width: '100%',
+              padding: '12px 13px', borderRadius: 16, textAlign: 'left',
+              background: chkA18 ? CORALSURF_X : TINT_X,
+              border: `1.5px solid ${chkA18 ? PINK_X : 'transparent'}`,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all .18s',
+            }}>
+              <span style={{
+                width: 36, height: 36, borderRadius: 12, flexShrink: 0,
+                background: chkA18 ? PINK_X : (__BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F3EBEE'),
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 17, transition: 'background .18s',
+              }}>🏷️</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: TEXT_X }}>
+                  Offerte sui piatti giusti per te
+                </span>
+                <span style={{ display: 'block', fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.45 }}>
+                  {CONSENSO_A18} <span style={{ color: '#C9C2C5' }}>(Facoltativa)</span>
+                </span>
+              </span>
+              <span style={{
+                width: 24, height: 24, borderRadius: 8, flexShrink: 0, marginTop: 6,
+                border: `1.5px solid ${chkA18 ? PINK_X : '#CFC8CB'}`,
+                background: chkA18 ? PINK_X : (__BYUP_DK_X ? 'transparent' : '#fff'),
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all .18s',
+              }}>
+                {chkA18 && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                )}
+              </span>
+            </button>
+            <div style={{ height: 1, background: __BYUP_DK_X ? 'rgba(255,255,255,0.08)' : '#F0EAEC', margin: '11px 0' }}/>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={chkA3} onChange={e => setChkA3(e.target.checked)}
+                style={{ accentColor: PINK_X, width: 17, height: 17, marginTop: 2, flexShrink: 0 }}/>
+              <span style={{ fontSize: 12.5, color: TEXT_X, lineHeight: 1.5 }}>{CONSENSO_A3}</span>
+            </label>
+
+            <button onClick={confermaConsensi} disabled={!chkA3} style={{
+              width: '100%', marginTop: 14, padding: '14px 16px', borderRadius: 999,
+              background: chkA3 ? PINK_X : TINT_X, color: chkA3 ? '#fff' : MUTED_X,
+              border: 'none', fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
+              cursor: chkA3 ? 'pointer' : 'not-allowed', transition: 'background .18s, color .18s',
+            }}>Conferma e salva</button>
+            <button onClick={annullaConsensi} style={{
+              width: '100%', padding: '11px 16px', marginTop: 4,
+              background: 'transparent', color: MUTED_X, border: 'none',
+              fontSize: 13.5, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+            }}>Non ora</button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
@@ -620,7 +743,7 @@ function SegnalaView({ onBack }) {
   );
 }
 
-function MieiDatiView({ onBack }) {
+function MieiDatiView({ onBack, onOpenPrivacy }) {
   const [nome, setNome] = useState('Mario');
   const [cognome, setCognome] = useState('Rossi');
   const [genere, setGenere] = useState('Uomo');
@@ -706,6 +829,108 @@ function MieiDatiView({ onBack }) {
       }}>
         {saved ? 'Salvato ✓' : 'Salva modifiche'}
       </button>
+
+      {/* ── Privacy e consensi: il cassetto del registro. ── */}
+      <div style={{ marginTop: 16 }}>
+        <ConsensiPanel onOpenPrivacy={onOpenPrivacy}/>
+      </div>
+    </div>
+  );
+}
+
+// ─── ConsensiPanel — i consensi del registro in un posto solo ───────────────
+// A3 e A18 nascono nella sezione allergeni, A6 alla registrazione: qui si
+// RIVEDONO e si cambiano. Un consenso mai incontrato (nessuno stato nel
+// registro) NON compare: il pannello mostra solo ciò che esiste per questo
+// utente. `dove` dice in che punto dell'app il consenso è nato. Spegnere
+// A3 cancella anche le preferenze salvate (senza consenso, niente dato).
+// (Rimosso per errore dal rewrite «Beta v2» del 2026-08-12, ripristinato
+// il 2026-08-17.)
+const CONSENSI_DEF = [
+  { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', dove: 'impostando le preferenze alimentari' },
+  { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  dove: 'impostando le preferenze alimentari' },
+  // A6 copre anche le promo su misura sullo storico ordini (PROMOP assorbito
+  // il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
+  // registrazione. Le offerte su dati alimentari restano A18 (art. 9).
+  { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica', dove: 'alla registrazione' },
+  // Suggerimenti e analisi d'uso: legittimo interesse SENZA toggle qui —
+  // la via di opposizione è l'assistenza, come dichiarato nell'informativa.
+  // Il pannello mostra solo i consensi veri: A3, A18, A6.
+];
+
+function ConsensiPanel({ onOpenPrivacy }) {
+  // Chiuso di default: i consensi sono un cassetto, non la prima cosa da
+  // leggere ogni volta. La testata riassume (quanti attivi) e apre.
+  const [aperto, setAperto] = useState(false);
+  const [, forza] = useState(0);
+  const sep = { borderBottom: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` };
+  const cambia = (id, v) => {
+    ByupConsensi.set(id, v);
+    if (id === 'A3' && !v) {
+      // niente base giuridica, niente dato
+      try { localStorage.setItem('byup_allergens', JSON.stringify({ allergens: {}, diets: {} })); } catch (e) {}
+      if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
+    }
+    forza(x => x + 1);
+  };
+  const quando = (st) => {
+    if (!st) return null;
+    const d = new Date(st.quando);
+    return `${d.toLocaleDateString('it-IT')}`;
+  };
+  const attivi = CONSENSI_DEF.filter(c => { const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ background: SURF_X, borderRadius: 14, overflow: 'hidden', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` }}>
+        <button onClick={() => setAperto(a => !a)} style={{
+          display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+          padding: '13px 14px', background: 'transparent', border: 'none',
+          cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+          ...(aperto ? sep : {}),
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, color: TEXT_X, fontWeight: 600 }}>Privacy e consensi</div>
+            <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 1 }}>
+              {attivi === 0 ? 'Nessun consenso attivo' : `${attivi} ${attivi === 1 ? 'consenso attivo' : 'consensi attivi'}`}
+            </div>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform .18s', flexShrink: 0 }}>
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+
+        {aperto && CONSENSI_DEF.map((c, i) => {
+          const st = ByupConsensi.stato(c.id);
+          // Mai incontrato = niente riga: il pannello riflette solo i consensi
+          // che esistono per questo utente.
+          if (!st) return null;
+          const data = quando(st);
+          const acceso = !!(st && st.ok);
+          return (
+            <div key={c.id} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 14px', ...sep,
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, color: TEXT_X }}>{c.label}</div>
+                <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>{c.desc}</div>
+                {data && (
+                  <div style={{ fontSize: 11, color: MUTED_X, marginTop: 2, opacity: .8 }}>
+                    {st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`}
+                  </div>
+                )}
+              </div>
+              <ProfileToggle value={acceso} onChange={(v) => cambia(c.id, v)}/>
+            </div>
+          );
+        })}
+        {aperto && (
+          <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, padding: '10px 14px 13px' }}>
+            Per richiedere una copia dei tuoi dati consulta l'<span onClick={onOpenPrivacy} style={{ color: PINK_X, fontWeight: 600, cursor: 'pointer' }}>informativa sulla privacy</span>.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1262,7 +1487,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'miei-dati' && (
-          <MieiDatiView onBack={() => setView('main')}/>
+          <MieiDatiView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')}/>
         )}
 
         {view === 'terms' && (
