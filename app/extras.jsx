@@ -140,6 +140,11 @@ function AllergensView({ onBack, prefs, setPrefs }) {
         width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
+        // La freccia resta in vista anche scorrendo: sticky dentro lo
+        // scroller del profilo, con un filo d'ombra per staccarla dal
+        // contenuto che le passa sotto.
+        position: 'sticky', top: 8, zIndex: 40,
+        boxShadow: '0 2px 10px rgba(77,18,46,0.14)',
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -224,13 +229,16 @@ function AllergensView({ onBack, prefs, setPrefs }) {
           il dato nasce. Conferma → applica anche la scelta in sospeso;
           annulla → non si salva niente. */}
       {pending && (
+        // position ABSOLUTE, non fixed: l'ancora è lo schermo del telefono
+        // (il root del profilo, position:relative) — con fixed lo sheet
+        // sbordava dal frame e copriva l'intera pagina del browser.
         <div onClick={(e) => { if (e.target === e.currentTarget) annullaConsensi(); }} style={{
-          position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,8,12,.5)',
+          position: 'absolute', inset: 0, zIndex: 80, background: 'rgba(15,8,12,.5)',
           backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease',
         }}>
           <div style={{
-            width: '100%', maxWidth: 520, background: SURF_X, borderRadius: '24px 24px 0 0',
+            width: '100%', background: SURF_X, borderRadius: '24px 24px 0 0',
             padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
             animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)',
           }}>
@@ -315,6 +323,11 @@ function OrdersView({ onBack, initialOpenId }) {
         width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
+        // La freccia resta in vista anche scorrendo: sticky dentro lo
+        // scroller del profilo, con un filo d'ombra per staccarla dal
+        // contenuto che le passa sotto.
+        position: 'sticky', top: 8, zIndex: 40,
+        boxShadow: '0 2px 10px rgba(77,18,46,0.14)',
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -439,6 +452,11 @@ function PagamentiView({ onBack, startAdd = false }) {
         width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
+        // La freccia resta in vista anche scorrendo: sticky dentro lo
+        // scroller del profilo, con un filo d'ombra per staccarla dal
+        // contenuto che le passa sotto.
+        position: 'sticky', top: 8, zIndex: 40,
+        boxShadow: '0 2px 10px rgba(77,18,46,0.14)',
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -605,6 +623,11 @@ function PreferitivView({ onBack, onOpenVenue }) {
         width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
+        // La freccia resta in vista anche scorrendo: sticky dentro lo
+        // scroller del profilo, con un filo d'ombra per staccarla dal
+        // contenuto che le passa sotto.
+        position: 'sticky', top: 8, zIndex: 40,
+        boxShadow: '0 2px 10px rgba(77,18,46,0.14)',
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -684,6 +707,11 @@ function SegnalaView({ onBack }) {
         width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
+        // La freccia resta in vista anche scorrendo: sticky dentro lo
+        // scroller del profilo, con un filo d'ombra per staccarla dal
+        // contenuto che le passa sotto.
+        position: 'sticky', top: 8, zIndex: 40,
+        boxShadow: '0 2px 10px rgba(77,18,46,0.14)',
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -782,6 +810,11 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
         width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
+        // La freccia resta in vista anche scorrendo: sticky dentro lo
+        // scroller del profilo, con un filo d'ombra per staccarla dal
+        // contenuto che le passa sotto.
+        position: 'sticky', top: 8, zIndex: 40,
+        boxShadow: '0 2px 10px rgba(77,18,46,0.14)',
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -965,6 +998,11 @@ function AccountFormView({ title, subtitle, fields, submitLabel, successMsg, onB
         width: 36, height: 36, borderRadius: 999, background: TINT_X,
         border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', marginBottom: 22,
+        // La freccia resta in vista anche scorrendo: sticky dentro lo
+        // scroller del profilo, con un filo d'ombra per staccarla dal
+        // contenuto che le passa sotto.
+        position: 'sticky', top: 8, zIndex: 40,
+        boxShadow: '0 2px 10px rgba(77,18,46,0.14)',
       }}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
@@ -1105,6 +1143,15 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   ];
   const currentLang = LANGS.find(l => l.code === lang) || LANGS[0];
   const [allergenPrefs, setAllergenPrefs] = useState(() => {
+    // Senza consenso A3 niente dato: se il registro non ha un sì, le spunte
+    // salvate si azzerano al caricamento — comprese quelle nate nel periodo
+    // in cui la Beta v2 aveva perso il flusso consensi e i toggle scrivevano
+    // senza chiedere.
+    const st = (typeof ByupConsensi !== 'undefined') ? ByupConsensi.stato('A3') : null;
+    if (!(st && st.ok)) {
+      try { localStorage.setItem('byup_allergens', JSON.stringify({ allergens: {}, diets: {} })); } catch {}
+      return { allergens: {}, diets: {} };
+    }
     try { const raw = localStorage.getItem('byup_allergens'); return raw ? JSON.parse(raw) : { allergens: {}, diets: {} }; }
     catch { return { allergens: {}, diets: {} }; }
   });
