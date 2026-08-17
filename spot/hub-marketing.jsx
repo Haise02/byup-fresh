@@ -28,6 +28,14 @@ function mkPubblicoConta(id) {
   return e ? elMembri(e) : 0;
 }
 
+// Dal valore del selettore d'innesco («form:FR-005») alla frase che lo
+// storico mostra — la stessa forma dei trigger già nei dati.
+function mkTriggerLabel(v) {
+  const [k, id] = String(v).split(':');
+  if (k === 'form') { const f = HUB_FORM.find(x => x.id === id); return f ? 'Submission form · ' + f.nome : v; }
+  const w = HUB_WORKFLOW.find(x => x.id === id); return w ? 'Workflow · ' + w.nome : v;
+}
+
 // Il selettore del pubblico: o un elenco già fatto, o dei criteri scritti al
 // volo. Sono la stessa cosa — la seconda è la prima senza il nome — e infatti
 // il pannello dei filtri è lo stesso di Contatti.
@@ -137,6 +145,9 @@ function HubMailPage() {
   const [cerca, setCerca] = useStateMk('');
   const [aperta, setAperta] = useStateMk(null);
   const [nuova, setNuova] = useStateMk(false);
+  // Le bozze salvate e le copie entrano nel mock condiviso: `ver` avvisa la
+  // lista memoizzata che HUB_MAIL è cambiato sotto i suoi piedi.
+  const [ver, setVer] = useStateMk(0);
 
   const lista = useMemoMk(() => {
     let r = HUB_MAIL.slice();
@@ -145,10 +156,15 @@ function HubMailPage() {
     const q = cerca.trim().toLowerCase();
     if (q) r = r.filter(m => (m.nome + ' ' + m.oggetto).toLowerCase().includes(q));
     return r;
-  }, [vista, cerca]);
+  }, [vista, cerca, ver]);
 
-  if (nuova) return <HubMailComposer onChiudi={() => setNuova(false)}/>;
-  if (aperta) return <HubMailDettaglio mail={aperta} onChiudi={() => setAperta(null)}/>;
+  // Un record nuovo — la bozza dal composer, la copia dal dettaglio — si
+  // infila in testa allo storico e si torna alla lista: l'esito del click
+  // è la riga che compare.
+  const aggiungi = (m) => { HUB_MAIL.unshift(m); setVer(v => v + 1); setNuova(false); setAperta(null); };
+
+  if (nuova) return <HubMailComposer onChiudi={() => setNuova(false)} onBozza={aggiungi}/>;
+  if (aperta) return <HubMailDettaglio mail={aperta} onChiudi={() => setAperta(null)} onAggiungi={aggiungi}/>;
 
   const inviate = HUB_MAIL.filter(m => m.stato === 'inviata');
   const totDest = inviate.reduce((s, m) => s + m.consegnate, 0);
@@ -223,10 +239,21 @@ function HubMailPage() {
   );
 }
 
-function HubMailDettaglio({ mail, onChiudi }) {
+function HubMailDettaglio({ mail, onChiudi, onAggiungi }) {
   const [tab, setTab] = useStateMk('numeri');
   const [doc] = useStateMk(mbDocIniziale);
+  const [modifica, setModifica] = useStateMk(false);
   const inviata = mail.consegnate > 0;
+
+  // «Modifica» apre il composer precompilato con questa campagna e si torna
+  // qui alla chiusura; «Duplica» costruisce la copia in bozza — contenuto
+  // sì, numeri no — e riporta alla lista, dove la riga nuova è l'esito
+  // visibile del click.
+  if (modifica) return <HubMailComposer iniziale={mail} onChiudi={() => setModifica(false)} onBozza={onAggiungi}/>;
+  const duplica = () => onAggiungi(Object.assign({}, mail, {
+    id: mail.id + '-C' + (HUB_MAIL.length + 1), nome: mail.nome + ' — copia', stato: 'bozza',
+    inviata: null, programmata: null, dest: 0, consegnate: 0, aperte: 0, click: 0, disiscritti: 0, rimbalzi: 0,
+  }));
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -241,8 +268,8 @@ function HubMailDettaglio({ mail, onChiudi }) {
         sotto={`Oggetto: «${mail.oggetto}» · Anteprima: «${mail.anteprima}»`}
         azioni={
           <React.Fragment>
-            <HubStrumento icona="copy">Duplica</HubStrumento>
-            <HubStrumento icona="pencil" forte>Modifica</HubStrumento>
+            <HubStrumento icona="copy" onClick={duplica}>Duplica</HubStrumento>
+            <HubStrumento icona="pencil" forte onClick={() => setModifica(true)}>Modifica</HubStrumento>
           </React.Fragment>
         }/>
 
@@ -285,10 +312,15 @@ function HubMailDettaglio({ mail, onChiudi }) {
           {tab === 'contenuto' && (
             <AdmCard padding={0} style={{ overflow: 'hidden' }}>
               <div style={{ background: ADM.PANEL_SOFT, padding: 24, display: 'flex', justifyContent: 'center' }}>
-                <div style={{ width: 520, maxWidth: '100%', background: '#fff', borderRadius: 12, boxShadow: '0 12px 30px -14px rgba(15,17,21,0.24)', overflow: 'hidden' }}>
+                {/* È il corpo di una campagna già confezionata, non un editor:
+                    i pointer events sono spenti così i blocchi non promettono
+                    hover e comandi, e il contentEditable non raccoglie mai
+                    battute che nessuno salverebbe. L'onTesto muto è la
+                    cintura per il fuoco che arrivasse da tastiera. */}
+                <div style={{ width: 520, maxWidth: '100%', background: '#fff', borderRadius: 12, boxShadow: '0 12px 30px -14px rgba(15,17,21,0.24)', overflow: 'hidden', pointerEvents: 'none', userSelect: 'none' }}>
                   {doc.blocchi.map(b => (
                     <MbBlocco key={b.id} b={b} doc={doc} selezionato={false} onSeleziona={() => {}}
-                      onSu={() => {}} onGiu={() => {}} onElimina={() => {}} onDuplica={() => {}}/>
+                      onSu={() => {}} onGiu={() => {}} onElimina={() => {}} onDuplica={() => {}} onTesto={() => {}}/>
                   ))}
                 </div>
               </div>
@@ -318,38 +350,53 @@ function HubMailDettaglio({ mail, onChiudi }) {
   );
 }
 
-function HubMailComposer({ onChiudi }) {
+function HubMailComposer({ onChiudi, iniziale, onBozza }) {
   const [passo, setPasso] = useStateMk(0);
-  const [tipo, setTipo] = useStateMk('normale');
-  const [nome, setNome] = useStateMk('');
-  const [oggetto, setOggetto] = useStateMk('');
-  const [anteprima, setAnteprima] = useStateMk('');
-  const [mittente, setMittente] = useStateMk('MT-1');
-  const [elencoId, setElencoId] = useStateMk(null);
+  const [tipo, setTipo] = useStateMk(iniziale ? iniziale.tipo : 'normale');
+  const [nome, setNome] = useStateMk(iniziale ? iniziale.nome : '');
+  const [oggetto, setOggetto] = useStateMk(iniziale ? iniziale.oggetto : '');
+  const [anteprima, setAnteprima] = useStateMk(iniziale ? iniziale.anteprima : '');
+  // Con `iniziale` (il «Modifica» del dettaglio) si riparte dal mittente di
+  // quella campagna, riconosciuto per indirizzo.
+  const [mittente, setMittente] = useStateMk(() => {
+    const m = iniziale && HUB_MITTENTI.find(x => x.indirizzo === iniziale.mittenteMail);
+    return m ? m.id : 'MT-1';
+  });
+  const [elencoId, setElencoId] = useStateMk(iniziale ? iniziale.pubblico || null : null);
   const [filtri, setFiltri] = useStateMk([]);
   const [trigger, setTrigger] = useStateMk('');
   const [doc, setDoc] = useStateMk(mbDocIniziale);
   const [quando, setQuando] = useStateMk('subito');
   const [data, setData] = useStateMk(null);
   const [ora, setOra] = useStateMk('09:00');
+  const [prova, setProva] = useStateMk(false);
 
   const mt = HUB_MITTENTI.find(m => m.id === mittente) || HUB_MITTENTI[0];
   const passi = ['Tipo e destinatari', 'Oggetto e mittente', 'Grafica', 'Invio'];
+
+  // La bozza che finisce nello storico: il contenuto c'è, i numeri no.
+  const bozza = () => ({
+    id: 'ML-B' + (HUB_MAIL.length + 1), nome: nome || 'Bozza senza nome', tipo, stato: 'bozza',
+    oggetto: oggetto || '—', anteprima: anteprima || '', mittente: mt.nome, mittenteMail: mt.indirizzo,
+    pubblico: tipo === 'normale' ? elencoId : null,
+    trigger: tipo === 'automatica' && trigger ? mkTriggerLabel(trigger) : null,
+    dest: 0, consegnate: 0, aperte: 0, click: 0, disiscritti: 0, rimbalzi: 0,
+  });
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Mail</HubStrumento>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>{iniziale ? iniziale.nome : 'Mail'}</HubStrumento>
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuova email'}</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{iniziale ? 'Modifica' : nome || 'Nuova email'}</span>
       </div>
 
-      <HubTestata occhiello="Marketing · Email" titolo="Crea un'email" colore="HUB_MAGENTA"
+      <HubTestata occhiello="Marketing · Email" titolo={iniziale ? 'Modifica l\'email' : 'Crea un\'email'} colore="HUB_MAGENTA"
         sotto="Quattro passi. Si può tornare indietro in qualunque momento senza perdere niente."
         azioni={
           <React.Fragment>
-            <HubStrumento icona="save">Salva bozza</HubStrumento>
+            <HubStrumento icona="save" onClick={() => onBozza ? onBozza(bozza()) : onChiudi()}>Salva bozza</HubStrumento>
             {passo > 0 && <HubStrumento icona="arrowLeft" onClick={() => setPasso(p => p - 1)}>Indietro</HubStrumento>}
             {passo < passi.length - 1
               ? <HubStrumento forte icona="arrowRight" onClick={() => setPasso(p => p + 1)}>Avanti</HubStrumento>
@@ -511,7 +558,13 @@ function HubMailComposer({ onChiudi }) {
               </div>
             ))}
             <div style={{ marginTop: 14 }}>
-              <HubStrumento icona="send">Mandami una prova</HubStrumento>
+              {/* La prova è finta ma l'esito si vede: il bottone conferma
+                  a chi è arrivata — me@byup.it è l'operatore loggato — e
+                  poi torna com'era. */}
+              <HubStrumento icona={prova ? 'check' : 'send'} acceso={prova}
+                onClick={() => { if (!prova) { setProva(true); setTimeout(() => setProva(false), 2600); } }}>
+                {prova ? 'Inviata a me@byup.it' : 'Mandami una prova'}
+              </HubStrumento>
             </div>
           </AdmCard>
         </div>
@@ -537,13 +590,18 @@ function HubSmsPage() {
   const [cerca, setCerca] = useStateMk('');
   const [aperto, setAperto] = useStateMk(null);
   const [nuovo, setNuovo] = useStateMk(false);
+  // Come per le mail: le bozze salvate entrano nel mock, `ver` ricalcola.
+  const [ver, setVer] = useStateMk(0);
 
   const lista = useMemoMk(() => {
     const q = cerca.trim().toLowerCase();
     return HUB_SMS.filter(s => !q || (s.nome + ' ' + s.testo).toLowerCase().includes(q));
-  }, [cerca]);
+  }, [cerca, ver]);
 
-  if (nuovo) return <HubSmsComposer onChiudi={() => setNuovo(false)}/>;
+  const salvaBozza = (b) => { HUB_SMS.unshift(b); setVer(v => v + 1); setNuovo(false); };
+
+  if (nuovo) return <HubSmsComposer onChiudi={() => setNuovo(false)} onBozza={salvaBozza}/>;
+  if (aperto) return <HubSmsDettaglio sms={aperto} onChiudi={() => setAperto(null)}/>;
 
   const spesa = HUB_SMS.reduce((s, x) => s + x.costo, 0);
   const consegnati = HUB_SMS.reduce((s, x) => s + x.consegnati, 0);
@@ -595,7 +653,7 @@ function HubSmsPage() {
         <div style={{ padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${ADM.BORDER}` }}>
           <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca fra gli SMS…" larghezza={260}/>
         </div>
-        <HubTabella colonne={colonne} righe={lista} chiave={s => s.id} cella={cella} onRiga={() => {}}
+        <HubTabella colonne={colonne} righe={lista} chiave={s => s.id} cella={cella} onRiga={setAperto}
           vuoto={<HubVuoto icona="smartphone" titolo="Nessun SMS" desc="Creane uno: si scrive in un minuto."/>}/>
       </AdmCard>
     </div>
@@ -626,7 +684,74 @@ function MktTelefono({ mittente, testo, ora = 'ora' }) {
   );
 }
 
-function HubSmsComposer({ onChiudi }) {
+// Il dettaglio di un SMS: gli stessi numeri della riga ma leggibili, e il
+// messaggio dentro la bolla — un SMS si giudica com'è arrivato, non in
+// tabella. È il gemello di HubMailDettaglio, in piccolo.
+function HubSmsDettaglio({ sms, onChiudi }) {
+  const inviato = sms.consegnati > 0;
+  const seg = smsSegmenti(sms.testo);
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>SMS</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{sms.nome}</span>
+      </div>
+
+      <HubTestata occhiello={`SMS · ${HUB_STATI_INVIO[sms.stato].label}`} titolo={sms.nome} colore="HUB_MAGENTA"
+        sotto={sms.trigger ? `Parte da solo: ${sms.trigger}.` : sms.testo ? `«${sms.testo}»` : 'Ancora senza testo.'}/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {inviato ? (
+            <React.Fragment>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 12 }}>
+                <MktStat label="Consegnati" valore={sms.consegnati} base={sms.dest} color="OK"
+                  sotto={`${fmtNum(sms.dest - sms.consegnati)} non recapitati su ${fmtNum(sms.dest)} inviati`}/>
+                <MktStat label="Click sul link" valore={sms.click} base={sms.consegnati} color="HUB_MAGENTA"
+                  sotto={sms.click ? 'Sul consegnato' : 'Nessun link nel messaggio'}/>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
+                <HubTile etichetta="Costo" valore={fmtEur(sms.costo)} icona="money" sotto="A €0,07 per segmento"/>
+                <HubTile etichetta="Segmenti a testa" valore={seg || '—'} icona="smartphone"/>
+                <HubTile etichetta="Mittente" valore={sms.numero} icona="tag"/>
+              </div>
+            </React.Fragment>
+          ) : (
+            <HubVuoto icona="clock" titolo="Non è ancora partito"
+              desc={sms.stato === 'programmata' ? `Parte il ${fmtDateTime(sms.programmata)}. I numeri compaiono qui a invio finito.` : 'È una bozza: scrivi il testo e scegli il pubblico per vedere i numeri.'}/>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={18}>
+            <MktTelefono mittente={sms.numero} testo={sms.testo}/>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>La scheda</div>
+            {[
+              ['Stato', HUB_STATI_INVIO[sms.stato].label],
+              [sms.trigger ? 'Innesco' : 'Pubblico', sms.trigger || mkPubblicoLabel(sms.pubblico)],
+              ['Mittente', sms.numero],
+              ['Segmenti', seg ? String(seg) : '—'],
+              ['Costo', sms.costo ? fmtEur(sms.costo) : '—'],
+              ['Quando', sms.inviata ? fmtDateTime(sms.inviata) : sms.programmata ? fmtDateTime(sms.programmata) : sms.trigger ? 'A ogni innesco' : '—'],
+            ].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: `1px solid ${ADM.BORDER_SOFT}` }}>
+                <span style={{ fontSize: 12.6, color: ADM.MUTED, width: 92, flexShrink: 0, fontWeight: 600 }}>{k}</span>
+                <span style={{ fontSize: 13.2, color: ADM.TEXT, flex: 1, minWidth: 0, lineHeight: 1.45 }}>{v}</span>
+              </div>
+            ))}
+          </AdmCard>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HubSmsComposer({ onChiudi, onBozza }) {
   const [nome, setNome] = useStateMk('');
   const [testo, setTesto] = useStateMk('');
   const [numero, setNumero] = useStateMk('NM-1');
@@ -653,7 +778,12 @@ function HubSmsComposer({ onChiudi }) {
         sotto="Un messaggio, un pubblico, un orario. Il costo si aggiorna mentre scrivi."
         azioni={
           <React.Fragment>
-            <HubStrumento icona="save">Salva bozza</HubStrumento>
+            {/* La bozza entra nello storico e si torna alla lista: la riga
+                nuova è l'esito del click. */}
+            <HubStrumento icona="save" onClick={() => onBozza({
+              id: 'SM-B' + (HUB_SMS.length + 1), nome: nome || 'Bozza senza nome', stato: 'bozza',
+              testo, numero: num.etichetta, dest: 0, consegnati: 0, click: 0, costo: 0,
+            })}>Salva bozza</HubStrumento>
             <HubStrumento forte icona="send" onClick={onChiudi}>{quando === 'subito' ? 'Invia adesso' : 'Programma'}</HubStrumento>
           </React.Fragment>
         }/>
@@ -731,8 +861,10 @@ function HubSmsComposer({ onChiudi }) {
 
 function HubPushPage() {
   const [cerca, setCerca] = useStateMk('');
+  const [aperta, setAperta] = useStateMk(null);
   const [nuovo, setNuovo] = useStateMk(false);
   if (nuovo) return <HubPushComposer onChiudi={() => setNuovo(false)}/>;
+  if (aperta) return <HubPushDettaglio push={aperta} onChiudi={() => setAperta(null)}/>;
 
   const lista = HUB_PUSH.filter(p => !cerca || (p.nome + p.titolo + p.corpo).toLowerCase().includes(cerca.toLowerCase()));
   const ricevute = HUB_PUSH.reduce((s, p) => s + p.ricevute, 0);
@@ -780,9 +912,103 @@ function HubPushPage() {
         <div style={{ padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}` }}>
           <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca fra le notifiche…" larghezza={260}/>
         </div>
-        <HubTabella colonne={colonne} righe={lista} chiave={p => p.id} cella={cella} onRiga={() => {}}
+        <HubTabella colonne={colonne} righe={lista} chiave={p => p.id} cella={cella} onRiga={setAperta}
           vuoto={<HubVuoto icona="bell" titolo="Nessuna notifica" desc="Creane una e guardala nell'anteprima prima di mandarla."/>}/>
       </AdmCard>
+    </div>
+  );
+}
+
+// Lo schermo bloccato con la notifica dentro: serve al composer mentre si
+// scrive e al dettaglio per rivedere com'era arrivata — è la stessa scena.
+function MktPushSchermo({ dove, titolo, corpo }) {
+  return (
+    <div style={{
+      background: dove === 'app'
+        ? 'linear-gradient(160deg, #2A1B3D 0%, #44107A 60%, #7A1E8C 100%)'
+        : 'linear-gradient(160deg, #1D2430 0%, #2B3646 100%)',
+      borderRadius: 20, padding: '38px 14px 20px', minHeight: 240,
+    }}>
+      <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.9)', marginBottom: 20 }}>
+        <div style={{ fontSize: 34, fontWeight: 300, letterSpacing: '-0.02em' }}>09:41</div>
+        <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>venerdì 14 agosto</div>
+      </div>
+      <div style={{
+        background: 'rgba(255,255,255,0.90)', backdropFilter: 'blur(14px)',
+        borderRadius: 15, padding: '11px 12px', boxShadow: '0 8px 22px -8px rgba(0,0,0,0.4)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
+          <img src="hubble-mark.png" alt="" style={{ width: 15, height: 'auto', borderRadius: 3 }}/>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#3A3D45', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {dove === 'app' ? 'byup' : 'byup gestionale'}
+          </span>
+          <span style={{ flex: 1 }}/>
+          <span style={{ fontSize: 10.5, color: '#8A8A90' }}>ora</span>
+        </div>
+        <div style={{ fontSize: 13.4, fontWeight: 700, color: '#16181D', lineHeight: 1.3 }}>
+          {titolo || <span style={{ color: '#A0A0A6', fontWeight: 500 }}>Titolo della notifica</span>}
+        </div>
+        <div style={{ fontSize: 12.8, color: '#3A3D45', marginTop: 2, lineHeight: 1.4 }}>
+          {corpo || <span style={{ color: '#A0A0A6' }}>Il corpo del messaggio, due righe al massimo.</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Il dettaglio di una notifica: i numeri del recapito e la stessa scena
+// dello schermo bloccato del composer — si rivede quello che è arrivato.
+function HubPushDettaglio({ push, onChiudi }) {
+  const inviata = push.ricevute > 0;
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Push</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{push.nome}</span>
+      </div>
+
+      <HubTestata occhiello={`Push · ${HUB_STATI_INVIO[push.stato].label}`} titolo={push.nome} colore="HUB_MAGENTA"
+        sotto={push.dove === 'app' ? 'Arriva sull\'app dei clienti finali.' : 'Arriva sul gestionale dei ristoratori.'}/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {inviata ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 12 }}>
+              <MktStat label="Recapitate" valore={push.ricevute} base={push.dest} color="INFO"
+                sotto={`${fmtNum(push.dest - push.ricevute)} dispositivi irraggiungibili su ${fmtNum(push.dest)}`}/>
+              <MktStat label="Aperte" valore={push.aperte} base={push.ricevute} color="OK"
+                sotto="Chi l'ha toccata, sul recapitato"/>
+            </div>
+          ) : (
+            <HubVuoto icona="clock" titolo="Non è ancora partita"
+              desc="È una bozza: scrivi titolo e corpo e mandala per vedere i numeri."/>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={18}>
+            <MktPushSchermo dove={push.dove} titolo={push.titolo} corpo={push.corpo}/>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>La scheda</div>
+            {[
+              ['Dove', push.dove === 'app' ? 'App byup' : 'Gestionale'],
+              ['Stato', HUB_STATI_INVIO[push.stato].label],
+              [push.trigger ? 'Innesco' : 'Pubblico', push.trigger || (push.pubblico ? mkPubblicoLabel(push.pubblico) : 'Tutta la base installata')],
+              ['Titolo', push.titolo || '—'],
+              ['Quando', push.inviata ? fmtDateTime(push.inviata) : push.trigger ? 'A ogni innesco' : '—'],
+            ].map(([k, v]) => (
+              <div key={k} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: `1px solid ${ADM.BORDER_SOFT}` }}>
+                <span style={{ fontSize: 12.6, color: ADM.MUTED, width: 92, flexShrink: 0, fontWeight: 600 }}>{k}</span>
+                <span style={{ fontSize: 13.2, color: ADM.TEXT, flex: 1, minWidth: 0, lineHeight: 1.45 }}>{v}</span>
+              </div>
+            ))}
+          </AdmCard>
+        </div>
+      </div>
     </div>
   );
 }
@@ -794,6 +1020,7 @@ function HubPushComposer({ onChiudi }) {
   const [corpo, setCorpo] = useStateMk('');
   const [elencoId, setElencoId] = useStateMk(null);
   const [filtri, setFiltri] = useStateMk([]);
+  const [prova, setProva] = useStateMk(false);
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -807,7 +1034,12 @@ function HubPushComposer({ onChiudi }) {
         sotto="Titolo corto, corpo che sta in due righe. Sul telefono si legge solo quello."
         azioni={
           <React.Fragment>
-            <HubStrumento icona="send">Prova su di me</HubStrumento>
+            {/* Prova finta, esito vero: il bottone conferma e poi torna
+                com'era — stesso patto del «Mandami una prova» delle mail. */}
+            <HubStrumento icona={prova ? 'check' : 'send'} acceso={prova}
+              onClick={() => { if (!prova) { setProva(true); setTimeout(() => setProva(false), 2600); } }}>
+              {prova ? 'Inviata sul tuo telefono' : 'Prova su di me'}
+            </HubStrumento>
             <HubStrumento forte icona="send" onClick={onChiudi}>Invia</HubStrumento>
           </React.Fragment>
         }/>
@@ -860,36 +1092,7 @@ function HubPushComposer({ onChiudi }) {
 
         <AdmCard padding={18}>
           <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 14 }}>Anteprima</div>
-          <div style={{
-            background: dove === 'app'
-              ? 'linear-gradient(160deg, #2A1B3D 0%, #44107A 60%, #7A1E8C 100%)'
-              : 'linear-gradient(160deg, #1D2430 0%, #2B3646 100%)',
-            borderRadius: 20, padding: '38px 14px 20px', minHeight: 240,
-          }}>
-            <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.9)', marginBottom: 20 }}>
-              <div style={{ fontSize: 34, fontWeight: 300, letterSpacing: '-0.02em' }}>09:41</div>
-              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 2 }}>venerdì 14 agosto</div>
-            </div>
-            <div style={{
-              background: 'rgba(255,255,255,0.90)', backdropFilter: 'blur(14px)',
-              borderRadius: 15, padding: '11px 12px', boxShadow: '0 8px 22px -8px rgba(0,0,0,0.4)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-                <img src="hubble-mark.png" alt="" style={{ width: 15, height: 'auto', borderRadius: 3 }}/>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#3A3D45', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  {dove === 'app' ? 'byup' : 'byup gestionale'}
-                </span>
-                <span style={{ flex: 1 }}/>
-                <span style={{ fontSize: 10.5, color: '#8A8A90' }}>ora</span>
-              </div>
-              <div style={{ fontSize: 13.4, fontWeight: 700, color: '#16181D', lineHeight: 1.3 }}>
-                {titolo || <span style={{ color: '#A0A0A6', fontWeight: 500 }}>Titolo della notifica</span>}
-              </div>
-              <div style={{ fontSize: 12.8, color: '#3A3D45', marginTop: 2, lineHeight: 1.4 }}>
-                {corpo || <span style={{ color: '#A0A0A6' }}>Il corpo del messaggio, due righe al massimo.</span>}
-              </div>
-            </div>
-          </div>
+          <MktPushSchermo dove={dove} titolo={titolo} corpo={corpo}/>
           <div style={{ fontSize: 12.3, color: ADM.MUTED, marginTop: 12, lineHeight: 1.5 }}>
             Sul telefono bloccato si vedono due righe di corpo. Quello che scrivi dopo esiste solo per chi apre la notifica.
           </div>
@@ -922,8 +1125,10 @@ const FRM_CAMPI = {
 
 function HubFormPage() {
   const [cerca, setCerca] = useStateMk('');
+  const [aperto, setAperto] = useStateMk(null);
   const [nuovo, setNuovo] = useStateMk(false);
   if (nuovo) return <HubFormEditor onChiudi={() => setNuovo(false)}/>;
+  if (aperto) return <HubFormDettaglio form={aperto} onChiudi={() => setAperto(null)}/>;
 
   const lista = HUB_FORM.filter(f => !cerca || f.nome.toLowerCase().includes(cerca.toLowerCase()));
   const sub = HUB_FORM.reduce((s, f) => s + f.submission, 0);
@@ -970,7 +1175,10 @@ function HubFormPage() {
         <HubTile etichetta="Invii raccolti" valore={fmtNum(sub)} icona="formFill" sotto="Su tutti i form pubblicati"/>
         <HubTile etichetta="Conversione media" valore={mkPc(sub, viste)} tono="OK" icona="target" sotto={`${fmtNum(viste)} visualizzazioni`}/>
         <HubTile etichetta="Form pubblicati" valore={HUB_FORM.filter(f => f.stato === 'pubblicato').length} icona="globe"/>
-        <HubTile etichetta="Con automazione" valore={HUB_FORM.filter(f => f.automazione.mail || f.automazione.redirect).length}
+        {/* Stesso criterio della colonna Automazione qui sotto: anche
+            scrivere una proprietà È un'automazione, non solo mail e
+            redirect — sennò il tile smentisce la tabella. */}
+        <HubTile etichetta="Con automazione" valore={HUB_FORM.filter(f => f.automazione.mail || f.automazione.redirect || f.automazione.proprieta).length}
           icona="bolt" tono="HUB_VIOLA" sotto="Gli altri raccolgono e basta"/>
       </div>
 
@@ -978,9 +1186,83 @@ function HubFormPage() {
         <div style={{ padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}` }}>
           <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca fra i form…" larghezza={260}/>
         </div>
-        <HubTabella colonne={colonne} righe={lista} chiave={f => f.id} cella={cella} onRiga={() => {}}
+        <HubTabella colonne={colonne} righe={lista} chiave={f => f.id} cella={cella} onRiga={setAperto}
           vuoto={<HubVuoto icona="formFill" titolo="Nessun form" desc="Creane uno: campi, grafica e automazione stanno nella stessa schermata."/>}/>
       </AdmCard>
+    </div>
+  );
+}
+
+// Il dettaglio di un form: il funnel viste → invii e che cosa scatta dopo
+// l'invio. I campi si toccano nell'editor; qui si giudicano i numeri — è
+// la promessa della pagina: aprire un pezzo per vederne i numeri.
+function HubFormDettaglio({ form, onChiudi }) {
+  const pubblicato = form.stato === 'pubblicato';
+  const a = form.automazione;
+  const pezzi = [
+    a.mail && ('Email di conferma · ' + ((HUB_MAIL.find(m => m.id === a.mail) || {}).nome || a.mail)),
+    a.redirect && ('Redirect a ' + a.redirect),
+    a.proprieta && ('Scrive la proprietà ' + ((HUB_PROP[a.proprieta] || {}).label || a.proprieta)),
+  ].filter(Boolean);
+
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Form</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{form.nome}</span>
+      </div>
+
+      <HubTestata occhiello={`Form · ${pubblicato ? 'Pubblicato' : 'Bozza'}`} titolo={form.nome} colore="HUB_MAGENTA"
+        sotto={pubblicato ? `Vive su ${form.pagina}, con ${form.campi} campi.` : 'È una bozza: non è ancora su nessuna pagina.'}/>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 340px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {form.viste > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: 12 }}>
+              <HubTile etichetta="Viste" valore={fmtNum(form.viste)} icona="eye" sotto="Da quando è pubblicato"/>
+              <MktStat label="Invii" valore={form.submission} base={form.viste} color="OK" sotto="Chi ha visto il form e l'ha compilato"/>
+              <HubTile etichetta="Conversione" valore={String(form.tasso).replace('.', ',') + '%'} icona="target"
+                tono={form.tasso >= 10 ? 'OK' : undefined}
+                sotto={form.tasso >= 10 ? 'Sopra il 10%: funziona' : 'Sotto il 10%: prova con meno campi'}/>
+            </div>
+          ) : (
+            <HubVuoto icona="clock" titolo="Ancora nessun numero"
+              desc="È una bozza: pubblicalo per vedere viste, invii e conversione."/>
+          )}
+
+          <AdmCard padding={18}>
+            <HubSezione titolo="Che cosa succede dopo l'invio">
+              {pezzi.length ? pezzi.map(p => (
+                <div key={p} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 0', fontSize: 13.4, color: ADM.TEXT }}>
+                  <BuIcons.bolt size={14} color={ADM.HUB_VIOLA}/>{p}
+                </div>
+              )) : (
+                <div style={{ fontSize: 13.4, color: ADM.MUTED, lineHeight: 1.55 }}>
+                  Nessuna automazione: le submission creano o aggiornano il contatto, e basta.
+                </div>
+              )}
+            </HubSezione>
+          </AdmCard>
+        </div>
+
+        <AdmCard padding={18}>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>La scheda</div>
+          {[
+            ['Stato', pubblicato ? 'Pubblicato' : 'Bozza'],
+            ['Pagina', form.pagina],
+            ['Campi', String(form.campi)],
+            ['Automazione', pezzi.length ? `${pezzi.length} ${pezzi.length === 1 ? 'passo' : 'passi'}` : 'Nessuna'],
+            ['Creato', fmtDate(form.creato)],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', gap: 12, padding: '8px 0', borderBottom: `1px solid ${ADM.BORDER_SOFT}` }}>
+              <span style={{ fontSize: 12.6, color: ADM.MUTED, width: 92, flexShrink: 0, fontWeight: 600 }}>{k}</span>
+              <span style={{ fontSize: 13.2, color: ADM.TEXT, flex: 1, minWidth: 0, lineHeight: 1.45 }}>{v}</span>
+            </div>
+          ))}
+        </AdmCard>
+      </div>
     </div>
   );
 }
@@ -1006,6 +1288,15 @@ function HubFormEditor({ onChiudi }) {
   });
   const [auto, setAuto] = useStateMk({ mail: 'ML-010', redirect: 'byup.it/grazie', messaggio: 'Grazie! Ti ricontattiamo entro un giorno lavorativo.', esito: 'messaggio' });
   const [tab, setTab] = useStateMk('campi');
+  const [codice, setCodice] = useStateMk(false);
+
+  // Lo snippet da incollare nel sito: il form si aggancia per slug, come le
+  // pagine su hubble.byup.it. Il tag script è spezzato in due pezzi per non
+  // chiudere lo <script> che ci ospita se questo file venisse mai inlinato.
+  const slug = (nome || 'nuovo-form').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'nuovo-form';
+  const snippet = '<!-- Incolla dove vuoi che compaia il form -->\n'
+    + '<div data-hubble-form="' + slug + '"></div>\n'
+    + '<script src="https://hubble.byup.it/embed.js" async></' + 'script>';
 
   const campo = campi.find(c => c.id === sel) || null;
   const setCampo = (k, v) => setCampi(cs => cs.map(c => c.id === sel ? Object.assign({}, c, { [k]: v }) : c));
@@ -1033,7 +1324,9 @@ function HubFormEditor({ onChiudi }) {
         sotto="I campi a sinistra, l'aspetto reale al centro, e sotto quello che succede dopo l'invio."
         azioni={
           <React.Fragment>
-            <HubStrumento icona="code">Codice da incorporare</HubStrumento>
+            {/* Stesso gesto del «Codice HTML» del builder mail: il codice
+                prende il posto dell'anteprima finché il bottone è acceso. */}
+            <HubStrumento icona="code" acceso={codice} onClick={() => setCodice(c => !c)}>Codice da incorporare</HubStrumento>
             <HubStrumento forte icona="check" onClick={onChiudi}>Pubblica</HubStrumento>
           </React.Fragment>
         }/>
@@ -1088,6 +1381,13 @@ function HubFormEditor({ onChiudi }) {
               ]}/>
             </div>
             <div style={{ background: mbFondoCss(stile.pagina) || ADM.PANEL_SOFT, padding: 26 }}>
+              {codice ? (
+              <pre style={{
+                margin: 0, padding: 16, background: '#0F1115', color: '#D5D8DE', borderRadius: 12,
+                fontSize: 11.4, lineHeight: 1.6, overflow: 'auto', fontFamily: 'ui-monospace, monospace',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              }}>{snippet}</pre>
+              ) : (
               <div style={{
                 maxWidth: 440, margin: '0 auto', background: mbFondoCss(stile.fondo) || stile.sfondo, borderRadius: 16, padding: 26,
                 boxShadow: '0 14px 34px -16px rgba(15,17,21,0.26)', border: `1px solid ${ADM.BORDER}`,
@@ -1143,6 +1443,7 @@ function HubFormEditor({ onChiudi }) {
                   color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 }}>{stile.bottone}</button>
               </div>
+              )}
             </div>
           </AdmCard>
 

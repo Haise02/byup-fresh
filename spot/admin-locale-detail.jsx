@@ -105,6 +105,11 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
 function DrwPanoramica({ locale: l }) {
   const stoppedStep = l.stoppedAt ? ONB_STEPS.find(s => s.id === l.stoppedAt) : null;
 
+  // Il reminder del banner «fermo»: come il reset password in Account — il
+  // gesto parte una volta verso l'email dell'anagrafica, la conferma prende
+  // il posto del suggerimento e il bottone si spegne.
+  const [reminderInviato, setReminderInviato] = useStateDrw(false);
+
   // ── Gli andamenti: UN periodo, scelto col filtro, comanda tutti e due i
   // grafici (ordini e fatturato) — e sotto le barre ci sono i riferimenti
   // temporali veri: i mesi per gli orizzonti lunghi, i giorni per i corti.
@@ -154,9 +159,13 @@ function DrwPanoramica({ locale: l }) {
           <div style={{color: ADM.WARN, marginTop:1}}><BuIcons.pause size={23}/></div>
           <div style={{flex:1}}>
             <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Fermo da {fmtRelative(l.lastLogin)} su "{stoppedStep.label}"</div>
-            <div style={{fontSize:13.7, color:'#92400E', marginTop:3}}>Considera di inviare un reminder o assistenza dedicata per sbloccarlo.</div>
+            <div style={{fontSize:13.7, color:'#92400E', marginTop:3}}>
+              {reminderInviato
+                ? <span style={{color:ADM.OK, fontWeight:700}}>✓ Reminder inviato a {l.email}</span>
+                : 'Considera di inviare un reminder o assistenza dedicata per sbloccarlo.'}
+            </div>
           </div>
-          <AdmButton variant="secondary" size="sm" icon="mail">Invia reminder</AdmButton>
+          <AdmButton variant="secondary" size="sm" icon="mail" disabled={reminderInviato} onClick={()=>setReminderInviato(true)}>Invia reminder</AdmButton>
         </div>
       )}
       {l.stato === 'skipped' && (
@@ -253,9 +262,21 @@ function DrwAdozioneDigitale({ locale: l }) {
     );
   }
 
-  // Posizione sulla scala 0-50%+ (clamp visivo a 50% per tenere proporzioni leggibili)
-  const scaleMax = 50;
-  const markerPct = Math.min(100, (qr / scaleMax) * 100);
+  // La barra è fatta di segmenti a larghezze NON proporzionali alla scala
+  // (0% è puntuale, le fasce basse pesano di più): il marker non può essere
+  // lineare su 0–50 — si posiziona A TRATTI, dentro il segmento della SUA
+  // fascia, o il triangolo punta una fascia diversa da quella evidenziata.
+  // Etichette e marker derivano dagli stessi inizi cumulati: un sistema di
+  // coordinate solo, per tutta la barra.
+  const SEG_WIDTHS = [4, 10, 20, 30, 36]; // una per fascia, somma = 100
+  const SEG_START = SEG_WIDTHS.map((_, i) => SEG_WIDTHS.slice(0, i).reduce((a, b) => a + b, 0));
+  const scaleMax = 50; // clamp visivo dell'ultima fascia (30–50+)
+  const bandIdx = ADOPTION_BANDS.findIndex(b => b.id === band.id);
+  const lo = ADOPTION_BANDS[bandIdx].min;
+  const hi = Math.min(ADOPTION_BANDS[bandIdx].max, scaleMax);
+  // La fascia puntuale (0%) non ha un range: il marker sta al centro del suo segmento.
+  const fraz = hi > lo ? Math.min(1, Math.max(0, (qr - lo) / (hi - lo))) : 0.5;
+  const markerPct = SEG_START[bandIdx] + fraz * SEG_WIDTHS[bandIdx];
 
   return (
     <AdmCard padding={18}>
@@ -282,17 +303,13 @@ function DrwAdozioneDigitale({ locale: l }) {
       {/* Scala segmentata con marker */}
       <div style={{position:'relative', marginBottom:6}}>
         <div style={{display:'flex', height:10, borderRadius:5, overflow:'hidden', background:'#F0F1F3'}}>
-          {ADOPTION_BANDS.map((b, i) => {
-            // Larghezza proporzionale al range effettivo, ma 0% è puntuale → tiny segment
-            const widths = [4, 10, 20, 30, 36]; // somma = 100
-            return (
-              <div key={b.id} style={{
-                width:`${widths[i]}%`, height:'100%',
-                background: b.color, opacity: b.id === band.id ? 1 : 0.28,
-                borderRight: i < ADOPTION_BANDS.length - 1 ? '1px solid #fff' : 'none',
-              }}/>
-            );
-          })}
+          {ADOPTION_BANDS.map((b, i) => (
+            <div key={b.id} style={{
+              width:`${SEG_WIDTHS[i]}%`, height:'100%',
+              background: b.color, opacity: b.id === band.id ? 1 : 0.28,
+              borderRight: i < ADOPTION_BANDS.length - 1 ? '1px solid #fff' : 'none',
+            }}/>
+          ))}
         </div>
         {/* Marker triangle */}
         <div style={{
@@ -302,8 +319,14 @@ function DrwAdozioneDigitale({ locale: l }) {
           borderTop:`7px solid ${ADM.TEXT}`,
         }}/>
       </div>
-      <div style={{display:'flex', justifyContent:'space-between', fontSize:12.2, color:ADM.MUTED_SOFT, fontFamily:'ui-monospace, monospace'}}>
-        <span>0%</span><span>5%</span><span>15%</span><span>30%</span><span>50%+</span>
+      {/* Le etichette stanno sui CONFINI reali dei segmenti, non equidistanti:
+          tre sistemi di coordinate sulla stessa barra erano due di troppo. */}
+      <div style={{position:'relative', height:16, fontSize:12.2, color:ADM.MUTED_SOFT, fontFamily:'ui-monospace, monospace'}}>
+        <span style={{position:'absolute', left:0}}>0%</span>
+        {[['5%', SEG_START[2]], ['15%', SEG_START[3]], ['30%', SEG_START[4]]].map(([t, x]) => (
+          <span key={t} style={{position:'absolute', left:`${x}%`, transform:'translateX(-50%)'}}>{t}</span>
+        ))}
+        <span style={{position:'absolute', right:0}}>50%+</span>
       </div>
 
       {/* Significato */}
@@ -318,6 +341,12 @@ function DrwAdozioneDigitale({ locale: l }) {
   );
 }
 
+// Gli stati «live»: chi lavora (active), chi ha saltato il setup ma ordina
+// (skipped), chi ha rallentato senza cessare (inactive). UNA lista sola —
+// la media piattaforma, le cifre da sala e il log operativo devono contare
+// gli stessi locali, o la stessa tab si contraddice da sola.
+const DRW_STATI_LIVE = ['active', 'inactive', 'skipped'];
+
 function DrwScanOrdini({ locale: l }) {
   const [periodo, setPeriodo] = useStateDrw('mese');
   const isAnno = periodo === 'anno';
@@ -329,7 +358,7 @@ function DrwScanOrdini({ locale: l }) {
 
   // Media piattaforma (locali live con scan > 0)
   const eligible = LOCALI.filter(x =>
-    (x.stato === 'active' || x.stato === 'inactive' || x.stato === 'skipped') &&
+    DRW_STATI_LIVE.includes(x.stato) &&
     (isAnno ? x.scanQRAnno : x.scanQRMese) > 0
   );
   const totScan = eligible.reduce((s,x)=> s + (isAnno ? x.scanQRAnno : x.scanQRMese), 0);
@@ -823,9 +852,12 @@ function DrwStatisticheLocale({ locale: l }) {
       <div style={{padding:'0 24px 14px'}}>
         {sezione('Dati da cameriere', 'L\'utenza del titolare al tavolo — le stesse cifre della scheda staff: la persona, non il business.')}
       </div>
-      {l.stato !== 'active' ? (
-        // Un locale che non lavora non prende ordini: la sezione dice perché
-        // è vuota invece di inventare un titolare che serve tavoli.
+      {!DRW_STATI_LIVE.includes(l.stato) ? (
+        // Un locale che non ha mai lavorato non prende ordini: la sezione
+        // dice perché è vuota invece di inventare un titolare che serve
+        // tavoli. Gli stati live invece le cifre le HANNO — anche skipped e
+        // inactive: i grafici qui sopra ne mostrano ordini e fatturato, e
+        // una sezione che li dichiara «non operativi» li smentirebbe.
         <div style={{padding:'0 24px 24px'}}>
           <AdmCard padding={0}>
             <AdmEmpty icon="receipt" title="Nessuna cifra da sala"
@@ -1097,15 +1129,18 @@ const DRW_EVENTI = {
 function DrwAttivita({ locale: l }) {
   // Deterministico sul seme del locale, con i due eventi VERI in mezzo:
   // l'ultimo login del titolare e la sottoscrizione del piano. Gli eventi
-  // OPERATIVI (ordini, prenotazioni, accrediti) esistono solo per un locale
-  // attivo: un pending o un cessato con «ordine ricevuto 3 ore fa» sarebbe
-  // un log che contraddice lo stato che dovrebbe provare.
+  // OPERATIVI (ordini, prenotazioni, accrediti) esistono per gli stati live
+  // che ordinano davvero — anche skipped e inactive, le stesse Statistiche
+  // ne graficano i volumi — ma non per un pending o un cessato: «ordine
+  // ricevuto 3 ore fa» lì contraddirebbe lo stato che il log deve provare.
+  // Il gate sugli ordini copre il live a volume zero: grafici piatti e log
+  // pieno di ordini sarebbero la stessa contraddizione al contrario.
   const eventi = (() => {
     const s = hubSeme('log-' + l.id) % 1000;
     const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
     const out = [];
     const push = (tipo, quando, dettaglio) => out.push({ id: l.id + '-E' + out.length, tipo, quando, dettaglio });
-    if (l.stato === 'active') {
+    if (DRW_STATI_LIVE.includes(l.stato) && l.ordiniGiorno > 0) {
       let ore = 1 + Math.floor(r(1) * 12);
       const n = 9 + Math.floor(r(2) * 6);
       for (let i = 0; i < n; i++) {
@@ -1210,18 +1245,36 @@ function DrwFatturazione({ locale: l }) {
   const confirmPiano = () => {
     const nuovo = PIANI.find(p => p.id === planSel);
     if (!nuovo || nuovo.id === l.piano) return;
-    l.piano = nuovo.id; l.mrr = nuovo.price;
+    // mrr = canone + extra correnti (così nasce in admin-data): cambiare
+    // piano non azzera gli extra, o la card sotto li dichiarerebbe ancora.
+    l.piano = nuovo.id; l.mrr = nuovo.price + (l.extras || 0);
     flash(`Piano aggiornato a ${nuovo.label}`);
     closePopup(); forceRender(x => x + 1);
   };
   const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
   const lab = {fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
-  const fatture = [
-    { num: '2025-0142', data: new Date(Date.now() - 86400000 * 5), importo: l.mrr, stato: 'paid' },
-    { num: '2024-0118', data: new Date(Date.now() - 86400000 * 35), importo: l.mrr, stato: 'paid' },
-    { num: '2024-0094', data: new Date(Date.now() - 86400000 * 65), importo: l.mrr, stato: 'paid' },
-    { num: '2024-0071', data: new Date(Date.now() - 86400000 * 95), importo: l.mrr, stato: 'paid' },
-  ];
+  // Lo storico è storico: importi congelati al primo render — se seguissero
+  // l.mrr, un cambio piano riprezzerebbe all'istante fatture di tre mesi fa,
+  // smentendo la modale che promette «dal prossimo ciclo». E il prefisso del
+  // numero segue l'anno della data ri-ancorata a runtime: scritto a mano,
+  // dichiarerebbe un anno mentre la data accanto ne mostra un altro.
+  const [fatture] = useStateDrw(() => [
+    { prog: 142, gg: 5 }, { prog: 118, gg: 35 }, { prog: 94, gg: 65 }, { prog: 71, gg: 95 },
+  ].map(({ prog, gg }) => {
+    const data = new Date(Date.now() - 86400000 * gg);
+    return { num: `${data.getFullYear()}-${String(prog).padStart(4, '0')}`, data, importo: l.mrr, stato: 'paid' };
+  }));
+  // Il PDF nel mock non esiste: come per le certificazioni, il download
+  // consegna un segnaposto nominato dalla fattura — il gesto è completo
+  // senza fingere il contenuto.
+  const scaricaFattura = (f) => {
+    const blob = new Blob([`Fattura ${f.num} · ${l.nome} · ${fmtDate(f.data)} · ${fmtEur(f.importo)} (mock Hubble)`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `fattura-${f.num}.txt`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
   const [dunningFeedback, setDunningFeedback] = useStateDrw(null);
   const pf = l.pagamentoFallito;
   return (
@@ -1272,7 +1325,9 @@ function DrwFatturazione({ locale: l }) {
         <div style={{position:'fixed', inset:0, zIndex:60, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={closePopup}>
           <div onClick={e=>e.stopPropagation()} style={{width:400, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Emetti rimborso</div>
-            <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>Rimborso manuale a {l.nome} via Stripe · ultimo addebito {fmtEur(l.mrr)}</div>
+            {/* L'ultimo addebito è quello della fattura più recente, non il
+                mrr corrente: dopo un cambio piano i due divergono. */}
+            <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>Rimborso manuale a {l.nome} via Stripe · ultimo addebito {fmtEur(fatture[0].importo)}</div>
             <label style={lab}>Importo (€)</label>
             <input type="number" min="1" step="0.01" autoFocus value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Es. 49,00" style={{...inp, marginBottom:12}}/>
             <label style={lab}>Motivo (obbligatorio)</label>
@@ -1349,7 +1404,7 @@ function DrwFatturazione({ locale: l }) {
               </div>
               <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>{fmtEur(f.importo)}</div>
               <AdmBadge color="OK" size="xs">Pagata</AdmBadge>
-              <AdmIconBtn icon="download" label="Scarica"/>
+              <AdmIconBtn icon="download" label="Scarica" onClick={() => scaricaFattura(f)}/>
             </div>
           ))}
         </div>

@@ -174,14 +174,20 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   if (u.verificato === undefined) u.verificato = seed % 3 !== 0;
 
   // ── Form anagrafica (editabile con salvataggio) ──
-  const [form, setForm] = useStateUtn({
-    nome: u.nome, email: u.email, tel: u.tel, citta: u.citta, regione: u.regione,
-    dataNascita: u.dataNascita, sesso: u.sesso, verificato: u.verificato,
+  const formDa = (x) => ({
+    nome: x.nome, email: x.email, tel: x.tel, citta: x.citta, regione: x.regione,
+    dataNascita: x.dataNascita, sesso: x.sesso, verificato: x.verificato,
   });
+  const [form, setForm] = useStateUtn(formDa(u));
   const dirty = form.nome !== u.nome || form.email !== u.email || form.tel !== u.tel
     || form.citta !== u.citta || form.regione !== u.regione || form.dataNascita !== u.dataNascita
     || form.sesso !== u.sesso || form.verificato !== u.verificato;
   const [saved, setSaved] = useStateUtn(false);
+  // Cambio utente a scheda montata (⌘K sopra un drawer aperto: la rotta non
+  // cambia e React riusa l'istanza): senza reset testata e form restano del
+  // precedente, e un «Salva» scriverebbe l'anagrafica di uno addosso
+  // all'altro. Stesso giro del gemello StaffDrawer.
+  React.useEffect(() => { setTab('anagrafica'); setForm(formDa(u)); setSaved(false); }, [u.id]);
   const etaCalcolata = (() => {
     const d = new Date(form.dataNascita);
     if (isNaN(d)) return null;
@@ -203,7 +209,12 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   const [banPopup, setBanPopup] = useStateUtn(null); // 'ban' | 'unban' | 'shadow' | 'unshadow' | null
   const [banned, setBanned] = useStateUtn(!!u.bannato);
   const [shadow, setShadow] = useStateUtn(!!u.shadowban);
-  React.useEffect(() => { setBanned(!!u.bannato); setShadow(!!u.shadowban); setBanPopup(null); }, [u.id]);
+  // Anche azioni e popup ripartono dal nuovo utente: il ✓ del reset password
+  // di uno non deve firmare l'email di un altro.
+  React.useEffect(() => {
+    setBanned(!!u.bannato); setShadow(!!u.shadowban); setBanPopup(null);
+    setResetSent(false); setByupPopup(null); setByupAmount(''); setByupFeedback(null); setDeletePopup(false);
+  }, [u.id]);
   const confirmBan = () => {
     // Ogni applicazione e ogni revoca passa anche dal registro restrizioni:
     // è quello che alimenta l'elenco in Utenti app.
@@ -218,6 +229,16 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
       else admRevocaPerUtente(u.id, 'shadowban');
     }
     setBanPopup(null);
+  };
+  const confirmDelete = () => {
+    // Il popup promette l'irreversibile, e a livello di mock l'azione agisce
+    // sul modello come il ban: il flag resta sull'utente e la sua riga in
+    // rubrica passa al ciclo «eliminato» che CNT_CICLO già prevede — tornando
+    // in Contatti il contatto non si ripresenta intatto come se niente fosse.
+    u.eliminato = true;
+    const c = (typeof CONTATTI !== 'undefined' ? CONTATTI : []).find(r => r.key === 'utn-' + u.id);
+    if (c) c.ciclo = 'eliminato';
+    setDeletePopup(false); onClose();
   };
 
   // ── Recensioni dell'utente (mock deterministico) + rimozione con motivo ──
@@ -248,9 +269,9 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
     });
   })();
   const [recensioni, setRecensioni] = useStateUtn(recensioniBase);
-  React.useEffect(() => { setRecensioni(recensioniBase.map(r => ({ ...r }))); }, [u.id]);
   const [revPopup, setRevPopup] = useStateUtn(null); // recensione da rimuovere
   const [revMotivo, setRevMotivo] = useStateUtn('');
+  React.useEffect(() => { setRecensioni(recensioniBase.map(r => ({ ...r }))); setRevPopup(null); setRevMotivo(''); }, [u.id]);
   const confirmRimuoviRev = () => {
     if (!revMotivo.trim()) return;
     setRecensioni(prev => prev.map(r => r.id === revPopup.id ? { ...r, rimossa: revMotivo.trim() } : r));
@@ -351,6 +372,16 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
     return { ...c, deciso, ok, quando: deciso ? quando : null, versione: '1.0' };
   });
   const consensoA3 = consensi.find(c => c.id === 'A3');
+  // A18 non vale mai da sola — lo dichiara la sua stessa desc. Le estrazioni
+  // sono indipendenti, il registro dell'app no: la domanda A18 nasce nello
+  // stesso sheet di A3 (mai chiesta l'una senza l'altra), e quando A3 o A6
+  // mancano ByupConsensi la spegne. Lo specchio mostra lo stato che l'app
+  // può produrre, non l'estrazione grezza.
+  const consensoA18 = consensi.find(c => c.id === 'A18');
+  const consensoA6 = consensi.find(c => c.id === 'A6');
+  consensoA18.deciso = consensoA18.deciso && consensoA3.deciso;
+  if (!consensoA18.deciso) consensoA18.quando = null;
+  consensoA18.ok = consensoA18.deciso && consensoA18.ok && consensoA3.ok && consensoA6.ok;
 
   // ── Preferenze alimentari (tab Statistiche): SOLO col consenso A3 ──
   // Senza consenso il dato non si mostra — non «non c'è»: non si guarda.
@@ -433,6 +464,7 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   // compreso — chi scrive una data intende quel giorno, non la sua mezzanotte.
   const [logDal, setLogDal] = useStateUtn('');
   const [logAl, setLogAl] = useStateUtn('');
+  React.useEffect(() => { setLogDal(''); setLogAl(''); }, [u.id]);
   const eventiFiltrati = eventi.filter(e =>
     (!logDal || e.quando >= new Date(logDal)) &&
     (!logAl || e.quando < new Date(new Date(logAl).getTime() + 86400000)));
@@ -567,7 +599,9 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                       è anagrafe, si legge qui — restrizioni comprese. */}
                   <label style={labelStyle}>Stato</label>
                   <div style={{display:'flex', alignItems:'center', minHeight:34}}>
-                    {banned
+                    {u.eliminato
+                      ? <AdmBadge color="PLAN_FREE" size="xs">Eliminato</AdmBadge>
+                      : banned
                       ? <AdmBadge color="DANGER" size="xs">Bannato</AdmBadge>
                       : shadow
                       ? <AdmBadge color="WARN" size="xs">Shadowban</AdmBadge>
@@ -1132,7 +1166,7 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
               </div>
               <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                 <AdmButton variant="ghost" size="md" onClick={()=>setDeletePopup(false)}>Annulla</AdmButton>
-                <AdmButton variant="danger" size="md" icon="x" onClick={()=>{ setDeletePopup(false); onClose(); }}>Elimina definitivamente</AdmButton>
+                <AdmButton variant="danger" size="md" icon="x" onClick={confirmDelete}>Elimina definitivamente</AdmButton>
               </div>
             </div>
           </div>

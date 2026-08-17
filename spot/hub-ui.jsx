@@ -400,10 +400,15 @@ function HubScelteMultiple({ opzioni, scelte, onCambia, placeholder = 'Scegli…
   useEffectHub(() => {
     if (!aperto) return;
     const chiudi = () => setAperto(false);
-    const onKey = (e) => { if (e.key === 'Escape') setAperto(false); };
+    // Esc chiude SOLO la tendina, non il pannello o la modale che la ospitano:
+    // anche loro ascoltano keydown su window, e senza fermare l'evento un solo
+    // tasto farebbe crollare tutti gli strati insieme. Il fermo va dato in fase
+    // capture — tra due listener in bolla sullo stesso window stopPropagation
+    // non ferma niente, l'evento è già arrivato a destinazione.
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setAperto(false); } };
     window.addEventListener('pointerdown', chiudi);
-    window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('pointerdown', chiudi); window.removeEventListener('keydown', onKey); };
+    window.addEventListener('keydown', onKey, true);
+    return () => { window.removeEventListener('pointerdown', chiudi); window.removeEventListener('keydown', onKey, true); };
   }, [aperto]);
 
   const vis = opzioni.filter(o => String(o.label).toLowerCase().includes(q.toLowerCase()));
@@ -688,6 +693,7 @@ function HubFiltri({ righe, includi, escludi, onIncludi, onEscludi, conEscludi }
 function HubColonne({ open, onClose, colonne, onSalva, fissa = 'nome' }) {
   const [sel, setSel] = useStateHub(colonne);
   const [q, setQ] = useStateHub('');
+  const [sopra, setSopra] = useStateHub(null);
   const [presa, setPresa] = useStateHub(null);
   const [mira, setMira] = useStateHub(null);
   const presaRef = useRefHub(null);
@@ -748,10 +754,15 @@ function HubColonne({ open, onClose, colonne, onSalva, fissa = 'nome' }) {
                   return (
                     <label key={p.id} title={bloccata ? 'L\'identità del contatto non si nasconde' : undefined}
                       onClick={() => commuta(p.id)}
+                      onMouseEnter={() => setSopra(p.id)} onMouseLeave={() => setSopra(s => s === p.id ? null : s)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 10, padding: '7px 8px', borderRadius: 8,
                         cursor: bloccata ? 'default' : 'pointer', opacity: bloccata ? 0.5 : 1,
-                        background: on ? ADM.PINK_BG_SOFT : 'transparent',
+                        // Stessa affordance delle liste sorelle (HubSceltaProprieta,
+                        // HubScelteMultiple): è una label, non un button, quindi il
+                        // feedback globale di pressione non la copre — l'hover in JS sì.
+                        background: on ? ADM.PINK_BG_SOFT : sopra === p.id && !bloccata ? ADM.NEUTRAL_SOFT : 'transparent',
+                        transition: 'background 0.1s ease',
                       }}>
                       <span style={{
                         width: 16, height: 16, borderRadius: 4, flexShrink: 0, display: 'grid', placeItems: 'center',

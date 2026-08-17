@@ -750,14 +750,23 @@ const TOP_PIATTI = [
   { nome: 'Spritz Aperol', categoria: 'Drinks', ordini: 3980, locali: 38, trend: +20 },
 ];
 
-const TOP_CITTA = [
-  { citta: 'Milano', locali: 12, ordini: 28430, mrr: 1488 },
-  { citta: 'Roma', locali: 9, ordini: 22180, mrr: 1191 },
-  { citta: 'Napoli', locali: 7, ordini: 18920, mrr: 893 },
-  { citta: 'Bologna', locali: 4, ordini: 9120, mrr: 446 },
-  { citta: 'Firenze', locali: 3, ordini: 7340, mrr: 297 },
-  { citta: 'Torino', locali: 3, ordini: 6840, mrr: 247 },
-];
+// Le città si contano dal registro, non a mano: scritte qui a parte, questa
+// classifica contraddiceva quella della mappa (AnMappa) che le conta da
+// LOCALI, due card della stessa tab con numeri diversi. Esclusi i churned,
+// come fa la mappa: chi ha disdetto non è più «dove siamo». Gli ordini sono
+// MENSILI, la stessa unità delle card che li mostrano.
+const TOP_CITTA = (() => {
+  const per = {};
+  LOCALI.filter(l => l.stato !== 'churned').forEach(l => {
+    const c = per[l.citta] || (per[l.citta] = { citta: l.citta, locali: 0, ordini: 0, mrr: 0 });
+    c.locali += 1;
+    c.ordini += l.ordiniMese || 0;
+    c.mrr += l.mrr || 0;
+  });
+  return Object.values(per)
+    .sort((a, b) => b.locali - a.locali || b.ordini - a.ordini)
+    .slice(0, 6);
+})();
 
 const SCREENS_USAGE = [
   { nome: 'Panoramica', visite: 18920, pct: 92, tabs: [] },

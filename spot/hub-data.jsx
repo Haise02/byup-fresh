@@ -136,6 +136,13 @@ const HUB_PROPRIETA = [
   // si mette in colonna e ci si filtra sopra.
   { id: 'restrizione', label: 'Restrizione',      gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.05fr' },
     opzioni: [{ value: 'ban', label: 'Bannato' }, { value: 'shadowban', label: 'Shadowban' }],
+    // Nessun campo copiato sulla riga: si interroga il registro A OGNI lettura,
+    // perché ban e revoche si decidono altrove (moderazione, scheda utente, il
+    // registro stesso) e la colonna non può smentire il badge che le sta
+    // accanto. Il ban vince sullo shadowban quando convivono.
+    leggi: (c) => c.tipo !== 'utente' || !c.ref ? null
+      : admRestrizioneAttiva(c.ref.id, 'ban') ? 'ban'
+      : admRestrizioneAttiva(c.ref.id, 'shadowban') ? 'shadowban' : null,
     nota: 'Solo per gli utenti app: shadowban o ban attivi nel registro restrizioni' },
   { id: 'iscritto', label: 'Data di creazione',   gruppo: 'contatto', tipo: 'data',   sistema: true, colonna: { w: '1.15fr' } },
   { id: 'idRecord', label: 'ID record',           gruppo: 'contatto', tipo: 'testo',  sistema: true, colonna: { w: '0.85fr' } },
@@ -169,6 +176,10 @@ const HUB_PROPRIETA = [
   // — Marketing —
   { id: 'consensoMail', label: 'Consenso email',  gruppo: 'marketing', tipo: 'bool', colonna: { w: '1fr' } },
   { id: 'consensoSms',  label: 'Consenso SMS',    gruppo: 'marketing', tipo: 'bool', colonna: { w: '0.95fr' } },
+  // Nato per il toggle consenso dei passi push nei workflow: la nota promette
+  // di controllare una proprietà, e la proprietà deve esistere nel registro —
+  // come colonna e come filtro — non solo come etichetta.
+  { id: 'consensoPush', label: 'Consenso push',   gruppo: 'marketing', tipo: 'bool', colonna: { w: '0.95fr' } },
   { id: 'interessi',    label: 'Interessi',       gruppo: 'marketing', tipo: 'multi', colonna: { w: '1.4fr' },
     opzioni: [{ value: 'menu', label: 'Menu digitale' }, { value: 'delivery', label: 'Delivery' }, { value: 'prenotazioni', label: 'Prenotazioni' }, { value: 'fidelity', label: 'Fidelity' }, { value: 'cassa', label: 'Cassa e conti' }, { value: 'magazzino', label: 'Magazzino' }] },
   { id: 'ultimaMail',   label: 'Ultima email aperta', gruppo: 'marketing', tipo: 'data', colonna: { w: '1.25fr' } },
@@ -188,6 +199,11 @@ const HUB_PROP = HUB_PROPRIETA.reduce((m, p) => { m[p.id] = p; return m; }, {});
 function hubLeggi(c, propId) {
   if (!c) return null;
   if (propId === 'idRecord') return c.ref ? c.ref.id : c.id;
+  // Una proprietà può portare un lettore suo (`leggi`): il valore vive in
+  // un'altra fonte — la restrizione sta nel registro — e copiarlo sulla riga
+  // al load significava mostrare per sempre la fotografia del primo render.
+  const p = HUB_PROP[propId];
+  if (p && p.leggi) return p.leggi(c);
   const v = c[propId];
   return v === undefined ? null : v;
 }
@@ -301,6 +317,7 @@ function hubArricchisci(c) {
     proprietario: hubScegli(s >>> 7, HUB_OWNER),
     consensoMail: s % 5 !== 0,
     consensoSms: s % 3 === 0,
+    consensoPush: s % 4 === 0,
     interessi: interessiPool.filter((_, i) => ((s >> i) & 1) === 1).slice(0, nInt + 1),
     ultimaMail: (s % 4 === 0) ? null : giorni(s % 90),
     ultimaAttivita: giorni(s % 45),
@@ -1444,7 +1461,9 @@ const HUB_AMB_CATENE = [
     ] },
   { id: 'CT-003', nome: 'Campagna scritta e rivista', stato: 'in prova', argomento: 'materiali',
     descrizione: 'Tre varianti scritte, una scelta con i numeri dello storico, e il testo non esce senza una persona.',
-    girati: 89, conclusi: 71, aPersona: 89, costoGiorno: 2.10, tetto: 8, profondita: 2,
+    // 71 conclusi + 18 saliti = 89 giri: sono esiti alternativi, e una catena
+    // in prova è proprio quella che sale spesso.
+    girati: 89, conclusi: 71, aPersona: 18, costoGiorno: 2.10, tetto: 8, profondita: 2,
     tappe: [
       { agente: 'AG-003', ruolo: 'esecutore', fa: 'Scrive oggetto e anteprima in tre varianti', patto: ['3 varianti', 'per chi'] },
       { agente: 'AG-002', ruolo: 'arbitro', fa: 'Sceglie la variante più promettente sullo storico', patto: ['variante scelta', 'perché'] },
@@ -1476,7 +1495,10 @@ const HUB_AMB_NOTE = [
   { id: 'NT-008', argomento: 'anomalie', agente: 'AG-001', quando: new Date(Date.now() - 3600000),
     titolo: 'Quota del fornitore superata',
     corpo: 'Le ultime 12 esecuzioni non sono partite. La catena «Ticket smistato» è ferma e la coda sta crescendo.',
-    campi: { 'esecuzioni perse': 12, 'in coda': 31 }, letta: ['AG-002'], catena: 'CT-004', allarme: true },
+    // «In coda» dice lo stesso numero della scheda Coda — una fonte per ogni
+    // fatto. E letta è vuota: ad Anomalie non è iscritta nessuna catena, e il
+    // fatto che nessuno si svegli è quello che rende l'allarme un allarme.
+    campi: { 'esecuzioni perse': 12, 'in coda': 2 }, letta: [], catena: 'CT-004', allarme: true },
   { id: 'NT-007', argomento: 'qualifica', agente: 'AG-004', quando: new Date(Date.now() - 5400000),
     titolo: 'Trattoria da Nino · stima',
     corpo: '60 coperti stimati, scontrino medio €28. Il sito ha menu e prenotazioni ma nessun delivery.',
@@ -1522,7 +1544,7 @@ const HUB_AMB_TRACCIA = [
   { t: new Date(Date.now() - 660000),  chi: null,     cosa: 'persona',  dettaglio: 'La catena si ferma: tocca al commerciale di zona confermare', catena: 'CT-001' },
   { t: new Date(Date.now() - 5100000), chi: 'AG-005', cosa: 'disaccordo', dettaglio: 'Non conferma la stima di AG-004: scarto del 25% sui locali simili', catena: 'CT-002' },
   { t: new Date(Date.now() - 5080000), chi: null,     cosa: 'persona',  dettaglio: 'Nessun arbitro configurato: il compito CP-028 sale a una persona', catena: 'CT-002' },
-  { t: new Date(Date.now() - 3600000), chi: 'AG-001', cosa: 'errore',   dettaglio: 'Quota del fornitore superata — catena ferma, 31 compiti in coda', catena: 'CT-004' },
+  { t: new Date(Date.now() - 3600000), chi: 'AG-001', cosa: 'errore',   dettaglio: 'Quota del fornitore superata — catena ferma, 2 compiti in coda', catena: 'CT-004' },
 ];
 
 const HUB_AMB_AZIONI = {

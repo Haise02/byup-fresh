@@ -191,6 +191,11 @@ function WfScriviProprieta({ nodo, onCambia }) {
   );
 }
 
+// L'etichetta umana dei consensi. Le tre proprietà vivono in HUB_PROPRIETA e
+// la loro label vince sempre: questa mappa resta come rete per una chiave che
+// nel registro non c'è — meglio un'etichetta di riserva della chiave grezza.
+const WF_CONSENSI = { consensoMail: 'Consenso email', consensoSms: 'Consenso SMS', consensoPush: 'Consenso push' };
+
 function WfInvio({ nodo, onCambia }) {
   const cat = nodo.tipo === 'mail' ? HUB_MAIL : nodo.tipo === 'sms' ? HUB_SMS : HUB_PUSH;
   const scelto = cat.find(x => x.id === nodo.rif) || cat.find(x => x.nome === nodo.testo);
@@ -203,6 +208,14 @@ function WfInvio({ nodo, onCambia }) {
           onCambia('__molti', { rif: v, testo: m ? m.nome : nodo.testo });
         }} options={cat.map(x => ({ value: x.id, label: x.nome }))}/>
       </HubCampo>
+      {/* Il canvas può promettere un contenuto che nel catalogo non c'è (più):
+          l'ispettore lo dice, invece di lasciare una tendina muta su «—» sotto
+          una scatola che mostra quel nome come se esistesse. */}
+      {!scelto && nodo.testo && nodo.testo !== HUB_WF_NODI[nodo.tipo].label && (
+        <div style={{ padding: '10px 11px', borderRadius: 10, background: ADM.DANGER_SOFT, fontSize: 12.2, color: '#8B1A1A', lineHeight: 1.5, fontWeight: 600 }}>
+          {'«' + nodo.testo + '» non è nel catalogo — forse è stato eliminato. Finché non scegli un contenuto, questo passo non ha niente da mandare.'}
+        </div>
+      )}
       {scelto && (
         <div style={{ padding: '10px 11px', borderRadius: 10, background: ADM.HUB_MAGENTA_SOFT }}>
           <div style={{ fontSize: 10.4, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.HUB_MAGENTA_DARK, marginBottom: 4 }}>Anteprima</div>
@@ -217,7 +230,7 @@ function WfInvio({ nodo, onCambia }) {
         <span style={{ flex: 1 }}>
           <span style={{ display: 'block', fontSize: 13.2, fontWeight: 700, color: ADM.TEXT }}>Salta chi non ha il consenso</span>
           <span style={{ display: 'block', fontSize: 12, color: ADM.MUTED, marginTop: 3, lineHeight: 1.45 }}>
-            Controlla «{(HUB_PROP[consenso] || {}).label || consenso}». Chi non ce l'ha prosegue al passo dopo senza ricevere niente.
+            Controlla «{(HUB_PROP[consenso] || {}).label || WF_CONSENSI[consenso] || consenso}». Chi non ce l'ha prosegue al passo dopo senza ricevere niente.
           </span>
         </span>
       </label>
@@ -230,10 +243,21 @@ function WfElenco({ nodo, onCambia }) {
   const scelto = statici.find(e => e.id === nodo.rif) || statici.find(e => e.nome === nodo.testo);
   const azione = nodo.azione || 'aggiungi';
   const frase = (e, a) => (a === 'togli' ? 'Togli da ' : 'Aggiungi a ') + '«' + (e ? e.nome : '—') + '»';
+  // Il bersaglio che il canvas promette ma che fra gli statici non c'è: o è un
+  // elenco attivo (non ci si scrive) o un nome che in Elenchi non esiste più.
+  // L'ispettore lo dice, invece di mostrare una tendina muta su «—» sotto una
+  // scatola che porta quel nome come se fosse buono.
+  // La frase segnaposto con «—» però non è un bersaglio rotto: è il passo a cui
+  // manca ancora l'elenco (nasce commutando Aggiungi/Togli prima di sceglierlo)
+  // e trattarla da elenco eliminato farebbe mentire l'avviso.
+  const rotto = !scelto && nodo.testo && nodo.testo !== HUB_WF_NODI.elenco.label && !nodo.testo.includes('«—»') ? nodo.testo : null;
+  const attivoOmonimo = rotto && HUB_ELENCHI.some(e => e.nome === rotto && e.tipo !== 'statico');
   return (
     <React.Fragment>
       <HubCampo label="Che cosa fa">
-        <WrSegmento attivo={azione} onCambia={v => onCambia('__molti', { azione: v, testo: frase(scelto, v) })}
+        {/* Con un bersaglio rotto il testo NON si rigenera: la frase con «—»
+            cancellerebbe dal canvas il nome che l'avviso qui sotto spiega. */}
+        <WrSegmento attivo={azione} onCambia={v => onCambia('__molti', { azione: v, testo: rotto ? nodo.testo : frase(scelto, v) })}
           voci={[{ id: 'aggiungi', l: 'Aggiungi' }, { id: 'togli', l: 'Togli' }]}/>
       </HubCampo>
       <HubCampo label="In quale elenco" nota="Solo elenchi statici: uno attivo si calcola da sé, e scriverci dentro non vorrebbe dire niente.">
@@ -242,6 +266,13 @@ function WfElenco({ nodo, onCambia }) {
           onCambia('__molti', { rif: v, testo: frase(e, azione) });
         }} options={statici.map(e => ({ value: e.id, label: e.nome }))}/>
       </HubCampo>
+      {rotto && (
+        <div style={{ padding: '10px 11px', borderRadius: 10, background: ADM.DANGER_SOFT, fontSize: 12.2, color: '#8B1A1A', lineHeight: 1.5, fontWeight: 600 }}>
+          {attivoOmonimo
+            ? '«' + rotto + '» è un elenco attivo: si calcola da sé e non ci si può scrivere. Scegli un elenco statico qui sopra.'
+            : '«' + rotto + '» non è (più) tra gli elenchi: scegline uno statico qui sopra.'}
+        </div>
+      )}
     </React.Fragment>
   );
 }
@@ -294,11 +325,136 @@ function WfWebhook({ nodo, onCambia }) {
   );
 }
 
+// ─── La prova a secco ───────────────────────────────────────────────────────
+//
+// Non esegue niente: LEGGE il flusso con un contatto vero in mano. Le regole
+// sulle proprietà si valutano davvero — hubValuta, lo stesso motore dei
+// filtri; eventi, elenchi ed esiti dipendono da cose che a secco non sono
+// successe, quindi si assumono veri e il pannello lo dichiara, invece di
+// fingere di saperlo.
+function wfProvaQuando(c, q) {
+  if (!q || q.tipo === 'altrimenti') return { passa: true, assunte: 0 };
+  const gruppi = (q.gruppi || []).filter(g => (g.regole || []).length);
+  if (!gruppi.length) return { passa: true, assunte: 0 };
+  let assunte = 0;
+  const perGruppo = gruppi.map(g => {
+    const esiti = g.regole.map(r => {
+      if (r.genere && r.genere !== 'proprieta') { assunte += 1; return true; }
+      return hubValuta(c, r);
+    });
+    return (g.congiunzione === 'O') ? esiti.some(Boolean) : esiti.every(Boolean);
+  });
+  return { passa: (q.congiunzione === 'O') ? perGruppo.some(Boolean) : perGruppo.every(Boolean), assunte };
+}
+
+// Il percorso che quel contatto farebbe: una riga per passo e, sul bivio, la
+// riga del ramo preso. I rami scartati non si raccontano — nemmeno
+// nell'esecuzione vera li percorrerebbe.
+function wfProvaPercorso(nodi, c) {
+  const righe = [];
+  let assunte = 0;
+  const cammina = (lista) => (lista || []).forEach(n => {
+    righe.push({ nodo: n });
+    if (n.tipo !== 'condizione') return;
+    const rami = n.rami || [];
+    let preso = null;
+    for (const r of rami) {
+      if (r.altrimenti) continue;
+      const e = wfProvaQuando(c, hubRamoQuando(r));
+      if (e.passa) { preso = r; assunte += e.assunte; break; }
+    }
+    if (!preso) preso = rami.find(r => r.altrimenti) || null;
+    righe.push({ ramo: preso });
+    if (preso) cammina(preso.nodi);
+  });
+  cammina(nodi);
+  return { righe, assunte };
+}
+
+function WfProvaSecco({ open, onClose, nodi }) {
+  const [chi, setChi] = useStateWf('0');
+  // Un campione piccolo e stabile: la prova serve a capire il flusso, non a
+  // cercare una persona — per quello c'è la rubrica.
+  const campione = CONTATTI.slice(0, 8);
+  const c = campione[Number(chi)] || campione[0];
+  const { righe, assunte } = useMemoWf(() => wfProvaPercorso(nodi, c), [nodi, c]);
+  return (
+    <HubPannello open={open} onClose={onClose} titolo="Prova a secco" icona="eye" colore="HUB_VIOLA"
+      sotto="Il percorso che farebbe un contatto vero, senza mandare niente a nessuno.">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
+        <HubCampo label="Con quale contatto" nota="Le regole sulle proprietà si valutano sui suoi dati veri.">
+          <AdmSelect block value={chi} onChange={setChi}
+            options={campione.map((x, i) => ({ value: String(i), label: x.nome }))}/>
+        </HubCampo>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {righe.map((r, i) => {
+            if (r.nodo) {
+              const d = HUB_WF_NODI[r.nodo.tipo] || HUB_WF_NODI.script;
+              const Ic = BuIcons[d.icona];
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '7px 0' }}>
+                  <span style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, display: 'grid', placeItems: 'center',
+                    background: ADM[d.color + '_SOFT'] || ADM.NEUTRAL_SOFT, color: ADM[d.color] || ADM.INK }}><Ic size={12}/></span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 10.4, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>{d.label}</span>
+                    <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: ADM.TEXT, lineHeight: 1.4 }}>{wcSottotitolo(r.nodo)}</span>
+                  </span>
+                </div>
+              );
+            }
+            return (
+              <div key={i} style={{ margin: '2px 0 4px 33px', padding: '8px 10px', borderRadius: 9, background: ADM.WARN_SOFT }}>
+                <div style={{ fontSize: 10.4, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: '#8A5205' }}>
+                  {r.ramo ? (r.ramo.altrimenti ? 'Va nell\'altrimenti' : 'Prende il ramo') : 'Nessun ramo lo prende'}
+                </div>
+                {r.ramo && <div style={{ fontSize: 12.8, fontWeight: 700, color: ADM.TEXT, marginTop: 2 }}>«{r.ramo.label}»</div>}
+                {r.ramo && !r.ramo.altrimenti && (
+                  <div style={{ fontSize: 11.8, color: ADM.MUTED, marginTop: 2, lineHeight: 1.45 }}>{hubDescriviQuando(hubRamoQuando(r.ramo))}</div>
+                )}
+                {!r.ramo && (
+                  <div style={{ fontSize: 11.8, color: ADM.MUTED, marginTop: 2, lineHeight: 1.45 }}>Nessuna regola vera e nessun «altrimenti»: il contatto esce qui.</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {assunte > 0 && (
+          <div style={{ padding: '10px 11px', borderRadius: 10, background: ADM.WARN_SOFT, fontSize: 12.2, color: '#8A5205', lineHeight: 1.5 }}>
+            {(assunte === 1 ? 'Una regola dipende' : assunte + ' regole dipendono') + ' da eventi o esiti che a secco non sono successi: si sono assunti veri.'}
+          </div>
+        )}
+      </div>
+    </HubPannello>
+  );
+}
+
 function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
   const [nodi, setNodi] = useStateWf(wf.nodi);
   const [sel, setSel] = useStateWf(null);   // percorso: [2] oppure [2,'r3',1]
   const [nome, setNome] = useStateWf(wf.nome);
   const [attivo, setAttivo] = useStateWf(wf.stato === 'attivo');
+  const [prova, setProva] = useStateWf(false);
+
+  // Lo stato raccontato dall'occhiello e quello che «Salva» scrive sono lo
+  // stesso, derivato dallo switch: leggerlo da wf.stato metteva «Automazioni ·
+  // Sospeso» sopra uno switch che diceva «Attivo». Una bozza mai accesa
+  // resta bozza, non diventa «sospesa».
+  const statoCanvas = attivo ? 'attivo' : (wf.stato === 'bozza' ? 'bozza' : 'sospeso');
+
+  // «Salva» scrive davvero, poi chiude: il wf della lista è referenziato,
+  // quindi basta riversarci lo stato locale e tabella e dettaglio si
+  // aggiornano da soli; un workflow nuovo entra in testa a HUB_WORKFLOW.
+  const salva = () => {
+    if (nuovo) {
+      HUB_WORKFLOW.unshift(Object.assign({}, wf, {
+        id: 'WF-' + String(HUB_WORKFLOW.length + 1).padStart(3, '0'),
+        nome: nome || 'Nuovo workflow', stato: statoCanvas, nodi, modificato: new Date(),
+      }));
+    } else {
+      Object.assign(wf, { nome, nodi, stato: statoCanvas, modificato: new Date() });
+    }
+    onChiudi();
+  };
 
   // Il selezionato può essere un NODO (percorso che finisce con un numero) o
   // un RAMO (percorso che finisce con l'id del ramo): sono due cose diverse e
@@ -311,7 +467,24 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
   // fila fa vincere l'ultimo — la frase restava indietro di una modifica.
   const cambiaNodo = (k, v) => setNodi(ns => wcMappa(ns, sel, n =>
     k === '__molti' ? Object.assign({}, n, v) : Object.assign({}, n, { [k]: v })));
-  const cambiaRamo = (r) => setNodi(ns => wcMappa(ns, sel, () => r));
+  // Un «altrimenti» è unico e sta in fondo: se il ramo selezionato lo
+  // diventa, l'eventuale altro perde il titolo (e resta senza regole, ben
+  // visibile in rosso sul canvas) e il ramo scivola in coda al ventaglio —
+  // due corsie ALTRIMENTI si contenderebbero «tutto il resto», e la seconda
+  // non prenderebbe mai nessuno.
+  const cambiaRamo = (r) => {
+    const era = wcLeggi(nodi, sel);
+    if (r.altrimenti && !(era && era.altrimenti)) {
+      const dove = sel.slice(0, -1);
+      setNodi(ns => wcMappa(ns, dove, n => Object.assign({}, n, {
+        rami: (n.rami || [])
+          .map(x => x.id === r.id ? r : x.altrimenti ? Object.assign({}, x, { altrimenti: false, quando: hubQuandoVuoto() }) : x)
+          .sort((a, b) => (a.altrimenti ? 1 : 0) - (b.altrimenti ? 1 : 0)),
+      })));
+      return;
+    }
+    setNodi(ns => wcMappa(ns, sel, () => r));
+  };
 
   // Aggiungere un passo: se è selezionato un nodo, entra subito dopo di lui,
   // nella SUA corsia. Se è selezionato un ramo, entra in fondo a quel ramo.
@@ -337,9 +510,14 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
       return;
     }
     const dove = sel.slice(0, -1), i = sel[sel.length - 1];
+    // Con la «Fine» selezionata il passo entra SOPRA di lei, non dopo: un
+    // passo oltre la Fine non verrebbe mai eseguito, e con un nodo orfano in
+    // coda anche l'inserimento «in fondo» (che conta dalla coda) sbaglierebbe
+    // posto da lì in poi.
+    const salto = scelto && scelto.tipo === 'fine' ? 0 : 1;
     setNodi(ns => dove.length === 0
-      ? (() => { const c = ns.slice(); c.splice(i + 1, 0, n); return c; })()
-      : wcMappa(ns, dove, r => { const c = (r.nodi || []).slice(); c.splice(i + 1, 0, n); return Object.assign({}, r, { nodi: c }); }));
+      ? (() => { const c = ns.slice(); c.splice(i + salto, 0, n); return c; })()
+      : wcMappa(ns, dove, r => { const c = (r.nodi || []).slice(); c.splice(i + salto, 0, n); return Object.assign({}, r, { nodi: c }); }));
   };
 
   // Aggiungere un ramo lo SELEZIONA: chi lo crea vuole scriverne le regole
@@ -393,7 +571,7 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuovo workflow'}</span>
       </div>
 
-      <HubTestata occhiello={nuovo ? 'Automazioni' : `Automazioni · ${WF_STATI[wf.stato].label}`}
+      <HubTestata occhiello={nuovo ? 'Automazioni' : `Automazioni · ${WF_STATI[statoCanvas].label}`}
         titolo={nuovo ? 'Crea un workflow' : wf.nome} colore="HUB_VIOLA"
         sotto={nuovo ? 'Si parte dall\'innesco. Dove serve decidere, si mette una condizione: apre più rami, e ogni ramo dice a quali contatti tocca.' : wf.descrizione}
         azioni={
@@ -402,10 +580,12 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
               <AdmSwitch size="sm" checked={attivo} onChange={setAttivo}/>
               <span style={{ fontSize: 13.4, fontWeight: 700, color: attivo ? ADM.OK : ADM.MUTED }}>{attivo ? 'Attivo' : 'In pausa'}</span>
             </label>
-            <HubStrumento icona="eye">Prova a secco</HubStrumento>
-            <HubStrumento forte icona="check" onClick={onChiudi}>Salva</HubStrumento>
+            <HubStrumento icona="eye" acceso={prova} onClick={() => setProva(true)}>Prova a secco</HubStrumento>
+            <HubStrumento forte icona="check" onClick={salva}>Salva</HubStrumento>
           </React.Fragment>
         }/>
+
+      <WfProvaSecco open={prova} onClose={() => setProva(false)} nodi={nodi}/>
 
       {!nuovo && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
@@ -605,6 +785,10 @@ function HubAgentPage() {
   // Due schermate, e la seconda non è un dettaglio della prima: «Squadra» sono
   // gli agenti uno per uno, «Ambiente» è quello che fanno insieme.
   const [vistaAg, setVistaAg] = useStateWf('squadra');
+  // Le catene vivono QUI e non dentro l'Ambiente: il conteggio della tab e la
+  // pagina devono leggere la stessa fonte, e una catena appena costruita deve
+  // sopravvivere al cambio di scheda invece di sparire con lo smontaggio.
+  const [catene, setCatene] = useStateWf(HUB_AMB_CATENE);
   if (nuovo) return <HubAgentEditor onChiudi={() => setNuovo(false)}/>;
   if (aperto) return <HubAgentDettaglio agente={aperto} onChiudi={() => setAperto(null)}/>;
 
@@ -625,10 +809,10 @@ function HubAgentPage() {
 
       <HubSegmenti attivo={vistaAg} onCambia={setVistaAg} voci={[
         { id: 'squadra',  label: 'La squadra', conteggio: HUB_AGENTI.length },
-        { id: 'ambiente', label: 'Ambiente',   conteggio: HUB_AMB_CATENE.length },
+        { id: 'ambiente', label: 'Ambiente',   conteggio: catene.length },
       ]}/>
 
-      {vistaAg === 'ambiente' ? <HubAmbientePage/> : (
+      {vistaAg === 'ambiente' ? <HubAmbientePage catene={catene} setCatene={setCatene}/> : (
       <React.Fragment>
       {/* Il cruscotto del team IA */}
       <div style={{
@@ -713,6 +897,24 @@ function HubAgentPage() {
 }
 
 function HubAgentDettaglio({ agente: a, onChiudi }) {
+  const [modifica, setModifica] = useStateWf(false);
+  const [inCorsa, setInCorsa] = useStateWf(false);
+  const [giroManuale, setGiroManuale] = useStateWf(null); // il giro appena lanciato da qui
+
+  // Il giro finto dura quanto basta a leggere «In esecuzione…»: poi entra in
+  // cima a «Gli ultimi giri», e ultimo giro ed esecuzioni si aggiornano
+  // sull'agente vero — è referenziato, la griglia lo vede al ritorno.
+  const esegui = () => {
+    if (inCorsa) return;
+    setInCorsa(true);
+    setTimeout(() => {
+      Object.assign(a, { ultimoGiro: new Date(), esecuzioni: a.esecuzioni + 1 });
+      setGiroManuale({ quando: a.ultimoGiro });
+      setInCorsa(false);
+    }, 1400);
+  };
+
+  if (modifica) return <HubAgentEditor agente={a} onChiudi={() => setModifica(false)}/>;
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
@@ -724,8 +926,10 @@ function HubAgentDettaglio({ agente: a, onChiudi }) {
       <HubTestata occhiello={`Agente · ${AG_STATI[a.stato].label}`} titolo={a.nome} colore="HUB_VIOLA" sotto={a.obiettivo}
         azioni={
           <React.Fragment>
-            <HubStrumento icona="play">Esegui adesso</HubStrumento>
-            <HubStrumento icona="pencil" forte>Modifica</HubStrumento>
+            <HubStrumento icona={inCorsa ? 'hourglass' : 'play'} acceso={inCorsa} onClick={esegui}>
+              {inCorsa ? 'In esecuzione…' : 'Esegui adesso'}
+            </HubStrumento>
+            <HubStrumento icona="pencil" forte onClick={() => setModifica(true)}>Modifica</HubStrumento>
           </React.Fragment>
         }/>
 
@@ -748,6 +952,13 @@ function HubAgentDettaglio({ agente: a, onChiudi }) {
           </HubSezione>
           <div style={{ marginTop: 18 }}>
             <HubSezione titolo="Gli ultimi giri">
+              {giroManuale && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0', borderBottom: `1px solid ${ADM.BORDER_SOFT}` }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: ADM.OK }}/>
+                  <span style={{ flex: 1, fontSize: 13.4, color: ADM.TEXT }}>Completato — lanciato a mano da qui</span>
+                  <span style={{ fontSize: 12.6, color: ADM.MUTED }}>{fmtRelative(giroManuale.quando)}</span>
+                </div>
+              )}
               {[0, 1, 2, 3].map(i => (
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', gap: 11, padding: '10px 0',
@@ -760,7 +971,10 @@ function HubAgentDettaglio({ agente: a, onChiudi }) {
                   <span style={{ flex: 1, fontSize: 13.4, color: ADM.TEXT }}>
                     {i === 0 && a.stato === 'errore' ? 'Interrotto: quota del fornitore esaurita' : 'Completato — ' + (2 + i * 3) + ' elementi esaminati'}
                   </span>
-                  <span style={{ fontSize: 12.6, color: ADM.MUTED }}>{fmtRelative(new Date(a.ultimoGiro.getTime() - i * 86400000))}</span>
+                  {/* Con un giro lanciato a mano in testa, la storia arretra di
+                      un giorno: due righe entrambe «adesso» sarebbero lo
+                      stesso giro raccontato due volte. */}
+                  <span style={{ fontSize: 12.6, color: ADM.MUTED }}>{fmtRelative(new Date(a.ultimoGiro.getTime() - (giroManuale ? i + 1 : i) * 86400000))}</span>
                 </div>
               ))}
             </HubSezione>
@@ -790,14 +1004,38 @@ function HubAgentDettaglio({ agente: a, onChiudi }) {
   );
 }
 
-function HubAgentEditor({ onChiudi }) {
-  const [nome, setNome] = useStateWf('');
-  const [obiettivo, setObiettivo] = useStateWf('');
-  const [fonti, setFonti] = useStateWf(['Contatti']);
-  const [modello, setModello] = useStateWf('veloce');
-  const [innesco, setInnesco] = useStateWf('Ogni giorno alle 7:00');
+// Con `agente` l'editor lavora in MODIFICA: campi precompilati e «Salva» che
+// riversa sull'agente vero. Senza, crea da zero.
+function HubAgentEditor({ agente, onChiudi }) {
+  const [nome, setNome] = useStateWf(agente ? agente.nome : '');
+  const [obiettivo, setObiettivo] = useStateWf(agente ? agente.obiettivo : '');
+  const [fonti, setFonti] = useStateWf(agente ? agente.fonti.slice() : ['Contatti']);
+  // I mock portano l'etichetta del modello, l'editor ragiona per id: la
+  // conversione si fa una volta qui, all'ingresso e all'uscita.
+  const [modello, setModello] = useStateWf(agente
+    ? (HUB_AGENTI_MODELLI.find(m => m.label === agente.modello) || HUB_AGENTI_MODELLI[0]).id
+    : 'veloce');
+  const [innesco, setInnesco] = useStateWf(agente ? agente.innesco : 'Ogni giorno alle 7:00');
 
   const FONTI = ['Contatti', 'Elenchi', 'Ordini', 'Ticket di assistenza', 'FAQ', 'Guide', 'Analisi Dati', 'Marketing', 'Storico invii', 'Web'];
+
+  // La conferma scrive davvero, poi chiude: un agente esistente è
+  // referenziato e basta riversarci i campi; uno nuovo entra in testa a
+  // HUB_AGENTI — spento, perché accenderlo è una decisione a parte.
+  const salva = () => {
+    const mod = HUB_AGENTI_MODELLI.find(m => m.id === modello) || HUB_AGENTI_MODELLI[0];
+    if (agente) {
+      Object.assign(agente, { nome, obiettivo, fonti, modello: mod.label, innesco });
+    } else {
+      HUB_AGENTI.unshift({
+        id: 'AG-' + String(HUB_AGENTI.length + 1).padStart(3, '0'),
+        nome: nome || 'Agente senza nome', ruolo: 'Ruolo da definire', stato: 'inattivo',
+        obiettivo, fonti, modello: mod.label, innesco,
+        esecuzioni: 0, esiti: 0, ultimoGiro: new Date(), ultimoEsito: 'Mai eseguito: il primo giro si lancia dalla sua scheda.',
+      });
+    }
+    onChiudi();
+  };
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -807,12 +1045,12 @@ function HubAgentEditor({ onChiudi }) {
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuovo agente'}</span>
       </div>
-      <HubTestata occhiello="Intelligenza" titolo="Crea un agente" colore="HUB_VIOLA"
+      <HubTestata occhiello="Intelligenza" titolo={agente ? 'Modifica l\'agente' : 'Crea un agente'} colore="HUB_VIOLA"
         sotto="Un obiettivo scritto come lo diresti a una persona, le fonti che può leggere, e quando deve svegliarsi."
         azioni={
           <React.Fragment>
             <HubStrumento onClick={onChiudi}>Annulla</HubStrumento>
-            <HubStrumento forte icona="check" onClick={onChiudi}>Crea agente</HubStrumento>
+            <HubStrumento forte icona="check" onClick={salva}>{agente ? 'Salva' : 'Crea agente'}</HubStrumento>
           </React.Fragment>
         }/>
 
@@ -869,7 +1107,13 @@ function HubAgentEditor({ onChiudi }) {
             </div>
             <div style={{ marginTop: 14 }}>
               <HubCampo label="Quando si sveglia">
+                {/* In modifica l'innesco dell'agente può non essere fra quelli
+                    canonici («A richiesta, dalla bozza»): resta in cima come
+                    valore corrente — stesso idioma della tendina del trigger —
+                    sennò la tendina si apre su «—». */}
                 <AdmSelect block value={innesco} onChange={setInnesco} options={[
+                  ...(['Ogni giorno alle 7:00', 'Ogni lunedì alle 8:00', 'Quando entra un lead', 'Quando arriva un ticket', 'Chiamato da un workflow', 'A richiesta'].includes(innesco)
+                    ? [] : [{ value: innesco, label: innesco }]),
                   { value: 'Ogni giorno alle 7:00', label: 'Ogni giorno alle 7:00' },
                   { value: 'Ogni lunedì alle 8:00', label: 'Ogni lunedì alle 8:00' },
                   { value: 'Quando entra un lead', label: 'Quando entra un lead' },

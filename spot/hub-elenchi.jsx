@@ -59,8 +59,11 @@ function HubElenchiPage() {
     });
   }, [vista, cerca, cartella, sort, conteggi]);
 
+  // L'editor vince sul dettaglio: «Modifica criteri» lo monta sopra la scheda
+  // aperta, e chiuderlo riporta lì, non alla lista.
   if (nuovo) return <HubElencoEditor bozza={nuovo} onChiudi={() => setNuovo(null)}/>;
-  if (aperto) return <HubElencoDettaglio elenco={aperto} onChiudi={() => setAperto(null)} membri={conteggi[aperto.id]}/>;
+  if (aperto) return <HubElencoDettaglio elenco={aperto} onChiudi={() => setAperto(null)} membri={conteggi[aperto.id]}
+    onModifica={() => setNuovo(Object.assign({}, aperto))}/>;
 
   const ordina = (campo) => setSort(s => s.campo === campo
     ? { campo, verso: s.verso === 'asc' ? 'desc' : 'asc' }
@@ -124,7 +127,11 @@ function HubElenchiPage() {
         <HubTile etichetta="Elenchi totali" valore={HUB_ELENCHI.length} icona="layers"
           sotto={`${attivi} attivi · ${statici} statici`}/>
         <HubTile etichetta="In almeno un elenco" valore={fmtNum(
-          new Set(HUB_ELENCHI.flatMap(e => e.tipo === 'attivo' ? hubApplica(CONTATTI, e.includi, e.escludi).map(c => c.key) : [])).size
+          // Anche gli statici, con la stessa convenzione del dettaglio (i primi
+          // membriFissi della rubrica): un membro visibile lì deve contare qui.
+          new Set(HUB_ELENCHI.flatMap(e => e.tipo === 'attivo'
+            ? hubApplica(CONTATTI, e.includi, e.escludi).map(c => c.key)
+            : CONTATTI.slice(0, e.membriFissi || 0).map(c => c.key))).size
         )} icona="users3" sotto={`su ${fmtNum(CONTATTI.length)} in rubrica`}/>
         <HubTile etichetta="Usati davvero" valore={HUB_ELENCHI.filter(e => e.usatoIn && e.usatoIn.length).length}
           icona="megaphone" sotto="Gli altri esistono ma non lavorano" tono="HUB_MAGENTA"/>
@@ -158,12 +165,25 @@ function HubElenchiPage() {
 // I criteri in chiaro, l'anteprima dei membri che ci sono ADESSO, e dove
 // questo elenco viene usato: prima di cambiare un criterio bisogna sapere
 // quali campagne si stanno spostando sotto i piedi.
-function HubElencoDettaglio({ elenco, onChiudi, membri }) {
+function HubElencoDettaglio({ elenco, onChiudi, membri, onModifica }) {
   const [tab, setTab] = useStateEl('membri');
+  const [scegli, setScegli] = useStateEl(false);       // modale «Scegli la campagna»
+  const [collegata, setCollegata] = useStateEl(null);  // il nome appena collegato, per il lampo di conferma
+  const [usatoIn, setUsatoIn] = useStateEl(elenco.usatoIn || []);
   const t = EL_TIPI[elenco.tipo];
   const dentro = useMemoEl(() =>
     elenco.tipo === 'statico' ? CONTATTI.slice(0, elenco.membriFissi || 0) : hubApplica(CONTATTI, elenco.includi, elenco.escludi),
     [elenco]);
+
+  // Il collegamento è finto ma coerente: la campagna scelta compare subito in
+  // «Dove è usato», che è dove la si andrebbe a cercare domani.
+  const collega = (m) => {
+    setScegli(false);
+    setUsatoIn(u => u.includes(m.nome) ? u : u.concat(m.nome));
+    setTab('uso');
+    setCollegata(m.nome);
+    setTimeout(() => setCollegata(null), 2600);
+  };
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -177,8 +197,8 @@ function HubElencoDettaglio({ elenco, onChiudi, membri }) {
       <HubTestata occhiello={`${t.label} · ${elenco.cartella}`} titolo={elenco.nome} sotto={elenco.descrizione}
         azioni={
           <React.Fragment>
-            <HubStrumento icona="megaphone">Usa in una campagna</HubStrumento>
-            <HubStrumento icona="pencil" forte>Modifica criteri</HubStrumento>
+            <HubStrumento icona="megaphone" onClick={() => setScegli(true)}>Usa in una campagna</HubStrumento>
+            <HubStrumento icona="pencil" forte onClick={onModifica}>Modifica criteri</HubStrumento>
           </React.Fragment>
         }/>
 
@@ -196,7 +216,7 @@ function HubElencoDettaglio({ elenco, onChiudi, membri }) {
           <div style={{ padding: '12px 18px', borderBottom: `1px solid ${ADM.BORDER}`, display: 'flex', alignItems: 'center', gap: 10 }}>
             <HubSegmenti attivo={tab} onCambia={setTab} voci={[
               { id: 'membri', label: 'Contatti', conteggio: dentro.length },
-              { id: 'uso', label: 'Dove è usato', conteggio: (elenco.usatoIn || []).length },
+              { id: 'uso', label: 'Dove è usato', conteggio: usatoIn.length },
             ]}/>
           </div>
           {tab === 'membri' && (
@@ -226,9 +246,11 @@ function HubElencoDettaglio({ elenco, onChiudi, membri }) {
           )}
           {tab === 'uso' && (
             <div style={{ padding: 18 }}>
-              {(elenco.usatoIn || []).length === 0 && <HubVuoto icona="megaphone" titolo="Non è ancora usato da niente"
+              {usatoIn.length === 0 && <HubVuoto icona="megaphone" titolo="Non è ancora usato da niente"
                 desc="Un elenco serve quando qualcosa lo legge: una campagna che gli manda una mail, un workflow che parte quando qualcuno ci entra."/>}
-              {(elenco.usatoIn || []).map(u => (
+              {/* Niente chevron: `usatoIn` è solo un nome, non c'è una scheda da
+                  aprire — il glifo prometterebbe un click che non esiste. */}
+              {usatoIn.map(u => (
                 <div key={u} style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px', marginBottom: 8,
                   border: `1px solid ${ADM.BORDER}`, borderRadius: 10, background: '#fff',
@@ -237,7 +259,7 @@ function HubElencoDettaglio({ elenco, onChiudi, membri }) {
                     <BuIcons.megaphone size={15}/>
                   </span>
                   <span style={{ flex: 1, fontSize: 13.8, fontWeight: 600, color: ADM.TEXT }}>{u}</span>
-                  <BuIcons.chevronRight size={16} color={ADM.MUTED_LIGHT}/>
+                  {u === collegata && <HubPillola color="OK" size="sm">Collegata ora</HubPillola>}
                 </div>
               ))}
             </div>
@@ -262,6 +284,31 @@ function HubElencoDettaglio({ elenco, onChiudi, membri }) {
           )}
         </AdmCard>
       </div>
+
+      {/* Solo le campagne dove un pubblico si può ancora cambiare: una mail
+          già inviata non riprende un pubblico nuovo. */}
+      <HubModale open={scegli} onClose={() => setScegli(false)} titolo="Scegli la campagna" larghezza={560}
+        sotto={`«${elenco.nome}» diventerà il pubblico della campagna che scegli.`}>
+        {HUB_MAIL.filter(m => m.stato === 'bozza' || m.stato === 'programmata').map(m => {
+          const s = HUB_STATI_INVIO[m.stato];
+          return (
+            <div key={m.id} className="hub-riga" onClick={() => collega(m)} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px', marginBottom: 8,
+              border: `1px solid ${ADM.BORDER}`, borderRadius: 10, background: '#fff',
+            }}>
+              <span style={{ width: 30, height: 30, borderRadius: 8, display: 'grid', placeItems: 'center', background: ADM.HUB_MAGENTA_SOFT, color: ADM.HUB_MAGENTA_DARK, flexShrink: 0 }}>
+                <BuIcons.megaphone size={15}/>
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.8, fontWeight: 600, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</div>
+                <div style={{ fontSize: 12.4, color: ADM.MUTED, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.oggetto}</div>
+              </div>
+              <HubPillola color={s.color} size="sm">{s.label}</HubPillola>
+              <span className="hub-chev" style={{ color: ADM.MUTED_LIGHT }}><BuIcons.chevronRight size={16}/></span>
+            </div>
+          );
+        })}
+      </HubModale>
     </div>
   );
 }
@@ -300,25 +347,43 @@ function HubCriteriLettura({ titolo, filtri, colore }) {
 function HubElencoEditor({ bozza, onChiudi }) {
   const [el, setEl] = useStateEl(bozza);
   const set = (k, v) => setEl(e => Object.assign({}, e, { [k]: v }));
-  const dentro = useMemoEl(() => el.tipo === 'attivo' ? hubApplica(CONTATTI, el.includi, el.escludi) : [], [el]);
+  const esistente = !!bozza.id;  // arrivati da «Modifica criteri»: la bozza è un elenco che esiste già
+  // Per gli statici la stessa convenzione del dettaglio: i primi membriFissi
+  // della rubrica. Così l'anteprima si muove anche quando si importa un CSV.
+  const dentro = useMemoEl(() => el.tipo === 'attivo'
+    ? hubApplica(CONTATTI, el.includi, el.escludi)
+    : CONTATTI.slice(0, el.membriFissi || 0), [el]);
   const pronto = el.nome.trim().length > 1 && (el.tipo === 'statico' || el.includi.length > 0);
+
+  // L'import è finto ma deterministico: stesso file, stesso numero. Basta a
+  // far passare l'anteprima da 0 a un numero, che è la promessa del pulsante.
+  const importaCsv = () => setEl(e => Object.assign({}, e, {
+    membriFissi: 42, origine: 'Import CSV · contatti-importati.csv',
+  }));
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Elenchi</HubStrumento>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>{esistente ? bozza.nome : 'Elenchi'}</HubStrumento>
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>Nuovo elenco</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{esistente ? 'Modifica criteri' : 'Nuovo elenco'}</span>
       </div>
 
-      <HubTestata occhiello="CRM · Segmentazione" titolo="Crea un elenco"
-        sotto="Dagli un nome, scegli se deve aggiornarsi da solo, e componi i criteri. Il conteggio a destra si muove mentre scegli."
+      <HubTestata occhiello="CRM · Segmentazione" titolo={esistente ? 'Modifica i criteri' : 'Crea un elenco'}
+        sotto={esistente
+          ? 'Cambi i criteri e il conteggio a destra si muove: si vede chi entra e chi esce prima di salvare.'
+          : 'Dagli un nome, scegli se deve aggiornarsi da solo, e componi i criteri. Il conteggio a destra si muove mentre scegli.'}
         azioni={
           <React.Fragment>
             <HubStrumento onClick={onChiudi}>Annulla</HubStrumento>
-            <HubStrumento forte icona="check" onClick={onChiudi}
-              title={pronto ? undefined : 'Serve almeno un nome e una condizione'}>Salva elenco</HubStrumento>
+            {/* HubStrumento non sa essere disabled: il blocco sta nel guard sul
+                click, l'opacità sul wrapper dice che manca qualcosa, il title
+                spiega cosa. */}
+            <span style={{ opacity: pronto ? 1 : 0.5, transition: 'opacity 0.15s ease' }}>
+              <HubStrumento forte icona="check" onClick={() => { if (pronto) onChiudi(); }}
+                title={pronto ? undefined : 'Serve almeno un nome e una condizione'}>Salva elenco</HubStrumento>
+            </span>
           </React.Fragment>
         }/>
 
@@ -371,9 +436,24 @@ function HubElencoEditor({ bozza, onChiudi }) {
           <AdmCard padding={18}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 14 }}>I criteri</div>
             {el.tipo === 'statico' ? (
-              <HubVuoto icona="upload" titolo="Un elenco statico non ha criteri"
-                desc="Si riempie importando un CSV o aggiungendo contatti a mano dalla rubrica."
-                azione={<HubStrumento icona="upload">Importa un CSV</HubStrumento>}/>
+              el.membriFissi ? (
+                // L'import è avvenuto: la riga dice da dove vengono i contatti
+                // e quanti sono — lo stato vuoto qui sarebbe una bugia.
+                <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', border: `1px solid ${ADM.BORDER}`, borderRadius: 10, background: ADM.PANEL_SOFT }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: ADM.OK_SOFT, color: ADM.OK, flexShrink: 0 }}>
+                    <BuIcons.check size={17}/>
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.9, fontWeight: 600, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{el.origine || 'Import CSV'}</div>
+                    <div style={{ fontSize: 12.6, color: ADM.MUTED, marginTop: 2 }}>{fmtNum(el.membriFissi)} contatti dentro — fissi finché non li cambi</div>
+                  </div>
+                  <HubStrumento icona="upload" onClick={importaCsv}>Reimporta</HubStrumento>
+                </div>
+              ) : (
+                <HubVuoto icona="upload" titolo="Un elenco statico non ha criteri"
+                  desc="Si riempie importando un CSV o aggiungendo contatti a mano dalla rubrica."
+                  azione={<HubStrumento icona="upload" onClick={importaCsv}>Importa un CSV</HubStrumento>}/>
+              )
             ) : (
               <HubFiltri righe={CONTATTI} conEscludi
                 includi={el.includi} onIncludi={v => set('includi', v)}
@@ -387,10 +467,12 @@ function HubElencoEditor({ bozza, onChiudi }) {
           <div style={{ padding: '18px 18px 16px', background: ADM.HUB_GRAD_SOFT, borderBottom: `1px solid ${ADM.BORDER}` }}>
             <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.HUB_MAGENTA_DARK }}>Anteprima</div>
             <div style={{ fontSize: 38, fontWeight: 800, letterSpacing: '-0.035em', color: ADM.TEXT, marginTop: 6, lineHeight: 1 }}>
-              {el.tipo === 'statico' ? '0' : fmtNum(dentro.length)}
+              {fmtNum(dentro.length)}
             </div>
             <div style={{ fontSize: 13.4, color: ADM.MUTED, marginTop: 5 }}>
-              {el.tipo === 'statico' ? 'contatti — li aggiungi tu' : `contatti su ${fmtNum(CONTATTI.length)} in rubrica`}
+              {el.tipo !== 'statico' ? `contatti su ${fmtNum(CONTATTI.length)} in rubrica`
+                : el.membriFissi ? 'contatti dal CSV — fissi finché non li cambi'
+                : 'contatti — li aggiungi tu'}
             </div>
           </div>
           <div style={{ padding: 14 }}>

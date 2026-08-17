@@ -310,12 +310,16 @@ function AdmSelect({ value, onChange, options, buttonStyle = {}, block = false, 
   React.useEffect(() => {
     if (!open) return;
     const chiudi = () => setOpen(false);
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    // Esc chiude SOLO la tendina, non il pannello o la modale che la ospitano:
+    // anche loro ascoltano keydown su window, e il fermo va dato in capture —
+    // tra due listener in bolla stopPropagation non ferma niente (stessa
+    // regola di HubScelteMultiple in hub-ui).
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
     window.addEventListener('pointerdown', chiudi);
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
     return () => {
       window.removeEventListener('pointerdown', chiudi);
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onKey, true);
     };
   }, [open]);
 

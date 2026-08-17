@@ -410,11 +410,16 @@ function onboardingFermi() {
 function AdmDashboard({ onNav }) {
   const [tab, setTab] = useStateDash('generale');
   const [reportSent, setReportSent] = useStateDash(false);
-  // Periodo e segmento valgono per le tab costruite sui locali. Dove i dati
-  // non sono per locale — utenti, servizio, mercato, valore — la barra lo
-  // dichiara invece di far finta di filtrare.
+  // Segmento e periodo hanno perimetri diversi, e la barra li dichiara uno
+  // per uno. Piano e regione valgono dove i blocchi leggono i locali: Locali
+  // e Staff. Il Generale è di piattaforma — MRR, utenti app, salute — e
+  // dichiararlo filtrabile faceva reagire il contatore della barra mentre
+  // ogni numero della tab restava identico. Il periodo invece vive dove c'è
+  // una serie da ri-finestrare: oggi i grafici di andamento del Generale;
+  // nelle altre tab le finestre sono fisse o le scelgono le card.
   const [filtri, setFiltri] = useStateDash(window.AN_FILTRI_VUOTI || { periodo:'365', piano:'tutti', regione:'tutte' });
-  const filtroAttivo = ['generale', 'locali', 'camerieri'].includes(tab);
+  const segmentoAttivo = ['locali', 'camerieri'].includes(tab);
+  const periodoAttivo = tab === 'generale';
 
   return (
     <div style={{display:'flex', flexDirection:'column'}}>
@@ -451,7 +456,7 @@ function AdmDashboard({ onNav }) {
           ? <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700, whiteSpace:'nowrap'}}>✓ Report inviato a marco.rinaldi@byup.it</span>
           : <AdmButton variant="ghost" size="sm" icon="download" onClick={()=>{ setReportSent(true); setTimeout(()=>setReportSent(false), 3500); }}>Report mensile</AdmButton>}
       </div>
-      {window.AnBarraFiltri ? <AnBarraFiltri filtri={filtri} onChange={setFiltri} attivo={filtroAttivo}/> : null}
+      {window.AnBarraFiltri ? <AnBarraFiltri filtri={filtri} onChange={setFiltri} attivo={segmentoAttivo} periodoAttivo={periodoAttivo}/> : null}
       <div>
         {tab === 'generale'  && <DashGenerale onNav={onNav} filtri={filtri}/>}
         {tab === 'locali'    && <DashLocali onNav={onNav} filtri={filtri}/>}
@@ -670,6 +675,17 @@ function DashGenerale({ onNav, filtri }) {
   const extraAnno = last12.reduce((s, m) => s + m.extra, 0);
   const ricaviAnno = subAnno + extraAnno;
 
+  // Il periodo della barra ri-finestra i due grafici di andamento: 30 e 90
+  // giorni affettano la serie giornaliera, «12 mesi» passa alla mensile —
+  // così ogni scelta mostra dati che esistono davvero, senza spacciare 90
+  // giorni per un anno. I valori grandi delle card non cambiano: dichiarano
+  // «ultimo mese» e «12 mesi» nel testo, e il filtro non deve riscriverli.
+  const periodo = (filtri && filtri.periodo) || '365';
+  const heroRicaviData = periodo === '365'
+    ? last12.map(m => m.sub + m.extra)
+    : TS.ricaviDay.slice(-Number(periodo));
+  const mesiPeriodo = periodo === '30' ? 1 : periodo === '90' ? 3 : 12;
+
   // === UTENTI APP ===
   const totUtenti = UTENTI_BASE;
   const attivi24 = APP_METRICS.dau;
@@ -726,13 +742,13 @@ function DashGenerale({ onNav, filtri }) {
           trendLabel="vs mese precedente"
           sub={`${fmtEur(mrrSubMese)} abbonamenti · ${fmtEur(mrrExtraMese)} extra ordini`}
           detail={`Ultimi 12 mesi ${fmtEur(ricaviAnno)} · media ${fmtEur(Math.round(ricaviAnno/12))}/mese`}
-          data={TS.ricaviDay.slice(-30)}
+          data={heroRicaviData}
           accent={ADM.PINK}
         />
         <DashOrdiniCard
           mese={totOrdiniMese} media={mediaOrdiniMese} anno={totOrdiniAnno}
           extraMese={extraOrdMese} extraMedia={extraOrdMedia} extraAnno={extraOrdAnno}
-          serie={ordiniSerie12} trend={ordiniMoM}
+          serie={ordiniSerie12.slice(-mesiPeriodo)} trend={ordiniMoM}
         />
       </div>
 
@@ -1188,7 +1204,9 @@ function ScanOrdiniTooltip({ scanMese, ordMese, ratioMese, scanAnno, ordAnno, ra
       </div>
       <div style={{marginTop:11, fontSize:13, color:ADM.MUTED, lineHeight:1.5}}>
         La % indica il tasso di conversione: quanti scan QR diventano un ordine completato.
-        Valori più alti significano migliore esperienza post-scan.
+        Al numeratore ci sono i soli ordini nati da uno scan — cassa, cameriere e app
+        restano fuori, perché non passano dal QR. Valori più alti significano migliore
+        esperienza post-scan.
       </div>
     </div>
   );
@@ -1205,7 +1223,7 @@ function ScanOrdiniBox({ label, scan, ord, ratio, primary }) {
     }}>
       <div style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:7}}>{label}</div>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:12, marginBottom:4}}>
-        <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>Ordini</span>
+        <span style={{fontSize:13, color:ADM.MUTED, fontWeight:600, flexShrink:0}}>Ordini da QR</span>
         <span style={{fontSize:15.1, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.01em'}}>{fmtNum(ord)}</span>
       </div>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:12, marginBottom:7}}>
@@ -1317,8 +1335,15 @@ function DashLocali({ onNav, filtri }) {
   const totScanQRAnno    = LOCALI.reduce((s,l)=>s + (l.scanQRAnno    || 0), 0);
   const totPrenotMese    = LOCALI.reduce((s,l)=>s + (l.prenotazioniMese || 0), 0);
   const totPrenotAnno    = LOCALI.reduce((s,l)=>s + (l.prenotazioniAnno || 0), 0);
-  const ratioMese = totScanQRMese > 0 ? totOrdiniMese / totScanQRMese : 0;
-  const ratioAnno = totScanQRAnno > 0 ? totOrdiniAnno / totScanQRAnno : 0;
+  // La conversione è ordini NATI da uno scan ÷ scan. Il totale di tutti i
+  // canali al numeratore non è un sottoinsieme del denominatore: usciva un
+  // 51% dall'aria plausibile che non era una conversione, e con un mix di
+  // canali diverso avrebbe superato il 100%. Gli ordini via QR si ricavano
+  // dall'adozione, che è la loro definizione (admin-data.jsx).
+  const totOrdiniQRMese  = LOCALI.reduce((s,l)=>s + Math.round((l.ordiniMese || 0) * (l.qrAdoption || 0) / 100), 0);
+  const totOrdiniQRAnno  = LOCALI.reduce((s,l)=>s + Math.round((l.ordiniAnno || 0) * (l.qrAdoption || 0) / 100), 0);
+  const ratioMese = totScanQRMese > 0 ? totOrdiniQRMese / totScanQRMese : 0;
+  const ratioAnno = totScanQRAnno > 0 ? totOrdiniQRAnno / totScanQRAnno : 0;
   const fmtPct = (r) => `${(r * 100).toFixed(1).replace('.', ',')}%`;
 
   // Le serie del churn — tasso per piano, tenure, locali persi al mese — sono
@@ -1351,19 +1376,33 @@ function DashLocali({ onNav, filtri }) {
     { m:'Apr 26', cameriere:50, qr:32, app:18 },
     { m:'Mag 26', cameriere:48, qr:32, app:20 },
   ];
-  // Top in transizione digitale: locali che hanno spostato di più verso app/QR negli ultimi 6 mesi
-  const channelMovers = [
-    { id:'L1018', nome:'Trattoria Sora Lella',  citta:'Roma',     from:7,  to:42, delta:+35 },
-    { id:'L1024', nome:'Pizzeria Sorbillo',     citta:'Napoli',   from:12, to:46, delta:+34 },
-    { id:'L1009', nome:'Osteria Francescana',   citta:'Modena',   from:8,  to:38, delta:+30 },
-    { id:'L1031', nome:'Pizzeria Brandi',       citta:'Napoli',   from:5,  to:31, delta:+26 },
-    { id:'L1019', nome:'Bistrot Verde',         citta:'Venezia',  from:9,  to:33, delta:+24 },
-  ];
-  const channelStuck = [
-    { id:'L1042', nome:'Trattoria Felicin',     citta:'Cuneo',    pct:0,  daysActive:180 },
-    { id:'L1037', nome:'Osteria Antiqua',       citta:'Verona',   pct:2,  daysActive:165 },
-    { id:'L1048', nome:'Pub The Crown',         citta:'Milano',   pct:4,  daysActive:220 },
-  ];
+  // Le due liste si leggono dal registro, non da letterali: scritte a mano
+  // contraddicevano le card vicine nella stessa tab — un «top mover» con
+  // adozione zero compariva anche fra i «da attivare», gli id puntavano ad
+  // altri locali, un «attivo da 180g» era inattivo. Lo storico dell'adozione
+  // non esiste ancora nei dati: il punto di partenza dei movers è derivato
+  // (sei mesi fa ≈ un terzo di oggi), ma locali, nomi e punto d'arrivo sono
+  // quelli veri, e i tre blocchi della tab raccontano gli stessi locali.
+  const channelMovers = LOCALI
+    .filter(l => l.stato === 'active' && l.qrAdoption != null && l.qrAdoption > 0)
+    .sort((a, b) => b.qrAdoption - a.qrAdoption)
+    .slice(0, 5)
+    .map(l => {
+      const to = Math.round(l.qrAdoption);
+      const from = Math.max(1, Math.round(l.qrAdoption * 0.3));
+      return { id: l.id, nome: l.nome, citta: l.citta, from, to, delta: to - from };
+    });
+  // Fermi: attivi da oltre 150 giorni che restano sotto il 5% — la stessa
+  // soglia del blocco «da attivare», così le due liste non si smentiscono.
+  const channelStuck = LOCALI
+    .filter(l => l.stato === 'active' && l.qrAdoption != null && l.qrAdoption < 5
+      && (Date.now() - l.dataIscrizione.getTime()) / 86400000 > 150)
+    .sort((a, b) => a.qrAdoption - b.qrAdoption)
+    .slice(0, 5)
+    .map(l => ({
+      id: l.id, nome: l.nome, citta: l.citta, pct: l.qrAdoption,
+      daysActive: Math.floor((Date.now() - l.dataIscrizione.getTime()) / 86400000),
+    }));
 
   // ── LTV / CAC per piano · economia per locale ──────────────────────────
   //
@@ -1454,6 +1493,13 @@ function DashLocali({ onNav, filtri }) {
   const avgMarginePct = pond(p => p.marginePct);
   const avgCAC = pond(p => p.cac);
   const ratioLTVCAC = avgCAC > 0 ? (avgLTV/avgCAC) : 0;
+  // Tono e badge seguono il valore, con le stesse soglie che la didascalia
+  // della card dichiara: ≥3× sano, fra 1× e 3× sotto soglia, sotto 1× ogni
+  // locale acquisito distrugge valore. Cablati sul verde, mostravano
+  // «health» accanto a un rapporto negativo — il testo in fondo al grafico
+  // faceva già il conto giusto due card più in basso.
+  const ratioTone = ratioLTVCAC >= 3 ? 'OK' : ratioLTVCAC >= 1 ? 'WARN' : 'DANGER';
+  const ratioLabel = ratioLTVCAC >= 3 ? 'health' : ratioLTVCAC >= 1 ? 'sotto soglia' : 'distrugge valore';
   // Payback: mesi di MARGINE per rientrare del CAC, non mesi di fatturato.
   const avgPayback = ltvPaying.reduce((s,p)=>s + (p.cac/Math.max(1,p.margineMese)),0) / ltvPaying.length;
   // Curva LTV cumulativa: ricavi medi mensili × mesi (sottratto CAC iniziale)
@@ -1531,12 +1577,12 @@ function DashLocali({ onNav, filtri }) {
           })}
         />
         <DashStatCard
-          label="Ordini · Scan QR" value={fmtPct(ratioMese)} accent="INK"
-          sub={`${fmtNum(totOrdiniMese)} ordini · ${fmtNum(totScanQRMese)} scan · 30gg`}
+          label="Ordini da QR · Scan" value={fmtPct(ratioMese)} accent="INK"
+          sub={`${fmtNum(totOrdiniQRMese)} da QR sui ${fmtNum(totOrdiniMese)} ordini totali · ${fmtNum(totScanQRMese)} scan · 30gg`}
           selected={detail?.key === 'qr'}
           onClick={()=>toggleDetail({
             key:'qr', title:'Ordini da scan QR · dettaglio', subtitle:'Conversione scan → ordine, mese e anno', accent:ADM.PINK,
-            content:<ScanOrdiniTooltip scanMese={totScanQRMese} ordMese={totOrdiniMese} ratioMese={ratioMese} scanAnno={totScanQRAnno} ordAnno={totOrdiniAnno} ratioAnno={ratioAnno}/>,
+            content:<ScanOrdiniTooltip scanMese={totScanQRMese} ordMese={totOrdiniQRMese} ratioMese={ratioMese} scanAnno={totScanQRAnno} ordAnno={totOrdiniQRAnno} ratioAnno={ratioAnno}/>,
           })}
         />
         <DashStatCard
@@ -1734,7 +1780,7 @@ function DashLocali({ onNav, filtri }) {
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:14}}>
         <AdmCard padding={20}>
           <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Top in transizione digitale</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali con la spinta digitale più rapida (% ordini app+QR · 6 mesi fa → oggi)</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali con la spinta digitale più rapida (% ordini da QR · 6 mesi fa → oggi)</div>
           <div style={{display:'flex', flexDirection:'column', gap:11}}>
             {channelMovers.map((m,i) => (
               <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
@@ -1756,7 +1802,7 @@ function DashLocali({ onNav, filtri }) {
 
         <AdmCard padding={20}>
           <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Fermi a zero digitale</div>
-          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali attivi da 5+ mesi ma con &lt; 5% ordini digitali · candidati a intervento formazione</div>
+          <div style={{fontSize:13.3, color:ADM.MUTED, marginBottom:14}}>Locali attivi da 5+ mesi ma con &lt; 5% ordini da QR · candidati a intervento formazione</div>
           <div style={{display:'flex', flexDirection:'column', gap:11}}>
             {channelStuck.map((m,i) => (
               <div key={m.id} style={{display:'flex', alignItems:'center', gap:12}}>
@@ -1765,7 +1811,7 @@ function DashLocali({ onNav, filtri }) {
                   <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nome}</div>
                   <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.citta} · attivo da {m.daysActive}g</div>
                 </div>
-                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:13, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>{m.pct}%</span>
+                <span style={{padding:'3px 8px', borderRadius:5, background:ADM.DANGER_SOFT, color:ADM.DANGER, fontSize:13, fontWeight:800, fontFamily:'ui-monospace, monospace'}}>{m.pct === 0 ? '0%' : `${m.pct.toFixed(1).replace('.', ',')}%`}</span>
               </div>
             ))}
           </div>
@@ -2013,10 +2059,10 @@ function DashLocali({ onNav, filtri }) {
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Marketing + sales / locali acquisiti</div>
         </AdmCard>
         <AdmCard padding={18}>
-          <div style={{fontSize:13, fontWeight:700, color:ADM.OK, textTransform:'uppercase', letterSpacing:'0.06em'}}>Rapporto LTV / CAC</div>
+          <div style={{fontSize:13, fontWeight:700, color:ADM[ratioTone], textTransform:'uppercase', letterSpacing:'0.06em'}}>Rapporto LTV / CAC</div>
           <div style={{display:'flex', alignItems:'baseline', gap:8, marginTop:6}}>
-            <div style={{fontSize:26.6, fontWeight:800, color:ADM.OK, letterSpacing:'-0.03em', lineHeight:1}}>{ratioLTVCAC.toFixed(1)}×</div>
-            <span style={{fontSize:13, color:ADM.OK, fontWeight:700, padding:'2px 7px', background:ADM.OK_SOFT, borderRadius:5}}>health</span>
+            <div style={{fontSize:26.6, fontWeight:800, color:ADM[ratioTone], letterSpacing:'-0.03em', lineHeight:1}}>{ratioLTVCAC.toFixed(1)}×</div>
+            <span style={{fontSize:13, color:ADM[ratioTone], fontWeight:700, padding:'2px 7px', background:ADM[ratioTone + '_SOFT'], borderRadius:5}}>{ratioLabel}</span>
           </div>
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:7, lineHeight:1.4}}>Soglia investitori: ≥ 3× sano · ≥ 5× eccellente</div>
         </AdmCard>
@@ -2096,7 +2142,7 @@ function DashLocali({ onNav, filtri }) {
             return <React.Fragment>
               <strong style={{color:ADM.TEXT}}>Business rientra del CAC in {rientro('business')} mesi di margine, Plus in {rientro('plus')}</strong>.
               Da lì in poi ogni mese è margine fino all'abbandono. LTV/CAC{' '}
-              <strong style={{color:ADM.OK}}>{ratioLTVCAC.toFixed(1)}×</strong>{' '}
+              <strong style={{color:ADM[ratioTone]}}>{ratioLTVCAC.toFixed(1)}×</strong>{' '}
               è calcolato sul margine, non sul fatturato: a ricavo sarebbe {(avgLTVRicavo/avgCAC).toFixed(1)}×,
               ed è la differenza che un investitore trova da solo.
               {inPerdita.length > 0 && (
@@ -2279,7 +2325,9 @@ function AdozioneDigitaleCard({ onNav }) {
               background:ADM.DANGER, color:'#fff',
               display:'grid', placeItems:'center',
             }}>
-              <BuIcons.alert size={18}/>
+              {/* alertTriangle, non «alert»: il Proxy delle icone rende null
+                  i nomi ignoti, e il chip restava un quadratino vuoto. */}
+              <BuIcons.alertTriangle size={18}/>
             </span>
             <div>
               <div style={{fontSize:14.4, fontWeight:700, color:'#7C2D12'}}>Da attivare</div>
@@ -2376,13 +2424,20 @@ function SottoMediaScanCard({ onNav }) {
     (isAnno ? l.ordiniAnno : l.ordiniMese) > 0
   );
 
+  // La conversione è ordini NATI da uno scan ÷ scan. Con gli ordini di tutti
+  // i canali al numeratore la lista «sotto la media» era guidata dai campioni
+  // dell'adozione QR e assolveva i fermi con conversioni da 800% in su:
+  // l'esatto contrario di quello che la card promette. Gli ordini via QR si
+  // ricavano dall'adozione, che è la loro definizione (admin-data.jsx).
+  const ordiniViaQR = (l) => Math.round((isAnno ? l.ordiniAnno : l.ordiniMese) * (l.qrAdoption || 0) / 100);
+
   const totScan  = eligible.reduce((s,l)=> s + (isAnno ? l.scanQRAnno : l.scanQRMese), 0);
-  const totOrd   = eligible.reduce((s,l)=> s + (isAnno ? l.ordiniAnno : l.ordiniMese), 0);
-  const ratioAvg = totScan > 0 ? totOrd / totScan : 0;
+  const totOrdQR = eligible.reduce((s,l)=> s + ordiniViaQR(l), 0);
+  const ratioAvg = totScan > 0 ? totOrdQR / totScan : 0;
 
   const withRatio = eligible.map(l => {
     const scan = isAnno ? l.scanQRAnno : l.scanQRMese;
-    const ord  = isAnno ? l.ordiniAnno : l.ordiniMese;
+    const ord  = ordiniViaQR(l);
     return { ...l, _scan: scan, _ord: ord, _ratio: scan > 0 ? ord / scan : 0 };
   });
 
@@ -2431,7 +2486,7 @@ function SottoMediaScanCard({ onNav }) {
       <div style={{
         display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', gap:10, marginBottom:14,
       }}>
-        <SottoMediaKpi label="Media piattaforma" value={fmtPct(ratioAvg)} sub={`${fmtNum(totOrd)} ordini su ${fmtNum(totScan)} scan`} highlight/>
+        <SottoMediaKpi label="Media piattaforma" value={fmtPct(ratioAvg)} sub={`${fmtNum(totOrdQR)} ordini da QR su ${fmtNum(totScan)} scan`} highlight/>
         <SottoMediaKpi label="Locali sotto media" value={fmtNum(sottoMedia.length)} sub={`su ${fmtNum(eligible.length)} tracciati`}/>
         <SottoMediaKpi label="Periodo" value={isAnno ? '12 mesi' : '30 giorni'} sub={isAnno ? 'Annuale completo' : 'Mensile corrente'}/>
       </div>
@@ -2455,7 +2510,7 @@ function SottoMediaScanCard({ onNav }) {
             textTransform:'uppercase', letterSpacing:'0.06em',
           }}>
             <div>Locale</div>
-            <div style={{textAlign:'right'}}>Ordini</div>
+            <div style={{textAlign:'right'}}>Ordini da QR</div>
             <div style={{textAlign:'right'}}>Scan QR</div>
             <div style={{textAlign:'right'}}>Conversione · gap</div>
             <div/>
@@ -2650,12 +2705,14 @@ function DashUtentiApp() {
     { c:'56+',   vals:[28, 58, 18, 14, 64,  6 ] },
   ];
 
-  // Top città con AOV e ordini/mese (estendo TOP_CITTA con AOV per città)
+  // Top città con AOV e ordini/mese (estendo TOP_CITTA con AOV per città).
+  // TOP_CITTA ora si conta dal registro e i suoi ordini sono già MENSILI:
+  // il vecchio ÷12 li avrebbe fatti passare per annuali una seconda volta.
   const cityAOV = { 'Milano':29, 'Roma':25, 'Napoli':19, 'Bologna':27, 'Firenze':28, 'Torino':24 };
   const cityRows = TOP_CITTA.map(c => ({
     ...c,
     aov: cityAOV[c.citta] || 22,
-    ordiniMese: Math.round(c.ordini / 12),
+    ordiniMese: c.ordini,
   })).sort((a,b) => b.ordiniMese - a.ordiniMese);
   const cityMaxOrdini = Math.max(...cityRows.map(c=>c.ordiniMese));
 
@@ -3042,8 +3099,11 @@ function DashUtentiApp() {
             <span style={{fontSize:12.2, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Intensità no show</span>
             <span style={{fontSize:12.2, color:ADM.MUTED, fontWeight:600}}>basso</span>
             <span style={{display:'inline-flex', borderRadius:99, overflow:'hidden', border:`1px solid ${ADM.BORDER_SOFT}`}}>
-              {[0.1,0.3,0.5,0.7,0.9].map((t,i) => (
-                <span key={i} style={{width:18, height:10, background:`rgba(220,38,38,${0.10 + t*0.80})`}}/>
+              {/* Stessa formula delle celle — ink con cap rosa sul picco: la
+                  rampa DANGER che stava qui descriveva colori che nella
+                  matrice non compaiono in nessuna cella. */}
+              {[0.08,0.3,0.5,0.7,0.9].map((t,i) => (
+                <span key={i} style={{width:18, height:10, background: t > 0.82 ? ADM.PINK : t < 0.1 ? '#F4F5F7' : `rgba(49,53,61,${(0.05 + t*0.42).toFixed(2)})`}}/>
               ))}
             </span>
             <span style={{fontSize:12.2, color:ADM.MUTED, fontWeight:600}}>alto</span>
@@ -4174,8 +4234,16 @@ function DashMercato() {
 // Coverage, ratio, retention, benchmark, trend per azione, heatmap settimanale.
 // ════════════════════════════════════════════════════════════════════════════
 function DashCamerieri({ filtri }) {
+  // Il segmento della barra arriva fin qui: la popolazione di partenza è la
+  // lista filtrata, e tutto quello che si conta sui locali — squadre, uso
+  // del gestionale, volumi delle azioni — si conta su quella. Restano di
+  // rete i blocchi che dai locali non derivano (tempi di servizio per tipo,
+  // heatmap), e lo dichiarano sulla loro card.
+  const locSegmento = window.anFiltra ? anFiltra(LOCALI, filtri) : LOCALI;
+  const idsSegmento = new Set(locSegmento.map(l => l.id));
+
   // ── 1. Coverage · locali che HANNO configurato lo staff vs senza
-  const liveLocali = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped');
+  const liveLocali = locSegmento.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped');
 
   // ── TEMPO MEDIO SERVIZIO · da ordine confermato a chiusura conto ────────
   // Industria horeca: pizzeria 25-45 min, trattoria 50-90 min, ristorante 70-120 min
@@ -4209,20 +4277,30 @@ function DashCamerieri({ filtri }) {
   // diverse, un totale di piattaforma sopra un sottoinsieme — e usciva 73,6
   // dipendenti a locale. La «mediana» era quel numero arrotondato: due volte
   // lo stesso dato spacciato per due statistiche che si confermano a vicenda.
-  const squadre = STAFF_PER_LOCALE.filter(s => s.n > 0).map(s => s.n).sort((a, b) => a - b);
+  const squadre = STAFF_PER_LOCALE.filter(s => s.n > 0 && idsSegmento.has(s.localeId)).map(s => s.n).sort((a, b) => a - b);
   const ratioMedio = squadre.length ? squadre.reduce((s, n) => s + n, 0) / squadre.length : 0;
   const ratioMediana = squadre.length
     ? (squadre.length % 2
         ? squadre[(squadre.length - 1) / 2]
         : (squadre[squadre.length / 2 - 1] + squadre[squadre.length / 2]) / 2)
     : 0;
+  // I contatori dello staff si ricontano sul segmento — STAFF_METRICS è la
+  // fotografia di rete, e sotto filtro mentirebbe. Le quote (in turno oggi,
+  // nuovi del mese) sono le stesse della fotografia. Le sparkline si
+  // rigenerano con gli stessi semi e parametri di TS: senza filtro escono
+  // identiche, col filtro raccontano gli stessi locali del numero sopra.
+  const totCamerieri = squadre.reduce((s, n) => s + n, 0);
+  const activeOggi = Math.round(totCamerieri * 0.33);
+  const nuovi30g = Math.round(totCamerieri * 0.06);
+  const tsStaffTot = genDaily(118, 90, totCamerieri, 0.012, 0, 0.005);
+  const tsStaffActive = genDaily(110, 90, activeOggi, 0.008, 0.22, 0.05);
 
   // ── 2. Quota di staff che lavora in un giorno ───────────────────────────
   // Non è ritenzione: in sala si fanno i turni, e un part-time che lavora tre
   // sere su sette non è un dipendente perso. Il riferimento del 30-40% è una
   // regola di buon senso sui turni, non un dato di mercato verificato: sta
   // scritto perché serve una soglia, non perché qualcuno l'abbia misurato.
-  const activeRate = Math.round(STAFF_METRICS.activeOggi / STAFF_METRICS.totCamerieri * 100);
+  const activeRate = totCamerieri ? Math.round(activeOggi / totCamerieri * 100) : 0;
   const benchTone = activeRate >= 30 ? 'OK' : activeRate >= 20 ? 'WARN' : 'DANGER';
   const benchText = activeRate >= 30 ? 'Compatibile con i turni di una sala: un terzo dello staff lavora in un giorno qualsiasi' :
                     activeRate >= 20 ? 'Sotto quello che i turni spiegherebbero: una parte dello staff non entra più' :
@@ -4243,8 +4321,8 @@ function DashCamerieri({ filtri }) {
   // Scritti a mano dicevano 124.800 «aggiunte articolo» al mese su una
   // piattaforma che di ordini ne fa tredicimila e mezzo — un numero che
   // sopravvive solo finché nessuno lo divide per un altro.
-  const ordiniMesePiattaforma = LOCALI.reduce((s, l) => s + (l.ordiniMese || 0), 0);
-  const ordiniAlTavolo = Math.round(ordiniMesePiattaforma * 0.55);
+  const ordiniMeseSegmento = locSegmento.reduce((s, l) => s + (l.ordiniMese || 0), 0);
+  const ordiniAlTavolo = Math.round(ordiniMeseSegmento * 0.55);
   const azione = (n, usi, trend, seme, drift, weekend, noise) =>
     ({ nome: n, usi, trend, spark: genDaily(seme, 30, Math.max(1, Math.round(usi / 30)), drift, weekend, noise) });
   const topActions = [
@@ -4255,7 +4333,7 @@ function DashCamerieri({ filtri }) {
     azione('Saldo conto al tavolo', Math.round(ordiniAlTavolo * 0.92), +6.8, 203, 0.011, 0.16, 0.05),
     azione('Stampa scontrino', Math.round(ordiniAlTavolo * 0.58), +2.1, 204, 0.005, 0.15, 0.04),
     azione('Spostamento tavolo / unione', Math.round(ordiniAlTavolo * 0.08), +12.4, 205, 0.018, 0.12, 0.07),
-    azione('Trasferimento staff su altro turno', Math.round(STAFF_METRICS.totCamerieri * 1.2), -3.2, 206, -0.005, 0, 0.10),
+    azione('Trasferimento staff su altro turno', Math.round(totCamerieri * 1.2), -3.2, 206, -0.005, 0, 0.10),
   ];
 
   // ── 5. Heatmap giorno × fascia · pattern di utilizzo settimanale
@@ -4275,8 +4353,8 @@ function DashCamerieri({ filtri }) {
   });
   const heatMax = Math.max(...heatmap.flatMap(d => d.fasce.map(f => f.v)));
 
-  const totW = woW(TS.staffActive);
-  const totRegW = moM(TS.staffTot);
+  const totW = woW(tsStaffActive);
+  const totRegW = moM(tsStaffTot);
 
   return (
     <div style={{padding:'24px 28px', display:'flex', flexDirection:'column', gap:20}}>
@@ -4296,14 +4374,14 @@ function DashCamerieri({ filtri }) {
             la differenza fra due somme di trenta giorni di una serie di
             LIVELLI: su uno stock quel conto vale trenta volte la crescita
             vera, e infatti dichiarava +1.900 nuovi su 1.840 totali. */}
-        <SparkStat label="Staff registrati" value={fmtNum(STAFF_METRICS.totCamerieri)}
-          sub={`+${fmtNum(STAFF_METRICS.nuovi30g)} ultimi 30gg`}
+        <SparkStat label="Staff registrati" value={fmtNum(totCamerieri)}
+          sub={`+${fmtNum(nuovi30g)} ultimi 30gg`}
           accent="INK" icon="users"
-          trend={totRegW.delta} trendLabel="vs 30gg" spark={TS.staffTot.slice(-30)}/>
-        <SparkStat label="Attivi oggi" value={fmtNum(STAFF_METRICS.activeOggi)}
+          trend={totRegW.delta} trendLabel="vs 30gg" spark={tsStaffTot.slice(-30)}/>
+        <SparkStat label="Attivi oggi" value={fmtNum(activeOggi)}
           sub={`${activeRate}% del totale · ${benchText.split('·')[0]}`}
           accent="INK" icon="check"
-          trend={totW.delta} trendLabel="vs 7gg" spark={TS.staffActive.slice(-30)}/>
+          trend={totW.delta} trendLabel="vs 7gg" spark={tsStaffActive.slice(-30)}/>
         <SparkStat label="Locali con staff" value={`${coverageRate}%`}
           sub={`${configurati.length} su ${totLiveLocali} live · ${senzaStaff.length} ancora senza`}
           accent="INK" icon="store"
@@ -4386,14 +4464,17 @@ function DashCamerieri({ filtri }) {
       <SectionLabel title="La sala usa il prodotto?"
         desc="Camerieri che aprono davvero il gestionale, locale per locale · è il primo posto in cui un'adozione muore"/>
       {(() => {
-        const conSquadra = STAFF_USO.filter(x => x.squadra > 0);
+        // Anche l'uso della sala si legge sul segmento filtrato: STAFF_USO è
+        // per locale, e la barra dichiara «in questa vista».
+        const staffUso = STAFF_USO.filter(x => idsSegmento.has(x.localeId));
+        const conSquadra = staffUso.filter(x => x.squadra > 0);
         const attiviTot = conSquadra.reduce((a, x) => a + x.attivi, 0);
         const squadraTot = conSquadra.reduce((a, x) => a + x.squadra, 0);
         const pctRete = squadraTot ? Math.round(attiviTot / squadraTot * 100) : 0;
         // I locali sotto la soglia di adozione sono gli stessi che il blocco
         // «da attivare» conta in Locali — tutti, anche quelli senza nemmeno un
         // cameriere registrato, che sono il caso peggiore e vanno visti.
-        const sotto = STAFF_USO.filter(x => x.qr != null && x.qr < 5)
+        const sotto = staffUso.filter(x => x.qr != null && x.qr < 5)
           .sort((a, b) => (a.squadra ? a.pct : -1) - (b.squadra ? b.pct : -1));
         const sottoConSquadra = sotto.filter(x => x.squadra > 0);
         const sottoSenzaSquadra = sotto.filter(x => x.squadra === 0);
@@ -4490,7 +4571,7 @@ function DashCamerieri({ filtri }) {
           conto chiuso misura proprio quello che i due blocchi qui sopra
           descrivono — chi c'è in sala, e quanto usa il gestionale. */}
       <SectionLabel title="Tempo medio di servizio"
-        desc="Dall'ordine confermato alla chiusura conto · il risultato di come lavora la sala"/>
+        desc="Dall'ordine confermato alla chiusura conto · il risultato di come lavora la sala · su tutta la rete: il filtro non tocca questo blocco"/>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1.6fr', gap:14}}>
         <AdmCard padding={20}>
@@ -4569,7 +4650,7 @@ function DashCamerieri({ filtri }) {
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, flexWrap:'wrap', gap:10}}>
           <div>
             <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Distribuzione attività staff</div>
-            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Azioni eseguite per giorno × fascia oraria · ultime 4 settimane</div>
+            <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>Azioni eseguite per giorno × fascia oraria · ultime 4 settimane · tutta la rete, il filtro non la segmenta</div>
           </div>
           <div style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:13, color:ADM.MUTED, fontWeight:600}}>
             <span>Low</span>

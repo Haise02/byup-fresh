@@ -182,10 +182,10 @@ const CONTATTI = (() => {
     email: u.email,
     // L'utente app non ha un ciclo di vita commerciale con byup: trattino.
     ciclo: null,
-    // La restrizione attiva: i flag li ha già allineati il seed del registro
-    // (admin-restrizioni carica prima di questo file). Un bannato non deve
-    // essere una riga identica a tutte le altre.
-    restrizione: u.bannato ? 'ban' : u.shadowban ? 'shadowban' : null,
+    // Nessun campo `restrizione` congelato qui: la proprietà ha il suo lettore
+    // vivo sul registro (hub-data.jsx) — una revoca appena fatta deve spegnere
+    // la pillola nello stesso istante in cui cala il badge del registro, non
+    // al prossimo reload.
     // Il piano dell'app. Il mock non lo porta: lo si deriva stabile dalle
     // ULTIME cifre dell'id (le prime sono uguali per tutti, 'U20…'), circa un
     // utente su sette è Pro — abbastanza da vederli in lista.
@@ -275,9 +275,13 @@ function AdmContattiPage({ search, openContatto }) {
 
   // Apertura diretta dalla ricerca globale, dalla Dashboard, dalle notifiche:
   // le vecchie rotte (locali/camerieri/utenti) atterrano qui già tradotte.
+  // La dipendenza è l'OGGETTO, non ref.id: admin-app ne costruisce uno nuovo a
+  // ogni navigazione, e riaprire dallo ⌘K lo stesso contatto appena richiuso
+  // col breadcrumb deve riaprire il dettaglio — su ref.id la dipendenza non
+  // cambiava e il click moriva in silenzio.
   useEffectCnt(() => {
     if (openContatto) setSelected(openContatto);
-  }, [openContatto && openContatto.ref && openContatto.ref.id]);
+  }, [openContatto]);
 
   // Aprendo un contatto si atterra sempre sulla scheda: restare sul diario di
   // quello di prima, con davanti il nome di un altro, è il modo più rapido per
@@ -334,7 +338,11 @@ function AdmContattiPage({ search, openContatto }) {
       // deve essere lo stesso a ogni render, o le righe ballano sotto il mouse.
       return segno * cmp(a, b) || a.nome.localeCompare(b.nome);
     });
-  }, [filtri, effectiveSearch, sort, rev]);
+  }, [filtri, effectiveSearch, sort, rev,
+    // La restrizione si legge viva dal registro: al rientro dal registro o da
+    // una scheda (i due posti da cui ban e revoche si applicano) la lista va
+    // rifiltrata, o «Restrizione è Bannato» terrebbe dentro l'appena graziato.
+    restrizioniAperte, selected]);
 
   // Click sull'intestazione: nuova colonna → il suo verso naturale (i testi
   // dalla A, il ciclo dal lead in su, le date dalla più recente); stessa
@@ -410,7 +418,11 @@ function AdmContattiPage({ search, openContatto }) {
             </AdmCard>
           ) : <CntSchedaProprieta riga={riga}/>
         ) : (
-          <CntAttivita contatto={riga}/>
+          // `rev` è già il segnale «i dati dei contatti sono cambiati»: la
+          // nota salvata nel diario lo fa salire, così il conteggio sul tab
+          // «Attività» qui sopra — che disegna questo componente — si aggiorna
+          // insieme al diario e non al prossimo cambio di tab.
+          <CntAttivita contatto={riga} onCambiato={() => setRev(r => r + 1)}/>
         )}
       </div>
     );
@@ -499,6 +511,16 @@ function AdmContattiPage({ search, openContatto }) {
           }}>
             {colonne.map(id => {
               const mira = bersaglio && bersaglio.id === id && trascinata && trascinata !== id;
+              // Il decollo e l'atterraggio della colonna: condivisi fra il
+              // bottone-intestazione e la maniglia a puntini, che è un fratello
+              // dello stesso div e deve avviare LO STESSO volo.
+              const iniziaVolo = (e) => {
+                trascinataRef.current = id;
+                setTrascinata(id);
+                try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch (err) {}
+                cntFantasma(e, CNT_COLONNE[id].label);
+              };
+              const fineVolo = () => { trascinataRef.current = null; setTrascinata(null); setBersaglio(null); };
               return (
                 <div key={id} className="cnt-testata"
                   onDragOver={e => {
@@ -535,8 +557,13 @@ function AdmContattiPage({ search, openContatto }) {
                   }}>
                   {/* La maniglia: sei puntini che compaiono al passaggio del
                       mouse, appena fuori dal testo — dicono «mi puoi
-                      prendere» senza sporcare la testata a riposo. */}
-                  <span className="cnt-grip" aria-hidden="true" style={{
+                      prendere» senza sporcare la testata a riposo. Draggable
+                      in proprio: sta FUORI dal bottone-intestazione, e una
+                      maniglia col cursore «grab» da cui il trascinamento non
+                      parte è una promessa rotta. */}
+                  <span className="cnt-grip" aria-hidden="true" draggable
+                    onDragStart={iniziaVolo} onDragEnd={fineVolo}
+                    style={{
                     position: 'absolute', left: -13, top: '50%', transform: 'translateY(-50%)',
                     color: ADM.INK_SOFT, display: 'inline-flex', cursor: 'grab',
                   }}>
@@ -547,13 +574,7 @@ function AdmContattiPage({ search, openContatto }) {
                     </svg>
                   </span>
                   <CntIntestazione campo={id} label={CNT_COLONNE[id].label} sort={sort} onSort={ordina}
-                    onDragStart={(e) => {
-                      trascinataRef.current = id;
-                      setTrascinata(id);
-                      try { e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; } catch (err) {}
-                      cntFantasma(e, CNT_COLONNE[id].label);
-                    }}
-                    onDragEnd={() => { trascinataRef.current = null; setTrascinata(null); setBersaglio(null); }}/>
+                    onDragStart={iniziaVolo} onDragEnd={fineVolo}/>
                   {/* La barra d'atterraggio: piena altezza della testata, con
                       un filo di bagliore — sul lato dove la colonna in volo
                       verrà posata. */}
@@ -767,9 +788,10 @@ function CntCella({ id, c }) {
   }
   if (id === 'restrizione') {
     // Rosso per il ban, ambra per lo shadowban: la stessa coppia di colori
-    // del registro restrizioni.
-    if (!c.restrizione) return <div>{tratto}</div>;
-    return <div><CntPillola color={c.restrizione === 'ban' ? 'DANGER' : 'WARN'}>{c.restrizione === 'ban' ? 'Bannato' : 'Shadowban'}</CntPillola></div>;
+    // del registro restrizioni. Letta viva via hubLeggi, mai dalla riga.
+    const restr = hubLeggi(c, 'restrizione');
+    if (!restr) return <div>{tratto}</div>;
+    return <div><CntPillola color={restr === 'ban' ? 'DANGER' : 'WARN'}>{restr === 'ban' ? 'Bannato' : 'Shadowban'}</CntPillola></div>;
   }
   // Tutte le altre colonne escono dal catalogo delle proprietà: il TIPO dice
   // come si stampano. Una proprietà nuova aggiunta in hub-data.jsx compare in
@@ -860,7 +882,7 @@ function cntQuando(d) {
   return 'fra ' + Math.max(1, Math.round(ms / 3600000)) + ' ore';
 }
 
-function CntAttivita({ contatto }) {
+function CntAttivita({ contatto, onCambiato }) {
   const [gruppo, setGruppo] = useStateCnt('tutto');
   const [rev, setRev] = useStateCnt(0);
   const [nota, setNota] = useStateCnt('');
@@ -891,6 +913,10 @@ function CntAttivita({ contatto }) {
     if (!nota.trim()) return;
     hubAggiungiAttivita(contatto, { tipo: 'nota', titolo: 'Nota di Marco Rinaldi', dettaglio: nota.trim() });
     setNota(''); setScrivo(false); setRev(r => r + 1);
+    // `rev` qui dentro rinfresca il diario; il conteggio sul tab «Attività»
+    // lo disegna il PADRE, e senza questo segnale restava fermo al valore
+    // vecchio con la nota già in cima alla lista.
+    if (onCambiato) onCambiato();
   };
 
   return (
@@ -1221,6 +1247,12 @@ function CntCrea({ open, onChiudi, onCreato }) {
     consensoMail: true, consensoSms: false };
   const [f, setF] = useStateCnt(vuoto);
   const set = (k, v) => setF(x => Object.assign({}, x, { [k]: v }));
+  // Il cambio di tipologia porta via il piano: il campo sparisce dalla UI ma
+  // il valore restava nel form, e uno «Utente Staff» nasceva con la pillola
+  // «Pro» dell'app. Per l'utente app il default è Base — il suo select non ha
+  // una voce vuota. Il ciclo non serve azzerarlo: crea() lo tiene solo per i
+  // locali.
+  const setTipo = (k) => setF(x => Object.assign({}, x, { tipo: k, piano: k === 'utente' ? 'base' : '' }));
 
   useEffectCnt(() => { if (open) setF(vuoto); }, [open]);
 
@@ -1283,7 +1315,7 @@ function CntCrea({ open, onChiudi, onCreato }) {
             {Object.keys(CNT_TIPI).map(k => {
               const on = f.tipo === k;
               return (
-                <button key={k} onClick={() => set('tipo', k)} style={{
+                <button key={k} onClick={() => setTipo(k)} style={{
                   padding: '10px 12px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
                   border: `1.5px solid ${on ? ADM.PINK : ADM.BORDER}`,
                   background: on ? ADM.PINK_BG_SOFT : '#fff',
@@ -1372,7 +1404,20 @@ function cntRecordCompleto(sel) {
 // come nel catalogo. Vale per qualunque contatto, anche per uno appena creato
 // che non ha ancora una storia dentro byup.
 function CntSchedaProprieta({ riga }) {
+  // «Scrivigli» apre il client di posta sull'indirizzo del contatto (mailto,
+  // senza cambiare pagina) e lo dice per qualche secondo sul bottone stesso:
+  // il client si apre in un'altra finestra, e senza la conferma qui dentro il
+  // click sembrerebbe caduto nel vuoto. Hook PRIMA dell'uscita anticipata.
+  const [scritto, setScritto] = useStateCnt(false);
+  const scrittoRef = React.useRef(null);
+  useEffectCnt(() => () => clearTimeout(scrittoRef.current), []);
   if (!riga) return null;
+  const scrivi = () => {
+    window.location.href = 'mailto:' + riga.email;
+    setScritto(true);
+    clearTimeout(scrittoRef.current);
+    scrittoRef.current = setTimeout(() => setScritto(false), 2500);
+  };
   const gruppi = HUB_GRUPPI_PROP.map(g => ({
     ...g, voci: HUB_PROPRIETA.filter(p => p.gruppo === g.id && p.id !== 'nome'),
   })).filter(g => g.voci.length);
@@ -1410,7 +1455,13 @@ function CntSchedaProprieta({ riga }) {
             <div style={{fontSize: 18, fontWeight: 700, color: ADM.TEXT, letterSpacing: '-0.02em'}}>{riga.nome}</div>
             <div style={{fontSize: 13.2, color: ADM.MUTED, marginTop: 2}}>{riga.email || 'Nessuna email'} · {riga.ref.id}</div>
           </div>
-          <HubStrumento icona="mail">Scrivigli</HubStrumento>
+          {/* Senza email non c'è nessuno a cui scrivere: il bottone non
+              compare — accanto a «Nessuna email» sarebbe una promessa vuota. */}
+          {riga.email && (
+            <HubStrumento icona={scritto ? 'check' : 'mail'} acceso={scritto} onClick={scrivi}>
+              {scritto ? 'Email aperta nel client' : 'Scrivigli'}
+            </HubStrumento>
+          )}
         </div>
         <div style={{padding: '4px 18px 16px'}}>
           {gruppi.map(g => (

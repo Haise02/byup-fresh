@@ -44,12 +44,13 @@ const HUB_NAV = [
   { id: 'agent', label: 'Agent', icon: 'sparkFill', colore: 'HUB_VIOLA',
     desc: 'Agenti che lavorano sui tuoi dati mentre non guardi' },
   // Una voce sola per l'assistenza. Ticket e chiamate sono lo stesso lavoro
-  // fatto su due canali. Il badge somma le due code; il dettaglio lo danno i tab.
+  // fatto su due canali. Il badge somma le due code leggendo le STESSE fonti
+  // dei tab — i ticket aperti di COMUNICAZIONI, le chiamate in attesa — così
+  // la sidebar non può dire un numero diverso dalla pagina che apre.
   { id: 'assistenza', label: 'Assistenza', icon: 'headsetFill',
     desc: 'Ticket, chiamate, FAQ e guide',
-    badge: (SEGNALAZIONI.filter(s=>s.stato==='nuova').length
-          + CERTIFICAZIONI.filter(c=>c.stato==='pending').length
-          + RICHIAMATE.filter(r=>r.stato==='attesa').length) },
+    badge: (COMUNICAZIONI.filter(c => c.stato === 'nuova' || c.stato === 'in_corso').length
+          + RICHIAMATE.filter(r => r.stato === 'attesa').length) },
 ];
 
 // Le voci di governance non stanno più nella barra: si consultano quando
@@ -257,6 +258,9 @@ function AdminApp({ tweaks }) {
   // overflow:auto taglierebbe qualunque figlio che ne esce.
   const [fly, setFly] = useStateApp(null);
   const [menuProfilo, setMenuProfilo] = useStateApp(false);
+  // «Esci da Hubble»: il logout è finto ma l'esito è vero — la shell sparisce
+  // dietro un velo e si rientra da dove si entra sempre, la rubrica.
+  const [uscito, setUscito] = useStateApp(false);
   // Il ritardo di chiusura: senza, il pannello sparisce nel millimetro di
   // vuoto tra la voce e la card, e non ci si arriva mai col mouse.
   const flyTimer = React.useRef(null);
@@ -475,7 +479,7 @@ function AdminApp({ tweaks }) {
                   );
                 })}
                 <div style={{borderTop:`1px solid ${ADM.BORDER_SOFT}`, margin:'6px 4px 4px', paddingTop:5}}>
-                  <button className="adm-actionrow" style={{
+                  <button className="adm-actionrow" onClick={()=>{ setMenuProfilo(false); setUscito(true); }} style={{
                     display:'flex', alignItems:'center', gap:10, width:'100%', textAlign:'left',
                     padding:'8px 9px', borderRadius:9, border:'none', cursor:'pointer',
                     fontFamily:'inherit', background:'transparent',
@@ -562,6 +566,21 @@ function AdminApp({ tweaks }) {
         audienceType={messageModal?.type || 'utenti'}
         presetIds={messageModal?.ids || []}
       />
+
+      {/* La sessione terminata copre tutto: niente login vero nel prototipo,
+          ma il rientro riparte pulito dalla rubrica, come un accesso fresco. */}
+      {uscito && (
+        <div style={{position:'fixed', inset:0, zIndex:200, background:'rgba(15,17,21,0.55)', backdropFilter:'blur(6px)', WebkitBackdropFilter:'blur(6px)', display:'grid', placeItems:'center'}}>
+          <div style={{width:360, background:'#fff', borderRadius:16, boxShadow:'0 32px 80px rgba(15,17,21,0.35)', padding:'30px 28px', textAlign:'center', animation:'admModalIn 0.18s ease'}}>
+            <img src="hubble-mark.png" alt="Hubble" style={{height:34, width:'auto', margin:'0 auto 14px', display:'block'}}/>
+            <div style={{fontSize:17, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em'}}>Sessione terminata</div>
+            <div style={{fontSize:13.5, color:ADM.MUTED, marginTop:6, lineHeight:1.5}}>Sei uscito da Hubble. Per riprendere il lavoro accedi di nuovo.</div>
+            <div style={{marginTop:18, display:'flex', justifyContent:'center'}}>
+              <AdmButton variant="primary" size="md" onClick={()=>{ setUscito(false); setRoute('contatti'); }}>Accedi di nuovo</AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -571,10 +590,23 @@ function ProfiloPage() {
   const [pwd1, setPwd1] = useStateApp('');
   const [pwd2, setPwd2] = useStateApp('');
   const [pwd3, setPwd3] = useStateApp('');
+  const [pwdSalvata, setPwdSalvata] = useStateApp(false);
   const [twofa, setTwofa] = useStateApp(false);
   const [showQr, setShowQr] = useStateApp(false);
+  const [codice2fa, setCodice2fa] = useStateApp('');
+  const [showCodici, setShowCodici] = useStateApp(false);
+  // Le sessioni sono uno stato, non un letterale nel JSX: «Termina» promette
+  // un'azione distruttiva e la lista deve accorciarsi davvero.
+  const [sessioni, setSessioni] = useStateApp([
+    { device:'Mac · Chrome', loc:'Milano', when:'In uso ora', current:true },
+    { device:'iPhone · Safari', loc:'Milano', when:'2 ore fa', current:false },
+    { device:'Mac · Firefox', loc:'Milano', when:'3 giorni fa', current:false },
+  ]);
 
   const pwdOk = pwd2.length >= 8 && pwd2 === pwd3 && pwd1.length > 0;
+  // Stesso metro del cambio password: il codice va letto davvero — sei cifre,
+  // gli spazi del formato «123 456» non contano.
+  const codice2faOk = /^\d{6}$/.test(codice2fa.replace(/\s/g, ''));
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
@@ -609,8 +641,12 @@ function ProfiloPage() {
           <ProfField label="Nuova password" type="password" value={pwd2} onChange={setPwd2} hint={pwd2.length > 0 && pwd2.length < 8 ? 'Almeno 8 caratteri' : ''}/>
           <ProfField label="Conferma nuova password" type="password" value={pwd3} onChange={setPwd3} hint={pwd3.length > 0 && pwd2 !== pwd3 ? 'Le password non coincidono' : ''}/>
         </div>
-        <div style={{marginTop:16, display:'flex', gap:8}}>
-          <AdmButton variant="primary" size="md" icon="check" disabled={!pwdOk}>Aggiorna password</AdmButton>
+        <div style={{marginTop:16, display:'flex', alignItems:'center', gap:10}}>
+          {/* Mock: i campi si svuotano — una password salvata non resta sullo
+              schermo — e la conferma dura il tempo di leggerla. */}
+          <AdmButton variant="primary" size="md" icon="check" disabled={!pwdOk}
+            onClick={()=>{ setPwd1(''); setPwd2(''); setPwd3(''); setPwdSalvata(true); setTimeout(()=>setPwdSalvata(false), 2200); }}>Aggiorna password</AdmButton>
+          {pwdSalvata && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Password aggiornata</span>}
         </div>
       </AdmCard>
 
@@ -628,7 +664,7 @@ function ProfiloPage() {
               Aggiungi un secondo livello di sicurezza al tuo account. Ad ogni accesso ti verrà richiesto un codice generato da un'app come Google Authenticator o Authy.
             </div>
           </div>
-          <AdmSwitch checked={twofa} onChange={(v) => { if (twofa && !v) { setTwofa(false); setShowQr(false); } else if (!twofa && v) { setShowQr(true); } }}/>
+          <AdmSwitch checked={twofa} onChange={(v) => { if (twofa && !v) { setTwofa(false); setShowQr(false); setShowCodici(false); } else if (!twofa && v) { setShowQr(true); } }}/>
         </div>
 
         {showQr && !twofa && (
@@ -648,12 +684,14 @@ function ProfiloPage() {
               </div>
               <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:6}}>2 · Inserisci il codice a 6 cifre</div>
               <div style={{display:'flex', gap:8}}>
-                <input maxLength={6} placeholder="123 456" style={{
+                {/* maxLength 7: sei cifre più lo spazio del formato suggerito
+                    dal placeholder. */}
+                <input maxLength={7} placeholder="123 456" value={codice2fa} onChange={e=>setCodice2fa(e.target.value)} style={{
                   flex:1, padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:7,
                   fontSize:15.1, fontFamily:'ui-monospace,monospace', letterSpacing:'0.2em', textAlign:'center', outline:'none',
                 }}/>
-                <AdmButton variant="primary" size="md" onClick={()=>{ setTwofa(true); setShowQr(false); }}>Attiva 2FA</AdmButton>
-                <AdmButton variant="ghost" size="md" onClick={()=>setShowQr(false)}>Annulla</AdmButton>
+                <AdmButton variant="primary" size="md" disabled={!codice2faOk} onClick={()=>{ setTwofa(true); setShowQr(false); setCodice2fa(''); }}>Attiva 2FA</AdmButton>
+                <AdmButton variant="ghost" size="md" onClick={()=>{ setShowQr(false); setCodice2fa(''); }}>Annulla</AdmButton>
               </div>
             </div>
           </div>
@@ -663,7 +701,19 @@ function ProfiloPage() {
           <div style={{padding:14, background:ADM.OK_SOFT, borderRadius:8, border:`1px solid #BBF7D0`, display:'flex', gap:10, alignItems:'center'}}>
             <BuIcons.check size={21} color={ADM.OK}/>
             <div style={{flex:1, fontSize:14, color:'#065F46'}}>2FA configurata con app Authenticator. Conserva i codici di recupero in un posto sicuro.</div>
-            <AdmButton variant="ghost" size="sm">Codici di recupero</AdmButton>
+            <AdmButton variant="ghost" size="sm" onClick={()=>setShowCodici(c=>!c)}>{showCodici ? 'Nascondi codici' : 'Codici di recupero'}</AdmButton>
+          </div>
+        )}
+        {/* Otto codici fissi, stesso registro monospace della chiave manuale:
+            il banner li promette, il bottone li deve mostrare. */}
+        {twofa && showCodici && (
+          <div style={{marginTop:10, padding:14, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, borderRadius:8}}>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginBottom:8}}>Ogni codice vale un solo accesso. Conservali fuori dal computer.</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:6}}>
+              {['84KF-2Q1D','7PX3-N9RM','QW52-8ZTC','X0DH-44VE','MJ6B-K3PU','5RTN-YB07','CE91-HL2S','ZK38-06WQ'].map(c => (
+                <div key={c} style={{padding:'6px 0', textAlign:'center', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:6, fontFamily:'ui-monospace,monospace', fontSize:12.6, letterSpacing:'0.05em', color:ADM.TEXT}}>{c}</div>
+              ))}
+            </div>
           </div>
         )}
       </AdmCard>
@@ -671,18 +721,14 @@ function ProfiloPage() {
       {/* Sessioni attive */}
       <AdmCard padding={22}>
         <div style={{fontSize:15.1, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Sessioni attive</div>
-        {[
-          { device:'Mac · Chrome', loc:'Milano', when:'In uso ora', current:true },
-          { device:'iPhone · Safari', loc:'Milano', when:'2 ore fa', current:false },
-          { device:'Mac · Firefox', loc:'Milano', when:'3 giorni fa', current:false },
-        ].map((s,i,a) => (
-          <div key={i} style={{display:'flex', alignItems:'center', gap:12, padding:'11px 0', borderBottom: i === a.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+        {sessioni.map((s,i,a) => (
+          <div key={s.device} style={{display:'flex', alignItems:'center', gap:12, padding:'11px 0', borderBottom: i === a.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
             <div style={{width:32, height:32, borderRadius:7, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'grid', placeItems:'center'}}><BuIcons.user size={19}/></div>
             <div style={{flex:1}}>
               <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>{s.device}</div>
               <div style={{fontSize:13.3, color:ADM.MUTED}}>{s.loc} · {s.when}</div>
             </div>
-            {s.current ? <AdmBadge color="OK" size="xs">Sessione attuale</AdmBadge> : <button className="adm-textlink" style={{background:'transparent', border:'none', color:ADM.DANGER, fontSize:13.3, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>Termina</button>}
+            {s.current ? <AdmBadge color="OK" size="xs">Sessione attuale</AdmBadge> : <button className="adm-textlink" onClick={()=>setSessioni(ss => ss.filter(x => x.device !== s.device))} style={{background:'transparent', border:'none', color:ADM.DANGER, fontSize:13.3, fontWeight:600, cursor:'pointer', fontFamily:'inherit'}}>Termina</button>}
           </div>
         ))}
       </AdmCard>

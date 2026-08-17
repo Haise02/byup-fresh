@@ -105,7 +105,11 @@ function anFiltra(locali, f) {
   );
 }
 
-function AnBarraFiltri({ filtri, onChange, attivo }) {
+// `attivo` dice se piano e regione toccano la tab corrente; `periodoAttivo`
+// se il periodo ha una serie da ri-finestrare. Sono due permessi distinti
+// perché le tab li hanno distinti: il Generale non è per locale ma ha i
+// grafici di andamento, Staff è per locale ma ha le finestre fisse.
+function AnBarraFiltri({ filtri, onChange, attivo, periodoAttivo = false }) {
   const regioni = [...new Set(AN_LOCALI.map(l => l.regione))].sort();
   // Solo il guscio: la freccia e il menu li disegna AdmSelect, che apre il
   // popover di Hubble al posto della tendina del sistema operativo.
@@ -147,9 +151,22 @@ function AnBarraFiltri({ filtri, onChange, attivo }) {
       )}
       <div style={{flex:1}}/>
       <span style={{fontSize:12.4, color:ADM.MUTED}}>
-        {attivo
-          ? <><strong style={{color:ADM.TEXT}}>{filtrati}</strong> local{filtrati === 1 ? 'e' : 'i'} su {tutti} in questa vista</>
-          : <>Il filtro non tocca questa tab: qui i dati non sono per locale</>}
+        {/* La barra dichiara il proprio perimetro, pezzo per pezzo: un
+            contatore che reagisce su una tab dove i numeri non si muovono è
+            il modo più silenzioso di mentire. */}
+        {attivo || periodoAttivo ? (
+          <>
+            {attivo
+              ? <><strong style={{color:ADM.TEXT}}>{filtrati}</strong> local{filtrati === 1 ? 'e' : 'i'} su {tutti} in questa vista</>
+              : <>Piano e regione non toccano questa tab: i numeri sono di piattaforma</>}
+            {' · '}
+            {periodoAttivo
+              ? <>il periodo ri-finestra i grafici di andamento</>
+              : <>le finestre temporali sono dichiarate sulle card</>}
+          </>
+        ) : (
+          <>Il filtro non tocca questa tab: qui i dati non sono per locale</>
+        )}
       </span>
     </div>
   );
@@ -595,13 +612,17 @@ function AnDispositivi({ filtri }) {
               { tono:'DANGER', testo:'Un terzo o più non ha mai acceso il prodotto: sono clienti che pagano una cassa.' },
             ]}
             sotto={niente ? `Adozione mediana ${anPct(niente.adozione)} contro ${anPct(monitor ? monitor.adozione : 0)} di chi ha il monitor` : null}/>
+          {/* Il conteggio «stampa» nel sottotesto viene da `dot`, come
+              `niente`: sommare il precalcolo globale AN_PER_DOTAZIONE a un
+              gruppo filtrato mescolava due popolazioni appena il filtro si
+              accendeva. */}
           <AnMetrica label="Attesa cucina · solo col monitor" valore={monitor && monitor.minutiInCucina != null ? `${anNum(monitor.minutiInCucina, 1)}′` : '—'}
             num={monitor && monitor.minutiInCucina != null ? monitor.minutiInCucina : 0}
             formula="spunta di presa in carico − invio comanda"
             fasce={[
               { fino:2, tono:'OK' }, { fino:4, tono:'WARN' }, { tono:'DANGER' },
             ]}
-            sotto={`Sugli altri ${(niente ? niente.n : 0) + (AN_PER_DOTAZIONE.find(x => x.k === 'stampa') || { n:0 }).n} locali il dato non esiste: su carta non c’è una spunta, e senza collegamento non c’è nemmeno la comanda`}/>
+            sotto={`Sugli altri ${(niente ? niente.n : 0) + (dot.find(d => d.k === 'stampa') || { n:0 }).n} locali il dato non esiste: su carta non c’è una spunta, e senza collegamento non c’è nemmeno la comanda`}/>
           <AnMetrica label="Byup Staff attivi" valore={anNum(locali.reduce((s, l) => s + l.posAttivi, 0))} num={locali.reduce((s, l) => s + l.posAttivi, 0)}
             formula="dispositivi POS con almeno un incasso nel mese"
             fasce={[

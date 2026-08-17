@@ -30,7 +30,9 @@ const { useState: useStateAmb, useMemo: useMemoAmb } = React;
 const ambAgente = (id) => HUB_AGENTI.find(a => a.id === id) || null;
 const ambNomeAgente = (id) => (ambAgente(id) || {}).nome || 'Una persona';
 const ambArgomento = (id) => HUB_AMB_ARGOMENTI.find(a => a.id === id) || HUB_AMB_ARGOMENTI[0];
-const ambCatena = (id) => HUB_AMB_CATENE.find(c => c.id === id) || null;
+// Le catene sono stato della pagina (si ritoccano, se ne costruiscono): chi
+// ha la lista viva la passa, la costante resta come rete per chi non ce l'ha.
+const ambCatena = (id, lista) => (lista || HUB_AMB_CATENE).find(c => c.id === id) || null;
 
 // La pastiglia di un argomento della lavagna: stesso colore ovunque compaia,
 // perché è l'unica cosa che tiene insieme quattro schede diverse.
@@ -107,10 +109,38 @@ function AmbTappa({ tappa, ultima, indice }) {
   );
 }
 
-function AmbCatene() {
+function AmbCatene({ catene, onCambia }) {
+  // La bozza del modale: con un id ritocca una catena che esiste, senza id ne
+  // costruisce una nuova. Un modale solo, perché i campi sono gli stessi —
+  // cambia soltanto che cosa promette il pulsante in fondo.
+  const [bozza, setBozza] = useStateAmb(null);
+
+  const salva = () => {
+    const nome = bozza.nome.trim();
+    if (!nome) return;
+    const tetto = Math.max(1, Number(bozza.tetto) || 8);
+    if (bozza.id) {
+      onCambia(prev => prev.map(c => c.id === bozza.id
+        ? Object.assign({}, c, { nome, argomento: bozza.argomento, descrizione: bozza.descrizione.trim(), tetto })
+        : c));
+    } else {
+      // L'id prosegue la numerazione, e la catena nasce «in prova»: zero
+      // giri, zero spesa, e la persona già come ultima tappa — il punto in
+      // cui si ferma e chiede non è un'aggiunta, c'è dalla nascita.
+      const id = 'CT-' + String(catene.reduce((m, c) => Math.max(m, parseInt(c.id.slice(3), 10) || 0), 0) + 1).padStart(3, '0');
+      onCambia(prev => [...prev, {
+        id, nome, stato: 'in prova', argomento: bozza.argomento,
+        descrizione: bozza.descrizione.trim() || 'Appena costruita: il primo giro deve ancora partire.',
+        girati: 0, conclusi: 0, aPersona: 0, costoGiorno: 0, tetto, profondita: 1,
+        tappe: bozza.tappe,
+      }]);
+    }
+    setBozza(null);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-      {HUB_AMB_CATENE.map(c => {
+      {catene.map(c => {
         const consegna = c.girati ? Math.round(c.conclusi / c.girati * 100) : 0;
         return (
           <AdmCard key={c.id} padding={16}>
@@ -123,7 +153,10 @@ function AmbCatene() {
                 </div>
                 <div style={{ fontSize: 13, color: ADM.MUTED, lineHeight: 1.5 }}>{c.descrizione}</div>
               </div>
-              <HubStrumento icona="pencil">Modifica</HubStrumento>
+              <HubStrumento icona="pencil" onClick={() => setBozza({
+                id: c.id, nome: c.nome, argomento: c.argomento,
+                descrizione: c.descrizione, tetto: c.tetto, tappe: c.tappe,
+              })}>Modifica</HubStrumento>
             </div>
 
             {/* Il flusso, da sinistra a destra. Orizzontale e non verticale
@@ -155,18 +188,79 @@ function AmbCatene() {
         );
       })}
 
-      <button className="hub-card" style={{
+      <button className="hub-card" onClick={() => setBozza({
+        id: null, nome: '', argomento: 'rischio', descrizione: '', tetto: 8,
+        tappe: [{ agente: null, ruolo: 'persona', fa: 'Guarda e conferma prima che esca qualcosa', patto: [] }],
+      })} style={{
         padding: '16px 14px', borderRadius: 14, border: `1.5px dashed ${ADM.HUB_VIOLA}`, background: '#fff',
         cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
         fontSize: 13.6, fontWeight: 700, color: ADM.HUB_VIOLA_DARK,
       }}><BuIcons.plus size={16}/> Costruisci una catena</button>
+
+      {bozza && (
+        <HubModale open onClose={() => setBozza(null)} larghezza={620}
+          titolo={bozza.id ? 'Modifica la catena' : 'Costruisci una catena'}
+          sotto={bozza.id
+            ? bozza.id + ' · qui si ritoccano nome, argomento e tetto: le tappe sono i patti, e si leggono.'
+            : 'Nasce in prova, a zero giri: prima si guarda lavorare, poi si accende.'}
+          footer={
+            <React.Fragment>
+              <div style={{ flex: 1 }}/>
+              <HubStrumento onClick={() => setBozza(null)}>Annulla</HubStrumento>
+              <HubStrumento forte icona="check" onClick={salva}>{bozza.id ? 'Salva la catena' : 'Costruisci la catena'}</HubStrumento>
+            </React.Fragment>
+          }>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.6fr) minmax(0,1.1fr)', gap: 12 }}>
+              <HubCampo label="Nome">
+                <HubInput valore={bozza.nome} onCambia={v => setBozza(b => Object.assign({}, b, { nome: v }))}
+                  placeholder="es. Dal segnale alla telefonata"/>
+              </HubCampo>
+              <HubCampo label="Argomento">
+                <AdmSelect block value={bozza.argomento} onChange={v => setBozza(b => Object.assign({}, b, { argomento: v }))}
+                  options={HUB_AMB_ARGOMENTI.map(a => ({ value: a.id, label: a.label }))}/>
+              </HubCampo>
+            </div>
+            <HubCampo label="Che cosa fa" nota="Compare sotto il nome, nella lista delle catene.">
+              <HubArea valore={bozza.descrizione} onCambia={v => setBozza(b => Object.assign({}, b, { descrizione: v }))} righe={2}
+                placeholder="es. Quando un locale mostra segnali di abbandono, l'ambiente prepara la chiamata."/>
+            </HubCampo>
+            <HubCampo label="Tetto al giorno" larghezza={220}
+              nota="In euro. Al tetto la catena si ferma da sola: è il motivo per cui si può lasciare accesa.">
+              <HubInput tipo="number" valore={bozza.tetto} onCambia={v => setBozza(b => Object.assign({}, b, { tetto: v }))}/>
+            </HubCampo>
+            <HubCampo label="Le tappe" nota={bozza.id
+              ? 'Da qui si leggono soltanto: cambiare una tappa cambia un patto di consegna, non è un ritocco da modale.'
+              : 'Si parte dalla fine: la persona che conferma c\'è già. Gli agenti si aggiungono dopo, una tappa e un patto per volta.'}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {bozza.tappe.map((t, i) => {
+                  const r = HUB_AMB_RUOLI[t.ruolo] || HUB_AMB_RUOLI.esecutore;
+                  return (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: 9, padding: '8px 11px',
+                      borderRadius: 9, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER_SOFT}`,
+                    }}>
+                      <AmbFaccia id={t.agente} size={24}/>
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12.8, lineHeight: 1.4 }}>
+                        <strong style={{ fontWeight: 700, color: ADM.TEXT }}>{ambNomeAgente(t.agente)}</strong>
+                        <span style={{ color: ADM.MUTED }}> — {t.fa}</span>
+                      </span>
+                      <span style={{ fontSize: 10.4, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM[r.color], flexShrink: 0 }}>{r.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </HubCampo>
+          </div>
+        </HubModale>
+      )}
     </div>
   );
 }
 
 // ─── 2 · La lavagna ─────────────────────────────────────────────────────────
 
-function AmbLavagna() {
+function AmbLavagna({ catene }) {
   const [filtro, setFiltro] = useStateAmb('tutti');
   const note = HUB_AMB_NOTE.filter(n => filtro === 'tutti' || n.argomento === filtro);
 
@@ -184,7 +278,7 @@ function AmbLavagna() {
         }}>Tutti gli argomenti</button>
         {HUB_AMB_ARGOMENTI.map(a => {
           const Ic = BuIcons[a.icona];
-          const iscritti = HUB_AMB_CATENE.filter(c => c.argomento === a.id)
+          const iscritti = catene.filter(c => c.argomento === a.id)
             .flatMap(c => c.tappe.map(t => t.agente)).filter(Boolean);
           const unici = [...new Set(iscritti)];
           return (
@@ -212,7 +306,7 @@ function AmbLavagna() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {note.map(n => {
           const a = ambArgomento(n.argomento);
-          const c = ambCatena(n.catena);
+          const c = ambCatena(n.catena, catene);
           const tinta = n.allarme ? ADM.DANGER : n.disaccordo ? ADM.WARN : ADM.BORDER;
           return (
             <div key={n.id} style={{
@@ -270,7 +364,7 @@ function AmbLavagna() {
 
 const AMB_PRIORITA = { alta: { l: 'Alta', c: 'DANGER' }, media: { l: 'Media', c: 'WARN' }, bassa: { l: 'Bassa', c: 'PLAN_FREE' } };
 
-function AmbCoda() {
+function AmbCoda({ catene }) {
   const colonne = ['coda', 'preso', 'fatto', 'persona'];
   return (
     <div>
@@ -290,7 +384,7 @@ function AmbCoda() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {voci.map(c => {
                   const p = AMB_PRIORITA[c.priorita] || AMB_PRIORITA.media;
-                  const cat = ambCatena(c.catena);
+                  const cat = ambCatena(c.catena, catene);
                   return (
                     <div key={c.id} style={{ background: '#fff', border: `1px solid ${ADM.BORDER}`, borderRadius: 10, padding: 10 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
@@ -339,7 +433,7 @@ function AmbCoda() {
 
 // ─── 4 · Il registro ────────────────────────────────────────────────────────
 
-function AmbRegistro() {
+function AmbRegistro({ catene }) {
   const [catena, setCatena] = useStateAmb('tutte');
   const righe = HUB_AMB_TRACCIA.filter(t => catena === 'tutte' || t.catena === catena)
     .slice().sort((a, b) => b.t - a.t);
@@ -350,7 +444,7 @@ function AmbRegistro() {
         <span style={{ fontSize: 12.6, fontWeight: 700, color: ADM.MUTED }}>Catena</span>
         <div style={{ width: 280 }}>
           <AdmSelect block value={catena} onChange={setCatena}
-            options={[{ value: 'tutte', label: 'Tutte le catene' }, ...HUB_AMB_CATENE.map(c => ({ value: c.id, label: c.nome }))]}/>
+            options={[{ value: 'tutte', label: 'Tutte le catene' }, ...catene.map(c => ({ value: c.id, label: c.nome }))]}/>
         </div>
       </div>
 
@@ -359,7 +453,7 @@ function AmbRegistro() {
           {righe.map((t, i) => {
             const az = HUB_AMB_AZIONI[t.cosa] || HUB_AMB_AZIONI.legge;
             const Ic = BuIcons[az.icona];
-            const c = ambCatena(t.catena);
+            const c = ambCatena(t.catena, catene);
             return (
               <div key={i} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 15px',
@@ -426,14 +520,18 @@ function AmbGuardie() {
 
 // ─── La pagina ──────────────────────────────────────────────────────────────
 
-function HubAmbientePage() {
+function HubAmbientePage({ catene, setCatene }) {
   const [tab, setTab] = useStateAmb('catene');
+  // Le catene arrivano dal padre (HubAgentPage): «Costruisci una catena» deve
+  // costruire davvero, e se ne devono accorgere cruscotto, filtri E il
+  // conteggio della tab «Ambiente» — che vive fuori da questa pagina. Una
+  // fonte per ogni fatto, anche attraverso lo smontaggio del cambio scheda.
 
   const inCoda = HUB_AMB_COMPITI.filter(c => c.stato === 'coda').length;
   const aPersona = HUB_AMB_COMPITI.filter(c => c.stato === 'persona').length;
-  const speso = HUB_AMB_CATENE.reduce((s, c) => s + c.costoGiorno, 0);
-  const tetto = HUB_AMB_CATENE.reduce((s, c) => s + c.tetto, 0);
-  const ferme = HUB_AMB_CATENE.filter(c => c.stato === 'ferma').length;
+  const speso = catene.reduce((s, c) => s + c.costoGiorno, 0);
+  const tetto = catene.reduce((s, c) => s + c.tetto, 0);
+  const ferme = catene.filter(c => c.stato === 'ferma').length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -454,7 +552,7 @@ function HubAmbientePage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 18 }}>
             {[
-              { l: 'Catene attive', v: HUB_AMB_CATENE.filter(c => c.stato === 'attiva').length, s: ferme ? `${ferme} ferma da guardare` : `su ${HUB_AMB_CATENE.length} costruite` },
+              { l: 'Catene attive', v: catene.filter(c => c.stato === 'attiva').length, s: ferme ? `${ferme} ferma da guardare` : `su ${catene.length} costruite` },
               { l: 'Compiti in coda', v: inCoda, s: inCoda ? 'in attesa di essere presi' : 'niente arretrato' },
               { l: 'Saliti a una persona', v: aPersona, s: 'aspettano una decisione' },
               { l: 'Speso oggi', v: '€' + speso.toFixed(2), s: `su un tetto di €${tetto}` },
@@ -470,17 +568,17 @@ function HubAmbientePage() {
       </div>
 
       <HubSegmenti attivo={tab} onCambia={setTab} voci={[
-        { id: 'catene',   label: 'Catene',   conteggio: HUB_AMB_CATENE.length },
+        { id: 'catene',   label: 'Catene',   conteggio: catene.length },
         { id: 'lavagna',  label: 'Lavagna',  conteggio: HUB_AMB_NOTE.length },
         { id: 'coda',     label: 'Coda',     conteggio: inCoda || null },
         { id: 'registro', label: 'Registro' },
         { id: 'guardie',  label: 'Guardie' },
       ]}/>
 
-      {tab === 'catene' && <AmbCatene/>}
-      {tab === 'lavagna' && <AmbLavagna/>}
-      {tab === 'coda' && <AmbCoda/>}
-      {tab === 'registro' && <AmbRegistro/>}
+      {tab === 'catene' && <AmbCatene catene={catene} onCambia={setCatene}/>}
+      {tab === 'lavagna' && <AmbLavagna catene={catene}/>}
+      {tab === 'coda' && <AmbCoda catene={catene}/>}
+      {tab === 'registro' && <AmbRegistro catene={catene}/>}
       {tab === 'guardie' && <AmbGuardie/>}
     </div>
   );

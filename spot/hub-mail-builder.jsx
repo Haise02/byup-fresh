@@ -222,7 +222,13 @@ function mbComando(cmd, arg) {
   const a = mbEditorAttivo;
   if (!a || !a.el) return;
   a.el.focus();
-  try { document.execCommand(cmd, false, arg); } catch (e) { /* niente */ }
+  try {
+    // Senza questo flag Chrome scrive colore e corpo come <font color/size>,
+    // un tag che mbPulisci butta via al primo blur — la parola tornerebbe
+    // nuda. Col flag i comandi scrivono <span style>, come promesso sopra.
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand(cmd, false, arg);
+  } catch (e) { /* niente */ }
   a.emetti();
 }
 function mbInserisci(html) { mbComando('insertHTML', html); }
@@ -441,10 +447,26 @@ function MbCursore({ label, valore, onCambia, min, max, unita = 'px' }) {
 // JS, e un pannello `position: fixed` lì dentro si disegna in un punto e
 // riceve i click in un altro — è il bug che fa dire «il menu è coperto».
 
+// Il preventDefault sul mousedown — necessario per non far collassare la
+// selezione quando si preme un comando — sopprime anche lo :active globale di
+// byup-spot.html: senza aiuto questi bottoni non mostrerebbero mai la
+// pressione. L'hover arriva dalla classe (funziona su qualunque fondo, anche
+// le tinte della palette); la pressione la simuliamo a mano nel mousedown.
+const MB_TASTO_CSS = `
+  .mb-tasto { transition: transform 90ms ease-out, box-shadow 0.12s ease, filter 0.12s ease; }
+  .mb-tasto:hover { box-shadow: 0 2px 8px rgba(15,17,21,0.14); filter: brightness(0.97); }
+  .mb-tasto.mb-premuto { transform: scale(0.96); box-shadow: none; }
+`;
+const mbPressione = {
+  onMouseDown: e => { e.preventDefault(); e.currentTarget.classList.add('mb-premuto'); },
+  onMouseUp: e => e.currentTarget.classList.remove('mb-premuto'),
+  onMouseLeave: e => e.currentTarget.classList.remove('mb-premuto'),
+};
+
 function MbBottoneStrumento({ icona, testo, titolo, onClick, largo }) {
   const Ic = icona ? BuIcons[icona] : null;
   return (
-    <button type="button" title={titolo} onMouseDown={e => e.preventDefault()} onClick={onClick} style={{
+    <button type="button" title={titolo} className="mb-tasto" {...mbPressione} onClick={onClick} style={{
       minWidth: largo ? 'auto' : 30, height: 30, padding: largo ? '0 9px' : 0, borderRadius: 7,
       border: `1px solid ${ADM.BORDER}`, background: '#fff', cursor: 'pointer', fontFamily: 'inherit',
       color: ADM.TEXT, display: 'inline-grid', placeItems: 'center', fontSize: 13, fontWeight: 700,
@@ -463,6 +485,7 @@ function MbBarraTesto() {
 
   return (
     <div style={{ border: `1px solid ${ADM.BORDER}`, borderRadius: 11, background: ADM.PANEL_SOFT, padding: 9 }}>
+      <style>{MB_TASTO_CSS}</style>
       <div style={{ fontSize: 10.6, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 7 }}>
         Formatta la selezione
       </div>
@@ -485,18 +508,18 @@ function MbBarraTesto() {
         <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 7 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {[ADM.PINK, ADM.HUB_MAGENTA, ADM.HUB_VIOLA, ADM.OK, ADM.WARN, ADM.INFO, ADM.TEAL, '#16181D', '#8A8A90'].map(c => (
-              <button key={c} title={c} onMouseDown={e => e.preventDefault()} onClick={() => mbComando('foreColor', c)}
+              <button key={c} title={c} className="mb-tasto" {...mbPressione} onClick={() => mbComando('foreColor', c)}
                 style={{ width: 24, height: 24, borderRadius: 6, border: `1px solid rgba(0,0,0,0.12)`, background: c, cursor: 'pointer' }}/>
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <input type="color" value={tinta} onChange={e => setTinta(e.target.value)}
               style={{ width: 32, height: 30, padding: 2, border: `1px solid ${ADM.BORDER}`, borderRadius: 7, background: '#fff', cursor: 'pointer' }}/>
-            <button onMouseDown={e => e.preventDefault()} onClick={() => mbComando('foreColor', tinta)} style={{
+            <button className="mb-tasto" {...mbPressione} onClick={() => mbComando('foreColor', tinta)} style={{
               flex: 1, padding: '7px 10px', borderRadius: 8, border: `1px solid ${ADM.BORDER}`, background: '#fff',
               fontSize: 12.6, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: ADM.TEXT,
             }}>Colora così</button>
-            <button onMouseDown={e => e.preventDefault()} onClick={() => mbComando('hiliteColor', tinta)} title="Evidenzia lo sfondo delle parole" style={{
+            <button className="mb-tasto" {...mbPressione} onClick={() => mbComando('hiliteColor', tinta)} title="Evidenzia lo sfondo delle parole" style={{
               padding: '7px 10px', borderRadius: 8, border: `1px solid ${ADM.BORDER}`, background: '#fff',
               fontSize: 12.6, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: ADM.MUTED,
             }}>Evidenzia</button>
@@ -507,7 +530,7 @@ function MbBarraTesto() {
       {pannello === 'link' && (
         <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
           <div style={{ flex: 1, minWidth: 0 }}><HubInput valore={url} onCambia={setUrl} placeholder="https://…"/></div>
-          <button onMouseDown={e => e.preventDefault()} onClick={() => mbComando('createLink', url)} style={{
+          <button className="mb-tasto" {...mbPressione} onClick={() => mbComando('createLink', url)} style={{
             padding: '0 12px', borderRadius: 8, border: 'none', background: ADM.PINK, color: '#fff',
             fontSize: 12.8, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
           }}>Lega</button>
@@ -521,7 +544,7 @@ function MbBarraTesto() {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {campi.map(c => (
-              <button key={c.id} onMouseDown={e => e.preventDefault()}
+              <button key={c.id} className="mb-tasto" {...mbPressione}
                 onClick={() => mbInserisci('{{' + c.id + '}}')} style={{
                   padding: '4px 9px', borderRadius: 999, border: `1px solid ${ADM.BORDER}`, background: '#fff',
                   fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: ADM.TEXT,
@@ -534,7 +557,7 @@ function MbBarraTesto() {
       {pannello === 'simboli' && (
         <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {MB_SIMBOLI.map(s => (
-            <button key={s} onMouseDown={e => e.preventDefault()} onClick={() => mbInserisci(s)} style={{
+            <button key={s} className="mb-tasto" {...mbPressione} onClick={() => mbInserisci(s)} style={{
               width: 30, height: 30, borderRadius: 7, border: `1px solid ${ADM.BORDER}`, background: '#fff',
               fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', color: ADM.TEXT,
             }}>{s}</button>

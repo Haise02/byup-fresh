@@ -545,12 +545,27 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
   const [rejectMode, setRejectMode] = useStateCom(false);
   const [rejectReason, setRejectReason] = useStateCom('');
   const [composerOpen, setComposerOpen] = useStateCom(false);
+  // Conferma transitoria dell'invio: il composer si chiude e il chip lo dice,
+  // altrimenti campo svuotato e campo mai compilato sarebbero identici.
+  const [inviata, setInviata] = useStateCom(false);
+  // Allegati in bozza della risposta: del file serve solo nome e peso — il
+  // chip è rimovibile finché non parte col messaggio.
+  const [allegatiBozza, setAllegatiBozza] = useStateCom([]);
+  const fileRef = React.useRef(null);
+  const imgRef = React.useRef(null);
 
   React.useEffect(() => {
     setReply(''); setTagInput('');
     setRejectMode(false); setRejectReason('');
     setComposerOpen(false);
+    setInviata(false); setAllegatiBozza([]);
   }, [item.id]);
+
+  const aggiungiAllegato = (f, kind) => {
+    if (!f) return;
+    const k = kind || (/\.pdf$/i.test(f.name) ? 'pdf' : 'image');
+    setAllegatiBozza(prev => [...prev, { name: f.name, size: `${Math.max(1, Math.round(f.size/1024))} KB`, kind: k }]);
+  };
 
   const submitTag = () => {
     const t = tagInput.trim().replace(/^#/, '');
@@ -665,6 +680,10 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
           ) : (
             <EmailBody item={item} locale={locale}/>
           )}
+
+          {/* Le risposte inviate si accodano sotto il messaggio del ristoratore:
+              il thread stesso è la prova che l'invio è avvenuto. */}
+          {!item.certRequest && (item.messaggi || []).map((m, i) => <ReplyBody key={i} m={m}/>)}
 
           {item.moderazione && <ModerationCard item={item} locale={locale} onUpdate={onUpdate}/>}
 
@@ -828,6 +847,11 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
             <BuIcons.send size={15} color={ADM.MUTED_SOFT}/>
             Rispondi a {item.senderName.split(' ')[0]}…
           </button>
+          {inviata && (
+            <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'7px 13px', background:ADM.OK_SOFT, color:'#065F46', borderRadius:99, fontSize:13.3, fontWeight:700, whiteSpace:'nowrap'}}>
+              <BuIcons.check size={16}/> Risposta inviata
+            </span>
+          )}
         </div>
       )}
       {!item.certRequest && item.stato !== 'risolta' && isAssignedToMe && composerOpen && (
@@ -864,6 +888,20 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                 resize:'vertical', outline:'none', boxSizing:'border-box',
               }}
             />
+            {allegatiBozza.length > 0 && (
+              <div style={{display:'flex', gap:7, flexWrap:'wrap', padding:'0 12px 9px'}}>
+                {allegatiBozza.map((a, i) => (
+                  <span key={i} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`, borderRadius:7, fontSize:12.6, fontWeight:600, color:ADM.TEXT}}>
+                    <BuIcons.paperclip size={14}/>
+                    {a.name}
+                    <span style={{color:ADM.MUTED_SOFT, fontWeight:500}}>{a.size}</span>
+                    <button onClick={()=>setAllegatiBozza(prev => prev.filter((_, j) => j !== i))} title="Rimuovi allegato" style={{padding:0, width:14, height:14, borderRadius:'50%', background:'transparent', border:'none', color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center', fontFamily:'inherit'}}>
+                      <BuIcons.x size={13}/>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <div style={{
               display:'flex', alignItems:'center', gap:7,
               padding:'8px 12px',
@@ -875,14 +913,25 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                   a quella che la annulla, con il rischio di chiudere per
                   sbaglio invece di rispondere — e comunque la stessa azione
                   ripetuta in due punti non aiuta a capire dove sta di casa. */}
-              <AdmIconBtn icon="paperclip" label="Allega file"/>
-              <AdmIconBtn icon="image" label="Inserisci immagine"/>
+              <input ref={fileRef} type="file" style={{display:'none'}} onChange={e=>{ aggiungiAllegato(e.target.files[0]); e.target.value=''; }}/>
+              <input ref={imgRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>{ aggiungiAllegato(e.target.files[0], 'image'); e.target.value=''; }}/>
+              <AdmIconBtn icon="paperclip" label="Allega file" onClick={()=>fileRef.current && fileRef.current.click()}/>
+              <AdmIconBtn icon="image" label="Inserisci immagine" onClick={()=>imgRef.current && imgRef.current.click()}/>
               <div style={{flex:1}}/>
               {(() => {
                 const handleSend = () => {
                   if (!reply.trim()) return;
-                  onUpdate({ stato:'in_corso', assignedTo: item.assignedTo || MY_ID });
-                  setReply('');
+                  // La risposta diventa un messaggio del thread, allegati
+                  // compresi: senza traccia renderizzata, inviare e non
+                  // inviare sarebbero la stessa cosa.
+                  onUpdate({
+                    stato:'in_corso', assignedTo: item.assignedTo || MY_ID,
+                    messaggi: [...(item.messaggi || []), { autore: MY_ID, testo: reply.trim(), data: new Date(), allegati: allegatiBozza }],
+                  });
+                  setReply(''); setAllegatiBozza([]);
+                  setComposerOpen(false);
+                  setInviata(true);
+                  setTimeout(()=>setInviata(false), 3000);
                 };
                 return (
                   <button onClick={handleSend} disabled={!reply.trim()} style={{
@@ -914,7 +963,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
 function EmailBody({ item, locale }) {
   return (
     // Il mittente è già nell'header del thread: qui basta un timbro leggero
-    // (utile quando i messaggi diventeranno più di uno).
+    // (e ora che le risposte dell'operatore si accodano, il timbro dice chi parla).
     <div style={{display:'flex', gap:12}}>
       <AdmAvatar name={item.senderName} size={28} bg={`hsl(${(item.localeId?.charCodeAt(1)||0)*17 % 360}, 38%, 52%)`}/>
       <div style={{flex:1, minWidth:0}}>
@@ -933,6 +982,38 @@ function EmailBody({ item, locale }) {
         {item.allegati.length > 0 && (
           <div style={{marginTop:10, display:'flex', gap:8, flexWrap:'wrap'}}>
             {item.allegati.map((a, i) => <Attachment key={i} a={a}/>)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Risposta dell'operatore nel thread ─────────────────────────────────────
+// Stesso impianto di EmailBody, ma il timbro dichiara che parla l'assistenza:
+// nel thread le due voci devono distinguersi a colpo d'occhio.
+function ReplyBody({ m }) {
+  const op = TEAM.find(t => t.id === m.autore);
+  return (
+    <div style={{display:'flex', gap:12}}>
+      <AdmAvatar name={op?.nome || m.autore} size={28}/>
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:5, flexWrap:'wrap'}}>
+          <span style={{fontSize:13, fontWeight:700, color:ADM.TEXT}}>{op?.nome || m.autore}</span>
+          <span style={{fontSize:11.5, fontWeight:700, color:ADM.PINK_DARK, background:ADM.PINK_BG_SOFT, padding:'1px 8px', borderRadius:99}}>Assistenza Byup</span>
+          <span style={{fontSize:12.5, color:ADM.MUTED_SOFT}}>{fmtRelative(m.data)}</span>
+        </div>
+        <div style={{
+          padding:'14px 16px',
+          background:'#fff',
+          border:`1px solid ${ADM.PINK}30`,
+          borderRadius:10,
+          fontSize:14.8, color:ADM.TEXT, lineHeight:1.6,
+          whiteSpace:'pre-wrap',
+        }}>{m.testo}</div>
+        {m.allegati?.length > 0 && (
+          <div style={{marginTop:10, display:'flex', gap:8, flexWrap:'wrap'}}>
+            {m.allegati.map((a, i) => <Attachment key={i} a={a}/>)}
           </div>
         )}
       </div>
@@ -996,30 +1077,71 @@ function Attachment({ a }) {
   const isPdf = a.kind === 'pdf' || /\.pdf$/i.test(a.name);
   const Icon = BuIcons[isPdf ? 'filePdf' : 'image'];
   const color = isPdf ? ADM.DANGER : ADM.NEUTRAL;
+  // Il click apre l'anteprima: nel flusso cert questo chip è l'unico accesso
+  // al documento che l'operatore deve approvare o rifiutare — un segnaposto
+  // fedele qui, il file vero nel prodotto.
+  const [preview, setPreview] = useStateCom(false);
   return (
-    <button style={{
-      display:'inline-flex', alignItems:'center', gap:10,
-      padding:'9px 14px',
-      background:'#fff',
-      border:`1px solid ${ADM.BORDER}`,
-      borderRadius:9,
-      fontFamily:'inherit', cursor:'pointer',
-      transition:'all 0.15s',
-      textAlign:'left',
-    }}>
-      <div style={{
-        width:30, height:30, borderRadius:7,
-        background:`${color}1A`, color,
-        display:'grid', placeItems:'center', flexShrink:0,
+    <>
+      <button onClick={()=>setPreview(true)} style={{
+        display:'inline-flex', alignItems:'center', gap:10,
+        padding:'9px 14px',
+        background:'#fff',
+        border:`1px solid ${ADM.BORDER}`,
+        borderRadius:9,
+        fontFamily:'inherit', cursor:'pointer',
+        transition:'all 0.15s',
+        textAlign:'left',
       }}>
-        <Icon size={19}/>
-      </div>
-      <div style={{minWidth:0}}>
-        <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{a.name}</div>
-        <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{a.size}</div>
-      </div>
-      <BuIcons.download size={18} color={ADM.MUTED}/>
-    </button>
+        <div style={{
+          width:30, height:30, borderRadius:7,
+          background:`${color}1A`, color,
+          display:'grid', placeItems:'center', flexShrink:0,
+        }}>
+          <Icon size={19}/>
+        </div>
+        <div style={{minWidth:0}}>
+          <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{a.name}</div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{a.size}</div>
+        </div>
+        <BuIcons.download size={18} color={ADM.MUTED}/>
+      </button>
+      {preview && (
+        <div style={{position:'fixed', inset:0, zIndex:70, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.45)'}} onClick={()=>setPreview(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:560, maxWidth:'92%', maxHeight:'86vh', background:'#fff', borderRadius:14, overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', display:'flex', flexDirection:'column'}}>
+            <div style={{padding:'14px 18px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:11, flexShrink:0}}>
+              <div style={{width:34, height:34, borderRadius:8, background:`${color}1A`, color, display:'grid', placeItems:'center', flexShrink:0}}>
+                <Icon size={20}/>
+              </div>
+              <div style={{flex:1, minWidth:0}}>
+                <div style={{fontSize:14.6, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{a.name}</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{isPdf ? 'Documento PDF' : 'Immagine'} · {a.size}</div>
+              </div>
+              <button onClick={()=>setPreview(false)} title="Chiudi" className="adm-iconbtn" style={{width:28, height:28, borderRadius:8, border:'none', background:ADM.NEUTRAL_SOFT, color:ADM.MUTED, cursor:'pointer', display:'grid', placeItems:'center', flexShrink:0}}>
+                <BuIcons.x size={16}/>
+              </button>
+            </div>
+            <div style={{padding:22, background:ADM.PANEL_SOFT, overflowY:'auto'}}>
+              {isPdf ? (
+                /* Pagina segnaposto: righe a larghezza fissa, così il mock è
+                   deterministico e si legge come "qui c'è un documento". */
+                <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:6, padding:'28px 30px', boxShadow:'0 2px 8px rgba(15,17,21,0.06)'}}>
+                  <div style={{height:13, width:'46%', borderRadius:4, background:'#DDE1E7', marginBottom:18}}/>
+                  {['94%','88%','96%','73%','90%','82%','40%'].map((w, i) => (
+                    <div key={i} style={{height:8, width:w, borderRadius:4, background:'#ECEEF2', marginBottom:9}}/>
+                  ))}
+                  <div style={{height:8, width:'62%', borderRadius:4, background:'#ECEEF2', marginTop:16}}/>
+                </div>
+              ) : (
+                <div style={{height:260, borderRadius:8, border:`1px dashed ${ADM.BORDER}`, background:'#fff', display:'grid', placeItems:'center', color:ADM.MUTED_SOFT}}>
+                  <BuIcons.image size={44}/>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

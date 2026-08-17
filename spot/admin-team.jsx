@@ -1,9 +1,3 @@
-                  {/* Lo stato della riga non ha più una colonna: si legge dal
-                      fondo — verde tenue confermata, rosso tenue revocata,
-                      bianco da decidere — e per esteso nel dettaglio, che è
-                      dove si decide. Resta il chevron, perché una riga
-                      cliccabile deve dire di esserlo. */}
-                  <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
 // Admin Team: gestione utenti dello staff con ruoli e permessi
 
 const { useState: useStateTeam } = React;
@@ -29,28 +23,25 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
   // sulla tab giusta, non sulla prima.
   React.useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
   const [ruoliOpen, setRuoliOpen] = useStateTeam(false);
-  const [members, setMembers] = useStateTeam(TEAM);
   const [inviteOpen, setInviteOpen] = useStateTeam(false);
 
-
+  // Chi non ha ancora accettato non è nel team: l'invito nasce dove gli altri
+  // già vivono — INVITI_PENDENTI, che è quello che «Inviti in attesa» legge —
+  // e come ogni azione che parte verso un'email lascia traccia nell'audit log.
+  // Si torna su Accessi, che è dove il nuovo nome compare.
   const handleInvite = (nuovo) => {
-    setMembers(prev => [
-      {
-        id: 'm' + Date.now(),
-        nome: nuovo.nome.trim(),
-        email: nuovo.email.trim(),
-        ruolo: nuovo.ruolo,
-        lastActive: null,
-        due_fa: false,
-        attivo: true,
-        pending: true,
-        addedBy: 'Tu',
-        addedOn: new Date(),
-      },
-      ...prev,
-    ]);
+    INVITI_PENDENTI.unshift({
+      nome: nuovo.nome.trim(), email: nuovo.email.trim(), ruolo: nuovo.ruolo,
+      inviato: new Date(), scade: new Date(Date.now() + 86400000 * 7),
+    });
+    AUDIT_EVENTS.unshift({
+      who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
+      action: 'ha invitato',
+      target: `${nuovo.nome.trim()} · ${(RUOLI[nuovo.ruolo] && RUOLI[nuovo.ruolo].label) || nuovo.ruolo}`,
+      icon: 'send', color: 'INFO', tipo: 'team', when: new Date(),
+    });
     setInviteOpen(false);
-    setTab('membri');
+    setTab('accessi');
   };
 
   return (
@@ -65,7 +56,9 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             // Team e Riesame erano la stessa anagrafica in due tab: gli stessi
             // nomi, le stesse email, gli stessi ruoli, con due colonne diverse in
             // fondo. Ora la lista e una e il riesame e uno stato in cui si trova.
-            { id:'accessi',     label:'Accessi',         badge:members.length },
+            // Il badge conta le righe che il riesame mostra davvero: gli
+            // inviti in attesa hanno già il loro contatore dentro la lista.
+            { id:'accessi',     label:'Accessi',         badge:TEAM.filter(m => m.attivo !== false && !m.pending).length },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
             { id:'diagnostica', label:'Diagnostica' },
@@ -554,7 +547,18 @@ function PlatformConfig() {
   };
   const inp = {width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
   const lab = {fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
-  const doSave = () => { setConfirm(false); setSaved(true); setTimeout(()=>setSaved(false), 3000); };
+  // «Registrata in audit» lo promettono sia la conferma sia il messaggio di
+  // successo: il salvataggio scrive l'evento come ogni altra azione del file.
+  const doSave = () => {
+    setConfirm(false); setSaved(true);
+    AUDIT_EVENTS.unshift({
+      who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
+      action: 'ha aggiornato la configurazione piattaforma',
+      target: 'piani e prezzi, peso ordini, discovery',
+      icon: 'crown', color: 'PURPLE', tipo: 'piano', when: new Date(),
+    });
+    setTimeout(()=>setSaved(false), 3000);
+  };
 
   // Tre leve diverse in tre tab. Erano tre titoli uno sotto l'altro in una
   // pagina che si scorreva tutta per arrivare al fondo, e chi entrava per
@@ -1232,8 +1236,15 @@ function AccessReview() {
                 </React.Fragment>
               )}
             </span>
-            {/* Nessun comando in blocco qui: ogni utenza si decide aprendola,
-                dove ci sono la sua storia e il suo motivo. */}
+            {/* Un solo comando in blocco: le invariate, il cui confronto con
+                la campagna precedente l'ha fatto il codice. Tutte le altre si
+                decidono aprendole, dove ci sono la loro storia e il loro
+                motivo. */}
+            {invariatiAperti.length > 0 && (
+              <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
+                Conferma le {invariatiAperti.length} invariate
+              </AdmButton>
+            )}
           </div>
           )}
 

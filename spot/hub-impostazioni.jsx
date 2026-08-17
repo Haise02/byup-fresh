@@ -37,8 +37,53 @@ function HubDominiPage() {
   const [tab, setTab] = useStateIm('domini');
   const [aggiungi, setAggiungi] = useStateIm(false);
   const [nuovoDom, setNuovoDom] = useStateIm('');
+  // In uno stato, non sulla costante: «Aggiungi dominio» deve aggiungere
+  // davvero, e HUB_DOMINI non si muove.
+  const [domini, setDomini] = useStateIm(HUB_DOMINI);
+  // Esiti per dominio, non un flag solo: di card gialle può essercene più
+  // d'una a video, e l'esito deve restare accanto al bottone premuto.
+  const [copiato, setCopiato] = useStateIm(null);    // id del dominio coi record in clipboard
+  const [verifica, setVerifica] = useStateIm(null);  // { id, esito } — esito null = ricontrollo in corso
 
-  const problemi = HUB_DOMINI.filter(d => !(d.spf && d.dkim && d.dmarc)).length;
+  const problemi = domini.filter(d => !(d.spf && d.dkim && d.dmarc)).length;
+
+  const aggiungiDominio = () => {
+    const dom = nuovoDom.trim().toLowerCase();
+    if (!dom) return;
+    // Nasce coi tre record mancanti: la card gialla coi comandi per
+    // sistemarla è esattamente quello che il modale promette.
+    setDomini(prev => [...prev, {
+      id: 'DM-' + (prev.length + 1), dominio: dom, uso: 'Aggiunto ora — record DNS da mettere dal registrar',
+      stato: 'in attesa', spf: false, dkim: false, dmarc: false, verificato: null, reputazione: null,
+    }]);
+    setNuovoDom('');
+    setAggiungi(false);
+  };
+
+  const copiaRecord = (d) => {
+    // Sempre tutti e tre: il registrar li vuole insieme, e copiare solo i
+    // mancanti costringerebbe a un secondo giro.
+    const txt = [
+      `TXT  ${d.dominio}  "v=spf1 include:_spf.byup.it ~all"`,
+      `TXT  byup._domainkey.${d.dominio}  "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC7…"`,
+      `TXT  _dmarc.${d.dominio}  "v=DMARC1; p=quarantine; rua=mailto:postmaster@byup.it"`,
+    ].join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(() => {});
+    setCopiato(d.id);
+    setTimeout(() => setCopiato(c => c === d.id ? null : c), 2500);
+  };
+
+  const verificaAdesso = (d) => {
+    setVerifica({ id: d.id, esito: null });   // il ricontrollo si deve vedere partire
+    setTimeout(() => {
+      // L'esito viene dai record del mock, che non cambiano: la verifica dice
+      // la verità — mancano ancora — non un successo di cortesia.
+      const mancano = [!d.spf && 'SPF', !d.dkim && 'DKIM', !d.dmarc && 'DMARC'].filter(Boolean).join(' e ');
+      setVerifica(v => v && v.id === d.id
+        ? { id: d.id, esito: `Manca ancora ${mancano} — i record impiegano fino a qualche ora a propagarsi.` }
+        : v);
+    }, 900);
+  };
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -48,22 +93,22 @@ function HubDominiPage() {
         azioni={<HubStrumento forte icona="plus" onClick={() => setAggiungi(true)}>Aggiungi dominio</HubStrumento>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
-        <HubTile etichetta="Domini configurati" valore={HUB_DOMINI.length} icona="globe"
+        <HubTile etichetta="Domini configurati" valore={domini.length} icona="globe"
           sotto={problemi ? `${problemi} con record incompleti` : 'tutti a posto'} tono={problemi ? 'WARN' : 'OK'}/>
         <HubTile etichetta="Indirizzi mittente" valore={HUB_MITTENTI.length} icona="mail"
           sotto={`${HUB_MITTENTI.filter(m => m.stato === 'verificato').length} verificati`}/>
         <HubTile etichetta="Mittenti SMS" valore={HUB_NUMERI.length} icona="smartphone"
           sotto={`${HUB_NUMERI.filter(n => n.stato === 'attivo').length} attivi`}/>
         <HubTile etichetta="Reputazione media" valore={Math.round(
-          HUB_DOMINI.filter(d => d.reputazione).reduce((s, d) => s + d.reputazione, 0) /
-          Math.max(1, HUB_DOMINI.filter(d => d.reputazione).length)) + '/100'}
+          domini.filter(d => d.reputazione).reduce((s, d) => s + d.reputazione, 0) /
+          Math.max(1, domini.filter(d => d.reputazione).length)) + '/100'}
           icona="gauge" tono="OK" sotto="Sui domini verificati"/>
       </div>
 
       <AdmCard padding={0}>
         <div style={{ padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}` }}>
           <HubSegmenti attivo={tab} onCambia={setTab} voci={[
-            { id: 'domini', label: 'Domini', conteggio: HUB_DOMINI.length },
+            { id: 'domini', label: 'Domini', conteggio: domini.length },
             { id: 'mittenti', label: 'Indirizzi mittente', conteggio: HUB_MITTENTI.length },
             { id: 'numeri', label: 'Mittenti SMS', conteggio: HUB_NUMERI.length },
           ]}/>
@@ -71,7 +116,7 @@ function HubDominiPage() {
 
         {tab === 'domini' && (
           <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 11 }}>
-            {HUB_DOMINI.map(d => {
+            {domini.map(d => {
               const ok = d.spf && d.dkim && d.dmarc;
               return (
                 <div key={d.id} style={{
@@ -109,9 +154,17 @@ function HubDominiPage() {
                     }}>
                       <strong>Manca {[!d.spf && 'SPF', !d.dkim && 'DKIM', !d.dmarc && 'DMARC'].filter(Boolean).join(' e ')}.</strong>{' '}
                       Finché non è a posto, questo dominio non può essere usato per spedire: le email partirebbero e verrebbero scartate.
-                      <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                        <HubStrumento icona="copy">Copia i record DNS</HubStrumento>
-                        <HubStrumento icona="refresh">Verifica adesso</HubStrumento>
+                      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <HubStrumento icona={copiato === d.id ? 'check' : 'copy'} acceso={copiato === d.id}
+                          onClick={() => copiaRecord(d)}>
+                          {copiato === d.id ? 'Record copiati' : 'Copia i record DNS'}
+                        </HubStrumento>
+                        <HubStrumento icona="refresh" onClick={() => verificaAdesso(d)}>
+                          {verifica && verifica.id === d.id && !verifica.esito ? 'Ricontrollo…' : 'Verifica adesso'}
+                        </HubStrumento>
+                        {verifica && verifica.id === d.id && verifica.esito && (
+                          <span style={{ fontSize: 12.6, fontWeight: 600, color: ADM.WARN }}>{verifica.esito}</span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -171,7 +224,7 @@ function HubDominiPage() {
           <React.Fragment>
             <div style={{ flex: 1 }}/>
             <HubStrumento onClick={() => setAggiungi(false)}>Annulla</HubStrumento>
-            <HubStrumento forte icona="check" onClick={() => setAggiungi(false)}>Aggiungi</HubStrumento>
+            <HubStrumento forte icona="check" onClick={aggiungiDominio}>Aggiungi</HubStrumento>
           </React.Fragment>
         }>
         <HubCampo label="Dominio" nota="Meglio un sottodominio dedicato (es. mail.tuodominio.it): una campagna andata male non trascina la reputazione del dominio principale.">
@@ -207,21 +260,24 @@ function HubProprietaPage() {
   const [vista, setVista] = useStateIm('tutte');
   const [crea, setCrea] = useStateIm(false);
   const [nuova, setNuova] = useStateIm({ label: '', gruppo: 'acquisizione', tipo: 'testo', opzioni: '', nota: '' });
+  // In uno stato, non sulla costante: «Crea proprietà» deve creare davvero,
+  // e la riga nuova deve comparire qui sotto, nella stessa tabella.
+  const [proprieta, setProprieta] = useStateIm(HUB_PROPRIETA);
 
   const lista = useMemoIm(() => {
     const q = cerca.trim().toLowerCase();
-    return HUB_PROPRIETA.filter(p =>
+    return proprieta.filter(p =>
       (vista === 'tutte' || (vista === 'sistema' ? p.sistema : !p.sistema)) &&
       (!gruppo || p.gruppo === gruppo) &&
       (!q || p.label.toLowerCase().includes(q)));
-  }, [cerca, gruppo, vista]);
+  }, [cerca, gruppo, vista, proprieta]);
 
   // Quante righe della rubrica hanno un valore per questa proprietà: una
   // proprietà personalizzata vuota al 99% è una proprietà che nessuno compila,
   // e vale la pena saperlo prima di costruirci sopra un segmento.
   const riempimento = useMemoIm(() => {
     const m = {};
-    HUB_PROPRIETA.forEach(p => {
+    proprieta.forEach(p => {
       const n = CONTATTI.filter(c => {
         const v = hubLeggi(c, p.id);
         return !(v == null || v === '' || (Array.isArray(v) && !v.length));
@@ -229,9 +285,32 @@ function HubProprietaPage() {
       m[p.id] = n;
     });
     return m;
-  }, []);
+  }, [proprieta]);
 
-  const custom = HUB_PROPRIETA.filter(p => !p.sistema).length;
+  const custom = proprieta.filter(p => !p.sistema).length;
+
+  const creaProprieta = () => {
+    const label = nuova.label.trim();
+    if (!label) return;
+    // L'id nasce dal nome, come quelli di sistema: leggibile nei filtri, non
+    // un progressivo — e se il nome è già preso si accoda un numero.
+    const base = label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'proprieta';
+    let id = base, k = 2;
+    while (proprieta.some(p => p.id === id)) id = base + '_' + (k++);
+    const opzioni = (nuova.tipo === 'elenco' || nuova.tipo === 'multi')
+      ? nuova.opzioni.split('\n').map(s => s.trim()).filter(Boolean).map(v => ({ value: v, label: v }))
+      : null;
+    // Niente `sistema`: è la pillola «Personalizzata». `colonna` c'è dalla
+    // nascita, come promette il box in fondo al modale. Compilata parte da
+    // zero: nessun contatto ha ancora un valore, e la barra lo deve dire.
+    setProprieta(prev => [...prev, {
+      id, label, gruppo: nuova.gruppo, tipo: nuova.tipo, colonna: { w: '1.1fr' },
+      ...(opzioni && opzioni.length ? { opzioni } : {}),
+      ...(nuova.nota.trim() ? { nota: nuova.nota.trim() } : {}),
+    }]);
+    setNuova({ label: '', gruppo: 'acquisizione', tipo: 'testo', opzioni: '', nota: '' });
+    setCrea(false);
+  };
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -241,11 +320,11 @@ function HubProprietaPage() {
         azioni={<HubStrumento forte icona="plus" onClick={() => setCrea(true)}>Crea proprietà</HubStrumento>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
-        <HubTile etichetta="Proprietà totali" valore={HUB_PROPRIETA.length} icona="tag"
-          sotto={`${HUB_PROPRIETA.length - custom} di sistema · ${custom} personalizzate`}/>
-        <HubTile etichetta="Usabili come colonna" valore={HUB_PROPRIETA.filter(p => p.colonna).length} icona="columns"
+        <HubTile etichetta="Proprietà totali" valore={proprieta.length} icona="tag"
+          sotto={`${proprieta.length - custom} di sistema · ${custom} personalizzate`}/>
+        <HubTile etichetta="Usabili come colonna" valore={proprieta.filter(p => p.colonna).length} icona="columns"
           sotto="Compaiono in «Modifica colonne»"/>
-        <HubTile etichetta="Riempite da automazioni" valore={HUB_PROPRIETA.filter(p => p.nota).length} icona="bolt" tono="HUB_VIOLA"
+        <HubTile etichetta="Riempite da automazioni" valore={proprieta.filter(p => p.nota).length} icona="bolt" tono="HUB_VIOLA"
           sotto="Form e workflow ci scrivono dentro"/>
         <HubTile etichetta="Gruppi" valore={HUB_GRUPPI_PROP.length} icona="layers" sotto="Servono a ritrovarle, non a limitarle"/>
       </div>
@@ -253,8 +332,8 @@ function HubProprietaPage() {
       <AdmCard padding={0}>
         <div style={{ padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${ADM.BORDER}`, flexWrap: 'wrap' }}>
           <HubSegmenti attivo={vista} onCambia={setVista} voci={[
-            { id: 'tutte', label: 'Tutte', conteggio: HUB_PROPRIETA.length },
-            { id: 'sistema', label: 'Di sistema', conteggio: HUB_PROPRIETA.length - custom },
+            { id: 'tutte', label: 'Tutte', conteggio: proprieta.length },
+            { id: 'sistema', label: 'Di sistema', conteggio: proprieta.length - custom },
             { id: 'custom', label: 'Personalizzate', conteggio: custom },
           ]}/>
           <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca una proprietà…" larghezza={230}/>
@@ -306,7 +385,7 @@ function HubProprietaPage() {
           <React.Fragment>
             <div style={{ flex: 1 }}/>
             <HubStrumento onClick={() => setCrea(false)}>Annulla</HubStrumento>
-            <HubStrumento forte icona="check" onClick={() => setCrea(false)}>Crea proprietà</HubStrumento>
+            <HubStrumento forte icona="check" onClick={creaProprieta}>Crea proprietà</HubStrumento>
           </React.Fragment>
         }>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
