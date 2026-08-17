@@ -24,11 +24,6 @@ const ONB_MANDATORY = ONB_STEPS.filter(s => !s.optional);
 // - 'inactive' : onboarding completo ma non logga da N giorni
 // - 'churned'  : disdetto
 
-const REGIONI = [
-  'Lombardia', 'Lazio', 'Campania', 'Sicilia', 'Veneto',
-  'Emilia-Romagna', 'Piemonte', 'Puglia', 'Toscana', 'Liguria',
-];
-
 // Listino allineato a quello del gestionale (ACC_PIANI in gestionale/account-data.jsx),
 // che e la fonte di verita: qui c'erano 49/99/249, li 46,99/134,99/250. `price`
 // e il mensile con fatturazione annuale — quello su cui sta la maggior parte
@@ -534,15 +529,6 @@ function buildUtenti() {
 
 const UTENTI = buildUtenti();
 
-// Cluster di utilizzo (per filtri messaggio promozionale)
-const UTILIZZO_CLUSTER = {
-  estr_attivo: { label: 'Estremamente attivo', desc: 'Più di una volta a settimana',  color: 'OK' },
-  molto_att:   { label: 'Molto attivo',        desc: 'Più di una volta al mese',      color: 'INFO' },
-  attivo:      { label: 'Attivo',              desc: 'Almeno una volta al mese',      color: 'PURPLE' },
-  distratto:   { label: 'Distratto',           desc: 'Non usa l\'app da una settimana', color: 'WARN' },
-  non_attivo:  { label: 'Non attivo',          desc: 'Non usa l\'app da un mese',     color: 'PLAN_FREE' },
-  perso:       { label: 'Perso',               desc: 'Non usa l\'app da più di 2 mesi', color: 'DANGER' },
-};
 
 // ---------- SEGNALAZIONI ----------
 const SEGNALAZIONI = [
@@ -1432,7 +1418,6 @@ function ctrCessazione(l) {
 }
 
 window.ONB_STEPS = ONB_STEPS;
-window.REGIONI = REGIONI;
 window.PIANI = PIANI;
 // ── Dunning (mock): addebiti falliti su 3 locali attivi paganti ──────────
 LOCALI.filter(l => l.stato === 'active' && l.piano !== 'free').slice(3, 6).forEach((l, i) => {
@@ -1448,7 +1433,6 @@ window.LOC = LOC;
 window.MRR_ORA = MRR_ORA;
 Object.assign(window, { locAttivo, locInattivo, locInOnboarding, locChurned, locLive, locPagante });
 window.UTENTI = UTENTI;
-window.UTILIZZO_CLUSTER = UTILIZZO_CLUSTER;
 window.SEGNALAZIONI = SEGNALAZIONI;
 window.CERTIFICAZIONI = CERTIFICAZIONI;
 window.CERT_TIPI = CERT_TIPI;

@@ -1240,16 +1240,6 @@ function ScanOrdiniBox({ label, scan, ord, ratio, primary }) {
   );
 }
 
-function SectionTitle({ title, desc }) {
-  return (
-    <div style={{display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginTop:6, marginBottom:-4}}>
-      <div>
-        <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.005em'}}>{title}</div>
-        <div style={{fontSize:13.7, color:ADM.MUTED, marginTop:2}}>{desc}</div>
-      </div>
-    </div>
-  );
-}
 
 // SparkStat · stat compatta con trend inline + sparkline (per le griglie 4-col)
 function SparkStat({ label, value, sub, accent='PINK', icon='trendUp', trend, trendLabel, spark, onClick }) {
