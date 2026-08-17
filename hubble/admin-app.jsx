@@ -263,20 +263,6 @@ function GlobalSearch({ onClose, go }) {
   );
 }
 
-// Il nome della sezione per la briciola di pane in testata. Cerca prima tra le
-// voci di primo livello, poi tra i figli, poi nel menu del profilo.
-function hubBriciola(rotta) {
-  for (const v of HUB_NAV) {
-    if (v.id === rotta) return v.label;
-    if (v.figli) {
-      const f = v.figli.find(x => x.id === rotta);
-      if (f) return v.label + ' · ' + f.label;
-    }
-  }
-  const p = HUB_MENU_PROFILO.find(v => v.id === rotta);
-  return p ? p.label : 'Hubble';
-}
-
 function AdminApp({ tweaks }) {
   const [route, setRouteRaw] = useStateApp('contatti');
   const [contattoOpen, setContattoOpen] = useStateApp(null); // {tipo, ref} → drawer in Contatti
@@ -386,18 +372,6 @@ function AdminApp({ tweaks }) {
   // callback di mano in mano attraverso cinque livelli di componenti.
   React.useEffect(() => { window.__hubNav = setRoute; return () => { delete window.__hubNav; }; });
 
-  const pageTitles = {
-    assistenza:   { t:'Assistenza', s:'Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
-    // Sicurezza non è più qui: da quando la governance è la voce unica
-    // Impostazioni, anche lei si presenta da sola con la testata Hubble.
-  };
-
-  // Le pagine nuove si presentano da sole, con la loro testata dentro il
-  // contenuto: qui sopra basta la briciola di pane. Le vecchie si aspettano
-  // ancora il titolone nell'header, e finché è così se lo tengono — due
-  // titoli identici uno sopra l'altro erano la prima cosa che si notava.
-  const pt = pageTitles[route];
-
   return (
     <div className="frame" style={{
       display:'flex', overflow:'hidden',
@@ -435,6 +409,25 @@ function AdminApp({ tweaks }) {
             </button>
           </div>
         )}
+
+        {/* La ricerca globale vive nella barra, non in una testata di pagina:
+            la testata non esiste più — ogni pagina si presenta da sola — e la
+            barra è l'unico posto che c'è sempre. ⌘K continua a funzionare
+            ovunque. */}
+        <button onClick={()=>setSearchOpen(true)} title={collapsed ? 'Cerca (⌘K)' : undefined}
+          style={{
+            display:'flex', alignItems:'center', gap: collapsed ? 0 : 10,
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            width:'100%', boxSizing:'border-box', marginBottom:12,
+            padding: collapsed ? '9px 0' : '8px 12px',
+            background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:10,
+            color:ADM.MUTED, fontSize:15, fontFamily:'inherit', cursor:'pointer', textAlign:'left',
+            boxShadow:'0 1px 2px rgba(15,17,21,0.04)',
+          }}>
+          <BuIcons.search size={collapsed ? 22 : 17}/>
+          {!collapsed && <span style={{flex:1}}>Cerca…</span>}
+          {!collapsed && <span style={{fontSize:11, fontWeight:700, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, borderRadius:5, padding:'1px 5px', color:ADM.MUTED_SOFT}}>⌘K</span>}
+        </button>
 
         <nav onMouseLeave={chiudiFly}
           style={{flex:1, overflowY:'auto', overflowX:'visible', display:'flex', flexDirection:'column', gap:2}}>
@@ -541,45 +534,13 @@ function AdminApp({ tweaks }) {
         onVai={(id)=>setRoute(id)} onEnter={tieniFly} onLeave={chiudiFly}/>}
 
       {/* Main */}
+      {/* Main. L'header non esiste più: la briciola «Hubble / sezione»
+          ripeteva quello che sidebar e testate già dicono, e la ricerca è
+          scesa nella barra. Ogni pagina si presenta da sola con HubTestata —
+          Assistenza compresa — e il contenuto guadagna tutta l'altezza.
+          (Qui prima c'era anche la campanella delle notifiche: avvisi finti
+          che duplicavano i badge della sidebar — tolta pure lei.) */}
       <main style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        <header style={{
-          padding:'15px 28px',
-          background:'#ffffff',
-          borderBottom:`1px solid ${ADM.BORDER}`,
-          display:'flex', alignItems:'center', gap:14, flexShrink:0,
-        }}>
-          <div style={{flex:1, minWidth:0}}>
-            {pt ? (
-              <React.Fragment>
-                <div style={{fontSize:22, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.02em', lineHeight:1.2}}>{pt.t}</div>
-                <div style={{fontSize:14, color:ADM.MUTED, marginTop:2, letterSpacing:'-0.005em'}}>{pt.s}</div>
-              </React.Fragment>
-            ) : (
-              // La pagina si presenta da sola più in basso: qui basta dire dove
-              // siamo. Ripetere il titolo due volte a otto pixel di distanza è
-              // rumore, non orientamento.
-              <div style={{display:'flex', alignItems:'center', gap:8, fontSize:14, minHeight:39}}>
-                <span className="hub-marchio" style={{fontWeight:800, letterSpacing:'-0.01em'}}>Hubble</span>
-                <span style={{color:ADM.MUTED_LIGHT}}>/</span>
-                <span style={{fontWeight:600, color:ADM.TEXT}}>{hubBriciola(route)}</span>
-              </div>
-            )}
-          </div>
-          {/* Ricerca globale */}
-          <button onClick={()=>setSearchOpen(true)} className="adm-pill" style={{
-            display:'inline-flex', alignItems:'center', gap:8, padding:'8px 14px',
-            background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, borderRadius:99,
-            color:ADM.MUTED, fontSize:13.5, fontFamily:'inherit', cursor:'pointer', flexShrink:0,
-          }}>
-            <BuIcons.search size={16}/> Cerca…
-            <span style={{fontSize:11, fontWeight:700, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:5, padding:'1px 5px', color:ADM.MUTED_SOFT}}>⌘K</span>
-          </button>
-          {/* Qui c'era la campanella delle notifiche: quattro avvisi finti che
-              rimandavano a code (addebiti, certificazioni, segnalazioni) già
-              visibili nei badge della sidebar e in Dashboard. Due posti che
-              dicono la stessa cosa sono un posto di troppo — tolta. */}
-        </header>
-
         <div style={{flex:1, overflow:'auto'}}>
           {route === 'dashboard'    && <AdmDashboard onNav={setRoute}/>}
           {route === 'contatti'     && <AdmContattiPage search={''} openContatto={contattoOpen}/>}
@@ -641,8 +602,8 @@ function ProfiloPage() {
 
   return (
     <div style={{padding:28, display:'flex', flexDirection:'column', gap:16}}>
-      {/* La testata alla maniera di Hubble: la pagina si presenta da sola,
-          nell'header resta la briciola. */}
+      {/* La testata alla maniera di Hubble: la pagina si presenta da sola —
+          la shell non ha più un header con titoli o briciole. */}
       <HubTestata occhiello="Account" titolo="Il mio profilo"
         sotto="Password, autenticazione a due fattori e sessioni attive: la sicurezza del tuo accesso a Hubble."/>
       {/* Header card */}

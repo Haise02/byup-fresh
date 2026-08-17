@@ -218,6 +218,12 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
+      {/* La testata alla maniera di Hubble: da quando la shell non ha più
+          l'header coi titoli, anche Assistenza si presenta da sola. */}
+      <div style={{padding:'18px 28px 0', background:'#fff', flexShrink:0}}>
+        <HubTestata occhiello="Servizio" titolo="Assistenza"
+          sotto="Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale."/>
+      </div>
       <div style={{padding:'0 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`,
         display:'flex', alignItems:'center', gap:12, flexShrink:0}}>
         <AdmTabBar tabs={tabs} active={tab} onChange={setTab}/>
