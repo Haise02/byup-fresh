@@ -935,9 +935,10 @@ function ConsensiPanel({ onOpenPrivacy }) {
 
         {aperto && CONSENSI_DEF.map((c, i) => {
           const st = ByupConsensi.stato(c.id);
-          // Mai incontrato = niente riga: il pannello riflette solo i consensi
-          // che esistono per questo utente.
-          if (!st) return null;
+          // TUTTE le righe, sempre (scelta di Fabio, 2026-08-17): un consenso
+          // mai incontrato compare con «Mai chiesto» — prima non compariva
+          // affatto e il pannello sembrava vuoto a chi non aveva ancora
+          // toccato niente. Accenderlo da qui vale come darlo.
           const data = quando(st);
           const acceso = !!(st && st.ok);
           return (
@@ -948,11 +949,9 @@ function ConsensiPanel({ onOpenPrivacy }) {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, color: TEXT_X }}>{c.label}</div>
                 <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>{c.desc}</div>
-                {data && (
-                  <div style={{ fontSize: 11, color: MUTED_X, marginTop: 2, opacity: .8 }}>
-                    {st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`}
-                  </div>
-                )}
+                <div style={{ fontSize: 11, color: MUTED_X, marginTop: 2, opacity: .8 }}>
+                  {!st ? 'Mai chiesto' : st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`}
+                </div>
               </div>
               <ProfileToggle value={acceso} onChange={(v) => cambia(c.id, v)}/>
             </div>

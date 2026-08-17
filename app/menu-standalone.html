@@ -3518,9 +3518,10 @@ function ConsensiPanel({
     points: "6 9 12 15 18 9"
   }))), aperto && CONSENSI_DEF.map((c, i) => {
     const st = ByupConsensi.stato(c.id);
-    // Mai incontrato = niente riga: il pannello riflette solo i consensi
-    // che esistono per questo utente.
-    if (!st) return null;
+    // TUTTE le righe, sempre (scelta di Fabio, 2026-08-17): un consenso
+    // mai incontrato compare con «Mai chiesto» — prima non compariva
+    // affatto e il pannello sembrava vuoto a chi non aveva ancora
+    // toccato niente. Accenderlo da qui vale come darlo.
     const data = quando(st);
     const acceso = !!(st && st.ok);
     return /*#__PURE__*/React.createElement("div", {
@@ -3549,14 +3550,14 @@ function ConsensiPanel({
         marginTop: 2,
         lineHeight: 1.4
       }
-    }, c.desc), data && /*#__PURE__*/React.createElement("div", {
+    }, c.desc), /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 11,
         color: MUTED_X,
         marginTop: 2,
         opacity: .8
       }
-    }, st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`)), /*#__PURE__*/React.createElement(ProfileToggle, {
+    }, !st ? 'Mai chiesto' : st.ok ? `Dato ${c.dove} · ${data}` : `Disattivato il ${data}`)), /*#__PURE__*/React.createElement(ProfileToggle, {
       value: acceso,
       onChange: v => cambia(c.id, v)
     }));
