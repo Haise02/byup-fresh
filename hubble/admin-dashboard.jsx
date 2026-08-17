@@ -1537,6 +1537,49 @@ function DashLocali({ onNav, filtri }) {
       <SectionLabel title="Dove sta la rete" desc="I locali sulla carta, e dove gli utenti aprono l'app" first/>
       {window.AnMappa ? <AnMappa/> : null}
 
+      {/* ═══════════ Il ciclo di vita ═══════════ */}
+      <SectionLabel title="Il ciclo di vita" desc="Dove stanno i locali nel rapporto con byup — la stessa scala della rubrica"/>
+      <AdmCard padding={20}>
+        {(() => {
+          // Stessa fonte della colonna «Ciclo di vita» in Contatti: le righe
+          // arricchite della rubrica, non un ricalcolo parallelo che alla
+          // prima modifica divergerebbe.
+          const righe = (typeof CONTATTI !== 'undefined' ? CONTATTI : []).filter(c => c.tipo === 'locale' && c.ciclo);
+          const tot = righe.length || 1;
+          const stadi = Object.entries(CNT_CICLO).map(([id, d]) => {
+            const n = righe.filter(c => c.ciclo === id).length;
+            return { id, ...d, n, pct: Math.round(n / tot * 1000) / 10 };
+          });
+          const fmtPc = (p) => String(p).replace('.', ',') + '%';
+          return (
+            <React.Fragment>
+              <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10, marginBottom:12}}>
+                <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Locali per ciclo di vita</div>
+                <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>{fmtNum(tot)} locali</div>
+              </div>
+              <div style={{display:'flex', height:16, borderRadius:99, overflow:'hidden', gap:2}}>
+                {stadi.filter(s => s.n > 0).map(s => (
+                  <div key={s.id} title={`${s.label} · ${fmtPc(s.pct)}`}
+                    style={{width:`${s.pct}%`, minWidth:6, background:ADM[s.color]}}/>
+                ))}
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:`repeat(${stadi.length}, minmax(0,1fr))`, gap:10, marginTop:14}}>
+                {stadi.map(s => (
+                  <div key={s.id} style={{minWidth:0}}>
+                    <div style={{display:'flex', alignItems:'center', gap:6}}>
+                      <span style={{width:8, height:8, borderRadius:3, background:ADM[s.color], flexShrink:0}}/>
+                      <span style={{fontSize:12.8, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.label}</span>
+                    </div>
+                    <div style={{fontSize:19, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', marginTop:4, fontVariantNumeric:'tabular-nums'}}>{fmtPc(s.pct)}</div>
+                    <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:1}}>{fmtNum(s.n)} locali</div>
+                  </div>
+                ))}
+              </div>
+            </React.Fragment>
+          );
+        })()}
+      </AdmCard>
+
       {/* ═══════════ Andamento — KPI commerciali e ricavi ═══════════ */}
       <SectionLabel title="Andamento" desc="KPI commerciali e ricavi della rete locali"/>
 
@@ -3405,6 +3448,38 @@ function DashUtentiApp() {
         </AdmCard>
       </div>
 
+      {/* Le medie della base, aggregate DAGLI STESSI numeri delle schede dei
+          singoli utenti (utnStatDerivate) e messe accanto alla loro mediana
+          (UTN_MEDIANE): la scheda di un utente e questa riga leggono la
+          stessa fonte. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14}}>
+        {(() => {
+          const righe = UTENTI.map(utnStatDerivate);
+          const media = (arr) => { const v = arr.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+          const eurCc = (v) => v == null ? '—' : '€ ' + v.toFixed(2).replace('.', ',');
+          const sesMese = media(righe.map(x => x.sessioniAnno / 12));
+          const spesa = media(righe.map(x => x.spesaMedia));
+          const pren = media(righe.map(x => x.prenAnno));
+          const tempoSes = media(righe.map(x => x.tempoSessione));
+          return (
+            <React.Fragment>
+              <SparkStat label="Sessioni al mese · media" value={sesMese.toFixed(1).replace('.', ',')}
+                sub={`Mediana ${fmtNum(UTN_MEDIANE.sesMese)} · aggregata dai profili dei singoli utenti`}
+                accent="INK" icon="phone"/>
+              <SparkStat label="Spesa media per ordine" value={eurCc(spesa)}
+                sub={`Mediana ${eurCc(UTN_MEDIANE.spesaMedia)} · chi non ha mai ordinato resta fuori`}
+                accent="INK" icon="receipt"/>
+              <SparkStat label="Prenotazioni all'anno · media" value={pren.toFixed(1).replace('.', ',')}
+                sub={`Mediana ${fmtNum(UTN_MEDIANE.prenAnno)} · riportate a 12 mesi sull'età dell'account`}
+                accent="INK" icon="calendar"/>
+              <SparkStat label="Tempo per sessione · media" value={`${Math.round(tempoSes / 60)} min`}
+                sub={`Mediana ${Math.round(UTN_MEDIANE.tempoSessione / 60)} min · dall'apertura alla chiusura dell'app`}
+                accent="INK" icon="clock"/>
+            </React.Fragment>
+          );
+        })()}
+      </div>
+
       {/* Top categorie per cluster demografico */}
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14}}>
@@ -4389,6 +4464,27 @@ function DashCamerieri({ filtri }) {
         <SparkStat label="Staff per locale" value={ratioMedio.toFixed(1).replace('.', ',')}
           sub={`Media sulle squadre di ${squadre.length} locali · mediana ${String(ratioMediana).replace('.', ',')} · il più grande ne ha ${squadre[squadre.length - 1] || 0}`}
           accent="INK" icon="users"/>
+      </div>
+
+      {/* I soldi della sala, aggregati DAGLI STESSI numeri delle schede staff
+          (scontrinoMedio e manciaMedia dei singoli camerieri), con la mediana
+          come metro: la scheda di un cameriere e questa riga leggono la
+          stessa fonte, e non possono raccontare due sale diverse. */}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
+        {(() => {
+          const cams = STAFF.filter(s => s.scontrinoMedio != null && (s.locali || []).some(l => idsSegmento.has(l.id)));
+          const media = (campo) => cams.length ? cams.reduce((a, s) => a + s[campo], 0) / cams.length : null;
+          return (
+            <React.Fragment>
+              <SparkStat label="Scontrino medio cameriere" value={camEur2(media('scontrinoMedio'))}
+                sub={`Per ordine preso al tavolo · media su ${fmtNum(cams.length)} camerieri · mediana ${camEur2(CAM_MEDIANE.scontrino)}`}
+                accent="INK" icon="receipt"/>
+              <SparkStat label="Mancia media cameriere" value={camEur2(media('manciaMedia'))}
+                sub={`Per conto chiuso · media su ${fmtNum(cams.length)} camerieri · mediana ${camEur2(CAM_MEDIANE.mancia)}`}
+                accent="INK" icon="receipt"/>
+            </React.Fragment>
+          );
+        })()}
       </div>
 
       {/* Riga 2 · Benchmark detail + abbandono */}

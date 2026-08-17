@@ -410,25 +410,9 @@ function AdminApp({ tweaks }) {
           </div>
         )}
 
-        {/* La ricerca globale vive nella barra, non in una testata di pagina:
-            la testata non esiste più — ogni pagina si presenta da sola — e la
-            barra è l'unico posto che c'è sempre. ⌘K continua a funzionare
-            ovunque. */}
-        <button onClick={()=>setSearchOpen(true)} title={collapsed ? 'Cerca (⌘K)' : undefined}
-          style={{
-            display:'flex', alignItems:'center', gap: collapsed ? 0 : 10,
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            width:'100%', boxSizing:'border-box', marginBottom:12,
-            padding: collapsed ? '9px 0' : '8px 12px',
-            background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:10,
-            color:ADM.MUTED, fontSize:15, fontFamily:'inherit', cursor:'pointer', textAlign:'left',
-            boxShadow:'0 1px 2px rgba(15,17,21,0.04)',
-          }}>
-          <BuIcons.search size={collapsed ? 22 : 17}/>
-          {!collapsed && <span style={{flex:1}}>Cerca…</span>}
-          {!collapsed && <span style={{fontSize:11, fontWeight:700, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, borderRadius:5, padding:'1px 5px', color:ADM.MUTED_SOFT}}>⌘K</span>}
-        </button>
-
+        {/* La ricerca globale non ha un bottone: si apre SOLO con ⌘K, per chi
+            la conosce — scelta di Fabio. Il listener sta più in basso e
+            funziona da qualunque punto della console. */}
         <nav onMouseLeave={chiudiFly}
           style={{flex:1, overflowY:'auto', overflowX:'visible', display:'flex', flexDirection:'column', gap:2}}>
           {HUB_NAV.map(item => {
