@@ -37,7 +37,7 @@ un pannello che si apre passandoci sopra col mouse.
 | Sezione | Cosa contiene |
 |---|---|
 | **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato |
-| **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche), **Proprietà**. Dalla testata della rubrica si apre anche il **registro Restrizioni** (shadowban/ban con motivi, note e revoche). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
+| **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Proprietà**. Dalla testata della rubrica si apre anche il **registro Restrizioni** (shadowban/ban con motivi, note e revoche). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
 | **Marketing** → | **Mail**, **SMS**, **Push**, **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
 | **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente** (quello che fanno insieme) |
@@ -174,7 +174,6 @@ ricarica non si può né leggere né filtrare.
 | `admin-icons.jsx` | Icone di contorno (`ICON_PATHS`) e piene per la barra (`ICON_FILLED`). Le piene accettano anche `rect:` e `circle:`; i **fori** vanno fatti con `evenodd` dentro lo **stesso** `path` |
 | `hub-data.jsx` | Proprietà, operatori, motore dei filtri, e i mock di elenchi, mail, SMS, push, form, workflow, agenti, domini |
 | `hub-ui.jsx` | Modale, pannello laterale, pannello dei filtri, modale delle colonne, tabella, testate, riquadri |
-| `hub-elenchi.jsx` | Elenchi: lista, dettaglio, creazione con conteggio dal vivo |
 | `hub-mail-builder.jsx` | Il costruttore visuale delle email e il generatore di HTML |
 | `hub-marketing.jsx` | Mail, SMS, Push, Form |
 | `hub-workflow.jsx` | Workflow (elenco, canvas, campi dei passi) e Agent |
@@ -192,7 +191,11 @@ ricarica non si può né leggere né filtrare.
 Il 2026-08-17 sono stati **eliminati** i file morti `admin-locali.jsx`,
 `admin-promozioni.jsx`, `admin-workflow-email.jsx` e `hub-panoramica.jsx`
 (pagine non più montate da nessuna rotta), insieme alle liste di sezione di
-staff e utenti. `FilterDropdown` è passato in `admin-atoms.jsx`.
+staff e utenti. `FilterDropdown` è passato in `admin-atoms.jsx`. Lo stesso
+giorno è uscita dalla nav la sezione **Elenchi** (`hub-elenchi.jsx` eliminato):
+gli elenchi restano vivi come dato — pubblico delle campagne, condizioni e
+azioni dei workflow, diario del contatto — e `EL_TIPI` + `elMembri` sono
+passati in `hub-data.jsx` accanto a `HUB_ELENCHI`.
 
 ### Il diario del contatto
 

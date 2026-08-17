@@ -3,9 +3,9 @@
 //
 // Questo file non disegna niente. Dice DI CHE COSA si parla: quali proprietà
 // ha un contatto, che domande si possono fare su ciascuna, e come si risponde.
-// Contatti, Elenchi, Workflow e il pubblico delle campagne interrogano tutti
-// lo stesso motore: un filtro scritto in un posto vale identico in un altro,
-// ed è questo a rendere un elenco «attivo» qualcosa di più di una lista.
+// Contatti, Workflow, gli elenchi e il pubblico delle campagne interrogano
+// tutti lo stesso motore: un filtro scritto in un posto vale identico in un
+// altro, ed è questo a rendere un elenco «attivo» qualcosa di più di una lista.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 1 · GLI OPERATORI, per tipo di proprietà
@@ -364,6 +364,27 @@ const HUB_ELENCHI = [
 ];
 
 const HUB_CARTELLE = ['Commerciale', 'Acquisizione', 'Prodotto', 'Retention', 'Eventi', 'Operazioni'];
+
+// Un elenco ATTIVO è una domanda: «i locali Plus e Business che lavorano».
+// Chi risponde a quella domanda ci entra da solo, chi smette di rispondere ne
+// esce da solo. Un elenco STATICO è una fotografia: i contatti che ci sono
+// dentro ci restano finché non li si toglie a mano. La differenza non è un
+// dettaglio tecnico: un attivo usato come pubblico ricorrente è sempre giusto,
+// una lista statica invecchia dal giorno in cui la si importa.
+const EL_TIPI = {
+  attivo:  { label: 'Attivo',  color: 'OK',        icona: 'refresh',
+             spiega: 'Si aggiorna da solo: chi risponde ai criteri entra, chi smette esce.' },
+  statico: { label: 'Statico', color: 'PLAN_FREE', icona: 'bookmark',
+             spiega: 'Una fotografia: i contatti restano quelli, finché non li cambi tu.' },
+};
+
+// Quanti contatti ci sono dentro adesso. Per gli attivi si calcola davvero
+// applicando i criteri alla rubrica — è il senso di un elenco attivo, e un
+// numero finto qui renderebbe la schermata una bugia.
+function elMembri(el) {
+  if (el.tipo === 'statico') return el.membriFissi || 0;
+  return hubApplica(CONTATTI, el.includi, el.escludi).length;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 6 · MARKETING — mail, SMS, push, form
@@ -768,6 +789,8 @@ window.hubSeme = hubSeme;
 window.hubIdx = hubIdx;
 window.HUB_ELENCHI = HUB_ELENCHI;
 window.HUB_CARTELLE = HUB_CARTELLE;
+window.EL_TIPI = EL_TIPI;
+window.elMembri = elMembri;
 window.HUB_STATI_INVIO = HUB_STATI_INVIO;
 window.HUB_MAIL = HUB_MAIL;
 window.HUB_SMS = HUB_SMS;
