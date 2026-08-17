@@ -32,11 +32,15 @@ const CNT_TIPI = {
 // chiunque sia stato cancellato, staff compreso.
 // `rango` è l'ordine della scala quando si clicca la cima della colonna.
 const CNT_CICLO = {
-  lead:       { label: 'Lead',            color: 'INFO',      rango: 0 },
-  onboarding: { label: 'In onboarding',   color: 'WARN',      rango: 1 },
-  returning:  { label: 'Returning',       color: 'OK',        rango: 2 },
-  annullato:  { label: 'Piano annullato', color: 'DANGER',    rango: 3 },
-  eliminato:  { label: 'Eliminato',       color: 'PLAN_FREE', rango: 4 },
+  lead:           { label: 'Lead',             color: 'INFO',      rango: 0 },
+  onboarding:     { label: 'In onboarding',    color: 'WARN',      rango: 1 },
+  // L'attivo non è uno stadio solo: chi sta sul piano gratuito e chi paga
+  // sono due rapporti commerciali diversi — per il modello a fasce di Fresh
+  // è LA distinzione, e la scala la deve dire.
+  clienteFree:    { label: 'Cliente Free',     color: 'TEAL',      rango: 2 },
+  clientePagante: { label: 'Cliente Pagante',  color: 'OK',        rango: 3 },
+  annullato:      { label: 'Piano annullato',  color: 'DANGER',    rango: 4 },
+  eliminato:      { label: 'Eliminato',        color: 'PLAN_FREE', rango: 5 },
 };
 
 // ─── Piano ──────────────────────────────────────────────────────────────────
@@ -137,7 +141,7 @@ const CONTATTI = (() => {
     // annullato il piano, chi se n'è andato del tutto è eliminato.
     ciclo: l.stato === 'pending' ? 'lead'
       : (l.stato === 'onboarding' || l.stato === 'skipped') ? 'onboarding'
-      : l.stato === 'active' ? 'returning'
+      : l.stato === 'active' ? (l.piano === 'free' ? 'clienteFree' : 'clientePagante')
       : l.stato === 'churned' ? 'eliminato'
       : 'annullato',
     piano: l.piano,
