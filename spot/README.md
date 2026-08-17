@@ -49,8 +49,28 @@ editor «workflow email»: le rotte storiche vengono tradotte da `admin-app.jsx`
 (locali/camerieri/utenti → Contatti, promozioni → Marketing). I file di staff e
 utenti sopravvivono solo per i **dataset** e le **schede**.
 
-Nel **menu del profilo** (card in fondo alla barra): Il mio profilo, Domini e
-mittenti, Proprietà, **Sicurezza e sistemi**, **Piattaforma**.
+Nel **menu del profilo** (card in fondo alla barra) le voci sono due: **Il mio
+profilo** e **Impostazioni** — la governance in una voce sola, distinta
+internamente in Sicurezza e sistemi, Proprietà, Domini e mittenti e
+**Piattaforma**, che è visibile al solo Super Admin. Le rotte storiche
+(`sicurezza`, `proprieta`, `domini`, `team`) si traducono sulla parte interna
+giusta.
+
+### Ruoli e permessi (2026-08-17)
+
+L'accesso si descrive **per area, a tre stati**: Nessuno / Lettura /
+Scrittura, la stessa grammatica dei consensi. Le aree sono le voci della
+console più la governance; Analisi Dati ammette solo la lettura (i dati li
+raccoglie la piattaforma), e **Piattaforma non è un permesso assegnabile**:
+è del solo Super Admin e non compare né nella matrice né regolando un
+account. Tre preset — Super Admin (governa e legge, le scritture operative
+sono dei mestieri), Support, Marketing — e dall'invito ogni cella si può
+regolare per singola area: se il risultato differisce dal preset, l'account
+diventa **Personalizzato** (nel mock: Laura Bianchi). ICT e Viewer non
+esistono più; i ruoli morti restano leggibili nelle attestazioni chiuse via
+`RUOLI_STORICI`, e il riesame confronta i **pesi dei livelli** (scrittura 2,
+lettura 1), così «permessi aumentati» vale anche quando una cella passa da
+Lettura a Scrittura a parità di aree.
 
 ---
 

@@ -6,11 +6,15 @@ const { useState: useStateTeam } = React;
 // tenerle in tre file avrebbe voluto dire tre copie della stessa lista membri.
 // `sezione` decide quali tab mostrare, non quali esistono.
 const ADM_SEZIONI = {
-  sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'] },
   // Niente `hr`: Risorse Umane non esiste più come sezione, e il registro della
   // formazione se n'è andato con Risk Management.
-  // La testata alla maniera di Hubble: Piattaforma si presenta da sola nel
-  // contenuto; Sicurezza per ora tiene il titolone nell'header (pageTitles).
+  // Le testate alla maniera di Hubble: entrambe le sezioni si presentano da
+  // sole nel contenuto, con lo stesso occhiello «Impostazioni» — da quando la
+  // governance è una voce sola, il titolone di pagina non arriva più
+  // dall'header della shell.
+  sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'],
+    testata: { occhiello:'Impostazioni', titolo:'Sicurezza e sistemi',
+      sotto:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma.' } },
   impostazioni: { pred:'piattaforma', tabs:['piattaforma'],
     testata: { occhiello:'Impostazioni', titolo:'Piattaforma',
       sotto:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app.' } },
@@ -32,12 +36,16 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
   const handleInvite = (nuovo) => {
     INVITI_PENDENTI.unshift({
       nome: nuovo.nome.trim(), email: nuovo.email.trim(), ruolo: nuovo.ruolo,
+      // Un invito personalizzato porta con sé le celle regolate: sono permessi
+      // già assegnati che aspettano solo l'accettazione, e il riesame li deve
+      // poter leggere come legge quelli di un membro.
+      permessiCustom: nuovo.permessiCustom || undefined,
       inviato: new Date(), scade: new Date(Date.now() + 86400000 * 7),
     });
     AUDIT_EVENTS.unshift({
       who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
       action: 'ha invitato',
-      target: `${nuovo.nome.trim()} · ${(RUOLI[nuovo.ruolo] && RUOLI[nuovo.ruolo].label) || nuovo.ruolo}`,
+      target: `${nuovo.nome.trim()} · ${admLabelRuolo(nuovo.ruolo)}${nuovo.base ? ' (da preset ' + admLabelRuolo(nuovo.base) + ')' : ''}`,
       icon: 'send', color: 'INFO', tipo: 'team', when: new Date(),
     });
     setInviteOpen(false);
@@ -109,10 +117,16 @@ function InviteMemberModal({ open, onClose, onInvite }) {
   const [nome, setNome] = useStateTeam('');
   const [email, setEmail] = useStateTeam('');
   const [ruolo, setRuolo] = useStateTeam('support');
+  // La personalizzazione: null = fedele al preset. Aprendo «Regola le aree» i
+  // livelli si copiano dal preset e ogni cella diventa sua; se alla fine
+  // coincidono ancora col preset, l'account resta col ruolo — personalizzato
+  // è chi DIFFERISCE, non chi ha aperto l'editor.
+  const [livelli, setLivelli] = useStateTeam(null);
+  const [regola, setRegola] = useStateTeam(false);
 
   // Reset dei campi ogni volta che il modale si apre
   React.useEffect(() => {
-    if (open) { setNome(''); setEmail(''); setRuolo('support'); }
+    if (open) { setNome(''); setEmail(''); setRuolo('support'); setLivelli(null); setRegola(false); }
   }, [open]);
 
   // Chiusura con Escape
@@ -129,7 +143,20 @@ function InviteMemberModal({ open, onClose, onInvite }) {
   const nomeOk = nome.trim().length >= 2;
   const canSend = nomeOk && emailOk;
 
-  const submit = () => { if (canSend) onInvite({ nome, email, ruolo }); };
+  const base = (RUOLI[ruolo] && RUOLI[ruolo].livelli) || {};
+  const celle = livelli || base;
+  const aree = AREE.filter(a => !a.riservata);
+  const personalizzato = !!livelli && aree.some(a => (livelli[a.id] || 'nessuno') !== (base[a.id] || 'nessuno'));
+
+  const scegliPreset = (id) => { setRuolo(id); setLivelli(null); };
+  const cambiaCella = (areaId, v) => setLivelli({ ...celle, [areaId]: v });
+
+  const submit = () => {
+    if (!canSend) return;
+    onInvite(personalizzato
+      ? { nome, email, ruolo: 'custom', permessiCustom: livelli, base: ruolo }
+      : { nome, email, ruolo });
+  };
 
   return (
     <div onClick={onClose} style={{
@@ -177,12 +204,12 @@ function InviteMemberModal({ open, onClose, onInvite }) {
           </div>
 
           <div>
-            <div style={{fontSize:13.3, fontWeight:600, color:ADM.TEXT, marginBottom:8}}>Ruolo</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8}}>
-              {Object.entries(RUOLI).map(([id, r]) => {
+            <div style={{fontSize:13.3, fontWeight:600, color:ADM.TEXT, marginBottom:8}}>Ruolo di partenza</div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8}}>
+              {Object.entries(RUOLI).filter(([, r]) => !r.personalizzato).map(([id, r]) => {
                 const sel = ruolo === id;
                 return (
-                  <button key={id} onClick={()=>setRuolo(id)} style={{
+                  <button key={id} onClick={()=>scegliPreset(id)} style={{
                     textAlign:'left', padding:'10px 12px', cursor:'pointer', fontFamily:'inherit',
                     background: sel ? ADM.PINK_BG_SOFT : '#fff',
                     border:`1.5px solid ${sel ? ADM.PINK : ADM.BORDER}`,
@@ -198,6 +225,61 @@ function InviteMemberModal({ open, onClose, onInvite }) {
                 );
               })}
             </div>
+
+            {/* La personalizzazione: il preset è il punto di partenza, non una
+                gabbia. Le celle si regolano qui, area per area; Piattaforma
+                non c'è e non ci sarà — è riservata al Super Admin. */}
+            <button onClick={()=>{ if (!regola && !livelli) setLivelli({ ...base }); setRegola(r => !r); }} style={{
+              marginTop:10, display:'flex', alignItems:'center', gap:7, padding:'7px 10px',
+              background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit',
+              fontSize:13.3, fontWeight:700, color: regola || personalizzato ? ADM.PINK_DARK : ADM.MUTED,
+            }}>
+              <span style={{display:'inline-flex', transform: regola ? 'rotate(90deg)' : 'none', transition:'transform 0.15s ease'}}>
+                <BuIcons.chevronRight size={14}/>
+              </span>
+              Regola le aree
+              {personalizzato && <AdmBadge color={RUOLI.custom.color} size="xs">Personalizzato</AdmBadge>}
+            </button>
+            {regola && (
+              <div style={{marginTop:6, border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
+                {aree.map((a, i) => {
+                  const val = celle[a.id] || 'nessuno';
+                  const opzioni = a.soloLettura ? ['nessuno', 'lettura'] : ['nessuno', 'lettura', 'scrittura'];
+                  const diversa = (celle[a.id] || 'nessuno') !== (base[a.id] || 'nessuno');
+                  return (
+                    <div key={a.id} style={{
+                      display:'flex', alignItems:'center', gap:10, padding:'8px 12px',
+                      borderBottom: i === aree.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+                      background: i%2===1 ? ADM.ROW_STRIPE : '#fff',
+                    }}>
+                      <div style={{flex:1, minWidth:0}}>
+                        <span style={{fontSize:13.4, fontWeight:600, color:ADM.TEXT}}>{a.label}</span>
+                        {/* Il pallino dice quali celle si sono staccate dal
+                            preset: è la differenza, non l'elenco, che il
+                            revisore vorrà guardare. */}
+                        {diversa && <span style={{display:'inline-block', width:6, height:6, borderRadius:'50%', background:ADM.PINK, marginLeft:7, verticalAlign:'middle'}}/>}
+                      </div>
+                      <div style={{display:'flex', gap:4}}>
+                        {opzioni.map(op => {
+                          const sel = val === op;
+                          const c = LIVELLI[op];
+                          return (
+                            <button key={op} onClick={()=>cambiaCella(a.id, op)} style={{
+                              padding:'4px 10px', borderRadius:7, cursor:'pointer', fontFamily:'inherit',
+                              fontSize:12.3, fontWeight:700,
+                              background: sel ? (ADM[c.color + '_SOFT'] || ADM.PANEL_SOFT) : 'transparent',
+                              color: sel ? ADM[c.color] : ADM.MUTED_SOFT,
+                              border:`1.5px solid ${sel ? ADM[c.color] : 'transparent'}`,
+                              transition:'background 0.12s ease, color 0.12s ease, border-color 0.12s ease',
+                            }}>{c.label}</button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -238,50 +320,68 @@ function TeamField({ label, hint, children }) {
   );
 }
 
+// La cella della matrice: il livello si LEGGE, non si decifra da un'icona.
+// «—» è l'assenza, e non ha bisogno di una parola.
+function RpCella({ livello }) {
+  if (!livello || livello === 'nessuno')
+    return <span style={{fontSize:13.5, color:ADM.MUTED_LIGHT, fontWeight:600}}>—</span>;
+  const l = LIVELLI[livello];
+  return <AdmBadge color={l.color} size="xs">{l.label}</AdmBadge>;
+}
+
 function RuoliMatrix() {
+  // Piattaforma non è una riga: è riservata al Super Admin e non deve comparire
+  // nemmeno qui, dove i permessi si consultano per assegnarli.
+  const preset = Object.entries(RUOLI).filter(([, r]) => !r.personalizzato);
+  const righe = AREE.filter(a => !a.riservata);
   return (
     <div style={{padding:'20px 22px'}}>
-      <div style={{fontSize:13.7, color:ADM.MUTED, marginBottom:14}}>Matrice di permessi per ogni ruolo. Le modifiche si applicano a tutti i membri con quel ruolo.</div>
+      <div style={{fontSize:13.7, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
+        Ogni area della console ha tre livelli: <b>Nessuno</b> (non si vede), <b>Lettura</b> (si consulta), <b>Scrittura</b> (si agisce — le azioni pesanti chiedono comunque il motivo).
+        Questi sono i preset, e valgono per tutti i membri col ruolo; un account <b>Personalizzato</b> parte da un preset e regola le celle una per una, dall'invito.
+      </div>
       <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
         <div style={{
           display:'grid',
-          gridTemplateColumns:`220px repeat(${Object.keys(RUOLI).length}, 1fr)`,
+          gridTemplateColumns:`250px repeat(${preset.length}, 1fr)`,
           background:ADM.PANEL_SOFT, borderBottom:`1px solid ${ADM.BORDER}`,
         }}>
-          <div style={{padding:'12px 14px', fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Permesso</div>
-          {Object.entries(RUOLI).map(([id, r]) => (
+          <div style={{padding:'12px 14px', fontSize:13, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>Area</div>
+          {preset.map(([id, r]) => (
             <div key={id} style={{padding:'12px 8px', textAlign:'center', borderLeft:`1px solid ${ADM.BORDER}`}}>
               <AdmBadge color={r.color} size="xs">{r.label}</AdmBadge>
             </div>
           ))}
         </div>
-        {PERMESSI.map((p, i) => (
-          <div key={p.id} style={{
+        {righe.map((a, i) => (
+          <div key={a.id} style={{
             display:'grid',
-            gridTemplateColumns:`220px repeat(${Object.keys(RUOLI).length}, 1fr)`,
-            borderBottom: i === PERMESSI.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+            gridTemplateColumns:`250px repeat(${preset.length}, 1fr)`,
+            borderBottom: i === righe.length-1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
             background: i%2===1 ? ADM.ROW_STRIPE : '#fff',
           }}>
             <div style={{padding:'12px 14px'}}>
-              <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>{p.label}</div>
-              <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>{p.desc}</div>
+              <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>
+                {a.label}
+                {a.soloLettura && <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, marginLeft:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>solo consultazione</span>}
+              </div>
+              <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>{a.desc}</div>
             </div>
-            {Object.entries(RUOLI).map(([rid, r]) => {
-              const has = r.permessi.includes(p.id);
-              return (
-                <div key={rid} style={{padding:'12px 8px', textAlign:'center', borderLeft:`1px solid ${ADM.BORDER_SOFT}`, display:'grid', placeItems:'center'}}>
-                  {has ? (
-                    <div style={{width:22, height:22, borderRadius:5, background:ADM.OK, color:'#fff', display:'grid', placeItems:'center'}}>
-                      <BuIcons.check size={18}/>
-                    </div>
-                  ) : (
-                    <div style={{width:22, height:22, borderRadius:5, border:`1.5px dashed ${ADM.BORDER}`, color:ADM.MUTED_LIGHT}}/>
-                  )}
-                </div>
-              );
-            })}
+            {preset.map(([rid, r]) => (
+              <div key={rid} style={{padding:'12px 8px', borderLeft:`1px solid ${ADM.BORDER_SOFT}`, display:'grid', placeItems:'center'}}>
+                <RpCella livello={(r.livelli || {})[a.id]}/>
+              </div>
+            ))}
           </div>
         ))}
+      </div>
+      {/* La regola detta a voce: chi legge la matrice non deve chiedersi dove
+          sia finita la riga che non c'è. */}
+      <div style={{marginTop:12, padding:'11px 14px', borderRadius:10, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER}`, display:'flex', alignItems:'center', gap:9}}>
+        <BuIcons.lock size={16} color={ADM.MUTED}/>
+        <span style={{fontSize:13.2, color:ADM.MUTED, lineHeight:1.5}}>
+          <b style={{color:ADM.TEXT}}>Piattaforma</b> (piani e prezzi, peso ordini, discovery) non compare: non è un permesso assegnabile — è del solo Super Admin, e non viene mostrata nemmeno regolando un account personalizzato.
+        </span>
       </div>
     </div>
   );
@@ -950,9 +1050,13 @@ function raUltimoRiesame(soggettoId) {
 function raClassifica(m) {
   const prec = raUltimoRiesame(m.id);
   const gg = raGiorniFa(m.lastActive);
-  const permOra = (RUOLI[m.ruolo] && RUOLI[m.ruolo].permessi || []).length;
-  const permPrima = prec ? (RUOLI[prec.esito.ruoloAllora] && RUOLI[prec.esito.ruoloAllora].permessi || []).length : null;
-  const lbl = (r) => (RUOLI[r] && RUOLI[r].label) || r;
+  // Il confronto fra epoche pesa i LIVELLI (scrittura 2, lettura 1), non conta
+  // più le spunte: «i permessi sono aumentati» deve valere anche quando le aree
+  // sono le stesse ma una cella è passata da Lettura a Scrittura. I ruoli morti
+  // (Viewer, ICT) risolvono dai RUOLI_STORICI: la storia non si riscrive.
+  const permOra = admPesoLivelli(admLivelliDi(m.ruolo, m));
+  const permPrima = prec ? admPesoLivelli(admLivelliDi(prec.esito.ruoloAllora, null)) : null;
+  const lbl = admLabelRuolo;
 
   if (!m.lastActive) return { rank:0, key:'mai', tono:'DANGER', label:'Mai acceduto',
     nota:`Nel team dal ${raFmtData(m.addedOn)}, non ha mai effettuato l'accesso` };

@@ -53,16 +53,48 @@ const HUB_NAV = [
           + RICHIAMATE.filter(r => r.stato === 'attesa').length) },
 ];
 
-// Le voci di governance non stanno più nella barra: si consultano quando
-// serve, come le impostazioni, e ora vivono nel menu del profilo. La barra è
-// tornata a parlare solo del lavoro di tutti i giorni.
+// Le voci di governance non stanno più nella barra: vivono nel menu del
+// profilo, e da lì sono UNA voce — Impostazioni — distinta internamente in
+// Sicurezza e sistemi, Proprietà, Domini e mittenti e Piattaforma. Quattro
+// voci di menu per la stessa famiglia erano quattro ingressi da ricordare.
+// Piattaforma dentro Impostazioni si vede solo perché chi guarda È il Super
+// Admin: per chiunque altro non esiste, come non esiste nella matrice dei
+// permessi.
 const HUB_MENU_PROFILO = [
-  { id: 'profilo',   label: 'Il mio profilo',      icon: 'user',       desc: 'Password, 2FA, sessioni attive' },
-  { id: 'domini',    label: 'Domini e mittenti',   icon: 'globe',      desc: 'Domini di invio, indirizzi, numeri SMS' },
-  { id: 'proprieta', label: 'Proprietà',           icon: 'tag',        desc: 'I campi dei contatti, di sistema e personalizzati' },
-  { id: 'sicurezza', label: 'Sicurezza e sistemi', icon: 'lock',       desc: 'Accessi, audit log, diagnostica' },
-  { id: 'team',      label: 'Piattaforma',         icon: 'shield',     desc: 'Piani e prezzi, peso ordini, discovery' },
+  { id: 'profilo',      label: 'Il mio profilo', icon: 'user',     desc: 'Password, 2FA, sessioni attive' },
+  { id: 'impostazioni', label: 'Impostazioni',   icon: 'settings', desc: 'Sicurezza e sistemi, proprietà, domini e mittenti — e Piattaforma' },
 ];
+
+// Le voci interne di Impostazioni. Le pagine restano quelle di prima: qui
+// vive solo l'ingresso comune, e ognuna continua a presentarsi da sola.
+const HUB_IMPOSTAZIONI_VOCI = [
+  { id: 'sicurezza',   label: 'Sicurezza e sistemi' },
+  { id: 'proprieta',   label: 'Proprietà' },
+  { id: 'domini',      label: 'Domini e mittenti' },
+  { id: 'piattaforma', label: 'Piattaforma' },
+];
+
+function ImpostazioniPage({ sub, teamTab }) {
+  const [vista, setVista] = useStateApp(sub || 'sicurezza');
+  // Un link esterno (⌘K, un avviso) può cambiare la parte interna mentre la
+  // pagina è già montata: la prop comanda, lo stato segue.
+  React.useEffect(() => { if (sub) setVista(sub); }, [sub]);
+  return (
+    <div style={{display:'flex', flexDirection:'column', minHeight:'100%'}}>
+      <div style={{padding:'20px 28px 0', display:'flex', alignItems:'center', gap:14}}>
+        <HubSegmenti attivo={vista} onCambia={setVista} voci={HUB_IMPOSTAZIONI_VOCI}/>
+        <div style={{flex:1}}/>
+        <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.4, color:ADM.MUTED_SOFT, whiteSpace:'nowrap'}}>
+          <BuIcons.lock size={13}/> Piattaforma è visibile solo a te (Super Admin)
+        </span>
+      </div>
+      {vista === 'sicurezza'   && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
+      {vista === 'proprieta'   && <HubProprietaPage/>}
+      {vista === 'domini'      && <HubDominiPage/>}
+      {vista === 'piattaforma' && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
+    </div>
+  );
+}
 
 // Nav item — attivo = fondo rosa tenue + testo/rosa, icona prominente.
 // Con `figli`, il passaggio del mouse apre il pannello a fianco.
@@ -252,6 +284,7 @@ function AdminApp({ tweaks }) {
   const [commOpen, setCommOpen] = useStateApp(null);
   const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
   const [teamTab, setTeamTab] = useStateApp(null);   // tab di Sicurezza/Piattaforma aperta da un link esterno
+  const [impostazioniSub, setImpostazioniSub] = useStateApp('sicurezza'); // parte interna di Impostazioni
   const [searchOpen, setSearchOpen] = useStateApp(false);
   // Il flyout della nav: {voce, x, y}. Vive qui e non dentro la voce perché
   // deve stare SOPRA la sidebar (position:fixed), e una sidebar con
@@ -322,6 +355,9 @@ function AdminApp({ tweaks }) {
       // Campagne di acquisizione non è più una voce: un link rimasto in giro
       // atterra sulla famiglia Marketing, non su una pagina fantasma.
       : nextRaw === 'promozioni' ? 'mkt-mail'
+      // La governance è una voce sola: le quattro rotte storiche atterrano
+      // dentro Impostazioni, sulla loro parte interna.
+      : (nextRaw === 'sicurezza' || nextRaw === 'team' || nextRaw === 'domini' || nextRaw === 'proprieta') ? 'impostazioni'
       : nextRaw;
     setFly(null); setMenuProfilo(false);
     const tab = nextRaw === 'comunicazioni' ? 'ticket' : (opts && opts.tab) || null;
@@ -335,8 +371,15 @@ function AdminApp({ tweaks }) {
     setCommOpen(verso === 'assistenza' && opts?.openComm ? opts.openComm : null);
     setAssistenzaTab(verso === 'assistenza' ? tab : null);
     // Anche Sicurezza e sistemi ha i suoi tab: chi ci arriva da un avviso
-    // deve atterrare su quello che l'avviso riguarda, non sul primo.
-    if (verso === 'sicurezza' || verso === 'team') setTeamTab(tab || null);
+    // deve atterrare su quello che l'avviso riguarda, non sul primo. E la
+    // rotta storica dice QUALE parte di Impostazioni aprire: 'team' era
+    // Piattaforma, le altre portano il loro nome.
+    if (verso === 'impostazioni') {
+      setTeamTab(tab || null);
+      setImpostazioniSub(nextRaw === 'team' ? 'piattaforma'
+        : nextRaw === 'impostazioni' ? ((opts && opts.sub) || 'sicurezza')
+        : nextRaw);
+    }
     setRouteRaw(verso);
   };
 
@@ -349,7 +392,8 @@ function AdminApp({ tweaks }) {
 
   const pageTitles = {
     assistenza:   { t:'Assistenza', s:'Ticket e chiamate dai ristoratori, FAQ e guide pubblicate nel gestionale' },
-    sicurezza:    { t:'Sicurezza e sistemi', s:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma' },
+    // Sicurezza non è più qui: da quando la governance è la voce unica
+    // Impostazioni, anche lei si presenta da sola con la testata Hubble.
   };
 
   // Le pagine nuove si presentano da sole, con la loro testata dentro il
@@ -412,8 +456,8 @@ function AdminApp({ tweaks }) {
         </nav>
 
         {/* Profilo — la card apre il MENU, non una pagina. Dentro ci stanno
-            l'account e tutte le impostazioni della piattaforma: domini e
-            mittenti, il catalogo delle proprietà, sicurezza e sistemi, le leve
+            l'account e Impostazioni, che tiene insieme tutta la governance:
+            sicurezza e sistemi, proprietà, domini e mittenti, le leve
             commerciali. Erano voci di barra, ma sono cose che si toccano una
             volta al mese: occupavano lo spazio del lavoro quotidiano. */}
         <div style={{position:'relative', marginTop:10}}>
@@ -550,11 +594,8 @@ function AdminApp({ tweaks }) {
           {route === 'mkt-form'     && <HubFormPage/>}
           {route === 'workflow'     && <HubWorkflowPage/>}
           {route === 'agent'        && <HubAgentPage/>}
-          {route === 'domini'       && <HubDominiPage/>}
-          {route === 'proprieta'    && <HubProprietaPage/>}
           {route === 'assistenza'   && <AdmAssistenzaPage initialTab={assistenzaTab} openTicket={commOpen}/>}
-          {route === 'sicurezza'    && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
-          {route === 'team'         && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
+          {route === 'impostazioni' && <ImpostazioniPage sub={impostazioniSub} teamTab={teamTab}/>}
           {route === 'profilo'      && <ProfiloPage/>}
         </div>
       </main>

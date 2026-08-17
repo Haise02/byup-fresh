@@ -589,44 +589,93 @@ const CERTIFICAZIONI = [
 ];
 
 // ---------- TEAM ADMIN ----------
-const PERMESSI = [
-  { id: 'dashboard',      label: 'Analisi Dati',           desc: 'Accesso alle analisi della piattaforma' },
-  { id: 'locali',         label: 'Gestione Locali e staff', desc: 'Visualizza e modifica locali e camerieri' },
-  { id: 'utenti',         label: 'Gestione utenti',        desc: 'Visualizza e modifica gli utenti app' },
-  { id: 'segnalazioni',   label: 'Ticket',                 desc: 'Gestisce i ticket aperti dai locali: richieste e segnalazioni' },
-  // Separato da «segnalazioni» perché è un'altra cosa: qui si chiama un
-  // numero entro una scadenza e si pubblica la base di conoscenza, e la
-  // pubblicazione è un potere che non si dà a chiunque legga i ticket.
-  { id: 'assistenza',     label: 'Chiamate e knowledge base', desc: 'Coda delle chiamate, FAQ e guide pubblicate ai ristoratori' },
-  { id: 'certificazioni', label: 'Certificazioni',         desc: 'Revisiona le certificazioni alimentari' },
-  { id: 'messaggi',       label: 'Messaggi & Broadcast',   desc: 'Invia comunicazioni agli utenti' },
-  { id: 'sicurezza',      label: 'Sicurezza e sistemi',    desc: 'Membri del team, riesame degli accessi, audit log e diagnostica' },
-  { id: 'team',           label: 'Impostazioni piattaforma', desc: 'Configurazione tecnica e parametri della piattaforma' },
+// L'accesso si descrive per AREA, non per funzione: ogni voce della console è
+// una riga, e la cella di un ruolo su un'area vale nessuno / lettura /
+// scrittura. Il booleano di prima aveva prodotto ruoli-diritto (Viewer, cioè
+// «sola lettura» travestito da ruolo) e aree spaccate in due (Ticket separato
+// dalla pubblicazione delle guide) solo per dire «legge ma non scrive»: la
+// distinzione ora la dice la cella, con la stessa grammatica a tre stati dei
+// consensi.
+const AREE = [
+  // Analisi Dati non ha una scrittura: sono dati che la piattaforma raccoglie
+  // da sola, e una cella «Scrittura» qui sarebbe una promessa senza oggetto.
+  { id: 'analisi',    label: 'Analisi Dati',        desc: 'Le sette letture: locali, valore, utenti, mercato', soloLettura: true },
+  { id: 'contatti',   label: 'Contatti',            desc: 'La rubrica e le schede: locali, staff, utenti app, restrizioni' },
+  { id: 'elenchi',    label: 'Elenchi',             desc: 'Segmenti attivi e liste statiche' },
+  { id: 'proprieta',  label: 'Proprietà',           desc: 'Il catalogo dei campi del contatto, di sistema e personalizzati' },
+  { id: 'marketing',  label: 'Marketing',           desc: 'Mail, SMS, push e form: materiali, invii e statistiche' },
+  { id: 'workflow',   label: 'Workflow',            desc: 'Le automazioni. Attivarne una richiede Scrittura sulle aree che tocca' },
+  { id: 'agent',      label: 'Agent',               desc: 'La squadra degli agenti e l\'Ambiente in cui lavorano' },
+  { id: 'assistenza', label: 'Assistenza',          desc: 'Ticket, chiamate, certificazioni, FAQ e guide. Scrittura = rispondere e pubblicare' },
+  { id: 'domini',     label: 'Domini e mittenti',   desc: 'Domini di invio, indirizzi, numeri SMS' },
+  { id: 'sicurezza',  label: 'Sicurezza e sistemi', desc: 'Membri del team, riesame degli accessi, audit log e diagnostica' },
+  // Piattaforma è RISERVATA: leve commerciali (prezzi, piani, soglie) del solo
+  // Super Admin. Non è una cella su «Nessuno»: non compare proprio — né nella
+  // matrice dei preset né quando si regolano i permessi di un account.
+  { id: 'piattaforma', label: 'Piattaforma',        desc: 'Piani e prezzi, peso ordini, discovery', riservata: true },
 ];
 
-const RUOLI = {
-  super_admin: { label: 'Super Admin', desc: 'Accesso totale, può gestire il team', color: 'DANGER',    permessi: ['dashboard','locali','utenti','segnalazioni','assistenza','certificazioni','messaggi','sicurezza','team'] },
-  support:     { label: 'Support',    desc: 'Segnalazioni, richiamate e certificazioni', color: 'INFO', permessi: ['dashboard','locali','utenti','segnalazioni','assistenza','certificazioni'] },
-  marketing:   { label: 'Marketing',  desc: 'Campagne e broadcast', color: 'WARN',                      permessi: ['dashboard','messaggi'] },
-  // AFC non c'è più: il suo perimetro erano Economix e Risk Management, e senza
-  // quelle due sezioni restava un ruolo con la sola dashboard, cioè un Viewer
-  // con un altro nome.
-  // ICT tiene account, accessi, tracce e salute dei sistemi: e il perimetro di
-  // chi amministra la piattaforma, non di chi la usa.
-  // Le impostazioni della piattaforma sono leve commerciali — prezzi, piani,
-  // soglie — e restano al solo Super Admin: ICT amministra i sistemi, non decide
-  // quanto costa un piano.
-  ict:         { label: 'ICT',        desc: 'Sistemi, accessi e diagnostica', color: 'INK',            permessi: ['dashboard','sicurezza'] },
-  // Ultimo = ultima colonna nella matrice Ruoli & Permessi. Sola visualizzazione.
-  operations:  { label: 'Viewer',     desc: 'Sola visualizzazione della dashboard', color: 'PURPLE',    permessi: ['dashboard'] },
+// Come si veste una cella, ovunque la si mostri.
+const LIVELLI = {
+  nessuno:   { label: 'Nessuno',   color: 'PLAN_FREE' },
+  lettura:   { label: 'Lettura',   color: 'INFO' },
+  scrittura: { label: 'Scrittura', color: 'OK' },
 };
+
+// I preset. Un ruolo È una riga di livelli per area; alla creazione di un
+// account si parte da un preset e si può regolare ogni cella (il risultato è
+// un account «Personalizzato», con i livelli suoi). Il Super Admin governa la
+// piattaforma e GUARDA il lavoro operativo senza toccarlo: è voluto — le
+// scritture operative appartengono ai mestieri. Le azioni pesanti
+// (sospensioni, rimborsi, broadcast) non hanno righe separate: sono Scrittura
+// sull'area, col motivo obbligatorio dove la console già lo chiede.
+const RUOLI = {
+  super_admin: { label: 'Super Admin', desc: 'Governa piattaforma e sistemi; il lavoro operativo lo guarda, non lo tocca', color: 'DANGER',
+    livelli: { analisi: 'lettura', contatti: 'lettura', elenchi: 'lettura', proprieta: 'scrittura', marketing: 'lettura', workflow: 'lettura', agent: 'scrittura', assistenza: 'lettura', domini: 'scrittura', sicurezza: 'scrittura', piattaforma: 'scrittura' } },
+  support:     { label: 'Support',    desc: 'Contatti, assistenza e le liste e automazioni del suo lavoro', color: 'INFO',
+    livelli: { analisi: 'lettura', contatti: 'scrittura', elenchi: 'scrittura', proprieta: 'lettura', marketing: 'nessuno', workflow: 'scrittura', agent: 'scrittura', assistenza: 'scrittura', domini: 'nessuno', sicurezza: 'nessuno' } },
+  marketing:   { label: 'Marketing',  desc: 'Campagne, elenchi, proprietà e domini di invio; i contatti li consulta', color: 'WARN',
+    livelli: { analisi: 'lettura', contatti: 'lettura', elenchi: 'scrittura', proprieta: 'scrittura', marketing: 'scrittura', workflow: 'scrittura', agent: 'lettura', assistenza: 'lettura', domini: 'scrittura', sicurezza: 'nessuno' } },
+  // Non un preset: il vestito degli account regolati cella per cella. I
+  // livelli veri stanno sul membro (permessiCustom), non qui.
+  custom:      { label: 'Personalizzato', desc: 'Parte da un preset, regolato area per area', color: 'PURPLE', personalizzato: true },
+};
+
+// I ruoli che non esistono più ma che le attestazioni chiuse nominano ancora:
+// la storia non si riscrive, e un riesame del 2026 deve poter dire «era
+// Viewer». ICT è morto con la nascita di Impostazioni (il suo perimetro era
+// Sicurezza e sistemi, che ora si assegna cella per cella); Viewer è morto
+// quando «sola lettura» è diventato un livello invece che un ruolo.
+const RUOLI_STORICI = {
+  operations: { label: 'Viewer', livelli: { analisi: 'lettura' } },
+  ict:        { label: 'ICT',    livelli: { analisi: 'lettura', sicurezza: 'scrittura' } },
+};
+
+// I livelli veri di un membro (o di un ruolo storico nelle attestazioni):
+// preset, morto o personalizzato che sia. Tutto ciò che confronta accessi
+// passa da qui — una fonte per ogni fatto.
+const admLivelliDi = (ruolo, membro) => {
+  if (ruolo === 'custom') return (membro && membro.permessiCustom) || {};
+  const r = RUOLI[ruolo] || RUOLI_STORICI[ruolo];
+  return (r && r.livelli) || {};
+};
+const admLabelRuolo = (ruolo) => (RUOLI[ruolo] && RUOLI[ruolo].label) || (RUOLI_STORICI[ruolo] && RUOLI_STORICI[ruolo].label) || ruolo;
+// Il peso di una riga di livelli: scrittura vale 2, lettura 1. Serve al
+// riesame per dire «i permessi sono aumentati» confrontando due epoche.
+const admPesoLivelli = (livelli) => AREE.reduce((s, a) => s + ({ scrittura: 2, lettura: 1 }[(livelli || {})[a.id]] || 0), 0);
 
 const TEAM = [
   // nomeCompleto: "Tu" va bene nella lista del team, ma un'attestazione firmata
   // "Tu" non è evidenza — all'auditor serve il nome della persona.
   { id: 'admin0', nome: 'Tu', nomeCompleto: 'Marco Rinaldi', email: 'me@byup.it', ruolo: 'super_admin', avatar: 'TU', avatarBg: 'linear-gradient(135deg, #FF1F5A, #9E0B3C)', lastActive: new Date(Date.now() - 60000), addedBy: '—', due_fa: true, attivo: true, addedOn: new Date('2024-01-15'), isYou: true },
-  { id: 'admin1', nome: 'Laura Bianchi', email: 'l.bianchi@byup.it', ruolo: 'operations', avatar: 'LB', avatarBg: '#5B34D6', lastActive: new Date(Date.now() - 1200000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-03-22') },
-  { id: 'admin2', nome: 'Davide Romano', email: 'd.romano@byup.it', ruolo: 'operations', avatar: 'DR', avatarBg: '#2563EB', lastActive: new Date(Date.now() - 86400000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-05-10') },
+  // Laura è l'account PERSONALIZZATO del mock: era Viewer, e con la morte di
+  // quel ruolo i suoi permessi sono diventati celle regolate a mano — partita
+  // dal preset Support, le è rimasta la scrittura sulla sola Assistenza. Il
+  // pannello deve DIMOSTRARE la personalizzazione, non raccontarla.
+  { id: 'admin1', nome: 'Laura Bianchi', email: 'l.bianchi@byup.it', ruolo: 'custom',
+    permessiCustom: { analisi: 'lettura', contatti: 'lettura', elenchi: 'lettura', proprieta: 'nessuno', marketing: 'nessuno', workflow: 'lettura', agent: 'lettura', assistenza: 'scrittura', domini: 'nessuno', sicurezza: 'nessuno' },
+    avatar: 'LB', avatarBg: '#5B34D6', lastActive: new Date(Date.now() - 1200000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-03-22') },
+  { id: 'admin2', nome: 'Davide Romano', email: 'd.romano@byup.it', ruolo: 'support', avatar: 'DR', avatarBg: '#2563EB', lastActive: new Date(Date.now() - 86400000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-05-10') },
   { id: 'support1', nome: 'Sara Conti', email: 's.conti@byup.it', ruolo: 'support', avatar: 'SC', avatarBg: '#16A34A', lastActive: new Date(Date.now() - 180000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-07-04') },
   { id: 'support2', nome: 'Andrea Verdi', email: 'a.verdi@byup.it', ruolo: 'support', avatar: 'AV', avatarBg: '#D97706', lastActive: new Date(Date.now() - 7200000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-09-12') },
   { id: 'mkt1', nome: 'Paola Esposito', email: 'p.esposito@byup.it', ruolo: 'marketing', avatar: 'PE', avatarBg: '#D97706', lastActive: new Date(Date.now() - 3600000 * 5), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-11-20') },
@@ -647,7 +696,7 @@ const TEAM = [
 const INVITI_PENDENTI = [
   { nome:'Sara Greco',       email:'sara.greco@byup.it', ruolo:'support',
     inviato:new Date(Date.now() - 86400000 * 2),  scade:new Date(Date.now() + 86400000 * 5) },
-  { nome:'Davide Conti',     email:'davide.c@byup.it',   ruolo:'operations',
+  { nome:'Davide Conti',     email:'davide.c@byup.it',   ruolo:'support',
     inviato:new Date(Date.now() - 86400000 * 4),  scade:new Date(Date.now() + 86400000 * 3) },
   // Invitata il 20 giu e mai accettato: alla scadenza l'invito si è annullato da
   // solo, quindi non compare più fra quelli in attesa. Resta nei dati perché il
@@ -1406,7 +1455,12 @@ window.CERT_TIPI = CERT_TIPI;
 window.TEAM = TEAM;
 window.INVITI_PENDENTI = INVITI_PENDENTI;
 window.RUOLI = RUOLI;
-window.PERMESSI = PERMESSI;
+window.RUOLI_STORICI = RUOLI_STORICI;
+window.AREE = AREE;
+window.LIVELLI = LIVELLI;
+window.admLivelliDi = admLivelliDi;
+window.admLabelRuolo = admLabelRuolo;
+window.admPesoLivelli = admPesoLivelli;
 window.TOP_PIATTI = TOP_PIATTI;
 window.TOP_CITTA = TOP_CITTA;
 window.SCREENS_USAGE = SCREENS_USAGE;
