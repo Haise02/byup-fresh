@@ -279,7 +279,6 @@ function hubBriciola(rotta) {
 
 function AdminApp({ tweaks }) {
   const [route, setRouteRaw] = useStateApp('contatti');
-  const [messageModal, setMessageModal] = useStateApp(null);
   const [contattoOpen, setContattoOpen] = useStateApp(null); // {tipo, ref} → drawer in Contatti
   const [commOpen, setCommOpen] = useStateApp(null);
   const [assistenzaTab, setAssistenzaTab] = useStateApp(null); // tab di Chiamata assistenza (ricerca globale, Dashboard)
@@ -382,9 +381,6 @@ function AdminApp({ tweaks }) {
     }
     setRouteRaw(verso);
   };
-
-  const openMessageModal = (type, ids = []) => setMessageModal({ type, ids });
-  const closeMessageModal = () => setMessageModal(null);
 
   // Una scorciatoia globale per navigare da dentro le pagine senza passare le
   // callback di mano in mano attraverso cinque livelli di componenti.
@@ -601,12 +597,6 @@ function AdminApp({ tweaks }) {
       </main>
 
       {searchOpen && <GlobalSearch onClose={()=>setSearchOpen(false)} go={(r, opts)=>setRoute(r, opts)}/>}
-
-      <MessageModal
-        open={!!messageModal} onClose={closeMessageModal}
-        audienceType={messageModal?.type || 'utenti'}
-        presetIds={messageModal?.ids || []}
-      />
 
       {/* La sessione terminata copre tutto: niente login vero nel prototipo,
           ma il rientro riparte pulito dalla rubrica, come un accesso fresco. */}
