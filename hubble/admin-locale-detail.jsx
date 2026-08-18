@@ -992,11 +992,21 @@ function DrwAccount({ locale: l }) {
   const [exportAvviato, setExportAvviato] = useStateDrw(false);
   const sospAttiva = SOSPENSIONI.find(x => x.soggettoId === l.id && !x.revoca);
 
-  const scrivi = (action, target, icon, color) => {
+  const scrivi = (action, target, icon, color, tipo = 'contratto') => {
     AUDIT_EVENTS.unshift({
       who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
-      action, target, icon, color, tipo: 'contratto', when: new Date(),
+      action, target, icon, color, tipo, when: new Date(),
     });
+  };
+  const attivaVetrina = () => {
+    l.vetrinaSpeciale = { dal: new Date(), decisaDa: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu' };
+    scrivi('ha messo in vetrina speciale', l.nome, 'sparkles', 'PURPLE', 'locale');
+    ridisegna(x => x + 1);
+  };
+  const spegniVetrina = () => {
+    l.vetrinaSpeciale = null;
+    scrivi('ha tolto dalla vetrina speciale', l.nome, 'x', 'WARN', 'locale');
+    ridisegna(x => x + 1);
   };
   const confermaSospensione = () => {
     if (!nota.trim()) return;
@@ -1048,6 +1058,32 @@ function DrwAccount({ locale: l }) {
             </div>
           </div>
           <AdmButton variant="secondary" size="sm" icon="download" disabled={exportAvviato} onClick={()=>setExportAvviato(true)}>Genera export</AdmButton>
+        </div>
+      </AdmCard>
+
+      {/* La vetrina speciale: il posto in evidenza nella scoperta dell'app
+          consumer. È una leva NOSTRA, non un'opzione del gestionale — si
+          accende e si spegne solo da qui, e ogni cambio resta a registro
+          come le altre decisioni sul locale. */}
+      <AdmCard padding={18}>
+        <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
+          <div style={{flex:1, minWidth:220}}>
+            <div style={{display:'flex', alignItems:'center', gap:8}}>
+              <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Vetrina speciale</div>
+              {l.vetrinaSpeciale && (
+                <span style={{fontSize:10.5, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase',
+                  color:ADM.PURPLE, background:ADM.PURPLE_SOFT, padding:'3px 8px', borderRadius:20}}>Attiva</span>
+              )}
+            </div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
+              {l.vetrinaSpeciale
+                ? <span>In evidenza nell'app dal <b style={{color:ADM.TEXT}}>{fmtDate(l.vetrinaSpeciale.dal)}</b> · attivata da {l.vetrinaSpeciale.decisaDa}</span>
+                : 'Mette il locale in evidenza nella scoperta dell\'app consumer. Si decide da Hubble, non dal gestionale, e resta accesa finché qualcuno di noi non la spegne.'}
+            </div>
+          </div>
+          {l.vetrinaSpeciale
+            ? <AdmButton variant="secondary" size="sm" icon="x" onClick={spegniVetrina}>Togli dalla vetrina</AdmButton>
+            : <AdmButton variant="primary" size="sm" icon="sparkles" onClick={attivaVetrina}>Metti in vetrina</AdmButton>}
         </div>
       </AdmCard>
 
