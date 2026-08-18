@@ -1,7 +1,7 @@
 // Staff — il dataset delle utenze staff (STAFF) e la loro scheda (StaffDrawer).
 // La lista di sezione non esiste più: si arriva qui dalla rubrica Contatti.
 
-const { useState: useStateCam, useMemo: useMemoCam } = React;
+const { useState: useStateCam } = React;
 
 // ─── Mock data: staff per locale ────────────────────────────────────────────
 const RUOLI_STAFF = [

@@ -25,7 +25,7 @@
 // con chi (Catene), che cosa si sono detti (Lavagna), che cosa aspetta
 // (Coda), che cosa è successo davvero (Registro).
 
-const { useState: useStateAmb, useMemo: useMemoAmb } = React;
+const { useState: useStateAmb } = React;
 
 const ambAgente = (id) => HUB_AGENTI.find(a => a.id === id) || null;
 const ambNomeAgente = (id) => (ambAgente(id) || {}).nome || 'Una persona';

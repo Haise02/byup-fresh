@@ -19,8 +19,6 @@
 // la ramificazione è l'operazione centrale di questa pagina, non una preferenza
 // nascosta in un ispettore.
 
-const { useState: useStateWc, useRef: useRefWc } = React;
-
 // ─── Il percorso di un nodo nell'albero ─────────────────────────────────────
 // Un indirizzo tipo [2, 'r3', 1] vuol dire: nodo 2 del tronco, ramo r3, nodo 1
 // di quel ramo. Serve per modificare in profondità senza mutare niente.

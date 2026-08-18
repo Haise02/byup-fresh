@@ -11,7 +11,7 @@
 //   original → Classico (DEFAULT) — vive in extras.jsx come VenueOriginal,
 //              perché è la vetrina storica e riusa helper locali (es. VenueMapThumbnail).
 
-const { useState: useStateV, useEffect: useEffectV, useRef: useRefV } = React;
+const { useState: useStateV, useEffect: useEffectV } = React;
 
 // ─────────────────────────────────────────────────────────────
 // PREMIUM v2 — Vetrina per i locali selezionati byup.

@@ -228,21 +228,4 @@ function StatOrdini() {
   );
 }
 
-function Pill({ iconKey, label, value }) {
-  const Ico = BuIcons[iconKey];
-  return (
-    <div style={{
-      flex:1, display:'flex', alignItems:'center', gap: 10,
-      padding:'10px 12px', background:'#fafafa',
-      border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 10,
-    }}>
-      {Ico ? <Ico size={14} color={PN.MUTED}/> : null}
-      <div style={{flex:1, minWidth: 0}}>
-        <div style={{fontSize: 14, color: PN.MUTED}}>{label}</div>
-        <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>{value}</div>
-      </div>
-    </div>
-  );
-}
-
 window.StatOrdini = StatOrdini;

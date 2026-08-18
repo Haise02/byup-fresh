@@ -1817,22 +1817,6 @@ function EmptyOrdini() {
 }
 
 // ────────── RIGHT COLUMN HELPERS ──────────
-function ReceiptRow({ label, value, tone, onRemove }) {
-  const color = tone === 'success' ? '#16A34A' : tone === 'danger' ? '#DC2626' : '#6B7280';
-  return (
-    <div style={{display:'flex', alignItems:'center', gap: 8, fontSize: 16.5}}>
-      <span style={{color, flex: 1}}>{label}</span>
-      {onRemove && (
-        <button onClick={onRemove} style={{
-          background:'transparent', border:'none', padding: 0,
-          fontFamily:'inherit', fontSize: 15, color:'#9CA3AF',
-          cursor:'pointer', textDecoration:'underline',
-        }}>rimuovi</button>
-      )}
-      <span style={{color, fontWeight: 700, fontVariantNumeric:'tabular-nums'}}>{value}</span>
-    </div>
-  );
-}
 
 // La tessera del metodo, gemella di quella in Vendita diretta: icona e nome
 // su una riga sola, e la spunta nell'angolo quando è scelta. La spunta serve
@@ -2654,11 +2638,6 @@ const saldaIconBtn = {
   background:'#fff', border:'1px solid #E5E7EB', cursor:'pointer',
   fontFamily:'inherit', color:'#6B7280',
   display:'grid', placeItems:'center',
-};
-const sectionLabel = {
-  fontSize: 14.5, fontWeight: 800, color:'#6B7280',
-  letterSpacing: 0.6, textTransform:'uppercase',
-  marginBottom: 8,
 };
 const btnPrimaryV2 = {
   display:'inline-flex', alignItems:'center', gap: 6,

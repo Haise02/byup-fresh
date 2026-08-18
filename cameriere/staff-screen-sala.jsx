@@ -1,6 +1,6 @@
 // byup Staff — Sala (lista tavoli unica) + Profilo
 
-const { useState: useStateS, useEffect: useEffectS, useRef: useRefS } = React;
+const { useState: useStateS } = React;
 
 // ─── Logica di stato condivisa fra lista e card ──────────────
 // Prenotazioni con graduated disclosure (3 livelli), per non mettere rumore con

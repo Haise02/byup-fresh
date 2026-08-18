@@ -58,8 +58,6 @@ function readNote(note) {
 
 // Open duration helpers (file-scope so all components can reuse)
 // MOD 3: Formato tempo uniforme — "Xh Y'" senza "fa". <60' → solo minuti. Minuti=0 → solo ore.
-const WARNING_DURATION_MIN = 90;
-const CRITICAL_DURATION_MIN = 180;
 function formatOpenDuration(totalMinutes) {
   const minutes = Math.max(0, Math.round(totalMinutes));
   const hours = Math.floor(minutes / 60);

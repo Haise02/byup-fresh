@@ -1923,12 +1923,6 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
   );
 }
 
-const stepperBtn = {
-  width: 42, height: 42, borderRadius: 999, border: '1.5px solid #f4d9e1',
-  background: CORALSURF_X, fontSize: 22, fontWeight: 600, cursor: 'pointer',
-  fontFamily: 'inherit', color: PINK_X, lineHeight: 1,
-  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-};
 function Field({ label, children }) {
   return (
     <div style={{ marginBottom: 18 }}>

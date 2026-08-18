@@ -2,7 +2,7 @@
 // sezione non esiste più, si arriva qui dalla rubrica Contatti.
 // SpesaMediaCard resta: la monta Analisi Dati (admin-dashboard).
 
-const { useState: useStateUtn, useMemo: useMemoUtn } = React;
+const { useState: useStateUtn } = React;
 
 
 // ─── Spesa media card · period-aware ────────────────────────────────────────

@@ -1296,15 +1296,6 @@ function Kds2Consegnati({ voci, onChiudi, onRipristina }) {
   );
 }
 
-function Kds2Info({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-      strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.1"/>
-    </svg>
-  );
-}
-
 function Kds2Orologio({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
