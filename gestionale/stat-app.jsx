@@ -195,7 +195,7 @@ function ConvFunnel({ passi, rimborsi }) {
                     display:'grid', gridTemplateColumns:'auto 112px',
                     columnGap: 12, alignItems:'center', justifyItems:'end',
                     // Telefono: scende sotto, a tutta riga, allineato a sinistra
-                    ...(statPhone() ? {gridColumn:'1 / -1', gridRow: 2, justifyContent:'start', justifyItems:'start'} : null),
+                    ...(statStretto() ? {gridColumn:'1 / -1', gridRow: 2, justifyContent:'start', justifyItems:'start'} : null),
                   }}>
                     <StatDelta value={step.delta}/>
                     {step.trend
@@ -211,7 +211,7 @@ function ConvFunnel({ passi, rimborsi }) {
                     fontSize: STG(26, 22), fontWeight: 700, color: PN.TEXT,
                     letterSpacing:-0.6, lineHeight: 1.05, fontVariantNumeric:'tabular-nums',
                     // Telefono: resta sulla prima riga, accanto al nome
-                    ...(statPhone() ? {gridColumn: 2, gridRow: 1} : null),
+                    ...(statStretto() ? {gridColumn: 2, gridRow: 1} : null),
                   }}>{num(step.val)}</div>
                 </div>
 

@@ -193,9 +193,21 @@ window.byupCreaNotaCredito = function(f) {
 function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedProp, onToggle }) {
   const [profHover, setProfHover] = React.useState(false);
   const [profPress, setProfPress] = React.useState(false);
+  // Su tablet il menu parte a barretta: esteso si mangerebbe un terzo dello
+  // schermo in verticale. La scelta dell'utente (localStorage) vince sempre;
+  // il default segue la classe del dispositivo anche alla rotazione.
+  const device = window.PnDevice ? window.PnDevice.use() : 'desktop';
   const [collapsedSelf, setCollapsedSelf] = React.useState(() => {
-    try { return localStorage.getItem('pn_sidebar_collapsed') === '1'; } catch(e) { return false; }
+    try {
+      const s = localStorage.getItem('pn_sidebar_collapsed');
+      if (s != null) return s === '1';
+    } catch(e) {}
+    return device === 'tablet';
   });
+  React.useEffect(() => {
+    try { if (localStorage.getItem('pn_sidebar_collapsed') != null) return; } catch(e) {}
+    setCollapsedSelf(device === 'tablet');
+  }, [device]);
   const controlled = collapsedProp != null;
   const collapsed = controlled ? collapsedProp : collapsedSelf;
 

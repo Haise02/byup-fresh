@@ -362,7 +362,10 @@ function SalaVenditaDiretta() {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 14, height:'100%', minHeight: 0}}>
-      <div style={{display:'grid', gridTemplateColumns:'1fr 440px', gap: 18, flex: 1, minHeight: 0}}>
+      {/* Il pannello ordine sta a 440px sul desktop e scende fino a 320 dove
+          la colonna si stringe (tablet in portrait): senza il clamp il menù
+          restava con 220px e una card per riga. */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr clamp(320px, 42%, 440px)', gap: 18, flex: 1, minHeight: 0}}>
       {/* === GRID PIATTI === */}
       <section style={{
         background: PN.WHITE, borderRadius: 14,
@@ -376,10 +379,12 @@ function SalaVenditaDiretta() {
           borderBottom: `1px solid ${PN.BORDER_SOFT}`,
           background: PN.WHITE,
         }}>
-          <div style={{display:'flex', gap: 8, marginBottom: 12, alignItems:'stretch'}}>
+          <div style={{display:'flex', gap: 8, marginBottom: 12, alignItems:'stretch', flexWrap:'wrap'}}>
             {/* La ricerca non si prende più tutta la riga: accanto ci stanno le
                 due code del banco, che durante il servizio si guardano molto
-                più spesso di quanto si cerchi un piatto per nome. */}
+                più spesso di quanto si cerchi un piatto per nome. Dove la
+                colonna si stringe (tablet) le code scendono a capo, come i
+                filtri della Sala. */}
             <div style={{position:'relative', flex: '0 1 260px', minWidth: 150}}>
               <span style={{position:'absolute', left: 12, top:'50%', transform:'translateY(-50%)', color: PN.MUTED, display:'inline-flex'}}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>

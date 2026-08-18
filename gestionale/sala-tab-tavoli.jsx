@@ -472,10 +472,27 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, focus, onToggl
 function SalaListView({ tavoli, onOpenAdd, onOpenPay, onAddArticle, expandedId, setExpandedId, onAdjustReservationPosti, contiCollapsed, onLibera, onEdit}) {
   const sorted = tavoli; // ordinamento già applicato dal parent (stato → numero)
 
-  // Griglia responsiva: pannello aperto (contiCollapsed=false) → 3 col, chiuso → 4 col
-  const cols = contiCollapsed ? 4 : 3;
+  // Griglia responsiva su due assi: il pannello dei conti aperti fa da tetto
+  // (aperto → max 3), la LARGHEZZA reale del contenitore decide il resto —
+  // sotto i 840px (tablet in portrait) le card a 4 colonne si schiacciavano
+  // fino a sovrapporre stato e coperti.
+  const gridRef = React.useRef(null);
+  const [autoCols, setAutoCols] = React.useState(4);
+  React.useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.offsetWidth;
+      setAutoCols(w < 560 ? 1 : w < 840 ? 2 : w < 1100 ? 3 : 4);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const cols = Math.min(autoCols, contiCollapsed ? 4 : 3);
   return (
-    <div style={{display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`, gap: 10, alignItems:'start'}}>
+    <div ref={gridRef} style={{display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`, gap: 10, alignItems:'start'}}>
       {sorted.map(t => (
         <SalaCard key={t.id} t={t}
           expanded={expandedId === t.id}

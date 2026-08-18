@@ -35,6 +35,8 @@ function StatisticheApp() {
 
   const device = window.PnDevice ? window.PnDevice.use() : 'desktop';
   const phone = device === 'phone';
+  // Stretto = telefono o tablet in portrait: definito negli atomi (statStretto).
+  const stretto = window.statStretto ? window.statStretto() : phone;
   // Sul telefono la colonna respira di meno; i margini negativi delle barre
   // appiccicate seguono lo stesso numero, così arrivano comunque ai bordi.
   const pad = phone ? 14 : 28;
@@ -77,9 +79,9 @@ function StatisticheApp() {
             { id: 'clienti', label: 'Clienti', icon: 'people-customer' },
           ]}
           active={tab} onChange={setTab}
-          action={phone ? null : <StatPeriodPicker period={period} setPeriod={setPeriod}/>}/>
+          action={stretto ? null : <StatPeriodPicker period={period} setPeriod={setPeriod}/>}/>
       </div>
-      {phone && (
+      {stretto && (
         <div style={{display:'flex', padding:'10px 0'}}>
           <StatPeriodPicker period={period} setPeriod={setPeriod}/>
         </div>

@@ -486,13 +486,17 @@ function SortHead({ col, cur, order, onSort, children }) {
 // larghezza minima sotto cui non ha senso comprimerle (lo scroll lo mette
 // StatCard). Si legge a render: il cambio classe rirenderizza da StatisticheApp.
 const statPhone = () => (window.PnDevice ? window.PnDevice.get() === 'phone' : false);
-const STG = (desk, mobile = '1fr') => (statPhone() ? mobile : desk);
-const STMIN = (px) => (statPhone() ? { minWidth: px } : null);
+// «Stretto» = telefono, oppure tablet sotto i 900px (il portrait): anche con
+// la sidebar a barretta le griglie a tre colonne lì non respirano.
+const statStretto = () => statPhone() ||
+  (window.PnDevice ? window.PnDevice.get() === 'tablet' && window.innerWidth < 900 : false);
+const STG = (desk, mobile = '1fr') => (statStretto() ? mobile : desk);
+const STMIN = (px) => (statStretto() ? { minWidth: px } : null);
 // Lo scroll sta sul CONTENITORE della tabella, non sul corpo della card:
 // overflow-x su tutto il corpo trasformerebbe anche l'overflow-y in clip
 // (regola CSS) e taglierebbe i design a sovrapposizione, tipo le legende.
-const STSCROLL = () => (statPhone() ? { overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : null);
-Object.assign(window, { STG, STMIN, STSCROLL, statPhone });
+const STSCROLL = () => (statStretto() ? { overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : null);
+Object.assign(window, { STG, STMIN, STSCROLL, statPhone, statStretto });
 
 function StatCard({ title, sub, action, children, padding = 20, style }) {
   // Sul telefono la card stringe i bordi, l'azione scende sotto il titolo se

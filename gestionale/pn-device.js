@@ -38,6 +38,9 @@
     'byup Panoramica.html',
     'byup Statistiche.html',
     'byup Login.html',
+    'byup Sala.html',
+    'byup Cucina.html',
+    'byup Cucina KDS v2.html',
   ];
 
   function classify() {
@@ -120,6 +123,7 @@
     }
   }
 
+  var lastBand = null;
   function apply() {
     var d = classify();
     var el = document.documentElement;
@@ -127,11 +131,16 @@
       (d === 'phone' && PHONE_OK.indexOf(page) !== -1) ||
       (d === 'tablet' && TABLET_NATIVE.indexOf(page) !== -1);
     var changed = el.getAttribute('data-pn-device') !== d;
+    // La banda «stretto/largo» (900px) cambia anche RESTANDO tablet — la
+    // rotazione di un iPad — e i layout che la leggono devono rirenderizzare.
+    var band = window.innerWidth < 900 ? 'narrow' : 'wide';
+    var bandChanged = lastBand !== null && band !== lastBand;
+    lastBand = band;
     el.setAttribute('data-pn-device', d);
     if (native) el.setAttribute('data-pn-native', '');
     else el.removeAttribute('data-pn-native');
     syncGate(d);
-    if (changed) window.dispatchEvent(new Event('pn-device-change'));
+    if (changed || bandChanged) window.dispatchEvent(new Event('pn-device-change'));
   }
 
   window.PnDevice = {
