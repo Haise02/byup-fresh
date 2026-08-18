@@ -74,7 +74,7 @@ function PnAddWidgetDrawer({ open, onClose, currentIds, onAdd }) {
       {/* drawer */}
       <div style={{
         position:'absolute', top: 0, right: 0, bottom: 0,
-        width: 420, background: PN.WHITE,
+        width: 420, maxWidth: '100vw', background: PN.WHITE,
         boxShadow: '-12px 0 32px rgba(15,17,21,0.10)',
         transform: open ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 0.25s cubic-bezier(.4,.0,.2,1)',

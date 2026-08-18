@@ -479,15 +479,35 @@ function SortHead({ col, cur, order, onSort, children }) {
 // `style`: override del contenitore — le card che stanno in una riga con una
 // vicina più alta lo usano per diventare colonne flex e distribuire l'altezza
 // invece di lasciare un vuoto in fondo.
+// ─── Adattamento telefono delle pagine Statistiche ──────────────────────────
+// Due sole regole: i layout di pagina (righe di card, strisce di KPI) IMPILANO
+// a una colonna — STG(desktop, telefono='1fr') — mentre le TABELLE tengono le
+// loro colonne e scorrono in orizzontale dentro la card: STMIN dà loro la
+// larghezza minima sotto cui non ha senso comprimerle (lo scroll lo mette
+// StatCard). Si legge a render: il cambio classe rirenderizza da StatisticheApp.
+const statPhone = () => (window.PnDevice ? window.PnDevice.get() === 'phone' : false);
+const STG = (desk, mobile = '1fr') => (statPhone() ? mobile : desk);
+const STMIN = (px) => (statPhone() ? { minWidth: px } : null);
+// Lo scroll sta sul CONTENITORE della tabella, non sul corpo della card:
+// overflow-x su tutto il corpo trasformerebbe anche l'overflow-y in clip
+// (regola CSS) e taglierebbe i design a sovrapposizione, tipo le legende.
+const STSCROLL = () => (statPhone() ? { overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : null);
+Object.assign(window, { STG, STMIN, STSCROLL, statPhone });
+
 function StatCard({ title, sub, action, children, padding = 20, style }) {
+  // Sul telefono la card stringe i bordi, l'azione scende sotto il titolo se
+  // non ci sta, e il corpo scorre in ORIZZONTALE quando il contenuto è più
+  // largo dello schermo (le tabelle): il contenuto non si spezza, si sfoglia.
+  const phone = window.PnDevice ? window.PnDevice.use() === 'phone' : false;
+  const pad = phone ? Math.min(padding, 14) : padding;
   return (
     <div style={{
       background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
-      borderRadius: 14, padding,
+      borderRadius: 14, padding: pad,
       ...style,
     }}>
       {(title || action) && (
-        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 16, marginBottom: 14}}>
+        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: phone ? 10 : 16, marginBottom: 14, flexWrap: phone ? 'wrap' : 'nowrap'}}>
           {title && (
             <div>
               <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>{title}</div>

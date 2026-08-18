@@ -548,3 +548,82 @@ function PnSysItem({ label, icon, active, onClick, collapsed }) {
 }
 
 window.PnSidebar = PnSidebar;
+
+// ─── Shell da telefono ───────────────────────────────────────────────────────
+// Dal telefono il gestionale offre SOLO Panoramica e Statistiche (deciso il
+// 2026-08-18): le altre pagine le copre il gate di pn-device.js. Questa è la
+// casa delle due superfici ammesse — niente sidebar: testata compatta col
+// segno del logo e il locale attivo, contenuto scrollabile, due tab in basso.
+// `onNav` riceve gli id di PN_PAGES come la sidebar: la Panoramica ci passa il
+// suo handleNav così la guardia delle modifiche non salvate vale anche qui.
+function PnMobileShell({ active, title, actions, onNav, children }) {
+  const [localeAttivo, setLocaleAttivo] = React.useState(() => window.byupReadLocale());
+  React.useEffect(() => {
+    const update = () => setLocaleAttivo(window.byupReadLocale());
+    window.addEventListener('byup-locale-change', update);
+    return () => window.removeEventListener('byup-locale-change', update);
+  }, []);
+
+  const tabs = [
+    { id: 'panoramica',  label: 'Panoramica',  icon: 'grid' },
+    { id: 'statistiche', label: 'Statistiche', icon: 'chart-bar' },
+  ];
+  const navTo = (id) => {
+    if (id === active) return;
+    if (onNav) return onNav(id);
+    const url = PN_PAGES[id];
+    if (url) window.location.href = url;
+  };
+
+  return (
+    // flex:1 + minWidth:0: la shell è figlia flex del .frame e senza il
+    // minWidth non scenderebbe sotto la min-content dei widget — la pagina
+    // sborderebbe a destra invece di far adattare la griglia.
+    <div style={{display:'flex', flexDirection:'column', height:'100%', flex: 1, minWidth: 0, background: PN.BG, position:'relative'}}>
+      <header style={{
+        flexShrink: 0, display:'flex', alignItems:'center', gap: 11,
+        padding:'12px 16px',
+        paddingTop:'max(12px, env(safe-area-inset-top))',
+        ...PN.GLASS_BAR,
+        position:'relative', zIndex: 30,
+      }}>
+        <PnI.LogoMark size={30}/>
+        <div style={{minWidth: 0, flex: 1}}>
+          <div style={{fontSize: 17.5, fontWeight: 800, letterSpacing: -0.3, color: PN.TEXT, lineHeight: 1.15}}>{title}</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{localeAttivo.nome}</div>
+        </div>
+        {actions}
+      </header>
+
+      <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY:'auto', WebkitOverflowScrolling:'touch'}}>
+        {children}
+      </div>
+
+      <nav style={{
+        flexShrink: 0, display:'flex',
+        ...PN.GLASS_BAR,
+        borderBottom:'none', borderTop:`1px solid ${PN.BORDER_HAIR}`,
+        paddingTop: 6,
+        paddingBottom:'max(8px, env(safe-area-inset-bottom))',
+        position:'relative', zIndex: 30,
+      }}>
+        {tabs.map(t => {
+          const on = active === t.id;
+          return (
+            <button key={t.id} onClick={() => navTo(t.id)} style={{
+              flex: 1, display:'flex', flexDirection:'column', alignItems:'center', gap: 3,
+              padding:'6px 0 4px',
+              background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit',
+              color: on ? PN.PINK_DARK : PN.MUTED,
+              fontSize: 11.5, fontWeight: on ? 700 : 600,
+            }}>
+              <Icon name={t.icon} size={23} color={on ? PN.PINK : PN.MUTED}/>
+              {t.label}
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+}
+window.PnMobileShell = PnMobileShell;

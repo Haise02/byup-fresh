@@ -2,7 +2,8 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=1440"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<script src="pn-device.js?v=1"></script>
 <title>byup — Cucina · KDS v2</title>
 <link rel="icon" type="image/png" href="/assets/byup-icon.png"/>
 <link rel="apple-touch-icon" href="/assets/byup-icon.png"/>
@@ -100,6 +101,12 @@
   function fit() {
     var frame = document.querySelector('.frame');
     if (!frame) return;
+    // Layout nativo (telefono/tablet adattato): lo zoom si mette da parte
+    // e pulisce quel che aveva scritto — comanda il CSS di pn-device.
+    if (document.documentElement.hasAttribute('data-pn-native')) {
+      if (cur.zoom !== null) { frame.style.zoom = ''; frame.style.width = ''; cur = { frame: null, zoom: null, width: null }; }
+      return;
+    }
     var s = (window.innerHeight - MARGIN) / DESIGN_H;
     s = Math.max(0.4, Math.min(2.2, s));
     var w = Math.max(MIN_W, (window.innerWidth - MARGIN) / s);

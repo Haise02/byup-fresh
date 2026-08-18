@@ -327,7 +327,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
       {/* Riga 1 — i tre numeri del periodo */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('repeat(3, 1fr)'), gap: 12}}>
         <EconKpi tono="ricavi" icona="commerce-money" label="Ricavi"
           valore={eur(d.ricavi.val)} sub="Entrate del periodo" delta={d.ricavi.delta}
           spark={d.fatturatoTrend}/>
@@ -341,7 +341,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
       </div>
 
       {/* Riga 2 — andamento a sinistra, da dove arrivano i soldi a destra */}
-      <div style={{display:'grid', gridTemplateColumns:'1.3fr 1fr', gap: 16}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1.3fr 1fr'), gap: 16}}>
         <StatCard title="Andamento ricavi vs costi" sub="Ultimi 12 mesi">
           <StatAndamento serie={SERIE} etichette={etichette} fmt={eur}/>
         </StatCard>
@@ -381,10 +381,10 @@ function RicaviCosti({ d, months, onVaiVendite }) {
       </div>
 
       {/* Riga 3 — da quale canale arrivano i ricavi, e quanto margine resta */}
-      <div style={{display:'grid', gridTemplateColumns:'1.55fr 1fr', gap: 16}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1.55fr 1fr'), gap: 16}}>
         <StatCard title="Ricavi per canale" sub="Quota di ogni canale sui ricavi del periodo"
           style={{display:'flex', flexDirection:'column'}}>
-          <div style={{flex: 1, display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
+          <div style={{flex: 1, display:'grid', gridTemplateColumns: STG('repeat(3, 1fr)', '1fr 1fr'), gap: 12}}>
             {/* Bianco su bianco con bordo BORDER_SOFT i tre box sparivano
                 dentro la card. Ora sono incavi: fondo del canvas e bordo
                 pieno, così il perimetro si legge senza dover alzare il
@@ -470,7 +470,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
           <span style={{display:'inline-flex', alignItems:'center', gap:5}}><span style={{width:10, height:10, borderRadius:3, background: COSTO_FISSO}}/> fissi</span>
         </span>
       }>
-        <div style={{display:'grid', gridTemplateColumns:'300px 1fr', gap: 22, alignItems:'stretch'}}>
+        <div style={{display:'grid', gridTemplateColumns: STG('300px 1fr'), gap: 22, alignItems:'stretch'}}>
 
           {/* Colonna sinistra — il totale e di che pasta è fatto */}
           <div style={{
@@ -540,10 +540,11 @@ function RicaviCosti({ d, months, onVaiVendite }) {
             </div>
           </div>
 
-          {/* Colonna destra — le categorie, in ordine di peso */}
-          <div>
+          {/* Colonna destra — le categorie, in ordine di peso.
+              Sul telefono scorre in orizzontale, colonne intatte. */}
+          <div style={STSCROLL()}>
             <div style={{
-              display:'grid', gridTemplateColumns: COSTI_COLS, gap: 14, alignItems:'center',
+              display:'grid', gridTemplateColumns: COSTI_COLS, ...STMIN(560), gap: 14, alignItems:'center',
               padding:'0 0 8px', borderBottom:`1px solid ${PN.BORDER_SOFT}`,
               fontSize: 12.5, fontWeight: 700, color: PN.MUTED,
               textTransform:'uppercase', letterSpacing: 0.5,
@@ -557,7 +558,7 @@ function RicaviCosti({ d, months, onVaiVendite }) {
 
             {costi.map((c, i) => (
               <div key={i} style={{
-                display:'grid', gridTemplateColumns: COSTI_COLS, gap: 14, alignItems:'center',
+                display:'grid', gridTemplateColumns: COSTI_COLS, ...STMIN(560), gap: 14, alignItems:'center',
                 padding:'11px 0',
                 borderBottom: i === costi.length - 1 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
               }}>
@@ -746,7 +747,7 @@ function PiattoTopMargine({ piatti, onVaiAlla }) {
             Due per riga, che in colonna singola facevano una scala di quattro
             righe alta il doppio di quel che serviva. */}
         <div style={{
-          display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8,
+          display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 8,
           borderTop:`1px solid ${PN.BORDER_SOFT}`, paddingTop: 12,
         }}>
           {seguito.map((p, i) => (
@@ -862,7 +863,7 @@ function VenditePiatti({ v }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('repeat(3, 1fr)'), gap: 12}}>
         <StatKpiTinto tono="blu" icona="commerce-bag" label="Articoli venduti"
           valore={v.kpi.venduti.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={v.kpi.venduti.delta} sub={v.kpi.venduti.sub} trend={v.kpi.venduti.trend}/>
@@ -883,7 +884,7 @@ function VenditePiatti({ v }) {
           appaiate sopra. Tutti e tre i pulsanti portano alla tabella qui
           sotto, già ordinata per la colonna di cui parla la card: è l'unico
           posto dove "vedi tutti" ha davvero qualcosa da mostrare. */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 16}}>
         <PodioPiatti piatti={[...v.piatti].sort((a, b) => b.n - a.n).slice(0, 3)}
           onVaiAlla={() => vaiAllaTabella('n')}/>
         <DistribuzioneCategorie piatti={v.piatti}
@@ -893,7 +894,7 @@ function VenditePiatti({ v }) {
       {/* Margine top e trend scontrino sulla stessa riga: da sola, la card del
           margine era larga il doppio di quel che le serve e il grafico
           scendeva sotto sprecando un'altra riga. */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1.3fr', gap: 16, alignItems:'stretch'}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1fr 1.3fr'), gap: 16, alignItems:'stretch'}}>
         <PiattoTopMargine piatti={v.piatti} onVaiAlla={() => vaiAllaTabella('marginePct')}/>
         <StatCard title="Trend scontrino medio" sub="Visualizzato per canale negli ultimi 12 mesi">
           <StatAndamento
@@ -917,14 +918,14 @@ function VenditePiatti({ v }) {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca piatto…" style={{border:'none', outline:'none', fontSize: 14.5, fontFamily:'inherit', width: 200}}/>
         </div>
       }>
-        <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
+        <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`, ...STSCROLL()}}>
           {/* Stessa intestazione della tabella dei piatti in Clienti →
               Conversione: rosa tenue e testo wine. Sono le due tabelle di
               piatti del gestionale e conviene che si somiglino.
               SortHead nasce grigia: qui il colore glielo passa il contenitore,
               e i bottoni lo ereditano. */}
           <div style={{
-            display:'grid', gridTemplateColumns: PIATTI_COLS,
+            display:'grid', gridTemplateColumns: PIATTI_COLS, ...STMIN(560),
             padding:'12px 16px', background: PN.PINK_SOFT,
             fontSize: 13, fontWeight: 700, color: PN.WINE,
             textTransform:'uppercase', letterSpacing: 0.4,
@@ -946,7 +947,7 @@ function VenditePiatti({ v }) {
               onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.transform = 'scale(1.006)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = sfondo; e.currentTarget.style.transform = ''; }}
               style={{
-                display:'grid', gridTemplateColumns: PIATTI_COLS,
+                display:'grid', gridTemplateColumns: PIATTI_COLS, ...STMIN(560),
                 padding:'8px 16px', alignItems:'center',
                 fontSize: 14.5, color: PN.TEXT,
                 background: sfondo,

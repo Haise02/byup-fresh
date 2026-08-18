@@ -96,7 +96,7 @@ function StaffPannello({ metrica, media }) {
   // filo, così le colonne non si spostano.
   const griglia = {
     display:'grid',
-    gridTemplateColumns:'14px 28px minmax(0, 1fr) minmax(56px, 0.95fr) 62px',
+    gridTemplateColumns:'14px 28px minmax(0, 1fr) minmax(56px, 0.95fr) 62px', ...STMIN(430),
     alignItems:'center', gap: 10,
     padding:'6px 8px', margin:'0 -8px', borderRadius: 10,
     transition:'background 140ms ease, transform 140ms ease',
@@ -160,7 +160,7 @@ function StaffPannello({ metrica, media }) {
         </span>
       </div>
 
-      <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+      <div style={{display:'flex', flexDirection:'column', gap: 8, ...STSCROLL()}}>
         {righe.map((s, i) => (
           <div key={s.nome} {...hoverRiga} style={griglia}>
             {/* Il posto in classifica: i primi tre un filo più scuri, il resto
@@ -221,7 +221,7 @@ function StatStaff() {
           sottotitolo del riquadro qui sotto — quindi cade anche la variante
           compatta: in tre colonne c'è la larghezza per la card piena, la
           stessa di Economici, con le etichette per esteso. */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('repeat(3, 1fr)'), gap: 12}}>
         <StatKpiTinto tono="rosa" glifo="€" label="Scontrino medio"
           valore={staffEuro(teamAvg)}
           delta={6.4} sub={`Media fra gli ${STAFF.length} membri attivi`} trend={STAFF_TREND.scontrino}/>
@@ -234,7 +234,7 @@ function StatStaff() {
       </div>
 
       <StatCard title="Team" sub={`Tutti e ${STAFF.length} i membri attivi nel periodo, dal più alto`}>
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+        <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 14}}>
           <StaffPannello metrica={STAFF_METRICHE[0]} media={teamAvg}/>
           <StaffPannello metrica={STAFF_METRICHE[1]} media={mediaPerTavolo}/>
         </div>

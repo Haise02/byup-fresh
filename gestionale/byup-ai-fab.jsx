@@ -115,6 +115,10 @@ const leggiPos = () => {
 
 // ─── Il bollino ───────────────────────────────────────────────────────────
 function BuAiFab() {
+  // Dal telefono il fab non c'è: le uniche pagine ammesse sono Panoramica —
+  // dove l'assistente È il widget in testa — e Statistiche, dove il pannello
+  // da 390px non avrebbe spazio e il bollino coprirebbe le tab in basso.
+  const device = window.PnDevice ? window.PnDevice.use() : 'desktop';
   const [hover, setHover] = React.useState(false);
   const [scintille, setScintille] = React.useState(0);   // rimonta il burst a ogni clic
   // `null` = mai spostato: resta ancorato in basso a destra e segue il frame
@@ -230,6 +234,9 @@ function BuAiFab() {
     window.addEventListener('pointerup', molla);
     window.addEventListener('pointercancel', molla);
   };
+
+  // Dopo tutti gli hook, così il ritorno anticipato non ne cambia l'ordine.
+  if (device === 'phone') return null;
 
   return (
       <div ref={wrapRef} style={{

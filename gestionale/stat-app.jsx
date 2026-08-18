@@ -168,8 +168,10 @@ function ConvFunnel({ passi, rimborsi }) {
                     all'estrema destra, tutto centrato sulla stessa riga
                     d'occhio: sopra la barra c'è una riga sola. */}
                 <div style={{
-                  display:'grid', gridTemplateColumns:'minmax(0, 1fr) auto auto',
-                  columnGap: 22, alignItems:'center',
+                  // Telefono: nome e numero sulla prima riga, andamento sotto —
+                  // a tre colonne la colonna del nome collasserebbe a zero.
+                  display:'grid', gridTemplateColumns: STG('minmax(0, 1fr) auto auto', 'minmax(0, 1fr) auto'),
+                  columnGap: STG(22, 12), rowGap: 7, alignItems:'center',
                 }}>
                   <div style={{minWidth: 0}}>
                     <div style={{
@@ -192,6 +194,8 @@ function ConvFunnel({ passi, rimborsi }) {
                   <div style={{
                     display:'grid', gridTemplateColumns:'auto 112px',
                     columnGap: 12, alignItems:'center', justifyItems:'end',
+                    // Telefono: scende sotto, a tutta riga, allineato a sinistra
+                    ...(statPhone() ? {gridColumn:'1 / -1', gridRow: 2, justifyContent:'start', justifyItems:'start'} : null),
                   }}>
                     <StatDelta value={step.delta}/>
                     {step.trend
@@ -204,8 +208,10 @@ function ConvFunnel({ passi, rimborsi }) {
                       del bordo della card e si confrontano in colonna. */}
                   <div style={{
                     width:`${larghezzaNum}ch`, textAlign:'right',
-                    fontSize: 26, fontWeight: 700, color: PN.TEXT,
+                    fontSize: STG(26, 22), fontWeight: 700, color: PN.TEXT,
                     letterSpacing:-0.6, lineHeight: 1.05, fontVariantNumeric:'tabular-nums',
+                    // Telefono: resta sulla prima riga, accanto al nome
+                    ...(statPhone() ? {gridColumn: 2, gridRow: 1} : null),
                   }}>{num(step.val)}</div>
                 </div>
 
@@ -318,11 +324,11 @@ function StatApp() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cerca piatto…" style={{border:'none', outline:'none', fontSize: 14.5, fontFamily:'inherit', width: 200}}/>
         </div>
       }>
-        <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`}}>
+        <div style={{borderRadius: 12, overflow:'hidden', border:`1px solid ${PN.BORDER_SOFT}`, ...STSCROLL()}}>
           {/* Senza la barra il tasso è solo la pastiglia, quindi la sua colonna
               si stringe; quella del piatto si allarga per la miniatura. */}
           <div style={{
-            display:'grid', gridTemplateColumns: CONV_COLONNE,
+            display:'grid', gridTemplateColumns: CONV_COLONNE, ...STMIN(640),
             padding:'12px 16px', background: PN.PINK_SOFT, columnGap: 10,
             fontSize: 13, fontWeight: 700, color: PN.WINE,
             textTransform:'uppercase', letterSpacing: 0.4,
@@ -345,7 +351,7 @@ function StatApp() {
                 onMouseEnter={e => { e.currentTarget.style.background = PN.PINK_BG_SOFT; e.currentTarget.style.transform = 'scale(1.006)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = sfondo; e.currentTarget.style.transform = ''; }}
                 style={{
-                  display:'grid', gridTemplateColumns: CONV_COLONNE,
+                  display:'grid', gridTemplateColumns: CONV_COLONNE, ...STMIN(640),
                   padding:'10px 16px', alignItems:'center', columnGap: 10,
                   fontSize: 14.5, color: PN.TEXT, background: sfondo,
                   borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,

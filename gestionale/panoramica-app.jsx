@@ -129,6 +129,144 @@ function PnApp() {
     window.location.href = url;
   };
 
+  const device = window.PnDevice ? window.PnDevice.use() : 'desktop';
+
+  // Il popup «modifiche non salvate» serve a entrambe le vesti.
+  const popupNavConfirm = navConfirm && (
+    <div onClick={() => setNavConfirm(null)} style={{
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+      display:'grid', placeItems:'center', zIndex: 300, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 20, width: 420, maxWidth:'100%',
+        padding: '22px 22px 20px',
+        display:'flex', flexDirection:'column', gap: 16,
+      }}>
+        <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+            background: PN.PINK_SOFT, color: PN.PINK_DARK,
+            display:'grid', placeItems:'center',
+          }}>
+            <Icon name="pencil" size={18}/>
+          </div>
+          <div style={{flex: 1}}>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Modifiche non salvate</div>
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+              Hai personalizzato la dashboard. Vuoi salvare le modifiche prima di uscire?
+            </div>
+          </div>
+        </div>
+        <div style={{display:'flex', gap: 8}}>
+          <button
+            onClick={() => { window.location.href = navConfirm; }}
+            style={{
+              flex: 1, padding: '11px 14px', borderRadius: 999,
+              background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
+              border: '1px solid rgba(15,17,21,0.12)',
+              fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+            }}>
+            Annulla modifiche
+          </button>
+          <button
+            onClick={() => { pnSaveLayout(widgets); window.location.href = navConfirm; }}
+            style={{
+              flex: 1, padding: '11px 14px', borderRadius: 999,
+              background: PN.BTN_DARK, color: PN.WHITE,
+              border: '1px solid rgba(0,0,0,0.32)',
+              fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            }}>
+            Salva ed esci
+          </button>
+        </div>
+        <button
+          onClick={() => setNavConfirm(null)}
+          style={{
+            border:'none', background:'transparent', padding: 0,
+            fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+            cursor:'pointer', fontFamily:'inherit',
+          }}>
+          Continua a modificare
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Telefono: shell a due tab, widget impilati dalla griglia (che sotto i
+  // 620px va da sola a una colonna). Il byuppino passa IN CODA: al telefono
+  // prima i numeri, la chat si raggiunge scorrendo. La card del piano — che
+  // sul desktop vive in sidebar — qui apre la pagina: il risparmio delle
+  // transazioni pesate deve restare visibile anche dal telefono.
+  if (device === 'phone') {
+    const mobileWidgets = [
+      ...widgets.filter(w => !pnFisso(w.id)),
+      ...widgets.filter(w => pnFisso(w.id)),
+    ];
+    return (
+      <React.Fragment>
+        <PnMobileShell active="panoramica" title="Panoramica" onNav={handleNav}
+          actions={
+            <button onClick={toggleEdit} title={editMode ? 'Salva' : 'Personalizza'} style={{
+              display:'inline-flex', alignItems:'center', gap: 6,
+              padding:'8px 13px', borderRadius: 999,
+              background: editMode ? PN.PINK : PN.WHITE,
+              color: editMode ? PN.WHITE : PN.TEXT,
+              border: `1px solid ${editMode ? PN.PINK : PN.BORDER}`,
+              fontWeight: 700, fontSize: 13.5, fontFamily:'inherit', cursor:'pointer',
+              flexShrink: 0,
+            }}>
+              <Icon name={editMode ? 'check' : 'pencil'} size={13}/>
+              {editMode ? 'Salva' : 'Personalizza'}
+            </button>
+          }>
+          <div style={{padding:'14px 14px 24px', display:'flex', flexDirection:'column', gap: 14}}>
+            <PnSidebarPlanCard/>
+            {editMode && (
+              <div style={{
+                display:'flex', alignItems:'center', gap: 10,
+                padding:'10px 14px',
+                background: PN.PINK_SOFT, border: `1px dashed ${PN.PINK}`,
+                borderRadius: 10,
+                fontSize: 14, color: PN.PINK_DARK, fontWeight: 600, lineHeight: 1.4,
+              }}>
+                <Icon name="pencil" size={14} color={PN.PINK_DARK}/>
+                Stai modificando la dashboard — rimuovi o aggiungi widget, poi premi Salva.
+              </div>
+            )}
+            <PnGrid
+              widgets={mobileWidgets}
+              editMode={editMode}
+              onRemove={remove}
+              onReorder={reorder}
+            />
+            {editMode && (
+              <button onClick={() => setDrawerOpen(true)} style={{
+                padding:'20px',
+                background:'transparent',
+                border: `2px dashed ${PN.MUTED_LIGHT}`,
+                borderRadius: 14,
+                cursor:'pointer', fontFamily:'inherit',
+                color: PN.MUTED, fontWeight: 600, fontSize: 15,
+                display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
+              }}>
+                <Icon name="plus" size={16}/> Aggiungi widget
+              </button>
+            )}
+          </div>
+        </PnMobileShell>
+        <PnAddWidgetDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          currentIds={widgets.map(w => w.id)}
+          onAdd={add}
+        />
+        {popupNavConfirm}
+      </React.Fragment>
+    );
+  }
+
   return (
     <div style={{display:'flex', flex:1, minHeight:0}}>
       <PnSidebar onNav={handleNav}/>
@@ -219,67 +357,7 @@ function PnApp() {
         />
 
         {/* Popup modifiche non salvate — appare cambiando schermata in edit mode */}
-        {navConfirm && (
-          <div onClick={() => setNavConfirm(null)} style={{
-            position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
-            backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
-            display:'grid', placeItems:'center', zIndex: 300, padding: 20,
-          }}>
-            <div onClick={e => e.stopPropagation()} style={{
-              ...PN.GLASS_STRONG,
-              borderRadius: 20, width: 420, maxWidth:'100%',
-              padding: '22px 22px 20px',
-              display:'flex', flexDirection:'column', gap: 16,
-            }}>
-              <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                  background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                  display:'grid', placeItems:'center',
-                }}>
-                  <Icon name="pencil" size={18}/>
-                </div>
-                <div style={{flex: 1}}>
-                  <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Modifiche non salvate</div>
-                  <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
-                    Hai personalizzato la dashboard. Vuoi salvare le modifiche prima di uscire?
-                  </div>
-                </div>
-              </div>
-              <div style={{display:'flex', gap: 8}}>
-                <button
-                  onClick={() => { window.location.href = navConfirm; }}
-                  style={{
-                    flex: 1, padding: '11px 14px', borderRadius: 999,
-                    background: 'rgba(255,255,255,0.75)', color: PN.TEXT,
-                    border: '1px solid rgba(15,17,21,0.12)',
-                    fontSize: 14.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                  }}>
-                  Annulla modifiche
-                </button>
-                <button
-                  onClick={() => { pnSaveLayout(widgets); window.location.href = navConfirm; }}
-                  style={{
-                    flex: 1, padding: '11px 14px', borderRadius: 999,
-                    background: PN.BTN_DARK, color: PN.WHITE,
-                    border: '1px solid rgba(0,0,0,0.32)',
-                    fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-                  }}>
-                  Salva ed esci
-                </button>
-              </div>
-              <button
-                onClick={() => setNavConfirm(null)}
-                style={{
-                  border:'none', background:'transparent', padding: 0,
-                  fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
-                  cursor:'pointer', fontFamily:'inherit',
-                }}>
-                Continua a modificare
-              </button>
-            </div>
-          </div>
-        )}
+        {popupNavConfirm}
       </main>
     </div>
   );

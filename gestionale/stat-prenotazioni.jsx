@@ -72,7 +72,7 @@ function StatPrenotazioni() {
           L'andamento c'è, piccolo, accanto al numero: lì restano 64px anche
           nella card più piena. Di fianco all'etichetta non ci sarebbe stato —
           quella riga la divide già con la pillola. */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('repeat(4, 1fr)', '1fr 1fr'), gap: 12}}>
         <StatKpiTinto compatto tono="blu" icona="people-customer" label="Coperti"
           valore={d.kpi.coperti.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={d.kpi.coperti.delta} sub="Ospiti serviti nel periodo" trend={d.kpi.coperti.trend}/>
@@ -87,7 +87,7 @@ function StatPrenotazioni() {
           delta={d.kpi.durata.delta} sub="Permanenza media al tavolo" trend={d.kpi.durata.trend}/>
       </div>
 
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 16}}>
         {/* Occupazione fasce — un solo colore di serie; il wine scatta
             solo come stato "quasi pieno" (≥85%), non come sfumatura. */}
         <StatCard title="Occupazione tavoli per fascia oraria"
@@ -181,7 +181,7 @@ function StatPrenotazioni() {
         </StatCard>
       </div>
 
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 16}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 16}}>
         {/* Coperti per giorno */}
         <StatCard title="Coperti per giorno" sub={`Confronto con la media del periodo (${mediaCop.toFixed(1).replace('.', ',')})`} action={
           <span style={{display:'inline-flex', alignItems:'center', gap: 12, fontSize: 14, color: PN.MUTED}}>

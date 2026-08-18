@@ -25,7 +25,7 @@ function OrdiniPerCanale({ d }) {
       sub={`Come si dividono i ${totale.toLocaleString('it-IT', {useGrouping: true})} ordini del periodo`}>
       {/* Niente barra della divisione sopra i due riquadri: la quota la
           dicono già le due pillole, e il sottotitolo dice il totale. */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 14}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('repeat(3, 1fr)'), gap: 14}}>
         {canali.map(c => {
           const quota = (c.completati / totale) * 100;
           const spento = su != null && su !== c.id;
@@ -126,7 +126,7 @@ function StatOrdini() {
           etichetta e pillola sulla stessa riga, andamento a destra. Qui le
           card sono due, quindi c'è la larghezza per la variante piena — la
           stessa di Economici, senza le strette di Prenotazioni. */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 12}}>
         <StatKpiTinto tono="rosa" icona="commerce-cart" label="Ordini completati"
           valore={d.kpi.completati.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={d.kpi.completati.delta} sub={d.kpi.completati.sub} trend={d.kpi.completati.trend}/>
@@ -165,54 +165,57 @@ function StatOrdini() {
           <span style={{fontSize: 14, color: PN.MUTED_SOFT}}>ordini</span>
         </div>
 
-        <div
-          onMouseLeave={() => setCella(null)}
-          style={{display:'grid', gridTemplateColumns:'48px repeat(7, 1fr)', gap: 4}}>
-          <div></div>
-          {days.map((day, ci) => (
-            <div key={day} style={{
-              padding:'4px 0 8px', fontSize: 12.5, fontWeight: 700,
-              color: cella && cella.ci === ci ? PN.TEXT : PN.MUTED,
-              textAlign:'center', textTransform:'uppercase', letterSpacing: 0.4,
-              transition:'color 140ms ease',
-            }}>{day}</div>
-          ))}
-          {d.heatmap.map((row, ri) => (
-            <React.Fragment key={ri}>
-              <div style={{
-                padding:'0 10px 0 0', fontSize: 12.5, fontWeight: 600,
-                color: cella && cella.ri === ri ? PN.TEXT : PN.MUTED,
-                fontVariantNumeric:'tabular-nums', textAlign:'right', alignSelf:'center',
+        {/* Sul telefono la tabella scorre nel suo contenitore, colonne intatte */}
+        <div style={STSCROLL()}>
+          <div
+            onMouseLeave={() => setCella(null)}
+            style={{display:'grid', gridTemplateColumns:'48px repeat(7, 1fr)', ...STMIN(520), gap: 4}}>
+            <div></div>
+            {days.map((day, ci) => (
+              <div key={day} style={{
+                padding:'4px 0 8px', fontSize: 12.5, fontWeight: 700,
+                color: cella && cella.ci === ci ? PN.TEXT : PN.MUTED,
+                textAlign:'center', textTransform:'uppercase', letterSpacing: 0.4,
                 transition:'color 140ms ease',
-              }}>{row.ora}</div>
-              {row.val.map((v, ci) => {
-                const su = cella && cella.ri === ri && cella.ci === ci;
-                const eIlPicco = ri === picco.ri && ci === picco.ci;
-                return (
-                  <div key={ci}
-                    onMouseEnter={() => setCella({ ri, ci })}
-                    style={{
-                      // 40 e non 34: su una card a tutta pagina le celle sono
-                      // larghe 170, e a 34 sembravano strisce invece che caselle.
-                      height: 40, borderRadius: 8, background: heatBg(v),
-                      color: heatColor(v),
-                      display:'grid', placeItems:'center',
-                      fontSize: 13.5, fontWeight: 600, fontVariantNumeric:'tabular-nums',
-                      position:'relative', cursor:'default',
-                      // L'anello sta sul picco sempre e sulla cella puntata
-                      // mentre ci sei sopra: due modi di dire "guarda qui" che
-                      // non si pestano i piedi, perché il secondo è passeggero.
-                      boxShadow: su
-                        ? `0 0 0 2px ${PN.WHITE}, 0 0 0 3.5px ${PN.WINE}`
-                        : eIlPicco ? `0 0 0 2px ${PN.WHITE}, 0 0 0 3px ${PN.WINE}` : 'none',
-                      transform: su ? 'scale(1.08)' : 'scale(1)',
-                      zIndex: su || eIlPicco ? 2 : 1,
-                      transition:'transform 140ms ease, box-shadow 140ms ease',
-                    }}>{v}</div>
-                );
-              })}
-            </React.Fragment>
-          ))}
+              }}>{day}</div>
+            ))}
+            {d.heatmap.map((row, ri) => (
+              <React.Fragment key={ri}>
+                <div style={{
+                  padding:'0 10px 0 0', fontSize: 12.5, fontWeight: 600,
+                  color: cella && cella.ri === ri ? PN.TEXT : PN.MUTED,
+                  fontVariantNumeric:'tabular-nums', textAlign:'right', alignSelf:'center',
+                  transition:'color 140ms ease',
+                }}>{row.ora}</div>
+                {row.val.map((v, ci) => {
+                  const su = cella && cella.ri === ri && cella.ci === ci;
+                  const eIlPicco = ri === picco.ri && ci === picco.ci;
+                  return (
+                    <div key={ci}
+                      onMouseEnter={() => setCella({ ri, ci })}
+                      style={{
+                        // 40 e non 34: su una card a tutta pagina le celle sono
+                        // larghe 170, e a 34 sembravano strisce invece che caselle.
+                        height: 40, borderRadius: 8, background: heatBg(v),
+                        color: heatColor(v),
+                        display:'grid', placeItems:'center',
+                        fontSize: 13.5, fontWeight: 600, fontVariantNumeric:'tabular-nums',
+                        position:'relative', cursor:'default',
+                        // L'anello sta sul picco sempre e sulla cella puntata
+                        // mentre ci sei sopra: due modi di dire "guarda qui" che
+                        // non si pestano i piedi, perché il secondo è passeggero.
+                        boxShadow: su
+                          ? `0 0 0 2px ${PN.WHITE}, 0 0 0 3.5px ${PN.WINE}`
+                          : eIlPicco ? `0 0 0 2px ${PN.WHITE}, 0 0 0 3px ${PN.WINE}` : 'none',
+                        transform: su ? 'scale(1.08)' : 'scale(1)',
+                        zIndex: su || eIlPicco ? 2 : 1,
+                        transition:'transform 140ms ease, box-shadow 140ms ease',
+                      }}>{v}</div>
+                  );
+                })}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
         <div style={{display:'flex', alignItems:'center', gap: 7, marginTop: 16, fontSize: 13.5, color: PN.MUTED}}>

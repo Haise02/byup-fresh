@@ -506,7 +506,7 @@ function CliRecensioni({ elenco, totale, stelle, distribuzione, onPulisci }) {
       <div style={{background: PN.BG, borderRadius: 16, padding: 14}}>
         <div className="pn-scroll" style={{
           maxHeight: 540, overflowY:'auto', paddingRight: 4,
-          display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14,
+          display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 14,
           alignContent:'start', alignItems:'start',
         }}>
         {visibili.map((r, i) => {
@@ -754,7 +754,7 @@ function StatClienti() {
       {/* KPI nella card tinta delle altre sezioni. Qui sono due, quindi c'è la
           larghezza per la variante piena — come in Ordini — e le etichette
           stanno per esteso. */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr'), gap: 12}}>
         <StatKpiTinto tono="blu" icona="people-customer" label="Clienti unici"
           valore={d.unici.val.toLocaleString('it-IT', {useGrouping: true})}
           delta={d.unici.delta} sub="Persone diverse nel periodo" trend={d.unici.trend}/>
@@ -771,7 +771,7 @@ function StatClienti() {
             fossero due cose: sono la stessa, quel numero e come ci è arrivato.
             Tolto il filo resta l'aria, il voto si incolonna stretto a sinistra
             e il disegno si prende il resto per tutta l'altezza. */}
-        <div style={{display:'grid', gridTemplateColumns:'minmax(230px, 0.92fr) minmax(0, 2.2fr)', gap: 34, alignItems:'stretch'}}>
+        <div style={{display:'grid', gridTemplateColumns: STG('minmax(230px, 0.92fr) minmax(0, 2.2fr)'), gap: 34, alignItems:'stretch'}}>
           <CliVoto d={d} stelleSel={stelle} onScegli={setStelle}/>
           <CliAndamento d={d} mesiEt={mesiEt}/>
         </div>
@@ -855,45 +855,48 @@ function CliCiclo({ dati }) {
           <span style={{fontSize: 13.5, color: PN.MUTED}}>è tornato almeno una volta</span>
         </div>
       }>
-      <div style={{display:'grid', gridTemplateColumns: colonne}}>
-        {/* La testatina non ha più il fondo grigio né le maiuscole: erano il
-            modo di dire «qui comincia una tabella», e non c'è più una tabella. */}
-        <span style={testata()}>Stato</span>
-        <span style={testata()}/>
-        <span style={{...testata(), textAlign:'right'}}>Clienti</span>
-        <span style={{...testata(), textAlign:'right'}}>Quota</span>
-        {/* «vs prima» non diceva prima di cosa: la colonna confronta con il
-            periodo precedente di pari durata — quello scelto in alto — e
-            l'abbreviazione risparmiava trenta pixel al prezzo del significato. */}
-        <span style={{...testata(true), textAlign:'right', whiteSpace:'nowrap'}}>vs periodo prec.</span>
+      {/* Sul telefono la tabella scorre nel suo contenitore, colonne intatte */}
+      <div style={STSCROLL()}>
+        <div style={{display:'grid', gridTemplateColumns: colonne, ...STMIN(560)}}>
+          {/* La testatina non ha più il fondo grigio né le maiuscole: erano il
+              modo di dire «qui comincia una tabella», e non c'è più una tabella. */}
+          <span style={testata()}>Stato</span>
+          <span style={testata()}/>
+          <span style={{...testata(), textAlign:'right'}}>Clienti</span>
+          <span style={{...testata(), textAlign:'right'}}>Quota</span>
+          {/* «vs prima» non diceva prima di cosa: la colonna confronta con il
+              periodo precedente di pari durata — quello scelto in alto — e
+              l'abbreviazione risparmiava trenta pixel al prezzo del significato. */}
+          <span style={{...testata(true), textAlign:'right', whiteSpace:'nowrap'}}>vs periodo prec.</span>
 
-        {dati.map((r, i) => (
-          <React.Fragment key={i}>
-            <span style={{...cella(), fontSize: 15.5, fontWeight: 600, color: PN.TEXT}}>{r.stato}</span>
-            <span style={cella()}>
-              <span style={{flex: 1, height: 8, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden'}}
-                title={`${r.pct}% dei clienti del periodo`}>
-                <span style={{display:'block', height:'100%', borderRadius: 999, width:`${r.pct}%`, background: CLI_CICLO_TINTE[i]}}/>
+          {dati.map((r, i) => (
+            <React.Fragment key={i}>
+              <span style={{...cella(), fontSize: 15.5, fontWeight: 600, color: PN.TEXT}}>{r.stato}</span>
+              <span style={cella()}>
+                <span style={{flex: 1, height: 8, borderRadius: 999, background: PN.WHITE_FROST, overflow:'hidden'}}
+                  title={`${r.pct}% dei clienti del periodo`}>
+                  <span style={{display:'block', height:'100%', borderRadius: 999, width:`${r.pct}%`, background: CLI_CICLO_TINTE[i]}}/>
+                </span>
               </span>
-            </span>
-            <span style={{...cella(false, true), fontSize: 15.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
-              {r.n.toLocaleString('it-IT', {useGrouping: true})}
-            </span>
-            <span style={{...cella(false, true), fontSize: 15, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>{r.pct}%</span>
-            {/* La freccia e il numero, senza pastiglia: il colore sulla cifra
-                dice già da che parte va, e la pastiglia lo diceva una seconda
-                volta su ogni riga. Il segno lo decide il dato: nei dati di oggi
-                salgono tutte, ma una riga che scende non può stampare una
-                freccia in su col numero negativo accanto. */}
-            <span style={{
-              ...cella(true, true), fontSize: 14.5, fontWeight: 700,
-              color: r.delta >= 0 ? PN.GREEN : PN.RED,
-              fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
-            }} title={`Nel periodo precedente di pari durata erano ${String(Math.abs(r.delta)).replace('.', ',')}% in ${r.delta >= 0 ? 'meno' : 'più'}`}>
-              {r.delta >= 0 ? '↑' : '↓'} {String(Math.abs(r.delta)).replace('.', ',')}%
-            </span>
-          </React.Fragment>
-        ))}
+              <span style={{...cella(false, true), fontSize: 15.5, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
+                {r.n.toLocaleString('it-IT', {useGrouping: true})}
+              </span>
+              <span style={{...cella(false, true), fontSize: 15, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>{r.pct}%</span>
+              {/* La freccia e il numero, senza pastiglia: il colore sulla cifra
+                  dice già da che parte va, e la pastiglia lo diceva una seconda
+                  volta su ogni riga. Il segno lo decide il dato: nei dati di oggi
+                  salgono tutte, ma una riga che scende non può stampare una
+                  freccia in su col numero negativo accanto. */}
+              <span style={{
+                ...cella(true, true), fontSize: 14.5, fontWeight: 700,
+                color: r.delta >= 0 ? PN.GREEN : PN.RED,
+                fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
+              }} title={`Nel periodo precedente di pari durata erano ${String(Math.abs(r.delta)).replace('.', ',')}% in ${r.delta >= 0 ? 'meno' : 'più'}`}>
+                {r.delta >= 0 ? '↑' : '↓'} {String(Math.abs(r.delta)).replace('.', ',')}%
+              </span>
+            </React.Fragment>
+          ))}
+        </div>
       </div>
     </StatCard>
   );
@@ -943,7 +946,7 @@ function StatFuori() {
       {/* Dieci righe di due dati soli, su una tabella larga mille pixel, sono
           un elenco perso nel bianco: due colonne da cinque riempiono la
           larghezza e accorciano la strada fra il nome e il suo numero. */}
-      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', columnGap: 36}}>
+      <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr'), columnGap: 36}}>
         {[0, 1].map(col => (
           <div key={col}>
             <div style={{
