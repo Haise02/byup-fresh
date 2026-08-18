@@ -66,7 +66,7 @@ function ContabilitaApp() {
             padding={0}
             style={{
               display:'grid',
-              gridTemplateColumns:'repeat(4, minmax(0, 1fr))',
+              gridTemplateColumns: STG('repeat(4, minmax(0, 1fr))', '1fr 1fr'),
               marginBottom: 20,
               overflow: 'hidden',
             }}>

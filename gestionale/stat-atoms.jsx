@@ -479,24 +479,12 @@ function SortHead({ col, cur, order, onSort, children }) {
 // `style`: override del contenitore — le card che stanno in una riga con una
 // vicina più alta lo usano per diventare colonne flex e distribuire l'altezza
 // invece di lasciare un vuoto in fondo.
-// ─── Adattamento telefono delle pagine Statistiche ──────────────────────────
-// Due sole regole: i layout di pagina (righe di card, strisce di KPI) IMPILANO
-// a una colonna — STG(desktop, telefono='1fr') — mentre le TABELLE tengono le
-// loro colonne e scorrono in orizzontale dentro la card: STMIN dà loro la
-// larghezza minima sotto cui non ha senso comprimerle (lo scroll lo mette
-// StatCard). Si legge a render: il cambio classe rirenderizza da StatisticheApp.
-const statPhone = () => (window.PnDevice ? window.PnDevice.get() === 'phone' : false);
-// «Stretto» = telefono, oppure tablet sotto i 900px (il portrait): anche con
-// la sidebar a barretta le griglie a tre colonne lì non respirano.
-const statStretto = () => statPhone() ||
-  (window.PnDevice ? window.PnDevice.get() === 'tablet' && window.innerWidth < 900 : false);
-const STG = (desk, mobile = '1fr') => (statStretto() ? mobile : desk);
-const STMIN = (px) => (statStretto() ? { minWidth: px } : null);
-// Lo scroll sta sul CONTENITORE della tabella, non sul corpo della card:
-// overflow-x su tutto il corpo trasformerebbe anche l'overflow-y in clip
-// (regola CSS) e taglierebbe i design a sovrapposizione, tipo le legende.
-const STSCROLL = () => (statStretto() ? { overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : null);
-Object.assign(window, { STG, STMIN, STSCROLL, statPhone, statStretto });
+// ─── Adattamento telefono/tablet ────────────────────────────────────────────
+// Gli helper STG / STMIN / STSCROLL e il predicato «stretto» vivono in
+// panoramica-tokens.jsx (l'unico file caricato da tutte le pagine): da lì
+// arrivano come window.* anche a Contabilità e alle altre pagine di fase 2.
+// Due sole regole: i layout di pagina IMPILANO (STG), le TABELLE tengono le
+// colonne e scorrono nel loro contenitore (STMIN + STSCROLL).
 
 function StatCard({ title, sub, action, children, padding = 20, style }) {
   // Sul telefono la card stringe i bordi, l'azione scende sotto il titolo se

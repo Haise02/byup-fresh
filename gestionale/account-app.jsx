@@ -21,7 +21,9 @@ function AccountApp() {
   ];
 
   return (
-    <div style={{display:'flex', flex:1, minHeight:0}}>
+    // minWidth:0: figlia flex del .frame — senza, non scende sotto la
+    // min-content della barra delle tab e sul tablet stretto sborda a destra.
+    <div style={{display:'flex', flex:1, minWidth:0, minHeight:0}}>
       <PnSidebar active="account"/>
 
       <main style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, position:'relative'}}>

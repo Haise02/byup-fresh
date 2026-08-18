@@ -8,6 +8,12 @@
 // cliccato comunque.
 
 function ImpApp() {
+  // Classe dispositivo: rirenderizza al cambio (rotazione compresa); lo
+  // «stretto» decide rail e colonne — vedi panoramica-tokens.
+  const pnDevice = window.PnDevice ? window.PnDevice.use() : 'desktop';
+  const stretto = window.statStretto ? window.statStretto() : false;
+  void pnDevice;
+
   // Deep-link: ?page=<tab> apre direttamente la pagina di impostazioni.
   const [active, setActive] = React.useState(() => {
     try {
@@ -136,10 +142,10 @@ function ImpApp() {
       {/* Il menù del gestionale, in modalità controllata: la larghezza la
           decide questa schermata, e non finisce in memoria. */}
       <PnSidebar active="impostazioni" onNav={vaiPagina}
-        collapsed={menuLargo !== 'gestionale'}
+        collapsed={stretto || menuLargo !== 'gestionale'}
         onToggle={() => setMenuLargo(m => m === 'gestionale' ? 'impostazioni' : 'gestionale')}/>
 
-      <ImpNavSidebar active={active} onChange={vaiA} collapsed={menuLargo !== 'impostazioni'}/>
+      <ImpNavSidebar active={active} onChange={vaiA} collapsed={stretto || menuLargo !== 'impostazioni'}/>
 
       {/* Solo il contenuto entra scorrendo dal basso: le due colonne di menù
           devono sembrare già lì — una perché c'era davvero, l'altra perché la

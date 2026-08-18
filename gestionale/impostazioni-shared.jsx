@@ -384,7 +384,18 @@ window.MenuItem = MenuItem;
 
 // Layout: main content on left, optional vetrina preview on right
 function ImpWithPreview({ children, preview }) {
-  const [open, setOpen] = React.useState(true);
+  // Classe dispositivo: rirenderizza al cambio (rotazione compresa); lo
+  // «stretto» decide rail e colonne — vedi panoramica-tokens.
+  const pnDevice = window.PnDevice ? window.PnDevice.use() : 'desktop';
+  const stretto = window.statStretto ? window.statStretto() : false;
+  void pnDevice;
+
+  // Su tablet l'anteprima parte CHIUSA: aperta, tra le due colonne di menu e
+  // i suoi 348px, al form restavano ~330px e le schede dei servizi si
+  // accavallavano. Il bottone «Mostra anteprima vetrina» resta lì per aprirla.
+  const [open, setOpen] = React.useState(
+    () => !(window.PnDevice && window.PnDevice.get() === 'tablet')
+  );
   const asideRef = React.useRef(null);
   const phoneRef = React.useRef(null);
 
@@ -447,7 +458,7 @@ function ImpWithPreview({ children, preview }) {
     // 348px e non 320: con l'anteprima che parte dalla cima, l'altezza
     // disponibile ammette un telefono da ~313px — la colonna vecchia lo
     // strozzava in larghezza e lasciava 50px vuoti sul fondo del pannello.
-    <div style={{display:'grid', gridTemplateColumns: open ? '1fr 348px' : '1fr', gap: 18, alignItems:'flex-start'}}>
+    <div style={{display:'grid', gridTemplateColumns: open ? (stretto ? '1fr' : '1fr 348px') : '1fr', gap: 18, alignItems:'flex-start'}}>
       <div style={{minWidth: 0}}>
         {/* A destra e non a sinistra: e il pulsante che riapre il pannello di
             destra, e sta dove ricompare quello che riapre. A sinistra sembrava

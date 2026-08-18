@@ -194,7 +194,7 @@ function AccDatiGenerali() {
       </AcCard>
 
       <AcCard title="I tuoi locali" subtitle="Locali gestiti da questo account · clicca su un locale per passare al suo gestionale.">
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 12}}>
+        <div style={{display:'grid', gridTemplateColumns: STG('repeat(4, 1fr)', '1fr 1fr'), gap: 12}}>
           {switching && <style>{`@keyframes acSpin { to { transform: rotate(360deg); } }`}</style>}
           {locali.map((loc) => {
             const active = loc.id === localeAttivo.id;
@@ -345,7 +345,7 @@ function AccDatiGenerali() {
       </AcCard>
 
       <AcCard title="Lingua e regione" subtitle="Preferenze locali.">
-        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 14}}>
+        <div style={{display:'grid', gridTemplateColumns: STG('1fr 1fr 1fr'), gap: 14}}>
           <AcSelect label="Lingua" value={lingua} onChange={setLingua}
             options={['Italiano','English','Español','Français','Deutsch']}/>
           <AcSelect label="Fuso orario" value={fuso} onChange={setFuso}

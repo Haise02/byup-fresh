@@ -8,6 +8,12 @@
 // VetrinaAspetto / VetrinaPubblico, ImpPersonale, anteprima + pubblica.
 
 function ConfigCompletaApp() {
+  // Classe dispositivo: rirenderizza al cambio (rotazione compresa); lo
+  // «stretto» decide rail e colonne — vedi panoramica-tokens.
+  const pnDevice = window.PnDevice ? window.PnDevice.use() : 'desktop';
+  const stretto = window.statStretto ? window.statStretto() : false;
+  void pnDevice;
+
   // Tre step: Informazioni (profilo vetrina) → Aspetto (foto, social e FAQ)
   // → Personale.
   const [step, setStep] = React.useState(() => {
@@ -113,7 +119,7 @@ function ConfigCompletaApp() {
   return (
     <div style={{display:'flex', flexDirection:'column', flex:1, minWidth:0, minHeight:0, background: PN.BG}}>
       <ImpAtterraggioStyle/>
-      <div style={{display:'flex', flex:1, minWidth:0, minHeight:0}}>
+      <div style={{display:'flex', flexDirection: stretto ? 'column' : 'row', flex:1, minWidth:0, minHeight:0}}>
       {/* ─── Colonna sinistra: contenuto che scrolla ─────────────────── */}
       <div style={{flex:1, minWidth: 0, display:'flex', flexDirection:'column'}}>
       {/* Fascia alta LOCKATA: header, stepper e completamento restano fissi,
@@ -354,8 +360,8 @@ function ConfigCompletaApp() {
           visibile, poi numeri del team e checklist. Fissa, scrolla da sé. */}
       {step === 'personale' && (
         <aside style={{
-          width: 384, flexShrink: 0,
-          padding: '18px 18px 18px 0',
+          width: stretto ? '100%' : 384, flexShrink: 0,
+          padding: stretto ? '0 18px 18px' : '18px 18px 18px 0',
           display: 'flex', flexDirection: 'column', minHeight: 0,
         }}>
           <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12}}>
@@ -370,7 +376,7 @@ function ConfigCompletaApp() {
       {guidaStaff && <StaffGuidaModal onClose={() => setGuidaStaff(false)}/>}
 
       {/* ─── Rail destra FISSA: solo il telefono, grande — non scrolla ──── */}
-      {step !== 'personale' && (
+      {step !== 'personale' && !stretto && (
         <aside style={{
           width: 396, flexShrink: 0,
           padding: '18px 18px 18px 0',

@@ -103,7 +103,7 @@ function Step4Verifica({ onBack, onComplete}) {
         {/* Stessa griglia degli altri step; flex 1 così la riga occupa tutta
             l'altezza fino al footer e il telefono può centrarsi in verticale. */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px',
+          display: 'grid', gridTemplateColumns: STG('minmax(0, 1fr) 360px'),
           gap: 72, alignItems: 'start', flex: 1, minHeight: 0,
         }}>
 

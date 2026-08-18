@@ -41,6 +41,12 @@
     'byup Sala.html',
     'byup Cucina.html',
     'byup Cucina KDS v2.html',
+    'byup Contabilita.html',
+    'byup Impostazioni.html',
+    'byup Profilo.html',
+    'byup Configurazione Completa.html',
+    'byup Supporto.html',
+    'byup Restaurant Onboarding.html',
   ];
 
   function classify() {
@@ -62,6 +68,10 @@
     '}',
     'html[data-pn-gate] .frame, html[data-pn-gate] #root { display: none !important; }',
     '#pn-gate a { -webkit-tap-highlight-color: transparent; }',
+    // Il navigatore demo degli step (onboarding): in alto a destra si
+    // sovrappone alle etichette dell'header quando lo schermo si stringe —
+    // nel layout nativo scende in basso a sinistra, dove non copre nulla.
+    'html[data-pn-native] .stage-controls { top: auto !important; bottom: 14px !important; right: auto !important; left: 14px !important; }',
   ].join('\n');
   var style = document.createElement('style');
   style.id = 'pn-device-style';
@@ -142,6 +152,26 @@
     syncGate(d);
     if (changed || bandChanged) window.dispatchEvent(new Event('pn-device-change'));
   }
+
+  // ── Predicato «stretto» e helper dei layout adattivi ──────────────────────
+  // Telefono, oppure tablet sotto i 900px (il portrait): anche con le sidebar
+  // a barretta le griglie a tre colonne lì non respirano. Vivono QUI e non nei
+  // token perché questo è l'unico file caricato da ogni pagina del gestionale
+  // — l'onboarding, per dirne una, i token non li carica affatto.
+  // STG impila i layout di pagina; STMIN + STSCROLL fanno scorrere le TABELLE
+  // nel loro contenitore, colonne intatte. Mai overflow-x sul corpo intero di
+  // una card: l'overflow-y diventa clip (regola CSS) e taglia le legende.
+  window.statPhone = function () { return classify() === 'phone'; };
+  window.statStretto = function () {
+    return classify() === 'phone' || (classify() === 'tablet' && window.innerWidth < 900);
+  };
+  window.STG = function (desk, mobile) {
+    return window.statStretto() ? (mobile === undefined ? '1fr' : mobile) : desk;
+  };
+  window.STMIN = function (px) { return window.statStretto() ? { minWidth: px } : null; };
+  window.STSCROLL = function () {
+    return window.statStretto() ? { overflowX: 'auto', WebkitOverflowScrolling: 'touch' } : null;
+  };
 
   window.PnDevice = {
     get: classify,

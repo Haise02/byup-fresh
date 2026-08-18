@@ -165,6 +165,10 @@ const PN = {
 
 window.PN = PN;
 
+// Gli helper dei layout adattivi (STG / STMIN / STSCROLL, predicato «stretto»)
+// vivono in pn-device.js: è il SOLO file caricato da ogni pagina del
+// gestionale — l'onboarding questi token non li carica affatto.
+
 
 // ─── Feedback universale del cliccabile (regola globale del gestionale) ─────
 // TUTTO ciò che è pensato per essere cliccato reagisce al passaggio e al
@@ -324,10 +328,11 @@ function PnSectionTab({ id, active, onClick, label, icon, hint }) {
 // dentro le loro barre, che affiancano KPI e period picker.
 function PnSectionTabs({ tabs, active, onChange }) {
   return (
-    <div style={{
+    <div className="pn-scroll" style={{
       display: 'flex', gap: 4, padding: '4px 32px 0',
       borderBottom: `1px solid ${PN.BORDER}`,
       background: PN.WHITE,
+      overflowX: 'auto',
     }}>
       {tabs.map(t => (
         <PnSectionTab key={t.id} id={t.id} active={active === t.id} onClick={onChange} label={t.label} icon={t.icon}/>

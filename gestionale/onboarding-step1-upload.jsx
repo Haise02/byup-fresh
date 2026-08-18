@@ -30,7 +30,7 @@ function Step1Upload({onAnalyze}) {
           pannello detta l'altezza del blocco. */}
       <div style={{
         width: '100%', maxWidth: 1240, margin: 'auto',
-        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 560px',
+        display: 'grid', gridTemplateColumns: STG('minmax(0, 1fr) 560px'),
         gap: 72, alignItems: 'start',
       }}>
 

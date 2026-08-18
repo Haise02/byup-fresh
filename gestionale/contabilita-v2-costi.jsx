@@ -214,12 +214,12 @@ function ContCosti({ openNewCost }) {
         const grp = grouped[k];
         const groupTotal = grp.items.reduce((s,c)=>s+c.amount,0);
         return (
-          <div key={k} style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, overflow:'hidden'}}>
+          <div key={k} style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, overflow:'hidden', ...STSCROLL()}}>
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 18px', background: C.TH_BG, borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
               <div style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, textTransform:'capitalize'}}>{grp.label}</div>
               <div style={{fontSize: C.T_XS, color: PN.MUTED}}>{grp.items.length} voci · <strong style={{color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>€ {groupTotal.toFixed(2)}</strong></div>
             </div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 16, padding:'10px 18px', fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, textTransform:'uppercase', letterSpacing: 0.5, borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(5, 1fr)', ...STMIN(560), gap: 16, padding:'10px 18px', fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, textTransform:'uppercase', letterSpacing: 0.5, borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
               <span>Nome</span><span>Categoria</span><span>Tipo</span><span>Prossima scadenza</span><span>Importo</span>
             </div>
             <MaxRowsScroll maxRows={10}>
@@ -233,7 +233,7 @@ function ContCosti({ openNewCost }) {
                   onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = C.SURF_ALT; }}
                   onMouseLeave={e => { e.currentTarget.style.background = isSel ? '#FFF6F4' : PN.WHITE; }}
                   style={{
-                  display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap: 16,
+                  display:'grid', gridTemplateColumns:'repeat(5, 1fr)', ...STMIN(560), gap: 16,
                   padding:'12px 18px', alignItems:'center', cursor:'pointer',
                   fontSize: C.T_SM, color: PN.TEXT,
                   borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,

@@ -1465,10 +1465,10 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
             <div style={{fontSize: C.T_XS, marginTop: 6}}>Nessun conto corrisponde ai filtri</div>
           </div>
         ) : (
-          <div style={{borderRadius: C.R_SM, overflow:'hidden', border:`1px solid ${PN.BORDER}`}}>
+          <div style={{borderRadius: C.R_SM, overflow:'hidden', border:`1px solid ${PN.BORDER}`, ...STSCROLL()}}>
             <div style={{
               display:'grid',
-              gridTemplateColumns:'0.7fr 0.7fr 0.7fr 1.1fr 0.9fr 0.8fr 110px',
+              gridTemplateColumns:'0.7fr 0.7fr 0.7fr 1.1fr 0.9fr 0.8fr 110px', ...STMIN(640),
               padding:'10px 14px', background: C.TH_BG,
               fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT,
               textTransform:'uppercase', letterSpacing: 0.5,
@@ -1519,7 +1519,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                     onMouseLeave={e => { e.currentTarget.style.background = isAperto ? PN.PINK_SOFT : PN.WHITE; }}
                     style={{
                       display:'grid',
-                      gridTemplateColumns:'0.7fr 0.7fr 0.7fr 1.1fr 0.9fr 0.8fr 110px',
+                      gridTemplateColumns:'0.7fr 0.7fr 0.7fr 1.1fr 0.9fr 0.8fr 110px', ...STMIN(640),
                       padding:'12px 14px', alignItems:'center',
                       fontSize: C.T_SM, color: PN.TEXT,
                       borderTop: i===0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,

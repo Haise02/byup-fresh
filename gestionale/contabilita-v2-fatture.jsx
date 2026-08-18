@@ -259,9 +259,9 @@ function ContFatture() {
           <div style={{fontSize: C.T_XS, marginTop: 6}}>Nessun numero o cliente corrisponde a «{q.trim()}»</div>
         </div>
       ) : (
-        <div style={{border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, overflow:'hidden'}}>
+        <div style={{border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, overflow:'hidden', ...STSCROLL()}}>
           <div style={{
-            display:'grid', gridTemplateColumns: CF_COLS,
+            display:'grid', gridTemplateColumns: CF_COLS, ...STMIN(620),
             padding:'10px 14px', background: C.TH_BG,
             fontSize: C.T_XS, fontWeight: 700, color: C.TH_TEXT, letterSpacing: 0.5, textTransform:'uppercase',
           }}>
@@ -332,7 +332,7 @@ function CfRiga({ f, stornataDa, ultima, onApri }) {
       onMouseEnter={e => { e.currentTarget.style.background = '#F7F8FA'; }}
       onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; }}
       style={{
-        display:'grid', gridTemplateColumns: CF_COLS, alignItems:'center',
+        display:'grid', gridTemplateColumns: CF_COLS, ...STMIN(620), alignItems:'center',
         padding:'12px 14px', background: PN.WHITE, cursor:'pointer',
         borderTop: `1px solid ${PN.BORDER_SOFT}`,
         borderBottom: ultima ? 'none' : 'none',

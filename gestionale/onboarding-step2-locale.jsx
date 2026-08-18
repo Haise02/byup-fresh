@@ -41,7 +41,7 @@ function Step2Locale({
           permette al form di stare nel canvas senza scroll. */}
       <div style={{
         width: '100%', maxWidth: 1240, margin: '0 auto',
-        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 620px',
+        display: 'grid', gridTemplateColumns: STG('minmax(0, 1fr) 620px'),
         /* start, non center: il blocco di testo parte alla stessa quota della
            prima card, così le due colonne condividono la baseline superiore. */
         gap: 72, alignItems: 'start',
