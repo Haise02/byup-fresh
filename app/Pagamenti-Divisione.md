@@ -163,9 +163,11 @@ quando la somma dei residui è 0.
 > `SplitPickSheet`).
 > E manca la **divisione del piatto "per il tavolo" fra tutti i presenti**: la
 > regola di prodotto è decisa, ma nel prototipo il "+" su una riga del tavolo
-> se la prende **per intero**. La sottoriga della sezione "Il tavolo" — *«I
-> piatti messi a "tavolo" si dividono tra i N partecipanti»* — enuncia quindi
-> la regola giusta, che il prototipo però non simula.
+> se la prende **per intero**. La sottoriga della sezione "Il tavolo" tiene
+> insieme le due cose e dice entrambe: *«I piatti messi a "tavolo" si dividono
+> tra i N partecipanti; qui puoi comunque prenderne la parte di qualcun
+> altro»* — la divisione per N è la regola, prendersi la parte altrui è
+> l'azione che il "+" offre in pagamento.
 
 **Lock real-time** (`lockedLineIds`): le righe che un altro sta pagando in quel
 momento sono **congelate** — in `PaymentScreen` restano visibili col lucchetto ma

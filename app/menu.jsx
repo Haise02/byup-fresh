@@ -3708,7 +3708,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                 </div>
                 {/* Subheadline: lega il numero di partecipanti alla divisione dei piatti "tavolo" */}
                 <div style={{ fontSize: 12.5, color: MUTED, lineHeight: 1.45, marginBottom: 14 }}>
-                  I piatti messi a "tavolo" si dividono tra i {(order.guests?.length || 0)} partecipanti. Tocca il numero per modificarli.
+                  I piatti messi a "tavolo" si dividono tra i {(order.guests?.length || 0)} partecipanti; qui puoi comunque prenderne la parte di qualcun altro. Tocca il numero per modificarli.
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {appGuests.map(g => renderTableCard({
