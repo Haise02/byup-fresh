@@ -2040,22 +2040,6 @@ function EmptyHint({ text }) {
 }
 
 
-function Avatar({ name, initials, guest, size = 38 }) {
-  const colors = ['#7a4458','#4a6580','#5a7a45','#80654a','#65457a'];
-  const idx = (name?.charCodeAt(0) || 0) % colors.length;
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: 999,
-      background: guest ? '#aaa' : colors[idx],
-      color: '#fff', fontSize: size * 0.38, fontWeight: 700,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexShrink: 0,
-      border: '2px solid #fff',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-    }}>{initials}</div>
-  );
-}
-
 // ─── HOME with active order card ───────────────────────────
 function HomeScreen({ state, setState, goTo }) {
   const order = state.activeOrder;
