@@ -1,5 +1,11 @@
 # Byuppini — concept, meccaniche ed economia
 
+> **Stato: nulla di tutto questo è attivo, e niente vive nel prototipo.** I Byuppini sono usciti dall'app consumer con `fe14041` («Beta v2: app consumer senza Byuppini e Cerca»), che ha smontato le schermate integrate poco prima da `fc906d0`. Oggi la tab bar ha Home, Cerca, QR e Profilo, e delle schermate qui descritte non resta codice in nessun file.
+>
+> Sul piano del prodotto la posizione è la stessa: SFA §22 e DPT classificano il programma fra le predisposizioni non attive — il dominio esiste a schema, ma niente è esposto in alcuna interfaccia e l'attivazione è subordinata alla verifica legale del programma punti e premi. Due elementi la verifica dovrà guardarli da vicino: la scadenza dei punti a dodici mesi e il valore di conversione dichiarato (100 punti = 1€), che qualificano il programma come operazione a premio con obblighi propri. Byup Games è già uscito il 7 ago 2026 e con esso ogni meccanica aleatoria: la scelta è definitiva, i byuppini si guadagnano ordinando e con le sfide, mai giocando.
+>
+> **Questo documento è il punto di ripartenza**, non il codice. Il vecchio `app.jsx` con portafoglio, sfide, premi, traguardi e percorso è recuperabile con `git show fc906d0:app/app.jsx`, ma serve come riferimento visivo e non come base: tab bar e superfici circostanti sono cambiate, reinnestarlo costerebbe più di riscriverlo.
+
 ## Cosa sono
 I **Byuppini** sono la valuta-fedeltà di byup: un sistema unico che unisce punti fedeltà (dagli ordini) e punti-engagement (da sfide dal vivo e azioni). Si accumulano, si spendono in credito o premi, e fanno salire di livello.
 
@@ -39,10 +45,8 @@ Obiettivo di sostenibilità: costo netto contenuto per utente attivo/mese (ordin
 Meccanica collect-and-unlock con feedback dopaminico (numero che sale, mascotte che reagisce, confetti al level-up); sfide settimanali a tempo per creare urgenza e ritorno frequente; referral in byuppini per la crescita virale (amico: +300 a testa; portare un locale su byup: +5.000, cioè 50€ in credito); leaderboard opzionale tra amici e gruppi (non ancora nel prototipo) per la competizione sociale.
 
 ## Schermate
-Nel prototipo (`app.jsx`) le prime quattro vivono come segmenti di un'unica schermata Byuppini; il percorso è una schermata a parte.
+Impianto previsto quando il programma verrà attivato, e già realizzato una volta prima della rimozione: le prime quattro come segmenti di un'unica schermata Byuppini, il percorso come schermata a parte. Nessuna di queste esiste oggi nel prototipo.
 1. **Portafoglio** — saldo grande + mascotte, livello e barra al prossimo, scorcio del percorso, scorciatoia ai premi.
-
-> **Byup Games è uscito dal prototipo il 7 ago 2026** (ruota, slot, gratta e vinci → poi «Byuppino Run»): la sezione e il file `byup-runner.jsx` sono stati rimossi. I byuppini si guadagnano ordinando e dalle sfide, non giocando. La meccanica resta descritta qui come idea di prodotto, ma **oggi non è implementata da nessuna parte**: chi la ripristina riparte da questo documento, non dal codice.
 2. **Sfide** — "guadagna oggi", missioni della settimana con progress, sfida dal vivo (QR), streak, referral, attività recente.
 3. **Premi** — catalogo a segmenti (credito / gadget / esperienze / byup card), ogni premio col costo in byuppini.
 4. **Traguardi** — collezione badge sbloccati e bloccati, ognuno col bonus.
