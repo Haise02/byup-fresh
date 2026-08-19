@@ -784,7 +784,19 @@ const PERM_ICONS = {
 // due moduli che divergono al primo campo aggiunto. Lo stato sta in
 // useDeviceState e si passa in blocco: dieci setter come dieci prop erano una
 // firma che nessuno avrebbe letto.
-const allCatsCount = MENUS.reduce((n, m) => n + m.categories.length, 0);
+// Una categoria stampa su una stampante sola. Qui si raccolgono le chiavi
+// composite "menuId:catId" già rivendicate dalle altre stampanti di DEVICES,
+// col nome del dispositivo che le tiene: il modulo spegne quei chip e dice
+// dove la categoria è finita. Chi modifica una stampante passa sé stesso in
+// `escludi`, altrimenti le proprie categorie risulterebbero occupate.
+function categorieOccupate(escludi) {
+  const prese = new Map();
+  DEVICES.forEach(d => {
+    if (d.deviceType !== 'printer' || d === escludi) return;
+    (d.cats || []).forEach(c => prese.set(`${d.menuId}:${c}`, d.name));
+  });
+  return prese;
+}
 
 // Password di un dispositivo: otto caratteri senza I, O, 0 e 1 — si detta ad
 // alta voce a chi sta davanti al monitor, e quelle quattro si sbagliano sempre.
@@ -815,7 +827,10 @@ function useDeviceState(tipoIniziale) {
   const [password, setPassword] = React.useState('');
   const [showPwd, setShowPwd] = React.useState(false);
   const [openTypeMenu, setOpenTypeMenu] = React.useState(false);
-  // printerCats: Set di chiavi composite "menuId:catId" — permette selezione tra menu diversi
+  // printerCats: Set di chiavi composite "menuId:catId" — permette selezione
+  // tra menu diversi. Una categoria appartiene a una stampante sola: le chiavi
+  // già prese dalle altre (categorieOccupate) qui non entrano mai, perché il
+  // modulo mostra quei chip spenti e non cliccabili.
   const [printerCats, setPrinterCats] = React.useState(new Set());
   // Pub di default: è il locale a cui Fresh si rivolge per primo — alta
   // rotazione, portata unica. Chi lavora per portate lo dice cambiando qui.
@@ -836,11 +851,31 @@ function useDeviceState(tipoIniziale) {
     deviceType, deviceValid, generatePwd, reset };
 }
 
-function DeviceForm({ st, tipoFisso, azione, modifica }) {
+function DeviceForm({ st, tipoFisso, azione, modifica, editDevice }) {
   const { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
     password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
     printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
     deviceType, generatePwd } = st;
+
+  // Le categorie già assegnate alle altre stampanti (chiave → nome del
+  // dispositivo) e, per differenza, quelle ancora libere. Riguarda solo le
+  // stampanti: il monitor cucina non riceve categorie, vede tutto e filtra a
+  // schermo dalla sezione Cucina.
+  const occupate = categorieOccupate(editDevice);
+  const chiaviLibere = [];
+  MENUS.forEach(m => m.categories.forEach(c => {
+    const k = `${m.id}:${c.id}`;
+    if (!occupate.has(k)) chiaviLibere.push(k);
+  }));
+
+  // Prima stampante del locale: nessun'altra tiene categorie, quindi si parte
+  // con tutto selezionato — chi ha un solo punto di stampa non deve configurare
+  // niente. Solo al collegamento: in modifica il Set vuoto vuol dire «tieni le
+  // categorie attuali» (vedi `salvabile` nella modale).
+  React.useEffect(() => {
+    if (!isPrinter || modifica || occupate.size > 0) return;
+    setPrinterCats(new Set(chiaviLibere));
+  }, [isPrinter]);
 
   // `tipoFisso`: nel passo Personale la tessera qui sopra ha già detto se si
   // collega una stampante o un monitor, e il menu non deve riproporre l'altra
@@ -1134,30 +1169,42 @@ function DeviceForm({ st, tipoFisso, azione, modifica }) {
                 <div style={{marginBottom: 16}}>
                   <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 4}}>
                     <div style={{fontSize: 14.5, fontWeight: 700}}>Categorie stampate</div>
-                    <button onClick={() => {
-                      const allSelected = printerCats.size === allCatsCount;
-                      if (allSelected) setPrinterCats(new Set());
-                      else {
-                        const s = new Set();
-                        MENUS.forEach(m => m.categories.forEach(c => s.add(`${m.id}:${c.id}`)));
-                        setPrinterCats(s);
-                      }
-                    }} style={{
-                      fontSize: 13.5, fontWeight: 600,
-                      color: PN.BLUE, background:'none', border:'none',
-                      cursor:'pointer', padding: 0, fontFamily:'inherit',
-                    }}>
-                      {printerCats.size === allCatsCount ? 'Deseleziona tutte' : 'Seleziona tutte'}
-                    </button>
+                    {chiaviLibere.length > 0 && (
+                      <button onClick={() => {
+                        if (printerCats.size === chiaviLibere.length) setPrinterCats(new Set());
+                        else setPrinterCats(new Set(chiaviLibere));
+                      }} style={{
+                        fontSize: 13.5, fontWeight: 600,
+                        color: PN.BLUE, background:'none', border:'none',
+                        cursor:'pointer', padding: 0, fontFamily:'inherit',
+                      }}>
+                        {printerCats.size === chiaviLibere.length ? 'Deseleziona tutte' : 'Seleziona tutte'}
+                      </button>
+                    )}
                   </div>
+                  {chiaviLibere.length === 0 ? (
+                    /* Senza categorie la stampante non ha senso: deviceValid
+                       resta false perché il Set è vuoto, e qui si spiega il
+                       perché invece di mostrare una griglia tutta spenta. */
+                    <div style={{
+                      padding:'12px 14px', borderRadius: 10,
+                      border:`1px dashed ${PN.BORDER}`, background: PN.BG,
+                      fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5,
+                    }}>
+                      Tutte le categorie sono già assegnate ad altre stampanti.
+                      Per collegare questa, libera prima una categoria dalla stampante che la tiene.
+                    </div>
+                  ) : (
+                  <>
                   <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 12}}>
-                    Seleziona categorie da uno o più menu — questa stampante riceverà solo gli ordini di queste categorie
+                    Seleziona categorie da uno o più menu — questa stampante riceverà solo gli ordini di queste categorie. Una categoria può stampare su una sola stampante.
                   </div>
                   <div style={{display:'flex', flexDirection:'column', gap: 12}}>
                     {MENUS.map(m => {
                       const menuKeys = m.categories.map(c => `${m.id}:${c.id}`);
-                      const menuSelectedCount = menuKeys.filter(k => printerCats.has(k)).length;
-                      const allMenuSelected = menuSelectedCount === m.categories.length;
+                      const libereMenu = menuKeys.filter(k => !occupate.has(k));
+                      const menuSelectedCount = libereMenu.filter(k => printerCats.has(k)).length;
+                      const allMenuSelected = libereMenu.length > 0 && menuSelectedCount === libereMenu.length;
                       return (
                         <div key={m.id} style={{
                           border:`1px solid ${menuSelectedCount > 0 ? '#DBEAFE' : PN.BORDER_SOFT}`,
@@ -1174,26 +1221,46 @@ function DeviceForm({ st, tipoFisso, azione, modifica }) {
                                   fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3,
                                   padding:'1px 7px', borderRadius: 999,
                                   background: '#F1F3F5', color: PN.MUTED,
-                                }}>{menuSelectedCount}/{m.categories.length}</span>
+                                }}>{menuSelectedCount}/{libereMenu.length}</span>
                               )}
                             </div>
-                            <button onClick={() => setPrinterCats(prev => {
-                              const s = new Set(prev);
-                              if (allMenuSelected) menuKeys.forEach(k => s.delete(k));
-                              else menuKeys.forEach(k => s.add(k));
-                              return s;
-                            })} style={{
-                              fontSize: 13, fontWeight: 600,
-                              color: PN.MUTED, background:'none', border:'none',
-                              cursor:'pointer', padding: 0, fontFamily:'inherit',
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.color = PN.TEXT}
-                            onMouseLeave={e => e.currentTarget.style.color = PN.MUTED}
-                            >{allMenuSelected ? 'Deseleziona' : 'Tutte'}</button>
+                            {libereMenu.length > 0 && (
+                              <button onClick={() => setPrinterCats(prev => {
+                                const s = new Set(prev);
+                                if (allMenuSelected) libereMenu.forEach(k => s.delete(k));
+                                else libereMenu.forEach(k => s.add(k));
+                                return s;
+                              })} style={{
+                                fontSize: 13, fontWeight: 600,
+                                color: PN.MUTED, background:'none', border:'none',
+                                cursor:'pointer', padding: 0, fontFamily:'inherit',
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.color = PN.TEXT}
+                              onMouseLeave={e => e.currentTarget.style.color = PN.MUTED}
+                              >{allMenuSelected ? 'Deseleziona' : 'Tutte'}</button>
+                            )}
                           </div>
                           <div style={{display:'flex', flexWrap:'wrap', gap: 6}}>
                             {m.categories.map(c => {
                               const key = `${m.id}:${c.id}`;
+                              const occupataDa = occupate.get(key);
+                              if (occupataDa) {
+                                // Il nome della stampante sta nel title e non
+                                // accanto all'etichetta: nella modale da 480px
+                                // «Antipasti · Cassa principale» ripetuto per
+                                // ogni chip mandava la riga a capo a ogni voce.
+                                return (
+                                  <button key={c.id} aria-disabled="true"
+                                    title={`Già assegnata a «${occupataDa}»`}
+                                    style={{
+                                      padding:'5px 11px', borderRadius: 999,
+                                      border: `1.5px solid ${PN.BORDER_SOFT}`,
+                                      background: PN.BG, color: PN.MUTED_SOFT,
+                                      fontSize: 14, fontWeight: 600,
+                                      cursor:'default', fontFamily:'inherit',
+                                    }}>{c.label}</button>
+                                );
+                              }
                               const on = printerCats.has(key);
                               return (
                                 <button key={c.id} onClick={() => setPrinterCats(prev => {
@@ -1216,6 +1283,8 @@ function DeviceForm({ st, tipoFisso, azione, modifica }) {
                       );
                     })}
                   </div>
+                  </>
+                  )}
                 </div>
               )}
 
@@ -1567,7 +1636,7 @@ function InviteModal({ onClose, prefill, ruoli }) {
             </>
           )}
 
-          {kind === 'device' && <DeviceForm st={dev} modifica={!!editDevice}/>}
+          {kind === 'device' && <DeviceForm st={dev} modifica={!!editDevice} editDevice={editDevice}/>}
         </div>
 
         <div style={{
