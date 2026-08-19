@@ -147,6 +147,8 @@ I rischi di grado B includono la connettività di scarsa qualità dei locali (mi
 
 ## Stampa e Hardware
 
-La stampa cucina è gestita esclusivamente via browser su tablet o schermi KDS — nessuna stampante termica tradizionale nell'MVP. L'unica stampa prevista è quella per gli scontrini di cortesia, tramite Wi-Fi, browser o Bluetooth.
+La stampa passa sempre dal browser o dalla superficie collegata — stampa nativa su layout HTML, Web Bluetooth, invio diretto sulla rete locale — senza driver né SDK proprietari, e la stampante non è mai esposta al cloud. Su questi canali le termiche sono supportate e stampano sia gli scontrini di cortesia sia le comande cucina. In alternativa alle comande cartacee c'è il KDS via browser, e i due possono convivere.
+
+Stampanti e monitor cucina si instradano in modo diverso, perché sono oggetti diversi. La stampante è cieca e irreversibile: al collegamento le si assegnano le categorie che deve stampare, e una categoria non può essere assegnata a due stampanti. Il monitor cucina non riceve categorie: vede tutte le comande, e chi ci lavora restringe con i filtri Canali e Categorie nella testata della schermata Cucina. Con più monitor, tutti vedono tutto e ciascuno filtra per conto proprio.
 
 Non è prevista alcuna infrastruttura hardware presso il ristorante. Lo smartphone del personale opera come terminale di pagamento tramite l'App Staff POS con Stripe Terminal SDK e Tap to Pay, con registrazione automatica del dispositivo al primo login.
