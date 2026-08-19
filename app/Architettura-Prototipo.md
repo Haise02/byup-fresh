@@ -181,7 +181,7 @@ vero** con `window.location.href`. Esempi:
 | `byup_menu_route` | Route iniziale con cui la SPA apre la pagina `menu` (es. `paymethod`); consumata al mount di `MenuApp` |
 | `byup_menu_premium` | `'1'` se il menu è stato aperto da una vetrina/locale **premium** (accenti diversi) |
 | `byup_menu_dish` | Deep-link a un piatto dal "I più ordinati" della vetrina: il menu si apre **già scrollato** su quel piatto (flash del bordo) |
-| `byup_table` | Pagamenti già fatti in sessione (`settled`/`paidLineIds` + residuo): ri-idrata `MenuApp` a ogni rientro e alimenta la card "tavolo aperto" in Home |
+| `byup_table` | Pagamenti già fatti in sessione (`settled` per quota / `paidLineIds` + `remaining`, che è `tableRemaining`): ri-idrata `MenuApp` a ogni rientro e alimenta la card "tavolo aperto" in Home. La forma piatta scritta da sessioni precedenti viene normalizzata da `seedSettled` |
 | `byup_coperti` | N° coperti confermato (la SPA smonta `MenuApp` tornando in home: senza persistenza andrebbero richiesti) |
 | `byup_byuppini_seg` | Segmento Byuppini da aprire (es. `tra` = Traguardi, usato da Roadmap → Traguardi) |
 
@@ -300,14 +300,26 @@ item:
 Stato di pagamento — **saldo a importi parziali**:
 - `paidLineIds` — mappa `lineId → payerId` di righe **saldate per intero**
   (`isPaid(lineId)`). Nella demo Marco (`g1`) ha già pagato i suoi piatti.
-- `settled` — mappa `lineId → importo già pagato` (può essere una **quota**, non
-  l'intero). Helper module-level: `seedSettled(order)` (parte dai `paidLineIds`
-  come full), `lineRemaining(order, it)` = `prezzo·qty − pagato`,
-  `applyPayments(setState, [{lineId,
-  amount}])` (somma le quote, ricalcola `paidLineIds` per le righe ormai coperte).
-  Il residuo del tavolo è la **somma dei `lineRemaining`**, fatta nel punto in cui
-  serve: l'helper `tableRemaining(order)` esisteva ma non lo chiamava più nessuno
-  ed è stato rimosso il 2026-07-31.
+- `settled` — mappa `lineId → { payerId: importo }`: quanto ha pagato **ciascun
+  commensale** su quella riga. Sta **per quota e non per riga** dal 2026-08-19,
+  perché con un solo numero per riga non si sa di chi sia il pagamento: una riga
+  divisa in due restava "aperta" finché non la copriva qualcuno per intero, e a
+  chi aveva già saldato la sua metà la si richiedeva.
+- Tre helper module-level, ed è da lì che passa **ogni** cifra di residuo
+  mostrata a schermo:
+  - `seedSettled(order)` costruisce la mappa dai `paidLineIds` (righe intere, col
+    loro pagatore) e normalizza la vecchia forma piatta eventualmente rimasta in
+    `sessionStorage.byup_table`, attribuendola a `me`.
+  - **`lineRemaining(order, it, settled, payerId)` è l'unica funzione di
+    calcolo**: senza `payerId` dà il residuo della riga (`prezzo·qty −` somma
+    delle quote pagate); con `payerId` dà il residuo della **sola quota** di quel
+    commensale (`prezzo·qty / nQuote −` quanto ha già pagato lui).
+  - `tableRemaining(order, settled)` somma i residui di riga. È la cifra della
+    CTA "paga tutto il tavolo", del popup di conferma, della card in home e del
+    `remaining` scritto in `byup_table`.
+  - `applyPayments(setState, [{lineId, amount}])` registra gli importi sulla
+    quota di `me` (mai oltre quel che resta scoperto) e ricalcola `paidLineIds`
+    per le righe ormai coperte.
 - `lockedLineIds` — mappa `lineId → payerId` di righe **in pagamento adesso** da
   un altro (lock real-time, `isLocked`): congelate e non selezionabili.
 
@@ -318,10 +330,17 @@ Ospiti (`guests`) con flag di tipo: `isMe`, `isApp` (app nativa),
 
 Modalità (`mode`): `'mine'` (i tuoi piatti + quote + coperto) o `'all'` (tutto il
 tavolo). Sezioni:
-- **"Tu"** → i miei piatti non ancora saldati (`myItems`, con quota `myShareOf`
-  per i piatti divisi) più i piatti presi in carico (`selectedExtras`). In
-  `mode='all'` l'intestazione diventa **"Tu · offri il tavolo"** e la lista copre
-  tutto l'ordine.
+- **"Tu"** → i miei piatti con la **mia quota ancora scoperta** (`myItems` filtra
+  su `lineRemaining(…, 'me') > 0`, non su "riga non saldata": un piatto diviso che
+  ho già pagato resta aperto per la quota dell'altro, ma a me non va più chiesto)
+  più i piatti presi in carico (`selectedExtras`). In `mode='all'` l'intestazione
+  diventa **"Tu · offri il tavolo"** e la lista copre tutto l'ordine, ogni riga
+  col suo residuo. Le righe già saldate restano barrate e mostrano il **loro
+  prezzo**, non zero.
+- **Apertura in `'all'`**: se la mia parte è già saldata ma al tavolo resta un
+  residuo, la schermata si apre direttamente su "paga tutto il tavolo"
+  (`modoIniziale`). Con 0,00€ da pagare lo slider è spento, e restare su "i miei"
+  sarebbe un vicolo cieco proprio per chi è arrivato da «Salda il resto».
 - **"Il tavolo"** → una **card per commensale** in gerarchia **utenti app →
   utenti webapp → "Altro"** (contenitore unico: piatti messi dal cameriere +
   porzioni di chi non usa né app né webapp). Il **"+"** su una riga chiama
@@ -338,6 +357,7 @@ tavolo). Sezioni:
   distinti"). Resta `rejectSplit`: rifiutare una divisione ricevuta, finché la
   quota non è pagata, è invece **dentro** il modello.
 - Coperto = `COVER (=2€) × covers`; `covers = order.covers || guests.length || 1`.
+  Anche pagando per tutti, il **proprio coperto già saldato non si ripaga**.
 - Tip nello sheet **"Dettagli pagamento"** (`baseForTip = subtotal + coperto`),
   in **due modalità mutuamente esclusive**: percentuale (`tipPct` 5/10%) o
   **arrotondamento** (`tipRound`) = `ceil(baseForTip) − baseForTip`. Lì c'è anche

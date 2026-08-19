@@ -117,13 +117,22 @@ priorità allo staff.
 ## Come è realizzato nel prototipo
 
 > Forme dati e schermate → [Architettura-Prototipo.md §9](Architettura-Prototipo.md).
-> Il saldo unico è simulato con un modello a **importi parziali** per riga
-> (`order.settled`), non solo "pagato sì/no".
+> Il saldo unico è simulato con un modello a **importi parziali per quota**
+> (`order.settled` = `{ lineId: { payerId: importo } }`), non solo "pagato sì/no".
 
-**Saldo a quote.** Ogni riga ha un residuo `prezzo·qty − pagato`. Pagare una quota
-(piatto diviso, oppure offerto in parte) **decrementa il residuo della riga**, non
-la chiude: la riga resta scoperta per la parte altrui. Il tavolo è libero solo
-quando la somma dei residui è 0.
+**Saldo a quote.** Ogni riga ha un residuo `prezzo·qty −` la somma di quanto ci
+hanno versato i commensali. Pagare una quota (piatto diviso, oppure offerto in
+parte) **decrementa il residuo della riga**, non la chiude: la riga resta scoperta
+per la parte altrui. Il tavolo è libero solo quando la somma dei residui è 0.
+
+Il conto si tiene **per quota e non per riga** dal 2026-08-19. Con un solo numero
+per riga non si sapeva di chi fosse il pagamento, e le cifre divergevano: «paga
+tutto il tavolo» chiedeva l'intero conto compreso quel che gli altri avevano già
+saldato, e «Salda il resto» ripresentava la quota di un piatto diviso a chi
+l'aveva già pagata. Ora il residuo esce da **una sola funzione**
+(`lineRemaining`, per riga o per quota) e la stessa cifra vale per l'etichetta
+della CTA, il popup di conferma, la card in home e l'importo effettivamente
+addebitato.
 
 **Due momenti di pagamento.**
 1. **`PaymentScreen`** (primo pagamento): paghi i tuoi piatti + le tue quote +

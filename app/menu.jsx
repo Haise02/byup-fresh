@@ -2124,14 +2124,18 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
   const covers = order.covers || (order.guests?.length || 1);
   const loggedIn = (order.guests || []).filter(g => g.isApp || g.isWebApp).length;
 
-  // Stato saldi: filtra item già pagati o già presi da altri loggati
+  // Stato saldi: stesso conto della schermata di pagamento, per non mostrare in
+  // home una cifra diversa da quella che il conto poi chiede (vedi tableRemaining).
   const paidLineIds = order.paidLineIds || {};
-  const isPaidOrClaimed = (i) => !!paidLineIds[i.lineId] || !!i.claimedBy;
-  const unpaidItems = order.items.filter(i => !isPaidOrClaimed(i));
+  const settledOra = seedSettled(order);
+  const unpaidItems = order.items.filter(i => lineRemaining(order, i, settledOra) > 0.001);
   const myPaidLineIds = Object.entries(paidLineIds).filter(([_, by]) => by === 'me').map(([id]) => id);
   const postPay = myPaidLineIds.length > 0;
-  const allSettled = unpaidItems.length === 0;
-  const unpaidTotal = unpaidItems.reduce((s, i) => s + i.price * i.qty, 0);
+  const unpaidTotal = tableRemaining(order, settledOra);
+  const allSettled = unpaidTotal <= 0.001;
+  // Totale dell'ordine calcolato dalle righe: `order.total` è un numero cablato
+  // nella demo e non segue i piatti che ci sono davvero.
+  const totaleOrdine = order.items.reduce((s, i) => s + i.price * i.qty, 0);
   const title = postPay ? 'Da saldare al tavolo' : 'Il tuo ordine';
 
   return (
@@ -2233,7 +2237,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
                       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <span style={{ opacity: 0.75, fontWeight: 600 }}>{i.qty}×</span> {i.name}
                       </span>
-                      <span style={{ fontWeight: 600, opacity: 0.95, flexShrink: 0 }}>{(i.price * i.qty).toFixed(2)}€</span>
+                      <span style={{ fontWeight: 600, opacity: 0.95, flexShrink: 0 }}>{lineRemaining(order, i, settledOra).toFixed(2)}€</span>
                     </div>
                   ))}
                 </div>
@@ -2241,7 +2245,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
               <div style={{ height: 1, background: 'rgba(255,255,255,0.25)', margin: '10px 0' }}/>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 14 }}>
                 <span style={{ fontWeight: 700 }}>{postPay ? 'Da pagare ancora' : 'Totale'}</span>
-                <span style={{ fontWeight: 800, fontSize: 16 }}>{(postPay ? unpaidTotal : order.total).toFixed(2)}€</span>
+                <span style={{ fontWeight: 800, fontSize: 16 }}>{(postPay ? unpaidTotal : totaleOrdine).toFixed(2)}€</span>
               </div>
             </div>
 
@@ -3075,19 +3079,44 @@ function payMethodName(id) {
   }
 }
 
-// Saldo del tavolo a importi parziali: `order.settled` = { lineId: importo già pagato }.
-// Una riga è saldata quando l'importo pagato copre il suo totale. Le righe in
-// `paidLineIds` (stato iniziale) valgono come saldate per intero.
+// Saldo del tavolo a importi parziali, tenuti PER QUOTA e non per riga:
+// `order.settled` = { lineId: { payerId: importo } }. Serve saperlo per
+// commensale, altrimenti una riga divisa in due resta "aperta" finché non la
+// copre qualcuno per intero, e a chi ha già pagato la sua metà la si richiede.
+// Le righe in `paidLineIds` valgono come saldate per intero da chi le ha pagate.
 function seedSettled(order) {
   const base = {};
-  Object.keys(order.paidLineIds || {}).forEach(id => {
+  Object.entries(order.paidLineIds || {}).forEach(([id, payer]) => {
     const it = order.items.find(x => x.lineId === id);
-    base[id] = it ? it.price * it.qty : 0;
+    base[id] = { [payer || 'me']: it ? it.price * it.qty : 0 };
   });
-  return { ...base, ...(order.settled || {}) };
+  Object.entries(order.settled || {}).forEach(([id, quote]) => {
+    // Forma vecchia (un solo numero per riga) rimasta in sessionStorage da una
+    // sessione precedente: l'unico che paga da qui è "me", quindi è sua.
+    const perQuota = typeof quote === 'number' ? { me: quote } : quote;
+    base[id] = { ...(base[id] || {}), ...perQuota };
+  });
+  return base;
 }
-function lineRemaining(order, it, settled = seedSettled(order)) {
-  return Math.max(0, it.price * it.qty - (settled[it.lineId] || 0));
+// L'UNICA funzione che dice quanto resta da incassare. Senza `payerId` risponde
+// per la riga intera; con `payerId` risponde per la sola quota di quel
+// commensale. Tutti i punti che mostrano un residuo passano di qui, così le
+// cifre non possono divergere fra loro.
+function lineRemaining(order, it, settled = seedSettled(order), payerId = null) {
+  const totaleRiga = it.price * it.qty;
+  const quote = settled[it.lineId] || {};
+  const pagato = Object.values(quote).reduce((s, n) => s + n, 0);
+  const residuoRiga = Math.max(0, totaleRiga - pagato);
+  if (!payerId) return residuoRiga;
+  const nQuote = (it.splitWith?.length || 0) + 1;
+  // La propria quota non può eccedere quel che resta scoperto sulla riga: se
+  // l'ha già coperta qualcun altro, non si deve niente anche senza aver pagato.
+  return Math.min(residuoRiga, Math.max(0, totaleRiga / nQuote - (quote[payerId] || 0)));
+}
+// Residuo dell'intero tavolo: la somma dei residui di riga. È la cifra che
+// vedono la CTA "paga tutto il tavolo", il popup di conferma e la card in home.
+function tableRemaining(order, settled = seedSettled(order)) {
+  return (order.items || []).reduce((s, it) => s + lineRemaining(order, it, settled), 0);
 }
 // I coperti valgono per tutta la serata al tavolo, ma la SPA smonta MenuApp
 // ogni volta che si torna in home: tenendoli nel solo state, "Salda il resto"
@@ -3104,18 +3133,24 @@ function applyPayments(setState, payments) {
     const ord = s.activeOrder;
     if (!ord) return s;
     const settled = seedSettled(ord);
+    // Chi paga da qui è sempre "me": l'importo va sulla sua quota, e non può
+    // superare quel che resta scoperto sulla riga.
     payments.forEach(({ lineId, amount }) => {
       const it = ord.items.find(x => x.lineId === lineId);
       const lt = it ? it.price * it.qty : 0;
-      settled[lineId] = Math.min(lt, (settled[lineId] || 0) + amount);
+      const quote = { ...(settled[lineId] || {}) };
+      const altrui = Object.entries(quote).reduce((s, [p, n]) => p === 'me' ? s : s + n, 0);
+      quote.me = Math.min(lt - altrui, (quote.me || 0) + amount);
+      settled[lineId] = quote;
     });
     const paidLineIds = { ...(ord.paidLineIds || {}) };
     ord.items.forEach(it => {
       const lt = it.price * it.qty;
-      if ((settled[it.lineId] || 0) >= lt - 0.001 && !paidLineIds[it.lineId]) paidLineIds[it.lineId] = 'me';
+      const pagato = Object.values(settled[it.lineId] || {}).reduce((s, n) => s + n, 0);
+      if (pagato >= lt - 0.001 && !paidLineIds[it.lineId]) paidLineIds[it.lineId] = 'me';
     });
     try {
-      const rem = ord.items.reduce((t, it) => t + Math.max(0, it.price * it.qty - (settled[it.lineId] || 0)), 0);
+      const rem = tableRemaining({ ...ord, settled, paidLineIds }, settled);
       if (rem > 0.01) sessionStorage.setItem('byup_table', JSON.stringify({
         settled, paidLineIds, venue: ord.venue, table: ord.table, remaining: rem }));
       else sessionStorage.removeItem('byup_table');
@@ -3275,8 +3310,22 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   // I coperti non si chiedono più all'utente: il numero arriva da order.covers
   // (lo imposta lo staff di sala), quindi il pagamento si apre diretto.
   // mode: 'mine' (la mia parte) | 'all' (tutto il tavolo) — di default 'mine',
-  // 'all' si attiva tappando la CTA secondaria "Paga per tutto il tavolo"
-  const [mode, setMode] = useState('mine');
+  // 'all' si attiva tappando la CTA secondaria "Paga per tutto il tavolo".
+  // Eccezione: chi ha già saldato la propria parte e arriva da «Salda il resto»
+  // si apre diretto su "tutto il tavolo". Con 0,00€ da pagare lo slider è
+  // spento, e restare su "i miei" sarebbe un vicolo cieco proprio per chi è
+  // entrato lì per chiudere il conto degli altri.
+  const modoIniziale = () => {
+    const settled = seedSettled(order);
+    const extras = state.payingExtras || {};
+    const mio = order.items.reduce((s, i) => {
+      if (i.ownerId === 'me') return s + lineRemaining(order, i, settled, 'me');
+      if (extras[i.lineId]) return s + lineRemaining(order, i, settled);
+      return s;
+    }, 0);
+    return mio <= 0.001 && tableRemaining(order, settled) > 0.001 ? 'all' : 'mine';
+  };
+  const [mode, setMode] = useState(modoIniziale);
   // selectedExtras: lineId -> true (piatti di altri che voglio pagare io)
   const [selectedExtras, setSelectedExtras] = useState(state.payingExtras || {});
   // open accordion per owner
@@ -3293,7 +3342,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const [guestsOpen, setGuestsOpen] = useState(false);
 
   // CTA a scorrimento: modalità ciclica e sheet "Dettagli pagamento"
-  const [ctaMode, setCtaMode] = useState('mine'); // 'mine' | 'all'
+  const [ctaMode, setCtaMode] = useState(modoIniziale); // 'mine' | 'all'
   const [detailsOpen, setDetailsOpen] = useState(false);
   const cycleCtaMode = () => setCtaMode(m => {
     const next = m === 'mine' ? 'all' : 'mine'; // niente "alla romana": solo mio ordine ↔ tutto il tavolo
@@ -3324,6 +3373,9 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
 
   const paidLineIds = order.paidLineIds || {};
   const isPaid = (lineId) => !!paidLineIds[lineId];
+  // Le quote già saldate, lette una volta sola per tutto il render: ogni cifra
+  // di questa schermata esce da qui passando per `lineRemaining`.
+  const settledOra = seedSettled(order);
   // Lock real-time: righe che qualcuno sta pagando adesso. Congelate: non apribili,
   // non selezionabili, finché il pagamento in corso non si conclude o il lock scade.
   const lockedLineIds = order.lockedLineIds || {};
@@ -3347,7 +3399,10 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const removeBtnStyle = { ...addBtnStyle, border: 'none', background: WINE, color: '#fff' };
 
   // In caso di rientro post-pagamento parziale: escludo i miei piatti già saldati
-  const myItems = order.items.filter(i => i.ownerId === 'me' && !isPaid(i.lineId));
+  // I miei piatti ancora da saldare: non "la riga non è chiusa", ma "la MIA
+  // quota non è coperta". Su un piatto diviso che ho già pagato la riga resta
+  // aperta per la quota dell'altro, e a me non va più chiesta.
+  const myItems = order.items.filter(i => i.ownerId === 'me' && lineRemaining(order, i, settledOra, 'me') > 0.001);
 
   // ── "Il tavolo": gerarchia Utenti app → Utenti webapp → Altro ───────────────
   // I commensali con l'app e quelli da webapp hanno una card ciascuno (sono
@@ -3398,8 +3453,10 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
     const allPaid = unpaid.length === 0;
     const frozen = allPaid || available.length === 0;
     const picked = available.filter(i => selectedExtras[i.lineId]);
-    const availableTotal = available.reduce((s, i) => s + i.price * i.qty, 0);
-    const pickedTotal = picked.reduce((s, i) => s + i.price * i.qty, 0);
+    // Quel che costa prendersi questi piatti è il loro RESIDUO: se un altro ne
+    // ha già coperto una parte, si paga solo quel che resta scoperto.
+    const availableTotal = available.reduce((s, i) => s + lineRemaining(order, i, settledOra), 0);
+    const pickedTotal = picked.reduce((s, i) => s + lineRemaining(order, i, settledOra), 0);
     const allPicked = available.length > 0 && picked.length === available.length;
     return (
       <div key={id} style={{
@@ -3468,7 +3525,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
                     <div style={{
                       fontSize: 14.5, fontWeight: 700, color: TEXT, flexShrink: 0,
                       fontVariantNumeric: 'tabular-nums',
-                    }}>{(i.price * i.qty).toFixed(2)}€</div>
+                    }}>{(paid ? i.price * i.qty : lineRemaining(order, i, settledOra)).toFixed(2)}€</div>
                     {off ? (
                       <div style={{ width: 32, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
                         {locked ? (
@@ -3498,17 +3555,18 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
     );
   };
 
-  const myShareOf = (it) => {
-    const splitN = (it.splitWith?.length || 0) + 1;
-    return (it.price * it.qty) / splitN;
-  };
+  // Quanto resta da pagare A ME su una riga: la mia quota meno quel che ne ho
+  // già saldato. Dopo un pagamento parziale una riga divisa resta aperta per la
+  // quota altrui, ma non deve tornare a chiedermi la mia.
+  const myShareOf = (it) => lineRemaining(order, it, settledOra, 'me');
   const myDishesTotal = myItems.reduce((s, i) => s + myShareOf(i), 0);
   // Un piatto preso in carico col "+" va sul proprio conto PER INTERO: in fase
   // di pagamento non nasce nessuna divisione nuova. Le quote sono solo quelle
-  // fissate all'ordine (`splitWith`, vedi `myShareOf`).
+  // fissate all'ordine (`splitWith`, vedi `myShareOf`). Se qualcun altro ne ha
+  // già coperto una parte, si paga solo quel che resta scoperto.
   const extraItems = order.items.filter(i => selectedExtras[i.lineId]);
-  const extraTotal = extraItems.reduce((s, i) => s + i.price * i.qty, 0);
-  const tableTotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+  const extraTotal = extraItems.reduce((s, i) => s + lineRemaining(order, i, settledOra), 0);
+  const tableTotal = tableRemaining(order, settledOra);
 
   // coperto: 2€ per persona; in 'mine' paghi solo il tuo, in 'all' paghi per tutti.
   // Su rientro post-pagamento parziale il mio coperto è già saldato.
@@ -3516,7 +3574,9 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const covers = order.covers || (order.guests?.length || 1);
   const myCoverPaid = Object.values(paidLineIds).some(by => by === 'me');
   const myCover = myCoverPaid ? 0 : COVER;
-  const allCovers = COVER * covers;
+  // Anche pagando per tutti, il proprio coperto già saldato non si ripaga:
+  // l'importo esposto è quel che resta da incassare, non il conto pieno.
+  const allCovers = COVER * covers - (myCoverPaid ? COVER : 0);
 
   const subtotal = mode === 'mine' ? (myDishesTotal + extraTotal) : tableTotal;
   const cover = mode === 'mine' ? myCover : allCovers;
@@ -3531,17 +3591,17 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const ctaTotal = total;
 
   const proceed = () => {
-    // Costruisco i pagamenti per-riga con l'importo effettivo (quota), non l'intero.
-    const settled = seedSettled(order);
+    // Gli importi addebitati sono gli stessi che la schermata ha esposto: escono
+    // tutti da `lineRemaining` sullo stesso `settledOra` letto a inizio render.
     const payments = [];
     if (mode === 'all') {
       order.items.forEach(it => {
-        const rem = lineRemaining(order, it, settled);
+        const rem = lineRemaining(order, it, settledOra);
         if (rem > 0.001) payments.push({ lineId: it.lineId, amount: rem });
       });
     } else {
       myItems.forEach(it => payments.push({ lineId: it.lineId, amount: myShareOf(it) }));
-      extraItems.forEach(it => payments.push({ lineId: it.lineId, amount: it.price * it.qty }));
+      extraItems.forEach(it => payments.push({ lineId: it.lineId, amount: lineRemaining(order, it, settledOra) }));
     }
     const paidNow = payments.reduce((s, p) => s + p.amount, 0);
     applyPayments(setState, payments);
@@ -3620,7 +3680,15 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               const paid = isPaid(it.lineId);
               const splitN = (it.splitWith?.length || 0) + 1;
               const isShared = splitN > 1;
-              const myShare = isShared && mode === 'mine' ? (it.price * it.qty) / splitN : it.price * it.qty;
+              // In "i miei" si mostra la MIA quota residua; in "tutto il tavolo"
+              // il residuo della riga, che è quello che si sta per pagare. Su
+              // una riga già saldata si torna a mostrare il suo prezzo, barrato:
+              // uno "0.00€ ✓ pagato" non dice quanto è costata.
+              const myShare = paid
+                ? it.price * it.qty
+                : (mode === 'mine'
+                  ? lineRemaining(order, it, settledOra, 'me')
+                  : lineRemaining(order, it, settledOra));
               const sharedNames = isShared
                 ? (it.splitWith || []).map(gid => order.guests.find(g => g.id === gid)?.name?.split(' ')[0] || '?').join(', ')
                 : '';
@@ -3652,7 +3720,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
               // "altro": quel piatto non è attribuibile a una persona precisa,
               // quindi "di Ospite 1" prometteva un'identità che non c'è.
               const isAltro = isTable || offlineIds.includes(it.ownerId);
-              const share = it.price * it.qty;
+              const share = lineRemaining(order, it, settledOra);
               return (
                 <div key={'x-' + it.lineId} style={{ display: 'flex', alignItems: 'center', gap: 8,
                   padding: '11px 0', borderTop: `1px solid ${BORDER}` }}>

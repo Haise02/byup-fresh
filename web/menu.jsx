@@ -1680,6 +1680,11 @@ function HomeScreen({ state, setState, goTo }) {
 }
 
 function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenGuests, onRecover }) {
+  // Totale calcolato dalle righe, come nell'app: `order.total` è un numero
+  // cablato nella demo e non segue i piatti che ci sono davvero. Qui non c'è
+  // nessun residuo da scontare — la webapp non incassa, quindi non esistono
+  // quote saldate: il totale è tutto da pagare, in cassa o dall'app.
+  const totaleOrdine = (order.items || []).reduce((s, i) => s + i.price * i.qty, 0);
   const fmtTime = (d) => {
     if (!d) return '';
     const dd = new Date(d);
@@ -1804,7 +1809,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
               <div style={{ height: 1, background: 'rgba(255,255,255,0.25)', margin: '12px 0' }}/>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 16 }}>
                 <span style={{ fontWeight: 700 }}>Totale</span>
-                <span style={{ fontWeight: 800, fontSize: 19 }}>{order.total.toFixed(2)}€</span>
+                <span style={{ fontWeight: 800, fontSize: 19 }}>{totaleOrdine.toFixed(2)}€</span>
               </div>
             </div>
 
@@ -1833,7 +1838,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
               <span style={{ fontSize: 13.5, opacity: 0.9, fontWeight: 600 }}>
                 {order.items.reduce((s, i) => s + i.qty, 0)} piatti · tocca per i dettagli
               </span>
-              <span style={{ fontSize: 18, fontWeight: 800 }}>{order.total.toFixed(2)}€</span>
+              <span style={{ fontSize: 18, fontWeight: 800 }}>{totaleOrdine.toFixed(2)}€</span>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button onClick={() => goTo('menu')} style={{
