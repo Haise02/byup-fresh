@@ -139,9 +139,9 @@ vero** con `window.location.href`. Esempi:
 ### 4.3 Menu = **route singola `{name, ctx}`** ([menu.jsx](menu.jsx) `MenuApp`)
 - `goTo(name, ctx)` imposta `route = { name, ctx }`. `ctx` è il payload (es.
   `goTo('dish', { dishId, perTe:true })`).
-- `name` ∈ `menu | split | dish | home | pay | paymethod | balance | success | takeaway`.
-  (`balance` = **schermata Saldo del tavolo**, oggi raggiungibile solo via hash —
-  vedi §9.2.)
+- `name` ∈ `menu | dish | home | pay | paymethod | success | takeaway`.
+  (`balance`, la seconda schermata di saldo del tavolo, è stata **rimossa**
+  insieme alla sua route — vedi §9.2.)
 - Route iniziale: dalla prop `initial` (la SPA la passa via
   `sessionStorage.byup_menu_route`, es. la card "Paga in un tap" della Home apre
   direttamente `paymethod`), altrimenti dall'**hash** dell'URL (`#pay`,
@@ -328,18 +328,25 @@ tavolo). Sezioni:
   `toggleExtra` → il piatto va sul tuo conto (la card mostra anche
   "Aggiungi tutto"). Lock: righe pagate / in pagamento / già prese da altri
   (`claimedBy`) restano visibili ma non selezionabili (`canAdd`).
-- **Divisione dei piatti presi dal tavolo**: pulsante **"Dividi"** → popup con
-  `tableSplits[lineId]` = `{kind:'table'}` (parti uguali tra tutti) o
-  `{kind:'split', people}` (con alcuni). La quota è `extraShareFor(it)`.
+- **In pagamento non si divide**: un piatto preso in carico col "+" va sul
+  proprio conto **per intero**. Le uniche quote sono quelle fissate all'ordine
+  (`splitWith` → `myShareOf`), e non si ricalcolano qui. Lo stato `tableSplits`
+  col popup "per te / parti uguali / con alcuni" (`splitDish`,
+  `openSplitDish`/`confirmSplitDish`, `extraShareFor`) è stato **rimosso** il
+  2026-08-19: generava divisioni in fase di pagamento, fuori dal modello
+  (vedi [Pagamenti-Divisione.md](Pagamenti-Divisione.md), "Due livelli
+  distinti"). Resta `rejectSplit`: rifiutare una divisione ricevuta, finché la
+  quota non è pagata, è invece **dentro** il modello.
 - Coperto = `COVER (=2€) × covers`; `covers = order.covers || guests.length || 1`.
 - Tip nello sheet **"Dettagli pagamento"** (`baseForTip = subtotal + coperto`),
   in **due modalità mutuamente esclusive**: percentuale (`tipPct` 5/10%) o
   **arrotondamento** (`tipRound`) = `ceil(baseForTip) − baseForTip`. Lì c'è anche
   la riga **metodo di pagamento**.
 - **CTA = `SlideToPay`** (slide-to-pay, non un semplice bottone): il tap sul
-  pomello cicla `ctaMode` `'mine'` ↔ `'all'`; `'split'` ("Alla romana": quota
-  `1/N` del rimanente tra chi non ha pagato) esiste nel codice ma è fuori dal
-  ciclo. `payNow`: per `mine`/`split` nessun popup di conferma → **overlay di
+  pomello cicla `ctaMode` `'mine'` ↔ `'all'`. Dell'"alla romana" (`'split'`:
+  quota `1/N` del rimanente tra chi non ha pagato) restano **solo due voci di
+  stile irraggiungibili** nelle mappe di `SlideToPay`: la modalità non è nel
+  ciclo e nessuno la imposta. `payNow`: per `mine` nessun popup di conferma → **overlay di
   caricamento** (~5s) poi `proceed()`; per `'all'` (importo ben più grande,
   irreversibile) serve una **conferma esplicita** (`confirmAll`). `proceed`
   registra i pagamenti per-riga con la quota effettiva via `applyPayments` e va
@@ -363,29 +370,29 @@ tavolo). Sezioni:
   > automaticamente al conto (ritorno guidato)** con carrello/pagamento/metodo
   > intatti. Vale anche per "Vedi scontrino": la frammentazione è un artefatto
   > del mockup, non il comportamento di prodotto.
-- Header (back + titolo + strip avatar) è una **barra fissa** in alto, fuori dallo scroll.
+- Header (back + titolo + nome del tavolo) è una **barra fissa** in alto, fuori
+  dallo scroll. Lo strip avatar non è più lì: i partecipanti si vedono dalla
+  sezione "Il tavolo", toccando il conteggio.
 
-### 9.2 `BalanceScreen` — saldo del tavolo (route `balance`)
+### 9.2 `BalanceScreen` — rimossa
 
-> ⚠️ **Non più nel flusso principale.** Dopo un pagamento parziale oggi si va
-> **sempre a `success`** e il residuo si gestisce dalla **home** (card ordine
-> attivo → "Salda il resto" → di nuovo `pay`; nella Home della SPA c'è anche la
-> card "tavolo aperto" alimentata da `sessionStorage.byup_table`). La schermata
-> esiste ancora ed è raggiungibile via hash `#balance`.
+La seconda schermata di saldo del tavolo (route `balance`, accordion "Piatti da
+saldare" con selezione multipla e barra **[Pago io / Dividi con… / Per il
+tavolo]**) è stata **cancellata il 2026-08-19** insieme alla sua route e alla
+voce `'balance'` fra quelle valide.
 
-Mostra:
-- **"Manca al tavolo €X"** (somma dei `lineRemaining` ancora aperti) + n° articoli
-  ancora da saldare.
-- Accordion **"Piatti da saldare"**: **esclude i miei piatti** (già saldati);
-  ordine **tavolo → altri commensali**, con i **lockati in fondo**. Ogni riga:
-  checkbox, residuo (`lineRemaining`, "rimasti" se parziale), `splitWith` →
-  "diviso con {nomi}", avatar del proprietario (**tap = nome**) o chip "Al tavolo".
-  Righe lockate: lucchetto, non selezionabili, "{nome} sta pagando…". C'è un
-  **"Seleziona tutti"** (solo i selezionabili).
-- Selezione multipla + barra in basso con modalità **[Pago io / Dividi con… / Per
-  il tavolo]** → secondo pagamento (overlay 5s) → torna a `balance` aggiornato.
-- Quando il residuo **azionabile** va a 0, i lockati si considerano chiusi in
-  parallelo dagli altri → saldo a 0 → **`success`**.
+Due ragioni: non era raggiungibile da alcun bottone — solo dall'hash `#balance`
+— e duplicava un flusso vivo; e la sua barra di pagamento **generava divisioni
+in fase di saldo**, che il modello non prevede (vedi
+[Pagamenti-Divisione.md](Pagamenti-Divisione.md)).
+
+Il residuo si salda **dalla home**: card ordine attivo → **"Salda il resto"** →
+di nuovo `pay`. Nella Home della SPA c'è anche la card "tavolo aperto"
+alimentata da `sessionStorage.byup_table`. Dopo un pagamento parziale si va
+**sempre a `success`**, e `PaymentScreen` resta l'unico punto di pagamento
+dine-in.
+
+### 9.3 Coperti e `fromVenue`
 
 **Coperti**: il numero di commensali **non si chiede più all'ingresso al
 tavolo** (l'utente non sa ancora se dividerà il conto e lo saltava): il numero

@@ -130,25 +130,47 @@ quando la somma dei residui è 0.
    eventuali piatti del tavolo aggiunti col "+" + piatti altrui che **offri**.
    La CTA a scorrimento («Scorri per pagare») alterna due modalità: **i miei**
    (`mine`) e **paga tutto** (`all`, con popup di conferma esplicita).
-   - ⚠️ **Da allineare**: il codice contiene ancora una terza modalità **alla
-     romana** (`split`), oggi solo saltata da `cycleCtaMode`, e il **popup
-     "Dividi"** che genera divisioni in fase di pagamento sui piatti del tavolo.
-     Entrambi vanno **rimossi**: l'alla romana è fuori dal prodotto, e la
-     divisione appartiene alla sola fase d'ordine, che il prototipo non copre
-     ancora.
+   - **In pagamento non si divide** (allineato il 2026-08-19). Il piatto preso
+     col "+" va sul proprio conto **per intero**: lo stato `tableSplits` e il
+     popup "Dividi" — *per te / parti uguali / con alcuni* — sono stati
+     **rimossi**, insieme a `extraShareFor` che ne calcolava la quota. Le
+     uniche quote restano quelle fissate all'ordine (`splitWith` →
+     `myShareOf`). Dell'**alla romana** (`split`) sopravvivono solo due voci di
+     stile irraggiungibili nelle mappe di `SlideToPay`: la modalità non è nel
+     ciclo e nessuno la imposta.
+   - **`rejectSplit` resta**: rifiutare una divisione ricevuta, finché la quota
+     non è pagata, è dentro il modello.
    - Pagamento → caricamento ~5s → **sempre Successo** (che elenca chi deve
      ancora pagare); se resta un residuo, la Home mostra la card «Da saldare al
-     tavolo» e «Salda il resto» riapre la `PaymentScreen`.
-2. ⚠️ **`BalanceScreen` — da rimuovere.** Seconda schermata di saldo del tavolo,
-   raggiungibile solo dall'hash `#balance` e da nessun bottone: duplica un flusso
-   vivo, perché il residuo si salda ripassando dalla `PaymentScreen` via «Salda il
-   resto». È un residuo di una versione precedente e va cancellata insieme alla
-   sua route.
+     tavolo» e «Salda il resto» riapre la `PaymentScreen`, che è l'**unico**
+     punto di pagamento dine-in.
+2. **`BalanceScreen` — rimossa** il 2026-08-19, insieme alla route `balance`.
+   Era una seconda schermata di saldo del tavolo raggiungibile solo dall'hash
+   `#balance` e da nessun bottone: duplicava un flusso vivo, e la sua barra
+   *[Pago io / Dividi con… / Per il tavolo]* generava divisioni in fase di
+   saldo. Il residuo si chiude dalla Home, con «Salda il resto».
+
+> ⚠️ **Quel che il prototipo ancora non fa.** L'attribuzione in fase d'ordine
+> esiste nel carrello (swipe → tavolo, swipe ← «Con chi dividi?»), ma **non
+> viene propagata** all'ordine: `submitTableOrder` scrive le righe con
+> `ownerId: 'me'` e ignora `state.splits`. I piatti divisi che si vedono in
+> pagamento vengono dai **dati demo**, dove `splitWith` è cablato a mano.
+> Manca anche la **notifica di divisione ricevuta** con accetta/rifiuta: il
+> prototipo parte da una divisione già accettata, e offre solo il rifiuto.
+> Non c'è nemmeno l'**esclusione dei commensali allergici** dallo sheet «Con chi
+> dividi?»: nel prototipo la lista dei partecipanti è cablata e senza allergeni,
+> quindi li mostra tutti (il comportamento atteso è annotato nel codice, sopra
+> `SplitPickSheet`).
+> E manca la **divisione del piatto "per il tavolo" fra tutti i presenti**: la
+> regola di prodotto è decisa, ma nel prototipo il "+" su una riga del tavolo
+> se la prende **per intero**. La sottoriga della sezione "Il tavolo" — *«I
+> piatti messi a "tavolo" si dividono tra i N partecipanti»* — enuncia quindi
+> la regola giusta, che il prototipo però non simula.
 
 **Lock real-time** (`lockedLineIds`): le righe che un altro sta pagando in quel
-momento sono **congelate** — non offribili in `PaymentScreen`, non selezionabili e
-**in fondo** nell'elenco della `BalanceScreen` ("{nome} sta pagando…"). Quando
-chiudi tutto ciò su cui puoi agire, i lock si considerano risolti in parallelo e il
+momento sono **congelate** — in `PaymentScreen` restano visibili col lucchetto ma
+non si possono prendere in carico col "+" né offrire (`canAdd`). Quando chiudi
+tutto ciò su cui puoi agire, i lock si considerano risolti in parallelo e il
 tavolo va a zero. → Coerente col principio dell'**impossibilità del doppio
 pagamento**: un solo saldo, decrementato da entrambi i canali.
 
@@ -160,23 +182,27 @@ pagamento**: un solo saldo, decrementato da entrambi i canali.
 
 **Prototipo — TODO**
 1. **"Successo" mostra l'ultima tranche, non il totale pagato.** `SuccessScreen`
-   legge `state.payTotal`, che dopo i pagamenti successivi («Salda il resto» /
-   `BalanceScreen`) vale solo l'ultimo importo. Fix: accumulare il totale pagato
-   dal tavolo. *(Cosmetico.)*
-2. ~~**Header fisso ~115px** in `PaymentScreen`/`BalanceScreen`~~ **Risolto**:
-   l'header fisso oggi tiene solo back + titolo; lo strip avatar non è più
-   nell'header.
+   legge `state.payTotal`, che dopo un secondo passaggio da «Salda il resto»
+   vale solo l'ultimo importo. Fix: accumulare il totale pagato dal tavolo.
+   *(Cosmetico.)*
+2. ~~**Header fisso ~115px** in `PaymentScreen`~~ **Risolto**: l'header fisso
+   oggi tiene solo back + titolo; lo strip avatar non è più nell'header.
+3. **L'attribuzione del carrello non arriva all'ordine.** Le divisioni decise
+   con lo swipe (`state.splits`) restano nel carrello: `submitTableOrder` le
+   ignora e scrive tutte le righe con `ownerId: 'me'`. È il pezzo che tiene
+   davvero insieme i due livelli del modello, e nel prototipo oggi non c'è.
 
 **Decisioni di prodotto da confermare**
-3. **Assunzione lock → saldo zero**: nella `BalanceScreen`, saldando tutto ciò su
-   cui si può agire, i piatti lockati si considerano chiusi in parallelo e si va a
-   Successo. Semplificazione del prototipo; nel reale il tavolo si libera solo a
-   saldo davvero zero (esito effettivo dei pagamenti paralleli).
+4. **Assunzione lock → saldo zero**: pagando in modalità «tutto il tavolo»,
+   `proceed` salda **anche le righe lockate** da altri — i pagamenti paralleli
+   si considerano chiusi e si va a Successo. Semplificazione del prototipo; nel
+   reale il tavolo si libera solo a saldo davvero zero (esito effettivo dei
+   pagamenti paralleli).
 
 **Delta verso produzione (Flutter/backend) — già descritti sopra / in
 [Contratto-Dati.md](Contratto-Dati.md)**
-4. Backend del saldo unico: `balance` real-time condiviso app+cassa, `lock` con
+5. Backend del saldo unico: `balance` real-time condiviso app+cassa, `lock` con
    `expiresAt`/auto-rilascio, scarto centesimi server-side, Stripe reale.
-5. **Ritorno guidato cross-app** (es. dopo "Aggiungi carta"): assente nel
+6. **Ritorno guidato cross-app** (es. dopo "Aggiungi carta"): assente nel
    prototipo, previsto nell'app Flutter (vedi
    [Architettura-Prototipo.md §9.1](Architettura-Prototipo.md)).

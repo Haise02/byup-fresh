@@ -24512,6 +24512,14 @@ function SwipeDishRow({
 }
 
 // Sheet "con chi dividi?" aperto dallo swipe ← su un piatto
+//
+// Nell'app reale l'elenco dei commensali selezionabili ESCLUDE chi ha dichiarato
+// un allergene contenuto nel piatto. L'esclusione è silenziosa e indistinguibile
+// da qualunque altra causa di indisponibilità: chi assegna non sa perché, e al
+// commensale escluso non compare nulla — né il piatto né la notizia del
+// tentativo. Il controllo è del backend, che non restituisce mai gli allergeni
+// di un commensale nelle risposte destinate ad altri. Qui il prototipo mostra
+// tutti i partecipanti: la lista arriva cablata, senza allergeni.
 function SplitPickSheet({
   item,
   participants,
@@ -27534,6 +27542,13 @@ function PaymentScreen({
     setMode(next === 'all' ? 'all' : 'mine');
     return next;
   });
+
+  // Nell'app reale, quando qualcuno include un commensale nella divisione di un
+  // piatto, quel commensale riceve una notifica con chi ha ordinato e cosa ha
+  // diviso, e la scelta fra accettare e rifiutare. In assenza di risposta la
+  // divisione si intende accettata. Il rifiuto resta disponibile anche più
+  // tardi, in pagamento, finché la quota non è stata pagata: è questa funzione.
+  // Il prototipo non simula la notifica — parte da una divisione già ricevuta.
   const rejectSplit = item => {
     // Rimuove "me" da splitWith e cambia ownerId al proponente (primo dei splitWith)
     setState(s => {
@@ -27598,43 +27613,6 @@ function PaymentScreen({
     color: '#fff'
   };
 
-  // Divisione dei soli piatti presi dal tavolo (in "Aggiunti al tuo conto").
-  //   tableSplits: lineId -> { kind: 'table' }                → in parti uguali tra tutti i commensali
-  //                          { kind: 'split', people: [ids] }  → tra me + commensali scelti
-  //   assente → lo pago io per intero
-  const [tableSplits, setTableSplits] = useState({});
-  // splitDish: bozza del popup di divisione { lineId, kind: 'me'|'table'|'split', people: [ids] }
-  const [splitDish, setSplitDish] = useState(null);
-  const otherGuests = (order.guests || []).filter(g => g.id !== 'me');
-  const tableCount = Math.max(1, (order.guests || []).length);
-  const openSplitDish = item => {
-    const cur = tableSplits[item.lineId];
-    setSplitDish({
-      lineId: item.lineId,
-      kind: cur?.kind || 'me',
-      people: cur?.people || []
-    });
-  };
-  const confirmSplitDish = () => {
-    setTableSplits(s => {
-      const n = {
-        ...s
-      };
-      if (splitDish.kind === 'me' || splitDish.kind === 'split' && splitDish.people.length === 0) {
-        delete n[splitDish.lineId]; // pago io per intero
-      } else {
-        n[splitDish.lineId] = splitDish.kind === 'table' ? {
-          kind: 'table'
-        } : {
-          kind: 'split',
-          people: splitDish.people
-        };
-      }
-      return n;
-    });
-    setSplitDish(null);
-  };
-
   // In caso di rientro post-pagamento parziale: escludo i miei piatti già saldati
   const myItems = order.items.filter(i => i.ownerId === 'me' && !isPaid(i.lineId));
 
@@ -27668,18 +27646,7 @@ function PaymentScreen({
     const n = {
       ...s
     };
-    if (n[lineId]) {
-      delete n[lineId];
-      // tolto dal conto: scordo l'eventuale divisione impostata
-      setTableSplits(ts => {
-        if (!ts[lineId]) return ts;
-        const m = {
-          ...ts
-        };
-        delete m[lineId];
-        return m;
-      });
-    } else n[lineId] = true;
+    if (n[lineId]) delete n[lineId];else n[lineId] = true;
     return n;
   });
   const addAllItems = items => {
@@ -27884,18 +27851,11 @@ function PaymentScreen({
     return it.price * it.qty / splitN;
   };
   const myDishesTotal = myItems.reduce((s, i) => s + myShareOf(i), 0);
+  // Un piatto preso in carico col "+" va sul proprio conto PER INTERO: in fase
+  // di pagamento non nasce nessuna divisione nuova. Le quote sono solo quelle
+  // fissate all'ordine (`splitWith`, vedi `myShareOf`).
   const extraItems = order.items.filter(i => selectedExtras[i.lineId]);
-  // Quota che pago io di un piatto aggiunto: intero, salvo i piatti del tavolo divisi.
-  const extraShareFor = it => {
-    const lineTotal = it.price * it.qty;
-    if (it.ownerId !== 'table') return lineTotal;
-    const sp = tableSplits[it.lineId];
-    if (!sp) return lineTotal;
-    if (sp.kind === 'table') return lineTotal / tableCount;
-    if (sp.kind === 'split') return lineTotal / ((sp.people?.length || 0) + 1);
-    return lineTotal;
-  };
-  const extraTotal = extraItems.reduce((s, i) => s + extraShareFor(i), 0);
+  const extraTotal = extraItems.reduce((s, i) => s + i.price * i.qty, 0);
   const tableTotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
 
   // coperto: 2€ per persona; in 'mine' paghi solo il tuo, in 'all' paghi per tutti.
@@ -27934,7 +27894,7 @@ function PaymentScreen({
       }));
       extraItems.forEach(it => payments.push({
         lineId: it.lineId,
-        amount: extraShareFor(it)
+        amount: it.price * it.qty
       }));
     }
     const paidNow = payments.reduce((s, p) => s + p.amount, 0);
@@ -27947,9 +27907,9 @@ function PaymentScreen({
       payTip: tipAmount,
       payCover: cover
     }));
-    // Se il saldo del tavolo è azzerato → successo; altrimenti vai alla schermata saldo.
-    // Anche con saldo residuo si va dritti al "fatto": il residuo resta
-    // visibile nella home con la card dell'ordine attivo.
+    // Si va sempre al "fatto", anche con saldo residuo: il resto del tavolo
+    // resta visibile nella home, sulla card dell'ordine attivo, e da lì si
+    // riapre questa stessa schermata con «Salda il resto».
     goTo('success');
   };
 
@@ -28167,8 +28127,7 @@ function PaymentScreen({
     // "altro": quel piatto non è attribuibile a una persona precisa,
     // quindi "di Ospite 1" prometteva un'identità che non c'è.
     const isAltro = isTable || offlineIds.includes(it.ownerId);
-    const sp = isTable ? tableSplits[it.lineId] : null;
-    const share = extraShareFor(it);
+    const share = it.price * it.qty;
     return /*#__PURE__*/React.createElement("div", {
       key: 'x-' + it.lineId,
       style: {
@@ -28201,16 +28160,7 @@ function PaymentScreen({
         fontSize: 11,
         fontWeight: 700
       }
-    }, isAltro ? 'altro' : `di ${ownerLabel(it.ownerId)}`), isTable && /*#__PURE__*/React.createElement("span", {
-      onClick: () => openSplitDish(it),
-      style: {
-        color: WINE,
-        fontSize: 11,
-        fontWeight: 700,
-        cursor: 'pointer',
-        textDecoration: 'underline'
-      }
-    }, !sp ? 'dividi' : sp.kind === 'table' ? 'diviso col tavolo' : `diviso in ${(sp.people?.length || 0) + 1}`)), /*#__PURE__*/React.createElement("span", {
+    }, isAltro ? 'altro' : `di ${ownerLabel(it.ownerId)}`)), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 14.5,
         color: TEXT,
@@ -28629,217 +28579,7 @@ function PaymentScreen({
       setParticipantsCount(setState, n);
       setGuestsOpen(false);
     }
-  }), splitDish && (() => {
-    const item = order.items.find(i => i.lineId === splitDish.lineId);
-    if (!item) return null;
-    const lineTotal = item.price * item.qty;
-    const n = splitDish.kind === 'table' ? tableCount : splitDish.kind === 'split' ? splitDish.people.length + 1 : 1;
-    const per = lineTotal / n;
-    const setKind = kind => setSplitDish(d => ({
-      ...d,
-      kind
-    }));
-    const togglePerson = gid => setSplitDish(d => {
-      const people = d.people.includes(gid) ? d.people.filter(x => x !== gid) : [...d.people, gid];
-      return {
-        ...d,
-        people,
-        kind: 'split'
-      };
-    });
-    const Opt = ({
-      kind,
-      title,
-      desc
-    }) => {
-      const active = splitDish.kind === kind;
-      return /*#__PURE__*/React.createElement("button", {
-        onClick: () => setKind(kind),
-        style: {
-          width: '100%',
-          padding: '13px 14px',
-          borderRadius: 14,
-          textAlign: 'left',
-          background: SURF,
-          border: `1.5px solid ${active ? WINE : BORDER}`,
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          width: 22,
-          height: 22,
-          borderRadius: 999,
-          flexShrink: 0,
-          border: `2px solid ${active ? WINE : '#d0d0d0'}`,
-          background: active ? WINE : SURF,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }
-      }, active && /*#__PURE__*/React.createElement(I.Check, {
-        size: 13,
-        color: "#fff"
-      })), /*#__PURE__*/React.createElement("div", {
-        style: {
-          flex: 1,
-          minWidth: 0
-        }
-      }, /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 15,
-          fontWeight: 700,
-          color: TEXT
-        }
-      }, title), /*#__PURE__*/React.createElement("div", {
-        style: {
-          fontSize: 12,
-          color: MUTED,
-          marginTop: 1
-        }
-      }, desc)));
-    };
-    return /*#__PURE__*/React.createElement("div", {
-      onClick: () => setSplitDish(null),
-      style: {
-        position: 'absolute',
-        inset: 0,
-        background: 'rgba(0,0,0,0.45)',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        zIndex: 100
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      onClick: e => e.stopPropagation(),
-      style: {
-        background: SURF,
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        width: '100%',
-        maxWidth: 430,
-        padding: '10px 22px 28px',
-        maxHeight: '88%',
-        overflowY: 'auto'
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 36,
-        height: 4,
-        borderRadius: 999,
-        background: MUTESURF,
-        margin: '4px auto 16px'
-      }
-    }), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 18,
-        fontWeight: 800,
-        color: TEXT,
-        letterSpacing: -0.3
-      }
-    }, item.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        color: MUTED,
-        marginBottom: 16
-      }
-    }, lineTotal.toFixed(2), "\u20AC \xB7 come lo dividi?"), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10
-      }
-    }, /*#__PURE__*/React.createElement(Opt, {
-      kind: "me",
-      title: "Lo pago io",
-      desc: "Tutto il piatto sul tuo conto"
-    }), /*#__PURE__*/React.createElement(Opt, {
-      kind: "table",
-      title: "In parti uguali tra tutti",
-      desc: `${tableCount} commensali`
-    }), /*#__PURE__*/React.createElement(Opt, {
-      kind: "split",
-      title: "Con alcuni commensali",
-      desc: "Scegli con chi dividere"
-    })), splitDish.kind === 'split' && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 14
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: MUTED,
-        marginBottom: 8
-      }
-    }, "Tu sei sempre incluso \xB7 ", splitDish.people.length + 1, " ", splitDish.people.length + 1 === 1 ? 'persona' : 'persone'), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 8
-      }
-    }, otherGuests.map(g => {
-      const sel = splitDish.people.includes(g.id);
-      return /*#__PURE__*/React.createElement("button", {
-        key: g.id,
-        onClick: () => togglePerson(g.id),
-        style: {
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 6,
-          padding: '8px 12px',
-          borderRadius: 999,
-          background: sel ? WINE : TINT,
-          color: sel ? '#fff' : TEXT,
-          border: `1.5px solid ${sel ? WINE : BORDER}`,
-          fontSize: 13,
-          fontWeight: 700,
-          fontFamily: 'inherit',
-          cursor: 'pointer'
-        }
-      }, sel && /*#__PURE__*/React.createElement(I.Check, {
-        size: 12,
-        color: "#fff"
-      }), g.name.split(' ')[0]);
-    }))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '12px 14px',
-        background: TINT,
-        borderRadius: 12,
-        margin: '18px 0 14px'
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 13,
-        color: MUTED
-      }
-    }, "La tua quota"), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 17,
-        fontWeight: 800,
-        color: TEXT
-      }
-    }, per.toFixed(2), "\u20AC")), /*#__PURE__*/React.createElement("button", {
-      onClick: confirmSplitDish,
-      style: {
-        width: '100%',
-        height: 50,
-        borderRadius: 999,
-        border: 'none',
-        background: WINE,
-        color: '#fff',
-        fontSize: 15,
-        fontWeight: 700,
-        fontFamily: 'inherit',
-        cursor: 'pointer'
-      }
-    }, "Conferma")));
-  })(), splitInfo && /*#__PURE__*/React.createElement("div", {
+  }), splitInfo && /*#__PURE__*/React.createElement("div", {
     onClick: () => setSplitInfo(null),
     style: {
       position: 'absolute',
@@ -29510,605 +29250,6 @@ function PayMethodScreen({
     size: 17,
     color: "#fff"
   }), " Conferma metodo"))));
-}
-
-// ─── SALDO DEL TAVOLO ──────────────────────────────────────
-// Dopo un pagamento parziale: mostra quanto manca al tavolo e i piatti ancora
-// scoperti; permette di saldarne altri (per intero, divisi, o per il tavolo).
-function BalanceScreen({
-  state,
-  setState,
-  goTo
-}) {
-  const order = state.activeOrder;
-  if (!order) return /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 80,
-      textAlign: 'center',
-      color: MUTED
-    }
-  }, "Nessun ordine attivo.");
-  const lockedLineIds = order.lockedLineIds || {};
-  const isLocked = id => !!lockedLineIds[id];
-  const settled = seedSettled(order);
-  const tableCount = Math.max(1, (order.guests || []).length);
-  const otherGuests = (order.guests || []).filter(g => g.id !== 'me');
-
-  // I miei piatti li ho già saldati nella schermata precedente → non compaiono qui.
-  // Resta da saldare ciò che è del tavolo o di altri commensali.
-  const pendingAll = order.items.filter(it => it.ownerId !== 'me' && lineRemaining(order, it, settled) > 0.01);
-  // Ordine: prima il tavolo, poi i commensali (ordine guests); i lockati sempre in fondo.
-  const rank = it => {
-    if (isLocked(it.lineId)) return 1000;
-    if (it.ownerId === 'table') return -1;
-    const idx = (order.guests || []).findIndex(g => g.id === it.ownerId);
-    return idx < 0 ? 900 : idx;
-  };
-  const pending = [...pendingAll].sort((a, b) => rank(a) - rank(b));
-  const openPending = pendingAll.filter(it => !isLocked(it.lineId));
-  const lockedPending = pendingAll.filter(it => isLocked(it.lineId));
-  const remaining = pendingAll.reduce((s, it) => s + lineRemaining(order, it, settled), 0);
-  const [open, setOpen] = useState(true);
-  const [sel, setSel] = useState({});
-  const [revealed, setRevealed] = useState(null);
-  const [mode, setMode] = useState('me'); // 'me' | 'split' | 'table'
-  const [people, setPeople] = useState([]);
-  const [paying, setPaying] = useState(false);
-  const selItems = openPending.filter(it => sel[it.lineId]);
-  const shareFor = it => {
-    if (mode === 'table') return it.price * it.qty / tableCount;
-    if (mode === 'split') return it.price * it.qty / (people.length + 1);
-    return lineRemaining(order, it, settled);
-  };
-  const payAmount = selItems.reduce((s, it) => s + shareFor(it), 0);
-  const allSel = openPending.length > 0 && openPending.every(it => sel[it.lineId]);
-  const toggleAll = () => setSel(allSel ? {} : Object.fromEntries(openPending.map(it => [it.lineId, true])));
-  const ownerOf = it => {
-    if (it.ownerId === 'table') return {
-      table: true,
-      name: 'Al tavolo'
-    };
-    const g = (order.guests || []).find(x => x.id === it.ownerId);
-    if (!g) return {
-      name: '?',
-      initial: '?'
-    };
-    return {
-      me: g.isMe,
-      guest: g.isGuest,
-      name: g.isMe ? 'Tu' : g.name,
-      initial: g.initial || '?'
-    };
-  };
-  const toggleSel = it => {
-    setSel(s => {
-      const n = {
-        ...s
-      };
-      if (n[it.lineId]) delete n[it.lineId];else n[it.lineId] = true;
-      return n;
-    });
-  };
-  const togglePerson = gid => {
-    setMode('split');
-    setPeople(p => p.includes(gid) ? p.filter(x => x !== gid) : [...p, gid]);
-  };
-  const pay = () => {
-    if (paying || selItems.length === 0 || payAmount <= 0) return;
-    setPaying(true);
-    const payments = selItems.map(it => ({
-      lineId: it.lineId,
-      amount: shareFor(it)
-    }));
-    const paidNow = payments.reduce((s, p) => s + p.amount, 0);
-    const openRem = openPending.reduce((s, it) => s + lineRemaining(order, it, settled), 0);
-    // Se chiudo tutto ciò su cui posso agire, i piatti ancora "in pagamento" da altri
-    // si concludono in parallelo → il tavolo va a zero.
-    const willClose = openRem - paidNow <= 0.01;
-    if (willClose) lockedPending.forEach(it => payments.push({
-      lineId: it.lineId,
-      amount: lineRemaining(order, it, settled)
-    }));
-    setTimeout(() => {
-      applyPayments(setState, payments);
-      setState(s => ({
-        ...s,
-        payTotal: paidNow
-      }));
-      if (willClose) goTo('success');else {
-        setSel({});
-        setPeople([]);
-        setMode('me');
-        setPaying(false);
-      }
-    }, 5000);
-  };
-  const Avatar = ({
-    o
-  }) => o.table ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 30,
-      padding: '0 10px',
-      borderRadius: 999,
-      background: TINT,
-      color: WINE,
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 5,
-      fontSize: 11.5,
-      fontWeight: 800,
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "13",
-    height: "13",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "2.2",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("path", {
-    d: "M3 7h18M5 7v12h14V7M9 11v4M15 11v4"
-  })), "Al tavolo") : /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 30,
-      height: 30,
-      borderRadius: 999,
-      flexShrink: 0,
-      background: o.me ? WINE : o.guest ? '#ebe3d6' : BADGE,
-      color: o.me ? '#fff' : o.guest ? MUTED : '#fff',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: 12,
-      fontWeight: 700
-    }
-  }, o.me ? 'T' : o.initial);
-  const segBtn = (id, label) => /*#__PURE__*/React.createElement("button", {
-    onClick: () => setMode(id),
-    style: {
-      flex: 1,
-      padding: '9px 4px',
-      borderRadius: 10,
-      fontFamily: 'inherit',
-      background: mode === id ? WINE : TINT,
-      color: mode === id ? '#fff' : TEXT,
-      border: `1.5px solid ${mode === id ? WINE : BORDER}`,
-      fontSize: 12.5,
-      fontWeight: 700,
-      cursor: 'pointer'
-    }
-  }, label);
-  return /*#__PURE__*/React.createElement("div", {
-    "data-screen-label": "Saldo del tavolo",
-    style: {
-      width: '100%',
-      height: '100%',
-      background: BG_PAGE,
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flexShrink: 0,
-      paddingTop: 60,
-      background: BG_PAGE,
-      position: 'relative',
-      zIndex: 5,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '8px 22px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 14
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => goTo('home'),
-    style: {
-      width: 40,
-      height: 40,
-      borderRadius: 999,
-      background: SURF,
-      border: 'none',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      cursor: 'pointer',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-      flexShrink: 0
-    }
-  }, /*#__PURE__*/React.createElement(I.Back, {
-    size: 18
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 22,
-      fontWeight: 800,
-      color: TEXT,
-      letterSpacing: -0.4,
-      lineHeight: 1.1
-    }
-  }, "Saldo del tavolo"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED,
-      marginTop: 2
-    }
-  }, order.table, " \xB7 ", order.venue)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      overflowY: 'auto',
-      padding: '20px 22px',
-      paddingBottom: selItems.length > 0 ? 250 : 120
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: SURF,
-      borderRadius: 18,
-      padding: '22px 20px',
-      textAlign: 'center',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-      marginBottom: 18
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 46,
-      height: 46,
-      borderRadius: 999,
-      background: '#e8f5ec',
-      margin: '0 auto 12px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "24",
-    height: "24",
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "#1a7a3a",
-    strokeWidth: "3",
-    strokeLinecap: "round",
-    strokeLinejoin: "round"
-  }, /*#__PURE__*/React.createElement("polyline", {
-    points: "20 6 9 17 4 12"
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      fontWeight: 700,
-      color: TEXT,
-      marginBottom: 14
-    }
-  }, "Pagamento riuscito"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: MUTED,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      fontWeight: 700
-    }
-  }, "Manca al tavolo"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 40,
-      fontWeight: 800,
-      color: TEXT,
-      letterSpacing: -1,
-      lineHeight: 1.1,
-      margin: '2px 0 4px'
-    }
-  }, remaining.toFixed(2), "\u20AC"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      color: MUTED
-    }
-  }, pending.length, " ", pending.length === 1 ? 'articolo ancora da saldare' : 'articoli ancora da saldare')), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: SURF,
-      borderRadius: 16,
-      overflow: 'hidden',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: () => setOpen(o => !o),
-    style: {
-      padding: '16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      cursor: 'pointer'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 16,
-      fontWeight: 800,
-      color: TEXT
-    }
-  }, "Piatti da saldare"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      color: MUTED,
-      marginTop: 1
-    }
-  }, "Tocca per selezionare cosa pagare")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      transform: open ? 'rotate(0)' : 'rotate(-90deg)',
-      transition: 'transform 0.2s'
-    }
-  }, /*#__PURE__*/React.createElement(I.ChevDown, {
-    color: MUTED,
-    size: 18
-  }))), open && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '0 12px 12px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 8
-    }
-  }, openPending.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'flex-end',
-      padding: '2px 2px 0'
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: toggleAll,
-    style: {
-      background: 'none',
-      border: 'none',
-      color: WINE,
-      fontFamily: 'inherit',
-      fontSize: 12.5,
-      fontWeight: 700,
-      cursor: 'pointer',
-      padding: 0
-    }
-  }, allSel ? 'Deseleziona tutti' : 'Seleziona tutti')), pending.map(it => {
-    const o = ownerOf(it);
-    const locked = isLocked(it.lineId);
-    const checked = !!sel[it.lineId];
-    const rem = lineRemaining(order, it, settled);
-    const partial = rem < it.price * it.qty - 0.001;
-    const splitNames = (it.splitWith || []).map(id => (order.guests || []).find(g => g.id === id)).filter(Boolean).map(g => g.isMe ? 'Tu' : g.name);
-    const payer = locked ? (order.guests || []).find(g => g.id === lockedLineIds[it.lineId]) : null;
-    return /*#__PURE__*/React.createElement("div", {
-      key: it.lineId,
-      onClick: locked ? undefined : () => toggleSel(it),
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '10px 12px',
-        borderRadius: 12,
-        background: locked ? MUTESURF : checked ? TINT : TINT,
-        border: `1.5px solid ${checked && !locked ? WINE : BORDER}`,
-        opacity: locked ? 0.65 : 1,
-        cursor: locked ? 'default' : 'pointer'
-      }
-    }, locked ? /*#__PURE__*/React.createElement("svg", {
-      width: "20",
-      height: "20",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: MUTED,
-      strokeWidth: "2.2",
-      strokeLinecap: "round",
-      strokeLinejoin: "round",
-      style: {
-        flexShrink: 0
-      }
-    }, /*#__PURE__*/React.createElement("rect", {
-      x: "3",
-      y: "11",
-      width: "18",
-      height: "11",
-      rx: "2",
-      ry: "2"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M7 11V7a5 5 0 0 1 10 0v4"
-    })) : /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: 22,
-        height: 22,
-        borderRadius: 7,
-        flexShrink: 0,
-        border: `2px solid ${checked ? WINE : '#d0c8cc'}`,
-        background: checked ? WINE : SURF,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }
-    }, checked && /*#__PURE__*/React.createElement(I.Check, {
-      size: 13,
-      color: "#fff"
-    })), /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 14.5,
-        fontWeight: 700,
-        color: TEXT,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
-      }
-    }, it.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 12,
-        color: locked ? MUTED : TEXT,
-        marginTop: 1,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
-      }
-    }, locked ? `${payer ? payer.isMe ? 'Tu' : payer.name : 'Qualcuno'} sta pagando…` : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("b", null, rem.toFixed(2), "\u20AC"), partial ? ' rimasti' : '', splitNames.length ? ` · diviso con ${splitNames.join(', ')}` : ''))), revealed === it.lineId && !o.table && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 11.5,
-        fontWeight: 700,
-        color: '#fff',
-        background: BADGE,
-        padding: '4px 9px',
-        borderRadius: 999,
-        whiteSpace: 'nowrap'
-      }
-    }, o.name), /*#__PURE__*/React.createElement("div", {
-      onClick: e => {
-        e.stopPropagation();
-        if (!o.table) setRevealed(r => r === it.lineId ? null : it.lineId);
-      }
-    }, /*#__PURE__*/React.createElement(Avatar, {
-      o: o
-    })));
-  })))), selItems.length > 0 && !paying && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: SURF,
-      borderTop: `1px solid ${BORDER}`,
-      padding: '14px 18px 22px',
-      boxShadow: '0 -4px 16px rgba(0,0,0,0.06)',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12,
-      fontWeight: 700,
-      color: MUTED
-    }
-  }, selItems.length, " ", selItems.length === 1 ? 'piatto selezionato' : 'piatti selezionati', " \xB7 come paghi?"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 6
-    }
-  }, segBtn('me', 'Pago io'), segBtn('split', 'Dividi con…'), segBtn('table', 'Per il tavolo')), mode === 'split' && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: 6
-    }
-  }, otherGuests.map(g => {
-    const on = people.includes(g.id);
-    return /*#__PURE__*/React.createElement("button", {
-      key: g.id,
-      onClick: () => togglePerson(g.id),
-      style: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        padding: '7px 11px',
-        borderRadius: 999,
-        background: on ? WINE : TINT,
-        color: on ? '#fff' : TEXT,
-        border: `1.5px solid ${on ? WINE : BORDER}`,
-        fontSize: 12,
-        fontWeight: 700,
-        fontFamily: 'inherit',
-        cursor: 'pointer'
-      }
-    }, on && /*#__PURE__*/React.createElement(I.Check, {
-      size: 11,
-      color: "#fff"
-    }), g.name.split(' ')[0]);
-  })), mode === 'table' && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11.5,
-      color: MUTED
-    }
-  }, "Diviso per ", tableCount, " commensali. Paghi la tua quota."), /*#__PURE__*/React.createElement("button", {
-    onClick: pay,
-    style: {
-      width: '100%',
-      height: 52,
-      borderRadius: 999,
-      border: 'none',
-      background: WINE,
-      color: '#fff',
-      fontSize: 15,
-      fontWeight: 700,
-      fontFamily: 'inherit',
-      cursor: 'pointer',
-      boxShadow: `0 4px 14px ${WINE}40`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: '0 22px'
-    }
-  }, /*#__PURE__*/React.createElement("span", null, "Paga"), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 17,
-      fontWeight: 800
-    }
-  }, payAmount.toFixed(2), "\u20AC"))), paying && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: 'absolute',
-      inset: 0,
-      background: WINE,
-      zIndex: 200,
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 20,
-      animation: 'fade 0.2s ease'
-    }
-  }, /*#__PURE__*/React.createElement("svg", {
-    width: "48",
-    height: "48",
-    viewBox: "0 0 50 50"
-  }, /*#__PURE__*/React.createElement("circle", {
-    cx: "25",
-    cy: "25",
-    r: "20",
-    fill: "none",
-    stroke: "#fff",
-    strokeOpacity: "0.25",
-    strokeWidth: "5"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M25 5 a20 20 0 0 1 20 20",
-    fill: "none",
-    stroke: "#fff",
-    strokeWidth: "5",
-    strokeLinecap: "round"
-  }, /*#__PURE__*/React.createElement("animateTransform", {
-    attributeName: "transform",
-    type: "rotate",
-    from: "0 25 25",
-    to: "360 25 25",
-    dur: "0.9s",
-    repeatCount: "indefinite"
-  }))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: 'center',
-      color: '#fff'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 17,
-      fontWeight: 800,
-      letterSpacing: -0.2
-    }
-  }, "Pagamento in corso\u2026"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 13,
-      opacity: 0.85,
-      marginTop: 4
-    }
-  }, "Non chiudere l'app"))));
 }
 
 // ─── SUCCESS + RATING ──────────────────────────────────────
@@ -31399,7 +30540,7 @@ function MenuApp({
     } catch {}
   }, []);
   const [route, setRoute] = useState(() => {
-    const valid = ['menu', 'home', 'pay', 'paymethod', 'balance', 'success', 'takeaway'];
+    const valid = ['menu', 'home', 'pay', 'paymethod', 'success', 'takeaway'];
     if (initial && valid.includes(initial)) return {
       name: initial,
       ctx: initial === 'paymethod' ? {
@@ -31460,12 +30601,6 @@ function MenuApp({
       goTo: goTo,
       goBack: () => route.ctx && route.ctx.from === 'app' ? __goApp() : goTo('pay'),
       ctx: route.ctx
-    });
-  } else if (route.name === 'balance') {
-    screen = /*#__PURE__*/React.createElement(BalanceScreen, {
-      state: state,
-      setState: setState,
-      goTo: goTo
     });
   } else if (route.name === 'success') {
     screen = /*#__PURE__*/React.createElement(SuccessScreen, {

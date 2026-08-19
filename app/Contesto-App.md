@@ -253,8 +253,9 @@ dominio backend, vedi §E)
 - ✅ **Conto diviso** per piatto e per quota; **coperti**; stato "già pagato"
   per riga. Il tavolo è un **conto unico con un saldo** scritto in real-time da
   app e cassa; un pagamento dall'app salda **una quota**, e il tavolo si libera
-  **solo a saldo zero**. Lock all'avvio pagamento + modalità di divisione (per
-  riga, piatto diviso, offerto, tutto): vedi **§G.6**.
+  **solo a saldo zero**. Lock all'avvio pagamento; le quote nascono
+  **all'ordine** (attribuzione) e al pagamento non si divide più — si sceglie
+  solo cosa portare sul proprio conto: vedi **§G.6**.
 - ✅ Modalità **paga i miei** vs **paga tutto il tavolo**.
 - L'app deve **segnalare al backend** che il pagamento è avvenuto **da app**
   (peso transazione 0,5 — vedi §C/§E).
@@ -323,15 +324,17 @@ gestionale) quando si passa a Flutter.
 >   price·qty/(splitWith+1)`); **"+"** per aggiungere al tuo conto i piatti del
 >   tavolo e quelli degli altri commensali (sezione "Il tavolo": card per
 >   commensale, gerarchia utenti app → webapp → "Altro");
->   **divisione dei soli piatti del tavolo** via popup (`tableSplits`: per te /
->   parti uguali tra tutti / con alcuni); **saldo a importi parziali**
+>   **saldo a importi parziali**
 >   (`order.settled`, helper `seedSettled`/`lineRemaining`/`applyPayments`,
 >   persistiti in sessione via `byup_table`); **lock real-time**
->   (`lockedLineIds`, righe "in pagamento" da altri congelate). Dopo un
->   pagamento parziale si va a **Successo** e il **residuo** resta visibile in
->   home (card ordine attivo → "Salda il resto" riapre il conto); la vecchia
->   **schermata Saldo** (`BalanceScreen`, route `balance`, [menu.jsx](menu.jsx))
->   esiste ancora ma è fuori dal flusso principale (solo hash `#balance`).
+>   (`lockedLineIds`, righe "in pagamento" da altri congelate). **In pagamento
+>   non si divide più**: il piatto preso col "+" va sul proprio conto per
+>   intero, e il popup `tableSplits` (per te / parti uguali / con alcuni) è
+>   stato rimosso il 2026-08-19 — le quote sono solo quelle fissate all'ordine.
+>   Dopo un pagamento parziale si va a **Successo** e il **residuo** resta
+>   visibile in home (card ordine attivo → "Salda il resto" riapre il conto);
+>   la vecchia **schermata Saldo** (`BalanceScreen`, route `balance`) è stata
+>   **cancellata** nella stessa occasione.
 >   "Paga ora" è uno **slide-to-pay** con **caricamento ~5s** (conferma
 >   esplicita solo per "paga tutto il tavolo"). **Quello che manca è solo il
 >   backend**: saldo e lock come **fonte di verità unica condivisa app+cassa in
@@ -345,9 +348,9 @@ gestionale) quando si passa a Flutter.
 >   riscatto ordine errato"*) è specificato ma **non ancora codificato**.
 > - **Modalità `selection`** (riga del Contratto-Dati): non è una modalità
 >   *nominata* nel codice (esistono `mine`/`all`); però pagare un **sottoinsieme**
->   è già possibile col **"+"** sui piatti (del tavolo / offerti) e con la
->   **selezione multipla** nella `BalanceScreen`. `selection` resta quindi
->   un'**etichetta futura**, non un buco di UX.
+>   è già possibile col **"+"** sui piatti (del tavolo / offerti) nella
+>   `PaymentScreen`. `selection` resta quindi un'**etichetta futura**, non un
+>   buco di UX.
 >
 > Regola pratica: per *cosa il prototipo fa vedere* → [Architettura-Prototipo.md](Architettura-Prototipo.md);
 > per *cosa il prodotto deve fare* → questo file (§G) e gli spoke tematici.
@@ -522,8 +525,10 @@ non meccanismo primario).
 - **Lock all'avvio del pagamento**: congela le righe in pagamento (granularità
   riga/quota, **auto-rilascio** a timeout) → niente race condition, pagamenti
   paralleli possibili.
-- **Modalità di divisione**: per riga · piatto diviso tra più commensali · offrire
-  un piatto · pagare tutto.
+- **Due livelli**: l'**attribuzione** (di chi è il piatto, e in quali quote) si
+  decide **solo in fase d'ordine**; il **saldo** resta libero, ma non crea nuove
+  divisioni — si può portare sul proprio conto piatti del tavolo, piatti altrui
+  e quote già divise, fino a pagare tutto.
 - **Dopo il pagamento parziale**: l'utente resta nel flusso, vede **saldo residuo
   + piatti scoperti** e può pagarne altri.
 - **Scarto centesimi** (quote frazionarie) gestito server-side (es. l'ultimo

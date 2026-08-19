@@ -27,7 +27,7 @@ rimanda agli altri per pertinenza, così il dettaglio vive **una volta sola**.
 |------|---------------|------|:-----:|
 | **[Contesto-App.md](Contesto-App.md)** | Contesto di **prodotto** (il *perché*): visione, ecosistema, ricavo, requisiti §D, modello backend §E, i 3 percorsi d'ordine §G. È l'**hub** che sintetizza e rimanda. | Durevole | misto |
 | **[Contratto-Dati.md](Contratto-Dati.md)** | Forme dati **app ⇄ backend/ecosistema** (inbound/outbound). | Durevole | — |
-| **[Pagamenti-Divisione.md](Pagamenti-Divisione.md)** | Saldo unico real-time, **lock**, modalità di divisione, pagamento parziale, scarto centesimi. | Durevole | ✅ DECISO |
+| **[Pagamenti-Divisione.md](Pagamenti-Divisione.md)** | Saldo unico real-time, **lock**, i **due livelli** (attribuzione all'ordine · saldo al pagamento), pagamento parziale, scarto centesimi. | Durevole | ✅ DECISO |
 | **[Recupero-Ordine.md](Recupero-Ordine.md)** | Spec tecnica recupero ordine **webapp→app** (Android Install Referrer con codice, iOS/banner, roadmap). | Implementazione | ✅ DECISO |
 | **[Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md)** | Difesa da accessi remoti / ordini civetta, barriere d'identità, metodo ISO 27001. | Durevole | 🟠 IN DISCUSSIONE |
 | **[Architettura-Prototipo.md](Architettura-Prototipo.md)** | Il *come* del prototipo React no-build (globali `window`, router, storage, stato menu, tema). | **Usa-e-getta** | — |
