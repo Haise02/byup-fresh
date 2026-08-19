@@ -44,15 +44,32 @@ al tavolo".
 **Il tavolo si libera SOLO quando il saldo residuo è zero.** Finché c'è anche un
 solo piatto non coperto, il tavolo resta aperto.
 
-## Le modalità di divisione (decise)
+## Due livelli distinti: attribuzione e saldo
 
-Divisione flessibile, tutte supportate dal lock real-time:
+La divisione del conto vive su due piani che non vanno confusi.
 
-- **Pagamento per singolo piatto/riga** — paghi esattamente ciò che selezioni.
-- **Divisione di un singolo piatto tra più commensali** — es. un piatto da 20€
-  diviso in 3.
-- **Offrire un piatto** — un commensale si accolla la quota di un altro.
-- **Pagare tutto** — saldo completo del tavolo.
+**L'attribuzione** dice *di chi è* un piatto e in quali quote. Si decide **solo in
+fase d'ordine**: chi ordina assegna il piatto a sé, a un altro commensale, a più
+commensali insieme (prezzo diviso in parti uguali fra loro) o al tavolo. Chi
+riceve un'assegnazione può **rifiutarla** — subito o più tardi, anche in fase di
+pagamento — finché nessuno ha avviato un pagamento su quella riga o su quella
+quota; il piatto rifiutato torna a chi lo ha ordinato, che lo riassegna. Se il
+piatto contiene un allergene dichiarato dal destinatario, l'assegnazione è
+bloccata e al destinatario **non compare nulla**: né il piatto né la notizia del
+tentativo. L'attribuzione è disponibile su **app e webapp**.
+
+**Il saldo** dice *chi mette i soldi*, e resta libero al pagamento: un commensale
+può portare sul proprio conto piatti del tavolo, piatti di altri e singole quote
+già divise. Questo **non cambia l'attribuzione** e **non crea nuove divisioni**:
+al pagamento non si divide più niente. Il saldo è possibile **solo dall'app**;
+da webapp si attribuisce ma non si paga.
+
+Regola che tiene insieme i due livelli: le quote fissate all'assegnazione non si
+ricalcolano al pagamento, e l'unica azione che le scioglie è il rifiuto.
+
+**Escluso: alla romana.** Dividere il residuo del tavolo in 1/N fra chi deve
+ancora pagare **non fa parte del prodotto**. Non è una funzione rimandata: è
+fuori dal modello, perché genererebbe una divisione in fase di pagamento.
 
 ## L'esperienza dopo il pagamento parziale (decisa)
 
@@ -62,9 +79,10 @@ schermata con
 - il **saldo rimasto** al tavolo,
 - **quali piatti** sono ancora scoperti,
 
-e può **selezionare quelli rimasti e pagarli** (per sé, per altri, o saldando
-tutto). → Nessuna illusione di aver liberato il tavolo; chi vuole può chiudere il
-resto.
+e può **prenderne in carico altri e pagarli** — piatti del tavolo, piatti altrui
+o quote singole — fino a saldare tutto. Nessuna illusione di aver liberato il
+tavolo; chi vuole può chiudere il resto. Quello che *non* può fare è ridividere:
+le quote restano quelle decise all'ordine.
 
 ## Note tecniche essenziali sul lock
 
@@ -82,13 +100,17 @@ resto.
 
 ## Scelta di scope (orientamento MVP)
 
-Il flusso del cameriere così com'è butta gli ordini sull'entità "Al tavolo" senza
-assegnare per commensale. La divisione per piatto richiede che l'utente, dall'app,
-selezioni le righe dal conto del tavolo. Su gruppi numerosi con piatti mescolati
-questo può essere confuso — da testare nell'esperienza reale. L'**assegnazione dei
-piatti al singolo commensale già in fase di ordine** (lato cameriere) resta
-un'eventuale evoluzione futura, non richiesta per far funzionare la divisione lato
-app.
+L'**assegnazione dei piatti al commensale in fase d'ordine** è **dentro l'MVP**
+per i canali cliente, app e webapp: è il livello di attribuzione descritto sopra,
+senza il quale il pagamento dovrebbe ricostruire a fine pasto chi ha preso cosa.
+Resta invece fuori scope l'assegnazione per commensale **dal lato cameriere**: il
+flusso staff continua a portare le righe sull'entità "Al tavolo", che i
+commensali si ripartiscono dall'app.
+
+Il numero di commensali su cui si divide è quello dei **presenti alla sessione**,
+qualunque sia la superficie da cui sono entrati, inclusi i guest webapp. È
+modificabile da app consumer, webapp guest, webapp cameriere e gestionale, con
+priorità allo staff.
 
 ---
 
@@ -107,24 +129,21 @@ quando la somma dei residui è 0.
 1. **`PaymentScreen`** (primo pagamento): paghi i tuoi piatti + le tue quote +
    eventuali piatti del tavolo aggiunti col "+" + piatti altrui che **offri**.
    La CTA a scorrimento («Scorri per pagare») alterna due modalità: **i miei**
-   (`mine`) e **paga tutto** (`all`, con popup di conferma esplicita). Una terza
-   modalità **alla romana** (`split`: 1/N del residuo del tavolo tra chi deve
-   ancora pagare) è nel codice ma **disattivata**: `cycleCtaMode` la salta
-   deliberatamente («niente "alla romana"»).
-   - Divisione disponibile **solo sui piatti presi dal tavolo** (popup "Dividi":
-     per te / parti uguali tra tutti / con alcuni commensali). I piatti offerti
-     agli altri si pagano per intero.
+   (`mine`) e **paga tutto** (`all`, con popup di conferma esplicita).
+   - ⚠️ **Da allineare**: il codice contiene ancora una terza modalità **alla
+     romana** (`split`), oggi solo saltata da `cycleCtaMode`, e il **popup
+     "Dividi"** che genera divisioni in fase di pagamento sui piatti del tavolo.
+     Entrambi vanno **rimossi**: l'alla romana è fuori dal prodotto, e la
+     divisione appartiene alla sola fase d'ordine, che il prototipo non copre
+     ancora.
    - Pagamento → caricamento ~5s → **sempre Successo** (che elenca chi deve
      ancora pagare); se resta un residuo, la Home mostra la card «Da saldare al
      tavolo» e «Salda il resto» riapre la `PaymentScreen`.
-2. **`BalanceScreen`** (saldo del tavolo): mostra **quanto manca** e i **piatti
-   ancora scoperti** (esclusi i tuoi, già saldati), col proprietario o "Al tavolo",
-   ed eventuale "diviso con". Selezioni le righe e fai un **secondo pagamento**
-   (per intero / diviso con qualcuno / per il numero di commensali) → caricamento
-   → torna al saldo aggiornato. Quando il saldo arriva a **0 → Successo**.
-   *(Nota di stato: la schermata esiste ancora, route `balance`, ma è **fuori dal
-   flusso principale** — oggi il residuo si salda ripassando dalla `PaymentScreen`
-   via «Salda il resto».)*
+2. ⚠️ **`BalanceScreen` — da rimuovere.** Seconda schermata di saldo del tavolo,
+   raggiungibile solo dall'hash `#balance` e da nessun bottone: duplica un flusso
+   vivo, perché il residuo si salda ripassando dalla `PaymentScreen` via «Salda il
+   resto». È un residuo di una versione precedente e va cancellata insieme alla
+   sua route.
 
 **Lock real-time** (`lockedLineIds`): le righe che un altro sta pagando in quel
 momento sono **congelate** — non offribili in `PaymentScreen`, non selezionabili e
@@ -149,18 +168,15 @@ pagamento**: un solo saldo, decrementato da entrambi i canali.
    nell'header.
 
 **Decisioni di prodotto da confermare**
-3. **"Per il tavolo" divide per TUTTI i commensali** (`tableCount =
-   order.guests.length`), non solo i loggati. Da confermare se la regola di
-   business è "solo chi ha l'app paga la sua quota".
-4. **Assunzione lock → saldo zero**: nella `BalanceScreen`, saldando tutto ciò su
+3. **Assunzione lock → saldo zero**: nella `BalanceScreen`, saldando tutto ciò su
    cui si può agire, i piatti lockati si considerano chiusi in parallelo e si va a
    Successo. Semplificazione del prototipo; nel reale il tavolo si libera solo a
    saldo davvero zero (esito effettivo dei pagamenti paralleli).
 
 **Delta verso produzione (Flutter/backend) — già descritti sopra / in
 [Contratto-Dati.md](Contratto-Dati.md)**
-5. Backend del saldo unico: `balance` real-time condiviso app+cassa, `lock` con
+4. Backend del saldo unico: `balance` real-time condiviso app+cassa, `lock` con
    `expiresAt`/auto-rilascio, scarto centesimi server-side, Stripe reale.
-6. **Ritorno guidato cross-app** (es. dopo "Aggiungi carta"): assente nel
+5. **Ritorno guidato cross-app** (es. dopo "Aggiungi carta"): assente nel
    prototipo, previsto nell'app Flutter (vedi
    [Architettura-Prototipo.md §9.1](Architettura-Prototipo.md)).
