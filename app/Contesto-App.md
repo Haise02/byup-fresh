@@ -177,14 +177,13 @@ dominio backend, vedi §E)
   [Architettura-Prototipo §3.1](Architettura-Prototipo.md)).
 - ✅ **Prenotazione tavolo** (slot orari), **solo se il locale l'ha abilitata**;
   **annullabile/modificabile**; solo posto, no pre-ordine (futuro). Vedi §G.3.
-- **GPS obbligatorio (requisito hard, solo app)**: serve sia al **gate densità**
-  della discovery sia al **geofence** di accesso al tavolo (§G.2). Senza
-  posizione l'app non funziona correttamente. **Il geofence è una leva dell'app,
-  non della webapp**: la webapp (canale anonimo, senza identità) **non** usa il
-  GPS come difesa — si protegge col **pagamento contestuale** e col **gate di
-  sessione** (vedi §G.8). Il GPS non è comunque pensato come anti-abuso
-  principale (è falsificabile): per l'app è una leva tra le altre, accanto a
-  identità, sessione e rate limiting.
+- **GPS (solo app, solo discovery)**: serve **unicamente** al **gate densità**
+  della discovery e al calcolo delle distanze, in foreground, senza storico di
+  posizioni. **Non è una condizione per ordinare**: col permesso negato l'app
+  resta usabile via QR/link, semplicemente senza discovery. **Non esiste alcun
+  geofence** sull'accesso al tavolo, su nessun canale: il GPS è falsificabile e
+  la difesa dagli abusi sta nel **gate di sessione**, nell'identità verificata
+  e nel rate limiting (vedi §G.8).
 - ✅ **Filtri di ricerca**: tipo dieta, distanza da te (GPS), valutazione minima,
   fascia oraria, prezzo → in produzione sono **parametri di query** lato backend
   (la ricerca non è solo client).
@@ -270,7 +269,7 @@ dominio backend, vedi §E)
   secondo chi paga. Vedi §G.4.
 
 > I **percorsi end-to-end** (al tavolo / asporto / prenotazione), il bivio
-> iniziale, il GPS obbligatorio e i problemi aperti sono in **§G**.
+> iniziale e i problemi aperti sono in **§G**.
 
 **Futuro (vedi §F)**
 - ◻️ **Shuffle** (proposta esplorativa) e ◻️ **Salva-Euro** (combo/promo).
@@ -292,7 +291,7 @@ gestionale) quando si passa a Flutter.
 | **★ TOP** | flag `bestSeller` statico | **Statistiche d'ordine aggregate** per locale |
 | **✨ Per te** | calcolo client da filtri (Architettura-Prototipo §10) | **Personalizzazione** lato backend (storico, gusti). **Gate: ≥3 ordini** prima di mostrarla (§D) |
 | **Sessione tavolo / ospiti / split / pagato** | `activeOrder` demo (Architettura-Prototipo §9) | **Saldo del tavolo real-time** (fonte di verità unica app+cassa) + **lock** sulle righe in pagamento; tavolo libero **solo a saldo zero**; ciclo di vita/scadenza sessione (§G.5, §G.6) |
-| **Join al tavolo + geofence** | nessun controllo | **App**: QR/codice → join **solo se GPS nei pressi** del locale, altrimenti blocco (§G.2). **Webapp**: nessun geofence, difesa via pagamento contestuale + gate di sessione (§G.8) |
+| **Join al tavolo** | nessun controllo | Nessun vincolo di posizione, su nessun canale: QR/link/codice risolvono alla sessione. Difesa via **gate di sessione** + rate limiting, e **pagamento contestuale** sul canale anonimo (§G.8) |
 | **Stati del tavolo** | — | Dominio **Byup Fresh** / webapp cameriere: Occupato/Libero/Prenotato/**Da pulire**; sessione app chiude al passaggio a "Da pulire" (§G.5) |
 | **Asporto: cucina/ritiro** | `takeawayOrder` demo, `pickupTime` finto | **App-only** (webapp → redirect al download, §G.4); slot ritiro dal backend; **invio in cucina** condizionato al pagamento in app; **codice di ritiro** verbale (§G.4) |
 | **Riconciliazione ordine webapp→app** | — | Ordine `orfano` + **codice ordine** breve; **Android**: Install Referrer (auto, no banner); **iOS/fallback**: codice manuale via banner; telefono verificato = unicità account (§G.7) |
@@ -407,22 +406,20 @@ bivio arriva dopo. Questa sezione è la mappa dei percorsi e — importante — 
   più chiesto all'ingresso — lo saltavano tutti: arriva da `order.covers` e si
   gestisce/corregge dalla sheet commensali "Al tavolo"; vedi
   Architettura-Prototipo §9.)*
-- **Modi per unirsi a un tavolo** (tutti risolvono allo **stesso ID tavolo**;
-  per l'**app** tutti **gated dal geofence**, per la **webapp** no — vedi §G.8):
+- **Modi per unirsi a un tavolo** (tutti risolvono allo **stesso ID tavolo**,
+  senza alcun vincolo di posizione — vedi §G.8):
   1. **Scan QR** — primario, copre l'happy path.
   2. **Link condiviso** — frictionless per invitare chi è già seduto (deep link,
      niente da digitare).
   3. **Codice numerico manuale** — 🟠 **da decidere** (raccomandato come
      *fallback*): per fotocamera negata/rotta, QR rovinato/mancante, o codice
-     **condiviso a voce/in chat** (per consumarlo lo digiti). Sull'app non
-     indebolirebbe la sicurezza perché **il geofence vale comunque**. Vedi §G.9.
-- **GPS + geofence (solo app)**: per entrare in una sessione tavolo **dall'app**
-  devi risultare **nei pressi del locale**. Se la posizione è incoerente → popup
-  *"Ci dispiace, non risulti nei pressi del locale in cui vuoi ordinare dal
-  tavolo."* Serve a impedire che un utente app si agganci al tavolo **a distanza**
-  (es. link condiviso a chi non è lì). Il geofence **non** è la difesa principale
-  contro gli abusi (è falsificabile, §G.8): per la **webapp** non si applica, lì
-  la barriera è il **pagamento contestuale + gate di sessione**.
+     **condiviso a voce/in chat** (per consumarlo lo digiti). Vedi §G.9.
+- **Nessun geofence (DECISO)**: l'ingresso in sessione **non** verifica la
+  posizione, né dall'app né dalla webapp. Il GPS è falsificabile e il vero
+  rischio è il falso negativo: bloccare un cliente seduto al tavolo. La difesa
+  dagli agganci a distanza sta nel backend: **gate di sessione** (si ordina solo
+  in una sessione aperta in quel momento), identità verificata via telefono
+  lato app, **pagamento contestuale** sul canale anonimo, rate limiting (§G.8).
 - **Riconciliazione / recupero ordine webapp → app**: la webapp **non chiede
   registrazione**; l'ordine nasce **orfano** lato server con un **codice ordine**
   breve. Al primo avvio l'app lo riaggancia all'account — **automatico su
@@ -493,9 +490,8 @@ non meccanismo primario).
   **finestra di inattività** (nessun nuovo item / nessun pagamento per N ore).
   L'auto-chiusura **non** tocca lo stato del tavolo: smette solo di accettare
   azioni dall'app (join/ordine/pagamento), così una sessione dimenticata non
-  resta **pagabile in eterno**. Il geofence limita già chi si aggancia da
-  lontano, ma **non** chiude una sessione lasciata aperta a chi è *ancora lì*:
-  per questo serve il backstop.
+  resta **pagabile in eterno**: senza vincoli di posizione al join, il backstop
+  è l'unica rete contro il tavolo aperto e dimenticato.
 - **Identità della sessione = (tavolo fisico × evento di apertura)**. Il QR sul
   tavolo è **statico**: "scan QR" = *entra nella sessione APERTA del tavolo,
   oppure creane una nuova*. Un nuovo gruppo che scansiona **dopo** la chiusura
@@ -503,11 +499,10 @@ non meccanismo primario).
 - **Edge gestito dallo staff**: se un tavolo in stato **"Da pulire" viene
   occupato**, al cameriere compare un **alert** (così non si serve un tavolo non
   ancora pronto / non si eredita la sessione vecchia).
-- **Accesso (join), non timer**: **dall'app** ci si aggancia **solo se il GPS è
-  coerente** con la posizione del locale (geofence, §G.2); per **tutti** i canali
-  vale il **gate di sessione** (§G.8). Per la **chiusura** è primario lo staff,
-  col **backstop** non aggressivo qui sopra; niente auto-timeout aggressivi *sul
-  join*.
+- **Accesso (join), non timer**: per **tutti** i canali l'unico requisito è il
+  **gate di sessione** (§G.8) — nessun controllo di posizione. Per la
+  **chiusura** è primario lo staff, col **backstop** non aggressivo qui sopra;
+  niente auto-timeout aggressivi *sul join*.
 - **Ordini non pagati alla chiusura (insoluti)**: **non** spariscono — alla
   chiusura (staff **o** backstop) le righe non saldate passano alla **sezione
   insoluti** di **Byup Fresh** con owner/canale. **Chi e quando li chiude**: il
@@ -573,12 +568,13 @@ appena installata per pagarlo lì (→ peso transazione **0,5**, §C). Strategia
 > solo la sintesi.
 >
 > **Stato: discussione in corso, decisioni non ancora prese.** *(Eccezione già
-> decisa: il geofence vale per l'**app** e **non** per la webapp — §D, §G.2.)*
+> decisa: **nessun geofence** sull'accesso al tavolo, su nessun canale — §D,
+> §G.2.)*
 
 - **Due attacchi**: volumetrico da remoto (ordini all'infinito) e ordine
   **civetta** (singolo piatto malizioso, poi sparizione).
-- **GPS scartato come anti-abuso** (falsificabile, fa scappare l'onesto): resta
-  una leva dell'app, non la difesa principale, e non per la webapp.
+- **GPS scartato come anti-abuso** (falsificabile, fa scappare l'onesto): nessun
+  vincolo di posizione su alcun canale; il GPS resta solo un dato di discovery.
 - **Principio**: il **QR è un puntatore, non una chiave**; ordinare richiede una
   **sessione tavolo valida**; si alza il **costo di reiterare** oltre il danno.
 - **Difese trasversali**: gate di sessione, rate limiting (sessione/IP/account),
