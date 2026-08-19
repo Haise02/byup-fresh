@@ -101,8 +101,12 @@ In breve: **pagamento e discovery sono esclusive dell'app**; nel menu l'app ha
 **byup NON guadagna sull'app né sulla webapp.** Il ricavo è sull'**abbonamento al
 gestionale Byup Fresh**, a consumo di **ordini/transazioni**.
 
-Conteggio transazioni (chiave del modello): il peso dipende **solo da dove
-avviene il pagamento**, **non** dal canale che ha originato l'ordine.
+Conteggio transazioni (chiave del modello): l'unità è il conto saldato, col
+peso della superficie su cui si salda. L'origine dà solo un peso provvisorio
+(app 0,5, il resto 1,0), che il saldo sovrascrive. Per gruppo di saldo vale la
+regola del maggiore: unità fatturate = max(ordini inviati; transazioni
+saldate). Un ordine mai saldato resta al peso d'origine; uno annullato esce dal
+conteggio. Regola completa nella Scheda del Database e nell'SFA.
 
 | Dove avviene il pagamento | Vale | Perché |
 |---------------------------|:----:|--------|
@@ -255,7 +259,7 @@ dominio backend, vedi §E)
 - ✅ Modalità **paga i miei** vs **paga tutto il tavolo**.
 - L'app deve **segnalare al backend** che il pagamento è avvenuto **da app**
   (peso transazione 0,5 — vedi §C/§E).
-- 🧪 **Mancia** (in prototipo, da validare come feature): percentuale (5/10%)
+- ✅ **Mancia** (confermata; liberalità fuori campo IVA, esclusa dal documento fiscale — regime in SFA): percentuale (5/10%)
   oppure ✅ **"Arrotonda"** — porta il totale alla cifra tonda in euro successiva
   e la differenza diventa mancia (anche solo 0,50 €: meglio di niente). Le due
   modalità sono mutuamente esclusive (Architettura-Prototipo §9 / `tipPct`, `tipRound` in
@@ -282,7 +286,7 @@ gestionale) quando si passa a Flutter.
 
 | Dominio | Nel prototipo (finto) | In produzione (backend/gestionale) |
 |---------|----------------------|-----------------------------------|
-| **Auth** | `localStorage.byup_auth` (vedi Architettura-Prototipo §6) | Vero auth, **identità account = numero di telefono** (OTP/biometria), social, sessioni/token |
+| **Auth** | `localStorage.byup_auth` (vedi Architettura-Prototipo §6) | Vero auth: email + password (email non verificata) oppure Google/Apple; telefono verificato una tantum via OTP in entrambi i flussi (univoco, richiesto per ordinare/pagare), sblocco biometrico locale, sessioni/token |
 | **Dati locale + vetrina** | `EXPLORE_VENUES` hardcoded / prop `venue` | Anagrafica locale **+ stile vetrina scelto nel gestionale** (Architettura-Prototipo §3.1) |
 | **Menu** | `ALL_DISHES` hardcoded in [menu.jsx](menu.jsx) | Menu per locale: piatti, prezzi, categorie, varianti, extra, allergeni, macro |
 | **★ TOP** | flag `bestSeller` statico | **Statistiche d'ordine aggregate** per locale |
@@ -291,7 +295,7 @@ gestionale) quando si passa a Flutter.
 | **Join al tavolo + geofence** | nessun controllo | **App**: QR/codice → join **solo se GPS nei pressi** del locale, altrimenti blocco (§G.2). **Webapp**: nessun geofence, difesa via pagamento contestuale + gate di sessione (§G.8) |
 | **Stati del tavolo** | — | Dominio **Byup Fresh** / webapp cameriere: Occupato/Libero/Prenotato/**Da pulire**; sessione app chiude al passaggio a "Da pulire" (§G.5) |
 | **Asporto: cucina/ritiro** | `takeawayOrder` demo, `pickupTime` finto | **App-only** (webapp → redirect al download, §G.4); slot ritiro dal backend; **invio in cucina** condizionato al pagamento in app; **codice di ritiro** verbale (§G.4) |
-| **Riconciliazione ordine webapp→app** | — | Ordine `orfano` + **codice ordine** breve; **Android**: Install Referrer (auto, no banner); **iOS/fallback**: codice manuale via banner; identità account = telefono (§G.7) |
+| **Riconciliazione ordine webapp→app** | — | Ordine `orfano` + **codice ordine** breve; **Android**: Install Referrer (auto, no banner); **iOS/fallback**: codice manuale via banner; telefono verificato = unicità account (§G.7) |
 | **Storico ordini / scontrino** | `PROFILE_ORDERS` demo, scollegato dal pagamento | A pagamento riuscito l'ordine viene **persistito** nello storico utente; "Vedi scontrino" punta a **quell'id** (vedi dinamica sotto) |
 | **Pagamenti** | finti (icone Klarna/PayPal/Apple Pay) | **Stripe** (`flutter_stripe`): PaymentSheet, Apple/Google Pay, carte; SCA/3DS gestito. Solo app (§B) |
 | **Coperti** | costante `COVER = 2€` | Config del locale |
@@ -423,9 +427,10 @@ bivio arriva dopo. Questa sezione è la mappa dei percorsi e — importante — 
   registrazione**; l'ordine nasce **orfano** lato server con un **codice ordine**
   breve. Al primo avvio l'app lo riaggancia all'account — **automatico su
   Android** (Install Referrer) o via **codice manuale** (iOS / fallback). Il
-  meccanismo completo è in **§G.7**. L'**identità dell'account app resta il numero
-  di telefono** (login OTP/biometria), che serve anche da notifica tempestiva
-  (es. "asporto pronto, codice X").
+  meccanismo completo è in **§G.7**. L'identità dell'account è email + password
+  (o Google/Apple); il telefono, verificato una tantum, garantisce l'unicità
+  dell'account e serve anche da notifica tempestiva (es. "asporto pronto,
+  codice X").
 
 ### G.3 Prenotazione
 
@@ -554,8 +559,8 @@ appena installata per pagarlo lì (→ peso transazione **0,5**, §C). Strategia
 - **Codice errato/scaduto** → **riga d'errore rossa** nel popup (*"Codice riscatto
   ordine errato"*, scaduto, già recuperato); il popup resta aperto. Dettaglio UX +
   nota anti-brute-force in [Recupero-Ordine.md](Recupero-Ordine.md) §3.bis.
-- **Codice perso** → **pagamento in cassa**. **Identità account = telefono**; il
-  codice/referrer è solo il matching dell'ordine.
+- **Codice perso** → **pagamento in cassa**. Il telefono verificato garantisce
+  l'unicità dell'account; il codice/referrer è solo il matching dell'ordine.
 - **Roadmap**: deferred deep linking (Branch/AppsFlyer/…) per togliere la
   digitazione anche su iOS — fuori MVP.
 - 🧪 **Prototipo**: realizzato il **percorso iOS** (banner+popup+incolla+caricamento
