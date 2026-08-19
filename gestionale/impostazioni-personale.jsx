@@ -63,7 +63,7 @@ const DEVICE_TYPES = [
   },
 ];
 
-// Stampanti scoperte sulla rete via ePOS SDK
+// Stampanti raggiunte dal browser sulla rete locale (nessun SDK proprietario)
 const AVAILABLE_PRINTERS = [
   { id: 'printer-epson-1',  model: 'Epson TM-T20III',   ip: '192.168.1.101' },
   { id: 'printer-cube-1',   model: 'Cube Custom 12',     ip: '192.168.1.102' },
