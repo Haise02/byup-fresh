@@ -44,7 +44,7 @@ Guest = { id, name, initial, kind }   // kind: isMe | isApp | isWebApp | isGuest
 Item  = {                             // riga del conto
   lineId, dishId, name, qty, price,
   ownerId,                            // guestId | 'table' (piatto "al tavolo")
-  split: { kind, people[] },          // kind: 'me'|'diviso'|'tavolo'; people: [guestId]
+  split: { kind, people[] },          // kind: 'me'|'people'|'tavolo'; people: [guestId]
   claimedBy,                          // guestId che ha preso in carico un item 'table'
   paidBy: [ { guestId, amount } ]     // quote già pagate (da app/cassa) → real-time
 }
@@ -80,7 +80,7 @@ Item  = {                             // riga del conto
 ### 3.3 Divisione del conto (REAL-TIME) — pagamento escluso
 | Comando | Endpoint | Payload | Effetto |
 |---|---|---|---|
-| `updateSplit({ sessionId, lineId, split })` | `PATCH /sessions/:id/items/:lineId/split` | `split:{ kind:'me'\|'diviso'\|'tavolo', people:[guestId] }` | Il server ricalcola le quote e fa **broadcast** agli altri partecipanti. |
+| `updateSplit({ sessionId, lineId, split })` | `PATCH /sessions/:id/items/:lineId/split` | `split:{ kind:'me'\|'people'\|'tavolo', people:[guestId] }` — `lineId` è per **unità** (`lineId-0`, `lineId-1`, …) | Il server ricalcola le quote e fa **broadcast** agli altri partecipanti. |
 | `claimItem({ sessionId, lineId, guestId })` | `POST .../items/:lineId/claim` | — | Un piatto `ownerId:'table'` viene preso in carico da un ospite. |
 | `offerItem({ sessionId, lineId, toGuestId })` | `POST .../items/:lineId/offer` | — | Un ospite si accolla la quota di un altro ("offri"). |
 | `addGuest({ sessionId, guest })` | `POST .../guests` | `guest:{ name, kind }` | |
@@ -109,7 +109,7 @@ Item  = {                             // riga del conto
 | Azione utente nella webapp | Componente (`menu.jsx`) | Comando `ByupAPI` |
 |---|---|---|
 | Invia i piatti del carrello | `MenuScreen.handleSubmit` | `addItems` |
-| Imposta la divisione di una riga | `SplitScreen.save` | `updateSplit` |
+| Imposta la divisione di una porzione | swipe su `SwipeDishRow` / conferma in `SplitPickSheet` | `updateSplit` |
 | (montaggio home/menu con ordine) | `Root` useEffect | `subscribe` (real-time) |
 | "Paga ora" / "Scarica l'app" | `OrderRecoverySheet` | recupero via codice — oggi generato in locale (`genRecoveryCode`, 6 cifre); a regime `requestOrderCode` lato server — **non** `pay` |
 | Aggiungi/rimuovi commensale | `GuestsSheet` (helper) | `addGuest` / `removeGuest` *(da agganciare quando il backend è pronto)* |

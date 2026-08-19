@@ -60,9 +60,11 @@
     // lines: [{ dishId, qty, variants{}, extras{ extraId:qty }, removed{ ingr:true } }]
     addItems: function (payload) { return ok(); },
 
-    // DIVISIONE real-time di una riga del conto.
+    // DIVISIONE real-time di una PORZIONE del carrello: `lineId` è per unità
+    // (`lineId-0`, `lineId-1`, …), perché due Carbonare possono andare in due
+    // posti diversi.
     // TODO backend: PATCH /sessions/:id/items/:lineId/split { kind, people[] }
-    //  kind: 'me' | 'diviso' | 'tavolo' ; people: [guestId] (solo per 'diviso').
+    //  kind: 'me' | 'people' | 'tavolo' ; people: [guestId] (solo per 'people').
     //  Il server ricalcola le quote e fa broadcast agli altri partecipanti.
     updateSplit: function (payload) { return ok(); },
 

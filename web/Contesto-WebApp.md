@@ -277,7 +277,7 @@ una logica che la webapp deve calcolare: il **conteggio è dominio di Byup Fresh
   | File | Ruolo reale |
   |------|-------------|
   | `api.jsx` | **Layer backend** (`window.ByupAPI`): unico punto d'integrazione, oggi **mock**. Comandi inbound/outbound + real-time `subscribe` + `pay()` bloccata. Contratto: `byup-contratto-backend-webapp.md`. |
-  | `menu.jsx` | **Cuore della webapp.** `Root` (router + sottoscrizione real-time), `MenuScreen`, `OrderSheet`, `SplitScreen`, `DishDetailScreen`, `HomeScreen`, `OrderRecoverySheet`, l'**App-only gate**, `TakeawayRedirect` (schermata "scarica l'app" per il QR asporto). |
+  | `menu.jsx` | **Cuore della webapp.** `Root` (router + sottoscrizione real-time), `MenuScreen`, `OrderSheet` (con `SwipeDishRow` e `SplitPickSheet` per la divisione), `DishDetailScreen`, `HomeScreen`, `OrderRecoverySheet`, l'**App-only gate**, `TakeawayRedirect` (schermata "scarica l'app" per il QR asporto). |
   | `venue.jsx` | **Vetrina locale** (`window.VenueScreen`): foto, info, FAQ, promo, award, social, mappa "Dove siamo". |
   | `dish-art.jsx` | Illustrazioni SVG dei piatti (`DishArt`). |
   | `index.html` | Bootstrap (carica `api.jsx` → `dish-art.jsx` → `venue.jsx` → `menu.jsx`) + **gate tablet** e **mockup iPhone da desktop** (§8.7). |
@@ -290,7 +290,6 @@ Routing **a hash** (`#menu`, `#venue`, `#home`) + stato interno. Schermate:
 - `menu` → **`MenuScreen`** (schermata principale)
 - `venue` → **`VenueScreen`** (vetrina)
 - `dish` → **`DishDetailScreen`** (dettaglio piatto)
-- `split` → **`SplitScreen`** (conto diviso)
 - `home` → **`HomeScreen`** (card ordine attivo)
 
 ### 8.3 Il pattern chiave: **App-only gate**
@@ -328,13 +327,18 @@ non più da un toggle in-app (il vecchio `DevModeSwitcher` è stato rimosso).
   filtro/ordinamento per dieta o allergeni è stata **rimossa** (era dead code —
   lo sheet non era raggiungibile, quindi lo stato dei filtri non cambiava mai).
   Gli allergeni restano visibili solo come "dots" informativi sul piatto (vedi sotto).
-- **Carrello bottom-sheet** (`OrderSheet`) collapsed/expanded, con vista
-  secondaria **Divisione** (toggle "Dividi piatti tra i commensali",
-  stato `sheetTab` `piatti|divisione`). Si apre e si chiude **trascinando** la
-  fascia (soglia in px, non un tap sull'intera area); il **tap** resta solo
-  sulla lineetta. Lo swipe sulla riga divide **un piatto per volta**, non tutta
-  la riga. Stesso comportamento nell'app consumer — le due superfici condividono
-  la regola, non il codice (agosto 2026).
+- **Carrello bottom-sheet** (`OrderSheet`) collapsed/expanded. Si apre e si
+  chiude **trascinando** la fascia (soglia in px, non un tap sull'intera area);
+  il **tap** resta solo sulla lineetta. **La divisione vive nelle righe del
+  carrello**, identica all'app consumer (agosto 2026, porting da `app/menu.jsx`):
+  swipe **→** manda **una porzione** al tavolo intero, swipe **←** apre il popup
+  **"Con chi dividi?"** (`SplitPickSheet`, selezione commensali con quota a
+  testa); swipe ripetuto nello stesso verso = annulla (col tavolo subito, con
+  una divisione fra persone chiede conferma); la pillola `🍽 Tavolo` / `⑂ N
+  pers.` con **×** riporta tutto il gruppo a "per me". Le righe si raggruppano
+  per destinazione (`gruppiRiga`) e una riga spezzata mostra solo `×qty` al
+  posto del +/-. Le due superfici condividono la regola **e** ora anche la
+  meccanica, non il codice.
 - **Termini e Privacy**: link in fondo alla vetrina (`venue.jsx`) verso
   `byup.it/termini` e la privacy policy. Piccoli e quieti di proposito, ma
   devono esserci.
@@ -347,9 +351,11 @@ non più da un toggle in-app (il vecchio `DevModeSwitcher` è stato rimosso).
   stato interno).
 - **"Al tavolo"**: sheet con lista commensali (`isMe/isApp/isWebApp/isGuest`) + link
   di condivisione.
-- **Conto diviso** (`SplitScreen`): modalità `me · diviso · tavolo` (selezione di
-  chi divide). Il **pagamento** della propria parte porta poi al **recupero ordine
-  in app** (`OrderRecoverySheet`, §8.6), non a un incasso web.
+- **Conto diviso**: nessuna schermata dedicata — la vecchia `SplitScreen` (modalità
+  `me · diviso · tavolo`, route `split`) è stata **rimossa** con l'allineamento
+  all'app: la divisione si fa con lo swipe sulle righe del carrello (vedi sopra).
+  Il **pagamento** della propria parte porta poi al **recupero ordine in app**
+  (`OrderRecoverySheet`, §8.6), non a un incasso web.
 
 ### 8.6 Ordine attivo (`HomeScreen`)
 
@@ -407,7 +413,7 @@ trattare l'una o l'altra come legge:
 | **Asporto** | NO per la webapp → redirect download (§2.2/§4.4) | ✅ **Allineato**: `?takeaway=1` → `TakeawayRedirect` (CTA "Scarica l'app"), nessuna ordinazione |
 | **Geofence / GPS** | scartato (§4.1) | ✅ **Allineato**: rimosso ogni traccia da `menu.jsx`/`simulator.html`/`index.html` |
 | **Coperti** | solo app | **Presenti** (prompt coperti al tavolo) |
-| **Conto diviso** | solo app | **Presente** in UI (`SplitScreen`); solo il *pagamento* è gated |
+| **Conto diviso** | solo app | **Presente** in UI (swipe sulle righe del carrello + `SplitPickSheet`, identico all'app); solo il *pagamento* è gated |
 | **Vetrina/discovery** | solo app | **Vetrina locale presente** (`VenueScreen` con mappa); prenota/mappa/profilo gated |
 | **Pagamento** | non esiste sul web | **UI "Paga ora" presente ma non incassa**: apre il recupero ordine in app (coerente con "si paga in cassa/app") |
 | **Recupero ordine webapp→app** (§4.3, `spec-tecnica`) | codice ordine + install referrer + banner | ⚠️ **Parziale (lato webapp)**: `OrderRecoverySheet` in `menu.jsx` mostra il **codice ordine** copiabile e la schermata differenziata iOS/Android (override DEV `?os=ios\|android`). Mancano i pezzi backend/app: generazione server del codice, **Install Referrer** Android e **banner** all'apertura dell'app |

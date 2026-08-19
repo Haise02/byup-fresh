@@ -456,7 +456,7 @@ function MenuScreen({ state, setState, goTo }) {
   })();
   const [searchQ, setSearchQ] = useState('');
   const [sheetMode, setSheetMode] = useState('collapsed'); // 'collapsed' | 'expanded'
-  const [sheetTab, setSheetTab] = useState('piatti'); // 'piatti' | 'divisione'
+  const [splitPickItem, setSplitPickItem] = useState(null); // piatto per il popup "con chi dividi?" (swipe ←)
   const [confirm, setConfirm] = useState(false);
   // Prompt coperti: appare al primo ingresso al tavolo (non da Vetrina), una sola volta
   const [copertiSheetOpen, setCopertiSheetOpen] = useState(false);
@@ -508,9 +508,20 @@ function MenuScreen({ state, setState, goTo }) {
     if (existing) return { ...s, cart: s.cart.map(i => i.lineId === existing.lineId ? { ...i, qty: i.qty + 1 } : i) };
     return { ...s, cart: [...s.cart, { lineId: id + '-' + Date.now(), dishId: id, qty: 1, variants: {}, extras: {}, removed: {} }] };
   }); };
-  const setQty = (lineId, q) => setState(s => ({
-    ...s, cart: q <= 0 ? s.cart.filter(i => i.lineId !== lineId) : s.cart.map(i => i.lineId === lineId ? { ...i, qty: q } : i),
-  }));
+  // Le divisioni sono per unità (`lineId-0`, `lineId-1`, …): calando la
+  // quantità le chiavi delle unità sparite vanno buttate, o resterebbero
+  // appese e tornerebbero a galla riportando su la quantità.
+  const setQty = (lineId, q) => setState(s => {
+    const splits = { ...(s.splits || {}) };
+    Object.keys(splits).forEach(k => {
+      const i = k.lastIndexOf('-');
+      if (k.slice(0, i) === lineId && Number(k.slice(i + 1)) >= Math.max(0, q)) delete splits[k];
+    });
+    return {
+      ...s, splits,
+      cart: q <= 0 ? s.cart.filter(i => i.lineId !== lineId) : s.cart.map(i => i.lineId === lineId ? { ...i, qty: q } : i),
+    };
+  });
   const clearCart = () => setState(s => ({ ...s, cart: [] }));
 
   const handleSubmit = () => {
@@ -819,11 +830,42 @@ function MenuScreen({ state, setState, goTo }) {
         state={state} setState={setState}
         cartCount={cartCount} cartTotal={cartTotal}
         mode={sheetMode} setMode={setSheetMode}
-        sheetTab={sheetTab} setSheetTab={setSheetTab}
         dishes={dishes} setQty={setQty} clearCart={clearCart}
         onSubmit={handleSubmit}
         goTo={goTo}
+        onPickSplit={setSplitPickItem}
       />
+
+      {/* Popup "con chi dividi?" — aperto dallo swipe ← su un piatto del carrello */}
+      {splitPickItem && (
+        <SplitPickSheet
+          item={splitPickItem}
+          participants={state.participants || [
+            { id: 'me', name: 'Tu', initials: 'T', isMe: true },
+            { id: 'p1', name: 'Marco', initials: 'M' },
+            { id: 'p2', name: 'Margherita', initials: 'Mg' },
+            { id: 'p3', name: 'Roberto', initials: 'R' },
+          ]}
+          onConfirm={(ids) => {
+            const g = splitPickItem;
+            const split = { kind: 'people', people: ids };
+            setState(st => {
+              const splits = { ...(st.splits || {}) };
+              // Una unità, come lo swipe verso il tavolo.
+              splits[`${g.lineId}-${g.indici[0]}`] = split;
+              return { ...st, splits };
+            });
+            // Update ottimistico locale + invio al backend (oggi mock): col
+            // backend reale il broadcast di sessione aggiorna gli altri.
+            window.ByupAPI && window.ByupAPI.updateSplit({
+              sessionId: state.activeOrder && state.activeOrder.id,
+              lineId: `${g.lineId}-${g.indici[0]}`,
+              split,
+            });
+            setSplitPickItem(null);
+          }}
+          onClose={() => setSplitPickItem(null)}/>
+      )}
 
       {/* Confirm overlay */}
       {confirm && (
@@ -972,7 +1014,288 @@ function useTrascinaFoglio(mode, setMode) {
 }
 
 // ─── Order bottom sheet (collapsed/expanded) ───────────────
-function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, sheetTab, setSheetTab, dishes, setQty, clearCart, onSubmit, goTo }) {
+// ─── Riga piatto con swipe stile chat (stessa regola dell'app consumer) ─────
+// → destra: il piatto si divide con TUTTO il tavolo
+// ← sinistra: apre il popup "con chi dividi?"
+// La riga molleggia al rilascio; oltre soglia scatta l'azione con flash.
+function SwipeDishRow({ it, split, onTable, onPick, onUndoUno, onReset, onOpenDish, setQty }) {
+  const [dx, setDx] = useState(0);
+  const [drag, setDrag] = useState(false);
+  const [flash, setFlash] = useState(null); // 'table' | 'pick'
+  const [askUndo, setAskUndo] = useState(false);   // conferma: togliere la divisione fra persone
+  const start = useRef(0);
+  const active = useRef(false);
+  const moved = useRef(false);
+  const TH = 78;
+  const onDown = (e) => {
+    active.current = true; moved.current = false;
+    start.current = e.clientX; setDrag(true);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+  };
+  const onMove = (e) => {
+    if (!active.current) return;
+    let d = e.clientX - start.current;
+    if (Math.abs(d) > 6) moved.current = true;
+    // resistenza oltre soglia, stile elastico
+    if (Math.abs(d) > TH) d = Math.sign(d) * (TH + (Math.abs(d) - TH) * 0.35);
+    setDx(d);
+  };
+  const onUp = () => {
+    if (!active.current) return;
+    active.current = false; setDrag(false);
+    setDx(cur => {
+      // Swipe ripetuto nel verso gia' applicato = disfare, non rifare.
+      // Col tavolo si annulla subito (nessun dato da perdere); con una
+      // divisione fra persone si chiede conferma, perche' si perde la scelta
+      // di chi paga cosa.
+      const giaTavolo   = split && split.kind === 'tavolo';
+      const giaDiviso   = split && split.kind && split.kind !== 'tavolo' && split.kind !== 'me';
+      if (cur > TH * 0.92) {
+        try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch {}
+        // Anche il ritorno è una unità per volta, come l'andata.
+        if (giaTavolo) { setTimeout(onUndoUno, 120); return 0; }
+        setFlash('table'); setTimeout(() => setFlash(null), 520);
+        setTimeout(onTable, 120);
+      } else if (cur < -TH * 0.92) {
+        try { window.ByupKit && window.ByupKit.haptic && window.ByupKit.haptic.light(); } catch {}
+        if (giaDiviso) { setAskUndo(true); return 0; }
+        setTimeout(onPick, 140);
+      }
+      return 0;
+    });
+  };
+  const prog = Math.min(1, Math.abs(dx) / TH);
+  const splitChip = split && split.kind !== 'me'
+    ? (split.kind === 'tavolo' ? '🍽 Tavolo' : `⑂ ${(split.people?.length || 0) + 1} pers.`)
+    : null;
+  return (
+    <div style={{ position: 'relative', borderRadius: 12, overflow: askUndo ? 'visible' : 'hidden', touchAction: 'pan-y' }}>
+      {/* Conferma "togli la divisione": copre la riga stessa, cosi' si vede
+          subito di quale piatto si parla. */}
+      {askUndo && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 4,
+          background: 'rgba(255,255,255,0.97)', borderRadius: 12,
+          border: `1px solid ${BORDER}`,
+          display: 'flex', alignItems: 'center', gap: 8, padding: '0 10px',
+        }}>
+          <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: TEXT, lineHeight: 1.3 }}>
+            Togliere la divisione?
+          </span>
+          <button onClick={() => { setAskUndo(false); onUndoUno && onUndoUno(); }} style={{
+            padding: '6px 12px', borderRadius: 999, border: 'none',
+            background: WINE, color: '#fff', fontSize: 12.5, fontWeight: 800,
+            fontFamily: 'inherit', cursor: 'pointer',
+          }}>Togli</button>
+          <button onClick={() => setAskUndo(false)} style={{
+            padding: '6px 10px', borderRadius: 999, border: `1px solid ${BORDER}`,
+            background: '#fff', color: MUTED, fontSize: 12.5, fontWeight: 700,
+            fontFamily: 'inherit', cursor: 'pointer',
+          }}>Annulla</button>
+        </div>
+      )}
+      {/* fondo azione destra (swipe →): tutto il tavolo */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+        justifyContent: 'flex-start', paddingLeft: 16, borderRadius: 12,
+        background: 'linear-gradient(90deg, #7fb800, #a4d400)',
+        opacity: dx > 0 ? Math.min(1, prog + .25) : 0, transition: drag ? 'none' : 'opacity .3s' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1c2500', fontWeight: 800,
+          fontSize: 12.5, transform: `scale(${0.8 + prog * 0.25})`, transformOrigin: 'left center',
+          transition: drag ? 'none' : 'transform .3s' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1c2500" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 7h18M5 7v12h14V7M9 11v4M15 11v4"/>
+          </svg>
+          Tutto il tavolo
+        </div>
+      </div>
+      {/* fondo azione sinistra (swipe ←): dividi con… */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+        justifyContent: 'flex-end', paddingRight: 16, borderRadius: 12,
+        background: 'linear-gradient(270deg, #E32459, #B81C47)',
+        opacity: dx < 0 ? Math.min(1, prog + .25) : 0, transition: drag ? 'none' : 'opacity .3s' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fff', fontWeight: 800,
+          fontSize: 12.5, transform: `scale(${0.8 + prog * 0.25})`, transformOrigin: 'right center',
+          transition: drag ? 'none' : 'transform .3s' }}>
+          Dividi con…
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+      </div>
+      {/* riga in primo piano */}
+      <div
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        style={{
+          position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+          background: flash === 'table' ? '#eaf7cf' : BG_GRAY, borderRadius: 12, padding: '10px 12px',
+          transform: `translateX(${dx}px)`,
+          transition: drag ? 'none' : 'transform .5s cubic-bezier(.2,1.5,.35,1), background .35s',
+          cursor: 'grab',
+        }}>
+        <div onClick={() => { if (!moved.current) onOpenDish(); }} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</div>
+            {splitChip && (
+              <button onClick={(e) => { e.stopPropagation(); onReset(); }} title="Torna a 'per me'" style={{
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                fontSize: 10.5, fontWeight: 800, color: split.kind === 'tavolo' ? '#3d5200' : '#fff',
+                background: split.kind === 'tavolo' ? '#d9f29b' : WINE,
+                padding: '3px 8px', borderRadius: 999,
+              }}>{splitChip} ×</button>
+            )}
+          </div>
+          {it.summary && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+              {it.summary.split(', ').map((tag, i) => (
+                <span key={i} style={{
+                  fontSize: 11, fontWeight: 600, color: WINE,
+                  background: '#f5eef2', padding: '2px 7px', borderRadius: 999,
+                }}>{tag}</span>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 12.5, color: WINE, fontWeight: 700, marginTop: 5 }}>{it.unitPrice.toFixed(2)}€</div>
+        </div>
+        {it.frazionata ? (
+          <span style={{
+            fontSize: 13, fontWeight: 800, color: MUTED, flexShrink: 0,
+            background: '#fff', borderRadius: 999, padding: '5px 11px',
+          }}>×{it.qty}</span>
+        ) : (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: '#fff', borderRadius: 999, padding: '3px 6px',
+          }}>
+            <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
+            <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center', color: TEXT }}>{it.qty}</span>
+            <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT}/></button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Sheet "con chi dividi?" aperto dallo swipe ← su un piatto
+function SplitPickSheet({ item, participants, onConfirm, onClose }) {
+  const [sel, setSel] = useState({});
+  const people = participants.filter(pp => !pp.isMe && !pp.isGuest);
+  const n = Object.values(sel).filter(Boolean).length;
+  const per = item.unitPrice / (n + 1);
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 120,
+      display: 'flex', alignItems: 'flex-end', animation: 'fade .2s',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        width: '100%', background: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22,
+        padding: '14px 22px calc(24px + env(safe-area-inset-bottom, 0px))',
+        animation: 'slideUp .3s cubic-bezier(.2,1.1,.3,1)',
+      }}>
+        <div style={{ width: 40, height: 4, background: '#d9d9d9', borderRadius: 999, margin: '0 auto 14px' }}/>
+        <div style={{ fontSize: 17, fontWeight: 800, color: TEXT }}>Con chi dividi?</div>
+        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 3 }}>
+          {item.name} · {item.unitPrice.toFixed(2)}€ — a testa {per.toFixed(2)}€
+        </div>
+        <div style={{ display: 'flex', gap: 9, marginTop: 16, flexWrap: 'wrap' }}>
+          {people.map(pp => {
+            const on = !!sel[pp.id];
+            return (
+              <button key={pp.id} onClick={() => setSel(x => ({ ...x, [pp.id]: !x[pp.id] }))} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 2,
+              }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: 16, position: 'relative',
+                  background: on ? WINE : '#d9d9d9', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 17, fontWeight: 800,
+                  transform: on ? 'scale(1.08)' : 'scale(1)',
+                  transition: 'transform .25s cubic-bezier(.2,1.6,.4,1), background .2s',
+                  boxShadow: on ? '0 8px 18px -8px rgba(139,26,58,.7)' : 'none',
+                }}>
+                  {pp.initials || pp.name[0]}
+                  {on && <span style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18,
+                    borderRadius: 999, background: '#7fb800', border: '2px solid #fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>}
+                </div>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: on ? TEXT : MUTED }}>{pp.name.split(' ')[0]}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button disabled={n === 0} onClick={() => onConfirm(Object.keys(sel).filter(k => sel[k]))} style={{
+          width: '100%', height: 48, borderRadius: 999, border: 'none', marginTop: 18,
+          background: n === 0 ? '#d8c0c8' : WINE, color: '#fff',
+          fontSize: 14.5, fontWeight: 800, fontFamily: 'inherit',
+          cursor: n === 0 ? 'not-allowed' : 'pointer',
+        }}>{n === 0 ? 'Scegli con chi dividere' : `Dividi in ${n + 1} · ${per.toFixed(2)}€ a testa`}</button>
+      </div>
+    </div>
+  );
+}
+
+function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dishes, setQty, clearCart, onSubmit, goTo, onPickSplit }) {
+  // applica la divisione a tutte le porzioni della riga
+  // Lo swipe muove UNA unità per volta: due Carbonare sono due pezzi, e
+  // mandarne una al tavolo non deve trascinarsi dietro l'altra.
+  const spostaUno = (g, sp) => {
+    const k = g.indici[0];
+    setState(st => {
+      const splits = { ...(st.splits || {}) };
+      if (sp) splits[`${g.lineId}-${k}`] = sp; else delete splits[`${g.lineId}-${k}`];
+      return { ...st, splits };
+    });
+    // Seam backend (oggi mock): la divisione è real-time anche da webapp,
+    // col backend reale il broadcast di sessione aggiorna gli altri.
+    window.ByupAPI && window.ByupAPI.updateSplit({
+      sessionId: state.activeOrder && state.activeOrder.id,
+      lineId: `${g.lineId}-${k}`,
+      split: sp || { kind: 'me', people: [] },
+    });
+  };
+  // La × sulla pillola invece riguarda tutta la riga: è l'etichetta di quel
+  // gruppo, e toglierla vuol dire "questi non sono più al tavolo".
+  const azzeraGruppo = (g) => {
+    setState(st => {
+      const splits = { ...(st.splits || {}) };
+      g.indici.forEach(k => { delete splits[`${g.lineId}-${k}`]; });
+      return { ...st, splits };
+    });
+    g.indici.forEach(k => {
+      window.ByupAPI && window.ByupAPI.updateSplit({
+        sessionId: state.activeOrder && state.activeOrder.id,
+        lineId: `${g.lineId}-${k}`,
+        split: { kind: 'me', people: [] },
+      });
+    });
+  };
+  // Righe del carrello raggruppate per destinazione. Ogni unità ha la sua
+  // (`splits['lineId-2']`), ma tenere una riga per pezzo riempirebbe il
+  // carrello di ripetizioni: quelle che vanno nello stesso posto restano
+  // insieme, e la riga si sdoppia solo quando le destinazioni divergono.
+  const gruppiRiga = (voci, splits) => voci.flatMap(it => {
+    const perDestinazione = new Map();
+    for (let k = 0; k < it.qty; k++) {
+      const sp = (splits || {})[`${it.lineId}-${k}`] || null;
+      const chiave = !sp || sp.kind === 'me' ? 'me'
+        : sp.kind === 'tavolo' ? 'tavolo'
+        : 'con:' + (sp.people || []).slice().sort().join(',');
+      if (!perDestinazione.has(chiave)) perDestinazione.set(chiave, { split: sp, indici: [] });
+      perDestinazione.get(chiave).indici.push(k);
+    }
+    const gruppi = Array.from(perDestinazione.values());
+    return gruppi.map(g => ({
+      ...it, qty: g.indici.length, indici: g.indici, split: g.split,
+      // Con la riga spezzata il +/- non ha un bersaglio univoco: toglieresti
+      // un pezzo "al tavolo" o uno "per te"? Meglio mostrare solo il conteggio
+      // e lasciare che si annulli prima la divisione.
+      frazionata: gruppi.length > 1,
+    }));
+  });
   const expanded = mode === 'expanded';
   const trascina = useTrascinaFoglio(mode, setMode);
   const allDishes = Object.values(dishes).flat();
@@ -1067,86 +1390,23 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
               <EmptyHint text="Aggiungi piatti dalla lista per vederli qui"/>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {cartItems.map(it => (
-                  <div key={it.lineId} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
-                    background: BG_GRAY, borderRadius: 12, padding: '10px 12px',
-                  }}>
-                    <div onClick={() => goTo('dish', { dishId: it.id, lineId: it.lineId })} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: TEXT }}>{it.name}</div>
-                      {it.summary && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
-                          {it.summary.split(', ').map((tag, i) => (
-                            <span key={i} style={{
-                              fontSize: 11, fontWeight: 600, color: WINE,
-                              background: '#f5eef2', padding: '2px 7px', borderRadius: 999,
-                            }}>{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                      <div style={{ fontSize: 12.5, color: WINE, fontWeight: 700, marginTop: 5 }}>{it.unitPrice.toFixed(2)}€</div>
-                    </div>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      background: '#fff', borderRadius: 999, padding: '3px 6px',
-                    }}>
-                      <button onClick={() => setQty(it.lineId, it.qty - 1)} style={qtyBtn}><I.Minus size={13}/></button>
-                      <span style={{ fontSize: 13, fontWeight: 700, minWidth: 14, textAlign: 'center' }}>{it.qty}</span>
-                      <button onClick={() => setQty(it.lineId, it.qty + 1)} style={qtyBtn}><I.Plus size={13} color={TEXT}/></button>
-                    </div>
-                  </div>
+                {gruppiRiga(cartItems, state.splits).map(g => (
+                  <SwipeDishRow key={`${g.lineId}:${g.indici[0]}`} it={g}
+                    split={g.split}
+                    onTable={() => spostaUno(g, { kind: 'tavolo', people: [] })}
+                    onPick={() => onPickSplit && onPickSplit(g)}
+                    onUndoUno={() => spostaUno(g, null)}
+                    onReset={() => azzeraGruppo(g)}
+                    onOpenDish={() => goTo('dish', { dishId: g.id, lineId: g.lineId })}
+                    setQty={setQty}/>
                 ))}
               </div>
             )}
-
-            {/* Dividi piatti — toggle azione secondaria */}
             {cartItems.length > 0 && (
-              <button onClick={() => setSheetTab(t => t === 'divisione' ? 'piatti' : 'divisione')} style={{
-                width: '100%', marginTop: 14, padding: '10px',
-                background: 'transparent', border: `1px solid ${BORDER}`,
-                borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13, fontWeight: 600, color: MUTED,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>
-                </svg>
-                Dividi piatti tra i commensali
-              </button>
-            )}
-
-            {/* Vista divisione (se attiva) */}
-            {sheetTab === 'divisione' && cartItems.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {cartItems.flatMap(it => Array.from({ length: it.qty }, (_, idx) => ({ ...it, idx }))).map((it, i) => {
-                    const splitKey = `${it.lineId}-${it.idx}`;
-                    const split = state.splits?.[splitKey];
-                    const splitLabel = split
-                      ? (split.kind === 'me' ? 'Per me' : split.kind === 'tavolo' ? 'Tavolo' : `${(split.people?.length || 0) + 1} pers.`)
-                      : 'Per me';
-                    return (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 600, color: TEXT }}>
-                            {it.name}{it.qty > 1 && <span style={{ color: MUTED, fontSize: 11, marginLeft: 5 }}>porz. {it.idx + 1}/{it.qty}</span>}
-                          </div>
-                          {it.summary && <div style={{ fontSize: 11, color: MUTED, marginTop: 1 }}>{it.summary}</div>}
-                        </div>
-                        <button onClick={() => goTo('split', { item: it, splitKey })} style={{
-                          height: 32, padding: '0 12px', borderRadius: 999,
-                          border: `1.5px solid ${WINE}`, background: split ? WINE : '#f5eef2',
-                          fontSize: 12, fontWeight: 700, color: split ? '#fff' : WINE,
-                          fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
-                          display: 'flex', alignItems: 'center', gap: 4,
-                        }}>
-                          {!split && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>}
-                          {splitLabel}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div style={{ marginTop: 12, fontSize: 11.5, color: MUTED, fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                <span style={{ fontSize: 13 }}>⇄</span>
+                trascina un piatto: → tutto il tavolo · ← dividi con qualcuno
               </div>
             )}
           </div>
@@ -1177,266 +1437,6 @@ function EmptyHint({ text }) {
       padding: '40px 20px', textAlign: 'center', color: MUTED,
       fontSize: 13.5,
     }}>{text}</div>
-  );
-}
-
-// ─── SPLIT SCREEN ──────────────────────────────────────────
-function SplitScreen({ state, setState, ctx, goBack }) {
-  const item = ctx?.item;
-  const splitKey = ctx?.splitKey;
-  const initial = state.splits?.[splitKey] || { kind: 'me', people: [] };
-  const [kind, setKind] = useState(initial.kind);
-  const [people, setPeople] = useState(initial.people);
-
-  const defaultParticipants = [
-    { id: 'me', name: 'Tu', initials: 'T', isMe: true },
-    { id: 'p1', name: 'Marco', initials: 'M' },
-    { id: 'p2', name: 'Margherita', initials: 'Mg' },
-    { id: 'p3', name: 'Roberto', initials: 'R' },
-    { id: 'p4', name: 'Ospite 1', initials: 'O', isGuest: true },
-  ];
-  const participants = state.participants || defaultParticipants;
-
-  const togglePerson = (id) => {
-    if (id === 'me') return; // me always included
-    setPeople(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
-  };
-
-  // Aggiunge un nuovo ospite alla lista partecipanti e lo seleziona
-  const addParticipant = () => {
-    const ospitiNum = participants.filter(p => p.isGuest).length + 1;
-    const newP = {
-      id: `p-og-${Date.now()}`,
-      name: `Ospite ${ospitiNum}`,
-      initials: '?',
-      isGuest: true,
-    };
-    setState(s => ({
-      ...s,
-      participants: [...(s.participants || defaultParticipants), newP],
-    }));
-    // Includi nuovo ospite anche se la modalità è "diviso"
-    setPeople(p => [...p, newP.id]);
-  };
-
-  const save = () => {
-    const split = { kind, people: kind === 'diviso' ? people : [] };
-    // Update ottimistico locale + invio al backend (oggi mock). Con il backend
-    // reale il broadcast di sessione aggiornerebbe anche gli altri partecipanti.
-    setState(s => ({ ...s, splits: { ...(s.splits || {}), [splitKey]: split } }));
-    window.ByupAPI && window.ByupAPI.updateSplit({
-      sessionId: state.activeOrder && state.activeOrder.id,
-      lineId: splitKey,
-      split,
-    });
-    goBack();
-  };
-
-  const splitCount = kind === 'tavolo'
-    ? participants.length
-    : kind === 'diviso'
-      ? people.length + 1
-      : 1;
-  const perPerson = item ? (item.price / splitCount).toFixed(2) : 0;
-
-  return (
-    <div data-screen-label="Divisione piatto" style={{
-      width: '100%', height: '100%', background: BG_PAGE, position: 'relative',
-      display: 'flex', flexDirection: 'column', overflow: 'hidden',
-    }}>
-      {/* Header */}
-      <div style={{
-        padding: '60px 22px 14px', display: 'flex', alignItems: 'center', gap: 12,
-        background: '#fff', borderBottom: `1px solid ${BORDER}`,
-      }}>
-        <button onClick={goBack} style={{
-          width: 36, height: 36, borderRadius: 999, background: BG_GRAY,
-          border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-        }}><I.Back size={20}/></button>
-        <div>
-          <div style={{ fontSize: 12, color: MUTED, fontWeight: 500 }}>Dividi il piatto</div>
-          <div style={{ fontSize: 17, fontWeight: 700, color: TEXT, lineHeight: 1.2 }}>{item?.name || 'Piatto'}</div>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px 140px' }}>
-        {/* Mode selector */}
-        <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Modalità
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-          <ModeCard active={kind === 'me'} onClick={() => setKind('me')}
-            title="Per me" desc="Pago io tutto il piatto" emoji="🙋"/>
-          <ModeCard active={kind === 'diviso'} onClick={() => setKind('diviso')}
-            title="Diviso" desc="Scegli con chi dividere il piatto" emoji="👥"/>
-          <ModeCard active={kind === 'tavolo'} onClick={() => setKind('tavolo')}
-            title="Tavolo intero" desc={`Diviso tra tutti i ${participants.length} commensali`} emoji="🍽️"/>
-        </div>
-
-        {/* Participants picker (only for 'diviso') */}
-        {kind === 'diviso' && (
-          <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Con chi dividi?
-            </div>
-            <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>
-              Tu sei sempre incluso · {people.length + 1} {people.length + 1 === 1 ? 'persona' : 'persone'} selezionate
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {participants.map(p => {
-                const sel = p.isMe || people.includes(p.id);
-                return (
-                  <div key={p.id} onClick={() => togglePerson(p.id)} style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 14px', borderRadius: 14,
-                    background: sel ? '#fff' : '#fff',
-                    border: `1.5px solid ${sel ? WINE : BORDER}`,
-                    cursor: p.isMe ? 'default' : 'pointer',
-                    opacity: p.isMe ? 0.85 : 1,
-                  }}>
-                    <Avatar name={p.name} initials={p.initials} guest={p.isGuest}/>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: TEXT }}>{p.name}</div>
-                      <div style={{ fontSize: 12, color: MUTED }}>
-                        {p.isMe ? 'Sempre incluso' : p.isGuest ? 'Ospite (non loggato)' : 'Tramite app'}
-                      </div>
-                    </div>
-                    <div style={{
-                      width: 24, height: 24, borderRadius: 999,
-                      border: `2px solid ${sel ? WINE : '#d0d0d0'}`,
-                      background: sel ? WINE : '#fff',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {sel && <I.Check size={14} color="#fff"/>}
-                    </div>
-                  </div>
-                );
-              })}
-              <button onClick={addParticipant} style={{
-                width: '100%', padding: '12px 14px', borderRadius: 14,
-                background: '#fff', border: `1.5px dashed ${BORDER}`,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 12,
-                color: TEXT, fontSize: 14, fontWeight: 700,
-              }}>
-                <span style={{
-                  width: 32, height: 32, borderRadius: 999, background: '#f6f1ea',
-                  color: WINE, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 18, fontWeight: 700,
-                }}>+</span>
-                <span>Aggiungi ospite</span>
-                <span style={{ marginLeft: 'auto', fontSize: 11.5, color: MUTED, fontWeight: 500 }}>
-                  senza app
-                </span>
-              </button>
-            </div>
-          </>
-        )}
-
-        {kind === 'tavolo' && (
-          <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: TEXT, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              Tavolo · {participants.length} persone
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div style={{ display: 'flex' }}>
-                {participants.map((p, i) => (
-                  <div key={p.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>
-                    <Avatar name={p.name} initials={p.initials} guest={p.isGuest} size={42}/>
-                  </div>
-                ))}
-              </div>
-              <button onClick={addParticipant} title="Aggiungi ospite" style={{
-                width: 42, height: 42, borderRadius: 999,
-                background: '#fff', border: `1.5px dashed ${BORDER}`,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: WINE, fontSize: 22, fontWeight: 700, padding: 0, lineHeight: 1,
-              }}>+</button>
-            </div>
-          </>
-        )}
-
-        {/* Summary */}
-        {item && (
-          <div style={{
-            marginTop: 24, padding: 16, borderRadius: 16,
-            background: '#fff', border: `1.5px solid ${BORDER}`,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: MUTED, marginBottom: 6 }}>
-              <span>Prezzo piatto</span><span>{item.price}€</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: MUTED, marginBottom: 10 }}>
-              <span>Diviso per</span><span>{splitCount} {splitCount === 1 ? 'persona' : 'persone'}</span>
-            </div>
-            <div style={{ height: 1, background: BORDER, margin: '4px 0 10px' }}/>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700, color: TEXT }}>
-              <span>La tua quota</span><span>{perPerson}€</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Save button */}
-      <div style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0,
-        padding: '14px 22px 22px', background: '#fff', borderTop: `1px solid ${BORDER}`,
-      }}>
-        <button onClick={save} style={{
-          width: '100%', height: 52, borderRadius: 999, border: 'none',
-          background: WINE, color: '#fff', fontSize: 15, fontWeight: 700,
-          fontFamily: 'inherit', cursor: 'pointer',
-        }}>Conferma divisione</button>
-      </div>
-    </div>
-  );
-}
-
-function ModeCard({ active, onClick, title, desc, emoji }) {
-  return (
-    <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 14,
-      padding: '14px 16px', borderRadius: 16,
-      background: active ? '#fff' : '#fff',
-      border: `1.5px solid ${active ? WINE : BORDER}`,
-      cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-      width: '100%', position: 'relative',
-    }}>
-      <div style={{
-        width: 46, height: 46, borderRadius: 14, flexShrink: 0,
-        background: active ? '#f5eef2' : BG_GRAY,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 22, transition: 'background 0.18s',
-      }}>{emoji}</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: TEXT }}>{title}</div>
-        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>{desc}</div>
-      </div>
-      <div style={{
-        width: 22, height: 22, borderRadius: 999,
-        border: `2px solid ${active ? WINE : '#d0d0d0'}`,
-        background: active ? WINE : '#fff',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {active && <I.Check size={13} color="#fff"/>}
-      </div>
-    </button>
-  );
-}
-
-function Avatar({ name, initials, guest, size = 38 }) {
-  const colors = ['#7a4458','#4a6580','#5a7a45','#80654a','#65457a'];
-  const idx = (name?.charCodeAt(0) || 0) % colors.length;
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: 999,
-      background: guest ? '#aaa' : colors[idx],
-      color: '#fff', fontSize: size * 0.38, fontWeight: 700,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      flexShrink: 0,
-      border: '2px solid #fff',
-      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-    }}>{initials}</div>
   );
 }
 
@@ -2582,8 +2582,6 @@ function Root() {
           onBook={openAppOnly}
           onMap={openAppOnly}/>
       : <MenuScreen state={state} setState={setState} goTo={goTo}/>;
-  } else if (route.name === 'split') {
-    screen = <SplitScreen state={state} setState={setState} ctx={route.ctx} goBack={() => goTo('menu')}/>;
   } else if (route.name === 'dish') {
     screen = <DishDetailScreen state={state} setState={setState} ctx={route.ctx} goBack={() => goTo('menu')}/>;
   } else if (route.name === 'home') {
