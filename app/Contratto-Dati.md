@@ -97,7 +97,7 @@
 ## Parte 2 — Dati che l'app INVIA all'ecosistema (outbound)
 
 ### 2.1 → Byup Fresh / backend ordini (al tavolo)
-- **Join al tavolo** (§G.2): `{ tableId | code | qrPayload, gps {lat,lng}, joinMethod (qr|link|code 🟠) }` → **dall'app** il backend valida il **geofence** (se incoerente, errore "non nei pressi"); la **webapp** non invia GPS e non è gated dal geofence — si difende col pagamento contestuale + gate di sessione (§G.8). In **entrambi** i canali vale il **gate di sessione** (no ordini senza sessione tavolo aperta).
+- **Join al tavolo** (§G.2): `{ tableId | code | qrPayload, joinMethod (qr|link|code 🟠) }` → **nessun dato di posizione nel payload**, su nessun canale: il backend valida solo l'esistenza di una **sessione tavolo aperta** in quel momento (gate di sessione, §G.8). Le difese sono identità verificata lato app, pagamento contestuale sul canale anonimo e rate limiting.
 - **Commensali (solo host)**: `{ tableSessionId, covers }` — chiesto solo a chi apre.
 - **Aggiunta piatti**: `{ tableSessionId, ownerId, lines[ { dishId, qty, variants{}, extras{ extraId:qty }, removed{ ingrediente:true } } ] }` (la riga carrello del prototipo è `{ lineId, dishId, qty, variants, extras, removed }`).
 - **Acquisizione lock** (§G.6, prima di pagare): `{ tableSessionId, lineIds[] | quotas[ { lineId, fraction } ] }` → il server **congela** le righe/quote selezionate e risponde con `expiresAt`. Rilascio **esplicito** a pagamento concluso o annullato, **auto-rilascio** a timeout se l'app abbandona.
@@ -145,9 +145,9 @@
 - **Identità account = telefono**: l'aggancio dell'ordine resta legato all'account (login OTP/biometria). Il **codice/referrer** è il meccanismo di matching dell'ordine orfano; il telefono serve da identità e da notifica (SMS "asporto pronto, codice X").
 - Scadenza recupero legata allo **stato del tavolo** (tetto ~2h dalla creazione ordine). Codice perso → **pagamento in cassa** (nessun recupero per contesto, §G.7).
 
-### 2.9 Telemetria di posizione (requisito hard **solo app**, §G.2/§G.8)
-- `gps {lat,lng}` inviato dall'**app** per: **gate densità discovery** e **geofence** di accesso al tavolo. Senza posizione l'app non funziona correttamente.
-- **Non vale per la webapp**: il canale anonimo **non** usa il GPS come difesa (falsificabile, §G.8). La webapp si protegge col **pagamento contestuale** + **gate di sessione** + rate limiting. Il geofence non è comunque l'anti-abuso principale neanche per l'app.
+### 2.9 Telemetria di posizione (**solo app**, solo discovery, §D/§G.8)
+- `gps {lat,lng}` inviato dall'**app** solo per **gate densità discovery** e calcolo distanze, in foreground, mai conservato. Col permesso negato l'app resta usabile via QR/link, senza discovery.
+- **Nessun uso come difesa**, su nessun canale (falsificabile, §G.8): la protezione è **gate di sessione** + identità verificata (app) + **pagamento contestuale** (webapp) + rate limiting. La webapp non invia mai GPS.
 
 ---
 

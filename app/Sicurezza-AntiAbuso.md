@@ -6,12 +6,12 @@
 > Questo documento è un punto della situazione: riassume il problema, i principi
 > emersi e le opzioni sul tavolo, non le scelte definitive.
 >
-> **Già deciso (eccezione)**: il **geofence** vale per l'**app** e **non** per la
-> webapp (vedi [Contesto-App.md §D / §G.2](Contesto-App.md)).
+> **Già deciso (eccezione)**: **nessun geofence** sull'accesso al tavolo, su
+> nessun canale (vedi [Contesto-App.md §D / §G.2](Contesto-App.md)).
 >
 > **Collegamenti**
 > - Sintesi nel contesto di prodotto → [Contesto-App.md §G.8](Contesto-App.md)
-> - GPS/geofence (requisito hard solo app) → [Contesto-App.md §D / §G.2](Contesto-App.md)
+> - GPS (solo discovery, nessun geofence) → [Contesto-App.md §D / §G.2](Contesto-App.md)
 > - Gate di sessione / ciclo di vita tavolo → [Contesto-App.md §G.5](Contesto-App.md)
 > - Pagamento contestuale (difesa del canale webapp) → [Recupero-Ordine.md](Recupero-Ordine.md), [Contesto-App.md §G.4](Contesto-App.md)
 > - Questioni aperte → [Contesto-App.md §G.9](Contesto-App.md)
@@ -31,7 +31,7 @@ Due attacchi distinti, spesso confusi ma con difese diverse:
    sala, sfregio all'immagine. È a basso volume e alta malizia, quindi il rate
    limiting da solo non lo ferma.
 
-La via scartata: **il GPS** (anche solo da web app). Si falsifica banalmente (fake
+La via scartata: **il GPS** (da qualsiasi canale). Si falsifica banalmente (fake
 GPS, emulatori), fa comparire un permesso che fa scappare l'utente onesto,
 penalizza tutti per fermare pochi. Dà un falso senso di sicurezza: lo aggira il
 nemico, lo rifiuta l'amico.
