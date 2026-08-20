@@ -232,8 +232,7 @@ Byup/                            ← root del repo (Desktop/Byup)
 │   ├── BACKEND.md               ← reference dettagliato decisioni backend
 │   ├── erd/                     ← modello dati, indipendente dal codice ─────
 │   │   ├── *.dbml               ← 4 file ERD v0.7 (sorgente di verità DB)
-│   │   ├── byup-database-enums-reference-v7.md  ← valori e stati DB
-│   │   └── *.pdf                ← progettazione tecnica e flussi applicativi
+│   │   └── byup-database-enums-reference-v7.md  ← valori e stati DB
 │   ├── src/
 │   │   ├── main.ts              ← bootstrap: helmet, ValidationPipe, ExceptionFilter
 │   │   ├── app.module.ts        ← root + ThrottlerModule globale
@@ -802,7 +801,7 @@ Suggerita per **non avere un blocco gigante non navigabile**:
 - `backend/BACKEND.md` — dettagli decisioni backend modulo per modulo
 - `backend/erd/*.dbml` — ERD v0.7 (sorgente di verità DB)
 - `backend/erd/byup-database-enums-reference-v7.md` — valori e stati DB
-- `backend/erd/*.pdf` — progettazione tecnica e specifica dei flussi applicativi
+- `DOCUMENTI.md` — i tre documenti di riferimento (ERD, DPT, SFA) stanno fuori dal repo, nel progetto Byup: le copie PDF in `backend/erd/` sono state tolte perché invecchiavano in silenzio
 - `gestionale/CLAUDE.md` — overview di prodotto (cosa è Byup, GTM, validation, team)
 - `gestionale/DESIGN_DECISIONS.md` — design system frontend, riallineato al codice il 2026-08-09 e tenuto aggiornato a fine sessione con una sezione datata per ogni batch; in caso di dubbio i token `PN` nel codice restano la verità
 
