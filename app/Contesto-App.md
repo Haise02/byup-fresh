@@ -440,11 +440,23 @@ bivio arriva dopo. Questa sezione è la mappa dei percorsi e — importante — 
   **funzionalità futura**. Si deve però poter **annullare o modificare** la
   prenotazione.
 - All'arrivo: **scan QR** del tavolo.
-  - Se il tavolo scansionato **≠** quello assegnato alla prenotazione → avviso
-    *"Il tavolo non è quello pensato per te, prova a sentire il personale in
-    sala."* *(controllo scan-time/backend: **non nel prototipo**, dove lo scan è
+  - **Il tuo tavolo** → ti **aggancia** sempre alla sessione (→ G.2), libero o
+    già aperto che sia, e registra l'arrivo anche se lo staff non l'ha marcato.
+  - **Un altro tavolo, prenotato per altri o occupato** → **niente aggancio**:
+    *"Questo tavolo è già prenotato, il tuo è il xx — chiedi al personale in
+    sala."* / *"Questo tavolo è occupato, il tuo è il xx — chiedi al personale in
+    sala."*
+  - **Un altro tavolo, libero o da liberare** → dipende dalla sala. Se spostarti
+    lì non lascia scoperta nessuna prenotazione in arrivo, **ti aggancia** e la
+    prenotazione si sposta da sola. Altrimenti **niente aggancio**: *"Il tavolo
+    sembra libero, ma la tua prenotazione è per il xx: chiedi conferma al
+    personale prima di sederti e ordinare."*
+  - In tutti i casi di tavolo diverso dal proprio parte una **notifica allo
+    staff** con nome, tavolo assegnato e tavolo scansionato.
+  - **Senza prenotazione attiva** non si è mai bloccati: sull'occupato ci si
+    unisce, sul prenotato per altri si entra con avviso.
+  - *(Controllo scan-time/backend: **non nel prototipo**, dove lo scan è
     simulato — `startScanQR` in [menu.jsx](menu.jsx).)*
-  - Altrimenti → ti **aggancia** alla sessione del tavolo (→ G.2).
 
 ### G.4 Asporto
 
