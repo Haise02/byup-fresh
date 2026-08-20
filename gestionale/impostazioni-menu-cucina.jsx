@@ -460,6 +460,25 @@ const generaVoce = (dishId, lingua, voce) => {
 
 const traduzioniDi = (dishId) => DISH_TRADUZIONI[dishId] || (DISH_TRADUZIONI[dishId] = {});
 
+// I nomi tradotti stanno per conto loro, e non per pignoleria: l'AI qui non
+// entra mai, quindi non hanno niente da spartire con le voci che si rigenerano.
+// Vuoto vuol dire «va bene l'italiano», che è il caso normale — un nome scritto
+// a mano è una scelta del ristoratore e resta sua per sempre.
+const DISH_NOMI = {
+  // Il caso vero in cui un locale traduce il nome: quando dentro c'è una parola
+  // che fuori dall'Italia non dice niente.
+  d1: { en: { t: 'House tiramisù' } },
+};
+const nomiDi = (dishId) => DISH_NOMI[dishId] || (DISH_NOMI[dishId] = {});
+
+// Il nome italiano è cambiato: i nomi tradotti non si rifanno da soli — non
+// c'è un'AI che li scriva — ma vanno segnalati, altrimenti restano lì a dire
+// un'altra cosa senza che nessuno se ne accorga.
+const segnalaNomiVecchi = (dishId) => {
+  const nomi = nomiDi(dishId);
+  Object.keys(nomi).forEach(l => { if (nomi[l] && nomi[l].t) nomi[l].vecchia = true; });
+};
+
 // Rigenerazione dopo una modifica dell'italiano: le voci dell'AI si rifanno in
 // silenzio, quelle corrette a mano si toccano solo se lo chiede lui.
 const rigeneraAutomatiche = (dishId, voci) => {
@@ -3003,9 +3022,11 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
   // matita — cosa si sta scrivendo e dove — e un contatore per rileggere lo
   // store dopo averlo toccato.
   const [bozze, setBozze] = React.useState({});
+  const [bozzeNome, setBozzeNome] = React.useState({});
   const [inCorso, setInCorso] = React.useState(null);
   const [, ridisegna] = React.useReducer(x => x + 1, 0);
   const per = traduzioniDi(dishId);
+  const nomi = nomiDi(dishId);
 
   React.useEffect(() => {
     const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
@@ -3034,6 +3055,21 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
     scarta(lingua, voce.key);
     ridisegna();
   };
+
+  // Il nome tradotto non ha una versione automatica a cui tornare: o c'è quello
+  // che ha scritto lui, o c'è l'italiano. Svuotare è la strada del ritorno.
+  const scriviNome = (lingua, t) => setBozzeNome(b => ({ ...b, [idBozza(lingua, 'nome')]: t }));
+  const scartaNome = (lingua) => setBozzeNome(b => {
+    const n = { ...b }; delete n[idBozza(lingua, 'nome')]; return n;
+  });
+  const confermaNome = (lingua) => {
+    const t = (bozzeNome[idBozza(lingua, 'nome')] || '').trim();
+    if (t) nomi[lingua] = { t };
+    else delete nomi[lingua];
+    scartaNome(lingua);
+    ridisegna();
+  };
+  const svuotaNome = (lingua) => { delete nomi[lingua]; scartaNome(lingua); ridisegna(); };
 
   const generaLingua = (lingua) => {
     setInCorso(lingua);
@@ -3100,7 +3136,9 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
           flex: '1 1 auto', minHeight: 0, overflow: 'auto', padding: '16px 18px',
           display: 'flex', flexDirection: 'column', gap: 14,
         }}>
-          {/* Il nome, in sola lettura: è il pezzo che non si traduce mai */}
+          {/* Il nome: l'AI non lo tocca mai, ma la porta per tradurlo a mano c'è.
+              Sta in cima e non in mezzo alle lingue perché è l'unico campo dove
+              vuoto è la risposta giusta quasi sempre. */}
           <div style={{
             padding: '12px 13px', borderRadius: 11, flexShrink: 0,
             background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`,
@@ -3108,17 +3146,82 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
             <div style={{
               fontSize: 11.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase',
               color: PN.MUTED_SOFT, marginBottom: 6,
-            }}>Nome del piatto · non si traduce</div>
-            <div style={{
-              padding: '8px 11px', borderRadius: 8, background: PN.WHITE,
-              border: `1px solid ${PN.BORDER}`, fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
-            }}>{nome}</div>
-            <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.5}}>
-              Il nome resta in italiano in tutte le lingue: è la parola che il cliente legge
-              nel menù e quella che dice al cameriere, e se cambia a schermo nessuno dei due
-              capisce l'altro. Anche <strong style={{color: PN.TEXT}}>allergeni ed etichette
-              dietetiche</strong> non passano di qui: hanno un dizionario fisso, uguale in
-              tutti i locali.
+            }}>Nome del piatto · l’AI non lo traduce</div>
+            <div style={{display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8}}>
+              <span style={{fontSize: 15, lineHeight: 1}}>🇮🇹</span>
+              <div style={{
+                flex: 1, padding: '8px 11px', borderRadius: 8, background: PN.WHITE,
+                border: `1px solid ${PN.BORDER}`, fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
+              }}>{nome}</div>
+            </div>
+
+            <div style={{fontSize: 12.5, color: PN.MUTED, marginBottom: 9, lineHeight: 1.5}}>
+              I nomi dei piatti <strong style={{color: PN.TEXT}}>non si traducono da soli</strong>:
+              l'AI non li scrive mai, li scrivi tu se serve. Lasciando vuoto, il cliente vede
+              sempre il nome italiano — che è quello che poi dice al cameriere. Anche{' '}
+              <strong style={{color: PN.TEXT}}>allergeni ed etichette dietetiche</strong> non
+              passano dall'AI: hanno un dizionario fisso, uguale in tutti i locali.
+            </div>
+
+            <div style={{display: 'flex', flexDirection: 'column', gap: 7}}>
+              {LINGUE_TRAD.map(l => {
+                const voce = nomi[l.code];
+                const chiave = idBozza(l.code, 'nome');
+                const bozza = bozzeNome[chiave];
+                const scritto = voce && voce.t ? voce.t : '';
+                const modificato = bozza != null && bozza.trim() !== scritto;
+                return (
+                  <div key={l.code} style={{
+                    padding: '8px 10px', borderRadius: 9,
+                    background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+                  }}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: 9}}>
+                      <span style={{fontSize: 15, lineHeight: 1, flexShrink: 0}}>{l.bandiera}</span>
+                      <span style={{
+                        width: 74, flexShrink: 0, fontSize: 13, fontWeight: 600, color: PN.MUTED,
+                      }}>{l.nome}</span>
+                      <input
+                        value={bozza != null ? bozza : scritto}
+                        placeholder={nome}
+                        onChange={e => scriviNome(l.code, e.target.value)}
+                        style={{...campoStile(false), flex: 1}}/>
+                      {voce && voce.t && voce.vecchia && !modificato && (
+                        <TradPastiglia tono="vecchia">Non allineato</TradPastiglia>
+                      )}
+                    </div>
+                    {(modificato || (voce && voce.t)) && (
+                      <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap'}}>
+                        {modificato ? (
+                          <React.Fragment>
+                            <ImpButton variant="pink" onClick={() => confermaNome(l.code)} style={{padding: '6px 12px', fontSize: 13.5}}>
+                              Conferma nome
+                            </ImpButton>
+                            <button onClick={() => scartaNome(l.code)} style={{
+                              background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                            }}>Annulla</button>
+                            <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.4}}>
+                              Svuotalo per tornare al nome italiano.
+                            </span>
+                          </React.Fragment>
+                        ) : (
+                          <React.Fragment>
+                            <button onClick={() => svuotaNome(l.code)} style={{
+                              background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK,
+                            }}>Torna al nome italiano</button>
+                            <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.4}}>
+                              {voce.vecchia
+                                ? 'L’hai scritto quando il nome italiano era un altro: adesso dicono due cose diverse.'
+                                : 'Questo l’hai scritto tu: nessuno lo riscrive.'}
+                            </span>
+                          </React.Fragment>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -3464,6 +3567,10 @@ function MCDettagliPiatto({
     [desc, variants, extras, ingredients]);
 
   const scriviPiatto = () => {
+    // Il nome tradotto non si rigenera e non apre niente: nessuno può riscriverlo
+    // al posto suo. Ma se l'italiano è cambiato, quello che aveva scritto prima
+    // adesso è un'altra cosa, e glielo diciamo la prossima volta che apre.
+    if (name.trim() !== (dish.name || '').trim()) segnalaNomiVecchi(dish.id);
     onSaveDish({
       id: dish.id, name: name.trim(), desc: desc.trim(), cat: dish.cat,
       allergens: effectiveAllergens,
