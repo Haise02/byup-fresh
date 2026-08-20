@@ -5977,6 +5977,66 @@ function PrenotazioniDurata() {
   );
 }
 
+// ─── Prenotazioni · Pre-assegnazione del tavolo ─────────────────────────────
+// SFA §12.2 (auto_assign_table). Non è solo comodità in agenda: di qui passa
+// anche il QR. Accesa, il sistema sa quale tavolo è di chi e per quanto, quindi
+// può spostare da solo chi si siede altrove; spenta, quella mappa non c'è e
+// l'unica risposta onesta è rimandare al cameriere.
+function PrenotazioniPreassegnazione() {
+  const [on, setOn] = React.useState(true);
+
+  return (
+    <div style={{borderTop: `1px solid ${PN.BORDER_SOFT}`, paddingTop: 14}}>
+      <div style={{
+        display:'flex', alignItems:'center', gap: 12,
+        padding: '11px 12px', borderRadius: 8,
+        background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+      }}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>Pre-assegnazione del tavolo</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.45}}>
+            Alla creazione della prenotazione il tavolo più adatto per capienza viene
+            assegnato da solo. Senza, i tavoli si assegnano a mano prima dell'arrivo.
+          </div>
+        </div>
+        <div style={{flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 9}}>
+          <ImpToggle checked={on} onChange={setOn}/>
+          <span style={{fontSize: 13.5, fontWeight: 600, color: on ? PN.TEXT : PN.MUTED}}>
+            {on ? 'Attiva' : 'Disattivata'}
+          </span>
+        </div>
+      </div>
+
+      {/* La conseguenza sul QR non è un secondo interruttore: è quello che
+          l'interruttore qui sopra fa, detto dove si accende. */}
+      {on ? (
+        <div style={{
+          marginTop: 10, padding: '9px 11px', borderRadius: 8,
+          background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`,
+          fontSize: 12.5, lineHeight: 1.5, color: PN.MUTED,
+        }}>
+          Vale anche al QR: chi si siede a un tavolo libero diverso dal proprio ci resta e
+          la prenotazione lo segue, senza passare dal personale — purché nessuna
+          prenotazione in arrivo rimanga senza un tavolo adeguato. La finestra guardata è
+          la <strong style={{color: PN.TEXT}}>durata media del tavolo</strong> impostata
+          qui sopra, quella della fascia di coperti della prenotazione: non c'è un altro
+          tempo da regolare.
+        </div>
+      ) : (
+        <div style={{
+          marginTop: 10, padding: '9px 11px', borderRadius: 8,
+          background: '#FEF6E7', border: '1px solid #F0C36D',
+          fontSize: 12.5, lineHeight: 1.5, color: '#8A5A00',
+        }}>
+          Senza pre-assegnazione al QR non si sposta nessuno: chi si siede a un tavolo
+          diverso dal proprio viene <strong style={{color: '#7A4E00'}}>sempre rimandato al
+          personale in sala</strong>, anche quando quel tavolo è libero.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Servizio · Visibilità dei menù ─────────────────────────────────────────
 // Quando ciascun menù si fa vedere. Stava dentro la maschera del singolo menù,
 // dove si sceglieva una fascia alla volta senza vedere le altre: qui i menù
@@ -6544,7 +6604,10 @@ function MCConfigura() {
             <ImpButton variant="primary" onClick={() => setModule('prenotazioni', true)}>Attiva prenotazioni</ImpButton>
           </div>
         ) : (
-          <PrenotazioniDurata/>
+          <div style={{display:'flex', flexDirection:'column', gap: 14}}>
+            <PrenotazioniDurata/>
+            <PrenotazioniPreassegnazione/>
+          </div>
         )}
       </ImpCard>
 
