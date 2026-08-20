@@ -127,6 +127,13 @@ const HUB_PROPRIETA = [
   { id: 'nome',     label: 'Nome',                gruppo: 'contatto', tipo: 'testo',  sistema: true, colonna: { w: 'minmax(0,2.2fr)', fissa: true, label: 'Contatto' } },
   { id: 'email',    label: 'Email',               gruppo: 'contatto', tipo: 'testo',  sistema: true, colonna: { w: 'minmax(0,1.9fr)' } },
   { id: 'telefono', label: 'Telefono',            gruppo: 'contatto', tipo: 'testo',  sistema: true, colonna: { w: '1.15fr' } },
+  // La data di nascita è di una PERSONA: un locale non compie gli anni, e fra
+  // le persone non ce l'hanno tutte — chi si è iscritto prima che il campo
+  // esistesse, chi non l'ha voluta dare. Che manchi davvero a qualcuno non è
+  // un dettaglio dei mock: il trigger compleanno esiste anche per dire, prima
+  // di accendersi, a quanti di quelli scelti la data c'è per davvero.
+  { id: 'nascita',  label: 'Data di nascita',     gruppo: 'contatto', tipo: 'data',   sistema: true, colonna: { w: '1.15fr' },
+    nota: 'Solo per le persone: i locali non ce l\'hanno. Vuota per chi non l\'ha mai data' },
   { id: 'tipo',     label: 'Tipologia contatto',  gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.2fr' },
     opzioni: [{ value: 'locale', label: 'Locale' }, { value: 'staff', label: 'Utente Staff' }, { value: 'utente', label: 'Utente App' }] },
   { id: 'ciclo',    label: 'Ciclo di vita',       gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
@@ -306,6 +313,26 @@ const HUB_REFERRAL = ['Gambero Rosso', 'Fiera Host Milano', 'Passaparola cliente
 const HUB_FORM_NOMI = ['Richiedi una demo', 'Scarica il listino', 'Iscrizione newsletter', 'Prova gratuita 14 giorni', 'Contattaci'];
 const HUB_OWNER = ['Marco Rinaldi', 'Giulia Ferrari', 'Davide Neri', 'Chiara Rossi'];
 
+// La data di nascita del contatto. Se l'anagrafica ce l'ha già (utenti app e
+// staff ce l'hanno nella loro scheda) è quella e non se ne discute; se non ce
+// l'ha, si deriva stabile dall'id e si SCRIVE anche sull'anagrafica, perché la
+// scheda del contatto e la rubrica non possono mostrare due date diverse della
+// stessa persona.
+function hubNascitaDi(c, s) {
+  if (c.tipo === 'locale') return null;
+  const gia = c.ref && c.ref.dataNascita;
+  if (gia) { const d = new Date(gia); if (!isNaN(d)) return d; }
+  if (s % 4 === 0) { if (c.ref && c.ref.dataNascita === undefined) c.ref.dataNascita = null; return null; }
+  // 15–66 anni: qualche minorenne c'è, e ci deve essere — l'app si apre a 14
+  // anni, e chi non è maggiorenne non riceve automazioni di marketing.
+  const eta = 15 + (s % 52);
+  const d = new Date(new Date().getFullYear() - eta, s % 12, 1 + ((s >>> 3) % 28));
+  if (c.ref && c.ref.dataNascita === undefined) {
+    c.ref.dataNascita = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  return d;
+}
+
 function hubArricchisci(c) {
   const s = hubSeme(c.key || (c.ref && c.ref.id) || c.nome || 'x');
   const giorni = (n) => new Date(Date.now() - n * 86400000);
@@ -324,6 +351,7 @@ function hubArricchisci(c) {
     consensoPush: s % 4 === 0,
     interessi: interessiPool.filter((_, i) => ((s >> i) & 1) === 1).slice(0, nInt + 1),
     ultimaMail: (s % 4 === 0) ? null : giorni(s % 90),
+    nascita: hubNascitaDi(c, s),
     ultimaAttivita: giorni(s % 45),
     ordini: c.tipo === 'staff' ? null : (s % 320),
     sessioni: s % 60,
@@ -1385,6 +1413,109 @@ window.hubConteggioRegole = hubConteggioRegole;
 window.hubRamoQuando = hubRamoQuando;
 window.hubNomeRif = hubNomeRif;
 window.hubNodoAttesa = hubNodoAttesa;
+
+// ─── Il compleanno come innesco ─────────────────────────────────────────────
+//
+// È la ricorrenza più tipica di un CRM e l'unica in cui il dato che fa partire
+// l'automazione è un dato personale delicato. Da qui due regole che non sono
+// di stile:
+//   · la data di nascita fa da SVEGLIA e basta — non entra mai nella scelta di
+//     che cosa mandare, perché profilare qualcuno per età è un'altra cosa dal
+//     ricordarsi di fargli gli auguri;
+//   · chi è in regime protettivo (minorenne: l'app si apre a 14 anni) resta
+//     fuori a prescindere dal consenso, che a quell'età non basta da solo.
+// Il consenso vero si guarda al momento dell'invio, come per ogni altro passo:
+// qui si conta chi POTREBBE ricevere, non si decide chi riceve.
+
+function hubEta(nascita) {
+  const d = nascita instanceof Date ? nascita : (nascita ? new Date(nascita) : null);
+  if (!d || isNaN(d)) return null;
+  const oggi = new Date();
+  let a = oggi.getFullYear() - d.getFullYear();
+  const m = oggi.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && oggi.getDate() < d.getDate())) a--;
+  return a;
+}
+const hubRegimeProtettivo = (c) => {
+  const e = hubEta(hubLeggi(c, 'nascita'));
+  return e != null && e < 18;
+};
+const HUB_CONSENSI_MKT = ['consensoMail', 'consensoSms', 'consensoPush'];
+const hubHaConsensoMkt = (c) => HUB_CONSENSI_MKT.some(k => hubLeggi(c, k) === true);
+
+// Un contatto è dentro un elenco ATTIVO se passa i suoi filtri: è la stessa
+// definizione che usa la pagina Elenchi. Gli statici hanno membri importati,
+// che nel prototipo non esistono come righe: si dicono zero invece di
+// inventarsi un numero.
+function hubDentroElenco(c, id) {
+  const e = HUB_ELENCHI.find(x => x.id === id);
+  if (!e || e.tipo === 'statico') return false;
+  return hubPassa(c, e.includi) && !(e.escludi && e.escludi.length && hubPassa(c, e.escludi));
+}
+
+// Valutare una condizione SU UN CONTATTO. Vale per le regole che parlano di
+// com'è fatto il contatto — proprietà ed elenchi: gli eventi e gli esiti sono
+// fatti di un percorso già iniziato e su un innesco non hanno senso, quindi
+// non filtrano (passano tutti) invece di far sparire tutti.
+function hubValutaRegolaContatto(c, r) {
+  if (!r) return true;
+  if (r.genere === 'proprieta') return hubValuta(c, r);
+  if (r.genere === 'elenco') return r.dentro === false ? !hubDentroElenco(c, r.elencoId) : hubDentroElenco(c, r.elencoId);
+  return true;
+}
+function hubValutaQuandoContatto(c, q) {
+  const gruppi = ((q && q.gruppi) || []).filter(g => (g.regole || []).length);
+  if (!gruppi.length) return true;
+  const dentro = (g) => (g.congiunzione === 'O'
+    ? g.regole.some(r => hubValutaRegolaContatto(c, r))
+    : g.regole.every(r => hubValutaRegolaContatto(c, r)));
+  return (q.congiunzione === 'O') ? gruppi.some(dentro) : gruppi.every(dentro);
+}
+
+function hubCompleannoVuoto() {
+  // `tipi` nasce VUOTO di proposito: un compleanno mandato a un prospect
+  // commerciale non è una variante, è un destinatario sbagliato. Chi costruisce
+  // l'automazione dichiara il pubblico, e non esiste un «tutti» di default.
+  return { anticipo: 0, tipi: [], quando: hubQuandoVuoto() };
+}
+const hubCompleannoPieno = (x) => Object.assign(hubCompleannoVuoto(), x || {});
+
+function hubDescriviCompleanno(cfg) {
+  const c = hubCompleannoPieno(cfg);
+  const n = parseInt(c.anticipo, 10) || 0;
+  const q = n > 0 ? (n === 1 ? '1 giorno prima' : n + ' giorni prima') : 'il giorno stesso';
+  return 'Compleanno del contatto · ' + q;
+}
+
+// Quanti sono, dei contatti scelti, quelli che il compleanno lo hanno davvero.
+// Serve PRIMA di accendere: un'automazione che gira su 4.000 contatti e ne
+// tocca 30 è una cosa da sapere adesso, non dal primo report.
+function hubContaCompleanno(cfg) {
+  const c = hubCompleannoPieno(cfg);
+  if (!c.tipi.length) return null;
+  const righe = (typeof CONTATTI !== 'undefined' ? CONTATTI : []);
+  const dentro = righe.filter(x => c.tipi.indexOf(x.tipo) !== -1 && hubValutaQuandoContatto(x, c.quando));
+  const conNascita = dentro.filter(x => !hubVuoto(hubLeggi(x, 'nascita')));
+  const protetti = conNascita.filter(hubRegimeProtettivo);
+  const raggiungibili = conNascita.filter(x => !hubRegimeProtettivo(x) && hubHaConsensoMkt(x));
+  return {
+    dentro: dentro.length,
+    conNascita: conNascita.length,
+    protetti: protetti.length,
+    raggiungibili: raggiungibili.length,
+  };
+}
+
+window.hubEta = hubEta;
+window.hubRegimeProtettivo = hubRegimeProtettivo;
+window.hubHaConsensoMkt = hubHaConsensoMkt;
+window.hubDentroElenco = hubDentroElenco;
+window.hubValutaRegolaContatto = hubValutaRegolaContatto;
+window.hubValutaQuandoContatto = hubValutaQuandoContatto;
+window.hubCompleannoVuoto = hubCompleannoVuoto;
+window.hubCompleannoPieno = hubCompleannoPieno;
+window.hubDescriviCompleanno = hubDescriviCompleanno;
+window.hubContaCompleanno = hubContaCompleanno;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 12 · L'AMBIENTE DEGLI AGENTI

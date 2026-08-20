@@ -205,8 +205,12 @@ function WrRegolaCard({ regola: r, onCambia, onElimina, legame, righe }) {
 
 // ─── Il menu «aggiungi una regola» ──────────────────────────────────────────
 
-function WrAggiungi({ onScegli, etichetta = 'Aggiungi una regola' }) {
+// `generi` restringe i generi offerti: su un innesco «l'esito del passo prima»
+// non esiste — non c'è un passo prima — e offrirlo è promettere una domanda a
+// cui il motore non può rispondere.
+function WrAggiungi({ onScegli, etichetta = 'Aggiungi una regola', generi }) {
   const [aperto, setAperto] = useStateWr(false);
+  const voci = generi ? WR_GENERI.filter(g => generi.indexOf(g.id) !== -1) : WR_GENERI;
   if (!aperto) {
     return (
       <button onClick={() => setAperto(true)} style={{
@@ -218,7 +222,7 @@ function WrAggiungi({ onScegli, etichetta = 'Aggiungi una regola' }) {
   }
   return (
     <div style={{ padding: 7, border: `1px solid ${ADM.PINK}`, borderRadius: 10, background: '#fff', boxShadow: `0 10px 26px -12px ${ADM.HUB_GLOW}` }}>
-      {WR_GENERI.map(g => {
+      {voci.map(g => {
         const Ic = BuIcons[g.icona];
         return (
           <button key={g.id} onClick={() => { onScegli(g.id); setAperto(false); }} className="adm-actionrow" style={{
@@ -244,7 +248,7 @@ function WrAggiungi({ onScegli, etichetta = 'Aggiungi una regola' }) {
 
 // ─── La condizione intera ───────────────────────────────────────────────────
 
-function WrQuando({ quando, onCambia, righe }) {
+function WrQuando({ quando, onCambia, righe, generi, etichetta }) {
   const q = quando && quando.gruppi ? quando : hubQuandoVuoto();
   const gruppi = q.gruppi;
   const setG = (i, ng) => onCambia(Object.assign({}, q, { gruppi: gruppi.map((g, j) => j === i ? ng : g) }));
@@ -294,7 +298,8 @@ function WrQuando({ quando, onCambia, righe }) {
                   onElimina={() => setG(i, Object.assign({}, g, { regole: regole.filter((_, k) => k !== j) }))}/>
               ))}
               <div style={{ marginTop: regole.length ? 9 : 0 }}>
-                <WrAggiungi onScegli={gen => setG(i, Object.assign({}, g, { regole: [...regole, hubRegolaVuota(gen)] }))}/>
+                <WrAggiungi generi={generi} etichetta={etichetta}
+                  onScegli={gen => setG(i, Object.assign({}, g, { regole: [...regole, hubRegolaVuota(gen)] }))}/>
               </div>
             </div>
           </React.Fragment>

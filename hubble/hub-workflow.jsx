@@ -11,6 +11,10 @@
 
 const { useState: useStateWf, useMemo: useMemoWf, useRef: useRefWf } = React;
 
+// La voce di tendina dell'innesco compleanno, scritta una volta sola: è anche
+// il valore che la tendina ricerca quando il nodo è già configurato.
+const WF_TRIGGER_COMPLEANNO = 'Compleanno del contatto';
+
 const WF_STATI = {
   attivo:  { label: 'Attivo',  color: 'OK' },
   sospeso: { label: 'Sospeso', color: 'WARN' },
@@ -321,6 +325,141 @@ function WfWebhook({ nodo, onCambia }) {
         <WrSegmento attivo={nodo.seErrore || 'prosegui'} onCambia={v => onCambia('seErrore', v)}
           voci={[{ id: 'prosegui', l: 'Prosegue' }, { id: 'ferma', l: 'Ferma il contatto' }, { id: 'riprova', l: 'Riprova 3 volte' }]} piccolo/>
       </HubCampo>
+    </React.Fragment>
+  );
+}
+
+// ─── L'innesco «Compleanno del contatto» ────────────────────────────────────
+//
+// La ricorrenza più tipica del CRM, e l'unica che parte da un dato personale
+// delicato. Il pannello chiede tre cose, in quest'ordine: quanti giorni prima,
+// su chi si applica, e — non è una domanda, è un vincolo scritto — che cosa
+// NON si può fare con la data di nascita.
+//
+// «Su chi» non ha un valore che comprende tutti, e non è una dimenticanza: un
+// messaggio di compleanno a un lead commerciale che non ci ha mai parlato non
+// è una variante del messaggio, è un destinatario sbagliato. Chi accende
+// l'automazione dichiara il pubblico.
+function WfCompleanno({ config, onCambia }) {
+  const c = hubCompleannoPieno(config);
+  const anticipo = parseInt(c.anticipo, 10) || 0;
+  const tipiProp = HUB_PROP.tipo || { opzioni: [] };
+  const conta = hubContaCompleanno(c);
+  const set = (patch) => onCambia(Object.assign({}, c, patch));
+  const commutaTipo = (v) => set({ tipi: c.tipi.indexOf(v) === -1 ? [...c.tipi, v] : c.tipi.filter(x => x !== v) });
+
+  const numero = (n) => (
+    <span style={{ fontSize: 16.5, fontWeight: 800, color: ADM.TEXT, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(n)}</span>
+  );
+
+  return (
+    <React.Fragment>
+      <HubCampo label="Quanti giorni prima"
+        nota="0 vuol dire il giorno del compleanno. Con l'anticipo il messaggio arriva prima, per gli auguri che vogliono essere aperti con calma.">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ width: 92, flexShrink: 0 }}>
+            <HubInput tipo="number" valore={anticipo}
+              onCambia={v => set({ anticipo: Math.min(60, Math.max(0, parseInt(v, 10) || 0)) })}/>
+          </div>
+          <span style={{ fontSize: 13, color: ADM.MUTED, lineHeight: 1.4 }}>
+            {anticipo > 0
+              ? `Parte ${anticipo === 1 ? 'il giorno prima' : anticipo + ' giorni prima'} del compleanno`
+              : 'Parte il giorno stesso del compleanno'}
+          </span>
+        </div>
+      </HubCampo>
+
+      {/* Su chi si applica — obbligatorio, senza «tutti» */}
+      <div style={{ padding: 12, borderRadius: 10, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Su chi si applica</span>
+          <span style={{ flex: 1 }}/>
+          <HubPillola size="sm" color={c.tipi.length ? 'OK' : 'DANGER'}>{c.tipi.length ? 'Dichiarato' : 'Obbligatorio'}</HubPillola>
+        </div>
+
+        <div style={{ fontSize: 12.4, fontWeight: 700, color: ADM.MUTED, marginBottom: 6 }}>Tipologia di contatto</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {(tipiProp.opzioni || []).map(o => {
+            const on = c.tipi.indexOf(o.value) !== -1;
+            return (
+              <button key={o.value} type="button" onClick={() => commutaTipo(o.value)} style={{
+                padding: '6px 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 12.8, fontWeight: on ? 800 : 600,
+                border: `1.5px solid ${on ? ADM.HUB_VIOLA : ADM.BORDER}`,
+                background: on ? ADM.HUB_VIOLA_SOFT : '#fff',
+                color: on ? ADM.HUB_VIOLA_DARK : ADM.MUTED,
+                transition: 'all 120ms ease-out',
+              }}>{o.label}</button>
+            );
+          })}
+        </div>
+        {!c.tipi.length && (
+          <div style={{ marginTop: 8, fontSize: 12.2, color: '#8B1A1A', lineHeight: 1.45, fontWeight: 600 }}>
+            Scegli almeno una tipologia: non esiste un «tutti» predefinito. Un messaggio di
+            compleanno a chi non è il destinatario giusto non è una variante, è un errore.
+          </div>
+        )}
+
+        <div style={{ marginTop: 13, paddingTop: 12, borderTop: `1px solid ${ADM.BORDER}` }}>
+          <div style={{ fontSize: 12.4, fontWeight: 700, color: ADM.MUTED, marginBottom: 7 }}>
+            Elenchi e proprietà <span style={{ fontWeight: 600, color: ADM.MUTED_SOFT }}>— per restringere ancora</span>
+          </div>
+          {/* Gli stessi criteri dei rami, meno quelli che qui non hanno senso:
+              un innesco non ha un passo prima da cui leggere un esito, né un
+              percorso già iniziato in cui misurare una finestra di eventi. */}
+          <WrQuando quando={c.quando} generi={['proprieta', 'elenco']} etichetta="Aggiungi un criterio"
+            onCambia={q => set({ quando: q })} righe={typeof CONTATTI !== 'undefined' ? CONTATTI : []}/>
+        </div>
+      </div>
+
+      {/* Quanti sono davvero — prima di accendere, non dal primo report */}
+      <div style={{ borderRadius: 10, border: `1px solid ${ADM.BORDER}`, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+          <div style={{ padding: '11px 12px', borderRight: `1px solid ${ADM.BORDER}` }}>
+            <div style={{ fontSize: 11.4, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 3 }}>Nella selezione</div>
+            {conta ? numero(conta.dentro) : <span style={{ fontSize: 15, color: ADM.MUTED_LIGHT }}>—</span>}
+          </div>
+          <div style={{ padding: '11px 12px' }}>
+            <div style={{ fontSize: 11.4, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 3 }}>Con la data di nascita</div>
+            {conta ? numero(conta.conNascita) : <span style={{ fontSize: 15, color: ADM.MUTED_LIGHT }}>—</span>}
+          </div>
+        </div>
+        <div style={{ padding: '10px 12px', borderTop: `1px solid ${ADM.BORDER}`, background: ADM.PANEL_SOFT, fontSize: 12.2, color: ADM.MUTED, lineHeight: 1.5 }}>
+          {!conta ? (
+            <React.Fragment>I conteggi arrivano quando hai detto su chi si applica.</React.Fragment>
+          ) : conta.dentro === 0 ? (
+            <React.Fragment>
+              Con questi criteri non rientra nessun contatto: l'automazione non partirebbe per
+              nessuno, e non perché manchi una data.
+            </React.Fragment>
+          ) : conta.conNascita === 0 ? (
+            <React.Fragment>
+              Nessuno dei contatti scelti ha la data di nascita: così com'è, questa automazione
+              non parte per nessuno.
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              Il compleanno parte solo per chi la data ce l'ha: <strong style={{ color: ADM.TEXT }}>{fmtNum(conta.conNascita)}</strong> su {fmtNum(conta.dentro)}.
+              Di questi, <strong style={{ color: ADM.TEXT }}>{fmtNum(conta.raggiungibili)}</strong> hanno un consenso di marketing attivo adesso
+              {conta.protetti > 0 && <React.Fragment>, e {fmtNum(conta.protetti)} {conta.protetti === 1 ? 'è' : 'sono'} in regime protettivo e {conta.protetti === 1 ? 'resta fuori' : 'restano fuori'}</React.Fragment>}.
+              Il consenso vero si controlla al momento dell'invio, come in ogni altra automazione:
+              questo è quanti sarebbero oggi.
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+
+      {/* Il vincolo di trattamento. Non è una nota di stile: è il perimetro
+          entro cui questo innesco è lecito, e sta scritto dove si accende. */}
+      <div style={{ padding: '11px 12px', borderRadius: 10, background: ADM.WARN_SOFT }}>
+        <div style={{ fontSize: 10.6, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.WARN, marginBottom: 4 }}>Come si può usare la data</div>
+        <div style={{ fontSize: 12.4, color: '#7A4E00', lineHeight: 1.55 }}>
+          La data di nascita qui è <strong>solo la sveglia</strong>: dice quando far partire il
+          percorso e nient'altro. Non entra mai nella scelta di che cosa mandare — niente
+          contenuti, offerte o rami costruiti sull'età. Chi è in regime protettivo resta fuori a
+          prescindere dal consenso.
+        </div>
+      </div>
     </React.Fragment>
   );
 }
@@ -679,15 +818,48 @@ function HubWorkflowCanvas({ wf, nuovo, onChiudi }) {
               </div>
 
               {scelto.tipo === 'trigger' && (
-                <HubCampo label="Che cosa lo fa partire" nota="Un innesco solo per workflow: se ne servono due, si fanno due workflow.">
-                  <AdmSelect block value={scelto.testo} onChange={v => cambiaNodo('testo', v)} options={[
-                    { value: scelto.testo, label: scelto.testo },
-                    ...HUB_FORM.map(f => ({ value: 'Submission form «' + f.nome + '»', label: 'Submission form · ' + f.nome })),
-                    ...HUB_ELENCHI.map(e => ({ value: 'Entra nell\'elenco «' + e.nome + '»', label: 'Entra nell\'elenco · ' + e.nome })),
-                    { value: 'Una proprietà cambia valore', label: 'Una proprietà cambia valore' },
-                    { value: 'Ogni giorno a un\'ora fissa', label: 'Ogni giorno a un\'ora fissa' },
-                  ]}/>
-                </HubCampo>
+                <React.Fragment>
+                  <HubCampo label="Che cosa lo fa partire" nota="Un innesco solo per workflow: se ne servono due, si fanno due workflow.">
+                    {/* Il compleanno non è una frase come le altre: porta una
+                        configurazione, e la tendina deve ritrovarlo anche
+                        quando la scatola sul canvas dice «· 3 giorni prima». */}
+                    <AdmSelect block value={scelto.innesco === 'compleanno' ? WF_TRIGGER_COMPLEANNO : scelto.testo}
+                      onChange={v => {
+                        if (v === WF_TRIGGER_COMPLEANNO) {
+                          const cfg = hubCompleannoVuoto();
+                          setNodi(ns => wcMappa(ns, sel, n => Object.assign({}, n, {
+                            innesco: 'compleanno', compleanno: cfg, testo: hubDescriviCompleanno(cfg),
+                          })));
+                          return;
+                        }
+                        setNodi(ns => wcMappa(ns, sel, n => {
+                          const m = Object.assign({}, n, { testo: v });
+                          delete m.innesco; delete m.compleanno;
+                          return m;
+                        }));
+                      }} options={[
+                      // La frase corrente compare in tendina solo se non è già
+                      // una voce vera: col compleanno la voce c'è, e mostrarla
+                      // due volte vorrebbe dire poter scegliere quella senza
+                      // configurazione, che butterebbe via la sua.
+                      ...(scelto.innesco === 'compleanno' ? [] : [{ value: scelto.testo, label: scelto.testo }]),
+                      ...HUB_FORM.map(f => ({ value: 'Submission form «' + f.nome + '»', label: 'Submission form · ' + f.nome })),
+                      ...HUB_ELENCHI.map(e => ({ value: 'Entra nell\'elenco «' + e.nome + '»', label: 'Entra nell\'elenco · ' + e.nome })),
+                      { value: 'Una proprietà cambia valore', label: 'Una proprietà cambia valore' },
+                      { value: 'Ogni giorno a un\'ora fissa', label: 'Ogni giorno a un\'ora fissa' },
+                      { value: WF_TRIGGER_COMPLEANNO, label: WF_TRIGGER_COMPLEANNO },
+                    ]}/>
+                  </HubCampo>
+                  {scelto.innesco === 'compleanno' && (
+                    <WfCompleanno config={scelto.compleanno} onCambia={cfg => {
+                      // Come per l'attesa: la frase sulla scatola la genera la
+                      // configurazione, non la si scrive a mano da nessuna parte.
+                      setNodi(ns => wcMappa(ns, sel, n => Object.assign({}, n, {
+                        compleanno: cfg, testo: hubDescriviCompleanno(cfg),
+                      })));
+                    }}/>
+                  )}
+                </React.Fragment>
               )}
               {scelto.tipo === 'attesa' && (
                 <WrAttesa attesa={hubNodoAttesa(scelto) || hubAttesaVuota()} onCambia={a => {
