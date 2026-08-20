@@ -276,6 +276,231 @@ const MENUS_INIT = [
   { id:'estivo', name:'Menù estivo', active:false, schedule:'Da Giugno a Settembre', categories: [] },
 ];
 
+// ─── Traduzioni AI dei contenuti del menù ────────────────────────────────────
+// L'app consumer parla cinque lingue. Le stringhe dell'interfaccia le traduce
+// il prodotto; quello che scrive il ristoratore lo traduce l'AI. Due cose non
+// ci passano mai: il NOME DEL PIATTO, che resta in italiano perché è la parola
+// che il cliente dice al cameriere, e ALLERGENI ed etichette dietetiche, che
+// hanno un dizionario fisso uguale in tutti i locali — lì una parola inventata
+// non è una sfumatura di stile, è un problema sanitario.
+const APP_LINGUE = [
+  { code:'it', nome:'Italiano', bandiera:'🇮🇹' },
+  { code:'en', nome:'Inglese',  bandiera:'🇬🇧' },
+  { code:'es', nome:'Spagnolo', bandiera:'🇪🇸' },
+  { code:'fr', nome:'Francese', bandiera:'🇫🇷' },
+  { code:'de', nome:'Tedesco',  bandiera:'🇩🇪' },
+];
+const LINGUE_TRAD = APP_LINGUE.filter(l => l.code !== 'it');
+const linguaDi = (code) => APP_LINGUE.find(l => l.code === code) || APP_LINGUE[0];
+
+// Vocabolario del prototipo: serve a far uscire dalla finta AI qualcosa di
+// leggibile anche sui testi che il ristoratore scrive adesso, non solo su
+// quelli di esempio. Le chiavi si confrontano in minuscolo.
+const TRAD_TERMINI = {
+  'Basilico':          { en:'Basil', es:'Albahaca', fr:'Basilic', de:'Basilikum' },
+  'Aglio':             { en:'Garlic', es:'Ajo', fr:'Ail', de:'Knoblauch' },
+  'Rucola':            { en:'Rocket', es:'Rúcula', fr:'Roquette', de:'Rucola' },
+  'Marmellata':        { en:'Jam', es:'Mermelada', fr:'Confiture', de:'Marmelade' },
+  'Noci':              { en:'Walnuts', es:'Nueces', fr:'Noix', de:'Walnüsse' },
+  'Pepe nero':         { en:'Black pepper', es:'Pimienta negra', fr:'Poivre noir', de:'Schwarzer Pfeffer' },
+  'Pecorino':          { en:'Pecorino', es:'Pecorino', fr:'Pecorino', de:'Pecorino' },
+  'Cacao':             { en:'Cocoa', es:'Cacao', fr:'Cacao', de:'Kakao' },
+  'Lamponi':           { en:'Raspberries', es:'Frambuesas', fr:'Framboises', de:'Himbeeren' },
+  'Mirtilli':          { en:'Blueberries', es:'Arándanos', fr:'Myrtilles', de:'Heidelbeeren' },
+  'Rosmarino':         { en:'Rosemary', es:'Romero', fr:'Romarin', de:'Rosmarin' },
+  'Scaglie di grana':  { en:'Grana flakes', es:'Lascas de grana', fr:'Copeaux de grana', de:'Grana-Späne' },
+  'Pane':              { en:'Bread', es:'Pan', fr:'Pain', de:'Brot' },
+  'Pomodoro':          { en:'Tomato', es:'Tomate', fr:'Tomate', de:'Tomate' },
+  'Mozzarella':        { en:'Mozzarella', es:'Mozzarella', fr:'Mozzarella', de:'Mozzarella' },
+  'Funghi':            { en:'Mushrooms', es:'Setas', fr:'Champignons', de:'Pilze' },
+  'Olive':             { en:'Olives', es:'Aceitunas', fr:'Olives', de:'Oliven' },
+  'Patate':            { en:'Potatoes', es:'Patatas', fr:'Pommes de terre', de:'Kartoffeln' },
+  'Insalata':          { en:'Salad', es:'Ensalada', fr:'Salade', de:'Salat' },
+  'Uovo':              { en:'Egg', es:'Huevo', fr:'Œuf', de:'Ei' },
+  'Fresco':            { en:'fresh', es:'fresco', fr:'frais', de:'frisch' },
+  'Tostato':           { en:'toasted', es:'tostado', fr:'grillé', de:'geröstet' },
+  'Casereccio':        { en:'homemade', es:'casero', fr:'de campagne', de:'hausgemacht' },
+  'Olio':              { en:'Oil', es:'Aceite', fr:'Huile', de:'Öl' },
+  'Peperoncino':       { en:'Chilli', es:'Guindilla', fr:'Piment', de:'Chili' },
+  'Parmigiano':        { en:'Parmesan', es:'Parmesano', fr:'Parmesan', de:'Parmesan' },
+};
+const TERMINI_LC = Object.keys(TRAD_TERMINI).reduce((acc, k) => {
+  acc[k.toLowerCase()] = TRAD_TERMINI[k];
+  return acc;
+}, {});
+
+// Le descrizioni dei piatti di esempio, già tradotte: sono il risultato che la
+// finta AI restituisce quando il testo italiano è ancora quello di partenza.
+const TRAD_DESC = {
+  a1: { en:'Toasted country bread, fresh tomato, basil, garlic',
+        es:'Pan casero tostado, tomate fresco, albahaca, ajo',
+        fr:'Pain de campagne grillé, tomate fraîche, basilic, ail',
+        de:'Geröstetes Landbrot, frische Tomate, Basilikum, Knoblauch' },
+  a2: { en:'Apulian burrata, 24-month aged Parma ham',
+        es:'Burrata de Puglia, jamón de Parma curado 24 meses',
+        fr:'Burrata des Pouilles, jambon de Parme 24 mois',
+        de:'Burrata aus Apulien, 24 Monate gereifter Parmaschinken' },
+  a3: { en:'Selection of local cured meats and cheeses with jams',
+        es:'Selección de embutidos y quesos locales con mermeladas',
+        fr:'Sélection de charcuteries et fromages locaux avec confitures',
+        de:'Auswahl regionaler Wurst- und Käsespezialitäten mit Marmeladen' },
+  p1: { en:'Tonnarelli, guanciale, pecorino, egg, black pepper',
+        es:'Tonnarelli, guanciale, pecorino, huevo, pimienta negra',
+        fr:'Tonnarelli, guanciale, pecorino, œuf, poivre noir',
+        de:'Tonnarelli, Guanciale, Pecorino, Ei, schwarzer Pfeffer' },
+  p2: { en:'Tonnarelli, PDO Pecorino Romano, freshly ground black pepper',
+        es:'Tonnarelli, pecorino romano DOP, pimienta negra recién molida',
+        fr:'Tonnarelli, pecorino romano AOP, poivre noir fraîchement moulu',
+        de:'Tonnarelli, Pecorino Romano g.U., frisch gemahlener schwarzer Pfeffer' },
+  p3: { en:'Bucatini, guanciale, San Marzano tomato, pecorino',
+        es:'Bucatini, guanciale, tomate San Marzano, pecorino',
+        fr:'Bucatini, guanciale, tomate San Marzano, pecorino',
+        de:'Bucatini, Guanciale, San-Marzano-Tomaten, Pecorino' },
+  s1: { en:'Heifer sirloin, rocket, grana flakes',
+        es:'Entrecot de ternera, rúcula, lascas de grana',
+        fr:'Faux-filet de génisse, roquette, copeaux de grana',
+        de:'Färsen-Roastbeef, Rucola, Grana-Späne' },
+  s2: { en:'Sea bass in a salt crust, rosemary potatoes',
+        es:'Lubina a la sal, patatas al romero',
+        fr:'Bar en croûte de sel, pommes de terre au romarin',
+        de:'Wolfsbarsch in der Salzkruste, Rosmarinkartoffeln' },
+  d1: { en:'Traditional recipe with ladyfingers and mascarpone',
+        es:'Receta tradicional con bizcochos de soletilla y mascarpone',
+        fr:'Recette traditionnelle aux boudoirs et mascarpone',
+        de:'Traditionelles Rezept mit Löffelbiskuits und Mascarpone' },
+  d2: { en:'Raspberry and blueberry coulis',
+        es:'Coulis de frambuesas y arándanos',
+        fr:'Coulis de framboises et myrtilles',
+        de:'Himbeer-Heidelbeer-Coulis' },
+};
+
+// I buchi voluti: piatti che partono senza una o più lingue, perché lo stato
+// «da generare» si deve poter vedere senza doverlo provocare.
+const TRAD_BUCHI = { a1: ['es','de'], p1: ['de'], d1: ['fr'], a3: ['en','es','fr','de'] };
+
+const traduciTermine = (testo, lingua) => {
+  const t = (testo || '').trim();
+  if (!t) return '';
+  const dritto = TERMINI_LC[t.toLowerCase()];
+  if (dritto && dritto[lingua]) return dritto[lingua];
+  // Parola per parola: quello che il vocabolario non sa resta com'è — è anche
+  // il comportamento vero di una traduzione automatica sui nomi propri.
+  const parole = t.split(' ');
+  const tradotte = parole.map((p, i) => {
+    const pulita = p.replace(/[.,;:]/g, '').toLowerCase();
+    const voce = TERMINI_LC[pulita];
+    if (!voce || !voce[lingua]) return p;
+    const v = voce[lingua];
+    return i === 0 ? v.charAt(0).toUpperCase() + v.slice(1) : v.toLowerCase();
+  });
+  return tradotte.join(' ');
+};
+
+const traduciTesto = (testo, lingua) => (testo || '')
+  .split(/,\s*/)
+  .map(pezzo => traduciTermine(pezzo, lingua))
+  .join(', ');
+
+// Traduzioni del prototipo: dishId → lingua → chiave voce → {t, manuale, vecchia}.
+// `manuale` = corretta dal ristoratore, non si rigenera più da sola.
+// `vecchia` = corretta a mano ma non più allineata all'italiano, perché lui ha
+// scelto di conservarla dopo aver cambiato il testo originale.
+const DISH_TRADUZIONI = {};
+
+// Le voci traducibili di un piatto, nell'ordine in cui si leggono nel piatto.
+// Il nome non c'è: quello non si traduce mai.
+function vociTraducibili({ desc, variants, extras, ingredients }) {
+  const voci = [{ key:'desc', gruppo:'Descrizione', label:'Descrizione breve', it: desc || '', lungo:true }];
+  (variants || []).forEach((v, i) => {
+    if (v.name) voci.push({ key:`var:${i}`, gruppo:'Opzioni', label:'Nome del gruppo', it:v.name });
+    (v.options || []).forEach((o, j) => {
+      if (o) voci.push({ key:`var:${i}:${j}`, gruppo:'Opzioni', label:`Opzione di «${v.name || 'gruppo senza nome'}»`, it:o });
+    });
+  });
+  (extras || []).forEach((e, i) => {
+    if (e.name) voci.push({ key:`extra:${i}`, gruppo:'Opzioni', label:'Ingrediente aggiungibile', it:e.name });
+  });
+  (ingredients || []).forEach((ing, i) => {
+    if (ing.removable && ing.name) voci.push({ key:`ingr:${i}`, gruppo:'Opzioni', label:'Ingrediente rimuovibile', it:ing.name });
+  });
+  return voci;
+}
+
+// Cosa restituisce la finta AI per una voce. Sulla descrizione dei piatti di
+// esempio torna la frase scritta a mano qui sopra, ma solo finché l'italiano è
+// quello di partenza: se il ristoratore l'ha riscritta, si traduce la sua.
+const generaVoce = (dishId, lingua, voce) => {
+  if (voce.key === 'desc') {
+    const originale = (DISH_LIBRARY.find(d => d.id === dishId) || {}).desc;
+    const pronta = (TRAD_DESC[dishId] || {})[lingua];
+    if (pronta && (voce.it || '').trim() === (originale || '').trim()) return pronta;
+    return traduciTesto(voce.it, lingua);
+  }
+  return traduciTermine(voce.it, lingua);
+};
+
+(function seedTraduzioni() {
+  DISH_LIBRARY.forEach(d => {
+    const perLingua = {};
+    LINGUE_TRAD.forEach(l => {
+      if ((TRAD_BUCHI[d.id] || []).includes(l.code)) return; // lingua da generare
+      const voci = {};
+      vociTraducibili(d).forEach(v => { voci[v.key] = { t: generaVoce(d.id, l.code, v) }; });
+      perLingua[l.code] = voci;
+    });
+    DISH_TRADUZIONI[d.id] = perLingua;
+  });
+  // Due voci corrette a mano, perché anche quello stato si veda da subito.
+  DISH_TRADUZIONI.p1.es.desc = {
+    t: 'Tonnarelli con guanciale, pecorino, huevo y pimienta negra: la receta romana de siempre',
+    manuale: true,
+  };
+  DISH_TRADUZIONI.a1.en['ingr:2'] = { t: 'Fresh Genovese basil', manuale: true };
+})();
+
+const traduzioniDi = (dishId) => DISH_TRADUZIONI[dishId] || (DISH_TRADUZIONI[dishId] = {});
+
+// Rigenerazione dopo una modifica dell'italiano: le voci dell'AI si rifanno in
+// silenzio, quelle corrette a mano si toccano solo se lo chiede lui.
+const rigeneraAutomatiche = (dishId, voci) => {
+  const per = traduzioniDi(dishId);
+  Object.keys(per).forEach(lingua => {
+    voci.forEach(v => {
+      const voce = per[lingua][v.key];
+      if (voce && voce.manuale) return;
+      per[lingua][v.key] = { t: generaVoce(dishId, lingua, v) };
+    });
+  });
+};
+
+// Le lingue in cui QUESTA voce è stata corretta a mano: sono le sole che
+// meritano una domanda quando l'italiano cambia.
+const lingueManuali = (dishId, key) => {
+  const per = traduzioniDi(dishId);
+  return LINGUE_TRAD
+    .filter(l => per[l.code] && per[l.code][key] && per[l.code][key].manuale)
+    .map(l => ({ ...l, testo: per[l.code][key].t }));
+};
+
+// L'interruttore vive in Servizio → Visibilità dei menù, ma chi lo legge è
+// l'editor del piatto, che sta in un'altra sotto-pagina: stessa strada del
+// calendario dei menù, un valore solo e un evento per chi lo guarda.
+let TRADUZIONI_ATTIVE = true;
+window.byupTraduzioniAttive = () => TRADUZIONI_ATTIVE;
+window.byupSetTraduzioniAttive = function (v) {
+  TRADUZIONI_ATTIVE = !!v;
+  window.dispatchEvent(new CustomEvent('byup-traduzioni-menu', { detail: { attive: TRADUZIONI_ATTIVE } }));
+};
+function useTraduzioniAttive() {
+  const [attive, setAttive] = React.useState(TRADUZIONI_ATTIVE);
+  React.useEffect(() => {
+    const h = (e) => setAttive(e.detail.attive);
+    window.addEventListener('byup-traduzioni-menu', h);
+    return () => window.removeEventListener('byup-traduzioni-menu', h);
+  }, []);
+  return attive;
+}
+
 function MCLibreria() {
   const [library, setLibrary] = React.useState(DISH_LIBRARY);
   const [menus] = React.useState(MENUS_INIT);
@@ -2750,6 +2975,396 @@ function MCConfermaModal({ icona, titolo, testo, conferma, pericolo, onAnnulla, 
   );
 }
 
+// ─── Traduzioni del piatto: il popup ─────────────────────────────────────────
+// Tutte e cinque le lingue insieme, non una tendina da cui sceglierne una: il
+// ristoratore che apre di qui vuole vedere dove manca qualcosa, e con una
+// lingua alla volta i buchi non si vedono. L'italiano c'è come originale — è il
+// testo da cui l'AI parte — ma si modifica nel piatto, non qui dentro.
+function TradPastiglia({ tono = 'neutro', children }) {
+  const toni = {
+    neutro: { bg: '#F1F3F6', fg: PN.MUTED },
+    mano:   { bg: PN.BLUE_SOFT, fg: PN.BLUE },
+    vecchia:{ bg: PN.AMBER_SOFT, fg: PN.AMBER },
+    manca:  { bg: PN.AMBER_SOFT, fg: PN.AMBER },
+    ok:     { bg: PN.GREEN_SOFT, fg: PN.GREEN },
+  };
+  const t = toni[tono] || toni.neutro;
+  return (
+    <span style={{
+      fontSize: 11.5, fontWeight: 700, letterSpacing: 0.2,
+      padding: '2px 8px', borderRadius: 999, background: t.bg, color: t.fg,
+      whiteSpace: 'nowrap',
+    }}>{children}</span>
+  );
+}
+
+function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
+  // Le traduzioni stanno nello store del prototipo: qui si tiene solo la
+  // matita — cosa si sta scrivendo e dove — e un contatore per rileggere lo
+  // store dopo averlo toccato.
+  const [bozze, setBozze] = React.useState({});
+  const [inCorso, setInCorso] = React.useState(null);
+  const [, ridisegna] = React.useReducer(x => x + 1, 0);
+  const per = traduzioniDi(dishId);
+
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    document.addEventListener('keydown', esc, true);
+    return () => document.removeEventListener('keydown', esc, true);
+  }, [onClose]);
+
+  const idBozza = (lingua, key) => `${lingua}|${key}`;
+  const scrivi = (lingua, key, t) => setBozze(b => ({ ...b, [idBozza(lingua, key)]: t }));
+  const scarta = (lingua, key) => setBozze(b => {
+    const n = { ...b }; delete n[idBozza(lingua, key)]; return n;
+  });
+
+  const conferma = (lingua, voce) => {
+    const t = bozze[idBozza(lingua, voce.key)];
+    if (t == null) return;
+    per[lingua] = per[lingua] || {};
+    per[lingua][voce.key] = { t: t.trim(), manuale: true };
+    scarta(lingua, voce.key);
+    ridisegna();
+  };
+
+  const tornaAutomatica = (lingua, voce) => {
+    per[lingua] = per[lingua] || {};
+    per[lingua][voce.key] = { t: generaVoce(dishId, lingua, voce) };
+    scarta(lingua, voce.key);
+    ridisegna();
+  };
+
+  const generaLingua = (lingua) => {
+    setInCorso(lingua);
+    setTimeout(() => {
+      per[lingua] = per[lingua] || {};
+      voci.forEach(v => { if (!per[lingua][v.key]) per[lingua][v.key] = { t: generaVoce(dishId, lingua, v) }; });
+      setInCorso(null);
+      ridisegna();
+    }, 900);
+  };
+
+  const statoLingua = (code) => {
+    const voceMancante = !per[code] || voci.some(v => !per[code][v.key]);
+    if (!per[code]) return 'manca';
+    if (voci.some(v => per[code][v.key] && per[code][v.key].vecchia)) return 'vecchia';
+    if (voceMancante) return 'parziale';
+    if (voci.some(v => per[code][v.key] && per[code][v.key].manuale)) return 'mano';
+    return 'ok';
+  };
+
+  const campoStile = (lungo) => ({
+    ...MC_INPUT, fontSize: 14.5, padding: '8px 10px',
+    ...(lungo ? { resize: 'none', lineHeight: 1.45 } : {}),
+  });
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,17,21,0.45)',
+      display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{
+        background: PN.WHITE, borderRadius: 16, width: 760, maxWidth: '100%',
+        maxHeight: '86vh', display: 'flex', flexDirection: 'column',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.22)',
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        {/* Testata */}
+        <div style={{
+          padding: '15px 18px', borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+          display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+        }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
+            background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+          }}><BuAiSparkle size={15} color={PN.PINK_DARK}/></div>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.3}}>Traduzioni del piatto</div>
+            <div style={{fontSize: 13, color: PN.MUTED, marginTop: 1}}>Come questo piatto si legge nelle lingue dell'app</div>
+          </div>
+          <button onClick={onClose} title="Chiudi" style={{
+            padding: 0, width: 28, height: 28, borderRadius: 7, border: 'none', background: 'transparent',
+            color: PN.MUTED, cursor: 'pointer', display: 'grid', placeItems: 'center',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = '#EDEFF2'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          ><PnI.X size={13}/></button>
+        </div>
+
+        {/* minHeight 0: in una colonna flex un figlio non scende sotto il suo
+            contenuto se non glielo si dice, e il popup sfonderebbe il maxHeight
+            invece di far scorrere le lingue. */}
+        <div className="pn-scroll" style={{
+          flex: '1 1 auto', minHeight: 0, overflow: 'auto', padding: '16px 18px',
+          display: 'flex', flexDirection: 'column', gap: 14,
+        }}>
+          {/* Il nome, in sola lettura: è il pezzo che non si traduce mai */}
+          <div style={{
+            padding: '12px 13px', borderRadius: 11, flexShrink: 0,
+            background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`,
+          }}>
+            <div style={{
+              fontSize: 11.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase',
+              color: PN.MUTED_SOFT, marginBottom: 6,
+            }}>Nome del piatto · non si traduce</div>
+            <div style={{
+              padding: '8px 11px', borderRadius: 8, background: PN.WHITE,
+              border: `1px solid ${PN.BORDER}`, fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
+            }}>{nome}</div>
+            <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.5}}>
+              Il nome resta in italiano in tutte le lingue: è la parola che il cliente legge
+              nel menù e quella che dice al cameriere, e se cambia a schermo nessuno dei due
+              capisce l'altro. Anche <strong style={{color: PN.TEXT}}>allergeni ed etichette
+              dietetiche</strong> non passano di qui: hanno un dizionario fisso, uguale in
+              tutti i locali.
+            </div>
+          </div>
+
+          {APP_LINGUE.map(l => {
+            const originale = l.code === 'it';
+            const stato = originale ? null : statoLingua(l.code);
+            const mancaTutto = !originale && !per[l.code];
+            return (
+              <div key={l.code} style={{
+                border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow: 'hidden',
+                background: PN.WHITE, flexShrink: 0,
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 9,
+                  padding: '10px 12px', background: '#F8FAFC',
+                  borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+                }}>
+                  <span style={{fontSize: 17, lineHeight: 1}}>{l.bandiera}</span>
+                  <span style={{flex: 1, fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{l.nome}</span>
+                  {originale && <TradPastiglia>Originale</TradPastiglia>}
+                  {stato === 'manca' && <TradPastiglia tono="manca">Da generare</TradPastiglia>}
+                  {stato === 'parziale' && <TradPastiglia tono="manca">Voci da generare</TradPastiglia>}
+                  {stato === 'vecchia' && <TradPastiglia tono="vecchia">Corretta da te · non allineata</TradPastiglia>}
+                  {stato === 'mano' && <TradPastiglia tono="mano">Corretta da te</TradPastiglia>}
+                  {stato === 'ok' && <TradPastiglia tono="ok">Tradotta dall'AI</TradPastiglia>}
+                </div>
+
+                {mancaTutto ? (
+                  <div style={{
+                    margin: 12, padding: '18px 14px', borderRadius: 10, textAlign: 'center',
+                    background: '#FFFDF5', border: `1px dashed ${PN.AMBER}`,
+                  }}>
+                    <div style={{fontSize: 14.5, fontWeight: 700, color: '#8A5A00', marginBottom: 3}}>
+                      Traduzione da generare
+                    </div>
+                    <div style={{fontSize: 13, color: PN.MUTED, marginBottom: 12, lineHeight: 1.5}}>
+                      Di questo piatto non c'è ancora niente in {l.nome.toLowerCase()}: chi ha l'app
+                      in questa lingua legge l'italiano finché non la generi.
+                    </div>
+                    <ImpButton variant="ghost" onClick={() => generaLingua(l.code)} disabled={inCorso === l.code}
+                      style={{padding: '8px 14px', fontSize: 14}}>
+                      {inCorso === l.code ? '⏳ Sto traducendo…' : 'Genera con l’AI'}
+                    </ImpButton>
+                  </div>
+                ) : (
+                  <div style={{padding: 12, display: 'flex', flexDirection: 'column', gap: 8}}>
+                    {originale && (
+                      <div style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.45, marginBottom: 2}}>
+                        È il testo da cui parte l'AI. Si modifica nel piatto, non qui.
+                      </div>
+                    )}
+                    {voci.map(v => {
+                      const voce = originale ? { t: v.it } : per[l.code][v.key];
+                      const chiave = idBozza(l.code, v.key);
+                      const bozza = bozze[chiave];
+                      const modificata = bozza != null && bozza.trim() !== (voce ? voce.t : '');
+                      return (
+                        <div key={v.key} style={{
+                          padding: '9px 11px', borderRadius: 9,
+                          border: `1px solid ${PN.BORDER_SOFT}`, background: originale ? '#FCFCFD' : PN.WHITE,
+                        }}>
+                          <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5}}>
+                            <span style={{
+                              flex: 1, fontSize: 11.5, fontWeight: 800, letterSpacing: 0.4,
+                              textTransform: 'uppercase', color: PN.MUTED_SOFT,
+                            }}>{v.label}</span>
+                            {!originale && voce && voce.manuale && voce.vecchia && <TradPastiglia tono="vecchia">Non allineata</TradPastiglia>}
+                            {!originale && voce && voce.manuale && !voce.vecchia && <TradPastiglia tono="mano">Corretta da te</TradPastiglia>}
+                          </div>
+
+                          {!originale && (
+                            <div style={{fontSize: 12.5, color: PN.MUTED, marginBottom: 6, lineHeight: 1.4}}>
+                              <span style={{color: PN.MUTED_SOFT}}>Italiano: </span>{v.it || '—'}
+                            </div>
+                          )}
+
+                          {!voce ? (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: 10,
+                              padding: '8px 10px', borderRadius: 8,
+                              background: '#FFFDF5', border: `1px dashed ${PN.AMBER}`,
+                            }}>
+                              <span style={{flex: 1, fontSize: 13.5, color: '#8A5A00', fontWeight: 600}}>Da generare</span>
+                              <button onClick={() => generaLingua(l.code)} style={{
+                                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK,
+                              }}>Genera</button>
+                            </div>
+                          ) : v.lungo ? (
+                            <textarea value={bozza != null ? bozza : voce.t} rows={2} readOnly={originale}
+                              onChange={e => scrivi(l.code, v.key, e.target.value)}
+                              style={{...campoStile(true), background: originale ? '#F7F8FA' : PN.WHITE, color: originale ? PN.MUTED : PN.TEXT}}/>
+                          ) : (
+                            <input value={bozza != null ? bozza : voce.t} readOnly={originale}
+                              onChange={e => scrivi(l.code, v.key, e.target.value)}
+                              style={{...campoStile(false), background: originale ? '#F7F8FA' : PN.WHITE, color: originale ? PN.MUTED : PN.TEXT}}/>
+                          )}
+
+                          {!originale && voce && (
+                            <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap'}}>
+                              {modificata ? (
+                                <React.Fragment>
+                                  <ImpButton variant="pink" onClick={() => conferma(l.code, v)} style={{padding: '6px 12px', fontSize: 13.5}}>
+                                    Conferma correzione
+                                  </ImpButton>
+                                  <button onClick={() => scarta(l.code, v.key)} style={{
+                                    background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                                    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                                  }}>Annulla</button>
+                                  <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.4}}>
+                                    Confermata, resta tua: l'AI non la riscrive più.
+                                  </span>
+                                </React.Fragment>
+                              ) : voce.manuale ? (
+                                <React.Fragment>
+                                  <button onClick={() => tornaAutomatica(l.code, v)} style={{
+                                    background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                                    fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK,
+                                  }}>Torna alla traduzione automatica</button>
+                                  <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.4}}>
+                                    {voce.vecchia
+                                      ? 'L’hai conservata dopo aver cambiato l’italiano: non dice più la stessa cosa.'
+                                      : 'Questa l’hai scritta tu: l’AI la lascia stare.'}
+                                  </span>
+                                </React.Fragment>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{
+          padding: '12px 18px', borderTop: `1px solid ${PN.BORDER_SOFT}`, background: '#FCFCFD',
+          display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+        }}>
+          <span style={{flex: 1, fontSize: 12.5, color: PN.MUTED, lineHeight: 1.4}}>
+            Le correzioni si confermano una per una, dove le scrivi.
+          </span>
+          <ImpButton variant="pink" onClick={onClose} style={{padding: '8px 16px', fontSize: 14}}>Fatto</ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Descrizione cambiata: cosa ne facciamo delle correzioni a mano ──────────
+// Le traduzioni dell'AI si rifanno da sole e non c'è niente da chiedere. Quelle
+// che ha scritto lui sono un'altra cosa: rifarle è buttare via il suo lavoro,
+// tenerle è lasciare in giro una frase che non dice più quello che dice
+// l'italiano. Sceglie lui, lingua per lingua — e se conserva, la voce resta sua
+// ma segnata come non più allineata, così la prossima volta lo sa.
+function MCRigeneraModal({ nome, lingue, onAnnulla, onConferma }) {
+  const [scelte, setScelte] = React.useState(() =>
+    lingue.reduce((acc, l) => { acc[l.code] = 'rigenera'; return acc; }, {}));
+
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onAnnulla(); } };
+    document.addEventListener('keydown', esc, true);
+    return () => document.removeEventListener('keydown', esc, true);
+  }, [onAnnulla]);
+
+  const SceltaBtn = ({ code, valore, children }) => {
+    const on = scelte[code] === valore;
+    return (
+      <button onClick={() => setScelte(s => ({ ...s, [code]: valore }))} style={{
+        padding: '6px 12px', borderRadius: 999,
+        border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
+        background: on ? PN.TEXT : PN.WHITE,
+        color: on ? PN.WHITE : PN.TEXT,
+        fontSize: 13.5, fontWeight: on ? 700 : 600,
+        cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+        transition: 'all .12s',
+      }}>{children}</button>
+    );
+  };
+
+  return (
+    <div onClick={onAnnulla} style={{
+      position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,17,21,0.45)',
+      display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'impOverlayIn 0.18s ease-out',
+    }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{
+        background: PN.WHITE, borderRadius: 14, padding: '20px 20px 16px',
+        width: 560, maxWidth: '100%', maxHeight: '84vh', overflow: 'auto',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.22)',
+        display: 'flex', flexDirection: 'column', gap: 13,
+        animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
+      }}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
+            background: PN.PINK_BG_SOFT, color: PN.PINK_DARK,
+          }}><BuAiSparkle size={15} color={PN.PINK_DARK}/></div>
+          <div style={{fontSize: 17.5, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.3}}>
+            Hai cambiato la descrizione
+          </div>
+        </div>
+
+        <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5}}>
+          Le traduzioni di <strong style={{color: PN.TEXT}}>«{nome}»</strong> fatte dall'AI si
+          rifanno da sole sul testo nuovo. Queste invece le hai corrette tu: dicci cosa farne.
+        </div>
+
+        <div style={{display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0}}>
+          {lingue.map(l => (
+            <div key={l.code} style={{
+              padding: '10px 12px', borderRadius: 10, flexShrink: 0,
+              border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
+            }}>
+              <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5}}>
+                <span style={{fontSize: 16, lineHeight: 1}}>{l.bandiera}</span>
+                <span style={{flex: 1, fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{l.nome}</span>
+              </div>
+              <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45, marginBottom: 9}}>«{l.testo}»</div>
+              <div style={{display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap'}}>
+                <SceltaBtn code={l.code} valore="rigenera">Rigenera</SceltaBtn>
+                <SceltaBtn code={l.code} valore="conserva">Conserva com’è</SceltaBtn>
+                <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.4}}>
+                  {scelte[l.code] === 'rigenera'
+                    ? 'La riscrive l’AI sul testo nuovo.'
+                    : 'Resta tua, segnata come non più allineata.'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onAnnulla} style={{padding: '9px 15px', fontSize: 14.5}}>Annulla</ImpButton>
+          <ImpButton variant="pink" onClick={() => onConferma(scelte)} style={{padding: '9px 15px', fontSize: 14.5}}>
+            Applica e salva
+          </ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Scheda del dettaglio piatto: pastiglia con l'icona, titolo, una riga che
 // spiega a cosa serve. È il contenitore delle sezioni lunghe — quelle brevi
 // continuano a stare sotto la loro etichetta maiuscola (MCSezione).
@@ -2796,6 +3411,11 @@ function MCDettagliPiatto({
   const [aiLoading, setAiLoading] = React.useState(false);
   // Quale conferma è aperta: 'menu' (togli da questo menù) o 'libreria' (via da tutti).
   const [conferma, setConferma] = React.useState(null);
+  // Traduzioni: il popup di sola lettura+correzione, e quello che chiede cosa
+  // fare delle correzioni a mano quando l'italiano cambia sotto ai piedi.
+  const traduzioniOn = useTraduzioniAttive();
+  const [traduzioniOpen, setTraduzioniOpen] = React.useState(false);
+  const [rigenera, setRigenera] = React.useState(null);
 
   // Dati che vivono nel MENÙ, non nella libreria: prezzo e disponibilità. Il
   // prezzo è uno solo, ovunque. I canali qui non si toccano più, ma vanno
@@ -2836,8 +3456,14 @@ function MCDettagliPiatto({
     }, 1100);
   };
 
-  const salva = () => {
-    if (!name.trim()) { alert('Inserisci il nome del piatto'); return; }
+  // Le voci che l'AI traduce di questo piatto, com'è adesso nella maschera:
+  // il popup le legge da qui, così quello che si vede tradotto è quello che si
+  // sta scrivendo, non quello che c'era in libreria all'apertura.
+  const vociTrad = React.useMemo(
+    () => vociTraducibili({ desc, variants, extras, ingredients }),
+    [desc, variants, extras, ingredients]);
+
+  const scriviPiatto = () => {
     onSaveDish({
       id: dish.id, name: name.trim(), desc: desc.trim(), cat: dish.cat,
       allergens: effectiveAllergens,
@@ -2849,6 +3475,19 @@ function MCDettagliPiatto({
       price: parseFloat(String(prezzo).replace(',', '.')) || 0,
       active: attivo, channels: canali,
     });
+  };
+
+  const salva = () => {
+    if (!name.trim()) { alert('Inserisci il nome del piatto'); return; }
+    const descCambiata = desc.trim() !== (dish.desc || '').trim();
+    if (traduzioniOn && descCambiata) {
+      const aMano = lingueManuali(dish.id, 'desc');
+      // La domanda si fa solo se c'è qualcosa di suo da perdere: se le
+      // traduzioni sono tutte dell'AI si rifanno e basta, in silenzio.
+      if (aMano.length) { setRigenera(aMano); return; }
+      rigeneraAutomatiche(dish.id, vociTrad);
+    }
+    scriviPiatto();
   };
 
   const TABS = [
@@ -2923,7 +3562,21 @@ function MCDettagliPiatto({
               <input value={name} maxLength={80} onChange={e => setName(e.target.value)} style={MC_INPUT}/>
             </MCCampo>
 
-            <MCCampo label="Descrizione breve" right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{desc.length}/160</span>}>
+            <MCCampo label="Descrizione breve" right={
+              <div style={{display: 'inline-flex', alignItems: 'center', gap: 10}}>
+                {/* Solo se le traduzioni sono accese: spente, non c'è niente da vedere */}
+                {traduzioniOn && (
+                  <button onClick={() => setTraduzioniOpen(true)} style={{
+                    background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: PN.PINK_DARK,
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                  }}>
+                    <BuAiSparkle size={11} color={PN.PINK_DARK}/> Vedi traduzioni
+                  </button>
+                )}
+                <span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{desc.length}/160</span>
+              </div>
+            }>
               <textarea value={desc} maxLength={160} rows={3} onChange={e => setDesc(e.target.value)}
                 style={{...MC_INPUT, resize: 'none', lineHeight: 1.45}}/>
             </MCCampo>
@@ -3199,6 +3852,39 @@ function MCDettagliPiatto({
           conferma="Sì, elimina"
           onAnnulla={() => setConferma(null)}
           onConferma={() => { setConferma(null); onDeleteFromLibrary(); }}
+        />
+      )}
+
+      {traduzioniOpen && (
+        <MCTraduzioniModal
+          dishId={dish.id}
+          nome={name || dish.name}
+          voci={vociTrad}
+          onClose={() => setTraduzioniOpen(false)}
+        />
+      )}
+
+      {rigenera && (
+        <MCRigeneraModal
+          nome={name || dish.name}
+          lingue={rigenera}
+          onAnnulla={() => setRigenera(null)}
+          onConferma={(scelte) => {
+            const per = traduzioniDi(dish.id);
+            // Prima le automatiche, che non hanno bisogno di essere chieste…
+            rigeneraAutomatiche(dish.id, vociTrad);
+            // …poi le sue, una alla volta, come ha deciso lui.
+            rigenera.forEach(l => {
+              const voce = vociTrad.find(v => v.key === 'desc');
+              if (scelte[l.code] === 'rigenera') {
+                per[l.code].desc = { t: generaVoce(dish.id, l.code, voce) };
+              } else {
+                per[l.code].desc = { t: l.testo, manuale: true, vecchia: true };
+              }
+            });
+            setRigenera(null);
+            scriviPiatto();
+          }}
         />
       )}
     </section>
@@ -6116,7 +6802,58 @@ function ServizioVisibilitaMenu() {
           );
         })}
       </div>
+
+      <ServizioTraduzioniMenu/>
     </ImpCard>
+  );
+}
+
+// ─── Servizio · Traduzione automatica dei menù ───────────────────────────────
+// Sta sotto i menù e non in una sezione sua perché è la stessa domanda: come si
+// fa vedere il menù al cliente. L'orario decide quando, questo interruttore in
+// che lingua. Quello che l'AI non tocca è scritto qui e non solo nel popup del
+// piatto: chi accende deve sapere subito dove si ferma.
+function ServizioTraduzioniMenu() {
+  const attive = window.byupTraduzioniAttive();
+  const [, ridisegna] = React.useReducer(x => x + 1, 0);
+  const cambia = (v) => { window.byupSetTraduzioniAttive(v); ridisegna(); };
+
+  return (
+    <div style={{borderTop: `1px solid ${PN.BORDER_SOFT}`, marginTop: 14, paddingTop: 14}}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '11px 12px', borderRadius: 8,
+        background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+      }}>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>Traduzione automatica dei menù</div>
+          <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.45}}>
+            Descrizioni, gruppi di opzioni e ingredienti aggiungibili o rimuovibili vengono
+            tradotti dall'AI nelle lingue dell'app — inglese, spagnolo, francese, tedesco. I
+            nomi dei piatti restano sempre in italiano; allergeni ed etichette dietetiche non
+            passano dall'AI, hanno un dizionario fisso uguale in tutti i locali.
+          </div>
+        </div>
+        <div style={{flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 9}}>
+          <ImpToggle checked={attive} onChange={cambia}/>
+          <span style={{fontSize: 13.5, fontWeight: 600, color: attive ? PN.TEXT : PN.MUTED}}>
+            {attive ? 'Attiva' : 'Disattivata'}
+          </span>
+        </div>
+      </div>
+
+      {!attive && (
+        <div style={{
+          marginTop: 10, padding: '9px 11px', borderRadius: 8,
+          background: '#FEF6E7', border: '1px solid #F0C36D',
+          fontSize: 12.5, lineHeight: 1.5, color: '#8A5A00',
+        }}>
+          Spenta, il menù <strong style={{color: '#7A4E00'}}>resta in italiano per tutti</strong>,
+          qualunque lingua abbia il cliente nell'app. Continuano a essere tradotti solo allergeni
+          ed etichette dietetiche: quelli vengono dal dizionario, non dall'AI.
+        </div>
+      )}
+    </div>
   );
 }
 
