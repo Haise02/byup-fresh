@@ -31,8 +31,15 @@ const PAY_FINE = 16000;
   el.id = 'salda-pay-kf';
   el.textContent = `
 @keyframes saldaPayPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.28; } }
+/* La cornice tratteggiata che gira intorno al prezzo mentre si corregge il
+   conto: dice che quel numero si può riscrivere senza doverlo scrivere da
+   nessuna parte. Il passo del tratteggio è 10 (6 di segno, 4 di vuoto) e lo
+   scorrimento arriva a 20, cioè due passi netti: il giro si richiude su sé
+   stesso e non si vede mai saltare. */
+@keyframes saldaAnts { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -20; } }
 @media (prefers-reduced-motion: reduce) {
   [style*="saldaPayPulse"] { animation: none !important; }
+  [style*="saldaAnts"] { animation: none !important; }
 }`;
   document.head.appendChild(el);
 })();
@@ -101,13 +108,26 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const [esito, setEsito] = React.useState(null);
   const [preContoStampato, setPreContoStampato] = React.useState(null); // null | timestamp
 
-  // DUE PASSI, non due colonne. Il conto e il pagamento erano affiancati: si
-  // apriva la finestra e si era già davanti a «Come paga il cliente?» mentre si
-  // stava ancora leggendo che cosa c'è sul tavolo. Sono due momenti diversi —
-  // prima si guarda il conto (e semmai se ne salda un pezzo), poi si incassa —
-  // e ora sono due schermate. La lista prende tutta la larghezza, come le righe
-  // del monitor di cucina: una cosa per riga e niente da cercare di lato.
-  const [passo, setPasso] = React.useState('conto');   // conto | pagamento
+  // DUE PASSI, non due colonne, e non tre schermate. Prima di questa finestra
+  // se ne aprivano due: un «Conto» da leggere e correggere, e dietro di lui il
+  // «Salda conto» spaccato in due colonne — i piatti a sinistra, i soldi a
+  // destra. Il primo era una tappa obbligata per arrivare a una cosa che la
+  // colonna di sinistra rifaceva daccapo, e le due colonne chiedevano insieme
+  // due domande che si fanno una dopo l'altra.
+  // Adesso il pulsante del tavolo apre direttamente il saldo, e il saldo è una
+  // finestra sola in due passi: prima COSA si salda — la lista a tutta
+  // larghezza, come le righe del monitor di cucina — poi QUANTO e COME. Il
+  // conto si corregge dove si legge, dentro il primo passo, entrando in
+  // «Modifica».
+  const [passo, setPasso] = React.useState('scegli');  // scegli | pagamento
+  // MODIFICA — il conto smette di essere un documento da spuntare e diventa
+  // uno da correggere: si tolgono righe, se ne aggiungono, si riscrivono i
+  // prezzi. È una modalità dichiarata e non lo stato normale della lista: chi
+  // deve solo incassare non può cancellare una riga con un tocco storto, e chi
+  // sta correggendo non spunta niente per sbaglio. `editSnap` è la copia del
+  // conto com'era quando si è entrati — quella che «Annulla» rimette a posto.
+  const [edit, setEdit] = React.useState(false);
+  const [editSnap, setEditSnap] = React.useState(null);
   // Storno di un incasso già preso: { p, fase, inviato } | null.
   // Le fasi sono le stesse dell'incasso al contrario — si chiede, si aspetta
   // (solo se i soldi sono passati da una carta), è fatto.
@@ -179,9 +199,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       setSelectedItems(new Map(cloned
         .filter(o => !giaPagato(o) && o.qty - qPagata(o) > 0)
         .map(o => [o.id, o.qty - qPagata(o)])));
-      // Si riapre sempre dal conto: il passo dov'era rimasta la volta scorsa
-      // non è dove si vuole ricominciare — prima si guarda cosa c'è sul tavolo.
-      setPasso('conto');
+      // Si riapre sempre dal primo passo, e mai in modifica: il punto dov'era
+      // rimasta la volta scorsa non è dove si vuole ricominciare — prima si
+      // guarda cosa c'è sul tavolo.
+      setPasso('scegli');
+      setEdit(false);
+      setEditSnap(null);
       setStorno(null);
       setImporto('');
       setImportoTocco(false);
@@ -233,21 +256,19 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // Quello che la cassa può ancora incassare: i piatti già pagati non sono
   // «deselezionati», sono fuori dal conto — se contassero, il riepilogo
   // direbbe «4 di 6» a chi non ha toccato niente.
-  // Da che schermo è arrivato il piatto lo dice l'OSPITE che l'ha ordinato,
-  // non la riga: `origin` racconta chi l'ha battuto, l'ospite da dove.
-  // Due sole sezioni: Byup App e Altro. La webapp è anonima — chi inquadra il
-  // QR non si registra, non paga, non ha un nome da chiamare — e una sezione
-  // per gente che non si può nominare non divide niente: sta in «Altro»
-  // insieme al cameriere e alla cassa, senza etichette sulla riga.
-  const canaleDi = (o) => {
-    const g = o.guestId ? guestById[o.guestId] : null;
-    return g && g.source === 'byup' ? 'byup' : 'altro';
-  };
-  const gruppiCanale = SALDA_CANALI
-    .map(c => Object.assign({}, c, { items: allOrdini.filter(o => canaleDi(o) === c.id) }))
-    .filter(g => g.items.length > 0);
-
   const incassabili = allOrdini.filter(o => !isPagato(o));
+
+  // QUELLO CHE È GIÀ SALDATO SCENDE IN FONDO. In cima resta il lavoro da fare:
+  // scorrendo un conto lungo, le righe spente in mezzo sono buche da saltare
+  // ogni volta che si cerca la prossima da spuntare. L'ordine dentro i due
+  // blocchi non si tocca — è quello in cui i piatti sono arrivati — quindi due
+  // passate secche e nessun riordino sotto le mani.
+  const ordiniOrdinati = [...incassabili, ...allOrdini.filter(o => isPagato(o))];
+  // In modifica i piatti già saldati non ci sono proprio: una riga pagata non
+  // si tocca — né il prezzo, né la quantità, né il cestino — e mostrarla
+  // spenta in mezzo alle altre sarebbe l'unica cosa lì dentro che non
+  // risponde.
+  const ordiniModificabili = incassabili;
   const selectedOrdini = allOrdini.filter(o => (selectedItems.get(o.id) || 0) > 0);
   const subtotale = selectedOrdini.reduce((s,o) => s + Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) * o.prezzo, 0);
 
@@ -375,21 +396,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   }
   function selectAll() { lasciaComandareLaSelezione(); setSelectedItems(new Map(allOrdini.filter(o => !isPagato(o)).map(o => [o.id, qtyAperta(o)]))); }
   function selectNone() { setSelectedItems(new Map()); }
-  // Un canale intero, in un gesto: se è già tutto preso lo lascia, altrimenti
-  // lo prende per intero. Un solo tocco che va nei due versi, come la spunta
-  // «Seleziona tutti» in cima.
-  function selezionaCanale(items) {
-    lasciaComandareLaSelezione();
-    setSelectedItems(s => {
-      const ns = new Map(s);
-      // «Tutto preso» si misura su quanto è APERTO, non su quanto è stato
-      // ordinato: della bottiglia divisa a metà dall'app resta mezza, e
-      // quella mezza selezionata È tutto il selezionabile.
-      const tutti = items.every(o => (ns.get(o.id) || 0) >= qtyAperta(o));
-      items.forEach(o => tutti ? ns.delete(o.id) : ns.set(o.id, qtyAperta(o)));
-      return ns;
-    });
-  }
 
   function updateItem(id, patch) {
     setEditedOrdini(arr => arr.map(o => o.id === id ? { ...o, ...patch } : o));
@@ -489,6 +495,29 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     setSelectedItems(s => { const ns = new Map(s); ns.set(newItem.id, 1); return ns; });
     setAddQuery('');
     setAddOpen(false);
+  }
+
+  // ── ENTRARE E USCIRE DALLA MODIFICA ────────────────────────────────────
+  // Le correzioni si scrivono subito su `editedOrdini` — un prezzo che cambia
+  // deve cambiare il totale mentre lo si guarda, non dopo aver premuto Salva.
+  // Per questo «Annulla» ha bisogno di una copia di partenza: non disfa i
+  // gesti uno per uno, rimette il conto com'era. La selezione viene con lui,
+  // o si tornerebbe indietro con delle spunte su righe che non esistono più.
+  function apriModifica() {
+    setEditSnap({ ordini: editedOrdini.map(o => ({...o})), selezione: new Map(selectedItems) });
+    setAddQuery(''); setAddOpen(false);
+    setEdit(true);
+  }
+  function annullaModifica() {
+    if (editSnap) { setEditedOrdini(editSnap.ordini); setSelectedItems(editSnap.selezione); }
+    setAddQuery(''); setAddOpen(false);
+    setEditSnap(null); setEdit(false);
+  }
+  function salvaModifica() {
+    setAddQuery(''); setAddOpen(false);
+    setEditSnap(null); setEdit(false);
+    setToast({ type:'success', text:'Conto aggiornato' });
+    setTimeout(() => setToast(null), 2000);
   }
 
   function stampaPreConto(scope = 'tutto') {
@@ -623,11 +652,17 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
           Attesa e conferma non hanno una lista da mostrare: sei righe
           centrate in una finestra da 880 leggevano come un errore di
           layout. Lì si stringe a 420 — la stessa misura della finestra di
-          incasso in Vendita diretta. */}
+          incasso in Vendita diretta.
+          La finestra CAMBIA MISURA con il passo, e non è un vezzo: il primo
+          passo è una lista e vuole larghezza, il secondo è una cifra, due
+          tessere e un pulsante — a 1080 sarebbe una colonna stretta in mezzo
+          a due fasce di bianco, che non sembra ordinata, sembra rotta. A 620
+          è esattamente la finestra Incassa di Vendita diretta: stesso gesto,
+          stessa misura. */}
       <div style={{
         position:'absolute', top:'50%', left:'50%',
         transform:'translate(-50%, -50%)',
-        width: (paying || done || storno) ? 420 : 1080,
+        width: (paying || done || storno) ? 420 : (passo === 'pagamento' ? 620 : 1080),
         maxWidth:'93%', height:'auto', maxHeight:'92%',
         background:'#fff', borderRadius: 20,
         boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
@@ -663,111 +698,242 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
             onClose={onClose}/>
         ) : (
           <>
-            {/* Header */}
-            <div style={{
-              padding:'20px 24px 16px',
-              display:'flex', alignItems:'flex-start', gap: 12, flexShrink: 0,
-            }}>
-              <div style={{flex:1, minWidth: 0}}>
-                {/* Il primo passo si chiama CONTO: lì non si incassa, si
-                    guarda cosa c'è sul tavolo e semmai lo si corregge.
-                    «Salda conto» è il nome del secondo, dove i soldi passano
-                    di mano davvero. */}
-                <div style={{fontSize: 14, color:'#6B7280', fontWeight:800, letterSpacing:0.8, textTransform:'uppercase'}}>
-                  {passo === 'conto' ? 'Conto' : 'Salda conto'}
-                </div>
-                <div style={{fontSize: 27, fontWeight: 800, color:'#0F1115', marginTop: 2, letterSpacing:-0.6, display:'flex', alignItems:'baseline', gap: 10, flexWrap:'wrap'}}>
-                  <span>Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}</span>
-                  <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', letterSpacing: 0}}>
-                    {tavolo.coperti || 1} coperti
+            {/* HEADER. Dice le stesse cose sui due passi, ma non nello
+                stesso ordine: nel primo la finestra è larga e ci sta tutto su
+                una riga; nel secondo si stringe a 620 e i due documenti
+                scendono sotto il titolo, in fila con la via di ritorno.
+                Restano comunque insieme — pre-conto e fattura sono la stessa
+                cosa: i due fogli che il tavolo può chiedere, e la domanda
+                («mi fa fattura?») arriva spesso prima ancora del conto. */}
+            {(() => {
+              const stretto = passo === 'pagamento';
+              const btnPreConto = (
+                <button key="pre" onClick={() => stampaPreConto('tutto')} style={btnGhost}>
+                  <IconPrinter/>
+                  {preContoStampato ? 'Ristampa pre-conto' : 'Stampa pre-conto'}
+                </button>
+              );
+              // Non è un interruttore: apre la finestra dei dati del cliente,
+              // la stessa dell'incasso in Vendita diretta. Accesa, porta il
+              // nome di chi la riceve — rileggendo, la domanda non è se la
+              // fattura c'è, è a chi si sta facendo.
+              const btnFattura = (
+                <button
+                  key="fat"
+                  onClick={() => setFatturaOpen(true)}
+                  title={fattura
+                    ? `Fattura a ${window.svfNome ? window.svfNome(fattura) : ''} · tocca per correggere`
+                    : 'Emetti fattura invece della ricevuta'}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#D1D5DB'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#E5E7EB'; }}
+                  style={{
+                    ...btnGhost, maxWidth: stretto ? 200 : 260,
+                    background: fattura ? SALDA_BRAND_SOFT : '#fff',
+                    border: `1px solid ${fattura ? SALDA_BRAND : '#E5E7EB'}`,
+                    color: fattura ? SALDA_BRAND : '#0F1115',
+                    transition: 'background 150ms ease-out, border-color 150ms ease-out',
+                  }}>
+                  <span style={{display:'inline-flex', flexShrink: 0}}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/></svg>
                   </span>
-                </div>
-              </div>
-              <button onClick={() => stampaPreConto('tutto')} style={btnGhost}>
-                <IconPrinter/>
-                {preContoStampato ? 'Ristampa pre-conto' : 'Stampa pre-conto'}
-              </button>
-              {/* FATTURA — accanto al pre-conto, perché sono la stessa cosa:
-                  i due documenti che il tavolo può chiedere. Stava in fondo
-                  alla colonna del pagamento, dove la si trovava solo dopo aver
-                  scelto come incassare — e invece è la prima cosa che dice il
-                  cliente («mi fa fattura?»), spesso prima ancora del conto.
-                  Non è un interruttore: apre la finestra dei dati del cliente,
-                  la stessa dell'incasso in Vendita diretta. Accesa, porta il
-                  nome di chi la riceve — rileggendo, la domanda non è se la
-                  fattura c'è, è a chi si sta facendo. */}
-              <button
-                onClick={() => setFatturaOpen(true)}
-                title={fattura
-                  ? `Fattura a ${window.svfNome ? window.svfNome(fattura) : ''} · tocca per correggere`
-                  : 'Emetti fattura invece della ricevuta'}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#D1D5DB'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#E5E7EB'; }}
-                style={{
-                  ...btnGhost, maxWidth: 260,
-                  background: fattura ? SALDA_BRAND_SOFT : '#fff',
-                  border: `1px solid ${fattura ? SALDA_BRAND : '#E5E7EB'}`,
-                  color: fattura ? SALDA_BRAND : '#0F1115',
-                  transition: 'background 150ms ease-out, border-color 150ms ease-out',
-                }}>
-                <span style={{display:'inline-flex', flexShrink: 0}}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/></svg>
-                </span>
-                <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                  {fattura ? (window.svfNome ? window.svfNome(fattura) : 'Fattura') : 'Emetti fattura'}
-                </span>
-              </button>
-              <button onClick={onClose} title="Chiudi" style={saldaIconBtn}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-              </button>
-            </div>
+                  <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
+                    {fattura ? (window.svfNome ? window.svfNome(fattura) : 'Fattura') : 'Emetti fattura'}
+                  </span>
+                </button>
+              );
+              return (
+                <div style={{padding: stretto ? '20px 24px 8px' : '20px 24px 16px', flexShrink: 0}}>
+                  <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+                    <div style={{flex:1, minWidth: 0}}>
+                      {/* Un nome solo, per una finestra sola: qui dentro si
+                          salda un conto, e i due passi sono due momenti di
+                          quel gesto — non due schermate con due nomi. */}
+                      <div style={{fontSize: 14, color:'#6B7280', fontWeight:800, letterSpacing:0.8, textTransform:'uppercase'}}>
+                        Salda conto
+                      </div>
+                      <div style={{fontSize: 27, fontWeight: 800, color:'#0F1115', marginTop: 2, letterSpacing:-0.6, display:'flex', alignItems:'baseline', gap: 10, flexWrap:'wrap'}}>
+                        <span>Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}</span>
+                        <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', letterSpacing: 0}}>
+                          {tavolo.coperti || 1} coperti
+                        </span>
+                      </div>
+                    </div>
+                    {!stretto && btnPreConto}
+                    {!stretto && btnFattura}
+                    <button onClick={onClose} title="Chiudi" style={saldaIconBtn}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>
+                  </div>
 
-            {/* Body 2 colonne */}
+                  {/* La via d'uscita in alto a sinistra, come nella finestra
+                      Incassa di Vendita diretta: è l'unica cosa qui dentro con
+                      una conseguenza — cambiare cosa si sta saldando — e stare
+                      attaccata alla CTA vorrebbe dire regalare un tocco
+                      sbagliato a ogni incasso. Angolo opposto, e dice dove
+                      riporta.
+                      Tornando indietro la cifra scritta a mano si dimentica:
+                      era la risposta a una selezione che si sta per cambiare, e
+                      ritrovarsela addosso sul conto nuovo sarebbe un numero
+                      vecchio travestito da proposta. */}
+                  {stretto && (
+                    <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 14, flexWrap:'wrap'}}>
+                      <button onClick={() => { setPasso('scegli'); setImporto(''); setImportoTocco(false); }}
+                        title="Torna a scegliere cosa saldi"
+                        onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SALDA_INK; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SALDA_MUTED; }}
+                        style={{
+                          display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
+                          padding:'11px 16px 11px 12px', borderRadius: 11,
+                          background:'transparent', border:`1px solid ${SALDA_BORDO}`,
+                          color: SALDA_MUTED, fontSize: 16, fontWeight: 700,
+                          cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+                          transition:'background 150ms ease-out, color 150ms ease-out',
+                        }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                        Cosa saldi
+                      </button>
+                      <span style={{flex:1}}/>
+                      {btnPreConto}
+                      {btnFattura}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* IL CORPO — un passo alla volta, mai i due insieme. */}
             <div style={{flex:1, display:'flex', minHeight: 0}}>
-              {passo === 'conto' ? (
-              // ── PRIMO PASSO: IL CONTO ─────────────────────────────────────
-              // Qui non si sceglie cosa pagare: si legge cosa c'è sul tavolo —
-              // ogni piatto con il suo stato — e semmai lo si corregge:
-              // aggiungere un articolo, ritoccare un nome o un prezzo, togliere
-              // una riga battuta per sbaglio. La selezione sta nel passo dopo,
-              // accanto ai soldi che muove: qui una spunta non avrebbe ancora
-              // un significato, e infatti non c'è.
+              {passo === 'scegli' ? (
+
+              // ── PRIMO PASSO: COSA SALDI ─────────────────────────────────
+              // La lista prende tutta la finestra e ogni riga si spunta: il −
+              // e il + dicono quante porzioni entrano in questo incasso.
+              // All'apertura è tutto selezionato — il caso più comune, il
+              // tavolo che paga tutto, è a un tocco solo; chi divide il conto
+              // toglie invece di dover mettere.
+              // Con «Modifica» la stessa lista cambia mestiere: spariscono le
+              // spunte e al loro posto arrivano il cestino, il prezzo
+              // riscrivibile e la quantità ORDINATA — tre birre battute per
+              // due. Sono due letture della stessa carta, e non possono valere
+              // insieme: spuntare e correggere nello stesso gesto vuol dire
+              // cancellare una riga mentre si sceglie cosa incassare.
               <div style={{
                 flex: 1, display:'flex', flexDirection:'column', minWidth: 0,
               }}>
-                {/* Add-article search bar */}
-                <AddArticleBar
-                  query={addQuery} setQuery={setAddQuery}
-                  open={addOpen} setOpen={setAddOpen}
-                  onPick={addItemFromMenu}/>
-
-                {/* Lista articoli — solo lettura e correzione */}
-                <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'10px 24px 14px'}}>
-                  <ListaPerCanale gruppi={gruppiCanale}
-                    selezione={false}
-                    selectedItems={selectedItems} toggleItem={toggleItem} setItemQty={setItemQty}
-                    guestById={guestById} isPagato={isPagato}
-                    selezionaCanale={selezionaCanale}
-                    onChangeQty={cambiaQtyOrdine}
-                    onUpdate={updateItem} onDelete={deleteItem}/>
+                {/* La barra della lista: a sinistra come si chiama quello che
+                    si sta facendo, a destra l'unico gesto che serve adesso —
+                    prendere tutto, o aggiungere una riga. */}
+                <div style={{
+                  padding:'2px 24px 6px',
+                  display:'flex', alignItems:'center', gap: 10, flexShrink: 0,
+                }}>
+                  <span style={{...SALDA_LABEL, marginBottom: 0}}>
+                    {edit ? 'Correggi il conto' : 'Cosa saldi'}
+                  </span>
+                  <span style={{flex:1}}/>
+                  {edit ? (
+                    <AddArticleButton
+                      query={addQuery} setQuery={setAddQuery}
+                      open={addOpen} setOpen={setAddOpen}
+                      onPick={addItemFromMenu}/>
+                  ) : (() => {
+                    const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= qtyAperta(o));
+                    const someSel = !allSel && selectedItems.size > 0;
+                    return (
+                      <button
+                        onClick={allSel ? selectNone : selectAll}
+                        style={{...miniLink, gap: 6, color: '#374151'}}
+                      >
+                        <span style={{
+                          width: 20, height: 20, borderRadius: 6, flexShrink: 0,
+                          border: `1.5px solid ${allSel || someSel ? SALDA_BRAND : '#D1D5DB'}`,
+                          background: allSel ? SALDA_BRAND : '#fff',
+                          display: 'grid', placeItems: 'center', position: 'relative',
+                        }}>
+                          {allSel && (
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          )}
+                          {someSel && (
+                            <span style={{width: 9, height: 2.5, background: SALDA_BRAND, borderRadius: 2, display:'block'}}/>
+                          )}
+                        </span>
+                        Seleziona tutti
+                      </button>
+                    );
+                  })()}
                 </div>
 
-                {/* Piede del conto: quanto deve ancora il tavolo, e la strada
-                    per andare avanti. Una sola cosa da premere. */}
+                {/* L'intestazione della colonna dei numeri, allineata sopra le
+                    cifre: senza, quei numeri si leggerebbero come prezzi di
+                    listino — e invece sono quello che ogni riga deve ANCORA.
+                    In modifica cambiano mestiere anche loro: lì è il prezzo
+                    unitario, quello che si riscrive. */}
+                <div style={{padding: edit ? '0 72px 6px' : '0 38px 6px', textAlign:'right', flexShrink: 0}}>
+                  <span style={{...SALDA_LABEL, marginBottom: 0}}>
+                    {edit ? 'Prezzo unitario' : 'Saldo residuo'}
+                  </span>
+                </div>
+
+                {/* Lista PIATTA, non per canale: qui si scelgono piatti, e le
+                    testate di gruppo erano tre titoli in mezzo alle spunte. Da
+                    dove arriva un piatto lo dice la sua riga — «Marco · BYUP»
+                    — solo quando c'è un ospite dietro; per il resto è un
+                    piatto e basta. */}
+                <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'0 24px 14px'}}>
+                  {(edit ? ordiniModificabili : ordiniOrdinati).length === 0 ? (
+                    <EmptyOrdini testo={edit && allOrdini.length > 0 ? 'Niente da correggere: quello che resta sul conto è già saldato' : undefined}/>
+                  ) : (
+                    <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+                      {edit
+                        ? ordiniModificabili.map(o => (
+                            <ItemRowV2 key={o.id} o={o}
+                              guest={o.guestId ? guestById[o.guestId] : null}
+                              selezione={false}
+                              modifica
+                              onChangeQty={cambiaQtyOrdine}
+                              onUpdate={updateItem}
+                              onDelete={deleteItem}/>
+                          ))
+                        : ordiniOrdinati.map(o => (
+                            <ItemRowV2 key={o.id} o={o}
+                              selectedQty={selectedItems.get(o.id) || 0}
+                              onToggle={()=>toggleItem(o.id)}
+                              onSetQty={(q)=>setItemQty(o.id, q)}
+                              guest={o.guestId ? guestById[o.guestId] : null}
+                              pagato={!!isPagato(o)}
+                              // Zero anche per le quote pagate PER NOME (l'app
+                              // non spegne le quantità, spegne l'ospite): senza
+                              // questo, una pizza già pagata direbbe €9.00 di
+                              // saldo a chi sta per incassarla di nuovo.
+                              saldoRiga={isPagato(o) ? 0 : r2(qtyAperta(o) * o.prezzo)}
+                              // Il tetto del − e del +: del piatto diviso
+                              // dall'app resta mezza porzione, e più di quella
+                              // non si può mettere in questo incasso.
+                              maxQty={qtyAperta(o)}
+                              selezione/>
+                          ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* IL PIEDE: la cifra, e ai due angoli le due strade. A destra
+                    quella che va avanti — sempre nello stesso posto, in tutti e
+                    due i modi — a sinistra quella laterale: correggere il conto
+                    prima di incassarlo, o rinunciare alle correzioni. */}
                 <div style={{
                   flexShrink: 0, borderTop:'1px solid #EDEFF2', background:'#fff',
                   padding:'14px 24px 18px',
                 }}>
-                  <div style={{display:'flex', alignItems:'baseline', gap: 14, marginBottom: 12}}>
+                  <div style={{display:'flex', alignItems:'baseline', gap: 14, marginBottom: 14}}>
                     <span style={{
                       fontSize: 15, fontWeight: 800, color:'#6B7280',
                       letterSpacing: 0.6, textTransform:'uppercase',
-                    }}>Da incassare</span>
+                    }}>{edit ? 'Totale conto' : 'Da incassare'}</span>
                     <span style={{flex:1}}/>
                     {/* Se c'è già un acconto, il valore dei piatti e quello che
                         il tavolo deve sono due numeri diversi: si vede da qui,
                         non si scopre nel passo dopo. */}
-                    {accontiTotale > 0.004 && (
+                    {!edit && accontiTotale > 0.004 && (
                       <span style={{
                         fontSize: 15, fontWeight: 600, color:'#9CA3AF',
                         fontVariantNumeric:'tabular-nums',
@@ -777,165 +943,67 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       fontSize: 42, fontWeight: 800, color:'#0F1115',
                       letterSpacing:-1.4, lineHeight: 1,
                       fontVariantNumeric:'tabular-nums',
-                    }}>€{residuoTavolo.toFixed(2)}</span>
+                    }}>€{(edit ? apertoTotale : total).toFixed(2)}</span>
                   </div>
 
-                  {/* La stessa CTA delle card «Da saldare» in Vendita diretta:
-                      è lo stesso gesto — il conto è pronto, si va a incassare —
-                      e due gesti uguali non possono avere due pulsanti diversi. */}
-                  <button
-                    onClick={() => { if (residuoTavolo > 0.004) setPasso('pagamento'); }}
-                    disabled={residuoTavolo <= 0.004}
-                    onMouseEnter={e => { if (residuoTavolo <= 0.004) return; e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
-                    onMouseDown={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(0.99)'; }}
-                    onMouseUp={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(1.01)'; }}
-                    style={{
-                      width:'100%', padding:'16px 16px', borderRadius: 999,
-                      background: residuoTavolo > 0.004 ? SALDA_SUNSET_BG : '#EDEFF2',
-                      color: residuoTavolo > 0.004 ? SALDA_SUNSET_TEXT : '#9CA3AF',
-                      border:'1px solid transparent',
-                      boxShadow: residuoTavolo > 0.004 ? SALDA_SUNSET_SHADOW : 'none',
-                      fontSize: 18, fontWeight: 700, letterSpacing:-0.1,
-                      cursor: residuoTavolo > 0.004 ? 'pointer' : 'not-allowed', fontFamily:'inherit',
-                      transition:'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
-                    }}>
-                    {residuoTavolo > 0.004 ? 'Procedi al pagamento' : 'Niente da incassare'}
-                  </button>
-                </div>
-              </div>
-              ) : (
-
-              // ── SECONDO PASSO: SALDA CONTO ───────────────────────────────
-              // Due colonne. A sinistra i piatti, ed è QUI che si sceglie cosa
-              // saldare: la spunta sta accanto ai soldi che muove, non due
-              // schermate prima. A destra la cifra — che si può riscrivere —
-              // il metodo e la conferma. All'apertura è tutto selezionato: il
-              // caso più comune, il tavolo che paga tutto, è a un tocco; chi
-              // divide il conto toglie, invece di dover mettere.
-              <div style={{
-                flex: 1, display:'flex', flexDirection:'column',
-                background:'#fff', minWidth: 0,
-              }}>
-                {/* La via d'uscita in alto a sinistra, come nella finestra
-                    Incassa di Vendita diretta: è l'unica cosa qui dentro con
-                    una conseguenza — cambiare cosa si sta saldando — e stare
-                    attaccata alla CTA vorrebbe dire regalare un tocco sbagliato
-                    a ogni incasso. Angolo opposto, e allineata al titolo: sta
-                    sul bordo della finestra, non sul bordo della colonna, o
-                    sembrerebbe appesa in mezzo al bianco. */}
-                <div style={{width:'100%', flexShrink: 0, padding:'0 24px 6px'}}>
-                    {/* Tornando indietro la cifra scritta a mano si dimentica:
-                        era la risposta a una selezione che si sta per cambiare,
-                        e ritrovarsela addosso sul conto nuovo sarebbe un numero
-                        vecchio travestito da proposta. */}
-                    <button onClick={() => { setPasso('conto'); setImporto(''); setImportoTocco(false); }}
-                      title="Torna a scegliere cosa saldare"
-                      onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SALDA_INK; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = SALDA_MUTED; }}
-                      style={{
-                        display:'inline-flex', alignItems:'center', gap: 6,
-                        padding:'8px 14px 8px 10px', borderRadius: 999,
-                        background:'transparent', border:`1px solid ${SALDA_BORDO}`,
-                        color: SALDA_MUTED, fontSize: 14.5, fontWeight: 700,
-                        cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
-                        transition:'background 150ms ease-out, color 150ms ease-out',
-                      }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-                      Torna al conto
-                    </button>
-                </div>
-
-                <div style={{flex:1, display:'flex', minHeight: 0}}>
-
-                {/* ── SINISTRA: cosa si salda ──────────────────────────────
-                    La stessa lista del conto, ma qui le righe si spuntano: il
-                    − e il + dicono quante porzioni entrano in questo incasso.
-                    Niente correzioni da questo lato — nome, prezzo e righe si
-                    sistemano nel passo prima, dove il conto è ancora un
-                    documento e non un incasso a metà. */}
-                <div style={{
-                  flex:'1.35 1 0', minWidth: 0,
-                  display:'flex', flexDirection:'column',
-                  borderRight:'1px solid #EDEFF2',
-                }}>
-                  <div style={{
-                    padding:'6px 20px 4px',
-                    display:'flex', alignItems:'center', gap: 8, flexShrink: 0,
-                  }}>
-                    <span style={{...SALDA_LABEL, marginBottom: 0}}>Cosa saldi</span>
-                    <span style={{flex:1}}/>
-                    {(() => {
-                      const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= qtyAperta(o));
-                      const someSel = !allSel && selectedItems.size > 0;
-                      return (
-                        <button
-                          onClick={allSel ? selectNone : selectAll}
-                          style={{...miniLink, gap: 6, color: '#374151'}}
-                        >
-                          <span style={{
-                            width: 20, height: 20, borderRadius: 6, flexShrink: 0,
-                            border: `1.5px solid ${allSel || someSel ? SALDA_BRAND : '#D1D5DB'}`,
-                            background: allSel ? SALDA_BRAND : '#fff',
-                            display: 'grid', placeItems: 'center', position: 'relative',
-                          }}>
-                            {allSel && (
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                            )}
-                            {someSel && (
-                              <span style={{width: 9, height: 2.5, background: SALDA_BRAND, borderRadius: 2, display:'block'}}/>
-                            )}
-                          </span>
-                          Seleziona tutti
+                  <div style={{display:'flex', alignItems:'center', gap: 12}}>
+                    {edit ? (
+                      <React.Fragment>
+                        <button onClick={annullaModifica}
+                          title="Lascia il conto com'era"
+                          onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+                          style={saldaBtnPiede}>Annulla</button>
+                        <span style={{flex:1}}/>
+                        <button onClick={salvaModifica}
+                          onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+                          style={saldaBtnCta(true)}>Salva</button>
+                      </React.Fragment>
+                    ) : (
+                      <React.Fragment>
+                        <button onClick={apriModifica}
+                          title="Correggi il conto: aggiungi o togli righe, cambia un prezzo"
+                          onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+                          style={saldaBtnPiede}>
+                          <IconMatita/>
+                          Modifica
                         </button>
-                      );
-                    })()}
-                  </div>
-                  {/* L'intestazione della colonna dei numeri, allineata sopra
-                      le cifre (20px di lista + 14px di card): senza, quei
-                      numeri si leggerebbero come prezzi di listino — e invece
-                      sono quello che ogni riga deve ANCORA. Sul piatto diviso
-                      dall'app la riga aggiunge «di €X»: il residuo e il valore
-                      pieno, e il pagato è la distanza tra i due. */}
-                  <div style={{padding:'0 34px 6px', textAlign:'right', flexShrink: 0}}>
-                    <span style={{...SALDA_LABEL, marginBottom: 0}}>Saldo residuo</span>
-                  </div>
-                  {/* Lista PIATTA, non per canale: qui si scelgono piatti, e
-                      le testate di gruppo erano tre titoli in mezzo alle
-                      spunte. Da dove arriva un piatto lo dice la sua riga —
-                      «Marco · BYUP», «Guest 4 · Webapp» — solo quando c'è un
-                      ospite dietro; per il resto è un piatto e basta. */}
-                  <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'0 20px 14px'}}>
-                    {allOrdini.length === 0 ? <EmptyOrdini/> : (
-                      <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-                        {allOrdini.map(o => (
-                          <ItemRowV2 key={o.id} o={o}
-                            selectedQty={selectedItems.get(o.id) || 0}
-                            onToggle={()=>toggleItem(o.id)}
-                            onSetQty={(q)=>setItemQty(o.id, q)}
-                            guest={o.guestId ? guestById[o.guestId] : null}
-                            pagato={!!isPagato(o)}
-                            // Zero anche per le quote pagate PER NOME (l'app
-                            // non spegne le quantità, spegne l'ospite): senza
-                            // questo, una pizza già pagata direbbe €9.00 di
-                            // saldo a chi sta per incassarla di nuovo.
-                            saldoRiga={isPagato(o) ? 0 : r2(qtyAperta(o) * o.prezzo)}
-                            // Il tetto del − e del +: del piatto diviso
-                            // dall'app resta mezza porzione, e più di quella
-                            // non si può mettere in questo incasso.
-                            maxQty={qtyAperta(o)}
-                            selezione/>
-                        ))}
-                      </div>
+                        <span style={{flex:1}}/>
+                        {/* Basta che il tavolo debba ancora qualcosa: con la
+                            selezione vuota il passo dopo accetta comunque una
+                            cifra scritta a mano — «me ne dà venti» — che è un
+                            acconto e non ha piatti da spuntare. Quello che non
+                            si può incassare lo ferma il pulsante di là. */}
+                        <button
+                          onClick={() => { if (residuoTavolo > 0.004) setPasso('pagamento'); }}
+                          disabled={residuoTavolo <= 0.004}
+                          onMouseEnter={e => { if (residuoTavolo <= 0.004) return; e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+                          onMouseDown={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(0.99)'; }}
+                          onMouseUp={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(1.01)'; }}
+                          style={saldaBtnCta(residuoTavolo > 0.004)}>
+                          {residuoTavolo > 0.004 ? 'Procedi al pagamento' : 'Niente da incassare'}
+                        </button>
+                      </React.Fragment>
                     )}
                   </div>
                 </div>
+              </div>
 
-                {/* ── DESTRA: quanto e come ─────────────────────────────── */}
-                <div style={{
-                  flex:'1 1 0', minWidth: 380, maxWidth: 470,
-                  display:'flex', flexDirection:'column', background:'#fff',
-                }}>
+              ) : (
+
+              // ── SECONDO PASSO: QUANTO E COME ────────────────────────────
+              // Cosa si salda è deciso: qui c'è la cifra — che si può
+              // riscrivere — lo sconto, quello che è già arrivato, il metodo e
+              // la conferma. La finestra si stringe a 620 perché questo è
+              // esattamente il contenuto della finestra Incassa di Vendita
+              // diretta: stesso gesto, stessa persona, stessa misura.
+              <div style={{
+                flex: 1, minWidth: 0,
+                display:'flex', flexDirection:'column', background:'#fff',
+              }}>
                 <div className="pn-scroll" style={{
                   flex:1, overflow:'auto', padding:'0 0 18px',
                   width:'100%',
@@ -1271,8 +1339,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 </div>
                 </div>
                 </div>
-                </div>
-              </div>
               )}
             </div>
 
@@ -1315,133 +1381,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   );
 }
 
-// ────────── LISTA ARTICOLI PER CANALE ──────────
-// Da dove è arrivato l'ordine è la prima cosa che divide un conto: i piatti
-// battuti in cassa e quelli arrivati dai telefoni degli ospiti non si saldano
-// nello stesso momento, e cercarli in una lista piatta vuol dire leggere ogni
-// riga fino in fondo per scoprire di chi è. Raggruppati, la domanda «cosa
-// hanno preso quelli dell'app?» ha una risposta che si vede, non si cerca.
-//
-// L'ordine dei gruppi è fisso — App, Webapp, Altro — e non segue i piatti:
-// una lista che si riordina da sola sotto le mani non si impara mai.
-// `selezione` sceglie la faccia della lista: nel pagamento le testate e le
-// righe si spuntano; nel conto sono un documento — la stessa carta, letta in
-// due momenti diversi.
-function ListaPerCanale({ gruppi, selezione = true, selectedItems, toggleItem, setItemQty, guestById, isPagato, selezionaCanale, onChangeQty, onUpdate, onDelete }) {
-  if (gruppi.length === 0) return <EmptyOrdini/>;
-  return (
-    <div style={{display:'flex', flexDirection:'column', gap: 14}}>
-      {gruppi.map(g => {
-        // Il conteggio dice cosa c'è nel gruppo, spunta compresa la roba già
-        // pagata: è il contenuto della sezione, e le righe pagate si vedono
-        // spente. La SPUNTA invece lavora solo su quello che si può ancora
-        // incassare — prendere un piatto già pagato non vuol dire niente.
-        const daPrendere = g.items.filter(o => !isPagato || !isPagato(o));
-        const tutti = daPrendere.length > 0 && daPrendere.every(o => (selectedItems.get(o.id) || 0) >= o.qty);
-        const alcuni = !tutti && daPrendere.some(o => (selectedItems.get(o.id) || 0) > 0);
-        return (
-          <div key={g.id} style={{
-            border:'1px solid #EDEFF2', borderRadius: 14,
-            background:'#fff', overflow:'hidden',
-          }}>
-            {/* Testata del canale. Dove si seleziona è premibile e prende
-                tutto il gruppo in un gesto — senza, dividere il conto per
-                canale vorrebbe dire spuntare otto righe a mano. Nel conto è
-                una testata e basta: dice chi ha ordinato cosa, non chiede
-                niente. */}
-            {(() => {
-              const dentroTestata = (
-                <React.Fragment>
-                  {selezione && (
-                  <span aria-hidden="true" style={{
-                    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                    display:'grid', placeItems:'center',
-                    background: tutti ? SALDA_BRAND : '#fff',
-                    border: `1.5px solid ${tutti || alcuni ? SALDA_BRAND : '#D1D5DB'}`,
-                    opacity: daPrendere.length ? 1 : 0.4,
-                  }}>
-                    {tutti && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13 L9 17 L19 7"/></svg>
-                    )}
-                    {alcuni && <span style={{display:'block', width: 10, height: 2.5, background: SALDA_BRAND, borderRadius: 2}}/>}
-                  </span>
-                  )}
-                  <span style={{
-                    width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                    display:'grid', placeItems:'center',
-                    background: g.bg, color: g.ink,
-                  }}>{g.icona}</span>
-                  <span style={{fontSize: 17.5, fontWeight: 800, color:'#0F1115', letterSpacing:-0.2}}>
-                    {g.label}
-                  </span>
-                  <span style={{color:'#D1D5DB', fontWeight: 700}}>·</span>
-                  <span style={{
-                    fontSize: 14.5, fontWeight: 700, color:'#6B7280',
-                    background:'#F4F5F7', padding:'3px 10px', borderRadius: 999,
-                  }}>
-                    {g.items.length} articol{g.items.length === 1 ? 'o' : 'i'}
-                  </span>
-                </React.Fragment>
-              );
-              const base = {
-                width:'100%', display:'flex', alignItems:'center', gap: 12,
-                padding:'12px 14px', background:'#fff', border:'none',
-                borderBottom:'1px solid #F1F3F5',
-                fontFamily:'inherit', textAlign:'left',
-              };
-              if (!selezione) return <div style={base}>{dentroTestata}</div>;
-              return (
-                <button
-                  onClick={() => { if (daPrendere.length) selezionaCanale(daPrendere); }}
-                  disabled={!daPrendere.length}
-                  onMouseEnter={e => { if (daPrendere.length) e.currentTarget.style.background = '#FAFBFC'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
-                  title={daPrendere.length ? (tutti ? `Togli ${g.label}` : `Prendi tutto ${g.label}`) : 'Già pagato'}
-                  style={{
-                    ...base,
-                    cursor: daPrendere.length ? 'pointer' : 'default',
-                    transition:'background 130ms ease-out',
-                  }}>
-                  {dentroTestata}
-                </button>
-              );
-            })()}
-
-            <div style={{display:'flex', flexDirection:'column', gap: 8, padding:'10px 12px 12px'}}>
-              {g.items.map(o => (
-                <ItemRowV2 key={o.id} o={o}
-                  selectedQty={selectedItems.get(o.id) || 0}
-                  onToggle={()=>toggleItem(o.id)}
-                  onSetQty={(q)=>setItemQty(o.id, q)}
-                  guest={o.guestId ? guestById[o.guestId] : null}
-                  // Il canale è già scritto sulla testata: ripeterlo su ogni
-                  // riga dentro il suo stesso gruppo è la definizione di
-                  // rumore. Della pastiglia resta il nome — che lì dentro è
-                  // l'unica cosa che distingue una riga dall'altra.
-                  canaleNoto
-                  selezione={selezione}
-                  pagato={!!isPagato && isPagato(o)}
-                  onChangeQty={onChangeQty}
-                  onUpdate={onUpdate} onDelete={onDelete}/>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// I due canali da cui può arrivare un piatto. «Altro» tiene insieme tutto
-// quello che non è nato da un utente dell'app: la comanda del cameriere, il
-// piatto di cassa, e anche la webapp — chi inquadra il QR è anonimo, e una
-// sezione per gente senza nome non divide niente. Qui c'era anche «Byup
-// Webapp» come terza voce, con la sua icona: tre titoli per due distinzioni
-// vere.
-const SALDA_CANALI = [
-  { id:'byup',  label:'Byup App', bg:'#FFE0DD', ink:'#E04347', icona: <IconTelefono/> },
-  { id:'altro', label:'Altro',    bg:'#F1F2F5', ink:'#6B7280', icona: <IconPersone/> },
-];
+// Qui vivevano ListaPerCanale e SALDA_CANALI: la lista raggruppata per canale
+// — Byup App / Altro, con la testata premibile che prendeva tutto il gruppo in
+// un gesto. Era la faccia del passo «Conto», che non esiste più: adesso il
+// conto si legge e si corregge dentro il primo passo del saldo, dove la lista
+// è PIATTA perché lì si scelgono piatti, e tre titoli in mezzo alle spunte
+// erano tre righe che non si potevano spuntare. Da dove arriva un piatto lo
+// dice la sua riga — «Marco · BYUP» — quando c'è un ospite dietro.
 
 // A che punto è il piatto, con le parole e i colori della card in sala: chi
 // legge il conto e chi guarda i tavoli devono vedere la stessa cosa chiamata
@@ -1477,10 +1423,12 @@ function StatoPiatto({ stato, spento }) {
   );
 }
 
-// `selezione` decide che riga è: nel passo del pagamento la card si spunta e
-// porta il − e il +; nel conto è una riga di documento — si legge, si corregge
-// (le correzioni arrivano con onUpdate/onDelete), non si sceglie.
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, pagato, selezione = true, saldoRiga, maxQty, onChangeQty, onUpdate, onDelete }) {
+// Due letture della stessa riga. Con `selezione` la card si spunta e il − e il
+// + dicono quante porzioni entrano nell'incasso. Con `modifica` la riga è un
+// documento da correggere: niente spunta, il − e il + cambiano la quantità
+// ORDINATA, il nome e il prezzo si riscrivono e il cestino toglie la riga.
+// Non valgono mai insieme.
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezione = true, modifica = false, saldoRiga, maxQty, onChangeQty, onUpdate, onDelete }) {
   // La webapp è anonima: «Guest 4» non è un nome, è un segnaposto, e una
   // pastiglia che dice un segnaposto non dice niente. Sulla riga compare solo
   // chi un nome ce l'ha — gli ospiti dell'app.
@@ -1619,7 +1567,9 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
           <input
             autoFocus
             value={nameDraft}
+            aria-label="Nome dell'articolo"
             onChange={e => setNameDraft(e.target.value)}
+            onFocus={e => e.currentTarget.select()}
             onBlur={commitName}
             onKeyDown={e => { if (e.key==='Enter') commitName(); if (e.key==='Escape') { setNameDraft(o.nome); setEditingName(false); } }}
             onClick={stop}
@@ -1633,21 +1583,28 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         ) : (
           <span
             onClick={(e) => {
+              // In modifica un click sul nome lo apre e basta: lì non c'è
+              // nessuna spunta con cui litigare, e il doppio click sarebbe un
+              // gesto da imparare per niente.
+              if (modifica) { e.stopPropagation(); setEditingName(true); return; }
               if (!selezione) return;
               e.stopPropagation();
               if (clickTimer.current) clearTimeout(clickTimer.current);
               clickTimer.current = setTimeout(() => { onToggle(); clickTimer.current = null; }, 280);
             }}
             onDoubleClick={(e) => {
-              if (!onUpdate) return;
+              if (!onUpdate || modifica) return;
               e.stopPropagation();
               if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
               setEditingName(true);
             }}
-            title={onUpdate ? 'Doppio click per modificare il nome' : undefined}
+            title={modifica ? 'Riscrivi il nome' : (onUpdate ? 'Doppio click per modificare il nome' : undefined)}
+            onMouseEnter={e => { if (modifica) e.currentTarget.style.background = '#F1F2F5'; }}
+            onMouseLeave={e => { if (modifica) e.currentTarget.style.background = 'transparent'; }}
             style={{
               fontSize: 17, color:'#0F1115', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-              cursor:'default', borderRadius: 3, padding:'1px 3px', marginLeft: -3,
+              cursor: modifica ? 'text' : 'default', borderRadius: 3, padding:'1px 3px', marginLeft: -3,
+              transition:'background 120ms',
             }}
           >
             {o.nome}{o._added && <span style={{marginLeft: 6, fontSize: 13, color:'#16A34A', fontWeight: 800, letterSpacing: 0.4}}>NUOVO</span>}
@@ -1657,10 +1614,12 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
 
       {/* A che punto è il piatto. Alla cassa serve PRIMA di incassare — un
           conto con una bistecca in cottura non si salda e basta — ed è per
-          questo che vive nel passo del conto, dove il conto si legge. Nella
-          colonna di selezione ruberebbe il posto al nome del piatto, che lì è
-          la cosa da riconoscere. */}
-      {!selezione && <StatoPiatto stato={o.stato} spento={pagato}/>}
+          questo che sta sulla riga in tutti e due i modi, spuntare e
+          correggere. Stava solo nella lettura del conto perché la selezione
+          viveva in una colonna da 620, dove la pastiglia rubava il posto al
+          nome del piatto; adesso la lista prende la finestra intera e quel
+          posto c'è. */}
+      <StatoPiatto stato={o.stato} spento={pagato}/>
 
       {/* Di chi è il piatto, e se quella parte è già stata pagata: una
           pastiglia sola invece del nome in corsivo più il marchio staccato. */}
@@ -1668,29 +1627,24 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         <span style={{
           display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0,
           padding:'5px 10px', borderRadius: 999,
-          background: pagato ? '#EEF0F3' : (o.origin === 'byup' && !canaleNoto ? '#FFE9E9' : '#F4F5F7'),
+          background: pagato ? '#EEF0F3' : (o.origin === 'byup' ? '#FFE9E9' : '#F4F5F7'),
           fontSize: 14, fontWeight: 600,
           color: pagato ? '#9CA3AF' : '#6B7280',
         }}>
-          {/* Dentro il gruppo il nome sta per intero: «Guest 4» accorciato a
-              «Guest» non distingue più due persone diverse, ed è esattamente
-              il lavoro che quella pastiglia deve fare lì. Fuori resta il nome
-              di battesimo, che accanto al canale basta e occupa meno. */}
-          {canaleNoto ? ospite.name : ospite.name.split(' ')[0]}
-          {/* Dentro il suo gruppo il canale è già scritto in testata: la
-              pastiglia si accorcia al nome. Resta invece «Pagato», che non è
-              una provenienza ma uno stato — e quello nessuna testata lo dice. */}
-          {(!canaleNoto || pagato) && <span style={{color:'#C7CBD1'}}>·</span>}
+          {/* Il nome di battesimo: accanto al canale basta a riconoscere chi
+              è, e occupa la metà. */}
+          {ospite.name.split(' ')[0]}
+          <span style={{color:'#C7CBD1'}}>·</span>
           {pagato ? (
             <span style={{fontWeight: 700}}>Pagato</span>
-          ) : canaleNoto ? null : o.origin === 'byup' ? (
+          ) : o.origin === 'byup' ? (
             <span style={{fontWeight: 800, color: SALDA_BRAND, letterSpacing: 0.3, textTransform:'uppercase', fontSize: 12.5}}>byup</span>
           ) : (
             <span style={{fontWeight: 600}}>{o.origin === 'guest' ? 'Webapp' : 'Cameriere'}</span>
           )}
         </span>
       )}
-      {!ospite && o.origin === 'byup' && o.guestId && !canaleNoto && (
+      {!ospite && o.origin === 'byup' && o.guestId && (
         <span style={{
           fontSize: 12.5, fontWeight: 800, color: SALDA_BRAND,
           background:'#FFE9E9', padding:'3px 8px', borderRadius: 999,
@@ -1698,39 +1652,73 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         }}>byup</span>
       )}
 
-      {/* PREZZO — click to edit */}
-      {editingPrice ? (
-        <input
-          autoFocus type="number" step="0.5" min="0"
-          value={priceDraft}
-          onChange={e => setPriceDraft(e.target.value)}
-          onBlur={commitPrice}
-          onKeyDown={e => { if (e.key==='Enter') commitPrice(); if (e.key==='Escape') { setPriceDraft(o.prezzo); setEditingPrice(false); } }}
-          onClick={stop}
-          style={{
-            width: 72, padding:'3px 6px',
-            border:'1px solid #0F1115', borderRadius: 4,
-            fontSize: 17, color:'#0F1115', outline:'none',
-            fontFamily:'inherit', background:'#fff',
-            textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700,
-          }}
-        />
-      ) : onUpdate ? (
-        <button
-          onClick={(e) => { e.stopPropagation(); setEditingPrice(true); }}
-          title="Modifica prezzo unitario"
-          style={{
-            fontSize: 17, fontWeight: 700, color: pagato ? '#9CA3AF' : '#0F1115',
-            minWidth: 66, textAlign:'right', fontVariantNumeric:'tabular-nums',
-            background:'transparent', border:'none', cursor:'pointer',
-            padding:'2px 4px', borderRadius: 4, fontFamily:'inherit',
-            transition:'background 120ms',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = '#F1F2F5'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-        >
-          €{((!selezione || noneSel) ? o.qty * o.prezzo : selectedQty * o.prezzo).toFixed(2)}
-        </button>
+      {/* PREZZO — in modifica è un campo che dichiara di esserlo: la cornice
+          tratteggiata gira intorno al numero e non ha bisogno di una legenda.
+          Il numero è il prezzo UNITARIO, quello che si corregge; quando la
+          riga ne ha più di uno, sotto compare il conto della riga — «×2 ·
+          €12.00» — o si correggerebbe un prezzo guardando un totale. */}
+      {onUpdate ? (
+        <span style={{
+          position:'relative', flexShrink: 0,
+          display:'inline-flex', flexDirection:'column', alignItems:'flex-end',
+        }}>
+          {editingPrice ? (
+            <input
+              autoFocus
+              inputMode="decimal"
+              aria-label={`Prezzo unitario di ${o.nome}`}
+              value={priceDraft}
+              // Un campo di testo e non uno `number`: le frecciette del
+              // browser si mangiavano un terzo della casella per fare a passi
+              // di mezzo euro, che non è mai il gesto — il prezzo si riscrive,
+              // non si accompagna. Al fuoco il numero è già tutto selezionato:
+              // si scrive sopra senza cancellare prima.
+              onChange={e => setPriceDraft(e.target.value.replace(/[^0-9.,]/g, '').replace(',', '.'))}
+              onFocus={e => e.currentTarget.select()}
+              onBlur={commitPrice}
+              onKeyDown={e => { if (e.key==='Enter') commitPrice(); if (e.key==='Escape') { setPriceDraft(o.prezzo); setEditingPrice(false); } }}
+              onClick={stop}
+              style={{
+                width: 92, height: 34, boxSizing:'border-box', padding:'3px 10px',
+                border:`1.6px solid ${SALDA_BRAND}`, borderRadius: 9,
+                fontSize: 17, color:'#0F1115', outline:'none',
+                fontFamily:'inherit', background:'#fff',
+                textAlign:'right', fontVariantNumeric:'tabular-nums', fontWeight: 700,
+              }}
+            />
+          ) : (
+            <React.Fragment>
+              <button
+                onClick={(e) => { e.stopPropagation(); setEditingPrice(true); }}
+                title="Riscrivi il prezzo unitario"
+                style={{
+                  width: 92, height: 34, boxSizing:'border-box',
+                  fontSize: 17, fontWeight: 700, color:'#0F1115',
+                  textAlign:'right', fontVariantNumeric:'tabular-nums',
+                  background:'transparent', border:'none', cursor:'text',
+                  padding:'0 10px', borderRadius: 9, fontFamily:'inherit',
+                  transition:'background 120ms',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#FFF6F6'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+              >
+                €{o.prezzo.toFixed(2)}
+              </button>
+              <svg width="92" height="34" viewBox="0 0 92 34" aria-hidden="true"
+                style={{position:'absolute', left: 0, top: 0, pointerEvents:'none'}}>
+                <rect x="1" y="1" width="90" height="32" rx="9" fill="none"
+                  stroke={SALDA_BRAND} strokeWidth="1.6" strokeDasharray="6 4"
+                  style={{animation:'saldaAnts 0.85s linear infinite'}}/>
+              </svg>
+            </React.Fragment>
+          )}
+          {o.qty > 1 && (
+            <span style={{
+              fontSize: 12.5, fontWeight: 600, color:'#9CA3AF', marginTop: 4,
+              fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
+            }}>×{o.qty} · €{(o.qty * o.prezzo).toFixed(2)}</span>
+          )}
+        </span>
       ) : saldoRiga != null ? (
         // SALDO RESIDUO — quanto di questa riga resta da incassare. Non è il
         // prezzo pieno (che sta nel conto) né il valore selezionato (che sta
@@ -1772,26 +1760,28 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, canaleNoto, paga
         </span>
       )}
 
-      {/* DELETE — non su un piatto già pagato: quella riga è la prova di un
-          incasso, e toglierla farebbe sparire i soldi dal conto. E solo nel
-          conto: nel pagamento le righe non si correggono, si scelgono. */}
+      {/* CESTINO — solo in modifica, e sempre visibile: lì è uno dei tre
+          gesti per cui si è entrati, e un comando che si scopre passandoci
+          sopra col mouse non è un comando, è un indovinello. Mai su un piatto
+          già pagato: quella riga è la prova di un incasso, e toglierla farebbe
+          sparire dei soldi dal conto. */}
       {onDelete && (
       <button
         disabled={pagato}
         onClick={(e) => { e.stopPropagation(); if (!pagato && onDelete) onDelete(o.id); }}
         title="Elimina articolo"
         style={{
-          width: 22, height: 22, padding: 0, borderRadius: 4,
+          width: 28, height: 28, padding: 0, borderRadius: 7,
           background:'transparent', border:'none', cursor:'pointer',
-          color: (hover && !pagato) ? '#9CA3AF' : 'transparent',
+          color: pagato ? 'transparent' : ((modifica || hover) ? '#9CA3AF' : 'transparent'),
           display:'inline-flex', alignItems:'center', justifyContent:'center',
           fontFamily:'inherit', transition:'color 120ms, background 120ms',
           flexShrink: 0,
         }}
         onMouseEnter={e => { if (pagato) return; e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.background = '#FEE2E2'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = (hover && !pagato) ? '#9CA3AF' : 'transparent'; e.currentTarget.style.background = 'transparent'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = pagato ? 'transparent' : ((modifica || hover) ? '#9CA3AF' : 'transparent'); e.currentTarget.style.background = 'transparent'; }}
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6 M10 11v6 M14 11v6"/>
         </svg>
       </button>
@@ -1807,16 +1797,16 @@ const qtyBtn = {
   display:'grid', placeItems:'center',
 };
 
-function EmptyOrdini() {
+function EmptyOrdini({ testo }) {
   return (
     <div style={{
       padding:'40px 20px', textAlign:'center', color:'#9CA3AF',
       fontSize: 17,
-    }}>Nessun articolo ordinato</div>
+    }}>{testo || 'Nessun articolo ordinato'}</div>
   );
 }
 
-// ────────── RIGHT COLUMN HELPERS ──────────
+// ────────── PEZZI DEL PASSO DEL PAGAMENTO ──────────
 
 // La tessera del metodo, gemella di quella in Vendita diretta: icona e nome
 // su una riga sola, e la spunta nell'angolo quando è scelta. La spunta serve
@@ -2571,22 +2561,10 @@ function IconPos() { return (
   </svg>
 ); }
 
-// I tre canali, in tre oggetti: il telefono dell'ospite, lo schermo di chi ha
-// inquadrato il QR, le persone al tavolo. Si riconoscono di sagoma, prima di
-// leggere l'etichetta accanto — che è quello che serve quando si scorre un
-// conto lungo cercando una sola sezione.
-function IconTelefono() { return (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="6" y="2.5" width="12" height="19" rx="2.6"/><path d="M10.5 18.5h3"/>
-  </svg>
-); }
-// Qui c'era IconSchermo, lo schermo della webapp: se n'è andata con la sua
-// sezione — la webapp confluisce in «Altro», senza icona e senza nome.
-function IconPersone() { return (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="9" cy="8" r="3.2"/><path d="M2.5 19.5c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5"/><path d="M16.5 5.4a3.2 3.2 0 0 1 0 5.2M18 14.4c2.1.6 3.5 2.3 3.5 5.1"/>
-  </svg>
-); }
+// Qui vivevano IconTelefono e IconPersone, le sagome delle due sezioni della
+// lista per canale, e prima ancora IconSchermo, quella della webapp: se ne
+// sono andate con le sezioni che intestavano.
+
 // ────────── STILI ──────────
 // Corallo del marchio: qui è il colore di ciò che è scelto e di ciò che
 // incassa. Sta in una costante perché lo portano otto punti di questa
@@ -2627,6 +2605,40 @@ const SALDA_SUNSET_BG = `
 `;
 const SALDA_SUNSET_SHADOW = 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)';
 const SALDA_SUNSET_TEXT = '#FFE9E6';
+// IL PIEDE DEL PRIMO PASSO: due angoli, due strade. A destra sta sempre quella
+// che va avanti — «Procedi al pagamento», e in modifica «Salva» — nello stesso
+// punto e con lo stesso peso, perché è lo stesso posto della finestra dove si
+// preme per proseguire. A sinistra quella laterale, in bianco: correggere il
+// conto, o rinunciare alle correzioni. Colore acceso e colore spento non
+// bastavano da soli — sono anche agli antipodi, che è la distanza giusta fra
+// «vai avanti» e «lascia perdere».
+const saldaBtnPiede = {
+  display:'inline-flex', alignItems:'center', gap: 8,
+  padding:'15px 24px', borderRadius: 999,
+  background:'#fff', color: SALDA_INK,
+  border:`1px solid ${SALDA_BORDO}`,
+  fontSize: 17, fontWeight: 700,
+  cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+  transition:'background 150ms ease-out',
+};
+const saldaBtnCta = (attivo) => ({
+  padding:'15px 32px', borderRadius: 999,
+  background: attivo ? SALDA_SUNSET_BG : '#EDEFF2',
+  color: attivo ? SALDA_SUNSET_TEXT : '#9CA3AF',
+  border:'1px solid transparent',
+  boxShadow: attivo ? SALDA_SUNSET_SHADOW : 'none',
+  fontSize: 18, fontWeight: 700, letterSpacing:-0.1,
+  cursor: attivo ? 'pointer' : 'not-allowed', fontFamily:'inherit',
+  whiteSpace:'nowrap',
+  transition:'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+});
+// La stessa matita che sta accanto alla cifra da incassare: qui dice che il
+// conto si può riscrivere, là che si può riscrivere l'importo.
+function IconMatita() { return (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+  </svg>
+); }
 const btnGhost = {
   display:'inline-flex', alignItems:'center', gap: 8,
   padding:'11px 16px', background:'#fff', color:'#0F1115',
@@ -2662,17 +2674,22 @@ const miniLink = {
 // che non erano di nessun altro pezzo di questa finestra. Il pannello ora usa
 // la fila del contante, e con lui se ne vanno anche le sue due eccezioni.
 
-// ────────── ADD ARTICLE BAR ──────────
-function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
+// ────────── AGGIUNGI ARTICOLO ──────────
+// UN PULSANTE, non una barra di ricerca sempre aperta. La barra stava in cima
+// alla lista a tutte le ore, e per la maggior parte delle volte in cui si apre
+// un conto — guardarlo, spuntarlo, incassarlo — era un campo di testo messo
+// davanti a tutto che non serviva a niente. Adesso è uno dei tre gesti della
+// modifica, sta con gli altri due, e si apre in campo solo quando lo si preme.
+function AddArticleButton({ query, setQuery, open, setOpen, onPick }) {
   const ref = React.useRef(null);
   React.useEffect(() => {
     if (!open) return;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setQuery(''); } };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, [open, setOpen]);
+  }, [open, setOpen, setQuery]);
 
-  // Flatten SALA_MENU in lista piatto per ricerca
+  // Il menù, appiattito in una lista sola per cercarci dentro.
   const allMenu = React.useMemo(() => {
     const m = window.SALA_MENU || {};
     const out = [];
@@ -2685,57 +2702,77 @@ function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
   const q = (query || '').trim().toLowerCase();
   const matches = q ? allMenu.filter(m => m.nome.toLowerCase().includes(q)).slice(0, 8) : [];
 
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        title="Aggiungi un articolo dal menù"
+        onMouseEnter={e => { e.currentTarget.style.background = SALDA_BRAND_SOFT; }}
+        onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
+        style={{
+          display:'inline-flex', alignItems:'center', gap: 7, flexShrink: 0,
+          padding:'9px 16px 9px 13px', borderRadius: 999,
+          background:'#fff', border:`1px solid ${SALDA_BRAND}`,
+          color: SALDA_BRAND, fontSize: 15.5, fontWeight: 700,
+          cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+          transition:'background 150ms ease-out',
+        }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+        Aggiungi articolo
+      </button>
+    );
+  }
+
   return (
-    <div ref={ref} style={{
-      padding:'10px 18px 8px', borderBottom:'1px solid #F0F2F5',
-      background:'#fff', position:'relative',
-    }}>
+    <div ref={ref} style={{position:'relative', flexShrink: 0, width: 340, maxWidth:'60%'}}>
       <div style={{
         display:'flex', alignItems:'center', gap: 8,
-        padding:'8px 10px', borderRadius: 8,
-        background:'#FAFBFC', border:'1px solid #E5E7EB',
+        padding:'8px 12px', borderRadius: 999,
+        background:'#fff', border:`1px solid ${SALDA_BRAND}`,
       }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0}}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={SALDA_BRAND} strokeWidth="2.6" strokeLinecap="round" style={{flexShrink:0}}>
           <path d="M12 5v14 M5 12h14"/>
         </svg>
         <input
+          autoFocus
           value={query}
-          onChange={e => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => { if (query.trim()) setOpen(true); }}
-          placeholder="Aggiungi articolo dal menù…"
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Escape') { setQuery(''); setOpen(false); } }}
+          placeholder="Cerca nel menù…"
           style={{
-            flex:1, border:'none', outline:'none',
-            background:'transparent', fontSize: 17,
+            flex:1, minWidth: 0, border:'none', outline:'none',
+            background:'transparent', fontSize: 16,
             color:'#0F1115', fontFamily:'inherit',
           }}
         />
-        {query && (
-          <button
-            onClick={() => { setQuery(''); setOpen(false); }}
-            style={{
-              width: 18, height: 18, padding: 0, borderRadius: 4,
-              background:'transparent', border:'none', cursor:'pointer',
-              color:'#9CA3AF', fontSize: 18, fontFamily:'inherit',
-              display:'inline-flex', alignItems:'center', justifyContent:'center',
-            }}>×</button>
-        )}
+        <button
+          onClick={() => { setQuery(''); setOpen(false); }}
+          title="Chiudi"
+          style={{
+            width: 20, height: 20, padding: 0, borderRadius: 4, flexShrink: 0,
+            background:'transparent', border:'none', cursor:'pointer',
+            color:'#9CA3AF', fontFamily:'inherit',
+            display:'inline-flex', alignItems:'center', justifyContent:'center',
+          }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
       </div>
 
-      {open && q && (
+      {q && (
         <div style={{
-          position:'absolute', top:'calc(100% - 4px)', left: 18, right: 18,
-          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 8,
+          position:'absolute', top:'calc(100% + 6px)', left: 0, right: 0,
+          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 12,
           boxShadow:'0 12px 28px rgba(15,17,21,0.12), 0 2px 6px rgba(15,17,21,0.06)',
-          zIndex: 70, maxHeight: 280, overflow:'auto', padding: 4,
+          zIndex: 70, maxHeight: 300, overflow:'auto', padding: 5,
         }}>
           {matches.length === 0 ? (
             <div style={{padding:'14px 12px', fontSize: 16.5, color:'#9CA3AF', textAlign:'center'}}>
               Nessun articolo trovato. <button
                 onClick={() => onPick({ nome: query.trim(), prezzo: 0 })}
                 style={{
-                  marginLeft: 4, padding:'2px 6px',
+                  marginLeft: 4, padding:'3px 8px',
                   background:'#0F1115', color:'#fff', border:'none',
-                  borderRadius: 4, fontSize: 15, fontWeight: 700,
+                  borderRadius: 6, fontSize: 15, fontWeight: 700,
                   cursor:'pointer', fontFamily:'inherit',
                 }}>Crea "{query.trim()}"</button>
             </div>
@@ -2746,7 +2783,7 @@ function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
                 onClick={() => onPick(m)}
                 style={{
                   display:'flex', alignItems:'center', gap: 10,
-                  width:'100%', padding:'8px 10px', borderRadius: 6,
+                  width:'100%', padding:'9px 10px', borderRadius: 8,
                   background:'transparent', border:'none', cursor:'pointer',
                   fontFamily:'inherit', textAlign:'left',
                   transition:'background 120ms',
@@ -2754,9 +2791,9 @@ function AddArticleBar({ query, setQuery, open, setOpen, onPick }) {
                 onMouseEnter={e => { e.currentTarget.style.background = '#F8F9FB'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
               >
-                <span style={{flex:1, fontSize: 17, color:'#0F1115'}}>{m.nome}</span>
-                <span style={{fontSize: 15, color:'#9CA3AF'}}>{m.categoria}</span>
-                <span style={{fontSize: 17, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums', minWidth: 50, textAlign:'right'}}>
+                <span style={{flex:1, fontSize: 16.5, color:'#0F1115'}}>{m.nome}</span>
+                <span style={{fontSize: 14.5, color:'#9CA3AF'}}>{m.categoria}</span>
+                <span style={{fontSize: 16.5, fontWeight: 700, color:'#0F1115', fontVariantNumeric:'tabular-nums', minWidth: 50, textAlign:'right'}}>
                   €{m.prezzo.toFixed(2)}
                 </span>
               </button>

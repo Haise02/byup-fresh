@@ -422,8 +422,10 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
     if (t.state === 'occupato')  return occupatoSaldato
       ? { label: 'Libera tavolo', onClick: () => onLibera && onLibera(t) }
       // «Vai al conto», non più «Salda ora»: quel pulsante apre il CONTO —
-      // riepilogo e correzioni — e l'incasso è un passo dopo. Promettere il
-      // saldo su un tasto che porta a un riepilogo era una promessa sbagliata.
+      // cosa c'è sul tavolo, cosa se ne salda, e dietro «Modifica» le
+      // correzioni — e l'incasso è il passo dopo, dentro la stessa finestra.
+      // Promettere il saldo su un tasto che porta a un elenco era una
+      // promessa sbagliata.
       : { label: 'Vai al conto', onClick: onPay };
     if (t.state === 'dapulire')  return { label: 'Segna come pronto', onClick: onAdd };
   })();
@@ -721,8 +723,8 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               ]}/>
 
             {/* Qui stava l'elenco «Ordini · N» richiudibile, con lo stato di
-                ogni piatto. Da quando «Vai al conto» apre il riepilogo del
-                conto — stessi piatti, stessi stati, più le correzioni — era
+                ogni piatto. Da quando «Vai al conto» apre il conto — stessi
+                piatti, stessi stati, e dietro «Modifica» le correzioni — era
                 una seconda copia della stessa lista a un tocco dall'originale:
                 la card dice lo stato del TAVOLO, il dettaglio vive nel conto. */}
 

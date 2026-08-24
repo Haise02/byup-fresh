@@ -248,6 +248,9 @@ Canvas 50 particelle, gravità + drift + rotazione, fade-out negli ultimi 600ms,
 ### Phone preview auto-scroll (Step 4)
 Translate Y 0 → -50% in 25s linear infinite, pause-on-hover. Lineare e lentissimo: comunica "anteprima viva" senza distrarre dal contenuto principale. Non è un'animazione di attenzione — è un display.
 
+### Cornice tratteggiata del prezzo (Salda conto → Modifica)
+`stroke-dashoffset` 0 → −20 in 850ms linear infinite su un `<rect>` SVG intorno al prezzo unitario (`saldaAnts` in `sala-salda-modal.jsx`). Non è un'animazione di attenzione: è una **affordance**, e vive solo dentro la modalità «Modifica» del conto — a riposo, nella lista normale, non esiste. Un numero fermo in una lista di numeri fermi non dichiara di essere un campo: la cornice che cammina lo dice senza una legenda accanto, che è l'alternativa. Rispetta `prefers-reduced-motion: reduce` — lì il tratteggio resta, fermo, e l'affordance sopravvive all'animazione.
+
 ---
 
 ## Banner system
@@ -844,6 +847,20 @@ Lo disegna un font di ripiego, che lo appoggia dove gli pare rispetto alla linea
 La matita «permessi» sulle righe dei ruoli è stata tolta: era il secondo modo per arrivare alla stessa modale, ed era pure quello nascosto — comparivi sopra la riga e la trovavi, altrimenti no. Le righe della colonna «Ruoli» fanno quello che il loro sottotitolo dichiara, cioè filtrare l'elenco, e i permessi si aprono da «Crea ruolo», che sta lì sotto ed è sempre visibile.
 
 Quando si toglie una porta si toglie anche quello che serviva solo a lei: con la matita se ne sono andati lo stato `editRole` e il margine destro di 24px che riservava la sua corsia nei conteggi.
+
+## Il conto si salda in due passi, non in due finestre e non in due colonne
+
+Per arrivare a incassare un tavolo si aprivano **due finestre**: «Conto» — la lista dei piatti con lo stato e le correzioni — e dietro di lei «Salda conto», spaccata in due colonne: i piatti a sinistra da spuntare, i soldi a destra. Tre superfici per un gesto solo, e la prima era una tappa obbligata verso una lista che la colonna di sinistra rifaceva daccapo, spunte comprese.
+
+Adesso «Vai al conto» apre direttamente il saldo, e il saldo è **una finestra in due passi**: prima COSA si salda, poi QUANTO e COME. La regola che ne esce vale oltre questa schermata:
+
+**Due domande che si fanno una dopo l'altra non si mettono una accanto all'altra.** Due colonne affiancate dicono «rispondi a tutte e due», e chi apriva la finestra si trovava davanti «Come paga il cliente?» mentre stava ancora leggendo cosa c'è sul tavolo. Un passo per domanda, con la risposta precedente riassunta in testata e una via di ritorno esplicita.
+
+**Una schermata che serve solo a raggiungerne un'altra non è un passo, è una porta.** Il vecchio «Conto» non chiedeva niente e non decideva niente: si leggeva e si premeva «Procedi». Quello che ci viveva davvero — aggiungere una riga, correggere un prezzo, togliere un piatto battuto per sbaglio — è diventato una **modalità dichiarata** dentro il primo passo, e non lo stato normale della lista: chi deve solo incassare non può cancellare una riga con un tocco storto, e chi sta correggendo non spunta niente per sbaglio.
+
+**La finestra cambia misura col passo.** 1080 dove c'è una lista, 620 dove c'è una cifra e due tessere — la stessa misura della finestra Incassa di Vendita diretta, che è lo stesso gesto fatto dalla stessa persona. Una colonna stretta in mezzo a due fasce di bianco non sembra ordinata, sembra rotta; e in una finestra che si stringe la testata si riflette su due righe invece di comprimersi.
+
+**In un elenco operativo, quello che è finito scende in fondo.** Le righe già saldate stanno sotto le altre: in cima resta il lavoro da fare, e scorrendo un conto lungo non ci sono buche spente da saltare per arrivare alla prossima riga da spuntare. In modifica non ci sono proprio: una riga pagata non risponde a nessuno dei tre gesti di quella modalità, e mostrarla sarebbe l'unica cosa lì dentro che non si può toccare.
 
 ---
 
