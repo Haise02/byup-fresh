@@ -807,16 +807,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   })()}
                 </div>
 
-                {/* L'intestazione della colonna dei numeri, allineata sopra le
-                    cifre: senza, quei numeri si leggerebbero come prezzi di
-                    listino — e invece sono quello che ogni riga deve ANCORA.
-                    In modifica cambiano mestiere anche loro: lì è il prezzo
-                    unitario, quello che si riscrive. */}
-                <div style={{padding: edit ? '0 72px 6px' : '0 38px 6px', textAlign:'right', flexShrink: 0}}>
-                  <span style={{...SALDA_LABEL, marginBottom: 0}}>
-                    {edit ? 'Prezzo unitario' : 'Saldo residuo'}
-                  </span>
-                </div>
+                {/* Qui stava l'intestazione della colonna dei numeri — «Saldo
+                    residuo» nella selezione, «Prezzo unitario» in modifica.
+                    Una didascalia per una colonna sola, in un elenco dove i
+                    numeri sono già gli unici numeri: la riga dice il piatto e
+                    finisce con la sua cifra, e nessuno la scambia per un
+                    prezzo di listino. In modifica poi il numero dichiara da sé
+                    di essere riscrivibile, con la cornice che cammina. */}
 
                 {/* AGGIUNGI ARTICOLO — una riga grande come quella di un
                     piatto, e la PRIMA della lista: quello che si sta per fare
