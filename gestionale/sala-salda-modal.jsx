@@ -400,75 +400,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   function updateItem(id, patch) {
     setEditedOrdini(arr => arr.map(o => o.id === id ? { ...o, ...patch } : o));
   }
-  // La QUANTITÀ ORDINATA si corregge nel conto, come il nome e il prezzo: il
-  // cameriere ha battuto tre birre ma erano due. Non scende mai sotto quello
-  // che è già stato pagato — quelle porzioni sono un incasso, non un refuso —
-  // né sotto uno: la riga da zero si toglie con il cestino, che dice quello
-  // che fa. La selezione del passo dopo si riallinea da sola: quello che è
-  // aperto torna tutto selezionato, coerente con l'apertura.
-  function cambiaQtyOrdine(id, q) {
-    const o = allOrdini.find(x => x.id === id);
-    if (!o) return;
-    const delta = Math.round(q) - o.qty;
-    if (delta === 0) return;
-
-    // UNO IN PIÙ su un piatto che la cucina ha già preso in carico — in
-    // preparazione, pronto o consegnato — non gonfia quella riga: quella
-    // racconta piatti già lavorati, e un «4» al posto del «3» direbbe alla
-    // cucina che il quarto è già in forno. Il piatto in più è una comanda
-    // NUOVA: nasce su una riga sua, subito sotto, in attesa — come quella che
-    // farebbe «Aggiungi articolo». Solo una riga ancora in coda («In attesa»)
-    // si può gonfiare davvero: là il numero è ancora una richiesta.
-    if (delta > 0 && o.stato !== 'ordinato') {
-      const gemella = allOrdini.find(x => x._extraDi === id);
-      if (gemella) {
-        // La riga in più esiste già: il secondo «+» va lì, non apre una
-        // terza riga — un piatto, una comanda nuova, una riga.
-        updateItem(gemella.id, { qty: gemella.qty + delta });
-        setSelectedItems(s => {
-          const ns = new Map(s);
-          ns.set(gemella.id, gemella.qty + delta - qtyPagata(gemella));
-          return ns;
-        });
-        return;
-      }
-      const nuova = {
-        id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        nome: o.nome,
-        prezzo: o.prezzo,
-        qty: delta,
-        stato: 'ordinato',
-        minutiInPreparazione: 0,
-        minutiInCoda: 0,
-        // È la cassa che lo sta battendo, non l'ospite della riga di partenza:
-        // ereditare il guestId direbbe che l'ha ordinato lui — e se quell'
-        // ospite ha già pagato la sua parte, la riga nascerebbe «pagata».
-        origin: 'cameriere',
-        guestId: null,
-        _added: true,
-        _extraDi: id,
-      };
-      setEditedOrdini(arr => {
-        const i = arr.findIndex(x => x.id === id);
-        const copia = arr.slice();
-        copia.splice(i + 1, 0, nuova);
-        return copia;
-      });
-      setSelectedItems(s => { const ns = new Map(s); ns.set(nuova.id, delta); return ns; });
-      return;
-    }
-
-    const minQ = Math.max(1, qtyPagata(o));
-    const v = Math.max(minQ, Math.round(q));
-    if (v === o.qty) return;
-    updateItem(id, { qty: v });
-    setSelectedItems(s => {
-      const ns = new Map(s);
-      const aperta = v - qtyPagata(o);
-      if (aperta <= 0) ns.delete(id); else ns.set(id, aperta);
-      return ns;
-    });
-  }
+  // Qui viveva `cambiaQtyOrdine`, il − e il + sulla QUANTITÀ ORDINATA: tre
+  // birre battute per due si correggevano sulla riga, e il «+» su un piatto
+  // che la cucina aveva già preso in carico apriva una riga gemella in attesa
+  // (`_extraDi`) invece di gonfiare quella lavorata.
+  // In modifica la quantità non si tocca più: si correggono il nome, il
+  // prezzo e la presenza della riga. Contare le porzioni al ribasso è un
+  // gesto che somiglia troppo a «ne ho servite meno» e che nessuno può
+  // verificare a conto aperto; toglierne una in più è un altro ordine, e per
+  // quello c'è «Aggiungi articolo». Il cestino resta l'unico modo di far
+  // sparire una riga, e la toglie INTERA.
   function deleteItem(id) {
     setEditedOrdini(arr => arr.filter(o => o.id !== id));
     setSelectedItems(s => { const ns = new Map(s); ns.delete(id); return ns; });
@@ -655,14 +596,18 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
           incasso in Vendita diretta.
           La finestra CAMBIA MISURA con il passo, e non è un vezzo: il primo
           passo è una lista e vuole larghezza, il secondo è una cifra, due
-          tessere e un pulsante — a 1080 sarebbe una colonna stretta in mezzo
+          tessere e un pulsante — a 864 sarebbe una colonna stretta in mezzo
           a due fasce di bianco, che non sembra ordinata, sembra rotta. A 620
           è esattamente la finestra Incassa di Vendita diretta: stesso gesto,
-          stessa misura. */}
+          stessa misura.
+          Gli 864 del primo passo sono un quinto in meno dei 1080 di partenza:
+          la riga di un piatto è nome, stato, chi l'ha ordinato e una cifra —
+          messi in fila su 1080 restavano lontani, con una fascia vuota nel
+          mezzo che faceva cercare il prezzo a fine corsa. */}
       <div style={{
         position:'absolute', top:'50%', left:'50%',
         transform:'translate(-50%, -50%)',
-        width: (paying || done || storno) ? 420 : (passo === 'pagamento' ? 620 : 1080),
+        width: (paying || done || storno) ? 420 : (passo === 'pagamento' ? 620 : 864),
         maxWidth:'93%', height:'auto', maxHeight:'92%',
         background:'#fff', borderRadius: 20,
         boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
@@ -698,15 +643,19 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
             onClose={onClose}/>
         ) : (
           <>
-            {/* HEADER. Dice le stesse cose sui due passi, ma non nello
-                stesso ordine: nel primo la finestra è larga e ci sta tutto su
-                una riga; nel secondo si stringe a 620 e i due documenti
-                scendono sotto il titolo, in fila con la via di ritorno.
-                Restano comunque insieme — pre-conto e fattura sono la stessa
-                cosa: i due fogli che il tavolo può chiedere, e la domanda
-                («mi fa fattura?») arriva spesso prima ancora del conto. */}
+            {/* HEADER, uguale su tutti e due i passi: sopra chi è il tavolo,
+                sotto la riga dei gesti — la via di ritorno a sinistra (solo
+                dove c'è un indietro) e i due documenti a destra. Stavano in
+                fila col titolo finché la finestra era larga 1080; a 864 il
+                nome del tavolo andava a capo e i «7 coperti» restavano soli
+                su una riga tutta loro. Meglio una riga in più decisa che una
+                riga in più per incidente, e in cambio la testata è una sola
+                in tutta la finestra invece di due.
+                Pre-conto e fattura stanno insieme perché sono la stessa cosa:
+                i due fogli che il tavolo può chiedere, e la domanda («mi fa
+                fattura?») arriva spesso prima ancora del conto. */}
             {(() => {
-              const stretto = passo === 'pagamento';
+              const indietro = passo === 'pagamento';
               const btnPreConto = (
                 <button key="pre" onClick={() => stampaPreConto('tutto')} style={btnGhost}>
                   <IconPrinter/>
@@ -727,7 +676,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   onMouseEnter={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#D1D5DB'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#E5E7EB'; }}
                   style={{
-                    ...btnGhost, maxWidth: stretto ? 200 : 260,
+                    ...btnGhost, maxWidth: 220,
                     background: fattura ? SALDA_BRAND_SOFT : '#fff',
                     border: `1px solid ${fattura ? SALDA_BRAND : '#E5E7EB'}`,
                     color: fattura ? SALDA_BRAND : '#0F1115',
@@ -742,7 +691,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 </button>
               );
               return (
-                <div style={{padding: stretto ? '20px 24px 8px' : '20px 24px 16px', flexShrink: 0}}>
+                <div style={{padding:'20px 24px 8px', flexShrink: 0}}>
                   <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
                     <div style={{flex:1, minWidth: 0}}>
                       {/* Un nome solo, per una finestra sola: qui dentro si
@@ -758,8 +707,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         </span>
                       </div>
                     </div>
-                    {!stretto && btnPreConto}
-                    {!stretto && btnFattura}
                     <button onClick={onClose} title="Chiudi" style={saldaIconBtn}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
                     </button>
@@ -775,8 +722,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       era la risposta a una selezione che si sta per cambiare, e
                       ritrovarsela addosso sul conto nuovo sarebbe un numero
                       vecchio travestito da proposta. */}
-                  {stretto && (
-                    <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 14, flexWrap:'wrap'}}>
+                  <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 14, flexWrap:'wrap'}}>
+                    {indietro && (
                       <button onClick={() => { setPasso('scegli'); setImporto(''); setImportoTocco(false); }}
                         title="Torna a scegliere cosa saldi"
                         onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SALDA_INK; }}
@@ -792,11 +739,11 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
                         Cosa saldi
                       </button>
-                      <span style={{flex:1}}/>
-                      {btnPreConto}
-                      {btnFattura}
-                    </div>
-                  )}
+                    )}
+                    <span style={{flex:1}}/>
+                    {btnPreConto}
+                    {btnFattura}
+                  </div>
                 </div>
               );
             })()}
@@ -890,7 +837,6 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                               guest={o.guestId ? guestById[o.guestId] : null}
                               selezione={false}
                               modifica
-                              onChangeQty={cambiaQtyOrdine}
                               onUpdate={updateItem}
                               onDelete={deleteItem}/>
                           ))
@@ -963,7 +909,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     ) : (
                       <React.Fragment>
                         <button onClick={apriModifica}
-                          title="Correggi il conto: aggiungi o togli righe, cambia un prezzo"
+                          title="Correggi il conto: aggiungi o togli righe, cambia un nome o un prezzo"
                           onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
                           style={saldaBtnPiede}>
@@ -984,7 +930,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                           onMouseDown={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(0.99)'; }}
                           onMouseUp={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(1.01)'; }}
                           style={saldaBtnCta(residuoTavolo > 0.004)}>
-                          {residuoTavolo > 0.004 ? 'Procedi al pagamento' : 'Niente da incassare'}
+                          {residuoTavolo > 0.004 ? 'Procedi alla transazione' : 'Niente da incassare'}
                         </button>
                       </React.Fragment>
                     )}
@@ -1428,7 +1374,7 @@ function StatoPiatto({ stato, spento }) {
 // documento da correggere: niente spunta, il − e il + cambiano la quantità
 // ORDINATA, il nome e il prezzo si riscrivono e il cestino toglie la riga.
 // Non valgono mai insieme.
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezione = true, modifica = false, saldoRiga, maxQty, onChangeQty, onUpdate, onDelete }) {
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezione = true, modifica = false, saldoRiga, maxQty, onUpdate, onDelete }) {
   // La webapp è anonima: «Guest 4» non è un nome, è un segnaposto, e una
   // pastiglia che dice un segnaposto non dice niente. Sulla riga compare solo
   // chi un nome ce l'ha — gli ospiti dell'app.
@@ -1503,43 +1449,16 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           cambiarlo si preme dov'è — sempre nello stesso posto, riga per riga.
           Prima comparivano solo sulle righe da più di uno e solo se selezionate:
           due condizioni da ricordare per un comando che deve essere lì e basta.
-          Su un piatto già pagato restano fuori: non c'è niente da contare. */}
-      {pagato ? (
+          Su un piatto già pagato restano fuori: non c'è niente da contare — e
+          nemmeno in modifica, dove la quantità è un dato del conto e non una
+          cosa che si aggiusta: lì il numero si legge e basta. */}
+      {(pagato || !selezione) ? (
         <span style={{
-          fontSize: 16, fontWeight: 800, color:'#9CA3AF',
+          fontSize: 16, fontWeight: 800, color: pagato ? '#9CA3AF' : '#0F1115',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
           padding:'6px 0', minWidth: 40, textAlign:'center',
           fontVariantNumeric:'tabular-nums', flexShrink: 0,
         }}>{o.qty}</span>
-      ) : !selezione ? (
-        // Nel conto il − e il + correggono la QUANTITÀ ORDINATA — tre birre
-        // battute per due — non quante se ne saldano: quello è il lavoro
-        // dello stesso stepper nel passo dopo. Stessa forma, due grandezze:
-        // qui cambia il conto, là cambia l'incasso.
-        onChangeQty ? (
-          <div onClick={stop} style={{
-            display:'inline-flex', alignItems:'center',
-            background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
-            overflow:'hidden', flexShrink: 0,
-          }}>
-            <button onClick={() => onChangeQty(o.id, o.qty - 1)} disabled={o.qty <= 1}
-              style={{...qtyBtn, opacity: o.qty <= 1 ? 0.3 : 1}} title="Una in meno">−</button>
-            <span style={{
-              fontSize: 16, fontWeight: 800, color:'#0F1115',
-              minWidth: 30, textAlign:'center', padding:'0 2px',
-              whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
-            }}>{o.qty}</span>
-            <button onClick={() => onChangeQty(o.id, o.qty + 1)}
-              style={qtyBtn} title="Una in più">+</button>
-          </div>
-        ) : (
-          <span style={{
-            fontSize: 16, fontWeight: 800, color:'#0F1115',
-            background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
-            padding:'6px 0', minWidth: 40, textAlign:'center',
-            fontVariantNumeric:'tabular-nums', flexShrink: 0,
-          }}>{o.qty}</span>
-        )
       ) : (
         <div onClick={stop} style={{
           display:'inline-flex', alignItems:'center',
@@ -1760,16 +1679,20 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
         </span>
       )}
 
-      {/* CESTINO — solo in modifica, e sempre visibile: lì è uno dei tre
-          gesti per cui si è entrati, e un comando che si scopre passandoci
-          sopra col mouse non è un comando, è un indovinello. Mai su un piatto
-          già pagato: quella riga è la prova di un incasso, e toglierla farebbe
-          sparire dei soldi dal conto. */}
+      {/* CESTINO — solo in modifica, e sempre visibile: lì è uno dei gesti
+          per cui si è entrati, e un comando che si scopre passandoci sopra col
+          mouse non è un comando, è un indovinello. Porta via la riga INTERA,
+          tutte le porzioni comprese, e da quando la quantità non si corregge
+          più è l'unico modo di toglierne: per questo si chiama «Elimina
+          tutti» e non «Elimina articolo» — su una riga da tre birre le due
+          cose non sono la stessa. Mai su un piatto già pagato: quella riga è
+          la prova di un incasso, e toglierla farebbe sparire dei soldi dal
+          conto. */}
       {onDelete && (
       <button
         disabled={pagato}
         onClick={(e) => { e.stopPropagation(); if (!pagato && onDelete) onDelete(o.id); }}
-        title="Elimina articolo"
+        title={o.qty > 1 ? `Elimina tutti · ${o.qty} porzioni` : 'Elimina tutti'}
         style={{
           width: 28, height: 28, padding: 0, borderRadius: 7,
           background:'transparent', border:'none', cursor:'pointer',
@@ -2606,28 +2529,28 @@ const SALDA_SUNSET_BG = `
 const SALDA_SUNSET_SHADOW = 'inset 0 1px 0 rgba(255,200,210,0.18), inset 0 0 0 1px rgba(255,130,150,0.12), 0 8px 22px -8px rgba(80,10,30,0.55), 0 3px 8px -4px rgba(80,10,30,0.30)';
 const SALDA_SUNSET_TEXT = '#FFE9E6';
 // IL PIEDE DEL PRIMO PASSO: due angoli, due strade. A destra sta sempre quella
-// che va avanti — «Procedi al pagamento», e in modifica «Salva» — nello stesso
+// che va avanti — «Procedi alla transazione», e in modifica «Salva» — nello stesso
 // punto e con lo stesso peso, perché è lo stesso posto della finestra dove si
 // preme per proseguire. A sinistra quella laterale, in bianco: correggere il
 // conto, o rinunciare alle correzioni. Colore acceso e colore spento non
 // bastavano da soli — sono anche agli antipodi, che è la distanza giusta fra
 // «vai avanti» e «lascia perdere».
 const saldaBtnPiede = {
-  display:'inline-flex', alignItems:'center', gap: 8,
-  padding:'15px 24px', borderRadius: 999,
+  display:'inline-flex', alignItems:'center', gap: 10,
+  padding:'18px 30px', borderRadius: 999,
   background:'#fff', color: SALDA_INK,
   border:`1px solid ${SALDA_BORDO}`,
-  fontSize: 17, fontWeight: 700,
+  fontSize: 19, fontWeight: 700,
   cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
   transition:'background 150ms ease-out',
 };
 const saldaBtnCta = (attivo) => ({
-  padding:'15px 32px', borderRadius: 999,
+  padding:'18px 38px', borderRadius: 999,
   background: attivo ? SALDA_SUNSET_BG : '#EDEFF2',
   color: attivo ? SALDA_SUNSET_TEXT : '#9CA3AF',
   border:'1px solid transparent',
   boxShadow: attivo ? SALDA_SUNSET_SHADOW : 'none',
-  fontSize: 18, fontWeight: 700, letterSpacing:-0.1,
+  fontSize: 21, fontWeight: 700, letterSpacing:-0.2,
   cursor: attivo ? 'pointer' : 'not-allowed', fontFamily:'inherit',
   whiteSpace:'nowrap',
   transition:'box-shadow 180ms ease-out, filter 150ms ease-out, transform 150ms cubic-bezier(0.34, 1.45, 0.64, 1)',
