@@ -768,8 +768,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                 flex: 1, display:'flex', flexDirection:'column', minWidth: 0,
               }}>
                 {/* La barra della lista: a sinistra come si chiama quello che
-                    si sta facendo, a destra l'unico gesto che serve adesso —
-                    prendere tutto, o aggiungere una riga. */}
+                    si sta facendo, a destra il gesto che vale su TUTTE le
+                    righe insieme — prendere tutto. In modifica non ce n'è
+                    nessuno: aggiungere un articolo non è un comando della
+                    barra, è la prima riga della lista. */}
                 <div style={{
                   padding:'2px 24px 6px',
                   display:'flex', alignItems:'center', gap: 10, flexShrink: 0,
@@ -778,12 +780,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     {edit ? 'Correggi il conto' : 'Cosa saldi'}
                   </span>
                   <span style={{flex:1}}/>
-                  {edit ? (
-                    <AddArticleButton
-                      query={addQuery} setQuery={setAddQuery}
-                      open={addOpen} setOpen={setAddOpen}
-                      onPick={addItemFromMenu}/>
-                  ) : (() => {
+                  {edit ? null : (() => {
                     const allSel = incassabili.length > 0 && incassabili.every(o => (selectedItems.get(o.id) || 0) >= qtyAperta(o));
                     const someSel = !allSel && selectedItems.size > 0;
                     return (
@@ -821,6 +818,27 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   </span>
                 </div>
 
+                {/* AGGIUNGI ARTICOLO — una riga grande come quella di un
+                    piatto, e la PRIMA della lista: quello che si sta per fare
+                    è mettere un piatto lì dentro, quindi il comando ha la
+                    forma del risultato. Era una pastiglia in fondo alla barra
+                    del titolo, cioè un bersaglio da cercare in un angolo per
+                    aggiungere una riga che sarebbe comparsa da tutt'altra
+                    parte.
+                    Sta FUORI dal riquadro che scorre, non dentro: l'elenco dei
+                    piatti del menù si apre sotto la riga, e da dentro uno
+                    scroll verrebbe tagliato al primo risultato ogni volta che
+                    il conto è corto. Fuori, resta anche a portata di mano con
+                    un conto lungo, che è dove serve di più. */}
+                {edit && (
+                  <div style={{padding:'0 24px 8px', flexShrink: 0}}>
+                    <AddArticleButton
+                      query={addQuery} setQuery={setAddQuery}
+                      open={addOpen} setOpen={setAddOpen}
+                      onPick={addItemFromMenu}/>
+                  </div>
+                )}
+
                 {/* Lista PIATTA, non per canale: qui si scelgono piatti, e le
                     testate di gruppo erano tre titoli in mezzo alle spunte. Da
                     dove arriva un piatto lo dice la sua riga — «Marco · BYUP»
@@ -828,7 +846,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     piatto e basta. */}
                 <div className="pn-scroll" style={{flex:1, overflow:'auto', padding:'0 24px 14px'}}>
                   {(edit ? ordiniModificabili : ordiniOrdinati).length === 0 ? (
-                    <EmptyOrdini testo={edit && allOrdini.length > 0 ? 'Niente da correggere: quello che resta sul conto è già saldato' : undefined}/>
+                    <EmptyOrdini testo={edit && allOrdini.length > 0 ? 'Quello che resta sul conto è già saldato: si può solo aggiungere' : undefined}/>
                   ) : (
                     <div style={{display:'flex', flexDirection:'column', gap: 8}}>
                       {edit
@@ -2598,11 +2616,16 @@ const miniLink = {
 // la fila del contante, e con lui se ne vanno anche le sue due eccezioni.
 
 // ────────── AGGIUNGI ARTICOLO ──────────
-// UN PULSANTE, non una barra di ricerca sempre aperta. La barra stava in cima
-// alla lista a tutte le ore, e per la maggior parte delle volte in cui si apre
-// un conto — guardarlo, spuntarlo, incassarlo — era un campo di testo messo
-// davanti a tutto che non serviva a niente. Adesso è uno dei tre gesti della
-// modifica, sta con gli altri due, e si apre in campo solo quando lo si preme.
+// UNA RIGA GRANDE COME QUELLA DI UN PIATTO, in cima alla lista. Non è un
+// pulsante in un angolo della barra del titolo: quello che si sta per fare è
+// mettere un piatto nell'elenco, e il comando ha la forma e la misura del
+// risultato — si preme dove comparirà la riga.
+// Chiusa è una riga tratteggiata, che dice «qui ce n'è una che non c'è
+// ancora»; aperta diventa lo stesso rettangolo con dentro il campo di ricerca
+// e sotto i piatti del menù. Non è una barra di ricerca sempre accesa: per la
+// maggior parte delle volte in cui si apre un conto — guardarlo, spuntarlo,
+// incassarlo — un campo di testo davanti a tutto non serviva a niente, e
+// infatti la modifica è una modalità a parte.
 function AddArticleButton({ query, setQuery, open, setOpen, onPick }) {
   const ref = React.useRef(null);
   React.useEffect(() => {
@@ -2633,29 +2656,44 @@ function AddArticleButton({ query, setQuery, open, setOpen, onPick }) {
         onMouseEnter={e => { e.currentTarget.style.background = SALDA_BRAND_SOFT; }}
         onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
         style={{
-          display:'inline-flex', alignItems:'center', gap: 7, flexShrink: 0,
-          padding:'9px 16px 9px 13px', borderRadius: 999,
-          background:'#fff', border:`1px solid ${SALDA_BRAND}`,
-          color: SALDA_BRAND, fontSize: 15.5, fontWeight: 700,
-          cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+          // Le stesse misure della riga di un piatto — imbottitura, raggio,
+          // larghezza piena — perché è il posto dove ne comparirà una.
+          // Tratteggiata e non piena: è una riga che ancora non c'è.
+          width:'100%', display:'flex', alignItems:'center', gap: 12,
+          padding:'15px 14px', borderRadius: 12,
+          background:'#fff', border:`1.6px dashed ${SALDA_BRAND}`,
+          color: SALDA_BRAND, fontSize: 17.5, fontWeight: 700,
+          cursor:'pointer', fontFamily:'inherit', textAlign:'left',
           transition:'background 150ms ease-out',
         }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+        <span style={{
+          width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+          display:'grid', placeItems:'center',
+          background: SALDA_BRAND, color:'#fff',
+        }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+        </span>
         Aggiungi articolo
       </button>
     );
   }
 
   return (
-    <div ref={ref} style={{position:'relative', flexShrink: 0, width: 340, maxWidth:'60%'}}>
+    <div ref={ref} style={{position:'relative', width:'100%'}}>
       <div style={{
-        display:'flex', alignItems:'center', gap: 8,
-        padding:'8px 12px', borderRadius: 999,
-        background:'#fff', border:`1px solid ${SALDA_BRAND}`,
+        display:'flex', alignItems:'center', gap: 12,
+        padding:'15px 14px', borderRadius: 12,
+        background:'#fff', border:`1.6px solid ${SALDA_BRAND}`,
       }}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={SALDA_BRAND} strokeWidth="2.6" strokeLinecap="round" style={{flexShrink:0}}>
-          <path d="M12 5v14 M5 12h14"/>
-        </svg>
+        {/* Il segno resta dov'era e smette di tratteggiare: la riga da vuota
+            è diventata la riga che si sta scrivendo, non un'altra cosa. */}
+        <span style={{
+          width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+          display:'grid', placeItems:'center',
+          background: SALDA_BRAND, color:'#fff',
+        }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 5v14 M5 12h14"/></svg>
+        </span>
         <input
           autoFocus
           value={query}
@@ -2664,7 +2702,7 @@ function AddArticleButton({ query, setQuery, open, setOpen, onPick }) {
           placeholder="Cerca nel menù…"
           style={{
             flex:1, minWidth: 0, border:'none', outline:'none',
-            background:'transparent', fontSize: 16,
+            background:'transparent', fontSize: 17.5,
             color:'#0F1115', fontFamily:'inherit',
           }}
         />
@@ -2672,7 +2710,7 @@ function AddArticleButton({ query, setQuery, open, setOpen, onPick }) {
           onClick={() => { setQuery(''); setOpen(false); }}
           title="Chiudi"
           style={{
-            width: 20, height: 20, padding: 0, borderRadius: 4, flexShrink: 0,
+            width: 26, height: 26, padding: 0, borderRadius: 6, flexShrink: 0,
             background:'transparent', border:'none', cursor:'pointer',
             color:'#9CA3AF', fontFamily:'inherit',
             display:'inline-flex', alignItems:'center', justifyContent:'center',

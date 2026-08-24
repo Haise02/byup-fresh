@@ -862,6 +862,8 @@ Adesso «Vai al conto» apre direttamente il saldo, e il saldo è **una finestra
 
 **In modifica si corregge quello che è stato scritto, non quanto è stato servito.** La quantità ordinata non si tocca: contarla al ribasso somiglia troppo a «ne ho servite meno» ed è l'unica correzione del conto che nessuno può verificare a tavolo aperto; contarla al rialzo è un altro ordine, e per quello c'è «Aggiungi articolo». Restano il nome, il prezzo e la presenza della riga. Di conseguenza il cestino porta via la riga **intera** — tutte le porzioni — e il suo hover lo dice per esteso («Elimina tutti · 3 porzioni»): su una riga da tre birre «elimina» e «elimina tutte» non sono la stessa cosa, e con lo stepper via è l'unico modo di toglierne.
 
+**Un comando che crea una riga ha la forma della riga che crea.** «Aggiungi articolo» era una pastiglia in fondo alla barra del titolo: un bersaglio da cercare in un angolo per far comparire qualcosa da tutt'altra parte. Ora è una riga tratteggiata larga quanto quella di un piatto, prima voce dell'elenco — si preme dove il piatto comparirà, e premendola diventa lo stesso rettangolo con dentro la ricerca. Vive **fuori** dal riquadro che scorre: l'elenco dei risultati si apre sotto di lei, e da dentro uno scroll verrebbe tagliato al primo risultato ogni volta che il conto è corto.
+
 **In un elenco operativo, quello che è finito scende in fondo.** Le righe già saldate stanno sotto le altre: in cima resta il lavoro da fare, e scorrendo un conto lungo non ci sono buche spente da saltare per arrivare alla prossima riga da spuntare. In modifica non ci sono proprio: una riga pagata non risponde a nessuno dei tre gesti di quella modalità, e mostrarla sarebbe l'unica cosa lì dentro che non si può toccare.
 
 ---
