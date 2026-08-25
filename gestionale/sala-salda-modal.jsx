@@ -415,17 +415,22 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     setSelectedItems(s => { const ns = new Map(s); ns.delete(id); return ns; });
   }
   function addItemFromMenu(menuItem) {
-    // Il piatto aggiunto da qui è un ORDINE NUOVO: nasce su una riga sua —
-    // mai dentro una riga esistente, qualunque stato abbia — e in attesa,
-    // perché per la cucina è una comanda appena inviata, non un piatto già
-    // fatto. Nascesse «pronto», il pass mostrerebbe un piatto che nessuno ha
-    // mai cucinato.
+    // Il piatto aggiunto da qui nasce su una riga SUA — mai dentro una riga
+    // esistente, qualunque stato abbia — e SENZA STATO.
+    // Diceva «In attesa», che è lo stato di una comanda partita per la
+    // cucina: ma questa riga la cucina non l'ha mai vista, e finché il conto
+    // è aperto in cassa non parte niente. Una pastiglia che dichiara
+    // un'attesa che non esiste è peggio di nessuna pastiglia — chi legge il
+    // conto crede che ci sia un piatto da aspettare.
+    // L'unica cosa vera di questa riga è che è appena stata messa lì, e lo
+    // dice il segno NUOVO accanto al nome. `StatoPiatto` con uno stato che
+    // non conosce non disegna niente, che è esattamente quello che serve.
     const newItem = {
       id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       nome: menuItem.nome,
       prezzo: menuItem.prezzo,
       qty: 1,
-      stato: 'ordinato',
+      stato: null,
       minutiInPreparazione: 0,
       minutiInCoda: 0,
       origin: 'cameriere',
