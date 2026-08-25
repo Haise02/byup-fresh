@@ -643,23 +643,31 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
             onClose={onClose}/>
         ) : (
           <>
-            {/* HEADER, uguale su tutti e due i passi: sopra chi è il tavolo,
-                sotto la riga dei gesti — la via di ritorno a sinistra (solo
-                dove c'è un indietro) e i due documenti a destra. Stavano in
-                fila col titolo finché la finestra era larga 1080; a 864 il
-                nome del tavolo andava a capo e i «7 coperti» restavano soli
-                su una riga tutta loro. Meglio una riga in più decisa che una
-                riga in più per incidente, e in cambio la testata è una sola
-                in tutta la finestra invece di due.
-                Pre-conto e fattura stanno insieme perché sono la stessa cosa:
-                i due fogli che il tavolo può chiedere, e la domanda («mi fa
-                fattura?») arriva spesso prima ancora del conto. */}
+            {/* HEADER. Pre-conto e fattura stanno IN FILA COL TITOLO, alla
+                sua altezza: sono i due fogli che il tavolo può chiedere, e la
+                domanda («mi fa fattura?») arriva spesso prima ancora del
+                conto — stanno accanto al nome di chi la fa.
+                Perché ci stiano a 864 il nome del tavolo non va più a capo:
+                si accorcia con i puntini se è lunghissimo, e i coperti non si
+                comprimono mai. Una riga che si accorcia è leggibile; una che
+                va a capo lasciando «4 coperti» da solo sotto, no.
+                Nel passo del pagamento la finestra scende a 620 e in fila non
+                ci stanno più: lì scendono sulla riga sotto, insieme alla via
+                di ritorno. */}
             {(() => {
               const indietro = passo === 'pagamento';
+              // «Pre-conto» e non «Stampa pre-conto»: il verbo lo dice la
+              // stampante disegnata accanto, e le due parole in più su una
+              // riga condivisa col nome del tavolo se lo mangiavano — su
+              // «Famiglia Robinson» il titolo finiva già a puntini. Sono le
+              // stesse pillole della testata di Vendita diretta, che dicono
+              // «Sconto» e «Fattura» per lo stesso motivo.
               const btnPreConto = (
-                <button key="pre" onClick={() => stampaPreConto('tutto')} style={btnGhost}>
+                <button key="pre" onClick={() => stampaPreConto('tutto')}
+                  title={preContoStampato ? 'Stampa di nuovo il pre-conto' : 'Stampa il pre-conto per il tavolo'}
+                  style={btnGhost}>
                   <IconPrinter/>
-                  {preContoStampato ? 'Ristampa pre-conto' : 'Stampa pre-conto'}
+                  {preContoStampato ? 'Ristampa' : 'Pre-conto'}
                 </button>
               );
               // Non è un interruttore: apre la finestra dei dati del cliente,
@@ -676,7 +684,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   onMouseEnter={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#D1D5DB'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = fattura ? SALDA_BRAND : '#E5E7EB'; }}
                   style={{
-                    ...btnGhost, maxWidth: 220,
+                    ...btnGhost, maxWidth: 190,
                     background: fattura ? SALDA_BRAND_SOFT : '#fff',
                     border: `1px solid ${fattura ? SALDA_BRAND : '#E5E7EB'}`,
                     color: fattura ? SALDA_BRAND : '#0F1115',
@@ -686,13 +694,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="7" rx="2"/><path d="M6 16h12v5H6z"/></svg>
                   </span>
                   <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-                    {fattura ? (window.svfNome ? window.svfNome(fattura) : 'Fattura') : 'Emetti fattura'}
+                    {fattura ? (window.svfNome ? window.svfNome(fattura) : 'Fattura') : 'Fattura'}
                   </span>
                 </button>
               );
               return (
                 <div style={{padding:'20px 24px 8px', flexShrink: 0}}>
-                  <div style={{display:'flex', alignItems:'flex-start', gap: 12}}>
+                  <div style={{display:'flex', alignItems:'flex-end', gap: 12}}>
                     <div style={{flex:1, minWidth: 0}}>
                       {/* Un nome solo, per una finestra sola: qui dentro si
                           salda un conto, e i due passi sono due momenti di
@@ -700,13 +708,21 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       <div style={{fontSize: 14, color:'#6B7280', fontWeight:800, letterSpacing:0.8, textTransform:'uppercase'}}>
                         Salda conto
                       </div>
-                      <div style={{fontSize: 27, fontWeight: 800, color:'#0F1115', marginTop: 2, letterSpacing:-0.6, display:'flex', alignItems:'baseline', gap: 10, flexWrap:'wrap'}}>
-                        <span>Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}</span>
-                        <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', letterSpacing: 0}}>
+                      <div style={{fontSize: 27, fontWeight: 800, color:'#0F1115', marginTop: 2, letterSpacing:-0.6, display:'flex', alignItems:'baseline', gap: 10, minWidth: 0}}>
+                        {/* Il nome cede per primo, e cede coi puntini: è
+                            l'unica cosa qui dentro che può essere lunga
+                            quanto vuole. I coperti sono tre caratteri e non
+                            si stringono. */}
+                        <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', minWidth: 0}}>
+                          Tavolo {tavolo.id}{tavolo.party ? ` · ${tavolo.party}` : ''}
+                        </span>
+                        <span style={{fontSize:16, fontWeight:600, color:'#9CA3AF', letterSpacing: 0, flexShrink: 0, whiteSpace:'nowrap'}}>
                           {tavolo.coperti || 1} coperti
                         </span>
                       </div>
                     </div>
+                    {!indietro && btnPreConto}
+                    {!indietro && btnFattura}
                     <button onClick={onClose} title="Chiudi" style={saldaIconBtn}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
                     </button>
@@ -722,8 +738,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       era la risposta a una selezione che si sta per cambiare, e
                       ritrovarsela addosso sul conto nuovo sarebbe un numero
                       vecchio travestito da proposta. */}
+                  {indietro && (
                   <div style={{display:'flex', alignItems:'center', gap: 10, marginTop: 14, flexWrap:'wrap'}}>
-                    {indietro && (
+                    {(
                       <button onClick={() => { setPasso('scegli'); setImporto(''); setImportoTocco(false); }}
                         title="Torna a scegliere cosa saldi"
                         onMouseEnter={e => { e.currentTarget.style.background = '#F5F6F8'; e.currentTarget.style.color = SALDA_INK; }}
@@ -744,6 +761,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     {btnPreConto}
                     {btnFattura}
                   </div>
+                  )}
                 </div>
               );
             })()}
@@ -2577,11 +2595,14 @@ function IconMatita() { return (
     <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
   </svg>
 ); }
+// I due documenti in testata. Stanno in fila col titolo dentro 864 px, quindi
+// sono tarati stretti: il testo a 15 e l'imbottitura a 13: più larghi di così
+// e il nome del tavolo comincerebbe a perdere lettere per far posto a loro.
 const btnGhost = {
-  display:'inline-flex', alignItems:'center', gap: 8,
-  padding:'11px 16px', background:'#fff', color:'#0F1115',
-  border:'1px solid #E5E7EB', borderRadius: 11, fontSize: 16, fontWeight: 700,
-  cursor:'pointer', fontFamily:'inherit', flexShrink: 0,
+  display:'inline-flex', alignItems:'center', gap: 7,
+  padding:'10px 13px', background:'#fff', color:'#0F1115',
+  border:'1px solid #E5E7EB', borderRadius: 11, fontSize: 15, fontWeight: 700,
+  cursor:'pointer', fontFamily:'inherit', flexShrink: 0, whiteSpace:'nowrap',
 };
 const saldaIconBtn = {
   width: 42, height: 42, borderRadius: 11, flexShrink: 0,
