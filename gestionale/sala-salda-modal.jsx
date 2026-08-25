@@ -189,11 +189,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       // Stessa regola di `nomiPagati` più sotto: il pagamento che porta righe
       // (la quota di un piatto diviso) non spegne l'ospite per nome.
       const pagati = new Set((tavolo.pagamenti || [])
+        .filter(p => !p.stornato)
         .filter(p => !(p.items && p.items.length))
         .map(p => String(p.chi || '').trim().toLowerCase()));
       const giaPagato = (o) => !!o.guestId && gById[o.guestId]
         && pagati.has(String(gById[o.guestId].name || '').trim().toLowerCase());
-      const qPagata = (o) => (tavolo.pagamenti || []).reduce((n, p) =>
+      const qPagata = (o) => (tavolo.pagamenti || []).filter(p => !p.stornato).reduce((n, p) =>
         n + ((p.items || []).find(r => r.id === o.id)?.qty || 0), 0);
       setEditedOrdini(cloned);
       setSelectedItems(new Map(cloned
@@ -240,14 +241,19 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // Un pagamento che porta righe si giudica SOLO dalle righe, anche quando
   // porta un nome: è la quota di un piatto diviso dall'app — mezza bottiglia,
   // qty 0.5 — e chi l'ha pagata non ha saldato il resto del suo conto.
-  const nomiPagati = new Set((tavolo.pagamenti || [])
+  // Uno storno non toglie la voce dal conto: la marca. Il registro le mostra
+  // tutte — quella stornata barrata, con l'ora — perché un documento per quei
+  // soldi è già uscito, e la chiusura di cassa si fa sui movimenti, non su
+  // quelli sopravvissuti. Tutto ciò che conta denaro legge invece da qui.
+  const pagamentiVivi = (tavolo.pagamenti || []).filter(p => !p.stornato);
+  const nomiPagati = new Set(pagamentiVivi
     .filter(p => !(p.items && p.items.length))
     .map(p => String(p.chi || '').trim().toLowerCase()));
   const guestPagato = (gid) => {
     const g = guestById[gid];
     return !!g && nomiPagati.has(String(g.name || '').trim().toLowerCase());
   };
-  const qtyPagata = (o) => (tavolo.pagamenti || []).reduce((n, p) =>
+  const qtyPagata = (o) => pagamentiVivi.reduce((n, p) =>
     n + ((p.items || []).find(r => r.id === o.id)?.qty || 0), 0);
   // Quante ne restano da incassare su quella riga.
   const qtyAperta = (o) => Math.max(0, o.qty - qtyPagata(o));
@@ -320,10 +326,21 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     : nomiOspiti.has(String(p.chi || '').trim().toLowerCase())
       ? 0
       : Math.max(0, r2(p.amount || 0));
-  const accontiTotale = (tavolo.pagamenti || []).reduce((s, p) => s + creditoDi(p), 0);
+  const accontiTotale = pagamentiVivi.reduce((s, p) => s + creditoDi(p), 0);
+  // Quanto è già arrivato su questo conto, da qualunque strada: le quote
+  // pagate dall'app e gli incassi parziali presi qui in cassa. Non è
+  // l'acconto — che è solo la parte eccedente il valore dei piatti — e nel
+  // piede del primo passo dice da dove viene il residuo.
+  const incassatoTotale = pagamentiVivi.reduce((s, p) => s + (p.amount || 0), 0);
   // Quello che il tavolo deve ancora, in euro: il valore dei piatti aperti
   // meno gli acconti già versati. È il tetto di qualunque incasso.
   const residuoTavolo = Math.max(0, r2(apertoTotale - accontiTotale));
+
+  // Il secondo passo con niente da incassare non è una cassa: è il registro
+  // di quello che è già passato. Ci si arriva dal pulsante del primo passo,
+  // che a conto chiuso smette di essere spento e diventa la porta di qua.
+  const soloRegistro = passo === 'pagamento'
+    && residuoTavolo <= 0.004 && incassatoTotale > 0.004;
 
   // La cifra proposta è quella dei piatti scelti (già scontata), mai più di
   // quello che il tavolo deve. Scritta a mano, comanda lei — e i piatti sono
@@ -544,12 +561,20 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   function stornaPagamento(p) { setStorno({ p, fase:'conferma' }); }
 
   // Toglie l'incasso dal conto. Le righe che copriva tornano da pagare — le
-  // legge `isPagato` dai pagamenti, quindi basta togliere la voce — e il
+  // legge `isPagato` dai pagamenti vivi, quindi basta marcare la voce — e il
   // tavolo torna aperto per quella cifra: la Sala lo deve sapere subito, o la
   // card continuerebbe a dire «saldato» su un conto che ha ripreso a dovere.
+  // MARCATA, NON CANCELLATA: prima la voce spariva dall'elenco, e con lei
+  // spariva un incasso per cui un documento fiscale era già uscito — alla
+  // chiusura di cassa quei soldi non li spiegava più nessuno. Uno storno è un
+  // movimento in più, mai un movimento in meno: la riga resta nel registro,
+  // barrata, con l'ora in cui è stata annullata.
   function applicaStorno(p) {
-    const rimasti = (tavolo.pagamenti || []).filter(x => x.id !== p.id);
-    tavolo.pagamenti = rimasti;
+    const oraStorno = new Date();
+    const hhmm = `${String(oraStorno.getHours()).padStart(2,'0')}:${String(oraStorno.getMinutes()).padStart(2,'0')}`;
+    tavolo.pagamenti = (tavolo.pagamenti || []).map(x =>
+      x.id === p.id ? { ...x, stornato: hhmm } : x);
+    const rimasti = (tavolo.pagamenti || []).filter(x => !x.stornato);
     tavolo.contoSaldato = false;
     setPayTick(t => t + 1);
     setStorno({ p, fase:'fatto' });
@@ -947,14 +972,24 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       letterSpacing: 0.6, textTransform:'uppercase',
                     }}>{edit ? 'Totale conto' : 'Da incassare'}</span>
                     <span style={{flex:1}}/>
-                    {/* Se c'è già un acconto, il valore dei piatti e quello che
-                        il tavolo deve sono due numeri diversi: si vede da qui,
-                        non si scopre nel passo dopo. */}
-                    {!edit && accontiTotale > 0.004 && (
+                    {/* Da dove viene il residuo: quello che su questo conto è
+                        GIÀ ARRIVATO — le quote pagate dall'app e gli incassi
+                        parziali presi qui. Senza, il numero grande è una
+                        differenza di cui non si vede il primo termine, e il
+                        tavolo che chiede «ma noi avevamo già dato qualcosa»
+                        non trova risposta nella schermata che sta guardando.
+                        Prima diceva «già in acconto», che è solo la parte
+                        eccedente il valore dei piatti: un sottoinsieme, con un
+                        nome che sembrava il tutto.
+                        Qui sta il numero e basta. Chi ha pagato, quando e con
+                        cosa è il registro — e il registro vive nel passo dopo,
+                        dove i soldi si muovono davvero e la schermata non si
+                        gira verso il cliente. */}
+                    {!edit && incassatoTotale > 0.004 && (
                       <span style={{
                         fontSize: 15, fontWeight: 600, color:'#9CA3AF',
                         fontVariantNumeric:'tabular-nums',
-                      }}>già in acconto €{accontiTotale.toFixed(2)}</span>
+                      }}>già incassato €{incassatoTotale.toFixed(2)}</span>
                     )}
                     <span style={{
                       fontSize: 42, fontWeight: 800, color:'#0F1115',
@@ -993,18 +1028,89 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             cifra scritta a mano — «me ne dà venti» — che è un
                             acconto e non ha piatti da spuntare. Quello che non
                             si può incassare lo ferma il pulsante di là. */}
-                        <button
-                          onClick={() => { if (residuoTavolo > 0.004) setPasso('pagamento'); }}
-                          disabled={residuoTavolo <= 0.004}
-                          onMouseEnter={e => { if (residuoTavolo <= 0.004) return; e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
-                          onMouseDown={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(0.99)'; }}
-                          onMouseUp={e => { if (residuoTavolo > 0.004) e.currentTarget.style.transform = 'scale(1.01)'; }}
-                          style={saldaBtnCta(residuoTavolo > 0.004)}>
-                          {residuoTavolo > 0.004 ? 'Procedi alla transazione' : 'Niente da incassare'}
-                        </button>
+                        {/* A CONTO SALDATO IL PULSANTE NON SI SPEGNE: DIVENTA
+                            UNA PORTA. Gli incassi di questo tavolo si stornano
+                            da un posto solo — il passo dopo — e quando non
+                            resta niente da incassare quello era l'unico modo
+                            per arrivarci, chiuso a chiave. Ma è proprio lì che
+                            serve: l'incasso sbagliato ce se ne accorge trenta
+                            secondi dopo averlo battuto, non prima.
+                            Spento resta solo quando non è mai entrato un euro:
+                            senza movimenti non c'è nessun registro da aprire, e
+                            il pulsante dice l'unica cosa vera che ha da dire.
+                            Da porta è una via laterale, non la strada: prende
+                            la faccia smorzata di «Modifica», perché su un conto
+                            chiuso niente merita il pieno. */}
+                        {(() => {
+                          const registro = residuoTavolo <= 0.004 && incassatoTotale > 0.004;
+                          const attivo = residuoTavolo > 0.004 || registro;
+                          return (
+                            <button
+                              onClick={() => { if (attivo) setPasso('pagamento'); }}
+                              disabled={!attivo}
+                              title={registro ? 'Vedi gli incassi di questo conto, e semmai stornali' : undefined}
+                              onMouseEnter={e => {
+                                if (!attivo) return;
+                                if (registro) { e.currentTarget.style.background = '#F5F6F8'; return; }
+                                e.currentTarget.style.filter = 'brightness(1.22)'; e.currentTarget.style.transform = 'scale(1.01)';
+                              }}
+                              onMouseLeave={e => {
+                                if (registro) { e.currentTarget.style.background = '#fff'; return; }
+                                e.currentTarget.style.filter = ''; e.currentTarget.style.transform = '';
+                              }}
+                              onMouseDown={e => { if (attivo && !registro) e.currentTarget.style.transform = 'scale(0.99)'; }}
+                              onMouseUp={e => { if (attivo && !registro) e.currentTarget.style.transform = 'scale(1.01)'; }}
+                              style={registro ? saldaBtnPiede : saldaBtnCta(attivo)}>
+                              {residuoTavolo > 0.004
+                                ? 'Procedi alla transazione'
+                                : registro ? 'Vedi gli incassi' : 'Niente da incassare'}
+                            </button>
+                          );
+                        })()}
                       </React.Fragment>
                     )}
+                  </div>
+                </div>
+              </div>
+
+              ) : soloRegistro ? (
+
+              // ── IL REGISTRO ─────────────────────────────────────────────
+              // Stesso passo, ma il conto è saldato: non c'è una cifra da
+              // scrivere né un metodo da scegliere, e una cassa con tutti i
+              // comandi spenti è peggio di nessuna cassa. Resta quello che
+              // c'è davvero — i movimenti già arrivati — e l'unica cosa che
+              // si può ancora fare su di loro: stornarne uno.
+              // È lo stesso posto di sempre: gli incassi si guardano e si
+              // annullano di qua, che il conto sia aperto o chiuso. Cambia
+              // solo cosa ci sta intorno.
+              <div style={{
+                flex: 1, minWidth: 0,
+                display:'flex', flexDirection:'column', background:'#fff',
+              }}>
+                <div className="pn-scroll" style={{
+                  flex:1, overflow:'auto', padding:'0 0 18px', width:'100%',
+                }}>
+                  {/* Al posto della cifra da incassare, quella incassata: il
+                      numero grande di questa schermata è sempre «di quanti
+                      soldi stiamo parlando», e qui quei soldi sono già dentro. */}
+                  <div style={{padding:'12px 22px 0', textAlign:'center'}}>
+                    <div style={SALDA_LABEL}>Incassato</div>
+                    <div style={{
+                      fontSize: 46, fontWeight: 800, color: SALDA_INK,
+                      letterSpacing:-1.5, lineHeight: 1.15,
+                      fontVariantNumeric:'tabular-nums',
+                    }}>€{incassatoTotale.toFixed(2)}</div>
+                    <div style={{marginTop: 4, fontSize: 15, color: SALDA_MUTED}}>
+                      Il conto è saldato: non resta niente da incassare
+                    </div>
+                  </div>
+
+                  {/* Aperto di suo: è l'unica cosa in questa schermata, e
+                      chiuderla vorrebbe dire aprire una finestra per mostrare
+                      un pulsante da premere per vedere il contenuto. */}
+                  <div style={{marginTop: 18}}>
+                    <PagamentiConto pagamenti={tavolo.pagamenti} onStorna={stornaPagamento} apertoDiSuo/>
                   </div>
                 </div>
               </div>
@@ -1460,7 +1566,10 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
       onClick={(!selezione || editingName || editingPrice || pagato) ? undefined : onToggle}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      title={pagato ? 'Già pagato dall\u2019app: non si incassa di nuovo' : undefined}
+      // «Già pagato» e basta: una riga si spegne anche per un incasso preso
+      // in contanti al banco, e dire «dall'app» su quelle era una provenienza
+      // inventata. Da dove sono arrivati quei soldi lo dice il registro.
+      title={pagato ? 'Già pagato: non si incassa di nuovo' : undefined}
       style={{
         // LE DUE FACCE DELLA RIGA HANNO LA STESSA STAZZA. Passando in
         // modifica la lista non deve saltare: le righe stanno dov'erano, e a
@@ -2063,15 +2172,21 @@ const PAG_META = {
   byup:     { label:'Byup app', ink:'#7C3AED', bg:'#EDE9FE' },
 };
 
-function PagamentiConto({ pagamenti, onStorna }) {
+function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
   // Chiuso di suo: quanto è già arrivato è un numero solo, e alla cassa serve
   // quello. Chi ha pagato e a che ora è la risposta a una domanda che si fa
   // di rado — quando un cliente dice «ma io ho già pagato» — e allora si apre.
-  const [aperto, setAperto] = React.useState(false);
+  // Tranne quando il registro È la schermata: lì chiudersi vorrebbe dire
+  // aprire una finestra per mostrare un pulsante che apre il contenuto.
+  const [aperto, setAperto] = React.useState(!!apertoDiSuo);
   // Niente pagamenti, niente blocco: uno stato vuoto qui sarebbe solo
   // un'altra cosa da leggere in una schermata già piena.
   if (!pagamenti || pagamenti.length === 0) return null;
-  const totale = pagamenti.reduce((s, p) => s + p.amount, 0);
+  // Il totale e il conteggio parlano di soldi, e uno storno quei soldi li ha
+  // rimandati indietro: contano solo i movimenti vivi. La riga stornata resta
+  // nell'elenco — è successa — ma non è più un incasso.
+  const vivi = pagamenti.filter(p => !p.stornato);
+  const totale = vivi.reduce((s, p) => s + p.amount, 0);
 
   return (
     <>
@@ -2096,7 +2211,7 @@ function PagamentiConto({ pagamenti, onStorna }) {
             fontSize: 12.5, fontWeight: 700, color:'#9CA3AF',
             padding:'1px 7px', borderRadius: 999, background:'#F4F5F7',
             fontVariantNumeric:'tabular-nums',
-          }}>{pagamenti.length}</span>
+          }}>{vivi.length}</span>
         </span>
         <span style={{display:'inline-flex', alignItems:'center', gap: 8}}>
           <span style={{
@@ -2117,23 +2232,40 @@ function PagamentiConto({ pagamenti, onStorna }) {
         <div style={{display:'flex', flexDirection:'column', gap: 6}}>
           {pagamenti.map(p => {
             const meta = PAG_META[p.method] || PAG_META.contanti;
+            // Stornato non vuol dire sparito. La riga resta dov'era, spenta e
+            // con la cifra barrata, e al posto della freccia dice quando è
+            // stata annullata: per quei soldi un documento è già uscito, e un
+            // incasso che scompare dall'elenco alla chiusura di cassa non lo
+            // spiega più nessuno.
+            const annullato = !!p.stornato;
             return (
               <div key={p.id} style={{
                 display:'flex', alignItems:'center', gap: 10,
-                padding:'9px 12px', background:'#fff',
+                padding:'9px 12px', background: annullato ? '#FAFBFC' : '#fff',
                 border:'1px solid #F0F2F5', borderRadius: 10,
+                opacity: annullato ? 0.66 : 1,
               }}>
                 <span style={{
                   padding:'3px 9px', borderRadius: 999, flexShrink: 0,
-                  background: meta.bg, color: meta.ink,
+                  background: annullato ? '#F1F2F5' : meta.bg,
+                  color: annullato ? '#9CA3AF' : meta.ink,
                   fontSize: 14, fontWeight: 700,
                 }}>{meta.label}</span>
                 <span style={{
                   flex: 1, minWidth: 0, fontSize: 15, color:'#9CA3AF',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
                 }}>{[p.chi, p.ora].filter(Boolean).join(' · ')}</span>
+                {annullato && (
+                  <span style={{
+                    flexShrink: 0, padding:'2px 9px', borderRadius: 999,
+                    background:'#F1F2F5', color:'#6B7280',
+                    fontSize: 13.5, fontWeight: 700, whiteSpace:'nowrap',
+                  }}>Stornato {p.stornato}</span>
+                )}
                 <span style={{
-                  fontSize: 16, fontWeight: 700, color:'#0F1115',
+                  fontSize: 16, fontWeight: 700,
+                  color: annullato ? '#9CA3AF' : '#0F1115',
+                  textDecoration: annullato ? 'line-through' : 'none',
                   fontVariantNumeric:'tabular-nums', minWidth: 62, textAlign:'right',
                 }}>€{p.amount.toFixed(2)}</span>
                 {/* Lo storno sta accanto al pagamento che storna, che è l'unico
@@ -2141,7 +2273,14 @@ function PagamentiConto({ pagamenti, onStorna }) {
                     riprese ha tre righe, e un pulsante fuori da qui dovrebbe
                     prima chiedere quale. La freccia torna indietro: il denaro
                     rifà la strada al contrario. */}
-                {onStorna && (
+                {onStorna && annullato && (
+                  // La corsia resta, vuota: senza, le cifre delle righe
+                  // stornate finirebbero trenta pixel più a destra delle
+                  // altre, e una colonna di numeri che non si incolonna non
+                  // si legge come una colonna.
+                  <span aria-hidden="true" style={{width: 30, flexShrink: 0}}/>
+                )}
+                {onStorna && !annullato && (
                   <button
                     onClick={() => onStorna(p)}
                     title={p.method === 'contanti'

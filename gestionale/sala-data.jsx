@@ -66,11 +66,19 @@ const SALA_TAVOLI = [
     nextReservation: { time: '20:30', name: 'Annie Edison', posti: 4, inMin: 12 },
     minutiAllaPrenotazione: 12 },
 
-  { id: 5,  state: 'occupato', posti: 2, coperti: 2, byup: 0, byupWeb: 0, party: null, sittingMin: 65, conto: 56.00, contoSaldato: true,
+  { id: 5,  state: 'occupato', posti: 2, coperti: 2, byup: 0, byupWeb: 0, party: null, sittingMin: 65, conto: 60.00, contoSaldato: true,
     ordini: [
       { id:'o8',  nome:'Antipasto della casa',qty:2, prezzo:10, stato:'consegnato', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
       { id:'o9',  nome:'Risotto ai funghi',   qty:2, prezzo:14, stato:'consegnato', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
       { id:'o10', nome:'Tiramisù',            qty:2, prezzo:6,  stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
+    ],
+    // Il tavolo saldato di questa sala: la card diceva «Conto saldato €56.00»
+    // ma non c'era nessun incasso a dirlo, e il conto — che i piatti li somma
+    // davvero — ne chiedeva 60. È l'unico caso qui dentro in cui `contoSaldato`
+    // non era il risultato di un pagamento ma una bandierina messa a mano.
+    pagamenti: [
+      { id:'p5a', method:'contanti', amount: 60.00, ora:'21:20', chi:'Cassa',
+        items:[{ id:'o8', qty:2 }, { id:'o9', qty:2 }, { id:'o10', qty:2 }] },
     ],
     minutiSenzaOrdine: 18, timeSinceLastOrder: 18, note: null,
     nextReservation: null, minutiAllaPrenotazione: null },

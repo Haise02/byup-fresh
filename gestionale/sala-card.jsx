@@ -637,7 +637,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
               extraNote={extraNote} extraNoteMeta={extraNoteMeta}
               onAddArticle={onAddArticle}
               onAdjustReservationPosti={onAdjustReservationPosti}
-              onEdit={onEdit} occupatoSaldato={occupatoSaldato}
+              onEdit={onEdit} occupatoSaldato={occupatoSaldato} onPay={onPay}
               isLate={isLate} lateMin={lateMin} pulireSev={pulireSev}/>
           </div>
         </div>
@@ -647,7 +647,7 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
   );
 }
 
-function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onAdjustReservationPosti, onEdit, occupatoSaldato, isLate, lateMin, pulireSev }) {
+function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onAdjustReservationPosti, onEdit, occupatoSaldato, onPay, isLate, lateMin, pulireSev }) {
   return (
     <>
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
@@ -771,8 +771,27 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               const label = {fontSize: 15, fontWeight: 600, color:'#9CA3AF'};
               const amount = {fontSize: 15.5, fontWeight: 600, color:'#6B7280', fontVariantNumeric:'tabular-nums'};
               if (occupatoSaldato) {
+                // SALDATO NON VUOL DIRE CHIUSO A CHIAVE. Finché il tavolo non è
+                // liberato la CTA diventa «Libera tavolo» e il conto non ha più
+                // una porta: ma l'incasso sbagliato — importo, metodo, resto —
+                // ce se ne accorge trenta secondi dopo averlo battuto, e lo
+                // storno vive dentro quella finestra. Così la riga del saldato è
+                // essa stessa la porta: si preme dove si legge la cifra che si
+                // vuole controllare, senza un pulsante in più nella card.
                 return (
-                  <div style={{paddingTop: 12, marginTop: 2, borderTop:'1px solid rgba(15, 17, 21, 0.08)'}}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onPay && onPay(); }}
+                    title="Vedi gli incassi di questo conto, e semmai stornali"
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(22,163,74,0.06)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    style={{
+                      width:'100%', display:'block', textAlign:'left',
+                      paddingTop: 12, marginTop: 2, paddingLeft: 0, paddingRight: 0, paddingBottom: 0,
+                      borderTop:'1px solid rgba(15, 17, 21, 0.08)',
+                      borderLeft:'none', borderRight:'none', borderBottom:'none',
+                      background:'transparent', cursor:'pointer', fontFamily:'inherit',
+                      transition:'background 140ms ease-out',
+                    }}>
                     <div style={row}>
                       <span style={{fontSize: 16.5, fontWeight: 700, color:'#16A34A', display:'inline-flex', alignItems:'center', gap: 6}}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13 L9 17 L19 7"/></svg>
@@ -782,7 +801,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                         €{(t.conto || 0).toFixed(2)}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 );
               }
               return (
