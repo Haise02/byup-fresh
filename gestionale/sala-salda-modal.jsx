@@ -329,8 +329,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const accontiTotale = pagamentiVivi.reduce((s, p) => s + creditoDi(p), 0);
   // Quanto è già arrivato su questo conto, da qualunque strada: le quote
   // pagate dall'app e gli incassi parziali presi qui in cassa. Non è
-  // l'acconto — che è solo la parte eccedente il valore dei piatti — e nel
-  // piede del primo passo dice da dove viene il residuo.
+  // l'acconto — che è solo la parte eccedente il valore dei piatti. A schermo
+  // non compare accanto al residuo: è la cifra del REGISTRO, e serve a sapere
+  // se un registro c'è (senza movimenti non c'è niente da aprire, né da
+  // stornare) e a farne il numero grande quando il conto è chiuso.
   const incassatoTotale = pagamentiVivi.reduce((s, p) => s + (p.amount || 0), 0);
   // Quello che il tavolo deve ancora, in euro: il valore dei piatti aperti
   // meno gli acconti già versati. È il tetto di qualunque incasso.
@@ -972,25 +974,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       letterSpacing: 0.6, textTransform:'uppercase',
                     }}>{edit ? 'Totale conto' : 'Da incassare'}</span>
                     <span style={{flex:1}}/>
-                    {/* Da dove viene il residuo: quello che su questo conto è
-                        GIÀ ARRIVATO — le quote pagate dall'app e gli incassi
-                        parziali presi qui. Senza, il numero grande è una
-                        differenza di cui non si vede il primo termine, e il
-                        tavolo che chiede «ma noi avevamo già dato qualcosa»
-                        non trova risposta nella schermata che sta guardando.
-                        Prima diceva «già in acconto», che è solo la parte
-                        eccedente il valore dei piatti: un sottoinsieme, con un
-                        nome che sembrava il tutto.
-                        Qui sta il numero e basta. Chi ha pagato, quando e con
-                        cosa è il registro — e il registro vive nel passo dopo,
-                        dove i soldi si muovono davvero e la schermata non si
-                        gira verso il cliente. */}
-                    {!edit && incassatoTotale > 0.004 && (
-                      <span style={{
-                        fontSize: 15, fontWeight: 600, color:'#9CA3AF',
-                        fontVariantNumeric:'tabular-nums',
-                      }}>già incassato €{incassatoTotale.toFixed(2)}</span>
-                    )}
+                    {/* Niente «già incassato €X» accanto al residuo: quello che
+                        è già stato pagato lo dicono le righe una per una, spente
+                        e con la loro pastiglia, e ripeterlo in cifra qui era la
+                        stessa notizia data due volte nella stessa schermata —
+                        con l'aggravante di mettere un numero grosso accanto al
+                        numero che conta, che qui è uno solo. Quanto è arrivato,
+                        da chi e quando sta nel registro, un passo più in là. */}
                     <span style={{
                       fontSize: 42, fontWeight: 800, color:'#0F1115',
                       letterSpacing:-1.4, lineHeight: 1,
