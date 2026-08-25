@@ -52,9 +52,16 @@ function readNote(note) {
   return { tipo, testo, ospite };
 }
 
-// Il vocabolario degli stati dei piatti (In attesa / In preparazione /
-// Pronto / Consegnato) vive in sala-salda-modal.jsx, SALDA_STATO_META: la
-// card non elenca più i piatti — il conto sì, ed è lì che si leggono.
+// «Pronto» non è più «Servito»: da quando il monitor di cucina sa dire che un
+// piatto è uscito, i due momenti sono distinti — sul pass, e al tavolo. Erano
+// la stessa parola perché mancava il secondo.
+const ORDINE_STATO_META = {
+  ordinato:   { color:'#6B7280', bg:'#F3F4F6', label:'In attesa',       icon:'M12 7v5l3 2' },
+  in_cottura: { color:'#A16207', bg:'#FEF3C7', label:'In preparazione', icon:'M12 3 v3 M9 6 c0 2 -3 2 -3 5 c0 4 6 4 6 0 c0 -3 -3 -3 -3 -5 M3 14 H21' },
+  pronto:     { color:'#5B21B6', bg:'#EDE9FE', label:'Pronto',          icon:'M5 3h14l-1.2 7.2a6 6 0 0 1-11.6 0Z M9 21h6 M12 15v6' },
+  consegnato: { color:'#065F46', bg:'#D1FAE5', label:'Consegnato',      icon:'M5 13 L9 17 L19 7' },
+};
+const ORDINE_CODA_WARN_META = { color:'#92400E', bg:'#FEF3C7' };
 
 // Open duration helpers (file-scope so all components can reuse)
 // MOD 3: Formato tempo uniforme — "Xh Y'" senza "fa". <60' → solo minuti. Minuti=0 → solo ore.
@@ -722,11 +729,17 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                 extraNote && extraNoteMeta && !extraNoteMeta.critical ? extraNote : null,
               ]}/>
 
-            {/* Qui stava l'elenco «Ordini · N» richiudibile, con lo stato di
-                ogni piatto. Da quando «Vai al conto» apre il conto — stessi
-                piatti, stessi stati, e dietro «Modifica» le correzioni — era
-                una seconda copia della stessa lista a un tocco dall'originale:
-                la card dice lo stato del TAVOLO, il dettaglio vive nel conto. */}
+            {/* L'ELENCO DEI PIATTI CON IL LORO STATO sta QUI, nella card
+                espansa, e non nella finestra del conto. È tornato al suo
+                posto: a che punto è un piatto è una domanda che ci si fa
+                guardando il TAVOLO — «cosa manca ancora a quel sei?» — non
+                mentre si incassa. Nel conto quelle pastiglie rispondevano a
+                una domanda che lì nessuno stava facendo, e rubavano la riga
+                al nome del piatto, che è la cosa da riconoscere quando si
+                sceglie cosa saldare.
+                Richiudibile e chiusa di default: la card dice lo stato del
+                tavolo, il dettaglio si apre solo a chi lo chiede. */}
+            {t.ordini && t.ordini.length > 0 && <OrdiniList ordini={t.ordini}/>}
 
             {/* Crea ordine — link testuale: niente sfondo, si
                 ingrandisce in hover */}
@@ -876,9 +889,156 @@ function ExpandedCTARow({ t, cta, onEdit }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────
+// Badge stato + riga ordine — componenti CONDIVISI.
+// Contratto anti-overflow (vale per ogni card conto/ordini):
+//   riga = flex SENZA wrap, SEMPRE su una sola riga per ogni
+//   articolo e stato: [qty] [nome → ellissi] [badge inline].
+//   A cedere è sempre il nome del piatto; il badge tiene la sua
+//   etichetta intera e solo in estremis si tronca (ellissi interna),
+//   mai a capo, mai oltre il bordo della card.
+// ─────────────────────────────────────────────────────────
+function StatoPill({ color, bg, label, tip }) {
+  return (
+    <Tip text={tip} style={{maxWidth: '100%', minWidth: 0}}>
+      <span style={{
+        fontSize: 15, fontWeight: 700,
+        color, background: bg,
+        padding: '2px 7px', borderRadius: 4,
+        display: 'inline-block',
+        maxWidth: '100%', boxSizing: 'border-box',
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        cursor: tip ? 'help' : 'default',
+      }}>{label}</span>
+    </Tip>
+  );
+}
+
+function OrdineRow({ qty, nome, nomeExtra, alert, pill, style }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center',
+      columnGap: 8,
+      padding: '5px 8px', borderRadius: 6,
+      background: '#fff',
+      border: alert ? '1.5px solid #DC2626' : '1px solid #F0F2F5',
+      ...style,
+    }}>
+      <span style={{
+        fontSize: 15, fontWeight: 700, color: '#0F1115',
+        minWidth: 28, textAlign: 'center', flexShrink: 0,
+      }}>{qty}×</span>
+      {/* È sempre il nome a cedere spazio (ellissi): il badge resta
+          inline sulla stessa riga, per ogni articolo e stato. */}
+      <span style={{
+        flex: '1 1 0%', minWidth: 0,
+        fontSize: 15.5, color: '#0F1115', fontWeight: alert ? 700 : 500,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {nome}{nomeExtra}
+      </span>
+      <span style={{
+        flex: '0 1 auto', marginLeft: 'auto',
+        maxWidth: '100%', minWidth: 0,
+        display: 'inline-flex',
+      }}>
+        {pill}
+      </span>
+    </div>
+  );
+}
+
+// Lista articoli realistica con stato cucina — contraibile, chiusa di
+// default: l'header riepiloga i conteggi per stato (pallini colorati),
+// il click la espande/contrae.
+function OrdiniList({ ordini }) {
+  const [open, setOpen] = React.useState(false);
+  // Raggruppa per nome + status, somma qty, prende max dei due timer
+  const grouped = {};
+  ordini.forEach(o => {
+    const key = `${o.nome}|${o.stato}`;
+    if (!grouped[key]) {
+      grouped[key] = { ...o, qty: 0, minutiInPreparazione: 0, minutiInCoda: 0 };
+    }
+    grouped[key].qty += o.qty;
+    grouped[key].minutiInPreparazione = Math.max(grouped[key].minutiInPreparazione, o.minutiInPreparazione || 0);
+    grouped[key].minutiInCoda = Math.max(grouped[key].minutiInCoda, o.minutiInCoda || 0);
+  });
+
+  const groupedList = Object.values(grouped);
+
+  // Ordina per quanto chiede attenzione: pronto (va portato ORA) → in cottura
+  // → in coda → consegnato, che non chiede più niente e sta in fondo.
+  const order = { pronto: 0, in_cottura: 1, ordinato: 2, consegnato: 3 };
+  const sorted = groupedList.sort((a, b) => order[a.stato] - order[b.stato]);
+
+  const totQty = ordini.reduce((s, o) => s + (o.qty || 0), 0);
+
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap: 4,
+      background:'#EFF1F4', borderRadius: 8, padding: 8,
+      border: '1px solid #E2E5EA',
+    }}>
+      <button onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }} style={{
+        display:'flex', alignItems:'center', gap: 8,
+        background:'transparent', border:'none', padding:'2px 2px',
+        cursor:'pointer', fontFamily:'inherit', width:'100%',
+        borderRadius: 6,
+      }}>
+        <span style={{
+          fontSize: 13.5, fontWeight: 700, color:'#6B7280',
+          letterSpacing: 0.6, textTransform:'uppercase',
+        }}>Ordini · {totQty}</span>
+        <span style={{flex: 1}}/>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF"
+          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{transform: open ? 'rotate(180deg)' : 'none', transition:'transform 160ms ease-out', flexShrink: 0}}>
+          <path d="m6 9 6 6 6-6"/>
+        </svg>
+      </button>
+      {open && sorted.map((o, idx) => {
+        // Uno stato che il vocabolario non conosce non deve far cadere la
+        // card: si legge come «in attesa», che è il caso più prudente.
+        const s = ORDINE_STATO_META[o.stato] || ORDINE_STATO_META.ordinato;
+        const isAlert = o.alert === 'allergia';
+        // Pill state — label + minuti per stato
+        let pillColor = s.color, pillBg = s.bg, pillLabel = s.label, tipText = '';
+        if (o.stato === 'consegnato') {
+          tipText = 'Portato al tavolo';
+        } else if (o.stato === 'pronto') {
+          tipText = 'Sul pass, da portare';
+        } else if (o.stato === 'in_cottura') {
+          pillLabel = o.minutiInPreparazione > 0 ? `In preparazione · ${o.minutiInPreparazione}min` : 'In preparazione';
+          tipText = o.minutiInPreparazione > 0 ? `In cucina da ${o.minutiInPreparazione} minuti` : 'In cucina';
+        } else if (o.stato === 'ordinato') {
+          const sev = getCodaSeverity(o.minutiInCoda);
+          if (sev === 'warning') {
+            pillColor = ORDINE_CODA_WARN_META.color;
+            pillBg    = ORDINE_CODA_WARN_META.bg;
+          }
+          pillLabel = `In attesa · ${o.minutiInCoda || 0}min`;
+          tipText = `In attesa da ${o.minutiInCoda || 0} minuti`;
+        }
+        return (
+          <OrdineRow key={idx}
+            qty={o.qty}
+            nome={o.nome}
+            alert={isAlert}
+            nomeExtra={isAlert && (
+              <span style={{color: '#DC2626', marginLeft: 6, fontSize: 14, fontWeight: 700, letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: 3}}>
+                <NoteIcon type="allergia" size={10}/> Allergie
+              </span>
+            )}
+            pill={<StatoPill color={pillColor} bg={pillBg} label={pillLabel} tip={tipText}/>}
+          />
+        );
+      })}
+    </div>
+  );
+}
 window.SalaCard = SalaCard;
-// StatoPill e OrdineRow non esistono più: servivano solo all'elenco
-// «Ordini · N» della card, e nessun'altra superficie li leggeva.
+window.StatoPill = StatoPill;
+window.OrdineRow = OrdineRow;
 window.SALA_STATE_META = SALA_STATE_META;
 window.NOTE_TYPE_META = NOTE_TYPE_META;
 window.NoteIcon = NoteIcon;
