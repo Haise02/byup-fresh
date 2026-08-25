@@ -422,8 +422,13 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     const o = allOrdini.find(x => x.id === id);
     if (!o) return;
     const pagate = qtyPagata(o);
-    const via = quante == null ? o.qty : Math.min(quante, o.qty - pagate);
-    if (via <= 0) return;
+    // Il tetto è sempre lo stesso: quello che non è stato incassato. Vale per
+    // il «−» (una porzione) come per il cestino (tutta la riga) — che quindi
+    // su una riga mezza pagata non la cancella, la riporta a quanto è stato
+    // pagato, e da lì in poi la riga è un incasso e non si tocca più.
+    const disponibili = r2(o.qty - pagate);
+    const via = quante == null ? disponibili : Math.min(quante, disponibili);
+    if (via <= 0.004) return;
     const resta = r2(o.qty - via);
     if (resta <= 0) {
       setEditedOrdini(arr => arr.filter(x => x.id !== id));
@@ -1431,20 +1436,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
   const [nameDraft, setNameDraft] = React.useState(o.nome);
   const [priceDraft, setPriceDraft] = React.useState(o.prezzo);
   const [hover, setHover] = React.useState(false);
-  // Quante porzioni togliere: aperto solo sulle righe da più di una, dove la
-  // domanda esiste davvero.
-  const [quanteAperto, setQuanteAperto] = React.useState(false);
-  const quanteRef = React.useRef(null);
   const clickTimer = React.useRef(null);
-
-  React.useEffect(() => {
-    if (!quanteAperto) return;
-    const fuori = (e) => { if (quanteRef.current && !quanteRef.current.contains(e.target)) setQuanteAperto(false); };
-    const esc = (e) => { if (e.key === 'Escape') setQuanteAperto(false); };
-    document.addEventListener('mousedown', fuori);
-    document.addEventListener('keydown', esc);
-    return () => { document.removeEventListener('mousedown', fuori); document.removeEventListener('keydown', esc); };
-  }, [quanteAperto]);
 
   React.useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   React.useEffect(() => { setNameDraft(o.nome); }, [o.nome]);
@@ -1513,15 +1505,42 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           Su un piatto già pagato restano fuori: non c'è niente da contare — e
           nemmeno in modifica, dove la quantità è un dato del conto e non una
           cosa che si aggiusta: lì il numero si legge e basta. */}
-      {(pagato || !selezione) ? (
+      {pagato ? (
         <span style={{
-          // Larga quanto lo stepper della selezione, e col numero nello
-          // stesso punto: è la stessa colonna letta in due modi.
-          fontSize: 16, fontWeight: 800, color: pagato ? '#9CA3AF' : '#0F1115',
+          fontSize: 16, fontWeight: 800, color:'#9CA3AF',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
           padding:'6px 0', width: 80, boxSizing:'border-box', textAlign:'center',
           fontVariantNumeric:'tabular-nums', flexShrink: 0,
         }}>{o.qty}</span>
+      ) : !selezione ? (
+        // IN MODIFICA IL MENO STA DOV'È IL MENO. «Una delle tre birre non
+        // l'hanno presa» è la correzione più comune che c'è, e si fa dove si
+        // legge il numero — un tocco, il numero scende, si vede scendere.
+        // Qui c'era un menù che si apriva dal cestino a chiedere quante:
+        // due click e un bersaglio da cercare per il gesto più frequente, e
+        // per giunta lo stesso cestino cancellava la riga su una riga da uno
+        // e apriva un menù su una da tre. Lo stesso pulsante non può fare due
+        // cose diverse a seconda di cosa ha sotto.
+        // Il «+» non c'è: aggiungere porzioni è un altro ordine, e per quello
+        // c'è «Aggiungi articolo». Il suo posto resta vuoto, ed è quello che
+        // tiene il numero incolonnato con lo stepper del passo di selezione.
+        <div onClick={stop} style={{
+          display:'inline-flex', alignItems:'center', justifyContent:'space-between',
+          background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
+          overflow:'hidden', flexShrink: 0, width: 80, boxSizing:'border-box',
+        }}>
+          <button
+            onClick={() => onDelete && onDelete(o.id, 1)}
+            disabled={!onDelete || o.qty - giaPagate < 1}
+            title={o.qty - giaPagate < 1 ? 'Già incassata: non si toglie' : 'Togline una'}
+            style={{...qtyBtn, opacity: (!onDelete || o.qty - giaPagate < 1) ? 0.3 : 1}}>−</button>
+          <span style={{
+            fontSize: 16, fontWeight: 800, color:'#0F1115',
+            minWidth: 30, textAlign:'center', padding:'0 2px',
+            whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
+          }}>{fmtQty(o.qty)}</span>
+          <span aria-hidden="true" style={{width: 22, flexShrink: 0}}/>
+        </div>
       ) : (
         <div onClick={stop} style={{
           display:'inline-flex', alignItems:'center', justifyContent:'space-between',
@@ -1746,104 +1765,43 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
         </span>
       )}
 
-      {/* CESTINO — solo in modifica, e sempre visibile: lì è uno dei gesti
-          per cui si è entrati, e un comando che si scopre passandoci sopra col
-          mouse non è un comando, è un indovinello. Porta via la riga INTERA,
-          tutte le porzioni comprese, e da quando la quantità non si corregge
-          più è l'unico modo di toglierne: per questo si chiama «Elimina
-          tutti» e non «Elimina articolo» — su una riga da tre birre le due
-          cose non sono la stessa. Mai su un piatto già pagato: quella riga è
-          la prova di un incasso, e toglierla farebbe sparire dei soldi dal
-          conto.
-          Fuori dalla modifica la sua CORSIA resta, vuota: è quella che tiene
-          le cifre incolonnate uguali nei due modi — senza, il saldo residuo
-          della selezione finirebbe quaranta pixel più a destra dei prezzi che
-          va a sostituire, e passando da un modo all'altro la colonna dei
-          numeri scivolerebbe di lato. */}
+      {/* CESTINO — un pulsante solo, che fa sempre la stessa cosa: porta via
+          la RIGA. Le porzioni una per volta le toglie il «−» accanto al
+          numero, che è dove si guarda per contarle. I due gesti stanno
+          lontani apposta: uno corregge, l'altro fa sparire, e non devono
+          poter essere confusi da un dito.
+          Su una riga con porzioni già incassate resta spento e lo dice: quei
+          soldi sono entrati, e la riga che li racconta non si cancella.
+          Fuori dalla modifica la sua corsia resta, vuota: è quella che tiene
+          le cifre incolonnate uguali nei due modi. */}
       {!onDelete && <span aria-hidden="true" style={{width: 28, flexShrink: 0}}/>}
       {onDelete && (() => {
-        // Quante se ne possono togliere: tutte quelle non ancora pagate.
-        const togliibili = Math.floor(o.qty - (giaPagate || 0));
-        const sceltaPossibile = togliibili > 1;
-        const via = (n) => { setQuanteAperto(false); onDelete(o.id, n); };
+        // Quante porzioni si possono ancora togliere: quelle non incassate.
+        const togliibili = r2(o.qty - (giaPagate || 0));
+        const puo = togliibili > 0.004;
         return (
-        <span ref={quanteRef} onClick={stop} style={{position:'relative', flexShrink: 0, display:'inline-flex'}}>
-          <button
-            disabled={pagato}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (pagato) return;
-              // Una porzione sola non ha niente da chiedere: se ne va.
-              if (!sceltaPossibile) { onDelete(o.id); return; }
-              setQuanteAperto(v => !v);
-            }}
-            title={sceltaPossibile ? `Togli dal conto · scegli quante delle ${o.qty}` : 'Togli dal conto'}
-            style={{
-              width: 28, height: 28, padding: 0, borderRadius: 7,
-              background: quanteAperto ? '#FEE2E2' : 'transparent', border:'none', cursor:'pointer',
-              color: pagato ? 'transparent' : (quanteAperto ? '#DC2626' : ((modifica || hover) ? '#9CA3AF' : 'transparent')),
-              display:'inline-flex', alignItems:'center', justifyContent:'center',
-              fontFamily:'inherit', transition:'color 120ms, background 120ms',
-              flexShrink: 0,
-            }}
-            onMouseEnter={e => { if (pagato) return; e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.background = '#FEE2E2'; }}
-            onMouseLeave={e => { if (quanteAperto) return; e.currentTarget.style.color = pagato ? 'transparent' : ((modifica || hover) ? '#9CA3AF' : 'transparent'); e.currentTarget.style.background = 'transparent'; }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6 M10 11v6 M14 11v6"/>
-            </svg>
-          </button>
-
-          {/* QUANTE NE TOGLI. Su una riga da tre birre «elimina» e «elimina
-              tutte e tre» non sono la stessa cosa, e la correzione più comune
-              di tutte è la prima: una non l'hanno presa. Il cestino quindi
-              chiede, invece di decidere — ma solo dove la domanda esiste: da
-              una porzione sola se ne va senza chiedere niente.
-              Si apre VERSO SINISTRA perché sta sul bordo destro della
-              finestra, e verso l'alto o verso il basso a seconda di dove c'è
-              posto: una riga in fondo alla lista aprirebbe fuori dalla piega. */}
-          {quanteAperto && sceltaPossibile && (
-            <div style={{
-              position:'absolute', right: 0, top: 34, zIndex: 80,
-              background:'#fff', borderRadius: 12, padding: 10,
-              border:'1px solid #E5E7EB',
-              boxShadow:'0 14px 34px rgba(15,17,21,0.16), 0 2px 6px rgba(15,17,21,0.06)',
-              display:'flex', flexDirection:'column', gap: 8, minWidth: 190,
-            }}>
-              <span style={{
-                fontSize: 13, fontWeight: 800, color:'#6B7280',
-                letterSpacing: 0.6, textTransform:'uppercase',
-              }}>Quante ne togli</span>
-              <div style={{display:'flex', flexWrap:'wrap', gap: 6}}>
-                {Array.from({length: Math.min(togliibili - 1, 5)}, (_, i) => i + 1).map(n => (
-                  <button key={n} onClick={() => via(n)} title={`Togli ${n} di ${o.qty}`}
-                    onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.borderColor = '#DC2626'; e.currentTarget.style.color = '#DC2626'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = SALDA_BORDO; e.currentTarget.style.color = SALDA_INK; }}
-                    style={{
-                      minWidth: 40, padding:'9px 10px', borderRadius: 9,
-                      background:'#fff', border:`1px solid ${SALDA_BORDO}`,
-                      color: SALDA_INK, fontSize: 16, fontWeight: 700,
-                      cursor:'pointer', fontFamily:'inherit',
-                      fontVariantNumeric:'tabular-nums',
-                      transition:'background 130ms, border-color 130ms, color 130ms',
-                    }}>{n}</button>
-                ))}
-              </div>
-              {/* Toglierle tutte è la riga che sparisce, ed è un'altra cosa
-                  dal togliere qualche porzione: sta staccata e lo dice. */}
-              <button onClick={() => via(null)} title={`Togli la riga intera · ${o.qty} porzioni`}
-                onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#fff'; }}
-                style={{
-                  padding:'9px 12px', borderRadius: 9,
-                  background:'#fff', border:'1px solid #FECACA',
-                  color:'#DC2626', fontSize: 15.5, fontWeight: 700,
-                  cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
-                  transition:'background 130ms',
-                }}>Tutte e {fmtQty(o.qty)}</button>
-            </div>
-          )}
-        </span>
+        <button
+          disabled={!puo}
+          onClick={(e) => { e.stopPropagation(); if (puo) onDelete(o.id); }}
+          title={!puo
+            ? 'Già incassata: non si toglie dal conto'
+            : (o.qty > 1 ? `Togli tutta la riga · ${fmtQty(o.qty)} porzioni` : 'Togli la riga dal conto')}
+          style={{
+            width: 28, height: 28, padding: 0, borderRadius: 7,
+            background:'transparent', border:'none',
+            cursor: puo ? 'pointer' : 'not-allowed',
+            color: !puo ? '#E5E7EB' : ((modifica || hover) ? '#9CA3AF' : 'transparent'),
+            display:'inline-flex', alignItems:'center', justifyContent:'center',
+            fontFamily:'inherit', transition:'color 120ms, background 120ms',
+            flexShrink: 0,
+          }}
+          onMouseEnter={e => { if (!puo) return; e.currentTarget.style.color = '#DC2626'; e.currentTarget.style.background = '#FEE2E2'; }}
+          onMouseLeave={e => { if (!puo) return; e.currentTarget.style.color = (modifica || hover) ? '#9CA3AF' : 'transparent'; e.currentTarget.style.background = 'transparent'; }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 6h18 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6 M10 11v6 M14 11v6"/>
+          </svg>
+        </button>
         );
       })()}
     </div>
