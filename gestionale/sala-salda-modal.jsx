@@ -1456,7 +1456,13 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
       onMouseLeave={() => setHover(false)}
       title={pagato ? 'Già pagato dall\u2019app: non si incassa di nuovo' : undefined}
       style={{
+        // LE DUE FACCE DELLA RIGA HANNO LA STESSA STAZZA. Passando in
+        // modifica la lista non deve saltare: le righe stanno dov'erano, e a
+        // cambiare sono solo i comandi che portano. Per questo l'altezza è
+        // fissata al minimo del modo più alto — quello con il prezzo in un
+        // campo — invece di lasciarla decidere al contenuto.
         display:'flex', alignItems:'center', gap: 12,
+        minHeight: 60, boxSizing:'border-box',
         padding:'12px 14px',
         cursor: (!selezione || editingName || editingPrice) ? 'default' : (pagato ? 'not-allowed' : 'pointer'),
         background: pagato ? '#F7F8FA' : (selezione && (allSel || partialSel) ? SALDA_BRAND_SOFT : (selezione && hover ? '#FAFBFC' : '#fff')),
@@ -1465,8 +1471,11 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
         opacity: pagato ? 0.72 : 1,
       }}>
       {/* La spunta: stato, non comando — il click lo prende la card.
-          Nel conto non c'è: una spunta che non decide niente insegnerebbe
-          solo a non fidarsi delle spunte. */}
+          In modifica non c'è, perché una spunta che non decide niente
+          insegnerebbe solo a non fidarsi delle spunte — ma la sua CORSIA
+          resta, vuota: è quella che tiene i nomi dei piatti incolonnati
+          uguali nei due modi. */}
+      {!selezione && <span aria-hidden="true" style={{width: 22, flexShrink: 0}}/>}
       {selezione && (
       <span aria-hidden="true" style={{
         width: 22, height: 22, borderRadius: 6, flexShrink: 0, pointerEvents:'none',
@@ -1492,16 +1501,18 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           cosa che si aggiusta: lì il numero si legge e basta. */}
       {(pagato || !selezione) ? (
         <span style={{
+          // Larga quanto lo stepper della selezione, e col numero nello
+          // stesso punto: è la stessa colonna letta in due modi.
           fontSize: 16, fontWeight: 800, color: pagato ? '#9CA3AF' : '#0F1115',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
-          padding:'6px 0', minWidth: 40, textAlign:'center',
+          padding:'6px 0', width: 80, boxSizing:'border-box', textAlign:'center',
           fontVariantNumeric:'tabular-nums', flexShrink: 0,
         }}>{o.qty}</span>
       ) : (
         <div onClick={stop} style={{
-          display:'inline-flex', alignItems:'center',
+          display:'inline-flex', alignItems:'center', justifyContent:'space-between',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
-          overflow:'hidden', flexShrink: 0,
+          overflow:'hidden', flexShrink: 0, width: 80, boxSizing:'border-box',
         }}>
           <button onClick={() => onSetQty(selectedQty - 1)} disabled={selectedQty <= 0}
             style={{...qtyBtn, opacity: selectedQty <= 0 ? 0.3 : 1}} title="Togli uno">−</button>
@@ -1614,10 +1625,21 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           Il numero è il prezzo UNITARIO, quello che si corregge; quando la
           riga ne ha più di uno, sotto compare il conto della riga — «×2 ·
           €12.00» — o si correggerebbe un prezzo guardando un totale. */}
+      {/* LA NOTA DELLA RIGA sta IN LINEA, a sinistra del numero, e non
+          sotto: impilata faceva crescere solo le righe che ce l'hanno — il
+          piatto diviso a metà nella selezione, quello da più porzioni in
+          modifica — e una lista con righe di tre altezze diverse non si legge
+          come una lista. In linea la riga resta di un rigo sempre, e le due
+          facce restano sovrapponibili. */}
+      {onUpdate && o.qty > 1 && (
+        <span style={{
+          fontSize: 13.5, fontWeight: 600, color:'#9CA3AF', flexShrink: 0,
+          fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
+        }}>×{o.qty} · €{(o.qty * o.prezzo).toFixed(2)}</span>
+      )}
       {onUpdate ? (
         <span style={{
-          position:'relative', flexShrink: 0,
-          display:'inline-flex', flexDirection:'column', alignItems:'flex-end',
+          position:'relative', flexShrink: 0, display:'inline-flex',
         }}>
           {editingPrice ? (
             <input
@@ -1669,12 +1691,6 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
               </svg>
             </React.Fragment>
           )}
-          {o.qty > 1 && (
-            <span style={{
-              fontSize: 12.5, fontWeight: 600, color:'#9CA3AF', marginTop: 4,
-              fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
-            }}>×{o.qty} · €{(o.qty * o.prezzo).toFixed(2)}</span>
-          )}
         </span>
       ) : saldoRiga != null ? (
         // SALDO RESIDUO — quanto di questa riga resta da incassare. Non è il
@@ -1685,32 +1701,32 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           <span style={{
             fontSize: 14.5, fontWeight: 800, color:'#16A34A',
             letterSpacing: 0.3, textTransform:'uppercase',
-            minWidth: 66, textAlign:'right', padding:'2px 4px', flexShrink: 0,
+            width: 92, boxSizing:'border-box', textAlign:'right', padding:'2px 4px', flexShrink: 0,
           }}>Saldato</span>
         ) : (
-          <span style={{
-            display:'inline-flex', flexDirection:'column', alignItems:'flex-end',
-            minWidth: 66, padding:'2px 4px', flexShrink: 0,
-          }}>
-            <span style={{
-              fontSize: 17, fontWeight: 700, color:'#0F1115',
-              fontVariantNumeric:'tabular-nums', lineHeight: 1.2,
-            }}>€{saldoRiga.toFixed(2)}</span>
-            {/* Il piatto diviso dall'app: sotto il residuo, il valore pieno.
-                Quanto è già stato saldato è la distanza tra i due numeri —
-                €12 di €24 dice «metà pagata» senza una parola in più. */}
+          <React.Fragment>
+            {/* Il piatto diviso dall'app: accanto al residuo, il valore
+                pieno. Quanto è già stato saldato è la distanza tra i due
+                numeri — «di €24.00» accanto a €12.00 dice «metà pagata»
+                senza una parola in più. */}
             {saldoRiga < o.qty * o.prezzo - 0.004 && (
               <span style={{
-                fontSize: 12.5, fontWeight: 600, color:'#9CA3AF',
+                fontSize: 13.5, fontWeight: 600, color:'#9CA3AF', flexShrink: 0,
                 fontVariantNumeric:'tabular-nums', whiteSpace:'nowrap',
               }}>di €{(o.qty * o.prezzo).toFixed(2)}</span>
             )}
-          </span>
+            <span style={{
+              fontSize: 17, fontWeight: 700, color:'#0F1115',
+              width: 92, boxSizing:'border-box', textAlign:'right',
+              padding:'2px 4px', flexShrink: 0,
+              fontVariantNumeric:'tabular-nums',
+            }}>€{saldoRiga.toFixed(2)}</span>
+          </React.Fragment>
         )
       ) : (
         <span style={{
           fontSize: 17, fontWeight: 700, color: pagato ? '#9CA3AF' : '#0F1115',
-          minWidth: 66, textAlign:'right', fontVariantNumeric:'tabular-nums',
+          width: 92, boxSizing:'border-box', textAlign:'right', fontVariantNumeric:'tabular-nums',
           padding:'2px 4px', flexShrink: 0,
         }}>
           €{((noneSel) ? o.qty * o.prezzo : selectedQty * o.prezzo).toFixed(2)}
@@ -1725,7 +1741,13 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
           tutti» e non «Elimina articolo» — su una riga da tre birre le due
           cose non sono la stessa. Mai su un piatto già pagato: quella riga è
           la prova di un incasso, e toglierla farebbe sparire dei soldi dal
-          conto. */}
+          conto.
+          Fuori dalla modifica la sua CORSIA resta, vuota: è quella che tiene
+          le cifre incolonnate uguali nei due modi — senza, il saldo residuo
+          della selezione finirebbe quaranta pixel più a destra dei prezzi che
+          va a sostituire, e passando da un modo all'altro la colonna dei
+          numeri scivolerebbe di lato. */}
+      {!onDelete && <span aria-hidden="true" style={{width: 28, flexShrink: 0}}/>}
       {onDelete && (
       <button
         disabled={pagato}
