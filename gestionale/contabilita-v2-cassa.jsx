@@ -85,7 +85,36 @@ const CC_SCARTI = {
     vaiLabel: 'Apri Impostazioni → POS e integrazioni',
     vaiHref:  'byup Impostazioni.html?page=integrazioni',
   },
+  // La password Fisconline dell'esercente scade ogni novanta giorni (PT §12.2):
+  // il canale trasmette con quelle credenziali, quindi da quando è scaduta ogni
+  // invio viene rifiutato. In produzione il canale espone la richiamata
+  // `receipt-credentials`, da sottoscrivere come innesco del promemoria — qui è
+  // solo documentata, non si simula. L'ordine dei passi nell'azione è il
+  // contenuto: prima la password si cambia sul sito dell'Agenzia, poi si
+  // inserisce in Byup, dove all'inserimento parte una trasmissione di prova.
+  credenziali: {
+    motivo:   'La password Fisconline è scaduta',
+    causa:    'La trasmissione dei corrispettivi usa le credenziali Fisconline del titolare, e la password scade ogni novanta giorni: da quando è scaduta ogni invio viene rifiutato.',
+    azione:   'Prima cambia la password sul sito dell\'Agenzia delle Entrate, poi inseriscila in Impostazioni → Dati fiscali: alla conferma parte una trasmissione di prova che la verifica subito.',
+    vaiLabel: 'Apri Impostazioni → Dati fiscali',
+    vaiHref:  'byup Impostazioni.html?page=fiscali',
+  },
 };
+
+// Scadenza della password Fisconline: stessa chiave localStorage scritta da
+// Impostazioni → Dati fiscali (è lì che si rinnova e si verifica). Senza nulla
+// di salvato l'ultimo rinnovo è di novanta giorni fa — derivato a runtime, mai
+// date a mano — quindi la password risulta scaduta oggi e l'avviso si vede.
+function ccCredScadute() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem('byup_ade_cred')); } catch (e) {}
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const rinnovo = s && s.rinnovo ? new Date(s.rinnovo + 'T00:00:00') : (() => {
+    const d = new Date(oggi); d.setDate(d.getDate() - 90); return d;
+  })();
+  const scadenza = new Date(rinnovo); scadenza.setDate(scadenza.getDate() + 90);
+  return scadenza <= oggi;
+}
 
 // IVA del documento: aliquota decisa dall'id del pagamento (stabile), importo
 // scorporato. Le colonne IVA della chiusura sono la somma di queste.
@@ -393,6 +422,44 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
+      {/* Avviso bloccante: password Fisconline scaduta. Compare qui perché è
+          qui che si vede il danno — gli scontrini non partono — ma la cura sta
+          nei Dati fiscali, e ci si va col bottone. I testi sono quelli di
+          CC_SCARTI.credenziali: una voce sola, due superfici. */}
+      {ccCredScadute() && (
+        <div style={{
+          display:'flex', alignItems:'flex-start', gap: 14,
+          padding: '14px 18px',
+          background: '#FEF2F2', border: '1px solid #FECACA',
+          borderRadius: C.R_MD,
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 9, background: '#DC2626',
+            display:'grid', placeItems:'center', flexShrink: 0,
+          }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/>
+            </svg>
+          </div>
+          <div style={{flex:1, minWidth: 0}}>
+            <div style={{fontSize: C.T_SM, fontWeight: 700, color: '#991B1B'}}>
+              {CC_SCARTI.credenziali.motivo}: gli scontrini non partono
+            </div>
+            <div style={{fontSize: C.T_XS, color: '#B91C1C', marginTop: 2, lineHeight: 1.5}}>
+              {CC_SCARTI.credenziali.causa} {CC_SCARTI.credenziali.azione}
+            </div>
+          </div>
+          <button
+            onClick={() => { window.location.href = CC_SCARTI.credenziali.vaiHref; }}
+            className="pn-btn-feedback"
+            style={{
+              padding:'9px 18px', borderRadius: C.R_PILL, alignSelf:'center',
+              background: '#DC2626', color:'#fff', border:'none', flexShrink: 0,
+              fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            }}>{CC_SCARTI.credenziali.vaiLabel}</button>
+        </div>
+      )}
+
       {/* Banner stato cassa */}
       <div style={{
         display:'flex', alignItems:'center', gap: 14,

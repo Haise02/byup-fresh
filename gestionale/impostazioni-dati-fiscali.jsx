@@ -1,4 +1,199 @@
-// Impostazioni → Dati fiscali locale (anagrafica per scontrini — RT gestito altrove)
+// Impostazioni → Dati fiscali locale (anagrafica per scontrini + collegamento
+// all'Agenzia delle Entrate — le credenziali Fisconline con cui trasmette il canale)
+
+// ─── Collegamento all'Agenzia delle Entrate (PT §12.2) ─────────────────────
+// Il canale "documento commerciale online" (via OpenAPI) trasmette con le
+// credenziali Fisconline dell'esercente, e la password scade ogni novanta
+// giorni: quando scade, gli scontrini smettono di partire. Tre presidi:
+//   1. promemoria progressivo prima della scadenza (14, 7 e 3 giorni);
+//   2. avviso bloccante alla scadenza — qui e in Contabilità → Cassa — con le
+//      istruzioni nell'ordine giusto: PRIMA si cambia la password sul sito
+//      dell'Agenzia, POI la si inserisce in Byup;
+//   3. verifica immediata all'inserimento, con una chiamata di prova al canale.
+// Il canale espone anche l'evento di richiamata `receipt-credentials`: in
+// produzione va sottoscritto come innesco del promemoria. È roba di backend:
+// nel prototipo resta documentato qui, non si simula.
+// Lo stato vive in localStorage — stessa chiave letta dalla Cassa per l'avviso
+// bloccante. Senza nulla di salvato l'ultimo rinnovo è di novanta giorni fa
+// (derivato a runtime, mai date a mano): la password risulta scaduta oggi e il
+// giro completo — scaduta → rinnovo → verifica → attiva — si prova da qui.
+const ADE_CRED_KEY = 'byup_ade_cred';
+const ADE_CRED_VITA = 90;             // vita della password Fisconline, in giorni
+const ADE_CRED_SOGLIE = [14, 7, 3];   // i gradini del promemoria progressivo
+
+function adeCredStato() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(ADE_CRED_KEY)); } catch (e) {}
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const rinnovo = s && s.rinnovo ? new Date(s.rinnovo + 'T00:00:00') : (() => {
+    const d = new Date(oggi); d.setDate(d.getDate() - ADE_CRED_VITA); return d;
+  })();
+  const scadenza = new Date(rinnovo); scadenza.setDate(scadenza.getDate() + ADE_CRED_VITA);
+  const giorni = Math.round((scadenza - oggi) / 86400000);
+  return {
+    giorni,
+    scadenza: scadenza.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }),
+    verificata: (s && s.verificata) || null,
+    stato: giorni <= 0 ? 'scaduta' : (giorni <= ADE_CRED_SOGLIE[0] ? 'promemoria' : 'ok'),
+  };
+}
+
+function AdeCredenzialiCard() {
+  const [, forza] = React.useState(0);
+  const cred = adeCredStato();
+  const [pwd, setPwd] = React.useState('');
+  const [fase, setFase] = React.useState('idle');   // idle | verifica | errore
+  const [tentativi, setTentativi] = React.useState(0);
+
+  // "Verifica e salva" non si fida sulla parola: fa una chiamata di prova al
+  // canale, come la verifica della delega nell'onboarding. Il primo giro
+  // finisce in errore — è il caso vero: chi incolla la vecchia password, o non
+  // l'ha ancora cambiata sul sito dell'Agenzia, deve saperlo subito e non al
+  // primo scontrino rifiutato.
+  const verifica = () => {
+    if (!pwd.trim() || fase === 'verifica') return;
+    setFase('verifica');
+    const t = tentativi + 1;
+    setTentativi(t);
+    setTimeout(() => {
+      if (t === 1) { setFase('errore'); return; }
+      const d = new Date();
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const ts = `${d.toLocaleDateString('it-IT')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      try { localStorage.setItem(ADE_CRED_KEY, JSON.stringify({ rinnovo: iso, verificata: ts })); } catch (e) {}
+      setPwd(''); setFase('idle');
+      forza(x => x + 1);
+    }, 1600);
+  };
+
+  // Collegamento attivo: la card si fa quieta e dice solo le due cose utili —
+  // fino a quando vale, e che il promemoria arriverà da solo.
+  if (cred.stato === 'ok') {
+    return (
+      <div style={{
+        display:'flex', alignItems:'center', gap: 14,
+        padding: '14px 18px',
+        background: '#F0FDF4', border: `1.5px solid ${PN.GREEN_SOFT}`,
+        borderRadius: 12, marginBottom: 18,
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 10, background: PN.GREEN,
+          display:'grid', placeItems:'center', flexShrink: 0,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={PN.WHITE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+          </svg>
+        </div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:16, fontWeight:700, color: PN.GREEN}}>
+            Collegamento all'Agenzia delle Entrate attivo
+          </div>
+          <div style={{fontSize:14, color: PN.MUTED, marginTop: 2}}>
+            Password Fisconline verificata{cred.verificata ? ` il ${cred.verificata}` : ''} con una trasmissione di prova · scade il {cred.scadenza} (tra {cred.giorni} giorni). Ti avvisiamo qui e in cassa a 14, 7 e 3 giorni dalla scadenza.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const scaduta = cred.stato === 'scaduta';
+  const C_TITLE = scaduta ? '#991B1B' : PN.AMBER;
+  return (
+    <div style={{
+      padding: '16px 18px',
+      background: scaduta ? '#FEF2F2' : PN.AMBER_SOFT,
+      border: `1.5px solid ${scaduta ? '#FECACA' : '#FCD34D'}`,
+      borderRadius: 12, marginBottom: 18,
+    }}>
+      <style>{`@keyframes adeCredSpin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{display:'flex', alignItems:'flex-start', gap: 14}}>
+        <div style={{
+          width: 40, height: 40, borderRadius: 10,
+          background: scaduta ? PN.RED : PN.AMBER, color: PN.WHITE,
+          display:'grid', placeItems:'center', flexShrink: 0,
+        }}><BuIcons.alert size={18} color={PN.WHITE}/></div>
+        <div style={{flex:1, minWidth: 0}}>
+          <div style={{fontSize:16, fontWeight:700, color: C_TITLE}}>
+            {scaduta
+              ? 'La password Fisconline è scaduta: gli scontrini non partono'
+              : cred.giorni === 1
+                ? 'La password Fisconline scade domani'
+                : `La password Fisconline scade tra ${cred.giorni} giorni`}
+          </div>
+          <div style={{fontSize:14, color: PN.MUTED, marginTop: 2, lineHeight: 1.5}}>
+            {scaduta
+              ? 'La trasmissione all\'Agenzia usa le tue credenziali Fisconline, e la password scade ogni novanta giorni: da quando è scaduta ogni invio viene rifiutato. Rinnovala con i due passi qui sotto, nell\'ordine.'
+              : `Scade il ${cred.scadenza}. La trasmissione all'Agenzia usa le tue credenziali Fisconline: rinnovala prima, con i due passi qui sotto nell'ordine, o gli scontrini smetteranno di partire.`}
+          </div>
+
+          {/* I due passi: l'ordine è il contenuto. La password nuova nasce sul
+              portale dell'Agenzia; qui si inserisce solo dopo. */}
+          <div style={{marginTop: 12, display:'flex', flexDirection:'column', gap: 8}}>
+            <div style={{display:'flex', gap: 10, alignItems:'baseline'}}>
+              <span style={{
+                width: 20, height: 20, borderRadius: 999, flexShrink: 0,
+                background: C_TITLE, color: PN.WHITE,
+                display:'inline-grid', placeItems:'center', fontSize: 12, fontWeight: 700,
+                transform:'translateY(3px)',
+              }}>1</span>
+              <span style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+                Cambia la password nell'<a href="https://www.agenziaentrate.gov.it/portale/area-riservata" target="_blank" rel="noopener" style={{color: C_TITLE, fontWeight: 600}}>area riservata dell'Agenzia delle Entrate</a> (Fisconline).
+              </span>
+            </div>
+            <div style={{display:'flex', gap: 10, alignItems:'baseline'}}>
+              <span style={{
+                width: 20, height: 20, borderRadius: 999, flexShrink: 0,
+                background: C_TITLE, color: PN.WHITE,
+                display:'inline-grid', placeItems:'center', fontSize: 12, fontWeight: 700,
+                transform:'translateY(3px)',
+              }}>2</span>
+              <span style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+                Inserisci qui la nuova password: alla conferma facciamo subito una trasmissione di prova per verificarla.
+              </span>
+            </div>
+          </div>
+
+          <div style={{display:'flex', gap: 10, alignItems:'flex-end', marginTop: 14, flexWrap:'wrap'}}>
+            <div style={{flex:'1 1 220px', maxWidth: 320}}>
+              <ImpField label="Nuova password Fisconline" style={{marginBottom: 0}}>
+                <ImpInput type="password" value={pwd} placeholder="••••••••••"
+                  onChange={e => { setPwd(e.target.value); if (fase === 'errore') setFase('idle'); }}/>
+              </ImpField>
+            </div>
+            <button onClick={verifica} className="pn-btn-feedback" style={{
+              padding:'10px 22px', borderRadius: 999,
+              background: '#1A1A1A', color: PN.WHITE,
+              border:'none', cursor: fase === 'verifica' ? 'default' : 'pointer', fontFamily:'inherit',
+              fontSize: 15, fontWeight: 600,
+              display:'inline-flex', alignItems:'center', gap: 8,
+              opacity: pwd.trim() || fase === 'verifica' ? 1 : 0.45,
+            }}>
+              {fase === 'verifica' && (
+                <span style={{
+                  width: 12, height: 12, borderRadius: 999, flexShrink: 0,
+                  border: '1.5px solid rgba(255,255,255,0.35)', borderTopColor: PN.WHITE,
+                  animation: 'adeCredSpin 0.7s linear infinite',
+                }}/>
+              )}
+              {fase === 'verifica' ? 'Trasmissione di prova…' : 'Verifica e salva'}
+            </button>
+          </div>
+
+          {fase === 'errore' && (
+            <div style={{
+              marginTop: 10, padding: '10px 13px',
+              background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.22)',
+              borderRadius: 9, fontSize: 13.5, color: '#991B1B', lineHeight: 1.5,
+            }}>
+              <b style={{fontWeight: 700}}>La trasmissione di prova è stata rifiutata: la password non risulta valida.</b>{' '}
+              Ricontrolla di averla cambiata prima sul sito dell'Agenzia e di averla copiata per intero, poi riprova.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ImpDatiFiscali() {
   const [data, setData] = React.useState({
@@ -75,6 +270,11 @@ function ImpDatiFiscali() {
           </div>
         </div>
       </div>
+
+      {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
+          verifica all'inserimento — il perché e il come stanno nel commento
+          in testa al file. */}
+      <AdeCredenzialiCard/>
 
       {/* 2-column layout: form a sx, anteprima scontrino a dx */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 320px', gap: 18, alignItems:'flex-start'}}>
@@ -257,14 +457,6 @@ function ImpDatiFiscali() {
               }}>Modifica dati bancari</button>
             </div>
 
-            {/* Info delegata ad Aruba */}
-            <div style={{
-              marginTop: 18, padding: '11px 14px',
-              background: PN.BLUE_SOFT, borderRadius: 10,
-              fontSize: 13.5, color:'#1E40AF', lineHeight: 1.5,
-            }}>
-              <b>Numerazione fatture, aliquote IVA e bollo virtuale</b> vengono gestiti automaticamente dal servizio di fatturazione collegato (es. Aruba). Non serve configurarli qui.
-            </div>
           </ImpCard>
 
           {/* Info: scontrino digitale gestito da byup tramite POS */}
@@ -275,28 +467,10 @@ function ImpDatiFiscali() {
           }}>
             <span style={{fontSize: 20}}>ℹ️</span>
             <div style={{fontSize: 14, color:'#1E40AF', lineHeight: 1.5}}>
-              <b>Lo scontrino è 100% digitale</b>: byup emette e trasmette i corrispettivi all'Agenzia delle Entrate per te. Il collegamento al POS e gli strumenti di pagamento si configurano nella pagina <b style={{cursor:'pointer'}}>POS e integrazioni</b>.
+              <b>Lo scontrino è 100% digitale</b>: puoi però stampare uno scontrino di cortesia se te lo chiedono.
             </div>
           </div>
 
-          {/* Sicurezza della delega AdE — stessa nota dell'onboarding: le
-              credenziali non passano mai da byup, la delega si dà sul portale. */}
-          <div style={{
-            padding: '12px 16px',
-            background: 'rgba(22, 163, 74, 0.07)', border: '1px solid rgba(22, 163, 74, 0.18)',
-            borderRadius: 12,
-            display:'flex', gap: 10, alignItems:'flex-start',
-            fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5,
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={PN.GREEN} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
-              <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
-            </svg>
-            <span>
-              <b style={{color: PN.TEXT, fontWeight: 600}}>byup non chiede e non conserva le tue credenziali dell'Agenzia delle Entrate.</b>{' '}
-              La trasmissione avviene tramite la delega che concedi sul portale AdE; i dati di
-              collegamento sono conservati cifrati.
-            </span>
-          </div>
         </div>
 
         {/* Anteprima scontrino */}
