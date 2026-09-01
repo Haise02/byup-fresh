@@ -309,10 +309,27 @@ function ccFmtDate(d) {
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
 }
 
-// Calendario a comparsa per selezionare un giorno
-function CassaDatePicker({ selected, onPick, onClear }) {
-  const init = selected ? new Date(selected.split('/').reverse().join('-')) : new Date();
+// ─── Selettore di periodo (P-106) ──────────────────────────────────────────
+// Un calendario solo, due tocchi: il primo giorno apre il periodo, il secondo
+// lo chiude (se viene prima, si scambiano); due tocchi sullo stesso giorno
+// sono un giorno solo. Le scorciatoie coprono i casi che non meritano tocchi.
+// Il periodo è {da, a} in ISO 'aaaa-mm-gg', che si confronta come stringa.
+// Lo usano Cassa E Conti: vive qui perché questo file si carica prima.
+const ccIso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function ccPeriodoLabel(p) {
+  if (!p) return 'Filtra per data';
+  const it = (iso) => iso.split('-').reverse().join('/');
+  if (p.da === p.a) return it(p.da);
+  // Il "da" senza anno: l'anno lo dice già il "a", e due anni per esteso
+  // trasformano il bottone in una riga di tabella.
+  return `${p.da.slice(8,10)}/${p.da.slice(5,7)} – ${it(p.a)}`;
+}
+function CcPeriodoPicker({ selected, onPick, onClear }) {
+  const init = selected ? new Date(selected.a + 'T12:00:00') : new Date();
   const [view, setView] = React.useState(() => { const d = new Date(init); d.setDate(1); return d; });
+  // Il primo tocco, in attesa del secondo. Vive solo qui dentro: fuori dal
+  // popover esistono solo periodi completi.
+  const [pending, setPending] = React.useState(null);
   const monthLabel = view.toLocaleDateString('it-IT', {month:'long', year:'numeric'});
 
   const firstDow = (new Date(view.getFullYear(), view.getMonth(), 1).getDay() + 6) % 7;
@@ -325,10 +342,32 @@ function CassaDatePicker({ selected, onPick, onClear }) {
   const goPrev = () => { const d = new Date(view); d.setMonth(d.getMonth()-1); setView(d); };
   const goNext = () => { const d = new Date(view); d.setMonth(d.getMonth()+1); setView(d); };
 
+  const scegli = (iso) => {
+    if (!pending) { setPending(iso); return; }
+    const [da, a] = pending <= iso ? [pending, iso] : [iso, pending];
+    setPending(null);
+    onPick({ da, a });
+  };
+  const oggi = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+  const presetGiorni = (n) => {
+    const a = oggi(); const d = new Date(a); d.setDate(d.getDate() - (n - 1));
+    setPending(null); onPick({ da: ccIso(d), a: ccIso(a) });
+  };
+  const presetMese = () => {
+    const a = oggi(); const d = new Date(a); d.setDate(1);
+    setPending(null); onPick({ da: ccIso(d), a: ccIso(a) });
+  };
+
   const navBtn = {
     width:28, height:28, borderRadius:6, background:'#fff',
     border:`1px solid ${PN.BORDER}`, cursor:'pointer', fontFamily:'inherit',
     color: PN.TEXT, fontSize:14, display:'flex', alignItems:'center', justifyContent:'center',
+  };
+  const presetBtn = {
+    flex:1, padding:'6px 4px', borderRadius:7,
+    background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
+    fontSize: 11.5, fontWeight:700, color: PN.TEXT,
+    cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
   };
 
   return (
@@ -337,6 +376,13 @@ function CassaDatePicker({ selected, onPick, onClear }) {
       width:280, padding:14, background:'#fff', borderRadius:12,
       border:`1px solid ${PN.BORDER}`, boxShadow:'0 12px 36px rgba(15,17,21,0.14)',
     }}>
+      {/* Scorciatoie sopra il calendario: chi cerca "ieri e oggi" non deve
+          imparare il gesto dei due tocchi per usarle. */}
+      <div style={{display:'flex', gap:6, marginBottom:12}}>
+        <button style={presetBtn} onClick={() => presetGiorni(1)}>Oggi</button>
+        <button style={presetBtn} onClick={() => presetGiorni(7)}>Ultimi 7 giorni</button>
+        <button style={presetBtn} onClick={presetMese}>Questo mese</button>
+      </div>
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
         <button onClick={goPrev} style={navBtn}>‹</button>
         <span style={{fontSize: C.T_SM, fontWeight:700, color: PN.TEXT, textTransform:'capitalize'}}>{monthLabel}</span>
@@ -350,19 +396,31 @@ function CassaDatePicker({ selected, onPick, onClear }) {
       <div style={{display:'grid', gridTemplateColumns:'repeat(7, 1fr)', gap:4}}>
         {grid.map((day,i) => {
           if (!day) return <span key={i}/>;
-          const iso = ccFmtDate(day);
-          const isSel = iso === selected;
+          const iso = ccIso(day);
+          // Con un primo tocco in sospeso il periodo vecchio non si evidenzia
+          // più: si sta già scegliendo il prossimo.
+          const estremo = pending ? iso === pending
+            : !!selected && (iso === selected.da || iso === selected.a);
+          const dentro = !pending && !!selected && iso > selected.da && iso < selected.a;
           return (
-            <button key={i} onClick={() => onPick(iso)} style={{
+            <button key={i} onClick={() => scegli(iso)} style={{
               padding:'7px 0', borderRadius:7, border:'none', fontFamily:'inherit',
-              background: isSel ? PN.TEXT : 'transparent',
-              color: isSel ? '#fff' : PN.TEXT,
-              fontSize: C.T_SM, fontWeight: isSel ? 700 : 500, cursor:'pointer',
+              background: estremo ? PN.TEXT : dentro ? C.SURF_ALT : 'transparent',
+              color: estremo ? '#fff' : PN.TEXT,
+              fontSize: C.T_SM, fontWeight: estremo ? 700 : 500, cursor:'pointer',
             }}>{day.getDate()}</button>
           );
         })}
       </div>
-      {selected && (
+      <div style={{
+        marginTop:10, fontSize:11.5, color: PN.MUTED, textAlign:'center',
+        minHeight: 15,
+      }}>
+        {pending
+          ? <>Inizio: <b style={{color: PN.TEXT}}>{pending.split('-').reverse().join('/')}</b> · tocca il giorno di fine</>
+          : 'Tocca due giorni per un periodo'}
+      </div>
+      {selected && !pending && (
         <button onClick={onClear} style={{
           width:'100%', marginTop:10, padding:'8px', borderRadius:8,
           background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
@@ -372,6 +430,8 @@ function CassaDatePicker({ selected, onPick, onClear }) {
     </div>
   );
 }
+window.CcPeriodoPicker = CcPeriodoPicker;
+window.ccPeriodoLabel = ccPeriodoLabel;
 
 // ─── Chip di stato ─────────────────────────────────────────────────────────
 // Stessa pill di StatusPill (Costi): piena, radius pill, 12.5/700, e le sue
@@ -420,7 +480,7 @@ const DOC_LABEL = { ok:'Trasmesso', ritrasmissione:'In ritrasmissione', scartato
 
 function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);
-  const [selDate, setSelDate] = React.useState(null); // 'gg/mm/aaaa' o null
+  const [selPeriodo, setSelPeriodo] = React.useState(null); // {da, a} ISO o null
   const pickerRef = React.useRef(null);
   useFiscTick();
 
@@ -456,7 +516,8 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   // Le chiusure sono DERIVATE dai documenti (i pagamenti dei conti): totali,
   // IVA e stato di trasmissione sono somme, non numeri scritti altrove.
   const allRows = ccChiusure().map(c => ({ ...c, giornata: giornataInfo(c) }));
-  const rows = selDate ? allRows.filter(r => r.date === selDate) : allRows;
+  // `iso` si confronta come stringa: il periodo è un between, non un uguale.
+  const rows = selPeriodo ? allRows.filter(r => r.iso >= selPeriodo.da && r.iso <= selPeriodo.a) : allRows;
   const totIncassato = rows.reduce((s,r)=>s+r.totale,0);
   // Il conteggio è sui DOCUMENTI di tutte le giornate, non su quelle filtrate:
   // uno scarto non smette di esistere perché stai guardando un altro giorno.
@@ -605,13 +666,13 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
               onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
               onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
               onMouseUp={e => { e.currentTarget.style.transform = ''; }}>
-              <Ic.calendar size={14}/> {selDate || 'Filtra per data'}
+              <Ic.calendar size={14}/> {ccPeriodoLabel(selPeriodo)}
             </button>
             {pickerOpen && (
-              <CassaDatePicker
-                selected={selDate}
-                onPick={(iso) => { setSelDate(iso); setPickerOpen(false); }}
-                onClear={() => { setSelDate(null); setPickerOpen(false); }}
+              <CcPeriodoPicker
+                selected={selPeriodo}
+                onPick={(p) => { setSelPeriodo(p); setPickerOpen(false); }}
+                onClear={() => { setSelPeriodo(null); setPickerOpen(false); }}
               />
             )}
           </div>

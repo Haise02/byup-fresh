@@ -1295,6 +1295,20 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
   }, [fiscKey]);
   const [sortData, setSortData] = React.useState(null); // null | 'desc' (recenti) | 'asc' (meno recenti)
 
+  // Filtro per periodo (P-106): stesso selettore della Cassa — CcPeriodoPicker
+  // vive in contabilita-v2-cassa.jsx — applicato alla data di apertura del
+  // conto. Convive col rimando `fisc` di Cassa, che filtra per giornata i
+  // DOCUMENTI: sono due domande diverse e nessuna delle due spegne l'altra.
+  const [periodo, setPeriodo] = React.useState(null); // {da, a} ISO o null
+  const [periodoOpen, setPeriodoOpen] = React.useState(false);
+  const periodoRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!periodoOpen) return;
+    const h = (e) => { if (periodoRef.current && !periodoRef.current.contains(e.target)) setPeriodoOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [periodoOpen]);
+
   // Cosa si restituisce l'ha già deciso il dettaglio scontrino; qui resta solo
   // il "come tornano i soldi".
   function apriRimborso(conto, payment, tipo, amount) {
@@ -1345,6 +1359,12 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
   }
   if (canale !== 'all') {
     filtered = filtered.filter(c => (c.canale || 'sala') === canale);
+  }
+  if (periodo) {
+    filtered = filtered.filter(c => {
+      const g = String(c.dataOra || '').split(' ')[0];
+      return g >= periodo.da && g <= periodo.a;
+    });
   }
 
   // Filtra per ricerca (tavolo o cliente)
@@ -1478,6 +1498,26 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                 flex:1, border:'none', outline:'none', fontSize: C.T_SM, fontFamily:'inherit',
               }}
             />
+          </div>
+          {/* Stesso bottone e stesso popover della Cassa, stessa posizione
+              rispetto alla ricerca: chi ha imparato il gesto di là lo ritrova
+              identico di qua. */}
+          <div ref={periodoRef} style={{position:'relative'}}>
+            <button onClick={() => setPeriodoOpen(o => !o)}
+              style={{...iconBtn, transition: 'background 140ms ease, border-color 140ms ease, transform 130ms ease'}}
+              onMouseEnter={e => { e.currentTarget.style.background = '#F4F5F7'; e.currentTarget.style.borderColor = PN.TEXT; }}
+              onMouseLeave={e => { e.currentTarget.style.background = PN.WHITE; e.currentTarget.style.borderColor = PN.BORDER; e.currentTarget.style.transform = ''; }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = ''; }}>
+              <Ic.calendar size={14}/> {ccPeriodoLabel(periodo)}
+            </button>
+            {periodoOpen && (
+              <CcPeriodoPicker
+                selected={periodo}
+                onPick={(p) => { setPeriodo(p); setPeriodoOpen(false); }}
+                onClear={() => { setPeriodo(null); setPeriodoOpen(false); }}
+              />
+            )}
           </div>
         </div>
 
