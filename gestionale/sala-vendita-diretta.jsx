@@ -1083,7 +1083,7 @@ function SaConsegnatiModal({ consegnati, onClose, onVai }) {
                       codice se è arrivato dalla webapp guest o dalla cassa. */}
                   <span style={{display:'flex', alignItems:'center', gap: 7, minWidth: 0}}>
                     <span style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
-                      {o.cliente || o.codice}
+                      {o.cliente || o.codiceRitiro || o.codice}
                     </span>
                     {o.cliente && (
                       <span style={{
@@ -1180,7 +1180,7 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
         <div style={{padding:'20px 22px 14px', display:'flex', alignItems:'flex-start', gap: 10, flexShrink: 0}}>
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{fontSize: 20, fontWeight: 700, color: PN.TEXT, letterSpacing:-0.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>
-              {ordine.cliente || ordine.codice}
+              {ordine.cliente || ordine.codiceRitiro || ordine.codice}
             </div>
             <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 5, flexWrap:'wrap'}}>
               {ordine.cliente && (

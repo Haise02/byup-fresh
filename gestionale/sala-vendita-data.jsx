@@ -86,13 +86,17 @@ const SALA_VENDITA_CATS = {
 const SALA_ASPORTO_CONTI = [
   { id:'asp-1', codice:'#A-1042', cliente:'Simone De Luca', ritiro:'19:45', fonte:'byup', pagato:true, totale:64.50, codiceRitiro:'K4F7',
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{nome:'Birra media',qty:2,prezzo:5.50,hasAlcohol:true},{nome:'Supplì (4pz)',qty:1,prezzo:7.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:2,prezzo:2.50},{nome:'Patatine fritte',qty:1,prezzo:4.00}] },
-  { id:'asp-4', codice:'#A-1045', cliente:'Giulia Fontana', ritiro:'20:00', fonte:'webapp', pagato:false, totale:37.00, codiceRitiro:'H5W8',
+  // Webapp SENZA nome (P-05 · D-14): la webapp guest non chiede più alcun
+  // nome — l'ordine d'asporto è identificato dal SOLO codice di ritiro. Il
+  // mock deve rifletterlo, o chi sviluppa il backend crede che il campo
+  // esista.
+  { id:'asp-4', codice:'#A-1045', cliente:null, ritiro:'20:00', fonte:'webapp', pagato:false, totale:37.00, codiceRitiro:'H5W8',
     items:[{nome:'Pizza Diavola',qty:2,prezzo:11.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Birra media',qty:2,prezzo:5.50,hasAlcohol:true}] },
   { id:'asp-2', codice:'#A-1043', cliente:'Elena Greco', ritiro:'20:15', fonte:'byup', pagato:true, totale:31.00, codiceRitiro:'B2N9',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tagliere salumi',qty:1,prezzo:13.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'asp-3', codice:'#A-1044', cliente:'Marta Ferri', ritiro:'20:30', fonte:'byup', pagato:true, totale:22.00, codiceRitiro:'Q7D3',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Acqua minerale',qty:2,prezzo:2.00}] },
-  { id:'asp-5', codice:'#A-1046', cliente:'Luca Bianchi', ritiro:'20:45', fonte:'webapp', pagato:false, totale:29.00, codiceRitiro:'T9C2',
+  { id:'asp-5', codice:'#A-1046', cliente:null, ritiro:'20:45', fonte:'webapp', pagato:false, totale:29.00, codiceRitiro:'T9C2',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tiramisù',qty:2,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   // Piattaforme in coda attiva (P-04 · D-15): entrano DIRETTE in «Da
   // consegnare» — pagate sulla piattaforma, il denaro non passa da Byup — e
@@ -121,7 +125,9 @@ const SALA_ORDINI_STORICO = [
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Birra media',qty:1,prezzo:5.50,hasAlcohol:true},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-5', codice:'#1245', cliente:null, ritiro:'19:31', fonte:'banco', pagato:true, asporto:true, totale:19.50, stato:'consegnato',
     items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00}] },
-  { id:'sto-4', codice:'#A-1040', cliente:'Sara Conti', ritiro:'19:20', fonte:'webapp', pagato:true, totale:24.00, stato:'consegnato',
+  // Webapp senza nome anche in archivio (P-05 · D-14): l'identità è il
+  // codice di ritiro, che risponde a «è già passato a ritirare?».
+  { id:'sto-4', codice:'#A-1040', cliente:null, ritiro:'19:20', fonte:'webapp', pagato:true, totale:24.00, stato:'consegnato', codiceRitiro:'M3P6',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-8', codice:'627', cliente:'Alessia Villa', ritiro:'19:15', fonte:'glovo', pagato:true, totale:25.00, stato:'consegnato',
     items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Panna cotta',qty:1,prezzo:5.50},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
@@ -178,7 +184,9 @@ function svOrdineAConto(ordine) {
     dataOra: `${data} ${ordine.ritiro || '00:00'}`,
     tavolo: asporto ? 'Asporto' : 'Banco',
     canale: asporto ? 'asporto' : 'sala',
-    cliente: ordine.cliente || ordine.codice,
+    // Webapp: niente nome (P-05) — l'identità è il codice di ritiro, e il
+    // numero di registro resta l'ultima spiaggia.
+    cliente: ordine.cliente || ordine.codiceRitiro || ordine.codice,
     // Il nome di chi ha ritirato è l'unica cosa che lega la riga all'ordine da
     // cui si arriva: senza, in lista restano solo un'ora e un totale. Chi ha
     // ordinato dall'app porta il suo bollino, come i conti di sala.
