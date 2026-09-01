@@ -20,9 +20,9 @@ Come add-on è possibile integrare Fresh con applicazioni di terze parti per il 
 
 ### Piani e prezzi
 
-Il modello di pricing si basa sul volume di ordini effettuati. Per ciascun piano è previsto un numero di ordini inclusi; superata la soglia, viene applicato un costo extra per ordine aggiuntivo. Gli ordini sono pesati diversamente a seconda del canale: quelli da cassa o cameriere valgono 1, quelli tramite app valgono 0,5, incentivando così l'adozione dell'app da parte dei clienti.
+Il modello di pricing si basa sul volume di ordini effettuati. Per ciascun piano è previsto un numero di ordini inclusi; superata la soglia, viene applicato un costo extra per ordine aggiuntivo. Le transazioni sono pesate: l'unità è la comanda (il singolo invio), l'origine dà il peso provvisorio e la superficie di saldo dà il definitivo, che prevale. I coefficienti sono quelli del piano — listino versionato (D-12), non costanti di prodotto — e il coefficiente ridotto dell'app incentiva l'adozione dell'app da parte dei clienti.
 
-Il listino ha **due prezzi per piano**: il mensile con fatturazione annuale — quello su cui sta la maggior parte della base, ed è il prezzo che si comunica — e il mensile puro, più caro. Gli «ordini inclusi» non sono ordini grezzi ma **transazioni pesate** (app 0,5 · cassa/cameriere 1,0).
+Il listino ha **due prezzi per piano**: il mensile con fatturazione annuale — quello su cui sta la maggior parte della base, ed è il prezzo che si comunica — e il mensile puro, più caro. Gli «ordini inclusi» non sono ordini grezzi ma **transazioni pesate** con i coefficienti del piano.
 
 | Piano    | Transazioni incluse | Con fatturazione annuale | Mensile puro | Costo transazione extra |
 |----------|---------------------|--------------------------|--------------|--------------------------|
@@ -43,7 +43,7 @@ Sono previsti anche pacchetti di transazioni acquistabili singolarmente per gest
 
 Byup App è l'interfaccia rivolta al consumatore finale: consente di ordinare, pagare dal tavolo, ricevere notifiche in tempo reale, accedere a promozioni personalizzate, cercare e prenotare locali, consultare menu in anteprima e gestire storico ordini e pagamenti.
 
-Il pagamento dal tavolo è una funzionalità esclusiva dell'app nativa e richiede il download e la registrazione. Ogni utente che scarica l'app entra nell'ecosistema con carta di pagamento salvata, storico completo e possibilità di interazione con tutti i locali partner. Per il locale, ogni pagamento via app riduce il conteggio delle transazioni (peso 0,5 anziché 1), creando un vantaggio economico diretto.
+Il pagamento dal tavolo è una funzionalità esclusiva dell'app nativa e richiede il download e la registrazione. Ogni utente che scarica l'app entra nell'ecosistema con carta di pagamento salvata, storico completo e possibilità di interazione con tutti i locali partner. Per il locale, ogni pagamento via app riduce il conteggio delle transazioni (coefficiente ridotto anziché pieno), creando un vantaggio economico diretto.
 
 Per chi non ha l'app, è disponibile una webapp guest accessibile via QR code che permette di ordinare dal tavolo senza registrazione, ma non consente il pagamento, incentivando il download dell'app.
 
@@ -99,7 +99,7 @@ Con un volume MVP (fino a 75 locali, ~90.000 transazioni al mese), le query aggr
 
 Byup basa i propri ricavi sul volume di ordini effettuati nei locali affiliati, con abbonamenti a livelli differenziati per funzionalità, ordini inclusi, dimensione dello staff e livello di assistenza. Un modello freemium favorisce l'adozione: il piano Gratuito consente di sperimentare il prodotto in condizioni reali senza impegno economico, e la conversione ai piani a pagamento è affidata all'esperienza d'uso effettiva.
 
-La ponderazione degli ordini (peso 1 per cassa/cameriere, peso 0,5 per app) è il meccanismo chiave del flywheel B2B2C: incentiva il locale a promuovere l'uso dell'app, che a sua volta rafforza l'ecosistema consumer.
+La ponderazione delle comande — coefficiente pieno al saldo in cassa o cameriere, ridotto al saldo in app, secondo i coefficienti del piano — è il meccanismo chiave del flywheel B2B2C: incentiva il locale a promuovere l'uso dell'app, che a sua volta rafforza l'ecosistema consumer.
 
 ## Mercato di Riferimento
 

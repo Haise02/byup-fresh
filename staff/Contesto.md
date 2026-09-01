@@ -433,8 +433,9 @@ biometrica di sistema (`BiometricPrompt`). "Attivare il Face ID" lato backend si
 
 Il flusso ricevuta (SMS/Email) nel prototipo è puramente visivo. **Decisione:** la ricevuta
 inviata dal POS è una **ricevuta di cortesia** dell'incasso con carta, **non un documento
-fiscale**. I **corrispettivi telematici** li emette il **gestionale/registratore telematico**,
-non il POS. Conseguenza: la ricevuta del POS non ha vincoli di conservazione fiscale, ma
+fiscale**. I **corrispettivi telematici** non li emette il POS — e Byup non ha alcun
+registratore telematico: nell'MVP la trasmissione passa dal **canale OpenAPI** con le
+credenziali dell'esercente, nella Fase 2 dalla **Soluzione Software certificata**. Conseguenza: la ricevuta del POS non ha vincoli di conservazione fiscale, ma
 l'invio richiede comunque servizi backend (gateway SMS, email transazionale).
 
 ### 5.8 Identità, sessione e multi-operatore

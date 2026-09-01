@@ -60,20 +60,23 @@ niente account; menu in versione base.
 
 - **Non paga in-app.** Chi ordina dalla webapp **passa dalla cassa** (App Staff).
   Questo è anche un fatto di **modello di ricavo**: un pagamento da webapp pesa
-  **1,0 transazione** per il ristoratore, contro **0,5** se pagato dall'app nativa
-  (vedi §5). La webapp non integra Stripe.
+  il **coefficiente pieno** per il ristoratore, contro il **ridotto** se pagato
+  dall'app nativa (vedi §5). La webapp non integra Stripe.
 - **Non fa discovery.** Niente home editoriale, mappa, Posta, vetrine. Si entra
   **solo** da un tavolo (QR/codice/link) — non si "naviga byup" dalla webapp.
 - **Non gestisce account.** Nessun login/registrazione. Nessun dato identitario
   raccolto al checkout (niente telefono): l'ordine si recupera in app via **codice
   ordine** (§4.3), non per match telefonico.
-- **Asporto da webapp → NO (deciso).** Il QR del menu asporto **non fa ordinare
-  dal browser**: reindirizza al **download dell'app**, dove l'asporto si paga in
-  anticipo e va dritto in cucina senza coda. Da webapp, senza pagamento, l'asporto
-  aggiungerebbe solo passaggi (ordina → coda in cassa → paga → aspetti) senza far
-  risparmiare tempo. Inoltre l'asporto è **proprio il caso in cui il pagamento
-  in-app rende di più**: invece di degradarlo nella webapp, si **trasforma il punto
-  debole in un gancio di acquisizione** verso l'app, dove l'esperienza è migliore.
+- **Asporto da webapp → SÌ (decisione ribaltata, D-14).** Il QR del menu asporto
+  **fa ordinare dal browser**. L'argomento contrario misurava il tempo della
+  cottura — senza pagamento l'ordine parte solo dopo il saldo — ma il guadagno
+  sta nella **composizione dell'ordine**: si arriva al banco con l'ordine già
+  fatto, identificato dal codice di ritiro. Si salda **in cassa oppure in app**,
+  recuperando l'ordine col codice mostrato dalla webapp (popup in stile OTP con
+  riconoscimento automatico all'incollaggio; su Android aggancio automatico via
+  Install Referrer — SFA §3.8). Le due strade si presentano **a pari evidenza**
+  (P-02, EDPB 03/2022): il saldo in app resta "consigliato" solo come razionale
+  del coefficiente ridotto, non come gerarchia di interfaccia.
 
 ---
 
@@ -149,28 +152,33 @@ per telefono+SMS** ma con un meccanismo biforcato (vedi
 
 ### 4.4 Asporto
 
-**NO per la webapp (deciso).** Il QR del menu asporto (`?takeaway=1`) **non apre
-l'ordinazione**: mostra una schermata che porta a **scaricare l'app**. Nell'app
-l'asporto è pagato in anticipo e va dritto in cucina; da webapp, senza pagamento,
-dovrebbe passare per la cassa e non andrebbe in cucina finché non pagato — il che
-ne svuota il senso. Per il razionale completo vedi §2.2.
+**SÌ per la webapp (decisione ribaltata, D-14).** Il QR del menu asporto
+(`?takeaway=1`) **apre l'ordinazione**: l'ordine si compone dal browser e si
+salda **in cassa oppure in app**, recuperandolo col codice mostrato a fine
+ordine (popup in stile OTP, incolla riconosciuto in automatico; su Android
+aggancio via Install Referrer — SFA §3.8) — in cucina va al pagamento. Il tempo
+di cottura non cambia; cambia la fila, perché l'ordine arriva al banco già
+composto. Le due strade di saldo si presentano a pari evidenza (P-02).
+*(Prototipo da allineare: oggi mostra ancora la schermata di download.)* Per il
+razionale completo vedi §2.2.
 
 ---
 
-## 5. Modello di ricavo (perché la webapp "pesa 1")
+## 5. Modello di ricavo (perché la webapp pesa pieno)
 
 byup **non guadagna** né sull'app né sulla webapp: il ricavo è sull'**abbonamento
 a Byup Fresh**, a consumo di **transazioni**. Il peso dipende da **dove avviene il
-pagamento**:
+pagamento**, con i coefficienti del piano — listino versionato (D-12), non
+costanti:
 
-| Canale di pagamento | Vale | Perché |
+| Canale di pagamento | Coefficiente | Perché |
 |---------------------|:----:|--------|
-| Da **app consumer** | **0,5** | Pagamento self-service in app |
-| In **cassa** via **App Staff** | **1,0** | Passa dallo staff |
-| Da **webapp consumer** | **1,0** | La webapp **non paga**: obbligata a passare in cassa |
+| Da **app consumer** | **ridotto** | Pagamento self-service in app |
+| In **cassa** via **App Staff** | **pieno** | Passa dallo staff |
+| Da **webapp consumer** | **pieno** | La webapp **non paga**: si salda in cassa (o in app, via recupero — e allora conta come app) |
 
 → Implicazione: la webapp è la via low-friction per ordinare, ma per il
-ristoratore "costa" il doppio di un pagamento da app. È un fatto di contesto, non
+ristoratore "costa" più di un pagamento da app. È un fatto di contesto, non
 una logica che la webapp deve calcolare: il **conteggio è dominio di Byup Fresh**.
 
 ---
@@ -235,7 +243,7 @@ una logica che la webapp deve calcolare: il **conteggio è dominio di Byup Fresh
 
 ## 7. Decisioni aperte rilevanti per la webapp
 
-- **Asporto da webapp**: ~~confermare~~ **deciso NO** → redirect al download (§4.4).
+- **Asporto da webapp**: ~~confermare~~ ~~deciso NO~~ **ribaltato: SÌ** (D-14) → si ordina dal browser, saldo in cassa o in app via recupero (§4.4).
 - **Geofence/GPS**: ~~requisito~~ **scartato** (§4.1) — difesa spostata su sessione +
   rate limiting + pagamento contestuale lato backend (`byup-punto3-difesa-attacchi.md`).
 - **Codice numerico manuale** per unirsi al tavolo (oltre a QR + link): includerlo
@@ -311,7 +319,7 @@ App-only: porta alla `OrderRecoverySheet` di recupero ordine, §8.6.)
 |----------|----------------|----------------------|
 | **`table`** (default) | ingresso "da QR" | ordine va **in cucina** subito |
 | **`venue`** | da Vetrina: `?from=venue` o referrer; persiste in `sessionStorage['byup_menu_from']='venue'` | "sto sfogliando, **nessun tavolo**" → mostra il back verso la vetrina |
-| **asporto** (QR asporto) | `?takeaway=1` (o `sessionStorage['byup_menu_mode']='asporto'`) | **non si ordina**: `Root` mostra `TakeawayRedirect` → CTA "Scarica l'app" |
+| **asporto** (QR asporto) | `?takeaway=1` (o `sessionStorage['byup_menu_mode']='asporto'`) | oggi `Root` mostra ancora `TakeawayRedirect` (CTA "Scarica l'app") — **superato da D-14**: qui dovrà aprirsi l'ordinazione (§4.4) |
 
 Lo switch Tavolo/Asporto in sviluppo si fa dal **simulatore** (`simulator.html`),
 non più da un toggle in-app (il vecchio `DevModeSwitcher` è stato rimosso).
@@ -410,7 +418,7 @@ trattare l'una o l'altra come legge:
 
 | Tema | Intento (§1–§7) | Codice attuale (§8) |
 |------|-----------------|---------------------|
-| **Asporto** | NO per la webapp → redirect download (§2.2/§4.4) | ✅ **Allineato**: `?takeaway=1` → `TakeawayRedirect` (CTA "Scarica l'app"), nessuna ordinazione |
+| **Asporto** | **SÌ da webapp** (D-14): si ordina, saldo in cassa o in app via recupero (§2.2/§4.4) | ❌ **Da allineare**: `?takeaway=1` → `TakeawayRedirect` (CTA "Scarica l'app"), nessuna ordinazione |
 | **Geofence / GPS** | scartato (§4.1) | ✅ **Allineato**: rimosso ogni traccia da `menu.jsx`/`simulator.html`/`index.html` |
 | **Coperti** | solo app | **Presenti** (prompt coperti al tavolo) |
 | **Conto diviso** | solo app | **Presente** in UI (swipe sulle righe del carrello + `SplitPickSheet`, identico all'app); solo il *pagamento* è gated |

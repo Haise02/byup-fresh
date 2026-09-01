@@ -14,8 +14,8 @@
 >
 > **Collegamenti**
 > - Sintesi nel contesto di prodotto → [Contesto-App.md §G.7](Contesto-App.md)
-> - Perché conta per il modello di ricavo (ordine webapp pagato in app = peso 0,5) → [Contesto-App.md §C](Contesto-App.md)
-> - Redirect al download da asporto webapp → [Contesto-App.md §G.4](Contesto-App.md)
+> - Perché conta per il modello di ricavo (ordine webapp pagato in app = coefficiente ridotto) → [Contesto-App.md §C](Contesto-App.md)
+> - Asporto da webapp (ribaltato, D-14: si ordina dal browser, saldo in cassa o in app via recupero) → [Contesto-App.md §G.4](Contesto-App.md)
 > - Forme dati del recupero → [Contratto-Dati.md §2.8](Contratto-Dati.md)
 > - Difesa del canale anonimo webapp → [Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md)
 

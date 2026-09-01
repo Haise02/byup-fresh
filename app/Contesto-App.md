@@ -91,36 +91,39 @@ In breve: **pagamento e discovery sono esclusive dell'app**; nel menu l'app ha
 > condiviso** oppure scansionando il **QR** del tavolo. Allo stesso tavolo
 > possono quindi convivere utenti app e utenti webapp — riflesso nel codice dai
 > flag ospite `isApp` / `isWebApp` (Architettura-Prototipo §9). La **webapp non processa
-> pagamenti**: l'utente webapp ha due esiti — **paga in cassa** (peso 1,0) oppure
-> **scarica l'app, recupera l'ordine e paga in app** (peso 0,5, §G.7). Il peso
-> segue sempre la superficie su cui si salda, non quella che ha originato
-> l'ordine (vedi modello transazioni in §C).
+> pagamenti**: l'utente webapp ha due esiti — **paga in cassa** (coefficiente
+> pieno) oppure **scarica l'app, recupera l'ordine e paga in app** (coefficiente
+> ridotto, §G.7). Il peso segue sempre la superficie su cui si salda, non quella
+> che ha originato l'ordine (vedi modello transazioni in §C).
 
 ### Modello di ricavo (dove byup guadagna)
 
 **byup NON guadagna sull'app né sulla webapp.** Il ricavo è sull'**abbonamento al
 gestionale Byup Fresh**, a consumo di **ordini/transazioni**.
 
-Conteggio transazioni (chiave del modello): l'unità è il conto saldato, col
-peso della superficie su cui si salda. L'origine dà solo un peso provvisorio
-(app 0,5, il resto 1,0), che il saldo sovrascrive. Per gruppo di saldo vale la
-regola del maggiore: unità fatturate = max(ordini inviati; transazioni
-saldate). Un ordine mai saldato resta al peso d'origine; uno annullato esce dal
-conteggio. Regola completa nella Scheda del Database e nell'SFA.
+Conteggio transazioni (chiave del modello): l'unità è la **comanda** (il
+singolo invio). L'origine dà solo un peso provvisorio, che la superficie di
+saldo sovrascrive: il definitivo prevale. I coefficienti non sono costanti ma
+**listino versionato** (D-12): qui si citano come i coefficienti del piano —
+ridotto per l'app, pieno per il resto — mai come numeri fissi. Per gruppo di
+saldo vale la regola del maggiore: unità fatturate = max(comande inviate;
+transazioni saldate). Una comanda mai saldata resta al peso d'origine; una
+annullata esce dal conteggio. Regola completa nella Scheda del Database e
+nell'SFA.
 
-| Dove avviene il pagamento | Vale | Perché |
+| Dove avviene il pagamento | Coefficiente | Perché |
 |---------------------------|:----:|--------|
-| Da **app consumer** | **0,5** | Pagamento self-service in app |
-| In **cassa** via **App Staff** | **1,0** | Passa dallo staff |
-| **Ordine nato in webapp → recuperato e pagato in app** | **0,5** | Conta come pagamento **da app**: a quel punto è lì che si salda (vedi §G.7) |
-| **Ordine nato in webapp → pagato in cassa** | **1,0** | È rimasto su webapp e salda al banco |
+| Da **app consumer** | **ridotto** | Pagamento self-service in app |
+| In **cassa** via **App Staff** | **pieno** | Passa dallo staff |
+| **Ordine nato in webapp → recuperato e pagato in app** | **ridotto** | Conta come pagamento **da app**: a quel punto è lì che si salda (vedi §G.7) |
+| **Ordine nato in webapp → pagato in cassa** | **pieno** | È rimasto su webapp e salda al banco |
 
-→ Incentivo strategico: **far pagare il cliente dall'app "costa" metà** al
+→ Incentivo strategico: **far pagare il cliente dall'app "costa" meno** al
 ristoratore in termini di conteggio. Spingere l'adozione dell'app consumer
 conviene a tutti — **anche** convertendo l'ordine webapp in un pagamento in app
-(scaricando l'app e recuperando l'ordine, §G.7): lo stesso ordine passa da 1,0 a
-0,5. È il razionale del redirect al download (asporto, §G.4) e del recupero
-ordine (§G.7).
+(scaricando l'app e recuperando l'ordine, §G.7): lo stesso ordine passa dal
+coefficiente pieno a quello ridotto. È il razionale del recupero ordine (§G.7),
+asporto webapp compreso (§G.4).
 
 Piani di abbonamento **Byup Fresh** (prezzi netti, + IVA):
 
@@ -258,7 +261,7 @@ dominio backend, vedi §E)
   solo cosa portare sul proprio conto: vedi **§G.6**.
 - ✅ Modalità **paga i miei** vs **paga tutto il tavolo**.
 - L'app deve **segnalare al backend** che il pagamento è avvenuto **da app**
-  (peso transazione 0,5 — vedi §C/§E).
+  (coefficiente ridotto del piano — vedi §C/§E).
 - ✅ **Mancia** (confermata; liberalità fuori campo IVA, esclusa dal documento fiscale — regime in SFA): percentuale (5/10%)
   oppure ✅ **"Arrotonda"** — porta il totale alla cifra tonda in euro successiva
   e la differenza diventa mancia (anche solo 0,50 €: meglio di niente). Le due
@@ -294,7 +297,7 @@ gestionale) quando si passa a Flutter.
 | **Sessione tavolo / ospiti / split / pagato** | `activeOrder` demo (Architettura-Prototipo §9) | **Saldo del tavolo real-time** (fonte di verità unica app+cassa) + **lock** sulle righe in pagamento; tavolo libero **solo a saldo zero**; ciclo di vita/scadenza sessione (§G.5, §G.6) |
 | **Join al tavolo** | nessun controllo | Nessun vincolo di posizione, su nessun canale: QR/link/codice risolvono alla sessione. Difesa via **gate di sessione** + rate limiting, e **pagamento contestuale** sul canale anonimo (§G.8) |
 | **Stati del tavolo** | — | Dominio **Byup Fresh** / webapp cameriere: Occupato/Libero/Prenotato/**Da pulire**; sessione app chiude al passaggio a "Da pulire" (§G.5) |
-| **Asporto: cucina/ritiro** | `takeawayOrder` demo, `pickupTime` finto | **App-only** (webapp → redirect al download, §G.4); slot ritiro dal backend; **invio in cucina** condizionato al pagamento in app; **codice di ritiro** verbale (§G.4) |
+| **Asporto: cucina/ritiro** | `takeawayOrder` demo, `pickupTime` finto | **Anche da webapp** (l'ordine si compone dal browser e si salda in cassa o in app via recupero, §G.4/§G.7); slot ritiro dal backend; **invio in cucina** condizionato al pagamento in app; **codice di ritiro** verbale (§G.4) |
 | **Riconciliazione ordine webapp→app** | — | Ordine `orfano` + **codice ordine** breve; **Android**: Install Referrer (auto, no banner); **iOS/fallback**: codice manuale via banner; telefono verificato = unicità account (§G.7) |
 | **Storico ordini / scontrino** | `PROFILE_ORDERS` demo, scollegato dal pagamento | A pagamento riuscito l'ordine viene **persistito** nello storico utente; "Vedi scontrino" punta a **quell'id** (vedi dinamica sotto) |
 | **Pagamenti** | finti (icone Klarna/PayPal/Apple Pay) | **Stripe** (`flutter_stripe`): PaymentSheet, Apple/Google Pay, carte; SCA/3DS gestito. Solo app (§B) |
@@ -356,9 +359,10 @@ gestionale) quando si passa a Flutter.
 > per *cosa il prodotto deve fare* → questo file (§G) e gli spoke tematici.
 
 > Nota: il **conteggio transazioni/abbonamento** (Free 550 / Starter 1.850 /
-> Plus 7.500 / Business 15.000; peso 0,5 app vs 1 cassa/webapp — vedi §C) è logica
-> di **Byup Fresh**, non dell'app consumer. L'app deve solo segnalare
-> correttamente al backend che un pagamento è avvenuto **da app** (peso 0,5).
+> Plus 7.500 / Business 15.000; coefficienti del piano, ridotto per l'app —
+> vedi §C) è logica di **Byup Fresh**, non dell'app consumer. L'app deve solo
+> segnalare correttamente al backend che un pagamento è avvenuto **da app**
+> (coefficiente ridotto).
 
 ## F. Funzioni future allo studio (già discusse)
 
@@ -469,16 +473,20 @@ bivio arriva dopo. Questa sezione è la mappa dei percorsi e — importante — 
 - **Slot di ritiro**: gestiti dal **backend Byup Fresh**. L'app sa solo **quando
   l'ordine sarà pronto** e mostra un **codice da dire a voce** al ritiro; il
   titolare lo inserisce nel gestionale per chiudere.
-- ✅ **Asporto da webapp = NO, redirect al download (DECISO)**. L'asporto da
-  webapp senza pagamento integrato non porta valore e peggiora l'esperienza:
-  l'utente dovrebbe comunque fare **coda in cassa**, pagare, e **solo dopo** parte
-  la preparazione (l'ordine non va in cucina finché non è pagato) → più passaggi,
-  nessun tempo risparmiato. Perciò **quando si scansiona il QR del menu d'asporto
-  da webapp, si reindirizza al link per scaricare l'app**. Si trasforma il punto
-  debole in un **gancio di acquisizione**: l'asporto è proprio il caso d'uso dove
-  il pagamento in-app rende di più (paghi prima, l'ordine entra subito in cucina,
-  niente coda). L'asporto resta quindi **app-only**, coerente con pagamento e
-  discovery.
+- ✅ **Asporto da webapp = SÌ (decisione ribaltata, D-14)**. L'argomento contrario
+  misurava il tempo della cottura — senza pagamento l'ordine non parte finché
+  non è saldato, ed è ancora vero — ma il guadagno sta nella **composizione
+  dell'ordine**: si arriva al banco con l'ordine già composto e identificato dal
+  **codice di ritiro**, e la fila si accorcia anche se la preparazione parte al
+  pagamento. Il QR del menu d'asporto da webapp apre quindi l'ordinazione, e
+  l'ordine si salda **in cassa oppure in app**, recuperandolo con il codice
+  mostrato dalla webapp: digitato o incollato nel popup in stile OTP
+  (riconoscimento automatico all'incollaggio), su Android agganciato da solo via
+  Install Referrer senza inserire nulla (SFA §3.8, §G.7). L'invio in cucina
+  resta condizionato al pagamento. Nella webapp le due strade si presentano
+  **a pari evidenza** (P-02, EDPB 03/2022): il saldo in app resta "consigliato"
+  solo come razionale del coefficiente ridotto, non come gerarchia di
+  interfaccia.
 
 ### G.5 Ciclo di vita della sessione tavolo
 

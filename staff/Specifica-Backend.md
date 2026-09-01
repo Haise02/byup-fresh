@@ -93,10 +93,9 @@ stateDiagram-v2
     in_pagamento --> pagato: webhook payment_intent.succeeded
     verifica_in_corso --> pagato: webhook succeeded
     verifica_in_corso --> in_coda: webhook failed / canceled (lock rilasciato)
-    in_coda --> rimandato: cancel (pulsante singolo conto)
-    in_pagamento --> rimandato: cancel (consentito solo senza PaymentIntent attivo)
+    in_coda --> [*]: cancel (ritiro) — il conto torna aperto sul gestionale
+    in_pagamento --> [*]: cancel (solo senza PaymentIntent attivo) — il conto torna aperto
     pagato --> [*]
-    rimandato --> [*]: torna modificabile sul gestionale
 
     note right of verifica_in_corso
         Il conto NON torna libero finché
@@ -109,7 +108,7 @@ stateDiagram-v2
 - `in_pagamento` è esclusivo: visibile agli altri dispositivi come *bloccato*, non
   selezionabile né annullabile da loro.
 - Il passaggio a `pagato` è guidato **solo dal webhook**, mai dal dispositivo.
-- `rimandato` = il conto **esce dalla coda** e torna modificabile sul gestionale (Contesto §4).
+- Il **ritiro non è uno stato del conto**: il conto ritirato esce dalla coda e **torna aperto** (di nuovo modificabile sul gestionale); del ritiro restano **momento e autore** (`queue_withdrawn_at`) (Contesto §4).
 
 ---
 
