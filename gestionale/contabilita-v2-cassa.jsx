@@ -2,7 +2,13 @@
 
 // ─── Trasmissione all'Agenzia delle Entrate ────────────────────────────────
 // Il canale è la procedura "documento commerciale online" (via OpenAPI): ogni
-// documento parte DA SOLO e in tempo reale. E nel prototipo il documento nasce
+// documento parte DA SOLO e in tempo reale — tranne fra le 23:55 e le 00:00
+// italiane, quando il canale non trasmette: quello che ha in mano lo accoda
+// al giorno nuovo (stato `waiting`), spostando la giornata fiscale del
+// documento (P-100 · scheda OpenAPI 31/08). Per questo in quella finestra
+// l'emissione è bloccata alla cassa e su Byup Staff, e `waiting` riguarda
+// solo ciò che il canale aveva già preso in carico sul bordo della finestra.
+// E nel prototipo il documento nasce
 // dal PAGAMENTO — ogni elemento di `payments` in contabilita-v2-conti.jsx ha il
 // suo `scontrinoNum`, quindi un conto diviso in tre pagamenti produce tre
 // scontrini distinti, ognuno col suo esito.
@@ -29,6 +35,37 @@ window.byupWriteFisc = function (v) {
   // Notifica i listener della stessa pagina (storage fira solo per altre tab)
   window.dispatchEvent(new Event('byup-fisc-change'));
 };
+
+// Finestra di divieto notturna: copia guardata della definizione che sta in
+// sala-salda-modal.jsx — pagine e bundle diversi, stessa finestra. Qui serve a
+// docInfo: lo stato `waiting` esiste solo mentre la finestra è attiva (vera, o
+// simulata con `?notte=1`), perché a mezzanotte il canale trasmette davvero e
+// il documento torna un trasmesso qualunque.
+if (!window.byupNotteInfo) {
+  // `?notte=1` avvia la notte demo e la àncora ADESSO; le navigazioni interne
+  // la perdono dall'URL (la sidebar riscrive ?tab=…), quindi l'ancora vive in
+  // sessionStorage e l'orologio finto continua a correre invece di ripartire.
+  // Passata la mezzanotte finta, la demo è semplicemente finita.
+  let notteT0 = null;
+  try {
+    if (new URLSearchParams(window.location.search).get('notte') === '1') {
+      notteT0 = Date.now();
+      sessionStorage.setItem('byup_notte_t0', String(notteT0));
+    } else {
+      const salvato = sessionStorage.getItem('byup_notte_t0');
+      if (salvato) notteT0 = parseInt(salvato, 10);
+    }
+  } catch (e) {}
+  const notteBase = (() => { const d = new Date(); d.setHours(23, 58, 30, 0); return d.getTime(); })();
+  const notteOra = () => notteT0 ? new Date(notteBase + (Date.now() - notteT0)) : new Date();
+  window.byupNotteInfo = function () {
+    const d = notteOra();
+    const dentro = d.getHours() === 23 && d.getMinutes() >= 55;
+    const mancano = dentro ? 86400 - (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) : 0;
+    return { dentro, mancano };
+  };
+  window.byupNotteConta = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
 
 const fiscOra = () => {
   const d = new Date();
@@ -138,14 +175,20 @@ function docInfo(p) {
   const gestito = salvato.gestito || (f.gestito ? { ...f.gestito, quando: f.gestito.quando || fiscGiornoDopo(p.ora, '09:20') } : null);
   const ritento = salvato.ritento || null;
   const scarto = f.scarto ? { ...CC_SCARTI[f.scarto] , rilevato: fiscTs(p.ora) } : null;
+  // Accodato dal canale nella finestra di divieto: waiting solo FINCHÉ la
+  // finestra è attiva — dopo mezzanotte quel documento è partito davvero, e
+  // il mock racconta il dopo come un trasmesso qualunque. Niente id AE e
+  // niente "inviato": non è ancora successo, e fabbricarli sarebbe mentire.
+  const attesa = !scarto && f.esito === 'waiting' && window.byupNotteInfo().dentro;
   let tipo;
-  if (!scarto) tipo = f.esito === 'ritrasmissione' ? 'ritrasmissione' : 'ok';
+  if (attesa) tipo = 'waiting';
+  else if (!scarto) tipo = f.esito === 'ritrasmissione' ? 'ritrasmissione' : 'ok';
   else if (gestito) tipo = 'gestito';
   else tipo = ritento ? 'ritrasmissione' : 'scartato';
   return {
     tipo, scarto, gestito, ritento,
-    idTrasm: scarto ? null : (f.idTrasm || (p.scontrinoNum ? p.scontrinoNum.replace('SC-', 'AE-') : null)),
-    inviato: scarto ? null : fiscTs(p.ora),
+    idTrasm: (scarto || attesa) ? null : (f.idTrasm || (p.scontrinoNum ? p.scontrinoNum.replace('SC-', 'AE-') : null)),
+    inviato: (scarto || attesa) ? null : fiscTs(p.ora),
     tentativo: ritento ? ritento.tentativo : (f.tentativo || 2),
     prossimo: ritento ? ritento.prossimo : (f.prossimo || '14:30'),
     visto: salvato.visto || null,
@@ -195,10 +238,16 @@ function giornataInfo(chiusura) {
   const scartati = info.filter(i => i.aperto).length;          // scarti non gestiti
   const gestiti  = info.filter(i => i.tipo === 'gestito').length;
   const coda     = info.filter(i => !i.scarto && i.tipo === 'ritrasmissione');
-  if (scartati) return { stato:'scartato', tipo:'scartata', n, scartati,
+  const attesa   = info.filter(i => i.tipo === 'waiting').length;
+  // Il waiting non vince mai su un problema vero: se la giornata ha scarti o
+  // ritrasmissioni sta nella riga sotto il chip, non al suo posto.
+  const sotto = attesa ? `${attesa} in attesa di mezzanotte` : null;
+  if (scartati) return { stato:'scartato', tipo:'scartata', n, scartati, sotto,
     label: `${scartati} ${scartati === 1 ? 'scartato' : 'scartati'} su ${n}` };
-  if (coda.length) return { stato:'coda', tipo:'coda', n, scartati: 0,
+  if (coda.length) return { stato:'coda', tipo:'coda', n, scartati: 0, sotto,
     label: `${coda.length} in ritrasmissione` };
+  if (attesa) return { stato:'waiting', tipo:'waiting', n, scartati: 0,
+    label: `${attesa} in attesa di mezzanotte` };
   if (gestiti) return { stato:'gestito', tipo:'gestita', n, scartati: 0,
     label: `${gestiti} ${gestiti === 1 ? 'gestito' : 'gestiti'} su ${n}` };
   return { stato:'ok', tipo:'ok', n, scartati: 0, label: `${n}/${n} trasmessi` };
@@ -338,6 +387,10 @@ const FISC_CHIP = {
   // 4.5:1 richiesto a questa dimensione. Senza tinta resta comunque quieto.
   gestita:        { color: PN.TEXT,  bg: C.SURF_ALT },
   gestito:        { color: PN.TEXT,  bg: C.SURF_ALT },
+  // Blu informativo, non ambra: waiting non è un guasto da rimediare ma una
+  // certezza programmata — parte a mezzanotte da solo. L'ambra è della coda
+  // di ritrasmissione, che invece è un problema in lavorazione.
+  waiting:        { color:'#1E40AF', bg:'#DBEAFE' },
 };
 
 function FiscPill({ tipo, label }) {
@@ -363,7 +416,7 @@ function GiornataChip({ info }) {
   );
 }
 
-const DOC_LABEL = { ok:'Trasmesso', ritrasmissione:'In ritrasmissione', scartato:'Scartato', gestito:'Gestito' };
+const DOC_LABEL = { ok:'Trasmesso', ritrasmissione:'In ritrasmissione', scartato:'Scartato', gestito:'Gestito', waiting:'In attesa di mezzanotte' };
 
 function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   const [pickerOpen, setPickerOpen] = React.useState(false);

@@ -25,6 +25,12 @@ const CONTI_MOCK = [
     ] },
 
   // ─── Saldati ───────────────────────────────────────────────────
+  // Incassato sul bordo della finestra di divieto (P-100): il canale l'aveva
+  // già in mano alle 23:55 e l'ha accodato al giorno nuovo — stato waiting,
+  // che docInfo mostra solo mentre la finestra è attiva (vera, o simulata con
+  // ?notte=1). A mezzanotte parte davvero e torna un trasmesso qualunque.
+  { id:'cnt-24', idOrdine:'#2511-0047', dataOra:'2025-11-16 23:38', tavolo:'Tavolo 2',  cliente:'Ultimo tavolo Ferri', liberatoOre:0.1, totaleConto:54.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'carta',
+    payments: [{id:'p24a', method:'carta', amount:54.00, ora:'2025-11-16 23:54', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0047-1', fisc:{ esito:'waiting' }}] },
   { id:'cnt-5',  idOrdine:'#2511-0038', dataOra:'2025-11-13 20:30', tavolo:'Tavolo 1',  cliente:'Lucia Marchesi',    riferimento:{nome:'Lucia Marchesi', tipo:'byup'}, liberatoOre:48,    totaleConto:72.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1', fisc:{ scarto:'delega', tentativi: 3 }}] },
   { id:'cnt-6',  idOrdine:'#2511-0037', dataOra:'2025-11-08 21:00', tavolo:'Tavolo 3',  cliente:'Francesco Rossi',   liberatoOre:168,   totaleConto:95.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
@@ -109,6 +115,21 @@ const CONTI_MOCK = [
     });
     if (c.rimborso) c.rimborso.ora = shiftStr(c.rimborso.ora);
   });
+
+  // Il conto della finestra di divieto (P-100) è per definizione DI STASERA:
+  // un waiting di ieri sarebbe già partito a mezzanotte. Lo shiftDays del mock
+  // però cade su ieri per tutta la mattina (l'ancora è a mezzogiorno), quindi
+  // questo conto si aggancia all'oggi vero, non allo scarto.
+  const c24 = CONTI_MOCK.find(x => x.id === 'cnt-24');
+  if (c24) {
+    const d = new Date();
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const code = iso.slice(2,4) + iso.slice(5,7);
+    c24.dataOra = `${iso} 23:38`;
+    c24.idOrdine = '#' + code + '-0047';
+    c24.payments[0].ora = `${iso} 23:54`;
+    c24.payments[0].scontrinoNum = 'SC-' + code + '-0047-1';
+  }
 })();
 
 // Gli incassi del banco sono conti come gli altri: la Vendita diretta li tiene
@@ -184,6 +205,12 @@ function PagamentoFiscChip({ payment, onOpen }) {
   const sotto = info.tipo === 'ritrasmissione' ? (
     <span style={{color: PN.MUTED, whiteSpace:'nowrap'}}>
       tentativo {info.tentativo} di 5 · prossimo alle {info.prossimo}
+    </span>
+  ) : info.tipo === 'waiting' ? (
+    // Accodato dal canale nella finestra di divieto: nessun id AE da mostrare
+    // — non è ancora partito — e la giornata fiscale sarà quella di domani.
+    <span style={{color: PN.MUTED, whiteSpace:'nowrap'}}>
+      parte alle 00:00 · giornata fiscale di domani
     </span>
   ) : null;
   if (!apribile) {
@@ -1263,7 +1290,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
     if (!fisc) { setContoAperto(contoDaUrl()); return; }
     const attesi = CONTI_MOCK.filter(x => (x.payments || []).some(p =>
       (!fisc.data || String(p.ora || '').startsWith(fisc.data)) &&
-      (!fisc.stato || docInfo(p).tipo === { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok' }[fisc.stato])));
+      (!fisc.stato || docInfo(p).tipo === { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok', waiting:'waiting' }[fisc.stato])));
     setContoAperto(attesi.length === 1 ? attesi[0] : null);
   }, [fiscKey]);
   const [sortData, setSortData] = React.useState(null); // null | 'desc' (recenti) | 'asc' (meno recenti)
@@ -1300,7 +1327,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
 
   // Filtro in arrivo da Cassa: la giornata e lo stato di trasmissione. È il
   // rimando del riepilogo, non una lista parallela — la lista è questa.
-  const FISC_MAP = { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok' };
+  const FISC_MAP = { scartato:'scartato', coda:'ritrasmissione', gestito:'gestito', ok:'ok', waiting:'waiting' };
   const fiscMatch = (p) => {
     if (!fisc) return true;
     if (fisc.data && !String(p.ora || '').startsWith(fisc.data)) return false;
@@ -1344,9 +1371,9 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
     setSortData(s => s === null ? 'desc' : s === 'desc' ? 'asc' : null);
   }
 
-  const FISC_ETICHETTA = { scartato:'scartati', coda:'in ritrasmissione', gestito:'gestiti', ok:'trasmessi' };
+  const FISC_ETICHETTA = { scartato:'scartati', coda:'in ritrasmissione', gestito:'gestiti', ok:'trasmessi', waiting:'in attesa di mezzanotte' };
   // Il singolare serve dopo "Nessun documento …": il plurale ci stonava.
-  const FISC_ETICHETTA_UNO = { scartato:'scartato', coda:'in ritrasmissione', gestito:'gestito', ok:'trasmesso' };
+  const FISC_ETICHETTA_UNO = { scartato:'scartato', coda:'in ritrasmissione', gestito:'gestito', ok:'trasmesso', waiting:'in attesa di mezzanotte' };
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>

@@ -44,6 +44,44 @@ const PAY_FINE = 16000;
   document.head.appendChild(el);
 })();
 
+// ─── Finestra di divieto notturna (P-100 · scheda OpenAPI 31/08) ───────────
+// Il canale "documento commerciale online" non trasmette fra le 23:55 e le
+// 00:00 italiane: quello che parte lì viene accodato al giorno nuovo, e la
+// giornata fiscale del documento si sposta a domani. Perciò in quella finestra
+// l'emissione si BLOCCA — contanti compresi, perché l'emissione è emissione, e
+// anche l'invio in coda a Byup Staff, che si chiuderebbe dentro la finestra —
+// e riprende da sola allo scoccare della mezzanotte, senza gesti.
+// `?notte=1` sull'URL è l'interruttore di sviluppo: l'orologio finto parte
+// dalle 23:58:30 e corre in tempo reale, così blocco, conto alla rovescia,
+// mezzanotte e ripresa si vedono in un minuto — nessuno testa a mezzanotte.
+// Il blocco è guardato perché la stessa finestra vive anche in Contabilità
+// (stato waiting) e su Byup Staff: pagine diverse, stessa definizione.
+if (!window.byupNotteInfo) {
+  // `?notte=1` avvia la notte demo e la àncora ADESSO; le navigazioni interne
+  // la perdono dall'URL (la sidebar riscrive ?tab=…), quindi l'ancora vive in
+  // sessionStorage e l'orologio finto continua a correre invece di ripartire.
+  // Passata la mezzanotte finta, la demo è semplicemente finita.
+  let notteT0 = null;
+  try {
+    if (new URLSearchParams(window.location.search).get('notte') === '1') {
+      notteT0 = Date.now();
+      sessionStorage.setItem('byup_notte_t0', String(notteT0));
+    } else {
+      const salvato = sessionStorage.getItem('byup_notte_t0');
+      if (salvato) notteT0 = parseInt(salvato, 10);
+    }
+  } catch (e) {}
+  const notteBase = (() => { const d = new Date(); d.setHours(23, 58, 30, 0); return d.getTime(); })();
+  const notteOra = () => notteT0 ? new Date(notteBase + (Date.now() - notteT0)) : new Date();
+  window.byupNotteInfo = function () {
+    const d = notteOra();
+    const dentro = d.getHours() === 23 && d.getMinutes() >= 55;
+    const mancano = dentro ? 86400 - (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) : 0;
+    return { dentro, mancano };
+  };
+  window.byupNotteConta = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
 // Euro, non float. Qui si sommano e si sottraggono prezzi tutto il giorno:
 // senza arrotondare, un residuo che deve essere zero esce 0.000000000004 e il
 // conto resta aperto per niente.
@@ -153,6 +191,17 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     const id = setInterval(() => setPayTick(t => t + 1), 400);
     return () => clearInterval(id);
   }, [inCoda?.inviato]);
+
+  // Finestra di divieto notturna: un tick al secondo, per tutta la vita della
+  // finestra aperta — deve accorgersi da sé sia dell'ingresso nella finestra
+  // (23:55 scatta con la modale aperta) sia della mezzanotte che riapre.
+  const notte = window.byupNotteInfo();
+  const [, setNotteTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!open) return;
+    const id = setInterval(() => setNotteTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [open]);
 
   // Storno su carta: la richiesta parte su Byup Staff e i soldi li rimanda
   // Stripe, quindi qui si aspetta l'esito come per l'incasso. Il contante
@@ -1343,10 +1392,31 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       cose diverse e ora si leggono diverse. */}
                   {(() => {
                     const inviaSuStaff = method === 'carta';
-                    const attivo = inviaSuStaff ? total > 0 : canConfirm;
+                    // La finestra di divieto spegne il bottone qualunque sia
+                    // il metodo: i contanti emettono quanto la carta, e la
+                    // carta manderebbe in coda un pagamento che si chiude
+                    // dentro la finestra. Si riaccende da solo a mezzanotte.
+                    const attivo = (inviaSuStaff ? total > 0 : canConfirm) && !notte.dentro;
                     const manca = total - paid;
                     return (
                       <React.Fragment>
+                      {notte.dentro && (
+                        <div style={{
+                          display:'flex', gap: 10, alignItems:'flex-start',
+                          padding:'12px 16px', borderRadius: 14,
+                          background:'#FEF3C7', color:'#92400E',
+                          fontSize: 14.5, lineHeight: 1.45,
+                        }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+                            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+                          </svg>
+                          <span>
+                            <b>Lo scontrino partirebbe con la data di domani: attendi mezzanotte.</b>{' '}
+                            Fra le 23:55 e le 00:00 il canale dell'Agenzia non trasmette — vale anche
+                            per i contanti. L'incasso riprende da solo tra <b style={{fontVariantNumeric:'tabular-nums'}}>{window.byupNotteConta(notte.mancano)}</b>.
+                          </span>
+                        </div>
+                      )}
                       <button onClick={() => {
                           if (!attivo) return;
                           if (inviaSuStaff) avviaPagamento();
@@ -1403,7 +1473,8 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                             in più da confrontare. Il pulsante dice cosa succede
                             — non quanto. */}
                         {!attivo
-                          ? (total === 0
+                          ? (notte.dentro ? 'In attesa di mezzanotte'
+                            : total === 0
                               ? (importoTocco ? 'Scrivi quanto incassi' : 'Scegli cosa saldare')
                               : `Mancano €${manca.toFixed(2)}`)
                           : inviaSuStaff

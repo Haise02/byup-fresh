@@ -42,4 +42,36 @@ const INCASSO_OGGI = TRANSAZIONI
 
 const N_OGGI = TRANSAZIONI.filter(t => t.data === 'Oggi' && t.stato === 'ok').length;
 
+// Finestra di divieto notturna (P-100 · scheda OpenAPI 31/08): fra le 23:55 e
+// le 00:00 il canale fiscale non trasmette e accoderebbe lo scontrino al
+// giorno nuovo, spostandone la giornata fiscale — quindi l'incasso si blocca
+// e riprende da solo a mezzanotte. Copia guardata della definizione che sta
+// in gestionale/sala-salda-modal.jsx: bundle diversi, stessa finestra.
+// `?notte=1` sull'URL simula le 23:58:30 con l'orologio che corre.
+if (!window.byupNotteInfo) {
+  // `?notte=1` avvia la notte demo e la àncora ADESSO; le navigazioni interne
+  // la perdono dall'URL (la sidebar riscrive ?tab=…), quindi l'ancora vive in
+  // sessionStorage e l'orologio finto continua a correre invece di ripartire.
+  // Passata la mezzanotte finta, la demo è semplicemente finita.
+  let notteT0 = null;
+  try {
+    if (new URLSearchParams(window.location.search).get('notte') === '1') {
+      notteT0 = Date.now();
+      sessionStorage.setItem('byup_notte_t0', String(notteT0));
+    } else {
+      const salvato = sessionStorage.getItem('byup_notte_t0');
+      if (salvato) notteT0 = parseInt(salvato, 10);
+    }
+  } catch (e) {}
+  const notteBase = (() => { const d = new Date(); d.setHours(23, 58, 30, 0); return d.getTime(); })();
+  const notteOra = () => notteT0 ? new Date(notteBase + (Date.now() - notteT0)) : new Date();
+  window.byupNotteInfo = function () {
+    const d = notteOra();
+    const dentro = d.getHours() === 23 && d.getMinutes() >= 55;
+    const mancano = dentro ? 86400 - (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) : 0;
+    return { dentro, mancano };
+  };
+  window.byupNotteConta = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
 Object.assign(window, { MERCHANT, CODA_INCASSO, TRANSAZIONI, INCASSO_OGGI, N_OGGI });

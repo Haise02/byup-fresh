@@ -2442,6 +2442,20 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
   // una cassa sola, e un pagamento senza più niente a cui attaccarsi.
   const [attesa, setAttesa] = React.useState(null); // { inviato } | null
 
+  // Finestra di divieto notturna (P-100): fra le 23:55 e le 00:00 il canale
+  // non trasmette, quindi qui non si emette niente — scontrini E fatture,
+  // perché la fattura immediata parte dentro `chiudiPagamento`, cioè dallo
+  // stesso bottone. Il tick al secondo tiene vivi countdown, ingresso nella
+  // finestra a modale aperta e ripresa automatica a mezzanotte. La
+  // definizione di byupNotteInfo sta in sala-salda-modal.jsx.
+  const notte = window.byupNotteInfo();
+  const [, setNotteTick] = React.useState(0);
+  React.useEffect(() => {
+    if (!open) return;
+    const id = setInterval(() => setNotteTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [open]);
+
   // Storno di UN incasso già preso, non del conto intero: il cliente ha dato
   // due volte, o si è battuto l'importo sbagliato, e va tolta quella riga lì.
   // Non è il rimborso di Contabilità — quello è un documento su una vendita
@@ -3179,9 +3193,29 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                 // resto, perché con il residuo a zero le altre condizioni non
                 // possono essere vere e lascerebbero il pulsante spento su una
                 // vendita che è finita.
-                const attivo = saldato || (residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004);
+                // La finestra di divieto vince su tutto, anche sul conto già
+                // coperto: chiuderlo emette comunque un documento.
+                const attivo = !notte.dentro
+                  && (saldato || (residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004));
                 return (
                   <React.Fragment>
+                  {notte.dentro && (
+                    <div style={{
+                      display:'flex', gap: 10, alignItems:'flex-start',
+                      marginBottom: 12, padding:'12px 16px', borderRadius: 12,
+                      background:'#FEF3C7', color:'#92400E',
+                      fontSize: 14.5, lineHeight: 1.45,
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+                        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+                      </svg>
+                      <span>
+                        <b>{fattura ? 'La fattura' : 'Lo scontrino'} partirebbe con la data di domani: attendi mezzanotte.</b>{' '}
+                        Fra le 23:55 e le 00:00 il canale dell'Agenzia non trasmette — vale anche per
+                        i contanti. L'incasso riprende da solo tra <b style={{fontVariantNumeric:'tabular-nums'}}>{window.byupNotteConta(notte.mancano)}</b>.
+                      </span>
+                    </div>
+                  )}
                   <button
                     onClick={() => {
                       if (!attivo) return;
@@ -3221,7 +3255,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                         quanto — perché il quanto è già la cosa più visibile
                         della schermata. */}
                     {!attivo
-                      ? (residuo <= 0 ? 'Nessun articolo nel conto'
+                      ? (notte.dentro ? 'In attesa di mezzanotte'
+                        : residuo <= 0 ? 'Nessun articolo nel conto'
                         : manca > 0.004 ? 'Il contante non basta'
                         : 'Inserisci un importo')
                       : saldato

@@ -123,6 +123,17 @@ function ScreenIncassa({ nav, contiPagati = [], contiRimandati = [], contiRitira
 function ScreenConto({ nav, conto, ritirato, rimandaConto, openModal, showToast }) {
   const importo = conto.importo;
 
+  // Finestra di divieto notturna (P-100): completare l'incasso emette lo
+  // scontrino, quindi fra le 23:55 e le 00:00 la CTA si spegne. Il tick al
+  // secondo tiene vivi il conto alla rovescia, l'ingresso nella finestra a
+  // schermata aperta e la ripresa automatica a mezzanotte.
+  const notte = window.byupNotteInfo();
+  const [, setNotteTick] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => setNotteTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const chiediAnnulla = () => openModal({
     kind: 'annulla-conto',
     tavolo: conto.tavolo,
@@ -208,6 +219,36 @@ function ScreenConto({ nav, conto, ritirato, rimandaConto, openModal, showToast 
           >
             Torna alla coda
           </button>
+        ) : notte.dentro ? (
+          <>
+            {/* Avviso bloccante, non solo un bottone spento: chi ha il
+                telefono in mano col cliente davanti deve sapere PERCHÉ non
+                si incassa, e che si sblocca da solo. */}
+            <div style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+              marginBottom: 10, padding: '12px 14px', borderRadius: ST.R_LG,
+              background: '#FEF3C7', color: '#92400E',
+              fontSize: 13.5, fontWeight: 500, lineHeight: 1.45,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+              </svg>
+              <span>
+                <b>Lo scontrino partirebbe con la data di domani: attendi mezzanotte.</b>{' '}
+                Fra le 23:55 e le 00:00 il canale dell'Agenzia non trasmette.
+              </span>
+            </div>
+            <button disabled style={{
+              width: '100%', height: 56, borderRadius: ST.R_PILL, border: 'none',
+              background: ST.SURF_ALT, color: ST.MUTED,
+              fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+              cursor: 'not-allowed',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              Riprende tra {window.byupNotteConta(notte.mancano)}
+            </button>
+          </>
         ) : (
           <button
             onClick={() => nav.push({ s: 'tap', importo, contoId: conto.id })}

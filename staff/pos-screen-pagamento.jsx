@@ -12,6 +12,17 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
 
   const pinRichiesto = (importo || 0) > 25;   // PIN sopra soglia contactless
 
+  // Finestra di divieto notturna (P-100): la porta d'ingresso è già bloccata
+  // in ScreenConto, ma la finestra può scattare CON questa schermata aperta —
+  // entrato alle 23:54, carta avvicinata alle 23:56. Finché la carta non è
+  // partita si blocca qui; un pagamento già in lettura si lascia finire.
+  const notte = window.byupNotteInfo();
+  const [, setNotteTick] = useStateP(0);
+  useEffectP(() => {
+    const id = setInterval(() => setNotteTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // La lettura porta a PIN (se richiesto) o direttamente all'esito.
   // L'attesa NON avanza da sola: parte quando la carta viene avvicinata.
   useEffectP(() => {
@@ -21,8 +32,9 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
     }
   }, [step, pinRichiesto]);
 
-  // Simula la carta che si avvicina al dispositivo
-  const presentaCarta = () => { if (step === 'waiting') setStep('reading'); };
+  // Simula la carta che si avvicina al dispositivo — mai dentro la finestra
+  // di divieto: il testo di stato spiega perché non succede niente.
+  const presentaCarta = () => { if (step === 'waiting' && !notte.dentro) setStep('reading'); };
 
   // PIN completo → fase di elaborazione
   useEffectP(() => {
@@ -112,7 +124,7 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
 
         {/* Status text */}
         <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.7, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
-          {step === 'waiting' && 'In attesa carta'}
+          {step === 'waiting' && (notte.dentro ? 'Incasso sospeso' : 'In attesa carta')}
           {step === 'reading' && 'Lettura in corso'}
           {step === 'pin' && 'Inserisci PIN'}
           {isProc && 'Elaborazione'}
@@ -120,7 +132,9 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
           {isFail && 'Pagamento rifiutato'}
         </div>
         <div style={{ fontSize: 16, fontWeight: 500, opacity: 0.9, lineHeight: 1.4, marginBottom: 18 }}>
-          {step === 'waiting' && 'Avvicina carta o telefono al dispositivo'}
+          {step === 'waiting' && (notte.dentro
+            ? `Lo scontrino partirebbe con la data di domani: attendi mezzanotte. Riprende tra ${window.byupNotteConta(notte.mancano)}`
+            : 'Avvicina carta o telefono al dispositivo')}
           {step === 'reading' && 'Tieni la carta ferma…'}
           {step === 'pin' && 'Chiedi al cliente di inserire il PIN'}
           {isProc && 'Attendi, non rimuovere la carta…'}
@@ -128,7 +142,7 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
           {isFail && 'Carta rifiutata dall’emittente'}
         </div>
 
-        {step === 'waiting' && (
+        {step === 'waiting' && !notte.dentro && (
           <div style={{ fontSize: 12, opacity: 0.55, marginTop: -10, marginBottom: 16 }}>
             Demo · tocca il cerchio per simulare la carta
           </div>
