@@ -38,7 +38,19 @@ function svScriviSessione(chiave, valore) {
 //   B-3           quello che gli diamo noi quando un nome non c'è
 //   codice ritiro quello che ha in mano lui, non il nostro
 //   #1247         un numero da registro, che non pronuncia nessuno
-const svNomeConto = (r) => r.cliente || r.banco || r.codiceRitiro || r.codice;
+// ─── Ordini da piattaforma (P-04 · D-15) ───────────────────────────────────
+// Le piattaforme sono le fonti che stanno in PN_PARTNER: sono già pagate LÀ
+// e il denaro non passa da Byup. La regola è strutturale, non un dato: mai
+// in «Da saldare», nemmeno se un record arrivasse con pagato:false —
+// mostrarle da incassare produrrebbe doppi incassi o rifiuti al rider.
+// Vincolo di prodotto: al lancio le integrazioni non esistono (servono gli
+// accordi con le piattaforme); la logica nasce pronta.
+const svPiattaforma = (fonte) => !!(window.PN_PARTNER || {})[fonte];
+// Il nome di un ordine piattaforma È il suo codice: è quello che il rider ha
+// sul telefono quando arriva al banco, ed è quello che si cerca e si grida.
+const svNomeConto = (r) => svPiattaforma(r.fonte)
+  ? `${window.PN_PARTNER[r.fonte].nome} ${r.codice}`
+  : (r.cliente || r.banco || r.codiceRitiro || r.codice);
 
 // Cosa resta di un ordine dopo i rimborsi: le righe tolte scompaiono dalla
 // lista e il totale scende di conseguenza.
@@ -177,8 +189,10 @@ function SalaVenditaDiretta() {
   };
 
   // Le due code, dalla stessa lista: il pagamento è ciò che le separa.
-  const daSaldare = ritiri.filter(r => !r.pagato);
-  const daConsegnare = ritiri.filter(r => r.pagato);
+  // P-04: le piattaforme non passano MAI da «Da saldare» — hanno già
+  // incassato loro — quindi la regola vince anche su un pagato:false.
+  const daSaldare = ritiri.filter(r => !r.pagato && !svPiattaforma(r.fonte));
+  const daConsegnare = ritiri.filter(r => r.pagato || svPiattaforma(r.fonte));
 
   // Creazione ordine al banco. Alla conferma dell'incasso l'ordine viene creato
   // e inviato ai monitor: qui NON si decide cosa passa dalla cucina: si manda
@@ -860,24 +874,48 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
                   <div style={{padding:'14px 16px 0'}}>
                     <div style={{display:'flex', alignItems:'baseline', gap: 12}}>
                       <span style={{
-                        flex: 1, minWidth: 0, display:'flex', alignItems:'baseline', gap: 7,
+                        flex: 1, minWidth: 0, display:'flex', alignItems:'center', gap: 7,
                         overflow:'hidden',
                       }}>
-                        <span style={{
-                          minWidth: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.4,
-                          color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-                        }}>{svNomeConto(r)}</span>
-                        {/* Un ordine dall'app ha un account dietro: il nome è
-                            vero, non uno scritto a mano al banco, e a quel
-                            cliente si può scrivere. Il bollino è lo stesso che
-                            la Sala usa sugli ordini byup — stessa cosa, stesso
-                            segno, in tutto il gestionale. */}
-                        {r.fonte === 'byup' && (
-                          <span style={{
-                            fontSize: 12, fontWeight: 800, color:'#E04347',
-                            background:'#FFE0DD', padding:'2px 6px', borderRadius: 4,
-                            letterSpacing: 0.4, textTransform:'uppercase', flexShrink: 0,
-                          }}>byup</span>
+                        {svPiattaforma(r.fonte) ? (
+                          /* P-04: la posizione grande è del CODICE piattaforma,
+                             in monospazio — è il confronto a colpo d'occhio col
+                             telefono del rider. La sigla a brand pieno (da
+                             PN_PARTNER, come il marchio in cucina) dice quale
+                             piattaforma prima ancora di leggere. */
+                          <React.Fragment>
+                            <span style={{
+                              width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                              background: window.PN_PARTNER[r.fonte].bg,
+                              color: window.PN_PARTNER[r.fonte].ink,
+                              display:'inline-grid', placeItems:'center',
+                              fontSize: 12, fontWeight: 800, letterSpacing: 0.3,
+                            }}>{window.PN_PARTNER[r.fonte].sigla}</span>
+                            <span style={{
+                              minWidth: 0, fontSize: 21, fontWeight: 800, letterSpacing: 0.5,
+                              fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
+                              color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                            }}>{r.codice}</span>
+                          </React.Fragment>
+                        ) : (
+                          <React.Fragment>
+                            <span style={{
+                              minWidth: 0, fontSize: 21, fontWeight: 800, letterSpacing: -0.4,
+                              color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                            }}>{svNomeConto(r)}</span>
+                            {/* Un ordine dall'app ha un account dietro: il nome è
+                                vero, non uno scritto a mano al banco, e a quel
+                                cliente si può scrivere. Il bollino è lo stesso che
+                                la Sala usa sugli ordini byup — stessa cosa, stesso
+                                segno, in tutto il gestionale. */}
+                            {r.fonte === 'byup' && (
+                              <span style={{
+                                fontSize: 12, fontWeight: 800, color:'#E04347',
+                                background:'#FFE0DD', padding:'2px 6px', borderRadius: 4,
+                                letterSpacing: 0.4, textTransform:'uppercase', flexShrink: 0,
+                              }}>byup</span>
+                            )}
+                          </React.Fragment>
                         )}
                       </span>
                       {/* Niente etichetta sopra la cifra: la coda si chiama
@@ -894,7 +932,11 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
                       fontSize: 14, color: PN.MUTED,
                     }}>
                       <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
-                        {(r.fonte === 'banco' ? !!r.asporto : true) ? 'Asporto' : 'Sul posto'} · ritiro {r.ritiro}
+                        {/* Piattaforma: il cliente finale scende qui sotto —
+                            in cima ci sta il codice, che è per il rider. */}
+                        {svPiattaforma(r.fonte)
+                          ? `per ${r.cliente} · ritiro ${r.ritiro}`
+                          : `${(r.fonte === 'banco' ? !!r.asporto : true) ? 'Asporto' : 'Sul posto'} · ritiro ${r.ritiro}`}
                       </span>
                       {conAcconto && (
                         <span style={{flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>di €{netto.totale.toFixed(2)}</span>

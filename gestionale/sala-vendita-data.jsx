@@ -94,19 +94,28 @@ const SALA_ASPORTO_CONTI = [
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Acqua minerale',qty:2,prezzo:2.00}] },
   { id:'asp-5', codice:'#A-1046', cliente:'Luca Bianchi', ritiro:'20:45', fonte:'webapp', pagato:false, totale:29.00, codiceRitiro:'T9C2',
     items:[{nome:'Carbonara di mare',qty:1,prezzo:16.00},{nome:'Tiramisù',qty:2,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
+  // Piattaforme in coda attiva (P-04 · D-15): entrano DIRETTE in «Da
+  // consegnare» — pagate sulla piattaforma, il denaro non passa da Byup — e
+  // `codice` è quello DELLA PIATTAFORMA: è ciò che il rider ha sul telefono
+  // quando arriva al banco. Niente codiceRitiro: la prova di consegna è quel
+  // codice. Formati veri: Just Eat numero d'ordine a 8 cifre, Deliveroo
+  // order ID a 4 cifre (Glovo, collection code a 3 cifre, è nello storico).
+  { id:'asp-6', codice:'30412987', cliente:'Federica Colombo', ritiro:'20:20', fonte:'justeat', pagato:true, totale:42.50,
+    items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00},{nome:'Acqua minerale',qty:2,prezzo:2.50}] },
+  { id:'asp-7', codice:'4821', cliente:'Andrea Fabbri', ritiro:'20:35', fonte:'deliveroo', pagato:true, totale:31.50,
+    items:[{nome:'Pasta carbonara',qty:1,prezzo:12.00},{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50},{nome:'Spritz',qty:1,prezzo:6.50,hasAlcohol:true},{nome:'Panna cotta',qty:1,prezzo:5.50}] },
 ];
 
 // Storico del servizio — ordini già chiusi: consegnati al banco o saldati e
 // portati via. Non hanno più azioni, servono a rispondere alle domande che
 // arrivano dopo ("l'ordine di prima quant'era?", "è già passato a ritirare?").
 const SALA_ORDINI_STORICO = [
-  // Piattaforme delivery (P-03 · D-15): SOLO nello storico, con pagato:true —
-  // incassa la piattaforma, non il banco. Il comportamento di coda (niente
-  // «Da saldare», codice della piattaforma al posto dell'interno) arriva con
-  // P-04: fino ad allora niente ordini piattaforma nelle code attive, e il
-  // codice resta il formato interno neutro. Nota di prodotto: al lancio
-  // queste integrazioni non esistono — entrano quando ci sono gli accordi.
-  { id:'sto-9', codice:'#A-1049', cliente:'Paolo Grimaldi', ritiro:'19:48', fonte:'justeat', pagato:true, totale:33.50, stato:'consegnato',
+  // Piattaforme delivery (P-03/P-04 · D-15): pagato:true — incassa la
+  // piattaforma, non il banco — e `codice` è il codice DELLA piattaforma nel
+  // suo formato vero (JE 8 cifre, Deliveroo 4, Glovo collection code a 3).
+  // Nota di prodotto: al lancio queste integrazioni non esistono — entrano
+  // quando ci sono gli accordi.
+  { id:'sto-9', codice:'30412306', cliente:'Paolo Grimaldi', ritiro:'19:48', fonte:'justeat', pagato:true, totale:33.50, stato:'consegnato',
     items:[{nome:'Pizza Diavola',qty:2,prezzo:11.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-6', codice:'#A-1041', cliente:'Chiara Neri', ritiro:'19:38', fonte:'byup', pagato:true, totale:27.50, stato:'consegnato',
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Birra media',qty:1,prezzo:5.50,hasAlcohol:true},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
@@ -114,13 +123,13 @@ const SALA_ORDINI_STORICO = [
     items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00}] },
   { id:'sto-4', codice:'#A-1040', cliente:'Sara Conti', ritiro:'19:20', fonte:'webapp', pagato:true, totale:24.00, stato:'consegnato',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
-  { id:'sto-8', codice:'#A-1048', cliente:'Alessia Villa', ritiro:'19:15', fonte:'glovo', pagato:true, totale:25.00, stato:'consegnato',
+  { id:'sto-8', codice:'627', cliente:'Alessia Villa', ritiro:'19:15', fonte:'glovo', pagato:true, totale:25.00, stato:'consegnato',
     items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Panna cotta',qty:1,prezzo:5.50},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-3', codice:'#1244', cliente:null, ritiro:'19:12', fonte:'banco', pagato:true, asporto:false, totale:9.50, stato:'consegnato',
     items:[{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-2', codice:'#A-1039', cliente:'Davide Sarti', ritiro:'19:05', fonte:'byup', pagato:true, totale:50.00, stato:'consegnato',
     items:[{nome:'Tagliere misto',qty:1,prezzo:14.00},{nome:'Bistecca fiorentina',qty:1,prezzo:32.00},{nome:'Acqua minerale',qty:2,prezzo:2.00}] },
-  { id:'sto-7', codice:'#A-1047', cliente:'Marco Leone', ritiro:'18:58', fonte:'deliveroo', pagato:true, totale:43.50, stato:'consegnato',
+  { id:'sto-7', codice:'9174', cliente:'Marco Leone', ritiro:'18:58', fonte:'deliveroo', pagato:true, totale:43.50, stato:'consegnato',
     items:[{nome:'Tagliata di manzo',qty:2,prezzo:18.00},{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50}] },
   { id:'sto-1', codice:'#1243', cliente:null, ritiro:'18:54', fonte:'banco', pagato:true, asporto:true, totale:12.00, stato:'consegnato',
     items:[{nome:'Pasta carbonara',qty:1,prezzo:12.00}] },
@@ -146,15 +155,23 @@ function svOrdineAConto(ordine) {
   const oggi = new Date();
   const data = `${oggi.getFullYear()}-${String(oggi.getMonth()+1).padStart(2,'0')}-${String(oggi.getDate()).padStart(2,'0')}`;
   const asporto = ordine.fonte === 'banco' ? !!ordine.asporto : true;
-  // Chi ha pagato con l'app lo dice l'origine dell'ordine. Per il resto
-  // l'incasso è passato dal banco, e in cassa il default è la carta.
-  const metodo = ordine.fonte === 'byup' ? 'byup' : 'carta';
+  // Chi ha pagato con l'app lo dice l'origine dell'ordine; le piattaforme
+  // hanno incassato LORO (P-04): metodo dedicato, fuori dai totali di
+  // contanti e POS della cassa. Il documento fiscale però lo emettiamo NOI
+  // (D-15 · emit_fiscal_document, ERD v11; SFA §8.5: l'ingestione emette il
+  // documento), quindi lo scontrino SC resta. Per il resto l'incasso è
+  // passato dal banco, e in cassa il default è la carta.
+  const metodo = ordine.fonte === 'byup' ? 'byup'
+    : (window.PN_PARTNER || {})[ordine.fonte] ? 'piattaforma'
+    : 'carta';
   const rimborsi = ordine.rimborsi || [];
   const reso = rimborsi.reduce((s, r) => s + r.amount, 0);
   // Il numero dello scontrino ricalca quello dei conti di sala (SC-YYMM-…):
   // è il formato con cui il documento esiste nel resto della Contabilità.
   const serie = data.slice(2,4) + data.slice(5,7);
-  const num = String(ordine.codice || '').replace(/\D/g, '').padStart(4, '0');
+  // Ultime quattro cifre: i codici piattaforma arrivano anche a otto, e il
+  // numero scontrino resta nel formato corto di tutti gli altri.
+  const num = String(ordine.codice || '').replace(/\D/g, '').slice(-4).padStart(4, '0');
   return {
     id: svContoIdDiOrdine(ordine),
     idOrdine: ordine.codice,

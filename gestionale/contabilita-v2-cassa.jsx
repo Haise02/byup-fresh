@@ -216,17 +216,23 @@ function ccChiusure() {
   });
   return Object.keys(perGiorno).sort().reverse().map(g => {
     const docs = perGiorno[g].slice().sort((a, b) => String(a.ora).localeCompare(String(b.ora)));
-    let contanti = 0, nonContanti = 0, iva10 = 0, iva22 = 0;
+    let contanti = 0, nonContanti = 0, piattaforma = 0, iva10 = 0, iva22 = 0;
     docs.forEach(p => {
       const iv = docIva(p);
       iva10 += iv.iva10; iva22 += iv.iva22;
-      if (p.method === 'contanti') contanti += p.amount; else nonContanti += p.amount;
+      // P-04: l'incasso piattaforma è avvenuto LÀ — non è contante in
+      // cassetto né transito sul POS nostro: resta nel totale della
+      // giornata (il documento è nostro), fuori dalle due colonne.
+      if (p.method === 'contanti') contanti += p.amount;
+      else if (p.method === 'piattaforma') piattaforma += p.amount;
+      else nonContanti += p.amount;
     });
     const [Y, M, D] = g.split('-');
     return {
       id: g, iso: g, date: `${D}/${M}/${Y}`,
       docs, contanti: ccR2(contanti), nonContanti: ccR2(nonContanti),
-      iva10: ccR2(iva10), iva22: ccR2(iva22), totale: ccR2(contanti + nonContanti),
+      iva10: ccR2(iva10), iva22: ccR2(iva22),
+      totale: ccR2(contanti + nonContanti + piattaforma),
     };
   });
 }

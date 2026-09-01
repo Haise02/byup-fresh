@@ -462,6 +462,10 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
     contanti: { label:'Contanti', icon: PnI.Coin,       color:'#0F766E', bg:'#CCFBF1' },
     carta:    { label:'Carta',    icon: PnI.Card,       color:'#1D4ED8', bg:'#DBEAFE' },
     byup:     { label:'Byup app', icon: PnI.Smartphone, color:'#7C3AED', bg:'#EDE9FE' },
+    // P-04: incasso avvenuto PRESSO la piattaforma delivery — il denaro non
+    // passa da Byup, e in Cassa sta fuori da contanti e POS. Il documento
+    // fiscale però lo emettiamo noi (D-15 · emit_fiscal_document).
+    piattaforma: { label:'Piattaforma', icon: PnI.Bag,  color:'#9A3412', bg:'#FFEDD5' },
   };
 
   // Le celle del riepilogo: etichetta piccola sopra, valore sotto.
@@ -825,7 +829,7 @@ function ScontrinoDettaglioModal({ conto, payment, stato, puoRendere, onClose, o
   const statoInfo = !stato ? { label: 'Attivo', bg: '#DCFCE7', fg: '#16A34A' }
     : stato.tipo === 'annullo' ? { label: 'Annullato', bg: '#FEE2E2', fg: '#B91C1C' }
     : { label: 'Reso', bg: '#FEE2E2', fg: '#B91C1C' };
-  const metodoLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : 'Contanti';
+  const metodoLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : payment.method === 'piattaforma' ? 'Piattaforma' : 'Contanti';
   const totaleSel = righe.filter(r => sel && sel.has(r.id)).reduce((s, r) => s + r.qty * r.prezzo, 0);
 
   return (
@@ -1707,7 +1711,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
         const { conto, payment, tipo, amount } = modalRimborso;
         // contanti → restituzione manuale in cassa; carta/byup/altro → rimborso Stripe
         const useStripe = payment.method !== 'contanti';
-        const channelLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : 'Contanti';
+        const channelLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : payment.method === 'piattaforma' ? 'Piattaforma' : 'Contanti';
         const titolo = tipo === 'annullo' ? 'Annulla scontrino' : 'Reso';
         return (
         <div style={{
