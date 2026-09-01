@@ -255,9 +255,6 @@ function ImpDatiFiscali() {
     sedeCap: '00197',
     sedeProv: 'RM',
     sedeNazione: 'IT',
-    banca: 'Banca Intesa Sanpaolo',
-    iban: 'IT60X0542811101000000123456',
-    swift: 'BCITITMM',
   });
 
   const [dirty, setDirty] = React.useState(false);
@@ -551,37 +548,68 @@ function ImpDatiFiscali() {
               </ImpField>
             </div>
 
+          </ImpCard>
+
+          {/* ─── Accredito degli incassi (P-87 · D-80, PAG-01) ──────────────
+              Banca, IBAN e SWIFT non si chiedono più: l'accredito passa dal
+              conto connesso del prestatore di pagamento (payout_account_ref)
+              e l'IBAN non compare MAI in chiaro — è l'invariante che tiene
+              Byup fuori dalla catena dei fondi. Con i campi è caduta anche la
+              nota «su fattura compare un solo IBAN»: la fattura porta la
+              modalità di pagamento, non le coordinate. Il riferimento
+              mascherato è lo stesso che POS e integrazioni mostra sulla riga
+              Stripe: una fonte sola. */}
+          <ImpCard title="Accredito degli incassi" sub="Il conto dei versamenti è quello connesso a Stripe: qui si legge, si cambia da Stripe" style={{marginBottom: 16}}>
+            <div style={{display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap'}}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, background:'#635BFF',
+                display:'grid', placeItems:'center', flexShrink: 0,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
+                  <path d="M11.6 8.7c-.7 0-1.1.2-1.1.7 0 .5.5.7 1.6 1.1 1.7.6 2.6 1.4 2.6 2.9 0 1.7-1.3 2.7-3.4 2.7-1.2 0-2.4-.3-3.3-.7v-2c.9.5 1.9.8 2.9.8.7 0 1.2-.2 1.2-.7 0-.6-.5-.8-1.6-1.2-1.6-.6-2.6-1.4-2.6-2.8 0-1.6 1.3-2.6 3.3-2.6 1 0 2 .2 2.9.6v1.9c-.8-.4-1.7-.7-2.5-.7z"/>
+                </svg>
+              </div>
+              <div style={{flex: 1, minWidth: 200}}>
+                <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
+                  <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Conto connesso Stripe</span>
+                  <span style={{
+                    display:'inline-flex', alignItems:'center', gap: 5,
+                    padding:'2px 9px', borderRadius: 999,
+                    background:'#D1FAE5', color:'#065F46',
+                    fontSize: 12.5, fontWeight: 700,
+                  }}>
+                    <span style={{width: 6, height: 6, borderRadius:'50%', background:'#059669'}}/>
+                    Attivo
+                  </span>
+                </div>
+                <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, fontFamily:'ui-monospace, monospace', letterSpacing: 0.3}}>
+                  acct_••••dE3v · Banca Intesa Sanpaolo · IT ••••3456
+                </div>
+                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
+                  Accredito automatico giornaliero sul tuo conto
+                </div>
+              </div>
+              <button className="pn-btn-feedback"
+                onClick={() => {}}
+                title="Il conto di accredito si cambia su Stripe, non qui"
+                style={{
+                  padding:'9px 18px', borderRadius: 999,
+                  background: PN.WHITE, color: PN.TEXT,
+                  border:`1px solid ${PN.BORDER}`, cursor:'pointer', fontFamily:'inherit',
+                  fontSize: 14.5, fontWeight: 600, flexShrink: 0,
+                  display:'inline-flex', alignItems:'center', gap: 7,
+                }}>
+                Gestisci su Stripe
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+              </button>
+            </div>
             <div style={{
-              fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
-              marginTop: 22, marginBottom: 10,
-              display:'flex', alignItems:'center', justifyContent:'space-between',
+              marginTop: 14, paddingTop: 12, borderTop:`1px solid ${PN.BORDER_SOFT || PN.BORDER}`,
+              fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5,
             }}>
-              <span>Dati bancari</span>
-              <span style={{fontSize: 13, fontWeight: 500, color: PN.MUTED}}>
-                Su fattura compare un solo IBAN
-              </span>
+              <b style={{color: PN.TEXT, fontWeight: 600}}>Byup non tocca i fondi e non conserva le tue coordinate bancarie.</b>{' '}
+              L'accredito è gestito dal prestatore di pagamento sul conto connesso: l'IBAN non compare mai in chiaro, qui o altrove.
             </div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 14}}>
-              <ImpField label="Banca">
-                <ImpInput value={data.banca} onChange={e => set('banca', e.target.value)}/>
-              </ImpField>
-              <ImpField label="IBAN">
-                <ImpInput value={data.iban} onChange={e => set('iban', e.target.value)} style={{fontFamily:'ui-monospace, monospace', letterSpacing: 0.5}}/>
-              </ImpField>
-              <ImpField label="Codice Swift">
-                <ImpInput value={data.swift} onChange={e => set('swift', e.target.value)}/>
-              </ImpField>
-            </div>
-
-            <div style={{marginTop: 16}}>
-              <button style={{
-                padding:'10px 22px', borderRadius: 999,
-                background: '#1A1A1A', color: PN.WHITE,
-                border:'none', cursor:'pointer', fontFamily:'inherit',
-                fontSize: 15, fontWeight: 600,
-              }}>Modifica dati bancari</button>
-            </div>
-
           </ImpCard>
 
           {/* Info: scontrino digitale gestito da byup tramite POS */}
