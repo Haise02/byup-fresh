@@ -603,13 +603,6 @@ function ImpDatiFiscali() {
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
               </button>
             </div>
-            <div style={{
-              marginTop: 14, paddingTop: 12, borderTop:`1px solid ${PN.BORDER_SOFT || PN.BORDER}`,
-              fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5,
-            }}>
-              <b style={{color: PN.TEXT, fontWeight: 600}}>Byup non tocca i fondi e non conserva le tue coordinate bancarie.</b>{' '}
-              L'accredito è gestito dal prestatore di pagamento sul conto connesso: l'IBAN non compare mai in chiaro, qui o altrove.
-            </div>
           </ImpCard>
 
           {/* Info: scontrino digitale gestito da byup tramite POS */}
