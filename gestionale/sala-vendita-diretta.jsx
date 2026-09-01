@@ -962,19 +962,30 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
 // code. Non ha azioni (non c'è più niente da fare), si viene per guardare:
 // quant'era, a che ora è passato, da che canale era arrivato.
 
+// ─── Provenienza dell'ordine (P-03 · D-15): sei canali, non tre ────────────
+// Il canale spiega perché quell'ordine ha un nome o un codice al posto suo.
+// Era una costante doppia (qui e nel dettaglio) e le copie avevano già
+// divergito («Webapp» / «Webapp guest»): ora è una, per tutte e due.
+// I tre nativi parlano la nostra lingua, in pastello; le tre piattaforme la
+// loro: brand pieno da PN_PARTNER (panoramica-tokens.jsx), la stessa fonte
+// del marchio in cucina e della riga in Integrazioni. Il colore È il
+// dispositivo di riconoscimento — esterno lingua sua, interno la nostra.
+// Il comportamento di coda degli ordini piattaforma (niente «Da saldare»,
+// codice della piattaforma) arriva con P-04: qui c'è solo il contrassegno.
+const SV_CANALE = {
+  byup:   { label:'Byup App', bg: PN.PINK_BG_SOFT, fg: PN.PINK_DARK },
+  webapp: { label:'Webapp',   bg: PN.BLUE_SOFT,    fg: '#1D4ED8' },
+  banco:  { label:'Cassa',    bg: '#F4F5F7',       fg: PN.MUTED },
+  ...Object.fromEntries(Object.entries(window.PN_PARTNER || {}).map(([id, p]) =>
+    [id, { label: p.nome, bg: p.bg, fg: p.ink }])),
+};
+
 function SaConsegnatiModal({ consegnati, onClose, onVai }) {
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-
-  // Il canale spiega perché quell'ordine ha un nome o un codice al posto suo.
-  const CANALE = {
-    byup:   { label:'Byup App', bg: PN.PINK_BG_SOFT, fg: PN.PINK_DARK },
-    webapp: { label:'Webapp',   bg: PN.BLUE_SOFT,    fg: '#1D4ED8' },
-    banco:  { label:'Cassa',    bg: '#F4F5F7',       fg: PN.MUTED },
-  };
 
   return (
     <div onClick={onClose} style={{
@@ -1015,7 +1026,7 @@ function SaConsegnatiModal({ consegnati, onClose, onVai }) {
             </div>
           )}
           {consegnati.map(o => {
-            const canale = CANALE[o.fonte] || CANALE.banco;
+            const canale = SV_CANALE[o.fonte] || SV_CANALE.banco;
             const nItems = o.items.reduce((s, i) => s + i.qty, 0);
             const reso = (o.rimborsi || []).reduce((s, r) => s + r.amount, 0);
             return (
@@ -1106,11 +1117,8 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
   const resi = ordine.rimborsi || [];
   const totReso = resi.reduce((s, r) => s + r.amount, 0);
   const netto = Math.max(0, ordine.totale - totReso);
-  const CANALE = {
-    byup:   'Byup App',
-    webapp: 'Webapp guest',
-    banco:  'Cassa',
-  };
+  // La costante di canale è quella condivisa (SV_CANALE, in testa alle
+  // modali): qui serve solo l'etichetta.
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
@@ -1141,7 +1149,7 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
                 }}>{ordine.codice}</span>
               )}
               <span style={{fontSize: 14.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>
-                {CANALE[ordine.fonte] || 'Cassa'} · ritiro {ordine.ritiro}
+                {(SV_CANALE[ordine.fonte] || SV_CANALE.banco).label} · ritiro {ordine.ritiro}
               </span>
             </div>
           </div>

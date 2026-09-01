@@ -100,16 +100,28 @@ const SALA_ASPORTO_CONTI = [
 // portati via. Non hanno più azioni, servono a rispondere alle domande che
 // arrivano dopo ("l'ordine di prima quant'era?", "è già passato a ritirare?").
 const SALA_ORDINI_STORICO = [
+  // Piattaforme delivery (P-03 · D-15): SOLO nello storico, con pagato:true —
+  // incassa la piattaforma, non il banco. Il comportamento di coda (niente
+  // «Da saldare», codice della piattaforma al posto dell'interno) arriva con
+  // P-04: fino ad allora niente ordini piattaforma nelle code attive, e il
+  // codice resta il formato interno neutro. Nota di prodotto: al lancio
+  // queste integrazioni non esistono — entrano quando ci sono gli accordi.
+  { id:'sto-9', codice:'#A-1049', cliente:'Paolo Grimaldi', ritiro:'19:48', fonte:'justeat', pagato:true, totale:33.50, stato:'consegnato',
+    items:[{nome:'Pizza Diavola',qty:2,prezzo:11.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-6', codice:'#A-1041', cliente:'Chiara Neri', ritiro:'19:38', fonte:'byup', pagato:true, totale:27.50, stato:'consegnato',
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Birra media',qty:1,prezzo:5.50,hasAlcohol:true},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-5', codice:'#1245', cliente:null, ritiro:'19:31', fonte:'banco', pagato:true, asporto:true, totale:19.50, stato:'consegnato',
     items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Tiramisù',qty:1,prezzo:6.00}] },
   { id:'sto-4', codice:'#A-1040', cliente:'Sara Conti', ritiro:'19:20', fonte:'webapp', pagato:true, totale:24.00, stato:'consegnato',
     items:[{nome:'Pizza Margherita',qty:2,prezzo:9.00},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
+  { id:'sto-8', codice:'#A-1048', cliente:'Alessia Villa', ritiro:'19:15', fonte:'glovo', pagato:true, totale:25.00, stato:'consegnato',
+    items:[{nome:'Lasagna',qty:1,prezzo:13.50},{nome:'Panna cotta',qty:1,prezzo:5.50},{nome:'Patatine fritte',qty:1,prezzo:4.00},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-3', codice:'#1244', cliente:null, ritiro:'19:12', fonte:'banco', pagato:true, asporto:false, totale:9.50, stato:'consegnato',
     items:[{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50},{nome:'Acqua minerale',qty:1,prezzo:2.00}] },
   { id:'sto-2', codice:'#A-1039', cliente:'Davide Sarti', ritiro:'19:05', fonte:'byup', pagato:true, totale:50.00, stato:'consegnato',
     items:[{nome:'Tagliere misto',qty:1,prezzo:14.00},{nome:'Bistecca fiorentina',qty:1,prezzo:32.00},{nome:'Acqua minerale',qty:2,prezzo:2.00}] },
+  { id:'sto-7', codice:'#A-1047', cliente:'Marco Leone', ritiro:'18:58', fonte:'deliveroo', pagato:true, totale:43.50, stato:'consegnato',
+    items:[{nome:'Tagliata di manzo',qty:2,prezzo:18.00},{nome:'Bruschetta al pomodoro',qty:1,prezzo:7.50}] },
   { id:'sto-1', codice:'#1243', cliente:null, ritiro:'18:54', fonte:'banco', pagato:true, asporto:true, totale:12.00, stato:'consegnato',
     items:[{nome:'Pasta carbonara',qty:1,prezzo:12.00}] },
 ];

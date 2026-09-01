@@ -224,15 +224,12 @@ function Kds2Scontrino({ size = 22 }) {
 // diverse, e chi impiatta decide in che ordine mandare fuori anche in base a
 // chi sta per arrivare. La piattaforma va vista, non dedotta dal nome.
 //
-// Le sigle e i colori sono gli stessi di Impostazioni → Integrazioni: se un
-// giorno arrivano i loghi veri si sostituiscono lì e qui, e restano una cosa
-// sola. Un marchio disegnato a mano invece sarebbe un logo falso — meglio la
-// sigla, che è vera.
-const KDS2_PARTNER = {
-  justeat:   { sigla:'JE', nome:'Just Eat',  bg:'#FF8000', ink:'#FFFFFF' },
-  glovo:     { sigla:'G',  nome:'Glovo',     bg:'#FFC244', ink:'#0A1929' },
-  deliveroo: { sigla:'D',  nome:'Deliveroo', bg:'#00CCBC', ink:'#0A1929' },
-};
+// Le sigle e i colori vivono in PN_PARTNER (panoramica-tokens.jsx): da P-03 è
+// la fonte unica condivisa con il contrassegno di Vendita diretta e la riga
+// di Impostazioni → Integrazioni — se un giorno arrivano i loghi veri si
+// sostituiscono LÀ, e restano una cosa sola. Un marchio disegnato a mano
+// invece sarebbe un logo falso — meglio la sigla, che è vera.
+const KDS2_PARTNER = window.PN_PARTNER;
 
 function Kds2Partner({ id, size = 24, tono = 'normale' }) {
   const p = KDS2_PARTNER[id];

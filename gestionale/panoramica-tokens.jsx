@@ -341,3 +341,21 @@ function PnSectionTabs({ tabs, active, onChange }) {
   );
 }
 Object.assign(window, { PnSectionTab, PnSectionTabs });
+
+// ─── Marchi dei partner delivery (P-03 · D-15) ─────────────────────────────
+// LA fonte dei colori piattaforma: il marchio in cucina (KDS2_PARTNER è un
+// alias di questo), il contrassegno di provenienza in Vendita diretta e la
+// riga di Impostazioni → Integrazioni leggono tutti da qui — se un giorno
+// arrivano i loghi veri si sostituiscono QUI e restano una cosa sola. Il
+// colore brand è il dispositivo di riconoscimento: pieno, mai pastellato —
+// un #FF8000 ammorbidito non è più l'arancio di Just Eat.
+// Nota di prodotto: al lancio queste integrazioni NON esistono — dipendono
+// dagli accordi con le piattaforme, ed entrano in gioco solo quando le
+// integrazioni sono reali. Nel prototipo il contrassegno è la lingua visiva
+// già pronta per quel momento.
+const PN_PARTNER = {
+  justeat:   { sigla:'JE', nome:'Just Eat',  bg:'#FF8000', ink:'#FFFFFF' },
+  glovo:     { sigla:'G',  nome:'Glovo',     bg:'#FFC244', ink:'#0A1929' },
+  deliveroo: { sigla:'D',  nome:'Deliveroo', bg:'#00CCBC', ink:'#0A1929' },
+};
+window.PN_PARTNER = PN_PARTNER;

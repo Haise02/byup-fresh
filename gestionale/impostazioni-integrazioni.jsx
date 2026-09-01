@@ -13,10 +13,12 @@ const INTEGRATIONS = [
   // Periferiche
   { id:'printer', name:'Stampante scontrino', cat:'periferiche', logo:'🖨', bg:'#1F2937', desc:'Scontrino di cortesia post-pagamento', status:'available', printerType:true },
   { id:'printer-comande', name:'Stampante comande', cat:'periferiche', logo:'🖨', bg:'#374151', desc:'Stampa automatica delle comande in cucina', status:'available', printerType:true },
-  // Delivery
-  { id:'justeat', name:'Just Eat', cat:'delivery', logo:'JE', bg:'#FF8000', desc:'Delivery & ordini', status:'connected', detail:'sync 5 min fa' },
-  { id:'deliveroo', name:'Deliveroo', cat:'delivery', logo:'D', bg:'#00CCBC', desc:'Delivery & ordini', status:'available' },
-  { id:'glovo', name:'Glovo', cat:'delivery', logo:'G', bg:'#FFC244', color:'#0A1929', desc:'Delivery & quick commerce', status:'available' },
+  // Delivery — sigle e colori da PN_PARTNER (panoramica-tokens.jsx): era la
+  // terza copia degli stessi valori, da P-03 la fonte è una con cucina e
+  // Vendita diretta.
+  { id:'justeat', name: PN_PARTNER.justeat.nome, cat:'delivery', logo: PN_PARTNER.justeat.sigla, bg: PN_PARTNER.justeat.bg, desc:'Delivery & ordini', status:'connected', detail:'sync 5 min fa' },
+  { id:'deliveroo', name: PN_PARTNER.deliveroo.nome, cat:'delivery', logo: PN_PARTNER.deliveroo.sigla, bg: PN_PARTNER.deliveroo.bg, color: PN_PARTNER.deliveroo.ink, desc:'Delivery & ordini', status:'available' },
+  { id:'glovo', name: PN_PARTNER.glovo.nome, cat:'delivery', logo: PN_PARTNER.glovo.sigla, bg: PN_PARTNER.glovo.bg, color: PN_PARTNER.glovo.ink, desc:'Delivery & quick commerce', status:'available' },
   // Marketing
   { id:'gmb', name:'Google My Business', cat:'marketing', logo:'G', bg:'#fff', borderless:true, color:'#4285F4', desc:'Recensioni & orari Maps', status:'available' },
   { id:'brevo', name:'Brevo', cat:'marketing', logo:'B', bg:'#0B996E', desc:'Email marketing & newsletter', status:'available' },
