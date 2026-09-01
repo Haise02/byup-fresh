@@ -288,36 +288,33 @@ function ImpDatiFiscali() {
 
   return (
     <div>
-      {/* Status banner */}
-      <div style={{
-        display:'flex', alignItems:'center', gap: 14,
-        padding: '14px 18px',
-        background: isComplete ? '#F0FDF4' : PN.AMBER_SOFT,
-        border: `1.5px solid ${isComplete ? PN.GREEN_SOFT : '#FCD34D'}`,
-        borderRadius: 12,
-        marginBottom: 18,
-      }}>
+      {/* Status banner — solo quando manca qualcosa: la conferma che è tutto
+          a posto era rumore, l'assenza del banner dice la stessa cosa. */}
+      {!isComplete && (
         <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: isComplete ? PN.GREEN : PN.AMBER,
-          color: PN.WHITE,
-          display:'grid', placeItems:'center',
-          flexShrink: 0,
-        }}>{isComplete ? <BuIcons.check size={18} color={PN.WHITE}/> : <BuIcons.alert size={18} color={PN.WHITE}/>}</div>
-        <div style={{flex:1}}>
-          <div style={{fontSize:16, fontWeight:700, color: isComplete ? PN.GREEN : PN.AMBER}}>
-            {isComplete
-              ? 'Anagrafica completa. I dati appaiono correttamente sugli scontrini'
-              : `${missing.length} ${missing.length===1?'campo mancante':'campi mancanti'} per emettere scontrini conformi`}
-          </div>
-          <div style={{fontSize:14, color: PN.MUTED, marginTop: 2}}>
-            {isComplete
-              ? 'Insegna, P.IVA e indirizzo sede vengono stampati in cima al documento commerciale'
-              : `Mancano: ${missing.map(m => m.label).join(', ')}`
-            }
+          display:'flex', alignItems:'center', gap: 14,
+          padding: '14px 18px',
+          background: PN.AMBER_SOFT,
+          border: '1.5px solid #FCD34D',
+          borderRadius: 12,
+          marginBottom: 18,
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: PN.AMBER, color: PN.WHITE,
+            display:'grid', placeItems:'center',
+            flexShrink: 0,
+          }}><BuIcons.alert size={18} color={PN.WHITE}/></div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:16, fontWeight:700, color: PN.AMBER}}>
+              {`${missing.length} ${missing.length===1?'campo mancante':'campi mancanti'} per emettere scontrini conformi`}
+            </div>
+            <div style={{fontSize:14, color: PN.MUTED, marginTop: 2}}>
+              Mancano: {missing.map(m => m.label).join(', ')}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
           verifica all'inserimento — il perché e il come stanno nel commento
