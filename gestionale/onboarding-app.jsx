@@ -41,6 +41,12 @@ function OnboardingApp() {
   // assorbe sia i dati commerciali sia il regime IVA, senza un sub-step dedicato.
   const [venue, setVenue] = React.useState({
     name: 'Cacio e Pepe',
+    // La forma giuridica è la prima domanda (P-86). Parte su ditta
+    // individuale perché è la forma più diffusa del settore; per le persone
+    // fisiche l'onboarding chiede anche il CF del titolare, distinto dalla
+    // P.IVA. Enumerazione legal_form: ERD v11, FISC-01.
+    legalForm: 'ditta_individuale',
+    titolareCf: '',
     piva: '',
     address: '',
     civico: '',

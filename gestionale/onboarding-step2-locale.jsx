@@ -4,8 +4,12 @@
 //   2a info        — anagrafica + P.IVA
 //   2b pagamenti   — Stripe + altri metodi (PayPal/Klarna/Satispay)
 //
-// Sub-step "Fiscale" rimosso: SDI/PEC/regime fiscale sono completati nelle impostazioni
-// post-onboarding. Qui basta P.IVA per costituire il soggetto giuridico minimo.
+// Sub-step "Fiscale" rimosso: SDI/PEC sono completati nelle impostazioni
+// post-onboarding. Qui il soggetto giuridico minimo è forma giuridica + P.IVA
+// e — per ditta individuale e professionista — il codice fiscale del
+// titolare, che NON è la P.IVA (P-86): il resto dell'anagrafica per forma
+// (dati di nascita del titolare, registro imprese) sta in Impostazioni →
+// Dati fiscali, che ripete la stessa enumerazione di legal_form (ERD v11).
 // Sub-step "Carte e digital wallet" (Apple/Google Pay) rimosso: sono attivi via Stripe
 // senza dover comunicare nulla all'utente in fase di onboarding.
 
@@ -157,8 +161,18 @@ function SubStepInfo({venue, v}) {
       <OnbCard>
         <OnbSectionHeader
           title="Anagrafica del locale"
-          subtitle="Nome, P.IVA e dove si trova il locale."
+          subtitle="Forma giuridica, P.IVA e dove si trova il locale."
         />
+        {/* La forma giuridica è la PRIMA domanda (P-86): decide quali dati
+            fiscali esistono. Qui cambia solo il minimo — il CF del titolare
+            per le persone fisiche — i campi completi per forma stanno in
+            Impostazioni → Dati fiscali. */}
+        <div style={{marginBottom: 16}}>
+          <div style={{fontSize: 15, fontWeight: 600, color: ONB.TEXT, marginBottom: 9}}>
+            Forma giuridica
+          </div>
+          <FormaGiuridicaGroup value={venue.legalForm} onChange={(x) => v('legalForm', x)}/>
+        </div>
         {/* Grid 12-col: composizione "indirizzo / civico / cap / città" su una sola
             riga visiva (80/20/20/40) — pattern italiano standard di un form indirizzi.
             Su 720px container abbiamo abbastanza spazio per tenerli in linea. */}
@@ -173,6 +187,16 @@ function SubStepInfo({venue, v}) {
               value={venue.piva} onChange={(x) => v('piva', x)}
               placeholder="IT00000000000"/>
           </div>
+          {/* Il CF della persona, distinto dalla P.IVA: è il dato che prima
+              nasceva sbagliato. Solo per ditta individuale e professionista. */}
+          {(venue.legalForm === 'ditta_individuale' || venue.legalForm === 'professionista') && (
+            <div style={{gridColumn: 'span 12'}}>
+              <OnbField label="Codice fiscale del titolare"
+                value={venue.titolareCf}
+                onChange={(x) => v('titolareCf', x.toUpperCase())}
+                placeholder="RSSMRA78C21H501X"/>
+            </div>
+          )}
           <div style={{gridColumn: 'span 8'}}>
             <OnbField label="Indirizzo"
               value={venue.address} onChange={(x) => v('address', x)}
@@ -488,6 +512,42 @@ function AdeDelegaCard({venue, v}) {
 // Regime fiscale — tre opzioni in riga, etichetta e basta. Le descrizioni
 // ("IVA al 10% sui pasti…") spiegavano una cosa che chi ha un locale conosce
 // già, e costavano più spazio della scelta stessa.
+// Stessa enumerazione di legal_form dei Dati fiscali (ERD v11, FISC-01):
+// societa, ditta_individuale, professionista, ente. Pagine diverse, una
+// definizione a testa — se ne cambia una, cambia anche l'altra.
+function FormaGiuridicaGroup({value, onChange}) {
+  const options = [
+    {id: 'ditta_individuale', label: 'Ditta individuale'},
+    {id: 'societa',           label: 'Società'},
+    {id: 'professionista',    label: 'Professionista'},
+    {id: 'ente',              label: 'Ente'},
+  ];
+  return (
+    <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>
+      {options.map((o) => {
+        const selected = value === o.id;
+        return (
+          <label key={o.id} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '9px 14px', borderRadius: 999, cursor: 'pointer',
+            background: selected ? ONB.BRAND_TINT : '#fff',
+            border: `1px solid ${selected ? 'rgba(255, 90, 95, 0.35)' : 'rgba(15, 17, 21, 0.10)'}`,
+            transition: 'background 150ms ease-out, border-color 150ms ease-out',
+          }}>
+            <input type="radio" name="forma-giuridica"
+              checked={selected} onChange={() => onChange(o.id)}
+              style={{margin: 0, accentColor: ONB.BRAND}}/>
+            <span style={{
+              fontSize: 15, fontWeight: selected ? 600 : 500,
+              color: selected ? ONB.TEXT : ONB.MUTED, lineHeight: 1.2,
+            }}>{o.label}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 function RegimeRadioGroup({value, onChange}) {
   const options = [
     {id: 'ordinario',   label: 'Ordinario'},

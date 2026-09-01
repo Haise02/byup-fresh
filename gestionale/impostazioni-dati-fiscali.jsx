@@ -195,20 +195,54 @@ function AdeCredenzialiCard() {
   );
 }
 
+// ─── Forma giuridica (P-86 · ERD v11, tenant_identity FISC-01) ─────────────
+// legal_form ammette quattro valori: societa, ditta_individuale,
+// professionista, ente — e i campi seguono la forma. Per ditta individuale e
+// professionista sono obbligatori i dati della persona fisica: nome, cognome,
+// data di nascita, luogo di nascita in DUE campi (comune + Stato, ISO 3166-1
+// alpha-2) e codice fiscale del titolare, distinto dalla P.IVA; la parte
+// societaria resta nulla. Per societa valgono denominazione e sede coi campi
+// attuali (REA, CCIAA, capitale sociale con la sua valuta, socio unico). Per
+// ente: denominazione e sede; REA e CCIAA facoltativi; niente capitale
+// sociale né socio unico. La data di nascita è raccolta su obbligo legale e
+// NON è riutilizzabile per altre finalità: non esce da questa schermata.
+// L'onboarding ripete l'enumerazione in piccolo (onboarding-step2-locale.jsx):
+// pagine diverse, una definizione a testa.
+const FORME_GIURIDICHE = [
+  { id: 'societa',           label: 'Società' },
+  { id: 'ditta_individuale', label: 'Ditta individuale' },
+  { id: 'professionista',    label: 'Professionista' },
+  { id: 'ente',              label: 'Ente' },
+];
+// Lo Stato di nascita è ISO alpha-2: nel prototipo bastano i più ricorrenti.
+const STATI_NASCITA = [
+  ['IT','Italia'], ['RO','Romania'], ['AL','Albania'], ['MA','Marocco'],
+  ['CN','Cina'], ['EG','Egitto'], ['BD','Bangladesh'], ['PE','Perù'],
+  ['UA','Ucraina'], ['DE','Germania'], ['FR','Francia'], ['ES','Spagna'],
+];
+
 function ImpDatiFiscali() {
   const [data, setData] = React.useState({
-    // Anagrafica
+    // Anagrafica — il mock è una società: i campi del titolare qui sotto si
+    // vedono cambiando forma, precompilati con una persona plausibile.
+    legalForm: 'societa',
     ragione: 'Cacio e Pepe S.r.l.',
     insegna: 'Cacio e Pepe',
     piva: 'IT12345678901',
     cf: '12345678901',
     regime: 'Ordinario',
     ateco: '56.10.11',
+    // Titolare (solo ditta individuale e professionista)
+    ownerNome: 'Mario',
+    ownerCognome: 'Rossi',
+    ownerNascita: '1978-03-21',
+    ownerComuneNascita: 'Roma',
+    ownerStatoNascita: 'IT',
+    ownerCf: 'RSSMRA78C21H501X',
     // Sede operativa (stampata sullo scontrino)
     indirizzo: 'Via dei Giubbonari 27',
     citta: 'Roma', cap: '00197', prov: 'RM',
     // Dati per fatturazione
-    ragioneSoc: 'Cacio e Pepe S.r.l.',
     rea: 'RM-1234567',
     cciaa: 'Roma',
     capitaleSociale: '10.000,00',
@@ -229,14 +263,31 @@ function ImpDatiFiscali() {
   const [dirty, setDirty] = React.useState(false);
   const set = (k, v) => { setData(d => ({...d, [k]: v})); setDirty(true); };
 
+  const persona = data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista';
+  const societa = data.legalForm === 'societa';
+  const ente    = data.legalForm === 'ente';
+
+  // L'obbligatorietà segue la forma: alla persona fisica servono i suoi dati,
+  // alla società la denominazione. Il resto è uguale per tutti.
   const fields = [
-    { id: 'ragione', label: 'Ragione sociale', req: true },
-    { id: 'piva', label: 'Partita IVA', req: true },
-    { id: 'insegna', label: 'Insegna', req: true },
-    { id: 'indirizzo', label: 'Indirizzo sede operativa', req: true },
+    ...(persona ? [
+      { id: 'ownerNome',    label: 'Nome del titolare' },
+      { id: 'ownerCognome', label: 'Cognome del titolare' },
+      { id: 'ownerCf',      label: 'Codice fiscale del titolare' },
+    ] : [
+      { id: 'ragione', label: ente ? 'Denominazione' : 'Ragione sociale' },
+    ]),
+    { id: 'piva', label: 'Partita IVA' },
+    { id: 'insegna', label: 'Insegna' },
+    { id: 'indirizzo', label: 'Indirizzo sede operativa' },
   ];
   const missing = fields.filter(f => !data[f.id]);
   const isComplete = missing.length === 0;
+
+  const selectStyle = {
+    width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
+    borderRadius:9, fontSize:15.5, background:PN.WHITE, fontFamily:'inherit',
+  };
 
   return (
     <div>
@@ -285,35 +336,99 @@ function ImpDatiFiscali() {
               per la mezza larghezza: un campo pieno per riga, le coppie solo
               dove i valori sono corti. height 100% pareggia le altezze. */}
           <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1fr)', gap: 16, alignItems:'stretch', marginBottom: 16}}>
-            <ImpCard title="Dati anagrafici" sub="Informazioni fiscali del titolare dell'attività" style={{marginBottom: 0, height: '100%'}}>
-              <ImpField label="Ragione sociale" hint="Come risulta a registro imprese">
-                <ImpInput value={data.ragione} onChange={e => set('ragione', e.target.value)}/>
+            <ImpCard title="Dati anagrafici" sub="La forma giuridica decide quali dati fiscali esistono" style={{marginBottom: 0, height: '100%'}}>
+              {/* La forma è la PRIMA domanda: tutto il resto della schermata
+                  discende da qui. Prima si chiedeva a chiunque ragione
+                  sociale, REA e capitale, e la ditta individuale — la forma
+                  più diffusa del settore — riempiva campi che non ha. */}
+              <ImpField label="Forma giuridica" hint={
+                persona ? 'Contano i dati della persona: niente ragione sociale né registro imprese'
+                : ente ? 'Denominazione e sede; REA e CCIAA solo se l\'ente li ha'
+                : 'Denominazione e dati di registro imprese'
+              }>
+                <select value={data.legalForm} onChange={e => set('legalForm', e.target.value)} style={selectStyle}>
+                  {FORME_GIURIDICHE.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                </select>
               </ImpField>
-              <ImpField label="Insegna" hint="Stampata in cima allo scontrino">
+              {persona ? (
+                <React.Fragment>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+                    <ImpField label="Nome del titolare">
+                      <ImpInput value={data.ownerNome} onChange={e => set('ownerNome', e.target.value)}/>
+                    </ImpField>
+                    <ImpField label="Cognome del titolare">
+                      <ImpInput value={data.ownerCognome} onChange={e => set('ownerCognome', e.target.value)}/>
+                    </ImpField>
+                  </div>
+                  {/* Il luogo di nascita sono DUE campi — comune e Stato — come
+                      nel modello. La data è raccolta su obbligo legale: si usa
+                      qui e basta, nessun'altra schermata la legge. Righe da
+                      due: la card è a mezza larghezza, in tre si strozzano. */}
+                  {/* minmax(0,1fr): l'input date ha una larghezza intrinseca
+                      che con `1fr` puro si prende la colonna e strozza il
+                      comune accanto. */}
+                  <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap: 14, marginTop: 4}}>
+                    <ImpField label="Data di nascita" hint="Richiesta per legge: usata solo qui">
+                      <ImpInput type="date" value={data.ownerNascita} onChange={e => set('ownerNascita', e.target.value)}/>
+                    </ImpField>
+                    <ImpField label="Comune di nascita">
+                      <ImpInput value={data.ownerComuneNascita} onChange={e => set('ownerComuneNascita', e.target.value)}/>
+                    </ImpField>
+                  </div>
+                  {/* Il CF della persona NON è la P.IVA: è esattamente il dato
+                      che prima nasceva sbagliato. Qui il campo aziendale
+                      sparisce: per la persona fisica sono la stessa cosa. */}
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginTop: 4}}>
+                    <ImpField label="Stato di nascita">
+                      <select value={data.ownerStatoNascita} onChange={e => set('ownerStatoNascita', e.target.value)} style={selectStyle}>
+                        {STATI_NASCITA.map(([cod, nome]) => <option key={cod} value={cod}>{nome} ({cod})</option>)}
+                      </select>
+                    </ImpField>
+                    <ImpField label="Codice fiscale del titolare" hint="16 caratteri, diverso dalla P.IVA">
+                      <ImpInput value={data.ownerCf} onChange={e => set('ownerCf', e.target.value.toUpperCase())} style={{fontFamily:'ui-monospace, monospace', letterSpacing: 0.5}}/>
+                    </ImpField>
+                  </div>
+                  <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata (AdE)' : 'Inserisci 11 cifre con prefisso IT'} style={{marginTop: 4}}>
+                    <div style={{position:'relative'}}>
+                      <ImpInput value={data.piva} onChange={e => set('piva', e.target.value)}/>
+                      {data.piva.length === 13 && (
+                        <span style={{
+                          position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)',
+                          color: PN.GREEN, display:'inline-flex',
+                        }}><BuIcons.check size={14}/></span>
+                      )}
+                    </div>
+                  </ImpField>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <ImpField label={ente ? 'Denominazione' : 'Ragione sociale'} hint={ente ? 'Come risulta da statuto' : 'Come risulta a registro imprese'}>
+                    <ImpInput value={data.ragione} onChange={e => set('ragione', e.target.value)}/>
+                  </ImpField>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+                    <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata (AdE)' : 'Inserisci 11 cifre con prefisso IT'}>
+                      <div style={{position:'relative'}}>
+                        <ImpInput value={data.piva} onChange={e => set('piva', e.target.value)}/>
+                        {data.piva.length === 13 && (
+                          <span style={{
+                            position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)',
+                            color: PN.GREEN, display:'inline-flex',
+                          }}><BuIcons.check size={14}/></span>
+                        )}
+                      </div>
+                    </ImpField>
+                    <ImpField label="Codice fiscale">
+                      <ImpInput value={data.cf} onChange={e => set('cf', e.target.value)}/>
+                    </ImpField>
+                  </div>
+                </React.Fragment>
+              )}
+              <ImpField label="Insegna" hint="Stampata in cima allo scontrino" style={{marginTop: 4}}>
                 <ImpInput value={data.insegna} onChange={e => set('insegna', e.target.value)}/>
               </ImpField>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-                <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata (AdE)' : 'Inserisci 11 cifre con prefisso IT'}>
-                  <div style={{position:'relative'}}>
-                    <ImpInput value={data.piva} onChange={e => set('piva', e.target.value)}/>
-                    {data.piva.length === 13 && (
-                      <span style={{
-                        position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)',
-                        color: PN.GREEN, display:'inline-flex',
-                      }}><BuIcons.check size={14}/></span>
-                    )}
-                  </div>
-                </ImpField>
-                <ImpField label="Codice fiscale">
-                  <ImpInput value={data.cf} onChange={e => set('cf', e.target.value)}/>
-                </ImpField>
-              </div>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginTop: 4}}>
                 <ImpField label="Regime fiscale">
-                  <select value={data.regime} onChange={e => set('regime', e.target.value)} style={{
-                    width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                    borderRadius:9, fontSize:15.5, background:PN.WHITE, fontFamily:'inherit',
-                  }}>
+                  <select value={data.regime} onChange={e => set('regime', e.target.value)} style={selectStyle}>
                     <option>Ordinario</option>
                     <option>Forfettario</option>
                     <option>Semplificato</option>
@@ -347,44 +462,52 @@ function ImpDatiFiscali() {
             title="Dati fatturazione"
             sub="Informazioni fiscali e amministrative. Utili anche se collegherai un servizio esterno (es. Aruba)"
           >
-            <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
-              <ImpField label="Ragione sociale" hint="Come risulta a registro imprese">
-                <ImpInput value={data.ragioneSoc} onChange={e => set('ragioneSoc', e.target.value)}/>
-              </ImpField>
-              <ImpField label="Codice ATECO">
-                <ImpInput value={data.ateco} onChange={e => set('ateco', e.target.value)}/>
-              </ImpField>
-            </div>
+            {/* Niente più Ragione sociale né ATECO qui: stavano già nella
+                card anagrafica, e due campi per lo stesso dato sono due
+                occasioni di divergere. La fonte è una. */}
+
+            {/* La parte di registro imprese esiste solo per società ed enti:
+                la persona fisica non ha né REA né capitale, e chieder-
+                glieli era esattamente il difetto di P-86. Per l'ente REA e
+                CCIAA restano ma facoltativi; capitale e socio unico sono
+                solo delle società. */}
+            {!persona && (
+              <React.Fragment>
+                <div style={{
+                  fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
+                  marginTop: 4, marginBottom: 10,
+                }}>Camera di Commercio</div>
+                <div style={{display:'grid', gridTemplateColumns: societa ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14}}>
+                  <ImpField label="Numero REA" hint={ente ? 'Facoltativo: solo se l\'ente è a registro imprese' : undefined}>
+                    <ImpInput value={data.rea} onChange={e => set('rea', e.target.value)}/>
+                  </ImpField>
+                  <ImpField label="CCIAA" hint={ente ? 'Facoltativa' : undefined}>
+                    <ImpInput value={data.cciaa} onChange={e => set('cciaa', e.target.value)}/>
+                  </ImpField>
+                  {societa && (
+                    <ImpField label="Capitale sociale (€)" hint="Solo società di capitali">
+                      <ImpInput value={data.capitaleSociale} onChange={e => set('capitaleSociale', e.target.value)}/>
+                    </ImpField>
+                  )}
+                </div>
+                <div style={{display:'flex', gap: 18, marginTop: 10}}>
+                  {societa && (
+                    <label style={{display:'inline-flex', alignItems:'center', gap: 8, cursor:'pointer', fontSize: 14.5}}>
+                      <input type="checkbox" checked={data.socioUnico} onChange={e => set('socioUnico', e.target.checked)} style={{accentColor: PN.PINK, width: 14, height: 14}}/>
+                      Socio unico
+                    </label>
+                  )}
+                  <label style={{display:'inline-flex', alignItems:'center', gap: 8, cursor:'pointer', fontSize: 14.5}}>
+                    <input type="checkbox" checked={data.inLiquidazione} onChange={e => set('inLiquidazione', e.target.checked)} style={{accentColor: PN.PINK, width: 14, height: 14}}/>
+                    In liquidazione
+                  </label>
+                </div>
+              </React.Fragment>
+            )}
 
             <div style={{
               fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
-              marginTop: 22, marginBottom: 10,
-            }}>Camera di Commercio</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 14}}>
-              <ImpField label="Numero REA">
-                <ImpInput value={data.rea} onChange={e => set('rea', e.target.value)}/>
-              </ImpField>
-              <ImpField label="CCIAA">
-                <ImpInput value={data.cciaa} onChange={e => set('cciaa', e.target.value)}/>
-              </ImpField>
-              <ImpField label="Capitale sociale (€)" hint="Solo società di capitali">
-                <ImpInput value={data.capitaleSociale} onChange={e => set('capitaleSociale', e.target.value)}/>
-              </ImpField>
-            </div>
-            <div style={{display:'flex', gap: 18, marginTop: 10}}>
-              <label style={{display:'inline-flex', alignItems:'center', gap: 8, cursor:'pointer', fontSize: 14.5}}>
-                <input type="checkbox" checked={data.socioUnico} onChange={e => set('socioUnico', e.target.checked)} style={{accentColor: PN.PINK, width: 14, height: 14}}/>
-                Socio unico
-              </label>
-              <label style={{display:'inline-flex', alignItems:'center', gap: 8, cursor:'pointer', fontSize: 14.5}}>
-                <input type="checkbox" checked={data.inLiquidazione} onChange={e => set('inLiquidazione', e.target.checked)} style={{accentColor: PN.PINK, width: 14, height: 14}}/>
-                In liquidazione
-              </label>
-            </div>
-
-            <div style={{
-              fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
-              marginTop: 22, marginBottom: 10,
+              marginTop: persona ? 4 : 22, marginBottom: 10,
             }}>SDI e fatturazione elettronica</div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
               <ImpField label="Codice Destinatario SDI">
@@ -395,10 +518,12 @@ function ImpDatiFiscali() {
               </ImpField>
             </div>
 
+            {/* Per la persona fisica la "sede legale" non esiste: il suo
+                equivalente è il domicilio fiscale. Stessi campi, nome giusto. */}
             <div style={{
               fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
               marginTop: 22, marginBottom: 10,
-            }}>Sede legale</div>
+            }}>{persona ? 'Domicilio fiscale' : 'Sede legale'}</div>
             <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
               <ImpField label="Indirizzo e civico">
                 <ImpInput value={data.sedeIndirizzo} onChange={e => set('sedeIndirizzo', e.target.value)}/>
