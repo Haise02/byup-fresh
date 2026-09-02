@@ -539,7 +539,13 @@ function DrwAnagrafica({ locale: l }) {
   // I campi sono QUELLI dell'onboarding (Nome del locale, indirizzo con
   // civico, CAP, città, telefono) più il profilo: quello che il locale ha
   // compilato di là si legge e si corregge qui. Il fiscale ha la SUA tab.
-  const FIELDS = ['nome','tipo','indirizzo','cap','citta','regione','titolare','email','tel','coperti'];
+  // Titolare ed email NON si modificano da qui (P-73 · D-57): cambiando
+  // l'email e mandando il reset l'assistenza sostituiva il titolare in due
+  // gesti. Le due vie giuste: il ripristino assistito (Assistenza →
+  // Ripristini accesso) restituisce l'accesso alla stessa persona; il cambio
+  // di chi sta dietro il locale passa solo dal percorso di titolarità in
+  // Account del titolare (restaurant_holder_changes).
+  const FIELDS = ['nome','tipo','indirizzo','cap','citta','regione','tel','coperti'];
   const [form, setForm] = useStateDrw(Object.fromEntries(FIELDS.map(k => [k, l[k] ?? ''])));
   const dirty = FIELDS.some(k => String(form[k]) !== String(l[k] ?? ''));
   const [saved, setSaved] = useStateDrw(false);
@@ -602,13 +608,22 @@ function DrwAnagrafica({ locale: l }) {
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
           {Fld({k:'nome', label:'Nome del locale (insegna)', span:true})}
           {Fld({k:'tipo', label:'Tipologia'})}
-          {Fld({k:'titolare', label:'Titolare'})}
+          <div>
+            <label style={drwLab}>Titolare</label>
+            <div style={{...drwInp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{l.titolare}</div>
+          </div>
           {Fld({k:'indirizzo', label:'Indirizzo e civico', span:true})}
           {Fld({k:'cap', label:'CAP', monoStyle:true})}
           {Fld({k:'citta', label:'Città'})}
           {Fld({k:'regione', label:'Regione'})}
           {Fld({k:'coperti', label:'Coperti', type:'number'})}
-          {Fld({k:'email', label:'Email', monoStyle:true, span:true})}
+          <div style={{gridColumn:'1 / -1'}}>
+            <label style={drwLab}>Email del titolare</label>
+            <div style={{...drwMono, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{l.email}</div>
+            <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.5}}>
+              Titolare ed email non si modificano da qui. Chi ha perso l'accesso passa dal ripristino assistito (Assistenza → Ripristini accesso), che restituisce l'accesso alla stessa persona; chi cambia dietro il locale passa solo dal percorso di titolarità in Account del titolare.
+            </div>
+          </div>
           {Fld({k:'tel', label:'Telefono', monoStyle:true})}
         </div>
         <div style={{display:'flex', justifyContent:'flex-end', marginTop:14, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
@@ -1029,8 +1044,9 @@ function DrwAccount({ locale: l }) {
 
   return (
     <div style={{padding:'20px 24px', display:'flex', flexDirection:'column', gap:14}}>
-      {/* Le credenziali del titolare: il reset parte verso l'email SALVATA
-          dell'anagrafica — la stessa regola della scheda utente app. */}
+      {/* Le credenziali del titolare: il reset parte verso il recapito CENSITO,
+          che da qui non si modifica (P-73 · D-57) — è la frase della voce
+          applicata dove il pulsante esisteva davvero. */}
       <AdmCard padding={18}>
         <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
           <div style={{flex:1, minWidth:220}}>
@@ -1038,7 +1054,7 @@ function DrwAccount({ locale: l }) {
             <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2}}>
               {resetInviato
                 ? <span style={{color:ADM.OK, fontWeight:700}}>✓ Email di reset inviata a {l.email}</span>
-                : `Invia un link di reimpostazione a ${l.email}`}
+                : `Invia un link di reimpostazione a ${l.email} · recapito censito, non modificabile da qui`}
             </div>
           </div>
           <AdmButton variant="secondary" size="sm" icon="mail" disabled={resetInviato} onClick={()=>setResetInviato(true)}>Invia email di reset</AdmButton>

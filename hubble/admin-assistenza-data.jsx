@@ -479,7 +479,10 @@ const FAQ_SRV = [
     aggiornataIl: new Date(Date.now() - 4*SRV_GIORNO), viste: 1890, utile: 176, nonUtile: 23 },
   { id:'F-06', categoria:'Account', live:true,
     domanda:'Posso dare accesso al gestionale a un mio dipendente?',
-    risposta:'Sì, da Impostazioni → Personale. Ogni persona ha un ruolo — Cameriere, Cassa, Cucina, Responsabile — e vede solo le sezioni del suo ruolo. Il proprietario resta l\'unico a poter cambiare piano, dati fiscali e IBAN.',
+    // Corretta con P-73: i ruoli sono quelli di Personale (Cassa, Cameriere,
+    // più i personalizzati), il titolare è uno solo e cambia solo dal
+    // percorso di titolarità in Account (D-57).
+    risposta:'Sì, da Impostazioni → Personale. Ogni persona ha un ruolo — Cassa, Cameriere, o uno personalizzato — e vede solo le sezioni del suo ruolo. Il titolare è uno solo: resta l\'unico a poter cambiare piano, dati fiscali e IBAN, e cambia soltanto attraverso il percorso di titolarità in Account.',
     aggiornataIl: new Date(Date.now() - 27*SRV_GIORNO), viste: 2470, utile: 231, nonUtile: 7 },
   { id:'F-07', categoria:'Menu e QR', live:true,
     domanda:'Come segnalo gli allergeni sui piatti?',
@@ -893,3 +896,61 @@ Object.assign(window, {
   FAQ_SRV, FAQ_CATEGORIE, GUIDE_ARGOMENTI, GUIDE_SRV, VALUTAZIONE_APP, VALUTAZIONE_STAFF,
   srvKpi, srvMinutiAScadere, srvNonRisolto, srvDurata, srvMinuti, srvOre,
 });
+
+
+// ─── 5. Ripristini di accesso (P-73 · D-57, account_recoveries) ─────────────
+// La superficie del ripristino assistito: chi ha perso l'accesso al proprio
+// account lo chiede all'assistenza, e la pratica registra il metodo di
+// verifica dell'identità, il riferimento opaco all'evidenza, l'operatore e
+// l'esito. L'invariante, scolpito nella nota del modello: il ripristino
+// restituisce l'accesso ALLA STESSA PERSONA e non lo trasferisce mai — user_id
+// «è sempre la stessa persona che lo ha perso: se fosse un'altra sarebbe un
+// cambio di titolarità, che ha la propria struttura» (restaurant_holder_changes,
+// P-62). Il pulsante che cambierebbe il titolare non esiste, e non deve.
+//   identity_check_method — dominio chiuso: «il metodo si dichiara perché è la
+//     sola cosa che regge la decisione».
+//   identity_evidence_ref — riferimento opaco all'evidenza conservata fuori
+//     dalla base dati: mai la copia del documento, PRO-16 la esclude.
+//   verified_by — l'operatore: traccia di responsabilità, mai base di metriche
+//     (stessa cautela di D-30: la lettura per singola persona non si costruisce).
+//   outcome — pending, restored, refused (con causale), withdrawn: il
+//     ripristino riguarda le sole credenziali di accesso.
+//   request_channel — callback, email, chat, gestionale.
+// Coda registrata: l'operatore ha tre identità nei mock (SRV_IO, MY_ID,
+// TEAM isYou); qui vale SRV_IO. Il reset self-service dal login è solo testo.
+const SRV_RIPRISTINO_METODI = [
+  { id:'pec_del_locale',               label:'PEC del locale',                nota:'Risposta arrivata dalla PEC censita nei dati fiscali' },
+  { id:'documento_di_identita',        label:'Documento d\'identità',         nota:'Esibito in videochiamata: si registra il riferimento all\'evidenza, mai la copia' },
+  { id:'dati_fiscali',                 label:'Dati fiscali',                  nota:'P.IVA, codice fiscale e sede confrontati con l\'anagrafica del locale' },
+  { id:'chiamata_al_recapito_censito', label:'Chiamata al recapito censito',  nota:'Telefonata al numero già presente in anagrafica, non a uno dettato ora' },
+  { id:'altro',                        label:'Altro',                         nota:'Va detto nelle note: senza, il metodo non regge la decisione' },
+];
+const SRV_RIPRISTINO_CANALI = { callback:'Chiamata', email:'Email', chat:'Chat', gestionale:'Gestionale' };
+const SRV_RIPRISTINO_ESITI = {
+  pending:   { label:'In attesa',  tono:'WARN' },
+  restored:  { label:'Ripristinato', tono:'OK' },
+  refused:   { label:'Rifiutato',  tono:'DANGER' },
+  withdrawn: { label:'Ritirata',   tono:'MUTED' },
+};
+// Tre pratiche ancorate all'oggi: una in attesa da una chiamata di stamattina,
+// una ripristinata tre giorni fa col documento, una rifiutata dieci giorni fa
+// con causale — i dati fiscali non tornavano, l'identità non è dimostrata.
+const RIPRISTINI = [
+  { id:'AR-0142', outcome:'pending', request_channel:'callback',
+    user:{ nome:'Mario Rossi', ruolo:'titolare' }, localeNome:'Cacio e Pepe', localeCitta:'Roma',
+    richiestaIl: new Date(Date.now() - 2 * SRV_ORA - 10 * SRV_MIN),
+    identity_check_method:null, identity_evidence_ref:'', note:'', verified_by:null, verified_at:null, refusal_reason:null },
+  { id:'AR-0139', outcome:'restored', request_channel:'email',
+    user:{ nome:'Elena Costa', ruolo:'titolare' }, localeNome:'Osteria del Ponte', localeCitta:'Roma',
+    richiestaIl: new Date(Date.now() - 3 * SRV_GIORNO - 5 * SRV_ORA),
+    identity_check_method:'documento_di_identita', identity_evidence_ref:'EV-2026-0830-4F2A',
+    note:'Videochiamata di dieci minuti, documento esibito e confrontato con l\'anagrafica.',
+    verified_by:'support1', verified_at: new Date(Date.now() - 3 * SRV_GIORNO - 4 * SRV_ORA), refusal_reason:null },
+  { id:'AR-0131', outcome:'refused', request_channel:'chat',
+    user:{ nome:'Paolo Neri', ruolo:'titolare' }, localeNome:'Bar Mediterraneo', localeCitta:'Roma',
+    richiestaIl: new Date(Date.now() - 10 * SRV_GIORNO - 6 * SRV_ORA),
+    identity_check_method:'dati_fiscali', identity_evidence_ref:'EV-2026-0823-91C0',
+    note:'Chiedeva l\'accesso come titolare; ha fornito una P.IVA diversa da quella censita.',
+    verified_by:'support1', verified_at: new Date(Date.now() - 10 * SRV_GIORNO - 5 * SRV_ORA),
+    refusal_reason:'I dati fiscali forniti non corrispondono all\'anagrafica del locale: identità non dimostrata.' },
+];

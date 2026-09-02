@@ -73,7 +73,10 @@ function AccDatiGenerali() {
       logo: dir.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(),
     }]);
     setAddOpen(false);
-    setDatiToast(`✓ Richiesta inviata a ${dir.name} . Attendi la conferma del proprietario`);
+    // L'esito detto subito (P-72 · D-57): la via del collegamento produce un
+    // collaboratore, mai un titolare — account_link_requests: nessuna
+    // approvazione per questa via attribuisce il ruolo di titolare.
+    setDatiToast(`✓ Richiesta inviata a ${dir.name}: se il titolare approva entri come collaboratore, non come titolare`);
     setTimeout(() => setDatiToast(null), 3200);
   };
   const confermaDissocia = () => {
@@ -283,7 +286,9 @@ function AccDatiGenerali() {
                 }}>{loc.logo}</div>
                 <div style={{flex: 1, minWidth: 0}}>
                   <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.name}</div>
-                  <div style={{fontSize: 11.5, fontWeight: 700, color: loc.role === 'Owner' ? PN.PINK_DARK : PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>{loc.role}</div>
+                  {/* Nel dato resta Manager (mai Owner per questa via); a schermo
+                      dice cosa sei: un collaboratore. */}
+                  <div style={{fontSize: 11.5, fontWeight: 700, color: loc.role === 'Owner' ? PN.PINK_DARK : PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>{loc.role === 'Manager' ? 'Collaboratore' : loc.role}</div>
                 </div>
               </div>
 
@@ -294,8 +299,18 @@ function AccDatiGenerali() {
 
               {loc.pending ? (
                 <>
-                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 10, textAlign:'center'}}>
-                    Richiesta inviata al proprietario
+                  {/* L'esito, e la risposta alla domanda vera di chi ha perso
+                      l'accesso e la cerca proprio qui: il titolare non si
+                      sostituisce per questa via, il ripristino passa
+                      dall'assistenza (P-73), con la chiamata come via
+                      consigliata perché l'identità si verifica a voce sul
+                      recapito censito. */}
+                  <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 10, textAlign:'center', lineHeight: 1.4}}>
+                    In attesa del titolare · entrerai come collaboratore
+                  </div>
+                  <div style={{fontSize: 12, color: PN.MUTED, marginTop: 6, textAlign:'center', lineHeight: 1.4}}>
+                    Hai perso l'accesso al tuo locale? Non è questa la strada:{' '}
+                    <a href="byup Supporto.html" onClick={e => e.stopPropagation()} style={{color: PN.PINK_DARK, fontWeight: 600}}>chiedi il ripristino all'assistenza</a>, meglio con una chiamata.
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDissocia(loc); }}
@@ -489,7 +504,7 @@ function AccDatiGenerali() {
                 <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
                   {dissocia.pending
                     ? `La richiesta di collegamento a ${dissocia.name} verrà ritirata.`
-                    : 'Il locale sarà rimosso dal tuo account e non potrai più accedere al suo gestionale. Il proprietario potrà invitarti di nuovo.'}
+                    : 'Il locale sarà rimosso dal tuo account e non potrai più accedere al suo gestionale. Il titolare potrà invitarti di nuovo.'}
                 </div>
               </div>
             </div>
@@ -716,7 +731,7 @@ const AcBtnGhost = {
 };
 
 // Popup "Aggiungi un locale": collega un locale già su byup (ricerca per nome
-// + richiesta al proprietario) oppure crea un nuovo locale (onboarding).
+// + richiesta al titolare) oppure crea un nuovo locale (onboarding).
 function AcAggiungiLocaleModal({ esistenti, onClose, onCollega }) {
   const [step, setStep] = React.useState('scelta'); // 'scelta' | 'cerca'
   const [query, setQuery] = React.useState('');
@@ -754,7 +769,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega }) {
             <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
               {step === 'scelta'
                 ? 'Il locale esiste già su byup o parti da zero?'
-                : 'Cerca il locale per nome e invia la richiesta al proprietario.'}
+                : 'Cerca il locale per nome e invia la richiesta al titolare.'}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -781,7 +796,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega }) {
               <span style={{flex: 1}}>
                 <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Collega un locale esistente</span>
                 <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
-                  Il locale è già su byup: cercalo per nome e invia una richiesta di collegamento al proprietario.
+                  Il locale è già su byup: cercalo per nome e invia una richiesta di collegamento al titolare. Il titolare riceve la richiesta e decide: se approva, entri come collaboratore con il ruolo che sceglie lui — non diventi titolare, e il titolare non si sostituisce per questa via.
                 </span>
               </span>
             </button>

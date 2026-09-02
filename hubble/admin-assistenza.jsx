@@ -200,21 +200,26 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
   const [faq, setFaq] = useStateSrv(FAQ_SRV);
   const [argomenti, setArgomenti] = useStateSrv(GUIDE_ARGOMENTI);
   const [guide, setGuide] = useStateSrv(GUIDE_SRV);
+  const [ripristini, setRipristini] = useStateSrv(RIPRISTINI);
 
   const inAttesa = richiamate.filter(r => r.stato === 'attesa').length;
   const ticketAperti = (typeof COMUNICAZIONI !== 'undefined' ? COMUNICAZIONI : [])
     .filter(c => c.stato === 'nuova' || c.stato === 'in_corso').length;
 
+  const ripristiniAperti = ripristini.filter(r => r.outcome === 'pending').length;
   const tabs = [
     { id:'richiamate', label:'Chiamate', badge: inAttesa },
     { id:'ticket',     label:'Ticket',   badge: ticketAperti },
+    // La pratica del ripristino assistito (P-73): ha un ciclo di vita suo e
+    // nasce da qualunque canale, quindi non sta dentro il ticket.
+    { id:'ripristini', label:'Ripristini accesso', badge: ripristiniAperti },
     { id:'faq',        label:'FAQ' },
     { id:'guide',      label:'Guide' },
   ];
 
   // Chi ha due pannelli vuole tutta l'altezza, e ogni pannello scorre per
   // conto suo; le FAQ sono una pagina lunga che scorre intera.
-  const aDuePannelli = tab === 'richiamate' || tab === 'ticket' || tab === 'guide';
+  const aDuePannelli = tab === 'richiamate' || tab === 'ticket' || tab === 'guide' || tab === 'ripristini';
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
@@ -232,6 +237,7 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
         overflow: aDuePannelli ? 'hidden' : 'auto'}}>
         {tab === 'richiamate' && <SrvRichiamate richiamate={richiamate} setRichiamate={setRichiamate}/>}
         {tab === 'ticket'     && <AdmComunicazioniPage openId={openTicket}/>}
+        {tab === 'ripristini' && <SrvRipristini ripristini={ripristini} setRipristini={setRipristini}/>}
         {tab === 'faq'        && <SrvFaq faq={faq} setFaq={setFaq}/>}
         {tab === 'guide'      && <SrvGuide argomenti={argomenti} setArgomenti={setArgomenti} guide={guide} setGuide={setGuide}/>}
       </div>
@@ -2343,3 +2349,225 @@ function SrvClassificaChiamanti({ locali, onChiudi }) {
 }
 
 Object.assign(window, { AdmAssistenzaPage, AdmServizioClientiKPI });
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// 5. Ripristini di accesso (P-73 · D-57) — elenco a sinistra, pratica a destra
+// ════════════════════════════════════════════════════════════════════════════
+// Il modello e le sue note stanno nel commento di RIPRISTINI (data). Qui la
+// regola è visibile e costruttiva insieme: la riga dell'invariante sta in
+// testa a ogni pratica, la persona è in sola lettura, e non esiste un campo
+// né un pulsante che assegni l'accesso a qualcun altro — il cambio di chi sta
+// dietro un locale si nomina come la via giusta e non si offre.
+const srvDataOra = (d) => d ? d.toLocaleDateString('it-IT', { day:'numeric', month:'short' }).replace('.', '')
+  + ' · ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '—';
+
+function SrvRipristini({ ripristini, setRipristini }) {
+  const [vista, setVista] = useStateSrv('pending');
+  const [cerca, setCerca] = useStateSrv('');
+  const [selId, setSelId] = useStateSrv(null);
+  const viste = [
+    { id:'pending', label:'In attesa', count: ripristini.filter(r => r.outcome === 'pending').length },
+    { id:'chiuse',  label:'Chiuse',    count: ripristini.filter(r => r.outcome !== 'pending').length },
+    { id:'tutte',   label:'Tutte',     count: ripristini.length },
+  ];
+  const elenco = useMemoSrv(() => {
+    const q = cerca.trim().toLowerCase();
+    let r = vista === 'pending' ? ripristini.filter(x => x.outcome === 'pending')
+          : vista === 'chiuse'  ? ripristini.filter(x => x.outcome !== 'pending')
+          : ripristini;
+    if (q) r = r.filter(x => [x.id, x.localeNome, x.user.nome, x.note, x.refusal_reason].some(v => String(v || '').toLowerCase().includes(q)));
+    return [...r].sort((a, b) => b.richiestaIl - a.richiestaIl);
+  }, [ripristini, vista, cerca]);
+  const sel = elenco.find(r => r.id === selId) || elenco[0];
+  const aggiorna = (id, patch) => setRipristini(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+
+  return (
+    <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column'}}>
+      <div style={{padding:'12px 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`,
+        display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', flexShrink:0}}>
+        {viste.map(v => {
+          const attivo = vista === v.id;
+          return (
+            <button key={v.id} className="adm-pill" onClick={()=>{ setVista(v.id); setSelId(null); }} style={{
+              display:'inline-flex', alignItems:'center', gap:7, padding:'6px 13px', borderRadius:99,
+              background: attivo ? ADM.TEXT : '#fff', color: attivo ? '#fff' : ADM.TEXT,
+              border:`1px solid ${attivo ? ADM.TEXT : ADM.BORDER}`,
+              fontSize:13.2, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+            }}>
+              {v.label}
+              <span style={{fontWeight:700, fontSize:12.4, color: attivo ? 'rgba(255,255,255,0.75)' : ADM.MUTED_SOFT}}>{v.count}</span>
+            </button>
+          );
+        })}
+        <div style={{flex:1}}/>
+        <span style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:12.4, color:ADM.MUTED_SOFT, whiteSpace:'nowrap'}}>
+          <BuIcons.lock size={14} color={ADM.MUTED_LIGHT}/>
+          L'accesso torna sempre alla stessa persona · qui non si cambia titolare
+        </span>
+      </div>
+
+      <div style={{flex:1, display:'flex', minHeight:0}}>
+        <div style={{width:400, flexShrink:0, borderRight:`1px solid ${ADM.BORDER}`, background:'#fff',
+          display:'flex', flexDirection:'column', minHeight:0}}>
+          <div style={{padding:'12px 14px 10px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+            <div style={{position:'relative'}}>
+              <span style={{position:'absolute', left:11, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={17}/></span>
+              <input value={cerca} onChange={e=>setCerca(e.target.value)} placeholder="Pratica, locale, persona…"
+                style={{width:'100%', padding:'8px 12px 8px 33px', border:'none', borderRadius:8,
+                  fontSize:14, fontFamily:'inherit', outline:'none', background:ADM.PANEL_SOFT, boxSizing:'border-box', color:ADM.TEXT}}/>
+            </div>
+          </div>
+          <div style={{padding:'9px 16px 7px', fontSize:12.8, color:ADM.MUTED, fontWeight:500}}>
+            {elenco.length} {elenco.length === 1 ? 'pratica' : 'pratiche'}
+            <span style={{color:ADM.MUTED_SOFT}}> · {viste.find(v=>v.id===vista).label.toLowerCase()}</span>
+          </div>
+          <div style={{flex:1, overflowY:'auto'}}>
+            {elenco.length === 0 && <AdmEmpty icon="lock" title="Nessuna pratica" desc={cerca ? 'Nessun risultato per questa ricerca' : 'La coda è vuota'}/>}
+            {elenco.map(r => <SrvVoceRipristino key={r.id} r={r} attiva={sel && sel.id === r.id} onClick={()=>setSelId(r.id)}/>)}
+          </div>
+        </div>
+        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT, overflowY:'auto'}}>
+          {sel
+            ? <SrvDettaglioRipristino r={sel} onAggiorna={(patch)=>aggiorna(sel.id, patch)}/>
+            : <AdmEmpty icon="lock" title="Seleziona una pratica" desc="Dall'elenco a sinistra"/>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SrvVoceRipristino({ r, attiva, onClick }) {
+  const e = SRV_RIPRISTINO_ESITI[r.outcome];
+  return (
+    <button onClick={onClick} className="adm-actionrow" style={{
+      display:'block', width:'100%', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
+      padding:'11px 16px 12px 13px', border:'none',
+      borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
+      borderLeft:`3px solid ${attiva ? ADM.PINK : 'transparent'}`,
+      background: attiva ? ADM.PINK_BG_SOFT : 'transparent',
+    }}>
+      <div style={{display:'flex', alignItems:'baseline', gap:8}}>
+        <span style={{flex:1, minWidth:0, fontSize:14.2, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.user.nome}</span>
+        <SrvPastiglia testo={e.label} tono={e.tono}/>
+      </div>
+      <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+        {r.localeNome} · {SRV_RIPRISTINO_CANALI[r.request_channel]} · {srvDataOra(r.richiestaIl)} · {r.id}
+      </div>
+    </button>
+  );
+}
+
+function SrvDettaglioRipristino({ r, onAggiorna }) {
+  const [metodo, setMetodo] = useStateSrv(r.identity_check_method);
+  const [evidenza, setEvidenza] = useStateSrv(r.identity_evidence_ref || '');
+  const [note, setNote] = useStateSrv(r.note || '');
+  const [rifiuto, setRifiuto] = useStateSrv(false);
+  const [causale, setCausale] = useStateSrv('');
+  React.useEffect(() => { setMetodo(r.identity_check_method); setEvidenza(r.identity_evidence_ref || ''); setNote(r.note || ''); setRifiuto(false); setCausale(''); }, [r.id]);
+
+  const aperta = r.outcome === 'pending';
+  const e = SRV_RIPRISTINO_ESITI[r.outcome];
+  const M = SRV_RIPRISTINO_METODI.find(m => m.id === (aperta ? metodo : r.identity_check_method));
+  // Il metodo regge la decisione: senza metodo, senza riferimento (e senza
+  // nota se il metodo è «altro») non si ripristina.
+  const pronta = !!metodo && evidenza.trim().length > 0 && (metodo !== 'altro' || note.trim().length > 0);
+  const chiudi = (outcome, extra) => onAggiorna({
+    outcome, identity_check_method: metodo, identity_evidence_ref: evidenza.trim(), note: note.trim(),
+    verified_by: SRV_IO, verified_at: new Date(), ...(extra || {}),
+  });
+
+  const riga = (k, v) => (
+    <div style={{display:'flex', gap:12, padding:'7px 0', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13.4}}>
+      <span style={{width:150, flexShrink:0, color:ADM.MUTED}}>{k}</span>
+      <span style={{color:ADM.TEXT, minWidth:0}}>{v}</span>
+    </div>
+  );
+
+  return (
+    <div style={{padding:'18px 24px 24px', display:'flex', flexDirection:'column', gap:14}}>
+      {/* L'invariante, in testa e non chiudibile: è la regola della pratica. */}
+      <div style={{padding:'12px 14px', borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:13.6, color:ADM.TEXT, lineHeight:1.5}}>
+        <b>L'accesso torna a {r.user.nome}, {r.user.ruolo} di {r.localeNome}, e non si trasferisce mai.</b>{' '}
+        Se chi chiede non è {r.user.nome}, non è un ripristino: è un cambio di titolarità, che passa solo dal percorso in Account del titolare
+        (restaurant_holder_changes). Qui si ripristinano le sole credenziali.
+      </div>
+
+      <AdmCard padding={18}>
+        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8}}>
+          <div style={{flex:1, fontSize:15, fontWeight:700, color:ADM.TEXT}}>Pratica {r.id}</div>
+          <SrvPastiglia testo={e.label} tono={e.tono} piena/>
+        </div>
+        {riga('Persona', <><b>{r.user.nome}</b> · {r.user.ruolo} · sola lettura: la persona non si cambia</>)}
+        {riga('Locale', `${r.localeNome} · ${r.localeCitta}`)}
+        {riga('Canale della richiesta', SRV_RIPRISTINO_CANALI[r.request_channel])}
+        {riga('Richiesta il', srvDataOra(r.richiestaIl))}
+        {!aperta && riga('Verificata da', `${r.verified_by} · ${srvDataOra(r.verified_at)} · traccia di responsabilità, non una metrica`)}
+      </AdmCard>
+
+      <AdmCard padding={18}>
+        <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Verifica dell'identità</div>
+        <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, marginBottom:12}}>Il metodo si dichiara perché è la sola cosa che regge la decisione.</div>
+        {aperta ? (
+          <React.Fragment>
+            <div style={{display:'flex', gap:6, flexWrap:'wrap'}}>
+              {SRV_RIPRISTINO_METODI.map(m => {
+                const on = metodo === m.id;
+                return (
+                  <button key={m.id} className="adm-pill" onClick={()=>setMetodo(m.id)} style={{
+                    padding:'6px 12px', borderRadius:99, fontSize:13, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
+                    background: on ? ADM.TEXT : '#fff', color: on ? '#fff' : ADM.TEXT, border:`1px solid ${on ? ADM.TEXT : ADM.BORDER}`,
+                  }}>{m.label}</button>
+                );
+              })}
+            </div>
+            {M && <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:8}}>{M.nota}</div>}
+            <div style={{marginTop:14}}>
+              <label style={SRV_ETI}>Riferimento all'evidenza</label>
+              <input value={evidenza} onChange={e=>setEvidenza(e.target.value)} placeholder="es. EV-2026-0913-4F2A" style={{...SRV_INP, fontFamily:'ui-monospace, monospace'}}/>
+              <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:5}}>Riferimento opaco all'evidenza conservata fuori dalla base dati: mai la copia del documento, PRO-16 la esclude. Nessun allegato, per costruzione.</div>
+            </div>
+            <div style={{marginTop:12}}>
+              <label style={SRV_ETI}>Note</label>
+              <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Cosa è stato verificato e come" style={SRV_TXT}/>
+            </div>
+            <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:10}}>Verifica registrata a nome di <b style={{color:ADM.TEXT}}>{SRV_IO}</b> (tu) · traccia di responsabilità, mai base di metriche.</div>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            {riga('Metodo', M ? M.label : '—')}
+            {riga('Riferimento all\'evidenza', <span style={{fontFamily:'ui-monospace, monospace'}}>{r.identity_evidence_ref || '—'}</span>)}
+            {r.note && riga('Note', r.note)}
+            {r.refusal_reason && riga('Causale del rifiuto', <span style={{color:ADM.DANGER, fontWeight:600}}>{r.refusal_reason}</span>)}
+          </React.Fragment>
+        )}
+      </AdmCard>
+
+      {aperta && (
+        <AdmCard padding={18}>
+          <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Esito</div>
+          <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, marginBottom:12}}>
+            Ripristinare reimposta le credenziali e le manda al recapito censito di {r.user.nome}. Non c'è, e non deve esserci, un esito che assegni l'accesso a un'altra persona.
+          </div>
+          {!rifiuto ? (
+            <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+              <AdmButton variant="primary" size="md" icon="check" disabled={!pronta} onClick={()=>chiudi('restored')}>Ripristina l'accesso</AdmButton>
+              <AdmButton variant="danger" size="md" icon="x" onClick={()=>setRifiuto(true)}>Rifiuta</AdmButton>
+              <AdmButton variant="ghost" size="md" onClick={()=>chiudi('withdrawn')}>Ritirata dal richiedente</AdmButton>
+              {!pronta && <span style={{alignSelf:'center', fontSize:12.4, color:ADM.MUTED_SOFT}}>Per ripristinare servono metodo e riferimento all'evidenza{metodo === 'altro' ? ', e la nota' : ''}.</span>}
+            </div>
+          ) : (
+            <div>
+              <label style={SRV_ETI}>Causale del rifiuto · obbligatoria</label>
+              <textarea value={causale} onChange={e=>setCausale(e.target.value)} placeholder="Perché l'identità non è dimostrata" style={SRV_TXT}/>
+              <div style={{display:'flex', gap:8, marginTop:10}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setRifiuto(false)}>Annulla</AdmButton>
+                <AdmButton variant="danger" size="md" icon="x" disabled={!causale.trim()} onClick={()=>chiudi('refused', { refusal_reason: causale.trim() })}>Conferma il rifiuto</AdmButton>
+              </div>
+            </div>
+          )}
+        </AdmCard>
+      )}
+    </div>
+  );
+}
