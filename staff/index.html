@@ -15,9 +15,15 @@
     background: #1a1a1f;
     color: #0F1115;
     min-height: 100vh;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: safe center; justify-content: center;
     padding: 32px 16px;
+    overflow: auto;
   }
+  /* Il telefono è più alto di molte finestre: centrato, si tagliava sopra e
+     sotto e il pulsante in fondo alle schermate intere (l'informativa del
+     primo accesso, con «Ho letto») restava fuori vista. Lo stage si scala
+     all'altezza disponibile, dal centro in alto. */
+  #stage { transform-origin: top center; }
   #stage {
     display: flex; gap: 28px; align-items: flex-start;
     flex-wrap: wrap; justify-content: center; max-width: 1400px;
@@ -43,6 +49,20 @@
 @media print{#byup-hub-btn{display:none}}
 </style>
 
+  <script>
+    (function () {
+      function adatta() {
+        var st = document.getElementById('stage'); if (!st) return;
+        st.style.transform = '';
+        var h = st.getBoundingClientRect().height, disp = window.innerHeight - 40;
+        var k = h > disp ? Math.max(0.55, disp / h) : 1;
+        st.style.transform = k < 1 ? 'scale(' + k.toFixed(3) + ')' : '';
+        st.style.marginBottom = k < 1 ? (-(h * (1 - k))) + 'px' : '';
+      }
+      window.addEventListener('resize', adatta);
+      window.addEventListener('load', function () { adatta(); setTimeout(adatta, 600); setTimeout(adatta, 2000); });
+    })();
+  </script>
   <div id="stage">
     <div>
       <div id="phone-frame"></div>

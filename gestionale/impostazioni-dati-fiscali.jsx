@@ -552,27 +552,32 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
 
   const tile = (on, titolo, sotto, onClick) => (
     <button onClick={onClick} style={{
-      flex: 1, textAlign:'left', padding:'11px 13px', borderRadius: 11, cursor:'pointer', fontFamily:'inherit',
+      flex: 1, textAlign:'left', padding:'8px 11px', borderRadius: 10, cursor:'pointer', fontFamily:'inherit',
       border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`, background: on ? PN.PINK_SOFT : PN.WHITE,
     }}>
-      <div style={{fontSize: 14.5, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{titolo}</div>
-      <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>{sotto}</div>
+      <div style={{fontSize: 13.5, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{titolo}</div>
+      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, lineHeight: 1.35}}>{sotto}</div>
     </button>
   );
+  // Compatto: tre colonne, campi bassi, intestazione stretta — il foglio deve
+  // stare in una schermata senza scorrere, anche su un portatile.
+  const LAB = { ...MODAL_LABEL, marginBottom: 4, fontSize: 12 };
+  const INP = { ...MODAL_INPUT, padding: '8px 10px', fontSize: 14 };
   const campo = (label, k, extra = {}) => (
-    <div>
-      <div style={MODAL_LABEL}>{label}</div>
-      <input value={f[k] || ''} onChange={setC(k)} {...extra} style={{...MODAL_INPUT, ...(extra.style || {})}}/>
+    <div style={{minWidth: 0}}>
+      <div style={LAB}>{label}</div>
+      <input value={f[k] || ''} onChange={setC(k)} {...extra} style={{...INP, ...(extra.style || {})}}/>
     </div>
   );
+  const tre = { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 10 };
   const due = { display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10 };
 
   return (
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680, maxHeight:'92vh', display:'flex', flexDirection:'column'}}>
-        <div style={MODAL_HEAD}>
-          <div style={MODAL_TITLE}>Cambia soggetto fiscale</div>
-          <div style={MODAL_SUB}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 820, maxHeight:'94vh', display:'flex', flexDirection:'column'}}>
+        <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
+          <div style={{...MODAL_TITLE, fontSize: 21}}>Cambia soggetto fiscale</div>
+          <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
             {inCorso
               ? `Da ${c.soggetto.prima.denominazione} (${c.soggetto.prima.piva}) a ${c.soggetto.dopo.denominazione} (${c.soggetto.dopo.piva})`
               : 'La forma giuridica decide quali dati esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.'}
@@ -581,61 +586,69 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
         </div>
 
         {!inCorso ? (
-          <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
-            <div>
-              <div style={MODAL_LABEL}>Forma giuridica</div>
-              <select value={f.legalForm} onChange={setC('legalForm')} style={{...MODAL_INPUT}}>
-                {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
-              </select>
+          <div className="pn-scroll" style={{...MODAL_BODY, padding: '16px 24px', overflowY:'auto', display:'flex', flexDirection:'column', gap: 10}}>
+            <div style={tre}>
+              <div style={{minWidth: 0}}>
+                <div style={LAB}>Forma giuridica</div>
+                <select value={f.legalForm} onChange={setC('legalForm')} style={INP}>
+                  {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
+                </select>
+              </div>
+              {persona ? (
+                <React.Fragment>{campo('Nome del titolare', 'ownerNome')}{campo('Cognome del titolare', 'ownerCognome')}</React.Fragment>
+              ) : (
+                <React.Fragment>{campo(ente ? 'Denominazione' : 'Ragione sociale', 'ragione')}{campo('Codice fiscale', 'cf')}</React.Fragment>
+              )}
             </div>
-            {persona ? (
-              <React.Fragment>
-                <div style={due}>{campo('Nome del titolare', 'ownerNome')}{campo('Cognome del titolare', 'ownerCognome')}</div>
-                <div style={due}>{campo('Data di nascita', 'ownerNascita', { type: 'date' })}{campo('Comune di nascita', 'ownerComuneNascita')}</div>
-                <div style={due}>
-                  <div>
-                    <div style={MODAL_LABEL}>Stato di nascita</div>
-                    <select value={f.ownerStatoNascita} onChange={setC('ownerStatoNascita')} style={{...MODAL_INPUT}}>
-                      {STATI_NASCITA.map(([cod, nome]) => <option key={cod} value={cod}>{nome} ({cod})</option>)}
-                    </select>
-                  </div>
-                  {campo('Codice fiscale del titolare', 'ownerCf', { style: { fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5 } })}
+            {persona && (
+              <div style={tre}>
+                {campo('Data di nascita', 'ownerNascita', { type: 'date' })}
+                {campo('Comune di nascita', 'ownerComuneNascita')}
+                <div style={{minWidth: 0}}>
+                  <div style={LAB}>Stato di nascita</div>
+                  <select value={f.ownerStatoNascita} onChange={setC('ownerStatoNascita')} style={INP}>
+                    {STATI_NASCITA.map(([cod, nome]) => <option key={cod} value={cod}>{nome} ({cod})</option>)}
+                  </select>
                 </div>
-              </React.Fragment>
-            ) : (
-              <div style={due}>{campo(ente ? 'Denominazione' : 'Ragione sociale', 'ragione')}{campo('Codice fiscale', 'cf')}</div>
+              </div>
             )}
-            <div>
-              <div style={MODAL_LABEL}>Partita IVA</div>
-              <input value={f.piva || ''} onChange={setC('piva')} placeholder="IT seguito da 11 cifre" style={{...MODAL_INPUT, fontFamily:'ui-monospace, Menlo, monospace'}}/>
-              <div style={{fontSize: 12.5, color: f.piva && !pivaOk ? PN.AMBER : PN.MUTED, marginTop: 4}}>
-                {f.piva ? (pivaOk ? 'Formato valido · solo controllo del formato, nessuna verifica presso l\'Agenzia' : 'Formato non valido: IT e undici cifre') : 'IT e undici cifre'}
+            <div style={tre}>
+              {persona && campo('Codice fiscale del titolare', 'ownerCf', { style: { fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5 } })}
+              <div style={{minWidth: 0}}>
+                <div style={LAB}>Partita IVA</div>
+                <input value={f.piva || ''} onChange={setC('piva')} placeholder="IT seguito da 11 cifre" style={{...INP, fontFamily:'ui-monospace, Menlo, monospace'}}/>
+              </div>
+              {campo('Insegna', 'insegna')}
+              {!persona && campo('Codice ATECO', 'ateco')}
+            </div>
+            <div style={tre}>
+              {persona && campo('Codice ATECO', 'ateco')}
+              <div style={{minWidth: 0}}>
+                <div style={LAB}>Regime fiscale</div>
+                <select value={f.regime} onChange={setC('regime')} style={INP}>
+                  <option>Ordinario</option><option>Forfettario</option><option>Semplificato</option>
+                </select>
+              </div>
+              <div style={{gridColumn: persona ? 'auto' : 'span 2', alignSelf:'end', fontSize: 12.5, color: f.piva && !pivaOk ? PN.AMBER : PN.MUTED, lineHeight: 1.4, paddingBottom: 2}}>
+                {f.piva ? (pivaOk ? 'P.IVA: formato valido · solo controllo del formato, nessuna verifica presso l\'Agenzia' : 'P.IVA: formato non valido, IT e undici cifre') : 'P.IVA: IT e undici cifre'}
                 {data.pivaPrecedente ? ` · precedente ${data.pivaPrecedente}, conservata` : ''}
               </div>
             </div>
-            <div style={due}>{campo('Insegna', 'insegna')}{campo('Codice ATECO', 'ateco')}</div>
-            <div>
-              <div style={MODAL_LABEL}>Regime fiscale</div>
-              <select value={f.regime} onChange={setC('regime')} style={{...MODAL_INPUT}}>
-                <option>Ordinario</option><option>Forfettario</option><option>Semplificato</option>
-              </select>
-            </div>
             {cambiaSoggetto && (
-              <div style={{paddingTop: 6, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
-                <div style={{fontSize: 14, color: PN.TEXT, lineHeight: 1.5, marginBottom: 8}}>
-                  <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): serve la verifica dell'identità e la delega va riconferita.
+              <div style={{paddingTop: 8, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+                <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 6}}>
+                  <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): serve la verifica dell'identità e la delega va riconferita. <span style={{color: PN.MUTED}}>Resta la stessa persona?</span>
                 </div>
-                <div style={MODAL_LABEL}>Resta la stessa persona?</div>
-                <div style={{display:'flex', gap: 8}}>
+                <div style={{display:'grid', gridTemplateColumns: stessa === false ? '1fr 1fr 1.4fr' : '1fr 1fr', gap: 8, alignItems:'stretch'}}>
                   {tile(stessa === true, 'Sì, resto io', 'Cambia solo il soggetto: la delega va riconferita per il nuovo contribuente.', () => setStessa(true))}
                   {tile(stessa === false, 'No, cambia anche la persona', 'È una cessione: chi entra accetta con la sua casella e riconferisce la delega.', () => setStessa(false))}
+                  {stessa === false && (
+                    <div style={{display:'flex', flexDirection:'column', gap: 6, minWidth: 0}}>
+                      <input value={entNome} onChange={e => setEntNome(e.target.value)} placeholder="Chi entra" style={INP}/>
+                      <input type="email" value={entEmail} onChange={e => setEntEmail(e.target.value)} placeholder="La sua casella di posta" style={INP}/>
+                    </div>
+                  )}
                 </div>
-                {stessa === false && (
-                  <div style={{...due, marginTop: 10}}>
-                    <div><div style={MODAL_LABEL}>Chi entra</div><input value={entNome} onChange={e => setEntNome(e.target.value)} style={MODAL_INPUT}/></div>
-                    <div><div style={MODAL_LABEL}>La sua casella di posta</div><input type="email" value={entEmail} onChange={e => setEntEmail(e.target.value)} style={MODAL_INPUT}/></div>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -665,11 +678,11 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
           </div>
         )}
 
-        <div style={MODAL_FOOT}>
-          <button onClick={onClose} style={{padding:'10px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>{inCorso ? 'Chiudi' : 'Annulla'}</button>
+        <div style={{...MODAL_FOOT, padding: '12px 24px'}}>
+          <button onClick={onClose} style={{padding:'9px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>{inCorso ? 'Chiudi' : 'Annulla'}</button>
           <span style={{flex: 1}}/>
           {!inCorso && (
-            <button onClick={avvia} disabled={!pronto} style={{padding:'10px 18px', borderRadius: 999, border:'1px solid rgba(0,0,0,0.32)', background: pronto ? PN.BTN_DARK : '#EFEFF1', color: pronto ? PN.WHITE : '#9CA3AF', fontSize: 14, fontWeight: 700, cursor: pronto ? 'pointer' : 'not-allowed', fontFamily:'inherit'}}>
+            <button onClick={avvia} disabled={!pronto} style={{padding:'9px 18px', borderRadius: 999, border:'1px solid rgba(0,0,0,0.32)', background: pronto ? PN.BTN_DARK : '#EFEFF1', color: pronto ? PN.WHITE : '#9CA3AF', fontSize: 14, fontWeight: 700, cursor: pronto ? 'pointer' : 'not-allowed', fontFamily:'inherit'}}>
               {cambiaSoggetto ? 'Avvia il cambiamento' : 'Salva'}
             </button>
           )}
@@ -1225,23 +1238,22 @@ function ImpDatiFiscali() {
             </div>
           </ImpCard>
 
-          {/* Info: scontrino digitale gestito da byup tramite POS */}
-          <div style={{
-            padding: '14px 16px',
-            background: PN.BLUE_SOFT, borderRadius: 12,
-            display:'flex', gap: 12, alignItems:'flex-start',
-          }}>
-            <span style={{fontSize: 20}}>ℹ️</span>
-            <div style={{fontSize: 14, color:'#1E40AF', lineHeight: 1.5}}>
-              <b>Lo scontrino è 100% digitale</b>: puoi però stampare uno scontrino di cortesia se te lo chiedono.
-            </div>
-          </div>
-
         </div>
 
-        {/* Anteprima scontrino */}
+        {/* Anteprima scontrino, con sotto la regola del documento: nasce
+            digitale e va all'Agenzia da solo; la carta è solo cortesia. */}
         <aside style={{position:'sticky', top: 0}}>
           <ScontrinoPreview data={data}/>
+          <div style={{
+            marginTop: 14, padding: '12px 14px',
+            background: PN.BLUE_SOFT, borderRadius: 12,
+            display:'flex', gap: 10, alignItems:'flex-start',
+          }}>
+            <span style={{fontSize: 18, lineHeight: 1.2}}>ℹ️</span>
+            <div style={{fontSize: 13.5, color:'#1E40AF', lineHeight: 1.5}}>
+              La ricevuta fiscale viene comunicata all'Agenzia delle Entrate digitalmente e può essere condivisa tramite email o numero di telefono: puoi però stampare uno scontrino di cortesia se te lo chiedono.
+            </div>
+          </div>
         </aside>
       </div>
 
