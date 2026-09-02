@@ -242,17 +242,21 @@ function NpDateStrip({ value, onChange, label }) {
           const iso = npToISO(d);
           const isSel = npSameDay(d, selDate);
           const isToday = npSameDay(d, today);
+          // Giorno coperto da una chiusura straordinaria (P-46): si vede e
+          // non si sceglie, con il motivo nel suggerimento.
+          const chiusura = window.pnChiusuraDelGiorno ? pnChiusuraDelGiorno(iso) : null;
           const wd = d.toLocaleDateString('it-IT', {weekday:'short'}).replace('.','');
           return (
             // Giorno scelto in stile contorno, non pieno: la striscia dei giorni
             // è un selettore, non una CTA. Il pieno corallo resta al tavolo, che
             // è la scelta finale.
-            <button key={iso} onClick={()=>onChange(iso)} style={{
+            <button key={iso} onClick={()=>!chiusura && onChange(iso)} disabled={!!chiusura}
+              title={chiusura ? pnChiusuraTesto(chiusura) : undefined} style={{
               flex:'1 1 0', position:'relative', padding:'7px 0', borderRadius: NP_R.md,
-              border: isSel ? `1.5px solid ${NP_T.brand}` : `1px solid ${NP_T.border}`,
-              background: isSel ? NP_T.bg : NP_T.bg,
-              color: isSel ? NP_T.brandHover : NP_T.text,
-              cursor:'pointer', fontFamily:'inherit',
+              border: isSel ? `1.5px solid ${NP_T.brand}` : `1px solid ${chiusura ? NP_T.borderSoft : NP_T.border}`,
+              background: chiusura ? 'transparent' : NP_T.bg,
+              color: chiusura ? NP_T.borderStrong : isSel ? NP_T.brandHover : NP_T.text,
+              cursor: chiusura ? 'default' : 'pointer', fontFamily:'inherit',
               display:'flex', flexDirection:'column', alignItems:'center', gap: 2,
               transition:'background 160ms ease, color 160ms ease, border-color 160ms ease',
             }}>
@@ -261,7 +265,10 @@ function NpDateStrip({ value, onChange, label }) {
                 textTransform:'uppercase', letterSpacing: 0.4,
                 color: isSel ? NP_T.brand : NP_T.textSubtle,
               }}>{wd}</span>
-              <span style={{fontSize: 20, fontWeight: 700, lineHeight: 1.1}}>{d.getDate()}</span>
+              <span style={{fontSize: 20, fontWeight: 700, lineHeight: 1.1, textDecoration: chiusura ? 'line-through' : 'none'}}>{d.getDate()}</span>
+              {chiusura && (
+                <span style={{fontSize: 10.5, fontWeight: 700, color: '#d21e50', lineHeight: 1}}>Chiuso</span>
+              )}
               {isToday && (
                 <span style={{
                   position:'absolute', bottom: 4, left:'50%', transform:'translateX(-50%)',
@@ -345,12 +352,16 @@ function NpMonthCalendar({ today, selected, onPick }) {
           const isSel = npSameDay(day, selected);
           const isToday = npSameDay(day, today);
           const isPast = day < today;
+          const chiusura = window.pnChiusuraDelGiorno ? pnChiusuraDelGiorno(npToISO(day)) : null;
+          const spento = isPast || !!chiusura;
           return (
-            <button key={i} disabled={isPast} onClick={()=>onPick(npToISO(day))} style={{
+            <button key={i} disabled={spento} onClick={()=>onPick(npToISO(day))}
+              title={chiusura ? pnChiusuraTesto(chiusura) : undefined} style={{
               padding:'8px 0', borderRadius: NP_R.sm,
               background: isSel ? NP_T.brand : 'transparent',
-              color: isSel ? NP_T.textInv : isPast ? NP_T.borderStrong : NP_T.text,
-              border:'none', cursor: isPast ? 'default' : 'pointer', fontFamily:'inherit',
+              color: isSel ? NP_T.textInv : chiusura && !isPast ? '#d21e50' : isPast ? NP_T.borderStrong : NP_T.text,
+              textDecoration: chiusura && !isPast ? 'line-through' : 'none',
+              border:'none', cursor: spento ? 'default' : 'pointer', fontFamily:'inherit',
               fontSize: NP_FS.md, fontWeight: isSel || isToday ? 700 : 500,
               position:'relative',
               transition:'background 140ms ease, color 140ms ease',
@@ -391,7 +402,9 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
     window.addEventListener('sala-res-change', bump);
     return () => window.removeEventListener('sala-res-change', bump);
   }, []);
-  const [date, setDate]                       = React.useState(npTodayISO());
+  // Se oggi è coperto da una chiusura, si parte dal primo giorno aperto:
+  // un selettore che nasce su un giorno non scegliibile è una contraddizione.
+  const [date, setDate]                       = React.useState(() => window.pnPrimoGiornoAperto ? pnPrimoGiornoAperto(npTodayISO()) : npTodayISO());
   const [time, setTime]                       = React.useState('20:00');
   const [dur, setDur]                         = React.useState(npSmartDur('20:00'));
   const [salaFilter, setSalaFilter]           = React.useState(null);

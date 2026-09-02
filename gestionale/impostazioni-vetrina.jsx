@@ -28,6 +28,10 @@ const VETRINA_DATI_MOCK = {
   openDays: { Lun:true, Mar:true, Mer:true, Gio:true, Ven:true, Sab:true },
   stdHours: ['09:00', '23:00'],
   customHours: null, // null | {Lun: [['12:00','15:00'], …], …}
+  // Le chiusure straordinarie (venue_closures, P-46): lette dal registro
+  // persistente, non dal mock — così Impostazioni, anteprima e Sala leggono la
+  // stessa cosa.
+  chiusure: window.byupReadChiusure ? window.byupReadChiusure() : [],
   photos: [
     'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop',
@@ -64,7 +68,7 @@ function ImpVetrina() {
   ];
 
   const markDirty = () => setDirty(true);
-  const preview = <VetrinaMiniPreview tags={dati.tags} social={dati.social} categoria={pnGustoLabel(dati.categoria)}
+  const preview = <VetrinaMiniPreview tags={dati.tags} social={dati.social} categoria={pnGustoLabel(dati.categoria)} chiusure={dati.chiusure}
     focusSection={sub === 'profilo' ? 'info' : sub === 'aspetto' ? 'gallery' : 'faq'}/>;
 
   // Ricavato dai dati a ogni render, mai salvato. Ogni voce sa in quale
@@ -237,7 +241,10 @@ function VetrinaTodoChip({ c, onClick }) {
 // ─── Profilo (info + categorie + tag + sedi) ────────────────────────────────
 
 function VetrinaProfilo({ dati, aggiorna, onChange }) {
-  const { tags, categoria, tagCibo, servizi, openDays, stdHours, customHours } = dati;
+  const { tags, categoria, tagCibo, servizi, openDays, stdHours, customHours, chiusure } = dati;
+  // Le chiusure si scrivono anche nel registro persistente: è da lì che le
+  // leggono la vetrina e le prenotazioni.
+  const setChiusure = (v) => { aggiorna('chiusure', v); if (window.byupWriteChiusure) window.byupWriteChiusure(v); };
   const setTags = (v) => { aggiorna('tags', v); onChange && onChange(); };
   const setCategoria = (v) => { aggiorna('categoria', v); onChange && onChange(); };
   const setOpenDays = (v) => aggiorna('openDays', v);
@@ -414,6 +421,14 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
           <ImpInput value={stdHours[1]} style={{width:74, padding:'7px 10px'}}
             onChange={e => { setStdHours([stdHours[0], e.target.value]); onChange(); }}/>
         </div>
+        {/* Le chiusure salvate si leggono anche da fuori il popup: sono
+            quello che la vetrina dice ai clienti. */}
+        {chiusure.length > 0 && (
+          <div style={{marginTop: 12, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
+            <b style={{color: PN.TEXT}}>Chiusure straordinarie:</b>{' '}
+            {chiusure.map(c => pnChiusuraTesto(c).replace(/^Chiuso /, '')).join(' · ')}
+          </div>
+        )}
 
       </ImpCard>
 
@@ -531,8 +546,9 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
           days={days.filter(d => openDays[d])}
           initial={customHours}
           std={stdHours}
+          chiusure={chiusure}
           onClose={() => setHoursModal(false)}
-          onSave={(sched) => { setCustomHours(sched); setHoursModal(false); onChange && onChange(); }}/>
+          onSave={(sched, ch) => { setCustomHours(sched); setChiusure(ch); setHoursModal(false); onChange && onChange(); }}/>
       )}
     </div>
   );
@@ -541,7 +557,7 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
 // Popup "Personalizza orari": turni reali per giorno — aggiungi o rimuovi
 // turni, poi salva la configurazione o annulla. Gli orari salvati sono
 // quelli mostrati ai clienti sulla vetrina.
-function OrariCustomModal({ days, initial, std, onClose, onSave }) {
+function OrariCustomModal({ days, initial, std, chiusure: chiusureIniziali = [], onClose, onSave }) {
   const [draft, setDraft] = React.useState(() => {
     const base = {};
     days.forEach(d => {
@@ -556,29 +572,31 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
   const addTurn = (d) => setDraft(dr => dr[d].length >= 3 ? dr : ({...dr, [d]: [...dr[d], ['19:00', '23:00']]}));
   const removeTurn = (d, i) => setDraft(dr => ({...dr, [d]: dr[d].filter((_, k) => k !== i)}));
 
-  // Date speciali di chiusura: singole date o periodi (dal–al).
-  const [specials, setSpecials] = React.useState([
-    { id: 's1', from: '2026-12-25', to: '2026-12-30' },
-  ]);
+  // Date speciali di chiusura (venue_closures, P-46 · D-34): una copia di
+  // lavoro, scritta insieme agli orari con «Salva configurazione». starts_on
+  // ed ends_on con l'ultimo giorno compreso; reason è il testo breve per la
+  // vetrina — niente dati personali, mai nomi o circostanze.
+  const [specials, setSpecials] = React.useState(chiusureIniziali);
   const [addingDate, setAddingDate] = React.useState(false);
   const [newFrom, setNewFrom] = React.useState('');
   const [newTo, setNewTo] = React.useState('');
+  const [newReason, setNewReason] = React.useState('');
   const fmtDay = (iso) => {
     const d = new Date(`${iso}T00:00`);
     return isNaN(d) ? iso : d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).replace('.', '');
   };
   const fmtSpecial = (s) => {
-    if (!s.to || s.to === s.from) return fmtDay(s.from);
-    const sameMonth = s.from.slice(0, 7) === s.to.slice(0, 7);
+    if (s.ends_on === s.starts_on) return fmtDay(s.starts_on);
+    const sameMonth = s.starts_on.slice(0, 7) === s.ends_on.slice(0, 7);
     return sameMonth
-      ? `${new Date(`${s.from}T00:00`).getDate()}–${fmtDay(s.to)}`
-      : `${fmtDay(s.from)} – ${fmtDay(s.to)}`;
+      ? `${new Date(`${s.starts_on}T00:00`).getDate()}–${fmtDay(s.ends_on)}`
+      : `${fmtDay(s.starts_on)} – ${fmtDay(s.ends_on)}`;
   };
   const addSpecial = () => {
     if (!newFrom) return;
-    const to = newTo && newTo > newFrom ? newTo : null;
-    setSpecials(sp => [...sp, { id: `s${Date.now()}`, from: newFrom, to }]);
-    setNewFrom(''); setNewTo(''); setAddingDate(false);
+    const ends = newTo && newTo > newFrom ? newTo : newFrom;
+    setSpecials(sp => [...sp, { id: `cl-${Date.now()}`, starts_on: newFrom, ends_on: ends, reason: newReason.trim() || null }]);
+    setNewFrom(''); setNewTo(''); setNewReason(''); setAddingDate(false);
   };
   const removeSpecial = (id) => setSpecials(sp => sp.filter(s => s.id !== id));
 
@@ -659,7 +677,7 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
                 padding: '7px 8px 7px 12px', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
                 fontSize: 14, display: 'flex', alignItems: 'center', gap: 8, background: PN.WHITE,
               }}>
-                <span><b>{fmtSpecial(s)}</b> · Chiuso</span>
+                <span><b>{fmtSpecial(s)}</b> · Chiuso{s.reason ? ` · ${s.reason}` : ''}</span>
                 <SpecialDateX title="Elimina data speciale" onClick={() => removeSpecial(s.id)}/>
               </div>
             ))}
@@ -691,9 +709,16 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
                 <ImpInput type="date" value={newTo} min={newFrom || undefined} onChange={e => setNewTo(e.target.value)}
                   style={{width: 148, padding: '7px 10px', fontSize: 14}}/>
               </div>
+              {/* Il motivo va in vetrina, quindi è breve e impersonale: ferie,
+                  lavori, inventario. Mai un nome, mai una circostanza. */}
+              <div style={{flex: '1 1 160px', minWidth: 0}}>
+                <div style={{fontSize: 12, fontWeight: 600, color: PN.MUTED, marginBottom: 4}}>Motivo · facoltativo, lo leggono i clienti</div>
+                <ImpInput value={newReason} maxLength={40} placeholder="Ferie, lavori…" onChange={e => setNewReason(e.target.value)}
+                  style={{padding: '7px 10px', fontSize: 14}}/>
+              </div>
               <span style={{flex: 1}}/>
               <ImpButton variant="ghost" style={{padding: '7px 12px', fontSize: 13.5}}
-                onClick={() => { setAddingDate(false); setNewFrom(''); setNewTo(''); }}>Annulla</ImpButton>
+                onClick={() => { setAddingDate(false); setNewFrom(''); setNewTo(''); setNewReason(''); }}>Annulla</ImpButton>
               <ImpButton variant="primary" disabled={!newFrom} style={{padding: '7px 14px', fontSize: 13.5}}
                 onClick={addSpecial}>Aggiungi</ImpButton>
             </div>
@@ -702,7 +727,11 @@ function OrariCustomModal({ days, initial, std, onClose, onSave }) {
 
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
           <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-          <ImpButton variant="primary" onClick={() => onSave(draft)}>Salva configurazione</ImpButton>
+          {/* Qui manca la specifica del caso limite (P-46): una chiusura che
+              copre prenotazioni già prese dovrebbe fermare l'operatore col
+              conteggio; il flusso va scritto nella SFA, e finché non c'è si
+              salva e basta. */}
+          <ImpButton variant="primary" onClick={() => onSave(draft, specials)}>Salva configurazione</ImpButton>
         </div>
         <style>{`
           @keyframes cert-overlay-in { from { opacity: 0; } to { opacity: 1; } }

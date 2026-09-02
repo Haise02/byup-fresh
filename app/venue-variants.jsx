@@ -96,7 +96,11 @@ function PremStars({ rating = 4.8, reviews = 320 }) {
 function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap }) {
   const v = venue || {};
   const name = v.name || 'Al Settembrini';
-  const isOpen = true; // demo: aperto ora
+  // Chiusura straordinaria (P-46): oggi coperto → Chiuso; la prossima si
+  // legge accanto allo stato. Seme e formule in extras.jsx.
+  const chiusuraOggi = window.appChiusuraDelGiorno ? appChiusuraDelGiorno(appOggiISO()) : null;
+  const prossimaChiusura = window.appProssimaChiusura ? appProssimaChiusura() : null;
+  const isOpen = !chiusuraOggi;
   const [cat, setCat] = useStateV('Antipasti');
   const [saved, setSaved] = useStateV(false);
   const [slide, setSlide] = useStateV(0);
@@ -224,7 +228,9 @@ function VenuePremium({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap 
             <span style={{ width: 9, height: 9, borderRadius: 999, background: isOpen ? '#0a8a3a' : '#d21e50',
               boxShadow: isOpen ? '0 0 8px rgba(10,138,58,.55)' : '0 0 8px rgba(210,30,80,.55)' }}/>
             <span style={{ fontSize: 13.5, fontWeight: 800, color: isOpen ? '#0a8a3a' : '#d21e50' }}>{isOpen ? 'Aperto ora' : 'Chiuso'}</span>
-            <span style={{ fontSize: 13, color: '#8d7c83', fontWeight: 600 }}>· chiude alle 23:00</span>
+            <span style={{ fontSize: 13, color: chiusuraOggi ? '#d21e50' : prossimaChiusura ? '#B45309' : '#8d7c83', fontWeight: 600 }}>
+              · {chiusuraOggi ? appChiusuraTesto(chiusuraOggi).replace(/^Chiuso /, '') : prossimaChiusura ? appChiusuraTesto(prossimaChiusura).toLowerCase() : 'chiude alle 23:00'}
+            </span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8d7c83" strokeWidth="2.4" strokeLinecap="round"
               style={{ marginLeft: 'auto', transform: hoursOpen ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>
               <polyline points="6 9 12 15 18 9"/>

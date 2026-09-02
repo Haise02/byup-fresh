@@ -253,6 +253,14 @@ function Toolbar({ dayView, setDayView, onNuova }) {
           </svg>
           {btnLabel}
         </button>
+        {/* Il giorno scelto è coperto da una chiusura (P-46): qui si può
+            guardare — vedere un giorno chiuso è legittimo — ma lo si dice. */}
+        {window.pnChiusuraDelGiorno && pnChiusuraDelGiorno(selISO) && (
+          <span style={{
+            marginLeft: 8, padding:'6px 11px', borderRadius: 999,
+            background:'#fde8ee', color:'#d21e50', fontSize: 14, fontWeight: 700, whiteSpace:'nowrap',
+          }}>{pnChiusuraTesto(pnChiusuraDelGiorno(selISO))}</span>
+        )}
         {showCal && (
           <ToolbarCalendar today={today} selected={selDate}
             onPick={(iso)=>{ setSelISO(iso); setShowCal(false); }}/>
@@ -331,11 +339,16 @@ function ToolbarCalendar({ today, selected, onPick }) {
           const isSel = calSameDay(day, selected);
           const isToday = calSameDay(day, today);
           const isPast = day < today;
+          // Chiusura straordinaria: segnata, non spenta — questo è il
+          // calendario che si guarda, non quello con cui si prenota.
+          const chiusura = window.pnChiusuraDelGiorno ? pnChiusuraDelGiorno(calISO(day)) : null;
           return (
-            <button key={i} disabled={isPast} onClick={()=>onPick(calISO(day))} style={{
+            <button key={i} disabled={isPast} onClick={()=>onPick(calISO(day))}
+              title={chiusura ? pnChiusuraTesto(chiusura) : undefined} style={{
               padding:'7px 0', borderRadius: 7, position:'relative',
               background: isSel ? '#0F1115' : 'transparent',
-              color: isSel ? '#fff' : isPast ? '#D1D5DB' : '#0F1115',
+              color: isSel ? '#fff' : isPast ? '#D1D5DB' : chiusura ? '#d21e50' : '#0F1115',
+              textDecoration: chiusura && !isPast ? 'line-through' : 'none',
               border:'none', cursor: isPast ? 'default' : 'pointer', fontFamily:'inherit',
               fontSize: 16.5, fontWeight: isSel || isToday ? 700 : 500,
             }}>

@@ -391,7 +391,7 @@ function ConfigCompletaApp() {
                 tutto suo — riempie la larghezza e l'altezza chiude nei 900px
                 del canvas. */}
             <div style={{width: '100%', margin: '0 auto', flexShrink: 0}}>
-              <VetrinaMiniPreview tags={dati.tags} social={dati.social} categoria={pnGustoLabel(dati.categoria)} cta={false}
+              <VetrinaMiniPreview tags={dati.tags} social={dati.social} categoria={pnGustoLabel(dati.categoria)} chiusure={dati.chiusure} cta={false}
                 focusSection={step === 'informazioni' ? 'info' : 'gallery'}/>
             </div>
 

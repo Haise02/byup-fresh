@@ -536,8 +536,13 @@ function ImpSaveBar({ dirty, onCancel, onSave }) {
 // `cta` spegne la barra «Vedi menù / Prenota un tavolo»: nella Configurazione
 // completa il telefono serve a controllare i propri contenuti, non a simulare
 // le azioni del cliente — in Impostazioni → Vetrina la barra resta.
-function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorante', focusSection = null, cta = true }) {
+function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorante', chiusure = [], focusSection = null, cta = true }) {
   const A = { PINK:'#E32459', TEXT:'#1c0f15', MUTED:'#6d5a61', BG:'#FBF4F1', TINT:'#f6f1ea', SURF:'#fff', BORDER:'#eddfda' };
+  // Le chiusure straordinarie (P-46): oggi coperto → la pillola diventa
+  // CHIUSO; altrimenti la prossima chiusura si annuncia sotto gli orari.
+  const chiusaOggi = window.pnChiusuraDelGiorno && window.pnOggiISO ? pnChiusuraDelGiorno(pnOggiISO(), chiusure) : null;
+  const prossima = window.pnProssimaChiusura ? pnProssimaChiusura(chiusure) : null;
+  const rigaChiusura = chiusaOggi || prossima;
   const ref = React.useRef(null);
   const scrollRef = React.useRef(null);
   const [w, setW] = React.useState(340);
@@ -694,7 +699,9 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
 
               {/* Badge + tag scelti nel gestionale */}
               <div data-psec="tags" style={{display: 'flex', gap: 6, padding: '14px 20px 0', flexWrap: 'wrap'}}>
-                <span style={{fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: '#e6f5e9', padding: '4px 9px', borderRadius: 999}}>APERTO</span>
+                {chiusaOggi
+                  ? <span style={{fontSize: 10.5, fontWeight: 700, color: '#d21e50', background: '#fde8ee', padding: '4px 9px', borderRadius: 999}}>CHIUSO</span>
+                  : <span style={{fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: '#e6f5e9', padding: '4px 9px', borderRadius: 999}}>APERTO</span>}
                 <span style={{fontSize: 10.5, fontWeight: 700, color: A.TEXT, background: A.TINT, padding: '4px 9px', borderRadius: 999}}>🏆 TOP 10 ROMA</span>
                 {tags.slice(0, 3).map(t => (
                   <span key={t} style={{fontSize: 10.5, fontWeight: 700, color: A.PINK, background: '#FCE9EE', padding: '4px 9px', borderRadius: 999}}>{t.toUpperCase()}</span>
@@ -711,6 +718,12 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
                   {rowIcon(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>)}
                   Lun – Ven · 11:00 – 23:00
                 </div>
+                {rigaChiusura && (
+                  <div style={{fontSize: 13, fontWeight: 700, color: chiusaOggi ? '#d21e50' : '#B45309', display: 'flex', alignItems: 'center', gap: 6}}>
+                    {rowIcon(<><path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></>)}
+                    {pnChiusuraTesto(rigaChiusura)}
+                  </div>
+                )}
               </div>
 
               {/* Recensione media */}

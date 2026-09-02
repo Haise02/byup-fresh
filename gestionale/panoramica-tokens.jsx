@@ -641,3 +641,86 @@ window.pnAiProvenienzaValidata = (provId, nome) => {
   if (rec) { rec.human_validated_by = nome; rec.human_validated_at = new Date().toISOString(); }
   return rec;
 };
+
+// ─── Chiusure straordinarie del locale (P-46 · D-34) ───────────────────────
+// venue_closures del modello: starts_on e ends_on con l'ULTIMO GIORNO COMPRESO
+// (la chiusura di un giorno solo li ha uguali), reason facoltativo — testo
+// breve destinato alla vetrina, nessun dato personale: «ferie», «lavori», mai
+// nomi o circostanze. Erano solo interfaccia dentro il popup degli orari e si
+// perdevano alla chiusura; ora si persistono (localStorage, pattern di casa)
+// e raggiungono la vetrina — l'anteprima nelle Impostazioni e la scheda
+// consumer — e le prenotazioni, dove i giorni coperti si vedono e non si
+// scelgono.
+// SECONDO SCOPO, che qui si commenta e NON si implementa: il modello dà alla
+// tabella anche il compito di «non contare le ferie come inattività» — è il
+// ciclo di vita del locale in Hubble (D-34; admin-data.jsx, stato `inactive`
+// per chi non logga da N giorni). Chi costruirà quel calcolo legge le
+// chiusure da qui e non conta i giorni coperti.
+// SPECIFICA MANCANTE, non risolta qui: una chiusura che copre prenotazioni
+// già prese. L'operatore va fermato al salvataggio col conteggio delle
+// prenotazioni coinvolte, e il cliente va avvisato sulla sua prenotazione con
+// l'invito a contattare il locale — il flusso (chi decide, quale notifica,
+// che cosa resta) va scritto nella SFA. Il prototipo oggi non lo mostra.
+// Il seme è ancorato all'oggi reale a ogni caricamento (una chiusura fra tre
+// giorni, per tre giorni) più le festività di fine anno; in localStorage
+// finiscono solo le aggiunte e le rimozioni dell'utente, così il seme non
+// invecchia.
+const pnISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const pnOggiISO = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return pnISO(d); };
+const pnGiorniDaOggi = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return pnISO(d); };
+const PN_CHIUSURE_SEME = (() => {
+  const oggi = new Date();
+  const anno = (oggi.getMonth() === 11 && oggi.getDate() > 30) ? oggi.getFullYear() + 1 : oggi.getFullYear();
+  return [
+    { id: 'cl-ferie',     starts_on: pnGiorniDaOggi(3), ends_on: pnGiorniDaOggi(5), reason: 'Ferie' },
+    { id: 'cl-festivita', starts_on: `${anno}-12-25`,   ends_on: `${anno}-12-30`,   reason: 'Festività' },
+  ];
+})();
+const PN_CHIUSURE_KEY = 'byup_chiusure';
+window.byupReadChiusure = function () {
+  let delta = { aggiunte: [], rimossi: [] };
+  try { const s = localStorage.getItem(PN_CHIUSURE_KEY); if (s) delta = Object.assign(delta, JSON.parse(s)); } catch (e) {}
+  return PN_CHIUSURE_SEME.filter(c => !delta.rimossi.includes(c.id)).concat(delta.aggiunte)
+    .sort((a, b) => a.starts_on < b.starts_on ? -1 : 1);
+};
+window.byupWriteChiusure = function (lista) {
+  const semi = PN_CHIUSURE_SEME.map(c => c.id);
+  const delta = {
+    aggiunte: lista.filter(c => !semi.includes(c.id)),
+    rimossi: semi.filter(id => !lista.some(c => c.id === id)),
+  };
+  try { localStorage.setItem(PN_CHIUSURE_KEY, JSON.stringify(delta)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-chiusure-change'));
+};
+// La chiusura che copre un giorno (ISO), o null.
+window.pnChiusuraDelGiorno = (iso, lista) =>
+  (lista || window.byupReadChiusure()).find(c => c.starts_on <= iso && iso <= c.ends_on) || null;
+// La prossima chiusura non ancora finita (quella in corso compresa), o null.
+window.pnProssimaChiusura = (lista) => {
+  const oggi = pnOggiISO();
+  return (lista || window.byupReadChiusure()).find(c => c.ends_on >= oggi) || null;
+};
+// «gio 5 set»
+window.pnGiornoBreve = (iso) => new Date(`${iso}T00:00`).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }).replace('.', '');
+// Il primo giorno aperto da una data in poi (per il selettore di prenotazione).
+window.pnPrimoGiornoAperto = (iso, lista) => {
+  const l = lista || window.byupReadChiusure();
+  let d = new Date(`${iso}T00:00`);
+  for (let i = 0; i < 120; i++) { const k = pnISO(d); if (!window.pnChiusuraDelGiorno(k, l)) return k; d.setDate(d.getDate() + 1); }
+  return iso;
+};
+// La frase per la vetrina: oggi coperto → «Chiuso oggi · Ferie» o «Chiuso
+// fino a sab 7 set · Ferie»; chiusura futura → «Chiuso gio 5 set · Ferie» o
+// «Chiuso dal gio 5 al sab 7 set · Ferie». Il motivo solo se c'è.
+window.pnChiusuraTesto = (c) => {
+  if (!c) return '';
+  const oggi = pnOggiISO();
+  const motivo = c.reason ? ` · ${c.reason}` : '';
+  const singola = c.starts_on === c.ends_on;
+  if (c.starts_on <= oggi && oggi <= c.ends_on) {
+    return (singola || c.ends_on === oggi ? 'Chiuso oggi' : `Chiuso fino a ${window.pnGiornoBreve(c.ends_on)}`) + motivo;
+  }
+  return (singola ? `Chiuso ${window.pnGiornoBreve(c.starts_on)}`
+    : `Chiuso dal ${window.pnGiornoBreve(c.starts_on)} al ${window.pnGiornoBreve(c.ends_on)}`) + motivo;
+};
+window.pnOggiISO = pnOggiISO;

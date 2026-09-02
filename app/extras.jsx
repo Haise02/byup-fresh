@@ -2,6 +2,49 @@
 // extras.jsx — Profile, Venue, Booking sheet, fancy food icons
 const { useState, useEffect, useRef } = React;
 
+// ─── Chiusure straordinarie del locale (P-46 · D-34) ───────────────────────
+// venue_closures: starts_on/ends_on con l'ultimo giorno compreso, reason breve
+// per la vetrina. I bundle non condividono i dati, quindi qui c'è un seme
+// ancorato all'oggi reale — le stesse date del gestionale (fra tre giorni, per
+// tre giorni, «Ferie») — perché la scheda del locale e la prenotazione lo
+// possano dimostrare. Nei giorni coperti la scheda dice la chiusura e il
+// selettore della prenotazione spegne il giorno.
+const appISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const appOggiISO = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return appISO(d); };
+const appGiorniDaOggi = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return appISO(d); };
+const APP_CHIUSURE = [
+  { id: 'cl-ferie', starts_on: appGiorniDaOggi(3), ends_on: appGiorniDaOggi(5), reason: 'Ferie' },
+];
+const appChiusuraDelGiorno = (iso) => APP_CHIUSURE.find(c => c.starts_on <= iso && iso <= c.ends_on) || null;
+const appProssimaChiusura = () => { const oggi = appOggiISO(); return APP_CHIUSURE.find(c => c.ends_on >= oggi) || null; };
+const appGiornoBreve = (iso) => new Date(`${iso}T00:00`).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }).replace('.', '');
+// «Chiuso oggi · Ferie», «Chiuso fino a sab 7 set · Ferie», «Chiuso dal gio 5
+// al sab 7 set · Ferie»: stesse formule dell'anteprima nel gestionale.
+const appChiusuraTesto = (c) => {
+  if (!c) return '';
+  const oggi = appOggiISO();
+  const motivo = c.reason ? ` · ${c.reason}` : '';
+  const singola = c.starts_on === c.ends_on;
+  if (c.starts_on <= oggi && oggi <= c.ends_on) {
+    return (singola || c.ends_on === oggi ? 'Chiuso oggi' : `Chiuso fino a ${appGiornoBreve(c.ends_on)}`) + motivo;
+  }
+  return (singola ? `Chiuso ${appGiornoBreve(c.starts_on)}` : `Chiuso dal ${appGiornoBreve(c.starts_on)} al ${appGiornoBreve(c.ends_on)}`) + motivo;
+};
+// I sei giorni del selettore di prenotazione, da oggi, con etichetta e stato:
+// prima erano sei etichette scritte a mano («Sab 11», «Dom 12»…) che non
+// sapevano che giorno fosse.
+const appGiorniPrenotabili = () => Array.from({ length: 6 }, (_, i) => {
+  const iso = appGiorniDaOggi(i);
+  const d = new Date(`${iso}T00:00`);
+  const wd = d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' }).replace('.', '');
+  const label = i === 0 ? 'Oggi' : i === 1 ? 'Domani' : wd.charAt(0).toUpperCase() + wd.slice(1);
+  return { iso, label, chiusura: appChiusuraDelGiorno(iso) };
+});
+window.appChiusuraDelGiorno = appChiusuraDelGiorno;
+window.appProssimaChiusura = appProssimaChiusura;
+window.appChiusuraTesto = appChiusuraTesto;
+window.appOggiISO = appOggiISO;
+
 // ─── Tokens (mirror app.jsx) ────────────────────────────────
 // Tema letto al load (pagina = file separato → dark coerente cross-page)
 const __BYUP_DK_X = (() => {
@@ -1760,9 +1803,17 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
       else setPrefilled(false);
     }
   }, [open, defaultTime, editBooking]);
+  // Giorni veri, e un giorno coperto da una chiusura non resta selezionato:
+  // si passa al primo aperto (P-46).
+  const giorni = appGiorniPrenotabili();
+  useEffect(() => {
+    if (!open) return;
+    const g = giorni.find(x => x.label === date);
+    if (g && g.chiusura) { const primo = giorni.find(x => !x.chiusura); if (primo) setDate(primo.label); }
+  }, [open, date]);
   if (!open) return null;
 
-  const dates = ['Oggi', 'Domani', 'Sab 11', 'Dom 12', 'Lun 13', 'Mar 14'];
+  const dates = giorni.map(g => g.label);
   const lunch = ['12:30', '13:00', '13:30'];
   const dinner = ['19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
   const chip = (active) => ({
@@ -1804,8 +1855,14 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
 
               {label('Quando')}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                {dates.map(d => (
-                  <button key={d} onClick={() => setDate(d)} style={chip(date === d)}>{d}</button>
+                {giorni.map(g => (
+                  <button key={g.label} onClick={() => !g.chiusura && setDate(g.label)} disabled={!!g.chiusura}
+                    title={g.chiusura ? appChiusuraTesto(g.chiusura) : undefined}
+                    style={g.chiusura
+                      ? { ...chip(false), color: '#b9a3aa', textDecoration: 'line-through', cursor: 'default', opacity: 0.7 }
+                      : chip(date === g.label)}>
+                    {g.label}{g.chiusura ? <div style={{ fontSize: 10, fontWeight: 800, color: '#d21e50', textDecoration: 'none', marginTop: 2 }}>Chiuso</div> : null}
+                  </button>
                 ))}
               </div>
 
@@ -2310,12 +2367,20 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
           </div>
         </div>
 
-        {/* Status badges row */}
+        {/* Status badges row. La chiusura straordinaria (P-46): oggi coperto →
+            CHIUSO al posto di APERTO; la prossima si annuncia sotto gli orari. */}
         <div style={{ display: 'flex', gap: 6, padding: '14px 20px 0 20px', flexWrap: 'wrap' }}>
-          <span style={{
-            fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: __BYUP_DK_X ? 'rgba(20,130,64,.20)' : '#e6f5e9',
-            padding: '4px 9px', borderRadius: 999, whiteSpace: 'nowrap',
-          }}>APERTO</span>
+          {appChiusuraDelGiorno(appOggiISO()) ? (
+            <span style={{
+              fontSize: 10.5, fontWeight: 700, color: '#d21e50', background: __BYUP_DK_X ? 'rgba(210,30,80,.22)' : '#fde8ee',
+              padding: '4px 9px', borderRadius: 999, whiteSpace: 'nowrap',
+            }}>CHIUSO</span>
+          ) : (
+            <span style={{
+              fontSize: 10.5, fontWeight: 700, color: '#0a8a3a', background: __BYUP_DK_X ? 'rgba(20,130,64,.20)' : '#e6f5e9',
+              padding: '4px 9px', borderRadius: 999, whiteSpace: 'nowrap',
+            }}>APERTO</span>
+          )}
           <span style={{
             fontSize: 10.5, fontWeight: 700, color: TEXT_X, background: TINT_X,
             padding: '4px 9px', borderRadius: 999, whiteSpace: 'nowrap',
@@ -2333,6 +2398,12 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Lun – Ven · 11:00 – 23:00
             </div>
+            {(appChiusuraDelGiorno(appOggiISO()) || appProssimaChiusura()) && (
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: appChiusuraDelGiorno(appOggiISO()) ? '#d21e50' : '#B45309', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                {appChiusuraTesto(appChiusuraDelGiorno(appOggiISO()) || appProssimaChiusura())}
+              </div>
+            )}
           </div>
 
           {/* Recensione media */}
