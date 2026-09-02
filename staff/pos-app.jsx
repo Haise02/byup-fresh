@@ -19,7 +19,7 @@ function POSApp() {
   const noticeDone = consentEvents.some(e => e.type === 'staff_metrics_notice');
   const registraNotice = () => setConsentEvents(l => [...l, {
     type: 'staff_metrics_notice', at: new Date().toISOString(),
-    operatore: POS_USER.operatore, superficie: 'byup-staff-pos',
+    operatore: MERCHANT.operatore, superficie: 'byup-staff-pos',
   }]);
 
   const pagaConto = id => setContiPagati(p => p.includes(id) ? p : [...p, id]);
