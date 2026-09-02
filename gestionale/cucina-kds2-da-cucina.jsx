@@ -5,8 +5,10 @@
 // Passando da Ristorante a Pub non cambiava solo il modo di guardare — cambiava
 // quello che c'era da cuocere, e davanti a un ristoratore si vede subito.
 //
-// Qui la conversione, in un file solo: quando arriverà l'API sparirà insieme ai
-// mock, perché il modello vero sarà già quello a porzioni.
+// Qui la conversione, in un file solo. P-07 (D-13): questo file si ELIMINA
+// all'arrivo delle interfacce applicative vere — il modello è a porzioni
+// (order_item_portions) e il KDS leggerà direttamente l'unità giusta, senza
+// conversione. Non estenderlo: ogni riga aggiunta qui è debito.
 //
 // Un ticket ha righe («tavolo 12: 3 carbonare»), il v2 ha PORZIONI: la stessa
 // riga, ma sganciata dal ticket, così può stare accanto alle carbonare di un
