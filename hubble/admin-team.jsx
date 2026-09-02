@@ -14,9 +14,9 @@ const ADM_SEZIONI = {
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'],
     testata: { titolo:'Sicurezza e sistemi',
       sotto:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma.' } },
-  impostazioni: { pred:'piattaforma', tabs:['piattaforma'],
+  impostazioni: { pred:'piattaforma', tabs:['piattaforma','incaricati'],
     testata: { titolo:'Piattaforma',
-      sotto:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app.' } },
+      sotto:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app — e gli incaricati Fisconline che trasmettono gli scontrini delle società.' } },
 };
 
 function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
@@ -68,6 +68,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             { id:'accessi',     label:'Accessi',         badge:TEAM.filter(m => m.attivo !== false && !m.pending).length },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
+            { id:'incaricati',  label:'Incaricati Fisconline' },
             { id:'diagnostica', label:'Diagnostica' },
           ].filter(t => sez.tabs.indexOf(t.id) !== -1)} active={tab} onChange={setTab}/>
           <div style={{flex:1}}/>
@@ -85,6 +86,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             della scadenza: sono roba da sbrigare, non una nota a piè di pagina. */}
         {tab === 'accessi' && <AccessReview/>}
         {tab === 'piattaforma' && <PlatformConfig/>}
+        {tab === 'incaricati' && <HubIncaricatiPage/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}
       </AdmCard>

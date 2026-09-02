@@ -706,18 +706,34 @@ function DrwFiscali({ locale: l }) {
           </div>
           <div>
             <label style={drwLab}>Partita IVA</label>
-            <div style={{position:'relative'}}>
-              <input value={form.piva} onChange={F('piva')} style={{...drwMono, paddingRight:110}}/>
-              {/* La spunta del gestionale: la P.IVA è passata dal controllo AdE. */}
-              <span style={{position:'absolute', right:9, top:'50%', transform:'translateY(-50%)', display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:999, background:ADM.OK_SOFT, color:ADM.OK, fontSize:11, fontWeight:800}}>
-                <BuIcons.check size={12}/> Verificata (AdE)
-              </span>
-            </div>
+            {/* Niente badge «Verificata (AdE)»: nessuno la verifica presso
+                l'Agenzia, e il gestionale ha smesso di dirlo. Qui, come là,
+                solo il formato. */}
+            <input value={form.piva} onChange={F('piva')} style={drwMono}/>
           </div>
           <div>
             <label style={drwLab}>Codice fiscale</label>
             <input value={form.cf} onChange={F('cf')} style={drwMono}/>
           </div>
+          {/* Chi trasmette gli scontrini della società: l'incaricato di Byup
+              (Impostazioni → Piattaforma → Incaricati Fisconline), con lo
+              stato della sua password. È lettura: si rinnova di là. */}
+          {(() => {
+            const inc = (window.HubIncaricatiPage && typeof imIncLeggi === 'function') ? (imIncLeggi().find(i => (i.locali || []).includes(l.id)) || imIncLeggi()[0]) : null;
+            if (!inc) return null;
+            const st = imIncStato(inc);
+            const col = st.stato === 'scaduta' ? ADM.DANGER : st.stato === 'promemoria' ? ADM.WARN : ADM.OK;
+            return (
+              <div style={{gridColumn:'1 / -1'}}>
+                <label style={drwLab}>Trasmissione degli scontrini</label>
+                <div style={{...drwInp, background:ADM.PANEL_SOFT, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+                  <span style={{color:ADM.TEXT}}>Incaricato di Byup <b>{inc.nome}</b></span>
+                  <span style={{color:ADM.MUTED, fontSize:12.5}}>· password rinnovata il {st.rinnovoTesto}, vale fino al {st.scadenza}</span>
+                  <span style={{marginLeft:'auto', fontSize:12, fontWeight:700, color:col}}>{st.stato === 'scaduta' ? 'Scaduta: il locale non emette' : st.stato === 'promemoria' ? `Scade tra ${st.giorni} giorni` : 'Valida'}</span>
+                </div>
+              </div>
+            );
+          })()}
           <div>
             <label style={drwLab}>Regime fiscale</label>
             <AdmSelect value={form.regime} onChange={F('regime')} block

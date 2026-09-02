@@ -440,3 +440,163 @@ function HubProprietaPage() {
 window.HubDominiPage = HubDominiPage;
 window.HubProprietaPage = HubProprietaPage;
 window.IM_TIPI_PROP = IM_TIPI_PROP;
+
+
+// ─── Incaricati Fisconline ───────────────────────────────────────────────────
+// Le società non possono usare da sole la procedura del documento commerciale
+// online: «nel caso in cui l'operatore sia una società, il servizio può essere
+// utilizzato da operatori incaricati» (specifiche corrispettivi §2.9). Per i
+// locali società l'incaricato è una persona di Byup, che ogni società nomina
+// una volta col gestore incarichi del portale; le credenziali Fisconline sono
+// di quella persona e la password scade ogni novanta giorni. Da qui Byup la
+// rinnova — una password per tutte le società in carico a quella persona,
+// quindi se scade si fermano insieme: l'allarme lo dice per numero di locali.
+// Registro byup_incaricati, lo stesso che leggono Dati fiscali e Cassa del
+// gestionale (panoramica-tokens.jsx, altro bundle: seme e lettura sono copie
+// guardate, con gli stessi nomi e la stessa fusione sul seme per id).
+const IM_INC_KEY = 'byup_incaricati';
+const IM_INC_VITA = 90;
+const imGiorniFa = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const imIncSeme = () => [
+  { id: 'inc-1', nome: 'Luca Ferrante', ruolo: 'Operazioni fiscali · Byup', cf: 'FRRLCU85M10H501Z', rinnovo: imGiorniFa(84), rinnovato_da: 'Luca Ferrante', locali: ['cp', 'co', 'tb'] },
+];
+const imIncLeggi = () => {
+  if (window.byupReadIncaricati) return window.byupReadIncaricati();
+  let salvati = {};
+  try { const s = localStorage.getItem(IM_INC_KEY); if (s) JSON.parse(s).forEach(r => { salvati[r.id] = r; }); } catch (e) {}
+  const seme = imIncSeme();
+  const lista = seme.map(r => salvati[r.id] ? { ...r, ...salvati[r.id] } : r);
+  Object.values(salvati).forEach(r => { if (!seme.some(x => x.id === r.id)) lista.push(r); });
+  return lista;
+};
+const imIncScrivi = (lista) => {
+  try { localStorage.setItem(IM_INC_KEY, JSON.stringify(lista)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-incaricati-change'));
+};
+const imIncStato = (inc) => {
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const rinnovo = new Date(`${inc.rinnovo}T00:00:00`);
+  const scadenza = new Date(rinnovo); scadenza.setDate(scadenza.getDate() + IM_INC_VITA);
+  const giorni = Math.round((scadenza - oggi) / 86400000);
+  const f = (d) => d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+  return { giorni, rinnovoTesto: f(rinnovo), scadenza: f(scadenza), stato: giorni <= 0 ? 'scaduta' : giorni <= 14 ? 'promemoria' : 'ok' };
+};
+// I locali società in carico: nel mock i tre dell'account demo del gestionale.
+const IM_LOCALI_NOMI = { cp: 'Cacio e Pepe', co: 'Cacio e Pepe · Ostiense', tb: 'Trattoria del Borgo' };
+
+function HubIncaricatiPage() {
+  const [lista, setLista] = useStateIm(imIncLeggi);
+  const [rinnovo, setRinnovo] = useStateIm(null);      // { id, pwd, fase: 'inserisci' | 'verifica' | 'errore' }
+  const [nuovo, setNuovo] = useStateIm(null);          // { nome, cf }
+  React.useEffect(() => {
+    const ri = () => setLista(imIncLeggi());
+    window.addEventListener('byup-incaricati-change', ri);
+    return () => window.removeEventListener('byup-incaricati-change', ri);
+  }, []);
+  const scaduti = lista.filter(i => imIncStato(i).stato === 'scaduta');
+  const localiFermi = scaduti.reduce((n, i) => n + (i.locali || []).length, 0);
+
+  // Il rinnovo non si fida sulla parola: si incolla la password nuova, e una
+  // trasmissione di prova la verifica prima di scriverla. Come in P-104, il
+  // primo giro fallisce — chi incolla la vecchia deve saperlo adesso.
+  const verifica = () => {
+    if (!rinnovo || !(rinnovo.pwd || '').trim()) return;
+    const tent = (rinnovo.tent || 0) + 1;
+    setRinnovo({ ...rinnovo, fase: 'verifica', tent });
+    setTimeout(() => {
+      if (tent === 1) { setRinnovo(r => r && { ...r, fase: 'errore' }); return; }
+      const oggi = imGiorniFa(0);
+      imIncScrivi(imIncLeggi().map(i => i.id === rinnovo.id ? { ...i, rinnovo: oggi, rinnovato_da: (window.HUB_UTENTE && window.HUB_UTENTE.nome) || 'Super Admin' } : i));
+      setRinnovo(null);
+    }, 1600);
+  };
+  const aggiungi = () => {
+    if (!nuovo || !(nuovo.nome || '').trim() || !/^[A-Z0-9]{16}$/.test((nuovo.cf || '').toUpperCase())) return;
+    imIncScrivi([...imIncLeggi(), { id: 'inc-' + Date.now().toString(36).slice(-4), nome: nuovo.nome.trim(), ruolo: 'Operazioni fiscali · Byup', cf: nuovo.cf.toUpperCase(), rinnovo: imGiorniFa(0), rinnovato_da: (window.HUB_UTENTE && window.HUB_UTENTE.nome) || 'Super Admin', locali: [] }]);
+    setNuovo(null);
+  };
+  const pill = (st) => {
+    const c = st.stato === 'scaduta' ? [ADM.DANGER, ADM.DANGER_SOFT] : st.stato === 'promemoria' ? [ADM.WARN, ADM.WARN_SOFT] : [ADM.OK, ADM.OK_SOFT];
+    const t = st.stato === 'scaduta' ? `Scaduta da ${-st.giorni} giorn${st.giorni === -1 ? 'o' : 'i'}` : st.stato === 'promemoria' ? `Scade tra ${st.giorni} giorn${st.giorni === 1 ? 'o' : 'i'}` : `Valida · ${st.giorni} giorni`;
+    return <span style={{display:'inline-flex', alignItems:'center', gap:6, padding:'3px 10px', borderRadius:999, background:c[1], color:c[0], fontSize:12.5, fontWeight:700, whiteSpace:'nowrap'}}><span style={{width:6, height:6, borderRadius:'50%', background:c[0]}}/>{t}</span>;
+  };
+  const inp = { width:'100%', padding:'9px 11px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, boxSizing:'border-box', outline:'none' };
+
+  return (
+    <div style={{padding:'18px 22px 26px', display:'flex', flexDirection:'column', gap:14}}>
+      <div style={{padding:'12px 14px', borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:13.6, color:ADM.TEXT, lineHeight:1.5}}>
+        <b>Le società trasmettono gli scontrini con le credenziali di una persona di Byup.</b> Ogni società la nomina una volta come incaricato sul portale dell'Agenzia; la sua password Fisconline scade ogni novanta giorni e si rinnova qui, prima con il cambio sul portale e poi con la verifica. Una password vale per tutte le società in carico: se scade, si fermano insieme.
+      </div>
+
+      {localiFermi > 0 && (
+        <div style={{display:'flex', alignItems:'center', gap:12, padding:'12px 14px', borderRadius:10, background:ADM.DANGER_SOFT, border:`1px solid #F5C2C2`}}>
+          <div style={{width:34, height:34, borderRadius:9, background:ADM.DANGER, color:'#fff', display:'grid', placeItems:'center', flexShrink:0}}><BuIcons.alert size={16}/></div>
+          <div style={{fontSize:13.6, color:ADM.TEXT, lineHeight:1.5}}>
+            <b style={{color:ADM.DANGER}}>{localiFermi} local{localiFermi === 1 ? 'e non emette' : 'i non emettono'} scontrini.</b> La password di {scaduti.map(i => i.nome).join(', ')} è scaduta: ogni invio viene rifiutato finché non è rinnovata qui sotto. Nel gestionale i locali vedono l'avviso in Dati fiscali e in Cassa, con «la rinnova Byup».
+          </div>
+        </div>
+      )}
+
+      <AdmCard padding={0}>
+        <div style={{display:'grid', gridTemplateColumns:'2fr 1.4fr 1.6fr 1.2fr 1.3fr', gap:12, padding:'11px 16px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em'}}>
+          <span>Incaricato</span><span>Codice fiscale</span><span>Password</span><span>Locali in carico</span><span/>
+        </div>
+        {lista.map((inc, i) => {
+          const st = imIncStato(inc);
+          const inRinnovo = rinnovo && rinnovo.id === inc.id;
+          return (
+            <div key={inc.id} style={{borderTop: i ? `1px solid ${ADM.BORDER_SOFT}` : 'none'}}>
+              <div style={{display:'grid', gridTemplateColumns:'2fr 1.4fr 1.6fr 1.2fr 1.3fr', gap:12, padding:'13px 16px', alignItems:'center', fontSize:13.5, color:ADM.TEXT}}>
+                <div style={{minWidth:0}}>
+                  <div style={{fontWeight:700}}>{inc.nome}</div>
+                  <div style={{fontSize:12.5, color:ADM.MUTED}}>{inc.ruolo}</div>
+                </div>
+                <span style={{fontFamily:'ui-monospace, Menlo, monospace', fontSize:12.8}}>{inc.cf}</span>
+                <div style={{minWidth:0}}>
+                  {pill(st)}
+                  <div style={{fontSize:12, color:ADM.MUTED, marginTop:3}}>rinnovata il {st.rinnovoTesto} da {inc.rinnovato_da} · vale fino al {st.scadenza}</div>
+                </div>
+                <div style={{fontSize:13}} title={(inc.locali || []).map(id => IM_LOCALI_NOMI[id] || id).join(', ')}>
+                  {(inc.locali || []).length} societ{(inc.locali || []).length === 1 ? 'à' : 'à'}
+                  <div style={{fontSize:12, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{(inc.locali || []).map(id => IM_LOCALI_NOMI[id] || id).join(', ') || '—'}</div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  {!inRinnovo && <AdmButton variant={st.stato === 'ok' ? 'secondary' : 'primary'} size="sm" onClick={() => setRinnovo({ id: inc.id, pwd: '', fase: 'inserisci', tent: 0 })}>Rinnova password</AdmButton>}
+                </div>
+              </div>
+              {inRinnovo && (
+                <div style={{margin:'0 16px 14px', padding:'12px 14px', borderRadius:10, background:ADM.PANEL_SOFT, border:`1px solid ${ADM.BORDER_SOFT}`}}>
+                  <div style={{fontSize:13.2, color:ADM.TEXT, lineHeight:1.5, marginBottom:8}}>
+                    <b>1.</b> {inc.nome} cambia la password nell'area riservata dell'Agenzia (Fisconline). <b>2.</b> Incollala qui: parte una trasmissione di prova, e solo se passa la password è salvata per tutte le società in carico.
+                  </div>
+                  <div style={{display:'flex', gap:10, alignItems:'center', flexWrap:'wrap'}}>
+                    <input type="password" value={rinnovo.pwd} onChange={e => setRinnovo({ ...rinnovo, pwd: e.target.value })} placeholder="Nuova password Fisconline" style={{...inp, maxWidth:300}}/>
+                    <AdmButton variant="primary" size="sm" onClick={verifica} disabled={rinnovo.fase === 'verifica' || !(rinnovo.pwd || '').trim()}>{rinnovo.fase === 'verifica' ? 'Trasmissione di prova…' : rinnovo.fase === 'errore' ? 'Riprova' : 'Verifica e salva'}</AdmButton>
+                    <AdmButton variant="ghost" size="sm" onClick={() => setRinnovo(null)}>Annulla</AdmButton>
+                    {rinnovo.fase === 'errore' && <span style={{fontSize:12.8, color:ADM.DANGER, fontWeight:600}}>L'Agenzia ha rifiutato le credenziali: se la password è stata appena cambiata sul portale, incolla quella nuova.</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div style={{padding:'12px 16px', borderTop:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+          {nuovo ? (
+            <React.Fragment>
+              <input value={nuovo.nome} onChange={e => setNuovo({ ...nuovo, nome: e.target.value })} placeholder="Nome e cognome" style={{...inp, maxWidth:240}}/>
+              <input value={nuovo.cf} onChange={e => setNuovo({ ...nuovo, cf: e.target.value.toUpperCase() })} placeholder="Codice fiscale" style={{...inp, maxWidth:220, fontFamily:'ui-monospace, Menlo, monospace'}}/>
+              <AdmButton variant="primary" size="sm" onClick={aggiungi}>Aggiungi</AdmButton>
+              <AdmButton variant="ghost" size="sm" onClick={() => setNuovo(null)}>Annulla</AdmButton>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <AdmButton variant="secondary" size="sm" onClick={() => setNuovo({ nome: '', cf: '' })}>Aggiungi un incaricato</AdmButton>
+              <span style={{fontSize:12.5, color:ADM.MUTED}}>Un incaricato nuovo va nominato da ciascuna società sul portale prima di poter trasmettere per lei: nel gestionale la card degli scontrini glielo chiede con i tap.</span>
+            </React.Fragment>
+          )}
+        </div>
+      </AdmCard>
+    </div>
+  );
+}
+window.HubIncaricatiPage = HubIncaricatiPage;
