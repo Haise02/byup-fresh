@@ -508,12 +508,15 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
   const [chiedi, setChiedi] = React.useState(false);   // il «Sicuro?» prima del cambio
   const [entNome, setEntNome] = React.useState('Giulia Bianchi');
   const [entEmail, setEntEmail] = React.useState('giulia.bianchi@example.it');
-  const [verificando, setVerificando] = React.useState(false);
+  const [ricollegando, setRicollegando] = React.useState(false);
   const [, forza] = React.useState(0);
+  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
   React.useEffect(() => {
     const ri = () => forza(x => x + 1);
+    const rs = () => setStripe(byupReadStripe());
     window.addEventListener('byup-holder-change', ri);
-    return () => window.removeEventListener('byup-holder-change', ri);
+    window.addEventListener('byup-stripe-change', rs);
+    return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-stripe-change', rs); };
   }, []);
 
   const persona = f.legalForm === 'ditta_individuale' || f.legalForm === 'professionista';
@@ -533,12 +536,15 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
     if (!cambiaSoggetto) { onSalva(campi); onClose(); return; }
     setChiedi(true);
   };
+  // Alla conferma i dati cambiano subito (tappa fiscal_updated) e Stripe si
+  // disabilita. Restano due cose, e sono le due righe della fase dopo: la
+  // delega riconferita con lo SPID e Stripe ricollegato — che è la verifica.
   const avviaDavvero = () => {
     const campi = { ...f, piva: pivaPulita };
     setChiedi(false);
     byupStripeDisabilita('cambio_soggetto');
     const now = new Date().toISOString();
-    byupWriteHolderChange({
+    const record = {
       id: 'hc-' + Date.now(), change_type: stessa ? 'legal_entity' : 'both', fiscal_chain_impacted: true,
       legal_form: f.legalForm,
       status: 'proposed', proposed_by: 'Mario Rossi', created_at: now,
@@ -548,17 +554,22 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
         prima: { denominazione: data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione, piva: data.piva },
         dopo: { denominazione, piva: pivaPulita, forma: f.legalForm, campi },
       },
-    });
+    };
+    byupWriteHolderChange(record);
+    onApplica(record);
+    byupHolderAvanza('fiscal_updated');
   };
 
   const c = window.byupReadHolderChange ? byupReadHolderChange() : null;
   const inCorso = c && c.soggetto && c.status !== 'refused';
-  const tappe = inCorso ? pnHolderTappe(c.change_type, c.legal_form) : [];
-  const prossima = inCorso ? tappe.find(t => !c.steps[t]) : null;
-  const verifica = () => { setVerificando(true); setTimeout(() => { setVerificando(false); byupHolderAvanza('verified'); }, 1400); };
-  // Confermati i dati, la delega va rifatta subito: il foglio si chiude e si
-  // apre quello della delega, senza che l'esercente lo debba cercare.
-  const conferma = () => { onApplica(c); byupHolderAvanza('fiscal_updated'); onClose(); onDelega(); };
+  // Nella cessione chi entra accetta dal suo telefono: qui non c'è nulla da
+  // premere, nel prototipo si simula da sola.
+  React.useEffect(() => {
+    if (!inCorso || c.steps.accepted || c.change_type !== 'both') return;
+    const t = setTimeout(() => byupHolderAvanza('accepted'), 2200);
+    return () => clearTimeout(t);
+  }, [inCorso && c.id, inCorso && !!c.steps.accepted]);
+  const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); byupStripeRicollega(); }, 1800); };
 
   const tile = (on, titolo, sotto, onClick) => (
     <button onClick={onClick} style={{
@@ -586,7 +597,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
       <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 820, maxHeight:'94vh', display:'flex', flexDirection:'column', position:'relative'}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
-          <div style={{...MODAL_TITLE, fontSize: 21}}>Cambia soggetto fiscale</div>
+          <div style={{...MODAL_TITLE, fontSize: 21}}>{inCorso ? 'Cambio di soggetto fiscale' : 'Cambia soggetto fiscale'}</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
             {inCorso
               ? `Da ${c.soggetto.prima.denominazione} (${c.soggetto.prima.piva}) a ${c.soggetto.dopo.denominazione} (${c.soggetto.dopo.piva})`
@@ -664,27 +675,37 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
           </div>
         ) : (
           <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
-            {/* Le tappe che si fanno QUI, nell'ordine del modello: chi entra
-                accetta (solo nella cessione), l'identità si verifica, i dati
-                si confermano. Le deleghe stanno nell'onboarding. */}
-            {PN_HOLDER_STATI.filter(st => tappe.includes(st.id) && st.id !== 'completed').map(st => {
-              const fatta = !!c.steps[st.id];
-              const tocca = st.id === prossima;
-              return (
-                <div key={st.id} style={{display:'flex', alignItems:'center', gap: 12, padding:'10px 12px', borderRadius: 10, border:`1px solid ${tocca ? PN.PINK : PN.BORDER_SOFT}`, background: fatta ? PN.GREEN_SOFT : PN.WHITE}}>
-                  <span style={{width: 12, height: 12, borderRadius: 999, flexShrink: 0, background: fatta ? PN.GREEN : 'transparent', border:`2px solid ${fatta ? PN.GREEN : tocca ? PN.PINK_DARK : PN.BORDER}`}}/>
+            {/* Due cose restano, e sono due righe: la delega, che chi rappresenta
+                il nuovo soggetto riconferisce con lo SPID; e Stripe, dove il nuovo
+                soggetto apre il suo account — la verifica dell'identità è quella. */}
+            {(() => {
+              const attesaAccettazione = c.change_type === 'both' && !c.steps.accepted;
+              const delegaOk = !!c.steps.delegations_renewed;
+              const stripeOk = stripe.status === 'connected' && !!c.steps.verified;
+              const riga = (titolo, sotto, ok, azione) => (
+                <div style={{display:'flex', alignItems:'center', gap: 12, padding:'12px 14px', borderRadius: 10, border:`1px solid ${ok ? PN.GREEN_SOFT : PN.BORDER_SOFT}`, background: ok ? PN.GREEN_SOFT : PN.WHITE}}>
+                  <span style={{width: 12, height: 12, borderRadius: 999, flexShrink: 0, background: ok ? PN.GREEN : 'transparent', border:`2px solid ${ok ? PN.GREEN : PN.PINK_DARK}`}}/>
                   <div style={{flex: 1, minWidth: 0}}>
-                    <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{st.label}</div>
-                    {st.id === 'fiscal_updated' && fatta && <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>P.IVA precedente {c.soggetto.prima.piva} conservata: i documenti già emessi la portano.</div>}
-                    {st.id === 'delegations_renewed' && !fatta && <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Chi rappresenta il nuovo soggetto la riconferisce con il proprio SPID.</div>}
+                    <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{titolo}</div>
+                    <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>{sotto}</div>
                   </div>
-                  {tocca && st.id === 'accepted' && <ImpButton variant="primary" onClick={() => byupHolderAvanza('accepted')}>Simula l'accettazione di {c.entrante.nome} (demo)</ImpButton>}
-                  {tocca && st.id === 'verified' && (verificando ? <span style={{fontSize: 13.5, color: PN.MUTED}}>Verifica in corso…</span> : <ImpButton variant="primary" onClick={verifica}>Verifica l'identità</ImpButton>)}
-                  {tocca && st.id === 'fiscal_updated' && <ImpButton variant="primary" onClick={conferma}>Conferma i dati del nuovo soggetto</ImpButton>}
-                  {tocca && st.id === 'delegations_renewed' && <ImpButton variant="primary" onClick={() => { onClose(); onDelega(); }}>Riconferisci la delega</ImpButton>}
+                  {!ok && azione}
                 </div>
               );
-            })}
+              return (
+                <React.Fragment>
+                  <div style={{fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
+                    <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b> P.IVA precedente {c.soggetto.prima.piva} conservata: i documenti già emessi la portano.
+                    {attesaAccettazione && <> In attesa che {c.entrante.nome} accetti l'invito con la sua casella e la sua identità.</>}
+                  </div>
+                  {riga('Delega all\'Agenzia', 'La riconferisce chi rappresenta il nuovo soggetto, con il proprio SPID. Finché manca, niente scontrini.', delegaOk,
+                    <ImpButton variant="primary" disabled={attesaAccettazione} onClick={() => { onClose(); onDelega(); }}>Riconferisci la delega</ImpButton>)}
+                  {riga('Stripe', 'Il nuovo soggetto apre il suo account: la verifica dell\'identità la fa Stripe. Finché manca, niente pagamenti.', stripeOk,
+                    <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>)}
+                  {c.status === 'completed' && <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700}}>Cambiamento concluso.</div>}
+                </React.Fragment>
+              );
+            })()}
           </div>
         )}
 
@@ -788,7 +809,7 @@ function ImpDelegaRiconfermaModal({ onClose }) {
         <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
           {fatta ? (
             <div style={{padding:'12px 14px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-              <b style={{color: PN.GREEN}}>Delega riconferita.</b> Il cambiamento è concluso: lo vedi in <a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Account</a>.
+              <b style={{color: PN.GREEN}}>Delega riconferita.</b> {c.status === 'completed' ? <>Il cambiamento è concluso: lo vedi in <a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Account</a>.</> : 'Resta Stripe da ricollegare.'}
             </div>
           ) : (
             <React.Fragment>
@@ -858,6 +879,7 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica, onDelega }) {
   const pronta = !!cambio.steps.verified && !fatta;
   const segna = () => { onApplica(cambio); byupHolderAvanza('fiscal_updated'); onDelega(); };
   const deleghe = !!cambio.steps.delegations_renewed;
+  const concluso = cambio.status === 'completed';
   return (
     <ImpCard title="Cambio di titolarità in corso" sub={conSoggetto
       ? `Da ${cambio.soggetto.prima.denominazione} (${cambio.soggetto.prima.piva}) a ${cambio.soggetto.dopo.denominazione} (${cambio.soggetto.dopo.piva})`
@@ -866,13 +888,11 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica, onDelega }) {
       {conSoggetto ? (
         <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
           <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-            {fatta
-              ? <><b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili.{deleghe ? ' Delega riconferita: cambiamento concluso.' : ' Resta la delega da riconferire.'}</>
-              : 'Le tappe si fanno nel foglio: identità, dati del nuovo soggetto, poi la delega. Finché la delega non è riconferita non emetti scontrini; Stripe va ricollegato dal nuovo soggetto.'}
+            <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili.
+            {concluso ? ' Delega riconferita e Stripe ricollegato: cambiamento concluso.'
+              : ` Rest${!deleghe && !cambio.steps.verified ? 'ano' : 'a'}${!deleghe ? ' la delega da riconferire (niente scontrini finché manca)' : ''}${!deleghe && !cambio.steps.verified ? ' e' : ''}${!cambio.steps.verified ? ' Stripe da ricollegare (niente pagamenti finché manca)' : ''}.`}
           </div>
-          {fatta && !deleghe
-            ? <ImpButton variant="primary" onClick={onDelega}>Riconferisci la delega</ImpButton>
-            : <ImpButton variant={fatta ? 'ghost' : 'primary'} onClick={onApriFoglio}>{fatta ? 'Rivedi il foglio' : 'Continua nel foglio'}</ImpButton>}
+          <ImpButton variant={concluso ? 'ghost' : 'primary'} onClick={onApriFoglio}>{concluso ? 'Rivedi il foglio' : 'Continua nel foglio'}</ImpButton>
         </div>
       ) : fatta ? (
         <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>

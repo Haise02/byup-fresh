@@ -1212,7 +1212,7 @@ function AcTitolarita({ onPassa }) {
     if (!cambio || cambio.status === 'refused' || cambio.status === 'completed') return;
     const tappe = pnHolderTappe(cambio.change_type, cambio.legal_form);
     const prossima = tappe.find(t => !cambio.steps[t]);
-    if (prossima === 'accepted' || prossima === 'verified') {
+    if (prossima === 'accepted' || (prossima === 'verified' && cambio.change_type === 'holder_person')) {
       const t = setTimeout(() => byupHolderAvanza(prossima), 2200);
       return () => clearTimeout(t);
     }

@@ -991,7 +991,12 @@ window.byupWriteStripe = function (v) {
 window.byupStripeDisabilita = function (motivo) {
   window.byupWriteStripe({ status: 'da_ricollegare', motivo: motivo || 'cambio_soggetto', since: new Date().toISOString() });
 };
+// Ricollegare è l'onboarding Stripe del nuovo soggetto, con la sua verifica:
+// per un cambio di soggetto in corso è LA verifica dell'identità (tappa
+// verified) — non ce n'è un'altra, e non si simula un bottone a parte.
 window.byupStripeRicollega = function () {
   window.byupWriteStripe({ status: 'connected' });
   if (window.byupPosVaria) window.byupPosVaria('pos-virtuale', 'varied');
+  const c = window.byupReadHolderChange ? window.byupReadHolderChange() : null;
+  if (c && c.soggetto && c.status !== 'refused' && !c.steps.verified) window.byupHolderAvanza('verified');
 };
