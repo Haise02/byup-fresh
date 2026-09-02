@@ -52,8 +52,10 @@ function Step4Verifica({ onBack, onComplete}) {
     // La prova dell'accettazione: versione e momento. In demo resta locale;
     // in produzione è un campo del backend accanto all'account.
     try {
+      // Versione E impronta: la prova dice su quale testo si è firmato, non
+      // solo su quale numero.
       localStorage.setItem('byup_contratto_accettato', JSON.stringify({
-        versione: CONTRATTO_VERSIONE, quando: new Date().toISOString(),
+        codice: TC01.codice, versione: TC01.versione, impronta: TC01.impronta, quando: new Date().toISOString(),
       }));
     } catch (e) {}
     onComplete(dest);
@@ -1005,34 +1007,17 @@ function PrimaryCtaArrow({onClick, disabled, children}) {
 
 window.Step4Verifica = Step4Verifica;
 
-// ─── Contratto di servizio Byup Fresh ───────────────────────────────────────
-// BOZZA v1.0 — struttura e clausole pensate per il B2B di Fresh; il testo va
-// validato da un legale prima del lancio. CLAUSOLE_VESSATORIE elenca i numeri
-// delle clausole che richiedono la seconda approvazione ex artt. 1341-1342
-// c.c.: se una clausola cambia numero, va aggiornato anche qui.
-const CONTRATTO_VERSIONE = '1.1';
-const CONTRATTO_TESTO = [
-  { n: 1, h: 'Oggetto del servizio', p: 'Byup S.r.l. concede in licenza d\'uso, in modalità cloud (SaaS), il gestionale Byup Fresh: cassa, ordinazione al tavolo, menù digitali, vetrina, statistiche e trasmissione dei corrispettivi. Il servizio è riservato a operatori professionali del settore Food & Beverage.' },
-  { n: 2, h: 'Attivazione e account', p: 'L\'account è riferito al locale e gestito dal titolare o da un suo delegato. Le credenziali sono personali; il titolare risponde dell\'uso fatto dagli utenti che autorizza (staff, dispositivi).' },
-  { n: 3, h: 'Corrispettivi e fatturazione', p: 'Il servizio è offerto in abbonamento con soglie di ordini incluse e costo per ordine extra secondo il piano scelto. I corrispettivi sono fatturati elettronicamente e i pagamenti gestiti tramite il fornitore Stripe.' },
-  { n: 4, h: 'Sospensione del servizio', p: 'Byup può sospendere il servizio in caso di mancato pagamento, uso illecito o rischio per la sicurezza della piattaforma, dandone comunicazione. La sospensione non estingue i corrispettivi maturati.' },
-  { n: 5, h: 'Modifica delle condizioni', p: 'Byup può modificare i presenti Termini e i listini con preavviso di almeno 30 giorni tramite il gestionale o email. In caso di disaccordo il ristoratore può recedere prima dell\'efficacia delle modifiche, senza penali.' },
-  { n: 6, h: 'Limitazione di responsabilità', p: 'Nei limiti consentiti dalla legge, Byup non risponde dei danni indiretti o del lucro cessante derivanti da interruzioni del servizio, e la responsabilità complessiva è limitata ai corrispettivi versati nei 12 mesi precedenti l\'evento. Restano ferme le responsabilità inderogabili di legge.' },
-  { n: 7, h: 'Manleva', p: 'Il ristoratore manleva Byup da pretese di terzi derivanti da dati inseriti nel gestionale (menù, prezzi, allergeni), da violazioni di legge nella conduzione dell\'attività o dall\'uso non autorizzato dell\'account a lui riferibile.' },
-  { n: 8, h: 'Recesso e chiusura dell\'account', p: 'Il ristoratore può recedere in ogni momento con effetto dalla fine del periodo di fatturazione in corso. Byup può recedere con preavviso di 30 giorni, o chiudere l\'account senza preavviso nei casi gravi di cui alla clausola 4. I dati sono esportabili prima della chiusura.' },
-  { n: 9, h: 'Durata e rinnovo automatico', p: 'L\'abbonamento si rinnova tacitamente alla scadenza di ciascun periodo di fatturazione, salvo disdetta comunicata prima del rinnovo. Il piano Gratuito non ha scadenza e non si converte mai da solo in un piano a pagamento.' },
-  { n: 10, h: 'Obblighi del ristoratore', p: 'Il ristoratore garantisce la correttezza dei dati inseriti (menù, prezzi, allergeni, dati fiscali) e il rispetto delle norme applicabili alla propria attività, incluse quelle igienico-sanitarie e di informazione al consumatore.' },
-  { n: 11, h: 'Trattamento dei dati personali', p: 'Byup tratta i dati secondo l\'informativa privacy disponibile nel gestionale. Per i dati dei clienti finali trattati per conto del locale, Byup opera quale responsabile del trattamento ai sensi dell\'art. 28 GDPR.' },
-  { n: 12, h: 'Divieto di cessione', p: 'Il ristoratore non può cedere il contratto né i diritti che ne derivano senza il consenso scritto di Byup. Byup può cedere il contratto nell\'ambito di operazioni societarie, dandone comunicazione.' },
-  { n: 13, h: 'Clausola risolutiva espressa', p: 'Il contratto si risolve di diritto, previa comunicazione, in caso di violazione delle clausole 2 (uso dell\'account), 3 (pagamenti) e 10 (obblighi del ristoratore), ferma la debenza dei corrispettivi maturati.' },
-  { n: 14, h: 'Decadenze e reclami', p: 'Eventuali contestazioni su fatture o malfunzionamenti vanno comunicate entro 30 giorni da quando il ristoratore ne ha avuto conoscenza; decorso il termine, la prestazione si intende accettata.' },
-  { n: 15, h: 'Esclusione di garanzie', p: 'Il servizio è fornito "così com\'è": nei limiti di legge Byup non garantisce l\'assenza di errori o l\'idoneità a scopi specifici, fermo l\'impegno a correggere i difetti segnalati e i livelli di servizio pubblicati.' },
-  { n: 16, h: 'Modifica o dismissione di funzionalità', p: 'Byup può evolvere, sostituire o dismettere singole funzionalità del gestionale, dandone preavviso ragionevole quando la modifica riduce in modo apprezzabile le capacità del piano sottoscritto.' },
-  { n: 17, h: 'Pagamenti e facoltà di opporre eccezioni', p: 'Il ristoratore non può sospendere o ritardare i pagamenti dovuti eccependo contestazioni sul servizio; le eccezioni si fanno valere nelle forme della clausola 14, salvo quanto inderogabilmente previsto dalla legge.' },
-  { n: 18, h: 'Mediazione preventiva', p: 'Prima di adire il giudice, le parti si impegnano a esperire un tentativo di mediazione presso un organismo accreditato nel luogo del foro competente. Il tentativo non pregiudica i provvedimenti urgenti.' },
-  { n: 19, h: 'Legge applicabile e foro esclusivo', p: 'I presenti Termini sono regolati dalla legge italiana. Per ogni controversia è competente in via esclusiva il Foro di Roma.' },
-];
-const CLAUSOLE_VESSATORIE = [4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19];
+// ─── Contratto di servizio: la firma avviene sul testo ufficiale (P-83) ────
+// Qui NON c'è più un testo. Le clausole, la versione, l'impronta e l'elenco
+// delle vessatorie ex artt. 1341-1342 c.c. vengono dalla proiezione di TC-01
+// in contratto-tc01.jsx, generata dal pacchetto legale: questo file la legge
+// e non ne custodisce alcuna copia. Prima c'era un CONTRATTO_TESTO locale a
+// diciannove clausole, versione 1.1, con un suo elenco di vessatorie da
+// tenere allineato a mano: un testo diverso da TC-01 che ne divergeva nella
+// sostanza (Byup «responsabile ex art. 28» per i clienti finali, niente P2B,
+// niente obblighi fiscali, niente divieto di maggiorazioni, niente cambio di
+// fornitore). Qualunque copia locale, anche parziale, è vietata: si legge
+// TC01, o non si firma.
 
 // ─── ContrattoModal — il punto di firma, da solo sulla scena ────────────────
 // Si apre da entrambe le uscite dello step 4: la schermata resta celebrativa
@@ -1044,15 +1029,21 @@ const CLAUSOLE_VESSATORIE = [4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 18, 19];
 function ContrattoModal({ onClose, onAccept }) {
   const [accTerms, setAccTerms] = React.useState(false);
   const [accVessatorie, setAccVessatorie] = React.useState(false);
-  const ok = accTerms && accVessatorie;
+  // L'impronta si verifica qui, al momento di firmare: se il testo caricato
+  // non è quello dichiarato dalla proiezione, la firma è bloccata e lo si
+  // dice. Un contratto firmato su un testo diverso da quello depositato è un
+  // problema che si scopre nel momento peggiore.
+  const verifica = window.tc01Verifica ? tc01Verifica() : { ok: false, dichiarata: '—', calcolata: '—' };
+  const vessatorie = window.tc01Vessatorie ? tc01Vessatorie() : [];
+  const ok = verifica.ok && accTerms && accVessatorie;
 
   // Copia su supporto durevole: il testo versionato scaricato com'è, non un
   // link a una pagina che domani può cambiare.
   const scarica = () => {
-    const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Termini e Condizioni Byup Fresh · v${CONTRATTO_VERSIONE}</title></head><body style="font-family:Georgia,serif;max-width:720px;margin:40px auto;line-height:1.6"><h1>Termini e Condizioni di Byup Fresh</h1><p><i>Versione ${CONTRATTO_VERSIONE} · scaricata il ${new Date().toLocaleDateString('it-IT')}</i></p>${CONTRATTO_TESTO.map(c => `<h3>${c.n}. ${c.h}</h3><p>${c.p}</p>`).join('')}</body></html>`;
+    const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>${TC01.nome} · ${TC01.codice} v${TC01.versione}</title></head><body style="font-family:Georgia,serif;max-width:720px;margin:40px auto;line-height:1.6"><h1>${TC01.nome}</h1><p><i>${TC01.codice} · versione ${TC01.versione} · efficace dal ${TC01.efficace} · scaricata il ${new Date().toLocaleDateString('it-IT')}</i></p>${TC01.clausole.map(c => `<h3>Art. ${c.n} · ${c.h}</h3><p>${c.p}</p>`).join('')}<hr><p><small>Clausole approvate specificamente ex artt. 1341-1342 c.c.: ${vessatorie.map(c => c.n).join(', ')}. Impronta del testo: ${TC01.impronta}. Proiezione generata dal pacchetto legale il ${TC01.generata}.</small></p></body></html>`;
     const url = URL.createObjectURL(new Blob([html], {type: 'text/html'}));
     const a = document.createElement('a');
-    a.href = url; a.download = `Byup-Fresh-Termini-v${CONTRATTO_VERSIONE}.html`;
+    a.href = url; a.download = `Byup-Fresh-${TC01.codice}-v${TC01.versione}.html`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   };
@@ -1097,7 +1088,8 @@ function ContrattoModal({ onClose, onAccept }) {
         <div style={{padding: '18px 28px 0', display: 'flex', flexDirection: 'column', minHeight: 0}}>
           <div style={{display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 8}}>
             <div style={{fontSize: 13, fontWeight: 700, color: ONB.MUTED, letterSpacing: '0.06em', textTransform: 'uppercase'}}>
-              Termini e Condizioni · v{CONTRATTO_VERSIONE}
+              {TC01.codice} · v{TC01.versione} · impronta {TC01.impronta}
+              {' '}<span style={{color: verifica.ok ? ONB.GREEN : ONB.RED, letterSpacing: 0}}>{verifica.ok ? '· verificata' : '· NON VERIFICATA'}</span>
             </div>
             <button onClick={scarica} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -1116,32 +1108,43 @@ function ContrattoModal({ onClose, onAccept }) {
             background: ONB.BG_SOFT, border: '1px solid rgba(15, 17, 21, 0.06)',
             fontSize: 13.5, lineHeight: 1.6, color: ONB.MUTED,
           }}>
-            {CONTRATTO_TESTO.map(c => (
+            {TC01.clausole.map(c => (
               <div key={c.n} style={{marginBottom: 12}}>
-                <div style={{fontWeight: 700, color: ONB.TEXT, marginBottom: 2}}>{c.n}. {c.h}</div>
+                <div style={{fontWeight: 700, color: ONB.TEXT, marginBottom: 2}}>Art. {c.n} · {c.h}</div>
                 <div>{c.p}</div>
               </div>
             ))}
           </div>
 
+          {!verifica.ok && (
+            <div style={{
+              marginTop: 12, padding: '11px 13px', borderRadius: 10,
+              background: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.22)',
+              fontSize: 14, color: ONB.TEXT, lineHeight: 1.5,
+            }}>
+              <b style={{color: ONB.RED}}>Firma bloccata: il testo non corrisponde alla proiezione di TC-01.</b>{' '}
+              Impronta dichiarata {verifica.dichiarata}, calcolata {verifica.calcolata}. La proiezione va rigenerata dal pacchetto legale: non si firma un testo che non è quello depositato.
+            </div>
+          )}
+
           <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 14, cursor: 'pointer'}}>
-            <input type="checkbox" checked={accTerms} onChange={e => setAccTerms(e.target.checked)}
+            <input type="checkbox" checked={accTerms} disabled={!verifica.ok} onChange={e => setAccTerms(e.target.checked)}
               style={{accentColor: ONB.BRAND, width: 16, height: 16, marginTop: 2, flexShrink: 0}}/>
             <span style={{fontSize: 14, color: ONB.TEXT, lineHeight: 1.5}}>
-              Ho letto e accetto integralmente i <b>Termini e Condizioni di Byup Fresh</b> e ho preso visione dell'informativa privacy.
+              Ho letto e accetto integralmente i <b>{TC01.nome}</b> ({TC01.codice} v{TC01.versione}) e ho preso visione dell'informativa privacy.
             </span>
           </label>
 
-          {/* La seconda firma: valida solo se le clausole sono ELENCATE. */}
+          {/* La seconda firma: valida solo se le clausole sono ELENCATE. L'elenco
+              si ricava dai flag della proiezione, e segue la numerazione da solo. */}
           <label style={{display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 8, cursor: 'pointer'}}>
-            <input type="checkbox" checked={accVessatorie} onChange={e => setAccVessatorie(e.target.checked)}
+            <input type="checkbox" checked={accVessatorie} disabled={!verifica.ok} onChange={e => setAccVessatorie(e.target.checked)}
               style={{accentColor: ONB.BRAND, width: 16, height: 16, marginTop: 2, flexShrink: 0}}/>
             <span style={{fontSize: 14, color: ONB.TEXT, lineHeight: 1.5}}>
-              Ai sensi degli <b>artt. 1341 e 1342 c.c.</b> approvo specificamente le clausole:{' '}
-              {CLAUSOLE_VESSATORIE.map((n, i) => {
-                const c = CONTRATTO_TESTO.find(x => x.n === n);
-                return <span key={n}><b>{n}</b> ({c.h}){i < CLAUSOLE_VESSATORIE.length - 1 ? ', ' : '.'}</span>;
-              })}
+              Ai sensi degli <b>artt. 1341 e 1342 c.c.</b> approvo specificamente gli articoli:{' '}
+              {vessatorie.map((c, i) => (
+                <span key={c.n}><b>{c.n}</b> ({c.h}){i < vessatorie.length - 1 ? ', ' : '.'}</span>
+              ))}
             </span>
           </label>
         </div>
