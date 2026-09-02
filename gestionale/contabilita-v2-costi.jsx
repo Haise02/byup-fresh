@@ -251,10 +251,14 @@ function ContCosti({ openNewCost }) {
                     background: m.bg, color: m.fg,
                     fontSize: C.T_XS, fontWeight: 600, alignSelf:'flex-start', width:'fit-content',
                   }}><I size={12}/> {cat?.label}</span>
-                  <span style={{color: PN.MUTED, fontSize: C.T_XS, display:'inline-flex', alignItems:'center', gap: 6}}>
+                  {/* Ricorrenza e natura sulla stessa riga: sono le due cose
+                      che la categoria non dice. */}
+                  <span style={{color: PN.MUTED, fontSize: C.T_XS, display:'inline-flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
                     {c.type==='recurring'
                       ? <><Ic.recurring size={12}/> {c.freq}</>
                       : <><Ic.pin size={12}/> Una tantum</>}
+                    <span style={{color: PN.MUTED_SOFT}}>·</span>
+                    <span>{(COST_NATURES.find(n => n.id === (c.nature || COST_NATURE_DEFAULT)) || {}).label}</span>
                   </span>
                   <div style={{display:'flex', flexDirection:'column'}}>
                     <span style={{fontVariantNumeric:'tabular-nums', color: PN.TEXT, fontSize: C.T_SM}}>{fmt(c.next)}</span>

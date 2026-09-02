@@ -352,6 +352,11 @@ function Row({ label, value }) {
 function ContNuovoCosto({ open, onClose }) {
   const [name, setName] = React.useState('');
   const [cat, setCat] = React.useState('affitti');
+  // La natura (fisso / variabile / misto, L1-34): si chiede accanto a
+  // categoria e ricorrenza perché nessuna delle due la contiene — il
+  // personale può essere fisso o variabile e la categoria non lo sa.
+  // Predefinito variabile, come nel modello.
+  const [nature, setNature] = React.useState(COST_NATURE_DEFAULT);
   const [amount, setAmount] = React.useState('');
   const [type, setType] = React.useState('recurring');
   const [freq, setFreq] = React.useState('Mensile');
@@ -448,6 +453,19 @@ function ContNuovoCosto({ open, onClose }) {
                       </button>
                     );
                   })}
+                </div>
+              </Field>
+              <Field label="Natura del costo">
+                <div style={{display:'flex', gap: 6}}>
+                  {COST_NATURES.map(n => (
+                    <FilterChip key={n.id} active={nature===n.id} onClick={() => setNature(n.id)} label={n.label}/>
+                  ))}
+                </div>
+                {/* Il suggerimento è della natura scelta: dice con esempi
+                    cosa vuol dire, che è quello che serve a chi esita fra
+                    misto e variabile. */}
+                <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 8, lineHeight: 1.45}}>
+                  {COST_NATURES.find(n => n.id === nature).hint}
                 </div>
               </Field>
             </div>

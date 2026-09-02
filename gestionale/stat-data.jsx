@@ -286,6 +286,14 @@ const STAT_ECONOMICI = {
   // Costi mese per mese: crescono meno dei ricavi, ed è il motivo per cui
   // l'utile sale (+18,7%) più del fatturato (+12,5%).
   costiTrend:     [26800, 29400, 31200, 33900, 31800, 34600, 33200, 30800, 37400, 35200, 36800, 38400],
+  // FINZIONE DICHIARATA (P-68 · L1-34): le quote fissi/variabili per categoria
+  // qui sotto sono inventate e nessuna registrazione le alimenta. Da P-68 il
+  // dato esiste — cost_entries.cost_nature, chiesto alla registrazione in
+  // Contabilità → Costi (COSTS_DATA in contabilita-data.jsx, altro bundle) —
+  // e in produzione queste quote si RICAVANO da lì: fisso → 100/0, variabile
+  // → 0/100, misto → la ripartizione che il modello dovrà fissare (una quota
+  // fissa dichiarata, o la metà per convenzione: non è deciso). Finché i due
+  // bundle non condividono i dati, restano numeri di scena.
   costiBreakdown: [
     { cat:'Stipendi',     fissi: 100, var: 0,   tot: 18400, delta: 0.5 },
     { cat:'Materie prime', fissi: 0,  var: 100, tot: 14200, delta: 8.2 },
