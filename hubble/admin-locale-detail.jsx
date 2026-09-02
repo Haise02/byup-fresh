@@ -621,7 +621,7 @@ function DrwAnagrafica({ locale: l }) {
             <label style={drwLab}>Email del titolare</label>
             <div style={{...drwMono, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{l.email}</div>
             <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.5}}>
-              Titolare ed email non si modificano da qui. Chi ha perso l'accesso passa dal ripristino assistito (Assistenza → Ripristini accesso), che restituisce l'accesso alla stessa persona; chi cambia dietro il locale passa solo dal percorso di titolarità in Account del titolare.
+              Titolare ed email non si modificano da qui. Chi ha perso l'accesso passa dal ripristino assistito (Assistenza → Ripristini accesso), che restituisce l'accesso alla stessa persona; chi cambia dietro il locale passa solo dai percorsi del titolare: la persona da Account, il soggetto fiscale da Impostazioni → Dati fiscali.
             </div>
           </div>
           {Fld({k:'tel', label:'Telefono', monoStyle:true})}

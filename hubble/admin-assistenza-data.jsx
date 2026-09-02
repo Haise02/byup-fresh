@@ -482,7 +482,7 @@ const FAQ_SRV = [
     // Corretta con P-73: i ruoli sono quelli di Personale (Cassa, Cameriere,
     // più i personalizzati), il titolare è uno solo e cambia solo dal
     // percorso di titolarità in Account (D-57).
-    risposta:'Sì, da Impostazioni → Personale. Ogni persona ha un ruolo — Cassa, Cameriere, o uno personalizzato — e vede solo le sezioni del suo ruolo. Il titolare è uno solo: resta l\'unico a poter cambiare piano, dati fiscali e IBAN, e cambia soltanto attraverso il percorso di titolarità in Account.',
+    risposta:'Sì, da Impostazioni → Personale. Ogni persona ha un ruolo — Cassa, Cameriere, o uno personalizzato — e vede solo le sezioni del suo ruolo. Il titolare è uno solo: resta l\'unico a poter cambiare piano, dati fiscali e IBAN, e cambia soltanto dai percorsi di titolarità: la persona da Account, il soggetto fiscale da Impostazioni → Dati fiscali.',
     aggiornataIl: new Date(Date.now() - 27*SRV_GIORNO), viste: 2470, utile: 231, nonUtile: 7 },
   { id:'F-07', categoria:'Menu e QR', live:true,
     domanda:'Come segnalo gli allergeni sui piatti?',

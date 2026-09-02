@@ -742,8 +742,21 @@ window.pnOggiISO = pnOggiISO;
 // e devono restare leggibili. Invarianti di D-57: il titolare è uno solo per
 // volta e cambia soltanto per questa via; l'assistenza non ha alcuna via per
 // sostituirlo. Il cambiamento è del RISTORANTE, non della singola sede.
-// Registro in localStorage (byup_holder_change): Account lo apre, Dati
-// fiscali e la card della delega scrivono la loro tappa, Account lo rilegge.
+// Registro in localStorage (byup_holder_change): Account e Dati fiscali lo
+// aprono, Dati fiscali e la card della delega scrivono la loro tappa, Account
+// lo rilegge.
+//
+// La porta a domanda è morta: nessuna schermata chiede «cosa sta cambiando»,
+// il tipo nasce dal GESTO. contact_data nasce dal salvataggio dei recapiti in
+// Account e non si nomina mai a schermo (la verifica della nuova casella è
+// la sua riga); holder_person da «Passa la titolarità a un'altra persona»,
+// accanto al nome del titolare in Account; legal_entity e both da «Cambia
+// soggetto fiscale» in Impostazioni → Dati fiscali, dove il foglio del nuovo
+// soggetto chiede «resta la stessa persona?». Il cambiamento porta
+// legal_form: per il cambio di persona la tappa fiscal_updated segue la
+// forma — attiva sui campi del titolare per ditta individuale e
+// professionista, saltata per società ed ente, dove il legale rappresentante
+// non è un dato fiscale del locale e il passaggio si compie con le deleghe.
 const PN_HOLDER_KEY = 'byup_holder_change';
 const PN_HOLDER_TIPI = [
   { id: 'contact_data',  chain: false, label: 'Solo i miei recapiti',
@@ -765,14 +778,19 @@ const PN_HOLDER_STATI = [
 ];
 // Le tappe che si applicano al tipo; le altre si saltano, e il perché lo dice
 // pnHolderSalto.
-const pnHolderTappe = (tipo) => ({
-  contact_data:  ['proposed', 'verified', 'completed'],
-  holder_person: ['proposed', 'accepted', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
-  legal_entity:  ['proposed', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
-  both:          ['proposed', 'accepted', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
-})[tipo] || ['proposed', 'verified', 'completed'];
+const pnHolderTappe = (tipo, forma) => {
+  const base = ({
+    contact_data:  ['proposed', 'verified', 'completed'],
+    holder_person: ['proposed', 'accepted', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
+    legal_entity:  ['proposed', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
+    both:          ['proposed', 'accepted', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
+  })[tipo] || ['proposed', 'verified', 'completed'];
+  if (tipo === 'holder_person' && (forma === 'societa' || forma === 'ente')) return base.filter(t => t !== 'fiscal_updated');
+  return base;
+};
 const pnHolderSalto = (tipo, stato) => {
   if (stato === 'accepted') return 'Non serve: nessuna persona entrante, la persona resta la stessa.';
+  if (stato === 'fiscal_updated') return 'Non serve: per una società o un ente il legale rappresentante non è un dato fiscale del locale. Il passaggio si compie con le deleghe, che chi entra riconferisce a nome dello stesso soggetto.';
   return 'Non serve: l\'Agenzia non conosce la tua casella di posta.';
 };
 window.PN_HOLDER_TIPI = PN_HOLDER_TIPI;
@@ -793,7 +811,7 @@ window.byupHolderAvanza = function (stato) {
   const c = window.byupReadHolderChange(); if (!c) return null;
   c.steps[stato] = new Date().toISOString();
   c.status = stato;
-  const tappe = pnHolderTappe(c.change_type);
+  const tappe = pnHolderTappe(c.change_type, c.legal_form);
   if (tappe.filter(t => t !== 'completed').every(t => c.steps[t])) {
     c.steps.completed = c.steps.completed || new Date().toISOString();
     c.status = 'completed';

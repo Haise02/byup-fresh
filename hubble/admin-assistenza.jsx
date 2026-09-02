@@ -2489,7 +2489,7 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
       {/* L'invariante, in testa e non chiudibile: è la regola della pratica. */}
       <div style={{padding:'12px 14px', borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:13.6, color:ADM.TEXT, lineHeight:1.5}}>
         <b>L'accesso torna a {r.user.nome}, {r.user.ruolo} di {r.localeNome}, e non si trasferisce mai.</b>{' '}
-        Se chi chiede non è {r.user.nome}, non è un ripristino: è un cambio di titolarità, che passa solo dal percorso in Account del titolare
+        Se chi chiede non è {r.user.nome}, non è un ripristino: è un cambio di titolarità, che passa solo dai percorsi del titolare — la persona da Account, il soggetto fiscale da Dati fiscali
         (restaurant_holder_changes). Qui si ripristinano le sole credenziali.
       </div>
 

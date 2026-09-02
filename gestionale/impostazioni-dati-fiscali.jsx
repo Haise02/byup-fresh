@@ -461,7 +461,185 @@ function PosCensimentoCard() {
   );
 }
 
-function ImpCambioTitolaritaBanner({ onAggiorna }) {
+// Il campo che non si scrive: P.IVA e ragione sociale sono il soggetto
+// fiscale, e il soggetto non cambia digitando — cambia col foglio «Cambia
+// soggetto fiscale», che apre il percorso di titolarità (P-62 · D-52).
+function ImpCampoBloccato({ label, value, hint }) {
+  return (
+    <ImpField label={label} hint={hint}>
+      <div style={{
+        display:'flex', alignItems:'center', gap: 8,
+        padding:'10px 12px', borderRadius: 9, border:`1px solid ${PN.BORDER_SOFT}`,
+        background:'#F7F8FA', color: PN.TEXT, fontSize: 15.5, fontWeight: 500,
+      }}>
+        <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{value || '—'}</span>
+        <span style={{color: PN.MUTED, display:'inline-flex'}}>{BuIcons.lock({size: 14, color:'currentColor'})}</span>
+      </div>
+    </ImpField>
+  );
+}
+
+// Validazione formale, e solo quella: IT più undici cifre. Non c'è nessuna
+// «verifica AdE» — quella che stava qui prima si accendeva alla tredicesima
+// lettera, e diceva una cosa falsa.
+const pivaFormale = (v) => /^IT\d{11}$/.test((v || '').replace(/\s/g, '').toUpperCase());
+
+// ─── Il foglio del nuovo soggetto (P-62 · D-52, legal_entity | both) ───────
+// La porta del soggetto fiscale è qui, non in Account: si chiedono i dati del
+// nuovo soggetto e una sola domanda, «resta la stessa persona?», che decide
+// fra legal_entity e both — e nel secondo caso la casella di chi entra. Il
+// foglio non si chiude col gesto: offre lì la verifica dell'identità e la
+// tappa dei dati, così chi ha iniziato qui non viene rimandato altrove. Le
+// deleghe restano nell'onboarding, come per tutti i casi con catena.
+function ImpSoggettoFoglio({ cambio, forma, ragione, piva, onClose, onApplica }) {
+  const [nuovaForma, setNuovaForma] = React.useState(forma);
+  const [denominazione, setDenominazione] = React.useState('');
+  const [nuovaPiva, setNuovaPiva] = React.useState('');
+  const [stessa, setStessa] = React.useState(null);   // true | false | null
+  const [entNome, setEntNome] = React.useState('Giulia Bianchi');
+  const [entEmail, setEntEmail] = React.useState('giulia.bianchi@example.it');
+  const [verificando, setVerificando] = React.useState(false);
+  const [, forza] = React.useState(0);
+  React.useEffect(() => {
+    const ri = () => forza(x => x + 1);
+    window.addEventListener('byup-holder-change', ri);
+    return () => window.removeEventListener('byup-holder-change', ri);
+  }, []);
+
+  const personaForma = nuovaForma === 'ditta_individuale' || nuovaForma === 'professionista';
+  const pivaOk = pivaFormale(nuovaPiva);
+  const pronto = denominazione.trim() && pivaOk && stessa !== null && (stessa || entEmail.includes('@'));
+
+  const avvia = () => {
+    if (!pronto) return;
+    const now = new Date().toISOString();
+    byupWriteHolderChange({
+      id: 'hc-' + Date.now(), change_type: stessa ? 'legal_entity' : 'both', fiscal_chain_impacted: true,
+      legal_form: nuovaForma,
+      status: 'proposed', proposed_by: 'Mario Rossi', created_at: now,
+      steps: { proposed: now },
+      entrante: stessa ? null : { nome: entNome.trim() || 'Giulia Bianchi', email: entEmail.trim() },
+      soggetto: {
+        prima: { denominazione: ragione, piva },
+        dopo: { denominazione: denominazione.trim(), piva: nuovaPiva.replace(/\s/g, '').toUpperCase(), forma: nuovaForma },
+      },
+    });
+  };
+
+  const c = cambio || (window.byupReadHolderChange ? byupReadHolderChange() : null);
+  const inCorso = c && c.soggetto && c.status !== 'refused';
+  const tappe = inCorso ? pnHolderTappe(c.change_type, c.legal_form) : [];
+  const prossima = inCorso ? tappe.find(t => !c.steps[t]) : null;
+  const verifica = () => { setVerificando(true); setTimeout(() => { setVerificando(false); byupHolderAvanza('verified'); }, 1400); };
+  const conferma = () => { onApplica(c); byupHolderAvanza('fiscal_updated'); };
+
+  const tile = (on, titolo, sotto, onClick) => (
+    <button onClick={onClick} style={{
+      flex: 1, textAlign:'left', padding:'11px 13px', borderRadius: 11, cursor:'pointer', fontFamily:'inherit',
+      border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`, background: on ? PN.PINK_SOFT : PN.WHITE,
+    }}>
+      <div style={{fontSize: 14.5, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{titolo}</div>
+      <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>{sotto}</div>
+    </button>
+  );
+
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 640, maxHeight:'92vh', display:'flex', flexDirection:'column'}}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>Cambia soggetto fiscale</div>
+          <div style={MODAL_SUB}>
+            {inCorso
+              ? `Da ${c.soggetto.prima.denominazione} (${c.soggetto.prima.piva}) a ${c.soggetto.dopo.denominazione} (${c.soggetto.dopo.piva})`
+              : `Oggi il locale è di ${ragione} · P.IVA ${piva}. La P.IVA di oggi non si cancella: resta come precedente sui documenti già emessi.`}
+          </div>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
+        </div>
+
+        {!inCorso ? (
+          <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
+            <div>
+              <div style={MODAL_LABEL}>Forma giuridica del nuovo soggetto</div>
+              <select value={nuovaForma} onChange={e => setNuovaForma(e.target.value)} style={{...MODAL_INPUT}}>
+                {FORME_GIURIDICHE.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={MODAL_LABEL}>{personaForma ? 'Nome e cognome del titolare' : nuovaForma === 'ente' ? 'Denominazione' : 'Ragione sociale'}</div>
+              <input value={denominazione} onChange={e => setDenominazione(e.target.value)} placeholder={personaForma ? 'Es. Mario Rossi' : 'Es. Cacio e Pepe S.p.A.'} style={MODAL_INPUT}/>
+            </div>
+            <div>
+              <div style={MODAL_LABEL}>Partita IVA</div>
+              <input value={nuovaPiva} onChange={e => setNuovaPiva(e.target.value)} placeholder="IT seguito da 11 cifre" style={{...MODAL_INPUT, fontFamily:'ui-monospace, Menlo, monospace'}}/>
+              <div style={{fontSize: 12.5, color: nuovaPiva && !pivaOk ? PN.AMBER : PN.MUTED, marginTop: 4}}>
+                {nuovaPiva ? (pivaOk ? 'Formato valido' : 'Formato non valido: IT e undici cifre') : 'Solo controllo del formato: nessuna verifica presso l\'Agenzia'}
+              </div>
+            </div>
+            <div>
+              <div style={MODAL_LABEL}>Resta la stessa persona?</div>
+              <div style={{display:'flex', gap: 8}}>
+                {tile(stessa === true, 'Sì, resto io', 'Cambia solo il soggetto: la delega va riconferita per il nuovo contribuente.', () => setStessa(true))}
+                {tile(stessa === false, 'No, cambia anche la persona', 'È una cessione: chi entra accetta con la sua casella e riconferisce la delega.', () => setStessa(false))}
+              </div>
+            </div>
+            {stessa === false && (
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10}}>
+                <div>
+                  <div style={MODAL_LABEL}>Chi entra</div>
+                  <input value={entNome} onChange={e => setEntNome(e.target.value)} style={MODAL_INPUT}/>
+                </div>
+                <div>
+                  <div style={MODAL_LABEL}>La sua casella di posta</div>
+                  <input type="email" value={entEmail} onChange={e => setEntEmail(e.target.value)} style={MODAL_INPUT}/>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
+            {/* Le tappe che si fanno QUI, nell'ordine del modello: chi entra
+                accetta (solo nella cessione), l'identità si verifica, i dati
+                si confermano. Le deleghe stanno nell'onboarding. */}
+            {PN_HOLDER_STATI.filter(st => tappe.includes(st.id) && st.id !== 'completed').map(st => {
+              const fatta = !!c.steps[st.id];
+              const tocca = st.id === prossima;
+              return (
+                <div key={st.id} style={{display:'flex', alignItems:'center', gap: 12, padding:'10px 12px', borderRadius: 10, border:`1px solid ${tocca ? PN.PINK : PN.BORDER_SOFT}`, background: fatta ? PN.GREEN_SOFT : PN.WHITE}}>
+                  <span style={{width: 12, height: 12, borderRadius: 999, flexShrink: 0, background: fatta ? PN.GREEN : 'transparent', border:`2px solid ${fatta ? PN.GREEN : tocca ? PN.PINK_DARK : PN.BORDER}`}}/>
+                  <div style={{flex: 1, minWidth: 0}}>
+                    <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{st.label}</div>
+                    {st.id === 'fiscal_updated' && fatta && <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>P.IVA precedente {c.soggetto.prima.piva} conservata: i documenti già emessi la portano.</div>}
+                    {st.id === 'delegations_renewed' && !fatta && <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Chi rappresenta il nuovo soggetto la riconferisce con il proprio SPID: si fa dalla card della delega.</div>}
+                  </div>
+                  {tocca && st.id === 'accepted' && <ImpButton variant="primary" onClick={() => byupHolderAvanza('accepted')}>Simula l'accettazione di {c.entrante.nome} (demo)</ImpButton>}
+                  {tocca && st.id === 'verified' && (verificando ? <span style={{fontSize: 13.5, color: PN.MUTED}}>Verifica in corso…</span> : <ImpButton variant="primary" onClick={verifica}>Verifica l'identità</ImpButton>)}
+                  {tocca && st.id === 'fiscal_updated' && <ImpButton variant="primary" onClick={conferma}>Conferma i dati del nuovo soggetto</ImpButton>}
+                  {tocca && st.id === 'delegations_renewed' && <a href={`byup Restaurant Onboarding.html?step=2&cambio=${c.id}`} style={{fontSize: 14, fontWeight: 700, color: PN.PINK_DARK, textDecoration:'none', whiteSpace:'nowrap'}}>Riconferisci la delega →</a>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={MODAL_FOOT}>
+          <button onClick={onClose} style={{padding:'10px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>{inCorso ? 'Chiudi' : 'Annulla'}</button>
+          <span style={{flex: 1}}/>
+          {!inCorso && (
+            <button onClick={avvia} disabled={!pronto} style={{padding:'10px 18px', borderRadius: 999, border:'1px solid rgba(0,0,0,0.32)', background: pronto ? PN.BTN_DARK : '#EFEFF1', color: pronto ? PN.WHITE : '#9CA3AF', fontSize: 14, fontWeight: 700, cursor: pronto ? 'pointer' : 'not-allowed', fontFamily:'inherit'}}>
+              Avvia il cambiamento
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Il banner del cambiamento in corso. Per il soggetto rimanda al foglio, dove
+// si fanno le tappe; per la persona la tappa dei dati segue la forma: si fa
+// sui campi del titolare (ditta individuale, professionista) o è saltata
+// (società, ente) e il banner lo dice senza offrire nulla.
+function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica }) {
   const [cambio, setCambio] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
   React.useEffect(() => {
     const ri = () => setCambio(byupReadHolderChange());
@@ -469,28 +647,41 @@ function ImpCambioTitolaritaBanner({ onAggiorna }) {
     return () => window.removeEventListener('byup-holder-change', ri);
   }, []);
   if (!cambio || !cambio.fiscal_chain_impacted || cambio.status === 'refused') return null;
+  const conSoggetto = !!cambio.soggetto;
+  const tappe = pnHolderTappe(cambio.change_type, cambio.legal_form);
+  const serveDati = tappe.includes('fiscal_updated');
   const fatta = !!cambio.steps.fiscal_updated;
   const pronta = !!cambio.steps.verified && !fatta;
-  const conSoggetto = !!cambio.soggetto;
-  const segna = () => { if (conSoggetto) onAggiorna(cambio.soggetto.dopo); byupHolderAvanza('fiscal_updated'); };
+  const segna = () => { onApplica(cambio); byupHolderAvanza('fiscal_updated'); };
   return (
     <ImpCard title="Cambio di titolarità in corso" sub={conSoggetto
       ? `Da ${cambio.soggetto.prima.denominazione} (${cambio.soggetto.prima.piva}) a ${cambio.soggetto.dopo.denominazione} (${cambio.soggetto.dopo.piva})`
       : `Cambia il legale rappresentante: da Mario Rossi a ${cambio.entrante.nome}. Il soggetto fiscale resta.`}
-      style={{marginBottom: 18, borderColor: fatta ? PN.GREEN_SOFT : '#FCD34D'}}>
-      {fatta ? (
+      style={{marginBottom: 18, borderColor: fatta || !serveDati ? PN.GREEN_SOFT : '#FCD34D'}}>
+      {conSoggetto ? (
+        <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
+          <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+            {fatta
+              ? <><b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili. Restano le deleghe.</>
+              : 'Le tappe si fanno nel foglio: identità, dati del nuovo soggetto, poi le deleghe.'}
+          </div>
+          <ImpButton variant={fatta ? 'ghost' : 'primary'} onClick={onApriFoglio}>{fatta ? 'Rivedi il foglio' : 'Continua nel foglio'}</ImpButton>
+        </div>
+      ) : !serveDati ? (
+        <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+          I dati di questa schermata non cambiano: per una società o un ente il legale rappresentante non è un dato fiscale del locale, e la tappa è saltata.
+          Il passaggio si compie con le deleghe, che {cambio.entrante.nome} riconferisce con il proprio SPID.
+          {' '}<a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Segui il cambiamento in Account</a>.
+        </div>
+      ) : fatta ? (
         <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
           <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b>
-          {conSoggetto && <> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili.</>}
           {' '}<a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Torna all'Account</a> per le deleghe.
         </div>
       ) : pronta ? (
         <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
           <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-            {conSoggetto
-              ? 'Compila i dati del nuovo soggetto qui sotto. La partita IVA di oggi non si cancella: resta come precedente.'
-              : 'Aggiorna i dati del legale rappresentante qui sotto.'}
-            {' '}Nel prototipo il pulsante li compila con il mock e segna la tappa.
+            Aggiorna i dati del titolare qui sotto: nome, cognome e codice fiscale di {cambio.entrante.nome}. Nel prototipo il pulsante li compila con il mock e segna la tappa.
           </div>
           <ImpButton variant="primary" onClick={segna}>Segna i dati fiscali come aggiornati</ImpButton>
         </div>
@@ -539,6 +730,22 @@ function ImpDatiFiscali() {
 
   const [dirty, setDirty] = React.useState(false);
   const set = (k, v) => { setData(d => ({...d, [k]: v})); setDirty(true); };
+  const [soggettoOpen, setSoggettoOpen] = React.useState(false);
+  // La tappa fiscal_updated applica il cambiamento ai dati di questa
+  // schermata: il nuovo soggetto (forma, denominazione, P.IVA — la
+  // precedente resta conservata) o il nuovo titolare sui campi della persona.
+  const applica = (c) => {
+    if (c.soggetto) {
+      const dopo = c.soggetto.dopo;
+      const persona = dopo.forma === 'ditta_individuale' || dopo.forma === 'professionista';
+      const [nome, ...resto] = (dopo.denominazione || '').split(' ');
+      setData(d => ({ ...d, legalForm: dopo.forma || d.legalForm, pivaPrecedente: d.piva, piva: dopo.piva,
+        ...(persona ? { ownerNome: nome || d.ownerNome, ownerCognome: resto.join(' ') || d.ownerCognome } : { ragione: dopo.denominazione }) }));
+    } else if (c.entrante) {
+      const [nome, ...resto] = (c.entrante.nome || '').split(' ');
+      setData(d => ({ ...d, ownerNome: nome || d.ownerNome, ownerCognome: resto.join(' ') || d.ownerCognome, ownerCf: '' }));
+    }
+  };
 
   // Atterraggio sulla card del collegamento POS quando ci si arriva da un
   // rimando: si accende e si porta in vista, come i chip della checklist.
@@ -611,7 +818,11 @@ function ImpDatiFiscali() {
 
       {/* Cambio di titolarità in corso (P-62): la tappa fiscal_updated si fa
           qui e torna in Account come fatta. */}
-      <ImpCambioTitolaritaBanner onAggiorna={(nuovo) => setData(d => ({ ...d, ragione: nuovo.denominazione, pivaPrecedente: d.piva, piva: nuovo.piva }))}/>
+      <ImpCambioTitolaritaBanner onApriFoglio={() => setSoggettoOpen(true)} onApplica={applica}/>
+      {soggettoOpen && (
+        <ImpSoggettoFoglio forma={data.legalForm} ragione={societa || ente ? data.ragione : `${data.ownerNome} ${data.ownerCognome}`} piva={data.piva}
+          onClose={() => setSoggettoOpen(false)} onApplica={applica}/>
+      )}
 
       {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
           verifica all'inserimento — il perché e il come stanno nel commento
@@ -685,35 +896,21 @@ function ImpDatiFiscali() {
                       <ImpInput value={data.ownerCf} onChange={e => set('ownerCf', e.target.value.toUpperCase())} style={{fontFamily:'ui-monospace, monospace', letterSpacing: 0.5}}/>
                     </ImpField>
                   </div>
-                  <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata (AdE)' : 'Inserisci 11 cifre con prefisso IT'} style={{marginTop: 4}}>
-                    <div style={{position:'relative'}}>
-                      <ImpInput value={data.piva} onChange={e => set('piva', e.target.value)}/>
-                      {data.piva.length === 13 && (
-                        <span style={{
-                          position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)',
-                          color: PN.GREEN, display:'inline-flex',
-                        }}><BuIcons.check size={14}/></span>
-                      )}
-                    </div>
-                  </ImpField>
+                  <div style={{marginTop: 4}}>
+                    <ImpCampoBloccato label="Partita IVA" value={data.piva} hint={data.pivaPrecedente ? `Precedente ${data.pivaPrecedente}, conservata sui documenti già emessi` : 'È il soggetto fiscale: non si modifica, si cambia'}/>
+                    <ImpButton variant="ghost" onClick={() => setSoggettoOpen(true)} style={{marginTop: -6}}>Cambia soggetto fiscale</ImpButton>
+                  </div>
                 </React.Fragment>
               ) : (
                 <React.Fragment>
-                  <ImpField label={ente ? 'Denominazione' : 'Ragione sociale'} hint={ente ? 'Come risulta da statuto' : 'Come risulta a registro imprese'}>
-                    <ImpInput value={data.ragione} onChange={e => set('ragione', e.target.value)}/>
-                  </ImpField>
+                  {/* Ragione sociale e P.IVA sono il soggetto fiscale: non si
+                      scrivono, si cambiano col foglio (P-62 · D-52). */}
+                  <ImpCampoBloccato label={ente ? 'Denominazione' : 'Ragione sociale'} value={data.ragione} hint={ente ? 'Come risulta da statuto' : 'Come risulta a registro imprese'}/>
                   <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-                    <ImpField label="Partita IVA" hint={data.piva.length === 13 ? 'Verificata (AdE)' : 'Inserisci 11 cifre con prefisso IT'}>
-                      <div style={{position:'relative'}}>
-                        <ImpInput value={data.piva} onChange={e => set('piva', e.target.value)}/>
-                        {data.piva.length === 13 && (
-                          <span style={{
-                            position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)',
-                            color: PN.GREEN, display:'inline-flex',
-                          }}><BuIcons.check size={14}/></span>
-                        )}
-                      </div>
-                    </ImpField>
+                    <div>
+                      <ImpCampoBloccato label="Partita IVA" value={data.piva} hint={data.pivaPrecedente ? `Precedente ${data.pivaPrecedente}, conservata sui documenti già emessi` : 'È il soggetto fiscale: non si modifica, si cambia'}/>
+                      <ImpButton variant="ghost" onClick={() => setSoggettoOpen(true)} style={{marginTop: -6}}>Cambia soggetto fiscale</ImpButton>
+                    </div>
                     <ImpField label="Codice fiscale">
                       <ImpInput value={data.cf} onChange={e => set('cf', e.target.value)}/>
                     </ImpField>

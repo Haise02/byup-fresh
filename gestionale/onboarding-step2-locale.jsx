@@ -438,7 +438,10 @@ const onbReadHolderChange = () => { try { const s = localStorage.getItem('byup_h
 const onbHolderAvanza = (stato) => {
   const c = onbReadHolderChange(); if (!c) return;
   c.steps[stato] = new Date().toISOString(); c.status = stato;
-  const tutte = { holder_person: ['proposed','accepted','verified','fiscal_updated','delegations_renewed'], legal_entity: ['proposed','verified','fiscal_updated','delegations_renewed'], both: ['proposed','accepted','verified','fiscal_updated','delegations_renewed'] }[c.change_type] || [];
+  let tutte = { holder_person: ['proposed','accepted','verified','fiscal_updated','delegations_renewed'], legal_entity: ['proposed','verified','fiscal_updated','delegations_renewed'], both: ['proposed','accepted','verified','fiscal_updated','delegations_renewed'] }[c.change_type] || [];
+  // Stessa regola di pnHolderTappe: per società ed ente il cambio di persona
+  // salta la tappa dei dati fiscali.
+  if (c.change_type === 'holder_person' && (c.legal_form === 'societa' || c.legal_form === 'ente')) tutte = tutte.filter(t => t !== 'fiscal_updated');
   if (tutte.every(t => c.steps[t])) { c.steps.completed = new Date().toISOString(); c.status = 'completed'; }
   try { localStorage.setItem('byup_holder_change', JSON.stringify(c)); } catch (e) {}
 };

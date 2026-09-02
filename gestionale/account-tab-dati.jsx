@@ -39,10 +39,11 @@ function AccDatiGenerali() {
   const [datiToast, setDatiToast] = React.useState(null);
   const datiDirty = JSON.stringify(datiDraft) !== JSON.stringify(datiSalvati);
   const setCampo = (k) => (v) => setDatiDraft(d => ({ ...d, [k]: v }));
-  // Caso 1 di P-62 (contact_data): resta com'è, ma con la verifica del nuovo
-  // recapito che mancava. Nel modello è una riga restaurant_holder_changes
-  // che passa da proposed a verified a completed, senza catena fiscale: qui
-  // resta locale alla card, perché il registro condiviso serve ai casi 2-4.
+  // Caso 1 di P-62 (contact_data): nasce dal salvataggio dei recapiti e non
+  // si nomina mai a schermo — i campi sono la porta. Nel modello è una riga
+  // restaurant_holder_changes che passa da proposed a verified a completed,
+  // senza catena fiscale: qui resta locale alla card, perché il registro
+  // condiviso serve ai casi con catena.
   const [emailVerifica, setEmailVerifica] = React.useState(null); // { email, stato: 'da_verificare' | 'verificata' }
   const salvaDati = () => {
     const nuovaMail = datiDraft.email !== datiSalvati.email;
@@ -55,7 +56,7 @@ function AccDatiGenerali() {
     }
     setTimeout(() => setDatiToast(null), 2800);
   };
-  const [cambioOpen, setCambioOpen] = React.useState(false);
+  const [passaOpen, setPassaOpen] = React.useState(false);
   // Locale attivo + cambio contesto: breve transizione, persistenza condivisa
   // (sidebar inclusa), poi si apre la Panoramica del locale scelto.
   const [localeAttivo, setLocaleAttivo] = React.useState(() =>
@@ -183,10 +184,11 @@ function AccDatiGenerali() {
           </div>
         )}
 
-        {/* La porta d'ingresso dei quattro casi (P-62 · D-52): una sola, qui
-            sotto ai recapiti, perché «cosa sta cambiando» è la domanda che
-            viene prima di qualunque campo. */}
-        <AcTitolarita onApri={() => setCambioOpen(true)}/>
+        {/* La titolarità (P-62 · D-52): chi è titolare adesso, e l'unico
+            gesto di questa pagina — passare la titolarità a un'altra persona.
+            Il soggetto fiscale cambia da Impostazioni → Dati fiscali; i
+            recapiti dai campi qui sopra. Nessuna domanda «cosa sta cambiando». */}
+        <AcTitolarita onPassa={() => setPassaOpen(true)}/>
 
         {/* Barra conferma — compare solo con modifiche in sospeso */}
         {datiDirty && (
@@ -542,11 +544,11 @@ function AccDatiGenerali() {
       <AcDangerZone
         titolo="Elimina account"
         testo="Tutti i dati del ristorante — menu, ordini, conti e statistiche — verranno cancellati definitivamente."
-        nota="Chiude il tuo account: non cede il locale a nessuno. Per passare il locale a un'altra persona o a un altro soggetto fiscale usa «Cosa sta cambiando?» nel profilo."
+        nota="Chiude il tuo account: non cede il locale a nessuno. Per passarlo a un'altra persona usa «Passa la titolarità» qui sopra; per cambiare soggetto fiscale vai in Impostazioni → Dati fiscali."
         cta="Elimina account"
         onCta={() => setDeleteConfirm(true)}
       />
-      {cambioOpen && <AcCambioModal onClose={() => setCambioOpen(false)}/>}
+      {passaOpen && <AcPassaModal onClose={() => setPassaOpen(false)}/>}
 
       {/* Popup conferma eliminazione — danger, ancorato al frame */}
       {deleteConfirm && (
@@ -1174,12 +1176,13 @@ window.AcBtnGhost = AcBtnGhost;
 // ─── Titolarità del locale: i quattro casi e la catena fiscale (P-62 · D-52) ──
 // Il modello (restaurant_holder_changes) e le sue regole stanno nel commento
 // di PN_HOLDER_TIPI in panoramica-tokens.jsx. Qui: la riga di titolarità con
-// la porta «Cosa sta cambiando?», e — quando un cambiamento è in corso — la
-// timeline delle sei tappe, tutte visibili, con quelle saltate in grigio e
-// il loro perché. Il cambiamento è del ristorante (Cacio e Pepe con le sue
+// il gesto «Passa la titolarità a un'altra persona» (holder_person), e —
+// quando un cambiamento è in corso, da qui o da Dati fiscali — la timeline
+// delle sei tappe, tutte visibili, con quelle saltate in grigio e il loro
+// perché. Il soggetto fiscale si cambia in Dati fiscali, non qui. Il cambiamento è del ristorante (Cacio e Pepe con le sue
 // sedi), non della singola sede; per la Trattoria del Borgo, dove l'account
 // non è titolare, non c'è.
-const AC_TITOLARE = { persona: 'Mario Rossi', ruolo: 'legale rappresentante', soggetto: 'Cacio e Pepe S.r.l.', piva: 'IT12345678901' };
+const AC_TITOLARE = { persona: 'Mario Rossi', ruolo: 'legale rappresentante', soggetto: 'Cacio e Pepe S.r.l.', piva: 'IT12345678901', forma: 'societa' };
 // I mock dei casi 2-4: la persona entrante (accettazione simulata e
 // dichiarata) e il nuovo soggetto della trasformazione del caso 3, che è la
 // demo end-to-end — nessuna seconda persona da simulare.
@@ -1188,7 +1191,7 @@ const AC_NUOVO_SOGGETTO = { denominazione: 'Cacio e Pepe S.p.A.', piva: 'IT23456
 
 const acDataBreve = (iso) => iso ? new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
-function AcTitolarita({ onApri }) {
+function AcTitolarita({ onPassa }) {
   const [cambio, setCambio] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
   const [verificando, setVerificando] = React.useState(false);
   React.useEffect(() => {
@@ -1198,7 +1201,7 @@ function AcTitolarita({ onApri }) {
   }, []);
 
   const tipo = cambio && PN_HOLDER_TIPI.find(t => t.id === cambio.change_type);
-  const tappe = cambio ? pnHolderTappe(cambio.change_type) : [];
+  const tappe = cambio ? pnHolderTappe(cambio.change_type, cambio.legal_form) : [];
   const prossima = cambio ? tappe.find(t => !cambio.steps[t]) : null;
   const concluso = cambio && cambio.status === 'completed';
   const rifiutato = cambio && cambio.status === 'refused';
@@ -1251,10 +1254,10 @@ function AcTitolarita({ onApri }) {
           </div>
         </div>
         {!cambio && (
-          <button onClick={onApri} style={{
-            padding:'9px 16px', borderRadius: 999, background: PN.BTN_DARK, color: PN.WHITE,
-            border:'1px solid rgba(0,0,0,0.32)', fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-          }}>Cosa sta cambiando?</button>
+          <button onClick={onPassa} style={{
+            padding:'9px 16px', borderRadius: 999, background: PN.WHITE, color: PN.TEXT,
+            border:`1px solid ${PN.BORDER}`, fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+          }}>Passa la titolarità a un'altra persona</button>
         )}
       </div>
 
@@ -1284,7 +1287,7 @@ function AcTitolarita({ onApri }) {
           {!concluso && !rifiutato && cambio.fiscal_chain_impacted && (
             <div style={{padding:'11px 16px', background: PN.AMBER_SOFT, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
               <b>Cambiamento non concluso:</b> mancano {[
-                !cambio.steps.fiscal_updated && 'i dati fiscali da aggiornare',
+                tappe.includes('fiscal_updated') && !cambio.steps.fiscal_updated && 'i dati fiscali da aggiornare',
                 !cambio.steps.delegations_renewed && 'le deleghe da riconferire a chi entra e revocare a chi esce',
               ].filter(Boolean).join(' e ') || 'solo le verifiche'}. All'Agenzia non interessa chi fa login: interessa se cambia ciò che l'Agenzia conosce.
               La delega è conferita da una persona fisica per conto di un contribuente, quindi va rifatta se cambia l'una oppure l'altro.
@@ -1341,76 +1344,56 @@ function AcTitolarita({ onApri }) {
 
 // Il foglio dei quattro casi. La catena fiscale non si sceglie: si legge dal
 // tipo, e la frase del modello sta a schermo sotto le tessere.
-function AcCambioModal({ onClose }) {
-  const [tipo, setTipo] = React.useState(null);
-  const [entrante, setEntrante] = React.useState(AC_ENTRANTE.nome);
-  const T = tipo && PN_HOLDER_TIPI.find(t => t.id === tipo);
-  const conPersona = tipo === 'holder_person' || tipo === 'both';
-  const conSoggetto = tipo === 'legal_entity' || tipo === 'both';
-
-  const avvia = () => {
-    if (!tipo) return;
-    if (tipo === 'contact_data') { onClose(); return; }   // resta com'è: i campi qui sopra, con la verifica
+function AcPassaModal({ onClose }) {
+  const [nome, setNome] = React.useState(AC_ENTRANTE.nome);
+  const [email, setEmail] = React.useState(AC_ENTRANTE.email);
+  const ok = email.trim().includes('@');
+  // Il gesto scrive un holder_person e nient'altro: la catena fiscale è sì
+  // per definizione, la forma giuridica è quella del soggetto di oggi e
+  // decide se la tappa dei dati fiscali si fa o si salta.
+  const invia = () => {
+    if (!ok) return;
     const now = new Date().toISOString();
     byupWriteHolderChange({
-      id: 'hc-' + Date.now(), change_type: tipo, fiscal_chain_impacted: T.chain,
+      id: 'hc-' + Date.now(), change_type: 'holder_person', fiscal_chain_impacted: true,
+      legal_form: AC_TITOLARE.forma,
       status: 'proposed', proposed_by: AC_TITOLARE.persona, created_at: now,
       steps: { proposed: now },
-      entrante: conPersona ? { nome: entrante.trim() || AC_ENTRANTE.nome, email: AC_ENTRANTE.email } : null,
-      soggetto: conSoggetto ? { prima: { denominazione: AC_TITOLARE.soggetto, piva: AC_TITOLARE.piva }, dopo: AC_NUOVO_SOGGETTO } : null,
+      entrante: { nome: nome.trim() || AC_ENTRANTE.nome, email: email.trim() },
+      soggetto: null,
     });
     onClose();
   };
-
   return (
     <div onClick={onClose} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 100, padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 640, maxHeight:'92vh', display:'flex', flexDirection:'column'}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 560}}>
         <div style={MODAL_HEAD}>
-          <div style={MODAL_TITLE}>Cosa sta cambiando?</div>
-          <div style={MODAL_SUB}>Quattro casi, e non tutti interessano l'Agenzia delle Entrate.</div>
+          <div style={MODAL_TITLE}>Passa la titolarità a un'altra persona</div>
+          <div style={MODAL_SUB}>Il soggetto fiscale resta {AC_TITOLARE.soggetto}: cambia chi lo rappresenta.</div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
-        <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 8}}>
-          {PN_HOLDER_TIPI.map(t => {
-            const on = tipo === t.id;
-            return (
-              <button key={t.id} onClick={() => setTipo(t.id)} style={{
-                textAlign:'left', padding:'12px 14px', borderRadius: 12, cursor:'pointer', fontFamily:'inherit',
-                border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`, background: on ? PN.PINK_SOFT : PN.WHITE,
-              }}>
-                <div style={{fontSize: 15, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{t.label}</div>
-                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>{t.sub}</div>
-              </button>
-            );
-          })}
-          {T && (
-            <div style={{marginTop: 4, padding:'11px 14px', borderRadius: 10, background: T.chain ? PN.AMBER_SOFT : PN.GREEN_SOFT, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
-              <b>Catena fiscale: {T.chain ? 'sì' : 'no'}.</b> Non è una scelta, si ricava dal caso: la delega è conferita da una persona fisica per conto di un contribuente,
-              quindi va rifatta se cambia l'una oppure l'altro, e non va toccata se cambia soltanto la casella di posta.
-              La domanda non è chi è cambiato, ma se cambia ciò che l'Agenzia conosce.
-            </div>
-          )}
-          {conPersona && (
-            <div style={{marginTop: 4}}>
-              <div style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, marginBottom: 6}}>Chi entra</div>
-              <input value={entrante} onChange={e => setEntrante(e.target.value)} style={{...MODAL_INPUT}}/>
-              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 4}}>Riceverà l'invito ad accettare: finché non accetta, il cambiamento è solo proposto. Nel prototipo l'accettazione si simula.</div>
-            </div>
-          )}
-          {conSoggetto && (
-            <div style={{marginTop: 4, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
-              <b style={{color: PN.TEXT}}>Nuovo soggetto (mock):</b> {AC_NUOVO_SOGGETTO.denominazione} · P.IVA {AC_NUOVO_SOGGETTO.piva}. La P.IVA di oggi, {AC_TITOLARE.piva}, resta conservata: i documenti già emessi la portano.
-            </div>
-          )}
-          {tipo === 'contact_data' && (
-            <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>Resta com'è: cambi email o telefono nei campi del profilo, e la nuova casella la verifichi dal link che ti scriviamo.</div>
-          )}
+        <div style={{...MODAL_BODY, display:'flex', flexDirection:'column', gap: 12}}>
+          <div>
+            <div style={MODAL_LABEL}>Chi entra</div>
+            <input value={nome} onChange={e => setNome(e.target.value)} style={MODAL_INPUT}/>
+          </div>
+          <div>
+            <div style={MODAL_LABEL}>La sua casella di posta</div>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={MODAL_INPUT}/>
+          </div>
+          {/* Non si sovrascrive un account: chi entra accetta con la sua
+              casella e la sua identità, e chi esce perde il ruolo. Le azioni
+              di prima restano di chi le ha fatte. */}
+          <div style={{padding:'11px 14px', borderRadius: 10, background: PN.AMBER_SOFT, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
+            Riceverà un invito e accetterà con la sua casella e la sua identità: fino ad allora il titolare resti tu.
+            La delega all'Agenzia è conferita da una persona per conto del soggetto, quindi chi entra la riconferisce con il proprio SPID.
+          </div>
         </div>
         <div style={MODAL_FOOT}>
           <button onClick={onClose} style={{padding:'10px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
           <span style={{flex: 1}}/>
-          <button onClick={avvia} disabled={!tipo} style={{padding:'10px 18px', borderRadius: 999, border:'1px solid rgba(0,0,0,0.32)', background: tipo ? PN.BTN_DARK : '#EFEFF1', color: tipo ? PN.WHITE : '#9CA3AF', fontSize: 14, fontWeight: 700, cursor: tipo ? 'pointer' : 'not-allowed', fontFamily:'inherit'}}>
-            {tipo === 'contact_data' ? 'Vai ai recapiti' : 'Avvia il cambiamento'}
+          <button onClick={invia} disabled={!ok} style={{padding:'10px 18px', borderRadius: 999, border:'1px solid rgba(0,0,0,0.32)', background: ok ? PN.BTN_DARK : '#EFEFF1', color: ok ? PN.WHITE : '#9CA3AF', fontSize: 14, fontWeight: 700, cursor: ok ? 'pointer' : 'not-allowed', fontFamily:'inherit'}}>
+            Invia l'invito
           </button>
         </div>
       </div>
