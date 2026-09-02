@@ -26,6 +26,9 @@ function ContabilitaApp() {
   const [newCost, setNewCost] = useState(false);
   const [share, setShare] = useState(false);
   const [ivaMonth, setIvaMonth] = useState(null); // mese selezionato per filtro
+  // La consultazione fiscale per le verifiche in loco (P-89 · D-88): un
+  // pulsante in testa, visibile da ogni tab, un foglio a tutto schermo.
+  const [esibizione, setEsibizione] = useState(false);
 
   // Scarti fiscali non gestiti: accendono il pallino sulla voce Contabilità.
   // Si spengono solo quando lo scarto è gestito — mai col tempo, mai per il
@@ -93,6 +96,13 @@ function ContabilitaApp() {
             ].map(t => (
               <PnSectionTab key={t.id} id={t.id} active={tab === t.id} onClick={setTab} label={t.label} icon={t.icon}/>
             ))}
+            <span style={{flex: 1}}/>
+            {/* Si trova senza cercarla, a destra delle tab, in ogni tab. */}
+            <button onClick={() => setEsibizione(true)} className="cassa-btn" title="Consultazione fiscale per le verifiche in loco" style={{
+              alignSelf:'center', marginBottom: 8, padding:'8px 14px', borderRadius: C.R_PILL,
+              background: PN.WHITE, color: PN.TEXT, border:`1px solid ${PN.BORDER}`,
+              fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+            }}>Verifica fiscale</button>
           </div>
 
           {/* Tab content */}
@@ -106,6 +116,7 @@ function ContabilitaApp() {
         </div>
 
         <ContNuovoCosto open={newCost} onClose={() => setNewCost(false)}/>
+        {esibizione && window.ContEsibizione && <ContEsibizione onClose={() => setEsibizione(false)}/>}
         <ContShareModal open={share} onClose={() => setShare(false)}/>
       </main>
     </div>

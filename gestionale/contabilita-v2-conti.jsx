@@ -19,9 +19,15 @@ const CONTI_MOCK = [
     // esiste. `conto.ordini` resta l'insieme del tavolo.
     payments: [
       {id:'p20a', method:'byup',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1',
-        righe:[{id:'q20a-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20a-2',nome:'Pasta alla norma',qty:1,prezzo:13.00},{id:'q20a-3',nome:'Bottiglia vino rosso',qty:1,prezzo:18.00},{id:'q20a-4',nome:'Servizio',qty:1,prezzo:2.00}]},
+        righe:[{id:'q20a-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20a-2',nome:'Pasta alla norma',qty:1,prezzo:13.00},{id:'q20a-3',nome:'Bottiglia vino rosso',qty:1,prezzo:18.00},{id:'q20a-4',nome:'Servizio',qty:1,prezzo:2.00}],
+        // P-89: un reso di oggi, dentro le 48 ore dell'esibizione — documento
+        // trasmesso a sua volta, con esito proprio.
+        rett: { resi: [{ amount:12.00, porzioni:['q20a-1#0'], ora:'2025-11-16 15:30', motivo:'Antipasto non servito', fisc:{ esito:'ok' } }] }},
       {id:'p20b', method:'byup',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2',
-        righe:[{id:'q20b-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20b-2',nome:'Pasta al ragù',qty:1,prezzo:13.00},{id:'q20b-3',nome:'Bottiglia vino rosso',qty:1,prezzo:18.00},{id:'q20b-4',nome:'Servizio',qty:1,prezzo:2.00}]},
+        righe:[{id:'q20b-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20b-2',nome:'Pasta al ragù',qty:1,prezzo:13.00},{id:'q20b-3',nome:'Bottiglia vino rosso',qty:1,prezzo:18.00},{id:'q20b-4',nome:'Servizio',qty:1,prezzo:2.00}],
+        // P-89: l'annullo di oggi — unico, totale, a documento intatto — con
+        // il suo esito di trasmissione; quello di cnt-6 resta come storia.
+        rett: { annullo: { amount:45.00, ora:'2025-11-16 15:40', motivo:'Quota battuta sul conto sbagliato', fisc:{ esito:'ok' } } }},
       // Conto diviso: uno dei documenti è stato scartato, gli altri no.
       // Lo stato sta QUI, sul pagamento: il conto non ne ha uno suo.
       {id:'p20c', method:'carta',    amount:90.00, ora:'2025-11-16 14:09', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3', fisc:{ scarto:'aliquota', tentativi: 3 },
@@ -42,7 +48,11 @@ const CONTI_MOCK = [
   { id:'cnt-5',  idOrdine:'#2511-0038', dataOra:'2025-11-13 20:30', tavolo:'Tavolo 1',  cliente:'Lucia Marchesi',    riferimento:{nome:'Lucia Marchesi', tipo:'byup'}, liberatoOre:48,    totaleConto:72.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1', fisc:{ scarto:'delega', tentativi: 3 }}] },
   { id:'cnt-6',  idOrdine:'#2511-0037', dataOra:'2025-11-08 21:00', tavolo:'Tavolo 3',  cliente:'Francesco Rossi',   liberatoOre:168,   totaleConto:95.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
-    payments: [{id:'p6a', method:'contanti', amount:95.50, ora:'2025-11-08 21:45', scontrinoNum:'SC-2511-0037-1'}] },
+    // P-89: un annullo seminato — unico, totale, a documento intatto (P-17) —
+    // col suo esito di trasmissione: il documento di annullo è trasmesso a sua
+    // volta, e in esibizione ha identificativo ed esito propri.
+    payments: [{id:'p6a', method:'contanti', amount:95.50, ora:'2025-11-08 21:45', scontrinoNum:'SC-2511-0037-1',
+      rett: { annullo: { amount:95.50, ora:'2025-11-09 10:20', motivo:'Documento emesso per errore', fisc:{ esito:'ok' } } }}] },
   { id:'cnt-13', idOrdine:'#2511-0035', dataOra:'2025-11-13 13:15', tavolo:'Tavolo 4',  cliente:'Pellegrini',        liberatoOre:60,    totaleConto:64.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     // Unico conto saldato a pagamento singolo con righe: il reso — a
     // differenza dell'annullo — ha bisogno di sapere COSA si sta restituendo,
@@ -102,7 +112,9 @@ const CONTI_MOCK = [
   { id:'cnt-15', idOrdine:'#2511-0033', dataOra:'2025-11-12 13:30', tavolo:'Asporto', canale:'asporto', cliente:'Anna Costa',        riferimento:{nome:'Anna Costa', tipo:'byup'}, liberatoOre:96,    totaleConto:38.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'byup',
     payments: [{id:'p15a', method:'byup', amount:38.50, ora:'2025-11-12 14:10', scontrinoNum:'SC-2511-0033-1'}] },
   { id:'cnt-16', idOrdine:'#2511-0032', dataOra:'2025-11-11 21:30', tavolo:'Tavolo 11', cliente:'Gallo (aziendale)', liberatoOre:120,   totaleConto:340.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p16a', method:'carta', amount:340.00, ora:'2025-11-11 23:00', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0032-1'}] },
+    // P-89: scarto gestito DALLA ritrasmissione riuscita, non a mano — il
+    // terzo modo di chiudere uno scarto, che nel seme mancava.
+    payments: [{id:'p16a', method:'carta', amount:340.00, ora:'2025-11-11 23:00', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0032-1', fisc:{ scarto:'aliquota', tentativi: 2, gestito:{ come:'ritrasmissione', nota:'Ritrasmissione riuscita al secondo tentativo.' } }}] },
   // I due vecchi `conto.rimborso` sono diventati RESI seminati sul pagamento
   // (P-17): erano rimborsi post-emissione — «piatto reso», il giorno dopo —
   // e la voce di conto senza documento duplicava i resi. Il seme non porta il
@@ -110,11 +122,11 @@ const CONTI_MOCK = [
   { id:'cnt-17', idOrdine:'#2511-0030', dataOra:'2025-11-10 12:45', tavolo:'Tavolo 6',  cliente:'Coppia Neri',       riferimento:{nome:'Francesca Neri', tipo:'prenotazione'}, liberatoOre:144,   totaleConto:58.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     ordini: [{id:'o17-1',nome:'Antipasto di mare',qty:1,prezzo:12.00},{id:'o17-2',nome:'Branzino al forno',qty:1,prezzo:22.00},{id:'o17-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'o17-4',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'o17-5',nome:'Dolce della casa',qty:1,prezzo:7.00}],
     payments: [{id:'p17a', method:'carta', amount:58.00, ora:'2025-11-10 13:50', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0030-1',
-      rett: { resi: [{ amount:12.00, porzioni:['o17-1#0'], ora:'2025-11-10 14:05', motivo:'Servizio contestato' }] }}] },
+      rett: { resi: [{ amount:12.00, porzioni:['o17-1#0'], ora:'2025-11-10 14:05', motivo:'Servizio contestato', fisc:{ esito:'ok' } }] }}] },
   { id:'cnt-7',  idOrdine:'#2509-0156', dataOra:'2025-08-17 22:15', tavolo:'Tavolo 6',  cliente:'Paolo Bianchi',     liberatoOre:2160,  totaleConto:110.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     ordini: [{id:'o7-1',nome:'Pasta allo scoglio',qty:1,prezzo:25.00},{id:'o7-2',nome:'Grigliata mista di pesce',qty:1,prezzo:38.00},{id:'o7-3',nome:'Bottiglia vermentino',qty:1,prezzo:26.00},{id:'o7-4',nome:'Antipasto di mare',qty:1,prezzo:14.00},{id:'o7-5',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'o7-6',nome:'Caffè',qty:2,prezzo:2.00}],
     payments: [{id:'p7a', method:'carta', amount:110.00, ora:'2025-08-17 22:45', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1',
-      rett: { resi: [{ amount:25.00, porzioni:['o7-1#0'], ora:'2025-08-18 10:12', motivo:'Piatto reso: pasta troppo cotta' }] }}] },
+      rett: { resi: [{ amount:25.00, porzioni:['o7-1#0'], ora:'2025-08-18 10:12', motivo:'Piatto reso: pasta troppo cotta', fisc:{ esito:'ok' } }] }}] },
   { id:'cnt-18', idOrdine:'#2510-0089', dataOra:'2025-10-05 21:00', tavolo:'Asporto', canale:'asporto', cliente:'Sara Mancini',      liberatoOre:1032,  totaleConto:76.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p18a', method:'contanti', amount:76.00, ora:'2025-10-05 21:50', scontrinoNum:'SC-2510-0089-1'}] },
   { id:'cnt-19', idOrdine:'#2509-0143', dataOra:'2025-09-20 13:00', tavolo:'Tavolo 3',  cliente:'Luca Caruso',       liberatoOre:1380,  totaleConto:42.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
@@ -143,18 +155,25 @@ const CONTI_MOCK = [
     (c.payments || []).forEach(p => {
       p.ora = shiftStr(p.ora);
       if (p.scontrinoNum) p.scontrinoNum = p.scontrinoNum.replace(/SC-\d{4}-/, 'SC-' + code + '-');
-      // Anche i resi seminati sul pagamento seguono lo scarto di date.
-      if (p.rett) (p.rett.resi || []).forEach(r => { r.ora = shiftStr(r.ora); });
+      // Anche le rettifiche seminate sul pagamento seguono lo scarto di date.
+      if (p.rett) {
+        (p.rett.resi || []).forEach(r => { r.ora = shiftStr(r.ora); });
+        if (p.rett.annullo) p.rett.annullo.ora = shiftStr(p.rett.annullo.ora);
+      }
     });
   });
 
-  // Il conto della finestra di divieto (P-100) è per definizione DI STASERA:
-  // un waiting di ieri sarebbe già partito a mezzanotte. Lo shiftDays del mock
-  // però cade su ieri per tutta la mattina (l'ancora è a mezzogiorno), quindi
-  // questo conto si aggancia all'oggi vero, non allo scarto.
+  // Il conto della finestra di divieto (P-100) è per definizione DI STASERA
+  // — ma solo quando la notte demo è accesa (`?notte=1`): allora sta a oggi
+  // 23:54 ed è «in attesa di mezzanotte». Fuori dalla demo un documento delle
+  // 23:54 di oggi sarebbe nel FUTURO e docInfo lo darebbe per trasmesso: i
+  // due ancoraggi (lo scarto del mock e l'oggi vero di P-100) si sommavano
+  // così. Riconciliati (P-89): senza demo il conto è di IERI sera, l'ultimo
+  // documento della notte scorsa, partito a mezzanotte come tutti gli altri.
   const c24 = CONTI_MOCK.find(x => x.id === 'cnt-24');
   if (c24) {
     const d = new Date();
+    if (!(window.byupNotteInfo && window.byupNotteInfo().dentro)) d.setDate(d.getDate() - 1);
     const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const code = iso.slice(2,4) + iso.slice(5,7);
     c24.dataOra = `${iso} 23:38`;
@@ -212,6 +231,22 @@ function rettDi(p) {
 // doc scritto a mano (il numero scontrino viene ri-ancorato a runtime), quindi
 // il nome si deriva sempre dal documento com'è ADESSO.
 const rettDocReso = (p, indice) => `${p.scontrinoNum}-R${indice + 1}`;
+const rettDocAnnullo = (p) => `${p.scontrinoNum}-A`;
+// P-89: nel regime attuale il documento di reso o annullo è a sua volta
+// trasmesso, con esito e identificativo PROPRI. Nel mock l'esito sta nel seme
+// (`fisc.esito`, di norma ok) e l'identificativo si deriva da quello del
+// documento madre col progressivo — dichiarato come identificativo del
+// canale, com'è quello del padre.
+const rettFisc = (p, r, indice, annullo) => {
+  const base = typeof docInfo === 'function' ? docInfo(p) : { idTrasm: null };
+  const esito = (r && r.fisc && r.fisc.esito) || 'ok';
+  const suffisso = annullo ? '-A' : `-R${indice + 1}`;
+  return { esito, idTrasm: esito === 'ok' && base.idTrasm ? base.idTrasm + suffisso : null };
+};
+window.rettDi = rettDi;
+window.rettDocReso = rettDocReso;
+window.rettDocAnnullo = rettDocAnnullo;
+window.rettFisc = rettFisc;
 
 // I pagamenti sono i documenti commerciali: Cassa ci deriva le chiusure di
 // giornata, quindi la lista deve essere raggiungibile da lì.
@@ -276,6 +311,7 @@ function PagamentoFiscChip({ payment, onOpen }) {
   const sotto = info.tipo === 'ritrasmissione' ? (
     <span style={{color: PN.MUTED, whiteSpace:'nowrap'}}>
       tentativo {info.tentativo} di 5 · prossimo alle {info.prossimo}
+      <span title="Il piano dei tentativi è la politica di ritrasmissione di Byup, non un esito del canale"> · politica Byup</span>
     </span>
   ) : info.tipo === 'waiting' ? (
     // Accodato dal canale nella finestra di divieto: nessun id AE da mostrare
@@ -286,7 +322,7 @@ function PagamentoFiscChip({ payment, onOpen }) {
   ) : null;
   if (!apribile) {
     return (
-      <span title={info.idTrasm ? `Identificativo di ricezione ${info.idTrasm}` : undefined}
+      <span title={info.idTrasm ? `Identificativo del canale ${info.idTrasm}` : undefined}
         style={{display:'inline-flex', alignItems:'center', gap: 8}}>{pill}{sotto}</span>
     );
   }
@@ -402,7 +438,7 @@ function DocScartoSheet({ conto, payment, onClose }) {
             fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT, lineHeight: 1.4,
           }}>{sc.motivo}</div>
 
-          <Blocco titolo="Causa probabile">{sc.causa}</Blocco>
+          <Blocco titolo="Causa probabile · lettura Byup del codice del canale">{sc.causa}</Blocco>
 
           <Blocco titolo="Cosa fare">
             {sc.azione}
@@ -1035,6 +1071,8 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
                 <span style={{fontFamily:'ui-monospace, Menlo, monospace', flexShrink: 0}}>{rettDocReso(payment, i)}</span>
                 <span style={{flex:1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
                   {fmtDataOra(r.ora)}{r.motivo ? ` · ${r.motivo}` : ''}
+                  {/* P-89: il reso è un documento trasmesso, col suo esito e il suo identificativo del canale. */}
+                  {(() => { const f = rettFisc(payment, r, i); return f.idTrasm ? ` · trasmesso · ${f.idTrasm}` : ` · ${f.esito}`; })()}
                 </span>
                 <span style={{fontWeight: 700, color:'#991B1B', fontVariantNumeric:'tabular-nums', flexShrink: 0}}>−€{r.amount.toFixed(2)}</span>
               </div>
