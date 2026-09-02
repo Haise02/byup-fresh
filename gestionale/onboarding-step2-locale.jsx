@@ -282,10 +282,12 @@ function SubStepInfo({venue, v}) {
 //      agli intermediari, e non abilita né a trasmettere né a censire.
 //   2. la CONSERVAZIONE — la attiva Byup: si mostra come «in corso» e poi
 //      «attiva», mai come un compito dell'esercente, mai un suo pulsante.
-//   3. il CENSIMENTO del collegamento del dispositivo — territorio di P-105:
-//      qui se ne mostra lo stato («da comunicare» / «dichiarato») e vi si
-//      rimanda; l'autodichiarazione è dell'esercente. Principio di P-48:
-//      «dichiarato», mai «verificato». Byup non censisce il punto cassa.
+//   3. il CENSIMENTO del collegamento del POS — l'assistente è di P-105 e
+//      vive in Impostazioni → Dati fiscali: qui se ne mostra lo stato («da
+//      comunicare» / «dichiarato») per il POS virtuale, che nasce col
+//      collegamento a Stripe, e vi si rimanda; l'autodichiarazione è
+//      dell'esercente. Principio di P-48: «dichiarato», mai «verificato».
+//      Byup non censisce il punto cassa.
 //
 // Due modelli convivono, ed è voluto: la trasmissione dei CORRISPETTIVI usa le
 // credenziali Fisconline dell'esercente (P-104, Impostazioni → Dati fiscali);
@@ -441,6 +443,26 @@ const onbHolderAvanza = (stato) => {
   try { localStorage.setItem('byup_holder_change', JSON.stringify(c)); } catch (e) {}
 };
 
+// Il registro del censimento POS (P-105, byup_pos_censimento) sta in
+// panoramica-tokens.jsx, che questo bundle non carica: qui la lettura e la
+// scrittura guardate, con gli stessi nomi del modello. Si salva solo la riga
+// del POS virtuale; il lettore del gestionale la fonde sul suo seme per id.
+const onbPosLeggi = () => {
+  if (window.byupReadPosCensimento) return (window.byupReadPosCensimento().find(r => r.id === 'pos-virtuale') || {}).fiscal_link_status || 'pending_census';
+  try { const s = localStorage.getItem('byup_pos_censimento'); const r = s ? JSON.parse(s).find(x => x.id === 'pos-virtuale') : null; return (r && r.fiscal_link_status) || 'pending_census'; } catch (e) { return 'pending_census'; }
+};
+const onbPosDichiara = (dichiarato, autore) => {
+  if (window.byupPosDichiara && window.byupPosRitira) { dichiarato ? window.byupPosDichiara('pos-virtuale', autore) : window.byupPosRitira('pos-virtuale'); return; }
+  let lista = [];
+  try { const s = localStorage.getItem('byup_pos_censimento'); lista = s ? JSON.parse(s) : []; } catch (e) {}
+  const r = lista.find(x => x.id === 'pos-virtuale') || (lista.push({ id: 'pos-virtuale' }), lista[lista.length - 1]);
+  r.fiscal_link_status = dichiarato ? 'linked' : 'pending_census';
+  r.census_transmitted_at = dichiarato ? new Date().toISOString() : null;
+  r.census_declared_by = dichiarato ? (autore || null) : null;
+  try { localStorage.setItem('byup_pos_censimento', JSON.stringify(lista)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-pos-censimento'));
+};
+
 function AdeDelegaCard({venue, v}) {
   const stato = venue.adeStato || 'attesa';   // attesa | verifica | errore | attivo
   // Riconferimento per un cambio di titolarità (P-62): chi entra riconferisce,
@@ -454,7 +476,16 @@ function AdeDelegaCard({venue, v}) {
     if (riconferimento && stato === 'attivo' && revocata) { onbHolderAvanza('delegations_renewed'); setCambio(onbReadHolderChange()); }
   }, [stato, revocata]);
   const conservazione = venue.conservazioneStato || 'attesa';   // attesa | corso | attiva
-  const censimento = venue.censimentoStato || 'da_comunicare'; // da_comunicare | dichiarato
+  // Lo stato del censimento non è più una copia locale: è la riga del POS
+  // virtuale nel registro, la stessa che leggono Personale e Dati fiscali.
+  const [posStato, setPosStato] = React.useState(onbPosLeggi);
+  React.useEffect(() => {
+    const agg = () => setPosStato(onbPosLeggi());
+    window.addEventListener('byup-pos-censimento', agg);
+    window.addEventListener('storage', agg);
+    return () => { window.removeEventListener('byup-pos-censimento', agg); window.removeEventListener('storage', agg); };
+  }, []);
+  const censimento = posStato === 'linked' ? 'dichiarato' : 'da_comunicare';
   const [copiato, setCopiato] = React.useState(false);
   const [mail, setMail] = React.useState(null);   // modello aperto in anteprima
 
@@ -583,15 +614,15 @@ function AdeDelegaCard({venue, v}) {
           <div style={{marginTop: 8, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
             <label style={{display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14.5, color: ONB.TEXT, cursor: 'pointer'}}>
               <input type="checkbox" checked={censimento === 'dichiarato'}
-                onChange={e => v('censimentoStato', e.target.checked ? 'dichiarato' : 'da_comunicare')}
+                onChange={e => onbPosDichiara(e.target.checked, venue.name ? `Titolare di ${venue.name}` : null)}
                 style={{width: 16, height: 16, accentColor: ONB.ACTION_PRIMARY}}/>
               Ho completato la comunicazione
             </label>
-            {/* Il foglio precompilato e l'assistente della comunicazione sono
-                di P-105 e vivranno in Impostazioni → POS e integrazioni: qui
-                solo il rimando. */}
-            <a href="byup Impostazioni.html?page=integrazioni" style={{fontSize: 14, fontWeight: 600, color: ONB.BRAND_DARK, textDecoration: 'none'}}>
-              Vai a POS e integrazioni →
+            {/* Il foglio precompilato e i passi sono dell'assistente di P-105,
+                in Impostazioni → Dati fiscali: qui solo il rimando, con il
+                POS virtuale già aperto. */}
+            <a href="byup Impostazioni.html?page=fiscali&card=pos&strumento=pos-virtuale" style={{fontSize: 14, fontWeight: 600, color: ONB.BRAND_DARK, textDecoration: 'none'}}>
+              Vai al collegamento POS →
             </a>
           </div>)}
       </div>

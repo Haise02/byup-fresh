@@ -60,12 +60,11 @@ function OnboardingApp() {
     //     solo l'esito: attesa → verifica → errore | attivo.
     //   conservazioneStato — la attiva Byup, mai l'esercente: attesa (finché
     //     non c'è la delega) → corso → attiva.
-    //   censimentoStato — il collegamento del dispositivo lo comunica
-    //     l'esercente (P-105): da_comunicare → dichiarato. Mai «verificato».
+    //   il censimento del POS (P-105) non sta qui: è la riga del POS virtuale
+    //     nel registro byup_pos_censimento, letta e scritta dalla card.
     adeStato: 'attesa',
     adeTentativi: 0,
     conservazioneStato: 'attesa',
-    censimentoStato: 'da_comunicare',
   });
   const [payments, setPayments] = React.useState({
     stripeStatus: 'disconnected',

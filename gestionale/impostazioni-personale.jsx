@@ -227,6 +227,17 @@ function ImpPersonale() {
   const [customRoles, setCustomRoles] = React.useState(CUSTOM_ROLES);
   const allRoles = [...ROLES, ...customRoles];
 
+  // I lettori Tap to Pay, dal registro del censimento POS (P-105): la riga
+  // porta due assi distinti — l'accesso («Attivo», come tutti) e la
+  // comunicazione all'Agenzia, che è un'altra cosa e ha la sua pastiglia.
+  const [posCens, setPosCens] = React.useState(() => window.byupReadPosCensimento ? window.byupReadPosCensimento() : []);
+  React.useEffect(() => {
+    const agg = () => setPosCens(window.byupReadPosCensimento ? window.byupReadPosCensimento() : []);
+    window.addEventListener('byup-pos-censimento', agg);
+    window.addEventListener('storage', agg);
+    return () => { window.removeEventListener('byup-pos-censimento', agg); window.removeEventListener('storage', agg); };
+  }, []);
+
   // Persone e dispositivi in un elenco solo: la domanda della pagina è «chi
   // entra nel gestionale», e un monitor di cucina che legge le comande entra
   // esattamente come ci entra un cameriere. Tenerli in due liste separate
@@ -255,6 +266,24 @@ function ImpPersonale() {
           : { titolo: 'Cucina', sotto: 'Schermo comande' },
         attivo: attivazioni[key] !== undefined ? attivazioni[key] : d.active !== false,
         stampante,
+      };
+    }),
+    ...posCens.filter(d => d.nature === 'tap_to_pay').map(d => {
+      const key = `s-${d.id}`;
+      const p = window.pnPosPromemoria(d);
+      const dismesso = d.fiscal_link_status === 'unlinked';
+      return {
+        key, tipo: 'dispositivo', staff: true, dato: d,
+        nome: d.name, sotto: `${d.user} · ${d.os}${dismesso ? ' · scollegato' : ''}`,
+        ruolo: DEVICE_ROLES['tap-to-pay'], gruppo: '_devices',
+        accesso: { titolo: 'Byup Staff', sotto: 'Incasso Tap to Pay' },
+        attivo: attivazioni[key] !== undefined ? attivazioni[key] : !dismesso,
+        // La pastiglia del censimento: c'è finché la riga non è dichiarata,
+        // e porta all'assistente in Dati fiscali con lo strumento già aperto.
+        censimento: p.fase === 'ok' ? null : {
+          id: d.id, fase: p.fase, sotto: p.testo,
+          label: `${(PN_POS_STATI[d.fiscal_link_status] || PN_POS_STATI.pending_census).label} all'Agenzia`,
+        },
       };
     }),
   ];
@@ -528,6 +557,13 @@ const DEVICE_ROLES = {
     color: '#475569', bg: '#F1F5F9' },
   'printer':         { id: '_device_printer', label: 'Stampante', icon: 'doc',
     color: '#475569', bg: '#F1F5F9' },
+  // Gli smartphone di Byup Staff (P-105): non stanno in DEVICES, si leggono
+  // dal registro del censimento POS (byup_pos_censimento, panoramica-tokens),
+  // perché un lettore Tap to Pay è uno strumento di pagamento e la sua riga
+  // qui deve accendersi con «da comunicare all'Agenzia». Si collegano e si
+  // scollegano in POS e integrazioni, non da qui.
+  'tap-to-pay':      { id: '_device_staff', label: 'Byup Staff', icon: 'phone',
+    color: '#475569', bg: '#F1F5F9' },
 };
 
 // Che cosa vede davvero un ruolo, detto in due righe: la prima le sezioni,
@@ -609,7 +645,9 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
         }}>
           {iniziali || (r.stampante
             ? (BuIcons.doc||BuIcons.phone)({size: 18, color:'currentColor'})
-            : (BuIcons.monitor||BuIcons.chef)({size: 18, color:'currentColor'}))}
+            : r.staff
+              ? BuIcons.phone({size: 18, color:'currentColor'})
+              : (BuIcons.monitor||BuIcons.chef)({size: 18, color:'currentColor'}))}
         </div>
         <div style={{minWidth: 0}}>
           <div title={r.nome} style={{
@@ -618,9 +656,29 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
           }}>{r.nome}</div>
           <div style={{
             fontSize: 13.5, color: PN.MUTED, marginTop: 1,
-            fontFamily: r.tipo === 'dispositivo' ? 'ui-monospace, Menlo, monospace' : 'inherit',
+            fontFamily: r.tipo === 'dispositivo' && !r.staff ? 'ui-monospace, Menlo, monospace' : 'inherit',
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
           }}>{r.sotto}</div>
+          {/* Censimento POS (P-105): un asse diverso dall'accesso. Sta sotto
+              il nome e non nella colonna Stato, che dice se il dispositivo
+              entra — questa dice se l'Agenzia lo sa. Cliccarla porta al
+              foglio precompilato dello strumento. */}
+          {r.censimento && (
+            <button
+              onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'fiscali', anchor: 'pos-censimento', da: 'personale', strumento: r.censimento.id } })); }}
+              title={r.censimento.sotto}
+              className="pn-btn-feedback"
+              style={{
+                display:'inline-flex', alignItems:'center', gap: 5, marginTop: 4,
+                padding:'2px 9px', borderRadius: 999, border:'none', cursor:'pointer', fontFamily:'inherit',
+                background: r.censimento.fase === 'scaduta' ? '#FEF2F2' : PN.AMBER_SOFT,
+                color: r.censimento.fase === 'scaduta' ? '#991B1B' : PN.AMBER,
+                fontSize: 12.5, fontWeight: 700,
+              }}>
+              <span style={{width: 6, height: 6, borderRadius:'50%', background:'currentColor'}}/>
+              {r.censimento.label} →
+            </button>
+          )}
         </div>
       </div>
 
@@ -707,6 +765,15 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
               <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
               <MenuItem icon={BuIcons.trash({size: 14, color: 'currentColor'})} danger
                 onClick={() => { setOpenMenu(null); setConfermaRimozione(true); }}>Rimuovi dal team</MenuItem>
+            </>
+          ) : r.staff ? (
+            // Uno smartphone di Byup Staff si collega e si scollega in POS e
+            // integrazioni: da qui si va lì, o al foglio dell'Agenzia.
+            <>
+              <MenuItem icon={BuIcons.doc({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'fiscali', anchor: 'pos-censimento', da: 'personale', strumento: r.dato.id } })); }}>Collegamento all'Agenzia</MenuItem>
+              <MenuItem icon={BuIcons.phone({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'integrazioni', da: 'personale' } })); }}>Gestisci in POS e integrazioni</MenuItem>
             </>
           ) : (
             <>

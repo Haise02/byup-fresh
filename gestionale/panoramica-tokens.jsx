@@ -801,3 +801,156 @@ window.byupHolderAvanza = function (stato) {
   window.byupWriteHolderChange(c);
   return c;
 };
+
+// ─── Censimento dei POS all'Agenzia delle Entrate (P-105 · FISC-03) ────────
+// Art. 1 co. 74-77 L. 207/2024 e Provv. AdE 424470/2025: ogni strumento di
+// pagamento elettronico va COLLEGATO dall'esercente allo strumento con cui
+// certifica i corrispettivi — qui la procedura web «Documento Commerciale on
+// line» del canale (openapi_channel), non un registratore. Con quella
+// procedura il collegamento non è delegabile (FAQ AdE n. 4): lo fa lui dal
+// suo accesso al portale, e Byup può solo preparargli i dati esatti, i passi
+// in ordine e il promemoria. Per questo lo stato è sempre DICHIARATO, mai
+// verificato: l'Agenzia non dà ritorno e Byup non censisce al posto suo.
+//
+// Due nature: il POS virtuale — uno per sede, nasce quando l'onboarding
+// Stripe si completa — e i lettori Tap to Pay, uno per ogni smartphone
+// collegato a Byup Staff (Android compreso: le FAQ AdE n. 14 mettono i
+// SoftPOS fra gli strumenti fisici senza distinguere il sistema).
+//
+// La finestra della comunicazione va dal sesto all'ultimo giorno del secondo
+// mese successivo a quello di attivazione dello strumento, e ogni variazione
+// — modifica o dismissione — la riapre dalla data della variazione. Il
+// promemoria insiste perché la comunicazione omessa o tardiva è sanzionata
+// (art. 11 co. 5 D.Lgs. 471/1997), e non si spegne finché la riga non è
+// dichiarata.
+//
+// Registro in localStorage (byup_pos_censimento): una riga per strumento, con
+// i nomi di devices.fiscal_link_status — not_linked, pending_census, linked,
+// varied, unlinked — sotto le tre etichette italiane. census_transmitted_at
+// è il momento dell'autodichiarazione. Il seme si calcola a runtime; quello
+// che si salva sono solo le righe toccate, fuse sul seme per id, così il
+// bundle dell'onboarding (che non carica questo file) può scrivere la sua
+// riga senza portarsi dietro le altre.
+const PN_POS_KEY = 'byup_pos_censimento';
+const PN_POS_STATI = {
+  not_linked:     { label: 'Da comunicare', tono: 'attesa' },
+  pending_census: { label: 'Da comunicare', tono: 'attesa' },
+  linked:         { label: 'Dichiarato',    tono: 'ok' },
+  varied:         { label: 'Da aggiornare', tono: 'attesa' },
+  unlinked:       { label: 'Da aggiornare', tono: 'attesa' },
+};
+const PN_POS_NATURE = {
+  virtual:    { label: 'POS virtuale',       tipoPos: 'Online' },
+  tap_to_pay: { label: 'Lettore Tap to Pay', tipoPos: 'Fisico' },
+};
+// L'acquirer è uno solo per tutta la piattaforma, e i suoi dati sono quelli
+// della prassi Stripe (scheda del 27/03/2026): denominazione, codice fiscale
+// italiano, sede estera. Il contratto di convenzionamento è l'identificativo
+// dell'account connesso — acct_ più sedici caratteri — che nel resto del
+// gestionale sta mascherato e si svela solo nel foglio.
+const PN_POS_ACQUIRER = {
+  denominazione: 'Stripe Technology Europe, Limited',
+  cf: '97979220155',
+  estero: true,
+};
+const PN_POS_ACCOUNT = 'acct_1P7Kx9QcRfTwdE3v';
+// I tre semi coprono i tre stati: il lettore dichiarato, il lettore mai
+// comunicato con la finestra scaduta da tempo, il POS virtuale appena nato
+// con la finestra davanti. Nome e persona dei lettori sono la copia di
+// BYUP_PAY_DEVICES (impostazioni-integrazioni.jsx, altro ordine di
+// caricamento): i seriali sono verosimili e dichiarati tali — quello vero si
+// legge dall'interfaccia Stripe, Terminal → Lettori.
+const pnPosSeme = () => [
+  { id: 'pos-virtuale', nature: 'virtual', name: 'POS virtuale · Stripe', identifier: PN_POS_ACCOUNT,
+    activated_at: pnGiorniDaOggi(-20), fiscal_link_status: 'pending_census', census_transmitted_at: null, census_declared_by: null, varied_at: null },
+  { id: 'bp-01', nature: 'tap_to_pay', name: 'iPhone 14 Pro', os: 'iOS 17.4', user: 'Marco Silvestri', identifier: 'TTPI-4K7M2Q9XZ3',
+    activated_at: '2024-03-12', fiscal_link_status: 'linked', census_transmitted_at: '2026-04-09T11:20:00', census_declared_by: 'Marco Silvestri', varied_at: null },
+  { id: 'bp-02', nature: 'tap_to_pay', name: 'Samsung Galaxy S23', os: 'Android 14', user: 'Sara Conti', identifier: 'TTPA-8R2N6V4LC1',
+    activated_at: '2024-04-05', fiscal_link_status: 'pending_census', census_transmitted_at: null, census_declared_by: null, varied_at: null },
+];
+window.PN_POS_STATI = PN_POS_STATI;
+window.PN_POS_NATURE = PN_POS_NATURE;
+window.PN_POS_ACQUIRER = PN_POS_ACQUIRER;
+window.PN_POS_ACCOUNT = PN_POS_ACCOUNT;
+window.byupReadPosCensimento = function () {
+  let salvate = {};
+  try { const s = localStorage.getItem(PN_POS_KEY); if (s) JSON.parse(s).forEach(r => { salvate[r.id] = r; }); } catch (e) {}
+  const seme = pnPosSeme();
+  const lista = seme.map(r => salvate[r.id] ? { ...r, ...salvate[r.id] } : r);
+  Object.values(salvate).forEach(r => { if (!seme.some(s => s.id === r.id)) lista.push(r); });
+  return lista;
+};
+window.byupWritePosCensimento = function (lista) {
+  try { localStorage.setItem(PN_POS_KEY, JSON.stringify(lista)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-pos-censimento'));
+};
+// L'autodichiarazione: data, ora e chi l'ha resa. È l'unica chiusura.
+window.byupPosDichiara = function (id, autore) {
+  const lista = window.byupReadPosCensimento();
+  const r = lista.find(x => x.id === id); if (!r) return lista;
+  r.fiscal_link_status = 'linked';
+  r.census_transmitted_at = new Date().toISOString();
+  r.census_declared_by = autore || PN_UTENTE.nome;
+  window.byupWritePosCensimento(lista);
+  return lista;
+};
+// La variazione: 'varied' se lo strumento cambia, 'unlinked' se si dismette.
+// In entrambi i casi la finestra riparte dalla data di oggi.
+window.byupPosVaria = function (id, stato) {
+  const lista = window.byupReadPosCensimento();
+  const r = lista.find(x => x.id === id); if (!r) return lista;
+  r.fiscal_link_status = stato === 'unlinked' ? 'unlinked' : 'varied';
+  r.varied_at = pnOggiISO();
+  window.byupWritePosCensimento(lista);
+  return lista;
+};
+// Ripristino di demo: la riga torna a «da comunicare» senza dichiarazione.
+window.byupPosRitira = function (id) {
+  const lista = window.byupReadPosCensimento();
+  const r = lista.find(x => x.id === id); if (!r) return lista;
+  r.fiscal_link_status = 'pending_census';
+  r.census_transmitted_at = null; r.census_declared_by = null;
+  window.byupWritePosCensimento(lista);
+  return lista;
+};
+// La finestra: dal 6 all'ultimo giorno del secondo mese successivo a quello
+// dell'evento — attivazione, o variazione se c'è stata.
+window.pnPosFinestra = function (r) {
+  const rif = new Date(`${r.varied_at || r.activated_at}T00:00:00`);
+  const inizio = new Date(rif.getFullYear(), rif.getMonth() + 2, 6);
+  const fine = new Date(rif.getFullYear(), rif.getMonth() + 3, 0);
+  return { inizio, fine };
+};
+const pnPosData = (d, anno) => d.toLocaleDateString('it-IT', anno ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long' });
+// Il promemoria a gradini. fase: 'ok' (dichiarato) · 'lontana' (la finestra
+// non è ancora aperta) · 'aperta' · 'ultimi' (sette giorni o meno) ·
+// 'scaduta'. Il testo è quello che si legge ovunque lo strumento compaia.
+window.pnPosPromemoria = function (r) {
+  if (r.fiscal_link_status === 'linked') {
+    const q = r.census_transmitted_at ? new Date(r.census_transmitted_at) : null;
+    return { fase: 'ok', giorni: null, testo: q ? `Dichiarato il ${pnPosData(q, true)}${r.census_declared_by ? ` da ${r.census_declared_by}` : ''}` : 'Dichiarato' };
+  }
+  const { inizio, fine } = window.pnPosFinestra(r);
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const stessoAnno = fine.getFullYear() === oggi.getFullYear();
+  const verbo = (r.fiscal_link_status === 'varied' || r.fiscal_link_status === 'unlinked') ? 'Da aggiornare' : 'Da comunicare';
+  if (oggi < inizio) {
+    return { fase: 'lontana', giorni: Math.round((inizio - oggi) / 86400000), testo: `${verbo} dal ${inizio.getDate()} al ${pnPosData(fine, !stessoAnno)}` };
+  }
+  const giorni = Math.round((fine - oggi) / 86400000);
+  if (giorni >= 0) {
+    const fase = giorni <= 7 ? 'ultimi' : 'aperta';
+    const resto = giorni === 0 ? 'scade oggi' : giorni === 1 ? 'manca 1 giorno' : `mancano ${giorni} giorni`;
+    return { fase, giorni, testo: `${verbo} entro il ${pnPosData(fine, !stessoAnno)} · ${resto}` };
+  }
+  const oltre = -giorni;
+  return { fase: 'scaduta', giorni, testo: oltre <= 60 ? `Finestra scaduta da ${oltre} giorn${oltre === 1 ? 'o' : 'i'}` : `Finestra scaduta il ${pnPosData(fine, true)}` };
+};
+// La riga più urgente fra quelle non dichiarate: è quella che il promemoria
+// mette in testa, in Dati fiscali e in Personale.
+window.pnPosUrgente = function (lista) {
+  const ordine = { scaduta: 0, ultimi: 1, aperta: 2, lontana: 3, ok: 4 };
+  return (lista || window.byupReadPosCensimento())
+    .map(r => ({ r, p: window.pnPosPromemoria(r) }))
+    .sort((a, b) => ordine[a.p.fase] - ordine[b.p.fase])[0] || null;
+};

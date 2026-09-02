@@ -229,6 +229,238 @@ const STATI_NASCITA = [
 // portano e devono restare leggibili. Per holder_person cambia solo il
 // legale rappresentante, il soggetto resta. Coda registrata: la P.IVA di
 // fatturazione dell'account (ACC_DATI) non si aggiorna da qui.
+// ─── Collegamento POS all'Agenzia delle Entrate (P-105 · FISC-03) ──────────
+// Il registro, la finestra, gli stati e il perché stanno in
+// panoramica-tokens.jsx (byup_pos_censimento). Qui c'è l'assistente: l'elenco
+// degli strumenti con lo stato e il promemoria, e per ciascuno il foglio
+// precompilato — i campi coi nomi e nell'ordine del portale, un tasto di
+// copia per valore — i passi in ordine, e la chiusura, che è una spunta:
+// «Ho completato la comunicazione», con data e autore. È un'autodichiarazione
+// e resta tale: «dichiarato», mai «verificato».
+//
+// Nel foglio non c'è l'indirizzo della sede: il Manuale del portale lo chiede
+// per il registratore telematico, ma con la procedura «Documento Commerciale
+// on line» il collegamento associa lo strumento alla procedura e nient'altro
+// (nota v0.14). Lo strumento di certificazione da scegliere sul portale è
+// quella procedura, che è il canale con cui Byup trasmette (openapi_channel).
+const POS_PORTALE = 'https://ivaservizi.agenziaentrate.gov.it/portale/';
+// Il passo zero è un prerequisito, non un passo: il menù «Collegamento
+// dispositivi – POS» compare solo a chi è accreditato come esercente
+// (FAQ AdE n. 28), e la delega data a Byup non lo sostituisce — accredita
+// l'intermediario, non lui.
+const POS_PASSO_ZERO = 'Prima di tutto devi essere accreditato come esercente su Fatture e Corrispettivi (Corrispettivi → Gestore ed Esercente → Accreditati). Senza, il menù del collegamento non compare. La delega che hai dato a Byup non basta: riguarda l\'intermediario, non il tuo accreditamento.';
+const POS_PASSI = [
+  'Accedi a Fatture e Corrispettivi con SPID, CIE o CNS.',
+  'Vai su Corrispettivi e scegli «Vai a Corrispettivi».',
+  'Nel riquadro Gestore ed Esercente scegli «Accedi ai servizi».',
+  'Nel menù a sinistra apri «Collegamento dispositivi – POS», poi «Gestione collegamenti».',
+  'Come strumento di certificazione scegli la procedura web «Documento Commerciale on line»: è il canale con cui Byup trasmette i tuoi scontrini, non un registratore.',
+  'Se lo strumento non è in elenco scegli «Aggiungi nuovo POS»: cerca l\'acquirer col codice fiscale qui sotto, e se non c\'è usa «Aggiungi nuovo Acquirer». Incolla i campi del foglio, nell\'ordine in cui li trovi, e salva.',
+  'Scegli «Collega». Poi torna qui e segna che l\'hai fatto.',
+];
+
+// Il foglio, campo per campo, coi nomi esatti del portale. Per il POS
+// virtuale il Terminal id è dichiarato aperto: la prassi Stripe lo dice
+// «non applicabile», il modulo del portale lo segna obbligatorio, e le fonti
+// non dicono cosa metterci.
+function posFoglio(r) {
+  const nat = PN_POS_NATURE[r.nature] || PN_POS_NATURE.tap_to_pay;
+  const virtuale = r.nature === 'virtual';
+  return [
+    { campo: 'Tipo POS', valore: nat.tipoPos, copia: true },
+    virtuale
+      ? { campo: 'Terminal id', valore: 'Non applicabile a un POS online', copia: false, aperto: true,
+          nota: 'Così dice la prassi Stripe (marzo 2026). Il modulo del portale lo segna però obbligatorio: cosa inserire è un punto aperto, e te lo diciamo invece di inventarlo.' }
+      : { campo: 'Terminal id', valore: r.identifier, copia: true, mono: true,
+          nota: `Numero di serie del lettore, letto dall'interfaccia Stripe (Terminal → Lettori) con l'intestazione dell'account ${PN_POS_ACCOUNT}.` },
+    { campo: 'Acquirer Italiano/Estero', valore: PN_POS_ACQUIRER.estero ? 'Estero' : 'Italiano', copia: true },
+    { campo: 'CF Acquirer', valore: PN_POS_ACQUIRER.cf, copia: true, mono: true },
+    { campo: 'Denominazione Acquirer', valore: PN_POS_ACQUIRER.denominazione, copia: true },
+    { campo: 'Numero contratto di convenzionamento', valore: PN_POS_ACCOUNT, copia: true, mono: true,
+      nota: 'È l\'identificativo del tuo account Stripe connesso. Altrove nel gestionale lo vedi mascherato: qui è per intero perché va incollato così.' },
+  ];
+}
+
+const POS_TONI = {
+  ok:      { colore: PN.GREEN, sfondo: PN.GREEN_SOFT, bordo: PN.GREEN_SOFT },
+  lontana: { colore: PN.MUTED, sfondo: '#F1F3F5',     bordo: PN.BORDER_SOFT },
+  aperta:  { colore: PN.AMBER, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D' },
+  ultimi:  { colore: PN.AMBER, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D' },
+  scaduta: { colore: '#991B1B', sfondo: '#FEF2F2',    bordo: '#FECACA' },
+};
+
+function PosCopia({ valore }) {
+  const [fatto, setFatto] = React.useState(false);
+  const copia = () => {
+    const scrivi = navigator.clipboard && navigator.clipboard.writeText
+      ? navigator.clipboard.writeText(valore) : Promise.reject();
+    scrivi.catch(() => {}).then(() => { setFatto(true); setTimeout(() => setFatto(false), 1600); });
+  };
+  return (
+    <button onClick={copia} className="pn-btn-feedback" style={{
+      display:'inline-flex', alignItems:'center', gap: 5, flexShrink: 0,
+      padding:'5px 10px', borderRadius: 8, cursor:'pointer', fontFamily:'inherit',
+      background: fatto ? PN.GREEN_SOFT : PN.WHITE, color: fatto ? PN.GREEN : PN.TEXT,
+      border: `1px solid ${fatto ? PN.GREEN_SOFT : PN.BORDER}`, fontSize: 13, fontWeight: 600,
+    }}>
+      {fatto ? BuIcons.check({size: 13, color:'currentColor'}) : BuIcons.copy({size: 13, color:'currentColor'})}
+      {fatto ? 'Copiato' : 'Copia'}
+    </button>
+  );
+}
+
+function PosStrumento({ r, aperto, onApri }) {
+  const p = pnPosPromemoria(r);
+  const tono = POS_TONI[p.fase];
+  const stato = PN_POS_STATI[r.fiscal_link_status] || PN_POS_STATI.pending_census;
+  const nat = PN_POS_NATURE[r.nature] || PN_POS_NATURE.tap_to_pay;
+  const virtuale = r.nature === 'virtual';
+  const dichiarato = r.fiscal_link_status === 'linked';
+  const dismesso = r.fiscal_link_status === 'unlinked';
+  const foglio = posFoglio(r);
+  const oraLocale = () => { const d = new Date(); return `${d.toLocaleDateString('it-IT')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; };
+  void oraLocale;
+  return (
+    <div style={{ border: `1px solid ${aperto ? PN.BORDER : PN.BORDER_SOFT}`, borderRadius: 12, background: PN.WHITE, overflow:'hidden' }}>
+      <div style={{ display:'flex', alignItems:'center', gap: 14, padding: '13px 16px' }}>
+        <div style={{
+          width: 42, height: 42, borderRadius: 11, flexShrink: 0,
+          background: virtuale ? '#635BFF' : '#F4F5F7', color: virtuale ? PN.WHITE : PN.TEXT,
+          display:'grid', placeItems:'center', fontSize: virtuale ? 20 : 22, fontWeight: 800,
+          opacity: dismesso ? 0.6 : 1,
+        }}>{virtuale ? 'S' : '📱'}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap' }}>
+            <span style={{ fontSize: 15.5, fontWeight: 700, color: PN.TEXT }}>{r.name}</span>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: PN.MUTED, padding:'1px 7px', borderRadius: 999, background: '#F4F5F7' }}>{nat.label}</span>
+            {dismesso && <span style={{ fontSize: 12.5, fontWeight: 600, color: PN.MUTED }}>scollegato da Byup Staff</span>}
+          </div>
+          <div style={{ fontSize: 13.5, color: PN.MUTED, marginTop: 2, fontFamily: 'ui-monospace, Menlo, monospace' }}>
+            {virtuale ? 'acct_••••dE3v' : r.identifier}{r.user ? <span style={{ fontFamily:'inherit' }}> · {r.user}</span> : ''}
+          </div>
+        </div>
+        <div style={{ textAlign:'right', flexShrink: 0 }}>
+          <span style={{
+            display:'inline-flex', alignItems:'center', gap: 5, padding:'3px 10px', borderRadius: 999,
+            background: tono.sfondo, color: tono.colore, fontSize: 13, fontWeight: 700,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius:'50%', background: tono.colore }}/>
+            {stato.label}
+          </span>
+          <div style={{ fontSize: 13, color: p.fase === 'ok' || p.fase === 'lontana' ? PN.MUTED : tono.colore, marginTop: 4, fontWeight: p.fase === 'scaduta' || p.fase === 'ultimi' ? 700 : 500 }}>{p.testo}</div>
+        </div>
+        <ImpButton variant="ghost" onClick={onApri} style={{ flexShrink: 0 }}>{aperto ? 'Chiudi' : (dichiarato ? 'Rivedi il foglio' : 'Apri il foglio')}</ImpButton>
+      </div>
+
+      {aperto && (
+        <div style={{ borderTop: `1px solid ${PN.BORDER_SOFT}`, padding: '16px 16px 18px', background: '#FAFBFC' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems:'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: PN.TEXT, marginBottom: 8 }}>Il foglio da incollare</div>
+              <div style={{ border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 10, background: PN.WHITE }}>
+                {foglio.map((f, i) => (
+                  <div key={f.campo} style={{ padding: '10px 12px', borderTop: i ? `1px solid ${PN.BORDER_SOFT}` : 'none' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap: 10 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: PN.MUTED }}>{f.campo}</div>
+                        <div style={{ fontSize: 14.5, fontWeight: 700, color: f.aperto ? PN.AMBER : PN.TEXT, fontFamily: f.mono ? 'ui-monospace, Menlo, monospace' : 'inherit', wordBreak:'break-all' }}>{f.valore}</div>
+                      </div>
+                      {f.copia && <PosCopia valore={f.valore}/>}
+                    </div>
+                    {f.nota && <div style={{ fontSize: 13, color: f.aperto ? PN.AMBER : PN.MUTED, marginTop: 4, lineHeight: 1.45 }}>{f.nota}</div>}
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 8, lineHeight: 1.45 }}>
+                Nessun indirizzo della sede: con la procedura Documento Commerciale on line il collegamento associa lo strumento alla procedura e nient'altro.
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 14.5, fontWeight: 700, color: PN.TEXT, marginBottom: 8 }}>Come si fa, sul portale</div>
+              <div style={{ padding: '10px 12px', borderRadius: 10, background: PN.AMBER_SOFT, border: '1px solid #FCD34D', fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 10 }}>
+                <b>Passo zero.</b> {POS_PASSO_ZERO}
+              </div>
+              <ol style={{ margin: 0, paddingLeft: 20, display:'flex', flexDirection:'column', gap: 6 }}>
+                {POS_PASSI.map((t, i) => <li key={i} style={{ fontSize: 14, color: PN.TEXT, lineHeight: 1.45 }}>{t}</li>)}
+              </ol>
+              <a href={POS_PORTALE} target="_blank" rel="noopener" style={{ display:'inline-flex', alignItems:'center', gap: 6, marginTop: 10, fontSize: 14, fontWeight: 600, color: PN.PINK_DARK, textDecoration:'none' }}>
+                {BuIcons.link({size: 13, color:'currentColor'})} Apri Fatture e Corrispettivi
+              </a>
+            </div>
+          </div>
+
+          {/* La chiusura. Una spunta, un'autodichiarazione: Byup non la
+              verifica e non la fa al posto suo. Togliere la spunta serve alla
+              demo, per rifare il giro. */}
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap' }}>
+            <label style={{ display:'inline-flex', alignItems:'center', gap: 9, fontSize: 15, fontWeight: 600, color: PN.TEXT, cursor:'pointer' }}>
+              <input type="checkbox" checked={dichiarato}
+                onChange={e => e.target.checked ? byupPosDichiara(r.id, PN_UTENTE.nome) : byupPosRitira(r.id)}
+                style={{ width: 17, height: 17, accentColor: PN.PINK_DARK }}/>
+              Ho completato la comunicazione
+            </label>
+            <span style={{ fontSize: 13.5, color: PN.MUTED }}>
+              {dichiarato ? p.testo : 'È una tua dichiarazione: Byup la registra con data e nome, non la verifica e non la fa al posto tuo.'}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PosCensimentoCard() {
+  const [lista, setLista] = React.useState(() => byupReadPosCensimento());
+  const [aperto, setAperto] = React.useState(() => {
+    try { return new URLSearchParams(window.location.search).get('strumento') || null; } catch (e) { return null; }
+  });
+  React.useEffect(() => {
+    const agg = () => setLista(byupReadPosCensimento());
+    window.addEventListener('byup-pos-censimento', agg);
+    window.addEventListener('storage', agg);
+    // Il rimando da Personale porta anche quale strumento aprire.
+    const go = (e) => { const d = e.detail; if (d && typeof d === 'object' && d.strumento) setAperto(d.strumento); };
+    window.addEventListener('byup-imp-goto', go);
+    return () => { window.removeEventListener('byup-pos-censimento', agg); window.removeEventListener('storage', agg); window.removeEventListener('byup-imp-goto', go); };
+  }, []);
+
+  const scadute = lista.filter(r => pnPosPromemoria(r).fase === 'scaduta');
+  const urgente = pnPosUrgente(lista);
+  const fase = urgente ? urgente.p.fase : 'ok';
+  const tono = POS_TONI[fase];
+  const testata = fase === 'ok'
+    ? 'Tutti gli strumenti sono dichiarati all\'Agenzia. Se ne colleghi uno nuovo, o ne scolleghi uno, te lo diciamo qui.'
+    : fase === 'scaduta'
+      ? `${scadute.length === 1 ? `${urgente.r.name} ha` : `${scadute.length} strumenti hanno`} la comunicazione in ritardo: la finestra è scaduta, e la comunicazione omessa o tardiva è sanzionata.`
+      : fase === 'ultimi'
+        ? `La finestra di ${urgente.r.name} si chiude tra pochi giorni: ${urgente.p.testo.toLowerCase()}.`
+        : fase === 'aperta'
+          ? `La finestra è aperta: ${urgente.r.name}, ${urgente.p.testo.toLowerCase()}.`
+          : `Nessuna scadenza aperta. ${urgente.r.name}: ${urgente.p.testo.toLowerCase()}.`;
+
+  return (
+    <ImpCard anchor="pos-censimento"
+      title="Collegamento POS all'Agenzia delle Entrate"
+      sub="Ogni strumento con cui incassi va collegato, dal tuo accesso al portale, alla procedura con cui Byup trasmette i tuoi scontrini. Byup non può farlo al posto tuo: prepara i dati esatti da incollare, i passi in ordine e il promemoria. Tu dichiari di averlo fatto.">
+      <div style={{
+        display:'flex', alignItems:'center', gap: 12, padding: '12px 14px', borderRadius: 11, marginBottom: 14,
+        background: tono.sfondo, border: `1.5px solid ${tono.bordo}`,
+      }}>
+        <div style={{ width: 34, height: 34, borderRadius: 9, background: tono.colore, color: PN.WHITE, display:'grid', placeItems:'center', flexShrink: 0 }}>
+          {fase === 'ok' ? BuIcons.check({size: 16, color: PN.WHITE}) : <BuIcons.alert size={16} color={PN.WHITE}/>}
+        </div>
+        <div style={{ fontSize: 14.5, color: fase === 'ok' || fase === 'lontana' ? PN.TEXT : tono.colore, fontWeight: fase === 'scaduta' || fase === 'ultimi' ? 700 : 500, lineHeight: 1.45 }}>{testata}</div>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
+        {lista.map(r => <PosStrumento key={r.id} r={r} aperto={aperto === r.id} onApri={() => setAperto(aperto === r.id ? null : r.id)}/>)}
+      </div>
+      <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 12, lineHeight: 1.45 }}>
+        La finestra va dal 6 all'ultimo giorno del secondo mese successivo a quello in cui lo strumento si attiva, e si riapre a ogni variazione: un lettore che cambia, uno che scolleghi. Il POS virtuale nasce col collegamento a Stripe; un lettore nasce con ogni smartphone collegato a Byup Staff.
+      </div>
+    </ImpCard>
+  );
+}
+
 function ImpCambioTitolaritaBanner({ onAggiorna }) {
   const [cambio, setCambio] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
   React.useEffect(() => {
@@ -308,6 +540,19 @@ function ImpDatiFiscali() {
   const [dirty, setDirty] = React.useState(false);
   const set = (k, v) => { setData(d => ({...d, [k]: v})); setDirty(true); };
 
+  // Atterraggio sulla card del collegamento POS quando ci si arriva da un
+  // rimando: si accende e si porta in vista, come i chip della checklist.
+  React.useEffect(() => {
+    let card = null;
+    try { card = new URLSearchParams(window.location.search).get('card'); } catch (e) {}
+    if (card !== 'pos') return;
+    const t = setTimeout(() => {
+      const el = window.impAccendiSezione && window.impAccendiSezione('pos-censimento');
+      if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, 200);
+    return () => clearTimeout(t);
+  }, []);
+
   const persona = data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista';
   const societa = data.legalForm === 'societa';
   const ente    = data.legalForm === 'ente';
@@ -372,6 +617,12 @@ function ImpDatiFiscali() {
           verifica all'inserimento — il perché e il come stanno nel commento
           in testa al file. */}
       <AdeCredenzialiCard/>
+
+      {/* Collegamento dei POS all'Agenzia (P-105): il vicino di casa delle
+          credenziali — stessa area, stesso linguaggio. Deep link
+          ?page=fiscali&card=pos[&strumento=id] dai rimandi di Personale,
+          dell'onboarding e di POS e integrazioni. */}
+      <PosCensimentoCard/>
 
       {/* 2-column layout: form a sx, anteprima scontrino a dx */}
       <div style={{display:'grid', gridTemplateColumns:'1fr 320px', gap: 18, alignItems:'flex-start'}}>

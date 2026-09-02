@@ -382,12 +382,16 @@ function ByupPayHero({ devices, onAdd }) {
               <div style={MODAL_TITLE}>Scollegare il dispositivo?</div>
               <div style={MODAL_SUB}>
                 <strong style={{color: PN.TEXT}}>{dev.name}</strong> di {dev.user} non potrà più accettare pagamenti finché non viene ricollegato.
+                {' '}La dismissione va comunicata all'Agenzia: lo strumento passa a «da aggiornare» nel collegamento POS, con una nuova finestra da oggi.
               </div>
               <button onClick={() => setDaScollegare(null)} style={MODAL_X}><PnI.X size={14}/></button>
             </div>
             <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
               <ImpButton variant="ghost" onClick={() => setDaScollegare(null)} style={{padding:'11px 22px', borderRadius: 11, fontSize: 16}}>Annulla</ImpButton>
-              <ImpButton variant="danger" onClick={() => { setList(l => l.filter(x => x.id !== daScollegare)); setDaScollegare(null); }} style={{padding:'11px 26px', borderRadius: 11, fontSize: 16}}>Scollega</ImpButton>
+              {/* Scollegare è una variazione dovuta all'Agenzia (P-105): il
+                  registro del censimento porta lo strumento a unlinked e la
+                  finestra riparte da oggi. */}
+              <ImpButton variant="danger" onClick={() => { if (window.byupPosVaria) window.byupPosVaria(daScollegare, 'unlinked'); setList(l => l.filter(x => x.id !== daScollegare)); setDaScollegare(null); }} style={{padding:'11px 26px', borderRadius: 11, fontSize: 16}}>Scollega</ImpButton>
             </div>
           </div>
         </div>
@@ -581,6 +585,35 @@ function PrinterCard({ item }) {
   );
 }
 
+// Il POS virtuale nasce col collegamento a Stripe (P-105): la tessera lo
+// dice e rimanda al foglio in Dati fiscali finché non è dichiarato.
+function PosVirtualeRimando() {
+  const [r, setR] = React.useState(() => (window.byupReadPosCensimento ? window.byupReadPosCensimento() : []).find(x => x.id === 'pos-virtuale') || null);
+  React.useEffect(() => {
+    const agg = () => setR((window.byupReadPosCensimento ? window.byupReadPosCensimento() : []).find(x => x.id === 'pos-virtuale') || null);
+    window.addEventListener('byup-pos-censimento', agg);
+    return () => window.removeEventListener('byup-pos-censimento', agg);
+  }, []);
+  if (!r) return null;
+  const p = window.pnPosPromemoria(r);
+  if (p.fase === 'ok') return <div style={{fontSize: 13, color: PN.MUTED, marginTop: 6}}>POS virtuale dichiarato all'Agenzia</div>;
+  const scaduta = p.fase === 'scaduta';
+  return (
+    <button
+      onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'fiscali', anchor: 'pos-censimento', da: 'integrazioni', strumento: 'pos-virtuale' } }))}
+      title={p.testo} className="pn-btn-feedback"
+      style={{
+        display:'inline-flex', alignItems:'center', gap: 5, marginTop: 8,
+        padding:'2px 9px', borderRadius: 999, border:'none', cursor:'pointer', fontFamily:'inherit',
+        background: scaduta ? '#FEF2F2' : PN.AMBER_SOFT, color: scaduta ? '#991B1B' : PN.AMBER,
+        fontSize: 12.5, fontWeight: 700,
+      }}>
+      <span style={{width: 6, height: 6, borderRadius:'50%', background:'currentColor'}}/>
+      POS virtuale {(PN_POS_STATI[r.fiscal_link_status] || PN_POS_STATI.pending_census).label.toLowerCase()} all'Agenzia →
+    </button>
+  );
+}
+
 function IntegrationCard({ item, suggested, onMobileQr, onApi }) {
   const s = STATUS_LABEL[item.status];
   // Tessera in piedi invece che riga sdraiata: logo in alto, nome e
@@ -633,6 +666,7 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi }) {
           <span style={{flexShrink: 0}}>{s.label}</span>
           {item.detail && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· {item.detail}</span>}
         </div>
+        {item.id === 'stripe' && <PosVirtualeRimando/>}
 
         <div style={{marginTop: 12}}>
           {item.status === 'connected' && (
