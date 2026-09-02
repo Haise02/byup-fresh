@@ -19,12 +19,88 @@ const INTEGRATIONS = [
   { id:'justeat', name: PN_PARTNER.justeat.nome, cat:'delivery', logo: PN_PARTNER.justeat.sigla, bg: PN_PARTNER.justeat.bg, desc:'Delivery & ordini', status:'connected', detail:'sync 5 min fa' },
   { id:'deliveroo', name: PN_PARTNER.deliveroo.nome, cat:'delivery', logo: PN_PARTNER.deliveroo.sigla, bg: PN_PARTNER.deliveroo.bg, color: PN_PARTNER.deliveroo.ink, desc:'Delivery & ordini', status:'available' },
   { id:'glovo', name: PN_PARTNER.glovo.nome, cat:'delivery', logo: PN_PARTNER.glovo.sigla, bg: PN_PARTNER.glovo.bg, color: PN_PARTNER.glovo.ink, desc:'Delivery & quick commerce', status:'available' },
-  // Marketing
-  { id:'gmb', name:'Google My Business', cat:'marketing', logo:'G', bg:'#fff', borderless:true, color:'#4285F4', desc:'Recensioni & orari Maps', status:'available' },
-  { id:'brevo', name:'Brevo', cat:'marketing', logo:'B', bg:'#0B996E', desc:'Email marketing & newsletter', status:'available' },
-  { id:'mailchimp', name:'Mailchimp', cat:'marketing', logo:'M', bg:'#FFE01B', color:'#241C15', desc:'Email marketing', status:'available' },
-  // Automazione
-  { id:'zapier', name:'Zapier', cat:'automazione', logo:'Z', bg:'#FF4F00', desc:'Automazioni e flussi', status:'available' },
+  // Presenza online. Qui stavano anche Brevo e Mailchimp (P-31 · D-29): via,
+  // perché promettevano di lavorare su una base clienti che il ristoratore
+  // non possiede — il marketing del locale verso i clienti è dismesso e Byup
+  // è titolare unico del rapporto con il consumatore, che è il presupposto
+  // dell'intero impianto privacy. Google My Business resta: è la scheda del
+  // locale su Maps, non una lista di persone.
+  { id:'gmb', name:'Google My Business', cat:'presenza', logo:'G', bg:'#fff', borderless:true, color:'#4285F4', desc:'Recensioni & orari Maps', status:'available' },
+  // Collegamenti API — Zapier è la prima realizzazione del collegamento
+  // generico (P-32 · D-29), a dominio aperto: la tessera apre il foglio
+  // IntCollegaModal e il suo stato si RICAVA dall'elenco delle connessioni
+  // (vedi ImpIntegrazioni), non sta scritto qui. Niente prezzo e niente
+  // cancello sull'add-on api_third_party: il gating commerciale si decide al
+  // lancio, e finché non è deciso la scheda non lo inventa.
+  { id:'zapier', name:'Zapier', cat:'api', api:true, logo:'Z', bg:'#FF4F00', desc:'Automazioni e flussi verso le tue app', status:'available' },
+];
+
+// ─── Collegamenti API: la connessione con un'app esterna (P-32 · D-29) ─────
+// Il modello è tenant_api_connections (GS-04), e la scheda lo segue alla
+// lettera. Il perimetro non è una promessa ma un fatto tecnico: la credenziale
+// appartiene a una connessione, la connessione a un esercente, il terzo vede
+// quello e nient'altro. Una connessione vale per una sede o per tutte, e non
+// attraversa mai il confine fra ristoranti.
+//   Cosa esce — ciò che l'esercente detiene come venditore.
+//   Cosa non esce mai — vincolo dichiarato, non configurabile.
+//   Chi autorizza — il SOLO titolare del locale: il collegamento fa uscire
+//     dati verso un terzo, non è un'impostazione operativa.
+//   controller_ack_at — la presa d'atto: prima di generare la credenziale
+//     l'esercente dichiara di agire come titolare del trattamento per il
+//     flusso verso il terzo e di avere con esso un proprio accordo. Spunta
+//     dedicata, mai preselezionata; si registra al momento della spunta.
+//   authorized_at — alla generazione della credenziale.
+//   last_used_at / revoked_at — la revoca chiude la riga, non la cancella:
+//     la connessione revocata resta visibile come storia.
+const INT_COSA_ESCE = 'Quello che possiedi come venditore: ordini, conti, documenti fiscali e incassi della sede; le prenotazioni che ricevi; le recensioni; il catalogo; il personale.';
+const INT_COSA_NON_ESCE = 'I dati di altri locali. Allergeni, regimi alimentari e note sanitarie. Il profilo dell\'account Byup del cliente, con i suoi consensi e la sua storia in altri locali. I dati di carta oltre a circuito e ultime quattro cifre.';
+const INT_CHI_RISPONDE = 'Dove vanno i dati lo scegli tu, e per quel flusso il titolare del trattamento sei tu. La credenziale appartiene a questa connessione, la connessione al tuo ristorante: l\'app vede quello e nient\'altro. È così che è costruita, non una promessa.';
+
+// Chi guarda e le sedi fra cui scegliere. Nel bundle delle Impostazioni non
+// ci sono account-data.jsx né account-tab-dati.jsx: questa è la copia di
+// ACC_DATI e di ACC_LOCALI filtrata al ristorante corrente (Cacio e Pepe e
+// la sua sede Ostiense). La Trattoria del Borgo, dove l'utente è «Manager»,
+// NON compare: è un'altra insegna, e il confine non si attraversa nemmeno nel
+// selettore. Le incoerenze del mock su ruoli (Owner/Manager contro
+// Titolare) e sull'identità del locale sono code registrate, non si toccano
+// qui.
+const INT_UTENTE = { nome: 'Mario Rossi', titolare: true };
+const INT_SEDI = [
+  { id: 'cp', name: 'Cacio e Pepe',            city: 'Roma · Trastevere' },
+  { id: 'co', name: 'Cacio e Pepe · Ostiense', city: 'Roma · Ostiense' },
+];
+const intSedeNome = (venueId) => venueId ? (INT_SEDI.find(x => x.id === venueId) || {}).name : 'Tutte le sedi';
+
+// Date ancorate all'oggi reale a ogni caricamento, come i mock delle fatture.
+const intGiorniFa = (g, ora) => {
+  const d = new Date(); d.setDate(d.getDate() - g);
+  const [h, m] = (ora || '10:00').split(':'); d.setHours(+h, +m, 0, 0);
+  return d;
+};
+const intMinutiFa = (m) => new Date(Date.now() - m * 60000);
+const intData = (d) => d ? d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+const intRelativo = (d) => {
+  if (!d) return 'mai';
+  const m = Math.round((Date.now() - d.getTime()) / 60000);
+  if (m < 1) return 'adesso';
+  if (m < 60) return `${m} min fa`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} ${h === 1 ? 'ora' : 'ore'} fa`;
+  const g = Math.round(h / 24);
+  if (g === 1) return 'ieri';
+  if (g < 30) return `${g} giorni fa`;
+  return intData(d);
+};
+
+// Due righe: una viva su tutte le sedi, una limitata a Ostiense e revocata —
+// resta, perché la revoca è storia e non cancellazione.
+const INT_CONNESSIONI_MOCK = [
+  { id: 'conn-2', application: 'zapier', venue_id: null, authorized_by: 'Mario Rossi',
+    controller_ack_at: intGiorniFa(50, '10:19'), authorized_at: intGiorniFa(50, '10:20'),
+    last_used_at: intMinutiFa(12), revoked_at: null, revoked_by: null },
+  { id: 'conn-1', application: 'zapier', venue_id: 'co', authorized_by: 'Mario Rossi',
+    controller_ack_at: intGiorniFa(182, '16:04'), authorized_at: intGiorniFa(182, '16:05'),
+    last_used_at: intGiorniFa(92, '09:30'), revoked_at: intGiorniFa(91, '11:00'), revoked_by: 'Mario Rossi' },
 ];
 
 // Il gradiente del logo Byup Staff. Non vive più qui: da quando lo portano
@@ -43,10 +119,25 @@ const STATUS_LABEL = {
 function ImpIntegrazioni() {
   const [filter, setFilter] = React.useState('all');
   const [qrApp, setQrApp] = React.useState(false);
+  // Le connessioni con app esterne: in memoria, niente persistenza. La
+  // tessera Zapier del catalogo si legge da qui, così tessera ed elenco non
+  // possono dirsi due cose diverse.
+  const [connessioni, setConnessioni] = React.useState(INT_CONNESSIONI_MOCK);
+  const [collega, setCollega] = React.useState(false);
+  const attive = connessioni.filter(c => !c.revoked_at).length;
+  const catalogo = INTEGRATIONS.map(i => i.api
+    ? { ...i, status: attive ? 'connected' : 'available',
+        detail: attive ? `${attive} ${attive === 1 ? 'connessione attiva' : 'connessioni attive'}` : undefined }
+    : i);
+  const aggiungiConnessione = (c) => setConnessioni(l => [c, ...l]);
+  // La revoca chiude la riga, non la cancella.
+  const revoca = (id) => setConnessioni(l => l.map(c => c.id === id
+    ? { ...c, revoked_at: new Date(), revoked_by: INT_UTENTE.nome } : c));
+
   const counts = {
-    all: INTEGRATIONS.length,
-    connected: INTEGRATIONS.filter(i => i.status === 'connected').length,
-    available: INTEGRATIONS.filter(i => i.status === 'available' || i.status === 'disconnected').length,
+    all: catalogo.length,
+    connected: catalogo.filter(i => i.status === 'connected').length,
+    available: catalogo.filter(i => i.status === 'available' || i.status === 'disconnected').length,
   };
 
   const filterChips = [
@@ -55,7 +146,7 @@ function ImpIntegrazioni() {
     { id: 'available', label: 'Disponibili', count: counts.available },
   ];
 
-  const visible = INTEGRATIONS.filter(i => {
+  const visible = catalogo.filter(i => {
     if (filter === 'all') return true;
     if (filter === 'available') return i.status === 'available' || i.status === 'disconnected';
     return i.status === filter;
@@ -70,13 +161,13 @@ function ImpIntegrazioni() {
     pagamenti: 'Pagamenti e fatturazione',
     periferiche: 'Periferiche',
     delivery: 'Delivery',
-    marketing: 'Marketing',
-    automazione: 'Automazione',
+    presenza: 'Presenza online',
+    api: 'Collegamenti API',
   };
-  const catOrder = ['pagamenti','periferiche','delivery','marketing','automazione'];
+  const catOrder = ['pagamenti','periferiche','delivery','presenza','api'];
 
   // Suggested: 4 popolari non connessi
-  const suggested = INTEGRATIONS
+  const suggested = catalogo
     .filter(i => i.status === 'available')
     .slice(0, 4);
 
@@ -85,7 +176,7 @@ function ImpIntegrazioni() {
       {/* PRIMA — Hero "byup Pay" come sistema di incasso (stato operativo) */}
       <ByupPayHero devices={BYUP_PAY_DEVICES} onAdd={() => setQrApp(true)}/>
 
-      <ImpCard title="Altre integrazioni" sub="Pagamenti, periferiche, delivery e marketing">
+      <ImpCard title="Altre integrazioni" sub="Pagamenti, periferiche, delivery, presenza online e collegamenti API">
         <div style={{display:'flex', gap: 7, flexWrap:'wrap', marginBottom: 18}}>
           {filterChips.map(c => {
             const on = filter === c.id;
@@ -120,7 +211,7 @@ function ImpIntegrazioni() {
             <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
               {byCategory[c].map(i => i.printerType
                 ? <PrinterCard key={i.id} item={i}/>
-                : <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)}/>
+                : <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}/>
               )}
             </div>
           </div>
@@ -133,18 +224,21 @@ function ImpIntegrazioni() {
         )}
       </ImpCard>
 
-      {/* Pannello rimosso — ora in cima come ByupPayHero */}
+      {/* Le connessioni sono del ristorante, non della singola app: una card
+          loro, dove si è aperto il collegamento. */}
+      <IntConnessioniCard connessioni={connessioni} onRevoca={revoca}/>
 
       {/* Suggested */}
       {filter === 'all' && suggested.length > 0 && (
         <ImpCard title="Suggeriti per te" sub="Integrazioni popolari per ristoranti come il tuo">
           <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
-            {suggested.map(i => <IntegrationCard key={i.id} item={i} suggested onMobileQr={() => setQrApp(true)}/>)}
+            {suggested.map(i => <IntegrationCard key={i.id} item={i} suggested onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}/>)}
           </div>
         </ImpCard>
       )}
 
       {qrApp && <ByupPayQrModal onClose={() => setQrApp(false)}/>}
+      {collega && <IntCollegaModal onClose={() => setCollega(false)} onGenera={aggiungiConnessione}/>}
     </div>
   );
 }
@@ -487,7 +581,7 @@ function PrinterCard({ item }) {
   );
 }
 
-function IntegrationCard({ item, suggested, onMobileQr }) {
+function IntegrationCard({ item, suggested, onMobileQr, onApi }) {
   const s = STATUS_LABEL[item.status];
   // Tessera in piedi invece che riga sdraiata: logo in alto, nome e
   // descrizione sotto, e il bottone appoggiato al fondo. Cosi il bottone sta
@@ -542,7 +636,9 @@ function IntegrationCard({ item, suggested, onMobileQr }) {
 
         <div style={{marginTop: 12}}>
           {item.status === 'connected' && (
-            <ImpButton variant="ghost" style={azione}>Configura</ImpButton>
+            <ImpButton variant="ghost" style={azione} onClick={item.api ? onApi : undefined}>
+              {item.api ? 'Nuova connessione' : 'Configura'}
+            </ImpButton>
           )}
           {item.status === 'todo' && (
             <ImpButton
@@ -552,9 +648,231 @@ function IntegrationCard({ item, suggested, onMobileQr }) {
             >{item.cta || 'Configura ora'}</ImpButton>
           )}
           {(item.status === 'available' || item.status === 'disconnected') && (
-            <ImpButton variant="ghost" style={azione}>Connetti</ImpButton>
+            <ImpButton variant="ghost" style={azione} onClick={item.api ? onApi : undefined}>Connetti</ImpButton>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Connessioni con app esterne: l'elenco ──────────────────────────────────
+// Applicazione, sede (o tutte), chi ha autorizzato e quando, ultimo utilizzo
+// (last_used_at) e la revoca. La riga revocata resta in grigio con la data e
+// chi l'ha chiusa: è storia, e la storia non si cancella.
+function IntConnessioniCard({ connessioni, onRevoca }) {
+  const [daRevocare, setDaRevocare] = React.useState(null); // id in conferma
+  const col = '2.2fr 1.6fr 2fr 1.3fr 1.5fr';
+  const th = { fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform: 'uppercase' };
+  return (
+    <ImpCard title="Connessioni con app esterne" sub="Ogni connessione ha la sua credenziale e vale per una sede o per tutte. Revocarla la chiude subito.">
+      {connessioni.length === 0 ? (
+        <div style={{padding: '18px 0 6px', color: PN.MUTED, fontSize: 15}}>Nessuna app collegata.</div>
+      ) : (
+        <div>
+          <div style={{display:'grid', gridTemplateColumns: col, gap: 12, padding: '0 6px 10px', ...th}}>
+            <span>Applicazione</span><span>Sede</span><span>Autorizzata da</span><span>Ultimo utilizzo</span><span/>
+          </div>
+          {connessioni.map(c => {
+            const app = INTEGRATIONS.find(i => i.id === c.application) || { name: c.application, logo: '?', bg: PN.MUTED };
+            const revocata = !!c.revoked_at;
+            const inConferma = daRevocare === c.id;
+            return (
+              <div key={c.id} style={{
+                display:'grid', gridTemplateColumns: col, gap: 12, alignItems:'center',
+                padding: '12px 6px', borderTop: `1px solid ${PN.BORDER_SOFT}`,
+                opacity: revocata ? 0.55 : 1, fontSize: 14.5, color: PN.TEXT,
+              }}>
+                <div style={{display:'flex', alignItems:'center', gap: 10, minWidth: 0}}>
+                  <span style={{
+                    width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+                    background: revocata ? '#CBD5E1' : app.bg, color: app.color || '#fff',
+                    display:'grid', placeItems:'center', fontSize: 15, fontWeight: 800,
+                  }}>{app.logo}</span>
+                  <div style={{minWidth: 0}}>
+                    <div style={{fontWeight: 700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{app.name}</div>
+                    <div style={{fontSize: 12.5, color: revocata ? PN.MUTED : PN.GREEN, fontWeight: 600}}>
+                      {revocata ? `Revocata il ${intData(c.revoked_at)} da ${c.revoked_by}` : 'Attiva'}
+                    </div>
+                  </div>
+                </div>
+                <div>{intSedeNome(c.venue_id)}</div>
+                <div>
+                  <div>{c.authorized_by}</div>
+                  <div style={{fontSize: 12.5, color: PN.MUTED}}>{intData(c.authorized_at)}</div>
+                </div>
+                <div style={{color: revocata ? PN.MUTED : PN.TEXT}}>{intRelativo(c.last_used_at)}</div>
+                <div style={{display:'flex', justifyContent:'flex-end', gap: 6}}>
+                  {!revocata && !inConferma && (
+                    <ImpButton variant="ghost" style={{padding:'7px 12px', fontSize: 13.5}} onClick={() => setDaRevocare(c.id)}>Revoca</ImpButton>
+                  )}
+                  {/* La conferma sta nella riga: revocare chiude una porta verso
+                      un terzo, e chi preme deve vederlo scritto un'ultima volta. */}
+                  {!revocata && inConferma && (
+                    <React.Fragment>
+                      <ImpButton variant="ghost" style={{padding:'7px 10px', fontSize: 13.5}} onClick={() => setDaRevocare(null)}>Annulla</ImpButton>
+                      <ImpButton variant="danger" style={{padding:'7px 12px', fontSize: 13.5}} onClick={() => { onRevoca(c.id); setDaRevocare(null); }}>Conferma revoca</ImpButton>
+                    </React.Fragment>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </ImpCard>
+  );
+}
+
+// ─── Il foglio del collegamento: tre blocchi, la sede, la presa d'atto, la
+// credenziale ────────────────────────────────────────────────────────────────
+// Tre blocchi a tutta larghezza in testo piano, niente da aprire: chi collega
+// un'app deve leggere cosa esce PRIMA di premere, e un testo dietro un
+// «dettagli» non lo legge nessuno. Poi la sede, poi la spunta, poi il
+// pulsante; la credenziale compare una volta sola e prende il posto del form.
+function IntCollegaModal({ onClose, onGenera }) {
+  const [scope, setScope] = React.useState('all');       // 'all' | id sede
+  const [ack, setAck] = React.useState(false);            // mai preselezionata
+  const [ackAt, setAckAt] = React.useState(null);         // controller_ack_at
+  const [credenziale, setCredenziale] = React.useState(null);
+  const [copiata, setCopiata] = React.useState(false);
+  // Chi guarda è titolare? Nel mock sì, e questo ramo non si vede: resta
+  // perché è la regola, non un dettaglio della demo — se il ruolo del mock
+  // cambia, il pulsante si spegne e si spiega da solo.
+  const puo = INT_UTENTE.titolare;
+  const pronto = puo && ack;
+
+  const spunta = () => {
+    const v = !ack;
+    setAck(v);
+    setAckAt(v ? new Date() : null);
+  };
+  const genera = () => {
+    if (!pronto) return;
+    const token = 'byup_live_' + Array.from({ length: 28 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
+    onGenera({
+      id: 'conn-' + Date.now(), application: 'zapier',
+      venue_id: scope === 'all' ? null : scope,
+      authorized_by: INT_UTENTE.nome, controller_ack_at: ackAt, authorized_at: new Date(),
+      last_used_at: null, revoked_at: null, revoked_by: null,
+    });
+    setCredenziale(token);
+  };
+  const copia = () => {
+    try { navigator.clipboard && navigator.clipboard.writeText(credenziale); } catch (e) {}
+    setCopiata(true);
+    setTimeout(() => setCopiata(false), 1600);
+  };
+
+  const blocco = (titolo, testo, tinta) => (
+    <div style={{padding: '12px 14px 12px 16px', borderLeft: `3px solid ${tinta}`, background: '#FAFBFC', borderRadius: '0 10px 10px 0'}}>
+      <div style={{fontSize: 12.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: tinta, marginBottom: 4}}>{titolo}</div>
+      <div style={{fontSize: 14.5, lineHeight: 1.5, color: PN.TEXT}}>{testo}</div>
+    </div>
+  );
+
+  const pillola = (on, label, onClick) => (
+    <button key={label} onClick={onClick} style={{
+      padding: '7px 13px', borderRadius: 999,
+      border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
+      background: on ? PN.TEXT : PN.WHITE, color: on ? PN.WHITE : PN.TEXT,
+      fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+    }}>{label}</button>
+  );
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 640, maxHeight: '92vh', display:'flex', flexDirection:'column'}}>
+        <div style={{...MODAL_HEAD, display:'flex', alignItems:'center', gap: 14}}>
+          <span style={{width: 48, height: 48, borderRadius: 13, background: '#FF4F00', color: '#fff', display:'grid', placeItems:'center', fontSize: 22, fontWeight: 800, flexShrink: 0}}>Z</span>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{...MODAL_TITLE, fontSize: 22, paddingRight: 40}}>{credenziale ? 'Connessione creata' : 'Collega Zapier'}</div>
+            <div style={{...MODAL_SUB, marginTop: 2, paddingRight: 40}}>
+              {credenziale ? 'La credenziale la vedi solo adesso' : 'Prima di collegare, leggi cosa esce e chi risponde'}
+            </div>
+          </div>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
+        </div>
+
+        {credenziale ? (
+          <div style={MODAL_BODY}>
+            {/* Una volta sola: Byup non la conserva in chiaro, e non c'è un
+                posto dove tornare a leggerla. Persa la credenziale, si revoca
+                la connessione e se ne crea una nuova. */}
+            <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+              Incollala in Zapier adesso. Byup non la conserva in chiaro: chiusa questa finestra non si può più leggere.
+              Se la perdi, revoca la connessione e creane una nuova.
+            </div>
+            <div style={{
+              display:'flex', alignItems:'center', gap: 10, marginTop: 14,
+              padding: '12px 14px', borderRadius: 10, background: '#F4F5F7', border: `1px solid ${PN.BORDER_SOFT}`,
+              fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 14.5, letterSpacing: 0.3,
+            }}>
+              <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{credenziale}</span>
+              <ImpButton variant="ghost" style={{padding:'6px 12px', fontSize: 13.5}} onClick={copia}>{copiata ? 'Copiata' : 'Copia'}</ImpButton>
+            </div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 12}}>
+              Vale per {intSedeNome(scope === 'all' ? null : scope)} · autorizzata da {INT_UTENTE.nome} · {intData(new Date())}
+            </div>
+            <div style={{marginTop: 20}}>
+              <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={onClose}>Fatto</ImpButton>
+            </div>
+          </div>
+        ) : (
+          <React.Fragment>
+            <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 10}}>
+              {blocco('Cosa esce', INT_COSA_ESCE, PN.GREEN)}
+              {blocco('Cosa non esce mai', INT_COSA_NON_ESCE, PN.WINE)}
+              {blocco('Chi risponde', INT_CHI_RISPONDE, PN.TEXT)}
+
+              {/* La sede: una o tutte. «Tutte» sono le sedi di QUESTO
+                  ristorante; un'altra insegna qui non compare. */}
+              <div style={{marginTop: 8}}>
+                <div style={{fontSize: 13.5, fontWeight: 700, color: PN.MUTED, marginBottom: 8}}>Per quale sede</div>
+                <div style={{display:'flex', gap: 7, flexWrap:'wrap'}}>
+                  {pillola(scope === 'all', 'Tutte le sedi', () => setScope('all'))}
+                  {INT_SEDI.map(sd => pillola(scope === sd.id, sd.name, () => setScope(sd.id)))}
+                </div>
+              </div>
+
+              {/* La presa d'atto (controller_ack_at). Non è una formalità e
+                  non è mai preselezionata: si registra quando si spunta. */}
+              <button onClick={spunta} style={{
+                display:'flex', alignItems:'flex-start', gap: 12, textAlign:'left', marginTop: 8,
+                padding: '12px 14px', borderRadius: 10, cursor: 'pointer', fontFamily: 'inherit',
+                border: `1.5px solid ${ack ? PN.TEXT : PN.BORDER}`, background: PN.WHITE,
+              }}>
+                <span style={{
+                  width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                  border: `1.5px solid ${ack ? PN.TEXT : PN.BORDER}`, background: ack ? PN.TEXT : PN.WHITE,
+                  display:'grid', placeItems:'center',
+                }}>
+                  {ack && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                </span>
+                <span style={{fontSize: 14.5, lineHeight: 1.45, color: PN.TEXT}}>
+                  Agisco come titolare del trattamento per i dati che escono verso Zapier, e ho con Zapier un mio accordo.
+                </span>
+              </button>
+            </div>
+
+            <div style={{...MODAL_FOOT, flexDirection:'column', gap: 8}}>
+              <ImpButton variant="primary" disabled={!pronto} style={{width:'100%', justifyContent:'center'}} onClick={genera}>
+                Genera la credenziale
+              </ImpButton>
+              {!puo && (
+                <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.45}}>
+                  Solo il titolare del locale può collegare un'app esterna: il collegamento fa uscire dati verso un terzo, non è un'impostazione operativa.
+                </div>
+              )}
+              {puo && !ack && (
+                <div style={{fontSize: 13.5, color: PN.MUTED}}>Serve la presa d'atto qui sopra.</div>
+              )}
+            </div>
+          </React.Fragment>
+        )}
       </div>
     </div>
   );
