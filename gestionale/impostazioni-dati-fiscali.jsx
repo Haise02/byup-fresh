@@ -608,7 +608,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
           <div style={{...MODAL_TITLE, fontSize: 21}}>{titolareInCorso ? 'Cambia il titolare' : 'Cambia soggetto fiscale'}</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
             {titolareInCorso
-              ? `Da ${c0.proposed_by || 'Mario Rossi'} a ${c0.entrante.nome}. Aggiorna qui i dati anagrafici e per fatturazione del locale: al salvataggio si passa alla delega e a Stripe.`
+              ? `Da ${c0.proposed_by || 'Mario Rossi'} a ${c0.entrante.nome}. Aggiorna qui i dati anagrafici e per fatturazione del locale: al salvataggio si passa a delega, Stripe e POS.`
               : 'Anagrafica e dati per fatturazione, insieme: la forma giuridica decide quali esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.'}
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
@@ -914,10 +914,11 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
   const delegaOk = !!c.steps.delegations_renewed;
   const stripeOk = titolare ? !!c.steps.stripe_updated : (stripe.status === 'connected' && !!c.steps.verified);
   // Il censimento dei POS non è una tappa del modello ma è dovuto lo stesso:
-  // il nuovo esercente comunica di nuovo i suoi strumenti (P-105). Se cambia
-  // solo il titolare l'esercente resta e i POS non si toccano.
+  // il nuovo esercente comunica di nuovo i suoi strumenti (P-105). Stesso
+  // popup per il cambio del titolare: la riga dei POS dice lo stato vero del
+  // censimento, che il nuovo titolare eredita e chiude a suo nome.
   const posLista = window.byupReadPosCensimento ? byupReadPosCensimento() : [];
-  const posOk = titolare || posLista.every(r => r.fiscal_link_status === 'linked');
+  const posOk = posLista.every(r => r.fiscal_link_status === 'linked');
   const concluso = c.status === 'completed' && (titolare ? !!c.steps.stripe_updated : true);
   const riga = (titolo, sotto, ok, azione) => (
     <div style={{display:'flex', alignItems:'center', gap: 12, padding:'12px 14px', borderRadius: 10, border:`1px solid ${ok ? PN.GREEN_SOFT : PN.BORDER_SOFT}`, background: ok ? PN.GREEN_SOFT : PN.WHITE}}>
@@ -933,10 +934,10 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
       <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
-          <div style={{...MODAL_TITLE, fontSize: 21}}>{titolare ? 'Delega e Stripe' : 'Delega, Stripe e POS'}</div>
+          <div style={{...MODAL_TITLE, fontSize: 21}}>Delega, Stripe e POS</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
             {titolare
-              ? <>Il titolare cambia: da {c.proposed_by || 'Mario Rossi'} a {c.entrante.nome}, stesso soggetto fiscale. Restano due cose da rifare, a nome di chi entra.</>
+              ? <>Il titolare cambia: da {c.proposed_by || 'Mario Rossi'} a {c.entrante.nome}, stesso soggetto fiscale. Restano tre cose da rifare, a nome di chi entra.</>
               : <>Il soggetto fiscale è cambiato: da {c.soggetto.prima.denominazione} ({c.soggetto.prima.piva}) a {c.soggetto.dopo.denominazione} ({c.soggetto.dopo.piva}), con la P.IVA precedente conservata sui documenti già emessi. Restano tre cose da rifare.</>}
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
@@ -954,7 +955,7 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
                 <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={aggiornaRappresentante}>{ricollegando ? 'Aggiornamento in corso…' : 'Aggiorna su Stripe'}</ImpButton>)
             : riga('Stripe', 'Il nuovo soggetto apre il suo account: la verifica dell\'identità la fa Stripe. Finché manca, niente pagamenti.', stripeOk,
                 <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>)}
-          {!titolare && riga('POS all\'Agenzia', `Il nuovo soggetto comunica di nuovo i suoi strumenti dal proprio accesso al portale: ${posLista.filter(r => r.fiscal_link_status !== 'linked').length || 'nessuno'} da aggiornare. Il foglio precompilato è qui sotto.`, posOk,
+          {riga('POS all\'Agenzia', `Il nuovo soggetto comunica di nuovo i suoi strumenti dal proprio accesso al portale: ${posLista.filter(r => r.fiscal_link_status !== 'linked').length || 'nessuno'} da aggiornare. Il foglio precompilato è qui sotto.`, posOk,
             <ImpButton variant="primary" disabled={attesaAccettazione} onClick={() => { onClose(); onPos(); }}>Vai al collegamento POS</ImpButton>)}
           {concluso && <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700}}>Cambiamento concluso{posOk ? '.' : ': resta il collegamento dei POS.'}</div>}
           {attesaAccettazione && null}
@@ -1010,7 +1011,7 @@ function ImpSoggettoRiga({ data, passo, onCambia }) {
           </div>
         )}
       </div>
-      <ImpButton variant="primary" onClick={onCambia}>{passo === 'anagrafica' ? 'Aggiorna l\'anagrafica' : passo === 'dopo' ? (titolare ? 'Delega e Stripe' : 'Delega, Stripe e POS') : 'Cambia soggetto fiscale'}</ImpButton>
+      <ImpButton variant="primary" onClick={onCambia}>{passo === 'anagrafica' ? 'Aggiorna l\'anagrafica' : passo === 'dopo' ? 'Delega, Stripe e POS' : 'Cambia soggetto fiscale'}</ImpButton>
     </div>
   );
 }
