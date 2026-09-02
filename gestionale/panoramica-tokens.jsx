@@ -761,7 +761,7 @@ const PN_HOLDER_KEY = 'byup_holder_change';
 const PN_HOLDER_TIPI = [
   { id: 'contact_data',  chain: false, label: 'Solo i miei recapiti',
     sub: 'Stessa persona, stesso soggetto fiscale: cambiano la casella di posta o il telefono.' },
-  { id: 'holder_person', chain: true,  label: 'Cambia la persona, il soggetto fiscale resta',
+  { id: 'holder_person', chain: true,  label: 'Cambia il titolare',
     sub: 'Il legale rappresentante si avvicenda: chi entra prende il posto di chi esce.' },
   { id: 'legal_entity',  chain: true,  label: 'Cambia il soggetto fiscale, la persona resta',
     sub: 'Partita IVA o forma giuridica nuove: la ditta che diventa società, la S.r.l. che si trasforma.' },

@@ -1196,13 +1196,17 @@ function AcTitolarita({ onPassa }) {
   React.useEffect(() => {
     const ri = () => setCambio(byupReadHolderChange());
     window.addEventListener('byup-holder-change', ri);
-    return () => window.removeEventListener('byup-holder-change', ri);
+    window.addEventListener('byup-pos-censimento', ri);
+    return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-pos-censimento', ri); };
   }, []);
 
   const tipo = cambio && PN_HOLDER_TIPI.find(t => t.id === cambio.change_type);
   const tappe = cambio ? pnHolderTappe(cambio.change_type, cambio.legal_form) : [];
   const prossima = cambio ? tappe.find(t => !cambio.steps[t]) : null;
-  const concluso = cambio && cambio.status === 'completed';
+  // Concluso solo quando tutto è a posto: le tappe del modello e, se il
+  // soggetto è cambiato, anche i POS comunicati di nuovo all'Agenzia (P-105).
+  const posOk = !cambio || !cambio.soggetto || !window.byupReadPosCensimento || byupReadPosCensimento().every(r => r.fiscal_link_status === 'linked');
+  const concluso = cambio && cambio.status === 'completed' && posOk;
   const rifiutato = cambio && cambio.status === 'refused';
 
   // L'accettazione e la verifica dell'identità sono gesti di chi entra, sul
@@ -1246,7 +1250,10 @@ function AcTitolarita({ onPassa }) {
 
       {cambio && (
         <div style={{marginTop: 14, border:`1px solid ${PN.BORDER_SOFT}`, borderRadius: 12, overflow:'hidden'}}>
-          <div style={{padding:'12px 16px', background: PN.WHITE_HUSH, display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap'}}>
+          {/* Una riga sola: cosa cambia, lo stato, e il rimando a Dati fiscali
+              dove si fa tutto il resto. Il chip resta «In corso» finché dati
+              fiscali, deleghe, Stripe e POS non sono a posto. */}
+          <div style={{padding:'12px 16px', background: PN.WHITE_HUSH, display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
             <div style={{flex: 1, minWidth: 220}}>
               <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{tipo.label}</div>
               <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
@@ -1262,25 +1269,14 @@ function AcTitolarita({ onPassa }) {
               padding:'5px 11px', borderRadius: 999, fontSize: 13, fontWeight: 700, whiteSpace:'nowrap',
               background: concluso ? PN.GREEN_SOFT : rifiutato ? '#F1F2F5' : PN.AMBER_SOFT,
               color: concluso ? PN.GREEN : rifiutato ? PN.MUTED : PN.AMBER,
-            }}>{concluso ? 'Concluso' : rifiutato ? 'Annullato' : cambio.steps.verified ? 'In corso' : `In attesa di ${cambio.entrante ? cambio.entrante.nome : 'verifica'}`}</span>
-          </div>
-
-          {/* Nessuna timeline: da qui si vede solo dov'è il resto. Tutto ciò
-              che cambia verso l'Agenzia e verso Stripe si fa in Dati fiscali,
-              che apre da solo il foglio della delega. */}
-          {!concluso && !rifiutato && (
-            <div style={{padding:'12px 16px', display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
-              <div style={{flex: 1, minWidth: 260, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
-                {cambio.entrante && !cambio.steps.verified
-                  ? <>{cambio.entrante.nome} riceve l'invito e accetta con la sua casella e la sua identità. Poi, in Dati fiscali, si aggiornano i dati fiscali dell'attività, le deleghe e i riferimenti Stripe.</>
-                  : <>In Dati fiscali si aggiornano i dati fiscali dell'attività, le deleghe e i riferimenti Stripe.</>}
-              </div>
-              <a href={`byup Impostazioni.html?page=fiscali&cambio=${cambio.id}${cambio.steps.verified ? '&delega=1' : ''}`} style={{
+            }}>{concluso ? 'Concluso' : rifiutato ? 'Annullato' : 'In corso'}</span>
+            {!concluso && !rifiutato && (
+              <a href={`byup Impostazioni.html?page=fiscali&cambio=${cambio.id}${cambio.steps.verified && !cambio.soggetto ? '&delega=1' : ''}`} style={{
                 padding:'8px 14px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, textDecoration:'none', whiteSpace:'nowrap',
                 background: PN.BTN_DARK, color: PN.WHITE, border: '1px solid rgba(0,0,0,0.32)',
               }}>Vai a Dati fiscali →</a>
-            </div>
-          )}
+            )}
+          </div>
 
           <div style={{padding:'10px 16px 12px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 8, justifyContent:'flex-end'}}>
             {!concluso && !rifiutato && (
