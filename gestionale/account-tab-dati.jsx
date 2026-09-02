@@ -1206,7 +1206,7 @@ function AcTitolarita({ onPassa }) {
   // Concluso solo quando tutto è a posto: le tappe del modello e, se il
   // soggetto è cambiato, anche i POS comunicati di nuovo all'Agenzia (P-105).
   const posOk = !cambio || !cambio.soggetto || !window.byupReadPosCensimento || byupReadPosCensimento().every(r => r.fiscal_link_status === 'linked');
-  const concluso = cambio && cambio.status === 'completed' && posOk;
+  const concluso = cambio && cambio.status === 'completed' && posOk && (!cambio.entrante || !!cambio.soggetto || !!cambio.steps.stripe_updated);
   const rifiutato = cambio && cambio.status === 'refused';
 
   // L'accettazione e la verifica dell'identità sono gesti di chi entra, sul
@@ -1271,7 +1271,7 @@ function AcTitolarita({ onPassa }) {
               color: concluso ? PN.GREEN : rifiutato ? PN.MUTED : PN.AMBER,
             }}>{concluso ? 'Concluso' : rifiutato ? 'Annullato' : 'In corso'}</span>
             {!concluso && !rifiutato && (
-              <a href={`byup Impostazioni.html?page=fiscali&cambio=${cambio.id}${cambio.steps.verified && !cambio.soggetto ? '&delega=1' : ''}`} style={{
+              <a href={`byup Impostazioni.html?page=fiscali&cambio=${cambio.id}`} style={{
                 padding:'8px 14px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, textDecoration:'none', whiteSpace:'nowrap',
                 background: PN.BTN_DARK, color: PN.WHITE, border: '1px solid rgba(0,0,0,0.32)',
               }}>Vai a Dati fiscali →</a>

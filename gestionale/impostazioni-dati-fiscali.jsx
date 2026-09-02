@@ -489,13 +489,13 @@ function ImpCampoBloccato({ label, value, hint }) {
 // lettera, e diceva una cosa falsa.
 const pivaFormale = (v) => /^IT\d{11}$/.test((v || '').replace(/\s/g, '').toUpperCase());
 
-// ─── Il foglio del nuovo soggetto (P-62 · D-52, legal_entity | both) ───────
-// La porta del soggetto fiscale è qui, non in Account: si chiedono i dati del
-// nuovo soggetto e una sola domanda, «resta la stessa persona?», che decide
-// fra legal_entity e both — e nel secondo caso la casella di chi entra. Il
-// foglio non si chiude col gesto: offre lì la verifica dell'identità e la
-// tappa dei dati, così chi ha iniziato qui non viene rimandato altrove. Le
-// deleghe restano nell'onboarding, come per tutti i casi con catena.
+// ─── Il foglio del soggetto fiscale (P-62 · D-52) ──────────────────────────
+// Anagrafica e dati per fatturazione in un foglio solo, adattati alla forma
+// giuridica. Se cambiano P.IVA o forma è un cambio di soggetto (legal_entity):
+// il «Sicuro?» avverte, alla conferma i dati cambiano, Stripe si disabilita,
+// i POS tornano da comunicare e si apre «Delega, Stripe e POS». Chi
+// rappresenta il locale non si chiede qui: il titolare si cambia da Account,
+// e quel cambio passa da questo stesso foglio per aggiornare l'anagrafica.
 function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   // Tutti i campi della card, prefilled: il foglio è l'unico editore dei dati
   // anagrafici. La catena fiscale non si sceglie e non si chiede: nasce se
@@ -518,10 +518,18 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   const fattDaDati = () => ({ rea: data.rea, cciaa: data.cciaa, capitaleSociale: data.capitaleSociale, socioUnico: !!data.socioUnico, inLiquidazione: !!data.inLiquidazione, sdi: data.sdi, pec: data.pec, sedeIndirizzo: data.sedeIndirizzo, sedeCap: data.sedeCap, sedeCitta: data.sedeCitta, sedeProv: data.sedeProv, sedeNazione: data.sedeNazione || 'IT' });
   const [fatt, setFatt] = React.useState(fattDaDati);
   const setB = (k, check) => (e) => setFatt(x => ({ ...x, [k]: check ? e.target.checked : e.target.value }));
-  const [stessa, setStessa] = React.useState(null);   // true | false | null
   const [chiedi, setChiedi] = React.useState(false);   // il «Sicuro?» prima del cambio
-  const [entNome, setEntNome] = React.useState('Giulia Bianchi');
-  const [entEmail, setEntEmail] = React.useState('giulia.bianchi@example.it');
+  // Il cambio del TITOLARE (da Account) passa da qui prima di tutto: i dati
+  // anagrafici e per fatturazione si aggiornano al nuovo rappresentante, e
+  // al salvataggio si apre «Delega e Stripe». Per la persona fisica nome e
+  // cognome arrivano già compilati con chi entra.
+  const c0 = window.byupReadHolderChange ? byupReadHolderChange() : null;
+  const titolareInCorso = !!(c0 && c0.entrante && !c0.soggetto && c0.status !== 'refused' && c0.status !== 'completed');
+  React.useEffect(() => {
+    if (!titolareInCorso || !(f.legalForm === 'ditta_individuale' || f.legalForm === 'professionista')) return;
+    const [nome, ...resto] = (c0.entrante.nome || '').split(' ');
+    setF(x => ({ ...x, ownerNome: nome || x.ownerNome, ownerCognome: resto.join(' ') || x.ownerCognome, ownerCf: '' }));
+  }, []);
 
   const persona = f.legalForm === 'ditta_individuale' || f.legalForm === 'professionista';
   const ente = f.legalForm === 'ente';
@@ -530,7 +538,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   const cambiaSoggetto = pivaPulita !== data.piva || f.legalForm !== data.legalForm;
   React.useEffect(() => { setFatt(cambiaSoggetto ? FATT_VUOTI : fattDaDati()); }, [cambiaSoggetto]);
   const denominazione = persona ? `${f.ownerNome} ${f.ownerCognome}`.trim() : (f.ragione || '').trim();
-  const pronto = pivaOk && denominazione && (!cambiaSoggetto || (stessa !== null && (stessa || entEmail.includes('@'))));
+  const pronto = pivaOk && denominazione;
 
   // Un cambio di soggetto non parte senza il «Sicuro?»: l'account Stripe è
   // intestato al soggetto di oggi e si disabilita, la delega va rifatta, e
@@ -538,7 +546,17 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   const avvia = () => {
     if (!pronto) return;
     const campi = { ...f, ...fatt, piva: pivaPulita };
-    if (!cambiaSoggetto) { onSalva(campi); onClose(); return; }
+    if (!cambiaSoggetto) {
+      onSalva(campi);
+      if (titolareInCorso) {
+        // L'anagrafica è confermata: la tappa dei dati, se il tipo la
+        // prevede, è fatta; poi tocca a delega e Stripe.
+        const c = byupReadHolderChange(); c.steps.anagrafica_confermata = new Date().toISOString(); byupWriteHolderChange(c);
+        if (pnHolderTappe(c.change_type, c.legal_form).includes('fiscal_updated') && !c.steps.fiscal_updated) byupHolderAvanza('fiscal_updated');
+        onClose(); onDopo(); return;
+      }
+      onClose(); return;
+    }
     setChiedi(true);
   };
   // Alla conferma i dati cambiano subito (tappa fiscal_updated) e Stripe si
@@ -553,11 +571,11 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
     if (window.byupReadPosCensimento) byupReadPosCensimento().forEach(r => byupPosVaria(r.id, 'varied'));
     const now = new Date().toISOString();
     const record = {
-      id: 'hc-' + Date.now(), change_type: stessa ? 'legal_entity' : 'both', fiscal_chain_impacted: true,
+      id: 'hc-' + Date.now(), change_type: 'legal_entity', fiscal_chain_impacted: true,
       legal_form: f.legalForm,
       status: 'proposed', proposed_by: 'Mario Rossi', created_at: now,
       steps: { proposed: now },
-      entrante: stessa ? null : { nome: entNome.trim() || 'Giulia Bianchi', email: entEmail.trim() },
+      entrante: null,
       soggetto: {
         prima: { denominazione: data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione, piva: data.piva },
         dopo: { denominazione, piva: pivaPulita, forma: f.legalForm, campi },
@@ -570,15 +588,6 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
     onDopo();
   };
 
-  const tile = (on, titolo, sotto, onClick) => (
-    <button onClick={onClick} style={{
-      flex: 1, textAlign:'left', padding:'8px 11px', borderRadius: 10, cursor:'pointer', fontFamily:'inherit',
-      border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`, background: on ? PN.PINK_SOFT : PN.WHITE,
-    }}>
-      <div style={{fontSize: 13.5, fontWeight: 700, color: on ? PN.PINK_DARK : PN.TEXT}}>{titolo}</div>
-      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, lineHeight: 1.35}}>{sotto}</div>
-    </button>
-  );
   // Compatto: tre colonne, campi bassi, intestazione stretta — il foglio deve
   // stare in una schermata senza scorrere, anche su un portatile.
   const LAB = { ...MODAL_LABEL, marginBottom: 4, fontSize: 12 };
@@ -596,9 +605,11 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
       <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 1040, maxHeight:'calc(var(--pn-vh, 100vh) - 40px)', display:'flex', flexDirection:'column', position:'relative'}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
-          <div style={{...MODAL_TITLE, fontSize: 21}}>Cambia soggetto fiscale</div>
+          <div style={{...MODAL_TITLE, fontSize: 21}}>{titolareInCorso ? 'Cambia il titolare' : 'Cambia soggetto fiscale'}</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
-            Anagrafica e dati per fatturazione, insieme: la forma giuridica decide quali esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.
+            {titolareInCorso
+              ? `Da ${c0.proposed_by || 'Mario Rossi'} a ${c0.entrante.nome}. Aggiorna qui i dati anagrafici e per fatturazione del locale: al salvataggio si passa alla delega e a Stripe.`
+              : 'Anagrafica e dati per fatturazione, insieme: la forma giuridica decide quali esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.'}
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
@@ -707,18 +718,8 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
           </div>
           {cambiaSoggetto && (
             <div style={{paddingTop: 8, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
-              <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 6}}>
-                <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): Stripe si disabilita, la delega va riconferita, i POS vanno comunicati di nuovo. <span style={{color: PN.MUTED}}>Resta la stessa persona?</span>
-              </div>
-              <div style={{display:'grid', gridTemplateColumns: stessa === false ? '1fr 1fr 1.4fr' : '1fr 1fr', gap: 8, alignItems:'stretch'}}>
-                {tile(stessa === true, 'Sì, resto io', 'Cambia solo il soggetto: la delega va riconferita per il nuovo contribuente.', () => setStessa(true))}
-                {tile(stessa === false, 'No, cambia anche la persona', 'È una cessione: chi entra accetta con la sua casella e riconferisce la delega.', () => setStessa(false))}
-                {stessa === false && (
-                  <div style={{display:'flex', flexDirection:'column', gap: 6, minWidth: 0}}>
-                    <input value={entNome} onChange={e => setEntNome(e.target.value)} placeholder="Chi entra" style={INP}/>
-                    <input type="email" value={entEmail} onChange={e => setEntEmail(e.target.value)} placeholder="La sua casella di posta" style={INP}/>
-                  </div>
-                )}
+              <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45}}>
+                <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): Stripe si disabilita, la delega va riconferita, i POS vanno comunicati di nuovo. Chi rappresenta il locale resta lo stesso: il titolare si cambia da Account.
               </div>
             </div>
           )}
@@ -891,24 +892,33 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
     return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-stripe-change', rs); window.removeEventListener('byup-pos-censimento', ri); };
   }, []);
   const c = window.byupReadHolderChange ? byupReadHolderChange() : null;
-  const inCorso = c && c.soggetto && c.status !== 'refused';
-  // Nella cessione chi entra accetta dal suo telefono: qui non c'è nulla da
-  // premere, nel prototipo si simula da sola.
+  const inCorso = c && c.fiscal_chain_impacted && c.status !== 'refused';
+  const titolare = !!(inCorso && c.entrante && !c.soggetto);
+  // Chi entra accetta e verifica la sua identità dal suo telefono: qui non c'è
+  // nulla da premere, nel prototipo si simula da sola.
   React.useEffect(() => {
-    if (!inCorso || c.steps.accepted || c.change_type !== 'both') return;
-    const t = setTimeout(() => byupHolderAvanza('accepted'), 2200);
-    return () => clearTimeout(t);
-  }, [inCorso && c.id, inCorso && !!c.steps.accepted]);
+    if (!inCorso || !c.entrante) return;
+    const tappe = pnHolderTappe(c.change_type, c.legal_form);
+    const prossima = tappe.find(t => !c.steps[t]);
+    if (prossima === 'accepted' || (prossima === 'verified' && titolare)) {
+      const t = setTimeout(() => byupHolderAvanza(prossima), 2200);
+      return () => clearTimeout(t);
+    }
+  }, [inCorso && c.id, inCorso && !!c.steps.accepted, inCorso && !!c.steps.verified]);
   if (!inCorso) return null;
   const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); byupStripeRicollega(); }, 1800); };
-  const attesaAccettazione = c.change_type === 'both' && !c.steps.accepted;
+  // Per il cambio del titolare Stripe non si ricollega: il soggetto è lo
+  // stesso, cambia il rappresentante, e Stripe lo verifica.
+  const aggiornaRappresentante = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); const x = byupReadHolderChange(); x.steps.stripe_updated = new Date().toISOString(); byupWriteHolderChange(x); }, 1800); };
+  const attesaAccettazione = !!c.entrante && !c.steps.accepted;
   const delegaOk = !!c.steps.delegations_renewed;
-  const stripeOk = stripe.status === 'connected' && !!c.steps.verified;
+  const stripeOk = titolare ? !!c.steps.stripe_updated : (stripe.status === 'connected' && !!c.steps.verified);
   // Il censimento dei POS non è una tappa del modello ma è dovuto lo stesso:
-  // il nuovo esercente comunica di nuovo i suoi strumenti (P-105).
+  // il nuovo esercente comunica di nuovo i suoi strumenti (P-105). Se cambia
+  // solo il titolare l'esercente resta e i POS non si toccano.
   const posLista = window.byupReadPosCensimento ? byupReadPosCensimento() : [];
-  const posOk = posLista.every(r => r.fiscal_link_status === 'linked');
-  const concluso = c.status === 'completed';
+  const posOk = titolare || posLista.every(r => r.fiscal_link_status === 'linked');
+  const concluso = c.status === 'completed' && (titolare ? !!c.steps.stripe_updated : true);
   const riga = (titolo, sotto, ok, azione) => (
     <div style={{display:'flex', alignItems:'center', gap: 12, padding:'12px 14px', borderRadius: 10, border:`1px solid ${ok ? PN.GREEN_SOFT : PN.BORDER_SOFT}`, background: ok ? PN.GREEN_SOFT : PN.WHITE}}>
       <span style={{width: 12, height: 12, borderRadius: 999, flexShrink: 0, background: ok ? PN.GREEN : 'transparent', border:`2px solid ${ok ? PN.GREEN : PN.PINK_DARK}`}}/>
@@ -923,9 +933,11 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
       <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
-          <div style={{...MODAL_TITLE, fontSize: 21}}>Delega, Stripe e POS</div>
+          <div style={{...MODAL_TITLE, fontSize: 21}}>{titolare ? 'Delega e Stripe' : 'Delega, Stripe e POS'}</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
-            Il soggetto fiscale è cambiato: da {c.soggetto.prima.denominazione} ({c.soggetto.prima.piva}) a {c.soggetto.dopo.denominazione} ({c.soggetto.dopo.piva}), con la P.IVA precedente conservata sui documenti già emessi. Restano tre cose da rifare.
+            {titolare
+              ? <>Il titolare cambia: da {c.proposed_by || 'Mario Rossi'} a {c.entrante.nome}, stesso soggetto fiscale. Restano due cose da rifare, a nome di chi entra.</>
+              : <>Il soggetto fiscale è cambiato: da {c.soggetto.prima.denominazione} ({c.soggetto.prima.piva}) a {c.soggetto.dopo.denominazione} ({c.soggetto.dopo.piva}), con la P.IVA precedente conservata sui documenti già emessi. Restano tre cose da rifare.</>}
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
@@ -937,11 +949,15 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
           )}
           {riga('Delega all\'Agenzia', 'La riconferisce chi rappresenta il nuovo soggetto, con il proprio SPID. Finché manca, niente scontrini.', delegaOk,
             <ImpButton variant="primary" disabled={attesaAccettazione} onClick={onDelega}>Riconferisci la delega</ImpButton>)}
-          {riga('Stripe', 'Il nuovo soggetto apre il suo account: la verifica dell\'identità la fa Stripe. Finché manca, niente pagamenti.', stripeOk,
-            <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>)}
-          {riga('POS all\'Agenzia', `Il nuovo soggetto comunica di nuovo i suoi strumenti dal proprio accesso al portale: ${posLista.filter(r => r.fiscal_link_status !== 'linked').length || 'nessuno'} da aggiornare. Il foglio precompilato è qui sotto.`, posOk,
+          {titolare
+            ? riga('Stripe', 'Chi entra si registra come rappresentante dell\'account connesso: la verifica dell\'identità la fa Stripe.', stripeOk,
+                <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={aggiornaRappresentante}>{ricollegando ? 'Aggiornamento in corso…' : 'Aggiorna su Stripe'}</ImpButton>)
+            : riga('Stripe', 'Il nuovo soggetto apre il suo account: la verifica dell\'identità la fa Stripe. Finché manca, niente pagamenti.', stripeOk,
+                <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>)}
+          {!titolare && riga('POS all\'Agenzia', `Il nuovo soggetto comunica di nuovo i suoi strumenti dal proprio accesso al portale: ${posLista.filter(r => r.fiscal_link_status !== 'linked').length || 'nessuno'} da aggiornare. Il foglio precompilato è qui sotto.`, posOk,
             <ImpButton variant="primary" disabled={attesaAccettazione} onClick={() => { onClose(); onPos(); }}>Vai al collegamento POS</ImpButton>)}
           {concluso && <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700}}>Cambiamento concluso{posOk ? '.' : ': resta il collegamento dei POS.'}</div>}
+          {attesaAccettazione && null}
         </div>
         <div style={{...MODAL_FOOT, padding: '12px 24px', justifyContent:'flex-end'}}>
           <ImpButton variant="ghost" onClick={onClose}>{concluso ? 'Chiudi' : 'Più tardi'}</ImpButton>
@@ -957,7 +973,7 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
 // fiscale», qui a destra e in nessun altro posto. Con un cambiamento in
 // corso la riga dice cosa resta e lo stesso pulsante apre «Delega, Stripe e
 // POS» invece del foglio dei dati.
-function ImpSoggettoRiga({ data, onCambia }) {
+function ImpSoggettoRiga({ data, passo, onCambia }) {
   const [c, setC] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
   const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
   React.useEffect(() => {
@@ -969,10 +985,12 @@ function ImpSoggettoRiga({ data, onCambia }) {
   }, []);
   const persona = data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista';
   const nome = persona ? `${data.ownerNome} ${data.ownerCognome}`.trim() : data.ragione;
-  const inCorso = !!(c && c.soggetto && c.status !== 'refused' && c.status !== 'completed');
+  const inCorso = !!(c && c.fiscal_chain_impacted && c.status !== 'refused' && c.status !== 'completed');
+  const titolare = !!(inCorso && c.entrante && !c.soggetto);
   const resta = inCorso ? [
+    titolare && !c.steps.anagrafica_confermata && 'l\'anagrafica',
     !c.steps.delegations_renewed && 'la delega',
-    !(stripe.status === 'connected' && c.steps.verified) && 'Stripe',
+    (titolare ? !c.steps.stripe_updated : !(stripe.status === 'connected' && c.steps.verified)) && 'Stripe',
   ].filter(Boolean) : [];
   return (
     <div style={{
@@ -988,73 +1006,15 @@ function ImpSoggettoRiga({ data, onCambia }) {
         </div>
         {inCorso && (
           <div style={{fontSize: 13.5, color: PN.AMBER, fontWeight: 600, marginTop: 2}}>
-            Cambio in corso{resta.length ? `: restano ${resta.join(' e ')}` : ''}{!c.steps.delegations_renewed ? ' · niente scontrini finché manca la delega' : ''}{!(stripe.status === 'connected' && c.steps.verified) ? ' · niente pagamenti finché manca Stripe' : ''}
+            {titolare ? `Cambio del titolare in corso: da ${c.proposed_by || 'Mario Rossi'} a ${c.entrante.nome}` : 'Cambio in corso'}{resta.length ? ` · restano ${resta.join(', ')}` : ''}{!c.steps.delegations_renewed ? ' · niente scontrini finché manca la delega' : ''}{!titolare && !(stripe.status === 'connected' && c.steps.verified) ? ' · niente pagamenti finché manca Stripe' : ''}
           </div>
         )}
       </div>
-      <ImpButton variant="primary" onClick={onCambia}>{inCorso ? 'Delega, Stripe e POS' : 'Cambia soggetto fiscale'}</ImpButton>
+      <ImpButton variant="primary" onClick={onCambia}>{passo === 'anagrafica' ? 'Aggiorna l\'anagrafica' : passo === 'dopo' ? (titolare ? 'Delega e Stripe' : 'Delega, Stripe e POS') : 'Cambia soggetto fiscale'}</ImpButton>
     </div>
   );
 }
 
-// Il banner del cambiamento in corso. Per il soggetto rimanda al foglio, dove
-// si fanno le tappe; per la persona la tappa dei dati segue la forma: si fa
-// sui campi del titolare (ditta individuale, professionista) o è saltata
-// (società, ente) e il banner lo dice senza offrire nulla.
-function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica, onDelega }) {
-  const [cambio, setCambio] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
-  React.useEffect(() => {
-    const ri = () => setCambio(byupReadHolderChange());
-    window.addEventListener('byup-holder-change', ri);
-    return () => window.removeEventListener('byup-holder-change', ri);
-  }, []);
-  if (!cambio || !cambio.fiscal_chain_impacted || cambio.status === 'refused') return null;
-  const conSoggetto = !!cambio.soggetto;
-  const tappe = pnHolderTappe(cambio.change_type, cambio.legal_form);
-  const serveDati = tappe.includes('fiscal_updated');
-  // Cambio di persona in una società o un ente: qui non c'è niente da fare,
-  // quindi niente banner — la tappa saltata si legge in Account. Il cambio di
-  // SOGGETTO lo racconta la riga in cima (ImpSoggettoRiga), non un banner.
-  if (conSoggetto || !serveDati) return null;
-  const fatta = !!cambio.steps.fiscal_updated;
-  const pronta = !!cambio.steps.verified && !fatta;
-  const segna = () => { onApplica(cambio); byupHolderAvanza('fiscal_updated'); onDelega(); };
-  const deleghe = !!cambio.steps.delegations_renewed;
-  const concluso = cambio.status === 'completed';
-  return (
-    <ImpCard title="Cambio di titolarità in corso" sub={conSoggetto
-      ? `Da ${cambio.soggetto.prima.denominazione} (${cambio.soggetto.prima.piva}) a ${cambio.soggetto.dopo.denominazione} (${cambio.soggetto.dopo.piva})`
-      : `Cambia il legale rappresentante: da Mario Rossi a ${cambio.entrante.nome}. Il soggetto fiscale resta.`}
-      style={{marginBottom: 18, borderColor: fatta ? PN.GREEN_SOFT : '#FCD34D'}}>
-      {conSoggetto ? (
-        <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
-          <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-            <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili.
-            {concluso ? ' Delega riconferita e Stripe ricollegato: cambiamento concluso.'
-              : ` Rest${!deleghe && !cambio.steps.verified ? 'ano' : 'a'}${!deleghe ? ' la delega da riconferire (niente scontrini finché manca)' : ''}${!deleghe && !cambio.steps.verified ? ' e' : ''}${!cambio.steps.verified ? ' Stripe da ricollegare (niente pagamenti finché manca)' : ''}.`}
-          </div>
-          {!concluso && <ImpButton variant="primary" onClick={onApriFoglio}>Delega e Stripe</ImpButton>}
-        </div>
-      ) : fatta ? (
-        <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
-          <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-            <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b>{deleghe ? ' Delega riconferita: cambiamento concluso.' : ' Resta la delega da riconferire.'}
-          </div>
-          {!deleghe && <ImpButton variant="primary" onClick={onDelega}>Riconferisci la delega</ImpButton>}
-        </div>
-      ) : pronta ? (
-        <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
-          <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-            I dati del titolare qui sotto diventano quelli di {cambio.entrante.nome}: nome, cognome e codice fiscale. Nel prototipo il pulsante li compila con il mock e segna la tappa.
-          </div>
-          <ImpButton variant="primary" onClick={segna}>Segna i dati fiscali come aggiornati</ImpButton>
-        </div>
-      ) : (
-        <div style={{fontSize: 14.5, color: PN.MUTED}}>Prima serve la verifica dell'identità in Account: poi si aggiornano i dati qui.</div>
-      )}
-    </ImpCard>
-  );
-}
 
 function ImpDatiFiscali() {
   const [data, setData] = React.useState({
@@ -1094,12 +1054,19 @@ function ImpDatiFiscali() {
 
   const [dirty, setDirty] = React.useState(false);
   const set = (k, v) => { setData(d => ({...d, [k]: v})); setDirty(true); };
-  const [soggettoOpen, setSoggettoOpen] = React.useState(false);
   // «Delega e Stripe»: si apre alla conferma del cambio di soggetto, e da
   // Account (?cambio=) o dal banner finché il cambiamento non è concluso.
-  const soggettoInCorso = () => { const c = window.byupReadHolderChange ? byupReadHolderChange() : null; return !!(c && c.soggetto && c.status !== 'refused' && c.status !== 'completed'); };
+  // Cosa apre il gesto, con un cambiamento in corso: per il cambio del
+  // titolare prima l'anagrafica (il foglio), poi «Delega e Stripe»; per il
+  // cambio di soggetto direttamente «Delega, Stripe e POS».
+  const cambioInCorso = () => { const c = window.byupReadHolderChange ? byupReadHolderChange() : null; return (c && c.fiscal_chain_impacted && c.status !== 'refused' && c.status !== 'completed') ? c : null; };
+  const passoDelCambio = () => { const c = cambioInCorso(); if (!c) return 'nuovo'; if (c.entrante && !c.soggetto && !c.steps.anagrafica_confermata) return 'anagrafica'; return 'dopo'; };
+  const apri = () => { const p = passoDelCambio(); if (p === 'dopo') setDopoOpen(true); else setSoggettoOpen(true); };
+  const [soggettoOpen, setSoggettoOpen] = React.useState(() => {
+    try { return !!new URLSearchParams(window.location.search).get('cambio') && passoDelCambio() === 'anagrafica'; } catch (e) { return false; }
+  });
   const [dopoOpen, setDopoOpen] = React.useState(() => {
-    try { return !!new URLSearchParams(window.location.search).get('cambio') && soggettoInCorso(); } catch (e) { return false; }
+    try { return !!new URLSearchParams(window.location.search).get('cambio') && passoDelCambio() === 'dopo'; } catch (e) { return false; }
   });
   // Il collegamento Stripe (registro byup_stripe, panoramica-tokens): il cambio
   // di soggetto lo disabilita, e da qui si ricollega — onboarding Stripe
@@ -1201,8 +1168,7 @@ function ImpDatiFiscali() {
 
       {/* Cambio di titolarità in corso (P-62): la tappa fiscal_updated si fa
           qui e torna in Account come fatta. */}
-      <ImpSoggettoRiga data={data} onCambia={() => soggettoInCorso() ? setDopoOpen(true) : setSoggettoOpen(true)}/>
-      <ImpCambioTitolaritaBanner onApriFoglio={() => setDopoOpen(true)} onApplica={applica} onDelega={() => setDelegaOpen(true)}/>
+      <ImpSoggettoRiga data={data} passo={passoDelCambio()} onCambia={apri}/>
       {soggettoOpen && (
         <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica} onDopo={() => setDopoOpen(true)}
           onSalva={(campi) => setData(d => ({ ...d, ...campi }))}/>
