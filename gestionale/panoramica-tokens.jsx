@@ -1022,3 +1022,61 @@ window.byupStripeRicollega = function () {
   const f = document.querySelector('.frame');
   if (f && window.MutationObserver) new MutationObserver(agg).observe(f, { attributes: true, attributeFilter: ['style'] });
 })();
+
+// ─── Chi trasmette gli scontrini: la forma del locale e gli incaricati ──────
+// La procedura del documento commerciale online «è disponibile esclusivamente
+// per l'operatore» e, «nel caso in cui quest'ultimo sia una società, può
+// essere utilizzata da operatori incaricati» (specifiche corrispettivi §2.9).
+// Quindi: la ditta individuale trasmette con le credenziali Fisconline del
+// titolare (byup_ade_cred, P-104); la società con quelle di un incaricato di
+// Byup, che ogni società nomina una volta con il gestore incarichi e la cui
+// password Byup rinnova da Hubble ogni novanta giorni — una password per
+// tutte le società che ha in carico, quindi anche un rischio concentrato:
+// se scade, si fermano insieme. Il registro byup_incaricati lo scrive Hubble
+// e lo leggono Dati fiscali e Cassa. La forma del locale, in produzione, è il
+// legal_form dell'onboarding; nel mock Cacio e Pepe è una S.r.l.
+const PN_FORMA_LOCALE = 'societa';
+window.PN_FORMA_LOCALE = PN_FORMA_LOCALE;
+const PN_INCARICATI_KEY = 'byup_incaricati';
+const PN_INCARICATO_VITA = 90;
+const pnIncaricatiSeme = () => [
+  { id: 'inc-1', nome: 'Luca Ferrante', ruolo: 'Operazioni fiscali · Byup', cf: 'FRRLCU85M10H501Z', rinnovo: pnGiorniDaOggi(-84), rinnovato_da: 'Luca Ferrante', locali: ['cp', 'co', 'tb'] },
+];
+window.byupReadIncaricati = function () {
+  let salvati = {};
+  try { const s = localStorage.getItem(PN_INCARICATI_KEY); if (s) JSON.parse(s).forEach(r => { salvati[r.id] = r; }); } catch (e) {}
+  const seme = pnIncaricatiSeme();
+  const lista = seme.map(r => salvati[r.id] ? { ...r, ...salvati[r.id] } : r);
+  Object.values(salvati).forEach(r => { if (!seme.some(s => s.id === r.id)) lista.push(r); });
+  return lista;
+};
+window.byupWriteIncaricati = function (lista) {
+  try { localStorage.setItem(PN_INCARICATI_KEY, JSON.stringify(lista)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-incaricati-change'));
+};
+// Lo stato della password dell'incaricato, con gli stessi gradini di P-104.
+window.pnIncaricatoStato = function (inc) {
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const rinnovo = new Date(`${inc.rinnovo}T00:00:00`);
+  const scadenza = new Date(rinnovo); scadenza.setDate(scadenza.getDate() + PN_INCARICATO_VITA);
+  const giorni = Math.round((scadenza - oggi) / 86400000);
+  return {
+    giorni,
+    rinnovoTesto: rinnovo.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }),
+    scadenza: scadenza.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }),
+    stato: giorni <= 0 ? 'scaduta' : (giorni <= 14 ? 'promemoria' : 'ok'),
+  };
+};
+window.pnIncaricatoDelLocale = function (localeId) {
+  const lista = window.byupReadIncaricati();
+  return lista.find(i => (i.locali || []).includes(localeId)) || lista[0] || null;
+};
+// La ricezione delle fatture: il codice destinatario del canale, registrato
+// dall'esercente sul portale e dichiarato (onboarding, riga 4; Dati fiscali).
+const PN_RICEZIONE_KEY = 'byup_ade_ricezione';
+window.PN_CODICE_DESTINATARIO = 'PIC7CPS';
+window.byupReadRicezione = function () { try { const s = localStorage.getItem(PN_RICEZIONE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } };
+window.byupWriteRicezione = function (v) {
+  try { if (v) localStorage.setItem(PN_RICEZIONE_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_RICEZIONE_KEY); } catch (e) {}
+  window.dispatchEvent(new Event('byup-ricezione-change'));
+};

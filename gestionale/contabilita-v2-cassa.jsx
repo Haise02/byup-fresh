@@ -148,7 +148,17 @@ const CC_SCARTI = {
 // Impostazioni → Dati fiscali (è lì che si rinnova e si verifica). Senza nulla
 // di salvato l'ultimo rinnovo è di novanta giorni fa — derivato a runtime, mai
 // date a mano — quindi la password risulta scaduta oggi e l'avviso si vede.
+// Per la società trasmette l'incaricato di Byup (registro byup_incaricati):
+// il blocco vale lo stesso, ma la cura è di Byup e i testi lo dicono.
+const ccSocieta = () => (window.PN_FORMA_LOCALE || 'societa') !== 'ditta_individuale';
+const ccIncaricatoScaduto = () => {
+  if (!window.pnIncaricatoDelLocale) return false;
+  const loc = window.byupReadLocale ? byupReadLocale() : { id: 'cp' };
+  const inc = pnIncaricatoDelLocale(loc.id);
+  return !!inc && pnIncaricatoStato(inc).stato === 'scaduta';
+};
 function ccCredScadute() {
+  if (ccSocieta()) return ccIncaricatoScaduto();
   let s = null;
   try { s = JSON.parse(localStorage.getItem('byup_ade_cred')); } catch (e) {}
   const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
@@ -595,10 +605,12 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
           </div>
           <div style={{flex:1, minWidth: 0}}>
             <div style={{fontSize: C.T_SM, fontWeight: 700, color: '#991B1B'}}>
-              {CC_SCARTI.credenziali.motivo}: gli scontrini non partono
+              {ccSocieta() ? 'La password dell\'incaricato di Byup è scaduta' : CC_SCARTI.credenziali.motivo}: gli scontrini non partono
             </div>
             <div style={{fontSize: C.T_XS, color: '#B91C1C', marginTop: 2, lineHeight: 1.5}}>
-              {CC_SCARTI.credenziali.causa} {CC_SCARTI.credenziali.azione}
+              {ccSocieta()
+                ? 'La trasmissione dei corrispettivi usa le credenziali dell\'incaricato di Byup, e la password scade ogni novanta giorni: da quando è scaduta ogni invio viene rifiutato. La rinnova Byup: non devi fare nulla, e se dura più di un\'ora scrivi al Supporto.'
+                : `${CC_SCARTI.credenziali.causa} ${CC_SCARTI.credenziali.azione}`}
             </div>
           </div>
           <button

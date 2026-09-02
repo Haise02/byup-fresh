@@ -38,6 +38,50 @@ function adeCredStato() {
   };
 }
 
+// Per la società gli scontrini li trasmette l'incaricato di Byup: qui non c'è
+// niente da inserire, solo da sapere — chi è, quando Byup ha rinnovato la sua
+// password e quando la rinnoverà. Il registro è byup_incaricati (tokens), lo
+// scrive Hubble. Se la password è scaduta gli scontrini non partono, come per
+// la ditta, ma la cura è di Byup: al locale si dice, non si chiede.
+function AdeIncaricatoCard() {
+  const [, forza] = React.useState(0);
+  React.useEffect(() => {
+    const ri = () => forza(x => x + 1);
+    window.addEventListener('byup-incaricati-change', ri);
+    return () => window.removeEventListener('byup-incaricati-change', ri);
+  }, []);
+  const locale = window.byupReadLocale ? byupReadLocale() : { id: 'cp' };
+  const inc = window.pnIncaricatoDelLocale ? pnIncaricatoDelLocale(locale.id) : null;
+  if (!inc) return null;
+  const st = pnIncaricatoStato(inc);
+  const scaduta = st.stato === 'scaduta';
+  const promemoria = st.stato === 'promemoria';
+  const colore = scaduta ? '#991B1B' : promemoria ? PN.AMBER : PN.GREEN;
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap: 14, padding: '14px 18px', borderRadius: 12, marginBottom: 18,
+      background: scaduta ? '#FEF2F2' : promemoria ? PN.AMBER_SOFT : '#F0FDF4',
+      border: `1.5px solid ${scaduta ? '#FECACA' : promemoria ? '#FCD34D' : PN.GREEN_SOFT}`,
+    }}>
+      <div style={{width: 40, height: 40, borderRadius: 10, background: scaduta ? PN.RED : promemoria ? PN.AMBER : PN.GREEN, display:'grid', placeItems:'center', flexShrink: 0}}>
+        {scaduta || promemoria ? <BuIcons.alert size={18} color={PN.WHITE}/> : BuIcons.check({size: 18, color: PN.WHITE})}
+      </div>
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{fontSize: 16, fontWeight: 700, color: colore}}>
+          {scaduta ? 'La password dell\'incaricato è scaduta: gli scontrini non partono'
+            : promemoria ? `Gli scontrini li trasmette Byup · la password dell'incaricato scade tra ${st.giorni} giorni`
+            : 'Gli scontrini li trasmette Byup, con il suo incaricato'}
+        </div>
+        <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.5}}>
+          Incaricato <b style={{color: PN.TEXT}}>{inc.nome}</b> · {inc.ruolo} · password rinnovata il {st.rinnovoTesto}, vale fino al {st.scadenza}.
+          {scaduta ? ' Byup la sta rinnovando: non devi fare nulla. Se dura più di un\'ora, scrivi al Supporto.'
+            : ' La rinnova Byup prima della scadenza: tu non devi fare nulla.'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AdeCredenzialiCard() {
   const [, forza] = React.useState(0);
   const cred = adeCredStato();
@@ -211,7 +255,6 @@ function AdeCredenzialiCard() {
 const FORME_GIURIDICHE = [
   { id: 'societa',           label: 'Società' },
   { id: 'ditta_individuale', label: 'Ditta individuale' },
-  { id: 'professionista',    label: 'Professionista' },
   { id: 'ente',              label: 'Ente' },
 ];
 // Lo Stato di nascita è ISO alpha-2: nel prototipo bastano i più ricorrenti.
@@ -526,12 +569,12 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   const c0 = window.byupReadHolderChange ? byupReadHolderChange() : null;
   const titolareInCorso = !!(c0 && c0.entrante && !c0.soggetto && c0.status !== 'refused' && c0.status !== 'completed');
   React.useEffect(() => {
-    if (!titolareInCorso || !(f.legalForm === 'ditta_individuale' || f.legalForm === 'professionista')) return;
+    if (!titolareInCorso || !(f.legalForm === 'ditta_individuale')) return;
     const [nome, ...resto] = (c0.entrante.nome || '').split(' ');
     setF(x => ({ ...x, ownerNome: nome || x.ownerNome, ownerCognome: resto.join(' ') || x.ownerCognome, ownerCf: '' }));
   }, []);
 
-  const persona = f.legalForm === 'ditta_individuale' || f.legalForm === 'professionista';
+  const persona = f.legalForm === 'ditta_individuale';
   const ente = f.legalForm === 'ente';
   const pivaPulita = (f.piva || '').replace(/\s/g, '').toUpperCase();
   const pivaOk = pivaFormale(pivaPulita);
@@ -577,7 +620,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
       steps: { proposed: now },
       entrante: null,
       soggetto: {
-        prima: { denominazione: data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione, piva: data.piva },
+        prima: { denominazione: data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione, piva: data.piva },
         dopo: { denominazione, piva: pivaPulita, forma: f.legalForm, campi },
       },
     };
@@ -623,7 +666,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                 <div style={{minWidth: 0}}>
                   <div style={LAB}>Forma giuridica</div>
                   <select value={f.legalForm} onChange={setC('legalForm')} style={INP}>
-                    {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
+                    {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id} disabled={x.id === 'ente'}>{x.id === 'ente' ? 'Ente o cooperativa · con la Soluzione Software' : x.label}</option>)}
                   </select>
                 </div>
                 {persona ? campo('Nome del titolare', 'ownerNome') : campo(ente ? 'Denominazione' : 'Ragione sociale', 'ragione')}
@@ -696,8 +739,12 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                 </React.Fragment>
               )}
               <div style={due}>
-                <div style={{minWidth: 0}}><div style={LAB}>Codice destinatario SDI</div><input value={fatt.sdi || ''} onChange={setB('sdi')} style={{...INP, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5}}/></div>
-                <div style={{minWidth: 0}}><div style={LAB}>PEC per invio SDI</div><input value={fatt.pec || ''} onChange={setB('pec')} style={INP}/></div>
+                <div style={{minWidth: 0}}><div style={LAB}>PEC</div><input value={fatt.pec || ''} onChange={setB('pec')} style={INP}/></div>
+                <div style={{minWidth: 0}}>
+                  <div style={LAB}>Codice destinatario</div>
+                  <div style={{...INP, background:'#F7F8FA', color: PN.MUTED, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5}}>{window.PN_CODICE_DESTINATARIO}</div>
+                  <div style={{fontSize: 12, color: PN.MUTED, marginTop: 3}}>È del canale, non del soggetto: si registra sul portale, non si scrive qui.</div>
+                </div>
               </div>
               <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, marginTop: 2}}>{persona ? 'Domicilio fiscale' : 'Sede legale'}</div>
               <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 10}}>
@@ -719,7 +766,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
           {cambiaSoggetto && (
             <div style={{paddingTop: 8, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
               <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45}}>
-                <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): Stripe si disabilita, la delega va riconferita, i POS vanno comunicati di nuovo. Chi rappresenta il locale resta lo stesso: il titolare si cambia da Account.
+                <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): Stripe si disabilita, la delega va riconferita, i POS vanno comunicati di nuovo. Chi rappresenta il locale resta lo stesso: il titolare si cambia da Account.
               </div>
             </div>
           )}
@@ -733,7 +780,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                 Il tuo collegamento a Stripe viene disabilitato e anche le deleghe dovranno essere rifatte: finché non le rifai non potrai emettere scontrini né ricevere pagamenti. Anche i POS andranno comunicati di nuovo all'Agenzia dal nuovo soggetto.
               </div>
               <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 6}}>
-                L'account Stripe è intestato a {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione}: il nuovo soggetto ne apre uno suo, con la verifica di Stripe, da POS e integrazioni.
+                L'account Stripe è intestato a {data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione}: il nuovo soggetto ne apre uno suo, con la verifica di Stripe, da POS e integrazioni.
               </div>
               <div style={{display:'flex', gap: 10, justifyContent:'flex-end', marginTop: 18}}>
                 <button onClick={() => setChiedi(false)} style={{padding:'9px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
@@ -984,7 +1031,7 @@ function ImpSoggettoRiga({ data, passo, onCambia }) {
     window.addEventListener('byup-stripe-change', rs);
     return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-stripe-change', rs); };
   }, []);
-  const persona = data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista';
+  const persona = data.legalForm === 'ditta_individuale';
   const nome = persona ? `${data.ownerNome} ${data.ownerCognome}`.trim() : data.ragione;
   const inCorso = !!(c && c.fiscal_chain_impacted && c.status !== 'refused' && c.status !== 'completed');
   const titolare = !!(inCorso && c.entrante && !c.soggetto);
@@ -1044,7 +1091,7 @@ function ImpDatiFiscali() {
     capitaleSociale: '10.000,00',
     socioUnico: false,
     inLiquidazione: false,
-    sdi: 'ABC1234',
+    sdi: 'PIC7CPS',   // il codice destinatario del canale: si riceve attraverso di esso
     pec: 'fatture@pec.cacioepepe.it',
     sedeIndirizzo: 'Via dei Giubbonari 27',
     sedeCitta: 'Roma',
@@ -1063,6 +1110,12 @@ function ImpDatiFiscali() {
   const cambioInCorso = () => { const c = window.byupReadHolderChange ? byupReadHolderChange() : null; return (c && c.fiscal_chain_impacted && c.status !== 'refused' && c.status !== 'completed') ? c : null; };
   const passoDelCambio = () => { const c = cambioInCorso(); if (!c) return 'nuovo'; if (c.entrante && !c.soggetto && !c.steps.anagrafica_confermata) return 'anagrafica'; return 'dopo'; };
   const apri = () => { const p = passoDelCambio(); if (p === 'dopo') setDopoOpen(true); else setSoggettoOpen(true); };
+  const [ricezione, setRicezione] = React.useState(() => window.byupReadRicezione ? byupReadRicezione() : null);
+  React.useEffect(() => {
+    const ri = () => setRicezione(byupReadRicezione());
+    window.addEventListener('byup-ricezione-change', ri);
+    return () => window.removeEventListener('byup-ricezione-change', ri);
+  }, []);
   const [soggettoOpen, setSoggettoOpen] = React.useState(() => {
     try { return !!new URLSearchParams(window.location.search).get('cambio') && passoDelCambio() === 'anagrafica'; } catch (e) { return false; }
   });
@@ -1111,7 +1164,7 @@ function ImpDatiFiscali() {
     return () => clearTimeout(t);
   }, []);
 
-  const persona = data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista';
+  const persona = data.legalForm === 'ditta_individuale';
   const societa = data.legalForm === 'societa';
   const ente    = data.legalForm === 'ente';
 
@@ -1181,7 +1234,7 @@ function ImpDatiFiscali() {
       {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
           verifica all'inserimento — il perché e il come stanno nel commento
           in testa al file. */}
-      <AdeCredenzialiCard/>
+      {persona ? <AdeCredenzialiCard/> : <AdeIncaricatoCard/>}
 
       {/* Collegamento dei POS all'Agenzia (P-105): il vicino di casa delle
           credenziali — stessa area, stesso linguaggio. Deep link
@@ -1277,10 +1330,21 @@ function ImpDatiFiscali() {
                 </div>
               </React.Fragment>
             )}
-            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: persona ? 4 : 18, marginBottom: 10}}>SDI e fatturazione elettronica</div>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: persona ? 4 : 18, marginBottom: 10}}>Fatturazione elettronica</div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-              <ImpCampoBloccato label="Codice Destinatario SDI" value={data.sdi}/>
-              <ImpCampoBloccato label="PEC per invio SDI" value={data.pec}/>
+              <ImpCampoBloccato label="PEC" value={data.pec}/>
+              <ImpCampoBloccato label="Codice destinatario per ricevere" value={window.PN_CODICE_DESTINATARIO} hint="Del canale: i fornitori ti fatturano qui"/>
+            </div>
+            {/* La registrazione dell'indirizzo telematico è un atto
+                dell'esercente sul portale, delegabile solo agli intermediari
+                abilitati: qui si dichiara, come nell'onboarding (riga 4). */}
+            <div style={{display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap', marginTop: -6, marginBottom: 6, fontSize: 13.5}}>
+              {ricezione
+                ? <span style={{color: PN.GREEN, fontWeight: 600}}>Codice destinatario registrato sul portale · dichiarato il {new Date(ricezione.dichiarata_at).toLocaleDateString('it-IT')}</span>
+                : <label style={{display:'inline-flex', alignItems:'center', gap: 8, color: PN.TEXT, cursor:'pointer'}}>
+                    <input type="checkbox" checked={false} onChange={() => byupWriteRicezione({ dichiarata_at: new Date().toISOString(), dichiarata_da: PN_UTENTE.nome })} style={{accentColor: PN.PINK_DARK}}/>
+                    Ho registrato il codice destinatario sul portale dell'Agenzia (Fatturazione elettronica → Registrazione dell'indirizzo telematico)
+                  </label>}
             </div>
             <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: 18, marginBottom: 10}}>{persona ? 'Domicilio fiscale' : 'Sede legale'}</div>
             <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>

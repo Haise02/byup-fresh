@@ -798,7 +798,11 @@ function AdeDelegaCard({venue, v}) {
             </ol>
             <label style={{display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 14.5, color: ONB.TEXT, cursor: 'pointer'}}>
               <input type="checkbox" checked={ricezione === 'dichiarata'}
-                onChange={e => v('ricezioneStato', e.target.checked ? 'dichiarata' : 'da_registrare')}
+                onChange={e => { v('ricezioneStato', e.target.checked ? 'dichiarata' : 'da_registrare');
+                  // Il registro byup_ade_ricezione lo legge Dati fiscali; il
+                  // bundle dell'onboarding non ha i token, scrive guardato.
+                  try { if (e.target.checked) localStorage.setItem('byup_ade_ricezione', JSON.stringify({ dichiarata_at: new Date().toISOString(), dichiarata_da: 'onboarding' })); else localStorage.removeItem('byup_ade_ricezione'); } catch (x) {}
+                  window.dispatchEvent(new Event('byup-ricezione-change')); }}
                 style={{width: 16, height: 16, accentColor: ONB.ACTION_PRIMARY}}/>
               Ho registrato il codice destinatario sul portale
             </label>
