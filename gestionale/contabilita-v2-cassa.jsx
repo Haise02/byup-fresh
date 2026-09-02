@@ -108,10 +108,16 @@ const CC_SCARTI = {
     vaiLabel: 'Apri Impostazioni → Menù',
     vaiHref:  'byup Impostazioni.html?page=menu-cucina&sub=libreria',
   },
+  // La chiave si chiama ancora `delega` per il pagamento mock che la cita
+  // (p5a in contabilita-v2-conti.jsx), ma la causa è un'altra: i corrispettivi
+  // NON passano dalla delega. La delega a Byup copre fatture elettroniche e
+  // dispositivi (D-39/D-40); la trasmissione dei corrispettivi usa le
+  // credenziali dell'Agenzia dell'esercente (P-104), ed è quella che scade.
+  // Stesso rimando della voce `credenziali`: la card di P-104 in Dati fiscali.
   delega: {
-    motivo:   'La delega all\'Agenzia delle Entrate è scaduta',
-    causa:    'La delega che autorizza byup a trasmettere i corrispettivi per il tuo locale non è più valida. Finché non la rinnovi sul portale dell\'Agenzia ogni invio viene rifiutato.',
-    azione:   'Rinnova la delega dal portale dell\'Agenzia delle Entrate, poi controlla il collegamento nei dati fiscali e ritrasmetti il documento.',
+    motivo:   'Le credenziali dell\'Agenzia sono scadute',
+    causa:    'La trasmissione dei corrispettivi usa le credenziali Fisconline del titolare, e la password scade ogni novanta giorni: da quando è scaduta ogni invio viene rifiutato. Non c\'entra la delega, che copre fatture e dispositivi.',
+    azione:   'Prima cambia la password sul sito dell\'Agenzia delle Entrate, poi inseriscila in Impostazioni → Dati fiscali: alla conferma parte una trasmissione di prova.',
     vaiLabel: 'Apri Impostazioni → Dati fiscali',
     vaiHref:  'byup Impostazioni.html?page=fiscali',
   },

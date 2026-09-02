@@ -264,32 +264,186 @@ function SubStepInfo({venue, v}) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Delega AdE — l'unico pezzo dell'onboarding che si fa fuori da qui.
+// Le tre attivazioni fiscali (P-48 · D-39) — e la delega AdE, l'unico pezzo
+// dell'onboarding che si fa fuori da qui.
 //
-// Byup trasmette i corrispettivi al posto del locale, e per farlo serve una
-// delega che solo il titolare può dare, sul portale dell'Agenzia, con la sua
-// identità. Non possiamo prendere la delega noi: possiamo solo rendere
-// indolori i due minuti in cui la dà — il codice fiscale pronto da incollare,
-// il portale a un click, i tap da fare scritti in ordine, e un modo per
-// sapere se ha funzionato senza aspettare il primo scontrino vero.
+// Un passo solo, «attivazione fiscale», non diceva dove un locale si fosse
+// fermato. Sono tre attivazioni, di natura diversa, che falliscono
+// separatamente:
+//   1. la DELEGA — un atto dell'esercente sul portale dell'Agenzia, con la sua
+//      identità. Byup non può prenderla al posto suo: può solo rendere
+//      indolori i due minuti in cui la dà — il codice fiscale pronto da
+//      incollare, il portale a un click, i tap scritti in ordine — e poi
+//      controllare l'esito. I servizi delegabili a Byup sono due, verificati
+//      sulle schede del portale (P-49 · D-40): «Fatturazione elettronica e
+//      conservazione delle fatture elettroniche» e «Accreditamento e
+//      censimento dispositivi». La «Consultazione dei corrispettivi
+//      telematici», che stava qui prima, è di sola consultazione, riservata
+//      agli intermediari, e non abilita né a trasmettere né a censire.
+//   2. la CONSERVAZIONE — la attiva Byup: si mostra come «in corso» e poi
+//      «attiva», mai come un compito dell'esercente, mai un suo pulsante.
+//   3. il CENSIMENTO del collegamento del dispositivo — territorio di P-105:
+//      qui se ne mostra lo stato («da comunicare» / «dichiarato») e vi si
+//      rimanda; l'autodichiarazione è dell'esercente. Principio di P-48:
+//      «dichiarato», mai «verificato». Byup non censisce il punto cassa.
+//
+// Due modelli convivono, ed è voluto: la trasmissione dei CORRISPETTIVI usa le
+// credenziali Fisconline dell'esercente (P-104, Impostazioni → Dati fiscali);
+// la delega copre FATTURE e DISPOSITIVI (D-39/D-40). Per la delega non
+// servono le credenziali: si fa tutto dal suo accesso al portale.
 // ─────────────────────────────────────────────────────────────────────────
 
 const ADE_CF_BYUP = '15927340015';
 const ADE_PORTALE = 'https://www.agenziaentrate.gov.it/portale/area-riservata';
 
-// I tap sul portale, in ordine. Scritti come li vede lui sullo schermo:
-// se l'etichetta qui non è la stessa che legge lì, la guida non serve.
+// I due servizi, con i nomi esatti delle schede del portale: se l'etichetta
+// qui non è la stessa che legge lì, la guida non serve.
+const ADE_SERVIZI = [
+  'Fatturazione elettronica e conservazione delle fatture elettroniche',
+  'Accreditamento e censimento dispositivi',
+];
+
+// I tap sul portale, in ordine, come li vede lui sullo schermo.
 const ADE_PASSI = [
   'Accedi con SPID',
   'Vai su Profilo → Deleghe',
   'Apri Delega unica → Aggiungi delegato',
-  'Incolla il CF di Byup e spunta «Consultazione dei corrispettivi telematici»',
+  'Incolla il CF di Byup',
+  `Spunta «${ADE_SERVIZI[0]}»`,
+  `Spunta «${ADE_SERVIZI[1]}»`,
   'Conferma',
 ];
 
+// Quando scade: la delega dura fino al 31 dicembre del quarto anno. Conferita
+// nel 2026 → 31/12/2030, cioè anno corrente + 4. La lettura «quarto anno
+// successivo» (e non «quarto anno contando quello in corso», che darebbe il
+// 2029) va confermata sul portale: qui è dichiarata, non verificata.
+const adeScadenzaDelega = () => `31 dicembre ${new Date().getFullYear() + 4}`;
+
+// Le due email (P-51 · D-40), rappresentate come modelli leggibili. La Posta
+// che le scrive e le manda è materia Hubble (P-60): qui c'è solo il contenuto
+// dimostrabile, e per P-60 resta la nota di aggiungerle come modelli
+// automatici in HUB_MAIL. La conferma parte a delega avvenuta e si apre
+// dallo stato attivo qui sotto; il promemoria di rinnovo parte in prossimità
+// della scadenza ed esiste solo come modello: in onboarding non si dice nulla
+// del rinnovo, avvisare di qualcosa che accade fra quattro anni non lascia
+// traccia.
+const ONB_EMAIL_DELEGA = {
+  conferma: {
+    id: 'delega-conferma',
+    mittente: 'byup <fiscale@byup.it>',
+    oggetto: 'Delega attiva: Byup può lavorare per te',
+    anteprima: `Fatture elettroniche e dispositivi, fino al ${adeScadenzaDelega()}`,
+    corpo: () => [
+      'Ciao, la delega che hai dato a Byup sul portale dell\'Agenzia delle Entrate è attiva.',
+      `Servizi delegati: «${ADE_SERVIZI[0]}» e «${ADE_SERVIZI[1]}».`,
+      `Vale fino al ${adeScadenzaDelega()}. Non devi fare altro: ti scriveremo noi quando sarà il momento di rinnovarla.`,
+      'Puoi revocarla in qualsiasi momento dal portale, in Profilo → Deleghe.',
+    ],
+  },
+  promemoria: {
+    id: 'delega-rinnovo',
+    mittente: 'byup <fiscale@byup.it>',
+    oggetto: 'La delega a Byup scade il 31 dicembre: rinnovala',
+    anteprima: 'Due minuti sul portale dell\'Agenzia, con SPID',
+    corpo: () => [
+      `Ciao, la delega che hai dato a Byup scade il ${adeScadenzaDelega()}. Dopo quella data Byup non potrà più emettere e conservare le fatture elettroniche per te.`,
+      `Per rinnovarla: accedi al portale dell'Agenzia con SPID, vai su Profilo → Deleghe, apri Delega unica e aggiungi di nuovo il delegato ${ADE_CF_BYUP} con i servizi «${ADE_SERVIZI[0]}» e «${ADE_SERVIZI[1]}».`,
+      'Quando hai confermato, in Byup non devi fare nulla: la controlliamo noi e ti scriviamo.',
+    ],
+  },
+};
+
+// L'anteprima della mail come la vede il destinatario: stessa finestra del
+// contratto nello step 4.
+function OnbEmailAnteprima({ modello, onClose }) {
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      background: 'rgba(15, 17, 21, 0.45)',
+      backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      display: 'grid', placeItems: 'center', padding: 24,
+      animation: 'ade-mail-fade 180ms ease both',
+    }}>
+      <style>{`
+        @keyframes ade-mail-fade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes ade-mail-pop { 0% { opacity: 0; transform: scale(0.94) translateY(12px); } 100% { opacity: 1; transform: none; } }
+      `}</style>
+      <div onClick={e => e.stopPropagation()} style={{
+        width: 560, maxWidth: '100%', maxHeight: '92vh',
+        background: '#fff', borderRadius: 22,
+        boxShadow: '0 32px 80px -24px rgba(15, 17, 21, 0.40), 0 0 0 1px rgba(15, 17, 21, 0.05)',
+        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        animation: 'ade-mail-pop 300ms cubic-bezier(.2,.8,.25,1) both',
+      }}>
+        <div style={{padding: '22px 26px 14px', borderBottom: '1px solid rgba(15, 17, 21, 0.07)'}}>
+          <div style={{fontSize: 13, fontWeight: 600, color: ONB.MUTED, letterSpacing: '0.04em', textTransform: 'uppercase'}}>Email · anteprima del modello</div>
+          <div style={{fontSize: 19, fontWeight: 600, color: ONB.TEXT, marginTop: 6, letterSpacing: '-0.01em'}}>{modello.oggetto}</div>
+          <div style={{fontSize: 14, color: ONB.MUTED, marginTop: 4}}>Da {modello.mittente}</div>
+        </div>
+        <div style={{padding: '18px 26px 22px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12}}>
+          {modello.corpo().map((p, i) => (
+            <div key={i} style={{fontSize: 15, color: ONB.TEXT, lineHeight: 1.55}}>{p}</div>
+          ))}
+          <div style={{fontSize: 13, color: ONB.MUTED, marginTop: 6}}>Modello di esempio a scopo dimostrativo.</div>
+        </div>
+        <div style={{padding: '12px 26px 18px', borderTop: '1px solid rgba(15, 17, 21, 0.07)', display: 'flex', justifyContent: 'flex-end'}}>
+          <button onClick={onClose} style={{
+            padding: '9px 18px', borderRadius: 9, border: 'none',
+            background: ONB.ACTION_SECONDARY, color: '#fff', fontSize: 15, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>Chiudi</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// La pastiglia di stato di una riga: stessa lingua in tutte e tre.
+function AdePastiglia({ tono, label, giro }) {
+  const T = {
+    attesa:  {bg: 'rgba(217, 119, 6, 0.10)',  fg: ONB.AMBER},
+    corso:   {bg: 'rgba(15, 17, 21, 0.05)',   fg: ONB.MUTED},
+    errore:  {bg: 'rgba(220, 38, 38, 0.10)',  fg: ONB.RED},
+    ok:      {bg: ONB.GREEN_SOFT,             fg: ONB.GREEN},
+    neutro:  {bg: 'rgba(15, 17, 21, 0.05)',   fg: ONB.MUTED},
+  }[tono];
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+      padding: '5px 11px', borderRadius: 999, background: T.bg, color: T.fg,
+      fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap',
+    }}>
+      {tono === 'ok' && <OnbIcon.Check size={11} color={ONB.GREEN}/>}
+      {giro && (
+        <span style={{
+          width: 11, height: 11, borderRadius: 999, flexShrink: 0,
+          border: `1.5px solid rgba(15,17,21,0.18)`, borderTopColor: ONB.MUTED,
+          animation: 'ade-spin 0.7s linear infinite',
+        }}/>
+      )}
+      {label}
+    </span>
+  );
+}
+
 function AdeDelegaCard({venue, v}) {
   const stato = venue.adeStato || 'attesa';   // attesa | verifica | errore | attivo
+  const conservazione = venue.conservazioneStato || 'attesa';   // attesa | corso | attiva
+  const censimento = venue.censimentoStato || 'da_comunicare'; // da_comunicare | dichiarato
   const [copiato, setCopiato] = React.useState(false);
+  const [mail, setMail] = React.useState(null);   // modello aperto in anteprima
+
+  // La conservazione la attiva Byup: appena la delega è attiva parte da sola,
+  // «in corso» e poi «attiva». Nessun pulsante dell'esercente, da nessuna
+  // parte. Il fallimento separato — «non riuscita, riproviamo noi» — resta
+  // nel codice come stato possibile e non nella demo.
+  React.useEffect(() => {
+    if (stato !== 'attivo' || conservazione !== 'attesa') return;
+    v('conservazioneStato', 'corso');
+    const t = setTimeout(() => v('conservazioneStato', 'attiva'), 2200);
+    return () => clearTimeout(t);
+  }, [stato]);
 
   const copiaCF = () => {
     const scrivi = navigator.clipboard && navigator.clipboard.writeText
@@ -303,10 +457,10 @@ function AdeDelegaCard({venue, v}) {
     });
   };
 
-  // "Fatto" non si fida sulla parola: prova a trasmettere davvero. Il primo
-  // giro finisce in errore — è il caso vero, chi torna qui dopo trenta secondi
-  // la delega non ce l'ha ancora — e la diagnosi dice cosa ricontrollare
-  // invece di ripetere "non ha funzionato".
+  // "Fatto" non si fida sulla parola: controlla la delega presso l'Agenzia.
+  // Il primo giro finisce in errore — è il caso vero, chi torna qui dopo
+  // trenta secondi la delega non ce l'ha ancora — e la diagnosi dice cosa
+  // ricontrollare invece di ripetere "non ha funzionato".
   const verifica = () => {
     v('adeStato', 'verifica');
     const tentativo = (venue.adeTentativi || 0) + 1;
@@ -314,49 +468,99 @@ function AdeDelegaCard({venue, v}) {
     setTimeout(() => v('adeStato', tentativo === 1 ? 'errore' : 'attivo'), 1600);
   };
 
-  const BADGE = {
-    attesa:   {label: 'In attesa di delega', bg: 'rgba(217, 119, 6, 0.10)',  fg: ONB.AMBER},
-    verifica: {label: 'Verifica in corso…',  bg: 'rgba(15, 17, 21, 0.05)',   fg: ONB.MUTED},
-    errore:   {label: 'Errore',              bg: 'rgba(220, 38, 38, 0.10)',  fg: ONB.RED},
-    attivo:   {label: 'Attivo',              bg: ONB.GREEN_SOFT,             fg: ONB.GREEN},
+  const rigaDelega = {
+    attesa:   {tono: 'attesa', label: 'In attesa della delega'},
+    verifica: {tono: 'corso',  label: 'Controllo in corso…', giro: true},
+    errore:   {tono: 'errore', label: 'Non trovata'},
+    attivo:   {tono: 'ok',     label: 'Attiva'},
   }[stato];
+  const rigaConservazione = {
+    attesa: {tono: 'neutro', label: 'In attesa della delega'},
+    corso:  {tono: 'corso',  label: 'In corso…', giro: true},
+    attiva: {tono: 'ok',     label: 'Attiva'},
+    errore: {tono: 'errore', label: 'Non riuscita · riproviamo noi'},
+  }[conservazione];
+  const rigaCensimento = censimento === 'dichiarato'
+    ? {tono: 'ok', label: 'Dichiarato'}
+    : {tono: 'attesa', label: 'Da comunicare'};
+
+  // Le cause da ricontrollare quando la delega non si trova (P-50 · D-40),
+  // nell'ordine in cui si sbagliano. Il limite dei due delegati sta QUI e non
+  // come avviso preventivo: riguarderebbe pochi e appesantirebbe il percorso di
+  // tutti — e il portale lo segnala già a chi ne ha due.
+  const CAUSE = [
+    <React.Fragment>Il delegato è esattamente <b style={{fontWeight: 600}}>{ADE_CF_BYUP}</b>.</React.Fragment>,
+    <React.Fragment>Sono spuntati <b style={{fontWeight: 600}}>entrambi</b> i servizi: «{ADE_SERVIZI[0]}» e «{ADE_SERVIZI[1]}». Con uno solo la delega c'è, ma non basta.</React.Fragment>,
+    'La delega è confermata, non lasciata a metà.',
+    <React.Fragment><b style={{fontWeight: 600}}>Hai già due delegati?</b> Il portale ne ammette due: se i posti sono occupati la nuova non entra, e ne va revocata una.</React.Fragment>,
+    'La delega può metterci qualche minuto a comparire: riprova.',
+  ];
+
+  const riga = (titolo, sotto, pastiglia, extra) => (
+    <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 0', borderTop: '1px solid rgba(15, 17, 21, 0.07)'}}>
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{fontSize: 15.5, fontWeight: 600, color: ONB.TEXT}}>{titolo}</div>
+        <div style={{fontSize: 14, color: ONB.MUTED, marginTop: 2, lineHeight: 1.45}}>{sotto}</div>
+        {extra}
+      </div>
+      <AdePastiglia {...pastiglia}/>
+    </div>
+  );
 
   return (
     <OnbCard>
       {/* proc-spin vive dentro l'overlay di elaborazione, che qui non c'è:
           il giro del verificatore se lo porta da sé. */}
       <style>{`@keyframes ade-spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16}}>
-        <div style={{flex: 1, minWidth: 0}}>
-          <div style={{fontSize: 18, fontWeight: 600, color: ONB.TEXT, letterSpacing: '-0.01em', lineHeight: 1.4}}>
-            Autorizza Byup presso l'Agenzia delle Entrate
-          </div>
-          <div style={{fontSize: 15, color: ONB.MUTED, marginTop: 4, lineHeight: 1.45}}>
-            Serve perché Byup trasmetta i corrispettivi per te.
-            {' '}<b style={{color: ONB.TEXT, fontWeight: 600}}>Circa 2 minuti</b>, serve solo l'accesso con SPID.
-          </div>
+      <div style={{marginBottom: 6}}>
+        <div style={{fontSize: 18, fontWeight: 600, color: ONB.TEXT, letterSpacing: '-0.01em', lineHeight: 1.4}}>
+          Attivazioni fiscali
         </div>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-          padding: '5px 11px', borderRadius: 999,
-          background: BADGE.bg, color: BADGE.fg,
-          fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap',
-        }}>
-          {stato === 'attivo' && <OnbIcon.Check size={11} color={ONB.GREEN}/>}
-          {stato === 'verifica' && (
-            <span style={{
-              width: 11, height: 11, borderRadius: 999, flexShrink: 0,
-              border: `1.5px solid rgba(15,17,21,0.18)`, borderTopColor: ONB.MUTED,
-              animation: 'ade-spin 0.7s linear infinite',
-            }}/>
-          )}
-          {BADGE.label}
-        </span>
+        <div style={{fontSize: 15, color: ONB.MUTED, marginTop: 4, lineHeight: 1.45}}>
+          Tre cose, una per volta: la prima la fai tu sul portale, la seconda la fa Byup, la terza la comunichi tu.
+        </div>
+      </div>
+
+      {/* Le tre righe: ciascuna col suo esito e il suo fallimento. */}
+      <div style={{marginTop: 10}}>
+        {riga('1 · Delega all\'Agenzia delle Entrate',
+          'Un atto tuo, sul portale, con la tua identità. Byup controlla che sia arrivata.',
+          rigaDelega)}
+        {riga('2 · Conservazione delle fatture elettroniche',
+          'La attiva Byup appena la delega è attiva. Non devi fare nulla.',
+          rigaConservazione)}
+        {riga('3 · Censimento del collegamento del punto cassa',
+          'Una comunicazione tua all\'Agenzia. Qui dichiari di averla fatta: Byup non la verifica e non la fa al posto tuo.',
+          rigaCensimento,
+          <div style={{marginTop: 8, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
+            <label style={{display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14.5, color: ONB.TEXT, cursor: 'pointer'}}>
+              <input type="checkbox" checked={censimento === 'dichiarato'}
+                onChange={e => v('censimentoStato', e.target.checked ? 'dichiarato' : 'da_comunicare')}
+                style={{width: 16, height: 16, accentColor: ONB.ACTION_PRIMARY}}/>
+              Ho completato la comunicazione
+            </label>
+            {/* Il foglio precompilato e l'assistente della comunicazione sono
+                di P-105 e vivranno in Impostazioni → POS e integrazioni: qui
+                solo il rimando. */}
+            <a href="byup Impostazioni.html?page=integrazioni" style={{fontSize: 14, fontWeight: 600, color: ONB.BRAND_DARK, textDecoration: 'none'}}>
+              Vai a POS e integrazioni →
+            </a>
+          </div>)}
+      </div>
+
+      {/* ── Il dettaglio della delega: come si dà, e il controllo ── */}
+      <div style={{marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(15, 17, 21, 0.08)'}}>
+        <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT}}>La delega, in due minuti</div>
+        <div style={{fontSize: 14.5, color: ONB.MUTED, marginTop: 3, lineHeight: 1.45}}>
+          Serve per la fatturazione elettronica con conservazione e per le pratiche di accreditamento dei dispositivi.
+          {' '}Serve solo l'accesso con SPID.
+        </div>
       </div>
 
       {/* Il CF è la cosa che deve finire negli appunti: sta per intero, in
           monospazio, con il tasto attaccato. */}
       <div style={{
+        marginTop: 12,
         display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
         padding: '11px 13px', borderRadius: 10,
         background: ONB.BG, border: '1px solid rgba(15, 17, 21, 0.06)',
@@ -403,16 +607,14 @@ function AdeDelegaCard({venue, v}) {
         </a>
       </div>
 
-      {/* Guida contestuale: i tap da fare sul portale, in ordine. Sta aperta
-          finché la delega non è attiva — è lì che serve — e si richiude da sé
-          quando non c'è più niente da seguire. */}
+      {/* Guida contestuale: i tap da fare sul portale, in ordine. */}
       <details style={{marginTop: 12}}>
         <summary style={{
           fontSize: 15, fontWeight: 600, color: ONB.TEXT,
           cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <OnbIcon.ChevronDown size={12} color={ONB.MUTED}/>
-          Come si fa, in 5 tap
+          Come si fa, in {ADE_PASSI.length} tap
         </summary>
         <ol style={{
           margin: '9px 0 0', padding: 0, listStyle: 'none',
@@ -432,9 +634,9 @@ function AdeDelegaCard({venue, v}) {
         </ol>
       </details>
 
-      {/* La rassicurazione che qui conta: la delega si dà sul portale AdE,
-          quindi le credenziali non passano MAI da byup — che è più forte di
-          «non le conserviamo in chiaro», ed è la verità del flusso. */}
+      {/* La rassicurazione, delimitata a ciò che è vero qui: la delega non
+          passa dalle credenziali. I corrispettivi sono un altro canale
+          (P-104, Dati fiscali) e non si promette nulla al posto loro. */}
       <div style={{
         marginTop: 12, padding: '10px 13px', borderRadius: 10,
         background: 'rgba(22, 163, 74, 0.07)', border: '1px solid rgba(22, 163, 74, 0.18)',
@@ -445,26 +647,24 @@ function AdeDelegaCard({venue, v}) {
           <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
         </svg>
         <span>
-          <b style={{color: ONB.TEXT, fontWeight: 600}}>byup non chiede e non conserva le tue credenziali dell'Agenzia delle Entrate.</b>{' '}
-          L'autorizzazione avviene con una delega che concedi tu sul portale AdE; i dati di collegamento
-          per la trasmissione sono conservati cifrati.
+          <b style={{color: ONB.TEXT, fontWeight: 600}}>Per la delega non servono le tue credenziali: si fa tutto dal tuo accesso al portale.</b>
         </span>
       </div>
 
-      {/* Verifica — chiude il giro: la delega o c'è o non c'è, e lo si sa qui
-          e ora invece che al primo scontrino di sabato sera. */}
+      {/* Controllo — chiude il giro: la delega o c'è o non c'è, e lo si sa qui
+          e ora invece che alla prima fattura. */}
       <div style={{
         marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(15, 17, 21, 0.08)',
         display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
       }}>
         <div style={{flex: 1, minWidth: 220}}>
-          <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT}}>Verifica</div>
+          <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT}}>Controllo</div>
           <div style={{fontSize: 14.5, color: ONB.MUTED, marginTop: 2, lineHeight: 1.45}}>
             {stato === 'attivo'
-              ? 'Delega trovata: la trasmissione di prova è andata a buon fine.'
+              ? 'Delega trovata: entrambi i servizi risultano delegati a Byup.'
               : stato === 'verifica'
-                ? 'Sto inviando una trasmissione di prova all\'Agenzia…'
-                : 'Quando hai confermato sul portale, premi Fatto: proviamo una trasmissione.'}
+                ? 'Sto controllando la delega presso l\'Agenzia…'
+                : 'Quando hai confermato sul portale, premi Fatto: controlliamo la delega.'}
           </div>
         </div>
         {stato !== 'attivo' && (
@@ -480,18 +680,18 @@ function AdeDelegaCard({venue, v}) {
         )}
       </div>
 
-      {/* La diagnosi dice dove guardare: "non ha funzionato" da solo rimanda
-          al portale senza sapere cosa cercare. */}
+      {/* La diagnosi vive solo qui, nel ramo d'errore: dice dove guardare,
+          nell'ordine in cui si sbaglia. */}
       {stato === 'errore' && (
         <div style={{
           marginTop: 10, padding: '11px 13px', borderRadius: 10,
           background: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.22)',
           fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5,
         }}>
-          <b style={{fontWeight: 600, color: ONB.RED}}>Delega non trovata.</b>{' '}
-          Controlla che il delegato sia <b style={{fontWeight: 600}}>{ADE_CF_BYUP}</b> e che la spunta sia su
-          {' '}<b style={{fontWeight: 600}}>«Consultazione dei corrispettivi telematici»</b>: su un altro
-          servizio la delega c'è, ma non vale qui.
+          <b style={{fontWeight: 600, color: ONB.RED}}>Delega non trovata.</b> Ricontrolla, in quest'ordine:
+          <ol style={{margin: '6px 0 0', padding: '0 0 0 20px', display: 'flex', flexDirection: 'column', gap: 4}}>
+            {CAUSE.map((c, i) => <li key={i}>{c}</li>)}
+          </ol>
         </div>
       )}
 
@@ -501,10 +701,20 @@ function AdeDelegaCard({venue, v}) {
           background: 'rgba(22, 163, 74, 0.07)', border: '1px solid rgba(22, 163, 74, 0.25)',
           fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5,
         }}>
-          Byup può trasmettere i corrispettivi per te. Puoi revocare la delega dal portale
-          dell'Agenzia quando vuoi.
+          Byup può emettere e conservare le fatture elettroniche per te, fino al {adeScadenzaDelega()}.
+          Il censimento del punto cassa resta una comunicazione tua: la dichiari qui sopra quando l'hai fatta.
+          Puoi revocare la delega dal portale dell'Agenzia quando vuoi.
+          <div style={{marginTop: 6}}>
+            Ti abbiamo scritto la conferma.{' '}
+            <button onClick={() => setMail(ONB_EMAIL_DELEGA.conferma)} style={{
+              background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 14.5, fontWeight: 600, color: ONB.BRAND_DARK, textDecoration: 'underline', textUnderlineOffset: 3,
+            }}>Vedi l'email</button>
+          </div>
         </div>
       )}
+
+      {mail && <OnbEmailAnteprima modello={mail} onClose={() => setMail(null)}/>}
     </OnbCard>
   );
 }

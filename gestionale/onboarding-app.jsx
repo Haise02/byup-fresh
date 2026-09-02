@@ -55,10 +55,17 @@ function OnboardingApp() {
     phone: '',
     regime: 'ordinario',
     codiceInvito: '',
-    // Delega AdE: si dà sul portale dell'Agenzia, quindi qui se ne segue solo
-    // l'esito. attesa → verifica → errore | attivo.
+    // Le tre attivazioni fiscali (P-48 · D-39), che falliscono separatamente:
+    //   adeStato — la delega si dà sul portale dell'Agenzia, qui se ne segue
+    //     solo l'esito: attesa → verifica → errore | attivo.
+    //   conservazioneStato — la attiva Byup, mai l'esercente: attesa (finché
+    //     non c'è la delega) → corso → attiva.
+    //   censimentoStato — il collegamento del dispositivo lo comunica
+    //     l'esercente (P-105): da_comunicare → dichiarato. Mai «verificato».
     adeStato: 'attesa',
     adeTentativi: 0,
+    conservazioneStato: 'attesa',
+    censimentoStato: 'da_comunicare',
   });
   const [payments, setPayments] = React.useState({
     stripeStatus: 'disconnected',
@@ -550,7 +557,9 @@ function StageNav({step, subStep, setStep, setSubStep, setProcessing}) {
     setProcessing(false);
     if (step === 2 && idx > 0) setSubStep(LOCALE_SUBSTEPS[idx - 1].id);
     else if (step === 2 && idx === 0) { setStep(1); }
-    else if (step === 3) { setStep(2); setSubStep('fiscale'); }
+    // Tornando dallo step 3 si atterra sull'ULTIMO sotto-passo che esiste:
+    // «fiscale» era stato tolto ma questo rimando lo cercava ancora (indice −1).
+    else if (step === 3) { setStep(2); setSubStep(LOCALE_SUBSTEPS[LOCALE_SUBSTEPS.length - 1].id); }
     else if (step === 4) setStep(3);
   };
   const goNext = () => {
