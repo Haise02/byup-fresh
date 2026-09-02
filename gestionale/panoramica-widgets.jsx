@@ -730,13 +730,33 @@ function TopDishRow({ d, i, max }) {
 }
 
 // ─── 5. Recensioni recenti ──────────────────────────────────────────────────
+// Solo recensioni Byup (P-64 · D-54). Le Google sono uscite dal mock e dalla
+// resa: le condizioni di Google vietano di conservarle, e la media Byup vale
+// proprio perché dietro c'è un ordine pagato. Il modello lo dice per
+// venue_profiles.avg_rating, che si calcola sulle sole recensioni Byup
+// verificate: «nessun voto proveniente da piattaforme terze concorre al
+// valore, e nessuna ponderazione discrezionale è ammessa: la media esposta
+// deve corrispondere a un calcolo dichiarabile al pubblico». È la stessa
+// ragione per cui la media che mescolava le fonti è morta: qui la media si
+// dichiara per quello che è — media delle recensioni Byup — mai un numero
+// orfano. I numeri sono quelli di Statistiche (STAT_CLIENTI.fonti.byup:
+// 312 recensioni, media 4,6), copiati a mano perché è un altro bundle.
+// Stato zero: il locale senza recensioni non mostra un voto vuoto né un
+// trattino, dice che è nuovo. Si prova con `?nuovo=1`, come `?notte=1` per la
+// notte demo di P-100.
+const REC_BYUP = { media: 4.6, n: 312, settimana: 8 };
+const recLocaleNuovo = () => {
+  try { return new URLSearchParams(window.location.search).get('nuovo') === '1'; } catch (e) { return false; }
+};
 
 function WidgetRecensioni() {
-  const reviews = [
-    { name: 'Laura M.', stars: 5, when:'2h fa', text:'Cacio e pepe stellare, servizio impeccabile. Torneremo!', source:'Google' },
-    { name: 'Andrea P.', stars: 4, when:'5h fa', text:'Tutto buono, ma sala un po\' rumorosa di sabato sera.', source:'byup' },
-    { name: 'Sofia R.', stars: 5, when:'1g fa', text:'Personale gentilissimo, tagliata cotta perfetta. Top.', source:'Google' },
+  const nuovo = recLocaleNuovo();
+  const reviews = nuovo ? [] : [
+    { name: 'Laura M.',  stars: 5, when:'2h fa', text:'Cacio e pepe stellare, servizio impeccabile. Torneremo!' },
+    { name: 'Andrea P.', stars: 4, when:'5h fa', text:'Tutto buono, ma sala un po\' rumorosa di sabato sera.' },
+    { name: 'Sofia R.',  stars: 5, when:'1g fa', text:'Personale gentilissimo, tagliata cotta perfetta. Top.' },
   ];
+  const piene = Math.round(REC_BYUP.media);
 
   return (
     <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
@@ -744,26 +764,46 @@ function WidgetRecensioni() {
           il badge scende sotto invece di sbordare dalla card. */}
       <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12, gap: '6px 10px', flexWrap:'wrap', minWidth: 0, flexShrink: 0}}>
         <div style={{minWidth: 0}}>
-          <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Recensioni recenti</div>
-          <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4, minWidth: 0}}>
-            <div style={{display:'flex', gap: 2, flexShrink: 0}}>
-              {[1,2,3,4,5].map(i => (
-                <Icon name="star" key={i} size={13} color={i <= 4 ? '#F59E0B' : '#E5E7EB'}/>
-              ))}
+          <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>Recensioni Byup</div>
+          {nuovo ? (
+            // Niente stelle vuote, niente trattino: la frase dice lo stato.
+            <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT, marginTop: 4, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+              Locale nuovo · ancora nessuna recensione
             </div>
-            <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap'}}>4,7</span>
-            <span style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>· 312 recensioni</span>
-          </div>
+          ) : (
+            <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4, minWidth: 0}}>
+              <div style={{display:'flex', gap: 2, flexShrink: 0}}>
+                {[1,2,3,4,5].map(i => (
+                  <Icon name="star" key={i} size={13} color={i <= piene ? '#F59E0B' : '#E5E7EB'}/>
+                ))}
+              </div>
+              <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap'}}>{REC_BYUP.media.toFixed(1).replace('.', ',')}</span>
+              {/* La media dice di che cosa è media: è la sola cosa che la
+                  rende dichiarabile al pubblico. */}
+              <span style={{fontSize: 14, color: PN.MUTED, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>· media di {REC_BYUP.n} recensioni Byup</span>
+            </div>
+          )}
         </div>
-        <div style={{
-          fontSize: 13, fontWeight: 600, color: PN.GREEN,
-          background: PN.GREEN_SOFT, padding: '4px 8px', borderRadius: 6,
-          whiteSpace:'nowrap', flexShrink: 0,
-        }}>+8 questa settimana</div>
+        {!nuovo && (
+          <div style={{
+            fontSize: 13, fontWeight: 600, color: PN.GREEN,
+            background: PN.GREEN_SOFT, padding: '4px 8px', borderRadius: 6,
+            whiteSpace:'nowrap', flexShrink: 0,
+          }}>+{REC_BYUP.settimana} questa settimana</div>
+        )}
       </div>
 
       <div style={{flex:1, display:'flex', flexDirection:'column', gap: 10, minHeight: 0, overflow:'auto', margin: '0 -6px', padding: '3px 6px'}}>
-        {reviews.map((r,i) => <ReviewTile key={i} r={r}/>)}
+        {nuovo ? (
+          <div style={{
+            flex: '1 0 auto', minHeight: 64, display:'flex', alignItems:'center',
+            padding: 12, borderRadius: 10, background: PN.WHITE,
+            boxShadow: `inset 0 0 0 1px ${PN.BORDER_SOFT}`,
+            fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5,
+          }}>
+            Le prime recensioni arrivano con i primi ordini pagati dall'app: il voto nasce da lì, ed è per questo che vale.
+          </div>
+        ) : reviews.map((r,i) => <ReviewTile key={i} r={r}/>)}
       </div>
     </div>
   );
@@ -807,8 +847,9 @@ function ReviewTile({ r }) {
             <Icon name="star" key={i} size={10} color={i <= r.stars ? '#F59E0B' : '#E5E7EB'}/>
           ))}
         </div>
-        {/* ellipsis: a w=1 "2h fa · Google" sbordava dal tile glass */}
-        <div style={{fontSize: 13, color: PN.MUTED, marginLeft:'auto', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.when} · {r.source}</div>
+        {/* Al posto della fonte, il perché conta: ogni recensione Byup nasce
+            da un ordine pagato. ellipsis: a w=1 la riga sbordava dal tile. */}
+        <div style={{fontSize: 13, color: PN.MUTED, marginLeft:'auto', minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.when} · ordine verificato</div>
       </div>
       <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>{r.text}</div>
     </div>

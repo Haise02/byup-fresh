@@ -143,17 +143,17 @@ const STAT_CLIENTI = {
   // linea che finisce altrove racconterebbe un'altra storia dal numero.
   unici: { val: 1240, delta: 12, trend: [1020, 1080, 1050, 1120, 1160, 1200, 1240] },
   abituali: { val: 487, delta: 8, trend: [420, 435, 430, 450, 462, 475, 487] },
-  rating: 4.5,
-  recensioni: 543,
-  // Le recensioni arrivano da due parti, e non sono la stessa cosa. Quelle
-  // byup nascono da un ordine pagato qui dentro — si sa che quella persona c'è
-  // stata e cosa ha mangiato — quelle Google le lascia chiunque abbia un
-  // account Google. La media pesata delle due dà il 4,5 di sopra:
-  // (312 × 4,6 + 231 × 4,4) / 543.
-  //
-  // Il dettaglio ce l'hanno solo le byup, ed è voluto: la card mostra il loro
-  // voto e basta, di Google resta una riga in fondo. Distribuzione, volume
-  // mensile e andamento sono quindi tutti sulle 312 byup.
+  // Solo recensioni byup (P-64 · D-54): nascono da un ordine pagato qui
+  // dentro — si sa che quella persona c'è stata e cosa ha mangiato — ed è per
+  // questo che valgono. Le Google non si conservano (lo vietano le loro
+  // condizioni) e non concorrono alla media: venue_profiles.avg_rating si
+  // calcola sulle sole recensioni byup verificate, «nessun voto proveniente da
+  // piattaforme terze concorre al valore, e nessuna ponderazione discrezionale
+  // è ammessa: la media esposta deve corrispondere a un calcolo dichiarabile
+  // al pubblico». Qui c'era una media pesata fra le due fonti (4,5 su 543) e
+  // una riga google che nessuno leggeva più: morte entrambe.
+  rating: 4.6,
+  recensioni: 312,
   //   `stelle` somma a 312 e fa media 4,6 (1435/312), e si incastra con
   //   `aspetti`: 12 + 9 = 21 recensioni da una o due stelle (i problemi),
   //   253 + 23 + 15 = 291 da tre in su (i pregi).
@@ -172,26 +172,22 @@ const STAT_CLIENTI = {
       mese:  [12, 14, 16, 20, 19, 23, 30, 37, 29, 35, 32, 45],
       trend: [4.4, 4.4, 4.5, 4.5, 4.4, 4.6, 4.6, 4.6, 4.7, 4.7, 4.7, 4.8],
     },
-    google: { n: 231, media: 4.4 },
   },
   // Stessa forma delle recensioni nell'app: dopo il pagamento il cliente dà le
   // stelle e tocca gli aspetti, e l'app cambia il set a seconda del voto —
   // sopra le due stelle sono i pregi, sotto sono i problemi (menu.jsx,
   // SuccessScreen). Il commento è facoltativo, gli aspetti quasi mai.
-  // Qui in più la provenienza e, per le byup, il piatto dell'ordine da cui la
-  // recensione nasce: è quello che Google non può avere — e infatti le
-  // recensioni Google non hanno né aspetti né piatto.
+  // Qui in più il piatto dell'ordine da cui la recensione nasce: è quello
+  // che una piattaforma terza non può avere. `fonte` resta 'byup' su tutte:
+  // il filtro in stat-clienti.jsx lo legge ancora, e un'altra fonte qui non
+  // deve più entrare.
   feedback: [
     { autore:'Giulia M.',  iniziale:'G', bg:'#FF5A5F', stelle: 5, quando:'2 giorni fa',    fonte:'byup',   piatto:'Carbonara',    aspetti:['cibo','atmosfera'],           testo:'Atmosfera incredibile e cucina autentica. La carbonara è la migliore che abbia mangiato a Roma.' },
-    { autore:'Roberto S.', iniziale:'R', bg:'#6B7280', stelle: 1, quando:'3 giorni fa',    fonte:'google',                                                                testo:'Passato davanti, sembra il solito posto per turisti. Non mi ispira per niente.' },
-    { autore:'Marco R.',   iniziale:'M', bg:'#2563EB', stelle: 5, quando:'4 giorni fa',    fonte:'google',                                                                testo:'Servizio impeccabile, il vino consigliato dal cameriere era perfetto per il piatto.' },
     { autore:'Chiara B.',  iniziale:'C', bg:'#7C3AED', stelle: 2, quando:'5 giorni fa',    fonte:'byup',   piatto:'Saltimbocca',  aspetti:['attesa_neg','servizio_neg'],  testo:'Il piatto era buono ma abbiamo aspettato quaranta minuti e nessuno è venuto a dirci nulla.' },
     { autore:'Alessio R.', iniziale:'A', bg:'#0F1115', stelle: 2, quando:'6 giorni fa',    fonte:'byup',   piatto:'Bruschetta',   aspetti:['pulizia_neg','rumore'],       testo:'Tavolo appiccicoso e musica altissima, peccato perché si mangia bene.' },
     { autore:'Sara D.',    iniziale:'S', bg:'#D97706', stelle: 4, quando:'1 settimana fa', fonte:'byup',   piatto:'Amatriciana',  aspetti:['cibo','servizio'],            testo:'Ottima esperienza, tornerò con gli amici. Solo un po\' di attesa all\'arrivo, ma ne è valsa la pena.' },
     { autore:'Luca P.',    iniziale:'L', bg:'#16A34A', stelle: 5, quando:'1 settimana fa', fonte:'byup',   piatto:'Cacio e Pepe', aspetti:['servizio','qualita'],         testo:'Ordinare e pagare dal tavolo è una svolta: il sabato sera zero attesa per il conto.' },
     { autore:'Federico A.',iniziale:'F', bg:'#B53338', stelle: 1, quando:'1 settimana fa', fonte:'byup',   piatto:'Pesce spada',  aspetti:['cibo_neg','qualita_neg'],     testo:'Pesce non freschissimo e ventotto euro. Non ci torno.' },
-    { autore:'Anna V.',    iniziale:'A', bg:'#2563EB', stelle: 4, quando:'2 settimane fa', fonte:'google',                                                                testo:'Bel posto, prezzi onesti. Prenotate il fine settimana perché si riempie.' },
-    { autore:'Elena F.',   iniziale:'E', bg:'#E04347', stelle: 3, quando:'2 settimane fa', fonte:'google',                                                                testo:'Cucina buona ma locale molto rumoroso la sera, si fatica a parlare al tavolo.' },
     { autore:'Martina L.', iniziale:'M', bg:'#7C3AED', stelle: 2, quando:'2 settimane fa', fonte:'byup',   piatto:'Carbonara',    aspetti:['attesa_neg','cibo_neg'],      testo:'Carbonara arrivata tiepida dopo mezz\'ora. Il locale però è carino.' },
     { autore:'Davide N.',  iniziale:'D', bg:'#16A34A', stelle: 5, quando:'3 settimane fa', fonte:'byup',   piatto:'Tiramisù',     aspetti:['cibo','locale'],              testo:'Tiramisù da manuale e conto diviso in due tap. Consigliatissimo.' },
   ],
@@ -372,8 +368,8 @@ const STAT_APP = {
     { label:'Pagamento completato',    sub:'Chi arriva in fondo e paga',           val: 2900,  delta: 9.6,  trend: [2450, 2560, 2520, 2680, 2740, 2830, 2900], meta: true },
     // Le 312 recensioni byup di Fidelizzazione, non un numero nuovo: quelle
     // nascono da un ordine pagato qui dentro, che è esattamente questo
-    // passaggio. Le 231 di Google non c'entrano — le lascia chiunque abbia un
-    // account Google, senza essere passato di qui.
+    // passaggio. Le recensioni lasciate su altre piattaforme non c'entrano e
+    // non si conservano (P-64): le lascia chiunque, senza essere passato di qui.
     { label:'Recensione inviata',      sub:'Chi lascia una recensione dopo aver pagato', val: 312, delta: 18.4, trend: [248, 262, 258, 279, 291, 302, 312] },
   ],
   // Quello che succede dopo l'ultimo passaggio: un pagamento andato a buon fine
