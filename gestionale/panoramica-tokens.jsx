@@ -368,9 +368,9 @@ Object.assign(window, { PnSectionTab, PnSectionTabs });
 const PN_IVA_PROFILI = [
   { id: 'dieci', label: 'Somministrato o preparato qui · 10%', aliquota: 10,
     perModo: { locale: 'somministrazione_10', asporto: 'asporto_preparato_10' },
-    base: 'Somministrazione (n. 121, Tab. A parte III, DPR 633/72) e cibi preparati da asporto (L. 178/2020, art. 1 co. 40).' },
-  { id: 'asporto_confezionato_22', label: 'Confezionati e bevande da asporto · 22%', aliquota: 22,
-    base: 'Aliquota ordinaria: prodotti confezionati e bevande venduti da asporto.' },
+    base: 'Somministrazione (n. 121, Tab. A parte III, DPR 633/72) e cibi preparati da asporto (L. 178/2020, art. 1 co. 40); vi rientrano anche pasticceria, biscotteria e panetteria fine confezionate da asporto (voce 68, Tab. A parte III).' },
+  { id: 'asporto_confezionato_22', label: 'Bevande e confezionati al 22%', aliquota: 22,
+    base: 'Bibite, alcolici, acqua sigillata; dolciumi e cioccolato in confezioni di pregio.' },
   { id: 'asporto_alimentari_base_4', label: 'Alimentari di base da asporto · 4%', aliquota: 4,
     base: 'Paniere Tab. A parte II, DPR 633/72: pane e panetteria ordinaria, pasta, latte fresco, burro, formaggi, frutta e verdura, olio d\'oliva.' },
 ];

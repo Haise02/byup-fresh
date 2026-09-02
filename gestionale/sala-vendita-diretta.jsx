@@ -1466,7 +1466,7 @@ function SaCustomModal({ onClose, onConfirm, takeaway }) {
               {/* Da asporto l'errore facile è lasciare il 10% su una bottiglia:
                   l'hint lo dice prima che succeda. */}
               {takeaway && (
-                <span style={{color: PN.TEXT, fontWeight: 600}}>Da asporto, confezionati e bevande vanno al 22%. </span>
+                <span style={{color: PN.TEXT, fontWeight: 600}}>Da asporto, bevande e confezionati vanno al 22%. </span>
               )}
               {profilo ? profilo.base : ''}
             </div>
@@ -1533,7 +1533,7 @@ function SaRiproponiIva({ lines, takeaway, onClose, onConfirm }) {
           </div>
           <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
             {takeaway
-              ? 'Ora è da asporto: confezionati e bevande vanno al 22%.'
+              ? 'Ora è da asporto: bevande e confezionati vanno al 22%.'
               : 'Ora si consuma nel locale: la somministrazione è al 10% per tutto.'}
           </div>
         </div>
