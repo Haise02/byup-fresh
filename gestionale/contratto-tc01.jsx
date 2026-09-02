@@ -39,13 +39,13 @@
 const TC01 = {
   codice: 'TC-01',
   nome: 'Termini e Condizioni di servizio di Byup Fresh',
-  versione: '0.23',
-  pubblicata: '2026-08-20',
-  efficace: '2026-09-19',
-  generata: '2026-09-02',
+  versione: '0.24',
+  pubblicata: '2026-09-03',
+  efficace: '2026-10-03',
+  generata: '2026-09-03',
   // Impronta dichiarata dalla generazione: si confronta con quella calcolata
   // sulle clausole qui sotto (tc01Verifica).
-  impronta: '9cf7fb1b',
+  impronta: '3fd3073f',
   // L'ordine di prevalenza dell'art. 1: Piano, TC, DPA; le informative si
   // ricevono e non si accettano.
   pacchetto: ['PIANO', 'TC-01', 'DPA-01', 'INF-02'],
@@ -73,7 +73,7 @@ const TC01 = {
     { n: 11, h: 'Obblighi del locale', vessatoria: false,
       p: 'Il locale garantisce la correttezza dei dati inseriti (menù, prezzi, allergeni, dati fiscali) e il rispetto delle norme applicabili alla propria attività, incluse quelle igienico-sanitarie e di informazione al consumatore.' },
     { n: 12, h: 'Obblighi informativi fiscali', vessatoria: false,
-      p: 'Byup mette a disposizione gli strumenti per gli adempimenti fiscali e non è intermediario fiscale. I corrispettivi sono trasmessi all\'Agenzia delle Entrate con le credenziali dell\'esercente, che ne cura il rinnovo; le fatture elettroniche sono emesse e conservate in forza della delega che il titolare conferisce sul portale dell\'Agenzia per i servizi «Fatturazione elettronica e conservazione delle fatture elettroniche» e «Accreditamento e censimento dispositivi»; il censimento del collegamento del dispositivo è una comunicazione dell\'esercente. Byup informa il locale di scadenze, scarti ed esiti nel gestionale; la correttezza dei dati trasmessi resta responsabilità del locale.' },
+      p: 'Byup mette a disposizione gli strumenti per gli adempimenti fiscali e non è intermediario fiscale. Il locale incarica Byup, e per essa il fornitore del canale, di trasmettere per suo conto all\'Agenzia delle Entrate i corrispettivi e le fatture elettroniche, e di ricevere per suo conto le fatture dei fornitori all\'indirizzo telematico del canale, che il locale registra sul portale dell\'Agenzia. I corrispettivi sono trasmessi con la procedura del documento commerciale online: con le credenziali dell\'esercente, che ne cura il rinnovo, se persona fisica; con quelle della persona che Byup indica e che la società nomina come incaricata sul portale, se persona giuridica, e in tal caso il rinnovo è a cura di Byup. Le fatture elettroniche sono conservate presso l\'Agenzia in forza della delega che il titolare conferisce sul portale per i servizi «Fatturazione elettronica e conservazione delle fatture elettroniche» e «Accreditamento e censimento dispositivi», con cui Byup accredita il locale come esercente; il collegamento degli strumenti di pagamento resta una comunicazione dell\'esercente. Byup informa il locale di scadenze, scarti ed esiti nel gestionale; la correttezza dei dati trasmessi resta responsabilità del locale.' },
     { n: 13, h: 'Sospensione immediata per sicurezza', vessatoria: true,
       p: 'In caso di uso illecito o di rischio per la sicurezza della piattaforma o dei suoi utenti, Byup può sospendere immediatamente il servizio, dandone comunicazione motivata e revocando la sospensione al cessare del rischio.' },
     { n: 14, h: 'Dati personali: i ruoli di Byup e del locale', vessatoria: false,

@@ -1213,10 +1213,10 @@ const TOTAL_REVENUE_HISTORICAL = {
 // auditor P2B — che cosa il contatto aveva accettato, in quale versione, e se
 // il preavviso dovuto è stato dato nei termini.
 //
-// ⚠ RICOSTRUZIONI: i documenti reali sono TC-01 v0.23 (pacchetto legale del
-// 20/08/2026, la versione corrente: è quella che l'onboarding proietta e fa
+// ⚠ RICOSTRUZIONI: i documenti reali sono TC-01 v0.24 (pubblicata il
+// 03/09/2026, la versione corrente: è quella che l'onboarding proietta e fa
 // firmare, contratto-tc01.jsx), DPA-01 v0.9 e INF-02 v0.5 del 04/08/2026;
-// la TC-01 v0.22 resta come storia. Tutte le versioni PRECEDENTI
+// la TC-01 v0.23 del 20/08/2026 e la v0.22 restano come storia. Tutte le versioni PRECEDENTI
 // (v0.20/v0.21, v0.8, v0.4), le loro date e le righe «cosa è cambiato» sono
 // invenzioni di comodo del mock: servono a far esistere lo storico, non
 // documentano nulla di reale.
@@ -1246,6 +1246,11 @@ const DOCUMENTI = [
     // accettazioni del mock cadono dopo la pubblicazione e mai nel futuro.
     { v:'0.23', pubblicata:ctrData(20,8,2026),  efficace:ctrData(19,9,2026), peggiorativa:false,
       cambiamento:'Riparto dei ruoli privacy fra Byup e locale (titolare autonomo per i clienti della Byup App, responsabile secondo DPA-01 per il resto); trasparenza P2B; obblighi informativi fiscali; divieto di maggiorazioni per strumento di pagamento; cambio di fornitore; prezzo riscritto su comande pesate e coefficienti del piano. Nessuna modifica economica.' },
+    // La corrente: l'art. 12 dice il mandato a trasmettere e ricevere tramite
+    // il canale, chi trasmette i corrispettivi secondo la forma (credenziali
+    // dell'esercente o incaricato di Byup), l'accreditamento con la delega.
+    { v:'0.24', pubblicata:ctrData(3,9,2026),   efficace:ctrData(3,10,2026), peggiorativa:false,
+      cambiamento:'Art. 12: mandato a trasmettere corrispettivi e fatture e a ricevere le fatture passive tramite il fornitore del canale; per le società i corrispettivi con l\'incaricato indicato da Byup, rinnovo a cura di Byup; accreditamento come esercente in forza della delega. Nessuna modifica economica.' },
   ]},
   { codice:'DPA-01', nome:'Accordo sul trattamento dati (art. 28)', destinatario:'locale', prevalenza:3, versioni:[
     { v:'0.8', pubblicata:ctrData(19,1,2026), efficace:ctrData(18,2,2026), peggiorativa:false,
