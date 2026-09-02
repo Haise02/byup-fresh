@@ -114,6 +114,9 @@ function SalaVenditaDiretta() {
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
   const [customOpen, setCustomOpen] = React.useState(false);
+  // P-11: righe custom da riconfermare perché l'ordine ha cambiato modo dopo
+  // la battuta — l'automatismo propone, la conferma resta dell'operatore.
+  const [riproponiOpen, setRiproponiOpen] = React.useState(false);
   // Ritiri: coda di chi aspetta al banco — asporto dai canali digitali e ordini
   // di cassa con preparazione, che abbiano o no il sacchetto. Drawer laterale +
   // conferma con codice ritiro; "Salda ora" apre l'incasso al banco.
@@ -253,6 +256,7 @@ function SalaVenditaDiretta() {
         codiceRitiro: ordine.codiceRitiro,
         items: lines.map(l => ({
           nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
+          aliquota: l.aliquota, ivaProfilo: l.ivaProfilo,
         })),
       }]);
     }
@@ -290,6 +294,7 @@ function SalaVenditaDiretta() {
       acconti: [pagamento],
       items: lines.map(l => ({
         nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
+          aliquota: l.aliquota, ivaProfilo: l.ivaProfilo,
       })),
     };
     setRitiri(prev => [...prev, voce]);
@@ -352,12 +357,53 @@ function SalaVenditaDiretta() {
   const removeLine = (i) => setLines(prev => prev.filter((_, idx) => idx !== i));
   const editLineName = (i, name) => setLines(prev => prev.map((l, idx) => idx === i ? {...l, displayName: name} : l));
   const editLinePrice = (i, price) => setLines(prev => prev.map((l, idx) => idx === i ? {...l, lineTotal: price} : l));
-  const addCustomLine = (name, price) => {
+  // P-11 (D-16): l'articolo fuori catalogo non ha nulla da cui derivare
+  // l'IVA, quindi la dichiara chi lo batte. Aliquota e id profilo entrano
+  // CONGELATI sulla riga — svfRighe/svRiepilogoIva onorano già l.aliquota,
+  // quindi la fattura la raccoglie senza derivare niente — e la riga ricorda
+  // il modo (banco/asporto) in cui è nata: se l'ordine cambia modo, alla
+  // conferma le righe custom si ripropongono (vedi apriIncasso).
+  const addCustomLine = (name, price, voce) => {
     setLines(prev => [...prev, {
       piatto: { id: `custom_${Date.now()}`, name, price, cat: 'Personalizzato', emoji: '✏️' },
       qty: 1, mods: null, lineTotal: price,
+      // La voce a 10% è una a schermo ma congela l'id del profilo secondo il
+      // modo dell'ordine: somministrazione_10 al banco, asporto_preparato_10
+      // da asporto (vat_rate_profiles per service_mode, ERD v11).
+      aliquota: voce.aliquota,
+      ivaProfilo: window.pnIvaProfiloId(voce, takeaway),
+      ivaModo: takeaway,
     }]);
   };
+  // P-11: se l'ordine ha cambiato modo dopo la battuta (banco → asporto o
+  // viceversa), le righe custom si RIPROPONGONO alla conferma con il loro
+  // profilo dichiarato in mano all'operatore: il caso tipico è il 10% lasciato
+  // su una bottiglia che ora esce da asporto. Solo allora si apre l'incasso.
+  const apriIncasso = () => {
+    const daRivedere = lines.some(l => l.ivaProfilo && l.ivaModo !== takeaway);
+    if (daRivedere) { setRiproponiOpen(true); return; }
+    setIncassaOpen(true);
+  };
+  const confermaRiproposta = (scelte) => {
+    // `scelte` = { indiceRiga: id della VOCE del select }: l'id del profilo
+    // congelato si ri-risolve col modo attuale (la voce a 10% cambia profilo
+    // fra locale e asporto anche a parità di scelta a schermo).
+    setLines(prev => prev.map((l, i) => {
+      if (!l.ivaProfilo) return l;
+      const voce = (window.PN_IVA_PROFILI || []).find(v => v.id === scelte[i])
+        || window.pnIvaVoceDiProfilo(l.ivaProfilo);
+      if (!voce) return { ...l, ivaModo: takeaway };
+      return {
+        ...l,
+        ivaProfilo: window.pnIvaProfiloId(voce, takeaway),
+        aliquota: voce.aliquota,
+        ivaModo: takeaway,
+      };
+    }));
+    setRiproponiOpen(false);
+    setIncassaOpen(true);
+  };
+
   // Si apre sempre, anche su un piatto senza opzioni: da quando la riga ha un
   // solo pulsante e si chiama "Personalizza", uscire in silenzio sarebbe un
   // tocco che non fa niente — il modo più veloce per far credere che sia rotto.
@@ -570,7 +616,7 @@ function SalaVenditaDiretta() {
         onChangeName={editLineName}
         onChangePrice={editLinePrice}
         onClear={() => { setLines([]); setTaCliente(null); }}
-        onIncassa={() => setIncassaOpen(true)}
+        onIncassa={apriIncasso}
       />
       </div>
 
@@ -630,6 +676,9 @@ function SalaVenditaDiretta() {
         lines={saldaOrdine ? saldaOrdine.items.map(it => ({
           piatto: { name: it.nome, hasAlcohol: it.hasAlcohol, prodottoFinito: it.prodottoFinito },
           qty: it.qty, lineTotal: it.prezzo,
+          // P-11: l'aliquota dichiarata alla battuta viaggia con la riga
+          // anche attraverso la coda — congelata, non riderivata.
+          aliquota: it.aliquota, ivaProfilo: it.ivaProfilo,
         })) : []}
         takeaway
         pagamenti={saldaOrdine ? (saldaOrdine.acconti || []) : []}
@@ -661,8 +710,18 @@ function SalaVenditaDiretta() {
 
       {customOpen && (
         <SaCustomModal
+          takeaway={takeaway}
           onClose={() => setCustomOpen(false)}
-          onConfirm={(name, price) => { addCustomLine(name, price); setCustomOpen(false); }}
+          onConfirm={(name, price, profilo) => { addCustomLine(name, price, profilo); setCustomOpen(false); }}
+        />
+      )}
+
+      {riproponiOpen && (
+        <SaRiproponiIva
+          lines={lines}
+          takeaway={takeaway}
+          onClose={() => setRiproponiOpen(false)}
+          onConfirm={confermaRiproposta}
         />
       )}
     </div>
@@ -1307,19 +1366,27 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Modal articolo custom — voce libera (nome + prezzo) aggiunta al conto
 
-function SaCustomModal({ onClose, onConfirm }) {
+function SaCustomModal({ onClose, onConfirm, takeaway }) {
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
+  // Aliquota IVA (P-11 · D-16): un select a tre voci dal dizionario di
+  // piattaforma, sempre precompilato sul default «Somministrato o preparato
+  // qui · 10%» — che copre sia la somministrazione sia i preparati da
+  // asporto. Niente domande in più: la scelta è visibile e sostituibile.
+  const [profiloId, setProfiloId] = React.useState('dieci');
+  const profilo = (window.PN_IVA_PROFILI || []).find(p => p.id === profiloId);
   const nameRef = React.useRef(null);
 
   React.useEffect(() => { nameRef.current?.focus(); }, []);
 
   const parsedPrice = parseFloat(price.replace(',', '.'));
-  const valid = name.trim().length > 0 && !isNaN(parsedPrice) && parsedPrice > 0;
+  // Senza aliquota dichiarata nessuna riga entra nel conto: con il dizionario
+  // mockato non succede mai, ma il vincolo è fiscale e resta esplicito.
+  const valid = name.trim().length > 0 && !isNaN(parsedPrice) && parsedPrice > 0 && !!profilo;
 
   const handleConfirm = () => {
     if (!valid) return;
-    onConfirm(name.trim(), parsedPrice);
+    onConfirm(name.trim(), parsedPrice, profilo);
   };
 
   const handleKey = (e) => { if (e.key === 'Enter' && valid) handleConfirm(); if (e.key === 'Escape') onClose(); };
@@ -1385,6 +1452,25 @@ function SaCustomModal({ onClose, onConfirm }) {
               onBlur={e => e.target.style.borderColor = 'rgba(15,17,21,0.14)'}
             />
           </div>
+          <div style={{display:'flex', flexDirection:'column', gap:5}}>
+            <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Aliquota IVA</label>
+            <select
+              value={profiloId}
+              onChange={e => setProfiloId(e.target.value)}
+              style={{...inputStyle, cursor:'pointer'}}>
+              {(window.PN_IVA_PROFILI || []).map(p => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+            <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>
+              {/* Da asporto l'errore facile è lasciare il 10% su una bottiglia:
+                  l'hint lo dice prima che succeda. */}
+              {takeaway && (
+                <span style={{color: PN.TEXT, fontWeight: 600}}>Da asporto, confezionati e bevande vanno al 22%. </span>
+              )}
+              {profilo ? profilo.base : ''}
+            </div>
+          </div>
         </div>
 
         {/* Bottone conferma */}
@@ -1407,6 +1493,86 @@ function SaCustomModal({ onClose, onConfirm }) {
           onMouseLeave={svSunsetHoverOut}>
           <span>Aggiungi al conto</span>
           <span style={{fontSize: 17.5, fontWeight: 700}}>{valid ? `€${parsedPrice.toFixed(2)}` : ''}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Riproposta IVA delle righe custom (P-11 · D-16). Si apre SOLO quando
+// l'ordine ha cambiato modo dopo la battuta: elenca le righe fuori menù col
+// loro profilo dichiarato, ancora nelle mani dell'operatore — l'automatismo
+// non tocca niente da solo. Confermato, si prosegue all'incasso.
+
+function SaRiproponiIva({ lines, takeaway, onClose, onConfirm }) {
+  const custom = lines.map((l, i) => ({ l, i })).filter(x => x.l.ivaProfilo);
+  // Le scelte lavorano sull'id della VOCE del select, non sull'id congelato:
+  // i due profili a 10% sono la stessa voce a schermo.
+  const [scelte, setScelte] = React.useState(() =>
+    Object.fromEntries(custom.map(x => {
+      const voce = window.pnIvaVoceDiProfilo && window.pnIvaVoceDiProfilo(x.l.ivaProfilo);
+      return [x.i, voce ? voce.id : x.l.ivaProfilo];
+    })));
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+      display:'grid', placeItems:'center', zIndex: 200, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        ...PN.GLASS_STRONG,
+        borderRadius: 20, width: 440, maxWidth:'100%',
+        padding: '22px 22px 20px',
+        display:'flex', flexDirection:'column', gap: 16,
+      }}>
+        <div>
+          <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>
+            L'ordine è cambiato: conferma l'IVA del fuori menù
+          </div>
+          <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+            {takeaway
+              ? 'Ora è da asporto: confezionati e bevande vanno al 22%.'
+              : 'Ora si consuma nel locale: la somministrazione è al 10% per tutto.'}
+          </div>
+        </div>
+        <div style={{display:'flex', flexDirection:'column', gap: 10}}>
+          {custom.map(({ l, i }) => (
+            <div key={i} style={{
+              padding: '10px 12px', borderRadius: 12,
+              background:'rgba(255,255,255,0.75)', border:'1px solid rgba(15,17,21,0.10)',
+            }}>
+              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>
+                {l.displayName || l.piatto.name} · €{(l.lineTotal * l.qty).toFixed(2)}
+              </div>
+              <select
+                value={scelte[i]}
+                onChange={e => setScelte(s => ({ ...s, [i]: e.target.value }))}
+                style={{
+                  width:'100%', padding:'8px 10px', borderRadius: 9,
+                  border:'1px solid rgba(15,17,21,0.14)', background: PN.WHITE,
+                  fontSize: 15, fontFamily:'inherit', cursor:'pointer',
+                }}>
+                {(window.PN_IVA_PROFILI || []).map(p => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => onConfirm(scelte)}
+          style={{
+            padding: '12px 18px', borderRadius: 999,
+            background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
+            border:'1px solid transparent',
+            fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+            boxShadow: SV_SUNSET_SHADOW,
+          }}
+          onMouseEnter={svSunsetHoverIn}
+          onMouseLeave={svSunsetHoverOut}>
+          Conferma e procedi al pagamento
         </button>
       </div>
     </div>
@@ -2270,6 +2436,20 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
             ))}
           </div>
         )}
+        {/* P-11 (D-16): l'aliquota dichiarata resta VISIBILE sulla riga — è
+            un dato fiscale congelato alla battuta, non un dettaglio interno. */}
+        {line.ivaProfilo && (() => {
+          const prof = window.pnIvaVoceDiProfilo && window.pnIvaVoceDiProfilo(line.ivaProfilo);
+          return prof ? (
+            <div style={{marginTop: 4}}>
+              <span title={prof.base} style={{
+                display:'inline-block', padding:'2px 8px', borderRadius: 6,
+                background:'#F4F5F7', border:`1px solid ${PN.BORDER_SOFT}`,
+                fontSize: 12.5, fontWeight: 600, color: PN.MUTED,
+              }}>{prof.label}</span>
+            </div>
+          ) : null;
+        })()}
         <div style={{display:'flex', alignItems:'center', gap: 11, marginTop: 8}}>
           <button onClick={onDec} title={qty <= 1 ? 'Rimuovi dall\'ordine' : 'Diminuisci quantità'} style={{
             width: 30, height: 30, borderRadius:'50%',

@@ -155,6 +155,9 @@ function ccCredScadute() {
 
 // IVA del documento: aliquota decisa dall'id del pagamento (stabile), importo
 // scorporato. Le colonne IVA della chiusura sono la somma di queste.
+// MOCK in attesa di P-107: l'hash IGNORA le righe, quindi anche l'aliquota
+// dichiarata sulla riga fuori menù (P-11) non arriva qui — chiusure e
+// riepiloghi IVA restano una finzione finché P-107 non li rifà sulle righe.
 const ccR2 = (n) => Math.round(n * 100) / 100;
 const ccEuro = (n) => (n < 0 ? `− € ${Math.abs(n).toFixed(2)}` : `€ ${n.toFixed(2)}`);
 function docIva(p) {

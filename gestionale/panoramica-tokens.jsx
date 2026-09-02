@@ -353,6 +353,36 @@ Object.assign(window, { PnSectionTab, PnSectionTabs });
 // dagli accordi con le piattaforme, ed entrano in gioco solo quando le
 // integrazioni sono reali. Nel prototipo il contrassegno è la lingua visiva
 // già pronta per quel momento.
+// ─── Profili IVA dell'articolo fuori menù (P-11 · D-16) ────────────────────
+// Dizionario di piattaforma: governato da Hubble, qui mockato. Le voci si
+// etichettano per caso d'uso con la base normativa nell'hint, MAI come
+// percentuali nude. L'articolo fuori catalogo non ha nulla da cui derivare
+// l'IVA: la dichiara chi lo batte, scegliendo una di queste. La prima è il
+// default sempre preselezionato: copre la somministrazione (n. 121, Tab. A
+// parte III, DPR 633/72 — nel locale l'aliquota è una per tutto, bevande
+// comprese) e i preparati da asporto (L. 178/2020, art. 1 co. 40).
+// La voce a 10% è UNA a schermo ma DUE profili nel modello
+// (vat_rate_profiles per service_mode, risolti da delivery_mode — ERD v11):
+// sulla riga si congela somministrazione_10 nel locale, asporto_preparato_10
+// da asporto. Le altre due voci sono un profilo ciascuna.
+const PN_IVA_PROFILI = [
+  { id: 'dieci', label: 'Somministrato o preparato qui · 10%', aliquota: 10,
+    perModo: { locale: 'somministrazione_10', asporto: 'asporto_preparato_10' },
+    base: 'Somministrazione (n. 121, Tab. A parte III, DPR 633/72) e cibi preparati da asporto (L. 178/2020, art. 1 co. 40).' },
+  { id: 'asporto_confezionato_22', label: 'Confezionati e bevande da asporto · 22%', aliquota: 22,
+    base: 'Aliquota ordinaria: prodotti confezionati e bevande venduti da asporto.' },
+  { id: 'asporto_alimentari_base_4', label: 'Alimentari di base da asporto · 4%', aliquota: 4,
+    base: 'Paniere Tab. A parte II, DPR 633/72: pane e panetteria ordinaria, pasta, latte fresco, burro, formaggi, frutta e verdura, olio d\'oliva.' },
+];
+window.PN_IVA_PROFILI = PN_IVA_PROFILI;
+// L'id che si congela sulla riga, risolto dal modo dell'ordine.
+window.pnIvaProfiloId = (voce, asporto) =>
+  voce.perModo ? voce.perModo[asporto ? 'asporto' : 'locale'] : voce.id;
+// La voce del dizionario a partire dall'id congelato (per tag e riproposta).
+window.pnIvaVoceDiProfilo = (profiloId) =>
+  PN_IVA_PROFILI.find(v => v.id === profiloId
+    || (v.perModo && (v.perModo.locale === profiloId || v.perModo.asporto === profiloId)));
+
 const PN_PARTNER = {
   justeat:   { sigla:'JE', nome:'Just Eat',  bg:'#FF8000', ink:'#FFFFFF' },
   glovo:     { sigla:'G',  nome:'Glovo',     bg:'#FFC244', ink:'#0A1929' },
