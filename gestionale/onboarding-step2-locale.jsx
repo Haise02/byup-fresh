@@ -172,6 +172,27 @@ function SubStepInfo({venue, v}) {
             Forma giuridica
           </div>
           <FormaGiuridicaGroup value={venue.legalForm} onChange={(x) => v('legalForm', x)}/>
+          {/* Dentro la società, persone o capitali: cambia solo i dati per
+              fatturazione (capitale sociale e socio unico esistono solo per
+              le società di capitali), e si chiede qui per non chiederlo dopo. */}
+          {venue.legalForm === 'societa' && (
+            <div style={{display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap'}}>
+              {[{id: 'capitali', label: 'Società di capitali (S.r.l., S.p.A.)'}, {id: 'persone', label: 'Società di persone (S.n.c., S.a.s.)'}].map(o => {
+                const sel = (venue.societaTipo || 'capitali') === o.id;
+                return (
+                  <label key={o.id} style={{display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 12px', borderRadius: 999, cursor: 'pointer', background: sel ? ONB.BRAND_TINT : '#fff', border: `1px solid ${sel ? 'rgba(255, 90, 95, 0.35)' : 'rgba(15, 17, 21, 0.10)'}`}}>
+                    <input type="radio" name="societa-tipo" checked={sel} onChange={() => v('societaTipo', o.id)} style={{margin: 0, accentColor: ONB.BRAND}}/>
+                    <span style={{fontSize: 14, fontWeight: sel ? 600 : 500, color: sel ? ONB.TEXT : ONB.MUTED}}>{o.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          {venue.legalForm === 'ente' && (
+            <div style={{marginTop: 10, padding: '10px 13px', borderRadius: 10, background: 'rgba(217, 119, 6, 0.10)', border: '1px solid rgba(217, 119, 6, 0.30)', fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5}}>
+              <b style={{fontWeight: 600}}>Enti e cooperative arrivano con la Soluzione Software.</b> Con il canale di oggi la trasmissione degli scontrini per un ente richiede una configurazione dedicata del fornitore: la apriremo noi, e ti scriviamo quando è pronta. Puoi intanto completare il resto.
+            </div>
+          )}
         </div>
         {/* Grid 12-col: composizione "indirizzo / civico / cap / città" su una sola
             riga visiva (80/20/20/40) — pattern italiano standard di un form indirizzi.
@@ -188,8 +209,8 @@ function SubStepInfo({venue, v}) {
               placeholder="IT00000000000"/>
           </div>
           {/* Il CF della persona, distinto dalla P.IVA: è il dato che prima
-              nasceva sbagliato. Solo per ditta individuale e professionista. */}
-          {(venue.legalForm === 'ditta_individuale' || venue.legalForm === 'professionista') && (
+              nasceva sbagliato. Solo per la ditta individuale. */}
+          {venue.legalForm === 'ditta_individuale' && (
             <div style={{gridColumn: 'span 12'}}>
               <OnbField label="Codice fiscale del titolare"
                 value={venue.titolareCf}
@@ -258,8 +279,188 @@ function SubStepInfo({venue, v}) {
         )}
       </OnbCard>
 
+      <OnbScontriniCard venue={venue} v={v}/>
       <AdeDelegaCard venue={venue} v={v}/>
     </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// GLI SCONTRINI: chi li trasmette, e con quali credenziali.
+// La procedura web del documento commerciale online «è disponibile
+// esclusivamente per l'operatore» e non è delegabile; «nel caso in cui
+// quest'ultimo sia una società, il servizio può essere utilizzato da
+// operatori incaricati attraverso le funzioni disponibili sui servizi
+// telematici» (specifiche tecniche corrispettivi, §2.9). Quindi:
+//   - ditta individuale: le credenziali Fisconline del titolare, verificate
+//     con una trasmissione di prova; la password scade ogni novanta giorni e
+//     il promemoria vive in Dati fiscali, in cassa e nelle notifiche (P-104);
+//   - società: la società nomina come incaricato una persona di Byup, con la
+//     funzione «Gestisci incarichi» del portale (la procedura è quella del
+//     fornitore del canale); le credenziali sono di quella persona e la
+//     password la rinnova Byup da Hubble, per tutte le società insieme.
+// Con la Soluzione Software questa card sparisce: trasmette la Soluzione.
+// ─────────────────────────────────────────────────────────────────────────
+const ONB_INCARICATO = { nome: 'Luca Ferrante', ruolo: 'dipendente di Byup', cf: 'FRRLCU85M10H501Z' };
+const ONB_PASSI_INCARICO = [
+  'Accedi al portale dell\'Agenzia con l\'utenza della società',
+  'Vai su Il tuo profilo → Incarichi → Gestisci incarichi come gestore',
+  'Scegli «Aggiungi incaricato»',
+  'Incolla il codice fiscale dell\'incaricato e scegli il tipo «Incaricato», poi salva',
+  'Nella lista, su quell\'incaricato, scegli Azioni → Gestisci servizi',
+  'Apri «Servizi per» → «Trasmissione dati IVA»',
+  'Spunta «Accreditamento e censimento dispositivi» (personale) e salva',
+];
+const ONB_CAUSE_INCARICO = [
+  'Il codice fiscale dell\'incaricato è esattamente quello qui sopra.',
+  'Il tipo di incarico è «Incaricato», non «Gestore».',
+  'Nei servizi dell\'incaricato è spuntato «Accreditamento e censimento dispositivi» (personale).',
+  'Hai lavorato con l\'utenza della società, non con la tua personale.',
+];
+
+function OnbScontriniCard({venue, v}) {
+  const ditta = venue.legalForm === 'ditta_individuale';
+  const societa = venue.legalForm === 'societa';
+  const [copiato, setCopiato] = React.useState(false);
+  const [showPin, setShowPin] = React.useState(false);
+  const copia = (testo) => {
+    const scrivi = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(testo) : Promise.reject();
+    scrivi.catch(() => {}).then(() => { setCopiato(true); setTimeout(() => setCopiato(false), 2000); });
+  };
+  // Ditta: la verifica è una trasmissione di prova. Il primo giro fallisce
+  // (chi incolla la password vecchia deve saperlo adesso), il secondo passa e
+  // scrive il registro delle credenziali (byup_ade_cred) che leggono Dati
+  // fiscali e Cassa: il rinnovo di oggi vale novanta giorni.
+  const stato = venue.fiscoStato || 'attesa';   // attesa | verifica | errore | attivo
+  const verifica = () => {
+    if (!(venue.fiscoPassword || '').trim()) return;
+    v('fiscoStato', 'verifica');
+    const t = (venue.fiscoTentativi || 0) + 1; v('fiscoTentativi', t);
+    setTimeout(() => {
+      if (t === 1) { v('fiscoStato', 'errore'); return; }
+      const d = new Date(); const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      try { localStorage.setItem('byup_ade_cred', JSON.stringify({ rinnovo: iso, verificata: `${d.toLocaleDateString('it-IT')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` })); } catch (e) {}
+      v('fiscoStato', 'attivo');
+    }, 1600);
+  };
+  // Società: «Fatto» controlla che l'incarico ci sia. Primo giro «non
+  // trovato» con le cause in ordine, secondo giro attivo.
+  const incarico = venue.incaricoStato || 'attesa';
+  const controlla = () => {
+    v('incaricoStato', 'verifica');
+    const t = (venue.incaricoTentativi || 0) + 1; v('incaricoTentativi', t);
+    setTimeout(() => v('incaricoStato', t === 1 ? 'errore' : 'attivo'), 1600);
+  };
+  const scadenza = () => { const d = new Date(); d.setDate(d.getDate() + 90); return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }); };
+  const pill = (tono, label) => (
+    <span style={{display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, fontSize: 13, fontWeight: 600,
+      background: tono === 'ok' ? 'rgba(22, 163, 74, 0.10)' : tono === 'errore' ? 'rgba(220, 38, 38, 0.08)' : tono === 'corso' ? 'rgba(15, 17, 21, 0.06)' : 'rgba(217, 119, 6, 0.12)',
+      color: tono === 'ok' ? ONB.GREEN : tono === 'errore' ? ONB.RED : tono === 'corso' ? ONB.MUTED : '#B45309'}}>{label}</span>
+  );
+  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(15, 17, 21, 0.14)', fontSize: 15, fontFamily: 'inherit', color: ONB.TEXT, background: '#fff', boxSizing: 'border-box', outline: 'none' };
+  const lab = { fontSize: 13, fontWeight: 600, color: ONB.MUTED, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 5 };
+
+  if (!ditta && !societa) return null;
+  return (
+    <OnbCard>
+      <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 6}}>
+        <div style={{flex: 1}}>
+          <div style={{fontSize: 18, fontWeight: 600, color: ONB.TEXT, letterSpacing: '-0.01em', lineHeight: 1.4}}>
+            {ditta ? 'Gli scontrini partono con le tue credenziali' : 'Gli scontrini li trasmette un incaricato'}
+          </div>
+          <div style={{fontSize: 15, color: ONB.MUTED, marginTop: 4, lineHeight: 1.45}}>
+            {ditta
+              ? 'Il canale trasmette i tuoi scontrini all\'Agenzia con le tue credenziali Fisconline. La password scade ogni novanta giorni: ti avvisiamo in Dati fiscali, in cassa e con una notifica a 14, 7 e 3 giorni.'
+              : `Per una società la procedura dell\'Agenzia si usa attraverso una persona incaricata. Per Byup è ${ONB_INCARICATO.nome}, ${ONB_INCARICATO.ruolo}: la nomini una volta sola, e la sua password la rinnova Byup ogni novanta giorni. Tu non devi più fare nulla.`}
+          </div>
+        </div>
+        {ditta ? pill(stato === 'attivo' ? 'ok' : stato === 'errore' ? 'errore' : stato === 'verifica' ? 'corso' : 'attesa', stato === 'attivo' ? 'Verificate' : stato === 'errore' ? 'Non valide' : stato === 'verifica' ? 'Trasmissione di prova…' : 'Da inserire')
+               : pill(incarico === 'attivo' ? 'ok' : incarico === 'errore' ? 'errore' : incarico === 'verifica' ? 'corso' : 'attesa', incarico === 'attivo' ? 'Incarico attivo' : incarico === 'errore' ? 'Non trovato' : incarico === 'verifica' ? 'Controllo in corso…' : 'Da nominare')}
+      </div>
+
+      {ditta && (
+        <div style={{marginTop: 12}}>
+          <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr 0.7fr', gap: 12}}>
+            <div>
+              <div style={lab}>Codice fiscale</div>
+              <div style={{...inputStyle, background: ONB.BG, color: venue.titolareCf ? ONB.TEXT : ONB.MUTED, fontFamily: 'ui-monospace, Menlo, monospace'}}>{venue.titolareCf || 'dal campo qui sopra'}</div>
+            </div>
+            <div>
+              <div style={lab}>Password Fisconline</div>
+              <input type="password" value={venue.fiscoPassword || ''} onChange={e => v('fiscoPassword', e.target.value)} placeholder="••••••••" style={inputStyle}/>
+            </div>
+            <div>
+              <div style={lab}>PIN</div>
+              <input type={showPin ? 'text' : 'password'} value={venue.fiscoPin || ''} onChange={e => v('fiscoPin', e.target.value)} placeholder="••••••••••" style={inputStyle}/>
+            </div>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap'}}>
+            <div style={{flex: 1, minWidth: 220, fontSize: 14, color: stato === 'errore' ? ONB.RED : ONB.MUTED, lineHeight: 1.45}}>
+              {stato === 'attivo' ? `Trasmissione di prova riuscita. La password vale fino al ${scadenza()}.`
+                : stato === 'errore' ? 'L\'Agenzia ha rifiutato le credenziali: se hai appena cambiato la password sul portale, incolla quella nuova e riprova.'
+                : 'Alla conferma facciamo una trasmissione di prova: se non passa lo sai adesso, non al primo scontrino.'}
+            </div>
+            {stato !== 'attivo' && (
+              <button onClick={verifica} disabled={stato === 'verifica' || !(venue.fiscoPassword || '').trim()} style={{padding: '10px 20px', borderRadius: 9, background: stato === 'verifica' || !(venue.fiscoPassword || '').trim() ? 'rgba(15, 17, 21, 0.06)' : ONB.ACTION_PRIMARY, color: stato === 'verifica' || !(venue.fiscoPassword || '').trim() ? ONB.MUTED : '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
+                {stato === 'errore' ? 'Riprova' : 'Verifica e salva'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {societa && (
+        <div style={{marginTop: 12}}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '11px 13px', borderRadius: 10, background: ONB.BG, border: '1px solid rgba(15, 17, 21, 0.06)'}}>
+            <div style={{flex: 1, minWidth: 160}}>
+              <div style={lab}>Codice fiscale dell'incaricato · {ONB_INCARICATO.nome}</div>
+              <div style={{fontSize: 18.5, fontWeight: 600, color: ONB.TEXT, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: '0.04em', userSelect: 'all'}}>{ONB_INCARICATO.cf}</div>
+            </div>
+            <button onClick={() => copia(ONB_INCARICATO.cf)} style={{display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9, background: '#fff', color: copiato ? ONB.GREEN : ONB.TEXT, border: `1px solid ${copiato ? 'rgba(22, 163, 74, 0.35)' : 'rgba(15, 17, 21, 0.12)'}`, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
+              {copiato ? <React.Fragment><OnbIcon.Check size={12} color={ONB.GREEN}/>Copiato</React.Fragment> : 'Copia'}
+            </button>
+            <a href={ADE_PORTALE} target="_blank" rel="noopener noreferrer" style={{display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9, background: ONB.ACTION_SECONDARY, color: '#fff', fontSize: 15, fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit'}}>Apri il portale</a>
+          </div>
+          <details style={{marginTop: 12}} open={incarico === 'errore'}>
+            <summary style={{fontSize: 15, fontWeight: 600, color: ONB.TEXT, cursor: 'pointer', listStyle: 'none', display: 'flex', alignItems: 'center', gap: 8}}>
+              <OnbIcon.ChevronDown size={12} color={ONB.MUTED}/>
+              Come si nomina, in {ONB_PASSI_INCARICO.length} tap
+            </summary>
+            <ol style={{margin: '9px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6}}>
+              {ONB_PASSI_INCARICO.map((passo, i) => (
+                <li key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 15, color: ONB.TEXT, lineHeight: 1.45}}>
+                  <span style={{width: 21, height: 21, borderRadius: 999, flexShrink: 0, marginTop: 1, background: ONB.BRAND_TINT, color: ONB.BRAND_DARK, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600}}>{i + 1}</span>
+                  <span>{passo}</span>
+                </li>
+              ))}
+            </ol>
+          </details>
+          <div style={{marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(15, 17, 21, 0.08)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
+            <div style={{flex: 1, minWidth: 220}}>
+              <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT}}>Controllo</div>
+              <div style={{fontSize: 14.5, color: ONB.MUTED, marginTop: 2, lineHeight: 1.45}}>
+                {incarico === 'attivo' ? `Incarico trovato: ${ONB_INCARICATO.nome} può trasmettere per ${venue.name || 'la società'}.`
+                  : incarico === 'verifica' ? 'Sto controllando l\'incarico presso l\'Agenzia…'
+                  : 'Quando hai salvato sul portale, premi Fatto: controlliamo l\'incarico.'}
+              </div>
+            </div>
+            {incarico !== 'attivo' && (
+              <button onClick={controlla} disabled={incarico === 'verifica'} style={{padding: '10px 20px', borderRadius: 9, background: incarico === 'verifica' ? 'rgba(15, 17, 21, 0.06)' : ONB.ACTION_PRIMARY, color: incarico === 'verifica' ? ONB.MUTED : '#fff', border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
+                {incarico === 'errore' ? 'Riprova' : 'Fatto'}
+              </button>
+            )}
+          </div>
+          {incarico === 'errore' && (
+            <div style={{marginTop: 10, padding: '11px 13px', borderRadius: 10, background: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.22)', fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5}}>
+              <b style={{fontWeight: 600, color: ONB.RED}}>Incarico non trovato.</b> Ricontrolla, in quest'ordine:
+              <ol style={{margin: '6px 0 0', padding: '0 0 0 20px', display: 'flex', flexDirection: 'column', gap: 4}}>
+                {ONB_CAUSE_INCARICO.map((c, i) => <li key={i}>{c}</li>)}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
+    </OnbCard>
   );
 }
 
@@ -282,21 +483,38 @@ function SubStepInfo({venue, v}) {
 //      agli intermediari, e non abilita né a trasmettere né a censire.
 //   2. la CONSERVAZIONE — la attiva Byup: si mostra come «in corso» e poi
 //      «attiva», mai come un compito dell'esercente, mai un suo pulsante.
-//   3. il CENSIMENTO del collegamento del POS — l'assistente è di P-105 e
-//      vive in Impostazioni → Dati fiscali: qui se ne mostra lo stato («da
-//      comunicare» / «dichiarato») per il POS virtuale, che nasce col
-//      collegamento a Stripe, e vi si rimanda; l'autodichiarazione è
-//      dell'esercente. Principio di P-48: «dichiarato», mai «verificato».
-//      Byup non censisce il punto cassa.
+//   3. l'ACCREDITAMENTO come esercente sul portale — lo fa Byup con la
+//      delega («l'Esercente si accredita, anche per il tramite di un suo
+//      intermediario delegato»: FAQ AdE 28; e con la Soluzione Software sarà
+//      «l'aggiornamento della propria registrazione», specifiche 3.2.3).
+//      Da qui il menù del collegamento dei POS compare, e il passo zero di
+//      P-105 è un fatto compiuto.
+//   4. la RICEZIONE delle fatture — l'esercente registra sul portale il
+//      codice destinatario del canale come proprio indirizzo telematico:
+//      la registrazione dell'indirizzo è delegabile solo agli intermediari
+//      abilitati (delega unica, punto 4.2), quindi la fa lui, con i tap, e la
+//      dichiara. Il censimento dei POS non sta più qui: nasce con lo
+//      strumento (P-105) e vive nelle notifiche del gestionale.
 //
 // Due modelli convivono, ed è voluto: la trasmissione dei CORRISPETTIVI usa le
-// credenziali Fisconline dell'esercente (P-104, Impostazioni → Dati fiscali);
-// la delega copre FATTURE e DISPOSITIVI (D-39/D-40). Per la delega non
-// servono le credenziali: si fa tutto dal suo accesso al portale.
+// credenziali Fisconline (della ditta, o dell'incaricato di Byup per la
+// società: OnbScontriniCard qui sopra, P-104 in Dati fiscali); la delega
+// copre FATTURE e DISPOSITIVI (D-39/D-40). Per la delega non servono le
+// credenziali: si fa tutto dal suo accesso al portale. Il secondo servizio
+// serve già oggi all'accreditamento, e domani alla Soluzione Software.
 // ─────────────────────────────────────────────────────────────────────────
 
 const ADE_CF_BYUP = '15927340015';
 const ADE_PORTALE = 'https://www.agenziaentrate.gov.it/portale/area-riservata';
+// L'indirizzo telematico del canale, da registrare sul portale per ricevere
+// le fatture passive attraverso di esso (documentazione del fornitore).
+const ADE_CODICE_DESTINATARIO = 'PIC7CPS';
+const ADE_PASSI_RICEZIONE = [
+  'Accedi a Fatture e Corrispettivi con SPID',
+  'Vai su Fatturazione elettronica → Registrazione dell\'indirizzo telematico',
+  `Incolla il codice destinatario ${'PIC7CPS'}`,
+  'Conferma: da ora le fatture dei fornitori arrivano qui',
+];
 
 // I due servizi, con i nomi esatti delle schede del portale: se l'etichetta
 // qui non è la stessa che legge lì, la guida non serve.
@@ -433,40 +651,13 @@ function AdePastiglia({ tono, label, giro }) {
 // vive più qui: è un foglio in Impostazioni → Dati fiscali, che si apre da
 // solo dopo il cambio di soggetto e riusa questa stessa procedura. Questa
 // card resta quella del primo avvio.
-// Il registro del censimento POS (P-105, byup_pos_censimento) sta in
-// panoramica-tokens.jsx, che questo bundle non carica: qui la lettura e la
-// scrittura guardate, con gli stessi nomi del modello. Si salva solo la riga
-// del POS virtuale; il lettore del gestionale la fonde sul suo seme per id.
-const onbPosLeggi = () => {
-  if (window.byupReadPosCensimento) return (window.byupReadPosCensimento().find(r => r.id === 'pos-virtuale') || {}).fiscal_link_status || 'pending_census';
-  try { const s = localStorage.getItem('byup_pos_censimento'); const r = s ? JSON.parse(s).find(x => x.id === 'pos-virtuale') : null; return (r && r.fiscal_link_status) || 'pending_census'; } catch (e) { return 'pending_census'; }
-};
-const onbPosDichiara = (dichiarato, autore) => {
-  if (window.byupPosDichiara && window.byupPosRitira) { dichiarato ? window.byupPosDichiara('pos-virtuale', autore) : window.byupPosRitira('pos-virtuale'); return; }
-  let lista = [];
-  try { const s = localStorage.getItem('byup_pos_censimento'); lista = s ? JSON.parse(s) : []; } catch (e) {}
-  const r = lista.find(x => x.id === 'pos-virtuale') || (lista.push({ id: 'pos-virtuale' }), lista[lista.length - 1]);
-  r.fiscal_link_status = dichiarato ? 'linked' : 'pending_census';
-  r.census_transmitted_at = dichiarato ? new Date().toISOString() : null;
-  r.census_declared_by = dichiarato ? (autore || null) : null;
-  try { localStorage.setItem('byup_pos_censimento', JSON.stringify(lista)); } catch (e) {}
-  window.dispatchEvent(new Event('byup-pos-censimento'));
-};
-
 function AdeDelegaCard({venue, v}) {
   const stato = venue.adeStato || 'attesa';   // attesa | verifica | errore | attivo
   const conservazione = venue.conservazioneStato || 'attesa';   // attesa | corso | attiva
-  // Lo stato del censimento non è più una copia locale: è la riga del POS
-  // virtuale nel registro, la stessa che leggono Personale e Dati fiscali.
-  const [posStato, setPosStato] = React.useState(onbPosLeggi);
-  React.useEffect(() => {
-    const agg = () => setPosStato(onbPosLeggi());
-    window.addEventListener('byup-pos-censimento', agg);
-    window.addEventListener('storage', agg);
-    return () => { window.removeEventListener('byup-pos-censimento', agg); window.removeEventListener('storage', agg); };
-  }, []);
-  const censimento = posStato === 'linked' ? 'dichiarato' : 'da_comunicare';
+  const accreditamento = venue.accreditamentoStato || 'attesa'; // attesa | corso | attivo
+  const ricezione = venue.ricezioneStato || 'da_registrare';    // da_registrare | dichiarata
   const [copiato, setCopiato] = React.useState(false);
+  const [copiatoCd, setCopiatoCd] = React.useState(false);
   const [mail, setMail] = React.useState(null);   // modello aperto in anteprima
 
   // La conservazione la attiva Byup: appena la delega è attiva parte da sola,
@@ -479,6 +670,18 @@ function AdeDelegaCard({venue, v}) {
     const t = setTimeout(() => v('conservazioneStato', 'attiva'), 2200);
     return () => clearTimeout(t);
   }, [stato]);
+  // L'accreditamento come esercente: stessa cosa, lo fa Byup con la delega,
+  // subito dopo la conservazione.
+  React.useEffect(() => {
+    if (stato !== 'attivo' || accreditamento !== 'attesa') return;
+    v('accreditamentoStato', 'corso');
+    const t = setTimeout(() => v('accreditamentoStato', 'attivo'), 3400);
+    return () => clearTimeout(t);
+  }, [stato]);
+  const copiaCd = () => {
+    const scrivi = navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(ADE_CODICE_DESTINATARIO) : Promise.reject();
+    scrivi.catch(() => {}).then(() => { setCopiatoCd(true); setTimeout(() => setCopiatoCd(false), 2000); });
+  };
 
   const copiaCF = () => {
     const scrivi = navigator.clipboard && navigator.clipboard.writeText
@@ -515,9 +718,14 @@ function AdeDelegaCard({venue, v}) {
     attiva: {tono: 'ok',     label: 'Attiva'},
     errore: {tono: 'errore', label: 'Non riuscita · riproviamo noi'},
   }[conservazione];
-  const rigaCensimento = censimento === 'dichiarato'
-    ? {tono: 'ok', label: 'Dichiarato'}
-    : {tono: 'attesa', label: 'Da comunicare'};
+  const rigaAccreditamento = {
+    attesa: {tono: 'neutro', label: 'In attesa della delega'},
+    corso:  {tono: 'corso',  label: 'In corso…', giro: true},
+    attivo: {tono: 'ok',     label: 'Accreditato'},
+  }[accreditamento];
+  const rigaRicezione = ricezione === 'dichiarata'
+    ? {tono: 'ok', label: 'Dichiarata'}
+    : {tono: 'attesa', label: 'Da registrare'};
 
   // Le cause da ricontrollare quando la delega non si trova (P-50 · D-40),
   // nell'ordine in cui si sbagliano. Il limite dei due delegati sta QUI e non
@@ -552,7 +760,7 @@ function AdeDelegaCard({venue, v}) {
           Attivazioni fiscali
         </div>
         <div style={{fontSize: 15, color: ONB.MUTED, marginTop: 4, lineHeight: 1.45}}>
-          Tre cose, una per volta: la prima la fai tu sul portale, la seconda la fa Byup, la terza la comunichi tu.
+          Quattro cose, una per volta: la prima la fai tu sul portale, la seconda e la terza le fa Byup con la delega, la quarta la fai tu e la dichiari.
         </div>
       </div>
 
@@ -564,22 +772,36 @@ function AdeDelegaCard({venue, v}) {
         {riga('2 · Conservazione delle fatture elettroniche',
           'La attiva Byup appena la delega è attiva. Non devi fare nulla.',
           rigaConservazione)}
-        {riga('3 · Censimento del collegamento del punto cassa',
-          'Una comunicazione tua all\'Agenzia. Qui dichiari di averla fatta: Byup non la verifica e non la fa al posto tuo.',
-          rigaCensimento,
-          <div style={{marginTop: 8, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'}}>
-            <label style={{display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14.5, color: ONB.TEXT, cursor: 'pointer'}}>
-              <input type="checkbox" checked={censimento === 'dichiarato'}
-                onChange={e => onbPosDichiara(e.target.checked, venue.name ? `Titolare di ${venue.name}` : null)}
+        {riga('3 · Accreditamento come esercente',
+          'Lo fa Byup con la delega, sul portale: da qui il collegamento dei POS ti compare, e con la Soluzione Software sarà solo un aggiornamento.',
+          rigaAccreditamento)}
+        {riga('4 · Ricezione delle fatture',
+          'Registri sul portale il codice destinatario del canale come tuo indirizzo telematico: è un atto tuo, non delegabile a Byup. Da lì le fatture dei fornitori arrivano qui.',
+          rigaRicezione,
+          <div style={{marginTop: 8}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '9px 12px', borderRadius: 10, background: ONB.BG, border: '1px solid rgba(15, 17, 21, 0.06)'}}>
+              <div style={{flex: 1, minWidth: 140}}>
+                <div style={{fontSize: 12.5, fontWeight: 600, color: ONB.MUTED, letterSpacing: '0.04em', textTransform: 'uppercase'}}>Codice destinatario</div>
+                <div style={{fontSize: 17, fontWeight: 600, color: ONB.TEXT, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: '0.06em', userSelect: 'all'}}>{ADE_CODICE_DESTINATARIO}</div>
+              </div>
+              <button onClick={copiaCd} style={{display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, background: '#fff', color: copiatoCd ? ONB.GREEN : ONB.TEXT, border: `1px solid ${copiatoCd ? 'rgba(22, 163, 74, 0.35)' : 'rgba(15, 17, 21, 0.12)'}`, fontSize: 14.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
+                {copiatoCd ? <React.Fragment><OnbIcon.Check size={12} color={ONB.GREEN}/>Copiato</React.Fragment> : 'Copia'}
+              </button>
+            </div>
+            <ol style={{margin: '8px 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4}}>
+              {ADE_PASSI_RICEZIONE.map((passo, i) => (
+                <li key={i} style={{display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.45}}>
+                  <span style={{width: 20, height: 20, borderRadius: 999, flexShrink: 0, marginTop: 1, background: ONB.BRAND_TINT, color: ONB.BRAND_DARK, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 600}}>{i + 1}</span>
+                  <span>{passo}</span>
+                </li>
+              ))}
+            </ol>
+            <label style={{display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 14.5, color: ONB.TEXT, cursor: 'pointer'}}>
+              <input type="checkbox" checked={ricezione === 'dichiarata'}
+                onChange={e => v('ricezioneStato', e.target.checked ? 'dichiarata' : 'da_registrare')}
                 style={{width: 16, height: 16, accentColor: ONB.ACTION_PRIMARY}}/>
-              Ho completato la comunicazione
+              Ho registrato il codice destinatario sul portale
             </label>
-            {/* Il foglio precompilato e i passi sono dell'assistente di P-105,
-                in Impostazioni → Dati fiscali: qui solo il rimando, con il
-                POS virtuale già aperto. */}
-            <a href="byup Impostazioni.html?page=fiscali&card=pos&strumento=pos-virtuale" style={{fontSize: 14, fontWeight: 600, color: ONB.BRAND_DARK, textDecoration: 'none'}}>
-              Vai al collegamento POS →
-            </a>
           </div>)}
       </div>
 
@@ -587,7 +809,7 @@ function AdeDelegaCard({venue, v}) {
       <div style={{marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(15, 17, 21, 0.08)'}}>
         <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT}}>La delega, in due minuti</div>
         <div style={{fontSize: 14.5, color: ONB.MUTED, marginTop: 3, lineHeight: 1.45}}>
-          Serve per la fatturazione elettronica con conservazione e per le pratiche di accreditamento dei dispositivi.
+          Due servizi in una delega sola: «{ADE_SERVIZI[0]}», con cui Byup conserva le tue fatture presso l'Agenzia; «{ADE_SERVIZI[1]}», con cui Byup ti accredita come esercente oggi e, con la Soluzione Software, censirà le tue casse e collegherà i POS.
           {' '}Serve solo l'accesso con SPID.
         </div>
       </div>
@@ -737,7 +959,7 @@ function AdeDelegaCard({venue, v}) {
           fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5,
         }}>
           Byup può emettere e conservare le fatture elettroniche per te, fino al {adeScadenzaDelega()}.
-          Il censimento del punto cassa resta una comunicazione tua: la dichiari qui sopra quando l'hai fatta.
+          L'accreditamento come esercente lo facciamo noi, riga 3 qui sopra. Il collegamento dei POS resta una comunicazione tua: te lo chiediamo nel gestionale quando nasce ogni strumento.
           Puoi revocare la delega dal portale dell'Agenzia quando vuoi.
           <div style={{marginTop: 6}}>
             Ti abbiamo scritto la conferma.{' '}
@@ -757,15 +979,21 @@ function AdeDelegaCard({venue, v}) {
 // Regime fiscale — tre opzioni in riga, etichetta e basta. Le descrizioni
 // ("IVA al 10% sui pasti…") spiegavano una cosa che chi ha un locale conosce
 // già, e costavano più spazio della scelta stessa.
-// Stessa enumerazione di legal_form dei Dati fiscali (ERD v11, FISC-01):
-// societa, ditta_individuale, professionista, ente. Pagine diverse, una
-// definizione a testa — se ne cambia una, cambia anche l'altra.
+// Enumerazione di legal_form (ERD v11, FISC-01) ridotta a ciò che esiste nel
+// nostro settore: chi somministra è un'impresa iscritta al Registro delle
+// imprese, quindi ditta individuale o società (FIPE, Rapporto Ristorazione
+// 2026: imprese individuali 46,5%, società 52,4%, altre forme 1,1%). Il
+// professionista non c'è — partita IVA senza impresa, fatture e non
+// scontrini — e l'ente (associazioni, cooperative: 0,8% dei ristoranti) è
+// rimandato alla Soluzione Software, perché con il canale attuale richiede una
+// configurazione dedicata del fornitore. Quel giorno rientra con le sue
+// caratteristiche: persona giuridica come la società, incaricato e delega del
+// rappresentante. Stessa definizione in Impostazioni → Dati fiscali.
 function FormaGiuridicaGroup({value, onChange}) {
   const options = [
     {id: 'ditta_individuale', label: 'Ditta individuale'},
     {id: 'societa',           label: 'Società'},
-    {id: 'professionista',    label: 'Professionista'},
-    {id: 'ente',              label: 'Ente'},
+    {id: 'ente',              label: 'Ente o cooperativa'},
   ];
   return (
     <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>

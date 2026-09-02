@@ -69,11 +69,20 @@ function OnboardingApp() {
     //     solo l'esito: attesa → verifica → errore | attivo.
     //   conservazioneStato — la attiva Byup, mai l'esercente: attesa (finché
     //     non c'è la delega) → corso → attiva.
-    //   il censimento del POS (P-105) non sta qui: è la riga del POS virtuale
-    //     nel registro byup_pos_censimento, letta e scritta dalla card.
+    //   accreditamentoStato — lo fa Byup con la delega: attesa → corso →
+    //     attivo. ricezioneStato — il codice destinatario lo registra
+    //     l'esercente: da_registrare → dichiarata. Il censimento dei POS non
+    //     sta qui: nasce con lo strumento (P-105) e vive nel gestionale.
+    //   fiscoStato / incaricoStato — gli scontrini (OnbScontriniCard): le
+    //     credenziali della ditta verificate, o l'incarico della società.
     adeStato: 'attesa',
     adeTentativi: 0,
     conservazioneStato: 'attesa',
+    accreditamentoStato: 'attesa',
+    ricezioneStato: 'da_registrare',
+    societaTipo: 'capitali',
+    fiscoPassword: '', fiscoPin: '', fiscoStato: 'attesa', fiscoTentativi: 0,
+    incaricoStato: 'attesa', incaricoTentativi: 0,
   });
   const [payments, setPayments] = React.useState({
     stripeStatus: 'disconnected',
