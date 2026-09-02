@@ -1,11 +1,61 @@
 // Impostazioni → Vetrina (rifatta: 3 sub-tab, completamento, calendario sintetico, sedi card)
 
+// Regola di prodotto del gestionale, non del dizionario: quanti tag cibo può
+// scegliere un locale (P-29). Il dizionario dice quali esistono, questo quanti.
+const VETRINA_MAX_TAG_CIBO = 4;
+
+// ─── Lo stato della vetrina, in un posto solo ───────────────────────────────
+// Prima ogni card teneva il suo pezzo (foto in Aspetto, FAQ e social in
+// Pubblico, servizi e orari in Profilo) e il banner di completamento, che vive
+// nel padre, non poteva leggerlo: i suoi «fatto» erano scritti a mano e in
+// cinque casi su sette contraddicevano lo schermo. Adesso lo stato sta qui, i
+// figli lo ricevono, e il completamento si RICAVA a ogni render e non si salva
+// mai (P-67). Lo stesso hook serve all'onboarding (config-completa-app.jsx),
+// che monta le stesse card.
+// Categoria, tag cibo e servizi sono CODICI dei dizionari di piattaforma
+// (PN_GUSTI e PN_SERVIZI in panoramica-tokens.jsx — P-29 · D-28, P-67 ·
+// L1-30): l'etichetta si risolve a schermo. I tag di atmosfera restano testo:
+// il modello li vuole json libero (venue_profiles.tags), non dizionario.
+const VETRINA_DATI_MOCK = {
+  nome: 'Ristorante Paradiso', sito: '', indirizzo: 'https://maps.app.goo.gl/paradiso',
+  descrizione: 'Trattoria di famiglia dal 1962, cucina romana di tradizione.',
+  categoria: 'ristorante',
+  tags: ['Elegante', 'Tradizionale'],
+  tagCibo: ['pasta'],
+  // L'insieme dei codici DICHIARATI: chi non c'è non è «assente», è non
+  // dichiarato, e la vetrina non promette mai che una dotazione manchi.
+  servizi: ['wifi_gratuito', 'servizio_al_tavolo'],
+  openDays: { Lun:true, Mar:true, Mer:true, Gio:true, Ven:true, Sab:true },
+  stdHours: ['09:00', '23:00'],
+  customHours: null, // null | {Lun: [['12:00','15:00'], …], …}
+  photos: [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70&auto=format&fit=crop',
+  ],
+  logo: null,
+  social: ['ig'],
+  links: { ig: 'https://instagram.com/ristoranteparadiso' },
+  faqs: [
+    { id: 'f1', q: 'Avete prodotti senza glutine?', a: 'Sì, abbiamo un menù dedicato preparato in area separata.' },
+    { id: 'f2', q: 'Fate asporto?', a: 'Sì, tutti i piatti del menù sono disponibili da asporto.' },
+    { id: 'f3', q: 'Organizzate feste di compleanno?', a: 'Certo: menù dedicati e sala riservata, contattaci.' },
+  ],
+};
+
+function useVetrinaDati() {
+  const [dati, setDati] = React.useState(VETRINA_DATI_MOCK);
+  // Accetta un valore o una funzione del valore precedente, come setState:
+  // così le card scrivono `setFaqs(f => …)` esattamente come prima.
+  const aggiorna = React.useCallback((k, v) =>
+    setDati(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k]) : v })), []);
+  return [dati, aggiorna];
+}
+
 function ImpVetrina() {
   const [sub, setSub] = React.useState('profilo');
   const [dirty, setDirty] = React.useState(false);
-  const [tags, setTags] = React.useState(['Elegante','Tradizionale']);
-  const [social, setSocial] = React.useState(['ig']);
-  const [categoria, setCategoria] = React.useState('Ristorante');
+  const [dati, aggiorna] = useVetrinaDati();
 
   const subs = [
     { id: 'profilo', label: 'Profilo' },
@@ -14,23 +64,13 @@ function ImpVetrina() {
   ];
 
   const markDirty = () => setDirty(true);
-  const preview = <VetrinaMiniPreview tags={tags} social={social} categoria={categoria}
+  const preview = <VetrinaMiniPreview tags={dati.tags} social={dati.social} categoria={pnGustoLabel(dati.categoria)}
     focusSection={sub === 'profilo' ? 'info' : sub === 'aspetto' ? 'gallery' : 'faq'}/>;
 
-  // Completamento profilo (semplice mock). Ogni voce sa in quale sub-tab e in
-  // quale sezione vive: un chip che dice «da completare» senza portarci lascia
-  // il lavoro di cercarla a chi legge.
-  const completion = [
-    { label: 'Informazioni base', done: true,  sub: 'profilo',  anchor: 'locale' },
-    { label: 'Orari di apertura', done: true,  sub: 'profilo',  anchor: 'orari' },
-    { label: 'Logo del locale',   done: true,  sub: 'aspetto',  anchor: 'immagini' },
-    { label: 'Galleria foto',     done: false, sub: 'aspetto',  anchor: 'galleria' },
-    { label: 'Tag e categorie',   done: true,  sub: 'profilo',  anchor: 'tag' },
-    { label: 'FAQ',               done: false, sub: 'pubblico', anchor: 'faq' },
-    { label: 'Social',            done: false, sub: 'pubblico', anchor: 'social' },
-  ];
-  const doneCount = completion.filter(c => c.done).length;
-  const pct = Math.round((doneCount / completion.length) * 100);
+  // Ricavato dai dati a ogni render, mai salvato. Ogni voce sa in quale
+  // sub-tab e in quale sezione vive: un chip che dice «da completare» senza
+  // portarci lascia il lavoro di cercarla a chi legge.
+  const completamento = vetrinaCompletamento(dati);
 
   // Cambia sub-tab se serve, poi apre la card collassabile (i Tag) e scorre.
   // Il rinvio serve perche la sezione bersaglio non e ancora nel DOM quando la
@@ -56,14 +96,11 @@ function ImpVetrina() {
           invece l'anteprima ha tutta l'altezza della finestra dal primo
           istante, ed e il contenuto a scorrerle accanto. */}
       <ImpWithPreview preview={preview}>
-        <VetrinaCompletion items={completion} pct={pct} onGo={goToSection}/>
+        <VetrinaCompletion stato={completamento} onGo={goToSection}/>
         <ImpSubTabs tabs={subs} active={sub} onChange={setSub}/>
-        {sub === 'profilo' && <VetrinaProfilo
-          tags={tags} setTags={t => {setTags(t); markDirty();}}
-          categoria={categoria} setCategoria={c => {setCategoria(c); markDirty();}}
-          onChange={markDirty}/>}
-        {sub === 'aspetto' && <VetrinaAspetto onChange={markDirty}/>}
-        {sub === 'pubblico' && <VetrinaPubblico social={social} setSocial={s => {setSocial(s); markDirty();}} onChange={markDirty}/>}
+        {sub === 'profilo' && <VetrinaProfilo dati={dati} aggiorna={aggiorna} onChange={markDirty}/>}
+        {sub === 'aspetto' && <VetrinaAspetto dati={dati} aggiorna={aggiorna} onChange={markDirty}/>}
+        {sub === 'pubblico' && <VetrinaPubblico dati={dati} aggiorna={aggiorna} onChange={markDirty}/>}
       </ImpWithPreview>
 
       {/* Barra di salvataggio: resta incollata in fondo alla pagina finche
@@ -79,7 +116,48 @@ function ImpVetrina() {
 
 // ─── Indicatore completamento ────────────────────────────────────────────────
 
-function VetrinaCompletion({ items, pct, onGo }) {
+// LA definizione del completamento (P-67 · L1-30): una funzione pura dei dati
+// della vetrina, calcolata a ogni render, mai memorizzata — non esiste un
+// campo «completamento» da nessuna parte, e non deve esistere.
+// Due livelli e nessun peso numerico: un peso è un numero che al ristoratore
+// non si spiega, un livello sì.
+//   Necessarie alla pubblicazione — senza una di queste la vetrina non si
+//   pubblica, ed è il cancello della discovery (un locale senza vetrina
+//   configurata non è in discovery): nome, indirizzo e descrizione scritti;
+//   almeno un giorno aperto con un orario; una categoria scelta; il logo.
+//   Consigliate — completano ma non bloccano: almeno tre foto in galleria,
+//   almeno un tag cibo, almeno un servizio dichiarato, almeno una FAQ, almeno
+//   un social collegato.
+// La percentuale è la quota di voci soddisfatte sul totale, a peso uguale;
+// «pubblicabile» è vero solo con tutte le necessarie. Categoria e tag sono
+// due voci e non una: la prima è necessaria, i secondi no.
+// Il servizio dichiarato conta come voce fatta, non come promessa: dichiarare
+// almeno uno è un segno di cura, e non dice nulla su quelli non dichiarati.
+function vetrinaCompletamento(d) {
+  const orariOk = Object.values(d.openDays).some(Boolean) && !!(d.stdHours[0] && d.stdHours[1]);
+  const voci = [
+    { label: 'Informazioni base', necessaria: true, sub: 'profilo',  anchor: 'locale',
+      done: !!(d.nome.trim() && d.indirizzo.trim() && d.descrizione.trim()) },
+    { label: 'Orari di apertura', necessaria: true, sub: 'profilo',  anchor: 'orari',     done: orariOk },
+    { label: 'Categoria',         necessaria: true, sub: 'profilo',  anchor: 'categoria', done: !!d.categoria },
+    { label: 'Logo del locale',   necessaria: true, sub: 'aspetto',  anchor: 'immagini',  done: !!d.logo },
+    { label: 'Galleria foto',     sub: 'aspetto',  anchor: 'galleria', done: d.photos.length >= 3 },
+    { label: 'Tag cibo',          sub: 'profilo',  anchor: 'tag',      done: d.tagCibo.length >= 1 },
+    { label: 'Servizi',           sub: 'profilo',  anchor: 'locale',   done: d.servizi.length >= 1 },
+    { label: 'FAQ',               sub: 'pubblico', anchor: 'faq',      done: d.faqs.length >= 1 },
+    { label: 'Social',            sub: 'pubblico', anchor: 'social',   done: Object.keys(d.links).length >= 1 },
+  ];
+  const fatte = voci.filter(v => v.done).length;
+  return {
+    voci,
+    pct: Math.round((fatte / voci.length) * 100),
+    pubblicabile: voci.every(v => !v.necessaria || v.done),
+    mancanti: voci.filter(v => v.necessaria && !v.done).map(v => v.label),
+  };
+}
+
+function VetrinaCompletion({ stato, onGo }) {
+  const { voci: items, pct, pubblicabile, mancanti } = stato;
   const ringStyle = {
     background: `conic-gradient(${PN.PINK} ${pct*3.6}deg, #F4F5F7 0)`,
   };
@@ -106,6 +184,11 @@ function VetrinaCompletion({ items, pct, onGo }) {
       </div>
       <div style={{flex:1, minWidth:0}}>
         <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Vetrina pronta al {pct}%</div>
+        {/* Il cancello, detto in una riga: la percentuale dice quanto manca,
+            questa dice se si può pubblicare — e cosa lo impedisce. */}
+        <div style={{fontSize: 13, color: pubblicabile ? PN.GREEN : PN.MUTED, marginTop: 2}}>
+          {pubblicabile ? 'C\'è tutto quello che serve per pubblicarla' : `Per pubblicarla manca: ${mancanti.join(', ')}`}
+        </div>
         <div style={{display:'flex', flexWrap:'wrap', gap: 6, marginTop: 6}}>
           {items.map((c, i) => c.done ? (
             <span key={i} style={{
@@ -153,11 +236,22 @@ function VetrinaTodoChip({ c, onClick }) {
 
 // ─── Profilo (info + categorie + tag + sedi) ────────────────────────────────
 
-function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
-  const [services, setServices] = React.useState({'WiFi gratuito': true});
-  const [access, setAccess] = React.useState({'Servizio al tavolo': true});
+function VetrinaProfilo({ dati, aggiorna, onChange }) {
+  const { tags, categoria, tagCibo, servizi, openDays, stdHours, customHours } = dati;
+  const setTags = (v) => { aggiorna('tags', v); onChange && onChange(); };
+  const setCategoria = (v) => { aggiorna('categoria', v); onChange && onChange(); };
+  const setOpenDays = (v) => aggiorna('openDays', v);
+  const setStdHours = (v) => aggiorna('stdHours', v);
+  const setCustomHours = (v) => aggiorna('customHours', v);
+  const campo = (k) => (e) => { aggiorna(k, e.target.value); onChange && onChange(); };
+  // Servizi: si dichiara accendendo, si ritira spegnendo. Spento non vuol
+  // dire «il locale non ce l'ha»: vuol dire che non lo dice (PN_SERVIZI).
+  const servizioOn = (id) => servizi.includes(id);
+  const toggleServizio = (id) => {
+    aggiorna('servizi', s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+    onChange && onChange();
+  };
   const days = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
-  const [openDays, setOpenDays] = React.useState({Lun:true,Mar:true,Mer:true,Gio:true,Ven:true,Sab:true});
   const allTags = ['Elegante','Luxury','Tradizionale','Moderno','Vivace','Romantico','Rustico','Tranquillo','Conviviale','Minimal'];
   // Tag: massimo 3. Il quarto tentativo accende e scuote la riga-guida.
   const [tagLimitHit, setTagLimitHit] = React.useState(false);
@@ -171,22 +265,20 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
     }
     setTags([...tags, t]);
   };
-  // Cibo: le categorie che gli utenti cercano nelle app food. Massimo 4,
-  // stessa logica dell'atmosfera (chips brand + shake al superamento).
-  const FOOD_TAGS = ['Pizza','Sushi','Pasta','Hamburger','Carne','Pesce','Poke','Ramen',
-    'Vegano','Vegetariano','Senza glutine','Dolci','Gelato','Brunch','Aperitivo',
-    'Cinese','Indiano','Messicano','Kebab','Frittura'];
-  const [foodTags, setFoodTags] = React.useState(['Pasta']);
+  // Cibo: i food_tag del dizionario di piattaforma (PN_TAG_CIBO), tenuti per
+  // codice. Il limite è VETRINA_MAX_TAG_CIBO, regola di prodotto del
+  // gestionale; stessa logica dell'atmosfera (chips brand + shake al
+  // superamento).
   const [foodLimitHit, setFoodLimitHit] = React.useState(false);
-  const toggleFood = (t) => {
-    if (foodTags.includes(t)) { setFoodTags(f => f.filter(x => x !== t)); onChange && onChange(); return; }
-    if (foodTags.length >= 4) {
+  const toggleFood = (id) => {
+    if (tagCibo.includes(id)) { aggiorna('tagCibo', f => f.filter(x => x !== id)); onChange && onChange(); return; }
+    if (tagCibo.length >= VETRINA_MAX_TAG_CIBO) {
       setFoodLimitHit(true);
       clearTimeout(toggleFood._t);
       toggleFood._t = setTimeout(() => setFoodLimitHit(false), 1500);
       return;
     }
-    setFoodTags(f => [...f, t]);
+    aggiorna('tagCibo', f => [...f, id]);
     onChange && onChange();
   };
   // Popup certificazioni: null | {mode:'new'} | {mode:'rifiutata', name, reason}
@@ -208,8 +300,6 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
   const removeSede = (name) => setSedi(s => s.filter(x => x.name !== name));
   // Orari: standard per tutti i giorni aperti + personalizzazioni per giorno
   // (turni multipli) configurate dal popup "Personalizza orari".
-  const [stdHours, setStdHours] = React.useState(['09:00', '23:00']);
-  const [customHours, setCustomHours] = React.useState(null); // null | {Lun: [['12:00','15:00'], …], …}
   const [hoursModal, setHoursModal] = React.useState(false);
   const fmtH = (h) => (h || '').replace(':00', '');
   const dayLabel = (d) => {
@@ -233,44 +323,48 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
         <div style={{display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18}}>
           <div style={{minWidth: 0, display:'flex', flexDirection:'column'}}>
             <ImpField label="Nome locale">
-              <ImpInput placeholder="es. Trattoria del Borgo" onChange={onChange}/>
+              <ImpInput placeholder="es. Trattoria del Borgo" value={dati.nome} onChange={campo('nome')}/>
             </ImpField>
             <ImpField label="Sito web">
-              <ImpInput placeholder="es. nomeristorante.it" onChange={onChange}
+              <ImpInput placeholder="es. nomeristorante.it" value={dati.sito} onChange={campo('sito')}
                 icona={<Icon name="globe-web" size={17}/>}/>
             </ImpField>
             <ImpField label="Indirizzo su Google Maps">
               {/* Il rosso di Maps: in un campo che chiede un link di Maps
                   l'icona colorata si riconosce senza doverla spiegare. */}
-              <ImpInput placeholder="https://maps.app.goo.gl/..." onChange={onChange}
+              <ImpInput placeholder="https://maps.app.goo.gl/..." value={dati.indirizzo} onChange={campo('indirizzo')}
                 icona={<Icon name="place-map-pin" size={18} color="#EA4335"/>}/>
             </ImpField>
             <ImpField label="Descrizione" style={{marginBottom: 0, flex: 1, display:'flex', flexDirection:'column'}}>
-              <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…" onChange={onChange}
+              <ImpTextarea placeholder="Es. Trattoria di famiglia dal 1962, cucina romana di tradizione…" value={dati.descrizione} onChange={campo('descrizione')}
                 style={{flex: 1}}/>
             </ImpField>
           </div>
 
-          {/* Servizi e accessibilità: pannello distinto (fondo tenue + bordo)
-              — la separazione dalle colonne dei campi è una zona, non una
-              hairline che si perdeva. */}
+          {/* Servizi: pannello distinto (fondo tenue + bordo) — la separazione
+              dalle colonne dei campi è una zona, non una hairline che si
+              perdeva. Due gruppi, e sono i due kind di PN_SERVIZI: le
+              dotazioni e il modo in cui si serve. Prima i gruppi erano
+              «Servizi» e «Accessibilità», e Servizio al tavolo stava sotto
+              Accessibilità: un filtro sulla modalità avrebbe pescato una
+              dotazione. */}
           <div style={{
             minWidth: 0, background: '#F3F5F7',
             border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 12,
             padding: '14px 16px',
           }}>
-            <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Servizi disponibili</div>
+            <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Dotazioni del locale</div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14}}>
-              {SERVICE_TILES.servizi.map(s => (
-                <ServiceTile key={s.label} {...s} on={!!services[s.label]}
-                  onToggle={() => {setServices(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
+              {PN_SERVIZI.filter(s => s.kind === 'amenity').map(s => (
+                <ServiceTile key={s.id} label={s.label} icon={s.icon} on={servizioOn(s.id)}
+                  onToggle={() => toggleServizio(s.id)}/>
               ))}
             </div>
-            <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Accessibilità</div>
+            <div style={{fontSize:14, fontWeight:600, marginBottom:8}}>Come servi</div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 8}}>
-              {SERVICE_TILES.accessibilita.map(s => (
-                <ServiceTile key={s.label} {...s} on={!!access[s.label]}
-                  onToggle={() => {setAccess(o => ({...o, [s.label]: !o[s.label]})); onChange();}}/>
+              {PN_SERVIZI.filter(s => s.kind === 'service_mode').map(s => (
+                <ServiceTile key={s.id} label={s.label} icon={s.icon} on={servizioOn(s.id)}
+                  onToggle={() => toggleServizio(s.id)}/>
               ))}
             </div>
           </div>
@@ -325,11 +419,11 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
 
       {/* Categoria: niente aurora, tessere grandi con icona; in hover la
           descrizione di quando scegliere quella categoria. */}
-      <ImpCard title="Categoria del locale" sub="Il tuo locale apparirà agli utenti dell'App Byup nella categoria che selezioni">
+      <ImpCard anchor="categoria" title="Categoria del locale" sub="Il tuo locale apparirà agli utenti dell'App Byup nella categoria che selezioni">
         <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap: 10}}>
-          {VETRINA_CATS.map(c => (
-            <CatTile key={c.name} cat={c} active={categoria === c.name}
-              onPick={() => setCategoria(c.name)}/>
+          {PN_CATEGORIE_LOCALE.map(c => (
+            <CatTile key={c.id} cat={c} active={categoria === c.id}
+              onPick={() => setCategoria(c.id)}/>
           ))}
         </div>
       </ImpCard>
@@ -372,20 +466,20 @@ function VetrinaProfilo({ tags, setTags, categoria, setCategoria, onChange }) {
           animation: foodLimitHit ? 'tag-limit-shake 380ms ease' : 'none',
           transition: 'color 150ms ease',
         }}>
-          Cibo · puoi selezionarne massimo 4
+          Cibo · puoi selezionarne massimo {VETRINA_MAX_TAG_CIBO}
         </div>
         <div style={{display:'flex', flexWrap:'wrap', gap: 7}}>
-          {FOOD_TAGS.map(t => {
-            const on = foodTags.includes(t);
+          {PN_TAG_CIBO.map(t => {
+            const on = tagCibo.includes(t.id);
             return (
-              <button key={t} onClick={() => toggleFood(t)} style={{
+              <button key={t.id} onClick={() => toggleFood(t.id)} style={{
                 padding: '6px 12px', borderRadius: 999,
                 border:`1.5px solid ${on ? PN.PINK : PN.BORDER}`,
                 background: on ? PN.PINK : PN.WHITE,
                 color: on ? '#fff' : PN.TEXT,
                 fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
                 transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
-              }}>{on ? '✓ ' : '+ '}{t}</button>
+              }}>{on ? '✓ ' : '+ '}{t.label}</button>
             );
           })}
         </div>
@@ -665,6 +759,9 @@ const VIcon = {
   wine:      (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 3.5h9c0 4.8-1.9 7.7-4.5 7.7S7.5 8.3 7.5 3.5z"/><path d="M12 11.2V20"/><path d="M8.5 20.5h7"/><path d="M8 7h8"/></svg>,
   doc:       (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M6.5 3h7.5l3.5 3.5V21h-11z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15.5h6"/></svg>,
   alert:     (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3.5L21.5 20h-19z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg>,
+  // Dehors: l'ombrellone. Al banco: il bancone con lo sgabello davanti.
+  dehors:    (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 18 0Z"/><path d="M12 3v9"/><path d="M12 12v7a2 2 0 0 0 4 0"/></svg>,
+  banco:     (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8h18"/><path d="M5 8v12"/><path d="M19 8v12"/><path d="M9.5 14.5h5"/><path d="M12 14.5V20"/><path d="M10 20h4"/></svg>,
   cake:      (s) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 20.5v-6.3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6.3"/><path d="M3.5 20.5h17"/><path d="M5 16.2c1.2 1 2.2 1 3.4 0s2.4-1 3.6 0 2.4 1 3.6 0 2.2-1 3.4 0"/><path d="M8 12.2V10M12 12.2V10M16 12.2V10"/><path d="M8 7.6v.1M12 7.6v.1M16 7.6v.1"/></svg>,
 };
 
@@ -682,27 +779,14 @@ function VIconChip({ name, on, size = 38 }) {
   );
 }
 
-// Niente descrizioni: sono interruttori, non voci di catalogo. «Rete libera per
-// gli ospiti» sotto «WiFi gratuito» non aggiunge niente a chi deve solo decidere
-// se accenderlo, e triplica l'altezza della tessera.
-const SERVICE_TILES = {
-  servizi: [
-    { label: 'Parcheggio custodito', icon: 'shield' },
-    { label: 'Parcheggio',           icon: 'car'    },
-    { label: 'WiFi gratuito',        icon: 'wifi'   },
-    { label: 'Animali ammessi',      icon: 'paw'    },
-    { label: 'Compleanni',           icon: 'cake'   },
-  ],
-  accessibilita: [
-    { label: 'Rampa per disabili',   icon: 'wheelchair' },
-    { label: 'Menù per non vedenti', icon: 'braille'    },
-    { label: 'Servizio al tavolo',   icon: 'bell'       },
-  ],
-};
+// Le tessere vengono da PN_SERVIZI (panoramica-tokens.jsx): qui non c'è più
+// una lista. Niente descrizioni: sono interruttori, non voci di catalogo.
+// «Rete libera per gli ospiti» sotto «WiFi gratuito» non aggiunge niente a
+// chi deve solo decidere se accenderlo, e triplica l'altezza della tessera.
 
 // Tessera quasi quadrata: icona sopra, etichetta sotto, contenuto centrato.
 // Senza la descrizione la tessera si accorcia e ne stanno tre per riga invece di
-// due, e tre stanno meglio perche i gruppi sono da cinque e da tre.
+// due, e tre stanno meglio perche i gruppi sono da sei e da due.
 function ServiceTile({ label, icon, on, onToggle }) {
   const [hover, setHover] = React.useState(false);
   return (
@@ -738,16 +822,8 @@ function ServiceTile({ label, icon, on, onToggle }) {
   );
 }
 
-const VETRINA_CATS = [
-  { name: 'Ristorante',     icon: 'forkKnife', desc: 'Cucina completa con servizio al tavolo, pranzo e cena' },
-  { name: 'Pizzeria',       icon: 'pizza',     desc: 'La pizza al centro del menù, al tavolo o d\'asporto' },
-  { name: 'Giapponese',     icon: 'fish',      desc: 'Sushi, ramen e cucina nipponica' },
-  { name: 'Carne & Griglia',icon: 'steak',     desc: 'Braceria: tagli, grigliate e affumicati' },
-  { name: 'Cucina etnica',  icon: 'globe',     desc: 'Sapori dal mondo: indiano, messicano, mediorientale' },
-  { name: 'Bar',            icon: 'coffee',    desc: 'Caffetteria, colazioni e aperitivi veloci' },
-  { name: 'Bistrot',        icon: 'cheers',    desc: 'Informale e curato: piatti semplici e buoni vini' },
-  { name: 'Enoteca',        icon: 'wine',      desc: 'Vini al calice con taglieri e degustazioni' },
-];
+// Le categorie vengono da PN_CATEGORIE_LOCALE (panoramica-tokens.jsx): una
+// per locale, scelta per codice; icona e descrizione stanno nel dizionario.
 
 function CatTile({ cat, active, onPick }) {
   const [hover, setHover] = React.useState(false);
@@ -766,7 +842,7 @@ function CatTile({ cat, active, onPick }) {
       <div style={{
         fontSize: 14.5, fontWeight: active ? 700 : 600,
         color: active ? PN.PINK_DARK : PN.TEXT,
-      }}>{cat.name}</div>
+      }}>{cat.label}</div>
       {/* Descrizione: appare in hover, lo spazio è riservato (box grandi) */}
       <div style={{
         fontSize: 12, color: PN.MUTED, lineHeight: 1.35, marginTop: 5,
@@ -1275,14 +1351,11 @@ function CollapsibleCard({ title, sub, action, children, defaultOpen = false, an
 
 // ─── Aspetto (logo + vetrine + galleria) ────────────────────────────────────
 
-function VetrinaAspetto({ onChange }) {
+function VetrinaAspetto({ dati, aggiorna, onChange }) {
   const GALLERY_MAX = 5;
-  const [photos, setPhotos] = React.useState([
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=70&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70&auto=format&fit=crop',
-  ]);
-  const [logo, setLogo] = React.useState(null);
+  const { photos, logo } = dati;
+  const setPhotos = (v) => aggiorna('photos', v);
+  const setLogo = (v) => aggiorna('logo', v);
   const [uploadModal, setUploadModal] = React.useState(null); // null | 'gallery' | 'logo'
   // Limite 5 foto: il sesto tentativo accende e scuote la riga-guida (come i tag).
   const [galleryLimitHit, setGalleryLimitHit] = React.useState(false);
@@ -1681,9 +1754,12 @@ const socialHandle = (url) => {
   } catch (e) { return url; }
 };
 
-function VetrinaPubblico({ social, setSocial, onChange }) {
-  // Collegare un social passa dal popup del link; qui i link confermati.
-  const [links, setLinks] = React.useState({ ig: 'https://instagram.com/ristoranteparadiso' });
+function VetrinaPubblico({ dati, aggiorna, onChange }) {
+  // Collegare un social passa dal popup del link; `links` sono quelli confermati.
+  const { social, links, faqs } = dati;
+  const setSocial = (v) => aggiorna('social', v);
+  const setLinks = (v) => aggiorna('links', v);
+  const setFaqs = (v) => aggiorna('faqs', v);
   const [linkModal, setLinkModal] = React.useState(null); // def del social da collegare
   const [unlink, setUnlink] = React.useState(null);       // def del social da scollegare (con conferma)
   const connectSocial = (key, url) => {
@@ -1698,11 +1774,6 @@ function VetrinaPubblico({ social, setSocial, onChange }) {
     onChange && onChange();
   };
   // FAQ reali: crea dal popup, riordina col drag, modifica, elimina con conferma.
-  const [faqs, setFaqs] = React.useState([
-    { id: 'f1', q: 'Avete prodotti senza glutine?', a: 'Sì, abbiamo un menù dedicato preparato in area separata.' },
-    { id: 'f2', q: 'Fate asporto?', a: 'Sì, tutti i piatti del menù sono disponibili da asporto.' },
-    { id: 'f3', q: 'Organizzate feste di compleanno?', a: 'Certo: menù dedicati e sala riservata, contattaci.' },
-  ]);
   const [faqModal, setFaqModal] = React.useState(null);     // null | {mode:'new'} | {mode:'edit', faq}
   const [faqConfirm, setFaqConfirm] = React.useState(null); // faq da eliminare
   const [dragFaq, setDragFaq] = React.useState(null);

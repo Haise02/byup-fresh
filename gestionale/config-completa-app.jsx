@@ -26,9 +26,7 @@ function ConfigCompletaApp() {
 
   // Stato vetrina — lo stesso di ImpVetrina nelle Impostazioni.
   const [dirty, setDirty] = React.useState(false);
-  const [tags, setTags] = React.useState(['Elegante','Tradizionale']);
-  const [social, setSocial] = React.useState(['ig']);
-  const [categoria, setCategoria] = React.useState('Ristorante');
+  const [dati, aggiorna] = useVetrinaDati();
   const markDirty = () => setDirty(true);
 
   // Team dello step Personale: vive qui perché lo leggono sia il form a
@@ -236,10 +234,7 @@ function ConfigCompletaApp() {
                   Compila solo ciò che serve per far capire ai clienti chi sei e che atmosfera offre il locale.
                 </div>
 
-                <VetrinaProfilo
-                  tags={tags} setTags={t => {setTags(t); markDirty();}}
-                  categoria={categoria} setCategoria={c => {setCategoria(c); markDirty();}}
-                  onChange={markDirty}/>
+                <VetrinaProfilo dati={dati} aggiorna={aggiorna} onChange={markDirty}/>
 
                 <div style={{
                   display:'flex', alignItems:'center', gap: 8, marginTop: 14,
@@ -266,8 +261,8 @@ function ConfigCompletaApp() {
                 </div>
 
                 {/* Tab fuse: foto e stile, poi social e FAQ, in un'unica pagina */}
-                <VetrinaAspetto onChange={markDirty}/>
-                <VetrinaPubblico social={social} setSocial={s => {setSocial(s); markDirty();}} onChange={markDirty}/>
+                <VetrinaAspetto dati={dati} aggiorna={aggiorna} onChange={markDirty}/>
+                <VetrinaPubblico dati={dati} aggiorna={aggiorna} onChange={markDirty}/>
 
                 <div style={{
                   display:'flex', alignItems:'center', gap: 8, marginTop: 14,
@@ -396,7 +391,7 @@ function ConfigCompletaApp() {
                 tutto suo — riempie la larghezza e l'altezza chiude nei 900px
                 del canvas. */}
             <div style={{width: '100%', margin: '0 auto', flexShrink: 0}}>
-              <VetrinaMiniPreview tags={tags} social={social} categoria={categoria} cta={false}
+              <VetrinaMiniPreview tags={dati.tags} social={dati.social} categoria={pnGustoLabel(dati.categoria)} cta={false}
                 focusSection={step === 'informazioni' ? 'info' : 'gallery'}/>
             </div>
 

@@ -418,3 +418,98 @@ const PN_PARTNER = {
   deliveroo: { sigla:'D',  nome:'Deliveroo', bg:'#00CCBC', ink:'#0A1929' },
 };
 window.PN_PARTNER = PN_PARTNER;
+
+// ─── Gusti: categorie di locale e tag cibo (P-29 · D-28) ───────────────────
+// Dizionario di piattaforma (taste_tags del modello): governato da Hubble,
+// qui mockato — la copia del bundle gestionale, come PN_ALLERGENI. Lo stesso
+// vocabolario era scritto in tre modi in tre superfici; il dizionario è uno,
+// e il gestionale lo LEGGE, non lo scrive. Le voci viaggiano come codici
+// stabili: l'etichetta cambia lingua, il codice no.
+//   kind venue_category — «che cosa il locale è»: UNA per locale. La lista
+//     che fa fede è questa (D-28). Porta icona e descrizione perché a schermo
+//     è una tessera con hover, non una riga.
+//   kind food_tag — «che cosa vi si mangia»: più d'uno per locale; il limite
+//     di quattro è regola di prodotto del gestionale (VETRINA_MAX_TAG_CIBO in
+//     impostazioni-vetrina.jsx), non del dizionario.
+//   selectable_by_consumer — se il consumatore può spuntarla come gusto sul
+//     proprio profilo (P-28 la consumerà). Falso sulle categorie: il gusto è
+//     cosa si mangia, non cosa il locale è. Falso sulle tre voci che sulla
+//     persona sono un REGIME (vegano, vegetariano, senza glutine): il
+//     ristoratore le sceglie per il locale, il consumatore non le spunta mai
+//     come gusto — sono is_dietary_regime, dato art. 9 GDPR se dichiarato su
+//     di sé (gli id coincidono con REGIMI dell'app-kit, la corrispondenza è
+//     già scritta).
+// Tensioni segnalate e NON risolte qui, ciascuna nella sua sessione: il
+// foglio filtri della discovery nell'app offre Vegetariano/Vegano/Per celiaci
+// come filtri sui locali (gestionale/CLAUDE.md riga 50), e un filtro usato
+// sempre rivela quanto un gusto dichiarato; Hubble scrive un vocabolario suo
+// (Trattoria, Osteria, Pub in admin-data.jsx e nei coefficienti di Valore e
+// Mercato) che non combacia con queste otto; la pagina Piattaforma di Hubble
+// non ha ancora un posto dove i dizionari si vedano (una pillola «Dizionari»
+// accanto a Piani, Pesi e Discovery), e in ogni caso è un altro bundle: ci
+// andrà una copia verbatim, come qui per gli allergeni.
+const PN_GUSTI = [
+  { id:'ristorante',    kind:'venue_category', label:'Ristorante',     icon:'forkKnife', desc:'Cucina completa con servizio al tavolo, pranzo e cena',   selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'pizzeria',      kind:'venue_category', label:'Pizzeria',       icon:'pizza',     desc:'La pizza al centro del menù, al tavolo o d\'asporto',      selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'giapponese',    kind:'venue_category', label:'Giapponese',     icon:'fish',      desc:'Sushi, ramen e cucina nipponica',                          selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'carne_griglia', kind:'venue_category', label:'Carne e Griglia',icon:'steak',     desc:'Braceria: tagli, grigliate e affumicati',                  selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'cucina_etnica', kind:'venue_category', label:'Cucina etnica',  icon:'globe',     desc:'Sapori dal mondo: indiano, messicano, mediorientale',      selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'bar',           kind:'venue_category', label:'Bar',            icon:'coffee',    desc:'Caffetteria, colazioni e aperitivi veloci',                selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'bistrot',       kind:'venue_category', label:'Bistrot',        icon:'cheers',    desc:'Informale e curato: piatti semplici e buoni vini',         selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'enoteca',       kind:'venue_category', label:'Enoteca',        icon:'wine',      desc:'Vini al calice con taglieri e degustazioni',               selectable_by_consumer:false, is_dietary_regime:false },
+
+  { id:'pizza',         kind:'food_tag', label:'Pizza',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'sushi',         kind:'food_tag', label:'Sushi',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'pasta',         kind:'food_tag', label:'Pasta',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'hamburger',     kind:'food_tag', label:'Hamburger',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'carne',         kind:'food_tag', label:'Carne',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'pesce',         kind:'food_tag', label:'Pesce',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'poke',          kind:'food_tag', label:'Poke',          selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'ramen',         kind:'food_tag', label:'Ramen',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'vegano',        kind:'food_tag', label:'Vegano',        selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'vegetariano',   kind:'food_tag', label:'Vegetariano',   selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'senza_glutine', kind:'food_tag', label:'Senza glutine', selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'dolci',         kind:'food_tag', label:'Dolci',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'gelato',        kind:'food_tag', label:'Gelato',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'brunch',        kind:'food_tag', label:'Brunch',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'aperitivo',     kind:'food_tag', label:'Aperitivo',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'cinese',        kind:'food_tag', label:'Cinese',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'indiano',       kind:'food_tag', label:'Indiano',       selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'messicano',     kind:'food_tag', label:'Messicano',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'kebab',         kind:'food_tag', label:'Kebab',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'frittura',      kind:'food_tag', label:'Frittura',      selectable_by_consumer:true,  is_dietary_regime:false },
+];
+window.PN_GUSTI = PN_GUSTI;
+window.PN_GUSTI_MAP = PN_GUSTI.reduce((m, g) => { m[g.id] = g; return m; }, {});
+window.PN_CATEGORIE_LOCALE = PN_GUSTI.filter(g => g.kind === 'venue_category');
+window.PN_TAG_CIBO = PN_GUSTI.filter(g => g.kind === 'food_tag');
+// L'etichetta da un codice, per chi mostra e non sceglie (anteprima, vetrina).
+window.pnGustoLabel = (id) => (window.PN_GUSTI_MAP[id] || {}).label || '';
+
+// ─── Servizi del locale: dotazioni e modalità di servizio (P-67 · L1-30) ───
+// Dizionario di piattaforma (venue_amenities del modello): governato da
+// Hubble, qui mockato. Due kind, e la distinzione non è cosmetica: un filtro
+// sulla MODALITÀ non deve mai pescare una DOTAZIONE.
+//   kind amenity      — cosa il locale ha (wifi, dehors, parcheggio…).
+//   kind service_mode — come il locale serve (al tavolo, al banco).
+// Semantica della dichiarazione: il locale tiene l'insieme dei codici
+// DICHIARATI. Un codice assente vale «non dichiarato», mai «assente» — la
+// vetrina non promette che il locale non abbia una dotazione. Per questo a
+// schermo non esiste un terzo stato: spento è silenzio, non un no.
+// Le voci di prima senza codice sono cadute (Parcheggio custodito, che
+// doppiava Parcheggio, e Compleanni, che è un evento e non una dotazione);
+// «Rampa per disabili» è diventata la promessa che descrive, accessibile in
+// carrozzina, perché la rampa è un mezzo. L'icona è la chiave in VIcon
+// (impostazioni-vetrina.jsx).
+const PN_SERVIZI = [
+  { id:'wifi_gratuito',             kind:'amenity',      label:'WiFi gratuito',             icon:'wifi'       },
+  { id:'dehors',                    kind:'amenity',      label:'Dehors',                    icon:'dehors'     },
+  { id:'parcheggio',                kind:'amenity',      label:'Parcheggio',                icon:'car'        },
+  { id:'accessibile_in_carrozzina', kind:'amenity',      label:'Accessibile in carrozzina', icon:'wheelchair' },
+  { id:'animali_ammessi',           kind:'amenity',      label:'Animali ammessi',           icon:'paw'        },
+  { id:'menu_non_vedenti',          kind:'amenity',      label:'Menù per non vedenti',      icon:'braille'    },
+  { id:'servizio_al_tavolo',        kind:'service_mode', label:'Servizio al tavolo',        icon:'bell'       },
+  { id:'al_banco',                  kind:'service_mode', label:'Al banco',                  icon:'banco'      },
+];
+window.PN_SERVIZI = PN_SERVIZI;
+window.PN_SERVIZI_MAP = PN_SERVIZI.reduce((m, v) => { m[v.id] = v; return m; }, {});
