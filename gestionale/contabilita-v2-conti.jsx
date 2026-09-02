@@ -1211,9 +1211,15 @@ function ApriCassaModal({ open, onClose, onConfirm }) {
 }
 
 // Popup conferma chiusura cassa — riepilogo e conferma quadratura
-function ChiudiCassaModal({ open, fondoCassa, onClose, onConfirm }) {
+// ─── Conteggio del fondo (P-20 · D-22) ─────────────────────────────────────
+// Il gesto di UNA PERSONA, separato dalla chiusura di giornata: si registra
+// anche dopo — il locale che chiude alle 2 non conta il cassetto a mezzanotte
+// perché lo vuole il fisco — e lo scostamento nasce ADESSO, al conteggio,
+// con ora e autore. L'IVA non c'entra col cassetto: sta nella chiusura di
+// giornata (ChiudiGiornataModal).
+function ContaFondoModal({ open, fondoCassa, onClose, onConfirm }) {
   const [show, setShow] = React.useState(false);
-  const [finale, setFinale] = React.useState(''); // saldo cassa finale inserito dall'operatore
+  const [finale, setFinale] = React.useState(''); // saldo cassa contato dall'operatore
   const [step, setStep] = React.useState('form'); // 'form' | 'warn'
 
   React.useEffect(() => {
@@ -1228,29 +1234,32 @@ function ChiudiCassaModal({ open, fondoCassa, onClose, onConfirm }) {
 
   if (!open) return null;
 
-  // Incasso
-  const incassoLordo = CASH_MOVEMENTS.reduce((s, m) => s + m.amount, 0);
   // Contanti = incassi dalla cassa fisica (gli incassi via app sono carta, non entrano nel cassetto).
   const incassoContanti = CASH_MOVEMENTS.filter(m => m.channel === 'cassa').reduce((s, m) => s + m.amount, 0);
-  // IVA registrata, scorporata dal lordo per aliquota (ripartizione 10%/22%).
-  const lordo10 = incassoLordo * 0.7, lordo22 = incassoLordo * 0.3;
-  const iva10 = lordo10 - lordo10 / 1.10;
-  const iva22 = lordo22 - lordo22 / 1.22;
-  const ivaTotale = iva10 + iva22;
 
   // Saldo cassa (cassetto contanti)
   const saldoIniziale = fondoCassa || 0;
   const atteso = saldoIniziale + incassoContanti; // quanto dovrebbe esserci nel cassetto
   const finaleNum = parseFloat(String(finale).replace(',', '.')) || 0;
-  // Differenza = atteso − finale dichiarato (di quanto il finale si discosta dall'atteso).
+  // Differenza = atteso − contato (di quanto il contato si discosta dall'atteso).
   const differenza = atteso - finaleNum;
   const diffZero = Math.abs(differenza) < 0.01;
   const canConfirm = String(finale).trim() !== '';
 
+  // Ora e autore si registrano COL GESTO: sono il fatto, non un contorno.
+  const registra = () => {
+    const d = new Date();
+    onConfirm({
+      contato: finaleNum, atteso: Math.round(atteso * 100) / 100,
+      differenza: Math.round(differenza * 100) / 100,
+      ora: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+      autore: 'Mario Rossi',
+    });
+  };
   const handleConfirmClick = () => {
     if (!canConfirm) return;
     if (!diffZero) { setStep('warn'); return; }
-    onConfirm();
+    registra();
   };
 
   const rowStyle = (first) => ({
@@ -1289,8 +1298,8 @@ function ChiudiCassaModal({ open, fondoCassa, onClose, onConfirm }) {
               display:'grid', placeItems:'center', flexShrink:0,
             }}>{Ic.cash ? <Ic.cash size={20}/> : '€'}</span>
             <div style={{flex:1}}>
-              <div style={{fontSize: C.T_MD, fontWeight: 800, color: PN.TEXT}}>Chiudi cassa</div>
-              <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 1}}>Conferma la quadratura di fine turno</div>
+              <div style={{fontSize: C.T_MD, fontWeight: 800, color: PN.TEXT}}>Conta il fondo</div>
+              <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 1}}>Il gesto di chi ha il cassetto in mano — anche dopo la chiusura</div>
             </div>
           </div>
         </div>
@@ -1347,35 +1356,13 @@ function ChiudiCassaModal({ open, fondoCassa, onClose, onConfirm }) {
                 )}
               </div>
 
-              {/* INCASSO TOTALE */}
-              <div>
-                <div style={{fontSize: C.T_XS, fontWeight:700, color: PN.MUTED, textTransform:'uppercase', letterSpacing:0.5, marginBottom:8}}>Incasso totale</div>
-                <div style={{border:`1px solid ${PN.BORDER}`, borderRadius:10, overflow:'hidden'}}>
-                  <div style={rowStyle(true)}>
-                    <span style={{color: PN.MUTED}}>Importo lordo incassato</span>
-                    <span style={{fontWeight:700, fontVariantNumeric:'tabular-nums'}}>€ {incassoLordo.toFixed(2)}</span>
-                  </div>
-                  <div style={rowStyle(false)}>
-                    <span style={{color: PN.MUTED}}>IVA registrata · 10%</span>
-                    <span style={{fontWeight:700, fontVariantNumeric:'tabular-nums'}}>€ {iva10.toFixed(2)}</span>
-                  </div>
-                  <div style={rowStyle(false)}>
-                    <span style={{color: PN.MUTED}}>IVA registrata · 22%</span>
-                    <span style={{fontWeight:700, fontVariantNumeric:'tabular-nums'}}>€ {iva22.toFixed(2)}</span>
-                  </div>
-                  <div style={{...rowStyle(false), background:'#F8F9FB', borderTop:`1px solid ${PN.BORDER}`}}>
-                    <span style={{fontWeight:700, color: PN.TEXT}}>IVA totale registrata</span>
-                    <span style={{fontWeight:800, fontVariantNumeric:'tabular-nums'}}>€ {ivaTotale.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Footer */}
             <div style={{padding:'16px 22px 18px', display:'flex', gap:10}}>
               <button onClick={onClose} style={btnSecondary}>Annulla</button>
               <button onClick={handleConfirmClick} style={canConfirm ? btnPrimary : btnDisabled}>
-                Conferma chiusura
+                Registra conteggio
               </button>
             </div>
           </>
@@ -1394,10 +1381,115 @@ function ChiudiCassaModal({ open, fondoCassa, onClose, onConfirm }) {
             </div>
             <div style={{padding:'16px 22px 18px', display:'flex', gap:10}}>
               <button onClick={() => setStep('form')} style={btnSecondary}>Torna indietro</button>
-              <button onClick={onConfirm} style={btnWarn}>Chiudi comunque</button>
+              <button onClick={registra} style={btnWarn}>Registra comunque</button>
             </div>
           </>
         )}
+      </div>
+    </React.Fragment>
+  );
+}
+
+// ─── Chiusura di giornata (P-20 · D-22) ────────────────────────────────────
+// La chiusura CONTABILE, senza contante: può avvenire da sola all'ora del
+// cambio giornata (P-19, byup_rollover_time) o in anticipo da qui. L'IVA nel
+// riepilogo è il riparto 70/30 del mock — dichiaratamente finto, come docIva
+// e le chiusure — e sta QUI perché è materia della giornata, non del
+// cassetto: il fondo si conta a parte, anche dopo.
+function ChiudiGiornataModal({ open, onClose, onConfirm }) {
+  const [show, setShow] = React.useState(false);
+  React.useEffect(() => {
+    if (open) {
+      const r = requestAnimationFrame(() => setShow(true));
+      return () => cancelAnimationFrame(r);
+    }
+    setShow(false);
+  }, [open]);
+
+  if (!open) return null;
+
+  const incassoLordo = CASH_MOVEMENTS.reduce((s, m) => s + m.amount, 0);
+  // IVA registrata, scorporata dal lordo per aliquota (riparto 70/30, mock).
+  const lordo10 = incassoLordo * 0.7, lordo22 = incassoLordo * 0.3;
+  const iva10 = lordo10 - lordo10 / 1.10;
+  const iva22 = lordo22 - lordo22 / 1.22;
+  const ivaTotale = iva10 + iva22;
+
+  const rowStyle = (first) => ({
+    display:'flex', justifyContent:'space-between', alignItems:'center',
+    padding:'10px 14px', fontSize: C.T_SM, color: PN.TEXT,
+    borderTop: first ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
+  });
+  const btnSecondary = { flex:1, padding:'11px 16px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius:9, fontSize: C.T_SM, fontWeight:600, cursor:'pointer', fontFamily:'inherit' };
+  const btnPrimary = { flex:2, padding:'11px 16px', background: PN.TEXT, color:'#fff', border:'none', borderRadius:9, fontSize: C.T_SM, fontWeight:700, cursor:'pointer', fontFamily:'inherit' };
+
+  return (
+    <React.Fragment>
+      <div
+        onClick={onClose}
+        style={{
+          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:60,
+          opacity: show ? 1 : 0, transition:'opacity .18s ease',
+        }}/>
+      <div style={{
+        position:'fixed', top:'50%', left:'50%',
+        width:420, maxWidth:'92vw',
+        background:'#fff', borderRadius:16,
+        boxShadow:'0 24px 70px rgba(0,0,0,0.28)',
+        zIndex:61, overflow:'hidden', fontFamily:'inherit',
+        animation: show ? 'cassaPopIn .22s cubic-bezier(.16,1,.3,1) both' : 'none',
+        transform:'translate(-50%, -50%)',
+      }}>
+        <div style={{padding:'18px 22px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`}}>
+          <div style={{display:'flex', alignItems:'center', gap:12}}>
+            <span style={{
+              width:38, height:38, borderRadius:10,
+              background:'#FEF2F2', color:'#DC2626',
+              display:'grid', placeItems:'center', flexShrink:0,
+            }}>{Ic.cash ? <Ic.cash size={20}/> : '€'}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize: C.T_MD, fontWeight: 800, color: PN.TEXT}}>Chiudi giornata</div>
+              <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 1}}>La chiusura contabile della giornata di servizio</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{padding:'16px 22px 4px', display:'flex', flexDirection:'column', gap:16}}>
+          <div>
+            <div style={{fontSize: C.T_XS, fontWeight:700, color: PN.MUTED, textTransform:'uppercase', letterSpacing:0.5, marginBottom:8}}>Incasso totale</div>
+            <div style={{border:`1px solid ${PN.BORDER}`, borderRadius:10, overflow:'hidden'}}>
+              <div style={rowStyle(true)}>
+                <span style={{color: PN.MUTED}}>Importo lordo incassato</span>
+                <span style={{fontWeight:700, fontVariantNumeric:'tabular-nums'}}>€ {incassoLordo.toFixed(2)}</span>
+              </div>
+              <div style={rowStyle(false)}>
+                <span style={{color: PN.MUTED}}>IVA registrata · 10%</span>
+                <span style={{fontWeight:700, fontVariantNumeric:'tabular-nums'}}>€ {iva10.toFixed(2)}</span>
+              </div>
+              <div style={rowStyle(false)}>
+                <span style={{color: PN.MUTED}}>IVA registrata · 22%</span>
+                <span style={{fontWeight:700, fontVariantNumeric:'tabular-nums'}}>€ {iva22.toFixed(2)}</span>
+              </div>
+              <div style={{...rowStyle(false), background:'#F8F9FB', borderTop:`1px solid ${PN.BORDER}`}}>
+                <span style={{fontWeight:700, color: PN.TEXT}}>IVA totale registrata</span>
+                <span style={{fontWeight:800, fontVariantNumeric:'tabular-nums'}}>€ {ivaTotale.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            padding:'10px 14px', background:'#FFFBEB', border:'1px solid #FCD34D',
+            borderRadius:10, fontSize: C.T_XS, color:'#92400E', lineHeight: 1.5,
+          }}>
+            Il fondo non si conta qui: è un gesto a parte, registrabile anche
+            dopo — lo scostamento nascerà al conteggio, non adesso.
+          </div>
+        </div>
+
+        <div style={{padding:'16px 22px 18px', display:'flex', gap:10}}>
+          <button onClick={onClose} style={btnSecondary}>Annulla</button>
+          <button onClick={onConfirm} style={btnPrimary}>Chiudi giornata</button>
+        </div>
       </div>
     </React.Fragment>
   );
@@ -1412,10 +1504,6 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
   const [modalPagamento, setModalPagamento] = React.useState(null);
   const [saldati, setSaldati] = React.useState(new Set());
 
-  // Stato fiscale dello scontrino, per id pagamento: UN'AZIONE SOLA per
-  // documento — annullato oppure reso, e da lì non si tocca più. Copre tutto
-  // quello che succede davvero al banco; il reso di un reso è una
-  // complicazione che nessuno ha chiesto e che costerebbe metà di questo file.
   // Le rettifiche vivono nel registro persistente (rettDi, in testa al file):
   // con D-20 ogni documento conosce le proprie righe, quindi il vecchio
   // vincolo «reso solo a pagamento unico» non esiste più (P-16). Il tick

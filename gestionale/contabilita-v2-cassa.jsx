@@ -213,6 +213,11 @@ function ccDocumenti() {
 // MOCK in attesa del rifacimento fiscale: come docIva, i totali di chiusura
 // IGNORANO le rettifiche (annulli e resi di Conti, P-16/17/18) — una finzione
 // dichiarata, finché il rifacimento non li deriva dalle righe rettificate.
+// E la tabella fonde ancora DUE assi (P-19/P-20): la trasmissione è per
+// giornata FISCALE (solare), la quadratura contanti è per giornata di
+// SERVIZIO (rollover di sede, byup_rollover_time) — con un rollover diverso
+// da mezzanotte una delle due colonne mente. Si ripara col rifacimento
+// fiscale, non qui.
 function ccChiusure() {
   const perGiorno = {};
   ccDocumenti().forEach(({ p }) => {
@@ -496,26 +501,41 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   const pickerRef = React.useRef(null);
   useFiscTick();
 
-  // Stato apertura/chiusura cassa
+  // ── Chiusura di giornata e conteggio del fondo: DUE gesti (P-20 · D-22) ──
+  // La chiusura CONTABILE può avvenire da sola all'ora del cambio giornata
+  // (P-19, byup_rollover_time — la sede mock ha le 04:00: smette alle 2);
+  // il conteggio del contante resta il gesto di una persona, registrabile
+  // anche dopo, con lo scostamento calcolato AL CONTEGGIO, con ora e autore.
+  // Lo stato demo di partenza racconta proprio quel locale: giornata chiusa
+  // da sola alle 04:00, fondo di ieri ancora da contare.
+  const rollover = (() => {
+    try { return localStorage.getItem('byup_rollover_time') || '04:00'; }
+    catch (e) { return '04:00'; }
+  })();
   const [apriModal, setApriModal] = React.useState(false);
-  const [chiudiModal, setChiudiModal] = React.useState(false);
-  const [fondoCassa, setFondoCassa] = React.useState(null);
+  const [chiudiModal, setChiudiModal] = React.useState(false);  // chiusura di giornata
+  const [contaModal, setContaModal] = React.useState(false);    // conteggio del fondo
+  const [fondoCassa, setFondoCassa] = React.useState(150);      // il fondo con cui la giornata era partita
   const [aperturaOra, setAperturaOra] = React.useState(null);
+  const [chiusura, setChiusura] = React.useState({ ora: rollover, auto: true }); // {ora, auto} | null
+  const [conteggio, setConteggio] = React.useState(null); // {contato, atteso, differenza, ora, autore} | null
 
-  function handleCassaClick() {
-    if (cassaOpen) { setChiudiModal(true); } else { setApriModal(true); }
-  }
   function confermaApertura(amount) {
     setFondoCassa(amount);
     setAperturaOra(new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}));
+    setChiusura(null);
+    setConteggio(null);
     setCassaOpen && setCassaOpen(true);
     setApriModal(false);
   }
-  function confermaChiusura() {
+  function confermaChiusuraGiornata() {
+    setChiusura({ ora: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}), auto: false });
     setCassaOpen && setCassaOpen(false);
-    setFondoCassa(null);
-    setAperturaOra(null);
     setChiudiModal(false);
+  }
+  function confermaConteggio(c) {
+    setConteggio(c);
+    setContaModal(false);
   }
 
   React.useEffect(() => {
@@ -586,39 +606,91 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
         </div>
       )}
 
-      {/* Banner stato cassa */}
-      <div style={{
-        display:'flex', alignItems:'center', gap: 14,
-        padding: '14px 18px',
-        background: cassaOpen ? '#ECFDF5' : '#FEF2F2',
-        border: `1px solid ${cassaOpen ? '#A7F3D0' : '#FECACA'}`,
-        borderRadius: C.R_MD,
-      }}>
-        <span style={{
-          width:10, height:10, borderRadius:'50%',
-          background: cassaOpen ? PN.GREEN : PN.RED,
-          boxShadow: `0 0 0 4px ${cassaOpen ? '#A7F3D055' : '#FECACA55'}`,
-        }}/>
-        <div style={{flex:1}}>
-          <div style={{fontSize: C.T_SM, fontWeight: 700, color: cassaOpen ? '#065F46' : '#991B1B'}}>
-            {cassaOpen ? 'Cassa aperta' : 'Cassa chiusa'}
+      {/* Banner stato cassa — tre fasi: aperta · giornata chiusa col fondo
+          ancora da contare (il caso nuovo di P-20) · quadrata. */}
+      {(() => {
+        const daContare = !cassaOpen && chiusura && !conteggio;
+        const bg = cassaOpen ? '#ECFDF5' : daContare ? '#FFFBEB' : '#FEF2F2';
+        const bordo = cassaOpen ? '#A7F3D0' : daContare ? '#FCD34D' : '#FECACA';
+        const fgTitolo = cassaOpen ? '#065F46' : daContare ? '#92400E' : '#991B1B';
+        const fgSotto = cassaOpen ? '#047857' : daContare ? '#B45309' : '#B91C1C';
+        const pallino = cassaOpen ? PN.GREEN : daContare ? PN.AMBER : PN.RED;
+        const diffZero = conteggio && Math.abs(conteggio.differenza) < 0.01;
+        return (
+          <div style={{
+            display:'flex', alignItems:'center', gap: 14,
+            padding: '14px 18px',
+            background: bg, border: `1px solid ${bordo}`,
+            borderRadius: C.R_MD, flexWrap:'wrap',
+          }}>
+            <span style={{
+              width:10, height:10, borderRadius:'50%',
+              background: pallino,
+              boxShadow: `0 0 0 4px ${bordo}55`,
+            }}/>
+            <div style={{flex:1, minWidth: 220}}>
+              <div style={{fontSize: C.T_SM, fontWeight: 700, color: fgTitolo}}>
+                {cassaOpen ? 'Cassa aperta'
+                  : daContare ? `Giornata chiusa alle ${chiusura.ora}${chiusura.auto ? ' (cambio giornata)' : ''} · fondo da contare`
+                  : 'Giornata chiusa'}
+              </div>
+              <div style={{fontSize: C.T_XS, color: fgSotto, marginTop: 2}}>
+                {cassaOpen
+                  ? `Aperta alle ${aperturaOra || '09:30'} · Da: Marco${fondoCassa != null ? ` · Fondo €${fondoCassa.toFixed(2)}` : ''}`
+                  : daContare
+                    ? (chiusura.auto
+                        ? 'La chiusura contabile è avvenuta da sola; il contante si conta quando ci sei.'
+                        : 'La chiusura contabile è fatta; il contante si conta quando ci sei.')
+                    : conteggio
+                      ? (diffZero
+                          ? `Quadratura senza scostamenti · fondo contato alle ${conteggio.ora} da ${conteggio.autore}`
+                          : `Scostamento ${conteggio.differenza > 0 ? '−' : '+'}€${Math.abs(conteggio.differenza).toFixed(2)} · contato alle ${conteggio.ora} da ${conteggio.autore}`)
+                      : 'Quadratura completata correttamente'}
+              </div>
+            </div>
+            {cassaOpen ? (
+              <button
+                onClick={() => setChiudiModal(true)}
+                className="cassa-btn"
+                style={{
+                  padding:'9px 18px', borderRadius: C.R_PILL,
+                  background: PN.TEXT, color:'#fff', border:'none', flexShrink: 0,
+                  fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                }}>Chiudi giornata</button>
+            ) : daContare ? (
+              <span style={{display:'inline-flex', gap: 8, flexShrink: 0}}>
+                <button
+                  onClick={() => setApriModal(true)}
+                  className="cassa-btn"
+                  style={{
+                    padding:'9px 18px', borderRadius: C.R_PILL,
+                    background:'transparent', color:'#92400E', border:'1px solid #FCD34D',
+                    fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  }}>Apri cassa</button>
+                <button
+                  onClick={() => setContaModal(true)}
+                  className="cassa-btn"
+                  style={{
+                    padding:'9px 18px', borderRadius: C.R_PILL,
+                    background: PN.AMBER, color:'#fff', border:'none',
+                    fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                    animation: 'cassaPulse 2s ease-out infinite',
+                  }}>Conta il fondo</button>
+              </span>
+            ) : (
+              <button
+                onClick={() => setApriModal(true)}
+                className="cassa-btn"
+                style={{
+                  padding:'9px 18px', borderRadius: C.R_PILL,
+                  background: '#059669', color:'#fff', border:'none', flexShrink: 0,
+                  fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                  animation: 'cassaPulse 2s ease-out infinite',
+                }}>Apri cassa</button>
+            )}
           </div>
-          <div style={{fontSize: C.T_XS, color: cassaOpen ? '#047857' : '#B91C1C', marginTop: 2}}>
-            {cassaOpen
-              ? `Aperta alle ${aperturaOra || '09:30'} · Da: Marco${fondoCassa != null ? ` · Fondo €${fondoCassa.toFixed(2)}` : ''}`
-              : 'Quadratura completata correttamente'}
-          </div>
-        </div>
-        <button
-          onClick={handleCassaClick}
-          className="cassa-btn"
-          style={{
-            padding:'9px 18px', borderRadius: C.R_PILL,
-            background: cassaOpen ? PN.TEXT : '#059669', color:'#fff', border:'none',
-            fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            animation: cassaOpen ? 'none' : 'cassaPulse 2s ease-out infinite',
-          }}>{cassaOpen ? 'Chiudi cassa' : 'Apri cassa'}</button>
-      </div>
+        );
+      })()}
 
       {/* Popup apertura cassa */}
       <ApriCassaModal
@@ -627,12 +699,20 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
         onConfirm={confermaApertura}
       />
 
-      {/* Popup conferma chiusura cassa */}
-      <ChiudiCassaModal
+      {/* Chiusura di giornata: la parte contabile, IVA compresa (finta e
+          dichiarata) — il fondo NON si conta qui. */}
+      <ChiudiGiornataModal
         open={chiudiModal}
-        fondoCassa={fondoCassa}
         onClose={() => setChiudiModal(false)}
-        onConfirm={confermaChiusura}
+        onConfirm={confermaChiusuraGiornata}
+      />
+
+      {/* Conteggio del fondo: il gesto della persona, anche dopo. */}
+      <ContaFondoModal
+        open={contaModal}
+        fondoCassa={fondoCassa}
+        onClose={() => setContaModal(false)}
+        onConfirm={confermaConteggio}
       />
 
       {/* Card chiusure */}

@@ -7094,6 +7094,44 @@ function ServizioAsporto({ on, onToggle }) {
   );
 }
 
+// La card dell'ora in cui la giornata riparte (P-19). Sta in Servizio perché
+// è una regola operativa della sede, non un dato fiscale: la distinzione
+// giornata di servizio / giornata fiscale è proprio il punto di D-22.
+function GiornataServizioCard() {
+  const [rollover, setRollover] = React.useState(() => {
+    try { return localStorage.getItem('byup_rollover_time') || '04:00'; }
+    catch (e) { return '04:00'; }
+  });
+  const salva = (v) => {
+    // Campo azzerato = si torna al predefinito di prodotto: mezzanotte.
+    const val = v || '00:00';
+    setRollover(val);
+    try { localStorage.setItem('byup_rollover_time', val); } catch (e) {}
+  };
+  return (
+    <ImpCard title="Giornata di servizio" sub="L'ora in cui il contatore di giornata riparte">
+      <div style={{display:'flex', gap: 18, alignItems:'flex-start', flexWrap:'wrap'}}>
+        <div style={{flexShrink: 0}}>
+          <ImpField label="Cambio giornata">
+            <ImpInput type="time" value={rollover} onChange={e => salva(e.target.value)} style={{width: 150}}/>
+          </ImpField>
+        </div>
+        <div style={{flex:'1 1 320px', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.55, paddingTop: 2}}>
+          Non è l'ora in cui il locale chiude: è l'ora in cui il contatore di
+          giornata riparte e la cassa può chiudersi da sola. Il ristorante che
+          smette alle quattro la mette alle quattro; il locale aperto
+          ventiquattr'ore la mette dove gli conviene. Da quest'ora dipendono
+          l'incassato di giornata, i rimborsi ammessi dai dispositivi e la
+          chiusura automatica di cassa.{' '}
+          <b style={{color: PN.TEXT, fontWeight: 600}}>La giornata fiscale segue la
+          data solare e non si sposta.</b>{' '}
+          Azzera il campo per tornare al predefinito (mezzanotte).
+        </div>
+      </div>
+    </ImpCard>
+  );
+}
+
 function MCConfigura() {
 
   const [cucina, setCucina] = React.useState('diretto');
@@ -7169,6 +7207,15 @@ function MCConfigura() {
           </ImpButton>
         </div>
       )}
+
+      {/* === GIORNATA DI SERVIZIO (P-19 · D-22, AP-03) ===
+          venue_settings.business_day_rollover_time: l'ora in cui il contatore
+          di giornata riparte. Predefinito di prodotto 00:00; la sede mock ha
+          le 04:00 (smette alle 2 di notte). Persistita in localStorage perché
+          la Cassa la legge davvero (chiusura automatica, P-20). NON è la
+          giornata fiscale, che segue la data solare: la finestra di divieto
+          di P-100 non si sposta con questa. */}
+      <GiornataServizioCard/>
 
       {/* === SEZIONE 1: SALA === */}
       {/* Card senza header: a modulo attivo si parte diretti dal flusso ordini.
