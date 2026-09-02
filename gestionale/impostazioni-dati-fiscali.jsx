@@ -491,10 +491,19 @@ const pivaFormale = (v) => /^IT\d{11}$/.test((v || '').replace(/\s/g, '').toUppe
 // foglio non si chiude col gesto: offre lì la verifica dell'identità e la
 // tappa dei dati, così chi ha iniziato qui non viene rimandato altrove. Le
 // deleghe restano nell'onboarding, come per tutti i casi con catena.
-function ImpSoggettoFoglio({ cambio, forma, ragione, piva, onClose, onApplica }) {
-  const [nuovaForma, setNuovaForma] = React.useState(forma);
-  const [denominazione, setDenominazione] = React.useState('');
-  const [nuovaPiva, setNuovaPiva] = React.useState('');
+function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica }) {
+  // Tutti i campi della card, prefilled: il foglio è l'unico editore dei dati
+  // anagrafici. La catena fiscale non si sceglie e non si chiede: nasce se
+  // cambiano P.IVA o forma giuridica — cioè il contribuente — e allora il
+  // foglio pone l'unica domanda, «resta la stessa persona?». Se cambiano
+  // solo insegna, regime, ATECO o i dati della persona, è un salvataggio.
+  const [f, setF] = React.useState(() => ({
+    legalForm: data.legalForm, ragione: data.ragione, piva: data.piva, cf: data.cf,
+    ownerNome: data.ownerNome, ownerCognome: data.ownerCognome, ownerNascita: data.ownerNascita,
+    ownerComuneNascita: data.ownerComuneNascita, ownerStatoNascita: data.ownerStatoNascita, ownerCf: data.ownerCf,
+    insegna: data.insegna, regime: data.regime, ateco: data.ateco,
+  }));
+  const setC = (k) => (e) => setF(x => ({ ...x, [k]: e.target.value }));
   const [stessa, setStessa] = React.useState(null);   // true | false | null
   const [entNome, setEntNome] = React.useState('Giulia Bianchi');
   const [entEmail, setEntEmail] = React.useState('giulia.bianchi@example.it');
@@ -506,27 +515,33 @@ function ImpSoggettoFoglio({ cambio, forma, ragione, piva, onClose, onApplica })
     return () => window.removeEventListener('byup-holder-change', ri);
   }, []);
 
-  const personaForma = nuovaForma === 'ditta_individuale' || nuovaForma === 'professionista';
-  const pivaOk = pivaFormale(nuovaPiva);
-  const pronto = denominazione.trim() && pivaOk && stessa !== null && (stessa || entEmail.includes('@'));
+  const persona = f.legalForm === 'ditta_individuale' || f.legalForm === 'professionista';
+  const ente = f.legalForm === 'ente';
+  const pivaPulita = (f.piva || '').replace(/\s/g, '').toUpperCase();
+  const pivaOk = pivaFormale(pivaPulita);
+  const cambiaSoggetto = pivaPulita !== data.piva || f.legalForm !== data.legalForm;
+  const denominazione = persona ? `${f.ownerNome} ${f.ownerCognome}`.trim() : (f.ragione || '').trim();
+  const pronto = pivaOk && denominazione && (!cambiaSoggetto || (stessa !== null && (stessa || entEmail.includes('@'))));
 
   const avvia = () => {
     if (!pronto) return;
+    const campi = { ...f, piva: pivaPulita };
+    if (!cambiaSoggetto) { onSalva(campi); onClose(); return; }
     const now = new Date().toISOString();
     byupWriteHolderChange({
       id: 'hc-' + Date.now(), change_type: stessa ? 'legal_entity' : 'both', fiscal_chain_impacted: true,
-      legal_form: nuovaForma,
+      legal_form: f.legalForm,
       status: 'proposed', proposed_by: 'Mario Rossi', created_at: now,
       steps: { proposed: now },
       entrante: stessa ? null : { nome: entNome.trim() || 'Giulia Bianchi', email: entEmail.trim() },
       soggetto: {
-        prima: { denominazione: ragione, piva },
-        dopo: { denominazione: denominazione.trim(), piva: nuovaPiva.replace(/\s/g, '').toUpperCase(), forma: nuovaForma },
+        prima: { denominazione: data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione, piva: data.piva },
+        dopo: { denominazione, piva: pivaPulita, forma: f.legalForm, campi },
       },
     });
   };
 
-  const c = cambio || (window.byupReadHolderChange ? byupReadHolderChange() : null);
+  const c = window.byupReadHolderChange ? byupReadHolderChange() : null;
   const inCorso = c && c.soggetto && c.status !== 'refused';
   const tappe = inCorso ? pnHolderTappe(c.change_type, c.legal_form) : [];
   const prossima = inCorso ? tappe.find(t => !c.steps[t]) : null;
@@ -542,16 +557,23 @@ function ImpSoggettoFoglio({ cambio, forma, ragione, piva, onClose, onApplica })
       <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2, lineHeight: 1.4}}>{sotto}</div>
     </button>
   );
+  const campo = (label, k, extra = {}) => (
+    <div>
+      <div style={MODAL_LABEL}>{label}</div>
+      <input value={f[k] || ''} onChange={setC(k)} {...extra} style={{...MODAL_INPUT, ...(extra.style || {})}}/>
+    </div>
+  );
+  const due = { display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10 };
 
   return (
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 640, maxHeight:'92vh', display:'flex', flexDirection:'column'}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680, maxHeight:'92vh', display:'flex', flexDirection:'column'}}>
         <div style={MODAL_HEAD}>
           <div style={MODAL_TITLE}>Cambia soggetto fiscale</div>
           <div style={MODAL_SUB}>
             {inCorso
               ? `Da ${c.soggetto.prima.denominazione} (${c.soggetto.prima.piva}) a ${c.soggetto.dopo.denominazione} (${c.soggetto.dopo.piva})`
-              : `Oggi il locale è di ${ragione} · P.IVA ${piva}. La P.IVA di oggi non si cancella: resta come precedente sui documenti già emessi.`}
+              : 'La forma giuridica decide quali dati esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.'}
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
@@ -559,39 +581,59 @@ function ImpSoggettoFoglio({ cambio, forma, ragione, piva, onClose, onApplica })
         {!inCorso ? (
           <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
             <div>
-              <div style={MODAL_LABEL}>Forma giuridica del nuovo soggetto</div>
-              <select value={nuovaForma} onChange={e => setNuovaForma(e.target.value)} style={{...MODAL_INPUT}}>
-                {FORME_GIURIDICHE.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+              <div style={MODAL_LABEL}>Forma giuridica</div>
+              <select value={f.legalForm} onChange={setC('legalForm')} style={{...MODAL_INPUT}}>
+                {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
               </select>
             </div>
-            <div>
-              <div style={MODAL_LABEL}>{personaForma ? 'Nome e cognome del titolare' : nuovaForma === 'ente' ? 'Denominazione' : 'Ragione sociale'}</div>
-              <input value={denominazione} onChange={e => setDenominazione(e.target.value)} placeholder={personaForma ? 'Es. Mario Rossi' : 'Es. Cacio e Pepe S.p.A.'} style={MODAL_INPUT}/>
-            </div>
+            {persona ? (
+              <React.Fragment>
+                <div style={due}>{campo('Nome del titolare', 'ownerNome')}{campo('Cognome del titolare', 'ownerCognome')}</div>
+                <div style={due}>{campo('Data di nascita', 'ownerNascita', { type: 'date' })}{campo('Comune di nascita', 'ownerComuneNascita')}</div>
+                <div style={due}>
+                  <div>
+                    <div style={MODAL_LABEL}>Stato di nascita</div>
+                    <select value={f.ownerStatoNascita} onChange={setC('ownerStatoNascita')} style={{...MODAL_INPUT}}>
+                      {STATI_NASCITA.map(([cod, nome]) => <option key={cod} value={cod}>{nome} ({cod})</option>)}
+                    </select>
+                  </div>
+                  {campo('Codice fiscale del titolare', 'ownerCf', { style: { fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5 } })}
+                </div>
+              </React.Fragment>
+            ) : (
+              <div style={due}>{campo(ente ? 'Denominazione' : 'Ragione sociale', 'ragione')}{campo('Codice fiscale', 'cf')}</div>
+            )}
             <div>
               <div style={MODAL_LABEL}>Partita IVA</div>
-              <input value={nuovaPiva} onChange={e => setNuovaPiva(e.target.value)} placeholder="IT seguito da 11 cifre" style={{...MODAL_INPUT, fontFamily:'ui-monospace, Menlo, monospace'}}/>
-              <div style={{fontSize: 12.5, color: nuovaPiva && !pivaOk ? PN.AMBER : PN.MUTED, marginTop: 4}}>
-                {nuovaPiva ? (pivaOk ? 'Formato valido' : 'Formato non valido: IT e undici cifre') : 'Solo controllo del formato: nessuna verifica presso l\'Agenzia'}
+              <input value={f.piva || ''} onChange={setC('piva')} placeholder="IT seguito da 11 cifre" style={{...MODAL_INPUT, fontFamily:'ui-monospace, Menlo, monospace'}}/>
+              <div style={{fontSize: 12.5, color: f.piva && !pivaOk ? PN.AMBER : PN.MUTED, marginTop: 4}}>
+                {f.piva ? (pivaOk ? 'Formato valido · solo controllo del formato, nessuna verifica presso l\'Agenzia' : 'Formato non valido: IT e undici cifre') : 'IT e undici cifre'}
+                {data.pivaPrecedente ? ` · precedente ${data.pivaPrecedente}, conservata` : ''}
               </div>
             </div>
+            <div style={due}>{campo('Insegna', 'insegna')}{campo('Codice ATECO', 'ateco')}</div>
             <div>
-              <div style={MODAL_LABEL}>Resta la stessa persona?</div>
-              <div style={{display:'flex', gap: 8}}>
-                {tile(stessa === true, 'Sì, resto io', 'Cambia solo il soggetto: la delega va riconferita per il nuovo contribuente.', () => setStessa(true))}
-                {tile(stessa === false, 'No, cambia anche la persona', 'È una cessione: chi entra accetta con la sua casella e riconferisce la delega.', () => setStessa(false))}
-              </div>
+              <div style={MODAL_LABEL}>Regime fiscale</div>
+              <select value={f.regime} onChange={setC('regime')} style={{...MODAL_INPUT}}>
+                <option>Ordinario</option><option>Forfettario</option><option>Semplificato</option>
+              </select>
             </div>
-            {stessa === false && (
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10}}>
-                <div>
-                  <div style={MODAL_LABEL}>Chi entra</div>
-                  <input value={entNome} onChange={e => setEntNome(e.target.value)} style={MODAL_INPUT}/>
+            {cambiaSoggetto && (
+              <div style={{paddingTop: 6, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+                <div style={{fontSize: 14, color: PN.TEXT, lineHeight: 1.5, marginBottom: 8}}>
+                  <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): serve la verifica dell'identità e la delega va riconferita.
                 </div>
-                <div>
-                  <div style={MODAL_LABEL}>La sua casella di posta</div>
-                  <input type="email" value={entEmail} onChange={e => setEntEmail(e.target.value)} style={MODAL_INPUT}/>
+                <div style={MODAL_LABEL}>Resta la stessa persona?</div>
+                <div style={{display:'flex', gap: 8}}>
+                  {tile(stessa === true, 'Sì, resto io', 'Cambia solo il soggetto: la delega va riconferita per il nuovo contribuente.', () => setStessa(true))}
+                  {tile(stessa === false, 'No, cambia anche la persona', 'È una cessione: chi entra accetta con la sua casella e riconferisce la delega.', () => setStessa(false))}
                 </div>
+                {stessa === false && (
+                  <div style={{...due, marginTop: 10}}>
+                    <div><div style={MODAL_LABEL}>Chi entra</div><input value={entNome} onChange={e => setEntNome(e.target.value)} style={MODAL_INPUT}/></div>
+                    <div><div style={MODAL_LABEL}>La sua casella di posta</div><input type="email" value={entEmail} onChange={e => setEntEmail(e.target.value)} style={MODAL_INPUT}/></div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -626,7 +668,7 @@ function ImpSoggettoFoglio({ cambio, forma, ragione, piva, onClose, onApplica })
           <span style={{flex: 1}}/>
           {!inCorso && (
             <button onClick={avvia} disabled={!pronto} style={{padding:'10px 18px', borderRadius: 999, border:'1px solid rgba(0,0,0,0.32)', background: pronto ? PN.BTN_DARK : '#EFEFF1', color: pronto ? PN.WHITE : '#9CA3AF', fontSize: 14, fontWeight: 700, cursor: pronto ? 'pointer' : 'not-allowed', fontFamily:'inherit'}}>
-              Avvia il cambiamento
+              {cambiaSoggetto ? 'Avvia il cambiamento' : 'Salva'}
             </button>
           )}
         </div>
@@ -650,6 +692,9 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica }) {
   const conSoggetto = !!cambio.soggetto;
   const tappe = pnHolderTappe(cambio.change_type, cambio.legal_form);
   const serveDati = tappe.includes('fiscal_updated');
+  // Cambio di persona in una società o un ente: qui non c'è niente da fare,
+  // quindi niente banner — la tappa saltata si legge in Account.
+  if (!conSoggetto && !serveDati) return null;
   const fatta = !!cambio.steps.fiscal_updated;
   const pronta = !!cambio.steps.verified && !fatta;
   const segna = () => { onApplica(cambio); byupHolderAvanza('fiscal_updated'); };
@@ -657,7 +702,7 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica }) {
     <ImpCard title="Cambio di titolarità in corso" sub={conSoggetto
       ? `Da ${cambio.soggetto.prima.denominazione} (${cambio.soggetto.prima.piva}) a ${cambio.soggetto.dopo.denominazione} (${cambio.soggetto.dopo.piva})`
       : `Cambia il legale rappresentante: da Mario Rossi a ${cambio.entrante.nome}. Il soggetto fiscale resta.`}
-      style={{marginBottom: 18, borderColor: fatta || !serveDati ? PN.GREEN_SOFT : '#FCD34D'}}>
+      style={{marginBottom: 18, borderColor: fatta ? PN.GREEN_SOFT : '#FCD34D'}}>
       {conSoggetto ? (
         <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
           <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
@@ -667,12 +712,6 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica }) {
           </div>
           <ImpButton variant={fatta ? 'ghost' : 'primary'} onClick={onApriFoglio}>{fatta ? 'Rivedi il foglio' : 'Continua nel foglio'}</ImpButton>
         </div>
-      ) : !serveDati ? (
-        <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-          I dati di questa schermata non cambiano: per una società o un ente il legale rappresentante non è un dato fiscale del locale, e la tappa è saltata.
-          Il passaggio si compie con le deleghe, che {cambio.entrante.nome} riconferisce con il proprio SPID.
-          {' '}<a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Segui il cambiamento in Account</a>.
-        </div>
       ) : fatta ? (
         <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
           <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b>
@@ -681,7 +720,7 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica }) {
       ) : pronta ? (
         <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
           <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-            Aggiorna i dati del titolare qui sotto: nome, cognome e codice fiscale di {cambio.entrante.nome}. Nel prototipo il pulsante li compila con il mock e segna la tappa.
+            I dati del titolare qui sotto diventano quelli di {cambio.entrante.nome}: nome, cognome e codice fiscale. Nel prototipo il pulsante li compila con il mock e segna la tappa.
           </div>
           <ImpButton variant="primary" onClick={segna}>Segna i dati fiscali come aggiornati</ImpButton>
         </div>
@@ -737,10 +776,7 @@ function ImpDatiFiscali() {
   const applica = (c) => {
     if (c.soggetto) {
       const dopo = c.soggetto.dopo;
-      const persona = dopo.forma === 'ditta_individuale' || dopo.forma === 'professionista';
-      const [nome, ...resto] = (dopo.denominazione || '').split(' ');
-      setData(d => ({ ...d, legalForm: dopo.forma || d.legalForm, pivaPrecedente: d.piva, piva: dopo.piva,
-        ...(persona ? { ownerNome: nome || d.ownerNome, ownerCognome: resto.join(' ') || d.ownerCognome } : { ragione: dopo.denominazione }) }));
+      setData(d => ({ ...d, ...(dopo.campi || {}), legalForm: dopo.forma || d.legalForm, pivaPrecedente: d.piva, piva: dopo.piva }));
     } else if (c.entrante) {
       const [nome, ...resto] = (c.entrante.nome || '').split(' ');
       setData(d => ({ ...d, ownerNome: nome || d.ownerNome, ownerCognome: resto.join(' ') || d.ownerCognome, ownerCf: '' }));
@@ -820,8 +856,8 @@ function ImpDatiFiscali() {
           qui e torna in Account come fatta. */}
       <ImpCambioTitolaritaBanner onApriFoglio={() => setSoggettoOpen(true)} onApplica={applica}/>
       {soggettoOpen && (
-        <ImpSoggettoFoglio forma={data.legalForm} ragione={societa || ente ? data.ragione : `${data.ownerNome} ${data.ownerCognome}`} piva={data.piva}
-          onClose={() => setSoggettoOpen(false)} onApplica={applica}/>
+        <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica}
+          onSalva={(campi) => setData(d => ({ ...d, ...campi }))}/>
       )}
 
       {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
@@ -844,93 +880,43 @@ function ImpDatiFiscali() {
               per la mezza larghezza: un campo pieno per riga, le coppie solo
               dove i valori sono corti. height 100% pareggia le altezze. */}
           <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1fr)', gap: 16, alignItems:'stretch', marginBottom: 16}}>
-            <ImpCard title="Dati anagrafici" sub="La forma giuridica decide quali dati fiscali esistono" style={{marginBottom: 0, height: '100%'}}>
-              {/* La forma è la PRIMA domanda: tutto il resto della schermata
-                  discende da qui. Prima si chiedeva a chiunque ragione
-                  sociale, REA e capitale, e la ditta individuale — la forma
-                  più diffusa del settore — riempiva campi che non ha. */}
-              <ImpField label="Forma giuridica" hint={
-                persona ? 'Contano i dati della persona: niente ragione sociale né registro imprese'
-                : ente ? 'Denominazione e sede; REA e CCIAA solo se l\'ente li ha'
-                : 'Denominazione e dati di registro imprese'
-              }>
-                <select value={data.legalForm} onChange={e => set('legalForm', e.target.value)} style={selectStyle}>
-                  {FORME_GIURIDICHE.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
-                </select>
-              </ImpField>
+            {/* Dati anagrafici: tutti in sola lettura. Si modificano insieme,
+                dal foglio in fondo — che mostra tutti i campi, adattati alla
+                forma giuridica — e non uno per uno, perché un campo alla volta
+                lasciava cambiare la P.IVA come se fosse un'insegna. Il foglio
+                distingue da solo: se cambiano P.IVA o forma è un cambio di
+                soggetto fiscale (P-62 · D-52), altrimenti un salvataggio. */}
+            <ImpCard title="Dati anagrafici" sub="La forma giuridica decide quali dati fiscali esistono; si modificano tutti insieme, dal foglio" style={{marginBottom: 0, height: '100%', display:'flex', flexDirection:'column'}}>
+              <ImpCampoBloccato label="Forma giuridica" value={(FORME_GIURIDICHE.find(f => f.id === data.legalForm) || {}).label}/>
               {persona ? (
                 <React.Fragment>
                   <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-                    <ImpField label="Nome del titolare">
-                      <ImpInput value={data.ownerNome} onChange={e => set('ownerNome', e.target.value)}/>
-                    </ImpField>
-                    <ImpField label="Cognome del titolare">
-                      <ImpInput value={data.ownerCognome} onChange={e => set('ownerCognome', e.target.value)}/>
-                    </ImpField>
+                    <ImpCampoBloccato label="Nome del titolare" value={data.ownerNome}/>
+                    <ImpCampoBloccato label="Cognome del titolare" value={data.ownerCognome}/>
                   </div>
-                  {/* Il luogo di nascita sono DUE campi — comune e Stato — come
-                      nel modello. La data è raccolta su obbligo legale: si usa
-                      qui e basta, nessun'altra schermata la legge. Righe da
-                      due: la card è a mezza larghezza, in tre si strozzano. */}
-                  {/* minmax(0,1fr): l'input date ha una larghezza intrinseca
-                      che con `1fr` puro si prende la colonna e strozza il
-                      comune accanto. */}
-                  <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap: 14, marginTop: 4}}>
-                    <ImpField label="Data di nascita" hint="Richiesta per legge: usata solo qui">
-                      <ImpInput type="date" value={data.ownerNascita} onChange={e => set('ownerNascita', e.target.value)}/>
-                    </ImpField>
-                    <ImpField label="Comune di nascita">
-                      <ImpInput value={data.ownerComuneNascita} onChange={e => set('ownerComuneNascita', e.target.value)}/>
-                    </ImpField>
+                  <div style={{display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap: 14}}>
+                    <ImpCampoBloccato label="Data di nascita" value={data.ownerNascita ? new Date(`${data.ownerNascita}T00:00`).toLocaleDateString('it-IT') : ''} hint="Richiesta per legge: usata solo qui"/>
+                    <ImpCampoBloccato label="Comune di nascita" value={data.ownerComuneNascita}/>
                   </div>
-                  {/* Il CF della persona NON è la P.IVA: è esattamente il dato
-                      che prima nasceva sbagliato. Qui il campo aziendale
-                      sparisce: per la persona fisica sono la stessa cosa. */}
-                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginTop: 4}}>
-                    <ImpField label="Stato di nascita">
-                      <select value={data.ownerStatoNascita} onChange={e => set('ownerStatoNascita', e.target.value)} style={selectStyle}>
-                        {STATI_NASCITA.map(([cod, nome]) => <option key={cod} value={cod}>{nome} ({cod})</option>)}
-                      </select>
-                    </ImpField>
-                    <ImpField label="Codice fiscale del titolare" hint="16 caratteri, diverso dalla P.IVA">
-                      <ImpInput value={data.ownerCf} onChange={e => set('ownerCf', e.target.value.toUpperCase())} style={{fontFamily:'ui-monospace, monospace', letterSpacing: 0.5}}/>
-                    </ImpField>
-                  </div>
-                  <div style={{marginTop: 4}}>
-                    <ImpCampoBloccato label="Partita IVA" value={data.piva} hint={data.pivaPrecedente ? `Precedente ${data.pivaPrecedente}, conservata sui documenti già emessi` : 'È il soggetto fiscale: non si modifica, si cambia'}/>
-                    <ImpButton variant="ghost" onClick={() => setSoggettoOpen(true)} style={{marginTop: -6}}>Cambia soggetto fiscale</ImpButton>
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+                    <ImpCampoBloccato label="Stato di nascita" value={((STATI_NASCITA.find(([cod]) => cod === data.ownerStatoNascita) || [])[1]) || data.ownerStatoNascita}/>
+                    <ImpCampoBloccato label="Codice fiscale del titolare" value={data.ownerCf} hint="16 caratteri, diverso dalla P.IVA"/>
                   </div>
                 </React.Fragment>
               ) : (
                 <React.Fragment>
-                  {/* Ragione sociale e P.IVA sono il soggetto fiscale: non si
-                      scrivono, si cambiano col foglio (P-62 · D-52). */}
                   <ImpCampoBloccato label={ente ? 'Denominazione' : 'Ragione sociale'} value={data.ragione} hint={ente ? 'Come risulta da statuto' : 'Come risulta a registro imprese'}/>
-                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-                    <div>
-                      <ImpCampoBloccato label="Partita IVA" value={data.piva} hint={data.pivaPrecedente ? `Precedente ${data.pivaPrecedente}, conservata sui documenti già emessi` : 'È il soggetto fiscale: non si modifica, si cambia'}/>
-                      <ImpButton variant="ghost" onClick={() => setSoggettoOpen(true)} style={{marginTop: -6}}>Cambia soggetto fiscale</ImpButton>
-                    </div>
-                    <ImpField label="Codice fiscale">
-                      <ImpInput value={data.cf} onChange={e => set('cf', e.target.value)}/>
-                    </ImpField>
-                  </div>
+                  <ImpCampoBloccato label="Codice fiscale" value={data.cf}/>
                 </React.Fragment>
               )}
-              <ImpField label="Insegna" hint="Stampata in cima allo scontrino" style={{marginTop: 4}}>
-                <ImpInput value={data.insegna} onChange={e => set('insegna', e.target.value)}/>
-              </ImpField>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14, marginTop: 4}}>
-                <ImpField label="Regime fiscale">
-                  <select value={data.regime} onChange={e => set('regime', e.target.value)} style={selectStyle}>
-                    <option>Ordinario</option>
-                    <option>Forfettario</option>
-                    <option>Semplificato</option>
-                  </select>
-                </ImpField>
-                <ImpField label="Codice ATECO">
-                  <ImpInput value={data.ateco} onChange={e => set('ateco', e.target.value)}/>
-                </ImpField>
+              <ImpCampoBloccato label="Partita IVA" value={data.piva} hint={data.pivaPrecedente ? `Precedente ${data.pivaPrecedente}, conservata sui documenti già emessi` : undefined}/>
+              <ImpCampoBloccato label="Insegna" value={data.insegna} hint="Stampata in cima allo scontrino"/>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+                <ImpCampoBloccato label="Regime fiscale" value={data.regime}/>
+                <ImpCampoBloccato label="Codice ATECO" value={data.ateco}/>
+              </div>
+              <div style={{marginTop:'auto', paddingTop: 4}}>
+                <ImpButton variant="primary" onClick={() => setSoggettoOpen(true)} style={{width:'100%', justifyContent:'center'}}>Cambia soggetto fiscale</ImpButton>
               </div>
             </ImpCard>
 
