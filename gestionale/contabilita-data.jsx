@@ -88,7 +88,11 @@ const IVA_MONTHLY = [
   { m:'Dic', deb: 10800, cred: 8240 },
 ];
 
+// Le tre aliquote del dizionario PN_IVA_PROFILI (P-11): il 4% è il paniere
+// di base — pane e panetteria ordinaria, pasta, latte fresco, olio — e pesa
+// poco su un locale che somministra, ma esiste.
 const IVA_RATES = [
+  { rate:'4%',  deb: 312,  cred: 240 },
   { rate:'10%', deb: 5840, cred: 4360 },
   { rate:'22%', deb: 1966, cred: 1500 },
 ];
