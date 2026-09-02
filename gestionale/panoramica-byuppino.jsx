@@ -7,12 +7,21 @@
 // menù, sala e tavoli, impostazioni di Servizio) sono già più di otto.
 //
 // LA REGOLA DELLA CARD. L'assistente non risponde a parole quello che ha fatto:
-// lo mette in una scheda con dentro i dati che contano e due modi di chiuderla,
-// «Fatto» e «Annulla». Una frase in chat («ok, ho spostato Bianchi alle 21:30»)
-// bisogna crederla; una scheda con tavolo e orario scritti si verifica in un
-// colpo d'occhio. È la stessa promessa della doppia conferma che l'assistente
-// fa nel pannello grande (byup-ai-fab.jsx): niente succede senza che tu lo
-// veda, e finché la finestra è aperta si torna indietro.
+// lo mette in una scheda con dentro i dati che contano. Una frase in chat
+// («ok, ho spostato Bianchi alle 21:30») bisogna crederla; una scheda con
+// tavolo e orario scritti si verifica in un colpo d'occhio.
+//
+// DUE REGIMI, UNA SCHEDA (P-39 · D-32). Cambia il pulsante, non la scheda:
+//   immediato — ciò che resta dentro il gestionale (sala e tavoli, impostazioni
+//     di Servizio): l'assistente lo fa subito, la scheda nasce già «Fatto» e
+//     si può annullare finché la finestra è aperta.
+//   conferma  — ciò che esce: le prenotazioni, perché fanno partire una
+//     notifica al cliente, e le modifiche al menù pubblicato, perché
+//     l'annullamento non richiama ciò che è già uscito. La scheda aspetta
+//     «Conferma», e dice perché aspetta.
+// La partizione è di D-32 e non si reinterpreta qui. Il bollino delle altre
+// pagine (byup-ai-fab.jsx) non ha una chat sua: rimanda a questo widget, e
+// questa è l'unica regola che vale.
 
 const BYU_BRAND = '#FC585D';
 const BYU_VERDE = '#0F9D58';
@@ -120,10 +129,13 @@ const BYU_ESEMPI = [
   'Es. attiva l\'asporto',
 ];
 
+// `regime` per area (P-39 · D-32): immediato = si fa subito e si annulla;
+// conferma = si chiede prima, e `motivo` dice perché in una riga della scheda.
 const BYU_AREE = [
   {
     prova: /preno|sposta|tavolo per|coperti|prenota/,
     icona: 'time-calendar',
+    regime: 'conferma', motivo: 'Avvisa il cliente',
     componi: (t) => {
       const nome = (t.match(/(?:di|per)\s+([A-ZÀ-Ú][\wÀ-ÿ']+)/) || [])[1];
       const ora  = (t.match(/\b(\d{1,2}[:.]\d{2})\b/) || [])[1];
@@ -135,35 +147,42 @@ const BYU_AREE = [
           tav ? 'Tavolo ' + tav : (cop ? cop + ' coperti' : null),
           ora ? ora.replace('.', ':') : null,
         ].filter(Boolean),
-        risposta: 'Fatto. Ho aggiornato la prenotazione: controlla e conferma.',
+        risposta: 'Ho preparato lo spostamento. Vuoi che parta? Il cliente riceve una notifica.',
       };
     },
   },
   {
+    // Tutto il menù in conferma: la voce distingue il menù GIÀ PUBBLICATO, ma
+    // il widget non sa se un menù è pubblicato o in bozza, e nei mock lo sono
+    // tutti. Approssimazione dichiarata: meglio chiedere una volta di troppo
+    // che far uscire una modifica che non si richiama.
     prova: /men[uù]|piatto|carbonara|aggiungi|togli|prezzo/,
     icona: 'food-meal',
+    regime: 'conferma', motivo: 'Menù già pubblicato',
     componi: (t) => ({
-      titolo: 'Menù aggiornato',
+      titolo: 'Modifica al menù',
       dettagli: [t.length > 46 ? t.slice(0, 46) + '…' : t],
-      risposta: 'Ho preparato la modifica al menù: controlla e conferma.',
+      risposta: 'Ho preparato la modifica al menù. Vuoi che parta? Il menù è già pubblicato.',
     }),
   },
   {
     prova: /tavol|unisci|sala|sposta il tavolo/,
     icona: 'place-table',
+    regime: 'immediato',
     componi: (t) => ({
       titolo: 'Sala aggiornata',
       dettagli: [t.length > 46 ? t.slice(0, 46) + '…' : t],
-      risposta: 'Fatto in sala: controlla e conferma.',
+      risposta: 'Fatto in sala. Puoi annullare.',
     }),
   },
   {
     prova: /asporto|delivery|orari|impostazion|servizio|attiva|disattiva/,
     icona: 'gear',
+    regime: 'immediato',
     componi: (t) => ({
       titolo: 'Impostazioni di Servizio',
       dettagli: [t.length > 46 ? t.slice(0, 46) + '…' : t],
-      risposta: 'Ho cambiato l\'impostazione: controlla e conferma.',
+      risposta: 'Fatto: ho cambiato l\'impostazione. Puoi annullare.',
     }),
   },
 ];
@@ -172,14 +191,15 @@ function byuInterpreta(testo) {
   const s = testo.toLowerCase();
   const area = BYU_AREE.find(a => a.prova.test(s));
   if (!area) {
+    // Ciò che non si sa classificare non esce da solo: in conferma.
     return {
-      icona: 'sparkles',
+      icona: 'sparkles', regime: 'conferma', motivo: 'Te lo chiedo prima',
       titolo: 'Richiesta registrata',
       dettagli: [testo.length > 46 ? testo.slice(0, 46) + '…' : testo],
-      risposta: 'Ci penso io: controlla e conferma quando vuoi.',
+      risposta: 'Ho capito cosa vuoi. Vuoi che lo faccia?',
     };
   }
-  return Object.assign({ icona: area.icona }, area.componi(testo));
+  return Object.assign({ icona: area.icona, regime: area.regime, motivo: area.motivo || null }, area.componi(testo));
 }
 
 // ─── Pezzi ─────────────────────────────────────────────────────────────────
@@ -231,15 +251,20 @@ function ByuScrive() {
   );
 }
 
-// La scheda dell'azione. Tre stati e tre vesti:
-//   corso     — l'anello corre sul bordo, i due tasti non ci sono ancora
-//   pronta    — fondo pastello che respira, «Fatto» e «Annulla»
-//   fatta     — spunta verde, nessun tasto: non c'è più niente da decidere
+// La scheda dell'azione. Quattro stati, e il regime decide da quale si esce
+// dall'anello:
+//   corso     — l'anello corre sul bordo, nessun tasto
+//   pronta    — solo in regime conferma: «Annulla» e «Conferma», col motivo
+//               scritto nella riga dei dettagli («Avvisa il cliente»)
+//   fatta     — spunta verde. In regime immediato ci si arriva da soli e
+//               resta «Annulla»; dopo una conferma non c'è più nulla da
+//               premere, perché ciò che è uscito non si richiama
 //   annullata — sbiadita sul posto con la pastiglia «Annullato»
 function ByuAzione({ a, onFatto, onAnnulla }) {
   const corso = a.stato === 'corso';
   const annullata = a.stato === 'annullata';
   const fatta = a.stato === 'fatta';
+  const immediato = a.regime === 'immediato';
 
   const dentro = (
     <div style={{
@@ -272,6 +297,9 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {corso ? 'Sto eseguendo…' : a.dettagli.join(' · ')}
+            {a.stato === 'pronta' && a.motivo && (
+              <span style={{color: BYU_BRAND}}> · {a.motivo}</span>
+            )}
           </div>
         </div>
       </div>
@@ -296,8 +324,22 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
               strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <polyline points="4 12.5 9.5 18 20 6"/>
             </svg>
-            Confermata
+            {immediato ? 'Fatto' : 'Confermata'}
           </span>
+        )}
+        {fatta && immediato && (
+          /* Regime immediato: è già fatto, e l'unico gesto che resta è tornare
+             indietro. Stessa pillola dell'«Annulla» del regime conferma. */
+          <button type="button" onClick={onAnnulla} title="Annulla l'azione"
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.10)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.06)'; }}
+            style={{
+              padding: '10px 18px', borderRadius: 999, border: 'none',
+              background: 'rgba(15,17,21,0.06)', color: PN.TEXT,
+              fontSize: 15, fontWeight: 700,
+              fontFamily: 'inherit', cursor: 'pointer',
+              transition: 'background 140ms ease',
+            }}>Annulla</button>
         )}
         {a.stato === 'pronta' && (
           <React.Fragment>
@@ -374,16 +416,25 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
 function WidgetByuppino() {
   // Il filo non parte vuoto. Un campo di testo e basta non dice che cosa si può
   // chiedere né che forma ha la risposta: lo scambio d'esempio insegna
-  // entrambe le cose senza una riga di istruzioni, e la scheda che ne esce è
-  // già toccabile — «Fatto» e «Annulla» fanno quello che dicono.
+  // entrambe le cose senza una riga di istruzioni, e le due schede seminate
+  // mostrano i due regimi uno accanto all'altro — i tavoli uniti già fatti
+  // con «Annulla», la prenotazione che aspetta «Conferma» perché avvisa il
+  // cliente. Sono toccabili: i pulsanti fanno quello che dicono.
   const [messaggi, setMessaggi] = React.useState(() => ([
     { k: 'm0', tipo: 'bolla', da: 'ai',
       testo: 'Ciao Mario! Posso occuparmi io delle cose noiose?' },
     { k: 'm1', tipo: 'bolla', da: 'io', testo: 'Come siamo messi stasera?' },
     { k: 'm2', tipo: 'bolla', da: 'ai',
       testo: '23 prenotazioni, 6 tavoli occupati. Picco alle 20:45.' },
-    { k: 'm3', tipo: 'bolla', da: 'io', testo: 'Sposta Bianchi alle 21:30' },
-    { k: 'm4', tipo: 'azione', stato: 'pronta',
+    { k: 'm3', tipo: 'bolla', da: 'io', testo: 'Unisci i tavoli 4 e 5' },
+    { k: 'm4', tipo: 'bolla', da: 'ai', testo: 'Fatto in sala. Puoi annullare.' },
+    { k: 'm5', tipo: 'azione', stato: 'fatta', regime: 'immediato',
+      icona: 'place-table', titolo: 'Tavoli 4 e 5 uniti',
+      dettagli: ['Sala', '8 coperti'] },
+    { k: 'm6', tipo: 'bolla', da: 'io', testo: 'Sposta Bianchi alle 21:30' },
+    { k: 'm7', tipo: 'bolla', da: 'ai',
+      testo: 'Ho preparato lo spostamento. Vuoi che parta? Bianchi riceve una notifica.' },
+    { k: 'm8', tipo: 'azione', stato: 'pronta', regime: 'conferma', motivo: 'Avvisa il cliente',
       icona: 'time-calendar', titolo: 'Prenotazione Bianchi',
       dettagli: ['Tavolo 12', '4 coperti', '21:00 → 21:30'] },
   ]));
@@ -450,11 +501,14 @@ function WidgetByuppino() {
       setMessaggi(m => m.concat(
         { k: 'a' + n, tipo: 'bolla', da: 'ai', testo: letta.risposta },
         { k: 'c' + n, tipo: 'azione', stato: 'corso',
+          regime: letta.regime, motivo: letta.motivo,
           icona: letta.icona, titolo: letta.titolo, dettagli: letta.dettagli }
       ));
       // L'anello si ferma da solo: un'azione non può restare «in corso» per
       // sempre, e se resta ferma senza dirlo è peggio che se non fosse partita.
-      fra(1700, () => aggiorna('c' + n, { stato: 'pronta' }));
+      // Dove finisce lo decide il regime: fatta (e annullabile) se resta
+      // dentro il gestionale, pronta (in attesa di conferma) se esce.
+      fra(1700, () => aggiorna('c' + n, { stato: letta.regime === 'immediato' ? 'fatta' : 'pronta' }));
     });
   };
 
@@ -658,7 +712,7 @@ function WidgetByuppino() {
           fontSize: 13, fontWeight: 500, color: PN.MUTED_SOFT,
           marginTop: 7, flexShrink: 0,
         }}>
-          Byuppino esegue le azioni per te — puoi sempre annullarle.
+          Sala e impostazioni le cambia subito, e puoi annullare. Prenotazioni e menù: ti chiede prima.
         </div>
       </div>
     </div>

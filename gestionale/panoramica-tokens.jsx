@@ -566,3 +566,34 @@ const PN_STAFF_NOTICE = {
   bottone: 'Ho letto',
 };
 window.PN_STAFF_NOTICE = PN_STAFF_NOTICE;
+
+// ─── Sistemi di AI e provenienza dei contenuti generati (P-40 · D-32) ──────
+// ai_systems_registry e ai_content_provenance del modello, qui mockati. Il
+// contrassegno da solo dichiara che un testo è sintetico ma non consente di
+// dimostrarlo: la provenienza è un dato, con FK all'aggregato di Hubble, e per
+// questo description_ai_provenance_id è obbligatorio quando la marca è vera.
+// Decorrenza della marcatura leggibile dalla macchina (art. 50 Reg. UE
+// 2024/1689, CRA-10): NON è la costante del 2 dicembre 2026 — quella è la
+// scadenza del transitorio per i sistemi immessi PRIMA del 2 agosto 2026 (art.
+// 111 co. 4) — ma si legge dalla decorrenza dichiarata per il sistema che ha
+// generato il testo, transparency_obligation_from. Byup immette dopo, quindi
+// per noi vale dall'immissione: la data qui sotto è quella.
+const PN_AI_SISTEMI = [
+  { id: 'ais-menu-writer', nome: 'Byup Menu Writer', modello: 'Claude (Anthropic) via API',
+    scopo: 'Descrizioni brevi dei piatti su richiesta del ristoratore',
+    placed_on_market_at: '2026-09-15', transparency_obligation_from: '2026-09-15' },
+];
+window.PN_AI_SISTEMI = PN_AI_SISTEMI;
+window.PN_AI_SISTEMI_MAP = PN_AI_SISTEMI.reduce((m, x) => { m[x.id] = x; return m; }, {});
+// L'aggregato delle provenienze: in produzione vive in Hubble, qui è un
+// registro in memoria che cresce a ogni generazione. Una riga per output.
+window.PN_AI_PROVENIENZE = [
+  { id: 'prov-0001', system_id: 'ais-menu-writer', entity: 'menu_items.description', entity_id: 'a1', generated_at: '2026-09-16T10:12:00Z' },
+  { id: 'prov-0002', system_id: 'ais-menu-writer', entity: 'menu_items.description', entity_id: 'p2', generated_at: '2026-09-18T15:40:00Z' },
+];
+window.pnAiProvenienza = (entity, entityId, systemId = 'ais-menu-writer') => {
+  const rec = { id: 'prov-' + String(window.PN_AI_PROVENIENZE.length + 1).padStart(4, '0'),
+    system_id: systemId, entity, entity_id: entityId, generated_at: new Date().toISOString() };
+  window.PN_AI_PROVENIENZE.push(rec);
+  return rec;
+};

@@ -291,6 +291,8 @@ const DISHES_BY_CAT = {
       variants: [], cal: 290, macros: { carbo: 2, grassi: 18, prot: 30, fibre: 1 } },
     { id: 'a6', name: 'Bruschette al pomodoro', price: 8, kind: 'default', photo: 'https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=400&q=70&auto=format&fit=crop',
       desc: 'Pane casereccio tostato, pomodoro fresco, aglio e olio EVO.',
+      // Marca della descrizione generata (P-40): descAi + id di provenienza, seminati a mano — i due bundle non condividono i dati.
+      descAi: true, descAiProvenanceId: 'prov-0001',
       longDesc: 'Bruschette di pane casereccio tostato a legna, strofinato con aglio, condite con pomodoro fresco di stagione, basilico, olio extravergine di oliva e sale grosso.',
       prep: 6, allergens: ['glutine'], bestSeller: true, tone: 'c',
       ingredients: ['Pane casereccio', 'Pomodoro', 'Aglio', 'Basilico', 'Olio EVO'],
@@ -299,6 +301,7 @@ const DISHES_BY_CAT = {
   'Primi piatti': [
     { id: 'p1', name: 'Cacio e pepe', price: 14, kind: 'pasta', photo: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400&q=70&auto=format&fit=crop',
       desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco.',
+      descAi: true, descAiProvenanceId: 'prov-0002',
       longDesc: 'Tonnarelli freschi fatti in casa, mantecati con pecorino romano DOP stagionato 12 mesi e pepe nero del Sarawak macinato al momento. Una delle 4 paste classiche romane.',
       prep: 14, allergens: ['glutine','lattosio','uova'], bestSeller: true, tone: 'a',
       ingredients: ['Pecorino romano', 'Pepe nero', 'Tonnarelli'],
@@ -2593,6 +2596,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
   const [variants, setVariants] = useState(editLine?.variants || {});
   const [nutriOpen, setNutriOpen] = useState(true);
   const [nutriInfo, setNutriInfo] = useState(false); // popover "i" del badge IA
+  const [descInfo, setDescInfo] = useState(false);   // popover "i" della descrizione generata
   // Default 1: in aggiunta è la quantità di partenza; in modifica è il MINIMO
   // di "a quante porzioni applicare le modifiche" (la riga ha editLine.qty porzioni).
   const [qty, setQty] = useState(1);
@@ -2725,7 +2729,53 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
               flexShrink: 0,
             }}>{dish.price}€</div>
           </div>
-          <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.55, marginTop: 10 }}>
+          {/* Il contrassegno della descrizione generata (P-40 · D-32, art. 50
+              Reg. UE 2024/1689): stessa pillola e stessa «i» dei valori
+              nutrizionali, solo qui nel foglio e non nelle card di lista. Vale
+              per `desc`, che il gestionale scrive col comando assistito e marca
+              con description_is_ai_generated; `longDesc` non ha un'origine nel
+              gestionale e resta NON marcata, dichiaratamente. Il nome del
+              piatto non è mai generato. L'id di provenienza viaggia nel dato e
+              non si mostra. */}
+          {dish.descAi && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, position: 'relative' }}>
+              <div style={{
+                background: PINK, color: '#fff', fontSize: 10, fontWeight: 800,
+                padding: '4px 9px', borderRadius: 999, letterSpacing: 0.5,
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}>✨ IA</div>
+              <span role="button" tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); setDescInfo(v => !v); }}
+                style={{
+                  width: 20, height: 20, borderRadius: 999, flexShrink: 0,
+                  background: SURF, border: `1.5px solid ${PINK}`, color: PINK,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11.5, fontWeight: 800, fontStyle: 'italic', fontFamily: 'Georgia, serif',
+                  cursor: 'pointer', lineHeight: 1,
+                }}>i</span>
+              {descInfo && (
+                <>
+                  <div onClick={(e) => { e.stopPropagation(); setDescInfo(false); }} style={{ position: 'fixed', inset: 0, zIndex: 24 }}/>
+                  <div style={{
+                    position: 'absolute', top: 26, left: 0, zIndex: 25,
+                    width: 260, padding: '10px 12px', borderRadius: 12,
+                    background: BADGE, color: '#fff',
+                    fontSize: 12, fontWeight: 500, lineHeight: 1.5,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                    animation: 'fade 0.15s ease',
+                  }}>
+                    Descrizione scritta con intelligenza artificiale su richiesta del locale, che l'ha rivista. Ingredienti e allergeni li dichiara il locale.
+                    <span style={{
+                      position: 'absolute', top: -4, left: 42,
+                      width: 8, height: 8, background: BADGE,
+                      transform: 'rotate(45deg)',
+                    }}/>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.55, marginTop: dish.descAi ? 6 : 10 }}>
             {expanded ? dish.longDesc : (
               <>
                 {dish.desc.slice(0, 75)}{dish.desc.length > 75 ? '...' : ''}{' '}

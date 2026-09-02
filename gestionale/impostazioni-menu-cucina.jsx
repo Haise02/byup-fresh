@@ -242,11 +242,14 @@ function ImpMenuCucina() {
 // LIBRERIA piatti: SENZA prezzo, SENZA stato. Solo dati "ricetta".
 const DISH_PHOTO = (id) => `https://images.unsplash.com/${id}?w=200&q=70&auto=format&fit=crop`;
 const DISH_LIBRARY = [
-  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', allergens: ['glutine'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') , ingredients: [{name:'Pane casereccio',removable:false,allergens:['glutine']},{name:'Pomodoro',removable:false,allergens:[]},{name:'Basilico',removable:true,allergens:[]},{name:'Aglio',removable:true,allergens:[]},{name:'Olio EVO',removable:false,allergens:[]}]},
+  // descriptionIsAiGenerated / descriptionAiProvenanceId (P-40 · D-32): la
+  // descrizione scritta col comando assistito porta la marca e la provenienza
+  // (PN_AI_PROVENIENZE); il nome non è mai generato e non porta nulla.
+  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0001', descriptionAiGeneratedAt: '2026-09-16T10:12:00Z', allergens: ['glutine'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') , ingredients: [{name:'Pane casereccio',removable:false,allergens:['glutine']},{name:'Pomodoro',removable:false,allergens:[]},{name:'Basilico',removable:true,allergens:[]},{name:'Aglio',removable:true,allergens:[]},{name:'Olio EVO',removable:false,allergens:[]}]},
   { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['latte'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') , ingredients: [{name:'Burrata',removable:false,allergens:['latte']},{name:'Prosciutto crudo',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]}]},
   { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['latte','frutta-guscio'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') , ingredients: [{name:'Salumi misti',removable:false,allergens:[]},{name:'Formaggi locali',removable:false,allergens:['latte']},{name:'Marmellata',removable:true,allergens:[]},{name:'Noci',removable:true,allergens:['frutta-guscio']}]},
   { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pecorino',removable:false,allergens:['latte']},{name:'Uovo',removable:false,allergens:['uova']},{name:'Pepe nero',removable:true,allergens:[]}]},
-  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Pecorino romano DOP',removable:false,allergens:['latte']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0002', descriptionAiGeneratedAt: '2026-09-18T15:40:00Z', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Pecorino romano DOP',removable:false,allergens:['latte']},{name:'Pepe nero',removable:true,allergens:[]}]},
   { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') , ingredients: [{name:'Bucatini',removable:false,allergens:['glutine']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pomodoro San Marzano',removable:false,allergens:[]},{name:'Pecorino',removable:true,allergens:['latte']}]},
   { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['latte'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') , ingredients: [{name:'Controfiletto di scottona',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]},{name:'Scaglie di grana',removable:true,allergens:['latte']},{name:'Olio EVO',removable:false,allergens:[]}]},
   { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['pesce'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') , ingredients: [{name:'Branzino',removable:false,allergens:['pesce']},{name:'Patate',removable:false,allergens:[]},{name:'Rosmarino',removable:true,allergens:[]},{name:'Sale grosso',removable:false,allergens:[]}]},
@@ -2999,6 +3002,9 @@ function MCConfermaModal({ icona, titolo, testo, conferma, pericolo, onAnnulla, 
 // ristoratore che apre di qui vuole vedere dove manca qualcosa, e con una
 // lingua alla volta i buchi non si vedono. L'italiano c'è come originale — è il
 // testo da cui l'AI parte — ma si modifica nel piatto, non qui dentro.
+// Data breve per le pastiglie («16 set 2026»).
+const mcDataBreve = (iso) => iso ? new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
 function TradPastiglia({ tono = 'neutro', children }) {
   const toni = {
     neutro: { bg: '#F1F3F6', fg: PN.MUTED },
@@ -3498,6 +3504,12 @@ function MCDettagliPiatto({
   const [tab, setTab] = React.useState('info');
   const [name, setName] = React.useState(dish.name || '');
   const [desc, setDesc] = React.useState(dish.desc || '');
+  // La marca della descrizione generata (P-40 · D-32): {provId, at} o null.
+  // Regola: un ritocco al testo generato la lascia (il testo nasce dal
+  // sistema), cancellarlo e riscriverlo da capo la fa cadere.
+  const [descAi, setDescAi] = React.useState(dish.descriptionIsAiGenerated
+    ? { provId: dish.descriptionAiProvenanceId, at: dish.descriptionAiGeneratedAt } : null);
+  const scriviDesc = (v) => { setDesc(v); if (!v.trim()) setDescAi(null); };
   const [photos, setPhotos] = React.useState(dish.photos || [true]);
   const [foodCost, setFoodCost] = React.useState(dish.foodCost ? String(dish.foodCost.toFixed(2)).replace('.', ',') : '');
   const [allergens, setAllergens] = React.useState(dish.allergens || []);
@@ -3555,6 +3567,11 @@ function MCDettagliPiatto({
     setAiLoading(true);
     setTimeout(() => {
       setDesc('Pane casereccio tostato, pomodoro fresco, basilico, aglio, olio EVO.');
+      // La marca nasce QUI, nell'istante in cui il sistema scrive: origine
+      // (description_is_ai_generated) e provenienza (una riga nell'aggregato,
+      // description_ai_provenance_id) insieme, mai l'una senza l'altra.
+      const prov = window.pnAiProvenienza('menu_items.description', dish.id);
+      setDescAi({ provId: prov.id, at: prov.generated_at });
       setAiLoading(false);
     }, 1100);
   };
@@ -3573,6 +3590,9 @@ function MCDettagliPiatto({
     if (name.trim() !== (dish.name || '').trim()) segnalaNomiVecchi(dish.id);
     onSaveDish({
       id: dish.id, name: name.trim(), desc: desc.trim(), cat: dish.cat,
+      descriptionIsAiGenerated: !!descAi,
+      descriptionAiProvenanceId: descAi ? descAi.provId : null,
+      descriptionAiGeneratedAt: descAi ? descAi.at : null,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(String(foodCost).replace(',', '.')) : null,
       prodottoFinito, hasAlcohol, hasFrozen, recipeSteps,
@@ -3684,8 +3704,15 @@ function MCDettagliPiatto({
                 <span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{desc.length}/160</span>
               </div>
             }>
-              <textarea value={desc} maxLength={160} rows={3} onChange={e => setDesc(e.target.value)}
+              <textarea value={desc} maxLength={160} rows={3} onChange={e => scriviDesc(e.target.value)}
                 style={{...MC_INPUT, resize: 'none', lineHeight: 1.45}}/>
+              {/* La marca si legge dove si legge il testo: stessa pastiglia delle
+                  traduzioni, con la data della generazione. */}
+              {descAi && (
+                <div style={{marginTop: -8, marginBottom: 10}}>
+                  <TradPastiglia tono="ok">✨ Scritta dall'AI · {mcDataBreve(descAi.at)}</TradPastiglia>
+                </div>
+              )}
             </MCCampo>
 
             <button onClick={scriviConAi} disabled={aiLoading || !name.trim()} style={{
@@ -5522,6 +5549,11 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
   }, [tipOpen]);
   const [recipeSteps, setRecipeSteps] = React.useState(dish?.recipeSteps || ['', '', '']);
   const [aiLoading, setAiLoading] = React.useState(false);
+  // Stessa marca e stessa regola dell'editor (P-40): ritocco resta,
+  // riscrittura da capo cade.
+  const [descAi, setDescAi] = React.useState(dish?.descriptionIsAiGenerated
+    ? { provId: dish.descriptionAiProvenanceId, at: dish.descriptionAiGeneratedAt } : null);
+  const scriviDesc = (v) => { setDesc(v); if (!v.trim()) setDescAi(null); };
   const [ingredients, setIngredients] = React.useState(dish?.ingredients || [
     { name:'Tonnarelli', removable:false, allergens:['glutine'] },
     { name:'Pecorino DOP', removable:false, allergens:['latte'] },
@@ -5564,7 +5596,11 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
     if (!name.trim()) { alert('Scrivi prima il nome del piatto'); return; }
     setAiLoading(true);
     setTimeout(() => {
-      if (!desc) setDesc('Ricetta tradizionale preparata con ingredienti selezionati, cotta al momento.');
+      if (!desc) {
+        setDesc('Ricetta tradizionale preparata con ingredienti selezionati, cotta al momento.');
+        const prov = window.pnAiProvenienza('menu_items.description', dish?.id || 'nuovo');
+        setDescAi({ provId: prov.id, at: prov.generated_at });
+      }
       if (allergens.length === 0) setAllergens(['glutine','latte']);
       setRecipeSteps(['Preparare gli ingredienti.', 'Cuocere secondo la ricetta tradizionale.', 'Impiattare e servire.']);
       setAiLoading(false);
@@ -5577,6 +5613,9 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
       id: dish?.id,
       name: name.trim(),
       desc: desc.trim(),
+      descriptionIsAiGenerated: !!descAi,
+      descriptionAiProvenanceId: descAi ? descAi.provId : null,
+      descriptionAiGeneratedAt: descAi ? descAi.at : null,
       cat,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(foodCost.replace(',','.')) : null,
@@ -5712,7 +5751,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
               <div style={{flex:'1 1 340px', minWidth:0}}>
                 <ImpField label="Descrizione breve">
                   <div style={{position:'relative'}}>
-                    <textarea value={desc} maxLength={160} onChange={e=>setDesc(e.target.value)} rows={4} placeholder="Ingredienti principali, breve descrizione…" style={{
+                    <textarea value={desc} maxLength={160} onChange={e=>scriviDesc(e.target.value)} rows={4} placeholder="Ingredienti principali, breve descrizione…" style={{
                       width:'100%', padding:'10px 12px 26px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', resize:'none', lineHeight:1.5, background:PN.WHITE,
                     }}/>
                     <span style={{position:'absolute', right:12, bottom:10, fontSize:12.5, color:PN.MUTED_SOFT, fontWeight:600, pointerEvents:'none'}}>{desc.length}/160</span>
