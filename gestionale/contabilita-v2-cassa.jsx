@@ -210,6 +210,9 @@ function ccDocumenti() {
 // ─── Chiusure di giornata, DERIVATE dai documenti ──────────────────────────
 // Una chiusura è l'insieme dei documenti emessi in quel giorno: i totali e lo
 // stato di trasmissione sono somme, non numeri scritti da qualche altra parte.
+// MOCK in attesa del rifacimento fiscale: come docIva, i totali di chiusura
+// IGNORANO le rettifiche (annulli e resi di Conti, P-16/17/18) — una finzione
+// dichiarata, finché il rifacimento non li deriva dalle righe rettificate.
 function ccChiusure() {
   const perGiorno = {};
   ccDocumenti().forEach(({ p }) => {

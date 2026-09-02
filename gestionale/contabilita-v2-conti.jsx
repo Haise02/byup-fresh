@@ -14,14 +14,22 @@ const CONTI_MOCK = [
     payments: [] },
   { id:'cnt-20', idOrdine:'#2511-0046', dataOra:'2025-11-16 13:45', tavolo:'Tavolo 12', cliente:'Compleanno Russo (8 ospiti)', riferimento:{nome:'Giulia Russo', tipo:'prenotazione'}, liberatoOre:0.5, totaleConto:312.00, daSaldare:42.00, stato:'non_saldato', note:'Conto diviso', operatore:'Marco',
     ordini: [{id:'o20-1',nome:'Servizio',qty:8,prezzo:2.00},{id:'o20-2',nome:'Antipasto misto',qty:8,prezzo:12.00},{id:'o20-3',nome:'Pasta alla norma',qty:4,prezzo:13.00},{id:'o20-4',nome:'Pasta al ragù',qty:4,prezzo:13.00},{id:'o20-5',nome:'Secondo del giorno',qty:2,prezzo:22.00},{id:'o20-6',nome:'Bottiglia vino rosso',qty:2,prezzo:18.00},{id:'o20-7',nome:'Acqua minerale',qty:8,prezzo:2.00}],
+    // D-20 nei dati: ogni documento è una quota di saldo e conosce le SUE
+    // righe (`righe`, somma esatta all'importo) — il pagamento misto non
+    // esiste. `conto.ordini` resta l'insieme del tavolo.
     payments: [
-      {id:'p20a', method:'byup',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1'},
-      {id:'p20b', method:'byup',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2'},
+      {id:'p20a', method:'byup',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1',
+        righe:[{id:'q20a-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20a-2',nome:'Pasta alla norma',qty:1,prezzo:13.00},{id:'q20a-3',nome:'Bottiglia vino rosso',qty:1,prezzo:18.00},{id:'q20a-4',nome:'Servizio',qty:1,prezzo:2.00}]},
+      {id:'p20b', method:'byup',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2',
+        righe:[{id:'q20b-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20b-2',nome:'Pasta al ragù',qty:1,prezzo:13.00},{id:'q20b-3',nome:'Bottiglia vino rosso',qty:1,prezzo:18.00},{id:'q20b-4',nome:'Servizio',qty:1,prezzo:2.00}]},
       // Conto diviso: uno dei documenti è stato scartato, gli altri no.
       // Lo stato sta QUI, sul pagamento: il conto non ne ha uno suo.
-      {id:'p20c', method:'carta',    amount:90.00, ora:'2025-11-16 14:09', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3', fisc:{ scarto:'aliquota', tentativi: 3 }},
-      {id:'p20d', method:'contanti', amount:50.00, ora:'2025-11-16 14:11', scontrinoNum:'SC-2511-0046-4'},
-      {id:'p20e', method:'carta',    amount:40.00, ora:'2025-11-16 14:13', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0046-5'},
+      {id:'p20c', method:'carta',    amount:90.00, ora:'2025-11-16 14:09', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3', fisc:{ scarto:'aliquota', tentativi: 3 },
+        righe:[{id:'q20c-1',nome:'Secondo del giorno',qty:1,prezzo:22.00},{id:'q20c-2',nome:'Antipasto misto',qty:3,prezzo:12.00},{id:'q20c-3',nome:'Pasta al ragù',qty:2,prezzo:13.00},{id:'q20c-4',nome:'Servizio',qty:2,prezzo:2.00},{id:'q20c-5',nome:'Acqua minerale',qty:1,prezzo:2.00}]},
+      {id:'p20d', method:'contanti', amount:50.00, ora:'2025-11-16 14:11', scontrinoNum:'SC-2511-0046-4',
+        righe:[{id:'q20d-1',nome:'Secondo del giorno',qty:1,prezzo:22.00},{id:'q20d-2',nome:'Pasta alla norma',qty:2,prezzo:13.00},{id:'q20d-3',nome:'Acqua minerale',qty:1,prezzo:2.00}]},
+      {id:'p20e', method:'carta',    amount:40.00, ora:'2025-11-16 14:13', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0046-5',
+        righe:[{id:'q20e-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20e-2',nome:'Pasta alla norma',qty:1,prezzo:13.00},{id:'q20e-3',nome:'Pasta al ragù',qty:1,prezzo:13.00},{id:'q20e-4',nome:'Acqua minerale',qty:1,prezzo:2.00}]},
     ] },
 
   // ─── Saldati ───────────────────────────────────────────────────
@@ -47,43 +55,66 @@ const CONTI_MOCK = [
     payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1', fisc:{ scarto:'dispositivo', tentativi: 2 }}] },
   { id:'cnt-14', idOrdine:'#2511-0034', dataOra:'2025-11-12 20:00', tavolo:'Tavolo 8',  cliente:'Carlo Russo',       liberatoOre:84,    totaleConto:215.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [
-      {id:'p14a', method:'carta', amount:150.00, ora:'2025-11-12 22:30', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0034-1'},
-      {id:'p14b', method:'contanti', amount:65.00, ora:'2025-11-12 22:32', scontrinoNum:'SC-2511-0034-2'},
+      {id:'p14a', method:'carta', amount:150.00, ora:'2025-11-12 22:30', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0034-1',
+        righe:[{id:'q14a-1',nome:'Bistecca fiorentina',qty:1,prezzo:62.00},{id:'q14a-2',nome:'Bottiglia Barolo',qty:1,prezzo:48.00},{id:'q14a-3',nome:'Tagliere misto',qty:1,prezzo:14.00},{id:'q14a-4',nome:'Patate al forno',qty:2,prezzo:5.00},{id:'q14a-5',nome:'Acqua minerale',qty:2,prezzo:3.00},{id:'q14a-6',nome:'Dolce del giorno',qty:2,prezzo:5.00}]},
+      {id:'p14b', method:'contanti', amount:65.00, ora:'2025-11-12 22:32', scontrinoNum:'SC-2511-0034-2',
+        righe:[{id:'q14b-1',nome:'Branzino al forno',qty:1,prezzo:22.00},{id:'q14b-2',nome:'Antipasto di mare',qty:1,prezzo:14.00},{id:'q14b-3',nome:'Vino al bicchiere',qty:3,prezzo:7.00},{id:'q14b-4',nome:'Caffè',qty:2,prezzo:1.50},{id:'q14b-5',nome:'Sorbetto',qty:1,prezzo:5.00}]},
     ] },
   { id:'cnt-21', idOrdine:'#2511-0029', dataOra:'2025-11-09 20:15', tavolo:'Tavolo 7',  cliente:'Cena aziendale Mele', riferimento:{nome:'Andrea Mele', tipo:'prenotazione'}, liberatoOre:96,  totaleConto:485.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'carta',
     payments: [
-      {id:'p21a', method:'byup',     amount:60.00, ora:'2025-11-09 22:40', scontrinoNum:'SC-2511-0029-1'},
-      {id:'p21b', method:'byup',     amount:60.00, ora:'2025-11-09 22:41', scontrinoNum:'SC-2511-0029-2'},
-      {id:'p21c', method:'byup',     amount:60.00, ora:'2025-11-09 22:42', scontrinoNum:'SC-2511-0029-3'},
-      {id:'p21d', method:'carta',    amount:200.00, ora:'2025-11-09 22:48', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0029-4', fisc:{ esito:'ritrasmissione', tentativo: 2, prossimo:'14:30' }},
-      {id:'p21e', method:'contanti', amount:80.00, ora:'2025-11-09 22:50', scontrinoNum:'SC-2511-0029-5'},
-      {id:'p21f', method:'carta',    amount:25.00, ora:'2025-11-09 22:52', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0029-6'},
+      {id:'p21a', method:'byup',     amount:60.00, ora:'2025-11-09 22:40', scontrinoNum:'SC-2511-0029-1',
+        righe:[{id:'q21a-1',nome:'Menu degustazione',qty:1,prezzo:48.00},{id:'q21a-2',nome:'Calice abbinato',qty:1,prezzo:9.00},{id:'q21a-3',nome:'Acqua minerale',qty:1,prezzo:3.00}]},
+      {id:'p21b', method:'byup',     amount:60.00, ora:'2025-11-09 22:41', scontrinoNum:'SC-2511-0029-2',
+        righe:[{id:'q21b-1',nome:'Menu degustazione',qty:1,prezzo:48.00},{id:'q21b-2',nome:'Calice abbinato',qty:1,prezzo:9.00},{id:'q21b-3',nome:'Acqua minerale',qty:1,prezzo:3.00}]},
+      {id:'p21c', method:'byup',     amount:60.00, ora:'2025-11-09 22:42', scontrinoNum:'SC-2511-0029-3',
+        righe:[{id:'q21c-1',nome:'Menu degustazione',qty:1,prezzo:48.00},{id:'q21c-2',nome:'Calice abbinato',qty:1,prezzo:9.00},{id:'q21c-3',nome:'Acqua minerale',qty:1,prezzo:3.00}]},
+      {id:'p21d', method:'carta',    amount:200.00, ora:'2025-11-09 22:48', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0029-4', fisc:{ esito:'ritrasmissione', tentativo: 2, prossimo:'14:30' },
+        righe:[{id:'q21d-1',nome:'Menu degustazione',qty:3,prezzo:48.00},{id:'q21d-2',nome:'Bottiglia Franciacorta',qty:1,prezzo:38.00},{id:'q21d-3',nome:'Calice abbinato',qty:2,prezzo:9.00}]},
+      {id:'p21e', method:'contanti', amount:80.00, ora:'2025-11-09 22:50', scontrinoNum:'SC-2511-0029-5',
+        righe:[{id:'q21e-1',nome:'Menu degustazione',qty:1,prezzo:48.00},{id:'q21e-2',nome:'Calice abbinato',qty:2,prezzo:9.00},{id:'q21e-3',nome:'Dolce al carrello',qty:2,prezzo:7.00}]},
+      {id:'p21f', method:'carta',    amount:25.00, ora:'2025-11-09 22:52', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0029-6',
+        righe:[{id:'q21f-1',nome:'Calice abbinato',qty:1,prezzo:9.00},{id:'q21f-2',nome:'Dolce al carrello',qty:1,prezzo:7.00},{id:'q21f-3',nome:'Caffè',qty:6,prezzo:1.50}]},
     ] },
   { id:'cnt-22', idOrdine:'#2511-0027', dataOra:'2025-11-08 13:00', tavolo:'Tavolo 5',  cliente:'Pranzo team',         liberatoOre:144,  totaleConto:156.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'byup',
     payments: [
-      {id:'p22a', method:'byup', amount:35.00, ora:'2025-11-08 14:20', scontrinoNum:'SC-2511-0027-1'},
-      {id:'p22b', method:'byup', amount:42.00, ora:'2025-11-08 14:21', scontrinoNum:'SC-2511-0027-2', fisc:{ scarto:'dispositivo', tentativi: 2, gestito:{ come:'manuale', nota:'POS abbinato in Impostazioni e documento ritrasmesso.' } }},
-      {id:'p22c', method:'byup', amount:28.00, ora:'2025-11-08 14:22', scontrinoNum:'SC-2511-0027-3'},
-      {id:'p22d', method:'byup', amount:51.00, ora:'2025-11-08 14:23', scontrinoNum:'SC-2511-0027-4'},
+      {id:'p22a', method:'byup', amount:35.00, ora:'2025-11-08 14:20', scontrinoNum:'SC-2511-0027-1',
+        righe:[{id:'q22a-1',nome:'Poke del giorno',qty:1,prezzo:14.00},{id:'q22a-2',nome:'Club sandwich',qty:1,prezzo:12.00},{id:'q22a-3',nome:'Spremuta',qty:1,prezzo:5.00},{id:'q22a-4',nome:'Caffè',qty:2,prezzo:2.00}]},
+      {id:'p22b', method:'byup', amount:42.00, ora:'2025-11-08 14:21', scontrinoNum:'SC-2511-0027-2', fisc:{ scarto:'dispositivo', tentativi: 2, gestito:{ come:'manuale', nota:'POS abbinato in Impostazioni e documento ritrasmesso.' } },
+        righe:[{id:'q22b-1',nome:'Tagliata light',qty:1,prezzo:19.00},{id:'q22b-2',nome:'Poke del giorno',qty:1,prezzo:14.00},{id:'q22b-3',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'q22b-4',nome:'Caffè',qty:3,prezzo:2.00}]},
+      {id:'p22c', method:'byup', amount:28.00, ora:'2025-11-08 14:22', scontrinoNum:'SC-2511-0027-3',
+        righe:[{id:'q22c-1',nome:'Club sandwich',qty:1,prezzo:12.00},{id:'q22c-2',nome:'Insalatona',qty:1,prezzo:11.00},{id:'q22c-3',nome:'Spremuta',qty:1,prezzo:5.00}]},
+      {id:'p22d', method:'byup', amount:51.00, ora:'2025-11-08 14:23', scontrinoNum:'SC-2511-0027-4',
+        righe:[{id:'q22d-1',nome:'Tagliata light',qty:1,prezzo:19.00},{id:'q22d-2',nome:'Insalatona',qty:1,prezzo:11.00},{id:'q22d-3',nome:'Poke del giorno',qty:1,prezzo:14.00},{id:'q22d-4',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'q22d-5',nome:'Caffè',qty:2,prezzo:2.00}]},
     ] },
   { id:'cnt-23', idOrdine:'#2511-0025', dataOra:'2025-11-07 21:30', tavolo:'Tavolo 10', cliente:'Tavolata Conti (6 ospiti)', liberatoOre:168, totaleConto:267.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'contanti',
     payments: [
-      {id:'p23a', method:'contanti', amount:45.00, ora:'2025-11-07 23:10', scontrinoNum:'SC-2511-0025-1'},
-      {id:'p23b', method:'contanti', amount:50.00, ora:'2025-11-07 23:11', scontrinoNum:'SC-2511-0025-2'},
-      {id:'p23c', method:'byup',     amount:42.00, ora:'2025-11-07 23:14', scontrinoNum:'SC-2511-0025-3', fisc:{ scarto:'aliquota', tentativi: 3, gestito:{ come:'manuale', nota:'Aliquota corretta nel catalogo e documento ritrasmesso a mano.' } }},
-      {id:'p23d', method:'carta',    amount:75.00, ora:'2025-11-07 23:16', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0025-4'},
-      {id:'p23e', method:'contanti', amount:55.00, ora:'2025-11-07 23:18', scontrinoNum:'SC-2511-0025-5'},
+      {id:'p23a', method:'contanti', amount:45.00, ora:'2025-11-07 23:10', scontrinoNum:'SC-2511-0025-1',
+        righe:[{id:'q23a-1',nome:'Grigliata di carne',qty:1,prezzo:24.00},{id:'q23a-2',nome:'Contorno del giorno',qty:2,prezzo:4.00},{id:'q23a-3',nome:'Vino al bicchiere',qty:1,prezzo:7.00},{id:'q23a-4',nome:'Acqua minerale',qty:2,prezzo:3.00}]},
+      {id:'p23b', method:'contanti', amount:50.00, ora:'2025-11-07 23:11', scontrinoNum:'SC-2511-0025-2',
+        righe:[{id:'q23b-1',nome:'Grigliata di carne',qty:1,prezzo:24.00},{id:'q23b-2',nome:'Antipasto della casa',qty:1,prezzo:11.00},{id:'q23b-3',nome:'Vino al bicchiere',qty:1,prezzo:7.00},{id:'q23b-4',nome:'Contorno del giorno',qty:1,prezzo:4.00},{id:'q23b-5',nome:'Dolce della casa',qty:1,prezzo:4.00}]},
+      {id:'p23c', method:'byup',     amount:42.00, ora:'2025-11-07 23:14', scontrinoNum:'SC-2511-0025-3', fisc:{ scarto:'aliquota', tentativi: 3, gestito:{ come:'manuale', nota:'Aliquota corretta nel catalogo e documento ritrasmesso a mano.' } },
+        righe:[{id:'q23c-1',nome:'Antipasto della casa',qty:2,prezzo:11.00},{id:'q23c-2',nome:'Contorno del giorno',qty:2,prezzo:4.00},{id:'q23c-3',nome:'Vino al bicchiere',qty:1,prezzo:7.00},{id:'q23c-4',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'q23c-5',nome:'Caffè',qty:1,prezzo:2.00}]},
+      {id:'p23d', method:'carta',    amount:75.00, ora:'2025-11-07 23:16', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0025-4',
+        righe:[{id:'q23d-1',nome:'Grigliata di carne',qty:2,prezzo:24.00},{id:'q23d-2',nome:'Antipasto della casa',qty:1,prezzo:11.00},{id:'q23d-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'q23d-4',nome:'Caffè',qty:1,prezzo:2.00}]},
+      {id:'p23e', method:'contanti', amount:55.00, ora:'2025-11-07 23:18', scontrinoNum:'SC-2511-0025-5',
+        righe:[{id:'q23e-1',nome:'Grigliata di carne',qty:1,prezzo:24.00},{id:'q23e-2',nome:'Antipasto della casa',qty:1,prezzo:11.00},{id:'q23e-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'q23e-4',nome:'Contorno del giorno',qty:1,prezzo:4.00},{id:'q23e-5',nome:'Caffè',qty:1,prezzo:2.00}]},
     ] },
   { id:'cnt-15', idOrdine:'#2511-0033', dataOra:'2025-11-12 13:30', tavolo:'Asporto', canale:'asporto', cliente:'Anna Costa',        riferimento:{nome:'Anna Costa', tipo:'byup'}, liberatoOre:96,    totaleConto:38.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'byup',
     payments: [{id:'p15a', method:'byup', amount:38.50, ora:'2025-11-12 14:10', scontrinoNum:'SC-2511-0033-1'}] },
   { id:'cnt-16', idOrdine:'#2511-0032', dataOra:'2025-11-11 21:30', tavolo:'Tavolo 11', cliente:'Gallo (aziendale)', liberatoOre:120,   totaleConto:340.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
     payments: [{id:'p16a', method:'carta', amount:340.00, ora:'2025-11-11 23:00', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0032-1'}] },
+  // I due vecchi `conto.rimborso` sono diventati RESI seminati sul pagamento
+  // (P-17): erano rimborsi post-emissione — «piatto reso», il giorno dopo —
+  // e la voce di conto senza documento duplicava i resi. Il seme non porta il
+  // numero di documento: si deriva dal progressivo (-R1) a schermo.
   { id:'cnt-17', idOrdine:'#2511-0030', dataOra:'2025-11-10 12:45', tavolo:'Tavolo 6',  cliente:'Coppia Neri',       riferimento:{nome:'Francesca Neri', tipo:'prenotazione'}, liberatoOre:144,   totaleConto:58.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p17a', method:'carta', amount:58.00, ora:'2025-11-10 13:50', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0030-1'}],
-    rimborso: {amount:12.00, ora:'2025-11-10 14:05', method:'carta', reason:'Servizio contestato'} },
+    ordini: [{id:'o17-1',nome:'Antipasto di mare',qty:1,prezzo:12.00},{id:'o17-2',nome:'Branzino al forno',qty:1,prezzo:22.00},{id:'o17-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'o17-4',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'o17-5',nome:'Dolce della casa',qty:1,prezzo:7.00}],
+    payments: [{id:'p17a', method:'carta', amount:58.00, ora:'2025-11-10 13:50', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0030-1',
+      rett: { resi: [{ amount:12.00, porzioni:['o17-1#0'], ora:'2025-11-10 14:05', motivo:'Servizio contestato' }] }}] },
   { id:'cnt-7',  idOrdine:'#2509-0156', dataOra:'2025-08-17 22:15', tavolo:'Tavolo 6',  cliente:'Paolo Bianchi',     liberatoOre:2160,  totaleConto:110.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p7a', method:'carta', amount:110.00, ora:'2025-08-17 22:45', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1'}],
-    rimborso: {amount:25.00, ora:'2025-08-18 10:12', method:'carta', reason:'Piatto reso: pasta troppo cotta'} },
+    ordini: [{id:'o7-1',nome:'Pasta allo scoglio',qty:1,prezzo:25.00},{id:'o7-2',nome:'Grigliata mista di pesce',qty:1,prezzo:38.00},{id:'o7-3',nome:'Bottiglia vermentino',qty:1,prezzo:26.00},{id:'o7-4',nome:'Antipasto di mare',qty:1,prezzo:14.00},{id:'o7-5',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'o7-6',nome:'Caffè',qty:2,prezzo:2.00}],
+    payments: [{id:'p7a', method:'carta', amount:110.00, ora:'2025-08-17 22:45', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1',
+      rett: { resi: [{ amount:25.00, porzioni:['o7-1#0'], ora:'2025-08-18 10:12', motivo:'Piatto reso: pasta troppo cotta' }] }}] },
   { id:'cnt-18', idOrdine:'#2510-0089', dataOra:'2025-10-05 21:00', tavolo:'Asporto', canale:'asporto', cliente:'Sara Mancini',      liberatoOre:1032,  totaleConto:76.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
     payments: [{id:'p18a', method:'contanti', amount:76.00, ora:'2025-10-05 21:50', scontrinoNum:'SC-2510-0089-1'}] },
   { id:'cnt-19', idOrdine:'#2509-0143', dataOra:'2025-09-20 13:00', tavolo:'Tavolo 3',  cliente:'Luca Caruso',       liberatoOre:1380,  totaleConto:42.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
@@ -112,8 +143,9 @@ const CONTI_MOCK = [
     (c.payments || []).forEach(p => {
       p.ora = shiftStr(p.ora);
       if (p.scontrinoNum) p.scontrinoNum = p.scontrinoNum.replace(/SC-\d{4}-/, 'SC-' + code + '-');
+      // Anche i resi seminati sul pagamento seguono lo scarto di date.
+      if (p.rett) (p.rett.resi || []).forEach(r => { r.ora = shiftStr(r.ora); });
     });
-    if (c.rimborso) c.rimborso.ora = shiftStr(c.rimborso.ora);
   });
 
   // Il conto della finestra di divieto (P-100) è per definizione DI STASERA:
@@ -141,6 +173,45 @@ const CONTI_MOCK = [
 if (typeof svContiVenditaDiretta === 'function') {
   CONTI_MOCK.unshift(...svContiVenditaDiretta());
 }
+
+// ─── Registro delle rettifiche, per DOCUMENTO (P-16/P-17/P-18 · D-20, D-21) ─
+// Stesso pattern di byupReadFisc: localStorage + evento — un reso che sparisce
+// al ricarico è una finzione. Struttura per pagamento:
+//   { annullo?: {amount, doc, ora}, resi: [{amount, porzioni:[id], doc, ora, motivo?}] }
+// Le `porzioni` sono id derivati `rigaId#k`: nel modello vero quantity non
+// esiste più — le porzioni si contano, un contatore memorizzato è una seconda
+// verità — quindi l'esplosione a schermo è lo spirito dell'ERD, non un trucco.
+const BYUP_RETT_KEY = 'byup_rett_documenti';
+window.byupReadRett = function () {
+  try { const s = localStorage.getItem(BYUP_RETT_KEY); return s ? JSON.parse(s) : {}; }
+  catch (e) { return {}; }
+};
+window.byupWriteRett = function (v) {
+  try { localStorage.setItem(BYUP_RETT_KEY, JSON.stringify(v)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-rett-change'));
+};
+
+// Lo stato effettivo delle rettifiche di un documento: il seme del mock
+// (p.rett) più quello che l'operatore ha fatto qui. I resi si accumulano fino
+// a concorrenza del totale; l'annullo — unico e totale, solo a documento
+// intatto — chiude tutto.
+function rettDi(p) {
+  const salvato = window.byupReadRett()[p.id] || {};
+  const seme = p.rett || {};
+  const resi = [...(seme.resi || []), ...(salvato.resi || [])];
+  const annullo = salvato.annullo || seme.annullo || null;
+  if (!annullo && resi.length === 0) return null;
+  const resoTot = Math.round(resi.reduce((s, r) => s + r.amount, 0) * 100) / 100;
+  return {
+    annullo, resi, resoTot,
+    residuo: Math.max(0, Math.round((p.amount - resoTot) * 100) / 100),
+    porzioniRese: new Set(resi.flatMap(r => r.porzioni || [])),
+  };
+}
+// Il documento di reso prende il progressivo: -R1, -R2… Il seme non porta un
+// doc scritto a mano (il numero scontrino viene ri-ancorato a runtime), quindi
+// il nome si deriva sempre dal documento com'è ADESSO.
+const rettDocReso = (p, indice) => `${p.scontrinoNum}-R${indice + 1}`;
 
 // I pagamenti sono i documenti commerciali: Cassa ci deriva le chiusure di
 // giornata, quindi la lista deve essere raggiungibile da lì.
@@ -452,10 +523,17 @@ function DocScartoSheet({ conto, payment, onClose }) {
 // sulla stessa riga invece di escludersi.
 function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, onScarto, onSalda }) {
   const payments = conto.payments || [];
-  const storni = payments.reduce((s, p) => s + ((getStato && getStato(p.id)) ? getStato(p.id).amount : 0), 0);
+  // Le rettifiche di un documento: annullo (totale) più i resi, che si
+  // accumulano (P-17). getStato ora riceve il PAGAMENTO, non l'id: il seme
+  // dei mock vive lì sopra.
+  const rettificato = (p) => {
+    const st = getStato ? getStato(p) : null;
+    return st ? (st.annullo ? st.annullo.amount : st.resoTot) : 0;
+  };
+  const storni = payments.reduce((s, p) => s + rettificato(p), 0);
   // Quanto è davvero entrato: i pagamenti meno quello che è tornato indietro.
   // Al lordo sarebbe una cifra smentita dalle righe barrate lì sotto.
-  const incassato = payments.reduce((s, p) => s + p.amount, 0) - storni - (conto.rimborso ? conto.rimborso.amount : 0);
+  const incassato = payments.reduce((s, p) => s + p.amount, 0) - storni;
   const isSaldato = conto.stato === 'saldato' || saldato;
   const daSaldare = isSaldato ? 0 : conto.daSaldare;
   const methodMeta = {
@@ -630,7 +708,10 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
                 // e reso partono solo dal dettaglio, dove le righe si vedono
                 // prima di decidere — un pulsante rapido su una riga di elenco
                 // farebbe scegliere alla cieca.
-                const st = getStato ? getStato(p.id) : null;
+                const st = getStato ? getStato(p) : null;
+                // Reso parziale ≠ documento chiuso: la cifra si barra solo
+                // quando non resta più niente (annullo o reso totale).
+                const chiuso = st && (st.annullo || st.residuo <= 0.004);
                 const device = p.posRef && [p.posRef.nome || p.posRef.device, p.posRef.email].filter(Boolean).join(' · ');
                 return (
                   <div key={p.id} style={{
@@ -663,15 +744,18 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
                         <span style={{
                           padding:'2px 8px', borderRadius: C.R_PILL, background:'#FEE2E2', color:'#B91C1C',
                           fontSize: 11.5, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.3,
-                        }}>{st.tipo === 'annullo' ? 'Annullato' : 'Reso'}</span>
+                          fontVariantNumeric:'tabular-nums',
+                        }}>{st.annullo ? 'Annullato'
+                          : st.residuo <= 0.004 ? 'Reso totale'
+                          : `Reso −€${st.resoTot.toFixed(2)}`}</span>
                       )}
                       <PagamentoFiscChip payment={p} onOpen={() => onScarto && onScarto(p)}/>
                     </div>
                     <div style={{
                       fontWeight: 800, fontVariantNumeric:'tabular-nums',
                       fontSize: C.T_MD, textAlign:'right',
-                      color: st ? PN.MUTED_SOFT : PN.TEXT,
-                      textDecoration: st && st.tipo === 'annullo' ? 'line-through' : 'none',
+                      color: chiuso ? PN.MUTED_SOFT : PN.TEXT,
+                      textDecoration: chiuso ? 'line-through' : 'none',
                     }}>€{p.amount.toFixed(2)}</div>
 
                     {/* Riga 2 — quando e quale scontrino; il dispositivo sotto,
@@ -716,16 +800,24 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
             </div>
           )}
 
-          {/* Annulli e resi — uno per scontrino, col documento collegato */}
-          {payments.some(p => getStato && getStato(p.id)) && (
+          {/* Annulli e resi — con P-17 le rettifiche possono essere più di
+              una per scontrino: una riga per OGNI reso, col suo documento
+              progressivo (-R1, -R2), più l'annullo quando c'è. Il vecchio
+              blocco «Rimborso» a livello di conto è confluito qui: erano resi
+              post-emissione senza documento, ora seminati sul pagamento. */}
+          {payments.some(p => getStato && getStato(p)) && (
             <div style={{marginTop: 18}}>
               <Titolo>Annulli e resi</Titolo>
               <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-                {payments.map(p => {
-                  const st = getStato ? getStato(p.id) : null;
-                  if (!st) return null;
-                  return (
-                    <div key={p.id} style={{
+                {payments.flatMap(p => {
+                  const st = getStato ? getStato(p) : null;
+                  if (!st) return [];
+                  const voci = [
+                    ...(st.annullo ? [{ chiave:`${p.id}-A`, titolo:`Annullo scontrino ${p.scontrinoNum}`, doc:`${p.scontrinoNum}-A`, ora: st.annullo.ora, amount: st.annullo.amount }] : []),
+                    ...st.resi.map((r, i) => ({ chiave:`${p.id}-R${i+1}`, titolo:`Reso scontrino ${p.scontrinoNum}`, doc: rettDocReso(p, i), ora: r.ora, amount: r.amount, motivo: r.motivo })),
+                  ];
+                  return voci.map(v => (
+                    <div key={v.chiave} style={{
                       padding:'12px 14px',
                       background:'#FEF2F2', border:`1px solid #FECACA`, borderRadius: C.R_MD,
                       display:'grid', gridTemplateColumns:'auto 1fr auto', gap: 12, alignItems:'center',
@@ -736,48 +828,19 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
                         display:'grid', placeItems:'center',
                       }}><PnI.RotateCcw size={16}/></div>
                       <div style={{minWidth: 0}}>
-                        <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>
-                          {st.tipo === 'annullo' ? 'Annullo' : 'Reso'} scontrino {p.scontrinoNum}
+                        <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>{v.titolo}</div>
+                        <div style={{fontSize: C.T_XS, color:'#B91C1C', marginTop: 3}}>
+                          <span style={{fontFamily:'ui-monospace, Menlo, monospace'}}>{v.doc}</span>
+                          {v.ora && <span style={{fontVariantNumeric:'tabular-nums'}}> · {fmtDataOra(v.ora)}</span>}
+                          {v.motivo && ` · ${v.motivo}`}
                         </div>
-                        <div style={{fontSize: C.T_XS, color:'#B91C1C', marginTop: 3, fontFamily:'ui-monospace, Menlo, monospace'}}>{st.doc}</div>
                       </div>
                       <div style={{fontWeight: 800, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color:'#991B1B'}}>
-                        −€{st.amount.toFixed(2)}
+                        −€{v.amount.toFixed(2)}
                       </div>
                     </div>
-                  );
+                  ));
                 })}
-              </div>
-            </div>
-          )}
-
-          {/* Rimborso — voce storica pre-esistente al collegamento annullo/reso,
-              senza un pagamento specifico a cui agganciarsi: resta com'era. */}
-          {conto.rimborso && (
-            <div style={{marginTop: 18}}>
-              <Titolo>Rimborso</Titolo>
-              <div style={{
-                padding:'12px 14px',
-                background:'#FEF2F2', border:`1px solid #FECACA`, borderRadius: C.R_MD,
-                display:'grid', gridTemplateColumns:'auto 1fr auto', gap: 12, alignItems:'center',
-              }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  background:'#FEE2E2', color:'#B91C1C',
-                  display:'grid', placeItems:'center',
-                }}><PnI.RotateCcw size={16}/></div>
-                <div style={{minWidth: 0}}>
-                  <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#991B1B'}}>
-                    {conto.rimborso.method === 'carta' ? 'Carta' : 'Contanti'}
-                  </div>
-                  <div style={{fontSize: C.T_XS, color:'#B91C1C', marginTop: 3}}>
-                    <span style={{fontVariantNumeric:'tabular-nums'}}>{fmtDataOra(conto.rimborso.ora)}</span>
-                    {conto.rimborso.reason && ` · ${conto.rimborso.reason}`}
-                  </div>
-                </div>
-                <div style={{fontWeight: 800, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, color:'#991B1B'}}>
-                  −€{conto.rimborso.amount.toFixed(2)}
-                </div>
               </div>
             </div>
           )}
@@ -821,16 +884,40 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
 // Il reso è a righe intere, non a quantità: "il cliente rimanda indietro una
 // delle due cotolette" è un caso che al banco non capita mai abbastanza da
 // giustificare un contatore per riga.
-function ScontrinoDettaglioModal({ conto, payment, stato, puoRendere, onClose, onAnnulla, onReso }) {
-  const [sel, setSel] = React.useState(null); // null = sola lettura · Set(id) = selezione reso
+function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onReso }) {
+  const [sel, setSel] = React.useState(null); // null = sola lettura · Set(idPorzione) = selezione reso
   const [stampato, setStampato] = React.useState(false);
 
-  const righe = conto.ordini || [];
-  const statoInfo = !stato ? { label: 'Attivo', bg: '#DCFCE7', fg: '#16A34A' }
-    : stato.tipo === 'annullo' ? { label: 'Annullato', bg: '#FEE2E2', fg: '#B91C1C' }
-    : { label: 'Reso', bg: '#FEE2E2', fg: '#B91C1C' };
+  // P-16 (D-20): il documento conosce le SUE righe (la quota di saldo);
+  // conto.ordini resta il ripiego del pagamento unico, dove coincidono.
+  const righe = payment.righe || (conto.payments.length === 1 ? (conto.ordini || []) : []);
+  // P-18 (D-13): la porzione è l'unità fisica — le quantità si sciolgono a
+  // schermo, una riga spuntabile per porzione a prezzo unitario, id derivato
+  // riga#k. Nel modello quantity non esiste più: niente contatori.
+  const porzioni = righe.flatMap(r =>
+    Array.from({ length: r.qty }, (_, k) => ({ id: `${r.id}#${k}`, nome: r.nome, prezzo: r.prezzo })));
+  const rese = (rett && rett.porzioniRese) || new Set();
+  const oraResa = (id) => {
+    const reso = rett && rett.resi.find(r => (r.porzioni || []).includes(id));
+    return reso ? reso.ora : null;
+  };
+  const annullato = !!(rett && rett.annullo);
+  const resoTot = rett ? rett.resoTot : 0;
+  const residuo = rett ? rett.residuo : payment.amount;
+  const chiuso = annullato || (rett && residuo <= 0.004);
+  // P-04: il denaro dei documenti piattaforma non è mai passato da noi —
+  // nessuna rettifica si offre, e il perché sta scritto a schermo.
+  const piattaforma = payment.method === 'piattaforma';
+
+  const statoInfo = annullato ? { label: 'Annullato', bg: '#FEE2E2', fg: '#B91C1C' }
+    : rett && residuo <= 0.004 ? { label: 'Reso totale', bg: '#FEE2E2', fg: '#B91C1C' }
+    : rett ? { label: `Reso −€${resoTot.toFixed(2)}`, bg: '#FEE2E2', fg: '#B91C1C' }
+    : { label: 'Attivo', bg: '#DCFCE7', fg: '#16A34A' };
   const metodoLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : payment.method === 'piattaforma' ? 'Piattaforma' : 'Contanti';
-  const totaleSel = righe.filter(r => sel && sel.has(r.id)).reduce((s, r) => s + r.qty * r.prezzo, 0);
+  const totaleSel = porzioni.filter(z => sel && sel.has(z.id)).reduce((s, z) => s + z.prezzo, 0);
+  // «fino a concorrenza del totale» (P-17): la selezione non può superare il
+  // residuo — con le quote esatte non succede, ma il limite è fiscale.
+  const selValida = totaleSel > 0 && totaleSel <= residuo + 0.004;
 
   return (
     <div onClick={onClose} style={{
@@ -862,25 +949,28 @@ function ScontrinoDettaglioModal({ conto, payment, stato, puoRendere, onClose, o
           }}><PnI.X size={12}/></button>
         </div>
 
-        {righe.length === 0 ? (
+        {porzioni.length === 0 ? (
           <div style={{
             marginTop: 16, padding:'14px', background: C.SURF_ALT, borderRadius: C.R_SM,
             fontSize: C.T_SM, color: PN.MUTED, textAlign:'center',
           }}>Nessuna riga associata a questo scontrino — solo l'importo totale.</div>
         ) : (
           <div style={{marginTop: 16, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_SM, overflow:'hidden'}}>
-            {righe.map((r, i) => {
-              const on = sel && sel.has(r.id);
+            {porzioni.map((z, i) => {
+              const resa = rese.has(z.id);
+              const on = sel && sel.has(z.id);
+              const spenta = resa || annullato;
               return (
-                <div key={r.id}
-                  onClick={sel ? () => setSel(s => { const n = new Set(s); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; }) : undefined}
+                <div key={z.id}
+                  onClick={sel && !spenta ? () => setSel(s => { const n = new Set(s); n.has(z.id) ? n.delete(z.id) : n.add(z.id); return n; }) : undefined}
                   style={{
                     display:'flex', alignItems:'center', gap: 10, padding:'9px 12px',
                     borderTop: i ? `1px solid ${PN.BORDER_SOFT}` : 'none',
                     background: on ? '#FFFBEB' : PN.WHITE,
-                    cursor: sel ? 'pointer' : 'default',
+                    cursor: sel && !spenta ? 'pointer' : 'default',
+                    opacity: spenta ? 0.55 : 1,
                   }}>
-                  {sel && (
+                  {sel && !spenta && (
                     <span style={{
                       width: 16, height: 16, borderRadius: 5, flexShrink: 0,
                       border:`1.5px solid ${on ? '#B45309' : PN.BORDER}`,
@@ -888,11 +978,21 @@ function ScontrinoDettaglioModal({ conto, payment, stato, puoRendere, onClose, o
                       display:'grid', placeItems:'center',
                     }}>{on && <PnI.Check size={10}/>}</span>
                   )}
-                  <span style={{fontSize: C.T_SM, fontWeight: 700, color: PN.MUTED, minWidth: 24}}>{r.qty}×</span>
-                  <span style={{flex:1, minWidth:0, fontSize: C.T_SM, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{r.nome}</span>
-                  <span style={{fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, fontVariantNumeric:'tabular-nums'}}>
-                    €{(r.qty * r.prezzo).toFixed(2)}
-                  </span>
+                  <span style={{
+                    flex:1, minWidth:0, fontSize: C.T_SM, color: PN.TEXT,
+                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                    textDecoration: spenta ? 'line-through' : 'none',
+                  }}>{z.nome}</span>
+                  {resa && (
+                    <span style={{fontSize: 11.5, color:'#B91C1C', fontWeight: 600, flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>
+                      resa{oraResa(z.id) ? ` il ${fmtDataOra(oraResa(z.id))}` : ''}
+                    </span>
+                  )}
+                  <span style={{
+                    fontSize: C.T_SM, fontWeight: 700, color: spenta ? PN.MUTED_SOFT : PN.TEXT,
+                    fontVariantNumeric:'tabular-nums',
+                    textDecoration: spenta ? 'line-through' : 'none',
+                  }}>€{z.prezzo.toFixed(2)}</span>
                 </div>
               );
             })}
@@ -901,13 +1001,57 @@ function ScontrinoDettaglioModal({ conto, payment, stato, puoRendere, onClose, o
 
         <div style={{
           display:'flex', marginTop: 14, padding:'10px 14px', background: C.SURF_ALT, borderRadius: C.R_SM,
-          fontSize: C.T_MD, fontWeight: 800, color: stato ? '#B91C1C' : PN.TEXT,
+          fontSize: C.T_MD, fontWeight: 800, color: annullato ? '#B91C1C' : PN.TEXT,
         }}>
-          <span style={{flex:1}}>{stato ? (stato.tipo === 'annullo' ? 'Annullato' : 'Reso') : 'Totale'}</span>
+          <span style={{flex:1}}>{annullato ? 'Annullato' : 'Totale'}</span>
           <span style={{fontVariantNumeric:'tabular-nums'}}>
-            {stato ? '−' : ''}€{(stato ? stato.amount : payment.amount).toFixed(2)}
+            {annullato ? '−' : ''}€{payment.amount.toFixed(2)}
           </span>
         </div>
+
+        {/* Il residuo di P-17: quanto è già tornato indietro e quanto si può
+            ancora rendere — detto in cifre, sotto il totale, non dedotto. */}
+        {rett && !annullato && (
+          <div style={{
+            display:'flex', marginTop: 8, padding:'8px 14px',
+            background:'#FEF2F2', border:'1px solid #FECACA', borderRadius: C.R_SM,
+            fontSize: C.T_SM, fontWeight: 700, color:'#991B1B',
+          }}>
+            <span style={{flex:1}}>Già reso −€{resoTot.toFixed(2)}</span>
+            <span style={{fontVariantNumeric:'tabular-nums'}}>
+              {residuo <= 0.004 ? 'niente da rendere' : `resta da rendere €${residuo.toFixed(2)}`}
+            </span>
+          </div>
+        )}
+
+        {/* Storico delle rettifiche del documento, una riga per reso. */}
+        {rett && rett.resi.length > 0 && (
+          <div style={{marginTop: 8, display:'flex', flexDirection:'column', gap: 4}}>
+            {rett.resi.map((r, i) => (
+              <div key={i} style={{
+                display:'flex', alignItems:'baseline', gap: 8,
+                padding:'5px 14px', fontSize: C.T_XS, color: PN.MUTED,
+              }}>
+                <span style={{fontFamily:'ui-monospace, Menlo, monospace', flexShrink: 0}}>{rettDocReso(payment, i)}</span>
+                <span style={{flex:1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
+                  {fmtDataOra(r.ora)}{r.motivo ? ` · ${r.motivo}` : ''}
+                </span>
+                <span style={{fontWeight: 700, color:'#991B1B', fontVariantNumeric:'tabular-nums', flexShrink: 0}}>−€{r.amount.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {piattaforma && (
+          <div style={{
+            marginTop: 12, padding:'10px 14px',
+            background: C.SURF_ALT, borderRadius: C.R_SM,
+            fontSize: C.T_XS, color: PN.MUTED, lineHeight: 1.5,
+          }}>
+            Il rimborso avviene sulla piattaforma; il trattamento fiscale del reso
+            cross-canale è in definizione.
+          </div>
+        )}
 
         {sel ? (
           <div style={{display:'flex', gap: 10, marginTop: 16}}>
@@ -915,12 +1059,12 @@ function ScontrinoDettaglioModal({ conto, payment, stato, puoRendere, onClose, o
               flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
               borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
             }}>Indietro</button>
-            <button onClick={() => onReso(totaleSel)} disabled={totaleSel <= 0} style={{
+            <button onClick={() => onReso(totaleSel, [...sel])} disabled={!selValida} style={{
               flex:2, padding:'11px 14px', border:'none', borderRadius: C.R_SM,
-              background: totaleSel > 0 ? PN.TEXT : '#E5E7EB',
-              color: totaleSel > 0 ? '#fff' : '#9CA3AF',
-              fontSize: C.T_SM, fontWeight: 700, cursor: totaleSel > 0 ? 'pointer' : 'default', fontFamily:'inherit',
-            }}>{totaleSel > 0 ? `Rendi €${totaleSel.toFixed(2)}` : 'Scegli cosa rendere'}</button>
+              background: selValida ? PN.TEXT : '#E5E7EB',
+              color: selValida ? '#fff' : '#9CA3AF',
+              fontSize: C.T_SM, fontWeight: 700, cursor: selValida ? 'pointer' : 'default', fontFamily:'inherit',
+            }}>{selValida ? `Rendi €${totaleSel.toFixed(2)}` : 'Scegli cosa rendere'}</button>
           </div>
         ) : (
           <div style={{display:'flex', gap: 8, marginTop: 16}}>
@@ -928,13 +1072,18 @@ function ScontrinoDettaglioModal({ conto, payment, stato, puoRendere, onClose, o
               flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
               borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
             }}>{stampato ? 'Stampato ✓' : 'Stampa'}</button>
-            {puoRendere && (
+            {/* P-16: il reso per righe vale su OGNI documento saldato — resta
+                finché c'è un residuo e delle porzioni ancora in piedi. */}
+            {!piattaforma && !annullato && residuo > 0.004 && porzioni.length > 0 && (
               <button onClick={() => setSel(new Set())} style={{
                 flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid #FCD34D`,
                 borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, color:'#B45309', cursor:'pointer', fontFamily:'inherit',
               }}>Rendi</button>
             )}
-            {!stato && (
+            {/* L'annullo resta unico e totale — e solo a documento INTATTO:
+                dopo un reso parziale coprirebbe due volte le porzioni rese,
+                quindi a documento toccato la via è rendere il residuo. */}
+            {!piattaforma && !rett && (
               <button onClick={onAnnulla} style={{
                 flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid #FCA5A5`,
                 borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 700, color:'#B91C1C', cursor:'pointer', fontFamily:'inherit',
@@ -1267,13 +1416,16 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
   // documento — annullato oppure reso, e da lì non si tocca più. Copre tutto
   // quello che succede davvero al banco; il reso di un reso è una
   // complicazione che nessuno ha chiesto e che costerebbe metà di questo file.
-  const [scontriniStato, setScontriniStato] = React.useState({}); // { [paymentId]: {tipo, amount, doc} }
-  const statoDi = (paymentId) => scontriniStato[paymentId] || null;
-  // Il reso ha bisogno di sapere QUALI righe restituisce, e le righe sono del
-  // conto: attendibili solo se il conto ha un pagamento solo, altrimenti sono
-  // condivise fra scontrini diversi e non si sa quali coprisse questo.
-  const puoRendere = (conto, payment) =>
-    !statoDi(payment.id) && !!(conto.ordini || []).length && conto.payments.length === 1;
+  // Le rettifiche vivono nel registro persistente (rettDi, in testa al file):
+  // con D-20 ogni documento conosce le proprie righe, quindi il vecchio
+  // vincolo «reso solo a pagamento unico» non esiste più (P-16). Il tick
+  // ridisegna a ogni scrittura, come fa useFiscTick per gli scarti.
+  const [, rettForza] = React.useState(0);
+  React.useEffect(() => {
+    const agg = () => rettForza(x => x + 1);
+    window.addEventListener('byup-rett-change', agg);
+    return () => window.removeEventListener('byup-rett-change', agg);
+  }, []);
 
   const [modalRimborso, setModalRimborso] = React.useState(null); // {conto, payment, tipo:'annullo'|'reso', amount} | null
   const [rimborsoStep, setRimborsoStep] = React.useState('metodo'); // 'metodo' | 'conferma'
@@ -1315,22 +1467,30 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
 
   // Cosa si restituisce l'ha già deciso il dettaglio scontrino; qui resta solo
   // il "come tornano i soldi".
-  function apriRimborso(conto, payment, tipo, amount) {
+  function apriRimborso(conto, payment, tipo, amount, porzioni) {
     setDettaglioScontrino(null);
-    setModalRimborso({ conto, payment, tipo, amount });
+    setModalRimborso({ conto, payment, tipo, amount, porzioni: porzioni || [] });
     setRimborsoStep('metodo');
   }
   function chiudiRimborso() {
     setModalRimborso(null);
     setRimborsoStep('metodo');
   }
-  // Unico punto in cui lo stato del documento cambia. Il numero col suffisso è
-  // il documento collegato, come farebbe parent_receipt_id lato SdI.
+  // Unico punto in cui lo stato del documento cambia. Il documento collegato
+  // si deriva a schermo (-A, -R1, -R2…), come farebbe parent_receipt_id lato
+  // SdI; qui si scrive solo il fatto: quanto, quali porzioni, quando.
   function confermaRimborso() {
-    const { payment, tipo, amount } = modalRimborso;
-    setScontriniStato(st => ({ ...st, [payment.id]: {
-      tipo, amount, doc: `${payment.scontrinoNum}-${tipo === 'annullo' ? 'A' : 'R'}`,
-    }}));
+    const { payment, tipo, amount, porzioni } = modalRimborso;
+    const d = new Date();
+    const ora = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const s = window.byupReadRett();
+    const cur = s[payment.id] || {};
+    if (tipo === 'annullo') {
+      s[payment.id] = { ...cur, annullo: { amount, ora } };
+    } else {
+      s[payment.id] = { ...cur, resi: [...(cur.resi || []), { amount, porzioni, ora }] };
+    }
+    window.byupWriteRett(s);
     chiudiRimborso();
   }
 
@@ -1683,7 +1843,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
         <ContoDettaglioSheet
           conto={contoAperto}
           saldato={saldati.has(contoAperto.id)}
-          getStato={statoDi}
+          getStato={rettDi}
           onClose={() => setContoAperto(null)}
           onDettaglio={(c, p) => setDettaglioScontrino({ conto: c, payment: p })}
           onScarto={(p) => setScartoPay({ conto: contoAperto, payment: p })}
@@ -1696,11 +1856,10 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
         <ScontrinoDettaglioModal
           conto={dettaglioScontrino.conto}
           payment={dettaglioScontrino.payment}
-          stato={statoDi(dettaglioScontrino.payment.id)}
-          puoRendere={puoRendere(dettaglioScontrino.conto, dettaglioScontrino.payment)}
+          rett={rettDi(dettaglioScontrino.payment)}
           onClose={() => setDettaglioScontrino(null)}
           onAnnulla={() => apriRimborso(dettaglioScontrino.conto, dettaglioScontrino.payment, 'annullo', dettaglioScontrino.payment.amount)}
-          onReso={(amount) => apriRimborso(dettaglioScontrino.conto, dettaglioScontrino.payment, 'reso', amount)}
+          onReso={(amount, porzioni) => apriRimborso(dettaglioScontrino.conto, dettaglioScontrino.payment, 'reso', amount, porzioni)}
         />
       )}
 
