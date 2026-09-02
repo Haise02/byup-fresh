@@ -82,9 +82,62 @@ function _byupNotifSalva(st) {
     window.dispatchEvent(new Event('byup-notifiche-change'));
   } catch(e) {}
 }
+// ─── Le notifiche fiscali, derivate dai registri (P-105, P-104) ─────────────
+// Non sono scritte a mano: nascono dallo stato. Il censimento dei POS non sta
+// più nell'onboarding — ogni strumento nasce col suo collegamento (Stripe, un
+// telefono in Byup Staff) e da lì la campanella lo dice, con la finestra di
+// FISC-03 e i suoi gradini; l'id porta la fase, così ogni gradino torna non
+// letto anche se il precedente era stato letto: è l'insistenza voluta, perché
+// la comunicazione omessa è sanzionata. Stessa cosa per la password: della
+// ditta (da rinnovare da lei) o dell'incaricato di Byup (la rinnova Byup).
+function _byupNotificheFiscali() {
+  const out = [];
+  try {
+    if (window.byupReadPosCensimento && window.pnPosPromemoria) {
+      window.byupReadPosCensimento().forEach(r => {
+        const p = window.pnPosPromemoria(r);
+        if (p.fase === 'ok') return;
+        const nome = r.name;
+        const href = `byup Impostazioni.html?page=fiscali&card=pos&strumento=${r.id}`;
+        const daAgg = r.fiscal_link_status === 'varied' || r.fiscal_link_status === 'unlinked';
+        const verbo = daAgg ? 'aggiornare' : 'comunicare';
+        const t = p.fase === 'lontana' ? { title: `${daAgg ? 'Strumento da aggiornare' : 'Nuovo strumento da comunicare'} all'Agenzia`, body: `${nome}: ${p.testo.toLowerCase()}. Il foglio precompilato è in Dati fiscali.`, time: 'Alla nascita dello strumento' }
+          : p.fase === 'aperta' ? { title: `Finestra aperta: ${verbo} ${nome} all'Agenzia`, body: `${p.testo}. Apri il foglio precompilato e dichiara la comunicazione.`, time: 'Finestra aperta' }
+          : p.fase === 'ultimi' ? { title: `Ultimi giorni per ${verbo} ${nome}`, body: `${p.testo}. Oltre la finestra la comunicazione è tardiva, e la tardiva è sanzionata.`, time: 'Scadenza vicina' }
+          : { title: `${nome}: comunicazione all'Agenzia in ritardo`, body: `${p.testo}. La comunicazione omessa o tardiva è sanzionata: falla ora dal foglio precompilato e dichiarala.`, time: 'Finestra scaduta' };
+        out.push({ id: `pos-${r.id}-${p.fase}-${r.varied_at || r.activated_at}`, type: 'fiscal', href, unread: true, ...t });
+      });
+    }
+    const forma = window.PN_FORMA_LOCALE || 'societa';
+    if (forma === 'ditta_individuale') {
+      let c = null; try { c = JSON.parse(localStorage.getItem('byup_ade_cred')); } catch (e) {}
+      const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+      const rinnovo = c && c.rinnovo ? new Date(c.rinnovo + 'T00:00:00') : (() => { const d = new Date(oggi); d.setDate(d.getDate() - 90); return d; })();
+      const scad = new Date(rinnovo); scad.setDate(scad.getDate() + 90);
+      const giorni = Math.round((scad - oggi) / 86400000);
+      const gradino = giorni <= 0 ? 'scaduta' : giorni <= 3 ? '3' : giorni <= 7 ? '7' : giorni <= 14 ? '14' : null;
+      if (gradino) out.push({ id: `cred-${gradino}-${c && c.rinnovo || 'mai'}`, type: 'fiscal', href: 'byup Impostazioni.html?page=fiscali', unread: true,
+        title: giorni <= 0 ? 'Password Fisconline scaduta: gli scontrini non partono' : `La password Fisconline scade tra ${giorni} giorn${giorni === 1 ? 'o' : 'i'}`,
+        body: giorni <= 0 ? 'Cambiala sul sito dell\'Agenzia e poi inseriscila in Dati fiscali: alla conferma parte una trasmissione di prova.' : 'Prima la cambi sul sito dell\'Agenzia, poi la inserisci in Dati fiscali. Se scade, gli scontrini smettono di partire.',
+        time: giorni <= 0 ? 'Scaduta' : 'Promemoria' });
+    } else if (window.pnIncaricatoDelLocale && window.pnIncaricatoStato) {
+      const loc = window.byupReadLocale ? window.byupReadLocale() : { id: 'cp' };
+      const inc = window.pnIncaricatoDelLocale(loc.id);
+      if (inc) {
+        const st = window.pnIncaricatoStato(inc);
+        if (st.stato !== 'ok') out.push({ id: `inc-${inc.id}-${st.stato}-${inc.rinnovo}`, type: 'fiscal', href: 'byup Impostazioni.html?page=fiscali', unread: st.stato === 'scaduta',
+          title: st.stato === 'scaduta' ? 'La password dell\'incaricato di Byup è scaduta: gli scontrini non partono' : `Gli scontrini li trasmette Byup · password dell'incaricato in scadenza tra ${st.giorni} giorni`,
+          body: st.stato === 'scaduta' ? `Byup la sta rinnovando: non devi fare nulla. Se dura più di un'ora, scrivi al Supporto.` : `${inc.nome} la rinnova prima del ${st.scadenza}: tu non devi fare nulla.`,
+          time: st.stato === 'scaduta' ? 'Scaduta' : 'Per informazione' });
+      }
+    }
+  } catch (e) {}
+  return out;
+}
+function _byupTutteLeNotifiche() { return [..._byupNotificheFiscali(), ...PN_NOTIFICATIONS]; }
 window.byupReadNotifiche = function() {
   const st = _byupNotifStato();
-  return PN_NOTIFICATIONS
+  return _byupTutteLeNotifiche()
     .filter(n => !st.eliminate.includes(n.id))
     .map(n => ({ ...n, unread: n.unread && !st.lette.includes(n.id) }));
 };
@@ -97,7 +150,7 @@ window.byupNotificaLetta = function(id) {
 };
 window.byupNotificheTutteLette = function() {
   const st = _byupNotifStato();
-  st.lette = PN_NOTIFICATIONS.map(n => n.id);
+  st.lette = _byupTutteLeNotifiche().map(n => n.id);
   _byupNotifSalva(st);
 };
 window.byupNotificaElimina = function(id) {
@@ -110,12 +163,10 @@ window.byupUseNotifiche = function() {
   const [items, setItems] = React.useState(() => window.byupReadNotifiche());
   React.useEffect(() => {
     const up = () => setItems(window.byupReadNotifiche());
-    window.addEventListener('byup-notifiche-change', up);
-    window.addEventListener('storage', up);
-    return () => {
-      window.removeEventListener('byup-notifiche-change', up);
-      window.removeEventListener('storage', up);
-    };
+    // Le notifiche fiscali cambiano coi registri: si riascoltano anche loro.
+    const ev = ['byup-notifiche-change', 'storage', 'byup-pos-censimento', 'byup-incaricati-change', 'byup-stripe-change'];
+    ev.forEach(e => window.addEventListener(e, up));
+    return () => { ev.forEach(e => window.removeEventListener(e, up)); };
   }, []);
   return items;
 };
