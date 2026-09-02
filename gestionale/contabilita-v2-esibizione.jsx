@@ -96,7 +96,10 @@ const esibSede = () => {
 };
 
 const ESIB_REGIME = 'Regime attuale: documento commerciale online tramite il canale OpenAPI. Quello che vedi è ciò che il canale ha restituito, dichiarato per quello che è: esiti e identificativi del canale. Giornale di cassa, catene di impronte e Gran Totale arrivano con la Soluzione.';
-const ESIB_GIORNALE = 'Non previsto nel regime attuale del documento commerciale online: il canale non tiene un giornale e Byup non lo simula. Arriverà con la Soluzione, con le catene di impronte e il Gran Totale.';
+// Il giornale di cassa non compare: nel regime attuale del documento
+// commerciale online il canale non lo tiene e Byup non lo simula. Quando
+// arriverà con la Soluzione — catene di impronte e Gran Totale — avrà la sua
+// sezione qui e nel prospetto. Come prassi: quello che non c'è non si mostra.
 const ESIB_CHIUSURA = (quando) => `Prospetto generato da Byup Fresh il ${quando} · non è un giornale di cassa e non sostituisce i documenti trasmessi all'Agenzia delle Entrate.`;
 
 // ─── Esportazioni: file veri dai mock, come il download del contratto ────────
@@ -127,7 +130,6 @@ function esibProspettoHtml(docs, sede, adesso, da) {
 <p class="regime">${esc(ESIB_REGIME)}</p>
 <h2>Documenti (${docs.length})</h2>
 <table><thead><tr><th>Tipo</th><th>Numero</th><th>Data e ora</th><th>Giornata fiscale</th><th>Importo</th><th>Metodo</th><th>Esito dichiarato</th></tr></thead><tbody>${righe}</tbody></table>
-<h2>Giornale di cassa</h2><p class="regime">${esc(ESIB_GIORNALE)}</p>
 <hr><p><small>${esc(ESIB_CHIUSURA(esibIso(adesso)))}</small></p></body></html>`;
 }
 
@@ -237,12 +239,6 @@ function ContEsibizione({ onClose }) {
               <GiornataChip info={g}/>
             </div>
           ); })}
-        </div>
-
-        {/* Il giornale: visibile, e dice il regime. Nessun pulsante. */}
-        <div style={{background: PN.WHITE, border:`1px dashed ${PN.BORDER}`, borderRadius: C.R_MD, padding: 18, flexShrink: 0}}>
-          <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Giornale di cassa</div>
-          <div style={{fontSize: C.T_SM, color: PN.MUTED, marginTop: 4, lineHeight: 1.5}}>{ESIB_GIORNALE}</div>
         </div>
 
         <div style={{fontSize: C.T_XS, color: PN.MUTED_SOFT}}>{ESIB_CHIUSURA(esibIso(adesso))}</div>

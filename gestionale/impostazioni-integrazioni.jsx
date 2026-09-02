@@ -695,17 +695,26 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
         {item.id === 'stripe' && <PosVirtualeRimando/>}
 
         <div style={{marginTop: 12}}>
-          {item.status === 'connected' && item.api && vive.length === 1 && (
+          {item.status === 'connected' && item.api && (
             <React.Fragment>
-              <ImpButton variant={confermaRevoca ? 'danger' : 'ghost'} style={azione}
-                onClick={() => { if (confermaRevoca) { onRevoca && onRevoca(vive[0].id); setConfermaRevoca(false); } else setConfermaRevoca(true); }}>
-                {confermaRevoca ? 'Conferma revoca' : 'Revoca'}
-              </ImpButton>
-              <button onClick={onApi} style={{marginTop: 8, width:'100%', background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', fontSize: 13.5, fontWeight: 600, color: PN.PINK_DARK}}>Nuova connessione</button>
+              {/* Il pulsante è l'azione costruttiva; la revoca è discreta,
+                  in grigio, e diventa rossa solo nel momento della conferma.
+                  Con più connessioni vive si revoca dall'elenco. */}
+              <ImpButton variant="ghost" style={azione} onClick={onApi}>Nuova connessione</ImpButton>
+              {vive.length === 1 && (
+                <div style={{marginTop: 8, minHeight: 20, display:'flex', justifyContent:'center', alignItems:'center', gap: 10, fontSize: 13, fontWeight: 600}}>
+                  {confermaRevoca ? (
+                    <React.Fragment>
+                      <span style={{color: PN.RED}}>Revocare la connessione?</span>
+                      <button onClick={() => { onRevoca && onRevoca(vive[0].id); setConfermaRevoca(false); }} style={{background: PN.RED, color: PN.WHITE, border:'none', borderRadius: 999, padding:'3px 10px', cursor:'pointer', fontFamily:'inherit', fontSize: 12.5, fontWeight: 700}}>Sì, revoca</button>
+                      <button onClick={() => setConfermaRevoca(false)} style={{background:'transparent', color: PN.MUTED, border:'none', cursor:'pointer', fontFamily:'inherit', fontSize: 12.5, fontWeight: 600}}>No</button>
+                    </React.Fragment>
+                  ) : (
+                    <button onClick={() => setConfermaRevoca(true)} style={{background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', fontSize: 13, fontWeight: 600, color: PN.MUTED, textDecoration:'underline', textUnderlineOffset: 3}}>Revoca la connessione</button>
+                  )}
+                </div>
+              )}
             </React.Fragment>
-          )}
-          {item.status === 'connected' && item.api && vive.length !== 1 && (
-            <ImpButton variant="ghost" style={azione} onClick={onApi}>Nuova connessione</ImpButton>
           )}
           {item.status === 'connected' && !item.api && (
             <ImpButton variant="ghost" style={azione}>Configura</ImpButton>
