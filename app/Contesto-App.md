@@ -562,7 +562,7 @@ non meccanismo primario).
 > Qui solo la sintesi.
 
 Un ordine creato in **webapp senza registrazione** dev'essere ritrovato nell'app
-appena installata per pagarlo lì (→ peso transazione **0,5**, §C). Strategia
+appena installata per pagarlo lì (→ peso ridotto del piano, §C). Strategia
 **biforcata per piattaforma**:
 
 - **Codice ordine** breve (5–6 cifre), ordine in stato `orfano` lato server =

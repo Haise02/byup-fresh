@@ -684,7 +684,7 @@ Tutto il Fase 1 era "configurazione". Il Fase 2 è "azione reale": un ordine vie
 **Concetti chiave:**
 - **Canali** (`orders.channel`): `sala`, `vendita_diretta`, `asporto_app`
 - **Surface** (`orders.source_surface`): `staff_web`, `webapp_guest`, `byup_app`
-- **Peso** (`orders.weight`): calcolato da `source_surface` — 1.0 per staff_web/webapp_guest/vendita_diretta, **0.5 per byup_app** (è il meccanismo chiave del flywheel B2B2C)
+- **Peso** (`orders.weight`): calcolato da `source_surface` — 1.0 per staff_web/webapp_guest/vendita_diretta, **0.5 per byup_app** (è il meccanismo chiave del flywheel B2B2C) — *regola superata da D-11/D-12: l'unità è la comanda, il peso definitivo viene dal saldo, i coefficienti sono il listino versionato del piano*
 - **Stati** (12 stati possibili): `created → pending_validation → confirmed → sent_to_kitchen → in_preparation → ready → served → bill_open → paid → fiscally_closed | fiscally_failed | canceled`
 - **VAT effettiva**: calcolata da `vat_category` + `delivery_mode`: 10% per somministrazione/asporto prepared_on_site, 22% per asporto packaged_product
 - **Validazione esterna** (`venue_settings.validate_external_orders`): se true, gli ordini da app/webapp restano in `pending_validation` finché lo staff non conferma

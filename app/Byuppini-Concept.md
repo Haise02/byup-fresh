@@ -30,7 +30,7 @@ Livelli (LIV.1→LIV.8: Novizio, Esploratore, Buongustaio, Intenditore, Gourmet,
 Achievement/badge: traguardi collezionabili già presenti nel profilo (Pizza lover, Re dello spritz…), ognuno con un bonus una-tantum di byuppini.
 
 ## Far tornare i conti
-Il costo dei byuppini è un investimento di acquisizione e retention, non una perdita secca. Il meccanismo che lo giustifica è il modello di byup: ogni ordine via app conta 0,5x verso le soglie del piano del ristoratore, quindi più ordini-app significano più pressione sui piani, più upgrade, più ricavi byup. I byuppini esistono per spingere gli ordini in-app.
+Il costo dei byuppini è un investimento di acquisizione e retention, non una perdita secca. Il meccanismo che lo giustifica è il modello di byup: ogni comanda saldata in app pesa col coefficiente ridotto del piano verso le soglie del piano del ristoratore, quindi più ordini-app significano più pressione sui piani, più upgrade, più ricavi byup. I byuppini esistono per spingere gli ordini in-app.
 
 Leve che tengono basso il costo reale:
 - **Ritorno calibrato:** ~2-3% netto del valore ordine (5 byuppini/€ ≈ 5% teorico se tutto convertito in credito, ma nella pratica molto meno — vedi sotto).
