@@ -504,6 +504,15 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
     insegna: data.insegna, regime: data.regime, ateco: data.ateco,
   }));
   const setC = (k) => (e) => setF(x => ({ ...x, [k]: e.target.value }));
+  // I dati per fatturazione sono del soggetto, non del locale: REA e camera
+  // di commercio sono l'iscrizione di QUELLA società, PEC e SDI il suo
+  // recapito fiscale, la sede legale la sua. Se il soggetto cambia si
+  // svuotano invece di ereditarsi — il REA della S.r.l. sulla S.p.A. sarebbe
+  // un dato falso che sembra vero — e si compilano qui, per il nuovo.
+  const FATT_VUOTI = { rea: '', cciaa: '', capitaleSociale: '', socioUnico: false, inLiquidazione: false, sdi: '', pec: '', sedeIndirizzo: '', sedeCap: '', sedeCitta: '', sedeProv: '', sedeNazione: 'IT' };
+  const fattDaDati = () => ({ rea: data.rea, cciaa: data.cciaa, capitaleSociale: data.capitaleSociale, socioUnico: !!data.socioUnico, inLiquidazione: !!data.inLiquidazione, sdi: data.sdi, pec: data.pec, sedeIndirizzo: data.sedeIndirizzo, sedeCap: data.sedeCap, sedeCitta: data.sedeCitta, sedeProv: data.sedeProv, sedeNazione: data.sedeNazione || 'IT' });
+  const [fatt, setFatt] = React.useState(fattDaDati);
+  const setB = (k, check) => (e) => setFatt(x => ({ ...x, [k]: check ? e.target.checked : e.target.value }));
   const [stessa, setStessa] = React.useState(null);   // true | false | null
   const [chiedi, setChiedi] = React.useState(false);   // il «Sicuro?» prima del cambio
   const [entNome, setEntNome] = React.useState('Giulia Bianchi');
@@ -514,6 +523,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   const pivaPulita = (f.piva || '').replace(/\s/g, '').toUpperCase();
   const pivaOk = pivaFormale(pivaPulita);
   const cambiaSoggetto = pivaPulita !== data.piva || f.legalForm !== data.legalForm;
+  React.useEffect(() => { setFatt(cambiaSoggetto ? FATT_VUOTI : fattDaDati()); }, [cambiaSoggetto]);
   const denominazione = persona ? `${f.ownerNome} ${f.ownerCognome}`.trim() : (f.ragione || '').trim();
   const pronto = pivaOk && denominazione && (!cambiaSoggetto || (stessa !== null && (stessa || entEmail.includes('@'))));
 
@@ -522,7 +532,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   // fino ad allora niente scontrini né pagamenti. Il salvataggio semplice no.
   const avvia = () => {
     if (!pronto) return;
-    const campi = { ...f, piva: pivaPulita };
+    const campi = { ...f, ...fatt, piva: pivaPulita };
     if (!cambiaSoggetto) { onSalva(campi); onClose(); return; }
     setChiedi(true);
   };
@@ -530,9 +540,12 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   // disabilita; questo foglio si chiude e si apre quello dopo, «Delega e
   // Stripe» (ImpDopoSoggettoModal), con le due cose che restano.
   const avviaDavvero = () => {
-    const campi = { ...f, piva: pivaPulita };
+    const campi = { ...f, ...fatt, piva: pivaPulita };
     setChiedi(false);
     byupStripeDisabilita('cambio_soggetto');
+    // Il censimento dei POS è dell'esercente: il nuovo soggetto comunica di
+    // nuovo tutti i suoi strumenti all'Agenzia (P-105, finestra riaperta).
+    if (window.byupReadPosCensimento) byupReadPosCensimento().forEach(r => byupPosVaria(r.id, 'varied'));
     const now = new Date().toISOString();
     const record = {
       id: 'hc-' + Date.now(), change_type: stessa ? 'legal_entity' : 'both', fiscal_chain_impacted: true,
@@ -576,90 +589,142 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
 
   return (
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 820, maxHeight:'94vh', display:'flex', flexDirection:'column', position:'relative'}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 1040, maxHeight:'94vh', display:'flex', flexDirection:'column', position:'relative'}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
           <div style={{...MODAL_TITLE, fontSize: 21}}>Cambia soggetto fiscale</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
-            La forma giuridica decide quali dati esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.
+            Anagrafica e dati per fatturazione, insieme: la forma giuridica decide quali esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
 
-        {(
-          <div className="pn-scroll" style={{...MODAL_BODY, padding: '16px 24px', overflowY:'auto', display:'flex', flexDirection:'column', gap: 10}}>
-            <div style={tre}>
-              <div style={{minWidth: 0}}>
-                <div style={LAB}>Forma giuridica</div>
-                <select value={f.legalForm} onChange={setC('legalForm')} style={INP}>
-                  {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
-                </select>
+        <div className="pn-scroll" style={{...MODAL_BODY, padding: '16px 24px', overflowY:'auto', display:'flex', flexDirection:'column', gap: 10}}>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 22, alignItems:'start'}}>
+            {/* Colonna 1: i dati anagrafici, adattati alla forma. */}
+            <div style={{display:'flex', flexDirection:'column', gap: 10, minWidth: 0}}>
+              <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>Dati anagrafici</div>
+              <div style={due}>
+                <div style={{minWidth: 0}}>
+                  <div style={LAB}>Forma giuridica</div>
+                  <select value={f.legalForm} onChange={setC('legalForm')} style={INP}>
+                    {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
+                  </select>
+                </div>
+                {persona ? campo('Nome del titolare', 'ownerNome') : campo(ente ? 'Denominazione' : 'Ragione sociale', 'ragione')}
               </div>
               {persona ? (
-                <React.Fragment>{campo('Nome del titolare', 'ownerNome')}{campo('Cognome del titolare', 'ownerCognome')}</React.Fragment>
+                <React.Fragment>
+                  <div style={due}>{campo('Cognome del titolare', 'ownerCognome')}{campo('Data di nascita', 'ownerNascita', { type: 'date' })}</div>
+                  <div style={due}>
+                    {campo('Comune di nascita', 'ownerComuneNascita')}
+                    <div style={{minWidth: 0}}>
+                      <div style={LAB}>Stato di nascita</div>
+                      <select value={f.ownerStatoNascita} onChange={setC('ownerStatoNascita')} style={INP}>
+                        {STATI_NASCITA.map(([cod, nome]) => <option key={cod} value={cod}>{nome} ({cod})</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={due}>
+                    {campo('Codice fiscale del titolare', 'ownerCf', { style: { fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5 } })}
+                    <div style={{minWidth: 0}}>
+                      <div style={LAB}>Partita IVA</div>
+                      <input value={f.piva || ''} onChange={setC('piva')} placeholder="IT seguito da 11 cifre" style={{...INP, fontFamily:'ui-monospace, Menlo, monospace'}}/>
+                    </div>
+                  </div>
+                </React.Fragment>
               ) : (
-                <React.Fragment>{campo(ente ? 'Denominazione' : 'Ragione sociale', 'ragione')}{campo('Codice fiscale', 'cf')}</React.Fragment>
+                <div style={due}>
+                  <div style={{minWidth: 0}}>
+                    <div style={LAB}>Partita IVA</div>
+                    <input value={f.piva || ''} onChange={setC('piva')} placeholder="IT seguito da 11 cifre" style={{...INP, fontFamily:'ui-monospace, Menlo, monospace'}}/>
+                  </div>
+                  {campo('Codice fiscale', 'cf')}
+                </div>
               )}
-            </div>
-            {persona && (
-              <div style={tre}>
-                {campo('Data di nascita', 'ownerNascita', { type: 'date' })}
-                {campo('Comune di nascita', 'ownerComuneNascita')}
+              <div style={due}>{campo('Insegna', 'insegna')}{campo('Codice ATECO', 'ateco')}</div>
+              <div style={due}>
                 <div style={{minWidth: 0}}>
-                  <div style={LAB}>Stato di nascita</div>
-                  <select value={f.ownerStatoNascita} onChange={setC('ownerStatoNascita')} style={INP}>
-                    {STATI_NASCITA.map(([cod, nome]) => <option key={cod} value={cod}>{nome} ({cod})</option>)}
+                  <div style={LAB}>Regime fiscale</div>
+                  <select value={f.regime} onChange={setC('regime')} style={INP}>
+                    <option>Ordinario</option><option>Forfettario</option><option>Semplificato</option>
+                  </select>
+                </div>
+                <div style={{alignSelf:'end', fontSize: 12.5, color: f.piva && !pivaOk ? PN.AMBER : PN.MUTED, lineHeight: 1.4, paddingBottom: 2}}>
+                  {f.piva ? (pivaOk ? 'P.IVA: formato valido · nessuna verifica presso l\'Agenzia' : 'P.IVA: formato non valido, IT e undici cifre') : 'P.IVA: IT e undici cifre'}
+                  {data.pivaPrecedente ? ` · precedente ${data.pivaPrecedente}, conservata` : ''}
+                </div>
+              </div>
+            </div>
+
+            {/* Colonna 2: i dati per fatturazione, del soggetto. Vuoti se il
+                soggetto cambia: sono i suoi, non quelli di chi c'era prima. */}
+            <div style={{display:'flex', flexDirection:'column', gap: 10, minWidth: 0}}>
+              <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>
+                Dati per fatturazione{cambiaSoggetto && <span style={{color: PN.AMBER, fontWeight: 600}}> · del nuovo soggetto, da compilare</span>}
+              </div>
+              {!persona && (
+                <React.Fragment>
+                  <div style={due}>
+                    <div style={{minWidth: 0}}><div style={LAB}>Numero REA</div><input value={fatt.rea || ''} onChange={setB('rea')} style={INP}/></div>
+                    <div style={{minWidth: 0}}><div style={LAB}>CCIAA{ente ? ' (facoltativa)' : ''}</div><input value={fatt.cciaa || ''} onChange={setB('cciaa')} style={INP}/></div>
+                  </div>
+                  <div style={due}>
+                    {f.legalForm === 'societa'
+                      ? <div style={{minWidth: 0}}><div style={LAB}>Capitale sociale (€)</div><input value={fatt.capitaleSociale || ''} onChange={setB('capitaleSociale')} style={INP}/></div>
+                      : <div/>}
+                    <div style={{display:'flex', gap: 14, alignItems:'center', alignSelf:'end', paddingBottom: 6, fontSize: 13.5}}>
+                      {f.legalForm === 'societa' && <label style={{display:'inline-flex', alignItems:'center', gap: 6, cursor:'pointer'}}><input type="checkbox" checked={!!fatt.socioUnico} onChange={setB('socioUnico', true)} style={{accentColor: PN.PINK}}/>Socio unico</label>}
+                      <label style={{display:'inline-flex', alignItems:'center', gap: 6, cursor:'pointer'}}><input type="checkbox" checked={!!fatt.inLiquidazione} onChange={setB('inLiquidazione', true)} style={{accentColor: PN.PINK}}/>In liquidazione</label>
+                    </div>
+                  </div>
+                </React.Fragment>
+              )}
+              <div style={due}>
+                <div style={{minWidth: 0}}><div style={LAB}>Codice destinatario SDI</div><input value={fatt.sdi || ''} onChange={setB('sdi')} style={{...INP, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5}}/></div>
+                <div style={{minWidth: 0}}><div style={LAB}>PEC per invio SDI</div><input value={fatt.pec || ''} onChange={setB('pec')} style={INP}/></div>
+              </div>
+              <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, marginTop: 2}}>{persona ? 'Domicilio fiscale' : 'Sede legale'}</div>
+              <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 10}}>
+                <div style={{minWidth: 0}}><div style={LAB}>Indirizzo e civico</div><input value={fatt.sedeIndirizzo || ''} onChange={setB('sedeIndirizzo')} style={INP}/></div>
+                <div style={{minWidth: 0}}><div style={LAB}>CAP</div><input value={fatt.sedeCap || ''} onChange={setB('sedeCap')} style={INP}/></div>
+              </div>
+              <div style={tre}>
+                <div style={{minWidth: 0}}><div style={LAB}>Città</div><input value={fatt.sedeCitta || ''} onChange={setB('sedeCitta')} style={INP}/></div>
+                <div style={{minWidth: 0}}><div style={LAB}>Provincia</div><input value={fatt.sedeProv || ''} onChange={setB('sedeProv')} style={INP}/></div>
+                <div style={{minWidth: 0}}>
+                  <div style={LAB}>Nazione</div>
+                  <select value={fatt.sedeNazione || 'IT'} onChange={setB('sedeNazione')} style={INP}>
+                    <option value="IT">Italia (IT)</option><option value="SM">San Marino (SM)</option><option value="VA">Città del Vaticano (VA)</option>
                   </select>
                 </div>
               </div>
-            )}
-            <div style={tre}>
-              {persona && campo('Codice fiscale del titolare', 'ownerCf', { style: { fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5 } })}
-              <div style={{minWidth: 0}}>
-                <div style={LAB}>Partita IVA</div>
-                <input value={f.piva || ''} onChange={setC('piva')} placeholder="IT seguito da 11 cifre" style={{...INP, fontFamily:'ui-monospace, Menlo, monospace'}}/>
-              </div>
-              {campo('Insegna', 'insegna')}
-              {!persona && campo('Codice ATECO', 'ateco')}
             </div>
-            <div style={tre}>
-              {persona && campo('Codice ATECO', 'ateco')}
-              <div style={{minWidth: 0}}>
-                <div style={LAB}>Regime fiscale</div>
-                <select value={f.regime} onChange={setC('regime')} style={INP}>
-                  <option>Ordinario</option><option>Forfettario</option><option>Semplificato</option>
-                </select>
-              </div>
-              <div style={{gridColumn: persona ? 'auto' : 'span 2', alignSelf:'end', fontSize: 12.5, color: f.piva && !pivaOk ? PN.AMBER : PN.MUTED, lineHeight: 1.4, paddingBottom: 2}}>
-                {f.piva ? (pivaOk ? 'P.IVA: formato valido · solo controllo del formato, nessuna verifica presso l\'Agenzia' : 'P.IVA: formato non valido, IT e undici cifre') : 'P.IVA: IT e undici cifre'}
-                {data.pivaPrecedente ? ` · precedente ${data.pivaPrecedente}, conservata` : ''}
-              </div>
-            </div>
-            {cambiaSoggetto && (
-              <div style={{paddingTop: 8, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
-                <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 6}}>
-                  <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): serve la verifica dell'identità e la delega va riconferita. <span style={{color: PN.MUTED}}>Resta la stessa persona?</span>
-                </div>
-                <div style={{display:'grid', gridTemplateColumns: stessa === false ? '1fr 1fr 1.4fr' : '1fr 1fr', gap: 8, alignItems:'stretch'}}>
-                  {tile(stessa === true, 'Sì, resto io', 'Cambia solo il soggetto: la delega va riconferita per il nuovo contribuente.', () => setStessa(true))}
-                  {tile(stessa === false, 'No, cambia anche la persona', 'È una cessione: chi entra accetta con la sua casella e riconferisce la delega.', () => setStessa(false))}
-                  {stessa === false && (
-                    <div style={{display:'flex', flexDirection:'column', gap: 6, minWidth: 0}}>
-                      <input value={entNome} onChange={e => setEntNome(e.target.value)} placeholder="Chi entra" style={INP}/>
-                      <input type="email" value={entEmail} onChange={e => setEntEmail(e.target.value)} placeholder="La sua casella di posta" style={INP}/>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-        )}
+          {cambiaSoggetto && (
+            <div style={{paddingTop: 8, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+              <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45, marginBottom: 6}}>
+                <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): Stripe si disabilita, la delega va riconferita, i POS vanno comunicati di nuovo. <span style={{color: PN.MUTED}}>Resta la stessa persona?</span>
+              </div>
+              <div style={{display:'grid', gridTemplateColumns: stessa === false ? '1fr 1fr 1.4fr' : '1fr 1fr', gap: 8, alignItems:'stretch'}}>
+                {tile(stessa === true, 'Sì, resto io', 'Cambia solo il soggetto: la delega va riconferita per il nuovo contribuente.', () => setStessa(true))}
+                {tile(stessa === false, 'No, cambia anche la persona', 'È una cessione: chi entra accetta con la sua casella e riconferisce la delega.', () => setStessa(false))}
+                {stessa === false && (
+                  <div style={{display:'flex', flexDirection:'column', gap: 6, minWidth: 0}}>
+                    <input value={entNome} onChange={e => setEntNome(e.target.value)} placeholder="Chi entra" style={INP}/>
+                    <input type="email" value={entEmail} onChange={e => setEntEmail(e.target.value)} placeholder="La sua casella di posta" style={INP}/>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         {chiedi && (
           <div onClick={() => setChiedi(false)} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.38)', display:'grid', placeItems:'center', zIndex: 5, borderRadius: 'inherit', padding: 20}}>
             <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 520, padding: '22px 24px', boxShadow: '0 24px 60px rgba(0,0,0,0.28)'}}>
               <div style={{fontSize: 21, fontWeight: 800, letterSpacing: -0.4, color: PN.TEXT}}>Sicuro?</div>
               <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.55, marginTop: 8}}>
-                Il tuo collegamento a Stripe viene disabilitato e anche le deleghe dovranno essere rifatte: finché non le rifai non potrai emettere scontrini né ricevere pagamenti.
+                Il tuo collegamento a Stripe viene disabilitato e anche le deleghe dovranno essere rifatte: finché non le rifai non potrai emettere scontrini né ricevere pagamenti. Anche i POS andranno comunicati di nuovo all'Agenzia dal nuovo soggetto.
               </div>
               <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 6}}>
                 L'account Stripe è intestato a {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione}: il nuovo soggetto ne apre uno suo, con la verifica di Stripe, da POS e integrazioni.
@@ -808,7 +873,7 @@ function ImpDelegaRiconfermaModal({ onClose }) {
 // Stripe, dove il nuovo soggetto apre il suo account — la verifica
 // dell'identità è quella (byupStripeRicollega segna verified). Il foglio
 // della delega si apre sopra, e questo resta sotto ad aggiornarsi.
-function ImpDopoSoggettoModal({ onClose, onDelega }) {
+function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
   const [, forza] = React.useState(0);
   const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
   const [ricollegando, setRicollegando] = React.useState(false);
@@ -817,7 +882,8 @@ function ImpDopoSoggettoModal({ onClose, onDelega }) {
     const rs = () => setStripe(byupReadStripe());
     window.addEventListener('byup-holder-change', ri);
     window.addEventListener('byup-stripe-change', rs);
-    return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-stripe-change', rs); };
+    window.addEventListener('byup-pos-censimento', ri);
+    return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-stripe-change', rs); window.removeEventListener('byup-pos-censimento', ri); };
   }, []);
   const c = window.byupReadHolderChange ? byupReadHolderChange() : null;
   const inCorso = c && c.soggetto && c.status !== 'refused';
@@ -833,6 +899,10 @@ function ImpDopoSoggettoModal({ onClose, onDelega }) {
   const attesaAccettazione = c.change_type === 'both' && !c.steps.accepted;
   const delegaOk = !!c.steps.delegations_renewed;
   const stripeOk = stripe.status === 'connected' && !!c.steps.verified;
+  // Il censimento dei POS non è una tappa del modello ma è dovuto lo stesso:
+  // il nuovo esercente comunica di nuovo i suoi strumenti (P-105).
+  const posLista = window.byupReadPosCensimento ? byupReadPosCensimento() : [];
+  const posOk = posLista.every(r => r.fiscal_link_status === 'linked');
   const concluso = c.status === 'completed';
   const riga = (titolo, sotto, ok, azione) => (
     <div style={{display:'flex', alignItems:'center', gap: 12, padding:'12px 14px', borderRadius: 10, border:`1px solid ${ok ? PN.GREEN_SOFT : PN.BORDER_SOFT}`, background: ok ? PN.GREEN_SOFT : PN.WHITE}}>
@@ -848,9 +918,9 @@ function ImpDopoSoggettoModal({ onClose, onDelega }) {
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
       <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
-          <div style={{...MODAL_TITLE, fontSize: 21}}>Delega e Stripe</div>
+          <div style={{...MODAL_TITLE, fontSize: 21}}>Delega, Stripe e POS</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
-            Il soggetto fiscale è cambiato: da {c.soggetto.prima.denominazione} ({c.soggetto.prima.piva}) a {c.soggetto.dopo.denominazione} ({c.soggetto.dopo.piva}), con la P.IVA precedente conservata sui documenti già emessi. Restano due cose da rifare.
+            Il soggetto fiscale è cambiato: da {c.soggetto.prima.denominazione} ({c.soggetto.prima.piva}) a {c.soggetto.dopo.denominazione} ({c.soggetto.dopo.piva}), con la P.IVA precedente conservata sui documenti già emessi. Restano tre cose da rifare.
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
@@ -864,7 +934,9 @@ function ImpDopoSoggettoModal({ onClose, onDelega }) {
             <ImpButton variant="primary" disabled={attesaAccettazione} onClick={onDelega}>Riconferisci la delega</ImpButton>)}
           {riga('Stripe', 'Il nuovo soggetto apre il suo account: la verifica dell\'identità la fa Stripe. Finché manca, niente pagamenti.', stripeOk,
             <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>)}
-          {concluso && <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700}}>Cambiamento concluso.</div>}
+          {riga('POS all\'Agenzia', `Il nuovo soggetto comunica di nuovo i suoi strumenti dal proprio accesso al portale: ${posLista.filter(r => r.fiscal_link_status !== 'linked').length || 'nessuno'} da aggiornare. Il foglio precompilato è qui sotto.`, posOk,
+            <ImpButton variant="primary" disabled={attesaAccettazione} onClick={() => { onClose(); onPos(); }}>Vai al collegamento POS</ImpButton>)}
+          {concluso && <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700}}>Cambiamento concluso{posOk ? '.' : ': resta il collegamento dei POS.'}</div>}
         </div>
         <div style={{...MODAL_FOOT, padding: '12px 24px', justifyContent:'flex-end'}}>
           <ImpButton variant="ghost" onClick={onClose}>{concluso ? 'Chiudi' : 'Più tardi'}</ImpButton>
@@ -1082,7 +1154,8 @@ function ImpDatiFiscali() {
         <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica} onDopo={() => setDopoOpen(true)}
           onSalva={(campi) => setData(d => ({ ...d, ...campi }))}/>
       )}
-      {dopoOpen && <ImpDopoSoggettoModal onClose={() => setDopoOpen(false)} onDelega={() => setDelegaOpen(true)}/>}
+      {dopoOpen && <ImpDopoSoggettoModal onClose={() => setDopoOpen(false)} onDelega={() => setDelegaOpen(true)}
+        onPos={() => setTimeout(() => { const el = window.impAccendiSezione && window.impAccendiSezione('pos-censimento'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 120)}/>}
       {delegaOpen && <ImpDelegaRiconfermaModal onClose={() => setDelegaOpen(false)}/>}
 
       {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
@@ -1165,97 +1238,44 @@ function ImpDatiFiscali() {
 
           <ImpCard
             title="Dati fatturazione"
-            sub="Informazioni fiscali e amministrative. Utili anche se collegherai un servizio esterno (es. Aruba)"
+            sub="Del soggetto fiscale, in sola lettura: cambiano con lui, dal foglio in Dati anagrafici"
           >
-            {/* Niente più Ragione sociale né ATECO qui: stavano già nella
-                card anagrafica, e due campi per lo stesso dato sono due
-                occasioni di divergere. La fonte è una. */}
-
-            {/* La parte di registro imprese esiste solo per società ed enti:
-                la persona fisica non ha né REA né capitale, e chieder-
-                glieli era esattamente il difetto di P-86. Per l'ente REA e
-                CCIAA restano ma facoltativi; capitale e socio unico sono
-                solo delle società. */}
+            {/* Tutto in sola lettura, come i dati anagrafici: sono dati del
+                SOGGETTO — REA e camera di commercio la sua iscrizione, PEC e
+                SDI il suo recapito, la sede legale la sua — e si modificano
+                insieme, dal foglio «Cambia soggetto fiscale» qui accanto.
+                La parte di registro imprese esiste solo per società ed enti
+                (P-86); per la persona la sede legale è il domicilio fiscale. */}
             {!persona && (
               <React.Fragment>
-                <div style={{
-                  fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
-                  marginTop: 4, marginBottom: 10,
-                }}>Camera di Commercio</div>
+                <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: 4, marginBottom: 10}}>Camera di Commercio</div>
                 <div style={{display:'grid', gridTemplateColumns: societa ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14}}>
-                  <ImpField label="Numero REA" hint={ente ? 'Facoltativo: solo se l\'ente è a registro imprese' : undefined}>
-                    <ImpInput value={data.rea} onChange={e => set('rea', e.target.value)}/>
-                  </ImpField>
-                  <ImpField label="CCIAA" hint={ente ? 'Facoltativa' : undefined}>
-                    <ImpInput value={data.cciaa} onChange={e => set('cciaa', e.target.value)}/>
-                  </ImpField>
-                  {societa && (
-                    <ImpField label="Capitale sociale (€)" hint="Solo società di capitali">
-                      <ImpInput value={data.capitaleSociale} onChange={e => set('capitaleSociale', e.target.value)}/>
-                    </ImpField>
-                  )}
+                  <ImpCampoBloccato label="Numero REA" value={data.rea} hint={ente ? 'Facoltativo: solo se l\'ente è a registro imprese' : undefined}/>
+                  <ImpCampoBloccato label="CCIAA" value={data.cciaa} hint={ente ? 'Facoltativa' : undefined}/>
+                  {societa && <ImpCampoBloccato label="Capitale sociale (€)" value={data.capitaleSociale} hint="Solo società di capitali"/>}
                 </div>
-                <div style={{display:'flex', gap: 18, marginTop: 10}}>
-                  {societa && (
-                    <label style={{display:'inline-flex', alignItems:'center', gap: 8, cursor:'pointer', fontSize: 14.5}}>
-                      <input type="checkbox" checked={data.socioUnico} onChange={e => set('socioUnico', e.target.checked)} style={{accentColor: PN.PINK, width: 14, height: 14}}/>
-                      Socio unico
-                    </label>
-                  )}
-                  <label style={{display:'inline-flex', alignItems:'center', gap: 8, cursor:'pointer', fontSize: 14.5}}>
-                    <input type="checkbox" checked={data.inLiquidazione} onChange={e => set('inLiquidazione', e.target.checked)} style={{accentColor: PN.PINK, width: 14, height: 14}}/>
-                    In liquidazione
-                  </label>
+                <div style={{display:'flex', gap: 18, marginTop: 2, marginBottom: 6, fontSize: 14, color: PN.MUTED}}>
+                  {societa && <span>{data.socioUnico ? '☑' : '☐'} Socio unico</span>}
+                  <span>{data.inLiquidazione ? '☑' : '☐'} In liquidazione</span>
                 </div>
               </React.Fragment>
             )}
-
-            <div style={{
-              fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
-              marginTop: persona ? 4 : 22, marginBottom: 10,
-            }}>SDI e fatturazione elettronica</div>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: persona ? 4 : 18, marginBottom: 10}}>SDI e fatturazione elettronica</div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-              <ImpField label="Codice Destinatario SDI">
-                <ImpInput value={data.sdi} onChange={e => set('sdi', e.target.value)} style={{fontFamily:'ui-monospace, monospace', letterSpacing: 0.5}}/>
-              </ImpField>
-              <ImpField label="PEC per invio SDI">
-                <ImpInput value={data.pec} onChange={e => set('pec', e.target.value)}/>
-              </ImpField>
+              <ImpCampoBloccato label="Codice Destinatario SDI" value={data.sdi}/>
+              <ImpCampoBloccato label="PEC per invio SDI" value={data.pec}/>
             </div>
-
-            {/* Per la persona fisica la "sede legale" non esiste: il suo
-                equivalente è il domicilio fiscale. Stessi campi, nome giusto. */}
-            <div style={{
-              fontSize: 15.5, fontWeight: 700, color: PN.TEXT,
-              marginTop: 22, marginBottom: 10,
-            }}>{persona ? 'Domicilio fiscale' : 'Sede legale'}</div>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: 18, marginBottom: 10}}>{persona ? 'Domicilio fiscale' : 'Sede legale'}</div>
             <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
-              <ImpField label="Indirizzo e civico">
-                <ImpInput value={data.sedeIndirizzo} onChange={e => set('sedeIndirizzo', e.target.value)}/>
-              </ImpField>
-              <ImpField label="CAP">
-                <ImpInput value={data.sedeCap} onChange={e => set('sedeCap', e.target.value)}/>
-              </ImpField>
+              <ImpCampoBloccato label="Indirizzo e civico" value={data.sedeIndirizzo}/>
+              <ImpCampoBloccato label="CAP" value={data.sedeCap}/>
             </div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 14, marginTop: 4}}>
-              <ImpField label="Città">
-                <ImpInput value={data.sedeCitta} onChange={e => set('sedeCitta', e.target.value)}/>
-              </ImpField>
-              <ImpField label="Provincia">
-                <ImpInput value={data.sedeProv} onChange={e => set('sedeProv', e.target.value)}/>
-              </ImpField>
-              <ImpField label="Nazione">
-                <select value={data.sedeNazione} onChange={e => set('sedeNazione', e.target.value)} style={{
-                  width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                  borderRadius:9, fontSize:15.5, background:PN.WHITE, fontFamily:'inherit',
-                }}>
-                  <option value="IT">Italia (IT)</option>
-                  <option value="SM">San Marino (SM)</option>
-                  <option value="VA">Città del Vaticano (VA)</option>
-                </select>
-              </ImpField>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap: 14}}>
+              <ImpCampoBloccato label="Città" value={data.sedeCitta}/>
+              <ImpCampoBloccato label="Provincia" value={data.sedeProv}/>
+              <ImpCampoBloccato label="Nazione" value={({ IT: 'Italia (IT)', SM: 'San Marino (SM)', VA: 'Città del Vaticano (VA)' })[data.sedeNazione] || data.sedeNazione}/>
             </div>
-
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 4}}>Sono dati del soggetto fiscale: si modificano dal foglio «Cambia soggetto fiscale», in Dati anagrafici.</div>
           </ImpCard>
 
           {/* ─── Accredito degli incassi (P-87 · D-80, PAG-01) ──────────────
