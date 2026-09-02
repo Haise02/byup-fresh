@@ -156,10 +156,13 @@ function ContEsibizione({ onClose }) {
   );
 
   return (
-    <div style={{position:'fixed', inset: 0, zIndex: 900, background: C.SURF, display:'flex', flexDirection:'column'}}>
+    // Un popup sopra la Contabilità, non una schermata a parte: testata
+    // fissa, corpo che scorre, la pagina sotto resta dov'era.
+    <div onClick={onClose} style={{position:'fixed', inset: 0, zIndex: 900, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', padding: 20}}>
+      <div onClick={e => e.stopPropagation()} style={{width:'min(1120px, 100%)', maxHeight:'92vh', background: C.SURF, borderRadius: 18, overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 30px 80px rgba(0,0,0,0.32)'}}>
       {/* Testata: sede, finestra, uscita. Tutto quello che il verificatore
           chiede per primo sta qui, prima dell'elenco. */}
-      <div style={{padding:'18px 28px 14px', background: PN.WHITE, borderBottom:`1px solid ${PN.BORDER}`, display:'flex', alignItems:'flex-start', gap: 16, flexWrap:'wrap'}}>
+      <div style={{padding:'18px 28px 14px', background: PN.WHITE, borderBottom:`1px solid ${PN.BORDER}`, display:'flex', alignItems:'flex-start', gap: 16, flexWrap:'wrap', flexShrink: 0}}>
         <div style={{flex: 1, minWidth: 280}}>
           <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform:'uppercase'}}>Verifica fiscale · perimetro certificato</div>
           <div style={{fontSize: 22, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.4, marginTop: 2}}>Esibizione dei documenti</div>
@@ -173,7 +176,7 @@ function ContEsibizione({ onClose }) {
         <div style={{display:'flex', gap: 8, flexWrap:'wrap', alignItems:'center'}}>
           {btn('Scarica CSV', () => esibScarica(`Byup-esibizione-${esibIso(adesso).slice(0,10)}.csv`, esibCsv(tutti, sede, adesso), 'text/csv'))}
           {btn('Prospetto stampabile', () => esibScarica(`Byup-esibizione-${esibIso(adesso).slice(0,10)}.html`, esibProspettoHtml(tutti, sede, adesso, da), 'text/html'))}
-          {btn('Torna alla Contabilità', onClose, true)}
+          {btn('Chiudi', onClose, true)}
         </div>
       </div>
 
@@ -242,6 +245,7 @@ function ContEsibizione({ onClose }) {
         </div>
 
         <div style={{fontSize: C.T_XS, color: PN.MUTED_SOFT}}>{ESIB_CHIUSURA(esibIso(adesso))}</div>
+      </div>
       </div>
 
       {aperto && <EsibizioneScheda doc={aperto} sede={sede} onClose={() => setAperto(null)}/>}
