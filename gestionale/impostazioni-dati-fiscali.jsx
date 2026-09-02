@@ -221,6 +221,54 @@ const STATI_NASCITA = [
   ['UA','Ucraina'], ['DE','Germania'], ['FR','Francia'], ['ES','Spagna'],
 ];
 
+// ─── Il banner del cambio di titolarità (P-62 · D-52) ──────────────────────
+// Legge il registro condiviso (byup_holder_change, panoramica-tokens.jsx).
+// Se c'è un cambiamento con catena fiscale e identità verificata, chiede di
+// aggiornare i dati fiscali; segnando la tappa la P.IVA precedente si
+// CONSERVA accanto alla nuova, mai sovrascritta: i documenti già emessi la
+// portano e devono restare leggibili. Per holder_person cambia solo il
+// legale rappresentante, il soggetto resta. Coda registrata: la P.IVA di
+// fatturazione dell'account (ACC_DATI) non si aggiorna da qui.
+function ImpCambioTitolaritaBanner({ onAggiorna }) {
+  const [cambio, setCambio] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
+  React.useEffect(() => {
+    const ri = () => setCambio(byupReadHolderChange());
+    window.addEventListener('byup-holder-change', ri);
+    return () => window.removeEventListener('byup-holder-change', ri);
+  }, []);
+  if (!cambio || !cambio.fiscal_chain_impacted || cambio.status === 'refused') return null;
+  const fatta = !!cambio.steps.fiscal_updated;
+  const pronta = !!cambio.steps.verified && !fatta;
+  const conSoggetto = !!cambio.soggetto;
+  const segna = () => { if (conSoggetto) onAggiorna(cambio.soggetto.dopo); byupHolderAvanza('fiscal_updated'); };
+  return (
+    <ImpCard title="Cambio di titolarità in corso" sub={conSoggetto
+      ? `Da ${cambio.soggetto.prima.denominazione} (${cambio.soggetto.prima.piva}) a ${cambio.soggetto.dopo.denominazione} (${cambio.soggetto.dopo.piva})`
+      : `Cambia il legale rappresentante: da Mario Rossi a ${cambio.entrante.nome}. Il soggetto fiscale resta.`}
+      style={{marginBottom: 18, borderColor: fatta ? PN.GREEN_SOFT : '#FCD34D'}}>
+      {fatta ? (
+        <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+          <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b>
+          {conSoggetto && <> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili.</>}
+          {' '}<a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Torna all'Account</a> per le deleghe.
+        </div>
+      ) : pronta ? (
+        <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
+          <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+            {conSoggetto
+              ? 'Compila i dati del nuovo soggetto qui sotto. La partita IVA di oggi non si cancella: resta come precedente.'
+              : 'Aggiorna i dati del legale rappresentante qui sotto.'}
+            {' '}Nel prototipo il pulsante li compila con il mock e segna la tappa.
+          </div>
+          <ImpButton variant="primary" onClick={segna}>Segna i dati fiscali come aggiornati</ImpButton>
+        </div>
+      ) : (
+        <div style={{fontSize: 14.5, color: PN.MUTED}}>Prima serve la verifica dell'identità in Account: poi si aggiornano i dati qui.</div>
+      )}
+    </ImpCard>
+  );
+}
+
 function ImpDatiFiscali() {
   const [data, setData] = React.useState({
     // Anagrafica — il mock è una società: i campi del titolare qui sotto si
@@ -315,6 +363,10 @@ function ImpDatiFiscali() {
           </div>
         </div>
       )}
+
+      {/* Cambio di titolarità in corso (P-62): la tappa fiscal_updated si fa
+          qui e torna in Account come fatta. */}
+      <ImpCambioTitolaritaBanner onAggiorna={(nuovo) => setData(d => ({ ...d, ragione: nuovo.denominazione, pivaPrecedente: d.piva, piva: nuovo.piva }))}/>
 
       {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
           verifica all'inserimento — il perché e il come stanno nel commento

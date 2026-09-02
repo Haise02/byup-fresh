@@ -29,7 +29,10 @@ const ROLES = [
   {
     id: 'titolare',
     label: 'Titolare',
-    desc: 'Vede tutto · uno solo, è chi ha creato il gestionale',
+    // D-57: uno solo per volta, e cambia solo dal percorso di titolarità in
+    // Account (P-62); non «chi ha creato il gestionale», che dopo un
+    // avvicendamento non è più vero.
+    desc: 'Vede tutto · è uno solo per volta; cambia soltanto attraverso il percorso di titolarità in Account',
     // Teal, che è l'unica famiglia libera di questa pagina: il rosso è di
     // Cameriere e Cassa, il blu della cassa e delle stampanti, lo slate dei
     // dispositivi, il verde dello stato, il viola dei ruoli personalizzati e
@@ -664,7 +667,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
           // cade dove cade il menu invece di penzolare più piccolo e più in su.
           // Icona e non emoji: l'emoji cambia disegno da un sistema all'altro e
           // qui dentro era l'unica cosa colorata di giallo.
-          <span title="Il titolare non si modifica" style={{
+          <span title="Il titolare cambia solo dal percorso di titolarità in Account" style={{
             width: 32, height: 32, borderRadius: 8,
             display:'grid', placeItems:'center', color: PN.MUTED,
           }}>{BuIcons.lock({size: 17, color:'currentColor'})}</span>

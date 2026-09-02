@@ -724,3 +724,80 @@ window.pnChiusuraTesto = (c) => {
     : `Chiuso dal ${window.pnGiornoBreve(c.starts_on)} al ${window.pnGiornoBreve(c.ends_on)}`) + motivo;
 };
 window.pnOggiISO = pnOggiISO;
+
+// ─── Cambio di titolarità (P-62 · D-52, restaurant_holder_changes) ──────────
+// Quattro casi, change_type: contact_data (casella o recapiti della stessa
+// persona, soggetto fiscale invariato), holder_person (cambia la persona
+// fisica, il legale rappresentante che si avvicenda), legal_entity (cambia il
+// soggetto fiscale — partita IVA o forma giuridica — e la persona può restare
+// la stessa), both (cessione d'attività). fiscal_chain_impacted NON è una
+// scelta: si ricava da change_type — la delega è conferita da una PERSONA
+// FISICA per conto di un CONTRIBUENTE, quindi va rifatta se cambia l'una
+// oppure l'altro, e non va toccata se cambia soltanto la casella di posta. La
+// domanda non è chi è cambiato, ma se cambia ciò che l'Agenzia conosce.
+// Stati: proposed → accepted (dalla persona entrante, quando c'è) → verified →
+// fiscal_updated → delegations_renewed → completed, più refused ed expired;
+// gli stati che non si applicano al tipo si saltano. La partita IVA
+// precedente si conserva, mai sovrascritta: i documenti già emessi la portano
+// e devono restare leggibili. Invarianti di D-57: il titolare è uno solo per
+// volta e cambia soltanto per questa via; l'assistenza non ha alcuna via per
+// sostituirlo. Il cambiamento è del RISTORANTE, non della singola sede.
+// Registro in localStorage (byup_holder_change): Account lo apre, Dati
+// fiscali e la card della delega scrivono la loro tappa, Account lo rilegge.
+const PN_HOLDER_KEY = 'byup_holder_change';
+const PN_HOLDER_TIPI = [
+  { id: 'contact_data',  chain: false, label: 'Solo i miei recapiti',
+    sub: 'Stessa persona, stesso soggetto fiscale: cambiano la casella di posta o il telefono.' },
+  { id: 'holder_person', chain: true,  label: 'Cambia la persona, il soggetto fiscale resta',
+    sub: 'Il legale rappresentante si avvicenda: chi entra prende il posto di chi esce.' },
+  { id: 'legal_entity',  chain: true,  label: 'Cambia il soggetto fiscale, la persona resta',
+    sub: 'Partita IVA o forma giuridica nuove: la ditta che diventa società, la S.r.l. che si trasforma.' },
+  { id: 'both',          chain: true,  label: 'Cessione dell\'attività',
+    sub: 'Cambiano insieme la persona e il soggetto fiscale.' },
+];
+const PN_HOLDER_STATI = [
+  { id: 'proposed',            label: 'Proposto' },
+  { id: 'accepted',            label: 'Accettato da chi entra' },
+  { id: 'verified',            label: 'Identità verificata' },
+  { id: 'fiscal_updated',      label: 'Dati fiscali aggiornati' },
+  { id: 'delegations_renewed', label: 'Deleghe riconferite e revocate' },
+  { id: 'completed',           label: 'Concluso' },
+];
+// Le tappe che si applicano al tipo; le altre si saltano, e il perché lo dice
+// pnHolderSalto.
+const pnHolderTappe = (tipo) => ({
+  contact_data:  ['proposed', 'verified', 'completed'],
+  holder_person: ['proposed', 'accepted', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
+  legal_entity:  ['proposed', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
+  both:          ['proposed', 'accepted', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
+})[tipo] || ['proposed', 'verified', 'completed'];
+const pnHolderSalto = (tipo, stato) => {
+  if (stato === 'accepted') return 'Non serve: nessuna persona entrante, la persona resta la stessa.';
+  return 'Non serve: l\'Agenzia non conosce la tua casella di posta.';
+};
+window.PN_HOLDER_TIPI = PN_HOLDER_TIPI;
+window.PN_HOLDER_STATI = PN_HOLDER_STATI;
+window.pnHolderTappe = pnHolderTappe;
+window.pnHolderSalto = pnHolderSalto;
+window.byupReadHolderChange = function () {
+  try { const s = localStorage.getItem(PN_HOLDER_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+};
+window.byupWriteHolderChange = function (c) {
+  try { if (c) localStorage.setItem(PN_HOLDER_KEY, JSON.stringify(c)); else localStorage.removeItem(PN_HOLDER_KEY); } catch (e) {}
+  window.dispatchEvent(new Event('byup-holder-change'));
+};
+// Segna una tappa. Quando le tappe fiscali sono tutte fatte il cambiamento
+// si conclude da solo: «finché le due cose non sono fatte non è concluso», e
+// appena lo sono, lo è.
+window.byupHolderAvanza = function (stato) {
+  const c = window.byupReadHolderChange(); if (!c) return null;
+  c.steps[stato] = new Date().toISOString();
+  c.status = stato;
+  const tappe = pnHolderTappe(c.change_type);
+  if (tappe.filter(t => t !== 'completed').every(t => c.steps[t])) {
+    c.steps.completed = c.steps.completed || new Date().toISOString();
+    c.status = 'completed';
+  }
+  window.byupWriteHolderChange(c);
+  return c;
+};
