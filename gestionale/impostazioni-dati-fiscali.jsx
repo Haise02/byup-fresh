@@ -946,6 +946,52 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
   );
 }
 
+
+// ─── La riga del soggetto fiscale, in cima alla pagina ─────────────────────
+// Chi è il soggetto adesso, e l'unico gesto che lo cambia: «Cambia soggetto
+// fiscale», qui a destra e in nessun altro posto. Con un cambiamento in
+// corso la riga dice cosa resta e lo stesso pulsante apre «Delega, Stripe e
+// POS» invece del foglio dei dati.
+function ImpSoggettoRiga({ data, onCambia }) {
+  const [c, setC] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
+  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
+  React.useEffect(() => {
+    const ri = () => setC(byupReadHolderChange());
+    const rs = () => setStripe(byupReadStripe());
+    window.addEventListener('byup-holder-change', ri);
+    window.addEventListener('byup-stripe-change', rs);
+    return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-stripe-change', rs); };
+  }, []);
+  const persona = data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista';
+  const nome = persona ? `${data.ownerNome} ${data.ownerCognome}`.trim() : data.ragione;
+  const inCorso = !!(c && c.soggetto && c.status !== 'refused' && c.status !== 'completed');
+  const resta = inCorso ? [
+    !c.steps.delegations_renewed && 'la delega',
+    !(stripe.status === 'connected' && c.steps.verified) && 'Stripe',
+  ].filter(Boolean) : [];
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap',
+      padding: '12px 18px', marginBottom: 18, borderRadius: 12,
+      background: inCorso ? PN.AMBER_SOFT : PN.WHITE, border: `1.5px solid ${inCorso ? '#FCD34D' : PN.BORDER_SOFT}`,
+    }}>
+      <div style={{flex: 1, minWidth: 260}}>
+        <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>Soggetto fiscale</div>
+        <div style={{fontSize: 15.5, color: PN.TEXT, marginTop: 2}}>
+          <b>{nome || '—'}</b> · P.IVA {data.piva || '—'}
+          {data.pivaPrecedente && <span style={{color: PN.MUTED}}> · precedente {data.pivaPrecedente}, conservata sui documenti già emessi</span>}
+        </div>
+        {inCorso && (
+          <div style={{fontSize: 13.5, color: PN.AMBER, fontWeight: 600, marginTop: 2}}>
+            Cambio in corso{resta.length ? `: restano ${resta.join(' e ')}` : ''}{!c.steps.delegations_renewed ? ' · niente scontrini finché manca la delega' : ''}{!(stripe.status === 'connected' && c.steps.verified) ? ' · niente pagamenti finché manca Stripe' : ''}
+          </div>
+        )}
+      </div>
+      <ImpButton variant="primary" onClick={onCambia}>{inCorso ? 'Delega, Stripe e POS' : 'Cambia soggetto fiscale'}</ImpButton>
+    </div>
+  );
+}
+
 // Il banner del cambiamento in corso. Per il soggetto rimanda al foglio, dove
 // si fanno le tappe; per la persona la tappa dei dati segue la forma: si fa
 // sui campi del titolare (ditta individuale, professionista) o è saltata
@@ -962,8 +1008,9 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica, onDelega }) {
   const tappe = pnHolderTappe(cambio.change_type, cambio.legal_form);
   const serveDati = tappe.includes('fiscal_updated');
   // Cambio di persona in una società o un ente: qui non c'è niente da fare,
-  // quindi niente banner — la tappa saltata si legge in Account.
-  if (!conSoggetto && !serveDati) return null;
+  // quindi niente banner — la tappa saltata si legge in Account. Il cambio di
+  // SOGGETTO lo racconta la riga in cima (ImpSoggettoRiga), non un banner.
+  if (conSoggetto || !serveDati) return null;
   const fatta = !!cambio.steps.fiscal_updated;
   const pronta = !!cambio.steps.verified && !fatta;
   const segna = () => { onApplica(cambio); byupHolderAvanza('fiscal_updated'); onDelega(); };
@@ -1149,6 +1196,7 @@ function ImpDatiFiscali() {
 
       {/* Cambio di titolarità in corso (P-62): la tappa fiscal_updated si fa
           qui e torna in Account come fatta. */}
+      <ImpSoggettoRiga data={data} onCambia={() => soggettoInCorso() ? setDopoOpen(true) : setSoggettoOpen(true)}/>
       <ImpCambioTitolaritaBanner onApriFoglio={() => setDopoOpen(true)} onApplica={applica} onDelega={() => setDelegaOpen(true)}/>
       {soggettoOpen && (
         <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica} onDopo={() => setDopoOpen(true)}
@@ -1184,7 +1232,7 @@ function ImpDatiFiscali() {
                 lasciava cambiare la P.IVA come se fosse un'insegna. Il foglio
                 distingue da solo: se cambiano P.IVA o forma è un cambio di
                 soggetto fiscale (P-62 · D-52), altrimenti un salvataggio. */}
-            <ImpCard title="Dati anagrafici" sub="La forma giuridica decide quali dati fiscali esistono; si modificano tutti insieme, dal foglio" style={{marginBottom: 0, height: '100%', display:'flex', flexDirection:'column'}}>
+            <ImpCard title="Dati anagrafici" sub="La forma giuridica decide quali dati fiscali esistono; si modificano tutti insieme, da «Cambia soggetto fiscale» in cima" style={{marginBottom: 0, height: '100%'}}>
               <ImpCampoBloccato label="Forma giuridica" value={(FORME_GIURIDICHE.find(f => f.id === data.legalForm) || {}).label}/>
               {persona ? (
                 <React.Fragment>
@@ -1212,9 +1260,6 @@ function ImpDatiFiscali() {
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
                 <ImpCampoBloccato label="Regime fiscale" value={data.regime}/>
                 <ImpCampoBloccato label="Codice ATECO" value={data.ateco}/>
-              </div>
-              <div style={{marginTop:'auto', paddingTop: 4}}>
-                <ImpButton variant="primary" onClick={() => soggettoInCorso() ? setDopoOpen(true) : setSoggettoOpen(true)} style={{width:'100%', justifyContent:'center'}}>Cambia soggetto fiscale</ImpButton>
               </div>
             </ImpCard>
 
@@ -1275,7 +1320,7 @@ function ImpDatiFiscali() {
               <ImpCampoBloccato label="Provincia" value={data.sedeProv}/>
               <ImpCampoBloccato label="Nazione" value={({ IT: 'Italia (IT)', SM: 'San Marino (SM)', VA: 'Città del Vaticano (VA)' })[data.sedeNazione] || data.sedeNazione}/>
             </div>
-            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 4}}>Sono dati del soggetto fiscale: si modificano dal foglio «Cambia soggetto fiscale», in Dati anagrafici.</div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 4}}>Sono dati del soggetto fiscale: si modificano da «Cambia soggetto fiscale», in cima alla pagina.</div>
           </ImpCard>
 
           {/* ─── Accredito degli incassi (P-87 · D-80, PAG-01) ──────────────
