@@ -7,7 +7,9 @@
 // Hero illustration sala vista dall'alto, accent color cycling per ogni sala,
 // table dots con numero, counter animato, micro-copy posti.
 
-function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
+// `catena`: la sede in più di una catena (Account → Aggiungi un locale):
+// stesso copy, ma niente banner del menù in elaborazione — il menù lo eredita.
+function Step3SaleTavoli({rooms, setRooms, onNext, onBack, catena}) {
   const totalTables = rooms.reduce((sum, r) => sum + r.tables, 0);
 
   // Modalità di servizio — nessuna preselezione: finché l'utente non sceglie,
@@ -75,7 +77,7 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
             fontSize: 40, fontWeight: 600, lineHeight: 1.15,
             letterSpacing: '-0.025em', margin: '0 0 16px', color: ONB.TEXT,
           }}>
-            {mode === 'tavoli' ? 'Crea sale, tavoli e QR Code.' : 'Come lavora il tuo locale?'}
+            {mode === 'tavoli' ? (catena ? `Le sale e i tavoli di ${catena.nome}.` : 'Crea sale, tavoli e QR Code.') : (catena ? `Come lavora ${catena.nome}?` : 'Come lavora il tuo locale?')}
           </h1>
           <p style={{
             fontSize: 18, fontWeight: 400, lineHeight: 1.5,
@@ -86,11 +88,16 @@ function Step3SaleTavoli({rooms, setRooms, onNext, onBack}) {
                   Verrà generato un QR Code per ogni tavolo, stampali e applicali!</>
               : <>Scegli la modalità più adatta al tuo servizio: potrai cambiarla in qualsiasi momento dalle Impostazioni.</>}
           </p>
+          {catena && (
+            <p style={{fontSize: 15, lineHeight: 1.5, color: ONB.MUTED, margin: '-8px 0 24px', maxWidth: 460}}>
+              La sede eredita dalla catena il soggetto fiscale, il conto Stripe, il menù e la delega all'Agenzia: qui si impostano solo le sale, poi si passa alla configurazione completa.
+            </p>
+          )}
 
           {/* Planimetria astratta — decorativa, chiude la colonna di testo */}
           <SalaHeroIllustration/>
 
-          <ProcessingBanner inline/>
+          {!catena && <ProcessingBanner inline/>}
         </div>
 
         {/* ─── Colonna destra — scelte e configurazione ───────────────── */}

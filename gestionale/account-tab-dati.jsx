@@ -93,7 +93,9 @@ function AccDatiGenerali() {
     }]);
     setAddOpen(false);
     if (window.byupWriteLocale) byupWriteLocale({ id, nome });
-    window.location.href = 'byup Configurazione Completa.html?sede=catena';
+    // Prima le sale e i tavoli (il passo 3 dell'onboarding, da solo), poi la
+    // Configurazione completa.
+    window.location.href = `byup Restaurant Onboarding.html?sede=catena&nome=${encodeURIComponent(nome)}`;
   };
   const confermaDissocia = () => {
     const loc = dissocia;
@@ -899,7 +901,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
                 fontSize: 15, fontWeight: 700,
                 cursor: sedeOk ? 'pointer' : 'not-allowed', fontFamily:'inherit',
               }}>
-              Crea la sede e imposta la sala
+              Crea la sede e imposta le sale
             </button>
             <button
               onClick={() => setStep('scelta')}

@@ -24,9 +24,18 @@ const LOCALE_SUBSTEPS = [
   { id: 'pagamenti', label: 'Pagamenti' },
 ];
 
+// La sede della catena (Account → Aggiungi un locale → Catena): dell'onboarding
+// fa solo il passo delle sale e dei tavoli — menù, soggetto fiscale, Stripe e
+// delega sono del soggetto e li eredita — e da lì va dritta alla
+// Configurazione completa. ?sede=catena&nome=… lo dice.
+const ONB_CATENA = (() => {
+  try { const q = new URLSearchParams(window.location.search); return q.get('sede') === 'catena' ? { nome: q.get('nome') || 'La nuova sede' } : null; } catch (e) { return null; }
+})();
+
 function OnboardingApp() {
   // ?step=N per aprire direttamente uno step (demo e sviluppo)
   const [step, setStep] = React.useState(() => {
+    if (ONB_CATENA) return 3;
     try {
       const n = parseInt(new URLSearchParams(window.location.search).get('step'), 10);
       if (n >= 1 && n <= 4) return n;
@@ -123,8 +132,9 @@ function OnboardingApp() {
           {step === 3 && (
             <Step3SaleTavoli
               rooms={rooms} setRooms={setRooms}
-              onNext={() => setStep(4)}
-              onBack={() => { setStep(2); setSubStep('pagamenti'); }}
+              catena={ONB_CATENA}
+              onNext={() => { if (ONB_CATENA) window.location.href = 'byup Configurazione Completa.html?sede=catena'; else setStep(4); }}
+              onBack={() => { if (ONB_CATENA) window.location.href = 'byup Profilo.html'; else { setStep(2); setSubStep('pagamenti'); } }}
             />
           )}
 
@@ -183,9 +193,12 @@ function OnbHeader({step}) {
 }
 
 function Stepper({step}) {
+  // Per la sede della catena i passi sono due: le sale, poi la configurazione
+  // completa (che è un'altra pagina). Il resto è ereditato e non si mostra.
+  const passi = ONB_CATENA ? [{ id: 3, label: `Sale e tavoli · ${ONB_CATENA.nome}` }, { id: 4, label: 'Configurazione completa' }] : STEPS;
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 0}}>
-      {STEPS.map((s, i) => {
+      {passi.map((s, i) => {
         const done = s.id < step;
         const active = s.id === step;
         return (
@@ -209,7 +222,7 @@ function Stepper({step}) {
                 {s.label}
               </span>
             </div>
-            {i < STEPS.length - 1 && (
+            {i < passi.length - 1 && (
               <div style={{
                 width: 32, height: 1, margin: '0 16px',
                 background: s.id < step ? ONB.GREEN : 'rgba(15, 17, 21, 0.08)',
@@ -571,9 +584,9 @@ function StageNav({step, subStep, setStep, setSubStep, setProcessing}) {
 
   return (
     <div className="stage-controls">
-      <button onClick={goPrev} disabled={step === 1}>‹</button>
-      {stepLabel}
-      <button onClick={goNext} disabled={step === 4}>›</button>
+      <button onClick={goPrev} disabled={step === 1 || !!ONB_CATENA}>‹</button>
+      {ONB_CATENA ? 'Sede di catena' : stepLabel}
+      <button onClick={goNext} disabled={step === 4 || !!ONB_CATENA}>›</button>
     </div>
   );
 }
