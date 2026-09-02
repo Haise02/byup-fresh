@@ -1177,9 +1177,9 @@ window.AcBtnGhost = AcBtnGhost;
 // Il modello (restaurant_holder_changes) e le sue regole stanno nel commento
 // di PN_HOLDER_TIPI in panoramica-tokens.jsx. Qui: la riga di titolarità con
 // il gesto «Passa la titolarità a un'altra persona» (holder_person), e —
-// quando un cambiamento è in corso, da qui o da Dati fiscali — la timeline
-// delle sei tappe, tutte visibili, con quelle saltate in grigio e il loro
-// perché. Il soggetto fiscale si cambia in Dati fiscali, non qui. Il cambiamento è del ristorante (Cacio e Pepe con le sue
+// quando un cambiamento è in corso, da qui o da Dati fiscali — solo lo stato
+// e il rimando a Dati fiscali, dove si fanno dati, deleghe e Stripe. Le
+// tappe del modello restano nel registro, non a schermo. Il cambiamento è del ristorante (Cacio e Pepe con le sue
 // sedi), non della singola sede; per la Trattoria del Borgo, dove l'account
 // non è titolare, non c'è.
 const AC_TITOLARE = { persona: 'Mario Rossi', ruolo: 'legale rappresentante', soggetto: 'Cacio e Pepe S.r.l.', piva: 'IT12345678901', forma: 'societa' };
@@ -1193,7 +1193,6 @@ const acDataBreve = (iso) => iso ? new Date(iso).toLocaleDateString('it-IT', { d
 
 function AcTitolarita({ onPassa }) {
   const [cambio, setCambio] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
-  const [verificando, setVerificando] = React.useState(false);
   React.useEffect(() => {
     const ri = () => setCambio(byupReadHolderChange());
     window.addEventListener('byup-holder-change', ri);
@@ -1206,8 +1205,18 @@ function AcTitolarita({ onPassa }) {
   const concluso = cambio && cambio.status === 'completed';
   const rifiutato = cambio && cambio.status === 'refused';
 
-  const accetta = () => byupHolderAvanza('accepted');
-  const verifica = () => { setVerificando(true); setTimeout(() => { setVerificando(false); byupHolderAvanza('verified'); }, 1400); };
+  // L'accettazione e la verifica dell'identità sono gesti di chi entra, sul
+  // suo telefono: qui non c'è nulla da premere. Nel prototipo si simulano da
+  // sole, una dopo l'altra, appena l'invito è partito.
+  React.useEffect(() => {
+    if (!cambio || cambio.status === 'refused' || cambio.status === 'completed') return;
+    const tappe = pnHolderTappe(cambio.change_type, cambio.legal_form);
+    const prossima = tappe.find(t => !cambio.steps[t]);
+    if (prossima === 'accepted' || prossima === 'verified') {
+      const t = setTimeout(() => byupHolderAvanza(prossima), 2200);
+      return () => clearTimeout(t);
+    }
+  }, [cambio]);
   const annulla = () => { const c = byupReadHolderChange(); c.status = 'refused'; c.steps.refused = new Date().toISOString(); byupWriteHolderChange(c); };
   const chiudi = () => byupWriteHolderChange(null);
 
@@ -1216,32 +1225,6 @@ function AcTitolarita({ onPassa }) {
   // è ancora quello di prima.
   const persona = concluso && cambio.entrante ? cambio.entrante.nome : AC_TITOLARE.persona;
   const soggetto = concluso && cambio.soggetto ? cambio.soggetto.dopo : { denominazione: AC_TITOLARE.soggetto, piva: AC_TITOLARE.piva };
-
-  // Il gesto di ogni tappa quando tocca a lei: chi entra accetta (simulato e
-  // dichiarato), l'identità si verifica, i dati fiscali e le deleghe si fanno
-  // nelle loro schermate e tornano qui come tappa fatta.
-  const azione = (t) => {
-    const btn = (label, onClick, primario) => (
-      <button onClick={onClick} style={{
-        padding:'7px 13px', borderRadius: 999, fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-        background: primario ? PN.BTN_DARK : PN.WHITE, color: primario ? PN.WHITE : PN.TEXT,
-        border: primario ? '1px solid rgba(0,0,0,0.32)' : `1px solid ${PN.BORDER}`,
-      }}>{label}</button>
-    );
-    const link = (label, href) => (
-      <a href={href} style={{
-        padding:'7px 13px', borderRadius: 999, fontSize: 13.5, fontWeight: 600, fontFamily:'inherit', textDecoration:'none',
-        background: PN.BTN_DARK, color: PN.WHITE, border: '1px solid rgba(0,0,0,0.32)', display:'inline-block',
-      }}>{label}</a>
-    );
-    if (t === 'accepted') return btn(`Simula l'accettazione di ${cambio.entrante.nome} (demo)`, accetta, true);
-    if (t === 'verified') return verificando
-      ? <span style={{fontSize: 13.5, color: PN.MUTED}}>Verifica in corso…</span>
-      : btn('Verifica l\'identità', verifica, true);
-    if (t === 'fiscal_updated') return link('Apri Dati fiscali', `byup Impostazioni.html?page=fiscali&cambio=${cambio.id}`);
-    if (t === 'delegations_renewed') return link('Riconferisci la delega', `byup Impostazioni.html?page=fiscali&cambio=${cambio.id}&delega=1`);
-    return null;
-  };
 
   return (
     <div style={{marginTop: 18, paddingTop: 16, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
@@ -1279,56 +1262,27 @@ function AcTitolarita({ onPassa }) {
               padding:'5px 11px', borderRadius: 999, fontSize: 13, fontWeight: 700, whiteSpace:'nowrap',
               background: concluso ? PN.GREEN_SOFT : rifiutato ? '#F1F2F5' : PN.AMBER_SOFT,
               color: concluso ? PN.GREEN : rifiutato ? PN.MUTED : PN.AMBER,
-            }}>{concluso ? 'Concluso' : rifiutato ? 'Annullato' : 'Non concluso'}</span>
+            }}>{concluso ? 'Concluso' : rifiutato ? 'Annullato' : cambio.steps.verified ? 'In corso' : `In attesa di ${cambio.entrante ? cambio.entrante.nome : 'verifica'}`}</span>
           </div>
 
-          {/* Finché le due cose non sono fatte il cambiamento non è concluso,
-              e il perché è la frase del modello. */}
-          {!concluso && !rifiutato && cambio.fiscal_chain_impacted && (
-            <div style={{padding:'11px 16px', background: PN.AMBER_SOFT, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
-              <b>Cambiamento non concluso:</b> mancano {[
-                tappe.includes('fiscal_updated') && !cambio.steps.fiscal_updated && 'i dati fiscali da aggiornare',
-                !cambio.steps.delegations_renewed && 'le deleghe da riconferire a chi entra e revocare a chi esce',
-              ].filter(Boolean).join(' e ') || 'solo le verifiche'}. All'Agenzia non interessa chi fa login: interessa se cambia ciò che l'Agenzia conosce.
-              La delega è conferita da una persona fisica per conto di un contribuente, quindi va rifatta se cambia l'una oppure l'altro.
+          {/* Nessuna timeline: da qui si vede solo dov'è il resto. Tutto ciò
+              che cambia verso l'Agenzia e verso Stripe si fa in Dati fiscali,
+              che apre da solo il foglio della delega. */}
+          {!concluso && !rifiutato && (
+            <div style={{padding:'12px 16px', display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
+              <div style={{flex: 1, minWidth: 260, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
+                {cambio.entrante && !cambio.steps.verified
+                  ? <>{cambio.entrante.nome} riceve l'invito e accetta con la sua casella e la sua identità. Poi, in Dati fiscali, si aggiornano i dati fiscali dell'attività, le deleghe e i riferimenti Stripe.</>
+                  : <>In Dati fiscali si aggiornano i dati fiscali dell'attività, le deleghe e i riferimenti Stripe.</>}
+              </div>
+              <a href={`byup Impostazioni.html?page=fiscali&cambio=${cambio.id}${cambio.steps.verified ? '&delega=1' : ''}`} style={{
+                padding:'8px 14px', borderRadius: 999, fontSize: 13.5, fontWeight: 700, textDecoration:'none', whiteSpace:'nowrap',
+                background: PN.BTN_DARK, color: PN.WHITE, border: '1px solid rgba(0,0,0,0.32)',
+              }}>Vai a Dati fiscali →</a>
             </div>
           )}
 
-          <div style={{padding:'6px 16px 12px'}}>
-            {PN_HOLDER_STATI.map((st, i) => {
-              const applica = tappe.includes(st.id);
-              const fatta = !!cambio.steps[st.id];
-              const tocca = !rifiutato && st.id === prossima && st.id !== 'completed';
-              const colore = fatta ? PN.GREEN : tocca ? PN.PINK_DARK : PN.MUTED_LIGHT;
-              return (
-                <div key={st.id} style={{display:'flex', gap: 12, padding:'9px 0', opacity: applica ? 1 : 0.55}}>
-                  <div style={{display:'flex', flexDirection:'column', alignItems:'center', width: 18, flexShrink: 0}}>
-                    <span style={{
-                      width: 14, height: 14, borderRadius: 999, marginTop: 3,
-                      background: fatta ? PN.GREEN : 'transparent',
-                      border: `2px solid ${applica ? colore : PN.BORDER}`,
-                      borderStyle: applica ? 'solid' : 'dashed',
-                    }}/>
-                    {i < PN_HOLDER_STATI.length - 1 && <span style={{flex: 1, width: 2, background: PN.BORDER_SOFT, marginTop: 4}}/>}
-                  </div>
-                  <div style={{flex: 1, minWidth: 0}}>
-                    <div style={{display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap'}}>
-                      <span style={{fontSize: 14.5, fontWeight: applica ? 700 : 500, color: applica ? PN.TEXT : PN.MUTED, textDecoration: applica ? 'none' : 'line-through'}}>{st.label}</span>
-                      {fatta && <span style={{fontSize: 12.5, color: PN.MUTED}}>{acDataBreve(cambio.steps[st.id])}</span>}
-                      {!applica && <span style={{fontSize: 12.5, fontWeight: 600, color: PN.MUTED}}>Saltata</span>}
-                    </div>
-                    {!applica && <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>{pnHolderSalto(cambio.change_type, st.id)}</div>}
-                    {applica && tocca && <div style={{marginTop: 6}}>{azione(st.id)}</div>}
-                    {applica && st.id === 'fiscal_updated' && fatta && cambio.soggetto && (
-                      <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>P.IVA precedente {cambio.soggetto.prima.piva} conservata: i documenti già emessi la portano.</div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{padding:'10px 16px 14px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 8, justifyContent:'flex-end'}}>
+          <div style={{padding:'10px 16px 12px', borderTop:`1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 8, justifyContent:'flex-end'}}>
             {!concluso && !rifiutato && (
               <button onClick={annulla} style={{padding:'7px 12px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit', color: PN.MUTED}}>Annulla il cambiamento</button>
             )}
