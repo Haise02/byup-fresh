@@ -585,15 +585,59 @@ const PN_AI_SISTEMI = [
 ];
 window.PN_AI_SISTEMI = PN_AI_SISTEMI;
 window.PN_AI_SISTEMI_MAP = PN_AI_SISTEMI.reduce((m, x) => { m[x.id] = x; return m; }, {});
+// Il contrassegno al consumatore, com'è scritto a schermo: la pillola e la
+// nota che si apre dalla «i». Il consumer (app/menu.jsx, altro bundle) ne porta
+// la copia verbatim; il record di provenienza lo conserva in disclosure_text,
+// così si può dimostrare CHE COSA il consumatore ha letto, non solo che un
+// contrassegno c'era.
+const PN_AI_DISCLOSURE = {
+  badge: '✨ IA',
+  testo: 'Descrizione scritta con intelligenza artificiale su richiesta del locale, che l\'ha rivista. Ingredienti e allergeni li dichiara il locale.',
+};
+window.PN_AI_DISCLOSURE = PN_AI_DISCLOSURE;
+
 // L'aggregato delle provenienze: in produzione vive in Hubble, qui è un
 // registro in memoria che cresce a ogni generazione. Una riga per output.
+//   entity / content_domain — l'elenco dei content_domain nella nota del
+//     modello non nomina la descrizione del menù, ma la FK da menu_items
+//     (description_ai_provenance_id) la presuppone: il valore usato,
+//     `menu_item_description`, è coerente con l'entità e lo si dichiara qui.
+//   marking_method = machine_readable_flag — la marcatura leggibile dalla
+//     macchina è il flag nel dato, sul record e sul piatto. Per contenuti che
+//     circolano fuori dalla piattaforma da solo non basterebbe (un file che
+//     esce perde il dato che lo accompagna); la descrizione vive in base dati
+//     e non circola come file, quindi regge.
+//   ui_badge_shown / disclosure_text — se la superficie consumer ha mostrato
+//     il contrassegno, e il testo esatto della pillola. L'avviso in
+//     superficie è un adempimento DISTINTO e non alternativo alla marcatura:
+//     il flag dice alla macchina, la pillola dice alla persona, e servono
+//     entrambi.
+//   human_validated_by / human_validated_at — si valorizzano al SALVATAGGIO
+//     del piatto con descrizione generata (pnAiProvenienzaValidata), non alla
+//     generazione: per i contenuti del catalogo l'approvazione spetta al
+//     ristoratore, che resta responsabile dell'esattezza.
+const pnAiProvenienzaBase = (rec) => Object.assign({
+  content_domain: 'menu_item_description',
+  marking_method: 'machine_readable_flag',
+  ui_badge_shown: true,
+  disclosure_text: PN_AI_DISCLOSURE.testo,
+  human_validated_by: null, human_validated_at: null,
+}, rec);
 window.PN_AI_PROVENIENZE = [
-  { id: 'prov-0001', system_id: 'ais-menu-writer', entity: 'menu_items.description', entity_id: 'a1', generated_at: '2026-09-16T10:12:00Z' },
-  { id: 'prov-0002', system_id: 'ais-menu-writer', entity: 'menu_items.description', entity_id: 'p2', generated_at: '2026-09-18T15:40:00Z' },
+  pnAiProvenienzaBase({ id: 'prov-0001', system_id: 'ais-menu-writer', entity: 'menu_items.description', entity_id: 'a1',
+    generated_at: '2026-09-16T10:12:00Z', human_validated_by: 'Mario Rossi', human_validated_at: '2026-09-16T10:14:30Z' }),
+  pnAiProvenienzaBase({ id: 'prov-0002', system_id: 'ais-menu-writer', entity: 'menu_items.description', entity_id: 'p2',
+    generated_at: '2026-09-18T15:40:00Z', human_validated_by: 'Mario Rossi', human_validated_at: '2026-09-18T15:41:05Z' }),
 ];
 window.pnAiProvenienza = (entity, entityId, systemId = 'ais-menu-writer') => {
-  const rec = { id: 'prov-' + String(window.PN_AI_PROVENIENZE.length + 1).padStart(4, '0'),
-    system_id: systemId, entity, entity_id: entityId, generated_at: new Date().toISOString() };
+  const rec = pnAiProvenienzaBase({ id: 'prov-' + String(window.PN_AI_PROVENIENZE.length + 1).padStart(4, '0'),
+    system_id: systemId, entity, entity_id: entityId, generated_at: new Date().toISOString() });
   window.PN_AI_PROVENIENZE.push(rec);
+  return rec;
+};
+// Al salvataggio del piatto: chi ha rivisto la descrizione generata.
+window.pnAiProvenienzaValidata = (provId, nome) => {
+  const rec = window.PN_AI_PROVENIENZE.find(r => r.id === provId);
+  if (rec) { rec.human_validated_by = nome; rec.human_validated_at = new Date().toISOString(); }
   return rec;
 };

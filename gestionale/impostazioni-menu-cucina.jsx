@@ -3588,6 +3588,8 @@ function MCDettagliPiatto({
     // al posto suo. Ma se l'italiano è cambiato, quello che aveva scritto prima
     // adesso è un'altra cosa, e glielo diciamo la prossima volta che apre.
     if (name.trim() !== (dish.name || '').trim()) segnalaNomiVecchi(dish.id);
+    // Salvare è rivedere: la provenienza registra chi ha validato il testo.
+    if (descAi && window.pnAiProvenienzaValidata) window.pnAiProvenienzaValidata(descAi.provId, window.PN_UTENTE ? PN_UTENTE.nome : null);
     onSaveDish({
       id: dish.id, name: name.trim(), desc: desc.trim(), cat: dish.cat,
       descriptionIsAiGenerated: !!descAi,
@@ -5609,6 +5611,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
 
   const handleSave = () => {
     if (!name.trim()) { alert('Inserisci il nome del piatto'); return; }
+    if (descAi && window.pnAiProvenienzaValidata) window.pnAiProvenienzaValidata(descAi.provId, window.PN_UTENTE ? PN_UTENTE.nome : null);
     const out = {
       id: dish?.id,
       name: name.trim(),

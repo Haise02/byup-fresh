@@ -329,7 +329,15 @@ function ByuAzione({ a, onFatto, onAnnulla }) {
         )}
         {fatta && immediato && (
           /* Regime immediato: è già fatto, e l'unico gesto che resta è tornare
-             indietro. Stessa pillola dell'«Annulla» del regime conferma. */
+             indietro. Stessa pillola dell'«Annulla» del regime conferma.
+             LA FINESTRA DI ANNULLAMENTO (nota di D-32) è una condizione
+             dell'interfaccia, non una scadenza conservata: dura quanto la
+             scheda resta aperta, senza conto alla rovescia né «hai ancora 10
+             secondi» — un timer trasformerebbe un ripensamento in una gara, e
+             l'atto resta dentro il gestionale, non c'è nulla da richiamare da
+             fuori che giustifichi la fretta. Nel dato non esiste una finestra
+             da memorizzare: resta registrato solo il fatto dell'annullamento
+             avvenuto. */
           <button type="button" onClick={onAnnulla} title="Annulla l'azione"
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.10)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(15,17,21,0.06)'; }}
