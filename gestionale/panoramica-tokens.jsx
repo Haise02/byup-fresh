@@ -353,6 +353,35 @@ Object.assign(window, { PnSectionTab, PnSectionTabs });
 // dagli accordi con le piattaforme, ed entrano in gioco solo quando le
 // integrazioni sono reali. Nel prototipo il contrassegno è la lingua visiva
 // già pronta per quel momento.
+// ─── Allergeni: il dizionario unico dei quattordici (P-24 · D-27) ──────────
+// Allegato II del Reg. UE 1169/2011. La fonte VERA è il dizionario di
+// piattaforma (`dietary_labels`/`allergens` del modello); questa è la copia
+// del bundle gestionale, coi codici copiati VERBATIM dall'app-kit di P-65
+// (app/byup-app-kit.jsx) — id, code e ordine identici, così quando i due
+// bundle si unificheranno la corrispondenza sarà già scritta. Nota di
+// mappatura: l'id `lattosio` sta sul code `milk`, perché l'allergene di
+// legge è il LATTE — l'etichetta parla come parlano le persone, il codice
+// come parla la norma. Mai testo libero: l'allergene viaggia solo come
+// codice, e mai nello stesso testo del nome di una persona (art. 9 GDPR).
+const PN_ALLERGENI = [
+  { id: 'glutine',      code: 'gluten',      label: 'Glutine',         hint: 'Pane, pasta, dolci',           color: '#c8a87a', icon: '🌾' },
+  { id: 'crostacei',    code: 'crustaceans', label: 'Crostacei',       hint: 'Gamberi, scampi, granchio',    color: '#e88a5a', icon: '🦐' },
+  { id: 'uova',         code: 'eggs',        label: 'Uova',            hint: 'Frittate, dolci, salse',       color: '#f0c14b', icon: '🥚' },
+  { id: 'pesce',        code: 'fish',        label: 'Pesce',           hint: 'Acciughe, salse di pesce',     color: '#d96a52', icon: '🐟' },
+  { id: 'arachidi',     code: 'peanuts',     label: 'Arachidi',        hint: 'Creme, salse, fritti',         color: '#c89860', icon: '🥜' },
+  { id: 'soia',         code: 'soybeans',    label: 'Soia',            hint: 'Tofu, tempeh, salsa di soia',  color: '#9ec27a', icon: '🌱' },
+  { id: 'lattosio',     code: 'milk',        label: 'Lattosio',        hint: 'Latte, formaggi, burro',       color: '#f5c2c7', icon: '🥛' },
+  { id: 'fruttaguscio', code: 'nuts',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle',     color: '#a07050', icon: '🥜' },
+  { id: 'sedano',       code: 'celery',      label: 'Sedano',          hint: 'Brodi, soffritti',             color: '#7ec98a', icon: '🥬' },
+  { id: 'senape',       code: 'mustard',     label: 'Senape',          hint: 'Salse, marinature',            color: '#e8c850', icon: '🌶' },
+  { id: 'sesamo',       code: 'sesame',      label: 'Sesamo',          hint: 'Pane, hummus, condimenti',     color: '#d4b06a', icon: '⚪' },
+  { id: 'solfiti',      code: 'sulphites',   label: 'Solfiti',         hint: 'Vino, frutta secca, conserve', color: '#b07ac0', icon: '🍇' },
+  { id: 'lupini',       code: 'lupin',       label: 'Lupini',          hint: 'Farine, sostituti vegetali',   color: '#f0b878', icon: '🫘' },
+  { id: 'molluschi',    code: 'molluscs',    label: 'Molluschi',       hint: 'Cozze, vongole, calamari',     color: '#7aa8c8', icon: '🐚' },
+];
+window.PN_ALLERGENI = PN_ALLERGENI;
+window.PN_ALLERGENI_MAP = PN_ALLERGENI.reduce((m, a) => { m[a.id] = a; return m; }, {});
+
 // ─── Profili IVA dell'articolo fuori menù (P-11 · D-16) ────────────────────
 // Dizionario di piattaforma: governato da Hubble, qui mockato. Le voci si
 // etichettano per caso d'uso con la base normativa nell'hint, MAI come

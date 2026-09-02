@@ -1133,7 +1133,13 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
             let left = gx(p.x) + (dims.w * PX - bw.w) / 2;
             let top  = gy(p.y) + (dims.h * PY - bw.h) / 2;
             const noteTipo = tDisplay.note?.tipo || tDisplay.note?.type;
-            const isAllergia = noteTipo === 'allergia';
+            // P-25 (D-27): il contrassegno allergia non nasce più da una nota
+            // di testo — si deriva dai canali col regime: una riga di comanda
+            // con alert, oppure la prenotazione collegata con allergeni
+            // dichiarati. Ed è MUTO: dice il genere; nome e allergene si
+            // leggono aprendo il tavolo, ciascuno nel suo canale.
+            const isAllergia = (tDisplay.ordini || []).some(o => o.alert === 'allergia')
+              || !!(tDisplay.nextReservation && (tDisplay.nextReservation.allergens || []).length);
             const showTriangle = window.hasAlertTriangle && window.hasAlertTriangle(tDisplay);
             const alert = tDisplay.state === 'occupato' ? getOccupiedAlert(tDisplay) : null;
             const isAlerting = alert?.tone === 'warn';

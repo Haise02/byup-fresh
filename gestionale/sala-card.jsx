@@ -25,13 +25,11 @@ function hasAlertTriangle(t) {
 }
 window.hasAlertTriangle = hasAlertTriangle;
 
-// Cluster note — 3 tipi: allergia (critical, sempre visibile), evento, generica
+// Cluster note — 2 tipi di SERVIZIO: evento e generica. Il tipo 'allergia'
+// non esiste più (P-23 · D-27): era un dato di salute in testo libero — il
+// contrassegno allergia si deriva da comanda e prenotazione (vedi
+// noteIsCritical in SalaCard) e le note restano indicazioni di servizio.
 const NOTE_TYPE_META = {
-  allergia: {
-    // HeartPulse — medical/health icon, visivamente distinto dagli alert a triangolo
-    path: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27',
-    color:'#DC2626', bg:'#FEE2E2', label:'Allergia', critical:true,
-  },
   evento: {
     // PartyPopper
     path: 'M5.8 11.3 2 22l10.7-3.79 M4 3h.01 M22 8h.01 M15 2h.01 M22 20h.01 M22 2 17 7l3 3 5-5 M9.6 4.6A2 2 0 1 1 11 8L7 13l-2-2 4-4z M12.5 8.5l5.5 5.5',
@@ -410,7 +408,12 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
   const alert = t.state === 'occupato' ? getOccupiedAlert(t) : null;
   const note = readNote(t.note);
   const noteMeta = note ? NOTE_TYPE_META[note.tipo] : null;
-  const noteIsCritical = noteMeta?.critical;
+  // P-25 (D-27): il contrassegno allergia si deriva dai canali col regime —
+  // riga di comanda con alert, o prenotazione collegata con allergeni — non
+  // più da una nota di testo. È muto: la parola «Allergia» e basta; il
+  // contenuto si legge aprendo il tavolo, nella comanda.
+  const noteIsCritical = (t.ordini || []).some(o => o.alert === 'allergia')
+    || !!(t.nextReservation && (t.nextReservation.allergens || []).length);
   const extraNote = readNote(t.extraNote);
   const extraNoteMeta = extraNote ? NOTE_TYPE_META[extraNote.tipo] : null;
   // Logica prenotazione: derivata da minutiAllaPrenotazione
@@ -623,16 +626,10 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
           transition: `opacity 260ms ease-out ${expanded ? '90ms' : '0ms'}, transform 520ms ${SALA_POP} ${expanded ? '40ms' : '0ms'}`,
         }}>
           <div style={{padding:'12px 14px 14px', display:'flex', flexDirection:'column', gap: 14}}>
-            {/* Allergia — testo completo, solo nel dettaglio (in card chiusa
-                sta nella cella NOTA del bento) */}
-            {note && noteIsCritical && (
-              <div style={{
-                fontSize: 15, fontWeight: 700, color: '#DC2626',
-                lineHeight: 1.3, textTransform: 'uppercase', letterSpacing: 0.4,
-              }}>
-                {`${note.testo}${note.ospite ? ` · ${note.ospite}` : ' (1 ospite)'}`}
-              </div>
-            )}
+            {/* P-23 (D-27): qui stava «ALLERGIA GLUTINE · MARCO R.» — nome e
+                allergene nella stessa stringa, il dato che non deve esistere.
+                Da aperta il contenuto sta nel suo canale: la riga di comanda
+                con l'alert (sotto), o gli allergeni della prenotazione. */}
             <SalaCardExpanded t={t} alert={alert} cta={cta} note={note} noteMeta={noteMeta}
               extraNote={extraNote} extraNoteMeta={extraNoteMeta}
               onAddArticle={onAddArticle}

@@ -63,7 +63,9 @@ const SALA_TAVOLI = [
     nextReservation: null, minutiAllaPrenotazione: null },
 
   { id: 4,  state: 'prenotato', posti: 4, ordini: [],
-    nextReservation: { time: '20:30', name: 'Annie Edison', posti: 4, inMin: 12 },
+    // Allergeni dichiarati sulla prenotazione (P-24): codici, mai testo. Il
+    // tavolo prenotato porta il contrassegno muto già prima dell'arrivo.
+    nextReservation: { time: '20:30', name: 'Annie Edison', posti: 4, inMin: 12, allergens: ['fruttaguscio'], allergensDeclaredAt: '18:10', allergensDeclaredBy: 'Giulia' },
     minutiAllaPrenotazione: 12 },
 
   { id: 5,  state: 'occupato', posti: 2, coperti: 2, byup: 0, byupWeb: 0, party: null, sittingMin: 65, conto: 60.00, contoSaldato: true,
@@ -115,7 +117,12 @@ const SALA_TAVOLI = [
       { id:'p7d', method:'byup',     amount: 12.00, ora:'21:14', chi:'Marco T.', items:[{ id:'o15', qty: 0.5 }] },
     ],
     minutiSenzaOrdine: 6, timeSinceLastOrder: 6,
-    note: { tipo:'allergia', testo:'Allergia glutine', ospite:'Marco R.' },
+    // P-23 (D-27): la nota tipo 'allergia' non esiste più — era un dato di
+    // salute in testo libero con un nome accanto (e pure sbagliato: diceva
+    // Marco, ma la riga senza glutine è di Chiara). L'allergene viaggia solo
+    // nei canali col regime: qui è l'alert sulla riga di comanda (o14), e da
+    // lì si deriva anche il contrassegno del tavolo.
+    note: null,
     nextReservation: null, minutiAllaPrenotazione: null },
 
   { id: 8,  state: 'libero',   posti: 2, ordini: [], nextReservation: null, minutiAllaPrenotazione: null },

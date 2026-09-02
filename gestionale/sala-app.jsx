@@ -420,6 +420,7 @@ function SalaApp() {
                 time: r.time, dur: r.dur || 90, tableId: r.table, coperti: r.posti,
                 nome: r.name || '', phone: r.phone || '',
                 tag: r.note?.type || null, noteText: r.note?.text || '',
+                allergens: r.allergens || [],
                 editMode: true,
               })}
             />}
@@ -493,15 +494,21 @@ function SalaApp() {
           onConfirm={(p) => {
             // Scrive nel calendario: update se in modifica, altrimenti una
             // prenotazione per ogni tavolo scelto (pattern tavolata multi-tavolo).
+            // P-24: gli allergeni viaggiano sulla struttura dedicata della
+            // prenotazione (codici + dichiarazione), mai dentro la nota.
             if (p.editMode && p.resId && window.SALA_RES_UPDATE) {
               window.SALA_RES_UPDATE(p.resId, {
                 time: p.time, name: p.nome, posti: p.coperti, phone: p.phone,
                 table: p.tavoli[0], note: p.note, notes: p.notes,
+                allergens: p.allergens, allergensDeclaredAt: p.allergensDeclaredAt,
+                allergensDeclaredBy: p.allergensDeclaredBy,
               });
             } else if (!p.editMode && window.SALA_RES_ADD) {
               p.tavoli.forEach(tid => window.SALA_RES_ADD({
                 time: p.time, dur: p.dur, name: p.nome, posti: p.coperti,
                 table: tid, phone: p.phone, note: p.note, notes: p.notes,
+                allergens: p.allergens, allergensDeclaredAt: p.allergensDeclaredAt,
+                allergensDeclaredBy: p.allergensDeclaredBy,
               }));
             }
             showToast(`✓ Prenotazione ${p.editMode ? 'aggiornata' : 'confermata'} · ${p.nome} · ore ${p.time} · ${p.coperti} coperti`);

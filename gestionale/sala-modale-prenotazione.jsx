@@ -10,11 +10,11 @@ const NP_TABLES = [
   {id:6,p:2},{id:7,p:6},{id:8,p:2},{id:9,p:4},{id:11,p:6},{id:12,p:4},
 ];
 
-const NP_ALLERGENI = [
-  'Glutine','Crostacei','Uova','Pesce','Arachidi',
-  'Soia','Latte','Frutta a guscio','Sedano','Senape',
-  'Lupini','Sesamo','Molluschi',
-];
+// P-24 (D-27): gli allergeni sono i quattordici CODICI del dizionario di
+// piattaforma (PN_ALLERGENI in panoramica-tokens, verbatim dall'app-kit di
+// P-65) — mai etichette libere. La vecchia lista qui aveva tredici voci
+// senza id, e mancava i Solfiti.
+const NP_ALLERGENI = window.PN_ALLERGENI || [];
 
 const NP_TAG = [
   { id:'compleanno',  label:'Compleanno'  },
@@ -441,7 +441,7 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
       setSubmitConflict(null);
       setNome(initData?.nome || ''); setPhone(initData?.phone || '');
       setTag(initData?.tag || null); setTagAltro('');
-      setAllergeni(new Set()); setNote(initData?.noteText || '');
+      setAllergeni(new Set(initData?.allergens || [])); setNote(initData?.noteText || '');
       prevServiceRef.current = npTimeToMin(initTime) < 17*60 ? 'pranzo' : 'cena';
       if (initData?.tableId) {
         const tbl = NP_TABLES.find(t => t.id === initData.tableId);
@@ -574,9 +574,15 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
       })
     );
     if (busy.length) { setSubmitConflict(busy.map(t => t.id)); return; }
-    const noteTag = allergeni.size
-      ? { type: 'allergia', text: [...allergeni].join(', ') }
-      : (tag ? { type: tag, text: tag === 'altro' ? tagAltro.trim() : '' } : null);
+    // P-24 (D-27): gli allergeni NON sono una nota — viaggiano come codici
+    // sulla struttura dedicata (reservation_allergens), con il momento della
+    // dichiarazione dell'interessato (di norma: adesso, al telefono) e chi la
+    // registra (traccia di responsabilità operativa, mai base di metriche).
+    // `note_type` non ammette 'allergia': occasione e allergeni COESISTONO —
+    // il vecchio ternario rendeva indicibile un compleanno con un allergico.
+    // Il nome dell'ospite non compare mai nello stesso testo dell'allergene.
+    const d = new Date();
+    const noteTag = tag ? { type: tag, text: tag === 'altro' ? tagAltro.trim() : '' } : null;
     if (onConfirm) onConfirm({
       editMode: !!initData?.editMode,
       resId: initData?.resId || null,
@@ -585,6 +591,11 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
       dur: initData?.dur || 90,
       tavoli: effectiveTavolo.tables.map(t => t.id),
       note: noteTag, notes: note.trim() || null,
+      allergens: [...allergeni],
+      allergensDeclaredAt: allergeni.size
+        ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+        : null,
+      allergensDeclaredBy: allergeni.size ? 'Mario Rossi' : null,
     });
     onClose();
   };
@@ -960,16 +971,16 @@ function SalaModalNuova({ open, onClose, initData, onConfirm, onDelete }) {
         {showAllergeni && (
           <div style={{display:'flex', gap: 6, flexWrap:'wrap', marginTop: 10}}>
             {NP_ALLERGENI.map(a => {
-              const sel = allergeni.has(a);
+              const sel = allergeni.has(a.id);
               return (
-                <button key={a} onClick={()=>toggleAllergene(a)} style={{
+                <button key={a.id} onClick={()=>toggleAllergene(a.id)} style={{
                   padding:'6px 12px', borderRadius: NP_R.sm,
                   fontSize: NP_FS.md, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
                   border: sel ? '1px solid transparent' : `1px solid ${NP_T.border}`,
                   background: sel ? '#B91C1C' : NP_T.bg,
                   color: sel ? NP_T.textInv : NP_T.text,
                   transition:'background 160ms ease, color 160ms ease, border-color 160ms ease',
-                }}>{a}</button>
+                }}>{a.label}</button>
               );
             })}
           </div>

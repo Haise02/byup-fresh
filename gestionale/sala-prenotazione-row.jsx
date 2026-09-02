@@ -35,12 +35,15 @@ function ResStatusPill({ status }) {
   );
 }
 
-// Chip nota critica (allergia) o ricorrenza — discreta, accanto al nome
-function ResNoteChip({ note }) {
-  if (!note) return null;
-  const isAllergia = note.type === 'allergia';
+// Chip di riga — discreta, accanto al nome. L'allergia (P-24 · D-27) viene
+// dai CODICI sulla prenotazione, non più dalla nota, ed è MUTA: dice il
+// genere, niente tooltip col contenuto — l'allergene si legge aprendo la
+// prenotazione, nel suo canale. La ricorrenza resta dalla nota.
+function ResNoteChip({ note, allergens }) {
+  const isAllergia = !!(allergens && allergens.length);
+  if (!isAllergia && !note) return null;
   return (
-    <span title={note.text} style={{
+    <span title={isAllergia ? undefined : note.text} style={{
       display: 'inline-flex', alignItems: 'center', gap: 3,
       padding: '1px 7px', borderRadius: 999,
       background: isAllergia ? 'rgba(220, 38, 38, 0.10)' : 'rgba(124, 58, 237, 0.08)',
@@ -120,7 +123,7 @@ function PrenotazioneRow({ r, selected, urgent, onClick, density = 'comfort', st
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             textDecoration: r.status === 'cancellata' ? 'line-through' : 'none',
           }}>{r.name || 'Walk-in'}</span>
-          <ResNoteChip note={r.note}/>
+          <ResNoteChip note={r.note} allergens={r.allergens}/>
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 5,
