@@ -428,6 +428,9 @@ function PosCensimentoCard() {
   const urgente = pnPosUrgente(lista);
   const fase = urgente ? urgente.p.fase : 'ok';
   const tono = POS_TONI[fase];
+  // La striscia in testa parla solo quando c'è una scadenza aperta o
+  // scaduta: «nessuna scadenza» e «tutto dichiarato» li dicono le righe.
+  const striscia = fase === 'aperta' || fase === 'ultimi' || fase === 'scaduta';
   const testata = fase === 'ok'
     ? 'Tutti gli strumenti sono dichiarati all\'Agenzia. Se ne colleghi uno nuovo, o ne scolleghi uno, te lo diciamo qui.'
     : fase === 'scaduta'
@@ -442,15 +445,17 @@ function PosCensimentoCard() {
     <ImpCard anchor="pos-censimento"
       title="Collegamento POS all'Agenzia delle Entrate"
       sub="Ogni strumento con cui incassi va collegato, dal tuo accesso al portale, alla procedura con cui Byup trasmette i tuoi scontrini. Byup non può farlo al posto tuo: prepara i dati esatti da incollare, i passi in ordine e il promemoria. Tu dichiari di averlo fatto.">
-      <div style={{
-        display:'flex', alignItems:'center', gap: 12, padding: '12px 14px', borderRadius: 11, marginBottom: 14,
-        background: tono.sfondo, border: `1.5px solid ${tono.bordo}`,
-      }}>
-        <div style={{ width: 34, height: 34, borderRadius: 9, background: tono.colore, color: PN.WHITE, display:'grid', placeItems:'center', flexShrink: 0 }}>
-          {fase === 'ok' ? BuIcons.check({size: 16, color: PN.WHITE}) : <BuIcons.alert size={16} color={PN.WHITE}/>}
+      {striscia && (
+        <div style={{
+          display:'flex', alignItems:'center', gap: 12, padding: '12px 14px', borderRadius: 11, marginBottom: 14,
+          background: tono.sfondo, border: `1.5px solid ${tono.bordo}`,
+        }}>
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: tono.colore, color: PN.WHITE, display:'grid', placeItems:'center', flexShrink: 0 }}>
+            <BuIcons.alert size={16} color={PN.WHITE}/>
+          </div>
+          <div style={{ fontSize: 14.5, color: tono.colore, fontWeight: fase === 'scaduta' || fase === 'ultimi' ? 700 : 500, lineHeight: 1.45 }}>{testata}</div>
         </div>
-        <div style={{ fontSize: 14.5, color: fase === 'ok' || fase === 'lontana' ? PN.TEXT : tono.colore, fontWeight: fase === 'scaduta' || fase === 'ultimi' ? 700 : 500, lineHeight: 1.45 }}>{testata}</div>
-      </div>
+      )}
       <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
         {lista.map(r => <PosStrumento key={r.id} r={r} aperto={aperto === r.id} onApri={() => setAperto(aperto === r.id ? null : r.id)}/>)}
       </div>

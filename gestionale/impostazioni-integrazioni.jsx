@@ -124,11 +124,16 @@ function ImpIntegrazioni() {
   // possono dirsi due cose diverse.
   const [connessioni, setConnessioni] = React.useState(INT_CONNESSIONI_MOCK);
   const [collega, setCollega] = React.useState(false);
-  const attive = connessioni.filter(c => !c.revoked_at).length;
-  const catalogo = INTEGRATIONS.map(i => i.api
-    ? { ...i, status: attive ? 'connected' : 'available',
-        detail: attive ? `${attive} ${attive === 1 ? 'connessione attiva' : 'connessioni attive'}` : undefined }
-    : i);
+  // Lo stato è per app: connessa se ha almeno una connessione viva, con chi
+  // l'ha autorizzata e quando sulla tessera. Prima bastava una connessione
+  // qualunque perché tutte le app dell'API risultassero connesse.
+  const catalogo = INTEGRATIONS.map(i => {
+    if (!i.api) return i;
+    const vive = connessioni.filter(c => c.application === i.id && !c.revoked_at);
+    const una = vive.length === 1 ? vive[0] : null;
+    return { ...i, status: vive.length ? 'connected' : 'available',
+      detail: vive.length ? (una ? `da ${una.authorized_by} · ${intData(una.authorized_at)}` : `${vive.length} connessioni attive`) : undefined };
+  });
   const aggiungiConnessione = (c) => setConnessioni(l => [c, ...l]);
   // La revoca chiude la riga, non la cancella.
   const revoca = (id) => setConnessioni(l => l.map(c => c.id === id
@@ -211,7 +216,8 @@ function ImpIntegrazioni() {
             <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
               {byCategory[c].map(i => i.printerType
                 ? <PrinterCard key={i.id} item={i}/>
-                : <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}/>
+                : <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}
+                    connessioni={connessioni} onRevoca={revoca}/>
               )}
             </div>
           </div>
@@ -614,7 +620,14 @@ function PosVirtualeRimando() {
   );
 }
 
-function IntegrationCard({ item, suggested, onMobileQr, onApi }) {
+function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [], onRevoca }) {
+  // Sulla tessera di un'app connessa con UNA connessione viva l'azione è
+  // «Revoca», con la conferma sul posto; «Nuova connessione» resta come
+  // link. Con più connessioni la revoca si fa dall'elenco, che è il
+  // registro: dice sede, chi, quando, e tiene le revocate come storia.
+  const vive = connessioni.filter(c => c.application === item.id && !c.revoked_at);
+  const [confermaRevoca, setConfermaRevoca] = React.useState(false);
+  React.useEffect(() => { if (!confermaRevoca) return; const t = setTimeout(() => setConfermaRevoca(false), 4000); return () => clearTimeout(t); }, [confermaRevoca]);
   // Stripe: lo stato vero sta nel registro byup_stripe (panoramica-tokens) —
   // il cambio di soggetto fiscale lo disabilita, e da qui si ricollega con
   // l'onboarding Stripe (simulato) del nuovo soggetto.
@@ -682,10 +695,20 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi }) {
         {item.id === 'stripe' && <PosVirtualeRimando/>}
 
         <div style={{marginTop: 12}}>
-          {item.status === 'connected' && (
-            <ImpButton variant="ghost" style={azione} onClick={item.api ? onApi : undefined}>
-              {item.api ? 'Nuova connessione' : 'Configura'}
-            </ImpButton>
+          {item.status === 'connected' && item.api && vive.length === 1 && (
+            <React.Fragment>
+              <ImpButton variant={confermaRevoca ? 'danger' : 'ghost'} style={azione}
+                onClick={() => { if (confermaRevoca) { onRevoca && onRevoca(vive[0].id); setConfermaRevoca(false); } else setConfermaRevoca(true); }}>
+                {confermaRevoca ? 'Conferma revoca' : 'Revoca'}
+              </ImpButton>
+              <button onClick={onApi} style={{marginTop: 8, width:'100%', background:'transparent', border:'none', cursor:'pointer', fontFamily:'inherit', fontSize: 13.5, fontWeight: 600, color: PN.PINK_DARK}}>Nuova connessione</button>
+            </React.Fragment>
+          )}
+          {item.status === 'connected' && item.api && vive.length !== 1 && (
+            <ImpButton variant="ghost" style={azione} onClick={onApi}>Nuova connessione</ImpButton>
+          )}
+          {item.status === 'connected' && !item.api && (
+            <ImpButton variant="ghost" style={azione}>Configura</ImpButton>
           )}
           {item.status === 'todo' && (
             <ImpButton
