@@ -80,6 +80,21 @@ function AccDatiGenerali() {
     setDatiToast(`✓ Richiesta inviata a ${dir.name}: se il titolare approva entri come collaboratore, non come titolare`);
     setTimeout(() => setDatiToast(null), 3200);
   };
+  // La sede della catena: nasce già completa per tutto ciò che è del
+  // soggetto, diventa il locale attivo e si va dritti alla configurazione
+  // completa, dove resta da impostare la sala.
+  const creaSede = (sede) => {
+    const id = 'sede-' + Date.now().toString(36).slice(-4);
+    const nome = sede.insegna.trim().replace(/\s*·\s*$/, '');
+    setLocali(prev => [...prev, {
+      id, name: nome, city: `${sede.citta.trim()}${sede.prov.trim() ? ' · ' + sede.prov.trim() : ''}`, addr: sede.indirizzo.trim(),
+      role: 'Owner', catena: true,
+      logo: nome.split(/[\s·]+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase(),
+    }]);
+    setAddOpen(false);
+    if (window.byupWriteLocale) byupWriteLocale({ id, nome });
+    window.location.href = 'byup Configurazione Completa.html?sede=catena';
+  };
   const confermaDissocia = () => {
     const loc = dissocia;
     setLocali(prev => prev.filter(l => l.id !== loc.id));
@@ -423,6 +438,7 @@ function AccDatiGenerali() {
           esistenti={locali.map(l => l.id)}
           onClose={() => setAddOpen(false)}
           onCollega={inviaRichiesta}
+          onCatena={creaSede}
         />
       )}
 
@@ -733,11 +749,24 @@ const AcBtnGhost = {
 };
 
 // Popup "Aggiungi un locale": collega un locale già su byup (ricerca per nome
-// + richiesta al titolare) oppure crea un nuovo locale (onboarding).
-function AcAggiungiLocaleModal({ esistenti, onClose, onCollega }) {
-  const [step, setStep] = React.useState('scelta'); // 'scelta' | 'cerca'
+// + richiesta al titolare), crea un nuovo locale (onboarding), oppure — la
+// catena — aggiunge una SEDE dello stesso soggetto: stesso soggetto fiscale,
+// stesso conto Stripe, stesso menù. Della sede nuova si dicono solo l'insegna
+// e la sede operativa, poi si va dritti alla configurazione completa per la
+// sala: il resto è già completo perché è del soggetto, non della sede.
+function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
+  const [step, setStep] = React.useState('scelta'); // 'scelta' | 'cerca' | 'catena'
   const [query, setQuery] = React.useState('');
   const [selected, setSelected] = React.useState(null);
+  const [sede, setSede] = React.useState({ insegna: 'Cacio e Pepe · ', indirizzo: '', cap: '', citta: 'Roma', prov: 'RM' });
+  const setS = (k) => (e) => setSede(x => ({ ...x, [k]: e.target.value }));
+  const sedeOk = sede.insegna.trim().length > 2 && sede.indirizzo.trim() && sede.citta.trim();
+  const inputStyle = {
+    width:'100%', padding:'9px 11px', borderRadius: 10, boxSizing:'border-box',
+    border:'1px solid rgba(15,17,21,0.14)', outline:'none', background:'rgba(255,255,255,0.85)',
+    fontSize: 14.5, fontFamily:'inherit', color: PN.TEXT,
+  };
+  const lab = { fontSize: 12, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 4 };
   const risultati = ACC_DIRECTORY
     .filter(d => !esistenti.includes(d.id))
     .filter(d => !query.trim() || d.name.toLowerCase().includes(query.trim().toLowerCase()));
@@ -766,12 +795,14 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega }) {
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
           <div>
             <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
-              {step === 'scelta' ? 'Aggiungi un locale' : 'Collega un locale esistente'}
+              {step === 'scelta' ? 'Aggiungi un locale' : step === 'catena' ? 'Aggiungi una sede della catena' : 'Collega un locale esistente'}
             </div>
             <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
               {step === 'scelta'
-                ? 'Il locale esiste già su byup o parti da zero?'
-                : 'Cerca il locale per nome e invia la richiesta al titolare.'}
+                ? 'Il locale esiste già su byup, è una sede in più della tua catena, o parti da zero?'
+                : step === 'catena'
+                  ? `Stesso soggetto fiscale (${AC_TITOLARE.soggetto} · ${AC_TITOLARE.piva}), stesso conto Stripe, stesso menù. Della sede servono solo insegna e indirizzo; poi si imposta la sala.`
+                  : 'Cerca il locale per nome e invia la richiesta al titolare.'}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -802,6 +833,23 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega }) {
                 </span>
               </span>
             </button>
+            <button onClick={() => setStep('catena')} style={optionStyle(false)}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.9)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.65)'}>
+              <span style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: '#EDE9FE', color: '#6D28D9',
+                display:'grid', placeItems:'center',
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="9" width="7" height="12" rx="1.5"/><rect x="14" y="4" width="7" height="17" rx="1.5"/><path d="M6 13h1M6 16h1M17 8h1M17 12h1M17 16h1"/></svg>
+              </span>
+              <span style={{flex: 1}}>
+                <span style={{display:'block', fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Catena: aggiungi una sede</span>
+                <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
+                  Un'altra sede dello stesso soggetto fiscale: eredita conto Stripe e menù. Serve solo la sede operativa, poi la sala.
+                </span>
+              </span>
+            </button>
             <button onClick={() => { window.location.href = 'byup Restaurant Onboarding.html'; }} style={optionStyle(false)}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.9)'}
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.65)'}>
@@ -820,6 +868,49 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega }) {
               </span>
             </button>
           </div>
+        ) : step === 'catena' ? (
+          <>
+            <div>
+              <div style={lab}>Insegna della sede</div>
+              <input autoFocus value={sede.insegna} onChange={setS('insegna')} placeholder="Es. Cacio e Pepe · Prati" style={inputStyle}/>
+            </div>
+            <div>
+              <div style={lab}>Sede operativa</div>
+              <input value={sede.indirizzo} onChange={setS('indirizzo')} placeholder="Via e numero civico" style={inputStyle}/>
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 2fr 1fr', gap: 8}}>
+              <div><div style={lab}>CAP</div><input value={sede.cap} onChange={setS('cap')} style={inputStyle}/></div>
+              <div><div style={lab}>Città</div><input value={sede.citta} onChange={setS('citta')} style={inputStyle}/></div>
+              <div><div style={lab}>Prov.</div><input value={sede.prov} onChange={setS('prov')} style={inputStyle}/></div>
+            </div>
+            {/* Quello che la sede eredita, detto una volta: sono cose del
+                soggetto, non della sede, e non si chiedono due volte. */}
+            <div style={{padding:'10px 12px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 13.5, color: PN.TEXT, lineHeight: 1.5}}>
+              <b>Già completo, ereditato dalla catena:</b> soggetto fiscale e dati per fatturazione, conto Stripe (acct_••••dE3v), menù e listino, delega all'Agenzia. Da impostare per questa sede: la sala e i tavoli; il POS virtuale della sede va poi comunicato all'Agenzia.
+            </div>
+            <button
+              disabled={!sedeOk}
+              onClick={() => sedeOk && onCatena(sede)}
+              style={{
+                padding: '12px 18px', borderRadius: 999,
+                background: sedeOk ? PN.BTN_DARK : PN.WHITE_FROST,
+                color: sedeOk ? PN.WHITE : PN.MUTED_SOFT,
+                border: `1px solid ${sedeOk ? 'rgba(0,0,0,0.32)' : PN.BORDER_SOFT_A}`,
+                fontSize: 15, fontWeight: 700,
+                cursor: sedeOk ? 'pointer' : 'not-allowed', fontFamily:'inherit',
+              }}>
+              Crea la sede e imposta la sala
+            </button>
+            <button
+              onClick={() => setStep('scelta')}
+              style={{
+                border:'none', background:'transparent', padding: 0,
+                fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                cursor:'pointer', fontFamily:'inherit',
+              }}>
+              ← Torna alla scelta
+            </button>
+          </>
         ) : (
           <>
             {/* Ricerca */}

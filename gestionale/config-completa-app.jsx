@@ -74,11 +74,17 @@ function ConfigCompletaApp() {
     { label: 'Tag e categorie',    sub: 'Racconta che atmosfera offri',    done: true,  step: 'informazioni', anchor: 'tag' },
     { label: 'FAQ',                sub: 'Rispondi alle domande frequenti', done: false, step: 'aspetto',      anchor: 'faq' },
     { label: 'Social',             sub: 'Aggiungi sito e Instagram',       done: false, step: 'aspetto',      anchor: 'social' },
+    // La sala non vive in questa pagina: la voce porta in Impostazioni →
+    // Sala e tavoli. È l'unica cosa che una sede di catena deve ancora
+    // impostare (Account → Aggiungi un locale → Catena): tutto il resto è
+    // del soggetto ed è già completo.
+    { label: 'Sala e tavoli',      sub: 'Le sale e i tavoli di questa sede', done: false, href: 'byup Impostazioni.html?page=sala' },
   ];
 
   // Chip incompleto cliccato: cambia step se serve, poi scorre alla sezione
   // (e apre la card collassabile se è quella dei Tag).
   const goToSection = (c) => {
+    if (c.href) { window.location.href = c.href; return; }
     if (step !== c.step) setStep(c.step);
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('cfg-open-collapsible', { detail: c.anchor }));
