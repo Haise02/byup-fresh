@@ -491,7 +491,7 @@ const pivaFormale = (v) => /^IT\d{11}$/.test((v || '').replace(/\s/g, '').toUppe
 // foglio non si chiude col gesto: offre lì la verifica dell'identità e la
 // tappa dei dati, così chi ha iniziato qui non viene rimandato altrove. Le
 // deleghe restano nell'onboarding, come per tutti i casi con catena.
-function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica }) {
+function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
   // Tutti i campi della card, prefilled: il foglio è l'unico editore dei dati
   // anagrafici. La catena fiscale non si sceglie e non si chiede: nasce se
   // cambiano P.IVA o forma giuridica — cioè il contribuente — e allora il
@@ -546,7 +546,9 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica }) {
   const tappe = inCorso ? pnHolderTappe(c.change_type, c.legal_form) : [];
   const prossima = inCorso ? tappe.find(t => !c.steps[t]) : null;
   const verifica = () => { setVerificando(true); setTimeout(() => { setVerificando(false); byupHolderAvanza('verified'); }, 1400); };
-  const conferma = () => { onApplica(c); byupHolderAvanza('fiscal_updated'); };
+  // Confermati i dati, la delega va rifatta subito: il foglio si chiude e si
+  // apre quello della delega, senza che l'esercente lo debba cercare.
+  const conferma = () => { onApplica(c); byupHolderAvanza('fiscal_updated'); onClose(); onDelega(); };
 
   const tile = (on, titolo, sotto, onClick) => (
     <button onClick={onClick} style={{
@@ -651,12 +653,12 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica }) {
                   <div style={{flex: 1, minWidth: 0}}>
                     <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{st.label}</div>
                     {st.id === 'fiscal_updated' && fatta && <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>P.IVA precedente {c.soggetto.prima.piva} conservata: i documenti già emessi la portano.</div>}
-                    {st.id === 'delegations_renewed' && !fatta && <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Chi rappresenta il nuovo soggetto la riconferisce con il proprio SPID: si fa dalla card della delega.</div>}
+                    {st.id === 'delegations_renewed' && !fatta && <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>Chi rappresenta il nuovo soggetto la riconferisce con il proprio SPID, e quella di chi esce va revocata.</div>}
                   </div>
                   {tocca && st.id === 'accepted' && <ImpButton variant="primary" onClick={() => byupHolderAvanza('accepted')}>Simula l'accettazione di {c.entrante.nome} (demo)</ImpButton>}
                   {tocca && st.id === 'verified' && (verificando ? <span style={{fontSize: 13.5, color: PN.MUTED}}>Verifica in corso…</span> : <ImpButton variant="primary" onClick={verifica}>Verifica l'identità</ImpButton>)}
                   {tocca && st.id === 'fiscal_updated' && <ImpButton variant="primary" onClick={conferma}>Conferma i dati del nuovo soggetto</ImpButton>}
-                  {tocca && st.id === 'delegations_renewed' && <a href={`byup Restaurant Onboarding.html?step=2&cambio=${c.id}`} style={{fontSize: 14, fontWeight: 700, color: PN.PINK_DARK, textDecoration:'none', whiteSpace:'nowrap'}}>Riconferisci la delega →</a>}
+                  {tocca && st.id === 'delegations_renewed' && <ImpButton variant="primary" onClick={() => { onClose(); onDelega(); }}>Riconferisci la delega</ImpButton>}
                 </div>
               );
             })}
@@ -677,11 +679,135 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica }) {
   );
 }
 
+// ─── Il riconferimento della delega (P-62 · D-52, P-49 · D-40) ─────────────
+// Si apre da solo dopo la conferma del nuovo soggetto, e da Account per il
+// cambio di persona: chi rappresenta il soggetto riconferisce la delega con
+// il proprio SPID, e la delega di chi esce va revocata sul portale — che è
+// un'autodichiarazione. Stessa procedura della card dell'onboarding
+// (onboarding-step2-locale.jsx, altro bundle: CF, servizi e tap sono copie
+// verbatim, con gli stessi nomi). Il controllo non si fida sulla parola: il
+// primo giro finisce in «non trovata», col perché nell'ordine in cui si
+// sbaglia. Quando la delega è attiva e la revoca dichiarata, la tappa
+// delegations_renewed è fatta.
+const ADE_CF_BYUP = '15927340015';
+const ADE_PORTALE = 'https://www.agenziaentrate.gov.it/portale/area-riservata';
+const ADE_SERVIZI = [
+  'Fatturazione elettronica e conservazione delle fatture elettroniche',
+  'Accreditamento e censimento dispositivi',
+];
+const ADE_PASSI = [
+  'Accedi con SPID',
+  'Vai su Profilo → Deleghe',
+  'Apri Delega unica → Aggiungi delegato',
+  'Incolla il CF di Byup',
+  `Spunta «${ADE_SERVIZI[0]}»`,
+  `Spunta «${ADE_SERVIZI[1]}»`,
+  'Conferma',
+];
+const ADE_CAUSE = [
+  <React.Fragment>Il delegato è esattamente <b>{ADE_CF_BYUP}</b>.</React.Fragment>,
+  <React.Fragment>Sono spuntati <b>entrambi</b> i servizi: «{ADE_SERVIZI[0]}» e «{ADE_SERVIZI[1]}». Con uno solo la delega c'è, ma non basta.</React.Fragment>,
+  'La delega è confermata, non lasciata a metà.',
+  <React.Fragment><b>Hai già due delegati?</b> Il portale ne ammette due: se i posti sono occupati la nuova non entra, e ne va revocata una — quella di chi esce.</React.Fragment>,
+  'La delega può metterci qualche minuto a comparire: riprova.',
+];
+
+function ImpDelegaRiconfermaModal({ onClose }) {
+  const [, forza] = React.useState(0);
+  React.useEffect(() => {
+    const ri = () => forza(x => x + 1);
+    window.addEventListener('byup-holder-change', ri);
+    return () => window.removeEventListener('byup-holder-change', ri);
+  }, []);
+  const c = window.byupReadHolderChange ? byupReadHolderChange() : null;
+  const [stato, setStato] = React.useState('attesa');   // attesa | verifica | errore | attivo
+  const [tentativi, setTentativi] = React.useState(0);
+  const [revocata, setRevocata] = React.useState(false);
+  const fatta = !!(c && c.steps && c.steps.delegations_renewed);
+  React.useEffect(() => {
+    if (c && !fatta && stato === 'attivo' && revocata) byupHolderAvanza('delegations_renewed');
+  }, [stato, revocata]);
+  if (!c) return null;
+  const chi = c.entrante ? c.entrante.nome : 'Mario Rossi';
+  const perChi = c.soggetto ? c.soggetto.dopo.denominazione : 'Cacio e Pepe S.r.l.';
+  const verifica = () => {
+    setStato('verifica');
+    const t = tentativi + 1; setTentativi(t);
+    setTimeout(() => setStato(t === 1 ? 'errore' : 'attivo'), 1600);
+  };
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 160, padding: 20}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680, maxHeight:'92vh', display:'flex', flexDirection:'column'}}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>Riconferisci la delega all'Agenzia</div>
+          <div style={MODAL_SUB}>
+            La delega è conferita da una persona per conto di un contribuente: cambiato {c.soggetto ? 'il soggetto' : 'chi lo rappresenta'}, va rifatta.
+            La dà <b style={{color: PN.TEXT}}>{chi}</b> per <b style={{color: PN.TEXT}}>{perChi}</b>, dal proprio accesso al portale; quella di chi esce va revocata.
+          </div>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
+        </div>
+        <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
+          {fatta ? (
+            <div style={{padding:'12px 14px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+              <b style={{color: PN.GREEN}}>Deleghe riconferite e revocate.</b> Il cambiamento è concluso: lo vedi in <a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Account</a>.
+            </div>
+          ) : (
+            <React.Fragment>
+              <div style={{display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap', padding:'11px 13px', borderRadius: 10, background:'#F7F8FA', border:`1px solid ${PN.BORDER_SOFT}`}}>
+                <div style={{flex: 1, minWidth: 140}}>
+                  <div style={MODAL_LABEL}>Codice fiscale di Byup</div>
+                  <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5, userSelect:'all'}}>{ADE_CF_BYUP}</div>
+                </div>
+                <PosCopia valore={ADE_CF_BYUP}/>
+                <a href={ADE_PORTALE} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', alignItems:'center', gap: 6, padding:'6px 12px', borderRadius: 8, background: PN.BTN_DARK, color: PN.WHITE, fontSize: 13.5, fontWeight: 600, textDecoration:'none'}}>
+                  Apri il portale {BuIcons.link({size: 12, color:'currentColor'})}
+                </a>
+              </div>
+              <div>
+                <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Come si fa, in {ADE_PASSI.length} tap</div>
+                <ol style={{margin: 0, paddingLeft: 20, display:'flex', flexDirection:'column', gap: 4}}>
+                  {ADE_PASSI.map((p, i) => <li key={i} style={{fontSize: 14, color: PN.TEXT, lineHeight: 1.45}}>{p}</li>)}
+                </ol>
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap', paddingTop: 10, borderTop:`1px solid ${PN.BORDER_SOFT}`}}>
+                <div style={{flex: 1, minWidth: 220}}>
+                  <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>Controllo</div>
+                  <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>
+                    {stato === 'attivo' ? 'Delega trovata: entrambi i servizi risultano delegati a Byup.'
+                      : stato === 'verifica' ? 'Sto controllando la delega presso l\'Agenzia…'
+                      : 'Quando hai confermato sul portale, premi Fatto: controlliamo la delega.'}
+                  </div>
+                </div>
+                {stato !== 'attivo' && <ImpButton variant="primary" disabled={stato === 'verifica'} onClick={verifica}>{stato === 'errore' ? 'Riprova' : 'Fatto'}</ImpButton>}
+              </div>
+              {stato === 'errore' && (
+                <div style={{padding:'11px 13px', borderRadius: 10, background:'#FEF2F2', border:'1px solid #FECACA', fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
+                  <b style={{color: PN.RED}}>Delega non trovata.</b> Ricontrolla, in quest'ordine:
+                  <ol style={{margin:'6px 0 0', paddingLeft: 20, display:'flex', flexDirection:'column', gap: 3}}>{ADE_CAUSE.map((x, i) => <li key={i}>{x}</li>)}</ol>
+                </div>
+              )}
+              {/* La revoca è un gesto sul portale che Byup non vede: si
+                  dichiara. Senza, la tappa resta aperta. */}
+              <label style={{display:'flex', alignItems:'center', gap: 9, fontSize: 14.5, color: PN.TEXT, cursor:'pointer', padding:'10px 13px', borderRadius: 10, background: revocata ? PN.GREEN_SOFT : PN.AMBER_SOFT}}>
+                <input type="checkbox" checked={revocata} onChange={e => setRevocata(e.target.checked)} style={{width: 16, height: 16, accentColor: PN.PINK_DARK}}/>
+                Ho revocato sul portale la delega di chi esce (autodichiarazione)
+              </label>
+            </React.Fragment>
+          )}
+        </div>
+        <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onClose}>{fatta ? 'Chiudi' : 'Più tardi'}</ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Il banner del cambiamento in corso. Per il soggetto rimanda al foglio, dove
 // si fanno le tappe; per la persona la tappa dei dati segue la forma: si fa
 // sui campi del titolare (ditta individuale, professionista) o è saltata
 // (società, ente) e il banner lo dice senza offrire nulla.
-function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica }) {
+function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica, onDelega }) {
   const [cambio, setCambio] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
   React.useEffect(() => {
     const ri = () => setCambio(byupReadHolderChange());
@@ -697,7 +823,8 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica }) {
   if (!conSoggetto && !serveDati) return null;
   const fatta = !!cambio.steps.fiscal_updated;
   const pronta = !!cambio.steps.verified && !fatta;
-  const segna = () => { onApplica(cambio); byupHolderAvanza('fiscal_updated'); };
+  const segna = () => { onApplica(cambio); byupHolderAvanza('fiscal_updated'); onDelega(); };
+  const deleghe = !!cambio.steps.delegations_renewed;
   return (
     <ImpCard title="Cambio di titolarità in corso" sub={conSoggetto
       ? `Da ${cambio.soggetto.prima.denominazione} (${cambio.soggetto.prima.piva}) a ${cambio.soggetto.dopo.denominazione} (${cambio.soggetto.dopo.piva})`
@@ -707,15 +834,19 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica }) {
         <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
           <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
             {fatta
-              ? <><b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili. Restano le deleghe.</>
-              : 'Le tappe si fanno nel foglio: identità, dati del nuovo soggetto, poi le deleghe.'}
+              ? <><b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili.{deleghe ? ' Deleghe riconferite e revocate: cambiamento concluso.' : ' Resta la delega da riconferire.'}</>
+              : 'Le tappe si fanno nel foglio: identità, dati del nuovo soggetto, poi la delega.'}
           </div>
-          <ImpButton variant={fatta ? 'ghost' : 'primary'} onClick={onApriFoglio}>{fatta ? 'Rivedi il foglio' : 'Continua nel foglio'}</ImpButton>
+          {fatta && !deleghe
+            ? <ImpButton variant="primary" onClick={onDelega}>Riconferisci la delega</ImpButton>
+            : <ImpButton variant={fatta ? 'ghost' : 'primary'} onClick={onApriFoglio}>{fatta ? 'Rivedi il foglio' : 'Continua nel foglio'}</ImpButton>}
         </div>
       ) : fatta ? (
-        <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-          <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b>
-          {' '}<a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Torna all'Account</a> per le deleghe.
+        <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
+          <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
+            <b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b>{deleghe ? ' Deleghe riconferite e revocate: cambiamento concluso.' : ' Resta la delega da riconferire.'}
+          </div>
+          {!deleghe && <ImpButton variant="primary" onClick={onDelega}>Riconferisci la delega</ImpButton>}
         </div>
       ) : pronta ? (
         <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
@@ -770,6 +901,11 @@ function ImpDatiFiscali() {
   const [dirty, setDirty] = React.useState(false);
   const set = (k, v) => { setData(d => ({...d, [k]: v})); setDirty(true); };
   const [soggettoOpen, setSoggettoOpen] = React.useState(false);
+  // Il foglio della delega: si apre da solo dopo la conferma del soggetto, dal
+  // banner, e dal rimando di Account (?delega=1) per il cambio di persona.
+  const [delegaOpen, setDelegaOpen] = React.useState(() => {
+    try { return new URLSearchParams(window.location.search).get('delega') === '1'; } catch (e) { return false; }
+  });
   // La tappa fiscal_updated applica il cambiamento ai dati di questa
   // schermata: il nuovo soggetto (forma, denominazione, P.IVA — la
   // precedente resta conservata) o il nuovo titolare sui campi della persona.
@@ -854,11 +990,12 @@ function ImpDatiFiscali() {
 
       {/* Cambio di titolarità in corso (P-62): la tappa fiscal_updated si fa
           qui e torna in Account come fatta. */}
-      <ImpCambioTitolaritaBanner onApriFoglio={() => setSoggettoOpen(true)} onApplica={applica}/>
+      <ImpCambioTitolaritaBanner onApriFoglio={() => setSoggettoOpen(true)} onApplica={applica} onDelega={() => setDelegaOpen(true)}/>
       {soggettoOpen && (
-        <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica}
+        <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica} onDelega={() => setDelegaOpen(true)}
           onSalva={(campi) => setData(d => ({ ...d, ...campi }))}/>
       )}
+      {delegaOpen && <ImpDelegaRiconfermaModal onClose={() => setDelegaOpen(false)}/>}
 
       {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
           verifica all'inserimento — il perché e il come stanno nel commento

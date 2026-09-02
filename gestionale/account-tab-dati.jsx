@@ -1239,7 +1239,7 @@ function AcTitolarita({ onPassa }) {
       ? <span style={{fontSize: 13.5, color: PN.MUTED}}>Verifica in corso…</span>
       : btn('Verifica l\'identità', verifica, true);
     if (t === 'fiscal_updated') return link('Apri Dati fiscali', `byup Impostazioni.html?page=fiscali&cambio=${cambio.id}`);
-    if (t === 'delegations_renewed') return link('Riconferisci la delega', `byup Restaurant Onboarding.html?step=2&cambio=${cambio.id}`);
+    if (t === 'delegations_renewed') return link('Riconferisci la delega', `byup Impostazioni.html?page=fiscali&cambio=${cambio.id}&delega=1`);
     return null;
   };
 

@@ -429,23 +429,10 @@ function AdePastiglia({ tono, label, giro }) {
   );
 }
 
-// Il rimando delle deleghe da Account (P-62) arriva QUI, nell'onboarding: la
-// card della delega non ha ancora una casa in Impostazioni, e il locale
-// avviato l'avrà lì (coda registrata). Il bundle dell'onboarding non carica
-// panoramica-tokens.jsx: lettura e scrittura del registro byup_holder_change
-// stanno qui, con gli stessi nomi.
-const onbReadHolderChange = () => { try { const s = localStorage.getItem('byup_holder_change'); return s ? JSON.parse(s) : null; } catch (e) { return null; } };
-const onbHolderAvanza = (stato) => {
-  const c = onbReadHolderChange(); if (!c) return;
-  c.steps[stato] = new Date().toISOString(); c.status = stato;
-  let tutte = { holder_person: ['proposed','accepted','verified','fiscal_updated','delegations_renewed'], legal_entity: ['proposed','verified','fiscal_updated','delegations_renewed'], both: ['proposed','accepted','verified','fiscal_updated','delegations_renewed'] }[c.change_type] || [];
-  // Stessa regola di pnHolderTappe: per società ed ente il cambio di persona
-  // salta la tappa dei dati fiscali.
-  if (c.change_type === 'holder_person' && (c.legal_form === 'societa' || c.legal_form === 'ente')) tutte = tutte.filter(t => t !== 'fiscal_updated');
-  if (tutte.every(t => c.steps[t])) { c.steps.completed = new Date().toISOString(); c.status = 'completed'; }
-  try { localStorage.setItem('byup_holder_change', JSON.stringify(c)); } catch (e) {}
-};
-
+// Il riconferimento della delega per un cambio di titolarità (P-62) non
+// vive più qui: è un foglio in Impostazioni → Dati fiscali, che si apre da
+// solo dopo il cambio di soggetto e riusa questa stessa procedura. Questa
+// card resta quella del primo avvio.
 // Il registro del censimento POS (P-105, byup_pos_censimento) sta in
 // panoramica-tokens.jsx, che questo bundle non carica: qui la lettura e la
 // scrittura guardate, con gli stessi nomi del modello. Si salva solo la riga
@@ -468,16 +455,6 @@ const onbPosDichiara = (dichiarato, autore) => {
 
 function AdeDelegaCard({venue, v}) {
   const stato = venue.adeStato || 'attesa';   // attesa | verifica | errore | attivo
-  // Riconferimento per un cambio di titolarità (P-62): chi entra riconferisce,
-  // la revoca a chi esce è un'autodichiarazione. Quando la delega nuova è
-  // attiva e la revoca dichiarata, la tappa delegations_renewed torna in
-  // Account come fatta.
-  const [cambio, setCambio] = React.useState(onbReadHolderChange);
-  const [revocata, setRevocata] = React.useState(false);
-  const riconferimento = cambio && cambio.fiscal_chain_impacted && cambio.steps && cambio.steps.verified && !cambio.steps.delegations_renewed && cambio.status !== 'refused';
-  React.useEffect(() => {
-    if (riconferimento && stato === 'attivo' && revocata) { onbHolderAvanza('delegations_renewed'); setCambio(onbReadHolderChange()); }
-  }, [stato, revocata]);
   const conservazione = venue.conservazioneStato || 'attesa';   // attesa | corso | attiva
   // Lo stato del censimento non è più una copia locale: è la riga del POS
   // virtuale nel registro, la stessa che leggono Personale e Dati fiscali.
@@ -570,30 +547,6 @@ function AdeDelegaCard({venue, v}) {
       {/* proc-spin vive dentro l'overlay di elaborazione, che qui non c'è:
           il giro del verificatore se lo porta da sé. */}
       <style>{`@keyframes ade-spin { to { transform: rotate(360deg); } }`}</style>
-      {cambio && cambio.fiscal_chain_impacted && cambio.status !== 'refused' && (
-        <div style={{
-          marginBottom: 14, padding: '11px 13px', borderRadius: 10,
-          background: cambio.steps.delegations_renewed ? 'rgba(22, 163, 74, 0.07)' : 'rgba(217, 119, 6, 0.10)',
-          border: `1px solid ${cambio.steps.delegations_renewed ? 'rgba(22, 163, 74, 0.25)' : 'rgba(217, 119, 6, 0.30)'}`,
-          fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5,
-        }}>
-          <b style={{fontWeight: 600}}>Cambio di titolarità in corso.</b>{' '}
-          {cambio.steps.delegations_renewed ? (
-            <>Deleghe riconferite e revocate. <a href="byup Profilo.html" style={{color: ONB.BRAND_DARK, fontWeight: 600}}>Torna all'Account</a>.</>
-          ) : !cambio.steps.verified ? (
-            <>Prima serve la verifica dell'identità in Account.</>
-          ) : (
-            <>
-              La delega la riconferisce <b style={{fontWeight: 600}}>{cambio.entrante ? cambio.entrante.nome : 'Mario Rossi'}</b> per{' '}
-              <b style={{fontWeight: 600}}>{cambio.soggetto ? cambio.soggetto.dopo.denominazione : 'Cacio e Pepe S.r.l.'}</b>, con i tap qui sotto, e la delega di chi esce va revocata sul portale.
-              <label style={{display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer'}}>
-                <input type="checkbox" checked={revocata} onChange={e => setRevocata(e.target.checked)} style={{width: 16, height: 16, accentColor: ONB.ACTION_PRIMARY}}/>
-                Ho revocato sul portale la delega di chi esce (autodichiarazione)
-              </label>
-            </>
-          )}
-        </div>
-      )}
       <div style={{marginBottom: 6}}>
         <div style={{fontSize: 18, fontWeight: 600, color: ONB.TEXT, letterSpacing: '-0.01em', lineHeight: 1.4}}>
           Attivazioni fiscali
