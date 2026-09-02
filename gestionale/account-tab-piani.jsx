@@ -1393,7 +1393,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
       display: 'grid', placeItems: 'center', padding: 24,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: 580, maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto',
+        width: 580, maxWidth: '100%', maxHeight: 'calc(var(--pn-vh, 100vh) * 0.9)', overflowY: 'auto',
         background: '#fff', borderRadius: 16,
         boxShadow: '0 24px 70px rgba(0, 0, 0, 0.28)',
         fontFamily: 'inherit',

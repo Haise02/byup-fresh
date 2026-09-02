@@ -963,7 +963,7 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG, borderRadius: 20, padding: 26,
-        maxWidth: 440, width:'100%', maxHeight:'86vh', overflow:'auto',
+        maxWidth: 440, width:'100%', maxHeight:'calc(var(--pn-vh, 100vh) * 0.86)', overflow:'auto',
       }}>
         <div style={{display:'flex', alignItems:'flex-start', gap: 10}}>
           <div style={{flex:1}}>

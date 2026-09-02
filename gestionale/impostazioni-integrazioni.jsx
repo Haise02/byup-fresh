@@ -865,7 +865,7 @@ function IntCollegaModal({ onClose, onGenera }) {
       position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
       display:'grid', placeItems:'center', zIndex: 100, padding: 20,
     }}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 640, maxHeight: '92vh', display:'flex', flexDirection:'column'}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 640, maxHeight: 'calc(var(--pn-vh, 100vh) * 0.92)', display:'flex', flexDirection:'column'}}>
         <div style={{...MODAL_HEAD, display:'flex', alignItems:'center', gap: 14}}>
           <span style={{width: 48, height: 48, borderRadius: 13, background: '#FF4F00', color: '#fff', display:'grid', placeItems:'center', fontSize: 22, fontWeight: 800, flexShrink: 0}}>Z</span>
           <div style={{flex: 1, minWidth: 0}}>

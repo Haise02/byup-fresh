@@ -1000,3 +1000,25 @@ window.byupStripeRicollega = function () {
   const c = window.byupReadHolderChange ? window.byupReadHolderChange() : null;
   if (c && c.soggetto && c.status !== 'refused' && !c.steps.verified) window.byupHolderAvanza('verified');
 };
+
+// ─── L'altezza VERA della finestra, dentro il frame zoomato ─────────────────
+// Le pagine del gestionale stanno in un .frame con lo zoom proporzionale
+// (design 1440×900): un popup limitato a 100vh dentro quel frame viene
+// scalato dallo zoom e sfora la finestra. --pn-vh è l'altezza della finestra
+// divisa per lo zoom: i popup si limitano a calc(var(--pn-vh) - margine) e
+// al massimo scorrono dentro. Aggiornata al caricamento, al resize e poco
+// dopo, perché lo zoom lo applica lo script della pagina.
+(function () {
+  const agg = () => {
+    const f = document.querySelector('.frame');
+    const z = f ? (parseFloat(getComputedStyle(f).zoom) || 1) : 1;
+    document.documentElement.style.setProperty('--pn-vh', Math.round(window.innerHeight / z) + 'px');
+  };
+  window.addEventListener('resize', agg);
+  // Babel compila dopo il load: quell'evento è già passato. Si riprova a
+  // scadenze fisse e si osserva il .frame, il cui stile cambia quando lo
+  // script della pagina applica lo zoom.
+  agg(); setTimeout(agg, 250); setTimeout(agg, 1200);
+  const f = document.querySelector('.frame');
+  if (f && window.MutationObserver) new MutationObserver(agg).observe(f, { attributes: true, attributeFilter: ['style'] });
+})();

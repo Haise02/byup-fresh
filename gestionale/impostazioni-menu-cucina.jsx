@@ -2266,7 +2266,7 @@ function MCPrezziModal({ count, piatti = [], onClose, onApply }) {
     }}>
       <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{
         background: PN.WHITE, borderRadius: 16, width: 620, maxWidth: '100%',
-        maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
+        maxHeight: 'calc(var(--pn-vh, 100vh) - 48px)', overflowY: 'auto',
         boxShadow: '0 24px 70px rgba(0,0,0,0.24)',
         animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
       }}>
@@ -3109,7 +3109,7 @@ function MCTraduzioniModal({ dishId, nome, voci, onClose }) {
     }}>
       <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" style={{
         background: PN.WHITE, borderRadius: 16, width: 760, maxWidth: '100%',
-        maxHeight: '86vh', display: 'flex', flexDirection: 'column',
+        maxHeight: 'calc(var(--pn-vh, 100vh) * 0.86)', display: 'flex', flexDirection: 'column',
         boxShadow: '0 20px 60px rgba(0,0,0,0.22)',
         animation: 'impPopIn 0.28s cubic-bezier(0.34, 1.45, 0.64, 1)',
       }}>
@@ -4409,7 +4409,7 @@ function DishLibraryPicker({ library, excludeIds, catName, menuName, onClose, on
   const count = Object.keys(selected).length;
   return (
     <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', zIndex:1000, display:'grid', placeItems:'center', padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{background: PN.WHITE, borderRadius: 22, width: 660, maxWidth:'100%', maxHeight:'92vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.22)'}}>
+      <div onClick={e => e.stopPropagation()} style={{background: PN.WHITE, borderRadius: 22, width: 660, maxWidth:'100%', maxHeight:'calc(var(--pn-vh, 100vh) * 0.92)', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 24px 64px rgba(15,17,21,0.22)'}}>
 
         {/* Header: icona tonda + eyebrow categoria + titolo + sottotitolo */}
         <div style={{padding:'24px 26px 0', display:'flex', alignItems:'flex-start', gap: 15}}>

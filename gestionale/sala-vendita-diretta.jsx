@@ -1778,7 +1778,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG,
         borderRadius: 20,
-        width: 480, maxWidth:'100%', maxHeight:'88vh',
+        width: 480, maxWidth:'100%', maxHeight:'calc(var(--pn-vh, 100vh) * 0.88)',
         display:'flex', flexDirection:'column', overflow:'hidden',
       }}>
         {/* Header con immagine */}

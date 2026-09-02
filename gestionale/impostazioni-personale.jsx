@@ -1537,7 +1537,7 @@ function InviteModal({ onClose, prefill, ruoli }) {
       <div onClick={e => e.stopPropagation()} style={{
         ...IMP_MODAL_PANEL,
         width: kind === 'person' ? 620 : 480, maxWidth:'100%', position:'relative',
-        maxHeight: '90vh', display:'flex', flexDirection:'column',
+        maxHeight: 'calc(var(--pn-vh, 100vh) * 0.9)', display:'flex', flexDirection:'column',
       }}>
         <div style={IMP_MODAL_HEAD}>
           <div style={IMP_MODAL_TITLE}>
@@ -2093,7 +2093,7 @@ function PendingModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} style={{
         ...IMP_MODAL_PANEL,
         width: 500, maxWidth:'100%', position:'relative',
-        maxHeight:'90vh', display:'flex', flexDirection:'column',
+        maxHeight:'calc(var(--pn-vh, 100vh) * 0.9)', display:'flex', flexDirection:'column',
       }}>
         <div style={IMP_MODAL_HEAD}>
           <div style={IMP_MODAL_TITLE}>Inviti in sospeso</div>
@@ -2273,7 +2273,7 @@ function CreateRoleModal({ onClose, role, roles, onSave }) {
       <div onClick={e => e.stopPropagation()} style={{
         ...IMP_MODAL_PANEL,
         width: 480, maxWidth:'100%', position:'relative',
-        maxHeight: '90vh', display:'flex', flexDirection:'column',
+        maxHeight: 'calc(var(--pn-vh, 100vh) * 0.9)', display:'flex', flexDirection:'column',
       }}>
         <div style={IMP_MODAL_HEAD}>
           <div style={IMP_MODAL_TITLE}>

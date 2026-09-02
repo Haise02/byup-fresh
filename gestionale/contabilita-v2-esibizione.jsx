@@ -159,7 +159,7 @@ function ContEsibizione({ onClose }) {
     // Un popup sopra la Contabilità, non una schermata a parte: testata
     // fissa, corpo che scorre, la pagina sotto resta dov'era.
     <div onClick={onClose} style={{position:'fixed', inset: 0, zIndex: 900, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{width:'min(1120px, 100%)', maxHeight:'92vh', background: C.SURF, borderRadius: 18, overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 30px 80px rgba(0,0,0,0.32)'}}>
+      <div onClick={e => e.stopPropagation()} style={{width:'min(1120px, 100%)', maxHeight:'calc(var(--pn-vh, 100vh) - 40px)', background: C.SURF, borderRadius: 18, overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'0 30px 80px rgba(0,0,0,0.32)'}}>
       {/* Testata: sede, finestra, uscita. Tutto quello che il verificatore
           chiede per primo sta qui, prima dell'elenco. */}
       <div style={{padding:'18px 28px 14px', background: PN.WHITE, borderBottom:`1px solid ${PN.BORDER}`, display:'flex', alignItems:'flex-start', gap: 16, flexWrap:'wrap', flexShrink: 0}}>
@@ -180,7 +180,7 @@ function ContEsibizione({ onClose }) {
         </div>
       </div>
 
-      <div className="pn-scroll" style={{flex: 1, overflowY:'auto', padding:'18px 28px 32px', display:'flex', flexDirection:'column', gap: 16}}>
+      <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY:'auto', padding:'18px 28px 32px', display:'flex', flexDirection:'column', gap: 16}}>
         <div style={{padding:'12px 16px', borderRadius: C.R_MD, background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderLeft:`3px solid ${PN.TEXT}`, fontSize: C.T_SM, color: PN.TEXT, lineHeight: 1.5, flexShrink: 0}}>
           {ESIB_REGIME}
         </div>
@@ -280,7 +280,7 @@ function EsibizioneScheda({ doc, sede, onClose }) {
   return (
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 950, display:'grid', placeItems:'center', padding: 24}}>
       <div onClick={ev => ev.stopPropagation()} style={{
-        width: 680, maxWidth:'100%', maxHeight:'92vh', background: PN.WHITE, borderRadius: 20,
+        width: 680, maxWidth:'100%', maxHeight:'calc(var(--pn-vh, 100vh) * 0.92)', background: PN.WHITE, borderRadius: 20,
         boxShadow:'0 32px 80px rgba(15,17,21,0.24)', display:'flex', flexDirection:'column', overflow:'hidden',
       }}>
         <div style={{padding:'18px 24px 14px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, display:'flex', alignItems:'flex-start', gap: 12}}>

@@ -594,7 +594,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
 
   return (
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 1040, maxHeight:'94vh', display:'flex', flexDirection:'column', position:'relative'}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 1040, maxHeight:'calc(var(--pn-vh, 100vh) - 40px)', display:'flex', flexDirection:'column', position:'relative'}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
           <div style={{...MODAL_TITLE, fontSize: 21}}>Cambia soggetto fiscale</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
@@ -810,7 +810,7 @@ function ImpDelegaRiconfermaModal({ onClose }) {
   };
   return (
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 160, padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680, maxHeight:'92vh', display:'flex', flexDirection:'column'}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680, maxHeight:'calc(var(--pn-vh, 100vh) * 0.92)', display:'flex', flexDirection:'column'}}>
         <div style={MODAL_HEAD}>
           <div style={MODAL_TITLE}>Riconferisci la delega all'Agenzia</div>
           <div style={MODAL_SUB}>
