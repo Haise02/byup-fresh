@@ -505,6 +505,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
   }));
   const setC = (k) => (e) => setF(x => ({ ...x, [k]: e.target.value }));
   const [stessa, setStessa] = React.useState(null);   // true | false | null
+  const [chiedi, setChiedi] = React.useState(false);   // il «Sicuro?» prima del cambio
   const [entNome, setEntNome] = React.useState('Giulia Bianchi');
   const [entEmail, setEntEmail] = React.useState('giulia.bianchi@example.it');
   const [verificando, setVerificando] = React.useState(false);
@@ -523,10 +524,19 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
   const denominazione = persona ? `${f.ownerNome} ${f.ownerCognome}`.trim() : (f.ragione || '').trim();
   const pronto = pivaOk && denominazione && (!cambiaSoggetto || (stessa !== null && (stessa || entEmail.includes('@'))));
 
+  // Un cambio di soggetto non parte senza il «Sicuro?»: l'account Stripe è
+  // intestato al soggetto di oggi e si disabilita, la delega va rifatta, e
+  // fino ad allora niente scontrini né pagamenti. Il salvataggio semplice no.
   const avvia = () => {
     if (!pronto) return;
     const campi = { ...f, piva: pivaPulita };
     if (!cambiaSoggetto) { onSalva(campi); onClose(); return; }
+    setChiedi(true);
+  };
+  const avviaDavvero = () => {
+    const campi = { ...f, piva: pivaPulita };
+    setChiedi(false);
+    byupStripeDisabilita('cambio_soggetto');
     const now = new Date().toISOString();
     byupWriteHolderChange({
       id: 'hc-' + Date.now(), change_type: stessa ? 'legal_entity' : 'both', fiscal_chain_impacted: true,
@@ -574,7 +584,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
 
   return (
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 820, maxHeight:'94vh', display:'flex', flexDirection:'column'}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 820, maxHeight:'94vh', display:'flex', flexDirection:'column', position:'relative'}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
           <div style={{...MODAL_TITLE, fontSize: 21}}>Cambia soggetto fiscale</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
@@ -678,6 +688,23 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDelega }) {
           </div>
         )}
 
+        {chiedi && (
+          <div onClick={() => setChiedi(false)} style={{position:'absolute', inset: 0, background:'rgba(15,17,21,0.38)', display:'grid', placeItems:'center', zIndex: 5, borderRadius: 'inherit', padding: 20}}>
+            <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 520, padding: '22px 24px', boxShadow: '0 24px 60px rgba(0,0,0,0.28)'}}>
+              <div style={{fontSize: 21, fontWeight: 800, letterSpacing: -0.4, color: PN.TEXT}}>Sicuro?</div>
+              <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.55, marginTop: 8}}>
+                Il tuo collegamento a Stripe viene disabilitato e anche le deleghe dovranno essere rifatte: finché non le rifai non potrai emettere scontrini né ricevere pagamenti.
+              </div>
+              <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 6}}>
+                L'account Stripe è intestato a {data.legalForm === 'ditta_individuale' || data.legalForm === 'professionista' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione}: il nuovo soggetto ne apre uno suo, con la verifica di Stripe, da POS e integrazioni.
+              </div>
+              <div style={{display:'flex', gap: 10, justifyContent:'flex-end', marginTop: 18}}>
+                <button onClick={() => setChiedi(false)} style={{padding:'9px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
+                <ImpButton variant="danger" onClick={avviaDavvero}>Sì, cambia il soggetto</ImpButton>
+              </div>
+            </div>
+          </div>
+        )}
         <div style={{...MODAL_FOOT, padding: '12px 24px'}}>
           <button onClick={onClose} style={{padding:'9px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>{inCorso ? 'Chiudi' : 'Annulla'}</button>
           <span style={{flex: 1}}/>
@@ -841,7 +868,7 @@ function ImpCambioTitolaritaBanner({ onApriFoglio, onApplica, onDelega }) {
           <div style={{flex: 1, minWidth: 260, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
             {fatta
               ? <><b style={{color: PN.GREEN}}>Dati fiscali aggiornati.</b> P.IVA precedente <b>{cambio.soggetto.prima.piva}</b> conservata: i documenti già emessi la portano e restano leggibili.{deleghe ? ' Delega riconferita: cambiamento concluso.' : ' Resta la delega da riconferire.'}</>
-              : 'Le tappe si fanno nel foglio: identità, dati del nuovo soggetto, poi la delega.'}
+              : 'Le tappe si fanno nel foglio: identità, dati del nuovo soggetto, poi la delega. Finché la delega non è riconferita non emetti scontrini; Stripe va ricollegato dal nuovo soggetto.'}
           </div>
           {fatta && !deleghe
             ? <ImpButton variant="primary" onClick={onDelega}>Riconferisci la delega</ImpButton>
@@ -907,6 +934,17 @@ function ImpDatiFiscali() {
   const [dirty, setDirty] = React.useState(false);
   const set = (k, v) => { setData(d => ({...d, [k]: v})); setDirty(true); };
   const [soggettoOpen, setSoggettoOpen] = React.useState(false);
+  // Il collegamento Stripe (registro byup_stripe, panoramica-tokens): il cambio
+  // di soggetto lo disabilita, e da qui si ricollega — onboarding Stripe
+  // simulato. Col ricollegamento nasce un POS virtuale nuovo (P-105).
+  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
+  const [ricollegando, setRicollegando] = React.useState(false);
+  React.useEffect(() => {
+    const ri = () => setStripe(byupReadStripe());
+    window.addEventListener('byup-stripe-change', ri);
+    return () => window.removeEventListener('byup-stripe-change', ri);
+  }, []);
+  const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); byupStripeRicollega(); }, 1800); };
   // Il foglio della delega: si apre da solo dopo la conferma del soggetto, dal
   // banner, e dal rimando di Account (?delega=1) per il cambio di persona.
   const [delegaOpen, setDelegaOpen] = React.useState(() => {
@@ -1186,7 +1224,16 @@ function ImpDatiFiscali() {
               mascherato è lo stesso che POS e integrazioni mostra sulla riga
               Stripe: una fonte sola. */}
           <ImpCard title="Accredito degli incassi" sub="Il conto dei versamenti è quello connesso a Stripe: qui si legge, si cambia da Stripe" style={{marginBottom: 16}}>
-            <div style={{display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap'}}>
+            {stripe.status !== 'connected' && (
+              <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap', padding:'12px 14px', borderRadius: 11, background:'#FEF2F2', border:'1.5px solid #FECACA', marginBottom: 14}}>
+                <div style={{width: 34, height: 34, borderRadius: 9, background: PN.RED, color: PN.WHITE, display:'grid', placeItems:'center', flexShrink: 0}}><BuIcons.alert size={16} color={PN.WHITE}/></div>
+                <div style={{flex: 1, minWidth: 240, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
+                  <b style={{color: '#991B1B'}}>Collegamento a Stripe disabilitato.</b> Il soggetto fiscale è cambiato e l'account era intestato a quello precedente: serve un nuovo collegamento, con la verifica di Stripe. Fino ad allora non ricevi pagamenti.
+                </div>
+                <ImpButton variant="primary" disabled={ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>
+              </div>
+            )}
+            <div style={{display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap', opacity: stripe.status === 'connected' ? 1 : 0.55}}>
               <div style={{
                 width: 40, height: 40, borderRadius: 10, background:'#635BFF',
                 display:'grid', placeItems:'center', flexShrink: 0,
@@ -1201,11 +1248,11 @@ function ImpDatiFiscali() {
                   <span style={{
                     display:'inline-flex', alignItems:'center', gap: 5,
                     padding:'2px 9px', borderRadius: 999,
-                    background:'#D1FAE5', color:'#065F46',
+                    background: stripe.status === 'connected' ? '#D1FAE5' : '#FEE2E2', color: stripe.status === 'connected' ? '#065F46' : '#991B1B',
                     fontSize: 12.5, fontWeight: 700,
                   }}>
-                    <span style={{width: 6, height: 6, borderRadius:'50%', background:'#059669'}}/>
-                    Attivo
+                    <span style={{width: 6, height: 6, borderRadius:'50%', background: stripe.status === 'connected' ? '#059669' : PN.RED}}/>
+                    {stripe.status === 'connected' ? 'Attivo' : 'Disabilitato'}
                   </span>
                 </div>
                 <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, fontFamily:'ui-monospace, monospace', letterSpacing: 0.3}}>

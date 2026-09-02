@@ -1299,7 +1299,8 @@ function AcTitolarita({ onPassa }) {
 // Il foglio dei quattro casi. La catena fiscale non si sceglie: si legge dal
 // tipo, e la frase del modello sta a schermo sotto le tessere.
 function AcPassaModal({ onClose }) {
-  const [nome, setNome] = React.useState(AC_ENTRANTE.nome);
+  const [nome, setNome] = React.useState(AC_ENTRANTE.nome.split(' ')[0]);
+  const [cognome, setCognome] = React.useState(AC_ENTRANTE.nome.split(' ').slice(1).join(' '));
   const [email, setEmail] = React.useState(AC_ENTRANTE.email);
   const ok = email.trim().includes('@');
   // Il gesto scrive un holder_person e nient'altro: la catena fiscale è sì
@@ -1313,7 +1314,7 @@ function AcPassaModal({ onClose }) {
       legal_form: AC_TITOLARE.forma,
       status: 'proposed', proposed_by: AC_TITOLARE.persona, created_at: now,
       steps: { proposed: now },
-      entrante: { nome: nome.trim() || AC_ENTRANTE.nome, email: email.trim() },
+      entrante: { nome: `${nome.trim()} ${cognome.trim()}`.trim() || AC_ENTRANTE.nome, email: email.trim() },
       soggetto: null,
     });
     onClose();
@@ -1327,9 +1328,15 @@ function AcPassaModal({ onClose }) {
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
         <div style={{...MODAL_BODY, display:'flex', flexDirection:'column', gap: 12}}>
-          <div>
-            <div style={MODAL_LABEL}>Chi entra</div>
-            <input value={nome} onChange={e => setNome(e.target.value)} style={MODAL_INPUT}/>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 10}}>
+            <div>
+              <div style={MODAL_LABEL}>Nome di chi entra</div>
+              <input value={nome} onChange={e => setNome(e.target.value)} style={MODAL_INPUT}/>
+            </div>
+            <div>
+              <div style={MODAL_LABEL}>Cognome</div>
+              <input value={cognome} onChange={e => setCognome(e.target.value)} style={MODAL_INPUT}/>
+            </div>
           </div>
           <div>
             <div style={MODAL_LABEL}>La sua casella di posta</div>

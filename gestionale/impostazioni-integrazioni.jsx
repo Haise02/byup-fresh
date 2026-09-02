@@ -615,7 +615,20 @@ function PosVirtualeRimando() {
 }
 
 function IntegrationCard({ item, suggested, onMobileQr, onApi }) {
-  const s = STATUS_LABEL[item.status];
+  // Stripe: lo stato vero sta nel registro byup_stripe (panoramica-tokens) —
+  // il cambio di soggetto fiscale lo disabilita, e da qui si ricollega con
+  // l'onboarding Stripe (simulato) del nuovo soggetto.
+  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
+  const [ricollegando, setRicollegando] = React.useState(false);
+  React.useEffect(() => {
+    const ri = () => setStripe(byupReadStripe());
+    window.addEventListener('byup-stripe-change', ri);
+    return () => window.removeEventListener('byup-stripe-change', ri);
+  }, []);
+  const stripeGiu = item.id === 'stripe' && stripe.status !== 'connected';
+  if (stripeGiu) item = { ...item, status: 'todo', detail: 'Disabilitato: il soggetto fiscale è cambiato', cta: 'Ricollega Stripe', required: true };
+  const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); byupStripeRicollega(); }, 1800); };
+  const s = stripeGiu ? { ...STATUS_LABEL.todo, label: 'Da ricollegare' } : STATUS_LABEL[item.status];
   // Tessera in piedi invece che riga sdraiata: logo in alto, nome e
   // descrizione sotto, e il bottone appoggiato al fondo. Cosi il bottone sta
   // sempre nello stesso punto — a destra, in fondo a una riga larga, ogni
@@ -678,8 +691,9 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi }) {
             <ImpButton
               variant="primary"
               style={azione}
-              onClick={item.mobile ? onMobileQr : undefined}
-            >{item.cta || 'Configura ora'}</ImpButton>
+              disabled={ricollegando}
+              onClick={stripeGiu ? ricollega : item.mobile ? onMobileQr : undefined}
+            >{ricollegando ? 'Collegamento in corso…' : (item.cta || 'Configura ora')}</ImpButton>
           )}
           {(item.status === 'available' || item.status === 'disconnected') && (
             <ImpButton variant="ghost" style={azione} onClick={item.api ? onApi : undefined}>Connetti</ImpButton>

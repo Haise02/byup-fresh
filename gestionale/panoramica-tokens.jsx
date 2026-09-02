@@ -972,3 +972,26 @@ window.pnPosUrgente = function (lista) {
     .map(r => ({ r, p: window.pnPosPromemoria(r) }))
     .sort((a, b) => ordine[a.p.fase] - ordine[b.p.fase])[0] || null;
 };
+
+// ─── Collegamento Stripe: lo stato condiviso (D-52) ─────────────────────────
+// L'account connesso è intestato al soggetto fiscale: se il soggetto cambia,
+// l'account non è più suo. Il cambio di soggetto (Dati fiscali) disabilita il
+// collegamento e chiede un nuovo onboarding Stripe con la sua verifica; fino
+// ad allora niente pagamenti. Dati fiscali e POS e integrazioni leggono qui.
+// Il ricollegamento fa nascere un POS virtuale nuovo: il censimento si riapre
+// (byupPosVaria 'varied', P-105).
+const PN_STRIPE_KEY = 'byup_stripe';
+window.byupReadStripe = function () {
+  try { const s = localStorage.getItem(PN_STRIPE_KEY); return s ? JSON.parse(s) : { status: 'connected' }; } catch (e) { return { status: 'connected' }; }
+};
+window.byupWriteStripe = function (v) {
+  try { if (v && v.status !== 'connected') localStorage.setItem(PN_STRIPE_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_STRIPE_KEY); } catch (e) {}
+  window.dispatchEvent(new Event('byup-stripe-change'));
+};
+window.byupStripeDisabilita = function (motivo) {
+  window.byupWriteStripe({ status: 'da_ricollegare', motivo: motivo || 'cambio_soggetto', since: new Date().toISOString() });
+};
+window.byupStripeRicollega = function () {
+  window.byupWriteStripe({ status: 'connected' });
+  if (window.byupPosVaria) window.byupPosVaria('pos-virtuale', 'varied');
+};
