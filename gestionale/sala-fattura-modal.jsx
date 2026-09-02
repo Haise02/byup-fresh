@@ -85,6 +85,16 @@ function svRiepilogoIva(lines, takeaway) {
 // secondo giro non si digita più niente, e non c'è nessun archivio da tenere in
 // ordine. Il registro imprese è la chiamata a OpenAPI, che in produzione
 // risponde con denominazione, sede, CF e PEC a partire dalla sola P.IVA.
+//
+// Ci sta solo chi ha partita IVA: aziende, professionisti, enti pubblici. Il
+// privato che ha chiesto fattura non torna mai come proposta, anche se la sua
+// fattura è in Contabilità (lo è: FPR 62/26): quel dato è trattenuto dieci
+// anni per obbligo fiscale, e riproporlo per comodità sarebbe riusarlo per
+// un'altra ragione. Il privato ridetta i suoi dati ogni volta (D-17).
+// L'impresa estera, quando arriverà, conta come azienda ai fini delle
+// proposte: il razionale di D-17 colpisce le persone fisiche, non la nazione.
+// Oggi non c'è perché non c'è ancora una fattura estera nei mock.
+const SVF_RUBRICA_SEGMENTI = ['azienda', 'pa'];
 const SVF_RUBRICA = [
   { seg:'azienda', denominazione:'Studio Marani e Associati', piva:'02938471056', cf:'02938471056',
     indirizzo:'Via Nomentana 214', cap:'00162', comune:'Roma', provincia:'RM', nazione:'IT',
@@ -92,9 +102,6 @@ const SVF_RUBRICA = [
   { seg:'azienda', denominazione:'Nuvola Digitale S.r.l.', piva:'11720450017', cf:'11720450017',
     indirizzo:'Corso Vittorio Emanuele 88', cap:'00186', comune:'Roma', provincia:'RM', nazione:'IT',
     sdi:'', pec:'amministrazione@pec.nuvoladigitale.it' },
-  { seg:'privato', nome:'Elena', cognome:'Greco', cf:'GRCLNE85E45H501Z',
-    indirizzo:'Via dei Gracchi 41', cap:'00192', comune:'Roma', provincia:'RM', nazione:'IT',
-    sdi:'0000000', pec:'' },
 ];
 
 const SVF_REGISTRO = [
@@ -154,6 +161,20 @@ function svfSdiBloccato(seg) {
 function svfNome(c) {
   if (!c) return '';
   return c.denominazione || `${c.nome || ''} ${c.cognome || ''}`.trim();
+}
+
+// Come si cerca un cliente, in rubrica e nel registro: per nome, per P.IVA e
+// per codice fiscale — ma solo il codice fiscale di un ente, che è numerico e
+// di norma coincide con la P.IVA. Quello di una persona fisica (16 caratteri)
+// non è una chiave di ricerca: chi digita il CF di un privato non trova nulla,
+// e deve essere così (D-17).
+function svfCfEnte(cf) {
+  return /^\d{11}$/.test(cf || '');
+}
+function svfCorrisponde(r, q) {
+  if (svfNome(r).toLowerCase().includes(q)) return true;
+  if ((r.piva || '').includes(q)) return true;
+  return svfCfEnte(r.cf) && r.cf.includes(q);
 }
 
 // Cosa manca perché il file passi lo SdI. È una frase sola, quella che serve
@@ -273,8 +294,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
     if (q.length < 3) { setRemoti([]); setCercando(false); return; }
     setCercando(true);
     const id = setTimeout(() => {
-      setRemoti(SVF_REGISTRO.filter(r =>
-        r.denominazione.toLowerCase().includes(q) || r.piva.includes(q) || (r.cf || '').toLowerCase().includes(q)));
+      setRemoti(SVF_REGISTRO.filter(r => svfCorrisponde(r, q)));
       setCercando(false);
     }, 420);
     return () => clearTimeout(id);
@@ -308,7 +328,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
 
   const q = query.trim().toLowerCase();
   const locali = q.length < 2 ? [] : SVF_RUBRICA.filter(r =>
-    svfNome(r).toLowerCase().includes(q) || (r.piva || '').includes(q) || (r.cf || '').toLowerCase().includes(q));
+    SVF_RUBRICA_SEGMENTI.includes(r.seg) && svfCorrisponde(r, q));
   const mostraLista = aperto && q.length >= 2;
 
   const righe = svfRighe(lines, takeaway);
@@ -377,10 +397,13 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
         <div className="pn-scroll" style={{ overflow: 'auto', padding: '16px 26px 4px' }}>
           <SvfSegmento seg={c.seg} onSeg={cambiaSeg}/>
 
-          {/* Un campo solo per tre modi di cercare la stessa cosa. Chi ha la
+          {/* Un campo solo per due modi di cercare la stessa cosa. Chi ha la
               fattura di ieri detta la P.IVA, chi non ce l'ha detta il nome:
-              separare i due campi obbliga a scegliere prima di sapere. */}
-          <div style={{ position: 'relative', marginTop: 16 }}>
+              separare i due campi obbliga a scegliere prima di sapere.
+              Sul privato il campo non c'è: non c'è niente da cercare, né in
+              rubrica né nel registro imprese, e i dati si scrivono sotto.
+              Nessuna spiegazione a schermo — l'assenza del campo basta. */}
+          {!privato && <div style={{ position: 'relative', marginTop: 16 }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={SVF_MUTED} strokeWidth="2.1" strokeLinecap="round" style={{
               position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none',
             }}><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -388,7 +411,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
               value={query}
               onChange={e => { setQuery(e.target.value); setAperto(true); }}
               onFocus={() => setAperto(true)}
-              placeholder="Partita IVA, codice fiscale o ragione sociale"
+              placeholder="Partita IVA o ragione sociale"
               style={{ ...SVF_INPUT, padding: '13px 13px 13px 40px', fontSize: 17 }}/>
 
             {mostraLista && (
@@ -417,7 +440,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
                 )}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Anagrafica */}
           <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12 }}>
