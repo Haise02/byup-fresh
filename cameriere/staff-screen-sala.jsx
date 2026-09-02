@@ -510,6 +510,7 @@ function ScreenProfilo({ nav }) {
     { title: 'Regolamenti', items: [
       { i: <I.Note s={18}/>, l: 'Termini e condizioni' },
       { i: <I.Note s={18}/>, l: 'Privacy policy' },
+      { i: <I.Note s={18}/>, l: 'Statistiche di servizio', go: 'avviso-statistiche' },
     ]},
     { title: '', items: [
       { i: <I.Logout s={18} c={ST.RED}/>, l: 'Logout', danger: true },

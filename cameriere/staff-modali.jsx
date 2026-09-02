@@ -1155,3 +1155,51 @@ function ModificaTavoloUnifModal({ modal, closeModal, openModal }) {
 }
 
 Object.assign(window, { StaffModals, ModalShell });
+
+
+// ─── Statistiche di servizio: l'informazione al primo accesso (P-35 · D-30) ──
+// Stesso testo dell'app di incasso (PN_STAFF_NOTICE, panoramica-tokens.jsx).
+// Con `onLetto` è la schermata del primo accesso: un solo pulsante «Ho letto»,
+// mai «Accetta», e nessun indietro. Con `onBack` è la rilettura dal Profilo.
+// In produzione scatta al primo login del cameriere e l'evento
+// staff_metrics_notice lo scrive il server in consent_events; qui l'app non ha
+// un login e la schermata viene alla prima apertura della sessione.
+function ScreenAvvisoStatistiche({ onLetto, onBack }) {
+  const N = window.PN_STAFF_NOTICE;
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 120, background: '#fff', display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: 'calc(16px + env(safe-area-inset-top)) 16px 14px',
+        borderBottom: `1px solid ${ST.BORDER_SOFT}`, flexShrink: 0,
+      }}>
+        {onBack && <button onClick={onBack} style={{
+          width: 40, height: 40, borderRadius: ST.R_PILL, border: 'none', background: ST.SURF_ALT,
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}><I.Back s={20}/></button>}
+        <div style={{ fontSize: 17, fontWeight: 800, color: ST.TEXT }}>{N.titolo}</div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px 40px' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: ST.TEXT, lineHeight: 1.55, marginBottom: 18, padding: '12px 14px', background: ST.SURF_ALT, borderRadius: ST.R_MD }}>
+          {N.intro}
+        </div>
+        {N.blocchi.map((b, i) => (
+          <div key={i} style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 700, color: ST.TEXT, marginBottom: 5 }}>{b.t}</div>
+            <div style={{ fontSize: 13.5, color: ST.TEXT_SOFT, lineHeight: 1.55 }}>{b.p}</div>
+          </div>
+        ))}
+        <div style={{ fontSize: 13.5, color: ST.TEXT_SOFT, lineHeight: 1.55 }}>{N.chiusura}</div>
+      </div>
+      {onLetto && (
+        <div style={{ padding: '12px 20px calc(24px + env(safe-area-inset-bottom))', borderTop: `1px solid ${ST.BORDER_SOFT}`, background: '#fff', flexShrink: 0 }}>
+          <button onClick={onLetto} style={{
+            width: '100%', height: 52, borderRadius: ST.R_PILL, border: 'none',
+            background: ST.TEXT, color: '#fff', fontSize: 16, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>{N.bottone}</button>
+        </div>
+      )}
+    </div>
+  );
+}

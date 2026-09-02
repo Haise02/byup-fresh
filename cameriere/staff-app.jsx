@@ -7,6 +7,13 @@ function StaffApp() {
   const [stack, setStack] = useStateA([{ s: 'sala' }]);
   const [modal, setModal] = useStateA(null);
   const [cart, setCart] = useStateA([]);  // carrello globale
+  // Presa d'atto sulle statistiche di servizio (P-35 · D-30): l'evento
+  // staff_metrics_notice di consent_events, qui in memoria per la sessione.
+  // Quest'app non ha un login, quindi scatta alla prima apertura; in
+  // produzione al primo login del cameriere. Nel gestionale responsive, che
+  // secondo il prodotto è l'interfaccia cameriere, l'aggancio manca finché non
+  // esiste un accesso: resta scritto qui.
+  const [noticeAt, setNoticeAt] = useStateA(null);
 
   const top = stack[stack.length - 1];
 
@@ -33,7 +40,7 @@ function StaffApp() {
   const activeTab = (() => {
     if (['sala', 'tavolo', 'menu', 'pagamento-split'].includes(top.s)) return 'sala';
     if (top.s === 'ordini') return 'ordini';
-    if (['profilo', 'account', 'account-password'].includes(top.s)) return 'profilo';
+    if (['profilo', 'account', 'account-password', 'avviso-statistiche'].includes(top.s)) return 'profilo';
     return 'sala';
   })();
 
@@ -44,6 +51,7 @@ function StaffApp() {
         {top.s === 'profilo' && <ScreenProfilo nav={nav}/>}
         {top.s === 'account' && <ScreenGestioneAccount nav={nav}/>}
         {top.s === 'account-password' && <ScreenAccountPassword nav={nav}/>}
+        {top.s === 'avviso-statistiche' && <ScreenAvvisoStatistiche onBack={nav.pop}/>}
         {top.s === 'tavolo' && <ScreenTavolo nav={nav} openModal={openModal} tavoloId={top.id}/>}
         {top.s === 'menu' && <ScreenMenu nav={nav} openModal={openModal} tavoloId={top.tavoloId} cart={cart} setCart={setCart}/>}
         {top.s === 'ordini' && <ScreenDaPortare nav={nav} openModal={openModal}/>}
@@ -55,6 +63,10 @@ function StaffApp() {
 
       {/* Modali */}
       <StaffModals modal={modal} closeModal={closeModal} openModal={openModal} nav={nav}/>
+
+      {/* Prima di tutto, una volta per sessione: l'informazione sulle
+          statistiche di servizio, sopra a tutto finché non si preme «Ho letto». */}
+      {!noticeAt && <ScreenAvvisoStatistiche onLetto={() => setNoticeAt(new Date().toISOString())}/>}
     </div>
   );
 }

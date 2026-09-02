@@ -108,7 +108,12 @@ function PermessiSheet({ modal, closeModal }) {
 
   // Al primo accesso proponiamo anche lo sblocco con Face ID.
   const askFaceId = !!(modal && modal.askFaceId);
-  const ORDINE = askFaceId ? ['tap', 'pos', 'faceid'] : ['tap', 'pos'];
+  // Prima di tutto la presa d'atto sulle statistiche di servizio (P-35 ·
+  // D-30): si legge al primo accesso, prima di Tap to Pay, e si registra in
+  // consent_events come staff_metrics_notice. Non è un permesso di sistema e
+  // non è un consenso: è un'informazione che si dichiara di aver ricevuto.
+  const noticeDone = !!(modal && modal.noticeDone);
+  const ORDINE = [...(noticeDone ? [] : ['notice']), 'tap', 'pos', ...(askFaceId ? ['faceid'] : [])];
 
   // passa al permesso successivo; finiti i prompt, chiude (sei nell'app)
   const avanti = () => {
@@ -122,6 +127,9 @@ function PermessiSheet({ modal, closeModal }) {
   }
 
   const id = ORDINE[step];
+  if (id === 'notice') {
+    return <LegalPage which="statistiche" onLetto={() => { modal.markNotice && modal.markNotice(); avanti(); }}/>;
+  }
   let cfg;
   if (id === 'tap') {
     cfg = {
@@ -192,10 +200,16 @@ function SystemAlert({ titolo, messaggio, azioni }) {
 }
 
 // ── Pagina legale a schermo intero ────────────────────────────
-function LegalPage({ which, onBack, onOther }) {
+// `which` può essere anche 'statistiche': l'informazione sulle statistiche di
+// servizio (PN_STAFF_NOTICE, testo unico coi bundle di sala), con `onLetto` al
+// primo accesso — un solo pulsante «Ho letto», mai «Accetta», e nessun
+// indietro: non c'è niente dietro — e in sola lettura dal Profilo.
+function LegalPage({ which, onBack, onOther, onLetto }) {
   const termini = which === 'termini';
-  const titolo = termini ? 'Termini di servizio' : 'Informativa sulla privacy';
-  const para = termini ? [
+  const avviso = which === 'statistiche';
+  const N = avviso ? window.PN_STAFF_NOTICE : null;
+  const titolo = avviso ? N.titolo : termini ? 'Termini di servizio' : 'Informativa sulla privacy';
+  const para = avviso ? N.blocchi.map(b => [b.t, b.p]) : termini ? [
     ['1. Servizio', "Byup Staff consente agli esercenti registrati su Byup Fresh di incassare pagamenti con carta tramite Tap to Pay su iPhone, tecnologia fornita da Apple e processata da Stripe."],
     ['2. Requisiti', "Per usare il servizio devi avere un account attivo del tuo locale, un iPhone compatibile e accettare i Termini di Tap to Pay su iPhone di Apple."],
     ['3. Pagamenti e accrediti', "Le transazioni sono regolate e accreditate da Stripe sull'IBAN indicato nel tuo account. byup non detiene fondi."],
@@ -219,23 +233,31 @@ function LegalPage({ which, onBack, onOther }) {
         display: 'flex', alignItems: 'center', gap: 12, padding: '54px 16px 14px',
         borderBottom: `1px solid ${ST.BORDER_SOFT}`, flexShrink: 0,
       }}>
-        <button onClick={onBack} style={{
+        {!onLetto && <button onClick={onBack} style={{
           width: 40, height: 40, borderRadius: ST.R_PILL, border: 'none', background: ST.SURF_ALT,
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}><I.Back s={20}/></button>
+        }}><I.Back s={20}/></button>}
         <div style={{ fontSize: 17, fontWeight: 800, color: ST.TEXT }}>{titolo}</div>
       </div>
 
       {/* Contenuto scrollabile */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px 40px' }}>
         <div style={{ fontSize: 11.5, color: ST.MUTED_2, marginBottom: 16 }}>Ultimo aggiornamento · 06/2026</div>
+        {avviso && (
+          <div style={{ fontSize: 14, fontWeight: 600, color: ST.TEXT, lineHeight: 1.55, marginBottom: 18, padding: '12px 14px', background: ST.SURF_ALT, borderRadius: ST.R_MD }}>
+            {N.intro}
+          </div>
+        )}
         {para.map(([h, t], i) => (
           <div key={i} style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 14.5, fontWeight: 700, color: ST.TEXT, marginBottom: 5 }}>{h}</div>
             <div style={{ fontSize: 13.5, color: ST.TEXT_SOFT, lineHeight: 1.55 }}>{t}</div>
           </div>
         ))}
-        {onOther && (
+        {avviso && (
+          <div style={{ fontSize: 13.5, color: ST.TEXT_SOFT, lineHeight: 1.55, marginBottom: 14 }}>{N.chiusura}</div>
+        )}
+        {onOther && !avviso && (
           <button onClick={() => onOther(termini ? 'privacy' : 'termini')} style={{
             background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
             color: ST.PINK_DARK, fontSize: 13.5, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 3,
@@ -247,6 +269,16 @@ function LegalPage({ which, onBack, onOther }) {
           Documento di esempio a scopo dimostrativo.
         </div>
       </div>
+
+      {onLetto && (
+        <div style={{ padding: '12px 20px calc(24px + env(safe-area-inset-bottom))', borderTop: `1px solid ${ST.BORDER_SOFT}`, background: '#fff', flexShrink: 0 }}>
+          <button onClick={onLetto} style={{
+            width: '100%', height: 52, borderRadius: ST.R_PILL, border: 'none',
+            background: ST.TEXT, color: '#fff', fontSize: 16, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>{N.bottone}</button>
+        </div>
+      )}
     </div>
   );
 }

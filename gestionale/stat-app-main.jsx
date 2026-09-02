@@ -2,7 +2,54 @@
 
 const { useState } = React;
 
+// ─── Il cancello del ruolo (P-33 · D-30) ─────────────────────────────────
+// Le Statistiche le vede il titolare e i ruoli a cui abilita l'area: la
+// squadra no, e la scheda Team — le metriche per persona — meno che mai. Chi
+// non ha l'area trova questo al posto della pagina, nello stile del gate del
+// telefono di pn-device.js. L'utente è PN_UTENTE (panoramica-tokens.jsx),
+// `?ruolo=cassa` per provarlo.
+function StatGateRuolo() {
+  return (
+    <div role="main" style={{
+      position:'fixed', inset: 0, zIndex: 9999, overflow:'auto',
+      background:'radial-gradient(120% 90% at 50% -10%, #FFF1EF 0%, #F5F6F8 55%, #F5F6F8 100%)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding:'32px 24px', textAlign:'center', color: PN.TEXT,
+    }}>
+      <div style={{maxWidth: 420, display:'flex', flexDirection:'column', alignItems:'center'}}>
+        <div style={{
+          width: 74, height: 74, borderRadius: 22, background:'#fff',
+          border:'1px solid rgba(15,17,21,0.06)', display:'flex', alignItems:'center', justifyContent:'center',
+          boxShadow:'0 1px 2px rgba(15,17,21,0.04), 0 12px 32px -12px rgba(255,90,95,0.35)', marginBottom: 22,
+        }}>
+          <img src="Fresh-mark.png" alt="" style={{width: 40, height: 40, objectFit:'contain', display:'block'}}/>
+        </div>
+        <h1 style={{fontSize: 25, fontWeight: 800, letterSpacing: -0.5, margin:'0 0 10px', lineHeight: 1.2}}>
+          Questa sezione non è nel tuo ruolo
+        </h1>
+        <p style={{fontSize: 15.5, fontWeight: 500, color:'#6B7280', lineHeight: 1.55, margin:'0 0 26px'}}>
+          Le Statistiche le vede il titolare e i ruoli a cui le abilita. Nel ruolo {PN_UTENTE.ruoloLabel} non ci sono.
+        </p>
+        <a href="byup Panoramica.html" style={{
+          display:'flex', alignItems:'center', justifyContent:'center', gap: 8, width:'100%', maxWidth: 300,
+          padding:'14px 18px', borderRadius: 999, textDecoration:'none',
+          background:'linear-gradient(180deg,#2A2D36 0%,#15171C 100%)', color:'#fff',
+          fontSize: 15.5, fontWeight: 700, boxShadow:'inset 0 1px 0 rgba(255,255,255,0.10)',
+        }}>Vai alla Panoramica</a>
+        <p style={{fontSize: 13, fontWeight: 600, color:'#9CA3AF', margin:'24px 0 0'}}>
+          Se ti servono, chiedi al titolare: si abilitano da Impostazioni → Personale.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function StatisticheApp() {
+  // La scheda Team si monta solo con l'area abilitata (P-33). Il cancello di
+  // pagina qui sotto già ferma chi non ce l'ha: questo è la stessa regola
+  // scritta dove vive la scheda, così resta vera anche se un giorno il
+  // cancello si allenta — e il deep link su `sub=staff` ripiega.
+  const teamVisibile = window.pnPuo ? pnPuo('statistiche') : true;
   // Deep-link dalla Panoramica: ?tab=economici|operazioni|clienti e ?sub=…
   // Operazioni: prenotazioni|ordini|staff · Clienti: conversione|fidelizzazione.
   // Senza parametri si atterra su Economici: è la domanda con cui un
@@ -23,7 +70,7 @@ function StatisticheApp() {
       if (fidelizzazione) tab = 'clienti';
       return {
         tab,
-        sub: ['prenotazioni', 'ordini', 'staff'].includes(sub) ? sub : 'prenotazioni',
+        sub: ['prenotazioni', 'ordini', 'staff'].includes(sub) && !(sub === 'staff' && !teamVisibile) ? sub : 'prenotazioni',
         cliSub: fidelizzazione ? 'fidelizzazione' : 'conversione',
       };
     } catch (e) { return { tab: 'economici', sub: 'prenotazioni', cliSub: 'conversione' }; }
@@ -102,7 +149,7 @@ function StatisticheApp() {
     }}>
       <StatSubTab active={opSub==='prenotazioni'} onClick={() => setOpSub('prenotazioni')} label="Prenotazioni" icon="time-calendar"/>
       <StatSubTab active={opSub==='ordini'} onClick={() => setOpSub('ordini')} label="Ordini" icon="commerce-cart"/>
-      <StatSubTab active={opSub==='staff'} onClick={() => setOpSub('staff')} label="Team" icon="people-staff-group"/>
+      {teamVisibile && <StatSubTab active={opSub==='staff'} onClick={() => setOpSub('staff')} label="Team" icon="people-staff-group"/>}
     </div>
   );
 
@@ -129,7 +176,7 @@ function StatisticheApp() {
         <React.Fragment>
           {opSub === 'prenotazioni' && <StatPrenotazioni/>}
           {opSub === 'ordini' && <StatOrdini/>}
-          {opSub === 'staff' && <StatStaff/>}
+          {opSub === 'staff' && teamVisibile && <StatStaff/>}
         </React.Fragment>
       )}
       {tab === 'economici' && <StatEconomici/>}
@@ -141,6 +188,9 @@ function StatisticheApp() {
       )}
     </React.Fragment>
   );
+
+  // Senza l'area, niente pagina: dopo gli hook, prima di ogni veste.
+  if (window.pnPuo && !pnPuo('statistiche')) return <StatGateRuolo/>;
 
   // ── Telefono: shell a due tab, stesse barre appiccicate, corpo identico.
   if (phone) {

@@ -11,6 +11,16 @@ function POSApp() {
   const [toast, setToast] = useStateA(null);                 // banner transitorio { msg, id }
   const [faceIdOn, setFaceIdOn] = useStateA(false);          // sblocco con Face ID attivo
   const [faceIdAsked, setFaceIdAsked] = useStateA(false);    // primo accesso: attivazione già proposta?
+  // La presa d'atto sulle statistiche di servizio (P-35 · D-30): l'evento
+  // consent_events di tipo staff_metrics_notice, in memoria come faceIdAsked —
+  // persiste nella sessione, si azzera al reload per ridimostrare il primo
+  // accesso. In produzione lo scrive il server al primo login dell'operatore.
+  const [consentEvents, setConsentEvents] = useStateA([]);
+  const noticeDone = consentEvents.some(e => e.type === 'staff_metrics_notice');
+  const registraNotice = () => setConsentEvents(l => [...l, {
+    type: 'staff_metrics_notice', at: new Date().toISOString(),
+    operatore: POS_USER.operatore, superficie: 'byup-staff-pos',
+  }]);
 
   const pagaConto = id => setContiPagati(p => p.includes(id) ? p : [...p, id]);
   const rimandaConto = id => setContiRimandati(p => p.includes(id) ? p : [...p, id]);
@@ -61,7 +71,7 @@ function POSApp() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: ST.BG, overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden' }}>
-        {top.s === 'login' && <ScreenLogin nav={nav} openModal={openModal} faceIdOn={faceIdOn} setFaceIdOn={setFaceIdOn} faceIdAsked={faceIdAsked} setFaceIdAsked={setFaceIdAsked}/>}
+        {top.s === 'login' && <ScreenLogin nav={nav} openModal={openModal} faceIdOn={faceIdOn} setFaceIdOn={setFaceIdOn} faceIdAsked={faceIdAsked} setFaceIdAsked={setFaceIdAsked} noticeDone={noticeDone} markNotice={registraNotice}/>}
         {top.s === 'recupero' && <ScreenRecupero nav={nav}/>}
         {top.s === 'incassa' && <ScreenIncassa nav={nav} contiPagati={contiPagati} contiRimandati={contiRimandati} contiRitirati={contiRitirati}/>}
         {top.s === 'conto' && <ScreenConto nav={nav} conto={top.conto} ritirato={contiRitirati.includes(top.conto?.id)} rimandaConto={rimandaConto} openModal={openModal} showToast={showToast}/>}

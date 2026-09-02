@@ -513,3 +513,56 @@ const PN_SERVIZI = [
 ];
 window.PN_SERVIZI = PN_SERVIZI;
 window.PN_SERVIZI_MAP = PN_SERVIZI.reduce((m, v) => { m[v.id] = v; return m; }, {});
+
+// ─── Chi guarda il gestionale (P-33 · D-30) ────────────────────────────────
+// Il gestionale non ha un login nel prototipo, e finora nessuna pagina sapeva
+// chi la guarda. Questo è l'utente corrente mock: di norma il titolare; per la
+// demo `?ruolo=cassa` o `?ruolo=cameriere` lo sostituisce. Le aree per ruolo
+// sono la copia dei tre ruoli di sistema di ROLES in impostazioni-personale.jsx
+// (altro bundle): un ruolo personalizzato con l'area «statistiche» vede le
+// Statistiche come il titolare, la squadra (Cassa, Cameriere) mai.
+// Coda registrata, non risolta qui: la sidebar condivisa mostra ancora tutte le
+// voci a tutti; nascondere le voci per ruolo è un lavoro su tutte le pagine.
+const PN_RUOLI_AREE = {
+  titolare:  ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni'],
+  cassa:     ['vendita','sala'],
+  cameriere: ['app'],
+};
+const PN_RUOLI_LABEL = { titolare: 'Titolare', cassa: 'Cassa', cameriere: 'Cameriere' };
+const PN_UTENTE = (() => {
+  let r = 'titolare';
+  try { const q = new URLSearchParams(window.location.search).get('ruolo'); if (q && PN_RUOLI_AREE[q]) r = q; } catch (e) {}
+  return { nome: 'Mario Rossi', ruolo: r, ruoloLabel: PN_RUOLI_LABEL[r], aree: PN_RUOLI_AREE[r] };
+})();
+window.PN_UTENTE = PN_UTENTE;
+window.pnPuo = (area) => PN_UTENTE.aree.includes(area);
+
+// ─── Statistiche di servizio: l'informazione al personale (P-35 · D-30) ────
+// Il testo unico che l'app di incasso (staff/) e quella di sala (cameriere/)
+// mostrano al primo accesso, e che il profilo lascia rileggere. È una presa
+// d'atto di un'informazione, MAI un consenso: il pulsante dice «Ho letto», il
+// testo dice che non è un consenso e che non sostituisce l'informativa del
+// datore di lavoro, che è il soggetto obbligato a informare (art. 4 co. 3, L.
+// 300/1970). La pressione si registra in consent_events con tipo
+// staff_metrics_notice: è il presidio che scala col ricambio del personale,
+// dove una conferma resa una volta dal titolare invecchierebbe al primo
+// cambio. Vive qui perché i due bundle caricano questo file.
+// Coda registrata: il termine di conservazione lato responsabile non è fissato
+// da nessun documento in repo; qui la durata rimanda al datore di lavoro.
+const PN_STAFF_NOTICE = {
+  titolo: 'Statistiche di servizio',
+  intro: 'È un\'informazione, non una richiesta di consenso: ti diciamo che cosa il gestionale produce su di te mentre lavori. Non sostituisce l\'informativa del tuo datore di lavoro, che resta il soggetto tenuto a informarti.',
+  blocchi: [
+    { t: 'Quali dati',
+      p: 'Il gestionale calcola, riferiti a te per nome: lo scontrino medio dei conti che chiudi, gli ordini che gestisci, i tavoli che servi e le mance per tavolo che raccogli. Restano fuori lo scostamento di cassa, che è un dato del locale e non della persona, e gli atti di rettifica — resi e annulli — che sono documenti fiscali del locale.' },
+    { t: 'Chi li vede',
+      p: 'Il titolare del locale e i ruoli a cui abilita l\'area Statistiche del gestionale. Mai i colleghi. Byup li tratta per conto del locale e non li usa per fini propri.' },
+    { t: 'Per quali finalità',
+      p: 'Organizzare il servizio e valutare la prestazione: tutti i fini connessi al rapporto di lavoro, come prevede l\'art. 4, comma 3, dello Statuto dei lavoratori (L. 300/1970).' },
+    { t: 'Per quanto tempo',
+      p: 'Per la durata del rapporto di lavoro; i termini successivi li definisce il tuo datore di lavoro nella sua informativa.' },
+  ],
+  chiusura: 'Premendo «Ho letto» registri solo di aver ricevuto questa informazione: non è un consenso. La ritrovi quando vuoi nel tuo profilo.',
+  bottone: 'Ho letto',
+};
+window.PN_STAFF_NOTICE = PN_STAFF_NOTICE;

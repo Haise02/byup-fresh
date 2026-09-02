@@ -83,14 +83,14 @@ const STAT_ORDINI = {
 };
 
 const STAFF = [
-  { nome:'Marco Esposito', ruolo:'Cameriere', avatar:'ME', avatarBg:'#FF5A5F', scontrino: 38.20, vsTeam: -8.13, ordini: 312, tavoli: 142, tip: 240 },
-  { nome:'Sofia Bianchi',  ruolo:'Cameriera', avatar:'SB', avatarBg:'#B53338', scontrino: 52.40, vsTeam: +6.07, ordini: 286, tavoli: 138, tip: 380 },
-  { nome:'Luca Conti',     ruolo:'Cameriere', avatar:'LC', avatarBg:'#0F1115', scontrino: 47.80, vsTeam: +1.47, ordini: 264, tavoli: 121, tip: 310 },
-  { nome:'Giulia Romano',  ruolo:'Cameriera', avatar:'GR', avatarBg:'#16A34A', scontrino: 49.10, vsTeam: +2.77, ordini: 298, tavoli: 134, tip: 350 },
-  { nome:'Davide Russo',   ruolo:'Cameriere', avatar:'DR', avatarBg:'#2563EB', scontrino: 41.90, vsTeam: -4.43, ordini: 245, tavoli: 110, tip: 200 },
-  { nome:'Chiara Greco',   ruolo:'Cameriera', avatar:'CG', avatarBg:'#7C3AED', scontrino: 55.20, vsTeam: +8.87, ordini: 274, tavoli: 130, tip: 410 },
-  { nome:'Andrea Marino',  ruolo:'Cameriere', avatar:'AM', avatarBg:'#D97706', scontrino: 44.30, vsTeam: -2.03, ordini: 252, tavoli: 115, tip: 220 },
-  { nome:'Elena Costa',    ruolo:'Maître',    avatar:'EC', avatarBg:'#E04347', scontrino: 58.60, vsTeam: +12.27,ordini: 198, tavoli: 95,  tip: 460 },
+  { nome:'Marco Esposito', ruolo:'Cameriere', avatar:'ME', avatarBg:'#FF5A5F', scontrino: 38.20, ordini: 312, tavoli: 142, tip: 240 },
+  { nome:'Sofia Bianchi',  ruolo:'Cameriera', avatar:'SB', avatarBg:'#B53338', scontrino: 52.40, ordini: 286, tavoli: 138, tip: 380 },
+  { nome:'Luca Conti',     ruolo:'Cameriere', avatar:'LC', avatarBg:'#0F1115', scontrino: 47.80, ordini: 264, tavoli: 121, tip: 310 },
+  { nome:'Giulia Romano',  ruolo:'Cameriera', avatar:'GR', avatarBg:'#16A34A', scontrino: 49.10, ordini: 298, tavoli: 134, tip: 350 },
+  { nome:'Davide Russo',   ruolo:'Cameriere', avatar:'DR', avatarBg:'#2563EB', scontrino: 41.90, ordini: 245, tavoli: 110, tip: 200 },
+  { nome:'Chiara Greco',   ruolo:'Cameriera', avatar:'CG', avatarBg:'#7C3AED', scontrino: 55.20, ordini: 274, tavoli: 130, tip: 410 },
+  { nome:'Andrea Marino',  ruolo:'Cameriere', avatar:'AM', avatarBg:'#D97706', scontrino: 44.30, ordini: 252, tavoli: 115, tip: 220 },
+  { nome:'Elena Costa',    ruolo:'Maître',    avatar:'EC', avatarBg:'#E04347', scontrino: 58.60, ordini: 198, tavoli: 95,  tip: 460 },
 ];
 
 // Gli aspetti che l'app propone dopo il pagamento, copiati da menu.jsx

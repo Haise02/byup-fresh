@@ -94,7 +94,9 @@ function ScreenProfilo({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {
       {/* Legale */}
       <Group header="Legale">
         <Row icon={I.Doc} label="Termini e condizioni" onClick={() => openModal({ kind: 'legal', which: 'termini' })}/>
-        <Row icon={I.Shield} label="Privacy" onClick={() => openModal({ kind: 'legal', which: 'privacy' })} last/>
+        <Row icon={I.Shield} label="Privacy" onClick={() => openModal({ kind: 'legal', which: 'privacy' })}/>
+        {/* L'informazione letta al primo accesso resta rileggibile (P-35). */}
+        <Row icon={I.Doc} label="Statistiche di servizio" onClick={() => openModal({ kind: 'legal', which: 'statistiche' })} last/>
       </Group>
 
       {/* Logout */}

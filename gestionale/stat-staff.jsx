@@ -61,6 +61,20 @@ function StaffFilo({ valore, scala, media, colore, primo, ultimo }) {
 // medio, e il giorno che il primo cambia i due elenchi devono poterlo dire.
 // Accanto al nome resta il numero grezzo da cui esce la barra: gli ordini per
 // il conto medio, le mance e i tavoli per la divisione.
+//
+// Queste sono le SOLE metriche riferite alla persona (P-33/P-34 · D-30, art. 4
+// co. 2 e 3 dello Statuto): misurano come si lavora — scontrino, ordini,
+// tavoli, mance — e le vede il titolare coi ruoli a cui abilita l'area
+// Statistiche, mai la squadra (il cancello sta in stat-app-main.jsx). Lo
+// scostamento di cassa NON entra qui e non deve entrarci: non misura come si
+// lavora ma se il fondo torna, ed è dato contabile del locale nella chiusura di
+// cassa (Contabilità, P-20). Fuori anche gli atti di rettifica, documenti
+// fiscali del locale. Il campo vsTeam dei dati — la persona confrontata coi
+// colleghi — è stato tolto: non si mostrava e non va mostrato. Nient'altro a
+// schermo: nessuna conferma, nessun avviso, nessun documento da scaricare —
+// l'obbligo di informare il personale vive nel contratto, non qui; la presa
+// d'atto del lavoratore vive al primo accesso delle app di sala e di incasso
+// (PN_STAFF_NOTICE).
 const STAFF_METRICHE = [
   {
     id: 'scontrino',

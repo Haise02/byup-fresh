@@ -109,7 +109,7 @@ function FaceIdGate({ onSuccess, onCancel }) {
 // ═══════════════════════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════════════════════
-function ScreenLogin({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {}, faceIdAsked = false, setFaceIdAsked = () => {} }) {
+function ScreenLogin({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {}, faceIdAsked = false, setFaceIdAsked = () => {}, noticeDone = false, markNotice = () => {} }) {
   const [email, setEmail] = useStateL('');
   const [pw, setPw] = useStateL('');
   const [showPw, setShowPw] = useStateL(false);
@@ -124,6 +124,7 @@ function ScreenLogin({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {},
     goIn();
     if (!faceIdOn) openModal({
       kind: 'permessi',
+      noticeDone, markNotice,
       askFaceId: !faceIdAsked,
       enableFaceId: () => setFaceIdOn(true),
       markAsked: () => setFaceIdAsked(true),
