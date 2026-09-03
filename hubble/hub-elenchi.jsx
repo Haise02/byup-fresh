@@ -458,9 +458,18 @@ function HubElencoEditor({ bozza, onChiudi }) {
                   azione={<HubStrumento icona="upload" onClick={importaCsv}>Importa un CSV</HubStrumento>}/>
               )
             ) : (
-              <HubFiltri righe={CONTATTI} conEscludi
-                includi={el.includi} onIncludi={v => set('includi', v)}
-                escludi={el.escludi} onEscludi={v => set('escludi', v)}/>
+              <React.Fragment>
+                <HubFiltri righe={CONTATTI} conEscludi
+                  includi={el.includi} onIncludi={v => set('includi', v)}
+                  escludi={el.escludi} onEscludi={v => set('escludi', v)}/>
+                {/* Segmentare non è comunicare (P-30): un elenco sui gusti si
+                    costruisce, ma non autorizza un invio. */}
+                {hubUsaGusti(el.includi) && (
+                  <div style={{ marginTop: 12, padding: '10px 13px', borderRadius: 10, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', fontSize: 12.8, color: '#7A4A0B', lineHeight: 1.5 }}>
+                    Questo elenco è filtrato per gusti. Segmentare non è comunicare: un invio a questo elenco parte solo a chi ha il consenso di marketing del canale.
+                  </div>
+                )}
+              </React.Fragment>
             )}
           </AdmCard>
         </div>

@@ -54,6 +54,14 @@ function MktPubblico({ elencoId, onElenco, filtri, onFiltri }) {
           <strong style={{ color: ADM.TEXT, fontWeight: 800, fontSize: 15 }}>{fmtNum(conta)}</strong> destinatari
         </span>
       </div>
+      {/* Segmentare non è comunicare (P-30 · D-28): i gusti filtrano il
+          pubblico, non lo autorizzano. La riga si accende quando il pubblico
+          li usa, in tutti e tre i compositori. */}
+      {hubUsaGusti(filtri, modo === 'elenco' ? elencoId : null) && (
+        <div style={{ marginBottom: 12, padding: '10px 13px', borderRadius: 10, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', fontSize: 12.8, color: '#7A4A0B', lineHeight: 1.5 }}>
+          Il pubblico è filtrato per gusti. Segmentare non è comunicare: partirà solo a chi ha il consenso di marketing di questo canale, e chi non ce l'ha è escluso al momento dell'invio.
+        </div>
+      )}
 
       {modo === 'elenco' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 9 }}>
@@ -540,7 +548,7 @@ function HubMailComposer({ onChiudi, iniziale, onBozza }) {
             <div style={{ marginTop: 16, padding: 14, borderRadius: 11, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', display: 'flex', gap: 10 }}>
               <BuIcons.alertTriangle size={17} color="#92400E"/>
               <div style={{ fontSize: 13, color: '#7A4A0B', lineHeight: 1.55 }}>
-                Chi ha il consenso email spento non riceve questa mail, anche se è dentro il pubblico. È la regola, non un'opzione.
+                Chi ha il consenso email spento non riceve questa mail, anche se è dentro il pubblico. È la regola, non un'opzione — e vale anche se il pubblico è filtrato per gusti: segmentare non è comunicare.
               </div>
             </div>
           </AdmCard>
@@ -816,6 +824,9 @@ function HubSmsComposer({ onChiudi, onBozza }) {
           <AdmCard padding={18}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>A chi</div>
             <MktPubblico elencoId={elencoId} onElenco={setElencoId} filtri={filtri} onFiltri={setFiltri}/>
+            <div style={{ marginTop: 12, fontSize: 12.6, color: '#7A4A0B', background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', borderRadius: 10, padding: '9px 12px', lineHeight: 1.5 }}>
+              Chi ha il consenso SMS spento non riceve questo messaggio, anche se è dentro il pubblico. È la regola, non un'opzione.
+            </div>
           </AdmCard>
           <AdmCard padding={18}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>Quando</div>
@@ -1092,6 +1103,9 @@ function HubPushComposer({ onChiudi }) {
           <AdmCard padding={18}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>A chi</div>
             <MktPubblico elencoId={elencoId} onElenco={setElencoId} filtri={filtri} onFiltri={setFiltri}/>
+            <div style={{ marginTop: 12, fontSize: 12.6, color: '#7A4A0B', background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', borderRadius: 10, padding: '9px 12px', lineHeight: 1.5 }}>
+              Chi ha il consenso push spento non riceve questa notifica, anche se è dentro il pubblico. È la regola, non un'opzione.
+            </div>
           </AdmCard>
         </div>
 
@@ -1537,7 +1551,7 @@ function HubFormEditor({ onChiudi }) {
                   <HubCampo label="Dove finisce il valore"
                     nota="La proprietà del contatto che questa risposta riempie. È così che «Come ci hai conosciuto» diventa il campo Referral su cui poi filtri.">
                     <AdmSelect block value={campo.mappa || ''} onChange={v => setCampo('mappa', v || null)}
-                      options={[{ value: '', label: 'Non salvare' }, ...HUB_PROPRIETA.map(p => ({ value: p.id, label: p.label }))]}/>
+                      options={[{ value: '', label: 'Non salvare' }, ...HUB_PROPRIETA.filter(p => !p.leggi).map(p => ({ value: p.id, label: p.label }))]}/>
                   </HubCampo>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
                     <AdmSwitch size="sm" checked={campo.obbligatorio} onChange={v => setCampo('obbligatorio', v)}/>

@@ -122,6 +122,68 @@ const HUB_GRUPPI_PROP = [
   { id: 'attivita',    label: 'Attività' },
 ];
 
+// ─── Gusti: la copia del dizionario (P-30 · D-28) ───────────────────────────
+// Copia VERBATIM di PN_GUSTI (gestionale/panoramica-tokens.jsx, P-29 · D-28):
+// il dizionario è uno e Hubble lo governa, ma i bundle sono due — finché non
+// sarà servito dalla piattaforma la fonte resta quella e questa è la sua
+// copia, come per gli allergeni. Si cambia di là, e si riallinea a mano.
+// I gusti sono i soli food_tag con selectable_by_consumer vero. MAI i tre
+// regimi (vegano, vegetariano, senza glutine): sono is_dietary_regime, dato
+// art. 9 se dichiarato su di sé, e il modello lo scolpisce con
+// excluded_special_categories, invariante non disattivabile — non possono
+// essere criterio di nulla, né qui, né in un elenco, né in un ramo.
+const HUB_PN_GUSTI = [
+  { id:'ristorante',    kind:'venue_category', label:'Ristorante',     icon:'forkKnife', desc:'Cucina completa con servizio al tavolo, pranzo e cena',   selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'pizzeria',      kind:'venue_category', label:'Pizzeria',       icon:'pizza',     desc:'La pizza al centro del menù, al tavolo o d\'asporto',      selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'giapponese',    kind:'venue_category', label:'Giapponese',     icon:'fish',      desc:'Sushi, ramen e cucina nipponica',                          selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'carne_griglia', kind:'venue_category', label:'Carne e Griglia',icon:'steak',     desc:'Braceria: tagli, grigliate e affumicati',                  selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'cucina_etnica', kind:'venue_category', label:'Cucina etnica',  icon:'globe',     desc:'Sapori dal mondo: indiano, messicano, mediorientale',      selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'bar',           kind:'venue_category', label:'Bar',            icon:'coffee',    desc:'Caffetteria, colazioni e aperitivi veloci',                selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'bistrot',       kind:'venue_category', label:'Bistrot',        icon:'cheers',    desc:'Informale e curato: piatti semplici e buoni vini',         selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'enoteca',       kind:'venue_category', label:'Enoteca',        icon:'wine',      desc:'Vini al calice con taglieri e degustazioni',               selectable_by_consumer:false, is_dietary_regime:false },
+
+  { id:'pizza',         kind:'food_tag', label:'Pizza',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'sushi',         kind:'food_tag', label:'Sushi',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'pasta',         kind:'food_tag', label:'Pasta',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'hamburger',     kind:'food_tag', label:'Hamburger',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'carne',         kind:'food_tag', label:'Carne',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'pesce',         kind:'food_tag', label:'Pesce',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'poke',          kind:'food_tag', label:'Poke',          selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'ramen',         kind:'food_tag', label:'Ramen',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'vegano',        kind:'food_tag', label:'Vegano',        selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'vegetariano',   kind:'food_tag', label:'Vegetariano',   selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'senza_glutine', kind:'food_tag', label:'Senza glutine', selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'dolci',         kind:'food_tag', label:'Dolci',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'gelato',        kind:'food_tag', label:'Gelato',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'brunch',        kind:'food_tag', label:'Brunch',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'aperitivo',     kind:'food_tag', label:'Aperitivo',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'cinese',        kind:'food_tag', label:'Cinese',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'indiano',       kind:'food_tag', label:'Indiano',       selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'messicano',     kind:'food_tag', label:'Messicano',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'kebab',         kind:'food_tag', label:'Kebab',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'frittura',      kind:'food_tag', label:'Frittura',      selectable_by_consumer:true,  is_dietary_regime:false },
+];
+const HUB_GUSTI_SCEGLIBILI = HUB_PN_GUSTI.filter(g => g.kind === 'food_tag' && g.selectable_by_consumer);
+// I gusti di un utente app: dal profilo dell'app, che qui non c'è — si
+// derivano stabili dal seme, uno-tre gusti per circa sette utenti su dieci,
+// nessuno per gli altri. Funzione pura: niente copiato sulla riga.
+function hubGustiDi(u) {
+  const s = hubSeme('gusti-' + u.id);
+  if (s % 10 >= 7) return [];
+  const n = 1 + (s % 3);
+  const out = [];
+  for (let k = 0; k < n; k++) out.push(HUB_GUSTI_SCEGLIBILI[((s >>> (3 + k * 5)) + k * 7) % HUB_GUSTI_SCEGLIBILI.length].id);
+  return [...new Set(out)];
+}
+// Un pubblico che usa i gusti: la riga «segmentare non è comunicare» si
+// accende su questo, nei compositori e negli elenchi.
+const hubUsaGusti = (filtri, elencoId) => {
+  const usa = (regole) => (regole || []).some(r => r && r.prop === 'gusti');
+  if (usa(filtri)) return true;
+  const el = elencoId ? HUB_ELENCHI.find(e => e.id === elencoId) : null;
+  return !!el && (usa(el.includi) || usa(el.escludi));
+};
+
 const HUB_PROPRIETA = [
   // — Informazioni contatto —
   { id: 'nome',     label: 'Nome',                gruppo: 'contatto', tipo: 'testo',  sistema: true, colonna: { w: 'minmax(0,2.2fr)', fissa: true, label: 'Contatto' } },
@@ -200,6 +262,15 @@ const HUB_PROPRIETA = [
   { id: 'interessi',    label: 'Interessi',       gruppo: 'marketing', tipo: 'multi', colonna: { w: '1.4fr' },
     opzioni: [{ value: 'menu', label: 'Menu digitale' }, { value: 'delivery', label: 'Delivery' }, { value: 'prenotazioni', label: 'Prenotazioni' }, { value: 'fidelity', label: 'Fidelity' }, { value: 'cassa', label: 'Cassa e conti' }, { value: 'magazzino', label: 'Magazzino' }] },
   { id: 'ultimaMail',   label: 'Ultima email aperta', gruppo: 'marketing', tipo: 'data', colonna: { w: '1.25fr' } },
+  // I gusti (P-30 · D-28): proprietà filtrabile in rubrica, elenchi e rami,
+  // letta dal profilo dell'utente app — mai copiata sulla riga, mai scritta da
+  // un form o da un workflow. Segmentare non è comunicare: nessun invio
+  // promozionale parte in forza dei soli gusti — resta subordinato al consenso
+  // di marketing del canale, che si controlla al momento dell'invio.
+  { id: 'gusti',        label: 'Gusti',           gruppo: 'marketing', tipo: 'multi', sistema: true, colonna: { w: '1.4fr' },
+    opzioni: HUB_GUSTI_SCEGLIBILI.map(g => ({ value: g.id, label: g.label })),
+    leggi: (c) => (c.tipo === 'utente' && c.ref) ? hubGustiDi(c.ref) : null,
+    nota: 'Solo gli utenti app li dichiarano, nel profilo dell\'app. Segmentare non è comunicare: nessun invio promozionale parte in forza dei soli gusti — resta subordinato al consenso di marketing del canale. Mai i regimi alimentari (vegano, vegetariano, senza glutine): dato art. 9, non è criterio di nulla' },
 
   // — Attività —
   { id: 'ultimaAttivita', label: 'Ultima attività', gruppo: 'attivita', tipo: 'data',   sistema: true, colonna: { w: '1.2fr' } },
@@ -848,6 +919,10 @@ window.hubArricchisci = hubArricchisci;
 window.hubSeme = hubSeme;
 window.hubIdx = hubIdx;
 window.HUB_ELENCHI = HUB_ELENCHI;
+window.HUB_PN_GUSTI = HUB_PN_GUSTI;
+window.HUB_GUSTI_SCEGLIBILI = HUB_GUSTI_SCEGLIBILI;
+window.hubGustiDi = hubGustiDi;
+window.hubUsaGusti = hubUsaGusti;
 window.HUB_CARTELLE = HUB_CARTELLE;
 window.HUB_STATI_INVIO = HUB_STATI_INVIO;
 window.HUB_MAIL = HUB_MAIL;

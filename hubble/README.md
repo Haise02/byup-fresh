@@ -208,7 +208,13 @@ da abilitare altrove**.
 
 Le proprietà di marketing dei mock (referral, canale, consensi, interessi…) le
 deriva `hubArricchisci`, stabili sull'id: una rubrica che cambia valori a ogni
-ricarica non si può né leggere né filtrare.
+ricarica non si può né leggere né filtrare. I **gusti** (P-30 · D-28) sono una
+proprietà con lettore (`hubGustiDi`, solo utenti app) sui codici di
+`HUB_PN_GUSTI`, copia verbatim del dizionario del gestionale: mai i tre regimi
+alimentari (dato art. 9, `excluded_special_categories` del modello). Segmentare
+non è comunicare: i compositori e gli elenchi lo dicono a schermo quando il
+pubblico è filtrato per gusti, e l'invio resta subordinato al consenso del
+canale.
 
 ---
 
