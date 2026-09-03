@@ -750,6 +750,23 @@ function DrwFiscali({ locale: l }) {
               </div>
             );
           })()}
+          {/* La delega all'Agenzia, letta dal registro delle deleghe (P-52):
+              qui si legge, il registro sta in Piattaforma → Deleghe. */}
+          {(() => {
+            const d = delAttiva(l);
+            const revoca = !d && DELEGHE.some(x => x.localeId === l.id && x.atto === 'revoca');
+            return (
+              <div style={{gridColumn:'1 / -1'}}>
+                <label style={drwLab}>Delega all'Agenzia</label>
+                <div style={{...drwInp, background:ADM.PANEL_SOFT, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+                  {d
+                    ? <span style={{color:ADM.TEXT}}>Conferita il <b>{fmtDate(d.giorno)}</b> · n. {String(d.n).padStart(3, '0')} del registro · scade il <b>{fmtDate(d.scadenza)}</b> · verificata il {fmtDate(d.verificataIl)}</span>
+                    : <span style={{color:ADM.MUTED}}>{revoca ? 'Revocata dall\'esercente sul portale: nessuna delega viva.' : 'Nessuna delega a registro: il locale non l\'ha ancora conferita.'}</span>}
+                  <span style={{marginLeft:'auto', fontSize:12, color:ADM.MUTED_SOFT}}>Registro: Impostazioni → Piattaforma → Deleghe</span>
+                </div>
+              </div>
+            );
+          })()}
           <div>
             <label style={drwLab}>Regime fiscale</label>
             <AdmSelect value={form.regime} onChange={F('regime')} block
@@ -1354,18 +1371,22 @@ const DRW_EVENTI = {
   support_request:       'Richiesta di assistenza',
   plan_subscribed:       'Piano sottoscritto',
   payout_sent:           'Accredito incassi',
+  // Le operazioni di cassa che il gestionale registra (resi e annulli in
+  // Conti, sconti manuali): sono la materia dell'estrazione di P-47 — con
+  // chi le ha disposte, perché un registro operazioni è attività di persone.
+  cash_adjustment:       'Rettifica di cassa',
+  cash_discount:         'Sconto manuale',
 };
 
-function DrwAttivita({ locale: l }) {
-  // Deterministico sul seme del locale, con i due eventi VERI in mezzo:
-  // l'ultimo login del titolare e la sottoscrizione del piano. Gli eventi
-  // OPERATIVI (ordini, prenotazioni, accrediti) esistono per gli stati live
-  // che ordinano davvero — anche skipped e inactive, le stesse Statistiche
-  // ne graficano i volumi — ma non per un pending o un cessato: «ordine
-  // ricevuto 3 ore fa» lì contraddirebbe lo stato che il log deve provare.
-  // Il gate sugli ordini copre il live a volume zero: grafici piatti e log
-  // pieno di ordini sarebbero la stessa contraddizione al contrario.
-  const eventi = (() => {
+// Gli eventi del locale, funzione pura: li legge la tab Log e li estrae
+// l'Assistenza (P-47). Deterministico sul seme del locale, con i due eventi
+// VERI in mezzo: l'ultimo login del titolare e la sottoscrizione del piano.
+// Gli eventi OPERATIVI (ordini, prenotazioni, accrediti, rettifiche) esistono
+// per gli stati live che ordinano davvero — anche skipped e inactive, le
+// stesse Statistiche ne graficano i volumi — ma non per un pending o un
+// cessato: «ordine ricevuto 3 ore fa» lì contraddirebbe lo stato che il log
+// deve provare. Il gate sugli ordini copre il live a volume zero.
+function drwEventiDi(l) {
     const s = hubSeme('log-' + l.id) % 1000;
     const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
     const out = [];
@@ -1387,11 +1408,27 @@ function DrwAttivita({ locale: l }) {
         ore += 3 + Math.floor(r(11 + i * 3) * 40);
       }
       if (r(90) < 0.4) push('support_request', new Date(Date.now() - (40 + Math.floor(r(91) * 400)) * 3600000), 'Stampante scontrini');
+      // Le rettifiche e gli sconti, con chi li ha disposti: la persona di sala
+      // o di cassa del locale, se c'è, altrimenti il titolare.
+      const squadra = (typeof STAFF !== 'undefined' ? STAFF : []).filter(x => x.localeId === l.id && (x.ruolo === 'cassa' || x.ruolo === 'cameriere'));
+      const chi = (k) => squadra.length ? squadra[k % squadra.length].nome : l.titolare;
+      const nRett = Math.floor(r(95) * 3);
+      for (let k = 0; k < nRett; k++) {
+        const rr = r(100 + k * 2);
+        push('cash_adjustment', new Date(Date.now() - (6 + Math.floor(rr * 500)) * 3600000),
+          rr < 0.7 ? `Reso € ${(4 + rr * 30).toFixed(2).replace('.', ',')} · doc ${new Date().getFullYear()}-${String(140 + k).padStart(4, '0')}-R1 · ${chi(k)}`
+                   : `Annullo · doc ${new Date().getFullYear()}-${String(150 + k).padStart(4, '0')}-A · ${chi(k)}`);
+      }
+      if (r(110) < 0.5) push('cash_discount', new Date(Date.now() - (10 + Math.floor(r(111) * 400)) * 3600000), `Sconto ${5 + Math.floor(r(112) * 3) * 5}% sul conto #${2800 + Math.floor(r(113) * 90)} · ${chi(2)}`);
     }
     push('staff_login', l.lastLogin, l.titolare);
     push('plan_subscribed', l.dataIscrizione, (PIANI.find(p => p.id === l.piano) || {}).label || l.piano);
     return out.sort((a, b) => b.quando - a.quando);
-  })();
+}
+window.drwEventiDi = drwEventiDi;
+
+function DrwAttivita({ locale: l }) {
+  const eventi = drwEventiDi(l);
 
   const [dal, setDal] = useStateDrw('');
   const [al, setAl] = useStateDrw('');
@@ -1406,6 +1443,7 @@ function DrwAttivita({ locale: l }) {
           <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Eventi tracciati</div>
           <div style={{fontSize:13, color:ADM.MUTED}}>
             {(dal || al) ? `${filtrati.length} di ${eventi.length}` : `${eventi.length} eventi dal ${fmtDate(eventi[eventi.length - 1].quando)}`}
+            <span style={{color:ADM.MUTED_SOFT}}> · l'estrazione del registro operazioni, con motivo e a registro, si chiede da Assistenza → Estrazioni (P-47)</span>
           </div>
           <div style={{flex:1}}/>
           <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Dal</span>

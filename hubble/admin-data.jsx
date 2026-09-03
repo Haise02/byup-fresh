@@ -1671,6 +1671,75 @@ const MOD_ESITI = {
 };
 const MOD_DECISIONI = [];
 
+// ─── Estrazione del registro operazioni (P-47 · D-38) ───────────────────────
+// Registrare senza esporre, esibire su richiesta. Hubble non ha una vista di
+// cassa: le operazioni di un ristorante si estraggono per un periodo, con
+// perimetro limitato al ristorante richiedente, e l'estrazione si registra a
+// sua volta — restituisce l'attività di persone che lavorano (D-30: mai una
+// lettura per persona come metrica). Il comando chiede Scrittura su
+// Conformità: è l'area dell'esibizione, Marketing non ce l'ha, il Super Admin
+// legge e non estrae. Ogni estrazione va in audit col tipo Estrazioni.
+const ESTR_MOTIVI = [
+  { value: 'titolare',    label: 'Richiesta del titolare' },
+  { value: 'contenzioso', label: 'Contenzioso con un cliente' },
+  { value: 'autorita',    label: 'Ispezione o richiesta dell\'autorità' },
+  { value: 'tecnica',     label: 'Verifica tecnica' },
+];
+const estrMotivoLabel = (v) => (ESTR_MOTIVI.find(m => m.value === v) || { label: v }).label;
+const ESTRAZIONI = [
+  { id: 'ES-0001', localeId: 'L1029', dal: ctrData(1, 7, 2026), al: ctrData(31, 7, 2026), motivo: 'titolare',
+    nota: 'Il titolare chiede le rettifiche di luglio per il commercialista.', chi: 'support2', quando: ctrData(4, 8, 2026, 10, 15), righe: 41 },
+];
+function admEstrai(l, dal, al, motivo, nota, righe) {
+  const me = hubUtenteCorrente();
+  const r = { id: 'ES-' + String(ESTRAZIONI.length + 1).padStart(4, '0'), localeId: l.id, dal, al, motivo, nota, chi: me.id, quando: new Date(), righe };
+  ESTRAZIONI.unshift(r);
+  AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: 'ha estratto il registro operazioni di',
+    target: `${l.nome} · dal ${fmtDate(dal)} al ${fmtDate(al)} · ${estrMotivoLabel(motivo)}`, icon: 'download', color: 'WARN', tipo: 'estrazione', when: r.quando });
+  return r;
+}
+
+// ─── Registro delle deleghe (P-52 · D-40) ───────────────────────────────────
+// Superficie interna: serve a Byup, non al locale. Elenco numerato
+// progressivo dei conferimenti e delle revoche annotati per giorno, con la
+// scadenza ANCORATA al conferimento — il 31 dicembre del quarto anno
+// successivo; la lettura «quarto anno successivo» va confermata sul portale,
+// qui è dichiarata — le scadenze in avvicinamento col promemoria, e il
+// responsabile della gestione. È il registro che l'Agenzia può chiedere di
+// esibire anche presentandosi in sede. Tiene le SOLE deleghe degli esercenti
+// — la delega unica a due servizi; le nomine dell'incaricato Fisconline delle
+// società sono un altro atto e stanno nella loro tab, col rimando incrociato.
+// «Verificata il» sta perché il portale dà riscontro sulla delega, a
+// differenza dei POS (P-105: dichiarati, mai verificati).
+const DEL_SERVIZI = ['Fatturazione elettronica e conservazione delle fatture elettroniche', 'Accreditamento e censimento dispositivi'];
+const DEL_GESTIONE = { responsabile: 'inc-1', responsabileNome: 'Luca Ferrante' };
+const delScadenza = (conferitaIl) => new Date(conferitaIl.getFullYear() + 4, 11, 31);
+const DELEGHE = (() => {
+  const piva = (id) => (LOCALI.find(l => l.id === id) || {}).piva || '—';
+  const riga = (n, g, atto, localeId, note, extra) => Object.assign({ n, giorno: g, atto, localeId, piva: piva(localeId), servizi: DEL_SERVIZI,
+    scadenza: atto === 'revoca' ? null : delScadenza(g), verificataIl: atto === 'revoca' ? g : new Date(g.getTime() + 86400000),
+    responsabile: DEL_GESTIONE.responsabileNome, note }, extra || {});
+  return [
+    riga(1, ctrData(14, 3, 2022), 'conferimento', 'L1030', 'Prima delega del registro. Scade il 31/12/2026: promemoria di rinnovo da inviare entro il 30/11/2026.'),
+    riga(2, ctrData(3, 6, 2024),  'conferimento', 'L1018', ''),
+    riga(3, ctrData(10, 2, 2025), 'conferimento', 'L1025', ''),
+    riga(4, ctrData(22, 9, 2025), 'conferimento', 'L1042', ''),
+    riga(5, ctrData(15, 1, 2026), 'conferimento', 'L1013', 'Conferita in onboarding, verificata il giorno dopo.'),
+    riga(6, ctrData(6, 5, 2026),  'revoca',       'L1042', 'Revocata dal portale dal titolare (Profilo → Deleghe); il locale è inattivo da maggio. Chiude la n. 4.'),
+    riga(7, ctrData(20, 8, 2026), 'conferimento', 'L1010', 'Conferita in onboarding; il locale è fermo alla verifica del menù.'),
+  ];
+})();
+// La delega viva di un locale: l'ultimo conferimento o rinnovo non seguito da
+// una revoca. Chi non è a registro non l'ha (ancora) conferita.
+function delAttiva(l) {
+  const righe = DELEGHE.filter(d => d.localeId === l.id).slice().sort((a, b) => a.giorno - b.giorno);
+  const ultima = righe[righe.length - 1];
+  return ultima && ultima.atto !== 'revoca' ? ultima : null;
+}
+// In avvicinamento: scadenza entro 120 giorni, e ancora viva.
+const delInAvvicinamento = () => DELEGHE.filter(d => d.atto !== 'revoca' && d.scadenza && delAttiva({ id: d.localeId }) === d
+  && (d.scadenza.getTime() - Date.now()) / 86400000 <= 120).sort((a, b) => a.scadenza - b.scadenza);
+
 window.HUB_LEVE = HUB_LEVE;
 window.PESI_SUPERFICI = PESI_SUPERFICI;
 window.HUB_LISTINO_PESI = HUB_LISTINO_PESI;
@@ -1693,6 +1762,16 @@ window.vetStorico = vetStorico;
 window.MOD_MOTIVI = MOD_MOTIVI;
 window.MOD_ESITI = MOD_ESITI;
 window.MOD_DECISIONI = MOD_DECISIONI;
+window.ESTR_MOTIVI = ESTR_MOTIVI;
+window.ESTRAZIONI = ESTRAZIONI;
+window.estrMotivoLabel = estrMotivoLabel;
+window.admEstrai = admEstrai;
+window.DEL_SERVIZI = DEL_SERVIZI;
+window.DEL_GESTIONE = DEL_GESTIONE;
+window.DELEGHE = DELEGHE;
+window.delScadenza = delScadenza;
+window.delAttiva = delAttiva;
+window.delInAvvicinamento = delInAvvicinamento;
 window.modMotivoLabel = modMotivoLabel;
 window.ONB_STEPS = ONB_STEPS;
 window.ONB_RAPIDO = ONB_RAPIDO;

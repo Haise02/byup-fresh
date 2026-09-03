@@ -605,6 +605,75 @@ const imIncStato = (inc) => {
 // I locali società in carico: nel mock i tre dell'account demo del gestionale.
 const IM_LOCALI_NOMI = { cp: 'Cacio e Pepe', co: 'Cacio e Pepe · Ostiense', tb: 'Trattoria del Borgo' };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// REGISTRO DELLE DELEGHE (P-52 · D-40)
+// ═══════════════════════════════════════════════════════════════════════════
+// Serve a Byup, non al locale: l'elenco numerato progressivo dei
+// conferimenti e delle revoche della delega unica degli esercenti, per
+// giorno, con le scadenze in avvicinamento e il responsabile della gestione.
+// È ciò che l'Agenzia può chiedere di esibire anche in sede. Solo deleghe:
+// le nomine dell'incaricato sono nella tab accanto.
+function HubDeleghePage() {
+  const [, ridisegna] = useStateIm(0);
+  const righe = DELEGHE.slice().sort((a, b) => b.n - a.n);
+  const avvicinamento = delInAvvicinamento();
+  const nomeLocale = (id) => (LOCALI.find(l => l.id === id) || { nome: id }).nome;
+  const membri = (typeof TEAM !== 'undefined' ? TEAM : []).filter(t => t.attivo !== false);
+  const gg = (d) => Math.ceil((d.getTime() - Date.now()) / 86400000);
+  const atto = (a) => a === 'conferimento' ? { label: 'Conferimento', color: 'OK' } : a === 'revoca' ? { label: 'Revoca', color: 'DANGER' } : { label: 'Rinnovo', color: 'INFO' };
+  return (
+    <div style={{padding:'18px 22px 26px', display:'flex', flexDirection:'column', gap:14}}>
+      <div style={{padding:'12px 14px', borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:13.6, color:ADM.TEXT, lineHeight:1.5}}>
+        <b>Il registro delle deleghe degli esercenti.</b> Ogni conferimento e ogni revoca della delega unica a Byup — due servizi: {DEL_SERVIZI[0].toLowerCase()}, {DEL_SERVIZI[1].toLowerCase()} — ha il suo numero progressivo e il suo giorno. La scadenza è ancorata al conferimento (31 dicembre del quarto anno successivo, lettura dichiarata: il portale la conferma); «verificata il» è il riscontro del portale. È il registro che l'Agenzia può chiedere di esibire, anche presentandosi in sede.
+        <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:6}}>Solo deleghe. Le nomine dell'incaricato Fisconline delle società sono un altro atto: stanno nella tab <b>Incaricati Fisconline</b>.</div>
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns:'minmax(0,1.4fr) minmax(0,1fr)', gap:12}}>
+        <div style={{padding:'14px 16px', borderRadius:12, background: avvicinamento.length ? ADM.WARN_SOFT : '#fff', border:`1px solid ${avvicinamento.length ? '#F0DCB4' : ADM.BORDER}`}}>
+          <div style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT}}>Scadenze in avvicinamento</div>
+          {avvicinamento.length === 0 && <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:4}}>Nessuna delega scade nei prossimi 120 giorni.</div>}
+          {avvicinamento.map(d => (
+            <div key={d.n} style={{fontSize:12.8, color:ADM.TEXT, marginTop:6, lineHeight:1.5}}>
+              <b>n. {d.n} · {nomeLocale(d.localeId)}</b> scade il {fmtDate(d.scadenza)} (fra {gg(d.scadenza)} giorni) · promemoria di rinnovo da inviare entro il {fmtDate(new Date(d.scadenza.getTime() - 31 * 86400000))} — la mail «La delega a Byup scade il 31 dicembre: rinnovala» parte a 30 giorni dalla scadenza.
+            </div>
+          ))}
+        </div>
+        <div style={{padding:'14px 16px', borderRadius:12, background:'#fff', border:`1px solid ${ADM.BORDER}`}}>
+          <div style={{fontSize:11.2, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT, marginBottom:6}}>Responsabile della gestione</div>
+          {/* Un campo del registro: chi risponde del registro, non chi ha
+              fatto l'ultimo atto. Si cambia qui e le righe nuove lo prendono. */}
+          <AdmSelect block value={DEL_GESTIONE.responsabileNome} onChange={v => { DEL_GESTIONE.responsabileNome = v; ridisegna(x => x + 1); }}
+            options={[...new Set([DEL_GESTIONE.responsabileNome, ...membri.map(m => m.nomeCompleto || m.nome)])].map(n => ({ value: n, label: n }))}/>
+          <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.45}}>Risponde della tenuta del registro e dei promemoria di rinnovo. Le deleghe le conferisce e le revoca l'esercente, sul portale.</div>
+        </div>
+      </div>
+
+      <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden'}}>
+        <div style={{display:'grid', gridTemplateColumns:'48px 100px 118px minmax(0,1.3fr) 118px 108px 108px minmax(0,1fr) minmax(0,1.4fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
+          <span>N.</span><span>Giorno</span><span>Atto</span><span>Locale · P.IVA</span><span>Scadenza</span><span>Verificata il</span><span>Responsabile</span><span>Servizi</span><span>Note</span>
+        </div>
+        {righe.map(d => {
+          const a = atto(d.atto);
+          return (
+            <div key={d.n} style={{display:'grid', gridTemplateColumns:'48px 100px 118px minmax(0,1.3fr) 118px 108px 108px minmax(0,1fr) minmax(0,1.4fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:12.8, color:ADM.TEXT, alignItems:'start'}}>
+              <span style={{fontFamily:'ui-monospace,monospace', fontWeight:700}}>{String(d.n).padStart(3, '0')}</span>
+              <span>{fmtDate(d.giorno)}</span>
+              <span><AdmBadge color={a.color} size="xs">{a.label}</AdmBadge></span>
+              <span><b>{nomeLocale(d.localeId)}</b><br/><span style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED}}>{d.piva}</span></span>
+              <span>{d.scadenza ? fmtDate(d.scadenza) : '—'}</span>
+              <span>{fmtDate(d.verificataIl)}</span>
+              <span>{d.responsabile}</span>
+              <span style={{fontSize:11.8, color:ADM.MUTED, lineHeight:1.4}}>{d.atto === 'revoca' ? 'Entrambi' : d.servizi.map(x => x.split(' ')[0]).join(' · ')}</span>
+              <span style={{fontSize:12, color:ADM.MUTED, lineHeight:1.45}}>{d.note || '—'}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+window.HubDeleghePage = HubDeleghePage;
+
 function HubIncaricatiPage() {
   const [lista, setLista] = useStateIm(imIncLeggi);
   const [rinnovo, setRinnovo] = useStateIm(null);      // { id, pwd, fase: 'inserisci' | 'verifica' | 'errore' }
@@ -647,6 +716,7 @@ function HubIncaricatiPage() {
     <div style={{padding:'18px 22px 26px', display:'flex', flexDirection:'column', gap:14}}>
       <div style={{padding:'12px 14px', borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:13.6, color:ADM.TEXT, lineHeight:1.5}}>
         <b>Le società trasmettono gli scontrini con le credenziali di una persona di Byup.</b> Ogni società la nomina una volta come incaricato sul portale dell'Agenzia; la sua password Fisconline scade ogni novanta giorni e si rinnova qui, prima con il cambio sul portale e poi con la verifica. Una password vale per tutte le società in carico: se scade, si fermano insieme.
+        <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:6}}>La nomina dell'incaricato è un altro atto rispetto alla delega unica dell'esercente: le deleghe stanno nel loro registro, nella tab <b>Deleghe</b> (P-52).</div>
       </div>
 
       {localiFermi > 0 && (

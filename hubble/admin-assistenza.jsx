@@ -44,6 +44,98 @@ const { useState: useStateSrv, useMemo: useMemoSrv } = React;
 // legame da rendere strutturale.
 const SRV_IO = 'support1';
 
+// ─── Estrazioni del registro operazioni (P-47 · D-38) ───────────────────────
+// Il comando: ristorante, periodo, motivo da elenco chiuso e nota. Chiede
+// Scrittura su Conformità — l'area dell'esibizione — e quando è negato lo
+// dice. Il file è il registro del solo ristorante richiedente per il periodo;
+// l'estrazione resta a registro (chi, quando, quale, quale periodo, perché)
+// e in audit, perché restituisce l'attività di persone che lavorano: si
+// esibisce su richiesta, non si legge per persona (D-30).
+function SrvEstrazioni() {
+  const [, ridisegna] = React.useState(0);
+  const [localeId, setLocaleId] = React.useState('');
+  const oggi = new Date();
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const [dal, setDal] = React.useState(iso(new Date(oggi.getFullYear(), oggi.getMonth() - 1, 1)));
+  const [al, setAl] = React.useState(iso(new Date(oggi.getFullYear(), oggi.getMonth(), 0)));
+  const [motivo, setMotivo] = React.useState(ESTR_MOTIVI[0].value);
+  const [nota, setNota] = React.useState('');
+  const [esito, setEsito] = React.useState(null);
+  const puo = hubPuo('conformita', 'scrittura');
+  const l = LOCALI.find(x => x.id === localeId);
+  const pronto = !!l && !!dal && !!al && new Date(dal) <= new Date(al) && nota.trim().length > 0;
+  const estrai = () => {
+    if (!pronto || !puo) return;
+    const d1 = new Date(dal), d2 = new Date(new Date(al).getTime() + 86400000);
+    const righe = drwEventiDi(l).filter(e => e.quando >= d1 && e.quando < d2);
+    const r = admEstrai(l, d1, new Date(al), motivo, nota.trim(), righe.length);
+    const me = hubUtenteCorrente();
+    const testo = [
+      `Registro delle operazioni · ${l.nome} (${l.id}) · dal ${fmtDate(d1)} al ${fmtDate(new Date(al))}`,
+      `Estratto da ${me.nomeCompleto || me.nome} il ${fmtDateTime(r.quando)} · motivo: ${estrMotivoLabel(motivo)} · ${nota.trim()} · estrazione ${r.id}`,
+      'Riservato. Contiene l\'attività di persone che lavorano: uso limitato alla richiesta che l\'ha originata, nessuna lettura per persona come metrica (D-30). Perimetro: il solo ristorante richiedente.',
+      '',
+      ...righe.map(e => `${fmtDateTime(e.quando)}\t${e.tipo}\t${DRW_EVENTI[e.tipo] || e.tipo}\t${e.dettaglio || ''}`),
+      righe.length ? '' : '(nessuna operazione nel periodo)',
+    ].join('\n');
+    const blob = new Blob([testo], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `registro-operazioni-${l.id}-${dal}-${al}.txt`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setEsito(`${r.id}: ${righe.length} operazioni di ${l.nome} nel periodo, file scaricato e estrazione a registro.`);
+    setNota(''); ridisegna(x => x + 1);
+  };
+  const inp = { width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box' };
+  const lab = { fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5 };
+  const nome = (id) => (LOCALI.find(x => x.id === id) || { nome: id }).nome;
+  const membro = (id) => { const m = TEAM.find(t => t.id === id); return m ? (m.nomeCompleto || m.nome) : id; };
+  return (
+    <div className="adm-scroll" style={{flex:1, overflow:'auto', padding:'18px 28px 28px', display:'flex', flexDirection:'column', gap:14}}>
+      <div style={{padding:'12px 14px', borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:13.6, color:ADM.TEXT, lineHeight:1.5}}>
+        <b>Registrare senza esporre, esibire su richiesta (D-38).</b> Il gestionale registra le operazioni di cassa — resi, annulli, sconti — e non le mette in vetrina. Da qui si estrae il registro di un ristorante per un periodo, col perimetro limitato al ristorante richiedente; l'estrazione resta a registro, perché restituisce l'attività di persone che lavorano.
+      </div>
+      <AdmCard padding={20}>
+        <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:12}}>Estrai il registro operazioni</div>
+        {!puo && (
+          <div style={{marginBottom:12, padding:'9px 12px', borderRadius:8, background:ADM.WARN_SOFT, fontSize:12.8, color:'#7A4A0B'}}>Estrarre richiede <b>Scrittura su Conformità</b>: il tuo ruolo qui legge il registro delle estrazioni, non ne fa di nuove.</div>
+        )}
+        <div style={{display:'grid', gridTemplateColumns:'minmax(0,1.6fr) 150px 150px minmax(0,1.3fr)', gap:12}}>
+          <div>
+            <span style={lab}>Ristorante</span>
+            <AdmSelect block value={localeId} onChange={setLocaleId} options={[{ value:'', label:'Scegli un locale' }, ...LOCALI.filter(x => x.stato !== 'pending').map(x => ({ value:x.id, label:`${x.nome} · ${x.citta}` }))]}/>
+          </div>
+          <div><span style={lab}>Dal</span><input type="date" value={dal} onChange={e => setDal(e.target.value)} style={inp}/></div>
+          <div><span style={lab}>Al</span><input type="date" value={al} onChange={e => setAl(e.target.value)} style={inp}/></div>
+          <div><span style={lab}>Motivo</span><AdmSelect block value={motivo} onChange={setMotivo} options={ESTR_MOTIVI}/></div>
+        </div>
+        <div style={{marginTop:12}}>
+          <span style={lab}>Nota sulla richiesta (obbligatoria)</span>
+          <textarea value={nota} onChange={e => setNota(e.target.value)} rows={2} placeholder="Chi l'ha chiesto e per che cosa, in una riga" style={{...inp, resize:'vertical'}}/>
+        </div>
+        <div style={{display:'flex', alignItems:'center', gap:10, marginTop:12, flexWrap:'wrap'}}>
+          <span style={{fontSize:12.4, color:ADM.MUTED_SOFT, flex:1}}>Il file porta l'intestazione con motivo, estrattore e dicitura di riservatezza; l'estrazione va nel registro qui sotto e nell'audit.</span>
+          {esito && <span style={{fontSize:12.6, color:ADM.OK, fontWeight:700}}>✓ {esito}</span>}
+          <AdmButton variant="primary" size="md" icon="download" disabled={!pronto || !puo} title={puo ? undefined : 'Serve Scrittura su Conformità'} onClick={estrai}>Estrai e scarica</AdmButton>
+        </div>
+      </AdmCard>
+      <AdmCard padding={0}>
+        <div style={{padding:'14px 20px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Registro delle estrazioni <span style={{fontSize:13, color:ADM.MUTED, fontWeight:500}}>· {ESTRAZIONI.length}</span></div>
+        {ESTRAZIONI.map((r, i) => (
+          <div key={r.id} style={{display:'grid', gridTemplateColumns:'86px minmax(0,1.3fr) 190px 150px minmax(0,1.6fr)', gap:12, padding:'11px 20px', borderBottom: i === ESTRAZIONI.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`, fontSize:12.8, color:ADM.TEXT, alignItems:'start'}}>
+            <span style={{fontFamily:'ui-monospace,monospace', fontWeight:700}}>{r.id}</span>
+            <span><b>{nome(r.localeId)}</b><br/><span style={{color:ADM.MUTED}}>dal {fmtDate(r.dal)} al {fmtDate(r.al)} · {r.righe} operazioni</span></span>
+            <span>{membro(r.chi)}<br/><span style={{color:ADM.MUTED}}>{fmtDateTime(r.quando)}</span></span>
+            <span>{estrMotivoLabel(r.motivo)}</span>
+            <span style={{color:ADM.MUTED, lineHeight:1.45}}>{r.nota}</span>
+          </div>
+        ))}
+      </AdmCard>
+    </div>
+  );
+}
+
 const SRV_INP = { width:'100%', padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:9,
   fontSize:13.6, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none',
   boxSizing:'border-box', lineHeight:1.4 };
@@ -215,6 +307,9 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
     { id:'ripristini', label:'Ripristini accesso', badge: ripristiniAperti },
     { id:'faq',        label:'FAQ' },
     { id:'guide',      label:'Guide' },
+    // L'estrazione del registro operazioni (P-47 · D-38): registrare senza
+    // esporre, esibire su richiesta — e l'estrazione si registra.
+    { id:'estrazioni', label:'Estrazioni', badge: (typeof ESTRAZIONI !== 'undefined' ? ESTRAZIONI.length : 0) },
   ];
 
   // Chi ha due pannelli vuole tutta l'altezza, e ogni pannello scorre per
@@ -240,6 +335,7 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
         {tab === 'ripristini' && <SrvRipristini ripristini={ripristini} setRipristini={setRipristini}/>}
         {tab === 'faq'        && <SrvFaq faq={faq} setFaq={setFaq}/>}
         {tab === 'guide'      && <SrvGuide argomenti={argomenti} setArgomenti={setArgomenti} guide={guide} setGuide={setGuide}/>}
+        {tab === 'estrazioni' && <SrvEstrazioni/>}
       </div>
     </div>
   );

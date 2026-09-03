@@ -98,7 +98,10 @@ il resto vive nelle tab.
    legge nel banner dei Contratti. Sotto, i **Locali associati all'utenza**
    del titolare: utenza e locale sono due cose distinte.
 2. **Dati fiscali** — P.IVA senza badge di verifica (nessuno la verifica
-   presso l'Agenzia, e il gestionale ha smesso di dirlo), regime a scelta,
+   presso l'Agenzia, e il gestionale ha smesso di dirlo), la **delega
+   all'Agenzia** letta dal registro delle deleghe (P-52 · D-40: Impostazioni →
+   Piattaforma → Deleghe, elenco numerato di conferimenti e revoche con
+   scadenza ancorata al conferimento e responsabile della gestione), regime a scelta,
    ATECO, SDI, PEC, REA, sede operativa (derivata, quella dello scontrino) e
    sede legale (campo suo), IBAN in sola lettura «gestito da Stripe».
 3. **Proprietà** — campi liberi in stile CRM.
@@ -111,7 +114,10 @@ il resto vive nelle tab.
    stesse cifre della scheda staff, con le mediane accanto). Un locale non
    attivo non mostra cifre da sala: la sezione spiega perché.
 5. **Log** — eventi con chiave tecnica in chiaro, coerenti con lo stato del
-   locale, filtro Dal/Al.
+   locale, filtro Dal/Al; con le rettifiche di cassa e gli sconti manuali, che
+   sono la materia dell'**estrazione del registro operazioni** (P-47 · D-38):
+   si chiede da Assistenza → Estrazioni, con motivo e nota, dietro Scrittura
+   su Conformità, e l'estrazione resta a registro e in audit.
 6. **Certificazioni** — fascicolo operativo: documento scaricabile, approva /
    rifiuta con motivazione, elimina, imposta scadenza (mai nel passato);
    «Scaduta» si deriva dall'orologio; ogni decisione si **sincronizza col

@@ -14,9 +14,9 @@ const ADM_SEZIONI = {
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'],
     testata: { titolo:'Sicurezza e sistemi',
       sotto:'Team, permessi, accessi, tracce e salute della piattaforma.' } },
-  impostazioni: { pred:'piattaforma', tabs:['piattaforma','incaricati'],
+  impostazioni: { pred:'piattaforma', tabs:['piattaforma','incaricati','deleghe'],
     testata: { titolo:'Piattaforma',
-      sotto:'Le leve commerciali di byup: piani e prezzi, coefficienti del piano, discovery nell\'app — e gli incaricati Fisconline che trasmettono gli scontrini delle società.' } },
+      sotto:'Le leve commerciali di byup: piani e prezzi, coefficienti del piano, discovery nell\'app — gli incaricati Fisconline che trasmettono gli scontrini delle società, e il registro delle deleghe degli esercenti.' } },
 };
 
 function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
@@ -69,6 +69,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
             { id:'incaricati',  label:'Incaricati Fisconline' },
+            { id:'deleghe',     label:'Deleghe', badge: (typeof delInAvvicinamento === 'function' ? delInAvvicinamento().length : 0) },
             { id:'diagnostica', label:'Diagnostica' },
           ].filter(t => sez.tabs.indexOf(t.id) !== -1)} active={tab} onChange={setTab}/>
           <div style={{flex:1}}/>
@@ -87,6 +88,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
         {tab === 'accessi' && <AccessiList/>}
         {tab === 'piattaforma' && <PlatformConfig/>}
         {tab === 'incaricati' && <HubIncaricatiPage/>}
+        {tab === 'deleghe' && <HubDeleghePage/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}
       </AdmCard>
@@ -503,6 +505,7 @@ const AUDIT_TIPI = [
   { value:'locale',       label:'Locali' },
   { value:'piano',        label:'Piani' },
   { value:'fatturazione', label:'Fatturazione' },
+  { value:'estrazione',   label:'Estrazioni' },
   { value:'broadcast',    label:'Broadcast' },
 ];
 
