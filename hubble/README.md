@@ -140,9 +140,11 @@ zona sensibile con ban ed eliminazione), **Statistiche** (abitudini con sessioni
 sui cinque orizzonti, spesa, prenotazioni con no-show onesto sui denominatori
 piccoli, tempi medi, inviti, preferenze alimentari **solo col consenso A3**),
 **Consensi** (A3/A18/A6, specchio di ByupConsensi dell'app, con documenti e
-versioni), **Log** (generato **dai** dati delle altre tab: i consent_update
-sono i consensi, le recensioni sono quelle della tab), **Recensioni** (con lo
-shadowban accanto a ciò che nasconde).
+versioni), **Log** (i tre eventi del registro d'uso — `app_open`, `qr_scan`,
+`menu_view` — con la riga che dice a quali condizioni si scrive, e la card dei
+rimandi alle tab dove vivono gli altri fatti: ordini, prenotazioni, recensioni,
+byuppini, consensi e notifiche non si riscrivono in un registro parallelo,
+P-37 · D-31), **Recensioni** (con lo shadowban accanto a ciò che nasconde).
 
 ## Il linguaggio comune
 
@@ -212,7 +214,7 @@ ricarica non si può né leggere né filtrare.
 | `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
 | `hub-workflow-regole.jsx` | L'editor delle condizioni di ramo e delle attese |
 | `hub-agent-ambiente.jsx` | L'Ambiente: catene, lavagna, coda, registro, guardie |
-| `hub-impostazioni.jsx` | Domini e mittenti, catalogo delle proprietà |
+| `hub-impostazioni.jsx` | Domini e mittenti (col sottodominio di tracciamento in cima, P-57), catalogo delle proprietà |
 | `admin-contatti.jsx` | La rubrica e l'apertura delle tre schede |
 | `admin-locale-detail.jsx` | La scheda del locale (nove tab) e il pannello consensi condiviso |
 | `admin-camerieri.jsx` | Dataset `STAFF` + scheda staff (nessuna pagina di sezione) |
@@ -236,7 +238,9 @@ deterministico sull'id e messo in cache: un diario che cambia date a ogni
 render non si può leggere. Due paletti: **niente prima che il contatto
 esistesse**, e niente nel futuro — tranne quello che è marcato `futuro`, cioè
 le cose ancora da fare, che sono esattamente quello che serve sapere prima di
-richiamare qualcuno.
+richiamare qualcuno. Niente pagine visitate e niente dispositivo sulle
+aperture: di aperture e clic si conservano il fatto e il momento, e il link
+cliccato passa dal sottodominio di tracciamento.
 
 Sopra al diario ci sono due funzioni che fanno la differenza fra un registro e
 una schermata che si legge:
@@ -264,7 +268,7 @@ Una regola ha un **genere**, e questa è la parte che prima mancava:
 | Genere | Che cosa chiede |
 |---|---|
 | `proprieta` | Com'è fatto il contatto — le stesse frasi dei filtri |
-| `evento` | Che cosa **ha fatto**: aperture, click su un link preciso, form, ticket, pagine viste. Con una **finestra** (`entro 3 giorni`) e un **NON** |
+| `evento` | Che cosa **ha fatto**: aperture, click su un link preciso, form, ticket. Niente pagine viste: la navigazione sul sito non si traccia a persona (P-36 · D-31), e i clic si registrano solo con la rilevazione consentita (PRIV-07). Con una **finestra** (`entro 3 giorni`) e un **NON** |
 | `elenco` | È dentro o fuori da un elenco |
 | `esito` | Com'è andato il passo prima: consegnata, rimbalzata, saltata per consenso, errore |
 

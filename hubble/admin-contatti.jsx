@@ -467,7 +467,7 @@ function AdmContattiPage({ search, openContatto }) {
             <AdmCard padding={0} style={{overflow: 'hidden'}}>
               {selected.tipo === 'locale' && <LocaleDrawer pieno locale={selected.ref} onClose={chiudi}/>}
               {selected.tipo === 'staff'  && <StaffDrawer  pieno staff={selected.ref}  onClose={chiudi}/>}
-              {selected.tipo === 'utente' && <UtenteDrawer pieno utente={selected.ref} onClose={chiudi}/>}
+              {selected.tipo === 'utente' && <UtenteDrawer pieno utente={selected.ref} onClose={chiudi} onDiario={() => setTabDett('attivita')}/>}
             </AdmCard>
           ) : <CntSchedaProprieta riga={riga}/>
         ) : (

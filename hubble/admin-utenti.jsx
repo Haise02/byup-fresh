@@ -71,24 +71,25 @@ function SpesaMediaCard({ lifetime, anno, mese, horizonDays }) {
 // La riga della vecchia lista (UtenteRow) e la pagina di sezione
 // (AdmUtentiPage) sono state rimosse: la rotta è tradotta in Contatti.
 
-// ─── Gli eventi dell'app ────────────────────────────────────────────────────
-// Il vocabolario del tracking: quello che l'app emette quando l'utente fa
-// qualcosa, ed è ciò che serve a NOI per tracciare l'attività. La tab Log
-// li mostra così come arrivano, con la chiave tecnica in chiaro — la stessa
-// che si ritrova negli export e in Analisi Dati. Solo l'etichetta, niente
-// icone o colori: è un log, si scandisce per testo e data.
+// ─── Il registro d'uso dell'app (P-37 · D-31) ───────────────────────────────
+// app_usage_events porta tre soli valori, «e sono i tre che non si ricavano
+// da altre tabelle: gli altri otto sono proiezioni di fatti già registrati, e
+// una seconda scrittura dello stesso fatto è una seconda verità destinata a
+// divergere». Ordini, pagamenti, prenotazioni, recensioni, byuppini, notifiche
+// e consensi si leggono dalle loro tabelle — cioè dalle altre tab della scheda
+// — e la tab Log ci rimanda. Il registro si scrive solo con l'interruttore dei
+// suggerimenti acceso, senza indirizzo di rete, coordinate né impronte del
+// dispositivo, con la città come solo contesto di luogo. L'interruttore che
+// condiziona la scrittura oggi qui non c'è (la tab Consensi dice ancora
+// «nessun toggle»): nasce col gruppo P-26/P-38, dove suggerimenti e analisi
+// d'uso finiscono sotto un interruttore solo.
+// La tab mostra la chiave tecnica in chiaro — la stessa degli export e di
+// Analisi Dati. Solo l'etichetta, niente icone o colori: è un log, si
+// scandisce per testo e data.
 const UTN_EVENTI = {
-  app_open:        { label: 'Apertura app' },
-  qr_scan:         { label: 'QR scansionato' },
-  menu_view:       { label: 'Menu sfogliato' },
-  order_placed:    { label: 'Ordine inviato' },
-  payment_done:    { label: 'Conto pagato in app' },
-  reservation_new: { label: 'Prenotazione creata' },
-  review_posted:   { label: 'Recensione pubblicata' },
-  byuppini_earned: { label: 'Byuppini accreditati' },
-  byuppini_spent:  { label: 'Byuppini riscattati' },
-  push_opened:     { label: 'Notifica push aperta' },
-  consent_update:  { label: 'Consenso aggiornato' },
+  app_open:  { label: 'Apertura app' },
+  qr_scan:   { label: 'QR scansionato' },
+  menu_view: { label: 'Menu sfogliato' },
 };
 
 // Le durate si leggono come le dice un umano: secondi fino al minuto, minuti
@@ -156,7 +157,7 @@ const UTN_MEDIANE = (() => {
 // `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
 // — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
 // barra «torna» del chiamante.
-function UtenteDrawer({ utente: u, onClose, pieno }) {
+function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   const [tab, setTab] = useStateUtn('anagrafica');
 
   // ── Mock stabili derivati dal seed utente (campi non ancora nel dataset) ──
@@ -389,20 +390,19 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   const dieta = rnd(410) < 0.45 ? dietaOpz[Math.floor(rnd(411) * dietaOpz.length)] : null;
   const allergie = allergOpz.filter((_, i) => rnd(412 + i) < 0.18);
 
-  // ── Log (tab): gli eventi si costruiscono DAI dati delle ALTRE tab ──
-  // Il log è la prova, e una prova che contraddice ciò che dovrebbe provare
-  // è peggio di niente: i consent_update sono ESATTAMENTE i consensi della
-  // tab Consensi (stessa data, stessa versione), le recensioni sono quelle
-  // della tab Recensioni riga per riga, ordini e prenotazioni compaiono solo
-  // se i totali veri li prevedono, il pagamento arriva dopo l'ordine alla
-  // distanza media della tab Statistiche, e uno storno di byuppini non
-  // supera mai il saldo. Resta un CAMPIONE recente, non l'archivio completo.
+  // ── Log (tab): i tre eventi del registro d'uso, e nient'altro ──
+  // Prima il log ricostruiva qui ordini, pagamenti, prenotazioni, recensioni,
+  // byuppini, push e consensi «dai dati delle altre tab», per non
+  // contraddirle: era la cura sbagliata alla diagnosi giusta. Un registro
+  // parallelo che si tiene sincronizzato a mano è comunque una seconda
+  // verità; quei fatti si leggono dove nascono, e il log rimanda lì.
+  // I dettagli sono ciò che il modello porta: la sede per QR e menù, la città
+  // per l'apertura. Niente durata (non c'è un evento di chiusura), niente
+  // tavolo, niente conteggio dei piatti. Resta un CAMPIONE recente.
   const eventi = (() => {
     const attivi = LOCALI.filter(l => l.stato === 'active');
     const out = [];
     const push = (tipo, quando, dettaglio) => out.push({ id: u.id + '-E' + out.length, tipo, quando, dettaglio });
-
-    // Il tappeto delle sessioni: aperture, menu sfogliati, QR al tavolo.
     const nSess = 8 + Math.floor(rnd(80) * 6);
     let ore = 1 + Math.floor(rnd(81) * 30);
     for (let i = 0; i < nSess; i++) {
@@ -410,53 +410,9 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
       const l = attivi[Math.floor(rnd(91 + i * 4) * attivi.length)] || attivi[0];
       const tipo = ['app_open', 'app_open', 'menu_view', 'qr_scan'][Math.floor(r * 3.999)];
       push(tipo, new Date(Date.now() - ore * 3600000),
-        tipo === 'app_open' ? `Sessione di ${2 + Math.floor(r * 22)} min`
-        : tipo === 'menu_view' ? `${l.nome} · ${3 + Math.floor(r * 14)} piatti visti`
-        : `Tavolo ${1 + Math.floor(r * 14)} · ${l.nome}`);
+        tipo === 'app_open' ? (u.citta || '—') : `${l.nome} · ${l.citta}`);
       ore += 4 + Math.floor(rnd(93 + i * 4) * 80);
     }
-
-    // Ordini col loro seguito: solo se l'utente ne HA, e il pagamento segue
-    // l'ordine alla distanza media che la tab Statistiche dichiara.
-    for (let i = 0; i < Math.min(3, u.ordini); i++) {
-      const r = rnd(200 + i * 5);
-      const l = attivi[Math.floor(rnd(201 + i * 5) * attivi.length)] || attivi[0];
-      const q = new Date(Date.now() - (20 + Math.floor(rnd(202 + i * 5) * 900)) * 3600000);
-      push('order_placed', q, `${l.nome} · € ${(9 + r * 46).toFixed(2).replace('.', ',')}`);
-      push('payment_done', new Date(q.getTime() + tempoPagamento * 1000),
-        r < 0.4 ? `${l.nome} · conto diviso in ${2 + Math.floor(r * 5)}` : `${l.nome} · conto intero`);
-      if (r < 0.7) push('byuppini_earned', new Date(q.getTime() + tempoPagamento * 1000 + 60000),
-        `+${5 + Math.floor(r * 40)} byuppini · ordine da ${l.nome}`);
-    }
-
-    // Byuppini spesi: mai più del saldo che si legge in Account.
-    if (u.byuppini >= 20 && rnd(210) < 0.6) {
-      push('byuppini_spent', new Date(Date.now() - (30 + Math.floor(rnd(211) * 700)) * 3600000),
-        `−${10 + Math.floor(rnd(212) * Math.min(u.byuppini - 10, 80))} byuppini · premio riscattato`);
-    }
-
-    // Prenotazioni: solo se la tab Statistiche ne conta.
-    for (let i = 0; i < Math.min(2, prenAnno); i++) {
-      const r = rnd(230 + i * 3);
-      const l = attivi[Math.floor(rnd(231 + i * 3) * attivi.length)] || attivi[0];
-      push('reservation_new', new Date(Date.now() - (24 + Math.floor(rnd(232 + i * 3) * 900)) * 3600000),
-        `${l.nome} · ${2 + Math.floor(r * 6)} persone · ${19 + Math.floor(r * 3)}:${r < 0.5 ? '30' : '00'}`);
-    }
-
-    // Push aperte.
-    if (rnd(220) < 0.75) {
-      push('push_opened', new Date(Date.now() - (10 + Math.floor(rnd(221) * 800)) * 3600000),
-        `«${['Menu della settimana', 'Beta prenotazioni', 'C\'è un nuovo locale vicino a te'][Math.floor(rnd(222) * 3)]}»`);
-    }
-
-    // Le recensioni della tab Recensioni, riga per riga.
-    recensioniBase.forEach(r => push('review_posted', r.data, `${r.locale.nome} · ${r.rating} stelle`));
-
-    // I consensi della tab Consensi, con le LORO date e versioni: è la riga
-    // di consent_data che quella tab promette.
-    consensi.filter(c => c.deciso).forEach(c =>
-      push('consent_update', c.quando, `${c.id} · ${c.label} → ${c.ok ? 'Sì' : 'No'} · Informativa v${c.versione} · scritto in consent_data`));
-
     return out.sort((a, b) => b.quando - a.quando);
   })();
   // Il filtro per data del log: due estremi, entrambi facoltativi. L'«al» è
@@ -937,6 +893,12 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                   }}>Azzera</button>
                 )}
               </div>
+              {/* La riga in testa dice che cos'è questo registro e a quali
+                  condizioni si scrive: chi lo legge deve sapere perché ci
+                  trova tre cose e non undici. */}
+              <div style={{padding:'10px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:12.6, color:ADM.MUTED, lineHeight:1.5, background:ADM.PANEL_SOFT}}>
+                Il registro d'uso dell'app: tre eventi, <span style={{fontFamily:'ui-monospace,monospace'}}>app_open</span>, <span style={{fontFamily:'ui-monospace,monospace'}}>qr_scan</span> e <span style={{fontFamily:'ui-monospace,monospace'}}>menu_view</span>. Si scrive solo con i suggerimenti accesi, senza indirizzo di rete, coordinate né impronte del dispositivo; la città è l'unico contesto di luogo.
+              </div>
               {eventiFiltrati.length === 0 && (
                 <div style={{padding:'26px 0', textAlign:'center', fontSize:13.5, color:ADM.MUTED}}>
                   Nessun evento tra le date scelte.
@@ -958,6 +920,36 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                   </div>
                 </div>
               ))}
+            </AdmCard>
+
+            {/* Gli otto tipi che stavano qui erano proiezioni: ordini,
+                pagamenti, prenotazioni, recensioni, byuppini, notifiche e
+                consensi. Non si riscrivono in un registro parallelo — si
+                leggono dove nascono, e questa card ci porta. Senza, chi apre
+                Log e ci trova tre cose invece di undici legge un buco. */}
+            <AdmCard padding={20}>
+              <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Gli altri fatti vivono nelle loro tabelle</div>
+              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:4, lineHeight:1.5}}>Una seconda scrittura dello stesso fatto è una seconda verità destinata a divergere: qui non si copiano, si raggiungono.</div>
+              <div style={{display:'flex', flexWrap:'wrap', gap:8, marginTop:12}}>
+                {[
+                  { label: 'Ordini e pagamenti', dove: 'Statistiche', vai: () => setTab('statistiche') },
+                  { label: 'Prenotazioni',       dove: 'Statistiche', vai: () => setTab('statistiche') },
+                  { label: 'Recensioni',         dove: 'Recensioni',  vai: () => setTab('recensioni') },
+                  { label: 'Byuppini',           dove: 'Account',     vai: () => setTab('account') },
+                  { label: 'Consensi',           dove: 'Consensi',    vai: () => setTab('consensi') },
+                  { label: 'Notifiche',          dove: 'Diario del contatto', vai: onDiario || null },
+                ].map(r => (
+                  <button key={r.label} className="adm-pill" disabled={!r.vai} onClick={() => r.vai && r.vai()} style={{
+                    display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', borderRadius:9,
+                    background:'#fff', border:`1px solid ${ADM.BORDER}`, cursor: r.vai ? 'pointer' : 'default',
+                    fontFamily:'inherit', fontSize:12.8, color:ADM.TEXT, opacity: r.vai ? 1 : 0.6,
+                  }}>
+                    <span style={{fontWeight:700}}>{r.label}</span>
+                    <span style={{color:ADM.MUTED}}>→ {r.dove}</span>
+                    {r.vai && <BuIcons.chevronRight size={13} color={ADM.MUTED_LIGHT}/>}
+                  </button>
+                ))}
+              </div>
             </AdmCard>
           </div>
         )}

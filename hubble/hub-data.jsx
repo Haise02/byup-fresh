@@ -204,6 +204,11 @@ const HUB_PROPRIETA = [
   // — Attività —
   { id: 'ultimaAttivita', label: 'Ultima attività', gruppo: 'attivita', tipo: 'data',   sistema: true, colonna: { w: '1.2fr' } },
   { id: 'ordini',         label: 'Ordini totali',   gruppo: 'attivita', tipo: 'numero', sistema: true, colonna: { w: '0.9fr' } },
+  // «Sessioni 30gg» è un riuso del registro degli accessi a fini di analisi,
+  // che la valutazione di legittimo interesse esclude espressamente come
+  // cambio di finalità (D-31). Resta per non rompere filtri ed elenchi, ma è
+  // una sanatoria registrata: la proprietà dovrà morire e l'elenco «Utenti
+  // App Pro molto attivi» rifondarsi sui tre eventi del registro d'uso.
   { id: 'sessioni',       label: 'Sessioni 30gg',   gruppo: 'attivita', tipo: 'numero', colonna: { w: '0.95fr' } },
 ];
 
@@ -668,12 +673,17 @@ const HUB_WORKFLOW = [
             { tipo: 'push', testo: 'Avvisa il commerciale di zona' },
             { tipo: 'proprieta', testo: 'Priorità → alta' },
           ] },
+        // Il clic sul link, non la visita alla pagina (P-36 · D-31): i clic
+        // hanno il proprio presidio, il sottodominio di tracciamento. E il
+        // presidio ha un limite (PRIV-07): opened e clicked non si registrano
+        // con tracking_allowed falso, quindi questo ramo NON scatta per chi
+        // non ha la rilevazione consentita — cade in «Da rilavorare».
         { id: 'q2', label: 'Medio, ma raggiungibile',
           quando: { tipo: 'regole', congiunzione: 'E', gruppi: [
             { id: 'g1', congiunzione: 'E', regole: [
               { genere: 'proprieta', prop: 'email', op: 'noto', valore: null },
               { genere: 'proprieta', prop: 'consensoMail', op: 'vero', valore: null },
-              { genere: 'evento', evento: 'paginaVista', rif: '/prezzi', negato: false, finestra: { n: 14, unita: 'giorni' } },
+              { genere: 'evento', evento: 'mailCliccata', rif: 'ML-014', link: 'byup.it/prezzi', negato: false, finestra: { n: 14, unita: 'giorni' } },
             ] },
           ] },
           nodi: [ { tipo: 'mail', testo: 'Novità di primavera · rilascio 4.2' } ] },
@@ -784,11 +794,25 @@ const HUB_DOMINI = [
     spf: true, dkim: true, dmarc: true, verificato: new Date(2025, 3, 12), reputazione: 98 },
   { id: 'DM-2', dominio: 'mail.byup.it', uso: 'Sottodominio dedicato agli invii massivi', stato: 'verificato',
     spf: true, dkim: true, dmarc: true, verificato: new Date(2025, 8, 2), reputazione: 96 },
-  { id: 'DM-3', dominio: 'link.byup.it', uso: 'Tracciamento dei click', stato: 'verificato',
-    spf: false, dkim: true, dmarc: true, verificato: new Date(2025, 8, 2), reputazione: 99 },
-  { id: 'DM-4', dominio: 'hubble.byup.it', uso: 'Pagine dei form e landing', stato: 'in attesa',
+  { id: 'DM-3', dominio: 'hubble.byup.it', uso: 'Pagine dei form e landing', stato: 'in attesa',
     spf: true, dkim: false, dmarc: false, verificato: null, reputazione: null },
 ];
+
+// ─── Il sottodominio di tracciamento (P-57 · D-48) ──────────────────────────
+// Uno per account, FUORI da HUB_DOMINI e dal conteggio dei domini: non
+// spedisce, riscrive. Ogni link nei messaggi — email e SMS — passa di qui per
+// contare i clic, ed è quindi il presidio dei clic che P-36 lascia in piedi,
+// col limite di PRIV-07 (opened e clicked non registrabili con
+// tracking_allowed falso). Non ha SPF, DKIM né DMARC: ha UN CNAME verso il
+// bordo del fornitore e il certificato che il fornitore emette quando il
+// CNAME risponde. Va deciso prima del primo invio: i link già spediti puntano
+// al dominio con cui sono stati riscritti, e cambiarlo dopo li rompe. Prima
+// stava nella lista come dominio a metà, con lo SPF «mancante» che un dominio
+// che non spedisce non avrà mai.
+const HUB_TRACCIAMENTO = {
+  dominio: 'link.byup.it', bordo: 'clic.byup-mail.net', stato: 'verificato',
+  cname: true, certificato: true, decisoIl: new Date(2025, 8, 2), verificatoIl: new Date(2025, 8, 2),
+};
 
 const HUB_MITTENTI = [
   { id: 'MT-1', nome: 'byup', indirizzo: 'ciao@byup.it', dominio: 'byup.it', stato: 'verificato', predefinito: true },
@@ -833,6 +857,7 @@ window.HUB_WORKFLOW = HUB_WORKFLOW;
 window.HUB_AGENTI = HUB_AGENTI;
 window.HUB_AGENTI_MODELLI = HUB_AGENTI_MODELLI;
 window.HUB_DOMINI = HUB_DOMINI;
+window.HUB_TRACCIAMENTO = HUB_TRACCIAMENTO;
 window.HUB_MITTENTI = HUB_MITTENTI;
 window.HUB_NUMERI = HUB_NUMERI;
 
@@ -862,7 +887,8 @@ const HUB_ATT_TIPI = {
   pushInviata:   { label: 'Push inviata',        icona: 'bellFill',    color: 'PURPLE',      gruppo: 'messaggi' },
   pushAperta:    { label: 'Push aperta',         icona: 'eye',         color: 'OK',          gruppo: 'messaggi' },
   form:          { label: 'Form compilato',      icona: 'formFill',    color: 'TEAL',        gruppo: 'form' },
-  pagina:        { label: 'Pagina vista',        icona: 'globe',       color: 'PLAN_FREE',   gruppo: 'form' },
+  // Nessuna «Pagina vista» (P-36 · D-31): la navigazione sul sito non si
+  // traccia a persona. Il clic nel messaggio porta già il link: è il fatto.
   wfEntrato:     { label: 'Entrato in workflow', icona: 'flowFill',    color: 'HUB_VIOLA',   gruppo: 'automazioni' },
   wfUscito:      { label: 'Workflow completato', icona: 'check',       color: 'HUB_VIOLA',   gruppo: 'automazioni' },
   elencoEntrato: { label: 'Aggiunto a un elenco',icona: 'listFill',    color: 'INFO',        gruppo: 'automazioni' },
@@ -894,7 +920,7 @@ const HUB_ATT_GRUPPI = [
   { id: 'tutto',       label: 'Tutto' },
   { id: 'email',       label: 'Email' },
   { id: 'messaggi',    label: 'SMS e push' },
-  { id: 'form',        label: 'Form e pagine' },
+  { id: 'form',        label: 'Form' },
   { id: 'assistenza',  label: 'Assistenza' },
   { id: 'commerciale', label: 'Commerciale' },
   { id: 'automazioni', label: 'Automazioni' },
@@ -919,7 +945,6 @@ const HUB_LINK_TRACCIATI = [
   { url: 'byup.it/demo', testo: 'Prenota una demo' },
   { url: 'byup.it/guide/kds', testo: 'Guida al KDS' },
 ];
-const HUB_PAGINE = ['byup.it/prezzi', 'byup.it/prenotazioni', 'byup.it/demo', 'byup.it/chi-siamo', 'byup.it/delivery'];
 const HUB_OPERATORI_TEAM = ['Marco Rinaldi', 'Giulia Ferrari', 'Davide Neri', 'Chiara Rossi'];
 
 // Il diario si costruisce una volta per contatto e resta in cache: rigenerarlo
@@ -949,9 +974,12 @@ function hubAttivita(c) {
     c.referral ? { Referral: c.referral } : null);
 
   if (c.primoForm) {
+    // La pagina del form è un fatto del form, non una navigazione: sta come
+    // meta «Da». La riga «Ha visitato…» che seguiva è morta (P-36).
+    const f = HUB_FORM.find(x => x.nome === c.primoForm);
     push(eta, 9, 'form', `Ha compilato «${c.primoForm}»`, 'Su byup.it',
-      Object.assign({ Nome: c.nome }, c.email ? { Email: c.email } : {}, c.referral ? { 'Come ci hai conosciuto': c.referral } : {}));
-    push(eta, 10, 'pagina', 'Ha visitato ' + hubScegli(s, HUB_PAGINE), 'Prima del form, stessa sessione');
+      Object.assign({ Nome: c.nome }, f && f.pagina && f.pagina !== '—' ? { Da: f.pagina } : {},
+        c.email ? { Email: c.email } : {}, c.referral ? { 'Come ci hai conosciuto': c.referral } : {}));
   }
 
   // ── la storia delle campagne: ogni invio può essere aperto e cliccato ──
@@ -964,13 +992,17 @@ function hubAttivita(c) {
     // Il tasso di apertura della campagna decide se questo contatto l'ha
     // aperta: i numeri del singolo devono tornare con quelli dell'invio.
     const apre = (r % 100) < Math.round(m.aperte / m.consegnate * 100);
+    // Per aperture e clic si conserva il solo fatto e il momento, nessun
+    // identificativo di terminale (campaign_send_events.detail): niente
+    // «iPhone · Mail». E niente riga «Ha visitato…» dopo il clic (P-36): il
+    // clic, col suo link riscritto sul sottodominio di tracciamento, È il
+    // fatto. Si registra solo con tracking_allowed (PRIV-07).
     if (apre) {
-      push(giorni, 8, 'mailAperta', m.nome, 'Aperta ' + ((r >>> 3) % 3 + 1) + ' volte · ' + (r % 2 ? 'iPhone · Mail' : 'Mac · Gmail'));
+      push(giorni, 8, 'mailAperta', m.nome, 'Aperta ' + ((r >>> 3) % 3 + 1) + ' volte');
       const clicca = ((r >>> 5) % 100) < Math.round(m.click / Math.max(1, m.aperte) * 100);
       if (clicca) {
         const l = HUB_LINK_TRACCIATI[hubIdx(r >>> 7, HUB_LINK_TRACCIATI.length)];
-        push(giorni, 7.5, 'mailClick', m.nome, `Ha cliccato «${l.testo}»`, { Link: l.url });
-        if ((r >>> 9) % 3 === 0) push(giorni, 7.4, 'pagina', 'Ha visitato ' + l.url, 'Arrivato dal link della campagna');
+        push(giorni, 7.5, 'mailClick', m.nome, `Ha cliccato «${l.testo}»`, { Link: l.url, Via: HUB_TRACCIAMENTO.dominio });
       }
     }
     if ((r >>> 11) % 40 === 0) push(giorni, 9, 'mailRimbalzo', m.nome, 'Casella piena — riprovato 2 volte');
@@ -983,7 +1015,8 @@ function hubAttivita(c) {
   if (c.consensoSms) {
     const r = rnd(31);
     push(Math.max(2, Math.round(eta * 0.2)), 11, 'smsInviato', 'Promemoria rinnovo Plus', '1 segmento · consegnato');
-    if (r % 3 === 0) push(Math.max(2, Math.round(eta * 0.2)), 10.8, 'smsClick', 'Promemoria rinnovo Plus', 'Ha aperto il link accorciato', { Link: 'byup.it/r/8fk2' });
+    // Anche i link SMS si riscrivono sul sottodominio di tracciamento (P-57).
+    if (r % 3 === 0) push(Math.max(2, Math.round(eta * 0.2)), 10.8, 'smsClick', 'Promemoria rinnovo Plus', 'Ha aperto il link accorciato', { Link: HUB_TRACCIAMENTO.dominio + '/s/8fk2' });
   }
   if (c.tipo === 'utente' || c.tipo === 'locale') {
     const r = rnd(47);
@@ -1232,6 +1265,14 @@ window.hubEpisodi = hubEpisodi;
 // scelta, fatta a parte. Due livelli bastano per scrivere (A e B) oppure
 // (C e D) — che è il 99% di quello che serve — e si continuano a leggere.
 
+// La navigazione del contatto sul sito NON è un evento (P-36 · D-31): la
+// telemetria si tiene all'osso e la navigazione non si traccia a persona.
+// Scheda v0.28: «nessuna condizione di ramo può interrogare la navigazione
+// del contatto sul sito». Restano i clic sui messaggi, che hanno il proprio
+// presidio — il sottodominio di tracciamento (P-57), con il limite di
+// PRIV-07: opened e clicked non registrabili con tracking_allowed falso,
+// pixel e tracciamento dei clic disattivi per predefinito nei template — e
+// la compilazione dei moduli.
 const HUB_WF_EVENTI = {
   mailAperta:   { label: 'ha aperto l\'email',        rif: 'mail',  icona: 'eye' },
   mailCliccata: { label: 'ha cliccato nell\'email',   rif: 'mail',  icona: 'cursorClick', conLink: true },
@@ -1240,7 +1281,6 @@ const HUB_WF_EVENTI = {
   smsCliccato:  { label: 'ha cliccato nell\'SMS',     rif: 'sms',   icona: 'cursorClick' },
   pushAperta:   { label: 'ha aperto la notifica',     rif: 'push',  icona: 'bell' },
   formInviato:  { label: 'ha compilato il form',      rif: 'form',  icona: 'formFill' },
-  paginaVista:  { label: 'ha visitato la pagina',     rif: 'url',   icona: 'globe' },
   ticketAperto: { label: 'ha aperto un ticket',       rif: null,    icona: 'ticket' },
   chiamato:     { label: 'è stato chiamato',          rif: null,    icona: 'headsetFill' },
   ordine:       { label: 'ha fatto un ordine',        rif: null,    icona: 'receipt' },

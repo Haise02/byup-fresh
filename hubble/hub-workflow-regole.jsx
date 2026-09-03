@@ -68,7 +68,6 @@ function WrRif({ rif, valore, onCambia }) {
     elenco: HUB_ELENCHI.map(x => ({ value: x.id, label: x.nome })),
     prop:   HUB_PROPRIETA.map(x => ({ value: x.id, label: x.label })),
   };
-  if (rif === 'url') return <HubInput valore={valore} onCambia={onCambia} placeholder="es. /prezzi o byup.it/demo"/>;
   const opzioni = elenchi[rif];
   if (!opzioni) return null;
   return (
