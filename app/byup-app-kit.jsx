@@ -512,6 +512,20 @@ window.ByupKit = {
       log.push({ id, ok: false, revocato: true, quando, versione: VERSIONE_INFORMATIVA });
       scrivi(K_LOG, log);
     },
+    // La DICHIARAZIONE di un dato facoltativo (P-84: il genere): non è un
+    // consenso, è la traccia della scelta spontanea — con il valore, così si
+    // distingue «scelto» da «preselezionato», che qui non esiste più. La
+    // revoca è azzera(id): «Preferisco non specificare» che svuota.
+    dichiara(id, valore) {
+      const quando = new Date().toISOString();
+      const stato = leggi(K_STATO, {});
+      stato[id] = { ok: true, quando, versione: VERSIONE_INFORMATIVA, valore };
+      scrivi(K_STATO, stato);
+      const log = leggi(K_LOG, []);
+      log.push({ id, ok: true, valore, natura: 'dichiarazione', quando, versione: VERSIONE_INFORMATIVA });
+      scrivi(K_LOG, log);
+      return stato[id];
+    },
     log() { return leggi(K_LOG, []); },
   };
 })();

@@ -845,14 +845,33 @@ function SegnalaView({ onBack }) {
   );
 }
 
-function MieiDatiView({ onBack, onOpenPrivacy }) {
-  const [nome, setNome] = useState('Mario');
-  const [cognome, setCognome] = useState('Rossi');
-  const [genere, setGenere] = useState('Uomo');
-  const [nascita, setNascita] = useState('15/04/1990');
+// Il profilo persistito (P-84): prima «Salvato ✓» confermava una
+// persistenza che non esisteva. byup_profilo tiene nome, cognome e genere;
+// la data di nascita NON si scrive da qui (P-85).
+const byupProfiloLeggi = () => { try { const r = localStorage.getItem('byup_profilo'); return r ? JSON.parse(r) : {}; } catch (e) { return {}; } };
+const byupProfiloScrivi = (patch) => { try { localStorage.setItem('byup_profilo', JSON.stringify(Object.assign(byupProfiloLeggi(), patch))); } catch (e) {} };
+
+function MieiDatiView({ onBack, onOpenPrivacy, onRichiediNascita }) {
+  const pro = byupProfiloLeggi();
+  const [nome, setNome] = useState(pro.nome || 'Mario');
+  const [cognome, setCognome] = useState(pro.cognome || 'Rossi');
+  // Il genere NON è preselezionato (P-84): un valore già scelto in un campo
+  // facoltativo è un consenso presunto. Parte vuoto; «Preferisco non
+  // specificare» resta, e svuota.
+  const [genere, setGenere] = useState(pro.genere || null);
+  const [nascita] = useState('15/04/1990');
   const [saved, setSaved] = useState(false);
 
+  // La scelta del genere scrive la dichiarazione nel registro (riga GEN col
+  // valore, natura «dichiarazione», non un consenso); «Preferisco non
+  // specificare» la azzera — è il chiamante che azzera() aspettava.
+  const scegliGenere = (g) => {
+    if (g === 'Preferisco non specificare') { setGenere(null); byupProfiloScrivi({ genere: null }); ByupConsensi.azzera('GEN'); return; }
+    setGenere(g); byupProfiloScrivi({ genere: g }); ByupConsensi.dichiara('GEN', g);
+  };
+
   function salva() {
+    byupProfiloScrivi({ nome, cognome });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -902,7 +921,7 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
           <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Genere</div>
           <div style={{ background: TINT_X, borderRadius: 12, overflow: 'hidden' }}>
             {['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => (
-              <button key={g} onClick={() => setGenere(g)} style={{
+              <button key={g} onClick={() => scegliGenere(g)} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 width: '100%', padding: '13px 14px', background: 'transparent',
                 border: 'none', borderBottom: i < arr.length - 1 ? '1px solid #EDE8EA' : 'none',
@@ -923,7 +942,18 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
           </div>
         </div>
 
-        <Field label="Data di nascita" value={nascita} onChange={setNascita} type="text"/>
+        {/* La data di nascita non si modifica in linea (P-85): decide la
+            verifica dell'età e le tutele del minore, e i flussi la escludono
+            dalle modifiche ordinarie. Sola lettura, e la procedura dedicata
+            sul pattern di «Modifica email». */}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Data di nascita</div>
+          <div style={{ padding: '13px 14px', background: '#F0EEF0', borderRadius: 12, fontSize: 15, color: MUTED_X, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ flex: 1 }}>{nascita}</span>
+            <button onClick={onRichiediNascita} style={{ background: 'none', border: 'none', color: PINK_X, fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>Richiedi la modifica</button>
+          </div>
+          <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, marginTop: 6, paddingLeft: 2 }}>La data di nascita decide la verifica dell'età e le tutele per chi ha meno di 18 anni: non si cambia in linea, si chiede.</div>
+        </div>
       </div>
 
       <button onClick={salva} style={{
@@ -1215,7 +1245,7 @@ const PROFILE_AVATARS = [
 function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   // Deep-link: ?view=orders&order=<id|recent> apre direttamente una sotto-vista
   // (es. "Vedi scontrino" dalla schermata di pagamento → Storico ordini).
-  const VIEWS = ['main','allergens','orders','account','terms','privacy','lingua','pagamenti','preferiti','miei-dati'];
+  const VIEWS = ['main','allergens','orders','account','terms','privacy','lingua','pagamenti','preferiti','miei-dati','modifica-nascita'];
   const params = (() => { try { return new URLSearchParams(window.location.search); } catch { return new URLSearchParams(); } })();
   const initialView = VIEWS.includes(params.get('view')) ? params.get('view') : 'main';
   const initialOrderId = params.get('order') || null;
@@ -1659,6 +1689,24 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
           />
         )}
 
+        {/* La procedura dedicata per la data di nascita (P-85), sul pattern
+            di «Modifica email»: valore attuale in sola lettura, la data nuova,
+            la password come riprova d'identità, e una richiesta — non una
+            modifica — perché la data regge la verifica dell'età. */}
+        {view === 'modifica-nascita' && (
+          <AccountFormView
+            title="Data di nascita"
+            onBack={() => setView('miei-dati')}
+            fields={[
+              { label: 'Data di nascita attuale', placeholder: '15/04/1990', type: 'text', defaultValue: '15/04/1990', readOnly: true },
+              { label: 'Nuova data di nascita', placeholder: 'AAAA-MM-GG', type: 'date' },
+              { label: 'Password', placeholder: '••••••••', type: 'password' },
+            ]}
+            submitLabel="Invia la richiesta"
+            successMsg="Richiesta inviata: la verifichiamo e ti scriviamo. Fino ad allora vale la data di oggi."
+          />
+        )}
+
         {view === 'pagamenti' && (
           <PagamentiView onBack={() => setView('main')} startAdd={initialAddCard}/>
         )}
@@ -1672,7 +1720,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'miei-dati' && (
-          <MieiDatiView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')}/>
+          <MieiDatiView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')} onRichiediNascita={() => setView('modifica-nascita')}/>
         )}
 
         {/* Nessun testo qui: Termini e Privacy sono la proiezione unica in
