@@ -236,6 +236,9 @@ sequenceDiagram
 
 **Ricevuta (§ prodotto):** è **di cortesia, non fiscale** (Contesto §5.7). `receipt` invia via
 gateway SMS / email transazionale; nessun obbligo di conservazione fiscale lato POS.
+Il `contatto` serve alla sola consegna e non si conserva (D-23 · P-21): il server lo passa al
+gateway e lo scarta, sulla transazione resta il solo `canale`, il POS non lo ripropone e non lo
+tiene in memoria locale, e un reinvio richiede di chiederlo di nuovo al cliente.
 
 ---
 

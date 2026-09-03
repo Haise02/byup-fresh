@@ -135,7 +135,9 @@ Spegnendo il toggle Face ID dal Profilo compare l'alert "Disattivare il Face ID?
 
 Dal **dettaglio di una transazione**, il bottone **Ricevuta** apre lo **stesso flusso**
 del pagamento (`RicevutaSheet`): scelta canale **SMS / Email**, inserimento contatto,
-conferma "Ricevuta inviata" con l'importo della transazione selezionata.
+conferma "Ricevuta inviata" con l'importo della transazione selezionata. Il recapito non viene
+conservato (D-23 · P-21): il reinvio riapre lo sheet a campo vuoto con la riga che lo dice, e
+sulla transazione resta il solo canale.
 
 ### 2.5 Transazioni: vista a giornata singola
 

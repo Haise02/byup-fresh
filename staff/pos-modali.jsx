@@ -289,9 +289,10 @@ function DettaglioSheet({ modal, closeModal }) {
   const [view, setView] = useStateM('detail');   // 'detail' | 'confirm' | 'done' | 'ricevuta'
   const cfg = txConfig(t.stato);
 
-  // Invio ricevuta: stesso flusso (SMS / Email) del pagamento
+  // Reinvio: stesso sheet del pagamento, a campo vuoto (D-23). Sulla
+  // transazione si segna il solo canale.
   if (view === 'ricevuta') {
-    return <RicevutaSheet modal={{ importo: t.importo }} closeModal={closeModal}/>;
+    return <RicevutaSheet modal={{ importo: t.importo }} reinvio onSent={c => { t.ricevuta = c; }} closeModal={closeModal}/>;
   }
 
   const Riga = ({ k, v }) => (
@@ -354,10 +355,11 @@ function DettaglioSheet({ modal, closeModal }) {
         <Riga k="Carta" v={t.last4 !== '——' ? `${t.brand} ·•${t.last4}` : t.brand}/>
         <Riga k="ID transazione" v={t.id}/>
         <Riga k="Esercente" v={MERCHANT.nome}/>
+        {t.ricevuta && <Riga k="Ricevuta" v={`Inviata via ${t.ricevuta === 'sms' ? 'SMS' : 'email'}`}/>}
       </div>
       <div style={{ display: 'flex', gap: 10 }}>
         <Btn variant="secondary" size="lg" full onClick={() => setView('ricevuta')}>
-          <I.Receipt s={17} c={ST.TEXT}/> Ricevuta
+          <I.Receipt s={17} c={ST.TEXT}/> {t.ricevuta ? 'Reinvia ricevuta' : 'Ricevuta'}
         </Btn>
         {t.stato === 'ok' && (
           <Btn variant="danger" size="lg" full onClick={() => setView('confirm')}>
@@ -379,6 +381,9 @@ function ContactInput({ canale, value, onChange, onSubmit }) {
         autoFocus
         type={isSms ? 'tel' : 'email'}
         inputMode={isSms ? 'tel' : 'email'}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
         value={value}
         onChange={e => onChange(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && value.trim()) onSubmit(); }}
@@ -408,10 +413,18 @@ function InviatoOk({ titolo, sotto, onClose }) {
 }
 
 // ── Sheet ricevuta: scegli canale → inserisci contatto → invia ─
-function RicevutaSheet({ modal, closeModal }) {
+// D-23 (P-21): il recapito che il cliente detta serve a un invio e a
+// nient'altro. Il campo nasce vuoto a ogni apertura, nessuno stato lo
+// trattiene oltre l'invio, nessuna cronologia locale — conservarlo sul
+// telefono di un dipendente sarebbe una rubrica di recapiti dei clienti in
+// tasca allo staff. Sulla transazione resta solo il canale, mai il valore, e
+// il reinvio chiede il recapito di nuovo. Gli input hanno autoComplete off
+// perché tastierino e autofill non lo ricordino al posto nostro.
+function RicevutaSheet({ modal, closeModal, reinvio = false, onSent }) {
   const [canale, setCanale] = useStateM(null);   // null | 'sms' | 'email'
   const [valore, setValore] = useStateM('');
   const [sent, setSent] = useStateM(false);
+  const invia = () => { if (!valore.trim()) return; setSent(true); onSent && onSent(canale); };
 
   // Step 3 — conferma
   if (sent) {
@@ -441,9 +454,10 @@ function RicevutaSheet({ modal, closeModal }) {
         </div>
         <div style={{ fontSize: 13, color: ST.MUTED, marginBottom: 16 }}>
           Ricevuta di {eur(modal.importo)} {isSms ? 'via SMS' : 'via email'}
+          {reinvio && <><br/>Il recapito non viene conservato: chiedilo di nuovo al cliente.</>}
         </div>
-        <ContactInput canale={canale} value={valore} onChange={setValore} onSubmit={() => setSent(true)}/>
-        <Btn variant="primary" size="lg" full disabled={!valore.trim()} onClick={() => setSent(true)}>
+        <ContactInput canale={canale} value={valore} onChange={setValore} onSubmit={invia}/>
+        <Btn variant="primary" size="lg" full disabled={!valore.trim()} onClick={invia}>
           Invia ricevuta
         </Btn>
       </Sheet>
@@ -453,9 +467,9 @@ function RicevutaSheet({ modal, closeModal }) {
   // Step 1 — scelta canale
   return (
     <Sheet onClose={closeModal}>
-      <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT, marginBottom: 4 }}>Invia ricevuta</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: ST.TEXT, marginBottom: 4 }}>{reinvio ? 'Reinvia ricevuta' : 'Invia ricevuta'}</div>
       <div style={{ fontSize: 13, color: ST.MUTED, marginBottom: 18 }}>
-        Pagamento di {eur(modal.importo)} riuscito
+        {reinvio ? 'Il recapito non viene conservato: chiedilo di nuovo al cliente' : `Pagamento di ${eur(modal.importo)} riuscito`}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <Btn variant="secondary" size="lg" full onClick={() => setCanale('sms')}>

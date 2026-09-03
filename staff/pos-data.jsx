@@ -23,8 +23,9 @@ const CODA_INCASSO = [
 
 // Storico transazioni (più recente in cima) — tutte Tap to Pay
 // stato: 'ok' | 'fail' | 'refund'
+// ricevuta: 'sms' | 'email' | null — il solo canale, mai il recapito (D-23)
 const TRANSAZIONI = [
-  { id: 't_9f21', importo: 14.50, ora: '14:32', data: 'Oggi', stato: 'ok',     brand: 'Visa',       last4: '4242' },
+  { id: 't_9f21', importo: 14.50, ora: '14:32', data: 'Oggi', stato: 'ok',     brand: 'Visa',       last4: '4242', ricevuta: 'email' },
   { id: 't_9f18', importo: 6.00,  ora: '14:05', data: 'Oggi', stato: 'ok',     brand: 'Mastercard', last4: '5555' },
   { id: 't_9f10', importo: 28.00, ora: '13:48', data: 'Oggi', stato: 'ok',     brand: 'Apple Pay',  last4: '——'   },
   { id: 't_9f02', importo: 9.50,  ora: '13:12', data: 'Oggi', stato: 'fail',   brand: 'Visa',       last4: '0341' },
