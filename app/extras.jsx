@@ -661,8 +661,14 @@ const PROFILE_PREFERITI = [
   { id: 'p3', name: 'Lounge 22',            cuisine: 'Cocktail bar',   zone: 'Centro Storico',photo: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&q=70&auto=format&fit=crop' },
 ];
 
+// Preferiti a DUE blocchi (P-27 · D-28): i locali salvati e i generi
+// preferiti, modificabili in ogni momento. I gusti stanno qui e non accanto
+// a «Dieta & allergeni», che contiene dati dell'articolo 9: accostarli li
+// farebbe sembrare la stessa cosa.
 function PreferitivView({ onBack, onOpenVenue }) {
   const [items, setItems] = useState(PROFILE_PREFERITI);
+  const [gusti, setGusti] = useState(() => (window.ByupGusti ? window.ByupGusti.leggi() : []));
+  const commuta = (id) => setGusti(window.ByupGusti.commuta(id));
 
   function remove(id) {
     setItems(prev => prev.filter(v => v.id !== id));
@@ -686,6 +692,23 @@ function PreferitivView({ onBack, onOpenVenue }) {
         <div style={{ fontSize: 22, fontWeight: 700 }}>Preferiti</div>
         {items.length > 0 && <span style={{ fontSize: 14, fontWeight: 700, color: PINK_X, background: CORALSURF_X, padding: '4px 12px', borderRadius: 999 }}>{items.length}</span>}
       </div>
+
+      {/* Blocco 1 · i generi preferiti: le pillole del dizionario, a tocco. */}
+      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: .6, textTransform: 'uppercase', color: MUTED_X, marginBottom: 8 }}>Generi preferiti · {gusti.length}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
+        {(window.ByupGusti ? window.ByupGusti.SCEGLIBILI : []).map(g => {
+          const on = gusti.includes(g.id);
+          return (
+            <button key={g.id} onClick={() => commuta(g.id)} style={{
+              padding: '8px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600,
+              border: `1.5px solid ${on ? PINK_X : BORDER_X}`, background: on ? PINK_X : SURF_X, color: on ? '#fff' : TEXT_X, transition: 'all .15s',
+            }}>{g.label}</button>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, marginBottom: 22 }}>Servono ai suggerimenti, che governi da I miei dati. Dieta e allergeni sono un'altra cosa e stanno altrove.</div>
+
+      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: .6, textTransform: 'uppercase', color: MUTED_X, marginBottom: 8 }}>Locali salvati · {items.length}</div>
 
       {items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: MUTED_X }}>
@@ -1410,7 +1433,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                 boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
                 animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards',
               }}>
-                {[['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => (
+                {[['24', 'Ordini', () => setView('orders')], [String(PROFILE_PREFERITI.length), 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => (
                   <React.Fragment key={l}>
                     {i > 0 && <div style={{ width: 1, background: 'rgba(77,18,46,.1)', margin: '4px 0' }}/>}
                     <button onClick={fn || undefined} style={{ flex: 1, background: 'none', border: 'none', cursor: fn ? 'pointer' : 'default', fontFamily: 'inherit', padding: '2px 0' }}>
@@ -1447,15 +1470,14 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               }}>+</button>
             </div>
 
-            {/* Quick actions 2x2 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
+            {/* Quick actions: tre. «Dieta & allergeni» è uscita dalla griglia
+                (P-27): dato art. 9 sotto consenso, sta sotto «I miei dati» e
+                non accanto ai Preferiti, dove vivono i gusti. */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 24 }}>
               <QuickCard label="Storico ordini" sub="24 ordini" tint="#FCE9EE" iconColor="#E32459" delay={0}
                 iconSvg={<><path d="M5.5 3.2h10l3 3v14.6l-2.6-1.7-2.6 1.7-2.6-1.7-2.6 1.7-2.6-1.7-2.6 1.7V5.2a2 2 0 0 1 2-2z" transform="translate(1.5 0)"/><path d="M9.5 9h6M9.5 13h6" transform="translate(0 0)"/></>}
                 onClick={() => setView('orders')}/>
-              <QuickCard label="Dieta & allergeni" sub={activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'} tint="#FEF0E3" iconColor="#C85C1A" delay={60}
-                iconSvg={<><path d="M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"/><path d="M5 19.5c3.5-4 7-7.5 10-9.5"/></>}
-                onClick={() => setView('allergens')}/>
-              <QuickCard label="Preferiti" sub="12 locali" tint="#F9E3EE" iconColor="#E32459" delay={120}
+              <QuickCard label="Preferiti" sub={`${PROFILE_PREFERITI.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`} tint="#F9E3EE" iconColor="#E32459" delay={120}
                 iconSvg={<path d="M12 20.6s-6.8-4.3-8.7-9.1C1.9 7.9 4.3 4.6 7.7 4.6c1.9 0 3.3.9 4.3 2.3 1-1.4 2.4-2.3 4.3-2.3 3.4 0 5.8 3.3 4.4 6.9-1.9 4.8-8.7 9.1-8.7 9.1z"/>}
                 onClick={() => setView('preferiti')}/>
               <QuickCard label="Pagamenti" sub="byup pay" tint="#f4f7d4" iconColor="#5f7000" delay={180}
@@ -1476,6 +1498,13 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <Row label="I miei dati" onClick={() => setView('miei-dati')}
                 iconBg="#FCE9EE" iconColor={PINK_X}
                 iconSvg={<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}/>
+              <Row label="Dieta & allergeni" onClick={() => setView('allergens')}
+                iconBg="#FEF0E3" iconColor="#C85C1A"
+                right={<span style={{ fontSize: 13, color: MUTED_X, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>{activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>}
+                iconSvg={<><path d="M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"/><path d="M5 19.5c3.5-4 7-7.5 10-9.5"/></>}/>
               <Row label="Termini e condizioni" onClick={() => setView('terms')}
                 iconBg="#FCE9EE" iconColor={PINK_X}
                 iconSvg={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>}/>

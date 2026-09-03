@@ -952,6 +952,241 @@
   };
 })();
 
+// ─── Gusti: la copia del dizionario (P-28 · D-28) ───────────────────────────
+// Copia VERBATIM di PN_GUSTI (gestionale/panoramica-tokens.jsx, P-29 · D-28),
+// come ALLERGENI: il dizionario è uno, Hubble lo governa, i bundle sono tre —
+// finché non sarà servito dalla piattaforma questa è la copia dell'app e si
+// riallinea a mano. I gusti che il consumatore può spuntare sono i soli
+// food_tag con selectable_by_consumer vero, diciassette: MAI i tre regimi
+// (vegano, vegetariano, senza glutine), che sulla persona sono dato art. 9 e
+// vivono in «Dieta & allergeni» dietro il consenso A3. Le voci viaggiano come
+// codici stabili; l'etichetta si risolve a schermo. Prima c'erano dodici
+// stringhe libere (CUISINES) di cui sei soltanto esistevano fra i tag: un
+// gusto dichiarato non incontrava alcun locale.
+const GUSTI = [{
+  id: 'ristorante',
+  kind: 'venue_category',
+  label: 'Ristorante',
+  icon: 'forkKnife',
+  desc: 'Cucina completa con servizio al tavolo, pranzo e cena',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'pizzeria',
+  kind: 'venue_category',
+  label: 'Pizzeria',
+  icon: 'pizza',
+  desc: 'La pizza al centro del menù, al tavolo o d\'asporto',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'giapponese',
+  kind: 'venue_category',
+  label: 'Giapponese',
+  icon: 'fish',
+  desc: 'Sushi, ramen e cucina nipponica',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'carne_griglia',
+  kind: 'venue_category',
+  label: 'Carne e Griglia',
+  icon: 'steak',
+  desc: 'Braceria: tagli, grigliate e affumicati',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'cucina_etnica',
+  kind: 'venue_category',
+  label: 'Cucina etnica',
+  icon: 'globe',
+  desc: 'Sapori dal mondo: indiano, messicano, mediorientale',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'bar',
+  kind: 'venue_category',
+  label: 'Bar',
+  icon: 'coffee',
+  desc: 'Caffetteria, colazioni e aperitivi veloci',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'bistrot',
+  kind: 'venue_category',
+  label: 'Bistrot',
+  icon: 'cheers',
+  desc: 'Informale e curato: piatti semplici e buoni vini',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'enoteca',
+  kind: 'venue_category',
+  label: 'Enoteca',
+  icon: 'wine',
+  desc: 'Vini al calice con taglieri e degustazioni',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'pizza',
+  kind: 'food_tag',
+  label: 'Pizza',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'sushi',
+  kind: 'food_tag',
+  label: 'Sushi',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'pasta',
+  kind: 'food_tag',
+  label: 'Pasta',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'hamburger',
+  kind: 'food_tag',
+  label: 'Hamburger',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'carne',
+  kind: 'food_tag',
+  label: 'Carne',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'pesce',
+  kind: 'food_tag',
+  label: 'Pesce',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'poke',
+  kind: 'food_tag',
+  label: 'Poke',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'ramen',
+  kind: 'food_tag',
+  label: 'Ramen',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'vegano',
+  kind: 'food_tag',
+  label: 'Vegano',
+  selectable_by_consumer: false,
+  is_dietary_regime: true
+}, {
+  id: 'vegetariano',
+  kind: 'food_tag',
+  label: 'Vegetariano',
+  selectable_by_consumer: false,
+  is_dietary_regime: true
+}, {
+  id: 'senza_glutine',
+  kind: 'food_tag',
+  label: 'Senza glutine',
+  selectable_by_consumer: false,
+  is_dietary_regime: true
+}, {
+  id: 'dolci',
+  kind: 'food_tag',
+  label: 'Dolci',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'gelato',
+  kind: 'food_tag',
+  label: 'Gelato',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'brunch',
+  kind: 'food_tag',
+  label: 'Brunch',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'aperitivo',
+  kind: 'food_tag',
+  label: 'Aperitivo',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'cinese',
+  kind: 'food_tag',
+  label: 'Cinese',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'indiano',
+  kind: 'food_tag',
+  label: 'Indiano',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'messicano',
+  kind: 'food_tag',
+  label: 'Messicano',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'kebab',
+  kind: 'food_tag',
+  label: 'Kebab',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'frittura',
+  kind: 'food_tag',
+  label: 'Frittura',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}];
+(function () {
+  const K = 'byup_gusti';
+  const SCEGLIBILI = GUSTI.filter(g => g.kind === 'food_tag' && g.selectable_by_consumer);
+  const leggi = () => {
+    try {
+      const r = localStorage.getItem(K);
+      const v = r ? JSON.parse(r) : [];
+      return Array.isArray(v) ? v.filter(id => SCEGLIBILI.some(g => g.id === id)) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+  window.ByupGusti = {
+    DIZIONARIO: GUSTI,
+    SCEGLIBILI,
+    label(id) {
+      const g = GUSTI.find(x => x.id === id);
+      return g ? g.label : id;
+    },
+    // I gusti dichiarati: codici, solo fra gli scegliibili — un regime che
+    // arrivasse qui per errore non passa.
+    leggi,
+    scrivi(ids) {
+      const v = [...new Set((ids || []).filter(id => SCEGLIBILI.some(g => g.id === id)))];
+      try {
+        localStorage.setItem(K, JSON.stringify(v));
+      } catch (e) {}
+      try {
+        window.dispatchEvent(new Event('byup-gusti-change'));
+      } catch (e) {}
+      return v;
+    },
+    commuta(id) {
+      const v = leggi();
+      return window.ByupGusti.scrivi(v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
+    }
+  };
+})();
+
 // ─── L'interruttore e il registro d'uso (P-26 · D-28, P-38 · D-31) ─────────
 // Suggerimenti e analisi d'uso stanno sotto un interruttore SOLO, perché
 // senza misurare non si sa se i consigli siano buoni. Attivo per difetto:
@@ -3174,11 +3409,18 @@ const PROFILE_PREFERITI = [{
   zone: 'Centro Storico',
   photo: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&q=70&auto=format&fit=crop'
 }];
+
+// Preferiti a DUE blocchi (P-27 · D-28): i locali salvati e i generi
+// preferiti, modificabili in ogni momento. I gusti stanno qui e non accanto
+// a «Dieta & allergeni», che contiene dati dell'articolo 9: accostarli li
+// farebbe sembrare la stessa cosa.
 function PreferitivView({
   onBack,
   onOpenVenue
 }) {
   const [items, setItems] = useState(PROFILE_PREFERITI);
+  const [gusti, setGusti] = useState(() => window.ByupGusti ? window.ByupGusti.leggi() : []);
+  const commuta = id => setGusti(window.ByupGusti.commuta(id));
   function remove(id) {
     setItems(prev => prev.filter(v => v.id !== id));
   }
@@ -3239,7 +3481,57 @@ function PreferitivView({
       padding: '4px 12px',
       borderRadius: 999
     }
-  }, items.length)), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, items.length)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      letterSpacing: .6,
+      textTransform: 'uppercase',
+      color: MUTED_X,
+      marginBottom: 8
+    }
+  }, "Generi preferiti \xB7 ", gusti.length), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 6
+    }
+  }, (window.ByupGusti ? window.ByupGusti.SCEGLIBILI : []).map(g => {
+    const on = gusti.includes(g.id);
+    return /*#__PURE__*/React.createElement("button", {
+      key: g.id,
+      onClick: () => commuta(g.id),
+      style: {
+        padding: '8px 14px',
+        borderRadius: 999,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        fontSize: 13.5,
+        fontWeight: 600,
+        border: `1.5px solid ${on ? PINK_X : BORDER_X}`,
+        background: on ? PINK_X : SURF_X,
+        color: on ? '#fff' : TEXT_X,
+        transition: 'all .15s'
+      }
+    }, g.label);
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      marginBottom: 22
+    }
+  }, "Servono ai suggerimenti, che governi da I miei dati. Dieta e allergeni sono un'altra cosa e stanno altrove."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      letterSpacing: .6,
+      textTransform: 'uppercase',
+      color: MUTED_X,
+      marginBottom: 8
+    }
+  }, "Locali salvati \xB7 ", items.length), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'center',
       padding: '40px 0',
@@ -4936,7 +5228,7 @@ function ProfileScreen({
       boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
       animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards'
     }
-  }, [['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => /*#__PURE__*/React.createElement(React.Fragment, {
+  }, [['24', 'Ordini', () => setView('orders')], [String(PROFILE_PREFERITI.length), 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => /*#__PURE__*/React.createElement(React.Fragment, {
     key: l
   }, i > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5041,7 +5333,7 @@ function ProfileScreen({
   }, "+")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: '1fr 1fr 1fr',
       gap: 10,
       marginBottom: 24
     }
@@ -5060,20 +5352,8 @@ function ProfileScreen({
     })),
     onClick: () => setView('orders')
   }), /*#__PURE__*/React.createElement(QuickCard, {
-    label: "Dieta & allergeni",
-    sub: activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora',
-    tint: "#FEF0E3",
-    iconColor: "#C85C1A",
-    delay: 60,
-    iconSvg: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
-      d: "M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M5 19.5c3.5-4 7-7.5 10-9.5"
-    })),
-    onClick: () => setView('allergens')
-  }), /*#__PURE__*/React.createElement(QuickCard, {
     label: "Preferiti",
-    sub: "12 locali",
+    sub: `${PROFILE_PREFERITI.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`,
     tint: "#F9E3EE",
     iconColor: "#E32459",
     delay: 120,
@@ -5151,6 +5431,36 @@ function ProfileScreen({
       cx: "12",
       cy: "7",
       r: "4"
+    }))
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Dieta & allergeni",
+    onClick: () => setView('allergens'),
+    iconBg: "#FEF0E3",
+    iconColor: "#C85C1A",
+    right: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        color: MUTED_X,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", null, activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'), /*#__PURE__*/React.createElement("svg", {
+      width: "14",
+      height: "14",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: MUTED_X,
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("polyline", {
+      points: "9 18 15 12 9 6"
+    }))),
+    iconSvg: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+      d: "M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M5 19.5c3.5-4 7-7.5 10-9.5"
     }))
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Termini e condizioni",
@@ -14198,6 +14508,7 @@ const MOMENT_DATA = {
     venues: [{
       premium: true,
       name: 'Al Settembrini',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Ristorante',
       distance: '0.4 km',
       rating: 4.5,
@@ -14214,6 +14525,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Trattoria Lucia',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Cucina romana',
       distance: '0.6 km',
       rating: 4.8,
@@ -14229,6 +14541,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Lounge 22',
+      gusti: ['aperitivo'],
       cuisine: 'Cocktail bar',
       distance: '1.1 km',
       rating: 4.4,
@@ -14257,6 +14570,7 @@ const MOMENT_DATA = {
     }],
     venues: [{
       name: 'Trattoria Lucia',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Menu del giorno · 15€',
       distance: '0.6 km',
       rating: 4.8,
@@ -14272,6 +14586,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Vinaio',
+      gusti: ['aperitivo', 'brunch'],
       cuisine: 'Wine bar · panini',
       distance: '0.9 km',
       rating: 4.7,
@@ -14282,6 +14597,7 @@ const MOMENT_DATA = {
     }, {
       premium: true,
       name: 'Al Settembrini',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Ristorante',
       distance: '0.4 km',
       rating: 4.5,
@@ -14319,6 +14635,7 @@ const MOMENT_DATA = {
     }],
     venues: [{
       name: "All'Impronta",
+      gusti: ['pesce', 'carne'],
       cuisine: 'Ristorante creativo',
       distance: '0.8 km',
       rating: 4.6,
@@ -14336,6 +14653,7 @@ const MOMENT_DATA = {
     }, {
       premium: true,
       name: 'Al Settembrini',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Ristorante',
       distance: '0.4 km',
       rating: 4.5,
@@ -14351,6 +14669,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Trattoria Lucia',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Cucina romana',
       distance: '0.6 km',
       rating: 4.8,
@@ -14388,6 +14707,7 @@ const MOMENT_DATA = {
     }],
     venues: [{
       name: 'Lounge 22',
+      gusti: ['aperitivo'],
       cuisine: 'Cocktail bar',
       distance: '1.1 km',
       rating: 4.4,
@@ -14403,6 +14723,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Blue Note',
+      gusti: ['aperitivo'],
       cuisine: 'Jazz club · cocktail',
       distance: '1.0 km',
       rating: 4.7,
@@ -15338,22 +15659,35 @@ function DisponibiliScreen({
       gap: 14,
       padding: '18px 18px 0'
     }
-  }, venues.map((v, i) => /*#__PURE__*/React.createElement("div", {
-    key: `${moment}-${i}`,
-    style: {
-      animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`
-    }
-  }, /*#__PURE__*/React.createElement(RestaurantBigCard, _extends({}, v, {
-    onClick: () => onCardClick?.({
-      ...v,
-      title: v.name
-    }),
-    onSlotClick: s => onSlotClick?.({
-      ...v,
-      title: v.name,
-      slot: s.time
-    })
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, (() => {
+    const attivo = !window.ByupUso || window.ByupUso.suggerimenti();
+    const gusti = attivo && window.ByupGusti ? window.ByupGusti.leggi() : [];
+    const inter = v => (v.gusti || []).filter(g => gusti.includes(g)).length;
+    const ordinati = gusti.length ? [...venues].sort((a, b) => inter(b) - inter(a)) : venues;
+    return ordinati.map((v, i) => {
+      const n = inter(v);
+      const perTe = n > 0 ? {
+        ...v,
+        badge: 'Per te · ' + (v.gusti || []).filter(g => gusti.includes(g)).map(g => window.ByupGusti.label(g).toLowerCase()).join(', ')
+      } : v;
+      return /*#__PURE__*/React.createElement("div", {
+        key: `${moment}-${i}`,
+        style: {
+          animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`
+        }
+      }, /*#__PURE__*/React.createElement(RestaurantBigCard, _extends({}, perTe, {
+        onClick: () => onCardClick?.({
+          ...v,
+          title: v.name
+        }),
+        onSlotClick: s => onSlotClick?.({
+          ...v,
+          title: v.name,
+          slot: s.time
+        })
+      })));
+    });
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '8px 4px 0',
       fontSize: 12,
@@ -16603,6 +16937,7 @@ function HomeSections({
   const favorites = [{
     premium: true,
     name: 'Al Settembrini',
+    gusti: ['pasta', 'carne'],
     type: 'Ristorante',
     distance: '0.4 km',
     hours: '12:30 – 23:00',
@@ -16610,6 +16945,7 @@ function HomeSections({
     photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=70&auto=format&fit=crop'
   }, {
     name: "All'Impronta",
+    gusti: ['pesce', 'carne'],
     type: 'Ristorante',
     distance: '0.8 km',
     hours: '19:00 – 24:00',
@@ -16617,6 +16953,7 @@ function HomeSections({
     photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=70&auto=format&fit=crop'
   }, {
     name: 'Lounge 22',
+    gusti: ['aperitivo'],
     type: 'Cocktail',
     distance: '1.1 km',
     hours: '18:00 – 02:00',
@@ -17430,6 +17767,7 @@ function App({
         setActiveVenue(v => v || {
           premium: true,
           name: 'Al Settembrini',
+          gusti: ['pasta', 'carne'],
           _from: 'menu'
         });
         setPage('venue');
@@ -17444,6 +17782,7 @@ function App({
         return {
           premium: true,
           name: 'Al Settembrini',
+          gusti: ['pasta', 'carne'],
           _from: 'home'
         };
       }

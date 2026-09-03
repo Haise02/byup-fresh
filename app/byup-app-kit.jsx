@@ -516,6 +516,64 @@ window.ByupKit = {
   };
 })();
 
+// ─── Gusti: la copia del dizionario (P-28 · D-28) ───────────────────────────
+// Copia VERBATIM di PN_GUSTI (gestionale/panoramica-tokens.jsx, P-29 · D-28),
+// come ALLERGENI: il dizionario è uno, Hubble lo governa, i bundle sono tre —
+// finché non sarà servito dalla piattaforma questa è la copia dell'app e si
+// riallinea a mano. I gusti che il consumatore può spuntare sono i soli
+// food_tag con selectable_by_consumer vero, diciassette: MAI i tre regimi
+// (vegano, vegetariano, senza glutine), che sulla persona sono dato art. 9 e
+// vivono in «Dieta & allergeni» dietro il consenso A3. Le voci viaggiano come
+// codici stabili; l'etichetta si risolve a schermo. Prima c'erano dodici
+// stringhe libere (CUISINES) di cui sei soltanto esistevano fra i tag: un
+// gusto dichiarato non incontrava alcun locale.
+const GUSTI = [
+  { id:'ristorante',    kind:'venue_category', label:'Ristorante',     icon:'forkKnife', desc:'Cucina completa con servizio al tavolo, pranzo e cena',   selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'pizzeria',      kind:'venue_category', label:'Pizzeria',       icon:'pizza',     desc:'La pizza al centro del menù, al tavolo o d\'asporto',      selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'giapponese',    kind:'venue_category', label:'Giapponese',     icon:'fish',      desc:'Sushi, ramen e cucina nipponica',                          selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'carne_griglia', kind:'venue_category', label:'Carne e Griglia',icon:'steak',     desc:'Braceria: tagli, grigliate e affumicati',                  selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'cucina_etnica', kind:'venue_category', label:'Cucina etnica',  icon:'globe',     desc:'Sapori dal mondo: indiano, messicano, mediorientale',      selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'bar',           kind:'venue_category', label:'Bar',            icon:'coffee',    desc:'Caffetteria, colazioni e aperitivi veloci',                selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'bistrot',       kind:'venue_category', label:'Bistrot',        icon:'cheers',    desc:'Informale e curato: piatti semplici e buoni vini',         selectable_by_consumer:false, is_dietary_regime:false },
+  { id:'enoteca',       kind:'venue_category', label:'Enoteca',        icon:'wine',      desc:'Vini al calice con taglieri e degustazioni',               selectable_by_consumer:false, is_dietary_regime:false },
+
+  { id:'pizza',         kind:'food_tag', label:'Pizza',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'sushi',         kind:'food_tag', label:'Sushi',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'pasta',         kind:'food_tag', label:'Pasta',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'hamburger',     kind:'food_tag', label:'Hamburger',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'carne',         kind:'food_tag', label:'Carne',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'pesce',         kind:'food_tag', label:'Pesce',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'poke',          kind:'food_tag', label:'Poke',          selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'ramen',         kind:'food_tag', label:'Ramen',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'vegano',        kind:'food_tag', label:'Vegano',        selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'vegetariano',   kind:'food_tag', label:'Vegetariano',   selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'senza_glutine', kind:'food_tag', label:'Senza glutine', selectable_by_consumer:false, is_dietary_regime:true  },
+  { id:'dolci',         kind:'food_tag', label:'Dolci',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'gelato',        kind:'food_tag', label:'Gelato',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'brunch',        kind:'food_tag', label:'Brunch',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'aperitivo',     kind:'food_tag', label:'Aperitivo',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'cinese',        kind:'food_tag', label:'Cinese',        selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'indiano',       kind:'food_tag', label:'Indiano',       selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'messicano',     kind:'food_tag', label:'Messicano',     selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'kebab',         kind:'food_tag', label:'Kebab',         selectable_by_consumer:true,  is_dietary_regime:false },
+  { id:'frittura',      kind:'food_tag', label:'Frittura',      selectable_by_consumer:true,  is_dietary_regime:false },
+];
+(function () {
+  const K = 'byup_gusti';
+  const SCEGLIBILI = GUSTI.filter(g => g.kind === 'food_tag' && g.selectable_by_consumer);
+  const leggi = () => { try { const r = localStorage.getItem(K); const v = r ? JSON.parse(r) : []; return Array.isArray(v) ? v.filter(id => SCEGLIBILI.some(g => g.id === id)) : []; } catch (e) { return []; } };
+  window.ByupGusti = {
+    DIZIONARIO: GUSTI,
+    SCEGLIBILI,
+    label(id) { const g = GUSTI.find(x => x.id === id); return g ? g.label : id; },
+    // I gusti dichiarati: codici, solo fra gli scegliibili — un regime che
+    // arrivasse qui per errore non passa.
+    leggi,
+    scrivi(ids) { const v = [...new Set((ids || []).filter(id => SCEGLIBILI.some(g => g.id === id)))]; try { localStorage.setItem(K, JSON.stringify(v)); } catch (e) {} try { window.dispatchEvent(new Event('byup-gusti-change')); } catch (e) {} return v; },
+    commuta(id) { const v = leggi(); return window.ByupGusti.scrivi(v.includes(id) ? v.filter(x => x !== id) : [...v, id]); },
+  };
+})();
+
 // ─── L'interruttore e il registro d'uso (P-26 · D-28, P-38 · D-31) ─────────
 // Suggerimenti e analisi d'uso stanno sotto un interruttore SOLO, perché
 // senza misurare non si sa se i consigli siano buoni. Attivo per difetto:

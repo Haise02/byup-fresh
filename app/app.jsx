@@ -884,13 +884,13 @@ const MOMENT_DATA = {
       { id: 'top',   label: '4.5+' },
     ],
     venues: [
-      { premium: true, name: 'Al Settembrini',  cuisine: 'Ristorante',     distance: '0.4 km', rating: 4.5, price: '€€€',
+      { premium: true, name: 'Al Settembrini', gusti: ['pasta', 'carne'],  cuisine: 'Ristorante',     distance: '0.4 km', rating: 4.5, price: '€€€',
         badge: 'A piedi · 5 min',  photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '20:00' }, { time: '20:30' }, { time: '21:00', last: true }] },
-      { name: 'Trattoria Lucia', cuisine: 'Cucina romana',  distance: '0.6 km', rating: 4.8, price: '€€',
+      { name: 'Trattoria Lucia', gusti: ['pasta', 'carne'], cuisine: 'Cucina romana',  distance: '0.6 km', rating: 4.8, price: '€€',
         badge: 'Top rated',        photo: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '20:30' }, { time: '21:00' }, { time: '21:30' }] },
-      { name: 'Lounge 22',       cuisine: 'Cocktail bar',   distance: '1.1 km', rating: 4.4, price: '€€',
+      { name: 'Lounge 22', gusti: ['aperitivo'],       cuisine: 'Cocktail bar',   distance: '1.1 km', rating: 4.4, price: '€€',
         badge: 'Aperto fino tardi', photo: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&q=70&auto=format&fit=crop',
         slots: false },
     ],
@@ -908,13 +908,13 @@ const MOMENT_DATA = {
       { id: 'near',  label: '< 1 km' },
     ],
     venues: [
-      { name: 'Trattoria Lucia', cuisine: 'Menu del giorno · 15€', distance: '0.6 km', rating: 4.8, price: '€€',
+      { name: 'Trattoria Lucia', gusti: ['pasta', 'carne'], cuisine: 'Menu del giorno · 15€', distance: '0.6 km', rating: 4.8, price: '€€',
         badge: 'Veloce',           photo: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '12:30' }, { time: '13:00' }, { time: '13:30' }] },
-      { name: 'Vinaio',          cuisine: 'Wine bar · panini',    distance: '0.9 km', rating: 4.7, price: '€',
+      { name: 'Vinaio', gusti: ['aperitivo', 'brunch'],          cuisine: 'Wine bar · panini',    distance: '0.9 km', rating: 4.7, price: '€',
         badge: 'A piedi',          photo: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=70&auto=format&fit=crop',
         slots: false },
-      { premium: true, name: 'Al Settembrini',  cuisine: 'Ristorante',           distance: '0.4 km', rating: 4.5, price: '€€€',
+      { premium: true, name: 'Al Settembrini', gusti: ['pasta', 'carne'],  cuisine: 'Ristorante',           distance: '0.4 km', rating: 4.5, price: '€€€',
         badge: 'Top rated',        photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '13:00' }, { time: '13:30' }, { time: '14:00' }] },
     ],
@@ -933,13 +933,13 @@ const MOMENT_DATA = {
       { id: 'view',     label: 'Con vista' },
     ],
     venues: [
-      { name: "All'Impronta",   cuisine: 'Ristorante creativo', distance: '0.8 km', rating: 4.6, price: '€€€',
+      { name: "All'Impronta", gusti: ['pesce', 'carne'],   cuisine: 'Ristorante creativo', distance: '0.8 km', rating: 4.6, price: '€€€',
         badge: 'Suggerito per te',  photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '20:00' }, { time: '20:30' }, { time: '21:00', last: true }] },
-      { premium: true, name: 'Al Settembrini', cuisine: 'Ristorante',          distance: '0.4 km', rating: 4.5, price: '€€€',
+      { premium: true, name: 'Al Settembrini', gusti: ['pasta', 'carne'], cuisine: 'Ristorante',          distance: '0.4 km', rating: 4.5, price: '€€€',
         badge: 'Vicino a te',       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '20:30' }, { time: '21:00' }, { time: '21:30' }] },
-      { name: 'Trattoria Lucia',cuisine: 'Cucina romana',       distance: '0.6 km', rating: 4.8, price: '€€',
+      { name: 'Trattoria Lucia', gusti: ['pasta', 'carne'],cuisine: 'Cucina romana',       distance: '0.6 km', rating: 4.8, price: '€€',
         badge: 'Top rated',         photo: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '21:00' }, { time: '21:30' }, { time: '22:00' }] },
     ],
@@ -958,10 +958,10 @@ const MOMENT_DATA = {
       { id: 'roof',     label: 'Terrazza' },
     ],
     venues: [
-      { name: 'Lounge 22', cuisine: 'Cocktail bar',           distance: '1.1 km', rating: 4.4, price: '€€',
+      { name: 'Lounge 22', gusti: ['aperitivo'], cuisine: 'Cocktail bar',           distance: '1.1 km', rating: 4.4, price: '€€',
         badge: 'Live music',          photo: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '22:00' }, { time: '22:30' }, { time: '23:00' }] },
-      { name: 'Blue Note', cuisine: 'Jazz club · cocktail',   distance: '1.0 km', rating: 4.7, price: '€€€',
+      { name: 'Blue Note', gusti: ['aperitivo'], cuisine: 'Jazz club · cocktail',   distance: '1.0 km', rating: 4.7, price: '€€€',
         badge: 'Jazz live stasera',   photo: 'https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=800&q=70&auto=format&fit=crop',
         slots: [{ time: '22:00' }, { time: '23:00', last: true }] },
       { name: 'Hops & Co', cuisine: 'Pub · birre artigianali', distance: '1.5 km', rating: 4.3, price: '€€',
@@ -1335,17 +1335,31 @@ function DisponibiliScreen({ moment, quickFilters, setQuickFilters, onBack, onMa
           </div>
         </div>
 
-        {/* Venue cards with stagger animation */}
+        {/* Venue cards with stagger animation. «Per te» (P-27 · D-28): con
+            l'interruttore di P-26 acceso e dei gusti dichiarati, le card si
+            ordinano per intersezione fra gusti e tag del locale, e la prima
+            riga dice perché; spento, o senza gusti, l'ordine è quello del
+            momento. */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 18px 0' }}>
-          {venues.map((v, i) => (
+          {(() => {
+            const attivo = !window.ByupUso || window.ByupUso.suggerimenti();
+            const gusti = attivo && window.ByupGusti ? window.ByupGusti.leggi() : [];
+            const inter = (v) => (v.gusti || []).filter(g => gusti.includes(g)).length;
+            const ordinati = gusti.length ? [...venues].sort((a, b) => inter(b) - inter(a)) : venues;
+            return ordinati.map((v, i) => {
+              const n = inter(v);
+              const perTe = n > 0 ? { ...v, badge: 'Per te · ' + (v.gusti || []).filter(g => gusti.includes(g)).map(g => window.ByupGusti.label(g).toLowerCase()).join(', ') } : v;
+              return (
             <div key={`${moment}-${i}`} style={{
               animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`,
             }}>
-              <RestaurantBigCard {...v}
+              <RestaurantBigCard {...perTe}
                 onClick={() => onCardClick?.({ ...v, title: v.name })}
                 onSlotClick={(s) => onSlotClick?.({ ...v, title: v.name, slot: s.time })}/>
             </div>
-          ))}
+              );
+            });
+          })()}
 
           {/* Footer hint */}
           <div style={{
@@ -1954,11 +1968,11 @@ function HomeSections({
     { id: 'torta',     label: 'Torta' },
   ];
   const favorites = [
-    { premium: true, name: 'Al Settembrini', type: 'Ristorante', distance: '0.4 km', hours: '12:30 – 23:00', open: true,
+    { premium: true, name: 'Al Settembrini', gusti: ['pasta', 'carne'], type: 'Ristorante', distance: '0.4 km', hours: '12:30 – 23:00', open: true,
       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=70&auto=format&fit=crop' },
-    { name: "All'Impronta", type: 'Ristorante', distance: '0.8 km', hours: '19:00 – 24:00', open: true,
+    { name: "All'Impronta", gusti: ['pesce', 'carne'], type: 'Ristorante', distance: '0.8 km', hours: '19:00 – 24:00', open: true,
       photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=70&auto=format&fit=crop' },
-    { name: 'Lounge 22', type: 'Cocktail', distance: '1.1 km', hours: '18:00 – 02:00', open: true,
+    { name: 'Lounge 22', gusti: ['aperitivo'], type: 'Cocktail', distance: '1.1 km', hours: '18:00 – 02:00', open: true,
       photo: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=70&auto=format&fit=crop' },
     { name: 'Hops & Co', type: 'Pub', distance: '1.5 km', hours: 'Apre alle 18:00', open: false,
       photo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=70&auto=format&fit=crop' },
@@ -2393,7 +2407,7 @@ function App({ recoveryArmed = false }) {
     window.__byupQR = () => setQrOpen(true);
     window.__byupNav = {
       go: setPage, home: resetToHome,
-      venue: () => { setActiveVenue(v => v || { premium: true, name: 'Al Settembrini', _from: 'menu' }); setPage('venue'); },
+      venue: () => { setActiveVenue(v => v || { premium: true, name: 'Al Settembrini', gusti: ['pasta', 'carne'], _from: 'menu' }); setPage('venue'); },
     };
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -2401,7 +2415,7 @@ function App({ recoveryArmed = false }) {
   const [activeVenue, setActiveVenue] = useState(() => {
     try {
       if (new URLSearchParams(window.location.search).get('page') === 'venue') {
-        return { premium: true, name: 'Al Settembrini', _from: 'home' };
+        return { premium: true, name: 'Al Settembrini', gusti: ['pasta', 'carne'], _from: 'home' };
       }
     } catch {}
     return null;

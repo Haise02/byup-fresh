@@ -362,7 +362,11 @@ function LightField({ label, value, onChange, type = 'text', placeholder, rightS
   );
 }
 
-const CUISINES = ['Pizza', 'Sushi', 'Italiana', 'Burger', 'Vegetariana', 'Cocktail', 'Pesce', 'Dolci', 'Messicana', 'Ramen', 'Brunch', 'Vino'];
+// I gusti in registrazione vengono dal dizionario di piattaforma (P-28 ·
+// D-28): ByupGusti.SCEGLIBILI nell'app-kit, i diciassette food_tag che il
+// consumatore può spuntare, per codice. Mai i regimi. Prima era una lista
+// di dodici stringhe libere che non incontrava i tag dei locali.
+const CUISINES = (window.ByupGusti ? window.ByupGusti.SCEGLIBILI : []).map(g => ({ id: g.id, label: g.label }));
 
 // Contenuti legali (allineati a quelli del profilo in extras.jsx)
 const A_TERMS = [
@@ -610,19 +614,25 @@ function AuthRegister({ onBack, onDone }) {
 
         {step === 4 && (
           <>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              {CUISINES.map(c => {
-                const on = prefs.includes(c);
-                return (
-                  <button key={c} onClick={() => togglePref(c)} style={{
-                    padding: '10px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-                    fontSize: 14, fontWeight: 600,
-                    border: `1.5px solid ${on ? A_PINK : '#EAE6E7'}`,
-                    background: on ? A_PINK : '#fff', color: on ? '#fff' : A_TEXT,
-                    transition: 'all .15s',
-                  }}>{c}</button>
-                );
-              })}
+            {/* I gusti in una card loro, FUORI da quella dei consensi (P-27):
+                un gusto non è un consenso, e accostarli li fa sembrare la
+                stessa cosa. Per codice, dal dizionario. */}
+            <div style={{ padding: '14px', borderRadius: 16, background: '#FAF7F8', border: '1.5px solid #EFE9EB' }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: .6, textTransform: 'uppercase', color: A_MUTED, marginBottom: 10 }}>I tuoi gusti · facoltativi, li cambi quando vuoi da Preferiti</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                {CUISINES.map(c => {
+                  const on = prefs.includes(c.id);
+                  return (
+                    <button key={c.id} onClick={() => togglePref(c.id)} style={{
+                      padding: '10px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                      fontSize: 14, fontWeight: 600,
+                      border: `1.5px solid ${on ? A_PINK : '#EAE6E7'}`,
+                      background: on ? A_PINK : '#fff', color: on ? '#fff' : A_TEXT,
+                      transition: 'all .15s',
+                    }}>{c.label}</button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* A6 — marketing: mai preselezionata (obbligo di legge), ma
@@ -803,7 +813,7 @@ function AuthFlow({ initial = 'login', onAuthenticated }) {
   if (screen === 'register') {
     return <AuthRegister
       onBack={() => setScreen('login')}
-      onDone={(data) => { setName(data.nome || ''); setScreen('enroll'); }}
+      onDone={(data) => { setName(data.nome || ''); if (window.ByupGusti) window.ByupGusti.scrivi(data.prefs || []); setScreen('enroll'); }}
     />;
   }
   if (screen === 'enroll') {

@@ -952,6 +952,241 @@
   };
 })();
 
+// ─── Gusti: la copia del dizionario (P-28 · D-28) ───────────────────────────
+// Copia VERBATIM di PN_GUSTI (gestionale/panoramica-tokens.jsx, P-29 · D-28),
+// come ALLERGENI: il dizionario è uno, Hubble lo governa, i bundle sono tre —
+// finché non sarà servito dalla piattaforma questa è la copia dell'app e si
+// riallinea a mano. I gusti che il consumatore può spuntare sono i soli
+// food_tag con selectable_by_consumer vero, diciassette: MAI i tre regimi
+// (vegano, vegetariano, senza glutine), che sulla persona sono dato art. 9 e
+// vivono in «Dieta & allergeni» dietro il consenso A3. Le voci viaggiano come
+// codici stabili; l'etichetta si risolve a schermo. Prima c'erano dodici
+// stringhe libere (CUISINES) di cui sei soltanto esistevano fra i tag: un
+// gusto dichiarato non incontrava alcun locale.
+const GUSTI = [{
+  id: 'ristorante',
+  kind: 'venue_category',
+  label: 'Ristorante',
+  icon: 'forkKnife',
+  desc: 'Cucina completa con servizio al tavolo, pranzo e cena',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'pizzeria',
+  kind: 'venue_category',
+  label: 'Pizzeria',
+  icon: 'pizza',
+  desc: 'La pizza al centro del menù, al tavolo o d\'asporto',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'giapponese',
+  kind: 'venue_category',
+  label: 'Giapponese',
+  icon: 'fish',
+  desc: 'Sushi, ramen e cucina nipponica',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'carne_griglia',
+  kind: 'venue_category',
+  label: 'Carne e Griglia',
+  icon: 'steak',
+  desc: 'Braceria: tagli, grigliate e affumicati',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'cucina_etnica',
+  kind: 'venue_category',
+  label: 'Cucina etnica',
+  icon: 'globe',
+  desc: 'Sapori dal mondo: indiano, messicano, mediorientale',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'bar',
+  kind: 'venue_category',
+  label: 'Bar',
+  icon: 'coffee',
+  desc: 'Caffetteria, colazioni e aperitivi veloci',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'bistrot',
+  kind: 'venue_category',
+  label: 'Bistrot',
+  icon: 'cheers',
+  desc: 'Informale e curato: piatti semplici e buoni vini',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'enoteca',
+  kind: 'venue_category',
+  label: 'Enoteca',
+  icon: 'wine',
+  desc: 'Vini al calice con taglieri e degustazioni',
+  selectable_by_consumer: false,
+  is_dietary_regime: false
+}, {
+  id: 'pizza',
+  kind: 'food_tag',
+  label: 'Pizza',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'sushi',
+  kind: 'food_tag',
+  label: 'Sushi',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'pasta',
+  kind: 'food_tag',
+  label: 'Pasta',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'hamburger',
+  kind: 'food_tag',
+  label: 'Hamburger',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'carne',
+  kind: 'food_tag',
+  label: 'Carne',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'pesce',
+  kind: 'food_tag',
+  label: 'Pesce',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'poke',
+  kind: 'food_tag',
+  label: 'Poke',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'ramen',
+  kind: 'food_tag',
+  label: 'Ramen',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'vegano',
+  kind: 'food_tag',
+  label: 'Vegano',
+  selectable_by_consumer: false,
+  is_dietary_regime: true
+}, {
+  id: 'vegetariano',
+  kind: 'food_tag',
+  label: 'Vegetariano',
+  selectable_by_consumer: false,
+  is_dietary_regime: true
+}, {
+  id: 'senza_glutine',
+  kind: 'food_tag',
+  label: 'Senza glutine',
+  selectable_by_consumer: false,
+  is_dietary_regime: true
+}, {
+  id: 'dolci',
+  kind: 'food_tag',
+  label: 'Dolci',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'gelato',
+  kind: 'food_tag',
+  label: 'Gelato',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'brunch',
+  kind: 'food_tag',
+  label: 'Brunch',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'aperitivo',
+  kind: 'food_tag',
+  label: 'Aperitivo',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'cinese',
+  kind: 'food_tag',
+  label: 'Cinese',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'indiano',
+  kind: 'food_tag',
+  label: 'Indiano',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'messicano',
+  kind: 'food_tag',
+  label: 'Messicano',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'kebab',
+  kind: 'food_tag',
+  label: 'Kebab',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}, {
+  id: 'frittura',
+  kind: 'food_tag',
+  label: 'Frittura',
+  selectable_by_consumer: true,
+  is_dietary_regime: false
+}];
+(function () {
+  const K = 'byup_gusti';
+  const SCEGLIBILI = GUSTI.filter(g => g.kind === 'food_tag' && g.selectable_by_consumer);
+  const leggi = () => {
+    try {
+      const r = localStorage.getItem(K);
+      const v = r ? JSON.parse(r) : [];
+      return Array.isArray(v) ? v.filter(id => SCEGLIBILI.some(g => g.id === id)) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+  window.ByupGusti = {
+    DIZIONARIO: GUSTI,
+    SCEGLIBILI,
+    label(id) {
+      const g = GUSTI.find(x => x.id === id);
+      return g ? g.label : id;
+    },
+    // I gusti dichiarati: codici, solo fra gli scegliibili — un regime che
+    // arrivasse qui per errore non passa.
+    leggi,
+    scrivi(ids) {
+      const v = [...new Set((ids || []).filter(id => SCEGLIBILI.some(g => g.id === id)))];
+      try {
+        localStorage.setItem(K, JSON.stringify(v));
+      } catch (e) {}
+      try {
+        window.dispatchEvent(new Event('byup-gusti-change'));
+      } catch (e) {}
+      return v;
+    },
+    commuta(id) {
+      const v = leggi();
+      return window.ByupGusti.scrivi(v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
+    }
+  };
+})();
+
 // ─── L'interruttore e il registro d'uso (P-26 · D-28, P-38 · D-31) ─────────
 // Suggerimenti e analisi d'uso stanno sotto un interruttore SOLO, perché
 // senza misurare non si sa se i consigli siano buoni. Attivo per difetto:
@@ -3174,11 +3409,18 @@ const PROFILE_PREFERITI = [{
   zone: 'Centro Storico',
   photo: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=400&q=70&auto=format&fit=crop'
 }];
+
+// Preferiti a DUE blocchi (P-27 · D-28): i locali salvati e i generi
+// preferiti, modificabili in ogni momento. I gusti stanno qui e non accanto
+// a «Dieta & allergeni», che contiene dati dell'articolo 9: accostarli li
+// farebbe sembrare la stessa cosa.
 function PreferitivView({
   onBack,
   onOpenVenue
 }) {
   const [items, setItems] = useState(PROFILE_PREFERITI);
+  const [gusti, setGusti] = useState(() => window.ByupGusti ? window.ByupGusti.leggi() : []);
+  const commuta = id => setGusti(window.ByupGusti.commuta(id));
   function remove(id) {
     setItems(prev => prev.filter(v => v.id !== id));
   }
@@ -3239,7 +3481,57 @@ function PreferitivView({
       padding: '4px 12px',
       borderRadius: 999
     }
-  }, items.length)), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
+  }, items.length)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      letterSpacing: .6,
+      textTransform: 'uppercase',
+      color: MUTED_X,
+      marginBottom: 8
+    }
+  }, "Generi preferiti \xB7 ", gusti.length), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 6
+    }
+  }, (window.ByupGusti ? window.ByupGusti.SCEGLIBILI : []).map(g => {
+    const on = gusti.includes(g.id);
+    return /*#__PURE__*/React.createElement("button", {
+      key: g.id,
+      onClick: () => commuta(g.id),
+      style: {
+        padding: '8px 14px',
+        borderRadius: 999,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        fontSize: 13.5,
+        fontWeight: 600,
+        border: `1.5px solid ${on ? PINK_X : BORDER_X}`,
+        background: on ? PINK_X : SURF_X,
+        color: on ? '#fff' : TEXT_X,
+        transition: 'all .15s'
+      }
+    }, g.label);
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      marginBottom: 22
+    }
+  }, "Servono ai suggerimenti, che governi da I miei dati. Dieta e allergeni sono un'altra cosa e stanno altrove."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      letterSpacing: .6,
+      textTransform: 'uppercase',
+      color: MUTED_X,
+      marginBottom: 8
+    }
+  }, "Locali salvati \xB7 ", items.length), items.length === 0 ? /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: 'center',
       padding: '40px 0',
@@ -4936,7 +5228,7 @@ function ProfileScreen({
       boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
       animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards'
     }
-  }, [['24', 'Ordini', () => setView('orders')], ['12', 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => /*#__PURE__*/React.createElement(React.Fragment, {
+  }, [['24', 'Ordini', () => setView('orders')], [String(PROFILE_PREFERITI.length), 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => /*#__PURE__*/React.createElement(React.Fragment, {
     key: l
   }, i > 0 && /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5041,7 +5333,7 @@ function ProfileScreen({
   }, "+")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: '1fr 1fr 1fr',
       gap: 10,
       marginBottom: 24
     }
@@ -5060,20 +5352,8 @@ function ProfileScreen({
     })),
     onClick: () => setView('orders')
   }), /*#__PURE__*/React.createElement(QuickCard, {
-    label: "Dieta & allergeni",
-    sub: activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora',
-    tint: "#FEF0E3",
-    iconColor: "#C85C1A",
-    delay: 60,
-    iconSvg: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
-      d: "M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M5 19.5c3.5-4 7-7.5 10-9.5"
-    })),
-    onClick: () => setView('allergens')
-  }), /*#__PURE__*/React.createElement(QuickCard, {
     label: "Preferiti",
-    sub: "12 locali",
+    sub: `${PROFILE_PREFERITI.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`,
     tint: "#F9E3EE",
     iconColor: "#E32459",
     delay: 120,
@@ -5151,6 +5431,36 @@ function ProfileScreen({
       cx: "12",
       cy: "7",
       r: "4"
+    }))
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Dieta & allergeni",
+    onClick: () => setView('allergens'),
+    iconBg: "#FEF0E3",
+    iconColor: "#C85C1A",
+    right: /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        color: MUTED_X,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", null, activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'), /*#__PURE__*/React.createElement("svg", {
+      width: "14",
+      height: "14",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: MUTED_X,
+      strokeWidth: "2.5",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, /*#__PURE__*/React.createElement("polyline", {
+      points: "9 18 15 12 9 6"
+    }))),
+    iconSvg: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+      d: "M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M5 19.5c3.5-4 7-7.5 10-9.5"
     }))
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Termini e condizioni",
@@ -12112,6 +12422,7 @@ window.PostaScreen = PostaScreen;
 </script>
 <script>/* auth.jsx */
 (function(){
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 /* global React */
 // auth.jsx — Onboarding & auth flow that runs BEFORE the Home.
 // Screens: Login (matches the shared mockup) → recupero password,
@@ -12338,7 +12649,7 @@ function GlassField({
       border: `1.5px solid ${focus ? '#fff' : 'transparent'}`,
       transition: 'border-color .15s'
     }
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("input", _extends({
     type: type,
     value: value,
     placeholder: placeholder,
@@ -12356,9 +12667,8 @@ function GlassField({
       color: A_TEXT,
       fontFamily: 'inherit',
       borderRadius: 14
-    },
-    ...rest
-  }), rightSlot && /*#__PURE__*/React.createElement("div", {
+    }
+  }, rest)), rightSlot && /*#__PURE__*/React.createElement("div", {
     style: {
       padding: '0 14px 0 6px',
       display: 'flex'
@@ -12566,7 +12876,7 @@ function AuthLogin({
     value: pw,
     onChange: setPw,
     type: show ? 'text' : 'password',
-    placeholder: "••••••••",
+    placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
     autoComplete: "current-password",
     rightSlot: /*#__PURE__*/React.createElement("button", {
       onClick: () => setShow(s => !s),
@@ -12858,11 +13168,16 @@ function LightField({
   ...rest
 }) {
   const [focus, setFocus] = useStateA(false);
+  const inputRef = useRefA(null);
+  // Su Chrome desktop l'input date mostra ANCHE l'indicatore nativo accanto
+  // alla nostra icona (su iOS no): lo nascondiamo e apriamo il picker dal
+  // nostro slot, dove showPicker è disponibile.
+  const isDate = type === 'date';
   return /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 16
     }
-  }, /*#__PURE__*/React.createElement("div", {
+  }, isDate && /*#__PURE__*/React.createElement("style", null, `input[type="date"]::-webkit-calendar-picker-indicator{ display:none; -webkit-appearance:none; }`), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 600,
@@ -12881,7 +13196,8 @@ function LightField({
       border: `1.5px solid ${focus ? A_PINK : 'transparent'}`,
       transition: 'border-color .15s'
     }
-  }, /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("input", _extends({
+    ref: inputRef,
     type: type,
     value: value,
     placeholder: placeholder,
@@ -12899,16 +13215,29 @@ function LightField({
       color: A_TEXT,
       fontFamily: 'inherit',
       borderRadius: 12
-    },
-    ...rest
-  }), rightSlot && /*#__PURE__*/React.createElement("div", {
+    }
+  }, rest)), rightSlot && /*#__PURE__*/React.createElement("div", {
+    onClick: isDate ? () => {
+      try {
+        inputRef.current?.showPicker?.();
+      } catch {}
+    } : undefined,
     style: {
       padding: '0 12px 0 4px',
-      display: 'flex'
+      display: 'flex',
+      cursor: isDate ? 'pointer' : undefined
     }
   }, rightSlot)));
 }
-const CUISINES = ['Pizza', 'Sushi', 'Italiana', 'Burger', 'Vegetariana', 'Cocktail', 'Pesce', 'Dolci', 'Messicana', 'Ramen', 'Brunch', 'Vino'];
+
+// I gusti in registrazione vengono dal dizionario di piattaforma (P-28 ·
+// D-28): ByupGusti.SCEGLIBILI nell'app-kit, i diciassette food_tag che il
+// consumatore può spuntare, per codice. Mai i regimi. Prima era una lista
+// di dodici stringhe libere che non incontrava i tag dei locali.
+const CUISINES = (window.ByupGusti ? window.ByupGusti.SCEGLIBILI : []).map(g => ({
+  id: g.id,
+  label: g.label
+}));
 
 // Contenuti legali (allineati a quelli del profilo in extras.jsx)
 const A_TERMS = [{
@@ -12916,7 +13245,7 @@ const A_TERMS = [{
   p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.'
 }, {
   h: 'Descrizione del servizio',
-  p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti maggiorenni registrati con un account personale.'
+  p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.'
 }, {
   h: 'Prenotazioni e cancellazioni',
   p: 'Le prenotazioni effettuate tramite byup sono vincolanti. La cancellazione è gratuita fino a 2 ore prima dell\'orario prenotato. Cancellazioni tardive o mancata presentazione (no-show) ripetuti possono comportare la sospensione temporanea del servizio di prenotazione.'
@@ -12932,13 +13261,16 @@ const A_TERMS = [{
 }];
 const A_PRIVACY = [{
   h: 'Titolare del trattamento',
-  p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM) — C.F. / P.IVA 12345678901 — è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it'
+  p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it'
 }, {
   h: 'Dati raccolti',
   p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.'
 }, {
   h: 'Finalità e base giuridica',
-  p: 'I dati sono trattati per: (a) eseguire il contratto di servizio — art. 6.1.b GDPR; (b) adempiere a obblighi legali — art. 6.1.c GDPR; (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito — art. 6.1.a GDPR.'
+  p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).'
+}, {
+  h: 'Preferenze alimentari e allergeni',
+  p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.'
 }, {
   h: 'Conservazione',
   p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.'
@@ -12946,8 +13278,11 @@ const A_PRIVACY = [{
   h: 'I tuoi diritti',
   p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).'
 }, {
+  h: 'Suggerimenti personalizzati',
+  p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento scrivendo all\'assistenza: torneranno proposte generiche.'
+}, {
   h: 'Cookie e tecnologie simili',
-  p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.'
+  p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto nell\'informativa privacy e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento scrivendo all\'assistenza.'
 }, {
   h: 'Trasferimenti internazionali',
   p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.'
@@ -13044,6 +13379,9 @@ function AuthRegister({
   const [otp, setOtp] = useStateA(['', '', '', '', '']);
   const [prefs, setPrefs] = useStateA([]);
   const [terms, setTerms] = useStateA(false);
+  // A6 — marketing byup: facoltativa e NON preselezionata. La decisione
+  // (sì o no) si registra alla creazione dell'account, nel registro consensi.
+  const [mkt, setMkt] = useStateA(false);
   const [legal, setLegal] = useStateA(null); // null | 'terms' | 'privacy'
   const [resend, setResend] = useStateA(30); // countdown "Invia di nuovo"
 
@@ -13069,7 +13407,11 @@ function AuthRegister({
   const phoneOk = phone.replace(/\D/g, '').length >= 8;
   const otpOk = otp.every(d => d !== '');
 
-  // età ≥ 18 a partire dalla data di nascita
+  // Età minima 14 e non 18: l'app è aperta ai minorenni, e 14 anni è l'età
+  // in cui in Italia si può prestare da soli il consenso al trattamento dei
+  // dati per i servizi online (art. 2-quinquies del Codice Privacy). Sotto,
+  // servirebbe il consenso di chi esercita la responsabilità genitoriale, che
+  // l'app oggi non raccoglie: per questo lì il blocco resta.
   const age = (() => {
     if (!dob) return null;
     const d = new Date(dob);
@@ -13080,7 +13422,7 @@ function AuthRegister({
     if (m < 0 || m === 0 && now.getDate() < d.getDate()) a--;
     return a;
   })();
-  const dobOk = age !== null && age >= 18 && age < 120;
+  const dobOk = age !== null && age >= 14 && age < 120;
   const pwMatch = pw.length > 0 && pw === pw2;
   const stepValid = [nome.trim() && cognome.trim() && dobOk, emailOk && pw.length >= 8 && pwMatch, phoneOk, otpOk, terms // preferenze opzionali, ma serve il consenso
   ][step];
@@ -13206,7 +13548,28 @@ function AuthRegister({
     onChange: setDob,
     type: "date",
     max: "2025-12-31",
-    autoComplete: "bday"
+    autoComplete: "bday",
+    rightSlot: /*#__PURE__*/React.createElement("svg", {
+      width: "17",
+      height: "17",
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: A_MUTED,
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+      style: {
+        pointerEvents: 'none'
+      }
+    }, /*#__PURE__*/React.createElement("rect", {
+      x: "3",
+      y: "5",
+      width: "18",
+      height: "16",
+      rx: "2.5"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M8 3v4M16 3v4M3 10h18"
+    }))
   }), dob && !dobOk && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
@@ -13214,7 +13577,7 @@ function AuthRegister({
       marginTop: -8,
       paddingLeft: 2
     }
-  }, "Devi avere almeno 18 anni per registrarti.")), step === 1 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LightField, {
+  }, "Devi avere almeno 14 anni per registrarti.")), step === 1 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(LightField, {
     label: "Email",
     value: email,
     onChange: setEmail,
@@ -13322,7 +13685,7 @@ function AuthRegister({
       fontWeight: 600,
       lineHeight: '20px'
     }
-  }, "🇮🇹 +39")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDDEE\uD83C\uDDF9 +39")), /*#__PURE__*/React.createElement("div", {
     style: {
       flex: 1
     }
@@ -13384,15 +13747,31 @@ function AuthRegister({
     }
   }, "Non hai ricevuto il codice? Invia di nuovo")), step === 4 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
+      padding: '14px',
+      borderRadius: 16,
+      background: '#FAF7F8',
+      border: '1.5px solid #EFE9EB'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      fontWeight: 800,
+      letterSpacing: .6,
+      textTransform: 'uppercase',
+      color: A_MUTED,
+      marginBottom: 10
+    }
+  }, "I tuoi gusti \xB7 facoltativi, li cambi quando vuoi da Preferiti"), /*#__PURE__*/React.createElement("div", {
+    style: {
       display: 'flex',
       flexWrap: 'wrap',
       gap: 10
     }
   }, CUISINES.map(c => {
-    const on = prefs.includes(c);
+    const on = prefs.includes(c.id);
     return /*#__PURE__*/React.createElement("button", {
-      key: c,
-      onClick: () => togglePref(c),
+      key: c.id,
+      onClick: () => togglePref(c.id),
       style: {
         padding: '10px 16px',
         borderRadius: 999,
@@ -13405,13 +13784,88 @@ function AuthRegister({
         color: on ? '#fff' : A_TEXT,
         transition: 'all .15s'
       }
-    }, c);
-  })), /*#__PURE__*/React.createElement("div", {
+    }, c.label);
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setMkt(m => !m),
+    "aria-label": "Consenso marketing",
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      width: '100%',
+      marginTop: 28,
+      padding: '13px 14px',
+      borderRadius: 16,
+      textAlign: 'left',
+      background: mkt ? '#FDF0F4' : '#FAF7F8',
+      border: `1.5px solid ${mkt ? A_PINK : '#EFE9EB'}`,
+      cursor: 'pointer',
+      fontFamily: 'inherit',
+      transition: 'all .18s'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      flexShrink: 0,
+      background: mkt ? A_PINK : '#F3EBEE',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 18,
+      transition: 'background .18s'
+    }
+  }, "\uD83C\uDF81"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 14,
+      fontWeight: 700,
+      color: A_TEXT
+    }
+  }, "Non perderti le offerte dei locali"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: 'block',
+      fontSize: 12,
+      color: A_MUTED,
+      marginTop: 2,
+      lineHeight: 1.4
+    }
+  }, "Sconti riservati e novit\xE0, anche su misura sui tuoi ordini, via email e notifica. Niente spam: ti disiscrivi in un tocco.")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 24,
+      height: 24,
+      borderRadius: 8,
+      flexShrink: 0,
+      border: `1.5px solid ${mkt ? A_PINK : '#CFC8CB'}`,
+      background: mkt ? A_PINK : '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all .18s'
+    }
+  }, mkt && /*#__PURE__*/React.createElement("svg", {
+    width: "14",
+    height: "14",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "#fff",
+    strokeWidth: "3",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("polyline", {
+    points: "20 6 9 17 4 12"
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
       alignItems: 'flex-start',
       gap: 12,
-      marginTop: 28
+      marginTop: 16
     }
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setTerms(t => !t),
@@ -13474,14 +13928,14 @@ function AuthRegister({
     }
   }, /*#__PURE__*/React.createElement("button", {
     disabled: !stepValid,
-    onClick: () => step === STEPS - 1 ? onDone({
+    onClick: () => step === STEPS - 1 ? (ByupConsensi.set('A6', mkt), onDone({
       nome,
       cognome,
       dob,
       email,
       prefs,
       terms
-    }) : next(),
+    })) : next(),
     style: {
       width: '100%',
       padding: '16px',
@@ -13497,14 +13951,17 @@ function AuthRegister({
     }
   }, ctaLabel), step === 4 && /*#__PURE__*/React.createElement("button", {
     disabled: !terms,
-    onClick: () => onDone({
-      nome,
-      cognome,
-      dob,
-      email,
-      prefs: [],
-      terms
-    }),
+    onClick: () => {
+      ByupConsensi.set('A6', mkt);
+      onDone({
+        nome,
+        cognome,
+        dob,
+        email,
+        prefs: [],
+        terms
+      });
+    },
     style: {
       width: '100%',
       padding: '12px',
@@ -13652,7 +14109,7 @@ function AuthSuccess({
       marginTop: 12,
       lineHeight: 1.55
     }
-  }, "Il tuo account è pronto. Scopri i migliori locali vicino a te e prenota in pochi tap."), /*#__PURE__*/React.createElement("button", {
+  }, "Il tuo account \xE8 pronto. Scopri i migliori locali vicino a te e prenota in pochi tap."), /*#__PURE__*/React.createElement("button", {
     onClick: onStart,
     style: {
       width: '100%',
@@ -13741,6 +14198,7 @@ function AuthFlow({
       onBack: () => setScreen('login'),
       onDone: data => {
         setName(data.nome || '');
+        if (window.ByupGusti) window.ByupGusti.scrivi(data.prefs || []);
         setScreen('enroll');
       }
     });
@@ -15982,6 +16440,7 @@ const MOMENT_DATA = {
     venues: [{
       premium: true,
       name: 'Al Settembrini',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Ristorante',
       distance: '0.4 km',
       rating: 4.5,
@@ -15998,6 +16457,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Trattoria Lucia',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Cucina romana',
       distance: '0.6 km',
       rating: 4.8,
@@ -16013,6 +16473,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Lounge 22',
+      gusti: ['aperitivo'],
       cuisine: 'Cocktail bar',
       distance: '1.1 km',
       rating: 4.4,
@@ -16041,6 +16502,7 @@ const MOMENT_DATA = {
     }],
     venues: [{
       name: 'Trattoria Lucia',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Menu del giorno · 15€',
       distance: '0.6 km',
       rating: 4.8,
@@ -16056,6 +16518,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Vinaio',
+      gusti: ['aperitivo', 'brunch'],
       cuisine: 'Wine bar · panini',
       distance: '0.9 km',
       rating: 4.7,
@@ -16066,6 +16529,7 @@ const MOMENT_DATA = {
     }, {
       premium: true,
       name: 'Al Settembrini',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Ristorante',
       distance: '0.4 km',
       rating: 4.5,
@@ -16103,6 +16567,7 @@ const MOMENT_DATA = {
     }],
     venues: [{
       name: "All'Impronta",
+      gusti: ['pesce', 'carne'],
       cuisine: 'Ristorante creativo',
       distance: '0.8 km',
       rating: 4.6,
@@ -16120,6 +16585,7 @@ const MOMENT_DATA = {
     }, {
       premium: true,
       name: 'Al Settembrini',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Ristorante',
       distance: '0.4 km',
       rating: 4.5,
@@ -16135,6 +16601,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Trattoria Lucia',
+      gusti: ['pasta', 'carne'],
       cuisine: 'Cucina romana',
       distance: '0.6 km',
       rating: 4.8,
@@ -16172,6 +16639,7 @@ const MOMENT_DATA = {
     }],
     venues: [{
       name: 'Lounge 22',
+      gusti: ['aperitivo'],
       cuisine: 'Cocktail bar',
       distance: '1.1 km',
       rating: 4.4,
@@ -16187,6 +16655,7 @@ const MOMENT_DATA = {
       }]
     }, {
       name: 'Blue Note',
+      gusti: ['aperitivo'],
       cuisine: 'Jazz club · cocktail',
       distance: '1.0 km',
       rating: 4.7,
@@ -17122,22 +17591,35 @@ function DisponibiliScreen({
       gap: 14,
       padding: '18px 18px 0'
     }
-  }, venues.map((v, i) => /*#__PURE__*/React.createElement("div", {
-    key: `${moment}-${i}`,
-    style: {
-      animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`
-    }
-  }, /*#__PURE__*/React.createElement(RestaurantBigCard, _extends({}, v, {
-    onClick: () => onCardClick?.({
-      ...v,
-      title: v.name
-    }),
-    onSlotClick: s => onSlotClick?.({
-      ...v,
-      title: v.name,
-      slot: s.time
-    })
-  })))), /*#__PURE__*/React.createElement("div", {
+  }, (() => {
+    const attivo = !window.ByupUso || window.ByupUso.suggerimenti();
+    const gusti = attivo && window.ByupGusti ? window.ByupGusti.leggi() : [];
+    const inter = v => (v.gusti || []).filter(g => gusti.includes(g)).length;
+    const ordinati = gusti.length ? [...venues].sort((a, b) => inter(b) - inter(a)) : venues;
+    return ordinati.map((v, i) => {
+      const n = inter(v);
+      const perTe = n > 0 ? {
+        ...v,
+        badge: 'Per te · ' + (v.gusti || []).filter(g => gusti.includes(g)).map(g => window.ByupGusti.label(g).toLowerCase()).join(', ')
+      } : v;
+      return /*#__PURE__*/React.createElement("div", {
+        key: `${moment}-${i}`,
+        style: {
+          animation: `dispoCard 0.42s cubic-bezier(.2,.8,.2,1) ${0.08 + i * 0.08}s both`
+        }
+      }, /*#__PURE__*/React.createElement(RestaurantBigCard, _extends({}, perTe, {
+        onClick: () => onCardClick?.({
+          ...v,
+          title: v.name
+        }),
+        onSlotClick: s => onSlotClick?.({
+          ...v,
+          title: v.name,
+          slot: s.time
+        })
+      })));
+    });
+  })(), /*#__PURE__*/React.createElement("div", {
     style: {
       margin: '8px 4px 0',
       fontSize: 12,
@@ -18387,6 +18869,7 @@ function HomeSections({
   const favorites = [{
     premium: true,
     name: 'Al Settembrini',
+    gusti: ['pasta', 'carne'],
     type: 'Ristorante',
     distance: '0.4 km',
     hours: '12:30 – 23:00',
@@ -18394,6 +18877,7 @@ function HomeSections({
     photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=70&auto=format&fit=crop'
   }, {
     name: "All'Impronta",
+    gusti: ['pesce', 'carne'],
     type: 'Ristorante',
     distance: '0.8 km',
     hours: '19:00 – 24:00',
@@ -18401,6 +18885,7 @@ function HomeSections({
     photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=70&auto=format&fit=crop'
   }, {
     name: 'Lounge 22',
+    gusti: ['aperitivo'],
     type: 'Cocktail',
     distance: '1.1 km',
     hours: '18:00 – 02:00',
@@ -19214,6 +19699,7 @@ function App({
         setActiveVenue(v => v || {
           premium: true,
           name: 'Al Settembrini',
+          gusti: ['pasta', 'carne'],
           _from: 'menu'
         });
         setPage('venue');
@@ -19228,6 +19714,7 @@ function App({
         return {
           premium: true,
           name: 'Al Settembrini',
+          gusti: ['pasta', 'carne'],
           _from: 'home'
         };
       }
