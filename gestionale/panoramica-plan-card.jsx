@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 // PianoEmoji — SVG custom per ogni piano Byup. 24×24, fill colorato.
 // Progressione coloristica = "scala del piano":
-//   Free      → verde menta  (germoglio: primi passi)
+//   Gratuito  → verde menta  (germoglio: primi passi)
 //   Starter   → ambra dorata (boccale di birra: locale serale/pub)
 //   Plus      → pink-dark    (ciotola pasta: menu completo)
 //   Business  → wine + chef  (cappello chef: professionalità top)

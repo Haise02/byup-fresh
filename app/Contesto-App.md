@@ -363,7 +363,7 @@ gestionale) quando si passa a Flutter.
 > Regola pratica: per *cosa il prototipo fa vedere* → [Architettura-Prototipo.md](Architettura-Prototipo.md);
 > per *cosa il prodotto deve fare* → questo file (§G) e gli spoke tematici.
 
-> Nota: il **conteggio transazioni/abbonamento** (Free 550 / Starter 1.850 /
+> Nota: il **conteggio transazioni/abbonamento** (Gratuito 550 / Starter 1.850 /
 > Plus 7.500 / Business 15.000; coefficienti del piano, ridotto per l'app —
 > vedi §C) è logica di **Byup Fresh**, non dell'app consumer. L'app deve solo
 > segnalare correttamente al backend che un pagamento è avvenuto **da app**

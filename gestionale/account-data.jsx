@@ -15,6 +15,13 @@ const ACC_DATI = {
 };
 
 // Piani byup ufficiali — 4 livelli con ordini inclusi, costo extra, supporto, menu, dispositivi
+// P-102, ribaltata dal titolare il 03/09/2026 (il gemello di P-12): l'etichetta
+// a schermo del piano gratuito è «Gratuito», ovunque, su tutte le superfici —
+// gestionale, app, webapp, staff, Hubble, documenti del repo. La voce chiedeva
+// di tornare a «Free» e la standardizzazione su «Free» dei documenti
+// commerciali del 31/08 è superata. L'id tecnico `free` e il nome nel modello
+// non si toccano: è questione di etichetta, non di chiave. I pacchetti una
+// tantum restano rimandati al lancio.
 // Nota struttura: `feat` contiene SOLO le voci mostrate come lista puntata
 // nelle card — ordini inclusi e costo extra vivono già nel chip dedicato.
 // `menuShort`/`staffShort` + i flag `sup*` alimentano la tabella di confronto

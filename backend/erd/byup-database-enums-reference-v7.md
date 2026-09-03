@@ -293,17 +293,17 @@ confermato sull'ERD v11. Prima `phone_24h` era attribuito a Plus con richiamata
 entro 30 minuti, più di quanto dato a Business.
 
 ### plans.max_menus [int nullable]
-- 1 → Free
+- 1 → Gratuito
 - 3 → Starter
 - NULL → Plus e Business
 
 ### plans.max_staff_members [int nullable — conteggio combinato con devices nell'MVP]
-- 1 → Free
+- 1 → Gratuito
 - 3 → Starter
 - NULL → Plus e Business
 
 ### plans.max_devices [int nullable — conteggio combinato con staff nell'MVP]
-- 1 → Free
+- 1 → Gratuito
 - 3 → Starter
 - NULL → Plus e Business
 

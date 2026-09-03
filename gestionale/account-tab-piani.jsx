@@ -16,7 +16,7 @@ function AccPianiAbbonamenti() {
 
   const [billing, setBilling] = React.useState('annual');
 
-  // Modale downgrade a Free: confronto col piano attuale + recap delle perdite
+  // Modale downgrade a Gratuito: confronto col piano attuale + recap delle perdite
   const [freeModal, setFreeModal] = React.useState(false);
   const freePlan = ACC_PIANI.find(p => p.id === 'free');
 
@@ -371,7 +371,7 @@ function AccPianiAbbonamenti() {
           </div>
         </div>
 
-        {/* Free escluso dalla griglia: il downgrade non merita la stessa
+        {/* Gratuito escluso dalla griglia: il downgrade non merita la stessa
             prominenza degli upgrade — vive nella riga discreta qui sotto. */}
         <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12}}>
           {ACC_PIANI.filter(p => p.id !== 'free').map(p => (
@@ -817,7 +817,7 @@ function UtilizzoCard({ordiniPos, ordiniApp, ordiniUsati, current, pct, fmtPrice
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// PianoCard — card di un piano (Free/Starter/Plus/Business). Highlight = filled BRAND.
+// PianoCard — card di un piano (Gratuito/Starter/Plus/Business). Highlight = filled BRAND.
 // PianoEmoji è definito in panoramica-plan-card.jsx → window.PianoEmoji
 // (caricato in ogni pagina dashboard, condiviso col sidebar plan card).
 // ─────────────────────────────────────────────────────────────────────────

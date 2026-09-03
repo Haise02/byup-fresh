@@ -919,7 +919,7 @@ function LocaliTotaliTooltip({ total, free, freeActive, freeInactive, paying, pl
         Gli altri {LOC.totali - (paying + free)} sono in onboarding o hanno disdetto.
       </div>
 
-      {/* Free vs Paganti */}
+      {/* Gratuito vs Paganti */}
       <div style={{marginBottom:16}}>
         <div style={{display:'flex', height:8, borderRadius:99, overflow:'hidden', background:'#F0F1F3', marginBottom:10}}>
           <div style={{width:`${payPct}%`, background:`linear-gradient(90deg, ${ADM.PINK}, ${ADM.PINK_DARK})`}}/>
@@ -931,14 +931,14 @@ function LocaliTotaliTooltip({ total, free, freeActive, freeInactive, paying, pl
         </div>
       </div>
 
-      {/* Free attivi vs inattivi */}
+      {/* Gratuito attivi vs inattivi */}
       <div style={{paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`, marginBottom:14}}>
         <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>
           Suddivisione piano free
         </div>
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
           <span style={{width:9, height:9, borderRadius:2, background:ADM.OK}}/>
-          <span style={{fontSize:13.7, color:ADM.TEXT, flex:1, fontWeight:500}}>Free attivi</span>
+          <span style={{fontSize:13.7, color:ADM.TEXT, flex:1, fontWeight:500}}>Gratuito attivi</span>
           <div style={{width:60, height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
             <div style={{width:`${freeActPct}%`, height:'100%', background:ADM.OK}}/>
           </div>
@@ -947,7 +947,7 @@ function LocaliTotaliTooltip({ total, free, freeActive, freeInactive, paying, pl
         </div>
         <div style={{display:'flex', alignItems:'center', gap:10}}>
           <span style={{width:9, height:9, borderRadius:2, background:ADM.MUTED_LIGHT}}/>
-          <span style={{fontSize:13.7, color:ADM.TEXT, flex:1, fontWeight:500}}>Free inattivi</span>
+          <span style={{fontSize:13.7, color:ADM.TEXT, flex:1, fontWeight:500}}>Gratuito inattivi</span>
           <div style={{width:60, height:5, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
             <div style={{width:`${freeInactPct}%`, height:'100%', background:ADM.MUTED_LIGHT}}/>
           </div>
@@ -1477,7 +1477,7 @@ function DashLocali({ onNav, filtri }) {
       ltvRicavo: Math.round(listino * p.tenure),
     };
   });
-  // Aggregate (escludiamo Free: non paga, e il suo margine è per definizione
+  // Aggregate (escludiamo Gratuito: non paga, e il suo margine è per definizione
   // negativo — è costo di acquisizione, non un cliente)
   const ltvPaying = ltvByPlan.filter(p => p.mrr > 0);
   // Medie PONDERATE su quanti locali stanno davvero su ogni piano: la media

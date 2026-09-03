@@ -38,11 +38,11 @@ const CNT_CICLO = {
   // L'attivo non è uno stadio solo: chi sta sul piano gratuito e chi paga
   // sono due rapporti commerciali diversi — per il modello a fasce di Fresh
   // è LA distinzione, e la scala la deve dire.
-  clienteFree:    { label: 'Cliente Free',     color: 'TEAL',         rango: 3 },
+  clienteFree:    { label: 'Cliente Gratuito',     color: 'TEAL',         rango: 3 },
   clientePagante: { label: 'Cliente Pagante',  color: 'OK',           rango: 4 },
   // Returning è il RIENTRATO, e SCADE: aveva annullato ed è tornato — l'esito
   // del win-back — ma lo stadio dura i primi 90 giorni dal rientro (la stessa
-  // finestra della coda win-back), poi ci si laurea in Cliente Free o
+  // finestra della coda win-back), poi ci si laurea in Cliente Gratuito o
   // Pagante. Un rientrato di tre anni fa è solo un cliente; il fatto
   // permanente sta nella proprietà «Rientrato il», non nel badge.
   returning:      { label: 'Returning',        color: 'PURPLE',       rango: 5 },
@@ -66,7 +66,7 @@ const CNT_CICLO = {
 //   clienteFree      locale operativo sul piano Gratuito
 //   clientePagante   locale operativo su un piano diverso dal Gratuito
 //   returning        entro 90 giorni dal rientro («Rientrato il»), poi ci
-//                    si laurea in Free o Pagante
+//                    si laurea in Gratuito o Pagante
 //   annullato        il rapporto è finito: ciclo di vita «churned», che sia
 //                    disdetta del locale o risoluzione di Byup
 //   eliminato        contatto cancellato (locale, staff o utente app: il

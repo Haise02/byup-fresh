@@ -37,11 +37,11 @@ Table plans {
   name varchar [unique, not null, note: 'free, starter, plus, business']
   display_name varchar [not null]
 
-  monthly_price decimal [not null, note: 'EUR + IVA, 0 per Free']
+  monthly_price decimal [not null, note: 'EUR + IVA, 0 per Gratuito']
   included_transactions int [not null, note: '550, 1850, 7500, 15000']
   extra_transaction_price decimal [not null, note: 'EUR + IVA: 0.45, 0.34, 0.23, 0.12']
 
-  max_menus int [note: 'NULL = illimitato. Free=1, Starter=3']
+  max_menus int [note: 'NULL = illimitato. Gratuito=1, Starter=3']
   max_staff_members int [note: 'NULL = illimitato. Conteggio combinato con devices nell MVP']
   max_devices int [note: 'NULL = illimitato. Conteggio combinato con staff nell MVP']
   support_tier varchar [not null, note: 'basic, phone_24h, priority']

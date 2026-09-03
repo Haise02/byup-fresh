@@ -88,6 +88,7 @@ const LOC_CICLO_VITA = {
 // numeri fissi: il listino è versionato (D-12). È la leva più interessante del
 // modello — spingere l'app riduce la quota consumata.
 const PIANI = [
+  // «Gratuito», non «Free»: P-102 ribaltata il 03/09/2026 (vedi ACC_PIANI nel gestionale, che vince).
   { id: 'free',     label: 'Gratuito', price: 0,      priceMensile: 0,      ordiniInclusi: 550,   ordineExtra: 0.45, color: 'PLAN_FREE' },
   { id: 'starter',  label: 'Starter',  price: 46.99,  priceMensile: 54.99,  ordiniInclusi: 1850,  ordineExtra: 0.34, color: 'PLAN_STARTER' },
   { id: 'plus',     label: 'Plus',     price: 134.99, priceMensile: 155.99, ordiniInclusi: 7500,  ordineExtra: 0.23, color: 'PLAN_PLUS' },

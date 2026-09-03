@@ -234,9 +234,9 @@ const HUB_PROPRIETA = [
   // lo porta salvato, nessun workflow lo scrive — è una condizione, mai
   // un'azione (HubSceltaProprieta esclude le proprietà con `leggi`).
   { id: 'ciclo',    label: 'Stadio',              gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
-    opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'iscritto', label: 'Iscritto' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'clienteFree', label: 'Cliente Free' }, { value: 'clientePagante', label: 'Cliente Pagante' }, { value: 'returning', label: 'Returning' }, { value: 'annullato', label: 'Piano annullato' }, { value: 'eliminato', label: 'Eliminato' }],
+    opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'iscritto', label: 'Iscritto' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'clienteFree', label: 'Cliente Gratuito' }, { value: 'clientePagante', label: 'Cliente Pagante' }, { value: 'returning', label: 'Returning' }, { value: 'annullato', label: 'Piano annullato' }, { value: 'eliminato', label: 'Eliminato' }],
     leggi: (c) => (typeof hubStadio === 'function' ? hubStadio(c) : null),
-    nota: 'Calcolato dal locale e dal piano, non si imposta: lead senza locali, poi il ciclo di vita, Free o Pagante dal piano, Returning nei 90 giorni dal rientro' },
+    nota: 'Calcolato dal locale e dal piano, non si imposta: lead senza locali, poi il ciclo di vita, Gratuito o Pagante dal piano, Returning nei 90 giorni dal rientro' },
   // Un utente bannato non deve essere invisibile in rubrica: la restrizione
   // attiva (dal registro di Utenti app) è una proprietà come le altre — la
   // si mette in colonna e ci si filtra sopra.
