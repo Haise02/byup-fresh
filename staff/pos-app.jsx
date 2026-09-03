@@ -38,16 +38,44 @@ function POSApp() {
 
   const top = stack[stack.length - 1];
 
+  // D-41 (P-53): la persona disattivata a sessione aperta. Ogni azione passa
+  // di qui — nav e openModal — e se l'appartenenza attiva è stata spenta la
+  // sessione si chiude sulla schermata che lo dice. Con ?disattiva=1 la
+  // prima azione dopo l'ingresso spegne l'appartenenza, per poterla provare:
+  // non il reset con cui si entra né il popup dei permessi che lo segue, ma
+  // il primo gesto vero della persona. Il ref e i setter sono stabili, così
+  // il nav memoizzato può usarli.
+  const armato = React.useRef(DISATTIVA_DEMO);
+  const revocata = (arma) => {
+    if (!SESSIONE.membership_id) return false;
+    if (arma && armato.current) { armato.current = false; staffDisattiva('owner_deactivated'); }
+    if (!staffAccessoRevocato()) return false;
+    const locale = MERCHANT.nome;
+    staffEsci();
+    setModal(null); setStack([{ s: 'disattivato', locale }]);
+    return true;
+  };
+
   const nav = useMemoA(() => ({
-    push: s => setStack(p => [...p, s]),
-    pop: () => setStack(p => p.length > 1 ? p.slice(0, -1) : p),
-    replace: s => setStack(p => [...p.slice(0, -1), s]),
-    reset: s => setStack([s]),
-    setTab: tab => setStack([{ s: tab }]),
+    push: s => { if (revocata(true)) return; setStack(p => [...p, s]); },
+    pop: () => { if (revocata(true)) return; setStack(p => p.length > 1 ? p.slice(0, -1) : p); },
+    replace: s => { if (revocata(true)) return; setStack(p => [...p.slice(0, -1), s]); },
+    reset: s => { if (revocata(false)) return; setStack([s]); },
+    setTab: tab => { if (revocata(true)) return; setStack([{ s: tab }]); },
   }), []);
 
-  const openModal = m => setModal(m);
+  const openModal = m => { if (revocata(m && m.kind !== 'permessi')) return; setModal(m); };
   const closeModal = () => setModal(null);
+
+  // L'ingresso in un ambiente: SESSIONE e MERCHANT si derivano
+  // dall'appartenenza scelta, poi l'incasso e — se il Face ID non è attivo —
+  // i permessi di primo accesso. Lo chiamano il login (un solo ambiente) e la
+  // schermata locali (più d'uno).
+  const apriPermessi = () => openModal({
+    kind: 'permessi', noticeDone, markNotice: registraNotice,
+    askFaceId: !faceIdAsked, enableFaceId: () => setFaceIdOn(true), markAsked: () => setFaceIdAsked(true),
+  });
+  const entraIn = (a) => { staffEntra(a); nav.reset({ s: 'incassa' }); if (!faceIdOn) apriPermessi(); };
 
   useEffectA(() => {
     const h = e => { if (e.key === 'Escape' && modal) closeModal(); };
@@ -63,7 +91,7 @@ function POSApp() {
   }, [toast]);
 
   // Sulle schermate di pagamento (full screen) la bottom nav è nascosta
-  const hideNav = ['login', 'recupero', 'tap'].includes(top.s);
+  const hideNav = ['login', 'recupero', 'locali', 'disattivato', 'tap'].includes(top.s);
   const activeTab = ['transazioni'].includes(top.s) ? 'transazioni'
                   : ['profilo', 'password'].includes(top.s) ? 'profilo'
                   : 'incassa';
@@ -71,7 +99,9 @@ function POSApp() {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: ST.BG, overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', overflowX: 'hidden' }}>
-        {top.s === 'login' && <ScreenLogin nav={nav} openModal={openModal} faceIdOn={faceIdOn} setFaceIdOn={setFaceIdOn} faceIdAsked={faceIdAsked} setFaceIdAsked={setFaceIdAsked} noticeDone={noticeDone} markNotice={registraNotice}/>}
+        {top.s === 'login' && <ScreenLogin nav={nav} entraIn={entraIn} faceIdOn={faceIdOn}/>}
+        {top.s === 'locali' && <ScreenLocali nav={nav} entraIn={entraIn}/>}
+        {top.s === 'disattivato' && <ScreenDisattivato nav={nav} locale={top.locale}/>}
         {top.s === 'recupero' && <ScreenRecupero nav={nav}/>}
         {top.s === 'incassa' && <ScreenIncassa nav={nav} contiPagati={contiPagati} contiRimandati={contiRimandati} contiRitirati={contiRitirati}/>}
         {top.s === 'conto' && <ScreenConto nav={nav} conto={top.conto} ritirato={contiRitirati.includes(top.conto?.id)} rimandaConto={rimandaConto} openModal={openModal} showToast={showToast}/>}

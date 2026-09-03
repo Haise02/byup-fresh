@@ -75,7 +75,7 @@ letterale.
 | `pos-tokens.jsx` | Design tokens (`ST`) — brand, neutri e materiali **ereditati dai token `PN` del gestionale** (`../gestionale/panoramica-tokens.jsx`, caricato prima da `index.html`) — icone (`I`), atomi (`Btn`, `Chip`, `Logo`), helper (`eur`, `txConfig`) |
 | `pos-data.jsx` | Dati mock: esercente (`MERCHANT`), coda incasso (`CODA_INCASSO`), transazioni (`TRANSAZIONI`) |
 | `pos-app.jsx` | Shell, navigazione a stack, bottom nav, stato globale, montaggio delle schermate |
-| `pos-screen-login.jsx` | Login, recupero password, **Face ID gate** |
+| `pos-screen-login.jsx` | Login, scelta del locale, accesso disattivato, recupero password, **Face ID gate** |
 | `pos-screen-incassa.jsx` | Coda di incasso + dettaglio conto |
 | `pos-screen-pagamento.jsx` | Flusso di pagamento Tap to Pay |
 | `pos-screen-transazioni.jsx` | Storico transazioni (solo giornata corrente) |
@@ -85,9 +85,9 @@ letterale.
 ### Navigazione e schermate
 
 `POSApp` tiene uno **stack** di schermate (`push`/`pop`/`replace`/`reset`/`setTab`).
-Schermate: `login`, `recupero`, `incassa`, `conto`, `tap`, `transazioni`, `profilo`,
-`password`. La **bottom nav** (Transazioni · Incassa · Profilo) è nascosta su login,
-recupero e durante il pagamento (`tap`).
+Schermate: `login`, `locali`, `disattivato`, `recupero`, `incassa`, `conto`, `tap`,
+`transazioni`, `profilo`, `password`. La **bottom nav** (Transazioni · Incassa · Profilo) è
+nascosta su login, locali, disattivato, recupero e durante il pagamento (`tap`).
 
 ---
 
@@ -158,24 +158,31 @@ transazioni di oggi**; lo storico esteso (e i rimborsi su transazioni passate) s
 sul gestionale **Byup Fresh**. Il bottone *Rimborsa* sul dettaglio **resta**, ma opera solo
 entro la giornata corrente.
 
-### 2.6 Login senza registrazione: account creati solo da Byup Fresh
+### 2.6 Login senza registrazione: l'utenza è della persona, l'appartenenza nasce dall'invito
 
 La schermata di login (`pos-screen-login.jsx`) espone **solo l'accesso** — Google SSO oppure
-email/password — e **non offre alcuna registrazione**. È una scelta esplicita: da Byup Staff
-**non si crea un account**.
+email/password — e **non offre alcuna registrazione**. Da Byup Staff **non si crea un'utenza**.
 
-**Motivazione:** l'identità è governata interamente dal gestionale **Byup Fresh**. Un account
-abilitato all'app Cassa può nascere **solo lì**, in tre modi:
+**Modello (D-41 · P-53):** l'utenza è **della persona** — una sola, con la sua email — e il
+locale è l'**ambiente** in cui entra. Un locale la invita da Byup Fresh → Personale: l'invito
+aggiunge un'**appartenenza** (`memberships`: ristorante, sede o tutte le sedi con `venue_id`
+nullo, ruolo), e l'utenza nasce **solo se manca**. L'account-cassa condiviso fra le persone
+(qui era `barcentrale@byup.it`) **non esiste più**; resta l'**utenza tecnica di dispositivo**
+(`contact_type = device`: senza persona, senza consensi, fuori dalle campagne per costruzione),
+che è il telefono della sede censito in P-105.
 
-- **creando l'account Cassa** del locale da Byup Fresh;
-- **come proprietario** del locale (che ha già accesso);
-- **abilitando un altro account** alle funzionalità **Cassa** (provisioning multi-operatore,
-  vedi §5.8).
-
-Per questo il login mostra solo *"Non hai un account? Crealo tramite Byup Fresh sul sito
-byup.it"*: rimanda al gestionale invece di proporre un form di registrazione. Byup Staff è un
-**terminale di incasso**, non un punto di onboarding — coerente con il modello in cui ogni
-capacità (comporre conti, gestire utenti, creare account) vive sul gestionale e l'app esegue.
+Per questo il login dice *"Ti ha invitato un locale? Accetta l'invito: se non hai ancora
+un'utenza, nasce lì"*. Dopo il login, sul telefono personale, chi è invitato da più locali
+sceglie dove entrare (schermata `locali`: sedi e ruolo in ciascuna); con un solo ambiente entra
+dritto. Sul telefono della sede (`?dispositivo=locale` nel mock) non c'è selettore, salvo le
+altre sedi dello stesso ristorante. Il contesto scelto è `sessions.active_restaurant_id /
+active_venue_id / context_switched_at` (nel mock `SESSIONE`), da cui `MERCHANT` si deriva; il
+Face ID riprende l'ultimo contesto senza ripassare dalla lista. Se il titolare disattiva
+l'appartenenza a sessione aperta (`?disattiva=1` o `BYUP_STAFF_DISATTIVA()` in console), alla
+prossima azione la sessione si chiude sulla schermata `disattivato` — «il tuo accesso a {locale}
+è stato disattivato: rivolgiti al titolare» — e approda alla lista se restano appartenenze
+attive, al login se era l'unica (evoluzione rispetto alla voce, che diceva solo login). Byup
+Staff resta un **terminale di incasso**, non un punto di onboarding.
 
 ---
 

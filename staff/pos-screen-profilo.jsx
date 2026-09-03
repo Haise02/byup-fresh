@@ -70,9 +70,11 @@ function ScreenProfilo({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {
       <div style={{ padding: '54px 20px 20px', background: '#fff', borderBottom: `1px solid ${ST.BORDER_SOFT}`, display: 'flex', alignItems: 'center', gap: 14 }}>
         <Logo size={56} radius={ST.R_LG}/>
         <div>
-          <div style={{ fontSize: 19, fontWeight: 800, color: ST.TEXT }}>{MERCHANT.nome}</div>
-          <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 2 }}>{MERCHANT.operatore}</div>
+          {/* D-41: la persona con la sua email, e sotto l'ambiente in cui è
+              entrata col ruolo che vale lì. */}
+          <div style={{ fontSize: 19, fontWeight: 800, color: ST.TEXT }}>{MERCHANT.operatore}</div>
           <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 2 }}>{MERCHANT.email}</div>
+          <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 2 }}>{MERCHANT.nome} · {MERCHANT.ruolo}</div>
         </div>
       </div>
 

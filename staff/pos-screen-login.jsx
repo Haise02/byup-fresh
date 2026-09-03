@@ -109,29 +109,27 @@ function FaceIdGate({ onSuccess, onCancel }) {
 // ═══════════════════════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════════════════════
-function ScreenLogin({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {}, faceIdAsked = false, setFaceIdAsked = () => {}, noticeDone = false, markNotice = () => {} }) {
+function ScreenLogin({ nav, entraIn, faceIdOn = false }) {
   const [email, setEmail] = useStateL('');
   const [pw, setPw] = useStateL('');
   const [showPw, setShowPw] = useStateL(false);
   // Se il Face ID è attivo, al rientro parti dalla schermata di sblocco.
   const [gate, setGate] = useStateL(!!faceIdOn);
 
-  const goIn = () => nav.reset({ s: 'incassa' });
-
-  // Ingresso con password: entra e — solo se il Face ID non è attivo —
-  // mostra i permessi di primo accesso (che includono l'attivazione del Face ID).
+  // D-41 (P-53): dopo il login, gli ambienti in cui la persona può entrare
+  // (staffAmbienti: appartenenze attive, per sede; sul telefono della sede le
+  // sole sedi del suo ristorante). Con uno solo si entra dritti, altrimenti
+  // la lista.
   const entra = () => {
-    goIn();
-    if (!faceIdOn) openModal({
-      kind: 'permessi',
-      noticeDone, markNotice,
-      askFaceId: !faceIdAsked,
-      enableFaceId: () => setFaceIdOn(true),
-      markAsked: () => setFaceIdAsked(true),
-    });
+    const amb = staffAmbienti();
+    if (amb.length === 1) entraIn(amb[0]); else nav.reset({ s: 'locali' });
   };
 
-  if (gate) return <FaceIdGate onSuccess={goIn} onCancel={() => setGate(false)}/>;
+  // Il Face ID riprende l'ultimo ambiente: SESSIONE tiene il contesto come
+  // sessions.active_* sul server, e la lista non si ripassa. Se non c'è un
+  // contesto (primo accesso su questo telefono) si sceglie; se nel frattempo
+  // l'appartenenza è stata spenta, la prossima azione lo dirà.
+  if (gate) return <FaceIdGate onSuccess={() => SESSIONE.membership_id ? nav.reset({ s: 'incassa' }) : entra()} onCancel={() => setGate(false)}/>;
 
   return (
     <div style={{ minHeight: '100%', background: LOGIN_BG, padding: '64px 24px 32px', display: 'flex', flexDirection: 'column' }}>
@@ -193,15 +191,99 @@ function ScreenLogin({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {},
 
       <PinkBtn onClick={entra} style={{ marginTop: 22 }}>Accedi →</PinkBtn>
 
+      {/* D-41: l'invito aggiunge un'appartenenza, l'utenza nasce solo se
+          manca. Niente registrazione da qui, niente account creato dal locale. */}
       <div style={{ textAlign: 'center', marginTop: 22, fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>
-        Non hai un account?<br/>
-        Crealo tramite Byup Fresh sul sito{' '}
-        <a href="https://byup.it" target="_blank" rel="noopener noreferrer" style={{
-          color: '#fff', fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 3,
-        }}>byup.it</a>
+        Ti ha invitato un locale?<br/>
+        Accetta l'invito: se non hai ancora un'utenza, nasce lì.
       </div>
 
       {dkPlaceholder}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// SCELTA DEL LOCALE (D-41 · P-53) — dove entra la persona
+// ═══════════════════════════════════════════════════════════
+// Sul telefono personale: i locali che l'hanno invitata, sede per sede, col
+// ruolo che vale in ciascuno. Sul telefono della sede: le sole sedi del suo
+// ristorante (ci si arriva solo se sono più d'una). Con zero ambienti — tutte
+// le appartenenze spente — lo dice e rimanda al login.
+function ScreenLocali({ nav, entraIn }) {
+  const amb = staffAmbienti();
+  const sede = DISPOSITIVO.tipo === 'locale';
+  const gruppi = [];
+  amb.forEach(a => { let g = gruppi.find(x => x.id === a.restaurant_id); if (!g) { g = { id: a.restaurant_id, nome: a.ristorante, voci: [] }; gruppi.push(g); } g.voci.push(a); });
+  return (
+    <div style={{ minHeight: '100%', background: LOGIN_BG, padding: '64px 24px 32px', display: 'flex', flexDirection: 'column' }}>
+      <Logo size={46} radius={ST.R_MD}/>
+      <h1 style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: -0.6, margin: '24px 0 8px', lineHeight: 1.1 }}>
+        {amb.length === 0 ? 'Nessun locale ti ha invitato' : sede ? `Le sedi di ${gruppi[0].nome}` : 'Dove entri?'}
+      </h1>
+      <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', lineHeight: 1.45, margin: '0 0 24px' }}>
+        {amb.length === 0
+          ? 'Le tue appartenenze sono state disattivate: rivolgiti al titolare del locale.'
+          : sede ? `Questo telefono è di ${DISPOSITIVO.nome.split(' · ')[0].toLowerCase()}: scegli la sede in cui lavori oggi.`
+                 : `Ciao ${PERSONA.nome.split(' ')[0]}, questi sono i locali che ti hanno invitato.`}
+      </p>
+
+      {gruppi.map(g => (
+        <div key={g.id} style={{ marginBottom: 18 }}>
+          {!sede && g.voci.length > 1 && (
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 8 }}>{g.nome}</div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {g.voci.map(a => (
+              <button key={a.venue_id} onClick={() => entraIn(a)} style={{
+                display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left', width: '100%',
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.16)',
+                borderRadius: ST.R_LG, padding: '14px 16px', cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{a.sede}</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{a.citta} · {a.ruolo}</div>
+                </div>
+                <I.ChevRight s={18} c="rgba(255,255,255,0.5)"/>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <div style={{ flex: 1 }}/>
+      <button onClick={() => nav.reset({ s: 'login' })} style={{
+        alignSelf: 'center', background: 'transparent', border: 'none',
+        color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+      }}>{amb.length === 0 ? 'Torna al login' : 'Esci'}</button>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// ACCESSO DISATTIVATO (D-41 · P-53) — a sessione aperta
+// ═══════════════════════════════════════════════════════════
+// Il titolare ha spento l'appartenenza mentre la persona era dentro: la
+// sessione si è chiusa alla sua prima azione e qui glielo si dice senza
+// drammi. L'approdo è la lista se restano appartenenze attive, il login se
+// era l'unica — evoluzione rispetto alla voce, che diceva solo login: con
+// altri locali vivi rimandare al login farebbe rifare un accesso che c'è già.
+function ScreenDisattivato({ nav, locale }) {
+  const restano = staffAmbienti().length > 0;
+  return (
+    <div style={{ minHeight: '100%', background: LOGIN_BG, padding: '64px 24px 32px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+      <div style={{
+        width: 76, height: 76, borderRadius: ST.R_PILL,
+        background: 'rgba(255,90,95,0.18)', border: '1px solid rgba(255,90,95,0.40)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 22,
+      }}><I.Logout s={32} c={ST.PINK}/></div>
+      <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', letterSpacing: -0.4, margin: '0 0 10px', lineHeight: 1.15 }}>Accesso disattivato</h1>
+      <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, margin: '0 0 30px', maxWidth: 300 }}>
+        Il tuo accesso a <b style={{ color: '#fff' }}>{locale}</b> è stato disattivato: rivolgiti al titolare.
+      </p>
+      <PinkBtn onClick={() => nav.reset({ s: restano ? 'locali' : 'login' })} style={{ maxWidth: 300 }}>
+        {restano ? 'Vai ai tuoi locali' : 'Torna al login'}
+      </PinkBtn>
     </div>
   );
 }
@@ -278,4 +360,4 @@ function ScreenRecupero({ nav }) {
   );
 }
 
-Object.assign(window, { ScreenLogin, ScreenRecupero });
+Object.assign(window, { ScreenLogin, ScreenLocali, ScreenDisattivato, ScreenRecupero });

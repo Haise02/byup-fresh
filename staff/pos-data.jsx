@@ -1,11 +1,95 @@
 // Byup Staff — Dati mock (esercente + transazioni)
 
-// Esercente / operatore loggato (account Stripe collegato)
-const MERCHANT = {
-  nome: 'Bar Centrale',
-  operatore: 'Marco Rinaldi',
-  email: 'barcentrale@byup.it',
-};
+// ─── Utenza, appartenenze, contesto (D-41 · P-53) ────────────────────────────
+// L'utenza è della persona, il locale è l'ambiente in cui entra. Le tre regole
+// di D-41 come le legge il prototipo (D-41 non è nel repo: la formulazione è
+// ricavata dalla voce): (1) una persona ha UNA utenza, con la sua email, per
+// quanti siano i locali che l'hanno invitata; (2) ogni locale che la invita le
+// aggiunge una riga in memberships, col ruolo che vale lì — l'invito aggiunge
+// un'appartenenza, l'utenza nasce solo se manca; (3) il locale disattiva
+// l'appartenenza, non l'utenza: memberships.deactivated_at con
+// deactivated_reason, e la persona resta sé stessa negli altri locali.
+// memberships.venue_id nullo = tutte le sedi del ristorante: è il dato che
+// regge il selettore multi-sede.
+// Il contesto scelto vive in sessions.active_restaurant_id / active_venue_id
+// / context_switched_at (qui SESSIONE). MERCHANT resta la costante che tutte
+// le schermate leggono (incasso, pagamento, profilo, Face ID, dettaglio
+// transazione, presa d'atto): al momento della scelta la si DERIVA
+// dall'appartenenza con Object.assign — dichiarato qui perché è l'unico punto
+// in cui una costante cambia sotto i piedi ai suoi lettori.
+// L'account-cassa condiviso fra persone (barcentrale@byup.it) non esiste più:
+// nome ed email nel seme sono della persona.
+const PERSONA = { id: 'u_marco', nome: 'Marco Rinaldi', email: 'marco.rinaldi@gmail.com' };
+const RISTORANTI = [
+  { id: 'r_centrale', nome: 'Bar Centrale', sedi: [{ id: 'v_centrale', nome: 'Bar Centrale', citta: 'Milano' }] },
+  { id: 'r_borgo', nome: 'Trattoria del Borgo', sedi: [
+    { id: 'v_borgo_centro', nome: 'Trattoria del Borgo · Centro', citta: 'Bologna' },
+    { id: 'v_borgo_fiera',  nome: 'Trattoria del Borgo · Fiera',  citta: 'Bologna' },
+  ] },
+];
+// memberships: una riga per locale che ha invitato la persona.
+const APPARTENENZE = [
+  { id: 'm_1', user_id: 'u_marco', restaurant_id: 'r_centrale', venue_id: 'v_centrale', ruolo: 'Cassa', invited_at: '2025-11-03', deactivated_at: null, deactivated_reason: null },
+  // venue_id nullo = tutte le sedi della Trattoria del Borgo.
+  { id: 'm_2', user_id: 'u_marco', restaurant_id: 'r_borgo',    venue_id: null,         ruolo: 'Cassa', invited_at: '2026-05-20', deactivated_at: null, deactivated_reason: null },
+];
+// sessions.*: il contesto scelto, vuoto finché la persona non entra.
+const SESSIONE = { active_restaurant_id: null, active_venue_id: null, membership_id: null, context_switched_at: null };
+
+// Il telefono. Personale per default; ?dispositivo=locale è il telefono della
+// sede, il dispositivo censito di P-105 — un'utenza tecnica di dispositivo
+// (contact_type device: senza persona, senza consensi, fuori dalle campagne
+// per costruzione) che appartiene alla sede. Chi ci entra sopra entra nel suo
+// ambiente senza scegliere, salvo le altre sedi dello stesso ristorante.
+const DISPOSITIVO = (() => {
+  let tipo = 'personale';
+  try { if (new URLSearchParams(window.location.search).get('dispositivo') === 'locale') tipo = 'locale'; } catch (e) {}
+  return tipo === 'locale'
+    ? { tipo, contact_type: 'device', restaurant_id: 'r_borgo', venue_id: 'v_borgo_centro', nome: 'iPhone della cassa · Centro' }
+    : { tipo, contact_type: null };
+})();
+
+// Gli ambienti in cui la persona può entrare: le appartenenze attive, espanse
+// per sede (venue_id nullo = tutte). Sul telefono della sede restano le sole
+// sedi di quel ristorante.
+function staffAmbienti() {
+  const out = [];
+  APPARTENENZE.filter(m => !m.deactivated_at).forEach(m => {
+    const r = RISTORANTI.find(x => x.id === m.restaurant_id); if (!r) return;
+    r.sedi.filter(sd => !m.venue_id || sd.id === m.venue_id).forEach(sd => out.push({
+      membership_id: m.id, restaurant_id: r.id, ristorante: r.nome, venue_id: sd.id, sede: sd.nome, citta: sd.citta, ruolo: m.ruolo, multiSede: r.sedi.length > 1,
+    }));
+  });
+  return DISPOSITIVO.tipo === 'locale' ? out.filter(a => a.restaurant_id === DISPOSITIVO.restaurant_id) : out;
+}
+
+// La scelta: SESSIONE prende il contesto, MERCHANT si deriva.
+function staffEntra(a) {
+  Object.assign(SESSIONE, { active_restaurant_id: a.restaurant_id, active_venue_id: a.venue_id, membership_id: a.membership_id, context_switched_at: new Date() });
+  Object.assign(MERCHANT, { nome: a.sede, ristorante: a.ristorante, ruolo: a.ruolo, operatore: PERSONA.nome, email: PERSONA.email });
+}
+// Il logout NON svuota SESSIONE: l'ultimo contesto resta, come
+// sessions.active_* sul server, ed è quello che il Face ID riprende.
+// Si svuota solo quando l'appartenenza viene spenta.
+function staffEsci() { Object.assign(SESSIONE, { active_restaurant_id: null, active_venue_id: null, membership_id: null, context_switched_at: null }); }
+
+// La persona disattivata a sessione aperta: il titolare la spegne da Personale
+// mentre lei è dentro. Qui arriva dalla console (BYUP_STAFF_DISATTIVA()) o da
+// ?disattiva=1, che la innesca alla prima azione dopo l'ingresso; la sessione
+// se ne accorge alla prossima azione (nav e openModal in POSApp), non prima.
+function staffDisattiva(reason) {
+  const m = APPARTENENZE.find(x => x.id === SESSIONE.membership_id);
+  if (!m || m.deactivated_at) return false;
+  m.deactivated_at = new Date(); m.deactivated_reason = reason || 'owner_deactivated';
+  return true;
+}
+function staffAccessoRevocato() { const m = APPARTENENZE.find(x => x.id === SESSIONE.membership_id); return !!(m && m.deactivated_at); }
+const DISATTIVA_DEMO = (() => { try { return new URLSearchParams(window.location.search).get('disattiva') === '1'; } catch (e) { return false; } })();
+window.BYUP_STAFF_DISATTIVA = (reason) => staffDisattiva(reason);
+
+// Il contesto letto da tutte le schermate: derivato da staffEntra. Nome ed
+// email sono della persona (D-41), il locale arriva dalla scelta.
+const MERCHANT = { nome: '', ristorante: '', ruolo: '', operatore: PERSONA.nome, email: PERSONA.email };
 
 // Coda di incasso — conti inviati dal gestionale, in attesa di pagamento sul POS.
 // Il POS non sfoglia i tavoli aperti: pesca da questa coda. Il conto arriva già
@@ -75,4 +159,4 @@ if (!window.byupNotteInfo) {
   window.byupNotteConta = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-Object.assign(window, { MERCHANT, CODA_INCASSO, TRANSAZIONI, INCASSO_OGGI, N_OGGI });
+Object.assign(window, { MERCHANT, PERSONA, RISTORANTI, APPARTENENZE, SESSIONE, DISPOSITIVO, DISATTIVA_DEMO, staffAmbienti, staffEntra, staffEsci, staffDisattiva, staffAccessoRevocato, CODA_INCASSO, TRANSAZIONI, INCASSO_OGGI, N_OGGI });

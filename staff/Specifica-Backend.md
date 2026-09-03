@@ -197,8 +197,20 @@ sequenceDiagram
 
 - Metodi: **email/password** e **Google SSO**.
 - Emissione di **access token** (breve) + **refresh token** (sessione). Un locale può avere
-  **più account abilitati** (Contesto §5.8); l'autorizzazione al `merchantId` è verificata a
+  **più persone abilitate** (Contesto §5.8); l'autorizzazione al contesto attivo è verificata a
   ogni richiesta.
+- **Utenza e appartenenze (D-41 · P-53):** l'utenza è della persona (`users`, email sua); ogni
+  locale che la invita aggiunge una riga in `memberships` (`restaurant_id`, `venue_id` nullo =
+  tutte le sedi, ruolo, `deactivated_at`, `deactivated_reason`); il contesto scelto al login sta
+  in `sessions.active_restaurant_id` / `active_venue_id` / `context_switched_at`. Il telefono
+  della sede è un'utenza tecnica di dispositivo (`contact_type = device`, senza persona né
+  consensi) che entra nella sua sede senza selettore, salvo le altre sedi dello stesso ristorante.
+- **Disattivazione a sessione aperta:** quando il titolare spegne l'appartenenza
+  (`memberships.deactivated_at` + `deactivated_reason`), la revoca è **immediata e
+  ricostruibile** (PCI DSS req. 8.2.5: l'accesso di chi cessa va revocato subito): le sessioni e
+  la DeviceCredential legate a quella persona su quel contesto vengono invalidate, la richiesta
+  successiva riceve 401 col motivo, e l'app chiude la sessione sulla schermata «il tuo accesso a
+  {locale} è stato disattivato».
 - **Logout esplicito** invalida la sessione e (vedi 8.2) la credenziale Face ID del dispositivo.
 
 ### 8.2 Face ID = credenziale di dispositivo
@@ -208,7 +220,9 @@ sequenceDiagram
   vede e non conserva** alcun dato biometrico (Contesto §5.6).
 - Endpoint: `POST /auth/device-credential` (enroll, dopo login valido) /
   `DELETE /auth/device-credential` (revoca).
-- Revoca server-side: al **cambio password**, da "dispositivi collegati", o al logout esplicito.
+- Revoca server-side: al **cambio password**, da "dispositivi collegati", al logout esplicito, e
+  alla **disattivazione dell'appartenenza** (8.1: `deactivated_reason`, PCI DSS 8.2.5) — la
+  credenziale di dispositivo non deve sopravvivere alla persona che il locale ha spento.
 - Il re-login con Face ID scambia la DeviceCredential per un nuovo access token, senza password.
 - **Nota UI/prototipo**: il "primo tentativo fallisce sempre" del prototipo è solo simulazione
   visiva; il backend non ha alcun ruolo nel risultato del riconoscimento biometrico (è locale
