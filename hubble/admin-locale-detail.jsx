@@ -1763,9 +1763,13 @@ function DrwFatturazione({ locale: l }) {
 // stato rifiutato e perché. La revisione resta in Assistenza: qui si legge,
 // là si lavora.
 const CERT_STATI_DRW = {
-  pending:   { label: 'In revisione', color: 'WARN' },
-  approvata: { label: 'Approvata',    color: 'OK' },
-  rifiutata: { label: 'Rifiutata',    color: 'DANGER' },
+  pending:    { label: 'In revisione', color: 'WARN' },
+  approvata:  { label: 'Approvata',    color: 'OK' },
+  rifiutata:  { label: 'Rifiutata',    color: 'DANGER' },
+  // Le autodichiarazioni (P-61): presa d'atto, nessuna revisione; Conformità
+  // può contestarle dopo, con motivo.
+  dichiarata: { label: 'Autodichiarata', color: 'TEAL' },
+  contestata: { label: 'Contestata',     color: 'DANGER' },
 };
 
 function DrwCertificazioni({ locale: l, onCambia }) {
@@ -1821,6 +1825,15 @@ function DrwCertificazioni({ locale: l, onCambia }) {
     sincronizzaTicket(c, { stato: 'rifiutata', revisedAt: c.revisedAt, revisedBy: c.revisedBy, motivo: c.motivo });
     flash(`${c.file} rifiutata — anche il ticket in Assistenza si chiude`); chiudi(); ridisegna();
   };
+  // La contestazione ex post di un'autodichiarazione: motivo obbligatorio,
+  // Scrittura su Conformità, audit. La riga non si cancella: cambia stato.
+  const confermaContesta = () => {
+    if (!popup || !motivo.trim()) return;
+    const c = popup.cert;
+    c.stato = 'contestata'; c.revisedAt = new Date(); c.revisedBy = io(); c.motivo = motivo.trim();
+    AUDIT_EVENTS.unshift({ who: io(), action: 'ha contestato l\'autodichiarazione', target: `${(CERT_TIPI[c.tipo] || {}).label || c.tipo} · ${l.nome} · ${c.motivo}`, icon: 'alertTriangle', color: 'WARN', tipo: 'cert', when: new Date() });
+    flash(`Autodichiarazione contestata: il locale riceve il motivo`); chiudi(); ridisegna();
+  };
   const confermaElimina = () => {
     if (!popup) return;
     const i = CERTIFICAZIONI.indexOf(popup.cert);
@@ -1866,23 +1879,30 @@ function DrwCertificazioni({ locale: l, onCambia }) {
               </span>
               <div style={{flex:1, minWidth:0}}>
                 <div style={{fontSize:14.6, fontWeight:700, color:ADM.TEXT}}>{tipo.label}</div>
-                <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>Ente {tipo.ente} · {c.id}</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1}}>{certAutodichiarata(c.tipo) ? 'Autodichiarazione · senza documento' : `Ente indicativo: ${tipo.ente}`} · {c.id}</div>
               </div>
               <AdmBadge color={st.color} size="xs">{st.label}</AdmBadge>
             </div>
-            {/* Il documento SI SCARICA: la riga porta il suo bottone. */}
-            <div style={{display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:ADM.PANEL_SOFT, borderRadius:9, marginBottom:4}}>
-              <BuIcons.filePdf size={18} color={ADM.PINK}/>
-              <span style={{flex:1, minWidth:0, fontFamily:'ui-monospace,monospace', fontSize:12.6, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.file} <span style={{color:ADM.MUTED_SOFT}}>({c.size})</span></span>
-              <AdmButton variant="ghost" size="sm" icon="download" onClick={() => scarica(c)}>Scarica</AdmButton>
-            </div>
-            <DataRow label="Inviata il" value={fmtDate(c.dataInvio)}/>
+            {/* Il documento SI SCARICA: la riga porta il suo bottone. Le
+                autodichiarazioni non ne hanno: lo dicono, senza scarico. */}
+            {certAutodichiarata(c.tipo) ? (
+              <div style={{padding:'9px 12px', background:ADM.TEAL_SOFT, borderRadius:9, marginBottom:4, fontSize:12.6, color:ADM.TEXT, lineHeight:1.5}}>
+                <b>Autodichiarata · senza documento.</b> Presa d'atto: nessuna revisione. Se qualcosa non torna, Conformità la contesta qui sotto, con motivo.
+              </div>
+            ) : (
+              <div style={{display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:ADM.PANEL_SOFT, borderRadius:9, marginBottom:4}}>
+                <BuIcons.filePdf size={18} color={ADM.PINK}/>
+                <span style={{flex:1, minWidth:0, fontFamily:'ui-monospace,monospace', fontSize:12.6, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{c.file} <span style={{color:ADM.MUTED_SOFT}}>({c.size})</span></span>
+                <AdmButton variant="ghost" size="sm" icon="download" onClick={() => scarica(c)}>Scarica</AdmButton>
+              </div>
+            )}
+            <DataRow label={certAutodichiarata(c.tipo) ? 'Dichiarata il' : 'Inviata il'} value={fmtDate(c.dataInvio)}/>
             {c.scadenzaCert && <DataRow label="Scade il" value={
               scaduta(c)
                 ? <span style={{color:ADM.DANGER, fontWeight:700}}>{fmtDate(c.scadenzaCert)} — scaduta</span>
                 : fmtDate(c.scadenzaCert)
             }/>}
-            {c.revisedAt && <DataRow label="Revisionata il" value={`${fmtDate(c.revisedAt)} · ${c.revisedBy}`} last={!c.motivo}/>}
+            {c.revisedAt && <DataRow label={c.stato === 'contestata' ? 'Contestata il' : 'Revisionata il'} value={`${fmtDate(c.revisedAt)} · ${c.revisedBy}`} last={!c.motivo}/>}
             {/* Il motivo del rifiuto per esteso: è la risposta alla domanda
                 con cui si apre questo fascicolo — «perché non è passata?» */}
             {c.motivo && (
@@ -1899,6 +1919,10 @@ function DrwCertificazioni({ locale: l, onCambia }) {
                   <AdmButton variant="primary" size="sm" icon="check" onClick={() => approva(c)}>Approva</AdmButton>
                   <AdmButton variant="danger" size="sm" icon="x" onClick={() => { setPopup({ tipo: 'rifiuta', cert: c }); setMotivo(''); }}>Rifiuta…</AdmButton>
                 </React.Fragment>
+              )}
+              {c.stato === 'dichiarata' && (
+                <AdmButton variant="secondary" size="sm" icon="alertTriangle" disabled={!hubPuo('conformita', 'scrittura')} title={hubPuo('conformita', 'scrittura') ? undefined : 'Serve Scrittura su Conformità'}
+                  onClick={() => { setPopup({ tipo: 'contesta', cert: c }); setMotivo(''); }}>Contesta…</AdmButton>
               )}
               <div style={{flex:1}}/>
               <AdmButton variant="ghost" size="sm" icon="calendar" onClick={() => { setPopup({ tipo: 'scadenza', cert: c }); setDataScad(c.scadenzaCert ? c.scadenzaCert.toISOString().slice(0, 10) : ''); }}>Imposta scadenza…</AdmButton>
@@ -1930,11 +1954,27 @@ function DrwCertificazioni({ locale: l, onCambia }) {
                 </div>
               </React.Fragment>
             )}
+            {popup.tipo === 'contesta' && (
+              <React.Fragment>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Contesta l'autodichiarazione</div>
+                <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
+                  {(CERT_TIPI[popup.cert.tipo] || {}).label} · l'intervento ex post di Conformità: il locale riceve il motivo, e la dichiarazione esce dalla vetrina finché non è chiarita.
+                </div>
+                <span style={drwLab}>Motivo (obbligatorio)</span>
+                <textarea autoFocus value={motivo} onChange={e => setMotivo(e.target.value)} rows={3}
+                  placeholder="Es. segnalazione di un cliente, menù che contraddice la dichiarazione…"
+                  style={{...drwInp, resize:'vertical', marginBottom:14}}/>
+                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                  <AdmButton variant="ghost" size="md" onClick={chiudi}>Annulla</AdmButton>
+                  <AdmButton variant="danger" size="md" icon="alertTriangle" disabled={!motivo.trim()} onClick={confermaContesta}>Contesta</AdmButton>
+                </div>
+              </React.Fragment>
+            )}
             {popup.tipo === 'elimina' && (
               <React.Fragment>
                 <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Eliminare la certificazione?</div>
                 <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:16, lineHeight:1.5}}>
-                  {popup.cert.file} sparisce dal fascicolo di {l.nome} e dai badge sulle superfici pubbliche. L'azione non si annulla.
+                  {popup.cert.file || (CERT_TIPI[popup.cert.tipo] || {}).label} sparisce dal fascicolo di {l.nome} e dai badge sulle superfici pubbliche. L'azione non si annulla.
                 </div>
                 <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                   <AdmButton variant="ghost" size="md" onClick={chiudi}>Annulla</AdmButton>

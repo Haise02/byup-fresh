@@ -163,6 +163,37 @@ const HUB_PN_GUSTI = [
   { id:'kebab',         kind:'food_tag', label:'Kebab',         selectable_by_consumer:true,  is_dietary_regime:false },
   { id:'frittura',      kind:'food_tag', label:'Frittura',      selectable_by_consumer:true,  is_dietary_regime:false },
 ];
+// Copie VERBATIM di PN_SERVIZI e PN_ALLERGENI (gestionale/panoramica-tokens.jsx,
+// P-67 · L1-30 e P-24 · D-27) per la pillola «Dizionari» di Piattaforma:
+// sola lettura, la fonte è il gestionale finché il dizionario non sarà
+// servito dalla piattaforma.
+const HUB_PN_SERVIZI = [
+  { id:'wifi_gratuito',             kind:'amenity',      label:'WiFi gratuito',             icon:'wifi'       },
+  { id:'dehors',                    kind:'amenity',      label:'Dehors',                    icon:'dehors'     },
+  { id:'parcheggio',                kind:'amenity',      label:'Parcheggio',                icon:'car'        },
+  { id:'accessibile_in_carrozzina', kind:'amenity',      label:'Accessibile in carrozzina', icon:'wheelchair' },
+  { id:'animali_ammessi',           kind:'amenity',      label:'Animali ammessi',           icon:'paw'        },
+  { id:'menu_non_vedenti',          kind:'amenity',      label:'Menù per non vedenti',      icon:'braille'    },
+  { id:'servizio_al_tavolo',        kind:'service_mode', label:'Servizio al tavolo',        icon:'bell'       },
+  { id:'al_banco',                  kind:'service_mode', label:'Al banco',                  icon:'banco'      },
+];
+const HUB_PN_ALLERGENI = [
+  { id: 'glutine',      code: 'gluten',      label: 'Glutine',         hint: 'Pane, pasta, dolci',           color: '#c8a87a', icon: '🌾' },
+  { id: 'crostacei',    code: 'crustaceans', label: 'Crostacei',       hint: 'Gamberi, scampi, granchio',    color: '#e88a5a', icon: '🦐' },
+  { id: 'uova',         code: 'eggs',        label: 'Uova',            hint: 'Frittate, dolci, salse',       color: '#f0c14b', icon: '🥚' },
+  { id: 'pesce',        code: 'fish',        label: 'Pesce',           hint: 'Acciughe, salse di pesce',     color: '#d96a52', icon: '🐟' },
+  { id: 'arachidi',     code: 'peanuts',     label: 'Arachidi',        hint: 'Creme, salse, fritti',         color: '#c89860', icon: '🥜' },
+  { id: 'soia',         code: 'soybeans',    label: 'Soia',            hint: 'Tofu, tempeh, salsa di soia',  color: '#9ec27a', icon: '🌱' },
+  { id: 'lattosio',     code: 'milk',        label: 'Lattosio',        hint: 'Latte, formaggi, burro',       color: '#f5c2c7', icon: '🥛' },
+  { id: 'fruttaguscio', code: 'nuts',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle',     color: '#a07050', icon: '🥜' },
+  { id: 'sedano',       code: 'celery',      label: 'Sedano',          hint: 'Brodi, soffritti',             color: '#7ec98a', icon: '🥬' },
+  { id: 'senape',       code: 'mustard',     label: 'Senape',          hint: 'Salse, marinature',            color: '#e8c850', icon: '🌶' },
+  { id: 'sesamo',       code: 'sesame',      label: 'Sesamo',          hint: 'Pane, hummus, condimenti',     color: '#d4b06a', icon: '⚪' },
+  { id: 'solfiti',      code: 'sulphites',   label: 'Solfiti',         hint: 'Vino, frutta secca, conserve', color: '#b07ac0', icon: '🍇' },
+  { id: 'lupini',       code: 'lupin',       label: 'Lupini',          hint: 'Farine, sostituti vegetali',   color: '#f0b878', icon: '🫘' },
+  { id: 'molluschi',    code: 'molluscs',    label: 'Molluschi',       hint: 'Cozze, vongole, calamari',     color: '#7aa8c8', icon: '🐚' },
+];
+
 const HUB_GUSTI_SCEGLIBILI = HUB_PN_GUSTI.filter(g => g.kind === 'food_tag' && g.selectable_by_consumer);
 // I gusti di un utente app: dal profilo dell'app, che qui non c'è — si
 // derivano stabili dal seme, uno-tre gusti per circa sette utenti su dieci,
@@ -1013,6 +1044,8 @@ window.hubInterrogaPosta = hubInterrogaPosta;
 window.hubSoloGusti = hubSoloGusti;
 window.hubSembraPromo = hubSembraPromo;
 window.HUB_PN_GUSTI = HUB_PN_GUSTI;
+window.HUB_PN_SERVIZI = HUB_PN_SERVIZI;
+window.HUB_PN_ALLERGENI = HUB_PN_ALLERGENI;
 window.HUB_GUSTI_SCEGLIBILI = HUB_GUSTI_SCEGLIBILI;
 window.hubGustiDi = hubGustiDi;
 window.hubUsaGusti = hubUsaGusti;

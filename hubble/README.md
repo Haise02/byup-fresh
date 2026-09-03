@@ -118,7 +118,11 @@ il resto vive nelle tab.
    sono la materia dell'**estrazione del registro operazioni** (P-47 · D-38):
    si chiede da Assistenza → Estrazioni, con motivo e nota, dietro Scrittura
    su Conformità, e l'estrazione resta a registro e in audit.
-6. **Certificazioni** — fascicolo operativo: documento scaricabile, approva /
+6. **Certificazioni** — le dodici del modello (P-61 · RL-06, `CERT_TIPI`, che il
+   gestionale copia): nove con ente e documento, tre autodichiarazioni
+   (vegetariano, senza lattosio, filiera corta) mostrate «Autodichiarata ·
+   senza documento», senza scarico né revisione — presa d'atto, con «Contesta…»
+   di Conformità ex post; l'ente è sempre indicativo. Fascicolo operativo: documento scaricabile, approva /
    rifiuta con motivazione, elimina, imposta scadenza (mai nel passato);
    «Scaduta» si deriva dall'orologio; ogni decisione si **sincronizza col
    ticket** in Assistenza (stessa pratica, due superfici).

@@ -706,6 +706,9 @@ function PlatformConfig() {
     { id:'pesi',      label:'Coefficienti del piano' },
     { id:'discovery', label:'Discovery' },
     { id:'accrediti', label:'Accrediti', badge: ACCREDITI.filter(a => a.stato === 'in_attesa').length },
+    // La pillola «Dizionari» (coda di P-29): i dizionari di piattaforma in
+    // sola lettura, con la dicitura sulla fonte. Fuori dal salvataggio.
+    { id:'dizionari', label:'Dizionari' },
   ];
 
   return (
@@ -899,12 +902,45 @@ function PlatformConfig() {
       </React.Fragment>
       )}
 
+      {vista === 'dizionari' && (() => {
+        const tab = (titolo, sotto, righe) => (
+          <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+            <div style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT}}>{titolo}</div>
+            <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2, marginBottom:10}}>{sotto}</div>
+            <div style={{display:'flex', flexWrap:'wrap', gap:6}}>
+              {righe.map(r => (
+                <span key={r.id} title={r.desc || r.hint || ''} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 9px', borderRadius:999, background:ADM.NEUTRAL_SOFT, fontSize:12.3, color:ADM.TEXT}}>
+                  <span style={{fontWeight:700}}>{r.label}</span>
+                  <span style={{fontFamily:'ui-monospace,monospace', fontSize:10.8, color:ADM.MUTED_SOFT}}>{r.id}</span>
+                  {r.tag && <span style={{fontSize:10.5, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.04em'}}>{r.tag}</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+        return (
+      <React.Fragment>
+      <div style={{padding:'10px 13px', borderRadius:10, background:ADM.WARN_SOFT, border:'1px solid #F0DCB4', fontSize:12.6, color:'#7A4A0B', lineHeight:1.5}}>
+        Dizionari di piattaforma, in sola lettura. Hubble li governa, ma finché il dizionario non sarà servito dalla piattaforma la fonte è il gestionale (panoramica-tokens.jsx) e questa è la sua copia: si cambia di là, e i due bundle si allineano a mano. Il salvataggio qui sotto non li tocca.
+      </div>
+      {tab('Gusti e categorie di locale', 'PN_GUSTI · P-29 · D-28: otto categorie (una per locale) e i tag cibo; i tre regimi non sono mai un criterio (art. 9).',
+        HUB_PN_GUSTI.map(g => ({ id: g.id, label: g.label, desc: g.desc, tag: g.kind === 'venue_category' ? 'categoria' : g.is_dietary_regime ? 'regime' : (g.selectable_by_consumer ? 'gusto' : 'tag') })))}
+      {tab('Servizi del locale', 'PN_SERVIZI · P-67 · L1-30: dotazioni e modalità di servizio (venue_amenities).',
+        HUB_PN_SERVIZI.map(x => ({ id: x.id, label: x.label, tag: x.kind === 'service_mode' ? 'modalità' : 'dotazione' })))}
+      {tab('Certificazioni alimentari', 'CERT_TIPI · P-61 · RL-06: le dodici del modello; le autodichiarazioni non hanno documento da caricare, l\'ente è sempre indicativo.',
+        Object.entries(CERT_TIPI).map(([id, c]) => ({ id, label: c.label, desc: c.desc + ' · ente indicativo: ' + c.ente, tag: c.requires_document ? 'con documento' : 'autodichiarazione' })))}
+      {tab('Allergeni', 'PN_ALLERGENI · P-24 · D-27: i quattordici dell\'Allegato II del Reg. UE 1169/2011, per codice — mai testo libero.',
+        HUB_PN_ALLERGENI.map(a => ({ id: a.id, label: a.label, desc: a.hint, tag: a.code })))}
+      </React.Fragment>
+        );
+      })()}
+
       {/* Fuori dalle tab: si salva tutto, non la tab aperta. */}
       <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10,
         paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
         {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Configurazione salvata e registrata in audit</span>}
         <span style={{flex:1, fontSize:12.2, color:ADM.MUTED_SOFT}}>
-          Il salvataggio applica tutte e quattro le sezioni, non solo quella aperta.
+          Il salvataggio applica le quattro sezioni di leve, non solo quella aperta; i Dizionari sono in sola lettura.
         </span>
         <AdmButton variant="primary" size="md" icon="check" onClick={()=>setConfirm(true)}>Salva configurazione</AdmButton>
       </div>

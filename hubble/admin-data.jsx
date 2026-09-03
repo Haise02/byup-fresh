@@ -628,29 +628,45 @@ const SEGNALAZIONI = [
 // ---------- CERTIFICAZIONI ALIMENTARI (food / dietary)
 // Solo certificazioni che riguardano regimi alimentari, intolleranze, religioni:
 // non documenti commerciali (visura, licenza, SCIA).
+// Le dodici del modello (P-61 · RL-06), coi loro codici: prototipo e modello
+// divergevano (nove qui, cinque nel gestionale, nomi diversi). Due nature:
+// le certificazioni con ente e documento, e le AUTODICHIARAZIONI —
+// vegetariano, senza lattosio, filiera corta — senza documento da caricare:
+// presa d'atto, nessuna revisione, con intervento ex post di Conformità se
+// serve. L'ente è sempre INDICATIVO: dice chi di solito rilascia, non chi ha
+// rilasciato questa. Il gestionale ne porta la copia (impostazioni-vetrina).
 const CERT_TIPI = {
-  aic:        { label: 'Senza glutine · AIC',          desc: 'Associazione Italiana Celiachia',           ente: 'AIC' },
-  halal:      { label: 'Halal',                        desc: 'Conforme alla legge islamica',             ente: 'Halal Italia' },
-  kosher:     { label: 'Kosher',                       desc: 'Conforme alle norme dietetiche ebraiche',  ente: 'Rabbinato' },
-  vegan_eve:  { label: 'Vegan · V-Label',              desc: 'Menu o piatti 100% vegani',                ente: 'V-Label' },
-  vegetarian: { label: 'Vegetariano · V-Label',        desc: 'Menu o piatti vegetariani certificati',    ente: 'V-Label' },
-  bio:        { label: 'Biologico',                    desc: 'Materie prime biologiche certificate',     ente: 'ICEA / CCPB' },
-  km0:        { label: 'Km0 · Filiera corta',          desc: 'Materie prime locali tracciabili',         ente: 'Coldiretti' },
-  dop_igp:    { label: 'DOP / IGP',                    desc: 'Prodotti a denominazione protetta',        ente: 'MIPAAF' },
-  lactose:    { label: 'Senza lattosio',               desc: 'Menu sicuro per intolleranti al lattosio', ente: 'Auto-dichiarata' },
+  aic_spiga_barrata:  { label: 'Senza glutine · Spiga Barrata', desc: 'Marchio AIC per i locali senza glutine',        ente: 'AIC',                          requires_document: true },
+  biologico_ue:       { label: 'Biologico UE',                   desc: 'Materie prime biologiche certificate',         ente: 'Organismo di controllo (ICEA, CCPB…)', requires_document: true },
+  vegan_ok:           { label: 'VeganOK',                        desc: 'Menu o piatti vegani certificati',             ente: 'VeganOK',                      requires_document: true },
+  vegetariano:        { label: 'Vegetariano',                    desc: 'Menu o piatti vegetariani',                    ente: 'Autodichiarazione',            requires_document: false },
+  senza_lattosio:     { label: 'Senza lattosio',                 desc: 'Menu sicuro per intolleranti al lattosio',     ente: 'Autodichiarazione',            requires_document: false },
+  filiera_corta:      { label: 'Filiera corta',                  desc: 'Materie prime locali tracciabili',             ente: 'Autodichiarazione',            requires_document: false },
+  halal:              { label: 'Halal',                          desc: 'Conforme alla legge islamica',                 ente: 'Halal Italia',                 requires_document: true },
+  kosher:             { label: 'Kosher',                         desc: 'Conforme alle norme dietetiche ebraiche',      ente: 'Rabbinato',                    requires_document: true },
+  dop:                { label: 'DOP',                            desc: 'Prodotti a denominazione di origine protetta', ente: 'Consorzio di tutela',          requires_document: true },
+  igp:                { label: 'IGP',                            desc: 'Prodotti a indicazione geografica protetta',   ente: 'Consorzio di tutela',          requires_document: true },
+  stg:                { label: 'STG',                            desc: 'Specialità tradizionale garantita',            ente: 'Consorzio di tutela',          requires_document: true },
+  presidio_slow_food: { label: 'Presidio Slow Food',             desc: 'Prodotti dei Presìdi Slow Food in menù',       ente: 'Slow Food',                    requires_document: true },
 };
+const certAutodichiarata = (tipo) => !!(CERT_TIPI[tipo] && CERT_TIPI[tipo].requires_document === false);
 
 const CERTIFICAZIONI = [
-  { id: 'C001', localeId: 'L1008', tipo: 'aic',        stato: 'pending', dataInvio: new Date(Date.now() - 3600000 * 4),  scadenzaCert: new Date('2027-03-15'), file: 'AIC_attestato_2025.pdf', size: '1.2 MB' },
+  { id: 'C001', localeId: 'L1008', tipo: 'aic_spiga_barrata', stato: 'pending', dataInvio: new Date(Date.now() - 3600000 * 4),  scadenzaCert: new Date('2027-03-15'), file: 'AIC_attestato_2025.pdf', size: '1.2 MB' },
   { id: 'C002', localeId: 'L1014', tipo: 'halal',      stato: 'pending', dataInvio: new Date(Date.now() - 3600000 * 12), scadenzaCert: new Date('2026-12-30'), file: 'Halal_Italia_cert.pdf', size: '847 KB' },
-  { id: 'C003', localeId: 'L1019', tipo: 'vegan_eve',  stato: 'pending', dataInvio: new Date(Date.now() - 86400000),     scadenzaCert: new Date('2027-01-15'), file: 'V-Label_vegan.pdf', size: '1.1 MB' },
-  { id: 'C004', localeId: 'L1021', tipo: 'aic',        stato: 'pending', dataInvio: new Date(Date.now() - 86400000 * 2), scadenzaCert: new Date('2026-11-01'), file: 'AIC_2025.pdf', size: '980 KB' },
-  { id: 'C005', localeId: 'L1024', tipo: 'bio',        stato: 'pending', dataInvio: new Date(Date.now() - 86400000 * 3), scadenzaCert: new Date('2027-06-20'), file: 'ICEA_bio_2025.pdf', size: '1.7 MB' },
+  { id: 'C003', localeId: 'L1019', tipo: 'vegan_ok',   stato: 'pending', dataInvio: new Date(Date.now() - 86400000),     scadenzaCert: new Date('2027-01-15'), file: 'V-Label_vegan.pdf', size: '1.1 MB' },
+  { id: 'C004', localeId: 'L1021', tipo: 'aic_spiga_barrata', stato: 'pending', dataInvio: new Date(Date.now() - 86400000 * 2), scadenzaCert: new Date('2026-11-01'), file: 'AIC_2025.pdf', size: '980 KB' },
+  { id: 'C005', localeId: 'L1024', tipo: 'biologico_ue', stato: 'pending', dataInvio: new Date(Date.now() - 86400000 * 3), scadenzaCert: new Date('2027-06-20'), file: 'ICEA_bio_2025.pdf', size: '1.7 MB' },
   { id: 'C006', localeId: 'L1027', tipo: 'kosher',     stato: 'pending', dataInvio: new Date(Date.now() - 86400000 * 5), scadenzaCert: new Date('2027-02-10'), file: 'Kosher_attestato.pdf', size: '650 KB' },
   // history (approved / rejected)
-  { id: 'C007', localeId: 'L1018', tipo: 'aic',        stato: 'approvata', dataInvio: new Date(Date.now() - 86400000 * 30), revisedAt: new Date(Date.now() - 86400000 * 28), revisedBy: 'admin1', file: 'AIC_2024.pdf', size: '1.1 MB' },
+  { id: 'C007', localeId: 'L1018', tipo: 'aic_spiga_barrata', stato: 'approvata', dataInvio: new Date(Date.now() - 86400000 * 30), revisedAt: new Date(Date.now() - 86400000 * 28), revisedBy: 'admin1', file: 'AIC_2024.pdf', size: '1.1 MB' },
   { id: 'C008', localeId: 'L1031', tipo: 'halal',      stato: 'rifiutata', dataInvio: new Date(Date.now() - 86400000 * 20), revisedAt: new Date(Date.now() - 86400000 * 18), revisedBy: 'admin1', motivo: 'Documento scaduto: la certificazione Halal era valida fino al 31/12/2023. Caricare la versione rinnovata.', file: 'Halal_2023.pdf', size: '420 KB' },
-  { id: 'C009', localeId: 'L1019', tipo: 'vegetarian', stato: 'approvata', dataInvio: new Date(Date.now() - 86400000 * 45), revisedAt: new Date(Date.now() - 86400000 * 43), revisedBy: 'admin2', file: 'V-Label_veg.pdf', size: '1.4 MB' },
+  // Le autodichiarazioni: niente file, niente revisione — «dichiarata» è
+  // la presa d'atto. Conformità può contestarla dopo, con motivo.
+  { id: 'C009', localeId: 'L1019', tipo: 'vegetariano',    stato: 'dichiarata', dataInvio: new Date(Date.now() - 86400000 * 45), file: null, size: null },
+  { id: 'C010', localeId: 'L1020', tipo: 'senza_lattosio', stato: 'dichiarata', dataInvio: new Date(Date.now() - 86400000 * 12), file: null, size: null },
+  { id: 'C011', localeId: 'L1025', tipo: 'filiera_corta',  stato: 'dichiarata', dataInvio: new Date(Date.now() - 86400000 * 3),  file: null, size: null },
+  { id: 'C012', localeId: 'L1018', tipo: 'presidio_slow_food', stato: 'approvata', dataInvio: new Date(Date.now() - 86400000 * 60), revisedAt: new Date(Date.now() - 86400000 * 58), revisedBy: 'admin2', scadenzaCert: new Date('2027-05-31'), file: 'Presidio_SlowFood_2026.pdf', size: '780 KB' },
 ];
 
 // ---------- TEAM ADMIN ----------
@@ -1762,6 +1778,7 @@ window.vetStorico = vetStorico;
 window.MOD_MOTIVI = MOD_MOTIVI;
 window.MOD_ESITI = MOD_ESITI;
 window.MOD_DECISIONI = MOD_DECISIONI;
+window.certAutodichiarata = certAutodichiarata;
 window.ESTR_MOTIVI = ESTR_MOTIVI;
 window.ESTRAZIONI = ESTRAZIONI;
 window.estrMotivoLabel = estrMotivoLabel;

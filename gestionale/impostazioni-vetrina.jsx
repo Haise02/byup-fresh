@@ -519,12 +519,12 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
         action={<ImpButton variant="primary" icon={<PnI.Plus size={13}/>} onClick={() => setCertModal({mode:'new'})}>Carica certificazione</ImpButton>}>
         <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
           {VETRINA_CERTS.map(c => (
-            <CertCard key={c.name} cert={c}
-              onOpenRejected={() => setCertModal({mode:'rifiutata', name: c.name, reason: c.reason})}/>
+            <CertCard key={c.tipo} cert={c}
+              onOpenRejected={() => setCertModal({mode:'rifiutata', tipo: c.tipo, reason: c.reason})}/>
           ))}
         </div>
         <div style={{fontSize:13.5, color:PN.MUTED, marginTop:12, lineHeight:1.5}}>
-          Enti accettati: AIC, ICEA, WHAD ITALIA, EIA, Rabbinato Centrale di Roma, VEGANOK.
+          Dodici certificazioni: nove con documento dell'ente (l'ente indicato è sempre indicativo) e tre autodichiarazioni — vegetariano, senza lattosio, filiera corta — senza documento da caricare: Byup ne prende atto e può intervenire dopo.
         </div>
       </CollapsibleCard>
 
@@ -1131,10 +1131,33 @@ function SedeSearchModal({ existing = [], onClose, onAdd }) {
 
 // ─── Certificazioni: card di stato + popup di caricamento ───────────────────
 
+// Le dodici del modello (P-61 · RL-06), copia VERBATIM di CERT_TIPI di Hubble
+// (hubble/admin-data.jsx), che governa il dizionario: prototipo e modello
+// divergevano, e qui c'erano cinque etichette libere. Due nature: con ente e
+// documento, oppure AUTODICHIARAZIONE senza documento da caricare —
+// vegetariano, senza lattosio, filiera corta — che Byup prende d'atto senza
+// revisione e può contestare dopo. L'ente è sempre indicativo.
+const CERT_DIZIONARIO = [
+  { id: 'aic_spiga_barrata',  label: 'Senza glutine · Spiga Barrata', ente: 'AIC',                          requires_document: true },
+  { id: 'biologico_ue',       label: 'Biologico UE',                   ente: 'Organismo di controllo (ICEA, CCPB…)', requires_document: true },
+  { id: 'vegan_ok',           label: 'VeganOK',                        ente: 'VeganOK',                      requires_document: true },
+  { id: 'vegetariano',        label: 'Vegetariano',                    ente: 'Autodichiarazione',            requires_document: false },
+  { id: 'senza_lattosio',     label: 'Senza lattosio',                 ente: 'Autodichiarazione',            requires_document: false },
+  { id: 'filiera_corta',      label: 'Filiera corta',                  ente: 'Autodichiarazione',            requires_document: false },
+  { id: 'halal',              label: 'Halal',                          ente: 'Halal Italia',                 requires_document: true },
+  { id: 'kosher',             label: 'Kosher',                         ente: 'Rabbinato',                    requires_document: true },
+  { id: 'dop',                label: 'DOP',                            ente: 'Consorzio di tutela',          requires_document: true },
+  { id: 'igp',                label: 'IGP',                            ente: 'Consorzio di tutela',          requires_document: true },
+  { id: 'stg',                label: 'STG',                            ente: 'Consorzio di tutela',          requires_document: true },
+  { id: 'presidio_slow_food', label: 'Presidio Slow Food',             ente: 'Slow Food',                    requires_document: true },
+];
+const certDi = (id) => CERT_DIZIONARIO.find(c => c.id === id) || { id, label: id, ente: '—', requires_document: true };
 const VETRINA_CERTS = [
-  { name: 'Senza glutine', status: 'approvata' },
-  { name: 'Biologico',     status: 'attesa',    sent: '12 luglio 2026' },
-  { name: 'Halal',         status: 'rifiutata', reason: 'Documento scaduto: il certificato caricato non riporta la data di rinnovo dell\'ente.' },
+  { tipo: 'aic_spiga_barrata', status: 'approvata' },
+  { tipo: 'biologico_ue',      status: 'attesa',     sent: '12 luglio 2026' },
+  { tipo: 'halal',             status: 'rifiutata',  reason: 'Documento scaduto: il certificato caricato non riporta la data di rinnovo dell\'ente.' },
+  // L'autodichiarazione: dichiarata, senza documento e senza revisione.
+  { tipo: 'vegetariano',       status: 'dichiarata', sent: '20 luglio 2026' },
 ];
 
 function CertCard({ cert, onOpenRejected }) {
@@ -1146,6 +1169,8 @@ function CertCard({ cert, onOpenRejected }) {
     rifiutata: { border: PN.RED,         color: PN.RED,   label: 'Rifiutata · vedi motivo', bg: PN.WHITE },
     // In attesa: grigiastra, con l'icona dell'attesa a destra.
     attesa:    { border: PN.BORDER_SOFT, color: PN.MUTED, label: 'In attesa',            bg: '#F4F5F7' },
+    // Autodichiarata: presa d'atto, nessuna revisione — si dice così.
+    dichiarata:{ border: PN.GREEN,       color: PN.GREEN, label: 'Autodichiarata · senza documento', bg: PN.WHITE },
   }[cert.status];
   return (
     <div
@@ -1164,7 +1189,7 @@ function CertCard({ cert, onOpenRejected }) {
         zIndex: hover ? 2 : 1,
       }}>
       <div style={{flex: 1, minWidth: 0}}>
-        <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{cert.name}</div>
+        <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{certDi(cert.tipo).label}</div>
         <div style={{fontSize: 13.5, color: S.color, fontWeight: 600, marginTop: 3}}>{S.label}</div>
       </div>
       {cert.status === 'attesa' && (
@@ -1186,12 +1211,13 @@ function CertCard({ cert, onOpenRejected }) {
   );
 }
 
-const CERT_TYPES = ['Senza glutine', 'Biologico', 'Vegano', 'Halal', 'Kosher'];
-
 function CertUploadModal({ ctx, onClose }) {
   const rejected = ctx.mode === 'rifiutata';
   // Per cosa è la certificazione: dal rifiuto arriva già selezionata.
-  const [tipo, setTipo] = React.useState(rejected ? ctx.name : null);
+  const [tipo, setTipo] = React.useState(rejected ? ctx.tipo : null);
+  // L'autodichiarazione non ha documento: cambia il testo, sparisce la
+  // zona di caricamento, il pulsante dice «Dichiara».
+  const auto = !!tipo && certDi(tipo).requires_document === false;
   // Feedback loop: idle → sending (spinner) → done (check) → chiusura.
   const [phase, setPhase] = React.useState('idle');
   const send = () => {
@@ -1250,10 +1276,10 @@ function CertUploadModal({ ctx, onClose }) {
         <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>
-              {rejected ? `Ricarica certificazione · ${ctx.name}` : 'Carica certificazione'}
+              {rejected ? `Ricarica certificazione · ${certDi(ctx.tipo).label}` : auto ? 'Dichiara' : 'Carica certificazione'}
             </div>
             <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
-              PDF rilasciato da un ente accettato, max 10MB.
+              {auto ? 'Autodichiarazione: nessun documento da caricare. La rendi sotto la tua responsabilità; Byup ne prende atto e può intervenire dopo.' : 'PDF rilasciato dall\'ente (indicativo: ' + (tipo ? certDi(tipo).ente : 'AIC, VeganOK, Halal Italia…') + '), max 10MB.'}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -1283,22 +1309,28 @@ function CertUploadModal({ ctx, onClose }) {
             Per cosa è la certificazione?
           </div>
           <div style={{display: 'flex', flexWrap: 'wrap', gap: 7}}>
-            {CERT_TYPES.map(t => {
+            {CERT_DIZIONARIO.map(c => {
+              const t = c.id;
               const on = tipo === t;
               return (
-                <button key={t} onClick={() => setTipo(t)} style={{
+                <button key={t} onClick={() => setTipo(t)} title={c.requires_document ? 'Con documento · ente indicativo: ' + c.ente : 'Autodichiarazione, senza documento'} style={{
                   padding: '6px 12px', borderRadius: 999,
                   border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
                   background: on ? PN.PINK : PN.WHITE,
                   color: on ? '#fff' : PN.TEXT,
                   fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'background 150ms ease, border-color 150ms ease, color 150ms ease',
-                }}>{t}</button>
+                }}>{c.label}{!c.requires_document && <span style={{marginLeft: 6, fontSize: 10.5, fontWeight: 800, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.04em'}}>auto</span>}</button>
               );
             })}
           </div>
         </div>
 
+        {auto ? (
+          <div style={{padding: '16px', border: `1.5px solid ${PN.GREEN}`, borderRadius: 12, background: PN.WHITE, marginBottom: 14, fontSize: 13.5, color: PN.TEXT, lineHeight: 1.5}}>
+            <b>Autodichiarazione · senza documento.</b> Dichiari che il locale offre «{certDi(tipo).label}» come descritto nel menù. Non c'è revisione: appare in vetrina come «Autodichiarata», e Byup può contestarla dopo, con motivo, se qualcosa non torna.
+          </div>
+        ) : (
         <div style={{
           padding: '24px 16px', border: `2px dashed ${PN.BORDER}`, borderRadius: 12,
           textAlign: 'center', background: '#FAFBFC', marginBottom: 14, cursor: 'pointer',
@@ -1307,6 +1339,7 @@ function CertUploadModal({ ctx, onClose }) {
           <div style={{fontSize: 14.5, fontWeight: 600, color: PN.TEXT}}>Trascina qui il certificato</div>
           <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2}}>oppure clicca per sfogliare</div>
         </div>
+        )}
 
         <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
           <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
@@ -1320,7 +1353,7 @@ function CertUploadModal({ ctx, onClose }) {
                 }}/>
                 Invio…
               </span>
-            ) : (rejected ? 'Invia di nuovo' : 'Carica')}
+            ) : (rejected ? 'Invia di nuovo' : auto ? 'Dichiara' : 'Carica')}
           </ImpButton>
         </div>
         <style>{`@keyframes cert-spin { to { transform: rotate(360deg); } }`}</style>

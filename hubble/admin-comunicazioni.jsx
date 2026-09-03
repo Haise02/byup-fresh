@@ -15,7 +15,9 @@ const CERT_OGGETTO = 'Richiesta certificazione alimentare';
 // Tutti i ticket arrivano dal titolare di un locale.
 // Le richieste di cert sono "standardizzate": oggetto fisso, no body, solo allegati.
 const COMUNICAZIONI = (() => {
-  const fromCert = CERTIFICAZIONI.map(c => {
+  // Le autodichiarazioni non aprono un ticket: presa d'atto, nessuna revisione
+  // (P-61). Solo chi ha un documento passa da Assistenza.
+  const fromCert = CERTIFICAZIONI.filter(c => !certAutodichiarata(c.tipo)).map(c => {
     const locale = LOCALI.find(l => l.id === c.localeId);
     const stato = c.stato === 'pending' ? 'nuova'
                : c.stato === 'approvata' ? 'approvata'
@@ -1108,7 +1110,7 @@ function CertCard({ certTipo, scadenza, senderName, senderEmail, localeId, local
             {certTipo?.label || '—'}
           </div>
           <div style={{fontSize:13.3, color:ADM.MUTED, marginTop:2}}>
-            Ente {certTipo?.ente || '—'}
+            Ente indicativo: {certTipo?.ente || '—'}
             {scadenza && <> · scadenza {fmtDate(scadenza)}</>}
             <> · inviata {fmtRelative(data)}</>
           </div>
