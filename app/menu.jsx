@@ -1016,39 +1016,32 @@ function MenuScreen({ state, setState, goTo }) {
           })}
         </div>
 
-        {/* Riga 4 (condizionale): pillole filtri attivi rimovibili */}
+        {/* Riga 4 (condizionale): il filtro attivo NON nomina il motivo (P-74 ·
+            D-60). Prima elencava le voci escluse — «Senza glutine», la dieta —
+            e chi guardava il telefono leggeva ciò che la persona ha dichiarato.
+            Il segnale resta (si vede che un filtro c'è), l'ampiezza no: una
+            pillola sola col conteggio, che apre il pannello; i nomi stanno
+            dentro il pannello, dove guarda chi ha filtrato, non chi sbircia.
+            Il residuo di deducibilità si accetta, come per il contrassegno in
+            sala (P-25). */}
         {(dietFilter || Object.values(allergenFilters).some(Boolean)) && (
           <>
-          <div className="hscroll" style={{
-            display: 'flex', gap: 6, padding: '10px 16px 4px',
-            overflowX: 'auto', scrollbarWidth: 'none', borderTop: `1px solid ${BORDER}`,
-          }}>
-            <span style={{ fontSize: 11, color: MUTED, fontWeight: 600, alignSelf: 'center', flexShrink: 0, paddingRight: 4, paddingTop: 2 }}>Filtri:</span>
-            {dietFilter && (() => {
-              const dietLabels = { veg: '🌱 Vegetariano', vegan: '🥗 Vegano', gf: '🌾 Senza glutine' };
+          <div style={{ display: 'flex', gap: 6, padding: '10px 16px 4px', alignItems: 'center', borderTop: `1px solid ${BORDER}` }}>
+            {(() => {
+              const n = Object.values(allergenFilters).filter(Boolean).length + (dietFilter ? 1 : 0);
               return (
-                <button onClick={() => setDietFilter(null)} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto',
-                  background: WINE, color: '#fff', border: 'none',
-                  padding: '5px 8px 5px 11px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                <button onClick={() => setAllergenSheetOpen(true)} style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, flex: '0 0 auto',
+                  background: BADGE, color: '#fff', border: 'none',
+                  padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-                }}>
-                  {dietLabels[dietFilter]}
-                  <span style={{ opacity: 0.85, fontSize: 14, lineHeight: 1, marginLeft: 2 }}>×</span>
-                </button>
+                }}>{n} {n === 1 ? 'filtro attivo' : 'filtri attivi'} <span style={{ opacity: 0.85 }}>›</span></button>
               );
             })()}
-            {Object.entries(allergenFilters).filter(([_, on]) => on).map(([id]) => (
-              <button key={id} onClick={() => setAllergenFilters(f => { const n = {...f}; delete n[id]; return n; })} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4, flex: '0 0 auto',
-                background: BADGE, color: '#fff', border: 'none',
-                padding: '5px 8px 5px 11px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-              }}>
-                Senza {ALLERGENS[id]?.label?.toLowerCase() || id}
-                <span style={{ opacity: 0.85, fontSize: 14, lineHeight: 1, marginLeft: 2 }}>×</span>
-              </button>
-            ))}
+            <button onClick={() => { setDietFilter(null); setAllergenFilters({}); }} style={{
+              background: 'transparent', border: 'none', color: MUTED, fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit', padding: '5px 6px',
+            }}>Togli tutti</button>
           </div>
           {/* Avvertenza fissa quando il filtro allergeni agisce sul menu —
               misura DPIA R1.5 */}
@@ -1260,12 +1253,10 @@ function MenuScreen({ state, setState, goTo }) {
             return dietMatch(d);
           }).slice(0, 6);
           if (picks.length < 2) return null;
-          const dietLabels = { veg: 'vegetariana', vegan: 'vegana', gf: 'senza glutine' };
-          const subtitle = dietFilter
-            ? `Scelti per la tua dieta ${dietLabels[dietFilter] || ''}`.trim()
-            : (Object.values(allergenFilters).some(Boolean)
-              ? 'Senza gli allergeni che eviti'
-              : 'Una selezione pensata per te');
+          // Il sottotitolo non nomina il motivo (P-74): «Scelti per la tua
+          // dieta vegana» e «Senza gli allergeni che eviti» dicevano il
+          // regime a chi guarda il telefono.
+          const subtitle = 'Una selezione pensata per te';
           return (
             <div style={{ marginBottom: 26, marginLeft: -18, marginRight: -18 }}>
               <div style={{ padding: '0 18px 14px' }}>

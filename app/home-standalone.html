@@ -24083,42 +24083,26 @@ function MenuScreen({
       }
     }, t);
   })), (dietFilter || Object.values(allergenFilters).some(Boolean)) && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "hscroll",
     style: {
       display: 'flex',
       gap: 6,
       padding: '10px 16px 4px',
-      overflowX: 'auto',
-      scrollbarWidth: 'none',
+      alignItems: 'center',
       borderTop: `1px solid ${BORDER}`
     }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 11,
-      color: MUTED,
-      fontWeight: 600,
-      alignSelf: 'center',
-      flexShrink: 0,
-      paddingRight: 4,
-      paddingTop: 2
-    }
-  }, "Filtri:"), dietFilter && (() => {
-    const dietLabels = {
-      veg: '🌱 Vegetariano',
-      vegan: '🥗 Vegano',
-      gf: '🌾 Senza glutine'
-    };
+  }, (() => {
+    const n = Object.values(allergenFilters).filter(Boolean).length + (dietFilter ? 1 : 0);
     return /*#__PURE__*/React.createElement("button", {
-      onClick: () => setDietFilter(null),
+      onClick: () => setAllergenSheetOpen(true),
       style: {
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 4,
+        gap: 6,
         flex: '0 0 auto',
-        background: WINE,
+        background: BADGE,
         color: '#fff',
         border: 'none',
-        padding: '5px 8px 5px 11px',
+        padding: '5px 12px',
         borderRadius: 999,
         fontSize: 12,
         fontWeight: 600,
@@ -24126,47 +24110,27 @@ function MenuScreen({
         fontFamily: 'inherit',
         whiteSpace: 'nowrap'
       }
-    }, dietLabels[dietFilter], /*#__PURE__*/React.createElement("span", {
+    }, n, " ", n === 1 ? 'filtro attivo' : 'filtri attivi', " ", /*#__PURE__*/React.createElement("span", {
       style: {
-        opacity: 0.85,
-        fontSize: 14,
-        lineHeight: 1,
-        marginLeft: 2
+        opacity: 0.85
       }
-    }, "\xD7"));
-  })(), Object.entries(allergenFilters).filter(([_, on]) => on).map(([id]) => /*#__PURE__*/React.createElement("button", {
-    key: id,
-    onClick: () => setAllergenFilters(f => {
-      const n = {
-        ...f
-      };
-      delete n[id];
-      return n;
-    }),
+    }, "\u203A"));
+  })(), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setDietFilter(null);
+      setAllergenFilters({});
+    },
     style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: 4,
-      flex: '0 0 auto',
-      background: BADGE,
-      color: '#fff',
+      background: 'transparent',
       border: 'none',
-      padding: '5px 8px 5px 11px',
-      borderRadius: 999,
+      color: MUTED,
       fontSize: 12,
       fontWeight: 600,
       cursor: 'pointer',
       fontFamily: 'inherit',
-      whiteSpace: 'nowrap'
+      padding: '5px 6px'
     }
-  }, "Senza ", ALLERGENS[id]?.label?.toLowerCase() || id, /*#__PURE__*/React.createElement("span", {
-    style: {
-      opacity: 0.85,
-      fontSize: 14,
-      lineHeight: 1,
-      marginLeft: 2
-    }
-  }, "\xD7")))), Object.values(allergenFilters).some(Boolean) && /*#__PURE__*/React.createElement("div", {
+  }, "Togli tutti")), Object.values(allergenFilters).some(Boolean) && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: MUTED,
@@ -24606,12 +24570,10 @@ function MenuScreen({
       return dietMatch(d);
     }).slice(0, 6);
     if (picks.length < 2) return null;
-    const dietLabels = {
-      veg: 'vegetariana',
-      vegan: 'vegana',
-      gf: 'senza glutine'
-    };
-    const subtitle = dietFilter ? `Scelti per la tua dieta ${dietLabels[dietFilter] || ''}`.trim() : Object.values(allergenFilters).some(Boolean) ? 'Senza gli allergeni che eviti' : 'Una selezione pensata per te';
+    // Il sottotitolo non nomina il motivo (P-74): «Scelti per la tua
+    // dieta vegana» e «Senza gli allergeni che eviti» dicevano il
+    // regime a chi guarda il telefono.
+    const subtitle = 'Una selezione pensata per te';
     return /*#__PURE__*/React.createElement("div", {
       style: {
         marginBottom: 26,
