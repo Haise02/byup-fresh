@@ -22,10 +22,6 @@ const DEVICE_STAMPANTI = ['Epson TM-T20III', 'Star TSP143IV', 'Bixolon SRP-350II
 // scheda mostra come «Custom - …», non la parola generica.
 const CUSTOM_NOMI = ['Responsabile sala', 'Turno serale', 'Cassa weekend', 'Vice direttore', 'Barman'];
 
-// Il genere non sta nei mock: si legge dal nome di battesimo, per la tab
-// Anagrafica della scheda. Chi non è in lista è un uomo.
-const NOMI_FEMMINILI = new Set(['Sara', 'Giulia', 'Martina', 'Chiara', 'Elena', 'Sofia', 'Valentina', 'Beatrice', 'Aurora', 'Camilla', 'Vittoria', 'Ludovica', 'Anna', 'Greta', 'Asia', 'Federica', 'Maria', 'Bianca', 'Ginevra']);
-
 // Aree del gestionale (per i ruoli di tipo "Personalizzato"). P-59 (RL-10):
 // le nove su cui gestionale e modello coincidono, copiate da ALL_AREAS di
 // gestionale/impostazioni-personale.jsx con le SUE etichette — «Sala e
@@ -98,15 +94,12 @@ const STAFF = (() => {
     const dominio = local && local.email ? local.email.split('@')[1] : null;
     membro.email = (isDevice || !dominio) ? null
       : n.toLowerCase().replace(/[^a-z\s]/g, '').trim().replace(/\s+/g, '.') + '@' + dominio;
-    // La DATA DI NASCITA, non l'età: l'età è un numero che invecchia male,
-    // da qui si calcola ed è sempre giusta. Una sola chiamata a rnd(), come
-    // il campo che rimpiazza: l'intero fa gli anni (19–58), la coda decimale
-    // sparge mese e giorno.
-    if (isDevice) { membro.dataNascita = null; } else {
-      const rEta = rnd() * 40;
-      membro.dataNascita = new Date(Date.now() - Math.round((19 + rEta) * 365.25 * 86400000)).toISOString().slice(0, 10);
-    }
-    membro.genere = isDevice ? null : (NOMI_FEMMINILI.has(n.split(' ')[0]) ? 'F' : 'M');
+    // Niente nascita né genere (P-58 · RL-09): il gestionale invita con nome,
+    // email e ruolo, e un dato che nessun flusso raccoglie non si inventa per
+    // derivazione — il genere «letto dal nome di battesimo» era esattamente
+    // questo. L'estrazione resta: i campi che seguono (i locali associati)
+    // non devono cambiare valore.
+    if (!isDevice) rnd();
     // Il luogo principale della persona: dove sta, non dove timbra. Parte
     // dalla città del locale principale e da lì si corregge in scheda.
     membro.luogo = isDevice ? null : (local?.citta || null);
@@ -165,7 +158,7 @@ function staffDescrizioneUtenza(s) {
 // barra «torna» del chiamante.
 //
 // La scheda vive in DUE tab, come le sorelle (locale e utente app):
-// Anagrafica — chi è la persona (nome, email, età, genere, editabili), su
+// Anagrafica — chi è la persona (nome, email, luogo, editabili), su
 // quali locali vale la sua utenza, i dettagli dell'utenza — e Statistiche,
 // che esiste SOLO per chi ha un'utenza cameriere: mesi di lavoro, scontrino
 // medio e mancia media sono cose da sala, una cassa non le ha.
@@ -174,20 +167,14 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
   const [tab, setTab] = useStateCam('anagrafica');
 
   // ── Form anagrafica: editabile con salvataggio, come la scheda utente ──
-  const formDa = (x) => ({ nome: x.nome, email: x.email || '', dataNascita: x.dataNascita || '', genere: x.genere || 'M', luogo: x.luogo || '' });
+  const formDa = (x) => ({ nome: x.nome, email: x.email || '', luogo: x.luogo || '' });
   const [form, setForm] = useStateCam(formDa(s));
   const [saved, setSaved] = useStateCam(false);
   React.useEffect(() => { setTab('anagrafica'); setForm(formDa(s)); setSaved(false); }, [s.id]);
   const base = formDa(s);
-  const dirty = form.nome !== base.nome || form.email !== base.email || form.dataNascita !== base.dataNascita || form.genere !== base.genere || form.luogo !== base.luogo;
-  // L'età non è un campo: si legge sotto la data, sempre aggiornata.
-  const etaCalcolata = (() => {
-    const d = new Date(form.dataNascita);
-    if (!form.dataNascita || isNaN(d)) return null;
-    return Math.max(0, Math.floor((Date.now() - d.getTime()) / (365.25 * 86400000)));
-  })();
+  const dirty = form.nome !== base.nome || form.email !== base.email || form.luogo !== base.luogo;
   const salva = () => {
-    Object.assign(s, { nome: form.nome, email: form.email || null, dataNascita: form.dataNascita || null, genere: form.genere, luogo: form.luogo || null });
+    Object.assign(s, { nome: form.nome, email: form.email || null, luogo: form.luogo || null });
     setSaved(true); setTimeout(() => setSaved(false), 2200);
   };
   const F = (k) => (e) => { setSaved(false); setForm(prev => ({ ...prev, [k]: e.target ? e.target.value : e })); };
@@ -327,24 +314,11 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
                   <label style={labelStyle}>Email</label>
                   <input value={form.email} onChange={F('email')} placeholder="Nessuna email" style={{...inputStyle, fontFamily:'ui-monospace,monospace', fontSize:12.5}}/>
                 </div>
-                <div>
-                  <label style={labelStyle}>Data di nascita</label>
-                  <input type="date" value={form.dataNascita} onChange={F('dataNascita')} style={inputStyle}/>
-                  {/* L'età non è un campo da tenere aggiornato a mano: si
-                      legge qui sotto, calcolata dalla data. */}
-                  {etaCalcolata !== null && <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:4}}>{etaCalcolata} anni</div>}
-                </div>
-                <div>
-                  <label style={labelStyle}>Genere</label>
-                  <AdmSelect value={form.genere} onChange={F('genere')} block
-                    buttonStyle={{padding:'8px 11px', borderRadius:8, fontSize:13.5}}
-                    options={[
-                      {value:'F', label:'Donna'},
-                      {value:'M', label:'Uomo'},
-                      {value:'X', label:'Altro / N.D.'},
-                    ]}/>
-                </div>
-                <div>
+                {/* Niente data di nascita né genere (P-58 · RL-09): il
+                    gestionale, dove le persone si invitano, chiede nome, email
+                    e ruolo e nient'altro. La scheda non promette un dato che
+                    non esiste da nessuna parte. */}
+                <div style={{gridColumn:'1 / -1'}}>
                   <label style={labelStyle}>Luogo principale</label>
                   <input value={form.luogo} onChange={F('luogo')} placeholder="—" style={inputStyle}/>
                 </div>

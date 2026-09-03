@@ -380,8 +380,10 @@ function WfCompleanno({ config, onCambia }) {
         </div>
 
         <div style={{ fontSize: 12.4, fontWeight: 700, color: ADM.MUTED, marginBottom: 6 }}>Tipologia di contatto</div>
+        {/* Lo staff non ha una data di nascita in Byup (P-58): non è fra chi
+            si può scegliere, e non è un «tutti» a metà. */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {(tipiProp.opzioni || []).map(o => {
+          {(tipiProp.opzioni || []).filter(o => o.value !== 'staff').map(o => {
             const on = c.tipi.indexOf(o.value) !== -1;
             return (
               <button key={o.value} type="button" onClick={() => commutaTipo(o.value)} style={{
@@ -397,7 +399,7 @@ function WfCompleanno({ config, onCambia }) {
         </div>
         {!c.tipi.length && (
           <div style={{ marginTop: 8, fontSize: 12.2, color: '#8B1A1A', lineHeight: 1.45, fontWeight: 600 }}>
-            Scegli almeno una tipologia: non esiste un «tutti» predefinito. Un messaggio di
+            Scegli almeno una tipologia: non esiste un «tutti» predefinito (lo staff non ha una data di nascita in Byup). Un messaggio di
             compleanno a chi non è il destinatario giusto non è una variante, è un errore.
           </div>
         )}

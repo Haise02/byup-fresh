@@ -133,7 +133,7 @@ const HUB_PROPRIETA = [
   // un dettaglio dei mock: il trigger compleanno esiste anche per dire, prima
   // di accendersi, a quanti di quelli scelti la data c'è per davvero.
   { id: 'nascita',  label: 'Data di nascita',     gruppo: 'contatto', tipo: 'data',   sistema: true, colonna: { w: '1.15fr' },
-    nota: 'Solo per le persone: i locali non ce l\'hanno. Vuota per chi non l\'ha mai data' },
+    nota: 'Solo per gli utenti app: lo staff non la dà (il gestionale invita con nome, email e ruolo), i locali non ce l\'hanno. Vuota per chi non l\'ha mai data' },
   { id: 'tipo',     label: 'Tipologia contatto',  gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.2fr' },
     opzioni: [{ value: 'locale', label: 'Locale' }, { value: 'staff', label: 'Utente Staff' }, { value: 'utente', label: 'Utente App' }] },
   // Lo stadio commerciale si CALCOLA (P-43 · D-34): il lettore è hubStadio in
@@ -331,6 +331,10 @@ const HUB_OWNER = ['Marco Rinaldi', 'Giulia Ferrari', 'Davide Neri', 'Chiara Ros
 // stessa persona.
 function hubNascitaDi(c, s) {
   if (c.tipo === 'locale') return null;
+  // Lo staff non la dà (P-58 · RL-09): il gestionale lo invita con nome, email
+  // e ruolo. Niente da leggere e niente da inventare — e niente da scrivere
+  // sul record, che la data non ce l'ha per costruzione.
+  if (c.tipo === 'staff') return null;
   const gia = c.ref && c.ref.dataNascita;
   if (gia) { const d = new Date(gia); if (!isNaN(d)) return d; }
   if (s % 4 === 0) { if (c.ref && c.ref.dataNascita === undefined) c.ref.dataNascita = null; return null; }

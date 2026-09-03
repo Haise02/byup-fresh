@@ -138,7 +138,8 @@ il resto vive nelle tab.
    invece di cancellarla, storico in card.
 
 **Utente Staff** (`admin-camerieri.jsx`) — Anagrafica (dati persona editabili:
-nome, email, data di nascita con età calcolata, genere, luogo principale; card
+nome, email, luogo principale — niente nascita, età né genere, P-58 · RL-09:
+il gestionale invita con nome, email e ruolo e nient'altro; card
 Locali associati col principale in evidenza; dettagli utenza), **Statistiche**
 (solo camerieri: mesi di lavoro, scontrino medio, mancia media con mediane dei
 camerieri, ordini e coperti), **Consensi** (solo persone), **Log** (anche i
