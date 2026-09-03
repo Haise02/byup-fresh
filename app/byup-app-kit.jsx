@@ -358,30 +358,126 @@ function Mascot({ pose = 'sleep', size = 110, message, T = THEMES.light, anim = 
 }
 
 /* ---------- EXPORT ---------- */
+// ─── Allergeni: il dizionario unico dei quattordici ────────
+// Allegato II del Reg. UE 1169/2011, nell'ordine in cui la norma li elenca.
+// È un elenco chiuso e completo: non se ne aggiungono, non se ne tolgono e
+// nessuna schermata ne tiene una copia propria. Il profilo, dove la persona
+// dichiara che cosa evitare, e il filtro del menù, che dovrebbe proteggerla,
+// leggono entrambi da qui. Prima erano due liste diverse, una di otto e una di
+// quattordici, con identificativi che non coincidevano: chi era allergico alla
+// senape non aveva come dirlo, e chi dichiarava la frutta a guscio nel profilo
+// non veniva riconosciuto dal menù, che la chiamava in un altro modo.
+//
+// `code` è il codice del dizionario `allergens` del modello dati. Serve perché
+// quando arriveranno le interfacce applicative la corrispondenza sia già
+// scritta e non da indovinare, e perché il filtro è una funzione di sicurezza:
+// un identificativo che non si aggancia è un piatto che non viene nascosto.
+const ALLERGENI = [
+  { id: 'glutine',      code: 'gluten',      label: 'Glutine',         hint: 'Pane, pasta, dolci',           color: '#c8a87a', icon: '🌾' },
+  { id: 'crostacei',    code: 'crustaceans', label: 'Crostacei',       hint: 'Gamberi, scampi, granchio',    color: '#e88a5a', icon: '🦐' },
+  { id: 'uova',         code: 'eggs',        label: 'Uova',            hint: 'Frittate, dolci, salse',       color: '#f0c14b', icon: '🥚' },
+  { id: 'pesce',        code: 'fish',        label: 'Pesce',           hint: 'Acciughe, salse di pesce',     color: '#d96a52', icon: '🐟' },
+  { id: 'arachidi',     code: 'peanuts',     label: 'Arachidi',        hint: 'Creme, salse, fritti',         color: '#c89860', icon: '🥜' },
+  { id: 'soia',         code: 'soybeans',    label: 'Soia',            hint: 'Tofu, tempeh, salsa di soia',  color: '#9ec27a', icon: '🌱' },
+  { id: 'lattosio',     code: 'milk',        label: 'Lattosio',        hint: 'Latte, formaggi, burro',       color: '#f5c2c7', icon: '🥛' },
+  { id: 'fruttaguscio', code: 'nuts',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle',     color: '#a07050', icon: '🥜' },
+  { id: 'sedano',       code: 'celery',      label: 'Sedano',          hint: 'Brodi, soffritti',             color: '#7ec98a', icon: '🥬' },
+  { id: 'senape',       code: 'mustard',     label: 'Senape',          hint: 'Salse, marinature',            color: '#e8c850', icon: '🌶' },
+  { id: 'sesamo',       code: 'sesame',      label: 'Sesamo',          hint: 'Pane, hummus, condimenti',     color: '#d4b06a', icon: '⚪' },
+  { id: 'solfiti',      code: 'sulphites',   label: 'Solfiti',         hint: 'Vino, frutta secca, conserve', color: '#b07ac0', icon: '🍇' },
+  { id: 'lupini',       code: 'lupin',       label: 'Lupini',          hint: 'Farine, sostituti vegetali',   color: '#f0b878', icon: '🫘' },
+  { id: 'molluschi',    code: 'molluscs',    label: 'Molluschi',       hint: 'Cozze, vongole, calamari',     color: '#7aa8c8', icon: '🐚' },
+];
+const ALLERGENI_MAP = ALLERGENI.reduce(function (m, a) { m[a.id] = a; return m; }, {});
+
+// ─── Regimi alimentari: gli otto, e il loro regime giuridico ───
+// L'identificativo e il codice del dizionario `dietary_labels` del modello,
+// che e condiviso con il catalogo: cosi la dichiarazione della persona
+// incontra l'etichetta del piatto. Prima erano due vocabolari, e il profilo
+// scriveva `senzaglutine` dove il catalogo scrive `senza_glutine`.
+//
+// `art9` non e una cautela ma la classificazione che governa il cancello del
+// consenso. Vale per la voce DICHIARATA DA UNA PERSONA SU DI SE: un piatto
+// vegano non rivela nulla di nessuno, una persona che si dichiara vegana si.
+//   conviction — rivela una convinzione religiosa o filosofica
+//   health     — rivela una condizione di salute
+//   both       — rivela l'una e l'altra
+//   null       — non rivela ne l'una ne l'altra: e dato comune
+// Il criterio e quello delle linee guida EDPB 01/2021, caso 15: «contrariamente
+// ad altre preferenze alimentari, l'intolleranza al lattosio non puo di norma
+// essere collegata a convinzioni religiose o filosofiche».
+const REGIMI = [
+  { id: 'vegetariano',   label: 'Vegetariano',   emoji: '🥗', art9: 'conviction' },
+  { id: 'vegano',        label: 'Vegano',        emoji: '🌱', art9: 'conviction' },
+  { id: 'pescetariano',  label: 'Pescetariano',  emoji: '🐟', art9: 'conviction' },
+  { id: 'halal',         label: 'Halal',         emoji: '🌙', art9: 'conviction' },
+  { id: 'kosher',        label: 'Kosher',        emoji: '✡️', art9: 'conviction' },
+  { id: 'senza_glutine', label: 'Senza glutine', emoji: '🌾', art9: 'health' },
+  { id: 'astemio',       label: 'Astemio',       emoji: '🚫', art9: 'both' },
+  { id: 'proteico',      label: 'Proteico',      emoji: '💪', art9: null },
+];
+const REGIMI_MAP = REGIMI.reduce(function (m, r) { m[r.id] = r; return m; }, {});
+
+// Se la voce che si sta dichiarando ricada nell'articolo 9. Gli allergeni ci
+// ricadono sempre, perche rivelano una condizione di salute. Fra i regimi
+// dipende dalla voce: `proteico` e una preferenza nutrizionale e non rivela
+// nulla, quindi chiedere per essa il consenso esplicito sarebbe raccolta in
+// eccesso e indebolirebbe la granularita del consenso vero.
+function richiedeConsensoEsplicito(gruppo, id) {
+  if (gruppo === 'allergens') return true;
+  const r = REGIMI_MAP[id];
+  return !!(r && r.art9);
+}
+
+// Allergeni che la persona ha dichiarato nel profilo, letti dalla stessa
+// chiave che il profilo scrive. È il collegamento che mancava: la
+// dichiarazione esisteva e il menù non la guardava, quindi non proteggeva
+// nessuno. Le voci non riconosciute si scartano, perché una preferenza
+// salvata con un identificativo vecchio non deve far credere che un filtro
+// sia attivo quando non lo è.
+function allergeniDichiarati() {
+  try {
+    const raw = localStorage.getItem('byup_allergens');
+    if (!raw) return {};
+    const p = JSON.parse(raw) || {};
+    const dichiarati = p.allergens || {};
+    const out = {};
+    Object.keys(dichiarati).forEach(function (id) {
+      if (dichiarati[id] && ALLERGENI_MAP[id]) out[id] = true;
+    });
+    return out;
+  } catch (e) { return {}; }
+}
+
 window.ByupKit = {
   ASSETS, PALETTE, THEMES, TYPE, RADII, SPRING, EASE_OUT, DUR,
   useByupTheme, haptic, Atmosphere, GlassPanel, PillButton,
   useFirstVisit, resetFirstVisits,
   MascotVisual, MascotMoment, Mascot, Confetti,
   GRAIN_URI,
+  ALLERGENI, ALLERGENI_MAP, allergeniDichiarati,
+  REGIMI, REGIMI_MAP, richiedeConsensoEsplicito,
 };
 /* sync */
 })();
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing). Suggerimenti e analisi d'uso sono
-// legittimo interesse SENZA toggle in-app: l'opposizione passa
-// dall'assistenza (dal 2026-08-06), che la registra lato backend.
+// preferenze, A6 marketing). Suggerimenti e analisi d'uso restano legittimo
+// interesse, e dal 2026-09-03 (P-26 · D-28) hanno il loro INTERRUTTORE in
+// «I miei dati»: non è un consenso, è la misura di bilanciamento della LIA —
+// attivo per difetto, spegnibile in due tocchi, e l'opposizione lascia una
+// riga LI-SUGG in questo stesso log (ByupUso, sotto).
 //
 // REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
 //   promo generiche E su misura sullo storico ordini → basta A6 (che le
 //     dichiara entrambe: PROMOP è stato assorbito in A6 il 2026-08-06 —
 //     non reintrodurlo; il consenso unico NON copre i dati alimentari)
 //   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
-//   suggerimenti in-app    → attivi salvo opposizione via assistenza (LI,
-//                            niente consenso; la città viene dal contesto
-//                            d'uso corrente, MAI dai log accesso/sicurezza)
+//   suggerimenti in-app    → attivi salvo opposizione dall'interruttore di
+//                            «I miei dati» (LI, niente consenso; la città
+//                            viene dal contesto d'uso corrente, MAI dai log
+//                            accesso/sicurezza)
 // Due strutture: lo STATO corrente per consenso e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
@@ -417,5 +513,55 @@ window.ByupKit = {
       scrivi(K_LOG, log);
     },
     log() { return leggi(K_LOG, []); },
+  };
+})();
+
+// ─── L'interruttore e il registro d'uso (P-26 · D-28, P-38 · D-31) ─────────
+// Suggerimenti e analisi d'uso stanno sotto un interruttore SOLO, perché
+// senza misurare non si sa se i consigli siano buoni. Attivo per difetto:
+// la base è il legittimo interesse, l'interruttore non è un consenso e non
+// va chiamato così — è la misura di bilanciamento su cui la LIA fonda
+// l'opposizione facile. Spegnerlo scrive nel log consent_data una riga
+// LI-SUGG (ok:false) come traccia dell'opposizione; riaccenderlo ne scrive
+// una (ok:true). Gli eventi d'uso (app_usage_events) sono tre e basta —
+// app_open, qr_scan, menu_view — e si scrivono solo con l'interruttore
+// acceso; allo spegnimento non si scrive più. Mai indirizzo di rete,
+// coordinate, impronta del dispositivo: l'unica informazione di luogo è la
+// città approssimata del momento d'uso, che nel prototipo è quella
+// dell'header («Roma», senza «centro»), mai dai log di accesso.
+(function () {
+  const K_SUGG = 'byup_suggerimenti';   // 'on' | 'off'; assente = on
+  const K_USO = 'byup_usage_events';
+  const TIPI = ['app_open', 'qr_scan', 'menu_view'];
+  const leggi = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch (e) { return fb; } };
+  const scrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  window.ByupUso = {
+    TIPI,
+    // La città approssimata del contesto d'uso: nel mock è quella dell'header.
+    citta() { return 'Roma'; },
+    suggerimenti() { return leggi(K_SUGG, 'on') !== 'off'; },
+    imposta(on) {
+      scrivi(K_SUGG, on ? 'on' : 'off');
+      // La traccia dell'opposizione (o della riattivazione) nel log dei
+      // consensi: stesso registro, id LI-SUGG, ma NON è un consenso.
+      const log = leggi('byup_consent_data', []);
+      log.push({ id: 'LI-SUGG', ok: !!on, quando: new Date().toISOString(), versione: window.ByupConsensi ? window.ByupConsensi.VERSIONE_INFORMATIVA : '1.0', natura: 'opposizione' });
+      scrivi('byup_consent_data', log);
+      try { window.dispatchEvent(new Event('byup-suggerimenti-change')); } catch (e) {}
+      return !!on;
+    },
+    // L'emissione: tre tipi, la città, il momento. Con l'interruttore spento
+    // non scrive, e non scrive nient'altro in nessun caso.
+    emetti(tipo, venue) {
+      if (!TIPI.includes(tipo)) return null;
+      if (!window.ByupUso.suggerimenti()) return null;
+      const log = leggi(K_USO, []);
+      const riga = { tipo, quando: new Date().toISOString(), citta: window.ByupUso.citta(), venue: venue || null };
+      log.push(riga);
+      if (log.length > 500) log.splice(0, log.length - 500);
+      scrivi(K_USO, log);
+      return riga;
+    },
+    eventi() { return leggi(K_USO, []); },
   };
 })();

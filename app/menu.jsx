@@ -165,22 +165,15 @@ const I = {
 };
 
 // ─── Allergens ─────────────────────────────────────────────
-const ALLERGENS = {
-  glutine:    { label: 'Glutine',     color: '#c8a87a', icon: '🌾' },
-  pesce:      { label: 'Pesce',       color: '#d96a52', icon: '🐟' },
-  uova:       { label: 'Uova',        color: '#f0c14b', icon: '🥚' },
-  lattosio:   { label: 'Lattosio',    color: '#f5c2c7', icon: '🥛' },
-  crostacei:  { label: 'Crostacei',   color: '#e88a5a', icon: '🦐' },
-  fruttaguscio: { label: 'Frutta a guscio', color: '#a07050', icon: '🥜' },
-  soia:       { label: 'Soia',        color: '#9ec27a', icon: '🌱' },
-  arachidi:   { label: 'Arachidi',    color: '#c89860', icon: '🥜' },
-  sedano:     { label: 'Sedano',      color: '#7ec98a', icon: '🥬' },
-  senape:     { label: 'Senape',      color: '#e8c850', icon: '🌶' },
-  sesamo:     { label: 'Sesamo',      color: '#d4b06a', icon: '⚪' },
-  solfiti:    { label: 'Solfiti',     color: '#b07ac0', icon: '🍇' },
-  lupini:     { label: 'Lupini',      color: '#f0b878', icon: '🫘' },
-  molluschi:  { label: 'Molluschi',   color: '#7aa8c8', icon: '🐚' },
-};
+// I quattordici dell'allegato II stanno in un posto solo, byup-app-kit.jsx, e
+// da li si prende la forma che serve al menu, cioe etichetta, colore e icona.
+// Nessuna copia locale: il profilo, dove la persona dichiara che cosa evitare,
+// e questo filtro devono parlare la stessa lingua, altrimenti chi dichiara
+// un'allergia non viene protetto dove conta.
+const ALLERGENS = (window.ByupKit.ALLERGENI || []).reduce(function (m, a) {
+  m[a.id] = { label: a.label, color: a.color, icon: a.icon };
+  return m;
+}, {});
 
 function AllergenDots({ ids, onTap, max }) {
   const [openId, setOpenId] = useState(null);
@@ -655,6 +648,10 @@ function CatBand({ name, count, index = 0, total = 5 }) {
 
 
 function MenuScreen({ state, setState, goTo }) {
+  // menu_view (P-38): il menù visto, una volta per apertura, solo con
+  // l'interruttore acceso. I suggerimenti seguono lo stesso interruttore.
+  useEffect(() => { if (window.ByupUso) window.ByupUso.emetti('menu_view', (state && state.venue && state.venue.name) || null); }, []);
+  const suggerimentiAttivi = !window.ByupUso || window.ByupUso.suggerimenti();
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   // Tab di navigazione: "Byup" è una voce extra (non una categoria di piatti)
   // che punta alla sezione "I più ordinati" in cima alla lista.
@@ -770,7 +767,14 @@ function MenuScreen({ state, setState, goTo }) {
   })();
   const [searchQ, setSearchQ] = useState('');
   const [dietFilter, setDietFilter] = useState(null); // 'veg' | 'vegan' | 'gf' | 'spicy' | null
-  const [allergenFilters, setAllergenFilters] = useState({}); // {glutine: true, ...} = NASCONDI piatti con questi
+  // {glutine: true, ...} = NASCONDI i piatti che li contengono. Si parte da
+  // cio che la persona ha dichiarato nel profilo: la dichiarazione esisteva e
+  // il menu non la guardava, quindi il filtro che doveva proteggerla nasceva
+  // vuoto a ogni apertura. Resta modificabile qui, perche chi ordina per un
+  // altro deve poterlo cambiare senza toccare il proprio profilo.
+  const [allergenFilters, setAllergenFilters] = useState(function () {
+    return (window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati()) || {};
+  });
   const [allergenSheetOpen, setAllergenSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState('collapsed'); // 'collapsed' | 'expanded'
   const [sheetTab, setSheetTab] = useState('piatti'); // 'piatti' | 'divisione'
@@ -788,6 +792,8 @@ function MenuScreen({ state, setState, goTo }) {
   // Piatti "Per te" — stessa logica della sezione "In base ai tuoi gusti".
   // Calcolata qui una volta sola così il badge è riusabile anche nelle card.
   const perTeIds = (() => {
+    // Spento l'interruttore (P-26), nessun «Per te»: le proposte sono generiche.
+    if (!suggerimentiAttivi) return new Set();
     const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id));
     const dietMatch = (d) => {
       if (!dietFilter) return true;
@@ -1206,8 +1212,38 @@ function MenuScreen({ state, setState, goTo }) {
           );
         })()}
 
-        {/* In base ai tuoi gusti — suggerimenti personalizzati (no ricerca attiva) */}
-        {!searchQ && (() => {
+        {/* In base ai tuoi gusti — suggerimenti personalizzati (no ricerca attiva).
+            Con l'interruttore di P-26 spento la sezione resta ma è generica: i
+            più ordinati, e la riga che dice come riaccendere. */}
+        {!searchQ && !suggerimentiAttivi && (() => {
+          const picks = ALL_DISHES.filter(d => d.bestSeller).slice(0, 6);
+          if (picks.length < 2) return null;
+          return (
+            <div style={{ marginBottom: 26, marginLeft: -18, marginRight: -18 }}>
+              <div style={{ padding: '0 18px 14px' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>Una selezione</div>
+                <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo → I miei dati.</div>
+              </div>
+              <div className="hscroll" style={{ display: 'flex', gap: 12, padding: '4px 18px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                {picks.map((d) => (
+                  <div key={d.id} onClick={() => goTo('dish', { dishId: d.id })} style={{
+                    flex: '0 0 auto', width: 180, background: SURF, borderRadius: 16,
+                    overflow: 'hidden', cursor: 'pointer', position: 'relative', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  }}>
+                    <div style={{ height: 130, position: 'relative' }}>
+                      {d.photo ? <PremFoodImg name={d.name} photo={d.photo}/> : <DishPhoto tone={d.tone} kind={d.kind} hideBadge label={d.name.split(' ')[0].toLowerCase()}/>}
+                    </div>
+                    <div style={{ padding: '10px 12px 12px' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: TEXT, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
+                      <div style={{ fontSize: 13.5, color: TEXT, fontWeight: 700, marginTop: 6 }}>{d.price}€</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+        {!searchQ && suggerimentiAttivi && (() => {
           const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id));
           const dietMatch = (d) => {
             if (!dietFilter) return true;

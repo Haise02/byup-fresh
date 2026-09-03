@@ -80,9 +80,10 @@ function SpesaMediaCard({ lifetime, anno, mese, horizonDays }) {
 // — e la tab Log ci rimanda. Il registro si scrive solo con l'interruttore dei
 // suggerimenti acceso, senza indirizzo di rete, coordinate né impronte del
 // dispositivo, con la città come solo contesto di luogo. L'interruttore che
-// condiziona la scrittura oggi qui non c'è (la tab Consensi dice ancora
-// «nessun toggle»): nasce col gruppo P-26/P-38, dove suggerimenti e analisi
-// d'uso finiscono sotto un interruttore solo.
+// condiziona la scrittura esiste nell'app dal 2026-09-03 (P-26 · D-28, in
+// «I miei dati»: suggerimenti e analisi d'uso sotto un interruttore solo,
+// ByupUso in app/byup-app-kit.jsx), e da lì gli eventi si scrivono solo se è
+// acceso (P-38 · D-31).
 // La tab mostra la chiave tecnica in chiaro — la stessa degli export e di
 // Analisi Dati. Solo l'etichetta, niente icone o colori: è un log, si
 // scandisce per testo e data.

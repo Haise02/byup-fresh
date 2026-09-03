@@ -310,7 +310,10 @@ const HUB_PROPRIETA = [
   // che la valutazione di legittimo interesse esclude espressamente come
   // cambio di finalità (D-31). Resta per non rompere filtri ed elenchi, ma è
   // una sanatoria registrata: la proprietà dovrà morire e l'elenco «Utenti
-  // App Pro molto attivi» rifondarsi sui tre eventi del registro d'uso.
+  // App Pro molto attivi» rifondarsi sui tre eventi del registro d'uso — che
+  // dal 2026-09-03 esistono nell'app (ByupUso, P-38), sotto l'interruttore
+  // di P-26; qui non arrivano ancora, e la proprietà resta finché non
+  // arrivano.
   { id: 'sessioni',       label: 'Sessioni 30gg',   gruppo: 'attivita', tipo: 'numero', colonna: { w: '0.95fr' } },
 ];
 

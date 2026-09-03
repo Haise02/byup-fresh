@@ -2358,6 +2358,9 @@ function RecoveryOrderBanner({ onOpen, onClose }) {
 }
 
 function App({ recoveryArmed = false }) {
+  // app_open (P-38): l'apertura dell'app, una volta per montaggio, solo con
+  // l'interruttore di P-26 acceso — ByupUso non scrive altrimenti.
+  useEffect(() => { if (window.ByupUso) window.ByupUso.emetti('app_open'); }, []);
   const [T] = BK.useByupTheme();
   const [activeCat, setActiveCat] = useState(null);
   const [catSel, setCatSel] = useState(null); // categoria aperta a schermo intero
@@ -2752,7 +2755,8 @@ function QRScanOverlay({ onDone, onClose }) {
   const [phase, setPhase] = useState('scan');
   useEffect(() => {
     const t1 = setTimeout(() => { setPhase('found'); BK.haptic.success(); }, 1350);
-    const t2 = setTimeout(() => onDone && onDone(), 3100);
+    // qr_scan (P-38): solo con l'interruttore acceso, con la città.
+    const t2 = setTimeout(() => { if (window.ByupUso) window.ByupUso.emetti('qr_scan'); onDone && onDone(); }, 3100);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
   return (

@@ -66,24 +66,21 @@ const MUTESURF_X = __BYUP_DK_X ? '#39333b' : '#e7e1d8'; // muta
 const CORALSURF_X = __BYUP_DK_X ? 'rgba(239,99,137,.16)' : '#FCE9EE'; // chip coral
 
 // ─── Profile screen ─────────────────────────────────────────
-const PROFILE_ALLERGENS = [
-  { id: 'glutine',     label: 'Glutine',       hint: 'Pane, pasta, dolci',    emoji: '🌾' },
-  { id: 'lattosio',    label: 'Lattosio',      hint: 'Latte, formaggi, burro', emoji: '🥛' },
-  { id: 'noci',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle', emoji: '🥜' },
-  { id: 'uova',        label: 'Uova',          hint: 'Frittate, dolci, salse', emoji: '🥚' },
-  { id: 'crostacei',   label: 'Crostacei',     hint: 'Gamberi, scampi, granchio', emoji: '🦐' },
-  { id: 'pesce',       label: 'Pesce',         hint: 'Acciughe, salse di pesce', emoji: '🐟' },
-  { id: 'soia',        label: 'Soia',          hint: 'Tofu, tempeh, salsa di soia', emoji: '🫘' },
-  { id: 'sedano',      label: 'Sedano',        hint: 'Brodi, soffritti', emoji: '🥬' },
-];
-const PROFILE_DIETS = [
-  { id: 'vegetariano',   label: 'Vegetariano',   emoji: '🥗' },
-  { id: 'vegano',        label: 'Vegano',        emoji: '🌱' },
-  { id: 'senzaglutine',  label: 'Senza glutine', emoji: '🌾' },
-  { id: 'halal',         label: 'Halal',         emoji: '🌙' },
-  { id: 'kosher',        label: 'Kosher',        emoji: '✡️' },
-  { id: 'pescetariano',  label: 'Pescetariano',  emoji: '🐟' },
-];
+// I quattordici dell'allegato II, letti dal dizionario unico di
+// byup-app-kit.jsx. Erano otto, scelti a mano, e mancavano senape, sesamo,
+// lupini, molluschi, arachidi e solfiti: chi era allergico a uno di quelli non
+// aveva come dirlo, e il filtro del menu non poteva proteggerlo. Un elenco che
+// la legge fissa non si accorcia per comodita di schermata.
+const PROFILE_ALLERGENS = (window.ByupKit.ALLERGENI || []).map(function (a) {
+  return { id: a.id, label: a.label, hint: a.hint, emoji: a.icon };
+});
+// Gli otto regimi, letti dal dizionario unico di byup-app-kit.jsx, che porta
+// per ciascuno il codice del modello e la classificazione ai fini
+// dell'articolo 9. Erano sei: mancavano astemio e proteico, che il contratto
+// dati dichiarava e il profilo non offriva.
+const PROFILE_DIETS = (window.ByupKit.REGIMI || []).map(function (r) {
+  return { id: r.id, label: r.label, emoji: r.emoji, art9: r.art9 };
+});
 const PROFILE_ORDERS = [
   { id: 'ORD-1042', venue: 'Trattoria Lucia',    address: 'Via della Lungaretta 10, Trastevere', cuisine: 'Cucina romana',   date: '12 mar', time: '20:45', items: [{n:'Cacio e pepe',p:16}, {n:'Saltimbocca alla romana',p:18}, {n:'Tiramisù',p:7}], total: 56.50, status: 'completato',
     photo: 'https://images.unsplash.com/photo-1592861956120-e524fc739696?w=400&q=70&auto=format&fit=crop' },
@@ -134,8 +131,19 @@ function AllergensView({ onBack, prefs, setPrefs }) {
     ...p,
     [group]: { ...(p[group] || {}), [id]: !(p[group]?.[id]) },
   }));
+  // Il cancello del consenso scatta sulla VOCE e non sulla schermata. Gli
+  // allergeni rivelano sempre una condizione di salute; fra i regimi dipende:
+  // halal e kosher rivelano una convinzione religiosa, vegano vegetariano e
+  // pescetariano una convinzione filosofica, senza glutine una condizione di
+  // salute, astemio entrambe. Proteico non rivela nulla ed e dato comune:
+  // chiedere per esso il consenso esplicito dell'articolo 9 sarebbe raccolta
+  // in eccesso, e annegherebbe in un consenso rafforzato una preferenza che
+  // non lo richiede, indebolendo la granularita del consenso vero.
   const toggle = (group, id) => {
-    if (!consensoOk) { setPending({ group, id }); return; }
+    const serve = window.ByupKit.richiedeConsensoEsplicito
+      ? window.ByupKit.richiedeConsensoEsplicito(group, id)
+      : true;
+    if (serve && !consensoOk) { setPending({ group, id }); return; }
     applica(group, id);
   };
   const count = (group) => Object.values(prefs[group] || {}).filter(Boolean).length;
@@ -906,8 +914,12 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
         {saved ? 'Salvato ✓' : 'Salva modifiche'}
       </button>
 
-      {/* ── Privacy e consensi: il cassetto del registro. ── */}
+      {/* ── L'interruttore dei suggerimenti (P-26), sopra il cassetto. ── */}
       <div style={{ marginTop: 16 }}>
+        <SuggerimentiCard/>
+      </div>
+      {/* ── Privacy e consensi: il cassetto del registro. ── */}
+      <div>
         <ConsensiPanel onOpenPrivacy={onOpenPrivacy}/>
       </div>
     </div>
@@ -929,10 +941,63 @@ const CONSENSI_DEF = [
   // il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
   // registrazione. Le offerte su dati alimentari restano A18 (art. 9).
   { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica', dove: 'alla registrazione' },
-  // Suggerimenti e analisi d'uso: legittimo interesse SENZA toggle qui —
-  // la via di opposizione è l'assistenza, come dichiarato nell'informativa.
-  // Il pannello mostra solo i consensi veri: A3, A18, A6.
+  // Suggerimenti e analisi d'uso NON stanno qui: sono legittimo interesse,
+  // non un consenso, e hanno la loro card sopra il cassetto (SuggerimentiCard,
+  // P-26). Il pannello mostra solo i consensi veri: A3, A18, A6.
 ];
+
+// ─── SuggerimentiCard — l'interruttore di P-26 (D-28) ───────────────────────
+// Sopra il cassetto dei consensi e non dentro, perché non è un consenso: è la
+// misura di bilanciamento della LIA. Attivo per difetto, spegnibile in due
+// tocchi — il toggle apre il foglio di conferma, lo stesso di A3, e il
+// secondo tocco conferma. Governa suggerimenti E analisi d'uso insieme:
+// spento, le proposte tornano generiche e l'app smette di registrare gli
+// eventi d'uso (P-38). Sotto, il contatore degli eventi per dimostrabilità.
+function SuggerimentiCard() {
+  const [, forza] = useState(0);
+  const [conferma, setConferma] = useState(false);
+  const attivo = ByupUso.suggerimenti();
+  const eventi = ByupUso.eventi();
+  const ultimo = eventi.length ? new Date(eventi[eventi.length - 1].quando) : null;
+  const cambia = (v) => { if (!v) { setConferma(true); return; } ByupUso.imposta(true); forza(x => x + 1); };
+  const spegni = () => { ByupUso.imposta(false); setConferma(false); forza(x => x + 1); };
+  return (
+    <div style={{ marginBottom: 14, position: 'relative' }}>
+      <div style={{ background: SURF_X, borderRadius: 14, border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`, padding: '13px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, color: TEXT_X, fontWeight: 600 }}>Suggerimenti e analisi d'uso</div>
+            <div style={{ fontSize: 11.5, color: attivo ? PINK_X : MUTED_X, marginTop: 1, fontWeight: 600 }}>{attivo ? 'Attivi' : 'Spenti'}</div>
+          </div>
+          <ProfileToggle value={attivo} onChange={cambia}/>
+        </div>
+        <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, marginTop: 8 }}>
+          Usiamo i gusti che dichiari, i tuoi ordini e la città in cui usi l'app per proporti locali e piatti, e misuriamo come usi l'app per capire se i consigli sono buoni. Stanno sotto un interruttore solo, perché senza misurare non si sa se i consigli servono. Non è un consenso: è il modo per opporti, in due tocchi. Mai allergeni o preferenze alimentari, mai indirizzo di rete, coordinate o impronta del telefono.
+        </div>
+        <div style={{ fontSize: 11, color: MUTED_X, marginTop: 6, opacity: .8 }}>
+          {attivo
+            ? `Eventi d'uso registrati: ${eventi.length}${ultimo ? ` · ultimo ${ultimo.toLocaleDateString('it-IT')} ${ultimo.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : ''} · solo apertura, scansione QR e menù visto, con la città`
+            : `Spenti: l'app non registra più gli eventi d'uso (${eventi.length} registrati prima) e le proposte sono generiche.`}
+        </div>
+      </div>
+      {conferma && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setConferma(false); }} style={{
+          position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,8,12,.5)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease',
+        }}>
+          <div style={{ width: '100%', maxWidth: 430, background: SURF_X, borderRadius: '24px 24px 0 0', padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))', animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: BORDER_X }}/></div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: TEXT_X, marginBottom: 8 }}>Spegnere suggerimenti e analisi d'uso?</div>
+            <div style={{ fontSize: 13.5, color: MUTED_X, lineHeight: 1.5, marginBottom: 16 }}>Le proposte tornano generiche e l'app smette di registrare gli eventi d'uso. Puoi riaccenderli quando vuoi, da qui.</div>
+            <button onClick={spegni} style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: PINK_X, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Spegni</button>
+            <button onClick={() => setConferma(false)} style={{ width: '100%', padding: '12px', marginTop: 6, borderRadius: 14, border: 'none', background: 'transparent', color: MUTED_X, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Annulla</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ConsensiPanel({ onOpenPrivacy }) {
   // Chiuso di default: i consensi sono un cassetto, non la prima cosa da

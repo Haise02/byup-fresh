@@ -624,6 +624,218 @@
   }
 
   /* ---------- EXPORT ---------- */
+  // ─── Allergeni: il dizionario unico dei quattordici ────────
+  // Allegato II del Reg. UE 1169/2011, nell'ordine in cui la norma li elenca.
+  // È un elenco chiuso e completo: non se ne aggiungono, non se ne tolgono e
+  // nessuna schermata ne tiene una copia propria. Il profilo, dove la persona
+  // dichiara che cosa evitare, e il filtro del menù, che dovrebbe proteggerla,
+  // leggono entrambi da qui. Prima erano due liste diverse, una di otto e una di
+  // quattordici, con identificativi che non coincidevano: chi era allergico alla
+  // senape non aveva come dirlo, e chi dichiarava la frutta a guscio nel profilo
+  // non veniva riconosciuto dal menù, che la chiamava in un altro modo.
+  //
+  // `code` è il codice del dizionario `allergens` del modello dati. Serve perché
+  // quando arriveranno le interfacce applicative la corrispondenza sia già
+  // scritta e non da indovinare, e perché il filtro è una funzione di sicurezza:
+  // un identificativo che non si aggancia è un piatto che non viene nascosto.
+  const ALLERGENI = [{
+    id: 'glutine',
+    code: 'gluten',
+    label: 'Glutine',
+    hint: 'Pane, pasta, dolci',
+    color: '#c8a87a',
+    icon: '🌾'
+  }, {
+    id: 'crostacei',
+    code: 'crustaceans',
+    label: 'Crostacei',
+    hint: 'Gamberi, scampi, granchio',
+    color: '#e88a5a',
+    icon: '🦐'
+  }, {
+    id: 'uova',
+    code: 'eggs',
+    label: 'Uova',
+    hint: 'Frittate, dolci, salse',
+    color: '#f0c14b',
+    icon: '🥚'
+  }, {
+    id: 'pesce',
+    code: 'fish',
+    label: 'Pesce',
+    hint: 'Acciughe, salse di pesce',
+    color: '#d96a52',
+    icon: '🐟'
+  }, {
+    id: 'arachidi',
+    code: 'peanuts',
+    label: 'Arachidi',
+    hint: 'Creme, salse, fritti',
+    color: '#c89860',
+    icon: '🥜'
+  }, {
+    id: 'soia',
+    code: 'soybeans',
+    label: 'Soia',
+    hint: 'Tofu, tempeh, salsa di soia',
+    color: '#9ec27a',
+    icon: '🌱'
+  }, {
+    id: 'lattosio',
+    code: 'milk',
+    label: 'Lattosio',
+    hint: 'Latte, formaggi, burro',
+    color: '#f5c2c7',
+    icon: '🥛'
+  }, {
+    id: 'fruttaguscio',
+    code: 'nuts',
+    label: 'Frutta a guscio',
+    hint: 'Noci, nocciole, mandorle',
+    color: '#a07050',
+    icon: '🥜'
+  }, {
+    id: 'sedano',
+    code: 'celery',
+    label: 'Sedano',
+    hint: 'Brodi, soffritti',
+    color: '#7ec98a',
+    icon: '🥬'
+  }, {
+    id: 'senape',
+    code: 'mustard',
+    label: 'Senape',
+    hint: 'Salse, marinature',
+    color: '#e8c850',
+    icon: '🌶'
+  }, {
+    id: 'sesamo',
+    code: 'sesame',
+    label: 'Sesamo',
+    hint: 'Pane, hummus, condimenti',
+    color: '#d4b06a',
+    icon: '⚪'
+  }, {
+    id: 'solfiti',
+    code: 'sulphites',
+    label: 'Solfiti',
+    hint: 'Vino, frutta secca, conserve',
+    color: '#b07ac0',
+    icon: '🍇'
+  }, {
+    id: 'lupini',
+    code: 'lupin',
+    label: 'Lupini',
+    hint: 'Farine, sostituti vegetali',
+    color: '#f0b878',
+    icon: '🫘'
+  }, {
+    id: 'molluschi',
+    code: 'molluscs',
+    label: 'Molluschi',
+    hint: 'Cozze, vongole, calamari',
+    color: '#7aa8c8',
+    icon: '🐚'
+  }];
+  const ALLERGENI_MAP = ALLERGENI.reduce(function (m, a) {
+    m[a.id] = a;
+    return m;
+  }, {});
+
+  // ─── Regimi alimentari: gli otto, e il loro regime giuridico ───
+  // L'identificativo e il codice del dizionario `dietary_labels` del modello,
+  // che e condiviso con il catalogo: cosi la dichiarazione della persona
+  // incontra l'etichetta del piatto. Prima erano due vocabolari, e il profilo
+  // scriveva `senzaglutine` dove il catalogo scrive `senza_glutine`.
+  //
+  // `art9` non e una cautela ma la classificazione che governa il cancello del
+  // consenso. Vale per la voce DICHIARATA DA UNA PERSONA SU DI SE: un piatto
+  // vegano non rivela nulla di nessuno, una persona che si dichiara vegana si.
+  //   conviction — rivela una convinzione religiosa o filosofica
+  //   health     — rivela una condizione di salute
+  //   both       — rivela l'una e l'altra
+  //   null       — non rivela ne l'una ne l'altra: e dato comune
+  // Il criterio e quello delle linee guida EDPB 01/2021, caso 15: «contrariamente
+  // ad altre preferenze alimentari, l'intolleranza al lattosio non puo di norma
+  // essere collegata a convinzioni religiose o filosofiche».
+  const REGIMI = [{
+    id: 'vegetariano',
+    label: 'Vegetariano',
+    emoji: '🥗',
+    art9: 'conviction'
+  }, {
+    id: 'vegano',
+    label: 'Vegano',
+    emoji: '🌱',
+    art9: 'conviction'
+  }, {
+    id: 'pescetariano',
+    label: 'Pescetariano',
+    emoji: '🐟',
+    art9: 'conviction'
+  }, {
+    id: 'halal',
+    label: 'Halal',
+    emoji: '🌙',
+    art9: 'conviction'
+  }, {
+    id: 'kosher',
+    label: 'Kosher',
+    emoji: '✡️',
+    art9: 'conviction'
+  }, {
+    id: 'senza_glutine',
+    label: 'Senza glutine',
+    emoji: '🌾',
+    art9: 'health'
+  }, {
+    id: 'astemio',
+    label: 'Astemio',
+    emoji: '🚫',
+    art9: 'both'
+  }, {
+    id: 'proteico',
+    label: 'Proteico',
+    emoji: '💪',
+    art9: null
+  }];
+  const REGIMI_MAP = REGIMI.reduce(function (m, r) {
+    m[r.id] = r;
+    return m;
+  }, {});
+
+  // Se la voce che si sta dichiarando ricada nell'articolo 9. Gli allergeni ci
+  // ricadono sempre, perche rivelano una condizione di salute. Fra i regimi
+  // dipende dalla voce: `proteico` e una preferenza nutrizionale e non rivela
+  // nulla, quindi chiedere per essa il consenso esplicito sarebbe raccolta in
+  // eccesso e indebolirebbe la granularita del consenso vero.
+  function richiedeConsensoEsplicito(gruppo, id) {
+    if (gruppo === 'allergens') return true;
+    const r = REGIMI_MAP[id];
+    return !!(r && r.art9);
+  }
+
+  // Allergeni che la persona ha dichiarato nel profilo, letti dalla stessa
+  // chiave che il profilo scrive. È il collegamento che mancava: la
+  // dichiarazione esisteva e il menù non la guardava, quindi non proteggeva
+  // nessuno. Le voci non riconosciute si scartano, perché una preferenza
+  // salvata con un identificativo vecchio non deve far credere che un filtro
+  // sia attivo quando non lo è.
+  function allergeniDichiarati() {
+    try {
+      const raw = localStorage.getItem('byup_allergens');
+      if (!raw) return {};
+      const p = JSON.parse(raw) || {};
+      const dichiarati = p.allergens || {};
+      const out = {};
+      Object.keys(dichiarati).forEach(function (id) {
+        if (dichiarati[id] && ALLERGENI_MAP[id]) out[id] = true;
+      });
+      return out;
+    } catch (e) {
+      return {};
+    }
+  }
   window.ByupKit = {
     ASSETS,
     PALETTE,
@@ -644,25 +856,34 @@
     MascotMoment,
     Mascot,
     Confetti,
-    GRAIN_URI
+    GRAIN_URI,
+    ALLERGENI,
+    ALLERGENI_MAP,
+    allergeniDichiarati,
+    REGIMI,
+    REGIMI_MAP,
+    richiedeConsensoEsplicito
   };
   /* sync */
 })();
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing). Suggerimenti e analisi d'uso sono
-// legittimo interesse SENZA toggle in-app: l'opposizione passa
-// dall'assistenza (dal 2026-08-06), che la registra lato backend.
+// preferenze, A6 marketing). Suggerimenti e analisi d'uso restano legittimo
+// interesse, e dal 2026-09-03 (P-26 · D-28) hanno il loro INTERRUTTORE in
+// «I miei dati»: non è un consenso, è la misura di bilanciamento della LIA —
+// attivo per difetto, spegnibile in due tocchi, e l'opposizione lascia una
+// riga LI-SUGG in questo stesso log (ByupUso, sotto).
 //
 // REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
 //   promo generiche E su misura sullo storico ordini → basta A6 (che le
 //     dichiara entrambe: PROMOP è stato assorbito in A6 il 2026-08-06 —
 //     non reintrodurlo; il consenso unico NON copre i dati alimentari)
 //   promo su pref. alimentari → A6 && A18 (mai da soli: il dato è sensibile)
-//   suggerimenti in-app    → attivi salvo opposizione via assistenza (LI,
-//                            niente consenso; la città viene dal contesto
-//                            d'uso corrente, MAI dai log accesso/sicurezza)
+//   suggerimenti in-app    → attivi salvo opposizione dall'interruttore di
+//                            «I miei dati» (LI, niente consenso; la città
+//                            viene dal contesto d'uso corrente, MAI dai log
+//                            accesso/sicurezza)
 // Due strutture: lo STATO corrente per consenso e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
@@ -727,6 +948,86 @@
     },
     log() {
       return leggi(K_LOG, []);
+    }
+  };
+})();
+
+// ─── L'interruttore e il registro d'uso (P-26 · D-28, P-38 · D-31) ─────────
+// Suggerimenti e analisi d'uso stanno sotto un interruttore SOLO, perché
+// senza misurare non si sa se i consigli siano buoni. Attivo per difetto:
+// la base è il legittimo interesse, l'interruttore non è un consenso e non
+// va chiamato così — è la misura di bilanciamento su cui la LIA fonda
+// l'opposizione facile. Spegnerlo scrive nel log consent_data una riga
+// LI-SUGG (ok:false) come traccia dell'opposizione; riaccenderlo ne scrive
+// una (ok:true). Gli eventi d'uso (app_usage_events) sono tre e basta —
+// app_open, qr_scan, menu_view — e si scrivono solo con l'interruttore
+// acceso; allo spegnimento non si scrive più. Mai indirizzo di rete,
+// coordinate, impronta del dispositivo: l'unica informazione di luogo è la
+// città approssimata del momento d'uso, che nel prototipo è quella
+// dell'header («Roma», senza «centro»), mai dai log di accesso.
+(function () {
+  const K_SUGG = 'byup_suggerimenti'; // 'on' | 'off'; assente = on
+  const K_USO = 'byup_usage_events';
+  const TIPI = ['app_open', 'qr_scan', 'menu_view'];
+  const leggi = (k, fb) => {
+    try {
+      const r = localStorage.getItem(k);
+      return r ? JSON.parse(r) : fb;
+    } catch (e) {
+      return fb;
+    }
+  };
+  const scrivi = (k, v) => {
+    try {
+      localStorage.setItem(k, JSON.stringify(v));
+    } catch (e) {}
+  };
+  window.ByupUso = {
+    TIPI,
+    // La città approssimata del contesto d'uso: nel mock è quella dell'header.
+    citta() {
+      return 'Roma';
+    },
+    suggerimenti() {
+      return leggi(K_SUGG, 'on') !== 'off';
+    },
+    imposta(on) {
+      scrivi(K_SUGG, on ? 'on' : 'off');
+      // La traccia dell'opposizione (o della riattivazione) nel log dei
+      // consensi: stesso registro, id LI-SUGG, ma NON è un consenso.
+      const log = leggi('byup_consent_data', []);
+      log.push({
+        id: 'LI-SUGG',
+        ok: !!on,
+        quando: new Date().toISOString(),
+        versione: window.ByupConsensi ? window.ByupConsensi.VERSIONE_INFORMATIVA : '1.0',
+        natura: 'opposizione'
+      });
+      scrivi('byup_consent_data', log);
+      try {
+        window.dispatchEvent(new Event('byup-suggerimenti-change'));
+      } catch (e) {}
+      return !!on;
+    },
+    // L'emissione: tre tipi, la città, il momento. Con l'interruttore spento
+    // non scrive, e non scrive nient'altro in nessun caso.
+    emetti(tipo, venue) {
+      if (!TIPI.includes(tipo)) return null;
+      if (!window.ByupUso.suggerimenti()) return null;
+      const log = leggi(K_USO, []);
+      const riga = {
+        tipo,
+        quando: new Date().toISOString(),
+        citta: window.ByupUso.citta(),
+        venue: venue || null
+      };
+      log.push(riga);
+      if (log.length > 500) log.splice(0, log.length - 500);
+      scrivi(K_USO, log);
+      return riga;
+    },
+    eventi() {
+      return leggi(K_USO, []);
     }
   };
 })();
@@ -1363,6 +1664,77 @@ const {
   useRef
 } = React;
 
+// ─── Chiusure straordinarie del locale (P-46 · D-34) ───────────────────────
+// venue_closures: starts_on/ends_on con l'ultimo giorno compreso, reason breve
+// per la vetrina. I bundle non condividono i dati, quindi qui c'è un seme
+// ancorato all'oggi reale — le stesse date del gestionale (fra tre giorni, per
+// tre giorni, «Ferie») — perché la scheda del locale e la prenotazione lo
+// possano dimostrare. Nei giorni coperti la scheda dice la chiusura e il
+// selettore della prenotazione spegne il giorno.
+const appISO = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const appOggiISO = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return appISO(d);
+};
+const appGiorniDaOggi = n => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + n);
+  return appISO(d);
+};
+const APP_CHIUSURE = [{
+  id: 'cl-ferie',
+  starts_on: appGiorniDaOggi(3),
+  ends_on: appGiorniDaOggi(5),
+  reason: 'Ferie'
+}];
+const appChiusuraDelGiorno = iso => APP_CHIUSURE.find(c => c.starts_on <= iso && iso <= c.ends_on) || null;
+const appProssimaChiusura = () => {
+  const oggi = appOggiISO();
+  return APP_CHIUSURE.find(c => c.ends_on >= oggi) || null;
+};
+const appGiornoBreve = iso => new Date(`${iso}T00:00`).toLocaleDateString('it-IT', {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short'
+}).replace('.', '');
+// «Chiuso oggi · Ferie», «Chiuso fino a sab 7 set · Ferie», «Chiuso dal gio 5
+// al sab 7 set · Ferie»: stesse formule dell'anteprima nel gestionale.
+const appChiusuraTesto = c => {
+  if (!c) return '';
+  const oggi = appOggiISO();
+  const motivo = c.reason ? ` · ${c.reason}` : '';
+  const singola = c.starts_on === c.ends_on;
+  if (c.starts_on <= oggi && oggi <= c.ends_on) {
+    return (singola || c.ends_on === oggi ? 'Chiuso oggi' : `Chiuso fino a ${appGiornoBreve(c.ends_on)}`) + motivo;
+  }
+  return (singola ? `Chiuso ${appGiornoBreve(c.starts_on)}` : `Chiuso dal ${appGiornoBreve(c.starts_on)} al ${appGiornoBreve(c.ends_on)}`) + motivo;
+};
+// I sei giorni del selettore di prenotazione, da oggi, con etichetta e stato:
+// prima erano sei etichette scritte a mano («Sab 11», «Dom 12»…) che non
+// sapevano che giorno fosse.
+const appGiorniPrenotabili = () => Array.from({
+  length: 6
+}, (_, i) => {
+  const iso = appGiorniDaOggi(i);
+  const d = new Date(`${iso}T00:00`);
+  const wd = d.toLocaleDateString('it-IT', {
+    weekday: 'short',
+    day: 'numeric'
+  }).replace('.', '');
+  const label = i === 0 ? 'Oggi' : i === 1 ? 'Domani' : wd.charAt(0).toUpperCase() + wd.slice(1);
+  return {
+    iso,
+    label,
+    chiusura: appChiusuraDelGiorno(iso)
+  };
+});
+window.appChiusuraDelGiorno = appChiusuraDelGiorno;
+window.appProssimaChiusura = appProssimaChiusura;
+window.appChiusuraTesto = appChiusuraTesto;
+window.appOggiISO = appOggiISO;
+
 // ─── Tokens (mirror app.jsx) ────────────────────────────────
 // Tema letto al load (pagina = file separato → dark coerente cross-page)
 const __BYUP_DK_X = (() => {
@@ -1386,72 +1758,31 @@ const MUTESURF_X = __BYUP_DK_X ? '#39333b' : '#e7e1d8'; // muta
 const CORALSURF_X = __BYUP_DK_X ? 'rgba(239,99,137,.16)' : '#FCE9EE'; // chip coral
 
 // ─── Profile screen ─────────────────────────────────────────
-const PROFILE_ALLERGENS = [{
-  id: 'glutine',
-  label: 'Glutine',
-  hint: 'Pane, pasta, dolci',
-  emoji: '🌾'
-}, {
-  id: 'lattosio',
-  label: 'Lattosio',
-  hint: 'Latte, formaggi, burro',
-  emoji: '🥛'
-}, {
-  id: 'noci',
-  label: 'Frutta a guscio',
-  hint: 'Noci, nocciole, mandorle',
-  emoji: '🥜'
-}, {
-  id: 'uova',
-  label: 'Uova',
-  hint: 'Frittate, dolci, salse',
-  emoji: '🥚'
-}, {
-  id: 'crostacei',
-  label: 'Crostacei',
-  hint: 'Gamberi, scampi, granchio',
-  emoji: '🦐'
-}, {
-  id: 'pesce',
-  label: 'Pesce',
-  hint: 'Acciughe, salse di pesce',
-  emoji: '🐟'
-}, {
-  id: 'soia',
-  label: 'Soia',
-  hint: 'Tofu, tempeh, salsa di soia',
-  emoji: '🫘'
-}, {
-  id: 'sedano',
-  label: 'Sedano',
-  hint: 'Brodi, soffritti',
-  emoji: '🥬'
-}];
-const PROFILE_DIETS = [{
-  id: 'vegetariano',
-  label: 'Vegetariano',
-  emoji: '🥗'
-}, {
-  id: 'vegano',
-  label: 'Vegano',
-  emoji: '🌱'
-}, {
-  id: 'senzaglutine',
-  label: 'Senza glutine',
-  emoji: '🌾'
-}, {
-  id: 'halal',
-  label: 'Halal',
-  emoji: '🌙'
-}, {
-  id: 'kosher',
-  label: 'Kosher',
-  emoji: '✡️'
-}, {
-  id: 'pescetariano',
-  label: 'Pescetariano',
-  emoji: '🐟'
-}];
+// I quattordici dell'allegato II, letti dal dizionario unico di
+// byup-app-kit.jsx. Erano otto, scelti a mano, e mancavano senape, sesamo,
+// lupini, molluschi, arachidi e solfiti: chi era allergico a uno di quelli non
+// aveva come dirlo, e il filtro del menu non poteva proteggerlo. Un elenco che
+// la legge fissa non si accorcia per comodita di schermata.
+const PROFILE_ALLERGENS = (window.ByupKit.ALLERGENI || []).map(function (a) {
+  return {
+    id: a.id,
+    label: a.label,
+    hint: a.hint,
+    emoji: a.icon
+  };
+});
+// Gli otto regimi, letti dal dizionario unico di byup-app-kit.jsx, che porta
+// per ciascuno il codice del modello e la classificazione ai fini
+// dell'articolo 9. Erano sei: mancavano astemio e proteico, che il contratto
+// dati dichiarava e il profilo non offriva.
+const PROFILE_DIETS = (window.ByupKit.REGIMI || []).map(function (r) {
+  return {
+    id: r.id,
+    label: r.label,
+    emoji: r.emoji,
+    art9: r.art9
+  };
+});
 const PROFILE_ORDERS = [{
   id: 'ORD-1042',
   venue: 'Trattoria Lucia',
@@ -1615,8 +1946,17 @@ function AllergensView({
       [id]: !p[group]?.[id]
     }
   }));
+  // Il cancello del consenso scatta sulla VOCE e non sulla schermata. Gli
+  // allergeni rivelano sempre una condizione di salute; fra i regimi dipende:
+  // halal e kosher rivelano una convinzione religiosa, vegano vegetariano e
+  // pescetariano una convinzione filosofica, senza glutine una condizione di
+  // salute, astemio entrambe. Proteico non rivela nulla ed e dato comune:
+  // chiedere per esso il consenso esplicito dell'articolo 9 sarebbe raccolta
+  // in eccesso, e annegherebbe in un consenso rafforzato una preferenza che
+  // non lo richiede, indebolendo la granularita del consenso vero.
   const toggle = (group, id) => {
-    if (!consensoOk) {
+    const serve = window.ByupKit.richiedeConsensoEsplicito ? window.ByupKit.richiedeConsensoEsplicito(group, id) : true;
+    if (serve && !consensoOk) {
       setPending({
         group,
         id
@@ -3387,7 +3727,7 @@ function MieiDatiView({
     style: {
       marginTop: 16
     }
-  }, /*#__PURE__*/React.createElement(ConsensiPanel, {
+  }, /*#__PURE__*/React.createElement(SuggerimentiCard, null)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(ConsensiPanel, {
     onOpenPrivacy: onOpenPrivacy
   })));
 }
@@ -3420,10 +3760,176 @@ const CONSENSI_DEF = [{
   desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica',
   dove: 'alla registrazione'
 }
-// Suggerimenti e analisi d'uso: legittimo interesse SENZA toggle qui —
-// la via di opposizione è l'assistenza, come dichiarato nell'informativa.
-// Il pannello mostra solo i consensi veri: A3, A18, A6.
+// Suggerimenti e analisi d'uso NON stanno qui: sono legittimo interesse,
+// non un consenso, e hanno la loro card sopra il cassetto (SuggerimentiCard,
+// P-26). Il pannello mostra solo i consensi veri: A3, A18, A6.
 ];
+
+// ─── SuggerimentiCard — l'interruttore di P-26 (D-28) ───────────────────────
+// Sopra il cassetto dei consensi e non dentro, perché non è un consenso: è la
+// misura di bilanciamento della LIA. Attivo per difetto, spegnibile in due
+// tocchi — il toggle apre il foglio di conferma, lo stesso di A3, e il
+// secondo tocco conferma. Governa suggerimenti E analisi d'uso insieme:
+// spento, le proposte tornano generiche e l'app smette di registrare gli
+// eventi d'uso (P-38). Sotto, il contatore degli eventi per dimostrabilità.
+function SuggerimentiCard() {
+  const [, forza] = useState(0);
+  const [conferma, setConferma] = useState(false);
+  const attivo = ByupUso.suggerimenti();
+  const eventi = ByupUso.eventi();
+  const ultimo = eventi.length ? new Date(eventi[eventi.length - 1].quando) : null;
+  const cambia = v => {
+    if (!v) {
+      setConferma(true);
+      return;
+    }
+    ByupUso.imposta(true);
+    forza(x => x + 1);
+  };
+  const spegni = () => {
+    ByupUso.imposta(false);
+    setConferma(false);
+    forza(x => x + 1);
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14,
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: SURF_X,
+      borderRadius: 14,
+      border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`,
+      padding: '13px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      color: TEXT_X,
+      fontWeight: 600
+    }
+  }, "Suggerimenti e analisi d'uso"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: attivo ? PINK_X : MUTED_X,
+      marginTop: 1,
+      fontWeight: 600
+    }
+  }, attivo ? 'Attivi' : 'Spenti')), /*#__PURE__*/React.createElement(ProfileToggle, {
+    value: attivo,
+    onChange: cambia
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      marginTop: 8
+    }
+  }, "Usiamo i gusti che dichiari, i tuoi ordini e la citt\xE0 in cui usi l'app per proporti locali e piatti, e misuriamo come usi l'app per capire se i consigli sono buoni. Stanno sotto un interruttore solo, perch\xE9 senza misurare non si sa se i consigli servono. Non \xE8 un consenso: \xE8 il modo per opporti, in due tocchi. Mai allergeni o preferenze alimentari, mai indirizzo di rete, coordinate o impronta del telefono."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: MUTED_X,
+      marginTop: 6,
+      opacity: .8
+    }
+  }, attivo ? `Eventi d'uso registrati: ${eventi.length}${ultimo ? ` · ultimo ${ultimo.toLocaleDateString('it-IT')} ${ultimo.toLocaleTimeString('it-IT', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })}` : ''} · solo apertura, scansione QR e menù visto, con la città` : `Spenti: l'app non registra più gli eventi d'uso (${eventi.length} registrati prima) e le proposte sono generiche.`)), conferma && /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) setConferma(false);
+    },
+    style: {
+      position: 'fixed',
+      inset: 0,
+      zIndex: 80,
+      background: 'rgba(15,8,12,.5)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      animation: 'fade .2s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      maxWidth: 430,
+      background: SURF_X,
+      borderRadius: '24px 24px 0 0',
+      padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+      animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 999,
+      background: BORDER_X
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 800,
+      color: TEXT_X,
+      marginBottom: 8
+    }
+  }, "Spegnere suggerimenti e analisi d'uso?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      marginBottom: 16
+    }
+  }, "Le proposte tornano generiche e l'app smette di registrare gli eventi d'uso. Puoi riaccenderli quando vuoi, da qui."), /*#__PURE__*/React.createElement("button", {
+    onClick: spegni,
+    style: {
+      width: '100%',
+      padding: '13px',
+      borderRadius: 14,
+      border: 'none',
+      background: PINK_X,
+      color: '#fff',
+      fontSize: 15,
+      fontWeight: 700,
+      cursor: 'pointer',
+      fontFamily: 'inherit'
+    }
+  }, "Spegni"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setConferma(false),
+    style: {
+      width: '100%',
+      padding: '12px',
+      marginTop: 6,
+      borderRadius: 14,
+      border: 'none',
+      background: 'transparent',
+      color: MUTED_X,
+      fontSize: 14,
+      fontWeight: 600,
+      cursor: 'pointer',
+      fontFamily: 'inherit'
+    }
+  }, "Annulla"))));
+}
 function ConsensiPanel({
   onOpenPrivacy
 }) {
@@ -5497,8 +6003,19 @@ function BookingSheet({
       } else setPrefilled(false);
     }
   }, [open, defaultTime, editBooking]);
+  // Giorni veri, e un giorno coperto da una chiusura non resta selezionato:
+  // si passa al primo aperto (P-46).
+  const giorni = appGiorniPrenotabili();
+  useEffect(() => {
+    if (!open) return;
+    const g = giorni.find(x => x.label === date);
+    if (g && g.chiusura) {
+      const primo = giorni.find(x => !x.chiusura);
+      if (primo) setDate(primo.label);
+    }
+  }, [open, date]);
   if (!open) return null;
-  const dates = ['Oggi', 'Domani', 'Sab 11', 'Dom 12', 'Lun 13', 'Mar 14'];
+  const dates = giorni.map(g => g.label);
   const lunch = ['12:30', '13:00', '13:30'];
   const dinner = ['19:30', '20:00', '20:30', '21:00', '21:30', '22:00'];
   const chip = active => ({
@@ -5607,11 +6124,27 @@ function BookingSheet({
       gridTemplateColumns: 'repeat(3, 1fr)',
       gap: 8
     }
-  }, dates.map(d => /*#__PURE__*/React.createElement("button", {
-    key: d,
-    onClick: () => setDate(d),
-    style: chip(date === d)
-  }, d))), label('A che ora'), /*#__PURE__*/React.createElement("div", {
+  }, giorni.map(g => /*#__PURE__*/React.createElement("button", {
+    key: g.label,
+    onClick: () => !g.chiusura && setDate(g.label),
+    disabled: !!g.chiusura,
+    title: g.chiusura ? appChiusuraTesto(g.chiusura) : undefined,
+    style: g.chiusura ? {
+      ...chip(false),
+      color: '#b9a3aa',
+      textDecoration: 'line-through',
+      cursor: 'default',
+      opacity: 0.7
+    } : chip(date === g.label)
+  }, g.label, g.chiusura ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      fontWeight: 800,
+      color: '#d21e50',
+      textDecoration: 'none',
+      marginTop: 2
+    }
+  }, "Chiuso") : null))), label('A che ora'), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       fontWeight: 700,
@@ -6600,7 +7133,17 @@ function VenueOriginal({
       padding: '14px 20px 0 20px',
       flexWrap: 'wrap'
     }
-  }, /*#__PURE__*/React.createElement("span", {
+  }, appChiusuraDelGiorno(appOggiISO()) ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10.5,
+      fontWeight: 700,
+      color: '#d21e50',
+      background: __BYUP_DK_X ? 'rgba(210,30,80,.22)' : '#fde8ee',
+      padding: '4px 9px',
+      borderRadius: 999,
+      whiteSpace: 'nowrap'
+    }
+  }, "CHIUSO") : /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 10.5,
       fontWeight: 700,
@@ -6677,7 +7220,32 @@ function VenueOriginal({
     r: "10"
   }), /*#__PURE__*/React.createElement("polyline", {
     points: "12 6 12 12 16 14"
-  })), "Lun \u2013 Ven \xB7 11:00 \u2013 23:00")), /*#__PURE__*/React.createElement("div", {
+  })), "Lun \u2013 Ven \xB7 11:00 \u2013 23:00"), (appChiusuraDelGiorno(appOggiISO()) || appProssimaChiusura()) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: appChiusuraDelGiorno(appOggiISO()) ? '#d21e50' : '#B45309',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("svg", {
+    width: "13",
+    height: "13",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, /*#__PURE__*/React.createElement("path", {
+    d: "M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+  }), /*#__PURE__*/React.createElement("line", {
+    x1: "12",
+    y1: "9",
+    x2: "12",
+    y2: "13"
+  })), appChiusuraTesto(appChiusuraDelGiorno(appOggiISO()) || appProssimaChiusura()))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       marginBottom: 4
@@ -18604,6 +19172,11 @@ function RecoveryOrderBanner({
 function App({
   recoveryArmed = false
 }) {
+  // app_open (P-38): l'apertura dell'app, una volta per montaggio, solo con
+  // l'interruttore di P-26 acceso — ByupUso non scrive altrimenti.
+  useEffect(() => {
+    if (window.ByupUso) window.ByupUso.emetti('app_open');
+  }, []);
   const [T] = BK.useByupTheme();
   const [activeCat, setActiveCat] = useState(null);
   const [catSel, setCatSel] = useState(null); // categoria aperta a schermo intero
@@ -19193,7 +19766,11 @@ function QRScanOverlay({
       setPhase('found');
       BK.haptic.success();
     }, 1350);
-    const t2 = setTimeout(() => onDone && onDone(), 3100);
+    // qr_scan (P-38): solo con l'interruttore acceso, con la città.
+    const t2 = setTimeout(() => {
+      if (window.ByupUso) window.ByupUso.emetti('qr_scan');
+      onDone && onDone();
+    }, 3100);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -20977,78 +21554,19 @@ const I = {
 };
 
 // ─── Allergens ─────────────────────────────────────────────
-const ALLERGENS = {
-  glutine: {
-    label: 'Glutine',
-    color: '#c8a87a',
-    icon: '🌾'
-  },
-  pesce: {
-    label: 'Pesce',
-    color: '#d96a52',
-    icon: '🐟'
-  },
-  uova: {
-    label: 'Uova',
-    color: '#f0c14b',
-    icon: '🥚'
-  },
-  lattosio: {
-    label: 'Lattosio',
-    color: '#f5c2c7',
-    icon: '🥛'
-  },
-  crostacei: {
-    label: 'Crostacei',
-    color: '#e88a5a',
-    icon: '🦐'
-  },
-  fruttaguscio: {
-    label: 'Frutta a guscio',
-    color: '#a07050',
-    icon: '🥜'
-  },
-  soia: {
-    label: 'Soia',
-    color: '#9ec27a',
-    icon: '🌱'
-  },
-  arachidi: {
-    label: 'Arachidi',
-    color: '#c89860',
-    icon: '🥜'
-  },
-  sedano: {
-    label: 'Sedano',
-    color: '#7ec98a',
-    icon: '🥬'
-  },
-  senape: {
-    label: 'Senape',
-    color: '#e8c850',
-    icon: '🌶'
-  },
-  sesamo: {
-    label: 'Sesamo',
-    color: '#d4b06a',
-    icon: '⚪'
-  },
-  solfiti: {
-    label: 'Solfiti',
-    color: '#b07ac0',
-    icon: '🍇'
-  },
-  lupini: {
-    label: 'Lupini',
-    color: '#f0b878',
-    icon: '🫘'
-  },
-  molluschi: {
-    label: 'Molluschi',
-    color: '#7aa8c8',
-    icon: '🐚'
-  }
-};
+// I quattordici dell'allegato II stanno in un posto solo, byup-app-kit.jsx, e
+// da li si prende la forma che serve al menu, cioe etichetta, colore e icona.
+// Nessuna copia locale: il profilo, dove la persona dichiara che cosa evitare,
+// e questo filtro devono parlare la stessa lingua, altrimenti chi dichiara
+// un'allergia non viene protetto dove conta.
+const ALLERGENS = (window.ByupKit.ALLERGENI || []).reduce(function (m, a) {
+  m[a.id] = {
+    label: a.label,
+    color: a.color,
+    icon: a.icon
+  };
+  return m;
+}, {});
 function AllergenDots({
   ids,
   onTap,
@@ -21331,6 +21849,9 @@ const DISHES_BY_CAT = {
     kind: 'default',
     photo: 'https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=400&q=70&auto=format&fit=crop',
     desc: 'Pane casereccio tostato, pomodoro fresco, aglio e olio EVO.',
+    // Marca della descrizione generata (P-40): descAi + id di provenienza, seminati a mano — i due bundle non condividono i dati.
+    descAi: true,
+    descAiProvenanceId: 'prov-0001',
     longDesc: 'Bruschette di pane casereccio tostato a legna, strofinato con aglio, condite con pomodoro fresco di stagione, basilico, olio extravergine di oliva e sale grosso.',
     prep: 6,
     allergens: ['glutine'],
@@ -21354,6 +21875,8 @@ const DISHES_BY_CAT = {
     kind: 'pasta',
     photo: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=400&q=70&auto=format&fit=crop',
     desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco.',
+    descAi: true,
+    descAiProvenanceId: 'prov-0002',
     longDesc: 'Tonnarelli freschi fatti in casa, mantecati con pecorino romano DOP stagionato 12 mesi e pepe nero del Sarawak macinato al momento. Una delle 4 paste classiche romane.',
     prep: 14,
     allergens: ['glutine', 'lattosio', 'uova'],
@@ -22339,6 +22862,12 @@ function MenuScreen({
   setState,
   goTo
 }) {
+  // menu_view (P-38): il menù visto, una volta per apertura, solo con
+  // l'interruttore acceso. I suggerimenti seguono lo stesso interruttore.
+  useEffect(() => {
+    if (window.ByupUso) window.ByupUso.emetti('menu_view', state && state.venue && state.venue.name || null);
+  }, []);
+  const suggerimentiAttivi = !window.ByupUso || window.ByupUso.suggerimenti();
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   // Tab di navigazione: "Byup" è una voce extra (non una categoria di piatti)
   // che punta alla sezione "I più ordinati" in cima alla lista.
@@ -22484,7 +23013,14 @@ function MenuScreen({
   })();
   const [searchQ, setSearchQ] = useState('');
   const [dietFilter, setDietFilter] = useState(null); // 'veg' | 'vegan' | 'gf' | 'spicy' | null
-  const [allergenFilters, setAllergenFilters] = useState({}); // {glutine: true, ...} = NASCONDI piatti con questi
+  // {glutine: true, ...} = NASCONDI i piatti che li contengono. Si parte da
+  // cio che la persona ha dichiarato nel profilo: la dichiarazione esisteva e
+  // il menu non la guardava, quindi il filtro che doveva proteggerla nasceva
+  // vuoto a ogni apertura. Resta modificabile qui, perche chi ordina per un
+  // altro deve poterlo cambiare senza toccare il proprio profilo.
+  const [allergenFilters, setAllergenFilters] = useState(function () {
+    return window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati() || {};
+  });
   const [allergenSheetOpen, setAllergenSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState('collapsed'); // 'collapsed' | 'expanded'
   const [sheetTab, setSheetTab] = useState('piatti'); // 'piatti' | 'divisione'
@@ -22500,6 +23036,8 @@ function MenuScreen({
   // Piatti "Per te" — stessa logica della sezione "In base ai tuoi gusti".
   // Calcolata qui una volta sola così il badge è riusabile anche nelle card.
   const perTeIds = (() => {
+    // Spento l'interruttore (P-26), nessun «Per te»: le proposte sono generiche.
+    if (!suggerimentiAttivi) return new Set();
     const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id));
     const dietMatch = d => {
       if (!dietFilter) return true;
@@ -23331,7 +23869,92 @@ function MenuScreen({
         }
       }, qty > 0 ? `Nel carrello · ${qty}` : 'Aggiungi')));
     })));
-  })(), !searchQ && (() => {
+  })(), !searchQ && !suggerimentiAttivi && (() => {
+    const picks = ALL_DISHES.filter(d => d.bestSeller).slice(0, 6);
+    if (picks.length < 2) return null;
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 26,
+        marginLeft: -18,
+        marginRight: -18
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '0 18px 14px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 22,
+        fontWeight: 800,
+        color: TEXT,
+        letterSpacing: -0.4
+      }
+    }, "Una selezione"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        color: MUTED,
+        marginTop: 2
+      }
+    }, "Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo \u2192 I miei dati.")), /*#__PURE__*/React.createElement("div", {
+      className: "hscroll",
+      style: {
+        display: 'flex',
+        gap: 12,
+        padding: '4px 18px 6px',
+        overflowX: 'auto',
+        scrollbarWidth: 'none'
+      }
+    }, picks.map(d => /*#__PURE__*/React.createElement("div", {
+      key: d.id,
+      onClick: () => goTo('dish', {
+        dishId: d.id
+      }),
+      style: {
+        flex: '0 0 auto',
+        width: 180,
+        background: SURF,
+        borderRadius: 16,
+        overflow: 'hidden',
+        cursor: 'pointer',
+        position: 'relative',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 130,
+        position: 'relative'
+      }
+    }, d.photo ? /*#__PURE__*/React.createElement(PremFoodImg, {
+      name: d.name,
+      photo: d.photo
+    }) : /*#__PURE__*/React.createElement(DishPhoto, {
+      tone: d.tone,
+      kind: d.kind,
+      hideBadge: true,
+      label: d.name.split(' ')[0].toLowerCase()
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: '10px 12px 12px'
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 700,
+        color: TEXT,
+        lineHeight: 1.2,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      }
+    }, d.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13.5,
+        color: TEXT,
+        fontWeight: 700,
+        marginTop: 6
+      }
+    }, d.price, "\u20AC"))))));
+  })(), !searchQ && suggerimentiAttivi && (() => {
     const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id));
     const dietMatch = d => {
       if (!dietFilter) return true;
@@ -26062,6 +26685,7 @@ function DishDetailScreen({
   const [variants, setVariants] = useState(editLine?.variants || {});
   const [nutriOpen, setNutriOpen] = useState(true);
   const [nutriInfo, setNutriInfo] = useState(false); // popover "i" del badge IA
+  const [descInfo, setDescInfo] = useState(false); // popover "i" della descrizione generata
   // Default 1: in aggiunta è la quantità di partenza; in modifica è il MINIMO
   // di "a quante porzioni applicare le modifiche" (la riga ha editLine.qty porzioni).
   const [qty, setQty] = useState(1);
@@ -26343,12 +26967,95 @@ function DishDetailScreen({
       borderRadius: 999,
       flexShrink: 0
     }
-  }, dish.price, "\u20AC")), /*#__PURE__*/React.createElement("div", {
+  }, dish.price, "\u20AC")), dish.descAi && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 10,
+      position: 'relative'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: PINK,
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: 800,
+      padding: '4px 9px',
+      borderRadius: 999,
+      letterSpacing: 0.5,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4
+    }
+  }, "\u2728 IA"), /*#__PURE__*/React.createElement("span", {
+    role: "button",
+    tabIndex: 0,
+    onClick: e => {
+      e.stopPropagation();
+      setDescInfo(v => !v);
+    },
+    style: {
+      width: 20,
+      height: 20,
+      borderRadius: 999,
+      flexShrink: 0,
+      background: SURF,
+      border: `1.5px solid ${PINK}`,
+      color: PINK,
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 11.5,
+      fontWeight: 800,
+      fontStyle: 'italic',
+      fontFamily: 'Georgia, serif',
+      cursor: 'pointer',
+      lineHeight: 1
+    }
+  }, "i"), descInfo && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      e.stopPropagation();
+      setDescInfo(false);
+    },
+    style: {
+      position: 'fixed',
+      inset: 0,
+      zIndex: 24
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: 'absolute',
+      top: 26,
+      left: 0,
+      zIndex: 25,
+      width: 260,
+      padding: '10px 12px',
+      borderRadius: 12,
+      background: BADGE,
+      color: '#fff',
+      fontSize: 12,
+      fontWeight: 500,
+      lineHeight: 1.5,
+      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+      animation: 'fade 0.15s ease'
+    }
+  }, "Descrizione scritta con intelligenza artificiale su richiesta del locale, che l'ha rivista. Ingredienti e allergeni li dichiara il locale.", /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: 'absolute',
+      top: -4,
+      left: 42,
+      width: 8,
+      height: 8,
+      background: BADGE,
+      transform: 'rotate(45deg)'
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 13.5,
       color: MUTED,
       lineHeight: 1.55,
-      marginTop: 10
+      marginTop: dish.descAi ? 6 : 10
     }
   }, expanded ? dish.longDesc : /*#__PURE__*/React.createElement(React.Fragment, null, dish.desc.slice(0, 75), dish.desc.length > 75 ? '...' : '', ' ', /*#__PURE__*/React.createElement("span", {
     onClick: () => setExpanded(true),
