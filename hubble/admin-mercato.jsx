@@ -391,7 +391,7 @@ function MktRotazione() {
         <div style={{padding:'16px 22px', display:'flex', flexDirection:'column', gap:10}}>
           {MKT_ROTAZIONE.perTipo.map(t => (
             <div key={t.tipo} style={{display:'flex', alignItems:'center', gap:10}}>
-              <span style={{fontSize:13.3, color:ADM.TEXT, fontWeight:500, width:92, flexShrink:0}}>{t.tipo}</span>
+              <span style={{fontSize:13.3, color:ADM.TEXT, fontWeight:500, width:92, flexShrink:0}}>{admTipoLabel(t.tipo)}</span>
               <div style={{flex:1, height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
                 <div style={{width:`${(t.pct/maxRot)*100}%`, height:'100%', background:ADM.PURPLE, borderRadius:99}}/>
               </div>
@@ -468,7 +468,7 @@ function MktIntensita() {
       <div style={{padding:'0 22px 16px', display:'flex', flexDirection:'column', gap:9}}>
         {MKT_INTENSITA.perTipo.map(t => (
           <div key={t.tipo} style={{display:'flex', alignItems:'center', gap:10}}>
-            <span style={{fontSize:13.3, color:ADM.TEXT, fontWeight:500, width:92, flexShrink:0}}>{t.tipo}</span>
+            <span style={{fontSize:13.3, color:ADM.TEXT, fontWeight:500, width:92, flexShrink:0}}>{admTipoLabel(t.tipo)}</span>
             <span style={{fontSize:12.2, color:ADM.MUTED_SOFT, width:58, flexShrink:0}}>{t.locali} local{t.locali === 1 ? 'e' : 'i'}</span>
             <div style={{flex:1, height:8, background:'#F4F5F7', borderRadius:99, overflow:'hidden'}}>
               <div style={{width:`${(t.azioni/mx)*100}%`, height:'100%', background:ADM.INK, borderRadius:99}}/>

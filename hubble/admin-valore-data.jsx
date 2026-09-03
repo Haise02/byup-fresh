@@ -38,17 +38,14 @@ const VAL_MESI = ['Giu','Lug','Ago','Set','Ott','Nov','Dic','Gen','Feb','Mar','A
 const VAL_UNIVERSO = LOCALI.filter(locAttivo);
 
 // ── Le basi per mestiere ──────────────────────────────────────────────────
-const VAL_TEMPO_BASE = {
-  'Pizzeria':38, 'Pub':46, 'Bar':30, 'Bistrot':54, 'Enoteca':60,
-  'Trattoria':68, 'Osteria':74, 'Ristorante':92,
-};
-const VAL_QUOTA_SALA = {
-  'Ristorante':0.88, 'Trattoria':0.86, 'Osteria':0.85, 'Enoteca':0.80,
-  'Bistrot':0.72, 'Pub':0.74, 'Pizzeria':0.46, 'Bar':0.34,
-};
+// Tempo di servizio e quota di sala erano copie identiche di PAR, valore per
+// valore: ora si LEGGONO da lì. Le chiavi sono i codici delle venue_category
+// del dizionario (P-29). Il no-show resta una tabella sua.
+const VAL_TEMPO_BASE = PAR.TEMPO_SERVIZIO;
+const VAL_QUOTA_SALA = PAR.QUOTA_SALA;
 const VAL_NOSHOW_BASE = {
-  'Ristorante':14, 'Enoteca':12, 'Osteria':11, 'Trattoria':10,
-  'Bistrot':9, 'Pizzeria':8, 'Pub':7, 'Bar':5,
+  'ristorante':14, 'giapponese':13, 'enoteca':12, 'cucina_etnica':12,
+  'carne_griglia':10, 'bistrot':9, 'pizzeria':8, 'bar':5,
 };
 
 // ── Come l'adozione si lega agli indicatori ───────────────────────────────

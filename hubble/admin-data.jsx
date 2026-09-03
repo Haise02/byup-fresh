@@ -157,16 +157,21 @@ function buildLocali() {
     ['Pizzeria I Masanielli', 'Caserta', 'Campania'],
   ];
 
+  // Il tipo è un CODICE delle otto venue_category del dizionario di
+  // piattaforma (PN_GUSTI, P-29 · D-28 — la copia è HUB_PN_GUSTI in hub-data),
+  // non la prima parola dell'insegna: Hubble scriveva un vocabolario suo
+  // (Trattoria, Osteria, Pub) che non combaciava con le otto. Trattoria e
+  // Osteria sono ristoranti, il Pub è un bar; l'insegna resta com'è.
   const tipiByPrefix = {
-    'Trattoria': 'Trattoria', 'Osteria': 'Osteria', 'Pizzeria': 'Pizzeria',
-    'Ristorante': 'Ristorante', 'Bistrot': 'Bistrot', 'Enoteca': 'Enoteca',
-    'Pub': 'Pub', 'Bar': 'Bar',
+    'Trattoria': 'ristorante', 'Osteria': 'ristorante', 'Pizzeria': 'pizzeria',
+    'Ristorante': 'ristorante', 'Bistrot': 'bistrot', 'Enoteca': 'enoteca',
+    'Pub': 'bar', 'Bar': 'bar',
   };
 
   return nomi.map((n, i) => {
     const r = pseudoRand(i + 1);
     const prefix = n[0].split(' ')[0];
-    const tipo = tipiByPrefix[prefix] || 'Ristorante';
+    const tipo = tipiByPrefix[prefix] || 'ristorante';
 
     // Distribuzione stati: 5 pending, 8 onboarding, 4 skipped, 25 active, 6 inactive, 2 churned
     // Le estrazioni di `r` prima del volume sono le STESSE di prima, per
@@ -388,6 +393,10 @@ function buildLocali() {
 }
 
 const LOCALI = buildLocali();
+// L'etichetta di un codice di categoria, dal dizionario (hub-data si carica
+// dopo: si legge a runtime). Chi mostra un tipo passa di qui, mai dal codice.
+const admTipoLabel = (id) => { const g = (window.HUB_PN_GUSTI || []).find(x => x.id === id); return g ? g.label : id; };
+window.admTipoLabel = admTipoLabel;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DEFINIZIONI · cosa vuol dire «attivo» e cosa vuol dire «pagante»

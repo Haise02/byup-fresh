@@ -128,7 +128,7 @@ function AnMappa() {
           color: '#fff', weight: 1.5,
           fillColor: s.colore, fillOpacity: 0.85,
         }).bindTooltip(
-          `<b>${l.nome}</b><br>${l.tipo} · ${l.citta}<br>${s.label} · piano ${l.piano}<br>${admNumIt(l.ordiniMese)} ordini nel mese`,
+          `<b>${l.nome}</b><br>${admTipoLabel(l.tipo)} · ${l.citta}<br>${s.label} · piano ${l.piano}<br>${admNumIt(l.ordiniMese)} ordini nel mese`,
           { direction: 'top', offset: [0, -4] },
         ).addTo(gruppo);
       });

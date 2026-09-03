@@ -89,7 +89,10 @@ il resto vive nelle tab.
 1. **Anagrafica** — l'identità del rapporto (codice non modificabile, piano,
    ciclo di vita, provvedimento, iscritto dal) incorporata in testa alla card
    dei campi; i campi sono quelli dell'onboarding del gestionale (insegna,
-   indirizzo e civico, CAP, città, telefono…). Sono **due campi** (P-44 ·
+   indirizzo e civico, CAP, città, telefono…); la **Tipologia** è una select
+   sulle otto venue_category del dizionario (P-29), non un testo libero — il
+   tipo del locale è un codice (`admTipoLabel` lo mostra) e le tabelle per tipo
+   di Mercato, Valore e Analisi lo usano come chiave. Sono **due campi** (P-44 ·
    D-34): il **ciclo di vita** dice dove il locale è arrivato (iscritto non
    avviato, in onboarding, onboarding saltato, attivo, inattivo, disdetto) e
    il **provvedimento** cosa Byup ha deciso (nessuno, limitato, sospeso,

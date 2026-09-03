@@ -27,10 +27,16 @@
 const MKT_LOCALI = LOCALI.filter(locLive);
 const MKT_ORDINI_TOT = MKT_LOCALI.reduce((s, l) => s + l.ordiniMese, 0);
 // Voci di menu per locale: una carta vera sta fra le 40 e le 120 voci.
+// Le voci di carta di partenza per categoria (codici delle venue_category):
+// era una catena di ternari con Trattoria, Osteria e Bistrot nel default.
+// Sta PRIMA di chi la usa: il modulo la legge al caricamento.
+const MKT_VOCI_BASE = {
+  'pizzeria':46, 'bar':38, 'ristorante':88, 'enoteca':74, 'bistrot':62,
+  'giapponese':70, 'carne_griglia':58, 'cucina_etnica':66,
+};
 const MKT_VOCI_PER_LOCALE = (l) => {
   const r = pseudoRand(l.id.charCodeAt(3) * 31 + l.nome.length);
-  const base = l.tipo === 'Pizzeria' ? 46 : l.tipo === 'Bar' ? 38 : l.tipo === 'Pub' ? 42
-             : l.tipo === 'Ristorante' ? 88 : l.tipo === 'Enoteca' ? 74 : 62;
+  const base = MKT_VOCI_BASE[l.tipo] ?? 62;
   return Math.round(base * (0.82 + r() * 0.5));
 };
 const MKT_VOCI_TOT = MKT_LOCALI.reduce((s, l) => s + MKT_VOCI_PER_LOCALE(l), 0);
@@ -73,15 +79,18 @@ const MKT_MARCHE = [
 // Chi porta cosa dipende dal mestiere: un pub ha quattro birre e zero aperitivi
 // da banco, un'enoteca il contrario. Senza questo, la distribuzione esce piatta
 // e non somiglia a niente.
+// Le chiavi sono i codici delle otto venue_category (P-29): Trattoria e
+// Osteria confluite in ristorante, il Pub in bar; le tre categorie nuove con
+// affinità stimate per prossimità — stime dichiarate, non misure.
 const MKT_AFFINITA = {
-  'Pub':        { Birre:1.7, Aperitivi:0.5, Bibite:1.0, Acque:0.7, 'Caffè':0.5 },
-  'Bar':        { Birre:1.0, Aperitivi:1.5, Bibite:1.3, Acque:0.9, 'Caffè':1.6 },
-  'Pizzeria':   { Birre:1.4, Aperitivi:0.7, Bibite:1.3, Acque:1.2, 'Caffè':1.1 },
-  'Enoteca':    { Birre:0.5, Aperitivi:1.4, Bibite:0.6, Acque:1.0, 'Caffè':0.8 },
-  'Ristorante': { Birre:0.8, Aperitivi:1.0, Bibite:0.9, Acque:1.3, 'Caffè':1.2 },
-  'Trattoria':  { Birre:0.9, Aperitivi:0.8, Bibite:1.0, Acque:1.2, 'Caffè':1.2 },
-  'Osteria':    { Birre:0.8, Aperitivi:0.9, Bibite:0.9, Acque:1.1, 'Caffè':1.1 },
-  'Bistrot':    { Birre:0.8, Aperitivi:1.3, Bibite:1.0, Acque:1.1, 'Caffè':1.2 },
+  'bar':           { Birre:1.2, Aperitivi:1.4, Bibite:1.2, Acque:0.9, 'Caffè':1.5 },
+  'pizzeria':      { Birre:1.4, Aperitivi:0.7, Bibite:1.3, Acque:1.2, 'Caffè':1.1 },
+  'enoteca':       { Birre:0.5, Aperitivi:1.4, Bibite:0.6, Acque:1.0, 'Caffè':0.8 },
+  'ristorante':    { Birre:0.8, Aperitivi:1.0, Bibite:0.9, Acque:1.3, 'Caffè':1.2 },
+  'bistrot':       { Birre:0.8, Aperitivi:1.3, Bibite:1.0, Acque:1.1, 'Caffè':1.2 },
+  'giapponese':    { Birre:0.9, Aperitivi:0.9, Bibite:1.0, Acque:1.4, 'Caffè':0.6 },
+  'carne_griglia': { Birre:1.3, Aperitivi:0.7, Bibite:1.0, Acque:1.1, 'Caffè':1.0 },
+  'cucina_etnica': { Birre:1.1, Aperitivi:0.8, Bibite:1.4, Acque:1.0, 'Caffè':0.7 },
 };
 const mktCityMult = (citta) => CITY_PRICE_MULT[citta] ?? 0.95;
 
@@ -89,7 +98,7 @@ const mktCityMult = (citta) => CITY_PRICE_MULT[citta] ?? 0.95;
 const MKT_CARTE = (() => {
   return MKT_LOCALI.map((l, li) => {
     const r = pseudoRand(li * 7 + 13);
-    const aff = MKT_AFFINITA[l.tipo] || MKT_AFFINITA['Ristorante'];
+    const aff = MKT_AFFINITA[l.tipo] || MKT_AFFINITA['ristorante'];
     const righe = [];
     MKT_MARCHE.forEach((m) => {
       const p = Math.min(0.97, m.pen * (aff[m.seg] ?? 1));
@@ -296,16 +305,19 @@ const MKT_UPSELL = (() => {
 // entrando nel gusto collettivo — e lo dicono PRIMA del carrello della spesa,
 // perché fuori casa si prova, a casa si ricompra.
 const MKT_ROTAZIONE = (() => {
+  // Per codice di categoria; le voci si leggono da MKT_VOCI_BASE invece di
+  // essere ricopiate. Le tre categorie che i mock non hanno restano in
+  // tabella e spariscono dalla lista con «presenti».
   const perTipo = [
-    { tipo:'Bistrot',    pct:24, voci:62 },
-    { tipo:'Ristorante', pct:19, voci:88 },
-    { tipo:'Pub',        pct:17, voci:42 },
-    { tipo:'Bar',        pct:15, voci:38 },
-    { tipo:'Osteria',    pct:12, voci:62 },
-    { tipo:'Enoteca',    pct:11, voci:74 },
-    { tipo:'Trattoria',  pct: 9, voci:62 },
-    { tipo:'Pizzeria',   pct: 7, voci:46 },
-  ];
+    { tipo:'bistrot',       pct:24 },
+    { tipo:'giapponese',    pct:21 },
+    { tipo:'ristorante',    pct:19 },
+    { tipo:'cucina_etnica', pct:16 },
+    { tipo:'bar',           pct:15 },
+    { tipo:'carne_griglia', pct:13 },
+    { tipo:'enoteca',       pct:11 },
+    { tipo:'pizzeria',      pct: 7 },
+  ].map(t => ({ ...t, voci: MKT_VOCI_BASE[t.tipo] }));
   const presenti = perTipo.filter(t => MKT_LOCALI.some(l => l.tipo === t.tipo));
   const media = presenti.length
     ? presenti.reduce((s, t) => s + t.pct * t.voci, 0) / presenti.reduce((s, t) => s + t.voci, 0)
@@ -331,16 +343,18 @@ const MKT_TRIMESTRI = ['T2 25', 'T3 25', 'T4 25', 'T1 26', 'T2 26'];
 // dato di COSTO — e nessuno ce l'ha, perché nessuno registra il gesto del
 // cameriere con un timestamp. Noi sì, perché passa dal gestionale.
 const MKT_INTENSITA = (() => {
+  // I minuti di sala per coperto si leggono da PAR.MINUTI_SALA: erano una
+  // terza copia della stessa tabella.
   const perTipo = [
-    { tipo:'Ristorante', azioni:11.4, minuti:6.8, coperti:0 },
-    { tipo:'Osteria',    azioni: 9.1, minuti:5.4, coperti:0 },
-    { tipo:'Trattoria',  azioni: 8.6, minuti:5.1, coperti:0 },
-    { tipo:'Bistrot',    azioni: 7.9, minuti:4.6, coperti:0 },
-    { tipo:'Enoteca',    azioni: 7.2, minuti:4.2, coperti:0 },
-    { tipo:'Pizzeria',   azioni: 6.3, minuti:3.4, coperti:0 },
-    { tipo:'Pub',        azioni: 5.1, minuti:2.9, coperti:0 },
-    { tipo:'Bar',        azioni: 3.8, minuti:2.1, coperti:0 },
-  ];
+    { tipo:'ristorante',    azioni:11.4 },
+    { tipo:'giapponese',    azioni: 9.5 },
+    { tipo:'carne_griglia', azioni: 8.6 },
+    { tipo:'cucina_etnica', azioni: 8.2 },
+    { tipo:'bistrot',       azioni: 7.9 },
+    { tipo:'enoteca',       azioni: 7.2 },
+    { tipo:'pizzeria',      azioni: 6.3 },
+    { tipo:'bar',           azioni: 3.8 },
+  ].map(t => ({ ...t, minuti: PAR.MINUTI_SALA[t.tipo], coperti:0 }));
   const conDati = perTipo.map(t => {
     const gruppo = MKT_LOCALI.filter(l => l.tipo === t.tipo);
     return { ...t, locali: gruppo.length, coperti: gruppo.reduce((s, l) => s + l.coperti, 0) };

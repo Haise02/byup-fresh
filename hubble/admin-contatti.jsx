@@ -185,7 +185,7 @@ const CONTATTI = (() => {
     rows.push({
     key: 'loc-' + l.id, tipo: 'locale', ref: l,
     nome: l.nome,
-    cerca: l.tipo + ' ' + l.citta,
+    cerca: admTipoLabel(l.tipo) + ' ' + l.citta,
     citta: l.citta, regione: l.regione,
     locali: gruppo.length > 1 ? gruppo.map(x => x.nome).join(' · ') : null,
     email: l.email,

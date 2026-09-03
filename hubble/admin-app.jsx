@@ -200,7 +200,7 @@ function GlobalSearch({ onClose, go }) {
   const match = (...fields) => fields.some(x => String(x || '').toLowerCase().includes(query));
   const results = query.length < 2 ? [] : [
     { group:'Locali', icon:'storeFill', items: LOCALI.filter(l => match(l.nome, l.citta, l.id, l.titolare)).slice(0,5)
-        .map(l => ({ key:l.id, title:l.nome, sub:`${l.tipo} · ${l.citta} · ${l.id}`, go:()=>go('locali',{openLocale:l}) })) },
+        .map(l => ({ key:l.id, title:l.nome, sub:`${admTipoLabel(l.tipo)} · ${l.citta} · ${l.id}`, go:()=>go('locali',{openLocale:l}) })) },
     { group:'Utenti App', icon:'phoneFill', items: (window.UTENTI||[]).filter(u => match(u.nome, u.citta, u.id, u.email)).slice(0,5)
         .map(u => ({ key:u.id, title:u.nome, sub:`${u.citta} · ${u.id}`, go:()=>go('utenti',{openUtente:u}) })) },
     { group:'Utenti Staff', icon:'staffFill', items: (typeof STAFF !== 'undefined' ? STAFF : []).filter(st => match(st.nome, st.localeNome, st.id)).slice(0,5)

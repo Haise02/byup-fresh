@@ -623,7 +623,15 @@ function DrwAnagrafica({ locale: l }) {
         </div>
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:'12px 14px'}}>
           {Fld({k:'nome', label:'Nome del locale (insegna)', span:true})}
-          {Fld({k:'tipo', label:'Tipologia'})}
+          {/* La tipologia è un CODICE del dizionario (le otto venue_category di
+              P-29), non un testo libero: un input libero rompeva in silenzio
+              le tabelle di Mercato, Valore e Analisi che lo usano come chiave. */}
+          <div>
+            <label style={drwLab}>Tipologia</label>
+            <AdmSelect block value={form.tipo} onChange={v => F('tipo')({ target: { value: v } })}
+              buttonStyle={{padding:'8px 11px', borderRadius:8, fontSize:13.5}}
+              options={(window.HUB_PN_GUSTI || []).filter(g => g.kind === 'venue_category').map(g => ({ value: g.id, label: g.label }))}/>
+          </div>
           <div>
             <label style={drwLab}>Titolare</label>
             <div style={{...drwInp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{l.titolare}</div>

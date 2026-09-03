@@ -387,7 +387,7 @@ function ValPotenziale() {
           <div key={l.id} style={{display:'flex', alignItems:'center', gap:11}}>
             <div style={{width:172, flexShrink:0, minWidth:0}}>
               <div style={{fontSize:13.2, fontWeight:600, color:ADM.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{l.nome}</div>
-              <div style={{fontSize:11.6, color:ADM.MUTED_SOFT}}>{l.tipo} · {l.citta}</div>
+              <div style={{fontSize:11.6, color:ADM.MUTED_SOFT}}>{admTipoLabel(l.tipo)} · {l.citta}</div>
             </div>
             <span style={{fontSize:12.6, fontWeight:700, color: l.adozioneOggi < 5 ? ADM.DANGER : ADM.WARN, width:38, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{valNum(l.adozioneOggi, 0)}%</span>
             <span style={{fontSize:11.6, color:ADM.MUTED_LIGHT, flexShrink:0}}>+{valNum(l.puntiDaFare, 0)}pt</span>

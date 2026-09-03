@@ -2454,7 +2454,7 @@ function AdozioneDigitaleCard({ onNav }) {
                   }}/>
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-                      {l.nome} <span style={{color:ADM.MUTED, fontWeight:400}}>· {l.tipo}</span>
+                      {l.nome} <span style={{color:ADM.MUTED, fontWeight:400}}>· {admTipoLabel(l.tipo)}</span>
                     </div>
                     <div style={{fontSize:13, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace, monospace'}}>
                       {l.id} · {l.citta}
@@ -2612,7 +2612,7 @@ function SottoMediaScanCard({ onNav }) {
                   {b && <span style={{width:8, height:8, borderRadius:2, background:b.color, flexShrink:0}}/>}
                   <div style={{minWidth:0}}>
                     <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-                      {l.nome} <span style={{color:ADM.MUTED, fontWeight:400}}>· {l.tipo}</span>
+                      {l.nome} <span style={{color:ADM.MUTED, fontWeight:400}}>· {admTipoLabel(l.tipo)}</span>
                     </div>
                     <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:1, fontFamily:'ui-monospace, monospace'}}>{l.id} · {l.citta}</div>
                   </div>
