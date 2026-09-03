@@ -1186,8 +1186,10 @@ function LegalView({ title, content, onBack }) {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={TEXT_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{title}</div>
-      <div style={{ fontSize: 12, color: MUTED_X, marginBottom: 28 }}>Aggiornato il 1 gennaio 2025</div>
-      {content.map((block, i) => (
+      {/* Codice, versione e data del documento ufficiale (P-80): la vista
+          legge la proiezione ByupLegal, la stessa dell'accesso. */}
+      <div style={{ fontSize: 12, color: MUTED_X, marginBottom: 28 }}>{window.ByupLegal.intestazione(content)}</div>
+      {content.sezioni.map((block, i) => (
         <div key={i} style={{ marginBottom: 22 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_X, marginBottom: 6 }}>{block.h}</div>
           <div style={{ fontSize: 13.5, color: MUTED_X, lineHeight: 1.65 }}>{block.p}</div>
@@ -1673,27 +1675,15 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
           <MieiDatiView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')}/>
         )}
 
+        {/* Nessun testo qui: Termini e Privacy sono la proiezione unica in
+            ByupLegal (app-kit, P-80/81/82), la stessa che legge l'accesso.
+            Le due copie che vivevano qui dicevano cose diverse. */}
         {view === 'terms' && (
-          <LegalView title="Termini e condizioni" onBack={() => setView('main')} content={[
-            { h: 'Accettazione dei termini', p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.' },
-            { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti maggiorenni registrati con un account personale.' },
-            { h: 'Prenotazioni e cancellazioni', p: 'Le prenotazioni effettuate tramite byup sono vincolanti. La cancellazione è gratuita fino a 2 ore prima dell\'orario prenotato. Cancellazioni tardive o mancata presentazione (no-show) ripetuti possono comportare la sospensione temporanea del servizio di prenotazione.' },
-            { h: 'Responsabilità', p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.' },
-            { h: 'Proprietà intellettuale', p: 'Tutti i contenuti presenti su byup (logo, testi, immagini, interfaccia) sono di proprietà di byup S.r.l. o dei rispettivi titolari. È vietata qualsiasi riproduzione o utilizzo non autorizzato.' },
-            { h: 'Legge applicabile', p: 'I presenti Termini sono regolati dalla legge italiana. Per qualsiasi controversia è competente in via esclusiva il Foro di Roma.' },
-          ]}/>
+          <LegalView title={window.ByupLegal.TOS01.nome} onBack={() => setView('main')} content={window.ByupLegal.TOS01}/>
         )}
 
         {view === 'privacy' && (
-          <LegalView title="Privacy policy" onBack={() => setView('main')} content={[
-            { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM) — C.F. / P.IVA 12345678901 — è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
-            { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.' },
-            { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio — art. 6.1.b GDPR; (b) adempiere a obblighi legali — art. 6.1.c GDPR; (c) inviarti comunicazioni promozionali solo previo tuo consenso esplicito — art. 6.1.a GDPR.' },
-            { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
-            { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
-            { h: 'Cookie e tecnologie simili', p: 'L\'app utilizza cookie tecnici essenziali al funzionamento e, previo tuo consenso, cookie analitici (Google Analytics) e cookie di profilazione per personalizzare i contenuti. Puoi gestire le preferenze dalla sezione "I miei dati" del profilo.' },
-            { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
-          ]}/>
+          <LegalView title={window.ByupLegal.INF01.nome} onBack={() => setView('main')} content={window.ByupLegal.INF01}/>
         )}
 
         {view === 'allergens' && (

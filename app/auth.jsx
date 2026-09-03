@@ -368,26 +368,10 @@ function LightField({ label, value, onChange, type = 'text', placeholder, rightS
 // di dodici stringhe libere che non incontrava i tag dei locali.
 const CUISINES = (window.ByupGusti ? window.ByupGusti.SCEGLIBILI : []).map(g => ({ id: g.id, label: g.label }));
 
-// Contenuti legali (allineati a quelli del profilo in extras.jsx)
-const A_TERMS = [
-  { h: 'Accettazione dei termini', p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.' },
-  { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.' },
-  { h: 'Prenotazioni e cancellazioni', p: 'Le prenotazioni effettuate tramite byup sono vincolanti. La cancellazione è gratuita fino a 2 ore prima dell\'orario prenotato. Cancellazioni tardive o mancata presentazione (no-show) ripetuti possono comportare la sospensione temporanea del servizio di prenotazione.' },
-  { h: 'Responsabilità', p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.' },
-  { h: 'Proprietà intellettuale', p: 'Tutti i contenuti presenti su byup (logo, testi, immagini, interfaccia) sono di proprietà di byup S.r.l. o dei rispettivi titolari. È vietata qualsiasi riproduzione o utilizzo non autorizzato.' },
-  { h: 'Legge applicabile', p: 'I presenti Termini sono regolati dalla legge italiana. Per qualsiasi controversia è competente in via esclusiva il Foro di Roma.' },
-];
-const A_PRIVACY = [
-  { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
-  { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.' },
-  { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).' },
-  { h: 'Preferenze alimentari e allergeni', p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.' },
-  { h: 'Conservazione', p: 'I dati dell\'account sono conservati per tutta la durata del rapporto contrattuale e per i successivi 10 anni per obblighi fiscali. I dati di navigazione sono conservati per un massimo di 13 mesi.' },
-  { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
-  { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi disattivare i suggerimenti personalizzati in qualsiasi momento scrivendo all\'assistenza: torneranno proposte generiche.' },
-  { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto nell\'informativa privacy e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento scrivendo all\'assistenza.' },
-  { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
-];
+// Contenuti legali: la proiezione unica in ByupLegal (app-kit, P-80). Qui
+// non c'è un testo — si legge, e il Profilo legge lo stesso oggetto.
+const A_TERMS = window.ByupLegal.TOS01;
+const A_PRIVACY = window.ByupLegal.INF01;
 
 // Pagina legale a tutto schermo, con back
 function AuthLegal({ title, content, onBack }) {
@@ -399,10 +383,10 @@ function AuthLegal({ title, content, onBack }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginBottom: 18,
         }}><BackArrow /></button>
         <div style={{ fontSize: 25, fontWeight: 800, letterSpacing: -0.4 }}>{title}</div>
-        <div style={{ fontSize: 12, color: A_MUTED, marginTop: 6 }}>Aggiornato il 1 gennaio 2025</div>
+        <div style={{ fontSize: 12, color: A_MUTED, marginTop: 6 }}>{window.ByupLegal.intestazione(content)}</div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px 40px' }}>
-        {content.map((b, i) => (
+        {content.sezioni.map((b, i) => (
           <div key={i} style={{ marginBottom: 22 }}>
             <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 6 }}>{b.h}</div>
             <div style={{ fontSize: 13.5, color: A_MUTED, lineHeight: 1.65 }}>{b.p}</div>

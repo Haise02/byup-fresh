@@ -516,6 +516,67 @@ window.ByupKit = {
   };
 })();
 
+// ─── I testi legali dell'app: una proiezione, non un testo (P-80/81/82) ────
+//
+// QUESTO È UNA PROIEZIONE DEI DOCUMENTI UFFICIALI, sul pattern di TC-01
+// (P-83): INF-01 «Informativa privacy consumer» versione 0.6 e TOS-01
+// «Termini di servizio utente app» versione 1.1, le stesse che Hubble
+// censisce nel catalogo documenti, con codice, versione e data in testa.
+// Nessuna copia del testo, nemmeno parziale, può vivere altrove nell'app:
+// la pagina legale dell'accesso (auth.jsx) e quella del Profilo (extras.jsx)
+// leggono da qui. Prima c'erano quattro copie, due per documento, che si
+// contraddicevano — sui cookie (una dichiarava Google Analytics, che non
+// esiste), sull'età minima, sulle sezioni presenti — e chi trova due
+// risposte diverse nella stessa app conclude che non è vera nessuna.
+// Quando esisterà il backend, queste costanti diventano una chiamata.
+//
+// I tre punti riscritti su ciò che il prodotto fa (rilettura 28/08):
+//   · cookie: nessun cookie di terze parti né analisi esterne (P-80);
+//   · conservazione: dodici mesi per la cronologia degli accessi, cinque
+//     anni per il registro immutabile, ventiquattro mesi per lo storico nel
+//     profilo — i termini del piano delle conservazioni, senza «10 anni per
+//     obblighi fiscali», che è l'obbligo dell'esercente sui suoi documenti,
+//     né «13 mesi» sulla navigazione (P-81);
+//   · prenotazioni: annullamento libero finché confermata, nessuna
+//     conseguenza per la mancata presentazione — nessuna penale che il
+//     prodotto non ha (P-82).
+// La sezione sui suggerimenti dice l'interruttore di «I miei dati» (P-26),
+// che ora esiste: «scrivendo all'assistenza» non era più vero.
+// Code documentali registrate, non corrette qui: nessuna sezione sulla
+// posizione che l'app chiede, né sull'accesso con Google; i dati societari
+// sono segnaposto.
+const BYUP_LEGAL = {
+  INF01: {
+    codice: 'INF-01', nome: 'Informativa sulla privacy', versione: '0.6', pubblicata: '2026-08-04',
+    sezioni: [
+      { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
+      { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.' },
+      { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).' },
+      { h: 'Preferenze alimentari e allergeni', p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.' },
+      { h: 'Conservazione', p: 'I dati dell\'account sono conservati per la durata del rapporto. La cronologia degli accessi è conservata per dodici mesi, il registro immutabile delle operazioni per cinque anni, lo storico nel profilo per ventiquattro mesi.' },
+      { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
+      { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi spegnere suggerimenti e analisi d\'uso in qualsiasi momento dall\'interruttore in “I miei dati”: torneranno proposte generiche e l\'app smetterà di registrare gli eventi d\'uso.' },
+      { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto in questa informativa e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento dall\'interruttore in “I miei dati”.' },
+      { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
+    ],
+  },
+  TOS01: {
+    codice: 'TOS-01', nome: 'Termini di servizio', versione: '1.1', pubblicata: '2026-08-04',
+    sezioni: [
+      { h: 'Accettazione dei termini', p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.' },
+      { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.' },
+      { h: 'Prenotazioni e annullamenti', p: 'Le prenotazioni si annullano liberamente dall\'app finché sono confermate. La mancata presentazione non comporta alcuna conseguenza sull\'account né sul servizio di prenotazione.' },
+      { h: 'Responsabilità', p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.' },
+      { h: 'Proprietà intellettuale', p: 'Tutti i contenuti presenti su byup (logo, testi, immagini, interfaccia) sono di proprietà di byup S.r.l. o dei rispettivi titolari. È vietata qualsiasi riproduzione o utilizzo non autorizzato.' },
+      { h: 'Legge applicabile', p: 'I presenti Termini sono regolati dalla legge italiana. Per qualsiasi controversia è competente in via esclusiva il Foro di Roma.' },
+    ],
+  },
+};
+// La riga in testa alle due viste: codice, versione, data — non «Aggiornato
+// il 1 gennaio 2025», che non era di nessun documento.
+BYUP_LEGAL.intestazione = (doc) => `${doc.codice} · versione ${doc.versione} · pubblicata il ${new Date(doc.pubblicata + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+window.ByupLegal = BYUP_LEGAL;
+
 // ─── Gusti: la copia del dizionario (P-28 · D-28) ───────────────────────────
 // Copia VERBATIM di PN_GUSTI (gestionale/panoramica-tokens.jsx, P-29 · D-28),
 // come ALLERGENI: il dizionario è uno, Hubble lo governa, i bundle sono tre —
