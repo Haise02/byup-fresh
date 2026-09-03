@@ -16,7 +16,7 @@ const ADM_SEZIONI = {
       sotto:'Team, permessi, accessi, tracce e salute della piattaforma.' } },
   impostazioni: { pred:'piattaforma', tabs:['piattaforma','incaricati'],
     testata: { titolo:'Piattaforma',
-      sotto:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app — e gli incaricati Fisconline che trasmettono gli scontrini delle società.' } },
+      sotto:'Le leve commerciali di byup: piani e prezzi, coefficienti del piano, discovery nell\'app — e gli incaricati Fisconline che trasmettono gli scontrini delle società.' } },
 };
 
 function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
@@ -620,10 +620,16 @@ function PlatformConfig() {
     business: { label:'Business', prezzo:250,    anno:2500.00, triennio:6750.00, ordini:15000, extra:0.12 },
   };
   const [cfg, setCfg] = React.useState(() => JSON.parse(JSON.stringify(DEFAULTS)));
-  // Peso dell'ordine per canale. L'app pesa meno per incentivarne l'adozione:
-  // è il meccanismo del flywheel. Gli altri partono da 1 ma sono leve, non
-  // costanti — domani si può voler spingere la webapp o frenare la cassa.
-  const [pesi, setPesi] = React.useState({ app:'0.5', webapp:'1', cameriere:'1', cassa:'1' });
+  // I coefficienti del piano (P-13/P-14): si edita la BOZZA del listino
+  // versionato, mai la versione corrente. Il salvataggio comune persiste la
+  // bozza come bozza; pubblicarla è un gesto a parte, che crea la versione
+  // nuova efficace dal ciclo successivo e lascia la vecchia nello storico.
+  const [pesi, setPesi] = React.useState(() => {
+    const b = pesiBozza() || pesiCorrenti();
+    return { origine: { ...b.origine }, saldo: { ...b.saldo } };
+  });
+  const [pubblica, setPubblica] = React.useState(false);
+  const [, ridisegnaListino] = React.useState(0);
   // Discovery: la soglia dice QUANTI locali servono, il raggio dice ENTRO CHE
   // DISTANZA contarli. Senza il raggio la soglia non è definita.
   const [disc, setDisc] = React.useState({ raggioCitta:'6', sogliaCitta:'125', raggioRegione:'50', sogliaRegione:'150' });
@@ -635,7 +641,29 @@ function PlatformConfig() {
   const [confirm, setConfirm] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const set = (piano, k) => (e) => { setSaved(false); setCfg(prev => ({ ...prev, [piano]: { ...prev[piano], [k]: e.target.value } })); };
-  const setPeso = (k) => (e) => { setSaved(false); setPesi(prev => ({ ...prev, [k]: e.target.value })); };
+  const setPeso = (dim, k) => (e) => { setSaved(false); setPesi(prev => ({ ...prev, [dim]: { ...prev[dim], [k]: e.target.value } })); };
+  const pesoNum = (v) => { const n = parseFloat(v); return isNaN(n) ? null : Math.max(0, Math.min(5, Math.round(n * 20) / 20)); };
+  const salvaBozzaPesi = () => {
+    const c = pesiCorrenti();
+    const origine = {}, saldo = {};
+    PESI_SUPERFICI.forEach(sf => { origine[sf.id] = pesoNum(pesi.origine[sf.id]) ?? c.origine[sf.id]; if (sf.saldo) saldo[sf.id] = pesoNum(pesi.saldo[sf.id]) ?? c.saldo[sf.id]; });
+    let b = pesiBozza();
+    if (!b) { b = { versione: 'v' + (HUB_LISTINO_PESI.length + 1), stato: 'bozza', pubblicata: null, efficace: null, decisaDa: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu', origine, saldo, nota: 'Bozza in lavorazione.' }; HUB_LISTINO_PESI.push(b); }
+    else { b.origine = origine; b.saldo = saldo; }
+    return b;
+  };
+  // Pubblicare: la bozza diventa la versione corrente, efficace dal prossimo
+  // ciclo; la corrente di prima resta come storica. Nessuna riscrittura.
+  const pubblicaBozza = () => {
+    const b = salvaBozzaPesi();
+    const c = pesiCorrenti();
+    const oggi = new Date();
+    const efficace = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 1);
+    if (c) c.stato = 'storica';
+    b.stato = 'corrente'; b.pubblicata = oggi; b.efficace = efficace; b.decisaDa = (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu';
+    AUDIT_EVENTS.unshift({ who: b.decisaDa, action: 'ha pubblicato i coefficienti del piano', target: `${b.versione} · efficace dal ${fmtDate(efficace)} · saldo: app ${b.saldo.byup_app}, sala ${b.saldo.staff_hall}, cassa ${b.saldo.staff_counter}`, icon: 'crown', color: 'PURPLE', tipo: 'piano', when: oggi });
+    setPubblica(false); ridisegnaListino(x => x + 1);
+  };
   const setDisco = (k) => (e) => { setSaved(false); setDisc(prev => ({ ...prev, [k]: e.target.value })); };
   // Sconto implicito rispetto al mensile pagato per la stessa durata.
   const sconto = (mese, totale, mesi) => {
@@ -651,10 +679,11 @@ function PlatformConfig() {
   const doSave = () => {
     setConfirm(false); setSaved(true);
     HUB_LEVE.accreditoTetto = Math.max(1, parseInt(tetto, 10) || HUB_LEVE.accreditoTetto);
+    salvaBozzaPesi();
     AUDIT_EVENTS.unshift({
       who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
       action: 'ha aggiornato la configurazione piattaforma',
-      target: `piani e prezzi, peso ordini, discovery, tetto accrediti ${HUB_LEVE.accreditoTetto} unità`,
+      target: `piani e prezzi, bozza dei coefficienti del piano, discovery, tetto accrediti ${HUB_LEVE.accreditoTetto} unità`,
       icon: 'crown', color: 'PURPLE', tipo: 'piano', when: new Date(),
     });
     setTimeout(()=>setSaved(false), 3000);
@@ -671,7 +700,7 @@ function PlatformConfig() {
   const [vista, setVista] = React.useState('piani');
   const viste = [
     { id:'piani',     label:'Piani e prezzi' },
-    { id:'pesi',      label:'Peso ordini' },
+    { id:'pesi',      label:'Coefficienti del piano' },
     { id:'discovery', label:'Discovery' },
     { id:'accrediti', label:'Accrediti', badge: ACCREDITI.filter(a => a.stato === 'in_attesa').length },
   ];
@@ -720,34 +749,89 @@ function PlatformConfig() {
       </React.Fragment>
       )}
 
-      {vista === 'pesi' && (
+      {vista === 'pesi' && (() => {
+        const corrente = pesiCorrenti();
+        const storiche = HUB_LISTINO_PESI.filter(v => v.stato === 'storica');
+        const lettura = (v) => { const n = pesoNum(v); return n == null ? '—' : n === 1 ? 'Peso pieno' : n === 0 ? 'Non conteggiata' : n < 1 ? `Sconta il ${Math.round((1 - n) * 100)}%` : `Conta ${n}×`; };
+        const colonna = (dim, titolo, sotto) => (
+          <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+            <div style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT}}>{titolo}</div>
+            <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2, marginBottom:12, lineHeight:1.45}}>{sotto}</div>
+            <div style={{display:'flex', flexDirection:'column', gap:10}}>
+              {PESI_SUPERFICI.filter(sf => dim === 'origine' || sf.saldo).map(sf => {
+                const v = pesi[dim][sf.id];
+                return (
+                  <div key={sf.id} style={{display:'grid', gridTemplateColumns:'minmax(0,1.4fr) 92px minmax(0,1fr)', gap:10, alignItems:'center'}}>
+                    <div>
+                      <div style={{fontSize:13.2, fontWeight:700, color:ADM.TEXT}}>{sf.label} <span style={{fontFamily:'ui-monospace,monospace', fontSize:11, color:ADM.MUTED_SOFT}}>{sf.id}</span></div>
+                      <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, lineHeight:1.4}}>{sf.nota}</div>
+                    </div>
+                    <input type="number" step="0.05" min="0" max="5" value={v} onChange={setPeso(dim, sf.id)} style={inp}/>
+                    <div style={{fontSize:11.8, fontWeight:700, color: pesoNum(v) === 1 ? ADM.MUTED : pesoNum(v) < 1 ? ADM.OK : ADM.WARN}}>
+                      {lettura(v)}{corrente && corrente[dim][sf.id] !== pesoNum(v) && pesoNum(v) != null && <span style={{color:ADM.MUTED_SOFT, fontWeight:600}}> · corrente {corrente[dim][sf.id]}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+              {dim === 'saldo' && (
+                <div style={{fontSize:11.4, color:ADM.MUTED_SOFT, lineHeight:1.45, paddingTop:6, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+                  La webapp non è una superficie di saldo (orders.settlement_surface, nota v0.15 della Scheda): la comanda nata da QR si salda in app, in sala o alla cassa, e prende quel coefficiente.
+                </div>
+              )}
+            </div>
+          </div>
+        );
+        return (
       <React.Fragment>
       <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.5}}>
-        Quanto ogni ordine consuma del pacchetto incluso nel piano. L'app pesa meno per
-        incentivarne l'adozione — è il meccanismo che tiene insieme locale e cliente finale.
+        Quanto ogni <strong>comanda</strong> consuma del pacchetto incluso nel piano. L'<strong>origine</strong> dà il peso provvisorio; la <strong>superficie di saldo</strong> dà quello definitivo, che prevale ed è quello che fa la fattura (D-11). I coefficienti sono un listino versionato (D-12): qui si lavora la <strong>bozza</strong>, e pubblicarla crea una versione nuova efficace dal ciclo successivo — la storia non si riscrive.
       </div>
-      <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:12}}>
-        {[
-          { k:'app',       label:'Byup App',   nota:'Ordine dal telefono del cliente, con account' },
-          { k:'webapp',    label:'Webapp QR',  nota:'Ordine da QR senza app, ospite non registrato' },
-          { k:'cameriere', label:'Cameriere',  nota:'Comanda presa in sala dallo staff' },
-          { k:'cassa',     label:'Cassa',      nota:'Ordine battuto al banco o alla cassa' },
-        ].map(c => {
-          const v = parseFloat(pesi[c.k]);
-          return (
-            <div key={c.k} style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
-              <label style={lab}>{c.label}</label>
-              <input type="number" step="0.05" min="0" max="5" value={pesi[c.k]} onChange={setPeso(c.k)} style={inp}/>
-              <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.4}}>{c.nota}</div>
-              <div style={{fontSize:11.8, color: v === 1 ? ADM.MUTED : v < 1 ? ADM.OK : ADM.WARN, fontWeight:700, marginTop:6}}>
-                {!v && v !== 0 ? '—' : v === 1 ? 'Peso pieno' : v === 0 ? 'Non conteggiato' : v < 1 ? `Sconta il ${Math.round((1-v)*100)}%` : `Conta ${v}×`}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      </React.Fragment>
+      {corrente && (
+        <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', fontSize:12.6, color:ADM.TEXT}}>
+          <span style={{padding:'3px 9px', borderRadius:999, background:ADM.OK_SOFT, color:ADM.OK, fontWeight:800, fontSize:11.5, textTransform:'uppercase', letterSpacing:'0.05em'}}>Corrente {corrente.versione}</span>
+          <span>efficace dal {fmtDate(corrente.efficace)} · decisa da {corrente.decisaDa} · saldo: app {corrente.saldo.byup_app} · sala {corrente.saldo.staff_hall} · cassa {corrente.saldo.staff_counter}</span>
+          <span style={{flex:1}}/>
+          <span style={{padding:'3px 9px', borderRadius:999, background:ADM.WARN_SOFT, color:ADM.WARN, fontWeight:800, fontSize:11.5, textTransform:'uppercase', letterSpacing:'0.05em'}}>{(pesiBozza() || {}).versione || 'bozza'} · bozza non pubblicata</span>
+        </div>
       )}
+      {pesiBozza() && pesiBozza().nota && (
+        <div style={{fontSize:12.2, color:'#7A4A0B', background:ADM.WARN_SOFT, border:'1px solid #F0DCB4', borderRadius:10, padding:'9px 12px', lineHeight:1.5}}>{pesiBozza().nota}</div>
+      )}
+      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:12}}>
+        {colonna('origine', 'Origine · peso provvisorio', 'Le quattro superfici da cui una comanda nasce. Vale finché la comanda non è saldata, e resta se non lo è mai.')}
+        {colonna('saldo', 'Saldo · peso definitivo', 'Le tre superfici su cui una comanda si salda. Prevale sull\'origine: è il coefficiente che fa la fattura.')}
+      </div>
+      <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+        <span style={{fontSize:12.2, color:ADM.MUTED_SOFT, flex:1}}>Pubblicare non riscrive la versione corrente: ne crea una nuova, efficace dal primo del mese prossimo, e la corrente resta nello storico.</span>
+        <AdmButton variant="secondary" size="sm" icon="crown" onClick={() => setPubblica(true)}>Pubblica la bozza…</AdmButton>
+      </div>
+      {storiche.length > 0 && (
+        <div style={{padding:'12px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+          <div style={{fontSize:11.2, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT, marginBottom:6}}>Versioni precedenti</div>
+          {storiche.map(v => (
+            <div key={v.versione} style={{fontSize:12.5, color:ADM.MUTED, padding:'5px 0', borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+              <b style={{color:ADM.TEXT}}>{v.versione}</b> · efficace dal {fmtDate(v.efficace)} · {v.decisaDa} · origine app {v.origine.byup_app}, webapp {v.origine.webapp_guest}, sala {v.origine.staff_hall}, cassa {v.origine.staff_counter} · saldo app {v.saldo.byup_app}, sala {v.saldo.staff_hall}, cassa {v.saldo.staff_counter}
+            </div>
+          ))}
+        </div>
+      )}
+      {pubblica && (
+        <div style={{position:'fixed', inset:0, zIndex:80, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setPubblica(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{width:440, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Pubblicare la bozza dei coefficienti?</div>
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
+              Diventa la versione corrente, efficace dal primo del mese prossimo, per tutti i locali. La versione di oggi resta nello storico: le fatture già emesse non cambiano. L'azione va in audit col tuo nome.
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="md" onClick={()=>setPubblica(false)}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="md" icon="check" onClick={pubblicaBozza}>Pubblica</AdmButton>
+            </div>
+          </div>
+        </div>
+      )}
+      </React.Fragment>
+        );
+      })()}
 
       {vista === 'discovery' && (
       <React.Fragment>
@@ -827,7 +911,7 @@ function PlatformConfig() {
           <div onClick={e=>e.stopPropagation()} style={{width:420, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Applicare la nuova configurazione?</div>
             <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
-              Prezzi, soglie e pesi verranno applicati a <strong style={{color:ADM.TEXT}}>tutti i locali</strong> dal prossimo ciclo di fatturazione. L'azione viene registrata nell'audit log con il tuo nome.
+              Prezzi e soglie verranno applicati a <strong style={{color:ADM.TEXT}}>tutti i locali</strong> dal prossimo ciclo di fatturazione; i coefficienti del piano restano in bozza finché non li pubblichi dalla loro tab. L'azione viene registrata nell'audit log con il tuo nome.
             </div>
             <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
               <AdmButton variant="ghost" size="md" onClick={()=>setConfirm(false)}>Annulla</AdmButton>

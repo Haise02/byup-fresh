@@ -82,9 +82,11 @@ const LOC_CICLO_VITA = {
 // e il mensile con fatturazione annuale — quello su cui sta la maggior parte
 // della base — `priceMensile` il mensile puro.
 //
-// `ordiniInclusi` non conta ordini grezzi ma TRANSAZIONI PESATE: un pagamento
-// in app pesa 0,5, uno in cassa 1,0 (app/Contesto-App.md §C). E la leva piu
-// interessante del modello — spingere l'app dimezza la quota consumata.
+// `ordiniInclusi` non conta ordini grezzi ma COMANDE PESATE coi coefficienti
+// del piano (HUB_LISTINO_PESI, in fondo al file): l'origine dà il peso
+// provvisorio, la superficie di saldo il definitivo, che prevale (D-11). Mai
+// numeri fissi: il listino è versionato (D-12). È la leva più interessante del
+// modello — spingere l'app riduce la quota consumata.
 const PIANI = [
   { id: 'free',     label: 'Gratuito', price: 0,      priceMensile: 0,      ordiniInclusi: 550,   ordineExtra: 0.45, color: 'PLAN_FREE' },
   { id: 'starter',  label: 'Starter',  price: 46.99,  priceMensile: 54.99,  ordiniInclusi: 1850,  ordineExtra: 0.34, color: 'PLAN_STARTER' },
@@ -1511,6 +1513,43 @@ function ctrCessazione(l) {
 // senza interfaccia. Il tetto è per accredito, in unità (comande).
 const HUB_LEVE = { accreditoTetto: 500 };
 
+// ─── I coefficienti del piano (P-13/P-14 · D-11, D-12) ──────────────────────
+// billing_weight_rates: il listino VERSIONATO dei coefficienti. L'unità è la
+// comanda; l'origine dà il peso provvisorio, la superficie di saldo il
+// definitivo, che prevale (D-11). Due dimensioni, non una matrice: il
+// definitivo dipende dalla sola superficie di saldo. L'origine ha quattro
+// superfici — byup_app, webapp_guest, staff_hall, staff_counter — il saldo
+// TRE: la webapp non è superficie di saldo (orders.settlement_surface, nota
+// v0.15 della Scheda), perché una comanda nata in webapp si salda in app,
+// in sala o alla cassa. Sala e cassa sono distinte anche sul saldo (P-14):
+// l'incasso col palmare di sala, Tap to Pay compreso, non è quello alla
+// cassa. I coefficienti non sono numeri fissi: si citano come «i coefficienti
+// del piano», e un cambio non riscrive la storia — nasce una versione nuova,
+// efficace dal ciclo successivo, e le vecchie restano. La v1 è quella
+// corrente del modello (0,5 l'app, 1,0 il resto, su entrambe le dimensioni);
+// la v2 è una BOZZA dimostrativa non pubblicata con staff_hall a 0,8 sul
+// saldo — l'incentivo al palmare di sala si dimostra qui, non si decide.
+// Coda registrata: i due 0,5 cablati nel gestionale (account-tab-piani.jsx,
+// panoramica-plan-card.jsx).
+const PESI_SUPERFICI = [
+  { id: 'byup_app',      label: 'App byup',        nota: 'La comanda dal telefono del cliente, con account',          saldo: true },
+  { id: 'webapp_guest',  label: 'Webapp da QR',    nota: 'La comanda da QR senza app: si salda in app, in sala o alla cassa', saldo: false },
+  { id: 'staff_hall',    label: 'Palmare di sala', nota: 'Presa o saldata in sala dallo staff, Tap to Pay compreso',  saldo: true },
+  { id: 'staff_counter', label: 'Cassa',           nota: 'Battuta o saldata al banco',                                saldo: true },
+];
+const HUB_LISTINO_PESI = [
+  { versione: 'v1', stato: 'corrente', pubblicata: ctrData(1, 1, 2026), efficace: ctrData(1, 2, 2026), decisaDa: 'Marco Rinaldi',
+    origine: { byup_app: 0.5, webapp_guest: 1, staff_hall: 1, staff_counter: 1 },
+    saldo:   { byup_app: 0.5, staff_hall: 1, staff_counter: 1 },
+    nota: 'I valori correnti del modello: l\'app pesa la metà, il resto pieno, su origine e saldo.' },
+  { versione: 'v2', stato: 'bozza', pubblicata: null, efficace: null, decisaDa: 'Marco Rinaldi',
+    origine: { byup_app: 0.5, webapp_guest: 1, staff_hall: 1, staff_counter: 1 },
+    saldo:   { byup_app: 0.5, staff_hall: 0.8, staff_counter: 1 },
+    nota: 'Bozza dimostrativa, non pubblicata: il palmare di sala a 0,8 sul saldo mostra l\'incentivo che P-14 rende possibile. Non è una decisione.' },
+];
+const pesiCorrenti = () => HUB_LISTINO_PESI.find(v => v.stato === 'corrente');
+const pesiBozza = () => HUB_LISTINO_PESI.find(v => v.stato === 'bozza') || null;
+
 // ─── Accrediti di unità (P-69 · D-58) ───────────────────────────────────────
 // L'unità è la comanda, il singolo invio (D-12): si accreditano unità, non
 // «ordini extra». Ogni accredito è una riga con causale da elenco chiuso e
@@ -1633,6 +1672,10 @@ const MOD_ESITI = {
 const MOD_DECISIONI = [];
 
 window.HUB_LEVE = HUB_LEVE;
+window.PESI_SUPERFICI = PESI_SUPERFICI;
+window.HUB_LISTINO_PESI = HUB_LISTINO_PESI;
+window.pesiCorrenti = pesiCorrenti;
+window.pesiBozza = pesiBozza;
 window.ACC_CAUSALI = ACC_CAUSALI;
 window.ACC_STATI = ACC_STATI;
 window.ACCREDITI = ACCREDITI;
