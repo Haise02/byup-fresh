@@ -525,7 +525,7 @@ function SrvVoceCoda({ r, attiva, onClick }) {
       </div>
       {/* Accanto al titolare, la fascia che ha chiesto: senza, il countdown
           dice quanto manca ma non a cosa ci eravamo impegnati, e «−3h» su una
-          richiesta «in mattinata» pesa diverso che su una da 30 minuti. */}
+          richiesta «fascia 12–16» pesa diverso che su una «entro 1 ora». */}
       <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:2, paddingLeft:15, whiteSpace:'nowrap',
         overflow:'hidden', textOverflow:'ellipsis'}}>
         {r.titolare}

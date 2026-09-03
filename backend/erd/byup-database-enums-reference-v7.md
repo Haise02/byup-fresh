@@ -283,9 +283,14 @@
 - business
 
 ### plans.support_tier [ENUM]
-- basic → chat bot, tutorial, ticket email (Free e Starter)
-- phone_24h → + telefonico 24/7, richiamata entro 30 min (Plus)
-- priority → + canale prioritario (Business)
+- basic → chat bot, tutorial, ticket email (Gratuito e Starter)
+- phone_business_hours → + telefonico lun-ven, fasce 12-16 e 18-22, richiamata entro 2 ore (Plus)
+- phone_24h → + telefonico H24, 7 su 7, richiamata entro 1 ora, canale prioritario (Business)
+
+Nota (P-66 · D-59): i valori sono corretti sul livello di assistenza deciso;
+il nome del valore intermedio (`phone_business_hours`) è proposto qui e va
+confermato sull'ERD v11. Prima `phone_24h` era attribuito a Plus con richiamata
+entro 30 minuti, più di quanto dato a Business.
 
 ### plans.max_menus [int nullable]
 - 1 → Free

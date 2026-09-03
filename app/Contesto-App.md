@@ -129,10 +129,15 @@ Piani di abbonamento **Byup Fresh** (prezzi netti, + IVA):
 
 | Piano | Ordini inclusi/mese | Prezzo mensile | Ordine extra | Menu digitali | Collegamenti staff/monitor | Supporto |
 |-------|:-------------------:|:--------------:|:------------:|:-------------:|:--------------------------:|----------|
-| **Free** | 550 | 0 € | 0,45 € | 1 | 1 | Chat bot, tutorial, ticket email |
+| **Gratuito** | 550 | 0 € | 0,45 € | 1 | 1 | Chat bot, tutorial, ticket email |
 | **Starter** | 1.850 | 46,99 € | 0,34 € | 3 | 3 | Chat bot, tutorial, ticket email |
-| **Plus** | 7.500 | 134,99 € | 0,23 € | Illimitati | Illimitati | + telefonico 24/7 (richiamata ≤30 min) |
-| **Business** | 15.000 | 250 € | 0,12 € | Illimitati | Illimitati | + canale prioritario |
+| **Plus** | 7.500 | 134,99 € | 0,23 € | Illimitati | Illimitati | + telefonico lun-ven, fasce 12-16 e 18-22, richiamata entro 2 ore |
+| **Business** | 15.000 | 250 € | 0,12 € | Illimitati | Illimitati | + telefonico H24, 7 su 7, richiamata entro 1 ora, canale prioritario |
+
+Il livello di assistenza per piano è quello di D-59 (P-66): la fonte è
+`ACC_PIANI` in `gestionale/account-data.jsx`; prima questa tabella prometteva a
+Plus il telefono H24 con richiamata entro trenta minuti, più di quanto desse a
+Business.
 
 A un certo punto conviene salire di piano invece di pagare gli extra: ogni piano
 alza il tetto incluso e **abbassa** il costo della transazione eccedente

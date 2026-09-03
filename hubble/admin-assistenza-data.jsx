@@ -53,11 +53,16 @@ const srvHaChiamata = (piano) => SRV_PIANI_CON_CHIAMATA.indexOf(piano) !== -1;
 // Le due fasce lunghe non sono «entro N ore» ma finestre del giorno: chiudono
 // alle 12:00 e alle 18:00, e se si prenota a finestra già passata si scivola a
 // quella del giorno dopo.
+// Le fasce sono quelle di D-59 (P-66), le stesse di supporto-modals nel
+// gestionale: la richiamata garantita entro due ore è del Plus, entro un'ora
+// del Business (H24), e le finestre stanno DENTRO l'orario presidiato, 12-16 e
+// 18-22 dal lunedì al venerdì. Prima c'erano «entro 30 minuti», che non era
+// la garanzia di nessun piano, e due finestre (9-12, 14-18) fuori orario.
 const SRV_FASCE = {
-  min30:      { label: 'Entro 30 minuti',  breve: '30 min',    tipo:'durata',    minuti: 30 },
-  ore2:       { label: 'Entro 2 ore',      breve: '2 ore',     tipo:'durata',    minuti: 120 },
-  mattina:    { label: 'In mattinata',     breve: 'mattina',   tipo:'finestra',  da: 9,  a: 12 },
-  pomeriggio: { label: 'Nel pomeriggio',   breve: 'pomeriggio', tipo:'finestra', da: 14, a: 18 },
+  ore2:  { label: 'Entro 2 ore',        breve: '2 ore',  tipo:'durata',   minuti: 120, nota: 'garanzia Plus' },
+  ora1:  { label: 'Entro 1 ora',        breve: '1 ora',  tipo:'durata',   minuti: 60,  nota: 'garanzia Business, H24' },
+  f1216: { label: 'Fascia 12:00–16:00', breve: '12–16',  tipo:'finestra', da: 12, a: 16 },
+  f1822: { label: 'Fascia 18:00–22:00', breve: '18–22',  tipo:'finestra', da: 18, a: 22 },
 };
 
 // Scadenza effettiva a partire dal momento della prenotazione.
@@ -131,19 +136,19 @@ const SRV_MAIL_NON_RISPOSTA = {
 const RICHIAMATE = (() => {
   const grezze = [
     // ── In attesa ──────────────────────────────────────────────────────────
-    { id:'RC-241', localeId:'L1005', cat:'blocco',      da:12*SRV_MIN, fascia:'min30',
+    { id:'RC-241', localeId:'L1005', cat:'blocco',      da:12*SRV_MIN, fascia:'ora1',
       problema:'I QR non aprono più il menu: i clienti vedono «pagina non trovata». Sala piena.' },
     { id:'RC-240', localeId:'L1029', cat:'contabilita', da:55*SRV_MIN, fascia:'ore2',
       problema:'Export contabilità di maggio in errore 502. Deve consegnare al commercialista entro venerdì.' },
     { id:'RC-239', localeId:'L1012', cat:'servizio',    da:1.6*SRV_ORA, fascia:'ore2',
       problema:'Le notifiche di nuova prenotazione non arrivano più sul telefono dopo l\'aggiornamento.' },
-    { id:'RC-238', localeId:'L1041', cat:'configurazione', da:2.4*SRV_ORA, fascia:'pomeriggio',
+    { id:'RC-238', localeId:'L1041', cat:'configurazione', da:2.4*SRV_ORA, fascia:'f1822',
       problema:'Ha rifatto la disposizione dei tavoli e non riesce a rigenerare gli sticker QR.' },
-    { id:'RC-237', localeId:'L1020', cat:'commerciale', da:3.2*SRV_ORA, fascia:'mattina',
+    { id:'RC-237', localeId:'L1020', cat:'commerciale', da:3.2*SRV_ORA, fascia:'f1216',
       problema:'Vuole capire cosa cambia passando da Starter a Plus prima di decidere.' },
     // Scaduta: l'SLA era un'ora, sono passate quasi tre. È il caso che la
     // schermata deve saper mostrare, non nascondere.
-    { id:'RC-236', localeId:'L1034', cat:'blocco',      da:2.8*SRV_ORA, fascia:'min30',
+    { id:'RC-236', localeId:'L1034', cat:'blocco',      da:2.8*SRV_ORA, fascia:'ora1',
       problema:'Cassa bloccata sulla schermata di apertura turno, non riesce a battere gli scontrini.' },
     { id:'RC-235', localeId:'L1014', cat:'servizio',    da:5*SRV_ORA, fascia:'ore2',
       problema:'La stampante di cucina salta le comande dei dolci.' },
@@ -152,7 +157,7 @@ const RICHIAMATE = (() => {
     // `prob` è la classificazione dell'operatore a chiamata finita; `risolto`
     // dice se il problema è chiuso. Se resta aperto servono `urg` e `note`:
     // sono le tre cose che chi la riprende in mano deve trovare scritte.
-    { id:'RC-234', localeId:'L1006', cat:'blocco',      da:7*SRV_ORA, fascia:'min30',   fattaDopo:24*SRV_MIN,  op:'support1', durata:11, voto:5,
+    { id:'RC-234', localeId:'L1006', cat:'blocco',      da:7*SRV_ORA, fascia:'ora1',   fattaDopo:24*SRV_MIN,  op:'support1', durata:11, voto:5,
       prob:'tecnico', risolto:true,
       note:'Servizio di stampa in stallo sul concentratore. Riavviato da remoto, comande ripartite mentre eravamo al telefono.',
       recensione:'Richiamato in venti minuti e risolto al telefono. Non me lo aspettavo a quell\'ora.' },
@@ -165,11 +170,11 @@ const RICHIAMATE = (() => {
     { id:'RC-232', localeId:'L1002', cat:'servizio',    da:10*SRV_ORA, fascia:'ore2',  fattaDopo:47*SRV_MIN,  op:'support1', durata:9,  voto:5,
       prob:'informazione', risolto:true,
       note:'Nessun guasto: cercava il filtro per data nello storico ordini. Indicato dove sta.' },
-    { id:'RC-231', localeId:'L1027', cat:'contabilita', da:11*SRV_ORA, fascia:'pomeriggio',  fattaDopo:2.2*SRV_ORA, op:'support3', durata:26, voto:5,
+    { id:'RC-231', localeId:'L1027', cat:'contabilita', da:11*SRV_ORA, fascia:'f1822',  fattaDopo:2.2*SRV_ORA, op:'support3', durata:26, voto:5,
       prob:'contabile', risolto:true,
       note:'Aliquota ridotta non applicata sull\'asporto. Corretta l\'impostazione fiscale del menu e rigenerato il corrispettivo.',
       recensione:'Mi hanno seguito passo passo sull\'IVA di giugno. Competenti.' },
-    { id:'RC-230', localeId:'L1009', cat:'commerciale', da:1*SRV_GIORNO, fascia:'mattina', fattaDopo:4.5*SRV_ORA, op:'support2', durata:22, voto:4,
+    { id:'RC-230', localeId:'L1009', cat:'commerciale', da:1*SRV_GIORNO, fascia:'f1216', fattaDopo:4.5*SRV_ORA, op:'support2', durata:22, voto:4,
       prob:'commerciale', risolto:false, urg:'bassa',
       note:'Valuta il passaggio a Plus ma vuole prima vedere i numeri del trimestre. Da risentire a inizio mese con il confronto costi già pronto.' },
 
@@ -182,7 +187,7 @@ const RICHIAMATE = (() => {
       prob:'tecnico', risolto:true,
       note:'Comande dei dolci perse: regola di instradamento verso la stampante sbagliata. Corretta.',
       recensione:'Il problema è stato risolto, ma ho perso il servizio della sera aspettando la chiamata.' },
-    { id:'RC-227', localeId:'L1015', cat:'configurazione', da:2*SRV_GIORNO, fascia:'pomeriggio', fattaDopo:5.4*SRV_ORA, op:'support2', durata:31, voto:4,
+    { id:'RC-227', localeId:'L1015', cat:'configurazione', da:2*SRV_GIORNO, fascia:'f1822', fattaDopo:5.4*SRV_ORA, op:'support2', durata:31, voto:4,
       prob:'configurazione', risolto:true,
       note:'Rifatta insieme la mappa sala su due sale separate.',
       recensione:'Spiegazione chiara sulla mappa sala. Un po\' lunga la trafila.' },
@@ -198,7 +203,7 @@ const RICHIAMATE = (() => {
     { id:'RC-224', localeId:'L1044', cat:'servizio',    da:3*SRV_GIORNO, fascia:'ore2',   fattaDopo:1.1*SRV_ORA, op:'support2', durata:19, voto:5,
       prob:'configurazione', risolto:true,
       note:'Notifiche prenotazioni disattivate sul profilo del titolare dopo l\'aggiornamento. Riattivate.' },
-    { id:'RC-223', localeId:'L1011', cat:'commerciale', da:3.4*SRV_GIORNO, fascia:'mattina', fattaDopo:3.9*SRV_ORA, op:'support1', durata:24, voto:4,
+    { id:'RC-223', localeId:'L1011', cat:'commerciale', da:3.4*SRV_GIORNO, fascia:'f1216', fattaDopo:3.9*SRV_ORA, op:'support1', durata:24, voto:4,
       prob:'commerciale', risolto:true,
       note:'Chiarita la differenza fra ordini inclusi ed extra. Resta su Starter, consapevole.' },
     // Non ha risposto: parte la mail automatica. Non è «in tempo» né «in
@@ -207,27 +212,27 @@ const RICHIAMATE = (() => {
     // Niente `note` sulle non risposte: la UI non le chiede più, e un dato di
     // esempio che l'interfaccia non sa produrre è una finzione che poi qualcuno
     // prende per specifica.
-    { id:'RC-222', localeId:'L1008', cat:'configurazione', da:3.8*SRV_GIORNO, fascia:'min30', persa:true, tentativi:3, op:'support2' },
+    { id:'RC-222', localeId:'L1008', cat:'configurazione', da:3.8*SRV_GIORNO, fascia:'ora1', persa:true, tentativi:3, op:'support2' },
     { id:'RC-221', localeId:'L1025', cat:'blocco',      da:4.2*SRV_GIORNO, fascia:'ore2', fattaDopo:52*SRV_MIN, op:'support3', durata:13, voto:5,
       prob:'tecnico', risolto:true,
       note:'QR che rimandavano a un menu archiviato. Ripubblicato quello corrente.' },
     { id:'RC-220', localeId:'L1019', cat:'servizio',    da:4.6*SRV_GIORNO, fascia:'ore2', fattaDopo:1.4*SRV_ORA, op:'support1', durata:8,  voto:4,
       prob:'informazione', risolto:true,
       note:'Voleva sapere come si annulla una comanda già inviata. Spiegato.' },
-    { id:'RC-219', localeId:'L1030', cat:'contabilita', da:5.1*SRV_GIORNO, fascia:'pomeriggio', fattaDopo:4.1*SRV_ORA, op:'support2', durata:21, voto:5,
+    { id:'RC-219', localeId:'L1030', cat:'contabilita', da:5.1*SRV_GIORNO, fascia:'f1822', fattaDopo:4.1*SRV_ORA, op:'support2', durata:21, voto:5,
       prob:'pagamenti', risolto:true,
       note:'Accredito settimanale non arrivato: IBAN aggiornato di recente e bonifico respinto. Rilanciato.',
       recensione:'Ho avuto la fattura corretta nel giro di mezz\'ora dalla chiamata.' },
     // Reclamo aperto: il problema tecnico è chiuso ma la lamentela sull'attesa
     // no, ed è quella che va ripresa in mano.
-    { id:'RC-218', localeId:'L1034', cat:'blocco',      da:5.5*SRV_GIORNO, fascia:'min30', fattaDopo:1.8*SRV_ORA, op:'support3', durata:15, voto:1,
+    { id:'RC-218', localeId:'L1034', cat:'blocco',      da:5.5*SRV_GIORNO, fascia:'ora1', fattaDopo:1.8*SRV_ORA, op:'support3', durata:15, voto:1,
       prob:'reclamo', risolto:false, urg:'media',
       note:'Terza chiamata di questo locale in una settimana, due servite in ritardo. Chiede un referente fisso e un rimborso del canone del mese. Da portare al responsabile assistenza prima di rispondere.',
       recensione:'Un\'ora e tre quarti con il locale fermo è troppo. Il tecnico è stato bravo, l\'attesa no.' },
-    { id:'RC-217', localeId:'L1016', cat:'configurazione', da:6*SRV_GIORNO, fascia:'pomeriggio', fattaDopo:2.9*SRV_ORA, op:'support1', durata:27, voto:5,
+    { id:'RC-217', localeId:'L1016', cat:'configurazione', da:6*SRV_GIORNO, fascia:'f1822', fattaDopo:2.9*SRV_ORA, op:'support1', durata:27, voto:5,
       prob:'configurazione', risolto:true,
       note:'Importato il menu dal file Excel del locale, 84 piatti con allergeni.' },
-    { id:'RC-216', localeId:'L1022', cat:'commerciale', da:6.4*SRV_GIORNO, fascia:'mattina', fattaDopo:5.2*SRV_ORA, op:'support2', durata:17, voto:4,
+    { id:'RC-216', localeId:'L1022', cat:'commerciale', da:6.4*SRV_GIORNO, fascia:'f1216', fattaDopo:5.2*SRV_ORA, op:'support2', durata:17, voto:4,
       prob:'informazione', risolto:true,
       note:'Domande sul funzionamento degli extra oltre piano. Chiarite.' },
   ];
@@ -357,7 +362,8 @@ function srvCausa(rnd) {
 // il risultato è la solita distribuzione a J.
 //
 // Il voto pende col piano, e non per compiacenza verso chi paga: i piani alti
-// hanno la chiamata con richiamo entro 30 minuti, i bassi solo la posta. È
+// hanno la chiamata con richiamata entro due ore (Plus) e un'ora (Business),
+// i bassi solo la posta. È
 // esattamente la differenza che stiamo vendendo, e se nei dati non si vedesse
 // vorrebbe dire che non la stiamo mantenendo.
 function srvVotoTicket(piano, rnd) {
@@ -679,7 +685,8 @@ function srvKpi(richiamate = RICHIAMATE, ticket = TICKET_SRV) {
   const recensioni = richiamate.filter(r => r.recensione).sort((a, b) => b.richiamataIl - a.richiamataIl);
 
   // Lo spaccato per piano. Non è un dettaglio: è la prova che quello che
-  // vendiamo ai piani alti — la chiamata, il richiamo entro 30 minuti — si
+  // vendiamo ai piani alti — la chiamata, la richiamata entro due ore per il
+  // Plus e un'ora per il Business — si
   // sente. Se il voto del Gratuito pareggiasse quello del Business, staremmo
   // facendo pagare una cosa che non cambia niente.
   const perPiano = PIANI.map(p => {
