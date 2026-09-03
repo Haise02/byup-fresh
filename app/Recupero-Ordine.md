@@ -10,7 +10,7 @@
 > `byup Menu.html#home` (Home + ordine demo). Vedi §"Esperienza utente per
 > piattaforma" e §"Realizzazione nel prototipo".
 > **Non** nel prototipo: l'**Install Referrer Android**, la **validazione del
-> codice** (oggi accetta qualsiasi codice ≥4 cifre) e quindi lo **stato d'errore**.
+> codice** (nel prototipo contro il codice demo 483912, a sei cifre) e quindi lo **stato d'errore**.
 >
 > **Collegamenti**
 > - Sintesi nel contesto di prodotto → [Contesto-App.md §G.7](Contesto-App.md)
@@ -60,7 +60,7 @@ Quando l'utente conferma l'ordine dalla web app:
 
 1. Il server crea l'ordine e lo associa al contesto: `locale_id`, `tavolo_id`,
    timestamp di creazione, stato `orfano` (non ancora abbinato a un account app).
-2. Il server genera un **codice ordine** breve (5–6 cifre) univoco e a vita
+2. Il server genera un **codice ordine** a sei cifre univoco e a vita
    limitata, legato a quell'ordine.
 3. La web app rileva il sistema operativo del dispositivo via **user agent** per
    decidere cosa mostrare nella schermata finale (vedi §4).
@@ -223,11 +223,15 @@ il **bordo del campo diventa rosso** con un breve **shake**; il popup **non si
 chiude**; l'errore **si azzera appena l'utente modifica** il codice. È un errore
 **inline**, non un alert di sistema, coerente con gli altri form dell'app.
 
-**Anti-abuso (rilevante)**: un codice di 5–6 cifre è **forzabile a tentativi**
-(10⁵–10⁶ combinazioni). Serve un **rate limit sui tentativi di riscatto** per
+**Anti-abuso (rilevante)**: un codice di sei cifre è **forzabile a tentativi**
+(10⁶ combinazioni). Serve un **rate limit sui tentativi di riscatto** per
 device/account/IP + cooldown dopo N errori → vedi
-[Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md). *(Da definire: soglia tentativi e
-durata del blocco.)*
+[Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md). **Deciso (D-42 · P-55)**: sei cifre;
+dopo ogni fallimento un'attesa crescente mostrata a schermo (5, 15, 30, 60, 120 s); al sesto
+fallimento il blocco del dispositivo per 15 minuti (`order_claim_attempts`,
+`order_claim_lockouts`) con il messaggio d'uscita *"Troppi tentativi. Torna alla webapp del
+tavolo o salda in cassa: l'ordine non si perde"*. Non si protegge l'ordine bersaglio, che un
+tentativo fallito per definizione non individua: si ferma chi tenta.
 
 ## 3.ter Realizzazione nel prototipo (cosa è simulato)
 
@@ -237,9 +241,10 @@ durata del blocco.)*
   (~1,6s)** → `window.location.href = 'byup Menu.html#home'` (Home + ordine con
   `activeOrder` demo).
 - **Non simulato**: Install Referrer Android (nativo), collegamento automatico in
-  onboarding Android, e la **validazione del codice**. Il prototipo **accetta
-  qualunque codice ≥4 cifre** e "trova" sempre l'ordine → lo **stato d'errore rosso
-  qui sopra è specificato ma non ancora codificato**.
+  onboarding Android, e la **validazione del codice** contro il server: nel prototipo
+  l'unico codice che trova l'ordine è **483912** (quello del placeholder), ogni altro è
+  un fallimento con la sua attesa, e al sesto scatta il blocco; il contatore vive in
+  `localStorage` (`byup_claim_attempts`, `?recupero=0` lo azzera).
 
 ## 4. Schermata finale della web app — comportamento per piattaforma
 

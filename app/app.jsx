@@ -2261,24 +2261,80 @@ const RECOVERY_NEWS = {
   ago: 'Adesso', kind: 'order', action: 'recover',
 };
 
+// D-42 (P-55): il recupero si difende fermando chi tenta, non chiudendo
+// l'ordine — un tentativo fallito è per definizione un codice che non
+// corrisponde ad alcun ordine, quindi non c'è un bersaglio da proteggere e
+// l'unica leva è chi digita. Sei cifre, invio automatico solo a lunghezza
+// piena, una scala di attese crescenti dopo ogni fallimento e, al sesto, il
+// blocco del dispositivo con l'uscita che salva la serata. Il contatore
+// rispecchia order_claim_attempts e order_claim_lockouts, qui in
+// localStorage: si azzera al successo e col tempo (blocco scaduto, o ultimo
+// fallimento più vecchio del blocco). Nel prototipo l'unico codice che trova
+// l'ordine è quello del placeholder, 483912: la webapp genera il suo a sei
+// cifre casuali e i due bundle non si parlano. Niente identificativi del
+// dispositivo a schermo. Demo: ?recupero=0 azzera il contatore.
+const RECUPERO = { CODICE_DEMO: '483912', CIFRE: 6, ATTESE_S: [5, 15, 30, 60, 120], MAX_TENTATIVI: 6, BLOCCO_MIN: 15 };
+const byupClaim = (() => {
+  const K = 'byup_claim_attempts';
+  const leggi = () => { try { return JSON.parse(localStorage.getItem(K) || 'null') || { n: 0, ultimo: null, bloccatoFino: null }; } catch { return { n: 0, ultimo: null, bloccatoFino: null }; } };
+  const scrivi = (v) => { try { localStorage.setItem(K, JSON.stringify(v)); } catch {} return v; };
+  const finestra = RECUPERO.BLOCCO_MIN * 60000;
+  // Lo stato vivo: il blocco scaduto e il fallimento vecchio azzerano da soli.
+  const stato = () => {
+    const s = leggi(); const ora = Date.now();
+    if (s.bloccatoFino && s.bloccatoFino <= ora) return scrivi({ n: 0, ultimo: null, bloccatoFino: null });
+    if (!s.bloccatoFino && s.ultimo && ora - s.ultimo > finestra) return scrivi({ n: 0, ultimo: null, bloccatoFino: null });
+    return s;
+  };
+  return {
+    stato,
+    bloccato() { const s = stato(); return !!s.bloccatoFino && s.bloccatoFino > Date.now(); },
+    // Secondi da aspettare prima del prossimo tentativo, 0 se si può.
+    attesa() { const s = stato(); if (!s.n || !s.ultimo) return 0; const w = RECUPERO.ATTESE_S[Math.min(s.n, RECUPERO.ATTESE_S.length) - 1] * 1000; return Math.max(0, Math.ceil((s.ultimo + w - Date.now()) / 1000)); },
+    fallimento() { const s = stato(); const n = s.n + 1; const ora = Date.now(); return scrivi(n >= RECUPERO.MAX_TENTATIVI ? { n, ultimo: ora, bloccatoFino: ora + finestra } : { n, ultimo: ora, bloccatoFino: null }); },
+    azzera() { return scrivi({ n: 0, ultimo: null, bloccatoFino: null }); },
+  };
+})();
+try { if (new URLSearchParams(window.location.search).get('recupero') === '0') byupClaim.azzera(); } catch {}
+
 // Popup centrale per inserire/incollare il codice ordine della web app.
 function RecoveryOrderModal({ onClose, onSubmit }) {
   const [code, setCode] = useState('');
-  const clean = (v) => v.replace(/\D/g, '').slice(0, 6);
-  const valid = code.length >= 4;
-  // Digitazione: se si raggiunge il codice pieno (6 cifre) parte da solo, come un OTP.
+  const [errore, setErrore] = useState(false);
+  const [attesa, setAttesa] = useState(() => byupClaim.attesa());
+  const [bloccato, setBloccato] = useState(() => byupClaim.bloccato());
+  const clean = (v) => v.replace(/\D/g, '').slice(0, RECUPERO.CIFRE);
+  const pieno = code.length === RECUPERO.CIFRE;
+  const valid = pieno && attesa === 0 && !bloccato;
+  // Il conto alla rovescia: un tick al secondo finché l'attesa non scade.
+  useEffect(() => {
+    if (attesa <= 0) return;
+    const t = setTimeout(() => setAttesa(byupClaim.attesa()), 1000);
+    return () => clearTimeout(t);
+  }, [attesa]);
+  // Il tentativo: il codice demo trova l'ordine e azzera il contatore; ogni
+  // altro codice è un fallimento, con la sua attesa o, al sesto, il blocco.
+  const tenta = (c) => {
+    if (bloccato || byupClaim.attesa() > 0) return;
+    if (c === RECUPERO.CODICE_DEMO) { byupClaim.azzera(); onSubmit(c); return; }
+    byupClaim.fallimento();
+    setCode(''); setErrore(true);
+    if (byupClaim.bloccato()) setBloccato(true); else setAttesa(byupClaim.attesa());
+  };
+  // Digitazione: parte da solo solo a lunghezza piena, come un OTP.
   const handleChange = (v) => {
     const c = clean(v);
-    setCode(c);
-    if (c.length === 6) setTimeout(() => onSubmit(c), 200);
+    setCode(c); setErrore(false);
+    if (c.length === RECUPERO.CIFRE) setTimeout(() => tenta(c), 200);
   };
-  // Incolla (tieni premuto sul campo → Incolla): accettazione automatica come SMS.
+  // Incolla (tieni premuto sul campo → Incolla): accettazione automatica solo
+  // se il codice incollato è pieno.
   const handlePaste = (e) => {
     const c = clean((e.clipboardData && e.clipboardData.getData('text')) || '');
     if (!c) return;
     e.preventDefault();
-    setCode(c);
-    if (c.length >= 4) setTimeout(() => onSubmit(c), 250);
+    setCode(c); setErrore(false);
+    if (c.length === RECUPERO.CIFRE) setTimeout(() => tenta(c), 250);
   };
   return (
     <div onClick={onClose} style={{
@@ -2299,6 +2355,18 @@ function RecoveryOrderModal({ onClose, onSubmit }) {
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2h9l3 3v17l-3-2-2 2-2-2-2 2-2-2-2 2V4a2 2 0 0 1 1-2z"/><path d="M9 8h6M9 12h6"/></svg>
         </div>
         <div style={{ fontSize: 18, fontWeight: 800, color: TEXT, textAlign: 'center', letterSpacing: -0.3 }}>Recupera il tuo ordine</div>
+        {bloccato ? (
+          <>
+            <div style={{ fontSize: 13.5, color: TEXT, textAlign: 'center', marginTop: 10, lineHeight: 1.45 }}>
+              Troppi tentativi. Torna alla webapp del tavolo o salda in cassa: l'ordine non si perde.
+            </div>
+            <button onClick={onClose} style={{
+              width: '100%', marginTop: 18, padding: '14px', borderRadius: 12, border: 'none',
+              background: PINK, color: '#fff', fontSize: 15.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+            }}>Ho capito</button>
+          </>
+        ) : (
+          <>
         <div style={{ fontSize: 13, color: MUTED, textAlign: 'center', marginTop: 6, lineHeight: 1.4 }}>
           Inserisci il codice che trovi sulla schermata della web app.
         </div>
@@ -2308,19 +2376,21 @@ function RecoveryOrderModal({ onClose, onSubmit }) {
           onChange={(e) => handleChange(e.target.value)}
           onPaste={handlePaste}
           inputMode="numeric"
+          autoComplete="one-time-code"
+          disabled={attesa > 0}
           autoFocus
           placeholder="es. 48 39 12"
           style={{
             width: '100%', boxSizing: 'border-box', marginTop: 18, padding: '14px',
-            borderRadius: 12, border: `1.5px solid ${BORDER}`, fontSize: 18, fontWeight: 700,
+            borderRadius: 12, border: `1.5px solid ${errore ? '#D64545' : BORDER}`, fontSize: 18, fontWeight: 700,
             letterSpacing: 4, color: TEXT, fontFamily: 'inherit', outline: 'none',
-            textAlign: 'center',
+            textAlign: 'center', opacity: attesa > 0 ? 0.5 : 1,
           }}/>
-        <div style={{ fontSize: 11.5, color: MUTED, textAlign: 'center', marginTop: 8 }}>
-          Tieni premuto e incolla: verrà accettato da solo.
+        <div style={{ fontSize: 11.5, color: errore ? '#D64545' : MUTED, textAlign: 'center', marginTop: 8, fontWeight: errore ? 700 : 400 }}>
+          {attesa > 0 ? `Riprova fra ${attesa} s` : errore ? 'Codice riscatto ordine errato' : 'Sei cifre. Tieni premuto e incolla: verrà accettato da solo.'}
         </div>
 
-        <button disabled={!valid} onClick={() => onSubmit(code)} style={{
+        <button disabled={!valid} onClick={() => tenta(code)} style={{
           width: '100%', marginTop: 14, padding: '14px', borderRadius: 12, border: 'none',
           background: valid ? PINK : '#EDE7E9', color: valid ? '#fff' : MUTED,
           fontSize: 15.5, fontWeight: 700, cursor: valid ? 'pointer' : 'default', fontFamily: 'inherit',
@@ -2330,6 +2400,8 @@ function RecoveryOrderModal({ onClose, onSubmit }) {
           background: 'transparent', color: MUTED, fontSize: 14, fontWeight: 600,
           cursor: 'pointer', fontFamily: 'inherit',
         }}>Annulla</button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -2470,9 +2542,9 @@ function App({ recoveryArmed = false }) {
     const t = setTimeout(() => setRecoveryBannerOpen(false), 20000);
     return () => clearTimeout(t);
   }, [recoveryArmed]);
-  // Conferma codice → chiudi popup, caricamento simulato, poi salta al flusso
-  // "Home + ordine" della menu app (come se l'ordine webapp fosse stato trovato).
-  const startRecovery = (_code) => {
+  // Codice demo confermato → chiudi popup, caricamento simulato, poi salta al
+  // flusso "Home + ordine" della menu app (l'ordine webapp è stato trovato).
+  const startRecovery = (code) => {
     setRecoveryModalOpen(false);
     setRecoveryLoading(true);
     setTimeout(() => { window.location.href = 'byup Menu.html#home'; }, 1600);

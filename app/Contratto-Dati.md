@@ -137,11 +137,11 @@
   registra l'ordine come pagato **da app** (`channel:'app'`, coefficiente ridotto — §C).
 
 ### 2.8 → Recupero ordine webapp → app (§G.7)
-- L'ordine webapp nasce **`orfano`** lato server `{ orderId, locale_id, tavolo_id, createdAt, status:'orfano' }` con un **codice ordine** breve (5–6 cifre), univoco e a vita limitata → mostrato sulla schermata finale webapp (fonte di verità persistente).
+- L'ordine webapp nasce **`orfano`** lato server `{ orderId, locale_id, tavolo_id, createdAt, status:'orfano' }` con un **codice ordine** a sei cifre, univoco e a vita limitata → mostrato sulla schermata finale webapp (fonte di verità persistente).
 - **Android (auto)**: il link allo store porta `referrer=byup_order_id%3D<ID|token>` (URL-encoded, payload compatto); al primo avvio l'app legge l'Install Referrer (lib `com.android.installreferrer`, dato valido **90 giorni**, lettura **una sola volta**) → `POST recover { orderId|token }` e aggancio all'account **già durante l'onboarding** → **dopo i popup iniziali l'ordine è già disponibile**, nessun banner.
 - **iOS / fallback**: l'app chiede il **codice manuale** (banner → popup) → `POST recover { code }`.
 - **Risposta `recover`**: ok → `{ order }` (l'app va a Home + ordine); ko → `{ error: 'invalid' | 'expired' | 'already_recovered' | 'rate_limited' }` → l'app mostra la **riga rossa** pertinente nel popup (*"Codice riscatto ordine errato"* / scaduto / già recuperato — vedi [Recupero-Ordine.md §3.bis](Recupero-Ordine.md)).
-- **Rate limit sui tentativi di riscatto** (per device/account/IP): un codice di 5–6 cifre è forzabile → tetto tentativi + cooldown. Vedi [Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md). *(Soglia/durata da definire.)*
+- **Rate limit sui tentativi di riscatto** (per device/account/IP): un codice di sei cifre è forzabile → tetto tentativi + cooldown. Vedi [Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md). *(D-42: attese crescenti dopo ogni fallimento, blocco del dispositivo per 15 minuti al sesto — vedi Recupero-Ordine §3.bis.)*
 - **Identità account = telefono**: l'aggancio dell'ordine resta legato all'account (login OTP/biometria). Il **codice/referrer** è il meccanismo di matching dell'ordine orfano; il telefono serve da identità e da notifica (SMS "asporto pronto, codice X").
 - Scadenza recupero legata allo **stato del tavolo** (tetto ~2h dalla creazione ordine). Codice perso → **pagamento in cassa** (nessun recupero per contesto, §G.7).
 

@@ -351,9 +351,9 @@ gestionale) quando si passa a Flutter.
 >   prototipo **ha**: banner *"Hai un ordine da pagare?"* (20s → Posta → Novità),
 >   **popup codice** (digita/**incolla auto-accettato**), **caricamento simulato**
 >   → `byup Menu.html#home`. **Non** ha: l'**Install Referrer Android** (e il
->   relativo auto-caricamento dopo i popup), e la **validazione del codice** →
->   accetta qualunque codice ≥4 cifre, quindi lo **stato d'errore rosso** (*"Codice
->   riscatto ordine errato"*) è specificato ma **non ancora codificato**.
+>   relativo auto-caricamento dopo i popup); la **validazione del codice** è a
+>   **sei cifre** contro il codice demo 483912, con la riga d'errore rossa (*"Codice
+>   riscatto ordine errato"*), la scala di attese e il blocco al sesto tentativo (D-42).
 > - **Modalità `selection`** (riga del Contratto-Dati): non è una modalità
 >   *nominata* nel codice (esistono `mine`/`all`); però pagare un **sottoinsieme**
 >   è già possibile col **"+"** sui piatti (del tavolo / offerti) nella
@@ -570,7 +570,7 @@ Un ordine creato in **webapp senza registrazione** dev'essere ritrovato nell'app
 appena installata per pagarlo lì (→ peso ridotto del piano, §C). Strategia
 **biforcata per piattaforma**:
 
-- **Codice ordine** breve (5–6 cifre), ordine in stato `orfano` lato server =
+- **Codice ordine** a **sei cifre**, ordine in stato `orfano` lato server =
   fonte di verità persistente.
 - **Android (automatico, silenzioso)**: l'**Install Referrer** porta il codice
   dentro l'installazione → il backend collega l'ordine **già durante l'onboarding**.
@@ -589,8 +589,9 @@ appena installata per pagarlo lì (→ peso ridotto del piano, §C). Strategia
 - **Roadmap**: deferred deep linking (Branch/AppsFlyer/…) per togliere la
   digitazione anche su iOS — fuori MVP.
 - 🧪 **Prototipo**: realizzato il **percorso iOS** (banner+popup+incolla+caricamento
-  → `Menu#home`); **non** l'Install Referrer né la **validazione** (accetta ogni
-  codice ≥4 cifre, quindi l'errore rosso non scatta ancora). Vedi §E.
+  → `Menu#home`); **non** l'Install Referrer. La validazione è a **sei cifre** contro
+  il codice demo 483912, con riga d'errore, attese crescenti e blocco al sesto
+  tentativo (D-42). Vedi §E.
 
 ### G.8 Difesa da accessi remoti e ordini civetta — IN DISCUSSIONE
 

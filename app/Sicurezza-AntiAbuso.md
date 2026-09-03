@@ -77,11 +77,12 @@ all'attacco. Due idee chiave:
   diversi è un pattern d'attacco evidente, bloccabile a monte.
 - **Tetto posti del tavolo** (già esistente).
 - **Rate limit sul riscatto del codice ordine** (recupero webapp→app, vedi
-  [Recupero-Ordine.md](Recupero-Ordine.md)): il codice è di **5–6 cifre**, quindi
-  **forzabile a tentativi** (10⁵–10⁶ combinazioni). Serve un **tetto tentativi per
+  [Recupero-Ordine.md](Recupero-Ordine.md)): il codice è di **sei cifre**, quindi
+  **forzabile a tentativi** (10⁶ combinazioni). Serve un **tetto tentativi per
   device/account/IP** + **cooldown** dopo N errori, così l'inserimento manuale non
-  diventa un canale di enumerazione degli ordini altrui. *(Soglia tentativi e durata
-  del blocco: da definire.)*
+  diventa un canale di enumerazione degli ordini altrui. *(D-42: attese crescenti dopo
+  ogni fallimento, blocco del dispositivo per 15 minuti al sesto — vedi Recupero-Ordine
+  §3.bis.)*
 
 ---
 
