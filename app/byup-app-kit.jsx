@@ -698,3 +698,30 @@ const GUSTI = [
     eventi() { return leggi(K_USO, []); },
   };
 })();
+
+// ─── Sospensione delle recensioni (P-88) ─────────────────────────────────────
+// Nell'app la sospensione arriva dal backend; qui è un mock in byup_sospensione
+// con gli stessi campi del registro di Hubble: da quando, fino a quando, il
+// motivo, cosa è stato deciso sulle recensioni già pubblicate. La
+// comunicazione compare in Posta una volta sola: comunicataIl dice se è già
+// stata mostrata. Demo: ?sospensione=1 la accende, ?sospensione=0 la spegne.
+(function () {
+  const K = 'byup_sospensione';
+  const leggi = () => { try { return JSON.parse(localStorage.getItem(K) || 'null'); } catch { return null; } };
+  const scrivi = (v) => { try { if (v) localStorage.setItem(K, JSON.stringify(v)); else localStorage.removeItem(K); } catch {} return v; };
+  window.ByupSospensione = {
+    leggi,
+    attiva() { const r = leggi(); return !!r && new Date(r.fine) > new Date(); },
+    segnaComunicata() { const r = leggi(); if (r && !r.comunicataIl) scrivi({ ...r, comunicataIl: new Date().toISOString() }); },
+    azzera() { scrivi(null); },
+    demo() {
+      const dal = new Date(Date.now() - 3 * 86400000);
+      return scrivi({ dal: dal.toISOString(), fine: new Date(dal.getTime() + 30 * 86400000).toISOString(), durataGiorni: 30,
+        motivo: 'Recensioni a una stella in serie sullo stesso locale, senza un ordine collegato', esistenti: 'restano', motivoRimozione: null, comunicataIl: null });
+    },
+  };
+  try {
+    const q = new URLSearchParams(window.location.search).get('sospensione');
+    if (q === '1') window.ByupSospensione.demo(); else if (q === '0') window.ByupSospensione.azzera();
+  } catch {}
+})();

@@ -1234,8 +1234,8 @@ function MktPostaAnteprima({ dove, corsia, titolo, anteprima }) {
 }
 
 // Le due interrogazioni, rappresentate: conteggi e netto prima di partire.
-function MktPostaInterrogazioni({ corsia, dove, righe, filtri }) {
-  const q = hubInterrogaPosta(righe, corsia);
+function MktPostaInterrogazioni({ corsia, dove, righe, filtri, genere }) {
+  const q = hubInterrogaPosta(righe, corsia, genere);
   const soloGusti = hubSoloGusti(filtri);
   const riga = (chiave, label, n, nota) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}` }}>
@@ -1289,7 +1289,7 @@ function HubPostaDettaglio({ m, onChiudi }) {
           ) : <HubVuoto icona="clock" titolo={m.stato === 'programmata' ? `Visibile dal ${fmtDateTime(m.visibileDal)}` : 'È una bozza'} desc="I numeri compaiono alla pubblicazione."/>}
           <AdmCard padding={18}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 10 }}>Le due interrogazioni, oggi</div>
-            <MktPostaInterrogazioni corsia={m.corsia} dove={m.dove} righe={righe} filtri={m.filtri}/>
+            <MktPostaInterrogazioni corsia={m.corsia} dove={m.dove} righe={righe} filtri={m.filtri} genere={m.genere}/>
           </AdmCard>
           <AdmCard padding={18}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 8 }}>Corpo</div>
@@ -1319,7 +1319,7 @@ function HubPostaComposer({ onChiudi }) {
   const cambiaCorsia = (c) => { setCorsia(c); setGenere(c === 'servizio' ? 'novita' : 'promozione'); };
   const bozza = { corsia, dove, pubblico: elencoId, filtri };
   const righe = postaRighe(bozza);
-  const q = hubInterrogaPosta(righe, corsia);
+  const q = hubInterrogaPosta(righe, corsia, genere);
   // Il blocco «cambia corsia»: le informative viaggiano su canale dedicato,
   // mai promiscuo. Una promozione scritta in corsia di servizio non parte.
   const promoInServizio = corsia === 'servizio' && hubSembraPromo(titolo + ' ' + anteprima + ' ' + corpo);
@@ -1403,7 +1403,7 @@ function HubPostaComposer({ onChiudi }) {
           </AdmCard>
           <AdmCard padding={18}>
             <div style={lab}>Prima di pubblicare · le due interrogazioni</div>
-            <MktPostaInterrogazioni corsia={corsia} dove={dove} righe={righe} filtri={elencoId ? [] : filtri}/>
+            <MktPostaInterrogazioni corsia={corsia} dove={dove} righe={righe} filtri={elencoId ? [] : filtri} genere={genere}/>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${ADM.BORDER_SOFT}` }}>
               <HubSegmenti attivo={quando} onCambia={setQuando} voci={[{ id: 'subito', label: 'Visibile adesso' }, { id: 'data', label: 'Da una data' }]}/>
               {quando === 'data' && <input type="datetime-local" value={data} onChange={e => setData(e.target.value)} style={{ padding: '8px 11px', border: `1px solid ${ADM.BORDER}`, borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', color: ADM.TEXT }}/>}

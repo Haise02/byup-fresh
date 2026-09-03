@@ -2243,6 +2243,17 @@ function HomeSections({
 // ─── Main app ───────────────────────────────────────────────
 // Notifica di recupero ordine (webapp→app): parcheggiata in Posta → Novità.
 // `action: 'recover'` → tap apre il popup di inserimento codice (vedi PostaScreen).
+// P-88: la comunicazione sulla sospensione delle recensioni, derivata dal
+// mock byup_sospensione — cosa, fino a quando, perché, cosa succede alle
+// esistenti, come contestare. Compare una volta sola.
+const sospensioneNews = (r) => {
+  const fine = new Date(r.fine).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' });
+  const esistenti = r.esistenti === 'rimosse' ? `Le recensioni già pubblicate sono state rimosse: ${r.motivoRimozione || r.motivo}.` : 'Le recensioni già pubblicate restano visibili.';
+  return { id: 'sospensione', kind: 'review', ago: 'Adesso',
+    title: `Le tue recensioni sono sospese fino al ${fine}`,
+    preview: `Motivo: ${r.motivo}. ${esistenti} Se pensi che la decisione sia sbagliata puoi contestarla rispondendo a questo messaggio: la riesaminiamo entro sette giorni.` };
+};
+
 const RECOVERY_NEWS = {
   id: 'recovery-order',
   title: 'Hai un ordine da pagare?',
@@ -2444,6 +2455,11 @@ function App({ recoveryArmed = false }) {
   // popup permessi). `recoveryBannerOpen` = banner in alto (auto-rimosso a 5s);
   // `recoveryActive` = la notifica resta in Posta → Novità.
   const [recoveryActive, setRecoveryActive] = useState(false);
+  // P-88: la comunicazione sulla sospensione compare in Posta → Novità una
+  // volta sola. Si legge all'avvio e si segna come comunicata quando la
+  // persona apre Posta: alla prossima apertura dell'app non torna.
+  const [sospensioneCard] = useState(() => { const S = window.ByupSospensione; const r = S && S.leggi(); return r && S.attiva() && !r.comunicataIl ? r : null; });
+  useEffect(() => { if (page === 'posta' && sospensioneCard && window.ByupSospensione) window.ByupSospensione.segnaComunicata(); }, [page, sospensioneCard]);
   const [recoveryBannerOpen, setRecoveryBannerOpen] = useState(false);
   const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);
   const [recoveryLoading, setRecoveryLoading] = useState(false);
@@ -2539,7 +2555,7 @@ function App({ recoveryArmed = false }) {
     const isEmptyZone = navStack[0] === 'home-empty';
     return PoS ? <>
       <PoS onBack={goBack} onProfile={() => setPage('profile')} onlyNews={isEmptyZone}
-        extraNews={recoveryActive ? [RECOVERY_NEWS] : []}
+        extraNews={[...(sospensioneCard ? [sospensioneNews(sospensioneCard)] : []), ...(recoveryActive ? [RECOVERY_NEWS] : [])]}
         onRecover={() => setRecoveryModalOpen(true)}/>
       {recoveryOverlays}
     </> : null;

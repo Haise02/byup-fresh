@@ -36,7 +36,7 @@ un pannello che si apre passandoci sopra col mouse.
 | Sezione | Cosa contiene |
 |---|---|
 | **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato |
-| **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche). **Proprietà** non è più qui: vive solo nel menu del profilo, con il resto della governance (2026-08-17). Dalla testata della rubrica si apre anche il **registro Restrizioni** (shadowban/ban con motivi, note e revoche). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
+| **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche). **Proprietà** non è più qui: vive solo nel menu del profilo, con il resto della governance (2026-08-17). Dalla testata della rubrica si apre anche il **registro Restrizioni** (sospensione delle recensioni a tempo e ban, con motivi, decisione sulle esistenti, comunicazione alla persona, note e revoche — P-88: lo shadowban non esiste più). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
 | **Marketing** → | **Mail**, **SMS**, **Push**, **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
 | **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente** (quello che fanno insieme) |
@@ -170,7 +170,7 @@ versioni), **Log** (i tre eventi del registro d'uso — `app_open`, `qr_scan`,
 `menu_view` — con la riga che dice a quali condizioni si scrive, e la card dei
 rimandi alle tab dove vivono gli altri fatti: ordini, prenotazioni, recensioni,
 byuppini, consensi e notifiche non si riscrivono in un registro parallelo,
-P-37 · D-31), **Recensioni** (con lo shadowban accanto a ciò che nasconde).
+P-37 · D-31), **Recensioni** (con la sospensione delle recensioni accanto a ciò che ferma).
 
 ## Il linguaggio comune
 
@@ -251,7 +251,7 @@ canale.
 | `admin-locale-detail.jsx` | La scheda del locale (nove tab) e il pannello consensi condiviso |
 | `admin-camerieri.jsx` | Dataset `STAFF` + scheda staff (nessuna pagina di sezione) |
 | `admin-utenti.jsx` | Scheda utente app + `SpesaMediaCard` per Analisi Dati (nessuna pagina di sezione) |
-| `admin-restrizioni.jsx` | Registro shadowban/ban, aperto dalla rubrica |
+| `admin-restrizioni.jsx` | Registro sospensioni recensioni/ban e popup della sospensione condiviso con scheda utente e moderazione, aperto dalla rubrica |
 | `admin-*.jsx` | Le altre sezioni (Analisi Dati, Assistenza, Team, Mappa, Mercato, Valore) |
 
 Il 2026-08-17 sono stati **eliminati** i file morti `admin-locali.jsx`,

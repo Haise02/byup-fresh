@@ -1391,6 +1391,62 @@ const GUSTI = [{
     }
   };
 })();
+
+// ─── Sospensione delle recensioni (P-88) ─────────────────────────────────────
+// Nell'app la sospensione arriva dal backend; qui è un mock in byup_sospensione
+// con gli stessi campi del registro di Hubble: da quando, fino a quando, il
+// motivo, cosa è stato deciso sulle recensioni già pubblicate. La
+// comunicazione compare in Posta una volta sola: comunicataIl dice se è già
+// stata mostrata. Demo: ?sospensione=1 la accende, ?sospensione=0 la spegne.
+(function () {
+  const K = 'byup_sospensione';
+  const leggi = () => {
+    try {
+      return JSON.parse(localStorage.getItem(K) || 'null');
+    } catch {
+      return null;
+    }
+  };
+  const scrivi = v => {
+    try {
+      if (v) localStorage.setItem(K, JSON.stringify(v));else localStorage.removeItem(K);
+    } catch {}
+    return v;
+  };
+  window.ByupSospensione = {
+    leggi,
+    attiva() {
+      const r = leggi();
+      return !!r && new Date(r.fine) > new Date();
+    },
+    segnaComunicata() {
+      const r = leggi();
+      if (r && !r.comunicataIl) scrivi({
+        ...r,
+        comunicataIl: new Date().toISOString()
+      });
+    },
+    azzera() {
+      scrivi(null);
+    },
+    demo() {
+      const dal = new Date(Date.now() - 3 * 86400000);
+      return scrivi({
+        dal: dal.toISOString(),
+        fine: new Date(dal.getTime() + 30 * 86400000).toISOString(),
+        durataGiorni: 30,
+        motivo: 'Recensioni a una stella in serie sullo stesso locale, senza un ordine collegato',
+        esistenti: 'restano',
+        motivoRimozione: null,
+        comunicataIl: null
+      });
+    }
+  };
+  try {
+    const q = new URLSearchParams(window.location.search).get('sospensione');
+    if (q === '1') window.ByupSospensione.demo();else if (q === '0') window.ByupSospensione.azzera();
+  } catch {}
+})();
 })();
 </script>
 <script>/* ios-frame.jsx */
@@ -17629,6 +17685,23 @@ function HomeSections({
 // ─── Main app ───────────────────────────────────────────────
 // Notifica di recupero ordine (webapp→app): parcheggiata in Posta → Novità.
 // `action: 'recover'` → tap apre il popup di inserimento codice (vedi PostaScreen).
+// P-88: la comunicazione sulla sospensione delle recensioni, derivata dal
+// mock byup_sospensione — cosa, fino a quando, perché, cosa succede alle
+// esistenti, come contestare. Compare una volta sola.
+const sospensioneNews = r => {
+  const fine = new Date(r.fine).toLocaleDateString('it-IT', {
+    day: 'numeric',
+    month: 'long'
+  });
+  const esistenti = r.esistenti === 'rimosse' ? `Le recensioni già pubblicate sono state rimosse: ${r.motivoRimozione || r.motivo}.` : 'Le recensioni già pubblicate restano visibili.';
+  return {
+    id: 'sospensione',
+    kind: 'review',
+    ago: 'Adesso',
+    title: `Le tue recensioni sono sospese fino al ${fine}`,
+    preview: `Motivo: ${r.motivo}. ${esistenti} Se pensi che la decisione sia sbagliata puoi contestarla rispondendo a questo messaggio: la riesaminiamo entro sette giorni.`
+  };
+};
 const RECOVERY_NEWS = {
   id: 'recovery-order',
   title: 'Hai un ordine da pagare?',
@@ -18013,6 +18086,17 @@ function App({
   // popup permessi). `recoveryBannerOpen` = banner in alto (auto-rimosso a 5s);
   // `recoveryActive` = la notifica resta in Posta → Novità.
   const [recoveryActive, setRecoveryActive] = useState(false);
+  // P-88: la comunicazione sulla sospensione compare in Posta → Novità una
+  // volta sola. Si legge all'avvio e si segna come comunicata quando la
+  // persona apre Posta: alla prossima apertura dell'app non torna.
+  const [sospensioneCard] = useState(() => {
+    const S = window.ByupSospensione;
+    const r = S && S.leggi();
+    return r && S.attiva() && !r.comunicataIl ? r : null;
+  });
+  useEffect(() => {
+    if (page === 'posta' && sospensioneCard && window.ByupSospensione) window.ByupSospensione.segnaComunicata();
+  }, [page, sospensioneCard]);
   const [recoveryBannerOpen, setRecoveryBannerOpen] = useState(false);
   const [recoveryModalOpen, setRecoveryModalOpen] = useState(false);
   const [recoveryLoading, setRecoveryLoading] = useState(false);
@@ -18145,7 +18229,7 @@ function App({
       onBack: goBack,
       onProfile: () => setPage('profile'),
       onlyNews: isEmptyZone,
-      extraNews: recoveryActive ? [RECOVERY_NEWS] : [],
+      extraNews: [...(sospensioneCard ? [sospensioneNews(sospensioneCard)] : []), ...(recoveryActive ? [RECOVERY_NEWS] : [])],
       onRecover: () => setRecoveryModalOpen(true)
     }), recoveryOverlays) : null;
   }
@@ -28961,6 +29045,12 @@ function SuccessScreen({
   // Sta scrivendo una recensione → la CTA primaria è "Invia recensione",
   // quindi "Torna alla home" passa in secondo piano (evita due bottoni gemelli).
   const reviewing = rating > 0 && !submitted;
+  // P-88: sospesa dalle recensioni → niente stelle, e si dice perché.
+  const sospensione = window.ByupSospensione && window.ByupSospensione.attiva() ? window.ByupSospensione.leggi() : null;
+  const sospensioneFine = sospensione ? new Date(sospensione.fine).toLocaleDateString('it-IT', {
+    day: 'numeric',
+    month: 'long'
+  }) : '';
   return /*#__PURE__*/React.createElement("div", {
     "data-screen-label": "Pagamento riuscito",
     style: {
@@ -29125,7 +29215,37 @@ function SuccessScreen({
       fontWeight: 700,
       color: MUTED
     }
-  }, "+", daPagare.length - 4)))), !submitted && /*#__PURE__*/React.createElement("div", {
+  }, "+", daPagare.length - 4)))), !submitted && sospensione && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 40,
+      padding: '14px 16px',
+      borderRadius: 14,
+      background: TINT,
+      border: `1px solid ${BORDER}`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: MUTED,
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+      fontWeight: 700,
+      marginBottom: 6
+    }
+  }, "Recensioni sospese"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13.5,
+      fontWeight: 700,
+      color: TEXT
+    }
+  }, "Fino al ", sospensioneFine, " non puoi lasciare recensioni."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 13,
+      color: MUTED,
+      marginTop: 4,
+      lineHeight: 1.45
+    }
+  }, "Motivo: ", sospensione.motivo, ". Puoi contestare la decisione rispondendo alla comunicazione che trovi in Posta.")), !submitted && !sospensione && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 40
     }

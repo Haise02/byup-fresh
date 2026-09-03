@@ -208,13 +208,13 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   const [byupAmount, setByupAmount] = useStateUtn('');
   const [byupFeedback, setByupFeedback] = useStateUtn(null);
   const [deletePopup, setDeletePopup] = useStateUtn(false);
-  const [banPopup, setBanPopup] = useStateUtn(null); // 'ban' | 'unban' | 'shadow' | 'unshadow' | null
+  const [banPopup, setBanPopup] = useStateUtn(null); // 'ban' | 'unban' | 'sospendi' | 'rimuovi-sospensione' | null
   const [banned, setBanned] = useStateUtn(!!u.bannato);
-  const [shadow, setShadow] = useStateUtn(!!u.shadowban);
+  const [sospeso, setSospeso] = useStateUtn(!!u.sospensioneRecensioni);
   // Anche azioni e popup ripartono dal nuovo utente: il ✓ del reset password
   // di uno non deve firmare l'email di un altro.
   React.useEffect(() => {
-    setBanned(!!u.bannato); setShadow(!!u.shadowban); setBanPopup(null);
+    setBanned(!!u.bannato); setSospeso(!!u.sospensioneRecensioni); setBanPopup(null);
     setResetSent(false); setByupPopup(null); setByupAmount(''); setByupFeedback(null); setDeletePopup(false);
   }, [u.id]);
   const confirmBan = () => {
@@ -225,10 +225,11 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
       if (u.bannato) admAggiungiRestrizione(u, 'ban');
       else admRevocaPerUtente(u.id, 'ban');
     }
-    if (banPopup === 'shadow' || banPopup === 'unshadow') {
-      u.shadowban = banPopup === 'shadow'; setShadow(u.shadowban);
-      if (u.shadowban) admAggiungiRestrizione(u, 'shadowban');
-      else admRevocaPerUtente(u.id, 'shadowban');
+    // La sospensione (P-88) si applica dal popup condiviso con la moderazione;
+    // qui passa solo la revoca anticipata, firmata da chi è collegato.
+    if (banPopup === 'rimuovi-sospensione') {
+      u.sospensioneRecensioni = false; setSospeso(false);
+      admRevocaPerUtente(u.id, 'review_suspension', hubUtenteCorrente().id);
     }
     setBanPopup(null);
   };
@@ -559,8 +560,8 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
                       ? <AdmBadge color="PLAN_FREE" size="xs">Eliminato</AdmBadge>
                       : banned
                       ? <AdmBadge color="DANGER" size="xs">Bannato</AdmBadge>
-                      : shadow
-                      ? <AdmBadge color="WARN" size="xs">Shadowban</AdmBadge>
+                      : sospeso
+                      ? <AdmBadge color="WARN" size="xs">Sospeso dalle recensioni</AdmBadge>
                       : u.attivo
                       ? <AdmBadge color="OK" size="xs">Attivo</AdmBadge>
                       : <AdmBadge color="PLAN_FREE" size="xs">Inattivo</AdmBadge>}
@@ -644,9 +645,9 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
               </div>
             </AdmCard>
 
-            {/* Zona sensibile — volutamente sobria e in fondo. Lo shadowban
-                non sta qui: agisce sulle recensioni, e il suo comando vive
-                nella loro tab, accanto a quello che nasconde. */}
+            {/* Zona sensibile — volutamente sobria e in fondo. La sospensione
+                delle recensioni non sta qui: agisce sulle recensioni, e il suo
+                comando vive nella loro tab, accanto a ciò che ferma. */}
             <div style={{display:'flex', alignItems:'center', gap:10, padding:'4px 6px 10px'}}>
               <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Zona sensibile</span>
               <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
@@ -958,27 +959,29 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
         {/* ═══ TAB RECENSIONI ═══ */}
         {tab === 'recensioni' && (
           <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:12, background:ADM.PANEL_SOFT}}>
-            {/* Lo shadowban vive QUI, accanto a quello che nasconde: da
-                attivo è un banner con il comando per toglierlo, da spento
-                una riga di moderazione sobria — stesso registro della zona
-                sensibile, perché resta un'azione da pesare. */}
-            {shadow ? (
+            {/* La sospensione delle recensioni (P-88) vive QUI, accanto a ciò
+                che ferma: da attiva è un banner con fino a quando, il motivo,
+                cosa è stato deciso sulle esistenti e il comando per revocarla;
+                da spenta una riga di moderazione sobria — stesso registro della
+                zona sensibile, perché resta un'azione da pesare. */}
+            {sospeso ? (() => { const sr = admRestrizioneAttiva(u.id, 'review_suspension'); return (
               <div style={{padding:'12px 14px', background:'#FFF7E6', border:'1px solid #FDE68A', borderRadius:10, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
                 <BuIcons.shield size={18} color="#B45309"/>
                 <div style={{flex:1, minWidth:200, fontSize:13, color:'#78350F', lineHeight:1.45}}>
-                  <strong>Shadowban attivo</strong> — queste recensioni sono visibili solo all'utente, non compaiono sulle schede dei locali.
+                  <strong>Sospensione recensioni{sr ? ` fino al ${fmtDate(sr.fine)}` : ''}</strong> — non può pubblicare recensioni.
+                  {sr ? <> Motivo: {sr.motivo}. Le esistenti {sr.esistenti === 'rimosse' ? 'sono state rimosse' : 'restano visibili'}; comunicato alla persona il {fmtDate(sr.comunicazione ? sr.comunicazione.quando : sr.data)}.</> : null}
                 </div>
-                <AdmButton variant="secondary" size="sm" disabled={!hubPuo('moderazione', 'scrittura')} title={hubPuo('moderazione', 'scrittura') ? undefined : 'Serve Scrittura su Moderazione'} onClick={()=>setBanPopup('unshadow')}>Rimuovi shadowban…</AdmButton>
+                <AdmButton variant="secondary" size="sm" disabled={!hubPuo('moderazione', 'scrittura')} title={hubPuo('moderazione', 'scrittura') ? undefined : 'Serve Scrittura su Moderazione'} onClick={()=>setBanPopup('rimuovi-sospensione')}>Rimuovi sospensione…</AdmButton>
               </div>
-            ) : (
+            ); })() : (
               <div style={{display:'flex', alignItems:'center', gap:10, padding:'0 6px'}}>
                 <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Moderazione</span>
                 <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
-                {/* P-41 (D-33): shadowban e ban chiedono Scrittura su Moderazione. */}
-                <button className="adm-textlink" disabled={!hubPuo('moderazione', 'scrittura')} title={hubPuo('moderazione', 'scrittura') ? undefined : 'Serve Scrittura su Moderazione'} onClick={()=>setBanPopup('shadow')} style={{
+                {/* P-41 (D-33): sospensione e ban chiedono Scrittura su Moderazione. */}
+                <button className="adm-textlink" disabled={!hubPuo('moderazione', 'scrittura')} title={hubPuo('moderazione', 'scrittura') ? undefined : 'Serve Scrittura su Moderazione'} onClick={()=>setBanPopup('sospendi')} style={{
                   background:'transparent', border:'none', color: hubPuo('moderazione', 'scrittura') ? ADM.WARN : ADM.MUTED_LIGHT, fontSize:12.5, fontWeight:600,
                   cursor: hubPuo('moderazione', 'scrittura') ? 'pointer' : 'not-allowed', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
-                }}>Shadowban…</button>
+                }}>Sospendi recensioni…</button>
               </div>
             )}
             {recensioni.map(r => (
@@ -1105,27 +1108,23 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
           );
         })()}
 
-        {/* ═══ Popup conferma: ban / rimozione ban ═══ */}
-        {banPopup && (
+        {/* ═══ Sospensione recensioni: il popup condiviso con la moderazione (P-88) ═══ */}
+        {banPopup === 'sospendi' && (
+          <SospensionePopup utente={u} onClose={()=>setBanPopup(null)} onConferma={()=>{ setSospeso(true); setBanPopup(null); }}/>
+        )}
+
+        {/* ═══ Popup conferma: ban / rimozione ban / revoca sospensione ═══ */}
+        {banPopup && banPopup !== 'sospendi' && (
           <div style={{position:'fixed', inset:0, zIndex:20, display:'grid', placeItems:'center', padding:24, background:'rgba(15,17,21,0.35)'}} onClick={()=>setBanPopup(null)}>
             <div onClick={e=>e.stopPropagation()} style={{width:410, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-              {banPopup === 'shadow' ? (<>
-                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Shadowban per {form.nome}?</div>
+              {banPopup === 'rimuovi-sospensione' ? (<>
+                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere la sospensione a {form.nome}?</div>
                 <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
-                  Le sue recensioni diventano <strong>invisibili a tutti tranne che a lui</strong>: non riceve notifiche e non se ne accorge. Reversibile in qualsiasi momento. L'azione viene registrata nell'audit log.
+                  Può di nuovo pubblicare recensioni prima della scadenza; quelle già pubblicate restano come sono. La sospensione resta nel registro come revocata, con le note già scritte.
                 </div>
                 <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                   <AdmButton variant="ghost" size="md" onClick={()=>setBanPopup(null)}>Annulla</AdmButton>
-                  <AdmButton variant="primary" size="md" icon="shield" onClick={confirmBan}>Attiva shadowban</AdmButton>
-                </div>
-              </>) : banPopup === 'unshadow' ? (<>
-                <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere lo shadowban a {form.nome}?</div>
-                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
-                  Le sue recensioni tornano visibili a tutti. Anche questa azione viene registrata nell'audit log.
-                </div>
-                <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-                  <AdmButton variant="ghost" size="md" onClick={()=>setBanPopup(null)}>Annulla</AdmButton>
-                  <AdmButton variant="primary" size="md" icon="check" onClick={confirmBan}>Rimuovi shadowban</AdmButton>
+                  <AdmButton variant="primary" size="md" icon="check" onClick={confirmBan}>Rimuovi sospensione</AdmButton>
                 </div>
               </>) : banPopup === 'ban' ? (<>
                 <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Bannare {form.nome}?</div>

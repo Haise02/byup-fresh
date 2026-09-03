@@ -272,7 +272,7 @@ function AdmContattiPage({ search, openContatto }) {
   // che dice alla lista di ricalcolarsi. Un pulsante «Crea» che apre un modulo
   // e poi non lascia traccia è peggio di un pulsante assente.
   const [rev, setRev] = useStateCnt(0);
-  // Il registro delle restrizioni (shadowban/ban): il suo ingresso viveva
+  // Il registro delle restrizioni (sospensione recensioni/ban): il suo ingresso viveva
   // nella vecchia pagina Utenti app; gli utenti ora vivono qui, e qui sta
   // anche il registro.
   const [restrizioniAperte, setRestrizioniAperte] = useStateCnt(false);
@@ -843,11 +843,11 @@ function CntCella({ id, c }) {
     return <div>{pianoDef ? <CntPillola color={pianoDef.color}>{pianoDef.label}</CntPillola> : tratto}</div>;
   }
   if (id === 'restrizione') {
-    // Rosso per il ban, ambra per lo shadowban: la stessa coppia di colori
+    // Rosso per il ban, ambra per la sospensione: la stessa coppia di colori
     // del registro restrizioni. Letta viva via hubLeggi, mai dalla riga.
     const restr = hubLeggi(c, 'restrizione');
     if (!restr) return <div>{tratto}</div>;
-    return <div><CntPillola color={restr === 'ban' ? 'DANGER' : 'WARN'}>{restr === 'ban' ? 'Bannato' : 'Shadowban'}</CntPillola></div>;
+    return <div><CntPillola color={restr === 'ban' ? 'DANGER' : 'WARN'}>{restr === 'ban' ? 'Bannato' : 'Sospeso recensioni'}</CntPillola></div>;
   }
   // Tutte le altre colonne escono dal catalogo delle proprietà: il TIPO dice
   // come si stampano. Una proprietà nuova aggiunta in hub-data.jsx compare in

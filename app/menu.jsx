@@ -4452,6 +4452,9 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
   // Sta scrivendo una recensione → la CTA primaria è "Invia recensione",
   // quindi "Torna alla home" passa in secondo piano (evita due bottoni gemelli).
   const reviewing = rating > 0 && !submitted;
+  // P-88: sospesa dalle recensioni → niente stelle, e si dice perché.
+  const sospensione = window.ByupSospensione && window.ByupSospensione.attiva() ? window.ByupSospensione.leggi() : null;
+  const sospensioneFine = sospensione ? new Date(sospensione.fine).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' }) : '';
 
   return (
     <div data-screen-label="Pagamento riuscito" style={{
@@ -4533,8 +4536,17 @@ function SuccessScreen({ state, setState, goTo, ctx }) {
           )}
         </div>
 
+        {/* Sospesa dalle recensioni (P-88): al posto delle stelle il rifiuto
+            spiegato — fino a quando, il motivo, la via per contestare. */}
+        {!submitted && sospensione && (
+          <div style={{ marginTop: 40, padding: '14px 16px', borderRadius: 14, background: TINT, border: `1px solid ${BORDER}` }}>
+            <div style={{ fontSize: 11, color: MUTED, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: 700, marginBottom: 6 }}>Recensioni sospese</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: TEXT }}>Fino al {sospensioneFine} non puoi lasciare recensioni.</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 4, lineHeight: 1.45 }}>Motivo: {sospensione.motivo}. Puoi contestare la decisione rispondendo alla comunicazione che trovi in Posta.</div>
+          </div>
+        )}
         {/* Recensione — stelle inline, niente card */}
-        {!submitted && (
+        {!submitted && !sospensione && (
           <div style={{ marginTop: 40 }}>
             <div style={{ fontSize: 11, color: MUTED, textAlign: 'center', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.7, fontWeight: 700 }}>
               Lascia una valutazione

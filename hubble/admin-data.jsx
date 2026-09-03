@@ -703,7 +703,7 @@ const AREE = [
   // registro: l'«Oggi» di P-41 descriveva la matrice (la descrizione
   // dell'area diceva «restrizioni»), non un'applicazione ai gesti, che il
   // prototipo non aveva mai avuto: hubPuo nasce qui.
-  { id: 'moderazione', label: 'Moderazione',        desc: 'Restrizioni agli utenti app: shadowban e ban, con motivi e revoche' },
+  { id: 'moderazione', label: 'Moderazione',        desc: 'Restrizioni agli utenti app: sospensione delle recensioni e ban, con motivi, comunicazioni e revoche' },
   { id: 'elenchi',    label: 'Elenchi',             desc: 'Segmenti attivi e liste statiche' },
   { id: 'proprieta',  label: 'Proprietà',           desc: 'Il catalogo dei campi del contatto, di sistema e personalizzati' },
   { id: 'marketing',  label: 'Marketing',           desc: 'Mail, SMS, push e form: materiali, invii e statistiche' },

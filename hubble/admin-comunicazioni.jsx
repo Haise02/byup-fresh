@@ -403,14 +403,19 @@ function StatoChip({ stato }) {
 // il «no» è una decisione: una segnalazione respinta è dovuta a chi ha
 // segnalato, e l'esito gli si comunica (art. 16 par. 5 DSA) — qui la
 // comunicazione si rappresenta con destinatario, momento e anteprima, non si
-// finge di inviarla. Le scorciatoie sull'autore (shadowban / ban) producono
-// comunque la decisione sul contenuto: il ban rimuove, lo shadowban ne limita
-// la visibilità al solo autore — per chi ha segnalato è rimossa. Chi decide è
-// chi è collegato (hubUtenteCorrente), non un id fisso.
+// finge di inviarla. Le scorciatoie sull'autore (sospensione delle recensioni
+// / ban) producono comunque la decisione sul contenuto: il ban rimuove; la
+// sospensione (P-88, al posto dello shadowban) rimuove o lascia visibile
+// secondo la decisione presa sulle esistenti nel popup condiviso con la
+// scheda utente, e la sua etichetta di P-71 lo dice nelle due varianti. Chi
+// decide è chi è collegato (hubUtenteCorrente), non un id fisso.
 function ModerationCard({ item, locale, onUpdate }) {
   const mod = item.moderazione;
   const autore = (typeof UTENTI !== 'undefined' && UTENTI.find(x => x.id === mod.utenteId)) || { id: mod.utenteId, nome: 'Utente ' + mod.utenteId };
-  const [popup, setPopup] = useStateCom(null); // 'rimuovi' | 'mantieni' | 'avvisa' | 'shadowban' | 'ban' | null
+  const [popup, setPopup] = useStateCom(null); // 'rimuovi' | 'mantieni' | 'avvisa' | 'sospendi' | 'ban' | null
+  // Il motivo di P-71 per la sospensione: quello della segnalazione, se è
+  // nell'elenco chiuso.
+  const motivoIdSegnalazione = MOD_MOTIVI.some(m => m.value === mod.motivoSegnalazione) ? mod.motivoSegnalazione : MOD_MOTIVI[0].value;
   const [motivo, setMotivo] = useStateCom('');          // la nota
   const [motivoSel, setMotivoSel] = useStateCom(MOD_MOTIVI[0].value);
   React.useEffect(() => { setPopup(null); setMotivo(''); setMotivoSel(MOD_MOTIVI[0].value); }, [item.id]);
@@ -418,7 +423,7 @@ function ModerationCard({ item, locale, onUpdate }) {
 
   const chiudi = (azione, motivoId, nota) => {
     const me = hubUtenteCorrente();
-    const esito = azione === 'mantenuta' ? 'no_action' : azione === 'avvisato' ? 'warning' : 'removed';
+    const esito = (azione === 'mantenuta' || azione === 'sospensione_restano') ? 'no_action' : azione === 'avvisato' ? 'warning' : 'removed';
     const quando = new Date();
     const segnalante = mod.segnalataDa === 'locale'
       ? { nome: locale?.titolare || item.senderName, email: locale?.email || item.senderEmail }
@@ -430,21 +435,23 @@ function ModerationCard({ item, locale, onUpdate }) {
       esito, azione, motivo: motivoId, nota: nota || null,
       decisaDa: me.id, decisaDaNome: me.nomeCompleto || me.nome, decisaIl: quando,
       comunicazione: { a: segnalante.email, quando, testo },
-      // All'autore la motivazione arriva quando il contenuto è toccato o richiamato.
-      autoreAvvisato: esito !== 'no_action' };
+      // All'autore la motivazione arriva quando il contenuto è toccato o
+      // richiamato — e con la sospensione sempre, nella sua comunicazione.
+      autoreAvvisato: esito !== 'no_action' || azione.startsWith('sospensione') };
     MOD_DECISIONI.unshift(dec);
     AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome,
-      action: esito === 'removed' ? 'ha rimosso la recensione di' : esito === 'warning' ? 'ha avvisato l\'autore della recensione di' : 'ha mantenuto la recensione di',
+      action: azione.startsWith('sospensione') ? 'ha sospeso dalle recensioni l\'autore della segnalata di' : esito === 'removed' ? 'ha rimosso la recensione di' : esito === 'warning' ? 'ha avvisato l\'autore della recensione di' : 'ha mantenuto la recensione di',
       target: `${autore.nome} su ${locale?.nome || '—'} · ${modMotivoLabel(motivoId)} · esito comunicato a ${segnalante.email}`,
       icon: esito === 'removed' ? 'x' : esito === 'warning' ? 'mail' : 'check', color: esito === 'removed' ? 'DANGER' : esito === 'warning' ? 'WARN' : 'OK', tipo: 'segnalazione', when: quando });
     onUpdate({ stato:'risolta', resolvedBy: me.id, resolvedAt: quando, modEsito:{ azione, esito, motivo: motivoId, nota: nota || null, at: quando, decisioneId: dec.id } });
     // La restrizione decisa qui nasce da una recensione precisa: la portiamo
-    // nel registro, altrimenti nell'elenco resterebbe un ban senza causa.
-    if (azione === 'shadowban' || azione === 'ban') {
-      if (azione === 'shadowban') autore.shadowban = true; else autore.bannato = true;
-      admAggiungiRestrizione(autore, azione, {
+    // nel registro, altrimenti nell'elenco resterebbe un ban senza causa. La
+    // sospensione è già a registro: l'ha scritta il popup condiviso.
+    if (azione === 'ban') {
+      autore.bannato = true;
+      admAggiungiRestrizione(autore, 'ban', {
         motivo: mod.motivoSegnalazione,
-        operatore: MY_ID,
+        operatore: me.id,
         recensione: {
           locale: locale?.nome || '—', citta: locale?.citta || '',
           rating: mod.rating, testo: mod.testo, data: mod.dataRecensione,
@@ -458,7 +465,8 @@ function ModerationCard({ item, locale, onUpdate }) {
     rimossa:    { bg:ADM.DANGER_SOFT, bd:`${ADM.DANGER}40`, fg:'#7F1D1D', icona:'x',      bgIco:ADM.DANGER, label:'Recensione rimossa · removed' },
     mantenuta:  { bg:ADM.OK_SOFT,     bd:'#BBF7D0',          fg:'#065F46', icona:'check',  bgIco:ADM.OK,     label:'Recensione mantenuta · no_action' },
     avvisato:   { bg:'#FFF7E6',       bd:'#FDE68A',          fg:'#78350F', icona:'mail',   bgIco:ADM.WARN,   label:'Autore avvisato, recensione mantenuta · warning' },
-    shadowban:  { bg:'#FFF7E6',       bd:'#FDE68A',          fg:'#78350F', icona:'shield', bgIco:ADM.WARN,   label:'Utente in shadowban, recensione visibile solo a lui · removed' },
+    sospensione_restano: { bg:'#FFF7E6', bd:'#FDE68A',        fg:'#78350F', icona:'shield', bgIco:ADM.WARN,   label:'Autore sospeso dalle recensioni, la recensione resta visibile · no_action' },
+    sospensione_rimosse: { bg:'#FFF7E6', bd:'#FDE68A',        fg:'#78350F', icona:'shield', bgIco:ADM.WARN,   label:'Autore sospeso dalle recensioni, le sue recensioni rimosse · removed' },
     ban:        { bg:ADM.DANGER_SOFT, bd:`${ADM.DANGER}40`, fg:'#7F1D1D', icona:'lock',   bgIco:ADM.DANGER, label:'Utente bannato, recensione rimossa · removed' },
   };
   const esito = item.modEsito ? ESITI[item.modEsito.azione] : null;
@@ -539,14 +547,24 @@ function ModerationCard({ item, locale, onUpdate }) {
           </div>
           <div style={{display:'flex', alignItems:'center', gap:10, marginTop:12, paddingTop:11, borderTop:`1px dashed ${ADM.BORDER_SOFT}`, flexWrap:'wrap'}}>
             <span style={{fontSize:12.5, color:ADM.MUTED}}>Autore recidivo o abusivo?</span>
-            <button className="adm-textlink" onClick={()=>apri('shadowban')} style={{background:'none', border:'none', color:ADM.WARN, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Shadowban…</button>
+            <button className="adm-textlink" onClick={()=>apri('sospendi')} style={{background:'none', border:'none', color:ADM.WARN, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Sospendi recensioni…</button>
             <button className="adm-textlink" onClick={()=>apri('ban')} style={{background:'none', border:'none', color:ADM.DANGER, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Banna account…</button>
           </div>
         </div>
       )}
 
+      {/* La sospensione: il popup condiviso con la scheda utente (P-88). Alla
+          conferma la decisione di P-71 si chiude nella variante decisa sulle
+          esistenti. */}
+      {popup === 'sospendi' && (
+        <SospensionePopup utente={autore}
+          recensione={{ locale: locale?.nome || '—', citta: locale?.citta || '', rating: mod.rating, testo: mod.testo, data: mod.dataRecensione }}
+          onClose={()=>setPopup(null)}
+          onConferma={(rec)=>chiudi('sospensione_' + rec.esistenti, motivoIdSegnalazione, rec.motivo)}/>
+      )}
+
       {/* Popup di conferma */}
-      {popup && (
+      {popup && popup !== 'sospendi' && (
         <div style={{position:'fixed', inset:0, zIndex:70, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setPopup(null)}>
           <div onClick={e=>e.stopPropagation()} style={{width:430, maxWidth:'92%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             {popup === 'rimuovi' && (<>
@@ -574,15 +592,6 @@ function ModerationCard({ item, locale, onUpdate }) {
               <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                 <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
                 <AdmButton variant="primary" size="md" icon="mail" disabled={!motivo.trim()} onClick={()=>chiudi('avvisato', motivoSel, motivo.trim())}>Invia avviso</AdmButton>
-              </div>
-            </>)}
-            {popup === 'shadowban' && (<>
-              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Shadowban per {autore.nome}?</div>
-              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>Le sue recensioni (questa inclusa) diventano <strong>invisibili a tutti tranne che a lui</strong>: non riceve alcuna notifica. Sul contenuto è una decisione di rimozione, e chi ha segnalato riceve l'esito. Reversibile dal dettaglio utente.</div>
-              {motivoBlocco('Nota sul caso — es. terza recensione ostile sullo stesso locale')}
-              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-                <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
-                <AdmButton variant="primary" size="md" icon="shield" disabled={!motivo.trim()} onClick={()=>chiudi('shadowban', motivoSel, motivo.trim())}>Attiva shadowban</AdmButton>
               </div>
             </>)}
             {popup === 'ban' && (<>

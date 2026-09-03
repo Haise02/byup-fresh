@@ -241,15 +241,15 @@ const HUB_PROPRIETA = [
   // attiva (dal registro di Utenti app) è una proprietà come le altre — la
   // si mette in colonna e ci si filtra sopra.
   { id: 'restrizione', label: 'Restrizione',      gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.05fr' },
-    opzioni: [{ value: 'ban', label: 'Bannato' }, { value: 'shadowban', label: 'Shadowban' }],
+    opzioni: [{ value: 'ban', label: 'Bannato' }, { value: 'review_suspension', label: 'Sospensione recensioni' }],
     // Nessun campo copiato sulla riga: si interroga il registro A OGNI lettura,
     // perché ban e revoche si decidono altrove (moderazione, scheda utente, il
     // registro stesso) e la colonna non può smentire il badge che le sta
-    // accanto. Il ban vince sullo shadowban quando convivono.
+    // accanto. Il ban vince sulla sospensione quando convivono.
     leggi: (c) => c.tipo !== 'utente' || !c.ref ? null
       : admRestrizioneAttiva(c.ref.id, 'ban') ? 'ban'
-      : admRestrizioneAttiva(c.ref.id, 'shadowban') ? 'shadowban' : null,
-    nota: 'Solo per gli utenti app: shadowban o ban attivi nel registro restrizioni' },
+      : admRestrizioneAttiva(c.ref.id, 'review_suspension') ? 'review_suspension' : null,
+    nota: 'Solo per gli utenti app: sospensione delle recensioni o ban attivi nel registro restrizioni' },
   { id: 'iscritto', label: 'Data di creazione',   gruppo: 'contatto', tipo: 'data',   sistema: true, colonna: { w: '1.15fr' } },
   // Il fatto permanente del win-back: lo stadio Returning scade a 90 giorni,
   // la data del rientro resta qui — filtrabile da rubrica ed elenchi come
@@ -632,6 +632,9 @@ const HUB_POSTA_GENERI = {
   novita:      { label: 'Novità',       corsia: 'servizio' },
   informativa: { label: 'Informativa',  corsia: 'servizio' },
   avviso:      { label: 'Avviso',       corsia: 'servizio' },
+  // La comunicazione sulla restrizione (P-88): l'unico genere che raggiunge
+  // chi è ristretto, perché è a lui che parla.
+  restrizione: { label: 'Sulla restrizione', corsia: 'servizio' },
   promozione:  { label: 'Promozione',   corsia: 'marketing' },
 };
 const HUB_POSTA = [
@@ -660,11 +663,16 @@ const HUB_CONSENSO_POSTA = 'consensoPush';
 // La doppia interrogazione, rappresentata: su un pubblico (righe della
 // rubrica) restituisce chi ha il consenso, chi è soppresso e per che cosa, e
 // il netto. Per la corsia di servizio il consenso non si chiede: contano le
-// sole esclusioni invarianti.
-function hubInterrogaPosta(righe, corsia) {
+// sole esclusioni invarianti. Una di queste ha un'eccezione (P-88): chi è
+// ristretto è soppresso da tutto, tranne che dalla corsia di servizio quando
+// il genere è «sulla restrizione» — la comunicazione della sospensione, col
+// motivo e la via per contestare, deve arrivare proprio a lui, e sopprimerlo
+// lì vorrebbe dire non dirgli mai perché.
+function hubInterrogaPosta(righe, corsia, genere) {
+  const sullaRestrizione = corsia === 'servizio' && genere === 'restrizione';
   const senzaConsenso = corsia === 'marketing' ? righe.filter(c => hubLeggi(c, HUB_CONSENSO_POSTA) !== true) : [];
   const nonAttivi = righe.filter(c => c.tipo === 'utente' ? (c.ref && c.ref.attivo === false) : c.tipo === 'locale' ? !['active', 'inactive', 'skipped'].includes(c.ref && c.ref.stato) : true);
-  const limitati = righe.filter(c => c.tipo === 'utente' ? (hubLeggi(c, 'restrizione') != null)
+  const limitati = sullaRestrizione ? [] : righe.filter(c => c.tipo === 'utente' ? (hubLeggi(c, 'restrizione') != null)
     : c.tipo === 'locale' ? (typeof admProvvedimento === 'function' && c.ref && c.ref.stato && admProvvedimento(c.ref) !== 'none') : false);
   const minori = righe.filter(c => typeof hubRegimeProtettivo === 'function' && hubRegimeProtettivo(c));
   const soppressi = new Set([...nonAttivi, ...limitati, ...minori].map(c => c.key));
