@@ -1121,14 +1121,10 @@ function hubAttivita(c) {
   }
 
   // ── commerciale: quello che ha chiesto lui ──
+  // La riga «Ha chiesto la promozione … in attesa di approvazione» è morta:
+  // raccontava un'approvazione che nessun registro conosceva. Gli atti che
+  // si approvano (gli accrediti, P-69) stanno nel loro registro.
   const rC = rnd(151);
-  if (rC % 3 !== 2) {
-    push(Math.max(1, Math.round(eta * 0.3) - (rC % 5)), 13, 'promozione',
-      'Ha chiesto la promozione «' + hubScegli(rC, ['Secondo mese gratis', 'Sconto 20% sul Plus annuale', 'Setup gratuito', 'Delivery senza canone per 3 mesi']) + '»',
-      hubScegli(rC >>> 3, ['Richiesta dal gestionale, in attesa di approvazione.',
-        'Chiesta al telefono al commerciale di zona.', 'Arrivata dal form «Richiedi una demo».']),
-      { Stato: hubScegli(rC >>> 5, ['In attesa', 'Approvata', 'Rifiutata']) });
-  }
   if (c.piano && c.piano !== 'free' && (rC >>> 7) % 2 === 0) {
     push(Math.max(1, Math.round(eta * 0.15)), 9, 'rinnovo', 'Piano ' + hubEtichettaOpzione(HUB_PROP.piano, c.piano) + ' rinnovato',
       'Rinnovo automatico andato a buon fine.', { Importo: '€' + (49 + (rC % 120)) + '/mese' });

@@ -394,18 +394,48 @@ function StatoChip({ stato }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// ─── Moderazione recensioni ─────────────────────────────────────────────────
-// La recensione incriminata + azioni: Rimuovi (con motivo) / Mantieni / Avvisa utente,
-// più le scorciatoie sull'autore (shadowban / ban). Tutto passa da conferma e audit log.
+// ─── Moderazione recensioni (P-71 · L4-01) ──────────────────────────────────
+// La recensione segnalata e tre esiti — rimuovere, mantenere, avvisare — che
+// sono tre DECISIONI: removed, warning, no_action, tutte col motivo da elenco
+// chiuso più la nota, tutte nel registro MOD_DECISIONI e nell'audit. Anche
+// il «no» è una decisione: una segnalazione respinta è dovuta a chi ha
+// segnalato, e l'esito gli si comunica (art. 16 par. 5 DSA) — qui la
+// comunicazione si rappresenta con destinatario, momento e anteprima, non si
+// finge di inviarla. Le scorciatoie sull'autore (shadowban / ban) producono
+// comunque la decisione sul contenuto: il ban rimuove, lo shadowban ne limita
+// la visibilità al solo autore — per chi ha segnalato è rimossa. Chi decide è
+// chi è collegato (hubUtenteCorrente), non un id fisso.
 function ModerationCard({ item, locale, onUpdate }) {
   const mod = item.moderazione;
   const autore = (typeof UTENTI !== 'undefined' && UTENTI.find(x => x.id === mod.utenteId)) || { id: mod.utenteId, nome: 'Utente ' + mod.utenteId };
-  const [popup, setPopup] = useStateCom(null); // 'rimuovi' | 'avvisa' | 'shadowban' | 'ban' | null
-  const [motivo, setMotivo] = useStateCom('');
-  React.useEffect(() => { setPopup(null); setMotivo(''); }, [item.id]);
+  const [popup, setPopup] = useStateCom(null); // 'rimuovi' | 'mantieni' | 'avvisa' | 'shadowban' | 'ban' | null
+  const [motivo, setMotivo] = useStateCom('');          // la nota
+  const [motivoSel, setMotivoSel] = useStateCom(MOD_MOTIVI[0].value);
+  React.useEffect(() => { setPopup(null); setMotivo(''); setMotivoSel(MOD_MOTIVI[0].value); }, [item.id]);
+  const apri = (quale) => { setPopup(quale); setMotivo(''); setMotivoSel(quale === 'mantieni' ? 'nessuna' : quale === 'avvisa' ? 'non_pertinente' : MOD_MOTIVI[0].value); };
 
-  const chiudi = (azione, extra) => {
-    onUpdate({ stato:'risolta', resolvedBy:MY_ID, resolvedAt:new Date(), modEsito:{ azione, motivo: extra || null, at:new Date() } });
+  const chiudi = (azione, motivoId, nota) => {
+    const me = hubUtenteCorrente();
+    const esito = azione === 'mantenuta' ? 'no_action' : azione === 'avvisato' ? 'warning' : 'removed';
+    const quando = new Date();
+    const segnalante = mod.segnalataDa === 'locale'
+      ? { nome: locale?.titolare || item.senderName, email: locale?.email || item.senderEmail }
+      : { nome: item.senderName, email: item.senderEmail };
+    const testo = `Gentile ${segnalante.nome}, abbiamo esaminato la sua segnalazione sulla recensione di ${locale?.nome || '—'} del ${fmtDate(mod.dataRecensione)}. Esito: ${MOD_ESITI[esito].label.toLowerCase()}. Motivo: ${modMotivoLabel(motivoId).toLowerCase()}.${nota ? ' ' + nota : ''} Può chiedere un riesame rispondendo a questo messaggio.`;
+    const dec = { id: 'MD-' + String(MOD_DECISIONI.length + 1).padStart(4, '0'), ticketId: item.id,
+      recensione: { utenteId: mod.utenteId, localeId: item.localeId, testo: mod.testo, rating: mod.rating, data: mod.dataRecensione },
+      segnalataDa: mod.segnalataDa, segnalante, motivoSegnalazione: mod.motivoSegnalazione,
+      esito, azione, motivo: motivoId, nota: nota || null,
+      decisaDa: me.id, decisaDaNome: me.nomeCompleto || me.nome, decisaIl: quando,
+      comunicazione: { a: segnalante.email, quando, testo },
+      // All'autore la motivazione arriva quando il contenuto è toccato o richiamato.
+      autoreAvvisato: esito !== 'no_action' };
+    MOD_DECISIONI.unshift(dec);
+    AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome,
+      action: esito === 'removed' ? 'ha rimosso la recensione di' : esito === 'warning' ? 'ha avvisato l\'autore della recensione di' : 'ha mantenuto la recensione di',
+      target: `${autore.nome} su ${locale?.nome || '—'} · ${modMotivoLabel(motivoId)} · esito comunicato a ${segnalante.email}`,
+      icon: esito === 'removed' ? 'x' : esito === 'warning' ? 'mail' : 'check', color: esito === 'removed' ? 'DANGER' : esito === 'warning' ? 'WARN' : 'OK', tipo: 'segnalazione', when: quando });
+    onUpdate({ stato:'risolta', resolvedBy: me.id, resolvedAt: quando, modEsito:{ azione, esito, motivo: motivoId, nota: nota || null, at: quando, decisioneId: dec.id } });
     // La restrizione decisa qui nasce da una recensione precisa: la portiamo
     // nel registro, altrimenti nell'elenco resterebbe un ban senza causa.
     if (azione === 'shadowban' || azione === 'ban') {
@@ -423,13 +453,25 @@ function ModerationCard({ item, locale, onUpdate }) {
   };
 
   const ESITI = {
-    rimossa:    { bg:ADM.DANGER_SOFT, bd:`${ADM.DANGER}40`, fg:'#7F1D1D', icona:'x',      bgIco:ADM.DANGER, label:'Recensione rimossa' },
-    mantenuta:  { bg:ADM.OK_SOFT,     bd:'#BBF7D0',          fg:'#065F46', icona:'check',  bgIco:ADM.OK,     label:'Recensione mantenuta' },
-    avvisato:   { bg:'#FFF7E6',       bd:'#FDE68A',          fg:'#78350F', icona:'mail',   bgIco:ADM.WARN,   label:'Utente avvisato, recensione mantenuta' },
-    shadowban:  { bg:'#FFF7E6',       bd:'#FDE68A',          fg:'#78350F', icona:'shield', bgIco:ADM.WARN,   label:'Utente in shadowban, recensione non più visibile' },
-    ban:        { bg:ADM.DANGER_SOFT, bd:`${ADM.DANGER}40`, fg:'#7F1D1D', icona:'lock',   bgIco:ADM.DANGER, label:'Utente bannato, recensione rimossa' },
+    rimossa:    { bg:ADM.DANGER_SOFT, bd:`${ADM.DANGER}40`, fg:'#7F1D1D', icona:'x',      bgIco:ADM.DANGER, label:'Recensione rimossa · removed' },
+    mantenuta:  { bg:ADM.OK_SOFT,     bd:'#BBF7D0',          fg:'#065F46', icona:'check',  bgIco:ADM.OK,     label:'Recensione mantenuta · no_action' },
+    avvisato:   { bg:'#FFF7E6',       bd:'#FDE68A',          fg:'#78350F', icona:'mail',   bgIco:ADM.WARN,   label:'Autore avvisato, recensione mantenuta · warning' },
+    shadowban:  { bg:'#FFF7E6',       bd:'#FDE68A',          fg:'#78350F', icona:'shield', bgIco:ADM.WARN,   label:'Utente in shadowban, recensione visibile solo a lui · removed' },
+    ban:        { bg:ADM.DANGER_SOFT, bd:`${ADM.DANGER}40`, fg:'#7F1D1D', icona:'lock',   bgIco:ADM.DANGER, label:'Utente bannato, recensione rimossa · removed' },
   };
   const esito = item.modEsito ? ESITI[item.modEsito.azione] : null;
+  const decisione = item.modEsito && item.modEsito.decisioneId ? MOD_DECISIONI.find(d => d.id === item.modEsito.decisioneId) : null;
+
+  // Motivo da elenco chiuso più nota, uguale per tutti e cinque i popup: la
+  // decisione è motivata qualunque sia l'esito.
+  const motivoBlocco = (placeholder) => (
+    <React.Fragment>
+      <div style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:5}}>Motivo (obbligatorio)</div>
+      <AdmSelect value={motivoSel} onChange={setMotivoSel} options={MOD_MOTIVI} block/>
+      <textarea value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder={placeholder}
+        style={{width:'100%', minHeight:64, marginTop:8, padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.3, fontFamily:'inherit', outline:'none', resize:'vertical', boxSizing:'border-box', marginBottom:12}}/>
+    </React.Fragment>
+  );
 
   const azioneBtn = (onClick, colore, sfondo, bordo, icona, label) => (
     <button onClick={onClick} style={{
@@ -470,22 +512,33 @@ function ModerationCard({ item, locale, onUpdate }) {
           <div style={{width:30, height:30, borderRadius:8, background:esito.bgIco, color:'#fff', display:'grid', placeItems:'center', flexShrink:0}}>{React.createElement(BuIcons[esito.icona], {size:19})}</div>
           <div style={{flex:1, fontSize:13.7, color:esito.fg}}>
             <strong>{esito.label}</strong>
-            {item.modEsito.motivo && <> · “{item.modEsito.motivo}”</>}
-            <span style={{opacity:0.75}}> · registrata nell'audit log</span>
+            {item.modEsito.motivo && <> · {modMotivoLabel(item.modEsito.motivo)}</>}
+            {item.modEsito.nota && <> · “{item.modEsito.nota}”</>}
+            <span style={{opacity:0.75}}> · decisione {item.modEsito.decisioneId || ''} registrata nell'audit log</span>
+            {/* La comunicazione al segnalante, rappresentata: a chi, quando,
+                che cosa dice. Nessun invio finto. */}
+            {decisione && (
+              <div style={{marginTop:8, padding:'9px 11px', background:'rgba(255,255,255,0.72)', borderRadius:8, fontSize:12.6, color:ADM.TEXT, lineHeight:1.5}}>
+                <div style={{fontWeight:700}}>Esito comunicato a {decisione.comunicazione.a} · {fmtDateTime(decisione.comunicazione.quando)} · art. 16 par. 5 DSA{decisione.autoreAvvisato ? ' · motivazione anche all\'autore' : ''}</div>
+                <div style={{marginTop:3, fontStyle:'italic', color:ADM.MUTED}}>{decisione.comunicazione.testo}</div>
+                <div style={{marginTop:3, color:ADM.MUTED_SOFT}}>Decisa da {decisione.decisaDaNome} · {fmtDateTime(decisione.decisaIl)}</div>
+              </div>
+            )}
           </div>
         </div>
       ) : (
         <div style={{padding:'14px 16px'}}>
-          <div style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10}}>Azioni di moderazione · registrate nell'audit log</div>
+          <div style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4}}>Decisioni di moderazione · motivate, registrate, comunicate al segnalante</div>
+          <div style={{fontSize:12.4, color:ADM.MUTED, marginBottom:10, lineHeight:1.45}}>Anche mantenere è una decisione: chi ha segnalato riceve l'esito (art. 16 par. 5 DSA).</div>
           <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
-            {azioneBtn(()=>setPopup('rimuovi'), '#fff', `linear-gradient(135deg, ${ADM.DANGER}, #B91C1C)`, 'none', <BuIcons.x size={17}/>, 'Rimuovi recensione…')}
-            {azioneBtn(()=>chiudi('mantenuta'), ADM.TEXT, '#fff', `1px solid ${ADM.BORDER}`, <BuIcons.check size={17}/>, 'Mantieni')}
-            {azioneBtn(()=>setPopup('avvisa'), ADM.TEXT, '#fff', `1px solid ${ADM.BORDER}`, <BuIcons.mail size={17}/>, 'Avvisa utente…')}
+            {azioneBtn(()=>apri('rimuovi'), '#fff', `linear-gradient(135deg, ${ADM.DANGER}, #B91C1C)`, 'none', <BuIcons.x size={17}/>, 'Rimuovi recensione…')}
+            {azioneBtn(()=>apri('mantieni'), ADM.TEXT, '#fff', `1px solid ${ADM.BORDER}`, <BuIcons.check size={17}/>, 'Mantieni…')}
+            {azioneBtn(()=>apri('avvisa'), ADM.TEXT, '#fff', `1px solid ${ADM.BORDER}`, <BuIcons.mail size={17}/>, 'Avvisa autore…')}
           </div>
           <div style={{display:'flex', alignItems:'center', gap:10, marginTop:12, paddingTop:11, borderTop:`1px dashed ${ADM.BORDER_SOFT}`, flexWrap:'wrap'}}>
             <span style={{fontSize:12.5, color:ADM.MUTED}}>Autore recidivo o abusivo?</span>
-            <button className="adm-textlink" onClick={()=>setPopup('shadowban')} style={{background:'none', border:'none', color:ADM.WARN, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Shadowban…</button>
-            <button className="adm-textlink" onClick={()=>setPopup('ban')} style={{background:'none', border:'none', color:ADM.DANGER, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Banna account…</button>
+            <button className="adm-textlink" onClick={()=>apri('shadowban')} style={{background:'none', border:'none', color:ADM.WARN, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Shadowban…</button>
+            <button className="adm-textlink" onClick={()=>apri('ban')} style={{background:'none', border:'none', color:ADM.DANGER, fontSize:12.7, fontWeight:700, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3, padding:0}}>Banna account…</button>
           </div>
         </div>
       )}
@@ -496,38 +549,47 @@ function ModerationCard({ item, locale, onUpdate }) {
           <div onClick={e=>e.stopPropagation()} style={{width:430, maxWidth:'92%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
             {popup === 'rimuovi' && (<>
               <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere la recensione?</div>
-              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione sparisce dalla scheda di <strong>{locale?.nome}</strong>. {autore.nome} riceve una notifica con il motivo.</div>
-              <textarea autoFocus value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Motivo della rimozione (obbligatorio) — es. viola le linee guida: insulti personali"
-                style={{width:'100%', minHeight:74, padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.3, fontFamily:'inherit', outline:'none', resize:'vertical', boxSizing:'border-box', marginBottom:12}}/>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione sparisce dalla scheda di <strong>{locale?.nome}</strong>. {autore.nome} riceve la motivazione; chi ha segnalato riceve l'esito.</div>
+              {motivoBlocco('Nota sul caso — es. insulti personali al titolare nella seconda frase')}
               <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                 <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
-                <AdmButton variant="danger" size="md" icon="x" disabled={!motivo.trim()} onClick={()=>chiudi('rimossa', motivo.trim())}>Rimuovi recensione</AdmButton>
+                <AdmButton variant="danger" size="md" icon="x" disabled={!motivo.trim()} onClick={()=>chiudi('rimossa', motivoSel, motivo.trim())}>Rimuovi recensione</AdmButton>
+              </div>
+            </>)}
+            {popup === 'mantieni' && (<>
+              <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Mantenere la recensione?</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione resta com'è. Anche questo è una decisione: chi ha segnalato riceve l'esito e il motivo (art. 16 par. 5 DSA).</div>
+              {motivoBlocco('Nota sul caso — es. il tono è duro ma non offende la persona')}
+              <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+                <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
+                <AdmButton variant="primary" size="md" icon="check" disabled={!motivo.trim()} onClick={()=>chiudi('mantenuta', motivoSel, motivo.trim())}>Mantieni</AdmButton>
               </div>
             </>)}
             {popup === 'avvisa' && (<>
               <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Avvisare {autore.nome}?</div>
-              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione resta pubblica, ma l'utente riceve un richiamo formale sulle linee guida della community.</div>
-              <textarea autoFocus value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Testo dell'avviso (obbligatorio) — es. il tono della tua recensione viola le nostre linee guida"
-                style={{width:'100%', minHeight:74, padding:'9px 12px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.3, fontFamily:'inherit', outline:'none', resize:'vertical', boxSizing:'border-box', marginBottom:12}}/>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>La recensione resta pubblica; l'autore riceve un richiamo formale sulle linee guida, chi ha segnalato riceve l'esito.</div>
+              {motivoBlocco('Testo dell\'avviso — es. il tono della tua recensione viola le nostre linee guida')}
               <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                 <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
-                <AdmButton variant="primary" size="md" icon="mail" disabled={!motivo.trim()} onClick={()=>chiudi('avvisato', motivo.trim())}>Invia avviso</AdmButton>
+                <AdmButton variant="primary" size="md" icon="mail" disabled={!motivo.trim()} onClick={()=>chiudi('avvisato', motivoSel, motivo.trim())}>Invia avviso</AdmButton>
               </div>
             </>)}
             {popup === 'shadowban' && (<>
               <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Shadowban per {autore.nome}?</div>
-              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>Le sue recensioni (questa inclusa) diventano <strong>invisibili a tutti tranne che a lui</strong>: non riceve alcuna notifica e non se ne accorge. Reversibile in qualsiasi momento dal dettaglio utente.</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>Le sue recensioni (questa inclusa) diventano <strong>invisibili a tutti tranne che a lui</strong>: non riceve alcuna notifica. Sul contenuto è una decisione di rimozione, e chi ha segnalato riceve l'esito. Reversibile dal dettaglio utente.</div>
+              {motivoBlocco('Nota sul caso — es. terza recensione ostile sullo stesso locale')}
               <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                 <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
-                <AdmButton variant="primary" size="md" icon="shield" onClick={()=>chiudi('shadowban')}>Attiva shadowban</AdmButton>
+                <AdmButton variant="primary" size="md" icon="shield" disabled={!motivo.trim()} onClick={()=>chiudi('shadowban', motivoSel, motivo.trim())}>Attiva shadowban</AdmButton>
               </div>
             </>)}
             {popup === 'ban' && (<>
               <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Bannare l'account di {autore.nome}?</div>
-              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>L'account <strong style={{fontFamily:'ui-monospace,monospace'}}>{autore.id}</strong> viene <strong style={{color:ADM.DANGER}}>bloccato</strong>: niente più accesso all'app, ordini o recensioni. La recensione segnalata viene rimossa. Reversibile dal dettaglio utente.</div>
+              <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>L'account <strong style={{fontFamily:'ui-monospace,monospace'}}>{autore.id}</strong> viene <strong style={{color:ADM.DANGER}}>bloccato</strong>: niente più accesso all'app, ordini o recensioni. La recensione segnalata viene rimossa, con motivazione all'autore ed esito a chi ha segnalato. Reversibile dal dettaglio utente.</div>
+              {motivoBlocco('Nota sul caso — es. account creato per colpire questo locale')}
               <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                 <AdmButton variant="ghost" size="md" onClick={()=>setPopup(null)}>Annulla</AdmButton>
-                <AdmButton variant="danger" size="md" icon="lock" onClick={()=>chiudi('ban')}>Banna account</AdmButton>
+                <AdmButton variant="danger" size="md" icon="lock" disabled={!motivo.trim()} onClick={()=>chiudi('ban', motivoSel, motivo.trim())}>Banna account</AdmButton>
               </div>
             </>)}
           </div>

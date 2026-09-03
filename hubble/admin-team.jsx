@@ -502,6 +502,7 @@ const AUDIT_TIPI = [
   { value:'segnalazione', label:'Segnalazioni' },
   { value:'locale',       label:'Locali' },
   { value:'piano',        label:'Piani' },
+  { value:'fatturazione', label:'Fatturazione' },
   { value:'broadcast',    label:'Broadcast' },
 ];
 
@@ -626,6 +627,11 @@ function PlatformConfig() {
   // Discovery: la soglia dice QUANTI locali servono, il raggio dice ENTRO CHE
   // DISTANZA contarli. Senza il raggio la soglia non è definita.
   const [disc, setDisc] = React.useState({ raggioCitta:'6', sogliaCitta:'125', raggioRegione:'50', sogliaRegione:'150' });
+  // Il tetto degli accrediti (P-69): sotto l'operatore conferma, sopra
+  // approva un Super Admin diverso da chi ha disposto. Parte dal registro
+  // HUB_LEVE, che Fatturazione legge, e ci torna al salvataggio.
+  const [tetto, setTetto] = React.useState(String(HUB_LEVE.accreditoTetto));
+  const [, ridisegnaCoda] = React.useState(0);
   const [confirm, setConfirm] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const set = (piano, k) => (e) => { setSaved(false); setCfg(prev => ({ ...prev, [piano]: { ...prev[piano], [k]: e.target.value } })); };
@@ -644,10 +650,11 @@ function PlatformConfig() {
   // successo: il salvataggio scrive l'evento come ogni altra azione del file.
   const doSave = () => {
     setConfirm(false); setSaved(true);
+    HUB_LEVE.accreditoTetto = Math.max(1, parseInt(tetto, 10) || HUB_LEVE.accreditoTetto);
     AUDIT_EVENTS.unshift({
       who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
       action: 'ha aggiornato la configurazione piattaforma',
-      target: 'piani e prezzi, peso ordini, discovery',
+      target: `piani e prezzi, peso ordini, discovery, tetto accrediti ${HUB_LEVE.accreditoTetto} unità`,
       icon: 'crown', color: 'PURPLE', tipo: 'piano', when: new Date(),
     });
     setTimeout(()=>setSaved(false), 3000);
@@ -666,6 +673,7 @@ function PlatformConfig() {
     { id:'piani',     label:'Piani e prezzi' },
     { id:'pesi',      label:'Peso ordini' },
     { id:'discovery', label:'Discovery' },
+    { id:'accrediti', label:'Accrediti', badge: ACCREDITI.filter(a => a.stato === 'in_attesa').length },
   ];
 
   return (
@@ -679,7 +687,7 @@ function PlatformConfig() {
               background: attiva ? ADM.TEXT : '#fff', color: attiva ? '#fff' : ADM.TEXT,
               border:`1px solid ${attiva ? ADM.TEXT : ADM.BORDER}`,
               fontSize:13.2, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
-            }}>{v.label}</button>
+            }}>{v.label}{v.badge ? <span style={{marginLeft:6, padding:'1px 6px', borderRadius:99, background: attiva ? 'rgba(255,255,255,0.22)' : ADM.WARN_SOFT, color: attiva ? '#fff' : ADM.WARN, fontSize:11.5, fontWeight:800}}>{v.badge}</span> : null}</button>
           );
         })}
       </div>
@@ -777,12 +785,39 @@ function PlatformConfig() {
       </React.Fragment>
       )}
 
+      {vista === 'accrediti' && (
+      <React.Fragment>
+      <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.5}}>
+        L'unità è la comanda. Sotto il <strong>tetto</strong> l'operatore conferma l'accredito da solo; sopra, l'accredito resta in attesa e lo approva un Super Admin <strong>diverso da chi l'ha disposto</strong>: il controllo lo fa il codice sul membro collegato, non la disciplina.
+      </div>
+      <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, maxWidth:360}}>
+        <label style={lab}>Tetto per accredito senza approvazione · unità</label>
+        <input type="number" step="50" min="1" value={tetto} onChange={e => { setSaved(false); setTetto(e.target.value); }} style={inp}/>
+        <div style={{fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:6, lineHeight:1.4}}>Oggi vale {fmtNum(HUB_LEVE.accreditoTetto)}: si applica al salvataggio, come le altre leve.</div>
+      </div>
+      {/* La coda del Super Admin: gli accrediti in attesa di tutti i locali,
+          con la stessa riga di Fatturazione — e il «L'hai disposto tu» sul
+          seme di Marco. Sotto, gli ultimi decisi. */}
+      <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
+        <div style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT}}>In attesa di approvazione</div>
+        {ACCREDITI.filter(a => a.stato === 'in_attesa').length === 0 && <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:6}}>Nessun accredito in attesa.</div>}
+        {ACCREDITI.filter(a => a.stato === 'in_attesa').map(a => <AdmAccreditoRiga key={a.id} a={a} conLocale onCambia={() => ridisegnaCoda(x => x + 1)}/>)}
+        {ACCREDITI.some(a => a.stato === 'approvato' || a.stato === 'rifiutato') && (
+          <React.Fragment>
+            <div style={{fontSize:11.5, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT, marginTop:14}}>Decisi</div>
+            {ACCREDITI.filter(a => a.stato === 'approvato' || a.stato === 'rifiutato').map(a => <AdmAccreditoRiga key={a.id} a={a} conLocale/>)}
+          </React.Fragment>
+        )}
+      </div>
+      </React.Fragment>
+      )}
+
       {/* Fuori dalle tab: si salva tutto, non la tab aperta. */}
       <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10,
         paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
         {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Configurazione salvata e registrata in audit</span>}
         <span style={{flex:1, fontSize:12.2, color:ADM.MUTED_SOFT}}>
-          Il salvataggio applica tutte e tre le sezioni, non solo quella aperta.
+          Il salvataggio applica tutte e quattro le sezioni, non solo quella aperta.
         </span>
         <AdmButton variant="primary" size="md" icon="check" onClick={()=>setConfirm(true)}>Salva configurazione</AdmButton>
       </div>

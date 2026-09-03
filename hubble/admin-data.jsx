@@ -1504,6 +1504,153 @@ function ctrCessazione(l) {
   return l.stato === 'churned' ? new Date(l.lastLogin.getTime() + 30 * 86400000) : null;
 }
 
+// ─── Le leve di Piattaforma che il codice legge (P-69 · D-58) ───────────────
+// Le leve di PlatformConfig vivevano nello stato del componente, illeggibili
+// da fuori. Qui sta la copia che gli altri punti leggono, e Piattaforma la
+// scrive al salvataggio. Il precedente è QUOTA_SALA in PAR, che però è codice
+// senza interfaccia. Il tetto è per accredito, in unità (comande).
+const HUB_LEVE = { accreditoTetto: 500 };
+
+// ─── Accrediti di unità (P-69 · D-58) ───────────────────────────────────────
+// L'unità è la comanda, il singolo invio (D-12): si accreditano unità, non
+// «ordini extra». Ogni accredito è una riga con causale da elenco chiuso e
+// nota sul caso singolo; sotto il tetto l'operatore conferma e la riga nasce
+// confermata, sopra resta in attesa e la approva un Super Admin DIVERSO da
+// chi l'ha disposta — il quattr'occhi lo fa il codice sul membro collegato
+// (admAccreditoPuoApprovare), non la disciplina. Il rifiuto ha un motivo.
+// Ogni atto va in audit col tipo Fatturazione.
+const ACC_CAUSALI = [
+  { value: 'disservizio', label: 'Disservizio della piattaforma', nota: 'Incidente riconosciuto: le unità perse o doppie durante il guasto' },
+  { value: 'conteggio',   label: 'Errore di conteggio',            nota: 'Unità contate due volte o sul canale sbagliato' },
+  { value: 'commerciale', label: 'Concessione commerciale',        nota: 'Accordo preso dal commerciale di zona' },
+  { value: 'onboarding',  label: 'Avvio assistito',                nota: 'Prova estesa concordata in onboarding' },
+  { value: 'reclamo',     label: 'Definizione di un reclamo',      nota: 'Chiude un reclamo del locale con un accredito' },
+];
+const accCausaleLabel = (v) => (ACC_CAUSALI.find(c => c.value === v) || { label: v }).label;
+const ACC_STATI = {
+  confermato: { label: 'Confermato',               color: 'OK' },
+  in_attesa:  { label: 'In attesa del Super Admin', color: 'WARN' },
+  approvato:  { label: 'Approvato',                color: 'OK' },
+  rifiutato:  { label: 'Rifiutato',                color: 'DANGER' },
+};
+// Due semi in attesa, apposta: uno disposto da Sara Conti, che Marco (chi è
+// collegato) può approvare; uno disposto da Marco stesso, che Marco NON può
+// approvare — è la dimostrazione del quattr'occhi. Il terzo, sotto il tetto,
+// è nato confermato.
+const ACCREDITI = [
+  { id: 'AC-0031', localeId: 'L1030', unita: 800, causale: 'disservizio', nota: 'Stampa comande ferma per 40 minuti il 28/08: le comande reinviate a mano sono state contate due volte.',
+    dispostoDa: 'support1', dispostoIl: ctrData(29, 8, 2026, 11, 20), stato: 'in_attesa', approvatoDa: null, approvatoIl: null, motivoRifiuto: null },
+  { id: 'AC-0032', localeId: 'L1018', unita: 650, causale: 'commerciale', nota: 'Accordo con il titolare per il passaggio a Business: primo mese con 650 unità in più.',
+    dispostoDa: 'admin0', dispostoIl: ctrData(1, 9, 2026, 16, 5), stato: 'in_attesa', approvatoDa: null, approvatoIl: null, motivoRifiuto: null },
+  { id: 'AC-0030', localeId: 'L1030', unita: 120, causale: 'conteggio', nota: 'Dodici comande dell\'app conteggiate col peso della cassa il 20/08.',
+    dispostoDa: 'support2', dispostoIl: ctrData(21, 8, 2026, 9, 40), stato: 'confermato', approvatoDa: null, approvatoIl: null, motivoRifiuto: null },
+];
+const admNomeMembro = (id) => { const m = (typeof TEAM !== 'undefined' ? TEAM : []).find(t => t.id === id); return m ? (m.nomeCompleto || m.nome) : id; };
+// Il quattr'occhi: Super Admin, e non chi ha disposto. Ritorna il motivo del
+// no, così il pulsante spiega invece di sparire.
+function admAccreditoPuoApprovare(a) {
+  const me = hubUtenteCorrente();
+  if (a.stato !== 'in_attesa') return { ok: false, perche: 'Già deciso' };
+  if (me.ruolo !== 'super_admin') return { ok: false, perche: 'Approva solo un Super Admin' };
+  if (me.id === a.dispostoDa) return { ok: false, perche: 'L\'hai disposto tu: approva un altro Super Admin' };
+  return { ok: true, perche: null };
+}
+function admAccreditoDecidi(a, esito, motivo) {
+  const me = hubUtenteCorrente();
+  const l = LOCALI.find(x => x.id === a.localeId) || { nome: a.localeId };
+  a.stato = esito; a.approvatoDa = me.id; a.approvatoIl = new Date(); a.motivoRifiuto = esito === 'rifiutato' ? (motivo || null) : null;
+  AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: esito === 'approvato' ? 'ha approvato l\'accredito di' : 'ha rifiutato l\'accredito di',
+    target: `${a.unita} unità · ${l.nome} · ${accCausaleLabel(a.causale)}${esito === 'rifiutato' && motivo ? ' · ' + motivo : ''}`,
+    icon: esito === 'approvato' ? 'check' : 'x', color: esito === 'approvato' ? 'OK' : 'DANGER', tipo: 'fatturazione', when: new Date() });
+}
+let accProgressivo = 33;
+function admAccreditoDisponi(l, unita, causale, nota) {
+  const me = hubUtenteCorrente();
+  const sopra = unita > HUB_LEVE.accreditoTetto;
+  const a = { id: 'AC-' + String(accProgressivo++).padStart(4, '0'), localeId: l.id, unita, causale, nota,
+    dispostoDa: me.id, dispostoIl: new Date(), stato: sopra ? 'in_attesa' : 'confermato', approvatoDa: null, approvatoIl: null, motivoRifiuto: null };
+  ACCREDITI.unshift(a);
+  AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: sopra ? 'ha disposto un accredito in attesa per' : 'ha accreditato',
+    target: `${unita} unità · ${l.nome} · ${accCausaleLabel(causale)}`, icon: 'plus', color: sopra ? 'WARN' : 'OK', tipo: 'fatturazione', when: new Date() });
+  return a;
+}
+
+// ─── Vetrina speciale (P-63 · D-51) ─────────────────────────────────────────
+// È una sola, è nostra, e gli atti si registrano: una riga per atto, con il
+// motivo da elenco, la scadenza quando c'è e — sul merito — la fotografia dei
+// numeri che l'hanno motivata, congelata sull'atto perché il merito di allora
+// resti leggibile quando i numeri saranno cambiati. La revoca non cancella:
+// chiude la riga (`chiusa`), come le connessioni API e i provvedimenti. La
+// scadenza chiude da sola: vetAttiva la esclude, lo storico la dice «scaduta».
+const VET_MOTIVI = [
+  { value: 'merito',        label: 'Merito',        nota: 'Numeri sopra la media: la fotografia li congela sull\'atto' },
+  { value: 'lancio',        label: 'Lancio',        nota: 'Locale appena aperto o appena entrato' },
+  { value: 'partnership',   label: 'Partnership',   nota: 'Accordo commerciale con il locale' },
+  { value: 'compensazione', label: 'Compensazione', nota: 'Ristoro dopo un disservizio' },
+];
+const vetMotivoLabel = (v) => (VET_MOTIVI.find(m => m.value === v) || { label: v }).label;
+// I tre numeri del merito: ordini al mese, adozione QR, prenotazioni al mese.
+// Niente media recensioni: Hubble non ha un voto per locale (il voto vive
+// solo nell'app, seminato lì) — contraddizione registrata.
+const vetFotografia = (l) => ({ ordiniMese: l.ordiniMese, qrAdoption: l.qrAdoption, prenotazioniMese: l.prenotazioniMese });
+const VETRINE = (() => {
+  const merito = LOCALI.find(l => l.id === 'L1018');
+  return [
+    { id: 'VT-0007', localeId: 'L1018', dal: ctrData(10, 8, 2026, 10, 0), al: ctrData(10, 11, 2026, 10, 0), motivo: 'merito',
+      nota: 'Tornato dopo il win-back con i numeri migliori della sua città.', decisaDa: 'Marco Rinaldi',
+      // I numeri di allora, non quelli di oggi: la fotografia si scatta sull'atto.
+      fotografia: merito ? { ordiniMese: Math.round(merito.ordiniMese * 0.91), qrAdoption: merito.qrAdoption, prenotazioniMese: Math.round(merito.prenotazioniMese * 0.88) } : null,
+      chiusa: null },
+    { id: 'VT-0004', localeId: 'L1025', dal: ctrData(3, 3, 2026, 9, 0), al: null, motivo: 'lancio',
+      nota: 'Apertura della seconda sala: quindici giorni in evidenza concordati col titolare.', decisaDa: 'Paola Esposito',
+      fotografia: null,
+      chiusa: { quando: ctrData(19, 3, 2026, 9, 0), who: 'Paola Esposito', nota: 'Periodo di lancio concluso come concordato.' } },
+  ];
+})();
+let vetProgressivo = 8;
+const vetAttiva = (l) => VETRINE.find(v => v.localeId === l.id && !v.chiusa && (!v.al || v.al.getTime() > Date.now())) || null;
+const vetStorico = (l) => VETRINE.filter(v => v.localeId === l.id).slice().sort((a, b) => b.dal - a.dal);
+
+// ─── Decisioni di moderazione (P-71 · L4-01) ────────────────────────────────
+// Anche il «no» è una decisione: removed, warning e no_action, tutte con
+// motivo da elenco chiuso più nota, e l'esito si comunica al segnalante (art.
+// 16 par. 5 DSA) — una segnalazione respinta è una decisione dovuta a chi ha
+// segnalato, non l'assenza di una decisione. Nel prototipo la comunicazione
+// si rappresenta (destinatario, momento, anteprima), non si finge di inviarla.
+const MOD_MOTIVI = [
+  { value: 'insulti',        label: 'Insulti o linguaggio d\'odio' },
+  { value: 'dati_terzi',     label: 'Dati personali di terzi' },
+  { value: 'non_pertinente', label: 'Contenuto non pertinente al locale' },
+  { value: 'conflitto',      label: 'Promozione o conflitto commerciale' },
+  { value: 'nessuna',        label: 'Nessuna violazione delle linee guida' },
+];
+const modMotivoLabel = (v) => (MOD_MOTIVI.find(m => m.value === v) || { label: v }).label;
+const MOD_ESITI = {
+  removed:   { label: 'Recensione rimossa' },
+  warning:   { label: 'Autore avvisato, recensione mantenuta' },
+  no_action: { label: 'Recensione mantenuta' },
+};
+const MOD_DECISIONI = [];
+
+window.HUB_LEVE = HUB_LEVE;
+window.ACC_CAUSALI = ACC_CAUSALI;
+window.ACC_STATI = ACC_STATI;
+window.ACCREDITI = ACCREDITI;
+window.accCausaleLabel = accCausaleLabel;
+window.admNomeMembro = admNomeMembro;
+window.admAccreditoPuoApprovare = admAccreditoPuoApprovare;
+window.admAccreditoDecidi = admAccreditoDecidi;
+window.admAccreditoDisponi = admAccreditoDisponi;
+window.VET_MOTIVI = VET_MOTIVI;
+window.VETRINE = VETRINE;
+window.vetMotivoLabel = vetMotivoLabel;
+window.vetFotografia = vetFotografia;
+window.vetAttiva = vetAttiva;
+window.vetStorico = vetStorico;
+window.MOD_MOTIVI = MOD_MOTIVI;
+window.MOD_ESITI = MOD_ESITI;
+window.MOD_DECISIONI = MOD_DECISIONI;
+window.modMotivoLabel = modMotivoLabel;
 window.ONB_STEPS = ONB_STEPS;
 window.ONB_RAPIDO = ONB_RAPIDO;
 window.ONB_SOTTO = ONB_SOTTO;

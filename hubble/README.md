@@ -120,10 +120,22 @@ il resto vive nelle tab.
    tacita art. 15 / presa visione), avvisi di disallineamento e preavvisi; il
    rimando al documento porta **nome, versione e data** (chi/IP restano al
    registro); in fondo la card dei **consensi** (M-EM, M-SMS, M-REF), con lo
-   stesso stato delle proprietà CRM della rubrica.
-8. **Fatturazione** — piano, cambio piano, rimborsi e accrediti, fatture.
+   stesso stato delle proprietà CRM della rubrica. M-REF è un consenso
+   dell'esercente e ha la sua **storia** (P-70 · L4-05): eventi
+   `reference_use` in `CONSENT_EVENTS`, seminati dallo stesso seme, letti a
+   intervalli «legittimo dal … al …»; M-EM e M-SMS restano senza storia.
+8. **Fatturazione** — piano, cambio piano, rimborsi, fatture, e gli
+   **accrediti di unità** (P-69 · D-58): causale da elenco chiuso, nota
+   obbligatoria, tetto letto da `HUB_LEVE`; sotto il tetto si conferma, sopra
+   l'accredito resta in attesa e lo approva un Super Admin **diverso da chi ha
+   disposto** (il codice lo impedisce: «L'hai disposto tu»); la coda vive in
+   Piattaforma → Accrediti, ogni atto in audit col tipo Fatturazione.
 9. **Account** — reset password del titolare, esportazione dati, **sospensione
-   del servizio** (motivo tipizzato art. 13, nota obbligatoria, audit).
+   del servizio** (motivo tipizzato art. 13, nota obbligatoria, audit), e la
+   **vetrina speciale** come registro di atti (P-63 · D-51): motivo da
+   elenco, scadenza facoltativa che chiude da sola, sul merito la fotografia
+   dei tre numeri congelata sull'atto, revoca con nota che **chiude la riga**
+   invece di cancellarla, storico in card.
 
 **Utente Staff** (`admin-camerieri.jsx`) — Anagrafica (dati persona editabili:
 nome, email, data di nascita con età calcolata, genere, luogo principale; card
@@ -233,7 +245,7 @@ staff e utenti. `FilterDropdown` è passato in `admin-atoms.jsx`.
 email inviate, aperte e **su quale link ha cliccato**, SMS e push, form
 compilati, elenchi in cui è entrata, workflow, proprietà cambiate e da chi,
 telefonate, **ticket con la loro chiusura**, **interventi di assistenza svolti
-e in programma**, **promozioni chieste**, preventivi, rinnovi, note. È
+e in programma**, preventivi, rinnovi, note. È
 deterministico sull'id e messo in cache: un diario che cambia date a ogni
 render non si può leggere. Due paletti: **niente prima che il contatto
 esistesse**, e niente nel futuro — tranne quello che è marcato `futuro`, cioè

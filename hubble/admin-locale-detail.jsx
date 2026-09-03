@@ -956,6 +956,16 @@ function DrwConsensiCard({ righe, nota }) {
           <div style={{flex:1, minWidth:0}}>
             <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{c.label}</div>
             <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{c.desc}</div>
+            {/* La storia del consenso, quando c'è (P-70): gli intervalli in
+                cui l'uso era legittimo, letti dagli eventi reference_use. */}
+            {c.storia && c.storia.eventi.length > 0 && (
+              <div style={{fontSize:12.2, color:ADM.TEXT, marginTop:5, lineHeight:1.5}}>
+                {c.storia.intervalli.map((i, k) => (
+                  <span key={k}>{k > 0 ? ' · ' : ''}{i.negato ? `Negato il ${fmtDate(i.negato)}` : `Legittimo dal ${fmtDate(i.dal)} ${i.al ? 'al ' + fmtDate(i.al) : 'a oggi'}`}</span>
+                ))}
+                <span style={{color:ADM.MUTED_SOFT}}> · <span style={{fontFamily:'ui-monospace,monospace'}}>reference_use</span> · {c.storia.eventi.length} {c.storia.eventi.length === 1 ? 'evento' : 'eventi'} in consent_events</span>
+              </div>
+            )}
           </div>
           <div style={{textAlign:'right', flexShrink:0}}>
             {c.deciso
@@ -1021,10 +1031,52 @@ function drwConsensiLocale(l) {
       deciso: true, ok: s % 3 === 0, quando: giorno(4, 120), versione: '1.0' },
     { id: 'M-REF', label: 'Nome e logo come referenza',
       desc: 'Uso del locale nei materiali marketing di byup (case study, sito)',
-      deciso: s % 7 !== 0, ok: s % 7 !== 0 && s % 4 === 0, quando: giorno(6, 200), versione: '1.0' },
+      deciso: s % 7 !== 0, ok: s % 7 !== 0 && s % 4 === 0, quando: giorno(6, 200), versione: '1.0',
+      // Il consenso dell'ESERCENTE, con la sua storia (P-70): vedi sotto.
+      storia: drwStoriaReferenza(l) },
   ];
 }
-const DRW_CONSENSI_NOTA = 'Le comunicazioni di servizio (fatture, avvisi tecnici, sicurezza) viaggiano senza consenso: sono esecuzione del contratto.';
+const DRW_CONSENSI_NOTA = 'Le comunicazioni di servizio (fatture, avvisi tecnici, sicurezza) viaggiano senza consenso: sono esecuzione del contratto. M-REF è un consenso dell\'esercente, soggetto business e non consumer: il suo evento è reference_use, e la storia dice da quando a quando quell\'uso era legittimo.';
+
+// ─── consent_events del soggetto business (P-70 · L4-05) ────────────────────
+// M-REF è un consenso dell'ESERCENTE (soggetto business, non consumer): il
+// suo evento si chiama reference_use, e la storia acceso/revocato dev'essere
+// leggibile, perché la domanda a cui risponde è «da quando a quando quell'uso
+// era legittimo» — alla revoca si deve sapere da quando era lecito. Seminato
+// dallo STESSO seme di drwConsensiLocale: lo stato corrente e la storia non
+// possono divergere. Chi lo dà e lo toglie è l'esercente, dal gestionale:
+// Hubble legge. M-EM e M-SMS restano stato senza storia — coda registrata.
+const CONSENT_EVENTS = (() => {
+  const out = [];
+  LOCALI.forEach(l => {
+    const s = hubSeme('loc-' + l.id);
+    const deciso = s % 7 !== 0, ok = deciso && s % 4 === 0;
+    if (!deciso) return;
+    const quando = new Date(Math.min(Date.now() - 86400000, l.dataIscrizione.getTime() + ((s >> 6) % 200) * 86400000));
+    const riga = (esito, q) => out.push({ soggettoId: l.id, soggetto: 'restaurant', tipo: 'reference_use', esito, quando: q, versione: '1.0', canale: 'Gestionale · Impostazioni → Consensi', chi: l.titolare });
+    if (ok) { riga('granted', quando); return; }
+    // Un «No» di oggi: per metà è la revoca di un sì precedente — il caso che
+    // risponde alla domanda — per l'altra metà un no fin dall'inizio.
+    if ((s >> 3) % 2 === 0) {
+      riga('granted', new Date(quando.getTime() - (30 + (s % 150)) * 86400000));
+      riga('revoked', quando);
+    } else riga('denied', quando);
+  });
+  return out.sort((a, b) => a.quando - b.quando);
+})();
+window.CONSENT_EVENTS = CONSENT_EVENTS;
+// La storia a intervalli: «legittimo dal … al …», o «negato il …».
+function drwStoriaReferenza(l) {
+  const eventi = CONSENT_EVENTS.filter(e => e.soggettoId === l.id);
+  const intervalli = []; let aperto = null;
+  eventi.forEach(e => {
+    if (e.esito === 'granted') aperto = e.quando;
+    else if (e.esito === 'revoked' && aperto) { intervalli.push({ dal: aperto, al: e.quando }); aperto = null; }
+    else if (e.esito === 'denied') intervalli.push({ negato: e.quando });
+  });
+  if (aperto) intervalli.push({ dal: aperto, al: null });
+  return { eventi, intervalli };
+}
 
 // ─── Account — la gestione del rapporto ─────────────────────────────────────
 // La sospensione del servizio stava dentro Contratti, ma quella tab è un
@@ -1045,15 +1097,31 @@ function DrwAccount({ locale: l }) {
       action, target, icon, color, tipo, when: new Date(),
     });
   };
+  // ── Vetrina speciale (P-63 · D-51): un atto per riga, nel registro VETRINE.
+  // Prima scriveva {dal, decisaDa} sul locale e la revoca metteva null: senza
+  // motivo, senza scadenza, senza storico. Ora l'atto ha motivo da elenco,
+  // scadenza facoltativa, nota, e sul merito la fotografia dei numeri; la
+  // revoca chiude la riga con nota e nome, e lo storico resta in card.
+  const [vetPopup, setVetPopup] = useStateDrw(null);   // 'apri' | 'chiudi' | null
+  const [vetMotivo, setVetMotivo] = useStateDrw('merito');
+  const [vetScadenza, setVetScadenza] = useStateDrw('');
+  const [vetNota, setVetNota] = useStateDrw('');
+  const vetrina = vetAttiva(l);
+  const ioNome = () => (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu';
   const attivaVetrina = () => {
-    l.vetrinaSpeciale = { dal: new Date(), decisaDa: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu' };
-    scrivi('ha messo in vetrina speciale', l.nome, 'sparkles', 'PURPLE', 'locale');
-    ridisegna(x => x + 1);
+    if (!vetNota.trim()) return;
+    const al = vetScadenza ? new Date(vetScadenza + 'T23:59:00') : null;
+    VETRINE.unshift({ id: 'VT-' + String(vetProgressivo++).padStart(4, '0'), localeId: l.id, dal: new Date(), al,
+      motivo: vetMotivo, nota: vetNota.trim(), decisaDa: ioNome(),
+      fotografia: vetMotivo === 'merito' ? vetFotografia(l) : null, chiusa: null });
+    scrivi('ha messo in vetrina speciale', `${l.nome} · ${vetMotivoLabel(vetMotivo)}${al ? ' · fino al ' + fmtDate(al) : ''}`, 'sparkles', 'PURPLE', 'locale');
+    setVetPopup(null); setVetNota(''); setVetScadenza(''); ridisegna(x => x + 1);
   };
   const spegniVetrina = () => {
-    l.vetrinaSpeciale = null;
-    scrivi('ha tolto dalla vetrina speciale', l.nome, 'x', 'WARN', 'locale');
-    ridisegna(x => x + 1);
+    if (!vetNota.trim() || !vetrina) return;
+    vetrina.chiusa = { quando: new Date(), who: ioNome(), nota: vetNota.trim() };
+    scrivi('ha tolto dalla vetrina speciale', `${l.nome} · ${vetNota.trim()}`, 'x', 'WARN', 'locale');
+    setVetPopup(null); setVetNota(''); ridisegna(x => x + 1);
   };
   const confermaSospensione = () => {
     if (!nota.trim()) return;
@@ -1110,29 +1178,51 @@ function DrwAccount({ locale: l }) {
       </AdmCard>
 
       {/* La vetrina speciale: il posto in evidenza nella scoperta dell'app
-          consumer. È una leva NOSTRA, non un'opzione del gestionale — si
-          accende e si spegne solo da qui, e ogni cambio resta a registro
-          come le altre decisioni sul locale. */}
+          consumer. È una sola, è nostra — si accende e si spegne solo da
+          qui — e gli atti si registrano (P-63 · D-51): motivo, scadenza
+          quando c'è, fotografia sul merito, revoca che chiude la riga. */}
       <AdmCard padding={18}>
         <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
           <div style={{flex:1, minWidth:220}}>
             <div style={{display:'flex', alignItems:'center', gap:8}}>
               <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Vetrina speciale</div>
-              {l.vetrinaSpeciale && (
+              {vetrina && (
                 <span style={{fontSize:10.5, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase',
                   color:ADM.PURPLE, background:ADM.PURPLE_SOFT, padding:'3px 8px', borderRadius:20}}>Attiva</span>
               )}
             </div>
             <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
-              {l.vetrinaSpeciale
-                ? <span>In evidenza nell'app dal <b style={{color:ADM.TEXT}}>{fmtDate(l.vetrinaSpeciale.dal)}</b> · attivata da {l.vetrinaSpeciale.decisaDa}</span>
-                : 'Mette il locale in evidenza nella scoperta dell\'app consumer. Si decide da Hubble, non dal gestionale, e resta accesa finché qualcuno di noi non la spegne.'}
+              {vetrina
+                ? <span>In evidenza nell'app dal <b style={{color:ADM.TEXT}}>{fmtDate(vetrina.dal)}</b>{vetrina.al ? <span> fino al <b style={{color:ADM.TEXT}}>{fmtDate(vetrina.al)}</b></span> : null} · {vetMotivoLabel(vetrina.motivo)} · decisa da {vetrina.decisaDa} · «{vetrina.nota}»</span>
+                : 'Mette il locale in evidenza nella scoperta dell\'app consumer. È una sola, è nostra, e ogni atto si registra: motivo, scadenza quando c\'è, e sul merito la fotografia dei numeri.'}
             </div>
+            {vetrina && vetrina.fotografia && (
+              <div style={{fontSize:12.3, color:ADM.TEXT, marginTop:5, lineHeight:1.5}}>
+                Fotografia sul merito: <b>{fmtNum(vetrina.fotografia.ordiniMese)}</b> ordini al mese · adozione QR <b>{vetrina.fotografia.qrAdoption == null ? '—' : vetrina.fotografia.qrAdoption + '%'}</b> · <b>{fmtNum(vetrina.fotografia.prenotazioniMese)}</b> prenotazioni al mese <span style={{color:ADM.MUTED_SOFT}}>— i numeri di allora, non quelli di oggi</span>
+              </div>
+            )}
           </div>
-          {l.vetrinaSpeciale
-            ? <AdmButton variant="secondary" size="sm" icon="x" onClick={spegniVetrina}>Togli dalla vetrina</AdmButton>
-            : <AdmButton variant="primary" size="sm" icon="sparkles" onClick={attivaVetrina}>Metti in vetrina</AdmButton>}
+          {vetrina
+            ? <AdmButton variant="secondary" size="sm" icon="x" onClick={() => { setVetNota(''); setVetPopup('chiudi'); }}>Togli dalla vetrina…</AdmButton>
+            : <AdmButton variant="primary" size="sm" icon="sparkles" onClick={() => { setVetMotivo('merito'); setVetNota(''); setVetScadenza(''); setVetPopup('apri'); }}>Metti in vetrina…</AdmButton>}
         </div>
+        {/* Lo storico degli atti: le righe chiuse e scadute restano, con chi
+            e perché — la revoca non cancella. */}
+        {(() => { const st = vetStorico(l); return st.length ? (
+          <div style={{marginTop:12, paddingTop:10, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+            <div style={{fontSize:11.2, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT, marginBottom:6}}>Storico degli atti</div>
+            {st.map(v => {
+              const stato = v.chiusa ? `chiusa il ${fmtDate(v.chiusa.quando)} da ${v.chiusa.who} · «${v.chiusa.nota}»`
+                : (v.al && v.al.getTime() <= Date.now()) ? `scaduta il ${fmtDate(v.al)}` : 'attiva';
+              return (
+                <div key={v.id} style={{padding:'7px 0', borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:12.5, color:ADM.TEXT, lineHeight:1.5}}>
+                  <span style={{fontFamily:'ui-monospace,monospace', color:ADM.MUTED_SOFT, marginRight:8}}>{v.id}</span>
+                  <b>{vetMotivoLabel(v.motivo)}</b> · dal {fmtDate(v.dal)}{v.al ? ` al ${fmtDate(v.al)}` : ''} · {v.decisaDa} · <span style={{color: v.chiusa ? ADM.MUTED : ADM.PURPLE, fontWeight:600}}>{stato}</span>
+                  <div style={{color:ADM.MUTED}}>{v.nota}{v.fotografia ? ` · fotografia: ${fmtNum(v.fotografia.ordiniMese)} ordini/mese, QR ${v.fotografia.qrAdoption == null ? '—' : v.fotografia.qrAdoption + '%'}, ${fmtNum(v.fotografia.prenotazioniMese)} prenotazioni/mese` : ''}</div>
+                </div>
+              );
+            })}
+          </div>) : null; })()}
       </AdmCard>
 
       <AdmCard padding={18}>
@@ -1194,6 +1284,56 @@ function DrwAccount({ locale: l }) {
                 : <AdmButton variant="danger" size="sm" icon="lock" disabled={!nota.trim()} onClick={confermaSospensione}>
                     {motivo === 'morosita' ? 'Invia diffida' : 'Sospendi ora'}
                   </AdmButton>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Metti in vetrina / Togli dalla vetrina: l'atto si motiva. Sul merito
+          l'anteprima dice quali numeri verranno congelati. */}
+      {vetPopup && (
+        <div onClick={() => setVetPopup(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
+          display:'grid', placeItems:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
+          <div onClick={e => e.stopPropagation()} style={{width:480, maxWidth:'94%', background:'#fff', borderRadius:14,
+            boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', padding:22}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>
+              {vetPopup === 'apri' ? 'Metti in vetrina speciale' : 'Togli dalla vetrina speciale'}
+            </div>
+            <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
+              {vetPopup === 'apri'
+                ? 'Un atto nostro, a registro: motivo, scadenza se c\'è, nota. Sul merito si congela la fotografia dei numeri di oggi.'
+                : 'La revoca non cancella l\'atto: chiude la riga, con la nota e il tuo nome. Lo storico resta.'}
+            </div>
+            {vetPopup === 'apri' && (
+              <React.Fragment>
+                <div style={{marginBottom:12}}>
+                  <span style={drwLab}>Motivo</span>
+                  <AdmSelect value={vetMotivo} onChange={setVetMotivo} options={VET_MOTIVI} block/>
+                  <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:4}}>{(VET_MOTIVI.find(m => m.value === vetMotivo) || {}).nota}</div>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <span style={drwLab}>Scadenza (facoltativa)</span>
+                  <input type="date" value={vetScadenza} min={new Date().toISOString().slice(0, 10)} onChange={e => setVetScadenza(e.target.value)} style={drwInp}/>
+                  <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, marginTop:4}}>Alla scadenza la vetrina si chiude da sola e lo storico la dice «scaduta».</div>
+                </div>
+                {vetMotivo === 'merito' && (
+                  <div style={{marginBottom:12, padding:'10px 12px', background:ADM.PURPLE_SOFT, borderRadius:9, fontSize:12.6, color:ADM.TEXT, lineHeight:1.5}}>
+                    <b>Fotografia che verrà congelata:</b> {fmtNum(l.ordiniMese)} ordini al mese · adozione QR {l.qrAdoption == null ? '—' : l.qrAdoption + '%'} · {fmtNum(l.prenotazioniMese)} prenotazioni al mese. Restano questi anche quando i numeri saranno cambiati.
+                  </div>
+                )}
+              </React.Fragment>
+            )}
+            <div style={{marginBottom:14}}>
+              <span style={drwLab}>Nota obbligatoria</span>
+              <textarea value={vetNota} onChange={e => setVetNota(e.target.value)} rows={3}
+                placeholder={vetPopup === 'apri' ? 'Perché questo locale, adesso' : 'Perché la vetrina si chiude'}
+                style={Object.assign({}, drwInp, {resize:'vertical'})}/>
+            </div>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
+              <AdmButton variant="ghost" size="sm" onClick={() => setVetPopup(null)}>Annulla</AdmButton>
+              {vetPopup === 'apri'
+                ? <AdmButton variant="primary" size="sm" icon="sparkles" disabled={!vetNota.trim()} onClick={attivaVetrina}>Metti in vetrina</AdmButton>
+                : <AdmButton variant="danger" size="sm" icon="x" disabled={!vetNota.trim()} onClick={spegniVetrina}>Chiudi la vetrina</AdmButton>}
             </div>
           </div>
         </div>
@@ -1309,28 +1449,77 @@ function DrwAttivita({ locale: l }) {
   );
 }
 
+// ─── Una riga di accredito, con l'approvazione (P-69 · D-58) ────────────────
+// La stessa riga in Fatturazione (gli accrediti del locale) e in Piattaforma →
+// Accrediti (la coda del Super Admin): i pulsanti compaiono solo a chi può, e
+// quando non può la riga dice perché — «L'hai disposto tu» compreso. Il
+// rifiuto chiede il motivo.
+function AdmAccreditoRiga({ a, conLocale, onCambia }) {
+  const [rifiuto, setRifiuto] = useStateDrw(false);
+  const [motivo, setMotivo] = useStateDrw('');
+  const puo = admAccreditoPuoApprovare(a);
+  const st = ACC_STATI[a.stato];
+  const l = LOCALI.find(x => x.id === a.localeId);
+  const decidi = (esito) => { admAccreditoDecidi(a, esito, motivo.trim() || null); setRifiuto(false); setMotivo(''); onCambia && onCambia(); };
+  return (
+    <div style={{padding:'11px 0', borderTop:`1px solid ${ADM.BORDER_SOFT}`, display:'flex', flexDirection:'column', gap:6}}>
+      <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+        <span style={{fontSize:14, fontWeight:800, color:ADM.TEXT, fontVariantNumeric:'tabular-nums'}}>{fmtNum(a.unita)} unità</span>
+        <AdmBadge color={st.color} size="xs">{st.label}</AdmBadge>
+        <span style={{fontSize:12.8, color:ADM.MUTED}}>{accCausaleLabel(a.causale)}{conLocale && l ? ` · ${l.nome}` : ''} · disposto da {admNomeMembro(a.dispostoDa)} il {fmtDate(a.dispostoIl)}</span>
+        <span style={{flex:1}}/>
+        {a.stato === 'in_attesa' && (puo.ok ? (
+          <React.Fragment>
+            <AdmButton variant="primary" size="sm" icon="check" onClick={() => decidi('approvato')}>Approva</AdmButton>
+            <AdmButton variant="secondary" size="sm" icon="x" onClick={() => setRifiuto(r => !r)}>Rifiuta…</AdmButton>
+          </React.Fragment>
+        ) : <span style={{fontSize:12.3, color:ADM.WARN, fontWeight:700}}>{puo.perche}</span>)}
+        {(a.stato === 'approvato' || a.stato === 'rifiutato') && (
+          <span style={{fontSize:12.3, color:ADM.MUTED_SOFT}}>{a.stato} da {admNomeMembro(a.approvatoDa)} il {fmtDate(a.approvatoIl)}{a.motivoRifiuto ? ` · ${a.motivoRifiuto}` : ''}</span>
+        )}
+      </div>
+      <div style={{fontSize:12.6, color:ADM.TEXT, lineHeight:1.45}}>{a.nota}</div>
+      {rifiuto && (
+        <div style={{display:'flex', gap:8, alignItems:'center'}}>
+          <input value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo del rifiuto (obbligatorio)" style={Object.assign({}, drwInp, {flex:1})}/>
+          <AdmButton variant="danger" size="sm" icon="x" disabled={!motivo.trim()} onClick={() => decidi('rifiutato')}>Rifiuta</AdmButton>
+        </div>
+      )}
+    </div>
+  );
+}
+window.AdmAccreditoRiga = AdmAccreditoRiga;
+
 function DrwFatturazione({ locale: l }) {
   const [, forceRender] = useStateDrw(0);
   const piano = PIANI.find(p => p.id === l.piano);
-  // Azioni di fatturazione: rimborso / accredito ordini extra / cambio piano.
+  // Azioni di fatturazione: rimborso / accredito di unità / cambio piano.
+  // Rimborso e cambio piano restano atti nudi (senza registro né audit):
+  // coda registrata per una possibile voce nuova del registro.
   const [popup, setPopup] = useStateDrw(null); // 'rimborso' | 'accredito' | 'piano' | null
   const [amount, setAmount] = useStateDrw('');
   const [reason, setReason] = useStateDrw('');
+  const [causale, setCausale] = useStateDrw(ACC_CAUSALI[0].value);
   const [planSel, setPlanSel] = useStateDrw(l.piano);
   const [feedback, setFeedback] = useStateDrw(null);
   const flash = (msg) => { setFeedback(msg); setTimeout(()=>setFeedback(null), 3000); };
-  const closePopup = () => { setPopup(null); setAmount(''); setReason(''); setPlanSel(l.piano); };
+  const closePopup = () => { setPopup(null); setAmount(''); setReason(''); setCausale(ACC_CAUSALI[0].value); setPlanSel(l.piano); };
   const confirmRimborso = () => {
     const n = parseFloat(amount);
     if (!n || n <= 0) return;
     flash(`Rimborso di ${fmtEur(n)} emesso verso ${l.nome}`);
     closePopup();
   };
+  // L'accredito di unità (P-69): causale, nota, tetto. Il registro decide
+  // se nasce confermato o in attesa; l'audit lo scrive admAccreditoDisponi.
   const confirmAccredito = () => {
     const n = parseInt(amount, 10);
-    if (!n || n <= 0) return;
-    flash(`${fmtNum(n)} ordini extra accreditati senza addebito`);
-    closePopup();
+    if (!n || n <= 0 || !reason.trim()) return;
+    const a = admAccreditoDisponi(l, n, causale, reason.trim());
+    flash(a.stato === 'in_attesa'
+      ? `${fmtNum(n)} unità disposte: in attesa dell'approvazione di un Super Admin diverso da te`
+      : `${fmtNum(n)} unità accreditate senza addebito`);
+    closePopup(); forceRender(x => x + 1);
   };
   const confirmPiano = () => {
     const nuovo = PIANI.find(p => p.id === planSel);
@@ -1406,9 +1595,19 @@ function DrwFatturazione({ locale: l }) {
         <div style={{fontSize:12.5, color:ADM.MUTED, marginBottom:14}}>Operazioni manuali sul conto del locale · richiedono conferma</div>
         <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
           <AdmButton variant="secondary" size="md" icon="money" onClick={()=>setPopup('rimborso')}>Emetti rimborso</AdmButton>
-          <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setPopup('accredito')}>Accredita ordini extra</AdmButton>
+          <AdmButton variant="secondary" size="md" icon="plus" onClick={()=>setPopup('accredito')}>Accredita unità</AdmButton>
         </div>
       </AdmCard>
+
+      {/* Gli accrediti del locale: ogni riga è un atto con causale, nota e
+          stato; le righe in attesa si approvano qui o nella coda di
+          Piattaforma → Accrediti, mai da chi le ha disposte. */}
+      {(() => { const righe = ACCREDITI.filter(a => a.localeId === l.id); return righe.length ? (
+        <AdmCard padding={20}>
+          <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT, marginBottom:2}}>Accrediti di unità</div>
+          <div style={{fontSize:12.5, color:ADM.MUTED, marginBottom:6}}>Tetto senza approvazione: {fmtNum(HUB_LEVE.accreditoTetto)} unità · sopra, approva un Super Admin diverso da chi ha disposto</div>
+          {righe.map(a => <AdmAccreditoRiga key={a.id} a={a} onCambia={() => forceRender(x => x + 1)}/>)}
+        </AdmCard>) : null; })()}
 
       {/* ═══ Popup: rimborso ═══ */}
       {popup === 'rimborso' && (
@@ -1430,23 +1629,39 @@ function DrwFatturazione({ locale: l }) {
         </div>
       )}
 
-      {/* ═══ Popup: accredito ordini extra ═══ */}
-      {popup === 'accredito' && (
+      {/* ═══ Popup: accredito di unità (P-69 · D-58) ═══ */}
+      {popup === 'accredito' && (() => {
+        const n = parseInt(amount, 10) || 0;
+        const sopra = n > HUB_LEVE.accreditoTetto;
+        return (
         <div style={{position:'fixed', inset:0, zIndex:60, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={closePopup}>
-          <div onClick={e=>e.stopPropagation()} style={{width:400, maxWidth:'90%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Accredita ordini extra</div>
-            <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14}}>Ordini aggiuntivi senza addebito per {l.nome} (piano {piano.label}, extra correnti {fmtEur(l.extras)}/mese)</div>
-            <label style={lab}>Numero di ordini da accreditare</label>
+          <div onClick={e=>e.stopPropagation()} style={{width:460, maxWidth:'92%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Accredita unità</div>
+            <div style={{fontSize:13, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>Unità senza addebito per {l.nome} (piano {piano.label}, extra correnti {fmtEur(l.extras)}/mese). L'unità è la comanda, il singolo invio: si accreditano comande pesate, non «ordini».</div>
+            <label style={lab}>Unità da accreditare</label>
             <input type="number" min="1" autoFocus value={amount} onChange={e=>setAmount(e.target.value)}
-              onKeyDown={e=>{ if (e.key === 'Enter') confirmAccredito(); }}
-              placeholder="Es. 200" style={{...inp, marginBottom:14}}/>
+              placeholder="Es. 200" style={{...inp, marginBottom:12}}/>
+            <label style={lab}>Causale</label>
+            <AdmSelect value={causale} onChange={setCausale} options={ACC_CAUSALI} block/>
+            <div style={{fontSize:11.8, color:ADM.MUTED_SOFT, margin:'4px 0 12px'}}>{(ACC_CAUSALI.find(c => c.value === causale) || {}).nota}</div>
+            <label style={lab}>Nota sul caso (obbligatoria)</label>
+            <textarea value={reason} onChange={e=>setReason(e.target.value)} rows={2} placeholder="Che cosa è successo a questo locale, in una riga" style={{...inp, marginBottom:12, resize:'vertical'}}/>
+            {/* Il tetto si dice prima della conferma, non dopo: chi dispone
+                deve sapere se sta accreditando o chiedendo. */}
+            <div style={{padding:'9px 12px', borderRadius:8, marginBottom:14, fontSize:12.6, lineHeight:1.5,
+              background: n > 0 ? (sopra ? ADM.WARN_SOFT : ADM.OK_SOFT) : ADM.NEUTRAL_SOFT, color: n > 0 ? (sopra ? '#78350F' : '#065F46') : ADM.MUTED}}>
+              {n > 0
+                ? (sopra ? `Sopra il tetto di ${fmtNum(HUB_LEVE.accreditoTetto)} unità: l'accredito resta in attesa e lo approva un Super Admin diverso da te.`
+                         : `Sotto il tetto di ${fmtNum(HUB_LEVE.accreditoTetto)} unità: si applica alla tua conferma.`)
+                : `Tetto senza approvazione: ${fmtNum(HUB_LEVE.accreditoTetto)} unità (Piattaforma → Accrediti).`}
+            </div>
             <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
               <AdmButton variant="ghost" size="md" onClick={closePopup}>Annulla</AdmButton>
-              <AdmButton variant="primary" size="md" icon="check" disabled={!(parseInt(amount,10) > 0)} onClick={confirmAccredito}>Conferma accredito</AdmButton>
+              <AdmButton variant="primary" size="md" icon="check" disabled={!(n > 0) || !reason.trim()} onClick={confirmAccredito}>{sopra ? 'Disponi e metti in attesa' : 'Conferma accredito'}</AdmButton>
             </div>
           </div>
-        </div>
-      )}
+        </div>);
+      })()}
 
       {/* ═══ Popup: cambio piano ═══ */}
       {popup === 'piano' && (
