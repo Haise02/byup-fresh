@@ -459,8 +459,11 @@ function AdmContattiPage({ search, openContatto }) {
         sotto="Locali, utenti staff e utenti app in un'unica rubrica. Filtra per qualunque proprietà."
         azioni={
           <React.Fragment>
+            {/* P-41 (D-33): il registro si apre da qui, ma il permesso è
+                Moderazione — lettura per guardarlo, scrittura dentro per agire. */}
             <HubStrumento icona="shield" badge={RESTRIZIONI.filter(r => !r.revocataIl).length}
-              onClick={() => setRestrizioniAperte(true)}>Restrizioni</HubStrumento>
+              title={hubPuo('moderazione', 'lettura') ? undefined : 'Serve almeno Lettura su Moderazione'}
+              onClick={() => { if (hubPuo('moderazione', 'lettura')) setRestrizioniAperte(true); }}>Restrizioni</HubStrumento>
             <HubStrumento forte icona="plus" onClick={() => setCreaAperta(true)}>Nuovo contatto</HubStrumento>
           </React.Fragment>
         }/>

@@ -13,7 +13,7 @@ const ADM_SEZIONI = {
   // di pagina non arriva più dall'header della shell.
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'],
     testata: { titolo:'Sicurezza e sistemi',
-      sotto:'Team, permessi, riesame degli accessi, tracce e salute della piattaforma.' } },
+      sotto:'Team, permessi, accessi, tracce e salute della piattaforma.' } },
   impostazioni: { pred:'piattaforma', tabs:['piattaforma','incaricati'],
     testata: { titolo:'Piattaforma',
       sotto:'Le leve commerciali di byup: piani e prezzi, peso degli ordini, discovery nell\'app — e gli incaricati Fisconline che trasmettono gli scontrini delle società.' } },
@@ -82,9 +82,9 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
           {tab === 'accessi' && <AdmButton variant="primary" size="sm" icon="plus" className="adm-btn-invite" onClick={()=>setInviteOpen(true)}>Invita membro</AdmButton>}
         </div>
 
-        {/* Il riesame rende anche gli inviti in attesa, subito sotto la banda
-            della scadenza: sono roba da sbrigare, non una nota a piè di pagina. */}
-        {tab === 'accessi' && <AccessReview/>}
+        {/* Chi ha accesso, gli inviti in attesa e la revoca: nient'altro. Il
+            riesame periodico (A.5.18) si fa fuori dal prodotto (D-44, P-56). */}
+        {tab === 'accessi' && <AccessiList/>}
         {tab === 'piattaforma' && <PlatformConfig/>}
         {tab === 'incaricati' && <HubIncaricatiPage/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
@@ -498,7 +498,7 @@ const AUDIT_TIPI = [
   { value:'cert',         label:'Certificazioni' },
   { value:'contratto',    label:'Contratti' },
   { value:'team',         label:'Ruoli & team' },
-  { value:'accessi',      label:'Riesame accessi' },
+  { value:'accessi',      label:'Accessi' },
   { value:'segnalazione', label:'Segnalazioni' },
   { value:'locale',       label:'Locali' },
   { value:'piano',        label:'Piani' },
@@ -1000,639 +1000,145 @@ function PlatformDiagnostica() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   RIESAME PERIODICO DEGLI ACCESSI — ISO/IEC 27001 A.5.18
-   Il controllo non è "esiste una lista di chi ha accesso": è poter dimostrare
-   che a una certa data una persona ha guardato, ha deciso riga per riga, e che
-   le revoche sono state eseguite. Ambito: il team admin di Byup.
-   Le funzioni di classificazione stanno FUORI dal componente: definirle dentro
-   farebbe rimontare le righe a ogni battitura nel campo motivo.
-   ═══════════════════════════════════════════════════════════════════════════ */
-const RA_DORMIENTE_GG = 90;
-const RA_PREAVVISO_GG = 14;   // da quanti giorni prima la scadenza chiama all'azione
+// ─── Accessi: chi ha accesso, gli inviti, la revoca (D-44 · P-56) ────────────
+// Il riesame periodico dei diritti di accesso (ISO/IEC 27001 A.5.18) non è
+// più un rito dentro il prodotto: si svolge su foglio di calcolo, e il rito
+// è in Riesame-Accessi.md. Qui resta ciò che il prodotto fa davvero:
+// mostrare chi ha accesso e con quale ruolo, gli inviti in attesa, e revocare
+// un accesso con un motivo, che è evidenza e finisce nell'audit log. Niente
+// conferme, niente campagne, niente firma, niente revoca multipla.
+const acFmtData = (d) => d ? d.toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+const acGiorniFa = (d) => d ? Math.floor((Date.now() - d.getTime()) / 86400000) : null;
 
-// La cadenza del riesame stava nell'adempimento `acc` del Cruscotto di Risk
-// Management, che non c'è più: ora vive qui, accanto al codice che la usa, e
-// resta UN numero solo — la scadenza si calcola, non si scrive a mano.
-const RA_CADENZA_MESI = 3;
-
-// Scadenza della campagna in corso: apertura + cadenza.
-function raScadenza() {
-  const d = new Date(RIESAME_CORRENTE.apertaIl);
-  d.setMonth(d.getMonth() + RA_CADENZA_MESI);
-  return d;
-}
-
-const raFmtGG = (d) => d ? d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
-const raFmtData = (d) => d ? d.toLocaleDateString('it-IT', { day:'2-digit', month:'short', year:'numeric' }) : '—';
-const raFmtDataOra = (d) => d ? d.toLocaleString('it-IT', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—';
-const raGiorniFa = (d) => d ? Math.floor((Date.now() - d.getTime()) / 86400000) : null;
-
-// L'ultima campagna CHIUSA in cui questo soggetto compare: è la "data
-// dell'ultima verifica" e il termine di paragone per capire cosa è cambiato.
-function raUltimoRiesame(soggettoId) {
-  for (const c of RIESAMI_CHIUSI) {
-    const e = c.esiti.find(x => x.soggettoId === soggettoId);
-    if (e) return { campagna: c, esito: e };
-  }
-  return null;
-}
-
-// Ordina per RISCHIO, non per nome: un riesame si guarda dall'anomalia in giù,
-// altrimenti si timbra dall'alto senza leggere.
-function raClassifica(m) {
-  const prec = raUltimoRiesame(m.id);
-  const gg = raGiorniFa(m.lastActive);
-  // Il confronto fra epoche pesa i LIVELLI (scrittura 2, lettura 1), non conta
-  // più le spunte: «i permessi sono aumentati» deve valere anche quando le aree
-  // sono le stesse ma una cella è passata da Lettura a Scrittura. I ruoli morti
-  // (Viewer, ICT) risolvono dai RUOLI_STORICI: la storia non si riscrive.
-  const permOra = admPesoLivelli(admLivelliDi(m.ruolo, m));
-  const permPrima = prec ? admPesoLivelli(admLivelliDi(prec.esito.ruoloAllora, null)) : null;
-  const lbl = admLabelRuolo;
-
-  if (!m.lastActive) return { rank:0, key:'mai', tono:'DANGER', label:'Mai acceduto',
-    nota:`Nel team dal ${raFmtData(m.addedOn)}, non ha mai effettuato l'accesso` };
-  if (gg >= RA_DORMIENTE_GG) return { rank:1, key:'dormiente', tono:'DANGER', label:'Dormiente',
-    nota:`Nessun accesso da ${gg} giorni, ma l'utenza è ancora abilitata` };
-  if (prec && permOra > permPrima) return { rank:2, key:'escalation', tono:'WARN', label:'Permessi aumentati',
-    nota:`Era ${lbl(prec.esito.ruoloAllora)}, oggi è ${lbl(m.ruolo)}` };
-  if (!prec) return { rank:3, key:'nuovo', tono:'WARN', label:'Mai riesaminato',
-    nota:`Aggiunto il ${raFmtData(m.addedOn)}, dopo l'ultima campagna` };
-  if (prec.esito.ruoloAllora !== m.ruolo) return { rank:4, key:'cambiato', tono:'INFO', label:'Ruolo cambiato',
-    nota:`Era ${lbl(prec.esito.ruoloAllora)}, oggi è ${lbl(m.ruolo)}` };
-  return { rank:5, key:'invariato', tono:'NEUTRAL', label:'Invariato',
-    nota:'Nessuna variazione dall\'ultima campagna' };
-}
-
-/* C'era qui una catena di impronte SHA-256 fra le attestazioni chiuse, con una
-   sezione «Integrità delle attestazioni» e un bottone «Verifica integrità».
-   Tolta: il sigillo si calcolava nel browser al caricamento, sugli stessi dati
-   che avrebbe dovuto proteggere, e viveva in memoria — bastava ricaricare la
-   pagina dopo una modifica perché la verifica tornasse verde. Una catena di
-   hash vale qualcosa solo se il capo è ancorato dove chi tocca il database non
-   arriva (storage WORM, marca temporale, log esterno): senza quello è un
-   checksum calcolato contro se stessi. Quello che protegge davvero il record è
-   l'archiviazione in sola aggiunta, che è lavoro di backend e non di questa
-   pagina — e quello che l'auditor chiede è l'attestazione firmata più l'audit
-   log che la conferma, entrambi già qui.                                      */
-
-function raScaricaCSV(campagna, righeEsito) {
-  const esc = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
-  const head = ['Campagna','Periodo','Soggetto','Email','Ruolo','Ultimo accesso','Decisione','Motivo','Deciso da','Data decisione'];
-  const body = righeEsito.map(r => [
-    campagna.id, campagna.periodo, r.nome, r.email, r.ruolo,
-    r.lastActive ? raFmtDataOra(r.lastActive) : 'mai',
-    r.decisione, r.motivo || '', r.chi, raFmtDataOra(r.quando),
-  ]);
-  const csv = [head, ...body].map(row => row.map(esc).join(';')).join('\r\n');
-  const blob = new Blob(['﻿' + csv], { type:'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `riesame-accessi-${campagna.id}.csv`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-
-function AccessReview() {
-  const [esiti, setEsiti] = useStateTeam({});
-  const [chiusa, setChiusa] = useStateTeam(null);        // attestazione prodotta
-  const [confermaChiusura, setConfermaChiusura] = useStateTeam(false);
-  const [revoca, setRevoca] = useStateTeam(null);        // { id, nome }
+function AccessiList() {
+  const [revocati, setRevocati] = useStateTeam({});      // id → { quando, motivo }
+  const [dettaglio, setDettaglio] = useStateTeam(null);
+  const [revoca, setRevoca] = useStateTeam(null);
   const [motivo, setMotivo] = useStateTeam('');
-  const [dettaglio, setDettaglio] = useStateTeam(null);  // riga aperta: { m, cls, prec }
-  const [confermaBlocco, setConfermaBlocco] = useStateTeam(false);
-  // Revoca multipla. `selezione` è null quando la modalità è spenta e un array
-  // di id quando è accesa: null e [] sono due stati diversi — «non sto
-  // selezionando» e «sto selezionando, non ho ancora scelto nessuno».
-  const [selezione, setSelezione] = useStateTeam(null);
-  const [revocaMulti, setRevocaMulti] = useStateTeam(false);
-
-  const camp = RIESAME_CORRENTE;
-  // Firma con il nome vero, non con 'Tu': l'attestazione è un documento.
+  const me = hubUtenteCorrente();
   const IO = (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu';
-  const scadenza = raScadenza();
-  const ggScadenza = Math.ceil((scadenza.getTime() - Date.now()) / 86400000);
-  const scaduta = ggScadenza < 0;
-  const cadenza = RA_CADENZA_MESI;
-  const inScadenza = ggScadenza <= RA_PREAVVISO_GG;   // da qui in poi la banda chiama all'azione
+  const membri = TEAM.filter(m => m.attivo !== false && !m.pending && !revocati[m.id]);
+  const puoRevocare = hubPuo('sicurezza', 'scrittura');
 
-  // Chi non ha ancora accettato l'invito non ha accesso: sta negli inviti in
-  // attesa, non in un riesame che guarda chi l'accesso ce l'ha già.
-  const membri = TEAM.filter(m => m.attivo !== false && !m.pending);
-  const righe = membri
-    .map(m => ({ m, cls: raClassifica(m), prec: raUltimoRiesame(m.id) }))
-    .sort((a, b) => a.cls.rank - b.cls.rank || a.m.nome.localeCompare(b.m.nome));
-
-  const decisi = Object.keys(esiti).length;
-  const totale = righe.length;
-  const tuttiDecisi = decisi === totale;
-  const revocati = Object.values(esiti).filter(e => e.decisione === 'revocato').length;
-  const daGuardare = righe.filter(r => r.cls.rank <= 4 && !esiti[r.m.id]).length;
-  const invariatiAperti = righe.filter(r => r.cls.key === 'invariato' && !esiti[r.m.id] && !r.m.isYou);
-
-  // Nessuna utenza si conferma da sola all'apertura della pagina. Una conferma
-  // decisa dal codice al primo render porta un orario che dice quando hai
-  // aperto la pagina, non quando hai guardato: nell'attestazione è indistin-
-  // guibile dal non aver guardato affatto, ed è il rilievo che svuota questo
-  // controllo. Le invariate si confermano in blocco, che è un atto del revisore
-  // con un'ora e un nome — vedi confermaInvariati.
-  //
-  // L'unica eccezione resta il Super Admin titolare, e non è una scorciatoia: è
-  // che l'accesso gli viene dal ruolo e il ruolo cambia fuori da qui, quindi non
-  // c'è niente da decidere. Il buco di segregazione dei compiti che ne deriva si
-  // dichiara nella valutazione del rischio, non si tappa con un clic.
-  React.useEffect(() => {
-    const io = membri.find(m => m.isYou);
-    if (!io || esiti[io.id]) return;
-    setEsiti(prev => ({ ...prev, [io.id]: {
-      decisione:'confermato', automatico:true, chi:'d\'ufficio', quando:new Date(),
-      nota:'titolare — cambia solo al cambio di ruolo',
-      motivo:'Super Admin titolare — accesso per definizione del ruolo, cambia solo al cambio di ruolo',
-    } }));
-  }, []);
-
-  // Ogni decisione lascia traccia nell'audit log: è lì che l'auditor va a
-  // guardare, e deve combaciare con l'attestazione.
-  const registra = (m, decisione, motivoTxt, chi) => {
+  const confermaRevoca = () => {
+    if (!revoca || !motivo.trim()) return;
     const quando = new Date();
-    setEsiti(prev => ({ ...prev, [m.id]: { decisione, motivo: motivoTxt || '', chi: chi || IO, quando } }));
-    AUDIT_EVENTS.unshift({
-      who: chi || IO,
-      action: decisione === 'revocato' ? 'ha revocato l\'accesso di' : 'ha confermato l\'accesso di',
-      target: `${m.nome} · ${(RUOLI[m.ruolo] && RUOLI[m.ruolo].label) || m.ruolo} · riesame ${camp.periodo}`,
-      icon: decisione === 'revocato' ? 'lock' : 'check',
-      color: decisione === 'revocato' ? 'DANGER' : 'OK',
-      tipo: 'accessi', when: quando,
-    });
-  };
-
-  // Confermare in blocco le invariate è legittimo proprio perché il confronto
-  // con la campagna precedente l'ha fatto il codice: si attesta che non è
-  // cambiato nulla, non si timbra alla cieca. La modale elenca i nomi prima di
-  // chiedere il consenso, e ogni riga esce con il suo motivo, il revisore e
-  // l'ora — quindi nello storico si può puntare il dito su una qualsiasi e dire
-  // chi l'ha guardata e quando.
-  const confermaInvariati = () => {
-    const quando = new Date();
-    setEsiti(prev => {
-      const next = { ...prev };
-      invariatiAperti.forEach(r => { next[r.m.id] = { decisione:'confermato', chi:IO, quando,
-        motivo:'Nessuna variazione rispetto alla campagna precedente, verificata sul confronto di ruolo e permessi' }; });
-      return next;
-    });
-    AUDIT_EVENTS.unshift({
-      who:IO, action:'ha confermato in blocco gli accessi invariati',
-      target:`${invariatiAperti.length} utenze · riesame ${camp.periodo}`,
-      icon:'check', color:'OK', tipo:'accessi', when: quando,
-    });
-  };
-
-  // Revoca multipla: un motivo solo per più persone regge quando il motivo È
-  // davvero uno — «chiusura del progetto X, tre collaboratori esterni». Se le
-  // ragioni sono diverse vanno revocate una per una, e la modale lo dice.
-  const aperte = righe.filter(r => !esiti[r.m.id] && !r.m.isYou);
-  const selNomi = (selezione || []).map(id => {
-    const r = righe.find(x => x.m.id === id);
-    return r ? (r.m.nomeCompleto || r.m.nome) : id;
-  });
-  const toggleSel = (m) => {
-    if (esiti[m.id] || m.isYou) return;   // già decisa, o il titolare: non selezionabile
-    setSelezione(s => (s || []).includes(m.id) ? s.filter(x => x !== m.id) : [...(s || []), m.id]);
-  };
-  const revocaSelezionate = () => {
-    const quando = new Date();
-    const testo = motivo.trim();
-    setEsiti(prev => {
-      const next = { ...prev };
-      (selezione || []).forEach(id => { next[id] = { decisione:'revocato', motivo:testo, chi:IO, quando }; });
-      return next;
-    });
-    AUDIT_EVENTS.unshift({
-      who:IO, action:'ha revocato in blocco gli accessi di',
-      target:`${selNomi.join(', ')} · riesame ${camp.periodo}`,
-      icon:'lock', color:'DANGER', tipo:'accessi', when: quando,
-    });
-    setRevocaMulti(false); setSelezione(null); setMotivo('');
-  };
-
-  const chiudiCampagna = () => {
-    const quando = new Date();
-    const dettaglio = righe.map(r => ({
-      nome: r.m.nomeCompleto || r.m.nome, email: r.m.email, ruolo: (RUOLI[r.m.ruolo] && RUOLI[r.m.ruolo].label) || r.m.ruolo,
-      lastActive: r.m.lastActive, ...esiti[r.m.id],
-    }));
-    const att = {
-      id: camp.id, periodo: camp.periodo, revisore: IO,
-      chiusaIl: quando, totale, confermati: totale - revocati, revocati, dettaglio,
-    };
-    setChiusa(att);
-    setConfermaChiusura(false);
-    AUDIT_EVENTS.unshift({
-      who:IO, action:'ha chiuso e firmato il riesame accessi',
-      target:`${camp.id} · ${totale} utenze · ${revocati} revoche`,
-      icon:'shield', color:'INFO', tipo:'accessi', when: quando,
-    });
+    setRevocati(prev => ({ ...prev, [revoca.id]: { quando, motivo: motivo.trim() } }));
+    AUDIT_EVENTS.unshift({ who: IO, action: 'ha revocato l\'accesso di', target: `${revoca.nome} · ${admLabelRuolo(revoca.ruolo)} · ${motivo.trim()}`, icon: 'lock', color: 'DANGER', tipo: 'accessi', when: quando });
+    setRevoca(null); setMotivo(''); setDettaglio(null);
   };
 
   const H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 };
   const GRID = 'minmax(0,2.6fr) 1.15fr 1fr 26px';
-
   return (
     <div style={{padding:'20px 22px', display:'flex', flexDirection:'column', gap:20, position:'relative'}}>
-
-      {/* Una banda sola, che cambia mestiere: finché ci sono utenze da decidere
-          dice che il riesame è dovuto, quando sono tutte decise diventa la
-          firma. «Chiudi e firma» non ha un posto fisso nell'intestazione, dove
-          starebbe grigio e inerte per tutto il tempo in cui non si può
-          premere: compare qui, acceso, nel momento esatto in cui serve. */}
-      {!chiusa && (inScadenza || tuttiDecisi) && (
-        <div style={{display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,
-          background: tuttiDecisi ? ADM.OK_SOFT : scaduta ? ADM.DANGER_SOFT : '#FFF7E6',
-          border:`1px solid ${tuttiDecisi ? '#BBF7D0' : scaduta ? '#FECACA' : '#FDE68A'}`, flexWrap:'wrap'}}>
-          <div style={{flex:1, minWidth:260}}>
-            <div style={{fontSize:14.5, fontWeight:800,
-              color: tuttiDecisi ? '#065F46' : scaduta ? '#7F1D1D' : '#78350F'}}>
-              {tuttiDecisi
-                ? `Il riesame ${camp.periodo} è pronto da firmare`
-                : scaduta
-                  ? `La data di esame del ${raFmtGG(scadenza)} è stata superata. Fai ora l'esame dei diritti di accesso`
-                  : `L'esame dei diritti di accesso va fatto entro il ${raFmtGG(scadenza)}`}
-            </div>
-            {/* Il sottotitolo elencava quante utenze mancano, quante hanno
-                un'anomalia, la norma e la cadenza: quattro dati per un avviso
-                che deve dire una cosa sola, e cioè che è ora di farlo. Quando
-                invece è tutto deciso il conto serve, perché è quello che stai
-                per firmare. */}
-            {tuttiDecisi && (
-              <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-                {totale} utenze esaminate · {totale - revocati} confermate, {revocati} {revocati === 1 ? 'revocata' : 'revocate'}
-              </div>
-            )}
-          </div>
-          {tuttiDecisi && (
-            <AdmButton variant="primary" size="sm" onClick={()=>setConfermaChiusura(true)}>
-              Chiudi e firma
-            </AdmButton>
-          )}
+      {me.demo && (
+        <div style={{padding:'10px 14px', borderRadius:10, background:ADM.PINK_BG_SOFT, border:`1px solid #FFA9BF`, fontSize:13, color:ADM.TEXT}}>
+          Stai guardando Hubble come <b>{admLabelRuolo(me.ruolo)}</b> (demo, <code>?ruolo=</code>): i gesti che questo preset non può fare sono spenti, col perché.
         </div>
       )}
 
       <InvitiPending/>
 
-      {chiusa && (
-        <div style={{display:'flex', alignItems:'center', gap:16, padding:'14px 16px', borderRadius:10,
-          background:ADM.OK_SOFT, border:'1px solid #BBF7D0'}}>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontSize:14.5, fontWeight:800, color:'#065F46'}}>
-              Riesame {camp.periodo} chiuso e firmato
-            </div>
-            <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3}}>
-              Firmato da {chiusa.revisore} il {raFmtDataOra(chiusa.chiusaIl)} · {chiusa.confermati} confermati, {chiusa.revocati} revocati
-            </div>
-          </div>
-          <AdmButton variant="secondary" size="sm" icon="download" onClick={()=>raScaricaCSV(camp, chiusa.dettaglio)}>Scarica evidenza</AdmButton>
+      <div>
+        <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10}}>
+          <div style={H}>Chi ha accesso · {membri.length}</div>
+          <div style={{flex:1}}/>
+          <div style={{fontSize:12.5, color:ADM.MUTED}}>Il riesame periodico si fa fuori dal prodotto, su foglio (A.5.18, D-44): da qui si esporta l'elenco e si revoca.</div>
         </div>
-      )}
-
-      {/* Elenco degli accessi */}
-      {!chiusa && (
-        <div>
-          {/* In modalità selezione l'intestazione cede il posto alla barra: due
-              serie di comandi contemporaneamente sulla stessa tabella si
-              pestano i piedi, e non è chiaro su cosa agiscono. */}
-          {selezione ? (
-          <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:10, flexWrap:'wrap',
-            padding:'10px 14px', borderRadius:10, background:ADM.DANGER_SOFT, border:'1px solid #FECACA'}}>
-            <span style={{fontSize:13.4, fontWeight:800, color:'#7F1D1D'}}>
-              {selezione.length === 0
-                ? 'Scegli le utenze da revocare'
-                : `${selezione.length} ${selezione.length === 1 ? 'utenza selezionata' : 'utenze selezionate'}`}
-            </span>
-            <span style={{fontSize:12.4, color:ADM.MUTED, flex:1, minWidth:180}}>
-              {selezione.length ? selNomi.join(' · ') : 'clicca le righe · le già decise non sono selezionabili'}
-            </span>
-            <AdmButton variant="secondary" size="sm" onClick={()=>{ setSelezione(null); setMotivo(''); }}>Annulla</AdmButton>
-            <AdmButton variant="danger" size="sm" disabled={!selezione.length}
-              onClick={()=>{ setMotivo(''); setRevocaMulti(true); }}>
-              Revoca {selezione.length || ''}
-            </AdmButton>
-          </div>
-          ) : (
-          <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:10, flexWrap:'wrap'}}>
-            <div style={{...H, marginBottom:0}}>Chi ha accesso a cosa</div>
-            {/* Quando il banner è a video ha già detto scadenza e cadenza: qui
-                resta solo quello che il banner non dice, altrimenti la stessa
-                riga si legge due volte a dieci centimetri di distanza. */}
-            {/* Il conteggio l'ha già la banda in testa: qui resta solo quello
-                che la banda non dice, e solo quando la banda non c'è. */}
-            <span style={{fontSize:12.4, color:ADM.MUTED, flex:1, minWidth:170}}>
-              {!inScadenza && (
-                <React.Fragment>
-                  <span>entro il {raFmtData(scadenza)}</span>
-                  {' · ogni '}{cadenza} mesi
-                </React.Fragment>
-              )}
-            </span>
-            {/* Un solo comando in blocco: le invariate, il cui confronto con
-                la campagna precedente l'ha fatto il codice. Tutte le altre si
-                decidono aprendole, dove ci sono la loro storia e il loro
-                motivo. */}
-            {invariatiAperti.length > 0 && (
-              <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(true)}>
-                Conferma le {invariatiAperti.length} invariate
-              </AdmButton>
-            )}
-          </div>
-          )}
-
-          <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, overflow:'hidden'}}>
-            <div style={{display:'grid', gridTemplateColumns:GRID, padding:'9px 16px', background:ADM.PANEL_SOFT || '#FAFAFB',
-              borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.8, fontWeight:700, color:ADM.MUTED,
-              textTransform:'uppercase', letterSpacing:'0.06em'}}>
-              <div>Soggetto</div><div>Ruolo</div><div>Ultimo accesso</div><div/>
-            </div>
-
-            {righe.map(({ m, cls, prec }, i) => {
-              const dec = esiti[m.id];
-              const gg = raGiorniFa(m.lastActive);
-              const selezionabile = !!selezione && !dec && !m.isYou;
-              const selezionata = !!selezione && selezione.includes(m.id);
-              return (
-                <div key={m.id} className={selezione && !selezionabile ? undefined : 'adm-row-open'}
-                  onClick={()=>{ if (selezione) { toggleSel(m); return; } setDettaglio({ m, cls, prec }); }}
-                  style={{
-                  display:'grid', gridTemplateColumns:GRID, alignItems:'center', gap:8,
-                  padding:'12px 16px', cursor: selezione && !selezionabile ? 'default' : 'pointer',
-                  opacity: selezione && !selezionabile ? 0.5 : 1,
-                  borderBottom: i < righe.length - 1 ? `1px solid ${ADM.BORDER_SOFT}` : 'none',
-                  background: selezionata ? ADM.DANGER_SOFT
-                    : dec ? (dec.decisione === 'revocato' ? '#FFF7F7' : '#FBFDFB') : '#fff',
-                }}>
-                  <div style={{display:'flex', alignItems:'center', gap:11, minWidth:0}}>
-                    {selezione && (
-                      <span style={{width:18, height:18, borderRadius:5, flexShrink:0, display:'inline-flex',
-                        alignItems:'center', justifyContent:'center',
-                        border:`1.5px solid ${selezionata ? ADM.DANGER : ADM.BORDER}`,
-                        background: selezionata ? ADM.DANGER : '#fff'}}>
-                        {selezionata && <BuIcons.check size={12} color="#fff"/>}
+        <div style={{display:'grid', gridTemplateColumns:GRID, gap:12, padding:'0 12px 8px', fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>
+          <span>Persona</span><span>Ruolo</span><span>Ultimo accesso</span><span/>
+        </div>
+        <div style={{display:'flex', flexDirection:'column', gap:6}}>
+          {membri.map(m => {
+            const gg = acGiorniFa(m.lastActive);
+            const dormiente = gg != null && gg >= 90;
+            return (
+              <div key={m.id} className="adm-row" onClick={() => setDettaglio(m)} style={{
+                display:'grid', gridTemplateColumns:GRID, gap:12, alignItems:'center', padding:'11px 12px', borderRadius:10, cursor:'pointer',
+                background:'#fff', border:`1px solid ${ADM.BORDER_SOFT}`,
+              }}>
+                <div style={{display:'flex', alignItems:'center', gap:10, minWidth:0}}>
+                  <AdmAvatar name={m.nome} bg={m.avatarBg} size={34}/>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nomeCompleto || m.nome}{m.isYou ? ' (tu)' : ''}</div>
+                    <div style={{fontSize:12, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.email}</div>
+                    {!m.due_fa && (
+                      <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'2px 7px', borderRadius:99, background:ADM.WARN_SOFT, marginTop:5}}>
+                        <BuIcons.shield size={12} color={ADM.WARN}/><span style={{fontSize:11.2, fontWeight:700, color:ADM.WARN}}>2FA off</span>
                       </span>
                     )}
-                    <AdmAvatar name={m.nome} bg={m.avatarBg} size={34}/>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.nomeCompleto || m.nome}</div>
-                      <div style={{fontSize:12, color:ADM.MUTED, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{m.email}</div>
-                      {/* La pastiglia dello stato e la riga di dettaglio sotto
-                          — «nessun accesso da 142 giorni», «aggiunto il …» —
-                          stavano qui e facevano tre righe per persona. Il
-                          rilievo per esteso vive nel dettaglio, che è dove si
-                          decide. Qui resta il 2FA, che è un fatto sulla
-                          persona e non un giudizio del riesame. */}
-                      {!m.due_fa && (
-                        <span style={{display:'inline-flex', alignItems:'center', gap:4, padding:'2px 7px',
-                          borderRadius:99, background:ADM.WARN_SOFT, marginTop:5}}>
-                          <BuIcons.shield size={12} color={ADM.WARN}/>
-                          <span style={{fontSize:11.2, fontWeight:700, color:ADM.WARN}}>2FA off</span>
-                        </span>
-                      )}
-                    </div>
                   </div>
-
-                  <div>
-                    <AdmBadge color={(RUOLI[m.ruolo] && RUOLI[m.ruolo].color) || 'PLAN_FREE'}>{(RUOLI[m.ruolo] && RUOLI[m.ruolo].label) || m.ruolo}</AdmBadge>
-                  </div>
-
-                  <div style={{fontSize:12.8, color: cls.key === 'dormiente' || cls.key === 'mai' ? ADM.DANGER : ADM.TEXT, fontWeight: cls.key === 'dormiente' || cls.key === 'mai' ? 700 : 500}}>
-                    {m.lastActive ? (gg === 0 ? 'oggi' : gg === 1 ? 'ieri' : `${gg} giorni fa`) : 'mai'}
-                  </div>
-
-                  {/* Lo stato della riga non ha più una colonna: si legge dal
-                      fondo — verde tenue confermata, rosso tenue revocata,
-                      bianco da decidere — e per esteso nel dettaglio, che è
-                      dove si decide. Resta il chevron, perché una riga
-                      cliccabile deve dire di esserlo. */}
-                  <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
                 </div>
-              );
-            })}
-          </div>
-
-          <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, lineHeight:1.5}}>
-            Ogni decisione finisce nell'audit log con autore e orario. Alla chiusura la campagna
-            diventa un'attestazione non più modificabile: una correzione è una campagna nuova.
-          </div>
-        </div>
-      )}
-
-      {/* Attestazione prodotta */}
-      {chiusa && (
-        <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:10, padding:'18px 20px'}}>
-          <div style={H}>Attestazione</div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14, marginBottom:16}}>
-            {[
-              ['Campagna', chiusa.id],
-              ['Periodo', chiusa.periodo],
-              ['Revisore', chiusa.revisore],
-              ['Chiusa il', raFmtDataOra(chiusa.chiusaIl)],
-              ['Utenze esaminate', String(chiusa.totale)],
-              ['Confermate', String(chiusa.confermati)],
-              ['Revocate', String(chiusa.revocati)],
-              ['Controllo', 'ISO/IEC 27001 A.5.18'],
-              ['Segue', RIESAMI_CHIUSI[0] ? RIESAMI_CHIUSI[0].periodo : 'prima campagna'],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <div style={{fontSize:11.6, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:700}}>{k}</div>
-                <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT, marginTop:3}}>{v}</div>
+                <div><AdmBadge color={(RUOLI[m.ruolo] && RUOLI[m.ruolo].color) || 'PLAN_FREE'}>{admLabelRuolo(m.ruolo)}</AdmBadge></div>
+                <div style={{fontSize:12.8, color: dormiente ? ADM.DANGER : ADM.TEXT, fontWeight: dormiente ? 700 : 500}}>
+                  {m.lastActive ? (gg === 0 ? 'oggi' : gg === 1 ? 'ieri' : `${gg} giorni fa`) : 'mai'}
+                </div>
+                <BuIcons.chevronRight size={15} color={ADM.MUTED_SOFT} className="adm-row-chev"/>
               </div>
-            ))}
-          </div>
-          <div style={{fontSize:12.4, color:ADM.MUTED, lineHeight:1.55, paddingTop:12, borderTop:`1px dashed ${ADM.BORDER_SOFT}`}}>
-            Le revoche sono state applicate alle utenze e le relative sessioni terminate.
-            Il dettaglio riga per riga è scaricabile in CSV e replicato nell'audit log.
-          </div>
+            );
+          })}
         </div>
-      )}
-
-      {/* Le campagne chiuse (RIESAMI_CHIUSI) non hanno più una schermata: si
-          aprivano dal Cruscotto di Risk Management, che non c'è più. Restano nei
-          dati — servono al confronto «cosa è cambiato dalla volta prima» sulla
-          singola riga — ma lo storico per esteso oggi non è visibile da nessuna
-          parte. Qui c'è la campagna in corso, l'unica su cui si agisce. */}
-
-      {/* Popup revoca — il motivo è obbligatorio, senza non è evidenza */}
-      {revoca && (
-        <div onClick={()=>setRevoca(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:460, maxWidth:'90%', background:'#fff', borderRadius:14,
-            padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>Revocare l'accesso a {revoca.nome}?</div>
-            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:14}}>
-              L'utenza viene disabilitata e le sessioni attive terminate. Il motivo finisce
-              nell'attestazione: è quello che l'auditor legge per capire la decisione.
-            </div>
-            <textarea value={motivo} onChange={e=>setMotivo(e.target.value)} autoFocus
-              placeholder="Es. Collaborazione terminata il 30/06/2026 — accesso non più necessario"
-              style={{width:'100%', minHeight:78, padding:'10px 12px', borderRadius:10, border:`1px solid ${ADM.BORDER}`,
-                fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT, resize:'vertical', boxSizing:'border-box', outline:'none'}}/>
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:16}}>
-              <AdmButton variant="secondary" size="sm" onClick={()=>setRevoca(null)}>Annulla</AdmButton>
-              <AdmButton variant="danger" size="sm" disabled={motivo.trim().length < 8}
-                onClick={()=>{ registra(revoca, 'revocato', motivo.trim(), IO); setRevoca(null); }}>
-                Revoca accesso
-              </AdmButton>
-            </div>
-          </div>
+        <div style={{fontSize:12, color:ADM.MUTED, marginTop:10, lineHeight:1.5}}>
+          La revoca chiede un motivo e finisce nell'audit log con autore e orario. Le utenze da tempo inattive sono in rosso: sono un fatto sull'ultimo accesso, non un giudizio.
         </div>
-      )}
+      </div>
 
-      {/* Dettaglio della riga — è qui che si decide. Confermare un accesso è
-          un'attestazione firmata col proprio nome, non un click di passaggio in
-          un elenco: prima si guarda chi è, che cosa può raggiungere e da quanto
-          non entra, poi si sceglie. Le due decisioni vivono solo qui dentro. */}
       {dettaglio && (() => {
-        const m = dettaglio.m, cls = dettaglio.cls, prec = dettaglio.prec;
-        const dec = esiti[m.id];
-        const ggM = raGiorniFa(m.lastActive);
+        const m = dettaglio; const gg = acGiorniFa(m.lastActive);
+        const liv = admLivelliDi(m.ruolo, m);
+        const scrive = AREE.filter(a => liv[a.id] === 'scrittura' && !a.riservata).map(a => a.label);
+        const legge = AREE.filter(a => liv[a.id] === 'lettura' && !a.riservata).map(a => a.label);
         return (
-        <div onClick={()=>setDettaglio(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:520, maxWidth:'92%', background:'#fff', borderRadius:14,
-            padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-
-            <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
-              <AdmAvatar name={m.nome} bg={m.avatarBg} size={40}/>
-              <div style={{minWidth:0, flex:1}}>
-                <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT}}>{m.nomeCompleto || m.nome}</div>
-                <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.email}</div>
+          <div onClick={() => setDettaglio(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)', display:'flex', alignItems:'center', justifyContent:'center', padding:24}}>
+            <div onClick={e => e.stopPropagation()} style={{width:520, maxWidth:'92%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+              <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:14}}>
+                <AdmAvatar name={m.nome} bg={m.avatarBg} size={40}/>
+                <div style={{minWidth:0, flex:1}}>
+                  <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT}}>{m.nomeCompleto || m.nome}</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED}}>{m.email}</div>
+                </div>
+              </div>
+              <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
+                {[
+                  ['Ruolo', admLabelRuolo(m.ruolo)],
+                  ['Nel team dal', acFmtData(m.addedOn)],
+                  ['Ultimo accesso', m.lastActive ? (gg === 0 ? 'oggi' : gg === 1 ? 'ieri' : `${gg} giorni fa`) : 'mai'],
+                  ['Secondo fattore', m.due_fa ? 'attivo' : 'non attivo'],
+                  ['Scrive su', scrive.length ? scrive.join(', ') : '—'],
+                  ['Legge', legge.length ? legge.join(', ') : '—'],
+                ].map(([k, v]) => (
+                  <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
+                    <span style={{color:ADM.MUTED, width:126, flexShrink:0}}>{k}</span>
+                    <span style={{color:ADM.TEXT, fontWeight:600}}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                {!m.isYou && (
+                  <AdmButton variant="ghost" size="sm" style={{color:ADM.DANGER, borderColor:'rgba(220,38,38,0.28)'}} disabled={!puoRevocare}
+                    title={puoRevocare ? undefined : 'Serve Scrittura su Sicurezza e sistemi'}
+                    onClick={() => { setRevoca(m); setMotivo(''); }}>Revoca l'accesso</AdmButton>
+                )}
+                {m.isYou && <span style={{fontSize:12.5, color:ADM.MUTED}}>Il tuo accesso viene dal ruolo: si cambia fuori da qui.</span>}
+                <div style={{flex:1}}/>
+                <AdmButton variant="secondary" size="sm" onClick={() => setDettaglio(null)}>Chiudi</AdmButton>
               </div>
             </div>
-
-            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14}}>
-              {[
-                ['Ruolo', (RUOLI[m.ruolo] && RUOLI[m.ruolo].label) || m.ruolo],
-                ['Nel team dal', raFmtData(m.addedOn)],
-                ['Ultimo accesso', m.lastActive ? (ggM === 0 ? 'oggi' : ggM === 1 ? 'ieri' : `${ggM} giorni fa`) : 'mai'],
-                ['Ultima verifica', prec ? `${raFmtData(prec.campagna.chiusaIl)} · ${prec.campagna.periodo}` : 'mai riesaminato'],
-                ['Secondo fattore', m.due_fa ? 'attivo' : 'non attivo'],
-              ].map(([k, v]) => (
-                <div key={k} style={{display:'flex', gap:10, fontSize:12.8, marginBottom:5}}>
-                  <span style={{color:ADM.MUTED, width:126, flexShrink:0}}>{k}</span>
-                  <span style={{color:ADM.TEXT, fontWeight:600}}>{v}</span>
-                </div>
-              ))}
-            </div>
-
-            {dec ? (
-              <React.Fragment>
-                <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16}}>
-                  {dec.automatico
-                    ? <span>Confermato d'ufficio: <strong style={{color:ADM.TEXT}}>{dec.motivo}</strong>.
-                        Il Super Admin titolare non si conferma né si revoca da solo — l'accesso gli viene
-                        dal ruolo, e il ruolo cambia fuori da qui.</span>
-                    : <span><strong style={{color: dec.decisione === 'revocato' ? ADM.DANGER : ADM.OK}}>
-                        {dec.decisione === 'revocato' ? 'Accesso revocato' : 'Accesso confermato'}</strong> da {dec.chi} il {raFmtDataOra(dec.quando)}.
-                        {dec.motivo ? ` Motivo: ${dec.motivo}` : ''} La decisione è già nell'audit log: per cambiarla serve una campagna nuova.</span>}
-                </div>
-                <div style={{display:'flex', justifyContent:'flex-end'}}>
-                  <AdmButton variant="secondary" size="sm" onClick={()=>setDettaglio(null)}>Chiudi</AdmButton>
-                </div>
-              </React.Fragment>
-            ) : (
-              <React.Fragment>
-                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  <AdmButton variant="ghost" size="sm" style={{color:ADM.DANGER, borderColor:'rgba(220,38,38,0.28)'}}
-                    onClick={()=>{ setRevoca(m); setMotivo(''); setDettaglio(null); }}>Revoca</AdmButton>
-                  <div style={{flex:1}}/>
-                  <AdmButton variant="secondary" size="sm" onClick={()=>setDettaglio(null)}>Annulla</AdmButton>
-                  <AdmButton variant="primary" size="sm"
-                    onClick={()=>{ registra(m, 'confermato', '', IO); setDettaglio(null); }}>
-                    Conferma
-                  </AdmButton>
-                </div>
-              </React.Fragment>
-            )}
           </div>
-        </div>
         );
       })()}
 
-      {/* Revoca multipla — un motivo per tutte, ed è il limite della cosa */}
-      {revocaMulti && (
-        <div onClick={()=>setRevocaMulti(false)} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'90%', background:'#fff', borderRadius:14,
-            padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
-              Revocare l'accesso a {selNomi.length} {selNomi.length === 1 ? 'persona' : 'persone'}?
-            </div>
-            <div style={{padding:'11px 13px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:14,
-              fontSize:12.8, color:ADM.TEXT, lineHeight:1.7}}>
-              {selNomi.join(' · ')}
-            </div>
-            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:12}}>
-              Le utenze vengono disabilitate e le sessioni attive terminate. Il motivo che scrivi
-              qui finisce nell'attestazione di <strong style={{color:ADM.TEXT}}>tutte</strong> le
-              righe selezionate: ha senso se la ragione è una sola. Se sono diverse, conviene
-              revocarle una per una — l'auditor legge il motivo riga per riga.
-            </div>
-            <textarea value={motivo} onChange={e=>setMotivo(e.target.value)} autoFocus
-              placeholder="Es. Chiusura del progetto Delivery al 30/06/2026 — accessi dei collaboratori esterni non più necessari"
-              style={{width:'100%', minHeight:78, padding:'10px 12px', borderRadius:10, border:`1px solid ${ADM.BORDER}`,
-                fontSize:13.4, fontFamily:'inherit', color:ADM.TEXT, resize:'vertical', boxSizing:'border-box', outline:'none'}}/>
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:16}}>
-              <AdmButton variant="secondary" size="sm" onClick={()=>setRevocaMulti(false)}>Annulla</AdmButton>
-              <AdmButton variant="danger" size="sm" disabled={motivo.trim().length < 8} onClick={revocaSelezionate}>
-                Revoca {selNomi.length} {selNomi.length === 1 ? 'accesso' : 'accessi'}
-              </AdmButton>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Popup conferma in blocco — i nomi si vedono prima di attestare */}
-      {confermaBlocco && (
-        <div onClick={()=>setConfermaBlocco(false)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'90%', background:'#fff', borderRadius:14,
-            padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>
-              Confermare {invariatiAperti.length} accessi invariati?
-            </div>
-            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
-              Sono le utenze senza variazioni di ruolo o permessi dall'ultima campagna.
-              Confermarle in blocco è legittimo proprio perché il confronto è stato calcolato:
-              stai attestando che non è cambiato nulla, non stai timbrando alla cieca. Ognuna
-              esce con il tuo nome e l'ora, e nello storico si legge riga per riga.
-            </div>
-            <div style={{padding:'12px 14px', borderRadius:10, background:ADM.NEUTRAL_SOFT, marginBottom:16,
-              fontSize:12.8, color:ADM.TEXT, lineHeight:1.7}}>
-              {invariatiAperti.map(r => (r.m.nomeCompleto || r.m.nome)).join(' · ')}
-            </div>
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-              <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaBlocco(false)}>Annulla</AdmButton>
-              <AdmButton variant="primary" size="sm" onClick={()=>{ confermaInvariati(); setConfermaBlocco(false); }}>
-                Conferma le {invariatiAperti.length} utenze
-              </AdmButton>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Popup chiusura — la firma */}
-      {confermaChiusura && (
-        <div onClick={()=>setConfermaChiusura(false)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
-          display:'flex', alignItems:'center', justifyContent:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)'}}>
-          <div onClick={e=>e.stopPropagation()} style={{width:500, maxWidth:'90%', background:'#fff', borderRadius:14,
-            padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
-            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>Chiudere e firmare il riesame {camp.periodo}?</div>
-            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:14}}>
-              Stai attestando di aver esaminato <strong style={{color:ADM.TEXT}}>{totale} utenze</strong> e
-              di aver deciso su ciascuna: <strong style={{color:ADM.TEXT}}>{totale - revocati} confermate</strong>,{' '}
-              <strong style={{color:ADM.TEXT}}>{revocati} revocate</strong>. Una volta chiusa,
-              la campagna non è più modificabile.
-            </div>
-            <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
-              <AdmButton variant="secondary" size="sm" onClick={()=>setConfermaChiusura(false)}>Annulla</AdmButton>
-              <AdmButton variant="primary" size="sm" onClick={chiudiCampagna}>Firma il riesame</AdmButton>
+      {revoca && (
+        <div onClick={() => setRevoca(null)} style={{position:'fixed', inset:0, zIndex:61, background:'rgba(15,17,21,0.42)', display:'flex', alignItems:'center', justifyContent:'center', padding:24}}>
+          <div onClick={e => e.stopPropagation()} style={{width:480, maxWidth:'92%', background:'#fff', borderRadius:14, padding:'20px 22px', boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease'}}>
+            <div style={{fontSize:16, fontWeight:800, color:ADM.TEXT, marginBottom:6}}>Revocare l'accesso di {revoca.nomeCompleto || revoca.nome}?</div>
+            <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:12}}>Le sue sessioni vengono terminate e l'utenza esce dall'elenco. Il motivo è obbligatorio: senza motivo non è evidenza.</div>
+            <textarea value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Motivo della revoca" rows={3}
+              style={{width:'100%', boxSizing:'border-box', padding:'9px 11px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, fontSize:13.5, fontFamily:'inherit', resize:'vertical'}}/>
+            <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:12}}>
+              <AdmButton variant="secondary" size="sm" onClick={() => setRevoca(null)}>Annulla</AdmButton>
+              <AdmButton variant="primary" size="sm" disabled={!motivo.trim()} onClick={confermaRevoca}>Revoca</AdmButton>
             </div>
           </div>
         </div>

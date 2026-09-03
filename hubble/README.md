@@ -66,10 +66,16 @@ account. Tre preset — Super Admin (governa e legge, le scritture operative
 sono dei mestieri), Support, Marketing — e dall'invito ogni cella si può
 regolare per singola area: se il risultato differisce dal preset, l'account
 diventa **Personalizzato** (nel mock: Laura Bianchi). ICT e Viewer non
-esistono più; i ruoli morti restano leggibili nelle attestazioni chiuse via
-`RUOLI_STORICI`, e il riesame confronta i **pesi dei livelli** (scrittura 2,
-lettura 1), così «permessi aumentati» vale anche quando una cella passa da
-Lettura a Scrittura a parità di aree.
+esistono più. Le aree sono tredici, dodici assegnabili più Piattaforma
+riservata: con D-33 (P-41) **Moderazione** e **Conformità** sono righe piene
+— le Restrizioni e i ban chiedono Scrittura su Moderazione, approvare o
+rifiutare una certificazione chiede Scrittura su Conformità; le funzioni
+restano dove si aprono (rubrica, ticket), cambia chi può usarle, e a chiederlo
+è una funzione sola, `hubPuo(area, livello)`, con `?ruolo=support|marketing`
+che impersona un preset per vedere lo stato negato. Il riesame periodico dei
+diritti di accesso non vive nel prodotto: si svolge fuori, su foglio di
+calcolo (D-44, P-56, [Riesame-Accessi.md](Riesame-Accessi.md)). Nel prodotto
+si concedono e si revocano accessi, e il registro eventi ne tiene traccia.
 
 ---
 
@@ -339,11 +345,25 @@ pagina e del pulsante con tinta o sfumatura.
 
 ## Ruoli e permessi
 
-Cinque ruoli su nove aree. La matrice sta in **Sicurezza e sistemi → Accessi**;
-i dati in [admin-data.jsx](admin-data.jsx) (`RUOLI`, `PERMESSI`).
+Tre preset su tredici aree, di cui dodici assegnabili. La matrice si apre dal
+bottone **Ruoli & permessi** in **Impostazioni → Sicurezza e sistemi →
+Accessi**; i dati in [admin-data.jsx](admin-data.jsx) (`AREE`, `LIVELLI`,
+`RUOLI`, `admLivelliDi`, `hubPuo`). Ogni cella vale Nessuno, Lettura o
+Scrittura; Analisi Dati ammette solo la lettura; Piattaforma è riservata al
+Super Admin e non compare. I preset si regolano per cella: un account che
+differisce dal suo preset è **Personalizzato**.
 
-| Ruolo | Accede a |
+| Preset | Scrive su |
 |---|---|
+| **Super Admin** | Proprietà, Agent, Domini e mittenti, Sicurezza e sistemi — il lavoro operativo lo legge, Moderazione e Conformità comprese |
+| **Support** | Contatti, Moderazione, Elenchi, Workflow, Agent, Assistenza, Conformità |
+| **Marketing** | Elenchi, Proprietà, Marketing, Workflow, Domini e mittenti — Moderazione e Conformità: nessuno |
+| **Personalizzato** | cella per cella (nel mock Laura Bianchi: partita da Support, scrive solo su Assistenza) |
+
+Una scelta deliberata: **le impostazioni della piattaforma restano al solo Super
+Admin** — sono leve commerciali (prezzi, piani, soglie).
+
+---|---|
 | **Super Admin** | tutto |
 | **Support** | dashboard, locali, utenti, ticket, chiamate e knowledge base, certificazioni |
 | **Marketing** | dashboard, messaggi |

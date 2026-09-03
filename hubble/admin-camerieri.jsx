@@ -26,8 +26,12 @@ const CUSTOM_NOMI = ['Responsabile sala', 'Turno serale', 'Cassa weekend', 'Vice
 // Anagrafica della scheda. Chi non è in lista è un uomo.
 const NOMI_FEMMINILI = new Set(['Sara', 'Giulia', 'Martina', 'Chiara', 'Elena', 'Sofia', 'Valentina', 'Beatrice', 'Aurora', 'Camilla', 'Vittoria', 'Ludovica', 'Anna', 'Greta', 'Asia', 'Federica', 'Maria', 'Bianca', 'Ginevra']);
 
-// Aree del gestionale (per i ruoli di tipo "Personalizzato")
-const AREE_GESTIONALE = ['Sala', 'Vendita diretta', 'Prenotazioni', 'Panoramica', 'Impostazioni', 'Supporto', 'Statistiche', 'Contabilità'];
+// Aree del gestionale (per i ruoli di tipo "Personalizzato"). P-59 (RL-10):
+// le nove su cui gestionale e modello coincidono, copiate da ALL_AREAS di
+// gestionale/impostazioni-personale.jsx con le SUE etichette — «Sala e
+// prenotazioni» è un'area sola, e qui era spaccata in due; Cucina e App
+// cameriere mancavano. Se cambia di là, cambia anche qui.
+const AREE_GESTIONALE = ['Panoramica', 'Sala e prenotazioni', 'Vendita diretta', 'Cucina', 'App cameriere', 'Statistiche', 'Contabilità', 'Supporto', 'Impostazioni'];
 
 const STAFF = (() => {
   const nomi = [

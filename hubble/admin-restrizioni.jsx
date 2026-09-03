@@ -338,7 +338,8 @@ function RestrizioneCard({ rec, utente: u, operatore, revocataDa, onRevoca, onAp
           }}>Apri utente</button>
         )}
         {!revocata && (
-          <AdmButton variant="secondary" size="sm" icon="check" onClick={onRevoca}>Rimuovi restrizione</AdmButton>
+          <AdmButton variant="secondary" size="sm" icon="check" disabled={!hubPuo('moderazione', 'scrittura')}
+            title={hubPuo('moderazione', 'scrittura') ? undefined : 'Serve Scrittura su Moderazione'} onClick={onRevoca}>Rimuovi restrizione</AdmButton>
         )}
       </div>
 

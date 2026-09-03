@@ -694,7 +694,8 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
             <div style={{display:'flex', alignItems:'center', gap:10, padding:'4px 6px 10px'}}>
               <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Zona sensibile</span>
               <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
-              <button className="adm-textlink" onClick={()=>setBanPopup(banned ? 'unban' : 'ban')} style={{
+              {/* P-41 (D-33): il ban chiede Scrittura su Moderazione. */}
+              <button className="adm-textlink" disabled={!hubPuo('moderazione', 'scrittura')} title={hubPuo('moderazione', 'scrittura') ? undefined : 'Serve Scrittura su Moderazione'} onClick={()=>setBanPopup(banned ? 'unban' : 'ban')} style={{
                 background:'transparent', border:'none', color: banned ? ADM.MUTED : ADM.DANGER, fontSize:12.5, fontWeight:600,
                 cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
               }}>{banned ? 'Rimuovi ban…' : 'Banna utente…'}</button>
@@ -975,15 +976,16 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
                 <div style={{flex:1, minWidth:200, fontSize:13, color:'#78350F', lineHeight:1.45}}>
                   <strong>Shadowban attivo</strong> — queste recensioni sono visibili solo all'utente, non compaiono sulle schede dei locali.
                 </div>
-                <AdmButton variant="secondary" size="sm" onClick={()=>setBanPopup('unshadow')}>Rimuovi shadowban…</AdmButton>
+                <AdmButton variant="secondary" size="sm" disabled={!hubPuo('moderazione', 'scrittura')} title={hubPuo('moderazione', 'scrittura') ? undefined : 'Serve Scrittura su Moderazione'} onClick={()=>setBanPopup('unshadow')}>Rimuovi shadowban…</AdmButton>
               </div>
             ) : (
               <div style={{display:'flex', alignItems:'center', gap:10, padding:'0 6px'}}>
                 <span style={{fontSize:12, color:ADM.MUTED_SOFT, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.05em'}}>Moderazione</span>
                 <div style={{flex:1, height:1, background:ADM.BORDER_SOFT}}/>
-                <button className="adm-textlink" onClick={()=>setBanPopup('shadow')} style={{
-                  background:'transparent', border:'none', color:ADM.WARN, fontSize:12.5, fontWeight:600,
-                  cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
+                {/* P-41 (D-33): shadowban e ban chiedono Scrittura su Moderazione. */}
+                <button className="adm-textlink" disabled={!hubPuo('moderazione', 'scrittura')} title={hubPuo('moderazione', 'scrittura') ? undefined : 'Serve Scrittura su Moderazione'} onClick={()=>setBanPopup('shadow')} style={{
+                  background:'transparent', border:'none', color: hubPuo('moderazione', 'scrittura') ? ADM.WARN : ADM.MUTED_LIGHT, fontSize:12.5, fontWeight:600,
+                  cursor: hubPuo('moderazione', 'scrittura') ? 'pointer' : 'not-allowed', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset:3,
                 }}>Shadowban…</button>
               </div>
             )}

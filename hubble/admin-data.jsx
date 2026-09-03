@@ -577,7 +577,12 @@ const CERTIFICAZIONI = [
 // ---------- TEAM ADMIN ----------
 // L'accesso si descrive per AREA, non per funzione: ogni voce della console è
 // una riga, e la cella di un ruolo su un'area vale nessuno / lettura /
-// scrittura. Il booleano di prima aveva prodotto ruoli-diritto (Viewer, cioè
+// scrittura. Tredici aree, dodici assegnabili più Piattaforma riservata.
+// Annotazione per il registro: P-42 diceva «tredici aree con Elenchi» quando
+// le righe della matrice erano undici (contava le voci del menu con i quattro
+// canali di Marketing, o anticipava le due righe di D-33); P-54 diceva undici,
+// vero fino a P-41: con moderazione e conformità sono tredici.
+// Il booleano di prima aveva prodotto ruoli-diritto (Viewer, cioè
 // «sola lettura» travestito da ruolo) e aree spaccate in due (Ticket separato
 // dalla pubblicazione delle guide) solo per dire «legge ma non scrive»: la
 // distinzione ora la dice la cella, con la stessa grammatica a tre stati dei
@@ -586,15 +591,26 @@ const AREE = [
   // Analisi Dati non ha una scrittura: sono dati che la piattaforma raccoglie
   // da sola, e una cella «Scrittura» qui sarebbe una promessa senza oggetto.
   { id: 'analisi',    label: 'Analisi Dati',        desc: 'Le sette letture: locali, valore, utenti, mercato', soloLettura: true },
-  { id: 'contatti',   label: 'Contatti',            desc: 'La rubrica e le schede: locali, staff, utenti app, restrizioni' },
+  { id: 'contatti',   label: 'Contatti',            desc: 'La rubrica e le schede: locali, staff, utenti app' },
+  // P-41 (D-33): le Restrizioni non si abilitano più con l'anagrafica. Chi
+  // consulta la rubrica non deve poter sospendere un account: il registro si
+  // apre dalla rubrica ma chiede questo permesso — lettura per guardarlo,
+  // scrittura per applicare o rimuovere una restrizione. Annotazione per il
+  // registro: l'«Oggi» di P-41 descriveva la matrice (la descrizione
+  // dell'area diceva «restrizioni»), non un'applicazione ai gesti, che il
+  // prototipo non aveva mai avuto: hubPuo nasce qui.
+  { id: 'moderazione', label: 'Moderazione',        desc: 'Restrizioni agli utenti app: shadowban e ban, con motivi e revoche' },
   { id: 'elenchi',    label: 'Elenchi',             desc: 'Segmenti attivi e liste statiche' },
   { id: 'proprieta',  label: 'Proprietà',           desc: 'Il catalogo dei campi del contatto, di sistema e personalizzati' },
   { id: 'marketing',  label: 'Marketing',           desc: 'Mail, SMS, push e form: materiali, invii e statistiche' },
   { id: 'workflow',   label: 'Workflow',            desc: 'Le automazioni. Attivarne una richiede Scrittura sulle aree che tocca' },
   { id: 'agent',      label: 'Agent',               desc: 'La squadra degli agenti e l\'Ambiente in cui lavorano' },
-  { id: 'assistenza', label: 'Assistenza',          desc: 'Ticket, chiamate, certificazioni, FAQ e guide. Scrittura = rispondere e pubblicare' },
+  { id: 'assistenza', label: 'Assistenza',          desc: 'Ticket, chiamate, FAQ e guide. Scrittura = rispondere e pubblicare' },
+  // P-41 (D-33): le certificazioni alimentari si approvano e si rifiutano dal
+  // ticket, ma il permesso è questo, non quello dei ticket.
+  { id: 'conformita', label: 'Conformità',          desc: 'Certificazioni alimentari dei locali: approvare e rifiutare' },
   { id: 'domini',     label: 'Domini e mittenti',   desc: 'Domini di invio, indirizzi, numeri SMS' },
-  { id: 'sicurezza',  label: 'Sicurezza e sistemi', desc: 'Membri del team, riesame degli accessi, audit log e diagnostica' },
+  { id: 'sicurezza',  label: 'Sicurezza e sistemi', desc: 'Membri del team, accessi, audit log e diagnostica' },
   // Piattaforma è RISERVATA: leve commerciali (prezzi, piani, soglie) del solo
   // Super Admin. Non è una cella su «Nessuno»: non compare proprio — né nella
   // matrice dei preset né quando si regolano i permessi di un account.
@@ -617,38 +633,48 @@ const LIVELLI = {
 // sull'area, col motivo obbligatorio dove la console già lo chiede.
 const RUOLI = {
   super_admin: { label: 'Super Admin', desc: 'Governa piattaforma e sistemi; il lavoro operativo lo guarda, non lo tocca', color: 'DANGER',
-    livelli: { analisi: 'lettura', contatti: 'lettura', elenchi: 'lettura', proprieta: 'scrittura', marketing: 'lettura', workflow: 'lettura', agent: 'scrittura', assistenza: 'lettura', domini: 'scrittura', sicurezza: 'scrittura', piattaforma: 'scrittura' } },
+    livelli: { analisi: 'lettura', contatti: 'lettura', moderazione: 'lettura', elenchi: 'lettura', proprieta: 'scrittura', marketing: 'lettura', workflow: 'lettura', agent: 'scrittura', assistenza: 'lettura', conformita: 'lettura', domini: 'scrittura', sicurezza: 'scrittura', piattaforma: 'scrittura' } },
   support:     { label: 'Support',    desc: 'Contatti, assistenza e le liste e automazioni del suo lavoro', color: 'INFO',
-    livelli: { analisi: 'lettura', contatti: 'scrittura', elenchi: 'scrittura', proprieta: 'lettura', marketing: 'nessuno', workflow: 'scrittura', agent: 'scrittura', assistenza: 'scrittura', domini: 'nessuno', sicurezza: 'nessuno' } },
+    livelli: { analisi: 'lettura', contatti: 'scrittura', moderazione: 'scrittura', elenchi: 'scrittura', proprieta: 'lettura', marketing: 'nessuno', workflow: 'scrittura', agent: 'scrittura', assistenza: 'scrittura', conformita: 'scrittura', domini: 'nessuno', sicurezza: 'nessuno' } },
   marketing:   { label: 'Marketing',  desc: 'Campagne, elenchi, proprietà e domini di invio; i contatti li consulta', color: 'WARN',
-    livelli: { analisi: 'lettura', contatti: 'lettura', elenchi: 'scrittura', proprieta: 'scrittura', marketing: 'scrittura', workflow: 'scrittura', agent: 'lettura', assistenza: 'lettura', domini: 'scrittura', sicurezza: 'nessuno' } },
+    livelli: { analisi: 'lettura', contatti: 'lettura', moderazione: 'nessuno', elenchi: 'scrittura', proprieta: 'scrittura', marketing: 'scrittura', workflow: 'scrittura', agent: 'lettura', assistenza: 'lettura', conformita: 'nessuno', domini: 'scrittura', sicurezza: 'nessuno' } },
   // Non un preset: il vestito degli account regolati cella per cella. I
   // livelli veri stanno sul membro (permessiCustom), non qui.
   custom:      { label: 'Personalizzato', desc: 'Parte da un preset, regolato area per area', color: 'PURPLE', personalizzato: true },
 };
 
-// I ruoli che non esistono più ma che le attestazioni chiuse nominano ancora:
-// la storia non si riscrive, e un riesame del 2026 deve poter dire «era
-// Viewer». ICT è morto con la nascita di Impostazioni (il suo perimetro era
-// Sicurezza e sistemi, che ora si assegna cella per cella); Viewer è morto
-// quando «sola lettura» è diventato un livello invece che un ruolo.
-const RUOLI_STORICI = {
-  operations: { label: 'Viewer', livelli: { analisi: 'lettura' } },
-  ict:        { label: 'ICT',    livelli: { analisi: 'lettura', sicurezza: 'scrittura' } },
-};
-
-// I livelli veri di un membro (o di un ruolo storico nelle attestazioni):
-// preset, morto o personalizzato che sia. Tutto ciò che confronta accessi
-// passa da qui — una fonte per ogni fatto.
+// I livelli veri di un membro: preset o personalizzato che sia. Tutto ciò che
+// legge un permesso passa da qui — una fonte per ogni fatto. I ruoli storici
+// (ICT, Viewer) e il peso dei livelli sono morti con il riesame (P-56, D-44):
+// li nominavano solo le attestazioni chiuse.
 const admLivelliDi = (ruolo, membro) => {
   if (ruolo === 'custom') return (membro && membro.permessiCustom) || {};
-  const r = RUOLI[ruolo] || RUOLI_STORICI[ruolo];
+  const r = RUOLI[ruolo];
   return (r && r.livelli) || {};
 };
-const admLabelRuolo = (ruolo) => (RUOLI[ruolo] && RUOLI[ruolo].label) || (RUOLI_STORICI[ruolo] && RUOLI_STORICI[ruolo].label) || ruolo;
-// Il peso di una riga di livelli: scrittura vale 2, lettura 1. Serve al
-// riesame per dire «i permessi sono aumentati» confrontando due epoche.
-const admPesoLivelli = (livelli) => AREE.reduce((s, a) => s + ({ scrittura: 2, lettura: 1 }[(livelli || {})[a.id]] || 0), 0);
+const admLabelRuolo = (ruolo) => (RUOLI[ruolo] && RUOLI[ruolo].label) || ruolo;
+
+// ─── hubPuo: il permesso di chi è collegato (P-41 · D-33) ────────────────────
+// Una funzione sola, che i punti d'uso chiedono prima di un gesto: le
+// Restrizioni e i ban chiedono scrittura su Moderazione, approvare o
+// rifiutare una certificazione chiede scrittura su Conformità. Le funzioni
+// restano dove si aprono; cambia chi può usarle. Chi è collegato è il membro
+// con isYou; `?ruolo=support|marketing|super_admin` impersona un preset per
+// la demo, così lo stato negato si vede senza cambiare account.
+const hubUtenteCorrente = () => {
+  const me = TEAM.find(t => t.isYou) || {};
+  let demo = null;
+  try { demo = new URLSearchParams(window.location.search).get('ruolo'); } catch (e) {}
+  if (demo && RUOLI[demo] && !RUOLI[demo].personalizzato) return { ...me, ruolo: demo, demo: true };
+  return me;
+};
+const hubPuo = (area, livello) => {
+  const me = hubUtenteCorrente();
+  const l = admLivelliDi(me.ruolo, me)[area] || 'nessuno';
+  return livello === 'scrittura' ? l === 'scrittura' : (l === 'scrittura' || l === 'lettura');
+};
+window.hubUtenteCorrente = hubUtenteCorrente;
+window.hubPuo = hubPuo;
 
 const TEAM = [
   // nomeCompleto: "Tu" va bene nella lista del team, ma un'attestazione firmata
@@ -659,15 +685,15 @@ const TEAM = [
   // dal preset Support, le è rimasta la scrittura sulla sola Assistenza. Il
   // pannello deve DIMOSTRARE la personalizzazione, non raccontarla.
   { id: 'admin1', nome: 'Laura Bianchi', email: 'l.bianchi@byup.it', ruolo: 'custom',
-    permessiCustom: { analisi: 'lettura', contatti: 'lettura', elenchi: 'lettura', proprieta: 'nessuno', marketing: 'nessuno', workflow: 'lettura', agent: 'lettura', assistenza: 'scrittura', domini: 'nessuno', sicurezza: 'nessuno' },
+    permessiCustom: { analisi: 'lettura', contatti: 'lettura', moderazione: 'nessuno', elenchi: 'lettura', proprieta: 'nessuno', marketing: 'nessuno', workflow: 'lettura', agent: 'lettura', assistenza: 'scrittura', conformita: 'nessuno', domini: 'nessuno', sicurezza: 'nessuno' },
     avatar: 'LB', avatarBg: '#5B34D6', lastActive: new Date(Date.now() - 1200000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-03-22') },
   { id: 'admin2', nome: 'Davide Romano', email: 'd.romano@byup.it', ruolo: 'support', avatar: 'DR', avatarBg: '#2563EB', lastActive: new Date(Date.now() - 86400000), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-05-10') },
   { id: 'support1', nome: 'Sara Conti', email: 's.conti@byup.it', ruolo: 'support', avatar: 'SC', avatarBg: '#16A34A', lastActive: new Date(Date.now() - 180000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-07-04') },
   { id: 'support2', nome: 'Andrea Verdi', email: 'a.verdi@byup.it', ruolo: 'support', avatar: 'AV', avatarBg: '#D97706', lastActive: new Date(Date.now() - 7200000), addedBy: 'Laura Bianchi', due_fa: true, attivo: true, addedOn: new Date('2024-09-12') },
   { id: 'mkt1', nome: 'Paola Esposito', email: 'p.esposito@byup.it', ruolo: 'marketing', avatar: 'PE', avatarBg: '#D97706', lastActive: new Date(Date.now() - 3600000 * 5), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2024-11-20') },
   { id: 'mkt2', nome: 'Marco Galli', email: 'm.galli@byup.it', ruolo: 'marketing', avatar: 'MG', avatarBg: '#B45309', lastActive: new Date(Date.now() - 86400000 * 7), addedBy: 'Tu', due_fa: true, attivo: true, addedOn: new Date('2025-02-03') },
-  // I tre casi che un riesame degli accessi deve pescare. Senza, la schermata
-  // mostrerebbe sette persone tutte attive oggi e non dimostrerebbe nulla.
+  // Due persone che non entrano da mesi: la scheda Accessi le mostra come
+  // sono, e il riesame su foglio (D-44) le pesca dall'ultimo accesso.
   { id: 'mkt3', nome: 'Elena Ricci', email: 'e.ricci@byup.it', ruolo: 'marketing', avatar: 'ER', avatarBg: '#0891B2', lastActive: new Date(Date.now() - 86400000 * 142), addedBy: 'Paola Esposito', due_fa: true, attivo: true, addedOn: new Date('2025-06-10') },
   { id: 'support3', nome: 'Nicola Ferrara', email: 'n.ferrara@byup.it', ruolo: 'support', avatar: 'NF', avatarBg: '#4F46E5', lastActive: new Date(Date.now() - 86400000 * 3), addedBy: 'Sara Conti', due_fa: true, attivo: true, addedOn: new Date('2026-07-08') },
 ];
@@ -675,8 +701,8 @@ const TEAM = [
 // ─── Inviti non ancora accettati ────────────────────────────────────────────
 // Chi non ha accettato NON è nel team: non ha una password, non ha una sessione,
 // non ha ancora accesso a niente. Stava in TEAM con `pending: true` e finiva
-// nell'elenco del riesame accessi classificato «Mai acceduto», dove non c'entra
-// — il riesame guarda chi ha accesso, non chi potrebbe averlo. Vive qui, e qui
+// nell'elenco degli accessi come «Mai acceduto», dove non c'entra — quella
+// scheda mostra chi ha accesso, non chi potrebbe averlo. Vive qui, e qui
 // il numero che conta è da quanto l'invito è fermo: un invito vecchio con
 // permessi già assegnati è una porta socchiusa che nessuno sta guardando.
 const INVITI_PENDENTI = [
@@ -691,87 +717,11 @@ const INVITI_PENDENTI = [
     inviato:new Date('2026-06-20'),               scade:new Date('2026-06-27') },
 ];
 
-// ─── Riesame periodico dei diritti di accesso (ISO/IEC 27001 A.5.18) ─────────
-// Il controllo non è "esiste una lista": è poter dimostrare che a una certa
-// data una persona ha guardato chi ha accesso a cosa e ha deciso, e che le
-// revoche sono state eseguite. Ambito = solo il team admin di Byup.
-//
-// La CADENZA non sta qui: sta in `RA_CADENZA_MESI` in admin-team.jsx, accanto
-// al codice che la usa. Viveva nell'adempimento `acc` del Cruscotto di Risk
-// Management, che non esiste più. La `scadenza` non è scritta a mano da
-// nessuna parte — si calcola (vedi raScadenza) da apertura + cadenza.
-const RIESAME_CORRENTE = {
-  id: 'RA-2026-Q3',
-  periodo: 'Q3 2026',
-  apertaIl: new Date('2026-07-01T09:00:00'),
-  revisore: 'Marco Rinaldi',
-  stato: 'aperta',
-  esiti: [],
-};
-
-// Campagne chiuse: sono l'evidenza da mostrare all'auditor. Una volta chiuse
-// non si modificano — una correzione è una campagna nuova, mai una riscrittura.
-const RIESAMI_CHIUSI = [
-  {
-    id: 'RA-2026-Q2',
-    periodo: 'Q2 2026',
-    apertaIl: new Date('2026-04-01T09:00:00'),
-    scadenza: new Date('2026-04-30T23:59:59'),
-    chiusaIl: new Date('2026-04-14T15:20:00'),
-    revisore: 'Marco Rinaldi',
-    stato: 'chiusa',
-    esiti: [
-      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:"d'ufficio",     quando:new Date('2026-04-14T15:10:00'), motivo:'Super Admin titolare — accesso per definizione del ruolo' },
-      { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:12:00'), motivo:'' },
-      { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:13:00'), motivo:'' },
-      { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:14:00'), motivo:'' },
-      // Andrea era Viewer e oggi è Support: il riesame lo deve segnalare.
-      { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:15:00'), motivo:'' },
-      { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:17:00'), motivo:'' },
-      { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:18:00'), motivo:'' },
-      { soggettoId:'mkt3',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-04-14T15:20:00'), motivo:'' },
-    ],
-  },
-  {
-    id: 'RA-2026-Q1',
-    periodo: 'Q1 2026',
-    apertaIl: new Date('2026-01-02T09:00:00'),
-    scadenza: new Date('2026-01-31T23:59:59'),
-    chiusaIl: new Date('2026-01-16T16:42:00'),
-    revisore: 'Marco Rinaldi',
-    stato: 'chiusa',
-    esiti: [
-      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:"d'ufficio",     quando:new Date('2026-01-16T16:30:00'), motivo:'Super Admin titolare — accesso per definizione del ruolo' },
-      { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:33:00'), motivo:'' },
-      { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:34:00'), motivo:'' },
-      { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:35:00'), motivo:'' },
-      { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:36:00'), motivo:'' },
-      { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:38:00'), motivo:'' },
-      { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:39:00'), motivo:'' },
-      { soggettoId:'mkt3',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:40:00'), motivo:'' },
-      { soggettoId:'exdev1',   decisione:'revocato',   ruoloAllora:'super_admin', chi:'Marco Rinaldi', quando:new Date('2026-01-16T16:41:00'), motivo:'Collaborazione terminata il 30/11/2025 — accesso non più necessario', eseguito:true, nomeStorico:'Tommaso Neri' },
-    ],
-  },
-  {
-    id: 'RA-2025-Q4',
-    periodo: 'Q4 2025',
-    apertaIl: new Date('2025-10-01T09:00:00'),
-    scadenza: new Date('2025-10-31T23:59:59'),
-    chiusaIl: new Date('2025-10-20T11:05:00'),
-    revisore: 'Marco Rinaldi',
-    stato: 'chiusa',
-    esiti: [
-      { soggettoId:'admin0',   decisione:'confermato', ruoloAllora:'super_admin', chi:"d'ufficio",     quando:new Date('2025-10-20T10:58:00'), motivo:'Super Admin titolare — accesso per definizione del ruolo' },
-      { soggettoId:'admin1',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:00:00'), motivo:'' },
-      { soggettoId:'admin2',   decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:01:00'), motivo:'' },
-      { soggettoId:'support1', decisione:'confermato', ruoloAllora:'support',     chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:02:00'), motivo:'' },
-      { soggettoId:'support2', decisione:'confermato', ruoloAllora:'operations',  chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:03:00'), motivo:'' },
-      { soggettoId:'mkt1',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:04:00'), motivo:'' },
-      { soggettoId:'mkt2',     decisione:'confermato', ruoloAllora:'marketing',   chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:05:00'), motivo:'' },
-      { soggettoId:'exdev1',   decisione:'confermato', ruoloAllora:'super_admin', chi:'Marco Rinaldi', quando:new Date('2025-10-20T11:05:30'), motivo:'', nomeStorico:'Tommaso Neri' },
-    ],
-  },
-];
+// Il riesame periodico dei diritti di accesso (ISO/IEC 27001 A.5.18) non vive
+// più qui: si svolge fuori dal prodotto, su foglio di calcolo (D-44, P-56).
+// Dentro il prodotto si concedono e si revocano accessi, e nient'altro; le
+// campagne mock (RIESAME_CORRENTE, RIESAMI_CHIUSI) sono morte con esso.
+// Il rito è descritto in Riesame-Accessi.md.
 
 // ---------- TOP PIATTI / ORDINI / CITTÀ aggregati ----------
 const TOP_PIATTI = [
@@ -1451,12 +1401,10 @@ window.CERT_TIPI = CERT_TIPI;
 window.TEAM = TEAM;
 window.INVITI_PENDENTI = INVITI_PENDENTI;
 window.RUOLI = RUOLI;
-window.RUOLI_STORICI = RUOLI_STORICI;
 window.AREE = AREE;
 window.LIVELLI = LIVELLI;
 window.admLivelliDi = admLivelliDi;
 window.admLabelRuolo = admLabelRuolo;
-window.admPesoLivelli = admPesoLivelli;
 window.TOP_PIATTI = TOP_PIATTI;
 window.TOP_CITTA = TOP_CITTA;
 window.SCREENS_USAGE = SCREENS_USAGE;
@@ -1466,8 +1414,6 @@ window.RETE = RETE;
 window.RITENZIONE = RITENZIONE;
 window.ESPANSIONE = ESPANSIONE;
 window.TOTAL_REVENUE_HISTORICAL = TOTAL_REVENUE_HISTORICAL;
-window.RIESAME_CORRENTE = RIESAME_CORRENTE;
-window.RIESAMI_CHIUSI = RIESAMI_CHIUSI;
 window.DOCUMENTI = DOCUMENTI;
 window.CONTRATTI_PER_TIPO = CONTRATTI_PER_TIPO;
 window.CTR_CASI = CTR_CASI;

@@ -694,8 +694,15 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               padding:'16px 18px',
               boxShadow:'0 1px 2px rgba(15,17,21,0.03)',
             }}>
+              {/* P-41 (D-33): approvare e rifiutare chiede Scrittura su
+                  Conformità, non sui ticket. La funzione resta nel ticket. */}
+              {!hubPuo('conformita', 'scrittura') && (
+                <div style={{padding:'10px 13px', borderRadius:10, background:ADM.WARN_SOFT, border:'1px solid #FDE68A', fontSize:13, color:'#78350F', lineHeight:1.5, marginBottom:10}}>
+                  Approvare o rifiutare una certificazione richiede <b>Scrittura su Conformità</b>: il tuo ruolo qui legge. Chiedi a chi ce l'ha, o lascia il ticket in attesa.
+                </div>
+              )}
               {!rejectMode && (
-                <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+                <div style={{display:'flex', gap:10, flexWrap:'wrap', opacity: hubPuo('conformita', 'scrittura') ? 1 : 0.45, pointerEvents: hubPuo('conformita', 'scrittura') ? 'auto' : 'none'}}>
                   <button onClick={approveCert} style={{
                     flex:'1 1 300px',
                     display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
