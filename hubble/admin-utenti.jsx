@@ -232,12 +232,11 @@ function UtenteDrawer({ utente: u, onClose, pieno }) {
   };
   const confirmDelete = () => {
     // Il popup promette l'irreversibile, e a livello di mock l'azione agisce
-    // sul modello come il ban: il flag resta sull'utente e la sua riga in
-    // rubrica passa al ciclo «eliminato» che CNT_CICLO già prevede — tornando
-    // in Contatti il contatto non si ripresenta intatto come se niente fosse.
+    // sul modello come il ban: il flag resta sull'utente, e lo stadio
+    // «Eliminato» in rubrica lo calcola hubStadio da questo flag — niente da
+    // scrivere sulla riga, tornando in Contatti il contatto non si
+    // ripresenta intatto come se niente fosse.
     u.eliminato = true;
-    const c = (typeof CONTATTI !== 'undefined' ? CONTATTI : []).find(r => r.key === 'utn-' + u.id);
-    if (c) c.ciclo = 'eliminato';
     setDeletePopup(false); onClose();
   };
 

@@ -54,12 +54,15 @@ const APP_METRICS = {
 // giorno non ha la brigata di chi ne fa trenta — con un minimo di tre: sotto
 // non ci si sta in sala nemmeno a pranzo.
 //
-// Ha una squadra chi è vivo E ha configurato lo staff: la stessa regola che
-// la card «Locali con staff» usa per contarli, così i due numeri della stessa
-// riga non contano due popolazioni diverse.
+// Ha una squadra chi è vivo E ha lo staff collegato — il passo «Staff
+// collegato» dell'imbuto (P-45), cioè un collaboratore entrato davvero, non
+// un invito: la stessa regola che la card «Locali con staff» usa per
+// contarli, così i due numeri della stessa riga non contano due popolazioni
+// diverse. Prima controllava un passo «team_staff» che non esisteva, e di
+// fatto contava solo gli attivi.
 const STAFF_CONFIGURATO = (l) =>
   (l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped')
-  && l.completedSteps && (l.completedSteps.includes('team_staff') || l.stato === 'active');
+  && l.completedSteps && l.completedSteps.includes('staff');
 const STAFF_PER_LOCALE_BASE = LOCALI.map(l => ({
   localeId: l.id,
   n: STAFF_CONFIGURATO(l)
@@ -1041,7 +1044,9 @@ function OnboardingDaSeguire({ onNav }) {
                 <span style={{display:'block', fontSize:11.8, color:ADM.MUTED_LIGHT, marginTop:1}}>{l.citta}</span>
               </span>
               <span style={{fontSize:12.8, color:ADM.MUTED}}>
-                {l.stato === 'pending' ? 'Non ha ancora iniziato' : `Fermo a «${(ONB_STEPS.find(s2 => s2.id === l.stoppedAt) || {}).label || '—'}»`}
+                {/* Il sotto-passo di «Il tuo locale» si dice qui, dove serve
+                    a chi telefona; l'imbuto conta il passo e basta. */}
+                {l.stato === 'pending' ? 'Non ha ancora iniziato' : `Fermo a «${(ONB_STEPS.find(s2 => s2.id === l.stoppedAt) || {}).label || '—'}${l.stoppedSub ? ' · ' + onbSottoLabel(l.stoppedSub) : ''}»`}
               </span>
               <span style={{fontSize:13.6, fontWeight:800, color:tono, textAlign:'right',
                 fontVariantNumeric:'tabular-nums'}}>{age} gg</span>
@@ -1060,7 +1065,7 @@ function OnboardingDaSeguire({ onNav }) {
           <b style={{color:ADM.TEXT}}>{setupIniziale}</b> non hanno finito la configurazione di base — non operano ancora
         </span>
         <span style={{fontSize:12.8, color:ADM.MUTED}}>
-          <b style={{color:ADM.TEXT}}>{onbIncompleto}</b> operano ma hanno saltato degli step (vetrina, staff, integrazioni)
+          <b style={{color:ADM.TEXT}}>{onbIncompleto}</b> operano avendo saltato la configurazione completa (informazioni, aspetto, personale)
         </span>
       </div>
     </AdmCard>
@@ -1069,10 +1074,11 @@ function OnboardingDaSeguire({ onNav }) {
 
 
 function ConvOnboardingTooltip({ tot, completati, tentati, convRate, pending, inOnboarding, skipped }) {
+  // Due righe, non tre: chi ha saltato la configurazione completa è ARRIVATO
+  // all'avvio, e sta fra i completati — lo si dice sotto, come sottoinsieme.
   const rows = [
-    { label: 'Completati · Go-live',     desc: 'Onboarding obbligatorio completato',        count: completati,  color: 'OK',     base: tentati },
-    { label: 'In onboarding · bloccati', desc: 'Hanno iniziato ma non hanno raggiunto Go-live', count: inOnboarding, color: 'WARN',  base: tentati },
-    { label: 'Skipped · saltato',        desc: 'Hanno saltato l\'onboarding (operano comunque)', count: skipped,    color: 'INFO',  base: tentati },
+    { label: 'Completati · Go-live',  desc: 'Percorso rapido finito: il locale opera',      count: completati,   color: 'OK',   base: tentati },
+    { label: 'In onboarding · fermi', desc: 'Hanno iniziato e non sono arrivati all\'avvio', count: inOnboarding, color: 'WARN', base: tentati },
   ];
   return (
     <div>
@@ -1097,7 +1103,6 @@ function ConvOnboardingTooltip({ tot, completati, tentati, convRate, pending, in
       <div style={{display:'flex', height:8, borderRadius:99, overflow:'hidden', background:'#F0F1F3', marginBottom:12}}>
         <div style={{width:`${tentati>0 ? (completati/tentati)*100 : 0}%`,  background:ADM.OK}}/>
         <div style={{width:`${tentati>0 ? (inOnboarding/tentati)*100 : 0}%`, background:ADM.WARN}}/>
-        <div style={{width:`${tentati>0 ? (skipped/tentati)*100 : 0}%`,      background:ADM.INFO}}/>
       </div>
 
       {/* Rows */}
@@ -1119,7 +1124,8 @@ function ConvOnboardingTooltip({ tot, completati, tentati, convRate, pending, in
       </div>
 
       <div style={{marginTop:12, paddingTop:11, borderTop:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13, color:ADM.MUTED, lineHeight:1.5}}>
-        Il <strong style={{color:ADM.TEXT}}>conversion rate</strong> esclude i pending: misura quanti, una volta iniziato, completano davvero l'onboarding obbligatorio.
+        Fra i completati, <strong style={{color:ADM.TEXT}}>{skipped}</strong> hanno saltato la configurazione completa: operano, senza vetrina né personale.
+        Il <strong style={{color:ADM.TEXT}}>conversion rate</strong> esclude chi non ha iniziato: misura quanti, una volta iniziato, arrivano davvero all'avvio.
       </div>
     </div>
   );
@@ -1283,10 +1289,12 @@ function SparkStat({ label, value, sub, accent='PINK', icon='trendUp', trend, tr
 
 // ---------- LOCALI tab ----------
 function DashLocali({ onNav, filtri }) {
-  const onbCompletati = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'churned').length;
+  // Completato = arrivato all'avvio: anche chi poi ha saltato la
+  // configurazione completa (skipped), che opera.
+  const onbCompletati = LOCALI.filter(l => l.completedSteps.includes('verifica')).length;
   const onbTentati = LOCALI.length - LOCALI.filter(l => l.stato === 'pending').length;
   const convRate = onbTentati > 0 ? Math.round((onbCompletati/onbTentati)*100) : 0;
-  const tempiMedi = LOCALI.filter(l => l.stato === 'active' && l.stepTimes && l.stepTimes.verifica_menu).map(l => (l.stepTimes.verifica_menu - l.dataIscrizione) / 60000);
+  const tempiMedi = LOCALI.filter(l => l.stato === 'active' && l.stepTimes && l.stepTimes.verifica).map(l => (l.stepTimes.verifica - l.dataIscrizione) / 60000);
   const tempoMedioMin = tempiMedi.length ? Math.round(tempiMedi.reduce((a,b)=>a+b,0)/tempiMedi.length) : 0;
   const tempoMedioStr = tempoMedioMin < 60 ? `${tempoMedioMin} min` : `${Math.floor(tempoMedioMin/60)}h ${tempoMedioMin%60}m`;
 
@@ -1306,13 +1314,13 @@ function DashLocali({ onNav, filtri }) {
     { range: '1 – 2 h',     count: tempiMedi.filter(t => t >= 60 && t < 120).length,    color: 'WARN' },
     { range: '> 2 h',       count: tempiMedi.filter(t => t >= 120).length,              color: 'DANGER' },
   ];
-  // Tempo medio per ogni step obbligatorio (durata dallo step precedente)
-  const ONB_MAND = ONB_STEPS.filter(s => !s.optional);
-  const stepTimings = ONB_MAND.slice(1).map((s, i) => {
-    const prev = ONB_MAND[i].id;
+  // Tempo medio per ogni passo del percorso rapido (durata dal passo
+  // precedente; per il primo, dall'iscrizione)
+  const stepTimings = ONB_RAPIDO.map((s, i) => {
+    const prev = i > 0 ? ONB_RAPIDO[i - 1].id : null;
     const durs = LOCALI
-      .filter(l => l.stepTimes && l.stepTimes[s.id] && l.stepTimes[prev])
-      .map(l => (new Date(l.stepTimes[s.id]).getTime() - new Date(l.stepTimes[prev]).getTime()) / 60000);
+      .filter(l => l.stepTimes && l.stepTimes[s.id] && (!prev || l.stepTimes[prev]))
+      .map(l => (new Date(l.stepTimes[s.id]).getTime() - (prev ? new Date(l.stepTimes[prev]).getTime() : new Date(l.dataIscrizione).getTime())) / 60000);
     const avg = durs.length ? Math.round(durs.reduce((a,b)=>a+b,0) / durs.length) : 0;
     return { label: s.label, minutes: avg };
   });
@@ -1527,24 +1535,26 @@ function DashLocali({ onNav, filtri }) {
       <SectionLabel title="Dove sta la rete" desc="I locali sulla carta, e dove gli utenti aprono l'app" first/>
       {window.AnMappa ? <AnMappa/> : null}
 
-      {/* ═══════════ Il ciclo di vita ═══════════ */}
-      <SectionLabel title="Il ciclo di vita" desc="Dove stanno i locali nel rapporto con byup — la stessa scala della rubrica"/>
+      {/* ═══════════ Lo stadio commerciale ═══════════ */}
+      <SectionLabel title="Lo stadio commerciale" desc="Dove stanno i locali nel rapporto con byup — la stessa scala della rubrica"/>
       <AdmCard padding={20}>
         {(() => {
-          // Stessa fonte della colonna «Ciclo di vita» in Contatti: le righe
-          // arricchite della rubrica, non un ricalcolo parallelo che alla
-          // prima modifica divergerebbe.
-          const righe = (typeof CONTATTI !== 'undefined' ? CONTATTI : []).filter(c => c.tipo === 'locale' && c.ciclo);
+          // Stessa fonte della colonna «Stadio» in Contatti: hubStadio letto
+          // sulle righe della rubrica (P-43), non un ricalcolo parallelo che
+          // alla prima modifica divergerebbe.
+          const righe = (typeof CONTATTI !== 'undefined' ? CONTATTI : [])
+            .map(c => ({ c, stadio: hubLeggi(c, 'ciclo') }))
+            .filter(x => x.c.tipo === 'locale' && x.stadio);
           const tot = righe.length || 1;
           const stadi = Object.entries(CNT_CICLO).map(([id, d]) => {
-            const n = righe.filter(c => c.ciclo === id).length;
+            const n = righe.filter(x => x.stadio === id).length;
             return { id, ...d, n, pct: Math.round(n / tot * 1000) / 10 };
           });
           const fmtPc = (p) => String(p).replace('.', ',') + '%';
           return (
             <React.Fragment>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:10, marginBottom:12}}>
-                <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Locali per ciclo di vita</div>
+                <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Locali per stadio</div>
                 <div style={{fontSize:13, color:ADM.MUTED, fontWeight:600}}>{fmtNum(tot)} locali</div>
               </div>
               <div style={{display:'flex', height:16, borderRadius:99, overflow:'hidden', gap:2}}>
@@ -1633,39 +1643,51 @@ function DashLocali({ onNav, filtri }) {
       <SectionLabel title="Onboarding e adozione" desc="Dal funnel di attivazione all'uso reale dei QR"/>
 
       {(() => {
-        // Identifica il collo di bottiglia: lo step OBBLIGATORIO con max drop-off relativo
+        // Il collo di bottiglia: il passo del PERCORSO RAPIDO con la caduta
+        // relativa più alta. Lo staff viene dopo l'avvio e non concorre.
+        const iscritti = LOCALI.length;
         const stepCounts = ONB_STEPS.map(s => ({
           step: s,
           count: LOCALI.filter(l => l.completedSteps.includes(s.id)).length,
         }));
         const dropoffs = stepCounts.map((sc, i) => {
-          if (i === 0 || sc.step.optional) return null;
-          const prev = stepCounts[i-1].count;
+          if (sc.step.dopoAvvio) return null;
+          const prev = i === 0 ? iscritti : stepCounts[i-1].count;
           const drop = prev - sc.count;
-          const relDrop = prev > 0 ? drop / prev : 0;
-          return { idx: i, drop, relDrop };
+          return { idx: i, drop, relDrop: prev > 0 ? drop / prev : 0 };
         }).filter(Boolean);
         const worst = dropoffs.length > 0 ? dropoffs.reduce((a,b) => b.relDrop > a.relDrop ? b : a) : null;
         const bottleneckIdx = worst && worst.relDrop >= 0.10 ? worst.idx : -1; // soglia 10%
         const bottleneckStep = bottleneckIdx >= 0 ? ONB_STEPS[bottleneckIdx] : null;
-        const bottleneckPrev = bottleneckIdx > 0 ? stepCounts[bottleneckIdx-1].count : 0;
-        const bottleneckPct = bottleneckPrev > 0 && worst ? Math.round(worst.relDrop * 100) : 0;
+        const bottleneckPct = worst ? Math.round(worst.relDrop * 100) : 0;
+        const bottleneckDa = bottleneckIdx > 0 ? ONB_STEPS[bottleneckIdx-1].label : 'Iscrizione';
+        // La configurazione completa si conta su chi è oltre l'avvio: prima
+        // non la si può nemmeno cominciare. «Saltata» = oltre l'avvio e senza
+        // quel passo; chi non ne ha fatto nessuno sta in Panoramica con la
+        // vetrina vuota.
+        const oltreAvvio = LOCALI.filter(l => l.completedSteps.includes('verifica'));
+        const cfgCounts = ONB_CONFIG.map(s => {
+          const fatti = oltreAvvio.filter(l => l.completedSteps.includes(s.id)).length;
+          return { step: s, fatti, saltata: oltreAvvio.length - fatti };
+        });
+        const saltataTutta = oltreAvvio.filter(l => !ONB_CONFIG.some(s => l.completedSteps.includes(s.id))).length;
 
         return (
       <AdmCard padding={20}>
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14, gap:14, flexWrap:'wrap'}}>
-          <div>
+          <div style={{flex:1, minWidth:260}}>
             <div style={{fontSize:15.1, fontWeight:700, color:ADM.TEXT}}>Funnel di onboarding</div>
-            <div style={{fontSize:13, color:ADM.MUTED, marginTop:3}}>
-              Quanti arrivano a ogni passo, su {LOCALI.length} locali iscritti · la barra è
+            <div style={{fontSize:13, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
+              Quanti arrivano a ogni passo, su {iscritti} locali iscritti · la barra è
               <span style={{fontFamily:'ui-monospace, monospace', fontSize:11.5, background:ADM.NEUTRAL_SOFT, padding:'2px 6px', borderRadius:5, margin:'0 4px'}}>locali al passo ÷ iscritti</span>
-              e il collo di bottiglia si accende da solo sopra il 10% di caduta
+              e il collo di bottiglia si accende da solo sopra il 10% di caduta.
+              Si conta ciò che l'utente vede: l'elaborazione del menù è un'attesa e la verifica dell'identità un controllo dentro «Il tuo locale», attivazioni fiscali comprese — non sono passi.
             </div>
           </div>
           <div style={{display:'flex', gap:14, fontSize:13, color:ADM.MUTED, alignItems:'center', flexWrap:'wrap'}}>
-            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.INK}}/>Obbligatorio</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.INK}}/>Percorso rapido</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.OK}}/>Avvio</span>
-            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:'#E4E6EA'}}/>Opzionale</span>
+            <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.PURPLE}}/>Dopo l'avvio</span>
             <span style={{display:'inline-flex', alignItems:'center', gap:6}}><span style={{width:9, height:9, borderRadius:2, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}`}}/>Bottleneck</span>
           </div>
         </div>
@@ -1684,10 +1706,10 @@ function DashLocali({ onNav, filtri }) {
             <div style={{flex:1, minWidth:0}}>
               <div style={{fontSize:13.7, color:ADM.TEXT, fontWeight:600, lineHeight:1.45}}>
                 <span style={{color:ADM.DANGER, fontWeight:800}}>Collo di bottiglia · {bottleneckStep.label}</span>
-                <span style={{color:ADM.MUTED, fontWeight:500}}> · {worst.drop} locali persi ({bottleneckPct}%) tra <strong style={{color:ADM.TEXT}}>{ONB_STEPS[bottleneckIdx-1].label}</strong> e <strong style={{color:ADM.TEXT}}>{bottleneckStep.label}</strong>.</span>
+                <span style={{color:ADM.MUTED, fontWeight:500}}> · {worst.drop} locali persi ({bottleneckPct}%) tra <strong style={{color:ADM.TEXT}}>{bottleneckDa}</strong> e <strong style={{color:ADM.TEXT}}>{bottleneckStep.label}</strong>.</span>
               </div>
               <div style={{fontSize:13, color:ADM.MUTED, marginTop:3, lineHeight:1.5}}>
-                Soglia di anomalia superata (drop ≥ 10%). Verifica copy, UX o gestionale di quello step.
+                Soglia di anomalia superata (drop ≥ 10%). Verifica copy, UX o gestionale di quel passo.
               </div>
             </div>
           </div>
@@ -1696,24 +1718,22 @@ function DashLocali({ onNav, filtri }) {
         <div style={{display:'flex', flexDirection:'column', gap:9}}>
           {ONB_STEPS.map((step, i) => {
             const count = stepCounts[i].count;
-            const pct = (count / LOCALI.length) * 100;
-            const prevCount = i > 0 ? stepCounts[i-1].count : count;
-            const dropoff = i > 0 ? prevCount - count : 0;
+            const pct = (count / iscritti) * 100;
+            const prevCount = i > 0 ? stepCounts[i-1].count : iscritti;
+            const dropoff = prevCount - count;
             const relDrop = prevCount > 0 ? dropoff / prevCount : 0;
-            const isOptional = step.optional;
+            const isDopo = !!step.dopoAvvio;
             const isAvvio = step.avvio;
             const isBottleneck = i === bottleneckIdx;
-            // Flat, un colore = un significato: coral (percorso), grigio (opzionale),
-            // verde (go-live), rosso (solo il problema). Niente gradient decorativi.
+            // Flat, un colore = un significato: inchiostro (percorso rapido),
+            // verde (avvio), viola (dopo l'avvio), rosso (solo il problema).
             const barBg = isBottleneck ? ADM.DANGER
-              : isOptional ? '#E4E6EA'
+              : isDopo ? ADM.PURPLE
               : isAvvio ? ADM.OK
               : ADM.INK;
-            const textColor = isOptional ? ADM.MUTED : '#fff';
             return (
               <div key={step.id} style={{
                 display:'flex', alignItems:'center', gap:12,
-                opacity: isOptional ? 0.92 : 1,
                 padding: isBottleneck ? '4px 8px' : 0,
                 marginLeft: isBottleneck ? -8 : 0, marginRight: isBottleneck ? -8 : 0,
                 background: isBottleneck ? ADM.DANGER_SOFT : 'transparent',
@@ -1724,21 +1744,48 @@ function DashLocali({ onNav, filtri }) {
                 <div style={{width:170, fontSize:14, color:ADM.TEXT, fontWeight: isAvvio || isBottleneck ? 700 : 500, display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
                   {step.label}
                   {isAvvio && <span style={{fontSize:13, fontWeight:800, color:ADM.OK, padding:'1px 6px', borderRadius:4, background:ADM.OK_SOFT, textTransform:'uppercase', letterSpacing:'0.04em'}}>avvio</span>}
-                  {isOptional && <span style={{fontSize:13, fontWeight:700, color:ADM.MUTED, padding:'1px 6px', borderRadius:4, background:ADM.NEUTRAL_SOFT, textTransform:'uppercase', letterSpacing:'0.04em'}}>opz.</span>}
                   {isBottleneck && <span style={{fontSize:13, fontWeight:800, color:'#fff', padding:'1px 6px', borderRadius:4, background:ADM.DANGER, textTransform:'uppercase', letterSpacing:'0.04em'}}>bottleneck</span>}
                 </div>
                 <div style={{flex:1, height:22, background:'#F4F5F7', borderRadius:5, position:'relative', overflow:'hidden'}}>
                   <div style={{width:`${pct}%`, height:'100%', background: barBg, borderRadius:5, transition:'width 0.4s cubic-bezier(0.2,0.7,0.3,1)'}}/>
-                  <div style={{position:'absolute', left:8, top:0, bottom:0, display:'flex', alignItems:'center', fontSize:13, fontWeight:700, color:textColor}}>{count}</div>
+                  <div style={{position:'absolute', left:8, top:0, bottom:0, display:'flex', alignItems:'center', fontSize:13, fontWeight:700, color:'#fff'}}>{count}</div>
                 </div>
-                <div style={{width:96, textAlign:'right', fontSize:13.3, color: isBottleneck ? ADM.DANGER : (dropoff > 0 && !isOptional ? ADM.DANGER : ADM.MUTED), fontWeight: isBottleneck ? 800 : 600}}>
-                  {i > 0 && dropoff > 0 ? (
+                <div style={{width:96, textAlign:'right', fontSize:13.3, color: isBottleneck ? ADM.DANGER : (dropoff > 0 && !isDopo ? ADM.DANGER : ADM.MUTED), fontWeight: isBottleneck ? 800 : 600}}>
+                  {dropoff > 0 ? (
                     <span>−{dropoff} <span style={{opacity:0.6, fontWeight:600}}>({Math.round(relDrop*100)}%)</span></span>
                   ) : ''}
                 </div>
               </div>
             );
           })}
+        </div>
+
+        {/* La configurazione completa: tre passi che si possono saltare, con
+            quanti l'hanno saltata. Non è una coda dell'imbuto — la barra è su
+            chi è oltre l'avvio, non sugli iscritti. */}
+        <div style={{marginTop:16, paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:14, flexWrap:'wrap', marginBottom:10}}>
+            <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Configurazione completa</div>
+            <div style={{fontSize:12.8, color:ADM.MUTED}}>
+              su <b style={{color:ADM.TEXT}}>{oltreAvvio.length}</b> locali oltre l'avvio · <b style={{color:ADM.TEXT}}>{saltataTutta}</b> l'hanno saltata per intero
+            </div>
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {cfgCounts.map(({ step, fatti, saltata }, i) => {
+              const pct = oltreAvvio.length ? (fatti / oltreAvvio.length) * 100 : 0;
+              return (
+                <div key={step.id} style={{display:'flex', alignItems:'center', gap:12}}>
+                  <div style={{width:24, fontSize:13, color:ADM.MUTED_SOFT, fontWeight:600, textAlign:'right'}}>{i+1}</div>
+                  <div style={{width:170, fontSize:14, color:ADM.TEXT, fontWeight:500}}>{step.label}</div>
+                  <div style={{flex:1, height:18, background:'#F4F5F7', borderRadius:5, position:'relative', overflow:'hidden'}}>
+                    <div style={{width:`${pct}%`, height:'100%', background:ADM.TEAL, borderRadius:5}}/>
+                    <div style={{position:'absolute', left:8, top:0, bottom:0, display:'flex', alignItems:'center', fontSize:12.5, fontWeight:700, color:'#fff'}}>{fatti}</div>
+                  </div>
+                  <div style={{width:96, textAlign:'right', fontSize:13.3, color:ADM.MUTED, fontWeight:600}}>{saltata} saltata</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </AdmCard>
         );
@@ -4333,7 +4380,7 @@ function DashCamerieri({ filtri }) {
     { range:'> 120 min', pct: 8, label:'Critico' },
   ];
   const totLiveLocali = liveLocali.length;
-  // assunzione: locali con staff configurato hanno completato step "team_staff" o sono active e non skipped
+  // chi ha lo staff collegato: il passo «staff» dell'imbuto, la stessa regola di STAFF_CONFIGURATO
   const configurati = liveLocali.filter(STAFF_CONFIGURATO);
   const senzaStaff = liveLocali.filter(l => !configurati.includes(l));
   const coverageRate = totLiveLocali > 0 ? Math.round((configurati.length / totLiveLocali) * 100) : 0;

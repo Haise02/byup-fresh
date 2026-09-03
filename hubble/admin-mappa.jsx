@@ -23,10 +23,14 @@
 // Tre stati, e solo quelli che stanno ancora in piedi. Il locale attivo porta
 // il corallo di byup: è la rete che funziona, ed è giusto che sia del colore
 // del marchio invece che di un verde da semaforo.
+// Le etichette sono quelle del ciclo di vita (LOC_CICLO_VITA): la mappa non
+// riassume cinque stati in tre, e un iscritto non avviato non è un «fermo».
 const MAP_STATI = {
-  active:     { label: 'Attivo',      colore: ADM.PINK },
-  onboarding: { label: 'In apertura', colore: ADM.WARN },
-  inactive:   { label: 'Fermo',       colore: ADM.MUTED_LIGHT },
+  active:     { label: LOC_CICLO_VITA.active.label,     colore: ADM.PINK },
+  skipped:    { label: LOC_CICLO_VITA.skipped.label,    colore: ADM.TEAL },
+  onboarding: { label: LOC_CICLO_VITA.onboarding.label, colore: ADM.WARN },
+  pending:    { label: LOC_CICLO_VITA.pending.label,    colore: ADM.INFO },
+  inactive:   { label: LOC_CICLO_VITA.inactive.label,   colore: ADM.MUTED_LIGHT },
 };
 
 // Scala del calore: un solo colore che si satura. Due tinte direbbero "due

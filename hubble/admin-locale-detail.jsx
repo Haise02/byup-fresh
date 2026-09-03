@@ -104,6 +104,9 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
 
 function DrwPanoramica({ locale: l }) {
   const stoppedStep = l.stoppedAt ? ONB_STEPS.find(s => s.id === l.stoppedAt) : null;
+  // Il passo e, dentro «Il tuo locale», il sotto-passo: «fermo a» deve dire
+  // se è la delega AdE o i pagamenti, anche se l'imbuto conta il passo solo.
+  const stoppedLabel = stoppedStep ? stoppedStep.label + (l.stoppedSub ? ' · ' + onbSottoLabel(l.stoppedSub) : '') : '';
 
   // Il reminder del banner «fermo»: come il reset password in Account — il
   // gesto parte una volta verso l'email dell'anagrafica, la conferma prende
@@ -158,7 +161,7 @@ function DrwPanoramica({ locale: l }) {
         <div style={{padding:'14px 16px', background: ADM.WARN_SOFT, border:`1px solid #FCD34D`, borderRadius:10, display:'flex', gap:12, alignItems:'flex-start'}}>
           <div style={{color: ADM.WARN, marginTop:1}}><BuIcons.pause size={23}/></div>
           <div style={{flex:1}}>
-            <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Fermo da {fmtRelative(l.lastLogin)} su "{stoppedStep.label}"</div>
+            <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Fermo da {fmtRelative(l.lastLogin)} su "{stoppedLabel}"</div>
             <div style={{fontSize:13.7, color:'#92400E', marginTop:3}}>
               {reminderInviato
                 ? <span style={{color:ADM.OK, fontWeight:700}}>✓ Reminder inviato a {l.email}</span>
@@ -173,7 +176,7 @@ function DrwPanoramica({ locale: l }) {
           <div style={{color: ADM.INFO, marginTop:1}}><BuIcons.info size={23}/></div>
           <div style={{flex:1}}>
             <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Onboarding saltato</div>
-            <div style={{fontSize:13.7, color:'#1E40AF', marginTop:3}}>Il locale è andato direttamente in Panoramica senza completare il setup guidato.</div>
+            <div style={{fontSize:13.7, color:'#1E40AF', marginTop:3}}>Ha finito il percorso rapido e opera, ma ha saltato la configurazione completa: niente vetrina, aspetto né personale finché non ci torna.</div>
           </div>
         </div>
       )}
@@ -459,7 +462,7 @@ function DrwFunnelCompact({ locale: l }) {
     <AdmCard padding={18}>
       <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
         <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Funnel onboarding</div>
-        <div style={{fontSize:13.3, color:ADM.MUTED}}>{l.completedSteps.length} di {ONB_STEPS.length} step completati</div>
+        <div style={{fontSize:13.3, color:ADM.MUTED}}>{ONB_STEPS.filter(s => l.completedSteps.includes(s.id)).length} di {ONB_STEPS.length} passi · configurazione completa {ONB_CONFIG.filter(s => l.completedSteps.includes(s.id)).length} di {ONB_CONFIG.length}</div>
       </div>
       <FunnelStepper locale={l} variant="compact"/>
     </AdmCard>
@@ -467,9 +470,13 @@ function DrwFunnelCompact({ locale: l }) {
 }
 
 function FunnelStepper({ locale: l, variant = 'full' }) {
+  // I cinque passi dell'imbuto e, di seguito, i tre della configurazione
+  // completa (marcati): un'unica riga, perché il locale li attraversa in
+  // fila — ma i secondi si possono saltare, e il badge lo dice.
+  const passi = [...ONB_STEPS, ...ONB_CONFIG.map(s => Object.assign({ config: true }, s))];
   return (
     <div style={{display:'flex', alignItems:'center', gap:0}}>
-      {ONB_STEPS.map((s, i) => {
+      {passi.map((s, i) => {
         const done = l.completedSteps.includes(s.id);
         const stuck = l.stoppedAt === s.id;
         const time = l.stepTimes && l.stepTimes[s.id];
@@ -495,16 +502,19 @@ function FunnelStepper({ locale: l, variant = 'full' }) {
                   color: stuck ? ADM.WARN : done ? ADM.TEXT : ADM.MUTED,
                   whiteSpace:'nowrap',
                 }}>{s.label}</div>
+                {s.config && (
+                  <div style={{fontSize:10.5, color:ADM.MUTED_SOFT, marginTop:1, textTransform:'uppercase', letterSpacing:'0.05em', fontWeight:700}}>config. completa</div>
+                )}
                 {time && variant !== 'compact' && (
                   <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:1}}>{fmtDate(time)}</div>
                 )}
                 {stuck && variant !== 'compact' && (
-                  <div style={{fontSize:12.2, color:ADM.WARN, marginTop:1, fontWeight:600}}>Fermo qui</div>
+                  <div style={{fontSize:12.2, color:ADM.WARN, marginTop:1, fontWeight:600}}>Fermo qui{l.stoppedSub ? ' · ' + onbSottoLabel(l.stoppedSub) : ''}</div>
                 )}
               </div>
             </div>
-            {i < ONB_STEPS.length - 1 && (
-              <div style={{flex:1, height:2, background: l.completedSteps.includes(ONB_STEPS[i+1].id) || stuck ? (l.completedSteps.includes(ONB_STEPS[i+1].id) ? ADM.OK : ADM.WARN) : '#E5E7EB', margin:'0 4px', marginBottom:24}}/>
+            {i < passi.length - 1 && (
+              <div style={{flex:1, height:2, background: l.completedSteps.includes(passi[i+1].id) || stuck ? (l.completedSteps.includes(passi[i+1].id) ? ADM.OK : ADM.WARN) : '#E5E7EB', margin:'0 4px', marginBottom:24}}/>
             )}
           </React.Fragment>
         );
@@ -568,10 +578,11 @@ function DrwAnagrafica({ locale: l }) {
           <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Anagrafica locale</div>
           {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Salvato</span>}
         </div>
-        {/* La carta d'identità del rapporto — codice, piano, stato, data di
-            iscrizione — INCORPORATA in testa alla stessa card dei campi: è
-            anagrafe anche lei, non merita una card a parte. */}
-        <div style={{display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap:14, marginBottom:14, paddingBottom:14, borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
+        {/* La carta d'identità del rapporto — codice, piano, ciclo di vita,
+            provvedimento, data di iscrizione — INCORPORATA in testa alla
+            stessa card dei campi: è anagrafe anche lei, non merita una card a
+            parte. */}
+        <div style={{display:'grid', gridTemplateColumns:'repeat(5, minmax(0,1fr))', gap:14, marginBottom:14, paddingBottom:14, borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
           <div>
             <label style={drwLab}>Codice locale</label>
             <div style={{...drwMono, background:ADM.PANEL_SOFT, color:ADM.MUTED, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
@@ -583,20 +594,25 @@ function DrwAnagrafica({ locale: l }) {
             <label style={drwLab}>Piano</label>
             <div style={{display:'flex', alignItems:'center', minHeight:36}}><AdmPlanBadge piano={l.piano}/></div>
           </div>
+          {/* Due campi, non uno (P-44 · D-34): DOVE il locale è arrivato e
+              COSA Byup ha deciso. Un sospeso e un disdetto stavano nello
+              stesso campo, e un iscritto non avviato si presentava
+              «Inattivo». La diffida non è un valore: è una riga del registro,
+              e la racconta il banner dei Contratti. */}
           <div>
-            <label style={drwLab}>Stato</label>
-            {/* La sospensione È lo stato, non un dettaglio di un'altra tab:
-                un locale sospeso che qui si presenta «Attivo» mente. */}
+            <label style={drwLab}>Ciclo di vita</label>
+            <div style={{display:'flex', alignItems:'center', minHeight:36}}>
+              <AdmBadge color={(LOC_CICLO_VITA[l.stato] || LOC_CICLO_VITA.inactive).color} size="xs">
+                {(LOC_CICLO_VITA[l.stato] || LOC_CICLO_VITA.inactive).label}
+              </AdmBadge>
+            </div>
+          </div>
+          <div>
+            <label style={drwLab}>Provvedimento</label>
             <div style={{display:'flex', alignItems:'center', minHeight:36}}>
               {(() => {
-                const sosp = SOSPENSIONI.find(x => x.soggettoId === l.id && !x.revoca);
-                if (sosp && sosp.sospesa) return <AdmBadge color="DANGER" size="xs">Sospeso</AdmBadge>;
-                if (sosp) return <AdmBadge color="WARN" size="xs">Diffidato</AdmBadge>;
-                return (
-                  <AdmBadge color={l.stato === 'active' ? 'OK' : 'PLAN_FREE'} size="xs">
-                    {l.stato === 'active' ? 'Attivo' : 'Inattivo'}
-                  </AdmBadge>
-                );
+                const p = admProvvedimento(l);
+                return <AdmBadge color={ADM_PROVVEDIMENTI[p].color} size="xs">{ADM_PROVVEDIMENTI[p].label}</AdmBadge>;
               })()}
             </div>
           </div>
@@ -669,7 +685,7 @@ function DrwAnagrafica({ locale: l }) {
 
 // ─── Dati fiscali — la tab dedicata ─────────────────────────────────────────
 // Gli stessi campi di Impostazioni → Dati fiscali del gestionale: identità
-// fiscale (P.IVA verificata AdE, regime, ATECO), fatturazione elettronica
+// fiscale (P.IVA, regime, ATECO — nessun badge di verifica), fatturazione elettronica
 // (SDI, PEC, REA) e incassi (IBAN gestito da Stripe). Prima vivevano in una
 // mezza card dentro l'anagrafica; il fiscale è un mestiere a parte.
 function DrwFiscali({ locale: l }) {
@@ -1054,7 +1070,7 @@ function DrwAccount({ locale: l }) {
   const confermaRevoca = () => {
     if (!nota.trim() || !sospAttiva) return;
     sospAttiva.revoca = { quando:new Date(), who:(TEAM.find(t=>t.isYou)||{}).nomeCompleto || 'Tu', nota:nota.trim() };
-    scrivi('ha revocato la sospensione di', l.nome, 'check', 'OK');
+    scrivi(sospAttiva.limitata ? 'ha revocato la limitazione di' : sospAttiva.sospesa ? 'ha revocato la sospensione di' : 'ha ritirato la diffida a', l.nome, 'check', 'OK');
     setPopup(false); setNota(''); ridisegna(x => x + 1);
   };
 
@@ -1122,17 +1138,23 @@ function DrwAccount({ locale: l }) {
       <AdmCard padding={18}>
         <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap'}}>
           <div style={{flex:1, minWidth:220}}>
-            <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Sospensione del servizio</div>
+            <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Provvedimenti sul servizio</div>
             <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
+              {/* La riga viva del registro, qualunque sia: risoluzione,
+                  sospensione, limitazione, o la sola diffida che precede. */}
               {sospAttiva
-                ? (sospAttiva.sospesa
-                    ? `In corso dal ${fmtDate(sospAttiva.sospesa)} · ${ctrMotivoLabel(sospAttiva.motivo)} · decisa da ${sospAttiva.decisaDa}`
+                ? (sospAttiva.risolta
+                    ? `Contratto risolto il ${fmtDate(sospAttiva.risolta)} · ${ctrMotivoLabel(sospAttiva.motivo)} · sospeso dal ${fmtDate(sospAttiva.sospesa)} · deciso da ${sospAttiva.decisaDa}`
+                  : sospAttiva.sospesa
+                    ? `Sospeso dal ${fmtDate(sospAttiva.sospesa)} · ${ctrMotivoLabel(sospAttiva.motivo)} · decisa da ${sospAttiva.decisaDa}`
+                  : sospAttiva.limitata
+                    ? `Limitato dal ${fmtDate(sospAttiva.limitata)} · ${ctrMotivoLabel(sospAttiva.motivo)} · ${sospAttiva.ambito} · decisa da ${sospAttiva.decisaDa}`
                     : `Diffida del ${fmtDate(sospAttiva.diffida)} · la sospensione scatta il ${fmtDate(new Date(sospAttiva.diffida.getTime() + 15 * 86400000))}`)
-                : 'Nessuna sospensione in corso. Motivi tipizzati dall\'art. 13; la morosità passa dalla diffida dell\'art. 4. Ogni decisione resta a registro nei Contratti.'}
+                : 'Nessun provvedimento in corso. Motivi tipizzati dall\'art. 13; la morosità passa dalla diffida dell\'art. 4. Ogni decisione resta a registro nei Contratti.'}
             </div>
           </div>
           {sospAttiva
-            ? <AdmButton variant="secondary" size="sm" icon="check" onClick={() => { setPopup('revoca'); setNota(''); }}>Revoca sospensione</AdmButton>
+            ? (!sospAttiva.risolta && <AdmButton variant="secondary" size="sm" icon="check" onClick={() => { setPopup('revoca'); setNota(''); }}>{sospAttiva.limitata ? 'Revoca limitazione' : sospAttiva.sospesa ? 'Revoca sospensione' : 'Ritira diffida'}</AdmButton>)
             : <AdmButton variant="danger" size="sm" icon="lock" onClick={() => { setPopup('sospendi'); setNota(''); setMotivo('morosita'); }}>Sospendi</AdmButton>}
         </div>
       </AdmCard>
@@ -1826,21 +1848,40 @@ function ctrEsito(p) {
 // stessa servirà a un badge di tab o a una colonna in rubrica.
 function ctrProblemi(sog, codici) {
   const out = [];
-  const sospAttiva = SOSPENSIONI.find(s => s.soggettoId === sog.id && !s.revoca);
-  if (sospAttiva) {
-    const ris = sospAttiva.sospesa ? new Date(sospAttiva.sospesa.getTime() + 15 * 86400000) : null;
-    const scatto = !sospAttiva.sospesa && sospAttiva.diffida ? new Date(sospAttiva.diffida.getTime() + 15 * 86400000) : null;
-    out.push({ sev:0, color:'DANGER', icona:'lock',
-      testo: sospAttiva.sospesa
-        ? `Sospeso per ${ctrMotivoLabel(sospAttiva.motivo).toLowerCase()} dal ${fmtDate(sospAttiva.sospesa)} — risoluzione contrattuale il ${fmtDate(ris)}. I canoni continuano a maturare (art. 4).`
-        : `Diffida inviata il ${fmtDate(sospAttiva.diffida)} — sospensione dal ${fmtDate(scatto)} (art. 4).`,
-      chip: 'Sospensione' });
-  }
-  if (sog.stato === 'churned') {
-    const cess = ctrCessazione(sog);
+  // Il provvedimento di Byup (P-44): la riga viva del registro, letta con la
+  // stessa funzione del campo in Anagrafica — il banner e il badge non
+  // possono raccontare due cose.
+  const riga = admProvvedimentoRiga(sog);
+  const prov = admProvvedimento(sog);
+  const finestre = (cess) => {
     const ggExport = 60 + ctrGiorni(cess), ggBackup = 35 + ctrGiorni(cess);
+    return `Esportazione dati: ${ggExport > 0 ? `ancora ${ggExport} giorni` : 'finestra chiusa'} · backup: ${ggBackup > 0 ? `si estinguono fra ${ggBackup} giorni` : 'estinti'} (DPA art. 11).`;
+  };
+  if (riga && prov === 'cessato') {
+    out.push({ sev:0, color:'DANGER', icona:'lock',
+      testo: `Contratto risolto da Byup il ${fmtDate(riga.risolta)} per ${ctrMotivoLabel(riga.motivo).toLowerCase()}, dopo la sospensione del ${fmtDate(riga.sospesa)} (art. 4). ${finestre(riga.risolta)}`,
+      chip: 'Risoluzione' });
+  } else if (riga && prov === 'sospeso') {
+    const ris = new Date(riga.sospesa.getTime() + 15 * 86400000);
+    out.push({ sev:0, color:'DANGER', icona:'lock',
+      testo: `Sospeso per ${ctrMotivoLabel(riga.motivo).toLowerCase()} dal ${fmtDate(riga.sospesa)} — risoluzione contrattuale il ${fmtDate(ris)}. I canoni continuano a maturare (art. 4).`,
+      chip: 'Sospensione' });
+  } else if (riga && prov === 'limitato') {
+    out.push({ sev:1, color:'WARN', icona:'alertTriangle',
+      testo: `Servizio limitato dal ${fmtDate(riga.limitata)} per ${ctrMotivoLabel(riga.motivo).toLowerCase()} (art. 13): ${riga.ambito.toLowerCase()}. Il resto del servizio prosegue.`,
+      chip: 'Limitazione' });
+  } else if (riga && riga.diffida) {
+    // La diffida non è un provvedimento: è il preavviso, e sta qui, non nel campo.
+    const scatto = new Date(riga.diffida.getTime() + 15 * 86400000);
+    out.push({ sev:1, color:'WARN', icona:'alertTriangle',
+      testo: `Diffida inviata il ${fmtDate(riga.diffida)} — sospensione dal ${fmtDate(scatto)} (art. 4).`,
+      chip: 'Diffida' });
+  }
+  if (sog.stato === 'churned' && prov !== 'cessato') {
+    const cess = ctrCessazione(sog);
+    const ggExport = 60 + ctrGiorni(cess);
     out.push({ sev:1, color: ggExport > 0 ? 'WARN' : 'PLAN_FREE', icona:'clock',
-      testo: `Contratto cessato il ${fmtDate(cess)} (art. 5). Esportazione dati: ${ggExport > 0 ? `ancora ${ggExport} giorni` : 'finestra chiusa'} · backup: ${ggBackup > 0 ? `si estinguono fra ${ggBackup} giorni` : 'estinti'} (DPA art. 11).`,
+      testo: `Contratto cessato per disdetta del locale il ${fmtDate(cess)} (art. 5). ${finestre(cess)}`,
       chip: 'Post-cessazione' });
   }
   codici.map(ctrDoc).filter(d => d && d.versioni && !d.informativa).forEach(doc => {

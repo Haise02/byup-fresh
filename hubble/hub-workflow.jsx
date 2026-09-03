@@ -159,10 +159,12 @@ function WfScriviProprieta({ nodo, onCambia }) {
 
   return (
     <React.Fragment>
-      <HubCampo label="Quale proprietà" nota="È così che «Ciclo di vita» e «Referral» si riempiono da soli.">
+      <HubCampo label="Quale proprietà" nota="È così che «Referral» ed «Esito win-back» si riempiono da soli. Lo stadio no: si calcola, e qui non compare.">
         {scelta || !p ? (
           <div style={{ padding: 8, border: `1px solid ${ADM.PINK}`, borderRadius: 10, background: '#fff' }}>
-            <HubSceltaProprieta altezza={220} onScegli={np => { set({ prop: np.id, valore: null }); setScelta(false); }}/>
+            {/* Le proprietà con un lettore (`leggi`: stadio, restrizione) si
+                leggono da un'altra fonte e non si scrivono da un passo. */}
+            <HubSceltaProprieta altezza={220} escludi={HUB_PROPRIETA.filter(x => x.leggi).map(x => x.id)} onScegli={np => { set({ prop: np.id, valore: null }); setScelta(false); }}/>
             {p && <button onClick={() => setScelta(false)} style={{
               marginTop: 6, width: '100%', padding: '6px 10px', borderRadius: 7, border: 'none',
               background: ADM.NEUTRAL_SOFT, color: ADM.MUTED, fontSize: 12.6, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',

@@ -3,8 +3,8 @@
 // Tre voci di menu (Locali · Staff · Utenti App) sono diventate una: chi
 // amministra la piattaforma cerca UNA persona — «di chi è questa mail?» — e
 // non deve sapere in anticipo in quale delle tre liste vive. La lista porta
-// le quattro colonne che identificano un contatto (email, tipologia, ciclo
-// di vita, città); tutto il resto sta nel dettaglio, che resta QUELLO
+// le quattro colonne che identificano un contatto (email, tipologia, stadio,
+// città); tutto il resto sta nel dettaglio, che resta QUELLO
 // GIUSTO per ciascun tipo: il drawer del locale, la scheda dello staff, la
 // scheda dell'utente app. Le vecchie pagine di sezione sono state
 // RIMOSSE: restano i loro file per dataset e schede (STAFF, i drawer), e le
@@ -24,33 +24,71 @@ const CNT_TIPI = {
   utente: { label: 'Utente App',   color: 'PURPLE' },
 };
 
-// ─── Ciclo di vita ──────────────────────────────────────────────────────────
+// ─── Stadio commerciale ──────────────────────────────────────────────────────
 // La TAPPA DEL RAPPORTO, senza i piani dentro (quelli sono una colonna a
 // parte): dal lead al cliente che torna, fino al piano annullato e
 // all'eliminazione. È una scala dei LOCALI — un utente app non ha un ciclo
 // commerciale con byup — con una sola eccezione: «Eliminato» vale per
-// chiunque sia stato cancellato, staff compreso.
-// `rango` è l'ordine della scala quando si clicca la cima della colonna.
+// chiunque sia stato cancellato, staff compreso. Qui la VESTE (etichetta,
+// colore, rango per l'ordinamento); il valore lo dà hubStadio, sotto.
 const CNT_CICLO = {
-  lead:           { label: 'Lead',             color: 'INFO',      rango: 0 },
-  onboarding:     { label: 'In onboarding',    color: 'WARN',      rango: 1 },
+  lead:           { label: 'Lead',             color: 'INFO',         rango: 0 },
+  iscritto:       { label: 'Iscritto',         color: 'PLAN_STARTER', rango: 1 },
+  onboarding:     { label: 'In onboarding',    color: 'WARN',         rango: 2 },
   // L'attivo non è uno stadio solo: chi sta sul piano gratuito e chi paga
   // sono due rapporti commerciali diversi — per il modello a fasce di Fresh
   // è LA distinzione, e la scala la deve dire.
-  clienteFree:    { label: 'Cliente Free',     color: 'TEAL',      rango: 2 },
-  clientePagante: { label: 'Cliente Pagante',  color: 'OK',        rango: 3 },
+  clienteFree:    { label: 'Cliente Free',     color: 'TEAL',         rango: 3 },
+  clientePagante: { label: 'Cliente Pagante',  color: 'OK',           rango: 4 },
   // Returning è il RIENTRATO, e SCADE: aveva annullato ed è tornato — l'esito
   // del win-back — ma lo stadio dura i primi 90 giorni dal rientro (la stessa
   // finestra della coda win-back), poi ci si laurea in Cliente Free o
   // Pagante. Un rientrato di tre anni fa è solo un cliente; il fatto
   // permanente sta nella proprietà «Rientrato il», non nel badge.
-  returning:      { label: 'Returning',        color: 'PURPLE',    rango: 4 },
-  annullato:      { label: 'Piano annullato',  color: 'DANGER',    rango: 5 },
-  eliminato:      { label: 'Eliminato',        color: 'PLAN_FREE', rango: 6 },
+  returning:      { label: 'Returning',        color: 'PURPLE',       rango: 5 },
+  annullato:      { label: 'Piano annullato',  color: 'DANGER',       rango: 6 },
+  eliminato:      { label: 'Eliminato',        color: 'PLAN_FREE',    rango: 7 },
 };
 
+// ─── Stadio commerciale (P-43 · D-34) ───────────────────────────────────────
+// Si CALCOLA, non si salva: un valore memorizzato diverge dal fatto che
+// pretende di riassumere. Funzione pura sul contatto, letta a ogni render
+// dalla colonna, dai filtri, dagli elenchi, dai workflow e dalla card in
+// Analisi Dati (la proprietà `ciclo` di hub-data la porta come `leggi`) — la
+// definizione sta qui e in nessun altro posto. Nessun workflow la scrive:
+// una proprietà che si legge da un'altra fonte non è un'azione.
+//   lead             il contatto non ha locali (creato a mano, nessun
+//                    record in LOCALI dietro)
+//   stadi intermedi  dal ciclo di vita del locale (lifecycle_status):
+//                    iscritto non avviato → Iscritto, in onboarding →
+//                    In onboarding. Chi ha saltato la configurazione
+//                    completa OPERA, e quindi è già un cliente
+//   clienteFree      locale operativo sul piano Gratuito
+//   clientePagante   locale operativo su un piano diverso dal Gratuito
+//   returning        entro 90 giorni dal rientro («Rientrato il»), poi ci
+//                    si laurea in Free o Pagante
+//   annullato        il rapporto è finito: ciclo di vita «churned», che sia
+//                    disdetta del locale o risoluzione di Byup
+//   eliminato        contatto cancellato (locale, staff o utente app: il
+//                    flag `eliminato` sul record)
+// Il provvedimento di Byup (platform_status) NON entra qui: un sospeso resta
+// un cliente, e lo dice il fascicolo — vedi P-44.
+function hubStadio(c) {
+  if (!c) return null;
+  if (c.ref && c.ref.eliminato) return 'eliminato';
+  if (c.tipo !== 'locale') return null;
+  const l = c.ref && c.ref.stato ? c.ref : null;
+  if (!l) return 'lead';
+  if (l.stato === 'pending') return 'iscritto';
+  if (l.stato === 'onboarding') return 'onboarding';
+  if (l.stato === 'churned') return 'annullato';
+  if (c.rientrato && (Date.now() - new Date(c.rientrato).getTime()) / 86400000 <= 90) return 'returning';
+  return l.piano === 'free' ? 'clienteFree' : 'clientePagante';
+}
+window.hubStadio = hubStadio;
+
 // ─── Piano ──────────────────────────────────────────────────────────────────
-// La colonna dei piani, separata dal ciclo di vita: per i locali il piano
+// La colonna dei piani, separata dallo stadio: per i locali il piano
 // Fresh (coi colori che i piani hanno già in tutto Hubble), per gli utenti app
 // il piano dell'app (Base/Pro), per lo staff niente — un trattino.
 const CNT_PIANI = {
@@ -138,8 +176,8 @@ const CONTATTI = (() => {
     // Il rientro dopo un annullamento: nel sistema vero sta nello storico di
     // fatturazione, qui si deriva dal seme dell'id — circa un attivo su sette
     // ha un win-back alle spalle, sparso negli ultimi 10–200 giorni. La DATA
-    // è il fatto permanente (proprietà «Rientrato il»); lo STADIO Returning
-    // dura i primi 90 giorni, poi ci si laurea in Cliente Free o Pagante.
+    // è il fatto permanente (proprietà «Rientrato il»); lo stadio Returning
+    // lo calcola hubStadio da qui, per i primi 90 giorni.
     const seme = parseInt(l.id.slice(1), 10);
     const rientratoIl = l.stato === 'active' && seme % 7 === 3
       ? new Date(Date.now() - (10 + (seme * 37) % 190) * 86400000)
@@ -151,15 +189,8 @@ const CONTATTI = (() => {
     citta: l.citta, regione: l.regione,
     locali: gruppo.length > 1 ? gruppo.map(x => x.nome).join(' · ') : null,
     email: l.email,
-    // La tappa del rapporto: chi si è affacciato è un lead, chi configura è
-    // in onboarding, chi lavora è un cliente che torna; chi si è fermato ha
-    // annullato il piano, chi se n'è andato del tutto è eliminato.
-    ciclo: l.stato === 'pending' ? 'lead'
-      : (l.stato === 'onboarding' || l.stato === 'skipped') ? 'onboarding'
-      : l.stato === 'active' ? ((rientratoIl && (Date.now() - rientratoIl.getTime()) / 86400000 <= 90) ? 'returning'
-        : l.piano === 'free' ? 'clienteFree' : 'clientePagante')
-      : l.stato === 'churned' ? 'eliminato'
-      : 'annullato',
+    // Nessuno stadio scritto qui: lo calcola hubStadio dal locale (`ref`) e
+    // dalla data del rientro, a ogni lettura.
     piano: l.piano,
     iscritto: l.dataIscrizione,
     rientrato: rientratoIl,
@@ -173,6 +204,7 @@ const CONTATTI = (() => {
     // principale): la si deve trovare cercando uno qualunque di essi, e la
     // proprietà «Locali associati» li mette in colonna e nei filtri.
     const locali = s.locali || [];
+    if ((s.id.charCodeAt(3) * 3 + s.id.charCodeAt(4)) % 9 === 0) s.eliminato = true;
     rows.push({
       key: 'stf-' + s.id, tipo: 'staff', ref: s,
       nome: s.nome,
@@ -186,10 +218,10 @@ const CONTATTI = (() => {
       // corregge nella tab Anagrafica della scheda. I dispositivi un'email
       // non ce l'hanno: sono contatti del locale, non persone — un tratto.
       email: s.email,
-      // Lo staff non ha un ciclo di vita commerciale — trattino — con una
+      // Lo staff non ha uno stadio commerciale — trattino — con una
       // eccezione: le utenze CANCELLATE dal locale restano in rubrica come
-      // «Eliminato». Il mock non porta il flag: qualcuna, stabile sull'id.
-      ciclo: (s.id.charCodeAt(3) * 3 + s.id.charCodeAt(4)) % 9 === 0 ? 'eliminato' : null,
+      // «Eliminato». Il flag sta sul record, dove hubStadio lo legge; il mock
+      // non lo porta, e qui se ne accende qualcuno, stabile sull'id.
       piano: null,
       iscritto: s.dataAssunzione,
     });
@@ -201,8 +233,8 @@ const CONTATTI = (() => {
     cerca: u.citta + ' ' + u.regione,
     citta: u.citta, regione: u.regione,
     email: u.email,
-    // L'utente app non ha un ciclo di vita commerciale con byup: trattino.
-    ciclo: null,
+    // L'utente app non ha uno stadio commerciale con byup: trattino, salvo
+    // il flag `eliminato` sul record, che hubStadio legge.
     // Nessun campo `restrizione` congelato qui: la proprietà ha il suo lettore
     // vivo sul registro (hub-data.jsx) — una revoca appena fatta deve spegnere
     // la pillola nello stesso istante in cui cala il badge del registro, non
@@ -324,9 +356,9 @@ function AdmContattiPage({ search, openContatto }) {
     }
     // Un confronto per campo, sempre in verso crescente: il verso lo applica
     // il segno qui sotto.
-    // Ciclo di vita e piano ordinano per RANGO (lead → eliminato, gratuito →
+    // Stadio e piano ordinano per RANGO (lead → eliminato, gratuito →
     // business → base → pro), non per alfabeto.
-    const rangoCiclo = (c) => c.ciclo ? CNT_CICLO[c.ciclo].rango : 99;
+    const rangoCiclo = (c) => { const v = hubLeggi(c, 'ciclo'); return v ? CNT_CICLO[v].rango : 99; };
     const rangoPiano = (c) => c.piano ? CNT_PIANI[c.piano].rango : 99;
     // Le colonne particolari hanno il loro confronto; per tutte le altre —
     // e ora sono tante, quante le proprietà — decide il TIPO della proprietà:
@@ -801,8 +833,9 @@ function CntCella({ id, c }) {
   }
   if (id === 'ciclo') {
     // La tappa del rapporto, nella stessa pillola della tipologia. Chi non
-    // ha un ciclo di vita con byup ha un trattino, non un gradino inventato.
-    const cicloDef = c.ciclo ? CNT_CICLO[c.ciclo] : null;
+    // ha uno stadio con byup ha un trattino, non un gradino inventato.
+    const stadio = hubLeggi(c, 'ciclo');
+    const cicloDef = stadio ? CNT_CICLO[stadio] : null;
     return <div>{cicloDef ? <CntPillola color={cicloDef.color}>{cicloDef.label}</CntPillola> : tratto}</div>;
   }
   if (id === 'piano') {
@@ -1266,15 +1299,15 @@ let cntProgressivo = 0;
 
 function CntCrea({ open, onChiudi, onCreato }) {
   const vuoto = { tipo: 'locale', nome: '', email: '', telefono: '', citta: '', regione: '',
-    ciclo: 'lead', piano: '', proprietario: 'Marco Rinaldi', referral: '', canale: 'organico',
+    piano: '', proprietario: 'Marco Rinaldi', referral: '', canale: 'organico',
     consensoMail: true, consensoSms: false };
   const [f, setF] = useStateCnt(vuoto);
   const set = (k, v) => setF(x => Object.assign({}, x, { [k]: v }));
   // Il cambio di tipologia porta via il piano: il campo sparisce dalla UI ma
   // il valore restava nel form, e uno «Utente Staff» nasceva con la pillola
   // «Pro» dell'app. Per l'utente app il default è Base — il suo select non ha
-  // una voce vuota. Il ciclo non serve azzerarlo: crea() lo tiene solo per i
-  // locali.
+  // una voce vuota. Lo stadio non si sceglie: un contatto nuovo senza un
+  // locale dietro è un lead per definizione (hubStadio).
   const setTipo = (k) => setF(x => Object.assign({}, x, { tipo: k, piano: k === 'utente' ? 'base' : '' }));
 
   useEffectCnt(() => { if (open) setF(vuoto); }, [open]);
@@ -1296,7 +1329,6 @@ function CntCrea({ open, onChiudi, onCreato }) {
       cerca: f.citta + ' ' + (f.referral || ''),
       citta: f.citta || '—', regione: f.regione || (loc ? loc.regione : '—'),
       email: f.email.trim() || null,
-      ciclo: f.tipo === 'locale' ? f.ciclo : null,
       piano: f.piano || null,
       iscritto: new Date(),
     });
@@ -1366,10 +1398,6 @@ function CntCrea({ open, onChiudi, onCreato }) {
           </HubCampo>
           {f.tipo === 'locale' && (
             <React.Fragment>
-              <HubCampo label="Ciclo di vita">
-                <AdmSelect block value={f.ciclo} onChange={v => set('ciclo', v)}
-                  options={Object.keys(CNT_CICLO).map(k => ({ value: k, label: CNT_CICLO[k].label }))}/>
-              </HubCampo>
               <HubCampo label="Piano">
                 <AdmSelect block value={f.piano} onChange={v => set('piano', v)}
                   options={[{ value: '', label: 'Nessuno ancora' },

@@ -1,28 +1,81 @@
 // Mock data layer per Admin Byup — locali, utenti, segnalazioni, certificazioni, team
 
 // ---------- LOCALI ----------
-// Funnel onboarding (in ordine):
-// 6 step obbligatori (1..6, dove verifica_menu = avvio/go-live)
-// 2 step opzionali (vetrina, personale) — completabili dopo l'avvio
+// ─── Imbuto di onboarding (P-45 · D-34) ─────────────────────────────────────
+// Si conta ciò che l'utente vede: i quattro passi del percorso rapido del
+// gestionale (onboarding-app.jsx) più «Staff collegato», che non è l'invito
+// ma il collaboratore che entra davvero. L'elaborazione del menù è un'attesa
+// dentro il passo 1 e la verifica dell'identità — la delega sul portale
+// dell'Agenzia, con l'identità dell'esercente — è un controllo dentro il
+// passo 2: nessuna delle due vale uno slot. Le attivazioni fiscali (delega,
+// conservazione, accreditamento: P-48) stanno tutte dentro «Il tuo locale»
+// come sotto-passo, e chi si ferma lì è fermo al passo 2 — l'imbuto non ha
+// un passo fiscale per regola, non per dimenticanza. L'iscrizione non è un
+// passo: è il denominatore.
+// Annotazione per il registro: l'«Oggi» di P-45 parlava di sette tappe con
+// attese e controlli dentro; il codice ne aveva otto (iscrizione, sei del
+// percorso, vetrina e personale) e nessuna era un'attesa. Il conteggio della
+// voce descriveva uno stepper che il prototipo non aveva più.
 const ONB_STEPS = [
-  { id: 'iscrizione',       label: 'Iscrizione' },
-  { id: 'caricamento_menu', label: 'Caricamento menu' },
-  { id: 'setup_info',       label: 'Setup informazioni' },
-  { id: 'setup_pagamenti',  label: 'Setup pagamenti' },
-  { id: 'sala_tavoli',      label: 'Sala e tavoli' },
-  { id: 'verifica_menu',    label: 'Verifica menu', avvio: true },
-  { id: 'vetrina',          label: 'Vetrina',   optional: true },
-  { id: 'personale',        label: 'Personale', optional: true },
+  { id: 'menu',     label: 'Carica menù' },
+  { id: 'locale',   label: 'Il tuo locale' },
+  { id: 'sala',     label: 'Sale e tavoli' },
+  { id: 'verifica', label: 'Verifica menù', avvio: true },
+  { id: 'staff',    label: 'Staff collegato', dopoAvvio: true },
 ];
-const ONB_MANDATORY = ONB_STEPS.filter(s => !s.optional);
+// I quattro del percorso rapido: fino all'avvio, senza lo staff.
+const ONB_RAPIDO = ONB_STEPS.filter(s => !s.dopoAvvio);
+// I sotto-passi di «Il tuo locale»: la lista «fermo a» li porta, l'imbuto no.
+const ONB_SOTTO = [
+  { id: 'informazioni', label: 'Informazioni' },
+  { id: 'pagamenti',    label: 'Pagamenti' },
+  { id: 'fiscale',      label: 'Attivazioni fiscali' },
+];
+const onbSottoLabel = (id) => (ONB_SOTTO.find(s => s.id === id) || {}).label || '';
+// La configurazione completa (config-completa-app.jsx): tre passi che si
+// possono saltare con «Salta e continua dopo», esposti a parte nell'imbuto con
+// quanti li hanno saltati fra chi è oltre l'avvio.
+const ONB_CONFIG = [
+  { id: 'cfgInformazioni', label: 'Informazioni' },
+  { id: 'cfgAspetto',      label: 'Aspetto' },
+  { id: 'cfgPersonale',    label: 'Personale' },
+];
+// Quali passi della configurazione completa ha fatto un locale che NON l'ha
+// saltata per intero: almeno uno, non per forza tutti — i saltati di ciascun
+// passo si contano su chi è oltre l'avvio.
+const onbConfigFatti = (r) => {
+  const fatti = ONB_CONFIG.filter(() => r() > 0.45).map(s => s.id);
+  return fatti.length ? fatti : [ONB_CONFIG[0].id];
+};
 
-// Stati locale
-// - 'pending'  : iscritto, non ha iniziato
-// - 'onboarding': in corso (stoppedAt = step id dove si trova)
-// - 'skipped'  : ha saltato l'onboarding, va in panoramica
-// - 'active'   : onboarding completo + usa
-// - 'inactive' : onboarding completo ma non logga da N giorni
-// - 'churned'  : disdetto
+// ─── Ciclo di vita del locale (P-44 · D-34) ─────────────────────────────────
+// `stato` è il lifecycle_status: DOVE il locale è arrivato. Non dice cosa
+// Byup ha deciso su di lui — quello è il provvedimento (admProvvedimento, in
+// fondo al file) — e nel fascicolo i due campi si leggono separati.
+//   pending     iscritto non avviato: ha un'utenza, nessun passo fatto
+//   onboarding  nel percorso rapido, fermo a un passo (stoppedAt) e, se è
+//               «Il tuo locale», a un sotto-passo (stoppedSub)
+//   skipped     opera avendo saltato la configurazione completa: percorso
+//               rapido finito, «Salta e continua dopo» dalla Panoramica, e non
+//               è più tornato. Annotazione per il registro: fino al 2026-09-03
+//               «skipped» voleva dire aver saltato l'intero onboarding, cosa
+//               che il gestionale non permette — si salta solo la
+//               configurazione completa, e i mock avevano locali che
+//               ordinavano senza menù né pagamenti
+//   active      onboarding completo, ordini negli ultimi 30 giorni
+//   inactive    onboarding completo, nessun ordine da oltre 30 giorni;
+//               l'abbonamento è acceso. Regola di P-46: le chiusure
+//               straordinarie (venue_closures) non contano come inattività —
+//               un locale chiuso per ferie non è un locale fermo
+//   churned     ha disdetto (art. 5): fine del rapporto per scelta sua
+const LOC_CICLO_VITA = {
+  pending:    { label: 'Iscritto non avviato', color: 'INFO' },
+  onboarding: { label: 'In onboarding',        color: 'WARN' },
+  skipped:    { label: 'Onboarding saltato',   color: 'TEAL' },
+  active:     { label: 'Attivo',               color: 'OK' },
+  inactive:   { label: 'Inattivo',             color: 'PLAN_FREE' },
+  churned:    { label: 'Disdetto',             color: 'DANGER' },
+};
 
 // Listino allineato a quello del gestionale (ACC_PIANI in gestionale/account-data.jsx),
 // che e la fonte di verita: qui c'erano 49/99/249, li 46,99/134,99/250. `price`
@@ -114,30 +167,49 @@ function buildLocali() {
     const tipo = tipiByPrefix[prefix] || 'Ristorante';
 
     // Distribuzione stati: 5 pending, 8 onboarding, 4 skipped, 25 active, 6 inactive, 2 churned
-    let stato, stoppedAt = null, completedSteps = [];
+    // Le estrazioni di `r` prima del volume sono le STESSE di prima, per
+    // numero (una per chi è fermo, due per attivi e inattivi): così piano e
+    // volume di ogni locale restano dove stavano. Il resto dei passi si tira
+    // da un secondo generatore.
+    const r2 = pseudoRand(1000 + i);
+    // I passi della configurazione completa da un solo numero: i tre bit
+    // bassi, e almeno uno acceso.
+    const cfgDaSeme = (x) => {
+      const bits = Math.floor(x * 1000);
+      const fatti = ONB_CONFIG.filter((s, k) => (bits >> k) & 1).map(s => s.id);
+      return fatti.length ? fatti : [ONB_CONFIG[0].id];
+    };
+    const rapido = ONB_RAPIDO.map(s => s.id);
+    let stato, stoppedAt = null, stoppedSub = null, completedSteps = [];
     if (i < 5) {
-      stato = 'pending'; completedSteps = ['iscrizione'];
+      stato = 'pending';
     } else if (i < 13) {
-      // bloccato tra step mandatory 1..5 (caricamento…verifica_menu non incluso)
+      // fermo a uno dei quattro passi del percorso rapido; se è «Il tuo
+      // locale», anche a quale sotto-passo
       stato = 'onboarding';
-      const stopIdx = 1 + Math.floor(r() * (ONB_MANDATORY.length - 1)); // 1..5
-      stoppedAt = ONB_MANDATORY[stopIdx].id;
-      completedSteps = ONB_MANDATORY.slice(0, stopIdx).map(s => s.id);
+      const stopIdx = Math.floor(r() * ONB_RAPIDO.length); // 0..3
+      stoppedAt = ONB_RAPIDO[stopIdx].id;
+      stoppedSub = stoppedAt === 'locale' ? ONB_SOTTO[Math.floor(r2() * ONB_SOTTO.length)].id : null;
+      completedSteps = rapido.slice(0, stopIdx);
     } else if (i < 17) {
+      // percorso rapido finito, configurazione completa saltata per intero;
+      // lo staff c'è di rado — chi salta la configurazione salta il Personale
       stato = 'skipped';
-      completedSteps = ['iscrizione'];
+      completedSteps = [...rapido, ...(r2() > 0.7 ? ['staff'] : [])];
     } else if (i < 42) {
       stato = 'active';
-      // tutti gli obbligatori + opzionali random
-      const opt = ONB_STEPS.filter(s => s.optional).filter(() => r() > 0.4).map(s => s.id);
-      completedSteps = [...ONB_MANDATORY.map(s => s.id), ...opt];
+      // staff quasi sempre, e ALMENO un passo della configurazione completa:
+      // senza, sarebbe uno skipped
+      const conStaff = r() > 0.2, cfg = r();
+      completedSteps = [...rapido, ...(conStaff ? ['staff'] : []), ...cfgDaSeme(cfg)];
     } else if (i < 48) {
       stato = 'inactive';
-      const opt = ONB_STEPS.filter(s => s.optional).filter(() => r() > 0.5).map(s => s.id);
-      completedSteps = [...ONB_MANDATORY.map(s => s.id), ...opt];
+      const conStaff = r() > 0.4, cfg = r();
+      completedSteps = [...rapido, ...(conStaff ? ['staff'] : []), ...cfgDaSeme(cfg)];
     } else {
+      // ha lavorato, poi ha disdetto: la configurazione l'aveva fatta
       stato = 'churned';
-      completedSteps = ONB_MANDATORY.map(s => s.id);
+      completedSteps = [...rapido, 'staff', ...onbConfigFatti(r2)];
     }
 
     // ── Volume, e il piano che ne consegue ────────────────────────────────
@@ -208,8 +280,10 @@ function buildLocali() {
 
     // Step timeline
     const stepTimes = {};
-    let t = dataIscrizione.getTime();
-    ONB_STEPS.forEach(s => {
+    // Il primo passo non è istantaneo: anche «Carica menù» dista qualche
+    // minuto dall'iscrizione, come ogni passo dal precedente.
+    let t = dataIscrizione.getTime() + (Math.floor(r2() * 30) + 5) * 60000;
+    [...ONB_STEPS, ...ONB_CONFIG].forEach(s => {
       if (completedSteps.includes(s.id)) {
         stepTimes[s.id] = new Date(t);
         t += (Math.floor(r() * 30) + 5) * 60000; // 5-35 min step
@@ -283,6 +357,7 @@ function buildLocali() {
       pagaExtras: extras > 0,
       stato,
       stoppedAt,
+      stoppedSub,
       completedSteps,
       stepTimes,
       dataIscrizione,
@@ -323,8 +398,10 @@ const LOCALI = buildLocali();
 // gratuiti, e lo spaccato per piano copriva il 62% lasciando diciannove locali
 // senza collocazione.
 //
-//   in onboarding   iscritto ma non ancora operativo: non ha finito la
-//                   configurazione (pending, fermo a metà, o saltata)
+//   in onboarding   iscritto ma con la configurazione non finita: non avviato
+//                   (pending), fermo a un passo del percorso rapido, o con la
+//                   configurazione completa saltata (skipped — opera, ma la
+//                   pagina che ha saltato fa ancora parte dell'onboarding)
 //   attivo          ha finito l'onboarding e lavora: ordini negli ultimi
 //                   30 giorni
 //   inattivo        ha finito l'onboarding ma non ordina da oltre 30 giorni.
@@ -1245,8 +1322,10 @@ const CTR_CASI = {
   tacitaSuPeggiorativa: 'L1023', // mai cliccato la v0.21 peggiorativa: solo uso successivo (art. 15)
   scadutoSenzaRisposta: 'L1046', // preavviso v0.21 scaduto; dall'11/03 solo token dispositivo (KDS),
                                  // e un token non è una persona: niente tacita
-  sospesoMorosita:      'L1045', // diffida 21/07, sospeso 05/08 (art. 4)
+  sospesoMorosita:      'L1045', // diffida 12/08, sospeso 27/08 (art. 4): la risoluzione è avanti
   sospensioneRevocata:  'L1044', // rischio sicurezza, immediata (art. 13) e poi revocata
+  risoltoMorosita:      'L1049', // diffida, sospensione e RISOLUZIONE di Byup (art. 4): il cessato
+  limitatoContenuti:    'L1030', // una funzione tolta con motivo (art. 13), il resto prosegue
   subOpposto:           'L1022', // opposizione documentata a un sub-responsabile (art. 5 DPA)
   subRecesso:           'L1017', // recesso LIMITATO ai servizi interessati, non churn
   listinoOltreFoi:      'L1020', // aumento sopra l'indice FOI, accettato: il recesso c'era e non è stato usato
@@ -1358,10 +1437,21 @@ const { ACCETTAZIONI, PREAVVISI, SOSPENSIONI } = (() => {
   // Sospensioni: la morosità segue la cadenza dell'art. 4 (diffida → 15gg →
   // sospensione → 15gg → risoluzione); gli altri motivi dell'art. 13 sono
   // «con effetto immediato e dandone comunicazione» — niente diffida.
+  // È il registro dei PROVVEDIMENTI (admProvvedimento, sotto): ogni riga è
+  // una decisione di Byup con le sue date — diffida, limitata, sospesa,
+  // risolta — e la revoca la chiude. La diffida da sola non è un
+  // provvedimento: è il preavviso dell'art. 4, e il campo resta «Nessuno».
   sosp.push(
     { soggettoId: CTR_CASI.sospesoMorosita, motivo: 'morosita',
       nota: 'Tre canoni consecutivi insoluti dopo il fallimento dei riaddebiti automatici.',
-      diffida: ctrData(21, 7, 2026), sospesa: ctrData(5, 8, 2026), decisaDa: 'Giulia Romano', revoca: null },
+      diffida: ctrData(12, 8, 2026), sospesa: ctrData(27, 8, 2026), decisaDa: 'Giulia Romano', revoca: null },
+    { soggettoId: CTR_CASI.risoltoMorosita, motivo: 'morosita',
+      nota: 'Nessun pagamento nei quindici giorni di sospensione: contratto risolto (art. 4). Restano le finestre del DPA.',
+      diffida: ctrData(2, 6, 2026), sospesa: ctrData(17, 6, 2026), risolta: ctrData(2, 7, 2026), decisaDa: 'Giulia Romano', revoca: null },
+    { soggettoId: CTR_CASI.limitatoContenuti, motivo: 'uso-illecito',
+      nota: 'Foto dei piatti e descrizioni copiate dalla vetrina di un altro locale: la vetrina esce dalla scoperta finché non le sostituisce. Ordini, cassa e prenotazioni continuano.',
+      ambito: 'Vetrina nella scoperta dell\'app',
+      diffida: null, limitata: ctrData(25, 8, 2026), sospesa: null, decisaDa: 'Marco Rinaldi', revoca: null },
     { soggettoId: CTR_CASI.sospensioneRevocata, motivo: 'rischio-sicurezza',
       nota: 'Credenziali del titolare comparse in un data breach di terzi: accesso congelato in via cautelativa.',
       diffida: null, sospesa: ctrData(10, 5, 2026), decisaDa: 'Marco Rinaldi',
@@ -1371,15 +1461,58 @@ const { ACCETTAZIONI, PREAVVISI, SOSPENSIONI } = (() => {
   return { ACCETTAZIONI: acc, PREAVVISI: pre, SOSPENSIONI: sosp };
 })();
 
-// La cessazione di un churned non è l'ultimo accesso: la disdetta parte
-// quando il locale smette di usare il servizio, ma l'effetto arriva al
-// rinnovo, 30 giorni dopo (art. 5). Da qui partono i due contatori del DPA
-// (art. 11): esportazione 60 giorni, backup estinti in 35.
+// ─── Provvedimento di Byup (P-44 · D-34) ────────────────────────────────────
+// platform_status: COSA BYUP HA DECISO sul locale, separato dal ciclo di vita
+// (dove il locale è arrivato, LOC_CICLO_VITA). Si calcola dal registro delle
+// decisioni, non si salva: quattro valori del modello.
+//   none      nessuna decisione viva. Anche con una diffida in corso: la
+//             diffida è una riga di registro, il preavviso dell'art. 4, non
+//             un provvedimento — la sospensione scatta dopo, se scatta
+//   limitato  una funzione tolta con motivo (art. 13), il resto prosegue
+//   sospeso   servizio sospeso (art. 4 per morosità, art. 13 gli altri)
+//   cessato   contratto RISOLTO da Byup, quindici giorni dopo la sospensione
+//             (art. 4). La disdetta del locale (art. 5) NON sta qui: è il
+//             ciclo di vita «churned», e il provvedimento resta none
+// Una revoca chiude la riga e si torna a none. Fra più righe vive vince la
+// più grave.
+const ADM_PROVVEDIMENTI = {
+  none:     { label: 'Nessuno',  color: 'OK' },
+  limitato: { label: 'Limitato', color: 'WARN' },
+  sospeso:  { label: 'Sospeso',  color: 'DANGER' },
+  cessato:  { label: 'Cessato',  color: 'INK' },
+};
+function admProvvedimentoRiga(l) {
+  const vive = SOSPENSIONI.filter(x => x.soggettoId === l.id && !x.revoca);
+  return vive.find(x => x.risolta) || vive.find(x => x.sospesa) || vive.find(x => x.limitata) || vive[0] || null;
+}
+function admProvvedimento(l) {
+  const r = admProvvedimentoRiga(l);
+  if (!r) return 'none';
+  if (r.risolta) return 'cessato';
+  if (r.sospesa) return 'sospeso';
+  if (r.limitata) return 'limitato';
+  return 'none';
+}
+
+// La cessazione: se Byup ha risolto, è la data della risoluzione; altrimenti
+// la disdetta del locale, che parte quando smette di usare il servizio ma ha
+// effetto al rinnovo, 30 giorni dopo (art. 5). Da qui partono i due contatori
+// del DPA (art. 11): esportazione 60 giorni, backup estinti in 35.
 function ctrCessazione(l) {
+  const r = admProvvedimentoRiga(l);
+  if (r && r.risolta) return r.risolta;
   return l.stato === 'churned' ? new Date(l.lastLogin.getTime() + 30 * 86400000) : null;
 }
 
 window.ONB_STEPS = ONB_STEPS;
+window.ONB_RAPIDO = ONB_RAPIDO;
+window.ONB_SOTTO = ONB_SOTTO;
+window.ONB_CONFIG = ONB_CONFIG;
+window.onbSottoLabel = onbSottoLabel;
+window.LOC_CICLO_VITA = LOC_CICLO_VITA;
+window.ADM_PROVVEDIMENTI = ADM_PROVVEDIMENTI;
+window.admProvvedimento = admProvvedimento;
+window.admProvvedimentoRiga = admProvvedimentoRiga;
 window.PIANI = PIANI;
 // ── Dunning (mock): addebiti falliti su 3 locali attivi paganti ──────────
 LOCALI.filter(l => l.stato === 'active' && l.piano !== 'free').slice(3, 6).forEach((l, i) => {

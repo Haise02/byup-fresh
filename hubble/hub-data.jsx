@@ -136,8 +136,14 @@ const HUB_PROPRIETA = [
     nota: 'Solo per le persone: i locali non ce l\'hanno. Vuota per chi non l\'ha mai data' },
   { id: 'tipo',     label: 'Tipologia contatto',  gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.2fr' },
     opzioni: [{ value: 'locale', label: 'Locale' }, { value: 'staff', label: 'Utente Staff' }, { value: 'utente', label: 'Utente App' }] },
-  { id: 'ciclo',    label: 'Ciclo di vita',       gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
-    opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'clienteFree', label: 'Cliente Free' }, { value: 'clientePagante', label: 'Cliente Pagante' }, { value: 'returning', label: 'Returning' }, { value: 'annullato', label: 'Piano annullato' }, { value: 'eliminato', label: 'Eliminato' }] },
+  // Lo stadio commerciale si CALCOLA (P-43 · D-34): il lettore è hubStadio in
+  // admin-contatti.jsx, con la definizione scritta una volta lì. Nessuna riga
+  // lo porta salvato, nessun workflow lo scrive — è una condizione, mai
+  // un'azione (HubSceltaProprieta esclude le proprietà con `leggi`).
+  { id: 'ciclo',    label: 'Stadio',              gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
+    opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'iscritto', label: 'Iscritto' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'clienteFree', label: 'Cliente Free' }, { value: 'clientePagante', label: 'Cliente Pagante' }, { value: 'returning', label: 'Returning' }, { value: 'annullato', label: 'Piano annullato' }, { value: 'eliminato', label: 'Eliminato' }],
+    leggi: (c) => (typeof hubStadio === 'function' ? hubStadio(c) : null),
+    nota: 'Calcolato dal locale e dal piano, non si imposta: lead senza locali, poi il ciclo di vita, Free o Pagante dal piano, Returning nei 90 giorni dal rientro' },
   // Un utente bannato non deve essere invisibile in rubrica: la restrizione
   // attiva (dal registro di Utenti app) è una proprietà come le altre — la
   // si mette in colonna e ci si filtra sopra.
@@ -573,7 +579,6 @@ const HUB_WORKFLOW = [
             ] },
           ] },
           nodi: [
-            { tipo: 'proprieta', testo: 'Ciclo di vita → Cliente Pagante' },
             { tipo: 'elenco', testo: 'Locali Plus e Business attivi' },
             { tipo: 'push', testo: 'Avvisa il commerciale di zona' },
           ] },
@@ -584,7 +589,6 @@ const HUB_WORKFLOW = [
             ] },
           ] },
           nodi: [
-            { tipo: 'proprieta', testo: 'Ciclo di vita → Cliente Free' },
             { tipo: 'mail', testo: 'Delivery: come funziona' },
           ] },
         { id: 'r3', label: 'Non ancora', altrimenti: true,
@@ -601,7 +605,7 @@ const HUB_WORKFLOW = [
                     { genere: 'proprieta', prop: 'ciclo', op: 'unoDi', valore: ['clienteFree', 'clientePagante'] },
                   ] },
                 ] },
-                nodi: [ { tipo: 'proprieta', testo: 'Ciclo di vita → Cliente Free' } ] },
+                nodi: [ { tipo: 'push', testo: 'Avvisa il commerciale di zona: si è sbloccato' } ] },
               { id: 'r3b', label: 'No', altrimenti: true,
                 quando: { tipo: 'altrimenti', congiunzione: 'E', gruppi: [] },
                 nodi: [ { tipo: 'script', testo: 'Apri un ticket al commerciale: onboarding fermo da 5 giorni' } ] },
@@ -1005,10 +1009,12 @@ function hubAttivita(c) {
   });
 
   // ── proprietà che cambiano ──
-  if (c.ciclo && c.ciclo !== 'lead') {
-    push(Math.round(eta * 0.55), 14, 'proprieta', 'Ciclo di vita',
-      'Da «Lead» a «' + hubEtichettaOpzione(HUB_PROP.ciclo, c.ciclo) + '»',
-      { Chi: 'Workflow · Onboarding nuovo locale' });
+  // Lo stadio non lo imposta nessuno: la transizione si registra come fatto,
+  // senza un «Chi» — è il locale che è arrivato dove è arrivato.
+  const stadio = hubLeggi(c, 'ciclo');
+  if (stadio && stadio !== 'lead') {
+    push(Math.round(eta * 0.55), 14, 'proprieta', 'Stadio',
+      'Da «Lead» a «' + hubEtichettaOpzione(HUB_PROP.ciclo, stadio) + '»');
   }
   if (c.campagnaId) {
     push(eta, 9, 'proprieta', 'ID campagna', 'Impostata a «' + c.campagnaId + '»', { Chi: 'Submission form' });

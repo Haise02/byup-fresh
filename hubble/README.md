@@ -87,12 +87,18 @@ il resto vive nelle tab.
 
 **Locale** (`admin-locale-detail.jsx`) — nove tab:
 1. **Anagrafica** — l'identità del rapporto (codice non modificabile, piano,
-   stato, iscritto dal) incorporata in testa alla card dei campi; i campi sono
-   quelli dell'onboarding del gestionale (insegna, indirizzo e civico, CAP,
-   città, telefono…). Lo **stato dice la sospensione** (Sospeso/Diffidato)
-   quando ce n'è una viva. Sotto, i **Locali associati all'utenza** del
-   titolare: utenza e locale sono due cose distinte.
-2. **Dati fiscali** — P.IVA col badge «Verificata (AdE)», regime a scelta,
+   ciclo di vita, provvedimento, iscritto dal) incorporata in testa alla card
+   dei campi; i campi sono quelli dell'onboarding del gestionale (insegna,
+   indirizzo e civico, CAP, città, telefono…). Sono **due campi** (P-44 ·
+   D-34): il **ciclo di vita** dice dove il locale è arrivato (iscritto non
+   avviato, in onboarding, onboarding saltato, attivo, inattivo, disdetto) e
+   il **provvedimento** cosa Byup ha deciso (nessuno, limitato, sospeso,
+   cessato — quest'ultimo solo per la risoluzione di Byup; la disdetta è
+   ciclo di vita). La diffida è una riga del registro, non un valore: la si
+   legge nel banner dei Contratti. Sotto, i **Locali associati all'utenza**
+   del titolare: utenza e locale sono due cose distinte.
+2. **Dati fiscali** — P.IVA senza badge di verifica (nessuno la verifica
+   presso l'Agenzia, e il gestionale ha smesso di dirlo), regime a scelta,
    ATECO, SDI, PEC, REA, sede operativa (derivata, quella dello scontrino) e
    sede legale (campo suo), IBAN in sola lettura «gestito da Stripe».
 3. **Proprietà** — campi liberi in stile CRM.
