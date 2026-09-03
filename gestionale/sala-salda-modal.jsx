@@ -234,6 +234,20 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   React.useEffect(() => {
     if (open && tavolo) {
       const cloned = (tavolo.ordini || []).map(o => ({...o}));
+      // La voce di coperto o servizio (P-103) entra nel conto come una riga,
+      // col nome scelto dall'esercente: quantità = coperti se è fissa a
+      // persona, una riga sola se è percentuale sul totale dei piatti. Così è
+      // selezionabile, incassabile a quote e finisce nei totali come ogni
+      // altra riga — e il totale è lo stesso che l'app e la webapp hanno
+      // mostrato prima della conferma. Solo in sala, mai all'asporto; non si
+      // raddoppia riaprendo il conto.
+      if (window.byupCopertoRiga && !cloned.some(o => o.coperto)) {
+        const sub = cloned.reduce((acc, o) => acc + (o.prezzo || 0) * (o.qty || 0), 0);
+        const r = window.byupCopertoRiga(sub, tavolo.coperti || 1);
+        if (r.attiva) cloned.push(r.forma === 'fissa'
+          ? { id: 'coperto', nome: r.nome, qty: Math.max(1, tavolo.coperti || 1), prezzo: r.importo, stato: 'consegnato', origin: 'byup', guestId: null, coperto: true }
+          : { id: 'coperto', nome: `${r.nome} ${r.aliquota}%`, qty: 1, prezzo: r.valore, stato: 'consegnato', origin: 'byup', guestId: null, coperto: true });
+      }
       const gById = Object.fromEntries((tavolo.guests || []).map(g => [g.id, g]));
       // Stessa regola di `nomiPagati` più sotto: il pagamento che porta righe
       // (la quota di un piatto diviso) non spegne l'ospite per nome.

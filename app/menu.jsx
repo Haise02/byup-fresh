@@ -870,6 +870,11 @@ function MenuScreen({ state, setState, goTo }) {
 
   const submitTableOrder = () => {
     setConfirm(true);
+    // P-103: il momento in cui la voce di coperto o servizio è stata esposta
+    // e confermata finisce sull'ordine (orders.cover_disclosed_at). Su un menù
+    // di carta la prova che il cliente poteva conoscerla non esiste; qui
+    // esiste, ed è un vantaggio che il prodotto offre all'esercente.
+    const coverDisclosedAt = new Date().toISOString();
     setTimeout(() => {
       setState(s => {
         const newItems = s.cart.map(li => {
@@ -885,7 +890,7 @@ function MenuScreen({ state, setState, goTo }) {
           const newTotal = merged.reduce((sum, i) => sum + i.price * i.qty, 0);
           return {
             ...s,
-            activeOrder: { ...s.activeOrder, items: merged, total: newTotal },
+            activeOrder: { ...s.activeOrder, items: merged, total: newTotal, cover_disclosed_at: s.activeOrder.cover_disclosed_at || coverDisclosedAt },
             cart: [],
           };
         }
@@ -897,6 +902,7 @@ function MenuScreen({ state, setState, goTo }) {
             items: newItems,
             total: cartTotal,
             startedAt: new Date(),
+            cover_disclosed_at: coverDisclosedAt,
             covers: 4,
             guests: [
               { id: 'me', name: 'Tu', initial: 'T', isMe: true, isApp: true },
@@ -2038,6 +2044,20 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
           </div>
 
           <div style={{ padding: '0 22px 20px' }}>
+            {/* P-103: la voce di coperto o servizio si vede PRIMA della conferma,
+                col nome scelto dall'esercente e l'importo o l'aliquota — non come
+                sorpresa in fondo al conto (art. 180 R.D. 635/1940: le tariffe
+                devono essere conoscibili prima). All'asporto non c'è. */}
+            {!state.takeawayOrder && cartCount > 0 && (() => {
+              const r = window.ByupCoperto && window.ByupCoperto.riga(cartTotal, 1);
+              return r && r.attiva ? (
+                <div data-coperto style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+                  padding: '9px 2px 12px', fontSize: 13, color: MUTED }}>
+                  <span>{r.etichetta}</span>
+                  <span style={{ fontWeight: 700, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>{r.forma === 'fissa' ? `${r.importo.toFixed(2)}€ a persona` : `${r.aliquota}%`}</span>
+                </div>
+              ) : null;
+            })()}
             <button onClick={onSubmit} disabled={cartCount === 0} style={{
               width: '100%', height: 52, borderRadius: 999, border: 'none',
               background: cartCount === 0 ? CTA_DEAD : CTA_GRAD,
@@ -3645,9 +3665,15 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const extraTotal = extraItems.reduce((s, i) => s + lineRemaining(order, i, settledOra), 0);
   const tableTotal = tableRemaining(order, settledOra);
 
-  // coperto: 2€ per persona; in 'mine' paghi solo il tuo, in 'all' paghi per tutti.
-  // Su rientro post-pagamento parziale il mio coperto è già saldato.
-  const COVER = 2;
+  // La voce del conto viene dalla configurazione della sede (P-103), la
+  // stessa mostrata prima della conferma: nome, forma e importo o aliquota.
+  // Da fissa a persona: in 'mine' paghi la tua, in 'all' paghi per tutti, e
+  // su rientro post-pagamento parziale la tua è già saldata. Da percentuale:
+  // segue quel che si sta pagando, la propria quota o il tavolo.
+  const copertoCfg = window.ByupCoperto ? window.ByupCoperto.leggi() : { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 };
+  const copertoNome = copertoCfg.qualificazione === 'servizio' ? 'Servizio' : 'Coperto';
+  const copertoFisso = copertoCfg.forma !== 'percentuale';
+  const COVER = copertoFisso ? (Number(copertoCfg.importo) || 0) : 0;
   const covers = order.covers || (order.guests?.length || 1);
   const myCoverPaid = Object.values(paidLineIds).some(by => by === 'me');
   const myCover = myCoverPaid ? 0 : COVER;
@@ -3656,7 +3682,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   const allCovers = COVER * covers - (myCoverPaid ? COVER : 0);
 
   const subtotal = mode === 'mine' ? (myDishesTotal + extraTotal) : tableTotal;
-  const cover = mode === 'mine' ? myCover : allCovers;
+  const cover = copertoFisso ? (mode === 'mine' ? myCover : allCovers) : Math.round(subtotal * (Number(copertoCfg.aliquota) || 0)) / 100;
   const baseForTip = subtotal + cover;
   // Arrotondamento "salva-mancia": porta il totale alla cifra tonda in euro
   // successiva, la differenza diventa mancia. 0 se la base è già tonda.
@@ -3817,7 +3843,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
             {cover > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '11px 0', borderTop: `1px solid ${BORDER}` }}>
-                <span style={{ fontSize: 14.5, color: MUTED }}>Coperto{mode === 'all' ? ` × ${covers}` : ''}</span>
+                <span style={{ fontSize: 14.5, color: MUTED }}>{copertoNome}{copertoFisso ? (mode === 'all' ? ` × ${covers}` : '') : ` ${copertoCfg.aliquota}%`}</span>
                 <span style={{ fontSize: 14.5, color: MUTED, fontVariantNumeric: 'tabular-nums' }}>{cover.toFixed(2)}€</span>
               </div>
             )}

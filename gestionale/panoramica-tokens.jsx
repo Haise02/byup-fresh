@@ -1080,3 +1080,47 @@ window.byupWriteRicezione = function (v) {
   try { if (v) localStorage.setItem(PN_RICEZIONE_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_RICEZIONE_KEY); } catch (e) {}
   window.dispatchEvent(new Event('byup-ricezione-change'));
 };
+
+// ─── Coperto e servizio (P-103) ─────────────────────────────────────────────
+// Due scelte indipendenti: la QUALIFICAZIONE (coperto o servizio) e la FORMA
+// (fissa a persona o percentuale sul totale). Nessuna fonte lega le due
+// dimensioni, quindi il prodotto non le lega: esistono coperto a persona,
+// servizio a percentuale, ma anche coperto a percentuale e servizio a persona.
+// Il default è proposto, mai imposto: coperto fisso a persona, perché è ciò
+// che fa il mercato (FIPE 2023: coperto nell'80% dei ristoranti, media 2,90 €,
+// servizio nel 4,9%); dove un regolamento comunale vieti il coperto ammettendo
+// il servizio, la stessa cifra è lecita sotto un nome e illecita sotto l'altro,
+// e la qualificazione si cambia qui. Si applica solo in sala, non all'asporto.
+// Registro in localStorage (byup_coperto), letto dal conto in sala, dal
+// campione di scontrino e — sullo stesso dominio — da app e webapp, che ne
+// tengono una copia guardata con lo stesso default. Nel modello: la voce si
+// espone prima della conferma e il momento finisce in orders.cover_disclosed_at.
+const PN_COPERTO_KEY = 'byup_coperto';
+const PN_COPERTO_DEFAULT = { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 };
+const PN_COPERTO_NOMI = { coperto: 'Coperto', servizio: 'Servizio' };
+window.byupReadCoperto = function () {
+  try { const s = localStorage.getItem(PN_COPERTO_KEY); return s ? Object.assign({}, PN_COPERTO_DEFAULT, JSON.parse(s)) : { ...PN_COPERTO_DEFAULT }; }
+  catch (e) { return { ...PN_COPERTO_DEFAULT }; }
+};
+window.byupWriteCoperto = function (v) {
+  try { localStorage.setItem(PN_COPERTO_KEY, JSON.stringify(v)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-coperto-change'));
+};
+// La riga come la vede il cliente prima di confermare e come finisce sul
+// conto: nome, forma, importo o aliquota, e il valore su un subtotale per N
+// coperti. Importo o aliquota a zero = voce spenta.
+window.byupCopertoRiga = function (subtotale, coperti, cfg) {
+  const c = cfg || window.byupReadCoperto();
+  const nome = PN_COPERTO_NOMI[c.qualificazione] || 'Coperto';
+  if (c.forma === 'percentuale') {
+    const aliquota = Number(c.aliquota) || 0;
+    return { nome, attiva: aliquota > 0, forma: 'percentuale', aliquota,
+      etichetta: `${nome} · ${aliquota}% sul totale`, dettaglio: `${nome} ${aliquota}%`,
+      valore: Math.round((subtotale || 0) * aliquota) / 100 };
+  }
+  const importo = Number(c.importo) || 0;
+  const n = Math.max(1, coperti || 1);
+  return { nome, attiva: importo > 0, forma: 'fissa', importo,
+    etichetta: `${nome} · ${importo.toFixed(2).replace('.', ',')} € a persona`, dettaglio: `${nome} × ${n}`,
+    valore: Math.round(importo * n * 100) / 100 };
+};

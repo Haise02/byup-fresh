@@ -1456,11 +1456,16 @@ function ScontrinoPreview({ data }) {
     </div>
   );
 
+  // La voce di coperto o servizio col nome e la forma scelti in Impostazioni →
+  // Servizio (P-103): non più «COPERTO» cablato, la stessa riga del conto.
+  const cop = window.byupCopertoRiga ? window.byupCopertoRiga(31, 2) : null;
   const rows = [
     { desc:'CACIO E PEPE',     q:1, p:14.00 },
     { desc:'CARBONARA',        q:1, p:14.00 },
     { desc:'ACQUA NAT 0.75L',  q:1, p:3.00  },
-    { desc:'COPERTO',          q:2, p:2.00  },
+    ...(cop && cop.attiva ? [cop.forma === 'fissa'
+      ? { desc: cop.nome.toUpperCase(), q: 2, p: cop.importo }
+      : { desc: `${cop.nome.toUpperCase()} ${cop.aliquota}%`, q: 1, p: cop.valore }] : []),
   ];
   const totale = rows.reduce((s,r) => s + r.p*r.q, 0);
   const imponibile = +(totale / 1.10).toFixed(2);

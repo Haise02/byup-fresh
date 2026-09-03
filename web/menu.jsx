@@ -571,6 +571,11 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
 
   const submitTableOrder = () => {
     setConfirm(true);
+    // P-103: il momento in cui la voce di coperto o servizio è stata esposta e
+    // confermata finisce sull'ordine (orders.cover_disclosed_at). Su un menù
+    // di carta la prova che il cliente poteva conoscerla non esiste; qui
+    // esiste, ed è un vantaggio che il prodotto offre all'esercente.
+    const coverDisclosedAt = new Date().toISOString();
     setTimeout(() => {
       setState(s => {
         const newItems = s.cart.map(li => {
@@ -587,7 +592,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
           const newTotal = merged.reduce((sum, i) => sum + i.price * i.qty, 0);
           return {
             ...s,
-            activeOrder: { ...s.activeOrder, items: merged, total: newTotal },
+            activeOrder: { ...s.activeOrder, items: merged, total: newTotal, cover_disclosed_at: s.activeOrder.cover_disclosed_at || coverDisclosedAt },
             cart: [],
           };
         }
@@ -602,6 +607,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
             items: newItems,
             total: cartTotal,
             startedAt: new Date(),
+            cover_disclosed_at: coverDisclosedAt,
             covers: 4,
             guests: [
               { id: 'me', name: 'Tu', initial: 'T', isMe: true, isApp: true },
@@ -1445,6 +1451,18 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
           </div>
 
           <div style={{ padding: '0 22px 20px' }}>
+            {/* P-103: la voce di coperto o servizio si vede PRIMA della conferma,
+                non come sorpresa in fondo al conto. All'asporto non c'è. */}
+            {!takeaway && cartCount > 0 && (() => {
+              const r = byupCopertoRiga(cartTotal, 1);
+              return r.attiva ? (
+                <div data-coperto style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10,
+                  padding: '8px 2px 12px', fontSize: 13, color: MUTED }}>
+                  <span>{r.etichetta}</span>
+                  <span style={{ fontWeight: 700, color: TEXT, fontVariantNumeric: 'tabular-nums' }}>{r.forma === 'fissa' ? `${r.importo.toFixed(2)}€ a persona` : `${r.aliquota}%`}</span>
+                </div>
+              ) : null;
+            })()}
             <button onClick={onSubmit} disabled={cartCount === 0} style={{
               width: '100%', height: 50, borderRadius: 999, border: 'none',
               background: cartCount === 0 ? '#d8c0c8' : WINE, color: '#fff',
@@ -1818,7 +1836,11 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
   // cablato nella demo e non segue i piatti che ci sono davvero. Qui non c'è
   // nessun residuo da scontare — la webapp non incassa, quindi non esistono
   // quote saldate: il totale è tutto da pagare, in cassa o dall'app.
-  const totaleOrdine = (order.items || []).reduce((s, i) => s + i.price * i.qty, 0);
+  const totalePiatti = (order.items || []).reduce((s, i) => s + i.price * i.qty, 0);
+  // P-103: la voce di coperto o servizio col nome della sede, sui coperti del
+  // tavolo — lo stesso totale che vedono l'app e la cassa.
+  const copertoRiga = byupCopertoRiga(totalePiatti, order.covers || (order.guests?.length || 1));
+  const totaleOrdine = totalePiatti + (copertoRiga.attiva ? copertoRiga.valore : 0);
   const fmtTime = (d) => {
     if (!d) return '';
     const dd = new Date(d);
@@ -1940,6 +1962,12 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
                   </div>
                 ))}
               </div>
+              {copertoRiga.attiva && (
+                <div data-coperto-conto style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13.5, marginTop: 8, opacity: 0.92 }}>
+                  <span>{copertoRiga.dettaglio}</span>
+                  <span style={{ fontWeight: 600, flexShrink: 0 }}>{copertoRiga.valore.toFixed(2)}€</span>
+                </div>
+              )}
               <div style={{ height: 1, background: 'rgba(255,255,255,0.25)', margin: '12px 0' }}/>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: 16 }}>
                 <span style={{ fontWeight: 700 }}>Totale</span>
@@ -2604,6 +2632,29 @@ function isTakeawayEntry() {
 // stessa forma che Vendita diretta si aspetta e che svNomeConto grida.
 function nuovoCodiceRitiro() {
   return Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+}
+
+// ─── Coperto e servizio (P-103) ─────────────────────────────────────
+// Copia guardata di byupReadCoperto / byupCopertoRiga (gestionale/panoramica-
+// tokens.jsx): stesso registro byup_coperto sullo stesso dominio, stesso
+// default (coperto, fisso a persona, 2 €), stessa riga. La voce si mostra
+// PRIMA della conferma dell'ordine al tavolo, col nome scelto dall'esercente e
+// l'importo o l'aliquota (art. 180 R.D. 635/1940: le tariffe devono essere
+// conoscibili prima), e il conto la ripete con lo stesso nome e lo stesso
+// totale dell'app e della cassa. All'asporto non c'è.
+function byupCopertoLeggi() {
+  const DEF = { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 };
+  try { const s = localStorage.getItem('byup_coperto'); return s ? Object.assign({}, DEF, JSON.parse(s)) : { ...DEF }; } catch { return { ...DEF }; }
+}
+function byupCopertoRiga(subtotale, coperti, cfg) {
+  const c = cfg || byupCopertoLeggi();
+  const nome = c.qualificazione === 'servizio' ? 'Servizio' : 'Coperto';
+  if (c.forma === 'percentuale') {
+    const aliquota = Number(c.aliquota) || 0;
+    return { nome, attiva: aliquota > 0, forma: 'percentuale', aliquota, etichetta: `${nome} · ${aliquota}% sul totale`, dettaglio: `${nome} ${aliquota}%`, valore: Math.round((subtotale || 0) * aliquota) / 100 };
+  }
+  const importo = Number(c.importo) || 0; const n = Math.max(1, coperti || 1);
+  return { nome, attiva: importo > 0, forma: 'fissa', importo, etichetta: `${nome} · ${importo.toFixed(2).replace('.', ',')} € a persona`, dettaglio: `${nome} × ${n}`, valore: Math.round(importo * n * 100) / 100 };
 }
 
 function Root() {

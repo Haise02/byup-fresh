@@ -1447,6 +1447,68 @@ const GUSTI = [{
     if (q === '1') window.ByupSospensione.demo();else if (q === '0') window.ByupSospensione.azzera();
   } catch {}
 })();
+
+// ─── Coperto e servizio (P-103) ──────────────────────────────────────────────
+// Copia guardata di byupReadCoperto / byupCopertoRiga (gestionale/panoramica-
+// tokens.jsx): stesso registro byup_coperto sullo stesso dominio, stesso
+// default (coperto, fisso a persona, 2 €), stessa riga. Nell'app la voce si
+// mostra PRIMA della conferma dell'ordine, col nome scelto dall'esercente e
+// l'importo o l'aliquota, e il conto la ripete con lo stesso nome.
+(function () {
+  const K = 'byup_coperto';
+  const DEF = {
+    qualificazione: 'coperto',
+    forma: 'fissa',
+    importo: 2,
+    aliquota: 10
+  };
+  const NOMI = {
+    coperto: 'Coperto',
+    servizio: 'Servizio'
+  };
+  const leggi = () => {
+    try {
+      const s = localStorage.getItem(K);
+      return s ? Object.assign({}, DEF, JSON.parse(s)) : {
+        ...DEF
+      };
+    } catch {
+      return {
+        ...DEF
+      };
+    }
+  };
+  window.ByupCoperto = {
+    leggi,
+    riga(subtotale, coperti, cfg) {
+      const c = cfg || leggi();
+      const nome = NOMI[c.qualificazione] || 'Coperto';
+      if (c.forma === 'percentuale') {
+        const aliquota = Number(c.aliquota) || 0;
+        return {
+          nome,
+          attiva: aliquota > 0,
+          forma: 'percentuale',
+          aliquota,
+          etichetta: `${nome} · ${aliquota}% sul totale`,
+          dettaglio: `${nome} ${aliquota}%`,
+          valore: Math.round((subtotale || 0) * aliquota) / 100
+        };
+      }
+      const importo = Number(c.importo) || 0;
+      const n = Math.max(1, coperti || 1);
+      return {
+        nome,
+        attiva: importo > 0,
+        forma: 'fissa',
+        importo,
+        etichetta: `${nome} · ${importo.toFixed(2).replace('.', ',')} € a persona`,
+        dettaglio: `${nome} × ${n}`,
+        valore: Math.round(importo * n * 100) / 100
+      };
+    }
+  };
+})();
 })();
 </script>
 <script>/* ios-frame.jsx */
@@ -22131,6 +22193,11 @@ function MenuScreen({
   };
   const submitTableOrder = () => {
     setConfirm(true);
+    // P-103: il momento in cui la voce di coperto o servizio è stata esposta
+    // e confermata finisce sull'ordine (orders.cover_disclosed_at). Su un menù
+    // di carta la prova che il cliente poteva conoscerla non esiste; qui
+    // esiste, ed è un vantaggio che il prodotto offre all'esercente.
+    const coverDisclosedAt = new Date().toISOString();
     setTimeout(() => {
       setState(s => {
         const newItems = s.cart.map(li => {
@@ -22155,7 +22222,8 @@ function MenuScreen({
             activeOrder: {
               ...s.activeOrder,
               items: merged,
-              total: newTotal
+              total: newTotal,
+              cover_disclosed_at: s.activeOrder.cover_disclosed_at || coverDisclosedAt
             },
             cart: []
           };
@@ -22168,6 +22236,7 @@ function MenuScreen({
             items: newItems,
             total: cartTotal,
             startedAt: new Date(),
+            cover_disclosed_at: coverDisclosedAt,
             covers: 4,
             guests: [{
               id: 'me',
@@ -24515,7 +24584,27 @@ function OrderSheet({
     style: {
       padding: '0 22px 20px'
     }
-  }, /*#__PURE__*/React.createElement("button", {
+  }, !state.takeawayOrder && cartCount > 0 && (() => {
+    const r = window.ByupCoperto && window.ByupCoperto.riga(cartTotal, 1);
+    return r && r.attiva ? /*#__PURE__*/React.createElement("div", {
+      "data-coperto": true,
+      style: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 10,
+        padding: '9px 2px 12px',
+        fontSize: 13,
+        color: MUTED
+      }
+    }, /*#__PURE__*/React.createElement("span", null, r.etichetta), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 700,
+        color: TEXT,
+        fontVariantNumeric: 'tabular-nums'
+      }
+    }, r.forma === 'fissa' ? `${r.importo.toFixed(2)}€ a persona` : `${r.aliquota}%`)) : null;
+  })(), /*#__PURE__*/React.createElement("button", {
     onClick: onSubmit,
     disabled: cartCount === 0,
     style: {
@@ -27554,9 +27643,20 @@ function PaymentScreen({
   const extraTotal = extraItems.reduce((s, i) => s + lineRemaining(order, i, settledOra), 0);
   const tableTotal = tableRemaining(order, settledOra);
 
-  // coperto: 2€ per persona; in 'mine' paghi solo il tuo, in 'all' paghi per tutti.
-  // Su rientro post-pagamento parziale il mio coperto è già saldato.
-  const COVER = 2;
+  // La voce del conto viene dalla configurazione della sede (P-103), la
+  // stessa mostrata prima della conferma: nome, forma e importo o aliquota.
+  // Da fissa a persona: in 'mine' paghi la tua, in 'all' paghi per tutti, e
+  // su rientro post-pagamento parziale la tua è già saldata. Da percentuale:
+  // segue quel che si sta pagando, la propria quota o il tavolo.
+  const copertoCfg = window.ByupCoperto ? window.ByupCoperto.leggi() : {
+    qualificazione: 'coperto',
+    forma: 'fissa',
+    importo: 2,
+    aliquota: 10
+  };
+  const copertoNome = copertoCfg.qualificazione === 'servizio' ? 'Servizio' : 'Coperto';
+  const copertoFisso = copertoCfg.forma !== 'percentuale';
+  const COVER = copertoFisso ? Number(copertoCfg.importo) || 0 : 0;
   const covers = order.covers || order.guests?.length || 1;
   const myCoverPaid = Object.values(paidLineIds).some(by => by === 'me');
   const myCover = myCoverPaid ? 0 : COVER;
@@ -27564,7 +27664,7 @@ function PaymentScreen({
   // l'importo esposto è quel che resta da incassare, non il conto pieno.
   const allCovers = COVER * covers - (myCoverPaid ? COVER : 0);
   const subtotal = mode === 'mine' ? myDishesTotal + extraTotal : tableTotal;
-  const cover = mode === 'mine' ? myCover : allCovers;
+  const cover = copertoFisso ? mode === 'mine' ? myCover : allCovers : Math.round(subtotal * (Number(copertoCfg.aliquota) || 0)) / 100;
   const baseForTip = subtotal + cover;
   // Arrotondamento "salva-mancia": porta il totale alla cifra tonda in euro
   // successiva, la differenza diventa mancia. 0 se la base è già tonda.
@@ -27902,7 +28002,7 @@ function PaymentScreen({
       fontSize: 14.5,
       color: MUTED
     }
-  }, "Coperto", mode === 'all' ? ` × ${covers}` : ''), /*#__PURE__*/React.createElement("span", {
+  }, copertoNome, copertoFisso ? mode === 'all' ? ` × ${covers}` : '' : ` ${copertoCfg.aliquota}%`), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 14.5,
       color: MUTED,

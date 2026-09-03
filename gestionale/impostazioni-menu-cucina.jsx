@@ -7179,16 +7179,22 @@ function MCConfigura() {
   const [cucina, setCucina] = React.useState('diretto');
   const [timeout, setTimeoutMin] = React.useState(5);
   const [timeoutAction, setTimeoutAction] = React.useState('auto');
-  // Servizio: fisso a persona (€) oppure percentuale sul totale del conto.
-  // Un valore per modalità, non uno solo: passando da fisso a percentuale e
-  // tornando indietro l'importo di prima è ancora lì, e nessuno dei due può
-  // essere applicato con l'unità sbagliata.
-  const [servizioTipo, setServizioTipo] = React.useState('fisso');
-  const [servizioFisso, setServizioFisso] = React.useState(0);
-  const [servizioPerc, setServizioPerc] = React.useState(0);
-  const servizio = servizioTipo === 'fisso' ? servizioFisso : servizioPerc;
-  const setServizio = servizioTipo === 'fisso' ? setServizioFisso : setServizioPerc;
-  const servizioContestabile = servizioTipo === 'fisso' && servizio > 0;
+  // Coperto e servizio (P-103): due scelte indipendenti, la qualificazione e
+  // la forma, persistite in byup_coperto (panoramica-tokens) così che il
+  // conto in sala, il campione di scontrino, l'app e la webapp leggano la
+  // stessa voce. Un valore per forma, non uno solo: passando da fissa a
+  // percentuale e tornando indietro l'importo di prima è ancora lì, e nessuno
+  // dei due può essere applicato con l'unità sbagliata.
+  const [coperto, setCopertoState] = React.useState(() => window.byupReadCoperto ? window.byupReadCoperto() : { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 });
+  const setCoperto = (patch) => { const next = { ...coperto, ...patch }; setCopertoState(next); window.byupWriteCoperto && window.byupWriteCoperto(next); };
+  const servizioTipo = coperto.forma === 'percentuale' ? 'percentuale' : 'fisso';
+  const servizio = servizioTipo === 'fisso' ? coperto.importo : coperto.aliquota;
+  const setServizio = (v) => setCoperto(servizioTipo === 'fisso' ? { importo: v } : { aliquota: v });
+  const setServizioTipo = (t) => setCoperto({ forma: t === 'fisso' ? 'fissa' : 'percentuale' });
+  const copertoNome = coperto.qualificazione === 'servizio' ? 'Servizio' : 'Coperto';
+  // L'anteprima viva: la riga che il cliente vede prima di confermare e la
+  // riga sul conto, su un tavolo campione da quattro coperti e 62,50 €.
+  const anteprima = window.byupCopertoRiga ? window.byupCopertoRiga(62.5, 4, coperto) : null;
   // Moduli attivi (sincronizzati con localStorage condiviso tra pagine)
   const readMods = () => (window.byupReadModules ? window.byupReadModules() : {sala:true, prenotazioni:true, asporto:true});
   const [modules, setModules] = React.useState(readMods);
@@ -7426,74 +7432,101 @@ function MCConfigura() {
         )}
           </div>
 
-        {/* --- Servizio --- */}
+        {/* --- Coperto e servizio (P-103) --- */}
         <div style={{
           padding: 16, borderRadius: 11,
           border: `1px solid ${PN.BORDER_SOFT}`,
         }}>
-          {/* Titolo + tipo sulla stessa riga: il segmented compatto a destra
-              è una scelta di natura, non l'importo. Gli importi sotto restano
-              scuri quando attivi, così le due file non si confondono. */}
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, flexWrap:'wrap', marginBottom: 8}}>
+          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10, flexWrap:'wrap', marginBottom: 6}}>
             <div style={{fontSize: 15, fontWeight: 700, display:'inline-flex', alignItems:'center', gap: 7}}>
-              <PnI.Plate size={15}/> Servizio
-            </div>
-            <div style={{display:'inline-flex', background: PN.WHITE, padding: 3, borderRadius: 999, gap: 2, border:`1px solid ${PN.BORDER}`}}>
-              {[{id:'fisso', label:'Fisso a persona'}, {id:'percentuale', label:'Percentuale sul conto'}].map(m => {
-                const on = servizioTipo === m.id;
-                return (
-                  <button key={m.id} onClick={() => setServizioTipo(m.id)} style={{
-                    padding:'5px 13px', borderRadius: 999,
-                    border:'none',
-                    background: on ? PN.PINK_SOFT : 'transparent',
-                    color: on ? PN.PINK_DARK : PN.MUTED,
-                    fontSize: 13, fontWeight: 700,
-                    cursor:'pointer', fontFamily:'inherit',
-                    boxShadow: on ? '0 1px 2px rgba(15,17,21,0.06)' : 'none',
-                    transition:'background 150ms ease-out, color 150ms ease-out',
-                    whiteSpace:'nowrap',
-                  }}>{m.label}</button>
-                );
-              })}
+              <PnI.Plate size={15}/> Coperto e servizio
             </div>
           </div>
-          <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 12}}>
-            {servizioTipo === 'fisso'
-              ? "Importo per persona, applicato solo in sala (non all'asporto)"
-              : "Percentuale sul totale del conto, applicata solo in sala (non all'asporto)"}
+          <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 14, lineHeight: 1.5}}>
+            Due scelte indipendenti: come si chiama la voce e come si calcola. Il cliente la vede
+            prima di confermare l'ordine, nell'app e nella webapp, e la ritrova sul conto e sullo
+            scontrino con lo stesso nome. Solo in sala, non all'asporto.
           </div>
 
-          <div style={{display:'flex', gap: 6}}>
-            {SERVIZIO_OPZIONI[servizioTipo].map(v => {
-              const on = servizio === v;
-              return (
-                <button key={v} onClick={() => setServizio(v)} style={{
-                  flex: 1, padding:'9px 6px', borderRadius: 7,
-                  border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
-                  background: on ? PN.TEXT : PN.WHITE,
-                  color: on ? PN.WHITE : PN.TEXT,
-                  fontSize: 14.5, fontWeight: 700,
-                  cursor:'pointer', fontFamily:'inherit',
-                }}>{v === 0 ? '—' : (servizioTipo === 'fisso' ? `€${v.toFixed(2)}` : `${v}%`)}</button>
-              );
-            })}
+          <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1fr)', gap: 14}}>
+            <div>
+              {/* Qualificazione: coperto o servizio. Il default coperto è proposto, non
+                  imposto — è ciò che fa il mercato — e la scelta non tocca la forma. */}
+              <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 7}}>Come si chiama</div>
+              <div style={{display:'inline-flex', background: PN.WHITE, padding: 3, borderRadius: 999, gap: 2, border:`1px solid ${PN.BORDER}`}}>
+                {[{id:'coperto', label:'Coperto'}, {id:'servizio', label:'Servizio'}].map(m => {
+                  const on = coperto.qualificazione === m.id;
+                  return (
+                    <button key={m.id} data-qualificazione={m.id} onClick={() => setCoperto({ qualificazione: m.id })} style={{
+                      padding:'5px 13px', borderRadius: 999, border:'none',
+                      background: on ? PN.PINK_SOFT : 'transparent',
+                      color: on ? PN.PINK_DARK : PN.MUTED,
+                      fontSize: 13, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                      boxShadow: on ? '0 1px 2px rgba(15,17,21,0.06)' : 'none',
+                      transition:'background 150ms ease-out, color 150ms ease-out', whiteSpace:'nowrap',
+                    }}>{m.label}</button>
+                  );
+                })}
+              </div>
+              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.5}}>
+                Coperto è proposto, non imposto: è ciò che fa il mercato (FIPE 2023, coperto nell'80%
+                dei ristoranti, media 2,90 €; servizio nel 4,9%). Dove un regolamento comunale vieta
+                il coperto e ammette il servizio, la stessa cifra è lecita sotto un nome e illecita
+                sotto l'altro: cambia il nome, non la cifra.
+              </div>
+            </div>
+
+            <div>
+              {/* Forma: fissa a persona o percentuale sul totale. Indipendente dal nome:
+                  esistono coperto a percentuale e servizio a persona. */}
+              <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 7}}>Come si calcola</div>
+              <div style={{display:'inline-flex', background: PN.WHITE, padding: 3, borderRadius: 999, gap: 2, border:`1px solid ${PN.BORDER}`}}>
+                {[{id:'fisso', label:'Fissa a persona'}, {id:'percentuale', label:'Percentuale sul totale'}].map(m => {
+                  const on = servizioTipo === m.id;
+                  return (
+                    <button key={m.id} data-forma={m.id} onClick={() => setServizioTipo(m.id)} style={{
+                      padding:'5px 13px', borderRadius: 999, border:'none',
+                      background: on ? PN.PINK_SOFT : 'transparent',
+                      color: on ? PN.PINK_DARK : PN.MUTED,
+                      fontSize: 13, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                      boxShadow: on ? '0 1px 2px rgba(15,17,21,0.06)' : 'none',
+                      transition:'background 150ms ease-out, color 150ms ease-out', whiteSpace:'nowrap',
+                    }}>{m.label}</button>
+                  );
+                })}
+              </div>
+              <div style={{display:'flex', gap: 6, marginTop: 10}}>
+                {SERVIZIO_OPZIONI[servizioTipo].map(v => {
+                  const on = servizio === v;
+                  return (
+                    <button key={v} onClick={() => setServizio(v)} style={{
+                      flex: 1, padding:'9px 6px', borderRadius: 7,
+                      border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
+                      background: on ? PN.TEXT : PN.WHITE,
+                      color: on ? PN.WHITE : PN.TEXT,
+                      fontSize: 14.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                    }}>{v === 0 ? '—' : (servizioTipo === 'fisso' ? `€${v.toFixed(2)}` : `${v}%`)}</button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          {/* L'avviso si accende solo quando la scelta attiva è proprio quella
-              contestabile: una quota fissa davvero applicata. A zero, o in
-              percentuale, resta una nota informativa. */}
-          <div style={{
-            marginTop: 12, padding: '9px 11px', borderRadius: 8,
-            background: servizioContestabile ? '#FEF6E7' : '#FAFBFC',
-            border: `1px solid ${servizioContestabile ? '#F0C36D' : PN.BORDER_SOFT}`,
-            fontSize: 12.5, lineHeight: 1.5,
-            color: servizioContestabile ? '#8A5A00' : PN.MUTED,
+          {/* L'anteprima viva: la voce come la vede il cliente prima di confermare e
+              come finisce sul conto. Cambia con ogni scelta qui sopra. */}
+          <div data-anteprima-coperto style={{
+            marginTop: 14, padding: '11px 13px', borderRadius: 9,
+            background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`,
+            display:'grid', gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)', gap: 12, fontSize: 13, lineHeight: 1.5,
           }}>
-            Nel Lazio (L.R. 21/2006) il “coperto” non è ammesso. È consentita la voce
-            “servizio”, ma se applicata come quota fissa a persona può essere contestata.{' '}
-            <strong style={{color: servizioContestabile ? '#7A4E00' : PN.TEXT}}>
-              Consigliato: servizio in percentuale.
-            </strong>
+            <div>
+              <div style={{fontSize: 11.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 3}}>Prima della conferma</div>
+              <div style={{color: PN.TEXT, fontWeight: 600}}>{anteprima && anteprima.attiva ? anteprima.etichetta : `Nessun ${copertoNome.toLowerCase()}: la voce non compare`}</div>
+            </div>
+            <div>
+              <div style={{fontSize: 11.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 3}}>Sul conto · 4 coperti, 62,50 €</div>
+              <div style={{color: PN.TEXT, fontWeight: 600}}>{anteprima && anteprima.attiva ? `${anteprima.dettaglio} · €${anteprima.valore.toFixed(2)}` : '—'}</div>
+            </div>
           </div>
         </div>
         </div>

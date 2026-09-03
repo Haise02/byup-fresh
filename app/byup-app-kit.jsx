@@ -725,3 +725,29 @@ const GUSTI = [
     if (q === '1') window.ByupSospensione.demo(); else if (q === '0') window.ByupSospensione.azzera();
   } catch {}
 })();
+
+// ─── Coperto e servizio (P-103) ──────────────────────────────────────────────
+// Copia guardata di byupReadCoperto / byupCopertoRiga (gestionale/panoramica-
+// tokens.jsx): stesso registro byup_coperto sullo stesso dominio, stesso
+// default (coperto, fisso a persona, 2 €), stessa riga. Nell'app la voce si
+// mostra PRIMA della conferma dell'ordine, col nome scelto dall'esercente e
+// l'importo o l'aliquota, e il conto la ripete con lo stesso nome.
+(function () {
+  const K = 'byup_coperto';
+  const DEF = { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 };
+  const NOMI = { coperto: 'Coperto', servizio: 'Servizio' };
+  const leggi = () => { try { const s = localStorage.getItem(K); return s ? Object.assign({}, DEF, JSON.parse(s)) : { ...DEF }; } catch { return { ...DEF }; } };
+  window.ByupCoperto = {
+    leggi,
+    riga(subtotale, coperti, cfg) {
+      const c = cfg || leggi();
+      const nome = NOMI[c.qualificazione] || 'Coperto';
+      if (c.forma === 'percentuale') {
+        const aliquota = Number(c.aliquota) || 0;
+        return { nome, attiva: aliquota > 0, forma: 'percentuale', aliquota, etichetta: `${nome} · ${aliquota}% sul totale`, dettaglio: `${nome} ${aliquota}%`, valore: Math.round((subtotale || 0) * aliquota) / 100 };
+      }
+      const importo = Number(c.importo) || 0; const n = Math.max(1, coperti || 1);
+      return { nome, attiva: importo > 0, forma: 'fissa', importo, etichetta: `${nome} · ${importo.toFixed(2).replace('.', ',')} € a persona`, dettaglio: `${nome} × ${n}`, valore: Math.round(importo * n * 100) / 100 };
+    },
+  };
+})();
