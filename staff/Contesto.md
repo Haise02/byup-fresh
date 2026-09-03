@@ -438,6 +438,16 @@ biometrica di sistema (`BiometricPrompt`). "Attivare il Face ID" lato backend si
   collegati" o al cambio password) e va invalidata al logout esplicito;
 - nel prototipo è solo un flag in memoria (`faceIdOn`), senza alcuna credenziale.
 
+### 5.6bis Ponte di stampa (P-101)
+
+Su iPhone il Bluetooth non è raggiungibile da una pagina web (Web Bluetooth non esiste su
+Safari iOS): la stampante Bluetooth della sede stampa attraverso l'**App Staff**, che fa da
+ponte. Nel prototipo il ponte è una riga del Profilo («Ponte di stampa») con lo stato e un
+interruttore che lo accende nel registro condiviso `byup_stampanti` (gestionale/stampa.jsx),
+che Impostazioni → Stampanti legge; il collegamento Bluetooth vero avviene nell'app nativa e
+**non si finge**. Il documento di cortesia dal POS resta via SMS/email (§5.7); la stampa di
+cortesia in cassa è del gestionale.
+
 ### 5.7 Natura fiscale della ricevuta
 
 Il flusso ricevuta (SMS/Email) nel prototipo è puramente visivo. **Decisione:** la ricevuta

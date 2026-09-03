@@ -3,6 +3,7 @@
 const { useState: useStatePr } = React;
 
 function ScreenProfilo({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {} }) {
+  const [, setPonteTick] = useStatePr(0); // rilegge il registro delle stampanti dopo un cambio del ponte
   // Interruttore stile iOS
   const Toggle = ({ on, onChange }) => (
     <button onClick={() => onChange(!on)} style={{
@@ -92,6 +93,30 @@ function ScreenProfilo({ nav, openModal, faceIdOn = false, setFaceIdOn = () => {
           last
         />
       </Group>
+
+      {/* Ponte di stampa (P-101): su iPhone il Bluetooth non è raggiungibile
+          da una pagina web, quindi è l'App Staff a fare da ponte verso la
+          stampante Bluetooth della sede. Qui si vede lo stato e si accende il
+          ponte; il collegamento Bluetooth vero avviene nell'app nativa e non
+          si finge. Il registro è byup_stampanti (gestionale/stampa.jsx),
+          condiviso sullo stesso dominio: Impostazioni → Stampanti lo legge. */}
+      {(() => {
+        const reg = window.byupReadStampanti ? window.byupReadStampanti() : null;
+        const bt = reg && reg.devices.find(d => d.print_mode === 'bluetooth');
+        if (!bt) return null;
+        return (
+          <Group header="Stampa">
+            <ToggleRow
+              icon={I.Receipt}
+              label="Ponte di stampa"
+              sub={`${bt.name} · ${bt.model} · Bluetooth. ${bt.bridge_online ? 'Il ponte è attivo: le comande e i documenti di cortesia per questa stampante passano da qui.' : 'Il ponte è spento: questa stampante non riceve.'} Il collegamento Bluetooth avviene nell'app nativa; qui si mostra lo stato.`}
+              on={!!bt.bridge_online}
+              onChange={next => { window.byupStampantePatch(bt.id, { bridge_online: next, online: next }); setPonteTick(t => t + 1); }}
+              last
+            />
+          </Group>
+        );
+      })()}
 
       {/* Legale */}
       <Group header="Legale">

@@ -1,4 +1,6 @@
-// Impostazioni → Personale (rifatto: ruoli predefiniti + custom, permessi area-based, no dispositivi)
+// Impostazioni → Personale: ruoli predefiniti + custom, permessi area-based, e i
+// dispositivi che entrano (monitor cucina, stampanti, smartphone Byup Staff)
+// nello stesso elenco delle persone — la domanda della pagina è «chi entra».
 
 // Superficie dei menu a comparsa: vetro, come in Sala e tavoli.
 const GLASS_MENU_PERSONALE = {
@@ -66,7 +68,14 @@ const DEVICE_TYPES = [
   },
 ];
 
-// Stampanti raggiunte dal browser sulla rete locale (nessun SDK proprietario)
+// Stampanti registrabili come dispositivo. Nessun driver né SDK proprietario,
+// ma NON «raggiunte dal browser sulla rete locale»: da una pagina web l'invio
+// diretto in LAN si scontra con mixed content e con l'assenza di TCP grezzo
+// (P-101). La stampa passa dal browser (layout HTML), dal protocollo HTTP
+// della stampante (ePOS Epson, CloudPRNT Star) o dal ponte dell'App Staff per
+// il Bluetooth: la modalità e la prova di stampa vivono in Impostazioni →
+// Stampanti (stampa.jsx). Qui resta l'accesso: la stampante come dispositivo
+// che entra, con le categorie di comanda che le si assegnano.
 const AVAILABLE_PRINTERS = [
   { id: 'printer-epson-1',  model: 'Epson TM-T20III',   ip: '192.168.1.101' },
   { id: 'printer-cube-1',   model: 'Cube Custom 12',     ip: '192.168.1.102' },

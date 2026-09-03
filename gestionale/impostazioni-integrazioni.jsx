@@ -11,8 +11,11 @@ const INTEGRATIONS = [
   { id:'openapi', name:'OpenAPI', cat:'pagamenti', logo:'API', bg:'#0EA5E9', desc:'Fatturazione elettronica SDI', status:'connected', detail:'API key configurata', required: true },
   { id:'aruba', name:'Aruba Fatturazione', cat:'pagamenti', logo:'A', bg:'#00A651', desc:'Emetti e ricevi fatture elettroniche in modo smart', status:'available', detail:'Fattura B2B/B2C, conservazione a norma' },
   // Periferiche
-  { id:'printer', name:'Stampante scontrino', cat:'periferiche', logo:'🖨', bg:'#1F2937', desc:'Scontrino di cortesia post-pagamento', status:'available', printerType:true },
-  { id:'printer-comande', name:'Stampante comande', cat:'periferiche', logo:'🖨', bg:'#374151', desc:'Stampa automatica delle comande in cucina', status:'available', printerType:true },
+  // P-101: le stampanti non sono un'integrazione da collegare qui. Erano due
+  // tessere («scontrino» e «comande», coi chip Bluetooth / Wi-Fi / USB — e USB
+  // da una pagina web non esiste): restano come un solo rimando alla scheda
+  // Impostazioni → Stampanti, dove vivono registro, modalità e prova.
+  { id:'stampanti', name:'Stampanti', cat:'periferiche', logo:'🖨', bg:'#1F2937', desc:'Comande e documenti di cortesia: registro, modalità e prova di stampa in Impostazioni → Stampanti', status:'available', rimando:'stampanti' },
   // Delivery — sigle e colori da PN_PARTNER (panoramica-tokens.jsx): era la
   // terza copia degli stessi valori, da P-03 la fonte è una con cucina e
   // Vendita diretta.
@@ -214,8 +217,8 @@ function ImpIntegrazioni() {
               marginBottom: 10, paddingLeft: 2,
             }}>{catLabels[c]}</div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
-              {byCategory[c].map(i => i.printerType
-                ? <PrinterCard key={i.id} item={i}/>
+              {byCategory[c].map(i => i.rimando
+                ? <RimandoCard key={i.id} item={i} onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: i.rimando, da: 'integrazioni' } }))}/>
                 : <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}
                     connessioni={connessioni} onRevoca={revoca}/>
               )}
@@ -507,92 +510,29 @@ function ByupPayQrModal({ onClose }) {
   );
 }
 
-function PrinterCard({ item }) {
-  const [conn, setConn] = React.useState(null);
-  const [linked, setLinked] = React.useState(item.status === 'connected');
-  const s = linked ? STATUS_LABEL['connected'] : STATUS_LABEL[item.status];
-
-  const conns = [
-    { id:'bt',   label:'Bluetooth' },
-    { id:'wifi', label:'Wi-Fi' },
-    { id:'usb',  label:'USB' },
-  ];
-
-  // Stessa tessera in piedi delle altre integrazioni: la stampante occupava
-  // una riga intera solo perche i tre modi di collegarla stavano in fila, e
-  // in colonna ci stanno lo stesso — sopra il bottone, dove sono la scelta
-  // da fare prima di premerlo.
-  const azione = { width:'100%', justifyContent:'center', padding:'9px 14px', fontSize: 14.5 };
+// Il rimando: stessa tessera in piedi delle integrazioni, ma il bottone porta
+// alla scheda che ha il registro. Nessun chip di connessione qui — la
+// modalità si sceglie dove si registra la stampante.
+function RimandoCard({ item, onClick }) {
   return (
     <div style={{
       display:'flex', flexDirection:'column',
       minHeight: 236, padding: 18, borderRadius: 16,
-      border:`1.5px solid ${linked ? PN.GREEN_SOFT : PN.BORDER_SOFT}`,
-      background: linked ? '#F0FDF4' : PN.WHITE,
+      border:`1.5px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
     }}>
       <div style={{
-        width:54, height:54, borderRadius:14,
-        background: linked ? '#065F46' : item.bg,
-        color:'#fff', display:'grid', placeItems:'center',
-        fontSize:28, flexShrink:0,
+        width:54, height:54, borderRadius:14, background: item.bg,
+        color:'#fff', display:'grid', placeItems:'center', fontSize:28, flexShrink:0,
       }}>{item.logo}</div>
-
       <div style={{fontSize:17, fontWeight:700, letterSpacing:-0.2, marginTop:14}}>{item.name}</div>
       <div style={{fontSize:14.5, color:PN.MUTED, marginTop:4, lineHeight:1.45}}>{item.desc}</div>
-
       <div style={{marginTop:'auto', paddingTop:14}}>
-        <div style={{display:'flex', alignItems:'center', gap:6, flexWrap:'wrap'}}>
-          <span style={{fontSize:13.5, color:PN.MUTED, fontWeight:500, marginRight:2}}>Connessione:</span>
-          {conns.map(c => {
-            const active = conn === c.id;
-            return (
-              <button key={c.id}
-                onClick={() => !linked && setConn(active ? null : c.id)}
-                style={{
-                  padding:'3px 10px', borderRadius:999,
-                  border:`1.5px solid ${active ? PN.TEXT : PN.BORDER}`,
-                  background: active ? PN.TEXT : '#F9FAFB',
-                  color: active ? '#fff' : PN.TEXT,
-                  fontSize:13.5, fontWeight:600,
-                  cursor: linked ? 'default' : 'pointer',
-                  fontFamily:'inherit',
-                }}
-              >{c.label}</button>
-            );
-          })}
-        </div>
-
-        <div style={{display:'flex', alignItems:'center', gap:5, fontSize:13.5, fontWeight:600, color:s.color, marginTop:10}}>
-          <span style={{width:6, height:6, borderRadius:'50%', background:s.dot, flexShrink:0}}/>
-          {s.label}
-          {linked && conn && (
-            <span style={{color:PN.MUTED, fontWeight:400}}>
-              · {conns.find(c => c.id === conn)?.label}
-            </span>
-          )}
-        </div>
-
-        <div style={{marginTop:12}}>
-          {linked ? (
-            <ImpButton variant="ghost" style={azione}
-              onClick={() => { setLinked(false); setConn(null); }}>
-              Disconnetti
-            </ImpButton>
-          ) : (
-            <ImpButton
-              variant={conn ? 'primary' : 'ghost'}
-              style={{...azione, opacity: conn ? 1 : 0.55}}
-              onClick={() => conn && setLinked(true)}
-            >Connetti</ImpButton>
-          )}
-        </div>
+        <ImpButton variant="secondary" onClick={onClick} style={{ width:'100%', justifyContent:'center', padding:'9px 14px', fontSize: 14.5 }}>Apri Stampanti</ImpButton>
       </div>
     </div>
   );
 }
 
-// Il POS virtuale nasce col collegamento a Stripe (P-105): la tessera lo
-// dice e rimanda al foglio in Dati fiscali finché non è dichiarato.
 function PosVirtualeRimando() {
   const [r, setR] = React.useState(() => (window.byupReadPosCensimento ? window.byupReadPosCensimento() : []).find(x => x.id === 'pos-virtuale') || null);
   React.useEffect(() => {

@@ -1639,6 +1639,34 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
         <Kds2Annulla voci={pronti} onRipristina={ripristina}/>
       </div>
 
+      {/* P-101: la comanda di carta della sorgente selezionata. Il KDS e le
+          stampanti convivono: chi tocca un tavolo nella rail può mandarne la
+          comanda alla stampa — dal browser, il layout a 80 mm con le righe per
+          categoria (stampa.jsx). L'instradamento automatico per categoria via
+          WebSocket è del backend e qui non esiste: si stampa a mano. */}
+      {selezione != null && typeof window.byupStampaComanda === 'function' && (() => {
+        const mie = porzioni.filter(p => kds2SorgenteId(p.source) === selezione && p.status !== 'incoming');
+        if (!mie.length) return null;
+        const identita = kds2Identita(mie[0].source);
+        const righeStampa = mie.map(p => ({ qty: p.quantity || 1, name: p.dishName, category: p.category, course: p.course || null, modifiers: p.modifiers || [], allergen: p.allergen || null }));
+        return (
+          <button type="button" data-kds2-interattivo="" data-stampa-comanda=""
+            onClick={() => window.byupStampaComanda(righeStampa, identita, { quando: mie[0].firedAt })}
+            title={'Stampa la comanda di ' + identita}
+            style={{
+              position: 'absolute', right: barra ? 8 : PAD_X, bottom: 16, zIndex: 5,
+              display: 'inline-flex', alignItems: 'center', gap: 9,
+              height: H_BERSAGLIO, padding: '0 18px', borderRadius: 12,
+              background: K.TESTO, color: K.FONDO, border: '2px solid ' + K.TESTO,
+              fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
+              fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+            }}>
+            Stampa comanda · {identita}
+          </button>
+        );
+      })()}
+
       {/* La barra demo genera ordini finti: ha senso nell'anteprima, non sopra
           il servizio vero di un locale. */}
       {!porzioniIniziali && <Kds2Demo righe={righe.length} onNuovo={nuovoOrdine}/>}

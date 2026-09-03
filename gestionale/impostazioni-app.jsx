@@ -18,7 +18,7 @@ function ImpApp() {
   const [active, setActive] = React.useState(() => {
     try {
       const p = new URLSearchParams(window.location.search).get('page');
-      if (['vetrina', 'menu-cucina', 'sala', 'personale', 'flussi', 'fiscali', 'integrazioni'].includes(p)) return p;
+      if (['vetrina', 'menu-cucina', 'sala', 'personale', 'stampanti', 'flussi', 'fiscali', 'integrazioni'].includes(p)) return p;
     } catch (e) {}
     return 'vetrina';
   });
@@ -187,6 +187,7 @@ function ImpApp() {
           {active === 'menu-cucina' && <ImpMenuCucina/>}
           {active === 'sala' && <ImpSalaTavoli/>}
           {active === 'personale' && <ImpPersonale/>}
+          {active === 'stampanti' && <ImpStampanti/>}
           {active === 'flussi' && <ImpFlussi/>}
           {active === 'fiscali' && <ImpDatiFiscali/>}
           {active === 'integrazioni' && <ImpIntegrazioni/>}

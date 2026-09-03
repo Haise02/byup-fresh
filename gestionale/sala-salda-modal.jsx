@@ -2656,7 +2656,18 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
   // Un incasso, un modo: tolto il «misto», contanti e carta non possono più
   // essere pieni insieme nello stesso pagamento.
   const comeHaPagato = carta > 0 ? 'Con la carta, su Byup Staff' : 'In contanti, alla cassa';
-  const [stampato, setStampato] = React.useState(false);
+  const [stampato, setStampato] = React.useState(null); // null | { esito, stampante }
+  // P-101: non «scontrino» — lo scontrino, il documento commerciale, lo emette
+  // il canale fiscale. Questo è il documento di cortesia, e va in stampa
+  // davvero sulla stampante di cortesia della sede
+  // (venue_settings.courtesy_printer_device_id): dal browser stampa, in wifi o
+  // bluetooth apre l'anteprima dichiarata (stampa.jsx).
+  const stampaCortesia = () => {
+    if (typeof window.byupStampaCortesia !== 'function') { setStampato({ esito: 'stampata' }); return; }
+    const righe = (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo }));
+    const r = window.byupStampaCortesia({ tavolo: tavolo ? `Tavolo ${tavolo.id}` : '', righe, totale: total, pagamento: carta > 0 ? 'Carta · Byup Staff' : 'Contanti' });
+    setStampato(r);
+  };
 
   return (
     <div style={{
@@ -2741,10 +2752,10 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
           chiudere: sta davanti, e quando è uscito lo dice. */}
       <div style={{display:'flex', gap: 8, width:'100%'}}>
         <button onClick={onClose} style={{...btnSecondaryV2, flex: 1}}>Chiudi</button>
-        <button onClick={() => setStampato(true)} style={{...btnPrimaryV2, flex: 1.4, justifyContent:'center'}}>
+        <button data-stampa-cortesia="" onClick={stampaCortesia} style={{...btnPrimaryV2, flex: 1.4, justifyContent:'center'}}>
           {stampato
-            ? <>✓ Scontrino stampato</>
-            : <><IconPrinter/> Stampa scontrino</>}
+            ? (stampato.esito === 'anteprima' ? <>✓ Anteprima aperta{stampato.stampante ? ` · ${stampato.stampante}` : ''}</> : <>✓ Documento di cortesia stampato</>)
+            : <><IconPrinter/> Stampa documento di cortesia</>}
         </button>
       </div>
     </div>
