@@ -1142,6 +1142,282 @@ const FRM_CAMPI = {
   separa:   { label: 'Separatore',    icona: 'sliders', decorativo: true },
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LA POSTA (P-60 · AP-09)
+// ═══════════════════════════════════════════════════════════════════════════
+// Il posto da cui si scrivono i contenuti del canale in-app: la bacheca
+// dell'app consumer e la campanella del gestionale. Due corsie, servizio e
+// marketing, che non si mescolano; i destinatari secondo le regole del
+// canale, con la doppia interrogazione rappresentata coi conteggi e il netto
+// prima di partire; la pubblicazione con la data di visibilità.
+const POSTA_STATI = {
+  bozza:       { label: 'Bozza',       color: 'PLAN_FREE' },
+  programmata: { label: 'Programmata', color: 'INFO' },
+  pubblicata:  { label: 'Pubblicata',  color: 'OK' },
+};
+const postaCorsia = (c) => c === 'servizio' ? { label: 'Servizio', color: 'TEAL' } : { label: 'Marketing', color: 'HUB_MAGENTA' };
+// Il pubblico di un messaggio: le righe della rubrica del canale — utenti app
+// per l'app, locali per il gestionale — filtrate dall'elenco o dai criteri;
+// per il servizio, tutti quelli del canale.
+function postaRighe(m) {
+  const base = CONTATTI.filter(c => c.tipo === (m.dove === 'app' ? 'utente' : 'locale'));
+  if (m.corsia === 'servizio') return base;
+  if (m.pubblico) { const el = HUB_ELENCHI.find(e => e.id === m.pubblico); return el ? hubApplica(base, el.includi || [], el.escludi || []) : base; }
+  return hubApplica(base, m.filtri || [], null);
+}
+
+function HubPostaPage() {
+  const [cerca, setCerca] = useStateMk('');
+  const [aperta, setAperta] = useStateMk(null);
+  const [nuovo, setNuovo] = useStateMk(false);
+  const [, ridisegna] = useStateMk(0);
+  if (nuovo) return <HubPostaComposer onChiudi={() => { setNuovo(false); ridisegna(x => x + 1); }}/>;
+  if (aperta) return <HubPostaDettaglio m={aperta} onChiudi={() => setAperta(null)}/>;
+  const lista = HUB_POSTA.filter(m => !cerca || (m.nome + m.titolo + m.anteprima).toLowerCase().includes(cerca.toLowerCase()));
+  const pubblicate = HUB_POSTA.filter(m => m.stato === 'pubblicata');
+  const colonne = [
+    { id: 'nome',   label: 'Messaggio', w: 'minmax(0,2.6fr)' },
+    { id: 'corsia', label: 'Corsia',    w: '1fr' },
+    { id: 'dove',   label: 'Dove',      w: '1fr' },
+    { id: 'stato',  label: 'Stato',     w: '1fr' },
+    { id: 'dest',   label: 'Recapitati', w: '0.9fr', destra: true },
+    { id: 'quando', label: 'Visibile dal', w: '1.15fr' },
+  ];
+  const cella = (id, m) => {
+    if (id === 'nome') return (
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 14.3, fontWeight: 700, color: ADM.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</div>
+        <div style={{ fontSize: 12.5, color: ADM.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.titolo || '(senza titolo)'}</div>
+      </div>
+    );
+    if (id === 'corsia') { const k = postaCorsia(m.corsia); return <HubPillola color={k.color}>{k.label}</HubPillola>; }
+    if (id === 'dove') return <HubPillola color={m.dove === 'app' ? 'PURPLE' : 'TEAL'}>{m.dove === 'app' ? 'App byup' : 'Gestionale'}</HubPillola>;
+    if (id === 'stato') return <HubStato stato={m.stato} mappa={POSTA_STATI}/>;
+    if (id === 'dest') return <span style={{ fontSize: 13.6, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{m.dest ? fmtNum(m.dest) : '—'}</span>;
+    return <span style={{ fontSize: 13.2, color: ADM.MUTED }}>{m.visibileDal ? fmtDateTime(m.visibileDal) : '—'}</span>;
+  };
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <HubTestata titolo="Posta"
+        sotto="La bacheca dell'app dei clienti e la campanella del gestionale. Due corsie che non si mescolano: le informative di servizio viaggiano su canale dedicato, il marketing passa dal consenso."
+        azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Scrivi un messaggio</HubStrumento>}/>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
+        <HubTile etichetta="Pubblicati" valore={pubblicate.length} icona="mail"/>
+        <HubTile etichetta="Recapitati" valore={fmtNum(pubblicate.reduce((s, m) => s + m.dest, 0))} icona="send" tono="OK" sotto={`${fmtNum(pubblicate.reduce((s, m) => s + m.letture, 0))} letti`}/>
+        <HubTile etichetta="Di servizio" valore={HUB_POSTA.filter(m => m.corsia === 'servizio').length} icona="info" tono="TEAL"/>
+        <HubTile etichetta="Di marketing" valore={HUB_POSTA.filter(m => m.corsia === 'marketing').length} icona="megaphoneFill" tono="HUB_MAGENTA" sotto="subordinati al consenso del canale"/>
+      </div>
+      <AdmCard padding={0}>
+        <div style={{ padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}` }}>
+          <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca fra i messaggi…" larghezza={260}/>
+        </div>
+        <HubTabella colonne={colonne} righe={lista} chiave={m => m.id} cella={cella} onRiga={setAperta}
+          vuoto={<HubVuoto icona="mail" titolo="Nessun messaggio" desc="Scrivine uno: la bacheca e la campanella si riempiono da qui."/>}/>
+      </AdmCard>
+    </div>
+  );
+}
+
+// L'anteprima: la card della bacheca dell'app o la voce della campanella.
+function MktPostaAnteprima({ dove, corsia, titolo, anteprima }) {
+  return (
+    <div style={{ background: dove === 'app' ? 'linear-gradient(160deg, #2A1B3D 0%, #44107A 60%, #7A1E8C 100%)' : 'linear-gradient(160deg, #1D2430 0%, #2B3646 100%)', borderRadius: 20, padding: '22px 14px', minHeight: 200 }}>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{dove === 'app' ? 'Posta · ' + (corsia === 'marketing' ? 'Promo per te' : 'Novità') : 'Le tue notifiche'}</div>
+      <div style={{ background: 'rgba(255,255,255,0.92)', borderRadius: 13, padding: '11px 12px' }}>
+        <div style={{ fontSize: 13.4, fontWeight: 700, color: '#16181D' }}>{titolo || <span style={{ color: '#A0A0A6', fontWeight: 500 }}>Il titolo</span>}</div>
+        <div style={{ fontSize: 12.6, color: '#3A3D45', marginTop: 3, lineHeight: 1.4 }}>{anteprima || <span style={{ color: '#A0A0A6' }}>L'anteprima, una riga o due.</span>}</div>
+        <div style={{ fontSize: 10.5, color: '#8A8A90', marginTop: 6 }}>{corsia === 'marketing' ? 'byup · promo' : 'byup'} · adesso</div>
+      </div>
+    </div>
+  );
+}
+
+// Le due interrogazioni, rappresentate: conteggi e netto prima di partire.
+function MktPostaInterrogazioni({ corsia, dove, righe, filtri }) {
+  const q = hubInterrogaPosta(righe, corsia);
+  const soloGusti = hubSoloGusti(filtri);
+  const riga = (chiave, label, n, nota) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}` }}>
+      <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11.5, color: ADM.MUTED_SOFT, width: 132, flexShrink: 0 }}>{chiave}</span>
+      <span style={{ flex: 1, fontSize: 13, color: ADM.TEXT }}>{label}<span style={{ color: ADM.MUTED }}> · {nota}</span></span>
+      <span style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: n > 0 ? ADM.WARN : ADM.MUTED_LIGHT }}>−{fmtNum(n)}</span>
+    </div>
+  );
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+        <span style={{ fontSize: 13, color: ADM.MUTED }}>Pubblico</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: ADM.TEXT }}>{fmtNum(q.pubblico)}</span>
+        <span style={{ fontSize: 12.4, color: ADM.MUTED_SOFT }}>{dove === 'app' ? 'utenti app' : 'locali'}{corsia === 'servizio' ? ' · tutti quelli del canale' : ''}</span>
+      </div>
+      {corsia === 'marketing'
+        ? riga('consent_check', 'Senza il consenso del canale', q.senzaConsenso, 'restano fuori: il consenso si controlla al momento dell\'invio')
+        : <div style={{ padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}`, fontSize: 12.6, color: ADM.MUTED }}><span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11.5, color: ADM.MUTED_SOFT, marginRight: 10 }}>consent_check</span>Non si chiede: è servizio, canale dedicato. Vale finché non contiene una promozione.</div>}
+      {riga('suppression_check', 'Soppressi per invariante', q.soppressi, `${q.nonAttivi} non attivi · ${q.limitati} limitati o bannati · ${q.minori} minori`)}
+      <div style={{ padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}`, fontSize: 12.4, color: ADM.MUTED_SOFT }}>Le categorie particolari non sono mai criterio; i gusti da soli non fanno un pubblico (P-30).</div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 8, paddingTop: 10, borderTop: `2px solid ${ADM.BORDER}` }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: ADM.TEXT }}>Netto che parte</span>
+        <span style={{ fontSize: 19, fontWeight: 800, color: soloGusti ? ADM.DANGER : ADM.OK }}>{soloGusti ? 0 : fmtNum(q.netto)}</span>
+        {soloGusti && <span style={{ fontSize: 12.6, color: ADM.DANGER, fontWeight: 700 }}>Il pubblico è fatto di soli gusti: non parte.</span>}
+      </div>
+    </div>
+  );
+}
+
+function HubPostaDettaglio({ m, onChiudi }) {
+  const k = postaCorsia(m.corsia);
+  const righe = postaRighe(m);
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Posta</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{m.nome}</span>
+      </div>
+      <HubTestata titolo={m.nome} sotto={`${k.label} · ${m.dove === 'app' ? 'bacheca dell\'app' : 'campanella del gestionale'} · ${HUB_POSTA_GENERI[m.genere].label}${m.localeId ? ' · ' + ((LOCALI.find(l => l.id === m.localeId) || {}).nome || m.localeId) : ''}`}
+        azioni={<HubPillola color={POSTA_STATI[m.stato].color}>{POSTA_STATI[m.stato].label}</HubPillola>}/>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {m.stato === 'pubblicata' ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 12 }}>
+              <MktStat label="Recapitati" valore={m.dest} base={m.dest + m.esclusi.consenso + m.esclusi.soppressi} color="INFO"
+                sotto={`${fmtNum(m.esclusi.consenso)} senza consenso · ${fmtNum(m.esclusi.soppressi)} soppressi`}/>
+              <MktStat label="Letti" valore={m.letture} base={m.dest} color="OK" sotto="Chi l'ha aperto, sul recapitato"/>
+            </div>
+          ) : <HubVuoto icona="clock" titolo={m.stato === 'programmata' ? `Visibile dal ${fmtDateTime(m.visibileDal)}` : 'È una bozza'} desc="I numeri compaiono alla pubblicazione."/>}
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 10 }}>Le due interrogazioni, oggi</div>
+            <MktPostaInterrogazioni corsia={m.corsia} dove={m.dove} righe={righe} filtri={m.filtri}/>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 8 }}>Corpo</div>
+            <div style={{ fontSize: 13.6, color: ADM.TEXT, lineHeight: 1.55 }}>{m.corpo || <span style={{ color: ADM.MUTED }}>Senza corpo: resta il titolo con l'anteprima.</span>}</div>
+          </AdmCard>
+        </div>
+        <MktPostaAnteprima dove={m.dove} corsia={m.corsia} titolo={m.titolo} anteprima={m.anteprima}/>
+      </div>
+    </div>
+  );
+}
+
+function HubPostaComposer({ onChiudi }) {
+  const [corsia, setCorsia] = useStateMk('servizio');
+  const [dove, setDove] = useStateMk('app');
+  const [genere, setGenere] = useStateMk('novita');
+  const [nome, setNome] = useStateMk('');
+  const [titolo, setTitolo] = useStateMk('');
+  const [anteprima, setAnteprima] = useStateMk('');
+  const [corpo, setCorpo] = useStateMk('');
+  const [localeId, setLocaleId] = useStateMk('');
+  const [elencoId, setElencoId] = useStateMk(null);
+  const [filtri, setFiltri] = useStateMk([]);
+  const [quando, setQuando] = useStateMk('subito');
+  const [data, setData] = useStateMk('');
+  const [esito, setEsito] = useStateMk(null);
+  const cambiaCorsia = (c) => { setCorsia(c); setGenere(c === 'servizio' ? 'novita' : 'promozione'); };
+  const bozza = { corsia, dove, pubblico: elencoId, filtri };
+  const righe = postaRighe(bozza);
+  const q = hubInterrogaPosta(righe, corsia);
+  // Il blocco «cambia corsia»: le informative viaggiano su canale dedicato,
+  // mai promiscuo. Una promozione scritta in corsia di servizio non parte.
+  const promoInServizio = corsia === 'servizio' && hubSembraPromo(titolo + ' ' + anteprima + ' ' + corpo);
+  const soloGusti = corsia === 'marketing' && !elencoId && hubSoloGusti(filtri);
+  const pronto = nome.trim() && titolo.trim() && anteprima.trim() && !promoInServizio && !soloGusti && (quando === 'subito' || data);
+  const pubblica = () => {
+    if (!pronto) return;
+    const ora = new Date();
+    const visibileDal = quando === 'subito' ? ora : new Date(data);
+    const m = { id: 'PO-' + String(Math.max(0, ...HUB_POSTA.map(x => parseInt(x.id.slice(3), 10) || 0)) + 1).padStart(3, '0'), nome: nome.trim(), corsia, dove, genere, titolo: titolo.trim(), anteprima: anteprima.trim(), corpo: corpo.trim(),
+      localeId: localeId || null, pubblico: elencoId, filtri, stato: quando === 'subito' ? 'pubblicata' : 'programmata', pubblicataIl: quando === 'subito' ? ora : null, visibileDal,
+      dest: quando === 'subito' ? q.netto : 0, letture: 0, esclusi: { consenso: q.senzaConsenso, soppressi: q.soppressi } };
+    HUB_POSTA.unshift(m);
+    const me = hubUtenteCorrente();
+    AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: quando === 'subito' ? 'ha pubblicato in Posta' : 'ha programmato in Posta', target: `${m.nome} · ${postaCorsia(corsia).label} · ${dove === 'app' ? 'app' : 'gestionale'} · netto ${fmtNum(q.netto)} su ${fmtNum(q.pubblico)}`, icon: 'send', color: 'PINK', tipo: 'broadcast', when: ora });
+    setEsito(m);
+  };
+  if (esito) return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <HubTestata titolo={esito.stato === 'pubblicata' ? 'Pubblicato' : 'Programmato'} sotto={`${esito.nome} · ${postaCorsia(esito.corsia).label} · netto ${fmtNum(esito.dest || q.netto)} su ${fmtNum(q.pubblico)} dopo le due interrogazioni.`}
+        azioni={<HubStrumento forte icona="arrowLeft" onClick={onChiudi}>Torna alla Posta</HubStrumento>}/>
+    </div>
+  );
+  const lab = { fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 };
+  return (
+    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <HubStile/>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Posta</HubStrumento>
+        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>Nuovo messaggio</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <AdmCard padding={18}>
+            <div style={lab}>Corsia e destinazione</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 9, marginBottom: 12 }}>
+              {[
+                { id: 'servizio', t: 'Servizio', d: 'Informative, novità e avvisi. Canale dedicato: non chiede il consenso e non contiene promozioni.' },
+                { id: 'marketing', t: 'Marketing', d: 'Promozioni e offerte. Subordinato al consenso di marketing del canale, che si controlla all\'invio.' },
+              ].map(o => (
+                <button key={o.id} onClick={() => cambiaCorsia(o.id)} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 11, cursor: 'pointer', fontFamily: 'inherit', background: corsia === o.id ? ADM.PINK_BG_SOFT : '#fff', border: corsia === o.id ? `2px solid ${ADM.PINK}` : `1px solid ${ADM.BORDER}` }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: ADM.TEXT }}>{o.t}</div>
+                  <div style={{ fontSize: 12.4, color: ADM.MUTED, marginTop: 3, lineHeight: 1.45 }}>{o.d}</div>
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 12 }}>
+              <HubCampo label="Dove"><HubSegmenti attivo={dove} onCambia={setDove} voci={[{ id: 'app', label: 'Bacheca dell\'app' }, { id: 'gestionale', label: 'Campanella del gestionale' }]}/></HubCampo>
+              <HubCampo label="Genere"><AdmSelect block value={genere} onChange={setGenere} options={Object.entries(HUB_POSTA_GENERI).filter(([, g]) => g.corsia === corsia).map(([id, g]) => ({ value: id, label: g.label }))}/></HubCampo>
+            </div>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={lab}>Contenuto</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <HubCampo label="Nome interno"><HubInput valore={nome} onCambia={setNome} placeholder="Come lo chiamiamo noi"/></HubCampo>
+              <HubCampo label="Titolo"><HubInput valore={titolo} onCambia={setTitolo} placeholder="Quello che si legge in bacheca"/></HubCampo>
+              <HubCampo label="Anteprima"><HubInput valore={anteprima} onCambia={setAnteprima} placeholder="Una riga o due sotto il titolo"/></HubCampo>
+              <HubCampo label="Corpo">
+                <textarea value={corpo} onChange={e => setCorpo(e.target.value)} rows={4} placeholder="Il testo intero, se serve" style={{ width: '100%', padding: '8px 11px', border: `1px solid ${ADM.BORDER}`, borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', color: ADM.TEXT, background: '#fff', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}/>
+              </HubCampo>
+              {corsia === 'marketing' && dove === 'app' && (
+                <HubCampo label="Locale collegato (facoltativo)" nota="Una promo di un locale porta il suo nome: è la riga «Promo per te» della bacheca.">
+                  <AdmSelect block value={localeId} onChange={setLocaleId} options={[{ value: '', label: 'Nessuno: promo di byup' }, ...LOCALI.filter(l => l.stato === 'active').map(l => ({ value: l.id, label: `${l.nome} · ${l.citta}` }))]}/>
+                </HubCampo>
+              )}
+              {promoInServizio && (
+                <div style={{ padding: '10px 13px', borderRadius: 10, background: ADM.DANGER_SOFT, border: `1px solid ${ADM.DANGER}40`, fontSize: 12.8, color: '#7F1D1D', lineHeight: 1.5 }}>
+                  <b>Cambia corsia.</b> Le informative viaggiano su canale dedicato, mai promiscuo: questo è marketing — sconti, offerte, promozioni — e non parte in corsia di servizio.
+                  <button onClick={() => cambiaCorsia('marketing')} style={{ marginLeft: 8, background: 'none', border: 'none', color: ADM.DANGER, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>Passa a Marketing</button>
+                </div>
+              )}
+            </div>
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={lab}>Destinatari</div>
+            {corsia === 'servizio'
+              ? <div style={{ fontSize: 13.2, color: ADM.TEXT, lineHeight: 1.5 }}>Tutti {dove === 'app' ? 'gli utenti attivi dell\'app' : 'i locali attivi del gestionale'}: un'informativa di servizio non si segmenta e non chiede il consenso. Restano fuori solo le esclusioni invarianti, qui sotto.</div>
+              : <MktPubblico elencoId={elencoId} onElenco={setElencoId} filtri={filtri} onFiltri={setFiltri}/>}
+          </AdmCard>
+          <AdmCard padding={18}>
+            <div style={lab}>Prima di pubblicare · le due interrogazioni</div>
+            <MktPostaInterrogazioni corsia={corsia} dove={dove} righe={righe} filtri={elencoId ? [] : filtri}/>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${ADM.BORDER_SOFT}` }}>
+              <HubSegmenti attivo={quando} onCambia={setQuando} voci={[{ id: 'subito', label: 'Visibile adesso' }, { id: 'data', label: 'Da una data' }]}/>
+              {quando === 'data' && <input type="datetime-local" value={data} onChange={e => setData(e.target.value)} style={{ padding: '8px 11px', border: `1px solid ${ADM.BORDER}`, borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', color: ADM.TEXT }}/>}
+              <span style={{ flex: 1 }}/>
+              <AdmButton variant="primary" size="md" icon="send" disabled={!pronto} onClick={pubblica}>{quando === 'subito' ? 'Pubblica' : 'Programma'}</AdmButton>
+            </div>
+          </AdmCard>
+        </div>
+        <MktPostaAnteprima dove={dove} corsia={corsia} titolo={titolo} anteprima={anteprima}/>
+      </div>
+    </div>
+  );
+}
+
 function HubFormPage() {
   const [cerca, setCerca] = useStateMk('');
   const [aperto, setAperto] = useStateMk(null);

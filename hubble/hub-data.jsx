@@ -530,6 +530,23 @@ const HUB_MAIL = [
     oggetto: 'Il tuo luglio in numeri', anteprima: 'Incassi, coperti, piatti più venduti',
     mittente: 'byup', mittenteMail: 'report@byup.it', pubblico: null,
     dest: 0, consegnate: 0, aperte: 0, click: 0, disiscritti: 0, rimbalzi: 0 },
+  // Le due email della delega (P-51 · D-40), modelli automatici come chiede
+  // P-60. Oggetti, anteprime e corpi sono la copia VERBATIM di
+  // ONB_EMAIL_DELEGA (gestionale/onboarding-step2-locale.jsx): il contenuto
+  // dimostrabile sta là, la Posta che lo scrive e lo manda sta qui, e i due
+  // bundle si riallineano a mano. La conferma parte a delega attiva; il
+  // promemoria a trenta giorni dalla scadenza del registro delle deleghe
+  // (P-52), la data che la mail cita come «31 dicembre».
+  { id: 'ML-016', nome: 'Delega attiva', tipo: 'automatica', stato: 'automatica',
+    oggetto: 'Delega attiva: Byup può lavorare per te', anteprima: 'Fatture elettroniche e dispositivi, fino al 31 dicembre del quarto anno',
+    corpo: ['Ciao, la delega che hai dato a Byup sul portale dell\'Agenzia delle Entrate è attiva.', 'Servizi delegati: «Fatturazione elettronica e conservazione delle fatture elettroniche» e «Accreditamento e censimento dispositivi».', 'Vale fino al 31 dicembre del quarto anno successivo. Non devi fare altro: ti scriveremo noi quando sarà il momento di rinnovarla.', 'Puoi revocarla in qualsiasi momento dal portale, in Profilo → Deleghe.'],
+    mittente: 'byup', mittenteMail: 'fiscale@byup.it', trigger: 'Delega AdE · attiva (registro delle deleghe)',
+    dest: 31, consegnate: 31, aperte: 27, click: 9, disiscritti: 0, rimbalzi: 0 },
+  { id: 'ML-015', nome: 'Promemoria rinnovo delega', tipo: 'automatica', stato: 'automatica',
+    oggetto: 'La delega a Byup scade il 31 dicembre: rinnovala', anteprima: 'Due minuti sul portale dell\'Agenzia, con SPID',
+    corpo: ['Ciao, la delega che hai dato a Byup scade il 31 dicembre. Dopo quella data Byup non potrà più emettere e conservare le fatture elettroniche per te.', 'Per rinnovarla: accedi al portale dell\'Agenzia con SPID, vai su Profilo → Deleghe, apri Delega unica e aggiungi di nuovo il delegato 15927340015 con i servizi «Fatturazione elettronica e conservazione delle fatture elettroniche» e «Accreditamento e censimento dispositivi».', 'Quando hai confermato, in Byup non devi fare nulla: la controlliamo noi e ti scriviamo.'],
+    mittente: 'byup', mittenteMail: 'fiscale@byup.it', trigger: 'Delega AdE · 30 giorni alla scadenza (registro delle deleghe)',
+    dest: 0, consegnate: 0, aperte: 0, click: 0, disiscritti: 0, rimbalzi: 0 },
   { id: 'ML-010', nome: 'Conferma iscrizione', tipo: 'automatica', stato: 'automatica',
     oggetto: 'Ci siamo: il tuo account byup è attivo', anteprima: 'Da qui si comincia — tre passi e sei operativo',
     mittente: 'byup', mittenteMail: 'ciao@byup.it', trigger: 'Submission form · Prova gratuita 14 giorni',
@@ -561,6 +578,72 @@ const HUB_SMS = [
     numero: 'byup', trigger: 'Workflow · Win-back 3 passi — passo 3', dest: 118, consegnati: 115, click: 12, costo: 8.26 },
   { id: 'SM-001', nome: 'Bozza · novità cassa', stato: 'bozza', testo: '', numero: 'byup', dest: 0, consegnati: 0, click: 0, costo: 0 },
 ];
+
+// ─── La Posta (P-60 · AP-09) ────────────────────────────────────────────────
+// Il canale in-app: la bacheca dell'app consumer e la campanella del
+// gestionale. Era modellato per intero (finalità, base giuridica, consenso) e
+// non aveva il posto da cui si scrivono i contenuti: è questo. Due CORSIE che
+// non si mescolano: «servizio» — informative, novità e avvisi che viaggiano
+// su canale dedicato, senza consenso e senza contenuto promozionale — e
+// «marketing», subordinato al consenso del canale. I destinatari passano
+// dalla doppia interrogazione obbligatoria del modello prima di partire:
+// consent_check (chi ha il consenso del canale) e suppression_check (le
+// esclusioni invarianti: non attivi, limitati o bannati, minori; le categorie
+// particolari non sono mai criterio, e un pubblico di soli gusti non parte —
+// P-30). Nel prototipo il consenso del canale in-app coincide con quello
+// delle notifiche nell'app (consensoPush): coda, finché il modello non ne
+// darà uno suo. Chi legge oggi: la bacheca dell'app e la campanella hanno
+// ancora i loro mock — anche questa è coda.
+const HUB_POSTA_GENERI = {
+  novita:      { label: 'Novità',       corsia: 'servizio' },
+  informativa: { label: 'Informativa',  corsia: 'servizio' },
+  avviso:      { label: 'Avviso',       corsia: 'servizio' },
+  promozione:  { label: 'Promozione',   corsia: 'marketing' },
+};
+const HUB_POSTA = [
+  { id: 'PO-006', nome: 'Prenotazioni: ora si fanno dall\'app', corsia: 'servizio', dove: 'app', genere: 'novita',
+    titolo: 'Novità: ora puoi prenotare', anteprima: 'Scegli il locale, il giorno e quante persone: il tavolo è tuo.', corpo: 'Da oggi prenoti dall\'app, in tre tocchi. Il locale conferma e ti avvisiamo qui.',
+    localeId: null, pubblico: null, filtri: [], stato: 'pubblicata', pubblicataIl: new Date(2026, 7, 26, 9, 0), visibileDal: new Date(2026, 7, 26, 9, 0),
+    dest: 1840, letture: 1102, esclusi: { consenso: 0, soppressi: 12 } },
+  { id: 'PO-005', nome: 'Nuovo locale a Verona · 20%', corsia: 'marketing', dove: 'app', genere: 'promozione',
+    titolo: 'Hai un nuovo ristorante vicino a te', anteprima: 'Pizzeria Il Forno: provalo con il 20% di sconto entro venerdì.', corpo: 'Pizzeria Il Forno è appena entrato su byup. Fino a venerdì il 20% sul primo ordine dall\'app.',
+    localeId: 'L1018', pubblico: 'EL-004', filtri: [], stato: 'pubblicata', pubblicataIl: new Date(2026, 7, 21, 18, 30), visibileDal: new Date(2026, 7, 21, 18, 30),
+    dest: 96, letture: 41, esclusi: { consenso: 38, soppressi: 6 } },
+  { id: 'PO-004', nome: 'Nuova versione del gestionale', corsia: 'servizio', dove: 'gestionale', genere: 'novita',
+    titolo: 'Nuova versione di byup disponibile', anteprima: 'Calendario prenotazioni migliorato e grafici predittivi.', corpo: 'Abbiamo migliorato la gestione del calendario prenotazioni e aggiunto i grafici predittivi. Niente da fare: è già attiva.',
+    localeId: null, pubblico: null, filtri: [], stato: 'pubblicata', pubblicataIl: new Date(2026, 7, 18, 8, 0), visibileDal: new Date(2026, 7, 18, 8, 0),
+    dest: 39, letture: 31, esclusi: { consenso: 0, soppressi: 3 } },
+  { id: 'PO-003', nome: 'Informativa: aggiornamento privacy', corsia: 'servizio', dove: 'app', genere: 'informativa',
+    titolo: 'Abbiamo aggiornato l\'informativa', anteprima: 'Cosa cambia dal 1° ottobre, in cinque righe.', corpo: 'Dal 1° ottobre l\'informativa cambia in due punti: il registro d\'uso dell\'app e i suggerimenti. La trovi in Profilo → I miei dati.',
+    localeId: null, pubblico: null, filtri: [], stato: 'programmata', pubblicataIl: null, visibileDal: new Date(2026, 8, 20, 9, 0),
+    dest: 0, letture: 0, esclusi: { consenso: 0, soppressi: 0 } },
+  { id: 'PO-002', nome: 'Aperitivo del giovedì · Milano', corsia: 'marketing', dove: 'app', genere: 'promozione',
+    titolo: 'Giovedì è aperitivo', anteprima: 'Nei locali di Milano che aderiscono, il secondo drink lo offriamo noi.', corpo: '',
+    localeId: null, pubblico: null, filtri: [{ prop: 'citta', op: 'unoDi', valore: ['Milano'] }, { prop: 'gusti', op: 'contieneUno', valore: ['aperitivo'] }], stato: 'bozza', pubblicataIl: null, visibileDal: null,
+    dest: 0, letture: 0, esclusi: { consenso: 0, soppressi: 0 } },
+];
+const HUB_CONSENSO_POSTA = 'consensoPush';
+// La doppia interrogazione, rappresentata: su un pubblico (righe della
+// rubrica) restituisce chi ha il consenso, chi è soppresso e per che cosa, e
+// il netto. Per la corsia di servizio il consenso non si chiede: contano le
+// sole esclusioni invarianti.
+function hubInterrogaPosta(righe, corsia) {
+  const senzaConsenso = corsia === 'marketing' ? righe.filter(c => hubLeggi(c, HUB_CONSENSO_POSTA) !== true) : [];
+  const nonAttivi = righe.filter(c => c.tipo === 'utente' ? (c.ref && c.ref.attivo === false) : c.tipo === 'locale' ? !['active', 'inactive', 'skipped'].includes(c.ref && c.ref.stato) : true);
+  const limitati = righe.filter(c => c.tipo === 'utente' ? (hubLeggi(c, 'restrizione') != null)
+    : c.tipo === 'locale' ? (typeof admProvvedimento === 'function' && c.ref && c.ref.stato && admProvvedimento(c.ref) !== 'none') : false);
+  const minori = righe.filter(c => typeof hubRegimeProtettivo === 'function' && hubRegimeProtettivo(c));
+  const soppressi = new Set([...nonAttivi, ...limitati, ...minori].map(c => c.key));
+  const fuori = new Set([...soppressi, ...senzaConsenso.map(c => c.key)]);
+  return { pubblico: righe.length, senzaConsenso: senzaConsenso.length, nonAttivi: nonAttivi.length, limitati: limitati.length, minori: minori.length,
+    soppressi: soppressi.size, netto: righe.filter(c => !fuori.has(c.key)).length };
+}
+// Un pubblico di soli gusti non parte: le categorie non sono mai criterio da
+// sole (P-30), e i gusti non autorizzano un invio.
+const hubSoloGusti = (filtri) => (filtri || []).length > 0 && filtri.every(f => f && f.prop === 'gusti');
+// Un contenuto promozionale in corsia di servizio: le informative viaggiano
+// su canale dedicato, mai promiscuo — il compositore lo blocca.
+const hubSembraPromo = (testo) => /sconto|promo|offert|gratis|omaggio|%|coupon|codice/i.test(testo || '');
 
 const HUB_PUSH = [
   { id: 'PS-009', nome: 'Beta prenotazioni', stato: 'inviata', dove: 'app', titolo: 'Sei tra i primi',
@@ -896,6 +979,10 @@ const HUB_MITTENTI = [
   { id: 'MT-4', nome: 'byup Onboarding', indirizzo: 'onboarding@byup.it', dominio: 'byup.it', stato: 'verificato' },
   { id: 'MT-5', nome: 'Chiara di byup', indirizzo: 'chiara@byup.it', dominio: 'byup.it', stato: 'verificato' },
   { id: 'MT-6', nome: 'byup Prodotto', indirizzo: 'prodotto@byup.it', dominio: 'byup.it', stato: 'in attesa' },
+  // Il mittente delle email fiscali (P-51 · P-60): le due automatiche della
+  // delega partono da qui, e un mittente che nessun dominio verificato copre
+  // non può firmare un modello.
+  { id: 'MT-7', nome: 'byup', indirizzo: 'fiscale@byup.it', dominio: 'byup.it', stato: 'verificato' },
 ];
 
 const HUB_NUMERI = [
@@ -919,6 +1006,12 @@ window.hubArricchisci = hubArricchisci;
 window.hubSeme = hubSeme;
 window.hubIdx = hubIdx;
 window.HUB_ELENCHI = HUB_ELENCHI;
+window.HUB_POSTA = HUB_POSTA;
+window.HUB_POSTA_GENERI = HUB_POSTA_GENERI;
+window.HUB_CONSENSO_POSTA = HUB_CONSENSO_POSTA;
+window.hubInterrogaPosta = hubInterrogaPosta;
+window.hubSoloGusti = hubSoloGusti;
+window.hubSembraPromo = hubSembraPromo;
 window.HUB_PN_GUSTI = HUB_PN_GUSTI;
 window.HUB_GUSTI_SCEGLIBILI = HUB_GUSTI_SCEGLIBILI;
 window.hubGustiDi = hubGustiDi;

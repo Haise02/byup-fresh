@@ -230,7 +230,7 @@ canale.
 |---|---|
 | `admin-tokens.jsx` | La palette. Il marchio è un gradiente a tre colori: **rosa** `#FF1F5A` (accento d'azione), **magenta** `#ED1999` (marketing), **viola** `#D410F1` (workflow e agenti). I colori semantici — verde, ambra, rosso, blu, teal — **non si toccano**: lì il colore significa stato |
 | `admin-icons.jsx` | Icone di contorno (`ICON_PATHS`) e piene per la barra (`ICON_FILLED`). Le piene accettano anche `rect:` e `circle:`; i **fori** vanno fatti con `evenodd` dentro lo **stesso** `path` |
-| `hub-data.jsx` | Proprietà, operatori, motore dei filtri, e i mock di elenchi, mail, SMS, push, form, workflow, agenti, domini |
+| `hub-data.jsx` | Proprietà, operatori, motore dei filtri, e i mock di elenchi, mail, SMS, push, Posta (P-60: il canale in-app a due corsie, con la doppia interrogazione consent_check / suppression_check), form, workflow, agenti, domini e il sottodominio di tracciamento |
 | `hub-ui.jsx` | Modale, pannello laterale, pannello dei filtri, modale delle colonne, tabella, testate, riquadri |
 | `hub-elenchi.jsx` | Elenchi: lista, dettaglio, creazione con conteggio dal vivo |
 | `hub-mail-builder.jsx` | Il costruttore visuale delle email e il generatore di HTML |
