@@ -386,7 +386,7 @@ function AppOnlyHost() {
 }
 
 // ─── MENU SCREEN ───────────────────────────────────────────
-function MenuScreen({ state, setState, goTo }) {
+function MenuScreen({ state, setState, goTo, takeaway = false }) {
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   const CAT_ICONS = { 'Antipasti': '🥖', 'Primi piatti': '🍝', 'Secondi piatti': '🥩', 'Dolci': '🍰', 'Bevande': '🍷' };
   const [tab, setTab] = useState('Antipasti');
@@ -463,7 +463,8 @@ function MenuScreen({ state, setState, goTo }) {
   // Sheet "Al tavolo": stessa usata in Payment / Home — lista commensali + share link
   const [guestsOpen, setGuestsOpen] = useState(false);
   useEffect(() => {
-    if (!fromVenue && !state.copertiSelected) {
+    // All'asporto non c'è un tavolo: niente prompt dei coperti (D-14).
+    if (!fromVenue && !takeaway && !state.copertiSelected) {
       const t = setTimeout(() => setCopertiSheetOpen(true), 600);
       return () => clearTimeout(t);
     }
@@ -525,7 +526,8 @@ function MenuScreen({ state, setState, goTo }) {
   const clearCart = () => setState(s => ({ ...s, cart: [] }));
 
   const handleSubmit = () => {
-    // La webapp ordina solo AL TAVOLO: l'ordine va sempre in cucina.
+    if (takeaway) { submitTakeawayOrder(); return; }
+    // Al tavolo l'ordine va sempre in cucina.
     // Outbound verso il backend (oggi mock): invio dei piatti alla sessione tavolo.
     window.ByupAPI && window.ByupAPI.addItems({
       sessionId: state.activeOrder && state.activeOrder.id,
@@ -535,6 +537,36 @@ function MenuScreen({ state, setState, goTo }) {
       })),
     });
     submitTableOrder();
+  };
+
+  // L'asporto si compone, non si rimanda (P-01 · D-14): l'ordine nasce qui,
+  // identificato dal SOLO codice di ritiro — nessun nome, nessun telefono,
+  // nessun account — e va saldato in cassa o dall'app; in cucina parte al
+  // saldo. Finzione dichiarata: l'ordine resta in questo bundle. Vendita
+  // diretta nel gestionale ha i suoi ordini webapp nel seme (fonte 'webapp',
+  // senza nome, con codiceRitiro) e non riceve questo; un registro condiviso
+  // in localStorage letto da Vendita diretta è in coda, non qui.
+  const submitTakeawayOrder = () => {
+    setConfirm(true);
+    setTimeout(() => {
+      setState(s => {
+        const items = s.cart.map(li => {
+          const d = Object.values(dishes).flat().find(x => x.id === li.dishId);
+          return { lineId: 'me-' + li.lineId, id: li.dishId, name: d?.name, price: d?.price, qty: li.qty, ownerId: 'me',
+            variants: li.variants, extras: li.extras, removed: li.removed };
+        });
+        return { ...s, cart: [], activeOrder: {
+          id: genOrderId(),
+          code: genRecoveryCode(),          // codice ordine, sei cifre: l'aggancio in app (P-55)
+          codiceRitiro: nuovoCodiceRitiro(), // codice di ritiro: l'identità dell'ordine al banco
+          type: 'takeaway', stato: 'da_saldare',
+          venue: 'Ristorante Maria Grazia',
+          items, total: cartTotal, startedAt: new Date(),
+        } };
+      });
+      setConfirm(false);
+      goTo('home');
+    }, 1500);
   };
 
   const submitTableOrder = () => {
@@ -834,6 +866,7 @@ function MenuScreen({ state, setState, goTo }) {
         onSubmit={handleSubmit}
         goTo={goTo}
         onPickSplit={setSplitPickItem}
+        takeaway={takeaway}
       />
 
       {/* Popup "con chi dividi?" — aperto dallo swipe ← su un piatto del carrello */}
@@ -887,10 +920,10 @@ function MenuScreen({ state, setState, goTo }) {
               <I.Check size={32} color="#fff"/>
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: TEXT, marginTop: 4 }}>
-              Ordine inviato!
+              {takeaway ? 'Ordine composto!' : 'Ordine inviato!'}
             </div>
             <div style={{ fontSize: 13, color: MUTED, textAlign: 'center', maxWidth: 220 }}>
-              Lo trovi sulla home, è stato inviato al locale.
+              {takeaway ? 'Ecco il tuo codice di ritiro e come saldare.' : 'Lo trovi sulla home, è stato inviato al locale.'}
             </div>
           </div>
         </div>
@@ -1238,7 +1271,7 @@ function SplitPickSheet({ item, participants, onConfirm, onClose }) {
   );
 }
 
-function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dishes, setQty, clearCart, onSubmit, goTo, onPickSplit }) {
+function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dishes, setQty, clearCart, onSubmit, goTo, onPickSplit, takeaway = false }) {
   // applica la divisione a tutte le porzioni della riga
   // Lo swipe muove UNA unità per volta: due Carbonare sono due pezzi, e
   // mandarne una al tavolo non deve trascinarsi dietro l'altra.
@@ -1358,7 +1391,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
             cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           }}>
-            <span>Invio ordine</span>
+            <span>{takeaway ? 'Ordina d\'asporto' : 'Invio ordine'}</span>
             {cartTotal > 0 && <span style={{ opacity: 0.85 }}>· {cartTotal}€</span>}
           </button>
         </div>
@@ -1393,8 +1426,8 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
                 {gruppiRiga(cartItems, state.splits).map(g => (
                   <SwipeDishRow key={`${g.lineId}:${g.indici[0]}`} it={g}
                     split={g.split}
-                    onTable={() => spostaUno(g, { kind: 'tavolo', people: [] })}
-                    onPick={() => onPickSplit && onPickSplit(g)}
+                    onTable={takeaway ? undefined : () => spostaUno(g, { kind: 'tavolo', people: [] })}
+                    onPick={takeaway ? undefined : () => onPickSplit && onPickSplit(g)}
                     onUndoUno={() => spostaUno(g, null)}
                     onReset={() => azzeraGruppo(g)}
                     onOpenDish={() => goTo('dish', { dishId: g.id, lineId: g.lineId })}
@@ -1402,7 +1435,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
                 ))}
               </div>
             )}
-            {cartItems.length > 0 && (
+            {cartItems.length > 0 && !takeaway && (
               <div style={{ marginTop: 12, fontSize: 11.5, color: MUTED, fontWeight: 600,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
                 <span style={{ fontSize: 13 }}>⇄</span>
@@ -1417,7 +1450,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
               background: cartCount === 0 ? '#d8c0c8' : WINE, color: '#fff',
               fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
               cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
-            }}>Ordina ora · {cartTotal.toFixed(2)}€</button>
+            }}>{takeaway ? 'Ordina d\'asporto' : 'Ordina ora'} · {cartTotal.toFixed(2)}€</button>
           </div>
         </>
       )}
@@ -1631,6 +1664,105 @@ function OrderRecoverySheet({ order, onClose }) {
   );
 }
 
+// ─── HOME asporto: riepilogo, codice di ritiro, bivio (P-01 · P-02) ───────
+// Il bivio è la sostanza di P-02: le due strade di saldo hanno pari evidenza,
+// stessa cella di griglia, stessa altezza, stesso bordo, stessa taglia di
+// titolo e testo, stessa icona, nessun «consigliato». Nascondere o sminuire
+// la cassa sarebbe un deceptive design pattern (EDPB 03/2022): la via
+// dell'app comporta un account, cioè un trattamento in più, e lo si dice.
+// Niente DownloadAppPromo qui: romperebbe la parità. I codici sono due con
+// ruoli distinti: il codice di ritiro, grande, è l'identità dell'ordine al
+// banco (la catena di svNomeConto nel gestionale ripiega su di esso); il
+// codice ordine a sei cifre sta nella tessera dell'app per il recupero (P-55).
+function TakeawayHome({ order, goTo, onRecover }) {
+  const [cassaOpen, setCassaOpen] = useState(false);
+  const totale = (order.items || []).reduce((s, i) => s + i.price * i.qty, 0);
+  const tessera = {
+    display: 'flex', flexDirection: 'column', gap: 8, minHeight: 172,
+    padding: '16px 14px', borderRadius: 18, border: `1.5px solid ${WINE}55`, background: '#fff',
+    cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+  };
+  const icona = { width: 34, height: 34, borderRadius: 10, background: '#fbf4f7', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  const titolo = { fontSize: 15.5, fontWeight: 800, color: TEXT, letterSpacing: -0.2, lineHeight: 1.2 };
+  const testo = { fontSize: 12.5, color: MUTED, lineHeight: 1.45, flex: 1 };
+  const azione = { fontSize: 12.5, fontWeight: 700, color: WINE };
+  return (
+    <div style={{ padding: '60px 16px 40px' }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: 0.6, textTransform: 'uppercase' }}>Asporto · {order.venue}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.3, marginTop: 4 }}>Il tuo ordine è composto</div>
+
+      {/* Il codice di ritiro: l'identità dell'ordine, l'unica che serve. */}
+      <div data-ritiro style={{ marginTop: 16, padding: '18px 16px', borderRadius: 18, background: '#fbf4f7', border: `1.5px dashed ${WINE}66`, textAlign: 'center' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: 0.6, textTransform: 'uppercase' }}>Codice di ritiro</div>
+        <div style={{ fontSize: 44, fontWeight: 800, letterSpacing: 8, color: TEXT, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{order.codiceRitiro}</div>
+        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Non serve un nome né un telefono: il codice basta.</div>
+      </div>
+
+      {/* Riepilogo */}
+      <div style={{ marginTop: 14, background: '#fff', borderRadius: 18, border: '1px solid #ece6e3', padding: '12px 14px' }}>
+        {(order.items || []).map(i => (
+          <div key={i.lineId} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', fontSize: 14, color: TEXT }}>
+            <span><b>{i.qty}×</b> {i.name}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{(i.price * i.qty).toFixed(2)}€</span>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, marginTop: 4, borderTop: '1px solid #ece6e3', fontSize: 15.5, fontWeight: 800, color: TEXT }}>
+          <span>Totale da saldare</span><span>{totale.toFixed(2)}€</span>
+        </div>
+      </div>
+
+      {/* Il bivio: due tessere di pari peso. */}
+      <div style={{ fontSize: 15, fontWeight: 700, color: TEXT, marginTop: 20, marginBottom: 10 }}>Come vuoi saldare?</div>
+      <div data-bivio style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'stretch' }}>
+        <button data-strada="app" onClick={onRecover} style={tessera}>
+          <div style={icona}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          </div>
+          <div style={titolo}>Paga dall'app</div>
+          <div style={testo}>Serve un account Byup. Scarica l'app e recupera l'ordine col codice {fmtCode(order.code)}: paghi lì e l'ordine parte.</div>
+          <div style={azione}>Continua →</div>
+        </button>
+        <button data-strada="cassa" onClick={() => setCassaOpen(true)} style={tessera}>
+          <div style={icona}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M3 11h18"/><path d="M8 15h3"/></svg>
+          </div>
+          <div style={titolo}>Paga al ritiro, in cassa</div>
+          <div style={testo}>Nessun account. Al banco di' il codice {order.codiceRitiro}: l'ordine parte quando paghi.</div>
+          <div style={azione}>Continua →</div>
+        </button>
+      </div>
+
+      <button onClick={() => goTo('menu')} style={{
+        width: '100%', padding: '14px', marginTop: 14, background: 'none', border: 'none',
+        cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, color: MUTED, fontWeight: 600,
+      }}>Aggiungi altro al menù</button>
+
+      {cassaOpen && (
+        <div onClick={() => setCassaOpen(false)} style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 60,
+          display: 'flex', alignItems: 'flex-end', animation: 'fade 0.2s ease',
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            width: '100%', background: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+            padding: '10px 22px 26px', animation: 'slideUp 0.32s cubic-bezier(.2,.9,.3,1.05)',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.14)', textAlign: 'center',
+          }}>
+            <div style={{ width: 38, height: 4, background: '#e0d8db', borderRadius: 999, margin: '4px auto 16px' }}/>
+            <div style={{ fontSize: 20, fontWeight: 800, color: TEXT, letterSpacing: -0.3 }}>Paga al ritiro, in cassa</div>
+            <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.5, marginTop: 6 }}>Al banco di' questo codice. Salderai lì, e l'ordine parte in cucina quando paghi.</div>
+            <div style={{ fontSize: 56, fontWeight: 800, letterSpacing: 10, color: TEXT, margin: '18px 0 6px', fontVariantNumeric: 'tabular-nums' }}>{order.codiceRitiro}</div>
+            <div style={{ fontSize: 12.5, color: MUTED }}>Totale da saldare {totale.toFixed(2)}€ · nessun account, nessun dato personale</div>
+            <button onClick={() => setCassaOpen(false)} style={{
+              width: '100%', padding: '14px', marginTop: 16, background: 'none', border: 'none',
+              cursor: 'pointer', fontFamily: 'inherit', fontSize: 13.5, color: MUTED, fontWeight: 600,
+            }}>Chiudi</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── HOME with active order card ───────────────────────────
 function HomeScreen({ state, setState, goTo }) {
   const order = state.activeOrder;
@@ -1649,7 +1781,9 @@ function HomeScreen({ state, setState, goTo }) {
         {/* Web app: solo l'ordine al tavolo (inviato in cucina). Colonna a tutta
             altezza così la promo cresce e riempie lo spazio quando la card è compressa. */}
         <div style={{ padding: '12px 12px 0', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-          {order ? (
+          {order && order.type === 'takeaway' ? (
+            <TakeawayHome order={order} goTo={goTo} onRecover={() => setRecoverOpen(true)}/>
+          ) : order ? (
             <ActiveOrderCard order={order} expanded={orderExpanded} setExpanded={setOrderExpanded}
               goTo={goTo} setState={setState} onOpenGuests={() => setGuestsOpen(true)}
               onRecover={() => setRecoverOpen(true)}/>
@@ -1658,7 +1792,7 @@ function HomeScreen({ state, setState, goTo }) {
               Nessun ordine attivo.
             </div>
           )}
-          {order && <DownloadAppPromo big={!orderExpanded} onRecover={() => setRecoverOpen(true)}/>}
+          {order && order.type !== 'takeaway' && <DownloadAppPromo big={!orderExpanded} onRecover={() => setRecoverOpen(true)}/>}
         </div>
       </div>
 
@@ -2450,10 +2584,12 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
 }
 
 
-// ─── Asporto NON disponibile da webapp (Punto 2) ────────────────────
-// Chi entra con il QR/menu d'asporto (?takeaway=1) non ordina dal browser:
-// viene mandato a scaricare l'app, dove l'asporto si paga in anticipo e va
-// dritto in cucina. La webapp serve solo a ordinare AL TAVOLO.
+// ─── Asporto da webapp (D-14 · P-01) ───────────────────────────────
+// Chi entra con il QR del menu d'asporto (?takeaway=1, o la modalità del
+// simulatore) ordina dal browser: stesso menù, stesso carrello, e a fine
+// composizione il codice di ritiro e il bivio di saldo (app o cassa, pari
+// evidenza — P-02). Prima c'era TakeawayRedirect, il solo invito a
+// scaricare l'app: superato.
 const DOWNLOAD_URL = 'https://byup.app/download';
 
 function isTakeawayEntry() {
@@ -2463,40 +2599,16 @@ function isTakeawayEntry() {
   } catch {}
   return false;
 }
-
-// Schermata mostrata all'ingresso da QR asporto: porta al download dell'app.
-function TakeawayRedirect() {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 200,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      textAlign: 'center', padding: 40,
-      background: 'linear-gradient(160deg, #fff 0%, #faf6ee 100%)',
-    }}>
-      <svg width="116" height="116" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="1.4"
-        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-        style={{ marginBottom: 30, animation: 'pop 0.3s ease' }}>
-        <path d="M6 2 L18 2 L20 6 L4 6 Z"/>
-        <path d="M5 6 L5 20 a 2 2 0 0 0 2 2 L17 22 a 2 2 0 0 0 2 -2 L19 6"/>
-        <path d="M9 10 a 3 3 0 0 0 6 0"/>
-      </svg>
-      <h1 style={{ fontSize: 25, fontWeight: 800, letterSpacing: -0.4, color: TEXT, margin: '0 0 14px', maxWidth: 340, lineHeight: 1.25 }}>
-        L'asporto è nell'app byup
-      </h1>
-      <p style={{ fontSize: 15.5, fontWeight: 500, color: MUTED, margin: 0, maxWidth: 320, lineHeight: 1.5 }}>
-        Per ordinare d'asporto scarica l'app: paghi in anticipo e il tuo ordine va dritto in cucina, senza fare la coda.
-      </p>
-      <button onClick={() => { window.location.href = DOWNLOAD_URL; }} style={{
-        marginTop: 28, height: 50, padding: '0 28px', borderRadius: 999, border: 'none',
-        background: WINE, color: '#fff', fontSize: 15, fontWeight: 700,
-        fontFamily: 'inherit', cursor: 'pointer', boxShadow: '0 4px 16px rgba(139,26,58,0.28)',
-      }}>Scarica l'app</button>
-    </div>
-  );
+// Codice di ritiro: alfabeto senza I/O/0/1, va dettato a voce al banco. Copia
+// guardata di nuovoCodiceRitiro in gestionale/sala-vendita-diretta.jsx: è la
+// stessa forma che Vendita diretta si aspetta e che svNomeConto grida.
+function nuovoCodiceRitiro() {
+  return Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
 }
 
 function Root() {
-  // Asporto (?takeaway=1) → niente ordine dal browser: si va a scaricare l'app.
+  // Asporto (?takeaway=1): si ordina dal browser (D-14); l'ordine non ha una
+  // sessione tavolo, quindi niente sottoscrizione real-time.
   const takeaway = isTakeawayEntry();
 
   const [state, setState] = useState({
@@ -2567,10 +2679,8 @@ function Root() {
   }, [state.activeOrder && state.activeOrder.id, takeaway]);
 
   let screen;
-  if (takeaway) {
-    screen = <TakeawayRedirect/>;
-  } else if (route.name === 'menu') {
-    screen = <MenuScreen state={state} setState={setState} goTo={goTo}/>;
+  if (route.name === 'menu') {
+    screen = <MenuScreen state={state} setState={setState} goTo={goTo} takeaway={takeaway}/>;
   } else if (route.name === 'venue') {
     const VS = window.VenueScreen;
     // Tornando al menu DALLA vetrina si è in modalità "sfoglio, nessun tavolo":
@@ -2607,7 +2717,7 @@ function Root() {
         background: '#fff', position: 'relative', overflow: 'hidden',
       }}>
         {screen}
-        {!takeaway && <AppOnlyHost/>}
+        <AppOnlyHost/>
       </div>
     </div>
   );

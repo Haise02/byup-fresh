@@ -159,8 +159,14 @@ ordine (popup in stile OTP, incolla riconosciuto in automatico; su Android
 aggancio via Install Referrer — SFA §3.8) — in cucina va al pagamento. Il tempo
 di cottura non cambia; cambia la fila, perché l'ordine arriva al banco già
 composto. Le due strade di saldo si presentano a pari evidenza (P-02).
-*(Prototipo da allineare: oggi mostra ancora la schermata di download.)* Per il
-razionale completo vedi §2.2.
+Nel prototipo (P-01 · P-02): stesso menù e stesso carrello, CTA «Ordina
+d'asporto», poi la home asporto con il **codice di ritiro** grande (quattro
+caratteri, la forma di Vendita diretta), il riepilogo e il **bivio** in una
+griglia a due colonne identiche — «Paga dall'app», che dice che serve un
+account e porta al recupero col codice ordine a sei cifre, e «Paga al ritiro,
+in cassa», che mostra il codice e dice che l'ordine parte al saldo — senza
+promo dell'app accanto. L'ordine mock resta nel bundle: Vendita diretta non lo
+riceve (registro condiviso in coda). Per il razionale completo vedi §2.2.
 
 ---
 
@@ -319,7 +325,7 @@ App-only: porta alla `OrderRecoverySheet` di recupero ordine, §8.6.)
 |----------|----------------|----------------------|
 | **`table`** (default) | ingresso "da QR" | ordine va **in cucina** subito |
 | **`venue`** | da Vetrina: `?from=venue` o referrer; persiste in `sessionStorage['byup_menu_from']='venue'` | "sto sfogliando, **nessun tavolo**" → mostra il back verso la vetrina |
-| **asporto** (QR asporto) | `?takeaway=1` (o `sessionStorage['byup_menu_mode']='asporto'`) | oggi `Root` mostra ancora `TakeawayRedirect` (CTA "Scarica l'app") — **superato da D-14**: qui dovrà aprirsi l'ordinazione (§4.4) |
+| **asporto** (QR asporto) | `?takeaway=1` (o `sessionStorage['byup_menu_mode']='asporto'`) | `Root` apre l'ordinazione d'asporto (D-14): `MenuScreen` in variante asporto e `TakeawayHome` col codice di ritiro e il bivio (§4.4) |
 
 Lo switch Tavolo/Asporto in sviluppo si fa dal **simulatore** (`simulator.html`),
 non più da un toggle in-app (il vecchio `DevModeSwitcher` è stato rimosso).
