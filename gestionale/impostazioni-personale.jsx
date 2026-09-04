@@ -494,6 +494,10 @@ function ImpPersonale() {
               />
             </div>
           </section>
+
+          {/* L'app dei telefoni che incassano: sta accanto a «Collega un
+              dispositivo», che è il gesto che la presuppone. */}
+          <PersStaffPromo/>
         </aside>
 
       </div>
@@ -568,6 +572,95 @@ function accessoDelRuolo(role) {
     sotto: `${aree.length} ${aree.length === 1 ? 'sezione' : 'sezioni'} su ${ALL_AREAS.length}`,
     tutte: aree.map(a => a.label).join(', '),
   };
+}
+
+// ─── «Scarica Byup Staff» (arrivata dall'onboarding, 4 settembre 2026) ─────
+// Stava nello step 2 dell'onboarding, sotto i pagamenti, e chiedeva di
+// portarsi via l'app mentre il locale non aveva ancora né menù né tavoli: il
+// telefono che incassa non serve prima di aprire. Qui invece è a casa — questa
+// è la pagina di chi entra e con che cosa, e il vicino di colonna è «Collega
+// un dispositivo»: chi collega un telefono a Byup Staff l'app deve averla.
+// Il QR non è scansionabile e non finge di esserlo (non c'è un URL da
+// codificare finché le schede store non esistono); i due link sono segnaposto.
+const PERS_STORE = { play: '#', app: '#' };
+
+function PersStaffPromo() {
+  const cream = PN.STAFF_CREAM;
+  const link = { color: cream, fontWeight: 700, textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer' };
+  return (
+    <section style={{
+      borderRadius: 14, overflow: 'hidden',
+      background: PN.GRAD_STAFF,
+      boxShadow: '0 12px 32px -14px rgba(229, 68, 110, 0.50)',
+      padding: '16px 16px 0',
+    }}>
+      <div style={{fontSize: 16.5, fontWeight: 800, color: cream, letterSpacing: -0.2, lineHeight: 1.3}}>
+        Scarica Byup Staff
+      </div>
+      <div style={{fontSize: 14, color: cream, opacity: 0.92, lineHeight: 1.45, marginTop: 4}}>
+        Il POS digitale e gratuito: incassi dal telefono di chi è in sala, senza altro hardware.
+      </div>
+
+      {/* Il codice e la mascotte, fianco a fianco: la mascotte poggia sul
+          bordo inferiore del riquadro, come nel banner da cui viene. */}
+      <div style={{display:'flex', alignItems:'flex-end', gap: 10, marginTop: 12}}>
+        <div style={{background: PN.WHITE, borderRadius: 10, padding: 7, flexShrink: 0, marginBottom: 14}}>
+          <PersQrMock size={96}/>
+        </div>
+        <img
+          src="mascot-staff.png?v=2"
+          alt="La mascotte di Byup Staff con l'app aperta sul telefono"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          style={{width: 96, flexShrink: 0, marginBottom: -6, filter: 'drop-shadow(0 10px 20px rgba(120, 15, 45, 0.30))'}}
+        />
+      </div>
+
+      <div style={{fontSize: 13.5, color: cream, opacity: 0.92, lineHeight: 1.45, paddingBottom: 16, marginTop: -4}}>
+        Inquadra il codice, oppure vai su <a href={PERS_STORE.play} style={link}>Play Store</a> o <a href={PERS_STORE.app} style={link}>App Store</a>.
+      </div>
+    </section>
+  );
+}
+
+// QR decorativo in SVG — moduli e finder arrotondati, trama deterministica
+// (nessun Math.random: la stessa a ogni render). Copia di quello che stava
+// nell'onboarding, che è l'unico posto da cui questa tessera è passata.
+function PersQrMock({ size = 96 }) {
+  const N = 25;
+  const cell = size / N;
+  const r = cell * 0.34;
+  const FG = '#17181C';
+  const inFinder = (row, col) => (row < 8 && col < 8) || (row < 8 && col >= N - 8) || (row >= N - 8 && col < 8);
+  const inLogo = (row, col) => row >= N / 2 - 3 && row <= N / 2 + 2 && col >= N / 2 - 3 && col <= N / 2 + 2;
+  const acceso = (row, col) => {
+    const h = Math.sin(row * 12.9898 + col * 78.233) * 43758.5453;
+    return (h - Math.floor(h)) > 0.47;
+  };
+  const moduli = [];
+  for (let row = 0; row < N; row++) {
+    for (let col = 0; col < N; col++) {
+      if (inFinder(row, col) || inLogo(row, col) || !acceso(row, col)) continue;
+      moduli.push(<rect key={`${row}-${col}`} x={col * cell + cell * 0.1} y={row * cell + cell * 0.1}
+        width={cell * 0.8} height={cell * 0.8} rx={r} fill={FG}/>);
+    }
+  }
+  const Finder = ({ row, col }) => (
+    <g transform={`translate(${col * cell}, ${row * cell})`}>
+      <rect x={cell * 0.35} y={cell * 0.35} width={cell * 6.3} height={cell * 6.3} rx={cell * 1.9} fill="none" stroke={FG} strokeWidth={cell * 0.9}/>
+      <rect x={cell * 2} y={cell * 2} width={cell * 3} height={cell * 3} rx={cell} fill={FG}/>
+    </g>
+  );
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Codice QR per scaricare Byup Staff">
+      {moduli}
+      <Finder row={0} col={0}/>
+      <Finder row={0} col={N - 7}/>
+      <Finder row={N - 7} col={0}/>
+      {/* Il marchio al centro, sul gradiente dell'app */}
+      <rect x={size / 2 - cell * 3} y={size / 2 - cell * 3} width={cell * 6} height={cell * 6} rx={cell * 1.6} fill={PN.GRAD_STAFF_FROM}/>
+      <circle cx={size / 2} cy={size / 2} r={cell * 1.5} fill={PN.STAFF_CREAM}/>
+    </svg>
+  );
 }
 
 function ScorciatoiaAccesso({ icona, colore, sfondo, titolo, sotto, onClick }) {
