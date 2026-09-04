@@ -144,7 +144,12 @@ window.byupReadStampanti = function () {
     const perId = Object.fromEntries((salvato.devices || []).map(d => [d.id, d]));
     const rimossi = new Set(salvato.rimossi || []);
     const devices = seme.devices.filter(d => !rimossi.has(d.id)).map(d => perId[d.id] ? Object.assign({}, d, perId[d.id]) : d)
-      .concat((salvato.devices || []).filter(d => !seme.devices.some(x => x.id === d.id)));
+      .concat((salvato.devices || []).filter(d => !seme.devices.some(x => x.id === d.id)))
+      // «Questa postazione» non è più un dispositivo (4 settembre 2026): la
+      // stampa dal browser non si collega e non si scollega. I registri
+      // scritti prima ce l'hanno ancora dentro, e qui si allineano da soli —
+      // senza buttare il resto di quello che l'esercente aveva impostato.
+      .filter(d => d.connection_mode !== 'browser');
     return { devices, rimossi: [...rimossi], print_jobs: salvato.print_jobs || [], candidate_aggiunte: salvato.candidate_aggiunte || [],
       venue_settings: Object.assign({}, seme.venue_settings, salvato.venue_settings || {}),
       venue_delivery_integrations: Object.assign({}, seme.venue_delivery_integrations, salvato.venue_delivery_integrations || {}) };

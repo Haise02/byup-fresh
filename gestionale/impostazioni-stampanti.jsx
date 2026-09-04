@@ -305,7 +305,7 @@ function ImpAggiungiStampanteModal({ onClose, onScelta }) {
 
   return (
     <ImpPrnModal titolo="Aggiungi stampante"
-      sub="Prima si dice alla stampante dove chiamare, poi lei compare qui sotto."
+      sub=""
       onClose={onClose}>
       <div data-collega-stampante style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* 1 · Configura la stampante */}
@@ -314,7 +314,7 @@ function ImpAggiungiStampanteModal({ onClose, onScelta }) {
             1 · Configura la stampante
           </div>
           <div style={{ fontSize: 14, color: PN.TEXT, lineHeight: 1.55, marginBottom: 10 }}>
-            Nella pagina di configurazione della stampante scrivi l'indirizzo del nostro server: è lei a interrogarci, e per questo stampa senza che nessuno confermi nulla. Scegli la riga del tuo protocollo.
+            Nella pagina di configurazione della stampante scrivi l'indirizzo del nostro server.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {Object.entries(window.PN_PRINTER_PROTOCOLLI).map(([k, p]) => (
@@ -329,9 +329,6 @@ function ImpAggiungiStampanteModal({ onClose, onScelta }) {
                 <ImpPrnCopia valore={`${p.url}${IMP_PRN_SEDE}`}/>
               </div>
             ))}
-          </div>
-          <div style={{ fontSize: 12.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 8 }}>
-            Da una pagina web non esiste una scansione della rete: quello che possiamo vedere — e vediamo — è chi ha contattato il server. Le stampanti che non parlano questi due protocolli stampano lo stesso i documenti, dal browser della postazione, e non c'è niente da collegare.
           </div>
         </div>
 
