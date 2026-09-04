@@ -29,6 +29,26 @@ const ONB_CATENA = (() => {
   try { const q = new URLSearchParams(window.location.search); return q.get('sede') === 'catena' ? { nome: q.get('nome') || 'La nuova sede' } : null; } catch (e) { return null; }
 })();
 
+// Finire l'onboarding vuol dire un locale NUOVO, e un locale nuovo non ha
+// ancora né Stripe né il fiscale: i registri delle due attivazioni si
+// riportano al punto di partenza, così le due fasce ci sono davvero
+// all'atterraggio invece di dipendere da quello che c'era in questo browser.
+// Si azzerano anche il censimento dei POS (il POS virtuale nasce col
+// collegamento Stripe, non prima), lo stato di lettura delle notifiche e i
+// «Non ora» della sessione, che altrimenti terrebbero zitte le fasce appena
+// nate. L'onboarding non ha i registri sotto mano — è un altro bundle, senza
+// panoramica-tokens — quindi tocca le chiavi direttamente, com'è già per le
+// credenziali dell'Agenzia e per la ricezione delle fatture.
+const ONB_CHIAVI_ATTIVAZIONI = [
+  'byup_stripe', 'byup_pos_censimento',
+  'byup_ade_cred', 'byup_ade_delega', 'byup_ade_incaricato', 'byup_ade_ricezione',
+  'byup_notifiche_stato',
+];
+function onbAzzeraAttivazioni() {
+  try { ONB_CHIAVI_ATTIVAZIONI.forEach(k => localStorage.removeItem(k)); } catch (e) {}
+  try { sessionStorage.removeItem('byup_attivazioni_rimandate'); sessionStorage.removeItem('byup_notif_demo'); } catch (e) {}
+}
+
 function OnboardingApp() {
   // ?step=N per aprire direttamente uno step (demo e sviluppo)
   const [step, setStep] = React.useState(() => {
@@ -120,6 +140,7 @@ function OnboardingApp() {
             <Step4Verifica
               onBack={() => setStep(3)}
               onComplete={(dest) => {
+                onbAzzeraAttivazioni();
                 if (dest === 'config')     window.location.href = 'byup Configurazione Completa.html';
                 else if (dest === 'panoramica') window.location.href = 'byup Panoramica.html';
               }}
