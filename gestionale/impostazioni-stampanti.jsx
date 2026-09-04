@@ -62,15 +62,19 @@ function ImpStampantiBlocco({ inline, colonne }) {
   const [toast, setToast] = React.useState(null);
   const [aggiungi, setAggiungi] = React.useState(false);
   const [imposta, setImposta] = React.useState(null);   // { candidata } | { device }
+  // Anche il censimento dei POS: le tessere scrivono i NOMI delle casse che
+  // stampano lì, e quei nomi vivono nell'altro registro — un POS che nasce
+  // (il virtuale, col collegamento Stripe) o che cambia deve comparire qui
+  // senza ricaricare la pagina.
+  const [, ridisegna] = React.useState(0);
   React.useEffect(() => {
-    const agg = () => setReg(window.byupReadStampanti());
-    window.addEventListener('byup-stampanti-change', agg);
-    window.addEventListener('storage', agg);
-    return () => { window.removeEventListener('byup-stampanti-change', agg); window.removeEventListener('storage', agg); };
+    const agg = () => { setReg(window.byupReadStampanti()); ridisegna(x => x + 1); };
+    const ev = ['byup-stampanti-change', 'byup-pos-censimento', 'storage'];
+    ev.forEach(e => window.addEventListener(e, agg));
+    return () => { ev.forEach(e => window.removeEventListener(e, agg)); };
   }, []);
   const avvisa = (t) => { setToast(t); setTimeout(() => setToast(null), 2800); };
   const uso = (d) => d.use || 'comande';
-  const documenti = reg.devices.filter(d => uso(d) === 'documenti');
   const scollega = (d) => { window.byupStampanteRimuovi(d.id); avvisa(`«${d.name}» scollegata`); };
 
   // Le tessere hanno la misura delle altre della pagina — Stripe, Glovo,
@@ -94,6 +98,7 @@ function ImpStampantiBlocco({ inline, colonne }) {
       <div style={griglia}>
         {reg.devices.map(d => (
           <TesseraStampante key={d.id} d={d} uso={uso(d)}
+            sola={reg.devices.filter(x => uso(x) === 'documenti').length === 1}
             onConfigura={() => setImposta({ device: d })} onScollega={() => scollega(d)}/>
         ))}
         {/* La tessera d'ingresso: stessa misura, tratteggiata perché è
@@ -110,10 +115,6 @@ function ImpStampantiBlocco({ inline, colonne }) {
           </div>
         </button>
       </div>
-
-      {/* Da due stampanti per i documenti in su: quale cassa stampa dove. La
-          scelta si fa anche quando si imposta la stampante; qui si cambia. */}
-      {documenti.length > 1 && <ImpPosStampanti documenti={documenti} onFatto={avvisa}/>}
 
       {/* La prova della stampa dei documenti (P-128, caso 3.8) non sta qui, in
           fondo al blocco, come un collegamento a sé: parte alla FINE del
@@ -146,7 +147,7 @@ function ImpStampantiBlocco({ inline, colonne }) {
 // «Configura», che riapre il foglio dov'è tutto — nome, uso, categorie, POS e
 // la prova di stampa. La prova non sta qui: da sola non dice che cosa fare se
 // va male, e chi la preme sta già cercando le impostazioni.
-function TesseraStampante({ d, uso, onConfigura, onScollega }) {
+function TesseraStampante({ d, uso, sola, onConfigura, onScollega }) {
   const st = (window.PN_PRINT_STATI || {})[d.connection_status] || {};
   const proto = (window.PN_PRINTER_PROTOCOLLI || {})[d.printer_protocol] || {};
   const marca = ((window.PN_PRINTER_MODELLI || {})[d.printer_vendor] || {}).nome || '';
@@ -188,10 +189,21 @@ function TesseraStampante({ d, uso, onConfigura, onScollega }) {
           <span style={{ flexShrink: 0 }}>{st.label}</span>
           {d.last_test_print_at && <span style={{ color: PN.MUTED, fontWeight: 500 }}>· prova {fmt(d.last_test_print_at)}</span>}
         </button>
+        {/* Che cosa esce da questa stampante: per le comande le categorie che
+            tiene, per i documenti i POS che stampano qui. È l'unica cosa che
+            si vuole sapere guardando l'elenco, e adesso è scritta in un posto
+            solo — il riquadro sotto le tessere che la ripeteva non c'è più.
+            Con una sola stampante per i documenti non c'è niente da
+            assegnare: stampa tutto lei, e la tessera lo dice invece di
+            mostrare un vuoto. Da due in su, una cassa senza stampante non ne
+            prende una a caso — il foglio uscirebbe dall'altra parte del
+            locale — quindi il vuoto va detto (P-128, caso 3.5). */}
         <div style={{ fontSize: 12.5, color: PN.MUTED, marginTop: 4, lineHeight: 1.4, minHeight: 32 }}>
           {comande
             ? ((d.routing || []).length ? `${proto.label} · ${d.routing.map(window.pnRoutingLabel).join(', ')}` : `${proto.label} · nessuna categoria instradata`)
-            : (posAssociati.length ? `POS: ${posAssociati.map(p => p.name).join(', ')}` : proto.label)}
+            : posAssociati.length ? <>{proto.label} · <span style={{ color: PN.TEXT, fontWeight: 600 }}>{posAssociati.map(p => p.name).join(', ')}</span></>
+            : sola ? `${proto.label} · tutte le casse stampano qui`
+            : <>{proto.label} · <span style={{ color: PN.AMBER }}>nessuna cassa assegnata</span></>}
         </div>
         <div style={{ marginTop: 10 }}>
           <ImpButton variant="ghost" onClick={onConfigura} style={{ width: '100%', justifyContent: 'center', padding: '9px 14px', fontSize: 14.5 }}>
@@ -208,63 +220,13 @@ function TesseraStampante({ d, uso, onConfigura, onScollega }) {
   );
 }
 
-// ─── Quale POS stampa dove ──────────────────────────────────────────────────
-// Compare solo quando le stampanti per i documenti sono più d'una, perché
-// prima la domanda non esiste. Ogni POS censito (P-105) sceglie la sua
-// stampante, e ne ha UNA: assegnarlo a un'altra lo toglie dalla precedente,
-// che è il modo in cui il vincolo si fa rispettare senza spiegarlo.
-function ImpPosStampanti({ documenti, onFatto }) {
-  const [, ridisegna] = React.useState(0);
-  React.useEffect(() => {
-    const ri = () => ridisegna(x => x + 1);
-    window.addEventListener('byup-stampanti-change', ri);
-    window.addEventListener('byup-pos-censimento', ri);
-    return () => { window.removeEventListener('byup-stampanti-change', ri); window.removeEventListener('byup-pos-censimento', ri); };
-  }, []);
-  const pos = window.byupReadPosCensimento ? byupReadPosCensimento().filter(p => p.fiscal_link_status !== 'unlinked') : [];
-  if (!pos.length) return null;
-  const associa = (p, printerId) => {
-    window.byupAssociaPos(p.id, printerId);
-    const st = documenti.find(d => d.id === printerId);
-    onFatto && onFatto(`${p.name} stampa su «${st ? st.name : ''}»`);
-  };
-  return (
-    <div data-pos-stampanti style={{ marginTop: 14, padding: '13px 14px', borderRadius: 11, border: `1px solid ${PN.BORDER}`, borderLeft: `3px solid ${PN.PINK}`, background: PN.WHITE }}>
-      <div style={{ fontSize: 14.5, fontWeight: 700, color: PN.TEXT }}>Quale POS stampa dove</div>
-      <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 2, marginBottom: 12, lineHeight: 1.5 }}>
-        Hai più di una stampante per i documenti: ogni strumento di pagamento stampa sulla sua, e su una sola — altrimenti lo stesso scontrino uscirebbe due volte, in due punti del locale. Assegnandone uno a una stampante lo togli dalla precedente.
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {pos.map(p => {
-          const nat = (window.PN_POS_NATURE || {})[p.nature] || {};
-          const scelta = window.byupPosStampante(p.id);
-          return (
-            <div key={p.id} data-pos={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: PN.TEXT }}>{p.name}</span>
-                <span style={{ fontSize: 12.5, color: PN.MUTED }}> · {nat.label || p.nature}{p.user ? ` · ${p.user}` : ''}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {documenti.map(d => {
-                  const on = !!scelta && scelta.id === d.id;
-                  return (
-                    <button key={d.id} data-associa={`${p.id}:${d.id}`} onClick={() => associa(p, d.id)} style={{
-                      padding: '6px 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-                      border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
-                      background: on ? PN.TEXT : PN.WHITE, color: on ? PN.WHITE : PN.TEXT,
-                      fontSize: 13.5, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
-                      transition: 'background 150ms ease-out, border-color 150ms ease-out',
-                    }}>{d.name}</button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+// Il riquadro «Quale POS stampa dove» non c'è più. Era una terza copia della
+// stessa scelta — la si faceva già nel foglio della stampante, che è dove si
+// decide tutto il resto di quella stampante — e sotto le tessere elencava di
+// nuovo tutti i POS del locale, cioè ripeteva sdraiata l'informazione che le
+// tessere hanno già in piedi. Adesso la tessera DICE chi stampa lì, e il
+// foglio è il posto dove lo si CAMBIA: una cosa scritta in un posto solo, e
+// l'assegnazione dove si assegna già tutto.
 
 // ─── Il guscio dei due fogli ────────────────────────────────────────────────
 function ImpPrnModal({ titolo, sub, onClose, children, piede }) {
