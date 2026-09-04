@@ -268,11 +268,22 @@ window.byupImpostaAutoPrintCortesia = function (piattaforma, on) {
 // si può elencare: c'è sempre, e si aggiunge senza cercarla.
 // Nel prototipo le candidate sono un seme: senza backend nessuna stampante
 // bussa davvero, e la schermata lo dichiara.
+// Cinque, e non due: una stampante si aggiunge e le altre restano lì, quindi
+// l'elenco deve reggere più di un giro — con due candidate, aggiunta la
+// seconda la schermata diventava vuota e non si vedeva più com'è fatta.
+// Le due marche e i due protocolli sono rappresentati da tutte e due le parti,
+// perché il foglio dice un indirizzo diverso per ciascuno.
 const pnCandidateSeme = () => [
   { id: 'cand-1', device_model: 'TSP143IV', printer_vendor: 'star', printer_protocol: 'cloudprnt',
     cloud_client_id: '00:11:62:7B:1E:44', visto_at: pnIsoFa(12), nome_proposto: 'Pizzeria' },
   { id: 'cand-2', device_model: 'TM-m30III', printer_vendor: 'epson', printer_protocol: 'server_direct_print',
     cloud_client_id: 'cp-cassa2-07', visto_at: pnIsoFa(46), nome_proposto: 'Cassa 2' },
+  { id: 'cand-3', device_model: 'mC-Print3', printer_vendor: 'star', printer_protocol: 'cloudprnt',
+    cloud_client_id: '00:11:62:9C:04:D1', visto_at: pnIsoFa(95), nome_proposto: 'Banco' },
+  { id: 'cand-4', device_model: 'TM-m30II', printer_vendor: 'epson', printer_protocol: 'server_direct_print',
+    cloud_client_id: 'cp-dehors-02', visto_at: pnIsoFa(210), nome_proposto: 'Dehors' },
+  { id: 'cand-5', device_model: 'TSP100IV SK', printer_vendor: 'star', printer_protocol: 'cloudprnt',
+    cloud_client_id: '00:11:62:31:A8:7E', visto_at: pnIsoFa(640), nome_proposto: 'Etichette' },
 ];
 // Le candidate ancora libere: quelle che si sono presentate e che nessuno ha
 // già aggiunto (il confronto è sull'identificativo con cui si annunciano).

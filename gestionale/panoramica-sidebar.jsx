@@ -35,7 +35,7 @@ window.byupWriteModules = function(m) {
   } catch(e) {}
 };
 
-// Visualizzazione del Kitchen Monitor — «pub» o «ristorante». Si sceglie dove si
+// Visualizzazione del monitor di cucina — «pub» o «ristorante». Si sceglie dove si
 // collega il monitor (onboarding · Configurazione completa) e si cambia dove lo
 // si modifica (Impostazioni → Personale): è un attributo del dispositivo, non
 // un'impostazione del locale, e non ha un terzo interruttore da nessuna parte.
@@ -43,7 +43,7 @@ window.byupWriteModules = function(m) {
 // deve saperla pur stando su un'altra pagina.
 // Default «ristorante»: è la cucina che il gestionale ha sempre avuto, e chi non
 // ha ancora collegato un monitor non deve vedersela cambiare sotto i piedi.
-// I Kitchen Monitor collegati, condivisi fra pagine. Ognuno porta la sua
+// I monitor di cucina collegati, condivisi fra pagine. Ognuno porta la sua
 // visualizzazione — «pub» o «ristorante» — che si sceglie DOVE SI COLLEGA il
 // dispositivo (onboarding · Impostazioni → Personale) e in nessun altro posto:
 // è una proprietà di quello schermo, come il nome.
@@ -65,7 +65,7 @@ const BYUP_KDS_DEFAULT = [
 function _byupKdsNormalizza(m) {
   return {
     id: String(m && m.id || '').trim() || 'monitor',
-    nome: String(m && m.nome || '').trim() || 'Kitchen Monitor',
+    nome: String(m && m.nome || '').trim() || 'Monitor cucina',
     vista: m && m.vista === 'pub' ? 'pub' : 'ristorante',
     collegato_il: (m && m.collegato_il) || null,
   };

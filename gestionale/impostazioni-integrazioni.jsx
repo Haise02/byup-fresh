@@ -17,11 +17,6 @@
 // fiscali ci portano dritto con un collegamento: se un giorno quei due rimandi
 // si tolgono, il censimento diventa introvabile.
 
-const BYUP_PAY_DEVICES = [
-  { id: 'bp-01', name: 'iPhone 14 Pro', os: 'iOS 17.4', user: 'Marco Silvestri', email: 'marco@delborgo.it', linkedAt: '12 mar 2024', lastUse: '2 min fa', online: true },
-  { id: 'bp-02', name: 'Samsung Galaxy S23', os: 'Android 14', user: 'Sara Conti', email: 'sara@delborgo.it', linkedAt: '5 apr 2024', lastUse: '1 ora fa', online: false },
-];
-
 const INTEGRATIONS = [
   // Gli incassi. Il canale FISCALE non è più qui: un catalogo è il posto dove
   // si sceglie, e sul canale non c'è niente da scegliere — è uno solo, è
@@ -138,12 +133,6 @@ const INT_CONNESSIONI_MOCK = [
     last_used_at: intGiorniFa(92, '09:30'), revoked_at: intGiorniFa(91, '11:00'), revoked_by: 'Mario Rossi' },
 ];
 
-// Il gradiente del logo Byup Staff. Non vive più qui: da quando lo portano
-// anche il banner in onboarding, il POS e la webapp cameriere è salito nei
-// token, che è dove stava scritto di metterlo appena servisse una seconda
-// superficie.
-const GRAD_STAFF = PN.GRAD_STAFF;
-
 const STATUS_LABEL = {
   connected: { label: 'Connesso', color: PN.GREEN, bg: PN.GREEN_SOFT, dot: PN.GREEN },
   predisposta: { label: 'Predisposta', color: PN.AMBER, bg: PN.AMBER_SOFT, dot: PN.AMBER },
@@ -188,11 +177,15 @@ function ImpIntegrazioni() {
 
   return (
     <div>
-      {/* BLOCCO 1 — POS e strumenti di pagamento: i dispositivi Byup Staff con
-          il collegamento fiscale (P-105) e i due canali richiesti. */}
+      {/* BLOCCO 1 — POS e strumenti di pagamento. Il nome resta questo (P-134):
+          qui dentro vive il rimando al censimento degli strumenti presso
+          l'Agenzia, che è un obbligo di legge, e chi lo cerca lo cerca
+          pensando «POS». Quello che è sparito è l'elenco dei telefoni: non si
+          collegavano da qui e non si scollegano da qui, si registrano
+          entrando in Byup Staff — e stanno in Personale, con la persona che
+          li porta in tasca. */}
       <Blocco>POS e strumenti di pagamento</Blocco>
-      <ByupPayHero devices={BYUP_PAY_DEVICES}/>
-      <ImpCard title="Incassi" sub="Il conto su cui arrivano i pagamenti, con la verifica del prestatore.">
+      <ImpCard title="Incassi" sub="Il conto su cui arrivano i pagamenti, con la verifica del prestatore. I telefoni che incassano si vedono in Impostazioni → Personale: si registrano da soli quando chi è in sala entra in Byup Staff.">
         <div style={griglia}>{tessere(per('pagamenti'))}</div>
       </ImpCard>
 
@@ -215,145 +208,17 @@ function ImpIntegrazioni() {
     </div>
   );
 }
-
-// Il riquadro dei telefoni che incassano. Niente pulsante «Collega
-// dispositivo» (P-134): non c'è nessun gesto di collegamento da compiere —
-// l'operatore apre Byup Staff, entra con le sue credenziali personali, e il
-// telefono si registra da solo. Il QR che stava qui serviva a SCARICARE
-// l'applicazione, e chiamarlo «Collega un dispositivo» prometteva un gesto che
-// non esiste; per giunta lo stesso QR sta anche in Personale, accanto a chi
-// quel telefono lo userà, che è il posto giusto.
-function ByupPayHero({ devices }) {
-  const [list, setList] = React.useState(devices);
-  // Conferma di scollegamento su foglio nostro, non sul confirm del browser:
-  // stessa ricetta MODAL_* dei fogli di Sala e tavoli.
-  const [daScollegare, setDaScollegare] = React.useState(null);
-  const dev = list.find(d => d.id === daScollegare);
-  const onlineCount = list.filter(d => d.online).length;
-
-  const handleUnlink = (id) => setDaScollegare(id);
-
-  return (
-    <section style={{
-      background: PN.WHITE,
-      border: `1px solid ${PN.BORDER_SOFT}`,
-      borderRadius: 14,
-      marginBottom: 16,
-      overflow: 'hidden',
-    }}>
-      {/* Testata col gradiente del logo Byup Staff: la fascia porta il marchio,
-          quindi porta anche i suoi colori — il rosa acceso a sinistra che si
-          apre nel salmone a destra, e il segno in panna sopra, come sul logo.
-          Il marchio e il PNG corallo ricolorato: brightness(0) lo appiattisce
-          a nero pieno tenendo l'alfa, invert(1) lo porta a bianco. */}
-      <div style={{
-        padding: '20px 22px',
-        background: GRAD_STAFF,
-        borderBottom: '1px solid rgba(255, 255, 255, 0.22)',
-        display:'flex', alignItems:'center', gap: 14,
-      }}>
-        <img src="Fresh-mark.png" alt="" style={{
-          width: 44, height: 44, objectFit:'contain', flexShrink: 0,
-          filter: 'brightness(0) invert(1)', opacity: 0.96,
-        }}/>
-        <div style={{flex: 1, minWidth: 0}}>
-          <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 3}}>
-            <span style={{fontSize: 19, fontWeight: 800, color: PN.STAFF_CREAM, letterSpacing: -0.2}}>Byup Staff</span>
-          </div>
-          <div style={{fontSize: 14.5, color: 'rgba(255, 255, 255, 0.88)'}}>
-            {list.length === 0
-              ? 'Nessun telefono registrato: chi entra in Byup Staff compare qui'
-              : <>{list.length} dispositiv{list.length===1?'o':'i'} collegat{list.length===1?'o':'i'} · <span style={{color:'#FFFFFF', fontWeight:700}}>● {onlineCount} online ora</span></>
-            }
-          </div>
-        </div>
-      </div>
-
-      <div style={{padding: '18px 22px'}}>
-        {list.length === 0 ? (
-          <div style={{
-            padding: '32px 20px', textAlign:'center',
-            background:'#FAFBFC', borderRadius: 11,
-            border: `1px dashed ${PN.BORDER}`,
-          }}>
-            <div style={{fontSize: 34, marginBottom: 8}}>📱</div>
-            <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Nessun telefono registrato</div>
-            <div style={{fontSize: 14, color: PN.MUTED, maxWidth: 420, margin:'0 auto'}}>
-              Non c'è niente da collegare: chi è in sala scarica Byup Staff, entra con le sue credenziali del gestionale e il telefono compare qui. Il codice per scaricare l'app sta in Impostazioni → Personale.
-            </div>
-          </div>
-        ) : (
-          <div style={{display:'flex', flexDirection:'column', gap: 8}}>
-            {list.map(d => (
-              <div key={d.id} style={{
-                display:'flex', alignItems:'center', gap: 14,
-                padding:'14px 16px', borderRadius: 11,
-                border: `1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
-              }}>
-                <div style={{position:'relative', flexShrink: 0}}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 11,
-                    background: d.os.startsWith('iOS') ? '#F4F5F7' : '#E8F4EA',
-                    display:'grid', placeItems:'center', fontSize: 24,
-                  }}>📱</div>
-                </div>
-                <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 2}}>
-                    <span style={{fontSize: 15.5, fontWeight: 700}}>{d.name}</span>
-                    <span style={{
-                      fontSize: 12.5, fontWeight: 600, color: PN.MUTED,
-                      padding:'1px 7px', borderRadius: 999, background: '#F4F5F7',
-                    }}>{d.os}</span>
-                  </div>
-                  <div style={{fontSize: 14, color: PN.TEXT, marginBottom: 2}}>
-                    <b>{d.user}</b> <span style={{color: PN.MUTED}}>· {d.email}</span>
-                  </div>
-                  {/* Niente stato sulla riga: chi e online lo dice gia la
-                      fascia in alto («N online ora») — qui bastano il
-                      telefono e la persona che lo porta in tasca. */}
-                </div>
-                <button
-                  onClick={() => handleUnlink(d.id)}
-                  style={{
-                    padding:'7px 14px',
-                    background: PN.PINK_SOFT, color: PN.PINK_DARK,
-                    border:'none', borderRadius: 8,
-                    fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
-                  }}
-                >Scollega</button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {dev && (
-        <div onClick={() => setDaScollegare(null)} style={{
-          position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', zIndex: 150, padding: 20,
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 460}}>
-            <div style={MODAL_HEAD}>
-              <div style={MODAL_TITLE}>Scollegare il dispositivo?</div>
-              <div style={MODAL_SUB}>
-                <strong style={{color: PN.TEXT}}>{dev.name}</strong> di {dev.user} non potrà più accettare pagamenti finché non viene ricollegato.
-                {' '}La dismissione va comunicata all'Agenzia: lo strumento passa a «da aggiornare» nel collegamento POS, con una nuova finestra da oggi.
-              </div>
-              <button onClick={() => setDaScollegare(null)} style={MODAL_X}><PnI.X size={14}/></button>
-            </div>
-            <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
-              <ImpButton variant="ghost" onClick={() => setDaScollegare(null)} style={{padding:'11px 22px', borderRadius: 11, fontSize: 16}}>Annulla</ImpButton>
-              {/* Scollegare è una variazione dovuta all'Agenzia (P-105): il
-                  registro del censimento porta lo strumento a unlinked e la
-                  finestra riparte da oggi. */}
-              <ImpButton variant="danger" onClick={() => { if (window.byupPosVaria) window.byupPosVaria(daScollegare, 'unlinked'); setList(l => l.filter(x => x.id !== daScollegare)); setDaScollegare(null); }} style={{padding:'11px 26px', borderRadius: 11, fontSize: 16}}>Scollega</ImpButton>
-            </div>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-}
+// Il riquadro «Byup Staff» con l'elenco dei telefoni non è più qui. Dopo
+// P-134 non aveva più niente da far fare: il telefono non si collega — chi
+// è in sala apre l'applicazione, entra con le sue credenziali e il telefono
+// si registra da sé — e quindi quel riquadro elencava due apparecchi che
+// compaiono e spariscono per conto loro, sotto un titolo che prometteva una
+// cassa. Chi incassa si guarda dove si guarda chi entra, cioè in
+// Impostazioni → Personale, dove ogni telefono porta la persona che ce l'ha
+// in tasca e la sua pastiglia del censimento all'Agenzia.
+// Quello che NON si è perso: lo scollegamento di un telefono era anche una
+// variazione dovuta all'Agenzia (P-105), e quella strada resta — la riga del
+// telefono in Personale porta al foglio precompilato dello strumento.
 
 // Il foglio col QR di Byup Staff non è più qui (P-134). Si chiamava «Collega
 // un dispositivo» e non collegava niente: mostrava il codice per SCARICARE

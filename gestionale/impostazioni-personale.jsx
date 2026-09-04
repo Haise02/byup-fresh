@@ -33,7 +33,7 @@ const GLASS_MENU_PERSONALE = {
 // I ruoli del personale sono tre: chi incassa, chi possiede il locale, chi
 // serve ai tavoli. «Manager» non c'era fra questi — chi gestisce il locale è il
 // titolare, che il gestionale ce l'ha già — e «Cucina» non era una persona da
-// invitare ma il Kitchen Monitor, che entra come dispositivo.
+// invitare ma il monitor di cucina, che entra come dispositivo.
 // Oltre a questi ci sono i dispositivi e, se il locale se li è creati, i ruoli
 // personalizzati: sono le altre due voci della colonna a sinistra.
 const ROLES = [
@@ -96,7 +96,7 @@ const DEVICE_TYPES = [
 // tavolo non deve ricollegare il monitor.
 // Le icone dicono il comportamento e non il tipo di locale: quello lo dice già
 // il nome, mentre la differenza che conta è tutto-insieme contro diviso.
-// `short`: in elenco la pastiglia sta accanto a «Kitchen Monitor», e «Visualizza-
+// `short`: in elenco la pastiglia sta accanto a «Monitor cucina», e «Visualizza-
 // zione» lì è la parola che si capisce da sé — resta «Pub» / «Ristorante».
 const KDS_VIEWS = [
   { id: 'pub', label: 'Visualizzazione Pub', short: 'Pub', icon: 'bolt',
@@ -231,9 +231,16 @@ function ImpPersonale() {
   const [customRoles, setCustomRoles] = React.useState(CUSTOM_ROLES);
   const allRoles = [...ROLES, ...customRoles];
 
-  // I lettori Tap to Pay, dal registro del censimento POS (P-105): la riga
-  // porta due assi distinti — l'accesso («Attivo», come tutti) e la
-  // comunicazione all'Agenzia, che è un'altra cosa e ha la sua pastiglia.
+  // Il censimento dei POS (P-105). I telefoni di Byup Staff NON sono righe di
+  // questo elenco: «Byup Staff» non è un ruolo — i ruoli sono Cassa,
+  // Cameriere, Titolare, quelli che il locale si crea, e il monitor di cucina
+  // — e un telefono non entra nel gestionale: ci entra la persona che lo porta
+  // in tasca, che in questo elenco c'è già col suo ruolo. La riga del telefono
+  // era quella persona scritta due volte.
+  // Quello che NON si perde è la comunicazione all'Agenzia, che è un obbligo
+  // di legge con una sanzione: la pastiglia si attacca alla PERSONA che quel
+  // telefono lo usa — che è anche chi deve agire — e porta al foglio
+  // precompilato dello strumento.
   const [posCens, setPosCens] = React.useState(() => window.byupReadPosCensimento ? window.byupReadPosCensimento() : []);
   React.useEffect(() => {
     const agg = () => setPosCens(window.byupReadPosCensimento ? window.byupReadPosCensimento() : []);
@@ -246,6 +253,17 @@ function ImpPersonale() {
   // entra nel gestionale», e un monitor di cucina che legge le comande entra
   // esattamente come ci entra un cameriere. Tenerli in due liste separate
   // costringeva a guardare in due posti per rispondere.
+  // Lo strumento di pagamento che una persona ha in mano, se c'è e se
+  // all'Agenzia non è ancora stato comunicato.
+  const censimentoDi = (nome) => {
+    const r = posCens.find(d => d.nature === 'tap_to_pay' && d.user === nome && d.fiscal_link_status !== 'unlinked');
+    if (!r || !window.pnPosPromemoria) return null;
+    const p = window.pnPosPromemoria(r);
+    if (p.fase === 'ok') return null;
+    return { id: r.id, fase: p.fase, sotto: `${r.name} · ${p.testo}`,
+      label: `${(PN_POS_STATI[r.fiscal_link_status] || PN_POS_STATI.pending_census).label} all'Agenzia` };
+  };
+
   const righe = [
     ...PERSONS.map(p => {
       const key = `p-${p.email}`;
@@ -256,6 +274,7 @@ function ImpPersonale() {
         ruolo, gruppo: ruolo.custom ? '_custom' : ruolo.id,
         accesso: accessoDelRuolo(ruolo),
         attivo: attivazioni[key] !== undefined ? attivazioni[key] : p.active !== false,
+        censimento: censimentoDi(p.name),
       };
     }),
     ...monitors.map((d) => {
@@ -266,28 +285,10 @@ function ImpPersonale() {
         // Niente nome utente sotto il nome: non c'è più (P-134). Al suo posto
         // la cosa che di uno schermo si vuole sapere — come mostra le comande.
         nome: d.name, sotto: `Visualizzazione ${vista}`,
-        ruolo: DEVICE_ROLES[d.deviceType] || DEVICE_ROLE, gruppo: '_devices',
+        ruolo: DEVICE_ROLES[d.deviceType] || DEVICE_ROLE, gruppo: '_monitor',
         accesso: { titolo: 'Cucina', sotto: 'Schermo comande' },
         attivo: attivazioni[key] !== undefined ? attivazioni[key] : true,
         monitor: true,
-      };
-    }),
-    ...posCens.filter(d => d.nature === 'tap_to_pay').map(d => {
-      const key = `s-${d.id}`;
-      const p = window.pnPosPromemoria(d);
-      const dismesso = d.fiscal_link_status === 'unlinked';
-      return {
-        key, tipo: 'dispositivo', staff: true, dato: d,
-        nome: d.name, sotto: `${d.user} · ${d.os}${dismesso ? ' · scollegato' : ''}`,
-        ruolo: DEVICE_ROLES['tap-to-pay'], gruppo: '_devices',
-        accesso: { titolo: 'Byup Staff', sotto: 'Incasso Tap to Pay' },
-        attivo: attivazioni[key] !== undefined ? attivazioni[key] : !dismesso,
-        // La pastiglia del censimento: c'è finché la riga non è dichiarata,
-        // e porta all'assistente in Dati fiscali con lo strumento già aperto.
-        censimento: p.fase === 'ok' ? null : {
-          id: d.id, fase: p.fase, sotto: p.testo,
-          label: `${(PN_POS_STATI[d.fiscal_link_status] || PN_POS_STATI.pending_census).label} all'Agenzia`,
-        },
       };
     }),
   ];
@@ -296,7 +297,7 @@ function ImpPersonale() {
   const gruppi = [
     { id: 'all', label: 'Tutti i ruoli', icon: 'users', color: PN.PINK_DARK, bg: PN.PINK_SOFT },
     ...ROLES.map(r => ({ id: r.id, label: r.label, icon: r.icon, color: r.color, bg: r.bg })),
-    { id: '_devices', label: 'Dispositivi', icon: 'monitor', color: DEVICE_ROLE.color, bg: DEVICE_ROLE.bg },
+    { id: '_monitor', label: 'Monitor cucina', icon: 'monitor', color: DEVICE_ROLE.color, bg: DEVICE_ROLE.bg },
     ...(customRoles.length
       ? [{ id: '_custom', label: 'Personalizzati', icon: 'sparkle', color: '#6D28D9', bg: '#EDE9FE' }]
       : []),
@@ -335,9 +336,17 @@ function ImpPersonale() {
             Vedi chi accede al gestionale e con quali permessi, e gestisci persone e dispositivi
           </div>
         </div>
-        {/* Una sola azione in testata: aggiungere una persona. Inviti in
-            sospeso e Crea ruolo vivono già nella colonna destra. */}
+        {/* Le due cose che si aggiungono da questa pagina, una accanto
+            all'altra: una persona e il monitor di cucina — che entra come una
+            persona, con una sua vista. Il monitor sta in secondo piano perché
+            si collega una volta e poi non ci si torna, ma sta qui e non in
+            fondo alla colonna destra, perché è un'azione della pagina. */}
         <div style={{display:'flex', gap: 8, alignItems:'center', flexShrink: 0}}>
+          <ImpButton
+            variant="ghost"
+            icon={(BuIcons.monitor||BuIcons.chef)({size: 14, color:'currentColor'})}
+            onClick={() => setCollegaMonitor({ codice: '' })}
+          >Collega monitor cucina</ImpButton>
           <ImpButton
             variant="primary"
             icon={<PnI.Plus size={13}/>}
@@ -482,25 +491,16 @@ function ImpPersonale() {
         </section>
 
         <aside style={{display:'flex', flexDirection:'column', gap: 14}}>
-          {/* Accessi rapidi: le due cose che da qui non si possono fare in
-              nessun altro modo. Collegare un dispositivo non ha un bottone in
-              testata — lassù si aggiungono persone — e gli inviti in sospeso
-              qui non ripetono il bottone, dicono chi sta aspettando. */}
+          {/* Chi sta aspettando. Collegare il monitor non è più qui: è un
+              pulsante in testata, accanto ad «Aggiungi persona», perché è una
+              cosa che si aggiunge e non una scorciatoia. Gli inviti in sospeso
+              restano, e non ripetono un bottone: dicono chi non ha ancora
+              accettato. */}
           <section style={PANNELLO}>
             <div style={{padding:'16px 18px 12px'}}>
-              <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Accessi rapidi</div>
+              <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Inviti in attesa</div>
             </div>
             <div style={{padding:'0 12px 14px', display:'flex', flexDirection:'column', gap: 8}}>
-              {/* Il solo monitor (P-134): le stampanti stanno in Integrazioni,
-                  e uno smartphone che incassa non si collega — si registra da
-                  sé quando l'operatore entra in Byup Staff. */}
-              <ScorciatoiaAccesso
-                icona={(BuIcons.monitor||BuIcons.phone)({size: 17, color:'currentColor'})}
-                colore={DEVICE_ROLE.color} sfondo={DEVICE_ROLE.bg}
-                titolo="Collega il monitor di cucina"
-                sotto="Con il codice che compare sullo schermo"
-                onClick={() => setCollegaMonitor({ codice: '' })}
-              />
               <ScorciatoiaAccesso
                 icona={(BuIcons.mail||BuIcons.doc)({size: 17, color:'currentColor'})}
                 colore={PENDING.length ? '#B45309' : PN.MUTED}
@@ -565,21 +565,15 @@ const DEVICE_ROLE = {
   color: '#475569', bg: '#F1F5F9',
 };
 
-// In riga il ruolo dice che cosa È il dispositivo, non che è un dispositivo:
-// «Dispositivo» su ogni riga nascondeva l'unica cosa che si vuole sapere a
-// colpo d'occhio. Il filtro a sinistra resta uno solo — «Dispositivi» —
-// perché lì si cerca la famiglia, non il pezzo.
-// La stampante non è più fra questi (P-134): non entra da nessuna parte, non
-// ha un accesso e non ha permessi. Sta in Impostazioni → Integrazioni.
+// I ruoli sono cinque e non uno di più: Cassa, Cameriere, Titolare, quelli
+// che il locale si crea, e il MONITOR DI CUCINA — che è l'unica macchina che
+// entra nel gestionale, con una sua vista, e che quindi un ruolo ce l'ha.
+// «Byup Staff» non è fra questi, e non è una dimenticanza: un telefono che
+// incassa non entra da nessuna parte, ci entra la persona che lo porta in
+// tasca, col ruolo che ha già. La stampante nemmeno (P-134): riceve fogli e
+// li stampa, non ha un accesso e non ha permessi, e sta in Integrazioni.
 const DEVICE_ROLES = {
-  'kitchen-monitor': { id: '_device_monitor', label: 'Kitchen Monitor', icon: 'monitor',
-    color: '#475569', bg: '#F1F5F9' },
-  // Gli smartphone di Byup Staff (P-105): non stanno in DEVICES, si leggono
-  // dal registro del censimento POS (byup_pos_censimento, panoramica-tokens),
-  // perché un lettore Tap to Pay è uno strumento di pagamento e la sua riga
-  // qui deve accendersi con «da comunicare all'Agenzia». Si collegano e si
-  // scollegano in Integrazioni, non da qui.
-  'tap-to-pay':      { id: '_device_staff', label: 'Byup Staff', icon: 'phone',
+  'kitchen-monitor': { id: '_device_monitor', label: 'Monitor cucina', icon: 'monitor',
     color: '#475569', bg: '#F1F5F9' },
 };
 
@@ -749,9 +743,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
           fontSize: 13.5, fontWeight: 800, letterSpacing: 0.3,
           opacity: r.attivo ? 1 : 0.55,
         }}>
-          {iniziali || (r.staff
-            ? BuIcons.phone({size: 18, color:'currentColor'})
-            : (BuIcons.monitor||BuIcons.chef)({size: 18, color:'currentColor'}))}
+          {iniziali || (BuIcons.monitor||BuIcons.chef)({size: 18, color:'currentColor'})}
         </div>
         <div style={{minWidth: 0}}>
           <div title={r.nome} style={{
@@ -857,6 +849,13 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
             <>
               <MenuItem icon={BuIcons.user({size: 14, color: 'currentColor'})}
                 onClick={() => { setOpenMenu(null); onCambiaRuolo?.(); }}>Modifica ruolo</MenuItem>
+              {/* Lo strumento con cui incassa: la comunicazione all'Agenzia è
+                  un obbligo di legge con una sanzione, e la strada verso il
+                  foglio precompilato deve restare a portata anche da qui. */}
+              {r.censimento && (
+                <MenuItem icon={BuIcons.doc({size: 14, color: 'currentColor'})}
+                  onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'fiscali', anchor: 'pos-censimento', da: 'personale', strumento: r.censimento.id } })); }}>Collegamento all'Agenzia</MenuItem>
+              )}
               {/* Niente «Resetta password» su una persona: la sua password è
                   sua, la reimposta lei dal link che le arriva per email. Il
                   titolare le toglie l'accesso, non le sceglie le credenziali —
@@ -869,15 +868,6 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
               <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
               <MenuItem icon={BuIcons.trash({size: 14, color: 'currentColor'})} danger
                 onClick={() => { setOpenMenu(null); setConfermaRimozione(true); }}>Rimuovi dal team</MenuItem>
-            </>
-          ) : r.staff ? (
-            // Uno smartphone di Byup Staff si collega e si scollega in POS e
-            // integrazioni: da qui si va lì, o al foglio dell'Agenzia.
-            <>
-              <MenuItem icon={BuIcons.doc({size: 14, color: 'currentColor'})}
-                onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'fiscali', anchor: 'pos-censimento', da: 'personale', strumento: r.dato.id } })); }}>Collegamento all'Agenzia</MenuItem>
-              <MenuItem icon={BuIcons.phone({size: 14, color: 'currentColor'})}
-                onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'integrazioni', da: 'personale' } })); }}>Gestisci in Integrazioni</MenuItem>
             </>
           ) : (
             /* Le tre cose che si fanno a uno schermo collegato (P-134): il
@@ -924,7 +914,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
 
 // Ripiego per una persona il cui ruolo non esiste più — un ruolo personalizzato
 // cancellato, per dire. Prima al suo posto c'era un ruolo «Cucina» invitabile
-// per email: ma chi guarda le comande è il Kitchen Monitor, che si collega come
+// per email: ma chi guarda le comande è il monitor di cucina, che si collega come
 // dispositivo con username e password locali, non con un invito.
 const RUOLO_IGNOTO = {
   id: '_ignoto',
@@ -1244,15 +1234,23 @@ function CollegaMonitorModal({ onClose, codiceIniziale, onFatto }) {
   const st = useMonitorState(null);
   const puo = PN_UTENTE.ruolo === 'titolare';
 
-  const verifica = () => {
-    const r = window.byupMonitorRichiestaPerCodice ? window.byupMonitorRichiestaPerCodice(codice) : null;
-    if (!r) { setErrore('Nessuno schermo sta mostrando questo codice. Controlla di averlo copiato bene: dura pochi minuti e poi si rigenera da solo.'); return; }
-    setErrore(''); setPasso('dati');
-  };
+  // Un codice qualunque passa, ed è FINZIONE DICHIARATA: nel prodotto il
+  // codice lo tiene il server e uno che non corrisponde a nessuno schermo non
+  // apre niente. Qui il collegamento si guarda anche senza avere davvero
+  // aperto `byup.it/cucina` in un'altra scheda — che è il solo modo in cui, in
+  // un prototipo senza backend, quel codice può esistere. Se invece uno
+  // schermo lo sta davvero mostrando, il collegamento è quello vero: si
+  // approva quella richiesta, e lo schermo passa a «Collegato» da sé.
+  const richiesta = () => (window.byupMonitorRichiestaPerCodice ? window.byupMonitorRichiestaPerCodice(codice) : null);
+  const verifica = () => { setErrore(''); setPasso('dati'); };
   const conferma = () => {
-    const m = window.byupMonitorApprova(codice, { nome: st.nome.trim(), vista: st.vista });
-    if (!m) { setPasso('codice'); setErrore('Il codice è scaduto: sullo schermo della cucina ne è comparso un altro.'); return; }
-    onFatto && onFatto(m);
+    const dati = { nome: st.nome.trim(), vista: st.vista };
+    const m = richiesta() ? window.byupMonitorApprova(codice, dati) : null;
+    // Nessuno schermo sta mostrando questo codice: il monitor entra lo stesso
+    // in elenco, così nome e visualizzazione si vedono all'opera.
+    const finale = m || Object.assign({ id: 'mon-' + Date.now().toString(36), collegato_il: new Date().toISOString() }, dati);
+    if (!m) salvaMonitorKds(finale);
+    onFatto && onFatto(finale);
     onClose();
   };
 
@@ -1300,7 +1298,8 @@ function CollegaMonitorModal({ onClose, codiceIniziale, onFatto }) {
                 <div style={{marginTop: 4, padding: '10px 12px', borderRadius: 10, background: '#FEF2F2', border: '1px solid #FECACA', fontSize: 13.5, color: '#991B1B', lineHeight: 1.5}}>{errore}</div>
               )}
               <div style={{marginTop: 14, fontSize: 13, color: PN.MUTED, lineHeight: 1.5}}>
-                Nel prototipo lo schermo della cucina è <a href="byup Cucina Collega.html" target="_blank" rel="noopener" style={{color: PN.TEXT, fontWeight: 700}}>questa pagina</a>: aprila in un'altra scheda per vedere il codice.
+                Nel prototipo lo schermo della cucina è <a href="byup Cucina Collega.html" target="_blank" rel="noopener" style={{color: PN.TEXT, fontWeight: 700}}>questa pagina</a>: aprila in un'altra scheda per vedere il codice vero.
+                Qui va bene <b>qualunque codice di quattro caratteri</b> — nel prodotto no, ma senza server è l'unico modo di far vedere che cosa si chiede dopo.
               </div>
             </React.Fragment>
           ) : (
@@ -1939,12 +1938,12 @@ function CreateRoleModal({ onClose, role, roles, onSave }) {
 // a capo su una parola orfana.
 const STEP_DEVICES = [
   { id: 'printer', label: 'Stampante',      desc: 'Stampa gli ordini in cucina o al bar', icon: 'doc' },
-  { id: 'monitor', label: 'Kitchen Monitor', desc: 'Mostra le comande in tempo reale',     icon: 'monitor' },
+  { id: 'monitor', label: 'Monitor cucina', desc: 'Mostra le comande in tempo reale',      icon: 'monitor' },
 ];
 // I ruoli del personale sono due, e sono i due modi in cui si prende un ordine:
 // dalla cassa del locale o dall'app in sala. «Manager» non era un ruolo del
 // personale — chi gestisce il locale è il titolare, che il gestionale ce
-// l'ha già; e «Cucina» non era una persona da invitare ma il Kitchen Monitor,
+// l'ha già; e «Cucina» non era una persona da invitare ma il monitor di cucina,
 // che si collega come dispositivo nella sezione qui sotto.
 // Cameriere per primo, ed è il ruolo da cui parte l'invito: è quello che un
 // locale invita in numero, e la cassa la tiene spesso chi il gestionale ce
@@ -1958,11 +1957,11 @@ window.PERSONALE_TEAM_INITIAL = [
   { id: 't1', kind: 'person', name: 'Marco Rossi',    email: 'marco@delborgo.it',  role: 'Cassa',              status: 'active' },
   { id: 't2', kind: 'person', name: 'Giulia Bianchi', email: 'giulia@delborgo.it', role: 'Cameriere',          status: 'invited' },
   { id: 't3', kind: 'person', name: 'Luca Verdi',     email: 'luca@delborgo.it',   role: 'Cameriere',          status: 'active' },
-  // «Kitchen Monitor» e non «Dispositivo cucina»: è quello che scrive la
+  // «Monitor cucina» e non «Dispositivo cucina»: è quello che scrive la
   // sincronizzazione col registro qui sotto, e la riga di partenza non può
   // chiamare la stessa cosa con un altro nome. Al posto dell'email c'è la
   // visualizzazione: un monitor non ha né email né nome utente (P-134).
-  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'Ristorante',       role: 'Kitchen Monitor', status: 'active' },
+  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'Ristorante',       role: 'Monitor cucina', status: 'active' },
 ];
 
 // Configurare un dispositivo è l'altra metà del passo: le persone si invitano,
@@ -2009,7 +2008,7 @@ function DispositivoStep({ setTeam }) {
           ...monitors.filter(m => !gia.has(m.id)).map(m => ({
             id: `d-${m.id}`, regId: m.id, kind: 'device', name: m.nome,
             email: (KDS_VIEWS.find(v => v.id === m.vista) || KDS_VIEWS[0]).short,
-            role: 'Kitchen Monitor', status: 'active',
+            role: 'Monitor cucina', status: 'active',
           })),
         ];
         return nuove.length ? [...t, ...nuove] : t;

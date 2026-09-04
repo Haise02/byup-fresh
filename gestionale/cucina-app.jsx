@@ -49,7 +49,7 @@ function SelettoreMonitor({ monitors, attivo, onScegli }) {
     <span ref={box} style={{position:'relative', flexShrink: 0}}>
       <button type="button" data-kds2-interattivo=""
         onClick={() => setAperto(a => !a)}
-        title="Quale Kitchen Monitor stai guardando"
+        title="Quale monitor di cucina stai guardando"
         style={{
           display:'inline-flex', alignItems:'center', gap: 8,
           height: 36, padding:'0 10px', borderRadius: 10,
