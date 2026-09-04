@@ -2585,22 +2585,47 @@ window.PERSONALE_TEAM_INITIAL = [
 function DispositivoStep({ setTeam }) {
   const [selDevice, setSelDevice] = React.useState('printer');
   const dev = useDeviceState((availablePrinters()[0] || {}).id);
+  // Con la stampante scelta il passo non è più un modulo: sono le stesse
+  // tessere di POS e integrazioni, «Aggiungi stampante» compreso, coi due
+  // popup che collegano e impostano (P-124 · D-108). Il modulo di prima
+  // chiedeva di sceglierne una fra quelle già collegate, e nell'onboarding
+  // non ce n'è ancora nessuna: la prima cosa da fare è collegarla.
+  const stampante = selDevice === 'printer';
+
+  // Una stampante collegata dal popup finisce anche in «Membri e
+  // dispositivi», che è l'elenco di questo passo: il registro è la verità, e
+  // l'elenco gli va dietro invece di essere riempito a mano dalla CTA.
+  React.useEffect(() => {
+    if (!window.byupReadStampanti) return;
+    const sincronizza = () => {
+      const devices = window.byupReadStampanti().devices || [];
+      setTeam(t => {
+        const gia = new Set(t.filter(x => x.regId).map(x => x.regId));
+        const nuove = devices.filter(d => !gia.has(d.id)).map(d => ({
+          id: `d-${d.id}`, regId: d.id, kind: 'device', name: d.name,
+          email: (window.PN_PRINTER_PROTOCOLLI && window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {}).breve || '—',
+          role: 'Stampante', status: 'active',
+        }));
+        return nuove.length ? [...t, ...nuove] : t;
+      });
+    };
+    sincronizza();
+    window.addEventListener('byup-stampanti-change', sincronizza);
+    return () => window.removeEventListener('byup-stampanti-change', sincronizza);
+  }, []);
 
   // Il dispositivo entra nell'elenco e il modulo si svuota: la CTA e la fine di
   // un'operazione, non l'apertura di un'altra schermata.
+  // Resta il monitor: la stampante non passa più di qui, si collega nel popup
+  // e la sincronizzazione col registro la porta in elenco.
   const aggiungiDispositivo = () => {
     if (!dev.deviceValid) return;
-    const nome = dev.deviceName.trim() || (dev.isPrinter ? 'Stampante' : 'Monitor cucina');
-    if (!dev.isPrinter) {
-      salvaMonitorKds({ id: 'PG1-' + dev.username.trim(), nome, vista: dev.kdsView });
-    } else if (dev.selectedPrinter && window.byupStampantePatch && dev.printerCats.size > 0) {
-      // Le categorie della stampante vanno nel registro condiviso (P-124).
-      window.byupStampantePatch(dev.selectedPrinter.regId, { routing: [...dev.printerCats], name: nome });
-    }
+    const nome = dev.deviceName.trim() || 'Monitor cucina';
+    salvaMonitorKds({ id: 'PG1-' + dev.username.trim(), nome, vista: dev.kdsView });
     setTeam(t => [...t, {
       id: `d${Date.now()}`, kind: 'device', name: nome,
-      email: dev.isPrinter ? (dev.selectedPrinter ? dev.selectedPrinter.protocollo : '—') : `PG1-${dev.username.trim()}`,
-      role: dev.isPrinter ? 'Stampante' : 'Kitchen Monitor', status: 'active',
+      email: `PG1-${dev.username.trim()}`,
+      role: 'Kitchen Monitor', status: 'active',
     }]);
     dev.reset();
   };
@@ -2629,11 +2654,19 @@ function DispositivoStep({ setTeam }) {
           ))}
         </div>
 
+        {/* La stampante: il blocco di POS e integrazioni, senza la sua card e
+            su due colonne, perché questa è la colonna del modulo. */}
+        {stampante && window.ImpStampantiBlocco && (
+          <div style={{ marginTop: 16 }}>
+            <window.ImpStampantiBlocco inline colonne={2}/>
+          </div>
+        )}
+
         {/* Suggerimento, non un passo dell'interfaccia. Con bordo, fondo bianco e
             pastiglie rosa pesava quanto le card selezionabili qui sopra, e la
             gerarchia diceva il falso: li si sceglie, qui si legge e basta.
             Fondo incassato, niente bordo, una riga sola. */}
-        <div style={{
+        {!stampante && <div style={{
           marginTop: 10, padding: '9px 12px', borderRadius: 10, background: PN.BG,
           display:'flex', alignItems:'center', justifyContent:'center',
           gap: 8, flexWrap:'wrap', rowGap: 5,
@@ -2659,26 +2692,22 @@ function DispositivoStep({ setTeam }) {
               </span>
             </React.Fragment>
           ))}
-        </div>
+        </div>}
 
         {/* La configurazione sta in pagina: era una modale, e una modale sopra un
             passo di onboarding e una finestra sopra una finestra. */}
-        <div style={{
-          marginTop: 12, padding:'16px 18px', borderRadius: 12,
-          border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
-        }}>
-          <DeviceForm st={dev} tipoFisso={selDevice} azione={ctaConfigura}/>
-        </div>
-
-        {/* Il monitor si porta la CTA dentro, in riga con la password: la sua
-            ultima riga era mezza vuota. La stampante finisce con l'elenco delle
-            categorie, che è a piena larghezza e non lascia posto: là il bottone
-            resta sotto la card. */}
-        {dev.isPrinter && (
-          <div style={{display:'flex', alignItems:'center', justifyContent:'flex-end', marginTop: 14}}>
-            {ctaConfigura}
+        {!stampante && (
+          <div style={{
+            marginTop: 12, padding:'16px 18px', borderRadius: 12,
+            border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
+          }}>
+            <DeviceForm st={dev} tipoFisso={selDevice} azione={ctaConfigura}/>
           </div>
         )}
+
+        {/* Il monitor si porta la CTA dentro, in riga con la password. La
+            stampante non ha più una CTA da mostrare: si collega nel popup, e
+            lì la prova di stampa è il cancello che la fa entrare in elenco. */}
     </div>
   );
 }

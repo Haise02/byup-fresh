@@ -46,7 +46,13 @@
 // tendina con dentro una sola risposta giusta è una domanda finta.
 const IMP_PRN_SEDE = 'cp';
 
-function ImpStampantiBlocco() {
+// `inline` toglie la card che avvolge il blocco e `colonne` stringe la
+// griglia: servono alla Configurazione completa, dove le stampanti si
+// collegano dentro il passo Personale — una card dentro una card sarebbe una
+// scatola di troppo, e la colonna del modulo è più stretta di questa pagina.
+// Le tessere, i popup e il registro sono gli stessi: è lo stesso blocco, non
+// una copia che invecchia per conto suo.
+function ImpStampantiBlocco({ inline, colonne }) {
   const [reg, setReg] = React.useState(() => window.byupReadStampanti());
   const [toast, setToast] = React.useState(null);
   const [aggiungi, setAggiungi] = React.useState(false);
@@ -66,11 +72,20 @@ function ImpStampantiBlocco() {
   // Zapier: stessa griglia a tre colonne, stessa altezza minima, logo in alto
   // e azione appoggiata in fondo. Una tessera per stampante collegata, più la
   // tessera d'ingresso che apre il popup.
-  const griglia = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 };
+  const griglia = { display: 'grid', gridTemplateColumns: `repeat(${colonne || 3}, 1fr)`, gap: 12 };
+  const SOTTO = 'Le comande escono dalle stampanti che interrogano il nostro server o compaiono sul monitor di cucina; i documenti per il cliente da una stampante collegata o, in mancanza, dal browser della postazione.';
+  // Senza card il blocco porta da sé la riga che spiega le due vie: è la
+  // stessa frase del sottotitolo, e senza di essa il passo non direbbe più
+  // perché una stampante serve e l'altra no.
+  const Guscio = inline
+    ? ({ children }) => <div>
+        <div style={{ fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginBottom: 12 }}>{SOTTO}</div>
+        {children}
+      </div>
+    : ({ children }) => <ImpCard title="Stampanti" sub={SOTTO}>{children}</ImpCard>;
 
   return (
-    <ImpCard title="Stampanti"
-      sub="Le comande escono dalle stampanti che interrogano il nostro server o compaiono sul monitor di cucina; i documenti per il cliente da una stampante collegata o, in mancanza, dal browser della postazione.">
+    <Guscio>
       <div style={griglia}>
         {reg.devices.map(d => (
           <TesseraStampante key={d.id} d={d} uso={uso(d)}
@@ -109,7 +124,7 @@ function ImpStampantiBlocco() {
       {toast && (
         <div style={{ position: 'fixed', bottom: 84, left: '50%', transform: 'translateX(-50%)', background: PN.TEXT, color: '#fff', padding: '10px 16px', borderRadius: 999, fontSize: 13.5, fontWeight: 600, zIndex: 90, boxShadow: '0 10px 30px rgba(0,0,0,0.25)' }}>{toast}</div>
       )}
-    </ImpCard>
+    </Guscio>
   );
 }
 
