@@ -448,7 +448,7 @@ function AnChurn() {
           <div key={l.id} style={{display:'grid', gridTemplateColumns:'1.6fr 0.9fr 0.9fr 1fr 1fr', columnGap:14, padding:'9px 0', alignItems:'center', borderBottom: i === C.elenco.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
             <div style={{minWidth:0}}>
               <div style={{fontSize:13.4, fontWeight:600, color:ADM.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{l.nome}</div>
-              <div style={{fontSize:11.8, color:ADM.MUTED_SOFT}}>{l.citta} · {l.stato === 'churned' ? 'ha disdetto' : 'fermo'}</div>
+              <div style={{fontSize:11.8, color:ADM.MUTED_SOFT}}>{l.citta} · {l.stato === 'churned' ? 'cessato' : 'fermo'}</div>
             </div>
             <div style={{fontSize:12.8, color:ADM.MUTED, textAlign:'right'}}>{(PIANI.find(p => p.id === l.piano) || {}).label}</div>
             <div style={{fontSize:13, color:ADM.TEXT, textAlign:'right', fontVariantNumeric:'tabular-nums'}}>{anEur(l.mrr)}</div>

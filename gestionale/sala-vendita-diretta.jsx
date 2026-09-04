@@ -114,9 +114,12 @@ function SalaVenditaDiretta() {
   const [personalize, setPersonalize] = React.useState(null); // {piatto}
   const [editLine, setEditLine] = React.useState(null); // line index for editing existing
   const [customOpen, setCustomOpen] = React.useState(false);
-  // P-11: righe custom da riconfermare perché l'ordine ha cambiato modo dopo
-  // la battuta — l'automatismo propone, la conferma resta dell'operatore.
-  const [riproponiOpen, setRiproponiOpen] = React.useState(false);
+  // P-108: la riga fuori menù si riapre nella stessa finestra (indice della
+  // riga in modifica), e al cambio di modo un avviso di una riga dice che le
+  // aliquote sono state aggiornate. Il foglio di riproposta di P-11 è morto:
+  // l'aliquota si ricava, non si sceglie.
+  const [customEdit, setCustomEdit] = React.useState(null);
+  const [avvisoIva, setAvvisoIva] = React.useState(null);
   // Ritiri: coda di chi aspetta al banco — asporto dai canali digitali e ordini
   // di cassa con preparazione, che abbiano o no il sacchetto. Drawer laterale +
   // conferma con codice ritiro; "Salda ora" apre l'incasso al banco.
@@ -332,7 +335,7 @@ function SalaVenditaDiretta() {
         next[idx] = {...next[idx], qty: next[idx].qty + 1};
         return next;
       }
-      return [...prev, { piatto: p, qty: 1, mods: null, lineTotal: p.price }];
+      return [...prev, { piatto: p, qty: 1, mods: null, lineTotal: p.price, ...svRigaIva(p.tipologia) }];
     });
   };
 
@@ -340,10 +343,10 @@ function SalaVenditaDiretta() {
 
   const addPersonalized = (piatto, qty, mods, lineTotal) => {
     if (editLine !== null) {
-      setLines(prev => prev.map((l, i) => i === editLine ? { piatto, qty, mods, lineTotal } : l));
+      setLines(prev => prev.map((l, i) => i === editLine ? { piatto, qty, mods, lineTotal, ...svRigaIva(piatto.tipologia) } : l));
       setEditLine(null);
     } else {
-      setLines(prev => [...prev, { piatto, qty, mods, lineTotal }]);
+      setLines(prev => [...prev, { piatto, qty, mods, lineTotal, ...svRigaIva(piatto.tipologia) }]);
     }
     setPersonalize(null);
   };
@@ -357,52 +360,50 @@ function SalaVenditaDiretta() {
   const removeLine = (i) => setLines(prev => prev.filter((_, idx) => idx !== i));
   const editLineName = (i, name) => setLines(prev => prev.map((l, idx) => idx === i ? {...l, displayName: name} : l));
   const editLinePrice = (i, price) => setLines(prev => prev.map((l, idx) => idx === i ? {...l, lineTotal: price} : l));
-  // P-11 (D-16): l'articolo fuori catalogo non ha nulla da cui derivare
-  // l'IVA, quindi la dichiara chi lo batte. Aliquota e id profilo entrano
-  // CONGELATI sulla riga — svfRighe/svRiepilogoIva onorano già l.aliquota,
-  // quindi la fattura la raccoglie senza derivare niente — e la riga ricorda
-  // il modo (banco/asporto) in cui è nata: se l'ordine cambia modo, alla
-  // conferma le righe custom si ripropongono (vedi apriIncasso).
-  const addCustomLine = (name, price, voce) => {
+  // P-108 (D-105, che rivede D-16): nessuna riga dichiara l'aliquota. Ogni
+  // articolo — del menù o fuori menù — porta la sua TIPOLOGIA, e il profilo
+  // IVA discende da tipologia × modo dell'ordine (PN_TIPOLOGIE_ARTICOLO):
+  // entra CONGELATO sulla riga (svfRighe/svRiepilogoIva onorano l.aliquota,
+  // quindi la fattura la raccoglie senza derivare niente) e ricorda il modo
+  // in cui è nata. Le due strade — piatto del menù e fuori menù — producono
+  // la stessa riga.
+  const svRigaIva = (tipologia) => {
+    const t = window.pnTipologia(tipologia);
+    const p = window.pnTipologiaProfilo(t.id, takeaway);
+    return { tipologia: t.id, aliquota: p.aliquota, ivaProfilo: p.profilo, ivaModo: takeaway };
+  };
+  const addCustomLine = (name, price, tipologia) => {
     setLines(prev => [...prev, {
-      piatto: { id: `custom_${Date.now()}`, name, price, cat: 'Personalizzato', emoji: '✏️' },
+      piatto: { id: `custom_${Date.now()}`, name, price, cat: 'Personalizzato', emoji: '✏️', custom: true, tipologia: window.pnTipologia(tipologia).id },
       qty: 1, mods: null, lineTotal: price,
-      // La voce a 10% è una a schermo ma congela l'id del profilo secondo il
-      // modo dell'ordine: somministrazione_10 al banco, asporto_preparato_10
-      // da asporto (vat_rate_profiles per service_mode, ERD v11).
-      aliquota: voce.aliquota,
-      ivaProfilo: window.pnIvaProfiloId(voce, takeaway),
-      ivaModo: takeaway,
+      ...svRigaIva(tipologia),
     }]);
   };
-  // P-11: se l'ordine ha cambiato modo dopo la battuta (banco → asporto o
-  // viceversa), le righe custom si RIPROPONGONO alla conferma con il loro
-  // profilo dichiarato in mano all'operatore: il caso tipico è il 10% lasciato
-  // su una bottiglia che ora esce da asporto. Solo allora si apre l'incasso.
-  const apriIncasso = () => {
-    const daRivedere = lines.some(l => l.ivaProfilo && l.ivaModo !== takeaway);
-    if (daRivedere) { setRiproponiOpen(true); return; }
-    setIncassaOpen(true);
-  };
-  const confermaRiproposta = (scelte) => {
-    // `scelte` = { indiceRiga: id della VOCE del select }: l'id del profilo
-    // congelato si ri-risolve col modo attuale (la voce a 10% cambia profilo
-    // fra locale e asporto anche a parità di scelta a schermo).
-    setLines(prev => prev.map((l, i) => {
-      if (!l.ivaProfilo) return l;
-      const voce = (window.PN_IVA_PROFILI || []).find(v => v.id === scelte[i])
-        || window.pnIvaVoceDiProfilo(l.ivaProfilo);
-      if (!voce) return { ...l, ivaModo: takeaway };
-      return {
-        ...l,
-        ivaProfilo: window.pnIvaProfiloId(voce, takeaway),
-        aliquota: voce.aliquota,
-        ivaModo: takeaway,
-      };
-    }));
-    setRiproponiOpen(false);
-    setIncassaOpen(true);
-  };
+  // La riga fuori menù si riapre nella stessa finestra: nome, prezzo e
+  // tipologia si cambiano insieme e l'aliquota si ricalcola.
+  const editCustomLine = (i, name, price, tipologia) => setLines(prev => prev.map((l, idx) => idx === i
+    ? { ...l, piatto: { ...l.piatto, name, price, tipologia: window.pnTipologia(tipologia).id }, displayName: undefined, lineTotal: price, ...svRigaIva(tipologia) }
+    : l));
+  // Al cambio di modo (banco ↔ asporto) le righe ricalcolano il profilo dalla
+  // stessa tabella e il contrassegno cambia da solo; se almeno una riga ha
+  // cambiato aliquota, un avviso di una riga in cima all'ordine lo dice.
+  // Niente foglio da confermare: la tabella è della legge, non dell'operatore.
+  const linesRef = React.useRef(lines); linesRef.current = lines;
+  const primoModo = React.useRef(true);
+  React.useEffect(() => {
+    if (primoModo.current) { primoModo.current = false; return; }
+    let cambiate = 0;
+    const next = linesRef.current.map(l => {
+      const p = window.pnTipologiaProfilo(l.tipologia, takeaway);
+      if (l.aliquota != null && p.aliquota !== l.aliquota) cambiate++;
+      if (l.ivaModo === takeaway && l.ivaProfilo === p.profilo) return l;
+      return { ...l, tipologia: window.pnTipologia(l.tipologia).id, aliquota: p.aliquota, ivaProfilo: p.profilo, ivaModo: takeaway };
+    });
+    if (next.some((l, i) => l !== linesRef.current[i])) setLines(next);
+    setAvvisoIva(cambiate ? { asporto: takeaway } : null);
+  }, [takeaway]);
+  React.useEffect(() => { if (!lines.length) setAvvisoIva(null); }, [lines.length]);
+  const apriIncasso = () => setIncassaOpen(true);
 
   // Si apre sempre, anche su un piatto senza opzioni: da quando la riga ha un
   // solo pulsante e si chiama "Personalizza", uscire in silenzio sarebbe un
@@ -411,6 +412,7 @@ function SalaVenditaDiretta() {
   // scegliere, lo dice quella schermata invece di non aprirsi.
   const editExistingLine = (i) => {
     const line = lines[i];
+    if (svRigaCustom(line)) { setCustomEdit(i); return; }
     setEditLine(i);
     setPersonalize({ piatto: line.piatto, mods: line.mods, qty: line.qty });
   };
@@ -617,6 +619,8 @@ function SalaVenditaDiretta() {
         onChangePrice={editLinePrice}
         onClear={() => { setLines([]); setTaCliente(null); }}
         onIncassa={apriIncasso}
+        avvisoIva={avvisoIva}
+        onChiudiAvvisoIva={() => setAvvisoIva(null)}
       />
       </div>
 
@@ -674,10 +678,11 @@ function SalaVenditaDiretta() {
         open={!!saldaOrdine}
         total={saldaOrdine ? saldaOrdine.totale : 0}
         lines={saldaOrdine ? saldaOrdine.items.map(it => ({
-          piatto: { name: it.nome, hasAlcohol: it.hasAlcohol, prodottoFinito: it.prodottoFinito },
-          qty: it.qty, lineTotal: it.prezzo,
-          // P-11: l'aliquota dichiarata alla battuta viaggia con la riga
-          // anche attraverso la coda — congelata, non riderivata.
+          piatto: { name: it.nome, hasAlcohol: it.hasAlcohol, tipologia: it.tipologia },
+          qty: it.qty, lineTotal: it.prezzo, tipologia: it.tipologia,
+          // P-108: il profilo congelato alla battuta viaggia con la riga
+          // anche attraverso la coda; se manca (ordine dai canali), la
+          // fattura lo ricava da tipologia × asporto.
           aliquota: it.aliquota, ivaProfilo: it.ivaProfilo,
         })) : []}
         takeaway
@@ -712,16 +717,16 @@ function SalaVenditaDiretta() {
         <SaCustomModal
           takeaway={takeaway}
           onClose={() => setCustomOpen(false)}
-          onConfirm={(name, price, profilo) => { addCustomLine(name, price, profilo); setCustomOpen(false); }}
+          onConfirm={(name, price, tipologia) => { addCustomLine(name, price, tipologia); setCustomOpen(false); }}
         />
       )}
 
-      {riproponiOpen && (
-        <SaRiproponiIva
-          lines={lines}
+      {customEdit !== null && lines[customEdit] && (
+        <SaCustomModal
           takeaway={takeaway}
-          onClose={() => setRiproponiOpen(false)}
-          onConfirm={confermaRiproposta}
+          iniziale={{ name: lines[customEdit].displayName || lines[customEdit].piatto.name, price: lines[customEdit].lineTotal, tipologia: lines[customEdit].tipologia }}
+          onClose={() => setCustomEdit(null)}
+          onConfirm={(name, price, tipologia) => { editCustomLine(customEdit, name, price, tipologia); setCustomEdit(null); }}
         />
       )}
     </div>
@@ -1364,29 +1369,35 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Modal articolo custom — voce libera (nome + prezzo) aggiunta al conto
+// Finestra dell'articolo fuori menù (P-108 · D-105): nome, prezzo e TIPOLOGIA.
+// Chi batte non sceglie un'aliquota: dichiara che cosa vende fra le cinque
+// tipologie del dizionario, e l'aliquota la fissa la legge in base al
+// prodotto e al modo di consumo. La prima è preselezionata, la spiegazione
+// sotto il campo dice le due aliquote e il fondamento. La stessa finestra si
+// riapre cliccando la riga (`iniziale` valorizzato) con tutto modificabile.
 
-function SaCustomModal({ onClose, onConfirm, takeaway }) {
-  const [name, setName] = React.useState('');
-  const [price, setPrice] = React.useState('');
-  // Aliquota IVA (P-11 · D-16): un select a tre voci dal dizionario di
-  // piattaforma, sempre precompilato sul default «Somministrato o preparato
-  // qui · 10%» — che copre sia la somministrazione sia i preparati da
-  // asporto. Niente domande in più: la scelta è visibile e sostituibile.
-  const [profiloId, setProfiloId] = React.useState('dieci');
-  const profilo = (window.PN_IVA_PROFILI || []).find(p => p.id === profiloId);
+// La riga fuori menù si riconosce dal piatto che la porta.
+const svRigaCustom = (line) => !!(line && line.piatto && (line.piatto.custom || /^custom_/.test(String(line.piatto.id))));
+
+function SaCustomModal({ onClose, onConfirm, takeaway, iniziale }) {
+  const modifica = !!iniziale;
+  const [name, setName] = React.useState(iniziale ? iniziale.name : '');
+  const [price, setPrice] = React.useState(iniziale ? String(iniziale.price.toFixed(2)) : '');
+  const [tipologia, setTipologia] = React.useState(iniziale && iniziale.tipologia ? iniziale.tipologia : window.PN_TIPOLOGIA_DEFAULT);
+  const voce = window.pnTipologia(tipologia);
+  const profilo = window.pnTipologiaProfilo(tipologia, takeaway);
   const nameRef = React.useRef(null);
 
   React.useEffect(() => { nameRef.current?.focus(); }, []);
 
   const parsedPrice = parseFloat(price.replace(',', '.'));
-  // Senza aliquota dichiarata nessuna riga entra nel conto: con il dizionario
-  // mockato non succede mai, ma il vincolo è fiscale e resta esplicito.
-  const valid = name.trim().length > 0 && !isNaN(parsedPrice) && parsedPrice > 0 && !!profilo;
+  // La tipologia ha sempre un valore (la prima è proposta a tutti), quindi
+  // non tiene mai spento il pulsante: contano solo nome e prezzo.
+  const valid = name.trim().length > 0 && !isNaN(parsedPrice) && parsedPrice > 0;
 
   const handleConfirm = () => {
     if (!valid) return;
-    onConfirm(name.trim(), parsedPrice, profilo);
+    onConfirm(name.trim(), parsedPrice, voce.id);
   };
 
   const handleKey = (e) => { if (e.key === 'Enter' && valid) handleConfirm(); if (e.key === 'Escape') onClose(); };
@@ -1409,15 +1420,15 @@ function SaCustomModal({ onClose, onConfirm, takeaway }) {
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG,
         borderRadius: 20,
-        width: 380, maxWidth:'100%',
+        width: 400, maxWidth:'100%',
         padding: '22px 22px 20px',
         display:'flex', flexDirection:'column', gap: 18,
       }}>
         {/* Header */}
         <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
           <div>
-            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>Articolo custom</div>
-            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>Aggiungi un articolo non in menù</div>
+            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>{modifica ? 'Modifica l\'articolo fuori menù' : 'Articolo fuori menù'}</div>
+            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>{modifica ? 'Nome, prezzo e tipologia: l\'aliquota si ricalcola' : 'Non è nel menù: nome, prezzo e tipologia'}</div>
           </div>
           <button onClick={onClose} style={{
             width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
@@ -1453,22 +1464,22 @@ function SaCustomModal({ onClose, onConfirm, takeaway }) {
             />
           </div>
           <div style={{display:'flex', flexDirection:'column', gap:5}}>
-            <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Aliquota IVA</label>
+            <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Tipologia articolo</label>
             <select
-              value={profiloId}
-              onChange={e => setProfiloId(e.target.value)}
+              value={voce.id}
+              onChange={e => setTipologia(e.target.value)}
               style={{...inputStyle, cursor:'pointer'}}>
-              {(window.PN_IVA_PROFILI || []).map(p => (
-                <option key={p.id} value={p.id}>{p.label}</option>
+              {(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </select>
+            {/* La spiegazione della voce scelta: le due aliquote e il
+                fondamento, e in grassetto quella che vale per QUESTO ordine. */}
             <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>
-              {/* Da asporto l'errore facile è lasciare il 10% su una bottiglia:
-                  l'hint lo dice prima che succeda. */}
-              {takeaway && (
-                <span style={{color: PN.TEXT, fontWeight: 600}}>Da asporto, bevande e confezionati vanno al 22%. </span>
-              )}
-              {profilo ? profilo.base : ''}
+              {window.pnTipologiaSpiegazione(voce.id)}
+              <span style={{display:'block', marginTop: 3, color: PN.TEXT, fontWeight: 600}}>
+                {takeaway ? 'Da asporto' : 'Al banco'}: IVA {profilo.aliquota}%
+              </span>
             </div>
           </div>
         </div>
@@ -1491,88 +1502,8 @@ function SaCustomModal({ onClose, onConfirm, takeaway }) {
           }}
           onMouseEnter={e => { if (valid) svSunsetHoverIn(e); }}
           onMouseLeave={svSunsetHoverOut}>
-          <span>Aggiungi al conto</span>
+          <span>{modifica ? 'Aggiorna la riga' : 'Aggiungi al conto'}</span>
           <span style={{fontSize: 17.5, fontWeight: 700}}>{valid ? `€${parsedPrice.toFixed(2)}` : ''}</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Riproposta IVA delle righe custom (P-11 · D-16). Si apre SOLO quando
-// l'ordine ha cambiato modo dopo la battuta: elenca le righe fuori menù col
-// loro profilo dichiarato, ancora nelle mani dell'operatore — l'automatismo
-// non tocca niente da solo. Confermato, si prosegue all'incasso.
-
-function SaRiproponiIva({ lines, takeaway, onClose, onConfirm }) {
-  const custom = lines.map((l, i) => ({ l, i })).filter(x => x.l.ivaProfilo);
-  // Le scelte lavorano sull'id della VOCE del select, non sull'id congelato:
-  // i due profili a 10% sono la stessa voce a schermo.
-  const [scelte, setScelte] = React.useState(() =>
-    Object.fromEntries(custom.map(x => {
-      const voce = window.pnIvaVoceDiProfilo && window.pnIvaVoceDiProfilo(x.l.ivaProfilo);
-      return [x.i, voce ? voce.id : x.l.ivaProfilo];
-    })));
-
-  return (
-    <div onClick={onClose} style={{
-      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
-      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
-      display:'grid', placeItems:'center', zIndex: 200, padding: 20,
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG,
-        borderRadius: 20, width: 440, maxWidth:'100%',
-        padding: '22px 22px 20px',
-        display:'flex', flexDirection:'column', gap: 16,
-      }}>
-        <div>
-          <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>
-            L'ordine è cambiato: conferma l'IVA del fuori menù
-          </div>
-          <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
-            {takeaway
-              ? 'Ora è da asporto: bevande e confezionati vanno al 22%.'
-              : 'Ora si consuma nel locale: la somministrazione è al 10% per tutto.'}
-          </div>
-        </div>
-        <div style={{display:'flex', flexDirection:'column', gap: 10}}>
-          {custom.map(({ l, i }) => (
-            <div key={i} style={{
-              padding: '10px 12px', borderRadius: 12,
-              background:'rgba(255,255,255,0.75)', border:'1px solid rgba(15,17,21,0.10)',
-            }}>
-              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>
-                {l.displayName || l.piatto.name} · €{(l.lineTotal * l.qty).toFixed(2)}
-              </div>
-              <select
-                value={scelte[i]}
-                onChange={e => setScelte(s => ({ ...s, [i]: e.target.value }))}
-                style={{
-                  width:'100%', padding:'8px 10px', borderRadius: 9,
-                  border:'1px solid rgba(15,17,21,0.14)', background: PN.WHITE,
-                  fontSize: 15, fontFamily:'inherit', cursor:'pointer',
-                }}>
-                {(window.PN_IVA_PROFILI || []).map(p => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
-            </div>
-          ))}
-        </div>
-        <button
-          onClick={() => onConfirm(scelte)}
-          style={{
-            padding: '12px 18px', borderRadius: 999,
-            background: SV_SUNSET_BG, color: SV_SUNSET_TEXT,
-            border:'1px solid transparent',
-            fontSize: 17, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
-            boxShadow: SV_SUNSET_SHADOW,
-          }}
-          onMouseEnter={svSunsetHoverIn}
-          onMouseLeave={svSunsetHoverOut}>
-          Conferma e procedi al pagamento
         </button>
       </div>
     </div>
@@ -1957,7 +1888,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 // conto con dei soldi sopra non vive qui ma nella coda "Da saldare" —
 // vedi `parcheggiaConAcconto` — perché il carrello non sopravvive a un cambio
 // di sezione, e i soldi sì.
-function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, cliente, onCliente, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa }) {
+function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, cliente, onCliente, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa, avvisoIva, onChiudiAvvisoIva }) {
   window.SALA_VENDITA_CLEAR = onClear;
   // Conferma prima di svuotare: il conto in corso è lavoro, non si butta per un click.
   const [clearConfirm, setClearConfirm] = React.useState(false);
@@ -2093,6 +2024,24 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
 
       {/* Lines */}
       <div className="pn-scroll" style={{flex: 1, overflow:'auto', padding: '12px 14px'}}>
+        {/* P-108: al cambio di modo le aliquote si sono aggiornate da sole —
+            una riga lo dice, in cima all'ordine, e si chiude con un tocco. */}
+        {avvisoIva && lines.length > 0 && (
+          <div role="status" style={{
+            display:'flex', alignItems:'center', gap: 10, marginBottom: 10,
+            padding:'8px 10px 8px 12px', borderRadius: 10,
+            background: PN.PINK_BG_SOFT, border:`1px solid ${PN.BORDER_SOFT}`,
+            fontSize: 14.5, fontWeight: 600, color: PN.TEXT, lineHeight: 1.35,
+          }}>
+            <span style={{flex: 1}}>{avvisoIva.asporto ? 'Ordine da asporto: le aliquote sono state aggiornate' : 'Ordine al banco: le aliquote sono state aggiornate'}</span>
+            <button onClick={onChiudiAvvisoIva} title="Ho visto" style={{
+              width: 26, height: 26, borderRadius:'50%', border:'none', cursor:'pointer',
+              background:'rgba(255,255,255,0.9)', color: PN.MUTED, display:'grid', placeItems:'center', flexShrink: 0,
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        )}
         {lines.length === 0 ? (
           takeaway ? (
             /* Vuoto in asporto: il vuoto qui non è un errore, è il momento in
@@ -2336,6 +2285,8 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
   const cat = SALA_VENDITA_CATS[piatto.cat] || { color: PN.MUTED, bg: '#F4F5F7' };
   const displayName = line.displayName || piatto.name;
   const isCustomizable = !!(piatto.variants?.length || piatto.ingredients?.length || piatto.extras?.length);
+  // Il fuori menù si riapre nella sua finestra: nome, prezzo e tipologia.
+  const isCustom = svRigaCustom(line);
   const hasMods = mods && (Object.keys(mods.variants||{}).length || (mods.removed||[]).length || Object.keys(mods.extras||{}).length);
 
   // Editing inline nome/prezzo: click sul testo, Enter conferma, Esc annulla.
@@ -2404,8 +2355,8 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
             />
           ) : (
             <span
-              onClick={() => isCustomizable ? onEdit() : setEditingName(true)}
-              title={isCustomizable ? 'Clicca per personalizzare' : 'Clicca per modificare il nome'}
+              onClick={() => (isCustomizable || isCustom) ? onEdit() : setEditingName(true)}
+              title={isCustom ? 'Clicca per modificare nome, prezzo e tipologia' : isCustomizable ? 'Clicca per personalizzare' : 'Clicca per modificare il nome'}
               style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none', lineHeight: 1.3}}
             >{displayName}</span>
           )}
@@ -2436,19 +2387,21 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
             ))}
           </div>
         )}
-        {/* P-11 (D-16): l'aliquota dichiarata resta VISIBILE sulla riga — è
-            un dato fiscale congelato alla battuta, non un dettaglio interno. */}
-        {line.ivaProfilo && (() => {
-          const prof = window.pnIvaVoceDiProfilo && window.pnIvaVoceDiProfilo(line.ivaProfilo);
-          return prof ? (
+        {/* P-108 (D-105): accanto al nome resta il piccolo contrassegno con
+            l'aliquota APPLICATA — un dato fiscale congelato alla battuta, che
+            discende da tipologia × modo e cambia da solo al cambio di modo.
+            Il titolo dice la tipologia e il perché. */}
+        {line.aliquota != null && (() => {
+          const t = window.pnTipologia && window.pnTipologia(line.tipologia);
+          return (
             <div style={{marginTop: 4}}>
-              <span title={prof.base} style={{
+              <span title={t ? `${t.label} — ${window.pnTipologiaSpiegazione(t.id)}` : undefined} style={{
                 display:'inline-block', padding:'2px 8px', borderRadius: 6,
                 background:'#F4F5F7', border:`1px solid ${PN.BORDER_SOFT}`,
                 fontSize: 12.5, fontWeight: 600, color: PN.MUTED,
-              }}>{prof.label}</span>
+              }}>IVA {line.aliquota}%{isCustom && t ? ` · ${t.label}` : ''}</span>
             </div>
-          ) : null;
+          );
         })()}
         <div style={{display:'flex', alignItems:'center', gap: 11, marginTop: 8}}>
           <button onClick={onDec} title={qty <= 1 ? 'Rimuovi dall\'ordine' : 'Diminuisci quantità'} style={{
@@ -2474,7 +2427,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
               ma il posto dove provarci è uno. */}
           <button
             onClick={onEdit}
-            title="Personalizza questo articolo"
+            title={isCustom ? 'Modifica nome, prezzo e tipologia' : 'Personalizza questo articolo'}
             style={{
               display:'inline-flex', alignItems:'center', gap: 7,
               background:'transparent', border:'none', padding: '4px 0',
@@ -2482,7 +2435,7 @@ function SaCartLine({ line, onInc, onDec, onRemove, onEdit, onChangeName, onChan
               cursor:'pointer', fontFamily:'inherit',
             }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-            Personalizza
+            {isCustom ? 'Modifica' : 'Personalizza'}
           </button>
           <span style={{flex: 1}}/>
           <button onClick={onRemove} title="Rimuovi dall'ordine" style={{
@@ -2680,6 +2633,15 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
   // definizione di byupNotteInfo sta in sala-salda-modal.jsx.
   const notte = window.byupNotteInfo();
   const [, setNotteTick] = React.useState(0);
+  // P-120: la guardia delle credenziali dell'Agenzia, accanto a quella della
+  // notte. Scadute, il documento non può nascere: il pulsante si spegne e il
+  // testo dice chi deve rinnovare (il titolare, o l'incaricato del locale).
+  const [credBlocco, setCredBlocco] = React.useState(() => (window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null));
+  React.useEffect(() => {
+    const ri = () => setCredBlocco(window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null);
+    ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.addEventListener(e, ri));
+    return () => ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
+  }, []);
   React.useEffect(() => {
     if (!open) return;
     const id = setInterval(() => setNotteTick(t => t + 1), 1000);
@@ -3425,10 +3387,29 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                 // vendita che è finita.
                 // La finestra di divieto vince su tutto, anche sul conto già
                 // coperto: chiuderlo emette comunque un documento.
-                const attivo = !notte.dentro
+                // Come la notte, le credenziali scadute vincono su tutto: senza
+                // credenziale valida il documento commerciale non può nascere,
+                // e incassare senza emettere non è ammesso (P-120, PT §12.2).
+                const attivo = !notte.dentro && !credBlocco
                   && (saldato || (residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004));
                 return (
                   <React.Fragment>
+                  {credBlocco && (
+                    <div data-cred-blocco style={{
+                      display:'flex', gap: 10, alignItems:'flex-start',
+                      marginBottom: 12, padding:'12px 16px', borderRadius: 12,
+                      background:'#FEF2F2', color:'#991B1B',
+                      fontSize: 14.5, lineHeight: 1.45,
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+                        <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+                      </svg>
+                      <span>
+                        <b>{credBlocco.titolo}:</b> {credBlocco.testo}{' '}
+                        <a href={credBlocco.href} style={{color:'#991B1B', fontWeight: 700}}>Vai a Dati fiscali</a>
+                      </span>
+                    </div>
+                  )}
                   {notte.dentro && (
                     <div style={{
                       display:'flex', gap: 10, alignItems:'flex-start',

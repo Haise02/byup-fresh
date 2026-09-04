@@ -20,17 +20,17 @@
 // calore senza punti c'è domanda scoperta; dove ci sono punti senza calore c'è
 // rete che non viene usata.
 
-// Tre stati, e solo quelli che stanno ancora in piedi. Il locale attivo porta
-// il corallo di byup: è la rete che funziona, ed è giusto che sia del colore
-// del marchio invece che di un verde da semaforo.
-// Le etichette sono quelle del ciclo di vita (LOC_CICLO_VITA): la mappa non
-// riassume cinque stati in tre, e un iscritto non avviato non è un «fermo».
+// Gli stati che stanno ancora in piedi (i cessati non sono «dove siamo»). Il
+// locale attivo porta il corallo di byup: è la rete che funziona, ed è giusto
+// che sia del colore del marchio invece che di un verde da semaforo.
+// Le etichette sono quelle del ciclo di vita (LOC_CICLO_VITA, i cinque stati
+// del modello, P-121): la mappa non li riassume, e un iscritto non avviato
+// non è un «fermo». Chi ha saltato la configurazione completa è attivo.
 const MAP_STATI = {
   active:     { label: LOC_CICLO_VITA.active.label,     colore: ADM.PINK },
-  skipped:    { label: LOC_CICLO_VITA.skipped.label,    colore: ADM.TEAL },
   onboarding: { label: LOC_CICLO_VITA.onboarding.label, colore: ADM.WARN },
-  pending:    { label: LOC_CICLO_VITA.pending.label,    colore: ADM.INFO },
-  inactive:   { label: LOC_CICLO_VITA.inactive.label,   colore: ADM.MUTED_LIGHT },
+  registered: { label: LOC_CICLO_VITA.registered.label, colore: ADM.INFO },
+  dormant:    { label: LOC_CICLO_VITA.dormant.label,    colore: ADM.MUTED_LIGHT },
 };
 
 // Scala del calore: un solo colore che si satura. Due tinte direbbero "due
@@ -121,7 +121,7 @@ function AnMappa() {
     if (strato === 'locali') {
       const gruppo = L.layerGroup();
       locali.forEach(l => {
-        const s = MAP_STATI[l.stato] || MAP_STATI.inactive;
+        const s = MAP_STATI[l.stato] || MAP_STATI.dormant;
         const r = 5 + Math.min(1, (l.ordiniMese || 0) / 900) * 8;
         L.circleMarker([l.lat, l.lon], {
           radius: r,

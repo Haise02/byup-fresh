@@ -1,9 +1,8 @@
 // ─── TC-01 · proiezione del testo ufficiale (P-83) ─────────────────────────
 //
 // QUESTO FILE È UNA PROIEZIONE, NON UN TESTO. È la copia leggibile dal
-// prototipo di TC-01 versione 0.23, generata dal pacchetto legale (dove il
-// testo vive davvero, v0.23 del 20/08/2026): non si modifica a mano, si
-// rigenera. Nessuna copia del testo, nemmeno parziale, può vivere altrove nel
+// prototipo di TC-01, generata dal pacchetto legale (dove il testo vive
+// davvero): non si modifica a mano, si rigenera. Nessuna copia del testo, nemmeno parziale, può vivere altrove nel
 // prototipo: la schermata della firma (onboarding-step4-verifica.jsx) legge
 // da qui, il download si costruisce da qui, la prova dell'accettazione
 // registra versione e impronta di qui. Quando esisterà il backend, questa
@@ -17,6 +16,19 @@
 // peggiore, e qui non può succedere per costruzione. L'hash è FNV-1a a 32 bit,
 // dichiaratamente un'impronta di prototipo: in produzione è quella del
 // pacchetto legale (SHA-256 del documento depositato).
+//
+// REGOLA DEL SEGNAPOSTO (P-114 · D-107). Il prototipo è un mockup: questa
+// finestra mostra COME FUNZIONA la firma, non riporta il TC-01 nella versione
+// depositata. Il testo qui sotto è un segnaposto e resta tale; il testo vero è
+// `T&C/Sorgenti markdown/TC-01_Termini_e_Condizioni_v0.28.md`, fuori dal
+// repository, e i testi veri entrano nel prodotto vero. Il segnaposto ha però
+// un vincolo: non deve contraddire le decisioni né descrivere funzioni che il
+// prodotto non ha. Per questo il 4 settembre 2026 sono cadute dall'art. 12 la
+// ricezione delle fatture dei fornitori (il ciclo passivo è fuori dall'MVP e
+// il modello non ha tabelle per le fatture ricevute) e la figura dell'
+// incaricato indicato da Byup con rinnovo a suo carico (ritirata da D-103), e
+// dall'art. 2 il «percorso di titolarità dell'Account», che D-104 dichiara
+// inesistente nel prodotto.
 //
 // Nel merito il testo è un mock: clausole segnaposto fedeli nella SOSTANZA,
 // che sanano le divergenze trovate nella rilettura del 28/08/2026 — Byup è
@@ -45,7 +57,7 @@ const TC01 = {
   generata: '2026-09-03',
   // Impronta dichiarata dalla generazione: si confronta con quella calcolata
   // sulle clausole qui sotto (tc01Verifica).
-  impronta: '3fd3073f',
+  impronta: '9bf2c708',
   // L'ordine di prevalenza dell'art. 1: Piano, TC, DPA; le informative si
   // ricevono e non si accettano.
   pacchetto: ['PIANO', 'TC-01', 'DPA-01', 'INF-02'],
@@ -53,7 +65,7 @@ const TC01 = {
     { n: 1, h: 'Oggetto e documenti del contratto', vessatoria: false,
       p: 'Byup S.r.l. concede in licenza d\'uso, in modalità cloud (SaaS), il gestionale Byup Fresh: cassa, ordinazione al tavolo, menù digitali, vetrina nella Byup App, statistiche e strumenti per gli adempimenti fiscali. Il servizio è riservato a operatori professionali del settore Food & Beverage. Il contratto è formato, in ordine di prevalenza, dalle Condizioni particolari di attivazione (Piano), dai presenti Termini e dall\'Accordo sul trattamento dei dati (DPA-01); l\'informativa privacy business (INF-02) si riceve e non si accetta.' },
     { n: 2, h: 'Attivazione, account e titolare', vessatoria: false,
-      p: 'L\'account è riferito al locale. Il titolare è uno solo per volta: chi lo rappresenta verso Byup e verso l\'Agenzia delle Entrate. Il titolare abilita collaboratori con i ruoli che sceglie e risponde dell\'uso che ne fanno; nessuna richiesta di collegamento attribuisce il ruolo di titolare. Il titolare cambia soltanto attraverso il percorso di titolarità dell\'Account; il ripristino dell\'accesso restituisce le credenziali alla stessa persona e non le trasferisce mai.' },
+      p: 'L\'account è riferito al locale. Il titolare è uno solo per volta: chi lo rappresenta verso Byup e verso l\'Agenzia delle Entrate. Il titolare abilita collaboratori con i ruoli che sceglie e risponde dell\'uso che ne fanno; nessuna richiesta di collegamento attribuisce il ruolo di titolare. Non è prevista alcuna procedura di trasferimento dell\'account fra persone: chi ha l\'account modifica dal proprio profilo i propri recapiti e il proprio nome, e ogni modifica resta nel registro delle attività. Il mutamento del soggetto fiscale che esercita l\'attività si compie nella sezione dei dati fiscali e si conclude con la riaccettazione dei presenti Termini a nome del nuovo soggetto. Il ripristino dell\'accesso restituisce le credenziali alla stessa persona e non le trasferisce mai.' },
     { n: 3, h: 'Corrispettivi: comande pesate e coefficienti del piano', vessatoria: false,
       p: 'Il servizio è offerto in abbonamento. L\'unità di misura è la comanda, cioè il singolo invio; l\'origine della comanda le dà un peso provvisorio, la superficie di saldo quello definitivo, che prevale. Le unità fatturate sono, per ciascun gruppo di saldo, il maggiore fra le comande inviate e le transazioni saldate, moltiplicate per i coefficienti del piano, che sono un listino versionato e non un numero fisso. I corrispettivi sono fatturati elettronicamente; i pagamenti sono gestiti tramite Stripe.' },
     { n: 4, h: 'Sospensione per morosità', vessatoria: true,
@@ -73,7 +85,7 @@ const TC01 = {
     { n: 11, h: 'Obblighi del locale', vessatoria: false,
       p: 'Il locale garantisce la correttezza dei dati inseriti (menù, prezzi, allergeni, dati fiscali) e il rispetto delle norme applicabili alla propria attività, incluse quelle igienico-sanitarie e di informazione al consumatore.' },
     { n: 12, h: 'Obblighi informativi fiscali', vessatoria: false,
-      p: 'Byup mette a disposizione gli strumenti per gli adempimenti fiscali e non è intermediario fiscale. Il locale incarica Byup, e per essa il fornitore del canale, di trasmettere per suo conto all\'Agenzia delle Entrate i corrispettivi e le fatture elettroniche, e di ricevere per suo conto le fatture dei fornitori all\'indirizzo telematico del canale, che il locale registra sul portale dell\'Agenzia. I corrispettivi sono trasmessi con la procedura del documento commerciale online: con le credenziali dell\'esercente, che ne cura il rinnovo, se persona fisica; con quelle della persona che Byup indica e che la società nomina come incaricata sul portale, se persona giuridica, e in tal caso il rinnovo è a cura di Byup. Le fatture elettroniche sono conservate presso l\'Agenzia in forza della delega che il titolare conferisce sul portale per i servizi «Fatturazione elettronica e conservazione delle fatture elettroniche» e «Accreditamento e censimento dispositivi», con cui Byup accredita il locale come esercente; il collegamento degli strumenti di pagamento resta una comunicazione dell\'esercente. Byup informa il locale di scadenze, scarti ed esiti nel gestionale; la correttezza dei dati trasmessi resta responsabilità del locale.' },
+      p: 'Byup mette a disposizione gli strumenti per gli adempimenti fiscali e non è intermediario fiscale. Il locale incarica Byup, e per essa il fornitore del canale, di trasmettere per suo conto all\'Agenzia delle Entrate i corrispettivi e le fatture elettroniche. I corrispettivi sono trasmessi con la procedura del documento commerciale online, con le credenziali dell\'esercente, che ne cura il rinnovo: quelle del titolare se il locale è una ditta individuale, quelle della persona fisica che il locale ha nominato incaricata sul portale dell\'Agenzia se è una società o un ente, secondo il paragrafo 2.9 delle specifiche tecniche. La nomina si compie sul portale e Byup non ne è parte: Byup non nomina incaricati propri e non rinnova credenziali per conto dell\'esercente. Le fatture elettroniche sono conservate presso l\'Agenzia in forza della delega che il titolare conferisce sul portale per i servizi «Fatturazione elettronica e conservazione delle fatture elettroniche» e «Accreditamento e censimento dispositivi», con cui Byup accredita il locale come esercente; il collegamento degli strumenti di pagamento resta una comunicazione dell\'esercente. Byup informa il locale di scadenze, scarti ed esiti nel gestionale; la correttezza dei dati trasmessi resta responsabilità del locale.' },
     { n: 13, h: 'Sospensione immediata per sicurezza', vessatoria: true,
       p: 'In caso di uso illecito o di rischio per la sicurezza della piattaforma o dei suoi utenti, Byup può sospendere immediatamente il servizio, dandone comunicazione motivata e revocando la sospensione al cessare del rischio.' },
     { n: 14, h: 'Dati personali: i ruoli di Byup e del locale', vessatoria: false,

@@ -36,7 +36,7 @@ const T9  = { type: 'table',    label: 'T9'  };
 const T12 = { type: 'table',    label: 'T12' };
 const T15 = { type: 'table',    label: 'T15' };
 const ANNA  = { type: 'takeaway', label: 'Anna'  };
-const SARA  = { type: 'delivery', label: 'Sara',  partner: 'justeat' };
+const SARA  = { type: 'delivery', label: 'Sara',  partner: 'ubereats' };
 const MARCO = { type: 'takeaway', label: 'Marco' };
 const LUCA  = { type: 'delivery', label: 'Luca',  partner: 'glovo'   };
 // Ordini di cassa: niente tavolo, niente nome — il numero dello scontrino.

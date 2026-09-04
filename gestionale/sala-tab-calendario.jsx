@@ -2,61 +2,10 @@
 // Scala (Giorno/Settimana) × View mode (Timeline/Lista/Heatmap) + KPI bar + Cerca slot popover
 // Sostituisce le 3 tab (Agenda / Disponibilità / Settimana) con una sola pagina
 
-const SALA_RES_DATA = (() => {
-  const data = [
-    // Pranzo
-    {id:'r1', time:'12:30', dur:90, name:'Famiglia Ferri', posti:4, table:5, status:'arrivata', phone:'+39 348 ...', note:null, source:'walkin'},
-    // P-24 (D-27): gli allergeni sono CODICI del dizionario (PN_ALLERGENI),
-    // mai testo, mai nella nota, mai accanto al nome in una stringa. Con loro
-    // viaggiano il momento della dichiarazione (di norma la telefonata) e chi
-    // l'ha registrata — traccia operativa, mai base di metriche.
-    {id:'r2', time:'13:00', dur:75, name:'Martina Ciani', posti:2, table:3, status:'confermata', phone:'+39 333 ...', note:null, notes:'Seduta lontano dalla cucina', source:'tel', allergens:['fruttaguscio'], allergensDeclaredAt:'11:20', allergensDeclaredBy:'Giulia'},
-    {id:'r3', time:'13:15', dur:90, name:'Luca Bianchi', posti:3, table:7, status:'arrivata', phone:'+39 339 ...', note:null, notes:null, source:'byup'},
-    {id:'r4', time:'13:30', dur:60, name:'Pranzo aziendale', posti:6, table:11, status:'noshow', phone:'+39 02 ...', note:null, notes:null, source:'tel'},
-    {id:'r4b', time:'13:45', dur:75, name:'Coppia Rossi', posti:2, table:6, status:'arrivata', phone:'+39 333 ...', note:null, notes:null, source:'walkin'},
-    // Anche «pane senza glutine» in nota era un dato di salute in testo
-    // libero accanto a un nome: diventa il codice, la cucina sa cosa fare.
-    {id:'r4c', time:'14:00', dur:60, name:'Pellegrini', posti:3, table:9, status:'confermata', phone:'+39 348 ...', note:null, notes:null, source:'tel', allergens:['glutine'], allergensDeclaredAt:'09:45', allergensDeclaredBy:'Marco'},
-    // Occupati senza nome (walk-in anonimi)
-    {id:'occ1', time:'12:15', dur:90, name:'', posti:3, table:1,  status:'arrivata', phone:'', note:null, source:'walkin'},
-    {id:'occ2', time:'12:30', dur:75, name:'', posti:2, table:9,  status:'arrivata', phone:'', note:null, source:'walkin'},
-    {id:'occ3', time:'12:15', dur:45, name:'', posti:2, table:3,  status:'arrivata', phone:'', note:null, source:'walkin'},
-    // Cena — profilo curato per disponibilità leggibile nel modal "Nuova prenotazione":
-    // 19:00 → 11 liberi / 0 occupati · 20:00 → 5 liberi / 6 occupati · 21:00 → 0 liberi / 11 occupati · 22:00 → 5 liberi / 6 occupati
-    // (Nessuna prenotazione spans 19:00–20:30, primo ingresso alle 20:30.)
-    // Slot 20:30 (6 tavoli, dur 90 → terminano alle 22:00)
-    {id:'r5',  time:'20:30', dur:90,  name:'Andrea Bianchi',  posti:2, table:3,  status:'confermata', phone:'+39 339 12 34 567', note:null, notes:'Menu fisso concordato', source:'tel', allergens:['glutine'], allergensDeclaredAt:'17:05', allergensDeclaredBy:'Mario Rossi'},
-    {id:'r18', time:'20:30', dur:90,  name:'Frodo Baggins',         posti:4, table:2,  status:'confermata', phone:'+39 333 ...',       note:null, notes:'Seggiolone bambino', source:'tel'},
-    {id:'r19', time:'20:30', dur:90,  name:'Serra',           posti:2, table:4,  status:'confermata', phone:'+39 347 ...',       note:null, notes:null, source:'tel'},
-    {id:'r21', time:'20:30', dur:90,  name:'Pellegrini',      posti:4, table:5,  status:'confermata', phone:'+39 347 ...',       note:null, notes:null, source:'tel'},
-    {id:'r22', time:'20:30', dur:90,  name:'Mancini',         posti:2, table:6,  status:'confermata', phone:'+39 333 ...',       note:null, notes:'Festeggiamento laurea', source:'tel'},
-    {id:'r8',  time:'20:30', dur:90,  name:'Tommy Shelby',   posti:8, table:1,  status:'inattesa',   phone:'+39 320 99 88 777', note:{type:'compleanno', text:'Candelina al dolce'}, notes:null, source:'tel'},
-    // Slot 21:30 (5 tavoli, dur 90 → terminano alle 23:00)
-    {id:'r6',  time:'21:30', dur:90,  name:'Famiglia Robinson',  posti:4, table:7,  status:'confermata', phone:'+39 348 22 33 444', note:null, notes:null, source:'tel', allergens:['glutine'], allergensDeclaredAt:'18:40', allergensDeclaredBy:'Giulia'},
-    {id:'r12', time:'21:30', dur:90,  name:'Marini',          posti:4, table:12, status:'confermata', phone:'+39 348 ...',       note:{type:'aziendale', text:'Cliente VIP'}, notes:'Tavolo riservato lato finestra', source:'tel'},
-    {id:'r13', time:'21:30', dur:90,  name:'Famiglia Verdi',  posti:5, table:11, status:'confermata', phone:'+39 320 ...',       note:null, notes:'2 bambini piccoli', source:'tel'},
-    {id:'r10', time:'21:30', dur:90,  name:'De Luca',         posti:3, table:9,  status:'confermata', phone:'+39 349 22 33 111', note:{type:'anniversario', text:'25 anni di matrimonio'}, notes:null, source:'tel'},
-    {id:'r8b', time:'21:30', dur:90,  name:'Tommy Shelby',   posti:8, table:8,  status:'inattesa',   phone:'+39 320 99 88 777', note:{type:'compleanno', text:'Compleanno · candelina'}, notes:null, source:'tel'},
-    // Turnover dopo le 22:00: 1 prenotazione tardiva (compone i 6 occupati a 22:00 con i 5 del 21:30)
-    {id:'r14', time:'22:30', dur:60,  name:'Jesse Pinkman',           posti:2, table:1,  status:'inattesa',   phone:'+39 339 ...',       note:null, notes:null, source:'walkin'},
-    // Cancellata: non conta nei conteggi ma resta in lista per il flusso "cancellate"
-    {id:'r17', time:'22:30', dur:60,  name:'Conti',           posti:2, table:4,  status:'cancellata', phone:'+39 333 ...',       note:null, notes:null, source:'tel'},
-    // Tavolo 8 prenotato a pranzo dalle 12:30
-    {id:'r24', time:'12:30', dur:75, name:'Esposito', posti:2, table:8, status:'confermata', phone:'+39 347 ...', note:null, notes:'Cliente abituale · posto fisso', source:'tel'},
-    // Cluster imminenti 12:30
-    {id:'r25', time:'12:30', dur:75,  name:'Borrelli',       posti:3, table:2,    status:'confermata', phone:'+39 345 ...', note:null, notes:'Menu vegano', source:'tel'},
-    {id:'r26', time:'12:30', dur:60,  name:'Mele',           posti:2, table:4,    status:'inattesa',   phone:'+39 347 ...', note:null, notes:null, source:'tel'},
-    {id:'r27', time:'12:15', dur:90,  name:'Gallo azienda',  posti:6, table:11,   status:'confermata', phone:'+39 02 ...',  note:{type:'aziendale', text:'Menù fisso'}, notes:null, source:'tel'},
-    {id:'r28', time:'13:30', dur:90,  name:'Caruso',         posti:2, table:6,    status:'confermata', phone:'+39 340 ...', note:null, notes:null, source:'tel'},
-    {id:'r29', time:'12:30', dur:120, name:'Pellegrini', posti:4, table:12,   status:'confermata', phone:'+39 333 ...', note:null, notes:null, source:'tel', allergens:['lattosio'], allergensDeclaredAt:'10:15', allergensDeclaredBy:'Marco'},
-    // In arrivo (seconda parte del pranzo) — cognomi in B
-    {id:'r30', time:'13:30', dur:75,  name:'Bellini',        posti:2, table:4,    status:'confermata', phone:'+39 340 ...', note:null, notes:null, source:'byup'},
-    {id:'r31', time:'13:45', dur:90,  name:'Barbieri',       posti:4, table:2,    status:'confermata', phone:'+39 348 ...', note:null, notes:'Chiede tavolo tranquillo', source:'byup'},
-    {id:'r32', time:'13:45', dur:60,  name:'Battaglia',      posti:2, table:8,    status:'inattesa',   phone:'+39 333 ...', note:null, notes:null, source:'byup'},
-    {id:'r33', time:'14:00', dur:90,  name:'Bruni',          posti:6, table:1,    status:'confermata', phone:'+39 347 ...', note:{type:'compleanno', text:'Torta portata da loro'}, notes:null, source:'byup'},
-  ];
-  return data;
-})();
+// I dati vivono in sala-data.jsx (SALA_RES_SEED, P-109): la Panoramica legge
+// lo stesso array per il riquadro «Prenotazioni di oggi». Qui si lavora e si
+// muta QUELLO stesso array — SALA_RES_ADD/UPDATE — non una copia.
+const SALA_RES_DATA = window.SALA_RES_SEED || [];
 
 const NOW_HHMM = '12:00';
 const ALL_TABLES = [{id:1,p:8},{id:2,p:4},{id:3,p:2},{id:4,p:2},{id:5,p:4},{id:6,p:2},{id:7,p:6},{id:8,p:2},{id:9,p:4},{id:11,p:6},{id:12,p:4}];

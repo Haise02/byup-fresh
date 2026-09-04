@@ -1,90 +1,109 @@
 // Impostazioni → Dati fiscali locale (anagrafica per scontrini + collegamento
 // all'Agenzia delle Entrate — le credenziali Fisconline con cui trasmette il canale)
 
-// ─── Collegamento all'Agenzia delle Entrate (PT §12.2) ─────────────────────
-// Il canale "documento commerciale online" (via OpenAPI) trasmette con le
-// credenziali Fisconline dell'esercente, e la password scade ogni novanta
-// giorni: quando scade, gli scontrini smettono di partire. Tre presidi:
-//   1. promemoria progressivo prima della scadenza (14, 7 e 3 giorni);
-//   2. avviso bloccante alla scadenza — qui e in Contabilità → Cassa — con le
-//      istruzioni nell'ordine giusto: PRIMA si cambia la password sul sito
-//      dell'Agenzia, POI la si inserisce in Byup;
-//   3. verifica immediata all'inserimento, con una chiamata di prova al canale.
+// ─── Collegamento all'Agenzia delle Entrate (PT §12.2 · P-104 · P-116 · P-120)
+// Il canale «documento commerciale online» (via OpenAPI) trasmette con le
+// credenziali Fisconline DELL'ESERCENTE — sempre, per tutte le forme (D-103):
+// del titolare per la ditta individuale, della persona che il locale ha
+// nominato incaricata sul portale per società ed enti (specifiche
+// corrispettivi §2.9). Byup non nomina incaricati propri e non rinnova
+// credenziali per conto di nessuno.
+// La password scade ogni novanta giorni, e alla scadenza senza rinnovo
+// «l'emissione si ferma» (PT §12.2). Quattro presidi:
+//   1. promemoria progressivo a 14, 7 e 3 giorni — tre gradini veri, non uno;
+//   2. la fascia in Contabilità → Cassa dal PRIMO gradino, non a scadenza;
+//   3. il BLOCCO nei quattro punti dove nasce un documento (saldo del conto,
+//      vendita diretta, le due schermate d'incasso dell'App Staff): il
+//      pulsante si spegne e dice chi deve rinnovare;
+//   4. verifica immediata all'inserimento, con una trasmissione di prova, che
+//      sblocca da sé i quattro punti.
 // Il canale espone anche l'evento di richiamata `receipt-credentials`: in
 // produzione va sottoscritto come innesco del promemoria. È roba di backend:
 // nel prototipo resta documentato qui, non si simula.
-// Lo stato vive in localStorage — stessa chiave letta dalla Cassa per l'avviso
-// bloccante. Senza nulla di salvato l'ultimo rinnovo è di novanta giorni fa
-// (derivato a runtime, mai date a mano): la password risulta scaduta oggi e il
-// giro completo — scaduta → rinnovo → verifica → attiva — si prova da qui.
-const ADE_CRED_KEY = 'byup_ade_cred';
-const ADE_CRED_VITA = 90;             // vita della password Fisconline, in giorni
-const ADE_CRED_SOGLIE = [14, 7, 3];   // i gradini del promemoria progressivo
+// Lo stato e i gradini vivono in panoramica-tokens.jsx (byupAdeCredStato),
+// perché li leggono sei schermate su tre bundle: qui c'è la scheda.
+const ADE_CRED_SOGLIE = window.PN_ADE_CRED_SOGLIE || [14, 7, 3];
+const adeCredStato = () => window.byupAdeCredStato();
 
-function adeCredStato() {
-  let s = null;
-  try { s = JSON.parse(localStorage.getItem(ADE_CRED_KEY)); } catch (e) {}
-  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
-  const rinnovo = s && s.rinnovo ? new Date(s.rinnovo + 'T00:00:00') : (() => {
-    const d = new Date(oggi); d.setDate(d.getDate() - ADE_CRED_VITA); return d;
-  })();
-  const scadenza = new Date(rinnovo); scadenza.setDate(scadenza.getDate() + ADE_CRED_VITA);
-  const giorni = Math.round((scadenza - oggi) / 86400000);
-  return {
-    giorni,
-    scadenza: scadenza.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }),
-    verificata: (s && s.verificata) || null,
-    stato: giorni <= 0 ? 'scaduta' : (giorni <= ADE_CRED_SOGLIE[0] ? 'promemoria' : 'ok'),
-  };
-}
-
-// Per la società gli scontrini li trasmette l'incaricato di Byup: qui non c'è
-// niente da inserire, solo da sapere — chi è, quando Byup ha rinnovato la sua
-// password e quando la rinnoverà. Il registro è byup_incaricati (tokens), lo
-// scrive Hubble. Se la password è scaduta gli scontrini non partono, come per
-// la ditta, ma la cura è di Byup: al locale si dice, non si chiede.
+// ─── Chi trasmette: l'incaricato nominato dal locale (P-116 · D-103) ────────
+// Per società ed enti il canale usa le credenziali personali di una persona
+// fisica che il LOCALE nomina incaricata sul portale dell'Agenzia. Qui si
+// dichiara chi è — nome, cognome, codice fiscale e data della nomina, cioè
+// ade_operator_name e ade_operator_tax_code del modello — perché il canale
+// sappia di chi sono le credenziali configurate e a chi mandare i promemoria.
+// Senza la nomina il canale non parte: lo dice la scheda, non lo si scopre al
+// primo scontrino. Byup non è parte della nomina, che si compie sul portale.
 function AdeIncaricatoCard() {
-  const [, forza] = React.useState(0);
+  const [inc, setInc] = React.useState(() => window.byupReadIncaricato());
+  const [edit, setEdit] = React.useState(null);   // { nome, cognome, cf } | null
   React.useEffect(() => {
-    const ri = () => forza(x => x + 1);
-    window.addEventListener('byup-incaricati-change', ri);
-    return () => window.removeEventListener('byup-incaricati-change', ri);
+    const ri = () => setInc(window.byupReadIncaricato());
+    window.addEventListener('byup-ade-incaricato-change', ri);
+    return () => window.removeEventListener('byup-ade-incaricato-change', ri);
   }, []);
-  const locale = window.byupReadLocale ? byupReadLocale() : { id: 'cp' };
-  const inc = window.pnIncaricatoDelLocale ? pnIncaricatoDelLocale(locale.id) : null;
-  if (!inc) return null;
-  const st = pnIncaricatoStato(inc);
-  const scaduta = st.stato === 'scaduta';
-  const promemoria = st.stato === 'promemoria';
-  const colore = scaduta ? '#991B1B' : promemoria ? PN.AMBER : PN.GREEN;
+  const nominato = !!(inc && inc.cf);
+  const salva = () => {
+    if (!edit) return;
+    const cf = (edit.cf || '').toUpperCase().trim();
+    if (!edit.nome.trim() || !edit.cognome.trim() || !/^[A-Z0-9]{16}$/.test(cf)) return;
+    const d = new Date();
+    window.byupWriteIncaricato({ nome: edit.nome.trim(), cognome: edit.cognome.trim(), cf,
+      nominato_il: edit.nominato_il || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` });
+    setEdit(null);
+  };
+  const data = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+  const inp = { width: '100%', padding: '9px 11px', border: `1px solid ${PN.BORDER}`, borderRadius: 8, fontSize: 14.5, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' };
+  const lab = { fontSize: 12.5, fontWeight: 600, color: PN.MUTED, marginBottom: 4 };
   return (
-    <div style={{
-      display:'flex', alignItems:'center', gap: 14, padding: '14px 18px', borderRadius: 12, marginBottom: 18,
-      background: scaduta ? '#FEF2F2' : promemoria ? PN.AMBER_SOFT : '#F0FDF4',
-      border: `1.5px solid ${scaduta ? '#FECACA' : promemoria ? '#FCD34D' : PN.GREEN_SOFT}`,
-    }}>
-      <div style={{width: 40, height: 40, borderRadius: 10, background: scaduta ? PN.RED : promemoria ? PN.AMBER : PN.GREEN, display:'grid', placeItems:'center', flexShrink: 0}}>
-        {scaduta || promemoria ? <BuIcons.alert size={18} color={PN.WHITE}/> : BuIcons.check({size: 18, color: PN.WHITE})}
-      </div>
-      <div style={{flex: 1, minWidth: 0}}>
-        <div style={{fontSize: 16, fontWeight: 700, color: colore}}>
-          {scaduta ? 'La password dell\'incaricato è scaduta: gli scontrini non partono'
-            : promemoria ? `Gli scontrini li trasmette Byup · la password dell'incaricato scade tra ${st.giorni} giorni`
-            : 'Gli scontrini li trasmette Byup, con il suo incaricato'}
+    <ImpCard title="Chi trasmette gli scontrini" sub="La procedura dell'Agenzia si usa attraverso una persona incaricata: la nomini tu sul portale, e le credenziali sono sue" style={{marginBottom: 18}}>
+      {nominato && !edit ? (
+        <div style={{display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap'}}>
+          <div style={{width: 40, height: 40, borderRadius: 10, background: PN.GREEN, display:'grid', placeItems:'center', flexShrink: 0}}>
+            {BuIcons.check({size: 18, color: PN.WHITE})}
+          </div>
+          <div style={{flex: 1, minWidth: 240}}>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{inc.nome} {inc.cognome}</div>
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.5}}>
+              Codice fiscale <b style={{color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>{inc.cf}</b> · nominata incaricata sul portale il {data(inc.nominato_il)}.
+              Le credenziali Fisconline configurate sul canale sono le sue, e il rinnovo della password lo compie lei.
+            </div>
+          </div>
+          <ImpButton variant="secondary" onClick={() => setEdit({ nome: inc.nome, cognome: inc.cognome, cf: inc.cf, nominato_il: inc.nominato_il })}>Modifica</ImpButton>
         </div>
-        <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.5}}>
-          Incaricato <b style={{color: PN.TEXT}}>{inc.nome}</b> · {inc.ruolo} · password rinnovata il {st.rinnovoTesto}, vale fino al {st.scadenza}.
-          {scaduta ? ' Byup la sta rinnovando: non devi fare nulla. Se dura più di un\'ora, scrivi al Supporto.'
-            : ' La rinnova Byup prima della scadenza: tu non devi fare nulla.'}
+      ) : (
+        <div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1.2fr', gap: 12}}>
+            <div><div style={lab}>Nome</div><input value={(edit && edit.nome) || ''} onChange={e => setEdit(x => ({ ...(x || {}), nome: e.target.value }))} style={inp}/></div>
+            <div><div style={lab}>Cognome</div><input value={(edit && edit.cognome) || ''} onChange={e => setEdit(x => ({ ...(x || {}), cognome: e.target.value }))} style={inp}/></div>
+            <div><div style={lab}>Codice fiscale</div><input value={(edit && edit.cf) || ''} onChange={e => setEdit(x => ({ ...(x || {}), cf: e.target.value.toUpperCase() }))} placeholder="16 caratteri" style={{...inp, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5}}/></div>
+          </div>
+          <div style={{display:'flex', gap: 10, marginTop: 12}}>
+            <ImpButton variant="primary" onClick={salva}>Salva l'incaricato</ImpButton>
+            {nominato && <ImpButton variant="ghost" onClick={() => setEdit(null)}>Annulla</ImpButton>}
+          </div>
         </div>
+      )}
+      <div style={{marginTop: 14, padding: '11px 13px', borderRadius: 10, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.55}}>
+        <b style={{color: PN.TEXT}}>Come si nomina, sul portale dell'Agenzia.</b> Accedi con l'utenza del locale, vai su <b>Il tuo profilo → Incarichi → Gestisci incarichi come gestore</b>, scegli «Aggiungi incaricato», inserisci il suo codice fiscale e salva; poi, su quell'incaricato, <b>Azioni → Gestisci servizi</b>. Chi sia quella persona lo decidi tu: di norma il titolare o il rappresentante legale. Finché non è nominata, il canale non trasmette. Byup non è parte della nomina e non nomina incaricati propri.
       </div>
-    </div>
+    </ImpCard>
   );
 }
 
-function AdeCredenzialiCard() {
+function AdeCredenzialiCard({ forma }) {
   const [, forza] = React.useState(0);
+  React.useEffect(() => {
+    const ri = () => forza(x => x + 1);
+    window.addEventListener('byup-ade-cred-change', ri);
+    window.addEventListener('byup-ade-incaricato-change', ri);
+    return () => { window.removeEventListener('byup-ade-cred-change', ri); window.removeEventListener('byup-ade-incaricato-change', ri); };
+  }, []);
   const cred = adeCredStato();
+  // Chi rinnova: il titolare, o l'incaricato che il locale ha nominato sul
+  // portale. Il testo lo nomina, perché chi legge deve sapere se tocca a lui.
+  const chi = window.pnAdeChiRinnova ? window.pnAdeChiRinnova(forma) : { ruolo: 'titolare' };
+  const incaricato = chi.ruolo === 'incaricato';
+  const dilei = incaricato ? `di ${chi.nome}` : 'tue';
   const [pwd, setPwd] = React.useState('');
   const [fase, setFase] = React.useState('idle');   // idle | verifica | errore
   const [tentativi, setTentativi] = React.useState(0);
@@ -101,10 +120,9 @@ function AdeCredenzialiCard() {
     setTentativi(t);
     setTimeout(() => {
       if (t === 1) { setFase('errore'); return; }
-      const d = new Date();
-      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const ts = `${d.toLocaleDateString('it-IT')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-      try { localStorage.setItem(ADE_CRED_KEY, JSON.stringify({ rinnovo: iso, verificata: ts })); } catch (e) {}
+      // Il rinnovo sblocca da sé i quattro punti di emissione: lo stato è uno
+      // solo e l'evento lo dice a tutte le schermate aperte.
+      window.byupAdeCredRinnova();
       setPwd(''); setFase('idle');
       forza(x => x + 1);
     }, 1600);
@@ -132,8 +150,9 @@ function AdeCredenzialiCard() {
           <div style={{fontSize:16, fontWeight:700, color: PN.GREEN}}>
             Collegamento all'Agenzia delle Entrate attivo
           </div>
-          <div style={{fontSize:14, color: PN.MUTED, marginTop: 2}}>
-            Password Fisconline verificata{cred.verificata ? ` il ${cred.verificata}` : ''} con una trasmissione di prova · scade il {cred.scadenza} (tra {cred.giorni} giorni). Ti avvisiamo qui e in cassa a 14, 7 e 3 giorni dalla scadenza.
+          <div style={{fontSize:14, color: PN.MUTED, marginTop: 2, lineHeight: 1.5}}>
+            Password Fisconline {incaricato ? <>di <b style={{color: PN.TEXT}}>{chi.nome}</b>, la persona che hai nominato incaricata sul portale, </> : ''}verificata{cred.verificata ? ` il ${cred.verificata}` : ''} con una trasmissione di prova · scade il {cred.scadenza} (tra {cred.giorni} giorni).
+            Ti avvisiamo qui, in cassa e con una notifica a 14, 7 e 3 giorni dalla scadenza; alla scadenza l'emissione si ferma.
           </div>
         </div>
       </div>
@@ -141,12 +160,17 @@ function AdeCredenzialiCard() {
   }
 
   const scaduta = cred.stato === 'scaduta';
-  const C_TITLE = scaduta ? '#991B1B' : PN.AMBER;
+  // I tre gradini sono TRE, e si vedono: a 14 giorni l'avviso è quieto, a 7
+  // diventa ambra piena, a 3 rosso — poi c'è la scadenza, che blocca. Prima
+  // c'era un solo stato «da quattordici giorni in giù», e chi lo vedeva la
+  // prima volta lo vedeva uguale il giorno prima della scadenza.
+  const urgente = cred.gradino === 3;
+  const C_TITLE = scaduta ? '#991B1B' : urgente ? '#B91C1C' : PN.AMBER;
   return (
-    <div style={{
+    <div data-ade-cred={cred.stato} data-ade-gradino={cred.gradino == null ? '' : String(cred.gradino)} style={{
       padding: '16px 18px',
-      background: scaduta ? '#FEF2F2' : PN.AMBER_SOFT,
-      border: `1.5px solid ${scaduta ? '#FECACA' : '#FCD34D'}`,
+      background: scaduta ? '#FEF2F2' : urgente ? '#FFF1F2' : cred.gradino === 7 ? PN.AMBER_SOFT : '#FFFBEB',
+      border: `1.5px solid ${scaduta ? '#FECACA' : urgente ? '#FDA4AF' : cred.gradino === 7 ? '#FCD34D' : '#FDE68A'}`,
       borderRadius: 12, marginBottom: 18,
     }}>
       <style>{`@keyframes adeCredSpin { to { transform: rotate(360deg); } }`}</style>
@@ -163,11 +187,12 @@ function AdeCredenzialiCard() {
               : cred.giorni === 1
                 ? 'La password Fisconline scade domani'
                 : `La password Fisconline scade tra ${cred.giorni} giorni`}
+            {incaricato && <span style={{fontWeight: 600, color: PN.MUTED}}> · la rinnova {chi.nome}</span>}
           </div>
           <div style={{fontSize:14, color: PN.MUTED, marginTop: 2, lineHeight: 1.5}}>
             {scaduta
-              ? 'La trasmissione all\'Agenzia usa le tue credenziali Fisconline, e la password scade ogni novanta giorni: da quando è scaduta ogni invio viene rifiutato. Rinnovala con i due passi qui sotto, nell\'ordine.'
-              : `Scade il ${cred.scadenza}. La trasmissione all'Agenzia usa le tue credenziali Fisconline: rinnovala prima, con i due passi qui sotto nell'ordine, o gli scontrini smetteranno di partire.`}
+              ? `La trasmissione all'Agenzia usa le credenziali Fisconline ${dilei}, e la password scade ogni novanta giorni: da quando è scaduta ogni invio viene rifiutato e l'emissione è ferma in cassa, in sala e sull'App Staff. Rinnovala con i due passi qui sotto, nell'ordine.`
+              : `Scade il ${cred.scadenza}. La trasmissione all'Agenzia usa le credenziali Fisconline ${dilei}: rinnovala prima, con i due passi qui sotto nell'ordine, o alla scadenza l'emissione si ferma.`}
           </div>
 
           {/* I due passi: l'ordine è il contenuto. La password nuova nasce sul
@@ -181,7 +206,7 @@ function AdeCredenzialiCard() {
                 transform:'translateY(3px)',
               }}>1</span>
               <span style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-                Cambia la password nell'<a href="https://www.agenziaentrate.gov.it/portale/area-riservata" target="_blank" rel="noopener" style={{color: C_TITLE, fontWeight: 600}}>area riservata dell'Agenzia delle Entrate</a> (Fisconline).
+                {incaricato ? <><b>{chi.nome}</b> cambia la sua password</> : 'Cambia la password'} nell'<a href="https://www.agenziaentrate.gov.it/portale/area-riservata" target="_blank" rel="noopener" style={{color: C_TITLE, fontWeight: 600}}>area riservata dell'Agenzia delle Entrate</a> (Fisconline).
               </span>
             </div>
             <div style={{display:'flex', gap: 10, alignItems:'baseline'}}>
@@ -239,10 +264,16 @@ function AdeCredenzialiCard() {
   );
 }
 
-// ─── Forma giuridica (P-86 · ERD v11, tenant_identity FISC-01) ─────────────
-// legal_form ammette quattro valori: societa, ditta_individuale,
-// professionista, ente — e i campi seguono la forma. Per ditta individuale e
-// professionista sono obbligatori i dati della persona fisica: nome, cognome,
+// ─── Forma giuridica (P-116 · D-103 · ERD v11, tenant_identity FISC-01) ────
+// legal_form ammette TRE valori: ditta_individuale, societa, ente — e i campi
+// seguono la forma. Il professionista è uscito (D-103): chi somministra
+// alimenti esercita un'impresa (art. 4 DPR 633/72, art. 2195 c.c.) e il
+// rapporto FIPE 2026 non conosce la categoria — le imprese del settore sono
+// individuali (46,5%), società di capitale (29,1%), società di persone
+// (23,3%) e altre forme collettive (circa 1%). L'ente resta per quell'uno per
+// cento, con i campi della società e nessun percorso proprio: non è più «in
+// attesa della Soluzione Software».
+// Per la ditta individuale sono obbligatori i dati della persona fisica: nome, cognome,
 // data di nascita, luogo di nascita in DUE campi (comune + Stato, ISO 3166-1
 // alpha-2) e codice fiscale del titolare, distinto dalla P.IVA; la parte
 // societaria resta nulla. Per societa valgono denominazione e sede coi campi
@@ -253,9 +284,9 @@ function AdeCredenzialiCard() {
 // L'onboarding ripete l'enumerazione in piccolo (onboarding-step2-locale.jsx):
 // pagine diverse, una definizione a testa.
 const FORME_GIURIDICHE = [
-  { id: 'societa',           label: 'Società' },
   { id: 'ditta_individuale', label: 'Ditta individuale' },
-  { id: 'ente',              label: 'Ente' },
+  { id: 'societa',           label: 'Società' },
+  { id: 'ente',              label: 'Ente o altra forma collettiva' },
 ];
 // Lo Stato di nascita è ISO alpha-2: nel prototipo bastano i più ricorrenti.
 const STATI_NASCITA = [
@@ -264,14 +295,6 @@ const STATI_NASCITA = [
   ['UA','Ucraina'], ['DE','Germania'], ['FR','Francia'], ['ES','Spagna'],
 ];
 
-// ─── Il banner del cambio di titolarità (P-62 · D-52) ──────────────────────
-// Legge il registro condiviso (byup_holder_change, panoramica-tokens.jsx).
-// Se c'è un cambiamento con catena fiscale e identità verificata, chiede di
-// aggiornare i dati fiscali; segnando la tappa la P.IVA precedente si
-// CONSERVA accanto alla nuova, mai sovrascritta: i documenti già emessi la
-// portano e devono restare leggibili. Per holder_person cambia solo il
-// legale rappresentante, il soggetto resta. Coda registrata: la P.IVA di
-// fatturazione dell'account (ACC_DATI) non si aggiorna da qui.
 // ─── Collegamento POS all'Agenzia delle Entrate (P-105 · FISC-03) ──────────
 // Il registro, la finestra, gli stati e il perché stanno in
 // panoramica-tokens.jsx (byup_pos_censimento). Qui c'è l'assistente: l'elenco
@@ -534,11 +557,13 @@ const pivaFormale = (v) => /^IT\d{11}$/.test((v || '').replace(/\s/g, '').toUppe
 
 // ─── Il foglio del soggetto fiscale (P-62 · D-52) ──────────────────────────
 // Anagrafica e dati per fatturazione in un foglio solo, adattati alla forma
-// giuridica. Se cambiano P.IVA o forma è un cambio di soggetto (legal_entity):
-// il «Sicuro?» avverte, alla conferma i dati cambiano, Stripe si disabilita,
-// i POS tornano da comunicare e si apre «Delega, Stripe e POS». Chi
-// rappresenta il locale non si chiede qui: il titolare si cambia da Account,
-// e quel cambio passa da questo stesso foglio per aggiornare l'anagrafica.
+// giuridica. Se cambiano P.IVA o forma è un CAMBIO DI SOGGETTO FISCALE
+// (P-117 · D-104): il «Sicuro?» avverte, si sceglie la causale, alla conferma
+// i dati cambiano con il precedente conservato nella storia, Stripe si
+// disabilita, i POS tornano da comunicare e si apre la catena dei passi, che
+// si chiude con la riaccettazione dei termini a nome del nuovo soggetto.
+// Chi rappresenta il locale non si chiede qui e non si chiede da nessuna
+// parte: l'account è della persona, e non esiste un cambio del titolare.
 function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   // Tutti i campi della card, prefilled: il foglio è l'unico editore dei dati
   // anagrafici. La catena fiscale non si sceglie e non si chiede: nasce se
@@ -562,17 +587,9 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   const [fatt, setFatt] = React.useState(fattDaDati);
   const setB = (k, check) => (e) => setFatt(x => ({ ...x, [k]: check ? e.target.checked : e.target.value }));
   const [chiedi, setChiedi] = React.useState(false);   // il «Sicuro?» prima del cambio
-  // Il cambio del TITOLARE (da Account) passa da qui prima di tutto: i dati
-  // anagrafici e per fatturazione si aggiornano al nuovo rappresentante, e
-  // al salvataggio si apre «Delega e Stripe». Per la persona fisica nome e
-  // cognome arrivano già compilati con chi entra.
-  const c0 = window.byupReadHolderChange ? byupReadHolderChange() : null;
-  const titolareInCorso = !!(c0 && c0.entrante && !c0.soggetto && c0.status !== 'refused' && c0.status !== 'completed');
-  React.useEffect(() => {
-    if (!titolareInCorso || !(f.legalForm === 'ditta_individuale')) return;
-    const [nome, ...resto] = (c0.entrante.nome || '').split(' ');
-    setF(x => ({ ...x, ownerNome: nome || x.ownerNome, ownerCognome: resto.join(' ') || x.ownerCognome, ownerCf: '' }));
-  }, []);
+  // La causale del cambiamento: la si sceglie da un elenco, perché «perché è
+  // cambiato» è un dato del registro (reason) e non una nota libera.
+  const [causale, setCausale] = React.useState('trasformazione_societaria');
 
   const persona = f.legalForm === 'ditta_individuale';
   const ente = f.legalForm === 'ente';
@@ -589,17 +606,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   const avvia = () => {
     if (!pronto) return;
     const campi = { ...f, ...fatt, piva: pivaPulita };
-    if (!cambiaSoggetto) {
-      onSalva(campi);
-      if (titolareInCorso) {
-        // L'anagrafica è confermata: la tappa dei dati, se il tipo la
-        // prevede, è fatta; poi tocca a delega e Stripe.
-        const c = byupReadHolderChange(); c.steps.anagrafica_confermata = new Date().toISOString(); byupWriteHolderChange(c);
-        if (pnHolderTappe(c.change_type, c.legal_form).includes('fiscal_updated') && !c.steps.fiscal_updated) byupHolderAvanza('fiscal_updated');
-        onClose(); onDopo(); return;
-      }
-      onClose(); return;
-    }
+    if (!cambiaSoggetto) { onSalva(campi); onClose(); return; }
     setChiedi(true);
   };
   // Alla conferma i dati cambiano subito (tappa fiscal_updated) e Stripe si
@@ -613,20 +620,20 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
     // nuovo tutti i suoi strumenti all'Agenzia (P-105, finestra riaperta).
     if (window.byupReadPosCensimento) byupReadPosCensimento().forEach(r => byupPosVaria(r.id, 'varied'));
     const now = new Date().toISOString();
+    // Il record ha i nomi del modello: il precedente si CONSERVA — i
+    // documenti già emessi portano quella partita IVA e devono restare
+    // leggibili — e la causale distingue trasformazione, cessione e subentro.
     const record = {
-      id: 'hc-' + Date.now(), change_type: 'legal_entity', fiscal_chain_impacted: true,
-      legal_form: f.legalForm,
-      status: 'proposed', proposed_by: 'Mario Rossi', created_at: now,
-      steps: { proposed: now },
-      entrante: null,
-      soggetto: {
-        prima: { denominazione: data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione, piva: data.piva },
-        dopo: { denominazione, piva: pivaPulita, forma: f.legalForm, campi },
-      },
+      id: 'sc-' + Date.now(), change_type: 'legal_entity', reason: causale,
+      previous_vat_number: data.piva,
+      previous_tax_identification_number: data.cf || data.ownerCf || null,
+      previous_denominazione: data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}`.trim() : data.ragione,
+      nuovo: { legalForm: f.legalForm, denominazione, piva: pivaPulita, campi },
+      status: 'fiscal_updated', created_at: now,
+      steps: { fiscal_updated: now },
     };
-    byupWriteHolderChange(record);
+    byupWriteSoggettoChange(record);
     onApplica(record);
-    byupHolderAvanza('fiscal_updated');
     onClose();
     onDopo();
   };
@@ -648,11 +655,9 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
       <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 1040, maxHeight:'calc(var(--pn-vh, 100vh) - 40px)', display:'flex', flexDirection:'column', position:'relative'}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
-          <div style={{...MODAL_TITLE, fontSize: 21}}>{titolareInCorso ? 'Cambia il titolare' : 'Cambia soggetto fiscale'}</div>
+          <div style={{...MODAL_TITLE, fontSize: 21}}>Cambia soggetto fiscale</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
-            {titolareInCorso
-              ? `Da ${c0.proposed_by || 'Mario Rossi'} a ${c0.entrante.nome}. Aggiorna qui i dati anagrafici e per fatturazione del locale: al salvataggio si passa a delega, Stripe e POS.`
-              : 'Anagrafica e dati per fatturazione, insieme: la forma giuridica decide quali esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.'}
+            Anagrafica e dati per fatturazione, insieme: la forma giuridica decide quali esistono. Se cambiano partita IVA o forma, cambia il soggetto fiscale: la P.IVA di oggi resta come precedente sui documenti già emessi.
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
@@ -666,7 +671,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                 <div style={{minWidth: 0}}>
                   <div style={LAB}>Forma giuridica</div>
                   <select value={f.legalForm} onChange={setC('legalForm')} style={INP}>
-                    {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id} disabled={x.id === 'ente'}>{x.id === 'ente' ? 'Ente o cooperativa · con la Soluzione Software' : x.label}</option>)}
+                    {FORME_GIURIDICHE.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
                   </select>
                 </div>
                 {persona ? campo('Nome del titolare', 'ownerNome') : campo(ente ? 'Denominazione' : 'Ragione sociale', 'ragione')}
@@ -698,6 +703,14 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                     <input value={f.piva || ''} onChange={setC('piva')} placeholder="IT seguito da 11 cifre" style={{...INP, fontFamily:'ui-monospace, Menlo, monospace'}}/>
                   </div>
                   {campo('Codice fiscale', 'cf')}
+                </div>
+              )}
+                      {/* P-116: per società ed enti le credenziali del canale sono di
+                  una persona nominata incaricata sul portale. Chi sia si
+                  dichiara qui, sotto la forma: senza, il canale non parte. */}
+              {!persona && (
+                <div style={{padding: '10px 12px', borderRadius: 10, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`, fontSize: 12.5, color: PN.MUTED, lineHeight: 1.45}}>
+                  Gli scontrini li trasmette la persona che nomini incaricata sul portale dell'Agenzia: nome, cognome e codice fiscale si dichiarano nella scheda «Chi trasmette gli scontrini», qui sotto in pagina.
                 </div>
               )}
               <div style={due}>{campo('Insegna', 'insegna')}{campo('Codice ATECO', 'ateco')}</div>
@@ -764,9 +777,15 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
             </div>
           </div>
           {cambiaSoggetto && (
-            <div style={{paddingTop: 8, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
-              <div style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45}}>
-                <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): Stripe si disabilita, la delega va riconferita, i POS vanno comunicati di nuovo. Chi rappresenta il locale resta lo stesso: il titolare si cambia da Account.
+            <div style={{paddingTop: 8, borderTop: `1px solid ${PN.BORDER_SOFT}`, display:'flex', gap: 16, alignItems:'flex-start', flexWrap:'wrap'}}>
+              <div style={{flex: 1, minWidth: 320, fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45}}>
+                <b>Cambia il soggetto fiscale.</b> Da {data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione} ({data.piva}) a {denominazione || '…'} ({pivaPulita || '…'}): Stripe si disabilita, la delega va riconferita, le credenziali del canale sono del nuovo soggetto, i POS vanno comunicati di nuovo, e alla fine i termini si riaccettano a suo nome — è un nuovo soggetto giuridico, e il contratto lo firma lui.
+              </div>
+              <div style={{minWidth: 240}}>
+                <div style={LAB}>Causale</div>
+                <select data-causale value={causale} onChange={e => setCausale(e.target.value)} style={INP}>
+                  {(window.PN_SOGGETTO_CAUSALI || []).map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
               </div>
             </div>
           )}
@@ -777,7 +796,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
             <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 520, padding: '22px 24px', boxShadow: '0 24px 60px rgba(0,0,0,0.28)'}}>
               <div style={{fontSize: 21, fontWeight: 800, letterSpacing: -0.4, color: PN.TEXT}}>Sicuro?</div>
               <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.55, marginTop: 8}}>
-                Il tuo collegamento a Stripe viene disabilitato e anche le deleghe dovranno essere rifatte: finché non le rifai non potrai emettere scontrini né ricevere pagamenti. Anche i POS andranno comunicati di nuovo all'Agenzia dal nuovo soggetto.
+                Il tuo collegamento a Stripe viene disabilitato e anche le deleghe dovranno essere rifatte: finché non le rifai non potrai emettere scontrini né ricevere pagamenti. Anche i POS andranno comunicati di nuovo all'Agenzia dal nuovo soggetto, e alla fine i termini e condizioni vanno riaccettati a nome suo: fino ad allora il cambiamento non è concluso.
               </div>
               <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 6}}>
                 L'account Stripe è intestato a {data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione}: il nuovo soggetto ne apre uno suo, con la verifica di Stripe, da POS e integrazioni.
@@ -801,10 +820,14 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
   );
 }
 
-// ─── Il riconferimento della delega (P-62 · D-52, P-49 · D-40) ─────────────
-// Si apre da solo dopo la conferma del nuovo soggetto, e da Account per il
-// cambio di persona: chi rappresenta il soggetto riconferisce la delega con
-// il proprio SPID. Stessa procedura della card dell'onboarding
+// ─── «Rinnova la delega» (P-117 · D-104; P-49 · D-40) ──────────────────────
+// Due usi, una finestra: si apre da sola dopo la conferma di un nuovo
+// soggetto, e si apre a richiesta — dal pulsante «Rinnova la delega» in Dati
+// fiscali — quando la delega va rifatta senza che il soggetto cambi, perché è
+// cambiata la persona che la conferisce o perché sta per scadere. Chi
+// rappresenta il soggetto la riconferisce con il proprio SPID; la precedente
+// si revoca, e i due atti si dichiarano con la loro data nel registro delle
+// deleghe (ade_delegations: conferimento, revoca, date, responsabile). Stessa procedura della card dell'onboarding
 // (onboarding-step2-locale.jsx, altro bundle: CF, servizi e tap sono copie
 // verbatim, con gli stessi nomi). Il controllo non si fida sulla parola: il
 // primo giro finisce in «non trovata», col perché nell'ordine in cui si
@@ -834,23 +857,24 @@ const ADE_CAUSE = [
   'La delega può metterci qualche minuto a comparire: riprova.',
 ];
 
-function ImpDelegaRiconfermaModal({ onClose }) {
+function ImpDelegaRiconfermaModal({ onClose, denominazione }) {
   const [, forza] = React.useState(0);
   React.useEffect(() => {
     const ri = () => forza(x => x + 1);
-    window.addEventListener('byup-holder-change', ri);
-    return () => window.removeEventListener('byup-holder-change', ri);
+    window.addEventListener('byup-soggetto-change', ri);
+    return () => window.removeEventListener('byup-soggetto-change', ri);
   }, []);
-  const c = window.byupReadHolderChange ? byupReadHolderChange() : null;
+  const c = window.byupSoggettoInCorso ? byupSoggettoInCorso() : null;
   const [stato, setStato] = React.useState('attesa');   // attesa | verifica | errore | attivo
   const [tentativi, setTentativi] = React.useState(0);
+  // Senza un cambio di soggetto in corso la finestra vale lo stesso: è il
+  // rinnovo a richiesta, e allora non c'è nessuna tappa da segnare.
   const fatta = !!(c && c.steps && c.steps.delegations_renewed);
   React.useEffect(() => {
-    if (c && !fatta && stato === 'attivo') byupHolderAvanza('delegations_renewed');
+    if (c && !fatta && stato === 'attivo') byupSoggettoAvanza('delegations_renewed');
   }, [stato]);
-  if (!c) return null;
-  const chi = c.entrante ? c.entrante.nome : 'Mario Rossi';
-  const perChi = c.soggetto ? c.soggetto.dopo.denominazione : 'Cacio e Pepe S.r.l.';
+  const chi = (window.PN_UTENTE && PN_UTENTE.nome) || 'Mario Rossi';
+  const perChi = c ? c.nuovo.denominazione : (denominazione || 'Cacio e Pepe S.r.l.');
   const verifica = () => {
     setStato('verifica');
     const t = tentativi + 1; setTentativi(t);
@@ -862,7 +886,7 @@ function ImpDelegaRiconfermaModal({ onClose }) {
         <div style={MODAL_HEAD}>
           <div style={MODAL_TITLE}>Riconferisci la delega all'Agenzia</div>
           <div style={MODAL_SUB}>
-            La delega è conferita da una persona per conto di un contribuente: cambiato {c.soggetto ? 'il soggetto' : 'chi lo rappresenta'}, va rifatta.
+            La delega è conferita da una persona per conto di un contribuente: quando cambia il soggetto, o quando cambia chi lo rappresenta, va rifatta — e la precedente si revoca.
             La dà <b style={{color: PN.TEXT}}>{chi}</b> per <b style={{color: PN.TEXT}}>{perChi}</b>, dal proprio accesso al portale.
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
@@ -870,7 +894,7 @@ function ImpDelegaRiconfermaModal({ onClose }) {
         <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
           {fatta ? (
             <div style={{padding:'12px 14px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>
-              <b style={{color: PN.GREEN}}>Delega riconferita.</b> {c.status === 'completed' ? <>Il cambiamento è concluso: lo vedi in <a href="byup Profilo.html" style={{color: PN.PINK_DARK, fontWeight: 600}}>Account</a>.</> : 'Resta Stripe da ricollegare.'}
+              <b style={{color: PN.GREEN}}>Delega riconferita e precedente revocata.</b> {c && c.status === 'completed' ? 'Il cambiamento di soggetto è concluso.' : c ? 'Restano gli altri passi del cambio di soggetto.' : 'I due atti sono a registro con la loro data.'}
             </div>
           ) : (
             <React.Fragment>
@@ -919,93 +943,92 @@ function ImpDelegaRiconfermaModal({ onClose }) {
 }
 
 
-// ─── Il popup dopo il cambio di soggetto: «Delega e Stripe» ────────────────
-// Si apre da solo alla conferma del «Sicuro?», e si riapre dal banner finché
-// il cambiamento non è concluso. Due righe, le due cose che restano: la
-// delega, riconferita con lo SPID da chi rappresenta il nuovo soggetto; e
-// Stripe, dove il nuovo soggetto apre il suo account — la verifica
-// dell'identità è quella (byupStripeRicollega segna verified). Il foglio
-// della delega si apre sopra, e questo resta sotto ad aggiornarsi.
-function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
+// ─── La catena del cambio di soggetto (P-117 · D-104) ──────────────────────
+// Si apre da sola alla conferma del «Sicuro?», e si riapre dal banner finché
+// il cambiamento non è concluso. Sei passi, con lo stato di ciascuno: i dati
+// fiscali (fatti alla conferma), la delega riconferita e revocata, le
+// credenziali del canale del nuovo soggetto con la trasmissione di prova, il
+// conto Stripe del nuovo soggetto con la sua verifica, il censimento dei POS
+// rifatto, e infine la RIACCETTAZIONE dei termini: è un nuovo soggetto
+// giuridico, quindi il contratto lo firma lui, con la stessa finestra della
+// firma dell'onboarding e la stessa prova (versione e impronta). Finché non è
+// firmato, il cambiamento non è concluso.
+// I passi 3, 4 e 5 hanno blocchi propri che valgono per conto loro: senza
+// credenziali non partono scontrini, senza Stripe non si incassa.
+function ImpDopoSoggettoModal({ onClose, onDelega, onPos, onFirma }) {
   const [, forza] = React.useState(0);
   const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
   const [ricollegando, setRicollegando] = React.useState(false);
   React.useEffect(() => {
     const ri = () => forza(x => x + 1);
     const rs = () => setStripe(byupReadStripe());
-    window.addEventListener('byup-holder-change', ri);
+    window.addEventListener('byup-soggetto-change', ri);
     window.addEventListener('byup-stripe-change', rs);
     window.addEventListener('byup-pos-censimento', ri);
-    return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-stripe-change', rs); window.removeEventListener('byup-pos-censimento', ri); };
+    window.addEventListener('byup-ade-cred-change', ri);
+    return () => { window.removeEventListener('byup-soggetto-change', ri); window.removeEventListener('byup-stripe-change', rs); window.removeEventListener('byup-pos-censimento', ri); window.removeEventListener('byup-ade-cred-change', ri); };
   }, []);
-  const c = window.byupReadHolderChange ? byupReadHolderChange() : null;
-  const inCorso = c && c.fiscal_chain_impacted && c.status !== 'refused';
-  const titolare = !!(inCorso && c.entrante && !c.soggetto);
-  // Chi entra accetta e verifica la sua identità dal suo telefono: qui non c'è
-  // nulla da premere, nel prototipo si simula da sola.
-  React.useEffect(() => {
-    if (!inCorso || !c.entrante) return;
-    const tappe = pnHolderTappe(c.change_type, c.legal_form);
-    const prossima = tappe.find(t => !c.steps[t]);
-    if (prossima === 'accepted' || (prossima === 'verified' && titolare)) {
-      const t = setTimeout(() => byupHolderAvanza(prossima), 2200);
-      return () => clearTimeout(t);
-    }
-  }, [inCorso && c.id, inCorso && !!c.steps.accepted, inCorso && !!c.steps.verified]);
-  if (!inCorso) return null;
+  const c = window.byupReadSoggettoChange ? byupReadSoggettoChange() : null;
+  if (!c) return null;
   const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); byupStripeRicollega(); }, 1800); };
-  // Per il cambio del titolare Stripe non si ricollega: il soggetto è lo
-  // stesso, cambia il rappresentante, e Stripe lo verifica.
-  const aggiornaRappresentante = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); const x = byupReadHolderChange(); x.steps.stripe_updated = new Date().toISOString(); byupWriteHolderChange(x); }, 1800); };
-  const attesaAccettazione = !!c.entrante && !c.steps.accepted;
-  const delegaOk = !!c.steps.delegations_renewed;
-  const stripeOk = titolare ? !!c.steps.stripe_updated : (stripe.status === 'connected' && !!c.steps.verified);
-  // Il censimento dei POS non è una tappa del modello ma è dovuto lo stesso:
-  // il nuovo esercente comunica di nuovo i suoi strumenti (P-105). Stesso
-  // popup per il cambio del titolare: la riga dei POS dice lo stato vero del
-  // censimento, che il nuovo titolare eredita e chiude a suo nome.
+  // I POS non sono una tappa del modello ma sono dovuti lo stesso: il nuovo
+  // esercente comunica di nuovo i suoi strumenti (P-105). Quando li ha
+  // dichiarati tutti, il passo si segna da sé.
   const posLista = window.byupReadPosCensimento ? byupReadPosCensimento() : [];
-  const posOk = posLista.every(r => r.fiscal_link_status === 'linked');
-  const concluso = c.status === 'completed' && (titolare ? !!c.steps.stripe_updated : true);
-  const riga = (titolo, sotto, ok, azione) => (
-    <div style={{display:'flex', alignItems:'center', gap: 12, padding:'12px 14px', borderRadius: 10, border:`1px solid ${ok ? PN.GREEN_SOFT : PN.BORDER_SOFT}`, background: ok ? PN.GREEN_SOFT : PN.WHITE}}>
-      <span style={{width: 12, height: 12, borderRadius: 999, flexShrink: 0, background: ok ? PN.GREEN : 'transparent', border:`2px solid ${ok ? PN.GREEN : PN.PINK_DARK}`}}/>
-      <div style={{flex: 1, minWidth: 0}}>
-        <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{titolo}</div>
-        <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>{sotto}</div>
+  const posOk = posLista.length > 0 && posLista.every(r => r.fiscal_link_status === 'linked');
+  React.useEffect(() => { if (posOk && !c.steps.pos_recensiti) byupSoggettoAvanza('pos_recensiti'); }, [posOk]);
+  // Le credenziali del nuovo soggetto: il passo è fatto quando la password è
+  // stata inserita e verificata con la trasmissione di prova (P-104).
+  const credOk = window.byupAdeCredStato ? !window.byupAdeCredStato().scaduta : false;
+  React.useEffect(() => { if (credOk && !c.steps.credentials_verified) byupSoggettoAvanza('credentials_verified'); }, [credOk]);
+  React.useEffect(() => { if (stripe.status === 'connected' && !c.steps.stripe_connected) byupSoggettoAvanza('stripe_connected'); }, [stripe.status]);
+
+  const concluso = c.status === 'completed';
+  const fatto = (id) => !!c.steps[id];
+  const riga = (id, titolo, sotto, azione) => {
+    const ok = fatto(id);
+    return (
+      <div key={id} data-passo={id} data-fatto={ok ? '1' : '0'} style={{display:'flex', alignItems:'center', gap: 12, padding:'12px 14px', borderRadius: 10, border:`1px solid ${ok ? PN.GREEN_SOFT : PN.BORDER_SOFT}`, background: ok ? PN.GREEN_SOFT : PN.WHITE}}>
+        <span style={{width: 12, height: 12, borderRadius: 999, flexShrink: 0, background: ok ? PN.GREEN : 'transparent', border:`2px solid ${ok ? PN.GREEN : PN.PINK_DARK}`}}/>
+        <div style={{flex: 1, minWidth: 0}}>
+          <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{titolo}</div>
+          <div style={{fontSize: 13, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>{sotto}</div>
+        </div>
+        {!ok && azione}
       </div>
-      {!ok && azione}
-    </div>
-  );
+    );
+  };
+  // La firma si sblocca solo quando tutto il resto è a posto: si riaccetta il
+  // contratto quando il nuovo soggetto è davvero operativo.
+  const prontoPerFirma = ['fiscal_updated', 'delegations_renewed', 'credentials_verified', 'stripe_connected', 'pos_recensiti'].every(fatto);
+
   return (
     <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 150, padding: 20}}>
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 680}}>
+      <div onClick={e => e.stopPropagation()} data-catena-soggetto style={{...MODAL_PANEL, width: 720, maxHeight:'calc(var(--pn-vh, 100vh) * 0.92)', display:'flex', flexDirection:'column'}}>
         <div style={{...MODAL_HEAD, padding: '18px 24px 14px'}}>
-          <div style={{...MODAL_TITLE, fontSize: 21}}>Delega, Stripe e POS</div>
+          <div style={{...MODAL_TITLE, fontSize: 21}}>Cambio di soggetto fiscale</div>
           <div style={{...MODAL_SUB, fontSize: 13.5, marginTop: 2}}>
-            {titolare
-              ? <>Il titolare cambia: da {c.proposed_by || 'Mario Rossi'} a {c.entrante.nome}, stesso soggetto fiscale. Restano tre cose da rifare, a nome di chi entra.</>
-              : <>Il soggetto fiscale è cambiato: da {c.soggetto.prima.denominazione} ({c.soggetto.prima.piva}) a {c.soggetto.dopo.denominazione} ({c.soggetto.dopo.piva}), con la P.IVA precedente conservata sui documenti già emessi. Restano tre cose da rifare.</>}
+            Da {c.previous_denominazione} ({c.previous_vat_number}) a {c.nuovo.denominazione} ({c.nuovo.piva}), con la partita IVA precedente conservata sui documenti già emessi. Causale: {((window.PN_SOGGETTO_CAUSALI || []).find(x => x.id === c.reason) || {}).label || c.reason}.
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
         </div>
-        <div style={{...MODAL_BODY, padding: '16px 24px', display:'flex', flexDirection:'column', gap: 10}}>
-          {attesaAccettazione && (
-            <div style={{fontSize: 14, color: PN.TEXT, lineHeight: 1.5, padding:'10px 13px', borderRadius: 10, background: PN.AMBER_SOFT}}>
-              In attesa che {c.entrante.nome} accetti l'invito con la sua casella e la sua identità: poi tocca a lui.
+        <div className="pn-scroll" style={{...MODAL_BODY, padding: '16px 24px', display:'flex', flexDirection:'column', gap: 10, overflowY:'auto'}}>
+          {riga('fiscal_updated', 'Dati fiscali aggiornati', `Il nuovo soggetto è ${c.nuovo.denominazione}; il precedente resta nella storia.`, null)}
+          {riga('delegations_renewed', 'Delega all\'Agenzia', 'La riconferisce chi rappresenta il nuovo soggetto, con il proprio SPID, e la precedente si revoca. Finché manca, niente scontrini.',
+            <ImpButton variant="primary" onClick={onDelega}>Rinnova la delega</ImpButton>)}
+          {riga('credentials_verified', 'Credenziali del canale', 'Sono del nuovo soggetto: del titolare, o della persona che nomina incaricata sul portale. Si inseriscono in questa pagina e una trasmissione di prova le verifica.',
+            <ImpButton variant="secondary" onClick={() => { onClose(); setTimeout(() => { const el = window.impAccendiSezione && window.impAccendiSezione('ade-credenziali'); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 120); }}>Vai alle credenziali</ImpButton>)}
+          {riga('stripe_connected', 'Conto Stripe del nuovo soggetto', 'L\'account connesso era intestato al soggetto precedente: il nuovo ne apre uno suo, e la verifica dell\'identità la fa Stripe. Finché manca, niente pagamenti.',
+            <ImpButton variant="primary" disabled={ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>)}
+          {riga('pos_recensiti', 'POS comunicati all\'Agenzia', `Il censimento è del soggetto e si rifà: ${posLista.filter(r => r.fiscal_link_status !== 'linked').length || 'nessuno'} da comunicare, col foglio precompilato.`,
+            <ImpButton variant="primary" onClick={() => { onClose(); onPos(); }}>Vai al collegamento POS</ImpButton>)}
+          {riga('terms_reaccepted', 'Termini e condizioni riaccettati', 'È un nuovo soggetto giuridico: il contratto lo firma lui, e l\'accettazione si registra a suo nome con versione e impronta. Senza, il cambiamento non è concluso.',
+            <ImpButton variant="primary" disabled={!prontoPerFirma} onClick={onFirma}>{prontoPerFirma ? 'Firma a nome del nuovo soggetto' : 'Prima gli altri passi'}</ImpButton>)}
+          {concluso && (
+            <div style={{padding:'12px 14px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
+              <b style={{color: PN.GREEN}}>Cambiamento concluso.</b> Il locale opera come {c.nuovo.denominazione}. La storia delle operazioni resta attribuita all'account: quello che il registro dice è quando e in che cosa il soggetto è cambiato.
             </div>
           )}
-          {riga('Delega all\'Agenzia', 'La riconferisce chi rappresenta il nuovo soggetto, con il proprio SPID. Finché manca, niente scontrini.', delegaOk,
-            <ImpButton variant="primary" disabled={attesaAccettazione} onClick={onDelega}>Riconferisci la delega</ImpButton>)}
-          {titolare
-            ? riga('Stripe', 'Chi entra si registra come rappresentante dell\'account connesso: la verifica dell\'identità la fa Stripe.', stripeOk,
-                <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={aggiornaRappresentante}>{ricollegando ? 'Aggiornamento in corso…' : 'Aggiorna su Stripe'}</ImpButton>)
-            : riga('Stripe', 'Il nuovo soggetto apre il suo account: la verifica dell\'identità la fa Stripe. Finché manca, niente pagamenti.', stripeOk,
-                <ImpButton variant="primary" disabled={attesaAccettazione || ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>)}
-          {riga('POS all\'Agenzia', `Il nuovo soggetto comunica di nuovo i suoi strumenti dal proprio accesso al portale: ${posLista.filter(r => r.fiscal_link_status !== 'linked').length || 'nessuno'} da aggiornare. Il foglio precompilato è qui sotto.`, posOk,
-            <ImpButton variant="primary" disabled={attesaAccettazione} onClick={() => { onClose(); onPos(); }}>Vai al collegamento POS</ImpButton>)}
-          {concluso && <div style={{fontSize: 14, color: PN.GREEN, fontWeight: 700}}>Cambiamento concluso{posOk ? '.' : ': resta il collegamento dei POS.'}</div>}
-          {attesaAccettazione && null}
         </div>
         <div style={{...MODAL_FOOT, padding: '12px 24px', justifyContent:'flex-end'}}>
           <ImpButton variant="ghost" onClick={onClose}>{concluso ? 'Chiudi' : 'Più tardi'}</ImpButton>
@@ -1016,32 +1039,96 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos }) {
 }
 
 
-// ─── La riga del soggetto fiscale, in cima alla pagina ─────────────────────
-// Chi è il soggetto adesso, e l'unico gesto che lo cambia: «Cambia soggetto
-// fiscale», qui a destra e in nessun altro posto. Con un cambiamento in
-// corso la riga dice cosa resta e lo stesso pulsante apre «Delega, Stripe e
-// POS» invece del foglio dei dati.
-function ImpSoggettoRiga({ data, passo, onCambia }) {
-  const [c, setC] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
-  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
+// ─── La riaccettazione dei termini (P-117 · D-104; P-114) ──────────────────
+// Il cambio di soggetto si chiude qui: è un nuovo soggetto giuridico, e il
+// contratto lo firma lui. Stessa proiezione di TC-01 dell'onboarding
+// (contratto-tc01.jsx), stessa verifica dell'impronta — se il testo caricato
+// non è quello dichiarato la firma si blocca e lo dice, perché un contratto
+// firmato su un testo che non è quello depositato è un problema che si scopre
+// nel momento peggiore — e stessa doppia accettazione, integrale e delle
+// clausole ex artt. 1341-1342 c.c. L'accettazione si registra a nome del
+// nuovo soggetto con versione e impronta.
+function ImpRiaccettaTerminiModal({ onClose, onFirmato }) {
+  const c = window.byupReadSoggettoChange ? byupReadSoggettoChange() : null;
+  const TC = window.TC01;
+  const verifica = window.tc01Verifica ? tc01Verifica() : { ok: false, dichiarata: '—', calcolata: '—' };
+  const vessatorie = window.tc01Vessatorie ? tc01Vessatorie() : [];
+  const [tutto, setTutto] = React.useState(false);
+  const [specifiche, setSpecifiche] = React.useState(false);
+  if (!TC || !c) return null;
+  const puoFirmare = tutto && specifiche && verifica.ok;
+  const firma = () => {
+    if (!puoFirmare) return;
+    // La prova: chi ha firmato, su quale versione e su quale impronta.
+    const c2 = window.byupReadSoggettoChange();
+    c2.terms = { codice: TC.codice, versione: TC.versione, impronta: TC.impronta, soggetto: c.nuovo.denominazione, quando: new Date().toISOString() };
+    window.byupWriteSoggettoChange(c2);
+    onFirmato();
+  };
+  const riga = { display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5 };
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.5)', display:'grid', placeItems:'center', zIndex: 170, padding: 20}}>
+      <div onClick={e => e.stopPropagation()} data-riaccetta style={{...MODAL_PANEL, width: 720, maxHeight:'calc(var(--pn-vh, 100vh) * 0.92)', display:'flex', flexDirection:'column'}}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>Riaccetta i termini a nome di {c.nuovo.denominazione}</div>
+          <div style={MODAL_SUB}>
+            {TC.codice} · v{TC.versione} · impronta {TC.impronta}. Il soggetto che esercita l'attività è cambiato: il contratto si accetta a nome del nuovo, e l'accettazione si registra con versione e impronta.
+          </div>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
+        </div>
+        <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 12}}>
+          <div style={{maxHeight: 260, overflowY:'auto', padding:'12px 14px', borderRadius: 10, border:`1px solid ${PN.BORDER_SOFT}`, background:'#FAFBFC'}}>
+            {TC.clausole.map(cl => (
+              <div key={cl.n} style={{marginBottom: 10}}>
+                <div style={{fontSize: 13.5, fontWeight: 700, color: PN.TEXT}}>Art. {cl.n} · {cl.h}{cl.vessatoria ? ' ·' : ''}{cl.vessatoria && <span style={{color: PN.PINK_DARK}}> 1341-1342</span>}</div>
+                <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.5, marginTop: 2}}>{cl.p}</div>
+              </div>
+            ))}
+          </div>
+          {!verifica.ok && (
+            <div style={{padding:'11px 13px', borderRadius: 10, background:'#FEF2F2', border:'1px solid #FECACA', fontSize: 13.5, color: PN.TEXT, lineHeight: 1.5}}>
+              <b style={{color: PN.RED}}>Firma bloccata: il testo non corrisponde alla proiezione di TC-01.</b>{' '}
+              Impronta dichiarata {verifica.dichiarata}, calcolata {verifica.calcolata}. La proiezione va rigenerata dal pacchetto legale: non si firma un testo che non è quello depositato.
+            </div>
+          )}
+          <label style={{...riga, cursor:'pointer'}}>
+            <input type="checkbox" data-firma-tutto checked={tutto} onChange={e => setTutto(e.target.checked)} style={{marginTop: 3, accentColor: PN.PINK_DARK}}/>
+            <span>{c.nuovo.denominazione} ha letto e accetta integralmente i <b>{TC.nome}</b> ({TC.codice} v{TC.versione}) e ha preso visione dell'informativa privacy.</span>
+          </label>
+          <label style={{...riga, cursor:'pointer'}}>
+            <input type="checkbox" data-firma-vessatorie checked={specifiche} onChange={e => setSpecifiche(e.target.checked)} style={{marginTop: 3, accentColor: PN.PINK_DARK}}/>
+            <span>Ai sensi degli artt. 1341-1342 c.c. approva specificamente gli articoli {vessatorie.map(x => x.n).join(', ')}.</span>
+          </label>
+        </div>
+        <div style={{...MODAL_FOOT, justifyContent:'flex-end'}}>
+          <ImpButton variant="ghost" onClick={onClose}>Più tardi</ImpButton>
+          <ImpButton variant="primary" disabled={!puoFirmare} onClick={firma}>Firma e concludi il cambiamento</ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─── La riga del soggetto fiscale, in cima alla pagina (P-117 · D-104) ─────
+// Chi è il soggetto adesso, e le DUE azioni che il fiscale ha: «Rinnova la
+// delega», per rifarla senza che il soggetto cambi, e «Cambia soggetto
+// fiscale», per quando cambia il contribuente. Con un cambiamento in corso il
+// secondo pulsante apre la catena dei passi e la riga dice che cosa manca,
+// con i blocchi che valgono per conto proprio.
+function ImpSoggettoRiga({ data, onCambia, onDelega }) {
+  const [c, setC] = React.useState(() => window.byupReadSoggettoChange ? byupReadSoggettoChange() : null);
   React.useEffect(() => {
-    const ri = () => setC(byupReadHolderChange());
-    const rs = () => setStripe(byupReadStripe());
-    window.addEventListener('byup-holder-change', ri);
-    window.addEventListener('byup-stripe-change', rs);
-    return () => { window.removeEventListener('byup-holder-change', ri); window.removeEventListener('byup-stripe-change', rs); };
+    const ri = () => setC(byupReadSoggettoChange());
+    window.addEventListener('byup-soggetto-change', ri);
+    return () => window.removeEventListener('byup-soggetto-change', ri);
   }, []);
   const persona = data.legalForm === 'ditta_individuale';
   const nome = persona ? `${data.ownerNome} ${data.ownerCognome}`.trim() : data.ragione;
-  const inCorso = !!(c && c.fiscal_chain_impacted && c.status !== 'refused' && c.status !== 'completed');
-  const titolare = !!(inCorso && c.entrante && !c.soggetto);
-  const resta = inCorso ? [
-    titolare && !c.steps.anagrafica_confermata && 'l\'anagrafica',
-    !c.steps.delegations_renewed && 'la delega',
-    (titolare ? !c.steps.stripe_updated : !(stripe.status === 'connected' && c.steps.verified)) && 'Stripe',
-  ].filter(Boolean) : [];
+  const inCorso = !!(c && c.status !== 'completed');
+  const manca = inCorso ? (window.PN_SOGGETTO_PASSI || []).filter(p => !c.steps[p.id]) : [];
   return (
-    <div style={{
+    <div data-soggetto-riga style={{
       display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap',
       padding: '12px 18px', marginBottom: 18, borderRadius: 12,
       background: inCorso ? PN.AMBER_SOFT : PN.WHITE, border: `1.5px solid ${inCorso ? '#FCD34D' : PN.BORDER_SOFT}`,
@@ -1054,11 +1141,14 @@ function ImpSoggettoRiga({ data, passo, onCambia }) {
         </div>
         {inCorso && (
           <div style={{fontSize: 13.5, color: PN.AMBER, fontWeight: 600, marginTop: 2}}>
-            {titolare ? `Cambio del titolare in corso: da ${c.proposed_by || 'Mario Rossi'} a ${c.entrante.nome}` : 'Cambio in corso'}{resta.length ? ` · restano ${resta.join(', ')}` : ''}{!c.steps.delegations_renewed ? ' · niente scontrini finché manca la delega' : ''}{!titolare && !(stripe.status === 'connected' && c.steps.verified) ? ' · niente pagamenti finché manca Stripe' : ''}
+            Cambio di soggetto in corso · {manca.length ? `manca ${manca.map(p => p.label.toLowerCase()).join(', ')}` : 'ci siamo'}
+            {!c.steps.delegations_renewed ? ' · niente scontrini finché manca la delega' : ''}
+            {!c.steps.stripe_connected ? ' · niente pagamenti finché manca Stripe' : ''}
           </div>
         )}
       </div>
-      <ImpButton variant="primary" onClick={onCambia}>{passo === 'anagrafica' ? 'Aggiorna l\'anagrafica' : passo === 'dopo' ? 'Delega, Stripe e POS' : 'Cambia soggetto fiscale'}</ImpButton>
+      <ImpButton variant="secondary" onClick={onDelega}>Rinnova la delega</ImpButton>
+      <ImpButton variant="primary" onClick={onCambia}>{inCorso ? 'Riprendi il cambiamento' : 'Cambia soggetto fiscale'}</ImpButton>
     </div>
   );
 }
@@ -1075,7 +1165,7 @@ function ImpDatiFiscali() {
     cf: '12345678901',
     regime: 'Ordinario',
     ateco: '56.10.11',
-    // Titolare (solo ditta individuale e professionista)
+    // Titolare (solo ditta individuale)
     ownerNome: 'Mario',
     ownerCognome: 'Rossi',
     ownerNascita: '1978-03-21',
@@ -1102,26 +1192,23 @@ function ImpDatiFiscali() {
 
   const [dirty, setDirty] = React.useState(false);
   const set = (k, v) => { setData(d => ({...d, [k]: v})); setDirty(true); };
-  // «Delega e Stripe»: si apre alla conferma del cambio di soggetto, e da
-  // Account (?cambio=) o dal banner finché il cambiamento non è concluso.
-  // Cosa apre il gesto, con un cambiamento in corso: per il cambio del
-  // titolare prima l'anagrafica (il foglio), poi «Delega e Stripe»; per il
-  // cambio di soggetto direttamente «Delega, Stripe e POS».
-  const cambioInCorso = () => { const c = window.byupReadHolderChange ? byupReadHolderChange() : null; return (c && c.fiscal_chain_impacted && c.status !== 'refused' && c.status !== 'completed') ? c : null; };
-  const passoDelCambio = () => { const c = cambioInCorso(); if (!c) return 'nuovo'; if (c.entrante && !c.soggetto && !c.steps.anagrafica_confermata) return 'anagrafica'; return 'dopo'; };
-  const apri = () => { const p = passoDelCambio(); if (p === 'dopo') setDopoOpen(true); else setSoggettoOpen(true); };
+  // La catena si apre alla conferma del cambio di soggetto, e si riapre dal
+  // banner o da Account (?cambio=) finché il cambiamento non è concluso.
+  const cambioInCorso = () => (window.byupSoggettoInCorso ? window.byupSoggettoInCorso() : null);
+  const apri = () => { if (cambioInCorso()) setDopoOpen(true); else setSoggettoOpen(true); };
   const [ricezione, setRicezione] = React.useState(() => window.byupReadRicezione ? byupReadRicezione() : null);
   React.useEffect(() => {
     const ri = () => setRicezione(byupReadRicezione());
     window.addEventListener('byup-ricezione-change', ri);
     return () => window.removeEventListener('byup-ricezione-change', ri);
   }, []);
-  const [soggettoOpen, setSoggettoOpen] = React.useState(() => {
-    try { return !!new URLSearchParams(window.location.search).get('cambio') && passoDelCambio() === 'anagrafica'; } catch (e) { return false; }
-  });
+  const [soggettoOpen, setSoggettoOpen] = React.useState(false);
   const [dopoOpen, setDopoOpen] = React.useState(() => {
-    try { return !!new URLSearchParams(window.location.search).get('cambio') && passoDelCambio() === 'dopo'; } catch (e) { return false; }
+    try { return !!new URLSearchParams(window.location.search).get('cambio') && !!cambioInCorso(); } catch (e) { return false; }
   });
+  // La firma del contratto a nome del nuovo soggetto: stessa finestra
+  // dell'onboarding (contratto-tc01.jsx), stessa prova.
+  const [firmaOpen, setFirmaOpen] = React.useState(false);
   // Il collegamento Stripe (registro byup_stripe, panoramica-tokens): il cambio
   // di soggetto lo disabilita, e da qui si ricollega — onboarding Stripe
   // simulato. Col ricollegamento nasce un POS virtuale nuovo (P-105).
@@ -1142,13 +1229,8 @@ function ImpDatiFiscali() {
   // schermata: il nuovo soggetto (forma, denominazione, P.IVA — la
   // precedente resta conservata) o il nuovo titolare sui campi della persona.
   const applica = (c) => {
-    if (c.soggetto) {
-      const dopo = c.soggetto.dopo;
-      setData(d => ({ ...d, ...(dopo.campi || {}), legalForm: dopo.forma || d.legalForm, pivaPrecedente: d.piva, piva: dopo.piva }));
-    } else if (c.entrante) {
-      const [nome, ...resto] = (c.entrante.nome || '').split(' ');
-      setData(d => ({ ...d, ownerNome: nome || d.ownerNome, ownerCognome: resto.join(' ') || d.ownerCognome, ownerCf: '' }));
-    }
+    const n = c.nuovo;
+    setData(d => ({ ...d, ...(n.campi || {}), legalForm: n.legalForm || d.legalForm, pivaPrecedente: d.piva, piva: n.piva }));
   };
 
   // Atterraggio sulla card del collegamento POS quando ci si arriva da un
@@ -1220,21 +1302,26 @@ function ImpDatiFiscali() {
         </div>
       )}
 
-      {/* Cambio di titolarità in corso (P-62): la tappa fiscal_updated si fa
-          qui e torna in Account come fatta. */}
-      <ImpSoggettoRiga data={data} passo={passoDelCambio()} onCambia={apri}/>
+      {/* P-117: il soggetto fiscale e le due azioni che gli appartengono. */}
+      <ImpSoggettoRiga data={data} onCambia={apri} onDelega={() => setDelegaOpen(true)}/>
       {soggettoOpen && (
         <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica} onDopo={() => setDopoOpen(true)}
           onSalva={(campi) => setData(d => ({ ...d, ...campi }))}/>
       )}
       {dopoOpen && <ImpDopoSoggettoModal onClose={() => setDopoOpen(false)} onDelega={() => setDelegaOpen(true)}
+        onFirma={() => setFirmaOpen(true)}
         onPos={() => setTimeout(() => { const el = window.impAccendiSezione && window.impAccendiSezione('pos-censimento'); if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 120)}/>}
-      {delegaOpen && <ImpDelegaRiconfermaModal onClose={() => setDelegaOpen(false)}/>}
+      {delegaOpen && <ImpDelegaRiconfermaModal onClose={() => setDelegaOpen(false)} denominazione={persona ? `${data.ownerNome} ${data.ownerCognome}`.trim() : data.ragione}/>}
+      {firmaOpen && <ImpRiaccettaTerminiModal onClose={() => setFirmaOpen(false)} onFirmato={() => { setFirmaOpen(false); byupSoggettoAvanza('terms_reaccepted'); setDopoOpen(true); }}/>}
 
       {/* Collegamento all'Agenzia: promemoria progressivo, blocco a scadenza,
           verifica all'inserimento — il perché e il come stanno nel commento
           in testa al file. */}
-      {persona ? <AdeCredenzialiCard/> : <AdeIncaricatoCard/>}
+      {/* P-116 (D-103): le credenziali sono SEMPRE dell'esercente. Per società
+          ed enti si dichiara prima chi è l'incaricato che le detiene, poi c'è
+          la stessa scheda delle credenziali che vale per la ditta. */}
+      {!persona && <AdeIncaricatoCard/>}
+      <div data-cfg-anchor="ade-credenziali"><AdeCredenzialiCard forma={data.legalForm}/></div>
 
       {/* Collegamento dei POS all'Agenzia (P-105): il vicino di casa delle
           credenziali — stessa area, stesso linguaggio. Deep link

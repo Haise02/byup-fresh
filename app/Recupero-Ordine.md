@@ -226,12 +226,17 @@ chiude**; l'errore **si azzera appena l'utente modifica** il codice. È un error
 **Anti-abuso (rilevante)**: un codice di sei cifre è **forzabile a tentativi**
 (10⁶ combinazioni). Serve un **rate limit sui tentativi di riscatto** per
 device/account/IP + cooldown dopo N errori → vedi
-[Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md). **Deciso (D-42 · P-55)**: sei cifre;
-dopo ogni fallimento un'attesa crescente mostrata a schermo (5, 15, 30, 60, 120 s); al sesto
-fallimento il blocco del dispositivo per 15 minuti (`order_claim_attempts`,
-`order_claim_lockouts`) con il messaggio d'uscita *"Troppi tentativi. Torna alla webapp del
-tavolo o salda in cassa: l'ordine non si perde"*. Non si protegge l'ordine bersaglio, che un
-tentativo fallito per definizione non individua: si ferma chi tenta.
+[Sicurezza-AntiAbuso.md](Sicurezza-AntiAbuso.md). **Deciso (D-102 · P-112, che rivede
+D-42)**: sei cifre; tre tentativi liberi, poi un blocco di **un minuto**; altri tre, poi un
+blocco di **cinque minuti**; altri tre, e al **nono** fallimento la **chiusura definitiva**
+del recupero dall'app per quel dispositivo (`order_claim_attempts`, `order_claim_lockouts`:
+la toglie solo l'assistenza, con motivazione scritta — `lifted_at`, `lifted_by`,
+`lift_reason`), con il messaggio d'uscita *"Troppi tentativi. Torna alla webapp del tavolo o
+salda in cassa: l'ordine non si perde"*, «Ho capito» e nessun campo. I due blocchi intermedi
+sono un conto alla rovescia a schermo (*"Riprova fra 4:32"*) con campo e pulsante spenti; allo
+scadere il campo si riattiva da solo. **Il conteggio non decade col tempo**: si azzera solo
+quando il recupero riesce. Non si protegge l'ordine bersaglio, che un tentativo fallito per
+definizione non individua: si ferma chi tenta. Nessun identificativo del dispositivo a schermo.
 
 ## 3.ter Realizzazione nel prototipo (cosa è simulato)
 
@@ -243,8 +248,9 @@ tentativo fallito per definizione non individua: si ferma chi tenta.
 - **Non simulato**: Install Referrer Android (nativo), collegamento automatico in
   onboarding Android, e la **validazione del codice** contro il server: nel prototipo
   l'unico codice che trova l'ordine è **483912** (quello del placeholder), ogni altro è
-  un fallimento con la sua attesa, e al sesto scatta il blocco; il contatore vive in
-  `localStorage` (`byup_claim_attempts`, `?recupero=0` lo azzera).
+  un fallimento: al terzo e al sesto il blocco a tempo, al nono la chiusura (D-102); il
+  contatore vive in `localStorage` (`byup_claim_attempts`), non decade, e `?recupero=0` lo
+  azzera — il gesto dell'assistenza che toglie il blocco, per la demo.
 
 ## 4. Schermata finale della web app — comportamento per piattaforma
 

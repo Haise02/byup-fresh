@@ -158,7 +158,14 @@ non (ancora) nel prototipo.
 dominio backend, vedi §E)
 - ✅ **Preferenze alimentari persistenti** (allergeni + diete) che influenzano la
   proposta dei piatti.
-- ✅ **I miei dati**: nome, cognome, genere, data di nascita (anagrafica utente).
+- ✅ **I miei dati**: nome, cognome, genere, data di nascita (anagrafica utente). Si
+  modificano e si confermano come qualsiasi campo (P-122 · D-107): niente password,
+  niente richiesta all'assistenza — la «procedura dedicata» della data di nascita
+  (P-85) è superata. Due presidi: ogni modifica nel registro delle attività con il
+  valore precedente (D-104); una data che porta l'età sotto i 14 anni si rifiuta con
+  la frase della registrazione (Codice privacy art. 2-quinquies). Dentro «I miei
+  dati» il cassetto **Privacy e consensi** tiene tutte le scelte sui dati, compreso
+  l'interruttore del legittimo interesse «Suggerimenti e analisi d'uso» (art. 21).
 - ✅ **Gestione account**: cambia password, recupera password, modifica email.
 - ✅ **Metodi di pagamento**: lista carte, aggiungi/rimuovi, imposta **carta
   preferita** (in produzione: token dal payment gateway, mai il PAN in chiaro).
@@ -353,7 +360,8 @@ gestionale) quando si passa a Flutter.
 >   → `byup Menu.html#home`. **Non** ha: l'**Install Referrer Android** (e il
 >   relativo auto-caricamento dopo i popup); la **validazione del codice** è a
 >   **sei cifre** contro il codice demo 483912, con la riga d'errore rossa (*"Codice
->   riscatto ordine errato"*), la scala di attese e il blocco al sesto tentativo (D-42).
+>   riscatto ordine errato"*) e la scala di D-102: tre tentativi liberi, un minuto di
+>   blocco, altri tre, cinque minuti, altri tre, chiusura al nono; il conteggio non decade.
 > - **Modalità `selection`** (riga del Contratto-Dati): non è una modalità
 >   *nominata* nel codice (esistono `mine`/`all`); però pagare un **sottoinsieme**
 >   è già possibile col **"+"** sui piatti (del tavolo / offerti) nella
@@ -590,8 +598,9 @@ appena installata per pagarlo lì (→ peso ridotto del piano, §C). Strategia
   digitazione anche su iOS — fuori MVP.
 - 🧪 **Prototipo**: realizzato il **percorso iOS** (banner+popup+incolla+caricamento
   → `Menu#home`); **non** l'Install Referrer. La validazione è a **sei cifre** contro
-  il codice demo 483912, con riga d'errore, attese crescenti e blocco al sesto
-  tentativo (D-42). Vedi §E.
+  il codice demo 483912, con riga d'errore e la scala di D-102 (tre tentativi liberi,
+  un minuto di blocco, altri tre, cinque minuti, altri tre, chiusura al nono per quel
+  dispositivo; il conteggio non decade). Vedi §E.
 
 ### G.8 Difesa da accessi remoti e ordini civetta — IN DISCUSSIONE
 

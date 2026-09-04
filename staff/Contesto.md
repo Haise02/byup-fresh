@@ -438,15 +438,18 @@ biometrica di sistema (`BiometricPrompt`). "Attivare il Face ID" lato backend si
   collegati" o al cambio password) e va invalidata al logout esplicito;
 - nel prototipo è solo un flag in memoria (`faceIdOn`), senza alcuna credenziale.
 
-### 5.6bis Ponte di stampa (P-101)
+### 5.6bis Stampa: nessun ponte nell'App Staff (P-124 · D-108)
 
-Su iPhone il Bluetooth non è raggiungibile da una pagina web (Web Bluetooth non esiste su
-Safari iOS): la stampante Bluetooth della sede stampa attraverso l'**App Staff**, che fa da
-ponte. Nel prototipo il ponte è una riga del Profilo («Ponte di stampa») con lo stato e un
-interruttore che lo accende nel registro condiviso `byup_stampanti` (gestionale/stampa.jsx),
-che Impostazioni → Stampanti legge; il collegamento Bluetooth vero avviene nell'app nativa e
-**non si finge**. Il documento di cortesia dal POS resta via SMS/email (§5.7); la stampa di
-cortesia in cassa è del gestionale.
+Il «Ponte di stampa» di P-101 — la riga del Profilo con l'interruttore che accendeva il ponte
+Bluetooth verso la stampante della sede — **non c'è più**. Le fonti acquisite il 3 e 4 settembre
+2026 hanno fissato la regola delle due vie: le **comande** escono soltanto da stampanti che
+interrogano il nostro server (Star CloudPRNT, Epson Server Direct Print) o compaiono sul monitor
+di cucina; i **documenti** (pre-conto e documento di cortesia) escono dal browser della postazione
+del gestionale, su qualunque stampante di sistema. Il ponte attraverso l'App Staff e il Bluetooth
+sono rinviati oltre l'MVP, con i vincoli accertati: app in primo piano, programma MFi di Apple per
+il Bluetooth classico su iOS, un dialetto di comandi per marca. Il POS non stampa nulla: il
+documento di cortesia dal POS resta via SMS/email (§5.7). Il registro `byup_stampanti`
+(gestionale/stampa.jsx) non è più caricato dall'App Staff.
 
 ### 5.7 Natura fiscale della ricevuta
 

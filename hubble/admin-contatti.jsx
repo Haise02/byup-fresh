@@ -26,7 +26,7 @@ const CNT_TIPI = {
 
 // ─── Stadio commerciale ──────────────────────────────────────────────────────
 // La TAPPA DEL RAPPORTO, senza i piani dentro (quelli sono una colonna a
-// parte): dal lead al cliente che torna, fino al piano annullato e
+// parte): dal lead al cliente che torna, fino al cessato e
 // all'eliminazione. È una scala dei LOCALI — un utente app non ha un ciclo
 // commerciale con byup — con una sola eccezione: «Eliminato» vale per
 // chiunque sia stato cancellato, staff compreso. Qui la VESTE (etichetta,
@@ -46,7 +46,9 @@ const CNT_CICLO = {
   // Pagante. Un rientrato di tre anni fa è solo un cliente; il fatto
   // permanente sta nella proprietà «Rientrato il», non nel badge.
   returning:      { label: 'Returning',        color: 'PURPLE',       rango: 5 },
-  annullato:      { label: 'Piano annullato',  color: 'DANGER',       rango: 6 },
+  // «Cessato», come nella scala del modello (P-121): l'id `annullato` resta,
+  // perché è uno stadio commerciale di Hubble e non il lifecycle_status.
+  annullato:      { label: 'Cessato',          color: 'DANGER',       rango: 6 },
   eliminato:      { label: 'Eliminato',        color: 'PLAN_FREE',    rango: 7 },
 };
 
@@ -67,8 +69,9 @@ const CNT_CICLO = {
 //   clientePagante   locale operativo su un piano diverso dal Gratuito
 //   returning        entro 90 giorni dal rientro («Rientrato il»), poi ci
 //                    si laurea in Gratuito o Pagante
-//   annullato        il rapporto è finito: ciclo di vita «churned», che sia
-//                    disdetta del locale o risoluzione di Byup
+//   annullato        il rapporto è finito («Cessato»): ciclo di vita
+//                    «churned», che sia disdetta del locale o risoluzione di
+//                    Byup
 //   eliminato        contatto cancellato (locale, staff o utente app: il
 //                    flag `eliminato` sul record)
 // Il provvedimento di Byup (platform_status) NON entra qui: un sospeso resta
@@ -79,7 +82,7 @@ function hubStadio(c) {
   if (c.tipo !== 'locale') return null;
   const l = c.ref && c.ref.stato ? c.ref : null;
   if (!l) return 'lead';
-  if (l.stato === 'pending') return 'iscritto';
+  if (l.stato === 'registered') return 'iscritto';
   if (l.stato === 'onboarding') return 'onboarding';
   if (l.stato === 'churned') return 'annullato';
   if (c.rientrato && (Date.now() - new Date(c.rientrato).getTime()) / 86400000 <= 90) return 'returning';

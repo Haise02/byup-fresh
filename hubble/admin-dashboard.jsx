@@ -61,7 +61,7 @@ const APP_METRICS = {
 // diverse. Prima controllava un passo «team_staff» che non esisteva, e di
 // fatto contava solo gli attivi.
 const STAFF_CONFIGURATO = (l) =>
-  (l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped')
+  (l.stato === 'active' || l.stato === 'dormant')
   && l.completedSteps && l.completedSteps.includes('staff');
 const STAFF_PER_LOCALE_BASE = LOCALI.map(l => ({
   localeId: l.id,
@@ -384,8 +384,8 @@ function MicroSpark({ data, color, height=22, width=78 }) {
 
 // ─── Aging onboarding · giorni dal blocco ────────────────────────────────────
 function ageDaysInOnboarding(locale) {
-  // Per pending/onboarding: giorni dalla data iscrizione (o dall'ultimo step completato)
-  if (locale.stato !== 'pending' && locale.stato !== 'onboarding') return 0;
+  // Per registered/onboarding: giorni dalla data iscrizione (o dall'ultimo step completato)
+  if (locale.stato !== 'registered' && locale.stato !== 'onboarding') return 0;
   const lastStepTime = locale.completedSteps && locale.completedSteps.length > 0 && locale.stepTimes
     ? Math.max(...locale.completedSteps.map(s => locale.stepTimes[s] ? new Date(locale.stepTimes[s]).getTime() : 0))
     : new Date(locale.dataIscrizione).getTime();
@@ -396,7 +396,7 @@ function ageDaysInOnboarding(locale) {
 // leggono due tab: Generale per il numero, Locali per l'elenco di chi
 // richiamare.
 function onboardingFermi() {
-  const dettaglio = LOCALI.filter(l => l.stato === 'pending' || l.stato === 'onboarding')
+  const dettaglio = LOCALI.filter(l => l.stato === 'registered' || l.stato === 'onboarding')
     .map(l => ({ l, age: ageDaysInOnboarding(l) }));
   const ordinati = [...dettaglio].sort((a, b) => a.age - b.age);
   return {
@@ -404,8 +404,10 @@ function onboardingFermi() {
     stuckOver7: dettaglio.filter(x => x.age >= 7).length,
     stuckOver14: dettaglio.filter(x => x.age >= 14).length,
     ageMedian: ordinati.length ? ordinati[Math.floor(ordinati.length / 2)].age : 0,
-    setupIniziale: LOCALI.filter(l => l.stato === 'pending' || l.stato === 'onboarding').length,
-    onbIncompleto: LOCALI.filter(l => l.stato === 'skipped').length,
+    setupIniziale: LOCALI.filter(l => l.stato === 'registered' || l.stato === 'onboarding').length,
+    // Non uno stato ma il contrassegno (P-121): chi opera avendo saltato la
+    // configurazione completa è attivo.
+    onbIncompleto: LOCALI.filter(locConfigSaltata).length,
   };
 }
 
@@ -647,8 +649,8 @@ function DashGenerale({ onNav, filtri }) {
   // sola: qui non se ne inventano di nuove, si contano quelle.
   const totLocali = LOC.totali;
   const attivi = LOC.attivi.length;
-  const setupIniziale = LOCALI.filter(l => l.stato === 'pending' || l.stato === 'onboarding').length;
-  const onbIncompleto = LOCALI.filter(l => l.stato === 'skipped').length;
+  const setupIniziale = LOCALI.filter(l => l.stato === 'registered' || l.stato === 'onboarding').length;
+  const onbIncompleto = LOCALI.filter(locConfigSaltata).length;
   const inOnbTot = LOC.inOnboarding.length;
   const inattivi = LOC.inattivi.length;
   const churned = LOC.churned.length;
@@ -763,7 +765,7 @@ function DashGenerale({ onNav, filtri }) {
             collocazione. */}
         <DashStatCard
           label="Locali totali" value={fmtNum(totLocali)} accent="INK"
-          sub={`${attivi} attivi · ${inattivi} inattivi · ${inOnbTot} in onboarding · ${churned} disdetti`}
+          sub={`${attivi} attivi · ${inattivi} inattivi · ${inOnbTot} in onboarding · ${churned} cessati`}
           ratio={{ a: paying, b: freeCount, aLabel:`paganti (su ${livePool.length} con un piano)`,
             bLabel:'gratuiti', aColor: ADM.INK }}
         />
@@ -774,7 +776,7 @@ function DashGenerale({ onNav, filtri }) {
         <DashStatCard
           label="Locali in onboarding" value={fmtNum(inOnbTot)} accent="WARN"
           alertText={stuckOver7 > 0 ? `${stuckOver7} fermi da oltre 7gg · l'elenco è in Locali` : null}
-          sub={`${setupIniziale} in setup · ${onbIncompleto} da completare · l'elenco è in Locali`}
+          sub={`${setupIniziale} in setup · ${onbIncompleto} attivi con la configurazione completa saltata · l'elenco è in Locali`}
           data={TS.inOnboardCount.slice(-30)} gradId="grad-onb"
         />
         {/* Non si apre più: l'espansione mostrava attivi a 24h/7g/30g, cioè
@@ -916,7 +918,7 @@ function LocaliTotaliTooltip({ total, free, freeActive, freeInactive, paying, pl
           cinquanta locali che ne copriva sessantadue. */}
       <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:-4, marginBottom:12, lineHeight:1.45}}>
         Su <b style={{color:ADM.TEXT}}>{paying + free} locali con un piano attivo</b> (attivi e inattivi).
-        Gli altri {LOC.totali - (paying + free)} sono in onboarding o hanno disdetto.
+        Gli altri {LOC.totali - (paying + free)} sono in onboarding o hanno cessato il rapporto.
       </div>
 
       {/* Gratuito vs Paganti */}
@@ -927,14 +929,14 @@ function LocaliTotaliTooltip({ total, free, freeActive, freeInactive, paying, pl
         </div>
         <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10}}>
           <SplitRow color={ADM.PINK_DARK} label="Paganti" val={paying} pct={Math.round(payPct)}/>
-          <SplitRow color="#9CA3AF" label="Piano free" val={free} pct={Math.round(freePct)}/>
+          <SplitRow color="#9CA3AF" label="Piano Gratuito" val={free} pct={Math.round(freePct)}/>
         </div>
       </div>
 
       {/* Gratuito attivi vs inattivi */}
       <div style={{paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`, marginBottom:14}}>
         <div style={{fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8}}>
-          Suddivisione piano free
+          Suddivisione piano Gratuito
         </div>
         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:6}}>
           <span style={{width:9, height:9, borderRadius:2, background:ADM.OK}}/>
@@ -1046,7 +1048,7 @@ function OnboardingDaSeguire({ onNav }) {
               <span style={{fontSize:12.8, color:ADM.MUTED}}>
                 {/* Il sotto-passo di «Il tuo locale» si dice qui, dove serve
                     a chi telefona; l'imbuto conta il passo e basta. */}
-                {l.stato === 'pending' ? 'Non ha ancora iniziato' : `Fermo a «${(ONB_STEPS.find(s2 => s2.id === l.stoppedAt) || {}).label || '—'}${l.stoppedSub ? ' · ' + onbSottoLabel(l.stoppedSub) : ''}»`}
+                {l.stato === 'registered' ? 'Non ha ancora iniziato' : `Fermo a «${(ONB_STEPS.find(s2 => s2.id === l.stoppedAt) || {}).label || '—'}${l.stoppedSub ? ' · ' + onbSottoLabel(l.stoppedSub) : ''}»`}
               </span>
               <span style={{fontSize:13.6, fontWeight:800, color:tono, textAlign:'right',
                 fontVariantNumeric:'tabular-nums'}}>{age} gg</span>
@@ -1290,18 +1292,18 @@ function SparkStat({ label, value, sub, accent='PINK', icon='trendUp', trend, tr
 // ---------- LOCALI tab ----------
 function DashLocali({ onNav, filtri }) {
   // Completato = arrivato all'avvio: anche chi poi ha saltato la
-  // configurazione completa (skipped), che opera.
+  // configurazione completa (il contrassegno di P-121), che opera.
   const onbCompletati = LOCALI.filter(l => l.completedSteps.includes('verifica')).length;
-  const onbTentati = LOCALI.length - LOCALI.filter(l => l.stato === 'pending').length;
+  const onbTentati = LOCALI.length - LOCALI.filter(l => l.stato === 'registered').length;
   const convRate = onbTentati > 0 ? Math.round((onbCompletati/onbTentati)*100) : 0;
   const tempiMedi = LOCALI.filter(l => l.stato === 'active' && l.stepTimes && l.stepTimes.verifica).map(l => (l.stepTimes.verifica - l.dataIscrizione) / 60000);
   const tempoMedioMin = tempiMedi.length ? Math.round(tempiMedi.reduce((a,b)=>a+b,0)/tempiMedi.length) : 0;
   const tempoMedioStr = tempoMedioMin < 60 ? `${tempoMedioMin} min` : `${Math.floor(tempoMedioMin/60)}h ${tempoMedioMin%60}m`;
 
   // ── Spaccato stati onboarding (per tooltip)
-  const stPending     = LOCALI.filter(l => l.stato === 'pending').length;
+  const stPending     = LOCALI.filter(l => l.stato === 'registered').length;
   const stOnboarding  = LOCALI.filter(l => l.stato === 'onboarding').length;
-  const stSkipped     = LOCALI.filter(l => l.stato === 'skipped').length;
+  const stSkipped     = LOCALI.filter(locConfigSaltata).length;
 
   // ── Distribuzione tempo di setup (per tooltip)
   const sortedTempi = [...tempiMedi].sort((a,b)=>a-b);
@@ -2500,7 +2502,7 @@ function SottoMediaScanCard({ onNav }) {
 
   // Solo locali "live" che hanno almeno qualche ordine (eligible per il confronto)
   const eligible = LOCALI.filter(l =>
-    (l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped') &&
+    (l.stato === 'active' || l.stato === 'dormant') &&
     (isAnno ? l.ordiniAnno : l.ordiniMese) > 0
   );
 
@@ -4355,7 +4357,7 @@ function DashCamerieri({ filtri }) {
   const idsSegmento = new Set(locSegmento.map(l => l.id));
 
   // ── 1. Coverage · locali che HANNO configurato lo staff vs senza
-  const liveLocali = locSegmento.filter(l => l.stato === 'active' || l.stato === 'inactive' || l.stato === 'skipped');
+  const liveLocali = locSegmento.filter(l => l.stato === 'active' || l.stato === 'dormant');
 
   // ── TEMPO MEDIO SERVIZIO · da ordine confermato a chiusura conto ────────
   // Industria horeca: pizzeria 25-45 min, trattoria 50-90 min, ristorante 70-120 min

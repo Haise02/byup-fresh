@@ -673,24 +673,24 @@ function AccFatturazione() {
 window.AccFatturazione = AccFatturazione;
 
 
-// Chi è intestatario delle fatture Byup, dal registro del cambio di
-// titolarità: il soggetto nuovo appena i dati fiscali sono aggiornati, con la
-// data; altrimenti quello di sempre.
+// Chi è intestatario delle fatture Byup, dal registro del cambio di SOGGETTO
+// FISCALE (P-117 · D-104): il soggetto nuovo appena i dati fiscali sono
+// aggiornati, con la data; altrimenti quello di sempre.
 function AcIntestazioneFatture() {
-  const [c, setC] = React.useState(() => window.byupReadHolderChange ? byupReadHolderChange() : null);
+  const [c, setC] = React.useState(() => window.byupReadSoggettoChange ? byupReadSoggettoChange() : null);
   React.useEffect(() => {
-    const ri = () => setC(byupReadHolderChange());
-    window.addEventListener('byup-holder-change', ri);
-    return () => window.removeEventListener('byup-holder-change', ri);
+    const ri = () => setC(byupReadSoggettoChange());
+    window.addEventListener('byup-soggetto-change', ri);
+    return () => window.removeEventListener('byup-soggetto-change', ri);
   }, []);
-  const nuovo = c && c.soggetto && c.status !== 'refused' && c.steps && c.steps.fiscal_updated;
-  const sog = nuovo ? c.soggetto.dopo : { denominazione: 'Cacio e Pepe S.r.l.', piva: 'IT12345678901' };
+  const nuovo = c && c.steps && c.steps.fiscal_updated;
+  const sog = nuovo ? c.nuovo : { denominazione: 'Cacio e Pepe S.r.l.', piva: 'IT12345678901' };
   const dal = nuovo ? new Date(c.steps.fiscal_updated).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
   return (
     <div style={{textAlign:'right', fontSize: 13, color: PN.MUTED, lineHeight: 1.45, maxWidth: 320}}>
       <div style={{fontSize: 12, fontWeight: 700, letterSpacing: 0.4, textTransform:'uppercase'}}>Intestate a</div>
       <div style={{color: PN.TEXT, fontWeight: 600}}>{sog.denominazione} · P.IVA {sog.piva}</div>
-      {dal && <div>dal {dal}: prima a {c.soggetto.prima.denominazione}. Si cambia da Impostazioni → Dati fiscali.</div>}
+      {dal && <div>dal {dal}: prima a {c.previous_denominazione}. Si cambia da Impostazioni → Dati fiscali.</div>}
     </div>
   );
 }

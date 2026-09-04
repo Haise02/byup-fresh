@@ -385,10 +385,10 @@ const MKT_SPEGNIMENTO = (() => {
   const righe = MKT_LOCALI.map((l, i) => {
     const r = pseudoRand(i * 11 + 29);
     const giorniLogin = Math.floor((oggi - l.lastLogin.getTime()) / 86400000);
-    const giorniMenu = Math.floor(r() * (l.stato === 'inactive' ? 210 : 90));
+    const giorniMenu = Math.floor(r() * (l.stato === 'dormant' ? 210 : 90));
     // Il calo di volume: gli inattivi lo hanno per definizione, gli attivi lo
     // pescano dalla coda di chi sta scendendo.
-    const caloOrdini = l.stato === 'inactive'
+    const caloOrdini = l.stato === 'dormant'
       ? -(28 + Math.floor(r() * 45))
       : -Math.floor(r() * 34);
     // Punteggio: quattro segnali, ognuno con la sua soglia. Non è un modello

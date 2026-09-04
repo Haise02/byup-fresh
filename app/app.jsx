@@ -2261,41 +2261,54 @@ const RECOVERY_NEWS = {
   ago: 'Adesso', kind: 'order', action: 'recover',
 };
 
-// D-42 (P-55): il recupero si difende fermando chi tenta, non chiudendo
-// l'ordine — un tentativo fallito è per definizione un codice che non
-// corrisponde ad alcun ordine, quindi non c'è un bersaglio da proteggere e
-// l'unica leva è chi digita. Sei cifre, invio automatico solo a lunghezza
-// piena, una scala di attese crescenti dopo ogni fallimento e, al sesto, il
-// blocco del dispositivo con l'uscita che salva la serata. Il contatore
-// rispecchia order_claim_attempts e order_claim_lockouts, qui in
-// localStorage: si azzera al successo e col tempo (blocco scaduto, o ultimo
-// fallimento più vecchio del blocco). Nel prototipo l'unico codice che trova
-// l'ordine è quello del placeholder, 483912: la webapp genera il suo a sei
-// cifre casuali e i due bundle non si parlano. Niente identificativi del
-// dispositivo a schermo. Demo: ?recupero=0 azzera il contatore.
-const RECUPERO = { CODICE_DEMO: '483912', CIFRE: 6, ATTESE_S: [5, 15, 30, 60, 120], MAX_TENTATIVI: 6, BLOCCO_MIN: 15 };
+// D-102 (P-112, che rivede D-42 e chiude P-55): il recupero si difende
+// fermando chi tenta, non chiudendo l'ordine — un tentativo fallito è per
+// definizione un codice che non corrisponde ad alcun ordine, quindi non c'è
+// un bersaglio da proteggere e l'unica leva è chi digita. La scala si dice
+// in una frase: tre tentativi liberi, un minuto di blocco; altri tre, cinque
+// minuti; altri tre, e al nono il recupero dall'app si chiude per questo
+// dispositivo. Il conteggio NON decade col tempo: si azzera solo quando il
+// recupero riesce, e il blocco definitivo lo toglie solo l'assistenza con
+// motivazione scritta (order_claim_lockouts: lifted_at, lifted_by,
+// lift_reason). Il prototipo aveva adottato una terza scala — attese in
+// secondi dopo ogni fallimento e blocco che decadeva da solo — senza
+// decisione: quella non si tiene. Il contatore rispecchia
+// order_claim_attempts e order_claim_lockouts, qui in localStorage. Nel
+// prototipo l'unico codice che trova l'ordine è quello del placeholder,
+// 483912: la webapp genera il suo a sei cifre casuali e i due bundle non si
+// parlano. Niente identificativi del dispositivo a schermo. Demo:
+// ?recupero=0 azzera il contatore — è il gesto dell'assistenza che toglie
+// il blocco, non un decadimento.
+const RECUPERO = { CODICE_DEMO: '483912', CIFRE: 6, PER_GRUPPO: 3, BLOCCHI_S: [60, 300], MAX_TENTATIVI: 9 };
 const byupClaim = (() => {
   const K = 'byup_claim_attempts';
-  const leggi = () => { try { return JSON.parse(localStorage.getItem(K) || 'null') || { n: 0, ultimo: null, bloccatoFino: null }; } catch { return { n: 0, ultimo: null, bloccatoFino: null }; } };
+  const VUOTO = { n: 0, ultimo: null, bloccatoFino: null, chiuso: false };
+  const leggi = () => { try { return Object.assign({}, VUOTO, JSON.parse(localStorage.getItem(K) || 'null') || {}); } catch { return { ...VUOTO }; } };
   const scrivi = (v) => { try { localStorage.setItem(K, JSON.stringify(v)); } catch {} return v; };
-  const finestra = RECUPERO.BLOCCO_MIN * 60000;
-  // Lo stato vivo: il blocco scaduto e il fallimento vecchio azzerano da soli.
-  const stato = () => {
-    const s = leggi(); const ora = Date.now();
-    if (s.bloccatoFino && s.bloccatoFino <= ora) return scrivi({ n: 0, ultimo: null, bloccatoFino: null });
-    if (!s.bloccatoFino && s.ultimo && ora - s.ultimo > finestra) return scrivi({ n: 0, ultimo: null, bloccatoFino: null });
-    return s;
-  };
+  // Lo stato com'è scritto: niente decade da solo. Un blocco intermedio
+  // scaduto resta nel registro e attesa() lo legge come zero.
+  const stato = () => leggi();
   return {
     stato,
-    bloccato() { const s = stato(); return !!s.bloccatoFino && s.bloccatoFino > Date.now(); },
+    // Il blocco definitivo, dopo il nono fallimento: si esce solo con azzera().
+    bloccato() { return !!stato().chiuso; },
     // Secondi da aspettare prima del prossimo tentativo, 0 se si può.
-    attesa() { const s = stato(); if (!s.n || !s.ultimo) return 0; const w = RECUPERO.ATTESE_S[Math.min(s.n, RECUPERO.ATTESE_S.length) - 1] * 1000; return Math.max(0, Math.ceil((s.ultimo + w - Date.now()) / 1000)); },
-    fallimento() { const s = stato(); const n = s.n + 1; const ora = Date.now(); return scrivi(n >= RECUPERO.MAX_TENTATIVI ? { n, ultimo: ora, bloccatoFino: ora + finestra } : { n, ultimo: ora, bloccatoFino: null }); },
-    azzera() { return scrivi({ n: 0, ultimo: null, bloccatoFino: null }); },
+    attesa() { const s = stato(); if (!s.bloccatoFino) return 0; return Math.max(0, Math.ceil((s.bloccatoFino - Date.now()) / 1000)); },
+    // Un fallimento in più: al terzo e al sesto parte il blocco a tempo del
+    // suo gruppo (un minuto, cinque minuti); al nono la chiusura.
+    fallimento() {
+      const s = stato(); const n = s.n + 1; const ora = Date.now();
+      if (n >= RECUPERO.MAX_TENTATIVI) return scrivi({ n, ultimo: ora, bloccatoFino: null, chiuso: true });
+      const gruppo = n / RECUPERO.PER_GRUPPO;
+      const blocco = Number.isInteger(gruppo) ? RECUPERO.BLOCCHI_S[gruppo - 1] : null;
+      return scrivi({ n, ultimo: ora, bloccatoFino: blocco ? ora + blocco * 1000 : null, chiuso: false });
+    },
+    azzera() { return scrivi({ ...VUOTO }); },
   };
 })();
 try { if (new URLSearchParams(window.location.search).get('recupero') === '0') byupClaim.azzera(); } catch {}
+// Il conto alla rovescia dei blocchi intermedi, «4:32» e non «272 s».
+const byupAttesaTesto = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
 // Popup centrale per inserire/incollare il codice ordine della web app.
 function RecoveryOrderModal({ onClose, onSubmit }) {
@@ -2313,7 +2326,8 @@ function RecoveryOrderModal({ onClose, onSubmit }) {
     return () => clearTimeout(t);
   }, [attesa]);
   // Il tentativo: il codice demo trova l'ordine e azzera il contatore; ogni
-  // altro codice è un fallimento, con la sua attesa o, al sesto, il blocco.
+  // altro codice è un fallimento — al terzo e al sesto il blocco a tempo, al
+  // nono la chiusura (D-102).
   const tenta = (c) => {
     if (bloccato || byupClaim.attesa() > 0) return;
     if (c === RECUPERO.CODICE_DEMO) { byupClaim.azzera(); onSubmit(c); return; }
@@ -2387,7 +2401,7 @@ function RecoveryOrderModal({ onClose, onSubmit }) {
             textAlign: 'center', opacity: attesa > 0 ? 0.5 : 1,
           }}/>
         <div style={{ fontSize: 11.5, color: errore ? '#D64545' : MUTED, textAlign: 'center', marginTop: 8, fontWeight: errore ? 700 : 400 }}>
-          {attesa > 0 ? `Riprova fra ${attesa} s` : errore ? 'Codice riscatto ordine errato' : 'Sei cifre. Tieni premuto e incolla: verrà accettato da solo.'}
+          {attesa > 0 ? `Riprova fra ${byupAttesaTesto(attesa)}` : errore ? 'Codice riscatto ordine errato' : 'Sei cifre. Tieni premuto e incolla: verrà accettato da solo.'}
         </div>
 
         <button disabled={!valid} onClick={() => tenta(code)} style={{

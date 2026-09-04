@@ -80,9 +80,10 @@ all'attacco. Due idee chiave:
   [Recupero-Ordine.md](Recupero-Ordine.md)): il codice è di **sei cifre**, quindi
   **forzabile a tentativi** (10⁶ combinazioni). Serve un **tetto tentativi per
   device/account/IP** + **cooldown** dopo N errori, così l'inserimento manuale non
-  diventa un canale di enumerazione degli ordini altrui. *(D-42: attese crescenti dopo
-  ogni fallimento, blocco del dispositivo per 15 minuti al sesto — vedi Recupero-Ordine
-  §3.bis.)*
+  diventa un canale di enumerazione degli ordini altrui. *(D-102, che rivede D-42: tre
+  tentativi liberi, un minuto di blocco, altri tre, cinque minuti, altri tre, e al nono la
+  chiusura del recupero dall'app per quel dispositivo, che toglie solo l'assistenza; il
+  conteggio non decade col tempo — vedi Recupero-Ordine §3.bis.)*
 
 ---
 

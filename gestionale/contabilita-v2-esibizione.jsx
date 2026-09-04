@@ -1,36 +1,22 @@
-// Contabilità · Esibizione dei documenti — la consultazione fiscale per le
-// verifiche in loco (P-89 · D-88)
+// La CONSULTAZIONE della console fiscale (P-96 · P-111 · D-88).
 //
-// La risposta dell'esercente al verificatore che gliela chiede in sala: una
-// schermata che produce ed esporta, per la sede, il dettaglio delle operazioni
-// delle ultime quarantotto ore. Si raggiunge in un tocco da qualunque tab
-// della Contabilità («Verifica fiscale», che si trova senza cercarla) e si
-// usa senza assistenza: chi la userà avrà davanti un pubblico ufficiale, non
-// un collega. FA PARTE DEL PERIMETRO CERTIFICATO.
+// Questo foglio NON è più una schermata del regime attuale: il progetto
+// tecnico §4.3 dice che nel regime attuale la console «non è richiesta da
+// alcuna fonte e non viene costruita», perché le esigenze operative
+// dell'esercente sono coperte dalla contabilità del gestionale e, in un
+// controllo, la prova sono i documenti memorizzati dal sistema dell'Agenzia,
+// che l'esercente mostra dal portale con le proprie credenziali (lo dice la
+// riga «In caso di controllo» in Conti). Un gestionale che nel regime attuale
+// costruisce una finestra «per il verificatore» promette una funzione senza
+// valore probatorio e distrae dall'unica cosa che conta, il portale.
 //
-// I paletti di regime. Nel regime attuale — documento commerciale online
-// tramite il canale OpenAPI — si esibisce ciò che il canale possiede davvero:
-// esiti e identificativi di trasmissione, DICHIARATI per quello che sono e
-// mai più di quanto il canale restituisce (il principio di P-48). Per questo:
-//   • l'identificativo è etichettato «identificativo del canale», non «di
-//     ricezione dell'Agenzia»: che cosa il canale restituisca davvero va
-//     letto sulla scheda OpenAPI, e nel mock è derivato dal numero;
-//   • il piano dei tentativi è la POLITICA DI RITRASMISSIONE DI BYUP, non un
-//     esito del canale, e lo dice;
-//   • le causali di scarto sono la LETTURA BYUP DEL CODICE DEL CANALE;
-//   • l'IVA si mostra solo dove vive sulle righe del documento; dove non c'è,
-//     si tace (docIva è una finzione dichiarata per le chiusure, e in
-//     un'esibizione un'IVA inventata è il punto peggiore in cui inventare);
-//   • il riepilogo di giornata è una DERIVAZIONE nostra dai documenti, mai
-//     uno stato trasmesso;
-//   • le rettifiche (resi e annulli) sono documenti trasmessi a loro volta,
-//     con esito e identificativo propri (rettFisc, conti.jsx);
-//   • la sede è quella corrente, senza selettore: il mock ha un locale.
-// Il GIORNALE DI CASSA, le catene di impronte, il Gran Totale e il §5.11
-// pieno sono della Soluzione (Fase 2): non si anticipano e non si simulano.
-// La sezione «Giornale» è visibile e dice il regime; non esporta nulla.
-// La finestra è quella della voce, le ultime quarantotto ore da adesso: non è
-// il periodo di P-106, e non si sceglie.
+// Il lavoro fatto non si butta: questo contenuto — la finestra delle ultime
+// quarantotto ore contate da adesso, la ricerca, il CSV e il prospetto
+// stampabile — È la sezione «Consultazione» della console fiscale della
+// Soluzione (P-96), che si costruisce contro l'ombra e si accende per sede al
+// passaggio di regime. Perciò il componente resta montato solo quando il
+// regime della sede è la Soluzione (contabilita-v2-app.jsx), e nel mock, dove
+// la sede è nel regime attuale, non si vede.
 
 const ESIB_ORE = 48;
 

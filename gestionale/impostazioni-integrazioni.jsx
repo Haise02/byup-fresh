@@ -1,4 +1,7 @@
-// Impostazioni → POS e integrazioni (rifatto: filtri chip, stato chiaro, suggeriti)
+// Impostazioni → POS e integrazioni (P-125: tre blocchi — POS e strumenti di
+// pagamento, Stampanti, Piattaforme e app esterne; via «Suggeriti per te»,
+// che non faceva nulla e presupponeva una profilazione dei locali che non
+// esiste e che nessuna decisione prevede).
 
 const BYUP_PAY_DEVICES = [
   { id: 'bp-01', name: 'iPhone 14 Pro', os: 'iOS 17.4', user: 'Marco Silvestri', email: 'marco@delborgo.it', linkedAt: '12 mar 2024', lastUse: '2 min fa', online: true },
@@ -6,35 +9,33 @@ const BYUP_PAY_DEVICES = [
 ];
 
 const INTEGRATIONS = [
-  // Pagamenti & fatturazione (obbligatori)
+  // Incassi e canale fiscale: i due collegamenti richiesti. Nessun altro
+  // canale fiscale nel prodotto (D-38): Aruba è uscita dal catalogo (P-118).
   { id:'stripe', name:'Stripe', cat:'pagamenti', logo:'S', bg:'#635BFF', desc:'Pagamenti online & checkout', status:'connected', detail:'acct_••••dE3v · sync ora', required: true },
-  { id:'openapi', name:'OpenAPI', cat:'pagamenti', logo:'API', bg:'#0EA5E9', desc:'Fatturazione elettronica SDI', status:'connected', detail:'API key configurata', required: true },
-  { id:'aruba', name:'Aruba Fatturazione', cat:'pagamenti', logo:'A', bg:'#00A651', desc:'Emetti e ricevi fatture elettroniche in modo smart', status:'available', detail:'Fattura B2B/B2C, conservazione a norma' },
-  // Periferiche
-  // P-101: le stampanti non sono un'integrazione da collegare qui. Erano due
-  // tessere («scontrino» e «comande», coi chip Bluetooth / Wi-Fi / USB — e USB
-  // da una pagina web non esiste): restano come un solo rimando alla scheda
-  // Impostazioni → Stampanti, dove vivono registro, modalità e prova.
-  { id:'stampanti', name:'Stampanti', cat:'periferiche', logo:'🖨', bg:'#1F2937', desc:'Comande e documenti di cortesia: registro, modalità e prova di stampa in Impostazioni → Stampanti', status:'available', rimando:'stampanti' },
-  // Delivery — sigle e colori da PN_PARTNER (panoramica-tokens.jsx): era la
-  // terza copia degli stessi valori, da P-03 la fonte è una con cucina e
-  // Vendita diretta.
-  { id:'justeat', name: PN_PARTNER.justeat.nome, cat:'delivery', logo: PN_PARTNER.justeat.sigla, bg: PN_PARTNER.justeat.bg, desc:'Delivery & ordini', status:'connected', detail:'sync 5 min fa' },
-  { id:'deliveroo', name: PN_PARTNER.deliveroo.nome, cat:'delivery', logo: PN_PARTNER.deliveroo.sigla, bg: PN_PARTNER.deliveroo.bg, color: PN_PARTNER.deliveroo.ink, desc:'Delivery & ordini', status:'available' },
-  { id:'glovo', name: PN_PARTNER.glovo.nome, cat:'delivery', logo: PN_PARTNER.glovo.sigla, bg: PN_PARTNER.glovo.bg, color: PN_PARTNER.glovo.ink, desc:'Delivery & quick commerce', status:'available' },
-  // Presenza online. Qui stavano anche Brevo e Mailchimp (P-31 · D-29): via,
-  // perché promettevano di lavorare su una base clienti che il ristoratore
-  // non possiede — il marketing del locale verso i clienti è dismesso e Byup
-  // è titolare unico del rapporto con il consumatore, che è il presupposto
-  // dell'intero impianto privacy. Google My Business resta: è la scheda del
-  // locale su Maps, non una lista di persone.
-  { id:'gmb', name:'Google My Business', cat:'presenza', logo:'G', bg:'#fff', borderless:true, color:'#4285F4', desc:'Recensioni & orari Maps', status:'available' },
+  { id:'openapi', name:'OpenAPI', cat:'pagamenti', logo:'API', bg:'#0EA5E9', desc:'Documento commerciale e fattura elettronica (SDI)', status:'connected', detail:'API key configurata', required: true },
+  // Piattaforme di consegna PREDISPOSTE (P-119 · D-106): Glovo, Deliveroo e
+  // Uber Eats, con le specifiche in raccolta; l'add-on resta spento nell'MVP e
+  // le tessere lo dicono. Just Eat è uscita: la sua documentazione non è
+  // acquisibile, e ciò che non è riscontrabile non si progetta. Sigle e
+  // colori da PN_PARTNER (panoramica-tokens.jsx), la stessa fonte di cucina e
+  // Vendita diretta. `scheda` è che cosa faranno, letto dalle specifiche.
+  { id:'glovo', name: PN_PARTNER.glovo.nome, cat:'delivery', logo: PN_PARTNER.glovo.sigla, bg: PN_PARTNER.glovo.bg, color: PN_PARTNER.glovo.ink, desc:'Ordini in coda e in cucina, menù pubblicato', status:'predisposta',
+    scheda:'Gli ordini Glovo entrano già pagati nella coda «Da consegnare» di Vendita diretta e sul monitor di cucina, con il codice della piattaforma che il rider pronuncia al banco. Il menù si pubblica su Glovo con un identificativo di transazione e l\'esito arriva dopo. Il collegamento usa il token di partner di Glovo nell\'intestazione Authorization: lo stesso token con cui Glovo firma i webhook. Si accende con l\'add-on, quando ci saranno gli accordi.' },
+  { id:'deliveroo', name: PN_PARTNER.deliveroo.nome, cat:'delivery', logo: PN_PARTNER.deliveroo.sigla, bg: PN_PARTNER.deliveroo.bg, color: PN_PARTNER.deliveroo.ink, desc:'Ordini in coda e in cucina, menù pubblicato', status:'predisposta',
+    scheda:'Gli ordini Deliveroo entrano già pagati nella coda «Da consegnare» e sul monitor di cucina, con dieci minuti per accettarli. Il menù si pubblica intero, con scorte, prezzi, codici e allergeni mappati sul dizionario. Il collegamento è fra macchine, con le credenziali dell\'integratore (OAuth 2.0 client credentials) e il locale collegato dal portale Deliveroo. Si accende con l\'add-on, quando ci saranno gli accordi.' },
+  { id:'ubereats', name: PN_PARTNER.ubereats.nome, cat:'delivery', logo: PN_PARTNER.ubereats.sigla, bg: PN_PARTNER.ubereats.bg, color: PN_PARTNER.ubereats.ink, desc:'Ordini in coda e in cucina, menù pubblicato', status:'predisposta',
+    scheda:'Il collegamento del locale avviene autorizzando l\'app di Byup su Uber (scope eats.pos_provisioning): nessuna credenziale da digitare. Gli ordini arrivano firmati (HMAC SHA-256) con il codice di cinque caratteri che il rider legge al banco, con 11,5 minuti per accettarli, ed entrano già pagati in coda e in cucina. Il menù si pubblica intero con allergeni e valori nutrizionali mappati sui dizionari. Si accende con l\'add-on, quando ci saranno gli accordi.' },
   // Collegamenti API — Zapier è la prima realizzazione del collegamento
   // generico (P-32 · D-29), a dominio aperto: la tessera apre il foglio
   // IntCollegaModal e il suo stato si RICAVA dall'elenco delle connessioni
   // (vedi ImpIntegrazioni), non sta scritto qui. Niente prezzo e niente
   // cancello sull'add-on api_third_party: il gating commerciale si decide al
-  // lancio, e finché non è deciso la scheda non lo inventa.
+  // lancio, e finché non è deciso la scheda non lo inventa. Il catalogo degli
+  // eventi che il ristoratore può automatizzare, e dei dati che escono con
+  // ciascuno, non è ancora scritto: va definito prima di attivarlo.
+  // Google Business Profile non c'è (P-118): lecito in principio (D-29), ma
+  // non studiato — niente tessera «in arrivo», un'integrazione non studiata
+  // non si promette. Aruba non c'è (D-38).
   { id:'zapier', name:'Zapier', cat:'api', api:true, logo:'Z', bg:'#FF4F00', desc:'Automazioni e flussi verso le tue app', status:'available' },
 ];
 
@@ -114,13 +115,13 @@ const GRAD_STAFF = PN.GRAD_STAFF;
 
 const STATUS_LABEL = {
   connected: { label: 'Connesso', color: PN.GREEN, bg: PN.GREEN_SOFT, dot: PN.GREEN },
+  predisposta: { label: 'Predisposta', color: PN.AMBER, bg: PN.AMBER_SOFT, dot: PN.AMBER },
   todo: { label: 'Da configurare', color: '#D97706', bg: PN.AMBER_SOFT, dot: '#F59E0B' },
   available: { label: 'Disponibile', color: PN.MUTED, bg: '#F4F5F7', dot: PN.MUTED_LIGHT },
   disconnected: { label: 'Non connesso', color: PN.MUTED, bg: '#F4F5F7', dot: PN.MUTED_LIGHT },
 };
 
 function ImpIntegrazioni() {
-  const [filter, setFilter] = React.useState('all');
   const [qrApp, setQrApp] = React.useState(false);
   // Le connessioni con app esterne: in memoria, niente persistenza. La
   // tessera Zapier del catalogo si legge da qui, così tessera ed elenco non
@@ -128,8 +129,7 @@ function ImpIntegrazioni() {
   const [connessioni, setConnessioni] = React.useState(INT_CONNESSIONI_MOCK);
   const [collega, setCollega] = React.useState(false);
   // Lo stato è per app: connessa se ha almeno una connessione viva, con chi
-  // l'ha autorizzata e quando sulla tessera. Prima bastava una connessione
-  // qualunque perché tutte le app dell'API risultassero connesse.
+  // l'ha autorizzata e quando sulla tessera.
   const catalogo = INTEGRATIONS.map(i => {
     if (!i.api) return i;
     const vive = connessioni.filter(c => c.application === i.id && !c.revoked_at);
@@ -142,109 +142,46 @@ function ImpIntegrazioni() {
   const revoca = (id) => setConnessioni(l => l.map(c => c.id === id
     ? { ...c, revoked_at: new Date(), revoked_by: INT_UTENTE.nome } : c));
 
-  const counts = {
-    all: catalogo.length,
-    connected: catalogo.filter(i => i.status === 'connected').length,
-    available: catalogo.filter(i => i.status === 'available' || i.status === 'disconnected').length,
-  };
-
-  const filterChips = [
-    { id: 'all', label: 'Tutti', count: counts.all },
-    { id: 'connected', label: 'Connessi', count: counts.connected },
-    { id: 'available', label: 'Disponibili', count: counts.available },
-  ];
-
-  const visible = catalogo.filter(i => {
-    if (filter === 'all') return true;
-    if (filter === 'available') return i.status === 'available' || i.status === 'disconnected';
-    return i.status === filter;
-  });
-
-  // raggruppamento
-  const byCategory = visible.reduce((acc, i) => {
-    (acc[i.cat] = acc[i.cat] || []).push(i);
-    return acc;
-  }, {});
-  const catLabels = {
-    pagamenti: 'Pagamenti e fatturazione',
-    periferiche: 'Periferiche',
-    delivery: 'Delivery',
-    presenza: 'Presenza online',
-    api: 'Collegamenti API',
-  };
-  const catOrder = ['pagamenti','periferiche','delivery','presenza','api'];
-
-  // Suggested: 4 popolari non connessi
-  const suggested = catalogo
-    .filter(i => i.status === 'available')
-    .slice(0, 4);
+  const per = (cat) => catalogo.filter(i => i.cat === cat);
+  const griglia = { display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12 };
+  const tessere = (lista) => lista.map(i => (
+    <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}
+      connessioni={connessioni} onRevoca={revoca}/>
+  ));
+  // Il titolo di blocco: la pagina è tre blocchi (P-125), e ogni blocco lo
+  // dice prima delle sue card.
+  const Blocco = ({ children }) => (
+    <div style={{ fontSize: 13.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.6, textTransform: 'uppercase', margin: '4px 2px 10px' }}>{children}</div>
+  );
 
   return (
     <div>
-      {/* PRIMA — Hero "byup Pay" come sistema di incasso (stato operativo) */}
+      {/* BLOCCO 1 — POS e strumenti di pagamento: i dispositivi Byup Staff con
+          il collegamento fiscale (P-105) e i due canali richiesti. */}
+      <Blocco>POS e strumenti di pagamento</Blocco>
       <ByupPayHero devices={BYUP_PAY_DEVICES} onAdd={() => setQrApp(true)}/>
+      <ImpCard title="Incassi e canale fiscale" sub="I due collegamenti richiesti: Stripe per incassare, OpenAPI per il documento commerciale e la fattura. Nessun altro canale fiscale nel prodotto.">
+        <div style={griglia}>{tessere(per('pagamenti'))}</div>
+      </ImpCard>
 
-      <ImpCard title="Altre integrazioni" sub="Pagamenti, periferiche, delivery, presenza online e collegamenti API">
-        <div style={{display:'flex', gap: 7, flexWrap:'wrap', marginBottom: 18}}>
-          {filterChips.map(c => {
-            const on = filter === c.id;
-            return (
-              <button key={c.id} onClick={() => setFilter(c.id)} style={{
-                padding: '7px 14px', borderRadius: 999,
-                border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`,
-                background: on ? PN.TEXT : PN.WHITE,
-                color: on ? PN.WHITE : PN.TEXT,
-                fontSize: 14.5, fontWeight: 600,
-                cursor:'pointer', fontFamily:'inherit',
-                display:'inline-flex', alignItems:'center', gap: 6,
-              }}>
-                {c.label}
-                <span style={{
-                  fontSize: 13, padding:'1px 7px', borderRadius: 999,
-                  background: on ? 'rgba(255,255,255,0.2)' : '#F4F5F7',
-                  color: on ? PN.WHITE : PN.MUTED,
-                }}>{c.count}</span>
-              </button>
-            );
-          })}
-        </div>
+      {/* BLOCCO 2 — Stampanti (P-124): il popup «Collega stampante»
+          sostituisce la sezione Impostazioni → Stampanti. */}
+      <Blocco>Stampanti</Blocco>
+      {window.ImpStampantiBlocco && <window.ImpStampantiBlocco/>}
 
-        {catOrder.filter(c => byCategory[c]).map(c => (
-          <div key={c} style={{marginBottom: 22}}>
-            <div style={{
-              fontSize: 13.5, fontWeight: 700, color: PN.MUTED,
-              letterSpacing: 0.4, textTransform:'uppercase',
-              marginBottom: 10, paddingLeft: 2,
-            }}>{catLabels[c]}</div>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
-              {byCategory[c].map(i => i.rimando
-                ? <RimandoCard key={i.id} item={i} onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: i.rimando, da: 'integrazioni' } }))}/>
-                : <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}
-                    connessioni={connessioni} onRevoca={revoca}/>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {visible.length === 0 && (
-          <div style={{padding: 40, textAlign:'center', color: PN.MUTED, fontSize: 15}}>
-            Nessuna integrazione corrisponde al filtro
-          </div>
-        )}
+      {/* BLOCCO 3 — Piattaforme e app esterne: le tre piattaforme di consegna
+          predisposte (P-119) e il collegamento con le app esterne (P-32). */}
+      <Blocco>Piattaforme e app esterne</Blocco>
+      <ImpCard title="Piattaforme di consegna" sub="Predisposte, non attive: Glovo, Deliveroo e Uber Eats entrano con l'add-on quando ci saranno gli accordi. Ogni tessera dice che cosa farà.">
+        <div style={griglia}>{tessere(per('delivery'))}</div>
+      </ImpCard>
+      <ImpCard title="App esterne" sub="Il collegamento con le tue app: la scheda dice che cosa esce e che cosa non esce, chi è titolare del flusso, e chiede la presa d'atto prima di generare la credenziale.">
+        <div style={griglia}>{tessere(per('api'))}</div>
       </ImpCard>
 
       {/* Le connessioni sono del ristorante, non della singola app: una card
           loro, dove si è aperto il collegamento. */}
       <IntConnessioniCard connessioni={connessioni} onRevoca={revoca}/>
-
-      {/* Suggested */}
-      {filter === 'all' && suggested.length > 0 && (
-        <ImpCard title="Suggeriti per te" sub="Integrazioni popolari per ristoranti come il tuo">
-          <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12}}>
-            {suggested.map(i => <IntegrationCard key={i.id} item={i} suggested onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}/>)}
-          </div>
-        </ImpCard>
-      )}
 
       {qrApp && <ByupPayQrModal onClose={() => setQrApp(false)}/>}
       {collega && <IntCollegaModal onClose={() => setCollega(false)} onGenera={aggiungiConnessione}/>}
@@ -513,26 +450,6 @@ function ByupPayQrModal({ onClose }) {
 // Il rimando: stessa tessera in piedi delle integrazioni, ma il bottone porta
 // alla scheda che ha il registro. Nessun chip di connessione qui — la
 // modalità si sceglie dove si registra la stampante.
-function RimandoCard({ item, onClick }) {
-  return (
-    <div style={{
-      display:'flex', flexDirection:'column',
-      minHeight: 236, padding: 18, borderRadius: 16,
-      border:`1.5px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
-    }}>
-      <div style={{
-        width:54, height:54, borderRadius:14, background: item.bg,
-        color:'#fff', display:'grid', placeItems:'center', fontSize:28, flexShrink:0,
-      }}>{item.logo}</div>
-      <div style={{fontSize:17, fontWeight:700, letterSpacing:-0.2, marginTop:14}}>{item.name}</div>
-      <div style={{fontSize:14.5, color:PN.MUTED, marginTop:4, lineHeight:1.45}}>{item.desc}</div>
-      <div style={{marginTop:'auto', paddingTop:14}}>
-        <ImpButton variant="secondary" onClick={onClick} style={{ width:'100%', justifyContent:'center', padding:'9px 14px', fontSize: 14.5 }}>Apri Stampanti</ImpButton>
-      </div>
-    </div>
-  );
-}
-
 function PosVirtualeRimando() {
   const [r, setR] = React.useState(() => (window.byupReadPosCensimento ? window.byupReadPosCensimento() : []).find(x => x.id === 'pos-virtuale') || null);
   React.useEffect(() => {
@@ -561,6 +478,9 @@ function PosVirtualeRimando() {
 }
 
 function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [], onRevoca }) {
+  // Predisposta (P-119): niente «Connetti», l'add-on è spento nell'MVP; al
+  // suo posto «Che cosa farà», che apre la scheda letta dalle specifiche.
+  const [scheda, setScheda] = React.useState(false);
   // Sulla tessera di un'app connessa con UNA connessione viva l'azione è
   // «Revoca», con la conferma sul posto; «Nuova connessione» resta come
   // link. Con più connessioni la revoca si fa dall'elenco, che è il
@@ -631,6 +551,7 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
           <span style={{width:6, height:6, borderRadius:'50%', background: s.dot, flexShrink: 0, alignSelf:'center'}}/>
           <span style={{flexShrink: 0}}>{s.label}</span>
           {item.detail && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· {item.detail}</span>}
+          {item.status === 'predisposta' && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· add-on spento nell'MVP</span>}
         </div>
         {item.id === 'stripe' && <PosVirtualeRimando/>}
 
@@ -669,6 +590,14 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
           )}
           {(item.status === 'available' || item.status === 'disconnected') && (
             <ImpButton variant="ghost" style={azione} onClick={item.api ? onApi : undefined}>Connetti</ImpButton>
+          )}
+          {item.status === 'predisposta' && (
+            <React.Fragment>
+              <ImpButton variant="ghost" style={azione} onClick={() => setScheda(v => !v)}>{scheda ? 'Chiudi' : 'Che cosa farà'}</ImpButton>
+              {scheda && (
+                <div data-scheda-piattaforma style={{ marginTop: 10, fontSize: 13, color: PN.TEXT, lineHeight: 1.5, padding: '10px 12px', borderRadius: 9, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}` }}>{item.scheda}</div>
+              )}
+            </React.Fragment>
           )}
         </div>
       </div>

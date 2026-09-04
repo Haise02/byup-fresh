@@ -66,10 +66,12 @@ account. Tre preset — Super Admin (governa e legge, le scritture operative
 sono dei mestieri), Support, Marketing — e dall'invito ogni cella si può
 regolare per singola area: se il risultato differisce dal preset, l'account
 diventa **Personalizzato** (nel mock: Laura Bianchi). ICT e Viewer non
-esistono più. Le aree sono tredici, dodici assegnabili più Piattaforma
-riservata: con D-33 (P-41) **Moderazione** e **Conformità** sono righe piene
-— le Restrizioni e i ban chiedono Scrittura su Moderazione, approvare o
-rifiutare una certificazione chiede Scrittura su Conformità; le funzioni
+esistono più. Le aree sono quattordici, tredici assegnabili più Piattaforma
+riservata: con D-33 (P-41) **Moderazione** e **Conformità** sono righe piene,
+e con P-110 **Richieste delle autorità** è la tredicesima assegnabile, un
+permesso predisposto. Le Restrizioni e i ban chiedono Scrittura su
+Moderazione, approvare o rifiutare una certificazione chiede Scrittura su
+Conformità; le funzioni
 restano dove si aprono (rubrica, ticket), cambia chi può usarle, e a chiederlo
 è una funzione sola, `hubPuo(area, livello)`, con `?ruolo=support|marketing`
 che impersona un preset per vedere lo stato negato. Il riesame periodico dei
@@ -93,20 +95,41 @@ il resto vive nelle tab.
    sulle otto venue_category del dizionario (P-29), non un testo libero — il
    tipo del locale è un codice (`admTipoLabel` lo mostra) e le tabelle per tipo
    di Mercato, Valore e Analisi lo usano come chiave. Sono **due campi** (P-44 ·
-   D-34): il **ciclo di vita** dice dove il locale è arrivato (iscritto non
-   avviato, in onboarding, onboarding saltato, attivo, inattivo, disdetto) e
-   il **provvedimento** cosa Byup ha deciso (nessuno, limitato, sospeso,
-   cessato — quest'ultimo solo per la risoluzione di Byup; la disdetta è
-   ciclo di vita). La diffida è una riga del registro, non un valore: la si
-   legge nel banner dei Contratti. Sotto, i **Locali associati all'utenza**
-   del titolare: utenza e locale sono due cose distinte.
+   D-34; P-121 sul modello): il **ciclo di vita** dice dove il locale è
+   arrivato — i cinque stati del modello con gli id `registered`,
+   `onboarding`, `active`, `dormant`, `churned` e le etichette Iscritto, In
+   onboarding, Attivo, Inattivo, Cessato — e il **provvedimento** cosa Byup
+   ha deciso (`none`, `limited`, `suspended`, `terminated`: nessuno,
+   limitato, sospeso, cessato — quest'ultimo solo per la risoluzione di Byup;
+   la disdetta è ciclo di vita). La **configurazione completa saltata** non è
+   uno stato: è un contrassegno del locale (`locConfigSaltata`, ricavato dai
+   passi non fatti), accanto al badge e come banner, e in rubrica è la
+   proprietà «Configurazione completa saltata», colonna e filtro. Un locale
+   attivo con il contrassegno resta attivo. La diffida è una riga del
+   registro, non un valore: la si legge nel banner dei Contratti. Sotto, i
+   **Locali associati all'utenza** del titolare: utenza e locale sono due cose
+   distinte. Titolare ed email non si modificano da qui, e non esiste un
+   «cambio del titolare» (D-104, P-117): i recapiti e il nome dell'account li
+   cambia la persona dal profilo del gestionale e restano nel Log, il
+   soggetto fiscale si cambia in Dati fiscali.
 2. **Dati fiscali** — P.IVA senza badge di verifica (nessuno la verifica
    presso l'Agenzia, e il gestionale ha smesso di dirlo), la **delega
    all'Agenzia** letta dal registro delle deleghe (P-52 · D-40: Impostazioni →
    Piattaforma → Deleghe, elenco numerato di conferimenti e revoche con
    scadenza ancorata al conferimento e responsabile della gestione), regime a scelta,
    ATECO, SDI, PEC, REA, sede operativa (derivata, quella dello scontrino) e
-   sede legale (campo suo), IBAN in sola lettura «gestito da Stripe».
+   sede legale (campo suo), IBAN in sola lettura «gestito da Stripe». Due
+   righe in sola lettura, per l'assistenza: la **trasmissione degli
+   scontrini** con l'incaricato della società — nome, codice fiscale, data
+   della nomina sul portale dell'Agenzia (P-116 · D-103: le credenziali sono
+   della persona che la società ha nominato, il rinnovo lo fa lei, Byup non
+   ne è parte e non nomina incaricati propri; il registro `byup_incaricati` e
+   la scheda «Incaricati Fisconline» non esistono più) — e il **soggetto
+   fiscale** con la data dell'ultimo cambio, il precedente e i passi della
+   catena (P-117 · D-104). Per il locale demo del gestionale (Cacio e Pepe,
+   `gestionaleId` `cp`) si leggono dallo stesso dominio: chiavi
+   `byup_ade_incaricato` e `byup_soggetto_change`, eventi
+   `byup-ade-incaricato-change` e `byup-soggetto-change`.
 3. **Proprietà** — campi liberi in stile CRM.
 4. **Statistiche** — due sezioni etichettate: **Dati del locale** (tre KPI:
    ordini medi al mese, tasso di coperti occupati, scontrino medio; poi
@@ -120,7 +143,12 @@ il resto vive nelle tab.
    locale, filtro Dal/Al; con le rettifiche di cassa e gli sconti manuali, che
    sono la materia dell'**estrazione del registro operazioni** (P-47 · D-38):
    si chiede da Assistenza → Estrazioni, con motivo e nota, dietro Scrittura
-   su Conformità, e l'estrazione resta a registro e in audit.
+   su Conformità, e l'estrazione resta a registro e in audit. In coda gli
+   **eventi dell'account** (P-117 · D-104): i cambi di email, telefono e nome
+   che la persona fa dal profilo del gestionale, con il valore precedente e il
+   nuovo — per il locale demo dalla chiave `byup_audit_events` (evento
+   `byup-audit-change`); se non ce ne sono, la riga lo dice. L'assistenza
+   legge, non modifica.
 6. **Certificazioni** — le dodici del modello (P-61 · RL-06, `CERT_TIPI`, che il
    gestionale copia): nove con ente e documento, tre autodichiarazioni
    (vegetariano, senza lattosio, filiera corta) mostrate «Autodichiarata ·
@@ -166,7 +194,11 @@ zona sensibile con ban ed eliminazione), **Statistiche** (abitudini con sessioni
 sui cinque orizzonti, spesa, prenotazioni con no-show onesto sui denominatori
 piccoli, tempi medi, inviti, preferenze alimentari **solo col consenso A3**),
 **Consensi** (A3/A18/A6, specchio di ByupConsensi dell'app, con documenti e
-versioni), **Log** (i tre eventi del registro d'uso — `app_open`, `qr_scan`,
+versioni, e sotto i **tre interruttori dell'app** in sola lettura — P-123:
+`recommendations` e `analytics` su legittimo interesse con l'opposizione,
+`dietary_suggestions` consenso distinto sul dato alimentare — con stato e
+data dell'ultimo evento, letti dal registro dell'app sullo stesso dominio per
+l'utente demo e d'esempio per gli altri), **Log** (i tre eventi del registro d'uso — `app_open`, `qr_scan`,
 `menu_view` — con la riga che dice a quali condizioni si scrive, e la card dei
 rimandi alle tab dove vivono gli altri fatti: ordini, prenotazioni, recensioni,
 byuppini, consensi e notifiche non si riscrivono in un registro parallelo,
@@ -387,34 +419,31 @@ pagina e del pulsante con tinta o sfumatura.
 
 ## Ruoli e permessi
 
-Tre preset su tredici aree, di cui dodici assegnabili. La matrice si apre dal
-bottone **Ruoli & permessi** in **Impostazioni → Sicurezza e sistemi →
+Tre preset su quattordici aree, di cui tredici assegnabili. La matrice si apre
+dal bottone **Ruoli & permessi** in **Impostazioni → Sicurezza e sistemi →
 Accessi**; i dati in [admin-data.jsx](admin-data.jsx) (`AREE`, `LIVELLI`,
 `RUOLI`, `admLivelliDi`, `hubPuo`). Ogni cella vale Nessuno, Lettura o
 Scrittura; Analisi Dati ammette solo la lettura; Piattaforma è riservata al
 Super Admin e non compare. I preset si regolano per cella: un account che
-differisce dal suo preset è **Personalizzato**.
+differisce dal suo preset è **Personalizzato**. I ruoli storici ICT e Viewer
+restano leggibili solo nelle attestazioni chiuse.
 
 | Preset | Scrive su |
 |---|---|
-| **Super Admin** | Proprietà, Agent, Domini e mittenti, Sicurezza e sistemi — il lavoro operativo lo legge, Moderazione e Conformità comprese |
-| **Support** | Contatti, Moderazione, Elenchi, Workflow, Agent, Assistenza, Conformità |
-| **Marketing** | Elenchi, Proprietà, Marketing, Workflow, Domini e mittenti — Moderazione e Conformità: nessuno |
+| **Super Admin** | Proprietà, Agent, Richieste delle autorità, Domini e mittenti, Sicurezza e sistemi — il lavoro operativo lo legge, Moderazione e Conformità comprese |
+| **Support** | Contatti, Moderazione, Elenchi, Workflow, Agent, Assistenza, Conformità — Richieste delle autorità: lettura |
+| **Marketing** | Elenchi, Proprietà, Marketing, Workflow, Domini e mittenti — Moderazione, Conformità e Richieste delle autorità: nessuno |
 | **Personalizzato** | cella per cella (nel mock Laura Bianchi: partita da Support, scrive solo su Assistenza) |
+
+**Richieste delle autorità** (`autorita`, P-110 · D-33) è un'area distinta
+dalla Moderazione: rimuovere una recensione e rispondere a una procura o al
+Garante non sono la stessa funzione. Nella console la trattazione delle
+richieste non esiste ancora: la riga vale come **permesso predisposto** — la
+matrice la marca così — e quando la funzione arriverà passerà sotto questo
+permesso senza riaprire i preset.
 
 Una scelta deliberata: **le impostazioni della piattaforma restano al solo Super
 Admin** — sono leve commerciali (prezzi, piani, soglie).
-
----|---|
-| **Super Admin** | tutto |
-| **Support** | dashboard, locali, utenti, ticket, chiamate e knowledge base, certificazioni |
-| **Marketing** | dashboard, messaggi |
-| **ICT** | dashboard, Sicurezza e sistemi |
-| **Viewer** | dashboard |
-
-Una scelta deliberata: **le impostazioni della piattaforma restano al solo Super
-Admin** — sono leve commerciali (prezzi, piani, soglie), e ICT amministra i
-sistemi ma non decide quanto costa un piano.
 
 ---
 

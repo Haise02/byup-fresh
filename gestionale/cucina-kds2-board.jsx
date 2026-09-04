@@ -1639,11 +1639,13 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
         <Kds2Annulla voci={pronti} onRipristina={ripristina}/>
       </div>
 
-      {/* P-101: la comanda di carta della sorgente selezionata. Il KDS e le
-          stampanti convivono: chi tocca un tavolo nella rail può mandarne la
-          comanda alla stampa — dal browser, il layout a 80 mm con le righe per
-          categoria (stampa.jsx). L'instradamento automatico per categoria via
-          WebSocket è del backend e qui non esiste: si stampa a mano. */}
+      {/* P-124 (D-108): la comanda di carta della sorgente selezionata. Il KDS
+          e le stampanti convivono: chi tocca un tavolo nella rail può mandarne
+          la comanda alla stampa — dal browser, il layout a 80 mm con le righe
+          per categoria (stampa.jsx), con la persona che conferma. L'invio
+          automatico alle stampanti che interrogano il server (CloudPRNT, Server
+          Direct Print) per categoria (category_routings) e la coda print_jobs
+          sono del backend e qui non esistono: si stampa a mano. */}
       {selezione != null && typeof window.byupStampaComanda === 'function' && (() => {
         const mie = porzioni.filter(p => kds2SorgenteId(p.source) === selezione && p.status !== 'incoming');
         if (!mie.length) return null;

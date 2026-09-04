@@ -1,6 +1,6 @@
 # Byuppini — concept, meccaniche ed economia
 
-> **Stato: nulla di tutto questo è attivo, e niente vive nel prototipo.** I Byuppini sono usciti dall'app consumer con `fe14041` («Beta v2: app consumer senza Byuppini e Cerca»), che ha smontato le schermate integrate poco prima da `fc906d0`. Oggi la tab bar ha Home, Cerca, QR e Profilo, e delle schermate qui descritte non resta codice in nessun file.
+> **Stato: nulla di tutto questo è attivo, e niente vive nel prototipo.** I Byuppini sono usciti dall'app consumer con `fe14041` («Beta v2: app consumer senza Byuppini e Cerca»), che ha smontato le schermate integrate poco prima da `fc906d0`. Oggi la tab bar ha Home, Cerca, QR e Profilo, e delle schermate qui descritte non resta codice in nessun file. La frase è tornata vera il **4 settembre 2026** (P-122): fino ad allora nella testata del Profilo restavano i contrassegni dei traguardi («Pizza lover», «Re dello spritz», il livello «LIV. 3» e il «+» per sceglierli, `PROFILE_TAGS`), messi nel luglio 2026 e sopravvissuti alla Beta v2 — i riconoscimenti di `byuppini_badges`, esposti mentre il programma era «non esposto in alcuna interfaccia». Sono usciti con l'avatar che resta; rientreranno col programma, quando sarà attivo e valutato, e i riconoscimenti fondati sulla storia degli ordini entreranno nella valutazione d'impatto come trattamento ulteriore.
 >
 > Sul piano del prodotto la posizione è la stessa: SFA §22 e DPT classificano il programma fra le predisposizioni non attive — il dominio esiste a schema, ma niente è esposto in alcuna interfaccia e l'attivazione è subordinata alla verifica legale del programma punti e premi. Due elementi la verifica dovrà guardarli da vicino: la scadenza dei punti a dodici mesi e il valore di conversione dichiarato (100 punti = 1€), che qualificano il programma come operazione a premio con obblighi propri. Byup Games è già uscito il 7 ago 2026 e con esso ogni meccanica aleatoria: la scelta è definitiva, i byuppini si guadagnano ordinando e con le sfide, mai giocando.
 >
@@ -27,7 +27,7 @@ Catalogo premi: gadget byup (sticker 150, tote 500, borraccia 800), esperienze p
 
 Livelli (LIV.1→LIV.8: Novizio, Esploratore, Buongustaio, Intenditore, Gourmet, Maestro, Leggenda, Icona): ogni livello dà perk crescenti — moltiplicatore punti (da ×1 a ×3), bonus byuppini una-tantum, accesso anticipato alle offerte, premi esclusivi. Salire di livello = momento celebrativo (mascotte + confetti).
 
-Achievement/badge: traguardi collezionabili già presenti nel profilo (Pizza lover, Re dello spritz…), ognuno con un bonus una-tantum di byuppini.
+Achievement/badge: traguardi collezionabili (Pizza lover, Re dello spritz…), ognuno con un bonus una-tantum di byuppini. Non sono più nel profilo dal 4 settembre 2026 (P-122): torneranno col programma.
 
 ## Far tornare i conti
 Il costo dei byuppini è un investimento di acquisizione e retention, non una perdita secca. Il meccanismo che lo giustifica è il modello di byup: ogni comanda saldata in app pesa col coefficiente ridotto del piano verso le soglie del piano del ristoratore, quindi più ordini-app significano più pressione sui piani, più upgrade, più ricavi byup. I byuppini esistono per spingere gli ordini in-app.

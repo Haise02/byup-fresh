@@ -348,74 +348,114 @@ Object.assign(window, { PnSectionTab, PnSectionTabs });
 // riga di Impostazioni → Integrazioni leggono tutti da qui — se un giorno
 // arrivano i loghi veri si sostituiscono QUI e restano una cosa sola. Il
 // colore brand è il dispositivo di riconoscimento: pieno, mai pastellato —
-// un #FF8000 ammorbidito non è più l'arancio di Just Eat.
-// Nota di prodotto: al lancio queste integrazioni NON esistono — dipendono
-// dagli accordi con le piattaforme, ed entrano in gioco solo quando le
-// integrazioni sono reali. Nel prototipo il contrassegno è la lingua visiva
-// già pronta per quel momento.
-// ─── Allergeni: il dizionario unico dei quattordici (P-24 · D-27) ──────────
+// un #06C167 ammorbidito non è più il verde di Uber Eats.
+// Le piattaforme predisposte sono TRE (P-119 · D-106): Glovo, Deliveroo e
+// Uber Eats, le cui specifiche sono in raccolta dal 3 settembre 2026. Just
+// Eat è uscita dal prodotto e dal modello: la sua documentazione non è
+// acquisibile, e ciò che non è riscontrabile non si progetta. L'add-on resta
+// spento nell'MVP: nel prototipo il contrassegno è la lingua visiva già
+// pronta per quando gli accordi ci saranno.
+// ─── Allergeni: il dizionario unico dei quattordici (P-24 · D-27; P-109) ───
 // Allegato II del Reg. UE 1169/2011. La fonte VERA è il dizionario di
-// piattaforma (`dietary_labels`/`allergens` del modello); questa è la copia
-// del bundle gestionale, coi codici copiati VERBATIM dall'app-kit di P-65
-// (app/byup-app-kit.jsx) — id, code e ordine identici, così quando i due
-// bundle si unificheranno la corrispondenza sarà già scritta. Nota di
-// mappatura: l'id `lattosio` sta sul code `milk`, perché l'allergene di
-// legge è il LATTE — l'etichetta parla come parlano le persone, il codice
-// come parla la norma. Mai testo libero: l'allergene viaggia solo come
-// codice, e mai nello stesso testo del nome di una persona (art. 9 GDPR).
+// piattaforma (`allergens` del modello); questa è la copia del bundle
+// gestionale, e l'identificativo è il CODICE del modello (gluten, milk,
+// nuts…), lo stesso `code` che porta il dizionario dell'app
+// (app/byup-app-kit.jsx). Da P-109 nel gestionale l'elenco è UNO: le
+// prenotazioni, i piatti del menù e la scheda del tavolo parlano con questi
+// codici, e i due elenchi che prima divergevano (`latte` contro `lattosio`,
+// `frutta-guscio` contro `fruttaguscio`) sopravvivono solo come alias per i
+// dati già scritti. L'etichetta è quella di legge, per esteso («Latte», non
+// «Lattosio»). Mai testo libero: l'allergene viaggia solo come codice, e
+// mai nello stesso testo del nome di una persona (art. 9 GDPR).
 const PN_ALLERGENI = [
-  { id: 'glutine',      code: 'gluten',      label: 'Glutine',         hint: 'Pane, pasta, dolci',           color: '#c8a87a', icon: '🌾' },
-  { id: 'crostacei',    code: 'crustaceans', label: 'Crostacei',       hint: 'Gamberi, scampi, granchio',    color: '#e88a5a', icon: '🦐' },
-  { id: 'uova',         code: 'eggs',        label: 'Uova',            hint: 'Frittate, dolci, salse',       color: '#f0c14b', icon: '🥚' },
-  { id: 'pesce',        code: 'fish',        label: 'Pesce',           hint: 'Acciughe, salse di pesce',     color: '#d96a52', icon: '🐟' },
-  { id: 'arachidi',     code: 'peanuts',     label: 'Arachidi',        hint: 'Creme, salse, fritti',         color: '#c89860', icon: '🥜' },
-  { id: 'soia',         code: 'soybeans',    label: 'Soia',            hint: 'Tofu, tempeh, salsa di soia',  color: '#9ec27a', icon: '🌱' },
-  { id: 'lattosio',     code: 'milk',        label: 'Lattosio',        hint: 'Latte, formaggi, burro',       color: '#f5c2c7', icon: '🥛' },
-  { id: 'fruttaguscio', code: 'nuts',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle',     color: '#a07050', icon: '🥜' },
-  { id: 'sedano',       code: 'celery',      label: 'Sedano',          hint: 'Brodi, soffritti',             color: '#7ec98a', icon: '🥬' },
-  { id: 'senape',       code: 'mustard',     label: 'Senape',          hint: 'Salse, marinature',            color: '#e8c850', icon: '🌶' },
-  { id: 'sesamo',       code: 'sesame',      label: 'Sesamo',          hint: 'Pane, hummus, condimenti',     color: '#d4b06a', icon: '⚪' },
-  { id: 'solfiti',      code: 'sulphites',   label: 'Solfiti',         hint: 'Vino, frutta secca, conserve', color: '#b07ac0', icon: '🍇' },
-  { id: 'lupini',       code: 'lupin',       label: 'Lupini',          hint: 'Farine, sostituti vegetali',   color: '#f0b878', icon: '🫘' },
-  { id: 'molluschi',    code: 'molluscs',    label: 'Molluschi',       hint: 'Cozze, vongole, calamari',     color: '#7aa8c8', icon: '🐚' },
+  { id: 'gluten',      label: 'Glutine',         hint: 'Pane, pasta, dolci',           color: '#c8a87a', icon: '🌾', alias: ['glutine'] },
+  { id: 'crustaceans', label: 'Crostacei',       hint: 'Gamberi, scampi, granchio',    color: '#e88a5a', icon: '🦐', alias: ['crostacei'] },
+  { id: 'eggs',        label: 'Uova',            hint: 'Frittate, dolci, salse',       color: '#f0c14b', icon: '🥚', alias: ['uova'] },
+  { id: 'fish',        label: 'Pesce',           hint: 'Acciughe, salse di pesce',     color: '#d96a52', icon: '🐟', alias: ['pesce'] },
+  { id: 'peanuts',     label: 'Arachidi',        hint: 'Creme, salse, fritti',         color: '#c89860', icon: '🥜', alias: ['arachidi'] },
+  { id: 'soybeans',    label: 'Soia',            hint: 'Tofu, tempeh, salsa di soia',  color: '#9ec27a', icon: '🌱', alias: ['soia'] },
+  { id: 'milk',        label: 'Latte',           hint: 'Latte, formaggi, burro',       color: '#f5c2c7', icon: '🥛', alias: ['latte', 'lattosio'] },
+  { id: 'nuts',        label: 'Frutta a guscio', hint: 'Noci, nocciole, mandorle',     color: '#a07050', icon: '🥜', alias: ['frutta-guscio', 'fruttaguscio'] },
+  { id: 'celery',      label: 'Sedano',          hint: 'Brodi, soffritti',             color: '#7ec98a', icon: '🥬', alias: ['sedano'] },
+  { id: 'mustard',     label: 'Senape',          hint: 'Salse, marinature',            color: '#e8c850', icon: '🌶', alias: ['senape'] },
+  { id: 'sesame',      label: 'Sesamo',          hint: 'Pane, hummus, condimenti',     color: '#d4b06a', icon: '⚪', alias: ['sesamo'] },
+  { id: 'sulphites',   label: 'Solfiti',         hint: 'Vino, frutta secca, conserve', color: '#b07ac0', icon: '🍇', alias: ['solfiti'] },
+  { id: 'lupin',       label: 'Lupini',          hint: 'Farine, sostituti vegetali',   color: '#f0b878', icon: '🫘', alias: ['lupini'] },
+  { id: 'molluscs',    label: 'Molluschi',       hint: 'Cozze, vongole, calamari',     color: '#7aa8c8', icon: '🐚', alias: ['molluschi'] },
 ];
+PN_ALLERGENI.forEach(a => { a.code = a.id; });
 window.PN_ALLERGENI = PN_ALLERGENI;
-window.PN_ALLERGENI_MAP = PN_ALLERGENI.reduce((m, a) => { m[a.id] = a; return m; }, {});
+// La mappa risponde al codice e agli alias: i dati scritti prima di P-109
+// (`glutine`, `lattosio`, `frutta-guscio`) trovano la stessa voce.
+window.PN_ALLERGENI_MAP = PN_ALLERGENI.reduce((m, a) => { m[a.id] = a; (a.alias || []).forEach(x => { m[x] = a; }); return m; }, {});
+window.pnAllergene = (x) => window.PN_ALLERGENI_MAP[x] || null;
+window.pnAllergeneLabel = (x) => { const a = window.pnAllergene(x); return a ? a.label : String(x || ''); };
 
-// ─── Profili IVA dell'articolo fuori menù (P-11 · D-16) ────────────────────
-// Dizionario di piattaforma: governato da Hubble, qui mockato. Le voci si
-// etichettano per caso d'uso con la base normativa nell'hint, MAI come
-// percentuali nude. L'articolo fuori catalogo non ha nulla da cui derivare
-// l'IVA: la dichiara chi lo batte, scegliendo una di queste. La prima è il
-// default sempre preselezionato: copre la somministrazione (n. 121, Tab. A
-// parte III, DPR 633/72 — nel locale l'aliquota è una per tutto, bevande
-// comprese) e i preparati da asporto (L. 178/2020, art. 1 co. 40).
-// La voce a 10% è UNA a schermo ma DUE profili nel modello
-// (vat_rate_profiles per service_mode, risolti da delivery_mode — ERD v11):
-// sulla riga si congela somministrazione_10 nel locale, asporto_preparato_10
-// da asporto. Le altre due voci sono un profilo ciascuna.
-const PN_IVA_PROFILI = [
-  { id: 'dieci', label: 'Somministrato o preparato qui · 10%', aliquota: 10,
-    perModo: { locale: 'somministrazione_10', asporto: 'asporto_preparato_10' },
-    base: 'Somministrazione (n. 121, Tab. A parte III, DPR 633/72) e cibi preparati da asporto (L. 178/2020, art. 1 co. 40); vi rientrano anche pasticceria, biscotteria e panetteria fine confezionate da asporto (voce 68, Tab. A parte III).' },
-  { id: 'asporto_confezionato_22', label: 'Bevande e confezionati al 22%', aliquota: 22,
-    base: 'Bibite, alcolici, acqua sigillata; dolciumi e cioccolato in confezioni di pregio.' },
-  { id: 'asporto_alimentari_base_4', label: 'Alimentari di base da asporto · 4%', aliquota: 4,
-    base: 'Paniere Tab. A parte II, DPR 633/72: pane e panetteria ordinaria, pasta, latte fresco, burro, formaggi, frutta e verdura, olio d\'oliva.' },
+// ─── Tipologia dell'articolo (P-108 · D-105, che rivede D-16) ──────────────
+// Chi batte un articolo fuori menù, e chi compila un piatto del menù, non
+// sceglie un'aliquota né un profilo IVA: dichiara CHE COSA vende, fra cinque
+// tipologie di un dizionario di piattaforma (item_kinds del modello,
+// governato da Hubble, qui mockato), e il profilo IVA discende dalla
+// tipologia e dal modo di consumo dell'ordine — al banco o al tavolo
+// (somministrazione, voce 121 Tab. A parte III DPR 633/72: tutto al 10%)
+// oppure da asporto (cessione: la legge elenca i prodotti uno per uno).
+// Le cinque voci sono raggruppamenti nostri, non categorie di legge: per
+// questo il dizionario è di piattaforma e lo cura Hubble, che corregge o
+// arricchisce la spiegazione senza rilascio, e non si chiede al ristoratore
+// di interpretare la tabella. La prima è la proposta per tutti (P-126: la
+// preselezione di sede non esiste) e chi batte la cambia con un tocco.
+// Sulla riga d'ordine si congela il profilo (vat_rate_profiles, ERD v11)
+// risolto da tipologia × modo; al cambio di modo si ricalcola da solo. La
+// formulazione precedente (P-11) chiedeva l'aliquota e la ricavava da due
+// spunte con una regola sbagliata per acqua e birra, che stanno al 10% anche
+// da asporto (voci 81 e 82).
+const PN_TIPOLOGIE_ARTICOLO = [
+  { id: 'piatti_preparati', label: 'Piatti, panini, caffè, dolci e pasticceria',
+    spiegazione: 'Quello che il locale prepara o serve.',
+    locale:  { profilo: 'somministrazione_10',       aliquota: 10, fondamento: 'voce 121' },
+    asporto: { profilo: 'asporto_preparato_10',      aliquota: 10, fondamento: 'L. 178/2020 e voce 68' } },
+  { id: 'acqua_birra', label: 'Acqua e birra',
+    spiegazione: 'Anche in bottiglia o lattina sigillata.',
+    locale:  { profilo: 'somministrazione_10',       aliquota: 10, fondamento: 'voce 121' },
+    asporto: { profilo: 'asporto_acqua_birra_10',    aliquota: 10, fondamento: 'voci 81 e 82' } },
+  { id: 'bibite_alcolici_confezionati', label: 'Bibite, vino, alcolici, dolciumi confezionati',
+    spiegazione: 'Bibite gassate, vino, superalcolici, cioccolato e dolciumi in confezione.',
+    locale:  { profilo: 'somministrazione_10',       aliquota: 10, fondamento: 'voce 121' },
+    asporto: { profilo: 'asporto_confezionato_22',   aliquota: 22, fondamento: 'aliquota ordinaria' } },
+  { id: 'alimentari_base', label: 'Pane, pasta, latte, formaggi, frutta e verdura',
+    spiegazione: 'Alimentari di base venduti così come sono.',
+    locale:  { profilo: 'somministrazione_10',       aliquota: 10, fondamento: 'voce 121' },
+    asporto: { profilo: 'asporto_alimentari_base_4', aliquota: 4,  fondamento: 'Tabella A parte II' } },
+  { id: 'non_alimentari', label: 'Oggetti non alimentari',
+    spiegazione: 'Gadget, tazze, magliette e tutto ciò che non si mangia né si beve.',
+    locale:  { profilo: 'ordinaria_22',              aliquota: 22, fondamento: 'aliquota ordinaria' },
+    asporto: { profilo: 'ordinaria_22',              aliquota: 22, fondamento: 'aliquota ordinaria' } },
 ];
-window.PN_IVA_PROFILI = PN_IVA_PROFILI;
-// L'id che si congela sulla riga, risolto dal modo dell'ordine.
-window.pnIvaProfiloId = (voce, asporto) =>
-  voce.perModo ? voce.perModo[asporto ? 'asporto' : 'locale'] : voce.id;
-// La voce del dizionario a partire dall'id congelato (per tag e riproposta).
-window.pnIvaVoceDiProfilo = (profiloId) =>
-  PN_IVA_PROFILI.find(v => v.id === profiloId
-    || (v.perModo && (v.perModo.locale === profiloId || v.perModo.asporto === profiloId)));
+window.PN_TIPOLOGIE_ARTICOLO = PN_TIPOLOGIE_ARTICOLO;
+window.PN_TIPOLOGIA_DEFAULT = PN_TIPOLOGIE_ARTICOLO[0].id;
+// La voce dal suo id; se manca o non esiste, la prima: un articolo senza
+// tipologia dichiarata è «quello che il locale prepara o serve».
+window.pnTipologia = (id) => PN_TIPOLOGIE_ARTICOLO.find(t => t.id === id) || PN_TIPOLOGIE_ARTICOLO[0];
+// Il profilo che si congela sulla riga: tipologia × modo dell'ordine.
+window.pnTipologiaProfilo = (id, asporto) => { const t = window.pnTipologia(id); return asporto ? t.asporto : t.locale; };
+window.pnTipologiaAliquota = (id, asporto) => window.pnTipologiaProfilo(id, asporto).aliquota;
+// La spiegazione sotto il campo: le due aliquote e il fondamento, così chi
+// batte vede l'effetto senza saperlo a memoria.
+window.pnTipologiaSpiegazione = (id) => {
+  const t = window.pnTipologia(id);
+  const unica = t.locale.aliquota === t.asporto.aliquota && t.locale.fondamento === t.asporto.fondamento;
+  return unica
+    ? `${t.spiegazione} ${t.locale.aliquota}% in ogni caso (${t.locale.fondamento})`
+    : `${t.spiegazione} Al banco o al tavolo ${t.locale.aliquota}% · Da asporto ${t.asporto.aliquota}% (${t.locale.fondamento}; ${t.asporto.fondamento})`;
+};
+// La tipologia a partire da un profilo congelato (righe scritte prima).
+window.pnTipologiaDiProfilo = (profiloId) =>
+  PN_TIPOLOGIE_ARTICOLO.find(t => t.locale.profilo === profiloId || t.asporto.profilo === profiloId) || null;
 
 const PN_PARTNER = {
-  justeat:   { sigla:'JE', nome:'Just Eat',  bg:'#FF8000', ink:'#FFFFFF' },
   glovo:     { sigla:'G',  nome:'Glovo',     bg:'#FFC244', ink:'#0A1929' },
   deliveroo: { sigla:'D',  nome:'Deliveroo', bg:'#00CCBC', ink:'#0A1929' },
+  ubereats:  { sigla:'UE', nome:'Uber Eats', bg:'#06C167', ink:'#0A1929' },
 };
 window.PN_PARTNER = PN_PARTNER;
 
@@ -725,99 +765,98 @@ window.pnChiusuraTesto = (c) => {
 };
 window.pnOggiISO = pnOggiISO;
 
-// ─── Cambio di titolarità (P-62 · D-52, restaurant_holder_changes) ──────────
-// Quattro casi, change_type: contact_data (casella o recapiti della stessa
-// persona, soggetto fiscale invariato), holder_person (cambia la persona
-// fisica, il legale rappresentante che si avvicenda), legal_entity (cambia il
-// soggetto fiscale — partita IVA o forma giuridica — e la persona può restare
-// la stessa), both (cessione d'attività). fiscal_chain_impacted NON è una
-// scelta: si ricava da change_type — la delega è conferita da una PERSONA
-// FISICA per conto di un CONTRIBUENTE, quindi va rifatta se cambia l'una
-// oppure l'altro, e non va toccata se cambia soltanto la casella di posta. La
-// domanda non è chi è cambiato, ma se cambia ciò che l'Agenzia conosce.
-// Stati: proposed → accepted (dalla persona entrante, quando c'è) → verified →
-// fiscal_updated → delegations_renewed → completed, più refused ed expired;
-// gli stati che non si applicano al tipo si saltano. La partita IVA
-// precedente si conserva, mai sovrascritta: i documenti già emessi la portano
-// e devono restare leggibili. Invarianti di D-57: il titolare è uno solo per
-// volta e cambia soltanto per questa via; l'assistenza non ha alcuna via per
-// sostituirlo. Il cambiamento è del RISTORANTE, non della singola sede.
-// Registro in localStorage (byup_holder_change): Account e Dati fiscali lo
-// aprono, Dati fiscali e la card della delega scrivono la loro tappa, Account
-// lo rilegge.
+// ─── Il cambio di SOGGETTO FISCALE (P-117 · D-104, che rivede D-52) ────────
+// L'account è della PERSONA, e nasce quando crea un locale — cioè un soggetto
+// fiscale con le sue sedi. Il titolare non è un tipo di account: è il ruolo
+// che quella persona ha su quel soggetto. Perciò nel prodotto non esiste
+// un'operazione di «cambio del titolare» né di «passaggio del locale»: chi ha
+// l'account modifica i propri recapiti e il proprio nome dal profilo, e ogni
+// modifica scrive un evento nel registro delle attività (audit_events, qui
+// byup_audit_events) con il valore precedente e quello nuovo. Nient'altro.
+// La conseguenza è accettata (D-104): la storia delle operazioni resta
+// attribuita all'ACCOUNT e non alla persona fisica del momento; ciò che il
+// registro dice è quando e in che cosa l'account è cambiato.
 //
-// La porta a domanda è morta: nessuna schermata chiede «cosa sta cambiando»,
-// il tipo nasce dal GESTO. contact_data nasce dal salvataggio dei recapiti in
-// Account e non si nomina mai a schermo (la verifica della nuova casella è
-// la sua riga); holder_person da «Passa la titolarità a un'altra persona»,
-// accanto al nome del titolare in Account; legal_entity e both da «Cambia
-// soggetto fiscale» in Impostazioni → Dati fiscali, dove il foglio del nuovo
-// soggetto chiede «resta la stessa persona?». Il cambiamento porta
-// legal_form: per il cambio di persona la tappa fiscal_updated segue la
-// forma — attiva sui campi del titolare per ditta individuale e
-// professionista, saltata per società ed ente, dove il legale rappresentante
-// non è un dato fiscale del locale e il passaggio si compie con le deleghe.
-const PN_HOLDER_KEY = 'byup_holder_change';
-const PN_HOLDER_TIPI = [
-  { id: 'contact_data',  chain: false, label: 'Solo i miei recapiti',
-    sub: 'Stessa persona, stesso soggetto fiscale: cambiano la casella di posta o il telefono.' },
-  { id: 'holder_person', chain: true,  label: 'Cambia il titolare',
-    sub: 'Il legale rappresentante si avvicenda: chi entra prende il posto di chi esce.' },
-  { id: 'legal_entity',  chain: true,  label: 'Cambia il soggetto fiscale, la persona resta',
-    sub: 'Partita IVA o forma giuridica nuove: la ditta che diventa società, la S.r.l. che si trasforma.' },
-  { id: 'both',          chain: true,  label: 'Cessione dell\'attività',
-    sub: 'Cambiano insieme la persona e il soggetto fiscale.' },
+// Quello che cambia davvero, quando cambia il contribuente, è il SOGGETTO
+// FISCALE, e si cambia in Dati fiscali: nuovi dati con il precedente
+// conservato nella storia (i documenti già emessi portano la P.IVA di
+// allora), delega riconferita e revocata, credenziali nuove con la
+// trasmissione di prova, nuovo conto Stripe, censimento dei POS rifatto e —
+// alla fine — la RIACCETTAZIONE dei termini a nome del nuovo soggetto, senza
+// la quale il cambiamento non è concluso: è un nuovo soggetto giuridico, e il
+// contratto lo firma lui. Nel modello è restaurant_holder_changes ridotto al
+// solo change_type `legal_entity`, con lo stato `terms_reaccepted` fra
+// `delegations_renewed` e `completed`.
+// Nessuna verifica dell'identità è chiesta da Byup: chi cambia i recapiti è
+// autenticato, e sul fiscale l'identità la prova l'Agenzia con lo SPID di chi
+// conferisce la delega, e Stripe con la verifica del nuovo soggetto.
+// Registro condiviso: lo scrivono Dati fiscali e Account, lo legge Hubble in
+// sola lettura (scheda del locale).
+const PN_SOGGETTO_KEY = 'byup_soggetto_change';
+const PN_SOGGETTO_CAUSALI = [
+  { id: 'trasformazione_societaria', label: 'Trasformazione societaria' },
+  { id: 'cessione_attivita',         label: "Cessione d'attività" },
+  { id: 'subentro',                  label: 'Subentro' },
+  { id: 'altro',                     label: 'Altro' },
 ];
-const PN_HOLDER_STATI = [
-  { id: 'proposed',            label: 'Proposto' },
-  { id: 'accepted',            label: 'Accettato da chi entra' },
-  { id: 'verified',            label: 'Identità verificata' },
-  { id: 'fiscal_updated',      label: 'Dati fiscali aggiornati' },
-  { id: 'delegations_renewed', label: 'Deleghe riconferite e revocate' },
-  { id: 'completed',           label: 'Concluso' },
+// I passi, nell'ordine in cui si compiono. `terms_reaccepted` è l'ultimo
+// prima della conclusione: il cambiamento non è concluso finché il nuovo
+// soggetto non ha firmato.
+const PN_SOGGETTO_PASSI = [
+  { id: 'fiscal_updated',       label: 'Dati fiscali aggiornati' },
+  { id: 'delegations_renewed',  label: 'Delega riconferita e revocata' },
+  { id: 'credentials_verified', label: 'Credenziali del canale e prova di trasmissione' },
+  { id: 'stripe_connected',     label: 'Conto Stripe del nuovo soggetto' },
+  { id: 'pos_recensiti',        label: 'POS comunicati di nuovo all\'Agenzia' },
+  { id: 'terms_reaccepted',     label: 'Termini riaccettati dal nuovo soggetto' },
 ];
-// Le tappe che si applicano al tipo; le altre si saltano, e il perché lo dice
-// pnHolderSalto.
-const pnHolderTappe = (tipo, forma) => {
-  const base = ({
-    contact_data:  ['proposed', 'verified', 'completed'],
-    holder_person: ['proposed', 'accepted', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
-    legal_entity:  ['proposed', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
-    both:          ['proposed', 'accepted', 'verified', 'fiscal_updated', 'delegations_renewed', 'completed'],
-  })[tipo] || ['proposed', 'verified', 'completed'];
-  if (tipo === 'holder_person' && (forma === 'societa' || forma === 'ente')) return base.filter(t => t !== 'fiscal_updated');
-  return base;
+window.PN_SOGGETTO_CAUSALI = PN_SOGGETTO_CAUSALI;
+window.PN_SOGGETTO_PASSI = PN_SOGGETTO_PASSI;
+window.byupReadSoggettoChange = function () {
+  try { const s = localStorage.getItem(PN_SOGGETTO_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
 };
-const pnHolderSalto = (tipo, stato) => {
-  if (stato === 'accepted') return 'Non serve: nessuna persona entrante, la persona resta la stessa.';
-  if (stato === 'fiscal_updated') return 'Non serve: per una società o un ente il legale rappresentante non è un dato fiscale del locale. Il passaggio si compie con le deleghe, che chi entra riconferisce a nome dello stesso soggetto.';
-  return 'Non serve: l\'Agenzia non conosce la tua casella di posta.';
+window.byupWriteSoggettoChange = function (c) {
+  try { if (c) localStorage.setItem(PN_SOGGETTO_KEY, JSON.stringify(c)); else localStorage.removeItem(PN_SOGGETTO_KEY); } catch (e) {}
+  window.dispatchEvent(new Event('byup-soggetto-change'));
 };
-window.PN_HOLDER_TIPI = PN_HOLDER_TIPI;
-window.PN_HOLDER_STATI = PN_HOLDER_STATI;
-window.pnHolderTappe = pnHolderTappe;
-window.pnHolderSalto = pnHolderSalto;
-window.byupReadHolderChange = function () {
-  try { const s = localStorage.getItem(PN_HOLDER_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; }
-};
-window.byupWriteHolderChange = function (c) {
-  try { if (c) localStorage.setItem(PN_HOLDER_KEY, JSON.stringify(c)); else localStorage.removeItem(PN_HOLDER_KEY); } catch (e) {}
-  window.dispatchEvent(new Event('byup-holder-change'));
-};
-// Segna una tappa. Quando le tappe fiscali sono tutte fatte il cambiamento
-// si conclude da solo: «finché le due cose non sono fatte non è concluso», e
-// appena lo sono, lo è.
-window.byupHolderAvanza = function (stato) {
-  const c = window.byupReadHolderChange(); if (!c) return null;
-  c.steps[stato] = new Date().toISOString();
-  c.status = stato;
-  const tappe = pnHolderTappe(c.change_type, c.legal_form);
-  if (tappe.filter(t => t !== 'completed').every(t => c.steps[t])) {
+// Segna un passo. Quando ci sono tutti — riaccettazione compresa — il
+// cambiamento si conclude da solo.
+window.byupSoggettoAvanza = function (passo) {
+  const c = window.byupReadSoggettoChange(); if (!c) return null;
+  c.steps[passo] = new Date().toISOString();
+  c.status = passo;
+  if (PN_SOGGETTO_PASSI.every(p => c.steps[p.id])) {
     c.steps.completed = c.steps.completed || new Date().toISOString();
     c.status = 'completed';
   }
-  window.byupWriteHolderChange(c);
+  window.byupWriteSoggettoChange(c);
   return c;
+};
+window.byupSoggettoInCorso = function () {
+  const c = window.byupReadSoggettoChange();
+  return (c && c.status !== 'completed') ? c : null;
+};
+
+// ─── Il registro delle attività dell'account (P-117 · D-104) ───────────────
+// I cambi di recapito e di nome non sono cambiamenti di titolarità: sono
+// eventi, e si registrano come tali con il valore precedente e quello nuovo
+// (audit_events del modello). Li scrive Account, li legge Hubble.
+const PN_AUDIT_KEY = 'byup_audit_events';
+const PN_AUDIT_TIPI = {
+  email_changed: 'ha cambiato l\'email',
+  phone_changed: 'ha cambiato il telefono',
+  name_changed:  'ha cambiato il nome',
+};
+window.PN_AUDIT_TIPI = PN_AUDIT_TIPI;
+window.byupReadAuditEventi = function () {
+  try { const s = localStorage.getItem(PN_AUDIT_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; }
+};
+window.byupScriviAuditEvento = function (type, from, to, by) {
+  const ev = { at: new Date().toISOString(), type, from, to, by: by || ((window.PN_UTENTE && PN_UTENTE.nome) || 'Mario Rossi') };
+  const lista = [ev, ...window.byupReadAuditEventi()].slice(0, 50);
+  try { localStorage.setItem(PN_AUDIT_KEY, JSON.stringify(lista)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-audit-change'));
+  return ev;
 };
 
 // ─── Censimento dei POS all'Agenzia delle Entrate (P-105 · FISC-03) ────────
@@ -991,14 +1030,15 @@ window.byupWriteStripe = function (v) {
 window.byupStripeDisabilita = function (motivo) {
   window.byupWriteStripe({ status: 'da_ricollegare', motivo: motivo || 'cambio_soggetto', since: new Date().toISOString() });
 };
-// Ricollegare è l'onboarding Stripe del nuovo soggetto, con la sua verifica:
-// per un cambio di soggetto in corso è LA verifica dell'identità (tappa
-// verified) — non ce n'è un'altra, e non si simula un bottone a parte.
+// Ricollegare è l'onboarding Stripe del nuovo soggetto, con la sua verifica
+// dell'identità: non ce n'è un'altra, e non si simula un bottone a parte —
+// Byup non verifica identità (D-104). Se un cambio di soggetto è in corso,
+// questo è il passo `stripe_connected`.
 window.byupStripeRicollega = function () {
   window.byupWriteStripe({ status: 'connected' });
   if (window.byupPosVaria) window.byupPosVaria('pos-virtuale', 'varied');
-  const c = window.byupReadHolderChange ? window.byupReadHolderChange() : null;
-  if (c && c.soggetto && c.status !== 'refused' && !c.steps.verified) window.byupHolderAvanza('verified');
+  const c = window.byupSoggettoInCorso ? window.byupSoggettoInCorso() : null;
+  if (c && !c.steps.stripe_connected) window.byupSoggettoAvanza('stripe_connected');
 };
 
 // ─── L'altezza VERA della finestra, dentro il frame zoomato ─────────────────
@@ -1023,54 +1063,121 @@ window.byupStripeRicollega = function () {
   if (f && window.MutationObserver) new MutationObserver(agg).observe(f, { attributes: true, attributeFilter: ['style'] });
 })();
 
-// ─── Chi trasmette gli scontrini: la forma del locale e gli incaricati ──────
+// ─── Chi trasmette gli scontrini: la forma del locale e le credenziali ──────
 // La procedura del documento commerciale online «è disponibile esclusivamente
 // per l'operatore» e, «nel caso in cui quest'ultimo sia una società, può
 // essere utilizzata da operatori incaricati» (specifiche corrispettivi §2.9).
-// Quindi: la ditta individuale trasmette con le credenziali Fisconline del
-// titolare (byup_ade_cred, P-104); la società con quelle di un incaricato di
-// Byup, che ogni società nomina una volta con il gestore incarichi e la cui
-// password Byup rinnova da Hubble ogni novanta giorni — una password per
-// tutte le società che ha in carico, quindi anche un rischio concentrato:
-// se scade, si fermano insieme. Il registro byup_incaricati lo scrive Hubble
-// e lo leggono Dati fiscali e Cassa. La forma del locale, in produzione, è il
-// legal_form dell'onboarding; nel mock Cacio e Pepe è una S.r.l.
-const PN_FORMA_LOCALE = 'societa';
+// L'INCARICATO È DELLA SOCIETÀ, NON DI BYUP (D-103, P-116): è una persona
+// fisica che la società nomina dal proprio profilo sul portale dell'Agenzia
+// (Profilo → Incarichi → Gestisci incarichi come gestore → Aggiungi
+// incaricato, con il suo codice fiscale, poi Gestisci servizi) e che accede
+// con le proprie credenziali personali scegliendo la società come utenza di
+// lavoro. Chi sia quella persona lo decide la società: in pratica il titolare
+// o il rappresentante legale.
+// Quindi le credenziali dell'Agenzia sono SEMPRE dell'esercente: del titolare
+// per la ditta individuale, dell'incaricato per società ed enti. Byup non
+// nomina incaricati propri e non rinnova credenziali per conto di nessuno: la
+// figura dell'incaricato di Byup, costruita il 3 settembre 2026 senza
+// decisione, è ritirata e resta annotata come alternativa sospesa, da
+// riaprire solo dopo il parere del consulente fiscale (D-40) e solo se la
+// rotazione a novanta giorni si rivelasse un problema operativo prima del
+// ponte sulla Soluzione Software, che le credenziali le elimina. Metterci una
+// persona di Byup creava una responsabilità fiscale personale verso centinaia
+// di società, dipendeva da quella persona e non copriva le ditte individuali.
+//
+// Le forme sono TRE (D-103): il professionista esce — chi somministra
+// alimenti esercita un'impresa (art. 4 DPR 633/72, art. 2195 c.c.) e il
+// rapporto FIPE 2026 non conosce la categoria — e l'ente resta per l'uno per
+// cento delle forme collettive, con i campi della società e nessun percorso
+// proprio. La forma del locale, in produzione, è il legal_form dei dati
+// fiscali; nel mock Cacio e Pepe è una S.r.l.
+const PN_FORMA_LOCALE = 'societa';   // 'ditta_individuale' | 'societa' | 'ente'
 window.PN_FORMA_LOCALE = PN_FORMA_LOCALE;
-const PN_INCARICATI_KEY = 'byup_incaricati';
-const PN_INCARICATO_VITA = 90;
-const pnIncaricatiSeme = () => [
-  { id: 'inc-1', nome: 'Luca Ferrante', ruolo: 'Operazioni fiscali · Byup', cf: 'FRRLCU85M10H501Z', rinnovo: pnGiorniDaOggi(-84), rinnovato_da: 'Luca Ferrante', locali: ['cp', 'co', 'tb'] },
-];
-window.byupReadIncaricati = function () {
-  let salvati = {};
-  try { const s = localStorage.getItem(PN_INCARICATI_KEY); if (s) JSON.parse(s).forEach(r => { salvati[r.id] = r; }); } catch (e) {}
-  const seme = pnIncaricatiSeme();
-  const lista = seme.map(r => salvati[r.id] ? { ...r, ...salvati[r.id] } : r);
-  Object.values(salvati).forEach(r => { if (!seme.some(s => s.id === r.id)) lista.push(r); });
-  return lista;
+window.pnFormaCollettiva = (forma) => (forma || PN_FORMA_LOCALE) !== 'ditta_individuale';
+
+// L'incaricato nominato dalla società sul portale: nome, cognome, codice
+// fiscale e data della nomina (restaurant_fiscal_data.ade_operator_name e
+// ade_operator_tax_code). Lo dichiara l'esercente in Dati fiscali; Hubble lo
+// legge in sola lettura nella scheda del locale, per l'assistenza, e non
+// compie alcun atto di nomina. Registro condiviso sullo stesso dominio.
+const PN_INCARICATO_KEY = 'byup_ade_incaricato';
+const pnIncaricatoSeme = () => ({ nome: 'Paola', cognome: 'Conti', cf: 'CNTPLA80E50H501V', nominato_il: pnGiorniDaOggi(-60) });
+window.byupReadIncaricato = function () {
+  try { const s = localStorage.getItem(PN_INCARICATO_KEY); return s ? Object.assign(pnIncaricatoSeme(), JSON.parse(s)) : pnIncaricatoSeme(); }
+  catch (e) { return pnIncaricatoSeme(); }
 };
-window.byupWriteIncaricati = function (lista) {
-  try { localStorage.setItem(PN_INCARICATI_KEY, JSON.stringify(lista)); } catch (e) {}
-  window.dispatchEvent(new Event('byup-incaricati-change'));
+window.byupWriteIncaricato = function (v) {
+  try { if (v) localStorage.setItem(PN_INCARICATO_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_INCARICATO_KEY); } catch (e) {}
+  window.dispatchEvent(new Event('byup-ade-incaricato-change'));
 };
-// Lo stato della password dell'incaricato, con gli stessi gradini di P-104.
-window.pnIncaricatoStato = function (inc) {
+// Chi rinnova la password, secondo la forma: il titolare o l'incaricato.
+window.pnAdeChiRinnova = function (forma) {
+  if (!window.pnFormaCollettiva(forma)) return { ruolo: 'titolare', nome: (window.PN_UTENTE && PN_UTENTE.nome) || 'il titolare' };
+  const i = window.byupReadIncaricato();
+  return { ruolo: 'incaricato', nome: `${i.nome} ${i.cognome}`.trim(), cf: i.cf, nominato_il: i.nominato_il };
+};
+
+// ─── Lo stato delle credenziali dell'Agenzia, in un posto solo (P-120) ──────
+// La password Fisconline scade ogni novanta giorni e, alla scadenza senza
+// rinnovo, «l'emissione si ferma» (progetto tecnico §12.2): non esiste una via
+// di riserva, e un avviso che non ferma l'emissione lascia il locale a
+// incassare senza scontrino. Perciò lo stato vive QUI, e lo leggono tutti: la
+// scheda di Dati fiscali (tre gradini), la fascia in Contabilità → Cassa (dal
+// PRIMO gradino, non a scadenza avvenuta), le notifiche, e la guardia nei
+// QUATTRO punti dove nasce un documento — il saldo del conto in sala, la
+// vendita diretta, e le due schermate d'incasso dell'App Staff.
+// Vale per tutte le forme giuridiche: cambia solo la persona che rinnova.
+const PN_ADE_CRED_KEY = 'byup_ade_cred';
+const PN_ADE_CRED_VITA = 90;            // vita della password, in giorni
+const PN_ADE_CRED_SOGLIE = [14, 7, 3];  // i gradini del promemoria progressivo
+window.PN_ADE_CRED_KEY = PN_ADE_CRED_KEY;
+window.PN_ADE_CRED_VITA = PN_ADE_CRED_VITA;
+window.PN_ADE_CRED_SOGLIE = PN_ADE_CRED_SOGLIE;
+// Senza nulla di salvato l'ultimo rinnovo è di novanta giorni fa (derivato a
+// runtime, mai date a mano): la password risulta scaduta oggi e il giro
+// completo — scaduta, blocco, rinnovo, verifica, sblocco — si prova da subito.
+window.byupAdeCredStato = function () {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(PN_ADE_CRED_KEY)); } catch (e) {}
   const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
-  const rinnovo = new Date(`${inc.rinnovo}T00:00:00`);
-  const scadenza = new Date(rinnovo); scadenza.setDate(scadenza.getDate() + PN_INCARICATO_VITA);
+  const rinnovo = s && s.rinnovo ? new Date(s.rinnovo + 'T00:00:00')
+    : (() => { const d = new Date(oggi); d.setDate(d.getDate() - PN_ADE_CRED_VITA); return d; })();
+  const scadenza = new Date(rinnovo); scadenza.setDate(scadenza.getDate() + PN_ADE_CRED_VITA);
   const giorni = Math.round((scadenza - oggi) / 86400000);
+  // Il gradino è il primo che si è superato: 14, 7, 3, poi la scadenza.
+  const gradino = giorni <= 0 ? 0 : PN_ADE_CRED_SOGLIE.find(g => giorni <= g) || null;
   return {
-    giorni,
-    rinnovoTesto: rinnovo.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }),
+    giorni, gradino,
+    scaduta: giorni <= 0,
+    stato: giorni <= 0 ? 'scaduta' : gradino ? 'promemoria' : 'ok',
     scadenza: scadenza.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }),
-    stato: giorni <= 0 ? 'scaduta' : (giorni <= 14 ? 'promemoria' : 'ok'),
+    verificata: (s && s.verificata) || null,
+    rinnovo: s && s.rinnovo ? s.rinnovo : null,
   };
 };
-window.pnIncaricatoDelLocale = function (localeId) {
-  const lista = window.byupReadIncaricati();
-  return lista.find(i => (i.locali || []).includes(localeId)) || lista[0] || null;
+window.byupAdeCredRinnova = function () {
+  const d = new Date();
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const ts = `${d.toLocaleDateString('it-IT')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  try { localStorage.setItem(PN_ADE_CRED_KEY, JSON.stringify({ rinnovo: iso, verificata: ts })); } catch (e) {}
+  window.dispatchEvent(new Event('byup-ade-cred-change'));
 };
+// La guardia dei quattro punti di emissione: se torna qualcosa, il documento
+// non può nascere e il testo dice che cosa fare e chi deve farlo.
+window.byupAdeCredBlocco = function (forma) {
+  const st = window.byupAdeCredStato();
+  if (!st.scaduta) return null;
+  const chi = window.pnAdeChiRinnova(forma);
+  return {
+    titolo: 'Le credenziali dell\'Agenzia sono scadute',
+    testo: chi.ruolo === 'titolare'
+      ? 'Rinnova la password sul sito dell\'Agenzia e poi inseriscila in Dati fiscali. Fino ad allora lo scontrino non può partire.'
+      : `La password è di ${chi.nome}, la persona che il locale ha nominato incaricata sul portale: la rinnova lei sul sito dell\'Agenzia, poi si inserisce in Dati fiscali. Fino ad allora lo scontrino non può partire.`,
+    chi,
+    href: 'byup Impostazioni.html?page=fiscali',
+  };
+};
+
 // La ricezione delle fatture: il codice destinatario del canale, registrato
 // dall'esercente sul portale e dichiarato (onboarding, riga 4; Dati fiscali).
 const PN_RICEZIONE_KEY = 'byup_ade_ricezione';
@@ -1080,6 +1187,29 @@ window.byupWriteRicezione = function (v) {
   try { if (v) localStorage.setItem(PN_RICEZIONE_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_RICEZIONE_KEY); } catch (e) {}
   window.dispatchEvent(new Event('byup-ricezione-change'));
 };
+
+// ─── Il regime fiscale della sede (P-111 · P-89 · progetto tecnico §4.3) ────
+// Due regimi, e non convivono nella stessa sede: il REGIME ATTUALE, dove i
+// corrispettivi passano dalla procedura web del documento commerciale online
+// e la prova, in un controllo, sono i documenti memorizzati dal sistema
+// dell'Agenzia (l'esercente li mostra dal portale Fatture e Corrispettivi con
+// le proprie credenziali, come fanno i gestionali che lavorano senza
+// registratore telematico); e il regime della SOLUZIONE SOFTWARE, dove esiste
+// la console fiscale, che è interfaccia «parte integrante della Soluzione»
+// (Specifiche 1.4 §3 lettera b) e vive a un indirizzo proprio.
+// Da qui discendono due cose: nel regime attuale la finestra «Verifica
+// fiscale» NON si costruisce — il progetto tecnico §4.3 dice che «non è
+// richiesta da alcuna fonte» e che le esigenze operative sono coperte dalla
+// contabilità del gestionale — e al suo posto la Contabilità dice dove si va
+// davvero, cioè al portale; nel regime della Soluzione lo stesso pulsante
+// diventa la porta verso la console (P-89 riscritta).
+// Nel mock la sede è nel regime attuale. Finché non arriva P-99 (il passaggio
+// di regime per sede) questa è una costante, non una configurazione.
+const PN_REGIME_SEDE = 'attuale';   // 'attuale' | 'soluzione'
+window.PN_REGIME_SEDE = PN_REGIME_SEDE;
+window.pnRegimeSoluzione = () => PN_REGIME_SEDE === 'soluzione';
+// Il portale dove l'esercente mostra i propri invii in un controllo.
+window.PN_PORTALE_FC = 'https://ivaservizi.agenziaentrate.gov.it/portale/';
 
 // ─── Coperto e servizio (P-103) ─────────────────────────────────────────────
 // Due scelte indipendenti: la QUALIFICAZIONE (coperto o servizio) e la FORMA

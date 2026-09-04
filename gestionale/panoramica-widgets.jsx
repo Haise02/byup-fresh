@@ -241,10 +241,15 @@ function WidgetIncassi({ size }) {
 // Header standard dei widget: nome in alto a sinistra, filtri a destra.
 // Nei widget stretti il nome non si schiaccia: il filtro va a capo e resta
 // allineato a destra sulla sua riga.
-function WidgetHead({ name, right, dark }) {
+function WidgetHead({ name, right, dark, href }) {
+  // `href`: il titolo del riquadro è un rimando alla schermata che lo tiene
+  // per intero (P-115). Senza, resta un'etichetta come prima.
+  const titolo = {fontSize: 12.5, color: dark ? 'rgba(255,255,255,0.65)' : PN.MUTED, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap', flexShrink: 0};
   return (
     <div style={{display:'flex', alignItems:'center', gap: '6px 10px', flexWrap:'wrap', flexShrink: 0, minWidth: 0}}>
-      <div style={{fontSize: 12.5, color: dark ? 'rgba(255,255,255,0.65)' : PN.MUTED, fontWeight: 700, textTransform:'uppercase', letterSpacing: 0.5, whiteSpace:'nowrap', flexShrink: 0}}>{name}</div>
+      {href
+        ? <a href={href} style={{...titolo, textDecoration:'none'}} onMouseEnter={e => { e.currentTarget.style.color = PN.TEXT; }} onMouseLeave={e => { e.currentTarget.style.color = dark ? 'rgba(255,255,255,0.65)' : PN.MUTED; }}>{name} →</a>
+        : <div style={titolo}>{name}</div>}
       <div style={{marginLeft: 'auto', flexShrink: 0, minWidth: 0}}>{right}</div>
     </div>
   );
@@ -381,31 +386,84 @@ function WidgetRiempimento({ size }) {
   );
 }
 
+// ─── Notifiche: l'anteprima in Panoramica (P-115) ──────────────────────────
+// La casa delle notifiche resta Profilo → Notifiche. Qui c'è l'anteprima delle
+// ultime, con le non lette in evidenza: un clic su una riga la apre dove
+// porta, un clic sul titolo del riquadro porta all'elenco intero. Serve
+// perché la Panoramica è la schermata su cui si atterra, ed è lì che si deve
+// poter rispondere alla domanda «c'è qualcosa per me?».
+function WidgetNotifiche() {
+  const items = window.byupUseNotifiche ? window.byupUseNotifiche() : [];
+  const ultime = items.slice(0, 5);
+  const nonLette = items.filter(n => n.unread).length;
+  const icona = { fiscal: 'commerce-receipt', payment: 'commerce-coins', billing: 'commerce-register', update: 'sparkle', system: 'chart-stats', tip: 'sparkle', feature: 'sparkle' };
+  return (
+    <div style={{display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0}}>
+      <div style={{marginBottom: 10, flexShrink: 0, minWidth: 0}}>
+        <WidgetHead name="Notifiche" href="byup Profilo.html?tab=notifiche"
+          right={nonLette > 0
+            ? <span style={{fontSize: 13, fontWeight: 700, color: PN.PINK_DARK, whiteSpace: 'nowrap'}}>{nonLette} <span style={{color: PN.MUTED, fontWeight: 600}}>da leggere</span></span>
+            : <span style={{fontSize: 13, fontWeight: 600, color: PN.MUTED, whiteSpace: 'nowrap'}}>sei in pari</span>}/>
+      </div>
+      <div className="pn-scroll" style={{flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6}}>
+        {ultime.length === 0 && (
+          <div style={{fontSize: 13.5, color: PN.MUTED, padding: '10px 2px'}}>Nessuna notifica.</div>
+        )}
+        {ultime.map(n => (
+          <div key={n.id} data-notif-riga
+            onClick={() => { window.byupNotificaLetta(n.id); window.location.href = n.href || 'byup Profilo.html?tab=notifiche'; }}
+            title={n.body}
+            style={{
+              display: 'grid', gridTemplateColumns: '26px minmax(0, 1fr)', gap: 9, alignItems: 'start',
+              padding: '8px 10px', borderRadius: 10, cursor: 'pointer', flexShrink: 0,
+              background: n.unread ? '#FFF7F8' : PN.WHITE,
+              border: `1px solid ${n.unread ? 'rgba(255,90,95,0.22)' : PN.BORDER_HAIR}`,
+            }}>
+            <span style={{
+              width: 26, height: 26, borderRadius: 8, display: 'grid', placeItems: 'center', marginTop: 1,
+              background: n.unread ? PN.PINK_BG_SOFT : '#F4F5F7', color: n.unread ? PN.PINK_DARK : PN.MUTED,
+            }}><Icon name={icona[n.type] || 'bell'} size={13}/></span>
+            <div style={{minWidth: 0}}>
+              <div style={{fontSize: 14, fontWeight: n.unread ? 700 : 600, color: PN.TEXT, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{n.title}</div>
+              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{n.body}</div>
+              <div style={{fontSize: 12, color: '#A3A3AD', marginTop: 2}}>{n.time}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── 2. Prenotazioni di oggi (lista con timeline) ───────────────────────────
 
 function WidgetPrenotazioniOggi() {
-  // Lista più lunga per giustificare l'auto-scroll continuo (overflow vero).
-  // tag: chip Compleanno/Aziendale, mostrato sotto il nome.
-  // I tag prenotazione sono SOLO due: Compleanno e Aziendale.
-  // Tutto il resto (allergie, preferenze tavolo…) vive come nota testuale.
-  // Voci allineate a SALA_RES_DATA (sala-tab-calendario): l'id è il deep-link
-  // che apre la prenotazione vera nel calendario della Sala.
-  const items = [
-    { id: 'r5',  time: '20:30', name: 'Andrea Bianchi',    covers: 2, table: 'Tavolo 3',  note: 'menu fisso' },
-    { id: 'r8',  time: '20:30', name: 'Tommy Shelby',      covers: 8, table: 'Tavolo 1',  tag: 'compleanno' },
-    { id: 'r22', time: '20:30', name: 'Mancini',           covers: 2, table: 'Tavolo 6',  note: 'laurea' },
-    { id: 'r6',  time: '21:30', name: 'Famiglia Robinson', covers: 4, table: 'Tavolo 7',  note: 'allergia glutine' },
-    { id: 'r12', time: '21:30', name: 'Marini',            covers: 4, table: 'Tavolo 12', tag: 'aziendale' },
-    { id: 'r10', time: '21:30', name: 'De Luca',           covers: 3, table: 'Tavolo 9',  note: 'anniversario' },
-    { id: 'r13', time: '21:30', name: 'Famiglia Verdi',    covers: 5, table: 'Tavolo 11', note: '2 bambini' },
-    { id: 'r14', time: '22:30', name: 'Jesse Pinkman',     covers: 2, table: 'Tavolo 1' },
-  ];
-
-  // Entrambe le etichette in viola, per esteso accanto al nome.
+  // Entrambe le etichette in viola, per esteso accanto al nome. I tag
+  // prenotazione sono SOLO due: Compleanno e Aziendale.
   const tagStyle = {
     compleanno: { bg: '#EDE9FE', fg: '#7C3AED', label: 'Compleanno' },
     aziendale:  { bg: '#EDE9FE', fg: '#7C3AED', label: 'Aziendale' },
   };
+  // P-109 (D-27): le voci si leggono dagli STESSI dati della Sala
+  // (SALA_RES_SEED in sala-data.jsx, caricato anche dalla Panoramica), così i
+  // due riquadri non possono più divergere: la cena di stasera, in ordine
+  // d'orario, senza le cancellate; l'id è il deep-link che apre la
+  // prenotazione nel calendario. Gli allergeni NON sono una nota: la riga
+  // porta il contrassegno muto «Allergia», ricavato dai codici della
+  // prenotazione, e a che cosa si legge in Sala aprendo il tavolo. La lista
+  // è abbastanza lunga da giustificare l'auto-scroll continuo.
+  const items = React.useMemo(() => (window.SALA_RES_SEED || [])
+    .filter(r => r.name && r.status !== 'cancellata' && r.time >= '19:00')
+    .sort((a, b) => a.time.localeCompare(b.time))
+    .map(r => {
+      const tipo = r.note && r.note.type;
+      return {
+        id: r.id, time: r.time, name: r.name, covers: r.posti, table: r.table ? `Tavolo ${r.table}` : null,
+        tag: tipo && tagStyle[tipo] ? tipo : undefined,
+        note: r.notes ? r.notes : (tipo && !tagStyle[tipo] ? tipo : undefined),
+        allergia: !!(r.allergens && r.allergens.length),
+      };
+    }), []);
 
   const [interacting, setInteracting] = React.useState(false);
   const scrollRef = React.useRef(null);
@@ -528,6 +586,17 @@ function PrenRow({ it, tag }) {
               padding: '2px 8px', borderRadius: 999, flexShrink: 0,
               background: tag.bg, color: tag.fg, whiteSpace: 'nowrap',
             }}>{tag.label}</span>
+          )}
+          {/* P-109: lo stesso contrassegno MUTO della Sala — la parola
+              «Allergia» e basta, mai a che cosa, mai accanto al nome in una
+              stringa. Il contenuto si legge aprendo il tavolo. */}
+          {it.allergia && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: 0.2,
+              padding: '2px 8px', borderRadius: 999, flexShrink: 0,
+              background: 'rgba(220, 38, 38, 0.10)', color: '#DC2626', whiteSpace: 'nowrap',
+              boxShadow: 'inset 0 0 0 1px rgba(220,38,38,0.32)',
+            }}>Allergia</span>
           )}
         </div>
         <div style={{
@@ -1171,7 +1240,7 @@ function WidgetAndamentoScontrino({ size }) {
 window.PnWidgets = {
   WidgetAndamentoCoperti, WidgetAndamentoScontrino,
   WidgetIncassi, WidgetRiempimento,
-  WidgetPrenotazioniOggi, WidgetTavoliStato, WidgetTopPiatti,
+  WidgetNotifiche, WidgetPrenotazioniOggi, WidgetTavoliStato, WidgetTopPiatti,
   WidgetRecensioni, WidgetCopertiSettimana,
   WidgetCucinaLive,
 };

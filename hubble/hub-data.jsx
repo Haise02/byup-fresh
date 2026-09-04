@@ -234,9 +234,16 @@ const HUB_PROPRIETA = [
   // lo porta salvato, nessun workflow lo scrive — è una condizione, mai
   // un'azione (HubSceltaProprieta esclude le proprietà con `leggi`).
   { id: 'ciclo',    label: 'Stadio',              gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
-    opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'iscritto', label: 'Iscritto' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'clienteFree', label: 'Cliente Gratuito' }, { value: 'clientePagante', label: 'Cliente Pagante' }, { value: 'returning', label: 'Returning' }, { value: 'annullato', label: 'Piano annullato' }, { value: 'eliminato', label: 'Eliminato' }],
+    opzioni: [{ value: 'lead', label: 'Lead' }, { value: 'iscritto', label: 'Iscritto' }, { value: 'onboarding', label: 'In onboarding' }, { value: 'clienteFree', label: 'Cliente Gratuito' }, { value: 'clientePagante', label: 'Cliente Pagante' }, { value: 'returning', label: 'Returning' }, { value: 'annullato', label: 'Cessato' }, { value: 'eliminato', label: 'Eliminato' }],
     leggi: (c) => (typeof hubStadio === 'function' ? hubStadio(c) : null),
     nota: 'Calcolato dal locale e dal piano, non si imposta: lead senza locali, poi il ciclo di vita, Gratuito o Pagante dal piano, Returning nei 90 giorni dal rientro' },
+  // Il contrassegno «configurazione completa saltata» (P-121): non uno
+  // stadio — chi l'ha saltata opera ed è attivo — ma un fatto
+  // dell'onboarding, letto dal locale (locConfigSaltata in admin-data.jsx) e
+  // mai copiato sulla riga. Solo per i locali: colonna e filtro «è sì».
+  { id: 'configSaltata', label: 'Configurazione completa saltata', gruppo: 'contatto', tipo: 'bool', sistema: true, colonna: { w: '1.1fr', label: 'Config. saltata' },
+    leggi: (c) => (c.tipo === 'locale' && c.ref && c.ref.stato && typeof locConfigSaltata === 'function') ? locConfigSaltata(c.ref) : null,
+    nota: 'Solo per i locali: ha finito il percorso rapido e opera, ma ha saltato la configurazione completa (informazioni, aspetto, personale). Un contrassegno del locale, non uno stadio' },
   // Un utente bannato non deve essere invisibile in rubrica: la restrizione
   // attiva (dal registro di Utenti app) è una proprietà come le altre — la
   // si mette in colonna e ci si filtra sopra.
@@ -513,7 +520,7 @@ const HUB_ELENCHI = [
     autore: 'Chiara Rossi', creato: new Date(2026, 9, 20), aggiornato: new Date(2026, 9, 22),
     usatoIn: ['Follow-up fiera'], origine: 'Import CSV · badge-host-2026.csv',
     membriFissi: 42, includi: [], escludi: [] },
-  { id: 'EL-006', nome: 'Piano annullato negli ultimi 90 giorni', tipo: 'attivo', cartella: 'Retention',
+  { id: 'EL-006', nome: 'Cessati negli ultimi 90 giorni', tipo: 'attivo', cartella: 'Retention',
     descrizione: 'La coda del win-back: si svuota da sola quando qualcuno rientra.',
     autore: 'Giulia Ferrari', creato: new Date(2026, 5, 8), aggiornato: new Date(Date.now() - 7200000),
     usatoIn: ['Workflow · Win-back 3 passi'],
@@ -671,7 +678,7 @@ const HUB_CONSENSO_POSTA = 'consensoPush';
 function hubInterrogaPosta(righe, corsia, genere) {
   const sullaRestrizione = corsia === 'servizio' && genere === 'restrizione';
   const senzaConsenso = corsia === 'marketing' ? righe.filter(c => hubLeggi(c, HUB_CONSENSO_POSTA) !== true) : [];
-  const nonAttivi = righe.filter(c => c.tipo === 'utente' ? (c.ref && c.ref.attivo === false) : c.tipo === 'locale' ? !['active', 'inactive', 'skipped'].includes(c.ref && c.ref.stato) : true);
+  const nonAttivi = righe.filter(c => c.tipo === 'utente' ? (c.ref && c.ref.attivo === false) : c.tipo === 'locale' ? !['active', 'dormant'].includes(c.ref && c.ref.stato) : true);
   const limitati = sullaRestrizione ? [] : righe.filter(c => c.tipo === 'utente' ? (hubLeggi(c, 'restrizione') != null)
     : c.tipo === 'locale' ? (typeof admProvvedimento === 'function' && c.ref && c.ref.stato && admProvvedimento(c.ref) !== 'none') : false);
   const minori = righe.filter(c => typeof hubRegimeProtettivo === 'function' && hubRegimeProtettivo(c));
@@ -824,7 +831,7 @@ const HUB_WORKFLOW = [
     descrizione: 'Tre contatti in tre settimane a chi ha annullato, poi si smette.',
     iscritti: 214, inCorso: 0, completati: 198, autore: 'Giulia Ferrari', modificato: new Date(2026, 5, 12),
     nodi: [
-      { tipo: 'trigger', testo: 'Entra nell\'elenco «Piano annullato negli ultimi 90 giorni»' },
+      { tipo: 'trigger', testo: 'Entra nell\'elenco «Cessati negli ultimi 90 giorni»' },
       { tipo: 'mail', testo: 'Win-back · ci manchi' },
       { tipo: 'attesa', testo: '7 giorni', attesa: { modo: 'evento', n: 7, unita: 'giorni',
         evento: { evento: 'mailCliccata', rif: 'ML-011', negato: false }, tetto: { n: 7, unita: 'giorni' } } },

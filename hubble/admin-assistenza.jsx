@@ -104,7 +104,7 @@ function SrvEstrazioni() {
         <div style={{display:'grid', gridTemplateColumns:'minmax(0,1.6fr) 150px 150px minmax(0,1.3fr)', gap:12}}>
           <div>
             <span style={lab}>Ristorante</span>
-            <AdmSelect block value={localeId} onChange={setLocaleId} options={[{ value:'', label:'Scegli un locale' }, ...LOCALI.filter(x => x.stato !== 'pending').map(x => ({ value:x.id, label:`${x.nome} · ${x.citta}` }))]}/>
+            <AdmSelect block value={localeId} onChange={setLocaleId} options={[{ value:'', label:'Scegli un locale' }, ...LOCALI.filter(x => x.stato !== 'registered').map(x => ({ value:x.id, label:`${x.nome} · ${x.citta}` }))]}/>
           </div>
           <div><span style={lab}>Dal</span><input type="date" value={dal} onChange={e => setDal(e.target.value)} style={inp}/></div>
           <div><span style={lab}>Al</span><input type="date" value={al} onChange={e => setAl(e.target.value)} style={inp}/></div>
@@ -2585,8 +2585,7 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
       {/* L'invariante, in testa e non chiudibile: è la regola della pratica. */}
       <div style={{padding:'12px 14px', borderRadius:10, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:13.6, color:ADM.TEXT, lineHeight:1.5}}>
         <b>L'accesso torna a {r.user.nome}, {r.user.ruolo} di {r.localeNome}, e non si trasferisce mai.</b>{' '}
-        Se chi chiede non è {r.user.nome}, non è un ripristino: è un cambio di titolarità, che passa solo dai percorsi del titolare — la persona da Account, il soggetto fiscale da Dati fiscali
-        (restaurant_holder_changes). Qui si ripristinano le sole credenziali.
+        Se chi chiede non è {r.user.nome}, non è un ripristino, e non c'è nulla da trasferire: non esiste un cambio del titolare né un passaggio del locale (D-104). I recapiti e il nome dell'account li cambia la persona dal proprio profilo, e restano nel registro delle attività; il soggetto fiscale si cambia da Impostazioni → Dati fiscali del gestionale e si conclude con la riaccettazione dei termini. Qui si ripristinano le sole credenziali.
       </div>
 
       <AdmCard padding={18}>

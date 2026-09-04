@@ -485,10 +485,12 @@ const FAQ_SRV = [
     aggiornataIl: new Date(Date.now() - 4*SRV_GIORNO), viste: 1890, utile: 176, nonUtile: 23 },
   { id:'F-06', categoria:'Account', live:true,
     domanda:'Posso dare accesso al gestionale a un mio dipendente?',
-    // Corretta con P-73: i ruoli sono quelli di Personale (Cassa, Cameriere,
-    // più i personalizzati), il titolare è uno solo e cambia solo dal
-    // percorso di titolarità in Account (D-57).
-    risposta:'Sì, da Impostazioni → Personale. Ogni persona ha un ruolo — Cassa, Cameriere, o uno personalizzato — e vede solo le sezioni del suo ruolo. Il titolare è uno solo: resta l\'unico a poter cambiare piano, dati fiscali e IBAN, e cambia soltanto dai percorsi di titolarità: la persona da Account, il soggetto fiscale da Impostazioni → Dati fiscali.',
+    // Corretta con P-73 e P-117: i ruoli sono quelli di Personale (Cassa,
+    // Cameriere, più i personalizzati), il titolare è uno solo, e non esiste
+    // un «cambio del titolare» (D-104): i recapiti si cambiano dal profilo e
+    // si registrano, il soggetto fiscale da Dati fiscali con la riaccettazione
+    // dei termini.
+    risposta:'Sì, da Impostazioni → Personale. Ogni persona ha un ruolo — Cassa, Cameriere, o uno personalizzato — e vede solo le sezioni del suo ruolo. Il titolare è uno solo: resta l\'unico a poter cambiare piano, dati fiscali e IBAN. I suoi recapiti e il suo nome li cambia lui dal profilo in Account, e ogni modifica resta nel registro delle attività; se cambia il soggetto fiscale del locale, si fa da Impostazioni → Dati fiscali e si riaccettano i termini a nome del nuovo soggetto.',
     aggiornataIl: new Date(Date.now() - 27*SRV_GIORNO), viste: 2470, utile: 231, nonUtile: 7 },
   { id:'F-07', categoria:'Menu e QR', live:true,
     domanda:'Come segnalo gli allergeni sui piatti?',
@@ -911,9 +913,13 @@ Object.assign(window, {
 // verifica dell'identità, il riferimento opaco all'evidenza, l'operatore e
 // l'esito. L'invariante, scolpito nella nota del modello: il ripristino
 // restituisce l'accesso ALLA STESSA PERSONA e non lo trasferisce mai — user_id
-// «è sempre la stessa persona che lo ha perso: se fosse un'altra sarebbe un
-// cambio di titolarità, che ha la propria struttura» (restaurant_holder_changes,
-// P-62). Il pulsante che cambierebbe il titolare non esiste, e non deve.
+// «è sempre la stessa persona che lo ha perso». Se chi chiede è un'altra
+// persona non c'è nulla da trasferire: non esiste un cambio del titolare né
+// un passaggio del locale (D-104, P-117) — l'account è della persona, i suoi
+// recapiti si cambiano dal profilo e si registrano (audit_events), il
+// soggetto fiscale si cambia in Dati fiscali (restaurant_holder_changes, al
+// solo cambio di soggetto, concluso con la riaccettazione dei termini). Il
+// pulsante che cambierebbe il titolare non esiste, e non deve.
 //   identity_check_method — dominio chiuso: «il metodo si dichiara perché è la
 //     sola cosa che regge la decisione».
 //   identity_evidence_ref — riferimento opaco all'evidenza conservata fuori

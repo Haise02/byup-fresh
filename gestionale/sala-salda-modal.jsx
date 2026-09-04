@@ -192,6 +192,21 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     return () => clearInterval(id);
   }, [inCoda?.inviato]);
 
+  // P-120: la guardia delle credenziali dell'Agenzia, accanto a quella della
+  // finestra notturna. Alla scadenza della password «l'emissione si ferma»
+  // (PT §12.2): non esiste una via di riserva, e incassare senza poter
+  // emettere lascerebbe un buco che si scopre dopo. L'incasso senza scontrino
+  // non è ammesso, come per la notte. Si sblocca da solo quando la password
+  // nuova è inserita e verificata in Dati fiscali (evento byup-ade-cred-change).
+  const [credBlocco, setCredBlocco] = React.useState(() => (window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null));
+  React.useEffect(() => {
+    const ri = () => setCredBlocco(window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null);
+    window.addEventListener('byup-ade-cred-change', ri);
+    window.addEventListener('byup-ade-incaricato-change', ri);
+    window.addEventListener('storage', ri);
+    return () => { window.removeEventListener('byup-ade-cred-change', ri); window.removeEventListener('byup-ade-incaricato-change', ri); window.removeEventListener('storage', ri); };
+  }, []);
+
   // Finestra di divieto notturna: un tick al secondo, per tutta la vita della
   // finestra aperta — deve accorgersi da sé sia dell'ingresso nella finestra
   // (23:55 scatta con la modale aperta) sia della mezzanotte che riapre.
@@ -577,7 +592,15 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     setTimeout(() => setToast(null), 2000);
   }
 
+  // P-124 (D-108): il pre-conto è un documento suo, distinto dal documento di
+  // cortesia, e stampa DAVVERO dal browser della postazione su qualunque
+  // stampante che il sistema conosce, con la persona che conferma; il momento
+  // finisce in bills.preconto_printed_at (qui lo stato della finestra).
   function stampaPreConto(scope = 'tutto') {
+    if (typeof window.byupStampaPreconto === 'function') {
+      const righe = (editedOrdini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo }));
+      window.byupStampaPreconto({ tavolo: `Tavolo ${tavolo.id}`, coperti: tavolo.coperti || 1, righe, totale: righe.reduce((s, r) => s + (r.qty || 1) * (r.prezzo || 0), 0) });
+    }
     setPreContoStampato(Date.now());
     setToast({ type:'success', text: scope === 'tutto'
       ? `Pre-conto stampato · €${subtotale.toFixed(2)}`
@@ -1410,10 +1433,26 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     // il metodo: i contanti emettono quanto la carta, e la
                     // carta manderebbe in coda un pagamento che si chiude
                     // dentro la finestra. Si riaccende da solo a mezzanotte.
-                    const attivo = (inviaSuStaff ? total > 0 : canConfirm) && !notte.dentro;
+                    const attivo = (inviaSuStaff ? total > 0 : canConfirm) && !notte.dentro && !credBlocco;
                     const manca = total - paid;
                     return (
                       <React.Fragment>
+                      {credBlocco && (
+                        <div data-cred-blocco style={{
+                          display:'flex', gap: 10, alignItems:'flex-start',
+                          padding:'12px 16px', borderRadius: 14,
+                          background:'#FEF2F2', color:'#991B1B',
+                          fontSize: 14.5, lineHeight: 1.45,
+                        }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink: 0, marginTop: 2}}>
+                            <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+                          </svg>
+                          <span>
+                            <b>{credBlocco.titolo}:</b> {credBlocco.testo}{' '}
+                            <a href={credBlocco.href} style={{color:'#991B1B', fontWeight: 700}}>Vai a Dati fiscali</a>
+                          </span>
+                        </div>
+                      )}
                       {notte.dentro && (
                         <div style={{
                           display:'flex', gap: 10, alignItems:'flex-start',
@@ -2657,11 +2696,11 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
   // essere pieni insieme nello stesso pagamento.
   const comeHaPagato = carta > 0 ? 'Con la carta, su Byup Staff' : 'In contanti, alla cassa';
   const [stampato, setStampato] = React.useState(null); // null | { esito, stampante }
-  // P-101: non «scontrino» — lo scontrino, il documento commerciale, lo emette
-  // il canale fiscale. Questo è il documento di cortesia, e va in stampa
-  // davvero sulla stampante di cortesia della sede
-  // (venue_settings.courtesy_printer_device_id): dal browser stampa, in wifi o
-  // bluetooth apre l'anteprima dichiarata (stampa.jsx).
+  // P-124 (D-108): non «scontrino» — lo scontrino, il documento commerciale,
+  // lo emette il canale fiscale. Questo è il documento di cortesia, distinto
+  // dal pre-conto, e va in stampa davvero dal browser della postazione su
+  // qualunque stampante che il sistema conosce (stampa.jsx): la «stampante di
+  // cortesia della sede» non esiste più.
   const stampaCortesia = () => {
     if (typeof window.byupStampaCortesia !== 'function') { setStampato({ esito: 'stampata' }); return; }
     const righe = (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo }));

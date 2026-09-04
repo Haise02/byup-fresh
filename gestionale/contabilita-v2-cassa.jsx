@@ -144,30 +144,18 @@ const CC_SCARTI = {
   },
 };
 
-// Scadenza della password Fisconline: stessa chiave localStorage scritta da
-// Impostazioni → Dati fiscali (è lì che si rinnova e si verifica). Senza nulla
-// di salvato l'ultimo rinnovo è di novanta giorni fa — derivato a runtime, mai
-// date a mano — quindi la password risulta scaduta oggi e l'avviso si vede.
-// Per la società trasmette l'incaricato di Byup (registro byup_incaricati):
-// il blocco vale lo stesso, ma la cura è di Byup e i testi lo dicono.
-const ccSocieta = () => (window.PN_FORMA_LOCALE || 'societa') !== 'ditta_individuale';
-const ccIncaricatoScaduto = () => {
-  if (!window.pnIncaricatoDelLocale) return false;
-  const loc = window.byupReadLocale ? byupReadLocale() : { id: 'cp' };
-  const inc = pnIncaricatoDelLocale(loc.id);
-  return !!inc && pnIncaricatoStato(inc).stato === 'scaduta';
-};
-function ccCredScadute() {
-  if (ccSocieta()) return ccIncaricatoScaduto();
-  let s = null;
-  try { s = JSON.parse(localStorage.getItem('byup_ade_cred')); } catch (e) {}
-  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
-  const rinnovo = s && s.rinnovo ? new Date(s.rinnovo + 'T00:00:00') : (() => {
-    const d = new Date(oggi); d.setDate(d.getDate() - 90); return d;
-  })();
-  const scadenza = new Date(rinnovo); scadenza.setDate(scadenza.getDate() + 90);
-  return scadenza <= oggi;
-}
+// Scadenza della password Fisconline: lo stato vive in un posto solo
+// (byupAdeCredStato, panoramica-tokens.jsx — P-120), perché lo leggono la
+// scheda di Dati fiscali, le notifiche, i quattro punti di emissione e questa
+// fascia. Le credenziali sono SEMPRE dell'esercente (D-103): del titolare per
+// la ditta individuale, della persona che il locale ha nominato incaricata sul
+// portale per società ed enti — e i testi nominano quella persona, perché chi
+// legge deve sapere se tocca a lui. La fascia compare dal PRIMO gradino (14
+// giorni), non a scadenza avvenuta: a scadenza avvenuta l'emissione è già
+// ferma, e avvisare allora è tardi.
+const ccCredStato = () => (window.byupAdeCredStato ? window.byupAdeCredStato() : { stato: 'ok', scaduta: false, giorni: 99, gradino: null });
+const ccCredScadute = () => ccCredStato().scaduta;
+const ccCredChi = () => (window.pnAdeChiRinnova ? window.pnAdeChiRinnova() : { ruolo: 'titolare' });
 
 // IVA del documento: aliquota decisa dall'id del pagamento (stabile), importo
 // scorporato. Le colonne IVA della chiusura sono la somma di queste.
@@ -410,9 +398,12 @@ function CcPeriodoPicker({ selected, onPick, onClear }) {
       border:`1px solid ${PN.BORDER}`, boxShadow:'0 12px 36px rgba(15,17,21,0.14)',
     }}>
       {/* Scorciatoie sopra il calendario: chi cerca "ieri e oggi" non deve
-          imparare il gesto dei due tocchi per usarle. */}
-      <div style={{display:'flex', gap:6, marginBottom:12}}>
+          imparare il gesto dei due tocchi per usarle. «Oggi e ieri» (P-111) è
+          l'intervallo che un verificatore può chiedere di vedere, e resta a
+          giorni interi come le altre. */}
+      <div style={{display:'flex', gap:6, marginBottom:12, flexWrap:'wrap'}}>
         <button style={presetBtn} onClick={() => presetGiorni(1)}>Oggi</button>
+        <button style={presetBtn} onClick={() => presetGiorni(2)}>Oggi e ieri</button>
         <button style={presetBtn} onClick={() => presetGiorni(7)}>Ultimi 7 giorni</button>
         <button style={presetBtn} onClick={presetMese}>Questo mese</button>
       </div>
@@ -465,6 +456,35 @@ function CcPeriodoPicker({ selected, onPick, onClear }) {
 }
 window.CcPeriodoPicker = CcPeriodoPicker;
 window.ccPeriodoLabel = ccPeriodoLabel;
+
+// ─── «In caso di controllo» (P-111 · progetto tecnico §4.3) ─────────────────
+// Nel regime attuale la prova non è una schermata del gestionale: sono i
+// documenti memorizzati dal sistema dell'Agenzia, che l'esercente mostra dal
+// portale con le proprie credenziali. È quello che fanno i gestionali che
+// lavorano senza registratore telematico, ed è l'unica cosa che ha valore
+// probatorio: la riga lo dice, con il percorso esatto e il collegamento. Non
+// compare nel regime della Soluzione, dove al suo posto c'è la console.
+function CcInCasoDiControllo() {
+  if (window.pnRegimeSoluzione && window.pnRegimeSoluzione()) return null;
+  return (
+    <div data-in-caso-di-controllo style={{
+      marginTop: 14, padding: '13px 16px', borderRadius: C.R_MD,
+      background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderLeft: `3px solid ${PN.PINK}`,
+      fontSize: C.T_SM, color: PN.TEXT, lineHeight: 1.55,
+      display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
+    }}>
+      <div style={{flex: 1, minWidth: 280}}>
+        <b>In caso di controllo.</b> Nel regime attuale gli scontrini sono memorizzati dal sistema dell'Agenzia delle Entrate. Se un verificatore lo chiede, mostra i tuoi invii dal portale: <b>Fatture e Corrispettivi → Consultazione → Corrispettivi → Invii giornalieri</b>, con le tue credenziali Fisconline. Da qui puoi filtrare lo stesso periodo e stampare l'elenco per confrontarlo.
+      </div>
+      <a href={window.PN_PORTALE_FC || 'https://ivaservizi.agenziaentrate.gov.it/portale/'} target="_blank" rel="noopener noreferrer" className="pn-btn-feedback" style={{
+        flexShrink: 0, alignSelf: 'center', padding: '8px 14px', borderRadius: C.R_PILL,
+        background: PN.WHITE, color: PN.TEXT, border: `1px solid ${PN.BORDER}`,
+        fontSize: C.T_SM, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
+      }}>Apri il portale</a>
+    </div>
+  );
+}
+window.CcInCasoDiControllo = CcInCasoDiControllo;
 
 // ─── Chip di stato ─────────────────────────────────────────────────────────
 // Stessa pill di StatusPill (Costi): piena, radius pill, 12.5/700, e le sue
@@ -588,15 +608,21 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
           qui che si vede il danno — gli scontrini non partono — ma la cura sta
           nei Dati fiscali, e ci si va col bottone. I testi sono quelli di
           CC_SCARTI.credenziali: una voce sola, due superfici. */}
-      {ccCredScadute() && (
-        <div style={{
+      {ccCredStato().stato !== 'ok' && (() => {
+        const cr = ccCredStato();
+        const chi = ccCredChi();
+        const incaricato = chi.ruolo === 'incaricato';
+        const urgente = cr.scaduta || cr.gradino === 3;
+        return (
+        <div data-cc-cred={cr.stato} style={{
           display:'flex', alignItems:'flex-start', gap: 14,
           padding: '14px 18px',
-          background: '#FEF2F2', border: '1px solid #FECACA',
+          background: urgente ? '#FEF2F2' : PN.AMBER_SOFT,
+          border: `1px solid ${urgente ? '#FECACA' : '#FCD34D'}`,
           borderRadius: C.R_MD,
         }}>
           <div style={{
-            width: 36, height: 36, borderRadius: 9, background: '#DC2626',
+            width: 36, height: 36, borderRadius: 9, background: urgente ? '#DC2626' : PN.AMBER,
             display:'grid', placeItems:'center', flexShrink: 0,
           }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -604,13 +630,16 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
             </svg>
           </div>
           <div style={{flex:1, minWidth: 0}}>
-            <div style={{fontSize: C.T_SM, fontWeight: 700, color: '#991B1B'}}>
-              {ccSocieta() ? 'La password dell\'incaricato di Byup è scaduta' : CC_SCARTI.credenziali.motivo}: gli scontrini non partono
+            <div style={{fontSize: C.T_SM, fontWeight: 700, color: urgente ? '#991B1B' : '#8A5A00'}}>
+              {cr.scaduta
+                ? 'La password Fisconline è scaduta: gli scontrini non partono'
+                : `La password Fisconline scade tra ${cr.giorni} giorn${cr.giorni === 1 ? 'o' : 'i'}`}
+              {incaricato ? ` · la rinnova ${chi.nome}` : ''}
             </div>
-            <div style={{fontSize: C.T_XS, color: '#B91C1C', marginTop: 2, lineHeight: 1.5}}>
-              {ccSocieta()
-                ? 'La trasmissione dei corrispettivi usa le credenziali dell\'incaricato di Byup, e la password scade ogni novanta giorni: da quando è scaduta ogni invio viene rifiutato. La rinnova Byup: non devi fare nulla, e se dura più di un\'ora scrivi al Supporto.'
-                : `${CC_SCARTI.credenziali.causa} ${CC_SCARTI.credenziali.azione}`}
+            <div style={{fontSize: C.T_XS, color: urgente ? '#B91C1C' : '#8A5A00', marginTop: 2, lineHeight: 1.5}}>
+              {cr.scaduta
+                ? `${CC_SCARTI.credenziali.causa.replace('del titolare', incaricato ? `di ${chi.nome}` : 'del titolare')} ${CC_SCARTI.credenziali.azione}`
+                : `Scade il ${cr.scadenza}. ${incaricato ? `La cambia ${chi.nome} sul sito dell'Agenzia, poi si inserisce` : 'Prima la cambi sul sito dell\'Agenzia, poi la inserisci'} in Impostazioni → Dati fiscali: alla conferma parte una trasmissione di prova. Alla scadenza l'emissione si ferma in cassa, in sala e sull'App Staff.`}
             </div>
           </div>
           <button
@@ -618,11 +647,12 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
             className="pn-btn-feedback"
             style={{
               padding:'9px 18px', borderRadius: C.R_PILL, alignSelf:'center',
-              background: '#DC2626', color:'#fff', border:'none', flexShrink: 0,
+              background: urgente ? '#DC2626' : PN.AMBER, color:'#fff', border:'none', flexShrink: 0,
               fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
             }}>{CC_SCARTI.credenziali.vaiLabel}</button>
         </div>
-      )}
+        );
+      })()}
 
       {/* Banner stato cassa — tre fasi: aperta · giornata chiusa col fondo
           ancora da contare (il caso nuovo di P-20) · quadrata. */}

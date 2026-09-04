@@ -26,9 +26,16 @@ function ContabilitaApp() {
   const [newCost, setNewCost] = useState(false);
   const [share, setShare] = useState(false);
   const [ivaMonth, setIvaMonth] = useState(null); // mese selezionato per filtro
-  // La consultazione fiscale per le verifiche in loco (P-89 · D-88): un
-  // pulsante in testa, visibile da ogni tab, un foglio a tutto schermo.
+  // P-89 riscritta (P-111): «Verifica fiscale» non è più una schermata del
+  // regime attuale, è la PORTA del gestionale verso la console fiscale, e
+  // compare SOLO quando il regime della sede è la Soluzione Software. Nel
+  // regime attuale la finestra non si monta — nessuna fonte la richiede
+  // (progetto tecnico §4.3) e la prova in un controllo sono i documenti
+  // memorizzati dal sistema dell'Agenzia, che l'esercente mostra dal portale:
+  // lo dice la riga «In caso di controllo» sotto i documenti, in Conti.
+  // Nel mock la sede è nel regime attuale, quindi il pulsante non si vede.
   const [esibizione, setEsibizione] = useState(false);
+  const regimeSoluzione = window.pnRegimeSoluzione ? window.pnRegimeSoluzione() : false;
 
   // Scarti fiscali non gestiti: accendono il pallino sulla voce Contabilità.
   // Si spengono solo quando lo scarto è gestito — mai col tempo, mai per il
@@ -97,12 +104,17 @@ function ContabilitaApp() {
               <PnSectionTab key={t.id} id={t.id} active={tab === t.id} onClick={setTab} label={t.label} icon={t.icon}/>
             ))}
             <span style={{flex: 1}}/>
-            {/* Si trova senza cercarla, a destra delle tab, in ogni tab. */}
-            <button onClick={() => setEsibizione(true)} className="cassa-btn" title="Consultazione fiscale per le verifiche in loco" style={{
+            {/* Nel regime della Soluzione apre la console fiscale (P-96) in una
+                scheda propria del browser, con l'utente già riconosciuto nel
+                profilo che gli spetta: è la via di comodità che le Specifiche
+                ammettono (§3 lettera c), non l'unica porta — la console ha un
+                indirizzo suo. Il gestionale non replica nessuna funzione della
+                console: le stesse operazioni passano dalle stesse API. */}
+            {regimeSoluzione && <button onClick={() => setEsibizione(true)} className="cassa-btn" title="Apri la console fiscale della Soluzione" style={{
               alignSelf:'center', marginBottom: 8, padding:'8px 14px', borderRadius: C.R_PILL,
               background: PN.WHITE, color: PN.TEXT, border:`1px solid ${PN.BORDER}`,
               fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
-            }}>Verifica fiscale</button>
+            }}>Verifica fiscale</button>}
           </div>
 
           {/* Tab content */}
@@ -116,7 +128,7 @@ function ContabilitaApp() {
         </div>
 
         <ContNuovoCosto open={newCost} onClose={() => setNewCost(false)}/>
-        {esibizione && window.ContEsibizione && <ContEsibizione onClose={() => setEsibizione(false)}/>}
+        {esibizione && regimeSoluzione && window.ContEsibizione && <ContEsibizione onClose={() => setEsibizione(false)}/>}
         <ContShareModal open={share} onClose={() => setShare(false)}/>
       </main>
     </div>

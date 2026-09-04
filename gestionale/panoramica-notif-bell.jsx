@@ -108,27 +108,30 @@ function _byupNotificheFiscali() {
         out.push({ id: `pos-${r.id}-${p.fase}-${r.varied_at || r.activated_at}`, type: 'fiscal', href, unread: true, ...t });
       });
     }
-    const forma = window.PN_FORMA_LOCALE || 'societa';
-    if (forma === 'ditta_individuale') {
-      let c = null; try { c = JSON.parse(localStorage.getItem('byup_ade_cred')); } catch (e) {}
-      const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
-      const rinnovo = c && c.rinnovo ? new Date(c.rinnovo + 'T00:00:00') : (() => { const d = new Date(oggi); d.setDate(d.getDate() - 90); return d; })();
-      const scad = new Date(rinnovo); scad.setDate(scad.getDate() + 90);
-      const giorni = Math.round((scad - oggi) / 86400000);
-      const gradino = giorni <= 0 ? 'scaduta' : giorni <= 3 ? '3' : giorni <= 7 ? '7' : giorni <= 14 ? '14' : null;
-      if (gradino) out.push({ id: `cred-${gradino}-${c && c.rinnovo || 'mai'}`, type: 'fiscal', href: 'byup Impostazioni.html?page=fiscali', unread: true,
-        title: giorni <= 0 ? 'Password Fisconline scaduta: gli scontrini non partono' : `La password Fisconline scade tra ${giorni} giorn${giorni === 1 ? 'o' : 'i'}`,
-        body: giorni <= 0 ? 'Cambiala sul sito dell\'Agenzia e poi inseriscila in Dati fiscali: alla conferma parte una trasmissione di prova.' : 'Prima la cambi sul sito dell\'Agenzia, poi la inserisci in Dati fiscali. Se scade, gli scontrini smettono di partire.',
-        time: giorni <= 0 ? 'Scaduta' : 'Promemoria' });
-    } else if (window.pnIncaricatoDelLocale && window.pnIncaricatoStato) {
-      const loc = window.byupReadLocale ? window.byupReadLocale() : { id: 'cp' };
-      const inc = window.pnIncaricatoDelLocale(loc.id);
-      if (inc) {
-        const st = window.pnIncaricatoStato(inc);
-        if (st.stato !== 'ok') out.push({ id: `inc-${inc.id}-${st.stato}-${inc.rinnovo}`, type: 'fiscal', href: 'byup Impostazioni.html?page=fiscali', unread: st.stato === 'scaduta',
-          title: st.stato === 'scaduta' ? 'La password dell\'incaricato di Byup è scaduta: gli scontrini non partono' : `Gli scontrini li trasmette Byup · password dell'incaricato in scadenza tra ${st.giorni} giorni`,
-          body: st.stato === 'scaduta' ? `Byup la sta rinnovando: non devi fare nulla. Se dura più di un'ora, scrivi al Supporto.` : `${inc.nome} la rinnova prima del ${st.scadenza}: tu non devi fare nulla.`,
-          time: st.stato === 'scaduta' ? 'Scaduta' : 'Per informazione' });
+    // P-116 (D-103) e P-120: le credenziali dell'Agenzia sono SEMPRE
+    // dell'esercente, per tutte le forme — del titolare per la ditta, della
+    // persona che il locale ha nominato incaricata sul portale per società ed
+    // enti. Il ramo dell'«incaricato di Byup», che diceva «la rinnova Byup, tu
+    // non devi fare nulla», è morto con la figura che lo reggeva.
+    // I gradini sono tre e sono veri: a 14, 7 e 3 giorni parte una notifica,
+    // e un'altra alla scadenza. L'id porta il gradino, così ognuno torna non
+    // letto anche se il precedente era stato letto: è l'insistenza voluta,
+    // perché alla scadenza l'emissione si ferma.
+    if (window.byupAdeCredStato) {
+      const cr = window.byupAdeCredStato();
+      const chi = window.pnAdeChiRinnova ? window.pnAdeChiRinnova() : { ruolo: 'titolare' };
+      const incaricato = chi.ruolo === 'incaricato';
+      const dilei = incaricato ? `di ${chi.nome}` : 'del titolare';
+      if (cr.stato !== 'ok') {
+        const gradino = cr.scaduta ? 'scaduta' : String(cr.gradino);
+        out.push({ id: `cred-${gradino}-${cr.rinnovo || 'mai'}`, type: 'fiscal', href: 'byup Impostazioni.html?page=fiscali', unread: true,
+          title: cr.scaduta
+            ? 'Password Fisconline scaduta: gli scontrini non partono'
+            : `La password Fisconline scade tra ${cr.giorni} giorn${cr.giorni === 1 ? 'o' : 'i'}${incaricato ? ` · la rinnova ${chi.nome}` : ''}`,
+          body: cr.scaduta
+            ? `L'emissione è ferma in cassa, in sala e sull'App Staff. Si cambia la password ${dilei} sul sito dell'Agenzia e poi si inserisce in Dati fiscali: alla conferma parte una trasmissione di prova che sblocca.`
+            : `Scade il ${cr.scadenza}. ${incaricato ? `La cambia ${chi.nome} sul sito dell'Agenzia, poi si inserisce` : 'Prima la cambi sul sito dell\'Agenzia, poi la inserisci'} in Dati fiscali. Alla scadenza gli scontrini smettono di partire.`,
+          time: cr.scaduta ? 'Scaduta' : `Promemoria a ${cr.gradino} giorni` });
       }
     }
   } catch (e) {}
@@ -164,12 +167,99 @@ window.byupUseNotifiche = function() {
   React.useEffect(() => {
     const up = () => setItems(window.byupReadNotifiche());
     // Le notifiche fiscali cambiano coi registri: si riascoltano anche loro.
-    const ev = ['byup-notifiche-change', 'storage', 'byup-pos-censimento', 'byup-incaricati-change', 'byup-stripe-change'];
+    const ev = ['byup-notifiche-change', 'storage', 'byup-pos-censimento', 'byup-ade-cred-change', 'byup-ade-incaricato-change', 'byup-stripe-change'];
     ev.forEach(e => window.addEventListener(e, up));
     return () => { ev.forEach(e => window.removeEventListener(e, up)); };
   }, []);
   return items;
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// L'ARRIVO DI UNA NOTIFICA (P-115)
+// ═══════════════════════════════════════════════════════════════════════════
+// Una notifica che non avverte non è una notifica: prima le notifiche — fiscali
+// comprese — si vedevano solo aprendo Profilo → Notifiche, e nulla diceva che
+// ne era arrivata una. La casa resta Profilo → Notifiche; qui c'è il segnale.
+// Nel mockup l'avviso è un riquadro in basso a destra che compare per qualche
+// secondo con titolo e prima riga; nel prodotto sarà la notifica del browser o
+// del dispositivo. Il suono suona se in Impostazioni il suono è attivo
+// (byup_notif_suono): è finto quanto basta — una nota breve con WebAudio, per
+// non portarsi dietro un file — e non suona mai senza che l'utente abbia
+// toccato la pagina, perché il browser lo vieta.
+const BYUP_NOTIF_SUONO_KEY = 'byup_notif_suono';
+window.byupNotifSuonoAttivo = function () {
+  try { return localStorage.getItem(BYUP_NOTIF_SUONO_KEY) !== '0'; } catch (e) { return true; }
+};
+window.byupNotifSuonoImposta = function (on) {
+  try { localStorage.setItem(BYUP_NOTIF_SUONO_KEY, on ? '1' : '0'); } catch (e) {}
+  window.dispatchEvent(new Event('byup-notif-suono'));
+};
+function byupNotifSuona() {
+  if (!window.byupNotifSuonoAttivo()) return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    if (ctx.state === 'suspended') { ctx.close(); return; }   // niente gesto: niente suono
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(880, ctx.currentTime);
+    o.frequency.setValueAtTime(1174, ctx.currentTime + 0.09);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.34);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.36);
+    setTimeout(() => { try { ctx.close(); } catch (e) {} }, 600);
+  } catch (e) {}
+}
+// L'avviso lo si annuncia da qualunque schermata: chi lo mostra è
+// PnNotifArrivo, montato una volta sola nella shell.
+window.byupNotificaArrivo = function (n) {
+  window.dispatchEvent(new CustomEvent('byup-notifica-arrivo', { detail: n }));
+};
+
+function PnNotifArrivo() {
+  const [coda, setCoda] = React.useState([]);
+  React.useEffect(() => {
+    const arriva = (e) => {
+      const n = e.detail; if (!n) return;
+      byupNotifSuona();
+      setCoda(c => [...c, { ...n, k: 'a' + Date.now() + Math.random() }]);
+      setTimeout(() => setCoda(c => c.slice(1)), 6000);
+    };
+    window.addEventListener('byup-notifica-arrivo', arriva);
+    return () => window.removeEventListener('byup-notifica-arrivo', arriva);
+  }, []);
+  if (!coda.length) return null;
+  return (
+    <div data-notif-arrivo style={{
+      position: 'fixed', right: 20, bottom: 20, zIndex: 400,
+      display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end',
+      pointerEvents: 'none',
+    }}>
+      <style>{`@keyframes pnNotifIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: none; } }`}</style>
+      {coda.map(n => (
+        <div key={n.k}
+          onClick={() => { window.byupNotificaLetta(n.id); window.location.href = n.href || 'byup Profilo.html?tab=notifiche'; }}
+          style={{
+            pointerEvents: 'auto', cursor: 'pointer', width: 340, maxWidth: '80vw',
+            background: PN.WHITE, borderRadius: 14, padding: '13px 15px',
+            border: `1px solid ${PN.BORDER_SOFT}`, borderLeft: `3px solid ${PN.PINK}`,
+            boxShadow: '0 16px 40px rgba(15,17,21,0.18)',
+            animation: 'pnNotifIn 260ms cubic-bezier(0.34, 1.45, 0.64, 1)',
+          }}>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3}}>
+            <span style={{width: 7, height: 7, borderRadius: '50%', background: PN.PINK, flexShrink: 0}}/>
+            <span style={{fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: PN.MUTED}}>Nuova notifica</span>
+          </div>
+          <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, lineHeight: 1.3}}>{n.title}</div>
+          <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'}}>{n.body}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+window.PnNotifArrivo = PnNotifArrivo;
 
 function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
   const [open, setOpen] = React.useState(false);
@@ -389,8 +479,20 @@ window.PnNotifBell = PnNotifBell;
 function PnNotificheSection() {
   const items = window.byupUseNotifiche();
   const [filtro, setFiltro] = React.useState('tutte');
+  const [suono, setSuono] = React.useState(() => window.byupNotifSuonoAttivo());
+  // P-115: il numerino sul profilo si azzera aprendo Notifiche — è il segnale
+  // «c'è qualcosa di nuovo», e qui il nuovo lo si è visto. Le righe restano
+  // però evidenziate finché si è in pagina: `erano` fotografa le non lette
+  // all'ingresso, altrimenti sparirebbero sotto gli occhi di chi le sta
+  // leggendo, e non si capirebbe più quali erano.
+  const [erano] = React.useState(() => new Set(items.filter(n => n.unread).map(n => n.id)));
+  React.useEffect(() => {
+    const t = setTimeout(() => window.byupNotificheTutteLette(), 1200);
+    return () => clearTimeout(t);
+  }, []);
+  const nuova = (n) => n.unread || erano.has(n.id);
   const nonLette = items.filter(n => n.unread).length;
-  const visibili = filtro === 'nonlette' ? items.filter(n => n.unread) : items;
+  const visibili = filtro === 'nonlette' ? items.filter(nuova) : items;
 
   const Filtro = ({ id, label, count }) => {
     const on = filtro === id;
@@ -430,7 +532,17 @@ function PnNotificheSection() {
               : 'Sei in pari: nessuna notifica da leggere.'}
           </div>
         </div>
-        <div style={{display:'flex', alignItems:'center', gap: 8, flexShrink: 0}}>
+        <div style={{display:'flex', alignItems:'center', gap: 8, flexShrink: 0, flexWrap:'wrap'}}>
+          {/* L'interruttore del suono sta dove si leggono le notifiche: è la
+              loro impostazione, e cercarla altrove sarebbe cercarla due volte. */}
+          <label title="Suona quando arriva una notifica" style={{
+            display:'inline-flex', alignItems:'center', gap: 7, padding:'6px 12px', borderRadius: 999,
+            border: `1px solid ${PN.BORDER}`, background: PN.WHITE, cursor:'pointer',
+            fontSize: 14, fontWeight: 700, color: suono ? PN.TEXT : PN.MUTED,
+          }}>
+            <input type="checkbox" data-notif-suono checked={suono} onChange={e => { window.byupNotifSuonoImposta(e.target.checked); setSuono(e.target.checked); }} style={{accentColor: PN.PINK_DARK}}/>
+            Suono
+          </label>
           <Filtro id="tutte" label="Tutte" count={items.length}/>
           <Filtro id="nonlette" label="Non lette" count={nonLette}/>
           {nonLette > 0 && (
@@ -475,21 +587,21 @@ function PnNotificheSection() {
               display:'flex', alignItems:'flex-start', gap: 12,
               padding:'16px 20px',
               borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}`,
-              background: n.unread ? '#FFF7F8' : PN.WHITE,
+              background: nuova(n) ? '#FFF7F8' : PN.WHITE,
               cursor:'pointer', transition:'background 140ms ease',
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = n.unread ? '#FFEEF1' : '#FAFAFB'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = n.unread ? '#FFF7F8' : PN.WHITE; }}
+            onMouseEnter={e => { e.currentTarget.style.background = nuova(n) ? '#FFEEF1' : '#FAFAFB'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = nuova(n) ? '#FFF7F8' : PN.WHITE; }}
           >
             {/* Pallino di stato: pieno coral = da leggere, cavo = già letta */}
             <span style={{
               width: 9, height: 9, borderRadius:'50%', flexShrink: 0, marginTop: 6,
-              background: n.unread ? PN.PINK : 'transparent',
-              boxShadow: n.unread ? 'none' : 'inset 0 0 0 1.5px #D9DBE0',
+              background: nuova(n) ? PN.PINK : 'transparent',
+              boxShadow: nuova(n) ? 'none' : 'inset 0 0 0 1.5px #D9DBE0',
             }}/>
             <div style={{flex: 1, minWidth: 0}}>
               <div style={{
-                fontSize: 15.5, fontWeight: n.unread ? 700 : 600, color: PN.TEXT,
+                fontSize: 15.5, fontWeight: nuova(n) ? 700 : 600, color: PN.TEXT,
                 lineHeight: 1.35, marginBottom: 3,
               }}>{n.title}</div>
               <div style={{fontSize: 14.5, color: PN.MUTED, lineHeight: 1.5}}>{n.body}</div>

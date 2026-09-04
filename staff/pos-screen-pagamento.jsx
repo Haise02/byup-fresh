@@ -18,6 +18,15 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
   // partita si blocca qui; un pagamento già in lettura si lascia finire.
   const notte = window.byupNotteInfo();
   const [, setNotteTick] = useStateP(0);
+  // P-120: la porta d'ingresso è già bloccata dalla schermata prima, ma la
+  // guardia sta anche qui — a questa schermata ci si può arrivare con la
+  // password scaduta nel frattempo, e presentare la carta emetterebbe.
+  const [credBlocco, setCredBlocco] = useStateP(() => (window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null));
+  React.useEffect(() => {
+    const ri = () => setCredBlocco(window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null);
+    ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.addEventListener(e, ri));
+    return () => ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
+  }, []);
   useEffectP(() => {
     const id = setInterval(() => setNotteTick(t => t + 1), 1000);
     return () => clearInterval(id);
@@ -34,7 +43,7 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
 
   // Simula la carta che si avvicina al dispositivo — mai dentro la finestra
   // di divieto: il testo di stato spiega perché non succede niente.
-  const presentaCarta = () => { if (step === 'waiting' && !notte.dentro) setStep('reading'); };
+  const presentaCarta = () => { if (step === 'waiting' && !notte.dentro && !credBlocco) setStep('reading'); };
 
   // PIN completo → fase di elaborazione
   useEffectP(() => {
@@ -124,7 +133,7 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
 
         {/* Status text */}
         <div style={{ fontSize: 13, fontWeight: 700, opacity: 0.7, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
-          {step === 'waiting' && (notte.dentro ? 'Incasso sospeso' : 'In attesa carta')}
+          {step === 'waiting' && (credBlocco || notte.dentro ? 'Incasso sospeso' : 'In attesa carta')}
           {step === 'reading' && 'Lettura in corso'}
           {step === 'pin' && 'Inserisci PIN'}
           {isProc && 'Elaborazione'}
@@ -132,7 +141,9 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
           {isFail && 'Pagamento rifiutato'}
         </div>
         <div style={{ fontSize: 16, fontWeight: 500, opacity: 0.9, lineHeight: 1.4, marginBottom: 18 }}>
-          {step === 'waiting' && (notte.dentro
+          {step === 'waiting' && (credBlocco
+            ? `${credBlocco.titolo}: ${credBlocco.testo}`
+            : notte.dentro
             ? `Lo scontrino partirebbe con la data di domani: attendi mezzanotte. Riprende tra ${window.byupNotteConta(notte.mancano)}`
             : 'Avvicina carta o telefono al dispositivo')}
           {step === 'reading' && 'Tieni la carta ferma…'}
@@ -142,7 +153,7 @@ function ScreenTap({ nav, openModal, importo, contoId, pagaConto }) {
           {isFail && 'Carta rifiutata dall’emittente'}
         </div>
 
-        {step === 'waiting' && !notte.dentro && (
+        {step === 'waiting' && !notte.dentro && !credBlocco && (
           <div style={{ fontSize: 12, opacity: 0.55, marginTop: -10, marginBottom: 16 }}>
             Demo · tocca il cerchio per simulare la carta
           </div>

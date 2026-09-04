@@ -132,7 +132,7 @@ const anPerDotazione = (locali = AN_LOCALI) => Object.keys(AN_DOTAZIONI).map(k =
     quotaIncassoPos: parMediana(g.map(l => l.quotaIncassoPos)),
     // Quota di locali fermi dentro il gruppo: è il numero che trasforma la
     // dotazione da statistica di prodotto a segnale di rischio.
-    quotaFermi: g.length ? (g.filter(l => l.stato === 'inactive').length / g.length) * 100 : 0,
+    quotaFermi: g.length ? (g.filter(l => l.stato === 'dormant').length / g.length) * 100 : 0,
     sopraSoglia: attivi.length ? (attivi.filter(l => l.adozione >= PAR.SOGLIA_DIGITALE).length / attivi.length) * 100 : 0,
   };
 });

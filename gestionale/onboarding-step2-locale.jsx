@@ -189,8 +189,11 @@ function SubStepInfo({venue, v}) {
             </div>
           )}
           {venue.legalForm === 'ente' && (
-            <div style={{marginTop: 10, padding: '10px 13px', borderRadius: 10, background: 'rgba(217, 119, 6, 0.10)', border: '1px solid rgba(217, 119, 6, 0.30)', fontSize: 14.5, color: ONB.TEXT, lineHeight: 1.5}}>
-              <b style={{fontWeight: 600}}>Enti e cooperative arrivano con la Soluzione Software.</b> Con il canale di oggi la trasmissione degli scontrini per un ente richiede una configurazione dedicata del fornitore: la apriremo noi, e ti scriviamo quando è pronta. Puoi intanto completare il resto.
+            <div style={{marginTop: 10, padding: '10px 13px', borderRadius: 10, background: ONB.BG, border: '1px solid rgba(15, 17, 21, 0.08)', fontSize: 14.5, color: ONB.MUTED, lineHeight: 1.5}}>
+              {/* P-116 (D-103): l'ente non è più «in attesa». Ha i campi della
+                  società e nessun percorso proprio: cooperative, consorzi,
+                  associazioni e circoli con partita IVA. */}
+              Cooperative, consorzi, associazioni e circoli con partita IVA: i dati richiesti sono quelli della società, e gli scontrini si trasmettono allo stesso modo, con le credenziali della persona che nomini incaricata sul portale.
             </div>
           )}
         </div>
@@ -295,13 +298,20 @@ function SubStepInfo({venue, v}) {
 //   - ditta individuale: le credenziali Fisconline del titolare, verificate
 //     con una trasmissione di prova; la password scade ogni novanta giorni e
 //     il promemoria vive in Dati fiscali, in cassa e nelle notifiche (P-104);
-//   - società: la società nomina come incaricato una persona di Byup, con la
-//     funzione «Gestisci incarichi» del portale (la procedura è quella del
-//     fornitore del canale); le credenziali sono di quella persona e la
-//     password la rinnova Byup da Hubble, per tutte le società insieme.
+//   - società ed enti: il locale nomina incaricata una PROPRIA persona — di
+//     norma il titolare o il rappresentante legale — con la funzione
+//     «Gestisci incarichi» del portale; le credenziali configurate sul canale
+//     sono le sue e la password la rinnova lei ogni novanta giorni, con lo
+//     stesso promemoria della ditta (P-104, P-120). Byup non nomina
+//     incaricati propri e non rinnova credenziali per conto di nessuno
+//     (D-103): la figura dell'incaricato di Byup è ritirata.
 // Con la Soluzione Software questa card sparisce: trasmette la Soluzione.
 // ─────────────────────────────────────────────────────────────────────────
-const ONB_INCARICATO = { nome: 'Luca Ferrante', ruolo: 'dipendente di Byup', cf: 'FRRLCU85M10H501Z' };
+// P-116 (D-103): l'incaricato è DEL LOCALE, non di Byup. È la persona fisica
+// che la società nomina sul portale — di norma il titolare o il
+// rappresentante legale — e le credenziali Fisconline configurate sul canale
+// sono le sue. Qui si raccoglie chi è: il seme è il rappresentante del mock.
+const ONB_INCARICATO_SEME = { nome: 'Paola', cognome: 'Conti', cf: 'CNTPLA80E50H501V' };
 const ONB_PASSI_INCARICO = [
   'Accedi al portale dell\'Agenzia con l\'utenza della società',
   'Vai su Il tuo profilo → Incarichi → Gestisci incarichi come gestore',
@@ -312,7 +322,7 @@ const ONB_PASSI_INCARICO = [
   'Spunta «Accreditamento e censimento dispositivi» (personale) e salva',
 ];
 const ONB_CAUSE_INCARICO = [
-  'Il codice fiscale dell\'incaricato è esattamente quello qui sopra.',
+  'Il codice fiscale dell\'incaricato è esattamente quello che hai scritto qui sopra.',
   'Il tipo di incarico è «Incaricato», non «Gestore».',
   'Nei servizi dell\'incaricato è spuntato «Accreditamento e censimento dispositivi» (personale).',
   'Hai lavorato con l\'utenza della società, non con la tua personale.',
@@ -320,7 +330,11 @@ const ONB_CAUSE_INCARICO = [
 
 function OnbScontriniCard({venue, v}) {
   const ditta = venue.legalForm === 'ditta_individuale';
-  const societa = venue.legalForm === 'societa';
+  // Società ed enti seguono la stessa strada: l'ente ha i campi della società
+  // e nessun percorso proprio (D-103).
+  const societa = venue.legalForm === 'societa' || venue.legalForm === 'ente';
+  const inc = { nome: venue.incNome || ONB_INCARICATO_SEME.nome, cognome: venue.incCognome || ONB_INCARICATO_SEME.cognome, cf: (venue.incCf || ONB_INCARICATO_SEME.cf).toUpperCase() };
+  const incNomeCompleto = `${inc.nome} ${inc.cognome}`.trim();
   const [copiato, setCopiato] = React.useState(false);
   const [showPin, setShowPin] = React.useState(false);
   const copia = (testo) => {
@@ -349,7 +363,18 @@ function OnbScontriniCard({venue, v}) {
   const controlla = () => {
     v('incaricoStato', 'verifica');
     const t = (venue.incaricoTentativi || 0) + 1; v('incaricoTentativi', t);
-    setTimeout(() => v('incaricoStato', t === 1 ? 'errore' : 'attivo'), 1600);
+    setTimeout(() => {
+      const ok = t !== 1;
+      v('incaricoStato', ok ? 'attivo' : 'errore');
+      // A incarico trovato l'incaricato entra nel registro condiviso
+      // (byup_ade_incaricato): lo leggono Dati fiscali, la cassa, le
+      // notifiche e — in sola lettura — Hubble.
+      if (ok && window.byupWriteIncaricato) {
+        const d = new Date();
+        window.byupWriteIncaricato({ nome: inc.nome.trim(), cognome: inc.cognome.trim(), cf: inc.cf,
+          nominato_il: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` });
+      }
+    }, 1600);
   };
   const scadenza = () => { const d = new Date(); d.setDate(d.getDate() + 90); return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }); };
   const pill = (tono, label) => (
@@ -371,7 +396,7 @@ function OnbScontriniCard({venue, v}) {
           <div style={{fontSize: 15, color: ONB.MUTED, marginTop: 4, lineHeight: 1.45}}>
             {ditta
               ? 'Il canale trasmette i tuoi scontrini all\'Agenzia con le tue credenziali Fisconline. La password scade ogni novanta giorni: ti avvisiamo in Dati fiscali, in cassa e con una notifica a 14, 7 e 3 giorni.'
-              : `Per una società la procedura dell\'Agenzia si usa attraverso una persona incaricata. Per Byup è ${ONB_INCARICATO.nome}, ${ONB_INCARICATO.ruolo}: la nomini una volta sola, e la sua password la rinnova Byup ogni novanta giorni. Tu non devi più fare nulla.`}
+              : 'La procedura dell\'Agenzia si usa attraverso una persona incaricata, che nomini tu sul portale: di norma sei tu stesso o il rappresentante legale. Le credenziali configurate sul canale sono le sue, e la password la rinnova lei ogni novanta giorni — ti avvisiamo in Dati fiscali, in cassa e con una notifica a 14, 7 e 3 giorni.'}
           </div>
         </div>
         {ditta ? pill(stato === 'attivo' ? 'ok' : stato === 'errore' ? 'errore' : stato === 'verifica' ? 'corso' : 'attesa', stato === 'attivo' ? 'Verificate' : stato === 'errore' ? 'Non valide' : stato === 'verifica' ? 'Trasmissione di prova…' : 'Da inserire')
@@ -413,10 +438,14 @@ function OnbScontriniCard({venue, v}) {
         <div style={{marginTop: 12}}>
           <div style={{display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '11px 13px', borderRadius: 10, background: ONB.BG, border: '1px solid rgba(15, 17, 21, 0.06)'}}>
             <div style={{flex: 1, minWidth: 160}}>
-              <div style={lab}>Codice fiscale dell'incaricato · {ONB_INCARICATO.nome}</div>
-              <div style={{fontSize: 18.5, fontWeight: 600, color: ONB.TEXT, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: '0.04em', userSelect: 'all'}}>{ONB_INCARICATO.cf}</div>
+              <div style={lab}>Chi nomini incaricato</div>
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1.3fr', gap: 8}}>
+                <input value={inc.nome} onChange={e => v('incNome', e.target.value)} placeholder="Nome" style={inputStyle}/>
+                <input value={inc.cognome} onChange={e => v('incCognome', e.target.value)} placeholder="Cognome" style={inputStyle}/>
+                <input value={inc.cf} onChange={e => v('incCf', e.target.value.toUpperCase())} placeholder="Codice fiscale" style={{...inputStyle, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', letterSpacing: '0.04em'}}/>
+              </div>
             </div>
-            <button onClick={() => copia(ONB_INCARICATO.cf)} style={{display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9, background: '#fff', color: copiato ? ONB.GREEN : ONB.TEXT, border: `1px solid ${copiato ? 'rgba(22, 163, 74, 0.35)' : 'rgba(15, 17, 21, 0.12)'}`, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
+            <button onClick={() => copia(inc.cf)} style={{display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9, background: '#fff', color: copiato ? ONB.GREEN : ONB.TEXT, border: `1px solid ${copiato ? 'rgba(22, 163, 74, 0.35)' : 'rgba(15, 17, 21, 0.12)'}`, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'}}>
               {copiato ? <React.Fragment><OnbIcon.Check size={12} color={ONB.GREEN}/>Copiato</React.Fragment> : 'Copia'}
             </button>
             <a href={ADE_PORTALE} target="_blank" rel="noopener noreferrer" style={{display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9, background: ONB.ACTION_SECONDARY, color: '#fff', fontSize: 15, fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit'}}>Apri il portale</a>
@@ -439,7 +468,7 @@ function OnbScontriniCard({venue, v}) {
             <div style={{flex: 1, minWidth: 220}}>
               <div style={{fontSize: 16, fontWeight: 600, color: ONB.TEXT}}>Controllo</div>
               <div style={{fontSize: 14.5, color: ONB.MUTED, marginTop: 2, lineHeight: 1.45}}>
-                {incarico === 'attivo' ? `Incarico trovato: ${ONB_INCARICATO.nome} può trasmettere per ${venue.name || 'la società'}.`
+                {incarico === 'attivo' ? `Incarico trovato: ${incNomeCompleto} può trasmettere per ${venue.name || 'il locale'}.`
                   : incarico === 'verifica' ? 'Sto controllando l\'incarico presso l\'Agenzia…'
                   : 'Quando hai salvato sul portale, premi Fatto: controlliamo l\'incarico.'}
               </div>

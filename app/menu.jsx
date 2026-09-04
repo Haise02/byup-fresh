@@ -464,6 +464,101 @@ const DISHES_BY_CAT = {
   ],
 };
 const ALL_DISHES = Object.values(DISHES_BY_CAT).flat();
+
+// ─── Il motore di «In base ai tuoi gusti» (P-123 · D-03, D-28, LIA §4) ─────
+// Legge SOLO i gusti dichiarati (ByupGusti, P-27) e la storia degli ordini —
+// MAI i filtri di «Dieta & allergeni», che sono la dichiarazione sulla salute
+// della persona: D-03 e il modello (consenso dietary_suggestions) ammettono
+// quell'uso solo con un consenso esplicito distinto, e la LIA §4 impone che
+// il motore non legga i dati alimentari. Le esigenze alimentari entrano solo
+// se la persona ha acceso, dentro «Dieta & allergeni», l'interruttore «Usa
+// le mie esigenze alimentari per i suggerimenti»: allora i piatti con un
+// allergene dichiarato escono dalle proposte e quelli compatibili con la
+// dieta salgono in cima. A consenso spento il motore non legge quei dati, e
+// un piatto che la persona filtra dalla lista può comparire qui: è il prezzo
+// della separazione, dichiarato. Il filtro della lista (P-65, P-74) resta
+// com'è: è la persona che filtra, non il motore che suggerisce.
+// I generi di un piatto si desumono qui da categoria e nome, perché il seme
+// del menù non porta food_tag; nel prodotto sono i tag del locale.
+const CATEGORIA_DI = {};
+Object.entries(DISHES_BY_CAT).forEach(([c, arr]) => arr.forEach(d => { CATEGORIA_DI[d.id] = c; }));
+const GUSTO_PAROLE = {
+  pasta:     /cacio e pepe|carbonara|amatriciana|gricia|gnocch|pasta|spaghett|rigaton|tonnarell|lasagn|raviol|fettuccin/i,
+  carne:     /manzo|abbacchio|saltimbocca|pollo|vaccinara|filetto|tagliata|bistecca|carpaccio|agnello|maiale|porchetta/i,
+  pesce:     /cozze|baccal|pesce|branzino|orata|tonno|salmone|calamar|gamber|polpo|spigola|frutti di mare/i,
+  frittura:  /fritt|in pastella/i,
+  pizza:     /pizza|margherita|diavola|marinara|capricciosa/i,
+  hamburger: /burger/i,
+  aperitivo: /spritz|negroni|aperol|cocktail|aperitivo/i,
+  gelato:    /gelato/i,
+  sushi:     /sushi|nigiri|sashimi|uramaki/i,
+  poke:      /poke/i,
+  ramen:     /ramen/i,
+  brunch:    /brunch|pancake|benedict/i,
+  cinese:    /cines|ravioli al vapore|involtin/i,
+  indiano:   /indian|curry|tandoori|naan/i,
+  messicano: /messican|taco|burrito|nacho/i,
+  kebab:     /kebab|shawarma/i,
+};
+function generiPiatto(d) {
+  const out = new Set();
+  const cat = CATEGORIA_DI[d.id] || '';
+  if (cat === 'Dolci') out.add('dolci');
+  Object.keys(GUSTO_PAROLE).forEach(g => { if (GUSTO_PAROLE[g].test(d.name)) out.add(g); });
+  return out;
+}
+// Le esigenze dichiarate nel profilo, lette SOLO a consenso acceso: gli
+// allergeni dal dizionario del kit, i regimi dalla stessa chiave del profilo.
+function esigenzeDichiarate() {
+  const allergeni = (window.ByupKit && window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati()) || {};
+  let regimi = {};
+  try { const p = JSON.parse(localStorage.getItem('byup_allergens') || '{}') || {}; regimi = p.diets || {}; } catch (e) {}
+  return { allergeni, regimi: Object.keys(regimi).filter(k => regimi[k]) };
+}
+// Compatibilità di un piatto con i regimi dichiarati: euristica sul seme
+// (allergeni del piatto e parole del nome), nel prodotto è il tag del locale.
+function compatibileConRegimi(d, regimi) {
+  const nome = d.name.toLowerCase();
+  const alc = /vino|birra|spritz|negroni|aperol|cocktail|amaro|grappa|prosecco/.test(nome);
+  const maiale = /guanciale|maiale|pancetta|prosciutto|salsiccia|porchetta|salame|speck/.test(nome) || /carbonara|amatriciana|gricia/.test(nome);
+  const carne = GUSTO_PAROLE.carne.test(nome) || maiale;
+  const pesce = GUSTO_PAROLE.pesce.test(nome) || d.allergens.some(a => a === 'pesce' || a === 'crostacei' || a === 'molluschi');
+  return regimi.every(r => {
+    if (r === 'vegetariano') return !carne && !pesce;
+    if (r === 'vegano') return !carne && !pesce && !d.allergens.includes('lattosio') && !d.allergens.includes('uova');
+    if (r === 'pescetariano') return !carne;
+    if (r === 'halal') return !maiale && !alc;
+    if (r === 'kosher') return !maiale && !d.allergens.some(a => a === 'crostacei' || a === 'molluschi');
+    if (/glutine/.test(r)) return !d.allergens.includes('glutine');
+    if (r === 'astemio') return !alc;
+    return true;
+  });
+}
+function byupSuggerimentiPerTe() {
+  const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id)); // non duplicare «I più ordinati»
+  const gusti = (window.ByupGusti && window.ByupGusti.leggi()) || [];
+  const storico = ((window.ByupStoricoOrdini && window.ByupStoricoOrdini()) || []).map(n => n.toLowerCase());
+  const ordinato = (d) => { const n = d.name.toLowerCase(); return storico.some(s => n.includes(s) || s.includes(n)); };
+  const dietaOk = !!(window.ByupConsensi && window.ByupConsensi.attivo('dietary_suggestions'));
+  const esigenze = dietaOk ? esigenzeDichiarate() : { allergeni: {}, regimi: [] };
+  const candidati = ALL_DISHES.filter(d => {
+    if (top4.has(d.id)) return false;
+    // Solo a consenso acceso: fuori i piatti con un allergene dichiarato.
+    if (dietaOk && d.allergens.some(a => esigenze.allergeni[a])) return false;
+    return true;
+  });
+  const valutati = candidati.map(d => {
+    const generi = generiPiatto(d);
+    let punti = 0;
+    gusti.forEach(g => { if (generi.has(g)) punti += 2; });
+    if (ordinato(d)) punti += 3;
+    const compatibile = dietaOk && esigenze.regimi.length ? compatibileConRegimi(d, esigenze.regimi) : false;
+    return { d, punti, compatibile };
+  }).filter(x => x.punti > 0);
+  // A consenso acceso i compatibili salgono in cima; poi il punteggio.
+  valutati.sort((a, b) => (Number(b.compatibile) - Number(a.compatibile)) || (b.punti - a.punti));
+  return valutati.slice(0, 6).map(x => x.d);
+}
 const findDish = (id) => ALL_DISHES.find(d => d.id === id);
 
 // ─── MODE SHEET (scansiona QR vs Take Away) ───────────────
@@ -789,28 +884,13 @@ function MenuScreen({ state, setState, goTo }) {
   const cart = state.cart; // array of { lineId, dishId, qty, variants, extras, removed }
   const allDishesFlat = Object.values(dishes).flat();
 
-  // Piatti "Per te" — stessa logica della sezione "In base ai tuoi gusti".
-  // Calcolata qui una volta sola così il badge è riusabile anche nelle card.
-  const perTeIds = (() => {
-    // Spento l'interruttore (P-26), nessun «Per te»: le proposte sono generiche.
-    if (!suggerimentiAttivi) return new Set();
-    const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id));
-    const dietMatch = (d) => {
-      if (!dietFilter) return true;
-      if (dietFilter === 'veg') return !d.allergens.includes('pesce');
-      if (dietFilter === 'vegan') return !d.allergens.includes('lattosio') && !d.allergens.includes('uova') && !d.allergens.includes('pesce') && !d.allergens.includes('crostacei');
-      if (dietFilter === 'gf') return !d.allergens.includes('glutine');
-      return true;
-    };
-    const picks = ALL_DISHES.filter(d => {
-      if (top4.has(d.id)) return false;
-      for (const id of Object.keys(allergenFilters)) {
-        if (allergenFilters[id] && d.allergens.includes(id)) return false;
-      }
-      return dietMatch(d);
-    }).slice(0, 6);
-    return new Set(picks.map(d => d.id));
-  })();
+  // Piatti «Per te» — il motore di P-123 (byupSuggerimentiPerTe, sopra):
+  // gusti dichiarati e storia degli ordini, mai i filtri di dieta e
+  // allergeni salvo il consenso distinto. Calcolato qui una volta sola: la
+  // sezione «In base ai tuoi gusti» lo mostra e le card ne leggono il badge.
+  // Spento l'interruttore (P-26), nessun «Per te»: le proposte sono generiche.
+  const perTePicks = suggerimentiAttivi ? byupSuggerimentiPerTe() : [];
+  const perTeIds = new Set(perTePicks.map(d => d.id));
 
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cart.reduce((s, i) => {
@@ -1221,7 +1301,7 @@ function MenuScreen({ state, setState, goTo }) {
             <div style={{ marginBottom: 26, marginLeft: -18, marginRight: -18 }}>
               <div style={{ padding: '0 18px 14px' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: TEXT, letterSpacing: -0.4 }}>Una selezione</div>
-                <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo → I miei dati.</div>
+                <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo → I miei dati → Privacy e consensi.</div>
               </div>
               <div className="hscroll" style={{ display: 'flex', gap: 12, padding: '4px 18px 6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                 {picks.map((d) => (
@@ -1243,21 +1323,10 @@ function MenuScreen({ state, setState, goTo }) {
           );
         })()}
         {!searchQ && suggerimentiAttivi && (() => {
-          const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id));
-          const dietMatch = (d) => {
-            if (!dietFilter) return true;
-            if (dietFilter === 'veg') return !d.allergens.includes('pesce');
-            if (dietFilter === 'vegan') return !d.allergens.includes('lattosio') && !d.allergens.includes('uova') && !d.allergens.includes('pesce') && !d.allergens.includes('crostacei');
-            if (dietFilter === 'gf') return !d.allergens.includes('glutine');
-            return true;
-          };
-          const picks = ALL_DISHES.filter(d => {
-            if (top4.has(d.id)) return false; // non duplicare "I più ordinati"
-            for (const id of Object.keys(allergenFilters)) {
-              if (allergenFilters[id] && d.allergens.includes(id)) return false;
-            }
-            return dietMatch(d);
-          }).slice(0, 6);
+          // I piatti vengono dal motore di P-123 (perTePicks): gusti e
+          // storia degli ordini, la dieta solo col consenso distinto. Senza
+          // gusti né ordini che incontrino il menù la sezione non compare.
+          const picks = perTePicks;
           if (picks.length < 2) return null;
           // Il sottotitolo non nomina il motivo (P-74): «Scelti per la tua
           // dieta vegana» e «Senza gli allergeni che eviti» dicevano il

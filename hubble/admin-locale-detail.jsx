@@ -171,12 +171,14 @@ function DrwPanoramica({ locale: l }) {
           <AdmButton variant="secondary" size="sm" icon="mail" disabled={reminderInviato} onClick={()=>setReminderInviato(true)}>Invia reminder</AdmButton>
         </div>
       )}
-      {l.stato === 'skipped' && (
+      {/* Il contrassegno (P-121): non uno stato — il locale è attivo — ma
+          un fatto dell'onboarding che l'assistenza deve vedere. */}
+      {locConfigSaltata(l) && (
         <div style={{padding:'14px 16px', background: ADM.INFO_SOFT, border:`1px solid #BFDBFE`, borderRadius:10, display:'flex', gap:12, alignItems:'flex-start'}}>
           <div style={{color: ADM.INFO, marginTop:1}}><BuIcons.info size={23}/></div>
           <div style={{flex:1}}>
-            <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Onboarding saltato</div>
-            <div style={{fontSize:13.7, color:'#1E40AF', marginTop:3}}>Ha finito il percorso rapido e opera, ma ha saltato la configurazione completa: niente vetrina, aspetto né personale finché non ci torna.</div>
+            <div style={{fontSize:14.4, fontWeight:700, color:ADM.TEXT}}>Configurazione completa saltata</div>
+            <div style={{fontSize:13.7, color:'#1E40AF', marginTop:3}}>Ha finito il percorso rapido e opera — il ciclo di vita è «Attivo» — ma ha saltato la configurazione completa: niente vetrina, aspetto né personale finché non ci torna.</div>
           </div>
         </div>
       )}
@@ -251,13 +253,13 @@ function DrwAdozioneDigitale({ locale: l }) {
   const band = bandOf(qr);
   const stato = l.stato;
 
-  // Caso: non rilevante (pending / onboarding / churned)
+  // Caso: non rilevante (registered / onboarding / churned)
   if (qr == null) {
     return (
       <AdmCard padding={18}>
         <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:6}}>Adozione digitale</div>
         <div style={{fontSize:13.7, color:ADM.MUTED, lineHeight:1.5}}>
-          {stato === 'pending' || stato === 'onboarding'
+          {stato === 'registered' || stato === 'onboarding'
             ? 'Il locale non ha ancora completato l\'onboarding: il tasso QR sarà disponibile dal Go-live.'
             : 'Locale non più operativo: tasso QR non rilevato.'}
         </div>
@@ -344,11 +346,12 @@ function DrwAdozioneDigitale({ locale: l }) {
   );
 }
 
-// Gli stati «live»: chi lavora (active), chi ha saltato il setup ma ordina
-// (skipped), chi ha rallentato senza cessare (inactive). UNA lista sola —
-// la media piattaforma, le cifre da sala e il log operativo devono contare
-// gli stessi locali, o la stessa tab si contraddice da sola.
-const DRW_STATI_LIVE = ['active', 'inactive', 'skipped'];
+// Gli stati «live»: chi lavora (active — anche chi ha saltato la
+// configurazione completa, che è un contrassegno e non uno stato, P-121) e
+// chi ha rallentato senza cessare (dormant). UNA lista sola — la media
+// piattaforma, le cifre da sala e il log operativo devono contare gli stessi
+// locali, o la stessa tab si contraddice da sola.
+const DRW_STATI_LIVE = ['active', 'dormant'];
 
 function DrwScanOrdini({ locale: l }) {
   const [periodo, setPeriodo] = useStateDrw('mese');
@@ -551,10 +554,13 @@ function DrwAnagrafica({ locale: l }) {
   // compilato di là si legge e si corregge qui. Il fiscale ha la SUA tab.
   // Titolare ed email NON si modificano da qui (P-73 · D-57): cambiando
   // l'email e mandando il reset l'assistenza sostituiva il titolare in due
-  // gesti. Le due vie giuste: il ripristino assistito (Assistenza →
-  // Ripristini accesso) restituisce l'accesso alla stessa persona; il cambio
-  // di chi sta dietro il locale passa solo dal percorso di titolarità in
-  // Account del titolare (restaurant_holder_changes).
+  // gesti. Il ripristino assistito (Assistenza → Ripristini accesso)
+  // restituisce l'accesso alla stessa persona e non lo trasferisce mai. Non
+  // esiste un «cambio del titolare» né un «passaggio del locale» (D-104,
+  // P-117): l'account è della persona, che cambia i propri recapiti e il
+  // proprio nome dal profilo del gestionale — ogni modifica è un evento del
+  // registro (tab Log) — e il soggetto fiscale si cambia da Impostazioni →
+  // Dati fiscali con la riaccettazione dei termini (tab Dati fiscali).
   const FIELDS = ['nome','tipo','indirizzo','cap','citta','regione','tel','coperti'];
   const [form, setForm] = useStateDrw(Object.fromEntries(FIELDS.map(k => [k, l[k] ?? ''])));
   const dirty = FIELDS.some(k => String(form[k]) !== String(l[k] ?? ''));
@@ -601,10 +607,13 @@ function DrwAnagrafica({ locale: l }) {
               e la racconta il banner dei Contratti. */}
           <div>
             <label style={drwLab}>Ciclo di vita</label>
-            <div style={{display:'flex', alignItems:'center', minHeight:36}}>
-              <AdmBadge color={(LOC_CICLO_VITA[l.stato] || LOC_CICLO_VITA.inactive).color} size="xs">
-                {(LOC_CICLO_VITA[l.stato] || LOC_CICLO_VITA.inactive).label}
+            <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', justifyContent:'center', minHeight:36, gap:3}}>
+              <AdmBadge color={(LOC_CICLO_VITA[l.stato] || LOC_CICLO_VITA.dormant).color} size="xs">
+                {(LOC_CICLO_VITA[l.stato] || LOC_CICLO_VITA.dormant).label}
               </AdmBadge>
+              {/* Il contrassegno di P-121 sotto lo stato, non dentro: il
+                  locale è attivo, e in più ha saltato la configurazione. */}
+              {locConfigSaltata(l) && <span style={{fontSize:11, fontWeight:700, color:ADM.INFO, textTransform:'uppercase', letterSpacing:'0.04em', lineHeight:1.25}}>Configurazione completa saltata</span>}
             </div>
           </div>
           <div>
@@ -645,7 +654,7 @@ function DrwAnagrafica({ locale: l }) {
             <label style={drwLab}>Email del titolare</label>
             <div style={{...drwMono, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{l.email}</div>
             <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.5}}>
-              Titolare ed email non si modificano da qui. Chi ha perso l'accesso passa dal ripristino assistito (Assistenza → Ripristini accesso), che restituisce l'accesso alla stessa persona; chi cambia dietro il locale passa solo dai percorsi del titolare: la persona da Account, il soggetto fiscale da Impostazioni → Dati fiscali.
+              Titolare ed email non si modificano da qui. Chi ha perso l'accesso passa dal ripristino assistito (Assistenza → Ripristini accesso), che restituisce l'accesso alla stessa persona e non lo trasferisce mai. Non esiste un cambio del titolare né un passaggio del locale: i recapiti e il nome dell'account li cambia la persona dal proprio profilo nel gestionale, e ogni modifica resta nel registro (tab Log); il soggetto fiscale si cambia da Impostazioni → Dati fiscali e si conclude con la riaccettazione dei termini (tab Dati fiscali).
             </div>
           </div>
           {Fld({k:'tel', label:'Telefono', monoStyle:true})}
@@ -713,6 +722,14 @@ function DrwFiscali({ locale: l }) {
   const [form, setForm] = useStateDrw(Object.fromEntries(FIELDS.map(k => [k, l[k] ?? ''])));
   const dirty = FIELDS.some(k => String(form[k]) !== String(l[k] ?? ''));
   const [saved, setSaved] = useStateDrw(false);
+  // L'incaricato della società e il cambio di soggetto li scrive il
+  // gestionale sullo stesso dominio (P-116, P-117): ai suoi eventi si rilegge.
+  const [, ridisegnaFis] = useStateDrw(0);
+  React.useEffect(() => {
+    const ri = () => ridisegnaFis(x => x + 1);
+    ['byup-ade-incaricato-change', 'byup-soggetto-change', 'storage'].forEach(ev => window.addEventListener(ev, ri));
+    return () => ['byup-ade-incaricato-change', 'byup-soggetto-change', 'storage'].forEach(ev => window.removeEventListener(ev, ri));
+  }, []);
   const F = (k) => (e) => { setSaved(false); setForm(prev => ({ ...prev, [k]: e.target && e.target.value !== undefined ? e.target.value : e })); };
   const saveForm = () => { Object.assign(l, form); setSaved(true); setTimeout(()=>setSaved(false), 2200); };
 
@@ -739,22 +756,63 @@ function DrwFiscali({ locale: l }) {
             <label style={drwLab}>Codice fiscale</label>
             <input value={form.cf} onChange={F('cf')} style={drwMono}/>
           </div>
-          {/* Chi trasmette gli scontrini della società: l'incaricato di Byup
-              (Impostazioni → Piattaforma → Incaricati Fisconline), con lo
-              stato della sua password. È lettura: si rinnova di là. */}
+          {/* Chi trasmette gli scontrini della società (P-116 · D-103): la
+              persona che la società ha nominato incaricata sul portale
+              dell'Agenzia (specifiche RT §2.9). Le credenziali sono sue, il
+              rinnovo lo fa lei, Byup non ne è parte: qui si LEGGE, per
+              l'assistenza, ciò che i Dati fiscali del gestionale hanno
+              raccolto (hubIncaricatoDi) — nessun atto di nomina da Hubble. */}
           {(() => {
-            const inc = (window.HubIncaricatiPage && typeof imIncLeggi === 'function') ? (imIncLeggi().find(i => (i.locali || []).includes(l.id)) || imIncLeggi()[0]) : null;
+            const inc = hubIncaricatoDi(l);
             if (!inc) return null;
-            const st = imIncStato(inc);
-            const col = st.stato === 'scaduta' ? ADM.DANGER : st.stato === 'promemoria' ? ADM.WARN : ADM.OK;
             return (
               <div style={{gridColumn:'1 / -1'}}>
                 <label style={drwLab}>Trasmissione degli scontrini</label>
                 <div style={{...drwInp, background:ADM.PANEL_SOFT, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
-                  <span style={{color:ADM.TEXT}}>Incaricato di Byup <b>{inc.nome}</b></span>
-                  <span style={{color:ADM.MUTED, fontSize:12.5}}>· password rinnovata il {st.rinnovoTesto}, vale fino al {st.scadenza}</span>
-                  <span style={{marginLeft:'auto', fontSize:12, fontWeight:700, color:col}}>{st.stato === 'scaduta' ? 'Scaduta: il locale non emette' : st.stato === 'promemoria' ? `Scade tra ${st.giorni} giorni` : 'Valida'}</span>
+                  <span style={{color:ADM.TEXT}}>Incaricato della società: <b>{inc.nome} {inc.cognome}</b></span>
+                  <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.3, color:ADM.MUTED}}>· {inc.cf}</span>
+                  <span style={{color:ADM.MUTED, fontSize:12.5}}>· nominato il {fmtDate(inc.nominato_il)}</span>
+                  <span style={{marginLeft:'auto', fontSize:12, color:ADM.MUTED_SOFT}}>Sola lettura · dai Dati fiscali del gestionale</span>
                 </div>
+                <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.5}}>
+                  Le credenziali dell'Agenzia sono della persona che la società ha nominato incaricata sul proprio profilo del portale (specifiche RT §2.9); il rinnovo della password ogni novanta giorni lo fa lei, e Byup non ne è parte. Per una ditta individuale sarebbero le credenziali del titolare.
+                </div>
+              </div>
+            );
+          })()}
+          {/* Il soggetto fiscale (P-117 · D-104): la data dell'ultimo cambio e
+              il precedente, letti dal record che il gestionale scrive quando
+              il contribuente cambia da Impostazioni → Dati fiscali. Non c'è
+              un «cambio del titolare»: c'è questo, che si conclude con la
+              riaccettazione dei termini. L'assistenza vede e non modifica. */}
+          {(() => {
+            const sc = hubSoggettoChangeDi(l);
+            const passi = sc ? HUB_SOGGETTO_PASSI.map(([k, label]) => ({ k, label, fatto: !!(sc.steps && sc.steps[k]) })) : [];
+            const ultimo = sc ? [...passi].reverse().find(p => p.fatto) : null;
+            const concluso = !!(sc && sc.steps && sc.steps.completed);
+            const dataCambio = sc ? ((sc.steps && (sc.steps.completed || sc.steps.fiscal_updated)) || sc.created_at) : null;
+            return (
+              <div style={{gridColumn:'1 / -1'}}>
+                <label style={drwLab}>Soggetto fiscale</label>
+                {!sc ? (
+                  <div style={{...drwInp, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>Nessun cambio di soggetto a registro. Se il contribuente cambia, il locale lo fa da Impostazioni → Dati fiscali del gestionale: il precedente resta nella storia e il cambio si conclude con la riaccettazione dei termini a nome del nuovo soggetto.</div>
+                ) : (
+                  <div style={{...drwInp, background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:6}}>
+                    <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+                      <span style={{color:ADM.TEXT}}>Ultimo cambio il <b>{fmtDate(dataCambio)}</b> · {HUB_SOGGETTO_CAUSALI[sc.reason] || sc.reason || 'causale non indicata'}</span>
+                      <AdmBadge color={concluso ? 'OK' : 'WARN'} size="xs">{concluso ? 'Concluso' : `In corso · ${ultimo ? ultimo.label.toLowerCase() : 'avviato'}`}</AdmBadge>
+                    </div>
+                    <div style={{fontSize:12.6, color:ADM.MUTED}}>
+                      Precedente: <b style={{color:ADM.TEXT}}>{sc.previous_denominazione || '—'}</b>{sc.previous_vat_number ? <span> · P.IVA <span style={{fontFamily:'ui-monospace,monospace'}}>{sc.previous_vat_number}</span></span> : null}{sc.previous_tax_identification_number ? <span> · CF <span style={{fontFamily:'ui-monospace,monospace'}}>{sc.previous_tax_identification_number}</span></span> : null}
+                      {sc.nuovo ? <span> → nuovo: <b style={{color:ADM.TEXT}}>{sc.nuovo.denominazione || '—'}</b>{sc.nuovo.piva ? <span> · P.IVA <span style={{fontFamily:'ui-monospace,monospace'}}>{sc.nuovo.piva}</span></span> : null}</span> : null}
+                    </div>
+                    <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:2}}>
+                      {passi.map(p => (
+                        <span key={p.k} title={p.label} style={{fontSize:11.6, fontWeight:700, padding:'2px 8px', borderRadius:999, background: p.fatto ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: p.fatto ? ADM.OK : ADM.MUTED_SOFT}}>{p.fatto ? '✓ ' : ''}{p.label}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -927,9 +985,10 @@ function DrwStatisticheLocale({ locale: l }) {
       {!DRW_STATI_LIVE.includes(l.stato) ? (
         // Un locale che non ha mai lavorato non prende ordini: la sezione
         // dice perché è vuota invece di inventare un titolare che serve
-        // tavoli. Gli stati live invece le cifre le HANNO — anche skipped e
-        // inactive: i grafici qui sopra ne mostrano ordini e fatturato, e
-        // una sezione che li dichiara «non operativi» li smentirebbe.
+        // tavoli. Gli stati live invece le cifre le HANNO — anche i dormant e
+        // chi ha saltato la configurazione completa: i grafici qui sopra ne
+        // mostrano ordini e fatturato, e una sezione che li dichiara «non
+        // operativi» li smentirebbe.
         <div style={{padding:'0 24px 24px'}}>
           <AdmCard padding={0}>
             <AdmEmpty icon="receipt" title="Nessuna cifra da sala"
@@ -1384,16 +1443,25 @@ const DRW_EVENTI = {
   // chi le ha disposte, perché un registro operazioni è attività di persone.
   cash_adjustment:       'Rettifica di cassa',
   cash_discount:         'Sconto manuale',
+  // Gli eventi dell'account (audit_events, D-104): non un cambio di
+  // titolare — la persona resta — ma i suoi recapiti e il suo nome.
+  email_changed:         'Email dell\'account cambiata',
+  phone_changed:         'Telefono dell\'account cambiato',
+  name_changed:          'Nome dell\'account cambiato',
 };
 
 // Gli eventi del locale, funzione pura: li legge la tab Log e li estrae
 // l'Assistenza (P-47). Deterministico sul seme del locale, con i due eventi
 // VERI in mezzo: l'ultimo login del titolare e la sottoscrizione del piano.
 // Gli eventi OPERATIVI (ordini, prenotazioni, accrediti, rettifiche) esistono
-// per gli stati live che ordinano davvero — anche skipped e inactive, le
-// stesse Statistiche ne graficano i volumi — ma non per un pending o un
-// cessato: «ordine ricevuto 3 ore fa» lì contraddirebbe lo stato che il log
-// deve provare. Il gate sugli ordini copre il live a volume zero.
+// per gli stati live che ordinano davvero — anche i dormant e chi ha saltato
+// la configurazione completa, le stesse Statistiche ne graficano i volumi —
+// ma non per un iscritto non avviato o un cessato: «ordine ricevuto 3 ore
+// fa» lì contraddirebbe lo stato che il log deve provare. Il gate sugli
+// ordini copre il live a volume zero. In coda, gli eventi dell'ACCOUNT
+// (D-104, P-117): i cambi di email, telefono e nome che la persona fa dal
+// profilo del gestionale, con il valore precedente e il nuovo — per il
+// locale demo dal registro del gestionale (hubAuditEventiDi).
 function drwEventiDi(l) {
     const s = hubSeme('log-' + l.id) % 1000;
     const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
@@ -1431,12 +1499,23 @@ function drwEventiDi(l) {
     }
     push('staff_login', l.lastLogin, l.titolare);
     push('plan_subscribed', l.dataIscrizione, (PIANI.find(p => p.id === l.piano) || {}).label || l.piano);
+    hubAuditEventiDi(l).forEach((e, k) => out.push({ id: l.id + '-A' + k, tipo: e.type, quando: new Date(e.at), account: true,
+      dettaglio: `${e.from || '—'} → ${e.to || '—'}${e.by ? ' · ' + e.by : ''}` }));
     return out.sort((a, b) => b.quando - a.quando);
 }
 window.drwEventiDi = drwEventiDi;
 
 function DrwAttivita({ locale: l }) {
+  // Gli eventi dell'account arrivano dal gestionale (byup_audit_events): al
+  // suo evento si rilegge, e la riga sotto dice quanti sono o perché zero.
+  const [, ridisegnaLog] = useStateDrw(0);
+  React.useEffect(() => {
+    const ri = () => ridisegnaLog(x => x + 1);
+    ['byup-audit-change', 'storage'].forEach(ev => window.addEventListener(ev, ri));
+    return () => ['byup-audit-change', 'storage'].forEach(ev => window.removeEventListener(ev, ri));
+  }, []);
   const eventi = drwEventiDi(l);
+  const account = eventi.filter(e => e.account);
 
   const [dal, setDal] = useStateDrw('');
   const [al, setAl] = useStateDrw('');
@@ -1452,6 +1531,11 @@ function DrwAttivita({ locale: l }) {
           <div style={{fontSize:13, color:ADM.MUTED}}>
             {(dal || al) ? `${filtrati.length} di ${eventi.length}` : `${eventi.length} eventi dal ${fmtDate(eventi[eventi.length - 1].quando)}`}
             <span style={{color:ADM.MUTED_SOFT}}> · l'estrazione del registro operazioni, con motivo e a registro, si chiede da Assistenza → Estrazioni (P-47)</span>
+          </div>
+          <div style={{flexBasis:'100%', fontSize:12.4, color:ADM.MUTED, lineHeight:1.5}}>
+            {account.length
+              ? <span><b style={{color:ADM.TEXT}}>{account.length}</b> {account.length === 1 ? 'evento dell\'account' : 'eventi dell\'account'}: cambi di email, telefono o nome fatti dalla persona dal proprio profilo, con il valore precedente e il nuovo. L'assistenza legge, non modifica.</span>
+              : <span>Nessun cambio di recapito o di nome dell'account a registro: quando la persona li cambia dal proprio profilo nel gestionale, compaiono qui con il valore precedente e il nuovo. Non esiste un cambio del titolare: l'account è della persona.</span>}
           </div>
           <div style={{flex:1}}/>
           <span style={{fontSize:11.5, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em'}}>Dal</span>
@@ -2158,16 +2242,16 @@ function ctrProblemi(sog, codici) {
     const ggExport = 60 + ctrGiorni(cess), ggBackup = 35 + ctrGiorni(cess);
     return `Esportazione dati: ${ggExport > 0 ? `ancora ${ggExport} giorni` : 'finestra chiusa'} · backup: ${ggBackup > 0 ? `si estinguono fra ${ggBackup} giorni` : 'estinti'} (DPA art. 11).`;
   };
-  if (riga && prov === 'cessato') {
+  if (riga && prov === 'terminated') {
     out.push({ sev:0, color:'DANGER', icona:'lock',
       testo: `Contratto risolto da Byup il ${fmtDate(riga.risolta)} per ${ctrMotivoLabel(riga.motivo).toLowerCase()}, dopo la sospensione del ${fmtDate(riga.sospesa)} (art. 4). ${finestre(riga.risolta)}`,
       chip: 'Risoluzione' });
-  } else if (riga && prov === 'sospeso') {
+  } else if (riga && prov === 'suspended') {
     const ris = new Date(riga.sospesa.getTime() + 15 * 86400000);
     out.push({ sev:0, color:'DANGER', icona:'lock',
       testo: `Sospeso per ${ctrMotivoLabel(riga.motivo).toLowerCase()} dal ${fmtDate(riga.sospesa)} — risoluzione contrattuale il ${fmtDate(ris)}. I canoni continuano a maturare (art. 4).`,
       chip: 'Sospensione' });
-  } else if (riga && prov === 'limitato') {
+  } else if (riga && prov === 'limited') {
     out.push({ sev:1, color:'WARN', icona:'alertTriangle',
       testo: `Servizio limitato dal ${fmtDate(riga.limitata)} per ${ctrMotivoLabel(riga.motivo).toLowerCase()} (art. 13): ${riga.ambito.toLowerCase()}. Il resto del servizio prosegue.`,
       chip: 'Limitazione' });
@@ -2178,7 +2262,7 @@ function ctrProblemi(sog, codici) {
       testo: `Diffida inviata il ${fmtDate(riga.diffida)} — sospensione dal ${fmtDate(scatto)} (art. 4).`,
       chip: 'Diffida' });
   }
-  if (sog.stato === 'churned' && prov !== 'cessato') {
+  if (sog.stato === 'churned' && prov !== 'terminated') {
     const cess = ctrCessazione(sog);
     const ggExport = 60 + ctrGiorni(cess);
     out.push({ sev:1, color: ggExport > 0 ? 'WARN' : 'PLAN_FREE', icona:'clock',
@@ -2252,9 +2336,11 @@ function CtrRigaDoc({ sog, codice }) {
             {doc.nome} <span style={{fontWeight:600, color:ADM.MUTED_SOFT}}>· {doc.codice}</span>
           </div>
           <div style={{fontSize:12.4, color:ADM.MUTED, marginTop:1}}>
+            {/* «esempio» (P-113 · P-114): il catalogo mostra il meccanismo,
+                non i documenti depositati — e lo dice. */}
             {fotoPiano
               ? 'Condizioni del piano attivo'
-              : `Versione corrente v${corrente.v} · efficace ${fmtDate(corrente.efficace)}`}
+              : `Versione corrente v${corrente.v} · efficace ${fmtDate(corrente.efficace)}${corrente.esempio ? ' · versione d\'esempio, non il testo depositato' : ''}`}
           </div>
         </div>
         {a

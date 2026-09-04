@@ -869,11 +869,25 @@
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing). Suggerimenti e analisi d'uso restano legittimo
-// interesse, e dal 2026-09-03 (P-26 · D-28) hanno il loro INTERRUTTORE in
-// «I miei dati»: non è un consenso, è la misura di bilanciamento della LIA —
-// attivo per difetto, spegnibile in due tocchi, e l'opposizione lascia una
-// riga LI-SUGG in questo stesso log (ByupUso, sotto).
+// preferenze, A6 marketing, dietary_suggestions esigenze alimentari nei
+// suggerimenti) e per le opposizioni del legittimo interesse. Suggerimenti e
+// analisi d'uso restano legittimo interesse, e dal 2026-09-03 (P-26 · D-28)
+// hanno il loro INTERRUTTORE in «I miei dati» — dal 2026-09-04 (P-122)
+// dentro il cassetto «Privacy e consensi», con la riga sull'art. 21: non è
+// un consenso, è la misura di bilanciamento della LIA — attivo per difetto,
+// spegnibile in due tocchi, e ogni cambio lascia in questo stesso log DUE
+// righe coi nomi del modello, recommendations e analytics (ByupUso, sotto).
+//
+// I NOMI DEL MODELLO (P-123, consent_events.consent_type del modello v11):
+//   recommendations      suggerimenti, legittimo interesse, attivi per difetto
+//   analytics            analisi d'uso, legittimo interesse, attive per difetto
+//   dietary_suggestions  esigenze alimentari nei suggerimenti, consenso
+//                        esplicito distinto (art. 9.2.a), spento per difetto
+// Le altre voci tengono l'id del registro dei trattamenti (A3, A18, A6) e la
+// dichiarazione GEN. Hubble legge questo registro dallo stesso dominio, in
+// sola lettura: la scheda utente mostra i tre interruttori con lo stato e la
+// data dell'ultimo evento. Una voce SENZA stato vale «per difetto»: accesi
+// recommendations e analytics, spento dietary_suggestions.
 //
 // REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
 //   promo generiche E su misura sullo storico ordini → basta A6 (che le
@@ -884,9 +898,16 @@
 //                            «I miei dati» (LI, niente consenso; la città
 //                            viene dal contesto d'uso corrente, MAI dai log
 //                            accesso/sicurezza)
-// Due strutture: lo STATO corrente per consenso e il LOG append-only
+//   esigenze alimentari nei suggerimenti → SOLO con dietary_suggestions
+//                            acceso (D-03, LIA §4): a interruttore spento il
+//                            motore non legge dieta né allergeni
+// Due strutture: lo STATO corrente per voce e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
+//   byup_consent_state  { [consent_type]: { ok, action, quando, versione, natura, valore? } }
+//   byup_consent_data   [ { id, consent_type, action: 'granted'|'revoked', ok,
+//                           natura: 'consenso'|'opposizione'|'dichiarazione',
+//                           quando (ISO), versione, valore?, revocato? }, … ]
 (function () {
   const K_STATO = 'byup_consent_state';
   const K_LOG = 'byup_consent_data';
@@ -904,29 +925,74 @@
       localStorage.setItem(k, JSON.stringify(v));
     } catch (e) {}
   };
+  const avvisa = () => {
+    try {
+      window.dispatchEvent(new Event('byup-consensi-change'));
+    } catch (e) {}
+  };
+  // Le tre voci che Hubble mostra come interruttori, coi nomi del modello.
+  const TIPI = {
+    recommendations: {
+      label: 'Suggerimenti',
+      base: 'legittimo interesse',
+      difetto: true
+    },
+    analytics: {
+      label: "Analisi d'uso",
+      base: 'legittimo interesse',
+      difetto: true
+    },
+    dietary_suggestions: {
+      label: 'Esigenze alimentari nei suggerimenti',
+      base: 'consenso esplicito (art. 9.2.a)',
+      difetto: false
+    }
+  };
+  const appendi = riga => {
+    const log = leggi(K_LOG, []);
+    log.push(riga);
+    scrivi(K_LOG, log);
+  };
   window.ByupConsensi = {
     VERSIONE_INFORMATIVA,
-    // {ok, quando, versione} oppure null se mai deciso
+    TIPI,
+    // {ok, action, quando, versione} oppure null se mai deciso
     stato(id) {
       return leggi(K_STATO, {})[id] || null;
     },
-    set(id, ok) {
+    // Lo stato EFFETTIVO: quello scritto, o il valore per difetto della voce
+    // (le opposizioni del legittimo interesse partono accese, il consenso
+    // alimentare parte spento; un consenso mai dato è spento).
+    attivo(id) {
+      const st = window.ByupConsensi.stato(id);
+      if (st) return !!st.ok;
+      return !!(TIPI[id] && TIPI[id].difetto);
+    },
+    // `extra` porta la natura della riga: 'consenso' (difetto), 'opposizione'
+    // per le due voci del legittimo interesse, o quel che serve.
+    set(id, ok, extra) {
       const quando = new Date().toISOString();
+      const action = ok ? 'granted' : 'revoked';
+      const natura = extra && extra.natura || 'consenso';
       const stato = leggi(K_STATO, {});
       stato[id] = {
         ok: !!ok,
+        action,
         quando,
-        versione: VERSIONE_INFORMATIVA
+        versione: VERSIONE_INFORMATIVA,
+        natura
       };
       scrivi(K_STATO, stato);
-      const log = leggi(K_LOG, []);
-      log.push({
+      appendi(Object.assign({
         id,
+        consent_type: id,
+        action,
         ok: !!ok,
+        natura,
         quando,
         versione: VERSIONE_INFORMATIVA
-      });
-      scrivi(K_LOG, log);
+      }, extra || {}));
+      avvisa();
       return stato[id];
     },
     // Revoca "profonda": azzera anche la decisione (torna "mai chiesto"),
@@ -936,15 +1002,17 @@
       const stato = leggi(K_STATO, {});
       delete stato[id];
       scrivi(K_STATO, stato);
-      const log = leggi(K_LOG, []);
-      log.push({
+      appendi({
         id,
+        consent_type: id,
+        action: 'revoked',
         ok: false,
         revocato: true,
+        natura: 'consenso',
         quando,
         versione: VERSIONE_INFORMATIVA
       });
-      scrivi(K_LOG, log);
+      avvisa();
     },
     // La DICHIARAZIONE di un dato facoltativo (P-84: il genere): non è un
     // consenso, è la traccia della scelta spontanea — con il valore, così si
@@ -955,26 +1023,71 @@
       const stato = leggi(K_STATO, {});
       stato[id] = {
         ok: true,
+        action: 'granted',
         quando,
         versione: VERSIONE_INFORMATIVA,
+        natura: 'dichiarazione',
         valore
       };
       scrivi(K_STATO, stato);
-      const log = leggi(K_LOG, []);
-      log.push({
+      appendi({
         id,
+        consent_type: id,
+        action: 'granted',
         ok: true,
         valore,
         natura: 'dichiarazione',
         quando,
         versione: VERSIONE_INFORMATIVA
       });
-      scrivi(K_LOG, log);
+      avvisa();
       return stato[id];
     },
     log() {
       return leggi(K_LOG, []);
+    },
+    // L'ultimo evento di una voce, per la data a schermo.
+    ultimo(id) {
+      const l = leggi(K_LOG, []).filter(r => (r.consent_type || r.id) === id);
+      return l.length ? l[l.length - 1] : null;
     }
+  };
+})();
+
+// ─── Registro delle attività (P-122 · D-104, D-107) ────────────────────────
+// La modifica dei dati anagrafici non chiede password né assistenza: il dato
+// è una dichiarazione della persona e su quella Byup si basa. Il presidio è
+// la traccia: ogni modifica scrive una riga con il valore precedente e il
+// nuovo, come i recapiti (D-104), sul modello di audit_events (action,
+// entity_type, old_value, new_value, created_at). Qui in localStorage; nel
+// prodotto è il log immutabile, conservato cinque anni.
+(function () {
+  const K = 'byup_audit_events';
+  const leggi = () => {
+    try {
+      const r = localStorage.getItem(K);
+      return r ? JSON.parse(r) : [];
+    } catch (e) {
+      return [];
+    }
+  };
+  window.ByupAttivita = {
+    scrivi(action, dettagli) {
+      const riga = Object.assign({
+        action,
+        actor_type: 'user',
+        entity_type: 'user',
+        created_at: new Date().toISOString()
+      }, dettagli || {});
+      const log = leggi();
+      log.push(riga);
+      if (log.length > 500) log.splice(0, log.length - 500);
+      try {
+        localStorage.setItem(K, JSON.stringify(log));
+      } catch (e) {}
+      return riga;
+    },
+    eventi: leggi
   };
 })();
 
@@ -1004,9 +1117,27 @@
 //     prodotto non ha (P-82).
 // La sezione sui suggerimenti dice l'interruttore di «I miei dati» (P-26),
 // che ora esiste: «scrivendo all'assistenza» non era più vero.
-// Code documentali registrate, non corrette qui: nessuna sezione sulla
-// posizione che l'app chiede, né sull'accesso con Google; i dati societari
-// sono segnaposto.
+//
+// LA REGOLA DEL MOCKUP (P-113 · D-107): il prototipo mostra il
+// COMPORTAMENTO dell'app, non riporta l'informativa e le condizioni d'uso
+// nella versione depositata — i testi veri entrano nell'app vera. Il testo
+// finto resta finto, ma ciò che dice sul comportamento deve essere vero.
+// Quattro ritocchi del 2026-09-04, più uno che discende da P-123:
+//   · «Dati raccolti» non parla più di «pagine visitate, preferenze,
+//     ricerche», che D-31 ha escluso e il modello non ha: dice i tre eventi
+//     d'uso e l'interruttore che li governa (P-26);
+//   · due sezioni nuove, «Posizione» e «Accesso con Google», perché l'app
+//     chiede l'una e offre l'altro;
+//   · «Prenotazioni e annullamenti» tiene la regola dei conti lasciati
+//     aperti (TOS-01 art. 7): con una quota non saldata non si apre un
+//     nuovo tavolo né si prenota;
+//   · i dati societari (sede, partita IVA) restano finti ma DICHIARATI
+//     tali: fra ⟦ e ⟧, che le due viste rendono con l'evidenziazione da
+//     segnaposto dei documenti (D-73), e la riga sotto l'intestazione che
+//     dice che cosa sono;
+//   · «Suggerimenti personalizzati» e «Preferenze alimentari» dicono il
+//     consenso distinto dietary_suggestions (P-123): a interruttore spento
+//     il motore non legge la dieta, acceso i piatti compatibili salgono.
 const BYUP_LEGAL = {
   INF01: {
     codice: 'INF-01',
@@ -1015,16 +1146,22 @@ const BYUP_LEGAL = {
     pubblicata: '2026-08-04',
     sezioni: [{
       h: 'Titolare del trattamento',
-      p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it'
+      p: 'byup S.r.l., con sede legale in ⟦Via del Corso 10, 00186 Roma (RM)⟧, C.F. / P.IVA ⟦12345678901⟧, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it'
     }, {
       h: 'Dati raccolti',
-      p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.'
+      p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente. Dell\'uso dell\'app registriamo tre soli eventi — apertura dell\'app, scansione di un QR, menù visto — con la città approssimata del momento, e solo finché tieni acceso l\'interruttore “Suggerimenti e analisi d\'uso” in “I miei dati”; nient\'altro dell\'uso che fai dell\'app.'
+    }, {
+      h: 'Posizione',
+      p: 'La chiediamo solo per mostrarti i locali vicini e non la conserviamo. Se non la concedi, l\'app resta usabile con il QR e i link.'
+    }, {
+      h: 'Accesso con Google',
+      p: 'Se entri con Google, usiamo il tuo indirizzo per creare l\'account, nient\'altro.'
     }, {
       h: 'Finalità e base giuridica',
       p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).'
     }, {
       h: 'Preferenze alimentari e allergeni',
-      p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.'
+      p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Con un altro consenso distinto, l\'interruttore “Usa le mie esigenze alimentari per i suggerimenti” in “Dieta & allergeni”, i piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti. Puoi revocare tutti questi consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.'
     }, {
       h: 'Conservazione',
       p: 'I dati dell\'account sono conservati per la durata del rapporto. La cronologia degli accessi è conservata per dodici mesi, il registro immutabile delle operazioni per cinque anni, lo storico nel profilo per ventiquattro mesi.'
@@ -1033,10 +1170,10 @@ const BYUP_LEGAL = {
       p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).'
     }, {
       h: 'Suggerimenti personalizzati',
-      p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi spegnere suggerimenti e analisi d\'uso in qualsiasi momento dall\'interruttore in “I miei dati”: torneranno proposte generiche e l\'app smetterà di registrare gli eventi d\'uso.'
+      p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Allergeni e preferenze alimentari non entrano nei suggerimenti, salvo che tu lo chieda con il consenso distinto in “Dieta & allergeni”; mai i log di accesso registrati per sicurezza. Puoi spegnere suggerimenti e analisi d\'uso in qualsiasi momento dall\'interruttore in “I miei dati” → “Privacy e consensi”: torneranno proposte generiche e l\'app smetterà di registrare gli eventi d\'uso.'
     }, {
       h: 'Cookie e tecnologie simili',
-      p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto in questa informativa e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento dall\'interruttore in “I miei dati”.'
+      p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto in questa informativa e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento dall\'interruttore in “I miei dati” → “Privacy e consensi”.'
     }, {
       h: 'Trasferimenti internazionali',
       p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.'
@@ -1055,7 +1192,7 @@ const BYUP_LEGAL = {
       p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.'
     }, {
       h: 'Prenotazioni e annullamenti',
-      p: 'Le prenotazioni si annullano liberamente dall\'app finché sono confermate. La mancata presentazione non comporta alcuna conseguenza sull\'account né sul servizio di prenotazione.'
+      p: 'Puoi annullare una prenotazione dall\'app finché è confermata, senza costi. Se non ti presenti, non ti addebitiamo nulla. Resta la regola dei conti lasciati aperti: finché una quota non è saldata, non puoi aprire un nuovo tavolo né prenotare dall\'app.'
     }, {
       h: 'Responsabilità',
       p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.'
@@ -1075,6 +1212,52 @@ BYUP_LEGAL.intestazione = doc => `${doc.codice} · versione ${doc.versione} · p
   month: 'long',
   year: 'numeric'
 })}`;
+// I segnaposto (P-113 · D-73): i tratti fra ⟦ e ⟧ sono dati finti dichiarati
+// tali. segmenti() spezza un paragrafo in tratti, Paragrafo li rende con
+// l'evidenziazione gialla dei documenti e il titolo «esempio», e le due viste
+// (accesso e Profilo) usano QUESTO componente, così il marcatore non arriva
+// mai a schermo come carattere. haSegnaposto() decide se mostrare la nota.
+BYUP_LEGAL.segmenti = p => String(p || '').split(/(⟦[^⟧]*⟧)/g).filter(Boolean).map(t => t.startsWith('⟦') ? {
+  testo: t.slice(1, -1),
+  segnaposto: true
+} : {
+  testo: t,
+  segnaposto: false
+});
+BYUP_LEGAL.haSegnaposto = doc => (doc.sezioni || []).some(s => /⟦/.test(s.p));
+BYUP_LEGAL.NOTA_SEGNAPOSTO = 'I dati evidenziati sono un esempio: sede e partita IVA vere entreranno nell\'app vera, non in questo prototipo.';
+BYUP_LEGAL.Paragrafo = function Paragrafo({
+  p,
+  style
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: style
+  }, BYUP_LEGAL.segmenti(p).map((s, i) => s.segnaposto ? /*#__PURE__*/React.createElement("mark", {
+    key: i,
+    title: "Esempio: dato segnaposto",
+    style: {
+      background: '#FFE97A',
+      color: '#3b2a00',
+      padding: '0 4px',
+      borderRadius: 4,
+      fontWeight: 600,
+      boxDecorationBreak: 'clone',
+      WebkitBoxDecorationBreak: 'clone'
+    }
+  }, s.testo, /*#__PURE__*/React.createElement("span", {
+    "aria-hidden": true,
+    style: {
+      fontSize: '0.72em',
+      fontWeight: 800,
+      letterSpacing: .4,
+      marginLeft: 4,
+      textTransform: 'uppercase',
+      opacity: .8
+    }
+  }, "esempio")) : /*#__PURE__*/React.createElement(React.Fragment, {
+    key: i
+  }, s.testo)));
+};
 window.ByupLegal = BYUP_LEGAL;
 
 // ─── Gusti: la copia del dizionario (P-28 · D-28) ───────────────────────────
@@ -1317,9 +1500,11 @@ const GUSTI = [{
 // senza misurare non si sa se i consigli siano buoni. Attivo per difetto:
 // la base è il legittimo interesse, l'interruttore non è un consenso e non
 // va chiamato così — è la misura di bilanciamento su cui la LIA fonda
-// l'opposizione facile. Spegnerlo scrive nel log consent_data una riga
-// LI-SUGG (ok:false) come traccia dell'opposizione; riaccenderlo ne scrive
-// una (ok:true). Gli eventi d'uso (app_usage_events) sono tre e basta —
+// l'opposizione facile. Spegnerlo scrive nel log consent_data DUE righe coi
+// nomi del modello (P-122 · P-123), recommendations e analytics, action
+// 'revoked' e natura 'opposizione'; riaccenderlo ne scrive due 'granted'.
+// (Fino al 2026-09-04 era una riga sola, LI-SUGG: le righe vecchie restano
+// nel log come storia.) Gli eventi d'uso (app_usage_events) sono tre e basta —
 // app_open, qr_scan, menu_view — e si scrivono solo con l'interruttore
 // acceso; allo spegnimento non si scrive più. Mai indirizzo di rete,
 // coordinate, impronta del dispositivo: l'unica informazione di luogo è la
@@ -1354,16 +1539,16 @@ const GUSTI = [{
     imposta(on) {
       scrivi(K_SUGG, on ? 'on' : 'off');
       // La traccia dell'opposizione (o della riattivazione) nel log dei
-      // consensi: stesso registro, id LI-SUGG, ma NON è un consenso.
-      const log = leggi('byup_consent_data', []);
-      log.push({
-        id: 'LI-SUGG',
-        ok: !!on,
-        quando: new Date().toISOString(),
-        versione: window.ByupConsensi ? window.ByupConsensi.VERSIONE_INFORMATIVA : '1.0',
-        natura: 'opposizione'
-      });
-      scrivi('byup_consent_data', log);
+      // consensi: stesso registro, due voci coi nomi del modello, natura
+      // 'opposizione' — NON è un consenso. Hubble le legge da lì.
+      if (window.ByupConsensi) {
+        window.ByupConsensi.set('recommendations', !!on, {
+          natura: 'opposizione'
+        });
+        window.ByupConsensi.set('analytics', !!on, {
+          natura: 'opposizione'
+        });
+      }
       try {
         window.dispatchEvent(new Event('byup-suggerimenti-change'));
       } catch (e) {}
@@ -2362,6 +2547,11 @@ const PROFILE_ORDERS = [{
   status: 'completato',
   photo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=70&auto=format&fit=crop'
 }];
+// La storia degli ordini per il motore dei suggerimenti del menù (P-123):
+// i nomi dei piatti ordinati, e basta. Su window perché gli standalone
+// avvolgono ogni file in una IIFE e le const non passano da un file
+// all'altro; nel prodotto è lo storico dell'account, lato backend.
+window.ByupStoricoOrdini = () => PROFILE_ORDERS.flatMap(o => o.items.map(i => i.n));
 function ProfileToggle({
   value,
   onChange
@@ -2397,9 +2587,21 @@ function ProfileToggle({
 }
 function AllergensView({
   onBack,
+  onOpenPrivacy,
   prefs,
   setPrefs
 }) {
+  // L'interruttore di P-123 (D-03, LIA §4, modello dietary_suggestions):
+  // spento in partenza, è il consenso esplicito DISTINTO con cui le esigenze
+  // alimentari entrano nei suggerimenti. Accenderlo scrive l'evento
+  // granted, spegnerlo revoked; a interruttore spento il motore del menù non
+  // legge dieta né allergeni. Il filtro del menù (P-65, P-74) non c'entra: è
+  // la persona che filtra, non il motore che suggerisce.
+  const [dietSugg, setDietSugg] = useState(() => !!(ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok));
+  const cambiaDietSugg = v => {
+    ByupConsensi.set('dietary_suggestions', !!v);
+    setDietSugg(!!v);
+  };
   // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
   // Just-in-time, come fanno le app comparabili: la sezione si SFOGLIA
   // liberamente (guardare la lista non conferisce nessun dato), e il
@@ -2672,6 +2874,56 @@ function AllergensView({
       onChange: () => toggle('allergens', a.id)
     }));
   })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24,
+      background: SURF_X,
+      borderRadius: 14,
+      border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`,
+      padding: '13px 14px'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14.5,
+      color: TEXT_X,
+      fontWeight: 600,
+      lineHeight: 1.25
+    }
+  }, "Usa le mie esigenze alimentari per i suggerimenti"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: dietSugg ? PINK_X : MUTED_X,
+      marginTop: 2,
+      fontWeight: 600
+    }
+  }, dietSugg ? 'Attivo' : 'Spento')), /*#__PURE__*/React.createElement(ProfileToggle, {
+    value: dietSugg,
+    onChange: cambiaDietSugg
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      marginTop: 8
+    }
+  }, "Acceso, i piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti. Spento, i suggerimenti non leggono dieta e allergeni: \xE8 un consenso a parte, che puoi revocare quando vuoi, da qui o da I miei dati. ", /*#__PURE__*/React.createElement("span", {
+    onClick: onOpenPrivacy,
+    style: {
+      color: PINK_X,
+      fontWeight: 600,
+      cursor: 'pointer'
+    }
+  }, "Leggi l'informativa"), ".")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: MUTED_X,
@@ -4073,8 +4325,17 @@ function SegnalaView({
 }
 
 // Il profilo persistito (P-84): prima «Salvato ✓» confermava una
-// persistenza che non esisteva. byup_profilo tiene nome, cognome e genere;
-// la data di nascita NON si scrive da qui (P-85).
+// persistenza che non esisteva. byup_profilo tiene nome, cognome, genere e,
+// da P-122 (D-107), la data di nascita: si modifica, si conferma, fatto —
+// niente password, niente richiesta all'assistenza (P-85 superata). Il dato
+// è una dichiarazione della persona e su quella Byup si basa, perché non ha
+// altri mezzi e nessuna fonte impone di più (GDPR art. 8 par. 2 chiede «ogni
+// modo ragionevole» solo per il consenso del genitore sotto la soglia; DSA
+// art. 28 par. 3 esclude che la tutela dei minori obblighi a trattare dati
+// ulteriori per accertare l'età). Due presidi che non pesano: ogni modifica
+// scrive una riga nel registro delle attività con il valore precedente (come
+// i recapiti, D-104), e una data che porta l'età sotto i quattordici anni si
+// rifiuta (Codice privacy art. 2-quinquies).
 const byupProfiloLeggi = () => {
   try {
     const r = localStorage.getItem('byup_profilo');
@@ -4088,86 +4349,164 @@ const byupProfiloScrivi = patch => {
     localStorage.setItem('byup_profilo', JSON.stringify(Object.assign(byupProfiloLeggi(), patch)));
   } catch (e) {}
 };
+// La stessa soglia e la stessa frase della registrazione (auth.jsx, «Devi
+// avere almeno 14 anni per registrarti.»): due copie, una per bundle, da
+// tenere uguali a mano finché il testo non arriva dalla piattaforma.
+const ETA_MINIMA = 14;
+const MSG_ETA_MINIMA = 'Devi avere almeno 14 anni per registrarti.';
+const byupEta = iso => {
+  if (!iso) return null;
+  const d = new Date(iso.length === 10 ? iso + 'T00:00:00' : iso);
+  if (isNaN(d)) return null;
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || m === 0 && now.getDate() < d.getDate()) a--;
+  return a;
+};
+const byupDataIt = iso => {
+  const d = iso ? new Date(iso.length === 10 ? iso + 'T00:00:00' : iso) : null;
+  return d && !isNaN(d) ? d.toLocaleDateString('it-IT') : '—';
+};
+const byupOggiIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Il campo di «I miei dati», a livello di modulo e non dentro la vista: un
+// componente definito nel render è un tipo nuovo a ogni battuta, e React lo
+// smontava e rimontava perdendo il focus.
+const MieiDatiField = ({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  max,
+  errore
+}) => /*#__PURE__*/React.createElement("div", {
+  style: {
+    marginBottom: 4
+  }
+}, /*#__PURE__*/React.createElement("div", {
+  style: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: MUTED_X,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    marginBottom: 6,
+    paddingLeft: 2
+  }
+}, label), /*#__PURE__*/React.createElement("input", {
+  type: type,
+  value: value,
+  max: max,
+  onChange: e => onChange(e.target.value),
+  style: {
+    width: '100%',
+    padding: '13px 14px',
+    background: TINT_X,
+    border: `1.5px solid ${errore ? '#E5484D' : 'transparent'}`,
+    borderRadius: 12,
+    fontSize: 15,
+    color: TEXT_X,
+    fontFamily: 'inherit',
+    outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'border-color 0.15s'
+  },
+  onFocus: e => e.target.style.borderColor = errore ? '#E5484D' : PINK_X,
+  onBlur: e => e.target.style.borderColor = errore ? '#E5484D' : 'transparent'
+}), errore && /*#__PURE__*/React.createElement("div", {
+  style: {
+    fontSize: 12.5,
+    color: '#E5484D',
+    marginTop: 6,
+    paddingLeft: 2
+  }
+}, errore));
 function MieiDatiView({
   onBack,
-  onOpenPrivacy,
-  onRichiediNascita
+  onOpenPrivacy
 }) {
+  // Il salvato: riletto a ogni render, così dopo la conferma la base di
+  // confronto è quella nuova senza altro stato.
   const pro = byupProfiloLeggi();
-  const [nome, setNome] = useState(pro.nome || 'Mario');
-  const [cognome, setCognome] = useState(pro.cognome || 'Rossi');
+  const salvato = {
+    nome: pro.nome || 'Mario',
+    cognome: pro.cognome || 'Rossi',
+    genere: pro.genere || null,
+    nascita: pro.nascita || '1990-04-15'
+  };
+  const [nome, setNome] = useState(salvato.nome);
+  const [cognome, setCognome] = useState(salvato.cognome);
   // Il genere NON è preselezionato (P-84): un valore già scelto in un campo
   // facoltativo è un consenso presunto. Parte vuoto; «Preferisco non
   // specificare» resta, e svuota.
-  const [genere, setGenere] = useState(pro.genere || null);
-  const [nascita] = useState('15/04/1990');
+  const [genere, setGenere] = useState(salvato.genere);
+  const [nascita, setNascita] = useState(salvato.nascita);
   const [saved, setSaved] = useState(false);
+  const [conferma, setConferma] = useState(false);
 
-  // La scelta del genere scrive la dichiarazione nel registro (riga GEN col
-  // valore, natura «dichiarazione», non un consenso); «Preferisco non
-  // specificare» la azzera — è il chiamante che azzera() aspettava.
-  const scegliGenere = g => {
-    if (g === 'Preferisco non specificare') {
-      setGenere(null);
-      byupProfiloScrivi({
-        genere: null
+  // Il rifiuto sotto i quattordici anni, con la frase della registrazione:
+  // la data non si salva e il pulsante resta spento.
+  const eta = byupEta(nascita);
+  const erroreNascita = nascita && (eta === null || eta < ETA_MINIMA) ? MSG_ETA_MINIMA : null;
+
+  // Le modifiche rispetto al salvato: sono le righe della conferma e le righe
+  // del registro (campo, valore precedente, valore nuovo).
+  const modifiche = [nome.trim() !== salvato.nome && {
+    field: 'first_name',
+    label: 'Nome',
+    prima: salvato.nome,
+    dopo: nome.trim()
+  }, cognome.trim() !== salvato.cognome && {
+    field: 'last_name',
+    label: 'Cognome',
+    prima: salvato.cognome,
+    dopo: cognome.trim()
+  }, genere !== salvato.genere && {
+    field: 'gender',
+    label: 'Genere',
+    prima: salvato.genere || 'Non specificato',
+    dopo: genere || 'Non specificato'
+  }, nascita !== salvato.nascita && {
+    field: 'birth_date',
+    label: 'Data di nascita',
+    prima: byupDataIt(salvato.nascita),
+    dopo: byupDataIt(nascita),
+    primaIso: salvato.nascita,
+    dopoIso: nascita
+  }].filter(Boolean);
+  const puoiSalvare = modifiche.length > 0 && !erroreNascita && !!nome.trim() && !!cognome.trim();
+
+  // La conferma scrive: il profilo, una riga per campo nel registro delle
+  // attività col valore precedente (ByupAttivita, D-104), e per il genere la
+  // dichiarazione nel registro dei consensi (riga GEN col valore, natura
+  // «dichiarazione», non un consenso; «Preferisco non specificare» la
+  // azzera — P-84).
+  const confermaModifiche = () => {
+    if (!puoiSalvare) return;
+    byupProfiloScrivi({
+      nome: nome.trim(),
+      cognome: cognome.trim(),
+      genere,
+      nascita
+    });
+    modifiche.forEach(m => {
+      if (window.ByupAttivita) window.ByupAttivita.scrivi('profile_updated', {
+        field: m.field,
+        old_value: m.field === 'birth_date' ? m.primaIso : m.field === 'gender' ? salvato.genere : m.prima,
+        new_value: m.field === 'birth_date' ? m.dopoIso : m.field === 'gender' ? genere : m.dopo
       });
-      ByupConsensi.azzera('GEN');
-      return;
-    }
-    setGenere(g);
-    byupProfiloScrivi({
-      genere: g
+      if (m.field === 'gender') {
+        if (genere) ByupConsensi.dichiara('GEN', genere);else ByupConsensi.azzera('GEN');
+      }
     });
-    ByupConsensi.dichiara('GEN', g);
-  };
-  function salva() {
-    byupProfiloScrivi({
-      nome,
-      cognome
-    });
+    setConferma(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  }
-  const Field = ({
-    label,
-    value,
-    onChange,
-    type = 'text'
-  }) => /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 4
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: MUTED_X,
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      marginBottom: 6,
-      paddingLeft: 2
-    }
-  }, label), /*#__PURE__*/React.createElement("input", {
-    type: type,
-    value: value,
-    onChange: e => onChange(e.target.value),
-    style: {
-      width: '100%',
-      padding: '13px 14px',
-      background: TINT_X,
-      border: '1.5px solid transparent',
-      borderRadius: 12,
-      fontSize: 15,
-      color: TEXT_X,
-      fontFamily: 'inherit',
-      outline: 'none',
-      boxSizing: 'border-box',
-      transition: 'border-color 0.15s'
-    },
-    onFocus: e => e.target.style.borderColor = PINK_X,
-    onBlur: e => e.target.style.borderColor = 'transparent'
-  }));
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
       animation: 'fade 0.2s ease'
@@ -4216,11 +4555,11 @@ function MieiDatiView({
       flexDirection: 'column',
       gap: 16
     }
-  }, /*#__PURE__*/React.createElement(Field, {
+  }, /*#__PURE__*/React.createElement(MieiDatiField, {
     label: "Nome",
     value: nome,
     onChange: setNome
-  }), /*#__PURE__*/React.createElement(Field, {
+  }), /*#__PURE__*/React.createElement(MieiDatiField, {
     label: "Cognome",
     value: cognome,
     onChange: setCognome
@@ -4240,86 +4579,61 @@ function MieiDatiView({
       borderRadius: 12,
       overflow: 'hidden'
     }
-  }, ['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => /*#__PURE__*/React.createElement("button", {
-    key: g,
-    onClick: () => scegliGenere(g),
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      width: '100%',
-      padding: '13px 14px',
-      background: 'transparent',
-      border: 'none',
-      borderBottom: i < arr.length - 1 ? '1px solid #EDE8EA' : 'none',
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      textAlign: 'left'
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 14.5,
-      color: genere === g ? PINK_X : TEXT_X,
-      fontWeight: genere === g ? 600 : 400
-    }
-  }, g), /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 20,
-      height: 20,
-      borderRadius: 999,
-      border: `2px solid ${genere === g ? PINK_X : '#C8C0C3'}`,
-      background: genere === g ? PINK_X : 'transparent',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.15s',
-      flexShrink: 0
-    }
-  }, genere === g && /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 7,
-      height: 7,
-      borderRadius: 999,
-      background: SURF_X
-    }
-  })))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 11,
-      fontWeight: 600,
-      color: MUTED_X,
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-      marginBottom: 6,
-      paddingLeft: 2
-    }
-  }, "Data di nascita"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: '13px 14px',
-      background: '#F0EEF0',
-      borderRadius: 12,
-      fontSize: 15,
-      color: MUTED_X,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      flex: 1
-    }
-  }, nascita), /*#__PURE__*/React.createElement("button", {
-    onClick: onRichiediNascita,
-    style: {
-      background: 'none',
-      border: 'none',
-      color: PINK_X,
-      fontWeight: 700,
-      fontSize: 13.5,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      padding: 0
-    }
-  }, "Richiedi la modifica")), /*#__PURE__*/React.createElement("div", {
+  }, ['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => {
+    // «Preferisco non specificare» non si mostra mai come scelto:
+    // il vuoto non è una selezione (P-84).
+    const on = g === 'Preferisco non specificare' ? false : genere === g;
+    return /*#__PURE__*/React.createElement("button", {
+      key: g,
+      onClick: () => setGenere(g === 'Preferisco non specificare' ? null : g),
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        padding: '13px 14px',
+        background: 'transparent',
+        border: 'none',
+        borderBottom: i < arr.length - 1 ? '1px solid #EDE8EA' : 'none',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        textAlign: 'left'
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 14.5,
+        color: on ? PINK_X : TEXT_X,
+        fontWeight: on ? 600 : 400
+      }
+    }, g), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 20,
+        height: 20,
+        borderRadius: 999,
+        border: `2px solid ${on ? PINK_X : '#C8C0C3'}`,
+        background: on ? PINK_X : 'transparent',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.15s',
+        flexShrink: 0
+      }
+    }, on && /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 7,
+        height: 7,
+        borderRadius: 999,
+        background: SURF_X
+      }
+    })));
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(MieiDatiField, {
+    label: "Data di nascita",
+    type: "date",
+    value: nascita,
+    onChange: setNascita,
+    max: byupOggiIso(),
+    errore: erroreNascita
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: MUTED_X,
@@ -4327,29 +4641,145 @@ function MieiDatiView({
       marginTop: 6,
       paddingLeft: 2
     }
-  }, "La data di nascita decide la verifica dell'et\xE0 e le tutele per chi ha meno di 18 anni: non si cambia in linea, si chiede."))), /*#__PURE__*/React.createElement("button", {
-    onClick: salva,
+  }, "\xC8 la tua dichiarazione, e ci basiamo su quella. Le modifiche restano nel registro delle attivit\xE0, con il valore precedente."))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (puoiSalvare) setConferma(true);
+    },
+    disabled: !puoiSalvare && !saved,
     style: {
       width: '100%',
       marginTop: 32,
       padding: '15px',
-      background: saved ? '#30D158' : PINK_X,
+      background: saved ? '#30D158' : puoiSalvare ? PINK_X : '#E8E3E5',
       border: 'none',
       borderRadius: 14,
-      cursor: 'pointer',
+      cursor: puoiSalvare ? 'pointer' : 'default',
       fontFamily: 'inherit',
       fontSize: 15,
       fontWeight: 700,
-      color: '#fff',
+      color: saved || puoiSalvare ? '#fff' : MUTED_X,
       transition: 'background 0.3s'
     }
   }, saved ? 'Salvato ✓' : 'Salva modifiche'), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 16
     }
-  }, /*#__PURE__*/React.createElement(SuggerimentiCard, null)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(ConsensiPanel, {
+  }, /*#__PURE__*/React.createElement(ConsensiPanel, {
     onOpenPrivacy: onOpenPrivacy
-  })));
+  })), conferma && /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      if (e.target === e.currentTarget) setConferma(false);
+    },
+    style: {
+      position: 'fixed',
+      inset: 0,
+      zIndex: 80,
+      background: 'rgba(15,8,12,.5)',
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'flex-end',
+      justifyContent: 'center',
+      animation: 'fade .2s ease'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: '100%',
+      maxWidth: 430,
+      background: SURF_X,
+      borderRadius: '24px 24px 0 0',
+      padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
+      animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 38,
+      height: 4,
+      borderRadius: 999,
+      background: BORDER_X
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 17,
+      fontWeight: 800,
+      color: TEXT_X,
+      marginBottom: 10
+    }
+  }, "Confermi le modifiche?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: TINT_X,
+      borderRadius: 12,
+      overflow: 'hidden',
+      marginBottom: 12
+    }
+  }, modifiche.map((m, i) => /*#__PURE__*/React.createElement("div", {
+    key: m.field,
+    style: {
+      padding: '10px 12px',
+      borderBottom: i < modifiche.length - 1 ? '1px solid #EDE8EA' : 'none'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: MUTED_X,
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em'
+    }
+  }, m.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      color: TEXT_X,
+      marginTop: 2
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: MUTED_X,
+      textDecoration: 'line-through'
+    }
+  }, m.prima), " \u2192 ", /*#__PURE__*/React.createElement("b", null, m.dopo))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      marginBottom: 16
+    }
+  }, "Ogni modifica resta nel registro delle attivit\xE0 con il valore precedente."), /*#__PURE__*/React.createElement("button", {
+    onClick: confermaModifiche,
+    style: {
+      width: '100%',
+      padding: '13px',
+      borderRadius: 14,
+      border: 'none',
+      background: PINK_X,
+      color: '#fff',
+      fontSize: 15,
+      fontWeight: 700,
+      cursor: 'pointer',
+      fontFamily: 'inherit'
+    }
+  }, "Conferma"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setConferma(false),
+    style: {
+      width: '100%',
+      padding: '12px',
+      marginTop: 6,
+      borderRadius: 14,
+      border: 'none',
+      background: 'transparent',
+      color: MUTED_X,
+      fontSize: 14,
+      fontWeight: 600,
+      cursor: 'pointer',
+      fontFamily: 'inherit'
+    }
+  }, "Annulla"))));
 }
 
 // ─── ConsensiPanel — i consensi del registro in un posto solo ───────────────
@@ -4371,6 +4801,15 @@ const CONSENSI_DEF = [{
   desc: 'Promozioni costruite su diete e allergeni',
   dove: 'impostando le preferenze alimentari'
 },
+// Il consenso distinto di P-123 (D-03, modello: dietary_suggestions):
+// nasce dall'interruttore dentro «Dieta & allergeni» e qui si rivede.
+// Spento, il motore dei suggerimenti non legge dieta né allergeni.
+{
+  id: 'dietary_suggestions',
+  label: 'Esigenze alimentari nei suggerimenti',
+  desc: 'I piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti',
+  dove: 'in Dieta & allergeni'
+},
 // A6 copre anche le promo su misura sullo storico ordini (PROMOP assorbito
 // il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
 // registrazione. Le offerte su dati alimentari restano A18 (art. 9).
@@ -4380,19 +4819,30 @@ const CONSENSI_DEF = [{
   desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica',
   dove: 'alla registrazione'
 }
-// Suggerimenti e analisi d'uso NON stanno qui: sono legittimo interesse,
-// non un consenso, e hanno la loro card sopra il cassetto (SuggerimentiCard,
-// P-26). Il pannello mostra solo i consensi veri: A3, A18, A6.
+// Suggerimenti e analisi d'uso NON stanno in questa lista: sono legittimo
+// interesse, non un consenso. Dal 2026-09-04 (P-122, punto 4) il loro
+// interruttore vive però DENTRO il cassetto, in una sezione propria in
+// coda, con la riga che dice che cosa è: così tutte le scelte sui propri
+// dati stanno in un posto solo e la distinzione resta scritta.
 ];
 
 // ─── SuggerimentiCard — l'interruttore di P-26 (D-28) ───────────────────────
-// Sopra il cassetto dei consensi e non dentro, perché non è un consenso: è la
-// misura di bilanciamento della LIA. Attivo per difetto, spegnibile in due
-// tocchi — il toggle apre il foglio di conferma, lo stesso di A3, e il
-// secondo tocco conferma. Governa suggerimenti E analisi d'uso insieme:
-// spento, le proposte tornano generiche e l'app smette di registrare gli
-// eventi d'uso (P-38). Sotto, il contatore degli eventi per dimostrabilità.
-function SuggerimentiCard() {
+// Non è un consenso: è la misura di bilanciamento della LIA, e l'art. 21
+// GDPR (par. 1 e 5) dà il diritto di opporsi in qualsiasi momento, nei
+// servizi online «con mezzi automatizzati» — le linee guida EDPB 1/2024
+// contano l'opposizione oltre il minimo di legge come misura di mitigazione
+// nel bilanciamento, ed è quella su cui D-28 e la LIA fondano il nostro.
+// Attivo per difetto, spegnibile in due tocchi — il toggle apre il foglio di
+// conferma, lo stesso di A3, e il secondo tocco conferma. Governa
+// suggerimenti E analisi d'uso insieme: spento, le proposte tornano generiche
+// e l'app smette di registrare gli eventi d'uso (P-38), e nel registro
+// finiscono due righe coi nomi del modello, recommendations e analytics
+// (P-122 · P-123). Sotto, il contatore degli eventi per dimostrabilità. Da
+// P-122 vive dentro il cassetto «Privacy e consensi» (inCassetto), in una
+// sezione propria; la resa a card resta per chi la usasse altrove.
+function SuggerimentiCard({
+  inCassetto
+}) {
   const [, forza] = useState(0);
   const [conferma, setConferma] = useState(false);
   const attivo = ByupUso.suggerimenti();
@@ -4411,18 +4861,21 @@ function SuggerimentiCard() {
     setConferma(false);
     forza(x => x + 1);
   };
+  const involucro = inCassetto ? {
+    padding: '12px 14px 13px'
+  } : {
+    background: SURF_X,
+    borderRadius: 14,
+    border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`,
+    padding: '13px 14px'
+  };
   return /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 14,
+      marginBottom: inCassetto ? 0 : 14,
       position: 'relative'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: SURF_X,
-      borderRadius: 14,
-      border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`,
-      padding: '13px 14px'
-    }
+    style: involucro
   }, /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'flex',
@@ -4457,7 +4910,7 @@ function SuggerimentiCard() {
       lineHeight: 1.5,
       marginTop: 8
     }
-  }, "Usiamo i gusti che dichiari, i tuoi ordini e la citt\xE0 in cui usi l'app per proporti locali e piatti, e misuriamo come usi l'app per capire se i consigli sono buoni. Stanno sotto un interruttore solo, perch\xE9 senza misurare non si sa se i consigli servono. Non \xE8 un consenso: \xE8 il modo per opporti, in due tocchi. Mai allergeni o preferenze alimentari, mai indirizzo di rete, coordinate o impronta del telefono."), /*#__PURE__*/React.createElement("div", {
+  }, "Usiamo i gusti che dichiari, i tuoi ordini e la citt\xE0 in cui usi l'app per proporti locali e piatti, e misuriamo come usi l'app per capire se i consigli sono buoni. Stanno sotto un interruttore solo, perch\xE9 senza misurare non si sa se i consigli servono. Non \xE8 un consenso: \xE8 il modo per opporti, in due tocchi. Allergeni e preferenze alimentari restano fuori, salvo il consenso a parte che dai in Dieta & allergeni; mai indirizzo di rete, coordinate o impronta del telefono."), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: MUTED_X,
@@ -4563,7 +5016,8 @@ function ConsensiPanel({
   const cambia = (id, v) => {
     ByupConsensi.set(id, v);
     if (id === 'A3' && !v) {
-      // niente base giuridica, niente dato
+      // niente base giuridica, niente dato — e senza dato cadono anche i
+      // due consensi che lo usano (offerte, suggerimenti)
       try {
         localStorage.setItem('byup_allergens', JSON.stringify({
           allergens: {},
@@ -4571,6 +5025,7 @@ function ConsensiPanel({
         }));
       } catch (e) {}
       if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
+      if (ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok) ByupConsensi.set('dietary_suggestions', false);
     }
     forza(x => x + 1);
   };
@@ -4688,6 +5143,32 @@ function ConsensiPanel({
       onChange: v => cambia(c.id, v)
     }));
   }), aperto && /*#__PURE__*/React.createElement("div", {
+    style: {
+      ...sep,
+      background: __BYUP_DK_X ? 'rgba(255,255,255,0.03)' : '#FBF7F8'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: '11px 14px 0'
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      fontWeight: 700,
+      color: MUTED_X,
+      textTransform: 'uppercase',
+      letterSpacing: '0.06em'
+    }
+  }, "Legittimo interesse"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: MUTED_X,
+      lineHeight: 1.5,
+      marginTop: 4
+    }
+  }, "Suggerimenti e analisi d'uso si basano sul legittimo interesse di Byup: qui puoi opporti in qualsiasi momento.")), /*#__PURE__*/React.createElement(SuggerimentiCard, {
+    inCassetto: true
+  })), aperto && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11.5,
       color: MUTED_X,
@@ -4910,9 +5391,20 @@ function LegalView({
     style: {
       fontSize: 12,
       color: MUTED_X,
-      marginBottom: 28
+      marginBottom: window.ByupLegal.haSegnaposto(content) ? 8 : 28
     }
-  }, window.ByupLegal.intestazione(content)), content.sezioni.map((block, i) => /*#__PURE__*/React.createElement("div", {
+  }, window.ByupLegal.intestazione(content)), window.ByupLegal.haSegnaposto(content) && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: '#6b5200',
+      background: '#FFF6C2',
+      border: '1px solid #F2DD7A',
+      borderRadius: 10,
+      padding: '8px 10px',
+      lineHeight: 1.45,
+      marginBottom: 24
+    }
+  }, window.ByupLegal.NOTA_SEGNAPOSTO), content.sezioni.map((block, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       marginBottom: 22
@@ -4924,37 +5416,21 @@ function LegalView({
       color: TEXT_X,
       marginBottom: 6
     }
-  }, block.h), /*#__PURE__*/React.createElement("div", {
+  }, block.h), /*#__PURE__*/React.createElement(window.ByupLegal.Paragrafo, {
+    p: block.p,
     style: {
       fontSize: 13.5,
       color: MUTED_X,
       lineHeight: 1.65
     }
-  }, block.p))));
+  }))));
 }
 
-// Tag profilo = traguardi sbloccati (equipaggiabili, max 2) + avatar preset
-const PROFILE_TAGS = [{
-  label: 'Pizza lover',
-  img: 'assets/cat-pizza.png',
-  bg: '#FCE9EE',
-  c: '#E32459'
-}, {
-  label: 'Re dello spritz',
-  img: 'assets/hero-spritz.png',
-  bg: '#fae3de',
-  c: '#4d122e'
-}, {
-  label: 'Esploratore',
-  img: 'assets/cat-poke.png',
-  bg: '#eef3d6',
-  c: '#5f7000'
-}, {
-  label: 'byup pay',
-  img: 'assets/coin.png',
-  bg: '#f4f7d4',
-  c: '#5f7000'
-}];
+// I contrassegni del profilo («Pizza lover», «Re dello spritz», il «+» e il
+// foglio di scelta) sono usciti il 2026-09-04 (P-122) col resto dei
+// Byuppini: erano i riconoscimenti del programma (byuppini_badges), che è
+// predisposto a schema e non attivo, e non esposto in alcuna interfaccia.
+// Rientreranno col programma, quando sarà attivo e valutato. L'avatar resta.
 const PROFILE_AVATARS = ['assets/avatar-default.png', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80&auto=format&fit=crop', 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80&auto=format&fit=crop'];
 function ProfileScreen({
   onBack,
@@ -4963,7 +5439,7 @@ function ProfileScreen({
 }) {
   // Deep-link: ?view=orders&order=<id|recent> apre direttamente una sotto-vista
   // (es. "Vedi scontrino" dalla schermata di pagamento → Storico ordini).
-  const VIEWS = ['main', 'allergens', 'orders', 'account', 'terms', 'privacy', 'lingua', 'pagamenti', 'preferiti', 'miei-dati', 'modifica-nascita'];
+  const VIEWS = ['main', 'allergens', 'orders', 'account', 'terms', 'privacy', 'lingua', 'pagamenti', 'preferiti', 'miei-dati'];
   const params = (() => {
     try {
       return new URLSearchParams(window.location.search);
@@ -4977,8 +5453,6 @@ function ProfileScreen({
   // (es. "Aggiungi carta" dalla schermata Metodo pagamento del menu).
   const initialAddCard = params.get('add') === '1';
   const [view, setView] = useState(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
-  const [tagSheet, setTagSheet] = useState(false);
-  const [myTags, setMyTags] = useState(['Pizza lover', 'Re dello spritz']);
   const [avatarSheet, setAvatarSheet] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(PROFILE_AVATARS[0]);
   const nextAvatar = () => {
@@ -4986,7 +5460,6 @@ function ProfileScreen({
     setAvatarUrl(PROFILE_AVATARS[(i + 1) % PROFILE_AVATARS.length]);
     setAvatarSheet(false);
   };
-  const toggleTag = l => setMyTags(t => t.includes(l) ? t.filter(x => x !== l) : t.length >= 2 ? [...t.slice(1), l] : [...t, l]);
   // Consumato il deep-link, lo rimuovo dall'URL così riaprendo il Profilo dal
   // tab si torna a 'main' (il param non resta "incollato").
   useEffect(() => {
@@ -5593,75 +6066,12 @@ function ProfileScreen({
     }
   }, l)))))), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: 'flex',
-      gap: 7,
-      margin: '12px 0 20px',
-      flexWrap: 'wrap',
-      justifyContent: 'center',
-      animation: 'bkFadeUp 480ms 140ms cubic-bezier(.22,.9,.35,1) backwards'
+      height: 22
     }
-  }, myTags.map(l => {
-    const b = PROFILE_TAGS.find(t => t.label === l);
-    if (!b) return null;
-    return /*#__PURE__*/React.createElement("button", {
-      key: l,
-      onClick: () => setTagSheet(true),
-      style: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        background: b.bg,
-        color: b.c,
-        fontSize: 11.5,
-        fontWeight: 800,
-        padding: '5px 11px',
-        borderRadius: 999,
-        letterSpacing: .3,
-        border: '1px solid rgba(77,18,46,.06)',
-        cursor: 'pointer',
-        fontFamily: 'inherit'
-      }
-    }, /*#__PURE__*/React.createElement("img", {
-      src: b.img,
-      width: "16",
-      height: "16",
-      alt: ""
-    }), b.label);
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      background: '#ceff00',
-      color: '#141414',
-      fontSize: 11.5,
-      fontWeight: 800,
-      padding: '5px 11px',
-      borderRadius: 999,
-      letterSpacing: .3,
-      border: '1px solid rgba(77,18,46,.06)'
-    }
-  }, "LIV. 3"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setTagSheet(true),
-    "aria-label": "Modifica tag",
-    style: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 27,
-      height: 27,
-      borderRadius: 999,
-      background: 'transparent',
-      color: 'rgba(255,255,255,.9)',
-      border: '1.5px dashed rgba(255,255,255,.6)',
-      cursor: 'pointer',
-      fontSize: 14,
-      fontWeight: 800,
-      fontFamily: 'inherit'
-    }
-  }, "+")), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
+      gridTemplateColumns: '1fr 1fr',
       gap: 10,
       marginBottom: 24
     }
@@ -5679,6 +6089,18 @@ function ProfileScreen({
       transform: "translate(0 0)"
     })),
     onClick: () => setView('orders')
+  }), /*#__PURE__*/React.createElement(QuickCard, {
+    label: "Dieta & allergeni",
+    sub: activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora',
+    tint: "#FEF0E3",
+    iconColor: "#C85C1A",
+    delay: 60,
+    iconSvg: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
+      d: "M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M5 19.5c3.5-4 7-7.5 10-9.5"
+    })),
+    onClick: () => setView('allergens')
   }), /*#__PURE__*/React.createElement(QuickCard, {
     label: "Preferiti",
     sub: `${PROFILE_PREFERITI.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`,
@@ -5759,36 +6181,6 @@ function ProfileScreen({
       cx: "12",
       cy: "7",
       r: "4"
-    }))
-  }), /*#__PURE__*/React.createElement(Row, {
-    label: "Dieta & allergeni",
-    onClick: () => setView('allergens'),
-    iconBg: "#FEF0E3",
-    iconColor: "#C85C1A",
-    right: /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 13,
-        color: MUTED_X,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6
-      }
-    }, /*#__PURE__*/React.createElement("span", null, activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'), /*#__PURE__*/React.createElement("svg", {
-      width: "14",
-      height: "14",
-      viewBox: "0 0 24 24",
-      fill: "none",
-      stroke: MUTED_X,
-      strokeWidth: "2.5",
-      strokeLinecap: "round",
-      strokeLinejoin: "round"
-    }, /*#__PURE__*/React.createElement("polyline", {
-      points: "9 18 15 12 9 6"
-    }))),
-    iconSvg: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
-      d: "M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M5 19.5c3.5-4 7-7.5 10-9.5"
     }))
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Termini e condizioni",
@@ -6138,26 +6530,6 @@ function ProfileScreen({
     }],
     submitLabel: "Aggiorna email",
     successMsg: "Email aggiornata con successo."
-  }), view === 'modifica-nascita' && /*#__PURE__*/React.createElement(AccountFormView, {
-    title: "Data di nascita",
-    onBack: () => setView('miei-dati'),
-    fields: [{
-      label: 'Data di nascita attuale',
-      placeholder: '15/04/1990',
-      type: 'text',
-      defaultValue: '15/04/1990',
-      readOnly: true
-    }, {
-      label: 'Nuova data di nascita',
-      placeholder: 'AAAA-MM-GG',
-      type: 'date'
-    }, {
-      label: 'Password',
-      placeholder: '••••••••',
-      type: 'password'
-    }],
-    submitLabel: "Invia la richiesta",
-    successMsg: "Richiesta inviata: la verifichiamo e ti scriviamo. Fino ad allora vale la data di oggi."
   }), view === 'pagamenti' && /*#__PURE__*/React.createElement(PagamentiView, {
     onBack: () => setView('main'),
     startAdd: initialAddCard
@@ -6168,8 +6540,7 @@ function ProfileScreen({
     onBack: () => setView('account')
   }), view === 'miei-dati' && /*#__PURE__*/React.createElement(MieiDatiView, {
     onBack: () => setView('main'),
-    onOpenPrivacy: () => setView('privacy'),
-    onRichiediNascita: () => setView('modifica-nascita')
+    onOpenPrivacy: () => setView('privacy')
   }), view === 'terms' && /*#__PURE__*/React.createElement(LegalView, {
     title: window.ByupLegal.TOS01.nome,
     onBack: () => setView('main'),
@@ -6180,6 +6551,7 @@ function ProfileScreen({
     content: window.ByupLegal.INF01
   }), view === 'allergens' && /*#__PURE__*/React.createElement(AllergensView, {
     onBack: () => setView('main'),
+    onOpenPrivacy: () => setView('privacy'),
     prefs: allergenPrefs,
     setPrefs: setAllergenPrefs
   }), view === 'orders' && /*#__PURE__*/React.createElement(OrdersView, {
@@ -6263,114 +6635,7 @@ function ProfileScreen({
     strokeLinejoin: "round"
   }, /*#__PURE__*/React.createElement("polyline", {
     points: "20 6 9 17 4 12"
-  }))))))), tagSheet && /*#__PURE__*/React.createElement("div", {
-    onClick: e => {
-      if (e.target === e.currentTarget) setTagSheet(false);
-    },
-    style: {
-      position: 'absolute',
-      inset: 0,
-      zIndex: 70,
-      background: 'rgba(15,8,12,.5)',
-      backdropFilter: 'blur(4px)',
-      WebkitBackdropFilter: 'blur(4px)',
-      display: 'flex',
-      alignItems: 'flex-end',
-      justifyContent: 'center',
-      animation: 'fade .2s ease'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: '100%',
-      background: SURF_X,
-      borderRadius: '24px 24px 0 0',
-      padding: '12px 20px calc(26px + env(safe-area-inset-bottom, 0px))',
-      animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)'
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      justifyContent: 'center',
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 38,
-      height: 4,
-      borderRadius: 999,
-      background: BORDER_X
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Fredoka', sans-serif",
-      fontSize: 19,
-      fontWeight: 600,
-      color: TEXT_X
-    }
-  }, "I tuoi tag"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 12.5,
-      color: MUTED_X,
-      margin: '3px 0 14px'
-    }
-  }, "Si sbloccano con i traguardi Byuppini \xB7 scegline due da mostrare"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      gap: 8,
-      flexWrap: 'wrap',
-      marginBottom: 18
-    }
-  }, PROFILE_TAGS.map(b => {
-    const on = myTags.includes(b.label);
-    return /*#__PURE__*/React.createElement("button", {
-      key: b.label,
-      onClick: () => toggleTag(b.label),
-      style: {
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        background: on ? b.bg : 'transparent',
-        color: on ? b.c : MUTED_X,
-        fontSize: 12.5,
-        fontWeight: 800,
-        padding: '8px 14px',
-        borderRadius: 999,
-        border: on ? '1.5px solid rgba(77,18,46,.14)' : `1.5px dashed ${BORDER_X}`,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-        transition: 'all .15s'
-      }
-    }, /*#__PURE__*/React.createElement("img", {
-      src: b.img,
-      width: "17",
-      height: "17",
-      alt: "",
-      style: {
-        filter: on ? 'none' : 'grayscale(1)',
-        opacity: on ? 1 : .55
-      }
-    }), b.label, on && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11
-      }
-    }, "\u2713"));
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "bk-press",
-    onClick: () => setTagSheet(false),
-    style: {
-      width: '100%',
-      height: 50,
-      border: 'none',
-      borderRadius: 999,
-      cursor: 'pointer',
-      fontFamily: 'inherit',
-      fontWeight: 800,
-      fontSize: 15,
-      color: '#fff',
-      background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)',
-      boxShadow: '0 14px 30px -12px rgba(227,36,89,.55)'
-    }
-  }, "Fatto"))), avatarSheet && /*#__PURE__*/React.createElement("div", {
+  }))))))), avatarSheet && /*#__PURE__*/React.createElement("div", {
     onClick: e => {
       if (e.target === e.currentTarget) setAvatarSheet(false);
     },
@@ -17773,39 +18038,45 @@ const RECOVERY_NEWS = {
   action: 'recover'
 };
 
-// D-42 (P-55): il recupero si difende fermando chi tenta, non chiudendo
-// l'ordine — un tentativo fallito è per definizione un codice che non
-// corrisponde ad alcun ordine, quindi non c'è un bersaglio da proteggere e
-// l'unica leva è chi digita. Sei cifre, invio automatico solo a lunghezza
-// piena, una scala di attese crescenti dopo ogni fallimento e, al sesto, il
-// blocco del dispositivo con l'uscita che salva la serata. Il contatore
-// rispecchia order_claim_attempts e order_claim_lockouts, qui in
-// localStorage: si azzera al successo e col tempo (blocco scaduto, o ultimo
-// fallimento più vecchio del blocco). Nel prototipo l'unico codice che trova
-// l'ordine è quello del placeholder, 483912: la webapp genera il suo a sei
-// cifre casuali e i due bundle non si parlano. Niente identificativi del
-// dispositivo a schermo. Demo: ?recupero=0 azzera il contatore.
+// D-102 (P-112, che rivede D-42 e chiude P-55): il recupero si difende
+// fermando chi tenta, non chiudendo l'ordine — un tentativo fallito è per
+// definizione un codice che non corrisponde ad alcun ordine, quindi non c'è
+// un bersaglio da proteggere e l'unica leva è chi digita. La scala si dice
+// in una frase: tre tentativi liberi, un minuto di blocco; altri tre, cinque
+// minuti; altri tre, e al nono il recupero dall'app si chiude per questo
+// dispositivo. Il conteggio NON decade col tempo: si azzera solo quando il
+// recupero riesce, e il blocco definitivo lo toglie solo l'assistenza con
+// motivazione scritta (order_claim_lockouts: lifted_at, lifted_by,
+// lift_reason). Il prototipo aveva adottato una terza scala — attese in
+// secondi dopo ogni fallimento e blocco che decadeva da solo — senza
+// decisione: quella non si tiene. Il contatore rispecchia
+// order_claim_attempts e order_claim_lockouts, qui in localStorage. Nel
+// prototipo l'unico codice che trova l'ordine è quello del placeholder,
+// 483912: la webapp genera il suo a sei cifre casuali e i due bundle non si
+// parlano. Niente identificativi del dispositivo a schermo. Demo:
+// ?recupero=0 azzera il contatore — è il gesto dell'assistenza che toglie
+// il blocco, non un decadimento.
 const RECUPERO = {
   CODICE_DEMO: '483912',
   CIFRE: 6,
-  ATTESE_S: [5, 15, 30, 60, 120],
-  MAX_TENTATIVI: 6,
-  BLOCCO_MIN: 15
+  PER_GRUPPO: 3,
+  BLOCCHI_S: [60, 300],
+  MAX_TENTATIVI: 9
 };
 const byupClaim = (() => {
   const K = 'byup_claim_attempts';
+  const VUOTO = {
+    n: 0,
+    ultimo: null,
+    bloccatoFino: null,
+    chiuso: false
+  };
   const leggi = () => {
     try {
-      return JSON.parse(localStorage.getItem(K) || 'null') || {
-        n: 0,
-        ultimo: null,
-        bloccatoFino: null
-      };
+      return Object.assign({}, VUOTO, JSON.parse(localStorage.getItem(K) || 'null') || {});
     } catch {
       return {
-        n: 0,
-        ultimo: null,
-        bloccatoFino: null
+        ...VUOTO
       };
     }
   };
@@ -17815,55 +18086,45 @@ const byupClaim = (() => {
     } catch {}
     return v;
   };
-  const finestra = RECUPERO.BLOCCO_MIN * 60000;
-  // Lo stato vivo: il blocco scaduto e il fallimento vecchio azzerano da soli.
-  const stato = () => {
-    const s = leggi();
-    const ora = Date.now();
-    if (s.bloccatoFino && s.bloccatoFino <= ora) return scrivi({
-      n: 0,
-      ultimo: null,
-      bloccatoFino: null
-    });
-    if (!s.bloccatoFino && s.ultimo && ora - s.ultimo > finestra) return scrivi({
-      n: 0,
-      ultimo: null,
-      bloccatoFino: null
-    });
-    return s;
-  };
+  // Lo stato com'è scritto: niente decade da solo. Un blocco intermedio
+  // scaduto resta nel registro e attesa() lo legge come zero.
+  const stato = () => leggi();
   return {
     stato,
+    // Il blocco definitivo, dopo il nono fallimento: si esce solo con azzera().
     bloccato() {
-      const s = stato();
-      return !!s.bloccatoFino && s.bloccatoFino > Date.now();
+      return !!stato().chiuso;
     },
     // Secondi da aspettare prima del prossimo tentativo, 0 se si può.
     attesa() {
       const s = stato();
-      if (!s.n || !s.ultimo) return 0;
-      const w = RECUPERO.ATTESE_S[Math.min(s.n, RECUPERO.ATTESE_S.length) - 1] * 1000;
-      return Math.max(0, Math.ceil((s.ultimo + w - Date.now()) / 1000));
+      if (!s.bloccatoFino) return 0;
+      return Math.max(0, Math.ceil((s.bloccatoFino - Date.now()) / 1000));
     },
+    // Un fallimento in più: al terzo e al sesto parte il blocco a tempo del
+    // suo gruppo (un minuto, cinque minuti); al nono la chiusura.
     fallimento() {
       const s = stato();
       const n = s.n + 1;
       const ora = Date.now();
-      return scrivi(n >= RECUPERO.MAX_TENTATIVI ? {
+      if (n >= RECUPERO.MAX_TENTATIVI) return scrivi({
         n,
         ultimo: ora,
-        bloccatoFino: ora + finestra
-      } : {
+        bloccatoFino: null,
+        chiuso: true
+      });
+      const gruppo = n / RECUPERO.PER_GRUPPO;
+      const blocco = Number.isInteger(gruppo) ? RECUPERO.BLOCCHI_S[gruppo - 1] : null;
+      return scrivi({
         n,
         ultimo: ora,
-        bloccatoFino: null
+        bloccatoFino: blocco ? ora + blocco * 1000 : null,
+        chiuso: false
       });
     },
     azzera() {
       return scrivi({
-        n: 0,
-        ultimo: null,
-        bloccatoFino: null
+        ...VUOTO
       });
     }
   };
@@ -17871,6 +18132,8 @@ const byupClaim = (() => {
 try {
   if (new URLSearchParams(window.location.search).get('recupero') === '0') byupClaim.azzera();
 } catch {}
+// Il conto alla rovescia dei blocchi intermedi, «4:32» e non «272 s».
+const byupAttesaTesto = sec => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 
 // Popup centrale per inserire/incollare il codice ordine della web app.
 function RecoveryOrderModal({
@@ -17891,7 +18154,8 @@ function RecoveryOrderModal({
     return () => clearTimeout(t);
   }, [attesa]);
   // Il tentativo: il codice demo trova l'ordine e azzera il contatore; ogni
-  // altro codice è un fallimento, con la sua attesa o, al sesto, il blocco.
+  // altro codice è un fallimento — al terzo e al sesto il blocco a tempo, al
+  // nono la chiusura (D-102).
   const tenta = c => {
     if (bloccato || byupClaim.attesa() > 0) return;
     if (c === RECUPERO.CODICE_DEMO) {
@@ -18041,7 +18305,7 @@ function RecoveryOrderModal({
       marginTop: 8,
       fontWeight: errore ? 700 : 400
     }
-  }, attesa > 0 ? `Riprova fra ${attesa} s` : errore ? 'Codice riscatto ordine errato' : 'Sei cifre. Tieni premuto e incolla: verrà accettato da solo.'), /*#__PURE__*/React.createElement("button", {
+  }, attesa > 0 ? `Riprova fra ${byupAttesaTesto(attesa)}` : errore ? 'Codice riscatto ordine errato' : 'Sei cifre. Tieni premuto e incolla: verrà accettato da solo.'), /*#__PURE__*/React.createElement("button", {
     disabled: !valid,
     onClick: () => tenta(code),
     style: {
@@ -21546,6 +21810,123 @@ const DISHES_BY_CAT = {
   }]
 };
 const ALL_DISHES = Object.values(DISHES_BY_CAT).flat();
+
+// ─── Il motore di «In base ai tuoi gusti» (P-123 · D-03, D-28, LIA §4) ─────
+// Legge SOLO i gusti dichiarati (ByupGusti, P-27) e la storia degli ordini —
+// MAI i filtri di «Dieta & allergeni», che sono la dichiarazione sulla salute
+// della persona: D-03 e il modello (consenso dietary_suggestions) ammettono
+// quell'uso solo con un consenso esplicito distinto, e la LIA §4 impone che
+// il motore non legga i dati alimentari. Le esigenze alimentari entrano solo
+// se la persona ha acceso, dentro «Dieta & allergeni», l'interruttore «Usa
+// le mie esigenze alimentari per i suggerimenti»: allora i piatti con un
+// allergene dichiarato escono dalle proposte e quelli compatibili con la
+// dieta salgono in cima. A consenso spento il motore non legge quei dati, e
+// un piatto che la persona filtra dalla lista può comparire qui: è il prezzo
+// della separazione, dichiarato. Il filtro della lista (P-65, P-74) resta
+// com'è: è la persona che filtra, non il motore che suggerisce.
+// I generi di un piatto si desumono qui da categoria e nome, perché il seme
+// del menù non porta food_tag; nel prodotto sono i tag del locale.
+const CATEGORIA_DI = {};
+Object.entries(DISHES_BY_CAT).forEach(([c, arr]) => arr.forEach(d => {
+  CATEGORIA_DI[d.id] = c;
+}));
+const GUSTO_PAROLE = {
+  pasta: /cacio e pepe|carbonara|amatriciana|gricia|gnocch|pasta|spaghett|rigaton|tonnarell|lasagn|raviol|fettuccin/i,
+  carne: /manzo|abbacchio|saltimbocca|pollo|vaccinara|filetto|tagliata|bistecca|carpaccio|agnello|maiale|porchetta/i,
+  pesce: /cozze|baccal|pesce|branzino|orata|tonno|salmone|calamar|gamber|polpo|spigola|frutti di mare/i,
+  frittura: /fritt|in pastella/i,
+  pizza: /pizza|margherita|diavola|marinara|capricciosa/i,
+  hamburger: /burger/i,
+  aperitivo: /spritz|negroni|aperol|cocktail|aperitivo/i,
+  gelato: /gelato/i,
+  sushi: /sushi|nigiri|sashimi|uramaki/i,
+  poke: /poke/i,
+  ramen: /ramen/i,
+  brunch: /brunch|pancake|benedict/i,
+  cinese: /cines|ravioli al vapore|involtin/i,
+  indiano: /indian|curry|tandoori|naan/i,
+  messicano: /messican|taco|burrito|nacho/i,
+  kebab: /kebab|shawarma/i
+};
+function generiPiatto(d) {
+  const out = new Set();
+  const cat = CATEGORIA_DI[d.id] || '';
+  if (cat === 'Dolci') out.add('dolci');
+  Object.keys(GUSTO_PAROLE).forEach(g => {
+    if (GUSTO_PAROLE[g].test(d.name)) out.add(g);
+  });
+  return out;
+}
+// Le esigenze dichiarate nel profilo, lette SOLO a consenso acceso: gli
+// allergeni dal dizionario del kit, i regimi dalla stessa chiave del profilo.
+function esigenzeDichiarate() {
+  const allergeni = window.ByupKit && window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati() || {};
+  let regimi = {};
+  try {
+    const p = JSON.parse(localStorage.getItem('byup_allergens') || '{}') || {};
+    regimi = p.diets || {};
+  } catch (e) {}
+  return {
+    allergeni,
+    regimi: Object.keys(regimi).filter(k => regimi[k])
+  };
+}
+// Compatibilità di un piatto con i regimi dichiarati: euristica sul seme
+// (allergeni del piatto e parole del nome), nel prodotto è il tag del locale.
+function compatibileConRegimi(d, regimi) {
+  const nome = d.name.toLowerCase();
+  const alc = /vino|birra|spritz|negroni|aperol|cocktail|amaro|grappa|prosecco/.test(nome);
+  const maiale = /guanciale|maiale|pancetta|prosciutto|salsiccia|porchetta|salame|speck/.test(nome) || /carbonara|amatriciana|gricia/.test(nome);
+  const carne = GUSTO_PAROLE.carne.test(nome) || maiale;
+  const pesce = GUSTO_PAROLE.pesce.test(nome) || d.allergens.some(a => a === 'pesce' || a === 'crostacei' || a === 'molluschi');
+  return regimi.every(r => {
+    if (r === 'vegetariano') return !carne && !pesce;
+    if (r === 'vegano') return !carne && !pesce && !d.allergens.includes('lattosio') && !d.allergens.includes('uova');
+    if (r === 'pescetariano') return !carne;
+    if (r === 'halal') return !maiale && !alc;
+    if (r === 'kosher') return !maiale && !d.allergens.some(a => a === 'crostacei' || a === 'molluschi');
+    if (/glutine/.test(r)) return !d.allergens.includes('glutine');
+    if (r === 'astemio') return !alc;
+    return true;
+  });
+}
+function byupSuggerimentiPerTe() {
+  const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id)); // non duplicare «I più ordinati»
+  const gusti = window.ByupGusti && window.ByupGusti.leggi() || [];
+  const storico = (window.ByupStoricoOrdini && window.ByupStoricoOrdini() || []).map(n => n.toLowerCase());
+  const ordinato = d => {
+    const n = d.name.toLowerCase();
+    return storico.some(s => n.includes(s) || s.includes(n));
+  };
+  const dietaOk = !!(window.ByupConsensi && window.ByupConsensi.attivo('dietary_suggestions'));
+  const esigenze = dietaOk ? esigenzeDichiarate() : {
+    allergeni: {},
+    regimi: []
+  };
+  const candidati = ALL_DISHES.filter(d => {
+    if (top4.has(d.id)) return false;
+    // Solo a consenso acceso: fuori i piatti con un allergene dichiarato.
+    if (dietaOk && d.allergens.some(a => esigenze.allergeni[a])) return false;
+    return true;
+  });
+  const valutati = candidati.map(d => {
+    const generi = generiPiatto(d);
+    let punti = 0;
+    gusti.forEach(g => {
+      if (generi.has(g)) punti += 2;
+    });
+    if (ordinato(d)) punti += 3;
+    const compatibile = dietaOk && esigenze.regimi.length ? compatibileConRegimi(d, esigenze.regimi) : false;
+    return {
+      d,
+      punti,
+      compatibile
+    };
+  }).filter(x => x.punti > 0);
+  // A consenso acceso i compatibili salgono in cima; poi il punteggio.
+  valutati.sort((a, b) => Number(b.compatibile) - Number(a.compatibile) || b.punti - a.punti);
+  return valutati.slice(0, 6).map(x => x.d);
+}
 const findDish = id => ALL_DISHES.find(d => d.id === id);
 
 // ─── MODE SHEET (scansiona QR vs Take Away) ───────────────
@@ -22079,28 +22460,13 @@ function MenuScreen({
   const cart = state.cart; // array of { lineId, dishId, qty, variants, extras, removed }
   const allDishesFlat = Object.values(dishes).flat();
 
-  // Piatti "Per te" — stessa logica della sezione "In base ai tuoi gusti".
-  // Calcolata qui una volta sola così il badge è riusabile anche nelle card.
-  const perTeIds = (() => {
-    // Spento l'interruttore (P-26), nessun «Per te»: le proposte sono generiche.
-    if (!suggerimentiAttivi) return new Set();
-    const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id));
-    const dietMatch = d => {
-      if (!dietFilter) return true;
-      if (dietFilter === 'veg') return !d.allergens.includes('pesce');
-      if (dietFilter === 'vegan') return !d.allergens.includes('lattosio') && !d.allergens.includes('uova') && !d.allergens.includes('pesce') && !d.allergens.includes('crostacei');
-      if (dietFilter === 'gf') return !d.allergens.includes('glutine');
-      return true;
-    };
-    const picks = ALL_DISHES.filter(d => {
-      if (top4.has(d.id)) return false;
-      for (const id of Object.keys(allergenFilters)) {
-        if (allergenFilters[id] && d.allergens.includes(id)) return false;
-      }
-      return dietMatch(d);
-    }).slice(0, 6);
-    return new Set(picks.map(d => d.id));
-  })();
+  // Piatti «Per te» — il motore di P-123 (byupSuggerimentiPerTe, sopra):
+  // gusti dichiarati e storia degli ordini, mai i filtri di dieta e
+  // allergeni salvo il consenso distinto. Calcolato qui una volta sola: la
+  // sezione «In base ai tuoi gusti» lo mostra e le card ne leggono il badge.
+  // Spento l'interruttore (P-26), nessun «Per te»: le proposte sono generiche.
+  const perTePicks = suggerimentiAttivi ? byupSuggerimentiPerTe() : [];
+  const perTeIds = new Set(perTePicks.map(d => d.id));
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
   const cartTotal = cart.reduce((s, i) => {
     const d = allDishesFlat.find(x => x.id === i.dishId);
@@ -22912,7 +23278,7 @@ function MenuScreen({
         color: MUTED,
         marginTop: 2
       }
-    }, "Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo \u2192 I miei dati.")), /*#__PURE__*/React.createElement("div", {
+    }, "Suggerimenti personalizzati spenti: proposte generiche. Riaccendili da Profilo \u2192 I miei dati \u2192 Privacy e consensi.")), /*#__PURE__*/React.createElement("div", {
       className: "hscroll",
       style: {
         display: 'flex',
@@ -22972,21 +23338,10 @@ function MenuScreen({
       }
     }, d.price, "\u20AC"))))));
   })(), !searchQ && suggerimentiAttivi && (() => {
-    const top4 = new Set(ALL_DISHES.filter(d => d.bestSeller).slice(0, 4).map(d => d.id));
-    const dietMatch = d => {
-      if (!dietFilter) return true;
-      if (dietFilter === 'veg') return !d.allergens.includes('pesce');
-      if (dietFilter === 'vegan') return !d.allergens.includes('lattosio') && !d.allergens.includes('uova') && !d.allergens.includes('pesce') && !d.allergens.includes('crostacei');
-      if (dietFilter === 'gf') return !d.allergens.includes('glutine');
-      return true;
-    };
-    const picks = ALL_DISHES.filter(d => {
-      if (top4.has(d.id)) return false; // non duplicare "I più ordinati"
-      for (const id of Object.keys(allergenFilters)) {
-        if (allergenFilters[id] && d.allergens.includes(id)) return false;
-      }
-      return dietMatch(d);
-    }).slice(0, 6);
+    // I piatti vengono dal motore di P-123 (perTePicks): gusti e
+    // storia degli ordini, la dieta solo col consenso distinto. Senza
+    // gusti né ordini che incontrino il menù la sezione non compare.
+    const picks = perTePicks;
     if (picks.length < 2) return null;
     // Il sottotitolo non nomina il motivo (P-74): «Scelti per la tua
     // dieta vegana» e «Senza gli allergeni che eviti» dicevano il

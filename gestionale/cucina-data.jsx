@@ -11,7 +11,7 @@ function _toMin(hhmm) {
 
 // Ticket items: state = 'todo' | 'doing' | 'done'
 // kind = 'sala' | 'asporto' | 'delivery' | 'banco'
-// partner (solo delivery) = piattaforma che manda il rider: 'justeat' | 'glovo'
+// partner (solo delivery) = piattaforma che manda il rider: 'ubereats' | 'glovo'
 //   | 'deliveroo' — gli id di impostazioni-integrazioni.jsx, il KDS ci disegna
 //   il marchio al posto dello scooter.
 // 'banco' = ordine creato dalla cassa in Vendita diretta: niente tavolo né
@@ -35,7 +35,7 @@ const CUC_TICKETS_ATTIVI = [
     { qty: 1, name: 'Lasagna',            note: 'senza glutine',       allergen: true,  state: 'todo', course: null },
     { qty: 1, name: 'Tiramisu',           note: 'porzione singola',    allergen: false, state: 'todo', course: null },
   ]},
-  { id: 'a5', kind: 'delivery', partner: 'justeat', customer: 'Sara Rossi', pickup: '15:20', orderN: '#1239', time: '14:52', station: 'Secondi', items: [
+  { id: 'a5', kind: 'delivery', partner: 'ubereats', customer: 'Sara Rossi', pickup: '15:20', orderN: '#1239', time: '14:52', station: 'Secondi', items: [
     { qty: 1, name: 'Pollo alla Griglia', note: 'salsa barbecue a parte', allergen: false, state: 'todo', course: null },
     { qty: 1, name: 'Purè di Patate',     note: '',                       allergen: false, state: 'todo', course: null },
   ]},

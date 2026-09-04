@@ -386,10 +386,16 @@ function AuthLegal({ title, content, onBack }) {
         <div style={{ fontSize: 12, color: A_MUTED, marginTop: 6 }}>{window.ByupLegal.intestazione(content)}</div>
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px 40px' }}>
+        {/* I segnaposto (P-113 · D-73): stessa resa del Profilo, stesso
+            componente dell'app-kit — i dati societari finti si vedono per
+            quello che sono. */}
+        {window.ByupLegal.haSegnaposto(content) && (
+          <div style={{ fontSize: 11.5, color: '#6b5200', background: '#FFF6C2', border: '1px solid #F2DD7A', borderRadius: 10, padding: '8px 10px', lineHeight: 1.45, marginBottom: 20 }}>{window.ByupLegal.NOTA_SEGNAPOSTO}</div>
+        )}
         {content.sezioni.map((b, i) => (
           <div key={i} style={{ marginBottom: 22 }}>
             <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 6 }}>{b.h}</div>
-            <div style={{ fontSize: 13.5, color: A_MUTED, lineHeight: 1.65 }}>{b.p}</div>
+            <window.ByupLegal.Paragrafo p={b.p} style={{ fontSize: 13.5, color: A_MUTED, lineHeight: 1.65 }}/>
           </div>
         ))}
       </div>

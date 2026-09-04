@@ -14,9 +14,11 @@ const ADM_SEZIONI = {
   sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'],
     testata: { titolo:'Sicurezza e sistemi',
       sotto:'Team, permessi, accessi, tracce e salute della piattaforma.' } },
-  impostazioni: { pred:'piattaforma', tabs:['piattaforma','incaricati','deleghe'],
+  // Niente tab «Incaricati Fisconline» (P-116 · D-103): l'incaricato è della
+  // società, non di Byup, e si legge nella scheda del locale.
+  impostazioni: { pred:'piattaforma', tabs:['piattaforma','deleghe'],
     testata: { titolo:'Piattaforma',
-      sotto:'Le leve commerciali di byup: piani e prezzi, coefficienti del piano, discovery nell\'app — gli incaricati Fisconline che trasmettono gli scontrini delle società, e il registro delle deleghe degli esercenti.' } },
+      sotto:'Le leve commerciali di byup: piani e prezzi, coefficienti del piano, discovery nell\'app — e il registro delle deleghe degli esercenti.' } },
 };
 
 function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
@@ -68,7 +70,6 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             { id:'accessi',     label:'Accessi',         badge:TEAM.filter(m => m.attivo !== false && !m.pending).length },
             { id:'audit',       label:'Audit log' },
             { id:'piattaforma', label:'Piattaforma' },
-            { id:'incaricati',  label:'Incaricati Fisconline' },
             { id:'deleghe',     label:'Deleghe', badge: (typeof delInAvvicinamento === 'function' ? delInAvvicinamento().length : 0) },
             { id:'diagnostica', label:'Diagnostica' },
           ].filter(t => sez.tabs.indexOf(t.id) !== -1)} active={tab} onChange={setTab}/>
@@ -87,7 +88,6 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             riesame periodico (A.5.18) si fa fuori dal prodotto (D-44, P-56). */}
         {tab === 'accessi' && <AccessiList/>}
         {tab === 'piattaforma' && <PlatformConfig/>}
-        {tab === 'incaricati' && <HubIncaricatiPage/>}
         {tab === 'deleghe' && <HubDeleghePage/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}
@@ -257,6 +257,7 @@ function InviteMemberModal({ open, onClose, onInvite }) {
                     }}>
                       <div style={{flex:1, minWidth:0}}>
                         <span style={{fontSize:13.4, fontWeight:600, color:ADM.TEXT}}>{a.label}</span>
+                        {a.predisposta && <span style={{fontSize:11, fontWeight:700, color:ADM.WARN, marginLeft:6, textTransform:'uppercase', letterSpacing:'0.04em'}}>predisposta</span>}
                         {/* Il pallino dice quali celle si sono staccate dal
                             preset: è la differenza, non l'elenco, che il
                             revisore vorrà guardare. */}
@@ -367,6 +368,10 @@ function RuoliMatrix() {
               <div style={{fontSize:14, fontWeight:600, color:ADM.TEXT}}>
                 {a.label}
                 {a.soloLettura && <span style={{fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, marginLeft:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>solo consultazione</span>}
+                {/* P-110: la funzione non è ancora nella console, il permesso
+                    sì — si assegna oggi, così quando la funzione arriva non
+                    si riaprono i preset. */}
+                {a.predisposta && <span style={{fontSize:11.5, fontWeight:700, color:ADM.WARN, marginLeft:7, textTransform:'uppercase', letterSpacing:'0.04em'}}>predisposta</span>}
               </div>
               <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>{a.desc}</div>
             </div>

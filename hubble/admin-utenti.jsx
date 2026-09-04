@@ -385,6 +385,46 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   if (!consensoA18.deciso) consensoA18.quando = null;
   consensoA18.ok = consensoA18.deciso && consensoA18.ok && consensoA3.ok && consensoA6.ok;
 
+  // ── Gli interruttori dell'app (P-123): legittimo interesse e consenso ──
+  // alimentare, in sola lettura, con lo stato e la data dell'ultimo evento.
+  // `recommendations` e `analytics` corrono su legittimo interesse, con
+  // l'interruttore di opposizione in «I miei dati» (P-26, D-31);
+  // `dietary_suggestions` è il consenso esplicito distinto di D-03: le
+  // esigenze alimentari entrano nei suggerimenti solo se la persona lo
+  // accende dentro «Dieta & allergeni», spento in partenza — a interruttore
+  // spento il motore non legge quei dati. I nomi sono quelli del modello
+  // (consent_events.consent_type). L'app scrive il registro in localStorage
+  // (ByupConsensi in app/byup-app-kit.jsx: stato corrente in
+  // byup_consent_state, log append-only in byup_consent_data, righe
+  // {id, ok, quando, versione}); sullo stesso dominio Hubble lo legge dal
+  // vivo per l'utente demo dell'app (UTENTE_APP_DEMO_ID) e per gli altri
+  // mostra valori d'esempio con i default dell'app. L'id storico LI-SUGG
+  // (l'opposizione ai suggerimenti prima dei nomi del modello) vale come
+  // recommendations. L'assistenza legge, non modifica: la frase «nessun
+  // toggle, l'opposizione passa dall'assistenza» era falsa da P-26.
+  const INTERRUTTORI_APP = [
+    { id: 'recommendations',     alias: ['LI-SUGG'], label: 'Suggerimenti',                          desc: 'Legittimo interesse · «In base ai tuoi gusti» sui generi preferiti e sulla storia degli ordini, mai sui dati alimentari', difetto: true },
+    { id: 'analytics',           alias: [],          label: 'Analisi d\'uso',                        desc: 'Legittimo interesse · i tre eventi del registro d\'uso (app_open, qr_scan, menu_view), città approssimata', difetto: true },
+    { id: 'dietary_suggestions', alias: [],          label: 'Esigenze alimentari nei suggerimenti', desc: 'Consenso esplicito distinto (D-03) · dentro «Dieta & allergeni», spento in partenza', difetto: false },
+  ];
+  const leggiLS = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch (e) { return fb; } };
+  const interruttori = INTERRUTTORI_APP.map((t, i) => {
+    if (u.id === window.UTENTE_APP_DEMO_ID) {
+      const ids = [t.id, ...t.alias];
+      const stato = leggiLS('byup_consent_state', {}) || {};
+      const log = (leggiLS('byup_consent_data', []) || []).filter(r => r && ids.includes(r.id));
+      const st = ids.map(id => stato[id]).find(Boolean) || null;
+      const ultima = log.length ? log[log.length - 1] : null;
+      if (st || ultima) return { ...t, ok: ultima ? !!ultima.ok : !!st.ok, quando: (ultima && ultima.quando) || (st && st.quando) || null, vivo: true };
+      // L'opposizione ai suggerimenti prima del registro: la chiave dell'app.
+      if (t.id === 'recommendations' && leggiLS('byup_suggerimenti', 'on') === 'off') return { ...t, ok: false, quando: null, vivo: true };
+      return { ...t, ok: t.difetto, quando: null, vivo: true };
+    }
+    const toccato = rnd(430 + i * 3) > 0.75;
+    const quando = new Date(Math.min(Date.now() - 86400000, u.dataRegistrazione.getTime() + Math.floor(rnd(431 + i * 3) * 200) * 86400000));
+    return { ...t, ok: toccato ? !t.difetto : t.difetto, quando: toccato ? quando : null, vivo: false };
+  });
+
   // ── Preferenze alimentari (tab Statistiche): SOLO col consenso A3 ──
   // Senza consenso il dato non si mostra — non «non c'è»: non si guarda.
   const dietaOpz = ['Vegetariano', 'Vegano', 'Senza glutine', 'Halal', 'Kosher', 'Pescetariano'];
@@ -816,10 +856,31 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
                   </div>
                 </div>
               ))}
-              <div style={{padding:'11px 20px', fontSize:12.5, color:ADM.MUTED_SOFT, lineHeight:1.5}}>
-                Suggerimenti in-app e analisi d'uso corrono su legittimo interesse: nessun toggle
-                — l'opposizione passa dall'assistenza e si registra lato backend.
+              {/* I tre interruttori dell'app (P-123), in sola lettura. Non
+                  sono i consensi qui sopra: due corrono su legittimo interesse
+                  con l'opposizione, uno è il consenso distinto sul dato
+                  alimentare. Li muove la persona dall'app; ogni cambio è una
+                  riga del log consent_data. */}
+              <div style={{padding:'12px 20px 8px', borderTop:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT}}>
+                <div style={{fontSize:13.6, fontWeight:700, color:ADM.TEXT}}>Interruttori dell'app</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
+                  Suggerimenti e analisi d'uso corrono su legittimo interesse, con l'interruttore di opposizione in «I miei dati»; le esigenze alimentari nei suggerimenti sono un consenso distinto, che la persona accende dentro «Dieta &amp; allergeni». Sola lettura: li muove la persona dall'app, e ogni cambio è una riga del log consent_data.
+                  {interruttori[0].vivo ? ' Qui: lo stato che l\'app ha scritto su questo dominio.' : ' Qui: valori d\'esempio del mock.'}
+                </div>
               </div>
+              {interruttori.map((t, i) => (
+                <div key={t.id} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom: i === interruttori.length - 1 ? 'none' : `1px solid ${ADM.BORDER_SOFT}`}}>
+                  <AdmSwitch checked={t.ok} disabled size="sm"/>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{t.label} <span style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT, fontWeight:600, marginLeft:4}}>{t.id}</span></div>
+                    <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{t.desc}</div>
+                  </div>
+                  <div style={{textAlign:'right', flexShrink:0}}>
+                    <span style={{padding:'3px 10px', borderRadius:5, background: t.ok ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: t.ok ? ADM.OK : ADM.MUTED, fontSize:13, fontWeight:700}}>{t.ok ? 'Acceso' : 'Spento'}</span>
+                    <div style={{fontSize:12, color:ADM.MUTED, marginTop:3}}>{t.quando ? `Ultimo evento ${fmtDate(t.quando)}` : 'Nessun evento · vale il valore di partenza'}</div>
+                  </div>
+                </div>
+              ))}
             </AdmCard>
 
             {/* I documenti: le versioni contro cui i consensi valgono. I

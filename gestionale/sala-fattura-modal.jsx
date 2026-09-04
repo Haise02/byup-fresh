@@ -14,11 +14,14 @@
 // e il numero progressivo non si brucia se l'operatore abbandona.
 
 // ─────────────────────────────────────────────────────────────────────────────
-// L'aliquota non è un campo da compilare: è una conseguenza di due dichiarazioni
-// che il menù porta già (Impostazioni → Menù, flag "Prodotto finito" e
-// "Contiene alcolici"). In somministrazione si serve il tavolo e l'aliquota è
-// una sola; da asporto è una cessione di beni, e i due flag sono esattamente
-// quelli che la spostano — sigillato così com'è, oppure alcolico.
+// L'aliquota non è un campo da compilare: discende dalla TIPOLOGIA che
+// l'articolo dichiara (Impostazioni → Menù, oppure la finestra del fuori menù
+// in cassa: PN_TIPOLOGIE_ARTICOLO, P-108 · D-105) e dal modo di consumo. In
+// somministrazione si serve il tavolo e l'aliquota è una sola (voce 121); da
+// asporto è una cessione di beni e la legge elenca i prodotti uno per uno —
+// la tabella tipologia × modo vive nel dizionario, in un posto solo. Le due
+// spunte di prima («Prodotto finito», «Contiene alcolici») non governano più
+// nulla dell'IVA: mettevano al 22% anche acqua e birra, che stanno al 10%.
 //
 // Il valore va CONGELATO sulla riga d'ordine al momento della vendita: se
 // domani qualcuno spunta "Contiene alcolici" su un prodotto, le fatture già
@@ -39,9 +42,12 @@ const SVF_LABEL  = {
   letterSpacing: 0.7, textTransform: 'uppercase', marginBottom: 8,
 };
 
-function svAliquota(piatto, takeaway) {
-  if (!takeaway) return 10;
-  return (piatto && (piatto.prodottoFinito || piatto.hasAlcohol)) ? 22 : 10;
+// Accetta la riga d'ordine (che porta `tipologia`) o il solo piatto. Senza
+// tipologia vale la prima del dizionario: «quello che il locale prepara».
+function svAliquota(x, takeaway) {
+  const tip = x && (x.tipologia || (x.piatto && x.piatto.tipologia));
+  if (window.pnTipologiaAliquota) return window.pnTipologiaAliquota(tip, !!takeaway);
+  return 10;
 }
 
 // Le righe della fattura, nella forma in cui il documento le vuole: nome,
@@ -53,7 +59,7 @@ function svfRighe(lines, takeaway) {
     nome: l.displayName || l.piatto.name,
     qty: l.qty,
     lordo: l.lineTotal * l.qty,
-    aliquota: l.aliquota != null ? l.aliquota : svAliquota(l.piatto, takeaway),
+    aliquota: l.aliquota != null ? l.aliquota : svAliquota(l, takeaway),
   }));
 }
 
@@ -66,7 +72,7 @@ function svfRighe(lines, takeaway) {
 function svRiepilogoIva(lines, takeaway) {
   const gruppi = new Map();
   (lines || []).forEach(l => {
-    const a = l.aliquota != null ? l.aliquota : svAliquota(l.piatto, takeaway);
+    const a = l.aliquota != null ? l.aliquota : svAliquota(l, takeaway);
     gruppi.set(a, (gruppi.get(a) || 0) + l.lineTotal * l.qty);
   });
   return [...gruppi.entries()]

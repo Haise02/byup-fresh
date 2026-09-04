@@ -129,6 +129,16 @@ function ScreenConto({ nav, conto, ritirato, rimandaConto, openModal, showToast 
   // schermata aperta e la ripresa automatica a mezzanotte.
   const notte = window.byupNotteInfo();
   const [, setNotteTick] = React.useState(0);
+  // P-120: stesso blocco del gestionale, stesso testo. Con la password
+  // dell'Agenzia scaduta l'emissione si ferma anche qui: il documento nasce
+  // da questa schermata quanto dalla cassa, e incassare senza poter emettere
+  // non è ammesso. Il messaggio nomina chi deve rinnovare.
+  const [credBlocco, setCredBlocco] = React.useState(() => (window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null));
+  React.useEffect(() => {
+    const ri = () => setCredBlocco(window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null);
+    ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.addEventListener(e, ri));
+    return () => ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
+  }, []);
   React.useEffect(() => {
     const id = setInterval(() => setNotteTick(t => t + 1), 1000);
     return () => clearInterval(id);
@@ -219,6 +229,32 @@ function ScreenConto({ nav, conto, ritirato, rimandaConto, openModal, showToast 
           >
             Torna alla coda
           </button>
+        ) : credBlocco ? (
+          <>
+            {/* Come per la notte: avviso bloccante e non solo un bottone
+                spento — chi ha il telefono in mano col cliente davanti deve
+                sapere PERCHÉ non si incassa e chi deve rimediare. */}
+            <div data-cred-blocco style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+              marginBottom: 10, padding: '12px 14px', borderRadius: ST.R_LG,
+              background: '#FEF2F2', color: '#991B1B',
+              fontSize: 13.5, fontWeight: 500, lineHeight: 1.45,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+                <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+              </svg>
+              <span><b>{credBlocco.titolo}:</b> {credBlocco.testo}</span>
+            </div>
+            <button disabled style={{
+              width: '100%', height: 56, borderRadius: ST.R_PILL, border: 'none',
+              background: ST.SURF_ALT, color: ST.MUTED,
+              fontSize: 16, fontWeight: 700, fontFamily: 'inherit',
+              cursor: 'not-allowed',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}>
+              Incasso sospeso
+            </button>
+          </>
         ) : notte.dentro ? (
           <>
             {/* Avviso bloccante, non solo un bottone spento: chi ha il

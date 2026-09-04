@@ -25,6 +25,7 @@ const DEFAULT_LAYOUT = [
   { id: 'recensioni' },
   { id: 'cucina-live' },
   { id: 'prenotazioni-oggi' },
+  { id: 'notifiche' },
   { id: 'top-piatti' },
   { id: 'andamento-scontrino' },
   { id: 'riempimento' },
@@ -363,10 +364,35 @@ function PnApp() {
   );
 }
 
+// L'arrivo d'esempio: la prima notifica fiscale non letta, annunciata una
+// volta sola per sessione — riaprendo la Panoramica dieci volte non si
+// riceve dieci volte lo stesso avviso.
+function PnNotificaDemo() {
+  React.useEffect(() => {
+    let fatto = false;
+    try { fatto = sessionStorage.getItem('byup_notif_demo') === '1'; } catch (e) {}
+    if (fatto || !window.byupReadNotifiche) return;
+    const t = setTimeout(() => {
+      const n = window.byupReadNotifiche().find(x => x.unread && x.type === 'fiscal') || window.byupReadNotifiche().find(x => x.unread);
+      if (!n) return;
+      try { sessionStorage.setItem('byup_notif_demo', '1'); } catch (e) {}
+      window.byupNotificaArrivo(n);
+    }, 3200);
+    return () => clearTimeout(t);
+  }, []);
+  return null;
+}
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <div className="frame" data-screen-label="Panoramica">
     <GlassMeshSubstrate/>
+    {/* P-115: l'avviso d'arrivo, in basso a destra. Nel mockup una notifica
+        fiscale d'esempio arriva pochi secondi dopo l'apertura della
+        Panoramica, così il comportamento si vede: nel prodotto è la notifica
+        del browser o del dispositivo, e nasce dal registro, non da un timer. */}
+    {window.PnNotifArrivo && <window.PnNotifArrivo/>}
+    <PnNotificaDemo/>
     <PnApp/>
   </div>
 );

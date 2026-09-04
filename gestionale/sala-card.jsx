@@ -644,6 +644,29 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
   );
 }
 
+// P-109 (D-27): a scheda APERTA la prenotazione collegata dice A CHE COSA è
+// allergico l'ospite — i codici del dizionario resi con l'etichetta di legge
+// per esteso (Glutine, Latte…) — e quando è stato registrato. La mappa
+// chiusa porta solo il contrassegno muto «Allergia»: il contenuto si legge
+// aprendo il tavolo, in tutti e tre gli stati in cui la prenotazione compare.
+// Il nome dell'ospite resta sulla sua riga, mai nella stessa stringa.
+function AllergieDichiarate({ res, quando }) {
+  const codes = (res && res.allergens) || [];
+  if (!codes.length) return null;
+  const nomi = codes.map(c => (window.pnAllergeneLabel ? window.pnAllergeneLabel(c) : c));
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap: 2, padding:'8px 10px', borderRadius: 10, background:'rgba(220,38,38,0.06)', boxShadow:'inset 0 0 0 1px rgba(220,38,38,0.18)'}}>
+      <div style={{fontSize: 13.5, fontWeight: 700, color:'#DC2626', letterSpacing: 0.4, textTransform:'uppercase'}}>
+        Allergie dichiarate{quando ? ` · prenotazione ${quando}` : ''}
+      </div>
+      <div style={{fontSize: 16.5, fontWeight: 700, color:'#0F1115', lineHeight: 1.3}}>{nomi.join(', ')}</div>
+      {res.allergensDeclaredAt && (
+        <div style={{fontSize: 13.5, color:'#6B7280'}}>Registrate oggi alle {res.allergensDeclaredAt}{res.allergensDeclaredBy ? ` da ${res.allergensDeclaredBy}` : ''}</div>
+      )}
+    </div>
+  );
+}
+
 function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onAdjustReservationPosti, onEdit, occupatoSaldato, onPay, isLate, lateMin, pulireSev }) {
   return (
     <>
@@ -663,6 +686,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               {/* Stepper inline — niente popover che finisce tagliato */}
               <CopertiChip coperti={t.nextReservation.posti} posti={t.posti || 12} onAdjust={(n) => onAdjustReservationPosti && onAdjustReservationPosti(n)}/>
             </div>
+            <AllergieDichiarate res={t.nextReservation}/>
           </div>
         )}
 
@@ -686,6 +710,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
                   In ritardo di {lateMin} minuti
                 </div>
               )}
+              <AllergieDichiarate res={t.nextReservation}/>
             </div>
             <NoteChipRow notes={[
               note && !noteMeta?.critical ? note : null,
@@ -709,6 +734,9 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               {/* Utenti connessi (avatar + numero, fisso) — Modifica è
                   salito nell'header della card */}
               <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
+              {/* Occupato con una prenotazione collegata che porta allergeni:
+                  la riga dice di quale prenotazione parla. */}
+              <AllergieDichiarate res={t.nextReservation} quando={t.nextReservation && t.nextReservation.time}/>
             </div>
 
             {/* Segnali su UNA riga: alert operativo (solo testo, senza

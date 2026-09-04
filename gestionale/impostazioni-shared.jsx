@@ -36,10 +36,9 @@ const IMP_SEZIONI = [
   { id: 'menu-cucina', label: 'Menù', icon: 'food-meal' },
   { id: 'sala', label: 'Sala e tavoli', icon: 'place-table' },
   { id: 'personale', label: 'Personale', icon: 'people-staff-group' },
-  // P-101: le stampanti hanno la loro scheda — comande e cortesia, modalità,
-  // prova di stampa. In Personale la stampante resta come dispositivo che
-  // entra (accesso e categorie), qui vive la sua stampa.
-  { id: 'stampanti', label: 'Stampanti', icon: 'commerce-register' },
+  // P-124 (D-108): la sezione Stampanti non esiste più. Le stampanti si
+  // collegano in POS e integrazioni («Collega stampante»); in Personale la
+  // stampante resta come dispositivo con le categorie che instrada.
   { id: 'flussi', label: 'Servizio', icon: 'chart-workflow' },
   { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt' },
   { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },

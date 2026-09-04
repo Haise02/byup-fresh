@@ -93,6 +93,11 @@ const PROFILE_ORDERS = [
   { id: 'ORD-1020', venue: 'Hops & Co',          address: 'Via della Croce 15, Spagna', cuisine: 'Pub',             date: '14 feb', time: '22:15', items: [{n:'Burger del giorno',p:14}, {n:'Patatine',p:5}, {n:'IPA artigianale',p:7}], total: 34.00, status: 'completato',
     photo: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=70&auto=format&fit=crop' },
 ];
+// La storia degli ordini per il motore dei suggerimenti del menù (P-123):
+// i nomi dei piatti ordinati, e basta. Su window perché gli standalone
+// avvolgono ogni file in una IIFE e le const non passano da un file
+// all'altro; nel prodotto è lo storico dell'account, lato backend.
+window.ByupStoricoOrdini = () => PROFILE_ORDERS.flatMap(o => o.items.map(i => i.n));
 
 function ProfileToggle({ value, onChange }) {
   return (
@@ -111,7 +116,15 @@ function ProfileToggle({ value, onChange }) {
   );
 }
 
-function AllergensView({ onBack, prefs, setPrefs }) {
+function AllergensView({ onBack, onOpenPrivacy, prefs, setPrefs }) {
+  // L'interruttore di P-123 (D-03, LIA §4, modello dietary_suggestions):
+  // spento in partenza, è il consenso esplicito DISTINTO con cui le esigenze
+  // alimentari entrano nei suggerimenti. Accenderlo scrive l'evento
+  // granted, spegnerlo revoked; a interruttore spento il motore del menù non
+  // legge dieta né allergeni. Il filtro del menù (P-65, P-74) non c'entra: è
+  // la persona che filtra, non il motore che suggerisce.
+  const [dietSugg, setDietSugg] = useState(() => !!(ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok));
+  const cambiaDietSugg = (v) => { ByupConsensi.set('dietary_suggestions', !!v); setDietSugg(!!v); };
   // ─── Consensi (registro A3 e A18, art. 9.2.a GDPR) ────────────────────
   // Just-in-time, come fanno le app comparabili: la sezione si SFOGLIA
   // liberamente (guardare la lista non conferisce nessun dato), e il
@@ -269,6 +282,22 @@ function AllergensView({ onBack, prefs, setPrefs }) {
             </div>
           );
         })}
+      </div>
+
+      {/* ─── Le esigenze alimentari nei suggerimenti: il consenso distinto
+          (P-123), spento in partenza, con l'effetto detto e il rimando
+          all'informativa. ─── */}
+      <div style={{ marginTop: 24, background: SURF_X, borderRadius: 14, border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`, padding: '13px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14.5, color: TEXT_X, fontWeight: 600, lineHeight: 1.25 }}>Usa le mie esigenze alimentari per i suggerimenti</div>
+            <div style={{ fontSize: 11.5, color: dietSugg ? PINK_X : MUTED_X, marginTop: 2, fontWeight: 600 }}>{dietSugg ? 'Attivo' : 'Spento'}</div>
+          </div>
+          <ProfileToggle value={dietSugg} onChange={cambiaDietSugg}/>
+        </div>
+        <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, marginTop: 8 }}>
+          Acceso, i piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti. Spento, i suggerimenti non leggono dieta e allergeni: è un consenso a parte, che puoi revocare quando vuoi, da qui o da I miei dati. <span onClick={onOpenPrivacy} style={{ color: PINK_X, fontWeight: 600, cursor: 'pointer' }}>Leggi l'informativa</span>.
+        </div>
       </div>
 
       {/* Nota discreta: dove si gestisce tutto. */}
@@ -846,56 +875,113 @@ function SegnalaView({ onBack }) {
 }
 
 // Il profilo persistito (P-84): prima «Salvato ✓» confermava una
-// persistenza che non esisteva. byup_profilo tiene nome, cognome e genere;
-// la data di nascita NON si scrive da qui (P-85).
+// persistenza che non esisteva. byup_profilo tiene nome, cognome, genere e,
+// da P-122 (D-107), la data di nascita: si modifica, si conferma, fatto —
+// niente password, niente richiesta all'assistenza (P-85 superata). Il dato
+// è una dichiarazione della persona e su quella Byup si basa, perché non ha
+// altri mezzi e nessuna fonte impone di più (GDPR art. 8 par. 2 chiede «ogni
+// modo ragionevole» solo per il consenso del genitore sotto la soglia; DSA
+// art. 28 par. 3 esclude che la tutela dei minori obblighi a trattare dati
+// ulteriori per accertare l'età). Due presidi che non pesano: ogni modifica
+// scrive una riga nel registro delle attività con il valore precedente (come
+// i recapiti, D-104), e una data che porta l'età sotto i quattordici anni si
+// rifiuta (Codice privacy art. 2-quinquies).
 const byupProfiloLeggi = () => { try { const r = localStorage.getItem('byup_profilo'); return r ? JSON.parse(r) : {}; } catch (e) { return {}; } };
 const byupProfiloScrivi = (patch) => { try { localStorage.setItem('byup_profilo', JSON.stringify(Object.assign(byupProfiloLeggi(), patch))); } catch (e) {} };
+// La stessa soglia e la stessa frase della registrazione (auth.jsx, «Devi
+// avere almeno 14 anni per registrarti.»): due copie, una per bundle, da
+// tenere uguali a mano finché il testo non arriva dalla piattaforma.
+const ETA_MINIMA = 14;
+const MSG_ETA_MINIMA = 'Devi avere almeno 14 anni per registrarti.';
+const byupEta = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso.length === 10 ? iso + 'T00:00:00' : iso);
+  if (isNaN(d)) return null;
+  const now = new Date();
+  let a = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) a--;
+  return a;
+};
+const byupDataIt = (iso) => { const d = iso ? new Date(iso.length === 10 ? iso + 'T00:00:00' : iso) : null; return d && !isNaN(d) ? d.toLocaleDateString('it-IT') : '—'; };
+const byupOggiIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
-function MieiDatiView({ onBack, onOpenPrivacy, onRichiediNascita }) {
+// Il campo di «I miei dati», a livello di modulo e non dentro la vista: un
+// componente definito nel render è un tipo nuovo a ogni battuta, e React lo
+// smontava e rimontava perdendo il focus.
+const MieiDatiField = ({ label, value, onChange, type = 'text', max, errore }) => (
+  <div style={{ marginBottom: 4 }}>
+    <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>{label}</div>
+    <input
+      type={type}
+      value={value}
+      max={max}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        width: '100%', padding: '13px 14px',
+        background: TINT_X, border: `1.5px solid ${errore ? '#E5484D' : 'transparent'}`,
+        borderRadius: 12, fontSize: 15, color: TEXT_X,
+        fontFamily: 'inherit', outline: 'none',
+        boxSizing: 'border-box',
+        transition: 'border-color 0.15s',
+      }}
+      onFocus={e => e.target.style.borderColor = errore ? '#E5484D' : PINK_X}
+      onBlur={e => e.target.style.borderColor = errore ? '#E5484D' : 'transparent'}
+    />
+    {errore && <div style={{ fontSize: 12.5, color: '#E5484D', marginTop: 6, paddingLeft: 2 }}>{errore}</div>}
+  </div>
+);
+
+function MieiDatiView({ onBack, onOpenPrivacy }) {
+  // Il salvato: riletto a ogni render, così dopo la conferma la base di
+  // confronto è quella nuova senza altro stato.
   const pro = byupProfiloLeggi();
-  const [nome, setNome] = useState(pro.nome || 'Mario');
-  const [cognome, setCognome] = useState(pro.cognome || 'Rossi');
+  const salvato = { nome: pro.nome || 'Mario', cognome: pro.cognome || 'Rossi', genere: pro.genere || null, nascita: pro.nascita || '1990-04-15' };
+  const [nome, setNome] = useState(salvato.nome);
+  const [cognome, setCognome] = useState(salvato.cognome);
   // Il genere NON è preselezionato (P-84): un valore già scelto in un campo
   // facoltativo è un consenso presunto. Parte vuoto; «Preferisco non
   // specificare» resta, e svuota.
-  const [genere, setGenere] = useState(pro.genere || null);
-  const [nascita] = useState('15/04/1990');
+  const [genere, setGenere] = useState(salvato.genere);
+  const [nascita, setNascita] = useState(salvato.nascita);
   const [saved, setSaved] = useState(false);
+  const [conferma, setConferma] = useState(false);
 
-  // La scelta del genere scrive la dichiarazione nel registro (riga GEN col
-  // valore, natura «dichiarazione», non un consenso); «Preferisco non
-  // specificare» la azzera — è il chiamante che azzera() aspettava.
-  const scegliGenere = (g) => {
-    if (g === 'Preferisco non specificare') { setGenere(null); byupProfiloScrivi({ genere: null }); ByupConsensi.azzera('GEN'); return; }
-    setGenere(g); byupProfiloScrivi({ genere: g }); ByupConsensi.dichiara('GEN', g);
-  };
+  // Il rifiuto sotto i quattordici anni, con la frase della registrazione:
+  // la data non si salva e il pulsante resta spento.
+  const eta = byupEta(nascita);
+  const erroreNascita = nascita && (eta === null || eta < ETA_MINIMA) ? MSG_ETA_MINIMA : null;
 
-  function salva() {
-    byupProfiloScrivi({ nome, cognome });
+  // Le modifiche rispetto al salvato: sono le righe della conferma e le righe
+  // del registro (campo, valore precedente, valore nuovo).
+  const modifiche = [
+    nome.trim() !== salvato.nome && { field: 'first_name', label: 'Nome', prima: salvato.nome, dopo: nome.trim() },
+    cognome.trim() !== salvato.cognome && { field: 'last_name', label: 'Cognome', prima: salvato.cognome, dopo: cognome.trim() },
+    genere !== salvato.genere && { field: 'gender', label: 'Genere', prima: salvato.genere || 'Non specificato', dopo: genere || 'Non specificato' },
+    nascita !== salvato.nascita && { field: 'birth_date', label: 'Data di nascita', prima: byupDataIt(salvato.nascita), dopo: byupDataIt(nascita), primaIso: salvato.nascita, dopoIso: nascita },
+  ].filter(Boolean);
+  const puoiSalvare = modifiche.length > 0 && !erroreNascita && !!nome.trim() && !!cognome.trim();
+
+  // La conferma scrive: il profilo, una riga per campo nel registro delle
+  // attività col valore precedente (ByupAttivita, D-104), e per il genere la
+  // dichiarazione nel registro dei consensi (riga GEN col valore, natura
+  // «dichiarazione», non un consenso; «Preferisco non specificare» la
+  // azzera — P-84).
+  const confermaModifiche = () => {
+    if (!puoiSalvare) return;
+    byupProfiloScrivi({ nome: nome.trim(), cognome: cognome.trim(), genere, nascita });
+    modifiche.forEach(m => {
+      if (window.ByupAttivita) window.ByupAttivita.scrivi('profile_updated', {
+        field: m.field,
+        old_value: m.field === 'birth_date' ? m.primaIso : (m.field === 'gender' ? salvato.genere : m.prima),
+        new_value: m.field === 'birth_date' ? m.dopoIso : (m.field === 'gender' ? genere : m.dopo),
+      });
+      if (m.field === 'gender') { if (genere) ByupConsensi.dichiara('GEN', genere); else ByupConsensi.azzera('GEN'); }
+    });
+    setConferma(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  }
-
-  const Field = ({ label, value, onChange, type = 'text' }) => (
-    <div style={{ marginBottom: 4 }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>{label}</div>
-      <input
-        type={type}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{
-          width: '100%', padding: '13px 14px',
-          background: TINT_X, border: '1.5px solid transparent',
-          borderRadius: 12, fontSize: 15, color: TEXT_X,
-          fontFamily: 'inherit', outline: 'none',
-          boxSizing: 'border-box',
-          transition: 'border-color 0.15s',
-        }}
-        onFocus={e => e.target.style.borderColor = PINK_X}
-        onBlur={e => e.target.style.borderColor = 'transparent'}
-      />
-    </div>
-  );
+  };
 
   return (
     <div style={{ animation: 'fade 0.2s ease' }}>
@@ -914,67 +1000,90 @@ function MieiDatiView({ onBack, onOpenPrivacy, onRichiediNascita }) {
       <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 28 }}>I miei dati</div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Field label="Nome" value={nome} onChange={setNome}/>
-        <Field label="Cognome" value={cognome} onChange={setCognome}/>
+        <MieiDatiField label="Nome" value={nome} onChange={setNome}/>
+        <MieiDatiField label="Cognome" value={cognome} onChange={setCognome}/>
 
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Genere</div>
           <div style={{ background: TINT_X, borderRadius: 12, overflow: 'hidden' }}>
-            {['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => (
-              <button key={g} onClick={() => scegliGenere(g)} style={{
+            {['Uomo', 'Donna', 'Non binario', 'Preferisco non specificare'].map((g, i, arr) => {
+              // «Preferisco non specificare» non si mostra mai come scelto:
+              // il vuoto non è una selezione (P-84).
+              const on = g === 'Preferisco non specificare' ? false : genere === g;
+              return (
+              <button key={g} onClick={() => setGenere(g === 'Preferisco non specificare' ? null : g)} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 width: '100%', padding: '13px 14px', background: 'transparent',
                 border: 'none', borderBottom: i < arr.length - 1 ? '1px solid #EDE8EA' : 'none',
                 cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
               }}>
-                <span style={{ fontSize: 14.5, color: genere === g ? PINK_X : TEXT_X, fontWeight: genere === g ? 600 : 400 }}>{g}</span>
+                <span style={{ fontSize: 14.5, color: on ? PINK_X : TEXT_X, fontWeight: on ? 600 : 400 }}>{g}</span>
                 <div style={{
                   width: 20, height: 20, borderRadius: 999,
-                  border: `2px solid ${genere === g ? PINK_X : '#C8C0C3'}`,
-                  background: genere === g ? PINK_X : 'transparent',
+                  border: `2px solid ${on ? PINK_X : '#C8C0C3'}`,
+                  background: on ? PINK_X : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s', flexShrink: 0,
                 }}>
-                  {genere === g && <div style={{ width: 7, height: 7, borderRadius: 999, background: SURF_X }}/>}
+                  {on && <div style={{ width: 7, height: 7, borderRadius: 999, background: SURF_X }}/>}
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* La data di nascita non si modifica in linea (P-85): decide la
-            verifica dell'età e le tutele del minore, e i flussi la escludono
-            dalle modifiche ordinarie. Sola lettura, e la procedura dedicata
-            sul pattern di «Modifica email». */}
+        {/* La data di nascita si modifica come gli altri campi (P-122 ·
+            D-107): niente «Richiedi la modifica», niente password. Sotto la
+            soglia dei quattordici anni la data si rifiuta. */}
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, paddingLeft: 2 }}>Data di nascita</div>
-          <div style={{ padding: '13px 14px', background: '#F0EEF0', borderRadius: 12, fontSize: 15, color: MUTED_X, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ flex: 1 }}>{nascita}</span>
-            <button onClick={onRichiediNascita} style={{ background: 'none', border: 'none', color: PINK_X, fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>Richiedi la modifica</button>
-          </div>
-          <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, marginTop: 6, paddingLeft: 2 }}>La data di nascita decide la verifica dell'età e le tutele per chi ha meno di 18 anni: non si cambia in linea, si chiede.</div>
+          <MieiDatiField label="Data di nascita" type="date" value={nascita} onChange={setNascita} max={byupOggiIso()} errore={erroreNascita}/>
+          <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, marginTop: 6, paddingLeft: 2 }}>È la tua dichiarazione, e ci basiamo su quella. Le modifiche restano nel registro delle attività, con il valore precedente.</div>
         </div>
       </div>
 
-      <button onClick={salva} style={{
+      <button onClick={() => { if (puoiSalvare) setConferma(true); }} disabled={!puoiSalvare && !saved} style={{
         width: '100%', marginTop: 32, padding: '15px',
-        background: saved ? '#30D158' : PINK_X,
+        background: saved ? '#30D158' : (puoiSalvare ? PINK_X : '#E8E3E5'),
         border: 'none', borderRadius: 14,
-        cursor: 'pointer', fontFamily: 'inherit',
-        fontSize: 15, fontWeight: 700, color: '#fff',
+        cursor: puoiSalvare ? 'pointer' : 'default', fontFamily: 'inherit',
+        fontSize: 15, fontWeight: 700, color: saved || puoiSalvare ? '#fff' : MUTED_X,
         transition: 'background 0.3s',
       }}>
         {saved ? 'Salvato ✓' : 'Salva modifiche'}
       </button>
 
-      {/* ── L'interruttore dei suggerimenti (P-26), sopra il cassetto. ── */}
+      {/* ── Privacy e consensi: il cassetto del registro, con dentro anche
+          l'interruttore dei suggerimenti (P-122, punto 4). ── */}
       <div style={{ marginTop: 16 }}>
-        <SuggerimentiCard/>
-      </div>
-      {/* ── Privacy e consensi: il cassetto del registro. ── */}
-      <div>
         <ConsensiPanel onOpenPrivacy={onOpenPrivacy}/>
       </div>
+
+      {/* ─── La conferma: che cosa cambia, da che cosa a che cosa. È il
+          secondo tocco di «si modifica, si conferma, fatto». ─── */}
+      {conferma && (
+        <div onClick={(e) => { if (e.target === e.currentTarget) setConferma(false); }} style={{
+          position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(15,8,12,.5)',
+          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease',
+        }}>
+          <div style={{ width: '100%', maxWidth: 430, background: SURF_X, borderRadius: '24px 24px 0 0', padding: '12px 20px calc(24px + env(safe-area-inset-bottom, 0px))', animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}><div style={{ width: 38, height: 4, borderRadius: 999, background: BORDER_X }}/></div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: TEXT_X, marginBottom: 10 }}>Confermi le modifiche?</div>
+            <div style={{ background: TINT_X, borderRadius: 12, overflow: 'hidden', marginBottom: 12 }}>
+              {modifiche.map((m, i) => (
+                <div key={m.field} style={{ padding: '10px 12px', borderBottom: i < modifiche.length - 1 ? '1px solid #EDE8EA' : 'none' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</div>
+                  <div style={{ fontSize: 14, color: TEXT_X, marginTop: 2 }}><span style={{ color: MUTED_X, textDecoration: 'line-through' }}>{m.prima}</span> → <b>{m.dopo}</b></div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 12.5, color: MUTED_X, lineHeight: 1.5, marginBottom: 16 }}>Ogni modifica resta nel registro delle attività con il valore precedente.</div>
+            <button onClick={confermaModifiche} style={{ width: '100%', padding: '13px', borderRadius: 14, border: 'none', background: PINK_X, color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Conferma</button>
+            <button onClick={() => setConferma(false)} style={{ width: '100%', padding: '12px', marginTop: 6, borderRadius: 14, border: 'none', background: 'transparent', color: MUTED_X, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Annulla</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -990,23 +1099,36 @@ function MieiDatiView({ onBack, onOpenPrivacy, onRichiediNascita }) {
 const CONSENSI_DEF = [
   { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', dove: 'impostando le preferenze alimentari' },
   { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  dove: 'impostando le preferenze alimentari' },
+  // Il consenso distinto di P-123 (D-03, modello: dietary_suggestions):
+  // nasce dall'interruttore dentro «Dieta & allergeni» e qui si rivede.
+  // Spento, il motore dei suggerimenti non legge dieta né allergeni.
+  { id: 'dietary_suggestions', label: 'Esigenze alimentari nei suggerimenti', desc: 'I piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti', dove: 'in Dieta & allergeni' },
   // A6 copre anche le promo su misura sullo storico ordini (PROMOP assorbito
   // il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
   // registrazione. Le offerte su dati alimentari restano A18 (art. 9).
   { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica', dove: 'alla registrazione' },
-  // Suggerimenti e analisi d'uso NON stanno qui: sono legittimo interesse,
-  // non un consenso, e hanno la loro card sopra il cassetto (SuggerimentiCard,
-  // P-26). Il pannello mostra solo i consensi veri: A3, A18, A6.
+  // Suggerimenti e analisi d'uso NON stanno in questa lista: sono legittimo
+  // interesse, non un consenso. Dal 2026-09-04 (P-122, punto 4) il loro
+  // interruttore vive però DENTRO il cassetto, in una sezione propria in
+  // coda, con la riga che dice che cosa è: così tutte le scelte sui propri
+  // dati stanno in un posto solo e la distinzione resta scritta.
 ];
 
 // ─── SuggerimentiCard — l'interruttore di P-26 (D-28) ───────────────────────
-// Sopra il cassetto dei consensi e non dentro, perché non è un consenso: è la
-// misura di bilanciamento della LIA. Attivo per difetto, spegnibile in due
-// tocchi — il toggle apre il foglio di conferma, lo stesso di A3, e il
-// secondo tocco conferma. Governa suggerimenti E analisi d'uso insieme:
-// spento, le proposte tornano generiche e l'app smette di registrare gli
-// eventi d'uso (P-38). Sotto, il contatore degli eventi per dimostrabilità.
-function SuggerimentiCard() {
+// Non è un consenso: è la misura di bilanciamento della LIA, e l'art. 21
+// GDPR (par. 1 e 5) dà il diritto di opporsi in qualsiasi momento, nei
+// servizi online «con mezzi automatizzati» — le linee guida EDPB 1/2024
+// contano l'opposizione oltre il minimo di legge come misura di mitigazione
+// nel bilanciamento, ed è quella su cui D-28 e la LIA fondano il nostro.
+// Attivo per difetto, spegnibile in due tocchi — il toggle apre il foglio di
+// conferma, lo stesso di A3, e il secondo tocco conferma. Governa
+// suggerimenti E analisi d'uso insieme: spento, le proposte tornano generiche
+// e l'app smette di registrare gli eventi d'uso (P-38), e nel registro
+// finiscono due righe coi nomi del modello, recommendations e analytics
+// (P-122 · P-123). Sotto, il contatore degli eventi per dimostrabilità. Da
+// P-122 vive dentro il cassetto «Privacy e consensi» (inCassetto), in una
+// sezione propria; la resa a card resta per chi la usasse altrove.
+function SuggerimentiCard({ inCassetto }) {
   const [, forza] = useState(0);
   const [conferma, setConferma] = useState(false);
   const attivo = ByupUso.suggerimenti();
@@ -1014,9 +1136,12 @@ function SuggerimentiCard() {
   const ultimo = eventi.length ? new Date(eventi[eventi.length - 1].quando) : null;
   const cambia = (v) => { if (!v) { setConferma(true); return; } ByupUso.imposta(true); forza(x => x + 1); };
   const spegni = () => { ByupUso.imposta(false); setConferma(false); forza(x => x + 1); };
+  const involucro = inCassetto
+    ? { padding: '12px 14px 13px' }
+    : { background: SURF_X, borderRadius: 14, border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`, padding: '13px 14px' };
   return (
-    <div style={{ marginBottom: 14, position: 'relative' }}>
-      <div style={{ background: SURF_X, borderRadius: 14, border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}`, padding: '13px 14px' }}>
+    <div style={{ marginBottom: inCassetto ? 0 : 14, position: 'relative' }}>
+      <div style={involucro}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14.5, color: TEXT_X, fontWeight: 600 }}>Suggerimenti e analisi d'uso</div>
@@ -1025,7 +1150,7 @@ function SuggerimentiCard() {
           <ProfileToggle value={attivo} onChange={cambia}/>
         </div>
         <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, marginTop: 8 }}>
-          Usiamo i gusti che dichiari, i tuoi ordini e la città in cui usi l'app per proporti locali e piatti, e misuriamo come usi l'app per capire se i consigli sono buoni. Stanno sotto un interruttore solo, perché senza misurare non si sa se i consigli servono. Non è un consenso: è il modo per opporti, in due tocchi. Mai allergeni o preferenze alimentari, mai indirizzo di rete, coordinate o impronta del telefono.
+          Usiamo i gusti che dichiari, i tuoi ordini e la città in cui usi l'app per proporti locali e piatti, e misuriamo come usi l'app per capire se i consigli sono buoni. Stanno sotto un interruttore solo, perché senza misurare non si sa se i consigli servono. Non è un consenso: è il modo per opporti, in due tocchi. Allergeni e preferenze alimentari restano fuori, salvo il consenso a parte che dai in Dieta & allergeni; mai indirizzo di rete, coordinate o impronta del telefono.
         </div>
         <div style={{ fontSize: 11, color: MUTED_X, marginTop: 6, opacity: .8 }}>
           {attivo
@@ -1061,9 +1186,11 @@ function ConsensiPanel({ onOpenPrivacy }) {
   const cambia = (id, v) => {
     ByupConsensi.set(id, v);
     if (id === 'A3' && !v) {
-      // niente base giuridica, niente dato
+      // niente base giuridica, niente dato — e senza dato cadono anche i
+      // due consensi che lo usano (offerte, suggerimenti)
       try { localStorage.setItem('byup_allergens', JSON.stringify({ allergens: {}, diets: {} })); } catch (e) {}
       if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
+      if (ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok) ByupConsensi.set('dietary_suggestions', false);
     }
     forza(x => x + 1);
   };
@@ -1118,6 +1245,18 @@ function ConsensiPanel({ onOpenPrivacy }) {
             </div>
           );
         })}
+        {/* ── La sezione del legittimo interesse (P-122, punto 4): in coda ai
+            consensi, con la riga che dice che cosa è — art. 21 GDPR, par. 1
+            e 5 — e l'interruttore di P-26. ── */}
+        {aperto && (
+          <div style={{ ...sep, background: __BYUP_DK_X ? 'rgba(255,255,255,0.03)' : '#FBF7F8' }}>
+            <div style={{ padding: '11px 14px 0' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: MUTED_X, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Legittimo interesse</div>
+              <div style={{ fontSize: 12, color: MUTED_X, lineHeight: 1.5, marginTop: 4 }}>Suggerimenti e analisi d'uso si basano sul legittimo interesse di Byup: qui puoi opporti in qualsiasi momento.</div>
+            </div>
+            <SuggerimentiCard inCassetto/>
+          </div>
+        )}
         {aperto && (
           <div style={{ fontSize: 11.5, color: MUTED_X, lineHeight: 1.5, padding: '10px 14px 13px' }}>
             Per richiedere una copia dei tuoi dati consulta l'<span onClick={onOpenPrivacy} style={{ color: PINK_X, fontWeight: 600, cursor: 'pointer' }}>informativa sulla privacy</span>.
@@ -1218,24 +1357,27 @@ function LegalView({ title, content, onBack }) {
       <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{title}</div>
       {/* Codice, versione e data del documento ufficiale (P-80): la vista
           legge la proiezione ByupLegal, la stessa dell'accesso. */}
-      <div style={{ fontSize: 12, color: MUTED_X, marginBottom: 28 }}>{window.ByupLegal.intestazione(content)}</div>
+      <div style={{ fontSize: 12, color: MUTED_X, marginBottom: window.ByupLegal.haSegnaposto(content) ? 8 : 28 }}>{window.ByupLegal.intestazione(content)}</div>
+      {/* I segnaposto (P-113 · D-73): i dati societari finti si vedono per
+          quello che sono, con l'evidenziazione dei documenti e questa riga. */}
+      {window.ByupLegal.haSegnaposto(content) && (
+        <div style={{ fontSize: 11.5, color: '#6b5200', background: '#FFF6C2', border: '1px solid #F2DD7A', borderRadius: 10, padding: '8px 10px', lineHeight: 1.45, marginBottom: 24 }}>{window.ByupLegal.NOTA_SEGNAPOSTO}</div>
+      )}
       {content.sezioni.map((block, i) => (
         <div key={i} style={{ marginBottom: 22 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_X, marginBottom: 6 }}>{block.h}</div>
-          <div style={{ fontSize: 13.5, color: MUTED_X, lineHeight: 1.65 }}>{block.p}</div>
+          <window.ByupLegal.Paragrafo p={block.p} style={{ fontSize: 13.5, color: MUTED_X, lineHeight: 1.65 }}/>
         </div>
       ))}
     </div>
   );
 }
 
-// Tag profilo = traguardi sbloccati (equipaggiabili, max 2) + avatar preset
-const PROFILE_TAGS = [
-  { label: 'Pizza lover', img: 'assets/cat-pizza.png', bg: '#FCE9EE', c: '#E32459' },
-  { label: 'Re dello spritz', img: 'assets/hero-spritz.png', bg: '#fae3de', c: '#4d122e' },
-  { label: 'Esploratore', img: 'assets/cat-poke.png', bg: '#eef3d6', c: '#5f7000' },
-  { label: 'byup pay', img: 'assets/coin.png', bg: '#f4f7d4', c: '#5f7000' },
-];
+// I contrassegni del profilo («Pizza lover», «Re dello spritz», il «+» e il
+// foglio di scelta) sono usciti il 2026-09-04 (P-122) col resto dei
+// Byuppini: erano i riconoscimenti del programma (byuppini_badges), che è
+// predisposto a schema e non attivo, e non esposto in alcuna interfaccia.
+// Rientreranno col programma, quando sarà attivo e valutato. L'avatar resta.
 const PROFILE_AVATARS = [
   'assets/avatar-default.png',
   'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80&auto=format&fit=crop',
@@ -1245,7 +1387,7 @@ const PROFILE_AVATARS = [
 function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   // Deep-link: ?view=orders&order=<id|recent> apre direttamente una sotto-vista
   // (es. "Vedi scontrino" dalla schermata di pagamento → Storico ordini).
-  const VIEWS = ['main','allergens','orders','account','terms','privacy','lingua','pagamenti','preferiti','miei-dati','modifica-nascita'];
+  const VIEWS = ['main','allergens','orders','account','terms','privacy','lingua','pagamenti','preferiti','miei-dati'];
   const params = (() => { try { return new URLSearchParams(window.location.search); } catch { return new URLSearchParams(); } })();
   const initialView = VIEWS.includes(params.get('view')) ? params.get('view') : 'main';
   const initialOrderId = params.get('order') || null;
@@ -1253,8 +1395,6 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   // (es. "Aggiungi carta" dalla schermata Metodo pagamento del menu).
   const initialAddCard = params.get('add') === '1';
   const [view, setView] = useState(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
-  const [tagSheet, setTagSheet] = useState(false);
-  const [myTags, setMyTags] = useState(['Pizza lover', 'Re dello spritz']);
   const [avatarSheet, setAvatarSheet] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(PROFILE_AVATARS[0]);
   const nextAvatar = () => {
@@ -1262,9 +1402,6 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
     setAvatarUrl(PROFILE_AVATARS[(i + 1) % PROFILE_AVATARS.length]);
     setAvatarSheet(false);
   };
-  const toggleTag = (l) => setMyTags(t => t.includes(l)
-    ? t.filter(x => x !== l)
-    : (t.length >= 2 ? [...t.slice(1), l] : [...t, l]));
   // Consumato il deep-link, lo rimuovo dall'URL così riaprendo il Profilo dal
   // tab si torna a 'main' (il param non resta "incollato").
   useEffect(() => {
@@ -1477,38 +1614,22 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               </div>
             </div>
 
-            {/* Tag sbloccati con i traguardi — tap per sceglierli */}
-            <div style={{ display: 'flex', gap: 7, margin: '12px 0 20px', flexWrap: 'wrap', justifyContent: 'center', animation: 'bkFadeUp 480ms 140ms cubic-bezier(.22,.9,.35,1) backwards' }}>
-              {myTags.map((l) => {
-                const b = PROFILE_TAGS.find(t => t.label === l);
-                if (!b) return null;
-                return (
-                  <button key={l} onClick={() => setTagSheet(true)} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5,
-                    background: b.bg, color: b.c, fontSize: 11.5, fontWeight: 800,
-                    padding: '5px 11px', borderRadius: 999, letterSpacing: .3,
-                    border: '1px solid rgba(77,18,46,.06)', cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                    <img src={b.img} width="16" height="16" alt=""/>
-                    {b.label}
-                  </button>
-                );
-              })}
-              <span style={{ display: 'inline-flex', alignItems: 'center', background: '#ceff00', color: '#141414', fontSize: 11.5, fontWeight: 800, padding: '5px 11px', borderRadius: 999, letterSpacing: .3, border: '1px solid rgba(77,18,46,.06)' }}>LIV. 3</span>
-              <button onClick={() => setTagSheet(true)} aria-label="Modifica tag" style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 27, height: 27,
-                borderRadius: 999, background: 'transparent', color: 'rgba(255,255,255,.9)',
-                border: '1.5px dashed rgba(255,255,255,.6)', cursor: 'pointer', fontSize: 14, fontWeight: 800, fontFamily: 'inherit',
-              }}>+</button>
-            </div>
+            {/* Qui stavano i contrassegni dei Byuppini («Pizza lover», «LIV. 3»,
+                il «+»): usciti con P-122, come il resto del programma. Resta
+                il respiro fra la scheda dei numeri e la griglia. */}
+            <div style={{ height: 22 }}/>
 
-            {/* Quick actions: tre. «Dieta & allergeni» è uscita dalla griglia
-                (P-27): dato art. 9 sotto consenso, sta sotto «I miei dati» e
-                non accanto ai Preferiti, dove vivono i gusti. */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 24 }}>
+            {/* Quick actions 2x2. «Dieta & allergeni» è tornata nella griglia
+                (P-122, che corregge P-27 nella collocazione): il registro
+                chiedeva di non confondere i gusti con il dato dell'art. 9,
+                non di declassare la scheda. I gusti restano in Preferiti. */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
               <QuickCard label="Storico ordini" sub="24 ordini" tint="#FCE9EE" iconColor="#E32459" delay={0}
                 iconSvg={<><path d="M5.5 3.2h10l3 3v14.6l-2.6-1.7-2.6 1.7-2.6-1.7-2.6 1.7-2.6-1.7-2.6 1.7V5.2a2 2 0 0 1 2-2z" transform="translate(1.5 0)"/><path d="M9.5 9h6M9.5 13h6" transform="translate(0 0)"/></>}
                 onClick={() => setView('orders')}/>
+              <QuickCard label="Dieta & allergeni" sub={activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'} tint="#FEF0E3" iconColor="#C85C1A" delay={60}
+                iconSvg={<><path d="M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"/><path d="M5 19.5c3.5-4 7-7.5 10-9.5"/></>}
+                onClick={() => setView('allergens')}/>
               <QuickCard label="Preferiti" sub={`${PROFILE_PREFERITI.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`} tint="#F9E3EE" iconColor="#E32459" delay={120}
                 iconSvg={<path d="M12 20.6s-6.8-4.3-8.7-9.1C1.9 7.9 4.3 4.6 7.7 4.6c1.9 0 3.3.9 4.3 2.3 1-1.4 2.4-2.3 4.3-2.3 3.4 0 5.8 3.3 4.4 6.9-1.9 4.8-8.7 9.1-8.7 9.1z"/>}
                 onClick={() => setView('preferiti')}/>
@@ -1530,13 +1651,6 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <Row label="I miei dati" onClick={() => setView('miei-dati')}
                 iconBg="#FCE9EE" iconColor={PINK_X}
                 iconSvg={<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}/>
-              <Row label="Dieta & allergeni" onClick={() => setView('allergens')}
-                iconBg="#FEF0E3" iconColor="#C85C1A"
-                right={<span style={{ fontSize: 13, color: MUTED_X, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span>{activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={MUTED_X} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                </span>}
-                iconSvg={<><path d="M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"/><path d="M5 19.5c3.5-4 7-7.5 10-9.5"/></>}/>
               <Row label="Termini e condizioni" onClick={() => setView('terms')}
                 iconBg="#FCE9EE" iconColor={PINK_X}
                 iconSvg={<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>}/>
@@ -1689,23 +1803,9 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
           />
         )}
 
-        {/* La procedura dedicata per la data di nascita (P-85), sul pattern
-            di «Modifica email»: valore attuale in sola lettura, la data nuova,
-            la password come riprova d'identità, e una richiesta — non una
-            modifica — perché la data regge la verifica dell'età. */}
-        {view === 'modifica-nascita' && (
-          <AccountFormView
-            title="Data di nascita"
-            onBack={() => setView('miei-dati')}
-            fields={[
-              { label: 'Data di nascita attuale', placeholder: '15/04/1990', type: 'text', defaultValue: '15/04/1990', readOnly: true },
-              { label: 'Nuova data di nascita', placeholder: 'AAAA-MM-GG', type: 'date' },
-              { label: 'Password', placeholder: '••••••••', type: 'password' },
-            ]}
-            submitLabel="Invia la richiesta"
-            successMsg="Richiesta inviata: la verifichiamo e ti scriviamo. Fino ad allora vale la data di oggi."
-          />
-        )}
+        {/* La «richiesta di modifica» della data di nascita (P-85: password e
+            risposta dall'assistenza) non esiste più: P-122 · D-107, la data si
+            cambia in «I miei dati» come gli altri campi. */}
 
         {view === 'pagamenti' && (
           <PagamentiView onBack={() => setView('main')} startAdd={initialAddCard}/>
@@ -1720,7 +1820,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'miei-dati' && (
-          <MieiDatiView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')} onRichiediNascita={() => setView('modifica-nascita')}/>
+          <MieiDatiView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')}/>
         )}
 
         {/* Nessun testo qui: Termini e Privacy sono la proiezione unica in
@@ -1735,7 +1835,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'allergens' && (
-          <AllergensView onBack={() => setView('main')}
+          <AllergensView onBack={() => setView('main')} onOpenPrivacy={() => setView('privacy')}
             prefs={allergenPrefs} setPrefs={setAllergenPrefs}/>
         )}
 
@@ -1774,45 +1874,6 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
       </div>
 
       {/* Shared bottom tab bar (no QR) */}
-      {/* Sheet: scegli i tuoi tag (dai traguardi sbloccati) */}
-      {tagSheet && (
-        <div onClick={(e) => { if (e.target === e.currentTarget) setTagSheet(false); }} style={{
-          position: 'absolute', inset: 0, zIndex: 70, background: 'rgba(15,8,12,.5)',
-          backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'center', animation: 'fade .2s ease' }}>
-          <div style={{ width: '100%', background: SURF_X, borderRadius: '24px 24px 0 0',
-            padding: '12px 20px calc(26px + env(safe-area-inset-bottom, 0px))', animation: 'slideUp .28s cubic-bezier(.2,.9,.3,1)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <div style={{ width: 38, height: 4, borderRadius: 999, background: BORDER_X }}/>
-            </div>
-            <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 19, fontWeight: 600, color: TEXT_X }}>I tuoi tag</div>
-            <div style={{ fontSize: 12.5, color: MUTED_X, margin: '3px 0 14px' }}>Si sbloccano con i traguardi Byuppini · scegline due da mostrare</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-              {PROFILE_TAGS.map((b) => {
-                const on = myTags.includes(b.label);
-                return (
-                  <button key={b.label} onClick={() => toggleTag(b.label)} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    background: on ? b.bg : 'transparent', color: on ? b.c : MUTED_X,
-                    fontSize: 12.5, fontWeight: 800, padding: '8px 14px', borderRadius: 999,
-                    border: on ? '1.5px solid rgba(77,18,46,.14)' : `1.5px dashed ${BORDER_X}`,
-                    cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s',
-                  }}>
-                    <img src={b.img} width="17" height="17" alt="" style={{ filter: on ? 'none' : 'grayscale(1)', opacity: on ? 1 : .55 }}/>
-                    {b.label}
-                    {on && <span style={{ fontSize: 11 }}>✓</span>}
-                  </button>
-                );
-              })}
-            </div>
-            <button className="bk-press" onClick={() => setTagSheet(false)} style={{
-              width: '100%', height: 50, border: 'none', borderRadius: 999, cursor: 'pointer',
-              fontFamily: 'inherit', fontWeight: 800, fontSize: 15, color: '#fff',
-              background: 'linear-gradient(122deg, #E32459 0%, #B81C47 100%)',
-              boxShadow: '0 14px 30px -12px rgba(227,36,89,.55)' }}>Fatto</button>
-          </div>
-        </div>
-      )}
 
       {/* Sheet: foto profilo */}
       {avatarSheet && (

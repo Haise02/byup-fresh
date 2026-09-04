@@ -10,22 +10,19 @@ const PHOTO_MOCK_IMGS = [
   'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=70&auto=format&fit=crop',
 ];
 
-const ALLERGENS = [
-  { id: 'glutine', name: 'Glutine', icon: '🌾', color: '#D97706' },
-  { id: 'latte', name: 'Latte', icon: '🥛', color: '#0EA5E9' },
-  { id: 'uova', name: 'Uova', icon: '🥚', color: '#EAB308' },
-  { id: 'pesce', name: 'Pesce', icon: '🐟', color: '#0891B2' },
-  { id: 'crostacei', name: 'Crostacei', icon: '🦐', color: '#EA580C' },
-  { id: 'molluschi', name: 'Molluschi', icon: '🦪', color: '#0369A1' },
-  { id: 'frutta-guscio', name: 'Frutta a guscio', icon: '🥜', color: '#92400E' },
-  { id: 'arachidi', name: 'Arachidi', icon: '🥜', color: '#A16207' },
-  { id: 'soia', name: 'Soia', icon: '🌱', color: '#65A30D' },
-  { id: 'lupini', name: 'Lupini', icon: '🫘', color: '#B45309' },
-  { id: 'sedano', name: 'Sedano', icon: '🥬', color: '#16A34A' },
-  { id: 'senape', name: 'Senape', icon: '🌾', color: '#CA8A04' },
-  { id: 'sesamo', name: 'Sesamo', icon: '🌰', color: '#78350F' },
-  { id: 'solfiti', name: 'Solfiti', icon: '🍷', color: '#9333EA' },
-];
+// ─── Allergeni: il dizionario è UNO (P-109 · D-27) ─────────────────────────
+// Il menù usa PN_ALLERGENI (panoramica-tokens.jsx), identificato dai codici
+// del modello (gluten, milk, nuts…): lo stesso elenco delle prenotazioni e
+// dell'app. La dichiarazione dell'ospite deve incontrare gli ingredienti dei
+// piatti, e con due elenchi diversi (`latte` contro `lattosio`,
+// `frutta-guscio` contro `fruttaguscio`) non li incontrava. Qui resta solo la
+// resa a schermo: l'ordine di sempre e i colori dei bollini (glifi sotto).
+const ALLERGEN_ORDER = ['gluten','milk','eggs','fish','crustaceans','molluscs','nuts','peanuts','soybeans','lupin','celery','mustard','sesame','sulphites'];
+const ALLERGEN_COLORS = { gluten:'#D97706', milk:'#0EA5E9', eggs:'#EAB308', fish:'#0891B2', crustaceans:'#EA580C', molluscs:'#0369A1', nuts:'#92400E', peanuts:'#A16207', soybeans:'#65A30D', lupin:'#B45309', celery:'#16A34A', mustard:'#CA8A04', sesame:'#78350F', sulphites:'#9333EA' };
+const ALLERGENS = ALLERGEN_ORDER.map(id => {
+  const a = (window.PN_ALLERGENI_MAP || {})[id] || { id, label: id, icon: '' };
+  return { id, name: a.label, icon: a.icon, color: ALLERGEN_COLORS[id] };
+});
 
 // Importi proposti per il servizio, per modalità. Lo 0 è "nessun servizio" e
 // c'è in entrambe: toglierlo obbligherebbe a passare da un'altra impostazione
@@ -44,7 +41,7 @@ const SERVIZIO_OPZIONI = {
 // la metà di questi non esiste.
 const ALLERGEN_GLYPHS = {
   // Spiga: chicchi appaiati lungo il culmo.
-  glutine: (c) => (
+  gluten: (c) => (
     <g>
       <path d="M12 21.6v-8.4" stroke={c} strokeWidth="1.9" strokeLinecap="round"/>
       <g fill={c}>
@@ -57,19 +54,19 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Bicchiere pieno: il cartone, a questa taglia, leggeva come una borsa.
-  latte: (c) => (
+  milk: (c) => (
     <g>
       <path d="M6.7 3.4h10.6l-1.3 16A1.9 1.9 0 0 1 14.1 21.2H9.9A1.9 1.9 0 0 1 8 19.4L6.7 3.4Z" fill={c}/>
       <path d="M7.1 7.3h9.8" stroke="#fff" strokeWidth="1.7" opacity=".85" strokeLinecap="round"/>
     </g>
   ),
-  uova: (c) => (
+  eggs: (c) => (
     <g>
       <path d="M12 3.1c3.3 0 6 4.7 6 9 0 4.1-2.7 6.9-6 6.9s-6-2.8-6-6.9c0-4.3 2.7-9 6-9Z" fill={c}/>
       <ellipse cx="9.6" cy="10.2" rx="1.4" ry="2.1" fill="#fff" opacity=".6" transform="rotate(-22 9.6 10.2)"/>
     </g>
   ),
-  pesce: (c) => (
+  fish: (c) => (
     <g fill={c}>
       <path d="M15.8 12c-1.8 3.2-4.7 5.1-8 5.1S3.6 15.2 1.8 12c1.8-3.2 4.7-5.1 8-5.1s6.2 1.9 8 5.1Z"/>
       <path d="M15.3 8.2 21.6 12l-6.3 3.8c.6-1.2.9-2.5.9-3.8s-.3-2.6-.9-3.8Z"/>
@@ -77,7 +74,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Granchio: corpo, chele e zampe — più riconoscibile del gambero a 14px.
-  crostacei: (c) => (
+  crustaceans: (c) => (
     <g>
       <path d="M8.4 11.2 10.4 13.6M15.6 11.2 13.6 13.6M5.8 16.6 2.9 15.4M5.9 19.2 3.5 20.8M18.2 16.6 21.1 15.4M18.1 19.2 20.5 20.8"
         stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
@@ -90,7 +87,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Capasanta: ventaglio con le costole e la cerniera.
-  molluschi: (c) => (
+  molluscs: (c) => (
     <g>
       <path d="M2.7 9.8q1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0 1.85-3.3 3.7 0L12 19.4Z" fill={c}/>
       <path d="M12 19 7.1 10.6M12 19l-1.3-8.4M12 19l1.3-8.4M12 19l4.9-8.4" stroke="#fff" strokeWidth="1.1" opacity=".65" strokeLinecap="round"/>
@@ -98,7 +95,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Nocciola: guscio pieno, cupola in trasparenza, picciolo.
-  'frutta-guscio': (c) => (
+  nuts: (c) => (
     <g>
       <path d="M12 21.4c-3.9 0-6.9-2.9-6.9-6.7 0-2.5 1.3-4.7 3.3-5.9h7.2c2 1.2 3.3 3.4 3.3 5.9 0 3.8-3 6.7-6.9 6.7Z" fill={c}/>
       <path d="M6.5 8.6c1.3-1.9 3.2-2.9 5.5-2.9s4.2 1 5.5 2.9c-.9 1-2.9 1.6-5.5 1.6s-4.6-.6-5.5-1.6Z" fill="#fff" opacity=".92"/>
@@ -106,7 +103,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Arachide: due lobi e la strozzatura.
-  arachidi: (c) => (
+  peanuts: (c) => (
     <g>
       <g fill={c}>
         <circle cx="8.5" cy="15.5" r="4.6"/>
@@ -118,7 +115,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Baccello di soia coi tre semi.
-  soia: (c) => (
+  soybeans: (c) => (
     <g>
       <path d="M5.5 18.5a4.1 4.1 0 0 1 0-5.8l7.2-7.2a4.1 4.1 0 1 1 5.8 5.8l-7.2 7.2a4.1 4.1 0 0 1-5.8 0Z" fill={c}/>
       <g fill="#fff" opacity=".7">
@@ -129,7 +126,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Lupini: tre semi piatti, ognuno col suo ilo.
-  lupini: (c) => (
+  lupin: (c) => (
     <g>
       <g fill={c}>
         <ellipse cx="8.4" cy="9.2" rx="4.3" ry="3.4" transform="rotate(-18 8.4 9.2)"/>
@@ -144,7 +141,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Sedano: le costole del gambo e la corona di foglie.
-  sedano: (c) => (
+  celery: (c) => (
     <g>
       <path d="M12 21.4V11.8M8.4 21.4c-.7-3.4-.3-6.4 1.3-8.8M15.6 21.4c.7-3.4.3-6.4-1.3-8.8"
         stroke={c} strokeWidth="2.3" strokeLinecap="round"/>
@@ -158,7 +155,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Senape: il flacone da tavola.
-  senape: (c) => (
+  mustard: (c) => (
     <g>
       <path d="M10.3 5.7h3.4l1.5 2.2c.5.8.8 1.7.8 2.6v8.2a2.4 2.4 0 0 1-2.4 2.4h-3.2A2.4 2.4 0 0 1 8 18.7v-8.2c0-.9.3-1.8.8-2.6l1.5-2.2Z" fill={c}/>
       <rect x="9.8" y="2.7" width="4.4" height="3.2" rx="1.1" fill={c}/>
@@ -166,7 +163,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Semi di sesamo sparsi.
-  sesamo: (c) => (
+  sesame: (c) => (
     <g fill={c}>
       <ellipse cx="8" cy="7.4" rx="1.5" ry="2.5" transform="rotate(-28 8 7.4)"/>
       <ellipse cx="15.6" cy="6.6" rx="1.5" ry="2.5" transform="rotate(24 15.6 6.6)"/>
@@ -177,7 +174,7 @@ const ALLERGEN_GLYPHS = {
     </g>
   ),
   // Calice: i solfiti si dichiarano soprattutto sul vino.
-  solfiti: (c) => (
+  sulphites: (c) => (
     <g>
       <path d="M6.6 3.4h10.8v3.3a5.4 5.4 0 0 1-10.8 0V3.4Z" fill={c}/>
       <path d="M12 12.1v7.1M8.2 20h7.6" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
@@ -187,7 +184,9 @@ const ALLERGEN_GLYPHS = {
 };
 
 function AllergenIcon({ id, size = 22 }) {
-  const a = ALLERGENS.find(x => x.id === id);
+  // Accetta anche gli alias di prima di P-109 (`latte`, `frutta-guscio`).
+  const voce = window.pnAllergene ? window.pnAllergene(id) : null;
+  const a = ALLERGENS.find(x => x.id === (voce ? voce.id : id));
   if (!a) return null;
   const glyph = ALLERGEN_GLYPHS[a.id];
   return (
@@ -245,16 +244,16 @@ const DISH_LIBRARY = [
   // descriptionIsAiGenerated / descriptionAiProvenanceId (P-40 · D-32): la
   // descrizione scritta col comando assistito porta la marca e la provenienza
   // (PN_AI_PROVENIENZE); il nome non è mai generato e non porta nulla.
-  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0001', descriptionAiGeneratedAt: '2026-09-16T10:12:00Z', allergens: ['glutine'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') , ingredients: [{name:'Pane casereccio',removable:false,allergens:['glutine']},{name:'Pomodoro',removable:false,allergens:[]},{name:'Basilico',removable:true,allergens:[]},{name:'Aglio',removable:true,allergens:[]},{name:'Olio EVO',removable:false,allergens:[]}]},
-  { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['latte'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') , ingredients: [{name:'Burrata',removable:false,allergens:['latte']},{name:'Prosciutto crudo',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]}]},
-  { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['latte','frutta-guscio'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') , ingredients: [{name:'Salumi misti',removable:false,allergens:[]},{name:'Formaggi locali',removable:false,allergens:['latte']},{name:'Marmellata',removable:true,allergens:[]},{name:'Noci',removable:true,allergens:['frutta-guscio']}]},
-  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pecorino',removable:false,allergens:['latte']},{name:'Uovo',removable:false,allergens:['uova']},{name:'Pepe nero',removable:true,allergens:[]}]},
-  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0002', descriptionAiGeneratedAt: '2026-09-18T15:40:00Z', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['glutine']},{name:'Pecorino romano DOP',removable:false,allergens:['latte']},{name:'Pepe nero',removable:true,allergens:[]}]},
-  { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['glutine','latte'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') , ingredients: [{name:'Bucatini',removable:false,allergens:['glutine']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pomodoro San Marzano',removable:false,allergens:[]},{name:'Pecorino',removable:true,allergens:['latte']}]},
-  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['latte'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') , ingredients: [{name:'Controfiletto di scottona',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]},{name:'Scaglie di grana',removable:true,allergens:['latte']},{name:'Olio EVO',removable:false,allergens:[]}]},
-  { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['pesce'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') , ingredients: [{name:'Branzino',removable:false,allergens:['pesce']},{name:'Patate',removable:false,allergens:[]},{name:'Rosmarino',removable:true,allergens:[]},{name:'Sale grosso',removable:false,allergens:[]}]},
-  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['glutine','uova','latte'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') , ingredients: [{name:'Savoiardi',removable:false,allergens:['glutine']},{name:'Mascarpone',removable:false,allergens:['latte']},{name:'Uova',removable:false,allergens:['uova']},{name:'Caffè',removable:false,allergens:[]},{name:'Cacao',removable:true,allergens:[]}]},
-  { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['latte'], photo: DISH_PHOTO('photo-1488477181946-6428a0291777') , ingredients: [{name:'Panna fresca',removable:false,allergens:['latte']},{name:'Lamponi',removable:true,allergens:[]},{name:'Mirtilli',removable:true,allergens:[]},{name:'Zucchero',removable:false,allergens:[]}]},
+  { id:'a1', name: 'Bruschetta al pomodoro', desc: 'Pane casereccio tostato, pomodoro fresco, basilico, aglio', cat: 'Antipasti', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0001', descriptionAiGeneratedAt: '2026-09-16T10:12:00Z', allergens: ['gluten'], photo: DISH_PHOTO('photo-1572695157366-5e585ab2b69f') , ingredients: [{name:'Pane casereccio',removable:false,allergens:['gluten']},{name:'Pomodoro',removable:false,allergens:[]},{name:'Basilico',removable:true,allergens:[]},{name:'Aglio',removable:true,allergens:[]},{name:'Olio EVO',removable:false,allergens:[]}]},
+  { id:'a2', name: 'Burrata con crudo', desc: 'Burrata pugliese, prosciutto crudo di Parma 24 mesi', cat: 'Antipasti', allergens: ['milk'], photo: DISH_PHOTO('photo-1529312266912-b33cfce2eefd') , ingredients: [{name:'Burrata',removable:false,allergens:['milk']},{name:'Prosciutto crudo',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]}]},
+  { id:'a3', name: 'Tagliere salumi e formaggi', desc: 'Selezione di salumi e formaggi locali con marmellate', cat: 'Antipasti', allergens: ['milk','nuts'], photo: DISH_PHOTO('photo-1541529086526-db283c563270') , ingredients: [{name:'Salumi misti',removable:false,allergens:[]},{name:'Formaggi locali',removable:false,allergens:['milk']},{name:'Marmellata',removable:true,allergens:[]},{name:'Noci',removable:true,allergens:['nuts']}]},
+  { id:'p1', name: 'Carbonara', desc: 'Tonnarelli, guanciale, pecorino, uovo, pepe nero', cat: 'Primi', allergens: ['gluten','eggs','milk'], photo: DISH_PHOTO('photo-1612874742237-6526221588e3') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['gluten']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pecorino',removable:false,allergens:['milk']},{name:'Uovo',removable:false,allergens:['eggs']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p2', name: 'Cacio e Pepe', desc: 'Tonnarelli, pecorino romano DOP, pepe nero macinato fresco', cat: 'Primi', descriptionIsAiGenerated: true, descriptionAiProvenanceId: 'prov-0002', descriptionAiGeneratedAt: '2026-09-18T15:40:00Z', allergens: ['gluten','milk'], photo: DISH_PHOTO('photo-1608756687911-aa1599ab3bd9') , ingredients: [{name:'Tonnarelli',removable:false,allergens:['gluten']},{name:'Pecorino romano DOP',removable:false,allergens:['milk']},{name:'Pepe nero',removable:true,allergens:[]}]},
+  { id:'p3', name: 'Amatriciana', desc: 'Bucatini, guanciale, pomodoro San Marzano, pecorino', cat: 'Primi', allergens: ['gluten','milk'], photo: DISH_PHOTO('photo-1621996346565-e3dbc646d9a9') , ingredients: [{name:'Bucatini',removable:false,allergens:['gluten']},{name:'Guanciale',removable:false,allergens:[]},{name:'Pomodoro San Marzano',removable:false,allergens:[]},{name:'Pecorino',removable:true,allergens:['milk']}]},
+  { id:'s1', name: 'Tagliata di manzo', desc: 'Controfiletto di scottona, rucola, scaglie di grana', cat: 'Secondi', allergens: ['milk'], photo: DISH_PHOTO('photo-1600891964092-4316c288032e') , ingredients: [{name:'Controfiletto di scottona',removable:false,allergens:[]},{name:'Rucola',removable:true,allergens:[]},{name:'Scaglie di grana',removable:true,allergens:['milk']},{name:'Olio EVO',removable:false,allergens:[]}]},
+  { id:'s2', name: 'Branzino al forno', desc: 'Branzino in crosta di sale, patate al rosmarino', cat: 'Secondi', allergens: ['fish'], photo: DISH_PHOTO('photo-1467003909585-2f8a72700288') , ingredients: [{name:'Branzino',removable:false,allergens:['fish']},{name:'Patate',removable:false,allergens:[]},{name:'Rosmarino',removable:true,allergens:[]},{name:'Sale grosso',removable:false,allergens:[]}]},
+  { id:'d1', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', cat: 'Dolci', allergens: ['gluten','eggs','milk'], photo: DISH_PHOTO('photo-1571877227200-a0d98ea607e9') , ingredients: [{name:'Savoiardi',removable:false,allergens:['gluten']},{name:'Mascarpone',removable:false,allergens:['milk']},{name:'Uova',removable:false,allergens:['eggs']},{name:'Caffè',removable:false,allergens:[]},{name:'Cacao',removable:true,allergens:[]}]},
+  { id:'d2', name: 'Panna cotta ai frutti di bosco', desc: 'Coulis di lamponi e mirtilli', cat: 'Dolci', allergens: ['milk'], photo: DISH_PHOTO('photo-1488477181946-6428a0291777') , ingredients: [{name:'Panna fresca',removable:false,allergens:['milk']},{name:'Lamponi',removable:true,allergens:[]},{name:'Mirtilli',removable:true,allergens:[]},{name:'Zucchero',removable:false,allergens:[]}]},
 ];
 
 const CAT_ICON = { 'Antipasti':'food-salad', 'Primi':'food-pasta', 'Secondi':'food-steak', 'Contorni':'food-vegetables', 'Dolci':'food-dessert', 'Bevande':'drink-juice' };
@@ -3519,7 +3518,12 @@ function MCDettagliPiatto({
   const [recipeSteps, setRecipeSteps] = React.useState(dish.recipeSteps || ['']);
   const [dietaryTags, setDietaryTags] = React.useState(() =>
     (dish.dietaryTags || []).map(t => typeof t === 'string' ? {name: t, surcharge: ''} : t));
-  const [prodottoFinito, setProdottoFinito] = React.useState(dish.prodottoFinito || false);
+  // P-108 (D-105): la TIPOLOGIA dell'articolo (PN_TIPOLOGIE_ARTICOLO) al
+  // posto della spunta «Prodotto finito». Non è l'IVA: è che cosa il piatto
+  // è, e l'aliquota della riga d'ordine discende da tipologia × modo di
+  // consumo, come per il fuori menù in cassa. Nome distinto da `tipologia`
+  // del menù (à la carte / all you can eat), che vive in un altro punto.
+  const [tipologiaArticolo, setTipologiaArticolo] = React.useState(dish.tipologia || window.PN_TIPOLOGIA_DEFAULT);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish.hasAlcohol || false);
   const [hasFrozen, setHasFrozen] = React.useState(dish.hasFrozen || false);
   const [tipOpen, setTipOpen] = React.useState(null);
@@ -3597,7 +3601,7 @@ function MCDettagliPiatto({
       descriptionAiGeneratedAt: descAi ? descAi.at : null,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(String(foodCost).replace(',', '.')) : null,
-      prodottoFinito, hasAlcohol, hasFrozen, recipeSteps,
+      tipologia: tipologiaArticolo, hasAlcohol, hasFrozen, recipeSteps,
       ingredients, extras, variants, dietaryTags, photos,
     });
     onUpdateItem({
@@ -3731,16 +3735,14 @@ function MCDettagliPiatto({
             </button>
 
             {/* Le dichiarazioni stanno con quello che descrive il piatto, non
-                in fondo dopo prezzo e foto: sono la sua carta d'identità e
-                decidono l'IVA. */}
+                in fondo dopo prezzo e foto: sono la sua carta d'identità.
+                Non governano più l'IVA (P-108): quella discende dalla
+                tipologia, qui sotto, dopo il prezzo. */}
             <MCSezione title="Dichiarazioni">
               <div style={{display: 'flex', flexWrap: 'wrap', gap: 7}}>
-                <DishFlag checked={prodottoFinito} onChange={() => setProdottoFinito(v => !v)}
-                  label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
-                  info={{id: 'finito', open: tipOpen, setOpen: setTipOpen, text: "Venduto sigillato, così come arriva. Es. acqua in bottiglietta, birra in lattina, snack confezionati. IVA 22% sull'asporto anziché 10%."}}/>
                 <DishFlag checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
                   label="Contiene alcolici" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
-                  info={{id: 'alcol', open: tipOpen, setOpen: setTipOpen, text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. IVA 22% sull'asporto e vendita vietata ai minori."}}/>
+                  info={{id: 'alcol', open: tipOpen, setOpen: setTipOpen, text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. Vendita vietata ai minori e avviso al cliente."}}/>
                 <DishFlag checked={hasFrozen} onChange={() => setHasFrozen(v => !v)}
                   label="Contiene alimenti surgelati" accent="#2563EB" accentBg="#EFF6FF" accentBorder="#60A5FA"/>
               </div>
@@ -3754,6 +3756,16 @@ function MCDettagliPiatto({
                 <MCEuro value={foodCost} onChange={setFoodCost}/>
               </MCCampo>
             </div>
+
+            {/* P-108 (D-105): la tipologia dell'articolo, dopo il prezzo. Le
+                stesse cinque voci della cassa, la stessa spiegazione sotto
+                con le due aliquote e il fondamento: chi compila dichiara che
+                cosa vende, l'IVA la fissa la legge. */}
+            <MCCampo label="Tipologia articolo" hint={window.pnTipologiaSpiegazione ? window.pnTipologiaSpiegazione(tipologiaArticolo) : ''}>
+              <select value={tipologiaArticolo} onChange={e => setTipologiaArticolo(e.target.value)} style={{...MC_INPUT, cursor: 'pointer'}}>
+                {(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </MCCampo>
 
             <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
               <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 7}}>
@@ -5529,14 +5541,14 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
     currentPrice !== undefined ? String(currentPrice.toFixed(2)).replace('.', ',') : ''
   );
   const [foodCost, setFoodCost] = React.useState(dish?.foodCost ? dish.foodCost.toFixed(2) : '');
-  // Tre dichiarazioni indipendenti, tre assi diversi — nessuna dice se il
+  // Due dichiarazioni indipendenti, due assi diversi — nessuna dice se il
   // piatto passa dalla cucina, quello lo decidono il flusso ordini e i monitor.
-  //   prodottoFinito → come è confezionato (sigillato, nessuna manipolazione)
-  //   hasAlcohol     → cosa contiene
-  //   hasFrozen      → come è conservato un ingrediente
-  // I primi due portano entrambi l'asporto al 22%, ma per ragioni diverse e
-  // senza implicarsi: la birra alla spina è alcolica e non è un prodotto finito.
-  const [prodottoFinito, setProdottoFinito] = React.useState(dish?.prodottoFinito || false);
+  //   hasAlcohol → cosa contiene (divieto ai minori, avviso al cliente)
+  //   hasFrozen  → come è conservato un ingrediente (dicitura di legge)
+  // Nessuna delle due governa l'IVA (P-108 · D-105): quella discende dalla
+  // TIPOLOGIA dell'articolo e dal modo di consumo. La spunta «Prodotto
+  // finito» è morta: la tipologia la sostituisce e non aveva altri usi.
+  const [tipologiaArticolo, setTipologiaArticolo] = React.useState(dish?.tipologia || window.PN_TIPOLOGIA_DEFAULT);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish?.hasAlcohol || false);
   const [hasFrozen, setHasFrozen] = React.useState(dish?.hasFrozen || false);
   const [tipOpen, setTipOpen] = React.useState(null); // tooltip aperto: {id,x,y} o null
@@ -5557,8 +5569,8 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
     ? { provId: dish.descriptionAiProvenanceId, at: dish.descriptionAiGeneratedAt } : null);
   const scriviDesc = (v) => { setDesc(v); if (!v.trim()) setDescAi(null); };
   const [ingredients, setIngredients] = React.useState(dish?.ingredients || [
-    { name:'Tonnarelli', removable:false, allergens:['glutine'] },
-    { name:'Pecorino DOP', removable:false, allergens:['latte'] },
+    { name:'Tonnarelli', removable:false, allergens:['gluten'] },
+    { name:'Pecorino DOP', removable:false, allergens:['milk'] },
     { name:'Pepe nero', removable:true, allergens:[] },
   ]);
   const [extras, setExtras] = React.useState(dish?.extras || []);
@@ -5603,7 +5615,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
         const prov = window.pnAiProvenienza('menu_items.description', dish?.id || 'nuovo');
         setDescAi({ provId: prov.id, at: prov.generated_at });
       }
-      if (allergens.length === 0) setAllergens(['glutine','latte']);
+      if (allergens.length === 0) setAllergens(['gluten','milk']);
       setRecipeSteps(['Preparare gli ingredienti.', 'Cuocere secondo la ricetta tradizionale.', 'Impiattare e servire.']);
       setAiLoading(false);
     }, 1200);
@@ -5622,7 +5634,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
       cat,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(foodCost.replace(',','.')) : null,
-      prodottoFinito, hasAlcohol, hasFrozen, recipeSteps,
+      tipologia: tipologiaArticolo, hasAlcohol, hasFrozen, recipeSteps,
       ingredients, extras, variants, dietaryTags,
     };
     if (!fromLibrary && catName) {
@@ -5721,15 +5733,6 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                   />
                 </ImpField>
               </div>
-              {!fromLibrary && (
-                <ImpField label="Categoria" style={{flex:'0 0 160px'}}>
-                  <select value={cat} onChange={e=>setCat(e.target.value)} style={{
-                    width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE,
-                  }}>
-                    {ALL_CATS.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </ImpField>
-              )}
               {/* IVA inclusa: il ristoratore scrive il prezzo di listino,
                   quello che il cliente paga — lo scorporo e un lavoro del
                   gestionale, non suo. Il food cost accanto resta netto:
@@ -5746,6 +5749,32 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                   width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none',
                 }}/>
               </ImpField>
+            </div>
+
+            {/* riga 1b — la tipologia dell'articolo (P-108 · D-105), dopo il
+                prezzo e prima della categoria del menù. Le stesse cinque voci
+                della cassa, la prima proposta, la spiegazione sotto con le
+                due aliquote e il fondamento: chi compila dichiara che cosa
+                vende, l'IVA della riga d'ordine la fissa la legge. */}
+            <div style={{display:'flex', gap:12, alignItems:'flex-start', flexWrap:'wrap'}}>
+              <div style={{flex:'1 1 320px', minWidth:0}}>
+                <ImpField label="Tipologia articolo" hint={window.pnTipologiaSpiegazione ? window.pnTipologiaSpiegazione(tipologiaArticolo) : ''}>
+                  <select value={tipologiaArticolo} onChange={e=>setTipologiaArticolo(e.target.value)} style={{
+                    width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE, cursor:'pointer',
+                  }}>
+                    {(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                  </select>
+                </ImpField>
+              </div>
+              {!fromLibrary && (
+                <ImpField label="Categoria" style={{flex:'0 0 200px'}}>
+                  <select value={cat} onChange={e=>setCat(e.target.value)} style={{
+                    width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE,
+                  }}>
+                    {ALL_CATS.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </ImpField>
+              )}
             </div>
 
 
@@ -5813,36 +5842,24 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
               </div>
             </div>
 
-            {/* riga 3 — i tre flag dichiarativi, sempre in chiaro e mai dentro
+            {/* riga 3 — i due flag dichiarativi, sempre in chiaro e mai dentro
                 un collassabile: "surgelati" è una dicitura di legge (D.Lgs.
                 109/92) e nasconderla dietro un accordion la fa dimenticare.
-                Nessuno dei tre dice chi prepara il piatto.
+                Nessuno dei due dice chi prepara il piatto, e nessuno dei due
+                tocca l'IVA (P-108): quella discende dalla tipologia sopra.
+                «Prodotto finito» non c'è più: la tipologia la sostituisce.
 
-                Tre pari grado, non annidati: sono assi indipendenti e ogni
-                combinazione esiste davvero. Una birra alla spina è alcolica ma
-                NON è un prodotto finito (la spilli), un gelato confezionato è
-                finito E surgelato, uno sgroppino è alcolico E surgelato.
-                Annidare "alcolici" sotto "finito" prometteva un sottoinsieme
-                che non c'è — e non ci sarebbe stata ragione per annidare quello
-                e non "surgelati".
-
-                Colori per asse, non decorativi: neutro = come è confezionato,
-                ambra = cosa contiene, blu = come è conservato. */}
+                Pari grado, non annidati: assi indipendenti, ogni combinazione
+                esiste davvero (uno sgroppino è alcolico E surgelato).
+                Colori per asse, non decorativi: ambra = cosa contiene,
+                blu = come è conservato. */}
             <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
-              <DishFlag
-                checked={prodottoFinito} onChange={() => setProdottoFinito(v => !v)}
-                label="Prodotto finito" accent="#475569" accentBg="#F1F5F9" accentBorder="#94A3B8"
-                info={{
-                  id: 'finito', open: tipOpen, setOpen: setTipOpen,
-                  text: "Venduto sigillato, così come arriva. Es. acqua in bottiglietta, birra in lattina, snack confezionati. IVA 22% sull'asporto anziché 10%.",
-                }}
-              />
               <DishFlag
                 checked={hasAlcohol} onChange={() => setHasAlcohol(v => !v)}
                 label="Contiene alcolici" accent="#B45309" accentBg="#FFFBEB" accentBorder="#FCD34D"
                 info={{
                   id: 'alcol', open: tipOpen, setOpen: setTipOpen,
-                  text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. IVA 22% sull'asporto e vendita vietata ai minori.",
+                  text: "Vale anche se lo prepari tu: birra alla spina, vino al calice, cocktail. Vendita vietata ai minori e avviso al cliente.",
                 }}
               />
               <DishFlag
@@ -6203,17 +6220,17 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
 
 const INGREDIENTS_INIT = [
   { name: 'Pomodoro',     usedInDishes: ['Bruschetta al pomodoro','Amatriciana','Caprese','Pizza Margherita','Penne arrabbiata','Insalata mista','Tagliata di manzo','Bresaola e rucola'], allergens: [] },
-  { name: 'Mozzarella',   usedInDishes: ['Caprese','Pizza Margherita','Burrata con crudo','Parmigiana','Insalata caprese','Pizza diavola'], allergens: ['latte'] },
+  { name: 'Mozzarella',   usedInDishes: ['Caprese','Pizza Margherita','Burrata con crudo','Parmigiana','Insalata caprese','Pizza diavola'], allergens: ['milk'] },
   { name: 'Basilico',     usedInDishes: ['Bruschetta al pomodoro','Caprese','Pizza Margherita','Pesto alla genovese','Pomodoro e basilico'], allergens: [] },
   { name: 'Guanciale',    usedInDishes: ['Carbonara','Amatriciana','Gricia'], allergens: [] },
-  { name: 'Pecorino',     usedInDishes: ['Carbonara','Cacio e Pepe','Amatriciana','Gricia'], allergens: ['latte'] },
-  { name: 'Uova',         usedInDishes: ['Carbonara','Tiramisù della casa','Frittata','Pasta all\'uovo','Zabaione','Crème brûlée','Maionese'], allergens: ['uova'] },
-  { name: 'Spaghetti',    usedInDishes: ['Carbonara','Spaghetti al pomodoro','Aglio e olio','Vongole'], allergens: ['glutine'] },
+  { name: 'Pecorino',     usedInDishes: ['Carbonara','Cacio e Pepe','Amatriciana','Gricia'], allergens: ['milk'] },
+  { name: 'Uova',         usedInDishes: ['Carbonara','Tiramisù della casa','Frittata','Pasta all\'uovo','Zabaione','Crème brûlée','Maionese'], allergens: ['eggs'] },
+  { name: 'Spaghetti',    usedInDishes: ['Carbonara','Spaghetti al pomodoro','Aglio e olio','Vongole'], allergens: ['gluten'] },
   { name: 'Olio EVO',     usedInDishes: ['Bruschetta al pomodoro','Insalata mista','Caprese','Pesto','Aglio e olio','Pinzimonio','Tagliata','Branzino','Verdure grigliate','Bruschetta'], allergens: [] },
   { name: 'Sale',         usedInDishes: ['(usato in molti piatti)'], allergens: [] },
-  { name: 'Burro',        usedInDishes: ['Tortellini in brodo','Risotto','Tagliata','Patate al forno','Tiramisù','Crema pasticcera'], allergens: ['latte'] },
-  { name: 'Farina 00',    usedInDishes: ['Pizza Margherita','Pasta fresca','Tiramisù','Crema pasticcera','Pane casereccio','Tagliatelle','Lasagne','Pasta all\'uovo','Crostata'], allergens: ['glutine'] },
-  { name: 'Vino bianco',  usedInDishes: ['Risotto al vino bianco','Vongole','Branzino al forno','Cozze alla marinara'], allergens: ['solfiti'] },
+  { name: 'Burro',        usedInDishes: ['Tortellini in brodo','Risotto','Tagliata','Patate al forno','Tiramisù','Crema pasticcera'], allergens: ['milk'] },
+  { name: 'Farina 00',    usedInDishes: ['Pizza Margherita','Pasta fresca','Tiramisù','Crema pasticcera','Pane casereccio','Tagliatelle','Lasagne','Pasta all\'uovo','Crostata'], allergens: ['gluten'] },
+  { name: 'Vino bianco',  usedInDishes: ['Risotto al vino bianco','Vongole','Branzino al forno','Cozze alla marinara'], allergens: ['sulphites'] },
 ];
 
 // Libreria condivisa: viene letta sia da MCIngredienti sia da IngredientList nel modal piatto.
@@ -8159,35 +8176,35 @@ const MOCK_EXTRACTED = {
     {
       name: 'Antipasti',
       dishes: [
-        { id: 'ai-bruschette', name: 'Bruschette miste', desc: 'Pomodorini, olive taggiasche, paté di funghi', allergens: ['glutine'], price: 8.00, kcal: 240 },
-        { id: 'ai-tagliere', name: 'Tagliere di salumi e formaggi', desc: 'Selezione di salumi DOP, formaggi e mostarda', allergens: ['latte'], price: 14.00, kcal: 480 },
-        { id: 'ai-burrata', name: 'Burrata pugliese con pomodorini', desc: 'Burrata fresca, pomodorini confit, basilico', allergens: ['latte'], price: 12.00, kcal: 320 },
+        { id: 'ai-bruschette', name: 'Bruschette miste', desc: 'Pomodorini, olive taggiasche, paté di funghi', allergens: ['gluten'], price: 8.00, kcal: 240 },
+        { id: 'ai-tagliere', name: 'Tagliere di salumi e formaggi', desc: 'Selezione di salumi DOP, formaggi e mostarda', allergens: ['milk'], price: 14.00, kcal: 480 },
+        { id: 'ai-burrata', name: 'Burrata pugliese con pomodorini', desc: 'Burrata fresca, pomodorini confit, basilico', allergens: ['milk'], price: 12.00, kcal: 320 },
       ],
     },
     {
       name: 'Primi',
       dishes: [
-        { id: 'ai-carbonara', name: 'Spaghetti alla carbonara', desc: 'Guanciale croccante, pecorino, uovo', allergens: ['glutine','uova','latte'], price: 13.00, kcal: 720 },
-        { id: 'ai-cacio', name: 'Tonnarelli cacio e pepe', desc: 'Pasta fresca, pecorino romano DOP', allergens: ['glutine','latte'], price: 13.00, kcal: 680 },
-        { id: 'ai-amatriciana', name: 'Bucatini all\'amatriciana', desc: 'Guanciale, pomodoro, pecorino', allergens: ['glutine','latte'], price: 13.00, kcal: 700 },
-        { id: 'ai-gricia', name: 'Rigatoni alla gricia', desc: 'Guanciale e pecorino, senza pomodoro', allergens: ['glutine','latte'], price: 12.00, kcal: 660 },
+        { id: 'ai-carbonara', name: 'Spaghetti alla carbonara', desc: 'Guanciale croccante, pecorino, uovo', allergens: ['gluten','eggs','milk'], price: 13.00, kcal: 720 },
+        { id: 'ai-cacio', name: 'Tonnarelli cacio e pepe', desc: 'Pasta fresca, pecorino romano DOP', allergens: ['gluten','milk'], price: 13.00, kcal: 680 },
+        { id: 'ai-amatriciana', name: 'Bucatini all\'amatriciana', desc: 'Guanciale, pomodoro, pecorino', allergens: ['gluten','milk'], price: 13.00, kcal: 700 },
+        { id: 'ai-gricia', name: 'Rigatoni alla gricia', desc: 'Guanciale e pecorino, senza pomodoro', allergens: ['gluten','milk'], price: 12.00, kcal: 660 },
       ],
     },
     {
       name: 'Secondi',
       dishes: [
         { id: 'ai-saltimbocca', name: 'Saltimbocca alla romana', desc: 'Vitello, prosciutto crudo, salvia, vino bianco', allergens: [], price: 18.00, kcal: 520 },
-        { id: 'ai-coda', name: 'Coda alla vaccinara', desc: 'Coda di bue brasata lentamente in sugo di pomodoro', allergens: ['sedano'], price: 19.00, kcal: 640 },
-        { id: 'ai-baccala', name: 'Baccalà in guazzetto', desc: 'Baccalà mantecato con olive e pomodorini', allergens: ['pesce'], price: 17.00, kcal: 420 },
+        { id: 'ai-coda', name: 'Coda alla vaccinara', desc: 'Coda di bue brasata lentamente in sugo di pomodoro', allergens: ['celery'], price: 19.00, kcal: 640 },
+        { id: 'ai-baccala', name: 'Baccalà in guazzetto', desc: 'Baccalà mantecato con olive e pomodorini', allergens: ['fish'], price: 17.00, kcal: 420 },
       ],
     },
     {
       name: 'Dolci',
       dishes: [
-        { id: 'ai-tiramisu', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', allergens: ['glutine','uova','latte'], price: 7.00, kcal: 380 },
-        { id: 'ai-panna', name: 'Panna cotta ai frutti di bosco', desc: 'Panna cotta classica con coulis di frutti rossi', allergens: ['latte'], price: 6.50, kcal: 320 },
-        { id: 'ai-cannoli', name: 'Cannoli siciliani', desc: 'Ricotta fresca, scorza d\'arancia candita, pistacchi', allergens: ['glutine','latte','frutta a guscio'], price: 7.00, kcal: 410 },
-        { id: 'ai-cassata', name: 'Cassata al forno', desc: 'Pasta frolla, ricotta, canditi, cioccolato', allergens: ['glutine','latte','uova'], price: 7.50, kcal: 460 },
+        { id: 'ai-tiramisu', name: 'Tiramisù della casa', desc: 'Ricetta tradizionale con savoiardi e mascarpone', allergens: ['gluten','eggs','milk'], price: 7.00, kcal: 380 },
+        { id: 'ai-panna', name: 'Panna cotta ai frutti di bosco', desc: 'Panna cotta classica con coulis di frutti rossi', allergens: ['milk'], price: 6.50, kcal: 320 },
+        { id: 'ai-cannoli', name: 'Cannoli siciliani', desc: 'Ricotta fresca, scorza d\'arancia candita, pistacchi', allergens: ['gluten','milk','nuts'], price: 7.00, kcal: 410 },
+        { id: 'ai-cassata', name: 'Cassata al forno', desc: 'Pasta frolla, ricotta, canditi, cioccolato', allergens: ['gluten','milk','eggs'], price: 7.50, kcal: 460 },
       ],
     },
   ],

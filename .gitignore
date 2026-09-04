@@ -57,3 +57,6 @@ _unsplash_*.html
 __MACOSX/
 **/__MACOSX/
 ._*
+
+# Nessuna copia del corpus normativo nel prototipo (DOCUMENTI.md): la raccolta vive in normativa-byup
+Fonti/

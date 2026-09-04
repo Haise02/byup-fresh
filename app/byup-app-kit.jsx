@@ -463,11 +463,25 @@ window.ByupKit = {
 
 // ─── Registro consensi (GDPR) ───────────────────────────────────────────────
 // Un solo posto per TUTTI i consensi dell'app (A3 allergeni, A18 offerte su
-// preferenze, A6 marketing). Suggerimenti e analisi d'uso restano legittimo
-// interesse, e dal 2026-09-03 (P-26 · D-28) hanno il loro INTERRUTTORE in
-// «I miei dati»: non è un consenso, è la misura di bilanciamento della LIA —
-// attivo per difetto, spegnibile in due tocchi, e l'opposizione lascia una
-// riga LI-SUGG in questo stesso log (ByupUso, sotto).
+// preferenze, A6 marketing, dietary_suggestions esigenze alimentari nei
+// suggerimenti) e per le opposizioni del legittimo interesse. Suggerimenti e
+// analisi d'uso restano legittimo interesse, e dal 2026-09-03 (P-26 · D-28)
+// hanno il loro INTERRUTTORE in «I miei dati» — dal 2026-09-04 (P-122)
+// dentro il cassetto «Privacy e consensi», con la riga sull'art. 21: non è
+// un consenso, è la misura di bilanciamento della LIA — attivo per difetto,
+// spegnibile in due tocchi, e ogni cambio lascia in questo stesso log DUE
+// righe coi nomi del modello, recommendations e analytics (ByupUso, sotto).
+//
+// I NOMI DEL MODELLO (P-123, consent_events.consent_type del modello v11):
+//   recommendations      suggerimenti, legittimo interesse, attivi per difetto
+//   analytics            analisi d'uso, legittimo interesse, attive per difetto
+//   dietary_suggestions  esigenze alimentari nei suggerimenti, consenso
+//                        esplicito distinto (art. 9.2.a), spento per difetto
+// Le altre voci tengono l'id del registro dei trattamenti (A3, A18, A6) e la
+// dichiarazione GEN. Hubble legge questo registro dallo stesso dominio, in
+// sola lettura: la scheda utente mostra i tre interruttori con lo stato e la
+// data dell'ultimo evento. Una voce SENZA stato vale «per difetto»: accesi
+// recommendations e analytics, spento dietary_suggestions.
 //
 // REGOLA DI COMPOSIZIONE (chi può ricevere cosa):
 //   promo generiche E su misura sullo storico ordini → basta A6 (che le
@@ -478,27 +492,50 @@ window.ByupKit = {
 //                            «I miei dati» (LI, niente consenso; la città
 //                            viene dal contesto d'uso corrente, MAI dai log
 //                            accesso/sicurezza)
-// Due strutture: lo STATO corrente per consenso e il LOG append-only
+//   esigenze alimentari nei suggerimenti → SOLO con dietary_suggestions
+//                            acceso (D-03, LIA §4): a interruttore spento il
+//                            motore non legge dieta né allergeni
+// Due strutture: lo STATO corrente per voce e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
+//   byup_consent_state  { [consent_type]: { ok, action, quando, versione, natura, valore? } }
+//   byup_consent_data   [ { id, consent_type, action: 'granted'|'revoked', ok,
+//                           natura: 'consenso'|'opposizione'|'dichiarazione',
+//                           quando (ISO), versione, valore?, revocato? }, … ]
 (function () {
   const K_STATO = 'byup_consent_state';
   const K_LOG = 'byup_consent_data';
   const VERSIONE_INFORMATIVA = '1.0';
   const leggi = (k, fb) => { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : fb; } catch (e) { return fb; } };
   const scrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const avvisa = () => { try { window.dispatchEvent(new Event('byup-consensi-change')); } catch (e) {} };
+  // Le tre voci che Hubble mostra come interruttori, coi nomi del modello.
+  const TIPI = {
+    recommendations:     { label: 'Suggerimenti',                          base: 'legittimo interesse', difetto: true },
+    analytics:           { label: "Analisi d'uso",                         base: 'legittimo interesse', difetto: true },
+    dietary_suggestions: { label: 'Esigenze alimentari nei suggerimenti',  base: 'consenso esplicito (art. 9.2.a)', difetto: false },
+  };
+  const appendi = (riga) => { const log = leggi(K_LOG, []); log.push(riga); scrivi(K_LOG, log); };
   window.ByupConsensi = {
     VERSIONE_INFORMATIVA,
-    // {ok, quando, versione} oppure null se mai deciso
+    TIPI,
+    // {ok, action, quando, versione} oppure null se mai deciso
     stato(id) { return leggi(K_STATO, {})[id] || null; },
-    set(id, ok) {
+    // Lo stato EFFETTIVO: quello scritto, o il valore per difetto della voce
+    // (le opposizioni del legittimo interesse partono accese, il consenso
+    // alimentare parte spento; un consenso mai dato è spento).
+    attivo(id) { const st = window.ByupConsensi.stato(id); if (st) return !!st.ok; return !!(TIPI[id] && TIPI[id].difetto); },
+    // `extra` porta la natura della riga: 'consenso' (difetto), 'opposizione'
+    // per le due voci del legittimo interesse, o quel che serve.
+    set(id, ok, extra) {
       const quando = new Date().toISOString();
+      const action = ok ? 'granted' : 'revoked';
+      const natura = (extra && extra.natura) || 'consenso';
       const stato = leggi(K_STATO, {});
-      stato[id] = { ok: !!ok, quando, versione: VERSIONE_INFORMATIVA };
+      stato[id] = { ok: !!ok, action, quando, versione: VERSIONE_INFORMATIVA, natura };
       scrivi(K_STATO, stato);
-      const log = leggi(K_LOG, []);
-      log.push({ id, ok: !!ok, quando, versione: VERSIONE_INFORMATIVA });
-      scrivi(K_LOG, log);
+      appendi(Object.assign({ id, consent_type: id, action, ok: !!ok, natura, quando, versione: VERSIONE_INFORMATIVA }, extra || {}));
+      avvisa();
       return stato[id];
     },
     // Revoca "profonda": azzera anche la decisione (torna "mai chiesto"),
@@ -508,9 +545,8 @@ window.ByupKit = {
       const stato = leggi(K_STATO, {});
       delete stato[id];
       scrivi(K_STATO, stato);
-      const log = leggi(K_LOG, []);
-      log.push({ id, ok: false, revocato: true, quando, versione: VERSIONE_INFORMATIVA });
-      scrivi(K_LOG, log);
+      appendi({ id, consent_type: id, action: 'revoked', ok: false, revocato: true, natura: 'consenso', quando, versione: VERSIONE_INFORMATIVA });
+      avvisa();
     },
     // La DICHIARAZIONE di un dato facoltativo (P-84: il genere): non è un
     // consenso, è la traccia della scelta spontanea — con il valore, così si
@@ -519,14 +555,37 @@ window.ByupKit = {
     dichiara(id, valore) {
       const quando = new Date().toISOString();
       const stato = leggi(K_STATO, {});
-      stato[id] = { ok: true, quando, versione: VERSIONE_INFORMATIVA, valore };
+      stato[id] = { ok: true, action: 'granted', quando, versione: VERSIONE_INFORMATIVA, natura: 'dichiarazione', valore };
       scrivi(K_STATO, stato);
-      const log = leggi(K_LOG, []);
-      log.push({ id, ok: true, valore, natura: 'dichiarazione', quando, versione: VERSIONE_INFORMATIVA });
-      scrivi(K_LOG, log);
+      appendi({ id, consent_type: id, action: 'granted', ok: true, valore, natura: 'dichiarazione', quando, versione: VERSIONE_INFORMATIVA });
+      avvisa();
       return stato[id];
     },
     log() { return leggi(K_LOG, []); },
+    // L'ultimo evento di una voce, per la data a schermo.
+    ultimo(id) { const l = leggi(K_LOG, []).filter(r => (r.consent_type || r.id) === id); return l.length ? l[l.length - 1] : null; },
+  };
+})();
+
+// ─── Registro delle attività (P-122 · D-104, D-107) ────────────────────────
+// La modifica dei dati anagrafici non chiede password né assistenza: il dato
+// è una dichiarazione della persona e su quella Byup si basa. Il presidio è
+// la traccia: ogni modifica scrive una riga con il valore precedente e il
+// nuovo, come i recapiti (D-104), sul modello di audit_events (action,
+// entity_type, old_value, new_value, created_at). Qui in localStorage; nel
+// prodotto è il log immutabile, conservato cinque anni.
+(function () {
+  const K = 'byup_audit_events';
+  const leggi = () => { try { const r = localStorage.getItem(K); return r ? JSON.parse(r) : []; } catch (e) { return []; } };
+  window.ByupAttivita = {
+    scrivi(action, dettagli) {
+      const riga = Object.assign({ action, actor_type: 'user', entity_type: 'user', created_at: new Date().toISOString() }, dettagli || {});
+      const log = leggi(); log.push(riga);
+      if (log.length > 500) log.splice(0, log.length - 500);
+      try { localStorage.setItem(K, JSON.stringify(log)); } catch (e) {}
+      return riga;
+    },
+    eventi: leggi,
   };
 })();
 
@@ -556,21 +615,41 @@ window.ByupKit = {
 //     prodotto non ha (P-82).
 // La sezione sui suggerimenti dice l'interruttore di «I miei dati» (P-26),
 // che ora esiste: «scrivendo all'assistenza» non era più vero.
-// Code documentali registrate, non corrette qui: nessuna sezione sulla
-// posizione che l'app chiede, né sull'accesso con Google; i dati societari
-// sono segnaposto.
+//
+// LA REGOLA DEL MOCKUP (P-113 · D-107): il prototipo mostra il
+// COMPORTAMENTO dell'app, non riporta l'informativa e le condizioni d'uso
+// nella versione depositata — i testi veri entrano nell'app vera. Il testo
+// finto resta finto, ma ciò che dice sul comportamento deve essere vero.
+// Quattro ritocchi del 2026-09-04, più uno che discende da P-123:
+//   · «Dati raccolti» non parla più di «pagine visitate, preferenze,
+//     ricerche», che D-31 ha escluso e il modello non ha: dice i tre eventi
+//     d'uso e l'interruttore che li governa (P-26);
+//   · due sezioni nuove, «Posizione» e «Accesso con Google», perché l'app
+//     chiede l'una e offre l'altro;
+//   · «Prenotazioni e annullamenti» tiene la regola dei conti lasciati
+//     aperti (TOS-01 art. 7): con una quota non saldata non si apre un
+//     nuovo tavolo né si prenota;
+//   · i dati societari (sede, partita IVA) restano finti ma DICHIARATI
+//     tali: fra ⟦ e ⟧, che le due viste rendono con l'evidenziazione da
+//     segnaposto dei documenti (D-73), e la riga sotto l'intestazione che
+//     dice che cosa sono;
+//   · «Suggerimenti personalizzati» e «Preferenze alimentari» dicono il
+//     consenso distinto dietary_suggestions (P-123): a interruttore spento
+//     il motore non legge la dieta, acceso i piatti compatibili salgono.
 const BYUP_LEGAL = {
   INF01: {
     codice: 'INF-01', nome: 'Informativa sulla privacy', versione: '0.6', pubblicata: '2026-08-04',
     sezioni: [
-      { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in Via del Corso 10, 00186 Roma (RM), C.F. / P.IVA 12345678901, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
-      { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati di navigazione e utilizzo dell\'app (pagine visitate, preferenze, ricerche), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente.' },
+      { h: 'Titolare del trattamento', p: 'byup S.r.l., con sede legale in ⟦Via del Corso 10, 00186 Roma (RM)⟧, C.F. / P.IVA ⟦12345678901⟧, è il titolare del trattamento dei dati personali raccolti tramite questa applicazione. Contatto DPO: privacy@byup.it' },
+      { h: 'Dati raccolti', p: 'Raccogliamo i dati che fornisci durante la registrazione (nome, cognome, e-mail, numero di telefono), i dati delle prenotazioni e le preferenze alimentari (allergeni, diete) che scegli di inserire volontariamente. Dell\'uso dell\'app registriamo tre soli eventi — apertura dell\'app, scansione di un QR, menù visto — con la città approssimata del momento, e solo finché tieni acceso l\'interruttore “Suggerimenti e analisi d\'uso” in “I miei dati”; nient\'altro dell\'uso che fai dell\'app.' },
+      { h: 'Posizione', p: 'La chiediamo solo per mostrarti i locali vicini e non la conserviamo. Se non la concedi, l\'app resta usabile con il QR e i link.' },
+      { h: 'Accesso con Google', p: 'Se entri con Google, usiamo il tuo indirizzo per creare l\'account, nient\'altro.' },
       { h: 'Finalità e base giuridica', p: 'I dati sono trattati per: (a) eseguire il contratto di servizio (art. 6.1.b GDPR); (b) adempiere a obblighi legali (art. 6.1.c GDPR); (c) inviarti comunicazioni promozionali, anche personalizzate sul tuo storico ordini su byup, solo previo tuo consenso (art. 6.1.a GDPR); le offerte basate sulle preferenze alimentari richiedono un consenso separato ed esplicito (art. 9.2.a GDPR).' },
-      { h: 'Preferenze alimentari e allergeni', p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Puoi revocare entrambi i consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.' },
+      { h: 'Preferenze alimentari e allergeni', p: 'Allergeni, diete e preferenze alimentari possono rivelare dati su salute o convinzioni religiose (art. 9 GDPR): li trattiamo solo con il tuo consenso esplicito (art. 9.2.a) e solo per filtrare i menù. Con un consenso separato e facoltativo possiamo usarli anche per proporti offerte in linea (es. proposte senza glutine): in quel caso le notifiche hanno testo generico e il dettaglio dell\'offerta è visibile solo in app. Con un altro consenso distinto, l\'interruttore “Usa le mie esigenze alimentari per i suggerimenti” in “Dieta & allergeni”, i piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti. Puoi revocare tutti questi consensi da “I miei dati”: alla revoca del primo, le preferenze salvate vengono cancellate.' },
       { h: 'Conservazione', p: 'I dati dell\'account sono conservati per la durata del rapporto. La cronologia degli accessi è conservata per dodici mesi, il registro immutabile delle operazioni per cinque anni, lo storico nel profilo per ventiquattro mesi.' },
       { h: 'I tuoi diritti', p: 'Hai diritto di accedere, rettificare, cancellare e portare i tuoi dati (artt. 15-20 GDPR). Puoi opporti al trattamento o chiedere la limitazione in qualsiasi momento scrivendo a privacy@byup.it. Hai inoltre il diritto di proporre reclamo al Garante per la Protezione dei Dati Personali (www.garanteprivacy.it).' },
-      { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Non usiamo mai allergeni o preferenze alimentari, né i log di accesso registrati per sicurezza. Puoi spegnere suggerimenti e analisi d\'uso in qualsiasi momento dall\'interruttore in “I miei dati”: torneranno proposte generiche e l\'app smetterà di registrare gli eventi d\'uso.' },
-      { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto in questa informativa e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento dall\'interruttore in “I miei dati”.' },
+      { h: 'Suggerimenti personalizzati', p: 'Per proporti locali e piatti in linea con i tuoi gusti usiamo, sulla base del nostro legittimo interesse (art. 6.1.f GDPR), i gusti che dichiari nel profilo, il tuo storico ordini su byup e la città del tuo contesto d\'uso corrente (posizione usata al volo o città selezionata). Allergeni e preferenze alimentari non entrano nei suggerimenti, salvo che tu lo chieda con il consenso distinto in “Dieta & allergeni”; mai i log di accesso registrati per sicurezza. Puoi spegnere suggerimenti e analisi d\'uso in qualsiasi momento dall\'interruttore in “I miei dati” → “Privacy e consensi”: torneranno proposte generiche e l\'app smetterà di registrare gli eventi d\'uso.' },
+      { h: 'Cookie e tecnologie simili', p: 'L\'app non utilizza cookie di terze parti né strumenti di analisi esterni. Le statistiche su come usi l\'app sono elaborate internamente da byup, come descritto in questa informativa e, se sei autenticato, restano collegate al tuo profilo: puoi opporti in qualsiasi momento dall\'interruttore in “I miei dati” → “Privacy e consensi”.' },
       { h: 'Trasferimenti internazionali', p: 'Alcuni fornitori di servizi (es. infrastruttura cloud) potrebbero trattare dati al di fuori dell\'UE. In tal caso garantiamo adeguate salvaguardie tramite Clausole Contrattuali Standard approvate dalla Commissione Europea.' },
     ],
   },
@@ -579,7 +658,7 @@ const BYUP_LEGAL = {
     sezioni: [
       { h: 'Accettazione dei termini', p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.' },
       { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.' },
-      { h: 'Prenotazioni e annullamenti', p: 'Le prenotazioni si annullano liberamente dall\'app finché sono confermate. La mancata presentazione non comporta alcuna conseguenza sull\'account né sul servizio di prenotazione.' },
+      { h: 'Prenotazioni e annullamenti', p: 'Puoi annullare una prenotazione dall\'app finché è confermata, senza costi. Se non ti presenti, non ti addebitiamo nulla. Resta la regola dei conti lasciati aperti: finché una quota non è saldata, non puoi aprire un nuovo tavolo né prenotare dall\'app.' },
       { h: 'Responsabilità', p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.' },
       { h: 'Proprietà intellettuale', p: 'Tutti i contenuti presenti su byup (logo, testi, immagini, interfaccia) sono di proprietà di byup S.r.l. o dei rispettivi titolari. È vietata qualsiasi riproduzione o utilizzo non autorizzato.' },
       { h: 'Legge applicabile', p: 'I presenti Termini sono regolati dalla legge italiana. Per qualsiasi controversia è competente in via esclusiva il Foro di Roma.' },
@@ -589,6 +668,23 @@ const BYUP_LEGAL = {
 // La riga in testa alle due viste: codice, versione, data — non «Aggiornato
 // il 1 gennaio 2025», che non era di nessun documento.
 BYUP_LEGAL.intestazione = (doc) => `${doc.codice} · versione ${doc.versione} · pubblicata il ${new Date(doc.pubblicata + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+// I segnaposto (P-113 · D-73): i tratti fra ⟦ e ⟧ sono dati finti dichiarati
+// tali. segmenti() spezza un paragrafo in tratti, Paragrafo li rende con
+// l'evidenziazione gialla dei documenti e il titolo «esempio», e le due viste
+// (accesso e Profilo) usano QUESTO componente, così il marcatore non arriva
+// mai a schermo come carattere. haSegnaposto() decide se mostrare la nota.
+BYUP_LEGAL.segmenti = (p) => String(p || '').split(/(⟦[^⟧]*⟧)/g).filter(Boolean).map(t => t.startsWith('⟦') ? { testo: t.slice(1, -1), segnaposto: true } : { testo: t, segnaposto: false });
+BYUP_LEGAL.haSegnaposto = (doc) => (doc.sezioni || []).some(s => /⟦/.test(s.p));
+BYUP_LEGAL.NOTA_SEGNAPOSTO = 'I dati evidenziati sono un esempio: sede e partita IVA vere entreranno nell\'app vera, non in questo prototipo.';
+BYUP_LEGAL.Paragrafo = function Paragrafo({ p, style }) {
+  return (
+    <div style={style}>
+      {BYUP_LEGAL.segmenti(p).map((s, i) => s.segnaposto
+        ? <mark key={i} title="Esempio: dato segnaposto" style={{ background: '#FFE97A', color: '#3b2a00', padding: '0 4px', borderRadius: 4, fontWeight: 600, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>{s.testo}<span aria-hidden style={{ fontSize: '0.72em', fontWeight: 800, letterSpacing: .4, marginLeft: 4, textTransform: 'uppercase', opacity: .8 }}>esempio</span></mark>
+        : <React.Fragment key={i}>{s.testo}</React.Fragment>)}
+    </div>
+  );
+};
 window.ByupLegal = BYUP_LEGAL;
 
 // ─── Gusti: la copia del dizionario (P-28 · D-28) ───────────────────────────
@@ -654,9 +750,11 @@ const GUSTI = [
 // senza misurare non si sa se i consigli siano buoni. Attivo per difetto:
 // la base è il legittimo interesse, l'interruttore non è un consenso e non
 // va chiamato così — è la misura di bilanciamento su cui la LIA fonda
-// l'opposizione facile. Spegnerlo scrive nel log consent_data una riga
-// LI-SUGG (ok:false) come traccia dell'opposizione; riaccenderlo ne scrive
-// una (ok:true). Gli eventi d'uso (app_usage_events) sono tre e basta —
+// l'opposizione facile. Spegnerlo scrive nel log consent_data DUE righe coi
+// nomi del modello (P-122 · P-123), recommendations e analytics, action
+// 'revoked' e natura 'opposizione'; riaccenderlo ne scrive due 'granted'.
+// (Fino al 2026-09-04 era una riga sola, LI-SUGG: le righe vecchie restano
+// nel log come storia.) Gli eventi d'uso (app_usage_events) sono tre e basta —
 // app_open, qr_scan, menu_view — e si scrivono solo con l'interruttore
 // acceso; allo spegnimento non si scrive più. Mai indirizzo di rete,
 // coordinate, impronta del dispositivo: l'unica informazione di luogo è la
@@ -676,10 +774,12 @@ const GUSTI = [
     imposta(on) {
       scrivi(K_SUGG, on ? 'on' : 'off');
       // La traccia dell'opposizione (o della riattivazione) nel log dei
-      // consensi: stesso registro, id LI-SUGG, ma NON è un consenso.
-      const log = leggi('byup_consent_data', []);
-      log.push({ id: 'LI-SUGG', ok: !!on, quando: new Date().toISOString(), versione: window.ByupConsensi ? window.ByupConsensi.VERSIONE_INFORMATIVA : '1.0', natura: 'opposizione' });
-      scrivi('byup_consent_data', log);
+      // consensi: stesso registro, due voci coi nomi del modello, natura
+      // 'opposizione' — NON è un consenso. Hubble le legge da lì.
+      if (window.ByupConsensi) {
+        window.ByupConsensi.set('recommendations', !!on, { natura: 'opposizione' });
+        window.ByupConsensi.set('analytics', !!on, { natura: 'opposizione' });
+      }
       try { window.dispatchEvent(new Event('byup-suggerimenti-change')); } catch (e) {}
       return !!on;
     },

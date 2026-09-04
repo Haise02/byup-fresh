@@ -2122,6 +2122,11 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
           onClose={() => setScartoPay(null)}
         />
       )}
+
+      {/* P-111: sotto l'elenco dei documenti, dove la domanda nasce. Ogni riga
+          porta già l'esito e l'identificativo assegnato dal canale: sono quelli
+          che si confrontano con il portale. */}
+      {window.CcInCasoDiControllo && <window.CcInCasoDiControllo/>}
     </div>
   );
 }

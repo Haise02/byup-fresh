@@ -68,18 +68,19 @@ const DEVICE_TYPES = [
   },
 ];
 
-// Stampanti registrabili come dispositivo. Nessun driver né SDK proprietario,
-// ma NON «raggiunte dal browser sulla rete locale»: da una pagina web l'invio
-// diretto in LAN si scontra con mixed content e con l'assenza di TCP grezzo
-// (P-101). La stampa passa dal browser (layout HTML), dal protocollo HTTP
-// della stampante (ePOS Epson, CloudPRNT Star) o dal ponte dell'App Staff per
-// il Bluetooth: la modalità e la prova di stampa vivono in Impostazioni →
-// Stampanti (stampa.jsx). Qui resta l'accesso: la stampante come dispositivo
-// che entra, con le categorie di comanda che le si assegnano.
-const AVAILABLE_PRINTERS = [
-  { id: 'printer-epson-1',  model: 'Epson TM-T20III',   ip: '192.168.1.101' },
-  { id: 'printer-cube-1',   model: 'Cube Custom 12',     ip: '192.168.1.102' },
-];
+// P-124 (D-108): le stampanti sono quelle del registro condiviso (stampa.jsx,
+// byup_stampanti), collegate in POS e integrazioni con «Collega stampante»:
+// qui non si registra una stampante, la si trova e le si assegnano le
+// categorie di comanda. L'instradamento è UNO (category_routings): le chiavi
+// «menuId:catId» vivono nel registro, e Personale le legge e le scrive lì,
+// come il popup. Niente indirizzi IP: le stampanti delle comande interrogano
+// il nostro server (Star CloudPRNT, Epson Server Direct Print) e la loro
+// identità è modello e protocollo; i documenti escono dal browser.
+const pnStampantiComande = () => (window.byupStampantiComande ? window.byupStampantiComande() : []);
+const availablePrinters = () => pnStampantiComande().map(d => ({
+  id: 'printer-' + d.id, regId: d.id, name: d.name, model: d.device_model,
+  protocollo: (window.PN_PRINTER_PROTOCOLLI && window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {}).label || d.printer_protocol,
+}));
 
 // Come la cucina vede e manda gli ordini. È la sola cosa che cambia davvero
 // fra due monitor identici, e si chiede al collegamento perché cambia il modo
@@ -99,39 +100,9 @@ const KDS_VIEWS = [
     desc: 'Le righe partono una portata alla volta' },
 ];
 
-const MENUS = [
-  {
-    id: 'principale',
-    label: 'Menù principale',
-    categories: [
-      { id: 'antipasti', label: 'Antipasti' },
-      { id: 'primi', label: 'Primi' },
-      { id: 'secondi', label: 'Secondi' },
-      { id: 'dolci', label: 'Dolci' },
-      { id: 'bevande', label: 'Bevande' },
-    ],
-  },
-  {
-    id: 'pizzeria',
-    label: 'Menù pizzeria',
-    categories: [
-      { id: 'pizze', label: 'Pizze' },
-      { id: 'fritti', label: 'Fritti' },
-      { id: 'dolci-p', label: 'Dolci' },
-      { id: 'bevande-p', label: 'Bevande' },
-    ],
-  },
-  {
-    id: 'bar',
-    label: 'Carta bar',
-    categories: [
-      { id: 'cocktail', label: 'Cocktail' },
-      { id: 'analcolici', label: 'Analcolici' },
-      { id: 'caffetteria', label: 'Caffetteria' },
-      { id: 'snack', label: 'Snack' },
-    ],
-  },
-];
+// I menù e le categorie che si instradano: la copia condivisa con il popup
+// «Collega stampante» (PN_MENU_CATEGORIE in stampa.jsx, P-124).
+const MENUS = window.PN_MENU_CATEGORIE || [];
 
 // «Vendita diretta» è la cassa del locale: era una sezione del gestionale che
 // nel modello dei permessi non esisteva, e senza di lei il ruolo Cassa non
@@ -172,7 +143,14 @@ const PERSONS = [
 const DEVICES = [
   { name: 'Monitor cucina principale', username: 'PG1-cucina', deviceType: 'kitchen-monitor', kdsView: 'ristorante', last: 'ora', online: true },
   { name: 'Monitor pizza', username: 'PG1-pizza', deviceType: 'kitchen-monitor', kdsView: 'pub', last: '5 min fa', online: true },
-  { name: 'Cassa principale', printerModel: 'Epson TM-T20III', ip: '192.168.1.101', deviceType: 'printer', last: '2 min fa', online: true, menuId: 'principale', cats: ['antipasti','primi','dolci'] },
+  // Le stampanti delle comande, dal registro (stampa.jsx): dispositivi che
+  // entrano, con le categorie che instradano (category_routings).
+  ...pnStampantiComande().map(d => ({
+    name: d.name, printerModel: d.device_model, regId: d.id, deviceType: 'printer',
+    protocollo: (window.PN_PRINTER_PROTOCOLLI && window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {}).label || d.printer_protocol,
+    last: d.connection_status === 'online' ? 'ora' : '—', online: d.connection_status === 'online',
+    menuId: 'principale', cats: (d.routing || []).filter(k => k.startsWith('principale:')).map(k => k.split(':')[1]), routing: d.routing || [],
+  })),
 ];
 
 const PENDING = [
@@ -268,7 +246,7 @@ function ImpPersonale() {
       const key = `d-${i}`;
       return {
         key, tipo: 'dispositivo', dato: d, idx: i,
-        nome: d.name, sotto: stampante ? d.ip : d.username,
+        nome: d.name, sotto: stampante ? `${d.printerModel} · ${d.protocollo}` : d.username,
         ruolo: DEVICE_ROLES[d.deviceType] || DEVICE_ROLE, gruppo: '_devices',
         accesso: stampante
           ? { titolo: 'Cassa', sotto: 'Scontrini e comande' }
@@ -863,16 +841,19 @@ const PERM_ICONS = {
 // due moduli che divergono al primo campo aggiunto. Lo stato sta in
 // useDeviceState e si passa in blocco: dieci setter come dieci prop erano una
 // firma che nessuno avrebbe letto.
-// Una categoria stampa su una stampante sola. Qui si raccolgono le chiavi
-// composite "menuId:catId" già rivendicate dalle altre stampanti di DEVICES,
-// col nome del dispositivo che le tiene: il modulo spegne quei chip e dice
-// dove la categoria è finita. Chi modifica una stampante passa sé stesso in
-// `escludi`, altrimenti le proprie categorie risulterebbero occupate.
+// Una categoria stampa su una stampante sola. Le chiavi composite
+// "menuId:catId" già rivendicate dalle altre stampanti si leggono dal
+// registro condiviso (byupRoutingOccupato, stampa.jsx — P-124: un solo
+// instradamento), col nome del dispositivo che le tiene: il modulo spegne
+// quei chip e dice dove la categoria è finita. Chi modifica una stampante
+// passa sé stesso in `escludi`, altrimenti le proprie categorie
+// risulterebbero occupate.
 function categorieOccupate(escludi) {
+  if (window.byupRoutingOccupato) return window.byupRoutingOccupato(escludi && escludi.regId);
   const prese = new Map();
   DEVICES.forEach(d => {
     if (d.deviceType !== 'printer' || d === escludi) return;
-    (d.cats || []).forEach(c => prese.set(`${d.menuId}:${c}`, d.name));
+    (d.routing || []).forEach(k => prese.set(k, d.name));
   });
   return prese;
 }
@@ -915,7 +896,7 @@ function useDeviceState(tipoIniziale) {
   // rotazione, portata unica. Chi lavora per portate lo dice cambiando qui.
   const [kdsView, setKdsView] = React.useState('pub');
   const isPrinter = deviceTypeId.startsWith('printer-');
-  const selectedPrinter = AVAILABLE_PRINTERS.find(p => p.id === deviceTypeId);
+  const selectedPrinter = availablePrinters().find(p => p.id === deviceTypeId);
   const deviceType = isPrinter
     ? { id: deviceTypeId, label: 'Stampante', color: PN.BLUE, bg: PN.BLUE_SOFT, icon: 'doc', noCredentials: true }
     : (DEVICE_TYPES.find(t => t.id === deviceTypeId) || DEVICE_TYPES[0]);
@@ -966,7 +947,7 @@ function DeviceForm({ st, tipoFisso, azione, modifica, editDevice }) {
   const soloStampanti = tipoFisso === 'printer';
   const soloMonitor = tipoFisso === 'monitor';
   const vociMonitor = soloStampanti ? [] : DEVICE_TYPES;
-  const vociStampanti = soloMonitor ? [] : AVAILABLE_PRINTERS;
+  const vociStampanti = soloMonitor ? [] : availablePrinters();
 
   // In pagina la card è larga: due campi per riga stanno larghi il giusto e la
   // riga dice a occhio che vanno insieme. Nella modale, che è una colonna
@@ -1006,7 +987,7 @@ function DeviceForm({ st, tipoFisso, azione, modifica, editDevice }) {
                             : isPrinter ? `Stampante (${selectedPrinter?.model})` : 'Tablet/iPad/Schermo (Monitor cucina)'}
                         </span>
                         {isPrinter && selectedPrinter && (
-                          <span style={{fontSize:13, color:PN.MUTED}}>{selectedPrinter.ip}</span>
+                          <span style={{fontSize:13, color:PN.MUTED}}>{selectedPrinter.protocollo}</span>
                         )}
                       </span>
                     </span>
@@ -1064,7 +1045,7 @@ function DeviceForm({ st, tipoFisso, azione, modifica, editDevice }) {
                             <div style={{fontSize:15, fontWeight:600, color: deviceTypeId === p.id ? PN.PINK_DARK : PN.TEXT}}>
                               {soloStampanti ? p.model : `Stampante (${p.model})`}
                             </div>
-                            <div style={{fontSize:13.5, color:PN.MUTED}}>{p.ip}</div>
+                            <div style={{fontSize:13.5, color:PN.MUTED}}>{p.protocollo}</div>
                           </div>
                         </button>
                       ))}
@@ -1506,6 +1487,12 @@ function InviteModal({ onClose, prefill, ruoli }) {
   const cambiaPassword = !!editDevice && password.length > 0;
 
   function salvaEChiudi() {
+    // La stampante: le categorie scelte finiscono nel registro condiviso
+    // (category_routings, P-124) — lo stesso che legge il popup «Collega
+    // stampante» e da cui escono le comande.
+    if (kind === 'device' && isPrinter && dev.selectedPrinter && window.byupStampantePatch && dev.printerCats.size > 0) {
+      window.byupStampantePatch(dev.selectedPrinter.regId, { routing: [...dev.printerCats], name: deviceName.trim() || dev.selectedPrinter.name });
+    }
     if (kind === 'device' && !isPrinter) {
       salvaMonitorKds({
         id: 'PG1-' + (username.trim() || (editDevice && String(editDevice.username || '').replace('PG1-', ''))),
@@ -1526,8 +1513,10 @@ function InviteModal({ onClose, prefill, ruoli }) {
   React.useEffect(() => {
     if (!editDevice) return;
     if (editDevice.deviceType === 'printer') {
-      const matchedPrinter = AVAILABLE_PRINTERS.find(p => p.model === editDevice.printerModel);
+      const matchedPrinter = availablePrinters().find(p => p.regId === editDevice.regId || p.model === editDevice.printerModel);
       if (matchedPrinter) setDeviceTypeId(matchedPrinter.id);
+      // Le categorie attuali, dal registro: sono quelle che si modificano.
+      if (editDevice.routing) dev.setPrinterCats(new Set(editDevice.routing));
     } else {
       setDeviceTypeId(editDevice.deviceType || 'kitchen-monitor');
       if (editDevice.username) setUsername(editDevice.username.replace('PG1-', ''));
@@ -2502,7 +2491,7 @@ window.PERSONALE_TEAM_INITIAL = [
 // che continua.
 function DispositivoStep({ setTeam }) {
   const [selDevice, setSelDevice] = React.useState('printer');
-  const dev = useDeviceState(AVAILABLE_PRINTERS[0].id);
+  const dev = useDeviceState((availablePrinters()[0] || {}).id);
 
   // Il dispositivo entra nell'elenco e il modulo si svuota: la CTA e la fine di
   // un'operazione, non l'apertura di un'altra schermata.
@@ -2511,10 +2500,13 @@ function DispositivoStep({ setTeam }) {
     const nome = dev.deviceName.trim() || (dev.isPrinter ? 'Stampante' : 'Monitor cucina');
     if (!dev.isPrinter) {
       salvaMonitorKds({ id: 'PG1-' + dev.username.trim(), nome, vista: dev.kdsView });
+    } else if (dev.selectedPrinter && window.byupStampantePatch && dev.printerCats.size > 0) {
+      // Le categorie della stampante vanno nel registro condiviso (P-124).
+      window.byupStampantePatch(dev.selectedPrinter.regId, { routing: [...dev.printerCats], name: nome });
     }
     setTeam(t => [...t, {
       id: `d${Date.now()}`, kind: 'device', name: nome,
-      email: dev.isPrinter ? (dev.selectedPrinter ? dev.selectedPrinter.ip : '—') : `PG1-${dev.username.trim()}`,
+      email: dev.isPrinter ? (dev.selectedPrinter ? dev.selectedPrinter.protocollo : '—') : `PG1-${dev.username.trim()}`,
       role: dev.isPrinter ? 'Stampante' : 'Kitchen Monitor', status: 'active',
     }]);
     dev.reset();
@@ -2540,7 +2532,7 @@ function DispositivoStep({ setTeam }) {
           {STEP_DEVICES.map(d => (
             <StepDeviceCard key={d.id} d={d} on={selDevice === d.id}
               onClick={() => { setSelDevice(d.id);
-                dev.setDeviceTypeId(d.id === 'printer' ? AVAILABLE_PRINTERS[0].id : 'kitchen-monitor'); }}/>
+                dev.setDeviceTypeId(d.id === 'printer' ? ((availablePrinters()[0] || {}).id || 'kitchen-monitor') : 'kitchen-monitor'); }}/>
           ))}
         </div>
 

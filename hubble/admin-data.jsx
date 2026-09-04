@@ -48,33 +48,34 @@ const onbConfigFatti = (r) => {
   return fatti.length ? fatti : [ONB_CONFIG[0].id];
 };
 
-// ─── Ciclo di vita del locale (P-44 · D-34) ─────────────────────────────────
+// ─── Ciclo di vita del locale (P-44 · D-34; P-121 sul modello) ──────────────
 // `stato` è il lifecycle_status: DOVE il locale è arrivato. Non dice cosa
 // Byup ha deciso su di lui — quello è il provvedimento (admProvvedimento, in
 // fondo al file) — e nel fascicolo i due campi si leggono separati.
-//   pending     iscritto non avviato: ha un'utenza, nessun passo fatto
+// Cinque stati, con gli identificativi del modello (restaurants.lifecycle_status)
+// e le etichette italiane a schermo. Fino al 2026-09-03 erano sei, con due id
+// fuori modello (`pending` per registered, `inactive` per dormant) e uno stato
+// «Onboarding saltato» (`skipped`) che il modello esclude e motiva: la
+// configurazione completa saltata non è uno stadio del ciclo di vita, perché
+// il locale che l'ha saltata è attivo. Ora è un CONTRASSEGNO del locale
+// (locConfigSaltata, più sotto), e sulla struttura vince il modello.
+//   registered  iscritto: ha un'utenza, nessun passo fatto
 //   onboarding  nel percorso rapido, fermo a un passo (stoppedAt) e, se è
 //               «Il tuo locale», a un sotto-passo (stoppedSub)
-//   skipped     opera avendo saltato la configurazione completa: percorso
-//               rapido finito, «Salta e continua dopo» dalla Panoramica, e non
-//               è più tornato. Annotazione per il registro: fino al 2026-09-03
-//               «skipped» voleva dire aver saltato l'intero onboarding, cosa
-//               che il gestionale non permette — si salta solo la
-//               configurazione completa, e i mock avevano locali che
-//               ordinavano senza menù né pagamenti
-//   active      onboarding completo, ordini negli ultimi 30 giorni
-//   inactive    onboarding completo, nessun ordine da oltre 30 giorni;
-//               l'abbonamento è acceso. Regola di P-46: le chiusure
-//               straordinarie (venue_closures) non contano come inattività —
-//               un locale chiuso per ferie non è un locale fermo
-//   churned     ha disdetto (art. 5): fine del rapporto per scelta sua
+//   active      onboarding completo, ordini negli ultimi 30 giorni — anche
+//               chi ha saltato la configurazione completa: opera
+//   dormant     inattivo: nessuna operazione da un certo tempo (qui 30
+//               giorni), chiusure straordinarie escluse (P-46: un locale
+//               chiuso per ferie non è un locale fermo); l'abbonamento è acceso
+//   churned     cessato: fine del rapporto, per disdetta del locale (art. 5)
+//               o risoluzione di Byup (art. 4) — quale delle due lo dice il
+//               provvedimento, non questo campo
 const LOC_CICLO_VITA = {
-  pending:    { label: 'Iscritto non avviato', color: 'INFO' },
-  onboarding: { label: 'In onboarding',        color: 'WARN' },
-  skipped:    { label: 'Onboarding saltato',   color: 'TEAL' },
-  active:     { label: 'Attivo',               color: 'OK' },
-  inactive:   { label: 'Inattivo',             color: 'PLAN_FREE' },
-  churned:    { label: 'Disdetto',             color: 'DANGER' },
+  registered: { label: 'Iscritto',      color: 'INFO' },
+  onboarding: { label: 'In onboarding', color: 'WARN' },
+  active:     { label: 'Attivo',        color: 'OK' },
+  dormant:    { label: 'Inattivo',      color: 'PLAN_FREE' },
+  churned:    { label: 'Cessato',       color: 'DANGER' },
 };
 
 // Listino allineato a quello del gestionale (ACC_PIANI in gestionale/account-data.jsx),
@@ -130,7 +131,10 @@ function buildLocali() {
     ['Bar Centrale', 'Lecce', 'Puglia'],
     ['Ristorante Antica Bottega', 'Parma', 'Emilia-Romagna'],
     ['Pizzeria 50 Kalò', 'Napoli', 'Campania'],
-    ['Trattoria Sora Lella', 'Roma', 'Lazio'],
+    // Il locale demo del gestionale (id `cp` di là), che Hubble legge dallo
+    // stesso dominio per l'incaricato della società, il cambio di soggetto e
+    // gli eventi dell'account (P-116, P-117): il quarto campo è il ponte.
+    ['Cacio e Pepe', 'Roma', 'Lazio', 'cp'],
     ['Osteria Francescana', 'Modena', 'Emilia-Romagna'],
     ['Enoteca Pinchiorri', 'Firenze', 'Toscana'],
     ['Bistrot 99', 'Milano', 'Lombardia'],
@@ -174,7 +178,9 @@ function buildLocali() {
     const prefix = n[0].split(' ')[0];
     const tipo = tipiByPrefix[prefix] || 'ristorante';
 
-    // Distribuzione stati: 5 pending, 8 onboarding, 4 skipped, 25 active, 6 inactive, 2 churned
+    // Distribuzione stati: 5 registered, 8 onboarding, 4 active con la
+    // configurazione completa saltata (erano «skipped», P-121), 25 active,
+    // 6 dormant, 2 churned
     // Le estrazioni di `r` prima del volume sono le STESSE di prima, per
     // numero (una per chi è fermo, due per attivi e inattivi): così piano e
     // volume di ogni locale restano dove stavano. Il resto dei passi si tira
@@ -189,8 +195,11 @@ function buildLocali() {
     };
     const rapido = ONB_RAPIDO.map(s => s.id);
     let stato, stoppedAt = null, stoppedSub = null, completedSteps = [];
+    // Il contrassegno di P-121, qui solo per tenere fermi i numeri del seme
+    // di chi era «skipped»: a valle lo si legge dai passi (locConfigSaltata).
+    let configSaltata = false;
     if (i < 5) {
-      stato = 'pending';
+      stato = 'registered';
     } else if (i < 13) {
       // fermo a uno dei quattro passi del percorso rapido; se è «Il tuo
       // locale», anche a quale sotto-passo
@@ -200,18 +209,21 @@ function buildLocali() {
       stoppedSub = stoppedAt === 'locale' ? ONB_SOTTO[Math.floor(r2() * ONB_SOTTO.length)].id : null;
       completedSteps = rapido.slice(0, stopIdx);
     } else if (i < 17) {
-      // percorso rapido finito, configurazione completa saltata per intero;
-      // lo staff c'è di rado — chi salta la configurazione salta il Personale
-      stato = 'skipped';
+      // percorso rapido finito, configurazione completa saltata per intero:
+      // il locale è ATTIVO col contrassegno (P-121), non uno stato a sé. Il
+      // contrassegno si ricava dai passi — nessun passo di ONB_CONFIG fatto.
+      // Lo staff c'è di rado: chi salta la configurazione salta il Personale
+      stato = 'active';
+      configSaltata = true;
       completedSteps = [...rapido, ...(r2() > 0.7 ? ['staff'] : [])];
     } else if (i < 42) {
       stato = 'active';
       // staff quasi sempre, e ALMENO un passo della configurazione completa:
-      // senza, sarebbe uno skipped
+      // senza, porterebbe il contrassegno
       const conStaff = r() > 0.2, cfg = r();
       completedSteps = [...rapido, ...(conStaff ? ['staff'] : []), ...cfgDaSeme(cfg)];
     } else if (i < 48) {
-      stato = 'inactive';
+      stato = 'dormant';
       const conStaff = r() > 0.4, cfg = r();
       completedSteps = [...rapido, ...(conStaff ? ['staff'] : []), ...cfgDaSeme(cfg)];
     } else {
@@ -239,9 +251,9 @@ function buildLocali() {
     // centinaio. Senza la coda, il piano Business — 15.000 transazioni
     // incluse, cioè cinquecento al giorno — non lo prenderebbe mai nessuno.
     const grandezza = Math.pow(r(), 2.1);      // schiacciata verso il basso
-    const ordiniGiorno = stato === 'active' ? Math.round(8 + grandezza * 620) :
-                        stato === 'skipped' ? Math.floor(r() * 40) :
-                        stato === 'inactive' ? Math.floor(r() * 12) : 0;
+    const ordiniGiorno = configSaltata ? Math.floor(r() * 40) :
+                        stato === 'active' ? Math.round(8 + grandezza * 620) :
+                        stato === 'dormant' ? Math.floor(r() * 12) : 0;
     const ordiniMeseStima = ordiniGiorno * 28;
     // Il piano giusto per quel volume…
     const pianoDaVolume = ordiniMeseStima > 7500 ? 'business'
@@ -258,11 +270,11 @@ function buildLocali() {
     const sottoIdx = Math.max(0, idxGiusto - 1);
     const eccedenzaSeSotto = Math.max(0, ordiniMeseStima - PIANI[sottoIdx].ordiniInclusi) * PIANI[sottoIdx].ordineExtra;
     const sottoPiano = r() < 0.55 && idxGiusto > 0 && eccedenzaSeSotto < PIANI[idxGiusto].price * 0.9;
-    const piano = (stato === 'pending') ? 'free'
+    const piano = (stato === 'registered') ? 'free'
       : PIANI[Math.max(0, idxGiusto - (sottoPiano ? 1 : 0))].id;
     const pianoObj = PIANI.find(p => p.id === piano);
-    const prenotazioniGiorno = stato === 'active' ? Math.floor(r() * 40) + 5 :
-                              stato === 'skipped' ? Math.floor(r() * 10) : 0;
+    const prenotazioniGiorno = configSaltata ? Math.floor(r() * 10) :
+                              stato === 'active' ? Math.floor(r() * 40) + 5 : 0;
 
     // I ricavi partono da dicembre 2024: i locali OPERATIVI devono esistere da
     // prima, altrimenti la coorte a dodici mesi è vuota e la ritenzione non si
@@ -275,13 +287,13 @@ function buildLocali() {
     // ferma da seicento giorni.
     const baseDate = new Date(2024, 9, 1); // 1 ott 2024
     const giorniDaAllora = Math.floor((Date.now() - baseDate.getTime()) / 86400000);
-    const iscrizioneOffset = (stato === 'pending' || stato === 'onboarding')
+    const iscrizioneOffset = (stato === 'registered' || stato === 'onboarding')
       ? giorniDaAllora - Math.floor(r() * 40)          // ultime sei settimane
-      : stato === 'skipped'
+      : configSaltata
         ? giorniDaAllora - Math.floor(r() * 150)       // ultimi cinque mesi
         : Math.floor(r() * Math.max(1, giorniDaAllora - 30));
     const dataIscrizione = new Date(baseDate.getTime() + iscrizioneOffset * 86400000);
-    const lastLoginDays = stato === 'inactive' ? 30 + Math.floor(r() * 90) :
+    const lastLoginDays = stato === 'dormant' ? 30 + Math.floor(r() * 90) :
                          stato === 'churned' ? 60 + Math.floor(r() * 120) :
                          Math.floor(r() * 7);
     const lastLogin = new Date(Date.now() - lastLoginDays * 86400000);
@@ -303,9 +315,9 @@ function buildLocali() {
     // Da questo deriviamo scanQR mese/anno: gli scan sono ~1.5-3.5x rispetto agli
     // ordini-via-QR (non tutti gli scan portano a ordine).
     const qrAdoption = (() => {
-      if (stato === 'pending' || stato === 'onboarding') return null;
+      if (stato === 'registered' || stato === 'onboarding') return null;
       if (stato === 'churned') return null;
-      if (stato === 'skipped' || stato === 'inactive') {
+      if (configSaltata || stato === 'dormant') {
         const buckets = [0, 0, 0, 0.5, 1.2, 2.8, 4.1, 6.5];
         return buckets[Math.floor(r() * buckets.length)];
       }
@@ -323,14 +335,14 @@ function buildLocali() {
     // diceva niente su chi sta sfondando il piano, che è invece l'unica
     // storia di crescita raccontabile su venticinque locali.
     const ordiniOltre = Math.max(0, ordiniMeseVal - pianoObj.ordiniInclusi);
-    const extras = stato === 'active' ? Math.round(ordiniOltre * pianoObj.ordineExtra) : 0;
+    const extras = stato === 'active' && !configSaltata ? Math.round(ordiniOltre * pianoObj.ordineExtra) : 0;
     // Chi ha cambiato piano, quando, e in che direzione. Gli upgrade dicono se
     // chi sfonda il piano poi fa il passo; i DOWNGRADE sono l'altra metà della
     // ritenzione del ricavo — un cliente che resta ma paga meno non è churn e
     // non è espansione, è contrazione, e senza quella la NRR non si compone.
     const idxPiano = PIANI.findIndex(p => p.id === piano);
     const dado = r();
-    const cambio = stato !== 'active' ? null
+    const cambio = stato !== 'active' || configSaltata ? null
       : (dado > 0.62 && idxPiano > 0)
         ? { tipo:'upgrade',   il: new Date(Date.now() - Math.floor(r() * 130) * 86400000), da: PIANI[idxPiano - 1].id }
       : (dado < 0.14 && idxPiano < PIANI.length - 1)
@@ -351,6 +363,9 @@ function buildLocali() {
       tipo,
       citta: n[1],
       regione: n[2],
+      // L'id del locale nel gestionale, solo per il locale demo: è la chiave
+      // con cui Hubble legge ciò che il gestionale scrive sullo stesso dominio.
+      gestionaleId: n[3] || null,
       indirizzo: `Via ${['Roma','Garibaldi','Mazzini','Dante','Verdi','Cavour','Manzoni'][Math.floor(r()*7)]} ${Math.floor(r()*200)+1}`,
       cap: String(10000 + Math.floor(r() * 89999)),
       piva: '0' + String(1000000000 + Math.floor(r() * 8999999999)).slice(0,10),
@@ -410,15 +425,16 @@ window.admTipoLabel = admTipoLabel;
 // gratuiti, e lo spaccato per piano copriva il 62% lasciando diciannove locali
 // senza collocazione.
 //
-//   in onboarding   iscritto ma con la configurazione non finita: non avviato
-//                   (pending), fermo a un passo del percorso rapido, o con la
-//                   configurazione completa saltata (skipped — opera, ma la
-//                   pagina che ha saltato fa ancora parte dell'onboarding)
+//   in onboarding   iscritto ma con la configurazione di base non finita:
+//                   non avviato (registered) o fermo a un passo del percorso
+//                   rapido (onboarding). Chi ha saltato la configurazione
+//                   completa NON sta qui (P-121): opera, è attivo col
+//                   contrassegno locConfigSaltata
 //   attivo          ha finito l'onboarding e lavora: ordini negli ultimi
 //                   30 giorni
-//   inattivo        ha finito l'onboarding ma non ordina da oltre 30 giorni.
-//                   Non è churn: l'abbonamento è ancora acceso
-//   churned         ha disdetto. Fuori da ogni base e da ogni ricavo
+//   inattivo        (dormant) ha finito l'onboarding ma non ordina da oltre
+//                   30 giorni. Non è churn: l'abbonamento è ancora acceso
+//   churned         cessato. Fuori da ogni base e da ogni ricavo
 //
 //   live            attivi + inattivi = la base installata, cioè chi ha un
 //                   locale configurato su byup. È il denominatore di tutto
@@ -428,12 +444,19 @@ window.admTipoLabel = admTipoLabel;
 // Le quattro categorie sono esaustive e disgiunte: sommate danno il totale,
 // sempre. Se un giorno non tornassero, è una di queste funzioni ad essere
 // sbagliata, non la card che le somma.
-const locInOnboarding = (l) => l.stato === 'pending' || l.stato === 'onboarding' || l.stato === 'skipped';
+const locInOnboarding = (l) => l.stato === 'registered' || l.stato === 'onboarding';
 const locAttivo       = (l) => l.stato === 'active';
-const locInattivo     = (l) => l.stato === 'inactive';
+const locInattivo     = (l) => l.stato === 'dormant';
 const locChurned      = (l) => l.stato === 'churned';
 const locLive         = (l) => locAttivo(l) || locInattivo(l);
 const locPagante      = (l) => locLive(l) && l.piano !== 'free';
+// Il contrassegno «configurazione completa saltata» (P-121): non uno stato,
+// un fatto dell'onboarding, ricavato da ciò che il locale non ha fatto —
+// nessun passo di ONB_CONFIG — fra chi è oltre l'avvio. È lo stesso dato che
+// l'imbuto di P-45 conta come «quanti l'hanno saltata»; la scheda del locale
+// lo mostra come contrassegno e la rubrica lo offre come filtro. Un locale
+// attivo con il contrassegno resta attivo.
+const locConfigSaltata = (l) => locLive(l) && !ONB_CONFIG.some(s => (l.completedSteps || []).includes(s.id));
 
 const LOC = (() => {
   const attivi       = LOCALI.filter(locAttivo);
@@ -504,7 +527,7 @@ function bandOf(qrAdoption) {
 //   quota app   la media degli ultimi 12 mesi del mix canali (dal 4% al 20%)
 //   base        UTENTI del campione × 312, la stessa scala della Dashboard
 const ORDINI_MESE_PIATTAFORMA = LOCALI
-  .filter(l => l.stato === 'active' || l.stato === 'inactive')
+  .filter(l => l.stato === 'active' || l.stato === 'dormant')
   .reduce((s2, l) => s2 + (l.ordiniMese || 0), 0);
 const QUOTA_APP_MEDIA_12M = 0.115;
 const UTENTI_FREQ_BASE = (ORDINI_MESE_PIATTAFORMA * QUOTA_APP_MEDIA_12M) / (40 * 312);
@@ -714,6 +737,14 @@ const AREE = [
   // P-41 (D-33): le certificazioni alimentari si approvano e si rifiutano dal
   // ticket, ma il permesso è questo, non quello dei ticket.
   { id: 'conformita', label: 'Conformità',          desc: 'Certificazioni alimentari dei locali: approvare e rifiutare' },
+  // P-110 (D-33, modello v11): la trattazione delle richieste delle autorità
+  // — una procura, il Garante — è un'area distinta dalla Moderazione, perché
+  // rimuovere una recensione e rispondere a un'autorità non sono la stessa
+  // funzione. Nella console la funzione non esiste ancora: la riga vale come
+  // permesso PREDISPOSTO (`predisposta`), e il README lo dichiara. Quando la
+  // funzione arriverà, passerà sotto questo permesso. Preset: Super Admin
+  // scrittura, Support lettura, Marketing nessuno.
+  { id: 'autorita',   label: 'Richieste delle autorità', desc: 'Richieste di autorità pubbliche e giudiziarie: ricezione, trattazione e riscontro', predisposta: true },
   { id: 'domini',     label: 'Domini e mittenti',   desc: 'Domini di invio, indirizzi, numeri SMS' },
   { id: 'sicurezza',  label: 'Sicurezza e sistemi', desc: 'Membri del team, accessi, audit log e diagnostica' },
   // Piattaforma è RISERVATA: leve commerciali (prezzi, piani, soglie) del solo
@@ -738,11 +769,11 @@ const LIVELLI = {
 // sull'area, col motivo obbligatorio dove la console già lo chiede.
 const RUOLI = {
   super_admin: { label: 'Super Admin', desc: 'Governa piattaforma e sistemi; il lavoro operativo lo guarda, non lo tocca', color: 'DANGER',
-    livelli: { analisi: 'lettura', contatti: 'lettura', moderazione: 'lettura', elenchi: 'lettura', proprieta: 'scrittura', marketing: 'lettura', workflow: 'lettura', agent: 'scrittura', assistenza: 'lettura', conformita: 'lettura', domini: 'scrittura', sicurezza: 'scrittura', piattaforma: 'scrittura' } },
+    livelli: { analisi: 'lettura', contatti: 'lettura', moderazione: 'lettura', elenchi: 'lettura', proprieta: 'scrittura', marketing: 'lettura', workflow: 'lettura', agent: 'scrittura', assistenza: 'lettura', conformita: 'lettura', autorita: 'scrittura', domini: 'scrittura', sicurezza: 'scrittura', piattaforma: 'scrittura' } },
   support:     { label: 'Support',    desc: 'Contatti, assistenza e le liste e automazioni del suo lavoro', color: 'INFO',
-    livelli: { analisi: 'lettura', contatti: 'scrittura', moderazione: 'scrittura', elenchi: 'scrittura', proprieta: 'lettura', marketing: 'nessuno', workflow: 'scrittura', agent: 'scrittura', assistenza: 'scrittura', conformita: 'scrittura', domini: 'nessuno', sicurezza: 'nessuno' } },
+    livelli: { analisi: 'lettura', contatti: 'scrittura', moderazione: 'scrittura', elenchi: 'scrittura', proprieta: 'lettura', marketing: 'nessuno', workflow: 'scrittura', agent: 'scrittura', assistenza: 'scrittura', conformita: 'scrittura', autorita: 'lettura', domini: 'nessuno', sicurezza: 'nessuno' } },
   marketing:   { label: 'Marketing',  desc: 'Campagne, elenchi, proprietà e domini di invio; i contatti li consulta', color: 'WARN',
-    livelli: { analisi: 'lettura', contatti: 'lettura', moderazione: 'nessuno', elenchi: 'scrittura', proprieta: 'scrittura', marketing: 'scrittura', workflow: 'scrittura', agent: 'lettura', assistenza: 'lettura', conformita: 'nessuno', domini: 'scrittura', sicurezza: 'nessuno' } },
+    livelli: { analisi: 'lettura', contatti: 'lettura', moderazione: 'nessuno', elenchi: 'scrittura', proprieta: 'scrittura', marketing: 'scrittura', workflow: 'scrittura', agent: 'lettura', assistenza: 'lettura', conformita: 'nessuno', autorita: 'nessuno', domini: 'scrittura', sicurezza: 'nessuno' } },
   // Non un preset: il vestito degli account regolati cella per cella. I
   // livelli veri stanno sul membro (permessiCustom), non qui.
   custom:      { label: 'Personalizzato', desc: 'Parte da un preset, regolato area per area', color: 'PURPLE', personalizzato: true },
@@ -931,7 +962,7 @@ const SCREENS_USAGE = [
 //                   del servizio serale
 const AFFIDABILITA = (() => {
   const r = pseudoRand(9137);
-  const live = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive');
+  const live = LOCALI.filter(l => l.stato === 'active' || l.stato === 'dormant');
   const ordiniMese = live.reduce((s, l) => s + (l.ordiniMese || 0), 0);
   const incassatoMese = live.reduce((s, l) => s + (l.ordiniMese || 0) * (l.ticketMedio || 25), 0);
 
@@ -1060,7 +1091,7 @@ const RETE = (() => {
   // certo numero di locali nel raggio, la funzione non si accende. Qui sotto
   // un certo numero di locali in città, il numero non si legge.
   const localiPerCitta = {};
-  LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive')
+  LOCALI.filter(l => l.stato === 'active' || l.stato === 'dormant')
     .forEach(l => { localiPerCitta[l.citta] = (localiPerCitta[l.citta] || 0) + 1; });
   // Le soglie sono quelle che la rete di oggi consente di distinguere: con
   // trenta locali su venti città, «cinque o più» sarebbe una fascia vuota e
@@ -1111,7 +1142,7 @@ const RETE = (() => {
 // domanda che conta è quanti di quelli passano al piano sopra invece di
 // continuare a pagare gli extra a prezzo pieno.
 const ESPANSIONE = (() => {
-  const live = LOCALI.filter(l => l.stato === 'active' || l.stato === 'inactive');
+  const live = LOCALI.filter(l => l.stato === 'active' || l.stato === 'dormant');
   const sopraSoglia = live.filter(l => (l.ordiniOltre || 0) > 0)
     .sort((a, b) => (b.ordiniOltre || 0) - (a.ordiniOltre || 0));
   const g90 = Date.now() - 90 * 86400000;
@@ -1268,13 +1299,16 @@ const TOTAL_REVENUE_HISTORICAL = {
 // auditor P2B — che cosa il contatto aveva accettato, in quale versione, e se
 // il preavviso dovuto è stato dato nei termini.
 //
-// ⚠ RICOSTRUZIONI: i documenti reali sono TC-01 v0.24 (pubblicata il
-// 03/09/2026, la versione corrente: è quella che l'onboarding proietta e fa
-// firmare, contratto-tc01.jsx), DPA-01 v0.9 e INF-02 v0.5 del 04/08/2026;
-// la TC-01 v0.23 del 20/08/2026 e la v0.22 restano come storia. Tutte le versioni PRECEDENTI
-// (v0.20/v0.21, v0.8, v0.4), le loro date e le righe «cosa è cambiato» sono
-// invenzioni di comodo del mock: servono a far esistere lo storico, non
-// documentano nulla di reale.
+// ⚠ TUTTO ESEMPIO (P-113 · P-114 · D-107): il prototipo è un mockup e
+// mostra il MECCANISMO del fascicolo — versioni, efficacia, il contrassegno
+// «peggiorativa» che innesca il preavviso — non i documenti nella versione
+// depositata. Le versioni correnti del catalogo (TC-01 v0.24, quella che
+// l'onboarding proietta e fa firmare in contratto-tc01.jsx; DPA-01 v0.9;
+// INF-02 v0.5) sono esempi come le precedenti (v0.20–v0.23, v0.8, v0.4): date,
+// numeri e righe «cosa è cambiato» servono a far esistere lo storico e non
+// documentano nulla. I testi veri sono quelli depositati nel progetto (per
+// TC-01, la v0.28), e non si inseguono qui parola per parola. Ogni versione
+// porta `esempio: true`, che la scheda mostra.
 
 // Le date di pubblicazione sono fatti di calendario, non offset da oggi: qui
 // niente ri-ancoraggio. Mese 1-based per leggerle come si scrivono.
@@ -1288,48 +1322,51 @@ const DOCUMENTI = [
   // `informativa`), e vanno rese in una sezione a parte, senza finestre.
   { codice:'PIANO',  nome:'Condizioni particolari di attivazione', destinatario:'locale', prevalenza:1, particolare:true },
   { codice:'TC-01',  nome:'Termini e Condizioni di servizio',      destinatario:'locale', prevalenza:2, versioni:[
-    { v:'0.20', pubblicata:ctrData(6,10,2025),  efficace:ctrData(5,11,2025), peggiorativa:false,
+    { v:'0.20', pubblicata:ctrData(6,10,2025),  efficace:ctrData(5,11,2025), peggiorativa:false, esempio:true,
       cambiamento:'Prima versione a catalogo (ricostruzione).' },
     // La peggiorativa sta QUI, nel passato, e non sulla corrente: se fosse la
     // v0.22, ogni locale non ancora allineato avrebbe una finestra di recesso
     // aperta e il banner urlerebbe su mezza rubrica.
-    { v:'0.21', pubblicata:ctrData(9,2,2026),   efficace:ctrData(11,3,2026), peggiorativa:true,
+    { v:'0.21', pubblicata:ctrData(9,2,2026),   efficace:ctrData(11,3,2026), peggiorativa:true, esempio:true,
       cambiamento:'Ridotti i massimali di responsabilità; finestra di contestazione degli addebiti da 60 a 30 giorni.' },
-    { v:'0.22', pubblicata:ctrData(4,8,2026),   efficace:ctrData(3,9,2026),  peggiorativa:false,
+    { v:'0.22', pubblicata:ctrData(4,8,2026),   efficace:ctrData(3,9,2026),  peggiorativa:false, esempio:true,
       cambiamento:'Recepito il canale Ticket dell\'assistenza; chiarito il calcolo delle transazioni pesate. Nessuna modifica economica.' },
-    // La corrente (P-83): pubblicata prima di oggi ed efficace dopo, così le
-    // accettazioni del mock cadono dopo la pubblicazione e mai nel futuro.
-    { v:'0.23', pubblicata:ctrData(20,8,2026),  efficace:ctrData(19,9,2026), peggiorativa:false,
+    // Pubblicata prima di oggi ed efficace dopo, così le accettazioni del
+    // mock cadono dopo la pubblicazione e mai nel futuro.
+    { v:'0.23', pubblicata:ctrData(20,8,2026),  efficace:ctrData(19,9,2026), peggiorativa:false, esempio:true,
       cambiamento:'Riparto dei ruoli privacy fra Byup e locale (titolare autonomo per i clienti della Byup App, responsabile secondo DPA-01 per il resto); trasparenza P2B; obblighi informativi fiscali; divieto di maggiorazioni per strumento di pagamento; cambio di fornitore; prezzo riscritto su comande pesate e coefficienti del piano. Nessuna modifica economica.' },
-    // La corrente: l'art. 12 dice il mandato a trasmettere e ricevere tramite
-    // il canale, chi trasmette i corrispettivi secondo la forma (credenziali
-    // dell'esercente o incaricato di Byup), l'accreditamento con la delega.
-    { v:'0.24', pubblicata:ctrData(3,9,2026),   efficace:ctrData(3,10,2026), peggiorativa:false,
-      cambiamento:'Art. 12: mandato a trasmettere corrispettivi e fatture e a ricevere le fatture passive tramite il fornitore del canale; per le società i corrispettivi con l\'incaricato indicato da Byup, rinnovo a cura di Byup; accreditamento come esercente in forza della delega. Nessuna modifica economica.' },
+    // La corrente, esempio anch'essa: l'art. 12 del segnaposto dice il
+    // mandato a trasmettere tramite il canale con le credenziali
+    // dell'esercente, che ne cura il rinnovo (per società ed enti quelle
+    // dell'incaricato che la società ha nominato sul portale, D-103), e
+    // l'accreditamento con la delega. Niente fatture passive (fuori
+    // dall'MVP) e nessun incaricato di Byup (P-114, P-116).
+    { v:'0.24', pubblicata:ctrData(3,9,2026),   efficace:ctrData(3,10,2026), peggiorativa:false, esempio:true,
+      cambiamento:'Art. 12: mandato a trasmettere corrispettivi e fatture tramite il fornitore del canale, con le credenziali dell\'esercente, che ne cura il rinnovo; accreditamento come esercente in forza della delega. Nessuna modifica economica.' },
   ]},
   { codice:'DPA-01', nome:'Accordo sul trattamento dati (art. 28)', destinatario:'locale', prevalenza:3, versioni:[
-    { v:'0.8', pubblicata:ctrData(19,1,2026), efficace:ctrData(18,2,2026), peggiorativa:false,
+    { v:'0.8', pubblicata:ctrData(19,1,2026), efficace:ctrData(18,2,2026), peggiorativa:false, esempio:true,
       cambiamento:'Prima versione a catalogo (ricostruzione).' },
-    { v:'0.9', pubblicata:ctrData(4,8,2026),  efficace:ctrData(3,9,2026),  peggiorativa:false,
+    { v:'0.9', pubblicata:ctrData(4,8,2026),  efficace:ctrData(3,9,2026),  peggiorativa:false, esempio:true,
       cambiamento:'Aggiornato l\'elenco dei sub-responsabili e i termini di notifica delle violazioni.' },
   ]},
   // Per un'informativa l'efficacia coincide con la pubblicazione: non c'è
   // preavviso da attendere né recesso da esercitare.
   { codice:'INF-02', nome:'Informativa privacy business', destinatario:'locale', prevalenza:4, informativa:true, versioni:[
-    { v:'0.4', pubblicata:ctrData(2,3,2026), efficace:ctrData(2,3,2026), peggiorativa:false,
+    { v:'0.4', pubblicata:ctrData(2,3,2026), efficace:ctrData(2,3,2026), peggiorativa:false, esempio:true,
       cambiamento:'Prima versione a catalogo (ricostruzione).' },
-    { v:'0.5', pubblicata:ctrData(4,8,2026), efficace:ctrData(4,8,2026), peggiorativa:false,
+    { v:'0.5', pubblicata:ctrData(4,8,2026), efficace:ctrData(4,8,2026), peggiorativa:false, esempio:true,
       cambiamento:'Aggiornata la sezione sui tempi di conservazione.' },
   ]},
   // Staff e utenti app: catalogati ORA perché il componente riceva l'elenco
   // giusto per tipo, popolati quando le loro tab arriveranno. Versione unica
   // corrente: lo storico di questi non è ancora stato ricostruito.
   { codice:'TOS-02', nome:'Termini di servizio utente staff', destinatario:'staff',  prevalenza:1, versioni:[
-    { v:'0.7', pubblicata:ctrData(4,8,2026), efficace:ctrData(3,9,2026), peggiorativa:false, cambiamento:'Versione corrente.' } ]},
+    { v:'0.7', pubblicata:ctrData(4,8,2026), efficace:ctrData(3,9,2026), peggiorativa:false, esempio:true, cambiamento:'Versione corrente (esempio).' } ]},
   { codice:'TOS-01', nome:'Termini di servizio utente app',   destinatario:'utente', prevalenza:1, versioni:[
-    { v:'1.1', pubblicata:ctrData(4,8,2026), efficace:ctrData(3,9,2026), peggiorativa:false, cambiamento:'Versione corrente.' } ]},
+    { v:'1.1', pubblicata:ctrData(4,8,2026), efficace:ctrData(3,9,2026), peggiorativa:false, esempio:true, cambiamento:'Versione corrente (esempio).' } ]},
   { codice:'INF-01', nome:'Informativa privacy consumer', destinatario:'utente', prevalenza:2, informativa:true, versioni:[
-    { v:'0.6', pubblicata:ctrData(4,8,2026), efficace:ctrData(4,8,2026), peggiorativa:false, cambiamento:'Versione corrente.' } ]},
+    { v:'0.6', pubblicata:ctrData(4,8,2026), efficace:ctrData(4,8,2026), peggiorativa:false, esempio:true, cambiamento:'Versione corrente (esempio).' } ]},
 ];
 
 // Il set pertinente per tipo di contatto. Lo staff ha un contratto DIRETTO
@@ -1379,8 +1416,8 @@ const { ACCETTAZIONI, PREAVVISI, SOSPENSIONI } = (() => {
   const inf = DOCUMENTI.find(d => d.codice === 'INF-02').versioni;
 
   LOCALI.forEach(l => {
-    // Un pending non ha firmato niente: il suo fascicolo è legittimamente vuoto.
-    if (l.stato === 'pending') return;
+    // Un iscritto non avviato non ha firmato niente: il suo fascicolo è legittimamente vuoto.
+    if (l.stato === 'registered') return;
     const s = seme(l.id);
     const p = persona(l, s);
     const firma = (codice, v, quando, superficie, tipo) => acc.push({
@@ -1496,18 +1533,19 @@ const { ACCETTAZIONI, PREAVVISI, SOSPENSIONI } = (() => {
 //   none      nessuna decisione viva. Anche con una diffida in corso: la
 //             diffida è una riga di registro, il preavviso dell'art. 4, non
 //             un provvedimento — la sospensione scatta dopo, se scatta
-//   limitato  una funzione tolta con motivo (art. 13), il resto prosegue
-//   sospeso   servizio sospeso (art. 4 per morosità, art. 13 gli altri)
-//   cessato   contratto RISOLTO da Byup, quindici giorni dopo la sospensione
-//             (art. 4). La disdetta del locale (art. 5) NON sta qui: è il
-//             ciclo di vita «churned», e il provvedimento resta none
+//   limited     una funzione tolta con motivo (art. 13), il resto prosegue
+//   suspended   servizio sospeso (art. 4 per morosità, art. 13 gli altri)
+//   terminated  contratto RISOLTO da Byup, quindici giorni dopo la sospensione
+//               (art. 4). La disdetta del locale (art. 5) NON sta qui: è il
+//               ciclo di vita «churned», e il provvedimento resta none
 // Una revoca chiude la riga e si torna a none. Fra più righe vive vince la
-// più grave.
+// più grave. Gli id sono quelli del modello (P-121): fino al 03/09 erano
+// `limitato`, `sospeso`, `cessato`, dichiarati «del modello» senza esserlo.
 const ADM_PROVVEDIMENTI = {
-  none:     { label: 'Nessuno',  color: 'OK' },
-  limitato: { label: 'Limitato', color: 'WARN' },
-  sospeso:  { label: 'Sospeso',  color: 'DANGER' },
-  cessato:  { label: 'Cessato',  color: 'INK' },
+  none:       { label: 'Nessuno',  color: 'OK' },
+  limited:    { label: 'Limitato', color: 'WARN' },
+  suspended:  { label: 'Sospeso',  color: 'DANGER' },
+  terminated: { label: 'Cessato',  color: 'INK' },
 };
 function admProvvedimentoRiga(l) {
   const vive = SOSPENSIONI.filter(x => x.soggettoId === l.id && !x.revoca);
@@ -1516,9 +1554,9 @@ function admProvvedimentoRiga(l) {
 function admProvvedimento(l) {
   const r = admProvvedimentoRiga(l);
   if (!r) return 'none';
-  if (r.risolta) return 'cessato';
-  if (r.sospesa) return 'sospeso';
-  if (r.limitata) return 'limitato';
+  if (r.risolta) return 'terminated';
+  if (r.sospesa) return 'suspended';
+  if (r.limitata) return 'limited';
   return 'none';
 }
 
@@ -1531,6 +1569,98 @@ function ctrCessazione(l) {
   if (r && r.risolta) return r.risolta;
   return l.stato === 'churned' ? new Date(l.lastLogin.getTime() + 30 * 86400000) : null;
 }
+
+// ─── Incaricato della società, cambio di soggetto, eventi dell'account ──────
+// (P-116 · P-117 · D-103 · D-104). Tre cose che Hubble LEGGE e non scrive:
+// l'assistenza vede, non modifica, e da qui non si compie nessun atto.
+//
+// L'INCARICATO. Il documento commerciale online non è delegabile a
+// intermediari e, «nel caso in cui l'operatore sia una società, il servizio
+// può essere utilizzato da operatori incaricati» (specifiche RT §2.9): una
+// persona fisica che la società nomina dal proprio profilo sul portale
+// dell'Agenzia (Profilo → Incarichi → Gestisci incarichi come gestore →
+// Aggiungi incaricato) e che accede con le proprie credenziali personali. Le
+// credenziali sono sempre dell'esercente — del titolare per la ditta
+// individuale, dell'incaricato della società per società ed enti — e il
+// rinnovo della password ogni novanta giorni lo fa quella persona: Byup non
+// ne è parte. Fino al 03/09 il prototipo aveva un «incaricato di Byup» —
+// registro byup_incaricati, scheda «Incaricati Fisconline», rinnovo da
+// Hubble — costruito senza decisione: D-103 lo ritira, e la figura resta
+// annotata come alternativa sospesa fuori dal prototipo. Il dato lo
+// raccolgono i Dati fiscali del gestionale; per il locale demo (gestionaleId
+// `cp`) Hubble lo legge dallo stesso dominio, chiave byup_ade_incaricato
+// { nome, cognome, cf, nominato_il: 'YYYY-MM-DD' }, con lo stesso seme del
+// gestionale se la chiave manca; per gli altri locali del mock un nome
+// stabile dall'id. Il gestionale avvisa con l'evento window
+// `byup-ade-incaricato-change`. Nel mock ogni locale è una società (la riga
+// «Ragione sociale … S.r.l.» dei Dati fiscali): per una ditta individuale la
+// riga direbbe che le credenziali sono del titolare.
+const HUB_ADE_INCARICATO_KEY = 'byup_ade_incaricato';
+const hubGiornoISO = (offset) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + offset); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const hubIncaricatoSeme = () => ({ nome: 'Paola', cognome: 'Conti', cf: 'CNTPLA80E50H501V', nominato_il: hubGiornoISO(-60) });
+function hubIncaricatoDi(l) {
+  if (!l) return null;
+  if (l.gestionaleId === 'cp') {
+    try { const s = localStorage.getItem(HUB_ADE_INCARICATO_KEY); if (s) { const v = JSON.parse(s); if (v && v.nome && v.cognome) return v; } } catch (e) {}
+    return hubIncaricatoSeme();
+  }
+  // hub-data.jsx si carica dopo: hubSeme si chiama a runtime, mai in testa.
+  const s = hubSeme('inc-' + l.id);
+  const nomi = ['Paola', 'Francesca', 'Roberto', 'Alessandro', 'Martina', 'Davide', 'Federica', 'Simone'];
+  const cognomi = ['Conti', 'De Luca', 'Ferrari', 'Gallo', 'Moretti', 'Rizzo', 'Barbieri', 'Fontana'];
+  const nome = nomi[s % nomi.length], cognome = cognomi[(s >>> 3) % cognomi.length];
+  const tre = (x) => (x.replace(/[^A-Za-z]/g, '').toUpperCase() + 'XXX').slice(0, 3);
+  const cf = tre(cognome) + tre(nome) + String(70 + (s % 25)) + 'ACEHLMPRST'[(s >>> 5) % 10] + String(10 + (s % 60)).padStart(2, '0') + 'H501' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[(s >>> 7) % 26];
+  return { nome, cognome, cf, nominato_il: hubGiornoISO(-(30 + (s % 400))) };
+}
+
+// IL CAMBIO DI SOGGETTO FISCALE (D-104). Non esiste un «cambio del titolare»
+// né un «passaggio del locale»: l'account è della persona, e il titolare è
+// il ruolo che ha su quel soggetto. Quando cambia il contribuente si fa da
+// Impostazioni → Dati fiscali del gestionale — nuovi dati con il precedente
+// conservato nella storia, causale da elenco, poi la catena: delega
+// riconferita e revocata, credenziali nuove, nuovo conto Stripe, censimento
+// dei POS rifatto, e alla fine la riaccettazione dei termini a nome del nuovo
+// soggetto, senza la quale il cambio non è concluso (restaurant_holder_changes
+// al solo cambio di soggetto, stato terms_reaccepted). Hubble legge il record
+// del locale demo dalla chiave byup_soggetto_change e lo mostra nei Dati
+// fiscali: la data dell'ultimo cambio, il precedente, i passi. Evento window
+// `byup-soggetto-change`. Se la chiave manca: nessun cambio a registro.
+const HUB_SOGGETTO_KEY = 'byup_soggetto_change';
+const HUB_SOGGETTO_CAUSALI = { trasformazione_societaria: 'Trasformazione societaria', cessione_attivita: 'Cessione d\'attività', subentro: 'Subentro', altro: 'Altro' };
+const HUB_SOGGETTO_PASSI = [
+  ['fiscal_updated',       'Dati fiscali aggiornati'],
+  ['delegations_renewed',  'Delega riconferita dal nuovo soggetto e revocata al precedente'],
+  ['credentials_verified', 'Credenziali del canale del nuovo soggetto e trasmissione di prova'],
+  ['stripe_connected',     'Nuovo conto Stripe connesso e verificato'],
+  ['pos_recensiti',        'Censimento dei POS rifatto'],
+  ['terms_reaccepted',     'Termini e condizioni riaccettati a nome del nuovo soggetto'],
+  ['completed',            'Cambio concluso'],
+];
+function hubSoggettoChangeDi(l) {
+  if (!l || l.gestionaleId !== 'cp') return null;
+  try { const s = localStorage.getItem(HUB_SOGGETTO_KEY); if (s) { const v = JSON.parse(s); if (v && v.change_type === 'legal_entity') return v; } } catch (e) {}
+  return null;
+}
+
+// GLI EVENTI DELL'ACCOUNT (D-104). Chi ha l'account cambia i propri recapiti
+// e il proprio nome dal profilo del gestionale; la nuova email e il nuovo
+// telefono si verificano prima di sostituire i precedenti, il recapito
+// precedente riceve l'avviso, e ogni modifica scrive un evento con il valore
+// precedente e il nuovo (audit_events). Nessuna verifica dell'identità da
+// parte di Byup: chi cambia è autenticato. Hubble li legge per il locale
+// demo dalla chiave byup_audit_events, array di { at (ISO), type:
+// 'email_changed'|'phone_changed'|'name_changed', from, to, by }, e li mostra
+// nel Log del locale. Evento window `byup-audit-change`. Se manca: nessun
+// evento, e la scheda spiega perché la riga è vuota.
+const HUB_AUDIT_KEY = 'byup_audit_events';
+const HUB_AUDIT_TIPI = { email_changed: 'Email dell\'account cambiata', phone_changed: 'Telefono dell\'account cambiato', name_changed: 'Nome dell\'account cambiato' };
+function hubAuditEventiDi(l) {
+  if (!l || l.gestionaleId !== 'cp') return [];
+  try { const s = localStorage.getItem(HUB_AUDIT_KEY); if (s) { const v = JSON.parse(s); if (Array.isArray(v)) return v.filter(e => e && e.at && HUB_AUDIT_TIPI[e.type]); } } catch (e) {}
+  return [];
+}
+Object.assign(window, { HUB_ADE_INCARICATO_KEY, hubIncaricatoDi, HUB_SOGGETTO_KEY, HUB_SOGGETTO_CAUSALI, HUB_SOGGETTO_PASSI, hubSoggettoChangeDi, HUB_AUDIT_KEY, HUB_AUDIT_TIPI, hubAuditEventiDi });
 
 // ─── Le leve di Piattaforma che il codice legge (P-69 · D-58) ───────────────
 // Le leve di PlatformConfig vivevano nello stato del componente, illeggibili
@@ -1733,12 +1863,16 @@ function admEstrai(l, dal, al, motivo, nota, righe) {
 // qui è dichiarata — le scadenze in avvicinamento col promemoria, e il
 // responsabile della gestione. È il registro che l'Agenzia può chiedere di
 // esibire anche presentandosi in sede. Tiene le SOLE deleghe degli esercenti
-// — la delega unica a due servizi; le nomine dell'incaricato Fisconline delle
-// società sono un altro atto e stanno nella loro tab, col rimando incrociato.
+// — la delega unica a due servizi. L'incaricato che una società nomina sul
+// portale dell'Agenzia (specifiche RT §2.9) è un atto della società, non di
+// Byup (D-103): Hubble non ne tiene registro, lo legge nella scheda del
+// locale, Dati fiscali (hubIncaricatoDi, sotto).
 // «Verificata il» sta perché il portale dà riscontro sulla delega, a
 // differenza dei POS (P-105: dichiarati, mai verificati).
 const DEL_SERVIZI = ['Fatturazione elettronica e conservazione delle fatture elettroniche', 'Accreditamento e censimento dispositivi'];
-const DEL_GESTIONE = { responsabile: 'inc-1', responsabileNome: 'Luca Ferrante' };
+// Chi risponde della tenuta del registro: una persona di Byup, non un
+// incaricato fiscale (quella figura non esiste, D-103).
+const DEL_GESTIONE = { responsabileNome: 'Luca Ferrante' };
 const delScadenza = (conferitaIl) => new Date(conferitaIl.getFullYear() + 4, 11, 31);
 const DELEGHE = (() => {
   const piva = (id) => (LOCALI.find(l => l.id === id) || {}).piva || '—';
@@ -1822,8 +1956,14 @@ LOCALI.filter(l => l.stato === 'active' && l.piano !== 'free').slice(3, 6).forEa
 window.LOCALI = LOCALI;
 window.LOC = LOC;
 window.MRR_ORA = MRR_ORA;
-Object.assign(window, { locAttivo, locInattivo, locInOnboarding, locChurned, locLive, locPagante });
+Object.assign(window, { locAttivo, locInattivo, locInOnboarding, locChurned, locLive, locPagante, locConfigSaltata });
 window.UTENTI = UTENTI;
+// L'utente del mock che sta per l'utente demo dell'app (P-123): sullo stesso
+// dominio l'app tiene UN registro dei consensi (ByupConsensi, in
+// localStorage), e la scheda di questo utente lo legge dal vivo; gli altri
+// mostrano valori d'esempio.
+const UTENTE_APP_DEMO_ID = UTENTI[0].id;
+window.UTENTE_APP_DEMO_ID = UTENTE_APP_DEMO_ID;
 window.SEGNALAZIONI = SEGNALAZIONI;
 window.CERTIFICAZIONI = CERTIFICAZIONI;
 window.CERT_TIPI = CERT_TIPI;
