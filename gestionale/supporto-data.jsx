@@ -35,6 +35,7 @@ const SUP_TUTORIAL_CATS = [
       { id:'p1', title: 'Configurare Stripe Connect', desc: 'Collega il conto Stripe per ricevere i pagamenti.', mins: 6, read: 4 },
       { id:'p2', title: 'Gestire i rimborsi', desc: 'Come gestire un rimborso parziale o totale.', mins: 5, read: 3 },
       { id:'p3', title: 'Esportare le fatture', desc: 'Scarica le fatture mensili per il commercialista.', mins: 4, read: 2 },
+      { id:'p4', title: 'In caso di controllo', desc: 'Dove sono gli scontrini che hai trasmesso e come mostrarli a un verificatore dal portale dell\'Agenzia.', mins: 5, read: 3 },
     ],
   },
   {
@@ -90,6 +91,7 @@ const SUP_FAQS = [
   { id:'f8', cat:'tecnico', q:'Come esporto i report delle vendite?', a:'In Statistiche → tasto Esporta in alto a destra. Puoi scegliere il periodo, il formato (CSV, PDF, XLSX) e le metriche da includere. Il file viene generato in 1-2 minuti e ti arriva via email.' },
   { id:'f9', cat:'tecnico', q:'La connessione del locale è instabile, cosa faccio?', a:'byup è interamente cloud: per ordini e incassi serve una connessione attiva. Se la linea del locale è debole, la soluzione consigliata è un hotspot 4G/5G dedicato. Non c\'è nulla da installare o sincronizzare in locale: i tuoi dati sono sempre al sicuro sui server.' },
   { id:'f10', cat:'tecnico', q:'Serve hardware dedicato (POS, stampanti)?', a:'No. Lo smartphone del personale è il terminale di pagamento (Tap to Pay), la cucina lavora da browser su tablet o monitor, e il gestionale gira su qualsiasi dispositivo con un browser. L\'unica stampa prevista è lo scontrino di cortesia, via Wi-Fi, browser o Bluetooth.' },
+  { id:'f12', cat:'pagamenti', q:'Arriva un controllo: dove trovo gli scontrini che ho trasmesso?', a:'Nel regime attuale gli scontrini sono memorizzati dal sistema dell\'Agenzia delle Entrate. Se un verificatore lo chiede, mostra i tuoi invii dal portale: Fatture e Corrispettivi → Consultazione → Corrispettivi → Invii giornalieri, con le tue credenziali Fisconline. Da qui puoi filtrare lo stesso periodo e stampare l\'elenco per confrontarlo con i tuoi conti. In Contabilità, in coda alla riga delle sezioni, il link «In caso di controllo» apre il percorso e porta al portale.', link:{ href:'byup Contabilita.html?controllo=1', label:'Apri in Contabilità' } },
   { id:'f11', cat:'generale', q:'I miei clienti devono scaricare un\'app per ordinare?', a:'No: inquadrando il QR sul tavolo si apre la webapp e si ordina senza registrazione. Il pagamento dal tavolo però è esclusivo della Byup App. Conviene anche a te: gli ordini fatti dall\'app contano 0,5 nel conteggio del tuo piano.' },
 ];
 

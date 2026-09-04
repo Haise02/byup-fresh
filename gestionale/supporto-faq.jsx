@@ -78,6 +78,17 @@ function SupFAQ({ search }) {
               {isOpen && (
                 <div style={{padding: '4px 16px 16px 36px', fontSize: 14.5, color: PN.MUTED, lineHeight: 1.6}}>
                   {f.a}
+                  {/* Qualche risposta finisce dove la cosa si fa: il rimando è
+                      parte della risposta, non un secondo giro di ricerca. */}
+                  {f.link && (
+                    <div style={{marginTop: 10}}>
+                      <a href={f.link.href} className="pn-btn-feedback" style={{
+                        display:'inline-block', padding:'7px 13px', borderRadius: 999,
+                        background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
+                        fontSize: 13.5, fontWeight: 700, color: PN.TEXT, textDecoration:'none',
+                      }}>{f.link.label} →</a>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

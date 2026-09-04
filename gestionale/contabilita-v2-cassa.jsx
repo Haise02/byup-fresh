@@ -460,31 +460,142 @@ window.ccPeriodoLabel = ccPeriodoLabel;
 // ─── «In caso di controllo» (P-111 · progetto tecnico §4.3) ─────────────────
 // Nel regime attuale la prova non è una schermata del gestionale: sono i
 // documenti memorizzati dal sistema dell'Agenzia, che l'esercente mostra dal
-// portale con le proprie credenziali. È quello che fanno i gestionali che
-// lavorano senza registratore telematico, ed è l'unica cosa che ha valore
-// probatorio: la riga lo dice, con il percorso esatto e il collegamento. Non
-// compare nel regime della Soluzione, dove al suo posto c'è la console.
-function CcInCasoDiControllo() {
-  if (window.pnRegimeSoluzione && window.pnRegimeSoluzione()) return null;
+// portale con le proprie credenziali. Quello che segue quindi NON è la
+// finestra per il verificatore — quella non si costruisce (§4.3), e chi la
+// costruisce promette una funzione senza valore probatorio: è l'istruzione,
+// col percorso esatto e il collegamento, più la scorciatoia all'unica lista
+// che il gestionale ha già, i conti del periodo.
+//
+// Sta in un foglio, non in un riquadro fisso in coda a Conti: un controllo è
+// raro, e un paragrafo permanente sotto una lista lunga è rumore tutti i
+// giorni e irraggiungibile il giorno che serve. Lo aprono il link grigio in
+// coda alle tab, ⌘K e la FAQ del Supporto — una copia sola del testo. Nel
+// regime della Soluzione non compare: al suo posto c'è la console.
+const ccPortale = () => window.PN_PORTALE_FC || 'https://ivaservizi.agenziaentrate.gov.it/portale/';
+
+// Il link non deve catturare l'occhio — niente riempimento, niente bordo,
+// niente peso — ma sta in alto e non scorre via, perché il giorno che serve
+// si ha fretta. Chi non lo cerca non lo vede; chi lo cerca sa dov'è.
+function CcControlloLink({ onClick }) {
+  const [hover, setHover] = React.useState(false);
   return (
-    <div data-in-caso-di-controllo style={{
-      marginTop: 14, padding: '13px 16px', borderRadius: C.R_MD,
-      background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderLeft: `3px solid ${PN.PINK}`,
-      fontSize: C.T_SM, color: PN.TEXT, lineHeight: 1.55,
-      display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
+    <button onClick={onClick} title="Dove sono gli scontrini trasmessi, e come mostrarli"
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        alignSelf:'center', marginBottom: 4, padding:'4px 2px',
+        background:'none', border:'none', cursor:'pointer', fontFamily:'inherit',
+        fontSize: 12, fontWeight: 500, color: hover ? PN.TEXT : PN.MUTED,
+        textDecoration:'underline', textUnderlineOffset: 3, whiteSpace:'nowrap',
+        transition:'color 140ms ease',
+      }}>In caso di controllo</button>
+  );
+}
+
+function CcControlloSheet({ onClose, onMostraConti }) {
+  // Parte da «oggi e ieri»: è l'intervallo che di solito viene chiesto, ed è
+  // già una delle scorciatoie del selettore. Si cambia col selettore di
+  // sempre — quello di Cassa e di Conti — e il periodo scelto è quello con
+  // cui si arriva nella lista: la stessa finestra da confrontare col portale.
+  const [periodo, setPeriodo] = React.useState(() => {
+    const a = new Date(); a.setHours(0,0,0,0);
+    const d = new Date(a); d.setDate(d.getDate() - 1);
+    return { da: ccIso(d), a: ccIso(a) };
+  });
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const pickerRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!pickerOpen) return;
+    const h = (e) => { if (pickerRef.current && !pickerRef.current.contains(e.target)) setPickerOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [pickerOpen]);
+  React.useEffect(() => {
+    const h = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [onClose]);
+
+  const btn = (label, onClick, primario, href) => {
+    const st = {
+      padding:'10px 16px', borderRadius: C.R_PILL, fontSize: C.T_SM, fontWeight: 700,
+      cursor:'pointer', fontFamily:'inherit', textDecoration:'none', whiteSpace:'nowrap',
+      background: primario ? PN.TEXT : PN.WHITE, color: primario ? '#fff' : PN.TEXT,
+      border: primario ? 'none' : `1px solid ${PN.BORDER}`,
+      display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 7,
+    };
+    return href
+      ? <a href={href} target="_blank" rel="noopener noreferrer" className="pn-btn-feedback" style={st}>{label}</a>
+      : <button onClick={onClick} style={st}>{label}</button>;
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, zIndex: 900, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', padding: 20,
     }}>
-      <div style={{flex: 1, minWidth: 280}}>
-        <b>In caso di controllo.</b> Nel regime attuale gli scontrini sono memorizzati dal sistema dell'Agenzia delle Entrate. Se un verificatore lo chiede, mostra i tuoi invii dal portale: <b>Fatture e Corrispettivi → Consultazione → Corrispettivi → Invii giornalieri</b>, con le tue credenziali Fisconline. Da qui puoi filtrare lo stesso periodo e stampare l'elenco per confrontarlo.
+      <div onClick={e => e.stopPropagation()} style={{
+        width:'min(560px, 100%)', maxHeight:'calc(var(--pn-vh, 100vh) - 40px)',
+        background: PN.WHITE, borderRadius: 20, overflow:'visible',
+        boxShadow:'0 30px 80px rgba(15,17,21,0.30)',
+        display:'flex', flexDirection:'column',
+      }}>
+        <div style={{padding:'20px 24px 0', display:'flex', alignItems:'flex-start', gap: 14}}>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 11.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.5, textTransform:'uppercase'}}>Contabilità</div>
+            <div style={{fontSize: 21, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.3, marginTop: 2}}>In caso di controllo</div>
+          </div>
+          <button onClick={onClose} aria-label="Chiudi" style={{
+            width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+            background: PN.WHITE, border:`1px solid ${PN.BORDER}`, color: PN.MUTED,
+            fontSize: 15, cursor:'pointer', fontFamily:'inherit', lineHeight: 1,
+          }}>✕</button>
+        </div>
+
+        <div style={{padding:'14px 24px 0', fontSize: C.T_MD, color: PN.TEXT, lineHeight: 1.6}}>
+          Nel regime attuale gli scontrini sono memorizzati dal sistema dell'Agenzia delle Entrate.
+          Se un verificatore lo chiede, mostra i tuoi invii dal portale: <b>Fatture e Corrispettivi → Consultazione → Corrispettivi → Invii giornalieri</b>,
+          con le tue credenziali Fisconline. Da qui puoi filtrare lo stesso periodo e stampare l'elenco per confrontarlo.
+        </div>
+
+        {/* Il periodo si sceglie qui e si porta dietro: chi arriva in Conti ci
+            arriva già filtrato sulla finestra che gli è stata chiesta. */}
+        <div style={{
+          margin:'18px 24px 0', padding:'12px 14px', borderRadius: C.R_MD,
+          background: C.SURF_ALT, display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap',
+        }}>
+          <span style={{fontSize: C.T_SM, color: PN.MUTED, fontWeight: 600}}>Periodo chiesto</span>
+          <div ref={pickerRef} style={{position:'relative', marginLeft:'auto'}}>
+            <button onClick={() => setPickerOpen(o => !o)} style={{
+              display:'inline-flex', alignItems:'center', gap: 7, padding:'8px 13px',
+              borderRadius: C.R_SM, background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
+              fontSize: C.T_SM, fontWeight: 700, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
+            }}>
+              <Ic.calendar size={14}/> {ccPeriodoLabel(periodo)}
+            </button>
+            {pickerOpen && (
+              <CcPeriodoPicker
+                selected={periodo}
+                onPick={(p) => { setPeriodo(p); setPickerOpen(false); }}
+                onClear={() => { setPeriodo(null); setPickerOpen(false); }}
+              />
+            )}
+          </div>
+        </div>
+
+        <div style={{padding:'16px 24px 0', display:'flex', gap: 10, flexWrap:'wrap'}}>
+          {btn(<React.Fragment>Apri il portale <span aria-hidden="true">↗</span></React.Fragment>, null, true, ccPortale())}
+          {btn('Mostra i miei conti del periodo', () => onMostraConti(periodo))}
+        </div>
+
+        <div style={{padding:'14px 24px 20px', fontSize: C.T_XS, color: PN.MUTED, lineHeight: 1.5}}>
+          L'elenco di Byup serve a confrontare: i documenti che fanno prova sono quelli memorizzati dal sistema dell'Agenzia.
+        </div>
       </div>
-      <a href={window.PN_PORTALE_FC || 'https://ivaservizi.agenziaentrate.gov.it/portale/'} target="_blank" rel="noopener noreferrer" className="pn-btn-feedback" style={{
-        flexShrink: 0, alignSelf: 'center', padding: '8px 14px', borderRadius: C.R_PILL,
-        background: PN.WHITE, color: PN.TEXT, border: `1px solid ${PN.BORDER}`,
-        fontSize: C.T_SM, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap',
-      }}>Apri il portale</a>
     </div>
   );
 }
-window.CcInCasoDiControllo = CcInCasoDiControllo;
+window.CcControlloLink = CcControlloLink;
+window.CcControlloSheet = CcControlloSheet;
 
 // ─── Chip di stato ─────────────────────────────────────────────────────────
 // Stessa pill di StatusPill (Costi): piena, radius pill, 12.5/700, e le sue

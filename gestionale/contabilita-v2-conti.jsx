@@ -1533,7 +1533,7 @@ function ChiudiGiornataModal({ open, onClose, onConfirm }) {
   );
 }
 
-function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
+function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null, periodoIn = null }) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [activeFilter, setActiveFilter] = React.useState(filter);
   const [scartoPay, setScartoPay] = React.useState(null); // {conto, payment}
@@ -1581,7 +1581,12 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
   // vive in contabilita-v2-cassa.jsx — applicato alla data di apertura del
   // conto. Convive col rimando `fisc` di Cassa, che filtra per giornata i
   // DOCUMENTI: sono due domande diverse e nessuna delle due spegne l'altra.
-  const [periodo, setPeriodo] = React.useState(null); // {da, a} ISO o null
+  // `periodoIn` è il periodo scelto nel foglio «In caso di controllo»: entra
+  // come valore iniziale e torna a entrare a ogni nuovo rimando, ma da lì in
+  // poi il selettore è di chi guarda la lista — il foglio non lo riscrive.
+  const [periodo, setPeriodo] = React.useState(periodoIn);
+  const periodoInKey = periodoIn ? `${periodoIn.da}|${periodoIn.a}` : '';
+  React.useEffect(() => { if (periodoIn) setPeriodo(periodoIn); }, [periodoInKey]);
   const [periodoOpen, setPeriodoOpen] = React.useState(false);
   const periodoRef = React.useRef(null);
   React.useEffect(() => {
@@ -2122,11 +2127,6 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
           onClose={() => setScartoPay(null)}
         />
       )}
-
-      {/* P-111: sotto l'elenco dei documenti, dove la domanda nasce. Ogni riga
-          porta già l'esito e l'identificativo assegnato dal canale: sono quelli
-          che si confrontano con il portale. */}
-      {window.CcInCasoDiControllo && <window.CcInCasoDiControllo/>}
     </div>
   );
 }
