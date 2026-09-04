@@ -149,6 +149,7 @@ function SalaVenditaDiretta() {
   const [storico, setStorico] = React.useState(() => svLeggiSessione('byup.sala.storico', window.SALA_ORDINI_STORICO || []));
   React.useEffect(() => { svScriviSessione('byup.sala.storico', storico); }, [storico]);
   const [saldaOrdine, setSaldaOrdine] = React.useState(null); // ordine da saldare al banco (modale incasso)
+  const [parcheggia, setParcheggia] = React.useState(false);  // foglio «metti il conto da parte»
   const [toast, setToast] = React.useState(null);
   const showToast = (msg) => {
     setToast(msg);
@@ -285,19 +286,30 @@ function SalaVenditaDiretta() {
   // Marta» — e prima non aveva un posto: restava un nome scritto sul carrello,
   // che al primo cambio di schermata spariva. La cassa si libera subito, e il
   // conto si riprende da «Da saldare», dove lo si incassa.
-  const assegnaClienteEParcheggia = (nome) => {
-    // Senza righe non c'è niente da mettere da parte: resta un nome sul
-    // carrello, che è quello che serve a chi lo scrive prima di battere.
+  // Il foglio chiede tre cose, e sono tre decisioni diverse: CHI ritira, A CHE
+  // ORA, e se la cucina deve muoversi ADESSO. Quest'ultima è la sola che
+  // costa: un conto non pagato che parte in cucina è cibo preparato su
+  // fiducia, e chi sta al banco deve poterlo decidere caso per caso —
+  // altrimenti il conto resta fermo e i piatti si fanno al saldo (o quando lo
+  // manda lui dalla coda). Senza orario indicato non se ne inventa uno: la
+  // coda dice «senza orario», che è la verità.
+  const assegnaClienteEParcheggia = ({ nome, ritiro, inCucina }) => {
     if (!nome || !lines.length) { setTaCliente(nome || null); return; }
     const numero = numeraOrdine();
-    const now = new Date();
+    const preparazione = haPreparazione(lines);
     const voce = {
       id: `banco-${numero}`, codice: `#${numero}`,
       cliente: nome,
-      ritiro: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      ritiro: ritiro || null,
       fonte: 'banco', pagato: false, asporto: takeaway, totale: total,
       banco: takeaway ? null : nuovoNumeroBanco(),
-      codiceRitiro: haPreparazione(lines) ? nuovoCodiceRitiro() : null,
+      // In cucina si va solo se lo si è chiesto: il codice di ritiro serve a
+      // richiamare chi aspetta un piatto, e senza cucina non aspetta nessuno.
+      // Se non c'è NIENTE da preparare la domanda non esiste, e il campo resta
+      // nullo: la coda non deve dire «non in cucina» di un caffè, né offrire di
+      // mandarci qualcosa che la cucina non riceverebbe comunque.
+      inCucina: preparazione ? !!inCucina : null,
+      codiceRitiro: (inCucina && preparazione) ? nuovoCodiceRitiro() : null,
       items: lines.map(l => ({
         nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
         aliquota: l.aliquota, ivaProfilo: l.ivaProfilo,
@@ -307,7 +319,16 @@ function SalaVenditaDiretta() {
     setLines([]);
     setTakeaway(false);
     setTaCliente(null);
-    showToast(`${svNomeConto(voce)} in Da saldare · ${svEur(total)}`);
+    setParcheggia(false);
+    showToast(`${svNomeConto(voce)} in Da saldare · ${inCucina && preparazione ? 'comanda in cucina' : 'non in cucina'}`);
+  };
+
+  // Rimediare dopo: il conto in coda che non è ancora andato in cucina ci va
+  // da qui, senza passare dall'incasso.
+  const mandaInCucina = (ordine) => {
+    setRitiri(prev => prev.map(r => r.id === ordine.id
+      ? { ...r, inCucina: true, codiceRitiro: r.codiceRitiro || nuovoCodiceRitiro() } : r));
+    showToast(`${svNomeConto(ordine)} · comanda in cucina`);
   };
 
   const parcheggiaConAcconto = (pagamento, totaleConto) => {
@@ -639,7 +660,8 @@ function SalaVenditaDiretta() {
         asportoOn={asportoOn}
         onToggleTakeaway={() => setTakeaway(v => !v)}
         cliente={taCliente}
-        onCliente={assegnaClienteEParcheggia}
+        onCliente={(nome) => assegnaClienteEParcheggia({ nome })}
+        onParcheggia={() => setParcheggia(true)}
         total={total}
         totQty={totQty}
         onInc={incLine}
@@ -677,6 +699,7 @@ function SalaVenditaDiretta() {
         onClose={() => setCoda(null)}
         onConsegna={confermaConsegna}
         onSalda={setSaldaOrdine}
+        onCucina={mandaInCucina}
       />
 
       {/* Consegnati — l'archivio del servizio */}
@@ -741,6 +764,16 @@ function SalaVenditaDiretta() {
           initialQty={personalize.qty}
           onClose={() => { setPersonalize(null); setEditLine(null); }}
           onConfirm={addPersonalized}
+        />
+      )}
+
+      {parcheggia && (
+        <SaParcheggiaModal
+          totale={total}
+          preparazione={haPreparazione(lines)}
+          nomeIniziale={taCliente}
+          onClose={() => setParcheggia(false)}
+          onConferma={assegnaClienteEParcheggia}
         />
       )}
 
@@ -831,7 +864,7 @@ const SA_CODA_MODI = {
   },
 };
 
-function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
+function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda, onCucina }) {
   const testi = SA_CODA_MODI[modo] || SA_CODA_MODI.consegna;
   const [q, setQ] = React.useState('');
   React.useEffect(() => { setQ(''); }, [modo, open]);
@@ -1030,9 +1063,18 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
                         {/* Piattaforma: il cliente finale scende qui sotto —
                             in cima ci sta il codice, che è per il rider. */}
                         {svPiattaforma(r.fonte)
-                          ? `per ${r.cliente} · ritiro ${r.ritiro}`
-                          : `${(r.fonte === 'banco' ? !!r.asporto : true) ? 'Asporto' : 'Sul posto'} · ritiro ${r.ritiro}`}
+                          ? `per ${r.cliente} · ${svRitiroLabel(r)}`
+                          : `${(r.fonte === 'banco' ? !!r.asporto : true) ? 'Asporto' : 'Sul posto'} · ${svRitiroLabel(r)}`}
                       </span>
+                      {/* Un conto messo da parte senza mandarlo in cucina: la
+                          coda lo dice, altrimenti al ritiro si scopre che non
+                          è stato preparato niente. */}
+                      {r.inCucina === false && !r.pagato && (
+                        <span style={{
+                          flexShrink: 0, fontSize: 12, fontWeight: 800, letterSpacing: 0.3, textTransform:'uppercase',
+                          padding:'2px 8px', borderRadius: 999, background: PN.AMBER_SOFT, color:'#92400E',
+                        }}>non in cucina</span>
+                      )}
                       {conAcconto && (
                         <span style={{flexShrink: 0, fontVariantNumeric:'tabular-nums'}}>di €{netto.totale.toFixed(2)}</span>
                       )}
@@ -1068,6 +1110,18 @@ function SaCodaModal({ open, modo, ritiri, onClose, onConsegna, onSalda }) {
                   Prima "Procedi al pagamento" era bianco col bordo e "Segna
                   come consegnato" pieno — due gerarchie diverse per la stessa
                   posizione, come se incassare contasse meno che consegnare. */}
+              {r.inCucina === false && !r.pagato && (
+                <div style={{padding:'0 16px 10px'}}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onCucina && onCucina(r); }}
+                    className="pn-btn-feedback"
+                    style={{
+                      width:'100%', padding:'10px 16px', borderRadius: 999,
+                      background: PN.WHITE, color: PN.TEXT, border:`1px solid ${PN.BORDER}`,
+                      fontSize: 15.5, fontWeight: 700, cursor:'pointer', fontFamily:'inherit',
+                    }}>Manda in cucina</button>
+                </div>
+              )}
               <div style={{padding:'0 16px 14px'}}>
                 <button
                   onClick={() => (r.pagato ? onConsegna(r) : onSalda(r))}
@@ -1196,7 +1250,7 @@ function SaConsegnatiModal({ consegnati, onClose, onVai }) {
                       background: canale.bg, color: canale.fg,
                     }}>{canale.label}</span>
                     <span style={{fontSize: 14, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>
-                      {o.ritiro} · {nItems} {nItems === 1 ? 'articolo' : 'articoli'}
+                      {o.ritiro || 'senza orario'} · {nItems} {nItems === 1 ? 'articolo' : 'articoli'}
                     </span>
                     {/* Un ordine toccato da un rimborso si vede dalla lista:
                         è esattamente quello che si sta cercando quando si apre
@@ -1286,7 +1340,7 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
                 }}>{ordine.codice}</span>
               )}
               <span style={{fontSize: 14.5, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>
-                {(SV_CANALE[ordine.fonte] || SV_CANALE.banco).label} · ritiro {ordine.ritiro}
+                {(SV_CANALE[ordine.fonte] || SV_CANALE.banco).label} · {svRitiroLabel(ordine)}
               </span>
             </div>
           </div>
@@ -1474,6 +1528,11 @@ function SaTipologiaSelect({ value, onChange, takeaway }) {
     </div>
   );
 }
+
+// L'orario del ritiro, quando c'è. Un conto messo da parte può non averlo — e
+// allora lo dice, invece di mostrare un orario inventato al momento in cui è
+// stato battuto, che non è l'ora in cui qualcuno passerà a prenderlo.
+const svRitiroLabel = (r) => (r && r.ritiro ? `ritiro ${r.ritiro}` : 'senza orario');
 
 // La riga fuori menù si riconosce dal piatto che la porta.
 const svRigaCustom = (line) => !!(line && line.piatto && (line.piatto.custom || /^custom_/.test(String(line.piatto.id))));
@@ -1948,7 +2007,7 @@ function SaPersonalizzaModal({ piatto, initialMods, initialQty, onClose, onConfi
 // conto con dei soldi sopra non vive qui ma nella coda "Da saldare" —
 // vedi `parcheggiaConAcconto` — perché il carrello non sopravvive a un cambio
 // di sezione, e i soldi sì.
-function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, cliente, onCliente, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa, avvisoIva, onChiudiAvvisoIva }) {
+function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, cliente, onCliente, onParcheggia, total, totQty, onInc, onDec, onRemove, onEdit, onChangeName, onChangePrice, onClear, onIncassa, avvisoIva, onChiudiAvvisoIva }) {
   window.SALA_VENDITA_CLEAR = onClear;
   // Conferma prima di svuotare: il conto in corso è lavoro, non si butta per un click.
   const [clearConfirm, setClearConfirm] = React.useState(false);
@@ -2163,7 +2222,7 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
           caffè al volo nessuno lo chiede, e il conto resta un numero. */}
       {lines.length > 0 && (
         <div style={{padding: '0 14px 12px'}}>
-          <SaClienteBar cliente={cliente} onChange={onCliente} righe={lines.length}/>
+          <SaClienteBar cliente={cliente} onChange={onCliente} onApri={onParcheggia} righe={lines.length}/>
         </div>
       )}
 
@@ -2258,16 +2317,129 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
   );
 }
 
+// ─── «Metti il conto da parte» ──────────────────────────────────────────────
+// Tre domande, e sono tre decisioni diverse: chi ritira, a che ora, e se la
+// cucina deve muoversi adesso. La terza è l'unica che costa — un conto non
+// pagato che parte in cucina è cibo preparato su fiducia — quindi è una spunta
+// spenta, non un automatismo: chi sta al banco decide caso per caso, e se non
+// la spunta il conto resta in coda finché non lo manda lui o non viene saldato.
+// Foglio standard del gestionale, come il fuori menù.
+function SaParcheggiaModal({ totale, preparazione, nomeIniziale, onClose, onConferma }) {
+  const [nome, setNome] = React.useState(nomeIniziale || '');
+  const [ritiro, setRitiro] = React.useState('');
+  const [inCucina, setInCucina] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => { ref.current?.focus(); }, []);
+  React.useEffect(() => {
+    const esc = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  }, [onClose]);
+  const valido = nome.trim().length > 0;
+  const conferma = () => { if (valido) onConferma({ nome: nome.trim(), ritiro: ritiro || null, inCucina }); };
+  const campo = { display: 'flex', flexDirection: 'column', gap: 7 };
+  // Un'ora comoda da proporre senza deciderla: fra un quarto d'ora.
+  const fraUnQuarto = () => {
+    const d = new Date(Date.now() + 15 * 60000);
+    setRitiro(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
+      display:'grid', placeItems:'center', zIndex: 200, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} data-parcheggia style={{ ...MODAL_PANEL, width: 520 }}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>Metti il conto da parte</div>
+          <div style={MODAL_SUB}>Passa in «Da saldare» a nome di chi lo ritira, e la cassa si libera.</div>
+          <button onClick={onClose} aria-label="Chiudi" style={MODAL_X}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div style={{ ...MODAL_BODY, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={campo}>
+            <label style={MODAL_LABEL}>Chi ritira</label>
+            <input ref={ref} value={nome} onChange={e => setNome(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && valido) conferma(); }}
+              placeholder="Nome del cliente" style={MODAL_INPUT}/>
+          </div>
+
+          <div style={campo}>
+            <label style={MODAL_LABEL}>Ora del ritiro</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <input type="time" value={ritiro} onChange={e => setRitiro(e.target.value)}
+                style={{ ...MODAL_INPUT, width: 150, fontVariantNumeric: 'tabular-nums' }}/>
+              <button onClick={fraUnQuarto} className="pn-btn-feedback" style={{
+                padding: '9px 14px', borderRadius: 999, border: `1px solid ${PN.BORDER}`,
+                background: PN.WHITE, color: PN.TEXT, fontSize: 14, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>Fra un quarto d'ora</button>
+              {ritiro && (
+                <button onClick={() => setRitiro('')} style={{
+                  background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
+                  textDecoration: 'underline', textUnderlineOffset: 3,
+                }}>Togli l'orario</button>
+              )}
+            </div>
+            <div style={{ fontSize: 13, color: PN.MUTED, lineHeight: 1.45 }}>
+              Se non la sai, lascia vuoto: in coda il conto dirà «senza orario», che è la verità.
+            </div>
+          </div>
+
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 11, padding: '12px 14px', borderRadius: 12,
+            border: `1.5px solid ${inCucina ? PN.TEXT : PN.BORDER}`, background: PN.WHITE,
+            cursor: preparazione ? 'pointer' : 'not-allowed', opacity: preparazione ? 1 : 0.55,
+          }}>
+            <input type="checkbox" checked={inCucina} disabled={!preparazione}
+              onChange={e => setInCucina(e.target.checked)} style={{ marginTop: 3, accentColor: PN.PINK_DARK }}/>
+            <span>
+              <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: PN.TEXT }}>Manda in cucina adesso</span>
+              <span style={{ display: 'block', fontSize: 13, color: PN.MUTED, marginTop: 3, lineHeight: 1.5 }}>
+                {preparazione
+                  ? 'La comanda parte subito, anche se il conto non è ancora pagato. Senza la spunta i piatti si preparano quando lo mandi tu dalla coda, o quando il conto viene saldato.'
+                  : 'Non c\'è niente da preparare in questo conto: la cucina non riceve nulla in ogni caso.'}
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div style={{ ...MODAL_FOOT, justifyContent: 'space-between', alignItems: 'center' }}>
+          <button onClick={onClose} className="pn-btn-feedback" style={{
+            padding: '11px 18px', borderRadius: 12, border: `1px solid ${PN.BORDER}`,
+            background: PN.WHITE, color: PN.TEXT, fontSize: 15.5, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>Annulla</button>
+          <button onClick={conferma} disabled={!valido} className="pn-btn-feedback" style={{
+            padding: '11px 22px', borderRadius: 12, border: 'none',
+            background: valido ? PN.BTN_DARK : '#F4F5F7', color: valido ? PN.WHITE : PN.MUTED_SOFT,
+            fontSize: 15.5, fontWeight: 700, cursor: valido ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+          }}>
+            <span>Metti in Da saldare</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>€{(totale || 0).toFixed(2)}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Il cliente del conto: solo un nome, scritto a mano — chi ritira si annuncia
 // col nome al banco, non serve un'anagrafica. La CTA apre il campo, Invio (o
 // Conferma) assegna, Esc annulla. Assegnare NON è etichettare: con un carrello
 // pieno l'ordine passa in «Da saldare» a quel nome e la cassa si libera. Il
 // riquadro lo dice prima, perché un gesto che sposta un conto non si scopre
 // dopo averlo fatto.
-function SaClienteBar({ cliente, onChange, righe = 0 }) {
+function SaClienteBar({ cliente, onChange, onApri, righe = 0 }) {
   const [editing, setEditing] = React.useState(false);
   const [nome, setNome] = React.useState('');
-  const start = () => { setNome(cliente || ''); setEditing(true); };
+  // Con delle righe dentro non si scrive un nome su una riga: si apre il
+  // foglio, perché insieme al nome vanno decise l'ora del ritiro e la cucina.
+  const start = () => { if (righe > 0 && onApri) { onApri(); return; } setNome(cliente || ''); setEditing(true); };
   const commit = () => { setEditing(false); onChange(nome.trim() || null); };
   const cancel = () => setEditing(false);
 
@@ -2302,7 +2474,7 @@ function SaClienteBar({ cliente, onChange, righe = 0 }) {
             </span>
             <span style={{display:'block', fontSize: 13, color: PN.MUTED_SOFT, marginTop: 1}}>
               {cliente ? 'Ritira quest\'ordine'
-                : righe > 0 ? 'Con un nome l\'ordine passa in Da saldare'
+                : righe > 0 ? 'Il conto passa in Da saldare, con ora di ritiro e cucina'
                 : 'Chi viene a ritirare?'}
             </span>
           </span>
