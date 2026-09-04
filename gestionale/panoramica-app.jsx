@@ -398,6 +398,11 @@ root.render(
     {/* Le due attivazioni che l'onboarding non chiede più: fascia a tutta
         larghezza in cima, persistente finché non si risponde. */}
     {window.PnAttivazioniFascia && <window.PnAttivazioniFascia/>}
+    {/* Le due fasce della stampa (P-128): la stampante di cucina muta e il
+        documento che aspetta una postazione. Stanno dove sta la fascia delle
+        attivazioni, perché nascono mentre si lavora e chi deve agire non è
+        detto che stia guardando la pagina in cui il fatto è successo. */}
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
     <PnNotificaDemo/>
     <PnApp/>
   </div>

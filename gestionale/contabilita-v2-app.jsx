@@ -201,4 +201,9 @@ function Kpi({ label, value, delta, up, down, icon: I, tooltip, divider }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<ContabilitaApp/>);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.Fragment>
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
+    <ContabilitaApp/>
+  </React.Fragment>
+);

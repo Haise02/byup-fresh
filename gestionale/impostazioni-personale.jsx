@@ -1,6 +1,23 @@
-// Impostazioni → Personale: ruoli predefiniti + custom, permessi area-based, e i
-// dispositivi che entrano (monitor cucina, stampanti, smartphone Byup Staff)
-// nello stesso elenco delle persone — la domanda della pagina è «chi entra».
+// Impostazioni → Personale: ruoli predefiniti + custom, permessi area-based, e
+// chi entra nel gestionale — le persone, il monitor di cucina che entra come
+// loro, e i telefoni di Byup Staff. La domanda della pagina è «chi entra».
+//
+// LE STAMPANTI NON STANNO PIÙ QUI (P-134). Una stampante non entra da nessuna
+// parte: riceve fogli e li stampa. Non ha un accesso, non vede niente, non ha
+// permessi. Vivono nel blocco Stampanti di Impostazioni → Integrazioni, dove
+// P-128 le ha messe, e da lì si assegnano anche le categorie da instradare —
+// che prima si potevano assegnare da due posti, e adesso da uno solo.
+//
+// IL MONITOR NON HA PIÙ NOME UTENTE E PASSWORD (P-134). Si collega con un
+// codice che il titolare approva: chi è in cucina apre `byup.it/cucina` sullo
+// schermo, legge il codice, e dal gestionale lo si conferma dandogli nome e
+// visualizzazione. Non è solo una semplificazione: prima chiunque conoscesse
+// `PG1-cucina` e la sua password apriva la cucina di quel locale da qualunque
+// browser del mondo, e su quello schermo passano i nomi dei tavoli e le
+// allergie dichiarate dai clienti, che sono dati sulla salute.
+// Il collegamento dura finché non lo si revoca: nessuna scadenza e nessuna
+// sessione che finisce da sola — lo schermo della cucina resta acceso tutto il
+// servizio e nessuno lo guarda per accertarsi che sia ancora collegato.
 
 // Superficie dei menu a comparsa: vetro, come in Sala e tavoli.
 const GLASS_MENU_PERSONALE = {
@@ -56,7 +73,9 @@ const ROLES = [
   },
 ];
 
-// Dispositivi senza credenziali email — accesso con username/password locali
+// L'unico dispositivo che ENTRA nel gestionale: il monitor di cucina. Ha una
+// sua vista, legge le comande della sua stazione e ne cambia lo stato, come
+// farebbe una persona. Si collega con un codice, non con credenziali.
 const DEVICE_TYPES = [
   {
     id: 'kitchen-monitor',
@@ -67,20 +86,6 @@ const DEVICE_TYPES = [
     placeholder: 'Monitor cucina',
   },
 ];
-
-// P-124 (D-108): le stampanti sono quelle del registro condiviso (stampa.jsx,
-// byup_stampanti), collegate in POS e integrazioni con «Collega stampante»:
-// qui non si registra una stampante, la si trova e le si assegnano le
-// categorie di comanda. L'instradamento è UNO (category_routings): le chiavi
-// «menuId:catId» vivono nel registro, e Personale le legge e le scrive lì,
-// come il popup. Niente indirizzi IP: le stampanti delle comande interrogano
-// il nostro server (Star CloudPRNT, Epson Server Direct Print) e la loro
-// identità è modello e protocollo; i documenti escono dal browser.
-const pnStampantiComande = () => (window.byupStampantiComande ? window.byupStampantiComande() : []);
-const availablePrinters = () => pnStampantiComande().map(d => ({
-  id: 'printer-' + d.id, regId: d.id, name: d.name, model: d.device_model,
-  protocollo: (window.PN_PRINTER_PROTOCOLLI && window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {}).label || d.printer_protocol,
-}));
 
 // Come la cucina vede e manda gli ordini. È la sola cosa che cambia davvero
 // fra due monitor identici, e si chiede al collegamento perché cambia il modo
@@ -99,10 +104,6 @@ const KDS_VIEWS = [
   { id: 'ristorante', label: 'Visualizzazione Ristorante', short: 'Ristorante', icon: 'split',
     desc: 'Le righe partono una portata alla volta' },
 ];
-
-// I menù e le categorie che si instradano: la copia condivisa con il popup
-// «Collega stampante» (PN_MENU_CATEGORIE in stampa.jsx, P-124).
-const MENUS = window.PN_MENU_CATEGORIE || [];
 
 // «Vendita diretta» è la cassa del locale: era una sezione del gestionale che
 // nel modello dei permessi non esisteva, e senza di lei il ruolo Cassa non
@@ -126,7 +127,7 @@ const SETTINGS_PAGES = [
   { id: 'personale', label: 'Personale', icon: 'users' },
   { id: 'flussi', label: 'Servizio', icon: 'bolt' },
   { id: 'fiscali', label: 'Dati fiscali', icon: 'doc' },
-  { id: 'integrazioni', label: 'POS e integrazioni', icon: 'plug' },
+  { id: 'integrazioni', label: 'Integrazioni', icon: 'plug' },
 ];
 
 const PERSONS = [
@@ -137,21 +138,17 @@ const PERSONS = [
   { name: 'Luca Ferretti', email: 'luca@delborgo.it', role: 'sommelier', last: '3 ore fa', online: false, color: '#7C3AED', active: false },
 ];
 
+// I monitor collegati vengono dal registro condiviso (panoramica-sidebar.jsx,
+// byup_kds_monitor): è lo stesso elenco che legge la sezione Cucina per sapere
+// quale schermo guardare, e la verità sta lì, non in una lista scritta a mano
+// che invecchierebbe per conto suo.
 // kdsView: la visualizzazione scelta al collegamento (vedi KDS_VIEWS). Sta sul
 // dispositivo e non sul locale perché due monitor dello stesso locale possono
 // lavorare in due modi — la pizza esce tutta insieme, la sala va per portate.
-const DEVICES = [
-  { name: 'Monitor cucina principale', username: 'PG1-cucina', deviceType: 'kitchen-monitor', kdsView: 'ristorante', last: 'ora', online: true },
-  { name: 'Monitor pizza', username: 'PG1-pizza', deviceType: 'kitchen-monitor', kdsView: 'pub', last: '5 min fa', online: true },
-  // Le stampanti delle comande, dal registro (stampa.jsx): dispositivi che
-  // entrano, con le categorie che instradano (category_routings).
-  ...pnStampantiComande().map(d => ({
-    name: d.name, printerModel: d.device_model, regId: d.id, deviceType: 'printer',
-    protocollo: (window.PN_PRINTER_PROTOCOLLI && window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {}).label || d.printer_protocol,
-    last: d.connection_status === 'online' ? 'ora' : '—', online: d.connection_status === 'online',
-    menuId: 'principale', cats: (d.routing || []).filter(k => k.startsWith('principale:')).map(k => k.split(':')[1]), routing: d.routing || [],
-  })),
-];
+const monitorCollegati = () => (window.byupReadMonitorsKds ? window.byupReadMonitorsKds() : []).map(m => ({
+  name: m.nome, monitorId: m.id, deviceType: 'kitchen-monitor', kdsView: m.vista,
+  collegatoIl: m.collegato_il || null,
+}));
 
 const PENDING = [
   { email: 'andrea@delborgo.it', role: 'cameriere', sent: '3 giorni fa' },
@@ -205,8 +202,28 @@ function ImpPersonale() {
   // non fanno niente, che è peggio di non averli.
   const [attivazioni, setAttivazioni] = React.useState({});   // key → attivo
   const [ruoliCambiati, setRuoliCambiati] = React.useState({}); // key → roleId
-  const [resetPwd, setResetPwd] = React.useState(null);       // riga in reset
   const [cambiaRuolo, setCambiaRuolo] = React.useState(null); // riga in cambio
+  const [collegaMonitor, setCollegaMonitor] = React.useState(null);  // null | { codice }
+  const [monitorAperto, setMonitorAperto] = React.useState(null);    // riga del monitor da modificare
+  const [toast, setToast] = React.useState(null);
+  const avvisa = (t) => { setToast(t); setTimeout(() => setToast(null), 2800); };
+  // I monitor collegati vengono dal registro condiviso e si riascoltano: uno
+  // schermo approvato da un'altra scheda deve comparire qui senza ricaricare.
+  const [monitors, setMonitors] = React.useState(() => monitorCollegati());
+  React.useEffect(() => {
+    const agg = () => setMonitors(monitorCollegati());
+    const ev = ['byup-kds-vista-change', 'byup-monitor-richieste', 'storage'];
+    ev.forEach(e => window.addEventListener(e, agg));
+    return () => { ev.forEach(e => window.removeEventListener(e, agg)); };
+  }, []);
+  // Il QR sullo schermo della cucina porta qui, col codice già dentro: chi ha
+  // inquadrato non deve ricopiare niente.
+  React.useEffect(() => {
+    try {
+      const c = new URLSearchParams(window.location.search).get('collega');
+      if (c) setCollegaMonitor({ codice: c.toUpperCase() });
+    } catch (e) {}
+  }, []);
 
   // I ruoli personalizzati sono gli unici che cambiano: Cassa, Cameriere e
   // Titolare sono di sistema e restano quelli. Modificarne i permessi non li
@@ -241,18 +258,18 @@ function ImpPersonale() {
         attivo: attivazioni[key] !== undefined ? attivazioni[key] : p.active !== false,
       };
     }),
-    ...DEVICES.map((d, i) => {
-      const stampante = d.deviceType === 'printer';
-      const key = `d-${i}`;
+    ...monitors.map((d) => {
+      const key = `d-${d.monitorId}`;
+      const vista = (KDS_VIEWS.find(v => v.id === d.kdsView) || KDS_VIEWS[0]).short;
       return {
-        key, tipo: 'dispositivo', dato: d, idx: i,
-        nome: d.name, sotto: stampante ? `${d.printerModel} · ${d.protocollo}` : d.username,
+        key, tipo: 'dispositivo', dato: d,
+        // Niente nome utente sotto il nome: non c'è più (P-134). Al suo posto
+        // la cosa che di uno schermo si vuole sapere — come mostra le comande.
+        nome: d.name, sotto: `Visualizzazione ${vista}`,
         ruolo: DEVICE_ROLES[d.deviceType] || DEVICE_ROLE, gruppo: '_devices',
-        accesso: stampante
-          ? { titolo: 'Cassa', sotto: 'Scontrini e comande' }
-          : { titolo: 'Cucina', sotto: 'Schermo comande' },
-        attivo: attivazioni[key] !== undefined ? attivazioni[key] : d.active !== false,
-        stampante,
+        accesso: { titolo: 'Cucina', sotto: 'Schermo comande' },
+        attivo: attivazioni[key] !== undefined ? attivazioni[key] : true,
+        monitor: true,
       };
     }),
     ...posCens.filter(d => d.nature === 'tap_to_pay').map(d => {
@@ -457,9 +474,8 @@ function ImpPersonale() {
             <RigaAccesso
               key={r.key} r={r} ultima={i === visibili.length - 1}
               openMenu={openMenu} setOpenMenu={setOpenMenu}
-              onEditDevice={() => setInvite({ kind: 'device', editDevice: r.dato })}
+              onEditDevice={() => setMonitorAperto(r.dato)}
               onToggleAttivo={() => setAttivazioni(a => ({...a, [r.key]: !r.attivo}))}
-              onResetPassword={() => setResetPwd(r)}
               onCambiaRuolo={() => setCambiaRuolo(r)}
             />
           ))}
@@ -475,12 +491,15 @@ function ImpPersonale() {
               <div style={{fontSize: 16.5, fontWeight: 700, color: PN.TEXT}}>Accessi rapidi</div>
             </div>
             <div style={{padding:'0 12px 14px', display:'flex', flexDirection:'column', gap: 8}}>
+              {/* Il solo monitor (P-134): le stampanti stanno in Integrazioni,
+                  e uno smartphone che incassa non si collega — si registra da
+                  sé quando l'operatore entra in Byup Staff. */}
               <ScorciatoiaAccesso
                 icona={(BuIcons.monitor||BuIcons.phone)({size: 17, color:'currentColor'})}
                 colore={DEVICE_ROLE.color} sfondo={DEVICE_ROLE.bg}
-                titolo="Collega un dispositivo"
-                sotto="Monitor cucina, cassa o stampante"
-                onClick={() => setInvite({ roleId: null, kind: 'device' })}
+                titolo="Collega il monitor di cucina"
+                sotto="Con il codice che compare sullo schermo"
+                onClick={() => setCollegaMonitor({ codice: '' })}
               />
               <ScorciatoiaAccesso
                 icona={(BuIcons.mail||BuIcons.doc)({size: 17, color:'currentColor'})}
@@ -502,7 +521,20 @@ function ImpPersonale() {
 
       </div>
 
-      {resetPwd && <ResetPasswordModal r={resetPwd} onClose={() => setResetPwd(null)}/>}
+      {collegaMonitor && (
+        <CollegaMonitorModal
+          codiceIniziale={collegaMonitor.codice}
+          onClose={() => setCollegaMonitor(null)}
+          onFatto={(m) => { setMonitors(monitorCollegati()); avvisa(`«${m.nome}» collegato`); }}/>
+      )}
+      {monitorAperto && (
+        <MonitorModal dispositivo={monitorAperto}
+          onClose={() => setMonitorAperto(null)}
+          onFatto={(t) => { setMonitors(monitorCollegati()); avvisa(t); }}/>
+      )}
+      {toast && (
+        <div style={{position:'fixed', bottom: 84, left:'50%', transform:'translateX(-50%)', background: PN.TEXT, color:'#fff', padding:'10px 16px', borderRadius: 999, fontSize: 13.5, fontWeight: 600, zIndex: 300, boxShadow:'0 10px 30px rgba(0,0,0,0.25)'}}>{toast}</div>
+      )}
       {cambiaRuolo && (
         <CambiaRuoloModal
           r={cambiaRuolo} ruoli={allRoles.filter(x => !x.locked)}
@@ -534,25 +566,19 @@ const DEVICE_ROLE = {
 };
 
 // In riga il ruolo dice che cosa È il dispositivo, non che è un dispositivo:
-// «Dispositivo» su tre righe su tre nascondeva l'unica cosa che si vuole sapere
-// a colpo d'occhio, se quello è un monitor o una stampante. La stampante prende
-// il blu che ha già nel modulo di collegamento. Il filtro a sinistra resta uno
-// solo — «Dispositivi» — perché lì si cerca la famiglia, non il pezzo.
-// Monitor e stampante condividono lo slate dei dispositivi: il blu che aveva
-// la stampante è il colore della Cassa, e due pastiglie blu nella stessa
-// colonna dicevano che quelle due righe hanno qualcosa in comune, che non è
-// vero. Le due macchine si distinguono per etichetta e icona — che è la
-// differenza vera — non per tinta.
+// «Dispositivo» su ogni riga nascondeva l'unica cosa che si vuole sapere a
+// colpo d'occhio. Il filtro a sinistra resta uno solo — «Dispositivi» —
+// perché lì si cerca la famiglia, non il pezzo.
+// La stampante non è più fra questi (P-134): non entra da nessuna parte, non
+// ha un accesso e non ha permessi. Sta in Impostazioni → Integrazioni.
 const DEVICE_ROLES = {
   'kitchen-monitor': { id: '_device_monitor', label: 'Kitchen Monitor', icon: 'monitor',
-    color: '#475569', bg: '#F1F5F9' },
-  'printer':         { id: '_device_printer', label: 'Stampante', icon: 'doc',
     color: '#475569', bg: '#F1F5F9' },
   // Gli smartphone di Byup Staff (P-105): non stanno in DEVICES, si leggono
   // dal registro del censimento POS (byup_pos_censimento, panoramica-tokens),
   // perché un lettore Tap to Pay è uno strumento di pagamento e la sua riga
   // qui deve accendersi con «da comunicare all'Agenzia». Si collegano e si
-  // scollegano in POS e integrazioni, non da qui.
+  // scollegano in Integrazioni, non da qui.
   'tap-to-pay':      { id: '_device_staff', label: 'Byup Staff', icon: 'phone',
     color: '#475569', bg: '#F1F5F9' },
 };
@@ -697,7 +723,7 @@ function ScorciatoiaAccesso({ icona, colore, sfondo, titolo, sotto, onClick }) {
 }
 
 function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
-  onToggleAttivo, onResetPassword, onCambiaRuolo }) {
+  onToggleAttivo, onCambiaRuolo }) {
   const [confermaRimozione, setConfermaRimozione] = React.useState(false);
   const aperto = openMenu === r.key;
   const iniziali = r.tipo === 'persona'
@@ -723,11 +749,9 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
           fontSize: 13.5, fontWeight: 800, letterSpacing: 0.3,
           opacity: r.attivo ? 1 : 0.55,
         }}>
-          {iniziali || (r.stampante
-            ? (BuIcons.doc||BuIcons.phone)({size: 18, color:'currentColor'})
-            : r.staff
-              ? BuIcons.phone({size: 18, color:'currentColor'})
-              : (BuIcons.monitor||BuIcons.chef)({size: 18, color:'currentColor'}))}
+          {iniziali || (r.staff
+            ? BuIcons.phone({size: 18, color:'currentColor'})
+            : (BuIcons.monitor||BuIcons.chef)({size: 18, color:'currentColor'}))}
         </div>
         <div style={{minWidth: 0}}>
           <div title={r.nome} style={{
@@ -736,7 +760,7 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
           }}>{r.nome}</div>
           <div style={{
             fontSize: 13.5, color: PN.MUTED, marginTop: 1,
-            fontFamily: r.tipo === 'dispositivo' && !r.staff ? 'ui-monospace, Menlo, monospace' : 'inherit',
+            fontFamily: 'inherit',
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
           }}>{r.sotto}</div>
           {/* Censimento POS (P-105): un asse diverso dall'accesso. Sta sotto
@@ -853,21 +877,20 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
               <MenuItem icon={BuIcons.doc({size: 14, color: 'currentColor'})}
                 onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'fiscali', anchor: 'pos-censimento', da: 'personale', strumento: r.dato.id } })); }}>Collegamento all'Agenzia</MenuItem>
               <MenuItem icon={BuIcons.phone({size: 14, color: 'currentColor'})}
-                onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'integrazioni', da: 'personale' } })); }}>Gestisci in POS e integrazioni</MenuItem>
+                onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'integrazioni', da: 'personale' } })); }}>Gestisci in Integrazioni</MenuItem>
             </>
           ) : (
+            /* Le tre cose che si fanno a uno schermo collegato (P-134): il
+               nome, perché «Monitor pizza» oggi può diventare «Monitor
+               secondi» domani; la visualizzazione, perché la stazione può
+               cambiare senza che lo schermo si sposti; e la disconnessione,
+               che è la revoca. Niente password da rigenerare: non c'è più. */
             <>
               <MenuItem icon={BuIcons.edit({size: 14, color: 'currentColor'})}
-                onClick={() => { setOpenMenu(null); onEditDevice?.(); }}>Modifica</MenuItem>
-              {!r.stampante && <MenuItem icon={<PnI.Key size={14}/>}
-                onClick={() => { setOpenMenu(null); onResetPassword?.(); }}>Genera nuova password</MenuItem>}
-              <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}
-                onClick={() => { setOpenMenu(null); onToggleAttivo?.(); }}>
-                {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
-              </MenuItem>
+                onClick={() => { setOpenMenu(null); onEditDevice?.(); }}>Nome e visualizzazione</MenuItem>
               <div style={{height: 1, background: PN.BORDER_SOFT, margin: '4px 0'}}/>
               <MenuItem icon={BuIcons.trash({size: 14, color: 'currentColor'})} danger
-                onClick={() => { setOpenMenu(null); setConfermaRimozione(true); }}>Scollega dispositivo</MenuItem>
+                onClick={() => { setOpenMenu(null); onEditDevice?.(); }}>Disconnetti</MenuItem>
             </>
           )}
         </div>
@@ -883,18 +906,14 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
             ...IMP_MODAL_PANEL,
             width: 380, maxWidth:'90%', padding: 24,
           }}>
-            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
-              {r.tipo === 'persona' ? 'Rimuovi dal team' : 'Scollega dispositivo'}
-            </div>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Rimuovi dal team</div>
             <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
-              Sei sicuro di voler {r.tipo === 'persona' ? 'rimuovere' : 'scollegare'} <b style={{color: PN.TEXT}}>{r.nome}</b>?
+              Sei sicuro di voler rimuovere <b style={{color: PN.TEXT}}>{r.nome}</b>?
               {' '}L'accesso viene revocato subito.
             </div>
             <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
               <ImpButton variant="ghost" onClick={() => setConfermaRimozione(false)}>Annulla</ImpButton>
-              <ImpButton variant="danger" onClick={() => setConfermaRimozione(false)}>
-                {r.tipo === 'persona' ? 'Rimuovi' : 'Scollega'}
-              </ImpButton>
+              <ImpButton variant="danger" onClick={() => setConfermaRimozione(false)}>Rimuovi</ImpButton>
             </div>
           </div>
         </div>
@@ -928,558 +947,64 @@ const PERM_ICONS = {
   statistiche: 'stats', contabilita: 'money', supporto: 'chat', impostazioni: 'settings',
 };
 
-// ─── Modulo del dispositivo ────────────────────────────────────────────────
-// Estratto dalla modale perche ora vive in due posti: dentro «Aggiungi membro /
-// dispositivo» e in pagina, nel passo Personale. Duplicarlo avrebbe voluto dire
-// due moduli che divergono al primo campo aggiunto. Lo stato sta in
-// useDeviceState e si passa in blocco: dieci setter come dieci prop erano una
-// firma che nessuno avrebbe letto.
-// Una categoria stampa su una stampante sola. Le chiavi composite
-// "menuId:catId" già rivendicate dalle altre stampanti si leggono dal
-// registro condiviso (byupRoutingOccupato, stampa.jsx — P-124: un solo
-// instradamento), col nome del dispositivo che le tiene: il modulo spegne
-// quei chip e dice dove la categoria è finita. Chi modifica una stampante
-// passa sé stesso in `escludi`, altrimenti le proprie categorie
-// risulterebbero occupate.
-function categorieOccupate(escludi) {
-  if (window.byupRoutingOccupato) return window.byupRoutingOccupato(escludi && escludi.regId);
-  const prese = new Map();
-  DEVICES.forEach(d => {
-    if (d.deviceType !== 'printer' || d === escludi) return;
-    (d.routing || []).forEach(k => prese.set(k, d.name));
-  });
-  return prese;
-}
+// ─── Il monitor di cucina: nome e visualizzazione ───────────────────────────
+// È tutto quello che c'è da chiedere a uno schermo. Le categorie non si
+// assegnano più da qui (P-134): il monitor non riceve categorie, vede TUTTE le
+// comande e chi ci lavora restringe con i filtri della schermata Cucina. Le
+// categorie sono una cosa delle stampanti, e si assegnano dal foglio della
+// stampante, in Impostazioni → Integrazioni — che è un posto solo, invece dei
+// due di prima.
+// Niente nome utente e niente password: il monitor si collega con un codice
+// che il titolare approva.
 
-// Password di un dispositivo: otto caratteri senza I, O, 0 e 1 — si detta ad
-// alta voce a chi sta davanti al monitor, e quelle quattro si sbagliano sempre.
-// Vive fuori da useDeviceState perché la chiede anche il «Resetta password» del
-// menu, che di quello stato non ha bisogno.
-function generaPassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let p = '';
-  for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
-  return p;
-}
-
-// La visualizzazione scelta per un monitor va detta alla sezione Cucina, che sta
-// su un'altra pagina: passa dal ponte condiviso in panoramica-sidebar.jsx. Qui
-// non si decide niente — si riferisce quello che ha scelto chi collega.
-// Il monitor collegato — nome, visualizzazione e l'username che lo identifica —
-// va detto alla sezione Cucina, che sta su un'altra pagina e da lì sceglie quale
-// schermo guardare. Qui non si decide niente: si riferisce quello che ha scelto
-// chi collega.
+// La visualizzazione scelta va detta alla sezione Cucina, che sta su un'altra
+// pagina: passa dal registro condiviso (panoramica-sidebar.jsx). Qui non si
+// decide niente — si riferisce quello che ha scelto chi collega.
 function salvaMonitorKds({ id, nome, vista }) {
   if (window.byupUpsertMonitorKds) window.byupUpsertMonitorKds({ id, nome, vista });
 }
 
-function useDeviceState(tipoIniziale) {
-  const [deviceTypeId, setDeviceTypeId] = React.useState(tipoIniziale || 'kitchen-monitor');
-  const [deviceName, setDeviceName] = React.useState('');
-  const [username, setUsername] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [showPwd, setShowPwd] = React.useState(false);
-  const [openTypeMenu, setOpenTypeMenu] = React.useState(false);
-  // printerCats: Set di chiavi composite "menuId:catId" — permette selezione
-  // tra menu diversi. Una categoria appartiene a una stampante sola: le chiavi
-  // già prese dalle altre (categorieOccupate) qui non entrano mai, perché il
-  // modulo mostra quei chip spenti e non cliccabili.
-  const [printerCats, setPrinterCats] = React.useState(new Set());
+function useMonitorState(iniziale) {
+  const [nome, setNome] = React.useState((iniziale && iniziale.name) || '');
   // Pub di default: è il locale a cui Fresh si rivolge per primo — alta
   // rotazione, portata unica. Chi lavora per portate lo dice cambiando qui.
-  const [kdsView, setKdsView] = React.useState('pub');
-  const isPrinter = deviceTypeId.startsWith('printer-');
-  const selectedPrinter = availablePrinters().find(p => p.id === deviceTypeId);
-  const deviceType = isPrinter
-    ? { id: deviceTypeId, label: 'Stampante', color: PN.BLUE, bg: PN.BLUE_SOFT, icon: 'doc', noCredentials: true }
-    : (DEVICE_TYPES.find(t => t.id === deviceTypeId) || DEVICE_TYPES[0]);
-  const deviceValid = isPrinter
-    ? deviceName.trim().length > 0 && printerCats.size > 0
-    : (username.trim().length > 0 && password.length >= 4);
-  const generatePwd = () => { setPassword(generaPassword()); setShowPwd(true); };
-  const reset = () => { setDeviceName(''); setUsername(''); setPassword(''); setShowPwd(false); setPrinterCats(new Set()); setKdsView('pub'); };
-  return { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
-    password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
-    printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
-    deviceType, deviceValid, generatePwd, reset };
+  const [vista, setVista] = React.useState((iniziale && iniziale.kdsView) || 'pub');
+  const valido = nome.trim().length > 0;
+  const reset = () => { setNome(''); setVista('pub'); };
+  return { nome, setNome, vista, setVista, valido, reset };
 }
 
-function DeviceForm({ st, tipoFisso, azione, modifica, editDevice }) {
-  const { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username, setUsername,
-    password, setPassword, showPwd, setShowPwd, openTypeMenu, setOpenTypeMenu,
-    printerCats, setPrinterCats, kdsView, setKdsView, isPrinter, selectedPrinter,
-    deviceType, generatePwd } = st;
-
-  // Le categorie già assegnate alle altre stampanti (chiave → nome del
-  // dispositivo) e, per differenza, quelle ancora libere. Riguarda solo le
-  // stampanti: il monitor cucina non riceve categorie, vede tutto e filtra a
-  // schermo dalla sezione Cucina.
-  const occupate = categorieOccupate(editDevice);
-  const chiaviLibere = [];
-  MENUS.forEach(m => m.categories.forEach(c => {
-    const k = `${m.id}:${c.id}`;
-    if (!occupate.has(k)) chiaviLibere.push(k);
-  }));
-
-  // Prima stampante del locale: nessun'altra tiene categorie, quindi si parte
-  // con tutto selezionato — chi ha un solo punto di stampa non deve configurare
-  // niente. Solo al collegamento: in modifica il Set vuoto vuol dire «tieni le
-  // categorie attuali» (vedi `salvabile` nella modale).
-  React.useEffect(() => {
-    if (!isPrinter || modifica || occupate.size > 0) return;
-    setPrinterCats(new Set(chiaviLibere));
-  }, [isPrinter]);
-
-  // `tipoFisso`: nel passo Personale la tessera qui sopra ha già detto se si
-  // collega una stampante o un monitor, e il menu non deve riproporre l'altra
-  // famiglia — scegliendola da qui la tessera accesa e il modulo dicevano due
-  // cose diverse. Con la famiglia già decisa il menu risponde a «quale
-  // stampante», non a «che cosa collego»: per questo cambia etichetta e mostra
-  // i soli modelli trovati in rete. Senza la prop — la modale «Aggiungi
-  // dispositivo», dove il menu È la scelta — resta il selettore completo.
-  const soloStampanti = tipoFisso === 'printer';
-  const soloMonitor = tipoFisso === 'monitor';
-  const vociMonitor = soloStampanti ? [] : DEVICE_TYPES;
-  const vociStampanti = soloMonitor ? [] : availablePrinters();
-
-  // In pagina la card è larga: due campi per riga stanno larghi il giusto e la
-  // riga dice a occhio che vanno insieme. Nella modale, che è una colonna
-  // stretta, restano impilati a piena larghezza.
-  const inRiga = !!tipoFisso;
-  const RIGA_2 = {
-    display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14,
-    alignItems:'start', marginBottom: 16,
-  };
-
-  const campoTipo = (
-              <ImpField label={soloStampanti ? 'Scegli stampante' : 'Tipo dispositivo'}
-                style={soloStampanti ? {marginBottom: 0} : undefined}>
-                <div style={{position:'relative'}}>
-                  <button
-                    onClick={() => setOpenTypeMenu(o => !o)}
-                    style={{
-                      width:'100%', padding:'10px 14px',
-                      border:`1px solid ${PN.BORDER}`, borderRadius: 9,
-                      background: PN.WHITE, cursor:'pointer', fontFamily:'inherit',
-                      display:'flex', alignItems:'center', justifyContent:'space-between',
-                      fontSize: 15.5, color: PN.TEXT,
-                    }}
-                  >
-                    <span style={{display:'inline-flex', alignItems:'center', gap: 10}}>
-                      <span style={{
-                        width: 26, height: 26, borderRadius: 6,
-                        background: deviceType.bg, color: deviceType.color,
-                        display:'grid', placeItems:'center',
-                      }}>{isPrinter
-                        ? (BuIcons.doc||BuIcons.phone)({size: 13, color:'currentColor'})
-                        : (BuIcons.monitor||BuIcons.chef)({size: 13, color:'currentColor'})
-                      }</span>
-                      <span style={{display:'flex', flexDirection:'column', alignItems:'flex-start', gap:1}}>
-                        <span style={{fontSize:15.5}}>
-                          {soloStampanti ? selectedPrinter?.model
-                            : isPrinter ? `Stampante (${selectedPrinter?.model})` : 'Tablet/iPad/Schermo (Monitor cucina)'}
-                        </span>
-                        {isPrinter && selectedPrinter && (
-                          <span style={{fontSize:13, color:PN.MUTED}}>{selectedPrinter.protocollo}</span>
-                        )}
-                      </span>
-                    </span>
-                    <PnI.ChevronDown size={14}/>
-                  </button>
-
-                  {openTypeMenu && (
-                    <div style={{
-                      position:'absolute', top:'calc(100% + 4px)', left: 0, right: 0,
-                      background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
-                      borderRadius: 10, padding: 4, zIndex: 5,
-                      boxShadow:'0 8px 24px rgba(0,0,0,0.08)',
-                    }}>
-                      {/* Monitor cucina */}
-                      {vociMonitor.map(t => (
-                        <button key={t.id} onClick={() => { setDeviceTypeId(t.id); setOpenTypeMenu(false); }}
-                          style={{
-                            display:'flex', width:'100%', alignItems:'center', gap: 10,
-                            padding:'8px 10px', background: deviceTypeId === t.id ? PN.PINK_SOFT : 'transparent',
-                            border:'none', borderRadius: 7, fontFamily:'inherit', cursor:'pointer', textAlign:'left',
-                          }}>
-                          <span style={{
-                            width: 26, height: 26, borderRadius: 6,
-                            background: t.bg, color: t.color,
-                            display:'grid', placeItems:'center', flexShrink:0,
-                          }}>{(BuIcons.monitor||BuIcons.chef)({size: 13, color:'currentColor'})}</span>
-                          <div>
-                            <div style={{fontSize:15, fontWeight:600, color: deviceTypeId === t.id ? PN.PINK_DARK : PN.TEXT}}>
-                              Tablet/iPad/Schermo
-                            </div>
-                            <div style={{fontSize:13.5, color:PN.MUTED}}>Monitor cucina</div>
-                          </div>
-                        </button>
-                      ))}
-
-                      {/* Separatore — solo se sopra c'è davvero un'altra famiglia */}
-                      {vociMonitor.length > 0 && vociStampanti.length > 0 && (
-                        <div style={{height:1, background:PN.BORDER_SOFT, margin:'4px 0'}}/>
-                      )}
-
-                      {/* Stampanti scoperte */}
-                      {vociStampanti.map(p => (
-                        <button key={p.id} onClick={() => { setDeviceTypeId(p.id); setOpenTypeMenu(false); }}
-                          style={{
-                            display:'flex', width:'100%', alignItems:'center', gap: 10,
-                            padding:'8px 10px', background: deviceTypeId === p.id ? PN.PINK_SOFT : 'transparent',
-                            border:'none', borderRadius: 7, fontFamily:'inherit', cursor:'pointer', textAlign:'left',
-                          }}>
-                          <span style={{
-                            width: 26, height: 26, borderRadius: 6,
-                            background: PN.BLUE_SOFT, color: PN.BLUE,
-                            display:'grid', placeItems:'center', flexShrink:0,
-                          }}>{(BuIcons.doc||BuIcons.phone)({size: 13, color:'currentColor'})}</span>
-                          <div>
-                            <div style={{fontSize:15, fontWeight:600, color: deviceTypeId === p.id ? PN.PINK_DARK : PN.TEXT}}>
-                              {soloStampanti ? p.model : `Stampante (${p.model})`}
-                            </div>
-                            <div style={{fontSize:13.5, color:PN.MUTED}}>{p.protocollo}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </ImpField>
-  );
-
-  // «Etichetta» non diceva di che cosa: il monitor qui sotto ha «Nome
-  // dispositivo», e la stampante chiede la stessa cosa. Sta in riga col menu
-  // perché sono le due metà di una frase sola — quale stampante, e come la
-  // chiamiamo.
-  const campoNomeStampante = (
-                <ImpField label="Nome stampante" hint="Come la chiamerete in lista (es. Cassa, Cucina, Bar)"
-                  style={soloStampanti ? {marginBottom: 0} : undefined}>
-                  <input
-                    type="text"
-                    value={deviceName}
-                    onChange={e => setDeviceName(e.target.value)}
-                    placeholder="es. Cassa principale"
-                    style={{
-                      width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                      borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                      background: PN.WHITE,
-                    }}
-                  />
-                </ImpField>
-  );
-
-  // Nome dispositivo — solo per monitor cucina
-  const campoNomeDispositivo = (
-                <ImpField label="Nome dispositivo" hint="Come lo riconoscerete in lista (es. Monitor pizza)"
-                  style={inRiga ? {marginBottom: 0} : undefined}>
-                  <input
-                    type="text"
-                    value={deviceName}
-                    onChange={e => setDeviceName(e.target.value)}
-                    placeholder="Monitor cucina"
-                    style={{
-                      width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                      borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                      background: PN.WHITE,
-                    }}
-                  />
-                </ImpField>
-  );
-
-  // La visualizzazione non è un'impostazione fra le altre: è il modo in cui la
-  // cucina lavorerà. Sta in cima al modulo, prima del nome e delle credenziali,
-  // e si sceglie come si è scelto il dispositivo — due tessere, non un menu.
-  const campoVisualizzazione = (
-                <div style={{marginBottom: 16}}>
-                  {/* Niente etichetta «Visualizzazione» sopra: la dicono già le
-                      due tessere, e ripeterla faceva leggere la stessa parola
-                      tre volte in due centimetri. */}
-                  {/* Affiancate in pagina, impilate nella modale: a 265px il
-                      titolo si spezzava a metà («Visualizzazione / Pub») e due
-                      tessere storte costano più di una riga in più. */}
-                  <div style={{
-                    display:'grid', gap: 12,
-                    gridTemplateColumns: inRiga ? 'repeat(2, minmax(0, 1fr))' : '1fr',
-                  }}>
-                    {KDS_VIEWS.map(v => (
-                      <KdsViewCard key={v.id} v={v} on={kdsView === v.id}
-                        onClick={() => setKdsView(v.id)}/>
-                    ))}
-                  </div>
-                  <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6}}>
-                    Cambia come si vedono e si gestiscono gli ordini in cucina. Potrai
-                    modificarla in Impostazioni → Personale, sul dispositivo.
-                  </div>
-                </div>
-  );
-
-  const campoUsername = deviceType.noCredentials ? null : (
-                <ImpField label="Username" required
-                  style={inRiga ? {marginBottom: 0} : undefined}>
-                <div style={{display:'flex', alignItems:'stretch', gap: 0}}>
-                  <span style={{
-                    padding:'10px 12px',
-                    background:'#F4F5F7', border:`1px solid ${PN.BORDER}`, borderRight:'none',
-                    borderRadius:'9px 0 0 9px',
-                    fontSize: 15, fontWeight: 700, color: PN.MUTED,
-                    display:'inline-flex', alignItems:'center',
-                    fontFamily:'ui-monospace, Menlo, monospace',
-                  }}>PG1-</span>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={e => setUsername(e.target.value.replace(/\s/g,'').toLowerCase())}
-                    placeholder="cucina"
-                    style={{
-                      flex: 1, padding:'10px 12px',
-                      border:`1px solid ${PN.BORDER}`, borderLeft:'none',
-                      borderRadius:'0 9px 9px 0',
-                      fontSize:15.5, fontFamily:'ui-monospace, Menlo, monospace',
-                      outline:'none', background: PN.WHITE,
-                    }}
-                  />
-                </div>
-              </ImpField>
-  );
-
-  const campoPassword = deviceType.noCredentials ? null : (
-                <ImpField label={modifica ? 'Nuova password' : 'Password'} required={!modifica}
-                  style={inRiga ? {marginBottom: 0} : undefined}>
-                <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
-                  <div style={{position:'relative', flex: 1}}>
-                    <input
-                      type={showPwd ? 'text' : 'password'}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder={modifica ? 'Inserisci nuova password' : 'Inserisci password'}
-                      style={{
-                        width:'100%', padding:'10px 40px 10px 12px',
-                        border:`1px solid ${PN.BORDER}`, borderRadius:9,
-                        fontSize:15.5, fontFamily:'inherit', outline:'none',
-                        background: PN.WHITE,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPwd(s => !s)}
-                      aria-label="Mostra/nascondi password"
-                      style={{
-                        position:'absolute', right: 8, top: '50%',
-                        transform:'translateY(-50%)',
-                        width: 28, height: 28, borderRadius: 6,
-                        background:'transparent', border:'none', cursor:'pointer',
-                        display:'grid', placeItems:'center', color: PN.MUTED,
-                      }}
-                    >{(BuIcons.eye||BuIcons.user)({size: 16, color:'currentColor'})}</button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={generatePwd}
-                    style={{
-                      padding:'0 14px',
-                      background:'#F4F5F7', border:`1px solid ${PN.BORDER}`,
-                      borderRadius: 9, cursor:'pointer', fontFamily:'inherit',
-                      fontSize: 14, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap',
-                    }}
-                  >Genera</button>
-                </div>
-                {/* In modifica il campo non ripropone la password già data —
-                    non si mostra una password — quindi lasciarlo vuoto deve
-                    voler dire qualcosa, e va detto: altrimenti si compila per
-                    scrupolo e si cambia una password che andava bene. */}
-                <div style={{fontSize: 13, color: PN.MUTED, marginTop: 6}}>
-                  {modifica
-                    ? 'Lasciala vuota per tenere quella attuale.'
-                    : 'Salvala in un posto sicuro — vale solo per questo dispositivo.'}
-                </div>
-              </ImpField>
-  );
-
+// `inRiga`: in pagina la card è larga e le due tessere della visualizzazione
+// stanno affiancate; nella colonna stretta di una modale si impilano — a 265px
+// il titolo si spezzava a metà («Visualizza- / zione Pub»).
+function MonitorForm({ st, inRiga }) {
+  const { nome, setNome, vista, setVista } = st;
   return (
-    <>
-              {soloStampanti && (
-                <div style={RIGA_2}>
-                  {campoTipo}
-                  {campoNomeStampante}
-                </div>
-              )}
-
-              {/* Nella modale il menu È la scelta e resta. Nel passo Personale
-                  no: con la famiglia già fissa dalla tessera, per il monitor
-                  restava un menu con una voce sola — una domanda con una sola
-                  risposta possibile. */}
-              {!tipoFisso && (
-                <>
-                  {campoTipo}
-                  {isPrinter && campoNomeStampante}
-                </>
-              )}
-
-              {!isPrinter && campoVisualizzazione}
-
-              {deviceType.noCredentials && (
-                <div style={{marginBottom: 16}}>
-                  <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom: 4}}>
-                    <div style={{fontSize: 14.5, fontWeight: 700}}>Categorie stampate</div>
-                    {chiaviLibere.length > 0 && (
-                      <button onClick={() => {
-                        if (printerCats.size === chiaviLibere.length) setPrinterCats(new Set());
-                        else setPrinterCats(new Set(chiaviLibere));
-                      }} style={{
-                        fontSize: 13.5, fontWeight: 600,
-                        color: PN.BLUE, background:'none', border:'none',
-                        cursor:'pointer', padding: 0, fontFamily:'inherit',
-                      }}>
-                        {printerCats.size === chiaviLibere.length ? 'Deseleziona tutte' : 'Seleziona tutte'}
-                      </button>
-                    )}
-                  </div>
-                  {chiaviLibere.length === 0 ? (
-                    /* Senza categorie la stampante non ha senso: deviceValid
-                       resta false perché il Set è vuoto, e qui si spiega il
-                       perché invece di mostrare una griglia tutta spenta. */
-                    <div style={{
-                      padding:'12px 14px', borderRadius: 10,
-                      border:`1px dashed ${PN.BORDER}`, background: PN.BG,
-                      fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5,
-                    }}>
-                      Tutte le categorie sono già assegnate ad altre stampanti.
-                      Per collegare questa, libera prima una categoria dalla stampante che la tiene.
-                    </div>
-                  ) : (
-                  <>
-                  <div style={{fontSize: 13.5, color: PN.MUTED, marginBottom: 12}}>
-                    Seleziona categorie da uno o più menu — questa stampante riceverà solo gli ordini di queste categorie. Una categoria può stampare su una sola stampante.
-                  </div>
-                  <div style={{display:'flex', flexDirection:'column', gap: 12}}>
-                    {MENUS.map(m => {
-                      const menuKeys = m.categories.map(c => `${m.id}:${c.id}`);
-                      const libereMenu = menuKeys.filter(k => !occupate.has(k));
-                      const menuSelectedCount = libereMenu.filter(k => printerCats.has(k)).length;
-                      const allMenuSelected = libereMenu.length > 0 && menuSelectedCount === libereMenu.length;
-                      return (
-                        <div key={m.id} style={{
-                          border:`1px solid ${menuSelectedCount > 0 ? '#DBEAFE' : PN.BORDER_SOFT}`,
-                          borderRadius: 10,
-                          background: menuSelectedCount > 0 ? '#F0F7FF' : '#FAFBFC',
-                          padding:'10px 12px',
-                          transition:'background 0.15s, border-color 0.15s',
-                        }}>
-                          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 8}}>
-                            <div style={{display:'flex', alignItems:'center', gap: 8}}>
-                              <span style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>{m.label}</span>
-                              {menuSelectedCount > 0 && (
-                                <span style={{
-                                  fontSize: 12.5, fontWeight: 700, letterSpacing: 0.3,
-                                  padding:'1px 7px', borderRadius: 999,
-                                  background: '#F1F3F5', color: PN.MUTED,
-                                }}>{menuSelectedCount}/{libereMenu.length}</span>
-                              )}
-                            </div>
-                            {libereMenu.length > 0 && (
-                              <button onClick={() => setPrinterCats(prev => {
-                                const s = new Set(prev);
-                                if (allMenuSelected) libereMenu.forEach(k => s.delete(k));
-                                else libereMenu.forEach(k => s.add(k));
-                                return s;
-                              })} style={{
-                                fontSize: 13, fontWeight: 600,
-                                color: PN.MUTED, background:'none', border:'none',
-                                cursor:'pointer', padding: 0, fontFamily:'inherit',
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.color = PN.TEXT}
-                              onMouseLeave={e => e.currentTarget.style.color = PN.MUTED}
-                              >{allMenuSelected ? 'Deseleziona' : 'Tutte'}</button>
-                            )}
-                          </div>
-                          <div style={{display:'flex', flexWrap:'wrap', gap: 6}}>
-                            {m.categories.map(c => {
-                              const key = `${m.id}:${c.id}`;
-                              const occupataDa = occupate.get(key);
-                              if (occupataDa) {
-                                // Il nome della stampante sta nel title e non
-                                // accanto all'etichetta: nella modale da 480px
-                                // «Antipasti · Cassa principale» ripetuto per
-                                // ogni chip mandava la riga a capo a ogni voce.
-                                return (
-                                  <button key={c.id} aria-disabled="true"
-                                    title={`Già assegnata a «${occupataDa}»`}
-                                    style={{
-                                      padding:'5px 11px', borderRadius: 999,
-                                      border: `1.5px solid ${PN.BORDER_SOFT}`,
-                                      background: PN.BG, color: PN.MUTED_SOFT,
-                                      fontSize: 14, fontWeight: 600,
-                                      cursor:'default', fontFamily:'inherit',
-                                    }}>{c.label}</button>
-                                );
-                              }
-                              const on = printerCats.has(key);
-                              return (
-                                <button key={c.id} onClick={() => setPrinterCats(prev => {
-                                  const s = new Set(prev);
-                                  on ? s.delete(key) : s.add(key);
-                                  return s;
-                                })} style={{
-                                  padding:'5px 11px', borderRadius: 999,
-                                  border: `1.5px solid ${on ? PN.BLUE : PN.BORDER_SOFT}`,
-                                  background: on ? PN.BLUE_SOFT : PN.WHITE,
-                                  color: on ? PN.BLUE : '#6B7280',
-                                  fontSize: 14, fontWeight: 600,
-                                  cursor:'pointer', fontFamily:'inherit',
-                                  transition:'background 0.12s',
-                                }}>{c.label}</button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  </>
-                  )}
-                </div>
-              )}
-
-              {!isPrinter && (inRiga ? (
-                <>
-                  {/* Nome e username in riga: l'uno è come lo chiamiamo noi,
-                      l'altro come si chiama lui quando entra. A piena larghezza
-                      erano tre campi da 900px per scriverci dentro «cucina». */}
-                  <div style={RIGA_2}>
-                    {campoNomeDispositivo}
-                    {campoUsername}
-                  </div>
-                  {/* La password sta in mezza riga come le altre: allargarla
-                      perché sotto non c'è niente l'avrebbe fatta sembrare più
-                      importante di quello che è. E nella metà che resta va la
-                      CTA — l'ultimo campo e il bottone che lo chiude sulla
-                      stessa riga, invece di una mezza riga vuota e un bottone
-                      sospeso sotto la card. */}
-                  <div style={RIGA_2}>
-                    {campoPassword}
-                    {azione && (
-                      <div style={{display:'flex', flexDirection:'column'}}>
-                        {/* Etichetta vuota, alta come le altre: allinea il
-                            bottone al campo accanto senza indovinare un
-                            padding che si scolla al primo cambio di corpo. */}
-                        <span aria-hidden="true" style={{
-                          display:'block', fontSize: 14, fontWeight: 600,
-                          marginBottom: 6, visibility:'hidden',
-                        }}>&nbsp;</span>
-                        <div style={{display:'flex', justifyContent:'flex-end'}}>{azione}</div>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <>
-                  {campoNomeDispositivo}
-                  {campoUsername}
-                  {campoPassword}
-                </>
-              ))}
-    </>
+    <React.Fragment>
+      <ImpField label="Nome del monitor" hint="Come lo riconoscerete in elenco (es. Monitor pizza)">
+        <input
+          type="text" value={nome} onChange={e => setNome(e.target.value)}
+          placeholder="Monitor cucina"
+          style={{
+            width: '100%', padding: '10px 12px', border: `1px solid ${PN.BORDER}`,
+            borderRadius: 9, fontSize: 15.5, fontFamily: 'inherit', outline: 'none', background: PN.WHITE,
+          }}
+        />
+      </ImpField>
+      <div style={{marginBottom: 16}}>
+        {/* Niente etichetta «Visualizzazione» sopra: la dicono già le due
+            tessere, e ripeterla faceva leggere la stessa parola tre volte in
+            due centimetri. */}
+        <div style={{display: 'grid', gap: 12, gridTemplateColumns: inRiga ? 'repeat(2, minmax(0, 1fr))' : '1fr'}}>
+          {KDS_VIEWS.map(v => (
+            <KdsViewCard key={v.id} v={v} on={vista === v.id} onClick={() => setVista(v.id)}/>
+          ))}
+        </div>
+        <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6}}>
+          Cambia come si vedono e si gestiscono gli ordini in cucina. Potrai modificarla da qui, sulla riga del monitor.
+        </div>
+      </div>
+    </React.Fragment>
   );
 }
 
@@ -1542,15 +1067,15 @@ const IMP_MODAL_X = {
 
 // `ruoli`: l'elenco vivo di chi apre la modale — un ruolo personalizzato appena
 // creato dev'essere invitabile subito, e la costante di modulo non lo conosce.
+// SOLO PERSONE (P-134). Il selettore «Persona | Dispositivo» non c'è più:
+// l'unico dispositivo che entra è il monitor di cucina, e non si compila da
+// qui — si collega con un codice, e ha il suo foglio.
 function InviteModal({ onClose, prefill, ruoli }) {
-  const initialKind = prefill?.kind === 'device' ? 'device' : 'person';
   const allRolesForInvite = ruoli || [...ROLES, ...CUSTOM_ROLES];
   // Se prefill.roleId è quello di un ruolo selezionabile, usa quello; altrimenti default
   const prefillRoleSelectable = prefill?.roleId
     && allRolesForInvite.some(r => r.id === prefill.roleId && !r.locked);
-  const [kind, setKind] = React.useState(initialKind);
 
-  // Persona
   const [pname, setPname] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [roleId, setRoleId] = React.useState(prefillRoleSelectable ? prefill.roleId : 'cameriere');
@@ -1562,64 +1087,6 @@ function InviteModal({ onClose, prefill, ruoli }) {
   if (role.id === 'cameriere') perms.splice(1, 0, { icon: 'utensils', label: 'Gestione tavoli e ordini' });
   const noSettings = !role.areas.includes('impostazioni');
 
-  // Dispositivo
-  // prefill.deviceTypeId: chi arriva dalle tessere «Stampante» / «Kitchen
-  // Monitor» ha gia scelto, e ritrovarsi il menu sul valore sbagliato sarebbe
-  // chiedergli la stessa cosa due volte.
-  const dev = useDeviceState(prefill?.deviceTypeId);
-  const { deviceTypeId, setDeviceTypeId, deviceName, setDeviceName, username,
-    setUsername, password, isPrinter, deviceType, deviceValid } = dev;
-
-  // Pre-popola da editDevice se presente
-  const editDevice = prefill?.editDevice;
-  const [confermaScollega, setConfermaScollega] = React.useState(false);
-  // Cambiare la password non è come cambiare il nome: stacca il dispositivo da
-  // dove sta lavorando adesso. Chi salva deve saperlo prima, non scoprirlo dal
-  // monitor in cucina che chiede le credenziali durante il servizio.
-  const [confermaPassword, setConfermaPassword] = React.useState(false);
-  const cambiaPassword = !!editDevice && password.length > 0;
-
-  function salvaEChiudi() {
-    // La stampante: le categorie scelte finiscono nel registro condiviso
-    // (category_routings, P-124) — lo stesso che legge il popup «Collega
-    // stampante» e da cui escono le comande.
-    if (kind === 'device' && isPrinter && dev.selectedPrinter && window.byupStampantePatch && dev.printerCats.size > 0) {
-      window.byupStampantePatch(dev.selectedPrinter.regId, { routing: [...dev.printerCats], name: deviceName.trim() || dev.selectedPrinter.name });
-    }
-    if (kind === 'device' && !isPrinter) {
-      salvaMonitorKds({
-        id: 'PG1-' + (username.trim() || (editDevice && String(editDevice.username || '').replace('PG1-', ''))),
-        nome: deviceName.trim() || (editDevice && editDevice.name),
-        vista: dev.kdsView,
-      });
-    }
-    onClose();
-  }
-
-  // In modifica la password non si ripropone — non si mostra una password già
-  // data — e lasciarla vuota vuol dire «tienila com'è». Chiederla di nuovo per
-  // poter salvare avrebbe bloccato dietro una password chi era entrato per
-  // cambiare il nome. Vale lo stesso per le categorie di una stampante.
-  const salvabile = editDevice
-    ? (isPrinter ? deviceName.trim().length > 0 : username.trim().length > 0)
-    : deviceValid;
-  React.useEffect(() => {
-    if (!editDevice) return;
-    if (editDevice.deviceType === 'printer') {
-      const matchedPrinter = availablePrinters().find(p => p.regId === editDevice.regId || p.model === editDevice.printerModel);
-      if (matchedPrinter) setDeviceTypeId(matchedPrinter.id);
-      // Le categorie attuali, dal registro: sono quelle che si modificano.
-      if (editDevice.routing) dev.setPrinterCats(new Set(editDevice.routing));
-    } else {
-      setDeviceTypeId(editDevice.deviceType || 'kitchen-monitor');
-      if (editDevice.username) setUsername(editDevice.username.replace('PG1-', ''));
-      // Aprire la modifica di un monitor su «Pub» quando lavora per portate
-      // avrebbe cambiato la cucina a chi era entrato per cambiare il nome.
-      if (editDevice.kdsView) dev.setKdsView(editDevice.kdsView);
-    }
-    if (editDevice.name) setDeviceName(editDevice.name);
-  }, []);
-
   return (
     <div onClick={onClose} style={{
       position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
@@ -1627,177 +1094,111 @@ function InviteModal({ onClose, prefill, ruoli }) {
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         ...IMP_MODAL_PANEL,
-        width: kind === 'person' ? 620 : 480, maxWidth:'100%', position:'relative',
+        width: 620, maxWidth:'100%', position:'relative',
         maxHeight: 'calc(var(--pn-vh, 100vh) * 0.9)', display:'flex', flexDirection:'column',
       }}>
         <div style={IMP_MODAL_HEAD}>
-          <div style={IMP_MODAL_TITLE}>
-            {editDevice ? 'Modifica associazione'
-              : kind === 'person' ? 'Invita una persona' : 'Collega un dispositivo'}
-          </div>
-          {/* La subhead racconta il flusso vero: il monitor accede con
-              credenziali locali, la stampante vuole nome e categorie —
-              niente username per lei, e niente email per nessuno. */}
-          <div style={IMP_MODAL_SUB}>
-            {editDevice
-              ? <>Stai modificando <b style={{color: PN.TEXT}}>{editDevice.name}</b>. Le modifiche valgono dal prossimo collegamento.</>
-              : kind === 'person'
-                ? 'Invia un accesso al gestionale o all\'app staff.'
-                : 'Scegli il tipo e configuralo: credenziali locali per il monitor, nome e categorie per la stampante.'}
-          </div>
+          <div style={IMP_MODAL_TITLE}>Invita una persona</div>
+          <div style={IMP_MODAL_SUB}>Invia un accesso al gestionale o all'app staff.</div>
           <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
         </div>
 
         <div style={{padding: '20px 24px', overflow:'auto', flex: 1}}>
-          {/* Type switcher: Persona | Dispositivo. In modifica non c'è: quel
-              dispositivo esiste già, e chiedere «è una persona o un
-              dispositivo?» a chi ha aperto la riga di un monitor è una domanda
-              a cui ha già risposto — e l'unica risposta sbagliata cambierebbe
-              il modulo sotto le mani. */}
-          {!editDevice && <ImpField label="Tipo">
-            <div style={{
-              display:'grid', gridTemplateColumns:'1fr 1fr', gap: 8,
-              padding: 4, background:'#F4F5F7', borderRadius: 10,
-            }}>
-              {[
-                { id:'person', label:'Persona con email', sub:'cameriere, cassa…', icon:'user' },
-                { id:'device', label:'Dispositivo', sub:'monitor cucina', icon:'monitor' },
-              ].map(opt => {
-                const on = kind === opt.id;
-                return (
-                  <button key={opt.id} onClick={() => setKind(opt.id)} style={{
-                    padding:'10px 12px', textAlign:'left',
-                    background: on ? PN.WHITE : 'transparent',
-                    border: on ? `1.5px solid ${PN.PINK}` : '1.5px solid transparent',
-                    borderRadius: 8, cursor:'pointer', fontFamily:'inherit',
-                    boxShadow: on ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-                    display:'flex', alignItems:'center', gap: 10,
-                  }}>
-                    <div style={{
-                      width: 30, height: 30, borderRadius: 7,
-                      background: on ? PN.PINK_SOFT : PN.WHITE,
-                      color: on ? PN.PINK_DARK : PN.MUTED,
-                      display:'grid', placeItems:'center', flexShrink: 0,
-                    }}>{(BuIcons[opt.icon]||BuIcons.user)({size: 14, color:'currentColor'})}</div>
-                    <div style={{minWidth: 0}}>
-                      <div style={{fontSize: 14.5, fontWeight: 700, color: on ? PN.TEXT : PN.MUTED}}>{opt.label}</div>
-                      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1}}>{opt.sub}</div>
-                    </div>
-                  </button>
-                );
-              })}
+          {/* Due colonne: campi a sinistra, riquadro del ruolo a destra */}
+          <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) 210px', gap: 16, alignItems:'start'}}>
+            <div style={{minWidth: 0}}>
+              <ImpField label="Nome e cognome">
+                <input
+                  type="text" value={pname} onChange={e => setPname(e.target.value)}
+                  placeholder="Es. Mario Rossi"
+                  style={{
+                    width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
+                    borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none', background: PN.WHITE,
+                  }}
+                />
+              </ImpField>
+              <ImpField label="Email">
+                <input
+                  type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  placeholder="es. mario.rossi@email.it"
+                  style={{
+                    width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
+                    borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none', background: PN.WHITE,
+                  }}
+                />
+              </ImpField>
+              {/* Stesso selettore del cambio ruolo: è la stessa scelta, e
+                  farla in due modi diversi in due finestre gemelle è il modo
+                  migliore per far sembrare due prodotti lo stesso. */}
+              <ImpField label="Ruolo">
+                <SelettoreRuolo
+                  ruoli={allRolesForInvite.filter(r => !r.locked)}
+                  valore={roleId} onScegli={setRoleId}/>
+              </ImpField>
+              <ImpField label="Messaggio opzionale">
+                <div style={{position:'relative'}}>
+                  <textarea
+                    value={msg} maxLength={200} onChange={e => setMsg(e.target.value)}
+                    placeholder="Scrivi un messaggio per il tuo nuovo collaboratore…"
+                    rows={3}
+                    style={{
+                      width:'100%', padding:'10px 12px 24px', border:`1px solid ${PN.BORDER}`,
+                      borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none', resize:'vertical',
+                      background: PN.WHITE,
+                    }}
+                  />
+                  <span style={{position:'absolute', right: 10, bottom: 10, fontSize: 12, color: PN.MUTED}}>
+                    {msg.length}/200
+                  </span>
+                </div>
+              </ImpField>
             </div>
-          </ImpField>}
 
-          {kind === 'person' && (
-            <>
-              {/* Due colonne: campi a sinistra, riquadro del ruolo a destra */}
-              <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) 210px', gap: 16, alignItems:'start'}}>
-                <div style={{minWidth: 0}}>
-                  <ImpField label="Nome e cognome">
-                    <input
-                      type="text"
-                      value={pname}
-                      onChange={e => setPname(e.target.value)}
-                      placeholder="Es. Mario Rossi"
-                      style={{
-                        width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                        borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                        background: PN.WHITE,
-                      }}
-                    />
-                  </ImpField>
-                  <ImpField label="Email">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      placeholder="es. mario.rossi@email.it"
-                      style={{
-                        width:'100%', padding:'10px 12px', border:`1px solid ${PN.BORDER}`,
-                        borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none',
-                        background: PN.WHITE,
-                      }}
-                    />
-                  </ImpField>
-                  {/* Stesso selettore del cambio ruolo: è la stessa scelta, e
-                      farla in due modi diversi in due finestre gemelle è il
-                      modo migliore per far sembrare due prodotti lo stesso. */}
-                  <ImpField label="Ruolo">
-                    <SelettoreRuolo
-                      ruoli={allRolesForInvite.filter(r => !r.locked)}
-                      valore={roleId} onScegli={setRoleId}/>
-                  </ImpField>
-                  <ImpField label="Messaggio opzionale">
-                    <div style={{position:'relative'}}>
-                      <textarea
-                        value={msg}
-                        maxLength={200}
-                        onChange={e => setMsg(e.target.value)}
-                        placeholder="Scrivi un messaggio per il tuo nuovo collaboratore…"
-                        rows={3}
-                        style={{
-                          width:'100%', padding:'10px 12px 24px', border:`1px solid ${PN.BORDER}`,
-                          borderRadius:9, fontSize:15.5, fontFamily:'inherit', outline:'none', resize:'vertical',
-                          background: PN.WHITE,
-                        }}
-                      />
-                      <span style={{position:'absolute', right: 10, bottom: 10, fontSize: 12, color: PN.MUTED}}>
-                        {msg.length}/200
-                      </span>
-                    </div>
-                  </ImpField>
-                </div>
-
-                {/* Riquadro ruolo: cosa potrà fare chi accetta l'invito */}
-                <div style={{
-                  background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`,
-                  borderRadius: 12, padding: '14px 14px 12px',
-                }}>
-                  <div style={{fontSize: 12.5, color: PN.MUTED, marginBottom: 2}}>Ruolo selezionato:</div>
-                  <div style={{fontSize: 15.5, fontWeight: 700, color: PN.PINK_DARK, marginBottom: 12}}>{role.label}</div>
-                  <div style={{display:'flex', flexDirection:'column', gap: 10}}>
-                    {perms.map((p, i) => (
-                      <div key={i} style={{display:'flex', alignItems:'center', gap: 9}}>
-                        <span style={{
-                          width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-                          background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
-                          display:'grid', placeItems:'center', color:'#475569',
-                        }}>{(BuIcons[p.icon]||BuIcons.doc)({size: 13, color:'currentColor'})}</span>
-                        <span style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, lineHeight: 1.35}}>{p.label}</span>
-                      </div>
-                    ))}
-                    {noSettings && (
-                      <div style={{display:'flex', alignItems:'center', gap: 9}}>
-                        <span style={{
-                          width: 26, height: 26, borderRadius: 7, flexShrink: 0,
-                          background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
-                          display:'grid', placeItems:'center', color:'#475569',
-                        }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
-                          </svg>
-                        </span>
-                        <span style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, lineHeight: 1.35}}>Nessun accesso alle impostazioni</span>
-                      </div>
-                    )}
+            {/* Riquadro ruolo: cosa potrà fare chi accetta l'invito */}
+            <div style={{
+              background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`,
+              borderRadius: 12, padding: '14px 14px 12px',
+            }}>
+              <div style={{fontSize: 12.5, color: PN.MUTED, marginBottom: 2}}>Ruolo selezionato:</div>
+              <div style={{fontSize: 15.5, fontWeight: 700, color: PN.PINK_DARK, marginBottom: 12}}>{role.label}</div>
+              <div style={{display:'flex', flexDirection:'column', gap: 10}}>
+                {perms.map((p, i) => (
+                  <div key={i} style={{display:'flex', alignItems:'center', gap: 9}}>
+                    <span style={{
+                      width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                      background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
+                      display:'grid', placeItems:'center', color:'#475569',
+                    }}>{(BuIcons[p.icon]||BuIcons.doc)({size: 13, color:'currentColor'})}</span>
+                    <span style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, lineHeight: 1.35}}>{p.label}</span>
                   </div>
-                </div>
+                ))}
+                {noSettings && (
+                  <div style={{display:'flex', alignItems:'center', gap: 9}}>
+                    <span style={{
+                      width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+                      background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`,
+                      display:'grid', placeItems:'center', color:'#475569',
+                    }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                      </svg>
+                    </span>
+                    <span style={{fontSize: 13, fontWeight: 600, color: PN.TEXT, lineHeight: 1.35}}>Nessun accesso alle impostazioni</span>
+                  </div>
+                )}
               </div>
+            </div>
+          </div>
 
-              <div style={{
-                marginTop: 2, padding:'10px 12px',
-                background:'#F4F5F7', borderRadius: 9,
-                fontSize: 13, color: PN.MUTED,
-                display:'flex', alignItems:'center', gap: 8,
-              }}>
-                {(BuIcons.info||BuIcons.doc)({size: 14, color:'currentColor'})}
-                L'invitato riceverà un'email con il link per attivare l'accesso.
-              </div>
-            </>
-          )}
-
-          {kind === 'device' && <DeviceForm st={dev} modifica={!!editDevice} editDevice={editDevice}/>}
+          <div style={{
+            marginTop: 2, padding:'10px 12px',
+            background:'#F4F5F7', borderRadius: 9,
+            fontSize: 13, color: PN.MUTED,
+            display:'flex', alignItems:'center', gap: 8,
+          }}>
+            {(BuIcons.info||BuIcons.doc)({size: 14, color:'currentColor'})}
+            L'invitato riceverà un'email con il link per attivare l'accesso.
+          </div>
         </div>
 
         <div style={{
@@ -1805,108 +1206,197 @@ function InviteModal({ onClose, prefill, ruoli }) {
           borderTop: `1px solid ${PN.BORDER_SOFT}`,
           display:'flex', gap: 10, justifyContent:'space-between', alignItems:'center',
         }}>
-          {/* In modifica il piede porta l'azione distruttiva, che è l'altra
-              cosa che si viene a fare qui: o si aggiusta il collegamento, o lo
-              si taglia. Sta a sinistra, lontana dal salvataggio. */}
-          {editDevice ? (
-            <ImpButton variant="danger" onClick={() => setConfermaScollega(true)}
-              style={{whiteSpace:'nowrap'}}
-              icon={BuIcons.trash({size: 14, color:'currentColor'})}>
-              Elimina collegamento
-            </ImpButton>
-          ) : (
-            <div style={{fontSize: 13.5, color: PN.MUTED}}>
-              {kind === 'person'
-                ? (personValid
-                    ? <>Invierà invito a <b style={{color: PN.TEXT}}>{email}</b> come <b style={{color: role.color}}>{role.label}</b></>
-                    : 'Inserisci un\'email valida')
-                : (deviceType.noCredentials
-                    ? <>{deviceName.trim() ? <>Aggiungerà <b style={{color: PN.TEXT}}>{deviceName}</b></> : 'Inserisci un nome per il dispositivo'}</>
-                    : deviceValid
-                      ? <>Username: <b style={{color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>PG1-{username}</b></>
-                      : 'Compila username e password (min. 4 caratteri)')}
-            </div>
-          )}
-          <div style={{display:'flex', gap: 8, flexShrink: 0}}>
-            {/* Niente «Annulla»: uscire senza fare niente è la X in alto, che
-                chiude questa come ogni altra finestra. In fondo resta solo
-                l'azione per cui si è aperta. */}
-            {/* Associando o modificando un monitor la sua visualizzazione arriva
-                alla sezione Cucina, che è l'unico posto in cui si vede l'effetto
-                della scelta fatta qui. Chiudendo dalla X non parte niente. */}
-            <ImpButton variant="primary"
-              onClick={() => { if (cambiaPassword) setConfermaPassword(true); else salvaEChiudi(); }}
-              style={{whiteSpace:'nowrap'}}
-              disabled={kind === 'person' ? !personValid : !salvabile}>
-              {editDevice ? 'Salva modifiche' : kind === 'person' ? 'Invia invito' : 'Associa dispositivo'}
-            </ImpButton>
+          <div style={{fontSize: 13.5, color: PN.MUTED}}>
+            {personValid
+              ? <>Invierà invito a <b style={{color: PN.TEXT}}>{email}</b> come <b style={{color: role.color}}>{role.label}</b></>
+              : 'Inserisci un\'email valida'}
           </div>
+          {/* Niente «Annulla»: uscire senza fare niente è la X in alto, che
+              chiude questa come ogni altra finestra. */}
+          <ImpButton variant="primary" onClick={onClose} style={{whiteSpace:'nowrap'}} disabled={!personValid}>
+            Invia invito
+          </ImpButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Collegare il monitor di cucina, per approvazione (P-134) ───────────────
+// Il gesto non si compie da qui: si compie sullo schermo della cucina, che
+// mostra un codice. Questo foglio dice dove andare, prende il codice e chiede
+// le due sole cose che restano — come si chiama quello schermo e come deve
+// mostrare le comande.
+// Può confermare il SOLO Titolare: è un permesso, e per ora sta lì. Se un
+// giorno servirà darlo a un ruolo personalizzato si darà, ma non nasce
+// distribuito.
+const MONITOR_ISTRUZIONI = [
+  <>Vai al monitor della cucina e apri <b>byup.it/cucina</b>.</>,
+  <>Sullo schermo compare un QR con sotto un codice.</>,
+  <>Inquadra il QR con il telefono, oppure scrivi il codice qui.</>,
+  <>Entra con il tuo account e conferma: poi dai un nome al monitor e scegli come deve mostrare le comande.</>,
+];
+
+function CollegaMonitorModal({ onClose, codiceIniziale, onFatto }) {
+  const [codice, setCodice] = React.useState((codiceIniziale || '').toUpperCase());
+  const [passo, setPasso] = React.useState(codiceIniziale ? 'dati' : 'codice');
+  const [errore, setErrore] = React.useState('');
+  const st = useMonitorState(null);
+  const puo = PN_UTENTE.ruolo === 'titolare';
+
+  const verifica = () => {
+    const r = window.byupMonitorRichiestaPerCodice ? window.byupMonitorRichiestaPerCodice(codice) : null;
+    if (!r) { setErrore('Nessuno schermo sta mostrando questo codice. Controlla di averlo copiato bene: dura pochi minuti e poi si rigenera da solo.'); return; }
+    setErrore(''); setPasso('dati');
+  };
+  const conferma = () => {
+    const m = window.byupMonitorApprova(codice, { nome: st.nome.trim(), vista: st.vista });
+    if (!m) { setPasso('codice'); setErrore('Il codice è scaduto: sullo schermo della cucina ne è comparso un altro.'); return; }
+    onFatto && onFatto(m);
+    onClose();
+  };
+
+  const inp = {
+    width: '100%', padding: '14px 16px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
+    fontSize: 30, fontWeight: 800, letterSpacing: 10, textAlign: 'center',
+    fontFamily: 'ui-monospace, Menlo, monospace', textTransform: 'uppercase',
+    outline: 'none', background: PN.WHITE, boxSizing: 'border-box',
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)',
+      display: 'grid', placeItems: 'center', zIndex: 100, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} data-collega-monitor={passo} style={{
+        ...IMP_MODAL_PANEL, width: 520, maxWidth: '100%', position: 'relative',
+        maxHeight: 'calc(var(--pn-vh, 100vh) * 0.9)', display: 'flex', flexDirection: 'column',
+      }}>
+        <div style={IMP_MODAL_HEAD}>
+          <div style={IMP_MODAL_TITLE}>Collega il monitor di cucina</div>
+          <div style={IMP_MODAL_SUB}>
+            {passo === 'codice'
+              ? 'Lo schermo mostra un codice: scrivilo qui e confermalo.'
+              : 'Dai un nome a questo schermo e scegli come deve mostrare le comande.'}
+          </div>
+          <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
+        </div>
+
+        <div style={{padding: '20px 24px', overflow: 'auto', flex: 1}}>
+          {passo === 'codice' ? (
+            <React.Fragment>
+              <ol style={{margin: '0 0 18px', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6}}>
+                {MONITOR_ISTRUZIONI.map((t, i) => (
+                  <li key={i} style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5}}>{t}</li>
+                ))}
+              </ol>
+              <ImpField label="Codice mostrato sullo schermo" hint="Quattro caratteri. Dura pochi minuti, poi lo schermo ne mostra un altro.">
+                <input value={codice} maxLength={4} autoFocus
+                  onChange={e => { setCodice(e.target.value.replace(/\s/g, '').toUpperCase()); setErrore(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter' && codice.length === 4) verifica(); }}
+                  placeholder="4KP2" style={inp}/>
+              </ImpField>
+              {errore && (
+                <div style={{marginTop: 4, padding: '10px 12px', borderRadius: 10, background: '#FEF2F2', border: '1px solid #FECACA', fontSize: 13.5, color: '#991B1B', lineHeight: 1.5}}>{errore}</div>
+              )}
+              <div style={{marginTop: 14, fontSize: 13, color: PN.MUTED, lineHeight: 1.5}}>
+                Nel prototipo lo schermo della cucina è <a href="byup Cucina Collega.html" target="_blank" rel="noopener" style={{color: PN.TEXT, fontWeight: 700}}>questa pagina</a>: aprila in un'altra scheda per vedere il codice.
+              </div>
+            </React.Fragment>
+          ) : (
+            <MonitorForm st={st}/>
+          )}
+        </div>
+
+        <div style={{
+          padding: '14px 24px', borderTop: `1px solid ${PN.BORDER_SOFT}`,
+          display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div style={{fontSize: 13.5, color: PN.MUTED, maxWidth: 280, lineHeight: 1.4}}>
+            {!puo
+              ? 'Solo il titolare può approvare uno schermo: su quel monitor passano i nomi dei tavoli e le allergie dichiarate dai clienti.'
+              : passo === 'codice' ? 'Il collegamento dura finché non lo togli da qui.' : 'Potrai cambiare nome e visualizzazione quando vuoi.'}
+          </div>
+          {passo === 'codice' ? (
+            <ImpButton variant="primary" disabled={codice.length !== 4 || !puo} onClick={verifica} style={{whiteSpace: 'nowrap'}}>Continua</ImpButton>
+          ) : (
+            <ImpButton variant="primary" disabled={!st.valido || !puo} onClick={conferma} style={{whiteSpace: 'nowrap'}}>Collega il monitor</ImpButton>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Il monitor già collegato: nome, visualizzazione, disconnessione ────────
+// Uno schermo collegato non è chiuso a chiave. Le prime due sono modifiche e
+// valgono subito; la terza è una revoca — toglie l'accesso a quello schermo
+// esattamente come lo si toglie a una persona — e come tutte le revoche
+// finisce nel registro delle attività.
+function MonitorModal({ dispositivo, onClose, onFatto }) {
+  const st = useMonitorState(dispositivo);
+  const [conferma, setConferma] = React.useState(false);
+  const puo = PN_UTENTE.ruolo === 'titolare';
+
+  const salva = () => {
+    salvaMonitorKds({ id: dispositivo.monitorId, nome: st.nome.trim() || dispositivo.name, vista: st.vista });
+    onFatto && onFatto(`«${st.nome.trim() || dispositivo.name}» aggiornato`);
+    onClose();
+  };
+  const disconnetti = () => {
+    if (window.byupRimuoviMonitorKds) window.byupRimuoviMonitorKds(dispositivo.monitorId);
+    if (window.byupScriviAuditEvento) window.byupScriviAuditEvento('device_revoked', dispositivo.name, 'disconnesso');
+    onFatto && onFatto(`«${dispositivo.name}» disconnesso`);
+    onClose();
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)',
+      display: 'grid', placeItems: 'center', zIndex: 100, padding: 20,
+    }}>
+      <div onClick={e => e.stopPropagation()} data-monitor-modale={dispositivo.monitorId} style={{
+        ...IMP_MODAL_PANEL, width: 520, maxWidth: '100%', position: 'relative',
+        maxHeight: 'calc(var(--pn-vh, 100vh) * 0.9)', display: 'flex', flexDirection: 'column',
+      }}>
+        <div style={IMP_MODAL_HEAD}>
+          <div style={IMP_MODAL_TITLE}>Monitor di cucina</div>
+          <div style={IMP_MODAL_SUB}>
+            Stai modificando <b style={{color: PN.TEXT}}>{dispositivo.name}</b>. Nome e visualizzazione valgono subito, su quello schermo.
+          </div>
+          <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
+        </div>
+
+        <div style={{padding: '20px 24px', overflow: 'auto', flex: 1}}>
+          <MonitorForm st={st}/>
+        </div>
+
+        <div style={{
+          padding: '14px 24px', borderTop: `1px solid ${PN.BORDER_SOFT}`,
+          display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <ImpButton variant="danger" disabled={!puo} onClick={() => setConferma(true)}
+            style={{whiteSpace: 'nowrap'}} icon={BuIcons.trash({size: 14, color: 'currentColor'})}>
+            Disconnetti
+          </ImpButton>
+          <ImpButton variant="primary" disabled={!st.valido} onClick={salva} style={{whiteSpace: 'nowrap'}}>Salva modifiche</ImpButton>
         </div>
       </div>
 
-      {/* Conferma dello scollegamento: stessa domanda e stesse parole di quella
-          che si apre dal menu «⋯» della riga — è la stessa azione, e chi la
-          incontra due volte da due strade non deve chiedersi se sia la stessa. */}
-      {confermaScollega && (
-        <div onClick={e => { e.stopPropagation(); setConfermaScollega(false); }} style={{
-          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', zIndex:200,
-          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
+      {conferma && (
+        <div onClick={e => { e.stopPropagation(); setConferma(false); }} style={{
+          position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)',
+          display: 'grid', placeItems: 'center', zIndex: 200,
+          backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            ...IMP_MODAL_PANEL, width: 380, maxWidth:'90%', padding: 24,
-          }}>
-            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>
-              Elimina collegamento
-            </div>
+          <div onClick={e => e.stopPropagation()} style={{...IMP_MODAL_PANEL, width: 400, maxWidth: '90%', padding: 24}}>
+            <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, marginBottom: 8}}>Disconnettere questo schermo?</div>
             <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
-              Sei sicuro di voler scollegare <b style={{color: PN.TEXT}}>{editDevice && editDevice.name}</b>?
-              {' '}L'accesso viene revocato subito.
+              <b style={{color: PN.TEXT}}>{dispositivo.name}</b> smette subito di vedere le comande e torna a mostrare il codice di collegamento. Per farlo rientrare dovrai approvarlo di nuovo.
             </div>
-            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
-              <ImpButton variant="ghost" onClick={() => setConfermaScollega(false)}>Annulla</ImpButton>
-              <ImpButton variant="danger" onClick={() => { setConfermaScollega(false); onClose(); }}>
-                Scollega
-              </ImpButton>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Conferma del cambio password. Non è una formalità: la nuova password
-          non arriva agli schermi già collegati, che restano fuori finché
-          qualcuno non la digita su ognuno. Detto prima è una scelta, scoperto
-          dopo è un monitor spento nel mezzo del servizio. */}
-      {confermaPassword && (
-        <div onClick={e => { e.stopPropagation(); setConfermaPassword(false); }} style={{
-          position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-          display:'grid', placeItems:'center', zIndex:200,
-          backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            ...IMP_MODAL_PANEL, width: 400, maxWidth:'90%', padding: 24,
-          }}>
-            <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
-              <span style={{
-                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                background: PN.AMBER_SOFT, color: '#B45309',
-                display:'grid', placeItems:'center',
-              }}>{(BuIcons.alert||BuIcons.bulb)({size: 15, color:'currentColor'})}</span>
-              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
-                Cambiare la password?
-              </div>
-            </div>
-            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
-              <b style={{color: PN.TEXT}}>{editDevice && editDevice.name}</b> verrà disconnesso da
-              tutti gli schermi su cui è collegato adesso. Per farlo rientrare dovrai inserire la
-              nuova password su ognuno.
-            </div>
-            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
-              <ImpButton variant="ghost" onClick={() => setConfermaPassword(false)}>Annulla</ImpButton>
-              <ImpButton variant="primary" style={{whiteSpace:'nowrap'}}
-                onClick={() => { setConfermaPassword(false); salvaEChiudi(); }}>
-                Cambia password
-              </ImpButton>
+            <div style={{display: 'flex', gap: 8, justifyContent: 'flex-end'}}>
+              <ImpButton variant="ghost" onClick={() => setConferma(false)}>Annulla</ImpButton>
+              <ImpButton variant="danger" onClick={disconnetti}>Disconnetti</ImpButton>
             </div>
           </div>
         </div>
@@ -2001,106 +1491,11 @@ function SelettoreRuolo({ ruoli, valore, onScegli }) {
   );
 }
 
-// ─── Genera nuova password (dal menu «⋯» di un dispositivo) ─────────────────
-// Solo per i dispositivi: una persona la password se la reimposta da sé, il
-// monitor no — le sue credenziali sono locali e gliele dà il titolare.
-// Due passi, non uno: prima la password nuova, poi che cosa comporta darla. Il
-// secondo è lo stesso avviso della finestra di modifica — cambiare una password
-// stacca chi la sta usando adesso — e chi arriva dal menu deve leggerlo uguale,
-// perché l'effetto è lo stesso.
-function ResetPasswordModal({ r, onClose }) {
-  const [pwd, setPwd] = React.useState('');
-  const [mostra, setMostra] = React.useState(false);
-  const [avviso, setAvviso] = React.useState(false);
-
-  return (
-    <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
-      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...IMP_MODAL_PANEL, width: 420, maxWidth:'100%', position:'relative',
-      }}>
-        {!avviso ? (
-          <>
-            <div style={IMP_MODAL_HEAD}>
-              <div style={IMP_MODAL_TITLE}>Genera nuova password</div>
-              <div style={IMP_MODAL_SUB}>
-                Per <b style={{color: PN.TEXT}}>{r.nome}</b>. Si digita sul dispositivo al collegamento.
-              </div>
-              <button onClick={onClose} aria-label="Chiudi" style={IMP_MODAL_X}><PnI.X size={13}/></button>
-            </div>
-            <div style={{padding:'20px 24px'}}>
-              <ImpField label="Nuova password" required
-                hint="Almeno 4 caratteri. Salvala in un posto sicuro: non sarà più visibile.">
-                <div style={{display:'flex', gap: 8, alignItems:'stretch'}}>
-                  <div style={{position:'relative', flex: 1}}>
-                    <input
-                      type={mostra ? 'text' : 'password'}
-                      value={pwd} onChange={e => setPwd(e.target.value)}
-                      placeholder="Inserisci nuova password"
-                      style={{
-                        width:'100%', padding:'10px 40px 10px 12px',
-                        border:`1px solid ${PN.BORDER}`, borderRadius:9,
-                        fontSize:15.5, fontFamily:'inherit', outline:'none', background: PN.WHITE,
-                      }}
-                    />
-                    <button type="button" onClick={() => setMostra(s => !s)}
-                      aria-label="Mostra/nascondi password"
-                      style={{
-                        position:'absolute', right: 8, top:'50%', transform:'translateY(-50%)',
-                        width: 28, height: 28, borderRadius: 6,
-                        background:'transparent', border:'none', cursor:'pointer',
-                        display:'grid', placeItems:'center', color: PN.MUTED,
-                      }}>{(BuIcons.eye||BuIcons.user)({size: 16, color:'currentColor'})}</button>
-                  </div>
-                  <button type="button" onClick={() => { setPwd(generaPassword()); setMostra(true); }}
-                    style={{
-                      padding:'0 14px', background:'#F4F5F7', border:`1px solid ${PN.BORDER}`,
-                      borderRadius: 9, cursor:'pointer', fontFamily:'inherit',
-                      fontSize: 14, fontWeight: 600, color: PN.TEXT, whiteSpace:'nowrap',
-                    }}>Genera</button>
-                </div>
-              </ImpField>
-            </div>
-            <div style={{
-              padding:'14px 24px', borderTop:`1px solid ${PN.BORDER_SOFT}`,
-              display:'flex', justifyContent:'flex-end',
-            }}>
-              <ImpButton variant="primary" disabled={pwd.length < 4}
-                style={{whiteSpace:'nowrap'}} onClick={() => setAvviso(true)}>
-                Continua
-              </ImpButton>
-            </div>
-          </>
-        ) : (
-          <div style={{padding: 24}}>
-            <div style={{display:'flex', alignItems:'center', gap: 10, marginBottom: 8}}>
-              <span style={{
-                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                background: PN.AMBER_SOFT, color: '#B45309',
-                display:'grid', placeItems:'center',
-              }}>{(BuIcons.alert||BuIcons.bulb)({size: 15, color:'currentColor'})}</span>
-              <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Cambiare la password?</div>
-            </div>
-            <div style={{fontSize: 15.5, color: PN.MUTED, lineHeight: 1.55, marginBottom: 22}}>
-              <b style={{color: PN.TEXT}}>{r.nome}</b> verrà disconnesso da tutti gli schermi su cui
-              è collegato adesso. Per farlo rientrare dovrai inserire la nuova password su ognuno.
-            </div>
-            <div style={{display:'flex', gap: 8, justifyContent:'flex-end'}}>
-              <ImpButton variant="ghost" onClick={() => setAvviso(false)}>Indietro</ImpButton>
-              <ImpButton variant="primary" style={{whiteSpace:'nowrap'}} onClick={onClose}>
-                Cambia password
-              </ImpButton>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
+// La password di un dispositivo non esiste più (P-134), e con lei se n'è
+// andato «Genera nuova password»: il monitor di cucina non entra con nome
+// utente e password, si collega con un codice che il titolare approva. Il
+// telefono che incassa non le ha mai usate — entra con le credenziali
+// personali della persona che lo porta in tasca.
 // ─── Modifica ruolo (dal menu «⋯» della riga) ───────────────────────────────
 // Il ruolo non è un'etichetta: sono le sezioni che una persona vede. Si sceglie
 // e poi si conferma, con davanti quello che cambia — chi tocca questa voce per
@@ -2546,15 +1941,6 @@ const STEP_DEVICES = [
   { id: 'printer', label: 'Stampante',      desc: 'Stampa gli ordini in cucina o al bar', icon: 'doc' },
   { id: 'monitor', label: 'Kitchen Monitor', desc: 'Mostra le comande in tempo reale',     icon: 'monitor' },
 ];
-// Due passi e non tre: il terzo — «conferma il collegamento» — descriveva quello
-// che succede DOPO aver premuto la CTA, cioe una cosa che l'utente non deve fare.
-// Ognuno e una riga sola: le descrizioni ripetevano il titolo con altre parole
-// («Scegli il dispositivo» / «Seleziona il dispositivo che vuoi configurare»).
-const DEVICE_STEPS = [
-  'Scegli il dispositivo',
-  'Collegalo alla rete Wi-Fi o all\'alimentazione',
-];
-
 // I ruoli del personale sono due, e sono i due modi in cui si prende un ordine:
 // dalla cassa del locale o dall'app in sala. «Manager» non era un ruolo del
 // personale — chi gestisce il locale è il titolare, che il gestionale ce
@@ -2572,72 +1958,71 @@ window.PERSONALE_TEAM_INITIAL = [
   { id: 't1', kind: 'person', name: 'Marco Rossi',    email: 'marco@delborgo.it',  role: 'Cassa',              status: 'active' },
   { id: 't2', kind: 'person', name: 'Giulia Bianchi', email: 'giulia@delborgo.it', role: 'Cameriere',          status: 'invited' },
   { id: 't3', kind: 'person', name: 'Luca Verdi',     email: 'luca@delborgo.it',   role: 'Cameriere',          status: 'active' },
-  // «Kitchen Monitor» e non «Dispositivo cucina»: è quello che scrive
-  // aggiungiDispositivo qui sotto, e la riga di partenza non può chiamare la
-  // stessa cosa con un altro nome.
-  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'PG1-cucina',         role: 'Kitchen Monitor', status: 'active' },
+  // «Kitchen Monitor» e non «Dispositivo cucina»: è quello che scrive la
+  // sincronizzazione col registro qui sotto, e la riga di partenza non può
+  // chiamare la stessa cosa con un altro nome. Al posto dell'email c'è la
+  // visualizzazione: un monitor non ha né email né nome utente (P-134).
+  { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'Ristorante',       role: 'Kitchen Monitor', status: 'active' },
 ];
 
-// Configurare un dispositivo e l'altra meta del passo: le persone si invitano, i
-// dispositivi si collegano. Vive in una SEZIONE SUA e non sotto lo stesso titolo
-// — sono due lavori diversi, e nella stessa card sembravano un elenco di campi
-// che continua.
+// Configurare un dispositivo è l'altra metà del passo: le persone si invitano,
+// i dispositivi si collegano. Vive in una SEZIONE SUA e non sotto lo stesso
+// titolo — sono due lavori diversi, e nella stessa card sembravano un elenco
+// di campi che continua.
+//
+// LE DUE TESSERE RESTANO TUTTE E DUE (P-134), e la differenza con Personale va
+// capita bene perché sembra una contraddizione e non lo è. La configurazione
+// completa è il percorso che si fa UNA VOLTA SOLA, all'apertura, e serve a non
+// lasciare fuori niente: lì la stampante va ricordata, perché chi apre un
+// ristorante non sa ancora che le stampanti stanno in Integrazioni. Quello che
+// esce da Personale è l'ELENCO PERMANENTE delle stampanti, che è un'altra
+// cosa: una volta collegate si gestiscono da Integrazioni e non compaiono più
+// fra chi entra nel gestionale.
+//   — la tessera della STAMPANTE apre lo stesso blocco di Integrazioni, non
+//     una copia: stesso foglio, stesso registro, aperto da un altro punto;
+//   — la tessera del MONITOR non apre un modulo da compilare, apre le
+//     ISTRUZIONI, perché il gesto non si compie da qui: si compie sullo
+//     schermo della cucina, che mostra un codice. Chi in quel momento non ha
+//     il monitor sottomano salta il passo e lo fa dopo da Personale — è la
+//     stessa cosa, e non va rifatta due volte.
 function DispositivoStep({ setTeam }) {
   const [selDevice, setSelDevice] = React.useState('printer');
-  const dev = useDeviceState((availablePrinters()[0] || {}).id);
-  // Con la stampante scelta il passo non è più un modulo: sono le stesse
-  // tessere di POS e integrazioni, «Aggiungi stampante» compreso, coi due
-  // popup che collegano e impostano (P-124 · D-108). Il modulo di prima
-  // chiedeva di sceglierne una fra quelle già collegate, e nell'onboarding
-  // non ce n'è ancora nessuna: la prima cosa da fare è collegarla.
+  const [collega, setCollega] = React.useState(false);
   const stampante = selDevice === 'printer';
 
   // Una stampante collegata dal popup finisce anche in «Membri e
   // dispositivi», che è l'elenco di questo passo: il registro è la verità, e
-  // l'elenco gli va dietro invece di essere riempito a mano dalla CTA.
+  // l'elenco gli va dietro invece di essere riempito a mano dalla CTA. Lo
+  // stesso vale per un monitor approvato.
   React.useEffect(() => {
-    if (!window.byupReadStampanti) return;
     const sincronizza = () => {
-      const devices = window.byupReadStampanti().devices || [];
+      const devices = (window.byupReadStampanti ? window.byupReadStampanti().devices : []) || [];
+      const monitors = window.byupReadMonitorsKds ? window.byupReadMonitorsKds() : [];
       setTeam(t => {
         const gia = new Set(t.filter(x => x.regId).map(x => x.regId));
-        const nuove = devices.filter(d => !gia.has(d.id)).map(d => ({
-          id: `d-${d.id}`, regId: d.id, kind: 'device', name: d.name,
-          email: (window.PN_PRINTER_PROTOCOLLI && window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {}).breve || '—',
-          role: 'Stampante', status: 'active',
-        }));
+        const nuove = [
+          ...devices.filter(d => !gia.has(d.id)).map(d => ({
+            id: `d-${d.id}`, regId: d.id, kind: 'device', name: d.name,
+            email: (window.PN_PRINTER_PROTOCOLLI && window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {}).breve || '—',
+            role: 'Stampante', status: 'active',
+          })),
+          ...monitors.filter(m => !gia.has(m.id)).map(m => ({
+            id: `d-${m.id}`, regId: m.id, kind: 'device', name: m.nome,
+            email: (KDS_VIEWS.find(v => v.id === m.vista) || KDS_VIEWS[0]).short,
+            role: 'Kitchen Monitor', status: 'active',
+          })),
+        ];
         return nuove.length ? [...t, ...nuove] : t;
       });
     };
     sincronizza();
     window.addEventListener('byup-stampanti-change', sincronizza);
-    return () => window.removeEventListener('byup-stampanti-change', sincronizza);
+    window.addEventListener('byup-kds-vista-change', sincronizza);
+    return () => {
+      window.removeEventListener('byup-stampanti-change', sincronizza);
+      window.removeEventListener('byup-kds-vista-change', sincronizza);
+    };
   }, []);
-
-  // Il dispositivo entra nell'elenco e il modulo si svuota: la CTA e la fine di
-  // un'operazione, non l'apertura di un'altra schermata.
-  // Resta il monitor: la stampante non passa più di qui, si collega nel popup
-  // e la sincronizzazione col registro la porta in elenco.
-  const aggiungiDispositivo = () => {
-    if (!dev.deviceValid) return;
-    const nome = dev.deviceName.trim() || 'Monitor cucina';
-    salvaMonitorKds({ id: 'PG1-' + dev.username.trim(), nome, vista: dev.kdsView });
-    setTeam(t => [...t, {
-      id: `d${Date.now()}`, kind: 'device', name: nome,
-      email: `PG1-${dev.username.trim()}`,
-      role: 'Kitchen Monitor', status: 'active',
-    }]);
-    dev.reset();
-  };
-
-  // CTA finale: si accende quando il dispositivo è configurato davvero, come
-  // faceva il piede della modale che ha sostituito. Vive qui e non nel modulo
-  // perché il posto in cui compare cambia col dispositivo, l'azione no.
-  const ctaConfigura = (
-    <ImpButton variant="pink" disabled={!dev.deviceValid} onClick={aggiungiDispositivo}>
-      Configura dispositivo
-    </ImpButton>
-  );
 
   return (
     <div>
@@ -2649,65 +2034,49 @@ function DispositivoStep({ setTeam }) {
         <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap: 12}}>
           {STEP_DEVICES.map(d => (
             <StepDeviceCard key={d.id} d={d} on={selDevice === d.id}
-              onClick={() => { setSelDevice(d.id);
-                dev.setDeviceTypeId(d.id === 'printer' ? ((availablePrinters()[0] || {}).id || 'kitchen-monitor') : 'kitchen-monitor'); }}/>
+              onClick={() => setSelDevice(d.id)}/>
           ))}
         </div>
 
-        {/* La stampante: il blocco di POS e integrazioni, senza la sua card e
-            su due colonne, perché questa è la colonna del modulo. */}
+        {/* La stampante: il blocco di Integrazioni, senza la sua card e su due
+            colonne, perché questa è la colonna del modulo. È lo stesso blocco,
+            non una copia che invecchia per conto suo. */}
         {stampante && window.ImpStampantiBlocco && (
           <div style={{ marginTop: 16 }}>
             <window.ImpStampantiBlocco inline colonne={2}/>
           </div>
         )}
 
-        {/* Suggerimento, non un passo dell'interfaccia. Con bordo, fondo bianco e
-            pastiglie rosa pesava quanto le card selezionabili qui sopra, e la
-            gerarchia diceva il falso: li si sceglie, qui si legge e basta.
-            Fondo incassato, niente bordo, una riga sola. */}
-        {!stampante && <div style={{
-          marginTop: 10, padding: '9px 12px', borderRadius: 10, background: PN.BG,
-          display:'flex', alignItems:'center', justifyContent:'center',
-          gap: 8, flexWrap:'wrap', rowGap: 5,
-        }}>
-          <span style={{display:'inline-flex', color: PN.MUTED, flexShrink: 0}}>
-            {BuIcons.bulb({size: 14, color:'currentColor'})}
-          </span>
-          {/* Freccia disegnata a mano: le icone di PnI non inoltrano `style`,
-              quindi ruotare una chevron non funziona. */}
-          {DEVICE_STEPS.map((t, i) => (
-            <React.Fragment key={t}>
-              {i > 0 && (
-                <span style={{display:'inline-flex', alignItems:'center', color: PN.BORDER, flexShrink: 0}}>
-                  <svg width="26" height="8" viewBox="0 0 26 8" fill="none" stroke="currentColor"
-                    strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="1" y1="4" x2="18" y2="4" strokeDasharray="3 3"/>
-                    <polyline points="21,1.2 24,4 21,6.8"/>
-                  </svg>
-                </span>
-              )}
-              <span style={{fontSize: 12.5, color: PN.MUTED, lineHeight: 1.45}}>
-                <span style={{fontWeight: 700, marginRight: 2}}>{i + 1}</span>{' '}{t}
-              </span>
-            </React.Fragment>
-          ))}
-        </div>}
-
-        {/* La configurazione sta in pagina: era una modale, e una modale sopra un
-            passo di onboarding e una finestra sopra una finestra. */}
+        {/* Il monitor: le istruzioni, non un modulo. Il gesto si compie sullo
+            schermo della cucina. */}
         {!stampante && (
           <div style={{
-            marginTop: 12, padding:'16px 18px', borderRadius: 12,
+            marginTop: 16, padding:'16px 18px', borderRadius: 12,
             border:`1px solid ${PN.BORDER_SOFT}`, background: PN.WHITE,
           }}>
-            <DeviceForm st={dev} tipoFisso={selDevice} azione={ctaConfigura}/>
+            <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, marginBottom: 4}}>
+              Il monitor si collega dallo schermo della cucina
+            </div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginBottom: 12}}>
+              Non c'è niente da compilare qui: lo schermo mostra un codice, e tu lo confermi.
+            </div>
+            <ol style={{margin: '0 0 14px', paddingLeft: 20, display:'flex', flexDirection:'column', gap: 6}}>
+              {MONITOR_ISTRUZIONI.map((t, i) => (
+                <li key={i} style={{fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>{t}</li>
+              ))}
+            </ol>
+            <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
+              <ImpButton variant="pink" onClick={() => setCollega(true)}>Ho il codice, collega</ImpButton>
+              <span style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45, flex: 1, minWidth: 200}}>
+                Se il monitor non ce l'hai sottomano adesso, salta: lo colleghi dopo da Impostazioni → Personale, ed è la stessa cosa.
+              </span>
+            </div>
           </div>
         )}
 
-        {/* Il monitor si porta la CTA dentro, in riga con la password. La
-            stampante non ha più una CTA da mostrare: si collega nel popup, e
-            lì la prova di stampa è il cancello che la fa entrare in elenco. */}
+        {collega && (
+          <CollegaMonitorModal onClose={() => setCollega(false)} onFatto={() => {}}/>
+        )}
     </div>
   );
 }

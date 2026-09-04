@@ -10,7 +10,7 @@
 // • L'overlay di processing è in-page e non un "step" autonomo: il processing è uno
 //   stato transitorio, non una tappa che vale uno slot nello stepper.
 // • Lo step 2 non ha più sotto-passi (4 settembre 2026): «Pagamenti» è uscito
-//   dall'onboarding — Stripe si collega dal gestionale, in POS e integrazioni —
+//   dall'onboarding — Stripe si collega dal gestionale, in Integrazioni —
 //   e con lui le due schede fiscali, che vivono in Dati fiscali. I tre
 //   collegamenti li chiedono le prime notifiche dell'atterraggio.
 

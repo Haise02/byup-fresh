@@ -1,46 +1,77 @@
-// Stampa di comande e documenti (P-124 · D-108; supera P-101).
+// Stampa di comande e documenti (P-128 · D-109; rivede D-108, supera P-124).
 //
-// Due usi, due vie — la regola fissata sulle fonti del 3 e 4 settembre 2026
-// (Epson ePOS-Print e Server Direct Print, Star CloudPRNT, W3C Mixed Content e
+// LA REGOLA, in una riga: comande e documenti del cliente escono dalle
+// stampanti che INTERROGANO IL NOSTRO SERVER; il browser è il ripiego, e solo
+// per i documenti.
+//
+// Le due strade, fissate sulle fonti del 3 e 4 settembre 2026 (Epson
+// ePOS-Print e Server Direct Print, Star CloudPRNT, W3C Mixed Content e
 // Secure Contexts, WebKit su Web Bluetooth, Apple MFi, Android RFCOMM):
-//   1. Le COMANDE escono soltanto da stampanti che INTERROGANO IL NOSTRO SERVER
-//      (Star con CloudPRNT, Epson con Server Direct Print, sui modelli dei
-//      rispettivi elenchi) oppure compaiono sul monitor di cucina. È l'unica
-//      via che stampa senza una persona davanti a un dispositivo, senza un
-//      dispositivo acceso nel locale e senza un terzo fra Byup e la stampante.
-//   2. I DOCUMENTI — pre-conto e documento di cortesia, due documenti distinti —
-//      escono dal browser della postazione, su qualunque stampante che il
-//      sistema del dispositivo conosce (USB, rete o Bluetooth accoppiata a
-//      livello di sistema, di qualunque marca), con la persona che conferma la
-//      finestra di stampa. Non si registra nulla in Byup.
+//   1. La STAMPANTE COLLEGATA. Non siamo noi a chiamarla: è lei che ogni
+//      pochi secondi chiede al nostro server se c'è qualcosa da stampare, se
+//      lo scarica e lo stampa. Star con CloudPRNT, Epson con Server Direct
+//      Print. È l'unica via che stampa senza una persona davanti a uno
+//      schermo e senza un dispositivo acceso nel locale. Ha la PRECEDENZA,
+//      sempre, per le comande come per i documenti.
+//   2. Il BROWSER della postazione. Prepariamo una pagina da 80 mm e la
+//      mandiamo alla stampa del sistema: esce da qualunque stampante, di
+//      qualunque marca. Tre limiti che non si aggirano, e sono la ragione di
+//      tutte le regole che seguono: serve sempre una persona che confermi;
+//      non sappiamo quali stampanti abbia quel computer e non possiamo
+//      sceglierne una; non sappiamo se il foglio è uscito.
+//
+// Per i DOCUMENTI DEL CLIENTE — pre-conto e documento di cortesia, due fogli
+// distinti per lo stesso cliente, uno prima e uno dopo il pagamento, e che
+// quindi seguono la STESSA strada — se la stampante collegata di quel POS non
+// c'è o non risponde si ripiega sul browser, e il lavoro in coda SI ANNULLA:
+// se restasse lì, la stampante che torna su mezz'ora dopo lo ritira e sputa un
+// secondo foglio per un cliente che se n'è andato.
+// Per le COMANDE non esiste ripiego: in cucina non c'è nessuno che prema
+// Stampa. Se la stampante di cucina non risponde, la cucina lavora dal
+// monitor — che vede tutte le comande — il gestionale lo dice in sala con una
+// fascia a tutta larghezza, e le comande rimaste in coda SCADONO: una comanda
+// stampata due ore dopo fa più danno di una non stampata.
+//
+// UNA STAMPANTE CHE STAMPA DAL BROWSER NON È UN DISPOSITIVO e non si aggiunge:
+// dal browser non torna indietro niente, quindi quella riga sarebbe un nome
+// scritto a mano e tre campi vuoti per sempre. Ogni stampante in elenco è, per
+// definizione, una che interroga il nostro server — per questo `connection_mode`
+// non esiste più (aveva un valore solo): quel che serve sapere lo dice
+// `printer_protocol`. Il browser non è un dispositivo: è quello che succede
+// quando un dispositivo non c'è.
+//
 // Nessuna via passa dalla pagina web alla stampante in rete locale: il
 // contenuto misto la blocca senza certificati installati a mano su ogni
 // dispositivo, per ammissione dei produttori. Il ponte via App Staff e il
-// Bluetooth sono rinviati oltre l'MVP (app in primo piano, MFi per il
-// Bluetooth classico su iOS, un dialetto di comandi per marca); le stampanti
-// che passano dal cloud di un terzo (Sunmi e simili) non sono compatibili
-// finché quel terzo non è valutato come responsabile del trattamento.
+// Bluetooth sono rinviati oltre l'MVP; le stampanti che passano dal cloud di un
+// terzo (Sunmi e simili) non sono compatibili finché quel terzo non è valutato
+// come responsabile del trattamento.
 //
 // Qui vivono (1) il registro delle stampanti coi NOMI DEL MODELLO — devices di
-// tipo printer con connection_mode `browser` | `server_polling`, device_model,
-// printer_vendor, printer_protocol `cloudprnt` | `server_direct_print`,
-// cloud_client_id, poll_interval_seconds, connection_status,
-// connection_checked_at, last_test_print_at, last_test_print_result — con
-// l'instradamento per categoria di category_routings (UNO solo: Personale e
-// «Collega stampante» scrivono qui, e una categoria sta su una stampante
-// sola), la coda print_jobs e venue_delivery_integrations.auto_print_courtesy;
-// e (2) i layout HTML a 80 mm — comanda per categoria, pre-conto, documento di
-// cortesia — che si aprono e vanno in stampa col print del browser.
+// tipo printer con device_model, printer_vendor, printer_protocol `cloudprnt` |
+// `server_direct_print`, cloud_client_id, poll_interval_seconds,
+// connection_status, connection_checked_at, last_test_print_at,
+// last_test_print_result, printer_role (`use` nel prototipo: comande |
+// documenti) — con l'instradamento per categoria di category_routings (UNO
+// solo: una categoria sta su una stampante sola), la coda print_jobs e
+// venue_delivery_integrations.auto_print_courtesy, una per piattaforma
+// (P-129); (2) le POSTAZIONI aperte e le RICHIESTE di stampa dal browser, che
+// sono il ripiego del caso 3.3; e (3) i layout HTML a 80 mm — comanda per
+// categoria, pre-conto, documento di cortesia.
 //
 // FINZIONE DICHIARATA. Senza backend non esistono gli endpoint CloudPRNT e
-// Server Direct Print, la coda vera, i ritentativi e il ripiego
-// (category_routings.fallback_device_id): il «primo contatto» della stampante,
-// lo stato in linea e l'esito della prova di stampa sono simulati e lo dicono
-// a schermo. La stampa dal browser è vera.
+// Server Direct Print, la coda vera e i ritentativi: il «primo contatto» della
+// stampante, lo stato in linea e l'esito della prova di stampa sono simulati e
+// lo dicono a schermo. La stampa dal browser è vera. La coda dichiara
+// `payload_format: 'html'` anche per le stampanti collegate: nel prodotto lo
+// stesso foglio va reso in tre dialetti — HTML per il browser, ePOS-Print per
+// Epson, il linguaggio di Star per Star — ed è tre volte il lavoro di renderlo
+// una volta sola.
 //
 // Registro in localStorage (byup_stampanti): le righe toccate si fondono sul
-// seme per id. Via `print_mode`, `device_type`, `model`, `bridge_device_id`,
-// `ip`, `protocol`, ePOS e WebPRNT: nomi che il modello non ha.
+// seme per id. Via `print_mode`, `connection_mode`, `device_type`, `model`,
+// `bridge_device_id`, `ip`, `protocol`, ePOS e WebPRNT: nomi che il modello
+// non ha, o che P-128 ha ritirato.
 
 const PN_STAMPANTI_KEY = 'byup_stampanti';
 
@@ -84,19 +115,21 @@ window.pnRoutingLabel = (key) => {
 // ─── A che cosa serve una stampante ────────────────────────────────────────
 // Due usi, e non si mescolano: una stampante stampa le COMANDE (e allora le si
 // assegnano le categorie che deve ricevere) oppure i DOCUMENTI destinati al
-// cliente, cioè documento commerciale e scontrino di cortesia. La distinzione
-// non è di comodo: le comande escono senza che nessuno guardi uno schermo, i
-// documenti nascono quando qualcuno incassa, e il vincolo di una categoria su
-// una stampante sola vale per le prime e non per i secondi.
+// cliente, cioè il pre-conto e il documento di cortesia. La distinzione non è
+// di comodo: le comande escono senza che nessuno guardi uno schermo e non
+// hanno ripiego, i documenti nascono quando qualcuno incassa e in mancanza
+// vanno al browser; e il vincolo di una categoria su una stampante sola vale
+// per le prime e non per i secondi.
+// Nel modello è `devices.printer_role`: kitchen_tickets | customer_documents.
 const PN_PRINT_USI = {
   comande:   { label: 'Comande di cucina', breve: 'Comande',   nota: 'Riceve le comande delle categorie che le assegni. Una categoria sta su una stampante sola.' },
-  documenti: { label: 'Scontrini di cortesia', breve: 'Documenti', nota: 'Il documento di cortesia e il pre-conto, quando il cliente li chiede.' },
+  documenti: { label: 'Documenti del cliente', breve: 'Documenti', nota: 'Il pre-conto e il documento di cortesia. Se non risponde, il foglio si stampa dal browser.' },
 };
-// Perché una stampante da browser non può fare le comande, detto una volta
-// sola e riusato dove serve. Non è una limitazione del prototipo: la stampa
-// dal browser apre la finestra di dialogo del sistema e aspetta che una
-// persona confermi, mentre una comanda deve uscire quando in sala si invia
-// l'ordine e in cucina non c'è nessuno davanti a uno schermo.
+// Perché una comanda non può uscire dal browser, detto una volta sola e
+// riusato dove serve. Non è una limitazione del prototipo: la stampa dal
+// browser apre la finestra di dialogo del sistema e aspetta che una persona
+// confermi, mentre una comanda deve uscire quando in sala si invia l'ordine e
+// in cucina non c'è nessuno davanti a uno schermo.
 window.PN_COMANDE_PERCHE_NO = 'Per stampare una comanda serve una stampante che interroghi il nostro server: è l\'unica che stampa senza una persona che conferma la finestra di stampa e senza un dispositivo acceso nel locale. Dal browser la comanda uscirebbe solo se qualcuno fosse lì a premere Stampa ogni volta.';
 // I modelli che possono farlo, dagli elenchi ufficiali dei due protocolli.
 window.pnModelliComande = function () {
@@ -104,21 +137,22 @@ window.pnModelliComande = function () {
 };
 
 const pnIsoFa = (sec) => new Date(Date.now() - sec * 1000).toISOString();
-// Il seme: la base dal browser (sempre) e due stampanti di cucina che
-// interrogano il server, una per protocollo. Gli stati «in linea» sono seme.
+// Le tre piattaforme di consegna predisposte (P-119 · D-106): la casella del
+// foglio nel sacchetto è per sede E per piattaforma, perché un locale può
+// volerlo per Glovo e non per Deliveroo — le piattaforme non stampano tutte la
+// stessa etichetta.
+const PN_DELIVERY_PIATTAFORME = ['glovo', 'deliveroo', 'ubereats'];
+// Il seme: due stampanti di cucina che interrogano il server, una per
+// protocollo. Gli stati «in linea» sono seme. Nessuna stampante «da browser»:
+// il browser non è un dispositivo (P-128).
 const pnStampantiSeme = () => ({
-  // «Questa postazione» non è più un dispositivo del registro (4 settembre
-  // 2026): la stampa dal browser non si collega e non si scollega — c'è
-  // sempre, ed è la strada che il documento prende quando nessuna stampante
-  // collegata al server risponde per quel POS. Metterla in elenco come se
-  // fosse una stampante da aggiungere confondeva una via con un oggetto.
   devices: [
     { id: 'prn-1', type: 'printer', name: 'Cucina', device_model: 'TSP143IV', printer_vendor: 'star',
-      connection_mode: 'server_polling', printer_protocol: 'cloudprnt', cloud_client_id: '00:11:62:4F:A3:9C', poll_interval_seconds: 5,
+      printer_protocol: 'cloudprnt', cloud_client_id: '00:11:62:4F:A3:9C', poll_interval_seconds: 5,
       connection_status: 'online', connection_checked_at: pnIsoFa(9), venue_id: 'cp', use: 'comande', pos_ids: [],
       routing: ['principale:antipasti', 'principale:primi', 'principale:secondi'], last_test_print_at: pnIsoFa(2 * 86400 + 3600), last_test_print_result: 'ok' },
     { id: 'prn-2', type: 'printer', name: 'Bar', device_model: 'TM-m30III', printer_vendor: 'epson',
-      connection_mode: 'server_polling', printer_protocol: 'server_direct_print', cloud_client_id: 'cp-bar-01', poll_interval_seconds: 5,
+      printer_protocol: 'server_direct_print', cloud_client_id: 'cp-bar-01', poll_interval_seconds: 5,
       connection_status: 'online', connection_checked_at: pnIsoFa(4), venue_id: 'cp', use: 'comande', pos_ids: [],
       routing: ['principale:bevande', 'principale:dolci'], last_test_print_at: null, last_test_print_result: null },
   ],
@@ -128,11 +162,41 @@ const pnStampantiSeme = () => ({
   // solo. Da solo è più veloce, ma stampa anche quando il cliente il foglio
   // non lo vuole — e quelli sono fogli buttati. È venue_settings.
   venue_settings: { auto_print_receipt: false },
-  // Ordini da piattaforma: il documento esce in coda alla comanda, sempre.
-  // Non è un'opzione — dal browser non potrebbe avvenire, e quando le
-  // piattaforme entreranno funzionerà così senza che nessuno la accenda.
-  venue_delivery_integrations: { auto_print_courtesy: true },
+  // Il foglio nel sacchetto degli ordini a domicilio (P-129). È un'OPZIONE, e
+  // nasce ACCESA: un sacchetto che parte senza foglio è un errore che il
+  // cliente scopre a casa, e nessuno va ad accendere un'impostazione di cui
+  // ignora l'esistenza. Si spegne perché un locale che stampa già l'etichetta
+  // della piattaforma si ritroverebbe due fogli nello stesso sacchetto. Senza
+  // una stampante di cucina collegata non si può accendere: all'arrivo
+  // dell'ordine nessuno sta guardando la finestra di stampa del browser.
+  venue_delivery_integrations: Object.fromEntries(PN_DELIVERY_PIATTAFORME.map(k => [k, { auto_print_courtesy: true }])),
 });
+// I registri scritti prima di P-128 portano `connection_mode`, e alcune righe
+// erano stampanti «da browser», che non sono più dispositivi: qui si allineano
+// da soli, senza buttare il resto di quello che l'esercente aveva impostato.
+// NIENTE destrutturazione con rest qui. Babel compila `const {a, ...resto} = x`
+// in una chiamata che legge una variabile di modulo chiamata `_excluded`, e i
+// file .jsx del gestionale girano tutti nello STESSO ambito globale: il
+// `_excluded` di un altro file sovrascrive il nostro, e la funzione finisce per
+// togliere le chiavi sbagliate — qui aveva tolto `name` alle stampanti, e la
+// fascia diceva «non ha stampato» senza dire quale. È la stessa collisione già
+// vista sulle icone. Si copia a mano, che è esplicito e non ha ambito da
+// condividere con nessuno.
+const pnPulisciDevice = (d) => {
+  const out = {};
+  Object.keys(d || {}).forEach(k => { if (k !== 'connection_mode') out[k] = d[k]; });
+  return out;
+};
+const pnMigraDelivery = (v, seme) => {
+  // Prima era un unico { auto_print_courtesy }: diventa lo stesso valore per
+  // tutte e tre le piattaforme.
+  if (v && typeof v.auto_print_courtesy === 'boolean') {
+    return Object.fromEntries(PN_DELIVERY_PIATTAFORME.map(k => [k, { auto_print_courtesy: v.auto_print_courtesy }]));
+  }
+  const out = {};
+  PN_DELIVERY_PIATTAFORME.forEach(k => { out[k] = Object.assign({}, seme[k], (v || {})[k] || {}); });
+  return out;
+};
 window.byupReadStampanti = function () {
   const seme = pnStampantiSeme();
   try {
@@ -145,14 +209,13 @@ window.byupReadStampanti = function () {
     const rimossi = new Set(salvato.rimossi || []);
     const devices = seme.devices.filter(d => !rimossi.has(d.id)).map(d => perId[d.id] ? Object.assign({}, d, perId[d.id]) : d)
       .concat((salvato.devices || []).filter(d => !seme.devices.some(x => x.id === d.id)))
-      // «Questa postazione» non è più un dispositivo (4 settembre 2026): la
-      // stampa dal browser non si collega e non si scollega. I registri
-      // scritti prima ce l'hanno ancora dentro, e qui si allineano da soli —
-      // senza buttare il resto di quello che l'esercente aveva impostato.
-      .filter(d => d.connection_mode !== 'browser');
+      // Una stampante senza protocollo era una «da browser»: quelle non sono
+      // più dispositivi (P-128) e non tornano in elenco.
+      .filter(d => !!d.printer_protocol)
+      .map(pnPulisciDevice);
     return { devices, rimossi: [...rimossi], print_jobs: salvato.print_jobs || [], candidate_aggiunte: salvato.candidate_aggiunte || [],
       venue_settings: Object.assign({}, seme.venue_settings, salvato.venue_settings || {}),
-      venue_delivery_integrations: Object.assign({}, seme.venue_delivery_integrations, salvato.venue_delivery_integrations || {}) };
+      venue_delivery_integrations: pnMigraDelivery(salvato.venue_delivery_integrations, seme.venue_delivery_integrations) };
   } catch (e) { return seme; }
 };
 window.byupWriteStampanti = function (reg) {
@@ -166,7 +229,7 @@ window.byupStampantePatch = function (id, patch) {
 };
 window.byupStampanteAggiungi = function (dev, candidataId) {
   const reg = window.byupReadStampanti();
-  reg.devices = [...reg.devices, dev];
+  reg.devices = [...reg.devices, pnPulisciDevice(dev)];
   if (candidataId) reg.candidate_aggiunte = [...new Set([...(reg.candidate_aggiunte || []), candidataId])];
   window.byupWriteStampanti(reg); return dev;
 };
@@ -176,11 +239,21 @@ window.byupStampanteRimuovi = function (id) {
   reg.rimossi = [...new Set([...(reg.rimossi || []), id])];
   window.byupWriteStampanti(reg); return reg;
 };
-// Le stampanti delle comande: quelle che interrogano il server e che hanno
-// quell'uso. (Una stampante che interroga il server può anche essere destinata
-// ai documenti: è la stessa macchina, cambia che cosa le si manda.)
-window.byupStampantiComande = () => window.byupReadStampanti().devices.filter(d => d.connection_mode === 'server_polling' && (d.use || 'comande') === 'comande');
+// I due usi. Ogni stampante in elenco interroga il nostro server, quindi il
+// filtro è sull'uso e basta: quello che prima si chiedeva a `connection_mode`
+// oggi non ha più un secondo valore da distinguere.
+window.byupStampantiComande = () => window.byupReadStampanti().devices.filter(d => (d.use || 'comande') === 'comande');
 window.byupStampantiDocumenti = () => window.byupReadStampanti().devices.filter(d => (d.use || 'comande') === 'documenti');
+// Il foglio nel sacchetto, per piattaforma (P-129).
+window.byupAutoPrintCortesiaPiattaforma = function (piattaforma) {
+  const v = (window.byupReadStampanti().venue_delivery_integrations || {})[piattaforma];
+  return !!(v && v.auto_print_courtesy);
+};
+window.byupImpostaAutoPrintCortesia = function (piattaforma, on) {
+  const reg = window.byupReadStampanti();
+  reg.venue_delivery_integrations = Object.assign({}, reg.venue_delivery_integrations, { [piattaforma]: { auto_print_courtesy: !!on } });
+  window.byupWriteStampanti(reg); return reg;
+};
 
 // ─── «Cerca stampante»: che cosa si può davvero trovare ─────────────────────
 // Da una pagina web non esiste alcuna scansione della rete locale, e il
@@ -211,12 +284,10 @@ const pnCandidateSeme = () => [
 // annullato — `onafterprint` scatta in tutti e due i casi. Su iPad c'è un
 // limite in più: la stampa di sistema è AirPrint, e una termica che non lo
 // supporta non compare neanche nell'elenco che il sistema mostra.
-// Quindi per le stampanti da browser l'unica cosa che possiamo sapere è
-// quella che ci dice l'esercente: quale postazione, e come si chiama la
-// stampante che ci sta attaccata. È una DICHIARAZIONE, e resta tale — non la
-// verifichiamo e non possiamo verificarla. Serve a una cosa concreta: dare un
-// nome alle postazioni per poterci associare i POS, quando le stampanti dei
-// documenti sono più d'una.
+// È la ragione per cui una stampante «da browser» non è un dispositivo e non
+// si mette in elenco (P-128): non sapremmo dirne né il nome, né lo stato, né
+// se ha stampato. Il browser non è una macchina da registrare, è la strada che
+// il documento prende quando una macchina non c'è.
 window.byupStampantiRilevate = function () {
   const reg = window.byupReadStampanti();
   const prese = new Set(reg.devices.map(d => d.cloud_client_id).filter(Boolean));
@@ -248,13 +319,36 @@ window.byupRoutingOccupato = function (escludiId) {
   window.byupStampantiComande().forEach(d => { if (d.id !== escludiId) (d.routing || []).forEach(k => prese.set(k, d.name)); });
   return prese;
 };
-// La coda (print_jobs): accodare è vero, l'esito è simulato — il server che
-// risponde al sondaggio della stampante non esiste nel prototipo.
+// ─── La coda (print_jobs) ───────────────────────────────────────────────────
+// Accodare è vero, l'esito è simulato: il server che risponde al sondaggio
+// della stampante non esiste nel prototipo. `payload_format: 'html'` è finzione
+// dichiarata — nel prodotto lo stesso foglio esce in tre dialetti.
 window.byupPrintJobAccoda = function (job) {
   const reg = window.byupReadStampanti();
-  const j = Object.assign({ id: 'pj-' + Date.now().toString(36), status: 'queued', attempts: 0, queued_at: new Date().toISOString(), payload_format: 'html' }, job);
+  const j = Object.assign({ id: 'pj-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), status: 'queued', attempts: 0, queued_at: new Date().toISOString(), payload_format: 'html' }, job);
   reg.print_jobs = [j, ...(reg.print_jobs || [])].slice(0, 50);
   window.byupWriteStampanti(reg); return j;
+};
+window.byupPrintJobPatch = function (jobId, patch) {
+  const reg = window.byupReadStampanti();
+  reg.print_jobs = (reg.print_jobs || []).map(j => j.id === jobId ? Object.assign({}, j, patch) : j);
+  window.byupWriteStampanti(reg); return reg;
+};
+// Il lavoro si ANNULLA quando si ripiega sul browser (caso 3.4). Non è un
+// dettaglio: se restasse in coda, la stampante che torna su mezz'ora dopo lo
+// ritira e sputa un secondo foglio per un cliente che se n'è andato.
+window.byupPrintJobAnnulla = function (jobId) {
+  return window.byupPrintJobPatch(jobId, { status: 'canceled', canceled_at: new Date().toISOString() });
+};
+// Le comande rimaste in coda su una stampante muta SCADONO (caso 3.6): la
+// cucina in quel momento lavora dallo schermo, e la carta che esce dopo è
+// peggio della carta che non esce — sono comande di piatti già serviti.
+window.byupPrintJobsScadi = function (deviceId) {
+  const reg = window.byupReadStampanti();
+  const ora = new Date().toISOString();
+  reg.print_jobs = (reg.print_jobs || []).map(j => (j.device_id === deviceId && (j.status === 'queued' || j.status === 'claimed'))
+    ? Object.assign({}, j, { status: 'expired', expires_at: ora }) : j);
+  window.byupWriteStampanti(reg); return reg;
 };
 window.byupPrintJobSimula = function (jobId, cb) {
   const passo = (status, extra, dopo) => setTimeout(() => {
@@ -263,58 +357,205 @@ window.byupPrintJobSimula = function (jobId, cb) {
     window.byupWriteStampanti(reg);
     if (dopo) dopo();
   }, 700);
-  const reg = window.byupReadStampanti();
-  const job = (reg.print_jobs || []).find(j => j.id === jobId);
-  const dev = job && reg.devices.find(d => d.id === job.device_id);
-  const inLinea = !!(dev && dev.connection_status === 'online');
-  passo('claimed', { attempts: 1, claimed_at: new Date().toISOString() }, () =>
-    passo(inLinea ? 'confirmed' : 'failed', inLinea ? { confirmed_at: new Date().toISOString() } : { last_error_code: 'offline', last_error_at: new Date().toISOString() }, () => cb && cb(inLinea ? 'ok' : 'failed')));
+  // Lo stato della stampante si legge al SONDAGGIO, non all'accodamento: fra
+  // il momento in cui si manda e quello in cui lei viene a prendere passano
+  // dei secondi, ed è in quei secondi che la carta finisce o la spina si
+  // stacca. L'errore si scopre dopo, e la fascia nasce dallo stato della coda,
+  // non dal gesto dell'invio.
+  passo('claimed', { attempts: 1, claimed_at: new Date().toISOString() }, () => {
+    const reg = window.byupReadStampanti();
+    const job = (reg.print_jobs || []).find(j => j.id === jobId);
+    const dev = job && reg.devices.find(d => d.id === job.device_id);
+    const inLinea = !!(dev && dev.connection_status === 'online');
+    passo(inLinea ? 'confirmed' : 'failed', inLinea ? { confirmed_at: new Date().toISOString() } : { last_error_code: 'offline', last_error_at: new Date().toISOString() }, () => cb && cb(inLinea ? 'ok' : 'failed'));
+  });
+};
+
+// ─── Le postazioni aperte: quante ne sono, e con quali permessi ─────────────
+// Serve al ripiego dei documenti (caso 3.3): il foglio si stampa da un
+// gestionale aperto su schermo largo o su tablet, mai su telefono, e da un
+// utente che abbia i permessi da Cassa. Se una postazione così è aperta in un
+// posto solo la finestra di stampa si apre da sola lì; se ne sono aperte due o
+// più non decidiamo noi — compare la fascia, e la prende chi è davvero al
+// banco.
+// Nel prototipo «le postazioni aperte» sono le schede del gestionale aperte in
+// questo browser: ognuna si annuncia in localStorage ogni pochi secondi e le
+// righe vecchie decadono. È una finzione dichiarata, ma il comportamento che
+// mostra è quello vero — con due schede aperte compare la fascia, con una sola
+// la stampa parte da sé.
+const PN_POSTAZIONI_KEY = 'byup_postazioni';
+const PN_POSTAZIONE_TTL = 14000;
+const pnPostazioneId = (() => {
+  let id = '';
+  try { id = sessionStorage.getItem('byup_postazione_id') || ''; } catch (e) {}
+  if (!id) { id = 'pz-' + Math.random().toString(36).slice(2, 9); try { sessionStorage.setItem('byup_postazione_id', id); } catch (e) {} }
+  return id;
+})();
+const pnLeggiPostazioni = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(PN_POSTAZIONI_KEY) || '{}');
+    const ora = Date.now();
+    return Object.values(v).filter(p => p && ora - p.at < PN_POSTAZIONE_TTL);
+  } catch (e) { return []; }
+};
+// Idonea: non è un telefono, e chi la guarda ha i permessi da Cassa.
+window.byupPostazioneIdonea = function () {
+  let classe = 'desktop';
+  try { classe = document.documentElement.getAttribute('data-pn-device') || 'desktop'; } catch (e) {}
+  const puo = window.pnPuo ? window.pnPuo('vendita') : true;
+  return classe !== 'phone' && !!puo;
+};
+window.byupPostazioniIdonee = () => pnLeggiPostazioni().filter(p => p.idonea);
+window.byupPostazioneId = () => pnPostazioneId;
+(function pnAnnunciaPostazione() {
+  if (typeof document === 'undefined' || typeof localStorage === 'undefined') return;
+  const scrivi = () => {
+    try {
+      const v = JSON.parse(localStorage.getItem(PN_POSTAZIONI_KEY) || '{}');
+      const ora = Date.now();
+      Object.keys(v).forEach(k => { if (ora - (v[k] || {}).at > PN_POSTAZIONE_TTL) delete v[k]; });
+      v[pnPostazioneId] = { id: pnPostazioneId, at: ora, idonea: window.byupPostazioneIdonea(),
+        pagina: (document.title || '').replace(/^byup\s*/i, '') };
+      localStorage.setItem(PN_POSTAZIONI_KEY, JSON.stringify(v));
+    } catch (e) {}
+  };
+  const chiudi = () => {
+    try {
+      const v = JSON.parse(localStorage.getItem(PN_POSTAZIONI_KEY) || '{}');
+      delete v[pnPostazioneId];
+      localStorage.setItem(PN_POSTAZIONI_KEY, JSON.stringify(v));
+    } catch (e) {}
+  };
+  scrivi();
+  setInterval(scrivi, 5000);
+  window.addEventListener('pagehide', chiudi);
+  window.addEventListener('beforeunload', chiudi);
+})();
+
+// ─── Le richieste di stampa dal browser (il ripiego, caso 3.3) ──────────────
+// Quando il documento non può uscire da una stampante collegata e i gestionali
+// aperti sono più d'uno, non scegliamo noi da quale schermo esce: la richiesta
+// si affaccia su tutti, e la prende chi è davvero al banco. Nel momento in cui
+// uno stampa la richiesta sparisce da tutti gli schermi insieme, così non
+// escono due fogli; se non la prende nessuno sparisce da sola dopo qualche
+// minuto, perché a quel punto il cliente se n'è andato e un foglio che esce
+// dopo è carta buttata.
+// Queste richieste NON lasciano voce in Profilo → Notifiche: in un locale
+// senza stampante comparirebbero a ogni pagamento con carta e riempirebbero
+// l'archivio di righe morte.
+const PN_RICHIESTE_KEY = 'byup_stampa_richieste';
+const PN_RICHIESTA_VITA = 4 * 60 * 1000;
+const pnRichiesteRaw = () => {
+  try { return JSON.parse(localStorage.getItem(PN_RICHIESTE_KEY) || '[]'); } catch (e) { return []; }
+};
+const pnRichiesteScrivi = (lista) => {
+  try { localStorage.setItem(PN_RICHIESTE_KEY, JSON.stringify(lista)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-stampa-richieste'));
+};
+window.byupRichiesteStampa = function () {
+  const ora = Date.now();
+  return pnRichiesteRaw().filter(r => !r.presa_da && ora < r.scade_at);
+};
+window.byupRichiestaStampaCrea = function (richiesta) {
+  const ora = Date.now();
+  const r = Object.assign({ id: 'rs-' + ora.toString(36) + Math.random().toString(36).slice(2, 5), creata_at: ora, scade_at: ora + PN_RICHIESTA_VITA, presa_da: null }, richiesta);
+  pnRichiesteScrivi([r, ...pnRichiesteRaw().filter(x => ora < x.scade_at)].slice(0, 10));
+  return r;
+};
+// Prendere una richiesta: si marca PRIMA (così sparisce dagli altri schermi) e
+// poi si stampa. Ritorna l'esito della stampa dal browser.
+window.byupRichiestaStampaPrendi = function (id) {
+  const r = pnRichiesteRaw().find(x => x.id === id);
+  if (!r || r.presa_da) return { esito: 'gia_presa' };
+  pnRichiesteScrivi(pnRichiesteRaw().map(x => x.id === id ? Object.assign({}, x, { presa_da: pnPostazioneId, presa_at: Date.now() }) : x));
+  const layout = r.tipo === 'preconto' ? window.byupLayoutPreconto : window.byupLayoutCortesia;
+  return window.byupStampaBrowser(layout(Object.assign({}, r.conto)));
 };
 
 // ─── Da dove esce il documento del cliente ──────────────────────────────────
 // La domanda è una sola: per l'incasso che si è appena chiuso, c'è una
-// stampante che interroga il nostro server? Se c'è, il documento ci va in coda
-// e ne esce da solo, senza finestre e senza che nessuno confermi: è l'unica
-// via che stampa «diretto», e vale anche quando chi incassa ha in mano solo il
-// telefono in sala, perché il foglio esce al banco. Se non c'è, si stampa dal
-// browser della postazione, dove la finestra di dialogo del sistema chiede
-// conferma — non per scelta nostra: nessun browser lascia stampare una pagina
-// in silenzio, altrimenti qualunque sito potrebbe far uscire fogli da una
-// stampante.
-// L'ordine: la stampante associata a QUEL POS; se il POS non ne ha una, la
-// sola stampante dei documenti collegata al server, se ce n'è una sola;
-// altrimenti il browser.
+// stampante collegata? Se c'è, il documento ci va in coda e ne esce da solo,
+// senza finestre e senza che nessuno confermi — e vale anche quando chi
+// incassa ha in mano solo il telefono in sala, perché il foglio esce al banco.
+// L'ordine, e sono solo due gradini: la stampante associata a QUEL POS; se il
+// POS non ne ha una, la sola stampante dei documenti se ce n'è una sola.
+// Altrimenti nessuna, e chi chiama ripiega sul browser. Le due strade che
+// cercavano un dispositivo «da browser» sono cadute con P-128: quel
+// dispositivo non può più esistere, e una di esse faceva passare il browser
+// davanti a una stampante collegata, che è l'opposto della regola.
+// Con due casse e due stampanti, una cassa non ancora associata non prende una
+// stampante a caso — il foglio uscirebbe dall'altra parte del locale: si
+// stampa dal browser e si chiede di completare l'associazione (caso 3.5).
 window.byupStampanteDelDocumento = function (posId) {
-  const serverPolling = window.byupStampantiDocumenti().filter(d => d.connection_mode === 'server_polling');
+  const documenti = window.byupStampantiDocumenti();
   if (posId) {
-    const sua = serverPolling.find(d => (d.pos_ids || []).includes(posId));
+    const sua = documenti.find(d => (d.pos_ids || []).includes(posId));
     if (sua) return sua;
-    // Il POS è associato a una postazione: allora si stampa dal browser, ed è
-    // una scelta dell'esercente, non un ripiego.
-    const postazione = window.byupStampantiDocumenti().find(d => d.connection_mode === 'browser' && (d.pos_ids || []).includes(posId));
-    if (postazione) return postazione;
   }
-  if (serverPolling.length === 1) return serverPolling[0];
-  return window.byupStampantiDocumenti().find(d => d.connection_mode === 'browser') || null;
+  if (documenti.length === 1) return documenti[0];
+  return null;
+};
+// Vero quando il POS non è associato e le stampanti dei documenti sono più
+// d'una: è il caso 3.5, e la schermata deve chiedere di completare
+// l'associazione invece di lasciar credere a un guasto.
+window.byupPosSenzaStampante = function (posId) {
+  const documenti = window.byupStampantiDocumenti();
+  if (documenti.length < 2) return false;
+  return !documenti.some(d => (d.pos_ids || []).includes(posId));
 };
 window.byupAutoPrintRicevuta = function () {
   const reg = window.byupReadStampanti();
   return !!(reg.venue_settings && reg.venue_settings.auto_print_receipt);
 };
-// Il documento di cortesia, per la strada che gli tocca. Ritorna
-// { via: 'server' | 'browser' | 'bloccata', stampante, job }.
+// Il ripiego sul browser, con le regole del caso 3.3. Ritorna
+// { via: 'browser' | 'richiesta' | 'niente' }.
+const pnRipiegoBrowser = (conto, opts) => {
+  const idonee = window.byupPostazioniIdonee();
+  const qui = window.byupPostazioneIdonea();
+  // Un solo gestionale adatto aperto, ed è questo: la finestra di stampa si
+  // apre da sola. Non con window.open — una finestra aperta senza che una
+  // persona abbia appena cliccato viene bloccata dal browser — ma con un
+  // riquadro nascosto dentro la pagina stessa (byupStampaBrowser).
+  if (qui && idonee.length <= 1) {
+    const layout = opts.tipo === 'preconto' ? window.byupLayoutPreconto : window.byupLayoutCortesia;
+    const r = window.byupStampaBrowser(layout(Object.assign({}, conto)));
+    return { via: r.esito === 'bloccata' ? 'bloccata' : 'browser', stampante: null };
+  }
+  // Nessun gestionale su schermo largo aperto: il foglio non si può stampare,
+  // e va detto subito a chi sta incassando — il cliente sente «le mando la
+  // ricevuta» e non resta ad aspettare una carta che non arriverà.
+  if (!idonee.length) return { via: 'niente', stampante: null };
+  // Due o più: la fascia, e la prende chi è davvero al banco.
+  const rich = window.byupRichiestaStampaCrea({
+    tipo: opts.tipo === 'preconto' ? 'preconto' : 'cortesia',
+    titolo: opts.titolo || (conto && conto.tavolo) || 'Conto',
+    conto: Object.assign({}, conto),
+  });
+  return { via: 'richiesta', stampante: null, richiesta: rich };
+};
+// Il documento del cliente — pre-conto o cortesia — per la strada che gli
+// tocca. Ritorna { via: 'server' | 'browser' | 'richiesta' | 'niente' |
+// 'bloccata', stampante, job }.
 window.byupStampaDocumentoCliente = function (conto, opts = {}) {
   const dev = opts.stampante || window.byupStampanteDelDocumento(opts.posId);
-  const layout = opts.tipo === 'preconto' ? window.byupLayoutPreconto : window.byupLayoutCortesia;
-  if (dev && dev.connection_mode === 'server_polling') {
+  if (dev) {
     const job = window.byupPrintJobAccoda({ device_id: dev.id, requested_device_id: dev.id, document_kind: opts.tipo === 'preconto' ? 'pre_bill' : 'courtesy_receipt' });
-    // Niente finestra: il documento è in coda e la stampante lo ritira.
-    window.byupPrintJobSimula(job.id, (esito) => opts.onEsito && opts.onEsito(esito));
+    // Niente finestra: il documento è in coda e la stampante lo ritira. Fra il
+    // tocco e la carta passano i secondi del suo sondaggio, quindi finché non
+    // ha confermato il foglio STA USCENDO, non è uscito.
+    window.byupPrintJobSimula(job.id, (esito) => {
+      if (esito === 'ok') { if (opts.onEsito) opts.onEsito('ok', { via: 'server', stampante: dev }); return; }
+      // Non ha risposto: si annulla il lavoro in coda e si ripiega sul
+      // browser (caso 3.4).
+      window.byupPrintJobAnnulla(job.id);
+      const r = pnRipiegoBrowser(conto, opts);
+      if (opts.onEsito) opts.onEsito(r.via === 'niente' ? 'niente' : r.via === 'bloccata' ? 'bloccata' : 'ripiego', r);
+    });
     return { via: 'server', stampante: dev, job };
   }
-  const r = window.byupStampaBrowser(layout(Object.assign({}, conto)));
-  if (opts.onEsito) opts.onEsito(r.esito === 'stampata' ? 'ok' : 'bloccata');
-  return { via: r.esito === 'bloccata' ? 'bloccata' : 'browser', stampante: dev };
+  const r = pnRipiegoBrowser(conto, opts);
+  if (opts.onEsito) opts.onEsito(r.via === 'niente' ? 'niente' : r.via === 'bloccata' ? 'bloccata' : r.via === 'richiesta' ? 'richiesta' : 'ok', r);
+  return r;
 };
 
 // ─── I layout a 80 mm ────────────────────────────────────────────────────────
@@ -341,7 +582,15 @@ const PN_STAMPA_CSS = `
 const pnEsc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pnEuro = (n) => '€ ' + (Math.round((Number(n) || 0) * 100) / 100).toFixed(2).replace('.', ',');
 const pnOra = (d) => { const x = d ? new Date(d) : new Date(); return x.toLocaleDateString('it-IT') + ' ' + x.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); };
-const pnLocaleNome = () => (window.PN_LOCALE && window.PN_LOCALE.nome) || 'Cacio e Pepe';
+// Il nome del locale in testa alla comanda: dal locale attivo, che è il
+// registro condiviso della sidebar. Prima si leggeva `window.PN_LOCALE`, che
+// nessun file del prototipo definisce: una strada che non portava da nessuna
+// parte, sempre finita sul valore di ripiego (P-133).
+const pnLocaleNome = () => {
+  try { const l = window.byupReadLocale && window.byupReadLocale(); if (l && l.nome) return l.nome; } catch (e) {}
+  try { const d = window.byupReadEsercente && window.byupReadEsercente(); if (d && d.insegna) return d.insegna; } catch (e) {}
+  return 'Cacio e Pepe';
+};
 
 // ─── La forma del documento commerciale (layout standard dell'Agenzia) ──────
 // Fonte: «DOCUMENTO COMMERCIALE DI VENDITA O PRESTAZIONE: LAYOUT STANDARD»
@@ -531,46 +780,152 @@ window.byupLayoutCortesia = function ({ tavolo, righe, totale, pagamento, pagame
 };
 
 // ─── L'invio ─────────────────────────────────────────────────────────────────
-// Dal browser: si apre una finestra col layout e si chiama print(); la persona
-// conferma nella finestra di stampa del sistema, sulla stampante che vuole. È
-// tutto vero. Verso una stampante che interroga il server si ACCODA un lavoro
-// (print_jobs) e si apre la stessa anteprima con la fascia che dichiara che
-// l'esito è simulato. Ritorna cosa ha fatto, per i toast e per le prove.
+// Dal browser: il layout va in un riquadro NASCOSTO dentro la pagina e si
+// chiama print(); la persona conferma nella finestra di stampa del sistema,
+// sulla stampante che vuole. È tutto vero. Non si apre più una finestra con
+// window.open: una finestra aperta senza che una persona abbia appena
+// cliccato viene bloccata dal browser, e nel ripiego del caso 3.3 la stampa
+// parte da sé, senza un clic. Verso una stampante collegata si ACCODA un
+// lavoro (print_jobs) e si apre la stessa anteprima con la fascia che
+// dichiara che l'esito è simulato.
 window.byupStampaBrowser = function (html) {
-  const w = window.open('', '_blank', 'width=420,height=720');
-  if (!w) return { esito: 'bloccata', vero: true };
-  w.document.open(); w.document.write(html); w.document.close();
-  try { w.focus(); setTimeout(() => { try { w.print(); } catch (e) {} }, 250); } catch (e) {}
-  return { esito: 'stampata', vero: true, stampante: null };
+  try {
+    const f = document.createElement('iframe');
+    f.setAttribute('aria-hidden', 'true');
+    f.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0; visibility:hidden;';
+    document.body.appendChild(f);
+    const d = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+    if (!d) { f.remove(); return { esito: 'bloccata', vero: true }; }
+    d.open(); d.write(html); d.close();
+    const vai = () => {
+      try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) {}
+      setTimeout(() => { try { f.remove(); } catch (e) {} }, 2000);
+    };
+    if (d.readyState === 'complete') setTimeout(vai, 120);
+    else f.onload = () => setTimeout(vai, 120);
+    return { esito: 'stampata', vero: true, stampante: null };
+  } catch (e) { return { esito: 'bloccata', vero: true }; }
 };
+// L'anteprima di una comanda accodata: quella sì in una finestra, perché nasce
+// sempre da un clic e serve a GUARDARE, non a stampare.
 window.byupStampaAnteprima = function (html) {
   const w = window.open('', '_blank', 'width=420,height=720');
   if (!w) return { esito: 'bloccata', vero: false };
   w.document.open(); w.document.write(html); w.document.close();
   return { esito: 'anteprima', vero: false };
 };
-// La comanda: verso una stampante di cucina si accoda; senza stampante (il
-// pulsante nella rail del monitor di cucina) stampa dal browser, a mano.
+// La comanda verso una stampante di cucina: si accoda. Senza stampante (il
+// pulsante nella rail del monitor di cucina) stampa dal browser, a mano —
+// perché lì c'è una persona che preme.
 window.byupStampaComanda = function (righe, identita, opts = {}) {
   const dev = opts.stampante || null;
-  if (dev && dev.connection_mode === 'server_polling') {
+  if (dev) {
     const proto = PN_PRINTER_PROTOCOLLI[dev.printer_protocol] || {};
-    const job = window.byupPrintJobAccoda({ device_id: dev.id, requested_device_id: dev.id, document_kind: opts.document_kind || 'kitchen_ticket', identita });
+    const job = window.byupPrintJobAccoda({ device_id: dev.id, requested_device_id: dev.id, document_kind: opts.document_kind || 'kitchen_ticket', identita, categorie: opts.categorie || [] });
     const anteprima = `Anteprima della comanda accodata per «${dev.name}» (${proto.label || dev.printer_protocol}): nel prototipo il server che risponde al sondaggio della stampante non esiste e l'esito è simulato.`;
     const html = window.byupLayoutComanda({ identita, righe, quando: opts.quando, stampante: `${dev.name} · ${dev.device_model}`, anteprima });
-    const r = window.byupStampaAnteprima(html);
+    const r = opts.silenzioso ? { esito: 'accodata', vero: false } : window.byupStampaAnteprima(html);
     return Object.assign(r, { job, stampante: dev.name });
   }
   const html = window.byupLayoutComanda({ identita, righe, quando: opts.quando, stampante: null, anteprima: null });
   return window.byupStampaBrowser(html);
 };
-// I documenti: sempre dal browser, su qualunque stampante di sistema. Nessuna
-// stampante «di cortesia della sede»: quella colonna non esiste più.
-window.byupStampaPreconto = function (conto) {
-  return window.byupStampaBrowser(window.byupLayoutPreconto(Object.assign({}, conto)));
+
+// ─── L'invio di un ordine accoda le comande, per categoria ──────────────────
+// È il passaggio che mancava (P-128, § 4.4): inviare un ordine cambiava uno
+// stato e mostrava un messaggio, e in tutto il prototipo l'unica comanda che
+// andava davvero in stampa nasceva da un pulsante sul monitor di cucina. Senza
+// questo non esiste una coda di comande che possa fallire, e la fascia della
+// stampante muta non ha origine.
+// Una categoria sta su UNA stampante sola (category_routings), quindi ogni
+// riga trova al massimo una destinazione; le righe di categorie non instradate
+// non stampano e vivono sul monitor, che vede tutte le comande.
+const pnNormalizza = (s) => String(s == null ? '' : s).toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
+// La stampante che tiene una categoria, cercata sull'ETICHETTA: la Sala
+// ragiona per nomi di categoria del menù («Dolci», «Bevande»), il registro per
+// chiavi «menuId:catId». È l'etichetta a fare da ponte.
+window.byupStampanteDiCategoria = function (categoria) {
+  const cerca = pnNormalizza(categoria);
+  if (!cerca) return null;
+  const comande = window.byupStampantiComande();
+  const trova = (prova) => comande.find(d => (d.routing || [])
+    .some(k => prova(pnNormalizza(window.pnRoutingLabel(k)))));
+  // Prima l'uguaglianza. Poi il prefisso, perché in cassa la stessa categoria
+  // si chiama «Primi piatti» e nel menù «Primi»: due nomi per la stessa cosa,
+  // e la comanda non deve perdersi per una parola in più.
+  return trova(k => k === cerca) || trova(k => k.length > 3 && (cerca.startsWith(k) || k.startsWith(cerca))) || null;
 };
-window.byupStampaCortesia = function (conto) {
-  return window.byupStampaBrowser(window.byupLayoutCortesia(Object.assign({}, conto)));
+// righe: [{ qty, name, category, course, modifiers, allergen, note }]
+// Ritorna [{ stampante, righe, categorie, job }] — una voce per stampante.
+window.byupAccodaComande = function (righe, identita, opts = {}) {
+  const perStampante = new Map();
+  (righe || []).forEach(r => {
+    const dev = window.byupStampanteDiCategoria(r.category);
+    if (!dev) return;
+    if (!perStampante.has(dev.id)) perStampante.set(dev.id, { stampante: dev, righe: [], categorie: [] });
+    const v = perStampante.get(dev.id);
+    v.righe.push(r);
+    if (v.categorie.indexOf(r.category) < 0) v.categorie.push(r.category);
+  });
+  const esiti = [];
+  perStampante.forEach(v => {
+    const r = window.byupStampaComanda(v.righe, identita, {
+      stampante: v.stampante, quando: opts.quando, categorie: v.categorie, silenzioso: true,
+    });
+    if (r.job) window.byupPrintJobSimula(r.job.id, (esito) => {
+      // Non ha risposto: la coda di quella stampante scade e la fascia nasce
+      // dal lavoro fallito. Nessun ripiego: in cucina non c'è nessuno che
+      // prema Stampa, e la cucina lavora dal monitor.
+      if (esito !== 'ok') window.byupPrintJobsScadi(v.stampante.id);
+      if (opts.onEsito) opts.onEsito(v.stampante, esito);
+    });
+    esiti.push(Object.assign({}, v, { job: r.job }));
+  });
+  return esiti;
+};
+// Le stampanti mute: quelle con comande fallite non ancora prese in carico.
+// La fascia se ne va in tre modi, e solo tre — «Letto», una prova di stampa
+// riuscita, o un'altra stampante che prende quelle categorie — e sono i tre
+// controlli qui sotto.
+window.byupComandeMute = function () {
+  const reg = window.byupReadStampanti();
+  const perDev = new Map();
+  (reg.print_jobs || []).forEach(j => {
+    if (j.status !== 'failed' || j.document_kind !== 'kitchen_ticket' || j.visto_at) return;
+    const dev = reg.devices.find(d => d.id === j.device_id);
+    if (!dev) return;
+    // Le categorie di quel lavoro sono passate a un'altra stampante: il buco
+    // è tappato e la fascia non ha più oggetto.
+    const cat = j.categorie || [];
+    const altrove = cat.length > 0 && cat.every(c => {
+      const s = window.byupStampanteDiCategoria(c);
+      return s && s.id !== dev.id;
+    });
+    if (altrove) return;
+    if (!perDev.has(dev.id)) perDev.set(dev.id, { stampante: dev, categorie: [], comande: 0, jobs: [] });
+    const v = perDev.get(dev.id);
+    v.comande += 1;
+    v.jobs.push(j.id);
+    cat.forEach(c => { if (v.categorie.indexOf(c) < 0) v.categorie.push(c); });
+  });
+  return [...perDev.values()];
+};
+window.byupComandeMuteLette = function (deviceId) {
+  const reg = window.byupReadStampanti();
+  const ora = new Date().toISOString();
+  reg.print_jobs = (reg.print_jobs || []).map(j => (j.status === 'failed' && j.document_kind === 'kitchen_ticket' && (!deviceId || j.device_id === deviceId))
+    ? Object.assign({}, j, { visto_at: ora }) : j);
+  window.byupWriteStampanti(reg); return reg;
+};
+// I documenti del cliente passano tutti dalla stessa porta: il pre-conto e la
+// cortesia sono due fogli per lo stesso cliente, uno prima e uno dopo il
+// pagamento, e non ha senso che escano da stampanti diverse.
+window.byupStampaPreconto = function (conto, opts = {}) {
+  return window.byupStampaDocumentoCliente(conto, Object.assign({}, opts, { tipo: 'preconto' }));
+};
+window.byupStampaCortesia = function (conto, opts = {}) {
+  return window.byupStampaDocumentoCliente(conto, Object.assign({}, opts, { tipo: 'cortesia' }));
 };
 // La prova di stampa di una stampante di cucina: una comanda di prova in coda,
 // l'esito simulato dopo il «sondaggio», e a registro last_test_print_at e
@@ -582,19 +937,163 @@ window.byupProvaStampa = function (dev, cb) {
   if (!r.job) { cb && cb(r.esito); return r; }
   window.byupPrintJobSimula(r.job.id, (esito) => {
     window.byupStampantePatch(dev.id, { last_test_print_at: new Date().toISOString(), last_test_print_result: esito });
+    // Una prova riuscita è uno dei tre modi in cui la fascia della stampante
+    // muta se ne va: la domanda che poneva — questa stampante risponde? — ha
+    // avuto risposta.
+    if (esito === 'ok') window.byupComandeMuteLette(dev.id);
     cb && cb(esito);
   });
   return r;
 };
-// La prova della stampa dei documenti: un pre-conto di prova dal browser.
-// Non si registra nulla.
+// Nel prototipo non esiste un modo di far cadere davvero una stampante, e
+// senza quello la fascia della stampante muta non si può nemmeno guardare.
+// Questo interruttore è finzione DICHIARATA — la tessera in Integrazioni lo
+// dice — e cambia solo `connection_status`, che nel prodotto lo scrive il
+// server contando i sondaggi che non arrivano.
+window.byupStampanteSimulaLinea = function (id, inLinea) {
+  return window.byupStampantePatch(id, {
+    connection_status: inLinea ? 'online' : 'offline',
+    connection_checked_at: new Date().toISOString(),
+  });
+};
+// La prova della stampa dei documenti (caso 3.8). Serve a chi stampa dal
+// browser per sapere se il suo computer è messo bene: se ha una stampante
+// configurata, se il margine di 80 mm viene giusto. Non è la prova di un
+// dispositivo, perché un dispositivo non c'è: è la prova della STRADA. Per
+// questo va dritta al browser senza passare dalla scelta della stampante, e
+// non registra nulla.
 window.byupProvaStampaDocumenti = function () {
-  return window.byupStampaPreconto({ tavolo: 'Prova di stampa', coperti: 2, righe: [
+  return window.byupStampaBrowser(window.byupLayoutPreconto({ tavolo: 'Prova di stampa', coperti: 2, righe: [
     { nome: 'Cacio e Pepe', qty: 2, prezzo: 13 }, { nome: 'Acqua naturale 75 cl', qty: 1, prezzo: 2.5 },
-  ] });
+  ] }));
 };
 window.PN_PRINT_USI = PN_PRINT_USI;
 window.PN_PRINTER_MODELLI = PN_PRINTER_MODELLI;
 window.PN_PRINTER_PROTOCOLLI = PN_PRINTER_PROTOCOLLI;
 window.PN_PRINT_STATI = PN_PRINT_STATI;
 window.PN_MENU_CATEGORIE = PN_MENU_CATEGORIE;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LE DUE FASCE DELLA STAMPA (P-128, casi 3.3 e 3.6)
+// ═══════════════════════════════════════════════════════════════════════════
+// Stanno in cima a tutte le schermate del gestionale, dove già sta la fascia
+// delle attivazioni, perché nascono mentre si lavora e chi deve agire non è
+// detto che stia guardando la pagina in cui il fatto è successo.
+//   — la fascia della STAMPANTE MUTA è pesante, a tutta larghezza: nomina la
+//     stampante (in cucina possono essere due, e l'altra magari sta
+//     lavorando) e le categorie che teneva (una categoria è instradata su una
+//     stampante sola, quindi dire «Bevande, Dolci» dice esattamente che cosa
+//     non è uscito), e rimanda al monitor. Se ne va con «Letto», con una
+//     prova di stampa riuscita, o collegando un'altra stampante che prende
+//     quelle categorie.
+//   — la fascia dei DOCUMENTI DA STAMPARE è leggera, una riga sola con dentro
+//     il pulsante: la prende chi è davvero al banco, sparisce da tutti gli
+//     schermi insieme quando uno stampa, e da sola dopo qualche minuto. Non
+//     lascia voce in Profilo → Notifiche: in un locale senza stampante
+//     comparirebbe a ogni pagamento con carta.
+const PN_FASCIA_ALERT = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>
+  </svg>
+);
+const PN_FASCIA_PRINTER = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 9V3h12v6"/><rect x="4" y="9" width="16" height="9" rx="1.5"/><path d="M6 14h12v7H6z"/>
+  </svg>
+);
+const pnElenco = (v) => v.length > 1 ? `${v.slice(0, -1).join(', ')} e ${v[v.length - 1]}` : (v[0] || '');
+
+function PnStampaFasce() {
+  const [mute, setMute] = React.useState(() => (window.byupComandeMute ? window.byupComandeMute() : []));
+  const [richieste, setRichieste] = React.useState(() => (window.byupRichiesteStampa ? window.byupRichiesteStampa() : []));
+  const [inStampa, setInStampa] = React.useState(null);
+  React.useEffect(() => {
+    const agg = () => {
+      setMute(window.byupComandeMute ? window.byupComandeMute() : []);
+      setRichieste(window.byupRichiesteStampa ? window.byupRichiesteStampa() : []);
+    };
+    const ev = ['byup-stampanti-change', 'byup-stampa-richieste', 'storage'];
+    ev.forEach(e => window.addEventListener(e, agg));
+    // Le richieste scadono da sole: senza un battito la riga resterebbe in
+    // pagina anche dopo che il cliente se n'è andato.
+    const t = setInterval(agg, 4000);
+    return () => { ev.forEach(e => window.removeEventListener(e, agg)); clearInterval(t); };
+  }, []);
+  // Il ripiego è per chi può stampare: su un telefono, o senza i permessi
+  // della Cassa, la riga non ha nessuno che possa agire.
+  const puoStampare = window.byupPostazioneIdonea ? window.byupPostazioneIdonea() : true;
+  const daStampare = puoStampare ? richieste : [];
+  if (!mute.length && !daStampare.length) return null;
+
+  const prendi = (r) => {
+    setInStampa(r.id);
+    const esito = window.byupRichiestaStampaPrendi(r.id);
+    setRichieste(window.byupRichiesteStampa());
+    setTimeout(() => setInStampa(null), 1200);
+    return esito;
+  };
+
+  return (
+    <div data-stampa-fasce style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 450,
+      display: 'flex', flexDirection: 'column',
+      boxShadow: (mute.length || daStampare.length) ? '0 12px 32px -16px rgba(15,17,21,0.35)' : 'none',
+    }}>
+      <style>{`@keyframes pnStampaGiu { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: none; } }`}</style>
+
+      {/* La stampante muta: pesante, perché delle comande si sono perse. */}
+      {mute.map(m => (
+        <div key={m.stampante.id} data-fascia-muta={m.stampante.id} style={{
+          display: 'flex', alignItems: 'center', gap: 16, padding: '13px 24px',
+          background: '#FEF2F2', borderBottom: '1px solid #FECACA',
+          animation: 'pnStampaGiu 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+        }}>
+          <span style={{
+            width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+            background: '#B91C1C', color: '#fff', display: 'grid', placeItems: 'center',
+          }}>{PN_FASCIA_ALERT}</span>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{fontSize: 15.5, fontWeight: 800, color: '#B91C1C', letterSpacing: -0.1}}>
+              «{m.stampante.name}» non ha stampato {m.comande === 1 ? 'la comanda' : 'le comande'}{m.categorie.length ? `: ${pnElenco(m.categorie)}` : ''}.
+            </div>
+            <div style={{fontSize: 14, color: PN.TEXT, marginTop: 1, lineHeight: 1.4}}>
+              Vai in Cucina per seguire gli ordini sullo schermo.
+            </div>
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
+            <button onClick={() => { window.byupComandeMuteLette(m.stampante.id); setMute(window.byupComandeMute()); }}
+              className="pn-btn-feedback" style={{
+                padding: '9px 15px', borderRadius: 10, border: `1px solid ${PN.BORDER}`,
+                background: PN.WHITE, color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}>Letto</button>
+            <a href="byup Cucina KDS v2.html" className="pn-btn-feedback" style={{
+              padding: '9px 17px', borderRadius: 10, background: PN.BTN_DARK, color: PN.WHITE,
+              fontSize: 14.5, fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center',
+            }}>Vai in Cucina</a>
+          </div>
+        </div>
+      ))}
+
+      {/* Il documento che aspetta una postazione: leggera, una riga sola. */}
+      {daStampare.map(r => (
+        <div key={r.id} data-fascia-documento={r.id} style={{
+          display: 'flex', alignItems: 'center', gap: 12, padding: '9px 24px',
+          background: PN.WHITE, borderBottom: `1px solid ${PN.BORDER_SOFT}`,
+          animation: 'pnStampaGiu 260ms cubic-bezier(0.22, 1, 0.36, 1)',
+        }}>
+          <span style={{color: PN.MUTED, display: 'inline-flex', flexShrink: 0}}>{PN_FASCIA_PRINTER}</span>
+          <div style={{flex: 1, minWidth: 0, fontSize: 14.5, color: PN.TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+            <b style={{fontWeight: 700}}>{r.titolo}</b>, {r.tipo === 'preconto' ? 'pre-conto' : 'documento di cortesia'} da stampare
+          </div>
+          <button onClick={() => prendi(r)} disabled={inStampa === r.id} className="pn-btn-feedback" style={{
+            flexShrink: 0, padding: '7px 16px', borderRadius: 9, border: 'none',
+            background: PN.BTN_DARK, color: PN.WHITE, fontSize: 14, fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'inherit', opacity: inStampa === r.id ? 0.6 : 1,
+          }}>{inStampa === r.id ? 'In stampa…' : 'Stampa'}</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+window.PnStampaFasce = PnStampaFasce;

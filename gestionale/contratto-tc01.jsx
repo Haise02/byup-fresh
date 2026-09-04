@@ -19,9 +19,11 @@
 //
 // REGOLA DEL SEGNAPOSTO (P-114 · D-107). Il prototipo è un mockup: questa
 // finestra mostra COME FUNZIONA la firma, non riporta il TC-01 nella versione
-// depositata. Il testo qui sotto è un segnaposto e resta tale; il testo vero è
-// `T&C/Sorgenti markdown/TC-01_Termini_e_Condizioni_v0.28.md`, fuori dal
-// repository, e i testi veri entrano nel prodotto vero. Il segnaposto ha però
+// depositata. Il testo qui sotto è un segnaposto e resta tale; il testo vero
+// sta in `T&C/Sorgenti markdown/`, fuori dal repository, nella versione
+// corrente della cartella — il numero non si scrive qui, perché cambia a ogni
+// revisione e il rimando si romperebbe di nuovo (è già successo con la 0.28,
+// sostituita dalla 0.29 la notte fra il 3 e il 4 settembre 2026). Il segnaposto ha però
 // un vincolo: non deve contraddire le decisioni né descrivere funzioni che il
 // prodotto non ha. Per questo il 4 settembre 2026 sono cadute dall'art. 12 la
 // ricezione delle fatture dei fornitori (il ciclo passivo è fuori dall'MVP e

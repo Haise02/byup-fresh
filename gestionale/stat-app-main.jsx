@@ -225,4 +225,9 @@ function StatisticheApp() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<StatisticheApp/>);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.Fragment>
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
+    <StatisticheApp/>
+  </React.Fragment>
+);

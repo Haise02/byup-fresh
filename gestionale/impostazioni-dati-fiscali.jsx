@@ -918,7 +918,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                 Il tuo collegamento a Stripe viene disabilitato e anche le deleghe dovranno essere rifatte: finché non le rifai non potrai emettere scontrini né ricevere pagamenti. Anche i POS andranno comunicati di nuovo all'Agenzia dal nuovo soggetto, e alla fine i termini e condizioni vanno riaccettati a nome suo: fino ad allora il cambiamento non è concluso.
               </div>
               <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 6}}>
-                L'account Stripe è intestato a {data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione}: il nuovo soggetto ne apre uno suo, con la verifica di Stripe, da POS e integrazioni.
+                L'account Stripe è intestato a {data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione}: il nuovo soggetto ne apre uno suo, con la verifica di Stripe, da Integrazioni.
               </div>
               <div style={{display:'flex', gap: 10, justifyContent:'flex-end', marginTop: 18}}>
                 <button onClick={() => setChiedi(false)} style={{padding:'9px 16px', borderRadius: 999, border:`1px solid ${PN.BORDER}`, background: PN.WHITE, fontSize: 14, fontWeight: 600, cursor:'pointer', fontFamily:'inherit'}}>Annulla</button>
@@ -1212,7 +1212,7 @@ function ImpDelegaRiconfermaModal({ onClose, denominazione }) {
 // credenziali non partono scontrini, senza Stripe non si incassa.
 function ImpDopoSoggettoModal({ onClose, onDelega, onPos, onFirma }) {
   const [, forza] = React.useState(0);
-  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
+  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'active' });
   const [ricollegando, setRicollegando] = React.useState(false);
   React.useEffect(() => {
     const ri = () => forza(x => x + 1);
@@ -1236,7 +1236,7 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos, onFirma }) {
   // stata inserita e verificata con la trasmissione di prova (P-104).
   const credOk = window.byupAdeCredStato ? !window.byupAdeCredStato().scaduta : false;
   React.useEffect(() => { if (credOk && !c.steps.credentials_verified) byupSoggettoAvanza('credentials_verified'); }, [credOk]);
-  React.useEffect(() => { if (stripe.status === 'connected' && !c.steps.stripe_connected) byupSoggettoAvanza('stripe_connected'); }, [stripe.status]);
+  React.useEffect(() => { if (stripe.status === 'active' && !c.steps.stripe_connected) byupSoggettoAvanza('stripe_connected'); }, [stripe.status]);
 
   const concluso = c.status === 'completed';
   const fatto = (id) => !!c.steps[id];
@@ -1468,7 +1468,7 @@ function ImpDatiFiscali() {
   // dell'onboarding (contratto-tc01.jsx), stessa prova.
   const [firmaOpen, setFirmaOpen] = React.useState(false);
   // L'accredito degli incassi non sta più qui (4 settembre 2026): il conto
-  // connesso, il suo stato e il ricollegamento vivono in POS e integrazioni,
+  // connesso, il suo stato e il ricollegamento vivono in Integrazioni,
   // sulla tessera Stripe, che è dove si collega e si scollega. Averlo in due
   // posti voleva dire tenerne allineati due; qui non ne resta traccia.
   // Il foglio della delega: si apre da solo dopo la conferma del soggetto, dal
@@ -1578,7 +1578,7 @@ function ImpDatiFiscali() {
       {/* Collegamento dei POS all'Agenzia (P-105): il vicino di casa delle
           credenziali — stessa area, stesso linguaggio. Deep link
           ?page=fiscali&card=pos[&strumento=id] dai rimandi di Personale,
-          dell'onboarding e di POS e integrazioni. */}
+          dell'onboarding e di Integrazioni. */}
       <PosCensimentoCard/>
 
       {/* 2-column layout: form a sx, anteprima scontrino a dx */}
@@ -1700,8 +1700,18 @@ function ImpDatiFiscali() {
 
         </div>
 
-        {/* Anteprima scontrino, con sotto la regola del documento: nasce
-            digitale e va all'Agenzia da solo; la carta è solo cortesia. */}
+        {/* L'anteprima mostra il DOCUMENTO DI CORTESIA, cioè il foglio che
+            stampiamo davvero noi (P-131). Prima mostrava il documento
+            commerciale e affermava che avrà quella forma lì: ma nel regime di
+            oggi quel foglio lo produce la procedura dell'Agenzia, noi le
+            mandiamo i dati e basta, e in raccolta non c'è nessuna fonte che ne
+            dica l'impaginazione — quella che avevamo copiato viene
+            dall'allegato della Fase 2, cioè da quando saremo noi a emetterlo
+            con la Soluzione Software certificata. Il contenuto invece è
+            verificato (DM 7 dicembre 2016, art. 2 co. 1), ed è lo stesso.
+            A che cosa serve l'anteprima non cambia: la testata è la stessa —
+            insegna, partita IVA, indirizzo sono esattamente i campi che il
+            ristoratore sta compilando a sinistra. */}
         <aside style={{position:'sticky', top: 0}}>
           <ScontrinoPreview data={data}/>
           <div style={{
@@ -1711,7 +1721,7 @@ function ImpDatiFiscali() {
           }}>
             <span style={{fontSize: 18, lineHeight: 1.2}}>ℹ️</span>
             <div style={{fontSize: 13.5, color:'#1E40AF', lineHeight: 1.5}}>
-              È il documento commerciale come lo vuole l'Agenzia: stessa impaginazione, stesse diciture, stesso ordine dei totali. Lo emette il canale con la procedura «Documento commerciale on line» — perciò in fondo non c'è la matricola di un registratore telematico, che qui non esiste — e va all'Agenzia da solo. Il cliente lo riceve digitale, via email o numero di telefono; su carta puoi dargli il documento di cortesia, che è un altro foglio e lo dice.
+              I tuoi dati come li vede il cliente. Lo scontrino fiscale lo emette l'Agenzia con questi stessi dati.
             </div>
           </div>
         </aside>
@@ -1760,8 +1770,8 @@ function ScontrinoPreview({ data }) {
         display:'flex', alignItems:'center', gap: 8, marginBottom: 10,
         paddingLeft: 4,
       }}>
-        <span style={{fontSize:15, fontWeight:700, flex:1}}>Anteprima scontrino</span>
-        <span style={{fontSize:13, color:PN.MUTED}}>Documento commerciale</span>
+        <span style={{fontSize:15, fontWeight:700, flex:1}}>Anteprima</span>
+        <span style={{fontSize:13, color:PN.MUTED}}>Documento di cortesia</span>
       </div>
 
       {/* Receipt: carta termica con bordi stappati */}
@@ -1788,12 +1798,15 @@ function ScontrinoPreview({ data }) {
           <div style={{fontSize: 12}}>{data.citta}{data.prov ? `(${data.prov})` : ''}, {data.cap}</div>
         </div>
 
-        {/* La dicitura, su due righe come la vuole il decreto */}
-        <div style={{textAlign:'center', fontSize: 12.5, fontWeight: 700, marginTop: 12}}>
-          DOCUMENTO COMMERCIALE
+        {/* L'intestazione del foglio di cortesia, con la dicitura che lo
+            accompagna sempre. NON «DOCUMENTO COMMERCIALE di vendita o
+            prestazione»: portarla senza esserlo farebbe un documento
+            commerciale apparente, e quello lo emette l'Agenzia. */}
+        <div style={{textAlign:'center', fontSize: 13, fontWeight: 800, marginTop: 12}}>
+          DOCUMENTO DI CORTESIA
         </div>
-        <div style={{textAlign:'center', fontSize: 12.5, fontWeight: 700, marginBottom: 10}}>
-          di vendita o prestazione
+        <div style={{textAlign:'center', fontSize: 12, fontWeight: 700, marginBottom: 10}}>
+          NON FISCALE · non valido ai fini fiscali
         </div>
 
         {/* Le colonne del layout: DESCRIZIONE · IVA · Prezzo(€) */}
@@ -1833,10 +1846,12 @@ function ScontrinoPreview({ data }) {
           {lineRow('Importo pagato', eur(totale))}
         </div>
 
-        {/* La chiusura: data «gg-mm-aaaa hh:mm» e numero del documento */}
+        {/* La chiusura: il richiamo al documento fiscale vero, che il canale
+            ha già emesso e mandato all'Agenzia. È la stessa formula del foglio
+            che stampiamo (byupLayoutCortesia). */}
         <div style={{marginTop: 14, fontSize: 12, textAlign:'center', lineHeight: 1.6}}>
-          <div>06-03-2026 14:32</div>
-          <div>DOCUMENTO N. 0042-0007</div>
+          <div>Documento di riferimento:</div>
+          <div style={{fontWeight: 700}}>N. 0042-0007 del 06-03-2026 14:32</div>
         </div>
       </div>
 

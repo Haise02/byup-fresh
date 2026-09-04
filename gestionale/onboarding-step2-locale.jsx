@@ -2,14 +2,14 @@
 //
 // Sub-step "Fiscale" rimosso: SDI/PEC sono completati nelle impostazioni
 // post-onboarding. Sub-step "Pagamenti" rimosso (4 settembre 2026): Stripe si
-// collega dal gestionale, in POS e integrazioni, e la campanella lo chiede
+// collega dal gestionale, in Integrazioni, e la notifica lo chiede
 // appena si atterra. Con lui sono uscite le due schede fiscali — chi trasmette
 // gli scontrini e le attivazioni con la delega — che ora vivono in
 // Impostazioni → Dati fiscali, dove la seconda notifica dell'atterraggio
 // porta. Motivo unico per tutte e tre: sono atti che si compiono su altri siti
 // (la verifica di Stripe, la nomina sul portale, la delega con SPID), e
 // metterli sulla porta d'ingresso voleva dire non far entrare nessuno. Qui il soggetto giuridico minimo è forma giuridica + P.IVA
-// e — per ditta individuale e professionista — il codice fiscale del
+// e — per la ditta individuale — il codice fiscale del
 // titolare, che NON è la P.IVA (P-86): il resto dell'anagrafica per forma
 // (dati di nascita del titolare, registro imprese) sta in Impostazioni →
 // Dati fiscali, che ripete la stessa enumerazione di legal_form (ERD v11).
@@ -25,7 +25,7 @@ function Step2Locale({
   // Un passo solo: le informazioni. La sezione «Pagamenti» non c'è più (4
   // settembre 2026) — il collegamento con Stripe passa dalla verifica
   // d'identità di Stripe, e chiederla prima di far entrare qualcuno voleva
-  // dire non farlo entrare: si collega dal gestionale, da POS e integrazioni,
+  // dire non farlo entrare: si collega dal gestionale, da Integrazioni,
   // e la prima notifica dell'atterraggio lo chiede.
   const t = {title: 'Le informazioni del tuo locale.',
              sub: 'Queste informazioni verranno pubblicate e visualizzate dagli utenti dell’applicazione Byup.',
@@ -269,20 +269,22 @@ function SubStepInfo({venue, v}) {
 // ("IVA al 10% sui pasti…") spiegavano una cosa che chi ha un locale conosce
 // già, e costavano più spazio della scelta stessa.
 // Enumerazione di legal_form (ERD v11, FISC-01) ridotta a ciò che esiste nel
-// nostro settore: chi somministra è un'impresa iscritta al Registro delle
-// imprese, quindi ditta individuale o società (FIPE, Rapporto Ristorazione
-// 2026: imprese individuali 46,5%, società 52,4%, altre forme 1,1%). Il
-// professionista non c'è — partita IVA senza impresa, fatture e non
-// scontrini — e l'ente (associazioni, cooperative: 0,8% dei ristoranti) è
-// rimandato alla Soluzione Software, perché con il canale attuale richiede una
-// configurazione dedicata del fornitore. Quel giorno rientra con le sue
-// caratteristiche: persona giuridica come la società, incaricato e delega del
-// rappresentante. Stessa definizione in Impostazioni → Dati fiscali.
+// nostro settore, e sono TRE forme (D-103): chi somministra è un'impresa
+// iscritta al Registro delle imprese, quindi ditta individuale, società, o
+// ente e altra forma collettiva — sotto cui stanno cooperative, consorzi,
+// associazioni e circoli con partita IVA (FIPE, Rapporto Ristorazione 2026:
+// imprese individuali 46,5%, società 52,4%, altre forme 1,1%). Il libero
+// professionista non c'è: partita IVA senza impresa, fatture e non scontrini.
+// L'ente non è più rimandato alla Soluzione Software: ha i campi della società
+// e nessun percorso proprio. L'etichetta è «Ente o altra forma collettiva» e
+// non «Ente o cooperativa» (P-116), perché la seconda ne nomina uno solo e fa
+// pensare che gli altri non rientrino. Stessa definizione in Impostazioni →
+// Dati fiscali.
 function FormaGiuridicaGroup({value, onChange}) {
   const options = [
     {id: 'ditta_individuale', label: 'Ditta individuale'},
     {id: 'societa',           label: 'Società'},
-    {id: 'ente',              label: 'Ente o cooperativa'},
+    {id: 'ente',              label: 'Ente o altra forma collettiva'},
   ];
   return (
     <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>

@@ -26,11 +26,14 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
     onClose();
   }
 
+  // La CATEGORIA viaggia con la riga: è lei a dire da quale stampante esce la
+  // comanda (category_routings, P-128). Senza, l'invio non saprebbe dove
+  // mandare che cosa.
   function quickAdd(it) {
     const existing = cart?.items.find(x => x.id === it.id && !x.customized);
     const items = existing
       ? cart.items.map(x => (x.id === it.id && !x.customized) ? {...x, qty: x.qty + 1} : x)
-      : [...(cart?.items || []), {...it, qty: 1}];
+      : [...(cart?.items || []), {...it, qty: 1, categoria: category}];
     onCartChange({ tableId: tavolo.id, items });
   }
 
@@ -59,6 +62,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
     const extrasPrice = extrasArr.reduce((s,e)=>s+e.prezzo*e.qty,0);
     const lineItem = {
       id: it.id, nome: it.nome,
+      categoria: category,
       prezzo: it.prezzo + extrasPrice,
       qty: c.qty,
       customized: true,

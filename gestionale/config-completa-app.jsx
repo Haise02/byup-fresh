@@ -688,6 +688,7 @@ root.render(
     {/* Le due attivazioni: chi esce dall'onboarding atterra qui o in
         Panoramica, e la fascia dev'essere la stessa nei due casi. */}
     {window.PnAttivazioniFascia && <window.PnAttivazioniFascia/>}
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
     <ConfigCompletaApp/>
   </div>
 );

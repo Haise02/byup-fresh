@@ -252,17 +252,20 @@ function SalaVenditaDiretta() {
       ordine.codiceRitiro = nuovoCodiceRitiro();
       const now = new Date();
       const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      setRitiri(prev => [...prev, {
+      const voce = {
         id: `banco-${numero}`, codice: ordine.codice,
         cliente: taCliente, ritiro: hhmm,
         fonte: 'banco', pagato: true, asporto: takeaway, totale,
         banco: takeaway ? null : nuovoNumeroBanco(),
         codiceRitiro: ordine.codiceRitiro,
         items: lines.map(l => ({
-          nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
+          nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal, categoria: l.piatto.cat,
           aliquota: l.aliquota, ivaProfilo: l.ivaProfilo,
         })),
-      }]);
+      };
+      setRitiri(prev => [...prev, voce]);
+      // Pagato al banco e da preparare: la cucina deve saperlo adesso.
+      accodaComande(voce);
     }
     setTakeaway(false);
     setTaCliente(null);
@@ -315,7 +318,7 @@ function SalaVenditaDiretta() {
       inCucina: preparazione ? !!inCucina : null,
       codiceRitiro: (inCucina && preparazione) ? nuovoCodiceRitiro() : null,
       items: lines.map(l => ({
-        nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
+        nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal, categoria: l.piatto.cat,
         aliquota: l.aliquota, ivaProfilo: l.ivaProfilo,
       })),
     };
@@ -324,7 +327,26 @@ function SalaVenditaDiretta() {
     setTakeaway(false);
     setTaCliente(null);
     setParcheggia(false);
-    showToast(`${svNomeConto(voce)} in Da saldare · ${inCucina && preparazione ? 'comanda in cucina' : 'non in cucina'}`);
+    const accodate = (inCucina && preparazione) ? accodaComande(voce) : [];
+    const dove = accodate.length ? ` a ${accodate.map(a => a.stampante.name).join(', ')}` : '';
+    showToast(`${svNomeConto(voce)} in Da saldare · ${inCucina && preparazione ? `comanda in cucina${dove}` : 'non in cucina'}`);
+  };
+
+  // Mandare in cucina ACCODA le comande (P-128, § 4.4): una per stampante, con
+  // le sole righe delle sue categorie. Prima cambiava uno stato e mostrava un
+  // messaggio, e la carta non usciva da nessuna parte. Le righe di categorie
+  // non instradate non stampano: vivono sul monitor, che vede tutte le
+  // comande.
+  const accodaComande = (voce) => {
+    if (typeof window.byupAccodaComande !== 'function') return [];
+    const righe = (voce.items || []).map(i => ({ qty: i.qty, name: i.nome, category: i.categoria }));
+    return window.byupAccodaComande(righe, svNomeConto(voce), {
+      onEsito: (dev, esito) => {
+        // Nessun ripiego per le comande: la fascia in cima allo schermo lo
+        // dice, e la cucina lavora dal monitor.
+        if (esito !== 'ok') showToast(`«${dev.name}» non ha stampato: la cucina vede le comande sul monitor`);
+      },
+    });
   };
 
   // Rimediare dopo: il conto in coda che non è ancora andato in cucina ci va
@@ -332,7 +354,9 @@ function SalaVenditaDiretta() {
   const mandaInCucina = (ordine) => {
     setRitiri(prev => prev.map(r => r.id === ordine.id
       ? { ...r, inCucina: true, codiceRitiro: r.codiceRitiro || nuovoCodiceRitiro() } : r));
-    showToast(`${svNomeConto(ordine)} · comanda in cucina`);
+    const accodate = accodaComande(ordine);
+    const dove = accodate.length ? ` a ${accodate.map(a => a.stampante.name).join(', ')}` : '';
+    showToast(`${svNomeConto(ordine)} · comanda in cucina${dove}`);
   };
 
   const parcheggiaConAcconto = (pagamento, totaleConto) => {
@@ -352,7 +376,7 @@ function SalaVenditaDiretta() {
       codiceRitiro: haPreparazione(lines) ? nuovoCodiceRitiro() : null,
       acconti: [pagamento],
       items: lines.map(l => ({
-        nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
+        nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal, categoria: l.piatto.cat,
           aliquota: l.aliquota, ivaProfilo: l.ivaProfilo,
       })),
     };

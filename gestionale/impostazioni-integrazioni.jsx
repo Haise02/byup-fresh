@@ -1,7 +1,21 @@
-// Impostazioni → POS e integrazioni (P-125: tre blocchi — POS e strumenti di
+// Impostazioni → Integrazioni (P-125 · P-134: tre blocchi — POS e strumenti di
 // pagamento, Stampanti, Piattaforme e app esterne; via «Suggeriti per te»,
 // che non faceva nulla e presupponeva una profilazione dei locali che non
 // esiste e che nessuna decisione prevede).
+//
+// LA PAGINA SI CHIAMA «INTEGRAZIONI» (P-134). Il POS non si collega più da
+// qui: uno smartphone che incassa non si appaia a niente — l'operatore apre
+// Byup Staff, entra con le proprie credenziali personali, e il telefono si
+// registra da solo al primo accesso. Quello che resta nella pagina è una cosa
+// sola, gli oggetti esterni collegati a Byup: strumenti di pagamento,
+// stampanti, piattaforme di consegna e applicazioni di terzi. Il nome lungo
+// ne nominava uno e non gli altri tre.
+// Il primo blocco però continua a chiamarsi «POS e strumenti di pagamento», e
+// non è un residuo: lì dentro vive il censimento degli strumenti presso
+// l'Agenzia delle Entrate, che è un obbligo di legge con una sanzione, e chi
+// lo cerca lo cerca pensando «POS». Le notifiche fiscali e la pagina Dati
+// fiscali ci portano dritto con un collegamento: se un giorno quei due rimandi
+// si tolgono, il censimento diventa introvabile.
 
 const BYUP_PAY_DEVICES = [
   { id: 'bp-01', name: 'iPhone 14 Pro', os: 'iOS 17.4', user: 'Marco Silvestri', email: 'marco@delborgo.it', linkedAt: '12 mar 2024', lastUse: '2 min fa', online: true },
@@ -139,7 +153,6 @@ const STATUS_LABEL = {
 };
 
 function ImpIntegrazioni() {
-  const [qrApp, setQrApp] = React.useState(false);
   // Le connessioni con app esterne: in memoria, niente persistenza. La
   // SEZIONE «Connessioni con app esterne» non c'è più (4 settembre 2026, per
   // decisione del titolare): era un elenco a parte per una cosa che la
@@ -164,7 +177,7 @@ function ImpIntegrazioni() {
   const per = (cat) => catalogo.filter(i => i.cat === cat);
   const griglia = { display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap: 12 };
   const tessere = (lista) => lista.map(i => (
-    <IntegrationCard key={i.id} item={i} onMobileQr={() => setQrApp(true)} onApi={() => setCollega(true)}
+    <IntegrationCard key={i.id} item={i} onApi={() => setCollega(true)}
       connessioni={connessioni} onRevoca={revoca}/>
   ));
   // Il titolo di blocco: la pagina è tre blocchi (P-125), e ogni blocco lo
@@ -178,12 +191,12 @@ function ImpIntegrazioni() {
       {/* BLOCCO 1 — POS e strumenti di pagamento: i dispositivi Byup Staff con
           il collegamento fiscale (P-105) e i due canali richiesti. */}
       <Blocco>POS e strumenti di pagamento</Blocco>
-      <ByupPayHero devices={BYUP_PAY_DEVICES} onAdd={() => setQrApp(true)}/>
+      <ByupPayHero devices={BYUP_PAY_DEVICES}/>
       <ImpCard title="Incassi" sub="Il conto su cui arrivano i pagamenti, con la verifica del prestatore.">
         <div style={griglia}>{tessere(per('pagamenti'))}</div>
       </ImpCard>
 
-      {/* BLOCCO 2 — Stampanti (P-124): il popup «Collega stampante»
+      {/* BLOCCO 2 — Stampanti (P-128): il popup «Aggiungi stampante»
           sostituisce la sezione Impostazioni → Stampanti. */}
       <Blocco>Stampanti</Blocco>
       {window.ImpStampantiBlocco && <window.ImpStampantiBlocco/>}
@@ -198,29 +211,19 @@ function ImpIntegrazioni() {
         <div style={griglia}>{tessere(per('api'))}</div>
       </ImpCard>
 
-      {qrApp && <ByupPayQrModal onClose={() => setQrApp(false)}/>}
       {collega && <IntCollegaModal onClose={() => setCollega(false)} onGenera={aggiungiConnessione}/>}
     </div>
   );
 }
 
-// Marchio Byup Staff in tessera: la panna del logo sul gradiente della
-// fascia — lo stesso pezzo, a qualsiasi taglia serva.
-function MarkStaffTile({ size = 44, radius = 12, style }) {
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: radius, background: GRAD_STAFF,
-      display:'grid', placeItems:'center', flexShrink: 0, ...style,
-    }}>
-      <img src="Fresh-mark.png" alt="" style={{
-        width: Math.round(size * 0.62), height: Math.round(size * 0.62),
-        objectFit:'contain', filter:'brightness(0) invert(1)', opacity: 0.96,
-      }}/>
-    </div>
-  );
-}
-
-function ByupPayHero({ devices, onAdd }) {
+// Il riquadro dei telefoni che incassano. Niente pulsante «Collega
+// dispositivo» (P-134): non c'è nessun gesto di collegamento da compiere —
+// l'operatore apre Byup Staff, entra con le sue credenziali personali, e il
+// telefono si registra da solo. Il QR che stava qui serviva a SCARICARE
+// l'applicazione, e chiamarlo «Collega un dispositivo» prometteva un gesto che
+// non esiste; per giunta lo stesso QR sta anche in Personale, accanto a chi
+// quel telefono lo userà, che è il posto giusto.
+function ByupPayHero({ devices }) {
   const [list, setList] = React.useState(devices);
   // Conferma di scollegamento su foglio nostro, non sul confirm del browser:
   // stessa ricetta MODAL_* dei fogli di Sala e tavoli.
@@ -259,19 +262,11 @@ function ByupPayHero({ devices, onAdd }) {
           </div>
           <div style={{fontSize: 14.5, color: 'rgba(255, 255, 255, 0.88)'}}>
             {list.length === 0
-              ? 'Nessun dispositivo collegato. Collega uno smartphone per accettare pagamenti'
+              ? 'Nessun telefono registrato: chi entra in Byup Staff compare qui'
               : <>{list.length} dispositiv{list.length===1?'o':'i'} collegat{list.length===1?'o':'i'} · <span style={{color:'#FFFFFF', fontWeight:700}}>● {onlineCount} online ora</span></>
             }
           </div>
         </div>
-        {/* Sul corallo pieno il bottone scuro pesava e quello di brand
-            sparirebbe: resta la panna del marchio, con la scritta rossa. */}
-        <ImpButton
-          variant="ghost"
-          icon={<PnI.Plus size={13}/>}
-          onClick={onAdd}
-          style={{color: PN.PINK_DARK, border:'1px solid rgba(255,255,255,0.55)', fontWeight: 700}}
-        >Collega dispositivo</ImpButton>
       </div>
 
       <div style={{padding: '18px 22px'}}>
@@ -282,11 +277,10 @@ function ByupPayHero({ devices, onAdd }) {
             border: `1px dashed ${PN.BORDER}`,
           }}>
             <div style={{fontSize: 34, marginBottom: 8}}>📱</div>
-            <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Nessun dispositivo collegato</div>
-            <div style={{fontSize: 14, color: PN.MUTED, marginBottom: 14, maxWidth: 380, margin:'0 auto 14px'}}>
-              Collega uno smartphone o tablet per iniziare ad accettare pagamenti dal palmo della tua mano.
+            <div style={{fontSize: 15.5, fontWeight: 700, marginBottom: 4}}>Nessun telefono registrato</div>
+            <div style={{fontSize: 14, color: PN.MUTED, maxWidth: 420, margin:'0 auto'}}>
+              Non c'è niente da collegare: chi è in sala scarica Byup Staff, entra con le sue credenziali del gestionale e il telefono compare qui. Il codice per scaricare l'app sta in Impostazioni → Personale.
             </div>
-            <ImpButton variant="primary" onClick={onAdd}>Collega il primo dispositivo</ImpButton>
           </div>
         ) : (
           <div style={{display:'flex', flexDirection:'column', gap: 8}}>
@@ -361,106 +355,11 @@ function ByupPayHero({ devices, onAdd }) {
   );
 }
 
-function ByupPayQrModal({ onClose }) {
-  return (
-    <div onClick={onClose} style={{
-      position:'fixed', inset:0, background:'rgba(15,17,21,0.42)',
-      display:'grid', placeItems:'center', zIndex: 100, padding: 20,
-    }}>
-      {/* Stesso foglio bianco dei modali di Sala e tavoli; il marchio in
-          testa e al centro del QR e quello della fascia Byup Staff. */}
-      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 480}}>
-        <div style={{...MODAL_HEAD, display:'flex', alignItems:'center', gap: 14}}>
-          <MarkStaffTile size={48} radius={13}/>
-          <div style={{flex: 1, minWidth: 0}}>
-            <div style={{...MODAL_TITLE, fontSize: 22, paddingRight: 40}}>Collega un dispositivo</div>
-            <div style={{...MODAL_SUB, marginTop: 2, paddingRight: 40}}>
-              Scansiona il QR con il dispositivo che vuoi collegare a Byup Staff
-            </div>
-          </div>
-          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
-        </div>
-
-        <div style={MODAL_BODY}>
-          {/* QR mock */}
-          <div style={{
-            width: 220, height: 220, margin:'0 auto 18px',
-            background: `repeating-conic-gradient(${PN.TEXT} 0% 25%, transparent 0% 50%) 0 0/14px 14px`,
-            border: `4px solid ${PN.WHITE}`,
-            boxShadow: `0 0 0 2px ${PN.BORDER}, 0 8px 24px rgba(0,0,0,0.08)`,
-            borderRadius: 12,
-            position:'relative',
-          }}>
-            {/* finder corner mocks */}
-            {[
-              {top: 8, left: 8},
-              {top: 8, right: 8},
-              {bottom: 8, left: 8},
-            ].map((pos, i) => (
-              <div key={i} style={{
-                position:'absolute', ...pos,
-                width: 36, height: 36,
-                border: `4px solid ${PN.TEXT}`,
-                background: PN.WHITE,
-                borderRadius: 4,
-              }}>
-                <div style={{
-                  position:'absolute', inset: 4,
-                  background: PN.TEXT, borderRadius: 1,
-                }}/>
-              </div>
-            ))}
-            {/* marchio Staff al centro del codice */}
-            <MarkStaffTile size={46} radius={11} style={{
-              position:'absolute', top:'50%', left:'50%',
-              transform:'translate(-50%,-50%)',
-              border: `3px solid ${PN.WHITE}`,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
-            }}/>
-          </div>
-
-          {/* Store badges */}
-          <div style={{display:'flex', gap: 10}}>
-            <div style={{
-              flex: 1,
-              padding:'10px 14px', borderRadius: 9,
-              background: PN.TEXT, color: PN.WHITE,
-              display:'flex', alignItems:'center', gap: 9,
-              cursor:'pointer',
-            }}>
-              <span style={{fontSize: 24}}></span>
-              <div>
-                <div style={{fontSize: 11, opacity: 0.7, lineHeight: 1}}>Disponibile su</div>
-                <div style={{fontSize: 15, fontWeight: 700, lineHeight: 1.2}}>App Store</div>
-              </div>
-            </div>
-            <div style={{
-              flex: 1,
-              padding:'10px 14px', borderRadius: 9,
-              background: PN.TEXT, color: PN.WHITE,
-              display:'flex', alignItems:'center', gap: 9,
-              cursor:'pointer',
-            }}>
-              <span style={{fontSize: 24}}>▶</span>
-              <div>
-                <div style={{fontSize: 11, opacity: 0.7, lineHeight: 1}}>Disponibile su</div>
-                <div style={{fontSize: 15, fontWeight: 700, lineHeight: 1.2}}>Google Play</div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{
-            marginTop: 14, padding:'10px 14px',
-            background:'#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`, borderRadius: 9,
-            fontSize: 13.5, color: PN.MUTED, textAlign:'center',
-          }}>
-            Se l'app non è ancora installata, scaricala dallo store. Poi accedi con le credenziali del gestionale per completare il collegamento.
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Il foglio col QR di Byup Staff non è più qui (P-134). Si chiamava «Collega
+// un dispositivo» e non collegava niente: mostrava il codice per SCARICARE
+// l'applicazione. Lo stesso codice sta in Impostazioni → Personale, accanto
+// alla persona che quel telefono lo userà, ed è il posto giusto: è lì che si
+// aggiunge chi incassa.
 
 // Il rimando: stessa tessera in piedi delle integrazioni, ma il bottone porta
 // alla scheda che ha il registro. Nessun chip di connessione qui — la
@@ -492,7 +391,7 @@ function PosVirtualeRimando() {
   );
 }
 
-function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [], onRevoca }) {
+function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca }) {
   // Predisposta (P-119): «Collega» apre il foglio della piattaforma, che
   // percorre il collegamento vero — quello documentato dalla piattaforma — con
   // dati di esempio. L'add-on resta spento nell'MVP e il foglio lo dice in
@@ -508,24 +407,41 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
   // Stripe: lo stato vero sta nel registro byup_stripe (panoramica-tokens) —
   // il cambio di soggetto fiscale lo disabilita, e da qui si ricollega con
   // l'onboarding Stripe (simulato) del nuovo soggetto.
-  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
+  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'active' });
   const [ricollegando, setRicollegando] = React.useState(false);
   React.useEffect(() => {
     const ri = () => setStripe(byupReadStripe());
     window.addEventListener('byup-stripe-change', ri);
-    return () => window.removeEventListener('byup-stripe-change', ri);
+    window.addEventListener('storage', ri);
+    return () => { window.removeEventListener('byup-stripe-change', ri); window.removeEventListener('storage', ri); };
   }, []);
-  // Due modi di non essere collegati, e non sono la stessa cosa: MAI collegato
-  // — il locale è appena entrato, e l'onboarding non chiede più Stripe — e
-  // DISABILITATO, perché il soggetto fiscale è cambiato e l'account era
-  // intestato al precedente. Il primo è un invito, il secondo un guasto.
-  const stripePrimo = item.id === 'stripe' && stripe.status === 'da_collegare';
-  const stripeGiu = item.id === 'stripe' && stripe.status !== 'connected';
+  // I quattro stati del modello (P-130), e non sono la stessa cosa:
+  //   pending    — il conto è aperto e Stripe lo sta ancora verificando; per
+  //                il locale appena entrato è l'invito a collegarlo;
+  //   restricted — il conto lavora a metà: Stripe ha fermato gli incassi
+  //                oppure i versamenti finché non arriva quello che chiede;
+  //   disabled   — il soggetto fiscale è cambiato e l'account era intestato al
+  //                precedente: se ne apre uno nuovo.
+  const stripeCard = item.id === 'stripe';
+  const stripePrimo = stripeCard && stripe.status === 'pending';
+  const stripeLimitato = stripeCard && stripe.status === 'restricted';
+  const stripeGiu = stripeCard && stripe.status !== 'active';
+  const stripeCarte = stripe.limite === 'charges';
   if (stripeGiu) item = { ...item, status: 'todo', required: true,
-    detail: stripePrimo ? 'Serve per incassare: carte al tavolo, in app e online' : 'Disabilitato: il soggetto fiscale è cambiato',
-    cta: stripePrimo ? 'Collega Stripe' : 'Ricollega Stripe' };
-  const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); if (stripePrimo) byupStripeCollega(); else byupStripeRicollega(); }, 1800); };
-  const s = stripeGiu ? { ...STATUS_LABEL.todo, label: stripePrimo ? 'Da collegare' : 'Da ricollegare' } : STATUS_LABEL[item.status];
+    detail: stripePrimo ? 'Serve per incassare: carte al tavolo, in app e online'
+      : stripeLimitato ? (stripeCarte ? 'Incassi con la carta sospesi' : 'Versamenti fermi, incassi regolari')
+      : 'Disabilitato: il soggetto fiscale è cambiato',
+    cta: stripePrimo ? 'Collega Stripe' : stripeLimitato ? 'Completa la verifica su Stripe' : 'Ricollega Stripe' };
+  const ricollega = () => {
+    // Il conto limitato non si sblocca da qui: i documenti che Stripe chiede
+    // al ristoratore non li raccogliamo e non li conserviamo noi, mai. Il
+    // pulsante porta fuori, sulla sua dashboard.
+    if (stripeLimitato) { window.open('https://dashboard.stripe.com/', '_blank', 'noopener'); return; }
+    setRicollegando(true);
+    setTimeout(() => { setRicollegando(false); if (stripePrimo) byupStripeCollega(); else byupStripeRicollega(); }, 1800);
+  };
+  const stStripe = (window.PN_STRIPE_STATI || {})[stripe.status] || {};
+  const s = stripeGiu ? { ...STATUS_LABEL.todo, label: stStripe.label || 'Da collegare' } : STATUS_LABEL[item.status];
   // Tessera in piedi invece che riga sdraiata: logo in alto, nome e
   // descrizione sotto, e il bottone appoggiato al fondo. Cosi il bottone sta
   // sempre nello stesso punto — a destra, in fondo a una riga larga, ogni
@@ -577,7 +493,45 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
           {item.detail && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· {item.detail}</span>}
           {item.status === 'predisposta' && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· add-on spento nell'MVP</span>}
         </div>
-        {item.id === 'stripe' && <PosVirtualeRimando/>}
+        {stripeCard && <PosVirtualeRimando/>}
+
+        {/* Il conto limitato, detto per conseguenza e non per stato: «limitato»
+            non vuol dire una cosa sola — Stripe può fermare i versamenti
+            lasciando passare gli incassi, o fermare gli incassi — e quale
+            delle due sia in corso lo sa solo lui. */}
+        {stripeLimitato && (
+          <div data-stripe-limite={stripe.limite || 'payouts'} style={{
+            marginTop: 10, padding: '10px 12px', borderRadius: 10,
+            background: PN.AMBER_SOFT, border: '1px solid #FCD34D',
+            fontSize: 13, color: '#78350F', lineHeight: 1.5,
+          }}>
+            {(window.PN_STRIPE_LIMITI || {})[stripeCarte ? 'charges' : 'payouts']}
+            <span style={{display: 'block', marginTop: 6, color: PN.MUTED}}>
+              Nel prototipo scegliamo noi quale delle due cose è ferma: senza Stripe vero non c'è modo di saperlo, e non si salva — cambia da un'ora all'altra.
+            </span>
+          </div>
+        )}
+
+        {/* Finzione DICHIARATA (P-130): senza Stripe vero il conto non passa
+            mai a «limitato», e quella schermata non si potrebbe guardare. Da
+            qui si sceglie quale dei due casi mostrare. */}
+        {stripeCard && (
+          <div style={{marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12, color: PN.MUTED_LIGHT, alignItems: 'baseline'}}>
+            <span>Prototipo:</span>
+            {[['payouts', 'versamenti fermi'], ['charges', 'incassi fermi']].map(([k, label]) => (
+              <button key={k} data-stripe-simula={k} onClick={() => window.byupStripeLimita(k)} style={{
+                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 12, fontWeight: 600, color: PN.MUTED, textDecoration: 'underline', textUnderlineOffset: 2,
+              }}>{label}</button>
+            ))}
+            {stripe.status !== 'active' && (
+              <button data-stripe-simula="active" onClick={() => window.byupWriteStripe({ status: 'active' })} style={{
+                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+                fontSize: 12, fontWeight: 600, color: PN.MUTED, textDecoration: 'underline', textUnderlineOffset: 2,
+              }}>conto a posto</button>
+            )}
+          </div>
+        )}
 
         <div style={{marginTop: 12}}>
           {item.status === 'connected' && item.api && (
@@ -610,7 +564,7 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
               variant="primary"
               style={azione}
               disabled={ricollegando}
-              onClick={stripeGiu ? ricollega : item.mobile ? onMobileQr : undefined}
+              onClick={stripeGiu ? ricollega : undefined}
             >{ricollegando ? 'Collegamento in corso…' : (item.cta || 'Configura ora')}</ImpButton>
           )}
           {(item.status === 'available' || item.status === 'disconnected') && (
@@ -697,6 +651,8 @@ function IntDeliveryModal({ item, onClose }) {
   const [copiato, setCopiato] = React.useState(false);
   const [menu, setMenu] = React.useState(false);
   const [fatto, setFatto] = React.useState(false);
+  // Il foglio nel sacchetto: la casella è per piattaforma, e nasce accesa (P-129).
+  const [cortesia, setCortesia] = React.useState(() => (window.byupAutoPrintCortesiaPiattaforma ? window.byupAutoPrintCortesiaPiattaforma(item.id) : true));
 
   const copia = (testo) => {
     try { navigator.clipboard && navigator.clipboard.writeText(testo); } catch (e) {}
@@ -859,6 +815,46 @@ function IntDeliveryModal({ item, onClose }) {
     }
   }
 
+  // Il foglio nel sacchetto (P-129). Sta nella scheda della piattaforma perché
+  // l'impostazione è per sede E per piattaforma: un locale può volerlo per
+  // Glovo e non per Deliveroo, perché le piattaforme non stampano tutte la
+  // stessa etichetta. Nasce ACCESA — un sacchetto che parte senza foglio è un
+  // errore che il cliente scopre a casa, e nessuno va ad accendere
+  // un'impostazione di cui ignora l'esistenza — e si spegne, perché chi stampa
+  // già l'etichetta della piattaforma si ritroverebbe due fogli nello stesso
+  // sacchetto.
+  // Il foglio esce in coda alla COMANDA, sulla stampante di cucina, e non su
+  // quella del banco: è lì che il sacchetto si chiude. È un'eccezione voluta
+  // alla regola dei documenti (P-128, caso 3.7) e va scritta, altrimenti
+  // qualcuno un giorno la «corregge».
+  const cucinaCollegata = window.byupStampantiComande ? window.byupStampantiComande().length > 0 : false;
+  const cortesiaAutomatica = (
+    <label style={{
+      display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 12,
+      padding: '11px 13px', borderRadius: 10,
+      border: `1px solid ${PN.BORDER_SOFT}`, background: '#FAFBFC',
+      cursor: cucinaCollegata ? 'pointer' : 'default', opacity: cucinaCollegata ? 1 : 0.85,
+    }}>
+      <input type="checkbox" data-auto-cortesia={item.id}
+        checked={cucinaCollegata && cortesia} disabled={!cucinaCollegata}
+        onChange={e => { setCortesia(e.target.checked); window.byupImpostaAutoPrintCortesia(item.id, e.target.checked); }}
+        style={{marginTop: 3, accentColor: PN.PINK_DARK}}/>
+      <span style={{minWidth: 0}}>
+        <span style={{display: 'block', fontSize: 14.5, fontWeight: 700, color: PN.TEXT}}>Stampa il documento di cortesia da mettere nel sacchetto</span>
+        <span style={{display: 'block', fontSize: 13, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+          {cucinaCollegata
+            ? <>Esce in coda alla comanda, sulla stampante di cucina, perché è lì che il sacchetto si chiude. Spegnila se stampi già l'etichetta di {item.name}: sarebbero due fogli nello stesso sacchetto.</>
+            : <>Serve una stampante di cucina collegata. Il foglio non può uscire da un browser, perché la finestra di stampa aspetta che una persona confermi e all'arrivo dell'ordine nessuno la sta guardando.</>}
+        </span>
+      </span>
+    </label>
+  );
+
+  // La casella sta al primo passo — è la prima cosa che si vede riaprendo la
+  // scheda di una piattaforma già collegata — e torna sull'esito, dove si
+  // legge insieme a che cosa cambia in Byup.
+  if (!fatto && passo === 1 && corpo) corpo = <React.Fragment>{corpo}{cortesiaAutomatica}</React.Fragment>;
+
   // L'esito, uguale per tutte: che cosa cambia in Byup, e che l'add-on è spento.
   if (fatto) {
     corpo = (
@@ -871,6 +867,7 @@ function IntDeliveryModal({ item, onClose }) {
               : <>Punto vendita <b style={{fontFamily:'ui-monospace, Menlo, monospace'}}>{valore}</b> collegato{menu ? ', menù in pubblicazione' : ''}.</>}
         </div>
         <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55, marginTop: 12}}>{item.scheda}</div>
+        {cortesiaAutomatica}
       </div>
     );
     azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={onClose}>Fatto</ImpButton>;

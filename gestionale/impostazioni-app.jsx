@@ -19,7 +19,7 @@ function ImpApp() {
     try {
       const p = new URLSearchParams(window.location.search).get('page');
       if (['vetrina', 'menu-cucina', 'sala', 'personale', 'flussi', 'fiscali', 'integrazioni'].includes(p)) return p;
-      // P-124: ?page=stampanti apriva la sezione che non c'è più; porta al blocco in POS e integrazioni.
+      // P-124: ?page=stampanti apriva la sezione che non c'è più; porta al blocco in Integrazioni.
       if (p === 'stampanti') return 'integrazioni';
     } catch (e) {}
     return 'vetrina';
@@ -268,6 +268,7 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <div className="frame" data-screen-label="Impostazioni">
     <GlassMeshSubstrate tone="neutral"/>
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
     <ImpApp/>
   </div>
 );

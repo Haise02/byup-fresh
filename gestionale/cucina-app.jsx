@@ -298,6 +298,7 @@ const cucRoot = ReactDOM.createRoot(document.getElementById('root'));
 cucRoot.render(
   <div className="frame" data-screen-label="Cucina">
     <GlassMeshSubstrate tone="cool"/>
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
     <CucinaApp/>
   </div>
 );

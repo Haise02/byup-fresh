@@ -52,6 +52,7 @@ accRoot.render(
     {/* A configurazione conclusa si atterra qui, su Piani: la fascia delle
         due attivazioni segue, perché non sono ancora fatte. */}
     {window.PnAttivazioniFascia && <window.PnAttivazioniFascia/>}
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
     <AccountApp/>
   </div>
 );

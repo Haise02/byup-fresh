@@ -592,20 +592,33 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     setTimeout(() => setToast(null), 2000);
   }
 
-  // P-124 (D-108): il pre-conto è un documento suo, distinto dal documento di
-  // cortesia, e stampa DAVVERO dal browser della postazione su qualunque
-  // stampante che il sistema conosce, con la persona che conferma; il momento
-  // finisce in bills.preconto_printed_at (qui lo stato della finestra).
+  // P-128 (D-109): il pre-conto è un documento suo, distinto dal documento di
+  // cortesia, ma passa dalla STESSA porta — sono due fogli per lo stesso
+  // cliente, uno prima e uno dopo il pagamento, e non ha senso che escano da
+  // stampanti diverse. Prima andava dritto al browser. Ora: la stampante
+  // collegata dei documenti se c'è, il browser se non c'è o non risponde. Il
+  // momento finisce in bills.preconto_printed_at (qui lo stato della finestra).
   function stampaPreConto(scope = 'tutto') {
-    if (typeof window.byupStampaPreconto === 'function') {
-      const righe = (editedOrdini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia }));
-      window.byupStampaPreconto({ tavolo: `Tavolo ${tavolo.id}`, coperti: tavolo.coperti || 1, righe, totale: righe.reduce((s, r) => s + (r.qty || 1) * (r.prezzo || 0), 0) });
-    }
+    const parziale = scope !== 'tutto';
+    const dicoTutto = (testo) => { setToast({ type: 'success', text: testo }); setTimeout(() => setToast(null), 2800); };
+    if (typeof window.byupStampaPreconto !== 'function') { setPreContoStampato(Date.now()); dicoTutto('Pre-conto stampato'); return; }
+    const righe = (editedOrdini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia }));
+    const conto = { tavolo: `Tavolo ${tavolo.id}`, coperti: tavolo.coperti || 1, righe, totale: righe.reduce((s, r) => s + (r.qty || 1) * (r.prezzo || 0), 0) };
+    const quale = parziale ? `Pre-conto parziale · ${scope}` : `Pre-conto · €${subtotale.toFixed(2)}`;
+    const r = window.byupStampaPreconto(conto, {
+      titolo: `Tavolo ${tavolo.id}`,
+      onEsito: (esito, dettaglio) => {
+        if (esito === 'ok' && dettaglio && dettaglio.via === 'server') { dicoTutto(`${quale} · uscito da «${dettaglio.stampante.name}»`); return; }
+        if (esito === 'ripiego') dicoTutto(`${quale} · «${r.stampante ? r.stampante.name : ''}» non ha risposto, lo stampa la postazione`);
+        else if (esito === 'niente') dicoTutto(`${quale} · nessuna postazione aperta può stamparlo`);
+        else if (esito === 'richiesta') dicoTutto(`${quale} · da stampare, la richiesta è in cima a ogni schermo`);
+      },
+    });
     setPreContoStampato(Date.now());
-    setToast({ type:'success', text: scope === 'tutto'
-      ? `Pre-conto stampato · €${subtotale.toFixed(2)}`
-      : `Pre-conto parziale stampato · ${scope}` });
-    setTimeout(() => setToast(null), 2500);
+    if (r.via === 'server') dicoTutto(`${quale} · sta uscendo da «${r.stampante.name}»…`);
+    else if (r.via === 'niente') dicoTutto(`${quale} · nessuna postazione aperta può stamparlo`);
+    else if (r.via === 'richiesta') dicoTutto(`${quale} · da stampare, la richiesta è in cima a ogni schermo`);
+    else dicoTutto(`${quale} stampato`);
   }
 
   function chooseMethod(m) {
@@ -2702,13 +2715,19 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
   // vale ai fini fiscali.
   //
   // Da dove esce lo decide il POS su cui si è incassato (stampa.jsx,
-  // byupStampanteDelDocumento): se quel POS ha una stampante che interroga il
-  // nostro server, il documento ci va in coda e ne esce da solo, senza
-  // finestre e senza conferme; altrimenti si stampa dal browser, dove la
-  // finestra di dialogo del sistema chiede conferma — non per scelta nostra,
-  // ma perché nessun browser lascia stampare una pagina in silenzio.
+  // byupStampanteDelDocumento): se quel POS ha una stampante collegata, il
+  // documento ci va in coda e ne esce da solo, senza finestre e senza
+  // conferme. Fra il tocco e la carta passano i secondi del sondaggio della
+  // stampante, quindi finché non ha confermato la schermata dice che il foglio
+  // STA USCENDO, non che è uscito.
+  // Se la stampante non c'è o non risponde si ripiega sul browser (P-128,
+  // casi 3.3 e 3.4) e il lavoro in coda si annulla: se restasse lì, la
+  // stampante che torna su mezz'ora dopo sputerebbe un secondo foglio per un
+  // cliente che se n'è andato. Il ripiego non è sempre possibile: serve un
+  // gestionale aperto su schermo largo, e se ne sono aperti due o più decide
+  // chi è al banco, dalla fascia in cima a ogni schermo.
   //
-  // Con l'interruttore «stampa da sola» acceso (POS e integrazioni) il foglio
+  // Con l'interruttore «stampa da sola» acceso (Integrazioni) il foglio
   // parte QUI, all'apertura della schermata, mentre l'operatore dà il resto:
   // il pulsante allora non serve più e lo dice, e premuto non ristampa —
   // diventa «Ristampa», che è un'altra cosa e la si chiede apposta.
@@ -2736,19 +2755,31 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
     if (typeof window.byupStampaDocumentoCliente !== 'function') { setStampato({ via: 'browser', esito: 'ok' }); return; }
     setInCorso(true);
     const r = window.byupStampaDocumentoCliente(contoDaStampare(), {
-      posId, tipo: 'cortesia',
-      onEsito: (esito) => { setInCorso(false); setStampato(st => Object.assign({ auto: !!auto }, st, { esito })); },
+      posId, tipo: 'cortesia', titolo: tavolo ? `Tavolo ${tavolo.id}` : 'Conto',
+      onEsito: (esito, dettaglio) => {
+        setInCorso(false);
+        // Il ripiego cambia la strada, non solo l'esito: la riga in fondo deve
+        // dire dove il foglio è finito davvero.
+        if (dettaglio && dettaglio.via && dettaglio.via !== 'server') setStampato({ via: dettaglio.via, stampante: null, auto: !!auto, esito, ripiego: true });
+        else setStampato(st => Object.assign({ auto: !!auto }, st, { esito }));
+      },
     });
     setStampato({ via: r.via, stampante: r.stampante, auto: !!auto });
     if (r.via !== 'server') setInCorso(false);
   };
-  // L'automatico: parte da solo, una volta sola, all'apertura.
+  // L'automatico: parte da solo, una volta sola, all'apertura. Solo verso una
+  // stampante collegata — «da sola» dal browser non esiste, perché la finestra
+  // di stampa aspetta che una persona confermi.
   React.useEffect(() => {
     if (!window.byupAutoPrintRicevuta || !window.byupAutoPrintRicevuta()) return;
-    const dev = window.byupStampanteDelDocumento(posId);
-    if (!dev || dev.connection_mode !== 'server_polling') return;   // dal browser «da sola» non esiste
+    if (!window.byupStampanteDelDocumento(posId)) return;
     stampaCortesia(true);
   }, []);
+  // Il caso 3.5: due stampanti per i documenti e questa cassa non ancora
+  // associata. Non ne scegliamo una a caso — il foglio uscirebbe dall'altra
+  // parte del locale — e lo si dice, perché è un'associazione da completare e
+  // non un guasto.
+  const posDaAssociare = !!posId && window.byupPosSenzaStampante && window.byupPosSenzaStampante(posId);
 
   return (
     <div style={{
@@ -2836,16 +2867,44 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
         <button data-stampa-cortesia="" data-via={stampato ? stampato.via : ''} disabled={inCorso}
           onClick={() => stampaCortesia(false)} style={{...btnPrimaryV2, flex: 1.4, justifyContent:'center', opacity: inCorso ? 0.7 : 1}}>
           {inCorso
-            ? <>In stampa…</>
+            /* Sta uscendo, non è uscito: la stampante ci interroga ogni pochi
+               secondi, e prima del suo prossimo sondaggio non è successo
+               niente. */
+            ? <>Sta uscendo da «{stampato && stampato.stampante ? stampato.stampante.name : ''}»…</>
             : stampato
-              ? (stampato.esito === 'failed'
-                  ? <><IconPrinter/> Riprova · «{stampato.stampante ? stampato.stampante.name : ''}» non ha risposto</>
-                  : stampato.via === 'server'
-                    ? <>✓ {stampato.auto ? 'Uscito' : 'Stampato'} da «{stampato.stampante ? stampato.stampante.name : ''}» · Ristampa</>
-                    : <>✓ Documento di cortesia stampato · Ristampa</>)
+              ? (stampato.via === 'niente'
+                  ? <><IconPrinter/> Nessuna postazione può stamparlo · Riprova</>
+                  : stampato.via === 'richiesta'
+                    ? <>In attesa che una postazione lo stampi · Riprova</>
+                    : stampato.via === 'server'
+                      ? <>✓ {stampato.auto ? 'Uscito' : 'Stampato'} da «{stampato.stampante ? stampato.stampante.name : ''}» · Ristampa</>
+                      : <>✓ Documento di cortesia stampato{stampato.ripiego ? ' dalla postazione' : ''} · Ristampa</>)
               : <><IconPrinter/> Stampa documento di cortesia</>}
         </button>
       </div>
+
+      {/* Quello che è successo davvero, quando non è la strada normale: una
+          riga sotto il pulsante, che il pulsante da solo non può dire. */}
+      {stampato && stampato.via === 'niente' && (
+        <div data-stampa-avviso="niente" style={{width:'100%', marginTop: 10, padding:'10px 14px', borderRadius: 11, background:'#FEF3C7', color:'#78350F', fontSize: 14.5, lineHeight: 1.45, textAlign:'center'}}>
+          Non c'è nessuna stampante collegata e nessun gestionale aperto su uno schermo largo: il foglio non si può stampare. Dillo al cliente adesso — la ricevuta elettronica gli arriva comunque.
+        </div>
+      )}
+      {stampato && stampato.via === 'richiesta' && (
+        <div data-stampa-avviso="richiesta" style={{width:'100%', marginTop: 10, padding:'10px 14px', borderRadius: 11, background:'#F5F6F8', color:'#6B7280', fontSize: 14.5, lineHeight: 1.45, textAlign:'center'}}>
+          Il foglio esce dalla postazione: la richiesta è in cima a ogni schermo del gestionale, e la prende chi è al banco.
+        </div>
+      )}
+      {stampato && stampato.ripiego && stampato.via === 'browser' && (
+        <div data-stampa-avviso="ripiego" style={{width:'100%', marginTop: 10, padding:'10px 14px', borderRadius: 11, background:'#F5F6F8', color:'#6B7280', fontSize: 14.5, lineHeight: 1.45, textAlign:'center'}}>
+          La stampante non ha risposto: il lavoro in coda è stato annullato e il foglio esce da questa postazione.
+        </div>
+      )}
+      {posDaAssociare && (
+        <div data-stampa-avviso="pos" style={{width:'100%', marginTop: 10, padding:'10px 14px', borderRadius: 11, background:'#FEF3C7', color:'#78350F', fontSize: 14.5, lineHeight: 1.45, textAlign:'center'}}>
+          Questa cassa non è ancora associata a una stampante: il foglio esce dalla postazione. Completa l'associazione in Impostazioni → Integrazioni.
+        </div>
+      )}
     </div>
   );
 }

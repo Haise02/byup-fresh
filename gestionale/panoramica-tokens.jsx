@@ -22,7 +22,7 @@ const PN = {
   // ─── Marchio byup Staff ──────────────────────────────────────────────────
   // Il gradiente del logo: rosa profondo → corallo chiaro in diagonale,
   // lettering crema. Lo portano quattro superfici in tre applicazioni — il
-  // banner in onboarding, la tessera in POS e integrazioni, il POS mobile e
+  // banner in onboarding, la tessera in Integrazioni, il POS mobile e
   // la webapp cameriere — quindi vive qui, non in una di loro.
   // MARK è lo stesso passaggio a 135°: sulle superfici piccole e quadrate
   // (logo, avatar, badge) la diagonale piena si legge meglio della sbieca.
@@ -952,7 +952,7 @@ window.byupReadPosCensimento = function () {
   // Stripe non è collegato, quello strumento non esiste e non c'è nulla da
   // comunicare all'Agenzia. Nasce in byupStripeCollega, con la data di oggi.
   let stripeGiu = false;
-  try { stripeGiu = window.byupReadStripe && window.byupReadStripe().status === 'da_collegare'; } catch (e) {}
+  try { stripeGiu = window.byupReadStripe && window.byupReadStripe().status === 'pending'; } catch (e) {}
   const seme = pnPosSeme().filter(r => !(stripeGiu && r.id === 'pos-virtuale' && !salvate[r.id]));
   const lista = seme.map(r => salvate[r.id] ? { ...r, ...salvate[r.id] } : r);
   Object.values(salvate).forEach(r => { if (!seme.some(s => s.id === r.id)) lista.push(r); });
@@ -1033,22 +1033,57 @@ window.pnPosUrgente = function (lista) {
     .sort((a, b) => ordine[a.p.fase] - ordine[b.p.fase])[0] || null;
 };
 
-// ─── Collegamento Stripe: lo stato condiviso (D-52) ─────────────────────────
+// ─── Collegamento Stripe: lo stato condiviso (D-52 · P-130) ────────────────
+// I QUATTRO STATI SONO QUELLI DEL MODELLO, e sono i quattro di Stripe
+// (restaurants.stripe_connect_status):
+//   pending    — il conto è aperto, Stripe non ha ancora finito di verificarlo
+//   active     — tutto funziona
+//   restricted — Stripe ha limitato il conto: manca qualcosa, e finché non
+//                arriva blocca gli incassi oppure i versamenti
+//   disabled   — il conto non è più utilizzabile
+// Prima il prototipo ne usava tre inventati — `da_collegare`, `connected`,
+// `da_ricollegare` — e non sapeva rappresentare il conto LIMITATO, che nella
+// realtà è la situazione più frequente: Stripe apre il conto, il locale
+// comincia a lavorare, e dopo qualche giorno chiede un documento in più.
+// Del conto Stripe il modello conserva soltanto l'identificativo e lo stato:
+// i documenti che Stripe chiede al ristoratore non li raccogliamo e non li
+// conserviamo noi, mai. Per questo il conto limitato è una fascia informativa
+// più un pulsante che porta su Stripe, e non una schermata da compilare.
+// QUALE delle due cose sia ferma — gli incassi o i versamenti — cambia da
+// un'ora all'altra e lo sa solo Stripe: si chiede sul momento e non si salva,
+// altrimenti il dato salvato diventerebbe una bugia il giorno dopo.
+//
 // L'account connesso è intestato al soggetto fiscale: se il soggetto cambia,
-// l'account non è più suo. Il cambio di soggetto (Dati fiscali) disabilita il
-// collegamento e chiede un nuovo onboarding Stripe con la sua verifica; fino
-// ad allora niente pagamenti. Dati fiscali e POS e integrazioni leggono qui.
-// Il ricollegamento fa nascere un POS virtuale nuovo: il censimento si riapre
-// (byupPosVaria 'varied', P-105).
+// l'account non è più suo. Il cambio di soggetto (Dati fiscali) porta lo stato
+// a `disabled` e chiede un nuovo onboarding Stripe con la sua verifica; fino
+// ad allora niente pagamenti. Il ricollegamento fa nascere un POS virtuale
+// nuovo: il censimento si riapre (byupPosVaria 'varied', P-105).
 // Il collegamento non si chiede più nell'onboarding (4 settembre 2026): il
-// locale atterra nel gestionale e la campanella glielo chiede lì, con la
-// notifica che porta su POS e integrazioni. Perciò il valore di partenza,
-// senza niente di salvato, è «da collegare» — non «connesso»: era lo stato di
-// un onboarding che chiedeva Stripe prima di entrare, e quell'onboarding non
-// c'è più.
+// locale atterra nel gestionale e la notifica glielo chiede lì. Perciò il
+// valore di partenza, senza niente di salvato, è `pending`.
 const PN_STRIPE_KEY = 'byup_stripe';
+// I tre nomi inventati che il prototipo usava prima di P-130: i registri già
+// scritti in un browser si allineano da soli.
+const PN_STRIPE_VECCHI = { da_collegare: 'pending', connected: 'active', da_ricollegare: 'disabled' };
+window.PN_STRIPE_STATI = {
+  pending:    { label: 'Da collegare', tono: 'attesa' },
+  active:     { label: 'Connesso',     tono: 'ok' },
+  restricted: { label: 'Limitato',     tono: 'attesa' },
+  disabled:   { label: 'Disabilitato', tono: 'errore' },
+};
+// Che cosa Stripe ha fermato, quando il conto è limitato. Non si salva: è la
+// scelta del mock, e chi la legge lo dice a schermo.
+window.PN_STRIPE_LIMITI = {
+  payouts: 'Continui a incassare, ma i versamenti sul tuo conto sono fermi finché non completi la verifica su Stripe.',
+  charges: 'Non puoi più incassare con la carta finché non completi la verifica su Stripe.',
+};
 window.byupReadStripe = function () {
-  try { const s = localStorage.getItem(PN_STRIPE_KEY); return s ? JSON.parse(s) : { status: 'da_collegare' }; } catch (e) { return { status: 'da_collegare' }; }
+  try {
+    const s = localStorage.getItem(PN_STRIPE_KEY);
+    if (!s) return { status: 'pending' };
+    const v = JSON.parse(s) || {};
+    return Object.assign({}, v, { status: PN_STRIPE_VECCHI[v.status] || v.status || 'pending' });
+  } catch (e) { return { status: 'pending' }; }
 };
 window.byupWriteStripe = function (v) {
   try { if (v) localStorage.setItem(PN_STRIPE_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_STRIPE_KEY); } catch (e) {}
@@ -1062,7 +1097,7 @@ window.byupStripeCollega = function () {
   // La lista si legge PRIMA di scrivere lo stato: dopo, il seme rimetterebbe
   // dentro un POS virtuale nato venti giorni fa, e questo nasce adesso.
   const lista = window.byupReadPosCensimento();
-  window.byupWriteStripe({ status: 'connected', collegato_il: new Date().toISOString() });
+  window.byupWriteStripe({ status: 'active', collegato_il: new Date().toISOString() });
   const oggi = new Date().toISOString().slice(0, 10);
   if (!lista.some(r => r.id === 'pos-virtuale')) {
     lista.unshift({ id: 'pos-virtuale', nature: 'virtual', name: 'POS virtuale · Stripe', identifier: PN_POS_ACCOUNT,
@@ -1073,14 +1108,21 @@ window.byupStripeCollega = function () {
   if (c && !c.steps.stripe_connected) window.byupSoggettoAvanza('stripe_connected');
 };
 window.byupStripeDisabilita = function (motivo) {
-  window.byupWriteStripe({ status: 'da_ricollegare', motivo: motivo || 'cambio_soggetto', since: new Date().toISOString() });
+  window.byupWriteStripe({ status: 'disabled', motivo: motivo || 'cambio_soggetto', since: new Date().toISOString() });
+};
+// Il conto limitato. `limite` è 'payouts' (incassi sì, versamenti fermi) o
+// 'charges' (niente più carte): nel prototipo lo scegliamo noi, perché senza
+// Stripe vero non c'è modo di saperlo, e la fascia lo dichiara.
+window.byupStripeLimita = function (limite) {
+  const v = window.byupReadStripe();
+  window.byupWriteStripe(Object.assign({}, v, { status: 'restricted', limite: limite === 'charges' ? 'charges' : 'payouts', since: new Date().toISOString() }));
 };
 // Ricollegare è l'onboarding Stripe del nuovo soggetto, con la sua verifica
 // dell'identità: non ce n'è un'altra, e non si simula un bottone a parte —
 // Byup non verifica identità (D-104). Se un cambio di soggetto è in corso,
 // questo è il passo `stripe_connected`.
 window.byupStripeRicollega = function () {
-  window.byupWriteStripe({ status: 'connected' });
+  window.byupWriteStripe({ status: 'active' });
   if (window.byupPosVaria) window.byupPosVaria('pos-virtuale', 'varied');
   const c = window.byupSoggettoInCorso ? window.byupSoggettoInCorso() : null;
   if (c && !c.steps.stripe_connected) window.byupSoggettoAvanza('stripe_connected');

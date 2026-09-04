@@ -1,9 +1,17 @@
-// POS e integrazioni → Stampanti (P-124 · D-108).
+// Integrazioni → Stampanti (P-128 · D-109; supera P-124 · D-108).
 //
 // La sezione Impostazioni → Stampanti di P-101 non esiste più: le stampanti
-// stanno qui, in POS e integrazioni, in un box come gli altri. Dentro: le
-// stampanti collegate con il loro USO, il pulsante «Aggiungi stampante» e —
-// quando le stampanti dei documenti sono più d'una — l'associazione dei POS.
+// stanno qui, in Integrazioni, in un box come gli altri. Dentro: le stampanti
+// collegate con il loro USO, il pulsante «Aggiungi stampante», la prova della
+// stampa dei documenti e — quando le stampanti dei documenti sono più d'una —
+// l'associazione dei POS.
+//
+// OGNI STAMPANTE IN ELENCO INTERROGA IL NOSTRO SERVER (P-128). Non c'è più una
+// scelta fra «collegata» e «da browser», perché la seconda non era un
+// dispositivo: dal browser non torna indietro niente — né lo stato, né l'esito
+// — e quella riga sarebbe stata un nome scritto a mano e tre campi vuoti per
+// sempre. Il browser è la strada che il documento prende quando una stampante
+// non c'è, e come tale non si aggiunge: si prova.
 //
 // DUE POPUP, NON UN PERCORSO A PASSI (4 settembre 2026).
 //   «Aggiungi stampante» si apre subito: in cima dice come si configura la
@@ -30,9 +38,6 @@
 // sondaggio, col suo identificativo e il suo modello. Per questo la prima
 // cosa che il popup dice è l'indirizzo da scrivere nella pagina di
 // configurazione della stampante: senza quello non si presenta nessuno.
-// «Questa postazione» non è più in elenco: la stampa dal browser non si
-// collega e non si scollega — c'è sempre, ed è la strada che il documento
-// prende quando per quel POS non risponde nessuna stampante del server.
 //
 // I DUE USI. Comande (e allora si assegnano le categorie: una categoria sta su
 // una stampante sola) oppure scontrini di cortesia. Con una sola stampante per
@@ -73,7 +78,7 @@ function ImpStampantiBlocco({ inline, colonne }) {
   // e azione appoggiata in fondo. Una tessera per stampante collegata, più la
   // tessera d'ingresso che apre il popup.
   const griglia = { display: 'grid', gridTemplateColumns: `repeat(${colonne || 3}, 1fr)`, gap: 12 };
-  const SOTTO = 'Le comande escono dalle stampanti che interrogano il nostro server o compaiono sul monitor di cucina; i documenti per il cliente da una stampante collegata o, in mancanza, dal browser della postazione.';
+  const SOTTO = 'Comande e documenti del cliente escono dalle stampanti collegate al nostro server. Le comande non hanno ripiego: se la stampante non risponde, la cucina lavora dal monitor. I documenti sì: si stampano dal browser della postazione.';
   // Senza card il blocco porta da sé la riga che spiega le due vie: è la
   // stessa frase del sottotitolo, e senza di essa il passo non direbbe più
   // perché una stampante serve e l'altra no.
@@ -110,6 +115,20 @@ function ImpStampantiBlocco({ inline, colonne }) {
           scelta si fa anche quando si imposta la stampante; qui si cambia. */}
       {documenti.length > 1 && <ImpPosStampanti documenti={documenti} onFatto={avvisa}/>}
 
+      {/* La prova della strada, non di un dispositivo (P-128, caso 3.8).
+          Serve a chi stampa dal browser: se il computer ha una stampante
+          configurata e se il margine da 80 mm viene giusto. Per questo è un
+          collegamento e non il pulsante di una scheda — non c'è una scheda a
+          cui appartenga — e non registra niente. */}
+      <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', fontSize: 13, color: PN.MUTED, lineHeight: 1.5 }}>
+        <button data-prova-documenti onClick={() => { window.byupProvaStampaDocumenti(); avvisa('Foglio di prova mandato alla stampa del computer'); }}
+          className="pn-btn-feedback" style={{
+            background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+            fontSize: 13, fontWeight: 700, color: PN.TEXT, textDecoration: 'underline', textUnderlineOffset: 3,
+          }}>Prova la stampa dei documenti</button>
+        <span>Apre un foglio di esempio nella stampa di questo computer: dice se una stampante c'è e se il margine da 80 mm viene giusto. Non è la prova di un dispositivo, ed è quello che succede quando nessuna stampante collegata risponde.</span>
+      </div>
+
       {aggiungi && (
         <ImpAggiungiStampanteModal
           onClose={() => setAggiungi(false)}
@@ -135,13 +154,12 @@ function ImpStampantiBlocco({ inline, colonne }) {
 // la prova di stampa. La prova non sta qui: da sola non dice che cosa fare se
 // va male, e chi la preme sta già cercando le impostazioni.
 function TesseraStampante({ d, uso, onConfigura, onScollega }) {
-  const browser = d.connection_mode === 'browser';
   const st = (window.PN_PRINT_STATI || {})[d.connection_status] || {};
   const proto = (window.PN_PRINTER_PROTOCOLLI || {})[d.printer_protocol] || {};
   const marca = ((window.PN_PRINTER_MODELLI || {})[d.printer_vendor] || {}).nome || '';
   const posAssociati = (d.pos_ids || []).map(id => (window.byupReadPosCensimento ? byupReadPosCensimento() : []).find(p => p.id === id)).filter(Boolean);
   const comande = uso === 'comande';
-  const tono = browser ? 'ok' : (st.tono || 'muto');
+  const tono = st.tono || 'muto';
   const colore = tono === 'ok' ? PN.GREEN : tono === 'attesa' ? PN.AMBER : tono === 'errore' ? PN.RED : PN.MUTED;
   const fmt = (iso) => iso ? new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) : null;
   return (
@@ -150,8 +168,8 @@ function TesseraStampante({ d, uso, onConfigura, onScollega }) {
       border: `1.5px solid ${tono === 'ok' ? PN.GREEN_SOFT : PN.BORDER_SOFT}`,
       background: tono === 'ok' ? '#F0FDF4' : PN.WHITE,
     }}>
-      <div style={{ width: 54, height: 54, borderRadius: 14, background: browser ? PN.WHITE : '#1F2937', border: browser ? `1px solid ${PN.BORDER}` : 'none', display: 'grid', placeItems: 'center', fontSize: 24, flexShrink: 0 }}>
-        {browser ? '💻' : '🖨'}
+      <div style={{ width: 54, height: 54, borderRadius: 14, background: '#1F2937', display: 'grid', placeItems: 'center', fontSize: 24, flexShrink: 0 }}>
+        🖨
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 14 }}>
@@ -166,15 +184,21 @@ function TesseraStampante({ d, uso, onConfigura, onScollega }) {
       </div>
 
       <div style={{ marginTop: 'auto', paddingTop: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, fontSize: 13.5, fontWeight: 600, color: colore }}>
+        {/* Lo stato è cliccabile, e nel prototipo SOLO nel prototipo: senza un
+            modo di far cadere una stampante la fascia della stampante muta non
+            si potrebbe nemmeno guardare. Il titolo lo dichiara. */}
+        <button
+          onClick={() => window.byupStampanteSimulaLinea(d.id, d.connection_status !== 'online')}
+          title={`Nel prototipo: tocca per simulare ${d.connection_status === 'online' ? 'una stampante che non risponde' : 'il ritorno in linea'}. Nel prodotto questo stato lo scrive il server, contando i sondaggi che non arrivano.`}
+          style={{ display: 'flex', alignItems: 'baseline', gap: 5, fontSize: 13.5, fontWeight: 600, color: colore, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: colore, flexShrink: 0, alignSelf: 'center' }}/>
-          <span style={{ flexShrink: 0 }}>{browser ? 'Sempre disponibile' : st.label}</span>
-          {!browser && d.last_test_print_at && <span style={{ color: PN.MUTED, fontWeight: 500 }}>· prova {fmt(d.last_test_print_at)}</span>}
-        </div>
+          <span style={{ flexShrink: 0 }}>{st.label}</span>
+          {d.last_test_print_at && <span style={{ color: PN.MUTED, fontWeight: 500 }}>· prova {fmt(d.last_test_print_at)}</span>}
+        </button>
         <div style={{ fontSize: 12.5, color: PN.MUTED, marginTop: 4, lineHeight: 1.4, minHeight: 32 }}>
           {comande
             ? ((d.routing || []).length ? `${proto.label} · ${d.routing.map(window.pnRoutingLabel).join(', ')}` : `${proto.label} · nessuna categoria instradata`)
-            : (posAssociati.length ? `POS: ${posAssociati.map(p => p.name).join(', ')}` : (browser ? 'Dal browser, sulla stampante che scegli nella finestra di stampa' : proto.label))}
+            : (posAssociati.length ? `POS: ${posAssociati.map(p => p.name).join(', ')}` : proto.label)}
         </div>
         <div style={{ marginTop: 10 }}>
           <ImpButton variant="ghost" onClick={onConfigura} style={{ width: '100%', justifyContent: 'center', padding: '9px 14px', fontSize: 14.5 }}>
@@ -450,7 +474,7 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
       const id = 'prn-' + Date.now().toString(36);
       window.byupStampanteAggiungi({
         id, type: 'printer', name: n, device_model: candidata.device_model, printer_vendor: candidata.printer_vendor,
-        connection_mode: 'server_polling', printer_protocol: candidata.printer_protocol, cloud_client_id: candidata.cloud_client_id,
+        printer_protocol: candidata.printer_protocol, cloud_client_id: candidata.cloud_client_id,
         poll_interval_seconds: 5, connection_status: 'online', connection_checked_at: new Date().toISOString(),
         venue_id: IMP_PRN_SEDE, use: uso, pos_ids: [], routing: uso === 'comande' ? [...routing] : [],
         last_test_print_at: prova === 'ok' ? new Date().toISOString() : null, last_test_print_result: prova === 'ok' ? 'ok' : null,

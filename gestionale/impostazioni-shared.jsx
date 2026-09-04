@@ -36,12 +36,15 @@ const IMP_SEZIONI = [
   { id: 'menu-cucina', label: 'Menù', icon: 'food-meal' },
   { id: 'sala', label: 'Sala e tavoli', icon: 'place-table' },
   { id: 'personale', label: 'Personale', icon: 'people-staff-group' },
-  // P-124 (D-108): la sezione Stampanti non esiste più. Le stampanti si
-  // collegano in POS e integrazioni («Collega stampante»); in Personale la
-  // stampante resta come dispositivo con le categorie che instrada.
+  // P-128 (D-109) e P-134: la sezione Stampanti non esiste più, e la pagina
+  // dove vivono si chiama «Integrazioni» — il POS non si collega più da lì,
+  // perché il telefono si registra entrando. Dentro, il primo blocco continua
+  // a chiamarsi «POS e strumenti di pagamento»: lì sta il censimento presso
+  // l'Agenzia, e chi lo cerca lo cerca pensando «POS».
+  // Le stampanti non stanno più in Personale: non entrano da nessuna parte.
   { id: 'flussi', label: 'Servizio', icon: 'chart-workflow' },
   { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt' },
-  { id: 'integrazioni', label: 'POS e integrazioni', icon: 'commerce-bank-cards' },
+  { id: 'integrazioni', label: 'Integrazioni', icon: 'commerce-bank-cards' },
 ];
 
 // La seconda colonna: stessa cassa del menù globale del gestionale — vetro

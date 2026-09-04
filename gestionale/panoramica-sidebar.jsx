@@ -55,17 +55,34 @@ const BYUP_KDS_ATTIVO_KEY = 'byup_kds_attivo';
 // Default: i due monitor del locale d'esempio. Servono perché la Cucina si può
 // aprire senza essere mai passati da Impostazioni, e uno schermo di cucina
 // vuoto non dice niente a nessuno.
+// Gli id non sono più `PG1-<qualcosa>` (P-134): quel prefisso era il NOME
+// UTENTE con cui il monitor entrava, e il monitor non entra più con nome
+// utente e password — si collega con un codice che il titolare approva.
 const BYUP_KDS_DEFAULT = [
-  { id: 'PG1-cucina', nome: 'Monitor cucina principale', vista: 'ristorante' },
-  { id: 'PG1-pizza',  nome: 'Monitor pizza',             vista: 'pub' },
+  { id: 'mon-cucina', nome: 'Monitor cucina principale', vista: 'ristorante', collegato_il: null },
+  { id: 'mon-pizza',  nome: 'Monitor pizza',             vista: 'pub',        collegato_il: null },
 ];
 function _byupKdsNormalizza(m) {
   return {
     id: String(m && m.id || '').trim() || 'monitor',
     nome: String(m && m.nome || '').trim() || 'Kitchen Monitor',
     vista: m && m.vista === 'pub' ? 'pub' : 'ristorante',
+    collegato_il: (m && m.collegato_il) || null,
   };
 }
+// Scollegare uno schermo è una revoca, come togliere l'accesso a una persona:
+// da quel momento il monitor torna a mostrare il codice e non vede più niente
+// finché qualcuno non lo riapprova.
+window.byupRimuoviMonitorKds = function (id) {
+  try {
+    const lista = window.byupReadMonitorsKds().filter(m => m.id !== id);
+    localStorage.setItem(BYUP_KDS_LISTA_KEY, JSON.stringify(lista));
+    const attivo = localStorage.getItem(BYUP_KDS_ATTIVO_KEY) || '';
+    if (attivo === id) localStorage.setItem(BYUP_KDS_ATTIVO_KEY, lista.length ? lista[0].id : '');
+    window.dispatchEvent(new Event('byup-kds-vista-change'));
+    if (window.byupMonitorRevoca) window.byupMonitorRevoca(id);
+  } catch (e) {}
+};
 window.byupReadMonitorsKds = function() {
   try {
     const s = localStorage.getItem(BYUP_KDS_LISTA_KEY);

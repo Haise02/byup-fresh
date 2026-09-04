@@ -73,4 +73,9 @@ function SupportoApp() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<SupportoApp/>);
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.Fragment>
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
+    <SupportoApp/>
+  </React.Fragment>
+);

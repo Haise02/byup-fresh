@@ -8353,7 +8353,7 @@ const MOCK_EXTRACTED = {
 };
 
 // ─── QR asporto ─────────────────────────────────────────────────────────────
-// Stessa ricetta del QR di Byup Pay (POS e integrazioni): scacchiera, tre
+// Stessa ricetta del QR di Byup Staff (Impostazioni → Personale): scacchiera, tre
 // finder angolari e il marchio byup al centro su tessera bianca. Un solo
 // disegno per tutti i QR del gestionale — scala dal francobollo in riga
 // (56px) al codice grande del popup.

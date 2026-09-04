@@ -1,4 +1,5 @@
-// Notifiche dropdown — campanella + tendina condivisa cross-page
+// Notifiche: il registro condiviso fra pagine, l'avviso d'arrivo, la fascia
+// delle attivazioni e l'elenco completo di Profilo → Notifiche.
 
 // Mesi correnti per i testi delle notifiche: la demo non deve mai sembrare vecchia.
 const _PN_MESI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
@@ -92,12 +93,25 @@ function _byupNotifSalva(st) {
 function _byupNotificheAttivazione() {
   const out = [];
   try {
-    if (window.byupReadStripe && window.byupReadStripe().status === 'da_collegare') {
+    const stripe = window.byupReadStripe ? window.byupReadStripe() : null;
+    if (stripe && stripe.status === 'pending') {
       out.push({ id: 'attiva-stripe', type: 'payment', unread: true,
         href: 'byup Impostazioni.html?page=integrazioni',
         title: 'Collega Stripe per incassare',
-        body: 'Finché il conto non è collegato non ricevi pagamenti: né carte al tavolo, né in app, né online. Si collega da POS e integrazioni, e l\'identità la verifica Stripe.',
+        body: 'Finché il conto non è collegato non ricevi pagamenti: né carte al tavolo, né in app, né online. Si collega da Integrazioni, e l\'identità la verifica Stripe.',
         time: 'Da fare per primo' });
+    }
+    // Il conto LIMITATO (P-130). Stripe ha aperto il conto e poi ha chiesto
+    // qualcosa in più: è la situazione più frequente, e il prototipo prima non
+    // sapeva rappresentarla. Che cosa sia fermo — gli incassi o i versamenti —
+    // lo dice la conseguenza, nella lingua del ristoratore.
+    if (stripe && stripe.status === 'restricted') {
+      const carte = stripe.limite === 'charges';
+      out.push({ id: 'attiva-stripe-limitato', type: 'payment', unread: true,
+        href: 'byup Impostazioni.html?page=integrazioni',
+        title: carte ? 'Stripe ha sospeso gli incassi con la carta' : 'Stripe ha fermato i versamenti sul tuo conto',
+        body: (window.PN_STRIPE_LIMITI || {})[carte ? 'charges' : 'payouts'] || '',
+        time: 'Da completare su Stripe' });
     }
     const credMai = window.byupAdeCredStato && !window.byupAdeCredStato().rinnovo;
     const delegaGiu = window.byupDelegaCompleta && !window.byupDelegaCompleta();
@@ -122,8 +136,10 @@ function _byupNotificheAttivazione() {
 // telefono in Byup Staff) e da lì la campanella lo dice, con la finestra di
 // FISC-03 e i suoi gradini; l'id porta la fase, così ogni gradino torna non
 // letto anche se il precedente era stato letto: è l'insistenza voluta, perché
-// la comunicazione omessa è sanzionata. Stessa cosa per la password: della
-// ditta (da rinnovare da lei) o dell'incaricato di Byup (la rinnova Byup).
+// la comunicazione omessa è sanzionata. Stessa cosa per la password: è sempre
+// dell'esercente — del titolare per la ditta individuale, della persona che il
+// LOCALE ha nominato incaricata sul portale per società ed enti — e la rinnova
+// lui. L'«incaricato di Byup» è una figura ritirata con D-103.
 function _byupNotificheFiscali() {
   const out = [];
   try {
@@ -328,7 +344,17 @@ const PN_ATTIVA_DOVE = {
     tinta: PN.AMBER, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D',
     azione: 'Collega Stripe',
     titoloDove: 'Per ricevere pagamenti serve Stripe',
-    dove: 'Quando vuoi collegarlo: Impostazioni → POS e integrazioni, tessera Stripe. Finché non è collegato non incassi: né carte al tavolo, né in app, né online.',
+    dove: 'Quando vuoi collegarlo: Impostazioni → Integrazioni, tessera Stripe. Finché non è collegato non incassi: né carte al tavolo, né in app, né online.',
+  },
+  // Il conto limitato (P-130): non è una cosa che si fa qui — i documenti che
+  // Stripe chiede non li raccogliamo e non li conserviamo noi, mai — quindi
+  // l'azione porta FUORI, sulla dashboard di Stripe.
+  'attiva-stripe-limitato': {
+    tinta: PN.AMBER, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D',
+    azione: 'Completa su Stripe',
+    esterno: 'https://dashboard.stripe.com/',
+    titoloDove: 'La verifica si completa su Stripe',
+    dove: 'I documenti che Stripe chiede li carichi sulla sua dashboard: noi non li raccogliamo e non li conserviamo, mai. Del tuo conto Stripe teniamo l\'identificativo e lo stato, e nient\'altro.',
   },
   fiscale: {
     tinta: '#B91C1C', sfondo: '#FEF2F2', bordo: '#FECACA',
@@ -345,7 +371,15 @@ function PnAttivazioniFascia() {
   const [dove, setDove] = React.useState(null);   // la notifica di cui si spiega il dove
   const aperte = items.filter(n => String(n.id).indexOf('attiva-') === 0 && rimandate.indexOf(n.id) < 0);
   const rimanda = (n) => { pnAttivaRimanda(n.id); setRimandate(pnAttivaRimandate()); setDove(n); };
-  const vai = (n) => { window.byupNotificaLetta(n.id); window.location.href = n.href; };
+  const vai = (n) => {
+    window.byupNotificaLetta(n.id);
+    const st = pnAttivaStile(n.id);
+    // Quello che si fa su un altro sito ci porta su quell'altro sito, in una
+    // scheda nuova: farlo passare da una nostra schermata sarebbe un giro in
+    // più che non aggiunge niente.
+    if (st.esterno) { window.open(st.esterno, '_blank', 'noopener'); return; }
+    window.location.href = n.href;
+  };
   if (!aperte.length && !dove) return null;
 
   const foglio = dove && (() => {
@@ -437,214 +471,14 @@ function PnAttivazioniFascia() {
 }
 window.PnAttivazioniFascia = PnAttivazioniFascia;
 
-function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
-  const [open, setOpen] = React.useState(false);
-  const [items, setItems] = React.useState(PN_NOTIFICATIONS);
-  const ref = React.useRef(null);
-  const menuRef = React.useRef(null);
-  // Posizione fixed della tendina, dal rect della campanella: la tendina vive
-  // in un portal sul body, così si distende sopra il frame (che è scalato con
-  // zoom) senza rischi di clipping o di stacking context.
-  const [menuPos, setMenuPos] = React.useState(null);
-  const unreadCount = items.filter(i => i.unread).length;
-
-  React.useLayoutEffect(() => {
-    if (!open) { setMenuPos(null); return; }
-    const rect = ref.current.getBoundingClientRect();
-    // dropUp/sidebar: sopra la campanella, agganciata a sinistra;
-    // topbar: sotto la campanella, allineata a destra.
-    setMenuPos((dropUp || sidebar)
-      ? { bottom: window.innerHeight - rect.top + 8, left: rect.left }
-      : { top: rect.bottom + 8, right: window.innerWidth - rect.right });
-  }, [open, dropUp, sidebar]);
-
-  React.useEffect(() => {
-    if (!open) return;
-    const onDoc = (e) => {
-      const inBell = ref.current && ref.current.contains(e.target);
-      const inMenu = menuRef.current && menuRef.current.contains(e.target);
-      if (!inBell && !inMenu) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
-
-  const markAllRead = () => setItems(items.map(i => ({...i, unread: false})));
-
-  return (
-    <div ref={ref} style={{position:'relative', ...(sidebar ? {width: collapsed ? 'auto' : '100%'} : {})}}>
-      {sidebar ? (
-        // Variante sidebar: riga di sistema identica a PnSysItem (Supporto/Impostazioni),
-        // con badge non letti a destra (pallino sull'icona quando è collassata).
-        <button onClick={() => setOpen(o => !o)} title="Notifiche"
-          style={{
-            width: '100%',
-            display: 'flex', alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: collapsed ? 0 : 12,
-            padding: collapsed ? '8px' : '9px 10px',
-            borderRadius: 10,
-            border: 'none',
-            background: open ? 'rgba(15, 17, 21, 0.045)' : 'transparent',
-            color: open ? PN.TEXT : PN.MUTED,
-            fontWeight: 500, fontSize: 17.5,
-            cursor: 'pointer', fontFamily: 'inherit',
-            position: 'relative',
-            transition: 'background 160ms ease, color 160ms ease',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(15, 17, 21, 0.045)'; e.currentTarget.style.color = PN.TEXT; }}
-          onMouseLeave={e => { if (!open) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; } }}
-        >
-          <span style={{position:'relative', display:'inline-flex'}}>
-            <Icon name="bell" size={collapsed ? 18 : 21}/>
-            {collapsed && unreadCount > 0 && (
-              <span style={{
-                position:'absolute', top: -3, right: -3,
-                width: 9, height: 9, borderRadius: '50%',
-                background: PN.PINK, border: '1.5px solid #fff',
-              }}/>
-            )}
-          </span>
-          {!collapsed && <span style={{flex: 1, textAlign:'left'}}>Notifiche</span>}
-          {!collapsed && unreadCount > 0 && (
-            <span style={{
-              minWidth: 20, padding: '2px 7px', borderRadius: 999,
-              background: PN.PINK, color: '#fff',
-              fontSize: 12.5, fontWeight: 800, lineHeight: 1.2,
-              textAlign: 'center', flexShrink: 0,
-            }}>{unreadCount}</span>
-          )}
-        </button>
-      ) : (
-      <button onClick={() => setOpen(o => !o)} style={{
-        position:'relative',
-        width: 36, height: 36, borderRadius: 10,
-        border: `1px solid ${PN.BORDER}`,
-        background: open ? PN.SIDE_BG : PN.WHITE, color: PN.TEXT,
-        cursor:'pointer',
-        display:'grid', placeItems:'center',
-      }}>
-        <Icon name="bell" size={17} color={PN.TEXT}/>
-        {unreadCount > 0 && (
-          <span style={{
-            position:'absolute', top: 5, right: 5,
-            minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999,
-            background: PN.PINK, border:`2px solid ${PN.WHITE}`,
-            color: '#fff', fontSize: 11.5, fontWeight: 800,
-            display:'grid', placeItems:'center', lineHeight: 1,
-          }}>{unreadCount}</span>
-        )}
-      </button>
-      )}
-
-      {open && menuPos && ReactDOM.createPortal(
-        // Popup su fondo BIANCO pieno (niente vetro): del token GLASS_MENU
-        // restano bordo, ombra e radius. Vive in un portal sul body per
-        // stare sopra al frame zoomato senza problemi di clipping.
-        <div ref={menuRef} style={{
-          position: 'fixed',
-          ...menuPos,
-          width: 380,
-          ...PN.GLASS_MENU,
-          background: '#fff',
-          backgroundImage: 'none',
-          backdropFilter: 'none',
-          WebkitBackdropFilter: 'none',
-          zIndex: 9981,
-          overflow: 'hidden',
-          fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-        }}>
-          <div style={{
-            display:'flex', alignItems:'center', justifyContent:'space-between',
-            padding: '14px 16px', borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-          }}>
-            <div>
-              <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT}}>Notifiche</div>
-              <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
-                {unreadCount > 0 ? `${unreadCount} non lette` : 'Tutto letto ✓'}
-              </div>
-            </div>
-          </div>
-
-          <div style={{maxHeight: 440, overflowY: 'auto'}} className="pn-scroll">
-            {items.map(n => (
-              <div key={n.id} style={{
-                display:'flex', gap: 12,
-                padding: '12px 16px',
-                borderBottom: `1px solid ${PN.BORDER_SOFT}`,
-                background: n.unread ? '#fff7fa' : '#fff',
-                cursor:'pointer',
-                position:'relative',
-              }}
-                onClick={() => {
-                  setItems(prev => prev.map(i => i.id === n.id ? {...i, unread: false} : i));
-                  if (n.href) window.location.href = n.href;
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = n.unread ? '#ffeef4' : '#fafafa'}
-                onMouseLeave={e => e.currentTarget.style.background = n.unread ? '#fff7fa' : '#fff'}
-              >
-                {n.unread && (
-                  <span style={{
-                    position:'absolute', left: 6, top: 18,
-                    width: 6, height: 6, borderRadius: '50%', background: PN.PINK,
-                  }}/>
-                )}
-                <div style={{flex: 1, minWidth: 0}}>
-                  <div style={{fontSize: 15, fontWeight: 600, color: PN.TEXT, marginBottom: 2, lineHeight: 1.35}}>{n.title}</div>
-                  <div style={{fontSize: 14, color: PN.MUTED, lineHeight: 1.45, marginBottom: 4}}>{n.body}</div>
-                  <div style={{fontSize: 13, color: '#a3a3ad', fontWeight: 500}}>{n.time}</div>
-                </div>
-                {/* Freccia → dice che la riga si apre (la navigazione è sul click della riga) */}
-                <span style={{alignSelf:'center', flexShrink:0, color:'#C4C9D4', display:'grid', placeItems:'center'}}>
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                </span>
-                {/* Cestino → elimina la notifica (la navigazione è sul click
-                    della riga, quindi qui serve lo stopPropagation) */}
-                <button
-                  title="Elimina notifica"
-                  onClick={(e) => { e.stopPropagation(); setItems(prev => prev.filter(i => i.id !== n.id)); }}
-                  style={{
-                    alignSelf:'center', flexShrink: 0,
-                    width: 28, height: 28, borderRadius: 8,
-                    background:'transparent', border:'none', cursor:'pointer',
-                    color: PN.MUTED, display:'grid', placeItems:'center',
-                    transition:'background 140ms ease, color 140ms ease',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#DC2626'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; }}
-                >
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18"/>
-                    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                    <path d="M10 11v6M14 11v6"/>
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {unreadCount > 0 && (
-            <div style={{
-              padding: '10px 16px', textAlign:'center',
-              borderTop: `1px solid ${PN.BORDER_SOFT}`,
-              background: '#fafafa',
-            }}>
-              <button onClick={markAllRead} style={{
-                background:'transparent', border:'none',
-                color: PN.PINK, fontSize: 14, fontWeight: 600, fontFamily:'inherit',
-                cursor:'pointer', padding: 0,
-              }}>Segna come lette</button>
-            </div>
-          )}
-        </div>,
-        document.body
-      )}
-    </div>
-  );
-}
-
-window.PnNotifBell = PnNotifBell;
+// La CAMPANELLA non c'è più (P-133). Era un componente completo — la
+// campanella con la tendina delle notifiche, duecento righe — che nessuna
+// pagina del gestionale montava: non lo faceva prima e non lo faceva dopo
+// P-115, che l'aveva scoperto e aveva chiesto di toglierla o di riusarla.
+// È stato costruito l'avviso d'arrivo qui sopra (PnNotifArrivo), e la
+// tendina non serve più: le notifiche hanno la loro casa in Profilo →
+// Notifiche, il conteggio sta sulla voce del profilo e l'anteprima in
+// Panoramica.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PnNotificheSection — l'elenco completo, dentro Profilo → Notifiche.

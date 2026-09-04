@@ -922,7 +922,7 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
 // giustificare un contatore per riga.
 function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onReso }) {
   const [sel, setSel] = React.useState(null); // null = sola lettura · Set(idPorzione) = selezione reso
-  const [stampato, setStampato] = React.useState(false);
+  const [stampato, setStampato] = React.useState(null);   // null | { via, stampante }
 
   // P-16 (D-20): il documento conosce le SUE righe (la quota di saldo);
   // conto.ordini resta il ripiego del pagamento unico, dove coincidono.
@@ -954,6 +954,33 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
   // «fino a concorrenza del totale» (P-17): la selezione non può superare il
   // residuo — con le quote esatte non succede, ma il limite è fiscale.
   const selValida = totaleSel > 0 && totaleSel <= residuo + 0.004;
+
+  // La ristampa del documento di cortesia di un conto già saldato. Il POS è
+  // quello su cui l'incasso è stato fatto, se il documento lo dice: è la sua
+  // stampante che deve stampare, non un'altra scelta a caso.
+  const ristampa = () => {
+    if (typeof window.byupStampaCortesia !== 'function') { setStampato({ via: 'browser' }); setTimeout(() => setStampato(null), 2000); return; }
+    const conto2 = {
+      tavolo: conto.tavolo ? `Tavolo ${conto.tavolo}` : (conto.codice || ''),
+      righe: (righe || []).map(r => ({ nome: r.nome, qty: r.qty, prezzo: r.prezzo, tipologia: r.tipologia })),
+      totale: payment.amount,
+      pagamenti: payment.method === 'contanti'
+        ? { contante: payment.amount, pagato: payment.amount }
+        : { elettronico: payment.amount, pagato: payment.amount },
+      quando: payment.ora,
+    };
+    const r = window.byupStampaCortesia(conto2, {
+      posId: payment.pos_id || null,
+      titolo: conto2.tavolo || 'Ristampa',
+      onEsito: (esito, dettaglio) => {
+        if (dettaglio && dettaglio.via && dettaglio.via !== 'server') setStampato({ via: dettaglio.via });
+        else setStampato({ via: 'server', stampante: r.stampante, fatto: true });
+        setTimeout(() => setStampato(null), 3000);
+      },
+    });
+    setStampato({ via: r.via, stampante: r.stampante });
+    if (r.via !== 'server') setTimeout(() => setStampato(null), 3000);
+  };
 
   return (
     <div onClick={onClose} style={{
@@ -1106,10 +1133,20 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
           </div>
         ) : (
           <div style={{display:'flex', gap: 8, marginTop: 16}}>
-            <button onClick={() => { setStampato(true); setTimeout(() => setStampato(false), 2000); }} style={{
+            {/* La ristampa dal banco (P-128, § 8). Era un segnaposto: scriveva
+                «Stampato ✓» per due secondi e non stampava niente. È il caso di
+                chi ha incassato in sala col telefono, il foglio non è uscito, e
+                il cliente passando alla cassa lo chiede lo stesso: da qui esce
+                davvero, con la stessa precedenza — la stampante collegata di
+                questa cassa, il browser se non c'è o non risponde. */}
+            <button onClick={() => ristampa()} style={{
               flex:1, padding:'11px 14px', background: PN.WHITE, border:`1px solid ${PN.BORDER}`,
               borderRadius: C.R_SM, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit',
-            }}>{stampato ? 'Stampato ✓' : 'Stampa'}</button>
+            }}>{!stampato ? 'Stampa'
+              : stampato.via === 'server' ? `Sta uscendo da «${stampato.stampante ? stampato.stampante.name : ''}»…`
+              : stampato.via === 'niente' ? 'Nessuna postazione può stamparlo'
+              : stampato.via === 'richiesta' ? 'In attesa di una postazione'
+              : 'Stampato ✓'}</button>
             {/* P-16: il reso per righe vale su OGNI documento saldato — resta
                 finché c'è un residuo e delle porzioni ancora in piedi. */}
             {!piattaforma && !annullato && residuo > 0.004 && porzioni.length > 0 && (

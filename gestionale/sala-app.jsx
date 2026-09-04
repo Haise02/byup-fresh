@@ -82,12 +82,40 @@ function SalaApp() {
     forceUpdate();
   }, []);
 
+  // Inviare un ordine ACCODA le comande (P-128, § 4.4). Prima cambiava uno
+  // stato e mostrava un messaggio: in tutto il prototipo l'unica comanda che
+  // andava davvero in stampa nasceva da un pulsante sul monitor di cucina, e
+  // senza una coda che possa fallire la fascia della stampante muta non aveva
+  // origine. Una comanda per stampante, con le sole righe delle sue categorie;
+  // le righe di categorie non instradate non stampano e vivono sul monitor,
+  // che vede tutto.
   function handleConfirmCart() {
     const tableId = cart.tableId;
     const count = cart.items.reduce((s,i)=>s+i.qty,0);
+    let accodate = [];
+    if (typeof window.byupAccodaComande === 'function') {
+      const righe = cart.items.map(i => ({
+        qty: i.qty, name: i.nome, category: i.categoria,
+        modifiers: [
+          ...((i.mods && i.mods.removed || []).map(x => ({ type: 'remove', label: x }))),
+          ...((i.mods && i.mods.extras || []).map(x => ({ type: 'add', label: `${x.qty > 1 ? x.qty + '× ' : ''}${x.nome}` }))),
+          ...((i.mods && i.mods.variants || []).map(x => ({ type: 'add', label: `${x.label}: ${x.value}` }))),
+        ],
+        note: i.mods && i.mods.note ? i.mods.note : '',
+      }));
+      accodate = window.byupAccodaComande(righe, `Tavolo ${tableId}`, {
+        onEsito: (dev, esito) => {
+          if (esito === 'ok') return;
+          // Nessun ripiego: la fascia in cima allo schermo lo dice, e la
+          // cucina lavora dal monitor.
+          showToast(`«${dev.name}» non ha stampato: la cucina vede le comande sul monitor`);
+        },
+      });
+    }
     setCart({ tableId: null, items: [] });
     setArticoloSheet(null);
-    showToast(`✓ ${count} articol${count===1?'o':'i'} inviati · Tavolo ${tableId}`);
+    const dove = accodate.length ? ` · comand${accodate.length === 1 ? 'a' : 'e'} a ${accodate.map(a => a.stampante.name).join(', ')}` : '';
+    showToast(`✓ ${count} articol${count===1?'o':'i'} inviat${count===1?'o':'i'} · Tavolo ${tableId}${dove}`);
   }
 
   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
@@ -590,6 +618,9 @@ function SalaAperiModal({ tavolo, onConfirm, onClose }) {
 const salaRoot = ReactDOM.createRoot(document.getElementById('root'));
 salaRoot.render(
   <div className="frame" data-screen-label="Sala">
+    {/* Le fasce della stampa (P-128): qui più che altrove, perché è da questa
+        schermata che partono le comande e gli incassi. */}
+    {window.PnStampaFasce && <window.PnStampaFasce/>}
     <SalaApp/>
   </div>
 );

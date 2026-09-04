@@ -124,8 +124,8 @@ const CC_SCARTI = {
   dispositivo: {
     motivo:   'Il punto cassa non risulta censito all\'Agenzia',
     causa:    'Il dispositivo che ha emesso il documento non è fra quelli registrati per il locale: succede quando si incassa da un POS aggiunto da poco e non ancora abbinato.',
-    azione:   'Abbina il dispositivo nella pagina POS e integrazioni, poi ritrasmetti il documento.',
-    vaiLabel: 'Apri Impostazioni → POS e integrazioni',
+    azione:   'Abbina il dispositivo nella pagina Integrazioni, poi ritrasmetti il documento.',
+    vaiLabel: 'Apri Impostazioni → Integrazioni',
     vaiHref:  'byup Impostazioni.html?page=integrazioni',
   },
   // La password Fisconline dell'esercente scade ogni novanta giorni (PT §12.2):
