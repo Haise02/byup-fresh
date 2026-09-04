@@ -2334,6 +2334,120 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
   );
 }
 
+// ─── Quando lo ritira: giorni in striscia, ore in tendina nostra ───────────
+// `<input type="date">` e `<input type="time">` portano dentro il gestionale i
+// controlli del sistema operativo — il calendario di Chrome, la colonnina di
+// numeri di macOS — con la loro tipografia e la loro evidenziazione: un corpo
+// estraneo, e per giunta col formato del sistema (04/09/2026 o 09/04/2026, a
+// seconda della lingua del computer). Qui i giorni sono la striscia di chip
+// della prenotazione — oggi, domani, e i prossimi — e l'ora è una tendina
+// nostra, con gli stessi raggi, la stessa ombra e lo stesso rosa sul
+// selezionato delle altre della schermata. Le ore proposte sono i quarti d'ora
+// da adesso in poi: chi ritira alle 19:07 non esiste.
+const svIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+function SaQuandoRitiro({ data, ora, onData, onOra }) {
+  const [aperto, setAperto] = React.useState(false);
+  const box = React.useRef(null);
+  React.useEffect(() => {
+    if (!aperto) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setAperto(false); };
+    document.addEventListener('mousedown', fuori);
+    return () => document.removeEventListener('mousedown', fuori);
+  }, [aperto]);
+
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const giorni = Array.from({ length: 5 }, (_, i) => { const d = new Date(oggi); d.setDate(d.getDate() + i); return d; });
+  const etichetta = (d, i) => i === 0 ? 'Oggi' : i === 1 ? 'Domani'
+    : d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' }).replace('.', '');
+  // Gli orari: quarti d'ora, da adesso in poi se il ritiro è oggi, dalle otto
+  // del mattino se è un altro giorno.
+  const slot = React.useMemo(() => {
+    const out = [];
+    const dOggi = data === svIso(oggi);
+    let m = 8 * 60;
+    if (dOggi) {
+      const now = new Date();
+      m = Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / 15) * 15;
+    }
+    for (; m < 24 * 60; m += 15) out.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
+    return out;
+  }, [data]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* I giorni, in striscia: uno scelto col contorno, come nella
+          prenotazione — la striscia è un selettore, non una CTA. */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {giorni.map((d, i) => {
+          const v = svIso(d);
+          const on = data === v;
+          return (
+            <button key={v} onClick={() => onData(v)} className="pn-btn-feedback" style={{
+              flex: '1 1 0', padding: '8px 0', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+              border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+              background: on ? PN.PINK_SOFT : PN.WHITE,
+              color: on ? PN.PINK_DARK : PN.TEXT,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+              transition: 'background 140ms ease-out, border-color 140ms ease-out',
+            }}>
+              <span style={{ fontSize: 13.5, fontWeight: 700, textTransform: 'capitalize' }}>{etichetta(d, i)}</span>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: on ? PN.PINK_DARK : PN.MUTED, fontVariantNumeric: 'tabular-nums' }}>
+                {d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).replace('.', '')}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* L'ora: tendina nostra, con «senza orario» in cima perché è il caso
+          più frequente e non un ripiego. */}
+      <div ref={box} style={{ position: 'relative' }}>
+        <button type="button" onClick={() => setAperto(o => !o)} aria-haspopup="listbox" aria-expanded={aperto}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+            padding: '12px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
+            border: `1px solid ${aperto ? PN.TEXT : PN.BORDER}`, background: PN.WHITE,
+            fontSize: 16, color: ora ? PN.TEXT : PN.MUTED,
+          }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: PN.MUTED }}>
+            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+          </svg>
+          <span style={{ flex: 1, minWidth: 0, fontWeight: ora ? 600 : 500, fontVariantNumeric: 'tabular-nums' }}>
+            {ora || 'Senza orario'}
+          </span>
+          <span style={{ display: 'inline-flex', color: PN.MUTED, flexShrink: 0, transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </button>
+        {aperto && (
+          <div role="listbox" className="pn-scroll" style={{
+            position: 'absolute', left: 0, right: 0, top: 'calc(100% + 6px)', zIndex: 30,
+            background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+            boxShadow: '0 14px 38px rgba(15,17,21,0.16)', padding: 6, maxHeight: 240, overflowY: 'auto',
+          }}>
+            {[null, ...slot].map(v => {
+              const on = (v || null) === (ora || null);
+              return (
+                <div key={v || 'nessuna'} role="option" aria-selected={on}
+                  onClick={() => { onOra(v); setAperto(false); }}
+                  onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+                  onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+                  style={{
+                    padding: '9px 12px', borderRadius: 9, cursor: 'pointer',
+                    background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.PINK_DARK : PN.TEXT,
+                    fontSize: 15, fontWeight: on ? 700 : 600, fontVariantNumeric: 'tabular-nums',
+                    transition: 'background 120ms ease-out',
+                  }}>{v || 'Senza orario'}</div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── «Metti il conto da parte» ──────────────────────────────────────────────
 // Tre domande, e sono tre decisioni diverse: chi ritira, a che ora, e se la
 // cucina deve muoversi adesso. La terza è l'unica che costa — un conto non
@@ -2346,10 +2460,7 @@ function SaParcheggiaModal({ preparazione, nomeIniziale, onClose, onConferma }) 
   // La data parte da oggi — è il caso di quasi tutti i conti messi da parte —
   // e si sposta quando serve; l'ora invece nasce vuota: un orario proposto è
   // un orario che finisce in coda senza che nessuno l'abbia detto.
-  const [data, setData] = React.useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const [data, setData] = React.useState(() => svIso(new Date()));
   const [ritiro, setRitiro] = React.useState('');
   const [inCucina, setInCucina] = React.useState(false);
   const ref = React.useRef(null);
@@ -2387,14 +2498,9 @@ function SaParcheggiaModal({ preparazione, nomeIniziale, onClose, onConferma }) 
 
           <div style={campo}>
             <label style={MODAL_LABEL}>Quando lo ritira</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <input type="date" value={data} onChange={e => setData(e.target.value)}
-                style={{ ...MODAL_INPUT, width: 180, fontVariantNumeric: 'tabular-nums' }}/>
-              <input type="time" value={ritiro} onChange={e => setRitiro(e.target.value)}
-                style={{ ...MODAL_INPUT, width: 150, fontVariantNumeric: 'tabular-nums' }}/>
-            </div>
+            <SaQuandoRitiro data={data} ora={ritiro} onData={setData} onOra={(v) => setRitiro(v || '')}/>
             <div style={{ fontSize: 13, color: PN.MUTED, lineHeight: 1.45 }}>
-              La data è quella di oggi e si cambia. L'ora, se non la sai, lascia vuoto: in coda il conto dirà «senza orario», che è la verità.
+              Il giorno parte da oggi. L'ora, se non la sai, lasciala com'è: in coda il conto dirà «senza orario», che è la verità.
             </div>
           </div>
 
