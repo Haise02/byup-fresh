@@ -62,84 +62,37 @@ function ImpStampantiBlocco() {
     window.byupWriteStampanti(next); setReg(window.byupReadStampanti());
   };
 
-  const Pill = ({ children, tono }) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 9px', borderRadius: 999, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
-      background: tono === 'ok' ? PN.GREEN_SOFT : tono === 'attesa' ? PN.AMBER_SOFT : tono === 'errore' ? '#FEF2F2' : '#F4F5F7',
-      color: tono === 'ok' ? '#065F46' : tono === 'attesa' ? '#8A5A00' : tono === 'errore' ? '#991B1B' : PN.MUTED }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }}/>{children}</span>
-  );
-  const fmt = (iso) => iso ? new Date(iso).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : null;
-  const relativo = (iso) => {
-    if (!iso) return 'mai';
-    const s = Math.round((Date.now() - new Date(iso).getTime()) / 1000);
-    if (s < 60) return `${s} s fa`;
-    const m = Math.round(s / 60); if (m < 60) return `${m} min fa`;
-    const h = Math.round(m / 60); if (h < 24) return `${h} ${h === 1 ? 'ora' : 'ore'} fa`;
-    return fmt(iso);
-  };
 
-  // Una riga di stampante: che cos'è, com'è collegata, che cosa riceve.
-  const Riga = ({ d }) => {
-    const browser = d.connection_mode === 'browser';
-    const st = window.PN_PRINT_STATI[d.connection_status] || window.PN_PRINT_STATI.never_configured;
-    const proto = window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {};
-    const marca = (window.PN_PRINTER_MODELLI[d.printer_vendor] || {}).nome || '';
-    const posAssociati = (d.pos_ids || []).map(id => (window.byupReadPosCensimento ? byupReadPosCensimento() : []).find(p => p.id === id)).filter(Boolean);
-    return (
-      <div data-stampante={d.id} data-uso={uso(d)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 11, border: `1px solid ${PN.BORDER_SOFT}`, background: browser ? '#FAFBFC' : PN.WHITE, flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 260px', minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: PN.TEXT }}>
-            {d.name} <span style={{ fontWeight: 500, color: PN.MUTED }}>· {marca ? `${marca} ` : ''}{d.device_model}</span>
-          </div>
-          <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 2, lineHeight: 1.5 }}>
-            {browser
-              ? 'Dal browser di questa postazione, sulla stampante che scegli nella finestra di stampa — di qualunque marca.'
-              : <>{proto.label} · ultimo contatto {relativo(d.connection_checked_at)}</>}
-            {uso(d) === 'comande'
-              ? ((d.routing || []).length ? ` · comande: ${d.routing.map(window.pnRoutingLabel).join(', ')}` : ' · nessuna categoria instradata')
-              : (posAssociati.length ? ` · POS: ${posAssociati.map(p => p.name).join(', ')}` : '')}
-          </div>
-          {!browser && (
-            <div style={{ fontSize: 12, color: PN.MUTED, marginTop: 2 }}>
-              {d.last_test_print_at ? <>Ultima prova {fmt(d.last_test_print_at)} · {d.last_test_print_result === 'ok' ? 'riuscita' : 'fallita'}</> : 'Nessuna prova di stampa'}
-            </div>
-          )}
-        </div>
-        {browser ? <Pill tono="ok">Sempre disponibile</Pill> : <Pill tono={st.tono}>{st.label}</Pill>}
-        <ImpButton variant="secondary" disabled={inProva === d.id} onClick={() => prova(d)}>{inProva === d.id ? 'In coda…' : 'Prova di stampa'}</ImpButton>
-        {!d.fisso && <button onClick={() => scollega(d)} className="pn-btn-feedback" title="Scollega" style={{ background: 'transparent', border: 'none', color: PN.MUTED, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', textDecoration: 'underline' }}>Scollega</button>}
-      </div>
-    );
-  };
-  const Gruppo = ({ titolo, nota, righe }) => (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: PN.MUTED }}>{titolo}</span>
-        <span style={{ fontSize: 12.5, color: PN.MUTED_SOFT }}>{nota}</span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{righe}</div>
-    </div>
-  );
+  // Le tessere hanno la misura delle altre della pagina — Stripe, Glovo,
+  // Zapier: stessa griglia a tre colonne, stessa altezza minima, logo in alto
+  // e azione appoggiata in fondo. Una tessera per stampante collegata, più la
+  // tessera d'ingresso che apre il popup.
+  const griglia = { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 };
 
   return (
     <ImpCard title="Stampanti"
-      sub="Le comande escono dalle stampanti che interrogano il nostro server o compaiono sul monitor di cucina; i documenti per il cliente dal browser della postazione o da una stampante collegata."
-      action={<ImpButton onClick={() => setCollega(true)}>Cerca stampante</ImpButton>}>
-
-      <Gruppo titolo="Comande" nota={comande.length ? 'ricevono le categorie che assegni' : ''}
-        righe={comande.length
-          ? comande.map(d => <Riga key={d.id} d={d}/>)
-          : [<div key="v" style={{ padding: '16px', borderRadius: 11, border: `1px dashed ${PN.BORDER}`, background: '#FAFBFC', fontSize: 14, color: PN.MUTED, lineHeight: 1.5 }}>
-              Nessuna stampante per le comande: escono sul monitor di cucina. Con «Cerca stampante» ne aggiungi una.
-            </div>]}/>
-
-      <Gruppo titolo="Documenti per il cliente" nota="documento commerciale e scontrino di cortesia"
-        righe={documenti.map(d => <Riga key={d.id} d={d}/>)}/>
+      sub="Le comande escono dalle stampanti che interrogano il nostro server o compaiono sul monitor di cucina; i documenti per il cliente dal browser della postazione o da una stampante collegata.">
+      <div style={griglia}>
+        {reg.devices.map(d => <TesseraStampante key={d.id} d={d} uso={uso(d)} inProva={inProva === d.id} onProva={() => prova(d)} onScollega={() => scollega(d)}/>)}
+        {/* La tessera d'ingresso: stessa misura, tratteggiata perché è
+            un'azione e non una cosa collegata. */}
+        <button data-aggiungi-stampante onClick={() => setCollega(true)} className="pn-btn-feedback" style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+          minHeight: 236, padding: 18, borderRadius: 16, cursor: 'pointer', fontFamily: 'inherit',
+          border: `1.5px dashed ${PN.BORDER}`, background: '#FAFBFC', textAlign: 'center',
+        }}>
+          <div style={{ width: 54, height: 54, borderRadius: 14, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, display: 'grid', placeItems: 'center', fontSize: 24, color: PN.MUTED }}>+</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2 }}>Aggiungi stampante</div>
+          <div style={{ fontSize: 14, color: PN.MUTED, lineHeight: 1.45, maxWidth: 220 }}>
+            Cerchiamo quelle che si sono presentate al nostro server, e la stampante di questa postazione.
+          </div>
+        </button>
+      </div>
 
       {/* Da due stampanti per i documenti in su: quale cassa stampa dove. */}
       {documenti.length > 1 && <ImpPosStampanti documenti={documenti} onFatto={avvisa}/>}
 
-      <div style={{ marginTop: 4, padding: '12px 14px', borderRadius: 11, border: `1px solid ${PN.BORDER_SOFT}` }}>
+      <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 11, border: `1px solid ${PN.BORDER_SOFT}` }}>
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: comande.length ? 'pointer' : 'not-allowed', opacity: comande.length ? 1 : 0.6 }}>
           <input type="checkbox" data-auto-print checked={!!reg.venue_delivery_integrations.auto_print_courtesy} disabled={!comande.length}
             onChange={e => autoPrint(e.target.checked)} style={{ marginTop: 3, accentColor: PN.PINK_DARK }}/>
@@ -161,6 +114,67 @@ function ImpStampantiBlocco() {
         <div style={{ position: 'fixed', bottom: 84, left: '50%', transform: 'translateX(-50%)', background: PN.TEXT, color: '#fff', padding: '10px 16px', borderRadius: 999, fontSize: 13.5, fontWeight: 600, zIndex: 90, boxShadow: '0 10px 30px rgba(0,0,0,0.25)' }}>{toast}</div>
       )}
     </ImpCard>
+  );
+}
+
+// ─── La tessera di una stampante ────────────────────────────────────────────
+// Stessa cassa delle tessere del catalogo: logo in alto, nome, che cosa fa,
+// lo stato in fondo e l'azione appoggiata al bordo inferiore, così i fondi si
+// allineano anche quando una descrizione va a capo e l'altra no.
+function TesseraStampante({ d, uso, inProva, onProva, onScollega }) {
+  const browser = d.connection_mode === 'browser';
+  const st = (window.PN_PRINT_STATI || {})[d.connection_status] || {};
+  const proto = (window.PN_PRINTER_PROTOCOLLI || {})[d.printer_protocol] || {};
+  const marca = ((window.PN_PRINTER_MODELLI || {})[d.printer_vendor] || {}).nome || '';
+  const posAssociati = (d.pos_ids || []).map(id => (window.byupReadPosCensimento ? byupReadPosCensimento() : []).find(p => p.id === id)).filter(Boolean);
+  const comande = uso === 'comande';
+  const tono = browser ? 'ok' : (st.tono || 'muto');
+  const colore = tono === 'ok' ? PN.GREEN : tono === 'attesa' ? PN.AMBER : tono === 'errore' ? PN.RED : PN.MUTED;
+  const fmt = (iso) => iso ? new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) : null;
+  return (
+    <div data-stampante={d.id} data-uso={uso} style={{
+      display: 'flex', flexDirection: 'column', minHeight: 236, padding: 18, borderRadius: 16,
+      border: `1.5px solid ${browser ? PN.BORDER_SOFT : tono === 'ok' ? PN.GREEN_SOFT : PN.BORDER_SOFT}`,
+      background: browser ? '#FAFBFC' : tono === 'ok' ? '#F0FDF4' : PN.WHITE,
+    }}>
+      <div style={{ width: 54, height: 54, borderRadius: 14, background: browser ? PN.WHITE : '#1F2937', border: browser ? `1px solid ${PN.BORDER}` : 'none', display: 'grid', placeItems: 'center', fontSize: 24, flexShrink: 0 }}>
+        {browser ? '💻' : '🖨'}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginTop: 14 }}>
+        <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.2 }}>{d.name}</span>
+        <span style={{
+          fontSize: 11, fontWeight: 800, letterSpacing: 0.4, padding: '1px 6px', borderRadius: 3,
+          background: comande ? '#EEF2FF' : PN.PINK_SOFT, color: comande ? '#3730A3' : PN.PINK_DARK,
+        }}>{comande ? 'COMANDE' : 'DOCUMENTI'}</span>
+      </div>
+      <div style={{ fontSize: 14.5, color: PN.MUTED, marginTop: 4, lineHeight: 1.45 }}>
+        {marca ? `${marca} ` : ''}{d.device_model}
+      </div>
+
+      <div style={{ marginTop: 'auto', paddingTop: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, fontSize: 13.5, fontWeight: 600, color: colore }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: colore, flexShrink: 0, alignSelf: 'center' }}/>
+          <span style={{ flexShrink: 0 }}>{browser ? 'Sempre disponibile' : st.label}</span>
+          {!browser && d.last_test_print_at && <span style={{ color: PN.MUTED, fontWeight: 500 }}>· prova {fmt(d.last_test_print_at)}</span>}
+        </div>
+        <div style={{ fontSize: 12.5, color: PN.MUTED, marginTop: 4, lineHeight: 1.4, minHeight: 32 }}>
+          {comande
+            ? ((d.routing || []).length ? `${proto.label} · ${d.routing.map(window.pnRoutingLabel).join(', ')}` : `${proto.label} · nessuna categoria instradata`)
+            : (posAssociati.length ? `POS: ${posAssociati.map(p => p.name).join(', ')}` : (browser ? 'Dal browser, sulla stampante che scegli nella finestra di stampa' : proto.label))}
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <ImpButton variant="ghost" disabled={inProva} onClick={onProva} style={{ width: '100%', justifyContent: 'center', padding: '9px 14px', fontSize: 14.5 }}>
+            {inProva ? 'In coda…' : 'Prova di stampa'}
+          </ImpButton>
+          {!d.fisso && (
+            <div style={{ marginTop: 8, textAlign: 'center' }}>
+              <button onClick={onScollega} className="pn-btn-feedback" style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: PN.MUTED, textDecoration: 'underline', textUnderlineOffset: 3 }}>Scollega</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
