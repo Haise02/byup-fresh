@@ -401,7 +401,7 @@ function posFoglio(r) {
 }
 
 // Quando non resta niente da fare la card lo dice una volta sola, in calma.
-const POS_TUTTO_OK = 'Tutti gli strumenti sono dichiarati all\'Agenzia. Se ne colleghi uno nuovo, o ne scolleghi uno, te lo diciamo qui.';
+const POS_TUTTO_OK = 'Tutti gli strumenti sono dichiarati all\'Agenzia.';
 
 const POS_TONI = {
   ok:      { colore: PN.GREEN, sfondo: PN.GREEN_SOFT, bordo: PN.GREEN_SOFT },
@@ -588,7 +588,7 @@ function PosCensimentoCard() {
   return (
     <ImpCard anchor="pos-censimento"
       title="Collegamento POS all'Agenzia delle Entrate"
-      sub="Ogni strumento con cui incassi va collegato, dal tuo accesso al portale, alla procedura con cui Byup trasmette i tuoi scontrini. Byup non può farlo al posto tuo: prepara i dati esatti da incollare, i passi in ordine e il promemoria. Tu dichiari di averlo fatto.">
+      sub="Ogni strumento con cui incassi va collegato. La finestra va dal 6 all'ultimo giorno del secondo mese successivo a quello in cui lo strumento si attiva, e si riapre a ogni variazione.">
       {striscia && (
         <div style={{
           display:'flex', alignItems:'center', gap: 12, padding: '12px 14px', borderRadius: 11, marginBottom: 14,
@@ -647,9 +647,6 @@ function PosCensimentoCard() {
           )}
         </div>
       )}
-      <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 12, lineHeight: 1.45 }}>
-        La finestra va dal 6 all'ultimo giorno del secondo mese successivo a quello in cui lo strumento si attiva, e si riapre a ogni variazione: un lettore che cambia, uno che scolleghi. Il POS virtuale nasce col collegamento a Stripe; un lettore nasce con ogni smartphone collegato a Byup Staff.
-      </div>
     </ImpCard>
   );
 }
