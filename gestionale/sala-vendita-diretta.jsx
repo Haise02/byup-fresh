@@ -2348,6 +2348,13 @@ const svIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, 
 
 function SaQuandoRitiro({ data, ora, onData, onOra }) {
   const [aperto, setAperto] = React.useState(false);
+  const oggiIso = svIso(new Date());
+  // La striscia dei giorni sta chiusa: un conto messo da parte si ritira oggi
+  // in più del novantanove per cento dei casi, e una fila di cinque bottoni per
+  // quell'uno per cento ruba lo sguardo all'ora, che è la cosa che si legge
+  // davvero. Chi deve spostarlo apre «Cambia giorno»; se il giorno è già un
+  // altro, la striscia parte aperta perché lì la scelta è viva.
+  const [giorniAperti, setGiorniAperti] = React.useState(data !== oggiIso);
   const box = React.useRef(null);
   React.useEffect(() => {
     if (!aperto) return;
@@ -2358,15 +2365,21 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
 
   const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
   const giorni = Array.from({ length: 5 }, (_, i) => { const d = new Date(oggi); d.setDate(d.getDate() + i); return d; });
+  // «dom 6», non «Dom 6»: la maiuscola la mette chi la mostra, e solo sulla
+  // prima lettera — capitalizzare tutta la stringa dava «Oggi, 4 Set».
+  const maiuscola = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   const etichetta = (d, i) => i === 0 ? 'Oggi' : i === 1 ? 'Domani'
-    : d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' }).replace('.', '');
+    : maiuscola(d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' }).replace('.', ''));
+  const giornoScelto = giorni.findIndex(d => svIso(d) === data);
+  const giornoLabel = giornoScelto >= 0
+    ? `${etichetta(giorni[giornoScelto], giornoScelto)}, ${giorni[giornoScelto].toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).replace('.', '')}`
+    : svGiornoBreve(data);
   // Gli orari: quarti d'ora, da adesso in poi se il ritiro è oggi, dalle otto
   // del mattino se è un altro giorno.
   const slot = React.useMemo(() => {
     const out = [];
-    const dOggi = data === svIso(oggi);
     let m = 8 * 60;
-    if (dOggi) {
+    if (data === oggiIso) {
       const now = new Date();
       m = Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / 15) * 15;
     }
@@ -2375,49 +2388,38 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
   }, [data]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {/* I giorni, in striscia: uno scelto col contorno, come nella
-          prenotazione — la striscia è un selettore, non una CTA. */}
-      <div style={{ display: 'flex', gap: 6 }}>
-        {giorni.map((d, i) => {
-          const v = svIso(d);
-          const on = data === v;
-          return (
-            <button key={v} onClick={() => onData(v)} className="pn-btn-feedback" style={{
-              flex: '1 1 0', padding: '8px 0', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
-              border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
-              background: on ? PN.PINK_SOFT : PN.WHITE,
-              color: on ? PN.PINK_DARK : PN.TEXT,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              transition: 'background 140ms ease-out, border-color 140ms ease-out',
-            }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, textTransform: 'capitalize' }}>{etichetta(d, i)}</span>
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: on ? PN.PINK_DARK : PN.MUTED, fontVariantNumeric: 'tabular-nums' }}>
-                {d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).replace('.', '')}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* L'ora: tendina nostra, con «senza orario» in cima perché è il caso
-          più frequente e non un ripiego. */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* L'ORA È LA COSA CHE SI LEGGE: è quella che il cliente dice, quella
+          che finisce sulla card della coda e quella che si cerca quando
+          qualcuno si presenta al banco. Cifre grandi, e quando c'è si accende
+          del rosa dei selezionati — così a colpo d'occhio si vede se il conto
+          ha un'ora o no. «Senza orario» resta in cima alla tendina: è il caso
+          più frequente, non un ripiego. */}
       <div ref={box} style={{ position: 'relative' }}>
         <button type="button" onClick={() => setAperto(o => !o)} aria-haspopup="listbox" aria-expanded={aperto}
           style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
-            padding: '12px 14px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit',
-            border: `1px solid ${aperto ? PN.TEXT : PN.BORDER}`, background: PN.WHITE,
-            fontSize: 16, color: ora ? PN.TEXT : PN.MUTED,
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+            padding: '14px 16px', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit',
+            border: `1.5px solid ${aperto ? PN.TEXT : ora ? PN.PINK : PN.BORDER}`,
+            background: ora ? PN.PINK_SOFT : PN.WHITE,
           }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: PN.MUTED }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: ora ? PN.PINK_DARK : PN.MUTED }}>
             <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
           </svg>
-          <span style={{ flex: 1, minWidth: 0, fontWeight: ora ? 600 : 500, fontVariantNumeric: 'tabular-nums' }}>
-            {ora || 'Senza orario'}
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{
+              display: 'block', fontSize: 11.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase',
+              color: ora ? PN.PINK_DARK : PN.MUTED_SOFT,
+            }}>Ora del ritiro</span>
+            <span style={{
+              display: 'block', marginTop: 1,
+              fontSize: ora ? 28 : 17, fontWeight: ora ? 800 : 600, lineHeight: 1.15,
+              letterSpacing: ora ? -0.6 : 0, fontVariantNumeric: 'tabular-nums',
+              color: ora ? PN.TEXT : PN.MUTED,
+            }}>{ora || 'Senza orario'}</span>
           </span>
-          <span style={{ display: 'inline-flex', color: PN.MUTED, flexShrink: 0, transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <span style={{ display: 'inline-flex', color: ora ? PN.PINK_DARK : PN.MUTED, flexShrink: 0, transform: aperto ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease-out' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
           </span>
         </button>
         {aperto && (
@@ -2434,9 +2436,10 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
                   onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
                   onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
                   style={{
-                    padding: '9px 12px', borderRadius: 9, cursor: 'pointer',
+                    padding: '10px 12px', borderRadius: 9, cursor: 'pointer',
                     background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.PINK_DARK : PN.TEXT,
-                    fontSize: 15, fontWeight: on ? 700 : 600, fontVariantNumeric: 'tabular-nums',
+                    fontSize: v ? 17 : 15, fontWeight: on ? 800 : 600, fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: v ? -0.2 : 0,
                     transition: 'background 120ms ease-out',
                   }}>{v || 'Senza orario'}</div>
               );
@@ -2444,6 +2447,39 @@ function SaQuandoRitiro({ data, ora, onData, onOra }) {
           </div>
         )}
       </div>
+
+      {/* IL GIORNO, in una riga sola: dice qual è e offre di cambiarlo. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13.5, color: PN.MUTED }}>
+        <span>Ritiro di <b style={{ color: PN.TEXT, fontWeight: 700 }}>{giornoLabel}</b></span>
+        <button onClick={() => { if (giorniAperti && data !== oggiIso) onData(oggiIso); setGiorniAperti(v => !v); }} style={{
+          background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK, textDecoration: 'underline', textUnderlineOffset: 3,
+        }}>{giorniAperti ? 'Torna a oggi' : 'Cambia giorno'}</button>
+      </div>
+
+      {giorniAperti && (
+        <div style={{ display: 'flex', gap: 6 }}>
+          {giorni.map((d, i) => {
+            const v = svIso(d);
+            const on = data === v;
+            return (
+              <button key={v} onClick={() => onData(v)} className="pn-btn-feedback" style={{
+                flex: '1 1 0', padding: '7px 0', borderRadius: 11, cursor: 'pointer', fontFamily: 'inherit',
+                border: `1.5px solid ${on ? PN.PINK : PN.BORDER}`,
+                background: on ? PN.PINK_SOFT : PN.WHITE,
+                color: on ? PN.PINK_DARK : PN.TEXT,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+                transition: 'background 140ms ease-out, border-color 140ms ease-out',
+              }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700 }}>{etichetta(d, i)}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: on ? PN.PINK_DARK : PN.MUTED, fontVariantNumeric: 'tabular-nums' }}>
+                  {d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }).replace('.', '')}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -2500,7 +2536,7 @@ function SaParcheggiaModal({ preparazione, nomeIniziale, onClose, onConferma }) 
             <label style={MODAL_LABEL}>Quando lo ritira</label>
             <SaQuandoRitiro data={data} ora={ritiro} onData={setData} onOra={(v) => setRitiro(v || '')}/>
             <div style={{ fontSize: 13, color: PN.MUTED, lineHeight: 1.45 }}>
-              Il giorno parte da oggi. L'ora, se non la sai, lasciala com'è: in coda il conto dirà «senza orario», che è la verità.
+              Il giorno parte da oggi. Se l'ora non la sai, lasciala com'è: in coda il conto dirà «senza orario», che è la verità.
             </div>
           </div>
 
