@@ -3886,12 +3886,14 @@ function MCDettagliPiatto({
             {/* La tendina è la nostra (NMSelect), come le altre della pagina:
                 quella di sistema apriva la sua lista, con la sua tipografia e
                 la sua evidenziazione, dentro un pannello che parla un'altra
-                lingua. Ogni voce porta le due aliquote, perché è l'effetto
-                della scelta e si legge scegliendo, non dopo. */}
+                lingua. Le voci portano SOLO il nome (4 settembre 2026): le due
+                aliquote accanto si leggevano come un «10 · 10» che non vuol
+                dire niente, e facevano scegliere la percentuale invece della
+                merce. Che cosa comporta la scelta lo dice l'hint, sotto. */}
             <MCCampo label="Tipologia articolo" hint={window.pnTipologiaSpiegazione ? window.pnTipologiaSpiegazione(tipologiaArticolo) : ''}>
               <NMSelect value={tipologiaArticolo} onChange={setTipologiaArticolo}
                 open={tipologiaOpen} setOpen={setTipologiaOpen}
-                options={(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => ({ value: t.id, label: `${t.label} · ${t.locale.aliquota}% / ${t.asporto.aliquota}%` }))}/>
+                options={(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => ({ value: t.id, label: t.label }))}/>
             </MCCampo>
 
             <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
@@ -5892,7 +5894,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                       resto della pagina, e ogni voce porta le due aliquote. */}
                   <NMSelect value={tipologiaArticolo} onChange={setTipologiaArticolo}
                     open={tipologiaArtOpen} setOpen={setTipologiaArtOpen}
-                    options={(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => ({ value: t.id, label: `${t.label} · ${t.locale.aliquota}% / ${t.asporto.aliquota}%` }))}/>
+                    options={(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => ({ value: t.id, label: t.label }))}/>
                 </ImpField>
               </div>
               {!fromLibrary && (

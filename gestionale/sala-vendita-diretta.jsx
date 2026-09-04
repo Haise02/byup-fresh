@@ -279,6 +279,37 @@ function SalaVenditaDiretta() {
   //
   // La cassa resta libera: chi ha pagato metà si sposta, il prossimo cliente
   // viene servito, e il conto si riprende da "Salda ora" quando torna.
+  // Assegnare un cliente al carrello NON è un'etichetta: è il gesto con cui
+  // l'ordine esce dalla cassa e va in «Da saldare» a suo nome (4 settembre
+  // 2026). È il caso di tutti i giorni — «lo prendo io, pago dopo», «lo ritira
+  // Marta» — e prima non aveva un posto: restava un nome scritto sul carrello,
+  // che al primo cambio di schermata spariva. La cassa si libera subito, e il
+  // conto si riprende da «Da saldare», dove lo si incassa.
+  const assegnaClienteEParcheggia = (nome) => {
+    // Senza righe non c'è niente da mettere da parte: resta un nome sul
+    // carrello, che è quello che serve a chi lo scrive prima di battere.
+    if (!nome || !lines.length) { setTaCliente(nome || null); return; }
+    const numero = numeraOrdine();
+    const now = new Date();
+    const voce = {
+      id: `banco-${numero}`, codice: `#${numero}`,
+      cliente: nome,
+      ritiro: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+      fonte: 'banco', pagato: false, asporto: takeaway, totale: total,
+      banco: takeaway ? null : nuovoNumeroBanco(),
+      codiceRitiro: haPreparazione(lines) ? nuovoCodiceRitiro() : null,
+      items: lines.map(l => ({
+        nome: l.displayName || l.piatto.name, qty: l.qty, prezzo: l.lineTotal,
+        aliquota: l.aliquota, ivaProfilo: l.ivaProfilo,
+      })),
+    };
+    setRitiri(prev => [...prev, voce]);
+    setLines([]);
+    setTakeaway(false);
+    setTaCliente(null);
+    showToast(`${svNomeConto(voce)} in Da saldare · ${svEur(total)}`);
+  };
+
   const parcheggiaConAcconto = (pagamento, totaleConto) => {
     const numero = numeraOrdine();
     const now = new Date();
@@ -608,7 +639,7 @@ function SalaVenditaDiretta() {
         asportoOn={asportoOn}
         onToggleTakeaway={() => setTakeaway(v => !v)}
         cliente={taCliente}
-        onCliente={setTaCliente}
+        onCliente={assegnaClienteEParcheggia}
         total={total}
         totQty={totQty}
         onInc={incLine}
@@ -1381,9 +1412,12 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
 // Il `<select>` di sistema apre la lista del sistema operativo — tipografia
 // sua, evidenziazione sua — dentro una finestra di vetro che parla un'altra
 // lingua; ed è la scelta più delicata della battuta, perché decide l'aliquota.
-// Qui le cinque voci sono un pannello nostro, e ognuna porta a destra
-// l'ALIQUOTA CHE SI APPLICHEREBBE ORA, col modo dell'ordine: si sceglie
-// guardando l'effetto, non il nome.
+// Qui le cinque voci sono un pannello nostro, e portano SOLO il loro nome:
+// la percentuale accanto a ciascuna (4 settembre 2026) faceva scegliere
+// l'aliquota invece della merce — che è l'errore che questa schermata deve
+// impedire — e sulle voci col 10 e il 10 si leggeva come un «10 · 10» senza
+// senso. Che cosa comporta la scelta lo dice la riga sotto la tendina, una
+// volta, con l'aliquota che vale per QUESTO ordine.
 function SaTipologiaSelect({ value, onChange, takeaway }) {
   const [open, setOpen] = React.useState(false);
   const box = React.useRef(null);
@@ -1397,7 +1431,6 @@ function SaTipologiaSelect({ value, onChange, takeaway }) {
   }, [open]);
   const voci = window.PN_TIPOLOGIE_ARTICOLO || [];
   const corrente = window.pnTipologia(value);
-  const aliquota = (t) => (takeaway ? t.asporto : t.locale).aliquota;
   return (
     <div ref={box} style={{position:'relative'}}>
       <button type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}
@@ -1410,10 +1443,6 @@ function SaTipologiaSelect({ value, onChange, takeaway }) {
           fontSize: 16.5, color: PN.TEXT, transition: 'border-color 120ms ease-out',
         }}>
         <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontWeight: 600, fontSize: 15}}>{corrente.label}</span>
-        <span style={{
-          flexShrink: 0, padding: '2px 8px', borderRadius: 6, background: '#F4F5F7',
-          fontSize: 13, fontWeight: 700, color: PN.MUTED, fontVariantNumeric: 'tabular-nums',
-        }}>{aliquota(corrente)}%</span>
         <span style={{display:'inline-flex', color: PN.MUTED, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition:'transform 180ms ease-out'}}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </span>
@@ -1437,11 +1466,6 @@ function SaTipologiaSelect({ value, onChange, takeaway }) {
                   color: on ? PN.PINK_DARK : PN.TEXT, transition:'background 120ms ease-out',
                 }}>
                 <span style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: on ? 700 : 600, lineHeight: 1.3}}>{t.label}</span>
-                <span style={{
-                  flexShrink: 0, padding: '2px 8px', borderRadius: 6, fontVariantNumeric: 'tabular-nums',
-                  background: on ? 'rgba(255,255,255,0.7)' : '#F4F5F7',
-                  fontSize: 13, fontWeight: 700, color: on ? PN.PINK_DARK : PN.MUTED,
-                }}>{aliquota(t)}%</span>
               </div>
             );
           })}
@@ -1454,6 +1478,11 @@ function SaTipologiaSelect({ value, onChange, takeaway }) {
 // La riga fuori menù si riconosce dal piatto che la porta.
 const svRigaCustom = (line) => !!(line && line.piatto && (line.piatto.custom || /^custom_/.test(String(line.piatto.id))));
 
+// Il foglio dell'articolo fuori menù. È il foglio STANDARD del gestionale
+// (MODAL_PANEL: pannello bianco, testata col filetto, corpo, piede coi
+// bottoni), non più un pannello di vetro con le etichette maiuscole e un solo
+// bottone gigante: qui si compila un modulo di tre campi, e i moduli del
+// gestionale si somigliano tutti — in Sala, in Impostazioni e qui.
 function SaCustomModal({ onClose, onConfirm, takeaway, iniziale }) {
   const modifica = !!iniziale;
   const [name, setName] = React.useState(iniziale ? iniziale.name : '');
@@ -1462,88 +1491,56 @@ function SaCustomModal({ onClose, onConfirm, takeaway, iniziale }) {
   const voce = window.pnTipologia(tipologia);
   const profilo = window.pnTipologiaProfilo(tipologia, takeaway);
   const nameRef = React.useRef(null);
-
   React.useEffect(() => { nameRef.current?.focus(); }, []);
 
   const parsedPrice = parseFloat(price.replace(',', '.'));
   // La tipologia ha sempre un valore (la prima è proposta a tutti), quindi
   // non tiene mai spento il pulsante: contano solo nome e prezzo.
   const valid = name.trim().length > 0 && !isNaN(parsedPrice) && parsedPrice > 0;
+  const conferma = () => { if (valid) onConfirm(name.trim(), parsedPrice, voce.id); };
+  const tasto = (e) => { if (e.key === 'Enter' && valid) conferma(); if (e.key === 'Escape') onClose(); };
 
-  const handleConfirm = () => {
-    if (!valid) return;
-    onConfirm(name.trim(), parsedPrice, voce.id);
-  };
-
-  const handleKey = (e) => { if (e.key === 'Enter' && valid) handleConfirm(); if (e.key === 'Escape') onClose(); };
-
-  const inputStyle = {
-    padding: '10px 12px', borderRadius: 10,
-    border: '1px solid rgba(15,17,21,0.14)', outline: 'none',
-    background: 'rgba(255,255,255,0.75)',
-    fontSize: 16.5, fontFamily: 'inherit', color: PN.TEXT,
-    boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
-    transition: 'border-color 120ms ease-out',
-  };
+  const campo = { display: 'flex', flexDirection: 'column', gap: 7 };
 
   return (
     <div onClick={onClose} style={{
       position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)',
-      backdropFilter:'blur(8px)', WebkitBackdropFilter:'blur(8px)',
       display:'grid', placeItems:'center', zIndex: 200, padding: 20,
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        ...PN.GLASS_STRONG,
-        borderRadius: 20,
-        width: 440, maxWidth:'100%',
-        padding: '22px 22px 20px',
-        display:'flex', flexDirection:'column', gap: 18,
-      }}>
-        {/* Header */}
-        <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 10}}>
-          <div>
-            <div style={{fontSize: 19, fontWeight: 700, color: PN.TEXT}}>{modifica ? 'Modifica l\'articolo fuori menù' : 'Articolo fuori menù'}</div>
-            <div style={{fontSize: 15, color: PN.MUTED, marginTop: 2}}>{modifica ? 'Nome, prezzo e tipologia: l\'aliquota si ricalcola' : 'Non è nel menù: nome, prezzo e tipologia'}</div>
+      <div onClick={e => e.stopPropagation()} data-custom-modal style={{ ...MODAL_PANEL, width: 520 }}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>{modifica ? 'Modifica l\'articolo' : 'Articolo fuori menù'}</div>
+          <div style={MODAL_SUB}>
+            {modifica ? 'Nome, prezzo e tipologia: l\'aliquota si ricalcola da sola.' : 'Non è nel menù: dagli un nome, un prezzo e di\' che cos\'è.'}
           </div>
-          <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius:'50%', flexShrink: 0,
-            background:'rgba(255,255,255,0.95)', border:'none', cursor:'pointer',
-            display:'grid', placeItems:'center',
-          }}>
+          <button onClick={onClose} aria-label="Chiudi" style={MODAL_X}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
-        {/* Inputs */}
-        <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
-          <div style={{display:'flex', flexDirection:'column', gap:5}}>
-            <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Nome articolo</label>
-            <input
-              ref={nameRef}
-              value={name} onChange={e => setName(e.target.value)} onKeyDown={handleKey}
-              placeholder="es. Servizio, Acqua del rubinetto…"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = 'rgba(15,17,21,0.45)'}
-              onBlur={e => e.target.style.borderColor = 'rgba(15,17,21,0.14)'}
-            />
+        <div style={{ ...MODAL_BODY, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={campo}>
+            <label style={MODAL_LABEL}>Nome articolo</label>
+            <input ref={nameRef} value={name} onChange={e => setName(e.target.value)} onKeyDown={tasto}
+              placeholder="es. Servizio, Acqua del rubinetto…" style={MODAL_INPUT}/>
           </div>
-          <div style={{display:'flex', flexDirection:'column', gap:5}}>
-            <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Prezzo (€)</label>
-            <input
-              value={price} onChange={e => setPrice(e.target.value)} onKeyDown={handleKey}
-              placeholder="0.00"
-              inputMode="decimal"
-              style={inputStyle}
-              onFocus={e => e.target.style.borderColor = 'rgba(15,17,21,0.45)'}
-              onBlur={e => e.target.style.borderColor = 'rgba(15,17,21,0.14)'}
-            />
+
+          <div style={campo}>
+            <label style={MODAL_LABEL}>Prezzo</label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position:'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 16, color: PN.MUTED, pointerEvents: 'none' }}>€</span>
+              <input value={price} onChange={e => setPrice(e.target.value)} onKeyDown={tasto}
+                placeholder="0,00" inputMode="decimal" style={{ ...MODAL_INPUT, paddingLeft: 30 }}/>
+            </div>
           </div>
-          <div style={{display:'flex', flexDirection:'column', gap:5}}>
-            <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Tipologia articolo</label>
+
+          <div style={campo}>
+            <label style={MODAL_LABEL}>Tipologia articolo</label>
             <SaTipologiaSelect value={voce.id} onChange={setTipologia} takeaway={takeaway}/>
-            {/* La spiegazione della voce scelta: le due aliquote e il
-                fondamento, e in grassetto quella che vale per QUESTO ordine. */}
-            <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>
+            {/* Che cosa comporta la scelta, detto una volta e qui: la
+                spiegazione della voce e l'aliquota che vale per questo
+                ordine, che dipende dal modo di consumo. */}
+            <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
               {window.pnTipologiaSpiegazione(voce.id)}
               <span style={{display:'block', marginTop: 3, color: PN.TEXT, fontWeight: 600}}>
                 {takeaway ? 'Da asporto' : 'Al banco'}: IVA {profilo.aliquota}%
@@ -1552,27 +1549,22 @@ function SaCustomModal({ onClose, onConfirm, takeaway, iniziale }) {
           </div>
         </div>
 
-        {/* Bottone conferma */}
-        <button
-          onClick={handleConfirm}
-          disabled={!valid}
-          style={{
-            padding: '12px 18px', borderRadius: 999,
-            background: valid ? SV_SUNSET_BG : PN.WHITE_FROST,
-            color: valid ? SV_SUNSET_TEXT : PN.MUTED_SOFT,
-            border: `1px solid ${valid ? 'transparent' : PN.BORDER_SOFT_A}`,
-            fontSize: 17.5, fontWeight: 700,
-            cursor: valid ? 'pointer' : 'not-allowed',
-            fontFamily:'inherit',
-            display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10,
-            boxShadow: valid ? SV_SUNSET_SHADOW : 'none',
-            transition: 'box-shadow 180ms ease-out, filter 150ms ease-out',
-          }}
-          onMouseEnter={e => { if (valid) svSunsetHoverIn(e); }}
-          onMouseLeave={svSunsetHoverOut}>
-          <span>{modifica ? 'Aggiorna la riga' : 'Aggiungi al conto'}</span>
-          <span style={{fontSize: 17.5, fontWeight: 700}}>{valid ? `€${parsedPrice.toFixed(2)}` : ''}</span>
-        </button>
+        <div style={{ ...MODAL_FOOT, justifyContent: 'space-between', alignItems: 'center' }}>
+          <button onClick={onClose} className="pn-btn-feedback" style={{
+            padding: '11px 18px', borderRadius: 12, border: `1px solid ${PN.BORDER}`,
+            background: PN.WHITE, color: PN.TEXT, fontSize: 15.5, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}>Annulla</button>
+          <button onClick={conferma} disabled={!valid} className="pn-btn-feedback" style={{
+            padding: '11px 22px', borderRadius: 12, border: 'none',
+            background: valid ? PN.BTN_DARK : '#F4F5F7', color: valid ? PN.WHITE : PN.MUTED_SOFT,
+            fontSize: 15.5, fontWeight: 700, cursor: valid ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+          }}>
+            <span>{modifica ? 'Aggiorna la riga' : 'Aggiungi al conto'}</span>
+            {valid && <span style={{ fontVariantNumeric: 'tabular-nums' }}>€{parsedPrice.toFixed(2)}</span>}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2171,7 +2163,7 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
           caffè al volo nessuno lo chiede, e il conto resta un numero. */}
       {lines.length > 0 && (
         <div style={{padding: '0 14px 12px'}}>
-          <SaClienteBar cliente={cliente} onChange={onCliente}/>
+          <SaClienteBar cliente={cliente} onChange={onCliente} righe={lines.length}/>
         </div>
       )}
 
@@ -2266,10 +2258,13 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
   );
 }
 
-// Cliente dell'asporto: solo un nome, scritto a mano — chi ritira si annuncia
-// col nome al banco, non serve un'anagrafica. La CTA apre il campo, Invio
-// (o Conferma) assegna, Esc annulla.
-function SaClienteBar({ cliente, onChange }) {
+// Il cliente del conto: solo un nome, scritto a mano — chi ritira si annuncia
+// col nome al banco, non serve un'anagrafica. La CTA apre il campo, Invio (o
+// Conferma) assegna, Esc annulla. Assegnare NON è etichettare: con un carrello
+// pieno l'ordine passa in «Da saldare» a quel nome e la cassa si libera. Il
+// riquadro lo dice prima, perché un gesto che sposta un conto non si scopre
+// dopo averlo fatto.
+function SaClienteBar({ cliente, onChange, righe = 0 }) {
   const [editing, setEditing] = React.useState(false);
   const [nome, setNome] = React.useState('');
   const start = () => { setNome(cliente || ''); setEditing(true); };
@@ -2306,7 +2301,9 @@ function SaClienteBar({ cliente, onChange }) {
               {cliente || 'Cliente non assegnato'}
             </span>
             <span style={{display:'block', fontSize: 13, color: PN.MUTED_SOFT, marginTop: 1}}>
-              {cliente ? 'Ritira quest\'ordine' : 'Chi viene a ritirare?'}
+              {cliente ? 'Ritira quest\'ordine'
+                : righe > 0 ? 'Con un nome l\'ordine passa in Da saldare'
+                : 'Chi viene a ritirare?'}
             </span>
           </span>
           {cliente && (
@@ -2323,7 +2320,7 @@ function SaClienteBar({ cliente, onChange }) {
           )}
           <button
             onClick={start}
-            title={cliente ? 'Cambia il cliente dell\'ordine' : 'Assegna un cliente all\'ordine'}
+            title={cliente ? 'Cambia il cliente dell\'ordine' : righe > 0 ? 'Metti l\'ordine in Da saldare a nome di qualcuno' : 'Assegna un cliente all\'ordine'}
             style={ctaStyle}>{cliente ? 'Cambia' : 'Assegna cliente'}</button>
         </>
       ) : (
