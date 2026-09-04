@@ -92,6 +92,16 @@ const PN_PRINT_USI = {
   comande:   { label: 'Comande di cucina', breve: 'Comande',   nota: 'Riceve le comande delle categorie che le assegni. Una categoria sta su una stampante sola.' },
   documenti: { label: 'Documenti per il cliente', breve: 'Documenti', nota: 'Documento commerciale e scontrino di cortesia, dopo il pagamento.' },
 };
+// Perché una stampante da browser non può fare le comande, detto una volta
+// sola e riusato dove serve. Non è una limitazione del prototipo: la stampa
+// dal browser apre la finestra di dialogo del sistema e aspetta che una
+// persona confermi, mentre una comanda deve uscire quando in sala si invia
+// l'ordine e in cucina non c'è nessuno davanti a uno schermo.
+window.PN_COMANDE_PERCHE_NO = 'Per stampare una comanda serve una stampante che interroghi il nostro server: è l\'unica che stampa senza una persona che conferma la finestra di stampa e senza un dispositivo acceso nel locale. Dal browser la comanda uscirebbe solo se qualcuno fosse lì a premere Stampa ogni volta.';
+// I modelli che possono farlo, dagli elenchi ufficiali dei due protocolli.
+window.pnModelliComande = function () {
+  return Object.values(PN_PRINTER_MODELLI).map(m => `${m.nome}: ${m.modelli.join(', ')}`);
+};
 
 const pnIsoFa = (sec) => new Date(Date.now() - sec * 1000).toISOString();
 // Il seme: la base dal browser (sempre) e due stampanti di cucina che
@@ -178,6 +188,20 @@ const pnCandidateSeme = () => [
 ];
 // Le candidate ancora libere: quelle che si sono presentate e che nessuno ha
 // già aggiunto (il confronto è sull'identificativo con cui si annunciano).
+// ─── Le stampanti che il sistema conosce: quello che possiamo sapere ────────
+// Nulla. Nessun browser espone a JavaScript l'elenco delle stampanti che il
+// sistema conosce, ed è deliberato: quell'elenco identifica il dispositivo, e
+// sarebbe materiale da impronta digitale. Non sappiamo nemmeno quale
+// stampante l'utente ha scelto dopo aver premuto Stampa, né se ha stampato o
+// annullato — `onafterprint` scatta in tutti e due i casi. Su iPad c'è un
+// limite in più: la stampa di sistema è AirPrint, e una termica che non lo
+// supporta non compare neanche nell'elenco che il sistema mostra.
+// Quindi per le stampanti da browser l'unica cosa che possiamo sapere è
+// quella che ci dice l'esercente: quale postazione, e come si chiama la
+// stampante che ci sta attaccata. È una DICHIARAZIONE, e resta tale — non la
+// verifichiamo e non possiamo verificarla. Serve a una cosa concreta: dare un
+// nome alle postazioni per poterci associare i POS, quando le stampanti dei
+// documenti sono più d'una.
 window.byupStampantiRilevate = function () {
   const reg = window.byupReadStampanti();
   const prese = new Set(reg.devices.map(d => d.cloud_client_id).filter(Boolean));

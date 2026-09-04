@@ -25,6 +25,28 @@
 const ADE_CRED_SOGLIE = window.PN_ADE_CRED_SOGLIE || [14, 7, 3];
 const adeCredStato = () => window.byupAdeCredStato();
 
+// ─── Il canale fiscale: chi trasmette, e che non si sceglie ────────────────
+function ImpCanaleFiscaleRiga() {
+  return (
+    <div data-canale-fiscale style={{
+      display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+      padding: '12px 16px', marginBottom: 18, borderRadius: 12,
+      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
+    }}>
+      <div style={{ width: 38, height: 38, borderRadius: 10, background: '#0EA5E9', color: PN.WHITE, display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 13, fontWeight: 800 }}>API</div>
+      <div style={{ flex: 1, minWidth: 260 }}>
+        <div style={{ fontSize: 14.5, fontWeight: 700, color: PN.TEXT }}>Scontrini e fatture passano dal canale OpenAPI</div>
+        <div style={{ fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.5 }}>
+          È il canale del prodotto: uno solo, incluso nell'abbonamento, e non c'è nulla da attivare o da scegliere. Trasmette per tuo conto il documento commerciale e la fattura elettronica; quello che serve a lui — le credenziali, la delega, il collegamento dei POS e il codice destinatario — è tutto in questa pagina.
+        </div>
+      </div>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: PN.GREEN_SOFT, color: '#065F46', fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#065F46' }}/>Attivo
+      </span>
+    </div>
+  );
+}
+
 // ─── Chi trasmette: l'incaricato nominato dal locale (P-116 · D-103) ────────
 // Per società ed enti il canale usa le credenziali personali di una persona
 // fisica che il LOCALE nomina incaricata sul portale dell'Agenzia. Qui si
@@ -1320,6 +1342,12 @@ function ImpDatiFiscali() {
       {/* P-116 (D-103): le credenziali sono SEMPRE dell'esercente. Per società
           ed enti si dichiara prima chi è l'incaricato che le detiene, poi c'è
           la stessa scheda delle credenziali che vale per la ditta. */}
+      {/* Il canale, detto una volta e qui: è uscito dal catalogo delle
+          integrazioni (dove non c'era niente da scegliere) e vive dove vive il
+          fiscale. Non è un collegamento da attivare: è incluso, è unico
+          (D-38), e all'esercente serve sapere da chi passano i suoi documenti
+          — lo dice anche il contratto, art. 12. */}
+      <ImpCanaleFiscaleRiga/>
       {!persona && <AdeIncaricatoCard/>}
       <div data-cfg-anchor="ade-credenziali"><AdeCredenzialiCard forma={data.legalForm}/></div>
 

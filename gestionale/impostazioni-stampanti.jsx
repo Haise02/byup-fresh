@@ -235,6 +235,7 @@ function ImpCollegaStampanteModal({ onClose, onCollegata }) {
   const [trovate, setTrovate] = React.useState([]);
   const [scelta, setScelta] = React.useState(null);       // candidata | { browser: true }
   const [nome, setNome] = React.useState('');
+  const [modelloDichiarato, setModelloDichiarato] = React.useState('');
   const [uso, setUso] = React.useState('comande');
   const [sede, setSede] = React.useState('cp');
   const [routing, setRouting] = React.useState(() => new Set());
@@ -263,13 +264,18 @@ function ImpCollegaStampanteModal({ onClose, onCollegata }) {
   };
   const scegli = (c) => {
     setScelta(c);
-    setNome(c.browser ? 'Questa postazione' : (c.nome_proposto || c.device_model));
+    // La postazione parte SENZA nome: è il punto in cui va data un'identità,
+    // e «Questa postazione» già scritto la farebbe passare com'è — con due
+    // casse ci si ritroverebbe due righe uguali e nessun modo di distinguerle.
+    setNome(c.browser ? '' : (c.nome_proposto || c.device_model));
+    setModelloDichiarato('');
     setUso(c.browser ? 'documenti' : 'comande');
     setPasso(2);
   };
   const conferma = () => {
     const d = scelta.browser
-      ? { id: 'prn-' + Date.now().toString(36), type: 'printer', name: nome.trim() || 'Postazione', device_model: 'Stampante di sistema',
+      ? { id: 'prn-' + Date.now().toString(36), type: 'printer', name: nome.trim() || 'Postazione',
+          device_model: modelloDichiarato.trim() ? `${modelloDichiarato.trim()} · dichiarata` : 'Stampante di sistema',
           printer_vendor: 'other', connection_mode: 'browser', printer_protocol: null, cloud_client_id: null,
           connection_status: null, connection_checked_at: null, use: 'documenti', pos_ids: [], routing: [], venue_id: sede,
           last_test_print_at: null, last_test_print_result: null }
@@ -341,7 +347,7 @@ function ImpCollegaStampanteModal({ onClose, onCollegata }) {
                     <div style={{ width: 38, height: 38, borderRadius: 10, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 17 }}>💻</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 15, fontWeight: 700, color: PN.TEXT }}>Questa postazione</div>
-                      <div style={{ fontSize: 12.5, color: PN.MUTED, marginTop: 2 }}>Stampa dal browser sulla stampante che scegli nella finestra di stampa, di qualunque marca. Solo documenti.</div>
+                      <div style={{ fontSize: 12.5, color: PN.MUTED, marginTop: 2 }}>Stampa dal browser sulla stampante che scegli nella finestra di stampa, di qualunque marca. Solo documenti. Aggiungine una per ogni punto cassa: il nome lo dai tu, e serve per dire quale POS stampa dove.</div>
                     </div>
                     <span style={{ fontSize: 13.5, fontWeight: 700, color: PN.PINK_DARK, flexShrink: 0 }}>Aggiungi →</span>
                   </button>
@@ -367,32 +373,63 @@ function ImpCollegaStampanteModal({ onClose, onCollegata }) {
 
           {passo === 2 && scelta && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <ImpField label="Nome della stampante" hint="Come la chiamerete: Cucina, Pizzeria, Bar, Cassa 2…">
+              <ImpField label={scelta.browser ? 'Nome della postazione' : 'Nome della stampante'}
+                hint={scelta.browser
+                  ? 'Come chiamate questo punto: Cassa 1, Bancone, Sala. È il nome che comparirà quando dovrai dire quale POS stampa dove.'
+                  : 'Come la chiamerete: Cucina, Pizzeria, Bar, Cassa 2…'}>
                 <input value={nome} onChange={e => setNome(e.target.value)} style={inp} autoFocus/>
               </ImpField>
 
+              {/* Il modello, solo per le postazioni: non lo sappiamo e non
+                  possiamo saperlo — il browser non espone l'elenco delle
+                  stampanti di sistema, per non dare un'impronta del
+                  dispositivo. Lo si dichiara, e resta una dichiarazione. */}
+              {scelta.browser && (
+                <ImpField label="Che stampante c'è (facoltativo)"
+                  hint="Serve solo a riconoscerla in elenco: non possiamo verificarlo. Il browser non ci dice quali stampanti conosce il tuo dispositivo — è una protezione contro il riconoscimento del dispositivo — né quale scegli nella finestra di stampa.">
+                  <input value={modelloDichiarato} onChange={e => setModelloDichiarato(e.target.value)} placeholder="es. Epson TM-T20III, o lascia vuoto" style={inp}/>
+                </ImpField>
+              )}
+
+              {/* L'uso. Una stampante che NON interroga il nostro server non
+                  può fare le comande, e il bottone lo dice spento invece di
+                  lasciarglielo scoprire dopo: sotto, il perché e i modelli che
+                  possono farlo, perché «non si può» senza «ecco cosa serve» è
+                  un vicolo cieco. */}
               <ImpField label="Che cosa stampa">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {Object.entries(window.PN_PRINT_USI).map(([k, u]) => {
                     const on = uso === k;
-                    // La postazione non stampa comande: la stampa dal browser
-                    // vuole una persona che conferma, e una comanda deve poter
-                    // uscire mentre nessuno guarda uno schermo.
                     const vietato = scelta.browser && k === 'comande';
                     return (
-                      <button key={k} data-uso={k} disabled={vietato} onClick={() => setUso(k)} style={{
-                        padding: '12px 14px', borderRadius: 10, textAlign: 'left', cursor: vietato ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                        border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`, background: on ? '#F4F5F7' : PN.WHITE, opacity: vietato ? 0.5 : 1,
-                      }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: PN.TEXT }}>{u.label}</div>
+                      <button key={k} data-uso={k} disabled={vietato} onClick={() => setUso(k)}
+                        title={vietato ? window.PN_COMANDE_PERCHE_NO : undefined}
+                        style={{
+                          padding: '12px 14px', borderRadius: 10, textAlign: 'left', cursor: vietato ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                          border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`, background: on ? '#F4F5F7' : PN.WHITE, opacity: vietato ? 0.55 : 1,
+                        }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: PN.TEXT }}>{u.label}{vietato ? ' · non da qui' : ''}</div>
                         <div style={{ fontSize: 12.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45 }}>
-                          {vietato ? 'Non da qui: una comanda deve uscire anche quando nessuno guarda uno schermo.' : u.nota}
+                          {vietato ? 'Serve una stampante che interroghi il nostro server.' : u.nota}
                         </div>
                       </button>
                     );
                   })}
                 </div>
               </ImpField>
+
+              {scelta.browser && (
+                <div data-comande-no style={{ marginTop: -6, padding: '11px 13px', borderRadius: 10, background: PN.AMBER_SOFT, border: '1px solid #FCD34D', fontSize: 12.5, color: '#8A5A00', lineHeight: 1.55 }}>
+                  <b>Perché questa stampante non può fare le comande.</b> {window.PN_COMANDE_PERCHE_NO}
+                  <div style={{ marginTop: 6 }}>
+                    <b>I modelli che possono farlo</b>, dagli elenchi ufficiali dei due protocolli:
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                      {(window.pnModelliComande ? window.pnModelliComande() : []).map(r => <li key={r} style={{ marginTop: 2 }}>{r}</li>)}
+                    </ul>
+                    <div style={{ marginTop: 6 }}>Le altre — di qualunque marca — stampano benissimo i documenti da qui.</div>
+                  </div>
+                </div>
+              )}
 
               {!scelta.browser && (
                 <ImpField label="Sede">
