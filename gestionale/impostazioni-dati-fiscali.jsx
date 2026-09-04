@@ -400,6 +400,9 @@ function posFoglio(r) {
   ];
 }
 
+// Quando non resta niente da fare la card lo dice una volta sola, in calma.
+const POS_TUTTO_OK = 'Tutti gli strumenti sono dichiarati all\'Agenzia. Se ne colleghi uno nuovo, o ne scolleghi uno, te lo diciamo qui.';
+
 const POS_TONI = {
   ok:      { colore: PN.GREEN, sfondo: PN.GREEN_SOFT, bordo: PN.GREEN_SOFT },
   lontana: { colore: PN.MUTED, sfondo: '#F1F3F5',     bordo: PN.BORDER_SOFT },
@@ -533,12 +536,24 @@ function PosCensimentoCard() {
   const [aperto, setAperto] = React.useState(() => {
     try { return new URLSearchParams(window.location.search).get('strumento') || null; } catch (e) { return null; }
   });
+  // Dichiarato è chiuso: la riga esce dall'evidenza e si raccoglie nel gruppo
+  // in fondo, che resta contratto finché non lo apri. In evidenza restano
+  // solo gli strumenti che aspettano qualcosa da te. Il gruppo si apre da sé
+  // soltanto se il rimando da fuori punta a uno strumento già dichiarato:
+  // spuntando la comunicazione, invece, la riga deve sparire, non riaprirsi.
+  const pnPosGiaFatto = (l, id) => !!id && l.some(r => r.id === id && r.fiscal_link_status === 'linked');
+  const [mostraFatti, setMostraFatti] = React.useState(() => pnPosGiaFatto(lista, aperto));
   React.useEffect(() => {
     const agg = () => setLista(byupReadPosCensimento());
     window.addEventListener('byup-pos-censimento', agg);
     window.addEventListener('storage', agg);
     // Il rimando da Personale porta anche quale strumento aprire.
-    const go = (e) => { const d = e.detail; if (d && typeof d === 'object' && d.strumento) setAperto(d.strumento); };
+    const go = (e) => {
+      const d = e.detail;
+      if (!d || typeof d !== 'object' || !d.strumento) return;
+      setAperto(d.strumento);
+      if (pnPosGiaFatto(byupReadPosCensimento(), d.strumento)) setMostraFatti(true);
+    };
     window.addEventListener('byup-imp-goto', go);
     return () => { window.removeEventListener('byup-pos-censimento', agg); window.removeEventListener('storage', agg); window.removeEventListener('byup-imp-goto', go); };
   }, []);
@@ -551,7 +566,7 @@ function PosCensimentoCard() {
   // scaduta: «nessuna scadenza» e «tutto dichiarato» li dicono le righe.
   const striscia = fase === 'aperta' || fase === 'ultimi' || fase === 'scaduta';
   const testata = fase === 'ok'
-    ? 'Tutti gli strumenti sono dichiarati all\'Agenzia. Se ne colleghi uno nuovo, o ne scolleghi uno, te lo diciamo qui.'
+    ? POS_TUTTO_OK
     : fase === 'scaduta'
       ? `${scadute.length === 1 ? `${urgente.r.name} ha` : `${scadute.length} strumenti hanno`} la comunicazione in ritardo: la finestra è scaduta, e la comunicazione omessa o tardiva è sanzionata.`
       : fase === 'ultimi'
@@ -559,6 +574,16 @@ function PosCensimentoCard() {
         : fase === 'aperta'
           ? `La finestra è aperta: ${urgente.r.name}, ${urgente.p.testo.toLowerCase()}.`
           : `Nessuna scadenza aperta. ${urgente.r.name}: ${urgente.p.testo.toLowerCase()}.`;
+
+  // I due mucchi: chi aspetta ancora qualcosa da te, e chi è chiuso.
+  const daFare = lista.filter(r => r.fiscal_link_status !== 'linked');
+  const fatti  = lista.filter(r => r.fiscal_link_status === 'linked');
+  const ultimo = fatti
+    .filter(r => r.census_transmitted_at)
+    .sort((a, b) => String(b.census_transmitted_at).localeCompare(String(a.census_transmitted_at)))[0];
+  const ultimaData = ultimo
+    ? new Date(ultimo.census_transmitted_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
 
   return (
     <ImpCard anchor="pos-censimento"
@@ -575,9 +600,53 @@ function PosCensimentoCard() {
           <div style={{ fontSize: 14.5, color: tono.colore, fontWeight: fase === 'scaduta' || fase === 'ultimi' ? 700 : 500, lineHeight: 1.45 }}>{testata}</div>
         </div>
       )}
-      <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
-        {lista.map(r => <PosStrumento key={r.id} r={r} aperto={aperto === r.id} onApri={() => setAperto(aperto === r.id ? null : r.id)}/>)}
-      </div>
+      {daFare.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap: 8 }}>
+          {daFare.map(r => <PosStrumento key={r.id} r={r} aperto={aperto === r.id} onApri={() => setAperto(aperto === r.id ? null : r.id)}/>)}
+        </div>
+      )}
+
+      {/* Niente da fare: una riga calma, e tutto il resto sta nel gruppo. */}
+      {daFare.length === 0 && lista.length > 0 && (
+        <div style={{
+          display:'flex', alignItems:'center', gap: 12, padding: '12px 14px', borderRadius: 11,
+          background: PN.GREEN_SOFT, border: `1px solid ${PN.GREEN_SOFT}`,
+        }}>
+          <div style={{ width: 34, height: 34, borderRadius: 9, background: PN.GREEN, color: PN.WHITE, display:'grid', placeItems:'center', flexShrink: 0 }}>
+            {BuIcons.check({size: 16, color: PN.WHITE})}
+          </div>
+          <div style={{ fontSize: 14.5, color: PN.GREEN, fontWeight: 600, lineHeight: 1.45 }}>{POS_TUTTO_OK}</div>
+        </div>
+      )}
+
+      {/* Il gruppo dei dichiarati: una riga sola, contratta. Si apre se vuoi
+          rivedere un foglio o disfare una dichiarazione. */}
+      {fatti.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          <button onClick={() => setMostraFatti(!mostraFatti)} className="pn-btn-feedback" style={{
+            display:'flex', alignItems:'center', gap: 11, width:'100%', textAlign:'left',
+            padding: '10px 14px', borderRadius: 11, cursor:'pointer', fontFamily:'inherit',
+            background: '#F7F8FA', border: `1px solid ${PN.BORDER_SOFT}`,
+          }}>
+            <span style={{ width: 24, height: 24, borderRadius: 999, flexShrink: 0, background: PN.GREEN_SOFT, color: PN.GREEN, display:'grid', placeItems:'center' }}>
+              {BuIcons.check({size: 13, color:'currentColor'})}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: PN.TEXT }}>
+              {fatti.length === 1 ? '1 strumento già dichiarato' : `${fatti.length} strumenti già dichiarati`}
+              {ultimaData && <span style={{ fontWeight: 500, color: PN.MUTED }}> · {fatti.length === 1 ? 'il' : "l'ultimo il"} {ultimaData}</span>}
+            </span>
+            <span style={{ fontSize: 13.5, fontWeight: 600, color: PN.PINK_DARK, flexShrink: 0 }}>{mostraFatti ? 'Nascondi' : 'Mostra'}</span>
+            <span style={{ display:'inline-flex', color: PN.MUTED, flexShrink: 0, transform: mostraFatti ? 'rotate(180deg)' : 'none', transition:'transform .16s' }}>
+              {BuIcons.chevronDown({size: 13, color:'currentColor'})}
+            </span>
+          </button>
+          {mostraFatti && (
+            <div style={{ display:'flex', flexDirection:'column', gap: 8, marginTop: 8 }}>
+              {fatti.map(r => <PosStrumento key={r.id} r={r} aperto={aperto === r.id} onApri={() => setAperto(aperto === r.id ? null : r.id)}/>)}
+            </div>
+          )}
+        </div>
+      )}
       <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 12, lineHeight: 1.45 }}>
         La finestra va dal 6 all'ultimo giorno del secondo mese successivo a quello in cui lo strumento si attiva, e si riapre a ogni variazione: un lettore che cambia, uno che scolleghi. Il POS virtuale nasce col collegamento a Stripe; un lettore nasce con ogni smartphone collegato a Byup Staff.
       </div>
