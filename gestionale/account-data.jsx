@@ -36,6 +36,10 @@ const ACC_PIANI = [
     supporto: 'Chat, tutorial, ticket email',
     menuShort: '1', staffShort: '1',
     supPhone: false, supCallback: false, supPriority: false,
+    // Byup AI — l'assistente che risponde in italiano e agisce sul gestionale
+    // (Byuppino in Panoramica, il pulsante in ogni schermata): sta su Plus e
+    // Business, e la tabella di confronto legge questo flag.
+    ai: false,
     feat: [
       '1 menu digitale',
       '1 membro dello staff',
@@ -51,6 +55,7 @@ const ACC_PIANI = [
     supporto: 'Chat, tutorial, ticket email',
     menuShort: 'Fino a 3', staffShort: 'Fino a 3',
     supPhone: false, supCallback: false, supPriority: false,
+    ai: false,
     feat: [
       'Fino a 3 menu digitali',
       'Fino a 3 membri dello staff',
@@ -70,7 +75,9 @@ const ACC_PIANI = [
     // Business: nella tabella di confronto vanno scritti, non spuntati.
     supPhone: true, supCallback: true, supPriority: false,
     supOrariShort: 'Lun–Ven 12–16 / 18–22', supSlaShort: 'entro 2 ore',
+    ai: true,
     feat: [
+      'Byup AI: chiedi in italiano, lui agisce sul gestionale',
       'Menu digitali illimitati',
       'Membri dello staff illimitati',
       'Supporto telefonico Lun–Ven (12–16, 18–22) · richiamata entro 2 ore',
@@ -86,7 +93,9 @@ const ACC_PIANI = [
     menuShort: 'Illimitati', staffShort: 'Illimitati',
     supPhone: true, supCallback: true, supPriority: true,
     supOrariShort: 'H24 · 7 su 7', supSlaShort: 'entro 1 ora',
+    ai: true,
     feat: [
+      'Byup AI: chiedi in italiano, lui agisce sul gestionale',
       'Menu digitali illimitati',
       'Membri dello staff illimitati',
       'Supporto telefonico H24/7 · richiamata entro 1 ora · canale prioritario',

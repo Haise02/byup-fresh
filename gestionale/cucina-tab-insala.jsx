@@ -887,8 +887,14 @@ const lateGlow = u.tone === 'late';
   const C = dark ? KDS_C : KDS_CL;
   const tm = (dark ? KDS_TONE : KDS_TONE_L)[toneKey];
   const isPickupKind = (ticket.kind === 'asporto' || ticket.kind === 'delivery') && ticket.pickup;
+  // Da quale piattaforma arriva, non un generico «delivery»: in cucina il
+  // marchio dice il tempo che hai e chi verrà a ritirare, e con tre
+  // piattaforme accese un'insegna sola non basta più. Sigla e colori da
+  // PN_PARTNER, la stessa fonte del monitor KDS e di Vendita diretta.
+  const partner = ticket.partner ? (window.PN_PARTNER || {})[ticket.partner] : null;
   const kindBadge = ticket.kind === 'asporto' ? { label: 'ASPORTO', icon: <BagIcon/> }
-    : ticket.kind === 'delivery' ? { label: 'DELIVERY', icon: <ScooterIcon/> }
+    : ticket.kind === 'delivery'
+      ? { label: partner ? partner.nome.toUpperCase() : 'DELIVERY', icon: partner ? <KdsPartnerSigla p={partner}/> : <ScooterIcon/> }
     : null;
   const totQty  = ticket.items.reduce((s, i) => s + i.qty, 0);
   const doneQty = ticket.items.reduce((s, i) => s + (i.state === 'done' ? i.qty : 0), 0);
@@ -1289,6 +1295,20 @@ function KdsStepBtn({ dir, onClick, dark = false, title, onHoverChange }) {
 
 // ─── Icons ────────────────────────────────────────────────
 function BagIcon()   { return (<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>); }
+// Il marchio della piattaforma dentro la pastiglia del canale: quadratino coi
+// suoi colori e la sua sigla, come sul monitor di cucina.
+function KdsPartnerSigla({ p }) {
+  if (!p) return null;
+  return (
+    <span title={p.nome} aria-label={p.nome} style={{
+      width: 14, height: 14, borderRadius: 4, flexShrink: 0,
+      background: p.bg, color: p.ink, display: 'grid', placeItems: 'center',
+      fontSize: p.sigla.length > 1 ? 7.5 : 9.5, fontWeight: 800, lineHeight: 1,
+      letterSpacing: p.sigla.length > 1 ? -0.2 : 0,
+    }}>{p.sigla}</span>
+  );
+}
+
 function ScooterIcon() { return (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M14 6h3l3 8M8 17l3-8h6"/></svg>); }
 function RevertArrowIcon({ size = 13 }) { return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>); }
 function ForwardArrowIcon({ size = 13 }) { return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/></svg>); }

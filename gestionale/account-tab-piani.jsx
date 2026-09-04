@@ -1359,6 +1359,7 @@ function FreeDowngradeModal({ open, onClose, current, free, fmtPrice, onConfirm 
     `Ogni ordine extra costerà di più: da ${fmtPrice(current.ordineExtra)} € a ${fmtPrice(free.ordineExtra)} €`,
     `Menù digitali: da ${current.menuShort.toLowerCase().replace(/^fino a /, '')} a un solo menù`,
     `Membri dello staff: da ${current.staffShort.toLowerCase().replace(/^fino a /, '')} a un solo membro`,
+    ...(current.ai ? ['Byup AI non sarà più disponibile'] : []),
   ];
 
   // Mini plan-card del confronto (colonna attuale vs colonna Gratuito).
@@ -1505,6 +1506,9 @@ function ConfrontoTable() {
       </React.Fragment>,
       ...ACC_PIANI.map(p => p.staffShort),
     ],
+    // Byup AI: la riga sta sopra il supporto perché è una funzione del
+    // prodotto, non un livello di assistenza.
+    ['Byup AI',                                ...ACC_PIANI.map(p => p.ai ? '✓' : '—')],
     ['Assistenza via chat, tutorial e ticket', ...ACC_PIANI.map(() => '✓')],
     ['Supporto telefonico',                    ...ACC_PIANI.map(p => p.supPhone ? p.supOrariShort : '—')],
     ['Richiamata garantita',                   ...ACC_PIANI.map(p => p.supCallback ? p.supSlaShort : '—')],

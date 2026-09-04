@@ -16,6 +16,10 @@
 //   foglio si riapre da «Configura» sulla tessera, ed è lì che vive la prova
 //   di stampa: provare serve a sapere se la stampante risponde davvero, e
 //   quella domanda si fa quando la si imposta, non da un pulsante in vetrina.
+//   Su una stampante NUOVA la prova non è un pulsante: è il cancello. Alla
+//   conferma parte da sola e la stampante entra in elenco solo se risponde —
+//   una stampante aggiunta e muta è peggio di una non aggiunta, perché il
+//   sabato sera nessuno va a controllare perché la comanda non è uscita.
 //
 // CHE COSA SI PUÒ DAVVERO TROVARE. Da una pagina web non esiste alcuna
 // scansione della rete locale, e il browser non espone a JavaScript l'elenco
@@ -404,7 +408,7 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
   // chiedere — tutto esce da qui e la domanda non esiste.
   const altreDocumenti = window.byupStampantiDocumenti().filter(d => !device || d.id !== device.id);
 
-  const provaStampa = () => {
+  const provaStampa = (poi) => {
     if (prova === 'corso') return;
     setProva('corso');
     // Su una stampante già collegata la prova è quella vera del registro
@@ -412,10 +416,10 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
     // verifica il collegamento con lo stesso ritardo: si è presentata al
     // server poco fa, ed è quello che stiamo controllando.
     if (device) {
-      window.byupProvaStampa(device, (esito) => setProva(esito === 'ok' ? 'ok' : 'ko'));
+      window.byupProvaStampa(device, (esito) => { setProva(esito === 'ok' ? 'ok' : 'ko'); if (esito === 'ok' && poi) poi(); });
       return;
     }
-    setTimeout(() => setProva('ok'), 1400);
+    setTimeout(() => { setProva('ok'); if (poi) poi(); }, 1400);
   };
 
   const salva = () => {
@@ -456,20 +460,40 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
       sub={`${marca} ${base.device_model}${proto.label ? ` · ${proto.label}` : ''} · dalle il nome che vuoi e dille che cosa deve stampare.`}
       onClose={onClose}
       piede={
-        <React.Fragment>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <ImpButton variant="ghost" disabled={prova === 'corso'} onClick={provaStampa} style={{ padding: '9px 15px', fontSize: 14 }}>
-              {prova === 'corso' ? 'Prova in corso…' : 'Prova di stampa'}
-            </ImpButton>
-            <span data-prova={prova} style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, maxWidth: 280, color: prova === 'ok' ? PN.GREEN : prova === 'ko' ? PN.RED : PN.MUTED }}>
-              {prova === 'ok' ? 'Ha risposto: è collegata, il foglio di prova è uscito.'
-                : prova === 'ko' ? 'Non ha risposto: controlla che sia accesa e che l\'indirizzo sia quello giusto.'
-                : prova === 'corso' ? 'Sto aspettando il suo prossimo sondaggio…'
-                : 'Manda un foglio e aspetta la risposta.'}
+        nuova ? (
+          /* Una stampante nuova non si aggiunge sulla fiducia: alla conferma
+             parte la prova, e solo se risponde entra in elenco. Un pulsante
+             solo, quindi, che dice a che punto è — e in caso di silenzio
+             resta lì con il perché, invece di aggiungere una stampante che
+             non stamperà. */
+          <React.Fragment>
+            <span data-prova={prova} style={{ flex: 1, minWidth: 220, fontSize: 13, fontWeight: 600, lineHeight: 1.45, color: prova === 'ko' ? PN.RED : PN.MUTED }}>
+              {prova === 'ko' ? 'Non ha risposto: controlla che sia accesa e che l\'indirizzo del server sia quello giusto, poi riprova.'
+                : prova === 'corso' ? 'Mando un foglio di prova e aspetto il suo prossimo sondaggio…'
+                : 'Alla conferma mandiamo un foglio di prova: se risponde, la aggiungiamo.'}
             </span>
-          </div>
-          <ImpButton variant="primary" disabled={!pronto} onClick={salva}>{nuova ? 'Aggiungi la stampante' : 'Salva'}</ImpButton>
-        </React.Fragment>
+            <ImpButton variant="primary" disabled={!pronto || prova === 'corso'} onClick={() => provaStampa(salva)}>
+              {prova === 'corso' ? 'Prova di stampa…' : prova === 'ko' ? 'Riprova' : 'Aggiungi la stampante'}
+            </ImpButton>
+          </React.Fragment>
+        ) : (
+          /* Già collegata: qui si salva quello che si cambia, e la prova resta
+             a portata perché la domanda «risponde ancora?» è di ogni giorno. */
+          <React.Fragment>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <ImpButton variant="ghost" disabled={prova === 'corso'} onClick={() => provaStampa()} style={{ padding: '9px 15px', fontSize: 14 }}>
+                {prova === 'corso' ? 'Prova in corso…' : 'Prova di stampa'}
+              </ImpButton>
+              <span data-prova={prova} style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, maxWidth: 280, color: prova === 'ok' ? PN.GREEN : prova === 'ko' ? PN.RED : PN.MUTED }}>
+                {prova === 'ok' ? 'Ha risposto: è collegata, il foglio di prova è uscito.'
+                  : prova === 'ko' ? 'Non ha risposto: controlla che sia accesa e che l\'indirizzo sia quello giusto.'
+                  : prova === 'corso' ? 'Sto aspettando il suo prossimo sondaggio…'
+                  : 'Manda un foglio e aspetta la risposta.'}
+              </span>
+            </div>
+            <ImpButton variant="primary" disabled={!pronto} onClick={salva}>Salva</ImpButton>
+          </React.Fragment>
+        )
       }>
       <div data-imposta-stampante style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <ImpField label="Nome della stampante" hint="Come la chiamerete: Cucina, Pizzeria, Bar, Cassa 2…">

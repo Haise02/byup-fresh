@@ -644,30 +644,39 @@ function SalaCard({ t, expanded, onToggle, onAdd, onPay, onAddArticle, onAdjustR
   );
 }
 
-// P-109 (D-27): a scheda APERTA la prenotazione collegata dice A CHE COSA è
-// allergico l'ospite — i codici del dizionario resi con l'etichetta di legge
-// per esteso (Glutine, Latte…) — e quando è stato registrato. La mappa
-// chiusa porta solo il contrassegno muto «Allergia»: il contenuto si legge
-// aprendo il tavolo, in tutti e tre gli stati in cui la prenotazione compare.
-// Il nome dell'ospite resta sulla sua riga, mai nella stessa stringa.
-function AllergieDichiarate({ res, quando }) {
-  const codes = (res && res.allergens) || [];
-  if (!codes.length) return null;
-  const nomi = codes.map(c => (window.pnAllergeneLabel ? window.pnAllergeneLabel(c) : c));
+// P-109 (D-27): a scheda APERTA si legge A CHE COSA è allergico chi siede —
+// i codici del dizionario resi con l'etichetta di legge per esteso (Glutine,
+// Latte…). La mappa chiusa porta solo il contrassegno muto «Allergia»: il
+// contenuto si legge aprendo il tavolo, in tutti gli stati in cui compare.
+// I codici arrivano da due canali — la prenotazione collegata e le righe di
+// comanda col contrassegno — e qui si mostrano insieme; il nome dell'ospite
+// resta sulla sua riga, mai nella stessa stringa.
+// Chi le ha registrate e a che ora NON si scrivono (4 settembre 2026): a chi
+// serve sapere cosa non può mangiare quel tavolo, la firma del cameriere che
+// ha preso la nota non dice niente. Il dato resta nel modello, dove serve.
+function AllergieDichiarate({ res, codes }) {
+  const lista = codes && codes.length ? codes : ((res && res.allergens) || []);
+  if (!lista.length) return null;
+  const nomi = lista.map(c => (window.pnAllergeneLabel ? window.pnAllergeneLabel(c) : c));
   return (
-    <div style={{display:'flex', flexDirection:'column', gap: 2, padding:'8px 10px', borderRadius: 10, background:'rgba(220,38,38,0.06)', boxShadow:'inset 0 0 0 1px rgba(220,38,38,0.18)'}}>
+    <div data-allergie style={{display:'flex', flexDirection:'column', gap: 2, padding:'8px 10px', borderRadius: 10, background:'rgba(220,38,38,0.06)', boxShadow:'inset 0 0 0 1px rgba(220,38,38,0.18)'}}>
       <div style={{fontSize: 13.5, fontWeight: 700, color:'#DC2626', letterSpacing: 0.4, textTransform:'uppercase'}}>
-        Allergie dichiarate{quando ? ` · prenotazione ${quando}` : ''}
+        Allergie dichiarate
       </div>
       <div style={{fontSize: 16.5, fontWeight: 700, color:'#0F1115', lineHeight: 1.3}}>{nomi.join(', ')}</div>
-      {res.allergensDeclaredAt && (
-        <div style={{fontSize: 13.5, color:'#6B7280'}}>Registrate oggi alle {res.allergensDeclaredAt}{res.allergensDeclaredBy ? ` da ${res.allergensDeclaredBy}` : ''}</div>
-      )}
     </div>
   );
 }
 
 function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteMeta, onAddArticle, onAdjustReservationPosti, onEdit, occupatoSaldato, onPay, isLate, lateMin, pulireSev }) {
+  // I due canali che portano un allergene al tavolo: la comanda (la riga col
+  // contrassegno sa a che cosa è allergico chi l'ha ordinata) e la
+  // prenotazione collegata. Uniti e senza doppioni: a scheda aperta la
+  // domanda è una sola — che cosa non deve arrivare a questo tavolo.
+  const allergeniTavolo = Array.from(new Set([
+    ...(t.ordini || []).reduce((acc, o) => acc.concat(o.allergens || []), []),
+    ...(((t.nextReservation || {}).allergens) || []),
+  ]));
   return (
     <>
       <div style={{display:'flex', flexDirection:'column', gap: 14}}>
@@ -736,7 +745,7 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               <GuestAvatars byup={t.byup} byupWeb={t.byupWeb} expanded/>
               {/* Occupato con una prenotazione collegata che porta allergeni:
                   la riga dice di quale prenotazione parla. */}
-              <AllergieDichiarate res={t.nextReservation} quando={t.nextReservation && t.nextReservation.time}/>
+              <AllergieDichiarate codes={allergeniTavolo}/>
             </div>
 
             {/* Segnali su UNA riga: alert operativo (solo testo, senza
@@ -1070,7 +1079,11 @@ function OrdiniList({ ordini }) {
             alert={isAlert}
             nomeExtra={isAlert && (
               <span style={{color: '#DC2626', marginLeft: 6, fontSize: 14, fontWeight: 700, letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: 3}}>
-                <NoteIcon type="allergia" size={10}/> Allergie
+                {/* Quale allergene, non il generico «Allergie»: la riga lo sa,
+                    ed è la risposta che si cerca guardandola. */}
+                <NoteIcon type="allergia" size={10}/> {(o.allergens || []).length
+                  ? (o.allergens || []).map(c => (window.pnAllergeneLabel ? window.pnAllergeneLabel(c) : c)).join(', ')
+                  : 'Allergie'}
               </span>
             )}
             pill={<StatoPill color={pillColor} bg={pillBg} label={pillLabel} tip={tipText}/>}

@@ -102,7 +102,7 @@ const SALA_TAVOLI = [
       { id:'o12b',nome:'Pappardelle cinghiale',qty:1, prezzo:14, stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7b' },
       { id:'o12c',nome:'Pappardelle cinghiale',qty:2, prezzo:14, stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7c' },
       { id:'o13', nome:'Tagliata di manzo',  qty:3, prezzo:22, stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:18, origin:'cameriere', guestId:null },
-      { id:'o14', nome:'Pasta s/ glutine',   qty:1, prezzo:14, stato:'in_cottura', minutiInPreparazione:7, minutiInCoda:0,  origin:'byup',     guestId:'g7d', alert:'allergia' },
+      { id:'o14', nome:'Pasta s/ glutine',   qty:1, prezzo:14, stato:'in_cottura', minutiInPreparazione:7, minutiInCoda:0,  origin:'byup',     guestId:'g7d', alert:'allergia', allergens:['gluten'] },
       { id:'o15', nome:'Vino rosso',         qty:1, prezzo:24, stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere', guestId:null },
     ],
     // Conto lungo pagato a pezzi: due quote dall'app, una in contanti al
