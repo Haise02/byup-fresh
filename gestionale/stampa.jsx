@@ -122,6 +122,10 @@ const pnStampantiSeme = () => ({
   ],
   print_jobs: [],
   candidate_aggiunte: [],
+  // Il documento di cortesia a incasso chiuso: al tocco (predefinito) o da
+  // solo. Da solo è più veloce, ma stampa anche quando il cliente il foglio
+  // non lo vuole — e quelli sono fogli buttati. È venue_settings.
+  venue_settings: { auto_print_receipt: false },
   venue_delivery_integrations: { auto_print_courtesy: false },
 });
 window.byupReadStampanti = function () {
@@ -137,6 +141,7 @@ window.byupReadStampanti = function () {
     const devices = seme.devices.filter(d => !rimossi.has(d.id)).map(d => perId[d.id] ? Object.assign({}, d, perId[d.id]) : d)
       .concat((salvato.devices || []).filter(d => !seme.devices.some(x => x.id === d.id)));
     return { devices, rimossi: [...rimossi], print_jobs: salvato.print_jobs || [], candidate_aggiunte: salvato.candidate_aggiunte || [],
+      venue_settings: Object.assign({}, seme.venue_settings, salvato.venue_settings || {}),
       venue_delivery_integrations: Object.assign({}, seme.venue_delivery_integrations, salvato.venue_delivery_integrations || {}) };
   } catch (e) { return seme; }
 };
@@ -254,6 +259,52 @@ window.byupPrintJobSimula = function (jobId, cb) {
   const inLinea = !!(dev && dev.connection_status === 'online');
   passo('claimed', { attempts: 1, claimed_at: new Date().toISOString() }, () =>
     passo(inLinea ? 'confirmed' : 'failed', inLinea ? { confirmed_at: new Date().toISOString() } : { last_error_code: 'offline', last_error_at: new Date().toISOString() }, () => cb && cb(inLinea ? 'ok' : 'failed')));
+};
+
+// ─── Da dove esce il documento del cliente ──────────────────────────────────
+// La domanda è una sola: per l'incasso che si è appena chiuso, c'è una
+// stampante che interroga il nostro server? Se c'è, il documento ci va in coda
+// e ne esce da solo, senza finestre e senza che nessuno confermi: è l'unica
+// via che stampa «diretto», e vale anche quando chi incassa ha in mano solo il
+// telefono in sala, perché il foglio esce al banco. Se non c'è, si stampa dal
+// browser della postazione, dove la finestra di dialogo del sistema chiede
+// conferma — non per scelta nostra: nessun browser lascia stampare una pagina
+// in silenzio, altrimenti qualunque sito potrebbe far uscire fogli da una
+// stampante.
+// L'ordine: la stampante associata a QUEL POS; se il POS non ne ha una, la
+// sola stampante dei documenti collegata al server, se ce n'è una sola;
+// altrimenti il browser.
+window.byupStampanteDelDocumento = function (posId) {
+  const serverPolling = window.byupStampantiDocumenti().filter(d => d.connection_mode === 'server_polling');
+  if (posId) {
+    const sua = serverPolling.find(d => (d.pos_ids || []).includes(posId));
+    if (sua) return sua;
+    // Il POS è associato a una postazione: allora si stampa dal browser, ed è
+    // una scelta dell'esercente, non un ripiego.
+    const postazione = window.byupStampantiDocumenti().find(d => d.connection_mode === 'browser' && (d.pos_ids || []).includes(posId));
+    if (postazione) return postazione;
+  }
+  if (serverPolling.length === 1) return serverPolling[0];
+  return window.byupStampantiDocumenti().find(d => d.connection_mode === 'browser') || null;
+};
+window.byupAutoPrintRicevuta = function () {
+  const reg = window.byupReadStampanti();
+  return !!(reg.venue_settings && reg.venue_settings.auto_print_receipt);
+};
+// Il documento di cortesia, per la strada che gli tocca. Ritorna
+// { via: 'server' | 'browser' | 'bloccata', stampante, job }.
+window.byupStampaDocumentoCliente = function (conto, opts = {}) {
+  const dev = opts.stampante || window.byupStampanteDelDocumento(opts.posId);
+  const layout = opts.tipo === 'preconto' ? window.byupLayoutPreconto : window.byupLayoutCortesia;
+  if (dev && dev.connection_mode === 'server_polling') {
+    const job = window.byupPrintJobAccoda({ device_id: dev.id, requested_device_id: dev.id, document_kind: opts.tipo === 'preconto' ? 'pre_bill' : 'courtesy_receipt' });
+    // Niente finestra: il documento è in coda e la stampante lo ritira.
+    window.byupPrintJobSimula(job.id, (esito) => opts.onEsito && opts.onEsito(esito));
+    return { via: 'server', stampante: dev, job };
+  }
+  const r = window.byupStampaBrowser(layout(Object.assign({}, conto)));
+  if (opts.onEsito) opts.onEsito(r.esito === 'stampata' ? 'ok' : 'bloccata');
+  return { via: r.esito === 'bloccata' ? 'bloccata' : 'browser', stampante: dev };
 };
 
 // ─── I layout a 80 mm ────────────────────────────────────────────────────────

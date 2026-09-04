@@ -2695,18 +2695,54 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
   // Un incasso, un modo: tolto il «misto», contanti e carta non possono più
   // essere pieni insieme nello stesso pagamento.
   const comeHaPagato = carta > 0 ? 'Con la carta, su Byup Staff' : 'In contanti, alla cassa';
-  const [stampato, setStampato] = React.useState(null); // null | { esito, stampante }
-  // P-124 (D-108): non «scontrino» — lo scontrino, il documento commerciale,
-  // lo emette il canale fiscale. Questo è il documento di cortesia, distinto
-  // dal pre-conto, e va in stampa davvero dal browser della postazione su
-  // qualunque stampante che il sistema conosce (stampa.jsx): la «stampante di
-  // cortesia della sede» non esiste più.
-  const stampaCortesia = () => {
-    if (typeof window.byupStampaCortesia !== 'function') { setStampato({ esito: 'stampata' }); return; }
-    const righe = (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo }));
-    const r = window.byupStampaCortesia({ tavolo: tavolo ? `Tavolo ${tavolo.id}` : '', righe, totale: total, pagamento: carta > 0 ? 'Carta · Byup Staff' : 'Contanti' });
-    setStampato(r);
+  // P-124 (D-108): non «scontrino» — lo scontrino, cioè il documento
+  // commerciale, lo emette il canale fiscale ed è già partito quando questa
+  // schermata compare; il cliente lo riceve come ricevuta elettronica. Questo
+  // è il documento di CORTESIA, il foglio di carta, e porta scritto che non
+  // vale ai fini fiscali.
+  //
+  // Da dove esce lo decide il POS su cui si è incassato (stampa.jsx,
+  // byupStampanteDelDocumento): se quel POS ha una stampante che interroga il
+  // nostro server, il documento ci va in coda e ne esce da solo, senza
+  // finestre e senza conferme; altrimenti si stampa dal browser, dove la
+  // finestra di dialogo del sistema chiede conferma — non per scelta nostra,
+  // ma perché nessun browser lascia stampare una pagina in silenzio.
+  //
+  // Con l'interruttore «stampa da sola» acceso (POS e integrazioni) il foglio
+  // parte QUI, all'apertura della schermata, mentre l'operatore dà il resto:
+  // il pulsante allora non serve più e lo dice, e premuto non ristampa —
+  // diventa «Ristampa», che è un'altra cosa e la si chiede apposta.
+  const [stampato, setStampato] = React.useState(null); // null | { via, stampante, esito, auto }
+  const [inCorso, setInCorso] = React.useState(false);
+  // Su quale POS si è incassato: con la carta è lo smartphone di Byup Staff,
+  // con i contanti la cassa. Nel mock il primo lettore Tap to Pay.
+  const posId = React.useMemo(() => {
+    if (!(carta > 0)) return null;
+    const pos = window.byupReadPosCensimento ? byupReadPosCensimento().filter(p => p.nature === 'tap_to_pay') : [];
+    return pos.length ? pos[0].id : null;
+  }, [carta]);
+  const contoDaStampare = () => ({
+    tavolo: tavolo ? `Tavolo ${tavolo.id}` : '',
+    righe: (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo })),
+    totale: total, pagamento: carta > 0 ? 'Carta · Byup Staff' : 'Contanti',
+  });
+  const stampaCortesia = (auto) => {
+    if (typeof window.byupStampaDocumentoCliente !== 'function') { setStampato({ via: 'browser', esito: 'ok' }); return; }
+    setInCorso(true);
+    const r = window.byupStampaDocumentoCliente(contoDaStampare(), {
+      posId, tipo: 'cortesia',
+      onEsito: (esito) => { setInCorso(false); setStampato(st => Object.assign({ auto: !!auto }, st, { esito })); },
+    });
+    setStampato({ via: r.via, stampante: r.stampante, auto: !!auto });
+    if (r.via !== 'server') setInCorso(false);
   };
+  // L'automatico: parte da solo, una volta sola, all'apertura.
+  React.useEffect(() => {
+    if (!window.byupAutoPrintRicevuta || !window.byupAutoPrintRicevuta()) return;
+    const dev = window.byupStampanteDelDocumento(posId);
+    if (!dev || dev.connection_mode !== 'server_polling') return;   // dal browser «da sola» non esiste
+    stampaCortesia(true);
+  }, []);
 
   return (
     <div style={{
@@ -2791,10 +2827,17 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
           chiudere: sta davanti, e quando è uscito lo dice. */}
       <div style={{display:'flex', gap: 8, width:'100%'}}>
         <button onClick={onClose} style={{...btnSecondaryV2, flex: 1}}>Chiudi</button>
-        <button data-stampa-cortesia="" onClick={stampaCortesia} style={{...btnPrimaryV2, flex: 1.4, justifyContent:'center'}}>
-          {stampato
-            ? (stampato.esito === 'anteprima' ? <>✓ Anteprima aperta{stampato.stampante ? ` · ${stampato.stampante}` : ''}</> : <>✓ Documento di cortesia stampato</>)
-            : <><IconPrinter/> Stampa documento di cortesia</>}
+        <button data-stampa-cortesia="" data-via={stampato ? stampato.via : ''} disabled={inCorso}
+          onClick={() => stampaCortesia(false)} style={{...btnPrimaryV2, flex: 1.4, justifyContent:'center', opacity: inCorso ? 0.7 : 1}}>
+          {inCorso
+            ? <>In stampa…</>
+            : stampato
+              ? (stampato.esito === 'failed'
+                  ? <><IconPrinter/> Riprova · «{stampato.stampante ? stampato.stampante.name : ''}» non ha risposto</>
+                  : stampato.via === 'server'
+                    ? <>✓ {stampato.auto ? 'Uscito' : 'Stampato'} da «{stampato.stampante ? stampato.stampante.name : ''}» · Ristampa</>
+                    : <>✓ Documento di cortesia stampato · Ristampa</>)
+              : <><IconPrinter/> Stampa documento di cortesia</>}
         </button>
       </div>
     </div>

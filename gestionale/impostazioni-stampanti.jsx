@@ -61,6 +61,15 @@ function ImpStampantiBlocco() {
     const next = { ...reg, venue_delivery_integrations: { ...reg.venue_delivery_integrations, auto_print_courtesy: on } };
     window.byupWriteStampanti(next); setReg(window.byupReadStampanti());
   };
+  const autoRicevuta = (on) => {
+    const next = { ...reg, venue_settings: { ...(reg.venue_settings || {}), auto_print_receipt: on } };
+    window.byupWriteStampanti(next); setReg(window.byupReadStampanti());
+  };
+  // L'automatico ha senso solo se c'è una stampante che stampa senza finestre:
+  // dal browser «automatico» vorrebbe dire aprire la finestra di stampa da
+  // sola e restare comunque in attesa che qualcuno confermi, che non è
+  // automatico ed è solo fastidioso.
+  const puoAuto = documenti.some(d => d.connection_mode === 'server_polling');
 
 
   // Le tessere hanno la misura delle altre della pagina — Stripe, Glovo,
@@ -92,7 +101,23 @@ function ImpStampantiBlocco() {
       {/* Da due stampanti per i documenti in su: quale cassa stampa dove. */}
       {documenti.length > 1 && <ImpPosStampanti documenti={documenti} onFatto={avvisa}/>}
 
+      {/* Il documento del cliente a incasso chiuso: al tocco o da solo. */}
       <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 11, border: `1px solid ${PN.BORDER_SOFT}` }}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: puoAuto ? 'pointer' : 'not-allowed', opacity: puoAuto ? 1 : 0.6 }}>
+          <input type="checkbox" data-auto-ricevuta checked={!!(reg.venue_settings && reg.venue_settings.auto_print_receipt)} disabled={!puoAuto}
+            onChange={e => autoRicevuta(e.target.checked)} style={{ marginTop: 3, accentColor: PN.PINK_DARK }}/>
+          <span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: PN.TEXT }}>Stampa il documento di cortesia da sola, a incasso chiuso</span>
+            <span style={{ display: 'block', fontSize: 12.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5 }}>
+              {puoAuto
+                ? 'Il foglio esce mentre dai il resto, senza toccare niente: in cassa il pulsante dice che è già uscito e serve solo a ristamparlo. Spenta, il documento esce quando lo chiedi — e stampi solo quando il cliente lo vuole, invece di buttare un foglio a ogni scontrino.'
+                : 'Si accende quando c\'è una stampante per i documenti collegata al nostro server: è l\'unica che stampa senza aprire la finestra di stampa e senza che qualcuno confermi. Dal browser «automatico» vorrebbe dire aprire la finestra da sola e aspettare comunque un clic.'}
+            </span>
+          </span>
+        </label>
+      </div>
+
+      <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 11, border: `1px solid ${PN.BORDER_SOFT}` }}>
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: comande.length ? 'pointer' : 'not-allowed', opacity: comande.length ? 1 : 0.6 }}>
           <input type="checkbox" data-auto-print checked={!!reg.venue_delivery_integrations.auto_print_courtesy} disabled={!comande.length}
             onChange={e => autoPrint(e.target.checked)} style={{ marginTop: 3, accentColor: PN.PINK_DARK }}/>
