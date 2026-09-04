@@ -49,6 +49,9 @@ const accRoot = ReactDOM.createRoot(document.getElementById('root'));
 accRoot.render(
   <div className="frame" data-screen-label="Profilo">
     <GlassMeshSubstrate/>
+    {/* A configurazione conclusa si atterra qui, su Piani: la fascia delle
+        due attivazioni segue, perché non sono ancora fatte. */}
+    {window.PnAttivazioniFascia && <window.PnAttivazioniFascia/>}
     <AccountApp/>
   </div>
 );

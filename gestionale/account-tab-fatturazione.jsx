@@ -467,7 +467,11 @@ function AccFatturazione() {
       {/* Le fatture di Byup sono intestate al soggetto fiscale del locale:
           se cambia (Impostazioni → Dati fiscali), dalla data del cambio
           sono intestate al nuovo, e qui si legge dal registro. */}
-      <AcCard title="Fatture" subtitle="Storico delle fatture mensili." action={<AcIntestazioneFatture/>}>
+      {/* Niente «Intestate a» accanto al titolo (4 settembre 2026): l'intestatario
+          delle fatture è scritto su ogni fattura, e la riga che annunciava il
+          soggetto precedente con la data del cambio era una nota di cronaca in
+          una pagina che serve a scaricare i documenti. */}
+      <AcCard title="Fatture" subtitle="Storico delle fatture mensili.">
         {/* Riga prossima fattura */}
         {/* Ambra, non rosso: la prossima fattura e' un promemoria, non un
             problema — il rosso qui suonava come "pagamento fallito".
@@ -673,24 +677,4 @@ function AccFatturazione() {
 window.AccFatturazione = AccFatturazione;
 
 
-// Chi è intestatario delle fatture Byup, dal registro del cambio di SOGGETTO
-// FISCALE (P-117 · D-104): il soggetto nuovo appena i dati fiscali sono
-// aggiornati, con la data; altrimenti quello di sempre.
-function AcIntestazioneFatture() {
-  const [c, setC] = React.useState(() => window.byupReadSoggettoChange ? byupReadSoggettoChange() : null);
-  React.useEffect(() => {
-    const ri = () => setC(byupReadSoggettoChange());
-    window.addEventListener('byup-soggetto-change', ri);
-    return () => window.removeEventListener('byup-soggetto-change', ri);
-  }, []);
-  const nuovo = c && c.steps && c.steps.fiscal_updated;
-  const sog = nuovo ? c.nuovo : { denominazione: 'Cacio e Pepe S.r.l.', piva: 'IT12345678901' };
-  const dal = nuovo ? new Date(c.steps.fiscal_updated).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }) : null;
-  return (
-    <div style={{textAlign:'right', fontSize: 13, color: PN.MUTED, lineHeight: 1.45, maxWidth: 320}}>
-      <div style={{fontSize: 12, fontWeight: 700, letterSpacing: 0.4, textTransform:'uppercase'}}>Intestate a</div>
-      <div style={{color: PN.TEXT, fontWeight: 600}}>{sog.denominazione} · P.IVA {sog.piva}</div>
-      {dal && <div>dal {dal}: prima a {c.previous_denominazione}. Si cambia da Impostazioni → Dati fiscali.</div>}
-    </div>
-  );
-}
+

@@ -369,6 +369,9 @@ function ConfigCompletaApp() {
             <div ref={railCardRef} data-cfg-membri>
               <MembriDispositivi team={team} setTeam={setTeam}/>
             </div>
+            {/* L'app che i telefoni del personale devono avere: sta qui come
+                sta in Impostazioni → Personale, accanto ai dispositivi. */}
+            {window.PersStaffPromo && <window.PersStaffPromo/>}
             <StaffGuidaLink onApri={() => setGuidaStaff(true)}/>
           </div>
         </aside>
@@ -682,6 +685,9 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <div className="frame" data-screen-label="Configurazione completa">
     <GlassMeshSubstrate/>
+    {/* Le due attivazioni: chi esce dall'onboarding atterra qui o in
+        Panoramica, e la fascia dev'essere la stessa nei due casi. */}
+    {window.PnAttivazioniFascia && <window.PnAttivazioniFascia/>}
     <ConfigCompletaApp/>
   </div>
 );

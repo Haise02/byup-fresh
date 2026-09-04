@@ -2860,3 +2860,7 @@ function AddInviteBtn({ disabled, onClick }) {
 window.ImpPersonale = ImpPersonale;
 window.PersonaleStep = PersonaleStep;
 window.DispositivoStep = DispositivoStep;
+
+// La tessera «Scarica Byup Staff» serve anche alla Configurazione completa,
+// che è l'altro posto in cui si mette in piedi il personale.
+window.PersStaffPromo = PersStaffPromo;
