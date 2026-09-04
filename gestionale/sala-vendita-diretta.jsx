@@ -293,7 +293,7 @@ function SalaVenditaDiretta() {
   // altrimenti il conto resta fermo e i piatti si fanno al saldo (o quando lo
   // manda lui dalla coda). Senza orario indicato non se ne inventa uno: la
   // coda dice «senza orario», che è la verità.
-  const assegnaClienteEParcheggia = ({ nome, ritiro, inCucina }) => {
+  const assegnaClienteEParcheggia = ({ nome, data, ritiro, inCucina }) => {
     if (!nome || !lines.length) { setTaCliente(nome || null); return; }
     const numero = numeraOrdine();
     const preparazione = haPreparazione(lines);
@@ -301,6 +301,10 @@ function SalaVenditaDiretta() {
       id: `banco-${numero}`, codice: `#${numero}`,
       cliente: nome,
       ritiro: ritiro || null,
+      // La data si porta dietro solo se NON è oggi: quasi tutti i conti si
+      // ritirano in giornata, e scrivere «oggi» accanto a ogni riga della coda
+      // sarebbe rumore. Quando è un altro giorno, invece, va detto.
+      ritiroData: data && data !== svOggiIso() ? data : null,
       fonte: 'banco', pagato: false, asporto: takeaway, totale: total,
       banco: takeaway ? null : nuovoNumeroBanco(),
       // In cucina si va solo se lo si è chiesto: il codice di ritiro serve a
@@ -769,7 +773,6 @@ function SalaVenditaDiretta() {
 
       {parcheggia && (
         <SaParcheggiaModal
-          totale={total}
           preparazione={haPreparazione(lines)}
           nomeIniziale={taCliente}
           onClose={() => setParcheggia(false)}
@@ -1250,7 +1253,7 @@ function SaConsegnatiModal({ consegnati, onClose, onVai }) {
                       background: canale.bg, color: canale.fg,
                     }}>{canale.label}</span>
                     <span style={{fontSize: 14, color: PN.MUTED, fontVariantNumeric:'tabular-nums'}}>
-                      {o.ritiro || 'senza orario'} · {nItems} {nItems === 1 ? 'articolo' : 'articoli'}
+                      {svRitiroLabel(o).replace(/^ritiro /, '')} · {nItems} {nItems === 1 ? 'articolo' : 'articoli'}
                     </span>
                     {/* Un ordine toccato da un rimborso si vede dalla lista:
                         è esattamente quello che si sta cercando quando si apre
@@ -1532,7 +1535,21 @@ function SaTipologiaSelect({ value, onChange, takeaway }) {
 // L'orario del ritiro, quando c'è. Un conto messo da parte può non averlo — e
 // allora lo dice, invece di mostrare un orario inventato al momento in cui è
 // stato battuto, che non è l'ora in cui qualcuno passerà a prenderlo.
-const svRitiroLabel = (r) => (r && r.ritiro ? `ritiro ${r.ritiro}` : 'senza orario');
+const svOggiIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const svGiornoBreve = (iso) => {
+  try { return new Date(`${iso}T00:00:00`).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }); }
+  catch (e) { return iso; }
+};
+const svRitiroLabel = (r) => {
+  if (!r) return 'senza orario';
+  const giorno = r.ritiroData ? svGiornoBreve(r.ritiroData) : null;
+  if (giorno && r.ritiro) return `ritiro ${giorno}, ${r.ritiro}`;
+  if (giorno) return `ritiro ${giorno}`;
+  return r.ritiro ? `ritiro ${r.ritiro}` : 'senza orario';
+};
 
 // La riga fuori menù si riconosce dal piatto che la porta.
 const svRigaCustom = (line) => !!(line && line.piatto && (line.piatto.custom || /^custom_/.test(String(line.piatto.id))));
@@ -2324,8 +2341,15 @@ function SaCartPanel({ lines, takeaway, asportoOn = true, onToggleTakeaway, clie
 // spenta, non un automatismo: chi sta al banco decide caso per caso, e se non
 // la spunta il conto resta in coda finché non lo manda lui o non viene saldato.
 // Foglio standard del gestionale, come il fuori menù.
-function SaParcheggiaModal({ totale, preparazione, nomeIniziale, onClose, onConferma }) {
+function SaParcheggiaModal({ preparazione, nomeIniziale, onClose, onConferma }) {
   const [nome, setNome] = React.useState(nomeIniziale || '');
+  // La data parte da oggi — è il caso di quasi tutti i conti messi da parte —
+  // e si sposta quando serve; l'ora invece nasce vuota: un orario proposto è
+  // un orario che finisce in coda senza che nessuno l'abbia detto.
+  const [data, setData] = React.useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [ritiro, setRitiro] = React.useState('');
   const [inCucina, setInCucina] = React.useState(false);
   const ref = React.useRef(null);
@@ -2336,13 +2360,8 @@ function SaParcheggiaModal({ totale, preparazione, nomeIniziale, onClose, onConf
     return () => document.removeEventListener('keydown', esc);
   }, [onClose]);
   const valido = nome.trim().length > 0;
-  const conferma = () => { if (valido) onConferma({ nome: nome.trim(), ritiro: ritiro || null, inCucina }); };
+  const conferma = () => { if (valido) onConferma({ nome: nome.trim(), data, ritiro: ritiro || null, inCucina }); };
   const campo = { display: 'flex', flexDirection: 'column', gap: 7 };
-  // Un'ora comoda da proporre senza deciderla: fra un quarto d'ora.
-  const fraUnQuarto = () => {
-    const d = new Date(Date.now() + 15 * 60000);
-    setRitiro(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
-  };
 
   return (
     <div onClick={onClose} style={{
@@ -2367,25 +2386,15 @@ function SaParcheggiaModal({ totale, preparazione, nomeIniziale, onClose, onConf
           </div>
 
           <div style={campo}>
-            <label style={MODAL_LABEL}>Ora del ritiro</label>
+            <label style={MODAL_LABEL}>Quando lo ritira</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <input type="date" value={data} onChange={e => setData(e.target.value)}
+                style={{ ...MODAL_INPUT, width: 180, fontVariantNumeric: 'tabular-nums' }}/>
               <input type="time" value={ritiro} onChange={e => setRitiro(e.target.value)}
                 style={{ ...MODAL_INPUT, width: 150, fontVariantNumeric: 'tabular-nums' }}/>
-              <button onClick={fraUnQuarto} className="pn-btn-feedback" style={{
-                padding: '9px 14px', borderRadius: 999, border: `1px solid ${PN.BORDER}`,
-                background: PN.WHITE, color: PN.TEXT, fontSize: 14, fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>Fra un quarto d'ora</button>
-              {ritiro && (
-                <button onClick={() => setRitiro('')} style={{
-                  background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: PN.MUTED,
-                  textDecoration: 'underline', textUnderlineOffset: 3,
-                }}>Togli l'orario</button>
-              )}
             </div>
             <div style={{ fontSize: 13, color: PN.MUTED, lineHeight: 1.45 }}>
-              Se non la sai, lascia vuoto: in coda il conto dirà «senza orario», che è la verità.
+              La data è quella di oggi e si cambia. L'ora, se non la sai, lascia vuoto: in coda il conto dirà «senza orario», che è la verità.
             </div>
           </div>
 
@@ -2397,7 +2406,7 @@ function SaParcheggiaModal({ totale, preparazione, nomeIniziale, onClose, onConf
             <input type="checkbox" checked={inCucina} disabled={!preparazione}
               onChange={e => setInCucina(e.target.checked)} style={{ marginTop: 3, accentColor: PN.PINK_DARK }}/>
             <span>
-              <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: PN.TEXT }}>Manda in cucina adesso</span>
+              <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: PN.TEXT }}>Invia in cucina prima del saldo</span>
               <span style={{ display: 'block', fontSize: 13, color: PN.MUTED, marginTop: 3, lineHeight: 1.5 }}>
                 {preparazione
                   ? 'La comanda parte subito, anche se il conto non è ancora pagato. Senza la spunta i piatti si preparano quando lo mandi tu dalla coda, o quando il conto viene saldato.'
@@ -2407,21 +2416,15 @@ function SaParcheggiaModal({ totale, preparazione, nomeIniziale, onClose, onConf
           </label>
         </div>
 
-        <div style={{ ...MODAL_FOOT, justifyContent: 'space-between', alignItems: 'center' }}>
-          <button onClick={onClose} className="pn-btn-feedback" style={{
-            padding: '11px 18px', borderRadius: 12, border: `1px solid ${PN.BORDER}`,
-            background: PN.WHITE, color: PN.TEXT, fontSize: 15.5, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>Annulla</button>
+        {/* Un pulsante solo, in fondo a destra: chiudere si fa con la X in
+            alto, e un «Annulla» accanto alla conferma era una seconda porta
+            per un'uscita che c'è già. */}
+        <div style={{ ...MODAL_FOOT, justifyContent: 'flex-end', alignItems: 'center' }}>
           <button onClick={conferma} disabled={!valido} className="pn-btn-feedback" style={{
-            padding: '11px 22px', borderRadius: 12, border: 'none',
+            padding: '11px 26px', borderRadius: 12, border: 'none',
             background: valido ? PN.BTN_DARK : '#F4F5F7', color: valido ? PN.WHITE : PN.MUTED_SOFT,
             fontSize: 15.5, fontWeight: 700, cursor: valido ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-          }}>
-            <span>Metti in Da saldare</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>€{(totale || 0).toFixed(2)}</span>
-          </button>
+          }}>Conferma</button>
         </div>
       </div>
     </div>
