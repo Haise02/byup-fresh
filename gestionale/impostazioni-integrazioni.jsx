@@ -15,8 +15,11 @@ const INTEGRATIONS = [
   // tessera «Connesso · API key configurata» col pulsante «Configura» che non
   // configurava nulla era un doppione che non portava da nessuna parte. Chi
   // trasmette gli scontrini e le fatture si legge dove il fiscale vive, cioè
-  // in Dati fiscali, accanto a credenziali, delega, POS e codice
-  // destinatario. Stripe invece resta: quello è un collegamento vero, che si
+  // in Dati fiscali, accanto a credenziali, delega, POS e codice destinatario.
+  // Nemmeno il riquadro che lo spiegava sta più qui (4 settembre 2026): era la
+  // risposta a una domanda che nessuno si pone davanti a un catalogo di
+  // collegamenti — spiegava l'assenza di una tessera, e l'assenza non ha
+  // bisogno di essere spiegata. Stripe invece resta: quello è un collegamento vero, che si
   // apre, si ricollega e col cambio di soggetto si disabilita.
   { id:'stripe', name:'Stripe', cat:'pagamenti', logo:'S', bg:'#635BFF', desc:'Pagamenti online & checkout', status:'connected', detail:'acct_••••dE3v · sync ora', required: true,
     // Non c'è nulla da «configurare» da questa parte: il conto, i versamenti e
@@ -178,14 +181,6 @@ function ImpIntegrazioni() {
       <ByupPayHero devices={BYUP_PAY_DEVICES} onAdd={() => setQrApp(true)}/>
       <ImpCard title="Incassi" sub="Il conto su cui arrivano i pagamenti, con la verifica del prestatore.">
         <div style={griglia}>{tessere(per('pagamenti'))}</div>
-        {/* Dove è finito il canale fiscale: detto qui, perché è qui che lo si
-            cerca la prima volta. */}
-        <div style={{marginTop: 14, padding: '11px 13px', borderRadius: 10, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`, fontSize: 13, color: PN.MUTED, lineHeight: 1.55, display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap'}}>
-          <span style={{flex: 1, minWidth: 280}}>
-            <b style={{color: PN.TEXT}}>Il canale fiscale non si configura qui.</b> Scontrini e fatture passano da un canale unico, incluso nell'abbonamento: non è un collegamento da attivare e non ci sono alternative da scegliere. Quello che c'è da fare — credenziali, delega, POS e codice destinatario — sta in Dati fiscali.
-          </span>
-          <ImpButton variant="secondary" onClick={() => window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'fiscali', da: 'integrazioni' } }))}>Apri Dati fiscali</ImpButton>
-        </div>
       </ImpCard>
 
       {/* BLOCCO 2 — Stampanti (P-124): il popup «Collega stampante»

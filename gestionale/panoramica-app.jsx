@@ -364,29 +364,24 @@ function PnApp() {
   );
 }
 
-// L'arrivo d'esempio, annunciato una volta sola per sessione — riaprendo la
-// Panoramica dieci volte non si riceve dieci volte lo stesso avviso.
-// Appena atterrato, il locale ha due cose da fare e nessuna delle due gliel'ha
-// chiesta l'onboarding: collegare Stripe e collegare i dati fiscali. Sono
-// quelle che arrivano per prime, una dopo l'altra; se sono già fatte, si torna
-// alla prima notifica fiscale non letta.
+// L'arrivo d'esempio: la prima notifica non letta, annunciata una volta sola
+// per sessione — riaprendo la Panoramica dieci volte non si riceve dieci volte
+// lo stesso avviso. Le DUE ATTIVAZIONI non passano di qui: hanno la fascia in
+// cima alla pagina (PnAttivazioniFascia), che non si dissolve e non si perde,
+// perché senza Stripe non si incassa e senza il fiscale lo scontrino non parte.
 function PnNotificaDemo() {
   React.useEffect(() => {
     let fatto = false;
     try { fatto = sessionStorage.getItem('byup_notif_demo') === '1'; } catch (e) {}
     if (fatto || !window.byupReadNotifiche) return;
-    const timers = [];
-    timers.push(setTimeout(() => {
-      const nuove = window.byupReadNotifiche().filter(x => x.unread);
-      const attivazioni = nuove.filter(x => String(x.id).indexOf('attiva-') === 0);
-      const coda = attivazioni.length
-        ? attivazioni
-        : [nuove.find(x => x.type === 'fiscal') || nuove[0]].filter(Boolean);
-      if (!coda.length) return;
+    const t = setTimeout(() => {
+      const nuove = window.byupReadNotifiche().filter(x => x.unread && String(x.id).indexOf('attiva-') !== 0);
+      const n = nuove.find(x => x.type === 'fiscal') || nuove[0];
+      if (!n) return;
       try { sessionStorage.setItem('byup_notif_demo', '1'); } catch (e) {}
-      coda.forEach((n, i) => timers.push(setTimeout(() => window.byupNotificaArrivo(n), i * 4200)));
-    }, 3200));
-    return () => timers.forEach(clearTimeout);
+      window.byupNotificaArrivo(n);
+    }, 3200);
+    return () => clearTimeout(t);
   }, []);
   return null;
 }
@@ -400,6 +395,9 @@ root.render(
         Panoramica, così il comportamento si vede: nel prodotto è la notifica
         del browser o del dispositivo, e nasce dal registro, non da un timer. */}
     {window.PnNotifArrivo && <window.PnNotifArrivo/>}
+    {/* Le due attivazioni che l'onboarding non chiede più: fascia a tutta
+        larghezza in cima, persistente finché non si risponde. */}
+    {window.PnAttivazioniFascia && <window.PnAttivazioniFascia/>}
     <PnNotificaDemo/>
     <PnApp/>
   </div>

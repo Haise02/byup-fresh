@@ -297,6 +297,146 @@ function PnNotifArrivo() {
 }
 window.PnNotifArrivo = PnNotifArrivo;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LE DUE ATTIVAZIONI, IN FASCIA (4 settembre 2026)
+// ═══════════════════════════════════════════════════════════════════════════
+// Stripe e il fiscale non si chiedono più nell'onboarding, e con l'avviso in
+// basso a destra si perdevano: un riquadro piccolo che si dissolve in sei
+// secondi è la forma giusta per «report mensile pronto», non per «senza questo
+// non incassi» e «senza questo lo scontrino non parte». Quindi:
+//   — fascia a tutta larghezza, in cima, sopra il contenuto;
+//   — PERSISTENTE: non si dissolve da sola, e finché la cosa non è fatta torna
+//     a ogni ritorno in Panoramica. Chi la chiude con «Non ora» la mette a
+//     tacere per la sessione, non per sempre;
+//   — «Non ora» non è un annullamento silenzioso: apre il foglio che dice dove
+//     si fa la cosa, perché chi rimanda deve sapere dove tornare.
+// Le due restano comunque nella campanella, che è la loro casa.
+const PN_ATTIVA_RIMANDATE = 'byup_attivazioni_rimandate';
+const pnAttivaRimandate = () => {
+  try { return JSON.parse(sessionStorage.getItem(PN_ATTIVA_RIMANDATE)) || []; } catch (e) { return []; }
+};
+const pnAttivaRimanda = (id) => {
+  try {
+    const l = pnAttivaRimandate();
+    if (l.indexOf(id) < 0) { l.push(id); sessionStorage.setItem(PN_ATTIVA_RIMANDATE, JSON.stringify(l)); }
+  } catch (e) {}
+};
+// Dove si fa la cosa, detto com'è scritto nel menu: è quello che uno rilegge
+// quando ci torna da solo.
+const PN_ATTIVA_DOVE = {
+  'attiva-stripe': {
+    tinta: PN.AMBER, sfondo: PN.AMBER_SOFT, bordo: '#FCD34D',
+    azione: 'Collega Stripe',
+    titoloDove: 'Per ricevere pagamenti serve Stripe',
+    dove: 'Quando vuoi collegarlo: Impostazioni → POS e integrazioni, tessera Stripe. Finché non è collegato non incassi: né carte al tavolo, né in app, né online.',
+  },
+  fiscale: {
+    tinta: '#B91C1C', sfondo: '#FEF2F2', bordo: '#FECACA',
+    azione: 'Apri Dati fiscali',
+    titoloDove: 'Per emettere gli scontrini servono i dati fiscali',
+    dove: 'Quando vuoi impostarli: Impostazioni → Dati fiscali. Lì dai la delega all\'Agenzia e inserisci le credenziali di chi trasmette; finché mancano, scontrini e fatture non partono.',
+  },
+};
+const pnAttivaStile = (id) => PN_ATTIVA_DOVE[id] || PN_ATTIVA_DOVE.fiscale;
+
+function PnAttivazioniFascia() {
+  const items = window.byupUseNotifiche();
+  const [rimandate, setRimandate] = React.useState(() => pnAttivaRimandate());
+  const [dove, setDove] = React.useState(null);   // la notifica di cui si spiega il dove
+  const aperte = items.filter(n => String(n.id).indexOf('attiva-') === 0 && rimandate.indexOf(n.id) < 0);
+  const rimanda = (n) => { pnAttivaRimanda(n.id); setRimandate(pnAttivaRimandate()); setDove(n); };
+  const vai = (n) => { window.byupNotificaLetta(n.id); window.location.href = n.href; };
+  if (!aperte.length && !dove) return null;
+
+  const foglio = dove && (() => {
+    const st = pnAttivaStile(dove.id);
+    return (
+      <div onClick={() => setDove(null)} style={{
+        position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.42)',
+        display: 'grid', placeItems: 'center', zIndex: 460, padding: 20,
+      }}>
+        <div onClick={e => e.stopPropagation()} style={{
+          width: 480, maxWidth: '92vw', background: PN.WHITE, borderRadius: 16,
+          boxShadow: '0 24px 60px rgba(15,17,21,0.24)', padding: '24px 26px',
+          animation: 'pnAttivaIn 220ms cubic-bezier(0.34, 1.35, 0.64, 1)',
+        }}>
+          <div style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.3, lineHeight: 1.3}}>{st.titoloDove}</div>
+          <div style={{fontSize: 15, color: PN.MUTED, marginTop: 8, lineHeight: 1.55}}>{st.dove}</div>
+          <div style={{display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end'}}>
+            <button onClick={() => setDove(null)} className="pn-btn-feedback" style={{
+              padding: '10px 18px', borderRadius: 10, border: `1px solid ${PN.BORDER}`,
+              background: PN.WHITE, color: PN.TEXT, fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Ho capito</button>
+            <button onClick={() => vai(dove)} className="pn-btn-feedback" style={{
+              padding: '10px 18px', borderRadius: 10, border: 'none',
+              background: PN.BTN_DARK, color: PN.WHITE, fontSize: 15, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Vai adesso</button>
+          </div>
+        </div>
+      </div>
+    );
+  })();
+
+  return (
+    <React.Fragment>
+      <style>{`
+        @keyframes pnAttivaGiu { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: none; } }
+        @keyframes pnAttivaIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+      `}</style>
+      {!!aperte.length && (
+        <div data-attivazioni style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 440,
+          display: 'flex', flexDirection: 'column',
+          animation: 'pnAttivaGiu 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+          boxShadow: '0 12px 32px -16px rgba(15,17,21,0.35)',
+        }}>
+          {aperte.map(n => {
+            const st = pnAttivaStile(n.id);
+            return (
+              <div key={n.id} style={{
+                display: 'flex', alignItems: 'center', gap: 16,
+                padding: '13px 24px',
+                background: st.sfondo, borderBottom: `1px solid ${st.bordo}`,
+              }}>
+                <span style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                  background: st.tinta, color: PN.WHITE, display: 'grid', placeItems: 'center',
+                }}>
+                  {/* Il triangolo d'avviso, disegnato qui: BuIcons non c'è in
+                      tutti i bundle che caricano questo file. */}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={PN.WHITE} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>
+                  </svg>
+                </span>
+                <div style={{flex: 1, minWidth: 0}}>
+                  <div style={{fontSize: 15.5, fontWeight: 800, color: st.tinta, letterSpacing: -0.1}}>{n.title}</div>
+                  <div style={{fontSize: 14, color: PN.TEXT, marginTop: 1, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'}}>{n.body}</div>
+                </div>
+                <div style={{display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0}}>
+                  <button onClick={() => rimanda(n)} className="pn-btn-feedback" style={{
+                    padding: '9px 15px', borderRadius: 10, border: `1px solid ${PN.BORDER}`,
+                    background: PN.WHITE, color: PN.TEXT, fontSize: 14.5, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}>Non ora</button>
+                  <button onClick={() => vai(n)} className="pn-btn-feedback" style={{
+                    padding: '9px 17px', borderRadius: 10, border: 'none',
+                    background: PN.BTN_DARK, color: PN.WHITE, fontSize: 14.5, fontWeight: 700,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}>{st.azione}</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {foglio}
+    </React.Fragment>
+  );
+}
+window.PnAttivazioniFascia = PnAttivazioniFascia;
+
 function PnNotifBell({ dropUp = false, sidebar = false, collapsed = false }) {
   const [open, setOpen] = React.useState(false);
   const [items, setItems] = React.useState(PN_NOTIFICATIONS);
