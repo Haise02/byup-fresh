@@ -90,7 +90,7 @@ window.pnRoutingLabel = (key) => {
 // una stampante sola vale per le prime e non per i secondi.
 const PN_PRINT_USI = {
   comande:   { label: 'Comande di cucina', breve: 'Comande',   nota: 'Riceve le comande delle categorie che le assegni. Una categoria sta su una stampante sola.' },
-  documenti: { label: 'Documenti per il cliente', breve: 'Documenti', nota: 'Documento commerciale e scontrino di cortesia, dopo il pagamento.' },
+  documenti: { label: 'Scontrini di cortesia', breve: 'Documenti', nota: 'Il documento di cortesia e il pre-conto, quando il cliente li chiede.' },
 };
 // Perché una stampante da browser non può fare le comande, detto una volta
 // sola e riusato dove serve. Non è una limitazione del prototipo: la stampa
@@ -107,10 +107,12 @@ const pnIsoFa = (sec) => new Date(Date.now() - sec * 1000).toISOString();
 // Il seme: la base dal browser (sempre) e due stampanti di cucina che
 // interrogano il server, una per protocollo. Gli stati «in linea» sono seme.
 const pnStampantiSeme = () => ({
+  // «Questa postazione» non è più un dispositivo del registro (4 settembre
+  // 2026): la stampa dal browser non si collega e non si scollega — c'è
+  // sempre, ed è la strada che il documento prende quando nessuna stampante
+  // collegata al server risponde per quel POS. Metterla in elenco come se
+  // fosse una stampante da aggiungere confondeva una via con un oggetto.
   devices: [
-    { id: 'prn-browser', type: 'printer', name: 'Questa postazione', device_model: 'Stampante di sistema', printer_vendor: 'other',
-      connection_mode: 'browser', printer_protocol: null, cloud_client_id: null, connection_status: null, connection_checked_at: null,
-      use: 'documenti', pos_ids: [], routing: [], fisso: true, last_test_print_at: null, last_test_print_result: null },
     { id: 'prn-1', type: 'printer', name: 'Cucina', device_model: 'TSP143IV', printer_vendor: 'star',
       connection_mode: 'server_polling', printer_protocol: 'cloudprnt', cloud_client_id: '00:11:62:4F:A3:9C', poll_interval_seconds: 5,
       connection_status: 'online', connection_checked_at: pnIsoFa(9), venue_id: 'cp', use: 'comande', pos_ids: [],
@@ -126,7 +128,10 @@ const pnStampantiSeme = () => ({
   // solo. Da solo è più veloce, ma stampa anche quando il cliente il foglio
   // non lo vuole — e quelli sono fogli buttati. È venue_settings.
   venue_settings: { auto_print_receipt: false },
-  venue_delivery_integrations: { auto_print_courtesy: false },
+  // Ordini da piattaforma: il documento esce in coda alla comanda, sempre.
+  // Non è un'opzione — dal browser non potrebbe avvenire, e quando le
+  // piattaforme entreranno funzionerà così senza che nessuno la accenda.
+  venue_delivery_integrations: { auto_print_courtesy: true },
 });
 window.byupReadStampanti = function () {
   const seme = pnStampantiSeme();
