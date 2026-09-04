@@ -598,7 +598,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // finisce in bills.preconto_printed_at (qui lo stato della finestra).
   function stampaPreConto(scope = 'tutto') {
     if (typeof window.byupStampaPreconto === 'function') {
-      const righe = (editedOrdini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo }));
+      const righe = (editedOrdini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia }));
       window.byupStampaPreconto({ tavolo: `Tavolo ${tavolo.id}`, coperti: tavolo.coperti || 1, righe, totale: righe.reduce((s, r) => s + (r.qty || 1) * (r.prezzo || 0), 0) });
     }
     setPreContoStampato(Date.now());
@@ -2721,10 +2721,16 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
     const pos = window.byupReadPosCensimento ? byupReadPosCensimento().filter(p => p.nature === 'tap_to_pay') : [];
     return pos.length ? pos[0].id : null;
   }, [carta]);
+  // Le forme di pagamento come le scrive il layout dell'Agenzia: il contante è
+  // quello ricevuto (il resto sta in una riga sua), l'elettronico è la carta,
+  // e «Importo pagato» è quanto il documento incassa. Le voci a zero non si
+  // stampano: le toglie il layout, non chi chiama.
   const contoDaStampare = () => ({
     tavolo: tavolo ? `Tavolo ${tavolo.id}` : '',
-    righe: (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo })),
-    totale: total, pagamento: carta > 0 ? 'Carta · Byup Staff' : 'Contanti',
+    righe: (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia })),
+    totale: total,
+    pagamenti: { contante: contanti, elettronico: carta, resto: resto > 0 ? resto : 0, pagato: total },
+    pagamento: carta > 0 ? 'Carta · Byup Staff' : 'Contanti',
   });
   const stampaCortesia = (auto) => {
     if (typeof window.byupStampaDocumentoCliente !== 'function') { setStampato({ via: 'browser', esito: 'ok' }); return; }

@@ -859,6 +859,22 @@ window.byupScriviAuditEvento = function (type, from, to, by) {
   return ev;
 };
 
+// ─── L'esercente in testa ai documenti ─────────────────────────────────────
+// Le cinque righe che il layout dell'Agenzia vuole in cima al documento
+// commerciale — insegna, partita IVA, via, città — servono anche al pre-conto
+// e al documento di cortesia, che quella testata la ripetono. Stavano solo
+// nello stato della schermata Dati fiscali, che vive nella pagina
+// Impostazioni: la stampa parte dalla Sala, e lì quello stato non c'è.
+// Quindi la verità sta qui, e Dati fiscali ci si appoggia.
+const PN_ESERCENTE = {
+  insegna: 'Cacio e Pepe',
+  piva: 'IT12345678901',
+  indirizzo: 'Via dei Giubbonari 27',
+  citta: 'Roma', cap: '00197', prov: 'RM',
+};
+window.PN_ESERCENTE = PN_ESERCENTE;
+window.byupReadEsercente = function () { return { ...PN_ESERCENTE }; };
+
 // ─── Censimento dei POS all'Agenzia delle Entrate (P-105 · FISC-03) ────────
 // Art. 1 co. 74-77 L. 207/2024 e Provv. AdE 424470/2025: ogni strumento di
 // pagamento elettronico va COLLEGATO dall'esercente allo strumento con cui

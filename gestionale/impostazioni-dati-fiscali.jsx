@@ -1419,8 +1419,8 @@ function ImpDatiFiscali() {
     // vedono cambiando forma, precompilati con una persona plausibile.
     legalForm: 'societa',
     ragione: 'Cacio e Pepe S.r.l.',
-    insegna: 'Cacio e Pepe',
-    piva: 'IT12345678901',
+    insegna: PN_ESERCENTE.insegna,
+    piva: PN_ESERCENTE.piva,
     cf: '12345678901',
     regime: 'Ordinario',
     ateco: '56.10.11',
@@ -1431,9 +1431,11 @@ function ImpDatiFiscali() {
     ownerComuneNascita: 'Roma',
     ownerStatoNascita: 'IT',
     ownerCf: 'RSSMRA78C21H501X',
-    // Sede operativa (stampata sullo scontrino)
-    indirizzo: 'Via dei Giubbonari 27',
-    citta: 'Roma', cap: '00197', prov: 'RM',
+    // Sede operativa (stampata in testa ai documenti, e non solo qui: la
+    // stessa testata la porta il foglio che esce dalla stampante, e viene
+    // dallo stesso registro — PN_ESERCENTE in panoramica-tokens.jsx).
+    indirizzo: PN_ESERCENTE.indirizzo,
+    citta: PN_ESERCENTE.citta, cap: PN_ESERCENTE.cap, prov: PN_ESERCENTE.prov,
     // Dati per fatturazione
     rea: 'RM-1234567',
     cciaa: 'Roma',
@@ -1712,7 +1714,7 @@ function ImpDatiFiscali() {
           }}>
             <span style={{fontSize: 18, lineHeight: 1.2}}>ℹ️</span>
             <div style={{fontSize: 13.5, color:'#1E40AF', lineHeight: 1.5}}>
-              La ricevuta fiscale viene comunicata all'Agenzia delle Entrate digitalmente e può essere condivisa tramite email o numero di telefono: puoi però stampare uno scontrino di cortesia se te lo chiedono.
+              È il documento commerciale come lo vuole l'Agenzia: stessa impaginazione, stesse diciture, stesso ordine dei totali. Lo emette il canale con la procedura «Documento commerciale on line» — perciò in fondo non c'è la matricola di un registratore telematico, che qui non esiste — e va all'Agenzia da solo. Il cliente lo riceve digitale, via email o numero di telefono; su carta puoi dargli il documento di cortesia, che è un altro foglio e lo dice.
             </div>
           </div>
         </aside>
@@ -1726,26 +1728,33 @@ function ImpDatiFiscali() {
 function ScontrinoPreview({ data }) {
   const mono = "ui-monospace, 'SF Mono', 'Roboto Mono', Menlo, monospace";
   const lineRow = (label, val, opts={}) => (
-    <div style={{display:'flex', justifyContent:'space-between', fontSize: 12.5, lineHeight: 1.5, ...opts}}>
+    <div style={{display:'flex', justifyContent:'space-between', gap: 8, fontSize: 12.5, lineHeight: 1.5, ...opts}}>
       <span>{label}</span>
-      <span>{val}</span>
+      <span style={{whiteSpace:'nowrap'}}>{val}</span>
     </div>
   );
 
   // La voce di coperto o servizio col nome e la forma scelti in Impostazioni →
   // Servizio (P-103): non più «COPERTO» cablato, la stessa riga del conto.
   const cop = window.byupCopertoRiga ? window.byupCopertoRiga(31, 2) : null;
+  // L'aliquota della riga discende da tipologia x modo di consumo (P-108): al
+  // tavolo e' somministrazione, e la somministrazione sta al 10% (voce 121).
+  const alTavolo = (id) => window.pnTipologiaAliquota ? window.pnTipologiaAliquota(id, false) : 10;
   const rows = [
-    { desc:'CACIO E PEPE',     q:1, p:14.00 },
-    { desc:'CARBONARA',        q:1, p:14.00 },
-    { desc:'ACQUA NAT 0.75L',  q:1, p:3.00  },
+    { desc:'CACIO E PEPE',     q:1, p:14.00, iva: alTavolo('piatti_preparati') },
+    { desc:'CARBONARA',        q:1, p:14.00, iva: alTavolo('piatti_preparati') },
+    { desc:'ACQUA NAT 0.75L',  q:1, p:3.00,  iva: alTavolo('acqua_birra') },
     ...(cop && cop.attiva ? [cop.forma === 'fissa'
-      ? { desc: cop.nome.toUpperCase(), q: 2, p: cop.importo }
-      : { desc: `${cop.nome.toUpperCase()} ${cop.aliquota}%`, q: 1, p: cop.valore }] : []),
+      ? { desc: cop.nome.toUpperCase(), q: 2, p: cop.importo, iva: alTavolo('piatti_preparati') }
+      : { desc: `${cop.nome.toUpperCase()} ${cop.aliquota}%`, q: 1, p: cop.valore, iva: alTavolo('piatti_preparati') }] : []),
   ];
   const totale = rows.reduce((s,r) => s + r.p*r.q, 0);
-  const imponibile = +(totale / 1.10).toFixed(2);
-  const iva = +(totale - imponibile).toFixed(2);
+  // L'IVA compresa nel totale, aliquota per aliquota: e' quella che il layout
+  // scrive come «di cui IVA».
+  const iva = +rows.reduce((s,r) => { const l = r.p*r.q; return s + l - l/(1 + r.iva/100); }, 0).toFixed(2);
+  // Nel documento i prezzi non portano il simbolo: la colonna si chiama gia' Prezzo(EUR).
+  const eur = (n) => n.toFixed(2).replace('.', ',');
+  const col3 = { display:'grid', gridTemplateColumns:'1fr 3.2em 4.6em', gap: 4 };
 
   return (
     <div style={{borderRadius: 14, overflow:'visible'}}>
@@ -1768,93 +1777,69 @@ function ScontrinoPreview({ data }) {
         color: '#1F1A14',
         clipPath: 'polygon(0% 8px, 4% 0%, 8% 8px, 12% 0%, 16% 8px, 20% 0%, 24% 8px, 28% 0%, 32% 8px, 36% 0%, 40% 8px, 44% 0%, 48% 8px, 52% 0%, 56% 8px, 60% 0%, 64% 8px, 68% 0%, 72% 8px, 76% 0%, 80% 8px, 84% 0%, 88% 8px, 92% 0%, 96% 8px, 100% 0%, 100% calc(100% - 8px), 96% 100%, 92% calc(100% - 8px), 88% 100%, 84% calc(100% - 8px), 80% 100%, 76% calc(100% - 8px), 72% 100%, 68% calc(100% - 8px), 64% 100%, 60% calc(100% - 8px), 56% 100%, 52% calc(100% - 8px), 48% 100%, 44% calc(100% - 8px), 40% 100%, 36% calc(100% - 8px), 32% 100%, 28% calc(100% - 8px), 24% 100%, 20% calc(100% - 8px), 16% 100%, 12% calc(100% - 8px), 8% 100%, 4% calc(100% - 8px), 0% 100%)',
       }}>
-        {/* Header negozio */}
+        {/* Testata dell'esercente: le cinque righe del layout standard,
+            nell'ordine esatto — insegna, partita IVA, via, citta(prov), CAP. */}
         <div style={{textAlign:'center', marginBottom: 10}}>
           <div style={{
-            fontSize: 15, fontWeight: 800, letterSpacing: 1,
+            fontSize: 13.5, fontWeight: 800,
             color: data.insegna ? '#1F1A14' : PN.RED,
           }}>
-            {(data.insegna || '— manca insegna —').toUpperCase()}
+            {data.insegna || '— manca insegna —'}
           </div>
-          <div style={{fontSize: 12, marginTop: 2}}>{data.indirizzo || '—'}</div>
-          <div style={{fontSize: 12}}>{data.cap} {data.citta} ({data.prov})</div>
-          <div style={{fontSize: 12, marginTop: 4}}>P.IVA {data.piva || '—'}</div>
+          <div style={{fontSize: 12, marginTop: 2}}>P.I. {data.piva || '—'}</div>
+          <div style={{fontSize: 12}}>{data.indirizzo || '—'}</div>
+          <div style={{fontSize: 12}}>{data.citta}{data.prov ? `(${data.prov})` : ''}, {data.cap}</div>
         </div>
 
-        <div style={{
-          fontSize: 12, letterSpacing: 1.5, textAlign:'center', margin: '4px 0',
-          color: '#8A7B5C',
-        }}>━━━━━━━━━━━━━━━━━━━━━━━━━</div>
-
-        {/* Doc header */}
-        <div style={{textAlign:'center', fontSize: 12.5, fontWeight: 700, margin: '6px 0'}}>
+        {/* La dicitura, su due righe come la vuole il decreto */}
+        <div style={{textAlign:'center', fontSize: 12.5, fontWeight: 700, marginTop: 12}}>
           DOCUMENTO COMMERCIALE
         </div>
-        <div style={{textAlign:'center', fontSize: 11.5, marginBottom: 8, opacity: 0.85}}>
+        <div style={{textAlign:'center', fontSize: 12.5, fontWeight: 700, marginBottom: 10}}>
           di vendita o prestazione
         </div>
 
-        {/* Linee */}
-        <div style={{borderTop:'1px dashed #BFB39A', paddingTop: 6, marginBottom: 6}}>
-          {rows.map((r, i) => (
-            <div key={i} style={{marginBottom: 3}}>
-              <div style={{fontSize: 12.5, lineHeight: 1.3}}>{r.desc}</div>
-              <div style={{display:'flex', justifyContent:'space-between', fontSize: 12, color:'#5C5142'}}>
-                <span>{r.q} x € {r.p.toFixed(2)}</span>
-                <span style={{color:'#1F1A14', fontWeight: 600}}>€ {(r.q*r.p).toFixed(2)}</span>
-              </div>
+        {/* Le colonne del layout: DESCRIZIONE · IVA · Prezzo(€) */}
+        <div style={{...col3, fontWeight: 700, fontSize: 12, marginBottom: 4}}>
+          <span>DESCRIZIONE</span>
+          <span style={{textAlign:'right'}}>IVA</span>
+          <span style={{textAlign:'right'}}>Prezzo(€)</span>
+        </div>
+        {rows.map((r, i) => (
+          <React.Fragment key={i}>
+            <div style={{...col3, fontSize: 12.5, lineHeight: 1.45}}>
+              <span>{r.desc}</span>
+              <span style={{textAlign:'right'}}>{r.iva}%</span>
+              <span style={{textAlign:'right'}}>{eur(r.p * r.q)}</span>
             </div>
-          ))}
-        </div>
+            {/* La quantita sta sotto la voce, e solo quando i pezzi sono piu d'uno */}
+            {r.q > 1 && (
+              <div style={{fontSize: 12, paddingLeft: 12, color:'#5C5142'}}>n.{r.q} * {eur(r.p)}</div>
+            )}
+          </React.Fragment>
+        ))}
 
-        {/* Subtotali */}
-        <div style={{borderTop:'1px dashed #BFB39A', paddingTop: 6}}>
-          {lineRow('SUBTOTALE', `€ ${totale.toFixed(2)}`)}
-          {lineRow('di cui imponibile 10%', `€ ${imponibile.toFixed(2)}`, {color:'#5C5142'})}
-          {lineRow('di cui IVA 10%', `€ ${iva.toFixed(2)}`, {color:'#5C5142'})}
-        </div>
-
-        {/* Totale */}
-        <div style={{
-          marginTop: 6, paddingTop: 6, borderTop:'2px solid #1F1A14',
-          display:'flex', justifyContent:'space-between',
-          fontSize: 15, fontWeight: 800,
-        }}>
-          <span>TOTALE COMPLESSIVO</span>
-          <span>€ {totale.toFixed(2)}</span>
-        </div>
-
-        {/* Pagamento */}
+        {/* I totali, nell'ordine del layout */}
         <div style={{marginTop: 10}}>
-          {lineRow('PAGAMENTO ELETTRONICO', `€ ${totale.toFixed(2)}`, {fontWeight: 700})}
-          {lineRow('Resto', '€ 0,00', {color:'#5C5142'})}
+          {lineRow('Subtotale', eur(totale))}
+        </div>
+        <div style={{marginTop: 10}}>
+          {lineRow('TOTALE COMPLESSIVO', eur(totale), {fontWeight: 800, fontSize: 14})}
+          {lineRow('di cui IVA', eur(iva), {fontWeight: 700, fontSize: 13})}
         </div>
 
-        {/* Footer fiscale */}
-        <div style={{
-          marginTop: 12, paddingTop: 8,
-          borderTop: '1px dashed #BFB39A',
-          fontSize: 11, color: '#5C5142', lineHeight: 1.5,
-        }}>
-          <div style={{textAlign:'center'}}>06/03/2026  14:32  DOC.N. 0042-0007</div>
-          <div style={{textAlign:'center', marginTop: 4, fontSize: 10.5, opacity: 0.85}}>
-            Trasmesso ad Agenzia delle Entrate
-          </div>
+        {/* Le forme di pagamento coi nomi esatti. Il resto e le forme che
+            valgono zero non si stampano (prescrizione di risparmio carta);
+            «Importo pagato» invece c'e sempre. */}
+        <div style={{marginTop: 10}}>
+          {lineRow('Pagamento elettronico', eur(totale))}
+          {lineRow('Importo pagato', eur(totale))}
         </div>
 
-        {/* Barcode mock */}
-        <div style={{
-          marginTop: 10, display:'flex', justifyContent:'center', gap: 1,
-          height: 22, alignItems:'center',
-        }}>
-          {Array.from({length: 38}).map((_,i) => {
-            const w = (i % 4 === 0 ? 2 : (i % 3 === 0 ? 1.5 : 1));
-            const h = (i % 5 === 0 ? 22 : 18);
-            return <span key={i} style={{
-              display:'inline-block', width: w, height: h,
-              background: '#1F1A14', opacity: i%2 ? 1 : 0.15,
-            }}/>;
-          })}
+        {/* La chiusura: data «gg-mm-aaaa hh:mm» e numero del documento */}
+        <div style={{marginTop: 14, fontSize: 12, textAlign:'center', lineHeight: 1.6}}>
+          <div>06-03-2026 14:32</div>
+          <div>DOCUMENTO N. 0042-0007</div>
         </div>
       </div>
 

@@ -328,6 +328,11 @@ const PN_STAMPA_CSS = `
   .c { text-align: center; } .b { font-weight: 700; } .g { font-size: 15px; }
   .hr { border-top: 1px dashed #000; margin: 5px 0; }
   .r { display: flex; justify-content: space-between; gap: 6px; }
+  .d { display: grid; grid-template-columns: 1fr 4.5em 6em; gap: 4px; }
+  .d .iva { text-align: right; } .d .pr { text-align: right; }
+  .sub { padding-left: 12px; }
+  .tot { display: grid; grid-template-columns: 1fr 6em; gap: 4px; }
+  .tot .pr { text-align: right; }
   .cat { margin: 6px 0 2px; font-weight: 700; text-transform: uppercase; }
   .mod { padding-left: 14px; } .all { font-weight: 700; }
   .nota { margin-top: 8px; font-size: 9.5px; }
@@ -337,6 +342,88 @@ const pnEsc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': 
 const pnEuro = (n) => '€ ' + (Math.round((Number(n) || 0) * 100) / 100).toFixed(2).replace('.', ',');
 const pnOra = (d) => { const x = d ? new Date(d) : new Date(); return x.toLocaleDateString('it-IT') + ' ' + x.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); };
 const pnLocaleNome = () => (window.PN_LOCALE && window.PN_LOCALE.nome) || 'Cacio e Pepe';
+
+// ─── La forma del documento commerciale (layout standard dell'Agenzia) ──────
+// Fonte: «DOCUMENTO COMMERCIALE DI VENDITA O PRESTAZIONE: LAYOUT STANDARD»
+// v4, agenziaentrate.gov.it. Da lì vengono le colonne (DESCRIZIONE · IVA ·
+// Prezzo(€)), la riga della quantità scritta sotto la voce come «n.2 * 3,00»,
+// lo sconto come riga figlia, l'ordine dei totali (Subtotale, TOTALE
+// COMPLESSIVO, di cui IVA), i nomi esatti delle forme di pagamento e la
+// chiusura con data «gg-mm-aaaa hh:mm» e «DOCUMENTO N. 0000-0000».
+// Due prescrizioni di risparmio carta stanno nella stessa fonte e valgono
+// qui: mai più di una riga vuota di seguito, e i campi del resto e delle
+// forme di pagamento non si stampano quando valgono zero — «Importo pagato»
+// invece si stampa sempre.
+//
+// ATTENZIONE, ed è il motivo per cui questi mattoni stanno qui e non in un
+// «layout dello scontrino»: quello che esce da questa stampante NON è mai un
+// documento commerciale. Il documento commerciale lo emette il canale
+// fiscale e va all'Agenzia da solo (D-108). Pre-conto e cortesia prendono in
+// prestito la FORMA — le stesse colonne, le stesse parole, la stessa
+// leggibilità — perché il cliente le riconosce, e dichiarano in testa che
+// documento fiscale non sono. Copiarne anche la testata sarebbe un documento
+// commerciale apparente, e non si fa.
+const pnNum = (n) => (Math.round((Number(n) || 0) * 100) / 100).toFixed(2).replace('.', ',');
+const pnDueCifre = (n) => String(n).padStart(2, '0');
+// La data come la scrive il layout: 02-06-2020 19:10.
+const pnDataDoc = (d) => {
+  const x = d ? new Date(d) : new Date();
+  return `${pnDueCifre(x.getDate())}-${pnDueCifre(x.getMonth() + 1)}-${x.getFullYear()} ${pnDueCifre(x.getHours())}:${pnDueCifre(x.getMinutes())}`;
+};
+// L'aliquota della riga: quella congelata sulla riga d'ordine se c'è,
+// altrimenti quella che discende da tipologia × modo di consumo (P-108).
+// Senza né l'una né l'altra vale la somministrazione, che è il caso del
+// locale: al banco o al tavolo tutto sta al 10% (voce 121).
+const pnRigaIva = (r, asporto) => {
+  if (r.iva != null) return Number(r.iva);
+  if (r.tipologia && window.pnTipologiaAliquota) return window.pnTipologiaAliquota(r.tipologia, !!asporto);
+  return 10;
+};
+// Le righe della merce: voce, aliquota, prezzo della riga; la quantità sotto,
+// come nel layout, e solo quando c'è più di un pezzo.
+const pnDocRighe = (righe, asporto) => (righe || []).map(r => {
+  const qty = r.qty || 1;
+  const unitario = r.prezzo || 0;
+  return `<div class="d"><span>${pnEsc(r.nome)}</span><span class="iva">${pnNum(pnRigaIva(r, asporto)).replace(',00', '')}%</span><span class="pr">${pnNum(unitario * qty)}</span></div>` +
+    (qty > 1 ? `<div class="sub">n.${qty} * ${pnNum(unitario)}</div>` : '');
+}).join('');
+// I totali, nell'ordine del layout. L'IVA è quella compresa nel totale,
+// aliquota per aliquota.
+const pnDocTotali = (righe, totale, asporto) => {
+  const tot = totale != null ? totale : (righe || []).reduce((s, r) => s + (r.prezzo || 0) * (r.qty || 1), 0);
+  const iva = (righe || []).reduce((s, r) => {
+    const lordo = (r.prezzo || 0) * (r.qty || 1);
+    const al = pnRigaIva(r, asporto);
+    return s + lordo - lordo / (1 + al / 100);
+  }, 0);
+  return { tot, iva: Math.round(iva * 100) / 100 };
+};
+// Le forme di pagamento, coi nomi del layout e la regola dello zero.
+const pnDocPagamenti = (p) => {
+  const v = p || {};
+  const righe = [
+    ['Pagamento contante', v.contante],
+    ['Pagamento elettronico', v.elettronico],
+    ['Non riscosso', v.non_riscosso],
+    ['Resto', v.resto],
+    ['Sconto a pagare', v.sconto_a_pagare],
+  ].filter(([, n]) => Number(n) > 0);
+  if (v.pagato == null && !righe.length) return '';
+  return righe.map(([label, n]) => `<div class="tot"><span>${label}</span><span class="pr">${pnNum(n)}</span></div>`).join('')
+    + `<div class="tot"><span>Importo pagato</span><span class="pr">${pnNum(v.pagato != null ? v.pagato : 0)}</span></div>`;
+};
+// La testata dell'esercente: le stesse cinque righe del layout, prese dai
+// dati fiscali del locale.
+const pnDocEsercente = () => {
+  const d = (window.byupReadEsercente && window.byupReadEsercente()) || {};
+  const insegna = d.insegna || pnLocaleNome();
+  const via = d.indirizzo || '';
+  const citta = [d.citta && `${d.citta}${d.prov ? `(${d.prov})` : ''}`, d.cap].filter(Boolean).join(', ');
+  return `<div class="c">${pnEsc(insegna)}</div>` +
+    (d.piva ? `<div class="c">P.I. ${pnEsc(d.piva)}</div>` : '') +
+    (via ? `<div class="c">${pnEsc(via)}</div>` : '') +
+    (citta ? `<div class="c">${pnEsc(citta)}</div>` : '');
+};
 
 // La comanda: UNA per stampante, con le sole righe delle sue categorie
 // (category_routings); qui arriva già il pacchetto di righe da stampare,
@@ -369,23 +456,28 @@ window.byupLayoutComanda = function ({ identita, righe, quando, stampante, antep
   </body></html>`;
 };
 
-// Il pre-conto: il documento che si porta al tavolo PRIMA del pagamento. Non è
-// lo scontrino e non è il documento di cortesia: dice che cosa c'è sul conto
-// e quanto fa, e che il documento commerciale arriva al pagamento.
-// righe: [{ nome, qty, prezzo }]
-window.byupLayoutPreconto = function ({ tavolo, coperti, righe, totale, quando, stampante, anteprima }) {
-  const tot = totale != null ? totale : (righe || []).reduce((s, r) => s + (r.prezzo || 0) * (r.qty || 1), 0);
+// Il pre-conto: il documento che si porta al tavolo PRIMA del pagamento. Non
+// è lo scontrino e non è il documento di cortesia: dice che cosa c'è sul
+// conto e quanto fa, e che il documento commerciale arriva al pagamento.
+// Prende dal layout dell'Agenzia le colonne e i totali — è la forma che il
+// cliente sa leggere — e in testa dichiara che documento fiscale non è.
+// righe: [{ nome, qty, prezzo, iva?, tipologia? }]
+window.byupLayoutPreconto = function ({ tavolo, coperti, righe, totale, quando, stampante, anteprima, asporto }) {
+  const { tot, iva } = pnDocTotali(righe, totale, asporto);
   return `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Pre-conto</title><style>${PN_STAMPA_CSS}</style></head><body>
     ${anteprima ? `<div class="anteprima">${pnEsc(anteprima)}</div>` : ''}
-    <div class="c b">${pnEsc(pnLocaleNome())}</div>
-    <div class="c b g">PRE-CONTO</div>
+    ${pnDocEsercente()}
+    <div class="c b" style="margin-top:6px">PRE-CONTO</div>
     <div class="c b">NON FISCALE · non valido ai fini fiscali</div>
     <div class="hr"></div>
-    <div class="r"><span>${pnEsc(tavolo || '')}${coperti ? ` · ${coperti} coperti` : ''}</span><span>${pnEsc(pnOra(quando))}</span></div>
+    <div class="r"><span>${pnEsc(tavolo || '')}${coperti ? ` · ${coperti} coperti` : ''}</span><span>${pnEsc(pnDataDoc(quando))}</span></div>
     <div class="hr"></div>
-    ${(righe || []).map(r => `<div class="r"><span>${r.qty || 1}× ${pnEsc(r.nome)}</span><span>${pnEuro((r.prezzo || 0) * (r.qty || 1))}</span></div>`).join('')}
+    <div class="d b"><span>DESCRIZIONE</span><span class="iva">IVA</span><span class="pr">Prezzo(&euro;)</span></div>
+    ${pnDocRighe(righe, asporto)}
     <div class="hr"></div>
-    <div class="r b g"><span>TOTALE</span><span>${pnEuro(tot)}</span></div>
+    <div class="tot"><span>Subtotale</span><span class="pr">${pnNum(tot)}</span></div>
+    <div class="tot b g"><span>TOTALE COMPLESSIVO</span><span class="pr">${pnNum(tot)}</span></div>
+    <div class="tot b"><span>di cui IVA</span><span class="pr">${pnNum(iva)}</span></div>
     <div class="hr"></div>
     <div class="nota">Il documento commerciale ai fini fiscali sarà emesso al pagamento dal canale fiscale e trasmesso all'Agenzia delle Entrate; questo foglio è un pre-conto.</div>
     <div class="nota">${pnEsc(stampante ? `Stampante: ${stampante}` : 'Stampa dal browser')} · Byup Fresh</div>
@@ -393,23 +485,45 @@ window.byupLayoutPreconto = function ({ tavolo, coperti, righe, totale, quando, 
 };
 
 // Il documento di cortesia: NON è lo scontrino. Il documento commerciale lo
-// emette il canale fiscale (OpenAPI); questo è il foglio che il cliente porta
-// via dopo il pagamento, e lo dice in testa.
-// righe: [{ nome, qty, prezzo }]
-window.byupLayoutCortesia = function ({ tavolo, righe, totale, pagamento, quando, stampante, anteprima }) {
-  const tot = totale != null ? totale : (righe || []).reduce((s, r) => s + (r.prezzo || 0) * (r.qty || 1), 0);
+// emette il canale fiscale (OpenAPI) e va all'Agenzia da solo; questo è il
+// foglio che il cliente porta via dopo il pagamento, e lo dice in testa.
+// Della forma ufficiale prende tutto quello che si può prendere — colonne,
+// totali, nomi delle forme di pagamento — e in più richiama il documento
+// vero, con la stessa formula che il layout usa per il reso: «Documento di
+// riferimento: N. 0000-0000 del gg-mm-aaaa». Quello che NON prende è la
+// dicitura «DOCUMENTO COMMERCIALE di vendita o prestazione»: portarla senza
+// esserlo farebbe un documento commerciale apparente.
+// righe: [{ nome, qty, prezzo, iva?, tipologia? }]
+// pagamenti: { contante, elettronico, non_riscosso, resto, sconto_a_pagare, pagato }
+// documento: { numero, quando } — il documento commerciale già emesso.
+window.byupLayoutCortesia = function ({ tavolo, righe, totale, pagamento, pagamenti, documento, quando, stampante, anteprima, asporto }) {
+  const { tot, iva } = pnDocTotali(righe, totale, asporto);
+  // Le forme di pagamento: se arriva il dettaglio si usa quello, altrimenti
+  // il vecchio `pagamento` (una parola sola) diventa la forma corrispondente.
+  const pag = pagamenti || (() => {
+    const testo = String(pagamento || '').toLowerCase();
+    if (!testo) return { pagato: tot };
+    const contante = testo.includes('contant');
+    return { [contante ? 'contante' : 'elettronico']: tot, pagato: tot };
+  })();
   return `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Documento di cortesia</title><style>${PN_STAMPA_CSS}</style></head><body>
     ${anteprima ? `<div class="anteprima">${pnEsc(anteprima)}</div>` : ''}
-    <div class="c b">${pnEsc(pnLocaleNome())}</div>
-    <div class="c b g">DOCUMENTO DI CORTESIA</div>
+    ${pnDocEsercente()}
+    <div class="c b g" style="margin-top:6px">DOCUMENTO DI CORTESIA</div>
     <div class="c b">NON FISCALE · non valido ai fini fiscali</div>
+    ${documento && documento.numero ? `<div class="c" style="margin-top:6px">Documento di riferimento:</div>
+    <div class="c b">N. ${pnEsc(documento.numero)} del ${pnEsc(pnDataDoc(documento.quando || quando))}</div>` : ''}
     <div class="hr"></div>
-    <div class="r"><span>${pnEsc(tavolo || '')}</span><span>${pnEsc(pnOra(quando))}</span></div>
+    <div class="r"><span>${pnEsc(tavolo || '')}</span><span>${pnEsc(pnDataDoc(quando))}</span></div>
     <div class="hr"></div>
-    ${(righe || []).map(r => `<div class="r"><span>${r.qty || 1}× ${pnEsc(r.nome)}</span><span>${pnEuro((r.prezzo || 0) * (r.qty || 1))}</span></div>`).join('')}
+    <div class="d b"><span>DESCRIZIONE</span><span class="iva">IVA</span><span class="pr">Prezzo(&euro;)</span></div>
+    ${pnDocRighe(righe, asporto)}
     <div class="hr"></div>
-    <div class="r b g"><span>TOTALE</span><span>${pnEuro(tot)}</span></div>
-    ${pagamento ? `<div class="r"><span>Pagamento</span><span>${pnEsc(pagamento)}</span></div>` : ''}
+    <div class="tot"><span>Subtotale</span><span class="pr">${pnNum(tot)}</span></div>
+    <div class="tot b g"><span>TOTALE COMPLESSIVO</span><span class="pr">${pnNum(tot)}</span></div>
+    <div class="tot b"><span>di cui IVA</span><span class="pr">${pnNum(iva)}</span></div>
+    <div class="hr"></div>
+    ${pnDocPagamenti(pag)}
     <div class="hr"></div>
     <div class="nota">Il documento commerciale ai fini fiscali è emesso dal canale fiscale e trasmesso all'Agenzia delle Entrate; questo foglio è di cortesia.</div>
     <div class="nota">${pnEsc(stampante ? `Stampante: ${stampante}` : 'Stampa dal browser')} · Byup Fresh</div>
