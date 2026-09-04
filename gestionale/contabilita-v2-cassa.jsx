@@ -491,7 +491,74 @@ function CcControlloLink({ onClick }) {
   );
 }
 
-function CcControlloSheet({ onClose, onMostraConti }) {
+const CC_METODO = { contanti:'Contanti', carta:'Carta', byup:'Byup app', piattaforma:'Piattaforma' };
+
+// I documenti del periodo: i pagamenti dei conti e le loro rettifiche, che
+// sono documenti a sé ed sono partite anche loro — senza, i totali non
+// tornerebbero con quelli del portale. Il periodo si applica alla data del
+// DOCUMENTO, non a quella del conto: è la data che il portale elenca.
+function ccDocsPeriodo(periodo) {
+  const dentro = (ora) => {
+    const g = String(ora || '').split(' ')[0];
+    return !!g && (!periodo || (g >= periodo.da && g <= periodo.a));
+  };
+  const rif = (c) => [c.tavolo, c.cliente].filter(Boolean).join(' · ');
+  const giorno = (ora) => String(ora || '').split(' ')[0];
+  // Il documento accodato nella finestra di divieto parte a mezzanotte: la sua
+  // giornata fiscale è quella del giorno dopo, ed è lì che il portale lo
+  // elenca. Metterlo sotto la data di emissione farebbe cercare invano.
+  const giornataDopo = (ora) => { const d = new Date(giorno(ora) + 'T12:00:00'); d.setDate(d.getDate() + 1); return ccIso(d); };
+  const out = [];
+  ccDocumenti().forEach(({ conto, p }) => {
+    if (dentro(p.ora)) {
+      const i = docInfo(p);
+      out.push({ tipo:'Documento', numero: p.scontrinoNum || '—', ora: p.ora, importo: p.amount,
+        giornata: i.tipo === 'waiting' ? giornataDopo(p.ora) : giorno(p.ora),
+        metodo: CC_METODO[p.method] || p.method, esito: DOC_LABEL[i.tipo] || i.tipo,
+        id: i.idTrasm || '', dettaglio: i.scarto ? i.scarto.motivo : '', rif: rif(conto) });
+    }
+    const rett = typeof rettDi === 'function' ? rettDi(p) : null;
+    if (!rett) return;
+    (rett.resi || []).forEach((r, k) => {
+      if (!dentro(r.ora)) return;
+      const f = rettFisc(p, r, k);
+      out.push({ tipo:'Reso', numero: rettDocReso(p, k), ora: r.ora, importo: -r.amount, giornata: giorno(r.ora),
+        metodo: CC_METODO[p.method] || p.method, esito: f.idTrasm ? 'Trasmesso' : (DOC_LABEL[f.esito] || f.esito),
+        id: f.idTrasm || '', dettaglio: r.motivo || '', rif: `Reso di ${p.scontrinoNum}` });
+    });
+    if (rett.annullo && dentro(rett.annullo.ora)) {
+      const f = rettFisc(p, rett.annullo, 0, true);
+      out.push({ tipo:'Annullo', numero: rettDocAnnullo(p), ora: rett.annullo.ora, importo: -rett.annullo.amount, giornata: giorno(rett.annullo.ora),
+        metodo: CC_METODO[p.method] || p.method, esito: f.idTrasm ? 'Trasmesso' : (DOC_LABEL[f.esito] || f.esito),
+        id: f.idTrasm || '', dettaglio: rett.annullo.motivo || '', rif: `Annullo di ${p.scontrinoNum}` });
+    }
+  });
+  return out.sort((a, b) => String(a.ora).localeCompare(String(b.ora)));
+}
+
+// Punto e virgola e virgola decimale: il file si apre in Excel italiano senza
+// che i numeri diventino testo. Il BOM perché gli accenti non si sfascino.
+// La prima riga dice che cos'è e per che periodo: chi lo riapre fra un mese
+// non deve indovinarlo dal nome del file.
+function ccCsvPeriodo(docs, periodo) {
+  const q = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+  const eur = (n) => n.toFixed(2).replace('.', ',');
+  const it = (iso) => String(iso || '').split('-').reverse().join('/');
+  const testa = ['tipo','numero_documento','data','ora','giornata_fiscale','importo','metodo','esito_dichiarato','identificativo_canale','riferimento','dettaglio'];
+  const righe = docs.map(d => [d.tipo, d.numero, it(String(d.ora).split(' ')[0]), String(d.ora).split(' ')[1] || '',
+    it(d.giornata), eur(d.importo), d.metodo, d.esito, d.id, d.rif, d.dettaglio].map(q).join(';'));
+  const quando = ccPeriodoLabel(periodo);
+  const nota = `# Documenti emessi da Byup Fresh · ${periodo ? quando : 'tutte le date'} · ${docs.length} document${docs.length === 1 ? 'o' : 'i'}. Elenco per il confronto con gli invii giornalieri del portale dell'Agenzia delle Entrate: i documenti che fanno prova sono quelli memorizzati dal sistema dell'Agenzia.`;
+  return '﻿' + [nota, testa.join(';'), ...righe].join('\n');
+}
+
+function ccScarica(nome, contenuto) {
+  const url = URL.createObjectURL(new Blob([contenuto], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a'); a.href = url; a.download = nome; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function CcControlloSheet({ onClose }) {
   // Parte da «oggi e ieri»: è l'intervallo che di solito viene chiesto, ed è
   // già una delle scorciatoie del selettore. Si cambia col selettore di
   // sempre — quello di Cassa e di Conti — e il periodo scelto è quello con
@@ -514,6 +581,15 @@ function CcControlloSheet({ onClose, onMostraConti }) {
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
   }, [onClose]);
+
+  const docs = ccDocsPeriodo(periodo);
+  const totale = docs.reduce((t, d) => t + d.importo, 0);
+  const [scaricato, setScaricato] = React.useState(false);
+  const scarica = () => {
+    const nome = periodo ? `Byup-documenti-${periodo.da}_${periodo.a}.csv` : 'Byup-documenti.csv';
+    ccScarica(nome, ccCsvPeriodo(docs, periodo));
+    setScaricato(true); setTimeout(() => setScaricato(false), 2200);
+  };
 
   const btn = (label, onClick, primario, href) => {
     const st = {
@@ -563,7 +639,12 @@ function CcControlloSheet({ onClose, onMostraConti }) {
           margin:'18px 24px 0', padding:'12px 14px', borderRadius: C.R_MD,
           background: C.SURF_ALT, display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap',
         }}>
-          <span style={{fontSize: C.T_SM, color: PN.MUTED, fontWeight: 600}}>Periodo chiesto</span>
+          <div style={{minWidth: 0}}>
+            <div style={{fontSize: C.T_SM, color: PN.TEXT, fontWeight: 700}}>Periodo chiesto</div>
+            <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2}}>
+              {docs.length === 0 ? 'Nessun documento' : `${docs.length} document${docs.length === 1 ? 'o' : 'i'} · ${ccEuro(totale)}`}
+            </div>
+          </div>
           <div ref={pickerRef} style={{position:'relative', marginLeft:'auto'}}>
             <button onClick={() => setPickerOpen(o => !o)} style={{
               display:'inline-flex', alignItems:'center', gap: 7, padding:'8px 13px',
@@ -584,11 +665,11 @@ function CcControlloSheet({ onClose, onMostraConti }) {
 
         <div style={{padding:'16px 24px 0', display:'flex', gap: 10, flexWrap:'wrap'}}>
           {btn(<React.Fragment>Apri il portale <span aria-hidden="true">↗</span></React.Fragment>, null, true, ccPortale())}
-          {btn('Mostra i miei conti del periodo', () => onMostraConti(periodo))}
+          {btn(scaricato ? 'Scaricato ✓' : 'Scarica i dati del periodo', scarica)}
         </div>
 
         <div style={{padding:'14px 24px 20px', fontSize: C.T_XS, color: PN.MUTED, lineHeight: 1.5}}>
-          L'elenco di Byup serve a confrontare: i documenti che fanno prova sono quelli memorizzati dal sistema dell'Agenzia.
+          Il file è l'elenco di Byup, e serve a confrontare: i documenti che fanno prova sono quelli memorizzati dal sistema dell'Agenzia.
         </div>
       </div>
     </div>

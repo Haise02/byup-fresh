@@ -40,10 +40,9 @@ function ContabilitaApp() {
   // «In caso di controllo» (P-111): il foglio che dice dove sta la prova. Lo
   // apre il link grigio in coda alle tab e ⌘K, che ci arriva con ?controllo=1
   // — stessa forma del ?invita=1 di Profilo. Il periodo che si sceglie lì
-  // dentro scende in Conti come filtro: si arriva alla lista già sulla
-  // finestra che è stata chiesta, senza rifare il gesto.
+  // dentro è quello del file che si scarica: la stessa finestra da mettere
+  // accanto agli invii giornalieri del portale.
   const [controllo, setControllo] = useState(params.get('controllo') === '1');
-  const [contiPeriodo, setContiPeriodo] = useState(null);
 
   // Scarti fiscali non gestiti: accendono il pallino sulla voce Contabilità.
   // Si spengono solo quando lo scarto è gestito — mai col tempo, mai per il
@@ -133,7 +132,7 @@ function ContabilitaApp() {
           {/* Tab content */}
           {tab==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}
             onApriConti={(data, stato) => { setContiFisc({ data, stato }); setTab('conti'); }}/>}
-          {tab==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} apri={contoApri} periodoIn={contiPeriodo} onFiscClear={() => setContiFisc(null)}/>}
+          {tab==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} apri={contoApri} onFiscClear={() => setContiFisc(null)}/>}
           {tab==='costi' && <ContCosti openNewCost={() => setNewCost(true)}/>}
           {tab==='iva'   && <ContIva month={ivaMonth} setMonth={setIvaMonth}/>}
           {tab==='fatture' && <ContFatture/>}
@@ -143,9 +142,7 @@ function ContabilitaApp() {
         <ContNuovoCosto open={newCost} onClose={() => setNewCost(false)}/>
         {esibizione && regimeSoluzione && window.ContEsibizione && <ContEsibizione onClose={() => setEsibizione(false)}/>}
         {controllo && !regimeSoluzione && window.CcControlloSheet && (
-          <window.CcControlloSheet
-            onClose={() => setControllo(false)}
-            onMostraConti={(p) => { setContiPeriodo(p); setTab('conti'); setControllo(false); }}/>
+          <window.CcControlloSheet onClose={() => setControllo(false)}/>
         )}
         <ContShareModal open={share} onClose={() => setShare(false)}/>
       </main>
