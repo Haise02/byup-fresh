@@ -115,19 +115,12 @@ function ImpStampantiBlocco({ inline, colonne }) {
           scelta si fa anche quando si imposta la stampante; qui si cambia. */}
       {documenti.length > 1 && <ImpPosStampanti documenti={documenti} onFatto={avvisa}/>}
 
-      {/* La prova della strada, non di un dispositivo (P-128, caso 3.8).
-          Serve a chi stampa dal browser: se il computer ha una stampante
-          configurata e se il margine da 80 mm viene giusto. Per questo è un
-          collegamento e non il pulsante di una scheda — non c'è una scheda a
-          cui appartenga — e non registra niente. */}
-      <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', fontSize: 13, color: PN.MUTED, lineHeight: 1.5 }}>
-        <button data-prova-documenti onClick={() => { window.byupProvaStampaDocumenti(); avvisa('Foglio di prova mandato alla stampa del computer'); }}
-          className="pn-btn-feedback" style={{
-            background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 13, fontWeight: 700, color: PN.TEXT, textDecoration: 'underline', textUnderlineOffset: 3,
-          }}>Prova la stampa dei documenti</button>
-        <span>Apre un foglio di esempio nella stampa di questo computer: dice se una stampante c'è e se il margine da 80 mm viene giusto. Non è la prova di un dispositivo, ed è quello che succede quando nessuna stampante collegata risponde.</span>
-      </div>
+      {/* La prova della stampa dei documenti (P-128, caso 3.8) non sta qui, in
+          fondo al blocco, come un collegamento a sé: parte alla FINE del
+          collegamento di una stampante per i documenti, che è il momento in
+          cui la domanda nasce — «come viene il foglio?» — e l'unico in cui si
+          ha ancora il foglio in mano per guardarlo. Sta in
+          ImpImpostaStampanteModal, dove si conferma. */}
 
       {aggiungi && (
         <ImpAggiungiStampanteModal
@@ -463,6 +456,14 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
 
   const salva = () => {
     const n = nome.trim() || base.device_model;
+    // Chiudendo il collegamento di una stampante per i DOCUMENTI parte anche
+    // il foglio di esempio dal browser (P-128, caso 3.8). Non è la prova di
+    // questa stampante — quella l'ha già fatta il sondaggio — è la prova
+    // della STRADA di ripiego: se il computer ha una stampante di sistema
+    // configurata e se il margine da 80 mm viene giusto. Si fa qui perché è
+    // qui che uno sta guardando la carta uscire, e perché è il ripiego di
+    // questa stampante: il giorno che non risponde, il foglio esce di lì.
+    if (uso === 'documenti' && window.byupProvaStampaDocumenti) window.byupProvaStampaDocumenti();
     if (device) {
       window.byupStampantePatch(device.id, {
         name: n, use: uso,
@@ -509,7 +510,9 @@ function ImpImpostaStampanteModal({ candidata, device, onClose, onFatto }) {
             <span data-prova={prova} style={{ flex: 1, minWidth: 220, fontSize: 13, fontWeight: 600, lineHeight: 1.45, color: prova === 'ko' ? PN.RED : PN.MUTED }}>
               {prova === 'ko' ? 'Non ha risposto: controlla che sia accesa e che l\'indirizzo del server sia quello giusto, poi riprova.'
                 : prova === 'corso' ? 'Mando un foglio di prova e aspetto il suo prossimo sondaggio…'
-                : 'Alla conferma mandiamo un foglio di prova: se risponde, la aggiungiamo.'}
+                : uso === 'documenti'
+                  ? 'Alla conferma mandiamo un foglio di prova: se risponde, la aggiungiamo. Esce anche un documento di esempio da questo computer, che è la strada di ripiego il giorno che lei non risponde.'
+                  : 'Alla conferma mandiamo un foglio di prova: se risponde, la aggiungiamo.'}
             </span>
             <ImpButton variant="primary" disabled={!pronto || prova === 'corso'} onClick={() => provaStampa(salva)}>
               {prova === 'corso' ? 'Prova di stampa…' : prova === 'ko' ? 'Riprova' : 'Aggiungi la stampante'}

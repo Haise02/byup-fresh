@@ -304,13 +304,51 @@ function ImpPersonale() {
   ];
 
   const q = query.trim().toLowerCase();
-  const visibili = righe.filter(r => {
+  // Il ruolo e la ricerca prima, lo stato dopo: così il conteggio sulle
+  // pillole dice quante righe si vedrebbero premendole, e non un totale che
+  // con un ruolo selezionato sarebbe falso.
+  const perStato = righe.filter(r => {
     if (gruppo !== 'all' && r.gruppo !== gruppo) return false;
-    if (statoFiltro === 'attivi' && !r.attivo) return false;
-    if (statoFiltro === 'disattivati' && r.attivo) return false;
     if (!q) return true;
     return [r.nome, r.sotto, r.ruolo.label].some(v => String(v).toLowerCase().includes(q));
   });
+  const contaStato = {
+    all: perStato.length,
+    attivi: perStato.filter(r => r.attivo).length,
+    disattivati: perStato.filter(r => !r.attivo).length,
+  };
+  const visibili = perStato.filter(r => statoFiltro === 'all'
+    || (statoFiltro === 'attivi' ? r.attivo : !r.attivo));
+
+  // Lo stato si filtra a PILLOLE, non con un menù di sistema. In questo
+  // gestionale le pillole sono il linguaggio dei filtri — le linguette
+  // sottolineate sono le sezioni — e un `<select>` nativo apriva l'elenco del
+  // sistema operativo: un'altra tipografia, un'altra forma, i colori del
+  // sistema, e su Windows un rettangolo grigio in mezzo a una schermata che
+  // di rettangoli grigi non ne ha. È la stessa ragione per cui il ruolo, in
+  // questa pagina, non è un `<select>` ma SelettoreRuolo.
+  // Con tre risposte in tutto le pillole dicono anche quante righe ha
+  // ciascuna, che un menù chiuso non può dire.
+  const FiltroStato = ({ id, label }) => {
+    const on = statoFiltro === id;
+    return (
+      <button onClick={() => setStatoFiltro(id)} data-filtro-stato={id} className="pn-btn-feedback" style={{
+        display:'inline-flex', alignItems:'center', gap: 6,
+        padding:'6px 13px', borderRadius: 999,
+        background: on ? PN.SIDE_ACTIVE_BG : PN.WHITE,
+        color: on ? PN.PINK_DARK : PN.MUTED,
+        border: `1px solid ${on ? 'rgba(255, 90, 95, 0.30)' : PN.BORDER}`,
+        fontSize: 14, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+        transition:'background 150ms ease, color 150ms ease, border-color 150ms ease',
+      }}>
+        {label}
+        <span style={{
+          fontSize: 12.5, fontWeight: 800, fontVariantNumeric:'tabular-nums',
+          color: on ? PN.PINK_DARK : '#9CA3AF',
+        }}>{contaStato[id]}</span>
+      </button>
+    );
+  };
 
   const PANNELLO = {
     background: PN.WHITE,
@@ -452,18 +490,11 @@ function ImpPersonale() {
                 }}
               />
             </div>
-            <select
-              value={statoFiltro} onChange={e => setStatoFiltro(e.target.value)}
-              style={{
-                padding:'11px 12px', border:`1px solid ${PN.BORDER}`, borderRadius: 10,
-                fontSize: 15, fontFamily:'inherit', background: PN.WHITE, cursor:'pointer',
-                color: PN.TEXT, flexShrink: 0,
-              }}
-            >
-              <option value="all">Tutti gli stati</option>
-              <option value="attivi">Attivi</option>
-              <option value="disattivati">Disattivati</option>
-            </select>
+            <div style={{display:'flex', alignItems:'center', gap: 7, flexShrink: 0}}>
+              <FiltroStato id="all" label="Tutti"/>
+              <FiltroStato id="attivi" label="Attivi"/>
+              <FiltroStato id="disattivati" label="Disattivati"/>
+            </div>
           </div>
 
           <div style={{
