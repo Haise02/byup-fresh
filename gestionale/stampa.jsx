@@ -81,6 +81,18 @@ window.pnRoutingLabel = (key) => {
   return cat ? cat.label : c || key;
 };
 
+// ─── A che cosa serve una stampante ────────────────────────────────────────
+// Due usi, e non si mescolano: una stampante stampa le COMANDE (e allora le si
+// assegnano le categorie che deve ricevere) oppure i DOCUMENTI destinati al
+// cliente, cioè documento commerciale e scontrino di cortesia. La distinzione
+// non è di comodo: le comande escono senza che nessuno guardi uno schermo, i
+// documenti nascono quando qualcuno incassa, e il vincolo di una categoria su
+// una stampante sola vale per le prime e non per i secondi.
+const PN_PRINT_USI = {
+  comande:   { label: 'Comande di cucina', breve: 'Comande',   nota: 'Riceve le comande delle categorie che le assegni. Una categoria sta su una stampante sola.' },
+  documenti: { label: 'Documenti per il cliente', breve: 'Documenti', nota: 'Documento commerciale e scontrino di cortesia, dopo il pagamento.' },
+};
+
 const pnIsoFa = (sec) => new Date(Date.now() - sec * 1000).toISOString();
 // Il seme: la base dal browser (sempre) e due stampanti di cucina che
 // interrogano il server, una per protocollo. Gli stati «in linea» sono seme.
@@ -88,17 +100,18 @@ const pnStampantiSeme = () => ({
   devices: [
     { id: 'prn-browser', type: 'printer', name: 'Questa postazione', device_model: 'Stampante di sistema', printer_vendor: 'other',
       connection_mode: 'browser', printer_protocol: null, cloud_client_id: null, connection_status: null, connection_checked_at: null,
-      routing: [], fisso: true, last_test_print_at: null, last_test_print_result: null },
+      use: 'documenti', pos_ids: [], routing: [], fisso: true, last_test_print_at: null, last_test_print_result: null },
     { id: 'prn-1', type: 'printer', name: 'Cucina', device_model: 'TSP143IV', printer_vendor: 'star',
       connection_mode: 'server_polling', printer_protocol: 'cloudprnt', cloud_client_id: '00:11:62:4F:A3:9C', poll_interval_seconds: 5,
-      connection_status: 'online', connection_checked_at: pnIsoFa(9), venue_id: 'cp',
+      connection_status: 'online', connection_checked_at: pnIsoFa(9), venue_id: 'cp', use: 'comande', pos_ids: [],
       routing: ['principale:antipasti', 'principale:primi', 'principale:secondi'], last_test_print_at: pnIsoFa(2 * 86400 + 3600), last_test_print_result: 'ok' },
     { id: 'prn-2', type: 'printer', name: 'Bar', device_model: 'TM-m30III', printer_vendor: 'epson',
       connection_mode: 'server_polling', printer_protocol: 'server_direct_print', cloud_client_id: 'cp-bar-01', poll_interval_seconds: 5,
-      connection_status: 'online', connection_checked_at: pnIsoFa(4), venue_id: 'cp',
+      connection_status: 'online', connection_checked_at: pnIsoFa(4), venue_id: 'cp', use: 'comande', pos_ids: [],
       routing: ['principale:bevande', 'principale:dolci'], last_test_print_at: null, last_test_print_result: null },
   ],
   print_jobs: [],
+  candidate_aggiunte: [],
   venue_delivery_integrations: { auto_print_courtesy: false },
 });
 window.byupReadStampanti = function () {
@@ -113,7 +126,7 @@ window.byupReadStampanti = function () {
     const rimossi = new Set(salvato.rimossi || []);
     const devices = seme.devices.filter(d => !rimossi.has(d.id)).map(d => perId[d.id] ? Object.assign({}, d, perId[d.id]) : d)
       .concat((salvato.devices || []).filter(d => !seme.devices.some(x => x.id === d.id)));
-    return { devices, rimossi: [...rimossi], print_jobs: salvato.print_jobs || [],
+    return { devices, rimossi: [...rimossi], print_jobs: salvato.print_jobs || [], candidate_aggiunte: salvato.candidate_aggiunte || [],
       venue_delivery_integrations: Object.assign({}, seme.venue_delivery_integrations, salvato.venue_delivery_integrations || {}) };
   } catch (e) { return seme; }
 };
@@ -126,9 +139,10 @@ window.byupStampantePatch = function (id, patch) {
   reg.devices = reg.devices.map(d => d.id === id ? Object.assign({}, d, patch) : d);
   window.byupWriteStampanti(reg); return reg;
 };
-window.byupStampanteAggiungi = function (dev) {
+window.byupStampanteAggiungi = function (dev, candidataId) {
   const reg = window.byupReadStampanti();
   reg.devices = [...reg.devices, dev];
+  if (candidataId) reg.candidate_aggiunte = [...new Set([...(reg.candidate_aggiunte || []), candidataId])];
   window.byupWriteStampanti(reg); return dev;
 };
 window.byupStampanteRimuovi = function (id) {
@@ -137,8 +151,57 @@ window.byupStampanteRimuovi = function (id) {
   reg.rimossi = [...new Set([...(reg.rimossi || []), id])];
   window.byupWriteStampanti(reg); return reg;
 };
-// Le stampanti delle comande: quelle che interrogano il server.
-window.byupStampantiComande = () => window.byupReadStampanti().devices.filter(d => d.connection_mode === 'server_polling');
+// Le stampanti delle comande: quelle che interrogano il server e che hanno
+// quell'uso. (Una stampante che interroga il server può anche essere destinata
+// ai documenti: è la stessa macchina, cambia che cosa le si manda.)
+window.byupStampantiComande = () => window.byupReadStampanti().devices.filter(d => d.connection_mode === 'server_polling' && (d.use || 'comande') === 'comande');
+window.byupStampantiDocumenti = () => window.byupReadStampanti().devices.filter(d => (d.use || 'comande') === 'documenti');
+
+// ─── «Cerca stampante»: che cosa si può davvero trovare ─────────────────────
+// Da una pagina web non esiste alcuna scansione della rete locale, e il
+// browser non espone a JavaScript l'elenco delle stampanti che il sistema
+// conosce: nessuna API lo permette, e la chiamata diretta a una stampante in
+// LAN è bloccata dal contenuto misto (D-108). Quindi «cerca» qui vuol dire
+// una cosa sola, ma vera: si guarda CHI SI È PRESENTATO AL NOSTRO SERVER.
+// Una stampante che interroga il server (CloudPRNT, Server Direct Print) si
+// annuncia da sé al primo sondaggio, con il suo identificativo e il suo
+// modello: quella la troviamo davvero, e finché non la si aggiunge resta qui,
+// in attesa. La stampante di sistema della postazione non si cerca perché non
+// si può elencare: c'è sempre, e si aggiunge senza cercarla.
+// Nel prototipo le candidate sono un seme: senza backend nessuna stampante
+// bussa davvero, e la schermata lo dichiara.
+const pnCandidateSeme = () => [
+  { id: 'cand-1', device_model: 'TSP143IV', printer_vendor: 'star', printer_protocol: 'cloudprnt',
+    cloud_client_id: '00:11:62:7B:1E:44', visto_at: pnIsoFa(12), nome_proposto: 'Pizzeria' },
+  { id: 'cand-2', device_model: 'TM-m30III', printer_vendor: 'epson', printer_protocol: 'server_direct_print',
+    cloud_client_id: 'cp-cassa2-07', visto_at: pnIsoFa(46), nome_proposto: 'Cassa 2' },
+];
+// Le candidate ancora libere: quelle che si sono presentate e che nessuno ha
+// già aggiunto (il confronto è sull'identificativo con cui si annunciano).
+window.byupStampantiRilevate = function () {
+  const reg = window.byupReadStampanti();
+  const prese = new Set(reg.devices.map(d => d.cloud_client_id).filter(Boolean));
+  const aggiunte = new Set(reg.candidate_aggiunte || []);
+  return pnCandidateSeme().filter(c => !prese.has(c.cloud_client_id) && !aggiunte.has(c.id));
+};
+
+// ─── Quale POS stampa dove (associazione POS ↔ stampante) ───────────────────
+// Con UNA sola stampante per i documenti non c'è nulla da chiedere: tutto esce
+// da lì. Da DUE in poi la domanda nasce da sé — quale cassa stampa su quale
+// stampante — e la risposta è un'associazione, non una preferenza: un POS sta
+// su una stampante sola, altrimenti lo stesso documento potrebbe uscire due
+// volte, in due punti del locale. Assegnare un POS lo toglie dalle altre.
+window.byupPosStampante = function (posId) {
+  return window.byupStampantiDocumenti().find(d => (d.pos_ids || []).includes(posId)) || null;
+};
+window.byupAssociaPos = function (posId, printerId) {
+  const reg = window.byupReadStampanti();
+  reg.devices = reg.devices.map(d => {
+    const senza = (d.pos_ids || []).filter(x => x !== posId);
+    return Object.assign({}, d, { pos_ids: d.id === printerId ? [...senza, posId] : senza });
+  });
+  window.byupWriteStampanti(reg); return reg;
+};
 // Le chiavi «menuId:catId» già instradate su altre stampanti: una categoria
 // sta su una stampante sola (category_routings).
 window.byupRoutingOccupato = function (escludiId) {
@@ -331,6 +394,7 @@ window.byupProvaStampaDocumenti = function () {
     { nome: 'Cacio e Pepe', qty: 2, prezzo: 13 }, { nome: 'Acqua naturale 75 cl', qty: 1, prezzo: 2.5 },
   ] });
 };
+window.PN_PRINT_USI = PN_PRINT_USI;
 window.PN_PRINTER_MODELLI = PN_PRINTER_MODELLI;
 window.PN_PRINTER_PROTOCOLLI = PN_PRINTER_PROTOCOLLI;
 window.PN_PRINT_STATI = PN_PRINT_STATI;
