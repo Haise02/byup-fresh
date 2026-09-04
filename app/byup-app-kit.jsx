@@ -829,12 +829,13 @@ const GUSTI = [
 // ─── Coperto e servizio (P-103) ──────────────────────────────────────────────
 // Copia guardata di byupReadCoperto / byupCopertoRiga (gestionale/panoramica-
 // tokens.jsx): stesso registro byup_coperto sullo stesso dominio, stesso
-// default (coperto, fisso a persona, 2 €), stessa riga. Nell'app la voce si
+// default (coperto, fisso a persona, e importo ZERO: la cifra la sceglie il
+// ristorante, e a zero la voce è spenta e non compare), stessa riga. Nell'app la voce si
 // mostra PRIMA della conferma dell'ordine, col nome scelto dall'esercente e
 // l'importo o l'aliquota, e il conto la ripete con lo stesso nome.
 (function () {
   const K = 'byup_coperto';
-  const DEF = { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 };
+  const DEF = { qualificazione: 'coperto', forma: 'fissa', importo: 0, aliquota: 0 };
   const NOMI = { coperto: 'Coperto', servizio: 'Servizio' };
   const leggi = () => { try { const s = localStorage.getItem(K); return s ? Object.assign({}, DEF, JSON.parse(s)) : { ...DEF }; } catch { return { ...DEF }; } };
   window.ByupCoperto = {

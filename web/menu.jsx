@@ -2637,13 +2637,14 @@ function nuovoCodiceRitiro() {
 // ─── Coperto e servizio (P-103) ─────────────────────────────────────
 // Copia guardata di byupReadCoperto / byupCopertoRiga (gestionale/panoramica-
 // tokens.jsx): stesso registro byup_coperto sullo stesso dominio, stesso
-// default (coperto, fisso a persona, 2 €), stessa riga. La voce si mostra
+// default (coperto, fisso a persona, e importo ZERO: la cifra la sceglie il
+// ristorante, e a zero la voce è spenta e non compare), stessa riga. La voce si mostra
 // PRIMA della conferma dell'ordine al tavolo, col nome scelto dall'esercente e
 // l'importo o l'aliquota (art. 180 R.D. 635/1940: le tariffe devono essere
 // conoscibili prima), e il conto la ripete con lo stesso nome e lo stesso
 // totale dell'app e della cassa. All'asporto non c'è.
 function byupCopertoLeggi() {
-  const DEF = { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 };
+  const DEF = { qualificazione: 'coperto', forma: 'fissa', importo: 0, aliquota: 0 };
   try { const s = localStorage.getItem('byup_coperto'); return s ? Object.assign({}, DEF, JSON.parse(s)) : { ...DEF }; } catch { return { ...DEF }; }
 }
 function byupCopertoRiga(subtotale, coperti, cfg) {

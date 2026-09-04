@@ -1216,17 +1216,22 @@ window.PN_PORTALE_FC = 'https://ivaservizi.agenziaentrate.gov.it/portale/';
 // (fissa a persona o percentuale sul totale). Nessuna fonte lega le due
 // dimensioni, quindi il prodotto non le lega: esistono coperto a persona,
 // servizio a percentuale, ma anche coperto a percentuale e servizio a persona.
-// Il default è proposto, mai imposto: coperto fisso a persona, perché è ciò
-// che fa il mercato (FIPE 2023: coperto nell'80% dei ristoranti, media 2,90 €,
-// servizio nel 4,9%); dove un regolamento comunale vieti il coperto ammettendo
-// il servizio, la stessa cifra è lecita sotto un nome e illecita sotto l'altro,
-// e la qualificazione si cambia qui. Si applica solo in sala, non all'asporto.
+// LA CIFRA DI PARTENZA È ZERO, e la sceglie il ristorante. Il default propone
+// la FORMA — coperto fisso a persona, perché è ciò che fa il mercato (FIPE
+// 2023: coperto nell'80% dei ristoranti, media 2,90 €, servizio nel 4,9%) —
+// ma non l'importo: un locale che non applica il coperto non deve trovarselo
+// addosso, e uno che lo applica non deve trovarsi una cifra che non ha scelto
+// su un conto vero. A zero la voce è SPENTA: non compare al cliente, non entra
+// nel conto, non finisce sullo scontrino. Dove un regolamento comunale vieti
+// il coperto ammettendo il servizio, la stessa cifra è lecita sotto un nome e
+// illecita sotto l'altro, e la qualificazione si cambia qui. Si applica solo
+// in sala, non all'asporto.
 // Registro in localStorage (byup_coperto), letto dal conto in sala, dal
 // campione di scontrino e — sullo stesso dominio — da app e webapp, che ne
 // tengono una copia guardata con lo stesso default. Nel modello: la voce si
 // espone prima della conferma e il momento finisce in orders.cover_disclosed_at.
 const PN_COPERTO_KEY = 'byup_coperto';
-const PN_COPERTO_DEFAULT = { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 };
+const PN_COPERTO_DEFAULT = { qualificazione: 'coperto', forma: 'fissa', importo: 0, aliquota: 0 };
 const PN_COPERTO_NOMI = { coperto: 'Coperto', servizio: 'Servizio' };
 window.byupReadCoperto = function () {
   try { const s = localStorage.getItem(PN_COPERTO_KEY); return s ? Object.assign({}, PN_COPERTO_DEFAULT, JSON.parse(s)) : { ...PN_COPERTO_DEFAULT }; }

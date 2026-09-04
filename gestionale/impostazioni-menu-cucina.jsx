@@ -1662,11 +1662,6 @@ const giorniDi = (s) => {
   return singoli.length ? singoli : null;
 };
 
-const NM_ORA = {
-  flex: 1, minWidth: 0, padding: '10px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10,
-  fontSize: 15, fontWeight: 600, background: PN.WHITE, fontFamily: 'inherit', color: PN.TEXT, outline: 'none',
-};
-
 // Il <select> di sistema apre una lista disegnata dal sistema operativo, che
 // dentro al popup arriva come un corpo estraneo: bordi squadrati, tipografia
 // sua, evidenziazione blu. Qui la tendina è la nostra e ha le forme del
@@ -1739,6 +1734,132 @@ function NMSelect({ value, options, onChange, open, setOpen, versoAlto, compatto
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// L'ora, con la nostra tendina invece di quella del sistema.
+//
+// `<input type="time">` porta con sé il selettore del sistema operativo: su
+// macOS una colonnina di numeri con la sua tipografia e la sua evidenziazione,
+// che dentro al gestionale è un corpo estraneo — lo stesso motivo per cui
+// esiste NMSelect qui sopra. Qui il campo apre un pannello nostro, con le
+// forme delle altre tendine (stesso raggio, stessa ombra, stesso rosa sul
+// selezionato): in cima le ore che si scelgono davvero, sotto due colonne per
+// costruire qualunque altro orario.
+// Il valore resta la stringa "HH:MM" di sempre, quindi chi la salva non
+// cambia; si può ancora digitare a mano, perché a tastiera si è più veloci.
+const NM_ORE = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const NM_MINUTI = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'));
+
+function NMOraPicker({ value, onChange, scorciatoie, style, larghezza = 132 }) {
+  const [open, setOpen] = React.useState(false);
+  const [testo, setTesto] = React.useState(value || '00:00');
+  const box = React.useRef(null);
+  // Il campo segue il valore SEMPRE, non solo alla chiusura: scegliendo dalle
+  // colonne il pannello resta aperto, e vedere l'ora vecchia nel campo mentre
+  // la nuova è evidenziata sotto è il modo più rapido per non fidarsi più di
+  // quello che si legge. Digitando non c'è conflitto: `value` cambia solo a
+  // orario valido, quindi un campo a metà resta com'è.
+  React.useEffect(() => { setTesto(value || '00:00'); }, [value]);
+  React.useEffect(() => {
+    if (!open) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', fuori);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('mousedown', fuori); document.removeEventListener('keydown', esc); };
+  }, [open]);
+
+  const [ora, minuti] = (value || '00:00').split(':');
+  const scegli = (h, m) => onChange(`${h}:${m}`);
+  // Digitando: si accetta solo quando l'orario è completo e valido, così un
+  // campo a metà non salva un'ora che non esiste.
+  const digita = (v) => {
+    setTesto(v);
+    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) onChange(v);
+  };
+  const colonna = (voci, attivo, onPick, etichetta) => (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: PN.MUTED_SOFT, padding: '0 4px 6px' }}>{etichetta}</div>
+      <div className="pn-scroll" style={{ maxHeight: 168, overflowY: 'auto', paddingRight: 2 }}>
+        {voci.map(v => {
+          const on = v === attivo;
+          return (
+            <div key={v} role="option" aria-selected={on} onClick={() => onPick(v)}
+              onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+              onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+              style={{
+                padding: '7px 10px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+                fontSize: 14.5, fontWeight: on ? 700 : 600, fontVariantNumeric: 'tabular-nums',
+                background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.PINK_DARK : PN.TEXT,
+                transition: 'background 120ms ease-out',
+              }}>{v}</div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <div ref={box} style={{ position: 'relative', width: larghezza, ...style }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '9px 10px 9px 12px', borderRadius: 10,
+        border: `1px solid ${open ? PN.PINK : PN.BORDER}`, background: PN.WHITE,
+        transition: 'border-color 150ms ease-out',
+      }}>
+        <input
+          value={testo} onChange={e => digita(e.target.value)}
+          onFocus={() => setOpen(true)} inputMode="numeric" maxLength={5} aria-label="Orario"
+          style={{
+            flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent',
+            fontFamily: 'inherit', fontSize: 15, fontWeight: 700, color: PN.TEXT,
+            fontVariantNumeric: 'tabular-nums', letterSpacing: 0.3, padding: 0,
+          }}/>
+        <button type="button" onClick={() => setOpen(o => !o)} aria-label="Scegli l'orario" aria-expanded={open}
+          style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: PN.MUTED, display: 'inline-flex', flexShrink: 0 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 40,
+          width: Math.max(larghezza, 252), background: PN.WHITE,
+          border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+          boxShadow: '0 14px 38px rgba(15,17,21,0.14)', padding: 8,
+        }}>
+          {/* Le ore che si scelgono davvero, in una riga: chi cambia la
+              giornata mette le quattro, non le 04:35. Le colonne restano
+              sotto per tutto il resto. */}
+          {scorciatoie && scorciatoie.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+              {scorciatoie.map(sc => {
+                const on = sc.value === value;
+                return (
+                  <button key={sc.value} type="button" onClick={() => { onChange(sc.value); setOpen(false); }}
+                    style={{
+                      padding: '5px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1px solid ${on ? PN.PINK : PN.BORDER}`,
+                      background: on ? PN.PINK_BG_SOFT : PN.WHITE,
+                      color: on ? PN.PINK_DARK : PN.MUTED,
+                      fontSize: 12.5, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                      transition: 'border-color 150ms ease-out, background 150ms ease-out',
+                    }}>{sc.label}</button>
+                );
+              })}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 6 }}>
+            {colonna(NM_ORE, ora, h => scegli(h, minuti), 'Ora')}
+            <div style={{ width: 1, background: PN.BORDER_SOFT, alignSelf: 'stretch', marginTop: 22 }}/>
+            {colonna(NM_MINUTI, NM_MINUTI.includes(minuti) ? minuti : null, m => scegli(ora, m), 'Minuti')}
+          </div>
         </div>
       )}
     </div>
@@ -3524,6 +3645,7 @@ function MCDettagliPiatto({
   // consumo, come per il fuori menù in cassa. Nome distinto da `tipologia`
   // del menù (à la carte / all you can eat), che vive in un altro punto.
   const [tipologiaArticolo, setTipologiaArticolo] = React.useState(dish.tipologia || window.PN_TIPOLOGIA_DEFAULT);
+  const [tipologiaOpen, setTipologiaOpen] = React.useState(false);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish.hasAlcohol || false);
   const [hasFrozen, setHasFrozen] = React.useState(dish.hasFrozen || false);
   const [tipOpen, setTipOpen] = React.useState(null);
@@ -3761,10 +3883,15 @@ function MCDettagliPiatto({
                 stesse cinque voci della cassa, la stessa spiegazione sotto
                 con le due aliquote e il fondamento: chi compila dichiara che
                 cosa vende, l'IVA la fissa la legge. */}
+            {/* La tendina è la nostra (NMSelect), come le altre della pagina:
+                quella di sistema apriva la sua lista, con la sua tipografia e
+                la sua evidenziazione, dentro un pannello che parla un'altra
+                lingua. Ogni voce porta le due aliquote, perché è l'effetto
+                della scelta e si legge scegliendo, non dopo. */}
             <MCCampo label="Tipologia articolo" hint={window.pnTipologiaSpiegazione ? window.pnTipologiaSpiegazione(tipologiaArticolo) : ''}>
-              <select value={tipologiaArticolo} onChange={e => setTipologiaArticolo(e.target.value)} style={{...MC_INPUT, cursor: 'pointer'}}>
-                {(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-              </select>
+              <NMSelect value={tipologiaArticolo} onChange={setTipologiaArticolo}
+                open={tipologiaOpen} setOpen={setTipologiaOpen}
+                options={(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => ({ value: t.id, label: `${t.label} · ${t.locale.aliquota}% / ${t.asporto.aliquota}%` }))}/>
             </MCCampo>
 
             <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
@@ -5549,6 +5676,8 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
   // TIPOLOGIA dell'articolo e dal modo di consumo. La spunta «Prodotto
   // finito» è morta: la tipologia la sostituisce e non aveva altri usi.
   const [tipologiaArticolo, setTipologiaArticolo] = React.useState(dish?.tipologia || window.PN_TIPOLOGIA_DEFAULT);
+  const [tipologiaArtOpen, setTipologiaArtOpen] = React.useState(false);
+  const [catOpen, setCatOpen] = React.useState(false);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish?.hasAlcohol || false);
   const [hasFrozen, setHasFrozen] = React.useState(dish?.hasFrozen || false);
   const [tipOpen, setTipOpen] = React.useState(null); // tooltip aperto: {id,x,y} o null
@@ -5759,20 +5888,16 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
             <div style={{display:'flex', gap:12, alignItems:'flex-start', flexWrap:'wrap'}}>
               <div style={{flex:'1 1 320px', minWidth:0}}>
                 <ImpField label="Tipologia articolo" hint={window.pnTipologiaSpiegazione ? window.pnTipologiaSpiegazione(tipologiaArticolo) : ''}>
-                  <select value={tipologiaArticolo} onChange={e=>setTipologiaArticolo(e.target.value)} style={{
-                    width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE, cursor:'pointer',
-                  }}>
-                    {(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                  </select>
+                  {/* Tendina nostra, non quella di sistema: stessa lingua del
+                      resto della pagina, e ogni voce porta le due aliquote. */}
+                  <NMSelect value={tipologiaArticolo} onChange={setTipologiaArticolo}
+                    open={tipologiaArtOpen} setOpen={setTipologiaArtOpen}
+                    options={(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => ({ value: t.id, label: `${t.label} · ${t.locale.aliquota}% / ${t.asporto.aliquota}%` }))}/>
                 </ImpField>
               </div>
               {!fromLibrary && (
                 <ImpField label="Categoria" style={{flex:'0 0 200px'}}>
-                  <select value={cat} onChange={e=>setCat(e.target.value)} style={{
-                    width:'100%', padding:'12px 12px', border:`1px solid ${PN.BORDER}`, borderRadius:10, fontSize:16, fontFamily:'inherit', outline:'none', background:PN.WHITE,
-                  }}>
-                    {ALL_CATS.map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  <NMSelect value={cat} onChange={setCat} open={catOpen} setOpen={setCatOpen} options={ALL_CATS}/>
                 </ImpField>
               )}
             </div>
@@ -7082,9 +7207,11 @@ function VisibilitaEditor({ menu, orari, onSalva }) {
           )}
           <div style={{display: 'flex', alignItems: 'center', gap: 10, marginTop: 10}}>
             <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>Dalle</span>
-            <input type="time" value={da} onChange={e => setDa(e.target.value)} style={NM_ORA}/>
+            <NMOraPicker value={da} onChange={setDa} larghezza={128} style={{flex: 1}}
+              scorciatoie={[{ value: '07:00', label: 'Colazione' }, { value: '12:00', label: 'Pranzo' }, { value: '18:00', label: 'Aperitivo' }, { value: '19:30', label: 'Cena' }]}/>
             <span style={{fontSize: 14, color: PN.MUTED, flexShrink: 0}}>alle</span>
-            <input type="time" value={a} onChange={e => setA(e.target.value)} style={NM_ORA}/>
+            <NMOraPicker value={a} onChange={setA} larghezza={128} style={{flex: 1}}
+              scorciatoie={[{ value: '11:00', label: 'Fine colazione' }, { value: '15:00', label: 'Fine pranzo' }, { value: '23:30', label: 'Fine cena' }, { value: '02:00', label: 'Tardi' }]}/>
           </div>
           <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.45}}>
             Fuori da questa fascia il QR porta a un altro menù, se ce n'è uno attivo,
@@ -7172,7 +7299,20 @@ function GiornataServizioCard() {
       <div style={{display:'flex', gap: 18, alignItems:'flex-start', flexWrap:'wrap'}}>
         <div style={{flexShrink: 0}}>
           <ImpField label="Cambio giornata">
-            <ImpInput type="time" value={rollover} onChange={e => salva(e.target.value)} style={{width: 150}}/>
+            {/* Il selettore è il nostro (NMOraPicker): quello di sistema
+                apriva la sua colonnina di numeri, con tipografia ed
+                evidenziazione sue, dentro una pagina che parla un'altra
+                lingua. Le scorciatoie sono le ore che un locale sceglie
+                davvero. */}
+            <NMOraPicker value={rollover} onChange={salva} larghezza={150}
+              scorciatoie={[
+                { value: '00:00', label: 'Mezzanotte' },
+                { value: '02:00', label: '02:00' },
+                { value: '03:00', label: '03:00' },
+                { value: '04:00', label: '04:00' },
+                { value: '05:00', label: '05:00' },
+                { value: '06:00', label: '06:00' },
+              ]}/>
           </ImpField>
         </div>
         <div style={{flex:'1 1 320px', fontSize: 13.5, color: PN.MUTED, lineHeight: 1.55, paddingTop: 2}}>
@@ -7202,7 +7342,7 @@ function MCConfigura() {
   // stessa voce. Un valore per forma, non uno solo: passando da fissa a
   // percentuale e tornando indietro l'importo di prima è ancora lì, e nessuno
   // dei due può essere applicato con l'unità sbagliata.
-  const [coperto, setCopertoState] = React.useState(() => window.byupReadCoperto ? window.byupReadCoperto() : { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 });
+  const [coperto, setCopertoState] = React.useState(() => window.byupReadCoperto ? window.byupReadCoperto() : { qualificazione: 'coperto', forma: 'fissa', importo: 0, aliquota: 0 });
   const setCoperto = (patch) => { const next = { ...coperto, ...patch }; setCopertoState(next); window.byupWriteCoperto && window.byupWriteCoperto(next); };
   const servizioTipo = coperto.forma === 'percentuale' ? 'percentuale' : 'fisso';
   const servizio = servizioTipo === 'fisso' ? coperto.importo : coperto.aliquota;

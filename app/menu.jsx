@@ -3739,7 +3739,7 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   // Da fissa a persona: in 'mine' paghi la tua, in 'all' paghi per tutti, e
   // su rientro post-pagamento parziale la tua è già saldata. Da percentuale:
   // segue quel che si sta pagando, la propria quota o il tavolo.
-  const copertoCfg = window.ByupCoperto ? window.ByupCoperto.leggi() : { qualificazione: 'coperto', forma: 'fissa', importo: 2, aliquota: 10 };
+  const copertoCfg = window.ByupCoperto ? window.ByupCoperto.leggi() : { qualificazione: 'coperto', forma: 'fissa', importo: 0, aliquota: 0 };
   const copertoNome = copertoCfg.qualificazione === 'servizio' ? 'Servizio' : 'Coperto';
   const copertoFisso = copertoCfg.forma !== 'percentuale';
   const COVER = copertoFisso ? (Number(copertoCfg.importo) || 0) : 0;

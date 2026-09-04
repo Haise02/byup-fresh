@@ -1376,6 +1376,81 @@ function SaOrdineDettaglioModal({ ordine, onClose }) {
 // sotto il campo dice le due aliquote e il fondamento. La stessa finestra si
 // riapre cliccando la riga (`iniziale` valorizzato) con tutto modificabile.
 
+// La tendina delle tipologie, nella lingua della cassa.
+//
+// Il `<select>` di sistema apre la lista del sistema operativo — tipografia
+// sua, evidenziazione sua — dentro una finestra di vetro che parla un'altra
+// lingua; ed è la scelta più delicata della battuta, perché decide l'aliquota.
+// Qui le cinque voci sono un pannello nostro, e ognuna porta a destra
+// l'ALIQUOTA CHE SI APPLICHEREBBE ORA, col modo dell'ordine: si sceglie
+// guardando l'effetto, non il nome.
+function SaTipologiaSelect({ value, onChange, takeaway }) {
+  const [open, setOpen] = React.useState(false);
+  const box = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    const fuori = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
+    document.addEventListener('mousedown', fuori);
+    document.addEventListener('keydown', esc, true);
+    return () => { document.removeEventListener('mousedown', fuori); document.removeEventListener('keydown', esc, true); };
+  }, [open]);
+  const voci = window.PN_TIPOLOGIE_ARTICOLO || [];
+  const corrente = window.pnTipologia(value);
+  const aliquota = (t) => (takeaway ? t.asporto : t.locale).aliquota;
+  return (
+    <div ref={box} style={{position:'relative'}}>
+      <button type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}
+        style={{
+          width:'100%', display:'flex', alignItems:'center', gap: 10, textAlign:'left',
+          padding: '10px 12px', borderRadius: 10, cursor:'pointer', fontFamily:'inherit',
+          border: `1px solid ${open ? 'rgba(15,17,21,0.45)' : 'rgba(15,17,21,0.14)'}`,
+          background: 'rgba(255,255,255,0.75)',
+          boxShadow: 'inset 0 1px 1px rgba(15,17,21,0.03)',
+          fontSize: 16.5, color: PN.TEXT, transition: 'border-color 120ms ease-out',
+        }}>
+        <span style={{flex: 1, minWidth: 0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', fontWeight: 600, fontSize: 15}}>{corrente.label}</span>
+        <span style={{
+          flexShrink: 0, padding: '2px 8px', borderRadius: 6, background: '#F4F5F7',
+          fontSize: 13, fontWeight: 700, color: PN.MUTED, fontVariantNumeric: 'tabular-nums',
+        }}>{aliquota(corrente)}%</span>
+        <span style={{display:'inline-flex', color: PN.MUTED, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition:'transform 180ms ease-out'}}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </button>
+      {open && (
+        <div role="listbox" style={{
+          position:'absolute', left: 0, right: 0, top: 'calc(100% + 6px)', zIndex: 30,
+          background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 12,
+          boxShadow: '0 14px 38px rgba(15,17,21,0.16)', padding: 6, maxHeight: 300, overflowY: 'auto',
+        }}>
+          {voci.map(t => {
+            const on = t.id === corrente.id;
+            return (
+              <div key={t.id} role="option" aria-selected={on}
+                onClick={() => { onChange(t.id); setOpen(false); }}
+                onMouseEnter={e => { if (!on) e.currentTarget.style.background = '#F7F8FA'; }}
+                onMouseLeave={e => { if (!on) e.currentTarget.style.background = 'transparent'; }}
+                style={{
+                  display:'flex', alignItems:'center', gap: 10, padding: '9px 10px', borderRadius: 9,
+                  cursor:'pointer', background: on ? PN.PINK_SOFT : 'transparent',
+                  color: on ? PN.PINK_DARK : PN.TEXT, transition:'background 120ms ease-out',
+                }}>
+                <span style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: on ? 700 : 600, lineHeight: 1.3}}>{t.label}</span>
+                <span style={{
+                  flexShrink: 0, padding: '2px 8px', borderRadius: 6, fontVariantNumeric: 'tabular-nums',
+                  background: on ? 'rgba(255,255,255,0.7)' : '#F4F5F7',
+                  fontSize: 13, fontWeight: 700, color: on ? PN.PINK_DARK : PN.MUTED,
+                }}>{aliquota(t)}%</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // La riga fuori menù si riconosce dal piatto che la porta.
 const svRigaCustom = (line) => !!(line && line.piatto && (line.piatto.custom || /^custom_/.test(String(line.piatto.id))));
 
@@ -1420,7 +1495,7 @@ function SaCustomModal({ onClose, onConfirm, takeaway, iniziale }) {
       <div onClick={e => e.stopPropagation()} style={{
         ...PN.GLASS_STRONG,
         borderRadius: 20,
-        width: 400, maxWidth:'100%',
+        width: 440, maxWidth:'100%',
         padding: '22px 22px 20px',
         display:'flex', flexDirection:'column', gap: 18,
       }}>
@@ -1465,14 +1540,7 @@ function SaCustomModal({ onClose, onConfirm, takeaway, iniziale }) {
           </div>
           <div style={{display:'flex', flexDirection:'column', gap:5}}>
             <label style={{fontSize: 14, fontWeight: 700, color: PN.MUTED, textTransform:'uppercase', letterSpacing: 0.5}}>Tipologia articolo</label>
-            <select
-              value={voce.id}
-              onChange={e => setTipologia(e.target.value)}
-              style={{...inputStyle, cursor:'pointer'}}>
-              {(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => (
-                <option key={t.id} value={t.id}>{t.label}</option>
-              ))}
-            </select>
+            <SaTipologiaSelect value={voce.id} onChange={setTipologia} takeaway={takeaway}/>
             {/* La spiegazione della voce scelta: le due aliquote e il
                 fondamento, e in grassetto quella che vale per QUESTO ordine. */}
             <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>

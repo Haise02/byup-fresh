@@ -1636,7 +1636,8 @@ const GUSTI = [{
 // ─── Coperto e servizio (P-103) ──────────────────────────────────────────────
 // Copia guardata di byupReadCoperto / byupCopertoRiga (gestionale/panoramica-
 // tokens.jsx): stesso registro byup_coperto sullo stesso dominio, stesso
-// default (coperto, fisso a persona, 2 €), stessa riga. Nell'app la voce si
+// default (coperto, fisso a persona, e importo ZERO: la cifra la sceglie il
+// ristorante, e a zero la voce è spenta e non compare), stessa riga. Nell'app la voce si
 // mostra PRIMA della conferma dell'ordine, col nome scelto dall'esercente e
 // l'importo o l'aliquota, e il conto la ripete con lo stesso nome.
 (function () {
@@ -1644,8 +1645,8 @@ const GUSTI = [{
   const DEF = {
     qualificazione: 'coperto',
     forma: 'fissa',
-    importo: 2,
-    aliquota: 10
+    importo: 0,
+    aliquota: 0
   };
   const NOMI = {
     coperto: 'Coperto',
@@ -10645,7 +10646,6 @@ window.VenuePremium = VenuePremium;
 // When Google Maps key is ready: swap LeafletMap init for google.maps.Map
 const PINK = '#E32459';
 const PINK_DARK = '#B81C47';
-const PINK_LIGHT = '#FBD8DE';
 const ORANGE = '#FF8C2B';
 const PLUM = '#3a1d2c';
 const __BYUP_DARK = (() => {
@@ -11706,43 +11706,6 @@ const VENUES_BY_CITY = {
     photo: 'https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=600&q=70&auto=format&fit=crop'
   }]
 };
-const CITIES = [{
-  id: 'roma',
-  name: 'Roma',
-  count: 35,
-  x: 0.51,
-  y: 0.55
-}, {
-  id: 'firenze',
-  name: 'Firenze',
-  count: 8,
-  x: 0.47,
-  y: 0.40
-}, {
-  id: 'venezia',
-  name: 'Venezia',
-  count: 6,
-  x: 0.55,
-  y: 0.22
-}, {
-  id: 'milano',
-  name: 'Milano',
-  count: 8,
-  x: 0.36,
-  y: 0.18
-}, {
-  id: 'napoli',
-  name: 'Napoli',
-  count: 7,
-  x: 0.62,
-  y: 0.70
-}, {
-  id: 'palermo',
-  name: 'Palermo',
-  count: 5,
-  x: 0.50,
-  y: 0.92
-}];
 
 // ─── Helper: generate DivIcon HTML for a venue pin ────────────────
 function createPinHTML(venue, isSelected) {
@@ -29906,8 +29869,8 @@ function PaymentScreen({
   const copertoCfg = window.ByupCoperto ? window.ByupCoperto.leggi() : {
     qualificazione: 'coperto',
     forma: 'fissa',
-    importo: 2,
-    aliquota: 10
+    importo: 0,
+    aliquota: 0
   };
   const copertoNome = copertoCfg.qualificazione === 'servizio' ? 'Servizio' : 'Coperto';
   const copertoFisso = copertoCfg.forma !== 'percentuale';
