@@ -82,6 +82,40 @@ function _byupNotifSalva(st) {
     window.dispatchEvent(new Event('byup-notifiche-change'));
   } catch(e) {}
 }
+// ─── I due collegamenti che l'onboarding non chiede più ─────────────────────
+// Stripe e il fiscale sono usciti dall'onboarding (4 settembre 2026): fermare
+// qualcuno sulla porta per un atto che si compie su un altro sito — la
+// verifica di Stripe, la delega con SPID — voleva dire non farlo entrare. Ora
+// entra, e sono le prime due notifiche che trova: una porta su POS e
+// integrazioni, l'altra in Dati fiscali. Restano finché il collegamento non
+// c'è, perché senza il primo non incassa e senza il secondo non emette.
+function _byupNotificheAttivazione() {
+  const out = [];
+  try {
+    if (window.byupReadStripe && window.byupReadStripe().status === 'da_collegare') {
+      out.push({ id: 'attiva-stripe', type: 'payment', unread: true,
+        href: 'byup Impostazioni.html?page=integrazioni',
+        title: 'Collega Stripe per incassare',
+        body: 'Finché il conto non è collegato non ricevi pagamenti: né carte al tavolo, né in app, né online. Si collega da POS e integrazioni, e l\'identità la verifica Stripe.',
+        time: 'Da fare per primo' });
+    }
+    const credMai = window.byupAdeCredStato && !window.byupAdeCredStato().rinnovo;
+    const delegaGiu = window.byupDelegaCompleta && !window.byupDelegaCompleta();
+    if (credMai || delegaGiu) {
+      const manca = credMai && delegaGiu
+        ? 'Mancano la delega sul portale dell\'Agenzia e le credenziali Fisconline di chi trasmette'
+        : credMai ? 'Mancano le credenziali Fisconline di chi trasmette'
+        : 'Manca la delega sul portale dell\'Agenzia';
+      out.push({ id: `attiva-fiscale-${credMai ? 'cred' : ''}${delegaGiu ? 'delega' : ''}`, type: 'fiscal', unread: true,
+        href: 'byup Impostazioni.html?page=fiscali',
+        title: 'Collega i dati fiscali all\'Agenzia',
+        body: `${manca}: finché non ci sono, scontrini e fatture non partono. Si fa tutto in Dati fiscali, e la delega si dà col tuo SPID in due minuti.`,
+        time: 'Da fare per primo' });
+    }
+  } catch (e) {}
+  return out;
+}
+
 // ─── Le notifiche fiscali, derivate dai registri (P-105, P-104) ─────────────
 // Non sono scritte a mano: nascono dallo stato. Il censimento dei POS non sta
 // più nell'onboarding — ogni strumento nasce col suo collegamento (Stripe, un
@@ -122,7 +156,9 @@ function _byupNotificheFiscali() {
       const chi = window.pnAdeChiRinnova ? window.pnAdeChiRinnova() : { ruolo: 'titolare' };
       const incaricato = chi.ruolo === 'incaricato';
       const dilei = incaricato ? `di ${chi.nome}` : 'del titolare';
-      if (cr.stato !== 'ok') {
+      // Mai inserite: non è una scadenza, è un collegamento che non c'è
+      // ancora — lo dice la notifica di attivazione, e una sola volta.
+      if (cr.stato !== 'ok' && cr.rinnovo) {
         const gradino = cr.scaduta ? 'scaduta' : String(cr.gradino);
         out.push({ id: `cred-${gradino}-${cr.rinnovo || 'mai'}`, type: 'fiscal', href: 'byup Impostazioni.html?page=fiscali', unread: true,
           title: cr.scaduta
@@ -137,7 +173,7 @@ function _byupNotificheFiscali() {
   } catch (e) {}
   return out;
 }
-function _byupTutteLeNotifiche() { return [..._byupNotificheFiscali(), ...PN_NOTIFICATIONS]; }
+function _byupTutteLeNotifiche() { return [..._byupNotificheAttivazione(), ..._byupNotificheFiscali(), ...PN_NOTIFICATIONS]; }
 window.byupReadNotifiche = function() {
   const st = _byupNotifStato();
   return _byupTutteLeNotifiche()
@@ -167,7 +203,7 @@ window.byupUseNotifiche = function() {
   React.useEffect(() => {
     const up = () => setItems(window.byupReadNotifiche());
     // Le notifiche fiscali cambiano coi registri: si riascoltano anche loro.
-    const ev = ['byup-notifiche-change', 'storage', 'byup-pos-censimento', 'byup-ade-cred-change', 'byup-ade-incaricato-change', 'byup-stripe-change'];
+    const ev = ['byup-notifiche-change', 'storage', 'byup-pos-censimento', 'byup-ade-cred-change', 'byup-ade-incaricato-change', 'byup-stripe-change', 'byup-ade-delega-change'];
     ev.forEach(e => window.addEventListener(e, up));
     return () => { ev.forEach(e => window.removeEventListener(e, up)); };
   }, []);

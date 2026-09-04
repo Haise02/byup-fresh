@@ -2,26 +2,23 @@
 //
 // FLOW
 //   Step 1 — Carica menu (overlay processing in-page durante l'elaborazione)
-//   Step 2 — Il tuo locale (sub-step: info → pagamenti → fiscale)
+//   Step 2 — Il tuo locale (anagrafica e P.IVA: un passo solo)
 //   Step 3 — Sale e tavoli
 //   Step 4 — Verifica menu (schermata finale di conferma + 2 CTA)
 //
 // PERCHÉ COSÌ
 // • L'overlay di processing è in-page e non un "step" autonomo: il processing è uno
 //   stato transitorio, non una tappa che vale uno slot nello stepper.
-// • I sub-step di "Il tuo locale" stanno sotto un solo nodo nello stepper principale;
-//   la sub-progress è un secondario sottile, non gerarchico col main stepper.
+// • Lo step 2 non ha più sotto-passi (4 settembre 2026): «Pagamenti» è uscito
+//   dall'onboarding — Stripe si collega dal gestionale, in POS e integrazioni —
+//   e con lui le due schede fiscali, che vivono in Dati fiscali. I tre
+//   collegamenti li chiedono le prime notifiche dell'atterraggio.
 
 const STEPS = [
   { id: 1, label: 'Carica menù' },
   { id: 2, label: 'Il tuo locale' },
   { id: 3, label: 'Sale e tavoli' },
   { id: 4, label: 'Verifica menù' },
-];
-
-const LOCALE_SUBSTEPS = [
-  { id: 'info',      label: 'Informazioni' },
-  { id: 'pagamenti', label: 'Pagamenti' },
 ];
 
 // La sede della catena (Account → Aggiungi un locale → Catena): dell'onboarding
@@ -42,7 +39,6 @@ function OnboardingApp() {
     } catch {}
     return 1;
   });
-  const [subStep, setSubStep] = React.useState('info');
   const [processing, setProcessing] = React.useState(false);
 
   // Stato condiviso fra step (mock — sufficient per demo statica).
@@ -64,28 +60,13 @@ function OnboardingApp() {
     phone: '',
     regime: 'ordinario',
     codiceInvito: '',
-    // Le tre attivazioni fiscali (P-48 · D-39), che falliscono separatamente:
-    //   adeStato — la delega si dà sul portale dell'Agenzia, qui se ne segue
-    //     solo l'esito: attesa → verifica → errore | attivo.
-    //   conservazioneStato — la attiva Byup, mai l'esercente: attesa (finché
-    //     non c'è la delega) → corso → attiva.
-    //   accreditamentoStato — lo fa Byup con la delega: attesa → corso →
-    //     attivo. ricezioneStato — il codice destinatario lo registra
-    //     l'esercente: da_registrare → dichiarata. Il censimento dei POS non
-    //     sta qui: nasce con lo strumento (P-105) e vive nel gestionale.
-    //   fiscoStato / incaricoStato — gli scontrini (OnbScontriniCard): le
-    //     credenziali della ditta verificate, o l'incarico della società.
-    adeStato: 'attesa',
-    adeTentativi: 0,
-    conservazioneStato: 'attesa',
-    accreditamentoStato: 'attesa',
-    ricezioneStato: 'da_registrare',
+    // Niente stato fiscale qui dentro: delega, conservazione, accreditamento,
+    // ricezione e credenziali sono usciti dall'onboarding (4 settembre 2026) e
+    // vivono nei registri condivisi del gestionale (byup_ade_delega,
+    // byup_ade_cred, byup_ade_incaricato), che Dati fiscali legge e scrive.
+    // Anche lo stato di Stripe sta lì: byup_stripe, letto da POS e
+    // integrazioni. Qui resta solo l'anagrafica del locale.
     societaTipo: 'capitali',
-    fiscoPassword: '', fiscoPin: '', fiscoStato: 'attesa', fiscoTentativi: 0,
-    incaricoStato: 'attesa', incaricoTentativi: 0,
-  });
-  const [payments, setPayments] = React.useState({
-    stripeStatus: 'disconnected',
   });
   const [rooms, setRooms] = React.useState([
     { id: 'r1', name: 'Sala principale', tables: 12, isDefault: true },
@@ -95,23 +76,14 @@ function OnboardingApp() {
   const finishProcessing = () => {
     setProcessing(false);
     setStep(2);
-    setSubStep('info');
   };
 
-  const goNextLocale = () => {
-    const idx = LOCALE_SUBSTEPS.findIndex(s => s.id === subStep);
-    if (idx < LOCALE_SUBSTEPS.length - 1) setSubStep(LOCALE_SUBSTEPS[idx + 1].id);
-    else setStep(3);
-  };
-  const goBackLocale = () => {
-    const idx = LOCALE_SUBSTEPS.findIndex(s => s.id === subStep);
-    if (idx > 0) setSubStep(LOCALE_SUBSTEPS[idx - 1].id);
-    else setStep(1);
-  };
+  const goNextLocale = () => setStep(3);
+  const goBackLocale = () => setStep(1);
 
   return (
     <>
-      <div className="frame" data-screen-label={`Step ${step}${step === 2 ? ' · ' + subStep : ''}`}>
+      <div className="frame" data-screen-label={`Step ${step}`}>
         <GlassMeshSubstrate/>
         <OnbHeader step={step}/>
 
@@ -129,10 +101,7 @@ function OnboardingApp() {
 
           {step === 2 && (
             <Step2Locale
-              subStep={subStep}
-              setSubStep={setSubStep}
               venue={venue} setVenue={setVenue}
-              payments={payments} setPayments={setPayments}
               onNext={goNextLocale}
               onBack={goBackLocale}
             />
@@ -143,7 +112,7 @@ function OnboardingApp() {
               rooms={rooms} setRooms={setRooms}
               catena={ONB_CATENA}
               onNext={() => { if (ONB_CATENA) window.location.href = 'byup Configurazione Completa.html?sede=catena'; else setStep(4); }}
-              onBack={() => { if (ONB_CATENA) window.location.href = 'byup Profilo.html'; else { setStep(2); setSubStep('pagamenti'); } }}
+              onBack={() => { if (ONB_CATENA) window.location.href = 'byup Profilo.html'; else setStep(2); }}
             />
           )}
 
@@ -161,11 +130,7 @@ function OnboardingApp() {
         {processing && <ProcessingOverlay onComplete={finishProcessing}/>}
       </div>
 
-      <StageNav
-        step={step} subStep={subStep}
-        setStep={setStep} setSubStep={setSubStep}
-        setProcessing={setProcessing}
-      />
+      <StageNav step={step} setStep={setStep} setProcessing={setProcessing}/>
     </>
   );
 }
@@ -195,8 +160,7 @@ function OnbHeader({step}) {
         <div style={{width: 56, height: 28}} aria-hidden="true"/>
       </div>
 
-      {/* La barra sub-step in header non serve più: dentro lo step 2 le due
-          sezioni (Informazioni/Pagamenti) hanno i loro tab espliciti in colonna. */}
+      {/* Niente barra sub-step: lo step 2 è un passo solo. */}
     </header>
   );
 }
@@ -570,26 +534,10 @@ function DoneCheck() {
 // Non è production UI: rimane sobrio, neutro, fuori dal flusso visivo principale.
 // ─────────────────────────────────────────────────────────────────────────
 
-function StageNav({step, subStep, setStep, setSubStep, setProcessing}) {
-  const stepLabel = step === 2 ? `Step 2 · ${subStep}` : `Step ${step}`;
-  const idx = LOCALE_SUBSTEPS.findIndex(s => s.id === subStep);
-
-  const goPrev = () => {
-    setProcessing(false);
-    if (step === 2 && idx > 0) setSubStep(LOCALE_SUBSTEPS[idx - 1].id);
-    else if (step === 2 && idx === 0) { setStep(1); }
-    // Tornando dallo step 3 si atterra sull'ULTIMO sotto-passo che esiste:
-    // «fiscale» era stato tolto ma questo rimando lo cercava ancora (indice −1).
-    else if (step === 3) { setStep(2); setSubStep(LOCALE_SUBSTEPS[LOCALE_SUBSTEPS.length - 1].id); }
-    else if (step === 4) setStep(3);
-  };
-  const goNext = () => {
-    setProcessing(false);
-    if (step === 1) setStep(2);
-    else if (step === 2 && idx < LOCALE_SUBSTEPS.length - 1) setSubStep(LOCALE_SUBSTEPS[idx + 1].id);
-    else if (step === 2 && idx === LOCALE_SUBSTEPS.length - 1) setStep(3);
-    else if (step === 3) setStep(4);
-  };
+function StageNav({step, setStep, setProcessing}) {
+  const stepLabel = `Step ${step}`;
+  const goPrev = () => { setProcessing(false); if (step > 1) setStep(step - 1); };
+  const goNext = () => { setProcessing(false); if (step < 4) setStep(step + 1); };
 
   return (
     <div className="stage-controls">

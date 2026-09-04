@@ -364,21 +364,29 @@ function PnApp() {
   );
 }
 
-// L'arrivo d'esempio: la prima notifica fiscale non letta, annunciata una
-// volta sola per sessione — riaprendo la Panoramica dieci volte non si
-// riceve dieci volte lo stesso avviso.
+// L'arrivo d'esempio, annunciato una volta sola per sessione — riaprendo la
+// Panoramica dieci volte non si riceve dieci volte lo stesso avviso.
+// Appena atterrato, il locale ha due cose da fare e nessuna delle due gliel'ha
+// chiesta l'onboarding: collegare Stripe e collegare i dati fiscali. Sono
+// quelle che arrivano per prime, una dopo l'altra; se sono già fatte, si torna
+// alla prima notifica fiscale non letta.
 function PnNotificaDemo() {
   React.useEffect(() => {
     let fatto = false;
     try { fatto = sessionStorage.getItem('byup_notif_demo') === '1'; } catch (e) {}
     if (fatto || !window.byupReadNotifiche) return;
-    const t = setTimeout(() => {
-      const n = window.byupReadNotifiche().find(x => x.unread && x.type === 'fiscal') || window.byupReadNotifiche().find(x => x.unread);
-      if (!n) return;
+    const timers = [];
+    timers.push(setTimeout(() => {
+      const nuove = window.byupReadNotifiche().filter(x => x.unread);
+      const attivazioni = nuove.filter(x => String(x.id).indexOf('attiva-') === 0);
+      const coda = attivazioni.length
+        ? attivazioni
+        : [nuove.find(x => x.type === 'fiscal') || nuove[0]].filter(Boolean);
+      if (!coda.length) return;
       try { sessionStorage.setItem('byup_notif_demo', '1'); } catch (e) {}
-      window.byupNotificaArrivo(n);
-    }, 3200);
-    return () => clearTimeout(t);
+      coda.forEach((n, i) => timers.push(setTimeout(() => window.byupNotificaArrivo(n), i * 4200)));
+    }, 3200));
+    return () => timers.forEach(clearTimeout);
   }, []);
   return null;
 }

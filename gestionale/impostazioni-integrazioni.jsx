@@ -18,7 +18,11 @@ const INTEGRATIONS = [
   // in Dati fiscali, accanto a credenziali, delega, POS e codice
   // destinatario. Stripe invece resta: quello è un collegamento vero, che si
   // apre, si ricollega e col cambio di soggetto si disabilita.
-  { id:'stripe', name:'Stripe', cat:'pagamenti', logo:'S', bg:'#635BFF', desc:'Pagamenti online & checkout', status:'connected', detail:'acct_••••dE3v · sync ora', required: true },
+  { id:'stripe', name:'Stripe', cat:'pagamenti', logo:'S', bg:'#635BFF', desc:'Pagamenti online & checkout', status:'connected', detail:'acct_••••dE3v · sync ora', required: true,
+    // Non c'è nulla da «configurare» da questa parte: il conto, i versamenti e
+    // i documenti dell'account vivono sulla dashboard di Stripe, e il pulsante
+    // ci porta — fuori, in una scheda nuova, come dice la freccia.
+    gestisci: 'https://dashboard.stripe.com/' },
   // Piattaforme di consegna PREDISPOSTE (P-119 · D-106): Glovo, Deliveroo e
   // Uber Eats, con le specifiche in raccolta; l'add-on resta spento nell'MVP e
   // le tessere lo dicono. Just Eat è uscita: la sua documentazione non è
@@ -54,7 +58,8 @@ const INTEGRATIONS = [
 //   Cosa esce — ciò che l'esercente detiene come venditore.
 //   Cosa non esce mai — vincolo dichiarato, non configurabile.
 //   Chi autorizza — il SOLO titolare del locale: il collegamento fa uscire
-//     dati verso un terzo, non è un'impostazione operativa.
+//     dati verso un terzo, non è un'impostazione operativa. Lo dice il
+//     messaggio in fondo al foglio quando chi guarda non è il titolare.
 //   controller_ack_at — la presa d'atto: prima di generare la credenziale
 //     l'esercente dichiara di agire come titolare del trattamento per il
 //     flusso verso il terzo e di avere con esso un proprio accordo. Spunta
@@ -62,9 +67,12 @@ const INTEGRATIONS = [
 //   authorized_at — alla generazione della credenziale.
 //   last_used_at / revoked_at — la revoca chiude la riga, non la cancella:
 //     la connessione revocata resta visibile come storia.
-const INT_COSA_ESCE = 'Quello che possiedi come venditore: ordini, conti, documenti fiscali e incassi della sede; le prenotazioni che ricevi; le recensioni; il catalogo; il personale.';
-const INT_COSA_NON_ESCE = 'I dati di altri locali. Allergeni, regimi alimentari e note sanitarie. Il profilo dell\'account Byup del cliente, con i suoi consensi e la sua storia in altri locali. I dati di carta oltre a circuito e ultime quattro cifre.';
-const INT_CHI_RISPONDE = 'Dove vanno i dati lo scegli tu, e per quel flusso il titolare del trattamento sei tu. La credenziale appartiene a questa connessione, la connessione al tuo ristorante: l\'app vede quello e nient\'altro. È così che è costruita, non una promessa.';
+// Due righe, non tre paragrafi (4 settembre 2026): che cosa esce e che cosa
+// non esce sono l'unica cosa che il foglio DEVE dire, e la responsabilità del
+// flusso la dichiara la spunta qui sotto, che è l'atto che conta. Il blocco
+// «Chi risponde» ripeteva a parole quello che la spunta fa.
+const INT_COSA_ESCE = 'Ordini, conti, documenti fiscali e incassi della sede; prenotazioni, recensioni, catalogo e personale.';
+const INT_COSA_NON_ESCE = 'I dati di altri locali, allergeni e note sanitarie, il profilo Byup del cliente e i dati di carta.';
 
 // Chi guarda e le sedi fra cui scegliere. Nel bundle delle Impostazioni non
 // ci sono account-data.jsx né account-tab-dati.jsx: questa è la copia di
@@ -188,7 +196,7 @@ function ImpIntegrazioni() {
       {/* BLOCCO 3 — Le piattaforme di consegna predisposte (P-119) e il
           collegamento con le app esterne (P-32). */}
       <Blocco>Piattaforme e app esterne</Blocco>
-      <ImpCard title="Piattaforme di consegna" sub="Predisposte, non attive: Glovo, Deliveroo e Uber Eats entrano con l'add-on quando ci saranno gli accordi. Ogni tessera dice che cosa farà.">
+      <ImpCard title="Piattaforme di consegna" sub="Predisposte, non attive: Glovo, Deliveroo e Uber Eats entrano con l'add-on quando ci saranno gli accordi. «Collega» percorre il collegamento che la piattaforma chiede, con dati di esempio.">
         <div style={griglia}>{tessere(per('delivery'))}</div>
       </ImpCard>
       <ImpCard title="App esterne" sub="Il collegamento con le tue app: la scheda dice che cosa esce e che cosa non esce, chi è titolare del flusso, e chiede la presa d'atto prima di generare la credenziale.">
@@ -490,8 +498,10 @@ function PosVirtualeRimando() {
 }
 
 function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [], onRevoca }) {
-  // Predisposta (P-119): niente «Connetti», l'add-on è spento nell'MVP; al
-  // suo posto «Che cosa farà», che apre la scheda letta dalle specifiche.
+  // Predisposta (P-119): «Collega» apre il foglio della piattaforma, che
+  // percorre il collegamento vero — quello documentato dalla piattaforma — con
+  // dati di esempio. L'add-on resta spento nell'MVP e il foglio lo dice in
+  // fondo: si simula il percorso, non si finge che sia acceso.
   const [scheda, setScheda] = React.useState(false);
   // La revoca vive QUI, sulla tessera, da quando l'elenco a parte non c'è
   // più: con una connessione viva l'azione è «Revoca», con la conferma sul
@@ -510,10 +520,17 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
     window.addEventListener('byup-stripe-change', ri);
     return () => window.removeEventListener('byup-stripe-change', ri);
   }, []);
+  // Due modi di non essere collegati, e non sono la stessa cosa: MAI collegato
+  // — il locale è appena entrato, e l'onboarding non chiede più Stripe — e
+  // DISABILITATO, perché il soggetto fiscale è cambiato e l'account era
+  // intestato al precedente. Il primo è un invito, il secondo un guasto.
+  const stripePrimo = item.id === 'stripe' && stripe.status === 'da_collegare';
   const stripeGiu = item.id === 'stripe' && stripe.status !== 'connected';
-  if (stripeGiu) item = { ...item, status: 'todo', detail: 'Disabilitato: il soggetto fiscale è cambiato', cta: 'Ricollega Stripe', required: true };
-  const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); byupStripeRicollega(); }, 1800); };
-  const s = stripeGiu ? { ...STATUS_LABEL.todo, label: 'Da ricollegare' } : STATUS_LABEL[item.status];
+  if (stripeGiu) item = { ...item, status: 'todo', required: true,
+    detail: stripePrimo ? 'Serve per incassare: carte al tavolo, in app e online' : 'Disabilitato: il soggetto fiscale è cambiato',
+    cta: stripePrimo ? 'Collega Stripe' : 'Ricollega Stripe' };
+  const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); if (stripePrimo) byupStripeCollega(); else byupStripeRicollega(); }, 1800); };
+  const s = stripeGiu ? { ...STATUS_LABEL.todo, label: stripePrimo ? 'Da collegare' : 'Da ricollegare' } : STATUS_LABEL[item.status];
   // Tessera in piedi invece che riga sdraiata: logo in alto, nome e
   // descrizione sotto, e il bottone appoggiato al fondo. Cosi il bottone sta
   // sempre nello stesso punto — a destra, in fondo a una riga larga, ogni
@@ -587,7 +604,11 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
             </React.Fragment>
           )}
           {item.status === 'connected' && !item.api && (
-            <ImpButton variant="ghost" style={azione}>Configura</ImpButton>
+            <ImpButton variant="ghost" style={azione}
+              onClick={item.gestisci ? () => window.open(item.gestisci, '_blank', 'noopener') : undefined}>
+              Gestisci su {item.name}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+            </ImpButton>
           )}
           {item.status === 'todo' && (
             <ImpButton
@@ -602,12 +623,295 @@ function IntegrationCard({ item, suggested, onMobileQr, onApi, connessioni = [],
           )}
           {item.status === 'predisposta' && (
             <React.Fragment>
-              <ImpButton variant="ghost" style={azione} onClick={() => setScheda(v => !v)}>{scheda ? 'Chiudi' : 'Che cosa farà'}</ImpButton>
-              {scheda && (
-                <div data-scheda-piattaforma style={{ marginTop: 10, fontSize: 13, color: PN.TEXT, lineHeight: 1.5, padding: '10px 12px', borderRadius: 9, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}` }}>{item.scheda}</div>
-              )}
+              <ImpButton variant="ghost" style={azione} onClick={() => setScheda(true)}>Collega</ImpButton>
+              {scheda && <IntDeliveryModal item={item} onClose={() => setScheda(false)}/>}
             </React.Fragment>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Il collegamento di una piattaforma di consegna (P-119 · D-106) ────────
+// Tre piattaforme, tre modi di collegarsi, e non sono intercambiabili: qui
+// sono percorsi come li documentano loro, con dati di esempio.
+//   GLOVO — collegamento fra macchine con il token di partner che Glovo
+//     condivide con l'integratore (lo stesso con cui firma i webhook): non si
+//     digitano credenziali di Glovo. Quello che serve a noi è l'identificativo
+//     del punto vendita, lo Store ID, nella forma nome-partner__id-locale; i
+//     punti vendita di produzione li crea Glovo alla messa in esercizio, ed è
+//     lì che il primo controllo può non trovare nulla.
+//   DELIVEROO — il locale si collega dal SUO Partner Hub: Integrazioni →
+//     Collega sedi, dove incolla il codice di collegamento che gli diamo noi
+//     nel campo «Site location ID», sceglie il marchio e dichiara che il menù
+//     lo aggiorna dalla cassa. Byup non entra in quel portale: controlla che
+//     la sede sia comparsa.
+//   UBER EATS — autorizzazione OAuth dell'app di Byup sull'account del locale
+//     (scope eats.pos_provisioning): nessuna credenziale digitata da noi.
+//     Dopo l'autorizzazione si leggono i punti vendita dell'account e si
+//     attivano quelli scelti; si può nominare Byup gestore degli ordini, cioè
+//     chi li accetta e li rifiuta. Il negozio resta in pausa finché non lo si
+//     mette online.
+// Il primo controllo fallisce apposta, come in tutte le verifiche del
+// prototipo: è il caso vero di chi torna qui prima che l'altra parte sia
+// pronta, e la diagnosi dice dove guardare.
+const INT_DELIVERY_SEDE = 'Cacio e Pepe · Ostiense';
+const INT_DELIVERY = {
+  glovo: {
+    passi: ['Account Glovo Partners', 'Store ID della sede', 'Menù e ordini'],
+    codice: 'cacioepepe__ostiense',
+  },
+  deliveroo: {
+    passi: ['Codice di collegamento', 'Partner Hub di Deliveroo', 'Controllo'],
+    codice: 'byup-cp-ostiense-7d3a',
+    portale: 'https://partner-hub.deliveroo.com/',
+    tap: [
+      'Accedi a partner-hub.deliveroo.com con l\'account del locale',
+      'Apri Integrazioni nella barra laterale',
+      'Premi «Collega sedi» e spunta Cacio e Pepe · Ostiense',
+      'Incolla il codice qui sopra nel campo «Site location ID»',
+      'Alla domanda sul marchio scegli il Brand ID della sede',
+      'Alla domanda sul menù rispondi «Sì, aggiorno il menù dalla cassa»',
+      'Conferma',
+    ],
+    cause: [
+      'Il codice è incollato per intero, senza spazi.',
+      'La sede spuntata è quella giusta: il codice vale per una sede sola.',
+      'Il marchio è stato scelto: senza Brand ID la sede resta a metà.',
+      'Il collegamento può metterci qualche minuto a comparire: riprova.',
+    ],
+  },
+  ubereats: {
+    passi: ['Autorizza Byup su Uber', 'Punti vendita', 'Attivazione'],
+    negozi: [
+      { id: '8f2c1a4e-9b77-4d3a-88e1-2f5a7c9d0b12', nome: 'Cacio e Pepe · Ostiense', via: 'Via dei Giubbonari 27, Roma' },
+      { id: 'a41d7b90-3c22-4f18-9ad6-6e0b4c8f1d55', nome: 'Cacio e Pepe · Trastevere', via: 'Vicolo del Cinque 8, Roma' },
+    ],
+  },
+};
+
+function IntDeliveryModal({ item, onClose }) {
+  const cfg = INT_DELIVERY[item.id] || INT_DELIVERY.glovo;
+  const [passo, setPasso] = React.useState(1);
+  const [valore, setValore] = React.useState(item.id === 'glovo' ? cfg.codice : '');
+  const [fase, setFase] = React.useState('idle');          // idle | corso | errore
+  const [tentativi, setTentativi] = React.useState(0);
+  const [scelti, setScelti] = React.useState(item.id === 'ubereats' ? [cfg.negozi[0].id] : []);
+  const [gestore, setGestore] = React.useState(true);      // Byup accetta e rifiuta gli ordini
+  const [copiato, setCopiato] = React.useState(false);
+  const [menu, setMenu] = React.useState(false);
+  const [fatto, setFatto] = React.useState(false);
+
+  const copia = (testo) => {
+    try { navigator.clipboard && navigator.clipboard.writeText(testo); } catch (e) {}
+    setCopiato(true); setTimeout(() => setCopiato(false), 1600);
+  };
+  // Il controllo: primo giro a vuoto, secondo buono. Vale per lo Store ID di
+  // Glovo, per la comparsa della sede su Deliveroo e per il consenso di Uber.
+  const controlla = (avanti) => {
+    if (fase === 'corso') return;
+    setFase('corso');
+    const t = tentativi + 1; setTentativi(t);
+    setTimeout(() => {
+      if (t === 1 && item.id !== 'ubereats') { setFase('errore'); return; }
+      setFase('idle'); setTentativi(0); avanti();
+    }, 1600);
+  };
+
+  const inp = { width: '100%', padding: '10px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 9, fontSize: 15, fontFamily: 'ui-monospace, Menlo, monospace', boxSizing: 'border-box', outline: 'none' };
+  const nota = (testo) => <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.55, marginTop: 8}}>{testo}</div>;
+  const errore = (titolo, cause) => fase === 'errore' && (
+    <div style={{marginTop: 12, padding: '11px 13px', borderRadius: 10, background: 'rgba(220, 38, 38, 0.06)', border: '1px solid rgba(220, 38, 38, 0.22)', fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
+      <b style={{color: '#991B1B'}}>{titolo}</b>
+      <ol style={{margin: '6px 0 0', paddingLeft: 20, display:'flex', flexDirection:'column', gap: 3}}>{cause.map((c, i) => <li key={i}>{c}</li>)}</ol>
+    </div>
+  );
+  const bloccoCodice = (testo, etichetta) => (
+    <div style={{display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap', padding:'11px 13px', borderRadius: 10, background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`}}>
+      <div style={{flex: 1, minWidth: 160}}>
+        <div style={{fontSize: 12.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>{etichetta}</div>
+        <div style={{fontSize: 16, fontWeight: 700, color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.3, userSelect:'all', wordBreak:'break-all'}}>{testo}</div>
+      </div>
+      <ImpButton variant="ghost" style={{padding:'7px 13px', fontSize: 14}} onClick={() => copia(testo)}>{copiato ? 'Copiato' : 'Copia'}</ImpButton>
+    </div>
+  );
+
+  // ── I tre percorsi ────────────────────────────────────────────────────────
+  let corpo = null, azione = null;
+  if (item.id === 'glovo') {
+    if (passo === 1) {
+      corpo = (
+        <div>
+          <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55}}>
+            Serve un account <b>Glovo Partners</b> attivo per la sede che vuoi collegare. Il collegamento è fra macchine: Glovo condivide con Byup un token di partner, e con quello Byup chiama Glovo e riconosce i suoi avvisi. La tua password di Glovo non passa da qui e non te la chiediamo.
+          </div>
+          {nota('Se la sede non è ancora su Glovo Partners, aprila prima lì: senza account attivo non c\'è nulla da collegare.')}
+        </div>
+      );
+      azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={() => setPasso(2)}>Ho l'account, continua</ImpButton>;
+    } else if (passo === 2) {
+      corpo = (
+        <div>
+          <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55, marginBottom: 12}}>
+            Incolla lo <b>Store ID</b> del punto vendita: è l'identificativo con cui Glovo lo riconosce, nella forma <span style={{fontFamily:'ui-monospace, Menlo, monospace'}}>nome-partner__id-punto-vendita</span>. Lo trovi in Glovo Manager, oppure te lo dà il tuo account manager Glovo.
+          </div>
+          <input value={valore} onChange={e => { setValore(e.target.value); if (fase === 'errore') setFase('idle'); }} placeholder="cacioepepe__ostiense" style={inp}/>
+          {nota(`Vale per ${INT_DELIVERY_SEDE}: uno Store ID è di una sede sola.`)}
+          {errore('Punto vendita non trovato in produzione.', [
+            'Lo Store ID è copiato per intero, con i due trattini bassi.',
+            'I punti vendita di produzione li crea Glovo alla messa in esercizio: se il tuo non c\'è ancora, l\'account manager lo apre.',
+            'Riprova fra qualche minuto: la creazione non è immediata.',
+          ])}
+        </div>
+      );
+      azione = <ImpButton variant="primary" disabled={!valore.trim() || fase === 'corso'} style={{width:'100%', justifyContent:'center'}} onClick={() => controlla(() => setPasso(3))}>{fase === 'corso' ? 'Controllo su Glovo…' : fase === 'errore' ? 'Riprova' : 'Verifica lo Store ID'}</ImpButton>;
+    } else {
+      corpo = (
+        <div>
+          <div style={{padding:'11px 13px', borderRadius: 10, background:'#F0FDF4', border:`1px solid ${PN.GREEN_SOFT}`, fontSize: 14.5, color:'#065F46', lineHeight: 1.5}}>
+            Punto vendita <b style={{fontFamily:'ui-monospace, Menlo, monospace'}}>{valore}</b> collegato a {INT_DELIVERY_SEDE}.
+          </div>
+          <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55, marginTop: 12}}>{item.scheda}</div>
+          <label style={{display:'flex', alignItems:'flex-start', gap: 10, marginTop: 12, padding:'11px 13px', borderRadius: 10, border:`1.5px solid ${menu ? PN.TEXT : PN.BORDER}`, cursor:'pointer'}}>
+            <input type="checkbox" checked={menu} onChange={() => setMenu(v => !v)} style={{marginTop: 2, accentColor: PN.PINK_DARK}}/>
+            <span style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.45}}>Pubblica adesso il menù su Glovo. La pubblicazione riceve un identificativo di transazione e l'esito arriva dopo, non subito: te lo diciamo qui.</span>
+          </label>
+        </div>
+      );
+      azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={() => { setFatto(true); }}>Fine</ImpButton>;
+    }
+  } else if (item.id === 'deliveroo') {
+    if (passo === 1) {
+      corpo = (
+        <div>
+          <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55, marginBottom: 12}}>
+            Questo è il codice con cui Deliveroo riconosce {INT_DELIVERY_SEDE} come una sede collegata a Byup. Copialo: fra un momento va incollato sul tuo Partner Hub.
+          </div>
+          {bloccoCodice(cfg.codice, 'Codice di collegamento della sede')}
+          {nota('Il collegamento è fra macchine, con le credenziali dell\'integratore: le tue di Deliveroo non passano da qui.')}
+        </div>
+      );
+      azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={() => setPasso(2)}>Ho copiato il codice</ImpButton>;
+    } else if (passo === 2) {
+      corpo = (
+        <div>
+          <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55, marginBottom: 12}}>
+            Il collegamento lo confermi tu sul <b>Partner Hub di Deliveroo</b>, con il tuo accesso. Byup non entra lì dentro.
+          </div>
+          <ol style={{margin: 0, paddingLeft: 20, display:'flex', flexDirection:'column', gap: 5}}>
+            {cfg.tap.map((t, i) => <li key={i} style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.45}}>{t}</li>)}
+          </ol>
+          <div style={{marginTop: 12}}>
+            <a href={cfg.portale} target="_blank" rel="noopener" style={{display:'inline-flex', alignItems:'center', gap: 7, padding:'9px 15px', borderRadius: 9, background: PN.TEXT, color: PN.WHITE, fontSize: 14.5, fontWeight: 600, textDecoration:'none'}}>
+              Apri il Partner Hub
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+            </a>
+          </div>
+        </div>
+      );
+      azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={() => setPasso(3)}>Fatto, controlla</ImpButton>;
+    } else if (passo === 3 && !fatto) {
+      corpo = (
+        <div>
+          <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55}}>
+            Controlliamo che la sede sia comparsa fra le integrazioni di Deliveroo, con il suo marchio e il menù dichiarato «dalla cassa».
+          </div>
+          {errore('Sede non collegata.', cfg.cause)}
+        </div>
+      );
+      azione = <ImpButton variant="primary" disabled={fase === 'corso'} style={{width:'100%', justifyContent:'center'}} onClick={() => controlla(() => setFatto(true))}>{fase === 'corso' ? 'Controllo su Deliveroo…' : fase === 'errore' ? 'Riprova' : 'Controlla il collegamento'}</ImpButton>;
+    }
+  } else {
+    if (passo === 1) {
+      corpo = (
+        <div>
+          <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55}}>
+            Ti portiamo sulla pagina di Uber: accedi con l'account del locale e autorizza Byup. Il permesso che chiediamo è uno solo, <span style={{fontFamily:'ui-monospace, Menlo, monospace'}}>eats.pos_provisioning</span>, quello che serve a collegare i punti vendita alla cassa. Nessuna credenziale passa da Byup.
+          </div>
+          {nota('Puoi revocare l\'autorizzazione quando vuoi dall\'account Uber Eats del locale.')}
+        </div>
+      );
+      azione = <ImpButton variant="primary" disabled={fase === 'corso'} style={{width:'100%', justifyContent:'center'}} onClick={() => controlla(() => setPasso(2))}>{fase === 'corso' ? 'Attendo l\'autorizzazione…' : 'Accedi con Uber'}</ImpButton>;
+    } else if (passo === 2) {
+      corpo = (
+        <div>
+          <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55, marginBottom: 12}}>
+            Questi sono i punti vendita dell'account. Scegli quelli da collegare: per ciascuno Byup registra l'integrazione presso Uber.
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap: 8}}>
+            {cfg.negozi.map(n => {
+              const on = scelti.includes(n.id);
+              return (
+                <label key={n.id} style={{display:'flex', alignItems:'flex-start', gap: 11, padding:'11px 13px', borderRadius: 10, cursor:'pointer', border:`1.5px solid ${on ? PN.TEXT : PN.BORDER}`, background: PN.WHITE}}>
+                  <input type="checkbox" checked={on} onChange={() => setScelti(l => on ? l.filter(x => x !== n.id) : [...l, n.id])} style={{marginTop: 3, accentColor: PN.PINK_DARK}}/>
+                  <span style={{minWidth: 0}}>
+                    <span style={{display:'block', fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{n.nome}</span>
+                    <span style={{display:'block', fontSize: 13.5, color: PN.MUTED, marginTop: 1}}>{n.via}</span>
+                    <span style={{display:'block', fontSize: 12.5, color: PN.MUTED, marginTop: 2, fontFamily:'ui-monospace, Menlo, monospace', wordBreak:'break-all'}}>store {n.id}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <label style={{display:'flex', alignItems:'flex-start', gap: 10, marginTop: 12, padding:'11px 13px', borderRadius: 10, background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`, cursor:'pointer'}}>
+            <input type="checkbox" checked={gestore} onChange={() => setGestore(v => !v)} style={{marginTop: 2, accentColor: PN.PINK_DARK}}/>
+            <span style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.45}}>Byup gestisce gli ordini: li accetta e li rifiuta per conto del locale, dalla coda e dal monitor di cucina. Senza questa spunta restano da accettare sull'app di Uber Eats.</span>
+          </label>
+        </div>
+      );
+      azione = <ImpButton variant="primary" disabled={!scelti.length || fase === 'corso'} style={{width:'100%', justifyContent:'center'}} onClick={() => controlla(() => setFatto(true))}>{fase === 'corso' ? 'Attivazione in corso…' : 'Attiva l\'integrazione'}</ImpButton>;
+    }
+  }
+
+  // L'esito, uguale per tutte: che cosa cambia in Byup, e che l'add-on è spento.
+  if (fatto) {
+    corpo = (
+      <div>
+        <div style={{padding:'12px 14px', borderRadius: 10, background:'#F0FDF4', border:`1px solid ${PN.GREEN_SOFT}`, fontSize: 14.5, color:'#065F46', lineHeight: 1.5}}>
+          {item.id === 'ubereats'
+            ? <>Integrazione attiva su {scelti.length} punt{scelti.length === 1 ? 'o' : 'i'} vendita. Il negozio resta <b>in pausa</b> finché non lo metti online: lo fai da qui o da Uber Eats Manager.</>
+            : item.id === 'deliveroo'
+              ? <>Sede collegata: <b>{INT_DELIVERY_SEDE}</b>. Il menù si pubblica da Byup; su Deliveroo lo stato si legge da Integrazioni → Controlla stato menù.</>
+              : <>Punto vendita <b style={{fontFamily:'ui-monospace, Menlo, monospace'}}>{valore}</b> collegato{menu ? ', menù in pubblicazione' : ''}.</>}
+        </div>
+        <div style={{fontSize: 15, color: PN.TEXT, lineHeight: 1.55, marginTop: 12}}>{item.scheda}</div>
+      </div>
+    );
+    azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={onClose}>Fatto</ImpButton>;
+  }
+
+  const passoCorrente = fatto ? cfg.passi.length : passo;
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(15,17,21,0.42)', display:'grid', placeItems:'center', zIndex: 120, padding: 20}}>
+      <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 620, maxHeight: 'calc(var(--pn-vh, 100vh) * 0.92)', display:'flex', flexDirection:'column'}}>
+        <div style={{...MODAL_HEAD, display:'flex', alignItems:'center', gap: 14}}>
+          <span style={{width: 48, height: 48, borderRadius: 13, background: item.bg, color: item.color || '#fff', display:'grid', placeItems:'center', fontSize: item.logo.length > 1 ? 16 : 22, fontWeight: 800, flexShrink: 0}}>{item.logo}</span>
+          <div style={{flex: 1, minWidth: 0}}>
+            <div style={{...MODAL_TITLE, fontSize: 22, paddingRight: 40}}>Collega {item.name}</div>
+            <div style={{...MODAL_SUB, marginTop: 2, paddingRight: 40}}>
+              {fatto ? 'Collegamento completato' : `Passo ${passo} di ${cfg.passi.length} · ${cfg.passi[passo - 1]}`}
+            </div>
+          </div>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
+        </div>
+
+        {/* I passi, in fila: dove sono e quanto manca. */}
+        <div style={{display:'flex', gap: 6, padding:'0 22px 4px'}}>
+          {cfg.passi.map((_, i) => (
+            <span key={i} style={{flex: 1, height: 4, borderRadius: 999, background: i < passoCorrente ? PN.PINK : PN.BORDER_SOFT}}/>
+          ))}
+        </div>
+
+        <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto'}}>{corpo}</div>
+
+        <div style={{...MODAL_FOOT, flexDirection:'column', gap: 8, alignItems:'stretch'}}>
+          {azione}
+          {/* Onesto fino in fondo: il percorso è quello vero, ma l'add-on è
+              spento e i dati sono di esempio. */}
+          <div style={{fontSize: 13, color: PN.MUTED, lineHeight: 1.45}}>
+            L'add-on delle piattaforme è spento nell'MVP: qui il collegamento è simulato con dati di esempio, e i passi sono quelli che {item.name} chiede davvero.
+          </div>
         </div>
       </div>
     </div>
@@ -675,7 +979,7 @@ function IntCollegaModal({ onClose, onGenera }) {
           <div style={{flex: 1, minWidth: 0}}>
             <div style={{...MODAL_TITLE, fontSize: 22, paddingRight: 40}}>{credenziale ? 'Connessione creata' : 'Collega Zapier'}</div>
             <div style={{...MODAL_SUB, marginTop: 2, paddingRight: 40}}>
-              {credenziale ? 'La credenziale la vedi solo adesso' : 'Prima di collegare, leggi cosa esce e chi risponde'}
+              {credenziale ? 'La credenziale la vedi solo adesso' : 'Che cosa esce, e che cosa no'}
             </div>
           </div>
           <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
@@ -710,7 +1014,6 @@ function IntCollegaModal({ onClose, onGenera }) {
             <div className="pn-scroll" style={{...MODAL_BODY, overflowY:'auto', display:'flex', flexDirection:'column', gap: 10}}>
               {blocco('Cosa esce', INT_COSA_ESCE, PN.GREEN)}
               {blocco('Cosa non esce mai', INT_COSA_NON_ESCE, PN.WINE)}
-              {blocco('Chi risponde', INT_CHI_RISPONDE, PN.TEXT)}
 
               {/* La sede: una o tutte. «Tutte» sono le sedi di QUESTO
                   ristorante; un'altra insegna qui non compare. */}

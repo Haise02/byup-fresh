@@ -932,7 +932,12 @@ window.PN_POS_ACCOUNT = PN_POS_ACCOUNT;
 window.byupReadPosCensimento = function () {
   let salvate = {};
   try { const s = localStorage.getItem(PN_POS_KEY); if (s) JSON.parse(s).forEach(r => { salvate[r.id] = r; }); } catch (e) {}
-  const seme = pnPosSeme();
+  // Il POS virtuale nasce col collegamento Stripe e non un minuto prima: se
+  // Stripe non è collegato, quello strumento non esiste e non c'è nulla da
+  // comunicare all'Agenzia. Nasce in byupStripeCollega, con la data di oggi.
+  let stripeGiu = false;
+  try { stripeGiu = window.byupReadStripe && window.byupReadStripe().status === 'da_collegare'; } catch (e) {}
+  const seme = pnPosSeme().filter(r => !(stripeGiu && r.id === 'pos-virtuale' && !salvate[r.id]));
   const lista = seme.map(r => salvate[r.id] ? { ...r, ...salvate[r.id] } : r);
   Object.values(salvate).forEach(r => { if (!seme.some(s => s.id === r.id)) lista.push(r); });
   return lista;
@@ -1019,13 +1024,37 @@ window.pnPosUrgente = function (lista) {
 // ad allora niente pagamenti. Dati fiscali e POS e integrazioni leggono qui.
 // Il ricollegamento fa nascere un POS virtuale nuovo: il censimento si riapre
 // (byupPosVaria 'varied', P-105).
+// Il collegamento non si chiede più nell'onboarding (4 settembre 2026): il
+// locale atterra nel gestionale e la campanella glielo chiede lì, con la
+// notifica che porta su POS e integrazioni. Perciò il valore di partenza,
+// senza niente di salvato, è «da collegare» — non «connesso»: era lo stato di
+// un onboarding che chiedeva Stripe prima di entrare, e quell'onboarding non
+// c'è più.
 const PN_STRIPE_KEY = 'byup_stripe';
 window.byupReadStripe = function () {
-  try { const s = localStorage.getItem(PN_STRIPE_KEY); return s ? JSON.parse(s) : { status: 'connected' }; } catch (e) { return { status: 'connected' }; }
+  try { const s = localStorage.getItem(PN_STRIPE_KEY); return s ? JSON.parse(s) : { status: 'da_collegare' }; } catch (e) { return { status: 'da_collegare' }; }
 };
 window.byupWriteStripe = function (v) {
-  try { if (v && v.status !== 'connected') localStorage.setItem(PN_STRIPE_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_STRIPE_KEY); } catch (e) {}
+  try { if (v) localStorage.setItem(PN_STRIPE_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_STRIPE_KEY); } catch (e) {}
   window.dispatchEvent(new Event('byup-stripe-change'));
+};
+// Il primo collegamento: l'onboarding Stripe del soggetto, con la verifica
+// d'identità che fa Stripe. Da qui NASCE il POS virtuale (P-105) — lo
+// strumento nasce col suo collegamento, non prima — e con lui la finestra
+// della comunicazione all'Agenzia.
+window.byupStripeCollega = function () {
+  // La lista si legge PRIMA di scrivere lo stato: dopo, il seme rimetterebbe
+  // dentro un POS virtuale nato venti giorni fa, e questo nasce adesso.
+  const lista = window.byupReadPosCensimento();
+  window.byupWriteStripe({ status: 'connected', collegato_il: new Date().toISOString() });
+  const oggi = new Date().toISOString().slice(0, 10);
+  if (!lista.some(r => r.id === 'pos-virtuale')) {
+    lista.unshift({ id: 'pos-virtuale', nature: 'virtual', name: 'POS virtuale · Stripe', identifier: PN_POS_ACCOUNT,
+      activated_at: oggi, fiscal_link_status: 'pending_census', census_transmitted_at: null, census_declared_by: null, varied_at: null });
+    window.byupWritePosCensimento(lista);
+  }
+  const c = window.byupSoggettoInCorso ? window.byupSoggettoInCorso() : null;
+  if (c && !c.steps.stripe_connected) window.byupSoggettoAvanza('stripe_connected');
 };
 window.byupStripeDisabilita = function (motivo) {
   window.byupWriteStripe({ status: 'da_ricollegare', motivo: motivo || 'cambio_soggetto', since: new Date().toISOString() });
@@ -1176,6 +1205,30 @@ window.byupAdeCredBlocco = function (forma) {
     chi,
     href: 'byup Impostazioni.html?page=fiscali',
   };
+};
+
+// ─── La delega all'Agenzia e le due attivazioni che ne discendono ───────────
+// Non si dà più nell'onboarding (4 settembre 2026): il locale entra nel
+// gestionale e la campanella gli chiede di collegarsi, la notifica lo porta in
+// Dati fiscali, e la delega si dà da lì. Tre stati, come nell'onboarding di
+// prima: la DELEGA è un atto suo sul portale, e Byup ne controlla l'esito; la
+// CONSERVAZIONE e l'ACCREDITAMENTO come esercente li fa Byup con la delega,
+// da soli, senza un pulsante dell'esercente.
+const PN_DELEGA_KEY = 'byup_ade_delega';
+const pnDelegaSeme = () => ({ delega: 'attesa', conservazione: 'attesa', accreditamento: 'attesa', attivata_il: null });
+window.byupReadDelega = function () {
+  try { const s = localStorage.getItem(PN_DELEGA_KEY); return s ? Object.assign(pnDelegaSeme(), JSON.parse(s)) : pnDelegaSeme(); }
+  catch (e) { return pnDelegaSeme(); }
+};
+window.byupWriteDelega = function (v) {
+  try { if (v) localStorage.setItem(PN_DELEGA_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_DELEGA_KEY); } catch (e) {}
+  window.dispatchEvent(new Event('byup-ade-delega-change'));
+};
+// Tutto a posto: la delega c'è e le due attivazioni che ne discendono sono
+// concluse. È la condizione che spegne la notifica e fa sparire la scheda.
+window.byupDelegaCompleta = function () {
+  const d = window.byupReadDelega();
+  return d.delega === 'attiva' && d.conservazione === 'attiva' && d.accreditamento === 'attivo';
 };
 
 // La ricezione delle fatture: il codice destinatario del canale, registrato

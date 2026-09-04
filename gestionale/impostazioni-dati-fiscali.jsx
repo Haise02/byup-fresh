@@ -25,87 +25,137 @@
 const ADE_CRED_SOGLIE = window.PN_ADE_CRED_SOGLIE || [14, 7, 3];
 const adeCredStato = () => window.byupAdeCredStato();
 
-// ─── Il canale fiscale: chi trasmette, e che non si sceglie ────────────────
-function ImpCanaleFiscaleRiga() {
-  return (
-    <div data-canale-fiscale style={{
-      display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
-      padding: '12px 16px', marginBottom: 18, borderRadius: 12,
-      background: PN.WHITE, border: `1px solid ${PN.BORDER_SOFT}`,
-    }}>
-      <div style={{ width: 38, height: 38, borderRadius: 10, background: '#0EA5E9', color: PN.WHITE, display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 13, fontWeight: 800 }}>API</div>
-      <div style={{ flex: 1, minWidth: 260 }}>
-        <div style={{ fontSize: 14.5, fontWeight: 700, color: PN.TEXT }}>Scontrini e fatture passano dal canale OpenAPI</div>
-        <div style={{ fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.5 }}>
-          È il canale del prodotto: uno solo, incluso nell'abbonamento, e non c'è nulla da attivare o da scegliere. Trasmette per tuo conto il documento commerciale e la fattura elettronica; quello che serve a lui — le credenziali, la delega, il collegamento dei POS e il codice destinatario — è tutto in questa pagina.
-        </div>
-      </div>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 999, background: PN.GREEN_SOFT, color: '#065F46', fontSize: 12.5, fontWeight: 700, flexShrink: 0 }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#065F46' }}/>Attivo
-      </span>
-    </div>
-  );
-}
-
-// ─── Chi trasmette: l'incaricato nominato dal locale (P-116 · D-103) ────────
+// ─── Incaricato Fisconline (P-116 · D-103) ─────────────────────────────────
 // Per società ed enti il canale usa le credenziali personali di una persona
 // fisica che il LOCALE nomina incaricata sul portale dell'Agenzia. Qui si
 // dichiara chi è — nome, cognome, codice fiscale e data della nomina, cioè
-// ade_operator_name e ade_operator_tax_code del modello — perché il canale
-// sappia di chi sono le credenziali configurate e a chi mandare i promemoria.
-// Senza la nomina il canale non parte: lo dice la scheda, non lo si scopre al
-// primo scontrino. Byup non è parte della nomina, che si compie sul portale.
-function AdeIncaricatoCard() {
+// ade_operator_name e ade_operator_tax_code del modello — e quali sono le sue
+// credenziali: password Fisconline e PIN. Sono la stessa cosa, la persona e le
+// sue chiavi, e stanno in una scheda sola: si cambiano insieme perché insieme
+// vengono provate.
+// NIENTE SI APPLICA SULLA PAROLA: alla conferma parte una trasmissione di
+// prova, e finché non passa restano attivi i dati e le credenziali di prima —
+// il canale non può ritrovarsi con un nome nuovo e una password che l'Agenzia
+// rifiuta. Il primo giro fallisce apposta: è il caso vero di chi incolla la
+// password sbagliata, e deve saperlo adesso e non al primo scontrino.
+// Byup non è parte della nomina, che si compie sul portale.
+function AdeIncaricatoCard({ forma, titolare }) {
+  // La ditta individuale non ha un incaricato: le credenziali sono del
+  // titolare, e la persona non si sceglie qui — è quella dei dati anagrafici.
+  // Cambiano solo le chiavi, e si provano allo stesso modo.
+  const persona = forma === 'ditta_individuale';
   const [inc, setInc] = React.useState(() => window.byupReadIncaricato());
-  const [edit, setEdit] = React.useState(null);   // { nome, cognome, cf } | null
+  const [cred, setCred] = React.useState(() => adeCredStato());
+  const [edit, setEdit] = React.useState(null);      // la bozza, mai applicata prima della prova
+  const [fase, setFase] = React.useState('idle');    // idle | verifica | errore
+  const [tentativi, setTentativi] = React.useState(0);
+  const [salvato, setSalvato] = React.useState(false);
   React.useEffect(() => {
-    const ri = () => setInc(window.byupReadIncaricato());
+    const ri = () => { setInc(window.byupReadIncaricato()); setCred(adeCredStato()); };
     window.addEventListener('byup-ade-incaricato-change', ri);
-    return () => window.removeEventListener('byup-ade-incaricato-change', ri);
+    window.addEventListener('byup-ade-cred-change', ri);
+    return () => { window.removeEventListener('byup-ade-incaricato-change', ri); window.removeEventListener('byup-ade-cred-change', ri); };
   }, []);
-  const nominato = !!(inc && inc.cf);
-  const salva = () => {
-    if (!edit) return;
-    const cf = (edit.cf || '').toUpperCase().trim();
-    if (!edit.nome.trim() || !edit.cognome.trim() || !/^[A-Z0-9]{16}$/.test(cf)) return;
-    const d = new Date();
-    window.byupWriteIncaricato({ nome: edit.nome.trim(), cognome: edit.cognome.trim(), cf,
-      nominato_il: edit.nominato_il || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` });
-    setEdit(null);
+  const chi = persona ? { nome: (titolare && titolare.nome) || '', cognome: (titolare && titolare.cognome) || '', cf: (titolare && titolare.cf) || '', nominato_il: null } : inc;
+  const nominato = !!(chi && chi.cf);
+  // Credenziali mai provate: il registro non ha un rinnovo: il canale non ha
+  // ancora trasmesso nulla, e la scheda lo dice invece di far finta di sì.
+  const credProvate = !!cred.rinnovo;
+  const apri = () => { setEdit({ nome: chi.nome, cognome: chi.cognome, cf: chi.cf, nominato_il: chi.nominato_il, password: '', pin: '' }); setFase('idle'); setSalvato(false); };
+  const cf = ((edit && edit.cf) || '').toUpperCase().trim();
+  const valido = !!edit && (persona || (!!(edit.nome || '').trim() && !!(edit.cognome || '').trim() && /^[A-Z0-9]{16}$/.test(cf)))
+    && (credProvate || ((edit.password || '').trim() && (edit.pin || '').trim()));
+
+  // La prova. Passata: si scrive l'incaricato e si riparte con novanta giorni
+  // di password (byupAdeCredRinnova), che è ciò che sblocca i quattro punti di
+  // emissione. Non passata: non si scrive niente.
+  const verifica = () => {
+    if (!valido || fase === 'verifica') return;
+    setFase('verifica');
+    const t = tentativi + 1; setTentativi(t);
+    setTimeout(() => {
+      if (t === 1) { setFase('errore'); return; }
+      const d = new Date();
+      if (!persona) window.byupWriteIncaricato({ nome: edit.nome.trim(), cognome: edit.cognome.trim(), cf,
+        nominato_il: edit.nominato_il || `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` });
+      window.byupAdeCredRinnova();
+      setFase('idle'); setEdit(null); setSalvato(true);
+      setTimeout(() => setSalvato(false), 6000);
+    }, 1600);
   };
   const data = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
   const inp = { width: '100%', padding: '9px 11px', border: `1px solid ${PN.BORDER}`, borderRadius: 8, fontSize: 14.5, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' };
   const lab = { fontSize: 12.5, fontWeight: 600, color: PN.MUTED, marginBottom: 4 };
+  const campo = (chiave, etichetta, extra) => (
+    <div>
+      <div style={lab}>{etichetta}</div>
+      <input value={(edit && edit[chiave]) || ''} onChange={e => { const v = e.target.value; setEdit(x => ({ ...(x || {}), [chiave]: chiave === 'cf' ? v.toUpperCase() : v })); if (fase === 'errore') setFase('idle'); }} {...(extra || {})}/>
+    </div>
+  );
   return (
-    <ImpCard title="Chi trasmette gli scontrini" sub="La procedura dell'Agenzia si usa attraverso una persona incaricata: la nomini tu sul portale, e le credenziali sono sue" style={{marginBottom: 18}}>
+    <ImpCard
+      title={persona ? 'Credenziali Fisconline' : 'Incaricato Fisconline'}
+      sub={persona
+        ? 'Il canale trasmette i tuoi scontrini all\'Agenzia con le tue credenziali Fisconline: la password scade ogni novanta giorni e la rinnovi tu'
+        : 'La procedura dell\'Agenzia si usa attraverso una persona incaricata: la nomini tu sul portale, e le credenziali con cui il canale trasmette sono le sue'}
+      style={{marginBottom: 18}}>
+      <style>{`@keyframes adeIncSpin { to { transform: rotate(360deg); } }`}</style>
       {nominato && !edit ? (
         <div style={{display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap'}}>
-          <div style={{width: 40, height: 40, borderRadius: 10, background: PN.GREEN, display:'grid', placeItems:'center', flexShrink: 0}}>
-            {BuIcons.check({size: 18, color: PN.WHITE})}
+          <div style={{width: 40, height: 40, borderRadius: 10, background: credProvate ? PN.GREEN : PN.AMBER, display:'grid', placeItems:'center', flexShrink: 0}}>
+            {credProvate ? BuIcons.check({size: 18, color: PN.WHITE}) : <BuIcons.alert size={18} color={PN.WHITE}/>}
           </div>
           <div style={{flex: 1, minWidth: 240}}>
-            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{inc.nome} {inc.cognome}</div>
+            <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>{chi.nome} {chi.cognome}</div>
             <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.5}}>
-              Codice fiscale <b style={{color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>{inc.cf}</b> · nominata incaricata sul portale il {data(inc.nominato_il)}.
-              Le credenziali Fisconline configurate sul canale sono le sue, e il rinnovo della password lo compie lei.
+              Codice fiscale <b style={{color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace'}}>{chi.cf}</b>
+              {persona ? ' · titolare del locale.' : <> · nominata incaricata sul portale il {data(chi.nominato_il)}.</>}
+              {credProvate
+                ? <> Password e PIN configurati{cred.verificata ? `, provati il ${cred.verificata}` : ''}: la password vale fino al {cred.scadenza}, e il rinnovo lo compie {persona ? 'il titolare' : 'lei'}.</>
+                : <> <b style={{color: PN.AMBER}}>Password e PIN non ancora provati:</b> finché la trasmissione di prova non passa, il canale non trasmette.</>}
             </div>
           </div>
-          <ImpButton variant="secondary" onClick={() => setEdit({ nome: inc.nome, cognome: inc.cognome, cf: inc.cf, nominato_il: inc.nominato_il })}>Modifica</ImpButton>
+          <ImpButton variant={credProvate ? 'secondary' : 'primary'} onClick={apri}>{credProvate ? 'Modifica' : 'Inserisci le credenziali'}</ImpButton>
         </div>
       ) : (
         <div>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1.2fr', gap: 12}}>
-            <div><div style={lab}>Nome</div><input value={(edit && edit.nome) || ''} onChange={e => setEdit(x => ({ ...(x || {}), nome: e.target.value }))} style={inp}/></div>
-            <div><div style={lab}>Cognome</div><input value={(edit && edit.cognome) || ''} onChange={e => setEdit(x => ({ ...(x || {}), cognome: e.target.value }))} style={inp}/></div>
-            <div><div style={lab}>Codice fiscale</div><input value={(edit && edit.cf) || ''} onChange={e => setEdit(x => ({ ...(x || {}), cf: e.target.value.toUpperCase() }))} placeholder="16 caratteri" style={{...inp, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5}}/></div>
+          {!persona && (
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1.2fr', gap: 12}}>
+              {campo('nome', 'Nome', { style: inp })}
+              {campo('cognome', 'Cognome', { style: inp })}
+              {campo('cf', 'Codice fiscale', { placeholder: '16 caratteri', style: {...inp, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5} })}
+            </div>
+          )}
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 12, marginTop: persona ? 0 : 12}}>
+            {campo('password', 'Password Fisconline', { type: 'password', placeholder: credProvate ? 'Lascia vuoto per non cambiarla' : '••••••••••', style: inp })}
+            {campo('pin', 'PIN', { type: 'password', placeholder: credProvate ? 'Lascia vuoto per non cambiarlo' : '••••••••••', style: inp })}
           </div>
-          <div style={{display:'flex', gap: 10, marginTop: 12}}>
-            <ImpButton variant="primary" onClick={salva}>Salva l'incaricato</ImpButton>
-            {nominato && <ImpButton variant="ghost" onClick={() => setEdit(null)}>Annulla</ImpButton>}
+          <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.5}}>
+            Alla conferma facciamo una trasmissione di prova con questi dati. <b style={{color: PN.TEXT}}>Finché non passa non cambia niente:</b> restano attivi la persona e le credenziali di prima.
           </div>
+          <div style={{display:'flex', gap: 10, marginTop: 12, alignItems:'center', flexWrap:'wrap'}}>
+            <ImpButton variant="primary" disabled={!valido || fase === 'verifica'} onClick={verifica}>
+              {fase === 'verifica' && (
+                <span style={{width: 12, height: 12, borderRadius: 999, flexShrink: 0, border: '1.5px solid rgba(255,255,255,0.35)', borderTopColor: PN.WHITE, animation: 'adeIncSpin 0.7s linear infinite'}}/>
+              )}
+              {fase === 'verifica' ? 'Trasmissione di prova…' : 'Verifica e salva'}
+            </ImpButton>
+            {nominato && <ImpButton variant="ghost" onClick={() => { setEdit(null); setFase('idle'); }}>Annulla</ImpButton>}
+          </div>
+          {fase === 'errore' && (
+            <div style={{marginTop: 10, padding: '10px 13px', background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.22)', borderRadius: 9, fontSize: 13.5, color: '#991B1B', lineHeight: 1.5}}>
+              <b style={{fontWeight: 700}}>La trasmissione di prova è stata rifiutata.</b>{' '}
+              Non è cambiato nulla: restano {persona ? 'le credenziali di prima' : 'la persona e le credenziali di prima'}. Ricontrolla {persona ? '' : 'il codice fiscale dell\'incaricato, che l\'incarico sia salvato sul portale, e '}di aver copiato password e PIN per intero.
+            </div>
+          )}
         </div>
       )}
-      <div style={{marginTop: 14, padding: '11px 13px', borderRadius: 10, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.55}}>
+      {salvato && (
+        <div style={{marginTop: 12, padding: '10px 13px', borderRadius: 9, background: '#F0FDF4', border: `1px solid ${PN.GREEN_SOFT}`, fontSize: 13.5, color: '#065F46', lineHeight: 1.5}}>
+          Trasmissione di prova riuscita: da adesso il canale trasmette con queste credenziali.
+        </div>
+      )}
+      <div style={{marginTop: 14, padding: '11px 13px', borderRadius: 10, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}`, fontSize: 13.5, color: PN.MUTED, lineHeight: 1.55, display: persona ? 'none' : 'block'}}>
         <b style={{color: PN.TEXT}}>Come si nomina, sul portale dell'Agenzia.</b> Accedi con l'utenza del locale, vai su <b>Il tuo profilo → Incarichi → Gestisci incarichi come gestore</b>, scegli «Aggiungi incaricato», inserisci il suo codice fiscale e salva; poi, su quell'incaricato, <b>Azioni → Gestisci servizi</b>. Chi sia quella persona lo decidi tu: di norma il titolare o il rappresentante legale. Finché non è nominata, il canale non trasmette. Byup non è parte della nomina e non nomina incaricati propri.
       </div>
     </ImpCard>
@@ -150,36 +200,17 @@ function AdeCredenzialiCard({ forma }) {
     }, 1600);
   };
 
-  // Collegamento attivo: la card si fa quieta e dice solo le due cose utili —
-  // fino a quando vale, e che il promemoria arriverà da solo.
-  if (cred.stato === 'ok') {
-    return (
-      <div style={{
-        display:'flex', alignItems:'center', gap: 14,
-        padding: '14px 18px',
-        background: '#F0FDF4', border: `1.5px solid ${PN.GREEN_SOFT}`,
-        borderRadius: 12, marginBottom: 18,
-      }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: 10, background: PN.GREEN,
-          display:'grid', placeItems:'center', flexShrink: 0,
-        }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={PN.WHITE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
-          </svg>
-        </div>
-        <div style={{flex:1}}>
-          <div style={{fontSize:16, fontWeight:700, color: PN.GREEN}}>
-            Collegamento all'Agenzia delle Entrate attivo
-          </div>
-          <div style={{fontSize:14, color: PN.MUTED, marginTop: 2, lineHeight: 1.5}}>
-            Password Fisconline {incaricato ? <>di <b style={{color: PN.TEXT}}>{chi.nome}</b>, la persona che hai nominato incaricata sul portale, </> : ''}verificata{cred.verificata ? ` il ${cred.verificata}` : ''} con una trasmissione di prova · scade il {cred.scadenza} (tra {cred.giorni} giorni).
-            Ti avvisiamo qui, in cassa e con una notifica a 14, 7 e 3 giorni dalla scadenza; alla scadenza l'emissione si ferma.
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Credenziali mai provate: parla la scheda dell'incaricato, che è dove si
+  // inseriscono la prima volta. Qui si parla del RINNOVO, e un rinnovo non si
+  // chiede a chi non ha ancora messo niente.
+  if (!cred.rinnovo) return null;
+
+  // Collegamento attivo: la scheda non dice nulla. Il riepilogo verde —
+  // «attivo, verificato il tale giorno, scade fra tanti» — ripeteva quello che
+  // la scheda dell'incaricato già dice e occupava la cima della pagina per
+  // annunciare che non c'era niente da fare. Qui si parla solo quando c'è da
+  // fare qualcosa: dal primo gradino del promemoria in giù.
+  if (cred.stato === 'ok') return null;
 
   const scaduta = cred.stato === 'scaduta';
   // I tre gradini sono TRE, e si vedono: a 14 giorni l'avviso è quieto, a 7
@@ -879,6 +910,142 @@ const ADE_CAUSE = [
   'La delega può metterci qualche minuto a comparire: riprova.',
 ];
 
+// ─── Attivazioni fiscali: la delega, e le due cose che ne discendono ───────
+// Erano nell'onboarding e non ci sono più (4 settembre 2026): chiedere la
+// delega prima di far entrare qualcuno voleva dire fermarlo sulla porta per un
+// atto che si compie su un altro sito, con SPID. Ora il locale entra, e la
+// campanella gli chiede di collegarsi: la notifica porta qui.
+//   1. la DELEGA è un atto suo sul portale, con la sua identità: Byup non può
+//      prenderla al posto suo, può solo rendere indolori i due minuti — il
+//      codice fiscale pronto, il portale a un click, i tap in ordine — e poi
+//      controllarne l'esito. I servizi delegabili sono due (P-49 · D-40) e si
+//      spuntano entrambi: con uno solo la delega c'è ma non basta.
+//   2. la CONSERVAZIONE la attiva Byup con la delega, da sola.
+//   3. l'ACCREDITAMENTO come esercente lo fa Byup con la delega: da lì il menù
+//      del collegamento dei POS compare, e il passo zero di P-105 è compiuto.
+// La scheda vive finché serve: quando tutte e tre sono a posto sparisce, come
+// il banner dei campi mancanti in cima alla pagina. Un riquadro verde che dice
+// «non c'è niente da fare» non è un'informazione, è un ingombro.
+function AdeAttivazioniCard() {
+  const [reg, setReg] = React.useState(() => window.byupReadDelega());
+  const [fase, setFase] = React.useState('idle');     // idle | verifica | errore
+  const [tentativi, setTentativi] = React.useState(0);
+  React.useEffect(() => {
+    const ri = () => setReg(window.byupReadDelega());
+    window.addEventListener('byup-ade-delega-change', ri);
+    return () => window.removeEventListener('byup-ade-delega-change', ri);
+  }, []);
+  // Le due attivazioni di Byup partono da sole appena la delega è attiva, una
+  // dopo l'altra: nessun pulsante dell'esercente, da nessuna parte.
+  React.useEffect(() => {
+    if (reg.delega !== 'attiva') return;
+    if (reg.conservazione === 'corso') {
+      const t = setTimeout(() => window.byupWriteDelega({ ...window.byupReadDelega(), conservazione: 'attiva', accreditamento: 'corso' }), 2200);
+      return () => clearTimeout(t);
+    }
+    if (reg.accreditamento === 'corso') {
+      const t = setTimeout(() => window.byupWriteDelega({ ...window.byupReadDelega(), accreditamento: 'attivo' }), 1800);
+      return () => clearTimeout(t);
+    }
+  }, [reg.delega, reg.conservazione, reg.accreditamento]);
+
+  // Il controllo non si fida sulla parola: il primo giro finisce in «non
+  // trovata» — chi torna qui dopo trenta secondi la delega non ce l'ha ancora
+  // — e la diagnosi dice dove guardare, nell'ordine in cui si sbaglia.
+  const controlla = () => {
+    if (fase === 'verifica') return;
+    setFase('verifica');
+    const t = tentativi + 1; setTentativi(t);
+    setTimeout(() => {
+      if (t === 1) { setFase('errore'); return; }
+      setFase('idle');
+      window.byupWriteDelega({ ...window.byupReadDelega(), delega: 'attiva', attivata_il: new Date().toISOString(), conservazione: 'corso' });
+    }, 1600);
+  };
+
+  if (window.byupDelegaCompleta && window.byupDelegaCompleta()) return null;
+
+  const pastiglia = (tono, label) => {
+    const T = { attesa: { bg: PN.AMBER_SOFT, fg: '#B45309' }, corso: { bg: '#F4F5F7', fg: PN.MUTED },
+      errore: { bg: '#FEE2E2', fg: '#991B1B' }, ok: { bg: PN.GREEN_SOFT, fg: '#065F46' } }[tono];
+    return (
+      <span style={{display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0, padding:'4px 11px', borderRadius: 999,
+        background: T.bg, color: T.fg, fontSize: 13, fontWeight: 700, whiteSpace:'nowrap'}}>
+        {tono === 'corso' && <span style={{width: 11, height: 11, borderRadius: 999, border: '1.5px solid rgba(15,17,21,0.18)', borderTopColor: PN.MUTED, animation: 'adeAttSpin 0.7s linear infinite'}}/>}
+        {label}
+      </span>
+    );
+  };
+  const statoDelega = fase === 'verifica' ? pastiglia('corso', 'Controllo in corso…')
+    : fase === 'errore' ? pastiglia('errore', 'Non trovata')
+    : reg.delega === 'attiva' ? pastiglia('ok', 'Attiva') : pastiglia('attesa', 'Da dare');
+  const statoConserv = reg.conservazione === 'attiva' ? pastiglia('ok', 'Attiva')
+    : reg.conservazione === 'corso' ? pastiglia('corso', 'In corso…') : pastiglia('attesa', 'In attesa della delega');
+  const statoAccr = reg.accreditamento === 'attivo' ? pastiglia('ok', 'Accreditato')
+    : reg.accreditamento === 'corso' ? pastiglia('corso', 'In corso…') : pastiglia('attesa', 'In attesa della delega');
+
+  const riga = (titolo, sotto, stato) => (
+    <div style={{display:'flex', alignItems:'flex-start', gap: 12, padding:'11px 0', borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+      <div style={{flex: 1, minWidth: 0}}>
+        <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{titolo}</div>
+        <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>{sotto}</div>
+      </div>
+      {stato}
+    </div>
+  );
+
+  return (
+    <ImpCard title="Attivazioni fiscali" sub="Tre cose: la delega la dai tu sul portale dell'Agenzia, le altre due le fa Byup con quella delega" style={{marginBottom: 18}}>
+      <style>{`@keyframes adeAttSpin { to { transform: rotate(360deg); } }`}</style>
+      <div>
+        {riga('1 · Delega all\'Agenzia delle Entrate', 'Un atto tuo, sul portale, con il tuo SPID. Byup controlla che sia arrivata. Finché manca, le fatture non partono.', statoDelega)}
+        {riga('2 · Conservazione delle fatture elettroniche', 'La attiva Byup appena la delega è attiva. Non devi fare nulla.', statoConserv)}
+        {riga('3 · Accreditamento come esercente', 'Lo fa Byup con la delega: da lì ti compare il menù per collegare i POS all\'Agenzia.', statoAccr)}
+      </div>
+
+      {reg.delega !== 'attiva' && (
+        <React.Fragment>
+          <div style={{marginTop: 14, paddingTop: 14, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
+            <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>La delega, in due minuti</div>
+            <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+              Due servizi in una delega sola: «{ADE_SERVIZI[0]}», con cui Byup conserva le tue fatture presso l'Agenzia; «{ADE_SERVIZI[1]}», con cui Byup ti accredita come esercente. Servono entrambi, e serve solo il tuo accesso con SPID: le tue credenziali non le chiediamo.
+            </div>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap', marginTop: 12, padding:'11px 13px', borderRadius: 10, background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`}}>
+            <div style={{flex: 1, minWidth: 150}}>
+              <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase'}}>Codice fiscale di Byup</div>
+              <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5, userSelect:'all'}}>{ADE_CF_BYUP}</div>
+            </div>
+            <PosCopia valore={ADE_CF_BYUP}/>
+            <a href={ADE_PORTALE} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex', alignItems:'center', gap: 6, padding:'8px 14px', borderRadius: 9, background: PN.TEXT, color: PN.WHITE, fontSize: 14.5, fontWeight: 600, textDecoration:'none'}}>
+              Apri il portale
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
+            </a>
+          </div>
+          <div style={{marginTop: 12, padding:'11px 13px', borderRadius: 10, background: PN.WHITE, border:`1px solid ${PN.BORDER_SOFT}`}}>
+            <div style={{fontSize: 14.5, fontWeight: 700, color: PN.TEXT, marginBottom: 6}}>Come si fa, in {ADE_PASSI.length} tap</div>
+            <ol style={{margin: 0, paddingLeft: 20, display:'flex', flexDirection:'column', gap: 3}}>
+              {ADE_PASSI.map((x, i) => <li key={i} style={{fontSize: 14, color: PN.TEXT, lineHeight: 1.45}}>{x}</li>)}
+            </ol>
+          </div>
+          <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap', marginTop: 12}}>
+            <div style={{flex: 1, minWidth: 220, fontSize: 14, color: PN.MUTED, lineHeight: 1.45}}>
+              {fase === 'verifica' ? 'Sto controllando la delega presso l\'Agenzia…' : 'Quando hai confermato sul portale, premi Fatto: controlliamo la delega.'}
+            </div>
+            <ImpButton variant="primary" disabled={fase === 'verifica'} onClick={controlla}>{fase === 'errore' ? 'Riprova' : 'Fatto'}</ImpButton>
+          </div>
+          {fase === 'errore' && (
+            <div style={{marginTop: 10, padding:'11px 13px', borderRadius: 10, background:'rgba(220, 38, 38, 0.06)', border:'1px solid rgba(220, 38, 38, 0.22)', fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
+              <b style={{color: '#991B1B'}}>Delega non trovata.</b> Ricontrolla, in quest'ordine:
+              <ol style={{margin:'6px 0 0', paddingLeft: 20, display:'flex', flexDirection:'column', gap: 3}}>{ADE_CAUSE.map((x, i) => <li key={i}>{x}</li>)}</ol>
+            </div>
+          )}
+        </React.Fragment>
+      )}
+    </ImpCard>
+  );
+}
+
 function ImpDelegaRiconfermaModal({ onClose, denominazione }) {
   const [, forza] = React.useState(0);
   React.useEffect(() => {
@@ -1133,12 +1300,14 @@ function ImpRiaccettaTerminiModal({ onClose, onFirmato }) {
 
 
 // ─── La riga del soggetto fiscale, in cima alla pagina (P-117 · D-104) ─────
-// Chi è il soggetto adesso, e le DUE azioni che il fiscale ha: «Rinnova la
-// delega», per rifarla senza che il soggetto cambi, e «Cambia soggetto
-// fiscale», per quando cambia il contribuente. Con un cambiamento in corso il
-// secondo pulsante apre la catena dei passi e la riga dice che cosa manca,
-// con i blocchi che valgono per conto proprio.
-function ImpSoggettoRiga({ data, onCambia, onDelega }) {
+// Chi è il soggetto adesso, e l'unica azione che il fiscale ha: «Cambia
+// soggetto fiscale», per quando cambia il contribuente. «Rinnova la delega»
+// non c'è più (4 settembre 2026): una delega valida non si rifà, e quando il
+// soggetto cambia la delega si riconferma da sé dentro la catena del cambio —
+// che è l'unico momento in cui serve. Con un cambiamento in corso il pulsante
+// apre la catena dei passi e la riga dice che cosa manca, con i blocchi che
+// valgono per conto proprio.
+function ImpSoggettoRiga({ data, onCambia }) {
   const [c, setC] = React.useState(() => window.byupReadSoggettoChange ? byupReadSoggettoChange() : null);
   React.useEffect(() => {
     const ri = () => setC(byupReadSoggettoChange());
@@ -1169,7 +1338,6 @@ function ImpSoggettoRiga({ data, onCambia, onDelega }) {
           </div>
         )}
       </div>
-      <ImpButton variant="secondary" onClick={onDelega}>Rinnova la delega</ImpButton>
       <ImpButton variant="primary" onClick={onCambia}>{inCorso ? 'Riprendi il cambiamento' : 'Cambia soggetto fiscale'}</ImpButton>
     </div>
   );
@@ -1231,17 +1399,10 @@ function ImpDatiFiscali() {
   // La firma del contratto a nome del nuovo soggetto: stessa finestra
   // dell'onboarding (contratto-tc01.jsx), stessa prova.
   const [firmaOpen, setFirmaOpen] = React.useState(false);
-  // Il collegamento Stripe (registro byup_stripe, panoramica-tokens): il cambio
-  // di soggetto lo disabilita, e da qui si ricollega — onboarding Stripe
-  // simulato. Col ricollegamento nasce un POS virtuale nuovo (P-105).
-  const [stripe, setStripe] = React.useState(() => window.byupReadStripe ? byupReadStripe() : { status: 'connected' });
-  const [ricollegando, setRicollegando] = React.useState(false);
-  React.useEffect(() => {
-    const ri = () => setStripe(byupReadStripe());
-    window.addEventListener('byup-stripe-change', ri);
-    return () => window.removeEventListener('byup-stripe-change', ri);
-  }, []);
-  const ricollega = () => { setRicollegando(true); setTimeout(() => { setRicollegando(false); byupStripeRicollega(); }, 1800); };
+  // L'accredito degli incassi non sta più qui (4 settembre 2026): il conto
+  // connesso, il suo stato e il ricollegamento vivono in POS e integrazioni,
+  // sulla tessera Stripe, che è dove si collega e si scollega. Averlo in due
+  // posti voleva dire tenerne allineati due; qui non ne resta traccia.
   // Il foglio della delega: si apre da solo dopo la conferma del soggetto, dal
   // banner, e dal rimando di Account (?delega=1) per il cambio di persona.
   const [delegaOpen, setDelegaOpen] = React.useState(() => {
@@ -1325,7 +1486,7 @@ function ImpDatiFiscali() {
       )}
 
       {/* P-117: il soggetto fiscale e le due azioni che gli appartengono. */}
-      <ImpSoggettoRiga data={data} onCambia={apri} onDelega={() => setDelegaOpen(true)}/>
+      <ImpSoggettoRiga data={data} onCambia={apri}/>
       {soggettoOpen && (
         <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica} onDopo={() => setDopoOpen(true)}
           onSalva={(campi) => setData(d => ({ ...d, ...campi }))}/>
@@ -1342,13 +1503,8 @@ function ImpDatiFiscali() {
       {/* P-116 (D-103): le credenziali sono SEMPRE dell'esercente. Per società
           ed enti si dichiara prima chi è l'incaricato che le detiene, poi c'è
           la stessa scheda delle credenziali che vale per la ditta. */}
-      {/* Il canale, detto una volta e qui: è uscito dal catalogo delle
-          integrazioni (dove non c'era niente da scegliere) e vive dove vive il
-          fiscale. Non è un collegamento da attivare: è incluso, è unico
-          (D-38), e all'esercente serve sapere da chi passano i suoi documenti
-          — lo dice anche il contratto, art. 12. */}
-      <ImpCanaleFiscaleRiga/>
-      {!persona && <AdeIncaricatoCard/>}
+      <AdeAttivazioniCard/>
+      <AdeIncaricatoCard forma={data.legalForm} titolare={{ nome: data.ownerNome, cognome: data.ownerCognome, cf: data.ownerCf }}/>
       <div data-cfg-anchor="ade-credenziali"><AdeCredenzialiCard forma={data.legalForm}/></div>
 
       {/* Collegamento dei POS all'Agenzia (P-105): il vicino di casa delle
@@ -1472,70 +1628,6 @@ function ImpDatiFiscali() {
               <ImpCampoBloccato label="Nazione" value={({ IT: 'Italia (IT)', SM: 'San Marino (SM)', VA: 'Città del Vaticano (VA)' })[data.sedeNazione] || data.sedeNazione}/>
             </div>
             <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 4}}>Sono dati del soggetto fiscale: si modificano da «Cambia soggetto fiscale», in cima alla pagina.</div>
-          </ImpCard>
-
-          {/* ─── Accredito degli incassi (P-87 · D-80, PAG-01) ──────────────
-              Banca, IBAN e SWIFT non si chiedono più: l'accredito passa dal
-              conto connesso del prestatore di pagamento (payout_account_ref)
-              e l'IBAN non compare MAI in chiaro — è l'invariante che tiene
-              Byup fuori dalla catena dei fondi. Con i campi è caduta anche la
-              nota «su fattura compare un solo IBAN»: la fattura porta la
-              modalità di pagamento, non le coordinate. Il riferimento
-              mascherato è lo stesso che POS e integrazioni mostra sulla riga
-              Stripe: una fonte sola. */}
-          <ImpCard title="Accredito degli incassi" sub="Il conto dei versamenti è quello connesso a Stripe: qui si legge, si cambia da Stripe" style={{marginBottom: 16}}>
-            {stripe.status !== 'connected' && (
-              <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap', padding:'12px 14px', borderRadius: 11, background:'#FEF2F2', border:'1.5px solid #FECACA', marginBottom: 14}}>
-                <div style={{width: 34, height: 34, borderRadius: 9, background: PN.RED, color: PN.WHITE, display:'grid', placeItems:'center', flexShrink: 0}}><BuIcons.alert size={16} color={PN.WHITE}/></div>
-                <div style={{flex: 1, minWidth: 240, fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
-                  <b style={{color: '#991B1B'}}>Collegamento a Stripe disabilitato.</b> Il soggetto fiscale è cambiato e l'account era intestato a quello precedente: serve un nuovo collegamento, con la verifica di Stripe. Fino ad allora non ricevi pagamenti.
-                </div>
-                <ImpButton variant="primary" disabled={ricollegando} onClick={ricollega}>{ricollegando ? 'Collegamento in corso…' : 'Ricollega Stripe'}</ImpButton>
-              </div>
-            )}
-            <div style={{display:'flex', alignItems:'center', gap: 14, flexWrap:'wrap', opacity: stripe.status === 'connected' ? 1 : 0.55}}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 10, background:'#635BFF',
-                display:'grid', placeItems:'center', flexShrink: 0,
-              }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff">
-                  <path d="M11.6 8.7c-.7 0-1.1.2-1.1.7 0 .5.5.7 1.6 1.1 1.7.6 2.6 1.4 2.6 2.9 0 1.7-1.3 2.7-3.4 2.7-1.2 0-2.4-.3-3.3-.7v-2c.9.5 1.9.8 2.9.8.7 0 1.2-.2 1.2-.7 0-.6-.5-.8-1.6-1.2-1.6-.6-2.6-1.4-2.6-2.8 0-1.6 1.3-2.6 3.3-2.6 1 0 2 .2 2.9.6v1.9c-.8-.4-1.7-.7-2.5-.7z"/>
-                </svg>
-              </div>
-              <div style={{flex: 1, minWidth: 200}}>
-                <div style={{display:'flex', alignItems:'center', gap: 8, flexWrap:'wrap'}}>
-                  <span style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT}}>Conto connesso Stripe</span>
-                  <span style={{
-                    display:'inline-flex', alignItems:'center', gap: 5,
-                    padding:'2px 9px', borderRadius: 999,
-                    background: stripe.status === 'connected' ? '#D1FAE5' : '#FEE2E2', color: stripe.status === 'connected' ? '#065F46' : '#991B1B',
-                    fontSize: 12.5, fontWeight: 700,
-                  }}>
-                    <span style={{width: 6, height: 6, borderRadius:'50%', background: stripe.status === 'connected' ? '#059669' : PN.RED}}/>
-                    {stripe.status === 'connected' ? 'Attivo' : 'Disabilitato'}
-                  </span>
-                </div>
-                <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, fontFamily:'ui-monospace, monospace', letterSpacing: 0.3}}>
-                  acct_••••dE3v · Banca Intesa Sanpaolo · IT ••••3456
-                </div>
-                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>
-                  Accredito automatico giornaliero sul tuo conto
-                </div>
-              </div>
-              <button className="pn-btn-feedback"
-                onClick={() => {}}
-                title="Il conto di accredito si cambia su Stripe, non qui"
-                style={{
-                  padding:'9px 18px', borderRadius: 999,
-                  background: PN.WHITE, color: PN.TEXT,
-                  border:`1px solid ${PN.BORDER}`, cursor:'pointer', fontFamily:'inherit',
-                  fontSize: 14.5, fontWeight: 600, flexShrink: 0,
-                  display:'inline-flex', alignItems:'center', gap: 7,
-                }}>
-                Gestisci su Stripe
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>
-              </button>
-            </div>
           </ImpCard>
 
         </div>
