@@ -958,11 +958,16 @@ window.byupReadEsercente = function () { return { ...PN_ESERCENTE }; };
 // SoftPOS fra gli strumenti fisici senza distinguere il sistema).
 //
 // La finestra della comunicazione va dal sesto all'ultimo giorno del secondo
-// mese successivo a quello di attivazione dello strumento, e ogni variazione
-// — modifica o dismissione — la riapre dalla data della variazione. Il
-// promemoria insiste perché la comunicazione omessa o tardiva è sanzionata
-// (art. 11 co. 5 D.Lgs. 471/1997), e non si spegne finché la riga non è
-// dichiarata.
+// mese successivo a quello di attivazione dello strumento (Provv. AdE
+// 31/10/2025 n. 424470, punto 3.2), e ogni variazione — modifica o
+// dismissione — la riapre dalla data della variazione (punto 3.3). Per gli
+// strumenti già in uso a gennaio 2026 vale il PRIMO ADEMPIMENTO (punto 3.1,
+// P-150): quarantacinque giorni dalla messa a disposizione del servizio web,
+// che è del 5 marzo 2026, termine 20 aprile 2026 — senza questa regola uno
+// strumento attivato nel 2024 riceveva una finestra nel 2024, cioè una data
+// impossibile mostrata come scadenza. Il promemoria insiste perché la
+// comunicazione omessa o tardiva è sanzionata (art. 11 co. 5 D.Lgs.
+// 471/1997), e non si spegne finché la riga non è dichiarata.
 //
 // Registro in localStorage (byup_pos_censimento): una riga per strumento, con
 // i nomi di devices.fiscal_link_status — not_linked, pending_census, linked,
@@ -1059,12 +1064,20 @@ window.byupPosRitira = function (id) {
   return lista;
 };
 // La finestra: dal 6 all'ultimo giorno del secondo mese successivo a quello
-// dell'evento — attivazione, o variazione se c'è stata.
+// dell'evento — attivazione, o variazione se c'è stata (punto 3.2). Per lo
+// strumento attivato entro il 31 gennaio 2026 e mai variato vale il primo
+// adempimento (punto 3.1): dal 5 marzo al 20 aprile 2026.
+const PN_POS_PRIMO_ADEMPIMENTO = { contrattoEntro: '2026-01-31', inizio: '2026-03-05', fine: '2026-04-20' };
+window.PN_POS_PRIMO_ADEMPIMENTO = PN_POS_PRIMO_ADEMPIMENTO;
 window.pnPosFinestra = function (r) {
-  const rif = new Date(`${r.varied_at || r.activated_at}T00:00:00`);
+  const evento = r.varied_at || r.activated_at;
+  if (!r.varied_at && evento && evento <= PN_POS_PRIMO_ADEMPIMENTO.contrattoEntro) {
+    return { inizio: new Date(`${PN_POS_PRIMO_ADEMPIMENTO.inizio}T00:00:00`), fine: new Date(`${PN_POS_PRIMO_ADEMPIMENTO.fine}T00:00:00`), transitoria: true };
+  }
+  const rif = new Date(`${evento}T00:00:00`);
   const inizio = new Date(rif.getFullYear(), rif.getMonth() + 2, 6);
   const fine = new Date(rif.getFullYear(), rif.getMonth() + 3, 0);
-  return { inizio, fine };
+  return { inizio, fine, transitoria: false };
 };
 const pnPosData = (d, anno) => d.toLocaleDateString('it-IT', anno ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long' });
 // Il promemoria a gradini. fase: 'ok' (dichiarato) · 'lontana' (la finestra

@@ -379,17 +379,21 @@ const POS_PASSI = [
 ];
 
 // Il foglio, campo per campo, coi nomi esatti del portale. Per il POS
-// virtuale il Terminal id è dichiarato aperto: la prassi Stripe lo dice
-// «non applicabile», il modulo del portale lo segna obbligatorio, e le fonti
-// non dicono cosa metterci.
+// virtuale il Terminal id NON serve, e non è un punto aperto (P-150): la
+// guida operativa dell'Agenzia al collegamento, allegato 1, intitola la
+// colonna «Terminal id dispositivo (POS fisici)» e distingue i dati dei POS
+// virtuali (codice fiscale e denominazione dell'Acquirer) da quelli dei POS
+// fisici (terminal id, codice fiscale e denominazione dell'Acquirer). I
+// SoftPOS — i lettori Tap to Pay — sono POS fisici e portano il loro
+// Terminal id, com'è già.
 function posFoglio(r) {
   const nat = PN_POS_NATURE[r.nature] || PN_POS_NATURE.tap_to_pay;
   const virtuale = r.nature === 'virtual';
   return [
     { campo: 'Tipo POS', valore: nat.tipoPos, copia: true },
     virtuale
-      ? { campo: 'Terminal id', valore: 'Non applicabile a un POS online', copia: false, aperto: true,
-          nota: 'Così dice la prassi Stripe (marzo 2026). Il modulo del portale lo segna però obbligatorio: cosa inserire è un punto aperto, e te lo diciamo invece di inventarlo.' }
+      ? { campo: 'Terminal id', valore: 'Non richiesto per un POS virtuale', copia: false,
+          nota: 'Per i POS virtuali l\'Agenzia chiede il codice fiscale e la denominazione dell\'Acquirer; il Terminal id riguarda i soli dispositivi fisici (guida operativa AdE al collegamento dei POS, allegato 1).' }
       : { campo: 'Terminal id', valore: r.identifier, copia: true, mono: true,
           nota: `Numero di serie del lettore, letto dall'interfaccia Stripe (Terminal → Lettori) con l'intestazione dell'account ${PN_POS_ACCOUNT}.` },
     { campo: 'Acquirer Italiano/Estero', valore: PN_POS_ACQUIRER.estero ? 'Estero' : 'Italiano', copia: true },
@@ -588,7 +592,7 @@ function PosCensimentoCard() {
   return (
     <ImpCard anchor="pos-censimento"
       title="Collegamento POS all'Agenzia delle Entrate"
-      sub="Ogni strumento con cui incassi va collegato. La finestra va dal 6 all'ultimo giorno del secondo mese successivo a quello in cui lo strumento si attiva, e si riapre a ogni variazione.">
+      sub="Ogni strumento con cui incassi va collegato. La finestra va dal 6 all'ultimo giorno del secondo mese successivo a quello in cui lo strumento si attiva, e si riapre a ogni variazione; per gli strumenti già in uso a gennaio 2026 valeva il primo adempimento, dal 5 marzo al 20 aprile 2026.">
       {striscia && (
         <div style={{
           display:'flex', alignItems:'center', gap: 12, padding: '12px 14px', borderRadius: 11, marginBottom: 14,
