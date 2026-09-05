@@ -1314,6 +1314,55 @@ const TOTAL_REVENUE_HISTORICAL = {
 // niente ri-ancoraggio. Mese 1-based per leggerle come si scrivono.
 const ctrData = (g, m, y, h, min) => new Date(y, m - 1, g, h || 10, min || 0);
 
+// ─── Il TESTO delle versioni ────────────────────────────────────────────────
+// Markdown, non PDF, e non è un dettaglio: è il testo che la finestra di
+// accettazione del gestionale e dell'app SCORRE. Un PDF diventa un
+// visualizzatore dentro un popup — su un telefono illeggibile, e senza sapere
+// se uno è arrivato in fondo né come estrarre le clausole vessatorie per la
+// seconda firma ex artt. 1341-1342 c.c. Il PDF depositato, se c'è, sta
+// nell'archivio come allegato: quello che la persona vede e accetta è questo.
+// Qui sotto ci sono ESTRATTI dichiarati, non i testi depositati (P-114): al
+// catalogo serve un testo vero abbastanza da poterlo confrontare con la
+// versione dopo, che è il gesto per cui il catalogo esiste.
+const DOC_TESTO_TC01 = `# Termini e Condizioni di servizio di Byup Fresh
+
+## Art. 1 — Oggetto e prevalenza
+Byup concede al Locale l'uso della piattaforma Byup Fresh. In caso di conflitto prevalgono, nell'ordine: le Condizioni particolari di attivazione, i presenti Termini, l'Accordo sul trattamento dei dati.
+
+## Art. 3 — Poteri di chi accetta
+Chi accetta dichiara di agire in nome e per conto dell'Esercente e di averne i poteri.
+
+## Art. 7 — Limitazione di responsabilità
+Nei limiti consentiti dalla legge, Byup non risponde dei danni indiretti o del lucro cessante. La responsabilità complessiva è limitata ai corrispettivi versati nei dodici mesi precedenti l'evento.
+
+## Art. 12 — Adempimenti fiscali
+Il Locale incarica Byup, e per essa il fornitore del canale, di trasmettere per suo conto i corrispettivi e le fatture elettroniche, con le credenziali dell'Esercente, che ne cura il rinnovo. Byup non nomina incaricati propri e non rinnova credenziali per conto dell'Esercente.
+
+## Art. 15 — Modifiche
+Le modifiche sono comunicate su supporto durevole almeno quindici giorni prima della decorrenza. Nel termine il Locale può recedere senza oneri.`;
+
+const DOC_TESTO_DPA01 = `# Accordo sul trattamento dei dati (art. 28 GDPR)
+
+## 1 — Ruoli
+Il Locale è titolare del trattamento per i dati dei propri clienti; Byup è responsabile e tratta i dati su istruzione documentata del titolare.
+
+## 4 — Sub-responsabili
+Byup può ricorrere a sub-responsabili, elencati nell'allegato, dandone comunicazione preventiva. Il titolare può opporsi per motivi ragionevoli.
+
+## 7 — Violazioni
+Byup notifica al titolare ogni violazione dei dati personali senza ingiustificato ritardo e comunque entro quarantotto ore dalla conoscenza.`;
+
+const DOC_TESTO_INF02 = `# Informativa privacy business
+
+## Chi tratta i tuoi dati
+Byup S.r.l., titolare del trattamento per i dati del rapporto contrattuale con l'Esercente.
+
+## Perché
+Esecuzione del contratto, adempimenti di legge, sicurezza della piattaforma. Le comunicazioni commerciali richiedono un consenso a parte, revocabile in ogni momento.
+
+## Per quanto
+I dati del rapporto sono conservati per la durata del contratto e per i dieci anni successivi, quando un obbligo di legge lo impone.`;
+
 const DOCUMENTI = [
   // L'ordine di prevalenza è dell'art. 1 TC-01 — (1) Piano, (2) TC, (3) DPA —
   // ed è un numero esplicito, non l'ordine dell'array: è una regola
@@ -1342,12 +1391,14 @@ const DOCUMENTI = [
     // l'accreditamento con la delega. Niente fatture passive (fuori
     // dall'MVP) e nessun incaricato di Byup (P-114, P-116).
     { v:'0.24', pubblicata:ctrData(3,9,2026),   efficace:ctrData(3,10,2026), peggiorativa:false, esempio:true,
+      testo: DOC_TESTO_TC01,
       cambiamento:'Art. 12: mandato a trasmettere corrispettivi e fatture tramite il fornitore del canale, con le credenziali dell\'esercente, che ne cura il rinnovo; accreditamento come esercente in forza della delega. Nessuna modifica economica.' },
   ]},
   { codice:'DPA-01', nome:'Accordo sul trattamento dati (art. 28)', destinatario:'locale', prevalenza:3, versioni:[
     { v:'0.8', pubblicata:ctrData(19,1,2026), efficace:ctrData(18,2,2026), peggiorativa:false, esempio:true,
       cambiamento:'Prima versione a catalogo (ricostruzione).' },
     { v:'0.9', pubblicata:ctrData(4,8,2026),  efficace:ctrData(3,9,2026),  peggiorativa:false, esempio:true,
+      testo: DOC_TESTO_DPA01,
       cambiamento:'Aggiornato l\'elenco dei sub-responsabili e i termini di notifica delle violazioni.' },
   ]},
   // Per un'informativa l'efficacia coincide con la pubblicazione: non c'è
@@ -1356,6 +1407,7 @@ const DOCUMENTI = [
     { v:'0.4', pubblicata:ctrData(2,3,2026), efficace:ctrData(2,3,2026), peggiorativa:false, esempio:true,
       cambiamento:'Prima versione a catalogo (ricostruzione).' },
     { v:'0.5', pubblicata:ctrData(4,8,2026), efficace:ctrData(4,8,2026), peggiorativa:false, esempio:true,
+      testo: DOC_TESTO_INF02,
       cambiamento:'Aggiornata la sezione sui tempi di conservazione.' },
   ]},
   // Staff e utenti app: catalogati ORA perché il componente riceva l'elenco
@@ -1984,6 +2036,104 @@ window.RITENZIONE = RITENZIONE;
 window.ESPANSIONE = ESPANSIONE;
 window.TOTAL_REVENUE_HISTORICAL = TOTAL_REVENUE_HISTORICAL;
 window.DOCUMENTI = DOCUMENTI;
+
+// ─── Le versioni: bozza, pubblicata, superata ───────────────────────────────
+// Una versione PUBBLICATA non si corregge mai. Il modello dice che
+// `policy_versions.document_ref` è «immutabile per versione» e che
+// `document_hash` è l'impronta «del testo effettivamente pubblicato»: se si
+// ritocca il file di una versione già pubblicata, l'impronta non corrisponde
+// più a quella congelata sulle accettazioni già raccolte, e da quel momento
+// non si può più dimostrare a quale testo la gente abbia detto sì. Anche per
+// una virgola. Correggere vuol dire pubblicare un'ALTRA versione, con il suo
+// preavviso — `supersedes_version_id` esiste per questo.
+// Quello che si modifica liberamente è la BOZZA, che non l'ha vista nessuno.
+// Stessa grammatica dei coefficienti del piano, che in Piattaforma già fanno
+// bozza → pubblica → storico.
+const docBozza = (codice) => {
+  const d = DOCUMENTI.find(x => x.codice === codice);
+  return d && d.versioni ? d.versioni.find(v => v.stato === 'bozza') || null : null;
+};
+const docPubblicate = (codice) => {
+  const d = DOCUMENTI.find(x => x.codice === codice);
+  return d && d.versioni ? d.versioni.filter(v => v.stato !== 'bozza') : [];
+};
+// L'ultima pubblicata: è quella contro cui si confronta una bozza.
+const docUltima = (codice) => { const p = docPubblicate(codice); return p.length ? p[p.length - 1] : null; };
+// I quindici giorni dell'art. 3 par. 2 del Reg. UE 2019/1150: una modifica
+// contrattuale applicata senza preavviso è nulla. Un'informativa non ha
+// preavviso — si riceve, non si accetta — e vale dalla pubblicazione.
+const DOC_PREAVVISO_GG = 15;
+// A MEZZANOTTE, e non è pignoleria: il preavviso si conta in giorni, non in
+// millisecondi. Con l'ora dentro, una bozza creata adesso diventava «troppo
+// presto» un secondo dopo — la data proposta restava ferma mentre il minimo
+// avanzava — e il pulsante «Pubblica» non si accendeva mai.
+const docMezzanotte = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+function docEfficaciaMinima(codice, da) {
+  const d = DOCUMENTI.find(x => x.codice === codice);
+  const base = docMezzanotte(da || new Date());
+  if (d && d.informativa) return base;
+  base.setDate(base.getDate() + DOC_PREAVVISO_GG); return base;
+}
+function docCreaBozza(codice, dati) {
+  const d = DOCUMENTI.find(x => x.codice === codice);
+  if (!d || !d.versioni || docBozza(codice)) return null;
+  const b = Object.assign({
+    stato: 'bozza', v: '', testo: '', cambiamento: '', peggiorativa: false,
+    nuovoConsenso: false, pubblicata: null, efficace: docEfficaciaMinima(codice), esempio: true,
+  }, dati || {});
+  d.versioni.push(b);
+  return b;
+}
+function docSalvaBozza(codice, patch) {
+  const b = docBozza(codice);
+  if (b) Object.assign(b, patch);
+  return b;
+}
+function docEliminaBozza(codice) {
+  const d = DOCUMENTI.find(x => x.codice === codice);
+  if (d && d.versioni) d.versioni = d.versioni.filter(v => v.stato !== 'bozza');
+}
+// Pubblicare congela: da qui in avanti quella versione non si tocca più.
+function docPubblicaBozza(codice) {
+  const b = docBozza(codice);
+  const d = DOCUMENTI.find(x => x.codice === codice);
+  if (!b || !d) return null;
+  b.stato = 'pubblicata';
+  b.pubblicata = new Date();
+  const me = hubUtenteCorrente();
+  AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: 'ha pubblicato una versione di',
+    target: `${d.codice} v${b.v} · efficace dal ${fmtDate(b.efficace)}${b.peggiorativa ? ' · peggiorativa' : ''}${b.nuovoConsenso ? ' · richiede nuovo consenso' : ''}`,
+    icon: 'filePdf', color: 'PURPLE', tipo: 'documento', when: b.pubblicata });
+  return b;
+}
+// Il confronto riga per riga con la versione precedente. Serve a chi pubblica:
+// «che cosa cambia» si scrive guardando, non fidandosi della mail di chi ha
+// redatto il testo — e la spunta «peggiorativa» è un giudizio, e un giudizio
+// si dà davanti alle righe cambiate. È anche il modo più economico di
+// accorgersi che è stato caricato il file sbagliato.
+function docDiff(prima, dopo) {
+  const A = String(prima || '').split('\n'), B = String(dopo || '').split('\n');
+  const n = A.length, m = B.length;
+  // Sottosequenza comune più lunga: su testi di questa taglia va benissimo.
+  const L = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const out = []; let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { out.push({ t: 'uguale', riga: A[i] }); i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) { out.push({ t: 'via', riga: A[i] }); i++; }
+    else { out.push({ t: 'nuova', riga: B[j] }); j++; }
+  }
+  while (i < n) out.push({ t: 'via', riga: A[i++] });
+  while (j < m) out.push({ t: 'nuova', riga: B[j++] });
+  return out;
+}
+window.docBozza = docBozza; window.docPubblicate = docPubblicate; window.docUltima = docUltima;
+window.docCreaBozza = docCreaBozza; window.docSalvaBozza = docSalvaBozza;
+window.docEliminaBozza = docEliminaBozza; window.docPubblicaBozza = docPubblicaBozza;
+window.docDiff = docDiff; window.docEfficaciaMinima = docEfficaciaMinima;
+window.DOC_PREAVVISO_GG = DOC_PREAVVISO_GG;
+window.docMezzanotte = docMezzanotte;
 window.CONTRATTI_PER_TIPO = CONTRATTI_PER_TIPO;
 window.CTR_CASI = CTR_CASI;
 window.ACCETTAZIONI = ACCETTAZIONI;

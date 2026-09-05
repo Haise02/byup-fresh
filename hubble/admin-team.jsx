@@ -714,6 +714,12 @@ function PlatformConfig() {
     // La pillola «Dizionari» (coda di P-29): i dizionari di piattaforma in
     // sola lettura, con la dicitura sulla fonte. Fuori dal salvataggio.
     { id:'dizionari', label:'Dizionari' },
+    // I documenti contrattuali e informativi. Stanno in Piattaforma e non
+    // altrove perché pubblicare una versione tocca tutti i locali, tutto lo
+    // staff e tutti gli utenti insieme: è il peso che questa sezione già
+    // porta. Fuori dal salvataggio comune, come i Dizionari — una versione si
+    // pubblica con il suo gesto, non con «Salva».
+    { id:'documenti', label:'Documenti' },
   ];
 
   return (
@@ -940,15 +946,23 @@ function PlatformConfig() {
         );
       })()}
 
-      {/* Fuori dalle tab: si salva tutto, non la tab aperta. */}
+      {/* I documenti hanno il loro gesto — «Pubblica…» — e stanno fuori dal
+          salvataggio comune: una versione contrattuale non si salva insieme ai
+          prezzi e al raggio della discovery. La pagina si monta da sé. */}
+      {vista === 'documenti' && window.HubDocumentiPage && <window.HubDocumentiPage/>}
+
+      {/* Fuori dalle tab: si salva tutto, non la tab aperta. Ma non quando si
+          sta guardando qualcosa che il salvataggio non tocca. */}
+      {vista !== 'dizionari' && vista !== 'documenti' && (
       <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10,
         paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
         {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Configurazione salvata e registrata in audit</span>}
         <span style={{flex:1, fontSize:12.2, color:ADM.MUTED_SOFT}}>
-          Il salvataggio applica le quattro sezioni di leve, non solo quella aperta; i Dizionari sono in sola lettura.
+          Il salvataggio applica le quattro sezioni di leve, non solo quella aperta.
         </span>
         <AdmButton variant="primary" size="md" icon="check" onClick={()=>setConfirm(true)}>Salva configurazione</AdmButton>
       </div>
+      )}
 
       {confirm && (
         <div style={{position:'fixed', inset:0, zIndex:80, display:'grid', placeItems:'center', background:'rgba(15,17,21,0.35)'}} onClick={()=>setConfirm(false)}>
