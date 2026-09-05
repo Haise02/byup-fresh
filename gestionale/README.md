@@ -75,6 +75,5 @@ non serve, ci pensa `vercel.json`.
 - `DESIGN_DECISIONS.md` — palette, token, regole UX, e una sezione datata per
   ogni batch di lavoro. Allineato al codice il 2026-08-09; in caso di dubbio
   fanno fede i token `PN` in `panoramica-tokens.jsx`.
-- `CLAUDE.md` — overview di prodotto (cos'è Byup, piani, GTM, team). Non parla di codice.
 - `icons-*.md`, `dashboard-icon-mapping.md` — **documenti storici** della
   migrazione icone di luglio: fotografano lo stato di allora, non il codice di oggi.

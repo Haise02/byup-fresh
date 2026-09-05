@@ -860,7 +860,7 @@ const INVITI_PENDENTI = [
 // più qui: si svolge fuori dal prodotto, su foglio di calcolo (D-44, P-56).
 // Dentro il prodotto si concedono e si revocano accessi, e nient'altro; le
 // campagne mock (RIESAME_CORRENTE, RIESAMI_CHIUSI) sono morte con esso.
-// Il rito è descritto in Riesame-Accessi.md.
+// Il rito è descritto nel documento tecnico 12.2 (D-44).
 
 // ---------- TOP PIATTI / ORDINI / CITTÀ aggregati ----------
 const TOP_PIATTI = [

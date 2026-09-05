@@ -16,15 +16,13 @@ sito statico (HTML + React via Babel-standalone, **no build step**) su Vercel.
 > essere il modello del sistema. **Non vanno lette come specifica** e non vanno
 > trasportate: chi implementa parte dai documenti, non da questo codice.
 >
-> **Dove sta il progetto vero:**
->
-> | Cosa cerchi | Documento |
-> |---|---|
-> | Il *perché*: visione, modello di ricavo, requisiti | [app/Contesto-App.md](app/Contesto-App.md) |
-> | I **flussi** — i tre percorsi d'ordine, pagamento e divisione, recupero ordine | [app/Contesto-App.md §G](app/Contesto-App.md) e i suoi documenti di dettaglio ([Pagamenti-Divisione](app/Pagamenti-Divisione.md), [Recupero-Ordine](app/Recupero-Ordine.md)) |
-> | L'**architettura tecnica** e le scelte di backend | [backend/BACKEND.md](backend/BACKEND.md) e [app/Contesto-App.md §E](app/Contesto-App.md) |
-> | Le forme dati in ingresso e in uscita | [app/Contratto-Dati.md](app/Contratto-Dati.md) |
-> | L'indice completo della documentazione | [app/README.md](app/README.md) |
+> **Dove sta il progetto vero:** nei tre documenti di riferimento fuori dal
+> repo, il modello dati (ERD), il documento di progettazione tecnica (DPT) e la
+> specifica dei flussi applicativi (SFA). Chi sono e quando vincono sta in
+> [DOCUMENTI.md](DOCUMENTI.md). Dal 5 settembre 2026 (P-162) in questo repo non
+> vive più alcun documento che descrive come funziona il prodotto: i file di
+> contesto, contratto e specifica sono usciti dopo che il loro contenuto è
+> entrato nei documenti ufficiali. Restano i file che parlano del mockup.
 >
 > Se un dettaglio del prototipo e un documento sono in disaccordo, **vince il
 > documento**: il prototipo si riscrive, le scelte di prodotto no.
@@ -38,10 +36,10 @@ si torna alla home con il pulsante fluttuante in basso a sinistra (byup App non 
 |----------------|-------------------|-----------------------------|----------------|----------------|
 | `gestionale/`  | byup Gestionale   | `byup Login.html`           | Ristoratore    | [README](gestionale/README.md) · [scelte di design](gestionale/DESIGN_DECISIONS.md) |
 | `app/`         | byup App          | `byup Home.html`            | Consumer       | [indice dei documenti](app/README.md) |
-| `web/`         | byup Web          | `index.html`                | Consumer       | [contesto](web/Contesto-WebApp.md) |
-| `staff/`       | byup Staff        | `index.html`                | Staff (incassi)| [contesto](staff/Contesto.md) |
+| `web/`         | byup Web          | `index.html`                | Consumer       | [README](web/CLAUDE.md) |
+| `staff/`       | byup Staff        | `index.html`                | Staff (incassi)| [README](staff/README.md) |
 | `cameriere/`   | byup Cameriere    | `cameriereweb.html`         | Staff (sala)   | — |
-| `hubble/`        | Hubble (ex byup Spot) | `byup-hubble.html`            | Interno        | [README](hubble/README.md) · [riesame accessi](hubble/Riesame-Accessi.md) |
+| `hubble/`        | Hubble (ex byup Spot) | `byup-hubble.html`            | Interno        | [README](hubble/README.md) |
 | `backend/`     | API (NestJS)      | servizio Node separato      | —              | [BACKEND.md](backend/BACKEND.md) |
 
 ## Stato della documentazione
@@ -54,8 +52,7 @@ vale e cosa no:
 | `gestionale/PROGRESS.md` | ✅ **Da leggere per primo.** Registro delle sessioni riscritto e portato al 9 ago; le sezioni backend (2–8) fotografano il 30 maggio e da allora il backend non è stato toccato |
 | `gestionale/DESIGN_DECISIONS.md` | ✅ Allineato, con una sezione datata per ogni batch. In caso di dubbio vincono i token `PN` nel codice |
 | `gestionale/README.md` · `hubble/README.md` · `app/README.md` | ✅ Verificati riga per riga contro il codice |
-| `gestionale/CLAUDE.md` | ✅ Listino e livelli di supporto ricontrollati contro `account-data.jsx` |
-| `app/*.md` (prodotto), `web/*.md`, `staff/*.md`, `backend/BACKEND.md` | ✅ Reggono: sono documenti di **prodotto e architettura**, e il prodotto non è cambiato. Le poche divergenze trovate (Byup Games rimosso, carrello che si trascina) sono state corrette |
+| `app/*.md`, `web/CLAUDE.md`, `staff/README.md` | ✅ Dal 5 settembre 2026 (P-162) parlano solo del mockup: il prodotto sta nei documenti fuori dal repo. `backend/BACKEND.md` descrive la bozza del backend, che si riscrive da zero |
 | `gestionale/icon*.md`, `dashboard-icon-mapping.md` | 🕰 **Documenti storici** della migrazione icone di luglio. Marcati come tali: per sapere quali icone esistono si legge il codice |
 | `backend/erd/` | ✅ Modello dati: ERD v0.7 in DBML, riferimento agli enum, PDF di progettazione. Stavano dentro il progetto Vue, ora cancellato, e non c'entravano niente con lui |
 
@@ -94,5 +91,5 @@ fare il prodotto*, vince il documento.
   che esistono solo per la demo e non devono finire in produzione. **Oggi non ce n'è
   nessuna** (l'unico riscontro è lo stesso comando scritto in `hubble/README.md`): l'ultima era il
   "simula manomissione" del riesame accessi, sparito insieme alla catena di impronte
-  che dimostrava (vedi [hubble/Riesame-Accessi.md](hubble/Riesame-Accessi.md)). Il
+  che dimostrava (D-44: il riesame vive fuori dal prodotto, DPT 12.2). Il
   controllo resta perché la prossima ci sarà.

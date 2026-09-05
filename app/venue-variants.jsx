@@ -3,7 +3,7 @@
 // in produzione il ristoratore sceglierà lo stile dal GESTIONALE e il backend
 // lo invierà coi dati del locale. Qui (prototipo) lo stile si forza via
 // ?venue=premium o window.__venueVariant — vedi il dispatcher VenueScreen in
-// extras.jsx e Contesto-App.md §3.1.
+// extras.jsx e Architettura-Prototipo.md §3.1 (D-51: nel prodotto la vetrina speciale è una sola).
 //
 // Gli stili:
 //   premium  → Vetrina dei locali selezionati byup (qui sotto, VenuePremium).

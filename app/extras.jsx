@@ -2281,7 +2281,7 @@ function RowKV({ k, v }) {
 //   • URL  ?venue=a|b|c|original     → utile per ShortcutsPanel / demo
 //   • window.__venueVariant = '…'    → override da console
 // Default = 'original' (stile classico, definito sotto in questo file).
-// Gli altri stili (a/b/c) vivono in venue-variants.jsx. Vedi Contesto-App.md §3.1.
+// Gli altri stili (a/b/c) vivono in venue-variants.jsx. Vedi Architettura-Prototipo.md §3.1 (D-51: nel prodotto la vetrina speciale è una sola).
 function VenueScreen(props) {
   const variant = (() => {
     try {

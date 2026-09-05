@@ -1440,7 +1440,7 @@ function PlatformDiagnostica() {
 // ─── Accessi: chi ha accesso, gli inviti, la revoca (D-44 · P-56) ────────────
 // Il riesame periodico dei diritti di accesso (ISO/IEC 27001 A.5.18) non è
 // più un rito dentro il prodotto: si svolge su foglio di calcolo, e il rito
-// è in Riesame-Accessi.md. Qui resta ciò che il prodotto fa davvero:
+// è nel documento tecnico 12.2 (D-44). Qui resta ciò che il prodotto fa davvero:
 // mostrare chi ha accesso e con quale ruolo, gli inviti in attesa, e revocare
 // un accesso con un motivo, che è evidenza e finisce nell'audit log. Niente
 // conferme, niente campagne, niente firma, niente revoca multipla.

@@ -5,12 +5,11 @@
 > Questo file è il **come** del prototipo attuale (React + Babel nel browser).
 > Valido finché si lavora su questo repo; **da non trasportare** in Flutter — il
 > codice è "usa e getta", serve solo a validare UX/UI. Le **scelte di prodotto**
-> (il *perché*) stanno in [Contesto-App.md](Contesto-App.md).
+> (il *perché*) stanno nei documenti di riferimento fuori dal repo ([DOCUMENTI.md](../DOCUMENTI.md)).
 >
 > **Collegamenti**
-> - Contesto di prodotto (visione, requisiti, modello backend) → [Contesto-App.md](Contesto-App.md)
-> - Contratto dati (forme I/O col backend) → [Contratto-Dati.md](Contratto-Dati.md)
-> - I §1–§13 qui sotto sono citati da [Contesto-App.md](Contesto-App.md) (es. "Architettura-Prototipo §9").
+> - Prodotto e flussi → DPT 5.2, SFA 3, 5.9, 11.6 (fuori dal repo)
+> - Design system → [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md)
 
 ---
 
@@ -285,7 +284,7 @@ Dettaglio/personalizzazione piatto (`DishDetailScreen`):
 ## 9. Modello ordine al tavolo, conto diviso, coperti
 
 > Logica di **prodotto** del saldo unico, lock e modalità di divisione →
-> [Pagamenti-Divisione.md](Pagamenti-Divisione.md). Qui sotto il modello **del
+> DPT 8.2 e SFA 5.9. Qui sotto il modello **del
 > prototipo** (dati demo cablati).
 
 L'`activeOrder` è il cuore della logica di **pagamento condiviso**. Campi per
@@ -353,8 +352,7 @@ tavolo). Sezioni:
   col popup "per te / parti uguali / con alcuni" (`splitDish`,
   `openSplitDish`/`confirmSplitDish`, `extraShareFor`) è stato **rimosso** il
   2026-08-19: generava divisioni in fase di pagamento, fuori dal modello
-  (vedi [Pagamenti-Divisione.md](Pagamenti-Divisione.md), "Due livelli
-  distinti"). Resta `rejectSplit`: rifiutare una divisione ricevuta, finché la
+  (vedi SFA 5.9, attribuzione e saldo). Resta `rejectSplit`: rifiutare una divisione ricevuta, finché la
   quota non è pagata, è invece **dentro** il modello.
 - Coperto = `COVER (=2€) × covers`; `covers = order.covers || guests.length || 1`.
   Anche pagando per tutti, il **proprio coperto già saldato non si ripaga**.
@@ -403,8 +401,7 @@ voce `'balance'` fra quelle valide.
 
 Due ragioni: non era raggiungibile da alcun bottone — solo dall'hash `#balance`
 — e duplicava un flusso vivo; e la sua barra di pagamento **generava divisioni
-in fase di saldo**, che il modello non prevede (vedi
-[Pagamenti-Divisione.md](Pagamenti-Divisione.md)).
+in fase di saldo**, che il modello non prevede (vedi SFA 5.9).
 
 Il residuo si salda **dalla home**: card ordine attivo → **"Salda il resto"** →
 di nuovo `pay`. Nella Home della SPA c'è anche la card "tavolo aperto"

@@ -52,7 +52,7 @@ Modificando i file grandi con gli strumenti host (Edit/Write), il mount della sa
 ### Schermate Byuppini (all'epoca HTML separati — ora INTEGRATE in `app.jsx`; i due HTML sono stati rimossi il 2026-07-28)
 - **`byuppini-standalone.html`** *(rimosso il 2026-07-28)* — schermata gamification (hero saldo + coin + mascotte, segmenti Portafoglio/Sfide/Premi/Traguardi, roadmap link, byup card in evidenza, card premi reel-style). Ha una bottom bar HTML che imita quella dell'app.
 - **`byuppini-roadmap.html`** *(rimosso il 2026-07-28)* — mappa-mondo dei livelli (terreno `road-city.png` + edifici `venue-1..8.png` posizionati in codice, badge/lucchetti/mascotte "SEI QUI"). **Zoom ~1.4×, scrollabile.**
-- `Byuppini-Concept.md` — strategia/economia byuppini.
+- `Byuppini-Concept.md` — strategia/economia byuppini *(uscito il 2026-09-05 con P-162: ora nel DPT, 18.5)*.
 - `Byuppini-Image-Prompts.md` — prompt immagini.
 
 ### Asset immagini (`app/assets/`)

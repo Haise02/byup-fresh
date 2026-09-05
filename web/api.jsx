@@ -8,7 +8,7 @@
   identica, senza modifiche ai componenti.
 
   Contratto completo (cosa la webapp INVIA / RICEVE, forme dati, real-time,
-  pagamento escluso): vedi byup-contratto-backend-webapp.md.
+  pagamento escluso): vedi specifica dei flussi 5.9 e 11.6.
 
   Principi:
    • La divisione del conto è una funzione REAL-TIME anche da webapp.
@@ -87,7 +87,7 @@
 
     // Codice di recupero ordine (5–6 cifre) per agganciare l'ordine anonimo
     // all'account in app. TODO backend: POST /sessions/:id/order-code
-    // (vedi byup-spec-tecnica-recupero-ordine.md).
+    // (vedi specifica dei flussi 3.8).
     requestOrderCode: function (payload) {
       return Promise.resolve({ code: String(Math.floor(100000 + Math.random() * 900000)) });
     },

@@ -531,7 +531,7 @@ window.PN_PARTNER = PN_PARTNER;
 //     già scritta).
 // Tensioni segnalate e NON risolte qui, ciascuna nella sua sessione: il
 // foglio filtri della discovery nell'app offre Vegetariano/Vegano/Per celiaci
-// come filtri sui locali (gestionale/CLAUDE.md riga 50), e un filtro usato
+// come filtri sui locali (specifica dei flussi 14.2), e un filtro usato
 // sempre rivela quanto un gusto dichiarato; Hubble scrive un vocabolario suo
 // (Trattoria, Osteria, Pub in admin-data.jsx e nei coefficienti di Valore e
 // Mercato) che non combacia con queste otto; la pagina Piattaforma di Hubble

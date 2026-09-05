@@ -1606,7 +1606,7 @@ function DownloadAppPromo({ big, onRecover }) {
 }
 
 // ─── Recupero ordine webapp → app (codice + store) ──────────────────
-// Spec: byup-spec-tecnica-recupero-ordine.md. La webapp non incassa: per pagare
+// Spec: specifica dei flussi 3.8. La webapp non incassa: per pagare
 // dall'app si recupera l'ordine anonimo. Schermata DIFFERENZIATA per piattaforma:
 //  • Android → Install Referrer: scarichi e l'ordine si aggancia da solo. Il codice
 //    resta come fallback in secondo piano (Play Store assente, app già installata…).
@@ -2893,7 +2893,7 @@ function Root() {
   // Real-time: sottoscrizione agli aggiornamenti della sessione tavolo. Oggi è un
   // no-op (il mock non emette), ma è il punto in cui il backend pusherà gli update
   // condivisi — piatti/claim/divisioni degli altri ospiti e saldo che scende per
-  // pagamenti da app/cassa. Vedi byup-contratto-backend-webapp.md.
+  // pagamenti da app/cassa. Vedi specifica dei flussi 5.9 e 11.6.
   useEffect(() => {
     const sid = state.activeOrder && state.activeOrder.id;
     if (!window.ByupAPI || takeaway || !sid) return;

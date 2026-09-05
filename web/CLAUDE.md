@@ -1,21 +1,50 @@
-# byup — WebApp consumer
+# byup — WebApp consumer (prototipo)
 
-> ⚠️ **Leggi sempre per primo il contesto del prodotto** prima di lavorare in questo repo.
-> È la fonte di verità su cosa la webapp fa, cosa **non** fa di proposito, flussi e contratto dati.
+Come funziona il prodotto sta nei documenti di riferimento fuori dal repo
+([DOCUMENTI.md](../DOCUMENTI.md)): per la webapp, DPT 2.1 e 3.2 (perimetro,
+imbuto verso l'app), SFA 3.3 (ordine al tavolo), 3.8 (recupero dell'ordine in
+app), 3.9 (asporto), 5.9 (divisione del conto da webapp), 11.6 (sessione del
+tavolo, nessun controllo di posizione). Il 5 settembre 2026 (P-162) i file che
+qui descrivevano il prodotto sono usciti dopo l'estrazione. Questo file dice
+solo com'è fatto il mockup.
 
-@Contesto-WebApp.md
+## Promemoria
 
----
+- La webapp serve a ordinare al tavolo e d'asporto e a dividere il conto. Non
+  paga, non fa discovery, non ha account, non usa GPS: le funzioni riservate
+  all'app restano visibili e vengono intercettate dall'invito a scaricarla
+  (App-only gate, `openAppOnly()` → `AppOnlySheet`).
+- Tutte le chiamate al backend passano da `window.ByupAPI` (`api.jsx`), oggi
+  mock: per collegare il backend si sostituiscono le implementazioni, non la UI.
+  `pay()` rifiuta sempre.
+- Partecipante webapp nella sessione = flag `isWebApp`.
 
-## Promemoria operativi rapidi
+## Com'è fatto
 
-- **Scopo unico della webapp: ordinare AL TAVOLO.** Niente pagamento in-app, niente discovery, niente account.
-- **Non implementare** (di proposito): pagamento/Stripe, discovery (home/mappa/vetrine/Posta), login/registrazione, **geofence/GPS**.
-- Il pagamento avviene **in cassa** (App Staff) o dall'app. Il recupero dell'ordine webapp→app è via **codice ordine + install referrer + banner** (vedi `byup-spec-tecnica-recupero-ordine.md`), non più "telefono + SMS".
-- **Asporto da webapp: deciso SÌ (D-14), realizzato (P-01 · P-02).** L'ordine d'asporto si compone dal browser e si salda **in cassa oppure in app**, recuperandolo col codice mostrato dalla webapp (popup in stile OTP con riconoscimento all'incollaggio; su Android aggancio automatico via Install Referrer — SFA §3.8); le due strade a pari evidenza (P-02). Con P-154: la fascia di ritiro si sceglie prima di ordinare (quarti d'ora, come Vendita diretta), la proposta scade a ritiro più trenta minuti e lo dice, e il codice è UNO a sei cifre — lo stesso al banco e per il recupero in app, che lo legge da `byup_asporto_webapp` sullo stesso dominio. Razionale in `Contesto-WebApp.md` §2.2.
-- **Niente geofence/GPS.** Scartato come difesa (falsificabile, fa scappare l'utente onesto): la protezione è **gate di sessione + rate limiting + pagamento contestuale**, lato backend. Vedi `byup-punto3-difesa-attacchi.md`.
-- **Divisione del conto: feature real-time anche da webapp** (selezione righe, dividi un piatto, offri). L'**unico limite è il pagamento**, che da webapp non si fa.
-- Tutte le chiamate al backend passano da **`window.ByupAPI`** (`api.jsx`), oggi **mock**. Contratto completo in `byup-contratto-backend-webapp.md`.
-- Partecipante webapp nella sessione tavolo = flag `isWebApp`.
-- File principali: `api.jsx`, `menu.jsx`, `venue.jsx`, `dish-art.jsx`, `index.html`, `simulator.html`.
-- Documenti di prodotto recenti (decisioni): `byup-punto3-difesa-attacchi.md`, `byup-punto4-pagamenti-divisione.md`, `byup-spec-tecnica-recupero-ordine.md`, `byup-contratto-backend-webapp.md`. (L'asporto, ex `punto2`, è ora in `Contesto-WebApp.md` §2.2.)
+- Nessun build: `index.html` carica React 18, ReactDOM e Babel Standalone da
+  CDN e compila i `.jsx` nel browser; più Leaflet per la mappa della vetrina.
+- **Serve un server HTTP, non `file://`**: Babel scarica i `.jsx` via fetch e
+  da `file://` Chrome li blocca (schermo bianco). `python3 -m http.server 8000`
+  nella cartella, poi `http://localhost:8000/simulator.html` (simulatore) o
+  `…/index.html`; dalla radice del monorepo gli stessi URL sono
+  `/web/simulator.html` e `/web/index.html`.
+- Entry runtime: `index.html` monta `Root` (in `menu.jsx`) su `#menu-root`.
+- File: `api.jsx` (layer backend mock, comandi e `subscribe`); `menu.jsx`
+  (`Root` con router a hash `#menu` / `#venue` / `#home`, `MenuScreen`,
+  `OrderSheet` con `SwipeDishRow` e `SplitPickSheet`, `DishDetailScreen`,
+  `HomeScreen`, `OrderRecoverySheet`, App-only gate, `TakeawayHome`);
+  `venue.jsx` (vetrina); `dish-art.jsx` (illustrazioni SVG); `index.html`
+  (bootstrap, gate tablet, mockup iPhone da desktop); `simulator.html`
+  (anteprima multi-dispositivo, switch Tavolo/Asporto e piattaforma
+  iOS/Android per la schermata di recupero).
+- Modalità: `table` (default, da QR), `venue` (`?from=venue` o referrer,
+  persiste in `sessionStorage['byup_menu_from']`), asporto (`?takeaway=1` o
+  `sessionStorage['byup_menu_mode']='asporto'`). Override di sviluppo
+  `?os=ios|android` per la schermata di recupero.
+- Gate tablet: con entrambe le dimensioni della finestra ≥ 600 px la webapp si
+  nasconde dietro l'invito a usare un telefono; da browser desktop si apre
+  dentro una cornice iPhone 1:1 con selettore del modello, e query e hash
+  passano all'iframe. Sono impalcature della demo, non regole di prodotto.
+- Dati finti: locale, tavolo, commensali e ordini demo; nessuna persistenza
+  oltre `sessionStorage`; l'asporto si scrive in `byup_asporto_webapp` sullo
+  stesso dominio e l'app lo recupera davvero con quel codice.
