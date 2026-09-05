@@ -1,4 +1,4 @@
-// Impostazioni → Vetrina (rifatta: 3 sub-tab, completamento, calendario sintetico, sedi card)
+// Impostazioni → Vetrina (rifatta: 3 sub-tab, completamento, calendario sintetico, locali collegati)
 
 // Regola di prodotto del gestionale, non del dizionario: quanti tag cibo può
 // scegliere un locale (P-29). Il dizionario dice quali esistono, questo quanti.
@@ -238,7 +238,7 @@ function VetrinaTodoChip({ c, onClick }) {
   );
 }
 
-// ─── Profilo (info + categorie + tag + sedi) ────────────────────────────────
+// ─── Profilo (info + categorie + tag + locali collegati) ────────────────────
 
 function VetrinaProfilo({ dati, aggiorna, onChange }) {
   const { tags, categoria, tagCibo, servizi, openDays, stdHours, customHours, chiusure } = dati;
@@ -290,15 +290,24 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
   };
   // Popup certificazioni: null | {mode:'new'} | {mode:'rifiutata', name, reason}
   const [certModal, setCertModal] = React.useState(null);
-  // Sedi collegate: attiva | attesa (in attesa di conferma del proprietario).
+  // LOCALI COLLEGATI (P-158), non «sedi»: qui è il TUO locale che dice al
+  // pubblico quali altri locali gli sono collegati e compaiono nella sua
+  // vetrina. Sono locali che esistono già, ciascuno con un titolare suo, e
+  // il titolare di ciascuno conferma perché è il suo nome che finisce nella
+  // vetrina di un altro. Nel modello «sede» (venues) è un indirizzo dello
+  // stesso soggetto fiscale, figlia del ristorante: usare la stessa parola per
+  // due cose è la ragione per cui la voce era stata letta male. È un atto
+  // diverso da «Collega un locale esistente» del Profilo, dove è il tuo
+  // ACCOUNT a entrare in un altro locale (D-110, P-145).
+  // Stati: attiva | attesa (in attesa di conferma del titolare).
   const [sedi, setSedi] = React.useState([
-    { name: 'Sede principale', addr: 'Via Roma 13, Roma', status: 'attiva',
+    { name: 'Da Mario · Prati', addr: 'Via Roma 13, Roma', status: 'attiva',
       photo: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=70&auto=format&fit=crop' },
-    { name: 'Sede Parioli', addr: 'Viale Parioli 23, Roma', status: 'attesa',
+    { name: 'La Marina · Ostia', addr: 'Viale Parioli 23, Roma', status: 'attesa',
       photo: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=70&auto=format&fit=crop' },
   ]);
   const [sedeModal, setSedeModal] = React.useState(false);
-  // Conferma prima di rimuovere una sede o annullare una richiesta.
+  // Conferma prima di rimuovere un locale collegato o annullare una richiesta.
   const [confirmSede, setConfirmSede] = React.useState(null);
   const addSede = (v) => {
     setSedi(s => [...s, { name: v.name, addr: v.addr, status: 'attesa', photo: v.photo }]);
@@ -443,7 +452,7 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
         </div>
       </ImpCard>
 
-      {/* ─── Avanzate: tag, sedi e certificazioni — contratte di default ── */}
+      {/* ─── Avanzate: tag, locali collegati e certificazioni — contratte di default ── */}
       <div style={{margin: '22px 2px 10px'}}>
         <div style={{fontSize: 13, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.8, textTransform: 'uppercase'}}>Avanzate</div>
         <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>Opzioni per raffinare la vetrina: aprile solo se ti servono.</div>
@@ -505,8 +514,8 @@ function VetrinaProfilo({ dati, aggiorna, onChange }) {
         }`}</style>
       </CollapsibleCard>
 
-      <CollapsibleCard title="Sedi" sub="Le sedi collegate al tuo locale">
-        {/* Card compatte + tile 'Aggiungi sede': l'azione vive nella griglia,
+      <CollapsibleCard title="Locali collegati" sub="I locali che compaiono nella tua vetrina come collegati: esistono già, ognuno con il suo titolare, che conferma">
+        {/* Card compatte + tile 'Aggiungi locale collegato': l'azione vive nella griglia,
             niente CTA nel header. Rimuovi per le attive, Annulla per quelle
             in attesa; nessun Modifica. */}
         <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap: 10}}>
@@ -881,7 +890,7 @@ function CatTile({ cat, active, onPick }) {
   );
 }
 
-// ─── Sedi: card compatta, tile aggiungi e popup di ricerca ──────────────────
+// ─── Locali collegati: card compatta, tile aggiungi e popup di ricerca ──────
 
 function SedeCard({ sede, onRemove }) {
   const attesa = sede.status === 'attesa';
@@ -940,12 +949,12 @@ function AddSedeTile({ onClick }) {
         transition: 'border-color 150ms ease, background 150ms ease, color 150ms ease, transform 180ms ease',
       }}>
       <PnI.Plus size={16}/>
-      <span style={{fontSize: 13.5, fontWeight: 700}}>Aggiungi sede</span>
+      <span style={{fontSize: 13.5, fontWeight: 700}}>Aggiungi locale collegato</span>
     </button>
   );
 }
 
-// Conferma rimozione/annullamento sede: nessuna azione distruttiva senza
+// Conferma rimozione/annullamento di un locale collegato: nessuna azione distruttiva senza
 // un passaggio esplicito.
 function SedeConfirmModal({ sede, onClose, onConfirm }) {
   const attesa = sede.status === 'attesa';
@@ -975,12 +984,12 @@ function SedeConfirmModal({ sede, onClose, onConfirm }) {
           )}
         </div>
         <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>
-          {attesa ? 'Annullare la richiesta?' : 'Rimuovere la sede?'}
+          {attesa ? 'Annullare la richiesta?' : 'Rimuovere il locale collegato?'}
         </div>
         <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.5}}>
           {attesa
-            ? <>La richiesta di collegamento per <b style={{color: PN.TEXT}}>{sede.name}</b> verrà annullata e il proprietario non riceverà più l'email di conferma.</>
-            : <><b style={{color: PN.TEXT}}>{sede.name}</b> non comparirà più tra le sedi collegate sulla tua vetrina.</>}
+            ? <>La richiesta di collegamento per <b style={{color: PN.TEXT}}>{sede.name}</b> verrà annullata e il titolare non riceverà più l'email di conferma.</>
+            : <><b style={{color: PN.TEXT}}>{sede.name}</b> non comparirà più tra i locali collegati sulla tua vetrina.</>}
         </div>
         <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16}}>
           <ImpButton variant="ghost" onClick={onClose}>Indietro</ImpButton>
@@ -1013,8 +1022,8 @@ const SEDE_DIRECTORY = [
     photo: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=70&auto=format&fit=crop' },
 ];
 
-// Popup aggiungi sede: cerca il locale → seleziona (spunta) → conferma con
-// avviso email al proprietario → la sede entra "In attesa".
+// Popup aggiungi locale collegato: cerca il locale → seleziona (spunta) →
+// conferma con avviso email al titolare → il locale entra "In attesa".
 function SedeSearchModal({ existing = [], onClose, onAdd }) {
   const [q, setQ] = React.useState('');
   const [sel, setSel] = React.useState(null);
@@ -1040,8 +1049,8 @@ function SedeSearchModal({ existing = [], onClose, onAdd }) {
           <>
             <div style={{display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14}}>
               <div style={{flex: 1, minWidth: 0}}>
-                <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Aggiungi sede</div>
-                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>Cerca il locale nel registro byup e collegalo come sede.</div>
+                <div style={{fontSize: 18, fontWeight: 700, color: PN.TEXT, letterSpacing: -0.2}}>Aggiungi locale collegato</div>
+                <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 2}}>Cerca il locale nel registro byup: comparirà nella tua vetrina quando il suo titolare conferma.</div>
               </div>
               <button onClick={onClose} style={{
                 width: 28, height: 28, borderRadius: 8, flexShrink: 0,
@@ -1096,7 +1105,7 @@ function SedeSearchModal({ existing = [], onClose, onAdd }) {
 
             <div style={{display: 'flex', justifyContent: 'flex-end', gap: 8}}>
               <ImpButton variant="ghost" onClick={onClose}>Annulla</ImpButton>
-              <ImpButton variant="primary" onClick={() => sel && setPhase('confirm')} disabled={!sel}>Aggiungi sede</ImpButton>
+              <ImpButton variant="primary" onClick={() => sel && setPhase('confirm')} disabled={!sel}>Aggiungi locale collegato</ImpButton>
             </div>
           </>
         ) : (
@@ -1110,9 +1119,9 @@ function SedeSearchModal({ existing = [], onClose, onAdd }) {
             </div>
             <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT, textAlign: 'center'}}>Confermi il collegamento?</div>
             <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: 6, lineHeight: 1.5, textAlign: 'center'}}>
-              Invieremo un'email al profilo proprietario di <b style={{color: PN.TEXT}}>{sel.name}</b> per
-              autorizzare il collegamento. La sede resterà <b style={{color: PN.TEXT}}>in attesa</b> finché
-              non verrà confermata.
+              Invieremo un'email al titolare di <b style={{color: PN.TEXT}}>{sel.name}</b> per
+              autorizzare il collegamento. Il locale resterà <b style={{color: PN.TEXT}}>in attesa</b> finché
+              non verrà confermato.
             </div>
             <div style={{display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16}}>
               <ImpButton variant="ghost" onClick={() => setPhase('search')}>Indietro</ImpButton>
