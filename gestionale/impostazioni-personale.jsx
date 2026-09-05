@@ -1992,7 +1992,12 @@ window.PERSONALE_TEAM_INITIAL = [
   // sincronizzazione col registro qui sotto, e la riga di partenza non può
   // chiamare la stessa cosa con un altro nome. Al posto dell'email c'è la
   // visualizzazione: un monitor non ha né email né nome utente (P-134).
+  // Un monitor e una stampante, non quattro dispositivi: la colonna destra
+  // dello step deve stare in una schermata — sotto c'è «Come creare un membro
+  // del team?», che si deve poter leggere senza scorrere — e il registro del
+  // locale d'esempio ne porta due e due, che qui non aggiungono niente.
   { id: 't4', kind: 'device', name: 'Monitor cucina', email: 'Ristorante',       role: 'Monitor cucina', status: 'active' },
+  { id: 't5', kind: 'device', name: 'Cucina',         email: 'CloudPRNT',        role: 'Stampante',      status: 'active' },
 ];
 
 // Configurare un dispositivo è l'altra metà del passo: le persone si invitano,
@@ -2024,19 +2029,33 @@ function DispositivoStep({ setTeam }) {
   // dispositivi», che è l'elenco di questo passo: il registro è la verità, e
   // l'elenco gli va dietro invece di essere riempito a mano dalla CTA. Lo
   // stesso vale per un monitor approvato.
+  // Quello che il registro aveva GIÀ all'apertura del passo però non entra: la
+  // riga di partenza porta un monitor e una stampante, e il registro del locale
+  // d'esempio ne ha due e due — messi tutti insieme facevano otto righe, e la
+  // colonna finiva sotto il taglio dello scroll con «Come creare un membro del
+  // team?» irraggiungibile. Si aggiunge quello che si collega DA QUI, che è
+  // l'unica cosa che questo elenco deve mostrare mentre ci si lavora.
   React.useEffect(() => {
+    const leggiRegistri = () => ({
+      devices: (window.byupReadStampanti ? window.byupReadStampanti().devices : []) || [],
+      monitors: window.byupReadMonitorsKds ? window.byupReadMonitorsKds() : [],
+    });
+    const allApertura = (() => {
+      const { devices, monitors } = leggiRegistri();
+      return new Set([...devices.map(d => d.id), ...monitors.map(m => m.id)]);
+    })();
     const sincronizza = () => {
-      const devices = (window.byupReadStampanti ? window.byupReadStampanti().devices : []) || [];
-      const monitors = window.byupReadMonitorsKds ? window.byupReadMonitorsKds() : [];
+      const { devices, monitors } = leggiRegistri();
       setTeam(t => {
         const gia = new Set(t.filter(x => x.regId).map(x => x.regId));
+        const nuovo = (id) => !allApertura.has(id) && !gia.has(id);
         const nuove = [
-          ...devices.filter(d => !gia.has(d.id)).map(d => ({
+          ...devices.filter(d => nuovo(d.id)).map(d => ({
             id: `d-${d.id}`, regId: d.id, kind: 'device', name: d.name,
             email: (window.PN_PRINTER_PROTOCOLLI && window.PN_PRINTER_PROTOCOLLI[d.printer_protocol] || {}).breve || '—',
             role: 'Stampante', status: 'active',
           })),
-          ...monitors.filter(m => !gia.has(m.id)).map(m => ({
+          ...monitors.filter(m => nuovo(m.id)).map(m => ({
             id: `d-${m.id}`, regId: m.id, kind: 'device', name: m.nome,
             email: (KDS_VIEWS.find(v => v.id === m.vista) || KDS_VIEWS[0]).short,
             role: 'Monitor cucina', status: 'active',

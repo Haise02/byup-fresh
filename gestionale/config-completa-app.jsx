@@ -660,7 +660,12 @@ function MembriDispositivi({ team, setTeam }) {
                 display: 'grid', placeItems: 'center',
                 fontSize: 12, fontWeight: 700, letterSpacing: 0.3,
               }}>
-                {m.kind === 'device' ? (BuIcons.monitor||BuIcons.phone)({size: 15, color: 'currentColor'}) : iniziali}
+                {/* Una stampante non è uno schermo: il segno è quello della
+                    tessera «Stampante» del passo qui accanto, non il monitor
+                    che stava su tutti i dispositivi. */}
+                {m.kind === 'device'
+                  ? (m.role === 'Stampante' ? (BuIcons.doc||BuIcons.monitor) : (BuIcons.monitor||BuIcons.phone))({size: 15, color: 'currentColor'})
+                  : iniziali}
               </span>
               <span style={{minWidth: 0, flex: 1}}>
                 <span style={{display: 'block', fontSize: 13.6, fontWeight: 700, color: PN.TEXT,
