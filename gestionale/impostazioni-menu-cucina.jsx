@@ -26,11 +26,47 @@ const ALLERGENS = ALLERGEN_ORDER.map(id => {
 
 // Importi proposti per il servizio, per modalità. Lo 0 è "nessun servizio" e
 // c'è in entrambe: toglierlo obbligherebbe a passare da un'altra impostazione
-// solo per rinunciarci.
+// solo per rinunciarci. Sono scorciatoie, non un elenco chiuso (P-146):
+// accanto c'è il campo per scrivere un importo qualunque, perché cinque
+// valori non coprono un mercato in cui ogni locale sceglie la sua cifra e
+// nessuna regola impone un tetto — l'unico obbligo è di trasparenza (art. 180
+// R.D. 635/1940). Il campo accetta un numero non negativo; la percentuale si
+// ferma a cento. Zero vale «nessun coperto» come il pulsante.
 const SERVIZIO_OPZIONI = {
   fisso:       [0, 1.5, 2, 2.5, 3],
   percentuale: [0, 5, 10, 12, 15],
 };
+function CopertoImportoLibero({ tipo, valore, onChange }) {
+  const fisso = tipo === 'fisso';
+  const fmt = (v) => fisso ? String(v).replace('.', ',') : String(v).replace('.', ',');
+  const fraPulsanti = SERVIZIO_OPZIONI[tipo].includes(valore);
+  const [testo, setTesto] = React.useState(fraPulsanti ? '' : fmt(valore));
+  // Un pulsante svuota il campo; un valore che non è fra i pulsanti ci resta scritto.
+  React.useEffect(() => { setTesto(fraPulsanti ? '' : fmt(valore)); }, [tipo, valore]);
+  const applica = (t) => {
+    setTesto(t);
+    const pulito = t.replace(/[^\d.,]/g, '').replace(',', '.');
+    if (pulito === '' || pulito === '.') return;
+    let n = parseFloat(pulito);
+    if (!isFinite(n) || n < 0) return;
+    if (!fisso) n = Math.min(100, n);
+    n = Math.round(n * 100) / 100;
+    if (n !== valore) onChange(n);
+  };
+  return (
+    <div style={{display:'flex', alignItems:'center', gap: 8, marginTop: 8}}>
+      <span style={{fontSize: 12.5, color: PN.MUTED, whiteSpace:'nowrap'}}>Oppure un importo tuo</span>
+      <div style={{position:'relative', flex: 1, maxWidth: 150}}>
+        <input data-coperto-libero value={testo} onChange={e => applica(e.target.value)} inputMode="decimal"
+          placeholder={fisso ? 'es. 2,90' : 'es. 12,5'}
+          style={{width:'100%', boxSizing:'border-box', padding:'8px 30px 8px 10px', borderRadius: 7, border:`1.5px solid ${!fraPulsanti && testo ? PN.TEXT : PN.BORDER}`,
+            fontSize: 14, fontWeight: 600, color: PN.TEXT, fontFamily:'inherit', outline:'none', background: PN.WHITE}}/>
+        <span style={{position:'absolute', right: 10, top:'50%', transform:'translateY(-50%)', fontSize: 13, color: PN.MUTED, fontWeight: 700}}>{fisso ? '€' : '%'}</span>
+      </div>
+      <span style={{fontSize: 12, color: PN.MUTED_SOFT}}>{fisso ? 'a persona' : 'sul totale'}</span>
+    </div>
+  );
+}
 
 // ─── Segni degli allergeni ───────────────────────────────────────────────────
 // Disegnati, non iniziali: «G» e «S» valevano per glutine e per sedano, e in
@@ -7628,10 +7664,9 @@ function MCConfigura() {
                 })}
               </div>
               <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.5}}>
-                Coperto è proposto, non imposto: è ciò che fa il mercato (FIPE 2023, coperto nell'80%
-                dei ristoranti, media 2,90 €; servizio nel 4,9%). Dove un regolamento comunale vieta
-                il coperto e ammette il servizio, la stessa cifra è lecita sotto un nome e illecita
-                sotto l'altro: cambia il nome, non la cifra.
+                Il coperto è proposto, non imposto. Dove un regolamento comunale vieta il coperto e
+                ammette il servizio, la stessa cifra è lecita sotto un nome e illecita sotto l'altro:
+                cambia il nome, non la cifra.
               </div>
             </div>
 
@@ -7668,6 +7703,7 @@ function MCConfigura() {
                   );
                 })}
               </div>
+              <CopertoImportoLibero tipo={servizioTipo} valore={servizio} onChange={setServizio}/>
             </div>
           </div>
 
