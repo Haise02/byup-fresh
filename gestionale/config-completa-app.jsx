@@ -369,19 +369,13 @@ function ConfigCompletaApp() {
             <div ref={railCardRef} data-cfg-membri>
               <MembriDispositivi team={team} setTeam={setTeam}/>
             </div>
-            {/* La tessera «Scarica Byup Staff» NON sta qui. Ci era stata messa
-                il 4 settembre, ma in questa rail non si vede: sopra c'è
-                «Membri e dispositivi», che con un team di otto righe riempie
-                la colonna da sola, e la tessera finisce sotto il taglio dello
-                scroll — di lei si intravedono il titolo e mezza riga, la
-                mascotte mai. Rimpicciolirla non basterebbe: quello che la
-                nasconde è la lista sopra, che cresce col team.
-                E non è una perdita: la tessera era già uscita dall'onboarding
-                per una ragione — chiedere di portarsi via l'app mentre il
-                locale sta ancora mettendo in piedi vetrina e personale è
-                prematuro — e rimetterla in questa rail era la stessa domanda
-                fatta due schermate più in là. La sua casa è Impostazioni →
-                Personale, accanto a chi collega un dispositivo. */}
+            {/* L'app che i telefoni del personale devono avere: sta qui come
+                sta in Impostazioni → Personale, accanto ai dispositivi.
+                Ci sta perché l'elenco qui sopra ha smesso di crescere: prima
+                si allungava a ogni invito e a ogni dispositivo del registro, e
+                spingeva la tessera sotto il taglio dello scroll — se ne
+                leggevano il titolo e mezza riga, la mascotte mai. */}
+            {window.PersStaffPromo && <window.PersStaffPromo/>}
             <StaffGuidaLink onApri={() => setGuidaStaff(true)}/>
           </div>
         </aside>
@@ -645,7 +639,20 @@ function MembriDispositivi({ team, setTeam }) {
   return (
     <RailCard>
       <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, marginBottom: 12}}>Membri e dispositivi</div>
-      <div style={{display: 'flex', flexDirection: 'column'}}>
+      {/* L'elenco ha un'altezza sua e non cresce col team: da qui in giù la rail
+          deve stare in una schermata — sotto ci sono la tessera di Byup Staff e
+          «Come creare un membro del team?», che si devono leggere senza
+          scorrere — e un elenco che si allunga a ogni invito se li portava via
+          uno alla volta. Oltre la misura scorre dentro, che è il posto giusto
+          dove far scorrere una lista: dentro la lista.
+          La misura è quella di quattro righe e mezza, non di quattro: la mezza
+          riga tagliata in fondo è l'unico modo che ha un elenco di dire che
+          continua, ora che la barra di scorrimento è sottile e compare solo
+          mentre si scorre. */}
+      <div className="pn-scroll" style={{
+        display: 'flex', flexDirection: 'column',
+        maxHeight: 238, overflowY: 'auto', overscrollBehavior: 'contain',
+      }}>
         {team.map((m, i) => {
           const invitato = m.status === 'invited';
           const iniziali = m.name.split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase();
