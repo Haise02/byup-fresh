@@ -1,4 +1,4 @@
-// Hubble · Marketing — Mail, SMS, Push, Form.
+// Hubble · Marketing — Mail, SMS, Messaggi all'app (Posta + notifica), Form.
 //
 // «Promozioni» era una sezione sola con tre tab dentro: broadcast, workflow
 // email, campagne di acquisizione. Andava bene finché il marketing era una
@@ -874,11 +874,13 @@ function HubSmsComposer({ onChiudi, onBozza }) {
 // PUSH
 // ═══════════════════════════════════════════════════════════════════════════
 
-function HubPushPage() {
+// L'ARCHIVIO delle notifiche sul telefono (P-156.5, D-113): non ha più un
+// compositore suo — la notifica nasce dal messaggio all'app, con la casella
+// «anche come notifica sul telefono» — e si apre da «Messaggi all'app» per
+// rivedere che cosa è arrivato sui telefoni e com'è andata.
+function HubPushPage({ onChiudi }) {
   const [cerca, setCerca] = useStateMk('');
   const [aperta, setAperta] = useStateMk(null);
-  const [nuovo, setNuovo] = useStateMk(false);
-  if (nuovo) return <HubPushComposer onChiudi={() => setNuovo(false)}/>;
   if (aperta) return <HubPushDettaglio push={aperta} onChiudi={() => setAperta(null)}/>;
 
   const lista = HUB_PUSH.filter(p => !cerca || (p.nome + p.titolo + p.corpo).toLowerCase().includes(cerca.toLowerCase()));
@@ -912,9 +914,9 @@ function HubPushPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata titolo="Push"
-        sotto="Due destinazioni diverse: l'app dei clienti finali e il gestionale dei ristoratori. Stesso strumento, tono opposto."
-        azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Crea notifica</HubStrumento>}/>
+      <HubTestata titolo="Notifiche sul telefono"
+        sotto="L'archivio delle notifiche partite insieme a un messaggio all'app: sull'app dei clienti finali o sul gestionale dei ristoratori. Si scrivono da «Messaggi all'app», con la casella «anche come notifica»."
+        azioni={onChiudi ? <HubStrumento icona="arrowLeft" onClick={onChiudi}>Messaggi all'app</HubStrumento> : null}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
         <HubTile etichetta="Notifiche recapitate" valore={fmtNum(ricevute)} icona="bell"/>
@@ -928,7 +930,7 @@ function HubPushPage() {
           <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca fra le notifiche…" larghezza={260}/>
         </div>
         <HubTabella colonne={colonne} righe={lista} chiave={p => p.id} cella={cella} onRiga={setAperta}
-          vuoto={<HubVuoto icona="bell" titolo="Nessuna notifica" desc="Creane una e guardala nell'anteprima prima di mandarla."/>}/>
+          vuoto={<HubVuoto icona="bell" titolo="Nessuna notifica" desc="Nasce da un messaggio all'app con la casella «anche come notifica sul telefono»."/>}/>
       </AdmCard>
     </div>
   );
@@ -1029,136 +1031,10 @@ function HubPushDettaglio({ push, onChiudi }) {
   );
 }
 
-function HubPushComposer({ onChiudi }) {
-  const [nome, setNome] = useStateMk('');
-  const [dove, setDove] = useStateMk('app');
-  const [titolo, setTitolo] = useStateMk('');
-  const [corpo, setCorpo] = useStateMk('');
-  const [elencoId, setElencoId] = useStateMk(null);
-  const [filtri, setFiltri] = useStateMk([]);
-  const [prova, setProva] = useStateMk(false);
+// Il compositore delle push non esiste più (P-156.5, D-113): la notifica sul
+// telefono nasce dal messaggio all'app, in HubPostaComposer, con la casella
+// «anche come notifica». L'archivio è HubPushPage.
 
-  return (
-    <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <HubStile/>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Push</HubStrumento>
-        <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{nome || 'Nuova notifica'}</span>
-      </div>
-      <HubTestata titolo="Crea una notifica push"
-        sotto="Titolo corto, corpo che sta in due righe. Sul telefono si legge solo quello."
-        azioni={
-          <React.Fragment>
-            {/* Prova finta, esito vero: il bottone conferma e poi torna
-                com'era — stesso patto del «Mandami una prova» delle mail. */}
-            <HubStrumento icona={prova ? 'check' : 'send'} acceso={prova}
-              onClick={() => { if (!prova) { setProva(true); setTimeout(() => setProva(false), 2600); } }}>
-              {prova ? 'Inviata sul tuo telefono' : 'Prova su di me'}
-            </HubStrumento>
-            <HubStrumento forte icona="send" onClick={onChiudi}>Invia</HubStrumento>
-          </React.Fragment>
-        }/>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <AdmCard padding={18}>
-            <HubCampo label="Nome"><HubInput valore={nome} onCambia={setNome} placeholder="es. Beta prenotazioni"/></HubCampo>
-            <div style={{ marginTop: 14 }}>
-              <HubCampo label="Dove arriva">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {[
-                    { id: 'app', l: 'App byup', d: 'I clienti finali. Tono da consumatore.', i: 'smartphone' },
-                    { id: 'gestionale', l: 'Gestionale', d: 'Titolari e staff. Tono operativo.', i: 'monitor' },
-                  ].map(o => {
-                    const on = dove === o.id;
-                    const Ic = BuIcons[o.i];
-                    return (
-                      <button key={o.id} onClick={() => setDove(o.id)} style={{
-                        display: 'flex', alignItems: 'flex-start', gap: 10, textAlign: 'left', padding: 13, borderRadius: 11,
-                        cursor: 'pointer', fontFamily: 'inherit',
-                        border: `1.5px solid ${on ? ADM.PINK : ADM.BORDER}`, background: on ? ADM.PINK_BG_SOFT : '#fff',
-                      }}>
-                        <span style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'grid', placeItems: 'center', background: on ? ADM.PINK_SOFT : ADM.NEUTRAL_SOFT, color: on ? ADM.PINK : ADM.MUTED }}><Ic size={15}/></span>
-                        <span style={{ flex: 1 }}>
-                          <span style={{ display: 'block', fontSize: 13.8, fontWeight: 700, color: on ? ADM.PINK_DARK : ADM.TEXT }}>{o.l}</span>
-                          <span style={{ display: 'block', fontSize: 12.3, color: ADM.MUTED, marginTop: 2 }}>{o.d}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </HubCampo>
-            </div>
-            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <HubCampo label="Titolo" nota={`${titolo.length}/40 caratteri — oltre viene tagliato`}>
-                <HubInput valore={titolo} onCambia={setTitolo} placeholder="es. Sei tra i primi"/>
-              </HubCampo>
-              <HubCampo label="Corpo" nota={`${corpo.length}/120 caratteri`}>
-                <HubArea valore={corpo} onCambia={setCorpo} righe={3}
-                  placeholder="es. Le prenotazioni intelligenti sono in prova sul tuo account."/>
-              </HubCampo>
-            </div>
-          </AdmCard>
-          <AdmCard padding={18}>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 }}>A chi</div>
-            <MktPubblico elencoId={elencoId} onElenco={setElencoId} filtri={filtri} onFiltri={setFiltri}/>
-            <div style={{ marginTop: 12, fontSize: 12.6, color: '#7A4A0B', background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', borderRadius: 10, padding: '9px 12px', lineHeight: 1.5 }}>
-              Chi ha il consenso push spento non riceve questa notifica, anche se è dentro il pubblico. È la regola, non un'opzione.
-            </div>
-          </AdmCard>
-        </div>
-
-        <AdmCard padding={18}>
-          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 14 }}>Anteprima</div>
-          <MktPushSchermo dove={dove} titolo={titolo} corpo={corpo}/>
-          <div style={{ fontSize: 12.3, color: ADM.MUTED, marginTop: 12, lineHeight: 1.5 }}>
-            Sul telefono bloccato si vedono due righe di corpo. Quello che scrivi dopo esiste solo per chi apre la notifica.
-          </div>
-        </AdmCard>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// FORM
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Due famiglie e non una lista sola: c'è quello che CHIEDE qualcosa a chi
-// compila, e quello che gli DICE qualcosa. Un'immagine e un paragrafo non
-// sono campi — non producono un valore — ma stanno nello stesso modulo, e
-// tenerli fuori vuol dire farli aggiungere «dal sito» a qualcun altro.
-const FRM_CAMPI = {
-  testo:    { label: 'Testo breve',   icona: 'type' },
-  email:    { label: 'Email',         icona: 'mail' },
-  telefono: { label: 'Telefono',      icona: 'phone' },
-  area:     { label: 'Testo lungo',   icona: 'list' },
-  scelta:   { label: 'Menu a tendina',icona: 'chevronDown' },
-  spunta:   { label: 'Spunta',        icona: 'check' },
-  consenso: { label: 'Consenso',      icona: 'shield' },
-  paragrafo:{ label: 'Paragrafo',     icona: 'pencil',  decorativo: true },
-  immagine: { label: 'Immagine o GIF',icona: 'image',   decorativo: true },
-  separa:   { label: 'Separatore',    icona: 'sliders', decorativo: true },
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// LA POSTA (P-60 · AP-09)
-// ═══════════════════════════════════════════════════════════════════════════
-// Il posto da cui si scrivono i contenuti del canale in-app: la bacheca
-// dell'app consumer e la campanella del gestionale. Due corsie, servizio e
-// marketing, che non si mescolano; i destinatari secondo le regole del
-// canale, con la doppia interrogazione rappresentata coi conteggi e il netto
-// prima di partire; la pubblicazione con la data di visibilità.
-const POSTA_STATI = {
-  bozza:       { label: 'Bozza',       color: 'PLAN_FREE' },
-  programmata: { label: 'Programmata', color: 'INFO' },
-  pubblicata:  { label: 'Pubblicata',  color: 'OK' },
-};
-const postaCorsia = (c) => c === 'servizio' ? { label: 'Servizio', color: 'TEAL' } : { label: 'Marketing', color: 'HUB_MAGENTA' };
-// Il pubblico di un messaggio: le righe della rubrica del canale — utenti app
-// per l'app, locali per il gestionale — filtrate dall'elenco o dai criteri;
-// per il servizio, tutti quelli del canale.
 function postaRighe(m) {
   const base = CONTATTI.filter(c => c.tipo === (m.dove === 'app' ? 'utente' : 'locale'));
   if (m.corsia === 'servizio') return base;
@@ -1170,8 +1046,10 @@ function HubPostaPage() {
   const [cerca, setCerca] = useStateMk('');
   const [aperta, setAperta] = useStateMk(null);
   const [nuovo, setNuovo] = useStateMk(false);
+  const [archivio, setArchivio] = useStateMk(false);
   const [, ridisegna] = useStateMk(0);
   if (nuovo) return <HubPostaComposer onChiudi={() => { setNuovo(false); ridisegna(x => x + 1); }}/>;
+  if (archivio) return <HubPushPage onChiudi={() => setArchivio(false)}/>;
   if (aperta) return <HubPostaDettaglio m={aperta} onChiudi={() => setAperta(null)}/>;
   const lista = HUB_POSTA.filter(m => !cerca || (m.nome + m.titolo + m.anteprima).toLowerCase().includes(cerca.toLowerCase()));
   const pubblicate = HUB_POSTA.filter(m => m.stato === 'pubblicata');
@@ -1179,6 +1057,7 @@ function HubPostaPage() {
     { id: 'nome',   label: 'Messaggio', w: 'minmax(0,2.6fr)' },
     { id: 'corsia', label: 'Corsia',    w: '1fr' },
     { id: 'dove',   label: 'Dove',      w: '1fr' },
+    { id: 'notifica', label: 'Telefono', w: '0.9fr' },
     { id: 'stato',  label: 'Stato',     w: '1fr' },
     { id: 'dest',   label: 'Recapitati', w: '0.9fr', destra: true },
     { id: 'quando', label: 'Visibile dal', w: '1.15fr' },
@@ -1192,6 +1071,8 @@ function HubPostaPage() {
     );
     if (id === 'corsia') { const k = postaCorsia(m.corsia); return <HubPillola color={k.color}>{k.label}</HubPillola>; }
     if (id === 'dove') return <HubPillola color={m.dove === 'app' ? 'PURPLE' : 'TEAL'}>{m.dove === 'app' ? 'App byup' : 'Gestionale'}</HubPillola>;
+    // La notifica sul telefono è in più, per messaggio (D-113).
+    if (id === 'notifica') return m.notifica ? <HubPillola color="PINK">Anche notifica</HubPillola> : <span style={{ fontSize: 12.5, color: ADM.MUTED_LIGHT }}>solo in Posta</span>;
     if (id === 'stato') return <HubStato stato={m.stato} mappa={POSTA_STATI}/>;
     if (id === 'dest') return <span style={{ fontSize: 13.6, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{m.dest ? fmtNum(m.dest) : '—'}</span>;
     return <span style={{ fontSize: 13.2, color: ADM.MUTED }}>{m.visibileDal ? fmtDateTime(m.visibileDal) : '—'}</span>;
@@ -1199,14 +1080,17 @@ function HubPostaPage() {
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata titolo="Posta"
-        sotto="La bacheca dell'app dei clienti e la campanella del gestionale. Due corsie che non si mescolano: le informative di servizio viaggiano su canale dedicato, il marketing passa dal consenso."
-        azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Scrivi un messaggio</HubStrumento>}/>
+      <HubTestata titolo="Messaggi all'app"
+        sotto="La bacheca dell'app dei clienti e la campanella del gestionale: ogni messaggio ha la sua riga in Posta, e a scelta arriva anche come notifica sul telefono. Due corsie che non si mescolano: le informative di servizio viaggiano su canale dedicato, il marketing passa dal consenso."
+        azioni={<React.Fragment>
+          <HubStrumento icona="bell" onClick={() => setArchivio(true)}>Notifiche sul telefono</HubStrumento>
+          <HubStrumento forte icona="plus" onClick={() => setNuovo(true)}>Scrivi un messaggio</HubStrumento>
+        </React.Fragment>}/>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
         <HubTile etichetta="Pubblicati" valore={pubblicate.length} icona="mail"/>
         <HubTile etichetta="Recapitati" valore={fmtNum(pubblicate.reduce((s, m) => s + m.dest, 0))} icona="send" tono="OK" sotto={`${fmtNum(pubblicate.reduce((s, m) => s + m.letture, 0))} letti`}/>
         <HubTile etichetta="Di servizio" valore={HUB_POSTA.filter(m => m.corsia === 'servizio').length} icona="info" tono="TEAL"/>
-        <HubTile etichetta="Di marketing" valore={HUB_POSTA.filter(m => m.corsia === 'marketing').length} icona="megaphoneFill" tono="HUB_MAGENTA" sotto="subordinati al consenso del canale"/>
+        <HubTile etichetta="Di marketing" valore={HUB_POSTA.filter(m => m.corsia === 'marketing').length} icona="megaphoneFill" tono="HUB_MAGENTA" sotto="a chi ha almeno un canale marketing acceso"/>
       </div>
       <AdmCard padding={0}>
         <div style={{ padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}` }}>
@@ -1252,7 +1136,7 @@ function MktPostaInterrogazioni({ corsia, dove, righe, filtri, genere }) {
         <span style={{ fontSize: 12.4, color: ADM.MUTED_SOFT }}>{dove === 'app' ? 'utenti app' : 'locali'}{corsia === 'servizio' ? ' · tutti quelli del canale' : ''}</span>
       </div>
       {corsia === 'marketing'
-        ? riga('consent_check', 'Senza il consenso del canale', q.senzaConsenso, 'restano fuori: il consenso si controlla al momento dell\'invio')
+        ? riga('consent_check', 'Senza un consenso di marketing', q.senzaConsenso, 'nessuno dei tre canali acceso: restano fuori, e il consenso si controlla al momento dell\'invio')
         : <div style={{ padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}`, fontSize: 12.6, color: ADM.MUTED }}><span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11.5, color: ADM.MUTED_SOFT, marginRight: 10 }}>consent_check</span>Non si chiede: è servizio, canale dedicato. Vale finché non contiene una promozione.</div>}
       {riga('suppression_check', 'Soppressi per invariante', q.soppressi, `${q.nonAttivi} non attivi · ${q.limitati} limitati o bannati · ${q.minori} minori`)}
       <div style={{ padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}`, fontSize: 12.4, color: ADM.MUTED_SOFT }}>Le categorie particolari non sono mai criterio; i gusti da soli non fanno un pubblico (P-30).</div>
@@ -1316,6 +1200,11 @@ function HubPostaComposer({ onChiudi }) {
   const [quando, setQuando] = useStateMk('subito');
   const [data, setData] = useStateMk('');
   const [esito, setEsito] = useStateMk(null);
+  // «Anche come notifica sul telefono» (D-113, P-156.5): la riga in Posta c'è
+  // sempre, la notifica è in più. In corsia di marketing arriva sul telefono
+  // solo a chi ha acceso Notifiche; in corsia di servizio a chi il telefono lo
+  // permette.
+  const [notifica, setNotifica] = useStateMk(false);
   const cambiaCorsia = (c) => { setCorsia(c); setGenere(c === 'servizio' ? 'novita' : 'promozione'); };
   const bozza = { corsia, dove, pubblico: elencoId, filtri };
   const righe = postaRighe(bozza);
@@ -1331,8 +1220,15 @@ function HubPostaComposer({ onChiudi }) {
     const visibileDal = quando === 'subito' ? ora : new Date(data);
     const m = { id: 'PO-' + String(Math.max(0, ...HUB_POSTA.map(x => parseInt(x.id.slice(3), 10) || 0)) + 1).padStart(3, '0'), nome: nome.trim(), corsia, dove, genere, titolo: titolo.trim(), anteprima: anteprima.trim(), corpo: corpo.trim(),
       localeId: localeId || null, pubblico: elencoId, filtri, stato: quando === 'subito' ? 'pubblicata' : 'programmata', pubblicataIl: quando === 'subito' ? ora : null, visibileDal,
-      dest: quando === 'subito' ? q.netto : 0, letture: 0, esclusi: { consenso: q.senzaConsenso, soppressi: q.soppressi } };
+      dest: quando === 'subito' ? q.netto : 0, letture: 0, esclusi: { consenso: q.senzaConsenso, soppressi: q.soppressi },
+      notifica, notificaDest: notifica ? q.nettoTelefono : 0 };
     HUB_POSTA.unshift(m);
+    // La notifica sul telefono: una riga in più nell'archivio, legata al
+    // messaggio (stesso contenuto, channel push accanto a in_app).
+    if (notifica) {
+      HUB_PUSH.unshift({ id: 'PS-' + String(Math.max(0, ...HUB_PUSH.map(x => parseInt(x.id.slice(3), 10) || 0)) + 1).padStart(3, '0'), nome: m.nome, stato: quando === 'subito' ? 'inviata' : 'programmata', dove,
+        titolo: m.titolo, corpo: m.anteprima, pubblico: elencoId, inviata: quando === 'subito' ? ora : null, dest: q.nettoTelefono, ricevute: quando === 'subito' ? Math.round(q.nettoTelefono * 0.93) : 0, aperte: 0, daPosta: m.id });
+    }
     const me = hubUtenteCorrente();
     AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: quando === 'subito' ? 'ha pubblicato in Posta' : 'ha programmato in Posta', target: `${m.nome} · ${postaCorsia(corsia).label} · ${dove === 'app' ? 'app' : 'gestionale'} · netto ${fmtNum(q.netto)} su ${fmtNum(q.pubblico)}`, icon: 'send', color: 'PINK', tipo: 'broadcast', when: ora });
     setEsito(m);
@@ -1341,7 +1237,7 @@ function HubPostaComposer({ onChiudi }) {
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
       <HubTestata titolo={esito.stato === 'pubblicata' ? 'Pubblicato' : 'Programmato'} sotto={`${esito.nome} · ${postaCorsia(esito.corsia).label} · netto ${fmtNum(esito.dest || q.netto)} su ${fmtNum(q.pubblico)} dopo le due interrogazioni.`}
-        azioni={<HubStrumento forte icona="arrowLeft" onClick={onChiudi}>Torna alla Posta</HubStrumento>}/>
+        azioni={<HubStrumento forte icona="arrowLeft" onClick={onChiudi}>Torna ai messaggi</HubStrumento>}/>
     </div>
   );
   const lab = { fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 13 };
@@ -1349,7 +1245,7 @@ function HubPostaComposer({ onChiudi }) {
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Posta</HubStrumento>
+        <HubStrumento icona="arrowLeft" onClick={onChiudi}>Messaggi all'app</HubStrumento>
         <span style={{ fontSize: 13.5, color: ADM.MUTED_LIGHT }}>/</span>
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>Nuovo messaggio</span>
       </div>
@@ -1360,7 +1256,7 @@ function HubPostaComposer({ onChiudi }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 9, marginBottom: 12 }}>
               {[
                 { id: 'servizio', t: 'Servizio', d: 'Informative, novità e avvisi. Canale dedicato: non chiede il consenso e non contiene promozioni.' },
-                { id: 'marketing', t: 'Marketing', d: 'Promozioni e offerte. Subordinato al consenso di marketing del canale, che si controlla all\'invio.' },
+                { id: 'marketing', t: 'Marketing', d: 'Promozioni e offerte. In Posta a chi ha almeno un canale marketing acceso; sul telefono solo a chi ha acceso «Notifiche». Il consenso si controlla all\'invio.' },
               ].map(o => (
                 <button key={o.id} onClick={() => cambiaCorsia(o.id)} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 11, cursor: 'pointer', fontFamily: 'inherit', background: corsia === o.id ? ADM.PINK_BG_SOFT : '#fff', border: corsia === o.id ? `2px solid ${ADM.PINK}` : `1px solid ${ADM.BORDER}` }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: ADM.TEXT }}>{o.t}</div>
@@ -1404,6 +1300,16 @@ function HubPostaComposer({ onChiudi }) {
           <AdmCard padding={18}>
             <div style={lab}>Prima di pubblicare · le due interrogazioni</div>
             <MktPostaInterrogazioni corsia={corsia} dove={dove} righe={righe} filtri={elencoId ? [] : filtri} genere={genere}/>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 11, borderRadius: 10, marginTop: 12, background: ADM.PANEL_SOFT, border: `1px solid ${ADM.BORDER}`, cursor: 'pointer' }}>
+              <AdmSwitch size="sm" checked={notifica} onChange={setNotifica}/>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: 'block', fontSize: 13.2, fontWeight: 700, color: ADM.TEXT }}>Anche come notifica sul telefono</span>
+                <span style={{ display: 'block', fontSize: 12, color: ADM.MUTED, marginTop: 3, lineHeight: 1.45 }}>
+                  La riga in Posta c'è comunque. Sul telefono arriva a <b style={{ color: ADM.TEXT }}>{fmtNum(q.nettoTelefono)}</b> su {fmtNum(q.netto)}
+                  {corsia === 'marketing' ? ': chi ha acceso «Notifiche»; gli altri la trovano solo in Posta.' : ': chi permette le notifiche sul proprio telefono.'}
+                </span>
+              </span>
+            </label>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${ADM.BORDER_SOFT}` }}>
               <HubSegmenti attivo={quando} onCambia={setQuando} voci={[{ id: 'subito', label: 'Visibile adesso' }, { id: 'data', label: 'Da una data' }]}/>
               {quando === 'data' && <input type="datetime-local" value={data} onChange={e => setData(e.target.value)} style={{ padding: '8px 11px', border: `1px solid ${ADM.BORDER}`, borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', color: ADM.TEXT }}/>}

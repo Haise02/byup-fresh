@@ -36,8 +36,9 @@ const HUB_NAV = [
     figli: [
       { id: 'mkt-mail', label: 'Mail',  icon: 'mailFill', desc: 'Campagne una tantum e modelli automatici' },
       { id: 'mkt-sms',  label: 'SMS',   icon: 'smsFill',  desc: 'Messaggi brevi, subito o programmati' },
-      { id: 'mkt-push', label: 'Push',  icon: 'bellFill', desc: 'Notifiche nell\'app e nel gestionale' },
-      { id: 'mkt-posta', label: 'Posta', icon: 'mailFill', desc: 'La bacheca dell\'app e la campanella del gestionale: servizio e marketing, due corsie' },
+      // Posta e push sono un canale solo (D-113, P-156.5): il messaggio ha la
+      // sua riga in bacheca, e la notifica sul telefono è in più, a scelta.
+      { id: 'mkt-posta', label: 'Messaggi all\'app', icon: 'bellFill', desc: 'La bacheca dell\'app e la campanella del gestionale, con la notifica sul telefono quando serve: servizio e marketing, due corsie' },
       { id: 'mkt-form', label: 'Form',  icon: 'formFill', desc: 'Moduli da pubblicare, con la loro automazione' },
     ] },
   { id: 'workflow', label: 'Workflow', icon: 'flowFill', colore: 'HUB_VIOLA',
@@ -542,8 +543,7 @@ function AdminApp({ tweaks }) {
           {route === 'elenchi'      && <HubElenchiPage/>}
           {route === 'mkt-mail'     && <HubMailPage/>}
           {route === 'mkt-sms'      && <HubSmsPage/>}
-          {route === 'mkt-push'     && <HubPushPage/>}
-          {route === 'mkt-posta'    && <HubPostaPage/>}
+          {(route === 'mkt-posta' || route === 'mkt-push') && <HubPostaPage/>}
           {route === 'mkt-form'     && <HubFormPage/>}
           {route === 'workflow'     && <HubWorkflowPage/>}
           {route === 'agent'        && <HubAgentPage/>}

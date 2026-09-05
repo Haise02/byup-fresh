@@ -200,12 +200,17 @@ function WfScriviProprieta({ nodo, onCambia }) {
 // L'etichetta umana dei consensi. Le tre proprietà vivono in HUB_PROPRIETA e
 // la loro label vince sempre: questa mappa resta come rete per una chiave che
 // nel registro non c'è — meglio un'etichetta di riserva della chiave grezza.
-const WF_CONSENSI = { consensoMail: 'Consenso email', consensoSms: 'Consenso SMS', consensoPush: 'Consenso push' };
+const WF_CONSENSI = { consensoMail: 'Consenso email', consensoSms: 'Consenso SMS', consensoPush: 'Consenso push', consensoMarketing: 'Consenso marketing (almeno un canale acceso)' };
 
 function WfInvio({ nodo, onCambia }) {
   const cat = nodo.tipo === 'mail' ? HUB_MAIL : nodo.tipo === 'sms' ? HUB_SMS : HUB_PUSH;
   const scelto = cat.find(x => x.id === nodo.rif) || cat.find(x => x.nome === nodo.testo);
-  const consenso = nodo.tipo === 'mail' ? 'consensoMail' : nodo.tipo === 'sms' ? 'consensoSms' : 'consensoPush';
+  // Il messaggio all'app (nodo push) controlla il consenso del MARKETING, non
+  // quello delle push (D-113, P-156.5): la riga in Posta va a chi ha almeno un
+  // canale acceso; la notifica sul telefono, in più, solo a chi ha Notifiche.
+  // Il consenso degli SMS vale anche per WhatsApp, che sta nello stesso
+  // interruttore (P-163).
+  const consenso = nodo.tipo === 'mail' ? 'consensoMail' : nodo.tipo === 'sms' ? 'consensoSms' : 'consensoMarketing';
   return (
     <React.Fragment>
       <HubCampo label="Che cosa manda">

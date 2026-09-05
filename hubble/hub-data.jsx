@@ -668,10 +668,20 @@ const HUB_SMS = [
 // consent_check (chi ha il consenso del canale) e suppression_check (le
 // esclusioni invarianti: non attivi, limitati o bannati, minori; le categorie
 // particolari non sono mai criterio, e un pubblico di soli gusti non parte —
-// P-30). Nel prototipo il consenso del canale in-app coincide con quello
-// delle notifiche nell'app (consensoPush): coda, finché il modello non ne
-// darà uno suo. Chi legge oggi: la bacheca dell'app e la campanella hanno
-// ancora i loro mock — anche questa è coda.
+// P-30). Con D-113 (P-156.5) Posta e push sono UN canale, «Messaggi
+// all'app»: la Posta è il REGISTRO — ogni messaggio ha la sua riga in
+// bacheca — e la notifica sul telefono è l'ANNUNCIO, in più, a scelta per
+// messaggio; nel modello notifications ha channel push | in_app e lo stesso
+// messaggio può avere due righe. Il consenso: corsia di servizio in Posta a
+// tutti e sul telefono a chi il telefono lo permette (permesso del sistema,
+// non nostro); corsia di marketing in Posta a chi ha ALMENO UN canale
+// marketing acceso (email, messaggi o notifiche), sul telefono solo a chi ha
+// acceso Notifiche; le promozioni su misura solo con la profilazione. Per i
+// ristoratori, che leggono nella campanella del gestionale, la corsia di
+// marketing poggia sul legittimo interesse con opposizione. Prima la Posta
+// controllava il consenso delle push, che è un altro canale: chi le aveva
+// rifiutate non vedeva una bacheca che non vibra niente. Chi legge oggi: la
+// bacheca dell'app e la campanella hanno ancora i loro mock — coda.
 const HUB_POSTA_GENERI = {
   novita:      { label: 'Novità',       corsia: 'servizio' },
   informativa: { label: 'Informativa',  corsia: 'servizio' },
@@ -703,7 +713,11 @@ const HUB_POSTA = [
     localeId: null, pubblico: null, filtri: [{ prop: 'citta', op: 'unoDi', valore: ['Milano'] }, { prop: 'gusti', op: 'contieneUno', valore: ['aperitivo'] }], stato: 'bozza', pubblicataIl: null, visibileDal: null,
     dest: 0, letture: 0, esclusi: { consenso: 0, soppressi: 0 } },
 ];
-const HUB_CONSENSO_POSTA = 'consensoPush';
+// Il consenso di marketing del canale in-app (D-113): almeno uno dei tre
+// canali acceso. Il telefono chiede in più «Notifiche».
+const hubConsensoMarketing = (c) => hubLeggi(c, 'consensoMail') === true || hubLeggi(c, 'consensoSms') === true || hubLeggi(c, 'consensoPush') === true;
+const hubConsensoTelefono = (c) => hubLeggi(c, 'consensoPush') === true;
+const HUB_CONSENSO_POSTA = 'consensoMarketing';
 // La doppia interrogazione, rappresentata: su un pubblico (righe della
 // rubrica) restituisce chi ha il consenso, chi è soppresso e per che cosa, e
 // il netto. Per la corsia di servizio il consenso non si chiede: contano le
@@ -714,15 +728,20 @@ const HUB_CONSENSO_POSTA = 'consensoPush';
 // lì vorrebbe dire non dirgli mai perché.
 function hubInterrogaPosta(righe, corsia, genere) {
   const sullaRestrizione = corsia === 'servizio' && genere === 'restrizione';
-  const senzaConsenso = corsia === 'marketing' ? righe.filter(c => hubLeggi(c, HUB_CONSENSO_POSTA) !== true) : [];
+  const senzaConsenso = corsia === 'marketing' ? righe.filter(c => !hubConsensoMarketing(c)) : [];
   const nonAttivi = righe.filter(c => c.tipo === 'utente' ? (c.ref && c.ref.attivo === false) : c.tipo === 'locale' ? !['active', 'dormant'].includes(c.ref && c.ref.stato) : true);
   const limitati = sullaRestrizione ? [] : righe.filter(c => c.tipo === 'utente' ? (hubLeggi(c, 'restrizione') != null)
     : c.tipo === 'locale' ? (typeof admProvvedimento === 'function' && c.ref && c.ref.stato && admProvvedimento(c.ref) !== 'none') : false);
   const minori = righe.filter(c => typeof hubRegimeProtettivo === 'function' && hubRegimeProtettivo(c));
   const soppressi = new Set([...nonAttivi, ...limitati, ...minori].map(c => c.key));
   const fuori = new Set([...soppressi, ...senzaConsenso.map(c => c.key)]);
+  const netti = righe.filter(c => !fuori.has(c.key));
+  // Sul telefono (la notifica in più): in corsia di marketing solo chi ha
+  // acceso Notifiche; in corsia di servizio tutti i netti — il permesso del
+  // sistema operativo non è un nostro consenso e qui non si conosce.
+  const nettoTelefono = corsia === 'marketing' ? netti.filter(hubConsensoTelefono).length : netti.length;
   return { pubblico: righe.length, senzaConsenso: senzaConsenso.length, nonAttivi: nonAttivi.length, limitati: limitati.length, minori: minori.length,
-    soppressi: soppressi.size, netto: righe.filter(c => !fuori.has(c.key)).length };
+    soppressi: soppressi.size, netto: netti.length, nettoTelefono, senzaTelefono: netti.length - nettoTelefono };
 }
 // Un pubblico di soli gusti non parte: le categorie non sono mai criterio da
 // sole (P-30), e i gusti non autorizzano un invio.
@@ -786,7 +805,10 @@ const HUB_WF_NODI = {
   condizione: { label: 'Se / allora',    icona: 'split',       color: 'WARN',      famiglia: 'controllo' },
   mail:       { label: 'Invia email',    icona: 'mail',        color: 'HUB_MAGENTA', famiglia: 'comunica' },
   sms:        { label: 'Invia SMS',      icona: 'smartphone',  color: 'HUB_MAGENTA', famiglia: 'comunica' },
-  push:       { label: 'Invia push',     icona: 'bell',        color: 'HUB_MAGENTA', famiglia: 'comunica' },
+  // Il nodo «push» è il messaggio all'app (D-113, P-156.5): riga in Posta e,
+  // a scelta, la notifica sul telefono; il consenso che controlla è quello del
+  // marketing. La chiave resta `push` per non rompere i workflow salvati.
+  push:       { label: 'Messaggio all\'app', icona: 'bell',    color: 'HUB_MAGENTA', famiglia: 'comunica' },
   proprieta:  { label: 'Scrivi proprietà', icona: 'tag',       color: 'TEAL',      famiglia: 'dati' },
   elenco:     { label: 'Aggiungi a elenco', icona: 'layers',   color: 'TEAL',      famiglia: 'dati' },
   agente:     { label: 'Chiedi a un agente', icona: 'sparkles', color: 'HUB_VIOLA', famiglia: 'intelligenza' },
@@ -1095,6 +1117,8 @@ window.HUB_ELENCHI = HUB_ELENCHI;
 window.HUB_POSTA = HUB_POSTA;
 window.HUB_POSTA_GENERI = HUB_POSTA_GENERI;
 window.HUB_CONSENSO_POSTA = HUB_CONSENSO_POSTA;
+window.hubConsensoMarketing = hubConsensoMarketing;
+window.hubConsensoTelefono = hubConsensoTelefono;
 window.hubInterrogaPosta = hubInterrogaPosta;
 window.hubSoloGusti = hubSoloGusti;
 window.hubSembraPromo = hubSembraPromo;
