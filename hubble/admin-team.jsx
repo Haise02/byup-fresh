@@ -501,6 +501,287 @@ function InvitiPending() {
   );
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ALIQUOTE DEGLI ARTICOLI (P-164 · D-112 e il suo emendamento)
+// ═══════════════════════════════════════════════════════════════════════════
+// Le tipologie dell'articolo (item_kinds) con i loro trattamenti IVA
+// (vat_rate_profiles): l'unico dizionario che il modello dice governato da
+// Hubble. Il registro è condiviso sullo stesso dominio (byup_tipologie_articolo)
+// e il gestionale lo LEGGE quando si crea un articolo o si batte un fuori
+// menù: le tipologie proposte sono queste, in quest'ordine, con questa
+// spiegazione. Regole: etichetta, spiegazione e ordine valgono subito (sono
+// parole); il trattamento puntato si cambia con una data, perché sposta
+// l'aliquota su ogni cassa; un trattamento in vigore NON si modifica — si
+// chiude la sua vigenza e se ne apre uno nuovo — perché la riga d'ordine ha
+// congelato il profilo risolto e i documenti già emessi restano leggibili col
+// diritto del loro tempo. Tutto riservato al Super Admin, con conferma
+// esplicita e traccia in audit (chi, quando, che cosa, da quando). I semi sono
+// la copia guardata di panoramica-tokens.jsx (altro bundle).
+const HUB_TRATTAMENTI_SEME = [
+  { id: 'somministrazione_10',       aliquota: 10, modalita: 'somministrazione',    fondamento: 'voce 121',              citazione: 'Tab. A parte III n. 121 DPR 633/1972: somministrazione di alimenti e bevande, al banco o al tavolo', valida_dal: '2026-01-01', valida_al: null },
+  { id: 'asporto_preparato_10',      aliquota: 10, modalita: 'asporto_preparato',   fondamento: 'L. 178/2020 e voce 80', citazione: 'L. 178/2020 art. 1 co. 40, che interpreta il n. 80 della Tab. A parte III: piatti pronti e pasti preparati, anche da asporto', valida_dal: '2026-01-01', valida_al: null },
+  { id: 'asporto_acqua_birra_10',    aliquota: 10, modalita: 'asporto_confezionato', fondamento: 'voci 81 e 82',         citazione: 'Tab. A parte III nn. 81 e 82 DPR 633/1972: acqua e birra, anche in bottiglia o lattina', valida_dal: '2026-01-01', valida_al: null },
+  { id: 'asporto_confezionato_22',   aliquota: 22, modalita: 'asporto_confezionato', fondamento: 'aliquota ordinaria',   citazione: 'art. 16 DPR 633/1972: bibite, vino, superalcolici e dolciumi in confezione ceduti da asporto', valida_dal: '2026-01-01', valida_al: null },
+  { id: 'asporto_alimentari_base_4', aliquota: 4,  modalita: 'asporto_confezionato', fondamento: 'Tabella A parte II',   citazione: 'Tab. A parte II nn. 3, 5, 6, 8, 15 DPR 633/1972: latte fresco non concentrato né zuccherato, frutta e ortaggi freschi o surgelati, pane comune', valida_dal: '2026-01-01', valida_al: null },
+  { id: 'ordinaria_22',              aliquota: 22, modalita: 'cessione',            fondamento: 'aliquota ordinaria',    citazione: 'art. 16 DPR 633/1972: cessione di beni non alimentari', valida_dal: '2026-01-01', valida_al: null },
+];
+const HUB_TIPOLOGIE_SEME = [
+  { id: 'piatti_preparati', ordine: 1, label: 'Piatti, panini, caffè, dolci e pasticceria', spiegazione: 'Quello che il locale prepara o serve.', locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_preparato_10' }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'acqua_birra', ordine: 2, label: 'Acqua e birra', spiegazione: 'Anche in bottiglia o lattina sigillata.', locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_acqua_birra_10' }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'bibite_alcolici_confezionati', ordine: 3, label: 'Bibite, vino, alcolici, dolciumi confezionati', spiegazione: 'Bibite gassate, vino, superalcolici, cioccolato e dolciumi in confezione.', locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_confezionato_22' }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'alimentari_base', ordine: 4, label: 'Pane, pasta, latte, formaggi, frutta e verdura', spiegazione: 'Alimentari di base venduti così come sono: pane comune senza zuccheri, miele, uova o formaggio; latte fresco non concentrato né zuccherato; frutta e ortaggi freschi o surgelati. Non ci stanno dolci da forno, latte zuccherato, frutta e verdura conservate o candite, che da asporto vanno al 10%.', locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_alimentari_base_4' }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'non_alimentari', ordine: 5, label: 'Oggetti non alimentari', spiegazione: 'Gadget, tazze, magliette e tutto ciò che non si mangia né si beve.', locale: { profilo: 'ordinaria_22' }, asporto: { profilo: 'ordinaria_22' }, valida_dal: '2026-01-01', valida_al: null },
+];
+const HUB_MODALITA_TRATTAMENTO = {
+  somministrazione: 'Somministrazione (al banco o al tavolo)', asporto_preparato: 'Asporto di alimenti preparati',
+  asporto_confezionato: 'Asporto di alimenti confezionati', cessione: 'Cessione di beni non alimentari',
+};
+const HUB_TIPOLOGIE_KEY = 'byup_tipologie_articolo';
+const hubOggiIso = (piu) => { const d = new Date(); d.setDate(d.getDate() + (piu || 0)); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const hubInVigore = (x, g) => (!x.valida_dal || x.valida_dal <= g) && (!x.valida_al || x.valida_al > g);
+function hubTipologieRegistro() {
+  try { const s = localStorage.getItem(HUB_TIPOLOGIE_KEY); if (s) { const v = JSON.parse(s); if (v && Array.isArray(v.tipologie) && Array.isArray(v.trattamenti)) return v; } } catch (e) {}
+  return { tipologie: HUB_TIPOLOGIE_SEME.map(t => ({ ...t, locale: { ...t.locale }, asporto: { ...t.asporto } })), trattamenti: HUB_TRATTAMENTI_SEME.map(t => ({ ...t })), versione: 0 };
+}
+function hubTipologieScrivi(reg, action, target, daQuando) {
+  const nuovo = { ...reg, versione: (reg.versione || 0) + 1, aggiornato: new Date().toISOString() };
+  try { localStorage.setItem(HUB_TIPOLOGIE_KEY, JSON.stringify(nuovo)); } catch (e) {}
+  try { window.dispatchEvent(new Event('byup-tipologie-change')); } catch (e) {}
+  const me = hubUtenteCorrente();
+  if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action, target: `${target}${daQuando ? ` · dal ${daQuando}` : ''}`, icon: 'tag', color: 'INFO', tipo: 'piattaforma', when: new Date() });
+  return nuovo;
+}
+window.hubTipologieRegistro = hubTipologieRegistro;
+
+function HubAliquoteArticoli() {
+  const [, ridisegna] = useStateTeam(0);
+  const me = hubUtenteCorrente();
+  const puo = me.ruolo === 'super_admin';
+  const reg = hubTipologieRegistro();
+  const oggi = hubOggiIso(0), domani = hubOggiIso(1);
+  const trVivi = reg.trattamenti.filter(t => hubInVigore(t, oggi));
+  const tr = (id) => reg.trattamenti.find(t => t.id === id) || { id, aliquota: '?', fondamento: '—', modalita: '' };
+  const tipVive = reg.tipologie.filter(t => hubInVigore(t, oggi)).slice().sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+  const usoTrattamento = (id) => tipVive.filter(t => t.locale.profilo === id || t.asporto.profilo === id || (t.locale.prossimo && t.locale.prossimo.profilo === id) || (t.asporto.prossimo && t.asporto.prossimo.profilo === id)).length;
+  // Gli articoli di menù che indicano una tipologia: il conteggio lo scrive il
+  // gestionale nel registro byup_tipologie_uso quando lo ha; qui si legge.
+  const uso = (() => { try { return JSON.parse(localStorage.getItem('byup_tipologie_uso') || '{}') || {}; } catch (e) { return {}; } })();
+  const salva = (nuovo, action, target, daQuando) => { hubTipologieScrivi(nuovo, action, target, daQuando); ridisegna(x => x + 1); };
+
+  // I form: uno alla volta, inline, con la data come conferma esplicita.
+  const [cambio, setCambio] = useStateTeam(null);      // { tipId, lato, profilo, dal }
+  const [ritiro, setRitiro] = useStateTeam(null);      // { tipId, dal, verso }
+  const [chiudi, setChiudi] = useStateTeam(null);      // { trId, dal }
+  const [nuovaTip, setNuovaTip] = useStateTeam(null);  // { label, spiegazione, locale, asporto, dal }
+  const [nuovoTr, setNuovoTr] = useStateTeam(null);    // { aliquota, modalita, fondamento, citazione, dal }
+  const [bozze, setBozze] = useStateTeam({});          // testi in corso di modifica, per riga
+
+  const parola = (t, campo, valore) => {
+    const v = String(valore || '').trim(); if (!v || v === t[campo]) return;
+    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, [campo]: v } : x) };
+    salva(nuovo, campo === 'label' ? 'ha rinominato la tipologia' : 'ha riscritto la spiegazione della tipologia', `${t.label} → ${v.slice(0, 80)}`);
+  };
+  const sposta = (t, verso) => {
+    const idx = tipVive.findIndex(x => x.id === t.id); const j = idx + verso; if (j < 0 || j >= tipVive.length) return;
+    const ordine = tipVive.map(x => x.id); [ordine[idx], ordine[j]] = [ordine[j], ordine[idx]];
+    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => ordine.includes(x.id) ? { ...x, ordine: ordine.indexOf(x.id) + 1 } : x) };
+    salva(nuovo, 'ha riordinato le tipologie', `${t.label} ${verso < 0 ? 'sale' : 'scende'} · prima proposta: ${tr(0) && (reg.tipologie.find(x => x.id === ordine[0]) || {}).label}`);
+  };
+  const confermaCambio = () => {
+    if (!cambio || !cambio.profilo || !cambio.dal) return;
+    const t = reg.tipologie.find(x => x.id === cambio.tipId); if (!t) return;
+    const lato = cambio.dal <= oggi ? { profilo: cambio.profilo } : { ...t[cambio.lato], prossimo: { profilo: cambio.profilo, dal: cambio.dal } };
+    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, [cambio.lato]: lato } : x) };
+    salva(nuovo, 'ha cambiato il trattamento di una tipologia', `${t.label} · ${cambio.lato === 'locale' ? 'al consumo sul posto' : 'da asporto'} → ${cambio.profilo} (${tr(cambio.profilo).aliquota}%)`, cambio.dal);
+    setCambio(null);
+  };
+  const confermaRitiro = () => {
+    if (!ritiro || !ritiro.dal || !ritiro.verso) return;
+    const t = reg.tipologie.find(x => x.id === ritiro.tipId); if (!t) return;
+    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, valida_al: ritiro.dal, passata_a: ritiro.verso } : x) };
+    salva(nuovo, 'ha ritirato una tipologia', `${t.label} · gli articoli passano a ${(reg.tipologie.find(x => x.id === ritiro.verso) || {}).label || ritiro.verso}`, ritiro.dal);
+    setRitiro(null);
+  };
+  const confermaChiudi = () => {
+    if (!chiudi || !chiudi.dal) return;
+    const t = reg.trattamenti.find(x => x.id === chiudi.trId); if (!t) return;
+    const nuovo = { ...reg, trattamenti: reg.trattamenti.map(x => x.id === t.id ? { ...x, valida_al: chiudi.dal } : x) };
+    salva(nuovo, 'ha chiuso la vigenza di un trattamento', `${t.id} · ${t.aliquota}% · ${HUB_MODALITA_TRATTAMENTO[t.modalita] || t.modalita}`, chiudi.dal);
+    setChiudi(null);
+  };
+  const confermaNuovaTip = () => {
+    const n = nuovaTip; if (!n || !n.label.trim() || !n.spiegazione.trim() || !n.locale || !n.asporto || !n.dal) return;
+    const id = n.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || ('tipologia_' + Date.now());
+    const nuovo = { ...reg, tipologie: [...reg.tipologie, { id, ordine: tipVive.length + 1, label: n.label.trim(), spiegazione: n.spiegazione.trim(), locale: { profilo: n.locale }, asporto: { profilo: n.asporto }, valida_dal: n.dal, valida_al: null }] };
+    salva(nuovo, 'ha aggiunto una tipologia', `${n.label.trim()} · ${n.locale} / ${n.asporto}`, n.dal);
+    setNuovaTip(null);
+  };
+  const confermaNuovoTr = () => {
+    const n = nuovoTr; const al = parseFloat(String(n && n.aliquota).replace(',', '.'));
+    if (!n || !isFinite(al) || al < 0 || al > 100 || !n.modalita || !n.fondamento.trim() || !n.dal) return;
+    const id = `${n.modalita}_${String(al).replace('.', '_')}_${n.dal.replace(/-/g, '')}`;
+    const nuovo = { ...reg, trattamenti: [...reg.trattamenti, { id, aliquota: al, modalita: n.modalita, fondamento: n.fondamento.trim(), citazione: (n.citazione || '').trim(), valida_dal: n.dal, valida_al: null }] };
+    salva(nuovo, 'ha aperto un trattamento', `${id} · ${al}% · ${HUB_MODALITA_TRATTAMENTO[n.modalita]} · ${n.fondamento.trim()}`, n.dal);
+    setNuovoTr(null);
+  };
+
+  const H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em' };
+  const inp = { padding:'7px 9px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, fontFamily:'inherit', fontSize:12.8, color:ADM.TEXT, background:'#fff', boxSizing:'border-box', width:'100%' };
+  const sel = (value, onChange, options, disabled) => (
+    <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled} style={{ ...inp, cursor: disabled ? 'default' : 'pointer' }}>
+      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+  const optTr = trVivi.map(t => ({ value: t.id, label: `${t.aliquota}% · ${HUB_MODALITA_TRATTAMENTO[t.modalita] || t.modalita} · ${t.fondamento}` }));
+  const dataBox = (v, set) => <input type="date" value={v} min={domani} onChange={e => set(e.target.value)} style={{ ...inp, width: 160 }}/>;
+  const GRID_T = '28px minmax(0,1.5fr) minmax(0,2.2fr) minmax(0,1.5fr) minmax(0,1.5fr) 96px';
+  const GRID_R = 'minmax(0,1.6fr) 64px minmax(0,1.4fr) minmax(0,2.4fr) 150px 80px 120px';
+
+  return (
+    <React.Fragment>
+      <div style={{padding:'10px 13px', borderRadius:10, background: puo ? '#fff' : ADM.WARN_SOFT, border:`1px solid ${puo ? ADM.BORDER : '#F0DCB4'}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:12.8, color:ADM.TEXT, lineHeight:1.5}}>
+        <b>Le tipologie dell'articolo e i loro trattamenti IVA</b>, governati da qui (D-112). Etichetta, spiegazione e ordine valgono subito: sono le parole che il ristoratore legge creando un articolo, e la prima è quella proposta a tutti.
+        Il trattamento che una tipologia punta si cambia <b>da una data</b>, perché sposta l'aliquota su ogni cassa. Un trattamento in vigore non si modifica: si chiude la sua vigenza e se ne apre uno nuovo, così i documenti già emessi restano leggibili col diritto del loro tempo.
+        {!puo && <span style={{display:'block', marginTop:6, color:'#7A4A0B', fontWeight:700}}>In sola lettura: modifica solo il Super Admin.</span>}
+        <span style={{display:'block', marginTop:4, fontSize:11.8, color:ADM.MUTED}}>Registro condiviso con il gestionale (byup_tipologie_articolo, versione {reg.versione || 0}): il gestionale legge queste tipologie, in quest'ordine, con questa spiegazione.</span>
+      </div>
+
+      {/* ── Le tipologie ── */}
+      <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden'}}>
+        <div style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div style={H}>Tipologie · {tipVive.length} · nell'ordine in cui il gestionale le propone</div>
+          <div style={{flex:1}}/>
+          {puo && !nuovaTip && <AdmButton variant="secondary" size="sm" icon="plus" onClick={() => setNuovaTip({ label:'', spiegazione:'', locale: trVivi[0] ? trVivi[0].id : '', asporto: trVivi[0] ? trVivi[0].id : '', dal: domani })}>Aggiungi tipologia</AdmButton>}
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:GRID_T, gap:10, padding:'8px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
+          <span>#</span><span>Etichetta</span><span>Spiegazione (quella che il ristoratore legge)</span><span>Al consumo sul posto</span><span>Da asporto</span><span/>
+        </div>
+        {tipVive.map((t, i) => {
+          const lato = (k) => { const ref = t[k]; const cur = tr(ref.profilo); return (
+            <div>
+              {puo ? sel(ref.profilo, v => setCambio({ tipId: t.id, lato: k, profilo: v, dal: domani }), optTr) : <div style={{fontSize:12.8}}><b>{cur.aliquota}%</b> · {cur.fondamento}</div>}
+              <div style={{fontSize:11.2, color:ADM.MUTED, marginTop:3, lineHeight:1.4}}>{HUB_MODALITA_TRATTAMENTO[cur.modalita] || ''}{ref.prossimo ? ` · dal ${ref.prossimo.dal}: ${tr(ref.prossimo.profilo).aliquota}%` : ''}</div>
+              {cambio && cambio.tipId === t.id && cambio.lato === k && (
+                <div style={{marginTop:6, padding:'8px 10px', borderRadius:8, background:ADM.WARN_SOFT, border:'1px solid #F0DCB4', display:'flex', flexDirection:'column', gap:6}}>
+                  <div style={{fontSize:11.8, color:'#7A4A0B', fontWeight:700}}>Da quando? Sposta l'aliquota su ogni cassa dalla mezzanotte scelta.</div>
+                  {dataBox(cambio.dal, v => setCambio({ ...cambio, dal: v }))}
+                  <div style={{display:'flex', gap:6}}>
+                    <AdmButton variant="primary" size="sm" icon="check" onClick={confermaCambio}>Conferma</AdmButton>
+                    <AdmButton variant="ghost" size="sm" onClick={() => setCambio(null)}>Annulla</AdmButton>
+                  </div>
+                </div>
+              )}
+            </div>
+          ); };
+          return (
+            <div key={t.id} style={{display:'grid', gridTemplateColumns:GRID_T, gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, alignItems:'start', fontSize:12.8, color:ADM.TEXT}}>
+              <div style={{display:'flex', flexDirection:'column', gap:2, alignItems:'center'}}>
+                <span style={{fontFamily:'ui-monospace,monospace', fontWeight:700}}>{i + 1}</span>
+                {puo && <button disabled={i === 0} onClick={() => sposta(t, -1)} title="Sale" style={{border:'none', background:'transparent', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? ADM.MUTED_LIGHT : ADM.MUTED, fontSize:11, lineHeight:1, padding:2}}>▲</button>}
+                {puo && <button disabled={i === tipVive.length - 1} onClick={() => sposta(t, 1)} title="Scende" style={{border:'none', background:'transparent', cursor: i === tipVive.length - 1 ? 'default' : 'pointer', color: i === tipVive.length - 1 ? ADM.MUTED_LIGHT : ADM.MUTED, fontSize:11, lineHeight:1, padding:2}}>▼</button>}
+              </div>
+              <div>
+                {puo ? <input value={bozze[t.id + ':label'] != null ? bozze[t.id + ':label'] : t.label} onChange={e => setBozze({ ...bozze, [t.id + ':label']: e.target.value })} onBlur={e => { parola(t, 'label', e.target.value); setBozze(b => { const c = { ...b }; delete c[t.id + ':label']; return c; }); }} style={inp}/> : <b>{t.label}</b>}
+                <div style={{fontFamily:'ui-monospace,monospace', fontSize:10.8, color:ADM.MUTED_SOFT, marginTop:3}}>{t.id}{i === 0 ? ' · proposta a tutti' : ''}</div>
+              </div>
+              <div>
+                {puo ? <textarea rows={3} value={bozze[t.id + ':spiegazione'] != null ? bozze[t.id + ':spiegazione'] : t.spiegazione} onChange={e => setBozze({ ...bozze, [t.id + ':spiegazione']: e.target.value })} onBlur={e => { parola(t, 'spiegazione', e.target.value); setBozze(b => { const c = { ...b }; delete c[t.id + ':spiegazione']; return c; }); }} style={{ ...inp, resize:'vertical', lineHeight:1.4 }}/> : <div style={{lineHeight:1.45}}>{t.spiegazione}</div>}
+              </div>
+              {lato('locale')}
+              {lato('asporto')}
+              <div>
+                {puo && !ritiro && <button className="adm-textlink" onClick={() => setRitiro({ tipId: t.id, dal: domani, verso: (tipVive.find(x => x.id !== t.id) || {}).id || '' })} style={{fontSize:12}}>Ritira…</button>}
+                {ritiro && ritiro.tipId === t.id && (
+                  <div style={{padding:'8px 10px', borderRadius:8, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40`, display:'flex', flexDirection:'column', gap:6, fontSize:11.8, color:'#7F1D1D'}}>
+                    <div style={{fontWeight:700}}>Chiude la vigenza. Articoli di menù che la indicano oggi: {uso[t.id] != null ? uso[t.id] : '— (il conteggio arriva dal gestionale)'}. A quale tipologia passano?</div>
+                    {sel(ritiro.verso, v => setRitiro({ ...ritiro, verso: v }), tipVive.filter(x => x.id !== t.id).map(x => ({ value: x.id, label: x.label })))}
+                    {dataBox(ritiro.dal, v => setRitiro({ ...ritiro, dal: v }))}
+                    <div style={{display:'flex', gap:6}}>
+                      <AdmButton variant="danger" size="sm" icon="x" onClick={confermaRitiro}>Ritira</AdmButton>
+                      <AdmButton variant="ghost" size="sm" onClick={() => setRitiro(null)}>Annulla</AdmButton>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {nuovaTip && (
+          <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, display:'grid', gridTemplateColumns:'minmax(0,1.5fr) minmax(0,2.2fr) minmax(0,1.5fr) minmax(0,1.5fr) 160px', gap:10, alignItems:'start'}}>
+            <input placeholder="Etichetta" value={nuovaTip.label} onChange={e => setNuovaTip({ ...nuovaTip, label: e.target.value })} style={inp}/>
+            <textarea rows={3} placeholder="Spiegazione: che cosa entra e che cosa cade fuori" value={nuovaTip.spiegazione} onChange={e => setNuovaTip({ ...nuovaTip, spiegazione: e.target.value })} style={{ ...inp, resize:'vertical' }}/>
+            {sel(nuovaTip.locale, v => setNuovaTip({ ...nuovaTip, locale: v }), optTr)}
+            {sel(nuovaTip.asporto, v => setNuovaTip({ ...nuovaTip, asporto: v }), optTr)}
+            <div style={{display:'flex', flexDirection:'column', gap:6}}>
+              <div style={{fontSize:11, color:ADM.MUTED}}>Vale dal</div>
+              {dataBox(nuovaTip.dal, v => setNuovaTip({ ...nuovaTip, dal: v }))}
+              <div style={{display:'flex', gap:6}}>
+                <AdmButton variant="primary" size="sm" icon="check" onClick={confermaNuovaTip}>Aggiungi</AdmButton>
+                <AdmButton variant="ghost" size="sm" onClick={() => setNuovaTip(null)}>Annulla</AdmButton>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── I trattamenti ── */}
+      <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden'}}>
+        <div style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderBottom:`1px solid ${ADM.BORDER}`}}>
+          <div style={H}>Trattamenti IVA · {trVivi.length} in vigore · un trattamento in vigore non si modifica</div>
+          <div style={{flex:1}}/>
+          {puo && !nuovoTr && <AdmButton variant="secondary" size="sm" icon="plus" onClick={() => setNuovoTr({ aliquota:'', modalita:'somministrazione', fondamento:'', citazione:'', dal: domani })}>Nuovo trattamento</AdmButton>}
+        </div>
+        <div style={{display:'grid', gridTemplateColumns:GRID_R, gap:10, padding:'8px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
+          <span>Trattamento</span><span>Aliquota</span><span>Modalità</span><span>Fondamento e citazione</span><span>Vigenza</span><span>Usato da</span><span/>
+        </div>
+        {reg.trattamenti.slice().sort((a, b) => (a.valida_al ? 1 : 0) - (b.valida_al ? 1 : 0) || a.aliquota - b.aliquota).map(t => {
+          const vivo = hubInVigore(t, oggi); const n = usoTrattamento(t.id);
+          return (
+            <div key={t.id} style={{display:'grid', gridTemplateColumns:GRID_R, gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, alignItems:'start', fontSize:12.6, color: vivo ? ADM.TEXT : ADM.MUTED, opacity: vivo ? 1 : 0.75}}>
+              <span style={{fontFamily:'ui-monospace,monospace', fontWeight:700, wordBreak:'break-all'}}>{t.id}</span>
+              <span style={{fontWeight:800, fontSize:14}}>{t.aliquota}%</span>
+              <span>{HUB_MODALITA_TRATTAMENTO[t.modalita] || t.modalita}</span>
+              <span><b>{t.fondamento}</b>{t.citazione ? <span style={{display:'block', fontSize:11.6, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{t.citazione}</span> : null}</span>
+              <span style={{fontSize:12}}>dal {t.valida_dal || '—'}{t.valida_al ? <span style={{display:'block', color:ADM.DANGER, fontWeight:700}}>chiuso dal {t.valida_al}</span> : <span style={{display:'block', color:ADM.OK, fontWeight:700}}>in vigore</span>}</span>
+              <span style={{fontWeight:700}}>{n} {n === 1 ? 'tipologia' : 'tipologie'}</span>
+              <div>
+                {puo && vivo && !chiudi && <button className="adm-textlink" onClick={() => setChiudi({ trId: t.id, dal: domani })} style={{fontSize:12}}>Chiudi vigenza…</button>}
+                {chiudi && chiudi.trId === t.id && (
+                  <div style={{padding:'8px 10px', borderRadius:8, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40`, display:'flex', flexDirection:'column', gap:6, fontSize:11.8, color:'#7F1D1D'}}>
+                    <div style={{fontWeight:700}}>{n > 0 ? `Lo puntano ${n} tipologie: dopo la chiusura vanno spostate su un trattamento in vigore.` : 'Nessuna tipologia lo punta.'} Da quando?</div>
+                    {dataBox(chiudi.dal, v => setChiudi({ ...chiudi, dal: v }))}
+                    <div style={{display:'flex', gap:6}}>
+                      <AdmButton variant="danger" size="sm" icon="x" onClick={confermaChiudi}>Chiudi vigenza</AdmButton>
+                      <AdmButton variant="ghost" size="sm" onClick={() => setChiudi(null)}>Annulla</AdmButton>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {nuovoTr && (
+          <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, display:'grid', gridTemplateColumns:'90px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,2fr) 160px', gap:10, alignItems:'start'}}>
+            <input placeholder="Aliquota %" value={nuovoTr.aliquota} onChange={e => setNuovoTr({ ...nuovoTr, aliquota: e.target.value })} style={inp}/>
+            {sel(nuovoTr.modalita, v => setNuovoTr({ ...nuovoTr, modalita: v }), Object.entries(HUB_MODALITA_TRATTAMENTO).map(([value, label]) => ({ value, label })))}
+            <input placeholder="Fondamento (es. voce 121)" value={nuovoTr.fondamento} onChange={e => setNuovoTr({ ...nuovoTr, fondamento: e.target.value })} style={inp}/>
+            <input placeholder="Citazione della norma" value={nuovoTr.citazione} onChange={e => setNuovoTr({ ...nuovoTr, citazione: e.target.value })} style={inp}/>
+            <div style={{display:'flex', flexDirection:'column', gap:6}}>
+              <div style={{fontSize:11, color:ADM.MUTED}}>Vale dal</div>
+              {dataBox(nuovoTr.dal, v => setNuovoTr({ ...nuovoTr, dal: v }))}
+              <div style={{display:'flex', gap:6}}>
+                <AdmButton variant="primary" size="sm" icon="check" onClick={confermaNuovoTr}>Apri</AdmButton>
+                <AdmButton variant="ghost" size="sm" onClick={() => setNuovoTr(null)}>Annulla</AdmButton>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </React.Fragment>
+  );
+}
+
 const AUDIT_TIPI = [
   { value:'cert',         label:'Certificazioni' },
   { value:'contratto',    label:'Contratti' },
@@ -516,6 +797,7 @@ const AUDIT_TIPI = [
   // movimenti manuali sul saldo fedeltà; e la rimozione di una recensione.
   { value:'utenti',       label:'Utenti app' },
   { value:'moderazione',  label:'Moderazione' },
+  { value:'piattaforma',  label:'Piattaforma' },
 ];
 
 const AUDIT_EVENTS = [
@@ -715,13 +997,18 @@ function PlatformConfig() {
     { id:'pesi',      label:'Coefficienti del piano' },
     { id:'discovery', label:'Discovery' },
     { id:'accrediti', label:'Accrediti', badge: ACCREDITI.filter(a => a.stato === 'in_attesa').length },
-    // La pillola «Dizionari» (coda di P-29): i dizionari di piattaforma in
-    // sola lettura, con la dicitura sulla fonte. Fuori dal salvataggio.
-    { id:'dizionari', label:'Dizionari' },
+    // «Aliquote degli articoli» (P-164 · D-112) al posto della pillola
+    // «Dizionari»: l'unico dizionario che il modello dice governato da Hubble
+    // — le tipologie dell'articolo con i loro trattamenti IVA — si cura da qui,
+    // con il proprio gesto per ogni cambiamento, fuori dal salvataggio comune.
+    // Gli altri dizionari (gusti, servizi, certificazioni, allergeni) sono
+    // fissi e li servirà il backend: le loro costanti restano nel codice
+    // perché le usano altre schermate; è uscita solo la resa in sola lettura.
+    { id:'aliquote', label:'Aliquote degli articoli' },
     // I documenti contrattuali e informativi. Stanno in Piattaforma e non
     // altrove perché pubblicare una versione tocca tutti i locali, tutto lo
     // staff e tutti gli utenti insieme: è il peso che questa sezione già
-    // porta. Fuori dal salvataggio comune, come i Dizionari — una versione si
+    // porta. Fuori dal salvataggio comune, come le Aliquote — una versione si
     // pubblica con il suo gesto, non con «Salva».
     { id:'documenti', label:'Documenti' },
   ];
@@ -917,38 +1204,7 @@ function PlatformConfig() {
       </React.Fragment>
       )}
 
-      {vista === 'dizionari' && (() => {
-        const tab = (titolo, sotto, righe) => (
-          <div style={{padding:'14px 16px', background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12}}>
-            <div style={{fontSize:13.5, fontWeight:800, color:ADM.TEXT}}>{titolo}</div>
-            <div style={{fontSize:11.8, color:ADM.MUTED, marginTop:2, marginBottom:10}}>{sotto}</div>
-            <div style={{display:'flex', flexWrap:'wrap', gap:6}}>
-              {righe.map(r => (
-                <span key={r.id} title={r.desc || r.hint || ''} style={{display:'inline-flex', alignItems:'center', gap:6, padding:'4px 9px', borderRadius:999, background:ADM.NEUTRAL_SOFT, fontSize:12.3, color:ADM.TEXT}}>
-                  <span style={{fontWeight:700}}>{r.label}</span>
-                  <span style={{fontFamily:'ui-monospace,monospace', fontSize:10.8, color:ADM.MUTED_SOFT}}>{r.id}</span>
-                  {r.tag && <span style={{fontSize:10.5, fontWeight:800, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.04em'}}>{r.tag}</span>}
-                </span>
-              ))}
-            </div>
-          </div>
-        );
-        return (
-      <React.Fragment>
-      <div style={{padding:'10px 13px', borderRadius:10, background:ADM.WARN_SOFT, border:'1px solid #F0DCB4', fontSize:12.6, color:'#7A4A0B', lineHeight:1.5}}>
-        Dizionari di piattaforma, in sola lettura. Hubble li governa, ma finché il dizionario non sarà servito dalla piattaforma la fonte è il gestionale (panoramica-tokens.jsx) e questa è la sua copia: si cambia di là, e i due bundle si allineano a mano. Il salvataggio qui sotto non li tocca.
-      </div>
-      {tab('Gusti e categorie di locale', 'PN_GUSTI · P-29 · D-28: otto categorie (una per locale) e i tag cibo; i tre regimi non sono mai un criterio (art. 9).',
-        HUB_PN_GUSTI.map(g => ({ id: g.id, label: g.label, desc: g.desc, tag: g.kind === 'venue_category' ? 'categoria' : g.is_dietary_regime ? 'regime' : (g.selectable_by_consumer ? 'gusto' : 'tag') })))}
-      {tab('Servizi del locale', 'PN_SERVIZI · P-67 · L1-30: dotazioni e modalità di servizio (venue_amenities).',
-        HUB_PN_SERVIZI.map(x => ({ id: x.id, label: x.label, tag: x.kind === 'service_mode' ? 'modalità' : 'dotazione' })))}
-      {tab('Certificazioni alimentari', 'CERT_TIPI · P-61 · RL-06: le dodici del modello; le autodichiarazioni non hanno documento da caricare, l\'ente è sempre indicativo.',
-        Object.entries(CERT_TIPI).map(([id, c]) => ({ id, label: c.label, desc: c.desc + ' · ente indicativo: ' + c.ente, tag: c.requires_document ? 'con documento' : 'autodichiarazione' })))}
-      {tab('Allergeni', 'PN_ALLERGENI · P-24 · D-27: i quattordici dell\'Allegato II del Reg. UE 1169/2011, per codice — mai testo libero.',
-        HUB_PN_ALLERGENI.map(a => ({ id: a.id, label: a.label, desc: a.hint, tag: a.code })))}
-      </React.Fragment>
-        );
-      })()}
+      {vista === 'aliquote' && <HubAliquoteArticoli/>}
 
       {/* I documenti hanno il loro gesto — «Pubblica…» — e stanno fuori dal
           salvataggio comune: una versione contrattuale non si salva insieme ai
@@ -957,7 +1213,7 @@ function PlatformConfig() {
 
       {/* Fuori dalle tab: si salva tutto, non la tab aperta. Ma non quando si
           sta guardando qualcosa che il salvataggio non tocca. */}
-      {vista !== 'dizionari' && vista !== 'documenti' && (
+      {vista !== 'aliquote' && vista !== 'documenti' && (
       <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap:10,
         paddingTop:14, borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
         {saved && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:700}}>✓ Configurazione salvata e registrata in audit</span>}
