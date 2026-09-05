@@ -31,7 +31,7 @@ function elMembri(el) {
 function HubElenchiPage() {
   const [vista, setVista] = useStateEl('tutti');
   const [cerca, setCerca] = useStateEl('');
-  const [cartella, setCartella] = useStateEl(null);
+  const [scopo, setScopo] = useStateEl(null);
   const [aperto, setAperto] = useStateEl(null);   // elenco in dettaglio
   const [nuovo, setNuovo] = useStateEl(null);     // bozza in creazione
   const [sort, setSort] = useStateEl({ campo: 'aggiornato', verso: 'desc' });
@@ -45,9 +45,9 @@ function HubElenchiPage() {
   const lista = useMemoEl(() => {
     let r = HUB_ELENCHI.slice();
     if (vista !== 'tutti') r = r.filter(e => e.tipo === vista);
-    if (cartella) r = r.filter(e => e.cartella === cartella);
+    if (scopo) r = r.filter(e => hubScopoDi(e) === scopo);
     const q = cerca.trim().toLowerCase();
-    if (q) r = r.filter(e => (e.nome + ' ' + e.descrizione + ' ' + e.cartella).toLowerCase().includes(q));
+    if (q) r = r.filter(e => (e.nome + ' ' + e.descrizione + ' ' + hubScopoDi(e)).toLowerCase().includes(q));
     const segno = sort.verso === 'asc' ? 1 : -1;
     const val = (e) => sort.campo === 'membri' ? conteggi[e.id]
       : sort.campo === 'nome' ? e.nome
@@ -57,7 +57,7 @@ function HubElenchiPage() {
       const c = typeof va === 'string' ? va.localeCompare(vb) : (new Date(va) - new Date(vb));
       return segno * c;
     });
-  }, [vista, cerca, cartella, sort, conteggi]);
+  }, [vista, cerca, scopo, sort, conteggi]);
 
   // L'editor vince sul dettaglio: «Modifica criteri» lo monta sopra la scheda
   // aperta, e chiuderlo riporta lì, non alla lista.
@@ -120,7 +120,7 @@ function HubElenchiPage() {
       <HubTestata titolo="Elenchi"
         sotto="Gruppi di contatti da usare come pubblico di una campagna o come innesco di un workflow. Gli attivi si tengono aggiornati da soli."
         azioni={<HubStrumento forte icona="plus" onClick={() => setNuovo({
-          nome: '', descrizione: '', tipo: 'attivo', cartella: 'Commerciale', includi: [], escludi: [],
+          nome: '', descrizione: '', tipo: 'attivo', scopo: HUB_SCOPI[0], includi: [], escludi: [],
         })}>Crea elenco</HubStrumento>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
@@ -149,13 +149,13 @@ function HubElenchiPage() {
           ]}/>
           <HubRicerca valore={cerca} onCambia={setCerca} placeholder="Cerca un elenco…" larghezza={240}/>
           <div style={{ flex: 1 }}/>
-          <AdmSelect value={cartella || ''} onChange={v => setCartella(v || null)}
-            options={[{ value: '', label: 'Tutte le cartelle' }, ...HUB_CARTELLE.map(c => ({ value: c, label: c }))]}/>
+          <AdmSelect value={scopo || ''} onChange={v => setScopo(v || null)}
+            options={[{ value: '', label: 'Tutti gli scopi' }, ...HUB_SCOPI.map(c => ({ value: c, label: c }))]}/>
         </div>
         <HubTabella colonne={colonne} righe={lista} chiave={e => e.id} cella={cella}
           sort={sort} onSort={ordina} onRiga={setAperto}
           vuoto={<HubVuoto icona="layers" titolo="Nessun elenco con questi criteri"
-            desc="Cambia vista o cartella. Oppure creane uno nuovo: parte dai filtri della rubrica."/>}/>
+            desc="Cambia vista o scopo. Oppure creane uno nuovo: parte dai filtri della rubrica."/>}/>
       </AdmCard>
     </div>
   );
@@ -197,9 +197,9 @@ function HubElencoDettaglio({ elenco, onChiudi, membri, onModifica }) {
       <HubTestata titolo={elenco.nome} sotto={elenco.descrizione}
         azioni={
           <React.Fragment>
-            {/* Tipo e cartella stavano nell'occhiello: l'occhiello è morto,
+            {/* Tipo e scopo stavano nell'occhiello: l'occhiello è morto,
                 il dato no. Il tipo ha anche il suo tile qui sotto. */}
-            <HubPillola color={t.color}>{t.label} · {elenco.cartella}</HubPillola>
+            <HubPillola color={t.color}>{t.label} · {hubScopoDi(elenco)}</HubPillola>
             <HubStrumento icona="megaphone" onClick={() => setScegli(true)}>Usa in una campagna</HubStrumento>
             <HubStrumento icona="pencil" forte onClick={onModifica}>Modifica criteri</HubStrumento>
           </React.Fragment>
@@ -347,6 +347,35 @@ function HubCriteriLettura({ titolo, filtri, colore }) {
 // La schermata di creazione tiene il conteggio LIVE accanto ai criteri: si
 // vede quanti contatti si stanno prendendo mentre li si sceglie, non dopo aver
 // salvato. È la differenza tra comporre un segmento e indovinarlo.
+// Il campo dello scopo: gli scopi che ci sono, più «Nuovo scopo…». Scegliendo
+// quello il campo diventa una casella di testo e quello che scrivi entra
+// nell'elenco degli scopi — sei voci vanno bene per cominciare, non per
+// sempre, e una lista chiusa costringe a incastrare a forza la lista che non
+// ci sta. Stessa grammatica dei tag liberi delle Comunicazioni: si scrive e si
+// conferma con Invio, senza un foglio a parte per una parola sola.
+function HubScopoCampo({ valore, onCambia }) {
+  const [nuovo, setNuovo] = useStateEl(false);
+  const [testo, setTesto] = useStateEl('');
+  const conferma = () => {
+    const n = window.hubAggiungiScopo(testo);
+    if (n) onCambia(n);
+    setTesto(''); setNuovo(false);
+  };
+  if (nuovo) {
+    return (
+      <div style={{ display: 'flex', gap: 6 }}>
+        <HubInput valore={testo} onCambia={setTesto} placeholder="es. Riattivazione" autoFocus
+          onKeyDown={e => { if (e.key === 'Enter') conferma(); if (e.key === 'Escape') { setTesto(''); setNuovo(false); } }}/>
+        <AdmButton variant="secondary" size="sm" onClick={conferma} disabled={!testo.trim()}>Aggiungi</AdmButton>
+      </div>
+    );
+  }
+  return (
+    <AdmSelect block value={valore} onChange={v => { if (v === '__nuovo') { setNuovo(true); return; } onCambia(v); }}
+      options={[...HUB_SCOPI.map(c => ({ value: c, label: c })), { value: '__nuovo', label: '+ Nuovo scopo…' }]}/>
+  );
+}
+
 function HubElencoEditor({ bozza, onChiudi }) {
   const [el, setEl] = useStateEl(bozza);
   const set = (k, v) => setEl(e => Object.assign({}, e, { [k]: v }));
@@ -397,9 +426,8 @@ function HubElencoEditor({ bozza, onChiudi }) {
               <HubCampo label="Nome dell'elenco">
                 <HubInput valore={el.nome} onCambia={v => set('nome', v)} placeholder="es. Locali Plus e Business attivi"/>
               </HubCampo>
-              <HubCampo label="Cartella">
-                <AdmSelect block value={el.cartella} onChange={v => set('cartella', v)}
-                  options={HUB_CARTELLE.map(c => ({ value: c, label: c }))}/>
+              <HubCampo label="Scopo" nota="A che cosa serve questo elenco. Se nessuno degli scopi ti va bene, scrivine uno nuovo.">
+                <HubScopoCampo valore={hubScopoDi(el)} onCambia={v => set('scopo', v)}/>
               </HubCampo>
             </div>
             <HubCampo label="A che serve" nota="Una riga: chi lo trova fra sei mesi deve capire perché esiste.">

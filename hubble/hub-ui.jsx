@@ -353,9 +353,13 @@ function HubCampo({ label, nota, children, larghezza }) {
   );
 }
 
-function HubInput({ valore, onCambia, placeholder, tipo = 'text', style }) {
+// `onKeyDown` passa attraverso: serve ai campi che si confermano con Invio —
+// lo scopo di un elenco, per dire — senza doverli riscrivere a mano fuori da
+// qui e perdere la veste comune.
+function HubInput({ valore, onCambia, placeholder, tipo = 'text', style, onKeyDown, autoFocus }) {
   return <input type={tipo} value={valore == null ? '' : valore} placeholder={placeholder}
     onChange={e => onCambia(tipo === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+    onKeyDown={onKeyDown} autoFocus={autoFocus}
     style={Object.assign({}, HUB_INPUT, style)}/>;
 }
 

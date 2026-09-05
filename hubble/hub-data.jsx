@@ -491,55 +491,92 @@ function hubArricchisci(c) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const HUB_ELENCHI = [
-  { id: 'EL-001', nome: 'Locali Plus e Business attivi', tipo: 'attivo', cartella: 'Commerciale',
+  { id: 'EL-001', nome: 'Locali Plus e Business attivi', tipo: 'attivo', scopo: 'Fidelizzazione',
     descrizione: 'Base installata dei piani alti — il pubblico degli annunci di prodotto.',
     autore: 'Marco Rinaldi', creato: new Date(2026, 2, 12), aggiornato: new Date(Date.now() - 1800000),
     usatoIn: ['Novità di primavera', 'Workflow · Upsell Business'],
     includi: [ { prop: 'tipo', op: 'unoDi', valore: ['locale'] }, { prop: 'piano', op: 'unoDi', valore: ['plus', 'business'] }, { prop: 'ciclo', op: 'unoDi', valore: ['clientePagante', 'returning'] } ],
     escludi: [] },
-  { id: 'EL-002', nome: 'Lead senza referral noto', tipo: 'attivo', cartella: 'Acquisizione',
+  { id: 'EL-002', nome: 'Lead senza referral noto', tipo: 'attivo', scopo: 'Acquisizione',
     descrizione: 'Chi è entrato senza che sappiamo da dove: da chiamare e da qualificare.',
     autore: 'Giulia Ferrari', creato: new Date(2026, 4, 3), aggiornato: new Date(Date.now() - 5400000),
     usatoIn: ['Workflow · Qualifica lead'],
     includi: [ { prop: 'ciclo', op: 'unoDi', valore: ['lead'] }, { prop: 'referral', op: 'nonNoto', valore: null } ],
     escludi: [] },
-  { id: 'EL-003', nome: 'Iscritti dopo il 3 luglio 2026', tipo: 'attivo', cartella: 'Acquisizione',
+  { id: 'EL-003', nome: 'Iscritti dopo il 3 luglio 2026', tipo: 'attivo', scopo: 'Acquisizione',
     descrizione: 'Tutti i contatti entrati nel database dopo il lancio del nuovo sito.',
     autore: 'Marco Rinaldi', creato: new Date(2026, 6, 4), aggiornato: new Date(Date.now() - 900000),
     usatoIn: ['Benvenuto in byup'],
     includi: [ { prop: 'iscritto', op: 'dopo', valore: new Date(2026, 6, 3) } ],
     escludi: [ { prop: 'consensoMail', op: 'falso', valore: null } ] },
-  { id: 'EL-004', nome: 'Utenti App Pro molto attivi', tipo: 'attivo', cartella: 'Prodotto',
+  { id: 'EL-004', nome: 'Utenti App Pro molto attivi', tipo: 'attivo', scopo: 'Attivazione',
     descrizione: 'Chi paga il Pro e lo usa davvero: il campione per i test delle novità.',
     autore: 'Davide Neri', creato: new Date(2026, 3, 21), aggiornato: new Date(Date.now() - 3600000),
     usatoIn: ['Push · Beta prenotazioni'],
     includi: [ { prop: 'tipo', op: 'unoDi', valore: ['utente'] }, { prop: 'piano', op: 'unoDi', valore: ['pro'] }, { prop: 'sessioni', op: 'maggiore', valore: 25 } ],
     escludi: [] },
-  { id: 'EL-005', nome: 'Fiera Host 2026 — contatti raccolti', tipo: 'statico', cartella: 'Eventi',
+  { id: 'EL-005', nome: 'Fiera Host 2026 — contatti raccolti', tipo: 'statico', scopo: 'Eventi',
     descrizione: 'Importata dal foglio dei badge scansionati allo stand.',
     autore: 'Chiara Rossi', creato: new Date(2026, 9, 20), aggiornato: new Date(2026, 9, 22),
     usatoIn: ['Follow-up fiera'], origine: 'Import CSV · badge-host-2026.csv',
     membriFissi: 42, includi: [], escludi: [] },
-  { id: 'EL-006', nome: 'Cessati negli ultimi 90 giorni', tipo: 'attivo', cartella: 'Retention',
+  { id: 'EL-006', nome: 'Cessati negli ultimi 90 giorni', tipo: 'attivo', scopo: 'Recupero',
     descrizione: 'La coda del win-back: si svuota da sola quando qualcuno rientra.',
     autore: 'Giulia Ferrari', creato: new Date(2026, 5, 8), aggiornato: new Date(Date.now() - 7200000),
     usatoIn: ['Workflow · Win-back 3 passi'],
     includi: [ { prop: 'ciclo', op: 'unoDi', valore: ['annullato'] }, { prop: 'ultimaAttivita', op: 'ultimiGg', valore: 90 } ],
     escludi: [] },
-  { id: 'EL-007', nome: 'Interessati al Delivery', tipo: 'attivo', cartella: 'Prodotto',
+  { id: 'EL-007', nome: 'Interessati al Delivery', tipo: 'attivo', scopo: 'Attivazione',
     descrizione: 'Chi ha spuntato Delivery in un form o in un sondaggio.',
     autore: 'Marco Rinaldi', creato: new Date(2026, 1, 30), aggiornato: new Date(Date.now() - 10800000),
     usatoIn: ['Delivery: come funziona'],
     includi: [ { prop: 'interessi', op: 'contieneUno', valore: ['delivery'] }, { prop: 'consensoMail', op: 'vero', valore: null } ],
     escludi: [ { prop: 'ciclo', op: 'unoDi', valore: ['eliminato'] } ] },
-  { id: 'EL-008', nome: 'Staff da formare — nuovi assunti', tipo: 'statico', cartella: 'Operazioni',
+  { id: 'EL-008', nome: 'Staff da formare — nuovi assunti', tipo: 'statico', scopo: 'Servizio',
     descrizione: 'Aggiunti a mano dai titolari che hanno chiesto la formazione.',
     autore: 'Chiara Rossi', creato: new Date(2026, 7, 2), aggiornato: new Date(2026, 7, 14),
     usatoIn: [], origine: 'Aggiunti manualmente dalla rubrica',
     membriFissi: 17, includi: [], escludi: [] },
 ];
 
-const HUB_CARTELLE = ['Commerciale', 'Acquisizione', 'Prodotto', 'Retention', 'Eventi', 'Operazioni'];
+// ─── Lo SCOPO di un elenco ──────────────────────────────────────────────────
+// Si chiamava «cartella», e le sei voci mescolavano due assi: Commerciale e
+// Operazioni dicevano DI CHI è la lista, Acquisizione e Retention A CHE COSA
+// SERVE, e Prodotto poteva voler dire tutte e due. Qualunque etichetta ci
+// stesse sopra risultava falsa per metà delle voci.
+// Vince lo scopo, perché la domanda che uno si fa davanti a quaranta elenchi
+// non è «di chi è?» — il reparto lo sa già, è lui — ma «a che cosa serve?»,
+// che è quella che dice se l'elenco è quello giusto. I sei valori diventano un
+// ciclo di vita che si legge da sé; «Retention», per giunta, era l'unica
+// parola inglese in una console tutta italiana.
+// La lista NON è chiusa: si aggiunge uno scopo scrivendolo, dal foglio
+// dell'elenco. Sei voci vanno bene per cominciare e non per sempre, e un
+// elenco chiuso costringe a incastrare a forza la lista che non ci sta.
+const HUB_SCOPI = ['Acquisizione', 'Attivazione', 'Fidelizzazione', 'Recupero', 'Eventi', 'Servizio'];
+// I nomi di prima, per le righe già scritte: si traducono in lettura, così
+// nessun elenco resta senza scopo. Prodotto non ha un erede diretto — era
+// l'asse sbagliato — e finisce su Attivazione, che è quello che quelle due
+// liste fanno davvero (chi usa il prodotto, chi si è interessato al delivery).
+const HUB_SCOPI_VECCHI = {
+  Commerciale: 'Fidelizzazione', Acquisizione: 'Acquisizione', Prodotto: 'Attivazione',
+  Retention: 'Recupero', Eventi: 'Eventi', Operazioni: 'Servizio',
+};
+// Lo scopo di un elenco, tradotto se è uno dei vecchi nomi.
+window.hubScopoDi = (e) => {
+  const v = (e && (e.scopo || e.cartella)) || '';
+  return HUB_SCOPI_VECCHI[v] || v;
+};
+// Aggiungere uno scopo: entra in elenco se non c'è già, e torna il nome
+// normalizzato. Nessun id e nessun codice — è un'etichetta, e il valore È il
+// nome, come per i tag liberi delle comunicazioni.
+window.hubAggiungiScopo = (nome) => {
+  const n = String(nome || '').trim();
+  if (!n) return null;
+  const gia = HUB_SCOPI.find(x => x.toLowerCase() === n.toLowerCase());
+  if (gia) return gia;
+  HUB_SCOPI.push(n);
+  return n;
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 6 · MARKETING — mail, SMS, push, form
@@ -1067,7 +1104,7 @@ window.HUB_PN_ALLERGENI = HUB_PN_ALLERGENI;
 window.HUB_GUSTI_SCEGLIBILI = HUB_GUSTI_SCEGLIBILI;
 window.hubGustiDi = hubGustiDi;
 window.hubUsaGusti = hubUsaGusti;
-window.HUB_CARTELLE = HUB_CARTELLE;
+window.HUB_SCOPI = HUB_SCOPI;
 window.HUB_STATI_INVIO = HUB_STATI_INVIO;
 window.HUB_MAIL = HUB_MAIL;
 window.HUB_SMS = HUB_SMS;
