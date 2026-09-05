@@ -115,15 +115,18 @@ const utnEur2 = (n) => n == null ? '—'
 // Le usa la scheda per i suoi numeri e le usa il calcolo delle mediane qui
 // sotto: se vivessero in due posti, prima o poi divergerebbero e il
 // confronto confronterebbe cose diverse.
+// Niente durata di sessione né conteggio delle sessioni (P-147):
+// app_usage_events porta tre soli eventi — apertura, scansione, apertura del
+// menù — e nessuna chiusura, quindi quella durata non la produce nessun fatto
+// registrato; e la minimizzazione è una scelta (LIA), non una dimenticanza.
+// Il tempo dentro l'app, poi, per Byup dice il contrario di quel che sembra:
+// chi sta dieci minuti in un menù non trova quel che cerca.
 function utnStatDerivate(x) {
   const s = hubSeme(x.id) % 1000;
   const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
-  const sessioniAnno = 60 + Math.floor(r(300) * 420);
   const etaGiorniAccount = Math.max(1, (Date.now() - x.dataRegistrazione.getTime()) / 86400000);
   return {
-    sessioniAnno,
     etaGiorniAccount,
-    tempoSessione: (6 + r(301) * 18) * 60,               // 6–24 min per sessione
     tempoOrdine: (2 + r(302) * 6) * 60,                  // 2–8 min dal menu all'invio
     // A quest'ordine di grandezza i secondi sono rumore: minuti interi.
     tempoPagamento: Math.round(25 + r(303) * 70) * 60,   // 25–95 min dall'ordine al conto
@@ -136,7 +139,7 @@ function utnStatDerivate(x) {
 }
 
 // ─── Le mediane della base utenti ───────────────────────────────────────────
-// Il metro accanto ai numeri della tab Statistiche: 34 sessioni al mese è
+// Il metro accanto ai numeri della tab Statistiche: 41 € di spesa media è
 // tanto o poco? Senza un metro sono anagrafe di numeri, non uno strumento.
 // Si calcolano una volta sola, su tutta la base, con la STESSA formula.
 const UTN_MEDIANE = (() => {
@@ -148,8 +151,6 @@ const UTN_MEDIANE = (() => {
   };
   const righe = (typeof UTENTI !== 'undefined' ? UTENTI : []).map(utnStatDerivate);
   return {
-    sesMese: med(righe.map(x => Math.round(x.sessioniAnno / 12))),
-    tempoSessione: med(righe.map(x => x.tempoSessione)),
     spesaMedia: med(righe.map(x => x.spesaMedia)),
     prenAnno: med(righe.map(x => x.prenAnno)),
   };
@@ -324,18 +325,8 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   // ── Statistiche (tab): le abitudini d'uso della piattaforma ──
   // Le derivate escono da utnStatDerivate — la STESSA formula che fa le
   // mediane della base utenti, così il confronto confronta la stessa cosa.
-  // Le sessioni si estraggono una volta — quelle dell'anno — e gli altri
-  // orizzonti si dividono da lì: cinque numeri estratti a caso non
-  // starebbero mai in colonna tra loro.
   const der = utnStatDerivate(u);
-  const { sessioniAnno, tempoSessione, tempoOrdine, tempoPagamento, tempoPrenotazione, spesaMedia, etaGiorniAccount, prenAnno } = der;
-  const sessioni = {
-    settimana: Math.max(1, Math.round(sessioniAnno / 52)),
-    mese: Math.round(sessioniAnno / 12),
-    trimestre: Math.round(sessioniAnno / 4),
-    semestre: Math.round(sessioniAnno / 2),
-    anno: sessioniAnno,
-  };
+  const { tempoOrdine, tempoPagamento, tempoPrenotazione, spesaMedia, etaGiorniAccount, prenAnno } = der;
   const refLocali = Math.floor(rnd(305) * 9);          // inviti a ristoranti
   const refUtenti = Math.floor(rnd(306) * 15);         // inviti ad altri utenti
   const refTotali = refLocali + refUtenti;
@@ -707,28 +698,11 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
         {/* ═══ TAB STATISTICHE — le abitudini d'uso della piattaforma ═══ */}
         {tab === 'statistiche' && (
           <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
-            {/* Quanto sta nell'app e con che ritmo torna: il tempo di una
-                sessione e le sessioni sui cinque orizzonti, divise da un
-                unico numero annuale perché stiano in colonna tra loro. */}
-            <AdmCard padding={0}>
-              <div style={{padding:'16px 20px 4px'}}>
-                <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT}}>Abitudini di utilizzo</div>
-                <div style={{fontSize:13, color:ADM.MUTED, marginTop:2}}>Quanto sta nell'app e con che ritmo ci torna.</div>
-              </div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
-                <MiniStat first label="Tempo medio di utilizzo" value={utnDurata(tempoSessione)}
-                  sub={<React.Fragment>Per sessione{vsMediana(tempoSessione, UTN_MEDIANE.tempoSessione, utnDurata)}</React.Fragment>}/>
-                <MiniStat label="Sessioni settimanali" value={fmtNum(sessioni.settimana)} sub="Media a settimana"/>
-                <MiniStat label="Sessioni mensili" value={fmtNum(sessioni.mese)}
-                  sub={<React.Fragment>Media al mese{vsMediana(sessioni.mese, UTN_MEDIANE.sesMese, fmtNum)}</React.Fragment>}/>
-              </div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))', borderTop:`1px solid ${ADM.BORDER_SOFT}`}}>
-                <MiniStat first label="Sessioni trimestrali" value={fmtNum(sessioni.trimestre)} sub="Media a trimestre"/>
-                <MiniStat label="Sessioni semestrali" value={fmtNum(sessioni.semestre)} sub="Media a semestre"/>
-                <MiniStat label="Sessioni annuali" value={fmtNum(sessioni.anno)} sub="Ultimi 12 mesi"/>
-              </div>
-            </AdmCard>
-
+            {/* Niente «tempo medio di utilizzo» né sessioni (P-147): il
+                registro degli eventi d'uso non ha una chiusura, e quel numero
+                veniva dal seme. Se servirà una misura d'uso, è il ritorno —
+                chi apre l'app in un mese e la riapre nel successivo — che si
+                calcola con gli eventi che già ci sono. */}
             {/* La spesa: la media al centesimo, col totale accanto che le fa
                 da ancora — una media da sola non dice se pesa. I numeri sono
                 quelli veri del dataset (spesa totale / ordini totali). */}
