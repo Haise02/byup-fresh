@@ -117,9 +117,8 @@ function ScreenLogin({ nav, entraIn, faceIdOn = false }) {
   const [gate, setGate] = useStateL(!!faceIdOn);
 
   // D-41 (P-53): dopo il login, gli ambienti in cui la persona può entrare
-  // (staffAmbienti: appartenenze attive, per sede; sul telefono della sede le
-  // sole sedi del suo ristorante). Con uno solo si entra dritti, altrimenti
-  // la lista.
+  // (staffAmbienti: appartenenze attive, per sede — P-145: decidono solo
+  // loro). Con uno solo si entra dritti, altrimenti la lista.
   const entra = () => {
     const amb = staffAmbienti();
     if (amb.length === 1) entraIn(amb[0]); else nav.reset({ s: 'locali' });
@@ -207,25 +206,22 @@ function ScreenLogin({ nav, entraIn, faceIdOn = false }) {
 // SCELTA DEL LOCALE (D-41 · P-53) — dove entra la persona
 // ═══════════════════════════════════════════════════════════
 // Sul telefono personale: i locali che l'hanno invitata, sede per sede, col
-// ruolo che vale in ciascuno. Sul telefono della sede: le sole sedi del suo
-// ristorante (ci si arriva solo se sono più d'una). Con zero ambienti — tutte
-// le appartenenze spente — lo dice e rimanda al login.
+// ruolo che vale in ciascuno. Con zero ambienti — tutte le appartenenze
+// spente — lo dice e rimanda al login.
 function ScreenLocali({ nav, entraIn }) {
   const amb = staffAmbienti();
-  const sede = DISPOSITIVO.tipo === 'locale';
   const gruppi = [];
   amb.forEach(a => { let g = gruppi.find(x => x.id === a.restaurant_id); if (!g) { g = { id: a.restaurant_id, nome: a.ristorante, voci: [] }; gruppi.push(g); } g.voci.push(a); });
   return (
     <div style={{ minHeight: '100%', background: LOGIN_BG, padding: '64px 24px 32px', display: 'flex', flexDirection: 'column' }}>
       <Logo size={46} radius={ST.R_MD}/>
       <h1 style={{ fontSize: 30, fontWeight: 800, color: '#fff', letterSpacing: -0.6, margin: '24px 0 8px', lineHeight: 1.1 }}>
-        {amb.length === 0 ? 'Nessun locale ti ha invitato' : sede ? `Le sedi di ${gruppi[0].nome}` : 'Dove entri?'}
+        {amb.length === 0 ? 'Nessun locale ti ha invitato' : 'Dove entri?'}
       </h1>
       <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', lineHeight: 1.45, margin: '0 0 24px' }}>
         {amb.length === 0
           ? 'Le tue appartenenze sono state disattivate: rivolgiti al titolare del locale.'
-          : sede ? `Questo telefono è di ${DISPOSITIVO.nome.split(' · ')[0].toLowerCase()}: scegli la sede in cui lavori oggi.`
-                 : `Ciao ${PERSONA.nome.split(' ')[0]}, questi sono i locali che ti hanno invitato.`}
+          : `Ciao ${PERSONA.nome.split(' ')[0]}, questi sono i locali che ti hanno invitato.`}
       </p>
 
       {gruppi.map(g => (

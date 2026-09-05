@@ -36,22 +36,18 @@ const APPARTENENZE = [
 // sessions.*: il contesto scelto, vuoto finché la persona non entra.
 const SESSIONE = { active_restaurant_id: null, active_venue_id: null, membership_id: null, context_switched_at: null };
 
-// Il telefono. Personale per default; ?dispositivo=locale è il telefono della
-// sede, il dispositivo censito di P-105 — un'utenza tecnica di dispositivo
-// (contact_type device: senza persona, senza consensi, fuori dalle campagne
-// per costruzione) che appartiene alla sede. Chi ci entra sopra entra nel suo
-// ambiente senza scegliere, salvo le altre sedi dello stesso ristorante.
-const DISPOSITIVO = (() => {
-  let tipo = 'personale';
-  try { if (new URLSearchParams(window.location.search).get('dispositivo') === 'locale') tipo = 'locale'; } catch (e) {}
-  return tipo === 'locale'
-    ? { tipo, contact_type: 'device', restaurant_id: 'r_borgo', venue_id: 'v_borgo_centro', nome: 'iPhone della cassa · Centro' }
-    : { tipo, contact_type: null };
-})();
+// A decidere in quale sede si entra sono le APPARTENENZE, e solo quelle
+// (P-145): l'account è della persona, e un locale che la invita in una sede
+// compie l'atto che decide dove può entrare. Il «telefono della sede»
+// (?dispositivo=locale) che filtrava gli ambienti sul ristorante del
+// dispositivo era un secondo meccanismo per la stessa domanda, e rispondeva
+// diversamente: dichiarava una sede precisa e poi le faceva scegliere tutte.
+// È tolto. Il dispositivo censito presso l'Agenzia (Dati fiscali, nato col
+// collegamento a Stripe) è un'altra cosa e non c'entra.
 
 // Gli ambienti in cui la persona può entrare: le appartenenze attive, espanse
-// per sede (venue_id nullo = tutte). Sul telefono della sede restano le sole
-// sedi di quel ristorante.
+// per sede (venue_id nullo = tutte). Nessuno: non si entra; uno: si entra
+// dritti; più d'uno: si sceglie.
 function staffAmbienti() {
   const out = [];
   APPARTENENZE.filter(m => !m.deactivated_at).forEach(m => {
@@ -60,7 +56,7 @@ function staffAmbienti() {
       membership_id: m.id, restaurant_id: r.id, ristorante: r.nome, venue_id: sd.id, sede: sd.nome, citta: sd.citta, ruolo: m.ruolo, multiSede: r.sedi.length > 1,
     }));
   });
-  return DISPOSITIVO.tipo === 'locale' ? out.filter(a => a.restaurant_id === DISPOSITIVO.restaurant_id) : out;
+  return out;
 }
 
 // La scelta: SESSIONE prende il contesto, MERCHANT si deriva.
@@ -159,4 +155,4 @@ if (!window.byupNotteInfo) {
   window.byupNotteConta = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-Object.assign(window, { MERCHANT, PERSONA, RISTORANTI, APPARTENENZE, SESSIONE, DISPOSITIVO, DISATTIVA_DEMO, staffAmbienti, staffEntra, staffEsci, staffDisattiva, staffAccessoRevocato, CODA_INCASSO, TRANSAZIONI, INCASSO_OGGI, N_OGGI });
+Object.assign(window, { MERCHANT, PERSONA, RISTORANTI, APPARTENENZE, SESSIONE, DISATTIVA_DEMO, staffAmbienti, staffEntra, staffEsci, staffDisattiva, staffAccessoRevocato, CODA_INCASSO, TRANSAZIONI, INCASSO_OGGI, N_OGGI });
