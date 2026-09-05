@@ -76,23 +76,33 @@ const HUB_IMPOSTAZIONI_VOCI = [
 ];
 
 function ImpostazioniPage({ sub, teamTab }) {
-  const [vista, setVista] = useStateApp(sub || 'sicurezza');
+  // «Piattaforma è del solo Super Admin» non era applicata (P-156.2): la
+  // linguetta stava nell'elenco senza controllo di ruolo, e nel mock non si
+  // vedeva perché chi guarda è il Super Admin. Ora compare solo a lui; con
+  // `?ruolo=support` sparisce, e un rimando diretto alla vista riservata
+  // ricade su Sicurezza. La riga che lo dichiara resta, per chi la vede.
+  const me = hubUtenteCorrente();
+  const superAdmin = me.ruolo === 'super_admin';
+  const voci = HUB_IMPOSTAZIONI_VOCI.filter(v => v.id !== 'piattaforma' || superAdmin);
+  const [vista, setVista] = useStateApp(sub && voci.some(v => v.id === sub) ? sub : 'sicurezza');
   // Un link esterno (⌘K, un avviso) può cambiare la parte interna mentre la
   // pagina è già montata: la prop comanda, lo stato segue.
-  React.useEffect(() => { if (sub) setVista(sub); }, [sub]);
+  React.useEffect(() => { if (sub) setVista(voci.some(v => v.id === sub) ? sub : 'sicurezza'); }, [sub]);
   return (
     <div style={{display:'flex', flexDirection:'column', minHeight:'100%'}}>
       <div style={{padding:'20px 28px 0', display:'flex', alignItems:'center', gap:14}}>
-        <HubSegmenti attivo={vista} onCambia={setVista} voci={HUB_IMPOSTAZIONI_VOCI}/>
+        <HubSegmenti attivo={vista} onCambia={setVista} voci={voci}/>
         <div style={{flex:1}}/>
-        <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.4, color:ADM.MUTED_SOFT, whiteSpace:'nowrap'}}>
-          <BuIcons.lock size={13}/> Piattaforma è visibile solo a te (Super Admin)
-        </span>
+        {superAdmin && (
+          <span style={{display:'inline-flex', alignItems:'center', gap:6, fontSize:12.4, color:ADM.MUTED_SOFT, whiteSpace:'nowrap'}}>
+            <BuIcons.lock size={13}/> Piattaforma è visibile solo a te (Super Admin)
+          </span>
+        )}
       </div>
       {vista === 'sicurezza'   && <AdmTeamPage search={''} initialTab={teamTab} sezione="sicurezza"/>}
       {vista === 'proprieta'   && <HubProprietaPage/>}
       {vista === 'domini'      && <HubDominiPage/>}
-      {vista === 'piattaforma' && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
+      {vista === 'piattaforma' && superAdmin && <AdmTeamPage search={''} initialTab={teamTab} sezione="impostazioni"/>}
     </div>
   );
 }

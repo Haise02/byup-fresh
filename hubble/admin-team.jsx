@@ -1209,6 +1209,26 @@ function AccessiList() {
     setRevoca(null); setMotivo(''); setDettaglio(null);
   };
 
+  // L'esportazione promessa (P-156.3): l'elenco in CSV, una riga per persona,
+  // con le colonne che la scheda mostra. Il riesame periodico si fa fuori dal
+  // prodotto su foglio (A.5.18, D-44): senza questo file la frase prometteva
+  // un lavoro che non si poteva fare. L'estrazione lascia traccia nell'audit.
+  const esportaCsv = () => {
+    const q = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+    const oggi = new Date();
+    const righe = membri.map(m => {
+      const gg = acGiorniFa(m.lastActive);
+      return [m.nomeCompleto || m.nome, m.email || '', admLabelRuolo(m.ruolo), m.lastActive ? new Date(m.lastActive).toLocaleDateString('it-IT') : '', gg == null ? '' : gg, gg != null && gg >= 90 ? 'sì' : 'no'].map(q).join(';');
+    });
+    const csv = '\ufeff' + ['Persona;Email;Ruolo;Ultimo accesso;Giorni dall\'ultimo accesso;Dormiente (90+ giorni)', ...righe].join('\n');
+    try {
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a'); a.href = url; a.download = `hubble-accessi-${oggi.toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) {}
+    AUDIT_EVENTS.unshift({ who: IO, action: 'ha esportato l\'elenco degli accessi', target: `${membri.length} persone · riesame periodico`, icon: 'download', color: 'INFO', tipo: 'estrazione', when: oggi });
+  };
+
   const H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 };
   const GRID = 'minmax(0,2.6fr) 1.15fr 1fr 26px';
   return (
@@ -1226,6 +1246,7 @@ function AccessiList() {
           <div style={H}>Chi ha accesso · {membri.length}</div>
           <div style={{flex:1}}/>
           <div style={{fontSize:12.5, color:ADM.MUTED}}>Il riesame periodico si fa fuori dal prodotto, su foglio (A.5.18, D-44): da qui si esporta l'elenco e si revoca.</div>
+          <AdmButton variant="secondary" size="sm" icon="download" onClick={esportaCsv}>Esporta CSV</AdmButton>
         </div>
         <div style={{display:'grid', gridTemplateColumns:GRID, gap:12, padding:'0 12px 8px', fontSize:11.5, fontWeight:700, color:ADM.MUTED_SOFT, textTransform:'uppercase', letterSpacing:'0.05em'}}>
           <span>Persona</span><span>Ruolo</span><span>Ultimo accesso</span><span/>

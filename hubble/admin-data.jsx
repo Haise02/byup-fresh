@@ -705,11 +705,14 @@ const CERTIFICAZIONI = [
 // ---------- TEAM ADMIN ----------
 // L'accesso si descrive per AREA, non per funzione: ogni voce della console è
 // una riga, e la cella di un ruolo su un'area vale nessuno / lettura /
-// scrittura. Tredici aree, dodici assegnabili più Piattaforma riservata.
+// scrittura. Quattordici aree, tredici assegnabili più Piattaforma riservata
+// (P-156: P-110 ha aggiunto «Richieste delle autorità», e il conteggio di
+// prima era rimasto a tredici).
 // Annotazione per il registro: P-42 diceva «tredici aree con Elenchi» quando
 // le righe della matrice erano undici (contava le voci del menu con i quattro
 // canali di Marketing, o anticipava le due righe di D-33); P-54 diceva undici,
-// vero fino a P-41: con moderazione e conformità sono tredici.
+// vero fino a P-41: con moderazione e conformità erano tredici, con le
+// richieste delle autorità quattordici.
 // Il booleano di prima aveva prodotto ruoli-diritto (Viewer, cioè
 // «sola lettura» travestito da ruolo) e aree spaccate in due (Ticket separato
 // dalla pubblicazione delle guide) solo per dire «legge ma non scrive»: la
