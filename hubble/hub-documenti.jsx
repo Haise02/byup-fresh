@@ -208,6 +208,11 @@ function HubDocDettaglio({ codice, onChiudi }) {
       {bozza && <HubDocBozza codice={codice} bozza={bozza} ultima={ultima} doc={doc} onCambio={tocca}
         onPubblica={() => setConferma(true)} puo={puo}/>}
 
+      {/* Il pacchetto si vede anche da qui, che è dove uno sta mentre prepara
+          la bozza: nel catalogo lo troverebbe solo tornando indietro, cioè
+          dopo aver già pubblicato da solo. */}
+      {bozza && <HubDocPacchetto onFatto={tocca}/>}
+
       <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginTop: 4 }}>Versioni pubblicate</div>
       {docPubblicate(codice).slice().reverse().map(v => (
         <AdmCard key={v.v} padding={14}>
@@ -235,12 +240,50 @@ function HubDocDettaglio({ codice, onChiudi }) {
     </div>
   );
 }
+// ─── La «i»: la spiegazione dove serve, non sotto ogni riga ─────────────────
+// Le tre scelte di una versione hanno bisogno di essere spiegate, ma il
+// paragrafo sotto ognuna non lo legge nessuno: sporca la lettura e allunga la
+// colonna, e chi sa già che cosa sta facendo lo scavalca ogni volta. La
+// spiegazione sta dentro una «i»: si apre passandoci sopra, e cliccando RESTA
+// aperta — perché una spiegazione che sparisce mentre la leggi non è una
+// spiegazione.
+function DocInfo({ children, largo }) {
+  const [fisso, setFisso] = useStateDoc(false);
+  const [sopra, setSopra] = useStateDoc(false);
+  const aperto = fisso || sopra;
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle' }}
+      onMouseEnter={() => setSopra(true)} onMouseLeave={() => setSopra(false)}>
+      <button onClick={e => { e.preventDefault(); e.stopPropagation(); setFisso(v => !v); }}
+        aria-label="Che cosa vuol dire" style={{
+          width: 16, height: 16, borderRadius: '50%', flexShrink: 0, cursor: 'pointer',
+          border: `1px solid ${aperto ? ADM.TEXT : ADM.BORDER}`, background: aperto ? ADM.TEXT : '#fff',
+          color: aperto ? '#fff' : ADM.MUTED, fontFamily: 'inherit', fontSize: 10.5, fontWeight: 800,
+          lineHeight: 1, padding: 0, display: 'grid', placeItems: 'center',
+        }}>i</button>
+      {aperto && (
+        <span style={{
+          position: 'absolute', left: 22, top: -6, zIndex: 40, width: largo || 320,
+          background: '#fff', border: `1px solid ${ADM.BORDER}`, borderRadius: 10,
+          boxShadow: '0 14px 34px rgba(15,17,21,0.16)', padding: '10px 12px',
+          fontSize: 12.4, color: ADM.MUTED, lineHeight: 1.5, fontWeight: 400, textAlign: 'left',
+        }}>{children}</span>
+      )}
+    </span>
+  );
+}
 
-// ─── La bozza: il file, il contorno, il confronto ───────────────────────────
 function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) {
+  // La bozza si scrive QUI e si salva con un pulsante. Prima si salvava a ogni
+  // tasto e nessuno se ne accorgeva: un salvataggio che non si vede non
+  // rassicura nessuno, e chi usciva dalla pagina non sapeva se aveva perso il
+  // lavoro. Ora quello che si batte sta nello stato di questa schermata finché
+  // non si preme «Salva in bozza».
+  const [b, setB] = useStateDoc(() => Object.assign({}, bozza));
+  const [sporca, setSporca] = useStateDoc(false);
   const [nomeFile, setNomeFile] = useStateDoc(null);
-  const [vediDiff, setVediDiff] = useStateDoc(true);
-  const set = (k, v) => { docSalvaBozza(codice, { [k]: v }); onCambio(); };
+  const [vediDiff, setVediDiff] = useStateDoc(false);
+  const set = (k, v) => { setB(x => Object.assign({}, x, { [k]: v })); setSporca(true); };
 
   const carica = (e) => {
     const f = e.target.files && e.target.files[0];
@@ -250,56 +293,68 @@ function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) 
     r.readAsText(f);
   };
 
-  const minima = docEfficaciaMinima(codice, new Date(), bozza.editoriale);
-  const troppoPresto = !doc.informativa && !bozza.editoriale && bozza.efficace && docMezzanotte(bozza.efficace).getTime() < minima.getTime();
-  const diff = docDiff((ultima && ultima.testo) || '', bozza.testo || '');
+  // La spunta è UNA: questa versione chiede qualcosa a chi la riceve, oppure
+  // no. Di base NO — è una correzione, vale dalla pubblicazione e non muove
+  // niente. Spuntandola parte il preavviso e la richiesta di accettazione (o
+  // di consenso, se è un'informativa: un'informativa non si accetta).
+  const informativa = !!doc.informativa;
+  const chiede = informativa ? !!b.nuovoConsenso : !b.editoriale;
+  const setChiede = (on) => {
+    if (informativa) { set('nuovoConsenso', on); return; }
+    setB(x => Object.assign({}, x, { editoriale: !on, peggiorativa: on ? x.peggiorativa : false }));
+    setSporca(true);
+  };
+
+  const minima = docEfficaciaMinima(codice, new Date(), !chiede);
+  const troppoPresto = chiede && !informativa && b.efficace && docMezzanotte(b.efficace).getTime() < minima.getTime();
+  const diff = docDiff((ultima && ultima.testo) || '', b.testo || '');
   const cambiate = diff.filter(r => r.t !== 'uguale').length;
-  // Una versione identica alla precedente non si pubblica. Non cambierebbe
-  // niente per nessuno, ma farebbe partire un preavviso, riaprirebbe le
-  // accettazioni di tutti e sposterebbe una data di efficacia: tutto il costo
-  // di una modifica, nessuna modifica. Nove volte su dieci vuol dire che il
-  // file caricato è quello vecchio.
-  const identica = !!ultima && !!ultima.testo && !!bozza.testo && cambiate === 0;
-  const pronta = !!(bozza.v || '').trim() && !!(bozza.testo || '').trim() && !!(bozza.cambiamento || '').trim() && !troppoPresto && !identica;
+  const identica = !!ultima && !!ultima.testo && !!b.testo && cambiate === 0;
+  const completa = !!(b.v || '').trim() && !!(b.testo || '').trim() && !!(b.cambiamento || '').trim() && !troppoPresto && !identica;
+  const pronta = completa && !sporca;
+
+  const salva = () => {
+    docSalvaBozza(codice, { v: b.v, testo: b.testo, cambiamento: b.cambiamento,
+      peggiorativa: b.peggiorativa, nuovoConsenso: b.nuovoConsenso, editoriale: b.editoriale,
+      efficace: chiede && !informativa ? b.efficace : docEfficaciaMinima(codice, new Date(), true) });
+    setSporca(false); onCambio();
+  };
+
   const inp = { width: '100%', padding: '8px 10px', border: `1px solid ${ADM.BORDER}`, borderRadius: 8, fontSize: 13.2, fontFamily: 'inherit', outline: 'none', background: '#fff', boxSizing: 'border-box' };
   const lab = { display: 'block', fontSize: 12.2, fontWeight: 700, color: ADM.MUTED, marginBottom: 5 };
+  const linkino = { background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.2, fontWeight: 600, color: ADM.MUTED, textDecoration: 'underline', textUnderlineOffset: 3 };
 
   return (
     <AdmCard padding={16}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <AdmBadge color="WARN" size="xs">Bozza</AdmBadge>
         <span style={{ fontSize: 13.4, fontWeight: 700, color: ADM.TEXT }}>Non l'ha vista nessuno: si riscrive quante volte serve.</span>
-        {/* Il salvataggio non ha un pulsante, e allora deve dirsi: senza questa
-            riga non si sa se quello che si è scritto è rimasto, e si esce
-            dalla pagina con il dubbio. Una bozza si salva da sé perché non
-            esce da qui — quello che esce è la pubblicazione, e quella un
-            pulsante ce l'ha. */}
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.2, color: ADM.OK, fontWeight: 600 }}>
-          <BuIcons.check size={13}/> Salvata in bozza{bozza.salvata ? ` alle ${bozza.salvata.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : ''}
-        </span>
         <div style={{ flex: 1 }}/>
-        <AdmButton variant="secondary" size="sm" onClick={() => { docEliminaBozza(codice); onCambio(); }}>Scarta la bozza</AdmButton>
+        {sporca
+          ? <span style={{ fontSize: 12.2, color: ADM.WARN, fontWeight: 700 }}>Modifiche non salvate</span>
+          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.2, color: ADM.MUTED, fontWeight: 600 }}>
+              <BuIcons.check size={13} color={ADM.OK}/> Salvata{bozza.salvata ? ` alle ${bozza.salvata.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}` : ''}
+            </span>}
+        <AdmButton variant="secondary" size="sm" disabled={!sporca} onClick={salva}>Salva in bozza</AdmButton>
         <AdmButton variant="primary" size="sm" icon="check" disabled={!pronta || !puo} onClick={onPubblica}
-          title={identica ? 'Il testo è identico alla versione precedente: non c\'è niente da pubblicare' : undefined}>Pubblica…</AdmButton>
+          title={sporca ? 'Salva la bozza prima di pubblicarla' : identica ? 'Il testo è identico alla versione precedente' : undefined}>Pubblica…</AdmButton>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 12, marginBottom: 12 }}>
         <div>
           <label style={lab}>Versione</label>
-          <input value={bozza.v} onChange={e => set('v', e.target.value)} placeholder="0.25" style={inp}/>
+          <input value={b.v} onChange={e => set('v', e.target.value)} placeholder="0.25" style={inp}/>
         </div>
         <div>
           <label style={lab}>Efficace dal</label>
-          <input type="date" value={bozza.efficace ? new Date(bozza.efficace.getTime() - bozza.efficace.getTimezoneOffset() * 60000).toISOString().slice(0, 10) : ''}
-            onChange={e => set('efficace', e.target.value ? new Date(e.target.value + 'T00:00:00') : null)} style={inp}/>
+          <input type="date" disabled={!chiede || informativa}
+            value={b.efficace ? new Date(b.efficace.getTime() - b.efficace.getTimezoneOffset() * 60000).toISOString().slice(0, 10) : ''}
+            onChange={e => set('efficace', e.target.value ? new Date(e.target.value + 'T00:00:00') : null)}
+            style={Object.assign({}, inp, (!chiede || informativa) ? { background: ADM.PANEL_SOFT, color: ADM.MUTED } : {})}/>
           <div style={{ fontSize: 11.8, color: troppoPresto ? ADM.DANGER : ADM.MUTED_SOFT, marginTop: 4, lineHeight: 1.45 }}>
-            {doc.informativa
-              ? 'Un\'informativa vale dalla pubblicazione.'
-              : bozza.editoriale
-                ? 'Una correzione editoriale vale dalla pubblicazione: nessun preavviso.'
-                : troppoPresto
-                  ? `Troppo presto: non prima del ${fmtDate(minima)}.`
-                  : `Non prima del ${fmtDate(minima)} — ${DOC_PREAVVISO_GG} giorni di preavviso.`}
+            {!chiede || informativa
+              ? 'Vale dalla pubblicazione.'
+              : troppoPresto ? `Non prima del ${fmtDate(minima)}.` : `Non prima del ${fmtDate(minima)} — ${DOC_PREAVVISO_GG} giorni di preavviso.`}
           </div>
         </div>
         <div>
@@ -307,77 +362,69 @@ function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) 
           <label className="adm-pill" style={{ ...inp, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: ADM.TEXT }}>
             <BuIcons.filePdf size={15} color={ADM.PINK}/>
             <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {nomeFile || (bozza.testo ? 'Testo presente · sostituisci' : 'Carica il markdown…')}
+              {nomeFile || (b.testo ? 'Testo presente · sostituisci' : 'Carica il markdown…')}
             </span>
             <input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" onChange={carica} style={{ display: 'none' }}/>
           </label>
-          <div style={{ fontSize: 11.8, color: ADM.MUTED_SOFT, marginTop: 4, lineHeight: 1.45 }}>
-            Markdown, non PDF: è il testo che la finestra di accettazione scorre.
-          </div>
+          <div style={{ fontSize: 11.8, color: ADM.MUTED_SOFT, marginTop: 4 }}>Markdown: è il testo che la finestra di accettazione scorre.</div>
         </div>
       </div>
 
       <div style={{ marginBottom: 12 }}>
         <label style={lab}>Che cosa cambia, in una riga</label>
-        <input value={bozza.cambiamento} onChange={e => set('cambiamento', e.target.value)}
+        <input value={b.cambiamento} onChange={e => set('cambiamento', e.target.value)}
           placeholder="es. Ridotti i massimali di responsabilità; finestra di contestazione da 60 a 30 giorni" style={inp}/>
-        <div style={{ fontSize: 11.8, color: ADM.MUTED_SOFT, marginTop: 4 }}>È la riga che finisce nel preavviso: si scrive guardando il confronto qui sotto.</div>
       </div>
 
-      {/* LA CORREZIONE EDITORIALE viene prima delle altre due, perché le
-          esclude: un refuso non peggiora niente e non tocca nessuna finalità.
-          È la distinzione che decide se questo sistema è usabile o se diventa
-          un generatore di rumore — senza, ogni virgola fa partire quindici
-          giorni e riapre l'allineamento di tutti i locali. */}
-      {!doc.informativa && (
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', marginBottom: 12, padding: '10px 12px', borderRadius: 9, background: bozza.editoriale ? ADM.INFO_SOFT : ADM.PANEL_SOFT }}>
-          <input type="checkbox" checked={!!bozza.editoriale} onChange={e => set('editoriale', e.target.checked)} style={{ marginTop: 3 }}/>
-          <span>
-            <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: ADM.TEXT }}>Correzione editoriale</span>
-            <span style={{ display: 'block', fontSize: 12, color: ADM.MUTED, lineHeight: 1.45 }}>
-              Un refuso, una rinumerazione, un rimando sbagliato: non cambia i diritti di nessuno.
-              Vale <b style={{ color: ADM.TEXT }}>dalla pubblicazione</b>, senza preavviso, e chi aveva accettato la versione
-              prima <b style={{ color: ADM.TEXT }}>resta allineato</b>. Se cambia anche una sola conseguenza per chi legge, non è editoriale.
-            </span>
+      {/* UNA scelta, non tre. Di base la versione non chiede niente a nessuno:
+          è una correzione, vale dalla pubblicazione e chi aveva accettato resta
+          allineato. Spuntando, parte il preavviso e la richiesta. La
+          «peggiorativa» non è allo stesso livello — non decide che cosa
+          succede, aggiunge una conseguenza al caso in cui qualcosa succede
+          già — e infatti compare solo dentro. */}
+      <div style={{ padding: '11px 13px', borderRadius: 10, background: chiede ? ADM.WARN_SOFT : ADM.PANEL_SOFT, marginBottom: 12 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
+          <input type="checkbox" data-chiede checked={chiede} onChange={e => setChiede(e.target.checked)}/>
+          <span style={{ fontSize: 13.2, fontWeight: 700, color: ADM.TEXT }}>
+            {informativa ? 'Richiede un nuovo consenso' : 'Richiede una nuova accettazione'}
+          </span>
+          <DocInfo>
+            {informativa
+              ? <>Spuntata, la modifica tocca finalità coperte da consenso: quello prestato prima <b>non si estende</b>, e finché il nuovo non arriva quella finalità si ferma. Non spuntata, la nuova versione si pubblica e basta: un'informativa si riceve, non si accetta.</>
+              : <>Non spuntata, è una <b>correzione</b> — un refuso, una rinumerazione, un rimando sbagliato: vale dalla pubblicazione, senza preavviso, e chi aveva accettato la versione prima resta allineato. Spuntata, parte il preavviso di {DOC_PREAVVISO_GG} giorni e la richiesta di accettazione arriva a chi riceve il documento.</>}
+          </DocInfo>
+          <span style={{ fontSize: 12.4, color: ADM.MUTED }}>
+            {chiede ? '' : informativa ? '· si pubblica e basta' : '· correzione: non muove niente'}
           </span>
         </label>
-      )}
 
-      {!doc.informativa && !bozza.editoriale && (
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 12 }}>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', maxWidth: 380 }}>
-            <input type="checkbox" checked={!!bozza.peggiorativa} onChange={e => set('peggiorativa', e.target.checked)} style={{ marginTop: 3 }}/>
-            <span>
-              <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: ADM.TEXT }}>Modifica peggiorativa</span>
-              <span style={{ display: 'block', fontSize: 12, color: ADM.MUTED, lineHeight: 1.45 }}>
-                Peggiora la posizione di chi sta dall'altra parte: meno diritti, più obblighi, termini accorciati a suo danno, responsabilità più limitata.
-                {doc.destinatario === 'utente'
-                  ? ' Verso i consumatori apre trenta giorni di recesso, e solo se le conseguenze non sono trascurabili.'
-                  : ' Verso gli esercenti non apre una finestra in più — il recesso nel preavviso c\'è comunque — ma è quello che il preavviso deve dire per primo.'}
-                {' '}È un giudizio: si dà davanti alle righe cambiate, non alla mail di chi ha redatto il testo.
-              </span>
-            </span>
+        {chiede && !informativa && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', marginTop: 9, paddingLeft: 24, borderLeft: `2px solid ${ADM.BORDER}`, marginLeft: 6 }}>
+            <input type="checkbox" data-peggiorativa checked={!!b.peggiorativa} onChange={e => set('peggiorativa', e.target.checked)}/>
+            <span style={{ fontSize: 12.6, fontWeight: 600, color: ADM.MUTED }}>e peggiora la posizione di chi la riceve</span>
+            <DocInfo>
+              Meno diritti, più obblighi, termini accorciati a suo danno, responsabilità più limitata.
+              {doc.destinatario === 'utente'
+                ? <> Verso i consumatori apre <b>trenta giorni di recesso</b> dal ricevimento, e solo se le conseguenze non sono trascurabili.</>
+                : <> Verso gli esercenti non apre una finestra in più — il recesso entro il preavviso c'è comunque — ma è la prima cosa che il preavviso deve dire.</>}
+            </DocInfo>
           </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', maxWidth: 380 }}>
-            <input type="checkbox" checked={!!bozza.nuovoConsenso} onChange={e => set('nuovoConsenso', e.target.checked)} style={{ marginTop: 3 }}/>
-            <span>
-              <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: ADM.TEXT }}>Richiede un nuovo consenso</span>
-              <span style={{ display: 'block', fontSize: 12, color: ADM.MUTED, lineHeight: 1.45 }}>La modifica tocca finalità coperte da consenso: quello prestato prima non si estende, e finché il nuovo non arriva quella finalità si ferma. Non è una riaccettazione.</span>
-            </span>
-          </label>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Il confronto con la versione precedente. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-        <span style={{ fontSize: 12.2, fontWeight: 700, color: identica ? ADM.WARN : ADM.MUTED }}>
-          Confronto con la v{ultima ? ultima.v : '—'}
-          {ultima && <span style={{ fontWeight: 500 }}>
-            {' · '}{identica ? 'testo identico: non c\'è niente da pubblicare' : `${cambiate} righ${cambiate === 1 ? 'a cambiata' : 'e cambiate'}`}
-          </span>}
-        </span>
+      {/* Il confronto: un collegamento, non un pulsante. Serve a chi pubblica e
+          non esce da qui — non lo vede né il ristoratore né il cliente. */}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <button onClick={() => setVediDiff(v => !v)} style={linkino}>
+          {vediDiff ? 'Nascondi il confronto' : 'Confronta con la versione precedente'}
+        </button>
+        {ultima && (
+          <span style={{ fontSize: 12.2, color: identica ? ADM.WARN : ADM.MUTED_SOFT }}>
+            {identica ? '· testo identico alla v' + ultima.v : `· ${cambiate} righ${cambiate === 1 ? 'a cambiata' : 'e cambiate'} rispetto alla v${ultima.v}`}
+          </span>
+        )}
         <div style={{ flex: 1 }}/>
-        <AdmButton variant="secondary" size="sm" onClick={() => setVediDiff(v => !v)}>{vediDiff ? 'Nascondi' : 'Mostra'}</AdmButton>
+        <button onClick={() => { docEliminaBozza(codice); onCambio(); }} style={Object.assign({}, linkino, { color: ADM.DANGER })}>Scarta la bozza</button>
       </div>
       {vediDiff && (
         <div className="adm-scroll" style={{ marginTop: 8, maxHeight: 300, overflow: 'auto', border: `1px solid ${ADM.BORDER}`, borderRadius: 9, background: '#fff' }}>
@@ -385,15 +432,14 @@ function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) 
             <div style={{ padding: '14px 16px', fontSize: 12.6, color: ADM.MUTED, lineHeight: 1.5 }}>
               Della versione precedente non abbiamo il testo in archivio: il confronto arriva dalla prossima. Meglio nessun confronto che uno inventato.
             </div>
-          ) : !bozza.testo ? (
+          ) : !b.testo ? (
             <div style={{ padding: '14px 16px', fontSize: 12.6, color: ADM.MUTED }}>Carica il markdown per vedere che cosa cambia.</div>
           ) : identica ? (
             <div style={{ padding: '14px 16px', fontSize: 12.6, color: ADM.MUTED, lineHeight: 1.5 }}>
-              La bozza parte con una copia del testo della v{ultima.v}, così il confronto si vede crescere man mano.
-              Finché non carichi il file nuovo le due sono <b style={{ color: ADM.TEXT }}>identiche</b>, e una versione che non cambia niente
-              non si pubblica: farebbe partire un preavviso e riaprirebbe le accettazioni di tutti per nulla.
+              La bozza parte con una copia del testo della v{ultima.v}: finché non carichi il file nuovo le due sono <b style={{ color: ADM.TEXT }}>identiche</b>,
+              e una versione che non cambia niente non si pubblica.
             </div>
-          ) : docDiff(ultima.testo, bozza.testo).map((r, i) => (
+          ) : diff.map((r, i) => (
             <div key={i} style={{
               display: 'flex', gap: 8, padding: '2px 12px',
               fontFamily: 'ui-monospace,monospace', fontSize: 12, lineHeight: 1.5,
@@ -433,9 +479,9 @@ function HubDocConferma({ doc, bozza, onAnnulla, onFatto }) {
             ['Efficace dal', fmtDate(bozza.efficace)],
             [doc.informativa ? 'Come si registra' : 'Come si accetta',
               doc.informativa ? 'Presa visione: si riceve, non si accetta'
-                : bozza.editoriale ? 'Nessuna nuova accettazione: chi aveva accettato la versione prima resta allineato'
+                : bozza.editoriale ? 'Niente da accettare: chi aveva accettato la versione prima resta allineato'
                 : 'Esplicita, oppure tacita per decorso del termine'],
-            ...(bozza.editoriale ? [['Preavviso', 'Nessuno: una correzione editoriale non fa ripartire l\'orologio']] : []),
+            ...(bozza.editoriale && !doc.informativa ? [['Preavviso', 'Nessuno: è una correzione, non fa ripartire l\'orologio']] : []),
             ...(bozza.peggiorativa ? [['Recesso', doc.destinatario === 'utente'
               ? 'Peggiorativa: trenta giorni di recesso dal ricevimento, se le conseguenze non sono trascurabili'
               : 'Peggiorativa: il recesso resta quello esercitabile entro il preavviso, e il preavviso deve dirlo']] : []),

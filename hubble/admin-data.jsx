@@ -2080,10 +2080,14 @@ function docEfficaciaMinima(codice, da, editoriale) {
 function docCreaBozza(codice, dati) {
   const d = DOCUMENTI.find(x => x.codice === codice);
   if (!d || !d.versioni || docBozza(codice)) return null;
+  // Una bozza nasce CORREZIONE: non chiede niente a nessuno, vale dalla
+  // pubblicazione, e chi aveva accettato resta allineato. Chiedere qualcosa a
+  // tutti è la cosa costosa, e le cose costose si scelgono, non si trovano già
+  // scelte. Chi pubblica una modifica vera spunta, e il preavviso compare.
   const b = Object.assign({
     stato: 'bozza', v: '', testo: '', cambiamento: '', peggiorativa: false,
-    nuovoConsenso: false, editoriale: false, pubblicata: null,
-    efficace: docEfficaciaMinima(codice), esempio: true, salvata: new Date(),
+    nuovoConsenso: false, editoriale: true, pubblicata: null,
+    efficace: docEfficaciaMinima(codice, new Date(), true), esempio: true, salvata: new Date(),
   }, dati || {});
   d.versioni.push(b);
   return b;
