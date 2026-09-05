@@ -1311,6 +1311,31 @@ window.pnAdeChiRinnova = function (forma) {
   return { ruolo: 'incaricato', nome: `${i.nome} ${i.cognome}`.trim(), cf: i.cf, nominato_il: i.nominato_il };
 };
 
+// ─── Lo stato di collegamento delle piattaforme di consegna (P-157) ─────────
+// Un posto solo: prima il foglio del collegamento diceva «Collegamento
+// completato» in uno stato suo e la tessera del catalogo restava
+// «Predisposta», e le due parti della stessa pagina raccontavano due cose.
+// Registro sullo stesso dominio (venue_delivery_integrations nel modello):
+// la tessera legge da qui, il foglio scrive qui, e riaprendolo si riparte
+// dall'esito. L'add-on resta spento nell'MVP: il collegamento è predisposto
+// con dati di esempio, e le tessere continuano a dirlo.
+const PN_DELIVERY_KEY = 'byup_delivery_collegamenti';
+window.byupReadDeliveryCollegamenti = function () {
+  try { const s = localStorage.getItem(PN_DELIVERY_KEY); if (s) { const v = JSON.parse(s); if (v && typeof v === 'object') return v; } } catch (e) {}
+  return {};
+};
+window.byupCollegaDelivery = function (id, dettaglio) {
+  const v = window.byupReadDeliveryCollegamenti();
+  v[id] = { quando: new Date().toISOString(), dettaglio: dettaglio || '' };
+  try { localStorage.setItem(PN_DELIVERY_KEY, JSON.stringify(v)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-delivery-change'));
+};
+window.byupScollegaDelivery = function (id) {
+  const v = window.byupReadDeliveryCollegamenti(); delete v[id];
+  try { localStorage.setItem(PN_DELIVERY_KEY, JSON.stringify(v)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-delivery-change'));
+};
+
 // ─── La valutazione del locale, in un posto solo (P-157) ────────────────────
 // La media delle recensioni Byup e il loro numero (venue_profiles.avg_rating,
 // review_count) si leggono da un registro condiviso sullo stesso dominio, come

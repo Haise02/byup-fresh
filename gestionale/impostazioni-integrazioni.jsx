@@ -136,6 +136,9 @@ const INT_CONNESSIONI_MOCK = [
 const STATUS_LABEL = {
   connected: { label: 'Connesso', color: PN.GREEN, bg: PN.GREEN_SOFT, dot: PN.GREEN },
   predisposta: { label: 'Predisposta', color: PN.AMBER, bg: PN.AMBER_SOFT, dot: PN.AMBER },
+  // La piattaforma collegata dal foglio (P-157): stato letto dal registro
+  // condiviso, lo stesso che il foglio scrive. L'add-on resta spento nell'MVP.
+  collegata:   { label: 'Collegata', color: PN.GREEN, bg: PN.GREEN_SOFT, dot: PN.GREEN },
   todo: { label: 'Da configurare', color: '#D97706', bg: PN.AMBER_SOFT, dot: '#F59E0B' },
   available: { label: 'Disponibile', color: PN.MUTED, bg: '#F4F5F7', dot: PN.MUTED_LIGHT },
   disconnected: { label: 'Non connesso', color: PN.MUTED, bg: '#F4F5F7', dot: PN.MUTED_LIGHT },
@@ -151,7 +154,19 @@ function ImpIntegrazioni() {
   // generico di P-32 (D-29).
   const [connessioni, setConnessioni] = React.useState(INT_CONNESSIONI_MOCK);
   const [collega, setCollega] = React.useState(false);
+  // Le piattaforme di consegna collegate (P-157): lo stato è del registro
+  // condiviso, non della tessera né del foglio.
+  const [collegamenti, setCollegamenti] = React.useState(() => (window.byupReadDeliveryCollegamenti ? window.byupReadDeliveryCollegamenti() : {}));
+  React.useEffect(() => {
+    const ri = () => setCollegamenti(window.byupReadDeliveryCollegamenti ? window.byupReadDeliveryCollegamenti() : {});
+    window.addEventListener('byup-delivery-change', ri); window.addEventListener('storage', ri);
+    return () => { window.removeEventListener('byup-delivery-change', ri); window.removeEventListener('storage', ri); };
+  }, []);
   const catalogo = INTEGRATIONS.map(i => {
+    if (i.status === 'predisposta' && collegamenti[i.id]) {
+      const c = collegamenti[i.id];
+      return { ...i, status: 'collegata', detail: `${c.dettaglio ? c.dettaglio + ' · ' : ''}collegata il ${intData(new Date(c.quando))}` };
+    }
     if (!i.api) return i;
     const vive = connessioni.filter(c => c.application === i.id && !c.revoked_at);
     const una = vive.length === 1 ? vive[0] : null;
@@ -356,7 +371,7 @@ function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca })
           <span style={{width:6, height:6, borderRadius:'50%', background: s.dot, flexShrink: 0, alignSelf:'center'}}/>
           <span style={{flexShrink: 0}}>{s.label}</span>
           {item.detail && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· {item.detail}</span>}
-          {item.status === 'predisposta' && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· add-on spento nell'MVP</span>}
+          {(item.status === 'predisposta' || item.status === 'collegata') && <span style={{color:PN.MUTED, fontWeight: 500, minWidth: 0}}>· add-on spento nell'MVP</span>}
         </div>
         {stripeCard && <PosVirtualeRimando/>}
 
@@ -435,9 +450,9 @@ function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca })
           {(item.status === 'available' || item.status === 'disconnected') && (
             <ImpButton variant="ghost" style={azione} onClick={item.api ? onApi : undefined}>Connetti</ImpButton>
           )}
-          {item.status === 'predisposta' && (
+          {(item.status === 'predisposta' || item.status === 'collegata') && (
             <React.Fragment>
-              <ImpButton variant="ghost" style={azione} onClick={() => setScheda(true)}>Collega</ImpButton>
+              <ImpButton variant="ghost" style={azione} onClick={() => setScheda(true)}>{item.status === 'collegata' ? 'Rivedi il collegamento' : 'Collega'}</ImpButton>
               {scheda && <IntDeliveryModal item={item} onClose={() => setScheda(false)}/>}
             </React.Fragment>
           )}
@@ -515,7 +530,13 @@ function IntDeliveryModal({ item, onClose }) {
   const [gestore, setGestore] = React.useState(true);      // Byup accetta e rifiuta gli ordini
   const [copiato, setCopiato] = React.useState(false);
   const [menu, setMenu] = React.useState(false);
-  const [fatto, setFatto] = React.useState(false);
+  // L'esito vive nel registro condiviso (P-157): riaprendo il foglio di una
+  // piattaforma già collegata si riparte da lì, e la tessera dice lo stesso.
+  const [fatto, setFatto] = React.useState(() => !!(window.byupReadDeliveryCollegamenti && window.byupReadDeliveryCollegamenti()[item.id]));
+  const completa = () => {
+    setFatto(true);
+    if (window.byupCollegaDelivery) window.byupCollegaDelivery(item.id, item.id === 'glovo' ? `store ${valore}` : item.id === 'deliveroo' ? INT_DELIVERY_SEDE : `${scelti.length} punt${scelti.length === 1 ? 'o' : 'i'} vendita`);
+  };
   // Il foglio nel sacchetto: la casella è per piattaforma, e nasce accesa (P-129).
   const [cortesia, setCortesia] = React.useState(() => (window.byupAutoPrintCortesiaPiattaforma ? window.byupAutoPrintCortesiaPiattaforma(item.id) : true));
 
@@ -595,7 +616,7 @@ function IntDeliveryModal({ item, onClose }) {
           </label>
         </div>
       );
-      azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={() => { setFatto(true); }}>Fine</ImpButton>;
+      azione = <ImpButton variant="primary" style={{width:'100%', justifyContent:'center'}} onClick={completa}>Fine</ImpButton>;
     }
   } else if (item.id === 'deliveroo') {
     if (passo === 1) {
@@ -636,7 +657,7 @@ function IntDeliveryModal({ item, onClose }) {
           {errore('Sede non collegata.', cfg.cause)}
         </div>
       );
-      azione = <ImpButton variant="primary" disabled={fase === 'corso'} style={{width:'100%', justifyContent:'center'}} onClick={() => controlla(() => setFatto(true))}>{fase === 'corso' ? 'Controllo su Deliveroo…' : fase === 'errore' ? 'Riprova' : 'Controlla il collegamento'}</ImpButton>;
+      azione = <ImpButton variant="primary" disabled={fase === 'corso'} style={{width:'100%', justifyContent:'center'}} onClick={() => controlla(completa)}>{fase === 'corso' ? 'Controllo su Deliveroo…' : fase === 'errore' ? 'Riprova' : 'Controlla il collegamento'}</ImpButton>;
     }
   } else {
     if (passo === 1) {
@@ -676,7 +697,7 @@ function IntDeliveryModal({ item, onClose }) {
           </label>
         </div>
       );
-      azione = <ImpButton variant="primary" disabled={!scelti.length || fase === 'corso'} style={{width:'100%', justifyContent:'center'}} onClick={() => controlla(() => setFatto(true))}>{fase === 'corso' ? 'Attivazione in corso…' : 'Attiva l\'integrazione'}</ImpButton>;
+      azione = <ImpButton variant="primary" disabled={!scelti.length || fase === 'corso'} style={{width:'100%', justifyContent:'center'}} onClick={() => controlla(completa)}>{fase === 'corso' ? 'Attivazione in corso…' : 'Attiva l\'integrazione'}</ImpButton>;
     }
   }
 
