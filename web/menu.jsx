@@ -730,6 +730,18 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4ade80' }}/>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>Aperto · 12:00 – 23:30</span>
                   </div>
+                  {/* Il coperto o il servizio si legge nel menù, prima di
+                      ordinare (P-155): una riga piccola e stabile sotto il nome
+                      del locale, se la sede lo ha attivato, con il nome e la
+                      forma scelti in Impostazioni. All'asporto non c'è. Il
+                      riepilogo lo ripete prima di confermare: così lo si legge
+                      due volte, come sul menù di carta dove sta in fondo alla
+                      pagina (art. 180 R.D. 635/1940). Nulla si registra. */}
+                  {!takeaway && (() => { const r = byupCopertoRiga(0, 1); return r.attiva ? (
+                    <div data-coperto-testa style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4 }}>
+                      {r.nome} {r.forma === 'fissa' ? `${r.importo.toFixed(2).replace('.', ',')} € a persona` : `${r.aliquota}% sul totale`}
+                    </div>
+                  ) : null; })()}
                 </div>
                 {(() => {
                   const guests = state.activeOrder?.guests || [];
