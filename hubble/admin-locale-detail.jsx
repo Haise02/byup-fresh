@@ -1198,13 +1198,13 @@ function DrwAccount({ locale: l }) {
     VETRINE.unshift({ id: 'VT-' + String(vetProgressivo++).padStart(4, '0'), localeId: l.id, dal: new Date(), al,
       motivo: vetMotivo, nota: vetNota.trim(), decisaDa: ioNome(),
       fotografia: vetMotivo === 'merito' ? vetFotografia(l) : null, chiusa: null });
-    scrivi('ha messo in vetrina speciale', `${l.nome} · ${vetMotivoLabel(vetMotivo)}${al ? ' · fino al ' + fmtDate(al) : ''}`, 'sparkles', 'PURPLE', 'locale');
+    scrivi('ha attivato la vetrina speciale di', `${l.nome} · ${vetMotivoLabel(vetMotivo)}${al ? ' · fino al ' + fmtDate(al) : ''}`, 'sparkles', 'PURPLE', 'locale');
     setVetPopup(null); setVetNota(''); setVetScadenza(''); ridisegna(x => x + 1);
   };
   const spegniVetrina = () => {
     if (!vetNota.trim() || !vetrina) return;
     vetrina.chiusa = { quando: new Date(), who: ioNome(), nota: vetNota.trim() };
-    scrivi('ha tolto dalla vetrina speciale', `${l.nome} · ${vetNota.trim()}`, 'x', 'WARN', 'locale');
+    scrivi('ha disattivato la vetrina speciale di', `${l.nome} · ${vetNota.trim()}`, 'x', 'WARN', 'locale');
     setVetPopup(null); setVetNota(''); ridisegna(x => x + 1);
   };
   const confermaSospensione = () => {
@@ -1287,8 +1287,8 @@ function DrwAccount({ locale: l }) {
             )}
           </div>
           {vetrina
-            ? <AdmButton variant="secondary" size="sm" icon="x" onClick={() => { setVetNota(''); setVetPopup('chiudi'); }}>Togli dalla vetrina…</AdmButton>
-            : <AdmButton variant="primary" size="sm" icon="sparkles" onClick={() => { setVetMotivo('merito'); setVetNota(''); setVetScadenza(''); setVetPopup('apri'); }}>Metti in vetrina…</AdmButton>}
+            ? <AdmButton variant="secondary" size="sm" icon="x" onClick={() => { setVetNota(''); setVetPopup('chiudi'); }}>Disattiva vetrina speciale</AdmButton>
+            : <AdmButton variant="primary" size="sm" icon="sparkles" onClick={() => { setVetMotivo('merito'); setVetNota(''); setVetScadenza(''); setVetPopup('apri'); }}>Attiva vetrina speciale</AdmButton>}
         </div>
         {/* Lo storico degli atti: le righe chiuse e scadute restano, con chi
             e perché — la revoca non cancella. */}
@@ -1373,7 +1373,7 @@ function DrwAccount({ locale: l }) {
         </div>
       )}
 
-      {/* Metti in vetrina / Togli dalla vetrina: l'atto si motiva. Sul merito
+      {/* Attiva / disattiva la vetrina speciale: l'atto si motiva. Sul merito
           l'anteprima dice quali numeri verranno congelati. */}
       {vetPopup && (
         <div onClick={() => setVetPopup(null)} style={{position:'fixed', inset:0, zIndex:60, background:'rgba(15,17,21,0.42)',
@@ -1381,7 +1381,7 @@ function DrwAccount({ locale: l }) {
           <div onClick={e => e.stopPropagation()} style={{width:480, maxWidth:'94%', background:'#fff', borderRadius:14,
             boxShadow:'0 24px 64px rgba(15,17,21,0.30)', animation:'admModalIn 0.18s ease', padding:22}}>
             <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>
-              {vetPopup === 'apri' ? 'Metti in vetrina speciale' : 'Togli dalla vetrina speciale'}
+              {vetPopup === 'apri' ? 'Attiva la vetrina speciale' : 'Disattiva la vetrina speciale'}
             </div>
             <div style={{fontSize:12.8, color:ADM.MUTED, marginBottom:14, lineHeight:1.5}}>
               {vetPopup === 'apri'
@@ -1416,8 +1416,8 @@ function DrwAccount({ locale: l }) {
             <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
               <AdmButton variant="ghost" size="sm" onClick={() => setVetPopup(null)}>Annulla</AdmButton>
               {vetPopup === 'apri'
-                ? <AdmButton variant="primary" size="sm" icon="sparkles" disabled={!vetNota.trim()} onClick={attivaVetrina}>Metti in vetrina</AdmButton>
-                : <AdmButton variant="danger" size="sm" icon="x" disabled={!vetNota.trim()} onClick={spegniVetrina}>Chiudi la vetrina</AdmButton>}
+                ? <AdmButton variant="primary" size="sm" icon="sparkles" disabled={!vetNota.trim()} onClick={attivaVetrina}>Attiva la vetrina</AdmButton>
+                : <AdmButton variant="danger" size="sm" icon="x" disabled={!vetNota.trim()} onClick={spegniVetrina}>Disattiva la vetrina</AdmButton>}
             </div>
           </div>
         </div>
