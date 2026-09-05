@@ -561,8 +561,9 @@ window.PN_SERVIZI_MAP = PN_SERVIZI.reduce((m, v) => { m[v.id] = v; return m; }, 
 // sono la copia dei tre ruoli di sistema di ROLES in impostazioni-personale.jsx
 // (altro bundle): un ruolo personalizzato con l'area «statistiche» vede le
 // Statistiche come il titolare, la squadra (Cassa, Cameriere) mai.
-// Coda registrata, non risolta qui: la sidebar condivisa mostra ancora tutte le
-// voci a tutti; nascondere le voci per ruolo è un lavoro su tutte le pagine.
+// La sidebar condivisa (panoramica-sidebar.jsx) costruisce le sue voci da qui
+// (P-135): la voce di un'area non concessa non compare, nemmeno spenta. Il
+// cancello dentro la pagina resta, per chi arriva da un rimando diretto.
 const PN_RUOLI_AREE = {
   titolare:  ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni'],
   cassa:     ['vendita','sala'],

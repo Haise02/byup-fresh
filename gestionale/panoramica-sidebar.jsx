@@ -280,15 +280,24 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
     };
   }, []);
 
+  // Le voci passano dal ruolo (P-135): una voce la cui area non è concessa a
+  // chi guarda NON compare — nemmeno spenta, perché una voce disabilitata
+  // racconta comunque che la funzione esiste e ti è negata, che al cameriere
+  // non serve e al titolare non aggiunge nulla. `area` è l'area di
+  // PN_RUOLI_AREE che la pagina richiede (Prenotazioni vive dentro Sala). Il
+  // cancello dentro la pagina resta: a una schermata si arriva anche da un
+  // rimando diretto, dalla ricerca rapida o da un avviso, e lì la barra non è
+  // la porta. Panoramica, Supporto e Impostazioni non dipendono da un'area.
+  const puo = (area) => !area || !window.pnPuo || window.pnPuo(area);
   const items = [
     { id: 'panoramica',   label: 'Panoramica',        icon: 'grid' },
-    modules.sala         && { id: 'sala',         label: 'Sala',              icon: 'place-table' },
-    { id: 'vendita',      label: 'Vendita diretta',   icon: 'commerce-register' },
-    modules.prenotazioni && { id: 'prenotazioni', label: 'Prenotazioni',      icon: 'time-calendar' },
-    { id: 'cucina',       label: 'Cucina',             icon: 'food-flame' },
-    { id: 'statistiche',  label: 'Statistiche',        icon: 'chart-bar' },
-    { id: 'contabilita',  label: 'Contabilità',        icon: 'commerce-piggy-bank' },
-  ].filter(Boolean);
+    modules.sala         && { id: 'sala',         label: 'Sala',              icon: 'place-table',       area: 'sala' },
+    { id: 'vendita',      label: 'Vendita diretta',   icon: 'commerce-register', area: 'vendita' },
+    modules.prenotazioni && { id: 'prenotazioni', label: 'Prenotazioni',      icon: 'time-calendar',     area: 'sala' },
+    { id: 'cucina',       label: 'Cucina',             icon: 'food-flame',        area: 'cucina' },
+    { id: 'statistiche',  label: 'Statistiche',        icon: 'chart-bar',         area: 'statistiche' },
+    { id: 'contabilita',  label: 'Contabilità',        icon: 'commerce-piggy-bank', area: 'contabilita' },
+  ].filter(Boolean).filter(it => puo(it.area));
 
   const sys = [
     { id: 'supporto',     label: 'Supporto',    icon: 'headphones' },
@@ -593,10 +602,12 @@ function PnMobileShell({ active, title, actions, onNav, children }) {
     return () => window.removeEventListener('byup-locale-change', update);
   }, []);
 
+  // Stessa regola della barra larga (P-135): Statistiche compare solo a chi
+  // ha l'area; Panoramica non dipende da un'area.
   const tabs = [
     { id: 'panoramica',  label: 'Panoramica',  icon: 'grid' },
-    { id: 'statistiche', label: 'Statistiche', icon: 'chart-bar' },
-  ];
+    (!window.pnPuo || window.pnPuo('statistiche')) && { id: 'statistiche', label: 'Statistiche', icon: 'chart-bar' },
+  ].filter(Boolean);
   const navTo = (id) => {
     if (id === active) return;
     if (onNav) return onNav(id);
