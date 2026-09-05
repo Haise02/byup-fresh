@@ -1597,9 +1597,10 @@ function ImpSoggettoRiga({ data, onCambia }) {
 
 function ImpDatiFiscali() {
   const [data, setData] = React.useState({
-    // Anagrafica — il mock è una società: i campi del titolare qui sotto si
-    // vedono cambiando forma, precompilati con una persona plausibile.
-    legalForm: 'societa',
+    // Anagrafica — la forma viene dal registro condiviso del locale (P-152):
+    // il mock è una società; i campi del titolare qui sotto si vedono
+    // cambiando forma, precompilati con una persona plausibile.
+    legalForm: window.byupReadForma ? window.byupReadForma() : 'societa',
     ragione: 'Cacio e Pepe S.r.l.',
     insegna: PN_ESERCENTE.insegna,
     piva: PN_ESERCENTE.piva,
@@ -1632,6 +1633,9 @@ function ImpDatiFiscali() {
     sedeProv: 'RM',
     sedeNazione: 'IT',
   });
+  // La forma scritta qui vale per tutti (P-152): la Cassa, le notifiche e
+  // le guardie dei documenti la leggono dal registro condiviso del locale.
+  React.useEffect(() => { if (window.byupWriteForma) window.byupWriteForma(data.legalForm); }, [data.legalForm]);
 
   const [dirty, setDirty] = React.useState(false);
   const set = (k, v) => { setData(d => ({...d, [k]: v})); setDirty(true); };

@@ -1257,10 +1257,28 @@ window.byupStripeRicollega = function () {
 // rapporto FIPE 2026 non conosce la categoria — e l'ente resta per l'uno per
 // cento delle forme collettive, con i campi della società e nessun percorso
 // proprio. La forma del locale, in produzione, è il legal_form dei dati
-// fiscali; nel mock Cacio e Pepe è una S.r.l.
-const PN_FORMA_LOCALE = 'societa';   // 'ditta_individuale' | 'societa' | 'ente'
-window.PN_FORMA_LOCALE = PN_FORMA_LOCALE;
-window.pnFormaCollettiva = (forma) => (forma || PN_FORMA_LOCALE) !== 'ditta_individuale';
+// fiscali. Nel prototipo si legge da UN POSTO SOLO (P-152): il registro
+// condiviso del locale (byup_locale_attivo, panoramica-sidebar.jsx), lo
+// stesso che tiene il nome che tutte le pagine leggono. Dati fiscali ci
+// scrive quando la forma cambia; la Cassa, le notifiche e chiunque la chieda
+// leggono da qui. Prima la Cassa leggeva una costante fissa «societa» e
+// Dati fiscali il proprio stato: cambiando la forma le due schermate
+// raccontavano due locali diversi. Ripiego se il registro non la porta: la
+// S.r.l. del mock.
+const PN_FORMA_RIPIEGO = 'societa';   // 'ditta_individuale' | 'societa' | 'ente'
+const PN_FORME = ['ditta_individuale', 'societa', 'ente'];
+window.byupReadForma = function () {
+  try { const l = window.byupReadLocale ? window.byupReadLocale() : null; if (l && PN_FORME.includes(l.forma)) return l.forma; } catch (e) {}
+  return PN_FORMA_RIPIEGO;
+};
+window.byupWriteForma = function (forma) {
+  if (!PN_FORME.includes(forma) || !window.byupReadLocale) return;
+  const l = window.byupReadLocale();
+  if (l.forma === forma) return;
+  window.byupWriteLocale({ ...l, forma });
+  window.dispatchEvent(new Event('byup-forma-change'));
+};
+window.pnFormaCollettiva = (forma) => (forma || window.byupReadForma()) !== 'ditta_individuale';
 
 // L'incaricato nominato dalla società sul portale: nome, cognome, codice
 // fiscale e data della nomina (restaurant_fiscal_data.ade_operator_name e
