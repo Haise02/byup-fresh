@@ -645,13 +645,13 @@ function MembriDispositivi({ team, setTeam }) {
           scorrere — e un elenco che si allunga a ogni invito se li portava via
           uno alla volta. Oltre la misura scorre dentro, che è il posto giusto
           dove far scorrere una lista: dentro la lista.
-          La misura è quella di quattro righe e mezza, non di quattro: la mezza
-          riga tagliata in fondo è l'unico modo che ha un elenco di dire che
-          continua, ora che la barra di scorrimento è sottile e compare solo
-          mentre si scorre. */}
+          La misura non è tonda apposta: è quella che lascia sotto la tessera di
+          Byup Staff e il link, interi, e taglia l'elenco a metà di una riga —
+          che è l'unico modo che ha un elenco di dire che continua, ora che la
+          barra di scorrimento è sottile e compare solo mentre si scorre. */}
       <div className="pn-scroll" style={{
         display: 'flex', flexDirection: 'column',
-        maxHeight: 238, overflowY: 'auto', overscrollBehavior: 'contain',
+        maxHeight: 200, overflowY: 'auto', overscrollBehavior: 'contain',
       }}>
         {team.map((m, i) => {
           const invitato = m.status === 'invited';

@@ -644,6 +644,12 @@ function PersStaffPromo() {
       background: PN.GRAD_STAFF,
       boxShadow: '0 12px 32px -14px rgba(229, 68, 110, 0.50)',
       padding: '16px 16px 0',
+      // Nella rail della Configurazione completa questa tessera è una voce di
+      // una colonna flex: senza, si lascia comprimere quando la colonna è
+      // piena e — avendo overflow:hidden — si mangia l'ultima riga di testo
+      // senza dire niente. Un riquadro tiene la sua altezza; a scorrere ci
+      // pensa la colonna.
+      flexShrink: 0,
     }}>
       <div style={{fontSize: 16.5, fontWeight: 800, color: cream, letterSpacing: -0.2, lineHeight: 1.3}}>
         Scarica Byup Staff
@@ -652,8 +658,16 @@ function PersStaffPromo() {
         Il POS digitale e gratuito: incassi dal telefono di chi è in sala, senza altro hardware.
       </div>
 
-      {/* Il codice e la mascotte, fianco a fianco: la mascotte poggia sul
-          bordo inferiore del riquadro, come nel banner da cui viene. */}
+      {/* Il codice e la mascotte, uno per margine: il QR a sinistra, la
+          mascotte spinta a destra da un margine automatico — così sui riquadri
+          larghi non le resta appiccicata.
+          I piedi stanno sulla STESSA riga del fondo del QR (stesso margine
+          inferiore, allineamento in basso) e non un dito più giù: sotto passa
+          «Inquadra il codice…», e la mascotte che sconfinava le finiva addosso
+          con le scarpe e con l'ombra. Il taglio a filo del bordo, che quella
+          sporgenza voleva imitare, viene dal banner orizzontale da cui questa
+          tessera è nata — lì la figura era alta 152 su una fascia larga; qui
+          sotto c'è del testo, e non c'è niente da tagliare. */}
       <div style={{display:'flex', alignItems:'flex-end', gap: 10, marginTop: 12}}>
         <div style={{background: PN.WHITE, borderRadius: 10, padding: 7, flexShrink: 0, marginBottom: 14}}>
           <PersQrMock size={96}/>
@@ -662,11 +676,11 @@ function PersStaffPromo() {
           src="mascot-staff.png?v=2"
           alt="La mascotte di Byup Staff con l'app aperta sul telefono"
           onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          style={{width: 96, flexShrink: 0, marginBottom: -6, filter: 'drop-shadow(0 10px 20px rgba(120, 15, 45, 0.30))'}}
+          style={{width: 96, flexShrink: 0, marginLeft: 'auto', marginBottom: 14, filter: 'drop-shadow(0 10px 20px rgba(120, 15, 45, 0.30))'}}
         />
       </div>
 
-      <div style={{fontSize: 13.5, color: cream, opacity: 0.92, lineHeight: 1.45, paddingBottom: 16, marginTop: -4}}>
+      <div style={{fontSize: 13.5, color: cream, opacity: 0.92, lineHeight: 1.45, paddingBottom: 16}}>
         Inquadra il codice, oppure vai su <a href={PERS_STORE.play} style={link}>Play Store</a> o <a href={PERS_STORE.app} style={link}>App Store</a>.
       </div>
     </section>
