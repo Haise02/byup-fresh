@@ -369,9 +369,19 @@ function ConfigCompletaApp() {
             <div ref={railCardRef} data-cfg-membri>
               <MembriDispositivi team={team} setTeam={setTeam}/>
             </div>
-            {/* L'app che i telefoni del personale devono avere: sta qui come
-                sta in Impostazioni → Personale, accanto ai dispositivi. */}
-            {window.PersStaffPromo && <window.PersStaffPromo/>}
+            {/* La tessera «Scarica Byup Staff» NON sta qui. Ci era stata messa
+                il 4 settembre, ma in questa rail non si vede: sopra c'è
+                «Membri e dispositivi», che con un team di otto righe riempie
+                la colonna da sola, e la tessera finisce sotto il taglio dello
+                scroll — di lei si intravedono il titolo e mezza riga, la
+                mascotte mai. Rimpicciolirla non basterebbe: quello che la
+                nasconde è la lista sopra, che cresce col team.
+                E non è una perdita: la tessera era già uscita dall'onboarding
+                per una ragione — chiedere di portarsi via l'app mentre il
+                locale sta ancora mettendo in piedi vetrina e personale è
+                prematuro — e rimetterla in questa rail era la stessa domanda
+                fatta due schermate più in là. La sua casa è Impostazioni →
+                Personale, accanto a chi collega un dispositivo. */}
             <StaffGuidaLink onApri={() => setGuidaStaff(true)}/>
           </div>
         </aside>

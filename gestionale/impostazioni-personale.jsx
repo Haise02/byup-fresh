@@ -652,33 +652,22 @@ function PersStaffPromo() {
         Il POS digitale e gratuito: incassi dal telefono di chi è in sala, senza altro hardware.
       </div>
 
-      {/* L'istruzione sta SOPRA il codice e non sotto: il fondo del riquadro è
-          della fascia codice + mascotte, e con la riga in mezzo la mascotte le
-          finiva coi piedi addosso. */}
-      <div style={{fontSize: 13.5, color: cream, opacity: 0.92, lineHeight: 1.45, marginTop: 10}}>
-        Inquadra il codice, oppure vai su <a href={PERS_STORE.play} style={link}>Play Store</a> o <a href={PERS_STORE.app} style={link}>App Store</a>.
-      </div>
-
-      {/* Il codice e la mascotte fanno da reggilibri al fondo del riquadro: il
-          QR al margine sinistro, la mascotte al destro, tutti e due appoggiati
-          alla stessa riga.
-          La mascotte NON sborda e non si taglia. Il taglio a filo del bordo
-          arriva dal banner orizzontale da cui questa tessera viene, dove la
-          mascotte era alta 152 su una fascia larga e il taglio si leggeva come
-          «poggia per terra»; qui è una figurina di cento pixel in un angolo
-          arrotondato, e lo stesso taglio le mozzava i piedi e le premeva il
-          braccio contro la curva dell'angolo. Sta tutta dentro, con la sua
-          ombra di contatto, staccata dal fondo quanto il QR. */}
-      <div style={{display:'flex', alignItems:'flex-end', gap: 12, marginTop: 12, paddingBottom: 16}}>
-        <div style={{background: PN.WHITE, borderRadius: 10, padding: 7, flexShrink: 0}}>
+      {/* Il codice e la mascotte, fianco a fianco: la mascotte poggia sul
+          bordo inferiore del riquadro, come nel banner da cui viene. */}
+      <div style={{display:'flex', alignItems:'flex-end', gap: 10, marginTop: 12}}>
+        <div style={{background: PN.WHITE, borderRadius: 10, padding: 7, flexShrink: 0, marginBottom: 14}}>
           <PersQrMock size={96}/>
         </div>
         <img
           src="mascot-staff.png?v=2"
           alt="La mascotte di Byup Staff con l'app aperta sul telefono"
           onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          style={{width: 100, flexShrink: 0, marginLeft: 'auto', filter: 'drop-shadow(0 10px 18px rgba(120, 15, 45, 0.28))'}}
+          style={{width: 96, flexShrink: 0, marginBottom: -6, filter: 'drop-shadow(0 10px 20px rgba(120, 15, 45, 0.30))'}}
         />
+      </div>
+
+      <div style={{fontSize: 13.5, color: cream, opacity: 0.92, lineHeight: 1.45, paddingBottom: 16, marginTop: -4}}>
+        Inquadra il codice, oppure vai su <a href={PERS_STORE.play} style={link}>Play Store</a> o <a href={PERS_STORE.app} style={link}>App Store</a>.
       </div>
     </section>
   );
