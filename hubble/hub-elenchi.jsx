@@ -123,23 +123,14 @@ function HubElenchiPage() {
           nome: '', descrizione: '', tipo: 'attivo', scopo: HUB_SCOPI[0], includi: [], escludi: [],
         })}>Crea elenco</HubStrumento>}/>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
-        <HubTile etichetta="Elenchi totali" valore={HUB_ELENCHI.length} icona="layers"
-          sotto={`${attivi} attivi · ${statici} statici`}/>
-        <HubTile etichetta="In almeno un elenco" valore={fmtNum(
-          // Anche gli statici, con la stessa convenzione del dettaglio (i primi
-          // membriFissi della rubrica): un membro visibile lì deve contare qui.
-          new Set(HUB_ELENCHI.flatMap(e => e.tipo === 'attivo'
-            ? hubApplica(CONTATTI, e.includi, e.escludi).map(c => c.key)
-            : CONTATTI.slice(0, e.membriFissi || 0).map(c => c.key))).size
-        )} icona="users3" sotto={`su ${fmtNum(CONTATTI.length)} in rubrica`}/>
-        <HubTile etichetta="Usati davvero" valore={HUB_ELENCHI.filter(e => e.usatoIn && e.usatoIn.length).length}
-          icona="megaphone" sotto="Gli altri esistono ma non lavorano" tono="HUB_MAGENTA"/>
-        <HubTile etichetta="Ultimo aggiornamento" valore={fmtRelative(
-          HUB_ELENCHI.map(e => e.aggiornato).sort((a, b) => b - a)[0]
-        )} icona="refresh" sotto="Gli attivi si ricalcolano a ogni cambiamento"/>
-      </div>
-
+      {/* Qui stavano quattro riquadri con dei numeri — quanti elenchi ci sono,
+          quanti contatti stanno in almeno uno, quanti elenchi lavorano
+          davvero, quando è stato l'ultimo aggiornamento. Tolti: nessuno dei
+          quattro cambiava una decisione. Chi apre questa pagina cerca UN
+          elenco, e i numeri che gli servono per trovarlo — quanti sono, quanti
+          attivi, quanti statici — stanno già sulle linguette qui sotto, dove
+          si può anche premerli. Un riquadro che si legge e basta, sopra la
+          cosa che si usa, la spinge solo più in basso. */}
       <AdmCard padding={0}>
         <div style={{ padding: '13px 18px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${ADM.BORDER}`, flexWrap: 'wrap' }}>
           <HubSegmenti attivo={vista} onCambia={setVista} voci={[
