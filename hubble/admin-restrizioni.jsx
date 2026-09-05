@@ -64,6 +64,10 @@ function admAggiungiRestrizione(utente, tipo, extra = {}) {
     durataGiorni,                           // solo per la sospensione: 30 | 60 | 90
     fine: sosp ? rstFine(data, durataGiorni) : null,
     motivo: extra.motivo || null,
+    // Il riferimento alla decisione di moderazione da cui la restrizione
+    // discende (P-156.7): il modello lo rende obbligatorio per quelle che ne
+    // hanno una; il ban disposto dalla scheda utente non ne ha e resta vuoto.
+    decisione: extra.decisione || null,
     esistenti: sosp ? (extra.esistenti === 'rimosse' ? 'rimosse' : 'restano') : null,   // sulle recensioni già pubblicate
     motivoRimozione: sosp && extra.esistenti === 'rimosse' ? (extra.motivoRimozione || extra.motivo) : null,
     recensione: extra.recensione || null,   // { locale, citta, rating, testo, data }
@@ -500,6 +504,7 @@ function SospensionePopup({ utente, recensione, onClose, onConferma }) {
     const rec = admAggiungiRestrizione(utente, 'review_suspension', {
       durataGiorni: durata, motivo: motivo.trim(), esistenti,
       motivoRimozione: motivoRimozione.trim() || null, recensione: recensione || null, operatore: chi.id,
+      decisione: recensione ? (recensione.decisioneId || recensione.segnalazioneId || recensione.id || null) : null,
     });
     if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({
       who: chi.nomeCompleto || chi.nome, action: `ha sospeso dalle recensioni per ${durata} giorni`,

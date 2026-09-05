@@ -1470,6 +1470,9 @@ const DRW_EVENTI = {
   email_changed:         'Email dell\'account cambiata',
   phone_changed:         'Telefono dell\'account cambiato',
   name_changed:          'Nome dell\'account cambiato',
+  // La disconnessione di un monitor di cucina (P-134, P-144): scritta dal
+  // gestionale, letta qui — senza questa riga l'evento arrivava e non si vedeva.
+  device_revoked:        'Monitor di cucina disconnesso',
 };
 
 // Gli eventi del locale, funzione pura: li legge la tab Log e li estrae

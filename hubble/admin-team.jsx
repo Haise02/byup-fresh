@@ -512,6 +512,10 @@ const AUDIT_TIPI = [
   { value:'fatturazione', label:'Fatturazione' },
   { value:'estrazione',   label:'Estrazioni' },
   { value:'broadcast',    label:'Broadcast' },
+  // Le azioni della scheda utente (P-144): blocco e sblocco dell'account,
+  // movimenti manuali sul saldo fedeltà; e la rimozione di una recensione.
+  { value:'utenti',       label:'Utenti app' },
+  { value:'moderazione',  label:'Moderazione' },
 ];
 
 const AUDIT_EVENTS = [

@@ -210,21 +210,38 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   const [byupFeedback, setByupFeedback] = useStateUtn(null);
   const [deletePopup, setDeletePopup] = useStateUtn(false);
   const [banPopup, setBanPopup] = useStateUtn(null); // 'ban' | 'unban' | 'sospendi' | 'rimuovi-sospensione' | null
+  // Il motivo del ban (P-156.7): nel modello è obbligatorio, e prima la riga
+  // nasceva senza — la funzione veniva chiamata senza argomenti.
+  const [banMotivo, setBanMotivo] = useStateUtn('');
   const [banned, setBanned] = useStateUtn(!!u.bannato);
+  // Le azioni che la scheda promette di registrare LE REGISTRA (P-144): prima
+  // cinque finestre dicevano «viene registrata nell'audit log» e nessuna ci
+  // scriveva. Tipo dell'azione, chi, su chi, quando e il motivo dove c'è.
+  const utnAudit = (action, target, icon, color, tipo) => {
+    if (typeof AUDIT_EVENTS === 'undefined') return;
+    const me = hubUtenteCorrente();
+    AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action, target, icon, color, tipo, when: new Date() });
+  };
   const [sospeso, setSospeso] = useStateUtn(!!u.sospensioneRecensioni);
   // Anche azioni e popup ripartono dal nuovo utente: il ✓ del reset password
   // di uno non deve firmare l'email di un altro.
   React.useEffect(() => {
-    setBanned(!!u.bannato); setSospeso(!!u.sospensioneRecensioni); setBanPopup(null);
+    setBanned(!!u.bannato); setSospeso(!!u.sospensioneRecensioni); setBanPopup(null); setBanMotivo('');
     setResetSent(false); setByupPopup(null); setByupAmount(''); setByupFeedback(null); setDeletePopup(false);
   }, [u.id]);
   const confirmBan = () => {
     // Ogni applicazione e ogni revoca passa anche dal registro restrizioni:
     // è quello che alimenta l'elenco in Utenti app.
+    if (banPopup === 'ban' && !banMotivo.trim()) return;
     if (banPopup === 'ban' || banPopup === 'unban') {
       u.bannato = banPopup === 'ban'; setBanned(u.bannato);
-      if (u.bannato) admAggiungiRestrizione(u, 'ban');
-      else admRevocaPerUtente(u.id, 'ban');
+      if (u.bannato) {
+        admAggiungiRestrizione(u, 'ban', { motivo: banMotivo.trim(), operatore: hubUtenteCorrente().id });
+        utnAudit('ha bloccato l\'account di', `${form.nome} · ${u.id} · ${banMotivo.trim()}`, 'lock', 'DANGER', 'utenti');
+      } else {
+        admRevocaPerUtente(u.id, 'ban');
+        utnAudit('ha rimosso il blocco a', `${form.nome} · ${u.id}`, 'check', 'OK', 'utenti');
+      }
     }
     // La sospensione (P-88) si applica dal popup condiviso con la moderazione;
     // qui passa solo la revoca anticipata, firmata da chi è collegato.
@@ -232,7 +249,7 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
       u.sospensioneRecensioni = false; setSospeso(false);
       admRevocaPerUtente(u.id, 'review_suspension', hubUtenteCorrente().id);
     }
-    setBanPopup(null);
+    setBanPopup(null); setBanMotivo('');
   };
   const confirmDelete = () => {
     // Il popup promette l'irreversibile, e a livello di mock l'azione agisce
@@ -278,6 +295,7 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   const confirmRimuoviRev = () => {
     if (!revMotivo.trim()) return;
     setRecensioni(prev => prev.map(r => r.id === revPopup.id ? { ...r, rimossa: revMotivo.trim() } : r));
+    utnAudit('ha rimosso una recensione di', `${form.nome} · ${(revPopup.locale && revPopup.locale.nome) || 'locale'} · ${revMotivo.trim()}`, 'x', 'WARN', 'moderazione');
     setRevPopup(null); setRevMotivo('');
   };
   // ── Movimenti byuppini: l'audit che la card promette, in vista ──
@@ -312,12 +330,16 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
       u.byuppini += byupN;
       setByupFeedback(`+${byupN} byuppini caricati`);
     }
+    const me = hubUtenteCorrente();
     setMovimenti(prev => [{
       quando: new Date(),
       delta: byupPopup === 'sub' ? -byupN : byupN,
       causale: byupPopup === 'sub' ? 'Storno manuale' : 'Accredito manuale',
-      operatore: 'Tu',
+      operatore: me.nomeCompleto || me.nome,
     }, ...prev]);
+    utnAudit(byupPopup === 'sub' ? 'ha stornato byuppini a' : 'ha caricato byuppini a',
+      `${byupN} byuppini · ${form.nome} · ${byupPopup === 'sub' ? 'storno manuale' : 'accredito manuale'}`,
+      byupPopup === 'sub' ? 'x' : 'plus', byupPopup === 'sub' ? 'WARN' : 'OK', 'utenti');
     setByupPopup(null); setByupAmount('');
     setTimeout(()=>setByupFeedback(null), 2500);
   };
@@ -1166,9 +1188,12 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
                 <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.5, marginBottom:16}}>
                   L'account <strong style={{fontFamily:'ui-monospace,monospace'}}>{u.id}</strong> viene <strong style={{color:ADM.DANGER}}>bloccato</strong>: niente più accesso all'app, ordini, prenotazioni o recensioni. L'azione è reversibile e viene registrata nell'audit log.
                 </div>
+                {/* Il motivo (P-156.7): obbligatorio nel modello, come dalla moderazione. */}
+                <textarea value={banMotivo} onChange={e => setBanMotivo(e.target.value)} rows={2} placeholder="Motivo del blocco (obbligatorio): che cosa è successo, in una riga"
+                  style={{width:'100%', boxSizing:'border-box', marginBottom:14, padding:'9px 11px', borderRadius:9, border:`1px solid ${ADM.BORDER}`, fontFamily:'inherit', fontSize:13, color:ADM.TEXT, resize:'vertical'}}/>
                 <div style={{display:'flex', justifyContent:'flex-end', gap:8}}>
                   <AdmButton variant="ghost" size="md" onClick={()=>setBanPopup(null)}>Annulla</AdmButton>
-                  <AdmButton variant="danger" size="md" icon="lock" onClick={confirmBan}>Banna utente</AdmButton>
+                  <AdmButton variant="danger" size="md" icon="lock" disabled={!banMotivo.trim()} onClick={confirmBan}>Banna utente</AdmButton>
                 </div>
               </>) : (<>
                 <div style={{fontSize:15.5, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rimuovere il ban a {form.nome}?</div>
