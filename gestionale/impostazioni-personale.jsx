@@ -652,22 +652,27 @@ function PersStaffPromo() {
         Il POS digitale e gratuito: incassi dal telefono di chi è in sala, senza altro hardware.
       </div>
 
-      {/* Il codice e la mascotte, fianco a fianco: la mascotte poggia sul
-          bordo inferiore del riquadro, come nel banner da cui viene. */}
+      {/* L'istruzione sta SOPRA il codice e non sotto: sotto non c'è più posto,
+          perché il fondo del riquadro è della mascotte. Con la riga in mezzo,
+          la mascotte le finiva coi piedi addosso e l'ombra le tagliava le
+          parole — era il difetto da correggere. */}
+      <div style={{fontSize: 13.5, color: cream, opacity: 0.92, lineHeight: 1.45, marginTop: 10}}>
+        Inquadra il codice, oppure vai su <a href={PERS_STORE.play} style={link}>Play Store</a> o <a href={PERS_STORE.app} style={link}>App Store</a>.
+      </div>
+
+      {/* Il codice e la mascotte, fianco a fianco sul fondo: il QR staccato dal
+          bordo, la mascotte all'estremità opposta che ci poggia sopra e viene
+          tagliata a filo dall'overflow — come nel banner da cui viene. */}
       <div style={{display:'flex', alignItems:'flex-end', gap: 10, marginTop: 12}}>
-        <div style={{background: PN.WHITE, borderRadius: 10, padding: 7, flexShrink: 0, marginBottom: 14}}>
+        <div style={{background: PN.WHITE, borderRadius: 10, padding: 7, flexShrink: 0, marginBottom: 16}}>
           <PersQrMock size={96}/>
         </div>
         <img
           src="mascot-staff.png?v=2"
           alt="La mascotte di Byup Staff con l'app aperta sul telefono"
           onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          style={{width: 96, flexShrink: 0, marginBottom: -6, filter: 'drop-shadow(0 10px 20px rgba(120, 15, 45, 0.30))'}}
+          style={{width: 104, flexShrink: 0, marginLeft: 'auto', marginBottom: -3, filter: 'drop-shadow(0 10px 20px rgba(120, 15, 45, 0.30))'}}
         />
-      </div>
-
-      <div style={{fontSize: 13.5, color: cream, opacity: 0.92, lineHeight: 1.45, paddingBottom: 16, marginTop: -4}}>
-        Inquadra il codice, oppure vai su <a href={PERS_STORE.play} style={link}>Play Store</a> o <a href={PERS_STORE.app} style={link}>App Store</a>.
       </div>
     </section>
   );

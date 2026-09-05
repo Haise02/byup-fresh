@@ -685,9 +685,14 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <div className="frame" data-screen-label="Configurazione completa">
     <GlassMeshSubstrate/>
-    {/* Le due attivazioni: chi esce dall'onboarding atterra qui o in
-        Panoramica, e la fascia dev'essere la stessa nei due casi. */}
-    {window.PnAttivazioniFascia && <window.PnAttivazioniFascia/>}
+    {/* Le due attivazioni NON stanno qui: questa pagina è ancora onboarding —
+        ci si arriva solo dallo step 4, e da qui si esce nel gestionale. Le
+        fasce sono quello che si trova ATTERRANDO nel gestionale, e chiedere
+        Stripe e il fiscale mentre il locale sta ancora mettendo in piedi
+        vetrina e personale è lo stesso muro sulla porta che il 4 settembre
+        (D-105) si è tolto dall'onboarding. Compaiono nei due punti d'arrivo:
+        Panoramica per chi esce dall'onboarding rapido, Profilo → Piani per
+        chi conclude di qui. */}
     {window.PnStampaFasce && <window.PnStampaFasce/>}
     <ConfigCompletaApp/>
   </div>
