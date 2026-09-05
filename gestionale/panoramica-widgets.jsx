@@ -808,12 +808,13 @@ function TopDishRow({ d, i, max }) {
 // deve corrispondere a un calcolo dichiarabile al pubblico». È la stessa
 // ragione per cui la media che mescolava le fonti è morta: qui la media si
 // dichiara per quello che è — media delle recensioni Byup — mai un numero
-// orfano. I numeri sono quelli di Statistiche (STAT_CLIENTI.fonti.byup:
-// 312 recensioni, media 4,6), copiati a mano perché è un altro bundle.
+// orfano. I numeri vengono dal registro condiviso della valutazione
+// (byupReadValutazione, panoramica-tokens.jsx — P-157): lo stesso che leggono
+// l'anteprima della vetrina, la vetrina della webapp e la scheda nell'app.
 // Stato zero: il locale senza recensioni non mostra un voto vuoto né un
 // trattino, dice che è nuovo. Si prova con `?nuovo=1`, come `?notte=1` per la
 // notte demo di P-100.
-const REC_BYUP = { media: 4.6, n: 312, settimana: 8 };
+const recByup = () => (window.byupReadValutazione ? window.byupReadValutazione() : { media: 4.6, n: 312, settimana: 8 });
 const recLocaleNuovo = () => {
   try { return new URLSearchParams(window.location.search).get('nuovo') === '1'; } catch (e) { return false; }
 };
@@ -825,7 +826,10 @@ function WidgetRecensioni() {
     { name: 'Andrea P.', stars: 4, when:'5h fa', text:'Tutto buono, ma sala un po\' rumorosa di sabato sera.' },
     { name: 'Sofia R.',  stars: 5, when:'1g fa', text:'Personale gentilissimo, tagliata cotta perfetta. Top.' },
   ];
-  const piene = Math.round(REC_BYUP.media);
+  const REC_BYUP = recByup();
+  // Le stelle seguono il numero (P-157): piene fino alla parte intera, mezza
+  // se il resto è almeno un quarto — non cinque piene accanto a un 4,6.
+  const stelle = window.byupStelle ? window.byupStelle(REC_BYUP.media) : [1,2,3,4,5].map(i => i <= Math.floor(REC_BYUP.media) ? 'piena' : 'vuota');
 
   return (
     <div style={{display:'flex', flexDirection:'column', height:'100%'}}>
@@ -842,8 +846,10 @@ function WidgetRecensioni() {
           ) : (
             <div style={{display:'flex', alignItems:'center', gap: 6, marginTop: 4, minWidth: 0}}>
               <div style={{display:'flex', gap: 2, flexShrink: 0}}>
-                {[1,2,3,4,5].map(i => (
-                  <Icon name="star" key={i} size={13} color={i <= piene ? '#F59E0B' : '#E5E7EB'}/>
+                {stelle.map((st, i) => (
+                  <span key={i} style={{display:'inline-flex', opacity: st === 'mezza' ? 0.55 : 1}}>
+                    <Icon name="star" size={13} color={st === 'vuota' ? '#E5E7EB' : '#F59E0B'}/>
+                  </span>
                 ))}
               </div>
               <span style={{fontSize: 15, fontWeight: 700, color: PN.TEXT, whiteSpace:'nowrap'}}>{REC_BYUP.media.toFixed(1).replace('.', ',')}</span>

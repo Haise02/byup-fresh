@@ -9,6 +9,20 @@ const MUTED_X = '#7A7176';
 const BG_X = '#F5F5F5';
 const BORDER_X = '#EAE6E7';
 
+// ─── La valutazione del locale (P-157) ──────────────────────────────
+// Copia guardata di byupReadValutazione / byupStelle (gestionale/panoramica-
+// tokens.jsx): stesso registro byup_valutazione sullo stesso dominio, stesso
+// seme (312 recensioni Byup, media 4,6), stesse stelle.
+function byupValutazioneLeggi() {
+  const SEME = { media: 4.6, n: 312 };
+  try { const s = localStorage.getItem('byup_valutazione'); if (s) { const v = JSON.parse(s); if (v && isFinite(v.media)) return Object.assign({}, SEME, v); } } catch {}
+  return { ...SEME };
+}
+function byupStelle(media) {
+  const m = Number(media) || 0, intera = Math.floor(m), resto = m - intera;
+  return [1, 2, 3, 4, 5].map(n => n <= intera ? 'piena' : (n === intera + 1 && resto >= 0.25) ? 'mezza' : 'vuota');
+}
+
 function VenueMapThumbnail({ lat, lng }) {
   const divRef = useRef(null);
   useEffect(() => {
@@ -283,13 +297,17 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onMap }) {
             <div style={{ fontSize: 15, fontWeight: 700, color: TEXT_X, marginBottom: 10 }}>
               Recensione media
             </div>
+            {/* Un valore solo, dal registro condiviso byup_valutazione (P-157):
+                lo stesso della Panoramica e dell'anteprima in Impostazioni.
+                Le stelle seguono il numero. */}
+            {(() => { const val = byupValutazioneLeggi(); const stelle = byupStelle(val.media); return (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {[1,2,3,4,5].map(n => {
-                const filled = n <= Math.round(4.8);
+              {stelle.map((st, i) => {
+                const n = i + 1;
                 return (
                   <div key={n} style={{
                     width: 30, height: 30, borderRadius: 7,
-                    background: filled ? PINK_X : '#f0e6e9',
+                    background: st === 'piena' ? PINK_X : st === 'mezza' ? `linear-gradient(90deg, ${PINK_X} 50%, #f0e6e9 50%)` : '#f0e6e9',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinejoin="round">
@@ -299,10 +317,11 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onMap }) {
                 );
               })}
               <div style={{ marginLeft: 8, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: 28, fontWeight: 800, color: TEXT_X, letterSpacing: -0.5 }}>4.8</span>
-                <span style={{ fontSize: 14, color: MUTED_X, fontWeight: 500 }}>· 320 recensioni</span>
+                <span style={{ fontSize: 28, fontWeight: 800, color: TEXT_X, letterSpacing: -0.5 }}>{val.media.toFixed(1).replace('.', ',')}</span>
+                <span style={{ fontSize: 14, color: MUTED_X, fontWeight: 500 }}>· {val.n} recensioni</span>
               </div>
             </div>
+            ); })()}
           </div>
 
           {/* Promo / Eventi */}

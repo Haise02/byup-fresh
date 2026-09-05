@@ -735,17 +735,24 @@ function VetrinaMiniPreview({ tags = [], social = ['ig'], categoria = 'Ristorant
               {/* Recensione media */}
               <div style={{padding: '18px 20px 0'}}>
                 {secTitle('Recensione media')}
+                {/* Un valore solo, dal registro condiviso (P-157): lo stesso
+                    della Panoramica, della webapp e dell'app. Le stelle
+                    seguono il numero. */}
+                {(() => { const val = window.byupReadValutazione ? window.byupReadValutazione() : { media: 4.6, n: 312 };
+                  const stelle = window.byupStelle ? window.byupStelle(val.media) : [1,2,3,4,5].map(n => n <= Math.floor(val.media) ? 'piena' : 'vuota');
+                  return (
                 <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
-                  {[1,2,3,4,5].map(n => (
-                    <span key={n} style={{width: 30, height: 30, borderRadius: 7, background: A.PINK, display: 'grid', placeItems: 'center'}}>
+                  {stelle.map((st, n) => (
+                    <span key={n} style={{width: 30, height: 30, borderRadius: 7, background: st === 'piena' ? A.PINK : st === 'mezza' ? `linear-gradient(90deg, ${A.PINK} 50%, #f0e6e9 50%)` : '#f0e6e9', display: 'grid', placeItems: 'center'}}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="#fff" strokeWidth="1" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     </span>
                   ))}
                   <span style={{marginLeft: 8, display: 'flex', alignItems: 'baseline', gap: 6}}>
-                    <span style={{fontSize: 28, fontWeight: 800, letterSpacing: -0.5}}>4.8</span>
-                    <span style={{fontSize: 14, color: A.MUTED, fontWeight: 500}}>· 320 recensioni</span>
+                    <span style={{fontSize: 28, fontWeight: 800, letterSpacing: -0.5}}>{val.media.toFixed(1).replace('.', ',')}</span>
+                    <span style={{fontSize: 14, color: A.MUTED, fontWeight: 500}}>· {val.n} recensioni</span>
                   </span>
                 </div>
+                  ); })()}
               </div>
 
               {/* Promo / Eventi — pillole col dettaglio a scomparsa, come in app */}

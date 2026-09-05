@@ -1311,6 +1311,31 @@ window.pnAdeChiRinnova = function (forma) {
   return { ruolo: 'incaricato', nome: `${i.nome} ${i.cognome}`.trim(), cf: i.cf, nominato_il: i.nominato_il };
 };
 
+// ─── La valutazione del locale, in un posto solo (P-157) ────────────────────
+// La media delle recensioni Byup e il loro numero (venue_profiles.avg_rating,
+// review_count) si leggono da un registro condiviso sullo stesso dominio, come
+// il nome del locale: la Panoramica, l'anteprima della vetrina in Impostazioni,
+// la vetrina della webapp e la scheda del locale nell'app mostrano lo STESSO
+// dato. Prima erano tre copie scritte a mano che dicevano tre numeri, e la
+// vetrina è proprio la schermata che dovrebbe mostrare al ristoratore quello
+// che vede il cliente. Il seme è quello di Statistiche (STAT_CLIENTI.fonti
+// .byup: 312 recensioni, media 4,6). Le stelle seguono il numero: piene fino
+// alla parte intera, mezza se il resto è almeno un quarto.
+const PN_VALUTAZIONE_KEY = 'byup_valutazione';
+const PN_VALUTAZIONE_SEME = { media: 4.6, n: 312, settimana: 8 };
+window.byupReadValutazione = function () {
+  try { const s = localStorage.getItem(PN_VALUTAZIONE_KEY); if (s) { const v = JSON.parse(s); if (v && isFinite(v.media)) return Object.assign({}, PN_VALUTAZIONE_SEME, v); } } catch (e) {}
+  return { ...PN_VALUTAZIONE_SEME };
+};
+window.byupWriteValutazione = function (v) {
+  try { localStorage.setItem(PN_VALUTAZIONE_KEY, JSON.stringify(v)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-valutazione-change'));
+};
+window.byupStelle = function (media) {
+  const m = Number(media) || 0, intera = Math.floor(m), resto = m - intera;
+  return [1, 2, 3, 4, 5].map(n => n <= intera ? 'piena' : (n === intera + 1 && resto >= 0.25) ? 'mezza' : 'vuota');
+};
+
 // ─── Lo stato delle credenziali dell'Agenzia, in un posto solo (P-120) ──────
 // La password Fisconline scade ogni novanta giorni e, alla scadenza senza
 // rinnovo, «l'emissione si ferma» (progetto tecnico §12.2): non esiste una via
