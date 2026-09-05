@@ -48,7 +48,7 @@ function POSApp() {
   const armato = React.useRef(DISATTIVA_DEMO);
   const revocata = (arma) => {
     if (!SESSIONE.membership_id) return false;
-    if (arma && armato.current) { armato.current = false; staffDisattiva('owner_deactivated'); }
+    if (arma && armato.current) { armato.current = false; staffDisattiva(); }
     if (!staffAccessoRevocato()) return false;
     const locale = MERCHANT.nome;
     staffEsci();

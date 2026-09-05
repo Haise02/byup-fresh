@@ -125,10 +125,10 @@ const intRelativo = (d) => {
 // Due righe: una viva su tutte le sedi, una limitata a Ostiense e revocata —
 // resta, perché la revoca è storia e non cancellazione.
 const INT_CONNESSIONI_MOCK = [
-  { id: 'conn-2', application: 'zapier', venue_id: null, authorized_by: 'Mario Rossi',
+  { id: 'conn-2', client: 'zapier', venue_id: null, authorized_by: 'Mario Rossi',
     controller_ack_at: intGiorniFa(50, '10:19'), authorized_at: intGiorniFa(50, '10:20'),
     last_used_at: intMinutiFa(12), revoked_at: null, revoked_by: null },
-  { id: 'conn-1', application: 'zapier', venue_id: 'co', authorized_by: 'Mario Rossi',
+  { id: 'conn-1', client: 'zapier', venue_id: 'co', authorized_by: 'Mario Rossi',
     controller_ack_at: intGiorniFa(182, '16:04'), authorized_at: intGiorniFa(182, '16:05'),
     last_used_at: intGiorniFa(92, '09:30'), revoked_at: intGiorniFa(91, '11:00'), revoked_by: 'Mario Rossi' },
 ];
@@ -168,7 +168,7 @@ function ImpIntegrazioni() {
       return { ...i, status: 'collegata', detail: `${c.dettaglio ? c.dettaglio + ' · ' : ''}collegata il ${intData(new Date(c.quando))}` };
     }
     if (!i.api) return i;
-    const vive = connessioni.filter(c => c.application === i.id && !c.revoked_at);
+    const vive = connessioni.filter(c => c.client === i.id && !c.revoked_at);
     const una = vive.length === 1 ? vive[0] : null;
     return { ...i, status: vive.length ? 'connected' : 'available',
       detail: vive.length ? (una ? `da ${una.authorized_by} · ${intData(una.authorized_at)}` : `${vive.length} connessioni attive`) : undefined };
@@ -281,7 +281,7 @@ function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca })
   // più: con una connessione viva l'azione è «Revoca», con la conferma sul
   // posto; «Nuova connessione» resta il pulsante. Con più connessioni si
   // revoca dalla tessera una alla volta, l'ultima autorizzata per prima.
-  const vive = connessioni.filter(c => c.application === item.id && !c.revoked_at);
+  const vive = connessioni.filter(c => c.client === item.id && !c.revoked_at);
   const [confermaRevoca, setConfermaRevoca] = React.useState(false);
   React.useEffect(() => { if (!confermaRevoca) return; const t = setTimeout(() => setConfermaRevoca(false), 4000); return () => clearTimeout(t); }, [confermaRevoca]);
   // Stripe: lo stato vero sta nel registro byup_stripe (panoramica-tokens) —
@@ -817,7 +817,7 @@ function IntCollegaModal({ onClose, onGenera }) {
     if (!pronto) return;
     const token = 'byup_live_' + Array.from({ length: 28 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
     onGenera({
-      id: 'conn-' + Date.now(), application: 'zapier',
+      id: 'conn-' + Date.now(), client: 'zapier',
       venue_id: scope === 'all' ? null : scope,
       authorized_by: INT_UTENTE.nome, controller_ack_at: ackAt, authorized_at: new Date(),
       last_used_at: null, revoked_at: null, revoked_by: null,

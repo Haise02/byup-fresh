@@ -477,8 +477,10 @@ window.ByupKit = {
 //   analytics            analisi d'uso, legittimo interesse, attive per difetto
 //   dietary_suggestions  esigenze alimentari nei suggerimenti, consenso
 //                        esplicito distinto (art. 9.2.a), spento per difetto
-// Le altre voci tengono l'id del registro dei trattamenti (A3, A18, A6) e la
-// dichiarazione GEN. Hubble legge questo registro dallo stesso dominio, in
+// Le altre voci portano i nomi del modello (P-161 · D-115): dietary_preferences
+// (era A3), offers_on_preferences (era A18), la dichiarazione gender (era GEN),
+// i quattro del marketing (P-163); la sigla del registro dei trattamenti resta
+// nell'etichetta a schermo, non nella chiave. Hubble legge questo registro dallo stesso dominio, in
 // sola lettura: la scheda utente mostra i tre interruttori con lo stato e la
 // data dell'ultimo evento. Una voce SENZA stato vale «per difetto»: accesi
 // recommendations e analytics, spento dietary_suggestions.
@@ -498,10 +500,15 @@ window.ByupKit = {
 // Due strutture: lo STATO corrente per voce e il LOG append-only
 // (consent_data) — ogni cambio scrive una riga con timestamp e versione
 // dell'informativa: è quella la prova, non lo stato.
-//   byup_consent_state  { [consent_type]: { ok, action, quando, versione, natura, valore? } }
-//   byup_consent_data   [ { id, consent_type, action: 'granted'|'revoked', ok,
-//                           natura: 'consenso'|'opposizione'|'dichiarazione',
-//                           quando (ISO), versione, valore?, revocato? }, … ]
+//   byup_consent_state  { [consent_type]: { ok, action, quando, versione, valore? } }
+//   byup_consent_data   [ { id, consent_type, action, ok, quando (ISO), versione,
+//                           valore?, revocato? }, … ]
+// L'AZIONE dice che cosa è successo, coi nomi del modello (P-161 · D-115): per
+// i consensi 'granted' | 'revoked'; per le due voci del legittimo interesse
+// (recommendations, analytics) spegnere è 'opposed' e riaccendere è
+// 'opposition_withdrawn'; la dichiarazione di un dato facoltativo (gender) è
+// 'granted' con il valore. Il campo `natura` non esiste più: era un doppione
+// dell'azione con parole nostre.
 (function () {
   const K_STATO = 'byup_consent_state';
   const K_LOG = 'byup_consent_data';
@@ -525,16 +532,18 @@ window.ByupKit = {
     // (le opposizioni del legittimo interesse partono accese, il consenso
     // alimentare parte spento; un consenso mai dato è spento).
     attivo(id) { const st = window.ByupConsensi.stato(id); if (st) return !!st.ok; return !!(TIPI[id] && TIPI[id].difetto); },
-    // `extra` porta la natura della riga: 'consenso' (difetto), 'opposizione'
-    // per le due voci del legittimo interesse, o quel che serve.
+    // L'azione segue la voce: sulle due del legittimo interesse spegnere è
+    // un'opposizione (art. 21) e riaccendere la ritira; sulle altre è un
+    // consenso dato o revocato. `extra` porta quel che serve in più (il gesto
+    // unico dei messaggi, P-163), mai una «natura».
     set(id, ok, extra) {
       const quando = new Date().toISOString();
-      const action = ok ? 'granted' : 'revoked';
-      const natura = (extra && extra.natura) || 'consenso';
+      const legittimoInteresse = !!(TIPI[id] && TIPI[id].base === 'legittimo interesse');
+      const action = legittimoInteresse ? (ok ? 'opposition_withdrawn' : 'opposed') : (ok ? 'granted' : 'revoked');
       const stato = leggi(K_STATO, {});
-      stato[id] = { ok: !!ok, action, quando, versione: VERSIONE_INFORMATIVA, natura };
+      stato[id] = { ok: !!ok, action, quando, versione: VERSIONE_INFORMATIVA };
       scrivi(K_STATO, stato);
-      appendi(Object.assign({ id, consent_type: id, action, ok: !!ok, natura, quando, versione: VERSIONE_INFORMATIVA }, extra || {}));
+      appendi(Object.assign({ id, consent_type: id, action, ok: !!ok, quando, versione: VERSIONE_INFORMATIVA }, extra || {}));
       avvisa();
       return stato[id];
     },
@@ -545,7 +554,7 @@ window.ByupKit = {
       const stato = leggi(K_STATO, {});
       delete stato[id];
       scrivi(K_STATO, stato);
-      appendi({ id, consent_type: id, action: 'revoked', ok: false, revocato: true, natura: 'consenso', quando, versione: VERSIONE_INFORMATIVA });
+      appendi({ id, consent_type: id, action: 'revoked', ok: false, revocato: true, quando, versione: VERSIONE_INFORMATIVA });
       avvisa();
     },
     // La DICHIARAZIONE di un dato facoltativo (P-84: il genere): non è un
@@ -555,9 +564,9 @@ window.ByupKit = {
     dichiara(id, valore) {
       const quando = new Date().toISOString();
       const stato = leggi(K_STATO, {});
-      stato[id] = { ok: true, action: 'granted', quando, versione: VERSIONE_INFORMATIVA, natura: 'dichiarazione', valore };
+      stato[id] = { ok: true, action: 'granted', quando, versione: VERSIONE_INFORMATIVA, valore };
       scrivi(K_STATO, stato);
-      appendi({ id, consent_type: id, action: 'granted', ok: true, valore, natura: 'dichiarazione', quando, versione: VERSIONE_INFORMATIVA });
+      appendi({ id, consent_type: id, action: 'granted', ok: true, valore, quando, versione: VERSIONE_INFORMATIVA });
       avvisa();
       return stato[id];
     },
@@ -779,7 +788,7 @@ const GUSTI = [
 // va chiamato così — è la misura di bilanciamento su cui la LIA fonda
 // l'opposizione facile. Spegnerlo scrive nel log consent_data DUE righe coi
 // nomi del modello (P-122 · P-123), recommendations e analytics, action
-// 'revoked' e natura 'opposizione'; riaccenderlo ne scrive due 'granted'.
+// 'opposed'; riaccenderlo ne scrive due 'opposition_withdrawn' (P-161 · D-115).
 // (Fino al 2026-09-04 era una riga sola, LI-SUGG: le righe vecchie restano
 // nel log come storia.) Gli eventi d'uso (app_usage_events) sono tre e basta —
 // app_open, qr_scan, menu_view — e si scrivono solo con l'interruttore
@@ -800,23 +809,25 @@ const GUSTI = [
     suggerimenti() { return leggi(K_SUGG, 'on') !== 'off'; },
     imposta(on) {
       scrivi(K_SUGG, on ? 'on' : 'off');
-      // La traccia dell'opposizione (o della riattivazione) nel log dei
-      // consensi: stesso registro, due voci coi nomi del modello, natura
-      // 'opposizione' — NON è un consenso. Hubble le legge da lì.
+      // La traccia dell'opposizione (o del suo ritiro) nel log dei consensi:
+      // stesso registro, due voci coi nomi del modello, azione 'opposed' o
+      // 'opposition_withdrawn' — NON è un consenso. Hubble le legge da lì.
       if (window.ByupConsensi) {
-        window.ByupConsensi.set('recommendations', !!on, { natura: 'opposizione' });
-        window.ByupConsensi.set('analytics', !!on, { natura: 'opposizione' });
+        window.ByupConsensi.set('recommendations', !!on);
+        window.ByupConsensi.set('analytics', !!on);
       }
       try { window.dispatchEvent(new Event('byup-suggerimenti-change')); } catch (e) {}
       return !!on;
     },
-    // L'emissione: tre tipi, la città, il momento. Con l'interruttore spento
+    // L'emissione: tre tipi, la città, il momento e la SEDE a cui l'evento si
+    // riferisce (app_usage_events.venue_id, P-161 · D-115): il menù sfogliato
+    // o il codice scansionato; app_open resta senza. Con l'interruttore spento
     // non scrive, e non scrive nient'altro in nessun caso.
-    emetti(tipo, venue) {
+    emetti(tipo, venueId) {
       if (!TIPI.includes(tipo)) return null;
       if (!window.ByupUso.suggerimenti()) return null;
       const log = leggi(K_USO, []);
-      const riga = { tipo, quando: new Date().toISOString(), citta: window.ByupUso.citta(), venue: venue || null };
+      const riga = { tipo, quando: new Date().toISOString(), citta: window.ByupUso.citta(), venue_id: venueId || null };
       log.push(riga);
       if (log.length > 500) log.splice(0, log.length - 500);
       scrivi(K_USO, log);

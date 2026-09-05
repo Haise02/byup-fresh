@@ -54,8 +54,8 @@ const SALA_TAVOLI = [
     // Incassi già arrivati su questo conto: due ospiti hanno pagato la loro
     // parte dall'app prima che il conto si chiudesse.
     pagamenti: [
-      { id:'p3a', method:'byup', amount: 9.00, ora:'20:41', chi:'Luca V.' },
-      { id:'p3b', method:'byup', amount: 9.00, ora:'20:43', chi:'Sara V.' },
+      { id:'p3a', method:'in_app', amount: 9.00, ora:'20:41', chi:'Luca V.' },
+      { id:'p3b', method:'in_app', amount: 9.00, ora:'20:43', chi:'Sara V.' },
     ],
     minutiSenzaOrdine: 4, timeSinceLastOrder: 4,
     note: { tipo:'evento', testo:'Compleanno' },
@@ -79,7 +79,7 @@ const SALA_TAVOLI = [
     // davvero — ne chiedeva 60. È l'unico caso qui dentro in cui `contoSaldato`
     // non era il risultato di un pagamento ma una bandierina messa a mano.
     pagamenti: [
-      { id:'p5a', method:'contanti', amount: 60.00, ora:'21:20', chi:'Cassa',
+      { id:'p5a', method:'cash', amount: 60.00, ora:'21:20', chi:'Cassa',
         items:[{ id:'o8', qty:2 }, { id:'o9', qty:2 }, { id:'o10', qty:2 }] },
     ],
     minutiSenzaOrdine: 18, timeSinceLastOrder: 18, note: null,
@@ -111,10 +111,10 @@ const SALA_TAVOLI = [
     // pagato la sua metà — il pagamento porta la riga con la quota (qty 0.5),
     // non il nome che spegne tutto: le sue pappardelle restano da incassare.
     pagamenti: [
-      { id:'p7a', method:'byup',     amount: 21.00, ora:'21:02', chi:'Paolo N.' },
-      { id:'p7b', method:'byup',     amount: 18.00, ora:'21:05', chi:'Elena N.' },
-      { id:'p7c', method:'contanti', amount: 15.00, ora:'21:11', chi:null },
-      { id:'p7d', method:'byup',     amount: 12.00, ora:'21:14', chi:'Marco T.', items:[{ id:'o15', qty: 0.5 }] },
+      { id:'p7a', method:'in_app',     amount: 21.00, ora:'21:02', chi:'Paolo N.' },
+      { id:'p7b', method:'in_app',     amount: 18.00, ora:'21:05', chi:'Elena N.' },
+      { id:'p7c', method:'cash', amount: 15.00, ora:'21:11', chi:null },
+      { id:'p7d', method:'in_app',     amount: 12.00, ora:'21:14', chi:'Marco T.', items:[{ id:'o15', qty: 0.5 }] },
     ],
     minutiSenzaOrdine: 6, timeSinceLastOrder: 6,
     // P-23 (D-27): la nota tipo 'allergia' non esiste più — era un dato di

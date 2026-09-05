@@ -165,9 +165,10 @@ function svOrdineAConto(ordine) {
   // (D-15 · emit_fiscal_document, ERD v11; SFA §8.5: l'ingestione emette il
   // documento), quindi lo scontrino SC resta. Per il resto l'incasso è
   // passato dal banco, e in cassa il default è la carta.
-  const metodo = ordine.fonte === 'byup' ? 'byup'
-    : (window.PN_PARTNER || {})[ordine.fonte] ? 'piattaforma'
-    : 'carta';
+  // I valori sono quelli di payments.method nel modello (P-161 · D-115).
+  const metodo = ordine.fonte === 'byup' ? 'in_app'
+    : (window.PN_PARTNER || {})[ordine.fonte] ? 'platform'
+    : 'card_terminal';
   const rimborsi = ordine.rimborsi || [];
   const reso = rimborsi.reduce((s, r) => s + r.amount, 0);
   // Il numero dello scontrino ricalca quello dei conti di sala (SC-YYMM-…):

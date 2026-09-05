@@ -2518,7 +2518,7 @@ function App({ recoveryArmed = false }) {
     window.__byupQR = () => setQrOpen(true);
     window.__byupNav = {
       go: setPage, home: resetToHome,
-      venue: () => { setActiveVenue(v => v || { premium: true, name: 'Al Settembrini', gusti: ['pasta', 'carne'], _from: 'menu' }); setPage('venue'); },
+      venue: () => { setActiveVenue(v => v || { id: 'v_settembrini', premium: true, name: 'Al Settembrini', gusti: ['pasta', 'carne'], _from: 'menu' }); setPage('venue'); },
     };
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -2886,7 +2886,8 @@ function QRScanOverlay({ onDone, onClose }) {
   useEffect(() => {
     const t1 = setTimeout(() => { setPhase('found'); BK.haptic.success(); }, 1350);
     // qr_scan (P-38): solo con l'interruttore acceso, con la città.
-    const t2 = setTimeout(() => { if (window.ByupUso) window.ByupUso.emetti('qr_scan'); onDone && onDone(); }, 3100);
+    // La sede scansionata viaggia con l'evento (P-161 · D-115): nel mock è il locale del menù demo.
+    const t2 = setTimeout(() => { if (window.ByupUso) window.ByupUso.emetti('qr_scan', 'v_settembrini'); onDone && onDone(); }, 3100);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
   return (

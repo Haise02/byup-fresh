@@ -366,19 +366,24 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   const noShowPct = prenAnno ? Math.round((noShowN / prenAnno) * 100) : null;
 
   // ── Consensi (tab): lo specchio di ByupConsensi dell'app ──
-  // Tre codici, gli stessi del registro vero: A3 (dato alimentare nel
-  // profilo), A18 (offerte sul dato alimentare — vale solo INSIEME ad A6,
-  // mai da sola: il dato è sensibile), A6 (marketing, che dal 2026-08-06 ha
-  // assorbito PROMOP). Ogni consenso porta {ok, quando, versione}: la
-  // versione è il documento contro cui è stato espresso. Qualcuno non è mai
-  // stato interpellato: quello è un terzo stato, non un «no».
+  // Le chiavi sono i nomi del modello (consent_events.consent_type, P-161 ·
+  // D-115): dietary_preferences (era A3, il dato alimentare nel profilo),
+  // offers_on_preferences (era A18: vale solo INSIEME a un canale marketing
+  // acceso, mai da sola — il dato è sensibile) e i quattro del marketing di
+  // P-163 (email, messaggi = sms e whatsapp con un gesto solo, notifiche,
+  // profilazione). La sigla del registro dei trattamenti resta nell'etichetta.
+  // Ogni consenso porta {ok, quando, versione}: la versione è il documento
+  // contro cui è stato espresso. Qualcuno non è mai stato interpellato: quello
+  // è un terzo stato, non un «no».
   const consensi = [
-    { id: 'A3',  label: 'Preferenze alimentari nel profilo',
+    { id: 'dietary_preferences',  label: 'Preferenze alimentari nel profilo · A3',
       desc: 'Salvataggio di dieta e allergie per filtrare i menu — dato sensibile' },
-    { id: 'A18', label: 'Offerte su preferenze alimentari',
-      desc: 'Promozioni costruite sul dato alimentare — vale solo insieme ad A6' },
-    { id: 'A6',  label: 'Marketing',
-      desc: 'Comunicazioni promozionali, generiche e su misura sullo storico ordini' },
+    { id: 'offers_on_preferences', label: 'Offerte su preferenze alimentari · A18',
+      desc: 'Promozioni costruite sul dato alimentare — vale solo con un canale marketing acceso' },
+    { id: 'marketing_email',        label: 'Marketing · Email · A6', desc: 'Novità e offerte via email' },
+    { id: 'marketing_sms',          label: 'Marketing · Messaggi · A6', desc: 'SMS e WhatsApp (marketing_whatsapp viaggia con lo stesso gesto)' },
+    { id: 'marketing_push',         label: 'Marketing · Notifiche · A6', desc: 'Le notifiche promozionali sul telefono' },
+    { id: 'profilazione_marketing', label: 'Promo su misura sui tuoi ordini', desc: 'La profilazione a fini promozionali: una finalità, non un canale' },
   ].map((c, i) => {
     const deciso = rnd(400 + i * 3) > 0.15;
     const ok = deciso && rnd(401 + i * 3) > 0.35;
@@ -386,17 +391,17 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
       u.dataRegistrazione.getTime() + Math.floor(rnd(402 + i * 3) * 200) * 86400000));
     return { ...c, deciso, ok, quando: deciso ? quando : null, versione: '1.0' };
   });
-  const consensoA3 = consensi.find(c => c.id === 'A3');
+  const consensoA3 = consensi.find(c => c.id === 'dietary_preferences');
   // A18 non vale mai da sola — lo dichiara la sua stessa desc. Le estrazioni
   // sono indipendenti, il registro dell'app no: la domanda A18 nasce nello
   // stesso sheet di A3 (mai chiesta l'una senza l'altra), e quando A3 o A6
   // mancano ByupConsensi la spegne. Lo specchio mostra lo stato che l'app
   // può produrre, non l'estrazione grezza.
-  const consensoA18 = consensi.find(c => c.id === 'A18');
-  const consensoA6 = consensi.find(c => c.id === 'A6');
+  const consensoA18 = consensi.find(c => c.id === 'offers_on_preferences');
+  const canaleMarketing = consensi.some(c => ['marketing_email', 'marketing_sms', 'marketing_push'].includes(c.id) && c.ok);
   consensoA18.deciso = consensoA18.deciso && consensoA3.deciso;
   if (!consensoA18.deciso) consensoA18.quando = null;
-  consensoA18.ok = consensoA18.deciso && consensoA18.ok && consensoA3.ok && consensoA6.ok;
+  consensoA18.ok = consensoA18.deciso && consensoA18.ok && consensoA3.ok && canaleMarketing;
 
   // ── Gli interruttori dell'app (P-123): legittimo interesse e consenso ──
   // alimentare, in sola lettura, con lo stato e la data dell'ultimo evento.
@@ -428,7 +433,10 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
       const log = (leggiLS('byup_consent_data', []) || []).filter(r => r && ids.includes(r.id));
       const st = ids.map(id => stato[id]).find(Boolean) || null;
       const ultima = log.length ? log[log.length - 1] : null;
-      if (st || ultima) return { ...t, ok: ultima ? !!ultima.ok : !!st.ok, quando: (ultima && ultima.quando) || (st && st.quando) || null, vivo: true };
+      // L'azione è quella scritta dall'app (P-161 · D-115): sulle due voci del
+      // legittimo interesse 'opposed' e 'opposition_withdrawn', sul consenso
+      // alimentare 'granted' e 'revoked'.
+      if (st || ultima) return { ...t, ok: ultima ? !!ultima.ok : !!st.ok, quando: (ultima && ultima.quando) || (st && st.quando) || null, azione: (ultima && ultima.action) || (st && st.action) || null, vivo: true };
       // L'opposizione ai suggerimenti prima del registro: la chiave dell'app.
       if (t.id === 'recommendations' && leggiLS('byup_suggerimenti', 'on') === 'off') return { ...t, ok: false, quando: null, vivo: true };
       return { ...t, ok: t.difetto, quando: null, vivo: true };
@@ -839,7 +847,7 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
               </div>
               {consensi.map((c, i) => (
                 <div key={c.id} style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
-                  <span style={{fontFamily:'ui-monospace,monospace', fontSize:12.5, fontWeight:700, color:ADM.TEXT, width:34, flexShrink:0}}>{c.id}</span>
+                  <span style={{fontFamily:'ui-monospace,monospace', fontSize:10.5, fontWeight:700, color:ADM.MUTED, width:150, flexShrink:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}} title={c.id}>{c.id}</span>
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{c.label}</div>
                     <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{c.desc}</div>
@@ -869,7 +877,7 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
                   <AdmSwitch checked={t.ok} disabled size="sm"/>
                   <div style={{flex:1, minWidth:0}}>
                     <div style={{fontSize:13.8, fontWeight:600, color:ADM.TEXT}}>{t.label} <span style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT, fontWeight:600, marginLeft:4}}>{t.id}</span></div>
-                    <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{t.desc}</div>
+                    <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:1}}>{t.desc}{t.azione ? <span style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT}}> · ultima azione: {t.azione}</span> : null}</div>
                   </div>
                   <div style={{textAlign:'right', flexShrink:0}}>
                     <span style={{padding:'3px 10px', borderRadius:5, background: t.ok ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: t.ok ? ADM.OK : ADM.MUTED, fontSize:13, fontWeight:700}}>{t.ok ? 'Acceso' : 'Spento'}</span>

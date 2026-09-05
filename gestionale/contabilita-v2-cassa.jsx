@@ -247,8 +247,8 @@ function ccChiusure() {
       // cassetto né transito sul POS nostro: resta nel totale della
       // giornata (il documento è nostro) e ha la SUA colonna (P-157), così
       // la somma delle colonne di denaro dà il totale a colpo d'occhio.
-      if (p.method === 'contanti') contanti += p.amount;
-      else if (p.method === 'piattaforma') piattaforma += p.amount;
+      if (p.method === 'cash') contanti += p.amount;
+      else if (p.method === 'platform') piattaforma += p.amount;
       else nonContanti += p.amount;
     });
     const [Y, M, D] = g.split('-');
@@ -512,7 +512,10 @@ function CcControlloLink({ onClick }) {
   );
 }
 
-const CC_METODO = { contanti:'Contanti', carta:'Carta', byup:'Byup app', piattaforma:'Piattaforma' };
+// I valori di payments.method sono quelli del modello (P-161 · D-115): cash,
+// card_terminal, in_app, platform. Le etichette restano in italiano. `platform`
+// è il regolamento della piattaforma e sta fuori dalle colonne della cassa.
+const CC_METODO = { cash:'Contanti', card_terminal:'Carta', in_app:'Byup app', platform:'Piattaforma' };
 
 // I documenti del periodo: i pagamenti dei conti e le loro rettifiche, che
 // sono documenti a sé ed sono partite anche loro — senza, i totali non

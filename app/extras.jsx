@@ -135,7 +135,7 @@ function AllergensView({ onBack, onOpenPrivacy, prefs, setPrefs }) {
   // (Il flusso era stato travolto dal rewrite «Beta v2» del 2026-08-12:
   // ripristinato il 2026-08-17 — i toggle scrivevano un dato art. 9 senza
   // chiedere niente.)
-  const [consensoOk, setConsensoOk] = useState(() => { const st = ByupConsensi.stato('A3'); return !!(st && st.ok); });
+  const [consensoOk, setConsensoOk] = useState(() => { const st = ByupConsensi.stato('dietary_preferences'); return !!(st && st.ok); });
   const [pending, setPending] = useState(null); // {group, id} in attesa del consenso
   const [chkA3, setChkA3] = useState(false);
   const [chkA18, setChkA18] = useState(false);
@@ -163,8 +163,8 @@ function AllergensView({ onBack, onOpenPrivacy, prefs, setPrefs }) {
 
   const confermaConsensi = () => {
     if (!chkA3) return;
-    ByupConsensi.set('A3', true);
-    if (chkA18) ByupConsensi.set('A18', true);
+    ByupConsensi.set('dietary_preferences', true);
+    if (chkA18) ByupConsensi.set('offers_on_preferences', true);
     setConsensoOk(true);
     if (pending) applica(pending.group, pending.id);
     setPending(null);
@@ -983,7 +983,7 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
 
   // La conferma scrive: il profilo, una riga per campo nel registro delle
   // attività col valore precedente (ByupAttivita, D-104), e per il genere la
-  // dichiarazione nel registro dei consensi (riga GEN col valore, natura
+  // dichiarazione nel registro dei consensi (riga gender col valore, azione granted
   // «dichiarazione», non un consenso; «Preferisco non specificare» la
   // azzera — P-84).
   const confermaModifiche = () => {
@@ -995,7 +995,7 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
         old_value: m.field === 'birth_date' ? m.primaIso : (m.field === 'gender' ? salvato.genere : m.prima),
         new_value: m.field === 'birth_date' ? m.dopoIso : (m.field === 'gender' ? genere : m.dopo),
       });
-      if (m.field === 'gender') { if (genere) ByupConsensi.dichiara('GEN', genere); else ByupConsensi.azzera('GEN'); }
+      if (m.field === 'gender') { if (genere) ByupConsensi.dichiara('gender', genere); else ByupConsensi.azzera('gender'); }
     });
     setConferma(false);
     setSaved(true);
@@ -1116,8 +1116,10 @@ function MieiDatiView({ onBack, onOpenPrivacy }) {
 // (Rimosso per errore dal rewrite «Beta v2» del 2026-08-12, ripristinato
 // il 2026-08-17.)
 const CONSENSI_DEF = [
-  { id: 'A3',  label: 'Preferenze alimentari e allergeni',  desc: 'Filtrare i menù in base a diete e allergie', dove: 'impostando le preferenze alimentari' },
-  { id: 'A18', label: 'Offerte sulle preferenze',            desc: 'Promozioni costruite su diete e allergeni',  dove: 'impostando le preferenze alimentari' },
+  // I nomi sono quelli del modello (P-161 · D-115): la sigla del registro dei
+  // trattamenti (A3, A18) resta nell'etichetta, non nella chiave.
+  { id: 'dietary_preferences',  label: 'Preferenze alimentari e allergeni · A3',  desc: 'Filtrare i menù in base a diete e allergie', dove: 'impostando le preferenze alimentari' },
+  { id: 'offers_on_preferences', label: 'Offerte sulle preferenze · A18',      desc: 'Promozioni costruite su diete e allergeni',  dove: 'impostando le preferenze alimentari' },
   // Il consenso distinto di P-123 (D-03, modello: dietary_suggestions):
   // nasce dall'interruttore dentro «Dieta & allergeni» e qui si rivede.
   // Spento, il motore dei suggerimenti non legge dieta né allergeni.
@@ -1209,11 +1211,11 @@ function ConsensiPanel({ onOpenPrivacy }) {
   const sep = { borderBottom: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` };
   const cambia = (id, v) => {
     ByupConsensi.set(id, v);
-    if (id === 'A3' && !v) {
+    if (id === 'dietary_preferences' && !v) {
       // niente base giuridica, niente dato — e senza dato cadono anche i
       // due consensi che lo usano (offerte, suggerimenti)
       try { localStorage.setItem('byup_allergens', JSON.stringify({ allergens: {}, diets: {} })); } catch (e) {}
-      if (ByupConsensi.stato('A18') && ByupConsensi.stato('A18').ok) ByupConsensi.set('A18', false);
+      if (ByupConsensi.stato('offers_on_preferences') && ByupConsensi.stato('offers_on_preferences').ok) ByupConsensi.set('offers_on_preferences', false);
       if (ByupConsensi.stato('dietary_suggestions') && ByupConsensi.stato('dietary_suggestions').ok) ByupConsensi.set('dietary_suggestions', false);
     }
     forza(x => x + 1);
@@ -1504,7 +1506,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
     // salvate si azzerano al caricamento — comprese quelle nate nel periodo
     // in cui la Beta v2 aveva perso il flusso consensi e i toggle scrivevano
     // senza chiedere.
-    const st = (typeof ByupConsensi !== 'undefined') ? ByupConsensi.stato('A3') : null;
+    const st = (typeof ByupConsensi !== 'undefined') ? ByupConsensi.stato('dietary_preferences') : null;
     if (!(st && st.ok)) {
       try { localStorage.setItem('byup_allergens', JSON.stringify({ allergens: {}, diets: {} })); } catch {}
       return { allergens: {}, diets: {} };

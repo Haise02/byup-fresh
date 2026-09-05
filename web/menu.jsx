@@ -564,7 +564,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
         const ordine = {
           id: genOrderId(),
           codiceRitiro: nuovoCodiceRitiro(), // l'unico codice: al banco e per il recupero in app
-          type: 'takeaway', stato: 'da_saldare',
+          delivery_mode: 'asporto', status: 'pending_payment', // i nomi del modello (D-14, P-161)
           venue: 'Ristorante Maria Grazia',
           items, total: cartTotal, startedAt: new Date(),
           ritiro, pickupAt, scade: new Date(pickupAt.getTime() + ASPORTO_TOLLERANZA_MIN * 60000),
@@ -1875,7 +1875,7 @@ function HomeScreen({ state, setState, goTo }) {
         {/* Web app: solo l'ordine al tavolo (inviato in cucina). Colonna a tutta
             altezza così la promo cresce e riempie lo spazio quando la card è compressa. */}
         <div style={{ padding: '12px 12px 0', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-          {order && order.type === 'takeaway' ? (
+          {order && order.delivery_mode === 'asporto' ? (
             <TakeawayHome order={order} goTo={goTo} onRecover={() => setRecoverOpen(true)}/>
           ) : order ? (
             <ActiveOrderCard order={order} expanded={orderExpanded} setExpanded={setOrderExpanded}
@@ -1886,7 +1886,7 @@ function HomeScreen({ state, setState, goTo }) {
               Nessun ordine attivo.
             </div>
           )}
-          {order && order.type !== 'takeaway' && <DownloadAppPromo big={!orderExpanded} onRecover={() => setRecoverOpen(true)}/>}
+          {order && order.delivery_mode !== 'asporto' && <DownloadAppPromo big={!orderExpanded} onRecover={() => setRecoverOpen(true)}/>}
         </div>
       </div>
 

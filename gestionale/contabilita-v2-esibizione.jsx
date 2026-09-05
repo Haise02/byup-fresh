@@ -23,7 +23,7 @@ const ESIB_ORE = 48;
 // 'aaaa-mm-gg HH:MM' → Date; e viceversa, nella stessa forma dei mock.
 const esibDate = (ora) => { const [d, t] = String(ora || '').split(' '); return d ? new Date(`${d}T${t || '00:00'}:00`) : null; };
 const esibIso = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-const esibMetodo = { contanti:'Contanti', carta:'Carta', byup:'Byup app', piattaforma:'Piattaforma' };
+const esibMetodo = { cash:'Contanti', card_terminal:'Carta', in_app:'Byup app', platform:'Piattaforma' };
 
 // Tutti i documenti delle ultime 48 ore: i pagamenti dei conti (ccDocumenti)
 // più le loro rettifiche come documenti a sé, ordinati dal più recente. Il

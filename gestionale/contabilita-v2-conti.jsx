@@ -5,7 +5,7 @@ const CONTI_MOCK = [
   // ─── Non saldati ───────────────────────────────────────────────
   { id:'cnt-1',  idOrdine:'#2511-0042', dataOra:'2025-11-15 19:42', tavolo:'Tavolo 4',  cliente:'Mario Rossi',       riferimento:{nome:'Mario Rossi', tipo:'byup'}, liberatoOre:5.5,  totaleConto:85.00,   daSaldare:45.00,  stato:'non_saldato', note:'Ospiti morbidi', operatore:'Marco',
     ordini: [{id:'o1-1',nome:'Tagliere salumi',qty:2,prezzo:13.00},{id:'o1-2',nome:'Pasta amatriciana',qty:2,prezzo:14.00},{id:'o1-3',nome:'Birra artigianale',qty:3,prezzo:6.00},{id:'o1-4',nome:'Acqua minerale',qty:2,prezzo:2.50},{id:'o1-5',nome:'Tiramisù',qty:1,prezzo:6.50},{id:'o1-6',nome:'Caffè',qty:1,prezzo:1.50}],
-    payments: [{id:'p1a', method:'contanti', amount:40.00, ora:'2025-11-15 19:55', scontrinoNum:'SC-2511-0042-1', fisc:{ esito:'ritrasmissione', tentativo: 3, prossimo:'15:10' }}] },
+    payments: [{id:'p1a', method:'cash', amount:40.00, ora:'2025-11-15 19:55', scontrinoNum:'SC-2511-0042-1', fisc:{ esito:'ritrasmissione', tentativo: 3, prossimo:'15:10' }}] },
   { id:'cnt-3',  idOrdine:'#2511-0040', dataOra:'2025-11-15 22:30', tavolo:'Asporto', canale:'asporto', cliente:'Simone De Luca',    liberatoOre:2.0,  totaleConto:64.50,   daSaldare:64.50,  stato:'non_saldato', note:'Allergeni richiesti', operatore:'Marco',
     ordini: [{id:'o3-1',nome:'Pizza Margherita',qty:1,prezzo:9.00},{id:'o3-2',nome:'Pizza Diavola',qty:1,prezzo:11.00},{id:'o3-3',nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{id:'o3-4',nome:'Birra media',qty:2,prezzo:5.50},{id:'o3-5',nome:'Supplì (4pz)',qty:1,prezzo:7.00},{id:'o3-6',nome:'Tiramisù',qty:1,prezzo:5.50},{id:'o3-7',nome:'Acqua minerale',qty:2,prezzo:2.50},{id:'o3-8',nome:'Patatine fritte',qty:1,prezzo:4.00}],
     payments: [] },
@@ -18,23 +18,23 @@ const CONTI_MOCK = [
     // righe (`righe`, somma esatta all'importo) — il pagamento misto non
     // esiste. `conto.ordini` resta l'insieme del tavolo.
     payments: [
-      {id:'p20a', method:'byup',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1',
+      {id:'p20a', method:'in_app',     amount:45.00, ora:'2025-11-16 14:05', scontrinoNum:'SC-2511-0046-1',
         righe:[{id:'q20a-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20a-2',nome:'Pasta alla norma',qty:1,prezzo:13.00},{id:'q20a-3',nome:'Bottiglia vino rosso',qty:1,prezzo:18.00},{id:'q20a-4',nome:'Servizio',qty:1,prezzo:2.00}],
         // P-89: un reso di oggi, dentro le 48 ore dell'esibizione — documento
         // trasmesso a sua volta, con esito proprio.
         rett: { resi: [{ amount:12.00, porzioni:['q20a-1#0'], ora:'2025-11-16 15:30', motivo:'Antipasto non servito', fisc:{ esito:'ok' } }] }},
-      {id:'p20b', method:'byup',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2',
+      {id:'p20b', method:'in_app',     amount:45.00, ora:'2025-11-16 14:06', scontrinoNum:'SC-2511-0046-2',
         righe:[{id:'q20b-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20b-2',nome:'Pasta al ragù',qty:1,prezzo:13.00},{id:'q20b-3',nome:'Bottiglia vino rosso',qty:1,prezzo:18.00},{id:'q20b-4',nome:'Servizio',qty:1,prezzo:2.00}],
         // P-89: l'annullo di oggi — unico, totale, a documento intatto — con
         // il suo esito di trasmissione; quello di cnt-6 resta come storia.
         rett: { annullo: { amount:45.00, ora:'2025-11-16 15:40', motivo:'Quota battuta sul conto sbagliato', fisc:{ esito:'ok' } } }},
       // Conto diviso: uno dei documenti è stato scartato, gli altri no.
       // Lo stato sta QUI, sul pagamento: il conto non ne ha uno suo.
-      {id:'p20c', method:'carta',    amount:90.00, ora:'2025-11-16 14:09', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3', fisc:{ scarto:'aliquota', tentativi: 3 },
+      {id:'p20c', method:'card_terminal',    amount:90.00, ora:'2025-11-16 14:09', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0046-3', fisc:{ scarto:'aliquota', tentativi: 3 },
         righe:[{id:'q20c-1',nome:'Secondo del giorno',qty:1,prezzo:22.00},{id:'q20c-2',nome:'Antipasto misto',qty:3,prezzo:12.00},{id:'q20c-3',nome:'Pasta al ragù',qty:2,prezzo:13.00},{id:'q20c-4',nome:'Servizio',qty:2,prezzo:2.00},{id:'q20c-5',nome:'Acqua minerale',qty:1,prezzo:2.00}]},
-      {id:'p20d', method:'contanti', amount:50.00, ora:'2025-11-16 14:11', scontrinoNum:'SC-2511-0046-4',
+      {id:'p20d', method:'cash', amount:50.00, ora:'2025-11-16 14:11', scontrinoNum:'SC-2511-0046-4',
         righe:[{id:'q20d-1',nome:'Secondo del giorno',qty:1,prezzo:22.00},{id:'q20d-2',nome:'Pasta alla norma',qty:2,prezzo:13.00},{id:'q20d-3',nome:'Acqua minerale',qty:1,prezzo:2.00}]},
-      {id:'p20e', method:'carta',    amount:40.00, ora:'2025-11-16 14:13', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0046-5',
+      {id:'p20e', method:'card_terminal',    amount:40.00, ora:'2025-11-16 14:13', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0046-5',
         righe:[{id:'q20e-1',nome:'Antipasto misto',qty:1,prezzo:12.00},{id:'q20e-2',nome:'Pasta alla norma',qty:1,prezzo:13.00},{id:'q20e-3',nome:'Pasta al ragù',qty:1,prezzo:13.00},{id:'q20e-4',nome:'Acqua minerale',qty:1,prezzo:2.00}]},
     ] },
 
@@ -43,17 +43,17 @@ const CONTI_MOCK = [
   // già in mano alle 23:55 e l'ha accodato al giorno nuovo — stato waiting,
   // che docInfo mostra solo mentre la finestra è attiva (vera, o simulata con
   // ?notte=1). A mezzanotte parte davvero e torna un trasmesso qualunque.
-  { id:'cnt-24', idOrdine:'#2511-0047', dataOra:'2025-11-16 23:38', tavolo:'Tavolo 2',  cliente:'Ultimo tavolo Ferri', liberatoOre:0.1, totaleConto:54.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p24a', method:'carta', amount:54.00, ora:'2025-11-16 23:54', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0047-1', fisc:{ esito:'waiting' }}] },
-  { id:'cnt-5',  idOrdine:'#2511-0038', dataOra:'2025-11-13 20:30', tavolo:'Tavolo 1',  cliente:'Lucia Marchesi',    riferimento:{nome:'Lucia Marchesi', tipo:'byup'}, liberatoOre:48,    totaleConto:72.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p5a', method:'carta', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1', fisc:{ scarto:'delega', tentativi: 3 }}] },
-  { id:'cnt-6',  idOrdine:'#2511-0037', dataOra:'2025-11-08 21:00', tavolo:'Tavolo 3',  cliente:'Francesco Rossi',   liberatoOre:168,   totaleConto:95.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
+  { id:'cnt-24', idOrdine:'#2511-0047', dataOra:'2025-11-16 23:38', tavolo:'Tavolo 2',  cliente:'Ultimo tavolo Ferri', liberatoOre:0.1, totaleConto:54.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'card_terminal',
+    payments: [{id:'p24a', method:'card_terminal', amount:54.00, ora:'2025-11-16 23:54', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0047-1', fisc:{ esito:'waiting' }}] },
+  { id:'cnt-5',  idOrdine:'#2511-0038', dataOra:'2025-11-13 20:30', tavolo:'Tavolo 1',  cliente:'Lucia Marchesi',    riferimento:{nome:'Lucia Marchesi', tipo:'byup'}, liberatoOre:48,    totaleConto:72.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'card_terminal',
+    payments: [{id:'p5a', method:'card_terminal', amount:72.00, ora:'2025-11-13 21:15', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0038-1', fisc:{ scarto:'delega', tentativi: 3 }}] },
+  { id:'cnt-6',  idOrdine:'#2511-0037', dataOra:'2025-11-08 21:00', tavolo:'Tavolo 3',  cliente:'Francesco Rossi',   liberatoOre:168,   totaleConto:95.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'cash',
     // P-89: un annullo seminato — unico, totale, a documento intatto (P-17) —
     // col suo esito di trasmissione: il documento di annullo è trasmesso a sua
     // volta, e in esibizione ha identificativo ed esito propri.
-    payments: [{id:'p6a', method:'contanti', amount:95.50, ora:'2025-11-08 21:45', scontrinoNum:'SC-2511-0037-1',
+    payments: [{id:'p6a', method:'cash', amount:95.50, ora:'2025-11-08 21:45', scontrinoNum:'SC-2511-0037-1',
       rett: { annullo: { amount:95.50, ora:'2025-11-09 10:20', motivo:'Documento emesso per errore', fisc:{ esito:'ok' } } }}] },
-  { id:'cnt-13', idOrdine:'#2511-0035', dataOra:'2025-11-13 13:15', tavolo:'Tavolo 4',  cliente:'Pellegrini',        liberatoOre:60,    totaleConto:64.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
+  { id:'cnt-13', idOrdine:'#2511-0035', dataOra:'2025-11-13 13:15', tavolo:'Tavolo 4',  cliente:'Pellegrini',        liberatoOre:60,    totaleConto:64.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'card_terminal',
     // Unico conto saldato a pagamento singolo con righe: il reso — a
     // differenza dell'annullo — ha bisogno di sapere COSA si sta restituendo,
     // e lo scontrino non è itemizzato quando il conto si divide su più
@@ -62,77 +62,77 @@ const CONTI_MOCK = [
     // cose che possono capitare a un pagamento — un reso e un documento che
     // non è passato.
     ordini: [{id:'o13-1',nome:'Cotoletta alla milanese',qty:2,prezzo:18.00},{id:'o13-2',nome:'Patate al forno',qty:2,prezzo:5.00},{id:'o13-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'o13-4',nome:'Acqua minerale',qty:2,prezzo:2.00}],
-    payments: [{id:'p13a', method:'carta', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1', fisc:{ scarto:'dispositivo', tentativi: 2 }}] },
-  { id:'cnt-14', idOrdine:'#2511-0034', dataOra:'2025-11-12 20:00', tavolo:'Tavolo 8',  cliente:'Carlo Russo',       liberatoOre:84,    totaleConto:215.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
+    payments: [{id:'p13a', method:'card_terminal', amount:64.00, ora:'2025-11-13 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0035-1', fisc:{ scarto:'dispositivo', tentativi: 2 }}] },
+  { id:'cnt-14', idOrdine:'#2511-0034', dataOra:'2025-11-12 20:00', tavolo:'Tavolo 8',  cliente:'Carlo Russo',       liberatoOre:84,    totaleConto:215.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'card_terminal',
     payments: [
-      {id:'p14a', method:'carta', amount:150.00, ora:'2025-11-12 22:30', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0034-1',
+      {id:'p14a', method:'card_terminal', amount:150.00, ora:'2025-11-12 22:30', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0034-1',
         righe:[{id:'q14a-1',nome:'Bistecca fiorentina',qty:1,prezzo:62.00},{id:'q14a-2',nome:'Bottiglia Barolo',qty:1,prezzo:48.00},{id:'q14a-3',nome:'Tagliere misto',qty:1,prezzo:14.00},{id:'q14a-4',nome:'Patate al forno',qty:2,prezzo:5.00},{id:'q14a-5',nome:'Acqua minerale',qty:2,prezzo:3.00},{id:'q14a-6',nome:'Dolce del giorno',qty:2,prezzo:5.00}]},
-      {id:'p14b', method:'contanti', amount:65.00, ora:'2025-11-12 22:32', scontrinoNum:'SC-2511-0034-2',
+      {id:'p14b', method:'cash', amount:65.00, ora:'2025-11-12 22:32', scontrinoNum:'SC-2511-0034-2',
         righe:[{id:'q14b-1',nome:'Branzino al forno',qty:1,prezzo:22.00},{id:'q14b-2',nome:'Antipasto di mare',qty:1,prezzo:14.00},{id:'q14b-3',nome:'Vino al bicchiere',qty:3,prezzo:7.00},{id:'q14b-4',nome:'Caffè',qty:2,prezzo:1.50},{id:'q14b-5',nome:'Sorbetto',qty:1,prezzo:5.00}]},
     ] },
-  { id:'cnt-21', idOrdine:'#2511-0029', dataOra:'2025-11-09 20:15', tavolo:'Tavolo 7',  cliente:'Cena aziendale Mele', riferimento:{nome:'Andrea Mele', tipo:'prenotazione'}, liberatoOre:96,  totaleConto:485.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'carta',
+  { id:'cnt-21', idOrdine:'#2511-0029', dataOra:'2025-11-09 20:15', tavolo:'Tavolo 7',  cliente:'Cena aziendale Mele', riferimento:{nome:'Andrea Mele', tipo:'prenotazione'}, liberatoOre:96,  totaleConto:485.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'card_terminal',
     payments: [
-      {id:'p21a', method:'byup',     amount:60.00, ora:'2025-11-09 22:40', scontrinoNum:'SC-2511-0029-1',
+      {id:'p21a', method:'in_app',     amount:60.00, ora:'2025-11-09 22:40', scontrinoNum:'SC-2511-0029-1',
         righe:[{id:'q21a-1',nome:'Menu degustazione',qty:1,prezzo:48.00},{id:'q21a-2',nome:'Calice abbinato',qty:1,prezzo:9.00},{id:'q21a-3',nome:'Acqua minerale',qty:1,prezzo:3.00}]},
-      {id:'p21b', method:'byup',     amount:60.00, ora:'2025-11-09 22:41', scontrinoNum:'SC-2511-0029-2',
+      {id:'p21b', method:'in_app',     amount:60.00, ora:'2025-11-09 22:41', scontrinoNum:'SC-2511-0029-2',
         righe:[{id:'q21b-1',nome:'Menu degustazione',qty:1,prezzo:48.00},{id:'q21b-2',nome:'Calice abbinato',qty:1,prezzo:9.00},{id:'q21b-3',nome:'Acqua minerale',qty:1,prezzo:3.00}]},
-      {id:'p21c', method:'byup',     amount:60.00, ora:'2025-11-09 22:42', scontrinoNum:'SC-2511-0029-3',
+      {id:'p21c', method:'in_app',     amount:60.00, ora:'2025-11-09 22:42', scontrinoNum:'SC-2511-0029-3',
         righe:[{id:'q21c-1',nome:'Menu degustazione',qty:1,prezzo:48.00},{id:'q21c-2',nome:'Calice abbinato',qty:1,prezzo:9.00},{id:'q21c-3',nome:'Acqua minerale',qty:1,prezzo:3.00}]},
-      {id:'p21d', method:'carta',    amount:200.00, ora:'2025-11-09 22:48', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0029-4', fisc:{ esito:'ritrasmissione', tentativo: 2, prossimo:'14:30' },
+      {id:'p21d', method:'card_terminal',    amount:200.00, ora:'2025-11-09 22:48', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0029-4', fisc:{ esito:'ritrasmissione', tentativo: 2, prossimo:'14:30' },
         righe:[{id:'q21d-1',nome:'Menu degustazione',qty:3,prezzo:48.00},{id:'q21d-2',nome:'Bottiglia Franciacorta',qty:1,prezzo:38.00},{id:'q21d-3',nome:'Calice abbinato',qty:2,prezzo:9.00}]},
-      {id:'p21e', method:'contanti', amount:80.00, ora:'2025-11-09 22:50', scontrinoNum:'SC-2511-0029-5',
+      {id:'p21e', method:'cash', amount:80.00, ora:'2025-11-09 22:50', scontrinoNum:'SC-2511-0029-5',
         righe:[{id:'q21e-1',nome:'Menu degustazione',qty:1,prezzo:48.00},{id:'q21e-2',nome:'Calice abbinato',qty:2,prezzo:9.00},{id:'q21e-3',nome:'Dolce al carrello',qty:2,prezzo:7.00}]},
-      {id:'p21f', method:'carta',    amount:25.00, ora:'2025-11-09 22:52', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0029-6',
+      {id:'p21f', method:'card_terminal',    amount:25.00, ora:'2025-11-09 22:52', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0029-6',
         righe:[{id:'q21f-1',nome:'Calice abbinato',qty:1,prezzo:9.00},{id:'q21f-2',nome:'Dolce al carrello',qty:1,prezzo:7.00},{id:'q21f-3',nome:'Caffè',qty:6,prezzo:1.50}]},
     ] },
-  { id:'cnt-22', idOrdine:'#2511-0027', dataOra:'2025-11-08 13:00', tavolo:'Tavolo 5',  cliente:'Pranzo team',         liberatoOre:144,  totaleConto:156.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'byup',
+  { id:'cnt-22', idOrdine:'#2511-0027', dataOra:'2025-11-08 13:00', tavolo:'Tavolo 5',  cliente:'Pranzo team',         liberatoOre:144,  totaleConto:156.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'in_app',
     payments: [
-      {id:'p22a', method:'byup', amount:35.00, ora:'2025-11-08 14:20', scontrinoNum:'SC-2511-0027-1',
+      {id:'p22a', method:'in_app', amount:35.00, ora:'2025-11-08 14:20', scontrinoNum:'SC-2511-0027-1',
         righe:[{id:'q22a-1',nome:'Poke del giorno',qty:1,prezzo:14.00},{id:'q22a-2',nome:'Club sandwich',qty:1,prezzo:12.00},{id:'q22a-3',nome:'Spremuta',qty:1,prezzo:5.00},{id:'q22a-4',nome:'Caffè',qty:2,prezzo:2.00}]},
-      {id:'p22b', method:'byup', amount:42.00, ora:'2025-11-08 14:21', scontrinoNum:'SC-2511-0027-2', fisc:{ scarto:'dispositivo', tentativi: 2, gestito:{ come:'manuale', nota:'POS abbinato in Impostazioni e documento ritrasmesso.' } },
+      {id:'p22b', method:'in_app', amount:42.00, ora:'2025-11-08 14:21', scontrinoNum:'SC-2511-0027-2', fisc:{ scarto:'dispositivo', tentativi: 2, gestito:{ come:'manuale', nota:'POS abbinato in Impostazioni e documento ritrasmesso.' } },
         righe:[{id:'q22b-1',nome:'Tagliata light',qty:1,prezzo:19.00},{id:'q22b-2',nome:'Poke del giorno',qty:1,prezzo:14.00},{id:'q22b-3',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'q22b-4',nome:'Caffè',qty:3,prezzo:2.00}]},
-      {id:'p22c', method:'byup', amount:28.00, ora:'2025-11-08 14:22', scontrinoNum:'SC-2511-0027-3',
+      {id:'p22c', method:'in_app', amount:28.00, ora:'2025-11-08 14:22', scontrinoNum:'SC-2511-0027-3',
         righe:[{id:'q22c-1',nome:'Club sandwich',qty:1,prezzo:12.00},{id:'q22c-2',nome:'Insalatona',qty:1,prezzo:11.00},{id:'q22c-3',nome:'Spremuta',qty:1,prezzo:5.00}]},
-      {id:'p22d', method:'byup', amount:51.00, ora:'2025-11-08 14:23', scontrinoNum:'SC-2511-0027-4',
+      {id:'p22d', method:'in_app', amount:51.00, ora:'2025-11-08 14:23', scontrinoNum:'SC-2511-0027-4',
         righe:[{id:'q22d-1',nome:'Tagliata light',qty:1,prezzo:19.00},{id:'q22d-2',nome:'Insalatona',qty:1,prezzo:11.00},{id:'q22d-3',nome:'Poke del giorno',qty:1,prezzo:14.00},{id:'q22d-4',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'q22d-5',nome:'Caffè',qty:2,prezzo:2.00}]},
     ] },
-  { id:'cnt-23', idOrdine:'#2511-0025', dataOra:'2025-11-07 21:30', tavolo:'Tavolo 10', cliente:'Tavolata Conti (6 ospiti)', liberatoOre:168, totaleConto:267.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'contanti',
+  { id:'cnt-23', idOrdine:'#2511-0025', dataOra:'2025-11-07 21:30', tavolo:'Tavolo 10', cliente:'Tavolata Conti (6 ospiti)', liberatoOre:168, totaleConto:267.00, daSaldare:0.00, stato:'saldato', metodoPagamento:'cash',
     payments: [
-      {id:'p23a', method:'contanti', amount:45.00, ora:'2025-11-07 23:10', scontrinoNum:'SC-2511-0025-1',
+      {id:'p23a', method:'cash', amount:45.00, ora:'2025-11-07 23:10', scontrinoNum:'SC-2511-0025-1',
         righe:[{id:'q23a-1',nome:'Grigliata di carne',qty:1,prezzo:24.00},{id:'q23a-2',nome:'Contorno del giorno',qty:2,prezzo:4.00},{id:'q23a-3',nome:'Vino al bicchiere',qty:1,prezzo:7.00},{id:'q23a-4',nome:'Acqua minerale',qty:2,prezzo:3.00}]},
-      {id:'p23b', method:'contanti', amount:50.00, ora:'2025-11-07 23:11', scontrinoNum:'SC-2511-0025-2',
+      {id:'p23b', method:'cash', amount:50.00, ora:'2025-11-07 23:11', scontrinoNum:'SC-2511-0025-2',
         righe:[{id:'q23b-1',nome:'Grigliata di carne',qty:1,prezzo:24.00},{id:'q23b-2',nome:'Antipasto della casa',qty:1,prezzo:11.00},{id:'q23b-3',nome:'Vino al bicchiere',qty:1,prezzo:7.00},{id:'q23b-4',nome:'Contorno del giorno',qty:1,prezzo:4.00},{id:'q23b-5',nome:'Dolce della casa',qty:1,prezzo:4.00}]},
-      {id:'p23c', method:'byup',     amount:42.00, ora:'2025-11-07 23:14', scontrinoNum:'SC-2511-0025-3', fisc:{ scarto:'aliquota', tentativi: 3, gestito:{ come:'manuale', nota:'Aliquota corretta nel catalogo e documento ritrasmesso a mano.' } },
+      {id:'p23c', method:'in_app',     amount:42.00, ora:'2025-11-07 23:14', scontrinoNum:'SC-2511-0025-3', fisc:{ scarto:'aliquota', tentativi: 3, gestito:{ come:'manuale', nota:'Aliquota corretta nel catalogo e documento ritrasmesso a mano.' } },
         righe:[{id:'q23c-1',nome:'Antipasto della casa',qty:2,prezzo:11.00},{id:'q23c-2',nome:'Contorno del giorno',qty:2,prezzo:4.00},{id:'q23c-3',nome:'Vino al bicchiere',qty:1,prezzo:7.00},{id:'q23c-4',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'q23c-5',nome:'Caffè',qty:1,prezzo:2.00}]},
-      {id:'p23d', method:'carta',    amount:75.00, ora:'2025-11-07 23:16', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0025-4',
+      {id:'p23d', method:'card_terminal',    amount:75.00, ora:'2025-11-07 23:16', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0025-4',
         righe:[{id:'q23d-1',nome:'Grigliata di carne',qty:2,prezzo:24.00},{id:'q23d-2',nome:'Antipasto della casa',qty:1,prezzo:11.00},{id:'q23d-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'q23d-4',nome:'Caffè',qty:1,prezzo:2.00}]},
-      {id:'p23e', method:'contanti', amount:55.00, ora:'2025-11-07 23:18', scontrinoNum:'SC-2511-0025-5',
+      {id:'p23e', method:'cash', amount:55.00, ora:'2025-11-07 23:18', scontrinoNum:'SC-2511-0025-5',
         righe:[{id:'q23e-1',nome:'Grigliata di carne',qty:1,prezzo:24.00},{id:'q23e-2',nome:'Antipasto della casa',qty:1,prezzo:11.00},{id:'q23e-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'q23e-4',nome:'Contorno del giorno',qty:1,prezzo:4.00},{id:'q23e-5',nome:'Caffè',qty:1,prezzo:2.00}]},
     ] },
-  { id:'cnt-15', idOrdine:'#2511-0033', dataOra:'2025-11-12 13:30', tavolo:'Asporto', canale:'asporto', cliente:'Anna Costa',        riferimento:{nome:'Anna Costa', tipo:'byup'}, liberatoOre:96,    totaleConto:38.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'byup',
-    payments: [{id:'p15a', method:'byup', amount:38.50, ora:'2025-11-12 14:10', scontrinoNum:'SC-2511-0033-1'}] },
-  { id:'cnt-16', idOrdine:'#2511-0032', dataOra:'2025-11-11 21:30', tavolo:'Tavolo 11', cliente:'Gallo (aziendale)', liberatoOre:120,   totaleConto:340.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
+  { id:'cnt-15', idOrdine:'#2511-0033', dataOra:'2025-11-12 13:30', tavolo:'Asporto', canale:'asporto', cliente:'Anna Costa',        riferimento:{nome:'Anna Costa', tipo:'byup'}, liberatoOre:96,    totaleConto:38.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'in_app',
+    payments: [{id:'p15a', method:'in_app', amount:38.50, ora:'2025-11-12 14:10', scontrinoNum:'SC-2511-0033-1'}] },
+  { id:'cnt-16', idOrdine:'#2511-0032', dataOra:'2025-11-11 21:30', tavolo:'Tavolo 11', cliente:'Gallo (aziendale)', liberatoOre:120,   totaleConto:340.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'card_terminal',
     // P-89: scarto gestito DALLA ritrasmissione riuscita, non a mano — il
     // terzo modo di chiudere uno scarto, che nel seme mancava.
-    payments: [{id:'p16a', method:'carta', amount:340.00, ora:'2025-11-11 23:00', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0032-1', fisc:{ scarto:'aliquota', tentativi: 2, gestito:{ come:'ritrasmissione', nota:'Ritrasmissione riuscita al secondo tentativo.' } }}] },
+    payments: [{id:'p16a', method:'card_terminal', amount:340.00, ora:'2025-11-11 23:00', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2511-0032-1', fisc:{ scarto:'aliquota', tentativi: 2, gestito:{ come:'ritrasmissione', nota:'Ritrasmissione riuscita al secondo tentativo.' } }}] },
   // I due vecchi `conto.rimborso` sono diventati RESI seminati sul pagamento
   // (P-17): erano rimborsi post-emissione — «piatto reso», il giorno dopo —
   // e la voce di conto senza documento duplicava i resi. Il seme non porta il
   // numero di documento: si deriva dal progressivo (-R1) a schermo.
-  { id:'cnt-17', idOrdine:'#2511-0030', dataOra:'2025-11-10 12:45', tavolo:'Tavolo 6',  cliente:'Coppia Neri',       riferimento:{nome:'Francesca Neri', tipo:'prenotazione'}, liberatoOre:144,   totaleConto:58.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
+  { id:'cnt-17', idOrdine:'#2511-0030', dataOra:'2025-11-10 12:45', tavolo:'Tavolo 6',  cliente:'Coppia Neri',       riferimento:{nome:'Francesca Neri', tipo:'prenotazione'}, liberatoOre:144,   totaleConto:58.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'card_terminal',
     ordini: [{id:'o17-1',nome:'Antipasto di mare',qty:1,prezzo:12.00},{id:'o17-2',nome:'Branzino al forno',qty:1,prezzo:22.00},{id:'o17-3',nome:'Vino al bicchiere',qty:2,prezzo:7.00},{id:'o17-4',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'o17-5',nome:'Dolce della casa',qty:1,prezzo:7.00}],
-    payments: [{id:'p17a', method:'carta', amount:58.00, ora:'2025-11-10 13:50', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0030-1',
+    payments: [{id:'p17a', method:'card_terminal', amount:58.00, ora:'2025-11-10 13:50', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2511-0030-1',
       rett: { resi: [{ amount:12.00, porzioni:['o17-1#0'], ora:'2025-11-10 14:05', motivo:'Servizio contestato', fisc:{ esito:'ok' } }] }}] },
-  { id:'cnt-7',  idOrdine:'#2509-0156', dataOra:'2025-08-17 22:15', tavolo:'Tavolo 6',  cliente:'Paolo Bianchi',     liberatoOre:2160,  totaleConto:110.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
+  { id:'cnt-7',  idOrdine:'#2509-0156', dataOra:'2025-08-17 22:15', tavolo:'Tavolo 6',  cliente:'Paolo Bianchi',     liberatoOre:2160,  totaleConto:110.00,  daSaldare:0.00,   stato:'saldato', metodoPagamento:'card_terminal',
     ordini: [{id:'o7-1',nome:'Pasta allo scoglio',qty:1,prezzo:25.00},{id:'o7-2',nome:'Grigliata mista di pesce',qty:1,prezzo:38.00},{id:'o7-3',nome:'Bottiglia vermentino',qty:1,prezzo:26.00},{id:'o7-4',nome:'Antipasto di mare',qty:1,prezzo:14.00},{id:'o7-5',nome:'Acqua minerale',qty:1,prezzo:3.00},{id:'o7-6',nome:'Caffè',qty:2,prezzo:2.00}],
-    payments: [{id:'p7a', method:'carta', amount:110.00, ora:'2025-08-17 22:45', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1',
+    payments: [{id:'p7a', method:'card_terminal', amount:110.00, ora:'2025-08-17 22:45', posRef:{nome:'Marco Bianchi', email:'marco.bianchi@delborgo.it', device:'iPhone 14 Pro'}, scontrinoNum:'SC-2509-0156-1',
       rett: { resi: [{ amount:25.00, porzioni:['o7-1#0'], ora:'2025-08-18 10:12', motivo:'Piatto reso: pasta troppo cotta', fisc:{ esito:'ok' } }] }}] },
-  { id:'cnt-18', idOrdine:'#2510-0089', dataOra:'2025-10-05 21:00', tavolo:'Asporto', canale:'asporto', cliente:'Sara Mancini',      liberatoOre:1032,  totaleConto:76.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
-    payments: [{id:'p18a', method:'contanti', amount:76.00, ora:'2025-10-05 21:50', scontrinoNum:'SC-2510-0089-1'}] },
-  { id:'cnt-19', idOrdine:'#2509-0143', dataOra:'2025-09-20 13:00', tavolo:'Tavolo 3',  cliente:'Luca Caruso',       liberatoOre:1380,  totaleConto:42.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'carta',
-    payments: [{id:'p19a', method:'carta', amount:42.50, ora:'2025-09-20 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2509-0143-1'}] },
-  { id:'cnt-8',  idOrdine:'#2411-0004', dataOra:'2024-11-14 19:00', tavolo:'Asporto', canale:'asporto', cliente:'Elena Greco',       liberatoOre:8760,  totaleConto:48.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'contanti',
-    payments: [{id:'p8a', method:'contanti', amount:48.00, ora:'2024-11-14 19:45', scontrinoNum:'SC-2411-0004-1'}] },
+  { id:'cnt-18', idOrdine:'#2510-0089', dataOra:'2025-10-05 21:00', tavolo:'Asporto', canale:'asporto', cliente:'Sara Mancini',      liberatoOre:1032,  totaleConto:76.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'cash',
+    payments: [{id:'p18a', method:'cash', amount:76.00, ora:'2025-10-05 21:50', scontrinoNum:'SC-2510-0089-1'}] },
+  { id:'cnt-19', idOrdine:'#2509-0143', dataOra:'2025-09-20 13:00', tavolo:'Tavolo 3',  cliente:'Luca Caruso',       liberatoOre:1380,  totaleConto:42.50,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'card_terminal',
+    payments: [{id:'p19a', method:'card_terminal', amount:42.50, ora:'2025-09-20 13:55', posRef:{nome:'Laura Rossi', email:'laura.rossi@delborgo.it', device:'Samsung Galaxy S23'}, scontrinoNum:'SC-2509-0143-1'}] },
+  { id:'cnt-8',  idOrdine:'#2411-0004', dataOra:'2024-11-14 19:00', tavolo:'Asporto', canale:'asporto', cliente:'Elena Greco',       liberatoOre:8760,  totaleConto:48.00,   daSaldare:0.00,   stato:'saldato', metodoPagamento:'cash',
+    payments: [{id:'p8a', method:'cash', amount:48.00, ora:'2024-11-14 19:45', scontrinoNum:'SC-2411-0004-1'}] },
 ];
 
 // Ri-ancoraggio date: il mock è scritto con "oggi" = 16 nov 2025. Trasliamo tutte
@@ -572,14 +572,15 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
   const incassato = payments.reduce((s, p) => s + p.amount, 0) - storni;
   const isSaldato = conto.stato === 'saldato' || saldato;
   const daSaldare = isSaldato ? 0 : conto.daSaldare;
+  // Chiavi = payments.method del modello (P-161 · D-115); etichette in italiano.
   const methodMeta = {
-    contanti: { label:'Contanti', icon: PnI.Coin,       color:'#0F766E', bg:'#CCFBF1' },
-    carta:    { label:'Carta',    icon: PnI.Card,       color:'#1D4ED8', bg:'#DBEAFE' },
-    byup:     { label:'Byup app', icon: PnI.Smartphone, color:'#7C3AED', bg:'#EDE9FE' },
+    cash:          { label:'Contanti', icon: PnI.Coin,       color:'#0F766E', bg:'#CCFBF1' },
+    card_terminal: { label:'Carta',    icon: PnI.Card,       color:'#1D4ED8', bg:'#DBEAFE' },
+    in_app:        { label:'Byup app', icon: PnI.Smartphone, color:'#7C3AED', bg:'#EDE9FE' },
     // P-04: incasso avvenuto PRESSO la piattaforma delivery — il denaro non
     // passa da Byup, e in Cassa sta fuori da contanti e POS. Il documento
     // fiscale però lo emettiamo noi (D-15 · emit_fiscal_document).
-    piattaforma: { label:'Piattaforma', icon: PnI.Bag,  color:'#9A3412', bg:'#FFEDD5' },
+    platform: { label:'Piattaforma', icon: PnI.Bag,  color:'#9A3412', bg:'#FFEDD5' },
   };
 
   // Le celle del riepilogo: etichetta piccola sopra, valore sotto.
@@ -738,7 +739,7 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
           ) : (
             <div style={{display:'flex', flexDirection:'column', gap: 8}}>
               {payments.map(p => {
-                const meta = methodMeta[p.method] || methodMeta.contanti;
+                const meta = methodMeta[p.method] || methodMeta.cash;
                 const Icon = meta.icon;
                 // Lo stato del documento si legge qui, non si tocca qui: annullo
                 // e reso partono solo dal dettaglio, dove le righe si vedono
@@ -939,13 +940,13 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
   const chiuso = annullato || (rett && residuo <= 0.004);
   // P-04: il denaro dei documenti piattaforma non è mai passato da noi —
   // nessuna rettifica si offre, e il perché sta scritto a schermo.
-  const piattaforma = payment.method === 'piattaforma';
+  const piattaforma = payment.method === 'platform';
 
   const statoInfo = annullato ? { label: 'Annullato', bg: '#FEE2E2', fg: '#B91C1C' }
     : rett && residuo <= 0.004 ? { label: 'Reso totale', bg: '#FEE2E2', fg: '#B91C1C' }
     : rett ? { label: `Reso −€${resoTot.toFixed(2)}`, bg: '#FEE2E2', fg: '#B91C1C' }
     : { label: 'Attivo', bg: '#DCFCE7', fg: '#16A34A' };
-  const metodoLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : payment.method === 'piattaforma' ? 'Piattaforma' : 'Contanti';
+  const metodoLabel = payment.method === 'in_app' ? 'Byup app' : payment.method === 'card_terminal' ? 'Carta' : payment.method === 'platform' ? 'Piattaforma' : 'Contanti';
   const totaleSel = porzioni.filter(z => sel && sel.has(z.id)).reduce((s, z) => s + z.prezzo, 0);
   // «fino a concorrenza del totale» (P-17): la selezione non può superare il
   // residuo — con le quote esatte non succede, ma il limite è fiscale.
@@ -960,7 +961,7 @@ function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onR
       tavolo: conto.tavolo ? `Tavolo ${conto.tavolo}` : (conto.codice || ''),
       righe: (righe || []).map(r => ({ nome: r.nome, qty: r.qty, prezzo: r.prezzo, tipologia: r.tipologia })),
       totale: payment.amount,
-      pagamenti: payment.method === 'contanti'
+      pagamenti: payment.method === 'cash'
         ? { contante: payment.amount, pagato: payment.amount }
         : { elettronico: payment.amount, pagato: payment.amount },
       quando: payment.ora,
@@ -2059,8 +2060,8 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
       {modalRimborso && (() => {
         const { conto, payment, tipo, amount } = modalRimborso;
         // contanti → restituzione manuale in cassa; carta/byup/altro → rimborso Stripe
-        const useStripe = payment.method !== 'contanti';
-        const channelLabel = payment.method === 'byup' ? 'Byup app' : payment.method === 'carta' ? 'Carta' : payment.method === 'piattaforma' ? 'Piattaforma' : 'Contanti';
+        const useStripe = payment.method !== 'cash';
+        const channelLabel = payment.method === 'in_app' ? 'Byup app' : payment.method === 'card_terminal' ? 'Carta' : payment.method === 'platform' ? 'Piattaforma' : 'Contanti';
         const titolo = tipo === 'annullo' ? 'Annulla scontrino' : 'Reso';
         return (
         <div style={{
@@ -2095,7 +2096,7 @@ function ContConti({ filter = 'all', fisc = null, onFiscClear, apri = null }) {
                       }}>
                       Rimborsa tramite Stripe
                       <div style={{fontSize: C.T_XS, fontWeight:500, opacity:0.8, marginTop:3}}>
-                        {payment.method === 'byup'
+                        {payment.method === 'in_app'
                           ? 'Il cliente riceverà il rimborso sul metodo collegato all\'app Byup'
                           : 'Il cliente riceverà il rimborso sulla carta originale'}
                       </div>

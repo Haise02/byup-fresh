@@ -145,7 +145,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // deciso, l'unico che non si poteva dosare.
 
   const [pay, setPay] = React.useState({ contanti: '', carta: '' });
-  const [method, setMethod] = React.useState('contanti'); // contanti | carta
+  // I valori sono quelli di payments.method nel modello (P-161 · D-115):
+  // cash | card_terminal. Le etichette a schermo restano «Contanti» e «Carta».
+  const [method, setMethod] = React.useState('cash'); // cash | card_terminal
   // La fattura è la stessa di Vendita diretta: una finestra sua, con la
   // ricerca in rubrica e nel registro imprese, i segmenti e il codice
   // destinatario. Qui c'erano tre campi liberi e un interruttore — la stessa
@@ -307,7 +309,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       // Riaprendo un conto con un pagamento ancora in volo si torna dov'era:
       // ripartire da "Contanti" nasconderebbe la transazione in corso e
       // l'unico modo per annullarla.
-      setMethod(tavolo.incasso ? 'carta' : 'contanti');
+      setMethod(tavolo.incasso ? 'card_terminal' : 'cash');
       setFattura(null);
       setFatturaOpen(false);
       setAdjustOpen(false);
@@ -468,7 +470,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // Contanti col campo vuoto = ESATTO: segue il totale senza che nessuno
   // scriva niente. Prima la CTA partiva spenta («Manca €65») finché non si
   // toccava un chip — un tocco obbligato per il caso più comune alla cassa.
-  const contantiEsatto = method === 'contanti' && pay.contanti === '';
+  const contantiEsatto = method === 'cash' && pay.contanti === '';
   const contanti = contantiEsatto ? total : parseFloat(pay.contanti) || 0;
   const carta = parseFloat(pay.carta) || 0;
   const paid = contanti + carta;
@@ -638,7 +640,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
   function chooseMethod(m) {
     setMethod(m);
-    if (m === 'carta') setPay({ contanti: '', carta: total.toFixed(2) });
+    if (m === 'card_terminal') setPay({ contanti: '', carta: total.toFixed(2) });
     else               setPay({ contanti: '', carta: '' });
   }
   function setTendered(v)  { setPay({ contanti: v, carta: '' }); }
@@ -799,7 +801,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
             fase={storno.fase}
             residuoDopo={residuoDopo}
             onConferma={() => {
-              if (storno.p.method === 'contanti') applicaStorno(storno.p);
+              if (storno.p.method === 'cash') applicaStorno(storno.p);
               else setStorno({ ...storno, fase:'attesa', inviato: Date.now() });
             }}
             onChiudi={() => setStorno(null)}/>
@@ -807,7 +809,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
           <SaldaDoneV2 tavolo={tavolo} esito={esito || {
             // Incassato da un telefono mentre la finestra era in attesa: qui
             // il resto non esiste, la carta ha pagato l'importo esatto.
-            total, contanti, carta, resto: 0, metodo: 'carta', invoice, invoiceData: fattura,
+            total, contanti, carta, resto: 0, metodo: 'card_terminal', invoice, invoiceData: fattura,
           }} onClose={onClose}/>
         ) : paying ? (
           <SaldaAttesaPagamento
@@ -1401,9 +1403,9 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                   <div style={{padding:'22px 24px 0'}}>
                     <div style={SALDA_LABEL}>Come paga il cliente</div>
                     <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
-                      <SaldaMetodoCard active={method==='contanti'} onClick={()=>chooseMethod('contanti')}
+                      <SaldaMetodoCard active={method==='cash'} onClick={()=>chooseMethod('cash')}
                         icon={<IconBanconota/>} label="Contanti"/>
-                      <SaldaMetodoCard active={method==='carta'} onClick={()=>chooseMethod('carta')}
+                      <SaldaMetodoCard active={method==='card_terminal'} onClick={()=>chooseMethod('card_terminal')}
                         icon={<IconPos/>} label="Carta · Byup Staff"/>
                     </div>
 
@@ -1411,7 +1413,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                         incassa — manda il conto sul telefono — e finora non lo
                         diceva nessuno, lo si scopriva premendo col cliente
                         davanti. */}
-                    {method === 'carta' && (
+                    {method === 'card_terminal' && (
                       <div style={{
                         display:'flex', gap: 10, marginTop: 14,
                         padding:'12px 16px', borderRadius: 14,
@@ -1426,7 +1428,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     )}
                   </div>
 
-                  {method === 'contanti' && (
+                  {method === 'cash' && (
                     <div style={{padding:'18px 24px 0'}}>
                       <CashTendered
                         total={total}
@@ -1456,7 +1458,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       su Byup Staff e la finestra passa in attesa. Sono due
                       cose diverse e ora si leggono diverse. */}
                   {(() => {
-                    const inviaSuStaff = method === 'carta';
+                    const inviaSuStaff = method === 'card_terminal';
                     // La finestra di divieto spegne il bottone qualunque sia
                     // il metodo: i contanti emettono quanto la carta, e la
                     // carta manderebbe in coda un pagamento che si chiude
@@ -2308,10 +2310,12 @@ function SaldaAttesaPagamento({ tavolo, total, elapsed, onRitira, onClose }) {
 // Canali già incassati su questo conto — stessi colori della sezione conti
 // in Contabilità, così un pagamento con l'app si riconosce a colpo d'occhio
 // in tutti e due i posti.
+// Chiavi = payments.method del modello (P-161 · D-115); etichette in italiano.
 const PAG_META = {
-  contanti: { label:'Contanti', ink:'#0F766E', bg:'#CCFBF1' },
-  carta:    { label:'Carta',    ink:'#1D4ED8', bg:'#DBEAFE' },
-  byup:     { label:'Byup app', ink:'#7C3AED', bg:'#EDE9FE' },
+  cash:          { label:'Contanti', ink:'#0F766E', bg:'#CCFBF1' },
+  card_terminal: { label:'Carta',    ink:'#1D4ED8', bg:'#DBEAFE' },
+  in_app:        { label:'Byup app', ink:'#7C3AED', bg:'#EDE9FE' },
+  platform:      { label:'Piattaforma', ink:'#92400E', bg:'#FEF3C7' },
 };
 
 function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
@@ -2373,7 +2377,7 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
       <div style={{padding:'12px 22px 0'}}>
         <div style={{display:'flex', flexDirection:'column', gap: 6}}>
           {pagamenti.map(p => {
-            const meta = PAG_META[p.method] || PAG_META.contanti;
+            const meta = PAG_META[p.method] || PAG_META.cash;
             // Stornato non vuol dire sparito. La riga resta dov'era, spenta e
             // con la cifra barrata, e al posto della freccia dice quando è
             // stata annullata: per quei soldi un documento è già uscito, e un
@@ -2425,7 +2429,7 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
                 {onStorna && !annullato && (
                   <button
                     onClick={() => onStorna(p)}
-                    title={p.method === 'contanti'
+                    title={p.method === 'cash'
                       ? `Annulla €${p.amount.toFixed(2)} in contanti`
                       : `Storna €${p.amount.toFixed(2)}: parte la richiesta su Byup Staff`}
                     onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#B91C1C'; }}
@@ -2467,7 +2471,7 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
 // si sta togliendo — ed è l'unico posto di questa finestra dove un tocco
 // fa uscire dei soldi invece di farli entrare.
 function SaldaStorno({ p, fase, residuoDopo, onConferma, onChiudi }) {
-  const carta = p.method !== 'contanti';
+  const carta = p.method !== 'cash';
   const cerchio = (bg, fg, children) => (
     <div style={{
       width: 64, height: 64, borderRadius:'50%', marginBottom: 16,

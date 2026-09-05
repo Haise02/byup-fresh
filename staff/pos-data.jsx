@@ -73,10 +73,13 @@ function staffEsci() { Object.assign(SESSIONE, { active_restaurant_id: null, act
 // mentre lei è dentro. Qui arriva dalla console (BYUP_STAFF_DISATTIVA()) o da
 // ?disattiva=1, che la innesca alla prima azione dopo l'ingresso; la sessione
 // se ne accorge alla prossima azione (nav e openModal in POSApp), non prima.
+// Nessuna causale (P-161 · D-115): il titolare che spegne una persona da
+// Personale non sceglie un motivo, e `deactivated_reason` resta nullo. Il
+// valore che il prototipo scriveva non era nel vocabolario del modello.
 function staffDisattiva(reason) {
   const m = APPARTENENZE.find(x => x.id === SESSIONE.membership_id);
   if (!m || m.deactivated_at) return false;
-  m.deactivated_at = new Date(); m.deactivated_reason = reason || 'owner_deactivated';
+  m.deactivated_at = new Date(); m.deactivated_reason = reason || null;
   return true;
 }
 function staffAccessoRevocato() { const m = APPARTENENZE.find(x => x.id === SESSIONE.membership_id); return !!(m && m.deactivated_at); }

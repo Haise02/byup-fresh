@@ -434,7 +434,7 @@ const PN_TRATTAMENTI_SEME = [
   { id: 'asporto_acqua_birra_10',    aliquota: 10, modalita: 'asporto_confezionato', fondamento: 'voci 81 e 82',         citazione: 'Tab. A parte III nn. 81 e 82 DPR 633/1972: acqua e birra, anche in bottiglia o lattina', valida_dal: '2026-01-01', valida_al: null },
   { id: 'asporto_confezionato_22',   aliquota: 22, modalita: 'asporto_confezionato', fondamento: 'aliquota ordinaria',   citazione: 'art. 16 DPR 633/1972: bibite, vino, superalcolici e dolciumi in confezione ceduti da asporto', valida_dal: '2026-01-01', valida_al: null },
   { id: 'asporto_alimentari_base_4', aliquota: 4,  modalita: 'asporto_confezionato', fondamento: 'Tabella A parte II',   citazione: 'Tab. A parte II nn. 3, 5, 6, 8, 15 DPR 633/1972: latte fresco non concentrato né zuccherato, frutta e ortaggi freschi o surgelati, pane comune', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'ordinaria_22',              aliquota: 22, modalita: 'cessione',            fondamento: 'aliquota ordinaria',    citazione: 'art. 16 DPR 633/1972: cessione di beni non alimentari', valida_dal: '2026-01-01', valida_al: null },
+  { id: 'cessione_generica_22',              aliquota: 22, modalita: 'cessione',            fondamento: 'aliquota ordinaria',    citazione: 'art. 16 DPR 633/1972: cessione di beni non alimentari', valida_dal: '2026-01-01', valida_al: null },
 ];
 const PN_TIPOLOGIE_SEME = [
   { id: 'piatti_preparati', ordine: 1, label: 'Piatti, panini, caffè, dolci e pasticceria',
@@ -451,7 +451,7 @@ const PN_TIPOLOGIE_SEME = [
     locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_alimentari_base_4' }, valida_dal: '2026-01-01', valida_al: null },
   { id: 'non_alimentari', ordine: 5, label: 'Oggetti non alimentari',
     spiegazione: 'Gadget, tazze, magliette e tutto ciò che non si mangia né si beve.',
-    locale: { profilo: 'ordinaria_22' }, asporto: { profilo: 'ordinaria_22' }, valida_dal: '2026-01-01', valida_al: null },
+    locale: { profilo: 'cessione_generica_22' }, asporto: { profilo: 'cessione_generica_22' }, valida_dal: '2026-01-01', valida_al: null },
 ];
 const PN_MODALITA_TRATTAMENTO = {
   somministrazione:     'Somministrazione (al banco o al tavolo)',

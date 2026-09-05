@@ -745,7 +745,8 @@ function CatBand({ name, count, index = 0, total = 5 }) {
 function MenuScreen({ state, setState, goTo }) {
   // menu_view (P-38): il menù visto, una volta per apertura, solo con
   // l'interruttore acceso. I suggerimenti seguono lo stesso interruttore.
-  useEffect(() => { if (window.ByupUso) window.ByupUso.emetti('menu_view', (state && state.venue && state.venue.name) || null); }, []);
+  // menu_view porta l'identificativo della sede, non il nome (P-161 · D-115).
+  useEffect(() => { if (window.ByupUso) window.ByupUso.emetti('menu_view', (state && state.venue && (state.venue.id || null)) || 'v_settembrini'); }, []);
   const suggerimentiAttivi = !window.ByupUso || window.ByupUso.suggerimenti();
   const tabs = ['Antipasti', 'Primi piatti', 'Secondi piatti', 'Dolci', 'Bevande'];
   // Tab di navigazione: "Byup" è una voce extra (non una categoria di piatti)
