@@ -144,12 +144,27 @@ if (!window.byupNotteInfo) {
       if (salvato) notteT0 = parseInt(salvato, 10);
     }
   } catch (e) {}
-  const notteBase = (() => { const d = new Date(); d.setHours(23, 58, 30, 0); return d.getTime(); })();
+  // L'ora è quella ITALIANA, non quella del dispositivo (P-148): la giornata
+  // fiscale è la data solare italiana, e un tablet su un altro fuso — o
+  // semplicemente sbagliato — aprirebbe la finestra nell'ora sbagliata o mai.
+  // Si formatta con timeZone 'Europe/Rome', non si aggiunge un'ora fissa:
+  // l'ora legale cambia due volte l'anno e una costante sbaglierebbe per
+  // metà anno. Questa definizione vive in tre bundle (Cassa, Sala, Staff) e
+  // deve dire la stessa cosa in tutti: se si tocca una, si toccano tutte.
+  const notteRoma = (d) => {
+    try {
+      const p = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(d);
+      const g = (t) => parseInt((p.find(x => x.type === t) || {}).value, 10) || 0;
+      return { h: g('hour') % 24, m: g('minute'), s: g('second') };
+    } catch (e) { return { h: d.getHours(), m: d.getMinutes(), s: d.getSeconds() }; }
+  };
+  // La notte demo parte alle 23:58:30 italiane, qualunque sia il fuso del dispositivo.
+  const notteBase = (() => { const r = notteRoma(new Date()); return Date.now() - (r.h * 3600 + r.m * 60 + r.s) * 1000 + (23 * 3600 + 58 * 60 + 30) * 1000; })();
   const notteOra = () => notteT0 ? new Date(notteBase + (Date.now() - notteT0)) : new Date();
   window.byupNotteInfo = function () {
-    const d = notteOra();
-    const dentro = d.getHours() === 23 && d.getMinutes() >= 55;
-    const mancano = dentro ? 86400 - (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) : 0;
+    const { h, m, s } = notteRoma(notteOra());
+    const dentro = h === 23 && m >= 55;
+    const mancano = dentro ? 86400 - (h * 3600 + m * 60 + s) : 0;
     return { dentro, mancano };
   };
   window.byupNotteConta = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;

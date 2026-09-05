@@ -3473,6 +3473,61 @@ function SlideToPay({ mode, label, amount, disabled, onCycle, onPay }) {
   );
 }
 
+// ─── La finestra notturna della giornata fiscale (P-148) ────────────────────
+// Stessa regola di Cassa, Sala e Byup Staff, detta alla stessa persona: fra le
+// 23:55 e le 00:00 ITALIANE il documento nascerebbe con la giornata fiscale
+// del giorno dopo, e il canale dell'Agenzia non trasmette. Il canale fiscale è
+// uno solo per tutte le superfici, quindi vale anche qui: un cliente che paga
+// alle 23:57 dal telefono produrrebbe esattamente il documento che la regola
+// vuole evitare. L'ora è quella italiana (timeZone 'Europe/Rome'), non quella
+// del dispositivo. Copia guardata: se si tocca una, si toccano tutte.
+if (!window.byupNotteInfo) {
+  let notteT0 = null;
+  try {
+    if (new URLSearchParams(window.location.search).get('notte') === '1') {
+      notteT0 = Date.now();
+      sessionStorage.setItem('byup_notte_t0', String(notteT0));
+    } else {
+      const salvato = sessionStorage.getItem('byup_notte_t0');
+      if (salvato) notteT0 = parseInt(salvato, 10);
+    }
+  } catch (e) {}
+  const notteRoma = (d) => {
+    try {
+      const p = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(d);
+      const g = (t) => parseInt((p.find(x => x.type === t) || {}).value, 10) || 0;
+      return { h: g('hour') % 24, m: g('minute'), s: g('second') };
+    } catch (e) { return { h: d.getHours(), m: d.getMinutes(), s: d.getSeconds() }; }
+  };
+  const notteBase = (() => { const r = notteRoma(new Date()); return Date.now() - (r.h * 3600 + r.m * 60 + r.s) * 1000 + (23 * 3600 + 58 * 60 + 30) * 1000; })();
+  const notteOra = () => notteT0 ? new Date(notteBase + (Date.now() - notteT0)) : new Date();
+  window.byupNotteInfo = function () {
+    const { h, m, s } = notteRoma(notteOra());
+    const dentro = h === 23 && m >= 55;
+    const mancano = dentro ? 86400 - (h * 3600 + m * 60 + s) : 0;
+    return { dentro, mancano };
+  };
+  window.byupNotteConta = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+// L'avviso, identico a quello della Sala: che cosa succederebbe e quando riparte.
+function NotteAvviso({ mancano }) {
+  return (
+    <div data-notte-avviso style={{
+      display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 14,
+      background: '#FEF3C7', color: '#92400E', fontSize: 13.5, lineHeight: 1.45, marginBottom: 10, textAlign: 'left',
+    }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+      </svg>
+      <span>
+        <b>Lo scontrino partirebbe con la data di domani: attendi mezzanotte.</b>{' '}
+        Fra le 23:55 e le 00:00 il canale dell'Agenzia non trasmette. Il pagamento riprende da solo tra{' '}
+        <b style={{ fontVariantNumeric: 'tabular-nums' }}>{window.byupNotteConta(mancano)}</b>.
+      </span>
+    </div>
+  );
+}
+
 function PaymentScreen({ state, setState, goTo, goBack }) {
   const order = state.activeOrder;
   if (!order) return <div style={{padding: 80, textAlign: 'center', color: MUTED}}>Nessun ordine attivo.</div>;
@@ -3799,8 +3854,13 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
   // Pagare per tutti e' irreversibile e di importo ben diverso dalla propria
   // quota: la slide da sola non basta come conferma.
   const [confirmAll, setConfirmAll] = useState(false);
+  // La finestra notturna (P-148): dentro, il pagamento aspetta mezzanotte
+  // italiana come in cassa; il conto alla rovescia si aggiorna ogni secondo.
+  const notte = window.byupNotteInfo ? window.byupNotteInfo() : { dentro: false, mancano: 0 };
+  const [, setNotteTick] = useState(0);
+  useEffect(() => { const id = setInterval(() => setNotteTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
   const payNow = () => {
-    if (paying || ctaTotal <= 0) return;
+    if (paying || ctaTotal <= 0 || notte.dentro) return;
     // La modalita' della CTA e' ctaMode ('mine' | 'all'), non `mode`:
     // e' quella che decide cosa si paga davvero.
     if (ctaMode === 'all') { setConfirmAll(true); return; }   // conferma esplicita
@@ -3990,11 +4050,12 @@ function PaymentScreen({ state, setState, goTo, goBack }) {
         boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
         padding: '12px 16px calc(26px + env(safe-area-inset-bottom, 0px))',
       }}>
+        {notte.dentro && <NotteAvviso mancano={notte.mancano}/>}
         <SlideToPay
           mode={ctaMode}
-          label={ctaMode === 'mine' ? 'Scorri per pagare' : 'Paga tutto il tavolo'}
+          label={notte.dentro ? 'In attesa di mezzanotte' : ctaMode === 'mine' ? 'Scorri per pagare' : 'Paga tutto il tavolo'}
           amount={ctaTotal}
-          disabled={paying || ctaTotal <= 0}
+          disabled={paying || ctaTotal <= 0 || notte.dentro}
           onCycle={cycleCtaMode}
           onPay={payNow}
         />

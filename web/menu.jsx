@@ -1841,6 +1841,11 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
   // tavolo — lo stesso totale che vedono l'app e la cassa.
   const copertoRiga = byupCopertoRiga(totalePiatti, order.covers || (order.guests?.length || 1));
   const totaleOrdine = totalePiatti + (copertoRiga.attiva ? copertoRiga.valore : 0);
+  // La finestra notturna (P-148): dentro, «Paga ora» aspetta mezzanotte
+  // italiana come in cassa e nell'app; il conto alla rovescia batte ogni secondo.
+  const notte = window.byupNotteInfo ? window.byupNotteInfo() : { dentro: false, mancano: 0 };
+  const [, setNotteTick] = useState(0);
+  useEffect(() => { const id = setInterval(() => setNotteTick(t => t + 1), 1000); return () => clearInterval(id); }, []);
   const fmtTime = (d) => {
     if (!d) return '';
     const dd = new Date(d);
@@ -1975,6 +1980,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
               </div>
             </div>
 
+            {notte.dentro && <NotteAvviso mancano={notte.mancano}/>}
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button onClick={() => goTo('menu')} style={{
                 flex: 1, height: 42, borderRadius: 999,
@@ -1983,7 +1989,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
                 fontFamily: 'inherit', cursor: 'pointer',
                 backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
               }}>Ordina ancora</button>
-              <button onClick={onRecover} style={{
+              <button onClick={notte.dentro ? undefined : onRecover} disabled={notte.dentro} style={{ opacity: notte.dentro ? 0.55 : 1, cursor: notte.dentro ? 'not-allowed' : 'pointer',
                 flex: 1.2, height: 42, borderRadius: 999, border: 'none',
                 background: '#fff', color: accentDark,
                 fontSize: 14, fontWeight: 700,
@@ -2002,6 +2008,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
               </span>
               <span style={{ fontSize: 18, fontWeight: 800 }}>{totaleOrdine.toFixed(2)}€</span>
             </div>
+            {notte.dentro && <NotteAvviso mancano={notte.mancano}/>}
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button onClick={() => goTo('menu')} style={{
                 flex: 1, height: 38, borderRadius: 999,
@@ -2010,7 +2017,7 @@ function ActiveOrderCard({ order, expanded, setExpanded, goTo, setState, onOpenG
                 fontFamily: 'inherit', cursor: 'pointer',
                 backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
               }}>Ordina ancora</button>
-              <button onClick={onRecover} style={{
+              <button onClick={notte.dentro ? undefined : onRecover} disabled={notte.dentro} style={{ opacity: notte.dentro ? 0.55 : 1, cursor: notte.dentro ? 'not-allowed' : 'pointer',
                 flex: 1, height: 38, borderRadius: 999, border: 'none',
                 background: '#fff', color: accentDark,
                 fontSize: 13.5, fontWeight: 700,
@@ -2656,6 +2663,61 @@ function byupCopertoRiga(subtotale, coperti, cfg) {
   }
   const importo = Number(c.importo) || 0; const n = Math.max(1, coperti || 1);
   return { nome, attiva: importo > 0, forma: 'fissa', importo, etichetta: `${nome} · ${importo.toFixed(2).replace('.', ',')} € a persona`, dettaglio: `${nome} × ${n}`, valore: Math.round(importo * n * 100) / 100 };
+}
+
+// ─── La finestra notturna della giornata fiscale (P-148) ────────────────────
+// Stessa regola di Cassa, Sala e Byup Staff, detta alla stessa persona: fra le
+// 23:55 e le 00:00 ITALIANE il documento nascerebbe con la giornata fiscale
+// del giorno dopo, e il canale dell'Agenzia non trasmette. Il canale fiscale è
+// uno solo per tutte le superfici, quindi vale anche qui: un cliente che paga
+// alle 23:57 dal telefono produrrebbe esattamente il documento che la regola
+// vuole evitare. L'ora è quella italiana (timeZone 'Europe/Rome'), non quella
+// del dispositivo. Copia guardata: se si tocca una, si toccano tutte.
+if (!window.byupNotteInfo) {
+  let notteT0 = null;
+  try {
+    if (new URLSearchParams(window.location.search).get('notte') === '1') {
+      notteT0 = Date.now();
+      sessionStorage.setItem('byup_notte_t0', String(notteT0));
+    } else {
+      const salvato = sessionStorage.getItem('byup_notte_t0');
+      if (salvato) notteT0 = parseInt(salvato, 10);
+    }
+  } catch (e) {}
+  const notteRoma = (d) => {
+    try {
+      const p = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(d);
+      const g = (t) => parseInt((p.find(x => x.type === t) || {}).value, 10) || 0;
+      return { h: g('hour') % 24, m: g('minute'), s: g('second') };
+    } catch (e) { return { h: d.getHours(), m: d.getMinutes(), s: d.getSeconds() }; }
+  };
+  const notteBase = (() => { const r = notteRoma(new Date()); return Date.now() - (r.h * 3600 + r.m * 60 + r.s) * 1000 + (23 * 3600 + 58 * 60 + 30) * 1000; })();
+  const notteOra = () => notteT0 ? new Date(notteBase + (Date.now() - notteT0)) : new Date();
+  window.byupNotteInfo = function () {
+    const { h, m, s } = notteRoma(notteOra());
+    const dentro = h === 23 && m >= 55;
+    const mancano = dentro ? 86400 - (h * 3600 + m * 60 + s) : 0;
+    return { dentro, mancano };
+  };
+  window.byupNotteConta = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+// L'avviso, identico a quello della Sala: che cosa succederebbe e quando riparte.
+function NotteAvviso({ mancano }) {
+  return (
+    <div data-notte-avviso style={{
+      display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 14,
+      background: '#FEF3C7', color: '#92400E', fontSize: 13.5, lineHeight: 1.45, marginBottom: 10, textAlign: 'left',
+    }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }}>
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+      </svg>
+      <span>
+        <b>Lo scontrino partirebbe con la data di domani: attendi mezzanotte.</b>{' '}
+        Fra le 23:55 e le 00:00 il canale dell'Agenzia non trasmette. Il pagamento riprende da solo tra{' '}
+        <b style={{ fontVariantNumeric: 'tabular-nums' }}>{window.byupNotteConta(mancano)}</b>.
+      </span>
+    </div>
+  );
 }
 
 function Root() {
