@@ -525,8 +525,8 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
   });
   const clearCart = () => setState(s => ({ ...s, cart: [] }));
 
-  const handleSubmit = () => {
-    if (takeaway) { submitTakeawayOrder(); return; }
+  const handleSubmit = (ritiro) => {
+    if (takeaway) { submitTakeawayOrder(ritiro); return; }
     // Al tavolo l'ordine va sempre in cucina.
     // Outbound verso il backend (oggi mock): invio dei piatti alla sessione tavolo.
     window.ByupAPI && window.ByupAPI.addItems({
@@ -542,11 +542,16 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
   // L'asporto si compone, non si rimanda (P-01 · D-14): l'ordine nasce qui,
   // identificato dal SOLO codice di ritiro — nessun nome, nessun telefono,
   // nessun account — e va saldato in cassa o dall'app; in cucina parte al
-  // saldo. Finzione dichiarata: l'ordine resta in questo bundle. Vendita
-  // diretta nel gestionale ha i suoi ordini webapp nel seme (fonte 'webapp',
-  // senza nome, con codiceRitiro) e non riceve questo; un registro condiviso
-  // in localStorage letto da Vendita diretta è in coda, non qui.
-  const submitTakeawayOrder = () => {
+  // saldo. Un codice solo su tutte le superfici (P-154): quello che il
+  // cliente detta al banco è lo stesso con cui recupera l'ordine nell'app,
+  // come dice la specifica dei flussi (§3.9). Con l'ordine nascono l'orario
+  // di ritiro scelto (orders.pickup_at, proposto e non impegnativo finché
+  // non si paga) e la scadenza della proposta (orders.proposal_expires_at:
+  // ritiro più la tolleranza della sede, venue_settings
+  // .takeaway_hold_tolerance_min). Vendita diretta nel gestionale ha i suoi
+  // ordini webapp nel seme e non riceve questo; l'ordine si scrive però in
+  // byup_asporto_webapp, sullo stesso dominio, così l'app lo recupera davvero.
+  const submitTakeawayOrder = (ritiro) => {
     setConfirm(true);
     setTimeout(() => {
       setState(s => {
@@ -555,14 +560,17 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
           return { lineId: 'me-' + li.lineId, id: li.dishId, name: d?.name, price: d?.price, qty: li.qty, ownerId: 'me',
             variants: li.variants, extras: li.extras, removed: li.removed };
         });
-        return { ...s, cart: [], activeOrder: {
+        const pickupAt = asportoOraAData(ritiro);
+        const ordine = {
           id: genOrderId(),
-          code: genRecoveryCode(),          // codice ordine, sei cifre: l'aggancio in app (P-55)
-          codiceRitiro: nuovoCodiceRitiro(), // codice di ritiro: l'identità dell'ordine al banco
+          codiceRitiro: nuovoCodiceRitiro(), // l'unico codice: al banco e per il recupero in app
           type: 'takeaway', stato: 'da_saldare',
           venue: 'Ristorante Maria Grazia',
           items, total: cartTotal, startedAt: new Date(),
-        } };
+          ritiro, pickupAt, scade: new Date(pickupAt.getTime() + ASPORTO_TOLLERANZA_MIN * 60000),
+        };
+        byupAsportoScrivi(ordine);
+        return { ...s, cart: [], activeOrder: ordine };
       });
       setConfirm(false);
       goTo('home');
@@ -1278,6 +1286,12 @@ function SplitPickSheet({ item, participants, onConfirm, onClose }) {
 }
 
 function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dishes, setQty, clearCart, onSubmit, goTo, onPickSplit, takeaway = false }) {
+  // All'asporto si sceglie l'orario di ritiro PRIMA di ordinare (P-154): senza,
+  // la cucina non sa per quando preparare e il cliente non sa quando passare.
+  // Le fasce sono le stesse del gestionale per gli ordini al banco: quarti
+  // d'ora da adesso in poi.
+  const [ritiro, setRitiro] = useState('');
+  const fasce = React.useMemo(() => asportoFasce(), [takeaway]);
   // applica la divisione a tutte le porzioni della riga
   // Lo swipe muove UNA unità per volta: due Carbonare sono due pezzi, e
   // mandarne una al tavolo non deve trascinarsi dietro l'altra.
@@ -1463,12 +1477,35 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
                 </div>
               ) : null;
             })()}
-            <button onClick={onSubmit} disabled={cartCount === 0} style={{
+            {takeaway && cartCount > 0 && (
+              <div data-ritiro-fascia style={{ padding: '0 2px 12px' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>A che ora passi a ritirare?</div>
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4 }}>
+                  {fasce.map(f => (
+                    <button key={f} onClick={() => setRitiro(f)} style={{
+                      flexShrink: 0, padding: '8px 12px', borderRadius: 999, fontFamily: 'inherit', cursor: 'pointer',
+                      border: `1.5px solid ${ritiro === f ? WINE : BORDER}`, background: ritiro === f ? WINE : '#fff',
+                      color: ritiro === f ? '#fff' : TEXT, fontSize: 13.5, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                    }}>{f}</button>
+                  ))}
+                </div>
+                {/* La scadenza della proposta, dichiarata mentre si compone:
+                    oltre quel momento l'ordine non è più saldabile e va rifatto. */}
+                <div style={{ fontSize: 12, color: MUTED, marginTop: 6, lineHeight: 1.45 }}>
+                  {ritiro
+                    ? <>Salda entro le <b style={{ color: TEXT }}>{asportoScadenzaLabel(ritiro)}</b> (mezz'ora dopo il ritiro): oltre, l'ordine scade e va rifatto.</>
+                    : 'Scegli una fascia: l\'ordine va saldato entro mezz\'ora dopo il ritiro, in cassa o dall\'app.'}
+                </div>
+              </div>
+            )}
+            {(() => { const spento = cartCount === 0 || (takeaway && !ritiro); return (
+            <button onClick={() => onSubmit(ritiro)} disabled={spento} style={{
               width: '100%', height: 50, borderRadius: 999, border: 'none',
-              background: cartCount === 0 ? '#d8c0c8' : WINE, color: '#fff',
+              background: spento ? '#d8c0c8' : WINE, color: '#fff',
               fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
-              cursor: cartCount === 0 ? 'not-allowed' : 'pointer',
-            }}>{takeaway ? 'Ordina d\'asporto' : 'Ordina ora'} · {cartTotal.toFixed(2)}€</button>
+              cursor: spento ? 'not-allowed' : 'pointer',
+            }}>{takeaway ? (ritiro ? `Ordina d'asporto · ritiro ${ritiro}` : 'Scegli l\'orario di ritiro') : 'Ordina ora'} · {cartTotal.toFixed(2)}€</button>
+            ); })()}
           </div>
         </>
       )}
@@ -1579,7 +1616,8 @@ function fmtCode(c) { return (c || '').replace(/(\d{2})(\d{2})(\d{2})/, '$1 $2 $
 function OrderRecoverySheet({ order, onClose }) {
   const platform = detectPlatform();
   const android = platform === 'android';
-  const raw = order?.code || '';
+  // Un codice solo (P-154): quello di ritiro, che è anche quello del recupero.
+  const raw = order?.codiceRitiro || order?.code || '';
   const [copied, setCopied] = useState(false);
   const copyCode = async () => {
     try { await navigator.clipboard.writeText(raw); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch {}
@@ -1688,13 +1726,19 @@ function OrderRecoverySheet({ order, onClose }) {
 // titolo e testo, stessa icona, nessun «consigliato». Nascondere o sminuire
 // la cassa sarebbe un deceptive design pattern (EDPB 03/2022): la via
 // dell'app comporta un account, cioè un trattamento in più, e lo si dice.
-// Niente DownloadAppPromo qui: romperebbe la parità. I codici sono due con
-// ruoli distinti: il codice di ritiro, grande, è l'identità dell'ordine al
-// banco (la catena di svNomeConto nel gestionale ripiega su di esso); il
-// codice ordine a sei cifre sta nella tessera dell'app per il recupero (P-55).
+// Niente DownloadAppPromo qui: romperebbe la parità. Il codice è UNO (P-154):
+// il codice di ritiro, grande, è l'identità dell'ordine al banco (la catena
+// di svNomeConto nel gestionale ripiega su di esso) ed è lo stesso con cui
+// l'app recupera l'ordine. La proposta ha una scadenza — ritiro più la
+// tolleranza — e quando passa la home lo dice e chiude il bivio.
 function TakeawayHome({ order, goTo, onRecover }) {
   const [cassaOpen, setCassaOpen] = useState(false);
   const totale = (order.items || []).reduce((s, i) => s + i.price * i.qty, 0);
+  const [, setTick] = useState(0);
+  useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 15000); return () => clearInterval(id); }, []);
+  const scade = order.scade ? new Date(order.scade) : null;
+  const scaduto = !!scade && Date.now() > scade.getTime();
+  const hhmm = (d) => d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '';
   const tessera = {
     display: 'flex', flexDirection: 'column', gap: 8, minHeight: 172,
     padding: '16px 14px', borderRadius: 18, border: `1.5px solid ${WINE}55`, background: '#fff',
@@ -1712,9 +1756,21 @@ function TakeawayHome({ order, goTo, onRecover }) {
       {/* Il codice di ritiro: l'identità dell'ordine, l'unica che serve. */}
       <div data-ritiro style={{ marginTop: 16, padding: '18px 16px', borderRadius: 18, background: '#fbf4f7', border: `1.5px dashed ${WINE}66`, textAlign: 'center' }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: MUTED, letterSpacing: 0.6, textTransform: 'uppercase' }}>Codice di ritiro</div>
-        <div style={{ fontSize: 44, fontWeight: 800, letterSpacing: 8, color: TEXT, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{order.codiceRitiro}</div>
-        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Non serve un nome né un telefono: il codice basta.</div>
+        <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 6, color: TEXT, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{fmtCode(order.codiceRitiro)}</div>
+        <div style={{ fontSize: 12.5, color: MUTED, marginTop: 2 }}>Non serve un nome né un telefono: il codice basta, al banco e nell'app.</div>
       </div>
+
+      {/* L'orario scelto e la scadenza della proposta (P-154). */}
+      {order.ritiro && (
+        <div data-ritiro-scadenza style={{
+          marginTop: 10, padding: '10px 14px', borderRadius: 14, fontSize: 13, lineHeight: 1.45,
+          background: scaduto ? '#FEF2F2' : '#fff', border: `1px solid ${scaduto ? '#FECACA' : '#ece6e3'}`, color: scaduto ? '#991B1B' : TEXT,
+        }}>
+          {scaduto
+            ? <><b>Ordine scaduto.</b> Andava saldato entro le {hhmm(scade)}: non è più saldabile e va rifatto.</>
+            : <>Ritiro alle <b>{order.ritiro}</b> · salda entro le <b>{hhmm(scade)}</b>, in cassa o dall'app. Oltre, l'ordine scade e va rifatto.</>}
+        </div>
+      )}
 
       {/* Riepilogo */}
       <div style={{ marginTop: 14, background: '#fff', borderRadius: 18, border: '1px solid #ece6e3', padding: '12px 14px' }}>
@@ -1729,7 +1785,14 @@ function TakeawayHome({ order, goTo, onRecover }) {
         </div>
       </div>
 
-      {/* Il bivio: due tessere di pari peso. */}
+      {/* Il bivio: due tessere di pari peso. Con la proposta scaduta si chiude
+          e resta solo la via per rifare l'ordine. */}
+      {scaduto ? (
+        <button onClick={() => goTo('menu')} style={{ ...tessera, minHeight: 0, marginTop: 16, alignItems: 'center', textAlign: 'center' }}>
+          <div style={titolo}>Rifai l'ordine</div>
+          <div style={testo}>Il menù è lo stesso: ricomponi l'ordine e scegli un nuovo orario di ritiro.</div>
+        </button>
+      ) : (<>
       <div style={{ fontSize: 15, fontWeight: 700, color: TEXT, marginTop: 20, marginBottom: 10 }}>Come vuoi saldare?</div>
       <div data-bivio style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'stretch' }}>
         <button data-strada="app" onClick={onRecover} style={tessera}>
@@ -1737,7 +1800,7 @@ function TakeawayHome({ order, goTo, onRecover }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
           </div>
           <div style={titolo}>Paga dall'app</div>
-          <div style={testo}>Serve un account Byup. Scarica l'app e recupera l'ordine col codice {fmtCode(order.code)}: paghi lì e l'ordine parte.</div>
+          <div style={testo}>Serve un account Byup. Scarica l'app e recupera l'ordine col codice {fmtCode(order.codiceRitiro)}: paghi lì e l'ordine parte.</div>
           <div style={azione}>Continua →</div>
         </button>
         <button data-strada="cassa" onClick={() => setCassaOpen(true)} style={tessera}>
@@ -1745,10 +1808,11 @@ function TakeawayHome({ order, goTo, onRecover }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={WINE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="12" rx="2"/><path d="M3 11h18"/><path d="M8 15h3"/></svg>
           </div>
           <div style={titolo}>Paga al ritiro, in cassa</div>
-          <div style={testo}>Nessun account. Al banco di' il codice {order.codiceRitiro}: l'ordine parte quando paghi.</div>
+          <div style={testo}>Nessun account. Al banco di' il codice {fmtCode(order.codiceRitiro)}: l'ordine parte quando paghi.</div>
           <div style={azione}>Continua →</div>
         </button>
       </div>
+      </>)}
 
       <button onClick={() => goTo('menu')} style={{
         width: '100%', padding: '14px', marginTop: 14, background: 'none', border: 'none',
@@ -2634,11 +2698,45 @@ function isTakeawayEntry() {
   } catch {}
   return false;
 }
-// Codice di ritiro: alfabeto senza I/O/0/1, va dettato a voce al banco. Copia
-// guardata di nuovoCodiceRitiro in gestionale/sala-vendita-diretta.jsx: è la
-// stessa forma che Vendita diretta si aspetta e che svNomeConto grida.
+// Il codice di ritiro dell'ordine da webapp è UNO ed è a sei cifre (P-154 su
+// D-42/D-102): si detta al banco a coppie («48 39 12») ed è lo stesso con cui
+// l'app recupera l'ordine — la specifica dei flussi non ne conosce un secondo.
+// Prima c'erano due codici, quattro caratteri per il banco e sei cifre per il
+// recupero, e chi aveva in mano il foglio con uno ne trovava un altro. Sei
+// cifre sono un milione di combinazioni, la scala di D-102 ferma chi tenta.
 function nuovoCodiceRitiro() {
-  return Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+// Le fasce di ritiro: quarti d'ora da adesso in poi, come Vendita diretta per
+// gli ordini al banco. La tolleranza oltre il ritiro è quella predefinita del
+// modello (venue_settings.takeaway_hold_tolerance_min = 30).
+const ASPORTO_TOLLERANZA_MIN = 30;
+function asportoFasce() {
+  const now = new Date();
+  const out = [];
+  for (let m = Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / 15) * 15 + 15; m < 24 * 60; m += 15) {
+    out.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
+  }
+  return out;
+}
+function asportoOraAData(hhmm) {
+  const [h, m] = String(hhmm || '').split(':').map(n => parseInt(n, 10));
+  const d = new Date(); d.setHours(isFinite(h) ? h : d.getHours(), isFinite(m) ? m : d.getMinutes(), 0, 0);
+  return d;
+}
+function asportoScadenzaLabel(hhmm) {
+  const d = new Date(asportoOraAData(hhmm).getTime() + ASPORTO_TOLLERANZA_MIN * 60000);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+// L'ordine composto, scritto sullo stesso dominio: l'app lo recupera con il
+// codice di ritiro finché la proposta non è scaduta.
+function byupAsportoScrivi(o) {
+  try {
+    localStorage.setItem('byup_asporto_webapp', JSON.stringify({
+      codiceRitiro: o.codiceRitiro, ritiro: o.ritiro, pickupAt: o.pickupAt.toISOString(), scade: o.scade.toISOString(),
+      venue: o.venue, total: o.total, n: (o.items || []).reduce((s, i) => s + i.qty, 0), creato: new Date().toISOString(),
+    }));
+  } catch {}
 }
 
 // ─── Coperto e servizio (P-103) ─────────────────────────────────────

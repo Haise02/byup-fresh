@@ -2274,12 +2274,21 @@ const RECOVERY_NEWS = {
 // secondi dopo ogni fallimento e blocco che decadeva da solo — senza
 // decisione: quella non si tiene. Il contatore rispecchia
 // order_claim_attempts e order_claim_lockouts, qui in localStorage. Nel
-// prototipo l'unico codice che trova l'ordine è quello del placeholder,
-// 483912: la webapp genera il suo a sei cifre casuali e i due bundle non si
-// parlano. Niente identificativi del dispositivo a schermo. Demo:
-// ?recupero=0 azzera il contatore — è il gesto dell'assistenza che toglie
-// il blocco, non un decadimento.
+// prototipo trovano l'ordine due codici: quello del placeholder, 483912, e
+// il codice di ritiro dell'ordine composto dalla webapp sullo stesso dominio
+// (byup_asporto_webapp, P-154), che è UN codice solo — lo stesso che il
+// cliente detta al banco — finché la proposta non è scaduta. Niente
+// identificativi del dispositivo a schermo. Demo: ?recupero=0 azzera il
+// contatore — è il gesto dell'assistenza che toglie il blocco, non un
+// decadimento.
 const RECUPERO = { CODICE_DEMO: '483912', CIFRE: 6, PER_GRUPPO: 3, BLOCCHI_S: [60, 300], MAX_TENTATIVI: 9 };
+function byupAsportoWebapp() {
+  try {
+    const o = JSON.parse(localStorage.getItem('byup_asporto_webapp') || 'null');
+    if (o && o.codiceRitiro && (!o.scade || Date.now() <= new Date(o.scade).getTime())) return o;
+  } catch {}
+  return null;
+}
 const byupClaim = (() => {
   const K = 'byup_claim_attempts';
   const VUOTO = { n: 0, ultimo: null, bloccatoFino: null, chiuso: false };
@@ -2330,7 +2339,8 @@ function RecoveryOrderModal({ onClose, onSubmit }) {
   // nono la chiusura (D-102).
   const tenta = (c) => {
     if (bloccato || byupClaim.attesa() > 0) return;
-    if (c === RECUPERO.CODICE_DEMO) { byupClaim.azzera(); onSubmit(c); return; }
+    const web = byupAsportoWebapp();
+    if (c === RECUPERO.CODICE_DEMO || (web && c === web.codiceRitiro)) { byupClaim.azzera(); onSubmit(c); return; }
     byupClaim.fallimento();
     setCode(''); setErrore(true);
     if (byupClaim.bloccato()) setBloccato(true); else setAttesa(byupClaim.attesa());

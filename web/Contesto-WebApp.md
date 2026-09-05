@@ -159,14 +159,20 @@ ordine (popup in stile OTP, incolla riconosciuto in automatico; su Android
 aggancio via Install Referrer — SFA §3.8) — in cucina va al pagamento. Il tempo
 di cottura non cambia; cambia la fila, perché l'ordine arriva al banco già
 composto. Le due strade di saldo si presentano a pari evidenza (P-02).
-Nel prototipo (P-01 · P-02): stesso menù e stesso carrello, CTA «Ordina
-d'asporto», poi la home asporto con il **codice di ritiro** grande (quattro
-caratteri, la forma di Vendita diretta), il riepilogo e il **bivio** in una
-griglia a due colonne identiche — «Paga dall'app», che dice che serve un
-account e porta al recupero col codice ordine a sei cifre, e «Paga al ritiro,
-in cassa», che mostra il codice e dice che l'ordine parte al saldo — senza
-promo dell'app accanto. L'ordine mock resta nel bundle: Vendita diretta non lo
-riceve (registro condiviso in coda). Per il razionale completo vedi §2.2.
+Nel prototipo (P-01 · P-02 · P-154): stesso menù e stesso carrello; prima di
+ordinare si sceglie la **fascia di ritiro** (quarti d'ora da adesso, le stesse
+di Vendita diretta) e si legge la **scadenza della proposta** (ritiro più
+trenta minuti, la tolleranza predefinita del modello); poi la home asporto con
+il **codice di ritiro** grande — **sei cifre, un codice solo** (D-42): lo
+stesso che si detta al banco e con cui l'app recupera l'ordine — l'orario e la
+scadenza, il riepilogo e il **bivio** in una griglia a due colonne identiche —
+«Paga dall'app», che dice che serve un account e porta al recupero con quel
+codice, e «Paga al ritiro, in cassa», che mostra il codice e dice che l'ordine
+parte al saldo — senza promo dell'app accanto. Scaduta la proposta, la home lo
+dice e chiude il bivio: si rifà l'ordine. L'ordine si scrive in
+`byup_asporto_webapp` sullo stesso dominio, e l'app lo recupera davvero con
+quel codice; Vendita diretta non lo riceve (registro condiviso in coda). Per
+il razionale completo vedi §2.2.
 
 ---
 
@@ -291,11 +297,11 @@ una logica che la webapp deve calcolare: il **conteggio è dominio di Byup Fresh
   | File | Ruolo reale |
   |------|-------------|
   | `api.jsx` | **Layer backend** (`window.ByupAPI`): unico punto d'integrazione, oggi **mock**. Comandi inbound/outbound + real-time `subscribe` + `pay()` bloccata. Contratto: `byup-contratto-backend-webapp.md`. |
-  | `menu.jsx` | **Cuore della webapp.** `Root` (router + sottoscrizione real-time), `MenuScreen`, `OrderSheet` (con `SwipeDishRow` e `SplitPickSheet` per la divisione), `DishDetailScreen`, `HomeScreen`, `OrderRecoverySheet`, l'**App-only gate**, `TakeawayRedirect` (schermata "scarica l'app" per il QR asporto). |
+  | `menu.jsx` | **Cuore della webapp.** `Root` (router + sottoscrizione real-time), `MenuScreen`, `OrderSheet` (con `SwipeDishRow` e `SplitPickSheet` per la divisione), `DishDetailScreen`, `HomeScreen`, `OrderRecoverySheet`, l'**App-only gate**, `TakeawayHome` (home dell'asporto: codice di ritiro, fascia, scadenza, bivio). |
   | `venue.jsx` | **Vetrina locale** (`window.VenueScreen`): foto, info, FAQ, promo, award, social, mappa "Dove siamo". |
   | `dish-art.jsx` | Illustrazioni SVG dei piatti (`DishArt`). |
   | `index.html` | Bootstrap (carica `api.jsx` → `dish-art.jsx` → `venue.jsx` → `menu.jsx`) + **gate tablet** e **mockup iPhone da desktop** (§8.7). |
-  | `simulator.html` | Tool di sviluppo: anteprima multi-dispositivo in iframe (switch Tavolo/Asporto — "Asporto" mostra il redirect — e **PIATTAFORMA iOS/Android** per la schermata di recupero ordine). |
+  | `simulator.html` | Tool di sviluppo: anteprima multi-dispositivo in iframe (switch Tavolo/Asporto — «Asporto» apre l'ordinazione d'asporto — e **PIATTAFORMA iOS/Android** per la schermata di recupero ordine). |
 
 ### 8.2 Router e schermate effettive (`Root` in `menu.jsx`)
 
@@ -424,7 +430,7 @@ trattare l'una o l'altra come legge:
 
 | Tema | Intento (§1–§7) | Codice attuale (§8) |
 |------|-----------------|---------------------|
-| **Asporto** | **SÌ da webapp** (D-14): si ordina, saldo in cassa o in app via recupero (§2.2/§4.4) | ❌ **Da allineare**: `?takeaway=1` → `TakeawayRedirect` (CTA "Scarica l'app"), nessuna ordinazione |
+| **Asporto** | **SÌ da webapp** (D-14): si ordina, saldo in cassa o in app via recupero (§2.2/§4.4) | ✅ **Allineato** (P-01 · P-02 · P-154): `?takeaway=1` apre l'ordinazione; fascia di ritiro, scadenza della proposta e un codice solo a sei cifre per banco e recupero |
 | **Geofence / GPS** | scartato (§4.1) | ✅ **Allineato**: rimosso ogni traccia da `menu.jsx`/`simulator.html`/`index.html` |
 | **Coperti** | solo app | **Presenti** (prompt coperti al tavolo) |
 | **Conto diviso** | solo app | **Presente** in UI (swipe sulle righe del carrello + `SplitPickSheet`, identico all'app); solo il *pagamento* è gated |
