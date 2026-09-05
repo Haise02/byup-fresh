@@ -610,9 +610,12 @@ window.ByupKit = {
 //     profilo — i termini del piano delle conservazioni, senza «10 anni per
 //     obblighi fiscali», che è l'obbligo dell'esercente sui suoi documenti,
 //     né «13 mesi» sulla navigazione (P-81);
-//   · prenotazioni: annullamento libero finché confermata, nessuna
-//     conseguenza per la mancata presentazione — nessuna penale che il
-//     prodotto non ha (P-82).
+//   · prenotazioni: annullamento libero finché confermata; sulla mancata
+//     presentazione il testo dice quello che dicono le condizioni d'uso
+//     depositate (TOS-01 §4), non di più (P-160): il locale può liberare il
+//     tavolo trascorso il suo tempo di tolleranza, Byup non addebita nulla e
+//     non applica penali — non «nessuna conseguenza», che prometteva al
+//     consumatore più del contratto.
 // La sezione sui suggerimenti dice l'interruttore di «I miei dati» (P-26),
 // che ora esiste: «scrivendo all'assistenza» non era più vero.
 //
@@ -658,7 +661,7 @@ const BYUP_LEGAL = {
     sezioni: [
       { h: 'Accettazione dei termini', p: 'Utilizzando byup accetti integralmente i presenti Termini e Condizioni. Se non li accetti, ti preghiamo di non utilizzare il servizio. byup si riserva il diritto di modificarli in qualsiasi momento; le modifiche saranno efficaci dalla pubblicazione sull\'app.' },
       { h: 'Descrizione del servizio', p: 'byup è una piattaforma digitale che consente agli utenti di scoprire ristoranti, consultare menu e effettuare prenotazioni. Il servizio è disponibile per utenti che hanno compiuto 14 anni, registrati con un account personale.' },
-      { h: 'Prenotazioni e annullamenti', p: 'Puoi annullare una prenotazione dall\'app finché è confermata, senza costi. Se non ti presenti, non ti addebitiamo nulla. Resta la regola dei conti lasciati aperti: finché una quota non è saldata, non puoi aprire un nuovo tavolo né prenotare dall\'app.' },
+      { h: 'Prenotazioni e annullamenti', p: 'Puoi annullare una prenotazione dall\'app finché è confermata, senza costi. Se non ti presenti, il locale può liberare il tavolo trascorso il tempo di tolleranza che ha impostato; Byup non ti addebita nulla e non applica penali. Resta la regola dei conti lasciati aperti: finché una quota non è saldata, non puoi aprire un nuovo tavolo né prenotare dall\'app.' },
       { h: 'Responsabilità', p: 'byup funge da intermediario tra utente e ristoratore. Non siamo responsabili di variazioni di menu, prezzi, orari o qualità del servizio reso dai locali partner. In caso di problemi con una prenotazione, contatta il supporto entro 24 ore.' },
       { h: 'Proprietà intellettuale', p: 'Tutti i contenuti presenti su byup (logo, testi, immagini, interfaccia) sono di proprietà di byup S.r.l. o dei rispettivi titolari. È vietata qualsiasi riproduzione o utilizzo non autorizzato.' },
       { h: 'Legge applicabile', p: 'I presenti Termini sono regolati dalla legge italiana. Per qualsiasi controversia è competente in via esclusiva il Foro di Roma.' },

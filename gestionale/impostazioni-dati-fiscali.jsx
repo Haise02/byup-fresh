@@ -993,6 +993,14 @@ const ADE_CAUSE = [
 //   2. la CONSERVAZIONE la attiva Byup con la delega, da sola.
 //   3. l'ACCREDITAMENTO come esercente lo fa Byup con la delega: da lì il menù
 //      del collegamento dei POS compare, e il passo zero di P-105 è compiuto.
+// Le righe sono TRE, e il CENSIMENTO dei POS presso l'Agenzia non è fra
+// queste per scelta (P-160, che la registra): il censimento nasce quando
+// nasce lo strumento — il POS virtuale col collegamento a Stripe, il lettore
+// Tap to Pay col primo telefono che incassa — e vive nella sua card qui sotto
+// (pos-censimento), non in un elenco di attivazioni che si compiono una volta.
+// Prima stava fra le attivazioni dell'onboarding; il 4 settembre 2026 ne è
+// uscito insieme all'onboarding stesso, e da allora si comunica dalla card
+// dello strumento, con la finestra che il Provvedimento fissa (P-150).
 // La scheda vive finché serve: quando tutte e tre sono a posto sparisce, come
 // il banner dei campi mancanti in cima alla pagina. Un riquadro verde che dice
 // «non c'è niente da fare» non è un'informazione, è un ingombro.

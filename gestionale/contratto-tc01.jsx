@@ -53,6 +53,11 @@
 const TC01 = {
   codice: 'TC-01',
   nome: 'Termini e Condizioni di servizio di Byup Fresh',
+  // La versione del SEGNAPOSTO, non del testo depositato (P-160): è
+  // l'identificativo che la prova dell'accettazione registra insieme
+  // all'impronta, e per questo esiste. Il numero del testo vero non si scrive
+  // qui né nella testata: sta nella cartella dei sorgenti (`T&C/Sorgenti
+  // markdown/`, fuori dal repository), nella versione corrente della cartella.
   versione: '0.24',
   pubblicata: '2026-09-03',
   efficace: '2026-10-03',

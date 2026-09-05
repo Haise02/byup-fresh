@@ -1302,13 +1302,14 @@ const TOTAL_REVENUE_HISTORICAL = {
 // ⚠ TUTTO ESEMPIO (P-113 · P-114 · D-107): il prototipo è un mockup e
 // mostra il MECCANISMO del fascicolo — versioni, efficacia, il contrassegno
 // «peggiorativa» che innesca il preavviso — non i documenti nella versione
-// depositata. Le versioni correnti del catalogo (TC-01 v0.24, quella che
-// l'onboarding proietta e fa firmare in contratto-tc01.jsx; DPA-01 v0.9;
-// INF-02 v0.5) sono esempi come le precedenti (v0.20–v0.23, v0.8, v0.4): date,
-// numeri e righe «cosa è cambiato» servono a far esistere lo storico e non
-// documentano nulla. I testi veri sono quelli depositati nel progetto (per
-// TC-01, la v0.28), e non si inseguono qui parola per parola. Ogni versione
-// porta `esempio: true`, che la scheda mostra.
+// depositata. Le versioni del catalogo — quelle correnti come le precedenti —
+// sono esempi: date, numeri e righe «cosa è cambiato» servono a far esistere
+// lo storico e non documentano nulla. I testi veri stanno nelle cartelle dei
+// sorgenti del progetto (`T&C/Sorgenti markdown/` per contratti e condizioni,
+// `Privacy/` per le informative), fuori dal repository, nella versione
+// corrente di quelle cartelle: il numero non si scrive qui (P-160), perché
+// cambia a ogni revisione e il rimando si è già rotto due volte. Ogni
+// versione porta `esempio: true`, che la scheda mostra.
 
 // Le date di pubblicazione sono fatti di calendario, non offset da oggi: qui
 // niente ri-ancoraggio. Mese 1-based per leggerle come si scrivono.
