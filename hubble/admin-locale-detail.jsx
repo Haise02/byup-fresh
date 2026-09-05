@@ -2234,7 +2234,23 @@ const CTR_MOTIVI = [
 const ctrMotivoLabel = (v) => (CTR_MOTIVI.find(m => m.value === v) || { label: v }).label;
 
 const ctrDoc = (codice) => DOCUMENTI.find(d => d.codice === codice);
-const ctrCorrente = (doc) => doc.versioni ? doc.versioni[doc.versioni.length - 1] : null;
+// LA VERSIONE CHE VINCOLA è l'ultima NON EDITORIALE. Una correzione evidente —
+// un refuso, una rinumerazione, un rimando sbagliato — si pubblica e si
+// archivia, ma non fa ripartire l'orologio: chi aveva accettato la versione
+// prima resta allineato, e nessun preavviso è dovuto. Senza questa distinzione
+// ogni virgola avrebbe riaperto l'allineamento di tutti i locali e riempito
+// ogni scheda di uno stato «non allineato» che non voleva dire niente.
+const ctrVincolante = (doc) => {
+  if (!doc.versioni) return null;
+  const vere = doc.versioni.filter(v => v.stato !== 'bozza' && !v.editoriale);
+  return vere.length ? vere[vere.length - 1] : null;
+};
+// L'ultima in assoluto, editoriali comprese: è quella che si LEGGE.
+const ctrCorrente = (doc) => {
+  if (!doc.versioni) return null;
+  const pub = doc.versioni.filter(v => v.stato !== 'bozza');
+  return pub.length ? pub[pub.length - 1] : null;
+};
 const ctrGiorni = (d) => Math.ceil((d.getTime() - Date.now()) / 86400000);
 
 // ─── L'ARCHIVIO DELLE VERSIONI (policy_versions) ────────────────────────────
@@ -2398,7 +2414,7 @@ function ctrProblemi(sog, codici) {
   }
   codici.map(ctrDoc).filter(d => d && d.versioni && !d.informativa).forEach(doc => {
     const a = ctrAccettazione(sog.id, doc.codice);
-    const corrente = ctrCorrente(doc);
+    const corrente = ctrVincolante(doc);
     const vAcc = a ? doc.versioni.find(x => x.v === a.v) : null;
     if (a && a.tipo === 'tacita' && vAcc && vAcc.peggiorativa) {
       out.push({ sev:2, color:'WARN', icona:'alertTriangle',
@@ -2442,7 +2458,10 @@ function CtrRigaDoc({ sog, codice }) {
   if (!doc) return null;
   const a = ctrAccettazione(sog.id, codice);
   const fotoPiano = doc.particolare;
-  const corrente = fotoPiano ? null : ctrCorrente(doc);
+  // L'allineamento si misura sulla versione che VINCOLA; il testo che si legge
+  // è l'ultima pubblicata, editoriali comprese.
+  const corrente = fotoPiano ? null : ctrVincolante(doc);
+  const ultimaLetta = fotoPiano ? null : ctrCorrente(doc);
   const allineato = fotoPiano || (a && corrente && a.v === corrente.v);
   const vAcc = a && doc.versioni ? doc.versioni.find(x => x.v === a.v) : null;
   const tacita = a && a.tipo === 'tacita';
@@ -2467,7 +2486,10 @@ function CtrRigaDoc({ sog, codice }) {
                 non i documenti depositati — e lo dice. */}
             {fotoPiano
               ? 'Condizioni del piano attivo'
-              : `Versione corrente v${corrente.v} · efficace ${fmtDate(corrente.efficace)}${corrente.esempio ? ' · versione d\'esempio, non il testo depositato' : ''}`}
+              : <>Versione corrente v{corrente.v} · efficace {fmtDate(corrente.efficace)}{corrente.esempio ? ' · versione d\'esempio, non il testo depositato' : ''}
+                  {ultimaLetta && ultimaLetta !== corrente && (
+                    <span style={{color: ADM.MUTED_SOFT}}> · con la correzione editoriale v{ultimaLetta.v}, che non fa ripartire l'orologio</span>
+                  )}</>}
           </div>
         </div>
         {a

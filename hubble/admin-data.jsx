@@ -2068,10 +2068,13 @@ const DOC_PREAVVISO_GG = 15;
 // presto» un secondo dopo — la data proposta restava ferma mentre il minimo
 // avanzava — e il pulsante «Pubblica» non si accendeva mai.
 const docMezzanotte = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
-function docEfficaciaMinima(codice, da) {
+function docEfficaciaMinima(codice, da, editoriale) {
   const d = DOCUMENTI.find(x => x.codice === codice);
   const base = docMezzanotte(da || new Date());
-  if (d && d.informativa) return base;
+  // Un'informativa si riceve e non si accetta; una correzione EDITORIALE non
+  // tocca i diritti di nessuno. In tutti e due i casi non c'è preavviso da
+  // attendere: valgono dalla pubblicazione.
+  if ((d && d.informativa) || editoriale) return base;
   base.setDate(base.getDate() + DOC_PREAVVISO_GG); return base;
 }
 function docCreaBozza(codice, dati) {
@@ -2079,14 +2082,27 @@ function docCreaBozza(codice, dati) {
   if (!d || !d.versioni || docBozza(codice)) return null;
   const b = Object.assign({
     stato: 'bozza', v: '', testo: '', cambiamento: '', peggiorativa: false,
-    nuovoConsenso: false, pubblicata: null, efficace: docEfficaciaMinima(codice), esempio: true,
+    nuovoConsenso: false, editoriale: false, pubblicata: null,
+    efficace: docEfficaciaMinima(codice), esempio: true, salvata: new Date(),
   }, dati || {});
   d.versioni.push(b);
   return b;
 }
 function docSalvaBozza(codice, patch) {
   const b = docBozza(codice);
-  if (b) Object.assign(b, patch);
+  if (!b) return null;
+  Object.assign(b, patch, { salvata: new Date() });
+  // Diventando editoriale la bozza perde le due spunte che non le competono e
+  // può valere subito; tornando sostanziale il preavviso si ripresenta.
+  if (patch && 'editoriale' in patch) {
+    if (patch.editoriale) { b.peggiorativa = false; b.nuovoConsenso = false; }
+    // La data SEGUE la spunta, in tutti e due i versi: diventando editoriale
+    // scende alla pubblicazione, tornando sostanziale risale al preavviso.
+    // La data era stata proposta da noi, non scelta: lasciarla ferma sui
+    // quindici giorni avrebbe fatto aspettare due settimane per un refuso, e
+    // sarebbe sembrato che la spunta non facesse niente.
+    b.efficace = docEfficaciaMinima(codice, new Date(), b.editoriale);
+  }
   return b;
 }
 function docEliminaBozza(codice) {
@@ -2094,15 +2110,18 @@ function docEliminaBozza(codice) {
   if (d && d.versioni) d.versioni = d.versioni.filter(v => v.stato !== 'bozza');
 }
 // Pubblicare congela: da qui in avanti quella versione non si tocca più.
-function docPubblicaBozza(codice) {
+function docPubblicaBozza(codice, dentroUnPacchetto) {
   const b = docBozza(codice);
   const d = DOCUMENTI.find(x => x.codice === codice);
   if (!b || !d) return null;
   b.stato = 'pubblicata';
   b.pubblicata = new Date();
+  // Dentro un pacchetto l'atto a registro è uno solo: tre righe per un gesto
+  // solo racconterebbero tre decisioni che non sono state prese.
+  if (dentroUnPacchetto) return b;
   const me = hubUtenteCorrente();
   AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: 'ha pubblicato una versione di',
-    target: `${d.codice} v${b.v} · efficace dal ${fmtDate(b.efficace)}${b.peggiorativa ? ' · peggiorativa' : ''}${b.nuovoConsenso ? ' · richiede nuovo consenso' : ''}`,
+    target: `${d.codice} v${b.v} · efficace dal ${fmtDate(b.efficace)}${b.editoriale ? ' · correzione editoriale, nessun preavviso' : ''}${b.peggiorativa ? ' · peggiorativa' : ''}${b.nuovoConsenso ? ' · richiede nuovo consenso' : ''}`,
     icon: 'filePdf', color: 'PURPLE', tipo: 'documento', when: b.pubblicata });
   return b;
 }
@@ -2128,6 +2147,44 @@ function docDiff(prima, dopo) {
   while (j < m) out.push({ t: 'nuova', riga: B[j++] });
   return out;
 }
+// ─── Il pacchetto: più documenti, una data, una comunicazione ───────────────
+// TC-01 e DPA-01 cambiano spesso INSIEME, perché una modifica contrattuale
+// tocca il riparto privacy. Pubblicandoli uno alla volta partono due
+// comunicazioni a due settimane di distanza, con due date di efficacia
+// sfasate: chi le riceve non capisce se sono la stessa cosa, e chi le manda si
+// ritrova due orologi da guardare. Un pacchetto è un rilascio solo: la data è
+// la più lontana fra i minimi dei documenti che contiene — se uno di essi ha
+// bisogno di quindici giorni, li aspettano tutti — e l'atto a registro è uno.
+function docEfficaciaPacchetto(codici) {
+  let max = null;
+  (codici || []).forEach(c => {
+    const b = docBozza(c);
+    const m = docEfficaciaMinima(c, new Date(), b && b.editoriale);
+    if (!max || m.getTime() > max.getTime()) max = m;
+  });
+  return max || docMezzanotte(new Date());
+}
+function docPubblicaPacchetto(codici, efficace) {
+  const eff = efficace || docEfficaciaPacchetto(codici);
+  const rilascio = 'RL-' + Date.now().toString(36).toUpperCase();
+  const fatti = [];
+  (codici || []).forEach(c => {
+    const b = docBozza(c);
+    if (!b) return;
+    b.efficace = eff; b.rilascio = rilascio;
+    const v = docPubblicaBozza(c, true);
+    if (v) fatti.push(`${c} v${v.v}`);
+  });
+  if (fatti.length) {
+    const me = hubUtenteCorrente();
+    AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: 'ha pubblicato il pacchetto',
+      target: `${rilascio} · ${fatti.join(', ')} · efficace dal ${fmtDate(eff)}`,
+      icon: 'filePdf', color: 'PURPLE', tipo: 'documento', when: new Date() });
+  }
+  return { rilascio, fatti, efficace: eff };
+}
+window.docEfficaciaPacchetto = docEfficaciaPacchetto;
+window.docPubblicaPacchetto = docPubblicaPacchetto;
 window.docBozza = docBozza; window.docPubblicate = docPubblicate; window.docUltima = docUltima;
 window.docCreaBozza = docCreaBozza; window.docSalvaBozza = docSalvaBozza;
 window.docEliminaBozza = docEliminaBozza; window.docPubblicaBozza = docPubblicaBozza;
