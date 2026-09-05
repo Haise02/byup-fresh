@@ -282,6 +282,19 @@ function giornataInfo(chiusura) {
   return { stato:'ok', tipo:'ok', n, scartati: 0, label: `${n}/${n} trasmessi` };
 }
 
+// I documenti fiscali ancora PRIVI DI ESITO dall'Agenzia (P-141): quelli in
+// ritrasmissione e quelli in attesa di mezzanotte. Uno scarto ha un esito,
+// negativo, e non è una pendenza. È il numero che ferma la chiusura a mano e
+// che resta scritto sulla chiusura (cash_register_sessions
+// .pending_fiscal_documents).
+window.byupDocumentiSenzaEsito = function () {
+  const out = [];
+  ccChiusure().forEach(ch => ch.docs.forEach(p => {
+    const i = docInfo(p);
+    if (!i.scarto && (i.tipo === 'ritrasmissione' || i.tipo === 'waiting')) out.push({ p, giornata: ch.iso, tipo: i.tipo });
+  }));
+  return out;
+};
 // Il badge conta i DOCUMENTI scartati e non gestiti, non le giornate.
 window.byupScartiAperti = function () {
   return ccDocumenti().filter(({ p }) => docInfo(p).aperto).length;
@@ -753,19 +766,97 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   const [contaModal, setContaModal] = React.useState(false);    // conteggio del fondo
   const [fondoCassa, setFondoCassa] = React.useState(150);      // il fondo con cui la giornata era partita
   const [aperturaOra, setAperturaOra] = React.useState(null);
-  const [chiusura, setChiusura] = React.useState({ ora: rollover, auto: true }); // {ora, auto} | null
+  // L'ULTIMA CHIUSURA vive nel registro condiviso (P-141, byup_cassa_chiusura)
+  // con i nomi del modello: closure_mode 'manual' | 'automatic', closed_by
+  // (vuoto per l'automatica: non ha un autore), pending_fiscal_documents. Lo
+  // stato demo di partenza racconta il locale di P-20: giornata chiusa da
+  // sola al cambio giornata, fondo di ieri ancora da contare.
+  const [chiusura, setChiusura] = React.useState(() => {
+    try { const s = localStorage.getItem('byup_cassa_chiusura'); if (s) { const v = JSON.parse(s); if (v && v.ora) return v; } } catch (e) {}
+    return { ora: rollover, auto: true, closure_mode: 'automatic', closed_by: null, pending_fiscal_documents: 0, presa_in_carico: false };
+  });
+  const scriviChiusura = (c) => { setChiusura(c); try { if (c) localStorage.setItem('byup_cassa_chiusura', JSON.stringify(c)); else localStorage.removeItem('byup_cassa_chiusura'); } catch (e) {} };
   const [conteggio, setConteggio] = React.useState(null); // {contato, atteso, differenza, ora, autore} | null
+  // La pendenza, viva: i documenti senza esito adesso. Non è lo stato scritto
+  // sulla chiusura ma il fatto, che cambia da solo quando l'esito arriva.
+  const pendenti = window.byupDocumentiSenzaEsito ? window.byupDocumentiSenzaEsito() : [];
+
+  // ── La chiusura e la riapertura AUTOMATICHE (P-141 · D-22) ────────────────
+  // All'ora in cui la giornata riparte (byup_rollover_time: non è l'ora di
+  // chiusura del locale, è l'ora in cui il contatore si azzera — serve anche
+  // al locale aperto ventiquattr'ore), se la cassa è ancora aperta il sistema
+  // la chiude e ne apre subito una nuova. La chiusura automatica si compie
+  // SEMPRE, anche con documenti senza esito: se si fermasse, una cassa con un
+  // documento in sospeso non si chiuderebbe più, e in Fase 2 sfonderebbe le
+  // ventiquattro ore delle Specifiche della Soluzione; il numero dei
+  // documenti in sospeso resta scritto sulla chiusura, e la pendenza si vede
+  // in testa alla Cassa finché l'esito non arriva. L'orologio è quello
+  // italiano (P-148). Lo scatto avviene quando il minuto ATTRAVERSA l'ora del
+  // cambio, non quando la pagina si apre dopo: una cassa aperta alle 09:30
+  // con cambio alle 04:00 non si chiude da sola all'apertura. Demo:
+  // `?cambio=1` porta l'orologio finto a trenta secondi dal cambio giornata.
+  const cassaOraRoma = () => {
+    let d = new Date();
+    try {
+      const t0 = sessionStorage.getItem('byup_cambio_t0');
+      if (t0) d = new Date(parseInt(sessionStorage.getItem('byup_cambio_base'), 10) + (Date.now() - parseInt(t0, 10)));
+    } catch (e) {}
+    try {
+      const p = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d);
+      const g = (t) => (p.find(x => x.type === t) || {}).value || '00';
+      return `${g('hour').padStart(2, '0')}:${g('minute')}`;
+    } catch (e) { return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
+  };
+  React.useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('cambio') === '1' && !sessionStorage.getItem('byup_cambio_t0')) {
+        const [h, m] = rollover.split(':').map(n => parseInt(n, 10));
+        const adesso = new Date(); const romaOra = cassaOraRoma().split(':').map(n => parseInt(n, 10));
+        // base = adesso spostato a (cambio − 30 s) in ora italiana
+        const base = adesso.getTime() + ((h * 60 + m) - (romaOra[0] * 60 + romaOra[1])) * 60000 - 30000;
+        sessionStorage.setItem('byup_cambio_base', String(base)); sessionStorage.setItem('byup_cambio_t0', String(Date.now()));
+      }
+    } catch (e) {}
+  }, []);
+  const ultimoMinuto = React.useRef(null);
+  React.useEffect(() => {
+    const tick = () => {
+      const ora = cassaOraRoma();
+      const prima = ultimoMinuto.current; ultimoMinuto.current = ora;
+      if (prima == null || prima === ora) return;
+      const attraversa = (prima < rollover && ora >= rollover) || (prima > ora && ora >= rollover); // anche a cavallo di mezzanotte
+      if (!attraversa || !cassaOpen) return;
+      const n = (window.byupDocumentiSenzaEsito ? window.byupDocumentiSenzaEsito() : []).length;
+      scriviChiusura({ ora: rollover, auto: true, closure_mode: 'automatic', closed_by: null, pending_fiscal_documents: n, presa_in_carico: false, quando: new Date().toISOString() });
+      setConteggio(null);
+      // …e la nuova giornata si apre da sola, con lo stesso fondo.
+      setAperturaOra(rollover);
+      setCassaOpen && setCassaOpen(true);
+    };
+    tick();
+    const id = setInterval(tick, 5000);
+    return () => clearInterval(id);
+  }, [cassaOpen, rollover]);
 
   function confermaApertura(amount) {
     setFondoCassa(amount);
     setAperturaOra(new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}));
-    setChiusura(null);
+    scriviChiusura(null);
     setConteggio(null);
     setCassaOpen && setCassaOpen(true);
     setApriModal(false);
   }
-  function confermaChiusuraGiornata() {
-    setChiusura({ ora: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}), auto: false });
+  // La chiusura A MANO (P-141): con documenti senza esito la finestra non
+  // chiude finché la pendenza non è presa in carico, e il numero resta
+  // scritto sulla chiusura in ogni caso.
+  function confermaChiusuraGiornata(presaInCarico) {
+    const n = pendenti.length;
+    if (n > 0 && !presaInCarico) return;
+    scriviChiusura({
+      ora: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}), auto: false,
+      closure_mode: 'manual', closed_by: (window.PN_UTENTE && PN_UTENTE.nome) || 'Marco',
+      pending_fiscal_documents: n, presa_in_carico: n > 0, quando: new Date().toISOString(),
+    });
     setCassaOpen && setCassaOpen(false);
     setChiudiModal(false);
   }
@@ -855,6 +946,32 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
         </div>
         );
       })()}
+
+      {/* La pendenza non si perde (P-141): dopo una chiusura, automatica o presa
+          in carico, i documenti senza esito restano segnalati qui, in testa,
+          con il numero e il rimando a Conti, finché l'ultimo esito non arriva.
+          Il termine per trasmettere corre per conto suo (dodici giorni, art. 2
+          D.Lgs. 127/2015): chiudere la cassa non lo ferma. */}
+      {chiusura && chiusura.pending_fiscal_documents > 0 && pendenti.length > 0 && (
+        <div data-cc-pendenza style={{
+          display:'flex', alignItems:'center', gap: 14, padding: '12px 18px',
+          background: PN.AMBER_SOFT, border: '1px solid #FCD34D', borderRadius: C.R_MD, flexWrap:'wrap',
+        }}>
+          <span style={{width:10, height:10, borderRadius:'50%', background: PN.AMBER, boxShadow:'0 0 0 4px #FCD34D55'}}/>
+          <div style={{flex:1, minWidth: 220}}>
+            <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#92400E'}}>
+              {pendenti.length === 1 ? 'Un documento' : `${pendenti.length} documenti`} della giornata chiusa {chiusura.closure_mode === 'automatic' ? 'da sola' : `da ${chiusura.closed_by}`} alle {chiusura.ora} {pendenti.length === 1 ? 'è ancora senza esito' : 'sono ancora senza esito'} dall'Agenzia
+            </div>
+            <div style={{fontSize: C.T_XS, color:'#B45309', marginTop: 2}}>
+              La segnalazione se ne va da sola quando l'ultimo esito arriva. Il termine dei dodici giorni per trasmettere corre lo stesso.
+            </div>
+          </div>
+          <button className="cassa-btn" onClick={() => onApriConti && onApriConti(pendenti[0].giornata, 'coda')} style={{
+            padding:'8px 14px', borderRadius: C.R_PILL, background: PN.WHITE, color:'#92400E', border:'1px solid #FCD34D',
+            fontSize: C.T_SM, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', flexShrink: 0,
+          }}>Vedi in Conti</button>
+        </div>
+      )}
 
       {/* Banner stato cassa — tre fasi: aperta · giornata chiusa col fondo
           ancora da contare (il caso nuovo di P-20) · quadrata. */}
@@ -953,6 +1070,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
           dichiarata) — il fondo NON si conta qui. */}
       <ChiudiGiornataModal
         open={chiudiModal}
+        pendenti={pendenti}
         onClose={() => setChiudiModal(false)}
         onConfirm={confermaChiusuraGiornata}
       />

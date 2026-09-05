@@ -1471,10 +1471,18 @@ function ContaFondoModal({ open, fondoCassa, onClose, onConfirm }) {
 // riepilogo è il riparto 70/30 del mock — dichiaratamente finto, come docIva
 // e le chiusure — e sta QUI perché è materia della giornata, non del
 // cassetto: il fondo si conta a parte, anche dopo.
-function ChiudiGiornataModal({ open, onClose, onConfirm }) {
+// `pendenti` (P-141): i documenti fiscali ancora senza esito. Con almeno uno
+// la finestra NON chiude: dice quanti sono e offre due strade — aspettare, o
+// prendere in carico la pendenza dichiarandolo. È una scelta di prodotto, non
+// un obbligo: mentre il cassiere è davanti alla cassa è l'unico momento in
+// cui può accorgersene; se chiude e va a casa lo scopre qualcuno giorni dopo.
+// La chiusura automatica del cambio giornata, invece, non si ferma mai.
+function ChiudiGiornataModal({ open, onClose, onConfirm, pendenti = [] }) {
   const [show, setShow] = React.useState(false);
+  const [presaInCarico, setPresaInCarico] = React.useState(false);
   React.useEffect(() => {
     if (open) {
+      setPresaInCarico(false);
       const r = requestAnimationFrame(() => setShow(true));
       return () => cancelAnimationFrame(r);
     }
@@ -1482,6 +1490,8 @@ function ChiudiGiornataModal({ open, onClose, onConfirm }) {
   }, [open]);
 
   if (!open) return null;
+  const nPend = pendenti.length;
+  const bloccata = nPend > 0 && !presaInCarico;
 
   const incassoLordo = CASH_MOVEMENTS.reduce((s, m) => s + m.amount, 0);
   // IVA registrata, scorporata dal lordo per aliquota (riparto 70/30, mock).
@@ -1559,11 +1569,32 @@ function ChiudiGiornataModal({ open, onClose, onConfirm }) {
             Il fondo non si conta qui: è un gesto a parte, registrabile anche
             dopo — lo scostamento nascerà al conteggio, non adesso.
           </div>
+
+          {nPend > 0 && (
+            <div data-cc-pendenti style={{
+              padding:'12px 14px', background:'#FEF2F2', border:'1px solid #FECACA',
+              borderRadius:10, fontSize: C.T_XS, color:'#991B1B', lineHeight: 1.5,
+            }}>
+              <div style={{fontWeight: 700, fontSize: C.T_SM}}>
+                {nPend === 1 ? 'Un documento è ancora senza esito dall\'Agenzia' : `${nPend} documenti sono ancora senza esito dall'Agenzia`}
+              </div>
+              <div style={{marginTop: 4}}>
+                Puoi aspettare che l'esito arrivi, oppure prendere in carico la pendenza: la giornata si chiude,
+                il numero resta scritto sulla chiusura e i documenti restano segnalati in testa alla Cassa finché
+                l'esito non arriva. Il termine per trasmettere corre lo stesso.
+              </div>
+              <label style={{display:'flex', alignItems:'flex-start', gap: 8, marginTop: 10, cursor:'pointer', fontWeight: 600, color: PN.TEXT}}>
+                <input type="checkbox" checked={presaInCarico} onChange={e => setPresaInCarico(e.target.checked)} style={{marginTop: 2, accentColor: PN.TEXT}}/>
+                <span>Prendo in carico {nPend === 1 ? 'il documento' : `i ${nPend} documenti`} senza esito e chiudo lo stesso</span>
+              </label>
+            </div>
+          )}
         </div>
 
         <div style={{padding:'16px 22px 18px', display:'flex', gap:10}}>
-          <button onClick={onClose} style={btnSecondary}>Annulla</button>
-          <button onClick={onConfirm} style={btnPrimary}>Chiudi giornata</button>
+          <button onClick={onClose} style={btnSecondary}>{nPend > 0 ? 'Aspetto' : 'Annulla'}</button>
+          <button onClick={() => !bloccata && onConfirm(presaInCarico)} disabled={bloccata}
+            style={{...btnPrimary, opacity: bloccata ? 0.45 : 1, cursor: bloccata ? 'not-allowed' : 'pointer'}}>Chiudi giornata</button>
         </div>
       </div>
     </React.Fragment>
