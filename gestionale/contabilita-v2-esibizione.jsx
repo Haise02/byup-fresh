@@ -131,8 +131,21 @@ function ContEsibizione({ onClose }) {
   const cerca = q.trim().toLowerCase();
   const docs = cerca ? tutti.filter(d => [d.numero, d.tipo === 'documento' ? d.info.idTrasm : d.fisc.idTrasm, d.conto.cliente, d.conto.tavolo]
     .some(v => String(v || '').toLowerCase().includes(cerca))) : tutti;
-  // Il riepilogo per giornata: derivato, e detto tale.
-  const giornate = window.ccChiusure().filter(ch => ch.docs.some(p => { const t = esibDate(p.ora); return t && t >= da && t <= adesso; }));
+  // Il riepilogo per giornata: derivato, e detto tale. Si calcola sui SOLI
+  // documenti compresi nella finestra (P-136), con lo stesso criterio
+  // dell'elenco qui sopra — non sulla giornata intera, altrimenti la giornata
+  // a cavallo del bordo mostrerebbe un totale che comprende fatti fuori dal
+  // perimetro appena dichiarato, e i numeri non tornerebbero con l'elenco. La
+  // giornata tagliata dal bordo lo dice: il verificatore che confronta col
+  // portale vede un totale più basso, e la differenza va spiegata prima che la
+  // chieda.
+  const inFinestra = (p) => { const t = esibDate(p.ora); return t && t >= da && t <= adesso; };
+  const giornate = window.ccChiusure().map(ch => {
+    const dentro = ch.docs.filter(inFinestra);
+    if (!dentro.length) return null;
+    const totale = Math.round(dentro.reduce((s, p) => s + (p.amount || 0), 0) * 100) / 100;
+    return { ch, dentro, totale, parziale: dentro.length < ch.docs.length, dalle: esibIso(da).split(' ')[1] };
+  }).filter(Boolean);
 
   const btn = (label, onClick, primario) => (
     <button onClick={onClick} className="cassa-btn" style={{
@@ -221,10 +234,12 @@ function ContEsibizione({ onClose }) {
         <div style={{background: PN.WHITE, border:`1px solid ${PN.BORDER}`, borderRadius: C.R_MD, padding: 18, flexShrink: 0}}>
           <div style={{fontSize: C.T_MD, fontWeight: 700, color: PN.TEXT}}>Riepilogo per giornata</div>
           <div style={{fontSize: C.T_XS, color: PN.MUTED, marginTop: 2, marginBottom: 10}}>Derivato da Byup dai documenti qui sopra: è un riepilogo, non uno stato trasmesso dal canale.</div>
-          {giornate.map(ch => { const g = giornataInfo(ch); return (
+          {giornate.map(({ ch, dentro, totale, parziale, dalle }) => { const g = giornataInfo(ch); return (
             <div key={ch.id} style={{display:'flex', alignItems:'center', gap: 12, padding:'8px 0', borderTop:`1px solid ${PN.BORDER_SOFT}`, fontSize: C.T_SM}}>
-              <span style={{width: 100, fontVariantNumeric:'tabular-nums'}}>{ch.date}</span>
-              <span style={{flex: 1, color: PN.MUTED}}>{ch.docs.length} {ch.docs.length === 1 ? 'documento' : 'documenti'} · € {ch.totale.toFixed(2)}</span>
+              <span style={{width: parziale ? 'auto' : 100, minWidth: 100, fontVariantNumeric:'tabular-nums'}}>
+                {ch.date}{parziale && <span style={{color: PN.MUTED, fontSize: C.T_XS, marginLeft: 6}}>parziale, dalle {dalle}</span>}
+              </span>
+              <span style={{flex: 1, color: PN.MUTED}}>{dentro.length} {dentro.length === 1 ? 'documento' : 'documenti'} · € {totale.toFixed(2)}</span>
               <GiornataChip info={g}/>
             </div>
           ); })}
