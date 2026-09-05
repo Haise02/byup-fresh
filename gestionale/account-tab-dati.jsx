@@ -2,10 +2,13 @@
 
 // I locali gestiti da questo account. L'attivo è condiviso via
 // window.byupReadLocale/byupWriteLocale (definiti in panoramica-sidebar.jsx).
+// Un RISTORANTE per riga, con le sue sedi sotto (P-153): «Cacio e Pepe ·
+// Ostiense» non è un locale in più, è la seconda sede dello stesso soggetto
+// (PN_SOGGETTI sf-cp) e si legge dal registro delle sedi, con quelle create
+// dal foglio «Crea la sede», che sopravvivono al ricaricamento.
 const ACC_LOCALI = [
-  { id: 'cp', name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'Owner', logo: 'CP' },
-  { id: 'co', name: 'Cacio e Pepe · Ostiense', city: 'Roma · Ostiense', addr: 'Via Ostiense 142', role: 'Owner', logo: 'CO' },
-  { id: 'tb', name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'Manager', logo: 'TB' },
+  { id: 'cp', name: 'Cacio e Pepe', city: 'Roma · Trastevere', addr: 'Via dei Giubbonari 27', role: 'Owner', logo: 'CP', soggetto: 'sf-cp' },
+  { id: 'tb', name: 'Trattoria del Borgo', city: 'Frascati · RM', addr: 'Piazza San Pietro 4', role: 'Manager', logo: 'TB', soggetto: 'sf-tb' },
 ];
 
 // Locali già su byup ma non ancora collegati a questo account — usati dalla
@@ -107,22 +110,22 @@ function AccDatiGenerali() {
     setDatiToast(`✓ Richiesta inviata a ${dir.name}: se il titolare approva entri come collaboratore, non come titolare`);
     setTimeout(() => setDatiToast(null), 3200);
   };
-  // La sede della catena: nasce già completa per tutto ciò che è del
-  // soggetto, diventa il locale attivo e si va dritti alla configurazione
-  // completa, dove resta da impostare la sala.
+  // La seconda sede dello stesso soggetto (P-153 · D-110 emendata): nasce
+  // sotto il ristorante di cui questa persona è titolare, nel registro
+  // condiviso delle sedi — non come una riga in più fra i locali — con
+  // indirizzo e CAP (venues.address_zip è obbligatorio ed è il dato che
+  // l'Agenzia vuole per il punto vendita). Eredita partita IVA, delega, conto
+  // Stripe, menù e regime fiscale; diventa il locale attivo e riparte da
+  // «Sala e tavoli», poi la Configurazione completa.
   const creaSede = (sede) => {
+    const soggetto = (window.PN_SOGGETTI || []).find(x => x.ruolo === 'titolare') || { id: 'sf-cp', forma: 'societa' };
     const id = 'sede-' + Date.now().toString(36).slice(-4);
     const nome = sede.insegna.trim().replace(/\s*·\s*$/, '');
-    setLocali(prev => [...prev, {
-      id, name: nome, city: `${sede.citta.trim()}${sede.prov.trim() ? ' · ' + sede.prov.trim() : ''}`, addr: sede.indirizzo.trim(),
-      role: 'Owner', catena: true,
-      logo: nome.split(/[\s·]+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase(),
-    }]);
+    const citta = `${sede.citta.trim()}${sede.prov.trim() ? ' · ' + sede.prov.trim() : ''}`;
+    if (window.byupAggiungiSede) byupAggiungiSede({ id, ristoranteId: soggetto.id, nome, citta, indirizzo: sede.indirizzo.trim(), cap: sede.cap.trim(), prov: sede.prov.trim() });
     setAddOpen(false);
-    if (window.byupWriteLocale) byupWriteLocale({ id, nome });
-    // Prima le sale e i tavoli (il passo 3 dell'onboarding, da solo), poi la
-    // Configurazione completa.
-    window.location.href = `byup Restaurant Onboarding.html?sede=catena&nome=${encodeURIComponent(nome)}`;
+    if (window.byupWriteLocale) byupWriteLocale({ id, nome, forma: soggetto.forma });
+    window.location.href = `byup Restaurant Onboarding.html?sede=catena&nome=${encodeURIComponent(nome)}&sedeId=${encodeURIComponent(id)}`;
   };
   const confermaDissocia = () => {
     const loc = dissocia;
@@ -284,7 +287,8 @@ function AccDatiGenerali() {
         <div style={{display:'grid', gridTemplateColumns: STG('repeat(4, 1fr)', '1fr 1fr'), gap: 12}}>
           {switching && <style>{`@keyframes acSpin { to { transform: rotate(360deg); } }`}</style>}
           {locali.map((loc) => {
-            const active = loc.id === localeAttivo.id;
+            const sediIds = loc.soggetto && window.byupSediDi ? window.byupSediDi(loc.soggetto).map(x => x.id) : [];
+            const active = loc.id === localeAttivo.id || sediIds.includes(localeAttivo.id);
             const opening = switching === loc.id;
             return (
             <div key={loc.id}
@@ -340,6 +344,33 @@ function AccDatiGenerali() {
 
               <div style={{fontSize: 13, color: PN.MUTED, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.city}</div>
               <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{loc.addr}</div>
+
+              {/* Le sedi del ristorante (P-153): sotto di lui, la sede attiva
+                  evidenziata e le altre selezionabili. */}
+              {(() => {
+                const sedi = loc.soggetto && window.byupSediDi ? window.byupSediDi(loc.soggetto) : [];
+                if (sedi.length < 2) return null;
+                return (
+                  <div data-sedi style={{marginTop: 8, display:'flex', flexDirection:'column', gap: 4}}>
+                    <div style={{fontSize: 10.5, fontWeight: 800, color: PN.MUTED, letterSpacing: 0.5, textTransform:'uppercase'}}>Sedi · {sedi.length}</div>
+                    {sedi.map(sd => {
+                      const inUso = sd.id === localeAttivo.id;
+                      return (
+                        <button key={sd.id} onClick={(e) => { e.stopPropagation(); if (!inUso) apriGestionale({ id: sd.id, name: sd.nome }); }}
+                          style={{
+                            display:'flex', alignItems:'center', gap: 6, textAlign:'left', padding:'5px 8px', borderRadius: 8,
+                            border: `1px solid ${inUso ? PN.PINK : PN.BORDER_HAIR}`, background: inUso ? PN.PINK_SOFT : PN.WHITE,
+                            fontFamily:'inherit', cursor: inUso ? 'default' : 'pointer',
+                          }}>
+                          <span style={{width: 6, height: 6, borderRadius: 999, background: inUso ? PN.PINK : PN.MUTED_LIGHT, flexShrink: 0}}/>
+                          <span style={{flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: inUso ? 700 : 600, color: PN.TEXT, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{sd.nome}</span>
+                          <span style={{fontSize: 11, color: PN.MUTED, whiteSpace:'nowrap'}}>{inUso ? 'in uso' : sd.citta}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               <div style={{flex: 1}}/>
 
@@ -779,10 +810,11 @@ const AcBtnGhost = {
 
 // Popup "Aggiungi un locale": collega un locale già su byup (ricerca per nome
 // + richiesta al titolare), crea un nuovo locale (onboarding), oppure — la
-// catena — aggiunge una SEDE dello stesso soggetto: stesso soggetto fiscale,
-// stesso conto Stripe, stesso menù. Della sede nuova si dicono solo l'insegna
-// e la sede operativa, poi si va dritti alla configurazione completa per la
-// sala: il resto è già completo perché è del soggetto, non della sede.
+// catena — aggiunge una SEDE dello stesso soggetto (P-153 · D-110 emendata:
+// è MVP): stesso soggetto fiscale, stesso conto Stripe e POS virtuale, stesso
+// menù, stesso regime. Della sede nuova si dicono l'insegna e la sede
+// operativa con il CAP, poi si va dritti a «Sala e tavoli» e alla
+// configurazione completa: il resto è già completo perché è del soggetto.
 function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
   const [step, setStep] = React.useState('scelta'); // 'scelta' | 'cerca' | 'catena'
   const [query, setQuery] = React.useState('');
@@ -915,7 +947,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
             {/* Quello che la sede eredita, detto una volta: sono cose del
                 soggetto, non della sede, e non si chiedono due volte. */}
             <div style={{padding:'10px 12px', borderRadius: 10, background: PN.GREEN_SOFT, fontSize: 13.5, color: PN.TEXT, lineHeight: 1.5}}>
-              <b>Già completo, ereditato dalla catena:</b> soggetto fiscale e dati per fatturazione, conto Stripe (acct_••••dE3v), menù e listino, delega all'Agenzia. Da impostare per questa sede: la sala e i tavoli; il POS virtuale della sede va poi comunicato all'Agenzia.
+              <b>Già completo, ereditato dal locale:</b> soggetto fiscale e dati per fatturazione, conto Stripe (acct_••••dE3v) e con lui il POS virtuale già comunicato, menù e listino, delega all'Agenzia. <b>Regime fiscale: lo stesso del locale</b> (documento commerciale online con le credenziali del soggetto: il canale non si riconfigura). Da impostare per questa sede: <b>Sala e tavoli</b>; i lettori Tap to Pay nascono con il primo telefono che incassa qui.
             </div>
             <button
               disabled={!sedeOk}
@@ -928,7 +960,7 @@ function AcAggiungiLocaleModal({ esistenti, onClose, onCollega, onCatena }) {
                 fontSize: 15, fontWeight: 700,
                 cursor: sedeOk ? 'pointer' : 'not-allowed', fontFamily:'inherit',
               }}>
-              Crea la sede e imposta le sale
+              Crea la sede · Sala e tavoli
             </button>
             <button
               onClick={() => setStep('scelta')}

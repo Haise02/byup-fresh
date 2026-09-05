@@ -75,10 +75,21 @@ function ConfigCompletaApp() {
     { label: 'FAQ',                sub: 'Rispondi alle domande frequenti', done: false, step: 'aspetto',      anchor: 'faq' },
     { label: 'Social',             sub: 'Aggiungi sito e Instagram',       done: false, step: 'aspetto',      anchor: 'social' },
     // La sala non vive in questa pagina: la voce porta in Impostazioni →
-    // Sala e tavoli. È l'unica cosa che una sede di catena deve ancora
-    // impostare (Account → Aggiungi un locale → Catena): tutto il resto è
-    // del soggetto ed è già completo.
-    { label: 'Sala e tavoli',      sub: 'Le sale e i tavoli di questa sede', done: false, href: 'byup Impostazioni.html?page=sala' },
+    // Sala e tavoli. Lo stato si LEGGE dal registro delle sale (P-153): prima
+    // era scritto a mano come non fatto, e ogni locale uscito dall'onboarding
+    // ordinario — che il passo delle sale lo ha appena fatto — si vedeva da
+    // fare una cosa fatta, e la percentuale non arrivava mai al cento. Il
+    // registro lo scrive il passo «Sala e tavoli» dell'onboarding, per la sede
+    // attiva; senza registro vale il seme del gestionale, che le sale le ha.
+    { label: 'Sala e tavoli',      sub: 'Le sale e i tavoli di questa sede', done: (() => {
+        try {
+          const cat = new URLSearchParams(window.location.search).get('sede') === 'catena';
+          const reg = JSON.parse(localStorage.getItem('byup_sale') || 'null');
+          const l = window.byupReadLocale ? window.byupReadLocale() : null;
+          if (reg && l && reg.sedeId === l.id) return (reg.sale || []).length > 0;
+          return !cat;
+        } catch (e) { return true; }
+      })(), href: 'byup Impostazioni.html?page=sala' },
   ];
 
   // Chip incompleto cliccato: cambia step se serve, poi scorre alla sezione

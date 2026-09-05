@@ -884,6 +884,34 @@ const PN_SOGGETTI = [
     sedi: [{ id: 'lm', nome: 'Bar La Marina', citta: 'Ostia · RM' }] },
 ];
 window.PN_SOGGETTI = PN_SOGGETTI;
+// ─── Le sedi di un ristorante (P-153 · D-110 emendata) ──────────────────────
+// Una seconda sede dello STESSO soggetto fiscale è nell'MVP e si crea dal
+// Profilo: eredita partita IVA, delega, conto Stripe, menù e regime (che è
+// per sede, venue_fiscal_regimes, e la nuova prende quello della prima), e
+// riparte dal passo «Sala e tavoli». La sede è figlia del ristorante (venues):
+// nel Profilo il ristorante resta una voce sola e le sue sedi stanno sotto.
+// Le sedi create vivono in un registro condiviso (byup_sedi) così
+// sopravvivono al ricaricamento e la barra laterale mostra un locale che
+// «I tuoi locali» conosce. Il confine dei dati è per sede dal primo giorno:
+// questo è del backend, e qui si vede solo nel fatto che ogni sede ha il suo
+// identificativo.
+const PN_SEDI_KEY = 'byup_sedi';
+window.byupReadSedi = function () {
+  try { const s = localStorage.getItem(PN_SEDI_KEY); if (s) { const v = JSON.parse(s); if (Array.isArray(v)) return v; } } catch (e) {}
+  return [];
+};
+window.byupAggiungiSede = function (sede) {
+  const lista = window.byupReadSedi().filter(x => x.id !== sede.id);
+  lista.push({ ...sede, creata: new Date().toISOString() });
+  try { localStorage.setItem(PN_SEDI_KEY, JSON.stringify(lista)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-sedi-change'));
+};
+// Tutte le sedi di un soggetto: quelle del seme più quelle create.
+window.byupSediDi = function (soggettoId) {
+  const s = PN_SOGGETTI.find(x => x.id === soggettoId);
+  const seme = s ? s.sedi.map(sd => ({ ...sd, ristoranteId: s.id })) : [];
+  return [...seme, ...window.byupReadSedi().filter(x => x.ristoranteId === soggettoId)];
+};
 // Quelli che questa persona rappresenta: gli unici per cui può firmare.
 window.byupSoggettiRappresentati = () => PN_SOGGETTI.filter(s => s.ruolo === 'titolare');
 

@@ -32,7 +32,15 @@ function Step2Locale({
   // onboarding che lascia entrare senza consegna un locale che sembra pronto
   // e non lo è: il problema si manifesta al primo incasso, davanti a un cliente.
   const pieno = (x) => String(x || '').trim().length > 0;
-  const pronto = pieno(venue.legalForm) && pieno(venue.name) && pieno(venue.piva) &&
+  // Un onboarding vergine crea SEMPRE un soggetto fiscale nuovo (P-153): la
+  // partita IVA è unica per ristorante nel modello. Se la partita IVA esiste
+  // già, non si prosegue: si dice che il soggetto esiste e si rimanda a
+  // crearla come seconda sede da dentro il profilo. L'elenco è la copia dei
+  // soggetti del seme (PN_SOGGETTI in panoramica-tokens.jsx, altro bundle).
+  const ONB_PIVA_ESISTENTI = { '12345678901': 'Cacio e Pepe S.r.l.', '09876543210': 'Borgo Ristorazione S.n.c.', '05566778899': 'La Marina S.a.s.' };
+  const pivaPulita = String(venue.piva || '').toUpperCase().replace(/^IT/, '').replace(/\s/g, '');
+  const soggettoEsistente = ONB_PIVA_ESISTENTI[pivaPulita] || null;
+  const pronto = !soggettoEsistente && pieno(venue.legalForm) && pieno(venue.name) && pieno(venue.piva) &&
     (venue.legalForm !== 'ditta_individuale' ||
       (pieno(venue.titolareCf) && pieno(venue.titolareNascita) && pieno(venue.titolareComuneNascita) && pieno(venue.titolareStatoNascita)));
   // Quello che è stato scritto qui lo ritrova Dati fiscali (altro bundle):
@@ -115,6 +123,13 @@ function Step2Locale({
         {/* ─── Colonna destra — campi ─────────────────────────────────── */}
         <div>
           <SubStepInfo venue={venue} v={v} pronto={pronto}/>
+          {soggettoEsistente && (
+            <div data-piva-esistente style={{marginTop: 12, padding: '12px 14px', borderRadius: 12, background: '#FFFBEB', border: '1px solid #FCD34D', fontSize: 14.5, color: '#92400E', lineHeight: 1.5}}>
+              <b>Questa partita IVA è già su Byup: {soggettoEsistente}.</b> Un soggetto fiscale non si crea due volte. Se stai aprendo
+              una seconda sede dello stesso locale, si crea da dentro il profilo già creato — <a href="byup Profilo.html" style={{color: '#92400E', fontWeight: 700}}>Profilo → I tuoi locali → Aggiungi locale → Crea la sede</a> —
+              e riparte da menù, sala e tavoli, perché la parte fiscale c'è già.
+            </div>
+          )}
 
           {/* Footer — 2 pulsanti, gerarchia chiara.
               Sticky: espandendo "Altri metodi" la colonna supera il canvas, e

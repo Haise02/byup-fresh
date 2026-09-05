@@ -139,7 +139,16 @@ function OnboardingApp() {
             <Step3SaleTavoli
               rooms={rooms} setRooms={setRooms}
               catena={ONB_CATENA}
-              onNext={() => { if (ONB_CATENA) window.location.href = 'byup Configurazione Completa.html?sede=catena'; else setStep(4); }}
+              onNext={() => {
+                // Le sale sono state impostate (P-153): lo si scrive nel registro
+                // condiviso per la sede attiva, così la Configurazione completa
+                // legge lo stato di «Sala e tavoli» invece di dirla da fare a mano.
+                try {
+                  const l = JSON.parse(localStorage.getItem('byup_locale_attivo') || 'null');
+                  localStorage.setItem('byup_sale', JSON.stringify({ sedeId: l && l.id, sale: rooms.map(r => ({ id: r.id, nome: r.name, tavoli: r.tables })), quando: new Date().toISOString() }));
+                } catch (e) {}
+                if (ONB_CATENA) window.location.href = 'byup Configurazione Completa.html?sede=catena'; else setStep(4);
+              }}
               onBack={() => { if (ONB_CATENA) window.location.href = 'byup Profilo.html'; else setStep(2); }}
             />
           )}
@@ -197,7 +206,7 @@ function OnbHeader({step}) {
 function Stepper({step}) {
   // Per la sede della catena i passi sono due: le sale, poi la configurazione
   // completa (che è un'altra pagina). Il resto è ereditato e non si mostra.
-  const passi = ONB_CATENA ? [{ id: 3, label: `Sale e tavoli · ${ONB_CATENA.nome}` }, { id: 4, label: 'Configurazione completa' }] : STEPS;
+  const passi = ONB_CATENA ? [{ id: 3, label: `Sala e tavoli · ${ONB_CATENA.nome}` }, { id: 4, label: 'Configurazione completa' }] : STEPS;
   return (
     <div style={{display: 'flex', alignItems: 'center', gap: 0}}>
       {passi.map((s, i) => {
