@@ -4360,14 +4360,22 @@ function DashCamerieri({ filtri }) {
   const liveLocali = locSegmento.filter(l => l.stato === 'active' || l.stato === 'dormant');
 
   // ── TEMPO MEDIO SERVIZIO · da ordine confermato a chiusura conto ────────
-  // Industria horeca: pizzeria 25-45 min, trattoria 50-90 min, ristorante 70-120 min
+  // Per tipo di locale: le OTTO categorie del dizionario di piattaforma
+  // (venue_category, D-28 — le stesse del gestionale e della scheda del
+  // locale), non Trattoria, Osteria e Pub che il rifacimento ha tolto ovunque
+  // (P-156.6). Le etichette vengono dal dizionario; i tempi sono d'esempio,
+  // dell'ordine di grandezza del settore: bar 15-30 min, pizzeria 25-45,
+  // bistrot 45-70, ristorante 70-120.
+  const catLabel = (id, fallback) => ((typeof HUB_PN_GUSTI !== 'undefined' ? HUB_PN_GUSTI : []).find(g => g.id === id) || {}).label || fallback;
   const serviceByType = [
-    { tipo:'Pizzeria',   media:38, median:34, p75:52,  n: 9, color:ADM.PINK },
-    { tipo:'Trattoria',  media:68, median:62, p75: 86, n:11, color:ADM.WARN },
-    { tipo:'Osteria',    media:74, median:70, p75: 94, n: 7, color:ADM.DANGER },
-    { tipo:'Ristorante', media:92, median:88, p75:118, n:12, color:ADM.PURPLE },
-    { tipo:'Bistrot',    media:54, median:50, p75: 72, n: 6, color:ADM.INFO },
-    { tipo:'Pub',        media:46, median:42, p75: 60, n: 3, color:ADM.OK },
+    { id:'bar',           tipo: catLabel('bar', 'Bar'),                        media:22, median:20, p75: 32, n: 7, color:ADM.OK },
+    { id:'pizzeria',      tipo: catLabel('pizzeria', 'Pizzeria'),              media:38, median:34, p75: 52, n: 9, color:ADM.PINK },
+    { id:'bistrot',       tipo: catLabel('bistrot', 'Bistrot'),                media:54, median:50, p75: 72, n: 6, color:ADM.INFO },
+    { id:'enoteca',       tipo: catLabel('enoteca', 'Enoteca'),                media:61, median:56, p75: 80, n: 3, color:ADM.WARN },
+    { id:'giapponese',    tipo: catLabel('giapponese', 'Giapponese'),          media:66, median:60, p75: 84, n: 4, color:ADM.INFO },
+    { id:'cucina_etnica', tipo: catLabel('cucina_etnica', 'Cucina etnica'),    media:70, median:64, p75: 90, n: 4, color:ADM.WARN },
+    { id:'carne_griglia', tipo: catLabel('carne_griglia', 'Carne e Griglia'),  media:84, median:78, p75:106, n: 5, color:ADM.DANGER },
+    { id:'ristorante',    tipo: catLabel('ristorante', 'Ristorante'),          media:92, median:88, p75:118, n:12, color:ADM.PURPLE },
   ];
   const serviceOverall = Math.round(
     serviceByType.reduce((s,t) => s + t.media*t.n, 0) / serviceByType.reduce((s,t)=>s+t.n,0)

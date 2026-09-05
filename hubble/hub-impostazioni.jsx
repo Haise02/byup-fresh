@@ -619,21 +619,23 @@ function HubDeleghePage() {
       </div>
 
       <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden'}}>
-        <div style={{display:'grid', gridTemplateColumns:'48px 100px 118px minmax(0,1.3fr) 118px 108px 108px minmax(0,1fr) minmax(0,1.4fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
-          <span>N.</span><span>Giorno</span><span>Atto</span><span>Locale · P.IVA</span><span>Scadenza</span><span>Verificata il</span><span>Responsabile</span><span>Servizi</span><span>Note</span>
+        <div style={{display:'grid', gridTemplateColumns:'48px 92px 108px minmax(0,1.2fr) 118px minmax(0,1.1fr) 108px 100px 100px minmax(0,1.2fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
+          <span>N.</span><span>Giorno</span><span>Atto</span><span>Locale · P.IVA</span><span>CF delegante · delegato</span><span>Servizio</span><span>Scadenza</span><span>Verificata il</span><span>Responsabile</span><span>Note</span>
         </div>
         {righe.map(d => {
           const a = atto(d.atto);
           return (
-            <div key={d.n} style={{display:'grid', gridTemplateColumns:'48px 100px 118px minmax(0,1.3fr) 118px 108px 108px minmax(0,1fr) minmax(0,1.4fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:12.8, color:ADM.TEXT, alignItems:'start'}}>
+            <div key={d.n} style={{display:'grid', gridTemplateColumns:'48px 92px 108px minmax(0,1.2fr) 118px minmax(0,1.1fr) 108px 100px 100px minmax(0,1.2fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:12.8, color:ADM.TEXT, alignItems:'start'}}>
               <span style={{fontFamily:'ui-monospace,monospace', fontWeight:700}}>{String(d.n).padStart(3, '0')}</span>
               <span>{fmtDate(d.giorno)}</span>
               <span><AdmBadge color={a.color} size="xs">{a.label}</AdmBadge></span>
               <span><b>{nomeLocale(d.localeId)}</b><br/><span style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED}}>{d.piva}</span></span>
+              {/* I due codici fiscali che il provvedimento richiede (P-156.4). */}
+              <span style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED, lineHeight:1.5}}>{d.cfDelegante}<br/>{d.cfDelegato}</span>
+              <span style={{fontSize:11.8, color:ADM.TEXT, lineHeight:1.4}}>{d.servizio}</span>
               <span>{d.scadenza ? fmtDate(d.scadenza) : '—'}</span>
               <span>{fmtDate(d.verificataIl)}</span>
               <span>{d.responsabile}</span>
-              <span style={{fontSize:11.8, color:ADM.MUTED, lineHeight:1.4}}>{d.atto === 'revoca' ? 'Entrambi' : d.servizi.map(x => x.split(' ')[0]).join(' · ')}</span>
               <span style={{fontSize:12, color:ADM.MUTED, lineHeight:1.45}}>{d.note || '—'}</span>
             </div>
           );

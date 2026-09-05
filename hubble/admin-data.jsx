@@ -1423,15 +1423,31 @@ const DOCUMENTI = [
     { v:'1.1', pubblicata:ctrData(4,8,2026), efficace:ctrData(3,9,2026), peggiorativa:false, esempio:true, cambiamento:'Versione corrente (esempio).' } ]},
   { codice:'INF-01', nome:'Informativa privacy consumer', destinatario:'utente', prevalenza:2, informativa:true, versioni:[
     { v:'0.6', pubblicata:ctrData(4,8,2026), efficace:ctrData(4,8,2026), peggiorativa:false, esempio:true, cambiamento:'Versione corrente (esempio).' } ]},
+  // I quattro documenti del 5 settembre 2026 (D-114, P-156.9). INF-04 è
+  // l'informativa per le UTENZE STAFF: chi entra come cameriere o cassa non è
+  // né un consumatore né l'esercente, ha un contratto suo (TOS-02) e da qui la
+  // sua informativa; INF-02 torna ai soli titolari. INF-05 è la cookie policy
+  // del sito e dell'app; INF-06 l'informativa ai venditori sulla comunicazione
+  // al fisco (D.Lgs. 32/2023); MOD-02 il modello di informativa ai lavoratori
+  // che il datore consegna al proprio personale. Versioni d'esempio come le
+  // altre: la data è quella in cui il documento è nato nel progetto.
+  { codice:'INF-04', nome:'Informativa privacy utenze staff', destinatario:'staff', prevalenza:2, informativa:true, versioni:[
+    { v:'0.1', pubblicata:ctrData(5,9,2026), efficace:ctrData(5,9,2026), peggiorativa:false, esempio:true, cambiamento:'Prima versione: nasce con D-114, separando le utenze staff dall\'informativa business.' } ]},
+  { codice:'INF-05', nome:'Cookie policy', destinatario:'utente', prevalenza:3, informativa:true, versioni:[
+    { v:'0.2', pubblicata:ctrData(5,9,2026), efficace:ctrData(5,9,2026), peggiorativa:false, esempio:true, cambiamento:'Promossa da bozza (M-01) a documento del catalogo.' } ]},
+  { codice:'INF-06', nome:'Informativa ai venditori sulla comunicazione al fisco', destinatario:'locale', prevalenza:5, informativa:true, versioni:[
+    { v:'0.2', pubblicata:ctrData(5,9,2026), efficace:ctrData(5,9,2026), peggiorativa:false, esempio:true, cambiamento:'Promossa da bozza (M-02): la comunicazione del gestore di piattaforma, D.Lgs. 32/2023.' } ]},
+  { codice:'MOD-02', nome:'Informativa ai lavoratori (modello per il datore)', destinatario:'locale', prevalenza:6, informativa:true, versioni:[
+    { v:'0.2', pubblicata:ctrData(5,9,2026), efficace:ctrData(5,9,2026), peggiorativa:false, esempio:true, cambiamento:'Promossa da bozza (M-07): il modello che il datore consegna al proprio personale.' } ]},
 ];
 
 // Il set pertinente per tipo di contatto. Lo staff ha un contratto DIRETTO
 // con Byup, indipendente dal locale che lo associa; l'utente app aggiunge i
 // consensi facoltativi, che però vivono già nelle proprietà del CRM.
 const CONTRATTI_PER_TIPO = {
-  locale: ['PIANO', 'TC-01', 'DPA-01', 'INF-02'],
-  staff:  ['TOS-02', 'INF-02'],
-  utente: ['TOS-01', 'INF-01'],
+  locale: ['PIANO', 'TC-01', 'DPA-01', 'INF-02', 'INF-06', 'MOD-02'],
+  staff:  ['TOS-02', 'INF-04'],
+  utente: ['TOS-01', 'INF-01', 'INF-05'],
 };
 
 // I casi limite vivono su id FISSI, non sul caso del seme: devono esserci a
@@ -1932,20 +1948,40 @@ const DEL_SERVIZI = ['Fatturazione elettronica e conservazione delle fatture ele
 // Chi risponde della tenuta del registro: una persona di Byup, non un
 // incaricato fiscale (quella figura non esiste, D-103).
 const DEL_GESTIONE = { responsabileNome: 'Luca Ferrante' };
+// Il delegato è Byup: il suo codice fiscale è un dato del provvedimento
+// (delega unica, Provv. 182017/2016 coordinato) e nel prototipo è da
+// completare, come la sede legale e la partita IVA nei contratti.
+const DEL_DELEGATO = { denominazione: 'Byup S.r.l.', cf: 'da completare' };
 const delScadenza = (conferitaIl) => new Date(conferitaIl.getFullYear() + 4, 11, 31);
+// UNA RIGA PER SERVIZIO (P-156.4): nel modello ade_delegations porta un
+// servizio per riga, con l'indice che la lega al locale — un atto sul portale
+// che conferisce due servizi produce due righe, e la revoca le chiude una per
+// una. Ogni riga porta i dati che il provvedimento elenca: il codice fiscale
+// del delegante (l'esercente), quello del delegato (Byup), il servizio, il
+// giorno, la scadenza. Prima due servizi stavano su una riga sola e i due
+// codici fiscali mancavano.
 const DELEGHE = (() => {
-  const piva = (id) => (LOCALI.find(l => l.id === id) || {}).piva || '—';
-  const riga = (n, g, atto, localeId, note, extra) => Object.assign({ n, giorno: g, atto, localeId, piva: piva(localeId), servizi: DEL_SERVIZI,
-    scadenza: atto === 'revoca' ? null : delScadenza(g), verificataIl: atto === 'revoca' ? g : new Date(g.getTime() + 86400000),
-    responsabile: DEL_GESTIONE.responsabileNome, note }, extra || {});
+  const loc = (id) => LOCALI.find(l => l.id === id) || {};
+  const piva = (id) => loc(id).piva || '—';
+  // Il codice fiscale del delegante: per una società coincide con la partita
+  // IVA senza prefisso; per una ditta individuale è quello della persona, che
+  // il seme dei locali non porta — si dichiara mancante, non si inventa.
+  const cfDelegante = (id) => { const l = loc(id); return l.cf || (l.piva ? String(l.piva).replace(/^IT/, '') : '—'); };
+  let n = 0;
+  const atto = (g, tipo, localeId, note) => DEL_SERVIZI.map((servizio, k) => ({
+    n: ++n, giorno: g, atto: tipo, localeId, piva: piva(localeId), cfDelegante: cfDelegante(localeId), cfDelegato: DEL_DELEGATO.cf,
+    servizio, servizi: [servizio],
+    scadenza: tipo === 'revoca' ? null : delScadenza(g), verificataIl: tipo === 'revoca' ? g : new Date(g.getTime() + 86400000),
+    responsabile: DEL_GESTIONE.responsabileNome, note: k === 0 ? note : '',
+  }));
   return [
-    riga(1, ctrData(14, 3, 2022), 'conferimento', 'L1030', 'Prima delega del registro. Scade il 31/12/2026: promemoria di rinnovo da inviare entro il 30/11/2026.'),
-    riga(2, ctrData(3, 6, 2024),  'conferimento', 'L1018', ''),
-    riga(3, ctrData(10, 2, 2025), 'conferimento', 'L1025', ''),
-    riga(4, ctrData(22, 9, 2025), 'conferimento', 'L1042', ''),
-    riga(5, ctrData(15, 1, 2026), 'conferimento', 'L1013', 'Conferita in onboarding, verificata il giorno dopo.'),
-    riga(6, ctrData(6, 5, 2026),  'revoca',       'L1042', 'Revocata dal portale dal titolare (Profilo → Deleghe); il locale è inattivo da maggio. Chiude la n. 4.'),
-    riga(7, ctrData(20, 8, 2026), 'conferimento', 'L1010', 'Conferita in onboarding; il locale è fermo alla verifica del menù.'),
+    ...atto(ctrData(14, 3, 2022), 'conferimento', 'L1030', 'Prima delega del registro. Scade il 31/12/2026: promemoria di rinnovo da inviare entro il 30/11/2026.'),
+    ...atto(ctrData(3, 6, 2024),  'conferimento', 'L1018', ''),
+    ...atto(ctrData(10, 2, 2025), 'conferimento', 'L1025', ''),
+    ...atto(ctrData(22, 9, 2025), 'conferimento', 'L1042', ''),
+    ...atto(ctrData(15, 1, 2026), 'conferimento', 'L1013', 'Conferita in onboarding, verificata il giorno dopo.'),
+    ...atto(ctrData(6, 5, 2026),  'revoca',       'L1042', 'Revocata dal portale dal titolare (Profilo → Deleghe); il locale è inattivo da maggio. Chiude le nn. 7 e 8.'),
+    ...atto(ctrData(20, 8, 2026), 'conferimento', 'L1010', 'Conferita in onboarding; il locale è fermo alla verifica del menù.'),
   ];
 })();
 // La delega viva di un locale: l'ultimo conferimento o rinnovo non seguito da

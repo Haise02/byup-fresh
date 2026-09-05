@@ -256,7 +256,11 @@ const AN_DEFINIZIONI = [
   { t:'Locale attivo', f:'stato = attivo', d:'Ha finito l’onboarding e ha lavorato negli ultimi 30 giorni. Non coincide con «pagante».' },
   { t:'Locale pagante', f:'attivo o inattivo, con piano ≠ Gratuito', d:'Chi ha un piano a canone. Un inattivo paga finché non disdice.' },
   { t:'Base installata', f:'attivi + inattivi', d:'I locali che hanno un piano. Chi è in onboarding non c’è ancora, chi ha disdetto non c’è più.' },
-  { t:'Ordine', f:'transazione pesata', d:'Cassa e cameriere pesano 1, l’app 0,5. È l’unità del listino, non il numero di scontrini.' },
+  // L'unità del listino è la COMANDA, non l'ordine (D-11), e i pesi sono i
+  // coefficienti del listino versionato, non costanti (D-12): al saldo prevale
+  // la superficie di pagamento, e per gruppo di saldo si conta il maggiore fra
+  // comande inviate e transazioni saldate (P-156.8).
+  { t:'Comanda', f:'unità del listino, pesata', d:'Il singolo invio in preparazione. All’invio pesa secondo l’origine (coefficiente ridotto dall’app, pieno da webapp e strumenti del locale); al saldo prevale la superficie di pagamento. Per gruppo di saldo si conta il maggiore fra comande inviate e transazioni saldate. I pesi sono i coefficienti del listino in vigore, non numeri fissi.' },
   { t:'Coperto', f:'ordini al tavolo × commensali', d:'Le persone servite in sala. L’asporto non occupa una sedia e non entra.' },
   { t:'Adozione digitale', f:'ordini da QR e app ÷ ordini totali', d:'La quota di ordini che il cliente fa da solo. È la variabile su cui gira tutta la tab Valore.' },
   { t:'Soglia', f:`adozione ≥ ${PAR.SOGLIA_DIGITALE}%`, d:'Il punto da cui il ritorno per il locale si vede nei numeri. Sotto, non si vede.' },
