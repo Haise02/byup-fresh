@@ -2385,12 +2385,16 @@ function RecoveryOrderModal({ onClose, onSubmit }) {
           Inserisci il codice che trovi sulla schermata della web app.
         </div>
 
+        {/* Niente autoComplete="one-time-code" (P-138): quel valore dice al
+            telefono che il codice arriva per SMS e lo autorizza a leggerlo dai
+            messaggi. Questo codice non viaggia da nessuna parte: si legge sulla
+            schermata della webapp (D-42). Resta inputMode="numeric", che fa
+            comparire il tastierino. */}
         <input
           value={code}
           onChange={(e) => handleChange(e.target.value)}
           onPaste={handlePaste}
           inputMode="numeric"
-          autoComplete="one-time-code"
           disabled={attesa > 0}
           autoFocus
           placeholder="es. 48 39 12"

@@ -2852,8 +2852,12 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
               con description_is_ai_generated; `longDesc` non ha un'origine nel
               gestionale e resta NON marcata, dichiaratamente. Il nome del
               piatto non è mai generato. L'id di provenienza viaggia nel dato e
-              non si mostra. */}
-          {dish.descAi && (
+              non si mostra. La pillola segue il testo che sta mostrando
+              (P-137): quando il foglio si espande e compare `longDesc`, che
+              nessun modello ha scritto, il contrassegno sparisce; alla
+              chiusura torna. Se un giorno anche la lunga sarà generata,
+              tornerà con il suo dato di origine, non per memoria di qualcuno. */}
+          {dish.descAi && !expanded && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, position: 'relative' }}>
               <div style={{
                 background: PINK, color: '#fff', fontSize: 10, fontWeight: 800,
@@ -2891,7 +2895,7 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
               )}
             </div>
           )}
-          <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.55, marginTop: dish.descAi ? 6 : 10 }}>
+          <div style={{ fontSize: 13.5, color: MUTED, lineHeight: 1.55, marginTop: dish.descAi && !expanded ? 6 : 10 }}>
             {expanded ? dish.longDesc : (
               <>
                 {dish.desc.slice(0, 75)}{dish.desc.length > 75 ? '...' : ''}{' '}

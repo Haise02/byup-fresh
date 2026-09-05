@@ -97,10 +97,17 @@ function svRiepilogoIva(lines, takeaway) {
 // fattura è in Contabilità (lo è: FPR 62/26): quel dato è trattenuto dieci
 // anni per obbligo fiscale, e riproporlo per comodità sarebbe riusarlo per
 // un'altra ragione. Il privato ridetta i suoi dati ogni volta (D-17).
-// L'impresa estera, quando arriverà, conta come azienda ai fini delle
-// proposte: il razionale di D-17 colpisce le persone fisiche, non la nazione.
-// Oggi non c'è perché non c'è ancora una fattura estera nei mock.
-const SVF_RUBRICA_SEGMENTI = ['azienda', 'pa'];
+// L'impresa estera conta come azienda ai fini delle proposte (P-139): il
+// razionale di D-17 colpisce le persone fisiche, non la nazione. Un tour
+// operator o un'azienda che manda i suoi in trasferta si fattura più volte,
+// e riscriverne ragione sociale, identificativo e indirizzo davanti al
+// cliente che aspetta è lavoro inutile e occasione di errore. Sul segmento
+// estero il registro imprese NON si chiama: è italiano e non contiene
+// soggetti esteri per costruzione. Della rubrica un cliente estero tiene i
+// soli campi che il segmento chiede: ragione sociale, identificativo se ce
+// l'ha, indirizzo, comune e Stato — non il CAP italiano, non il codice
+// destinatario, che è sempre le sette X.
+const SVF_RUBRICA_SEGMENTI = ['azienda', 'pa', 'estero'];
 const SVF_RUBRICA = [
   { seg:'azienda', denominazione:'Studio Marani e Associati', piva:'02938471056', cf:'02938471056',
     indirizzo:'Via Nomentana 214', cap:'00162', comune:'Roma', provincia:'RM', nazione:'IT',
@@ -120,6 +127,9 @@ const SVF_REGISTRO = [
   { seg:'azienda', denominazione:'Cantiere Blu S.p.A.', piva:'09284710962', cf:'09284710962',
     indirizzo:'Viale Certosa 152', cap:'20156', comune:'Milano', provincia:'MI', nazione:'IT',
     sdi:'K92RTY4', pec:'' },
+  { seg:'estero', denominazione:'Alpenreisen GmbH', piva:'DE811907980', cf:'',
+    indirizzo:'Maximilianstraße 14', cap:'', comune:'München', provincia:'', nazione:'DE',
+    sdi:'XXXXXXX', pec:'' },
   { seg:'pa', denominazione:'Comune di Roma — Dipartimento Cultura', piva:'02438750586', cf:'02438750586',
     indirizzo:'Piazza del Campidoglio 1', cap:'00186', comune:'Roma', provincia:'RM', nazione:'IT',
     sdi:'UF9T2K', pec:'' },
@@ -176,6 +186,22 @@ function svfNome(c) {
 // e deve essere così (D-17).
 function svfCfEnte(cf) {
   return /^\d{11}$/.test(cf || '');
+}
+// La rubrica si popola da sola dalle fatture emesse (P-139): alla conferma
+// il cliente entra in testa, una volta sola, con i soli campi del suo
+// segmento. Il privato non entra mai (D-17).
+function svfRicorda(c) {
+  if (!SVF_RUBRICA_SEGMENTI.includes(c.seg)) return;
+  const estero = c.seg === 'estero';
+  const r = estero
+    ? { seg:'estero', denominazione:c.denominazione.trim(), piva:(c.piva || '').trim(), cf:'',
+        indirizzo:c.indirizzo.trim(), cap:'', comune:c.comune.trim(), provincia:'', nazione:c.nazione || '', sdi:'XXXXXXX', pec:'' }
+    : { seg:c.seg, denominazione:c.denominazione.trim(), piva:(c.piva || '').trim(), cf:(c.cf || '').trim(),
+        indirizzo:c.indirizzo.trim(), cap:c.cap, comune:c.comune.trim(), provincia:c.provincia, nazione:'IT', sdi:c.sdi, pec:c.pec };
+  const stesso = (a) => a.seg === r.seg && a.denominazione.toLowerCase() === r.denominazione.toLowerCase() && (a.piva || '') === (r.piva || '');
+  const i = SVF_RUBRICA.findIndex(stesso);
+  if (i >= 0) SVF_RUBRICA.splice(i, 1);
+  SVF_RUBRICA.unshift(r);
 }
 function svfCorrisponde(r, q) {
   if (svfNome(r).toLowerCase().includes(q)) return true;
@@ -295,16 +321,17 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
 
   // Ricerca sul registro imprese. Sotto i 3 caratteri non parte: al banco si
   // digita di fretta e ogni tasto sarebbe una chiamata a vuoto pagata a consumo.
+  // Sul segmento estero non parte affatto (P-139): il registro è italiano.
   React.useEffect(() => {
     const q = query.trim().toLowerCase();
-    if (q.length < 3) { setRemoti([]); setCercando(false); return; }
+    if (q.length < 3 || c.seg === 'estero') { setRemoti([]); setCercando(false); return; }
     setCercando(true);
     const id = setTimeout(() => {
       setRemoti(SVF_REGISTRO.filter(r => svfCorrisponde(r, q)));
       setCercando(false);
     }, 420);
     return () => clearTimeout(id);
-  }, [query]);
+  }, [query, c.seg]);
 
   if (!open) return null;
 
@@ -333,8 +360,10 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
   }
 
   const q = query.trim().toLowerCase();
+  // Sull'estero la rubrica propone i soli clienti esteri; sugli altri
+  // segmenti quelli italiani, come prima.
   const locali = q.length < 2 ? [] : SVF_RUBRICA.filter(r =>
-    SVF_RUBRICA_SEGMENTI.includes(r.seg) && svfCorrisponde(r, q));
+    SVF_RUBRICA_SEGMENTI.includes(r.seg) && ((r.seg === 'estero') === (c.seg === 'estero')) && svfCorrisponde(r, q));
   const mostraLista = aperto && q.length >= 2;
 
   const righe = svfRighe(lines, takeaway);
@@ -417,7 +446,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
               value={query}
               onChange={e => { setQuery(e.target.value); setAperto(true); }}
               onFocus={() => setAperto(true)}
-              placeholder="Partita IVA o ragione sociale"
+              placeholder={estero ? 'Cerca fra i clienti esteri che hai già fatturato' : 'Partita IVA o ragione sociale'}
               style={{ ...SVF_INPUT, padding: '13px 13px 13px 40px', fontSize: 17 }}/>
 
             {mostraLista && (
@@ -432,17 +461,30 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
                 )}
                 {locali.map((r, i) => <SvfSuggerimento key={`l${i}`} r={r} onClick={() => scegli(r)}/>)}
 
-                <div style={{ ...SVF_LABEL, margin: 0, padding: '10px 14px 6px', borderTop: locali.length ? `1px solid ${SVF_BORDER}` : 'none' }}>
-                  Registro imprese
-                </div>
-                {cercando && (
-                  <div style={{ padding: '8px 14px 14px', fontSize: 15.5, color: SVF_MUTED }}>Cerco…</div>
-                )}
-                {!cercando && remoti.map((r, i) => <SvfSuggerimento key={`r${i}`} r={r} onClick={() => scegli(r)}/>)}
-                {!cercando && remoti.length === 0 && (
-                  <div style={{ padding: '8px 14px 14px', fontSize: 15.5, color: SVF_MUTED }}>
-                    Nessuna impresa trovata — scrivi i dati qui sotto
-                  </div>
+                {estero ? (
+                  // Niente registro imprese sull'estero (P-139): chi non trova
+                  // nulla deve capire che è la prima volta, non che il sistema
+                  // non funziona.
+                  locali.length === 0 && (
+                    <div style={{ padding: '10px 14px 14px', fontSize: 15.5, color: SVF_MUTED }}>
+                      Nessun cliente estero già fatturato con questo nome — scrivi i dati qui sotto
+                    </div>
+                  )
+                ) : (
+                  <>
+                    <div style={{ ...SVF_LABEL, margin: 0, padding: '10px 14px 6px', borderTop: locali.length ? `1px solid ${SVF_BORDER}` : 'none' }}>
+                      Registro imprese
+                    </div>
+                    {cercando && (
+                      <div style={{ padding: '8px 14px 14px', fontSize: 15.5, color: SVF_MUTED }}>Cerco…</div>
+                    )}
+                    {!cercando && remoti.map((r, i) => <SvfSuggerimento key={`r${i}`} r={r} onClick={() => scegli(r)}/>)}
+                    {!cercando && remoti.length === 0 && (
+                      <div style={{ padding: '8px 14px 14px', fontSize: 15.5, color: SVF_MUTED }}>
+                        Nessuna impresa trovata — scrivi i dati qui sotto
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -598,7 +640,7 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
               }}>Togli fattura</button>
             )}
             <button
-              onClick={() => { if (pronto) { onConfirm(c); onClose(); } }}
+              onClick={() => { if (pronto) { svfRicorda(c); onConfirm(c); onClose(); } }}
               disabled={!pronto}
               style={{
                 flex: 1, padding: '15px 20px', borderRadius: 14,
