@@ -268,16 +268,17 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
     () => (window.byupNotificheNonLette ? window.byupNotificheNonLette() : 0)
   );
 
+  // Il conteggio si riascolta su TUTTI gli eventi da cui le notifiche nascono
+  // (P-159): la lettura, ma anche i registri fiscali e di Stripe che fanno
+  // comparire una notifica nuova. Prima ascoltava solo la lettura, e alla
+  // notifica nuova il numero restava quello di prima fino al ricaricamento.
   React.useEffect(() => {
     if (!window.byupNotificheNonLette) return;
     const update = () => setNotifNonLette(window.byupNotificheNonLette());
     update();
-    window.addEventListener('byup-notifiche-change', update);
-    window.addEventListener('storage', update);
-    return () => {
-      window.removeEventListener('byup-notifiche-change', update);
-      window.removeEventListener('storage', update);
-    };
+    const ev = window.BYUP_NOTIF_EVENTI || ['byup-notifiche-change', 'storage'];
+    ev.forEach(e => window.addEventListener(e, update));
+    return () => { ev.forEach(e => window.removeEventListener(e, update)); };
   }, []);
 
   // Le voci passano dal ruolo (P-135): una voce la cui area non è concessa a

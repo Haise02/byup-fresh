@@ -131,7 +131,24 @@ const BYU_ESEMPI = [
 
 // `regime` per area (P-39 · D-32): immediato = si fa subito e si annulla;
 // conferma = si chiede prima, e `motivo` dice perché in una riga della scheda.
+// L'ORDINE CONTA (P-159): la prima regola che corrisponde vince, quindi si va
+// dalla più specifica alla più generica. La sala sta prima delle prenotazioni:
+// «sposta il tavolo 4 vicino alla finestra» parla della disposizione della
+// sala, e con «sposta» in testa alla regola delle prenotazioni ci finiva
+// dentro. La prenotazione riconosce «tavolo per» (quattro), non «tavolo 4».
+// I casi tipici stanno in BYU_CASI_DI_PROVA, così un riordino futuro che li
+// rompe si vede in console e non in sala.
 const BYU_AREE = [
+  {
+    prova: /sposta (il |i |lo )?tavol|unisci|vicino all|disposizione|\bsala\b|\btavol[oi]\s+\d/,
+    icona: 'place-table',
+    regime: 'immediato',
+    componi: (t) => ({
+      titolo: 'Sala aggiornata',
+      dettagli: [t.length > 46 ? t.slice(0, 46) + '…' : t],
+      risposta: 'Fatto in sala. Puoi annullare.',
+    }),
+  },
   {
     prova: /preno|sposta|tavolo per|coperti|prenota/,
     icona: 'time-calendar',
@@ -166,16 +183,6 @@ const BYU_AREE = [
     }),
   },
   {
-    prova: /tavol|unisci|sala|sposta il tavolo/,
-    icona: 'place-table',
-    regime: 'immediato',
-    componi: (t) => ({
-      titolo: 'Sala aggiornata',
-      dettagli: [t.length > 46 ? t.slice(0, 46) + '…' : t],
-      risposta: 'Fatto in sala. Puoi annullare.',
-    }),
-  },
-  {
     prova: /asporto|delivery|orari|impostazion|servizio|attiva|disattiva/,
     icona: 'gear',
     regime: 'immediato',
@@ -187,6 +194,19 @@ const BYU_AREE = [
   },
 ];
 
+// I casi di prova (P-159): frase → icona dell'area attesa. Girano una volta
+// al caricamento e, se una frase cade nell'area sbagliata, lo dicono in
+// console: è la guardia contro un riordino che rompe di nuovo le frasi che un
+// cameriere direbbe davvero.
+const BYU_CASI_DI_PROVA = [
+  ['Sposta il tavolo 4 vicino alla finestra', 'place-table'],
+  ['Unisci i tavoli 4 e 5', 'place-table'],
+  ['Sposta Bianchi alle 21:30', 'time-calendar'],
+  ['Sposta la prenotazione di Bianchi alle 21:30', 'time-calendar'],
+  ['Un tavolo per 4 alle 20:30', 'time-calendar'],
+  ['Togli la Carbonara dal menù di pranzo', 'food-meal'],
+  ['Attiva l\'asporto', 'gear'],
+];
 function byuInterpreta(testo) {
   const s = testo.toLowerCase();
   const area = BYU_AREE.find(a => a.prova.test(s));
@@ -201,6 +221,12 @@ function byuInterpreta(testo) {
   }
   return Object.assign({ icona: area.icona, regime: area.regime, motivo: area.motivo || null }, area.componi(testo));
 }
+try {
+  BYU_CASI_DI_PROVA.forEach(([frase, icona]) => {
+    const esito = byuInterpreta(frase).icona;
+    if (esito !== icona) console.warn(`[byuppino] «${frase}» cade in ${esito}, attesa ${icona}`);
+  });
+} catch (e) {}
 
 // ─── Pezzi ─────────────────────────────────────────────────────────────────
 

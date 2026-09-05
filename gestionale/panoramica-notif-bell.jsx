@@ -212,14 +212,19 @@ window.byupNotificaElimina = function(id) {
   const st = _byupNotifStato();
   if (!st.eliminate.includes(id)) { st.eliminate.push(id); _byupNotifSalva(st); }
 };
+// Gli eventi su cui il conteggio si riascolta (P-159): le notifiche fiscali
+// nascono dai registri, quindi contano anche i loro eventi, non solo la
+// lettura. La lista è UNA e la usano il hook qui sotto e il segnalino
+// sull'avatar della sidebar, che prima ascoltava solo la lettura e restava
+// fermo all'arrivo di una notifica nuova.
+window.BYUP_NOTIF_EVENTI = ['byup-notifiche-change', 'storage', 'byup-pos-censimento', 'byup-ade-cred-change', 'byup-ade-incaricato-change', 'byup-stripe-change', 'byup-ade-delega-change', 'byup-forma-change', 'byup-locale-change'];
 // Hook condiviso: tiene allineati badge e sezione senza passaggi di props fra
 // componenti che vivono in pagine diverse.
 window.byupUseNotifiche = function() {
   const [items, setItems] = React.useState(() => window.byupReadNotifiche());
   React.useEffect(() => {
     const up = () => setItems(window.byupReadNotifiche());
-    // Le notifiche fiscali cambiano coi registri: si riascoltano anche loro.
-    const ev = ['byup-notifiche-change', 'storage', 'byup-pos-censimento', 'byup-ade-cred-change', 'byup-ade-incaricato-change', 'byup-stripe-change', 'byup-ade-delega-change'];
+    const ev = window.BYUP_NOTIF_EVENTI;
     ev.forEach(e => window.addEventListener(e, up));
     return () => { ev.forEach(e => window.removeEventListener(e, up)); };
   }, []);
