@@ -78,12 +78,6 @@ const SALA_VENDITA_CATS = {
 // Ritiri asporto — ordini dei clienti in attesa al banco.
 // pagato:true = saldato via Byup App; pagato:false = ordinato dalla webapp
 // guest (che non permette il pagamento), da incassare al banco al ritiro.
-// Un asporto si chiama sempre col nome di chi ritira: dall'app arriva
-// dall'account, dalla webapp guest lo si chiede prima di chiudere l'ordine.
-// È il nome che si urla al banco quando l'ordine è pronto, quindi non può
-// mancare — il codice ordine (#A-1045) non lo grida nessuno.
-// Il codiceRitiro è mostrato al cliente in app/webapp: dettarlo al banco
-// è la prova di consegna, e resta il ripiego se il nome non c'è.
 const SALA_ASPORTO_CONTI = [
   { id:'asp-1', codice:'#A-1042', cliente:'Simone De Luca', ritiro:'19:45', fonte:'byup', pagato:true, totale:64.50, codiceRitiro:'K4F7',
     items:[{nome:'Pizza Margherita',qty:1,prezzo:9.00},{nome:'Pizza Diavola',qty:1,prezzo:11.00},{nome:'Pizza Quattro stagioni',qty:1,prezzo:12.00},{nome:'Birra media',qty:2,prezzo:5.50,tipologia:'acqua_birra',hasAlcohol:true},{nome:'Supplì (4pz)',qty:1,prezzo:7.00},{nome:'Tiramisù',qty:1,prezzo:5.50},{nome:'Acqua minerale',qty:2,prezzo:2.50,tipologia:'acqua_birra'},{nome:'Patatine fritte',qty:1,prezzo:4.00}] },

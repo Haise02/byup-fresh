@@ -46,7 +46,7 @@ corrispettivi fiscali (li emette il gestionale); reportistica storica estesa (su
 | `stato` | enum | Vedi §3 (`in_coda` … `pagato`). |
 | `originaContoId` | string? | Riferimento al **predecessore** se il conto sostituisce un conto corretto. |
 | `inviatoAt` | timestamp | Ora di ingresso in coda. |
-| `lock` | Lock? | Presente se preso in carico (§2.3). |
+| `collecting_device_id`, `collection_locked_at`, `collection_expires_at` | uuid, timestamp, timestamp | Il **blocco del conto** (§2.3): non è un'entità, è stato del conto — il dispositivo che l'ha preso in carico, quando, e fino a quando il blocco vale. |
 
 ### 2.2 Pagamento (transazione)
 
@@ -64,14 +64,21 @@ corrispettivi fiscali (li emette il gestionale); reportistica storica estesa (su
 | `creatoAt`, `confermatoAt` | timestamp | `confermatoAt` impostato dal webhook. |
 | `giornataId` | string | Giornata operativa di appartenenza (§7). |
 
-### 2.3 Lock
+### 2.3 Il blocco del conto (stato del conto, non un'entità)
 
-| Campo | Tipo | Note |
+Nel modello il blocco della presa in carico **non è una tabella**: vive come colonne sul conto
+stesso (`bills`, D-24). Chi costruisse una tabella a parte creerebbe qualcosa che il modello non
+ha; l'esclusività discende dal fatto che le colonne stanno sulla riga del conto, una sola.
+
+| Colonna su `bills` | Tipo | Note |
 |------|------|------|
-| `contoId` | string | Uno per conto (esclusività). |
-| `deviceId`, `accountId` | string | Chi detiene il lock. |
-| `acquiredAt` | timestamp | |
-| `expiresAt` | timestamp | TTL; rinnovato dall'heartbeat (§4). |
+| `status` | enum | `payment_in_progress` mentre il conto è preso in carico (§3). |
+| `collecting_device_id` | uuid (FK `devices`) | Il POS che ha preso in carico il conto: finché è valorizzato, il conto non è annullabile da altri dispositivi. L'account che incassa si ricava dal dispositivo e dalla sessione. |
+| `collection_locked_at` | timestamp | Momento della presa in carico. |
+| `collection_expires_at` | timestamp | Scadenza del blocco; rinnovata dall'heartbeat (§4). Un dispositivo che muore non blocca il conto per sempre. |
+
+*(La tabella `payment_locks` del modello è un'altra cosa: il blocco delle **porzioni** durante il
+pagamento dal telefono del cliente, non la presa in carico del conto da parte di un POS.)*
 
 ### 2.4 Account / Device
 
@@ -108,7 +115,7 @@ stateDiagram-v2
 - `in_pagamento` è esclusivo: visibile agli altri dispositivi come *bloccato*, non
   selezionabile né annullabile da loro.
 - Il passaggio a `pagato` è guidato **solo dal webhook**, mai dal dispositivo.
-- Il **ritiro non è uno stato del conto**: il conto ritirato esce dalla coda e **torna aperto** (di nuovo modificabile sul gestionale); del ritiro restano **momento e autore** (`queue_withdrawn_at`) (Contesto §4).
+- Il **ritiro non è uno stato del conto**: il conto ritirato esce dalla coda e **torna aperto** (di nuovo modificabile sul gestionale); del ritiro restano **momento e autore**, due fatti e due colonne: `queue_withdrawn_at` e `queue_withdrawn_by` (Contesto §4).
 
 ---
 

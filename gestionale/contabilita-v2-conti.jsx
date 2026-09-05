@@ -916,10 +916,6 @@ function ContoDettaglioSheet({ conto, saldato, getStato, onClose, onDettaglio, o
 // annullarlo. Diverso dalla fattura apposta: qui annullo e reso SONO chiamate
 // dirette dell'API (DELETE / PATCH su IT-e-receipts), non serve un documento
 // esterno come la nota di credito.
-//
-// Il reso è a righe intere, non a quantità: "il cliente rimanda indietro una
-// delle due cotolette" è un caso che al banco non capita mai abbastanza da
-// giustificare un contatore per riga.
 function ScontrinoDettaglioModal({ conto, payment, rett, onClose, onAnnulla, onReso }) {
   const [sel, setSel] = React.useState(null); // null = sola lettura · Set(idPorzione) = selezione reso
   const [stampato, setStampato] = React.useState(null);   // null | { via, stampante }
