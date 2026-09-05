@@ -694,8 +694,13 @@ const PROFILE_PREFERITI = [
 // preferiti, modificabili in ogni momento. I gusti stanno qui e non accanto
 // a «Dieta & allergeni», che contiene dati dell'articolo 9: accostarli li
 // farebbe sembrare la stessa cosa.
-function PreferitivView({ onBack, onOpenVenue }) {
-  const [items, setItems] = useState(PROFILE_PREFERITI);
+// La lista viva dei locali la tiene il Profilo (P-143), così i due conteggi
+// che la riassumono — la riga di numeri in alto e la tessera — scendono con
+// lei quando si toglie un preferito. Senza il genitore, la vista se la tiene.
+function PreferitivView({ onBack, onOpenVenue, items: itemsProp, onItems }) {
+  const [itemsSelf, setItemsSelf] = useState(PROFILE_PREFERITI);
+  const items = itemsProp || itemsSelf;
+  const setItems = onItems || setItemsSelf;
   const [gusti, setGusti] = useState(() => (window.ByupGusti ? window.ByupGusti.leggi() : []));
   const commuta = (id) => setGusti(window.ByupGusti.commuta(id));
 
@@ -1394,6 +1399,9 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
   // ?add=1 (con view=pagamenti) apre direttamente "Aggiungi metodo di pagamento"
   // (es. "Aggiungi carta" dalla schermata Metodo pagamento del menu).
   const initialAddCard = params.get('add') === '1';
+  // I locali preferiti, vivi (P-143): il conteggio in alto e quello sulla
+  // tessera leggono da qui, non dalla costante di partenza.
+  const [preferiti, setPreferiti] = useState(PROFILE_PREFERITI);
   const [view, setView] = useState(initialView); // 'main' | 'allergens' | 'orders' | 'account' | 'terms' | 'privacy' | 'lingua'
   const [avatarSheet, setAvatarSheet] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(PROFILE_AVATARS[0]);
@@ -1602,7 +1610,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
                 boxShadow: '0 18px 36px -20px rgba(77,18,46,.45)',
                 animation: 'bkFadeUp 480ms 80ms cubic-bezier(.22,.9,.35,1) backwards',
               }}>
-                {[['24', 'Ordini', () => setView('orders')], [String(PROFILE_PREFERITI.length), 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => (
+                {[['24', 'Ordini', () => setView('orders')], [String(preferiti.length), 'Preferiti', () => setView('preferiti')]].map(([n, l, fn], i) => (
                   <React.Fragment key={l}>
                     {i > 0 && <div style={{ width: 1, background: 'rgba(77,18,46,.1)', margin: '4px 0' }}/>}
                     <button onClick={fn || undefined} style={{ flex: 1, background: 'none', border: 'none', cursor: fn ? 'pointer' : 'default', fontFamily: 'inherit', padding: '2px 0' }}>
@@ -1630,7 +1638,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               <QuickCard label="Dieta & allergeni" sub={activeAllergenCount > 0 ? activeAllergenCount + ' filtri attivi' : 'Imposta ora'} tint="#FEF0E3" iconColor="#C85C1A" delay={60}
                 iconSvg={<><path d="M5 19.5C5 10 11.5 4.5 20 4.5c0 9.5-5.5 15-15 15z"/><path d="M5 19.5c3.5-4 7-7.5 10-9.5"/></>}
                 onClick={() => setView('allergens')}/>
-              <QuickCard label="Preferiti" sub={`${PROFILE_PREFERITI.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`} tint="#F9E3EE" iconColor="#E32459" delay={120}
+              <QuickCard label="Preferiti" sub={`${preferiti.length} locali · ${(window.ByupGusti ? window.ByupGusti.leggi() : []).length} generi`} tint="#F9E3EE" iconColor="#E32459" delay={120}
                 iconSvg={<path d="M12 20.6s-6.8-4.3-8.7-9.1C1.9 7.9 4.3 4.6 7.7 4.6c1.9 0 3.3.9 4.3 2.3 1-1.4 2.4-2.3 4.3-2.3 3.4 0 5.8 3.3 4.4 6.9-1.9 4.8-8.7 9.1-8.7 9.1z"/>}
                 onClick={() => setView('preferiti')}/>
               <QuickCard label="Pagamenti" sub="byup pay" tint="#f4f7d4" iconColor="#5f7000" delay={180}
@@ -1812,7 +1820,7 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
         )}
 
         {view === 'preferiti' && (
-          <PreferitivView onBack={() => setView('main')} onOpenVenue={onOpenVenue}/>
+          <PreferitivView onBack={() => setView('main')} onOpenVenue={onOpenVenue} items={preferiti} onItems={setPreferiti}/>
         )}
 
         {view === 'segnala' && (
