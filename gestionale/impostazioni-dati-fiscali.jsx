@@ -1365,6 +1365,187 @@ function ImpRiaccettaTerminiModal({ onClose, onFirmato }) {
 }
 
 
+// ─── I Termini da accettare, per tutti i soggetti in un gesto solo ─────────
+// Il contratto lega il SOGGETTO FISCALE, non la persona: chi rappresenta tre
+// soggetti accetta tre volte, e sono tre record distinti perché tre sono le
+// parti. Ma leggere tre volte lo stesso testo e premere in tre posti diversi
+// è il modo migliore per non farlo leggere a nessuno: qui si legge una volta,
+// si conferma una volta, e si registrano N accettazioni.
+// Chi non rappresenta un soggetto lo vede spento, con scritto perché: firmare
+// per una società di cui non si hanno i poteri non è una formalità.
+function ImpTerminiDaAccettare() {
+  const TC = window.TC01;
+  const [apri, setApri] = React.useState(false);
+  const [, ridisegna] = React.useState(0);
+  React.useEffect(() => {
+    const ri = () => ridisegna(x => x + 1);
+    window.addEventListener('byup-termini-change', ri);
+    return () => window.removeEventListener('byup-termini-change', ri);
+  }, []);
+  if (!TC || !window.byupSoggettiDaFirmare) return null;
+  const mancano = window.byupSoggettiDaFirmare(TC.codice, TC.versione);
+  if (!mancano.length) return null;
+  const sedi = mancano.reduce((n, s) => n + s.sedi.length, 0);
+  return (
+    <div data-termini-da-accettare style={{
+      display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+      padding: '12px 18px', marginBottom: 14, borderRadius: 12,
+      background: PN.AMBER_SOFT, border: '1.5px solid #FCD34D',
+    }}>
+      <div style={{ flex: 1, minWidth: 280 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 700, color: '#B45309', letterSpacing: 0.4, textTransform: 'uppercase' }}>Termini e condizioni</div>
+        <div style={{ fontSize: 15.5, color: PN.TEXT, marginTop: 2 }}>
+          C'è una <b>versione nuova da accettare</b>: {TC.codice} v{TC.versione}, efficace dal {TC.efficace}.
+        </div>
+        <div style={{ fontSize: 13.5, color: PN.MUTED, marginTop: 2, lineHeight: 1.45 }}>
+          {mancano.length === 1
+            ? <>Riguarda {mancano[0].denominazione}{mancano[0].sedi.length > 1 ? ` e le sue ${mancano[0].sedi.length} sedi` : ''}.</>
+            : <>Riguarda <b>{mancano.length} soggetti fiscali</b> su {sedi} local{sedi === 1 ? 'e' : 'i'}: si accetta una volta sola, per tutti.</>}
+        </div>
+      </div>
+      <ImpButton variant="primary" onClick={() => setApri(true)}>Leggi e accetta</ImpButton>
+      {apri && <ImpAccettaTerminiModal soggetti={mancano} onClose={() => setApri(false)}/>}
+    </div>
+  );
+}
+
+function ImpAccettaTerminiModal({ soggetti, onClose }) {
+  const TC = window.TC01;
+  const verifica = window.tc01Verifica ? tc01Verifica() : { ok: false, dichiarata: '—', calcolata: '—' };
+  const vessatorie = window.tc01Vessatorie ? tc01Vessatorie() : [];
+  const [tutto, setTutto] = React.useState(false);
+  const [specifiche, setSpecifiche] = React.useState(false);
+  const [inFondo, setInFondo] = React.useState(false);
+  const [fatto, setFatto] = React.useState(null);
+  // Chi non rappresenta un soggetto non può firmare per lui: lo si mostra
+  // comunque, perché il silenzio farebbe pensare a una dimenticanza.
+  const altri = (window.PN_SOGGETTI || []).filter(s => s.ruolo !== 'titolare');
+  const puoFirmare = tutto && specifiche && verifica.ok && inFondo;
+  const firma = () => {
+    if (!puoFirmare) return;
+    const righe = window.byupFirmaTermini(soggetti.map(s => s.id), TC);
+    setFatto(righe);
+  };
+  const riga = { display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 14.5, color: PN.TEXT, lineHeight: 1.5 };
+  if (!TC) return null;
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,17,21,0.5)', display: 'grid', placeItems: 'center', zIndex: 170, padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} data-accetta-termini style={{ ...MODAL_PANEL, width: 720, maxHeight: 'calc(var(--pn-vh, 100vh) * 0.92)', display: 'flex', flexDirection: 'column' }}>
+        <div style={MODAL_HEAD}>
+          <div style={MODAL_TITLE}>{fatto ? 'Accettato' : `Accetta i ${TC.nome}`}</div>
+          <div style={MODAL_SUB}>
+            {TC.codice} · v{TC.versione} · impronta {TC.impronta} · efficace dal {TC.efficace}
+          </div>
+          <button onClick={onClose} style={MODAL_X}><PnI.X size={14}/></button>
+        </div>
+
+        {fatto ? (
+          <React.Fragment>
+            <div style={{ ...MODAL_BODY, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontSize: 14.5, color: PN.TEXT, lineHeight: 1.55 }}>
+                {fatto.length === 1 ? 'Un\'accettazione registrata' : `${fatto.length} accettazioni registrate`}, una per soggetto: ognuna porta la versione e l'impronta del testo che hai appena letto.
+              </div>
+              {fatto.map(r => (
+                <div key={r.soggettoId} style={{ display: 'flex', gap: 10, alignItems: 'baseline', padding: '9px 12px', borderRadius: 9, background: '#F0FDF4', border: `1px solid ${PN.GREEN_SOFT}`, fontSize: 13.5 }}>
+                  <span style={{ color: PN.GREEN, fontWeight: 800 }}>✓</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <b>{r.soggetto}</b> <span style={{ color: PN.MUTED }}>· P.IVA {r.piva}</span>
+                  </span>
+                  <span style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: 12, color: PN.MUTED }}>v{r.versione} · {r.impronta}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ ...MODAL_FOOT, justifyContent: 'flex-end' }}>
+              <ImpButton variant="primary" onClick={onClose}>Chiudi</ImpButton>
+            </div>
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <div className="pn-scroll" style={{ ...MODAL_BODY, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Per chi si sta accettando. Sta PRIMA del testo: la domanda
+                  «a nome di chi sto firmando» viene prima di «che cosa firmo». */}
+              <div style={{ padding: '11px 13px', borderRadius: 10, border: `1px solid ${PN.BORDER_SOFT}`, background: '#FAFBFC' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: PN.TEXT, marginBottom: 6 }}>
+                  Accetti a nome di {soggetti.length === 1 ? 'questo soggetto' : `questi ${soggetti.length} soggetti fiscali`}
+                </div>
+                {soggetti.map(s => (
+                  <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 13.5, color: PN.TEXT, marginTop: 3 }}>
+                    <span style={{ color: PN.GREEN, fontWeight: 800 }}>•</span>
+                    <span><b>{s.denominazione}</b> <span style={{ color: PN.MUTED }}>· P.IVA {s.piva} · {s.sedi.map(x => x.nome).join(', ')}</span></span>
+                  </div>
+                ))}
+                {altri.map(s => (
+                  <div key={s.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 13, color: PN.MUTED_SOFT, marginTop: 3 }}>
+                    <span>–</span>
+                    <span>{s.denominazione} · non firmi per lui: su questo locale non sei il titolare</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Il testo si scorre fino in fondo: la spunta non si accende
+                  prima. Non è un cavillo — è la differenza fra «l'ha letto» e
+                  «gli è comparso davanti». */}
+              {/* Se il testo ci sta tutto senza scorrere, è già letto: su uno
+                  schermo grande o con un contratto corto la spunta non si
+                  sarebbe accesa mai, e non ci sarebbe stato modo di accorgersene
+                  se non provandolo. */}
+              <div className="pn-scroll" data-tc-testo ref={el => {
+                if (el && el.scrollHeight <= el.clientHeight + 4 && !inFondo) setInFondo(true);
+              }} onScroll={e => {
+                const el = e.currentTarget;
+                if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) setInFondo(true);
+              }} style={{ maxHeight: 260, overflowY: 'auto', padding: '12px 14px', borderRadius: 10, border: `1px solid ${PN.BORDER_SOFT}`, background: '#FAFBFC' }}>
+                {TC.clausole.map(cl => (
+                  <div key={cl.n} style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: PN.TEXT }}>
+                      Art. {cl.n} · {cl.h}
+                      {cl.vessatoria && <span style={{ marginLeft: 6, fontSize: 11.5, fontWeight: 800, color: PN.WINE, background: PN.WINE_SOFT, padding: '1px 6px', borderRadius: 3 }}>DA APPROVARE</span>}
+                    </div>
+                    <div style={{ fontSize: 13, color: PN.MUTED, lineHeight: 1.5, marginTop: 2 }}>{cl.p}</div>
+                  </div>
+                ))}
+              </div>
+              {!inFondo && (
+                <div style={{ fontSize: 13, color: PN.MUTED }}>Scorri il testo fino in fondo per poter accettare.</div>
+              )}
+
+              {!verifica.ok && (
+                <div style={{ padding: '11px 13px', borderRadius: 10, background: '#FEF2F2', border: '1px solid #FECACA', fontSize: 13.5, color: PN.TEXT, lineHeight: 1.5 }}>
+                  <b style={{ color: PN.RED }}>Accettazione bloccata: il testo non corrisponde alla proiezione di {TC.codice}.</b>{' '}
+                  Impronta dichiarata {verifica.dichiarata}, calcolata {verifica.calcolata}. Non si accetta un testo che non è quello depositato.
+                </div>
+              )}
+
+              <label style={{ ...riga, cursor: 'pointer' }}>
+                <input type="checkbox" data-firma-tutto checked={tutto} disabled={!inFondo} onChange={e => setTutto(e.target.checked)} style={{ marginTop: 3, accentColor: PN.PINK_DARK }}/>
+                <span>{soggetti.length === 1 ? soggetti[0].denominazione : 'I soggetti elencati sopra'} {soggetti.length === 1 ? 'ha' : 'hanno'} letto e {soggetti.length === 1 ? 'accetta' : 'accettano'} integralmente i <b>{TC.nome}</b> ({TC.codice} v{TC.versione}).</span>
+              </label>
+              <label style={{ ...riga, cursor: 'pointer' }}>
+                <input type="checkbox" data-firma-vessatorie checked={specifiche} disabled={!inFondo} onChange={e => setSpecifiche(e.target.checked)} style={{ marginTop: 3, accentColor: PN.PINK_DARK }}/>
+                <span>Ai sensi degli artt. 1341-1342 c.c. {soggetti.length === 1 ? 'approva' : 'approvano'} specificamente gli articoli {vessatorie.map(x => x.n).join(', ')}.</span>
+              </label>
+            </div>
+            <div style={{ ...MODAL_FOOT, justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, color: PN.MUTED, maxWidth: 360, lineHeight: 1.45 }}>
+                {soggetti.length === 1
+                  ? 'Si registra un\'accettazione, con versione e impronta.'
+                  : `Un gesto, ${soggetti.length} accettazioni distinte: il contratto lega il soggetto fiscale, non la persona.`}
+              </span>
+              <span style={{ display: 'flex', gap: 8 }}>
+                <ImpButton variant="ghost" onClick={onClose}>Più tardi</ImpButton>
+                <ImpButton variant="primary" disabled={!puoFirmare} onClick={firma}>
+                  {soggetti.length === 1 ? 'Accetta' : `Accetta per tutti e ${soggetti.length}`}
+                </ImpButton>
+              </span>
+            </div>
+          </React.Fragment>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── La riga del soggetto fiscale, in cima alla pagina (P-117 · D-104) ─────
 // Chi è il soggetto adesso, e l'unica azione che il fiscale ha: «Cambia
 // soggetto fiscale», per quando cambia il contribuente. «Rinnova la delega»
@@ -1554,6 +1735,10 @@ function ImpDatiFiscali() {
       )}
 
       {/* P-117: il soggetto fiscale e le due azioni che gli appartengono. */}
+      {/* Una versione nuova dei Termini da accettare, per tutti i soggetti che
+          questo account rappresenta. Sta sopra il soggetto fiscale perché
+          finché non è accettata è la prima cosa da fare in questa pagina. */}
+      <ImpTerminiDaAccettare/>
       <ImpSoggettoRiga data={data} onCambia={apri}/>
       {soggettoOpen && (
         <ImpSoggettoFoglio data={data} onClose={() => setSoggettoOpen(false)} onApplica={applica} onDopo={() => setDopoOpen(true)}

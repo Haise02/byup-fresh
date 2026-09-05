@@ -859,6 +859,72 @@ window.byupScriviAuditEvento = function (type, from, to, by) {
   return ev;
 };
 
+// ─── I SOGGETTI FISCALI DI QUESTO ACCOUNT ──────────────────────────────────
+// L'account è della PERSONA; il contratto lega il SOGGETTO FISCALE. Sono due
+// cose diverse, e da qui discende tutto: un titolare con tre locali può avere
+// un soggetto solo con tre sedi, oppure tre soggetti; chi ha ceduto l'attività
+// resta con l'account e senza soggetti.
+// Perciò una nuova versione dei Termini non si accetta «una volta»: si accetta
+// UNA VOLTA PER SOGGETTO, perché è il soggetto a essere parte del contratto.
+// Quello che non deve succedere è farlo fare in tre posti in tre momenti: si
+// legge una volta, si conferma una volta, e si registrano N accettazioni
+// distinte — un gesto, N record.
+// Non si firma per un soggetto che non si rappresenta: chi è collaboratore lo
+// vede in elenco, spento, con scritto perché.
+// CODA REGISTRATA, già nota: il mock dei ruoli in Profilo → I tuoi locali usa
+// Owner/Manager mentre il gestionale usa Titolare/Cassa/Cameriere. Qui vale il
+// secondo; l'allineamento del mock è una coda sua.
+const PN_SOGGETTI = [
+  { id: 'sf-cp', denominazione: 'Cacio e Pepe S.r.l.', piva: 'IT12345678901', forma: 'societa', ruolo: 'titolare',
+    sedi: [{ id: 'cp', nome: 'Cacio e Pepe', citta: 'Roma · Trastevere' }, { id: 'co', nome: 'Cacio e Pepe · Ostiense', citta: 'Roma · Ostiense' }] },
+  { id: 'sf-tb', denominazione: 'Borgo Ristorazione S.n.c.', piva: 'IT09876543210', forma: 'societa', ruolo: 'titolare',
+    sedi: [{ id: 'tb', nome: 'Trattoria del Borgo', citta: 'Frascati · RM' }] },
+  { id: 'sf-lm', denominazione: 'La Marina S.a.s.', piva: 'IT05566778899', forma: 'societa', ruolo: 'collaboratore',
+    sedi: [{ id: 'lm', nome: 'Bar La Marina', citta: 'Ostia · RM' }] },
+];
+window.PN_SOGGETTI = PN_SOGGETTI;
+// Quelli che questa persona rappresenta: gli unici per cui può firmare.
+window.byupSoggettiRappresentati = () => PN_SOGGETTI.filter(s => s.ruolo === 'titolare');
+
+// Il registro delle accettazioni, per soggetto e per documento. Ogni riga
+// congela la versione e l'impronta: è la prova di QUALE testo quel soggetto
+// abbia accettato, indipendente dalle modifiche successive del documento
+// pubblicato (consent_events.document_hash).
+const PN_TERMINI_KEY = 'byup_termini_accettati';
+window.byupReadAccettazioni = function () {
+  try { const s = localStorage.getItem(PN_TERMINI_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; }
+};
+window.byupScriviAccettazioni = function (righe) {
+  try { localStorage.setItem(PN_TERMINI_KEY, JSON.stringify(righe)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-termini-change'));
+};
+window.byupAccettazioneDi = function (soggettoId, codice) {
+  return window.byupReadAccettazioni()
+    .filter(a => a.soggettoId === soggettoId && a.codice === codice)
+    .sort((a, b) => new Date(b.quando) - new Date(a.quando))[0] || null;
+};
+// I soggetti che devono ancora accettare QUESTA versione. Chi non la
+// rappresenta non compare: non c'è niente che possa firmare.
+window.byupSoggettiDaFirmare = function (codice, versione) {
+  return window.byupSoggettiRappresentati().filter(s => {
+    const a = window.byupAccettazioneDi(s.id, codice);
+    return !a || a.versione !== versione;
+  });
+};
+// Un gesto, N record: si scrive una riga per soggetto, con la sua ora.
+window.byupFirmaTermini = function (soggettiIds, doc) {
+  const ora = new Date().toISOString();
+  const nuove = (soggettiIds || []).map(id => {
+    const s = PN_SOGGETTI.find(x => x.id === id) || {};
+    return { soggettoId: id, soggetto: s.denominazione, piva: s.piva,
+      codice: doc.codice, versione: doc.versione, impronta: doc.impronta,
+      quando: ora, chi: (window.PN_UTENTE && PN_UTENTE.nome) || 'Mario Rossi', modo: 'esplicita' };
+  });
+  if (!nuove.length) return [];
+  window.byupScriviAccettazioni([...nuove, ...window.byupReadAccettazioni()]);
+  return nuove;
+};
+
 // ─── L'esercente in testa ai documenti ─────────────────────────────────────
 // Le cinque righe che il layout dell'Agenzia vuole in cima al documento
 // commerciale — insegna, partita IVA, via, città — servono anche al pre-conto
