@@ -564,6 +564,30 @@ window.ByupKit = {
     log() { return leggi(K_LOG, []); },
     // L'ultimo evento di una voce, per la data a schermo.
     ultimo(id) { const l = leggi(K_LOG, []).filter(r => (r.consent_type || r.id) === id); return l.length ? l[l.length - 1] : null; },
+    // ── Il marketing: un interruttore che ne apre tre, la profilazione a parte
+    // (P-163 · D-113), coi NOMI DEL MODELLO (P-161): «Email» → marketing_email;
+    // «Messaggi» → marketing_sms E marketing_whatsapp, due eventi con un gesto
+    // solo, perché l'informativa nomina entrambi i mezzi sotto una spunta;
+    // «Notifiche» → marketing_push; «Promo su misura sui tuoi ordini» →
+    // profilazione_marketing. Il vecchio A6 (un consenso solo per tutto) non si
+    // scrive più: se è l'unica traccia che c'è, si legge come i tre canali.
+    // Nessuno dei quattro è mai preselezionato.
+    MARKETING: { email: 'marketing_email', messaggi: ['marketing_sms', 'marketing_whatsapp'], notifiche: 'marketing_push', profilazione: 'profilazione_marketing' },
+    marketing() {
+      const st = (id) => window.ByupConsensi.stato(id);
+      const nuovi = st('marketing_email') || st('marketing_sms') || st('marketing_whatsapp') || st('marketing_push');
+      const a6 = st('A6');
+      const ok = (id) => nuovi ? !!(st(id) && st(id).ok) : !!(a6 && a6.ok);
+      const email = ok('marketing_email'), messaggi = ok('marketing_sms') || ok('marketing_whatsapp'), notifiche = ok('marketing_push');
+      const p = st('profilazione_marketing');
+      return { email, messaggi, notifiche, profilazione: !!(p && p.ok), qualsiasi: email || messaggi || notifiche, maiChiesto: !nuovi && !a6 };
+    },
+    setMarketing(canale, ok) {
+      const ids = window.ByupConsensi.MARKETING[canale]; if (!ids) return;
+      (Array.isArray(ids) ? ids : [ids]).forEach(id => window.ByupConsensi.set(id, ok, Array.isArray(ids) ? { gesto: 'unico', canale } : undefined));
+    },
+    // «Marketing byup»: accendendolo si accendono tutti e tre; spento, li spegne.
+    setMarketingTutti(ok) { ['email', 'messaggi', 'notifiche'].forEach(c => window.ByupConsensi.setMarketing(c, ok)); },
   };
 })();
 

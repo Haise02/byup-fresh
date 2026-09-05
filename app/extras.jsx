@@ -1122,10 +1122,15 @@ const CONSENSI_DEF = [
   // nasce dall'interruttore dentro «Dieta & allergeni» e qui si rivede.
   // Spento, il motore dei suggerimenti non legge dieta né allergeni.
   { id: 'dietary_suggestions', label: 'Esigenze alimentari nei suggerimenti', desc: 'I piatti compatibili con la tua dieta salgono in cima anche nei suggerimenti', dove: 'in Dieta & allergeni' },
-  // A6 copre anche le promo su misura sullo storico ordini (PROMOP assorbito
-  // il 2026-08-06): un solo consenso marketing, dichiarato già nella card di
-  // registrazione. Le offerte su dati alimentari restano A18 (art. 9).
-  { id: 'A6',  label: 'Marketing byup',                      desc: 'Novità e offerte, anche su misura sui tuoi ordini, via email e notifica', dove: 'alla registrazione' },
+  // Il marketing (P-163 · D-113): UN interruttore che ne apre tre — Email,
+  // Messaggi (SMS e WhatsApp), Notifiche — e la profilazione a parte. Prima
+  // A6 copriva in un colpo solo canali e profilazione e taceva gli SMS: era
+  // già fuori dall'informativa, che promette una spunta per canale e una
+  // spunta distinta per la profilazione. Il gruppo si rende con le sue righe
+  // figlie (vedi ConsensiPanel); le offerte su dati alimentari restano A18
+  // (art. 9). I nomi sono quelli del modello (P-161).
+  { id: 'marketing', gruppo: true, label: 'Marketing byup', desc: 'Novità e offerte da Byup, via email, messaggi e notifiche. Le trovi anche nella Posta dell\'app', dove: 'alla registrazione' },
+  { id: 'profilazione_marketing', label: 'Promo su misura sui tuoi ordini', desc: 'Le offerte costruite su quello che ordini. Senza, ricevi le stesse di tutti', dove: 'alla registrazione' },
   // Suggerimenti e analisi d'uso NON stanno in questa lista: sono legittimo
   // interesse, non un consenso. Dal 2026-09-04 (P-122, punto 4) il loro
   // interruttore vive però DENTRO il cassetto, in una sezione propria in
@@ -1218,7 +1223,15 @@ function ConsensiPanel({ onOpenPrivacy }) {
     const d = new Date(st.quando);
     return `${d.toLocaleDateString('it-IT')}`;
   };
-  const attivi = CONSENSI_DEF.filter(c => { const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
+  const mk = ByupConsensi.marketing ? ByupConsensi.marketing() : { qualsiasi: false };
+  const attivi = CONSENSI_DEF.filter(c => { if (c.gruppo) return mk.qualsiasi; const st = ByupConsensi.stato(c.id); return st && st.ok; }).length;
+  // I tre canali del marketing: ognuno si spegne da solo; spenti tutti e tre
+  // si spegne anche il padre; il padre acceso li accende tutti.
+  const CANALI = [
+    { k: 'email',     label: 'Email',     desc: 'Le novità e le offerte nella tua casella di posta' },
+    { k: 'messaggi',  label: 'Messaggi',  desc: 'SMS e WhatsApp: una spunta per i due mezzi, come dice l\'informativa' },
+    { k: 'notifiche', label: 'Notifiche', desc: 'Quelle che compaiono sul telefono. Senza, le promo restano nella Posta e non suonano' },
+  ];
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ background: SURF_X, borderRadius: 14, overflow: 'hidden', border: `1px solid ${__BYUP_DK_X ? 'rgba(255,255,255,0.07)' : '#F0EAEC'}` }}>
@@ -1241,6 +1254,29 @@ function ConsensiPanel({ onOpenPrivacy }) {
         </button>
 
         {aperto && CONSENSI_DEF.map((c, i) => {
+          if (c.gruppo) return (
+            <div key={c.id} style={{ ...sep }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14.5, color: TEXT_X }}>{c.label}</div>
+                  <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 2, lineHeight: 1.4 }}>{c.desc}</div>
+                  <div style={{ fontSize: 11, color: MUTED_X, marginTop: 2, opacity: .8 }}>
+                    {mk.maiChiesto ? 'Mai chiesto' : mk.qualsiasi ? `Acceso su ${[mk.email && 'email', mk.messaggi && 'messaggi', mk.notifiche && 'notifiche'].filter(Boolean).join(', ')}` : 'Spento'}
+                  </div>
+                </div>
+                <ProfileToggle value={mk.qualsiasi} onChange={(v) => { ByupConsensi.setMarketingTutti(v); forza(x => x + 1); }}/>
+              </div>
+              {CANALI.map(ch => (
+                <div key={ch.k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px 9px 28px', background: __BYUP_DK_X ? 'rgba(255,255,255,0.02)' : '#FCFAFB' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, color: TEXT_X }}>{ch.label}</div>
+                    <div style={{ fontSize: 11, color: MUTED_X, marginTop: 1, lineHeight: 1.4 }}>{ch.desc}</div>
+                  </div>
+                  <ProfileToggle value={!!mk[ch.k]} onChange={(v) => { ByupConsensi.setMarketing(ch.k, v); forza(x => x + 1); }}/>
+                </div>
+              ))}
+            </div>
+          );
           const st = ByupConsensi.stato(c.id);
           // TUTTE le righe, sempre (scelta di Fabio, 2026-08-17): un consenso
           // mai incontrato compare con «Mai chiesto» — prima non compariva

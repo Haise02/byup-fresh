@@ -833,6 +833,13 @@ window.MapScreen = MapScreen;
 // ─── Posta screen (unchanged) ─────────────────────────────────────
 function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRecover }) {
   const [tab, setTab] = React.useState('news');
+  // «Promo per te» rispetta la scelta (P-163 · D-113): la linguetta si vede
+  // solo se almeno uno dei tre canali marketing è acceso; le promo «su misura»
+  // compaiono solo con la profilazione accesa, senza si vedono quelle uguali
+  // per tutti. Le comunicazioni di servizio in «Novità» arrivano sempre.
+  const mk = (typeof ByupConsensi !== 'undefined' && ByupConsensi.marketing) ? ByupConsensi.marketing() : { qualsiasi: true, profilazione: true };
+  const promoVisibile = !onlyNews && mk.qualsiasi;
+  React.useEffect(() => { if (tab === 'promo' && !promoVisibile) setTab('news'); }, [promoVisibile]);
 
   const news = [
     { id: 1, title: 'Benvenuto in byup',
@@ -849,20 +856,23 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
       ago: '2 giorni fa', kind: 'review' },
   ];
 
-  const promo = [
+  // `suMisura`: costruita sugli ordini della persona — compare solo con la
+  // profilazione accesa. Le altre sono uguali per tutti.
+  const promoTutte = [
     { id: 1, venue: 'Ristorante YX',
       preview: 'Hai un nuovo ristorante vicino a te. Provalo con il 20% di sconto entro venerdì.',
       ago: 'Un\'ora fa' },
     { id: 2, venue: 'Lounge 22',
       preview: 'Aperitivo 2x1 stasera dalle 18 alle 21. Mostra questa promo al bancone.',
       ago: '5 ore fa' },
-    { id: 3, venue: 'Sforno Pizzeria',
-      preview: 'Con qualsiasi pizza prenotata sabato sera ricevi una margherita in omaggio.',
+    { id: 3, venue: 'Sforno Pizzeria', suMisura: true,
+      preview: 'Ordini spesso la pizza: con qualsiasi pizza prenotata sabato sera ricevi una margherita in omaggio.',
       ago: 'Ieri' },
     { id: 4, venue: 'Caffè Centrale',
       preview: 'Da lunedì colazione a 3,50€ con cornetto e cappuccino. Solo per gli iscritti byup.',
       ago: '2 giorni fa' },
   ];
+  const promo = promoTutte.filter(p => !p.suMisura || mk.profilazione);
 
   return (
     <div style={{
@@ -885,7 +895,7 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
         </div>
       </div>
 
-      {!onlyNews && (
+      {promoVisibile && (
         <div style={{
           margin: '14px 20px 4px', flexShrink: 0,
           background: TINT, borderRadius: 12, padding: 4, display: 'flex', gap: 4,
@@ -920,7 +930,7 @@ function PostaScreen({ onBack, onProfile, onlyNews = false, extraNews = [], onRe
 
       <div style={{ flex: 1, overflowY: 'auto', padding: `${onlyNews ? 18 : 12}px 16px 120px` }}>
         {(onlyNews || tab === 'news') && [...extraNews, ...news].map(n  => <ByupNewsCard   key={n.id} item={n} onClick={n.action === 'recover' ? onRecover : undefined}/>)}
-        {!onlyNews && tab === 'promo' && promo.map(p => <PromoMessageCard key={p.id} item={p}/>)}
+        {promoVisibile && tab === 'promo' && promo.map(p => <PromoMessageCard key={p.id} item={p}/>)}
       </div>
 
       {(() => { const B = window.BottomTabBar; return B ? <B active="home" onHome={onBack} onProfile={() => onProfile && onProfile()}/> : null; })()}

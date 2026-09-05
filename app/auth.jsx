@@ -419,9 +419,14 @@ function AuthRegister({ onBack, onDone }) {
   const [otp, setOtp] = useStateA(['', '', '', '', '']);
   const [prefs, setPrefs] = useStateA([]);
   const [terms, setTerms] = useStateA(false);
-  // A6 — marketing byup: facoltativa e NON preselezionata. La decisione
-  // (sì o no) si registra alla creazione dell'account, nel registro consensi.
+  // «Marketing byup» (P-163 · D-113): facoltativo e NON preselezionato; il
+  // sì accende i tre canali — email, messaggi (SMS e WhatsApp), notifiche —
+  // che poi si spengono uno per uno dal profilo. La profilazione («Promo su
+  // misura sui tuoi ordini») è una spunta a parte, perché è una finalità e
+  // non un canale: resta spenta se non la si tocca. La decisione (sì o no)
+  // si registra alla creazione dell'account, coi nomi del modello.
   const [mkt, setMkt] = useStateA(false);
+  const [profilo, setProfilo] = useStateA(false);
   const [legal, setLegal] = useStateA(null); // null | 'terms' | 'privacy'
   const [resend, setResend] = useStateA(30); // countdown "Invia di nuovo"
 
@@ -646,11 +651,11 @@ function AuthRegister({ onBack, onDone }) {
               }}>🎁</span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: A_TEXT }}>
-                  Non perderti le offerte dei locali
+                  Marketing byup
                 </span>
                 <span style={{ display: 'block', fontSize: 12, color: A_MUTED, marginTop: 2, lineHeight: 1.4 }}>
-                  Sconti riservati e novità, anche su misura sui tuoi ordini,
-                  via email e notifica. Niente spam: ti disiscrivi in un tocco.
+                  Novità e offerte da Byup, via email, messaggi e notifiche. Le trovi
+                  anche nella Posta dell'app. Ogni canale si spegne da solo, dal profilo.
                 </span>
               </span>
               {/* checkbox: il consenso si SPUNTA — il segno resta quello
@@ -663,6 +668,26 @@ function AuthRegister({ onBack, onDone }) {
                 transition: 'all .18s',
               }}>
                 {mkt && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+              </span>
+            </button>
+            {/* La profilazione a parte (P-163): una finalità, non un canale. */}
+            <button onClick={() => setProfilo(p => !p)} aria-label="Consenso profilazione" style={{
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+              marginTop: 10, padding: '12px 14px', borderRadius: 16, textAlign: 'left',
+              background: profilo ? '#FDF0F4' : '#FAF7F8',
+              border: `1.5px solid ${profilo ? A_PINK : '#EFE9EB'}`,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all .18s',
+            }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: A_TEXT }}>Promo su misura sui tuoi ordini</span>
+                <span style={{ display: 'block', fontSize: 12, color: A_MUTED, marginTop: 2, lineHeight: 1.4 }}>Le offerte costruite su quello che ordini. Senza, ricevi le stesse di tutti.</span>
+              </span>
+              <span style={{
+                width: 24, height: 24, borderRadius: 8, flexShrink: 0,
+                border: `1.5px solid ${profilo ? A_PINK : '#CFC8CB'}`, background: profilo ? A_PINK : '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s',
+              }}>
+                {profilo && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
               </span>
             </button>
 
@@ -685,14 +710,14 @@ function AuthRegister({ onBack, onDone }) {
 
       {/* CTA */}
       <div style={{ padding: '12px 24px 34px' }}>
-        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.set('A6', mkt), onDone({ nome, cognome, dob, email, prefs, terms })) : next())} style={{
+        <button disabled={!stepValid} onClick={() => (step === STEPS - 1 ? (ByupConsensi.setMarketingTutti(mkt), ByupConsensi.set('profilazione_marketing', profilo), onDone({ nome, cognome, dob, email, prefs, terms })) : next())} style={{
           width: '100%', padding: '16px', border: 'none', borderRadius: 16,
           background: stepValid ? A_PINK : '#EDE7E9', color: stepValid ? '#fff' : A_MUTED,
           fontSize: 16, fontWeight: 700, cursor: stepValid ? 'pointer' : 'default', fontFamily: 'inherit',
           transition: 'background .2s',
         }}>{ctaLabel}</button>
         {step === 4 && (
-          <button disabled={!terms} onClick={() => { ByupConsensi.set('A6', mkt); onDone({ nome, cognome, dob, email, prefs: [], terms }); }} style={{
+          <button disabled={!terms} onClick={() => { ByupConsensi.setMarketingTutti(mkt); ByupConsensi.set('profilazione_marketing', profilo); onDone({ nome, cognome, dob, email, prefs: [], terms }); }} style={{
             width: '100%', padding: '12px', marginTop: 8, background: 'none', border: 'none',
             color: terms ? A_MUTED : '#C9C2C5', fontSize: 14.5, fontWeight: 600,
             cursor: terms ? 'pointer' : 'default', fontFamily: 'inherit',
