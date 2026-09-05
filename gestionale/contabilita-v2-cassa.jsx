@@ -172,20 +172,15 @@ const ccCredStato = () => (window.byupAdeCredStato ? window.byupAdeCredStato() :
 const ccCredScadute = () => ccCredStato().scaduta;
 const ccCredChi = () => (window.pnAdeChiRinnova ? window.pnAdeChiRinnova() : { ruolo: 'titolare' });
 
-// IVA del documento: aliquota decisa dall'id del pagamento (stabile), importo
-// scorporato. Le colonne IVA della chiusura sono la somma di queste.
-// MOCK in attesa di P-107: l'hash IGNORA le righe, quindi anche l'aliquota
-// dichiarata sulla riga fuori menù (P-11) non arriva qui — chiusure e
-// riepiloghi IVA restano una finzione finché P-107 non li rifà sulle righe.
+// Niente IVA per documento (P-149): l'aliquota la ricavava un'impronta
+// sull'identificativo del pagamento, non le righe — che nei dati finti non la
+// portano — e le colonne IVA delle chiusure ne erano la somma. In una tabella
+// di contabilità che il ristoratore legge tutti i giorni un numero senza
+// origine è peggio di un numero mancante: le colonne si omettono finché le
+// righe non porteranno il profilo risolto (order_items.vat_profile_id), e
+// allora torneranno leggendo da lì.
 const ccR2 = (n) => Math.round(n * 100) / 100;
 const ccEuro = (n) => (n < 0 ? `− € ${Math.abs(n).toFixed(2)}` : `€ ${n.toFixed(2)}`);
-function docIva(p) {
-  let s = 0;
-  for (let i = 0; i < p.id.length; i++) s = (s * 31 + p.id.charCodeAt(i)) >>> 0;
-  const r = (s % 100) < 24 ? 22 : 10;
-  const iva = ccR2(p.amount * r / (100 + r));
-  return { aliquota: r, iva10: r === 10 ? iva : 0, iva22: r === 22 ? iva : 0 };
-}
 
 // Stato effettivo di un DOCUMENTO = quello che dicono i dati + quello che ha
 // fatto il ristoratore. `aperto` è la sola cosa che accende il pallino: uno
@@ -229,7 +224,7 @@ function ccDocumenti() {
 // ─── Chiusure di giornata, DERIVATE dai documenti ──────────────────────────
 // Una chiusura è l'insieme dei documenti emessi in quel giorno: i totali e lo
 // stato di trasmissione sono somme, non numeri scritti da qualche altra parte.
-// MOCK in attesa del rifacimento fiscale: come docIva, i totali di chiusura
+// MOCK in attesa del rifacimento fiscale: i totali di chiusura
 // IGNORANO le rettifiche (annulli e resi di Conti, P-16/17/18) — una finzione
 // dichiarata, finché il rifacimento non li deriva dalle righe rettificate.
 // E la tabella fonde ancora DUE assi (P-19/P-20): la trasmissione è per
@@ -246,13 +241,12 @@ function ccChiusure() {
   });
   return Object.keys(perGiorno).sort().reverse().map(g => {
     const docs = perGiorno[g].slice().sort((a, b) => String(a.ora).localeCompare(String(b.ora)));
-    let contanti = 0, nonContanti = 0, piattaforma = 0, iva10 = 0, iva22 = 0;
+    let contanti = 0, nonContanti = 0, piattaforma = 0;
     docs.forEach(p => {
-      const iv = docIva(p);
-      iva10 += iv.iva10; iva22 += iv.iva22;
       // P-04: l'incasso piattaforma è avvenuto LÀ — non è contante in
       // cassetto né transito sul POS nostro: resta nel totale della
-      // giornata (il documento è nostro), fuori dalle due colonne.
+      // giornata (il documento è nostro) e ha la SUA colonna (P-157), così
+      // la somma delle colonne di denaro dà il totale a colpo d'occhio.
       if (p.method === 'contanti') contanti += p.amount;
       else if (p.method === 'piattaforma') piattaforma += p.amount;
       else nonContanti += p.amount;
@@ -260,8 +254,7 @@ function ccChiusure() {
     const [Y, M, D] = g.split('-');
     return {
       id: g, iso: g, date: `${D}/${M}/${Y}`,
-      docs, contanti: ccR2(contanti), nonContanti: ccR2(nonContanti),
-      iva10: ccR2(iva10), iva22: ccR2(iva22),
+      docs, contanti: ccR2(contanti), nonContanti: ccR2(nonContanti), piattaforma: ccR2(piattaforma),
       totale: ccR2(contanti + nonContanti + piattaforma),
     };
   });
@@ -338,7 +331,7 @@ function useFiscTick() {
   }, []);
 }
 
-Object.assign(window, { docInfo, docIva, ccDocumenti, ccChiusure, giornataInfo, fiscTs, fiscOrdine, ccEuro, CC_SCARTI });
+Object.assign(window, { docInfo, ccDocumenti, ccChiusure, giornataInfo, fiscTs, fiscOrdine, ccEuro, CC_SCARTI });
 
 // gg/mm/aaaa da un Date
 function ccFmtDate(d) {
@@ -804,10 +797,12 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   // accumularsi in fondo. Con le frazioni — uguali o no — le colonne
   // diventavano larghe uguali e il vuoto dipendeva dalla lunghezza
   // dell'etichetta: "Carta e digitale" e "Trasmissione" restavano appiccicate
-  // mentre "IVA 10%" nuotava. Le larghezze sono fisse perché intestazione e
+  // mentre le altre nuotavano. Le larghezze sono fisse perché intestazione e
   // righe sono griglie separate: con `auto` ogni riga si misurerebbe da sé e
-  // le colonne non sarebbero più allineate fra loro.
-  const cols = '107px 135px 56px 57px 72px 122px 160px';
+  // le colonne non sarebbero più allineate fra loro. Tre colonne di denaro
+  // oltre al totale (P-157): contanti, carta e digitale, da piattaforma — la
+  // loro somma dà il totale, verificabile a colpo d'occhio.
+  const cols = '107px 135px 90px 122px 112px 160px';
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -1035,10 +1030,9 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
           }}>
             <span style={{whiteSpace:'nowrap'}}>Data</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Totale incassato</span>
-            <span style={{textAlign:'right', whiteSpace:'nowrap'}}>IVA 10%</span>
-            <span style={{textAlign:'right', whiteSpace:'nowrap'}}>IVA 22%</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Contanti</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Carta e digitale</span>
+            <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Da piattaforma</span>
             <span style={{whiteSpace:'nowrap'}}>Trasmissione</span>
           </div>
           <MaxRowsScroll maxRows={10}>
@@ -1059,10 +1053,9 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
                 {r.date}
               </span>
               <span style={{textAlign:'right', fontWeight:700, fontVariantNumeric:'tabular-nums', fontSize: C.T_MD, letterSpacing: -0.2}}>€ {r.totale.toFixed(2)}</span>
-              <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.iva10.toFixed(2)}</span>
-              <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.iva22.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.contanti.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.nonContanti.toFixed(2)}</span>
+              <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', color: r.piattaforma ? PN.TEXT : PN.MUTED_SOFT}}>{r.piattaforma ? `€ ${r.piattaforma.toFixed(2)}` : '—'}</span>
               {/* Il chip è un rimando, non un contenitore: la lista dei
                   documenti è in Conti, e lì si va. */}
               <span style={{minWidth: 0}}>

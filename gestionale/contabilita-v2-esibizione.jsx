@@ -279,7 +279,10 @@ function EsibizioneScheda({ doc, sede, onClose }) {
   };
 
   return (
-    <div onClick={onClose} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 950, display:'grid', placeItems:'center', padding: 24}}>
+    // Il velo della scheda ferma la propagazione (P-149, fase 2): è montata
+    // dentro il velo della console, e senza questo un clic per chiudere la
+    // scheda chiudeva anche tutta la Verifica fiscale — davanti a chi controlla.
+    <div onClick={ev => { ev.stopPropagation(); onClose(); }} style={{position:'fixed', inset: 0, background:'rgba(15,17,21,0.42)', zIndex: 950, display:'grid', placeItems:'center', padding: 24}}>
       <div onClick={ev => ev.stopPropagation()} style={{
         width: 680, maxWidth:'100%', maxHeight:'calc(var(--pn-vh, 100vh) * 0.92)', background: PN.WHITE, borderRadius: 20,
         boxShadow:'0 32px 80px rgba(15,17,21,0.24)', display:'flex', flexDirection:'column', overflow:'hidden',
