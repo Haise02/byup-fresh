@@ -1596,6 +1596,10 @@ function ImpSoggettoRiga({ data, onCambia }) {
 
 
 function ImpDatiFiscali() {
+  // Quello che l'onboarding ha già chiesto (P-151) non si richiede: codice
+  // fiscale e dati di nascita del titolare arrivano dal registro condiviso,
+  // con gli stessi nomi.
+  const onb = (window.byupReadAnagraficaOnboarding && window.byupReadAnagraficaOnboarding()) || {};
   const [data, setData] = React.useState({
     // Anagrafica — la forma viene dal registro condiviso del locale (P-152):
     // il mock è una società; i campi del titolare qui sotto si vedono
@@ -1610,10 +1614,10 @@ function ImpDatiFiscali() {
     // Titolare (solo ditta individuale)
     ownerNome: 'Mario',
     ownerCognome: 'Rossi',
-    ownerNascita: '1978-03-21',
-    ownerComuneNascita: 'Roma',
-    ownerStatoNascita: 'IT',
-    ownerCf: 'RSSMRA78C21H501X',
+    ownerNascita: onb.titolareNascita || '1978-03-21',
+    ownerComuneNascita: onb.titolareComuneNascita || 'Roma',
+    ownerStatoNascita: onb.titolareStatoNascita || 'IT',
+    ownerCf: onb.titolareCf || 'RSSMRA78C21H501X',
     // Sede operativa (stampata in testa ai documenti, e non solo qui: la
     // stessa testata la porta il foglio che esce dalla stampante, e viene
     // dallo stesso registro — PN_ESERCENTE in panoramica-tokens.jsx).

@@ -1267,8 +1267,17 @@ window.byupStripeRicollega = function () {
 // S.r.l. del mock.
 const PN_FORMA_RIPIEGO = 'societa';   // 'ditta_individuale' | 'societa' | 'ente'
 const PN_FORME = ['ditta_individuale', 'societa', 'ente'];
+// Quello che l'onboarding ha raccolto nel passo dell'anagrafica (P-151):
+// forma, partita IVA, codice fiscale e dati di nascita del titolare. Dati
+// fiscali parte da qui, così nessuno riscrive quello che ha appena scritto.
+window.byupReadAnagraficaOnboarding = function () {
+  try { const s = localStorage.getItem('byup_anagrafica_onboarding'); if (s) { const v = JSON.parse(s); if (v && typeof v === 'object') return v; } } catch (e) {}
+  return null;
+};
 window.byupReadForma = function () {
   try { const l = window.byupReadLocale ? window.byupReadLocale() : null; if (l && PN_FORME.includes(l.forma)) return l.forma; } catch (e) {}
+  const onb = window.byupReadAnagraficaOnboarding();
+  if (onb && PN_FORME.includes(onb.legalForm)) return onb.legalForm;
   return PN_FORMA_RIPIEGO;
 };
 window.byupWriteForma = function (forma) {

@@ -87,6 +87,14 @@ function OnboardingApp() {
     // Anche lo stato di Stripe sta lì: byup_stripe, letto da POS e
     // integrazioni. Qui resta solo l'anagrafica del locale.
     societaTipo: 'capitali',
+    // I dati di nascita del titolare (ditta individuale), chiesti QUI insieme
+    // al codice fiscale (P-151, D-80): servono alla comunicazione del gestore
+    // di piattaforma (D.Lgs. 32/2023) e si chiedono nel momento in cui il
+    // dato nasce, non fra sei mesi da Impostazioni. Stessi nomi di Dati
+    // fiscali, così chi compila qui non se li ritrova da compilare due volte.
+    titolareNascita: '',
+    titolareComuneNascita: '',
+    titolareStatoNascita: 'IT',
   });
   const [rooms, setRooms] = React.useState([
     { id: 'r1', name: 'Sala principale', tables: 12, isDefault: true },

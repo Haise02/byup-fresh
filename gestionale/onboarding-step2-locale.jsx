@@ -10,9 +10,12 @@
 // (la verifica di Stripe, la nomina sul portale, la delega con SPID), e
 // metterli sulla porta d'ingresso voleva dire non far entrare nessuno. Qui il soggetto giuridico minimo è forma giuridica + P.IVA
 // e — per la ditta individuale — il codice fiscale del
-// titolare, che NON è la P.IVA (P-86): il resto dell'anagrafica per forma
-// (dati di nascita del titolare, registro imprese) sta in Impostazioni →
-// Dati fiscali, che ripete la stessa enumerazione di legal_form (ERD v11).
+// titolare, che NON è la P.IVA (P-86), con i suoi dati di nascita (P-151,
+// D-80: «i dati richiesti dalla comunicazione del gestore di piattaforma si
+// chiedono in quel momento, non dopo»). Il resto dell'anagrafica per forma
+// (registro imprese) sta in Impostazioni → Dati fiscali, che ripete la stessa
+// enumerazione di legal_form (ERD v11) e legge da qui quello che è già stato
+// scritto (byup_anagrafica_onboarding), senza farlo riscrivere.
 // Sub-step "Carte e digital wallet" (Apple/Google Pay) rimosso: sono attivi via Stripe
 // senza dover comunicare nulla all'utente in fase di onboarding.
 
@@ -21,6 +24,32 @@ function Step2Locale({
   onNext, onBack,
 }) {
   const v = (k, val) => setVenue(prev => ({...prev, [k]: val}));
+
+  // Il cancello del passo (P-151): «Continua» si accende solo quando le
+  // condizioni del passo sono soddisfatte — forma giuridica, nome e partita
+  // IVA per tutti; per la ditta individuale anche codice fiscale e dati di
+  // nascita del titolare. Prima non era condizionato in nessun caso, e un
+  // onboarding che lascia entrare senza consegna un locale che sembra pronto
+  // e non lo è: il problema si manifesta al primo incasso, davanti a un cliente.
+  const pieno = (x) => String(x || '').trim().length > 0;
+  const pronto = pieno(venue.legalForm) && pieno(venue.name) && pieno(venue.piva) &&
+    (venue.legalForm !== 'ditta_individuale' ||
+      (pieno(venue.titolareCf) && pieno(venue.titolareNascita) && pieno(venue.titolareComuneNascita) && pieno(venue.titolareStatoNascita)));
+  // Quello che è stato scritto qui lo ritrova Dati fiscali (altro bundle):
+  // stessi nomi, un registro condiviso, nessun secondo modulo da compilare.
+  const avanti = () => {
+    if (!pronto) return;
+    try {
+      localStorage.setItem('byup_anagrafica_onboarding', JSON.stringify({
+        legalForm: venue.legalForm, societaTipo: venue.societaTipo, name: venue.name, piva: venue.piva,
+        titolareCf: venue.titolareCf, titolareNascita: venue.titolareNascita,
+        titolareComuneNascita: venue.titolareComuneNascita, titolareStatoNascita: venue.titolareStatoNascita,
+        address: venue.address, civico: venue.civico, cap: venue.cap, city: venue.city, phone: venue.phone, regime: venue.regime,
+        scritto_il: new Date().toISOString(),
+      }));
+    } catch (e) {}
+    onNext();
+  };
 
   // Un passo solo: le informazioni. La sezione «Pagamenti» non c'è più (4
   // settembre 2026) — il collegamento con Stripe passa dalla verifica
@@ -85,7 +114,7 @@ function Step2Locale({
 
         {/* ─── Colonna destra — campi ─────────────────────────────────── */}
         <div>
-          <SubStepInfo venue={venue} v={v}/>
+          <SubStepInfo venue={venue} v={v} pronto={pronto}/>
 
           {/* Footer — 2 pulsanti, gerarchia chiara.
               Sticky: espandendo "Altri metodi" la colonna supera il canvas, e
@@ -102,7 +131,7 @@ function Step2Locale({
               <OnbIcon.ArrowLeft size={14} color={ONB.TEXT}/>
               Indietro
             </SecondaryCta>
-            <PrimaryCta onClick={onNext}>
+            <PrimaryCta onClick={avanti} disabled={!pronto}>
               Continua
               <OnbIcon.ArrowRight size={14} color="#fff"/>
             </PrimaryCta>
@@ -117,7 +146,7 @@ function Step2Locale({
 // 2a INFO LOCALE
 // ─────────────────────────────────────────────────────────────────────────
 
-function SubStepInfo({venue, v}) {
+function SubStepInfo({venue, v, pronto}) {
   return (
     <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
       {/* Anagrafica del locale: W1 white classic standard. Era marcata "glass"
@@ -157,7 +186,7 @@ function SubStepInfo({venue, v}) {
               {/* P-116 (D-103): l'ente non è più «in attesa». Ha i campi della
                   società e nessun percorso proprio: cooperative, consorzi,
                   associazioni e circoli con partita IVA. */}
-              Cooperative, consorzi, associazioni e circoli con partita IVA: i dati richiesti sono quelli della società, e gli scontrini si trasmettono allo stesso modo, con le credenziali della persona che nomini incaricata sul portale.
+              Cooperative, consorzi, associazioni e circoli con partita IVA: i dati richiesti sono quelli della società, e gli scontrini si trasmettono allo stesso modo, con le credenziali della persona che nomini incaricata sul portale. Qui bastano nome e partita IVA; la nomina dell'incaricato e la delega si completano dopo l'ingresso, in Impostazioni → Dati fiscali, e senza il canale non si emette.
             </div>
           )}
         </div>
@@ -178,12 +207,33 @@ function SubStepInfo({venue, v}) {
           {/* Il CF della persona, distinto dalla P.IVA: è il dato che prima
               nasceva sbagliato. Solo per la ditta individuale. */}
           {venue.legalForm === 'ditta_individuale' && (
-            <div style={{gridColumn: 'span 12'}}>
-              <OnbField label="Codice fiscale del titolare"
-                value={venue.titolareCf}
-                onChange={(x) => v('titolareCf', x.toUpperCase())}
-                placeholder="RSSMRA78C21H501X"/>
-            </div>
+            <>
+              <div style={{gridColumn: 'span 12'}}>
+                <OnbField label="Codice fiscale del titolare"
+                  value={venue.titolareCf}
+                  onChange={(x) => v('titolareCf', x.toUpperCase())}
+                  placeholder="RSSMRA78C21H501X"/>
+              </div>
+              {/* I dati di nascita del titolare (P-151, D-80): li chiede la
+                  comunicazione del gestore di piattaforma, e si chiedono
+                  insieme al codice fiscale, una volta sola. Stessi nomi di
+                  Dati fiscali. */}
+              <div style={{gridColumn: 'span 4'}}>
+                <OnbField label="Data di nascita" type="date"
+                  value={venue.titolareNascita} onChange={(x) => v('titolareNascita', x)}
+                  placeholder="1978-03-21"/>
+              </div>
+              <div style={{gridColumn: 'span 4'}}>
+                <OnbField label="Comune di nascita"
+                  value={venue.titolareComuneNascita} onChange={(x) => v('titolareComuneNascita', x)}
+                  placeholder="Roma"/>
+              </div>
+              <div style={{gridColumn: 'span 4'}}>
+                <OnbField label="Stato di nascita"
+                  value={venue.titolareStatoNascita} onChange={(x) => v('titolareStatoNascita', x.toUpperCase().slice(0, 2))}
+                  placeholder="IT"/>
+              </div>
+            </>
           )}
           <div style={{gridColumn: 'span 8'}}>
             <OnbField label="Indirizzo"
