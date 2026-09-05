@@ -241,29 +241,37 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
   // I consensi della persona, stabili sul seme dell'utenza: lo stato per
   // codice e i documenti contro cui vale — la stessa veste delle schede
   // locale e utente app (DrwConsensiPannello).
+  // PROVVISORIO, da chiudere con normativa-byup. I consensi dello staff valgono
+  // contro INF-02, l'informativa business, e non è la risposta giusta: è la
+  // meno sbagliata finché la risposta non c'è. Nel corpus documentale
+  // un'informativa per le UTENZE STAFF non esiste — ci sono INF-01 consumer,
+  // INF-02 business e INF-03 sito — e la persona che entra come cameriere o
+  // cassa non è né un consumatore né l'esercente: ha un contratto suo con Byup
+  // (TOS-02), quindi dovrebbe avere anche la sua informativa.
+  // Quello che si guadagna intanto: la versione non è più «1.0», numero
+  // inventato dal mock che non corrispondeva a niente, ma quella in vigore
+  // alla data del consenso, e il rimando apre un testo che esiste davvero.
+  const staffVer = (quando) => {
+    const x = window.ctrVersioneAllaData ? window.ctrVersioneAllaData('INF-02', quando) : null;
+    return x ? x.v : null;
+  };
   const consensiStaff = (() => {
     const ss = hubSeme('cns-' + s.id);
     const giorno = (k, max) => new Date(Math.min(Date.now() - 86400000,
       s.dataAssunzione.getTime() + ((ss >> k) % max) * 86400000));
+    const q1 = giorno(2, 90), q2 = giorno(4, 60);
     return [
-      { id: 'A6', label: 'Marketing',
+      { id: 'A6', label: 'Marketing', doc: 'INF-02',
         desc: 'Comunicazioni promozionali di byup alla persona',
-        deciso: ss % 6 !== 0, ok: ss % 6 !== 0 && ss % 3 !== 0, quando: giorno(2, 90), versione: '1.0' },
-      { id: 'S1', label: 'Comunicazioni di prodotto e formazione',
+        deciso: ss % 6 !== 0, ok: ss % 6 !== 0 && ss % 3 !== 0, quando: q1, versione: staffVer(q1) },
+      { id: 'S1', label: 'Comunicazioni di prodotto e formazione', doc: 'INF-02',
         desc: 'Novità del gestionale e materiale formativo per l\'utenza staff',
-        deciso: true, ok: ss % 4 !== 0, quando: giorno(4, 60), versione: '1.0' },
+        deciso: true, ok: ss % 4 !== 0, quando: q2, versione: staffVer(q2) },
     ];
   })();
-  // CODA REGISTRATA: nessun `codice` su questa riga, quindi niente rimando
-  // alla copia archiviata. Non è una dimenticanza — nel corpus documentale
-  // un'informativa per le utenze staff NON ESISTE: ci sono INF-01 (consumer),
-  // INF-02 (business) e INF-03 (sito). La «v1.0» qui sotto è un numero
-  // inventato dal mock, e attaccarci un rimando vorrebbe dire aprire un
-  // documento che non c'è o, peggio, uno che parla di qualcun altro. Il
-  // rimando arriva quando il documento arriva.
   const documentiStaff = [
-    { nome: 'Informativa privacy utenze staff', versione: '1.0',
-      nota: 'Presa visione alla creazione dell\'utenza · è la versione scritta accanto a ogni consenso',
+    { nome: 'Informativa privacy business', codice: 'INF-02', versione: staffVer(s.dataAssunzione),
+      nota: 'In attesa di un\'informativa per le utenze staff, che nel corpus non esiste ancora: qui vale la business',
       quando: s.dataAssunzione, rif: consensiStaff.filter(c => c.deciso).map(c => c.id).join(', ') || '—' },
   ];
 
