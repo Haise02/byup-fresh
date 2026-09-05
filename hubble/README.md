@@ -37,7 +37,7 @@ un pannello che si apre passandoci sopra col mouse.
 |---|---|
 | **Analisi Dati** | Sette tab: Generale, Locali, Valore per il locale, Utenti App, Staff, Servizio Clienti, Mercato |
 | **Contatti** → | **Contatti** (la rubrica; all'apertura è la pagina d'ingresso della console), **Elenchi** (segmenti attivi e liste statiche). **Proprietà** non è più qui: vive solo nel menu del profilo, con il resto della governance (2026-08-17). Dalla testata della rubrica si apre anche il **registro Restrizioni** (sospensione delle recensioni a tempo e ban, con motivi, decisione sulle esistenti, comunicazione alla persona, note e revoche — P-88: lo shadowban non esiste più). Il dettaglio di un contatto è una scheda a tutta pagina: le tre schede sono descritte sotto |
-| **Marketing** → | **Mail**, **SMS**, **Push**, **Form** |
+| **Marketing** → | **Mail**, **SMS**, **Messaggi all'app** (Posta e notifica, un canale — D-113), **Form** |
 | **Workflow** | Le automazioni, comprese quelle nate insieme a un form |
 | **Agent** | Due schermate: **La squadra** (gli agenti uno per uno) e **Ambiente** (quello che fanno insieme) |
 | **Assistenza** | Quattro tab: Chiamate, Ticket, FAQ, Guide |
@@ -273,7 +273,7 @@ canale.
 | `hub-ui.jsx` | Modale, pannello laterale, pannello dei filtri, modale delle colonne, tabella, testate, riquadri |
 | `hub-elenchi.jsx` | Elenchi: lista, dettaglio, creazione con conteggio dal vivo |
 | `hub-mail-builder.jsx` | Il costruttore visuale delle email e il generatore di HTML |
-| `hub-marketing.jsx` | Mail, SMS, Push, Form |
+| `hub-marketing.jsx` | Mail, SMS, Messaggi all'app (Posta + archivio notifiche), Form |
 | `hub-workflow.jsx` | Workflow (elenco, canvas, campi dei passi) e Agent |
 | `hub-workflow-canvas.jsx` | L'albero dei rami, le corsie e l'ispettore del ramo |
 | `hub-workflow-regole.jsx` | L'editor delle condizioni di ramo e delle attese |
