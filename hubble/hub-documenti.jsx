@@ -185,9 +185,15 @@ function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) 
 
   const minima = docEfficaciaMinima(codice);
   const troppoPresto = !doc.informativa && bozza.efficace && docMezzanotte(bozza.efficace).getTime() < minima.getTime();
-  const pronta = !!(bozza.v || '').trim() && !!(bozza.testo || '').trim() && !!(bozza.cambiamento || '').trim() && !troppoPresto;
   const diff = docDiff((ultima && ultima.testo) || '', bozza.testo || '');
   const cambiate = diff.filter(r => r.t !== 'uguale').length;
+  // Una versione identica alla precedente non si pubblica. Non cambierebbe
+  // niente per nessuno, ma farebbe partire un preavviso, riaprirebbe le
+  // accettazioni di tutti e sposterebbe una data di efficacia: tutto il costo
+  // di una modifica, nessuna modifica. Nove volte su dieci vuol dire che il
+  // file caricato è quello vecchio.
+  const identica = !!ultima && !!ultima.testo && !!bozza.testo && cambiate === 0;
+  const pronta = !!(bozza.v || '').trim() && !!(bozza.testo || '').trim() && !!(bozza.cambiamento || '').trim() && !troppoPresto && !identica;
   const inp = { width: '100%', padding: '8px 10px', border: `1px solid ${ADM.BORDER}`, borderRadius: 8, fontSize: 13.2, fontFamily: 'inherit', outline: 'none', background: '#fff', boxSizing: 'border-box' };
   const lab = { display: 'block', fontSize: 12.2, fontWeight: 700, color: ADM.MUTED, marginBottom: 5 };
 
@@ -198,7 +204,8 @@ function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) 
         <span style={{ fontSize: 13.4, fontWeight: 700, color: ADM.TEXT }}>Non l'ha vista nessuno: si riscrive quante volte serve.</span>
         <div style={{ flex: 1 }}/>
         <AdmButton variant="secondary" size="sm" onClick={() => { docEliminaBozza(codice); onCambio(); }}>Scarta</AdmButton>
-        <AdmButton variant="primary" size="sm" icon="check" disabled={!pronta || !puo} onClick={onPubblica}>Pubblica…</AdmButton>
+        <AdmButton variant="primary" size="sm" icon="check" disabled={!pronta || !puo} onClick={onPubblica}
+          title={identica ? 'Il testo è identico alla versione precedente: non c\'è niente da pubblicare' : undefined}>Pubblica…</AdmButton>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)', gap: 12, marginBottom: 12 }}>
@@ -246,7 +253,13 @@ function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) 
             <input type="checkbox" checked={!!bozza.peggiorativa} onChange={e => set('peggiorativa', e.target.checked)} style={{ marginTop: 3 }}/>
             <span>
               <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: ADM.TEXT }}>Modifica peggiorativa</span>
-              <span style={{ display: 'block', fontSize: 12, color: ADM.MUTED, lineHeight: 1.45 }}>Apre la finestra di recesso. È un giudizio: si dà davanti alle righe cambiate, non alla mail di chi ha redatto il testo.</span>
+              <span style={{ display: 'block', fontSize: 12, color: ADM.MUTED, lineHeight: 1.45 }}>
+                Peggiora la posizione di chi sta dall'altra parte: meno diritti, più obblighi, termini accorciati a suo danno, responsabilità più limitata.
+                {doc.destinatario === 'utente'
+                  ? ' Verso i consumatori apre trenta giorni di recesso, e solo se le conseguenze non sono trascurabili.'
+                  : ' Verso gli esercenti non apre una finestra in più — il recesso nel preavviso c\'è comunque — ma è quello che il preavviso deve dire per primo.'}
+                {' '}È un giudizio: si dà davanti alle righe cambiate, non alla mail di chi ha redatto il testo.
+              </span>
             </span>
           </label>
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', maxWidth: 380 }}>
@@ -261,9 +274,11 @@ function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) 
 
       {/* Il confronto con la versione precedente. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-        <span style={{ fontSize: 12.2, fontWeight: 700, color: ADM.MUTED }}>
+        <span style={{ fontSize: 12.2, fontWeight: 700, color: identica ? ADM.WARN : ADM.MUTED }}>
           Confronto con la v{ultima ? ultima.v : '—'}
-          {ultima ? <span style={{ fontWeight: 500 }}> · {cambiate} righ{cambiate === 1 ? 'a' : 'e'} cambiate</span> : null}
+          {ultima && <span style={{ fontWeight: 500 }}>
+            {' · '}{identica ? 'testo identico: non c\'è niente da pubblicare' : `${cambiate} righ${cambiate === 1 ? 'a cambiata' : 'e cambiate'}`}
+          </span>}
         </span>
         <div style={{ flex: 1 }}/>
         <AdmButton variant="secondary" size="sm" onClick={() => setVediDiff(v => !v)}>{vediDiff ? 'Nascondi' : 'Mostra'}</AdmButton>
@@ -276,6 +291,12 @@ function HubDocBozza({ codice, bozza, ultima, doc, onCambio, onPubblica, puo }) 
             </div>
           ) : !bozza.testo ? (
             <div style={{ padding: '14px 16px', fontSize: 12.6, color: ADM.MUTED }}>Carica il markdown per vedere che cosa cambia.</div>
+          ) : identica ? (
+            <div style={{ padding: '14px 16px', fontSize: 12.6, color: ADM.MUTED, lineHeight: 1.5 }}>
+              La bozza parte con una copia del testo della v{ultima.v}, così il confronto si vede crescere man mano.
+              Finché non carichi il file nuovo le due sono <b style={{ color: ADM.TEXT }}>identiche</b>, e una versione che non cambia niente
+              non si pubblica: farebbe partire un preavviso e riaprirebbe le accettazioni di tutti per nulla.
+            </div>
           ) : docDiff(ultima.testo, bozza.testo).map((r, i) => (
             <div key={i} style={{
               display: 'flex', gap: 8, padding: '2px 12px',
@@ -316,7 +337,9 @@ function HubDocConferma({ doc, bozza, onAnnulla, onFatto }) {
             ['Efficace dal', fmtDate(bozza.efficace)],
             [doc.informativa ? 'Come si registra' : 'Come si accetta',
               doc.informativa ? 'Presa visione: si riceve, non si accetta' : 'Esplicita, oppure tacita per decorso del termine'],
-            ...(bozza.peggiorativa ? [['Recesso', 'Modifica peggiorativa: si apre la finestra di recesso']] : []),
+            ...(bozza.peggiorativa ? [['Recesso', doc.destinatario === 'utente'
+              ? 'Peggiorativa: trenta giorni di recesso dal ricevimento, se le conseguenze non sono trascurabili'
+              : 'Peggiorativa: il recesso resta quello esercitabile entro il preavviso, e il preavviso deve dirlo']] : []),
             ...(bozza.nuovoConsenso ? [['Consensi', 'Il consenso prestato prima non si estende: quella finalità si ferma finché non arriva il nuovo']] : []),
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', gap: 10, fontSize: 12.8, lineHeight: 1.5 }}>
