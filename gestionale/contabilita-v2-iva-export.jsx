@@ -349,7 +349,7 @@ function Row({ label, value }) {
 }
 
 // ─── MODAL NUOVO COSTO ──────────────────────────────
-function ContNuovoCosto({ open, onClose }) {
+function ContNuovoCosto({ open, onClose, onSave }) {
   const [name, setName] = React.useState('');
   const [cat, setCat] = React.useState('affitti');
   // La natura (fisso / variabile / misto, L1-34): si chiede accanto a
@@ -372,6 +372,28 @@ function ContNuovoCosto({ open, onClose }) {
   };
 
   const isValid = name && amount;
+
+  // Il foglio riparte pulito a ogni apertura: un costo salvato non deve
+  // ripresentarsi precompilato al successivo «Aggiungi costo».
+  React.useEffect(() => {
+    if (!open) return;
+    setName(''); setCat('affitti'); setNature(COST_NATURE_DEFAULT); setAmount('');
+    setType('recurring'); setFreq('Mensile'); setDate(''); setSupplier('');
+  }, [open]);
+
+  // «Salva costo» salva il costo (P-142): prima chiudeva il foglio e basta, e
+  // sette campi raccolti finivano nel nulla — natura compresa, che è la
+  // ragione per cui la sezione esiste. Senza data vale oggi.
+  const salva = () => {
+    if (!isValid) return;
+    const oggi = new Date(); const iso = `${oggi.getFullYear()}-${String(oggi.getMonth()+1).padStart(2,'0')}-${String(oggi.getDate()).padStart(2,'0')}`;
+    const costo = {
+      name: name.trim(), cat, nature, amount: Math.round(parseFloat(String(amount).replace(',', '.')) * 100) / 100 || 0,
+      type, freq: type === 'recurring' ? freq : null, next: date || iso, supplier: supplier.trim(),
+    };
+    if (onSave) onSave(costo);
+    onClose();
+  };
 
   if (!open) return null;
   return (
@@ -527,7 +549,7 @@ function ContNuovoCosto({ open, onClose }) {
             onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}
             onMouseUp={e => { e.currentTarget.style.transform = ''; }}
             style={{padding:'11px 20px', background: PN.BTN_NEUTRAL, border:`1px solid ${PN.BORDER_LIGHT}`, borderRadius: 10, boxShadow: PN.INSET_HIGHLIGHT, fontSize: C.T_SM, fontWeight: 600, color: PN.TEXT, cursor:'pointer', fontFamily:'inherit', transition:'background 130ms ease, transform 120ms ease'}}>Annulla</button>
-          <button onClick={onClose} disabled={!isValid}
+          <button onClick={salva} disabled={!isValid}
             onMouseEnter={e => { if (isValid) { e.currentTarget.style.background = PN.BTN_BRAND_HOVER; e.currentTarget.style.boxShadow = `${PN.INSET_HIGHLIGHT_BRAND}, 0 6px 18px rgba(255,90,95,0.34)`; } }}
             onMouseLeave={e => { if (isValid) { e.currentTarget.style.background = PN.BTN_BRAND; e.currentTarget.style.boxShadow = `${PN.INSET_HIGHLIGHT_BRAND}, 0 2px 8px rgba(255,90,95,0.24)`; } e.currentTarget.style.transform = ''; }}
             onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.96)'; }}

@@ -4,6 +4,12 @@ function ContCosti({ openNewCost }) {
   const [selected, setSelected] = React.useState(new Set());
   const [filterCat, setFilterCat] = React.useState('all');
   const [costs, setCosts] = React.useState(COSTS_DATA);
+  // Un costo salvato dal foglio (P-142) entra nell'elenco vivo senza ricaricare.
+  React.useEffect(() => {
+    const update = () => setCosts(COSTS_DATA.slice());
+    window.addEventListener('byup-costi-change', update);
+    return () => window.removeEventListener('byup-costi-change', update);
+  }, []);
   const [pendingDelete, setPendingDelete] = React.useState(null); // array di id in attesa di conferma
   const [alertOnly, setAlertOnly] = React.useState(false); // mostra solo scaduti + in scadenza
 

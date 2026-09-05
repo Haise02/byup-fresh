@@ -123,6 +123,14 @@ const EXPORT_HISTORY = [
 
 window.COST_CATEGORIES = COST_CATEGORIES;
 window.COSTS_DATA = COSTS_DATA;
+// «Salva costo» salva il costo (P-142): la voce entra in testa all'elenco
+// vivo, con tutti i campi del foglio, natura compresa; chi ha la lista
+// montata la riaggiorna sull'evento, chi la monta dopo la trova già lì.
+window.ccAggiungiCosto = function (c) {
+  const id = COSTS_DATA.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1;
+  COSTS_DATA.unshift({ id, status: 'due', ...c });
+  try { window.dispatchEvent(new CustomEvent('byup-costi-change')); } catch (e) {}
+};
 window.CASH_MOVEMENTS = CASH_MOVEMENTS;
 window.IVA_MONTHLY = IVA_MONTHLY;
 window.IVA_RATES = IVA_RATES;

@@ -139,7 +139,7 @@ function ContabilitaApp() {
           {tab==='export' && <ContExport openShare={() => setShare(true)}/>}
         </div>
 
-        <ContNuovoCosto open={newCost} onClose={() => setNewCost(false)}/>
+        <ContNuovoCosto open={newCost} onClose={() => setNewCost(false)} onSave={c => window.ccAggiungiCosto && window.ccAggiungiCosto(c)}/>
         {esibizione && regimeSoluzione && window.ContEsibizione && <ContEsibizione onClose={() => setEsibizione(false)}/>}
         {controllo && !regimeSoluzione && window.CcControlloSheet && (
           <window.CcControlloSheet onClose={() => setControllo(false)}/>
