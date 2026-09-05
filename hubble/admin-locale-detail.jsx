@@ -1055,7 +1055,17 @@ function DrwConsensiCard({ righe, nota }) {
             {c.deciso
               ? <span style={{padding:'3px 10px', borderRadius:5, background: c.ok ? ADM.OK_SOFT : ADM.NEUTRAL_SOFT, color: c.ok ? ADM.OK : ADM.MUTED, fontSize:13, fontWeight:700}}>{c.ok ? 'Sì' : 'No'}</span>
               : <span style={{padding:'3px 10px', borderRadius:5, background:ADM.NEUTRAL_SOFT, color:ADM.MUTED_SOFT, fontSize:13, fontWeight:700}}>Mai chiesto</span>}
-            {c.deciso && <div style={{fontSize:12, color:ADM.MUTED, marginTop:3}}>{fmtDate(c.quando)} · Informativa v{c.versione}</div>}
+            {/* Non «Informativa v0.4» scritto e basta: il rimando apre QUELLA
+                versione archiviata, che è la sola cosa che dimostra a quale
+                testo la persona abbia detto sì. */}
+            {c.deciso && (
+              <div style={{fontSize:12, color:ADM.MUTED, marginTop:3, display:'flex', gap:5, justifyContent:'flex-end', alignItems:'baseline', flexWrap:'wrap'}}>
+                <span>{fmtDate(c.quando)} ·</span>
+                {c.doc && c.versione
+                  ? <CtrLinkVersione codice={c.doc} v={c.versione} testo={`Informativa v${c.versione}`}/>
+                  : <span>Informativa v{c.versione || '—'}</span>}
+              </div>
+            )}
           </div>
         </div>
       ))}
@@ -1087,7 +1097,12 @@ function DrwConsensiPannello({ righe, documenti, nota }) {
             </div>
             <div style={{textAlign:'right', flexShrink:0}}>
               <div style={{fontSize:12.6, color:ADM.MUTED}}>{fmtDate(d.quando)}</div>
-              {d.rif && <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:2}}>{d.rif}</div>}
+              {/* Con un codice a catalogo la riga apre la copia archiviata di
+                  quella versione. Senza, resta testo: un rimando che apre il
+                  documento sbagliato è peggio di nessun rimando. */}
+              {d.codice
+                ? <div style={{marginTop:2}}><CtrLinkVersione codice={d.codice} v={d.versione} impronta testo="Apri la copia archiviata"/></div>
+                : (d.rif && <div style={{fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT, marginTop:2}}>{d.rif}</div>)}
             </div>
           </div>
         ))}
@@ -1106,16 +1121,23 @@ function drwConsensiLocale(l) {
   const s = hubSeme('loc-' + l.id);
   const giorno = (k, max) => new Date(Math.min(Date.now() - 86400000,
     l.dataIscrizione.getTime() + ((s >> k) % max) * 86400000));
+  // La versione dell'informativa è quella IN VIGORE QUANDO il consenso è stato
+  // prestato, presa dal catalogo — non «1.0», che era un numero scritto a mano
+  // e non corrispondeva a nessuna versione di INF-02. È il rimando che rende
+  // il consenso dimostrabile: senza, si scriverebbe accanto al consenso la
+  // versione di oggi, cioè un testo che quella persona non ha visto.
+  const v = (quando) => { const x = ctrVersioneAllaData('INF-02', quando); return x ? x.v : null; };
+  const q1 = giorno(2, 120), q2 = giorno(4, 120), q3 = giorno(6, 200);
   return [
-    { id: 'M-EM',  label: 'Comunicazioni commerciali via email',
+    { id: 'M-EM',  label: 'Comunicazioni commerciali via email', doc: 'INF-02',
       desc: 'Novità di prodotto, promozioni e newsletter ai referenti del locale',
-      deciso: true, ok: s % 5 !== 0, quando: giorno(2, 120), versione: '1.0' },
-    { id: 'M-SMS', label: 'Comunicazioni via SMS',
+      deciso: true, ok: s % 5 !== 0, quando: q1, versione: v(q1) },
+    { id: 'M-SMS', label: 'Comunicazioni via SMS', doc: 'INF-02',
       desc: 'Avvisi commerciali sul numero del locale',
-      deciso: true, ok: s % 3 === 0, quando: giorno(4, 120), versione: '1.0' },
-    { id: 'M-REF', label: 'Nome e logo come referenza',
+      deciso: true, ok: s % 3 === 0, quando: q2, versione: v(q2) },
+    { id: 'M-REF', label: 'Nome e logo come referenza', doc: 'INF-02',
       desc: 'Uso del locale nei materiali marketing di byup (case study, sito)',
-      deciso: s % 7 !== 0, ok: s % 7 !== 0 && s % 4 === 0, quando: giorno(6, 200), versione: '1.0',
+      deciso: s % 7 !== 0, ok: s % 7 !== 0 && s % 4 === 0, quando: q3, versione: v(q3),
       // Il consenso dell'ESERCENTE, con la sua storia (P-70): vedi sotto.
       storia: drwStoriaReferenza(l) },
   ];
@@ -2215,6 +2237,111 @@ const ctrDoc = (codice) => DOCUMENTI.find(d => d.codice === codice);
 const ctrCorrente = (doc) => doc.versioni ? doc.versioni[doc.versioni.length - 1] : null;
 const ctrGiorni = (d) => Math.ceil((d.getTime() - Date.now()) / 86400000);
 
+// ─── L'ARCHIVIO DELLE VERSIONI (policy_versions) ────────────────────────────
+// Un consenso o un'accettazione dicono «v0.23», e la versione da sola non
+// basta: è l'errore che il modello ha già corretto una volta. Nella v0.10
+// `consent_events.policy_version` era una stringa libera, e la v0.11 ha creato
+// `policy_versions` perché — testuale — «la stringa provava che una versione
+// era stata mostrata ma non che fosse stata comunicata nei termini».
+// Quella tabella porta due colonne che qui diventano queste due funzioni:
+//   document_ref  — «riferimento al testo archiviato in archivio oggetti,
+//                    IMMUTABILE PER VERSIONE»;
+//   document_hash — «senza impronta la prova di quale testo sia stato
+//                    accettato dipende dalla buona fede di chi conserva il
+//                    documento».
+// LA REGOLA CHE VALE TUTTA LA PARTITA: si apre QUELLA versione, mai il
+// documento pubblicato oggi. Un consenso dato sulla 0.23 con un rimando che
+// apre la 0.24 mostra un testo che quella persona non ha mai visto, e lo fa
+// con l'aria di provare qualcosa: è peggio di nessun rimando.
+const ctrRif = (codice, v) => `archivio/documenti/${codice}/v${v}.md`;
+// L'impronta: nel prodotto è lo SHA-256 del testo pubblicato. Qui è
+// deterministica sul codice e sulla versione — finzione dichiarata a schermo,
+// ma stabile, perché un'impronta che cambia a ogni ricarica non proverebbe
+// niente e si vedrebbe subito.
+function ctrImpronta(codice, v) {
+  let h1 = 0x811c9dc5, h2 = 0x01000193;
+  const t = codice + '@' + v;
+  for (let i = 0; i < t.length; i++) {
+    h1 = Math.imul(h1 ^ t.charCodeAt(i), 16777619) >>> 0;
+    h2 = Math.imul(h2 + t.charCodeAt(i) * (i + 7), 2246822519) >>> 0;
+  }
+  let out = '';
+  for (let i = 0; i < 8; i++) {
+    h1 = Math.imul(h1 ^ (h2 + i), 16777619) >>> 0;
+    h2 = Math.imul(h2 ^ (h1 + i), 2246822519) >>> 0;
+    out += h1.toString(16).padStart(8, '0');
+  }
+  return out.slice(0, 64);
+}
+// La versione in vigore a una certa data: è quella contro cui un consenso
+// prestato allora vale davvero. Senza, la scheda scriverebbe accanto al
+// consenso la versione di oggi, che è il rimando sbagliato.
+function ctrVersioneAllaData(codice, quando) {
+  const doc = ctrDoc(codice);
+  if (!doc || !doc.versioni) return null;
+  const t = quando ? quando.getTime() : Date.now();
+  const passate = doc.versioni.filter(x => x.efficace.getTime() <= t);
+  return passate.length ? passate[passate.length - 1] : doc.versioni[0];
+}
+// Lo scarico della copia archiviata. Nel prodotto è il file che sta in
+// `document_ref`; qui è un segnaposto che porta l'intestazione vera — codice,
+// versione, pubblicazione, efficacia, impronta — e lo dichiara nel corpo.
+// Il meccanismo è quello giusto: il giorno che l'archivio esiste, cambia la
+// sorgente e non la schermata.
+function ctrScaricaVersione(codice, v) {
+  const doc = ctrDoc(codice);
+  const ver = doc && doc.versioni ? doc.versioni.find(x => x.v === v) : null;
+  if (!doc || !ver) return false;
+  const testo = [
+    `${doc.nome} (${doc.codice}) — versione ${ver.v}`,
+    `Pubblicata il ${fmtDate(ver.pubblicata)} · efficace dal ${fmtDate(ver.efficace)}`,
+    `Impronta SHA-256: ${ctrImpronta(codice, v)}`,
+    `Riferimento in archivio: ${ctrRif(codice, v)}`,
+    '',
+    `Che cosa cambiava: ${ver.cambiamento || '—'}`,
+    '',
+    '— — —',
+    'PROTOTIPO. Questo file è un segnaposto: contiene l\'intestazione della',
+    'versione, non il testo depositato. Nel prodotto qui c\'è la copia',
+    'archiviata di QUESTA versione, immutabile, che è ciò che rende',
+    'dimostrabile a quale testo la persona abbia detto sì.',
+  ].join('\n');
+  const blob = new Blob([testo], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${codice}-v${v}.txt`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return true;
+}
+window.ctrScaricaVersione = ctrScaricaVersione;
+window.ctrImpronta = ctrImpronta;
+window.ctrVersioneAllaData = ctrVersioneAllaData;
+
+// Il rimando alla versione archiviata: si legge quale versione, e si apre
+// quella. Le accettazioni portano anche l'impronta, che è la parte che le
+// rende opponibili; le informative no — si ricevono, non si firmano.
+function CtrLinkVersione({ codice, v, impronta, testo }) {
+  const [fatto, setFatto] = React.useState(false);
+  if (!codice || !v) return <span style={{fontSize:12.4, color:ADM.MUTED}}>{testo || `v${v || '—'}`}</span>;
+  return (
+    <span style={{display:'inline-flex', alignItems:'baseline', gap:6, flexWrap:'wrap'}}>
+      <button onClick={(e) => { e.stopPropagation(); if (ctrScaricaVersione(codice, v)) { setFatto(true); setTimeout(() => setFatto(false), 1800); } }}
+        title={`Apre la copia archiviata della ${codice} v${v}, non la versione pubblicata oggi`}
+        className="adm-pill" style={{
+          background:'transparent', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit',
+          fontSize:12.4, fontWeight:700, color:ADM.PINK, textDecoration:'underline', textUnderlineOffset:3,
+        }}>{fatto ? 'Scaricata ✓' : (testo || `${codice} v${v}`)}</button>
+      {impronta && (
+        <span title="Impronta del testo accettato: nel prototipo è simulata, ma stabile" style={{
+          fontFamily:'ui-monospace,monospace', fontSize:11, color:ADM.MUTED_SOFT,
+        }}>{ctrImpronta(codice, v).slice(0, 8)}</span>
+      )}
+    </span>
+  );
+}
+window.CtrLinkVersione = CtrLinkVersione;
+
 // L'ultima accettazione per documento: è LEI la versione che vincola.
 function ctrAccettazione(sogId, codice) {
   return ACCETTAZIONI.filter(a => a.soggettoId === sogId && a.codice === codice)
@@ -2388,16 +2515,19 @@ function CtrRigaDoc({ sog, codice }) {
         </div>
       )}
 
-      {/* Il rimando al documento, nome e versione accettata: come i
-          «Documenti sottoscritti» della scheda utente. */}
+      {/* Il rimando alla COPIA ARCHIVIATA della versione accettata — non alla
+          versione corrente, che è un altro testo. Sulle accettazioni si vede
+          anche l'impronta: è quella che rende la riga opponibile, ed è
+          obbligatoria nel modello per terms_acceptance. Sulle informative no:
+          si ricevono, non si firmano. */}
       {a && (
-        <div style={{marginTop:12, display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:ADM.PANEL_SOFT, borderRadius:9}}>
+        <div style={{marginTop:12, display:'flex', alignItems:'center', gap:10, padding:'9px 12px', background:ADM.PANEL_SOFT, borderRadius:9, flexWrap:'wrap'}}>
           <BuIcons.filePdf size={18} color={ADM.PINK}/>
-          <span style={{flex:1, minWidth:0, fontSize:13, color:ADM.TEXT, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+          <span style={{flex:1, minWidth:120, fontSize:13, color:ADM.TEXT, fontWeight:600}}>
             {doc.nome}{' '}
-            <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED, fontWeight:600}}>
-              {fotoPiano ? (PIANI.find(x => x.id === a.v) || {label:a.v}).label : 'v' + a.v}
-            </span>
+            {fotoPiano
+              ? <span style={{fontFamily:'ui-monospace,monospace', fontSize:12, color:ADM.MUTED, fontWeight:600}}>{(PIANI.find(x => x.id === a.v) || {label:a.v}).label}</span>
+              : <CtrLinkVersione codice={doc.codice} v={a.v} impronta={!doc.informativa} testo={`v${a.v} · apri la copia archiviata`}/>}
           </span>
           <span style={{fontSize:12.4, color:ADM.MUTED, flexShrink:0}}>
             {a.tipo === 'presa-visione' ? 'presa visione' : 'accettata'} {fmtDate(a.quando)}

@@ -254,6 +254,13 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
         deciso: true, ok: ss % 4 !== 0, quando: giorno(4, 60), versione: '1.0' },
     ];
   })();
+  // CODA REGISTRATA: nessun `codice` su questa riga, quindi niente rimando
+  // alla copia archiviata. Non è una dimenticanza — nel corpus documentale
+  // un'informativa per le utenze staff NON ESISTE: ci sono INF-01 (consumer),
+  // INF-02 (business) e INF-03 (sito). La «v1.0» qui sotto è un numero
+  // inventato dal mock, e attaccarci un rimando vorrebbe dire aprire un
+  // documento che non c'è o, peggio, uno che parla di qualcun altro. Il
+  // rimando arriva quando il documento arriva.
   const documentiStaff = [
     { nome: 'Informativa privacy utenze staff', versione: '1.0',
       nota: 'Presa visione alla creazione dell\'utenza · è la versione scritta accanto a ogni consenso',
