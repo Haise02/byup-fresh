@@ -284,38 +284,38 @@ const DISHES_BY_CAT = {
       cal: 260, macros: { carbo: 34, grassi: 12, prot: 5, fibre: 1 } },
   ],
   'Bevande': [
-    { id: 'b1', name: 'Acqua naturale 75cl', price: 3, kind: 'acqua', photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
+    { id: 'b1', name: 'Acqua naturale 75cl', price: 3, cucinaChiusaOk: true, kind: 'acqua', photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
       desc: 'Acqua minerale naturale, bottiglia di vetro.',
       longDesc: 'Acqua oligominerale naturale in bottiglia di vetro da 75cl.',
       prep: 1, allergens: [], tone: 'a', ingredients: [], extras: [], variants: [], cal: 0, macros: { carbo: 0, grassi: 0, prot: 0, fibre: 0 } },
-    { id: 'b2', name: 'Vino della casa 0.5L', price: 12, kind: 'vino', photo: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=400&q=70&auto=format&fit=crop',
+    { id: 'b2', name: 'Vino della casa 0.5L', price: 12, cucinaChiusaOk: true, kind: 'vino', photo: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=400&q=70&auto=format&fit=crop',
       desc: 'Rosso o bianco. Selezione del sommelier.',
       longDesc: 'Caraffa da 0.5L di vino della casa, selezionato dal nostro sommelier. Rosso corposo del Lazio o bianco fresco dei Castelli Romani.',
       prep: 2, allergens: [], tone: 'b', ingredients: [],
       extras: [],
       variants: [{ id: 'tipo', label: 'Tipo di vino', options: ['Rosso', 'Bianco'], required: true }],
       cal: 320, macros: { carbo: 12, grassi: 0, prot: 0, fibre: 0 } },
-    { id: 'b3', name: 'Birra artigianale 33cl', price: 6, kind: 'default', photo: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&q=70&auto=format&fit=crop',
+    { id: 'b3', name: 'Birra artigianale 33cl', price: 6, cucinaChiusaOk: true, kind: 'default', photo: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&q=70&auto=format&fit=crop',
       desc: 'Selezione di birre artigianali laziali. Chiedi al cameriere.',
       longDesc: 'Selezione rotante di birre artigianali del Lazio e dintorni. IPA, Lager, Ambrata o Weiss. Il cameriere ti illustrerà le birre disponibili del giorno.',
       prep: 2, allergens: ['glutine'], tone: 'c', ingredients: [], extras: [],
       variants: [{ id: 'tipo', label: 'Tipo', options: ['IPA', 'Lager', 'Ambrata', 'Weiss'], required: true }],
       cal: 150, macros: { carbo: 14, grassi: 0, prot: 2, fibre: 0 } },
-    { id: 'b4', name: 'Succo di frutta 20cl', price: 4, kind: 'default', photo: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&q=70&auto=format&fit=crop',
+    { id: 'b4', name: 'Succo di frutta 20cl', price: 4, cucinaChiusaOk: true, kind: 'default', photo: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&q=70&auto=format&fit=crop',
       desc: 'Succo di frutta fresco, senza zuccheri aggiunti.',
       longDesc: 'Succo di frutta estratto a freddo, senza zuccheri aggiunti né conservanti. Disponibile: arancia, mela, carota-zenzero, ananas.',
       prep: 3, allergens: [], tone: 'a', ingredients: [],
       extras: [],
       variants: [{ id: 'gusto', label: 'Gusto', options: ['Arancia', 'Mela', 'Carota-zenzero', 'Ananas'], required: true }],
       cal: 90, macros: { carbo: 22, grassi: 0, prot: 1, fibre: 1 } },
-    { id: 'b5', name: 'Caffè espresso', price: 2, kind: 'default', photo: 'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=70&auto=format&fit=crop',
+    { id: 'b5', name: 'Caffè espresso', price: 2, cucinaChiusaOk: true, kind: 'default', photo: 'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=70&auto=format&fit=crop',
       desc: 'Miscela arabica 100%, tostatura artigianale.',
       longDesc: 'Caffè espresso con miscela di arabica 100% selezionata dal nostro torrefattore di fiducia. Disponibile anche macchiato, ristretto o lungo.',
       prep: 2, allergens: [], tone: 'b', ingredients: [],
       extras: [],
       variants: [{ id: 'tipo', label: 'Tipo', options: ['Normale', 'Macchiato', 'Ristretto', 'Lungo'] }],
       cal: 5, macros: { carbo: 1, grassi: 0, prot: 0, fibre: 0 } },
-    { id: 'b6', name: 'Acqua frizzante 75cl', price: 3, kind: 'acqua', photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
+    { id: 'b6', name: 'Acqua frizzante 75cl', price: 3, cucinaChiusaOk: true, kind: 'acqua', photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
       desc: 'Acqua minerale frizzante, bottiglia di vetro.',
       longDesc: 'Acqua minerale effervescente naturale in bottiglia di vetro da 75cl.',
       prep: 1, allergens: [], tone: 'c', ingredients: [], extras: [], variants: [], cal: 0, macros: { carbo: 0, grassi: 0, prot: 0, fibre: 0 } },
@@ -728,8 +728,16 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: -0.4, lineHeight: 1.1 }}>Al Settembrini</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4ade80' }}/>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>Aperto · 12:00 – 23:30</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>{(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; return !i ? 'Aperto · 12:00 – 23:30' : i.chiusoOggi ? 'Oggi chiuso' : `${i.localeAperto ? 'Aperto' : 'Chiuso'} · ${i.apre} – ${i.chiude}`; })()}</span>
                   </div>
+                  {/* La riga della cucina (P-167 · D-117): fino a che ora si
+                      ordina, o da quando è chiusa. Gli orari del locale vengono
+                      dal registro condiviso, non da un testo fisso. */}
+                  {(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; if (!i || i.chiusoOggi) return null; return (
+                    <div data-cucina style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3 }}>
+                      {!i.localeAperto ? `Chiuso · apre alle ${i.apre}` : i.cucinaAperta ? `Cucina fino alle ${i.ultimaComanda}` : `Cucina chiusa dalle ${i.ultimaComanda}`}
+                    </div>
+                  ); })()}
                   {/* Il coperto o il servizio si legge nel menù, prima di
                       ordinare (P-155): una riga piccola e stabile sotto il nome
                       del locale, se la sede lo ha attivato, con il nome e la
@@ -1304,6 +1312,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
   // d'ora da adesso in poi.
   const [ritiro, setRitiro] = useState('');
   const fasce = React.useMemo(() => asportoFasce(), [takeaway]);
+  const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
   // applica la divisione a tutte le porzioni della riga
   // Lo swipe muove UNA unità per volta: due Carbonare sono due pezzi, e
   // mandarne una al tavolo non deve trascinarsi dietro l'altra.
@@ -1505,7 +1514,7 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
                     oltre quel momento l'ordine non è più saldabile e va rifatto. */}
                 <div style={{ fontSize: 12, color: MUTED, marginTop: 6, lineHeight: 1.45 }}>
                   {ritiro
-                    ? <>Salda entro le <b style={{ color: TEXT }}>{asportoScadenzaLabel(ritiro)}</b> (mezz'ora dopo il ritiro): oltre, l'ordine scade e va rifatto.</>
+                    ? <>Salda entro le <b style={{ color: TEXT }}>{asportoScadenzaLabel(ritiro)}</b> (mezz'ora dopo il ritiro): oltre, l'ordine scade e va rifatto.{cucina && cucina.ultimaComanda ? <> La cucina prende ordini fino alle <b style={{ color: TEXT }}>{cucina.ultimaComanda}</b>.</> : null}</>
                     : 'Scegli una fascia: l\'ordine va saldato entro mezz\'ora dopo il ritiro, in cassa o dall\'app.'}
                 </div>
               </div>
@@ -2378,7 +2387,12 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
   const total = dish.price + extrasTotal;
   // Varianti obbligatorie ancora da scegliere: bloccano l'aggiunta all'ordine.
   const missingRequired = (dish.variants || []).filter(v => v.required && !variants[v.id]);
-  const canAdd = missingRequired.length === 0;
+  // Cucina chiusa (P-167 · D-117): passata l'ultima comanda, i piatti non
+  // eccettuati non si aggiungono; quelli con «Ordinabile anche a cucina
+  // chiusa» (bevande, piatti freddi) restano ordinabili.
+  const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+  const cucinaBloccato = !!(cucina && cucina.localeAperto && !cucina.cucinaAperta && !dish.cucinaChiusaOk);
+  const canAdd = missingRequired.length === 0 && !cucinaBloccato;
   const addToCart = () => {
     if (!canAdd) return;
     if (editing) {
@@ -2668,6 +2682,11 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           }} aria-label="Aumenta"><I.Plus size={16} color={qty >= maxApply ? TEXT : '#fff'}/></button>
         </div>
         {/* Aggiungi all'ordine — disattivato finché le scelte obbligatorie mancano */}
+        {cucinaBloccato && (
+          <div data-cucina-chiusa style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: '#FEF3C7', color: '#92400E', fontSize: 13, lineHeight: 1.4 }}>
+            <b>Cucina chiusa dalle {cucina.ultimaComanda}.</b> Questo piatto non si può più ordinare; le bevande e i piatti freddi restano disponibili.
+          </div>
+        )}
         <button onClick={addToCart} disabled={!canAdd} style={{
           flex: 1, height: 56, borderRadius: 999, border: 'none',
           background: canAdd ? WINE : '#d8d2cc', color: '#fff',
@@ -2723,11 +2742,17 @@ function nuovoCodiceRitiro() {
 // gli ordini al banco. La tolleranza oltre il ritiro è quella predefinita del
 // modello (venue_settings.takeaway_hold_tolerance_min = 30).
 const ASPORTO_TOLLERANZA_MIN = 30;
+// Le fasce arrivano alla CHIUSURA del locale (P-167), non a mezzanotte: se il
+// locale chiude dopo mezzanotte le ore continuano oltre le 24.
 function asportoFasce() {
-  const now = new Date();
+  const info = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+  const toMin = (t) => { const [h, m] = String(t || '').split(':').map(n => parseInt(n, 10) || 0); return h * 60 + m; };
+  const adesso = info && info.ora ? toMin(info.ora) : (() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); })();
+  let fine = info && info.chiude ? toMin(info.chiude) : 24 * 60;
+  if (fine <= adesso) fine += 24 * 60;
   const out = [];
-  for (let m = Math.ceil((now.getHours() * 60 + now.getMinutes() + 1) / 15) * 15 + 15; m < 24 * 60; m += 15) {
-    out.push(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
+  for (let m = Math.ceil((adesso + 1) / 15) * 15 + 15; m <= fine; m += 15) {
+    out.push(`${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
   }
   return out;
 }
@@ -2828,6 +2853,76 @@ function NotteAvviso({ mancano }) {
       </span>
     </div>
   );
+}
+
+// ─── Orari del locale e ultima comanda della cucina (P-167 · D-117) ─────────
+// Il locale ha gli orari di apertura (Vetrina → Orari di apertura, registro
+// byup_orari) e la cucina ha la sua ULTIMA COMANDA (Impostazioni → Menù e
+// cucina → Servizio, registro byup_ultima_comanda): un orario per giorno,
+// «uguale alla chiusura» come predefinito. La mezzanotte si gestisce come la
+// chiusura del locale: un orario prima dell'apertura appartiene al giorno
+// prima. L'orologio è quello italiano, o quello finto di `?ora=HH:MM`
+// (sessionStorage byup_ora_demo), che serve a provare la cucina chiusa senza
+// aspettare la notte. D-117: l'ultima comanda è una promessa ai clienti, non
+// un lucchetto per chi sta in sala — app e webapp fermano l'aggiunta dei piatti
+// non eccettuati, Sala e cameriere inviano con un avviso.
+if (!window.byupCucinaInfo) {
+  const ORARI_KEY = 'byup_orari', UC_KEY = 'byup_ultima_comanda';
+  const GIORNI = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+  // Il seme è quello della Vetrina: aperto dal lunedì al sabato, 09:00–23:00.
+  const ORARI_SEME = { openDays: { Lun: true, Mar: true, Mer: true, Gio: true, Ven: true, Sab: true }, stdHours: ['09:00', '23:00'], customHours: null };
+  const leggi = (k, fb) => { try { const s = localStorage.getItem(k); return s ? Object.assign({}, fb, JSON.parse(s)) : Object.assign({}, fb); } catch (e) { return Object.assign({}, fb); } };
+  window.byupReadOrari = () => leggi(ORARI_KEY, ORARI_SEME);
+  window.byupWriteOrari = (v) => { try { localStorage.setItem(ORARI_KEY, JSON.stringify(v)); } catch (e) {} try { window.dispatchEvent(new Event('byup-orari-change')); } catch (e) {} };
+  window.byupReadUltimaComanda = () => leggi(UC_KEY, { modo: 'chiusura', orari: {} });
+  window.byupWriteUltimaComanda = (v) => { try { localStorage.setItem(UC_KEY, JSON.stringify(v)); } catch (e) {} try { window.dispatchEvent(new Event('byup-ultima-comanda-change')); } catch (e) {} };
+  const toMin = (hhmm) => { const [h, m] = String(hhmm || '00:00').split(':').map(n => parseInt(n, 10) || 0); return h * 60 + m; };
+  const pad = (n) => String(n).padStart(2, '0');
+  // L'ora e il giorno italiani, o quelli finti.
+  window.byupOraDemo = () => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('ora');
+      if (q && /^\d{1,2}:\d{2}$/.test(q)) sessionStorage.setItem('byup_ora_demo', q);
+      const d = sessionStorage.getItem('byup_ora_demo'); if (d) return d;
+    } catch (e) {}
+    try {
+      const p = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+      const g = (t) => (p.find(x => x.type === t) || {}).value || '00';
+      return `${pad(parseInt(g('hour'), 10) % 24)}:${g('minute')}`;
+    } catch (e) { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+  };
+  // Gli orari di un giorno (0 = domenica): aperto?, apre, chiude — dal primo
+  // all'ultimo turno se il giorno è personalizzato.
+  window.byupOrariDelGiorno = (idx) => {
+    const o = window.byupReadOrari(); const g = GIORNI[((idx % 7) + 7) % 7];
+    if (!o.openDays || !o.openDays[g]) return { giorno: g, aperto: false };
+    const turni = o.customHours && o.customHours[g] && o.customHours[g].length ? o.customHours[g] : [o.stdHours || ORARI_SEME.stdHours];
+    return { giorno: g, aperto: true, apre: turni[0][0], chiude: turni[turni.length - 1][1] };
+  };
+  window.byupCucinaInfo = () => {
+    const ora = window.byupOraDemo(); const m = toMin(ora);
+    const oggiIdx = new Date().getDay();
+    // Minuti trascorsi dall'apertura, contando oltre la mezzanotte se serve.
+    const dopo = (apre, t) => (toMin(t) - toMin(apre) + 1440) % 1440;
+    const valuta = (idx) => {
+      const g = window.byupOrariDelGiorno(idx); if (!g.aperto) return null;
+      const durata = g.chiude === g.apre ? 1440 : dopo(g.apre, g.chiude);
+      const uc = window.byupReadUltimaComanda();
+      const ultima = uc.modo === 'orario' && uc.orari && uc.orari[g.giorno] ? uc.orari[g.giorno] : g.chiude;
+      const trascorso = dopo(g.apre, ora);
+      return { giorno: g.giorno, apre: g.apre, chiude: g.chiude, ultimaComanda: ultima, localeAperto: trascorso < durata, cucinaAperta: trascorso < Math.min(durata, dopo(g.apre, ultima) || durata) };
+    };
+    let v = valuta(oggiIdx);
+    // Prima dell'apertura di oggi può valere ancora la giornata di ieri, se
+    // chiudeva dopo mezzanotte.
+    if ((!v || !v.localeAperto) ) { const ieri = valuta(oggiIdx - 1); if (ieri && toMin(ieri.chiude) <= toMin(ieri.apre) && ieri.localeAperto && m < toMin(ieri.chiude)) v = ieri; }
+    if (!v) { const g = window.byupOrariDelGiorno(oggiIdx); return { ora, giorno: g.giorno, localeAperto: false, cucinaAperta: false, apre: null, chiude: null, ultimaComanda: null, chiusoOggi: true }; }
+    return Object.assign({ ora, chiusoOggi: false }, v);
+  };
+  // Il locale della demo, quello del menù: per gli altri della scoperta non
+  // conosciamo la cucina e non si inventa.
+  window.byupAvvisoCucinaChiusa = () => { const i = window.byupCucinaInfo(); return !i.cucinaAperta && i.ultimaComanda ? `Cucina chiusa dalle ${i.ultimaComanda}: avvisa la cucina che la comanda è partita lo stesso` : null; };
+  window.byupCucinaChiusaPer = (nome) => { if (!/settembrini|maria grazia/i.test(String(nome || ''))) return false; const i = window.byupCucinaInfo(); return i.localeAperto && !i.cucinaAperta; };
 }
 
 function Root() {

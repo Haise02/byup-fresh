@@ -426,38 +426,38 @@ const DISHES_BY_CAT = {
       cal: 260, macros: { carbo: 34, grassi: 12, prot: 5, fibre: 1 } },
   ],
   'Bevande': [
-    { id: 'b1', name: 'Acqua naturale 75cl', price: 3, kind: 'acqua', photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
+    { id: 'b1', name: 'Acqua naturale 75cl', price: 3, cucinaChiusaOk: true, kind: 'acqua', photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
       desc: 'Acqua minerale naturale, bottiglia di vetro.',
       longDesc: 'Acqua oligominerale naturale in bottiglia di vetro da 75cl.',
       prep: 1, allergens: [], tone: 'a', ingredients: [], extras: [], variants: [], cal: 0, macros: { carbo: 0, grassi: 0, prot: 0, fibre: 0 } },
-    { id: 'b2', name: 'Vino della casa 0.5L', price: 12, kind: 'vino', photo: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=400&q=70&auto=format&fit=crop',
+    { id: 'b2', name: 'Vino della casa 0.5L', price: 12, cucinaChiusaOk: true, kind: 'vino', photo: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=400&q=70&auto=format&fit=crop',
       desc: 'Rosso o bianco. Selezione del sommelier.',
       longDesc: 'Caraffa da 0.5L di vino della casa, selezionato dal nostro sommelier. Rosso corposo del Lazio o bianco fresco dei Castelli Romani.',
       prep: 2, allergens: [], tone: 'b', ingredients: [],
       extras: [],
       variants: [{ id: 'tipo', label: 'Tipo di vino', options: ['Rosso', 'Bianco'] }],
       cal: 320, macros: { carbo: 12, grassi: 0, prot: 0, fibre: 0 } },
-    { id: 'b3', name: 'Birra artigianale 33cl', price: 6, kind: 'default', photo: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&q=70&auto=format&fit=crop',
+    { id: 'b3', name: 'Birra artigianale 33cl', price: 6, cucinaChiusaOk: true, kind: 'default', photo: 'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&q=70&auto=format&fit=crop',
       desc: 'Selezione di birre artigianali laziali. Chiedi al cameriere.',
       longDesc: 'Selezione rotante di birre artigianali del Lazio e dintorni. IPA, Lager, Ambrata o Weiss. Il cameriere ti illustrerà le birre disponibili del giorno.',
       prep: 2, allergens: ['glutine'], tone: 'c', ingredients: [], extras: [],
       variants: [{ id: 'tipo', label: 'Tipo', options: ['IPA', 'Lager', 'Ambrata', 'Weiss'] }],
       cal: 150, macros: { carbo: 14, grassi: 0, prot: 2, fibre: 0 } },
-    { id: 'b4', name: 'Succo di frutta 20cl', price: 4, kind: 'default', photo: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&q=70&auto=format&fit=crop',
+    { id: 'b4', name: 'Succo di frutta 20cl', price: 4, cucinaChiusaOk: true, kind: 'default', photo: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400&q=70&auto=format&fit=crop',
       desc: 'Succo di frutta fresco, senza zuccheri aggiunti.',
       longDesc: 'Succo di frutta estratto a freddo, senza zuccheri aggiunti né conservanti. Disponibile: arancia, mela, carota-zenzero, ananas.',
       prep: 3, allergens: [], tone: 'a', ingredients: [],
       extras: [],
       variants: [{ id: 'gusto', label: 'Gusto', options: ['Arancia', 'Mela', 'Carota-zenzero', 'Ananas'] }],
       cal: 90, macros: { carbo: 22, grassi: 0, prot: 1, fibre: 1 } },
-    { id: 'b5', name: 'Caffè espresso', price: 2, kind: 'default', photo: 'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=70&auto=format&fit=crop',
+    { id: 'b5', name: 'Caffè espresso', price: 2, cucinaChiusaOk: true, kind: 'default', photo: 'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=400&q=70&auto=format&fit=crop',
       desc: 'Miscela arabica 100%, tostatura artigianale.',
       longDesc: 'Caffè espresso con miscela di arabica 100% selezionata dal nostro torrefattore di fiducia. Disponibile anche macchiato, ristretto o lungo.',
       prep: 2, allergens: [], tone: 'b', ingredients: [],
       extras: [],
       variants: [{ id: 'tipo', label: 'Tipo', options: ['Normale', 'Macchiato', 'Ristretto', 'Lungo'] }],
       cal: 5, macros: { carbo: 1, grassi: 0, prot: 0, fibre: 0 } },
-    { id: 'b6', name: 'Acqua frizzante 75cl', price: 3, kind: 'acqua', photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
+    { id: 'b6', name: 'Acqua frizzante 75cl', price: 3, cucinaChiusaOk: true, kind: 'acqua', photo: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=400&q=70&auto=format&fit=crop',
       desc: 'Acqua minerale frizzante, bottiglia di vetro.',
       longDesc: 'Acqua minerale effervescente naturale in bottiglia di vetro da 75cl.',
       prep: 1, allergens: [], tone: 'c', ingredients: [], extras: [], variants: [], cal: 0, macros: { carbo: 0, grassi: 0, prot: 0, fibre: 0 } },
@@ -1179,8 +1179,16 @@ function MenuScreen({ state, setState, goTo }) {
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: -0.4, lineHeight: 1.1 }}>Al Settembrini</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4ade80' }}/>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>Aperto · 12:00 – 23:30</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>{(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; return !i ? 'Aperto · 12:00 – 23:30' : i.chiusoOggi ? 'Oggi chiuso' : `${i.localeAperto ? 'Aperto' : 'Chiuso'} · ${i.apre} – ${i.chiude}`; })()}</span>
                   </div>
+                  {/* La riga della cucina (P-167 · D-117): fino a che ora si
+                      ordina, o da quando è chiusa. Gli orari del locale vengono
+                      dal registro condiviso, non da un testo fisso. */}
+                  {(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; if (!i || i.chiusoOggi) return null; return (
+                    <div data-cucina style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3 }}>
+                      {!i.localeAperto ? `Chiuso · apre alle ${i.apre}` : i.cucinaAperta ? `Cucina fino alle ${i.ultimaComanda}` : `Cucina chiusa dalle ${i.ultimaComanda}`}
+                    </div>
+                  ); })()}
                   {/* Il coperto o il servizio si legge nel menù, prima di
                       ordinare (P-155): una riga piccola e stabile sotto il nome
                       del locale, se la sede lo ha attivato, con il nome e la
@@ -2749,7 +2757,13 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
   }, 0);
   const unitTotal = dish.price + extrasTotal;
   const total = unitTotal * qty;
+  // Cucina chiusa (P-167 · D-117): passata l'ultima comanda, i piatti non
+  // eccettuati non si aggiungono e il foglio dice da quando; quelli con
+  // «Ordinabile anche a cucina chiusa» restano ordinabili.
+  const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+  const cucinaBloccato = !!(cucina && cucina.localeAperto && !cucina.cucinaAperta && !dish.cucinaChiusaOk);
   const addToCart = () => {
+    if (cucinaBloccato) return;
     if (isEdit) {
       const n = editLine.qty;
       const m = qty; // porzioni a cui applico questa personalizzazione (1..n)
@@ -3233,7 +3247,12 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
               }}>+</button>
             </div>
           )}
-          <button onClick={addToCart} style={{
+          {cucinaBloccato && (
+            <div data-cucina-chiusa style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: '#FEF3C7', color: '#92400E', fontSize: 13, lineHeight: 1.4 }}>
+              <b>Cucina chiusa dalle {cucina.ultimaComanda}.</b> Questo piatto non si può più ordinare; le bevande e i piatti freddi restano disponibili.
+            </div>
+          )}
+          <button onClick={addToCart} disabled={cucinaBloccato} style={{ opacity: cucinaBloccato ? 0.5 : 1, cursor: cucinaBloccato ? 'not-allowed' : 'pointer',
             flex: 1, height: 56, borderRadius: 999, border: 'none',
             background: WINE, color: '#fff',
             fontSize: 15, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',

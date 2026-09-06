@@ -341,7 +341,7 @@ function FavoriteCard({ name, type, tone, photo, distance, hours, openHour, clos
         <div style={{ fontSize: 11, marginTop: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
           <span style={{ width: 6, height: 6, borderRadius: 999, background: open ? '#0a8a3a' : T.primary,
             boxShadow: open ? '0 0 6px rgba(10,138,58,.5)' : 'none' }}/>
-          <span style={{ color: open ? '#0a8a3a' : T.primary, fontWeight: 700 }}>{open ? 'Aperto' : 'Chiuso'}</span>
+          <span style={{ color: open ? '#0a8a3a' : T.primary, fontWeight: 700 }}>{open ? (window.byupCucinaChiusaPer && window.byupCucinaChiusaPer(name) ? 'Aperto · cucina chiusa' : 'Aperto') : 'Chiuso'}</span>
         </div>
         <div style={{ fontSize: 11, color: T.textDim, marginTop: 4 }}>
           <span>{oh} – {ch}</span>
@@ -416,7 +416,7 @@ function DetailSheet({ item, onClose, onOpenVenue, onMenu, onBook }) {
           <Tag>{price}</Tag>
           <Tag><Icon.Pin size={12}/> {distance}</Tag>
           {open
-            ? <Tag style={{ color: '#0a8a3a' }}>Aperto · chiude alle {closeAt}</Tag>
+            ? <Tag style={{ color: '#0a8a3a' }}>Aperto · chiude alle {closeAt}{window.byupCucinaChiusaPer && window.byupCucinaChiusaPer(item.title || item.name) ? ' · cucina chiusa' : ''}</Tag>
             : <Tag style={{ color: '#aa2222' }}>Chiuso</Tag>}
         </div>
         <div style={{ fontSize: 13.5, color: '#3a3a3a', lineHeight: 1.5, marginBottom: 16 }}>
@@ -682,7 +682,7 @@ function CategoryScreen({ cat, onBack, onOpenVenue }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3.5, fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,.92)' }}>
           <span style={{ width: 6, height: 6, borderRadius: 999, flexShrink: 0,
             background: v.open ? '#3ddc7f' : '#ff6b6b', boxShadow: `0 0 6px ${v.open ? '#3ddc7f' : '#ff6b6b'}` }}/>
-          <span style={{ flexShrink: 0 }}>{v.open ? 'Aperto' : 'Chiuso'}</span>
+          <span style={{ flexShrink: 0 }}>{v.open ? (window.byupCucinaChiusaPer && window.byupCucinaChiusaPer(v.name) ? 'Aperto · cucina chiusa' : 'Aperto') : 'Chiuso'}</span>
           <span style={{ width: 3, height: 3, borderRadius: 999, background: 'rgba(255,255,255,.5)', flexShrink: 0 }}/>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.distance} · {v.price}</span>
         </div>

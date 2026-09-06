@@ -25,9 +25,11 @@ const VETRINA_DATI_MOCK = {
   // L'insieme dei codici DICHIARATI: chi non c'è non è «assente», è non
   // dichiarato, e la vetrina non promette mai che una dotazione manchi.
   servizi: ['wifi_gratuito', 'servizio_al_tavolo'],
-  openDays: { Lun:true, Mar:true, Mer:true, Gio:true, Ven:true, Sab:true },
-  stdHours: ['09:00', '23:00'],
-  customHours: null, // null | {Lun: [['12:00','15:00'], …], …}
+  // Gli orari vivono nel registro condiviso byup_orari (P-167): li leggono il
+  // menù dell'app e della webapp, la cucina e l'asporto. Il seme è questo.
+  openDays: (window.byupReadOrari ? window.byupReadOrari() : {}).openDays || { Lun:true, Mar:true, Mer:true, Gio:true, Ven:true, Sab:true },
+  stdHours: (window.byupReadOrari ? window.byupReadOrari() : {}).stdHours || ['09:00', '23:00'],
+  customHours: (window.byupReadOrari ? window.byupReadOrari() : {}).customHours || null, // null | {Lun: [['12:00','15:00'], …], …}
   // Le chiusure straordinarie (venue_closures, P-46): lette dal registro
   // persistente, non dal mock — così Impostazioni, anteprima e Sala leggono la
   // stessa cosa.
@@ -52,7 +54,14 @@ function useVetrinaDati() {
   // Accetta un valore o una funzione del valore precedente, come setState:
   // così le card scrivono `setFaqs(f => …)` esattamente come prima.
   const aggiorna = React.useCallback((k, v) =>
-    setDati(d => ({ ...d, [k]: typeof v === 'function' ? v(d[k]) : v })), []);
+    setDati(d => {
+      const next = { ...d, [k]: typeof v === 'function' ? v(d[k]) : v };
+      // Gli orari cambiati qui li leggono tutti (P-167): registro condiviso.
+      if ((k === 'openDays' || k === 'stdHours' || k === 'customHours') && window.byupWriteOrari) {
+        window.byupWriteOrari({ openDays: next.openDays, stdHours: next.stdHours, customHours: next.customHours });
+      }
+      return next;
+    }), []);
   return [dati, aggiorna];
 }
 

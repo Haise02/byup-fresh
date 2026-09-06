@@ -91,6 +91,9 @@ function SalaApp() {
   // che vede tutto.
   function handleConfirmCart() {
     const tableId = cart.tableId;
+    // Cucina chiusa (P-167 · D-117): la sala invia comunque, con l'avviso e l'ora.
+    const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+    if (cucina && !cucina.cucinaAperta && cucina.ultimaComanda) showToast(`Cucina chiusa dalle ${cucina.ultimaComanda}: la comanda parte lo stesso, avvisa la cucina`);
     const count = cart.items.reduce((s,i)=>s+i.qty,0);
     let accodate = [];
     if (typeof window.byupAccodaComande === 'function') {

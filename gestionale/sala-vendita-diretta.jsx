@@ -356,7 +356,10 @@ function SalaVenditaDiretta() {
       ? { ...r, inCucina: true, codiceRitiro: r.codiceRitiro || nuovoCodiceRitiro() } : r));
     const accodate = accodaComande(ordine);
     const dove = accodate.length ? ` a ${accodate.map(a => a.stampante.name).join(', ')}` : '';
-    showToast(`${svNomeConto(ordine)} · comanda in cucina${dove}`);
+    // Cucina chiusa (P-167 · D-117): nessun blocco, l'avviso con l'ora.
+    const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+    const chiusa = cucina && !cucina.cucinaAperta && cucina.ultimaComanda ? ` · cucina chiusa dalle ${cucina.ultimaComanda}` : '';
+    showToast(`${svNomeConto(ordine)} · comanda in cucina${dove}${chiusa}`);
   };
 
   const parcheggiaConAcconto = (pagamento, totaleConto) => {

@@ -537,6 +537,7 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
           <CircleCheck/>
           <div style={{ fontSize: 16, fontWeight: 800, color: ST.TEXT, marginTop: 16 }}>Operazione completata</div>
           <div style={{ fontSize: 13, color: ST.MUTED, marginTop: 6 }}>L'ordine è stato inviato</div>
+          {modal.avviso && <div style={{ fontSize: 12.5, color: '#92400E', background: '#FEF3C7', borderRadius: 10, padding: '8px 12px', marginTop: 12, lineHeight: 1.4 }}>{modal.avviso}</div>}
         </div>
       </ModalShell>
     );

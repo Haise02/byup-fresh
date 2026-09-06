@@ -1414,6 +1414,77 @@ window.byupScollegaDelivery = function (id) {
   window.dispatchEvent(new Event('byup-delivery-change'));
 };
 
+
+// ─── Orari del locale e ultima comanda della cucina (P-167 · D-117) ─────────
+// Il locale ha gli orari di apertura (Vetrina → Orari di apertura, registro
+// byup_orari) e la cucina ha la sua ULTIMA COMANDA (Impostazioni → Menù e
+// cucina → Servizio, registro byup_ultima_comanda): un orario per giorno,
+// «uguale alla chiusura» come predefinito. La mezzanotte si gestisce come la
+// chiusura del locale: un orario prima dell'apertura appartiene al giorno
+// prima. L'orologio è quello italiano, o quello finto di `?ora=HH:MM`
+// (sessionStorage byup_ora_demo), che serve a provare la cucina chiusa senza
+// aspettare la notte. D-117: l'ultima comanda è una promessa ai clienti, non
+// un lucchetto per chi sta in sala — app e webapp fermano l'aggiunta dei piatti
+// non eccettuati, Sala e cameriere inviano con un avviso.
+if (!window.byupCucinaInfo) {
+  const ORARI_KEY = 'byup_orari', UC_KEY = 'byup_ultima_comanda';
+  const GIORNI = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+  // Il seme è quello della Vetrina: aperto dal lunedì al sabato, 09:00–23:00.
+  const ORARI_SEME = { openDays: { Lun: true, Mar: true, Mer: true, Gio: true, Ven: true, Sab: true }, stdHours: ['09:00', '23:00'], customHours: null };
+  const leggi = (k, fb) => { try { const s = localStorage.getItem(k); return s ? Object.assign({}, fb, JSON.parse(s)) : Object.assign({}, fb); } catch (e) { return Object.assign({}, fb); } };
+  window.byupReadOrari = () => leggi(ORARI_KEY, ORARI_SEME);
+  window.byupWriteOrari = (v) => { try { localStorage.setItem(ORARI_KEY, JSON.stringify(v)); } catch (e) {} try { window.dispatchEvent(new Event('byup-orari-change')); } catch (e) {} };
+  window.byupReadUltimaComanda = () => leggi(UC_KEY, { modo: 'chiusura', orari: {} });
+  window.byupWriteUltimaComanda = (v) => { try { localStorage.setItem(UC_KEY, JSON.stringify(v)); } catch (e) {} try { window.dispatchEvent(new Event('byup-ultima-comanda-change')); } catch (e) {} };
+  const toMin = (hhmm) => { const [h, m] = String(hhmm || '00:00').split(':').map(n => parseInt(n, 10) || 0); return h * 60 + m; };
+  const pad = (n) => String(n).padStart(2, '0');
+  // L'ora e il giorno italiani, o quelli finti.
+  window.byupOraDemo = () => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('ora');
+      if (q && /^\d{1,2}:\d{2}$/.test(q)) sessionStorage.setItem('byup_ora_demo', q);
+      const d = sessionStorage.getItem('byup_ora_demo'); if (d) return d;
+    } catch (e) {}
+    try {
+      const p = new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+      const g = (t) => (p.find(x => x.type === t) || {}).value || '00';
+      return `${pad(parseInt(g('hour'), 10) % 24)}:${g('minute')}`;
+    } catch (e) { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+  };
+  // Gli orari di un giorno (0 = domenica): aperto?, apre, chiude — dal primo
+  // all'ultimo turno se il giorno è personalizzato.
+  window.byupOrariDelGiorno = (idx) => {
+    const o = window.byupReadOrari(); const g = GIORNI[((idx % 7) + 7) % 7];
+    if (!o.openDays || !o.openDays[g]) return { giorno: g, aperto: false };
+    const turni = o.customHours && o.customHours[g] && o.customHours[g].length ? o.customHours[g] : [o.stdHours || ORARI_SEME.stdHours];
+    return { giorno: g, aperto: true, apre: turni[0][0], chiude: turni[turni.length - 1][1] };
+  };
+  window.byupCucinaInfo = () => {
+    const ora = window.byupOraDemo(); const m = toMin(ora);
+    const oggiIdx = new Date().getDay();
+    // Minuti trascorsi dall'apertura, contando oltre la mezzanotte se serve.
+    const dopo = (apre, t) => (toMin(t) - toMin(apre) + 1440) % 1440;
+    const valuta = (idx) => {
+      const g = window.byupOrariDelGiorno(idx); if (!g.aperto) return null;
+      const durata = g.chiude === g.apre ? 1440 : dopo(g.apre, g.chiude);
+      const uc = window.byupReadUltimaComanda();
+      const ultima = uc.modo === 'orario' && uc.orari && uc.orari[g.giorno] ? uc.orari[g.giorno] : g.chiude;
+      const trascorso = dopo(g.apre, ora);
+      return { giorno: g.giorno, apre: g.apre, chiude: g.chiude, ultimaComanda: ultima, localeAperto: trascorso < durata, cucinaAperta: trascorso < Math.min(durata, dopo(g.apre, ultima) || durata) };
+    };
+    let v = valuta(oggiIdx);
+    // Prima dell'apertura di oggi può valere ancora la giornata di ieri, se
+    // chiudeva dopo mezzanotte.
+    if ((!v || !v.localeAperto) ) { const ieri = valuta(oggiIdx - 1); if (ieri && toMin(ieri.chiude) <= toMin(ieri.apre) && ieri.localeAperto && m < toMin(ieri.chiude)) v = ieri; }
+    if (!v) { const g = window.byupOrariDelGiorno(oggiIdx); return { ora, giorno: g.giorno, localeAperto: false, cucinaAperta: false, apre: null, chiude: null, ultimaComanda: null, chiusoOggi: true }; }
+    return Object.assign({ ora, chiusoOggi: false }, v);
+  };
+  // Il locale della demo, quello del menù: per gli altri della scoperta non
+  // conosciamo la cucina e non si inventa.
+  window.byupAvvisoCucinaChiusa = () => { const i = window.byupCucinaInfo(); return !i.cucinaAperta && i.ultimaComanda ? `Cucina chiusa dalle ${i.ultimaComanda}: avvisa la cucina che la comanda è partita lo stesso` : null; };
+  window.byupCucinaChiusaPer = (nome) => { if (!/settembrini|maria grazia/i.test(String(nome || ''))) return false; const i = window.byupCucinaInfo(); return i.localeAperto && !i.cucinaAperta; };
+}
+
 // ─── La valutazione del locale, in un posto solo (P-157) ────────────────────
 // La media delle recensioni Byup e il loro numero (venue_profiles.avg_rating,
 // review_count) si leggono da un registro condiviso sullo stesso dominio, come

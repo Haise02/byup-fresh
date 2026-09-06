@@ -203,7 +203,7 @@ function ScreenSala({ nav, openModal }) {
             onLibera={() => openModal({ kind: 'conferma-cancella-prenotazione', tavolo: t, noShow: isNoShow(t) })}
             onChiudi={() => openModal({ kind: 'conferma-libera', tavolo: t })}
             onPulito={() => store.segnaPulito(t.id)}
-            onInvia={(indici) => { store.inviaCucinaItems(t.id, indici); openModal({ kind: 'send-success' }); }}
+            onInvia={(indici) => { store.inviaCucinaItems(t.id, indici); openModal({ kind: 'send-success', avviso: window.byupAvvisoCucinaChiusa ? window.byupAvvisoCucinaChiusa() : null }); }}
             onPortaIo={(indici) => store.portaDirettoItems(t.id, indici)}
             onAddOrder={() => nav.push({ s: 'menu', tavoloId: t.id })}
             onPaga={() => nav.push({ s: 'pagamento-split', id: t.id })}

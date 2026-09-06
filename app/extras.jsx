@@ -2577,6 +2577,12 @@ function VenueOriginal({ venue, onBack, onMenu, onBook, onHome, onProfile, onMap
             <div style={{ fontFamily: "'Fredoka', sans-serif", fontSize: 30, fontWeight: 600, lineHeight: 1.1, textShadow: '0 2px 12px rgba(0,0,0,0.45)' }}>
               {v.name || 'Ristorante Cacio e Pepe'}
             </div>
+              {/* Lo stato (P-167 · D-117): aperto, e se la cucina non lo è più lo dice. */}
+              {(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; if (!i || !i.apre) return null; return (
+                <div data-stato-cucina style={{ fontSize: 12.5, color: MUTED_X, marginTop: 4 }}>
+                  {i.chiusoOggi ? 'Oggi chiuso' : !i.localeAperto ? `Chiuso · apre alle ${i.apre}` : i.cucinaAperta ? `Aperto · cucina fino alle ${i.ultimaComanda}` : `Aperto · cucina chiusa dalle ${i.ultimaComanda}`}
+                </div>
+              ); })()}
           </div>
           {/* Expand hint */}
           {!heroExpanded && (

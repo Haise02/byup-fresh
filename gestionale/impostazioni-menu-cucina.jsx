@@ -68,6 +68,63 @@ function CopertoImportoLibero({ tipo, valore, onChange }) {
   );
 }
 
+
+// La card dell'ultima comanda (P-167). Legge gli orari di apertura dal
+// registro per dire, giorno per giorno, a che ora chiude il locale; il
+// predefinito «uguale alla chiusura» non chiede nulla; «un orario mio» apre
+// sette campi, uno per giorno aperto. Nulla si salva con un pulsante: ogni
+// cambio scrive il registro, come per il coperto.
+function UltimaComandaCard() {
+  const [uc, setUcState] = React.useState(() => window.byupReadUltimaComanda ? window.byupReadUltimaComanda() : { modo: 'chiusura', orari: {} });
+  const [orari, setOrari] = React.useState(() => window.byupReadOrari ? window.byupReadOrari() : { openDays: {}, stdHours: ['09:00', '23:00'] });
+  React.useEffect(() => {
+    const ri = () => setOrari(window.byupReadOrari ? window.byupReadOrari() : orari);
+    window.addEventListener('byup-orari-change', ri); window.addEventListener('storage', ri);
+    return () => { window.removeEventListener('byup-orari-change', ri); window.removeEventListener('storage', ri); };
+  }, []);
+  const setUc = (patch) => { const next = { ...uc, ...patch }; setUcState(next); if (window.byupWriteUltimaComanda) window.byupWriteUltimaComanda(next); };
+  const GIORNI = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  const chiusuraDi = (g) => { const t = orari.customHours && orari.customHours[g] && orari.customHours[g].length ? orari.customHours[g] : [orari.stdHours || ['09:00', '23:00']]; return t[t.length - 1][1]; };
+  const info = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
+  return (
+    <ImpCard anchor="ultima-comanda" title="Ultima comanda"
+      sub="L'ora oltre la quale la cucina non prende più ordini. App e webapp la scrivono in testa al menù e, passata l'ora, non fanno aggiungere i piatti che non hai eccettuato; in sala si invia comunque, con un avviso.">
+      <div style={{display:'inline-flex', background: PN.WHITE, padding: 3, borderRadius: 999, gap: 2, border:`1px solid ${PN.BORDER}`}}>
+        {[{id:'chiusura', label:'Uguale alla chiusura'}, {id:'orario', label:'Un orario mio, per giorno'}].map(m => {
+          const on = (uc.modo || 'chiusura') === m.id;
+          return (
+            <button key={m.id} data-ultima-comanda={m.id} onClick={() => setUc({ modo: m.id })} style={{
+              padding:'5px 13px', borderRadius: 999, border:'none',
+              background: on ? PN.PINK_SOFT : 'transparent', color: on ? PN.PINK_DARK : PN.MUTED,
+              fontSize: 13, fontWeight: 700, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap',
+            }}>{m.label}</button>
+          );
+        })}
+      </div>
+      {(uc.modo || 'chiusura') === 'orario' && (
+        <div style={{display:'grid', gridTemplateColumns:'repeat(7, minmax(0, 1fr))', gap: 8, marginTop: 12}}>
+          {GIORNI.map(g => {
+            const aperto = !!(orari.openDays && orari.openDays[g]);
+            return (
+              <div key={g} style={{opacity: aperto ? 1 : 0.45}}>
+                <div style={{fontSize: 11.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 4}}>{g}</div>
+                <input type="time" value={(uc.orari && uc.orari[g]) || ''} disabled={!aperto} placeholder={chiusuraDi(g)}
+                  onChange={e => setUc({ orari: { ...(uc.orari || {}), [g]: e.target.value || undefined } })}
+                  style={{width:'100%', boxSizing:'border-box', padding:'7px 6px', borderRadius: 8, border:`1px solid ${PN.BORDER}`, fontFamily:'inherit', fontSize: 13, color: PN.TEXT, background: PN.WHITE}}/>
+                <div style={{fontSize: 11, color: PN.MUTED_SOFT, marginTop: 3}}>{aperto ? `chiude ${chiusuraDi(g)}` : 'chiuso'}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 10, lineHeight: 1.5}}>
+        I piatti che restano ordinabili anche a cucina chiusa — bevande, piatti freddi — si eccettuano uno per uno dalla loro scheda, con la spunta «Ordinabile anche a cucina chiusa»: il predefinito è che tutto il menù chiuda con la cucina. La mezzanotte si gestisce come la chiusura del locale.
+        {info && info.localeAperto && <> Adesso ({info.ora}): {info.cucinaAperta ? `cucina aperta fino alle ${info.ultimaComanda}` : `cucina chiusa dalle ${info.ultimaComanda}`}.</>}
+      </div>
+    </ImpCard>
+  );
+}
+
 // ─── Segni degli allergeni ───────────────────────────────────────────────────
 // Disegnati, non iniziali: «G» e «S» valevano per glutine e per sedano, e in
 // griglia non si distinguevano nemmeno guardandoli. Ogni segno è la cosa —
@@ -3684,6 +3741,9 @@ function MCDettagliPiatto({
   const [tipologiaOpen, setTipologiaOpen] = React.useState(false);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish.hasAlcohol || false);
   const [hasFrozen, setHasFrozen] = React.useState(dish.hasFrozen || false);
+  // «Ordinabile anche a cucina chiusa» (P-167 · D-117): spenta per difetto,
+  // il locale eccettua i singoli piatti — bevande, piatti freddi.
+  const [cucinaChiusaOk, setCucinaChiusaOk] = React.useState(!!dish.cucinaChiusaOk);
   const [tipOpen, setTipOpen] = React.useState(null);
   const [aiLoading, setAiLoading] = React.useState(false);
   // Quale conferma è aperta: 'menu' (togli da questo menù) o 'libreria' (via da tutti).
@@ -3759,7 +3819,7 @@ function MCDettagliPiatto({
       descriptionAiGeneratedAt: descAi ? descAi.at : null,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(String(foodCost).replace(',', '.')) : null,
-      tipologia: tipologiaArticolo, hasAlcohol, hasFrozen, recipeSteps,
+      tipologia: tipologiaArticolo, hasAlcohol, hasFrozen, cucinaChiusaOk, recipeSteps,
       ingredients, extras, variants, dietaryTags, photos,
     });
     onUpdateItem({
@@ -3930,6 +3990,13 @@ function MCDettagliPiatto({
               <NMSelect value={tipologiaArticolo} onChange={setTipologiaArticolo}
                 open={tipologiaOpen} setOpen={setTipologiaOpen}
                 options={(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => ({ value: t.id, label: t.label }))}/>
+            </MCCampo>
+
+            <MCCampo label="Cucina chiusa" hint="Il predefinito è che tutto il menù chiuda con la cucina; le bevande e i piatti freddi si eccettuano qui.">
+              <label style={{display:'flex', alignItems:'center', gap: 8, cursor:'pointer', fontSize: 13.5, color: PN.TEXT}}>
+                <input type="checkbox" data-cucina-chiusa-ok checked={cucinaChiusaOk} onChange={e => setCucinaChiusaOk(e.target.checked)} style={{accentColor: PN.PINK_DARK}}/>
+                Ordinabile anche a cucina chiusa
+              </label>
             </MCCampo>
 
             <MCCampo label="Foto" style={{marginBottom: 0}} right={<span style={{fontSize: 12, color: PN.MUTED_SOFT, fontWeight: 600}}>{photos.length}/3</span>}>
@@ -5718,6 +5785,8 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
   const [catOpen, setCatOpen] = React.useState(false);
   const [hasAlcohol, setHasAlcohol] = React.useState(dish?.hasAlcohol || false);
   const [hasFrozen, setHasFrozen] = React.useState(dish?.hasFrozen || false);
+  // «Ordinabile anche a cucina chiusa» (P-167 · D-117): spenta per difetto.
+  const [cucinaChiusaOk, setCucinaChiusaOk] = React.useState(!!(dish && dish.cucinaChiusaOk));
   const [tipOpen, setTipOpen] = React.useState(null); // tooltip aperto: {id,x,y} o null
 
   // Il tooltip si chiude al primo click altrove: aperto, restava sopra a
@@ -5801,7 +5870,7 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
       cat,
       allergens: effectiveAllergens,
       foodCost: foodCost ? parseFloat(foodCost.replace(',','.')) : null,
-      tipologia: tipologiaArticolo, hasAlcohol, hasFrozen, recipeSteps,
+      tipologia: tipologiaArticolo, hasAlcohol, hasFrozen, cucinaChiusaOk, recipeSteps,
       ingredients, extras, variants, dietaryTags,
     };
     if (!fromLibrary && catName) {
@@ -5933,6 +6002,12 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
                     options={(window.PN_TIPOLOGIE_ARTICOLO || []).map(t => ({ value: t.id, label: t.label }))}/>
                 </ImpField>
               </div>
+              <ImpField label="Cucina chiusa" style={{flex:'0 0 260px'}} hint="Il predefinito è che il menù chiuda con la cucina.">
+                <label style={{display:'flex', alignItems:'center', gap: 8, cursor:'pointer', fontSize: 13.5, color: PN.TEXT, padding:'8px 0'}}>
+                  <input type="checkbox" data-cucina-chiusa-ok checked={cucinaChiusaOk} onChange={e => setCucinaChiusaOk(e.target.checked)} style={{accentColor: PN.PINK_DARK}}/>
+                  Ordinabile anche a cucina chiusa
+                </label>
+              </ImpField>
               {!fromLibrary && (
                 <ImpField label="Categoria" style={{flex:'0 0 200px'}}>
                   <NMSelect value={cat} onChange={setCat} open={catOpen} setOpen={setCatOpen} options={ALL_CATS}/>
@@ -7727,6 +7802,14 @@ function MCConfigura() {
         </div>
       </ImpCard>
       )}
+
+      {/* ── Ultima comanda (P-167 · D-117): l'orario oltre il quale la cucina
+          non prende più ordini, un orario per giorno come gli orari di
+          apertura, con «uguale alla chiusura» come predefinito. È una promessa
+          ai clienti — app e webapp fermano i piatti non eccettuati — non un
+          lucchetto per la sala, che invia con un avviso. Registro condiviso
+          byup_ultima_comanda; la mezzanotte si gestisce come la chiusura. */}
+      <UltimaComandaCard/>
 
       {/* === SEZIONE 2: PRENOTAZIONI === */}
       <ImpCard

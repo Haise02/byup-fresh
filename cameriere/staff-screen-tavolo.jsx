@@ -156,7 +156,8 @@ function TavoloHubServizio({ t, nav, openModal }) {
         const invia = () => {
           TavoliStore.inviaCucinaItems(t.id, selezioneOTutti());
           setInviaSel({});
-          openModal({ kind: 'send-success' });
+          // Cucina chiusa (P-167 · D-117): l'invio passa, con l'avviso e l'ora.
+          openModal({ kind: 'send-success', avviso: window.byupAvvisoCucinaChiusa ? window.byupAvvisoCucinaChiusa() : null });
         };
         const portaIo = (indici) => {
           TavoliStore.portaDirettoItems(t.id, indici);
