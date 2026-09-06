@@ -1702,8 +1702,12 @@ function ImpDatiFiscali() {
     // Sede operativa (stampata in testa ai documenti, e non solo qui: la
     // stessa testata la porta il foglio che esce dalla stampante, e viene
     // dallo stesso registro — PN_ESERCENTE in panoramica-tokens.jsx).
-    indirizzo: PN_ESERCENTE.indirizzo,
-    citta: PN_ESERCENTE.citta, cap: PN_ESERCENTE.cap, prov: PN_ESERCENTE.prov,
+    // ...e da Dati anagrafici si corregge: quello che si salva torna nel
+    // registro byup_esercente (P-171), da cui il coperto legge la regione.
+    indirizzo: (window.byupReadEsercente ? byupReadEsercente() : PN_ESERCENTE).indirizzo,
+    citta: (window.byupReadEsercente ? byupReadEsercente() : PN_ESERCENTE).citta,
+    cap: (window.byupReadEsercente ? byupReadEsercente() : PN_ESERCENTE).cap,
+    prov: (window.byupReadEsercente ? byupReadEsercente() : PN_ESERCENTE).prov,
     // Dati per fatturazione
     rea: 'RM-1234567',
     cciaa: 'Roma',
@@ -1993,7 +1997,12 @@ function ImpDatiFiscali() {
         </aside>
       </div>
 
-      <ImpSaveBar dirty={dirty} onCancel={() => setDirty(false)} onSave={() => setDirty(false)}/>
+      <ImpSaveBar dirty={dirty} onCancel={() => setDirty(false)} onSave={() => {
+        setDirty(false);
+        // La sede vale per tutti (P-171): la testata dei documenti e la regola
+        // regionale del coperto la leggono dal registro condiviso.
+        if (window.byupWriteEsercente) window.byupWriteEsercente({ indirizzo: data.indirizzo, citta: data.citta, cap: data.cap, prov: data.prov });
+      }}/>
     </div>
   );
 }

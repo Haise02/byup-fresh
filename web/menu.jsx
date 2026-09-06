@@ -2828,6 +2828,8 @@ function byupCopertoLeggi() {
 function byupCopertoRiga(subtotale, coperti, cfg) {
   const c = cfg || byupCopertoLeggi();
   const nome = c.qualificazione === 'servizio' ? 'Servizio' : 'Coperto';
+  // Sospesa (P-171): la sede è in una regione che vieta la qualificazione in uso, e la voce tace.
+  if (c.sospesa) return { nome, attiva: false, sospesa: true, forma: c.forma, importo: Number(c.importo) || 0, aliquota: Number(c.aliquota) || 0, etichetta: '', dettaglio: '', valore: 0 };
   if (c.forma === 'percentuale') {
     const aliquota = Number(c.aliquota) || 0;
     return { nome, attiva: aliquota > 0, forma: 'percentuale', aliquota, etichetta: `${nome} · ${aliquota}% sul totale`, dettaglio: `${nome} ${aliquota}%`, valore: Math.round((subtotale || 0) * aliquota) / 100 };

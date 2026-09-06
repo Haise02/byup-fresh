@@ -7457,6 +7457,18 @@ function MCConfigura() {
   // dei due può essere applicato con l'unità sbagliata.
   const [coperto, setCopertoState] = React.useState(() => window.byupReadCoperto ? window.byupReadCoperto() : { qualificazione: 'coperto', forma: 'fissa', importo: 0, aliquota: 0 });
   const setCoperto = (patch) => { const next = { ...coperto, ...patch }; setCopertoState(next); window.byupWriteCoperto && window.byupWriteCoperto(next); };
+  // La regola della regione della sede (P-171 · D-120): le qualificazioni
+  // offerte sono quelle ammesse, l'opzione vietata non c'è. Se la sede cambia
+  // regione e la voce in uso non è più ammessa, la voce risulta sospesa e da
+  // qui si reimposta. Il controllo gira all'apertura e a ogni cambio di sede.
+  const regola = window.byupRegolaSede ? window.byupRegolaSede() : { regione: null, coperto: true, servizio: true, nota: '' };
+  const ammesse = window.byupQualificazioniAmmesse ? window.byupQualificazioniAmmesse() : ['coperto', 'servizio'];
+  React.useEffect(() => {
+    const ri = () => { if (window.byupCopertoVerifica) window.byupCopertoVerifica(); setCopertoState(window.byupReadCoperto()); };
+    ri();
+    window.addEventListener('byup-esercente-change', ri); window.addEventListener('byup-coperto-change', ri);
+    return () => { window.removeEventListener('byup-esercente-change', ri); window.removeEventListener('byup-coperto-change', ri); };
+  }, []);
   const servizioTipo = coperto.forma === 'percentuale' ? 'percentuale' : 'fisso';
   const servizio = servizioTipo === 'fisso' ? coperto.importo : coperto.aliquota;
   const setServizio = (v) => setCoperto(servizioTipo === 'fisso' ? { importo: v } : { aliquota: v });
@@ -7717,6 +7729,11 @@ function MCConfigura() {
             prima di confermare l'ordine, nell'app e nella webapp, e la ritrova sul conto e sullo
             scontrino con lo stesso nome. Solo in sala, non all'asporto.
           </div>
+          {coperto.sospesa && (
+            <div data-coperto-sospeso style={{marginBottom: 14, padding:'11px 13px', borderRadius: 10, background: PN.AMBER_SOFT, border:'1px solid rgba(180, 83, 9, 0.22)', fontSize: 13.5, color: PN.TEXT, lineHeight: 1.5}}>
+              <b>La voce è sospesa.</b> La sede è ora in {regola.regione || 'una regione'} dove «{copertoNome}» non è ammesso: non compare più ai clienti né sul conto. Scegli come si chiama e la voce riparte.
+            </div>
+          )}
 
           <div style={{display:'grid', gridTemplateColumns:'minmax(0, 1fr) minmax(0, 1fr)', gap: 14}}>
             <div>
@@ -7724,10 +7741,10 @@ function MCConfigura() {
                   imposto — è ciò che fa il mercato — e la scelta non tocca la forma. */}
               <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform:'uppercase', marginBottom: 7}}>Come si chiama</div>
               <div style={{display:'inline-flex', background: PN.WHITE, padding: 3, borderRadius: 999, gap: 2, border:`1px solid ${PN.BORDER}`}}>
-                {[{id:'coperto', label:'Coperto'}, {id:'servizio', label:'Servizio'}].map(m => {
-                  const on = coperto.qualificazione === m.id;
+                {[{id:'coperto', label:'Coperto'}, {id:'servizio', label:'Servizio'}].filter(m => ammesse.includes(m.id)).map(m => {
+                  const on = coperto.qualificazione === m.id && !coperto.sospesa;
                   return (
-                    <button key={m.id} data-qualificazione={m.id} onClick={() => setCoperto({ qualificazione: m.id })} style={{
+                    <button key={m.id} data-qualificazione={m.id} onClick={() => setCoperto({ qualificazione: m.id, sospesa: false })} style={{
                       padding:'5px 13px', borderRadius: 999, border:'none',
                       background: on ? PN.PINK_SOFT : 'transparent',
                       color: on ? PN.PINK_DARK : PN.MUTED,
@@ -7738,10 +7755,8 @@ function MCConfigura() {
                   );
                 })}
               </div>
-              <div style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.5}}>
-                Il coperto è proposto, non imposto. Dove un regolamento comunale vieta il coperto e
-                ammette il servizio, la stessa cifra è lecita sotto un nome e illecita sotto l'altro:
-                cambia il nome, non la cifra.
+              <div data-regola-regionale style={{fontSize: 12.5, color: PN.MUTED, marginTop: 8, lineHeight: 1.5}}>
+                {regola.nota}{regola.regione ? ` Sede in ${regola.regione}${regola.prov ? ` (${regola.prov})` : ''}.` : ''}
               </div>
             </div>
 

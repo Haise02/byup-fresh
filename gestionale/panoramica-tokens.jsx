@@ -1018,7 +1018,24 @@ const PN_ESERCENTE = {
   citta: 'Roma', cap: '00197', prov: 'RM',
 };
 window.PN_ESERCENTE = PN_ESERCENTE;
-window.byupReadEsercente = function () { return { ...PN_ESERCENTE }; };
+// La sede si può correggere da Dati anagrafici (P-171): quello che si salva
+// vive nel registro byup_esercente sopra il seme, e chi legge la sede — la
+// testata dei documenti, la regola regionale del coperto — la legge da qui.
+const PN_ESERCENTE_KEY = 'byup_esercente';
+window.byupReadEsercente = function () {
+  try { const s = localStorage.getItem(PN_ESERCENTE_KEY); return Object.assign({ ...PN_ESERCENTE }, s ? JSON.parse(s) : {}); }
+  catch (e) { return { ...PN_ESERCENTE }; }
+};
+window.byupWriteEsercente = function (patch) {
+  const v = Object.assign({}, window.byupReadEsercente(), patch || {});
+  const solo = {}; Object.keys(PN_ESERCENTE).forEach(k => { solo[k] = v[k]; });
+  try { localStorage.setItem(PN_ESERCENTE_KEY, JSON.stringify(solo)); } catch (e) {}
+  window.dispatchEvent(new Event('byup-esercente-change'));
+  // La sede è cambiata: se la regione nuova vieta la qualificazione in uso,
+  // la voce di coperto o servizio si sospende (P-171, punto 4).
+  if (window.byupCopertoVerifica) window.byupCopertoVerifica();
+  return solo;
+};
 
 // ─── Censimento dei POS all'Agenzia delle Entrate (P-105 · FISC-03) ────────
 // Art. 1 co. 74-77 L. 207/2024 e Provv. AdE 424470/2025: ogni strumento di
@@ -1746,6 +1763,53 @@ window.pnRegimeSoluzione = () => PN_REGIME_SEDE === 'soluzione';
 // Il portale dove l'esercente mostra i propri invii in un controllo.
 window.PN_PORTALE_FC = 'https://ivaservizi.agenziaentrate.gov.it/portale/';
 
+// ─── Le regole regionali su coperto e servizio (P-171 · D-120) ──────────────
+// regional_charge_rules del modello (v0.25): una riga per regione, con che
+// cosa è ammesso e la fonte. La regione della sede si deriva dalla sigla
+// della provincia (venues.address_region_code): RM → Lazio. Le righe sono
+// quelle del riferimento dei valori: nel Lazio il coperto è vietato in ogni
+// somministrazione e il servizio è ammesso se il listino lo mostra prima
+// dell'ordine (L.R. 22/2019, art. 75, commi 2-4); in Toscana, Liguria, Marche
+// e Molise coperto e servizio valgono alla carta e non nelle formule a prezzo
+// fisso; altrove entrambi, esposti prima dell'ordine (R.D. 635/1940, art.
+// 180). Le leggi regionali cambiano: la tabella si aggiorna qui.
+const PN_REGIONE_DI_PROVINCIA = {
+  AG:'Sicilia', AL:'Piemonte', AN:'Marche', AO:'Valle d\'Aosta', AP:'Marche', AQ:'Abruzzo', AR:'Toscana', AT:'Piemonte', AV:'Campania',
+  BA:'Puglia', BG:'Lombardia', BI:'Piemonte', BL:'Veneto', BN:'Campania', BO:'Emilia-Romagna', BR:'Puglia', BS:'Lombardia', BT:'Puglia', BZ:'Trentino-Alto Adige',
+  CA:'Sardegna', CB:'Molise', CE:'Campania', CH:'Abruzzo', CL:'Sicilia', CN:'Piemonte', CO:'Lombardia', CR:'Lombardia', CS:'Calabria', CT:'Sicilia', CZ:'Calabria',
+  EN:'Sicilia', FC:'Emilia-Romagna', FE:'Emilia-Romagna', FG:'Puglia', FI:'Toscana', FM:'Marche', FR:'Lazio', GE:'Liguria', GO:'Friuli-Venezia Giulia', GR:'Toscana',
+  IM:'Liguria', IS:'Molise', KR:'Calabria', LC:'Lombardia', LE:'Puglia', LI:'Toscana', LO:'Lombardia', LT:'Lazio', LU:'Toscana',
+  MB:'Lombardia', MC:'Marche', ME:'Sicilia', MI:'Lombardia', MN:'Lombardia', MO:'Emilia-Romagna', MS:'Toscana', MT:'Basilicata',
+  NA:'Campania', NO:'Piemonte', NU:'Sardegna', OR:'Sardegna', PA:'Sicilia', PC:'Emilia-Romagna', PD:'Veneto', PE:'Abruzzo', PG:'Umbria', PI:'Toscana', PN:'Friuli-Venezia Giulia', PO:'Toscana', PR:'Emilia-Romagna', PT:'Toscana', PU:'Marche', PV:'Lombardia', PZ:'Basilicata',
+  RA:'Emilia-Romagna', RC:'Calabria', RE:'Emilia-Romagna', RG:'Sicilia', RI:'Lazio', RM:'Lazio', RN:'Emilia-Romagna', RO:'Veneto',
+  SA:'Campania', SI:'Toscana', SO:'Lombardia', SP:'Liguria', SR:'Sicilia', SS:'Sardegna', SU:'Sardegna', SV:'Liguria',
+  TA:'Puglia', TE:'Abruzzo', TN:'Trentino-Alto Adige', TO:'Piemonte', TP:'Sicilia', TR:'Umbria', TS:'Friuli-Venezia Giulia', TV:'Veneto',
+  UD:'Friuli-Venezia Giulia', VA:'Lombardia', VB:'Piemonte', VC:'Piemonte', VE:'Veneto', VI:'Veneto', VR:'Veneto', VT:'Lazio', VV:'Calabria',
+};
+const PN_REGOLE_REGIONALI = [
+  { regione: 'Lazio',   coperto: false, servizio: true, prezzoFissoVietato: false, listinoPrima: true, fonte: 'L.R. Lazio 22/2019, art. 75',
+    nota: 'Nel Lazio il coperto è vietato (L.R. 22/2019, art. 75): la voce si chiama servizio e sta nel menù prima dell\'ordine.' },
+  { regione: 'Toscana', coperto: true,  servizio: true, prezzoFissoVietato: true,  listinoPrima: true, fonte: 'L.R. Toscana 62/2018, art. 100',
+    nota: 'In Toscana coperto e servizio valgono alla carta e non nelle formule a prezzo fisso (L.R. 62/2018, art. 100).' },
+  { regione: 'Liguria', coperto: true,  servizio: true, prezzoFissoVietato: true,  listinoPrima: true, fonte: 'L.R. Liguria 1/2007, art. 114',
+    nota: 'In Liguria coperto e servizio valgono alla carta e non nelle formule a prezzo fisso (L.R. 1/2007, art. 114).' },
+  { regione: 'Marche',  coperto: true,  servizio: true, prezzoFissoVietato: true,  listinoPrima: true, fonte: 'L.R. Marche 27/2009, art. 68',
+    nota: 'Nelle Marche coperto e servizio valgono alla carta e non nelle formule a prezzo fisso (L.R. 27/2009, art. 68).' },
+  { regione: 'Molise',  coperto: true,  servizio: true, prezzoFissoVietato: true,  listinoPrima: true, fonte: 'L.R. Molise 4/2021, art. 100',
+    nota: 'In Molise coperto e servizio valgono alla carta e non nelle formule a prezzo fisso (L.R. 4/2021, art. 100).' },
+  { regione: '*',       coperto: true,  servizio: true, prezzoFissoVietato: false, listinoPrima: true, fonte: 'R.D. 635/1940, art. 180',
+    nota: 'Coperto e servizio sono ammessi (R.D. 635/1940, art. 180): il coperto è proposto, non imposto, e la voce sta nel menù prima dell\'ordine.' },
+];
+window.byupRegioneDaProvincia = (sigla) => PN_REGIONE_DI_PROVINCIA[String(sigla || '').trim().toUpperCase()] || null;
+window.byupRegoleRegionali = (regione) => PN_REGOLE_REGIONALI.find(r => r.regione === regione) || PN_REGOLE_REGIONALI.find(r => r.regione === '*');
+// La regola della sede del seme, letta dal suo indirizzo.
+window.byupRegolaSede = () => {
+  const e = window.byupReadEsercente ? window.byupReadEsercente() : {};
+  const regione = window.byupRegioneDaProvincia(e.prov);
+  return Object.assign({ regione, prov: e.prov }, window.byupRegoleRegionali(regione));
+};
+window.byupQualificazioniAmmesse = () => { const r = window.byupRegolaSede(); return ['coperto', 'servizio'].filter(q => r[q]); };
+
 // ─── Coperto e servizio (P-103) ─────────────────────────────────────────────
 // Due scelte indipendenti: la QUALIFICAZIONE (coperto o servizio) e la FORMA
 // (fissa a persona o percentuale sul totale). Nessuna fonte lega le due
@@ -1766,15 +1830,28 @@ window.PN_PORTALE_FC = 'https://ivaservizi.agenziaentrate.gov.it/portale/';
 // tengono una copia guardata con lo stesso default. Nel modello: la voce si
 // espone prima della conferma e il momento finisce in orders.cover_disclosed_at.
 const PN_COPERTO_KEY = 'byup_coperto';
-const PN_COPERTO_DEFAULT = { qualificazione: 'coperto', forma: 'fissa', importo: 0, aliquota: 0 };
+// Il predefinito segue la regione della sede (P-171 · D-120): dove il
+// coperto è vietato, la voce nasce «servizio». Sospesa = la sede è passata
+// in una regione che vieta la qualificazione in uso: la voce non si rinomina
+// da sola, tace, e la scheda Servizio chiede di reimpostarla.
+const pnCopertoDefault = () => ({ qualificazione: (window.byupRegolaSede && !window.byupRegolaSede().coperto) ? 'servizio' : 'coperto', forma: 'fissa', importo: 0, aliquota: 0, sospesa: false });
 const PN_COPERTO_NOMI = { coperto: 'Coperto', servizio: 'Servizio' };
 window.byupReadCoperto = function () {
-  try { const s = localStorage.getItem(PN_COPERTO_KEY); return s ? Object.assign({}, PN_COPERTO_DEFAULT, JSON.parse(s)) : { ...PN_COPERTO_DEFAULT }; }
-  catch (e) { return { ...PN_COPERTO_DEFAULT }; }
+  try { const s = localStorage.getItem(PN_COPERTO_KEY); return s ? Object.assign(pnCopertoDefault(), JSON.parse(s)) : pnCopertoDefault(); }
+  catch (e) { return pnCopertoDefault(); }
 };
 window.byupWriteCoperto = function (v) {
   try { localStorage.setItem(PN_COPERTO_KEY, JSON.stringify(v)); } catch (e) {}
   window.dispatchEvent(new Event('byup-coperto-change'));
+};
+// Il controllo contro la regola della sede: se la qualificazione in uso non è
+// ammessa la voce si sospende; se lo è, la sospensione cade. App e webapp
+// leggono la sospensione dal registro, e la voce non compare.
+window.byupCopertoVerifica = function () {
+  const c = window.byupReadCoperto(); const r = window.byupRegolaSede();
+  const sospesa = !r[c.qualificazione];
+  if (!!c.sospesa !== sospesa) window.byupWriteCoperto({ ...c, sospesa });
+  return sospesa;
 };
 // La riga come la vede il cliente prima di confermare e come finisce sul
 // conto: nome, forma, importo o aliquota, e il valore su un subtotale per N
@@ -1782,6 +1859,7 @@ window.byupWriteCoperto = function (v) {
 window.byupCopertoRiga = function (subtotale, coperti, cfg) {
   const c = cfg || window.byupReadCoperto();
   const nome = PN_COPERTO_NOMI[c.qualificazione] || 'Coperto';
+  if (c.sospesa) return { nome, attiva: false, sospesa: true, forma: c.forma, importo: Number(c.importo) || 0, aliquota: Number(c.aliquota) || 0, etichetta: '', dettaglio: '', valore: 0 };
   if (c.forma === 'percentuale') {
     const aliquota = Number(c.aliquota) || 0;
     return { nome, attiva: aliquota > 0, forma: 'percentuale', aliquota,
