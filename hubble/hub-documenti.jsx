@@ -43,14 +43,39 @@ function HubDocumentiPage() {
   const tocca = () => ridisegna(x => x + 1);
   if (aperto) return <HubDocDettaglio codice={aperto} onChiudi={() => { setAperto(null); tocca(); }}/>;
 
+  // Ridisegno del 6 settembre 2026: prima una griglia di tessere piccole a
+  // due colonne, con tutto in un rigo minuto. Ora una LISTA per destinatario
+  // — esercenti, utenze staff, utenti app — dove ogni riga dice il documento,
+  // che cos'è, la versione corrente e da quando vale, e se c'è una bozza in
+  // lavorazione; in testa tre numeri e la «i» con le regole.
   const perPubblico = ['locale', 'staff', 'utente'];
+  const tutti = DOCUMENTI.filter(d => d.versioni);
+  const bozze = tutti.filter(d => docBozza(d.codice)).length;
+  const inArrivo = tutti.filter(d => { const u = docUltima(d.codice); return u && u.efficace.getTime() > Date.now(); }).length;
+  const Numero = ({ etichetta, valore, tono }) => (
+    <div style={{ padding:'10px 14px', borderRadius:11, background:'#fff', border:`1px solid ${ADM.BORDER}`, minWidth:96 }}>
+      <div style={{ fontSize:10.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT }}>{etichetta}</div>
+      <div style={{ fontSize:22, fontWeight:800, letterSpacing:'-0.03em', color: tono ? ADM[tono] : ADM.TEXT, lineHeight:1.1, marginTop:2 }}>{valore}</div>
+    </div>
+  );
   return (
-    <div style={{ padding: '16px 22px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 12.4, color: ADM.MUTED, lineHeight: 1.55 }}>
-        Le versioni dei documenti contrattuali e informativi, con la loro pubblicazione e la loro
-        decorrenza. Una versione pubblicata non si corregge: se ne pubblica un'altra. L'accettazione
-        non si compie da qui — si raccoglie dove la persona è, ed è l'unica cosa che la rende
-        opponibile.
+    <div data-documenti style={{ padding: '16px 22px 22px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display:'flex', alignItems:'flex-start', gap:16, flexWrap:'wrap' }}>
+        <div style={{ flex:1, minWidth:280 }}>
+          <div style={{ fontSize:17, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em' }}>Documenti</div>
+          <div style={{ fontSize:13.2, color:ADM.MUTED, marginTop:3, lineHeight:1.5, maxWidth:720 }}>
+            Le versioni dei documenti contrattuali e informativi: chi le riceve, da quando valgono, che cosa è in lavorazione.{' '}
+            <DocInfo largo={380}>
+              <b>Una versione pubblicata non si corregge</b>: se ne pubblica un'altra. <b>L'accettazione non si compie da qui</b>: si raccoglie dove la persona è — gestionale, app di sala, Byup App — ed è l'unica cosa che la rende opponibile.
+              {' '}Una modifica contrattuale va comunicata almeno <b>{DOC_PREAVVISO_GG} giorni</b> prima della decorrenza; un'informativa si riceve, non si accetta.
+            </DocInfo>
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+          <Numero etichetta="Documenti" valore={tutti.length}/>
+          <Numero etichetta="Bozze" valore={bozze} tono={bozze ? 'WARN' : null}/>
+          <Numero etichetta="In arrivo" valore={inArrivo} tono={inArrivo ? 'INFO' : null}/>
+        </div>
       </div>
 
       <HubDocPacchetto onFatto={tocca}/>
@@ -59,12 +84,14 @@ function HubDocumentiPage() {
         const docs = DOCUMENTI.filter(d => d.destinatario === dest && d.versioni);
         if (!docs.length) return null;
         return (
-          <div key={dest}>
-            <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 8 }}>
-              {DOC_PUBBLICO[dest]} <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 600, letterSpacing: 0 }}>· {DOC_AUDIENCE[dest]}</span>
+          <div key={dest} data-pubblico={dest}>
+            <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>{DOC_PUBBLICO[dest]}</span>
+              <span style={{ fontFamily: 'ui-monospace,monospace', fontSize:11, color: ADM.MUTED_LIGHT }}>audience {DOC_AUDIENCE[dest]}</span>
+              <span style={{ fontSize:11.5, color:ADM.MUTED_SOFT }}>· {docs.length}</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: 10 }}>
-              {docs.map(d => <HubDocTessera key={d.codice} doc={d} onApri={() => setAperto(d.codice)}/>)}
+            <div style={{ background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14, overflow:'hidden', boxShadow:ADM.CARD_SHADOW }}>
+              {docs.map((d, i) => <HubDocRiga key={d.codice} doc={d} prima={i === 0} onApri={() => setAperto(d.codice)}/>)}
             </div>
           </div>
         );
@@ -72,6 +99,51 @@ function HubDocumentiPage() {
     </div>
   );
 }
+
+// Una riga per documento: icona, nome e natura; la versione corrente e da
+// quando vale; lo stato. Tutto quello che serve per decidere se aprirla.
+function HubDocRiga({ doc, prima, onApri }) {
+  const ultima = docUltima(doc.codice);
+  const bozza = docBozza(doc.codice);
+  const n = docPubblicate(doc.codice).length;
+  const futura = !!ultima && ultima.efficace.getTime() > Date.now();
+  const Icona = bozza ? BuIcons.pencil : BuIcons.filePdf;
+  return (
+    <button data-doc={doc.codice} onClick={onApri} className="adm-actionrow" style={{
+      display:'grid', gridTemplateColumns:'40px minmax(0,1.7fr) 150px minmax(0,1.1fr) 140px 24px', gap:14, alignItems:'center',
+      width:'100%', textAlign:'left', fontFamily:'inherit', cursor:'pointer', padding:'13px 16px', border:'none', background:'transparent',
+      borderTop: prima ? 'none' : `1px solid ${ADM.BORDER_SOFT}`,
+    }}>
+      <span style={{ width:36, height:36, borderRadius:10, display:'grid', placeItems:'center', background: bozza ? ADM.WARN_SOFT : ADM.PINK_SOFT, color: bozza ? ADM.WARN : ADM.PINK }}>
+        <Icona size={17}/>
+      </span>
+      <span style={{ minWidth:0 }}>
+        <span style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+          <span style={{ fontSize:14.4, fontWeight:700, color:ADM.TEXT, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{doc.nome}</span>
+          <span style={{ fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT, flexShrink:0 }}>{doc.codice}</span>
+        </span>
+        <span style={{ display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
+          <AdmBadge color={doc.informativa ? 'INFO' : 'PURPLE'} size="xs">{doc.informativa ? 'Informativa' : 'Contratto'}</AdmBadge>
+          <span style={{ fontSize:12, color:ADM.MUTED_SOFT }}>{doc.informativa ? 'si riceve, non si accetta' : `preavviso ${DOC_PREAVVISO_GG} giorni`}</span>
+        </span>
+      </span>
+      <span>
+        <span style={{ display:'block', fontFamily:'ui-monospace,monospace', fontSize:14, fontWeight:800, color: ultima ? ADM.TEXT : ADM.MUTED_SOFT }}>{ultima ? `v${ultima.v}` : '—'}</span>
+        <span style={{ display:'block', fontSize:12, color:ADM.MUTED_SOFT, marginTop:2 }}>{n} {n === 1 ? 'versione' : 'versioni'}</span>
+      </span>
+      <span style={{ fontSize:12.8, color:ADM.MUTED, lineHeight:1.4 }}>
+        {ultima ? <><span style={{ color: futura ? ADM.INFO : ADM.TEXT, fontWeight:600 }}>{futura ? 'In arrivo' : 'Efficace'}</span> dal {fmtDate(ultima.efficace)}<br/><span style={{ color:ADM.MUTED_SOFT }}>pubblicata {fmtDate(ultima.pubblicata)}</span></> : 'Nessuna versione'}
+      </span>
+      <span>
+        {bozza
+          ? <HubPillola color="WARN" size="sm">Bozza v{bozza.v || '…'}</HubPillola>
+          : ultima ? <HubStato stato="corrente" mappa={{ corrente: { label: futura ? 'Pubblicata' : 'Corrente', color: futura ? 'INFO' : 'OK' } }}/> : null}
+      </span>
+      <span style={{ color:ADM.MUTED_LIGHT, display:'grid', placeItems:'center' }}><BuIcons.chevronRight size={16}/></span>
+    </button>
+  );
+}
+
 
 // ─── Il pacchetto: due bozze pronte si pubblicano insieme ───────────────────
 // TC-01 e DPA-01 cambiano spesso insieme, perché una modifica contrattuale
@@ -136,36 +208,12 @@ function HubDocPacchetto({ onFatto }) {
   );
 }
 
-function HubDocTessera({ doc, onApri }) {
-  const ultima = docUltima(doc.codice);
-  const bozza = docBozza(doc.codice);
-  const futura = ultima && ultima.efficace.getTime() > Date.now();
-  return (
-    <button onClick={onApri} className="adm-pill" style={{
-      textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', width: '100%',
-      display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
-      background: '#fff', border: `1px solid ${bozza ? ADM.WARN : ADM.BORDER}`, borderRadius: 12,
-    }}>
-      <span style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, display: 'grid', placeItems: 'center', background: ADM.PINK_SOFT, color: ADM.PINK }}>
-        <BuIcons.filePdf size={18}/>
-      </span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 14.2, fontWeight: 700, color: ADM.TEXT }}>
-          {doc.nome} <span style={{ fontWeight: 600, color: ADM.MUTED_SOFT }}>· {doc.codice}</span>
-        </span>
-        <span style={{ display: 'block', fontSize: 12.4, color: ADM.MUTED, marginTop: 2 }}>
-          {ultima
-            ? <>v{ultima.v} · {futura ? 'efficace dal' : 'efficace dal'} {fmtDate(ultima.efficace)} · {docPubblicate(doc.codice).length} version{docPubblicate(doc.codice).length === 1 ? 'e' : 'i'}</>
-            : 'Nessuna versione'}
-          {doc.informativa && ' · si riceve, non si accetta'}
-        </span>
-      </span>
-      {bozza && <AdmBadge color="WARN" size="xs">Bozza</AdmBadge>}
-    </button>
-  );
-}
-
-// ─── Il dettaglio: le versioni, e la bozza in lavorazione ───────────────────
+// ─── Il dettaglio: la bozza, la cronologia, la scheda a fianco ──────────────
+// A sinistra quello che si fa: la bozza in lavorazione e, sotto, le versioni
+// pubblicate come CRONOLOGIA — una linea, un punto per versione, la corrente
+// accesa — con numero, date, che cosa cambia e la copia archiviata. A destra,
+// fissa, la scheda del documento: chi lo riceve, la versione corrente e da
+// quando, la prossima, la regola che vale per questo tipo di documento.
 function HubDocDettaglio({ codice, onChiudi }) {
   const doc = DOCUMENTI.find(d => d.codice === codice);
   const [, ridisegna] = useStateDoc(0);
@@ -174,6 +222,8 @@ function HubDocDettaglio({ codice, onChiudi }) {
   const bozza = docBozza(codice);
   const ultima = docUltima(codice);
   const puo = hubPuo('piattaforma', 'scrittura');
+  const versioni = docPubblicate(codice).slice().reverse();
+  const futura = !!ultima && ultima.efficace.getTime() > Date.now();
 
   const nuova = () => {
     // Il numero si propone incrementando l'ultimo: si può riscrivere, ma
@@ -183,55 +233,81 @@ function HubDocDettaglio({ codice, onChiudi }) {
     docCreaBozza(codice, { v: prop, testo: (ultima && ultima.testo) || '', efficace: docEfficaciaMinima(codice) });
     tocca();
   };
+  const voce = (k, v) => (
+    <div style={{ display:'flex', flexDirection:'column', gap:2, padding:'9px 0', borderTop:`1px solid ${ADM.BORDER_SOFT}` }}>
+      <span style={{ fontSize:10.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT }}>{k}</span>
+      <span style={{ fontSize:13.2, color:ADM.TEXT, lineHeight:1.45 }}>{v}</span>
+    </div>
+  );
 
   return (
-    <div style={{ padding: '16px 22px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div data-documento={codice} style={{ padding: '16px 22px 22px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <AdmButton variant="secondary" size="sm" icon="chevronLeft" onClick={onChiudi}>Documenti</AdmButton>
-        <span style={{ fontSize: 15, fontWeight: 800, color: ADM.TEXT }}>{doc.nome}</span>
+        <span style={{ width:34, height:34, borderRadius:10, display:'grid', placeItems:'center', background:ADM.PINK_SOFT, color:ADM.PINK, marginLeft:4 }}><BuIcons.filePdf size={17}/></span>
+        <span style={{ fontSize: 17, fontWeight: 800, color: ADM.TEXT, letterSpacing:'-0.02em' }}>{doc.nome}</span>
         <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 12.5, color: ADM.MUTED }}>{doc.codice}</span>
-        <AdmBadge color={doc.informativa ? 'INFO' : 'PURPLE'} size="xs">
-          {doc.informativa ? 'Informativa' : 'Contratto'}
-        </AdmBadge>
+        <AdmBadge color={doc.informativa ? 'INFO' : 'PURPLE'} size="xs">{doc.informativa ? 'Informativa' : 'Contratto'}</AdmBadge>
         <div style={{ flex: 1 }}/>
         {!bozza && <AdmButton variant="primary" size="sm" icon="plus" disabled={!puo} onClick={nuova}
           title={puo ? undefined : 'Pubblicare una versione tocca tutti insieme: serve Scrittura su Piattaforma'}>Nuova versione</AdmButton>}
       </div>
 
-      {/* La regola, detta una volta e qui, che è dove si sta per agire. */}
-      <div style={{ padding: '10px 13px', borderRadius: 10, background: ADM.PANEL_SOFT, fontSize: 12.5, color: ADM.MUTED, lineHeight: 1.55 }}>
-        {doc.informativa
-          ? <>Un'informativa <b style={{ color: ADM.TEXT }}>si riceve, non si accetta</b>: vale dalla pubblicazione, senza preavviso e senza recesso. A registro si scrive una presa visione.</>
-          : <>Una modifica contrattuale va comunicata almeno <b style={{ color: ADM.TEXT }}>{DOC_PREAVVISO_GG} giorni</b> prima della decorrenza: applicata senza preavviso è nulla. Nel termine il destinatario può opporsi, e il silenzio vale accettazione tacita — che in una contestazione è un fatto diverso dall'accettazione esplicita.</>}
-      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) 296px', gap:16, alignItems:'start' }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14, minWidth:0 }}>
+          {bozza && <HubDocBozza codice={codice} bozza={bozza} ultima={ultima} doc={doc} onCambio={tocca}
+            onPubblica={() => setConferma(true)} puo={puo}/>}
+          {/* Il pacchetto si vede anche da qui, che è dove uno sta mentre prepara
+              la bozza: nel catalogo lo troverebbe solo tornando indietro. */}
+          {bozza && <HubDocPacchetto onFatto={tocca}/>}
 
-      {bozza && <HubDocBozza codice={codice} bozza={bozza} ultima={ultima} doc={doc} onCambio={tocca}
-        onPubblica={() => setConferma(true)} puo={puo}/>}
-
-      {/* Il pacchetto si vede anche da qui, che è dove uno sta mentre prepara
-          la bozza: nel catalogo lo troverebbe solo tornando indietro, cioè
-          dopo aver già pubblicato da solo. */}
-      {bozza && <HubDocPacchetto onFatto={tocca}/>}
-
-      <div style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.07em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginTop: 4 }}>Versioni pubblicate</div>
-      {docPubblicate(codice).slice().reverse().map(v => (
-        <AdmCard key={v.v} padding={14}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13.5, fontWeight: 800, color: ADM.TEXT }}>v{v.v}</span>
-            {v === ultima && <AdmBadge color="OK" size="xs">Corrente</AdmBadge>}
-            {v.editoriale && <AdmBadge color="INFO" size="xs">Editoriale</AdmBadge>}
-            {v.peggiorativa && <AdmBadge color="WARN" size="xs">Peggiorativa</AdmBadge>}
-            {v.rilascio && <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11.5, color: ADM.MUTED_SOFT }}>{v.rilascio}</span>}
-            {v.nuovoConsenso && <AdmBadge color="DANGER" size="xs">Richiede nuovo consenso</AdmBadge>}
-            <div style={{ flex: 1 }}/>
-            <span style={{ fontSize: 12.4, color: ADM.MUTED }}>
-              pubblicata {fmtDate(v.pubblicata)} · efficace {fmtDate(v.efficace)}
-            </span>
-            {window.CtrLinkVersione && <CtrLinkVersione codice={codice} v={v.v} impronta={!doc.informativa} testo="Copia archiviata"/>}
+          <div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Versioni pubblicate</span>
+              <span style={{ fontSize:11.5, color:ADM.MUTED_SOFT }}>· {versioni.length}</span>
+            </div>
+            {versioni.length === 0 && <div style={{ fontSize:13, color:ADM.MUTED }}>Nessuna versione pubblicata.</div>}
+            <div data-cronologia style={{ position:'relative', paddingLeft:26 }}>
+              <div style={{ position:'absolute', left:8, top:14, bottom:14, width:2, background:ADM.BORDER, borderRadius:2 }}/>
+              {versioni.map((v, i) => {
+                const corrente = v === ultima;
+                return (
+                  <div key={v.v} data-versione={v.v} style={{ position:'relative', marginBottom: i === versioni.length - 1 ? 0 : 10 }}>
+                    <span style={{ position:'absolute', left:-24, top:16, width:14, height:14, borderRadius:'50%', background: corrente ? ADM.PINK : '#fff', border:`2.5px solid ${corrente ? ADM.PINK : ADM.INK_SOFT}`, boxSizing:'border-box', boxShadow: corrente ? `0 0 0 4px ${ADM.PINK_SOFT}` : 'none' }}/>
+                    <div style={{ background:'#fff', border:`1px solid ${corrente ? ADM.PINK_HOVER : ADM.BORDER}`, borderRadius:12, padding:'12px 14px', boxShadow: corrente ? ADM.CARD_SHADOW_HOVER : ADM.CARD_SHADOW }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <HubPillola color={corrente ? 'PINK' : 'PLAN_FREE'} forte={corrente} size="sm">v{v.v}</HubPillola>
+                        {corrente && <span style={{ fontSize:12.5, fontWeight:700, color: futura ? ADM.INFO : ADM.OK }}>{futura ? 'In arrivo' : 'Corrente'}</span>}
+                        {v.editoriale && <AdmBadge color="INFO" size="xs">Editoriale</AdmBadge>}
+                        {v.peggiorativa && <AdmBadge color="WARN" size="xs">Peggiorativa</AdmBadge>}
+                        {v.nuovoConsenso && <AdmBadge color="DANGER" size="xs">Nuovo consenso</AdmBadge>}
+                        {v.rilascio && <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11.5, color: ADM.MUTED_SOFT }}>{v.rilascio}</span>}
+                        <div style={{ flex: 1 }}/>
+                        <span style={{ fontSize: 12.2, color: ADM.MUTED, whiteSpace:'nowrap' }}>
+                          pubblicata {fmtDate(v.pubblicata)} <span style={{ color:ADM.MUTED_LIGHT }}>→</span> efficace {fmtDate(v.efficace)}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 13, color: ADM.TEXT, marginTop: 8, lineHeight: 1.5 }}>{v.cambiamento || '—'}</div>
+                      {window.CtrLinkVersione && <div style={{ marginTop:8 }}><CtrLinkVersione codice={codice} v={v.v} impronta={!doc.informativa} testo="Copia archiviata"/></div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <div style={{ fontSize: 12.6, color: ADM.MUTED, marginTop: 6, lineHeight: 1.5 }}>{v.cambiamento || '—'}</div>
-        </AdmCard>
-      ))}
+        </div>
+
+        <div data-scheda style={{ position:'sticky', top:12, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14, padding:'14px 16px', boxShadow:ADM.CARD_SHADOW }}>
+          <div style={{ fontSize:13.5, fontWeight:800, color:ADM.TEXT, marginBottom:4 }}>La scheda</div>
+          {voce('Chi lo riceve', <>{DOC_PUBBLICO[doc.destinatario]} <span style={{ fontFamily:'ui-monospace,monospace', fontSize:11.5, color:ADM.MUTED_SOFT }}>· {DOC_AUDIENCE[doc.destinatario]}</span></>)}
+          {voce('Versione corrente', ultima ? <><b>v{ultima.v}</b> · {futura ? 'in arrivo' : 'efficace'} dal {fmtDate(ultima.efficace)}</> : '—')}
+          {voce('Prossima', bozza ? <><HubPillola color="WARN" size="sm">Bozza v{bozza.v || '…'}</HubPillola> <span style={{ color:ADM.MUTED }}>non l'ha vista nessuno</span></> : <span style={{ color:ADM.MUTED }}>nessuna bozza</span>)}
+          {voce('Regola', doc.informativa
+            ? <>Si <b>riceve</b>, non si accetta: vale dalla pubblicazione, senza preavviso e senza recesso. A registro resta una presa visione.</>
+            : <>Una modifica si comunica almeno <b>{DOC_PREAVVISO_GG} giorni</b> prima della decorrenza; nel termine il destinatario può opporsi, e il silenzio vale accettazione tacita.</>)}
+          {voce('Accettazione', <span style={{ color:ADM.MUTED }}>Non si compie da qui: si raccoglie dove la persona è, ed è ciò che la rende opponibile.</span>)}
+        </div>
+      </div>
 
       {conferma && (
         <HubDocConferma doc={doc} bozza={bozza} onAnnulla={() => setConferma(false)}
@@ -240,6 +316,7 @@ function HubDocDettaglio({ codice, onChiudi }) {
     </div>
   );
 }
+
 // ─── La «i»: la spiegazione dove serve, non sotto ogni riga ─────────────────
 // Le tre scelte di una versione hanno bisogno di essere spiegate, ma il
 // paragrafo sotto ognuna non lo legge nessuno: sporca la lettura e allunga la

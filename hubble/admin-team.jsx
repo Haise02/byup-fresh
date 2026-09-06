@@ -557,6 +557,37 @@ function hubTipologieScrivi(reg, action, target, daQuando) {
 }
 window.hubTipologieRegistro = hubTipologieRegistro;
 
+// ─── Aliquote degli articoli: la vista (ridisegno del 6 settembre 2026) ──────
+// Prima era un foglio di calcolo: campi, tendine e aree di testo accesi su
+// ogni riga, una seconda tabella dei trattamenti sotto, un banner di regole in
+// testa. Ora è una LISTA DI CARD che si legge, e si modifica in un pannello
+// laterale che si apre apposta: l'etichetta e la spiegazione in alto, le due
+// aliquote come «fatti» in due chip — sul posto, da asporto — con il
+// fondamento e la modalità accanto al numero, il cambio programmato in una
+// pillola ambra. La sezione «Trattamenti IVA» non c'è più: i trattamenti
+// restano nel registro e si scelgono dal pannello, con l'aliquota, la
+// modalità e il fondamento nel nome. Le regole stanno in una «i», non in un
+// paragrafo che nessuno legge.
+const hubAliquotaFmt = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) : '';
+// `lato` e non `ref`: ref è una parola di React, e non arriva al componente.
+function HubAliquotaFatto({ etichetta, lato, tr }) {
+  const cur = tr(lato.profilo);
+  const pross = lato.prossimo ? tr(lato.prossimo.profilo) : null;
+  return (
+    <div data-fatto={etichetta} style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 13px 9px 12px', borderRadius:11, border:`1px solid ${ADM.BORDER}`, background:'#fff', minWidth:0 }}>
+      <div style={{ flexShrink:0 }}>
+        <div style={{ fontSize:10.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT }}>{etichetta}</div>
+        <div style={{ fontSize:22, fontWeight:800, letterSpacing:'-0.03em', lineHeight:1.05, color:ADM.TEXT, marginTop:2, fontVariantNumeric:'tabular-nums' }}>{cur.aliquota}%</div>
+      </div>
+      <div style={{ borderLeft:`1px solid ${ADM.BORDER_SOFT}`, paddingLeft:12, fontSize:12, color:ADM.MUTED, lineHeight:1.4, minWidth:0 }}>
+        <div style={{ color:ADM.TEXT, fontWeight:700 }}>{cur.fondamento}</div>
+        <div style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{HUB_MODALITA_TRATTAMENTO[cur.modalita] || ''}</div>
+      </div>
+      {pross && <HubPillola color="WARN" size="sm">dal {hubAliquotaFmt(lato.prossimo.dal)} → {pross.aliquota}%</HubPillola>}
+    </div>
+  );
+}
+
 function HubAliquoteArticoli() {
   const [, ridisegna] = useStateTeam(0);
   const me = hubUtenteCorrente();
@@ -566,222 +597,201 @@ function HubAliquoteArticoli() {
   const trVivi = reg.trattamenti.filter(t => hubInVigore(t, oggi));
   const tr = (id) => reg.trattamenti.find(t => t.id === id) || { id, aliquota: '?', fondamento: '—', modalita: '' };
   const tipVive = reg.tipologie.filter(t => hubInVigore(t, oggi)).slice().sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
-  const usoTrattamento = (id) => tipVive.filter(t => t.locale.profilo === id || t.asporto.profilo === id || (t.locale.prossimo && t.locale.prossimo.profilo === id) || (t.asporto.prossimo && t.asporto.prossimo.profilo === id)).length;
   // Gli articoli di menù che indicano una tipologia: il conteggio lo scrive il
   // gestionale nel registro byup_tipologie_uso quando lo ha; qui si legge.
   const uso = (() => { try { return JSON.parse(localStorage.getItem('byup_tipologie_uso') || '{}') || {}; } catch (e) { return {}; } })();
   const salva = (nuovo, action, target, daQuando) => { hubTipologieScrivi(nuovo, action, target, daQuando); ridisegna(x => x + 1); };
+  const optTr = trVivi.map(t => ({ value: t.id, label: `${t.aliquota}% · ${HUB_MODALITA_TRATTAMENTO[t.modalita] || t.modalita} · ${t.fondamento}` }));
 
-  // I form: uno alla volta, inline, con la data come conferma esplicita.
-  const [cambio, setCambio] = useStateTeam(null);      // { tipId, lato, profilo, dal }
-  const [ritiro, setRitiro] = useStateTeam(null);      // { tipId, dal, verso }
-  const [chiudi, setChiudi] = useStateTeam(null);      // { trId, dal }
-  const [nuovaTip, setNuovaTip] = useStateTeam(null);  // { label, spiegazione, locale, asporto, dal }
-  const [nuovoTr, setNuovoTr] = useStateTeam(null);    // { aliquota, modalita, fondamento, citazione, dal }
-  const [bozze, setBozze] = useStateTeam({});          // testi in corso di modifica, per riga
+  // Il pannello: una tipologia in modifica, oppure una nuova. Tutto quello che
+  // si tocca sta qui dentro finché non si preme Salva; il trattamento che
+  // cambia chiede la data, il ritiro chiede a chi passano gli articoli.
+  const [pan, setPan] = useStateTeam(null);   // { id|null, label, spiegazione, locale, asporto, dalLocale, dalAsporto, dal, ritiro: null | { verso, dal } }
+  const apri = (t) => setPan({ id: t.id, label: t.label, spiegazione: t.spiegazione, locale: t.locale.profilo, asporto: t.asporto.profilo, dalLocale: domani, dalAsporto: domani, ritiro: null });
+  const nuova = () => setPan({ id: null, label: '', spiegazione: '', locale: trVivi[0] ? trVivi[0].id : '', asporto: trVivi[0] ? trVivi[0].id : '', dal: domani, ritiro: null });
+  const set = (k, v) => setPan(p => ({ ...p, [k]: v }));
+  const originale = pan && pan.id ? reg.tipologie.find(x => x.id === pan.id) : null;
+  const cambiaLocale = !!originale && pan.locale !== originale.locale.profilo;
+  const cambiaAsporto = !!originale && pan.asporto !== originale.asporto.profilo;
+  const valido = !!pan && pan.label.trim().length > 1 && pan.spiegazione.trim().length > 3 && !!pan.locale && !!pan.asporto
+    && (!cambiaLocale || !!pan.dalLocale) && (!cambiaAsporto || !!pan.dalAsporto) && (pan.id || !!pan.dal);
 
-  const parola = (t, campo, valore) => {
-    const v = String(valore || '').trim(); if (!v || v === t[campo]) return;
-    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, [campo]: v } : x) };
-    salva(nuovo, campo === 'label' ? 'ha rinominato la tipologia' : 'ha riscritto la spiegazione della tipologia', `${t.label} → ${v.slice(0, 80)}`);
-  };
   const sposta = (t, verso) => {
     const idx = tipVive.findIndex(x => x.id === t.id); const j = idx + verso; if (j < 0 || j >= tipVive.length) return;
     const ordine = tipVive.map(x => x.id); [ordine[idx], ordine[j]] = [ordine[j], ordine[idx]];
     const nuovo = { ...reg, tipologie: reg.tipologie.map(x => ordine.includes(x.id) ? { ...x, ordine: ordine.indexOf(x.id) + 1 } : x) };
-    salva(nuovo, 'ha riordinato le tipologie', `${t.label} ${verso < 0 ? 'sale' : 'scende'} · prima proposta: ${tr(0) && (reg.tipologie.find(x => x.id === ordine[0]) || {}).label}`);
+    salva(nuovo, 'ha riordinato le tipologie', `${t.label} ${verso < 0 ? 'sale' : 'scende'} · prima proposta: ${(reg.tipologie.find(x => x.id === ordine[0]) || {}).label}`);
   };
-  const confermaCambio = () => {
-    if (!cambio || !cambio.profilo || !cambio.dal) return;
-    const t = reg.tipologie.find(x => x.id === cambio.tipId); if (!t) return;
-    const lato = cambio.dal <= oggi ? { profilo: cambio.profilo } : { ...t[cambio.lato], prossimo: { profilo: cambio.profilo, dal: cambio.dal } };
-    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, [cambio.lato]: lato } : x) };
-    salva(nuovo, 'ha cambiato il trattamento di una tipologia', `${t.label} · ${cambio.lato === 'locale' ? 'al consumo sul posto' : 'da asporto'} → ${cambio.profilo} (${tr(cambio.profilo).aliquota}%)`, cambio.dal);
-    setCambio(null);
+  const salvaPannello = () => {
+    if (!valido) return;
+    if (!pan.id) {
+      const id = pan.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || ('tipologia_' + Date.now());
+      const nuovo = { ...reg, tipologie: [...reg.tipologie, { id, ordine: tipVive.length + 1, label: pan.label.trim(), spiegazione: pan.spiegazione.trim(), locale: { profilo: pan.locale }, asporto: { profilo: pan.asporto }, valida_dal: pan.dal, valida_al: null }] };
+      salva(nuovo, 'ha aggiunto una tipologia', `${pan.label.trim()} · ${pan.locale} / ${pan.asporto}`, pan.dal);
+      setPan(null); return;
+    }
+    let cur = reg; const t = originale;
+    const lab = pan.label.trim(), spi = pan.spiegazione.trim();
+    if (lab !== t.label || spi !== t.spiegazione) {
+      cur = { ...cur, tipologie: cur.tipologie.map(x => x.id === t.id ? { ...x, label: lab, spiegazione: spi } : x) };
+      hubTipologieScrivi(cur, lab !== t.label ? 'ha rinominato la tipologia' : 'ha riscritto la spiegazione della tipologia', `${t.label} → ${(lab !== t.label ? lab : spi).slice(0, 80)}`);
+    }
+    [['locale', pan.locale, pan.dalLocale, cambiaLocale], ['asporto', pan.asporto, pan.dalAsporto, cambiaAsporto]].forEach(([lato, profilo, dal, cambia]) => {
+      if (!cambia) return;
+      const ref = t[lato];
+      const nuovoLato = dal <= oggi ? { profilo } : { ...ref, prossimo: { profilo, dal } };
+      cur = { ...cur, tipologie: cur.tipologie.map(x => x.id === t.id ? { ...x, [lato]: nuovoLato } : x) };
+      hubTipologieScrivi(cur, 'ha cambiato il trattamento di una tipologia', `${lab} · ${lato === 'locale' ? 'al consumo sul posto' : 'da asporto'} → ${profilo} (${tr(profilo).aliquota}%)`, dal);
+    });
+    ridisegna(x => x + 1); setPan(null);
   };
-  const confermaRitiro = () => {
-    if (!ritiro || !ritiro.dal || !ritiro.verso) return;
-    const t = reg.tipologie.find(x => x.id === ritiro.tipId); if (!t) return;
-    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, valida_al: ritiro.dal, passata_a: ritiro.verso } : x) };
-    salva(nuovo, 'ha ritirato una tipologia', `${t.label} · gli articoli passano a ${(reg.tipologie.find(x => x.id === ritiro.verso) || {}).label || ritiro.verso}`, ritiro.dal);
-    setRitiro(null);
-  };
-  const confermaChiudi = () => {
-    if (!chiudi || !chiudi.dal) return;
-    const t = reg.trattamenti.find(x => x.id === chiudi.trId); if (!t) return;
-    const nuovo = { ...reg, trattamenti: reg.trattamenti.map(x => x.id === t.id ? { ...x, valida_al: chiudi.dal } : x) };
-    salva(nuovo, 'ha chiuso la vigenza di un trattamento', `${t.id} · ${t.aliquota}% · ${HUB_MODALITA_TRATTAMENTO[t.modalita] || t.modalita}`, chiudi.dal);
-    setChiudi(null);
-  };
-  const confermaNuovaTip = () => {
-    const n = nuovaTip; if (!n || !n.label.trim() || !n.spiegazione.trim() || !n.locale || !n.asporto || !n.dal) return;
-    const id = n.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || ('tipologia_' + Date.now());
-    const nuovo = { ...reg, tipologie: [...reg.tipologie, { id, ordine: tipVive.length + 1, label: n.label.trim(), spiegazione: n.spiegazione.trim(), locale: { profilo: n.locale }, asporto: { profilo: n.asporto }, valida_dal: n.dal, valida_al: null }] };
-    salva(nuovo, 'ha aggiunto una tipologia', `${n.label.trim()} · ${n.locale} / ${n.asporto}`, n.dal);
-    setNuovaTip(null);
-  };
-  const confermaNuovoTr = () => {
-    const n = nuovoTr; const al = parseFloat(String(n && n.aliquota).replace(',', '.'));
-    if (!n || !isFinite(al) || al < 0 || al > 100 || !n.modalita || !n.fondamento.trim() || !n.dal) return;
-    const id = `${n.modalita}_${String(al).replace('.', '_')}_${n.dal.replace(/-/g, '')}`;
-    const nuovo = { ...reg, trattamenti: [...reg.trattamenti, { id, aliquota: al, modalita: n.modalita, fondamento: n.fondamento.trim(), citazione: (n.citazione || '').trim(), valida_dal: n.dal, valida_al: null }] };
-    salva(nuovo, 'ha aperto un trattamento', `${id} · ${al}% · ${HUB_MODALITA_TRATTAMENTO[n.modalita]} · ${n.fondamento.trim()}`, n.dal);
-    setNuovoTr(null);
+  const ritira = () => {
+    const r = pan && pan.ritiro; if (!r || !r.dal || !r.verso || !originale) return;
+    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === originale.id ? { ...x, valida_al: r.dal, passata_a: r.verso } : x) };
+    salva(nuovo, 'ha ritirato una tipologia', `${originale.label} · gli articoli passano a ${(reg.tipologie.find(x => x.id === r.verso) || {}).label || r.verso}`, r.dal);
+    setPan(null);
   };
 
-  const H = { fontSize:12.6, fontWeight:700, color:ADM.MUTED, textTransform:'uppercase', letterSpacing:'0.06em' };
-  const inp = { padding:'7px 9px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, fontFamily:'inherit', fontSize:12.8, color:ADM.TEXT, background:'#fff', boxSizing:'border-box', width:'100%' };
-  const sel = (value, onChange, options, disabled) => (
-    <select value={value} onChange={e => onChange(e.target.value)} disabled={disabled} style={{ ...inp, cursor: disabled ? 'default' : 'pointer' }}>
-      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
+  const H2 = { fontSize:11.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT };
+  const frecciaStile = (spenta) => ({ width:22, height:18, border:'none', background:'transparent', padding:0, cursor: spenta ? 'default' : 'pointer', color: spenta ? ADM.MUTED_LIGHT : ADM.MUTED, display:'grid', placeItems:'center' });
+  const dataNota = (dal) => (
+    <div style={{ marginTop:8, padding:'9px 11px', borderRadius:9, background:ADM.WARN_SOFT, border:'1px solid #F0DCB4' }}>
+      <div style={{ fontSize:12, color:'#7A4A0B', fontWeight:700, marginBottom:6 }}>Cambia da una data: sposta l'aliquota su ogni cassa dalla mezzanotte scelta.</div>
+      <input type="date" min={domani} value={dal.valore} onChange={e => dal.onCambia(e.target.value)} style={{ padding:'7px 9px', borderRadius:8, border:`1px solid ${ADM.BORDER}`, fontFamily:'inherit', fontSize:12.8, color:ADM.TEXT, background:'#fff' }}/>
+    </div>
   );
-  const optTr = trVivi.map(t => ({ value: t.id, label: `${t.aliquota}% · ${HUB_MODALITA_TRATTAMENTO[t.modalita] || t.modalita} · ${t.fondamento}` }));
-  const dataBox = (v, set) => <input type="date" value={v} min={domani} onChange={e => set(e.target.value)} style={{ ...inp, width: 160 }}/>;
-  const GRID_T = '28px minmax(0,1.5fr) minmax(0,2.2fr) minmax(0,1.5fr) minmax(0,1.5fr) 96px';
-  const GRID_R = 'minmax(0,1.6fr) 64px minmax(0,1.4fr) minmax(0,2.4fr) 150px 80px 120px';
+  const selectStile = { width:'100%', padding:'9px 11px', borderRadius:9, border:`1px solid ${ADM.BORDER}`, fontFamily:'inherit', fontSize:13, color:ADM.TEXT, background:'#fff', boxSizing:'border-box', cursor:'pointer' };
 
   return (
-    <React.Fragment>
-      <div style={{padding:'10px 13px', borderRadius:10, background: puo ? '#fff' : ADM.WARN_SOFT, border:`1px solid ${puo ? ADM.BORDER : '#F0DCB4'}`, borderLeft:`3px solid ${ADM.PINK}`, fontSize:12.8, color:ADM.TEXT, lineHeight:1.5}}>
-        <b>Le tipologie dell'articolo e i loro trattamenti IVA</b>, governati da qui (D-112). Etichetta, spiegazione e ordine valgono subito: sono le parole che il ristoratore legge creando un articolo, e la prima è quella proposta a tutti.
-        Il trattamento che una tipologia punta si cambia <b>da una data</b>, perché sposta l'aliquota su ogni cassa. Un trattamento in vigore non si modifica: si chiude la sua vigenza e se ne apre uno nuovo, così i documenti già emessi restano leggibili col diritto del loro tempo.
-        {!puo && <span style={{display:'block', marginTop:6, color:'#7A4A0B', fontWeight:700}}>In sola lettura: modifica solo il Super Admin.</span>}
-        <span style={{display:'block', marginTop:4, fontSize:11.8, color:ADM.MUTED}}>Registro condiviso con il gestionale (byup_tipologie_articolo, versione {reg.versione || 0}): il gestionale legge queste tipologie, in quest'ordine, con questa spiegazione.</span>
+    <div data-aliquote style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      {/* La testata della vista: che cos'è, in una riga, e la «i» per le regole. */}
+      <div style={{ display:'flex', alignItems:'flex-start', gap:16, flexWrap:'wrap' }}>
+        <div style={{ flex:1, minWidth:280 }}>
+          <div style={{ fontSize:17, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em' }}>Aliquote degli articoli</div>
+          <div style={{ fontSize:13.2, color:ADM.MUTED, marginTop:3, lineHeight:1.5, maxWidth:720 }}>
+            Le tipologie che il ristoratore sceglie creando un articolo, nell'ordine in cui il gestionale le propone, con l'aliquota IVA al consumo sul posto e da asporto.{' '}
+            {typeof DocInfo === 'function' && (
+              <DocInfo largo={380}>
+                <b>Etichetta, spiegazione e ordine valgono subito</b>: sono le parole che il ristoratore legge, e la prima tipologia è quella proposta a tutti.
+                <b> Il trattamento si cambia da una data</b>, perché sposta l'aliquota su ogni cassa; un trattamento in vigore non si modifica, così i documenti già emessi restano leggibili col diritto del loro tempo (D-112).
+                {' '}Registro condiviso con il gestionale: <span style={{ fontFamily:'ui-monospace,monospace' }}>byup_tipologie_articolo</span>, versione {reg.versione || 0}.
+              </DocInfo>
+            )}
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0, paddingTop:2 }}>
+          <HubPillola color="PLAN_FREE" size="sm">{tipVive.length} tipologie · {trVivi.length} trattamenti</HubPillola>
+          {puo
+            ? <AdmButton variant="primary" size="sm" icon="plus" onClick={nuova}>Aggiungi tipologia</AdmButton>
+            : <HubPillola color="WARN" size="sm">Sola lettura · modifica il Super Admin</HubPillola>}
+        </div>
       </div>
 
-      {/* ── Le tipologie ── */}
-      <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden'}}>
-        <div style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div style={H}>Tipologie · {tipVive.length} · nell'ordine in cui il gestionale le propone</div>
-          <div style={{flex:1}}/>
-          {puo && !nuovaTip && <AdmButton variant="secondary" size="sm" icon="plus" onClick={() => setNuovaTip({ label:'', spiegazione:'', locale: trVivi[0] ? trVivi[0].id : '', asporto: trVivi[0] ? trVivi[0].id : '', dal: domani })}>Aggiungi tipologia</AdmButton>}
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:GRID_T, gap:10, padding:'8px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
-          <span>#</span><span>Etichetta</span><span>Spiegazione (quella che il ristoratore legge)</span><span>Al consumo sul posto</span><span>Da asporto</span><span/>
-        </div>
-        {tipVive.map((t, i) => {
-          const lato = (k) => { const ref = t[k]; const cur = tr(ref.profilo); return (
-            <div>
-              {puo ? sel(ref.profilo, v => setCambio({ tipId: t.id, lato: k, profilo: v, dal: domani }), optTr) : <div style={{fontSize:12.8}}><b>{cur.aliquota}%</b> · {cur.fondamento}</div>}
-              <div style={{fontSize:11.2, color:ADM.MUTED, marginTop:3, lineHeight:1.4}}>{HUB_MODALITA_TRATTAMENTO[cur.modalita] || ''}{ref.prossimo ? ` · dal ${ref.prossimo.dal}: ${tr(ref.prossimo.profilo).aliquota}%` : ''}</div>
-              {cambio && cambio.tipId === t.id && cambio.lato === k && (
-                <div style={{marginTop:6, padding:'8px 10px', borderRadius:8, background:ADM.WARN_SOFT, border:'1px solid #F0DCB4', display:'flex', flexDirection:'column', gap:6}}>
-                  <div style={{fontSize:11.8, color:'#7A4A0B', fontWeight:700}}>Da quando? Sposta l'aliquota su ogni cassa dalla mezzanotte scelta.</div>
-                  {dataBox(cambio.dal, v => setCambio({ ...cambio, dal: v }))}
-                  <div style={{display:'flex', gap:6}}>
-                    <AdmButton variant="primary" size="sm" icon="check" onClick={confermaCambio}>Conferma</AdmButton>
-                    <AdmButton variant="ghost" size="sm" onClick={() => setCambio(null)}>Annulla</AdmButton>
-                  </div>
+      {/* Le card: una per tipologia, nell'ordine del gestionale. */}
+      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        {tipVive.map((t, i) => (
+          <div key={t.id} data-tipologia={t.id} style={{ background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14, boxShadow:ADM.CARD_SHADOW, padding:'15px 18px 15px 14px', display:'grid', gridTemplateColumns:'40px minmax(0,1fr) auto', gap:14, alignItems:'start' }}>
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+              <span style={{ width:32, height:32, borderRadius:10, background: i === 0 ? ADM.PINK_SOFT : ADM.PANEL_SOFT, border:`1px solid ${i === 0 ? ADM.PINK_HOVER : ADM.BORDER_SOFT}`, color: i === 0 ? ADM.PINK_DARK : ADM.TEXT, display:'grid', placeItems:'center', fontFamily:'ui-monospace,monospace', fontWeight:800, fontSize:13 }}>{i + 1}</span>
+              {puo && (
+                <div style={{ display:'flex', flexDirection:'column', marginTop:2 }}>
+                  <button title="Sale" disabled={i === 0} onClick={() => sposta(t, -1)} style={frecciaStile(i === 0)}><BuIcons.chevronUp size={13}/></button>
+                  <button title="Scende" disabled={i === tipVive.length - 1} onClick={() => sposta(t, 1)} style={frecciaStile(i === tipVive.length - 1)}><BuIcons.chevronDown size={13}/></button>
                 </div>
               )}
             </div>
-          ); };
-          return (
-            <div key={t.id} style={{display:'grid', gridTemplateColumns:GRID_T, gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, alignItems:'start', fontSize:12.8, color:ADM.TEXT}}>
-              <div style={{display:'flex', flexDirection:'column', gap:2, alignItems:'center'}}>
-                <span style={{fontFamily:'ui-monospace,monospace', fontWeight:700}}>{i + 1}</span>
-                {puo && <button disabled={i === 0} onClick={() => sposta(t, -1)} title="Sale" style={{border:'none', background:'transparent', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? ADM.MUTED_LIGHT : ADM.MUTED, fontSize:11, lineHeight:1, padding:2}}>▲</button>}
-                {puo && <button disabled={i === tipVive.length - 1} onClick={() => sposta(t, 1)} title="Scende" style={{border:'none', background:'transparent', cursor: i === tipVive.length - 1 ? 'default' : 'pointer', color: i === tipVive.length - 1 ? ADM.MUTED_LIGHT : ADM.MUTED, fontSize:11, lineHeight:1, padding:2}}>▼</button>}
+            <div style={{ minWidth:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                <span style={{ fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em' }}>{t.label}</span>
+                {i === 0 && <HubPillola color="PINK" size="sm">Proposta a tutti</HubPillola>}
+                <span style={{ fontFamily:'ui-monospace,monospace', fontSize:11, color:ADM.MUTED_SOFT }}>{t.id}</span>
               </div>
-              <div>
-                {puo ? <input value={bozze[t.id + ':label'] != null ? bozze[t.id + ':label'] : t.label} onChange={e => setBozze({ ...bozze, [t.id + ':label']: e.target.value })} onBlur={e => { parola(t, 'label', e.target.value); setBozze(b => { const c = { ...b }; delete c[t.id + ':label']; return c; }); }} style={inp}/> : <b>{t.label}</b>}
-                <div style={{fontFamily:'ui-monospace,monospace', fontSize:10.8, color:ADM.MUTED_SOFT, marginTop:3}}>{t.id}{i === 0 ? ' · proposta a tutti' : ''}</div>
-              </div>
-              <div>
-                {puo ? <textarea rows={3} value={bozze[t.id + ':spiegazione'] != null ? bozze[t.id + ':spiegazione'] : t.spiegazione} onChange={e => setBozze({ ...bozze, [t.id + ':spiegazione']: e.target.value })} onBlur={e => { parola(t, 'spiegazione', e.target.value); setBozze(b => { const c = { ...b }; delete c[t.id + ':spiegazione']; return c; }); }} style={{ ...inp, resize:'vertical', lineHeight:1.4 }}/> : <div style={{lineHeight:1.45}}>{t.spiegazione}</div>}
-              </div>
-              {lato('locale')}
-              {lato('asporto')}
-              <div>
-                {puo && !ritiro && <button className="adm-textlink" onClick={() => setRitiro({ tipId: t.id, dal: domani, verso: (tipVive.find(x => x.id !== t.id) || {}).id || '' })} style={{fontSize:12}}>Ritira…</button>}
-                {ritiro && ritiro.tipId === t.id && (
-                  <div style={{padding:'8px 10px', borderRadius:8, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40`, display:'flex', flexDirection:'column', gap:6, fontSize:11.8, color:'#7F1D1D'}}>
-                    <div style={{fontWeight:700}}>Chiude la vigenza. Articoli di menù che la indicano oggi: {uso[t.id] != null ? uso[t.id] : '— (il conteggio arriva dal gestionale)'}. A quale tipologia passano?</div>
-                    {sel(ritiro.verso, v => setRitiro({ ...ritiro, verso: v }), tipVive.filter(x => x.id !== t.id).map(x => ({ value: x.id, label: x.label })))}
-                    {dataBox(ritiro.dal, v => setRitiro({ ...ritiro, dal: v }))}
-                    <div style={{display:'flex', gap:6}}>
-                      <AdmButton variant="danger" size="sm" icon="x" onClick={confermaRitiro}>Ritira</AdmButton>
-                      <AdmButton variant="ghost" size="sm" onClick={() => setRitiro(null)}>Annulla</AdmButton>
-                    </div>
-                  </div>
-                )}
+              <div style={{ fontSize:13.2, color:ADM.MUTED, marginTop:4, lineHeight:1.5, maxWidth:640 }}>{t.spiegazione}</div>
+              <div style={{ display:'flex', gap:8, marginTop:12, flexWrap:'wrap', alignItems:'center' }}>
+                <HubAliquotaFatto etichetta="Sul posto" lato={t.locale} tr={tr}/>
+                <HubAliquotaFatto etichetta="Da asporto" lato={t.asporto} tr={tr}/>
+                {uso[t.id] != null && <span style={{ fontSize:12, color:ADM.MUTED_SOFT, paddingLeft:4 }}>{uso[t.id]} articoli di menù la indicano</span>}
               </div>
             </div>
-          );
-        })}
-        {nuovaTip && (
-          <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, display:'grid', gridTemplateColumns:'minmax(0,1.5fr) minmax(0,2.2fr) minmax(0,1.5fr) minmax(0,1.5fr) 160px', gap:10, alignItems:'start'}}>
-            <input placeholder="Etichetta" value={nuovaTip.label} onChange={e => setNuovaTip({ ...nuovaTip, label: e.target.value })} style={inp}/>
-            <textarea rows={3} placeholder="Spiegazione: che cosa entra e che cosa cade fuori" value={nuovaTip.spiegazione} onChange={e => setNuovaTip({ ...nuovaTip, spiegazione: e.target.value })} style={{ ...inp, resize:'vertical' }}/>
-            {sel(nuovaTip.locale, v => setNuovaTip({ ...nuovaTip, locale: v }), optTr)}
-            {sel(nuovaTip.asporto, v => setNuovaTip({ ...nuovaTip, asporto: v }), optTr)}
-            <div style={{display:'flex', flexDirection:'column', gap:6}}>
-              <div style={{fontSize:11, color:ADM.MUTED}}>Vale dal</div>
-              {dataBox(nuovaTip.dal, v => setNuovaTip({ ...nuovaTip, dal: v }))}
-              <div style={{display:'flex', gap:6}}>
-                <AdmButton variant="primary" size="sm" icon="check" onClick={confermaNuovaTip}>Aggiungi</AdmButton>
-                <AdmButton variant="ghost" size="sm" onClick={() => setNuovaTip(null)}>Annulla</AdmButton>
-              </div>
+            <div style={{ paddingTop:2 }}>
+              {puo && <AdmButton variant="ghost" size="sm" icon="pencil" onClick={() => apri(t)}>Modifica</AdmButton>}
             </div>
           </div>
-        )}
+        ))}
+      </div>
+      <div style={{ fontSize:12, color:ADM.MUTED_SOFT, lineHeight:1.5 }}>
+        Il gestionale legge queste tipologie, in quest'ordine, con questa spiegazione. Le aliquote e i fondamenti sono i trattamenti del registro: un trattamento in vigore non si modifica.
       </div>
 
-      {/* ── I trattamenti ── */}
-      <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden'}}>
-        <div style={{display:'flex', alignItems:'center', gap:10, padding:'12px 14px', borderBottom:`1px solid ${ADM.BORDER}`}}>
-          <div style={H}>Trattamenti IVA · {trVivi.length} in vigore · un trattamento in vigore non si modifica</div>
-          <div style={{flex:1}}/>
-          {puo && !nuovoTr && <AdmButton variant="secondary" size="sm" icon="plus" onClick={() => setNuovoTr({ aliquota:'', modalita:'somministrazione', fondamento:'', citazione:'', dal: domani })}>Nuovo trattamento</AdmButton>}
-        </div>
-        <div style={{display:'grid', gridTemplateColumns:GRID_R, gap:10, padding:'8px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.05em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
-          <span>Trattamento</span><span>Aliquota</span><span>Modalità</span><span>Fondamento e citazione</span><span>Vigenza</span><span>Usato da</span><span/>
-        </div>
-        {reg.trattamenti.slice().sort((a, b) => (a.valida_al ? 1 : 0) - (b.valida_al ? 1 : 0) || a.aliquota - b.aliquota).map(t => {
-          const vivo = hubInVigore(t, oggi); const n = usoTrattamento(t.id);
-          return (
-            <div key={t.id} style={{display:'grid', gridTemplateColumns:GRID_R, gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, alignItems:'start', fontSize:12.6, color: vivo ? ADM.TEXT : ADM.MUTED, opacity: vivo ? 1 : 0.75}}>
-              <span style={{fontFamily:'ui-monospace,monospace', fontWeight:700, wordBreak:'break-all'}}>{t.id}</span>
-              <span style={{fontWeight:800, fontSize:14}}>{t.aliquota}%</span>
-              <span>{HUB_MODALITA_TRATTAMENTO[t.modalita] || t.modalita}</span>
-              <span><b>{t.fondamento}</b>{t.citazione ? <span style={{display:'block', fontSize:11.6, color:ADM.MUTED, marginTop:2, lineHeight:1.4}}>{t.citazione}</span> : null}</span>
-              <span style={{fontSize:12}}>dal {t.valida_dal || '—'}{t.valida_al ? <span style={{display:'block', color:ADM.DANGER, fontWeight:700}}>chiuso dal {t.valida_al}</span> : <span style={{display:'block', color:ADM.OK, fontWeight:700}}>in vigore</span>}</span>
-              <span style={{fontWeight:700}}>{n} {n === 1 ? 'tipologia' : 'tipologie'}</span>
-              <div>
-                {puo && vivo && !chiudi && <button className="adm-textlink" onClick={() => setChiudi({ trId: t.id, dal: domani })} style={{fontSize:12}}>Chiudi vigenza…</button>}
-                {chiudi && chiudi.trId === t.id && (
-                  <div style={{padding:'8px 10px', borderRadius:8, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40`, display:'flex', flexDirection:'column', gap:6, fontSize:11.8, color:'#7F1D1D'}}>
-                    <div style={{fontWeight:700}}>{n > 0 ? `Lo puntano ${n} tipologie: dopo la chiusura vanno spostate su un trattamento in vigore.` : 'Nessuna tipologia lo punta.'} Da quando?</div>
-                    {dataBox(chiudi.dal, v => setChiudi({ ...chiudi, dal: v }))}
-                    <div style={{display:'flex', gap:6}}>
-                      <AdmButton variant="danger" size="sm" icon="x" onClick={confermaChiudi}>Chiudi vigenza</AdmButton>
-                      <AdmButton variant="ghost" size="sm" onClick={() => setChiudi(null)}>Annulla</AdmButton>
-                    </div>
+      {/* Il pannello di modifica, o della tipologia nuova. */}
+      <HubPannello open={!!pan} onClose={() => setPan(null)} larghezza={480} icona="tag"
+        titolo={pan && pan.id ? originale.label : 'Nuova tipologia'}
+        sotto={pan && pan.id ? 'Etichetta, spiegazione e ordine valgono subito; un trattamento cambia da una data.' : 'Nasce in fondo all\'elenco, da una data: si sposta poi con le frecce.'}
+        footer={pan && (
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            {pan.id && !pan.ritiro && <button onClick={() => set('ritiro', { verso: (tipVive.find(x => x.id !== pan.id) || {}).id || '', dal: domani })} style={{ background:'transparent', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:600, color:ADM.DANGER, textDecoration:'underline', textUnderlineOffset:3 }}>Ritira la tipologia…</button>}
+            <div style={{ flex:1 }}/>
+            <AdmButton variant="secondary" size="sm" onClick={() => setPan(null)}>Annulla</AdmButton>
+            <AdmButton variant="primary" size="sm" icon="check" disabled={!valido} onClick={salvaPannello}>{pan.id ? 'Salva' : 'Aggiungi'}</AdmButton>
+          </div>
+        )}>
+        {pan && (
+          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+            <div>
+              <div style={{ ...H2, marginBottom:6 }}>Etichetta</div>
+              <HubInput valore={pan.label} onCambia={v => set('label', v)} placeholder="Come la legge il ristoratore" autoFocus/>
+            </div>
+            <div>
+              <div style={{ ...H2, marginBottom:6 }}>Spiegazione</div>
+              <HubArea valore={pan.spiegazione} onCambia={v => set('spiegazione', v)} righe={4} placeholder="Che cosa entra e che cosa cade fuori"/>
+              <div style={{ fontSize:12, color:ADM.MUTED_SOFT, marginTop:4 }}>Sta sotto l'etichetta quando il ristoratore crea un articolo.</div>
+            </div>
+            {[['locale', 'Sul posto', 'Al consumo al banco o al tavolo'], ['asporto', 'Da asporto', 'Quando l\'articolo esce dal locale']].map(([lato, tit, nota]) => {
+              const cambia = lato === 'locale' ? cambiaLocale : cambiaAsporto;
+              const ref = originale ? originale[lato] : null;
+              return (
+                <div key={lato} data-lato={lato} style={{ padding:'12px 13px', borderRadius:12, border:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT }}>
+                  <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
+                    <div style={{ fontSize:13.5, fontWeight:700, color:ADM.TEXT }}>{tit}</div>
+                    <div style={{ fontSize:12, color:ADM.MUTED_SOFT }}>{nota}</div>
+                    <div style={{ flex:1 }}/>
+                    {ref && <span style={{ fontSize:12, color:ADM.MUTED }}>oggi <b style={{ color:ADM.TEXT }}>{tr(ref.profilo).aliquota}%</b></span>}
                   </div>
-                )}
+                  <select value={pan[lato]} onChange={e => set(lato, e.target.value)} style={selectStile}>
+                    {optTr.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                  {ref && ref.prossimo && !cambia && <div style={{ fontSize:12, color:'#7A4A0B', marginTop:6 }}>Già programmato: dal {hubAliquotaFmt(ref.prossimo.dal)} passa a {tr(ref.prossimo.profilo).aliquota}%.</div>}
+                  {cambia && dataNota({ valore: lato === 'locale' ? pan.dalLocale : pan.dalAsporto, onCambia: v => set(lato === 'locale' ? 'dalLocale' : 'dalAsporto', v) })}
+                </div>
+              );
+            })}
+            {!pan.id && (
+              <div>
+                <div style={{ ...H2, marginBottom:6 }}>Vale dal</div>
+                <input type="date" min={domani} value={pan.dal} onChange={e => set('dal', e.target.value)} style={{ ...selectStile, width:180 }}/>
               </div>
-            </div>
-          );
-        })}
-        {nuovoTr && (
-          <div style={{padding:'12px 14px', background:ADM.PANEL_SOFT, display:'grid', gridTemplateColumns:'90px minmax(0,1.4fr) minmax(0,1.4fr) minmax(0,2fr) 160px', gap:10, alignItems:'start'}}>
-            <input placeholder="Aliquota %" value={nuovoTr.aliquota} onChange={e => setNuovoTr({ ...nuovoTr, aliquota: e.target.value })} style={inp}/>
-            {sel(nuovoTr.modalita, v => setNuovoTr({ ...nuovoTr, modalita: v }), Object.entries(HUB_MODALITA_TRATTAMENTO).map(([value, label]) => ({ value, label })))}
-            <input placeholder="Fondamento (es. voce 121)" value={nuovoTr.fondamento} onChange={e => setNuovoTr({ ...nuovoTr, fondamento: e.target.value })} style={inp}/>
-            <input placeholder="Citazione della norma" value={nuovoTr.citazione} onChange={e => setNuovoTr({ ...nuovoTr, citazione: e.target.value })} style={inp}/>
-            <div style={{display:'flex', flexDirection:'column', gap:6}}>
-              <div style={{fontSize:11, color:ADM.MUTED}}>Vale dal</div>
-              {dataBox(nuovoTr.dal, v => setNuovoTr({ ...nuovoTr, dal: v }))}
-              <div style={{display:'flex', gap:6}}>
-                <AdmButton variant="primary" size="sm" icon="check" onClick={confermaNuovoTr}>Apri</AdmButton>
-                <AdmButton variant="ghost" size="sm" onClick={() => setNuovoTr(null)}>Annulla</AdmButton>
+            )}
+            {pan.ritiro && (
+              <div data-ritiro style={{ padding:'12px 13px', borderRadius:12, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40` }}>
+                <div style={{ fontSize:13.2, fontWeight:700, color:'#7F1D1D' }}>Ritirare la tipologia</div>
+                <div style={{ fontSize:12.4, color:'#7F1D1D', marginTop:3, lineHeight:1.45 }}>
+                  Chiude la vigenza da una data. Articoli di menù che la indicano oggi: {uso[pan.id] != null ? uso[pan.id] : '— (il conteggio arriva dal gestionale)'}. A quale tipologia passano?
+                </div>
+                <select value={pan.ritiro.verso} onChange={e => set('ritiro', { ...pan.ritiro, verso: e.target.value })} style={{ ...selectStile, marginTop:8 }}>
+                  {tipVive.filter(x => x.id !== pan.id).map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
+                </select>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8 }}>
+                  <input type="date" min={domani} value={pan.ritiro.dal} onChange={e => set('ritiro', { ...pan.ritiro, dal: e.target.value })} style={{ ...selectStile, width:160 }}/>
+                  <div style={{ flex:1 }}/>
+                  <AdmButton variant="ghost" size="sm" onClick={() => set('ritiro', null)}>Annulla</AdmButton>
+                  <AdmButton variant="danger" size="sm" icon="x" disabled={!pan.ritiro.verso || !pan.ritiro.dal} onClick={ritira}>Ritira</AdmButton>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
-      </div>
-    </React.Fragment>
+      </HubPannello>
+    </div>
   );
 }
 
