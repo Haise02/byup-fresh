@@ -155,7 +155,8 @@ const PAD_X = 14;
 const TUTTI_CANALI    = 'Tutti i canali';
 const TUTTE_CATEGORIE = 'Tutte le categorie';
 const CANALI = [TUTTI_CANALI, 'Sala', 'Asporto', 'Delivery'];
-const CANALE_TIPO = { 'Sala': 'table', 'Asporto': 'takeaway', 'Delivery': 'delivery' };
+// I canali del filtro puntano al modo di consegna del modello (P-165).
+const CANALE_TIPO = { 'Sala': 'al_tavolo', 'Asporto': 'asporto', 'Delivery': 'consegna' };
 
 // Bersaglio dei pulsanti. 64 px su un tablet a parete sono circa 11 mm reali:
 // sopra i 9 mm che si danno per un polpastrello col guanto, e sopra i 56 px
@@ -371,16 +372,16 @@ function Kds2Chip({
     : quieta ? K.TESTO_OFF
     : kds2ColoreTono(tempo.tono);
 
-  const Canale = source.type === 'takeaway' ? Kds2Bag
-    : source.type === 'delivery' ? Kds2Scooter
-    : source.type === 'order' ? Kds2Scontrino : null;
+  const Canale = source.delivery_mode === 'asporto' ? Kds2Bag
+    : source.delivery_mode === 'consegna' ? Kds2Scooter
+    : source.delivery_mode === 'al_banco' ? Kds2Scontrino : null;
 
   // Il TEMPO su una chip di tavolo è un doppione: i minuti d'attesa stanno già
   // in fondo alla riga, grandi, con la loro etichetta — e ripetuti dentro ogni
   // chip diventavano una seconda fila di numeri da scartare con gli occhi. Su
   // asporto e delivery invece resta, perche li non e un'attesa ma un'ORA di
   // ritiro: quella non e scritta da nessun'altra parte.
-  const conTempo = mostraTempo && (source.type !== 'table');
+  const conTempo = mostraTempo && (source.delivery_mode !== 'al_tavolo');
 
   // La taglia `mini` scala tutto insieme — corpi, icone, guscio: è la stessa
   // grammatica letta da più lontano, non una grammatica diversa.
@@ -1457,7 +1458,7 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
   // evento come l'arrivo di un ordine. È il tick dell'orologio a non doverci
   // entrare mai, e infatti `ora` resta fuori.
   const porzioniViste = React.useMemo(() => porzioni.filter(p =>
-    (canale === TUTTI_CANALI || CANALE_TIPO[canale] === p.source.type) &&
+    (canale === TUTTI_CANALI || CANALE_TIPO[canale] === p.source.delivery_mode) &&
     (categoria === TUTTE_CATEGORIE || p.category === categoria)
   ), [porzioni, canale, categoria]);
 

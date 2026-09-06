@@ -29,20 +29,23 @@ const fra = m => KDS2_T0 + m * 60000;   // dueAt   — ritiro fra m minuti
 // con quale borsa e con quali tempi, e a un rider che sbaglia ordine si
 // rimedia solo prima che esca dalla porta. Gli id sono quelli di
 // impostazioni-integrazioni.jsx: la piattaforma si chiama con lo stesso nome
-// in tutto il prodotto.
-const T3  = { type: 'table',    label: 'T3'  };
-const T7  = { type: 'table',    label: 'T7'  };
-const T9  = { type: 'table',    label: 'T9'  };
-const T12 = { type: 'table',    label: 'T12' };
-const T15 = { type: 'table',    label: 'T15' };
-const ANNA  = { type: 'takeaway', label: 'Anna'  };
-const SARA  = { type: 'delivery', label: 'Sara',  partner: 'ubereats' };
-const MARCO = { type: 'takeaway', label: 'Marco' };
-const LUCA  = { type: 'delivery', label: 'Luca',  partner: 'glovo'   };
+// in tutto il prodotto. La sorgente porta il MODO DI CONSEGNA del modello
+// (orders.delivery_mode, D-14 — P-165 · D-115): al_tavolo, asporto, consegna,
+// al_banco; `partner` sta accanto a `consegna`. Il vocabolario proprio del
+// monitor (table | takeaway | delivery | order) non esiste più.
+const T3  = { delivery_mode: 'al_tavolo',    label: 'T3'  };
+const T7  = { delivery_mode: 'al_tavolo',    label: 'T7'  };
+const T9  = { delivery_mode: 'al_tavolo',    label: 'T9'  };
+const T12 = { delivery_mode: 'al_tavolo',    label: 'T12' };
+const T15 = { delivery_mode: 'al_tavolo',    label: 'T15' };
+const ANNA  = { delivery_mode: 'asporto', label: 'Anna'  };
+const SARA  = { delivery_mode: 'consegna', label: 'Sara',  partner: 'ubereats' };
+const MARCO = { delivery_mode: 'asporto', label: 'Marco' };
+const LUCA  = { delivery_mode: 'consegna', label: 'Luca',  partner: 'glovo'   };
 // Ordini di cassa: niente tavolo, niente nome — il numero dello scontrino.
 // Come Marco, il loro tempo è un'attesa: il cliente sta lì davanti.
-const ORD42 = { type: 'order', label: '042' };
-const ORD57 = { type: 'order', label: '057' };
+const ORD42 = { delivery_mode: 'al_banco', label: '042' };
+const ORD57 = { delivery_mode: 'al_banco', label: '057' };
 
 const KDS2_PORZIONI = [
   // ── Hamburger: tre porzioni standard da tre sorgenti diverse, dentro la
@@ -157,7 +160,7 @@ const KDS2_CODA = [
 function kds2NuovoOrdine(seq) {
   const modello = KDS2_CODA[seq % KDS2_CODA.length];
   const ora = Date.now();
-  const source = { type: 'table', label: 'T' + (20 + seq) };
+  const source = { delivery_mode: 'al_tavolo', label: 'T' + (20 + seq) };
   return modello.map((it, i) => Object.assign({}, it, {
     id: 'n' + seq + '-' + i,
     source,

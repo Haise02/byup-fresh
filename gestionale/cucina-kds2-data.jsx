@@ -51,8 +51,10 @@ const SOGLIA_RITIRO_MIN = 5;
 /**
  * @typedef {{ type: 'add'|'remove', label: string }} Kds2Modifier
  *
- * @typedef {{ type: 'table'|'takeaway'|'delivery'|'order', label: string }} Kds2Source
- *   label: 'T12' per i tavoli, il nome di battesimo per asporto e delivery,
+ * @typedef {{ delivery_mode: 'al_tavolo'|'asporto'|'consegna'|'al_banco', label: string, partner?: string }} Kds2Source
+ *   delivery_mode è quello del modello (orders.delivery_mode, D-14 — P-165);
+ *   partner è la piattaforma accanto a `consegna` (glovo, deliveroo, ubereats).
+ *   label: 'T12' per i tavoli, il nome di battesimo per asporto e consegna,
  *   il numero d'ordine ('042') per gli ordini di cassa senza tavolo.
  *
  * @typedef {Object} Kds2Portion
@@ -91,7 +93,7 @@ const SOGLIA_RITIRO_MIN = 5;
 // etichetta identificano già il tavolo o il cliente in modo stabile, ed è
 // l'unica chiave che l'evidenziazione deve poter confrontare.
 function kds2SorgenteId(source) {
-  return source.type + '|' + source.label;
+  return source.delivery_mode + '|' + source.label;
 }
 
 // Primo posto della grammatica delle chip: IDENTITÀ.
@@ -110,11 +112,11 @@ const KDS2_PREFISSO_TAVOLO = 'Tavolo ';
 const KDS2_PREFISSO_ORDINE = 'Ordine ';
 
 function kds2Identita(source) {
-  if (source.type === 'table') {
+  if (source.delivery_mode === 'al_tavolo') {
     const num = String(source.label).replace(/\D+/g, '');
     return KDS2_PREFISSO_TAVOLO + (num || String(source.label));
   }
-  if (source.type === 'order') {
+  if (source.delivery_mode === 'al_banco') {
     const num = String(source.label).replace(/\D+/g, '');
     return KDS2_PREFISSO_ORDINE + (num || String(source.label));
   }
@@ -200,7 +202,7 @@ function kds2TonoRitiro(dueAt, ora) {
  * ricade sui minuti, che è la sua grandezza vera.
  */
 function kds2ChipTempo(source, firedAt, dueAt, ora) {
-  if (source.type !== 'table' && dueAt != null) {
+  if (source.delivery_mode !== 'al_tavolo' && dueAt != null) {
     return { testo: kds2Orario(dueAt), tono: kds2TonoRitiro(dueAt, ora) };
   }
   const min = kds2AttesaMin(firedAt, ora);

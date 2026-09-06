@@ -23,22 +23,21 @@ function _kds2Quando(hhmm) {
   return Date.now() - delta * 60000;
 }
 
-const _KDS2_TIPO_SORGENTE = {
-  sala: 'table', asporto: 'takeaway', delivery: 'delivery', banco: 'order',
-};
-
 // L'etichetta della sorgente sta in una chip che si legge a tre metri: «T12»,
 // «Anna». Il cognome non serve a nessuno in cucina e ruberebbe la riga.
 // Il banco non ha né tavolo né cliente: ha il numero d'ordine, che è quello
 // che si grida al ritiro — prima qui c'era la parola «Banco», che con due
 // ordini di cassa aperti li incollava in una sorgente sola.
+// La sorgente legge il modo di consegna dell'ordine (orders.delivery_mode,
+// P-165) e non traduce più un vocabolario in un altro: il convertitore è
+// provvisorio (P-07) e finché vive non introduce nomi suoi.
 function _kds2Sorgente(t) {
-  const type = _KDS2_TIPO_SORGENTE[t.kind] || 'table';
-  if (t.kind === 'sala')  return { type, label: 'T' + t.table };
-  if (t.kind === 'banco') return { type, label: String(t.orderN || '').replace(/\D+/g, '') || 'Banco' };
-  // Il delivery porta anche la piattaforma: è lei che manda il rider, e il
+  const delivery_mode = t.delivery_mode || 'al_tavolo';
+  if (delivery_mode === 'al_tavolo') return { delivery_mode, label: 'T' + t.table };
+  if (delivery_mode === 'al_banco')  return { delivery_mode, label: String(t.orderN || '').replace(/\D+/g, '') || 'Banco' };
+  // La consegna porta anche la piattaforma: è lei che manda il rider, e il
   // board la disegna al posto dello scooter.
-  return { type, label: String(t.customer || 'Ordine').split(' ')[0], partner: t.partner };
+  return { delivery_mode, label: String(t.customer || 'Ordine').split(' ')[0], partner: t.partner };
 }
 
 // La nota del ticket è testo libero: «senza basilico», «extra mozzarella»,
