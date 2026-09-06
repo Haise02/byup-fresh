@@ -1686,12 +1686,21 @@ window.byupAdeCredBlocco = function (forma) {
 // ─── La delega all'Agenzia e le due attivazioni che ne discendono ───────────
 // Non si dà più nell'onboarding (4 settembre 2026): il locale entra nel
 // gestionale e la campanella gli chiede di collegarsi, la notifica lo porta in
-// Dati fiscali, e la delega si dà da lì. Tre stati, come nell'onboarding di
-// prima: la DELEGA è un atto suo sul portale, e Byup ne controlla l'esito; la
-// CONSERVAZIONE e l'ACCREDITAMENTO come esercente li fa Byup con la delega,
-// da soli, senza un pulsante dell'esercente.
+// Dati fiscali, e la delega si dà da lì. La DELEGA è un atto suo sul portale,
+// e Byup ne controlla l'esito. La delega NON ferma le fatture (P-170 · D-119):
+// partono da OpenAPI senza delega e senza credenziali; con la delega Byup le
+// conserva presso l'Agenzia e cura il censimento dei dispositivi. Le due cose
+// che seguono — l'ADESIONE alla conservazione e l'ACCREDITAMENTO come
+// esercente — sono atti di una persona sul portale, senza interfaccia
+// applicativa e senza automatismi: Hubble li segna fatti nel registro delle
+// deleghe scrivendo QUESTA chiave (conservazione_il/_da, accreditamento_il/
+// _da), oppure li dichiara l'esercente da sé («Faccio da me», o la riga
+// guidata dell'accreditamento). delega: attesa | attiva | fai_da_te.
+// conservazione: attesa | attiva | dichiarata. accreditamento: attesa |
+// attivo | dichiarato. Dichiarato non è verificato, e la scheda lo mostra.
 const PN_DELEGA_KEY = 'byup_ade_delega';
-const pnDelegaSeme = () => ({ delega: 'attesa', conservazione: 'attesa', accreditamento: 'attesa', attivata_il: null });
+const pnDelegaSeme = () => ({ delega: 'attesa', conservazione: 'attesa', accreditamento: 'attesa', attivata_il: null,
+  conservazione_il: null, conservazione_da: null, accreditamento_il: null, accreditamento_da: null });
 window.byupReadDelega = function () {
   try { const s = localStorage.getItem(PN_DELEGA_KEY); return s ? Object.assign(pnDelegaSeme(), JSON.parse(s)) : pnDelegaSeme(); }
   catch (e) { return pnDelegaSeme(); }
@@ -1707,15 +1716,12 @@ window.byupDelegaCompleta = function () {
   return d.delega === 'attiva' && d.conservazione === 'attiva' && d.accreditamento === 'attivo';
 };
 
-// La ricezione delle fatture: il codice destinatario del canale, registrato
-// dall'esercente sul portale e dichiarato (onboarding, riga 4; Dati fiscali).
-const PN_RICEZIONE_KEY = 'byup_ade_ricezione';
-window.PN_CODICE_DESTINATARIO = 'PIC7CPS';
-window.byupReadRicezione = function () { try { const s = localStorage.getItem(PN_RICEZIONE_KEY); return s ? JSON.parse(s) : null; } catch (e) { return null; } };
-window.byupWriteRicezione = function (v) {
-  try { if (v) localStorage.setItem(PN_RICEZIONE_KEY, JSON.stringify(v)); else localStorage.removeItem(PN_RICEZIONE_KEY); } catch (e) {}
-  window.dispatchEvent(new Event('byup-ricezione-change'));
-};
+// Niente «codice destinatario del canale» né la sua dichiarazione (P-170 ·
+// D-119): il ciclo passivo è fuori dal primo rilascio, e registrare sul
+// portale il codice del canale devierebbe le fatture dei fornitori su un
+// canale che nessuno legge. Le fatture, comprese le nostre, arrivano al
+// recapito del soggetto: PEC o codice destinatario suoi, dal foglio in Dati
+// anagrafici.
 
 // ─── Il regime fiscale della sede (P-111 · P-89 · progetto tecnico §4.3) ────
 // Due regimi, e non convivono nella stessa sede: il REGIME ATTUALE, dove i

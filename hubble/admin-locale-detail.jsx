@@ -548,6 +548,8 @@ function drwLocaliAssociati(l) {
   return out;
 }
 
+const delAttoChiaveDi = (d) => d.localeId + '|' + d.giorno.toISOString().slice(0, 10);
+
 function DrwAnagrafica({ locale: l }) {
   // I campi sono QUELLI dell'onboarding (Nome del locale, indirizzo con
   // civico, CAP, città, telefono) più il profilo: quello che il locale ha
@@ -830,6 +832,17 @@ function DrwFiscali({ locale: l }) {
                     : <span style={{color:ADM.MUTED}}>{revoca ? 'Revocata dall\'esercente sul portale: nessuna delega viva.' : 'Nessuna delega a registro: il locale non l\'ha ancora conferita.'}</span>}
                   <span style={{marginLeft:'auto', fontSize:12, color:ADM.MUTED_SOFT}}>Registro: Impostazioni → Piattaforma → Deleghe</span>
                 </div>
+                {/* I due atti che seguono la delega (P-170 · D-119): fatti da
+                    una persona di Byup, con data e nome, o ancora da fare. */}
+                {d && (
+                  <div data-atti-delega style={{display:'flex', gap:14, flexWrap:'wrap', marginTop:6, fontSize:12.4, color:ADM.MUTED}}>
+                    {['conservazione', 'accreditamento'].map(q => {
+                      const riga = DELEGHE.find(x => x.localeId === l.id && x.atto !== 'revoca' && delAttoDiServizio(x) === q && delAttoChiaveDi(x) === delAttoChiaveDi(d));
+                      const a = riga ? delAtti(riga)[q] : null;
+                      return <span key={q}><b style={{color:ADM.TEXT}}>{DEL_ATTI_TIPI[q]}</b>: {a ? `fatta il ${fmtDate(a.il)} da ${a.da}` : 'in attesa di Byup · si segna nel registro'}</span>;
+                    })}
+                  </div>
+                )}
               </div>
             );
           })()}

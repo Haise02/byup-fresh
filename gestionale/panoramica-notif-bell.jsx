@@ -114,16 +114,21 @@ function _byupNotificheAttivazione() {
         time: 'Da completare su Stripe' });
     }
     const credMai = window.byupAdeCredStato && !window.byupAdeCredStato().rinnovo;
-    const delegaGiu = window.byupDelegaCompleta && !window.byupDelegaCompleta();
+    // La delega manca finché non è attiva, salvo chi ha scelto di fare da sé
+    // (P-170 · D-119): e la delega non ferma le fatture — senza credenziali
+    // non si chiude alcun conto, senza delega le fatture partono lo stesso ma
+    // non sono conservate presso l'Agenzia e il censimento resta a mano.
+    const regDelega = window.byupReadDelega ? window.byupReadDelega() : null;
+    const delegaGiu = !!regDelega && regDelega.delega !== 'attiva' && regDelega.delega !== 'fai_da_te';
     if (credMai || delegaGiu) {
-      const manca = credMai && delegaGiu
-        ? 'Mancano la delega sul portale dell\'Agenzia e le credenziali Fisconline di chi trasmette'
-        : credMai ? 'Mancano le credenziali Fisconline di chi trasmette'
-        : 'Manca la delega sul portale dell\'Agenzia';
+      const cred = 'Mancano le credenziali Fisconline di chi trasmette: finché non ci sono, scontrini e fatture non partono.';
+      const delega = 'Manca la delega sul portale dell\'Agenzia: le fatture partono lo stesso, ma senza delega non sono conservate presso l\'Agenzia e il censimento dei dispositivi resta da fare a mano.';
+      const body = (credMai && delegaGiu ? `${cred} ${delega}` : credMai ? cred : delega)
+        + (delegaGiu ? ' Si fa tutto in Dati fiscali, e la delega si dà col tuo SPID in due minuti.' : ' Si inseriscono in Dati fiscali.');
       out.push({ id: `attiva-fiscale-${credMai ? 'cred' : ''}${delegaGiu ? 'delega' : ''}`, type: 'fiscal', unread: true,
         href: 'byup Impostazioni.html?page=fiscali',
         title: 'Collega i dati fiscali all\'Agenzia',
-        body: `${manca}: finché non ci sono, scontrini e fatture non partono. Si fa tutto in Dati fiscali, e la delega si dà col tuo SPID in due minuti.`,
+        body,
         time: 'Da fare per primo' });
     }
   } catch (e) {}
@@ -365,7 +370,7 @@ const PN_ATTIVA_DOVE = {
     tinta: '#B91C1C', sfondo: '#FEF2F2', bordo: '#FECACA',
     azione: 'Apri Dati fiscali',
     titoloDove: 'Per emettere gli scontrini servono i dati fiscali',
-    dove: 'Quando vuoi impostarli: Impostazioni → Dati fiscali. Lì dai la delega all\'Agenzia e inserisci le credenziali di chi trasmette; finché mancano, scontrini e fatture non partono.',
+    dove: 'Quando vuoi impostarli: Impostazioni → Dati fiscali. Lì inserisci le credenziali di chi trasmette — finché mancano, scontrini e fatture non partono — e dai la delega all\'Agenzia: le fatture partono lo stesso, ma senza delega non sono conservate presso l\'Agenzia e il censimento dei dispositivi resta da fare a mano.',
   },
 };
 const pnAttivaStile = (id) => PN_ATTIVA_DOVE[id] || PN_ATTIVA_DOVE.fiscale;

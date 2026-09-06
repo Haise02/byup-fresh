@@ -619,13 +619,13 @@ function HubDeleghePage() {
       </div>
 
       <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden'}}>
-        <div style={{display:'grid', gridTemplateColumns:'48px 92px 108px minmax(0,1.2fr) 118px minmax(0,1.1fr) 108px 100px 100px minmax(0,1.2fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
-          <span>N.</span><span>Giorno</span><span>Atto</span><span>Locale · P.IVA</span><span>CF delegante · delegato</span><span>Servizio</span><span>Scadenza</span><span>Verificata il</span><span>Responsabile</span><span>Note</span>
+        <div style={{display:'grid', gridTemplateColumns:'48px 92px 108px minmax(0,1.2fr) 118px minmax(0,1.1fr) 108px 100px 100px minmax(0,1.25fr) minmax(0,1.1fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER}`, fontSize:11.2, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>
+          <span>N.</span><span>Giorno</span><span>Atto</span><span>Locale · P.IVA</span><span>CF delegante · delegato</span><span>Servizio</span><span>Scadenza</span><span>Verificata il</span><span>Atto di Byup</span><span>Responsabile</span><span>Note</span>
         </div>
         {righe.map(d => {
           const a = atto(d.atto);
           return (
-            <div key={d.n} style={{display:'grid', gridTemplateColumns:'48px 92px 108px minmax(0,1.2fr) 118px minmax(0,1.1fr) 108px 100px 100px minmax(0,1.2fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:12.8, color:ADM.TEXT, alignItems:'start'}}>
+            <div key={d.n} style={{display:'grid', gridTemplateColumns:'48px 92px 108px minmax(0,1.2fr) 118px minmax(0,1.1fr) 108px 100px 100px minmax(0,1.25fr) minmax(0,1.1fr)', gap:10, padding:'10px 14px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:12.8, color:ADM.TEXT, alignItems:'start'}}>
               <span style={{fontFamily:'ui-monospace,monospace', fontWeight:700}}>{String(d.n).padStart(3, '0')}</span>
               <span>{fmtDate(d.giorno)}</span>
               <span><AdmBadge color={a.color} size="xs">{a.label}</AdmBadge></span>
@@ -635,6 +635,22 @@ function HubDeleghePage() {
               <span style={{fontSize:11.8, color:ADM.TEXT, lineHeight:1.4}}>{d.servizio}</span>
               <span>{d.scadenza ? fmtDate(d.scadenza) : '—'}</span>
               <span>{fmtDate(d.verificataIl)}</span>
+              {/* L'atto di una persona di Byup che segue questa riga (P-170 ·
+                  D-119): fatto, con data e nome; o da fare, e lo segna il
+                  responsabile della gestione. Niente su una revoca. */}
+              <span style={{fontSize:11.8, lineHeight:1.4}}>{(() => {
+                if (d.atto === 'revoca') return <span style={{color:ADM.MUTED_SOFT}}>—</span>;
+                const quale = delAttoDiServizio(d); const a = delAtti(d)[quale];
+                return (
+                  <React.Fragment>
+                    <b>{DEL_ATTI_TIPI[quale]}</b><br/>
+                    {a
+                      ? <span style={{color:ADM.MUTED}}>fatta il {fmtDate(a.il)} da {a.da}</span>
+                      : <AdmButton variant="secondary" size="sm" data-segna-fatta={quale} title={`La segna il responsabile della gestione: ${DEL_GESTIONE.responsabileNome}`}
+                          onClick={() => { delSegnaAtto(d, quale, DEL_GESTIONE.responsabileNome); ridisegna(x => x + 1); }}>Segna fatta</AdmButton>}
+                  </React.Fragment>
+                );
+              })()}</span>
               <span>{d.responsabile}</span>
               <span style={{fontSize:12, color:ADM.MUTED, lineHeight:1.45}}>{d.note || '—'}</span>
             </div>

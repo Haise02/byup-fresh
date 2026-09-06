@@ -2051,9 +2051,12 @@ const DEL_SERVIZI = ['Fatturazione elettronica e conservazione delle fatture ele
 // incaricato fiscale (quella figura non esiste, D-103).
 const DEL_GESTIONE = { responsabileNome: 'Luca Ferrante' };
 // Il delegato è Byup: il suo codice fiscale è un dato del provvedimento
-// (delega unica, Provv. 182017/2016 coordinato) e nel prototipo è da
-// completare, come la sede legale e la partita IVA nei contratti.
-const DEL_DELEGATO = { denominazione: 'Byup S.r.l.', cf: 'da completare' };
+// (delega unica, Provv. 182017/2016 coordinato). Nel prototipo è un
+// SEGNAPOSTO del seme (P-170 · D-119), come la sede legale e la partita IVA
+// nei contratti: il numero vero entra quando la società è costituita. La
+// costante è UNA, in byup-costanti.js alla radice del repo, e la legge anche
+// Dati fiscali del gestionale: le due superfici non divergono.
+const DEL_DELEGATO = { denominazione: 'Byup S.r.l.', cf: window.BYUP_CF_SEGNAPOSTO || 'da completare' };
 const delScadenza = (conferitaIl) => new Date(conferitaIl.getFullYear() + 4, 11, 31);
 // UNA RIGA PER SERVIZIO (P-156.4): nel modello ade_delegations porta un
 // servizio per riga, con l'indice che la lega al locale — un atto sul portale
@@ -2086,6 +2089,43 @@ const DELEGHE = (() => {
     ...atto(ctrData(20, 8, 2026), 'conferimento', 'L1010', 'Conferita in onboarding; il locale è fermo alla verifica del menù.'),
   ];
 })();
+// I due atti di una persona di Byup che seguono la delega (P-170 · D-119):
+// l'adesione al servizio di conservazione e l'accreditamento come esercente.
+// Nessun automatismo: si fanno sul portale, con la delega, e si segnano qui
+// con «fatta il» e «da». Nel mockup «Segna fatta» scrive anche la chiave che
+// il gestionale legge (byup_ade_delega), così Dati fiscali passa da «In
+// attesa di Byup» ad «Attiva» con la data e il nome. Ogni riga del registro
+// (una per servizio) porta l'atto che le corrisponde. Nel seme i conferimenti
+// prima dell'agosto 2026 hanno i due atti fatti dal responsabile; l'ultimo
+// (agosto) no, ed è quello con il pulsante.
+const DEL_ATTI_TIPI = { conservazione: 'Adesione alla conservazione', accreditamento: 'Accreditamento come esercente' };
+const DEL_ATTI = {};   // `${localeId}|${giorno}` → { conservazione: {il, da} | null, accreditamento: {il, da} | null }
+const delAttoChiave = (d) => d.localeId + '|' + d.giorno.toISOString().slice(0, 10);
+const delAttoDiServizio = (d) => d.servizio === DEL_SERVIZI[0] ? 'conservazione' : 'accreditamento';
+DELEGHE.filter(d => d.atto === 'conferimento' && d.giorno < ctrData(1, 8, 2026)).forEach(d => {
+  const k = delAttoChiave(d);
+  if (!DEL_ATTI[k]) DEL_ATTI[k] = {
+    conservazione: { il: new Date(d.verificataIl.getTime() + 2 * 86400000), da: DEL_GESTIONE.responsabileNome },
+    accreditamento: { il: new Date(d.verificataIl.getTime() + 5 * 86400000), da: DEL_GESTIONE.responsabileNome },
+  };
+});
+function delAtti(d) { return DEL_ATTI[delAttoChiave(d)] || { conservazione: null, accreditamento: null }; }
+function delSegnaAtto(d, quale, nome) {
+  const k = delAttoChiave(d);
+  const a = DEL_ATTI[k] || (DEL_ATTI[k] = { conservazione: null, accreditamento: null });
+  const il = new Date();
+  a[quale] = { il, da: nome };
+  try {
+    const s = localStorage.getItem('byup_ade_delega'); const reg = s ? JSON.parse(s) : {};
+    if (quale === 'conservazione') Object.assign(reg, { conservazione: 'attiva', conservazione_il: il.toISOString(), conservazione_da: nome });
+    else Object.assign(reg, { accreditamento: 'attivo', accreditamento_il: il.toISOString(), accreditamento_da: nome });
+    localStorage.setItem('byup_ade_delega', JSON.stringify(reg));
+  } catch (e) {}
+  if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: nome, action: quale === 'conservazione' ? 'ha segnato fatta l\'adesione alla conservazione di' : 'ha segnato fatto l\'accreditamento come esercente di',
+    target: `${(LOCALI.find(l => l.id === d.localeId) || { nome: d.localeId }).nome} · delega n. ${String(d.n).padStart(3, '0')}`, icon: 'check', color: 'OK', tipo: 'locale', when: il });
+  return a[quale];
+}
+window.delAtti = delAtti; window.delSegnaAtto = delSegnaAtto; window.DEL_ATTI_TIPI = DEL_ATTI_TIPI; window.delAttoDiServizio = delAttoDiServizio;
 // La delega viva di un locale: l'ultimo conferimento o rinnovo non seguito da
 // una revoca. Chi non è a registro non l'ha (ancora) conferita.
 function delAttiva(l) {

@@ -878,8 +878,8 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                 <div style={{minWidth: 0}}><div style={LAB}>PEC</div><input value={fatt.pec || ''} onChange={setB('pec')} style={INP}/></div>
                 <div style={{minWidth: 0}}>
                   <div style={LAB}>Codice destinatario</div>
-                  <div style={{...INP, background:'#F7F8FA', color: PN.MUTED, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5}}>{window.PN_CODICE_DESTINATARIO}</div>
-                  <div style={{fontSize: 12, color: PN.MUTED, marginTop: 3}}>È del canale, non del soggetto: si registra sul portale, non si scrive qui.</div>
+                  <input value={fatt.sdi || ''} onChange={setB('sdi')} style={{...INP, fontFamily:'ui-monospace, Menlo, monospace', letterSpacing: 0.5}}/>
+                  <div style={{fontSize: 12, color: PN.MUTED, marginTop: 3}}>Dove ricevi le fatture, comprese le nostre: il tuo, o la PEC.</div>
                 </div>
               </div>
               <div style={{fontSize: 12.5, fontWeight: 700, color: PN.MUTED, marginTop: 2}}>{persona ? 'Domicilio fiscale' : 'Sede legale'}</div>
@@ -957,7 +957,13 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
 // sbaglia. Quando la delega è attiva la tappa delegations_renewed è fatta:
 // la vecchia delega non si chiede di revocarla — il portale ammette due
 // delegati e, se i posti sono pieni, lo dice lui fra le cause.
-const ADE_CF_BYUP = '15927340015';
+// Il codice fiscale di Byup è un SEGNAPOSTO del seme (P-170 · D-119): un
+// numero finto, come la sede legale e la partita IVA nei contratti, e nel
+// prototipo i dati finti non si correggono (P-160). Il numero vero entra
+// quando la società è costituita. La costante è UNA, in byup-costanti.js
+// alla radice del repo: la legge anche Hubble, così le due superfici non
+// divergono. Il valore di riserva serve alle pagine che non caricano il file.
+const ADE_CF_BYUP = window.BYUP_CF_SEGNAPOSTO || '15927340015';
 const ADE_PORTALE = 'https://www.agenziaentrate.gov.it/portale/area-riservata';
 const ADE_SERVIZI = [
   'Fatturazione elettronica e conservazione delle fatture elettroniche',
@@ -976,11 +982,11 @@ const ADE_CAUSE = [
   <React.Fragment>Il delegato è esattamente <b>{ADE_CF_BYUP}</b>.</React.Fragment>,
   <React.Fragment>Sono spuntati <b>entrambi</b> i servizi: «{ADE_SERVIZI[0]}» e «{ADE_SERVIZI[1]}». Con uno solo la delega c'è, ma non basta.</React.Fragment>,
   'La delega è confermata, non lasciata a metà.',
-  <React.Fragment><b>Hai già due delegati?</b> Il portale ne ammette due: se i posti sono occupati la nuova non entra, e ne va revocata una — quella di chi esce.</React.Fragment>,
+  <React.Fragment><b>Hai già due delegati?</b> Il portale ne ammette due: se i posti sono occupati la nuova non entra. Non devi revocarne una: puoi fare tu le due cose che faremmo noi, con «Faccio da me» qui sotto.</React.Fragment>,
   'La delega può metterci qualche minuto a comparire: riprova.',
 ];
 
-// ─── Attivazioni fiscali: la delega, e le due cose che ne discendono ───────
+// ─── Attivazioni fiscali: la delega, e le due cose che ne seguono ──────────
 // Erano nell'onboarding e non ci sono più (4 settembre 2026): chiedere la
 // delega prima di far entrare qualcuno voleva dire fermarlo sulla porta per un
 // atto che si compie su un altro sito, con SPID. Ora il locale entra, e la
@@ -989,43 +995,48 @@ const ADE_CAUSE = [
 //      prenderla al posto suo, può solo rendere indolori i due minuti — il
 //      codice fiscale pronto, il portale a un click, i tap in ordine — e poi
 //      controllarne l'esito. I servizi delegabili sono due (P-49 · D-40) e si
-//      spuntano entrambi: con uno solo la delega c'è ma non basta.
-//   2. la CONSERVAZIONE la attiva Byup con la delega, da sola.
-//   3. l'ACCREDITAMENTO come esercente lo fa Byup con la delega: da lì il menù
-//      del collegamento dei POS compare, e il passo zero di P-105 è compiuto.
+//      spuntano entrambi: con uno solo la delega c'è ma non basta. La delega
+//      NON ferma le fatture (P-170 · D-119): partono da OpenAPI comunque; con
+//      la delega Byup le conserva presso l'Agenzia e cura il censimento.
+//   2. l'ADESIONE alla conservazione la fa una persona di Byup sul portale,
+//      con la delega: nessun automatismo, nessun timer. Hubble la segna fatta
+//      nel registro delle deleghe, con data e nome, e qui la riga passa ad
+//      «Attiva». Finché non lo fa: «In attesa di Byup».
+//   3. l'ACCREDITAMENTO come esercente lo fa l'esercente stesso dal portale
+//      (D-123): la riga dice che cos'è, porta i passi e la spunta datata con
+//      cui lo dichiara. Se il riscontro dirà che con la delega possiamo
+//      accreditarlo noi, la riga torna «In attesa di Byup».
+// Chi ha già due delegati sul portale non deve revocarne una: con «Faccio da
+// me» fa lui le due cose, le dichiara con la data, e le righe vanno in ambra —
+// dichiarato non è verificato, e la differenza resta visibile.
 // Le righe sono TRE, e il CENSIMENTO dei POS presso l'Agenzia non è fra
-// queste per scelta (P-160, che la registra): il censimento nasce quando
-// nasce lo strumento — il POS virtuale col collegamento a Stripe, il lettore
-// Tap to Pay col primo telefono che incassa — e vive nella sua card qui sotto
-// (pos-censimento), non in un elenco di attivazioni che si compiono una volta.
-// Prima stava fra le attivazioni dell'onboarding; il 4 settembre 2026 ne è
-// uscito insieme all'onboarding stesso, e da allora si comunica dalla card
-// dello strumento, con la finestra che il Provvedimento fissa (P-150).
-// La scheda vive finché serve: quando tutte e tre sono a posto sparisce, come
-// il banner dei campi mancanti in cima alla pagina. Un riquadro verde che dice
-// «non c'è niente da fare» non è un'informazione, è un ingombro.
+// queste per scelta (P-160): il censimento nasce quando nasce lo strumento e
+// vive nella sua card qui sotto (pos-censimento), con la finestra che il
+// Provvedimento fissa (P-150).
+// La scheda vive finché serve: quando tutte e tre sono verificate sparisce,
+// come il banner dei campi mancanti in cima alla pagina.
+const ADE_ACCR_PASSI = [
+  'Accedi al portale Fatture e Corrispettivi con SPID',
+  'Vai nell\'area Corrispettivi',
+  'Apri «Accreditamento» e conferma i dati della tua partita IVA',
+];
 function AdeAttivazioniCard() {
   const [reg, setReg] = React.useState(() => window.byupReadDelega());
   const [fase, setFase] = React.useState('idle');     // idle | verifica | errore
   const [tentativi, setTentativi] = React.useState(0);
+  const [comeAccr, setComeAccr] = React.useState(false);
   React.useEffect(() => {
     const ri = () => setReg(window.byupReadDelega());
     window.addEventListener('byup-ade-delega-change', ri);
-    return () => window.removeEventListener('byup-ade-delega-change', ri);
+    // Hubble scrive la stessa chiave da un'altra scheda: si legge anche da lì.
+    window.addEventListener('storage', ri);
+    return () => { window.removeEventListener('byup-ade-delega-change', ri); window.removeEventListener('storage', ri); };
   }, []);
-  // Le due attivazioni di Byup partono da sole appena la delega è attiva, una
-  // dopo l'altra: nessun pulsante dell'esercente, da nessuna parte.
-  React.useEffect(() => {
-    if (reg.delega !== 'attiva') return;
-    if (reg.conservazione === 'corso') {
-      const t = setTimeout(() => window.byupWriteDelega({ ...window.byupReadDelega(), conservazione: 'attiva', accreditamento: 'corso' }), 2200);
-      return () => clearTimeout(t);
-    }
-    if (reg.accreditamento === 'corso') {
-      const t = setTimeout(() => window.byupWriteDelega({ ...window.byupReadDelega(), accreditamento: 'attivo' }), 1800);
-      return () => clearTimeout(t);
-    }
-  }, [reg.delega, reg.conservazione, reg.accreditamento]);
+
+  const scrivi = (patch) => window.byupWriteDelega({ ...window.byupReadDelega(), ...patch });
+  const adesso = () => new Date().toISOString();
+  const io = () => (window.PN_UTENTE && PN_UTENTE.nome) || 'Mario Rossi';
+  const gg = (iso) => iso ? new Date(iso).toLocaleDateString('it-IT') : '';
 
   // Il controllo non si fida sulla parola: il primo giro finisce in «non
   // trovata» — chi torna qui dopo trenta secondi la delega non ce l'ha ancora
@@ -1037,17 +1048,26 @@ function AdeAttivazioniCard() {
     setTimeout(() => {
       if (t === 1) { setFase('errore'); return; }
       setFase('idle');
-      window.byupWriteDelega({ ...window.byupReadDelega(), delega: 'attiva', attivata_il: new Date().toISOString(), conservazione: 'corso' });
+      scrivi({ delega: 'attiva', attivata_il: adesso() });
     }, 1600);
   };
+  const faccioDaMe = () => { setFase('idle'); scrivi({ delega: 'fai_da_te' }); };
+  const tornaAllaDelega = () => scrivi({ delega: 'attesa' });
+  const dichiaraConservazione = (si) => scrivi(si
+    ? { conservazione: 'dichiarata', conservazione_il: adesso(), conservazione_da: io() }
+    : { conservazione: 'attesa', conservazione_il: null, conservazione_da: null });
+  const dichiaraAccreditamento = (si) => scrivi(si
+    ? { accreditamento: 'dichiarato', accreditamento_il: adesso(), accreditamento_da: io() }
+    : { accreditamento: 'attesa', accreditamento_il: null, accreditamento_da: null });
 
   if (window.byupDelegaCompleta && window.byupDelegaCompleta()) return null;
 
+  const senzaDelega = reg.delega === 'fai_da_te';
   const pastiglia = (tono, label) => {
     const T = { attesa: { bg: PN.AMBER_SOFT, fg: '#B45309' }, corso: { bg: '#F4F5F7', fg: PN.MUTED },
       errore: { bg: '#FEE2E2', fg: '#991B1B' }, ok: { bg: PN.GREEN_SOFT, fg: '#065F46' } }[tono];
     return (
-      <span style={{display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0, padding:'4px 11px', borderRadius: 999,
+      <span data-stato={tono} style={{display:'inline-flex', alignItems:'center', gap: 6, flexShrink: 0, padding:'4px 11px', borderRadius: 999,
         background: T.bg, color: T.fg, fontSize: 13, fontWeight: 700, whiteSpace:'nowrap'}}>
         {tono === 'corso' && <span style={{width: 11, height: 11, borderRadius: 999, border: '1.5px solid rgba(15,17,21,0.18)', borderTopColor: PN.MUTED, animation: 'adeAttSpin 0.7s linear infinite'}}/>}
         {label}
@@ -1056,37 +1076,84 @@ function AdeAttivazioniCard() {
   };
   const statoDelega = fase === 'verifica' ? pastiglia('corso', 'Controllo in corso…')
     : fase === 'errore' ? pastiglia('errore', 'Non trovata')
-    : reg.delega === 'attiva' ? pastiglia('ok', 'Attiva') : pastiglia('attesa', 'Da dare');
-  const statoConserv = reg.conservazione === 'attiva' ? pastiglia('ok', 'Attiva')
-    : reg.conservazione === 'corso' ? pastiglia('corso', 'In corso…') : pastiglia('attesa', 'In attesa della delega');
-  const statoAccr = reg.accreditamento === 'attivo' ? pastiglia('ok', 'Accreditato')
-    : reg.accreditamento === 'corso' ? pastiglia('corso', 'In corso…') : pastiglia('attesa', 'In attesa della delega');
+    : reg.delega === 'attiva' ? pastiglia('ok', 'Attiva')
+    : senzaDelega ? pastiglia('attesa', 'Senza delega · fai da te')
+    : pastiglia('attesa', 'Da dare');
+  // Dichiarato è ambra, verificato è verde: la differenza resta visibile.
+  const statoConserv = reg.conservazione === 'attiva' ? pastiglia('ok', `Attiva${reg.conservazione_il ? ' · ' + gg(reg.conservazione_il) : ''}${reg.conservazione_da ? ' · ' + reg.conservazione_da : ''}`)
+    : reg.conservazione === 'dichiarata' ? pastiglia('attesa', `Dichiarata il ${gg(reg.conservazione_il)}`)
+    : reg.delega === 'attiva' ? pastiglia('corso', 'In attesa di Byup')
+    : pastiglia('attesa', senzaDelega ? 'Da fare' : 'In attesa della delega');
+  const statoAccr = reg.accreditamento === 'attivo' ? pastiglia('ok', `Accreditato${reg.accreditamento_il ? ' · ' + gg(reg.accreditamento_il) : ''}${reg.accreditamento_da ? ' · ' + reg.accreditamento_da : ''}`)
+    : reg.accreditamento === 'dichiarato' ? pastiglia('attesa', `Dichiarato il ${gg(reg.accreditamento_il)}`)
+    : pastiglia('attesa', 'Da fare');
 
-  const riga = (titolo, sotto, stato) => (
+  const riga = (titolo, sotto, stato, extra) => (
     <div style={{display:'flex', alignItems:'flex-start', gap: 12, padding:'11px 0', borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
       <div style={{flex: 1, minWidth: 0}}>
         <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>{titolo}</div>
         <div style={{fontSize: 14, color: PN.MUTED, marginTop: 2, lineHeight: 1.45}}>{sotto}</div>
+        {extra}
       </div>
       {stato}
     </div>
   );
+  const linkStile = { background:'transparent', border:'none', padding: 0, color: PN.PINK_DARK, fontSize: 13.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit', textDecoration:'underline', textUnderlineOffset: 2 };
+  const spuntaDatata = (checked, onChange, testo, il, da) => (
+    <label style={{display:'inline-flex', alignItems:'flex-start', gap: 8, color: PN.TEXT, cursor:'pointer', fontSize: 13.5, lineHeight: 1.45}}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{accentColor: PN.PINK_DARK, marginTop: 3}}/>
+      <span>{testo}{checked && il ? <span style={{color: '#B45309', fontWeight: 600}}> · dichiarato il {gg(il)}{da ? ` da ${da}` : ''}</span> : null}</span>
+    </label>
+  );
+
+  // La riga guidata dell'accreditamento (D-123): i passi, e la spunta datata.
+  const accrExtra = reg.accreditamento === 'attivo' ? null : (
+    <div style={{marginTop: 8, display:'flex', flexDirection:'column', gap: 8}}>
+      <div>
+        <button type="button" data-come-accreditarsi onClick={() => setComeAccr(v => !v)} style={linkStile}>{comeAccr ? 'Nascondi i passi' : 'Come ci si accredita'}</button>
+        {comeAccr && (
+          <ol style={{margin:'6px 0 0', paddingLeft: 20, display:'flex', flexDirection:'column', gap: 3}}>
+            {ADE_ACCR_PASSI.map((x, i) => <li key={i} style={{fontSize: 13.5, color: PN.TEXT, lineHeight: 1.45}}>{x}</li>)}
+          </ol>
+        )}
+      </div>
+      {spuntaDatata(reg.accreditamento === 'dichiarato', dichiaraAccreditamento, 'L\'ho fatto sul portale', reg.accreditamento_il, reg.accreditamento_da)}
+    </div>
+  );
 
   return (
-    <ImpCard title="Attivazioni fiscali" sub="Tre cose: la delega la dai tu sul portale dell'Agenzia, le altre due le fa Byup con quella delega" style={{marginBottom: 18}}>
+    <ImpCard title="Attivazioni fiscali" sub="Tre cose: la delega la dai tu sul portale dell'Agenzia, l'adesione alla conservazione la fa una persona di Byup con quella delega, l'accreditamento come esercente lo fai tu dal portale" style={{marginBottom: 18}}>
       <style>{`@keyframes adeAttSpin { to { transform: rotate(360deg); } }`}</style>
       <div>
-        {riga('1 · Delega all\'Agenzia delle Entrate', 'Un atto tuo, sul portale, con il tuo SPID. Byup controlla che sia arrivata. Finché manca, le fatture non partono.', statoDelega)}
-        {riga('2 · Conservazione delle fatture elettroniche', 'La attiva Byup appena la delega è attiva. Non devi fare nulla.', statoConserv)}
-        {riga('3 · Accreditamento come esercente', 'Lo fa Byup con la delega: da lì ti compare il menù per collegare i POS all\'Agenzia.', statoAccr)}
+        {riga('1 · Delega all\'Agenzia delle Entrate', 'Un atto tuo, sul portale, con il tuo SPID. Byup controlla che sia arrivata. Le fatture partono comunque: con la delega Byup le conserva per te presso l\'Agenzia e ti accredita come esercente.', statoDelega)}
+        {riga('2 · Adesione alla conservazione delle fatture', senzaDelega
+          ? 'L\'adesione al servizio di conservazione dell\'Agenzia. Senza delega la fai tu sul portale e la dichiari qui sotto, in «Faccio da me».'
+          : 'L\'adesione al servizio di conservazione dell\'Agenzia. Con la delega la fa una persona di Byup sul portale, senza automatismi: qui compare quando l\'ha fatta, con la data e il nome.', statoConserv)}
+        {riga('3 · Accreditamento come esercente', 'L\'iscrizione della tua partita IVA fra gli esercenti che trasmettono i corrispettivi: da lì ti compare il menù per collegare i POS all\'Agenzia. Lo fai tu dal portale.', statoAccr, accrExtra)}
       </div>
 
-      {reg.delega !== 'attiva' && (
+      {senzaDelega && (
+        <div data-faccio-da-me style={{marginTop: 14, padding:'13px 15px', borderRadius: 12, background: PN.AMBER_SOFT, border: '1px solid rgba(180, 83, 9, 0.22)'}}>
+          <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Faccio da me</div>
+          <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
+            Senza delega Byup non può fare per te le due cose che seguono: le fai tu sul portale, con il tuo SPID, e qui dichiari quando le hai fatte. Dichiarato non è verificato: le righe restano in ambra.
+          </div>
+          <div style={{display:'flex', flexDirection:'column', gap: 10, marginTop: 12}}>
+            {spuntaDatata(reg.conservazione === 'dichiarata', dichiaraConservazione, 'Adesione al servizio di conservazione — Fatture e Corrispettivi → Fatturazione elettronica → Conservazione → Adesione', reg.conservazione_il, reg.conservazione_da)}
+            {spuntaDatata(reg.accreditamento === 'dichiarato', dichiaraAccreditamento, 'Accreditamento come esercente — Corrispettivi → Accreditamento', reg.accreditamento_il, reg.accreditamento_da)}
+          </div>
+          <div style={{marginTop: 12}}>
+            <button type="button" onClick={tornaAllaDelega} style={linkStile}>Preferisco dare la delega</button>
+          </div>
+        </div>
+      )}
+
+      {reg.delega !== 'attiva' && !senzaDelega && (
         <React.Fragment>
           <div style={{marginTop: 14, paddingTop: 14, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
             <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>La delega, in due minuti</div>
             <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
-              Due servizi in una delega sola: «{ADE_SERVIZI[0]}», con cui Byup conserva le tue fatture presso l'Agenzia; «{ADE_SERVIZI[1]}», con cui Byup ti accredita come esercente. Servono entrambi, e serve solo il tuo accesso con SPID: le tue credenziali non le chiediamo.
+              Due servizi in una delega sola: «{ADE_SERVIZI[0]}», con cui Byup conserva le tue fatture presso l'Agenzia; «{ADE_SERVIZI[1]}», con cui Byup cura il censimento dei tuoi dispositivi. Servono entrambi, e serve solo il tuo accesso con SPID: le tue credenziali non ce le dai e non ce le chiediamo.
             </div>
           </div>
           <div style={{display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap', marginTop: 12, padding:'11px 13px', borderRadius: 10, background:'#FAFBFC', border:`1px solid ${PN.BORDER_SOFT}`}}>
@@ -1116,6 +1183,12 @@ function AdeAttivazioniCard() {
             <div style={{marginTop: 10, padding:'11px 13px', borderRadius: 10, background:'rgba(220, 38, 38, 0.06)', border:'1px solid rgba(220, 38, 38, 0.22)', fontSize: 14, color: PN.TEXT, lineHeight: 1.5}}>
               <b style={{color: '#991B1B'}}>Delega non trovata.</b> Ricontrolla, in quest'ordine:
               <ol style={{margin:'6px 0 0', paddingLeft: 20, display:'flex', flexDirection:'column', gap: 3}}>{ADE_CAUSE.map((x, i) => <li key={i}>{x}</li>)}</ol>
+              {/* Il ripiego (P-170 · D-119): chi ha già due delegati non ne
+                  revoca una — fa lui le due cose che faremmo noi. */}
+              <div style={{display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap', marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(220, 38, 38, 0.16)'}}>
+                <div style={{flex: 1, minWidth: 200, color: PN.MUTED}}>Hai già due delegati? Non devi revocarne una: puoi fare tu le due cose che faremmo noi.</div>
+                <ImpButton variant="secondary" onClick={faccioDaMe}>Faccio da me</ImpButton>
+              </div>
             </div>
           )}
         </React.Fragment>
@@ -1655,12 +1728,6 @@ function ImpDatiFiscali() {
   // banner o da Account (?cambio=) finché il cambiamento non è concluso.
   const cambioInCorso = () => (window.byupSoggettoInCorso ? window.byupSoggettoInCorso() : null);
   const apri = () => { if (cambioInCorso()) setDopoOpen(true); else setSoggettoOpen(true); };
-  const [ricezione, setRicezione] = React.useState(() => window.byupReadRicezione ? byupReadRicezione() : null);
-  React.useEffect(() => {
-    const ri = () => setRicezione(byupReadRicezione());
-    window.addEventListener('byup-ricezione-change', ri);
-    return () => window.removeEventListener('byup-ricezione-change', ri);
-  }, []);
   const [soggettoOpen, setSoggettoOpen] = React.useState(false);
   const [dopoOpen, setDopoOpen] = React.useState(() => {
     try { return !!new URLSearchParams(window.location.search).get('cambio') && !!cambioInCorso(); } catch (e) { return false; }
@@ -1875,21 +1942,15 @@ function ImpDatiFiscali() {
               </React.Fragment>
             )}
             <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: persona ? 4 : 18, marginBottom: 10}}>Fatturazione elettronica</div>
+            {/* Il recapito del soggetto, non il codice del canale (P-170 ·
+                D-119): il ciclo passivo è fuori dal primo rilascio, e
+                registrare sul portale il codice del canale devierebbe le
+                fatture dei fornitori su un canale che nessuno legge. */}
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
               <ImpCampoBloccato label="PEC" value={data.pec}/>
-              <ImpCampoBloccato label="Codice destinatario per ricevere" value={window.PN_CODICE_DESTINATARIO} hint="Del canale: i fornitori ti fatturano qui"/>
+              <ImpCampoBloccato label="Codice destinatario" value={data.sdi}/>
             </div>
-            {/* La registrazione dell'indirizzo telematico è un atto
-                dell'esercente sul portale, delegabile solo agli intermediari
-                abilitati: qui si dichiara, come nell'onboarding (riga 4). */}
-            <div style={{display:'flex', alignItems:'center', gap: 10, flexWrap:'wrap', marginTop: -6, marginBottom: 6, fontSize: 13.5}}>
-              {ricezione
-                ? <span style={{color: PN.GREEN, fontWeight: 600}}>Codice destinatario registrato sul portale · dichiarato il {new Date(ricezione.dichiarata_at).toLocaleDateString('it-IT')}</span>
-                : <label style={{display:'inline-flex', alignItems:'center', gap: 8, color: PN.TEXT, cursor:'pointer'}}>
-                    <input type="checkbox" checked={false} onChange={() => byupWriteRicezione({ dichiarata_at: new Date().toISOString(), dichiarata_da: PN_UTENTE.nome })} style={{accentColor: PN.PINK_DARK}}/>
-                    Ho registrato il codice destinatario sul portale dell'Agenzia (Fatturazione elettronica → Registrazione dell'indirizzo telematico)
-                  </label>}
-            </div>
+            <div style={{fontSize: 13.5, color: PN.MUTED, marginTop: -6, marginBottom: 6}}>Dove ricevi le fatture, comprese le nostre.</div>
             <div style={{fontSize: 15.5, fontWeight: 700, color: PN.TEXT, marginTop: 18, marginBottom: 10}}>{persona ? 'Domicilio fiscale' : 'Sede legale'}</div>
             <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap: 14}}>
               <ImpCampoBloccato label="Indirizzo e civico" value={data.sedeIndirizzo}/>

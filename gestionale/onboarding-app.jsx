@@ -38,10 +38,10 @@ const ONB_CATENA = (() => {
 // «Non ora» della sessione, che altrimenti terrebbero zitte le fasce appena
 // nate. L'onboarding non ha i registri sotto mano — è un altro bundle, senza
 // panoramica-tokens — quindi tocca le chiavi direttamente, com'è già per le
-// credenziali dell'Agenzia e per la ricezione delle fatture.
+// credenziali dell'Agenzia e per la delega.
 const ONB_CHIAVI_ATTIVAZIONI = [
   'byup_stripe', 'byup_pos_censimento',
-  'byup_ade_cred', 'byup_ade_delega', 'byup_ade_incaricato', 'byup_ade_ricezione',
+  'byup_ade_cred', 'byup_ade_delega', 'byup_ade_incaricato',
   'byup_notifiche_stato',
 ];
 function onbAzzeraAttivazioni() {
