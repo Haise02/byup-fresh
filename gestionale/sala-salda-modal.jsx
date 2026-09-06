@@ -146,8 +146,14 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 
   const [pay, setPay] = React.useState({ contanti: '', carta: '' });
   // I valori sono quelli di payments.method nel modello (P-161 · D-115):
-  // cash | card_terminal. Le etichette a schermo restano «Contanti» e «Carta».
-  const [method, setMethod] = React.useState('cash'); // cash | card_terminal
+  // cash | card_terminal | meal_voucher. Le etichette a schermo restano
+  // «Contanti», «Carta» e «Buoni pasto».
+  const [method, setMethod] = React.useState('cash'); // cash | card_terminal | meal_voucher
+  // I buoni pasto (P-173 · D-124): la tessera compare solo con una convenzione
+  // attiva; i campi vivono in `buoni`, il totale si sottrae dal dovuto e i
+  // vincoli — otto titoli, niente resto — li impone la finestra condivisa.
+  const [buoni, setBuoni] = React.useState(null);
+  const buoniAttivi = window.byupBuoniAttivi ? window.byupBuoniAttivi().length > 0 : false;
   // La fattura è la stessa di Vendita diretta: una finestra sua, con la
   // ricerca in rubrica e nel registro imprese, i segmenti e il codice
   // destinatario. Qui c'erano tre campi liberi e un interruttore — la stessa
@@ -310,6 +316,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       // ripartire da "Contanti" nasconderebbe la transazione in corso e
       // l'unico modo per annullarla.
       setMethod(tavolo.incasso ? 'card_terminal' : 'cash');
+      setBuoni(null);
       setFattura(null);
       setFatturaOpen(false);
       setAdjustOpen(false);
@@ -474,6 +481,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   const contanti = contantiEsatto ? total : parseFloat(pay.contanti) || 0;
   const carta = parseFloat(pay.carta) || 0;
   const paid = contanti + carta;
+  // Il totale dei buoni e la loro validità (P-173): la quota che entra è al
+  // massimo il dovuto, e se i buoni non coprono il residuo resta aperto.
+  const buoniTot = method === 'meal_voucher' && window.byupBuoniTotale ? window.byupBuoniTotale(buoni) : 0;
+  const buoniOk = method === 'meal_voucher' && !!window.byupBuoniValido && window.byupBuoniValido(buoni, total);
   const resto = paid - total;
   // Epsilon 0.01€ (1 centesimo) per tollerare rounding di float su somme parziali — es. 33.33 + 66.67.
   const canConfirm = paid >= total - 0.01 && total > 0;
@@ -649,13 +660,16 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
   // parziale deve sopravvivere alla chiusura: riaprendo il conto quei piatti
   // risultano pagati e il totale chiede solo quello che manca. È la stessa
   // cosa che l'acconto fa al banco, in Vendita diretta.
-  function registraIncasso(metodo) {
+  function registraIncasso(metodo, importo, dettaglio) {
     // Le righe che questo incasso chiude sono quelle spuntate, qualunque cifra
     // sia entrata: è la selezione a dire QUALI piatti sono a posto. Se però il
     // conto si chiude del tutto, copre anche quello che era rimasto fuori —
     // quando il tavolo non deve più niente non può restare un piatto che
     // risulta da pagare.
-    const items = !parziale
+    // Un importo sotto il dovuto (i buoni che non coprono, P-173) è un
+    // acconto: nessuna riga si spegne, il credito resta sul tavolo.
+    const acconto = importo != null && importo < total - 0.004;
+    const items = acconto ? [] : !parziale
       ? incassabili.map(o => ({ id: o.id, qty: qtyAperta(o) })).filter(r => r.qty > 0)
       : selectedOrdini
           .map(o => ({ id: o.id, qty: Math.min(selectedItems.get(o.id) || 0, qtyAperta(o)) }))
@@ -664,10 +678,12 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     const pagamento = {
       id: 'pg-' + ora.getTime(),
       method: metodo,
-      amount: total,
+      amount: importo != null ? importo : total,
       ora: `${String(ora.getHours()).padStart(2,'0')}:${String(ora.getMinutes()).padStart(2,'0')}`,
       chi: 'Cassa',
       items,
+      // Il dettaglio dell'accettazione dei buoni (payment_meal_vouchers).
+      ...(dettaglio ? { meal_vouchers: [dettaglio] } : {}),
     };
     tavolo.pagamenti = [...(tavolo.pagamenti || []), pagamento];
     return pagamento;
@@ -801,7 +817,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
             fase={storno.fase}
             residuoDopo={residuoDopo}
             onConferma={() => {
-              if (storno.p.method === 'cash') applicaStorno(storno.p);
+              if (storno.p.method === 'cash' || storno.p.method === 'meal_voucher') applicaStorno(storno.p);
               else setStorno({ ...storno, fase:'attesa', inviato: Date.now() });
             }}
             onChiudi={() => setStorno(null)}/>
@@ -1402,12 +1418,23 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       grandi. */}
                   <div style={{padding:'22px 24px 0'}}>
                     <div style={SALDA_LABEL}>Come paga il cliente</div>
-                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap: 14}}>
+                    <div style={{display:'grid', gridTemplateColumns: buoniAttivi ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14}}>
                       <SaldaMetodoCard active={method==='cash'} onClick={()=>chooseMethod('cash')}
                         icon={<IconBanconota/>} label="Contanti"/>
                       <SaldaMetodoCard active={method==='card_terminal'} onClick={()=>chooseMethod('card_terminal')}
                         icon={<IconPos/>} label="Carta · Byup Staff"/>
+                      {/* La terza tessera (P-173 · D-124) c'è solo con una
+                          convenzione dichiarata in Impostazioni. */}
+                      {buoniAttivi && (
+                        <SaldaMetodoCard active={method==='meal_voucher'} onClick={()=>chooseMethod('meal_voucher')}
+                          icon={<IconBuono/>} label="Buoni pasto"/>
+                      )}
                     </div>
+                    {method === 'meal_voucher' && (
+                      <div style={{marginTop: 14}}>
+                        <window.PnBuoniPasto dovuto={total} valore={buoni} onChange={setBuoni}/>
+                      </div>
+                    )}
 
                     {/* Cosa succede scegliendo la carta: il pulsante non
                         incassa — manda il conto sul telefono — e finora non lo
@@ -1463,7 +1490,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     // il metodo: i contanti emettono quanto la carta, e la
                     // carta manderebbe in coda un pagamento che si chiude
                     // dentro la finestra. Si riaccende da solo a mezzanotte.
-                    const attivo = (inviaSuStaff ? total > 0 : canConfirm) && !notte.dentro && !credBlocco;
+                    const attivo = (inviaSuStaff ? total > 0 : method === 'meal_voucher' ? (total > 0 && buoniOk) : canConfirm) && !notte.dentro && !credBlocco;
                     const manca = total - paid;
                     return (
                       <React.Fragment>
@@ -1503,6 +1530,22 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       <button onClick={() => {
                           if (!attivo) return;
                           if (inviaSuStaff) avviaPagamento();
+                          else if (method === 'meal_voucher') {
+                            // I buoni (P-173 · D-124): quello che si accetta si
+                            // registra; la quota è al massimo il dovuto — la
+                            // differenza la perde il cliente, e la finestra
+                            // l'ha detto prima — e se i buoni non coprono, il
+                            // residuo resta aperto come acconto e si chiude
+                            // con un'altra tessera.
+                            const dettaglio = window.byupBuoniRegistraAccettazione({ issuer_id: buoni.issuer_id, voucher_count: parseInt(buoni.voucher_count, 10), face_value: Number(buoni.face_value), voucher_format: buoni.voucher_format || 'electronic', authorization_ref: buoni.authorization_ref || '', conto: `Tavolo ${tavolo.id}` });
+                            const quota = Math.min(buoniTot, total);
+                            const pagamento = registraIncasso('meal_voucher', quota, dettaglio);
+                            const residuoBuoni = Math.max(0, r2(residuoTavolo - quota));
+                            setEsito({ total: quota, contanti: 0, carta: 0, buoni: buoniTot, resto: 0, metodo: 'meal_voucher', invoice, invoiceData: fattura, residuo: residuoBuoni, parziale: residuoBuoni > 0.004 });
+                            setBuoni(null);
+                            setDone(true);
+                            onConfirm && onConfirm({ saldato: residuoBuoni <= 0.004, residuo: residuoBuoni, pagamento });
+                          }
                           else {
                             const pagamento = registraIncasso(method);
                             // Fotografia del momento in cui si incassa: la
@@ -2313,6 +2356,7 @@ function SaldaAttesaPagamento({ tavolo, total, elapsed, onRitira, onClose }) {
 // Chiavi = payments.method del modello (P-161 · D-115); etichette in italiano.
 const PAG_META = {
   cash:          { label:'Contanti', ink:'#0F766E', bg:'#CCFBF1' },
+  meal_voucher:  { label:'Buoni pasto', ink:'#B45309', bg:'#FEF3C7' },
   card_terminal: { label:'Carta',    ink:'#1D4ED8', bg:'#DBEAFE' },
   in_app:        { label:'Byup app', ink:'#7C3AED', bg:'#EDE9FE' },
   platform:      { label:'Piattaforma', ink:'#92400E', bg:'#FEF3C7' },
@@ -2431,6 +2475,7 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
                     onClick={() => onStorna(p)}
                     title={p.method === 'cash'
                       ? `Annulla €${p.amount.toFixed(2)} in contanti`
+                      : p.method === 'meal_voucher' ? `Annulla €${p.amount.toFixed(2)} in buoni pasto`
                       : `Storna €${p.amount.toFixed(2)}: parte la richiesta su Byup Staff`}
                     onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = '#B91C1C'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9CA3AF'; }}
@@ -2471,7 +2516,8 @@ function PagamentiConto({ pagamenti, onStorna, apertoDiSuo }) {
 // si sta togliendo — ed è l'unico posto di questa finestra dove un tocco
 // fa uscire dei soldi invece di farli entrare.
 function SaldaStorno({ p, fase, residuoDopo, onConferma, onChiudi }) {
-  const carta = p.method !== 'cash';
+  // I buoni si annullano qui, come il contante: non c'è un telefono a cui chiedere.
+  const carta = p.method !== 'cash' && p.method !== 'meal_voucher';
   const cerchio = (bg, fg, children) => (
     <div style={{
       width: 64, height: 64, borderRadius:'50%', marginBottom: 16,
@@ -2723,10 +2769,11 @@ function AdjustPanel({ subtotale, adjust, setAdjust }) {
 // Stessa lingua e stessi colori della conferma d'incasso in Vendita diretta:
 // è lo stesso gesto, fatto dalla stessa persona dietro allo stesso bancone.
 function SaldaDoneV2({ tavolo, esito, onClose }) {
-  const { total, contanti, carta, resto, invoice, invoiceData, residuo, parziale } = esito;
+  const { total, contanti, carta, resto, invoice, invoiceData, residuo, parziale, buoni = 0 } = esito;
   // Un incasso, un modo: tolto il «misto», contanti e carta non possono più
-  // essere pieni insieme nello stesso pagamento.
-  const comeHaPagato = carta > 0 ? 'Con la carta, su Byup Staff' : 'In contanti, alla cassa';
+  // essere pieni insieme nello stesso pagamento. I buoni (P-173) sono un
+  // terzo modo, e sul documento vanno fra il non riscosso.
+  const comeHaPagato = buoni > 0 ? 'Con i buoni pasto, alla cassa' : carta > 0 ? 'Con la carta, su Byup Staff' : 'In contanti, alla cassa';
   // P-124 (D-108): non «scontrino» — lo scontrino, cioè il documento
   // commerciale, lo emette il canale fiscale ed è già partito quando questa
   // schermata compare; il cliente lo riceve come ricevuta elettronica. Questo
@@ -2767,8 +2814,8 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
     tavolo: tavolo ? `Tavolo ${tavolo.id}` : '',
     righe: (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia })),
     totale: total,
-    pagamenti: { contante: contanti, elettronico: carta, resto: resto > 0 ? resto : 0, pagato: total },
-    pagamento: carta > 0 ? 'Carta · Byup Staff' : 'Contanti',
+    pagamenti: { contante: contanti, elettronico: carta, non_riscosso: buoni > 0 ? Math.min(buoni, total) : 0, resto: resto > 0 ? resto : 0, pagato: total },
+    pagamento: buoni > 0 ? 'Buoni pasto' : carta > 0 ? 'Carta · Byup Staff' : 'Contanti',
   });
   const stampaCortesia = (auto) => {
     if (typeof window.byupStampaDocumentoCliente !== 'function') { setStampato({ via: 'browser', esito: 'ok' }); return; }
@@ -2955,6 +3002,15 @@ function IconMonete() { return (
 
 // Le due tessere del metodo, disegnate come in Vendita diretta: una banconota
 // e un terminale, riconoscibili di sagoma prima che si legga il nome.
+// Il buono pasto: un tagliando con la dentellatura, che non è né una
+// banconota né una carta.
+function IconBuono() { return (
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/>
+    <path d="M9 6v12" strokeDasharray="2 2"/>
+    <path d="M13 10h4M13 14h3"/>
+  </svg>
+); }
 function IconBanconota() { return (
   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="8.5" cy="12" r="2.6"/>

@@ -2954,6 +2954,14 @@ const SvIcoPos = () => (
   </svg>
 );
 
+// Il buono pasto: un tagliando dentellato, né banconota né carta.
+const SvIcoBuono = () => (
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/>
+    <path d="M9 6v12" strokeDasharray="2 2"/>
+    <path d="M13 10h4M13 14h3"/>
+  </svg>
+);
 const SvIcoBanconota = () => (
   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="6" width="20" height="12" rx="2"/>
@@ -2975,7 +2983,12 @@ const SvIcoMonete = ({ size = 18 }) => (
 // Modale incasso semplificato (solo totale + pagamento)
 
 function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti: pagamentiConto, onPagamenti, onAcconto, lines, takeaway }) {
-  const [method, setMethod] = React.useState('contanti');
+  const [method, setMethod] = React.useState('contanti'); // contanti | carta | buoni
+  // I buoni pasto (P-173 · D-124): la tessera compare solo con una convenzione
+  // attiva; i campi stanno in `buoni`, la quota è al massimo il residuo, e i
+  // vincoli li impone la finestra condivisa (window.PnBuoniPasto).
+  const [buoni, setBuoni] = React.useState(null);
+  const buoniAttivi = window.byupBuoniAttivi ? window.byupBuoniAttivi().length > 0 : false;
   // Incasso a più riprese: il residuo è quello che manca, non il totale. Chi
   // paga metà in contanti e metà col POS non sceglie un metodo "misto" — fa
   // due incassi, e la finestra tiene il conto.
@@ -3021,7 +3034,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
   const [adjust, setAdjust] = React.useState(null);
   const [adjustOpen, setAdjustOpen] = React.useState(false);
   const [confirmedTotal, setConfirmedTotal] = React.useState(0);
-  const [confirmedPay, setConfirmedPay] = React.useState({ contanti: 0, carta: 0 });
+  const [confirmedPay, setConfirmedPay] = React.useState({ contanti: 0, carta: 0, buoni: 0 });
   const [confirmedResto, setConfirmedResto] = React.useState(0);
   // Ordine creato dal commit: lo restituisce onConfirm. Null quando l'incasso
   // non crea un ordine nuovo (es. il "Salda ora" di un asporto già esistente).
@@ -3090,6 +3103,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
   React.useEffect(() => {
     if (open) {
       setMethod('contanti');
+      setBuoni(null);
       // Solo gli acconti di questa finestra si azzerano riaprendo. Quelli del
       // conto stanno fuori e devono ritrovarsi dov'erano: è tutto il punto.
       if (!contoEsterno) setPagamentiLocali([]);
@@ -3140,6 +3154,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
 
   const incassato = pagamenti.reduce((t, p) => t + p.importo, 0);
   const incassatoCarta = pagamenti.reduce((t, p) => t + (p.come === 'carta' ? p.importo : 0), 0);
+  const incassatoBuoni = pagamenti.reduce((t, p) => t + (p.come === 'buoni' ? p.importo : 0), 0);
   const residuo = Math.max(0, finalTotal - incassato);
   // Conto coperto: gli acconti presi bastano, o avanzano. Non è la stessa cosa
   // di un conto vuoto — lì non c'è niente da incassare perché non c'è niente,
@@ -3157,7 +3172,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
   const importo = parseFloat((importoTxt || '').replace(',', '.')) || 0;
   // Quello che entra davvero in cassa: sopra il residuo non si incassa, si
   // rende. Sulla carta l'eccedenza non esiste — si addebita e basta.
-  const preso = Math.min(importo, residuo);
+  const buoniTot = method === 'buoni' && window.byupBuoniTotale ? window.byupBuoniTotale(buoni) : 0;
+  const preso = method === 'buoni' ? Math.min(buoniTot, residuo) : Math.min(importo, residuo);
   const residuoDopo = Math.max(0, residuo - preso);
   const parziale = preso > 0 && preso < residuo - 0.004;
 
@@ -3174,10 +3190,10 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
   // Senza questo, scrivendo «10,00» a mano si accendevano sia il pulsante €10
   // sia la casella, e la riga mostrava lo stesso importo due volte.
   const ricevutoLibero = ricevutoTxt !== null && !ricevutoDaTaglio;
-  const resto = method === 'carta' ? 0 : Math.max(0, ricevuto - preso);
+  const resto = (method === 'carta' || method === 'buoni') ? 0 : Math.max(0, ricevuto - preso);
   // Il contante in mano non copre nemmeno quello che stai incassando: non è un
   // resto, è un incasso che non si può chiudere.
-  const manca = method === 'carta' ? 0 : Math.max(0, preso - ricevuto);
+  const manca = (method === 'carta' || method === 'buoni') ? 0 : Math.max(0, preso - ricevuto);
 
   // Sopra: quanto togli dal conto. Tutto è il caso normale, Metà il conto
   // diviso in due — sotto i 5 euro è una cifra che non paga nessuno.
@@ -3253,7 +3269,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
           id: numero, numero, data: new Date().toISOString(),
           stato: 'in_attesa', cliente: fattura,
           canale: takeaway ? 'asporto' : 'somministrazione',
-          pagamento: come === 'carta' ? 'carta' : 'contanti',
+          pagamento: come === 'carta' ? 'carta' : come === 'buoni' ? 'buoni' : 'contanti',
           righe: svfRighe(lines, takeaway),
           riepilogo: svRiepilogoIva(lines, takeaway),
           totale: finalTotal,
@@ -3262,8 +3278,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
     }
     setConfirmedTotal(finalTotal);
     setConfirmedPay({
-      contanti: (incassato - incassatoCarta) + (come === 'carta' ? 0 : ultima),
+      contanti: (incassato - incassatoCarta - incassatoBuoni) + ((come === 'carta' || come === 'buoni') ? 0 : ultima),
       carta: incassatoCarta + (come === 'carta' ? ultima : 0),
+      buoni: incassatoBuoni + (come === 'buoni' ? ultima : 0),
     });
     // Nei casi normali è zero: l'incasso è clampato al residuo e non lo supera
     // mai. Vale per il conto già coperto, ed è l'ultima volta che se ne può
@@ -3324,9 +3341,13 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
               {svEur(confirmedTotal)}
             </div>
             <div style={{ fontSize: 17, color: SVI_MUTED, marginBottom: confirmedResto > 0.004 ? 14 : (ordine ? 16 : 24) }}>
-              {confirmedPay.contanti > 0 && confirmedPay.carta > 0
-                ? `${svEur(confirmedPay.contanti)} contanti + ${svEur(confirmedPay.carta)} sul POS`
-                : confirmedPay.carta > 0 ? 'Smart POS' : 'Contanti'}
+              {(() => {
+                const parti = [];
+                if (confirmedPay.contanti > 0) parti.push(`${svEur(confirmedPay.contanti)} contanti`);
+                if (confirmedPay.carta > 0) parti.push(`${svEur(confirmedPay.carta)} sul POS`);
+                if (confirmedPay.buoni > 0) parti.push(`${svEur(confirmedPay.buoni)} in buoni pasto`);
+                return parti.length > 1 ? parti.join(' + ') : confirmedPay.buoni > 0 ? 'Buoni pasto' : confirmedPay.carta > 0 ? 'Smart POS' : 'Contanti';
+              })()}
             </div>
             {/* Il promemoria sopravvive alla chiusura del conto: fra il tocco
                 sul pulsante e la mano nel cassetto passa qualche secondo, e
@@ -3618,7 +3639,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                             : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg>}
                         </span>
                         <span style={{flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: SVI_INK}}>
-                          {p.come === 'carta' ? 'Smart POS' : 'Contanti'}
+                          {p.come === 'carta' ? 'Smart POS' : p.come === 'buoni' ? 'Buoni pasto' : 'Contanti'}
                         </span>
                         <span style={{fontSize: 14, color: SVI_MUTED, fontVariantNumeric: 'tabular-nums'}}>{p.ora}</span>
                         <span style={{fontSize: 15.5, fontWeight: 800, color: SVI_INK, fontVariantNumeric: 'tabular-nums', minWidth: 62, textAlign: 'right'}}>
@@ -3678,7 +3699,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
               {/* Metodo: due tessere parlanti — icona e nome bastano,
                   l'etichetta di sezione era rumore. */}
               <div style={{padding: '14px 28px 0'}}>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14}}>
+                <div style={{display: 'grid', gridTemplateColumns: buoniAttivi ? '1fr 1fr 1fr' : '1fr 1fr', gap: 14}}>
                   <SvMetodoCard
                     active={method === 'carta'}
                     onClick={() => chooseMethod('carta')}
@@ -3689,8 +3710,22 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                     onClick={() => chooseMethod('contanti')}
                     label="Contanti"
                     icon={<SvIcoBanconota/>}/>
+                  {/* La terza tessera (P-173 · D-124): solo con una convenzione
+                      dichiarata in Impostazioni → Integrazioni. */}
+                  {buoniAttivi && (
+                    <SvMetodoCard
+                      active={method === 'buoni'}
+                      onClick={() => chooseMethod('buoni')}
+                      label="Buoni pasto"
+                      icon={<SvIcoBuono/>}/>
+                  )}
                 </div>
               </div>
+              {method === 'buoni' && (
+                <div style={{padding: '14px 28px 0'}}>
+                  <window.PnBuoniPasto dovuto={residuo} valore={buoni} onChange={setBuoni}/>
+                </div>
+              )}
               </>
               )}
 
@@ -3800,7 +3835,8 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                 // credenziale valida il documento commerciale non può nascere,
                 // e incassare senza emettere non è ammesso (P-120, PT §12.2).
                 const attivo = !notte.dentro && !credBlocco
-                  && (saldato || (residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004));
+                  && (saldato || (residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004))
+                  && (method !== 'buoni' || saldato || (!!window.byupBuoniValido && window.byupBuoniValido(buoni, residuo)));
                 return (
                   <React.Fragment>
                   {credBlocco && (
@@ -3842,6 +3878,14 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                       // Ultima tranche zero: chiude su quello che è già entrato.
                       if (saldato) chiudiPagamento('contanti', 0);
                       else if (inviaSuStaff) setAttesa({ inviato: Date.now(), importo: preso });
+                      else if (method === 'buoni') {
+                        // Quello che si accetta si registra (P-173); la quota
+                        // è al massimo il residuo, l'eccedenza la perde il
+                        // cliente e la finestra l'ha detto prima.
+                        window.byupBuoniRegistraAccettazione({ issuer_id: buoni.issuer_id, voucher_count: parseInt(buoni.voucher_count, 10), face_value: Number(buoni.face_value), voucher_format: buoni.voucher_format || 'electronic', authorization_ref: buoni.authorization_ref || '', conto: 'Banco' });
+                        setBuoni(null);
+                        registraIncasso(preso, 'buoni');
+                      }
                       else registraIncasso(preso, 'contanti');
                     }}
                     disabled={!attivo}

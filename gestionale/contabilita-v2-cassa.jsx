@@ -241,21 +241,27 @@ function ccChiusure() {
   });
   return Object.keys(perGiorno).sort().reverse().map(g => {
     const docs = perGiorno[g].slice().sort((a, b) => String(a.ora).localeCompare(String(b.ora)));
-    let contanti = 0, nonContanti = 0, piattaforma = 0;
+    let contanti = 0, nonContanti = 0, piattaforma = 0, buoni = 0;
     docs.forEach(p => {
       // P-04: l'incasso piattaforma è avvenuto LÀ — non è contante in
       // cassetto né transito sul POS nostro: resta nel totale della
       // giornata (il documento è nostro) e ha la SUA colonna (P-157), così
       // la somma delle colonne di denaro dà il totale a colpo d'occhio.
+      // I buoni pasto (P-173 · D-124) sono un credito verso l'emittente,
+      // non denaro: voce propria, fuori dal contante.
       if (p.method === 'cash') contanti += p.amount;
       else if (p.method === 'platform') piattaforma += p.amount;
+      else if (p.method === 'meal_voucher') buoni += p.amount;
       else nonContanti += p.amount;
     });
+    // Le accettazioni registrate in cassa quel giorno (payment_meal_vouchers):
+    // i buoni della Sala e del banco passano di qui, non dai conti del seme.
+    (window.byupBuoniAccettazioni ? window.byupBuoniAccettazioni() : []).forEach(a => { if (String(a.at).slice(0, 10) === g) buoni += a.total_face_value; });
     const [Y, M, D] = g.split('-');
     return {
       id: g, iso: g, date: `${D}/${M}/${Y}`,
-      docs, contanti: ccR2(contanti), nonContanti: ccR2(nonContanti), piattaforma: ccR2(piattaforma),
-      totale: ccR2(contanti + nonContanti + piattaforma),
+      docs, contanti: ccR2(contanti), nonContanti: ccR2(nonContanti), piattaforma: ccR2(piattaforma), buoni: ccR2(buoni),
+      totale: ccR2(contanti + nonContanti + piattaforma + buoni),
     };
   });
 }
@@ -515,7 +521,7 @@ function CcControlloLink({ onClick }) {
 // I valori di payments.method sono quelli del modello (P-161 · D-115): cash,
 // card_terminal, in_app, platform. Le etichette restano in italiano. `platform`
 // è il regolamento della piattaforma e sta fuori dalle colonne della cassa.
-const CC_METODO = { cash:'Contanti', card_terminal:'Carta', in_app:'Byup app', platform:'Piattaforma' };
+const CC_METODO = { cash:'Contanti', card_terminal:'Carta', in_app:'Byup app', platform:'Piattaforma', meal_voucher:'Buoni pasto' };
 
 // I documenti del periodo: i pagamenti dei conti e le loro rettifiche, che
 // sono documenti a sé ed sono partite anche loro — senza, i totali non
@@ -896,7 +902,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
   // le colonne non sarebbero più allineate fra loro. Tre colonne di denaro
   // oltre al totale (P-157): contanti, carta e digitale, da piattaforma — la
   // loro somma dà il totale, verificabile a colpo d'occhio.
-  const cols = '107px 135px 90px 122px 112px 160px';
+  const cols = '107px 135px 90px 122px 112px 100px 160px';
 
   return (
     <div style={{display:'flex', flexDirection:'column', gap: 16}}>
@@ -1154,6 +1160,7 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Contanti</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Carta e digitale</span>
             <span style={{textAlign:'right', whiteSpace:'nowrap'}}>Da piattaforma</span>
+            <span style={{textAlign:'right', whiteSpace:'nowrap'}} title="Credito verso gli emittenti: non è contante">Buoni pasto</span>
             <span style={{whiteSpace:'nowrap'}}>Trasmissione</span>
           </div>
           <MaxRowsScroll maxRows={10}>
@@ -1177,6 +1184,8 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.contanti.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums'}}>€ {r.nonContanti.toFixed(2)}</span>
               <span style={{textAlign:'right', fontVariantNumeric:'tabular-nums', color: r.piattaforma ? PN.TEXT : PN.MUTED_SOFT}}>{r.piattaforma ? `€ ${r.piattaforma.toFixed(2)}` : '—'}</span>
+              {/* I buoni (P-173): voce propria, credito e non contante. */}
+              <span data-buoni-giorno style={{textAlign:'right', fontVariantNumeric:'tabular-nums', color: r.buoni ? PN.TEXT : PN.MUTED_SOFT}}>{r.buoni ? `€ ${r.buoni.toFixed(2)}` : '—'}</span>
               {/* Il chip è un rimando, non un contenitore: la lista dei
                   documenti è in Conti, e lì si va. */}
               <span style={{minWidth: 0}}>
@@ -1254,3 +1263,75 @@ window.GiornataChip = GiornataChip;
 window.FiscPill = FiscPill;
 window.DOC_LABEL = DOC_LABEL;
 window.useFiscTick = useFiscTick;
+
+// ─── Buoni pasto: il riepilogo per emittente e periodo (P-173 · D-124) ──────
+// meal_voucher_settlements: per mese e per emittente, quanti titoli, il
+// facciale, lo sconto della convenzione, il netto atteso e lo stato. È il
+// numero da confrontare con la prefattura dell'emittente, e la ragione per
+// cui i buoni entrano nell'MVP anche senza emettere la fattura: qui si
+// conservano numero e data della fattura che i grandi emittenti redigono in
+// nome e per conto dell'esercente. Nessun pulsante la emette.
+function ContBuoniPasto() {
+  const [, tick] = React.useState(0);
+  React.useEffect(() => {
+    const f = () => tick(x => x + 1);
+    window.addEventListener('byup-buoni-change', f); window.addEventListener('storage', f);
+    return () => { window.removeEventListener('byup-buoni-change', f); window.removeEventListener('storage', f); };
+  }, []);
+  const mesi = window.byupBuoniMesi ? window.byupBuoniMesi() : [];
+  const meseCorrente = new Date().toISOString().slice(0, 7);
+  const [mese, setMese] = React.useState(() => mesi[0] || meseCorrente);
+  const opzioni = [...new Set([mese, meseCorrente, ...mesi])].sort().reverse();
+  const righe = window.byupBuoniRiepilogo ? window.byupBuoniRiepilogo(mese) : [];
+  const convenzioni = window.byupReadConvenzioniBuoni ? window.byupReadConvenzioniBuoni() : [];
+  const nomeMese = (m) => { const [y, mm] = m.split('-'); return new Date(+y, +mm - 1, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }); };
+  const eur = (n) => n == null ? '—' : `€ ${Number(n).toFixed(2)}`;
+  const INP = { padding: '7px 10px', border: `1px solid ${PN.BORDER}`, borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', color: PN.TEXT, background: PN.WHITE, boxSizing: 'border-box', outline: 'none', width: '100%' };
+  const cols = 'minmax(0,1.4fr) 80px 120px 110px 120px 130px minmax(0,1fr) 130px';
+  const cella = { fontVariantNumeric: 'tabular-nums', textAlign: 'right' };
+  return (
+    <div data-buoni-pasto-riepilogo style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ padding: '14px 18px', borderRadius: 12, background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderLeft: `3px solid ${PN.PINK}`, fontSize: 14, color: PN.TEXT, lineHeight: 1.55 }}>
+        <b>A cosa serve.</b> Confronta questi numeri con la prefattura dell'emittente, e comunicagli il numero della tua fattura. I buoni sono un credito verso l'emittente, non denaro: la chiusura di cassa li tiene fuori dal contante.
+        <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 4 }}>I grandi emittenti redigono la fattura in nome e per conto dell'esercente e chiedono soltanto numero e data, secondo la tua numerazione: qui si conservano. Nessun pulsante la emette: non è del primo rilascio.</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 15.5, fontWeight: 700, color: PN.TEXT }}>Riepilogo per emittente</div>
+        <select value={mese} onChange={e => setMese(e.target.value)} style={{ ...INP, width: 'auto', minWidth: 180 }}>
+          {opzioni.map(m => <option key={m} value={m}>{nomeMese(m)}</option>)}
+        </select>
+        <span style={{ fontSize: 13, color: PN.MUTED }}>{convenzioni.length ? `${convenzioni.length} ${convenzioni.length === 1 ? 'convenzione' : 'convenzioni'} in Impostazioni → Integrazioni` : 'Nessuna convenzione: si dichiara in Impostazioni → Integrazioni → Buoni pasto'}</span>
+      </div>
+      <div style={{ background: PN.WHITE, border: `1px solid ${PN.BORDER}`, borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '10px 14px', background: '#F7F8FA', fontSize: 11.5, fontWeight: 700, color: PN.MUTED, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <span>Emittente</span><span style={cella}>Titoli</span><span style={cella}>Valore facciale</span><span style={cella}>Sconto</span><span style={cella}>Netto atteso</span><span>Stato</span><span>N. fattura</span><span>Data fattura</span>
+        </div>
+        {righe.length === 0 && (
+          <div style={{ padding: '30px 20px', textAlign: 'center', color: PN.MUTED, fontSize: 14 }}>
+            {convenzioni.length ? `Nessun buono accettato a ${nomeMese(mese)}.` : 'Finché non c\'è una convenzione la tessera «Buoni pasto» in cassa non compare, e qui non c\'è nulla da riscontrare.'}
+          </div>
+        )}
+        {righe.map((r, i) => {
+          const e = window.byupBuoniEmittente(r.issuer_id);
+          const scrivi = (patch) => window.byupBuoniRiepilogoScrivi(mese, r.issuer_id, patch);
+          return (
+            <div key={r.issuer_id} data-emittente={r.issuer_id} style={{ display: 'grid', gridTemplateColumns: cols, gap: 10, padding: '12px 14px', alignItems: 'center', fontSize: 14, color: PN.TEXT, borderTop: i === 0 ? 'none' : `1px solid ${PN.BORDER_SOFT}` }}>
+              <span><b>{e.brand}</b>{e.brand !== e.name && <span style={{ color: PN.MUTED }}> · {e.name}</span>}</span>
+              <span style={cella}>{r.voucher_count}</span>
+              <span style={{ ...cella, fontWeight: 700 }}>{eur(r.total_face_value)}</span>
+              <span style={cella}>{r.discount_percent == null ? <span title="Senza convenzione lo sconto non si calcola" style={{ color: PN.MUTED_SOFT }}>—</span> : `${r.discount_percent}% · ${eur(r.sconto)}`}</span>
+              <span style={{ ...cella, fontWeight: 700 }}>{eur(r.expected_net)}</span>
+              <select value={r.status} onChange={ev => scrivi({ status: ev.target.value })} style={INP}>
+                {Object.keys(PN_BUONI_STATI).map(k => <option key={k} value={k}>{PN_BUONI_STATI[k]}</option>)}
+              </select>
+              <input value={r.invoice_number} onChange={ev => scrivi({ invoice_number: ev.target.value })} placeholder="Secondo la tua numerazione" style={INP}/>
+              <input type="date" value={r.invoice_date} onChange={ev => scrivi({ invoice_date: ev.target.value })} style={INP}/>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+window.ContBuoniPasto = ContBuoniPasto;
+

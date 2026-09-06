@@ -106,6 +106,8 @@ function ContabilitaApp() {
               {id:'costi', label:'Costi', icon:'commerce-price-tag'},
               {id:'iva',   label:'IVA',   icon:'commerce-receipt'},
               {id:'fatture', label:'Fatture', icon:'commerce-register'},
+              // I buoni pasto (P-173 · D-124): il riepilogo per emittente e periodo.
+              {id:'buoni', label:'Buoni pasto', icon:'commerce-wallet'},
               {id:'export', label:'Export', icon:'download'},
             ].map(t => (
               <PnSectionTab key={t.id} id={t.id} active={tab === t.id} onClick={setTab} label={t.label} icon={t.icon}/>
@@ -130,6 +132,7 @@ function ContabilitaApp() {
           </div>
 
           {/* Tab content */}
+          {tab==='buoni' && <ContBuoniPasto/>}
           {tab==='cassa' && <ContCassa cassaOpen={cassaOpen} setCassaOpen={setCassaOpen}
             onApriConti={(data, stato) => { setContiFisc({ data, stato }); setTab('conti'); }}/>}
           {tab==='conti' && <ContConti filter={contiFilter} fisc={contiFisc} apri={contoApri} onFiscClear={() => setContiFisc(null)}/>}

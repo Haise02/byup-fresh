@@ -203,6 +203,9 @@ function ImpIntegrazioni() {
       <ImpCard title="Incassi" sub="Il conto su cui arrivano i pagamenti, con la verifica del prestatore. I telefoni che incassano si vedono in Impostazioni → Personale: si registrano da soli quando chi è in sala entra in Byup Staff.">
         <div style={griglia}>{tessere(per('pagamenti'))}</div>
       </ImpCard>
+      {/* I buoni pasto (P-173 · D-124): con quali emittenti il locale è
+          convenzionato. Senza una convenzione la tessera in cassa non compare. */}
+      <ImpBuoniPastoCard/>
 
       {/* BLOCCO 2 — Stampanti (P-128): il popup «Aggiungi stampante»
           sostituisce la sezione Impostazioni → Stampanti. */}
@@ -944,3 +947,87 @@ function IntCollegaModal({ onClose, onGenera }) {
 }
 
 window.ImpIntegrazioni = ImpIntegrazioni;
+
+// ─── Buoni pasto: le convenzioni (P-173 · D-124) ────────────────────────────
+// venue_meal_voucher_agreements: la convenzione è della sede, la firma il
+// locale con l'emittente, e qui se ne conservano i termini che servono a
+// calcolare il netto atteso e a sorvegliare le decadenze: emittente, codice
+// esercente, sconto pattuito, giorni di rimborso dichiarati, termine di
+// decadenza. Lo sconto oltre il cinque per cento non si blocca ma si segnala.
+function ImpBuoniPastoCard() {
+  const [, tick] = React.useState(0);
+  React.useEffect(() => {
+    const f = () => tick(x => x + 1);
+    window.addEventListener('byup-buoni-change', f); window.addEventListener('storage', f);
+    return () => { window.removeEventListener('byup-buoni-change', f); window.removeEventListener('storage', f); };
+  }, []);
+  const tutte = window.byupReadConvenzioniBuoni ? window.byupReadConvenzioniBuoni() : [];
+  const attive = window.byupBuoniAttivi ? window.byupBuoniAttivi() : [];
+  const emittenti = window.PN_BUONI_EMITTENTI || [];
+  const liberi = emittenti.filter(e => !attive.some(c => c.issuer_id === e.id));
+  const [nuova, setNuova] = React.useState(null);
+  const apri = () => setNuova({ issuer_id: liberi[0] ? liberi[0].id : '', merchant_code: '', discount_percent: '', refund_days: '', claim_deadline_months: '' });
+  const set = (k) => (e) => setNuova(n => ({ ...n, [k]: e.target.value }));
+  const sconto = nuova ? parseFloat(String(nuova.discount_percent).replace(',', '.')) : NaN;
+  const scontoAlto = !isNaN(sconto) && sconto > (window.PN_BUONI_SCONTO_MAX || 5);
+  const valida = !!nuova && !!nuova.issuer_id && !isNaN(sconto) && sconto >= 0;
+  const salva = () => {
+    if (!valida) return;
+    window.byupAggiungiConvenzioneBuoni({ issuer_id: nuova.issuer_id, merchant_code: nuova.merchant_code.trim(), discount_percent: sconto,
+      refund_days: parseInt(nuova.refund_days, 10) || null, claim_deadline_months: parseInt(nuova.claim_deadline_months, 10) || null });
+    setNuova(null);
+  };
+  const INP = { width: '100%', padding: '9px 11px', border: `1px solid ${PN.BORDER}`, borderRadius: 8, fontSize: 14.5, fontFamily: 'inherit', color: PN.TEXT, background: PN.WHITE, boxSizing: 'border-box', outline: 'none' };
+  const LAB = { fontSize: 12.5, fontWeight: 600, color: PN.MUTED, marginBottom: 4 };
+  const nome = (id) => { const e = window.byupBuoniEmittente ? window.byupBuoniEmittente(id) : { brand: id, name: id }; return e.brand === e.name ? e.brand : `${e.brand} · ${e.name}`; };
+  return (
+    <ImpCard title="Buoni pasto" sub="Con quali emittenti sei convenzionato: finché non c'è una convenzione, la tessera «Buoni pasto» in cassa non compare. Byup non valida i buoni: la verifica passa dallo strumento dell'emittente." style={{marginTop: 12}}>
+      {attive.length === 0 && !nuova && (
+        <div style={{ fontSize: 14, color: PN.MUTED, marginBottom: 12 }}>Nessuna convenzione dichiarata.</div>
+      )}
+      {attive.map(c => (
+        <div key={c.id} data-convenzione={c.issuer_id} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', padding: '10px 0', borderTop: `1px solid ${PN.BORDER_SOFT}` }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: PN.TEXT }}>{nome(c.issuer_id)}</div>
+            <div style={{ fontSize: 13, color: PN.MUTED, marginTop: 2 }}>
+              {c.merchant_code ? `Codice esercente ${c.merchant_code} · ` : ''}sconto {Number(c.discount_percent) || 0}%{c.refund_days ? ` · rimborso in ${c.refund_days} giorni` : ''}{c.claim_deadline_months ? ` · decadenza ${c.claim_deadline_months} mesi` : ''} · dal {new Date(c.valid_from + 'T00:00:00').toLocaleDateString('it-IT')}
+            </div>
+            {(Number(c.discount_percent) || 0) > (window.PN_BUONI_SCONTO_MAX || 5) && (
+              <div style={{ fontSize: 12.5, color: '#B45309', marginTop: 3 }}>Dal 2026 lo sconto non può superare il cinque per cento e comprende anche rendicontazione e fatturazione.</div>
+            )}
+          </div>
+          <ImpButton variant="ghost" onClick={() => window.byupTerminaConvenzioneBuoni(c.id)}>Termina</ImpButton>
+        </div>
+      ))}
+      {tutte.filter(c => c.valid_to).length > 0 && (
+        <div style={{ fontSize: 12.5, color: PN.MUTED_SOFT || PN.MUTED, marginTop: 6 }}>{tutte.filter(c => c.valid_to).length} {tutte.filter(c => c.valid_to).length === 1 ? 'convenzione terminata resta' : 'convenzioni terminate restano'} a registro: i riepiloghi dei periodi passati si ricostruiscono con lo sconto di allora.</div>
+      )}
+      {nuova ? (
+        <div data-nuova-convenzione style={{ marginTop: 12, padding: '13px 15px', borderRadius: 12, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}` }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr) 110px 120px 120px', gap: 12 }}>
+            <div><div style={LAB}>Emittente</div>
+              <select value={nuova.issuer_id} onChange={set('issuer_id')} style={INP}>
+                {liberi.map(e => <option key={e.id} value={e.id}>{nome(e.id)}</option>)}
+              </select></div>
+            <div><div style={LAB}>Codice esercente</div><input value={nuova.merchant_code} onChange={set('merchant_code')} placeholder="Quello della rendicontazione" style={INP}/></div>
+            <div><div style={LAB}>Sconto %</div><input type="number" min="0" step="0.1" value={nuova.discount_percent} onChange={set('discount_percent')} style={INP}/></div>
+            <div><div style={LAB}>Rimborso (giorni)</div><input type="number" min="0" step="1" value={nuova.refund_days} onChange={set('refund_days')} placeholder="dichiarati" style={INP}/></div>
+            <div><div style={LAB}>Decadenza (mesi)</div><input type="number" min="0" step="1" value={nuova.claim_deadline_months} onChange={set('claim_deadline_months')} style={INP}/></div>
+          </div>
+          {scontoAlto && (
+            <div data-sconto-alto style={{ marginTop: 10, padding: '9px 12px', borderRadius: 9, background: PN.AMBER_SOFT, color: '#92400E', fontSize: 13.5, lineHeight: 1.45 }}>
+              Dal 2026 lo sconto non può superare il cinque per cento e comprende anche rendicontazione e fatturazione (art. 37 L. 193/2024). Si registra lo stesso, ma è oltre il tetto.
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+            <ImpButton variant="ghost" onClick={() => setNuova(null)}>Annulla</ImpButton>
+            <ImpButton variant="primary" disabled={!valida} onClick={salva}>Aggiungi convenzione</ImpButton>
+          </div>
+        </div>
+      ) : liberi.length > 0 && (
+        <div style={{ marginTop: 12 }}><ImpButton variant="secondary" onClick={apri}>Aggiungi convenzione</ImpButton></div>
+      )}
+    </ImpCard>
+  );
+}
+

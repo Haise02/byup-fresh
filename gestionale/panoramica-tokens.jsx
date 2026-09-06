@@ -1874,3 +1874,183 @@ window.byupCopertoRiga = function (subtotale, coperti, cfg) {
     etichetta: `${nome} · ${importo.toFixed(2).replace('.', ',')} € a persona`, dettaglio: `${nome} × ${n}`,
     valore: Math.round(importo * n * 100) / 100 };
 };
+
+// ─── I buoni pasto (P-173 · D-124) ──────────────────────────────────────────
+// Il buono non è denaro: è un credito verso l'emittente, e la cassa lo tiene
+// distinto dal contante. In cassa si registra QUELLO CHE SI È ACCETTATO —
+// emittente, numero dei titoli, valore facciale, formato, riferimento
+// dell'autorizzazione (payment_meal_vouchers) — e i vincoli di legge si
+// impongono e si spiegano: al massimo OTTO titoli per transazione, sempre per
+// l'intero valore facciale, senza resto (Allegato II.17 al D.Lgs. 36/2023,
+// art. 4). Byup NON valida il buono: la verifica passa dallo strumento
+// dell'emittente, e la finestra lo dice. Le convenzioni si dichiarano in
+// Impostazioni → Integrazioni (venue_meal_voucher_agreements: emittente,
+// codice esercente, sconto pattuito — dal 2026 non oltre il cinque per cento
+// —, giorni di rimborso, decadenza): finché non ce n'è una, la tessera in
+// cassa non compare. Il riepilogo per emittente e periodo
+// (meal_voucher_settlements) sta in Contabilità e serve a riscontrare la
+// prefattura dell'emittente e a comunicargli il numero della fattura: nessun
+// pulsante la emette, non è del primo rilascio. Registri sullo stesso
+// dominio: byup_buoni_convenzioni, byup_buoni_accettazioni,
+// byup_buoni_riepiloghi.
+const PN_BUONI_EMITTENTI = [ // meal_voucher_issuers: l'anagrafe comune, tenuta da Byup
+  { id: 'edenred',    name: 'Edenred Italia',     brand: 'Ticket Restaurant', invoices_on_behalf: true },
+  { id: 'pluxee',     name: 'Pluxee Italia',      brand: 'Pluxee',            invoices_on_behalf: true },
+  { id: 'pellegrini', name: 'Pellegrini',         brand: 'Pellegrini Card',   invoices_on_behalf: true },
+  { id: 'upday',      name: 'Up Day',             brand: 'Day',               invoices_on_behalf: true },
+  { id: 'repas',      name: 'Repas Lunch Coupon', brand: 'Lunch Coupon',      invoices_on_behalf: true },
+];
+const PN_BUONI_MAX_TITOLI = 8;      // art. 4, co. 1, lett. d): non cumulabili oltre otto
+const PN_BUONI_SCONTO_MAX = 5;      // art. 37 L. 193/2024: dal 2026 lo sconto non supera il cinque per cento
+const PN_BUONI_FORMATI = [{ id: 'paper', label: 'Cartaceo' }, { id: 'electronic', label: 'Elettronico' }, { id: 'digital', label: 'Digitale' }];
+const PN_BUONI_STATI = { open: 'Aperto', closed: 'Chiuso', invoiced: 'Fatturato', paid: 'Incassato', disputed: 'Contestato' };
+const PN_BUONI_CONV_KEY = 'byup_buoni_convenzioni', PN_BUONI_ACC_KEY = 'byup_buoni_accettazioni', PN_BUONI_RIEP_KEY = 'byup_buoni_riepiloghi';
+const pnBuoniLeggi = (k) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch (e) { return null; } };
+const pnBuoniScrivi = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} window.dispatchEvent(new Event('byup-buoni-change')); };
+const pnR2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+Object.assign(window, { PN_BUONI_EMITTENTI, PN_BUONI_MAX_TITOLI, PN_BUONI_SCONTO_MAX, PN_BUONI_FORMATI, PN_BUONI_STATI });
+window.byupBuoniEmittente = (id) => PN_BUONI_EMITTENTI.find(e => e.id === id) || { id, name: id, brand: id };
+window.byupReadConvenzioniBuoni = () => pnBuoniLeggi(PN_BUONI_CONV_KEY) || [];
+window.byupWriteConvenzioniBuoni = (l) => pnBuoniScrivi(PN_BUONI_CONV_KEY, l);
+window.byupAggiungiConvenzioneBuoni = (c) => {
+  const l = window.byupReadConvenzioniBuoni(); const id = 'conv-' + Date.now();
+  l.push(Object.assign({ id, valid_from: new Date().toISOString().slice(0, 10), valid_to: null }, c));
+  window.byupWriteConvenzioniBuoni(l); return id;
+};
+// La convenzione superata resta, con la data di fine: il riepilogo di un
+// periodo passato si ricostruisce con lo sconto di allora.
+window.byupTerminaConvenzioneBuoni = (id) => window.byupWriteConvenzioniBuoni(window.byupReadConvenzioniBuoni().map(c => c.id === id ? { ...c, valid_to: new Date().toISOString().slice(0, 10) } : c));
+window.byupBuoniAttivi = () => { const oggi = new Date().toISOString().slice(0, 10); return window.byupReadConvenzioniBuoni().filter(c => !c.valid_to || c.valid_to >= oggi); };
+window.byupConvenzioneBuoni = (issuer_id) => window.byupBuoniAttivi().find(c => c.issuer_id === issuer_id) || null;
+// Il seme delle accettazioni: nei giorni dei conti del seme di Contabilità,
+// così la chiusura di cassa ha la sua colonna. Compare solo per gli emittenti
+// con una convenzione, perché senza convenzione nessun buono si accetta.
+const PN_BUONI_SEME = [
+  { id: 'acc-s1', issuer_id: 'edenred', voucher_count: 2, face_value: 8, total_face_value: 16, voucher_format: 'electronic', authorization_ref: 'ED-4471-0091', at: '2025-11-14T13:10:00', conto: 'Tavolo 4' },
+  { id: 'acc-s2', issuer_id: 'edenred', voucher_count: 1, face_value: 8, total_face_value: 8,  voucher_format: 'digital',    authorization_ref: '',             at: '2025-11-15T13:25:00', conto: 'Banco' },
+  { id: 'acc-s3', issuer_id: 'pluxee',  voucher_count: 3, face_value: 7, total_face_value: 21, voucher_format: 'paper',      authorization_ref: '',             at: '2025-11-15T14:05:00', conto: 'Tavolo 9' },
+  { id: 'acc-s4', issuer_id: 'edenred', voucher_count: 4, face_value: 8, total_face_value: 32, voucher_format: 'electronic', authorization_ref: 'ED-4471-0132', at: '2025-11-16T13:40:00', conto: 'Tavolo 12' },
+  { id: 'acc-s5', issuer_id: 'pluxee',  voucher_count: 2, face_value: 7, total_face_value: 14, voucher_format: 'electronic', authorization_ref: 'PX-88-2210',   at: '2025-11-16T12:50:00', conto: 'Banco' },
+];
+window.byupBuoniAccettazioni = () => {
+  const conv = new Set(window.byupReadConvenzioniBuoni().map(c => c.issuer_id));
+  return [...PN_BUONI_SEME.filter(a => conv.has(a.issuer_id)), ...(pnBuoniLeggi(PN_BUONI_ACC_KEY) || [])];
+};
+window.byupBuoniRegistraAccettazione = (a) => {
+  const l = pnBuoniLeggi(PN_BUONI_ACC_KEY) || []; const conv = window.byupConvenzioneBuoni(a.issuer_id);
+  const rec = Object.assign({ id: 'acc-' + Date.now(), at: new Date().toISOString(), agreement_id: conv ? conv.id : null }, a, { total_face_value: pnR2(a.voucher_count * a.face_value) });
+  l.push(rec); pnBuoniScrivi(PN_BUONI_ACC_KEY, l); return rec;
+};
+// Il valore facciale proposto: l'ultimo usato con quell'emittente.
+window.byupBuoniUltimoFacciale = (issuer_id) => { const l = window.byupBuoniAccettazioni().filter(a => a.issuer_id === issuer_id).sort((x, y) => String(x.at).localeCompare(String(y.at))); return l.length ? l[l.length - 1].face_value : 8; };
+window.byupBuoniTotale = (v) => pnR2((parseInt(v && v.voucher_count, 10) || 0) * (Number(v && v.face_value) || 0));
+// Valido = c'è l'emittente, i titoli stanno fra uno e otto, il facciale è
+// positivo e, se i buoni superano il dovuto, il cliente ha confermato che
+// perde la differenza.
+window.byupBuoniValido = (v, dovuto) => {
+  const n = parseInt(v && v.voucher_count, 10) || 0, f = Number(v && v.face_value) || 0;
+  if (!v || !v.issuer_id || n < 1 || n > PN_BUONI_MAX_TITOLI || f <= 0) return false;
+  return !(pnR2(n * f) > (dovuto || 0) + 0.004 && !v.eccedenza_ok);
+};
+// Il riepilogo di un mese, una riga per emittente (meal_voucher_settlements):
+// titoli, facciale, sconto della convenzione, netto atteso, stato e fattura.
+window.byupBuoniRiepilogo = (mese) => {
+  const acc = window.byupBuoniAccettazioni().filter(a => String(a.at).slice(0, 7) === mese);
+  const riep = pnBuoniLeggi(PN_BUONI_RIEP_KEY) || {}; const perEm = {};
+  acc.forEach(a => { const r = perEm[a.issuer_id] || (perEm[a.issuer_id] = { issuer_id: a.issuer_id, voucher_count: 0, total_face_value: 0 }); r.voucher_count += a.voucher_count; r.total_face_value += a.total_face_value; });
+  return Object.values(perEm).map(r => {
+    const c = window.byupReadConvenzioniBuoni().find(x => x.issuer_id === r.issuer_id);
+    const sconto = c ? (Number(c.discount_percent) || 0) : null;
+    const scontoEur = sconto == null ? null : pnR2(r.total_face_value * sconto / 100);
+    const s = riep[mese + '|' + r.issuer_id] || {};
+    return Object.assign({}, r, { total_face_value: pnR2(r.total_face_value), discount_percent: sconto, sconto: scontoEur, expected_net: scontoEur == null ? null : pnR2(r.total_face_value - scontoEur),
+      status: s.status || 'open', invoice_number: s.invoice_number || '', invoice_date: s.invoice_date || '' });
+  }).sort((a, b) => b.total_face_value - a.total_face_value);
+};
+window.byupBuoniRiepilogoScrivi = (mese, issuer_id, patch) => { const riep = pnBuoniLeggi(PN_BUONI_RIEP_KEY) || {}; const k = mese + '|' + issuer_id; riep[k] = Object.assign({}, riep[k] || {}, patch); pnBuoniScrivi(PN_BUONI_RIEP_KEY, riep); };
+window.byupBuoniMesi = () => [...new Set(window.byupBuoniAccettazioni().map(a => String(a.at).slice(0, 7)))].sort().reverse();
+
+// La finestra dei buoni in cassa: la usano la Sala e la Vendita diretta, con
+// gli stessi campi e le stesse parole. `valore` = { issuer_id, voucher_count,
+// face_value, voucher_format, authorization_ref, eccedenza_ok }.
+window.PnBuoniPasto = function PnBuoniPasto({ dovuto, valore, onChange }) {
+  const conv = window.byupBuoniAttivi();
+  const v = valore || {};
+  const set = (patch) => onChange(Object.assign({}, v, patch));
+  React.useEffect(() => {
+    if (!v.issuer_id && conv.length) onChange({ issuer_id: conv[0].issuer_id, voucher_count: 1, face_value: window.byupBuoniUltimoFacciale(conv[0].issuer_id), voucher_format: 'electronic', authorization_ref: '', eccedenza_ok: false });
+  }, []);
+  const n = parseInt(v.voucher_count, 10) || 0;
+  const facciale = Number(v.face_value) || 0;
+  const totale = pnR2(n * facciale);
+  const eccede = totale > (dovuto || 0) + 0.004;
+  const resta = Math.max(0, pnR2((dovuto || 0) - totale));
+  const eur = (x) => `€ ${pnR2(x).toFixed(2).replace('.', ',')}`;
+  const LAB = { fontSize: 12.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 };
+  const INP = { width: '100%', padding: '10px 12px', border: `1px solid ${PN.BORDER}`, borderRadius: 10, fontSize: 16, fontFamily: 'inherit', color: PN.TEXT, background: PN.WHITE, boxSizing: 'border-box', outline: 'none' };
+  const BTN = (on) => ({ padding: '8px 12px', borderRadius: 999, border: `1.5px solid ${on ? PN.TEXT : PN.BORDER}`, background: on ? PN.TEXT : PN.WHITE, color: on ? PN.WHITE : PN.TEXT, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' });
+  const cambiaEmittente = (id) => set({ issuer_id: id, face_value: window.byupBuoniUltimoFacciale(id) });
+  return (
+    <div data-buoni-pasto style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)', gap: 12 }}>
+        <div>
+          <div style={LAB}>Emittente</div>
+          <select value={v.issuer_id || ''} onChange={e => cambiaEmittente(e.target.value)} style={INP}>
+            {conv.map(c => { const e = window.byupBuoniEmittente(c.issuer_id); return <option key={c.id} value={c.issuer_id}>{e.brand}{e.brand !== e.name ? ` · ${e.name}` : ''}</option>; })}
+          </select>
+        </div>
+        <div>
+          <div style={LAB}>Numero dei titoli</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button type="button" onClick={() => set({ voucher_count: Math.max(1, n - 1) })} style={{ ...BTN(false), padding: '8px 13px' }}>−</button>
+            <input type="number" min="1" max={PN_BUONI_MAX_TITOLI} step="1" value={v.voucher_count || ''} onChange={e => set({ voucher_count: Math.max(1, Math.min(PN_BUONI_MAX_TITOLI, parseInt(e.target.value, 10) || 1)) })} style={{ ...INP, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}/>
+            <button type="button" data-buoni-piu disabled={n >= PN_BUONI_MAX_TITOLI} onClick={() => set({ voucher_count: Math.min(PN_BUONI_MAX_TITOLI, n + 1) })} style={{ ...BTN(false), padding: '8px 13px', opacity: n >= PN_BUONI_MAX_TITOLI ? 0.45 : 1 }}>+</button>
+          </div>
+          <div style={{ fontSize: 12.5, color: n >= PN_BUONI_MAX_TITOLI ? '#B45309' : PN.MUTED, marginTop: 5, lineHeight: 1.4 }}>Al massimo {PN_BUONI_MAX_TITOLI}: oltre otto buoni per transazione la legge non consente.</div>
+        </div>
+        <div>
+          <div style={LAB}>Valore facciale</div>
+          <input type="number" min="0" step="0.5" value={v.face_value ?? ''} onChange={e => set({ face_value: e.target.value })} style={{ ...INP, fontVariantNumeric: 'tabular-nums' }}/>
+          <div style={{ fontSize: 12.5, color: PN.MUTED, marginTop: 5, lineHeight: 1.4 }}>Del singolo titolo, per intero: il buono non si fraziona.</div>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.2fr)', gap: 12 }}>
+        <div>
+          <div style={LAB}>Formato</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {PN_BUONI_FORMATI.map(f => <button key={f.id} type="button" data-formato={f.id} onClick={() => set({ voucher_format: f.id })} style={BTN((v.voucher_format || 'electronic') === f.id)}>{f.label}</button>)}
+          </div>
+        </div>
+        <div>
+          <div style={LAB}>Riferimento autorizzazione <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>· facoltativo</span></div>
+          <input value={v.authorization_ref || ''} onChange={e => set({ authorization_ref: e.target.value })} placeholder="Il codice restituito dal terminale o dall'app dell'emittente" style={{ ...INP, fontSize: 14.5 }}/>
+        </div>
+      </div>
+      {(v.voucher_format || 'electronic') === 'paper' && (
+        <div data-avviso-cartaceo style={{ padding: '10px 13px', borderRadius: 10, background: PN.AMBER_SOFT, color: '#92400E', fontSize: 14, lineHeight: 1.45 }}>
+          <b>Valida il buono prima di ritirarlo:</b> se risulta già speso altrove il rimborso non arriva. Il cliente vi appone data e firma, tu il timbro.
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '11px 13px', borderRadius: 10, background: '#FAFBFC', border: `1px solid ${PN.BORDER_SOFT}` }}>
+        <span style={{ fontSize: 14, color: PN.MUTED }}>{n} × {eur(facciale)} =</span>
+        <span data-buoni-totale style={{ fontSize: 20, fontWeight: 800, color: PN.TEXT, fontVariantNumeric: 'tabular-nums' }}>{eur(totale)}</span>
+        <span style={{ flex: 1 }}/>
+        <span style={{ fontSize: 14, color: PN.MUTED }}>dovuto {eur(dovuto || 0)}</span>
+      </div>
+      {eccede && (
+        <div data-avviso-eccedenza style={{ padding: '11px 13px', borderRadius: 10, background: '#FEE2E2', border: '1px solid rgba(185, 28, 28, 0.25)', color: '#991B1B', fontSize: 14, lineHeight: 1.45 }}>
+          <b>I buoni valgono {eur(totale)} e il dovuto è {eur(dovuto || 0)}: i buoni non danno resto, il cliente perde la differenza</b> di {eur(totale - (dovuto || 0))}.
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer', color: PN.TEXT }}>
+            <input type="checkbox" checked={!!v.eccedenza_ok} onChange={e => set({ eccedenza_ok: e.target.checked })} style={{ accentColor: '#B91C1C' }}/>
+            Il cliente lo sa e conferma
+          </label>
+        </div>
+      )}
+      {!eccede && resta > 0.004 && n > 0 && (
+        <div data-avviso-residuo style={{ fontSize: 14, color: PN.MUTED, lineHeight: 1.45 }}>Restano <b style={{ color: PN.TEXT }}>{eur(resta)}</b>: il residuo resta aperto e si chiude con un'altra tessera in questa finestra.</div>
+      )}
+      <div style={{ fontSize: 12.5, color: PN.MUTED_SOFT || PN.MUTED, lineHeight: 1.45 }}>La validità del buono la verifica lo strumento dell'emittente. Qui si registra soltanto quello che hai accettato.</div>
+    </div>
+  );
+};
+
