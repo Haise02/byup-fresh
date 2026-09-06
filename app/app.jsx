@@ -2883,11 +2883,15 @@ function SectionHeader({ title, action, onAction }) {
 // avatar dei commensali che poppano e mascotte. Poi entra nel menu.
 function QRScanOverlay({ onDone, onClose }) {
   const [phase, setPhase] = useState('scan');
+  // A locale chiuso (P-169) la scansione è inerte: la sessione del tavolo si
+  // apre soltanto negli orari di apertura della sede. Il QR viene letto, ma
+  // il tavolo non si apre e non si entra al menù dal tavolo.
+  const chiuso = window.byupLocaleChiusoMessaggio ? window.byupLocaleChiusoMessaggio() : null;
   useEffect(() => {
-    const t1 = setTimeout(() => { setPhase('found'); BK.haptic.success(); }, 1350);
+    const t1 = setTimeout(() => { setPhase(chiuso ? 'chiuso' : 'found'); chiuso ? BK.haptic.tap && BK.haptic.tap() : BK.haptic.success(); }, 1350);
     // qr_scan (P-38): solo con l'interruttore acceso, con la città.
     // La sede scansionata viaggia con l'evento (P-161 · D-115): nel mock è il locale del menù demo.
-    const t2 = setTimeout(() => { if (window.ByupUso) window.ByupUso.emetti('qr_scan', 'v_settembrini'); onDone && onDone(); }, 3100);
+    const t2 = setTimeout(() => { if (window.ByupUso) window.ByupUso.emetti('qr_scan', 'v_settembrini'); if (!chiuso) onDone && onDone(); }, 3100);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
   return (
@@ -2916,7 +2920,7 @@ function QRScanOverlay({ onDone, onClose }) {
       </div>
       <div style={{ fontFamily: BK.TYPE.display, color: '#fff', fontSize: 22, fontWeight: 600, marginBottom: 26,
         transition: 'opacity .3s' }}>
-        {phase === 'scan' ? 'Inquadra il QR del tavolo' : 'Tavolo trovato!'}
+        {phase === 'scan' ? 'Inquadra il QR del tavolo' : phase === 'chiuso' ? 'Il locale è chiuso' : 'Tavolo trovato!'}
       </div>
 
       {/* mirino / card — morpha tra le due fasi */}
@@ -2951,6 +2955,14 @@ function QRScanOverlay({ onDone, onClose }) {
               animation: 'qrScan 2s cubic-bezier(.45,0,.55,1) infinite',
             }}/>
           </>
+        ) : phase === 'chiuso' ? (
+          <div data-qr-chiuso style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', textAlign: 'center', padding: '0 18px' }}>
+            <div style={{ fontFamily: BK.TYPE.display, fontSize: 18, fontWeight: 600, animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .15s both' }}>Tavolo 23</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.75)', marginTop: 2, animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .22s both' }}>Ristorante Maria Grazia</div>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(255,255,255,.85)', marginTop: 12, lineHeight: 1.4, animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .3s both' }}>
+              {(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; return !i || i.chiusoOggi ? 'Oggi chiuso' : `Apre alle ${i.apre}`; })()} · il tavolo non si apre
+            </div>
+          </div>
         ) : (
           <div style={{ padding: '18px 18px 16px', textAlign: 'center', color: '#fff' }}>
             {/* check con anello */}
@@ -2993,6 +3005,11 @@ function QRScanOverlay({ onDone, onClose }) {
       {phase === 'scan' ? (
         <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12.5, fontWeight: 600, marginTop: 22 }}>
           Lettura del QR del tavolo…
+        </div>
+      ) : phase === 'chiuso' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginTop: 20, animation: 'qrPop .5s cubic-bezier(.3,1.3,.4,1) .45s both' }}>
+          <div style={{ background: 'rgba(255,255,255,.95)', color: '#1c0f15', fontSize: 12.5, fontWeight: 700, padding: '9px 14px', borderRadius: 16, textAlign: 'center', maxWidth: 260, lineHeight: 1.4 }}>{chiuso}</div>
+          <button onClick={(e) => { e.stopPropagation(); onDone && onDone(); }} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,.4)', color: '#fff', borderRadius: 999, padding: '8px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Sfoglia il menù</button>
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20,

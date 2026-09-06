@@ -464,7 +464,9 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
   const [guestsOpen, setGuestsOpen] = useState(false);
   useEffect(() => {
     // All'asporto non c'è un tavolo: niente prompt dei coperti (D-14).
-    if (!fromVenue && !takeaway && !state.copertiSelected) {
+    // A locale chiuso il QR non apre alcuna sessione (P-169): niente coperti.
+    const localeChiuso = !!(window.byupLocaleChiusoMessaggio && window.byupLocaleChiusoMessaggio());
+    if (!fromVenue && !takeaway && !state.copertiSelected && !localeChiuso) {
       const t = setTimeout(() => setCopertiSheetOpen(true), 600);
       return () => clearTimeout(t);
     }
@@ -584,6 +586,10 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
     // respinto con l'attesa scritta, mai un errore muto. Nessun cancello del
     // pagamento: chi è al tavolo invia in cucina come gli altri. Se passa, il
     // tavolo risulta aperto da un cliente col QR (orders.source_surface).
+    // A locale chiuso (P-169) non si apre alcuna sessione: l'invio non parte
+    // e il foglio dice perché. Il personale in sala non ha questo blocco.
+    const localeChiuso = window.byupLocaleChiusoMessaggio ? window.byupLocaleChiusoMessaggio() : null;
+    if (localeChiuso) { setState(s => ({ ...s, rifiuto: localeChiuso })); return; }
     const tavoloN = state.tableNumber || (state.activeOrder?.table?.match(/\d+/)?.[0]) || '23';
     const righe = state.cart.reduce((n, li) => n + (li.qty || 1), 0);
     const esito = window.byupInvioConsentito ? window.byupInvioConsentito(tavoloN, righe) : { ok: true };
@@ -739,14 +745,14 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: -0.4, lineHeight: 1.1 }}>Al Settembrini</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
                     <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4ade80' }}/>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>{(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; return !i ? 'Aperto · 12:00 – 23:30' : i.chiusoOggi ? 'Oggi chiuso' : `${i.localeAperto ? 'Aperto' : 'Chiuso'} · ${i.apre} – ${i.chiude}`; })()}</span>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>{(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; return !i ? 'Aperto · 12:00 – 23:30' : i.chiusoOggi ? 'Oggi chiuso' : !i.localeAperto ? `Chiuso · apre alle ${i.apre}` : `Aperto · ${i.apre} – ${i.chiude}`; })()}</span>
                   </div>
                   {/* La riga della cucina (P-167 · D-117): fino a che ora si
                       ordina, o da quando è chiusa. Gli orari del locale vengono
                       dal registro condiviso, non da un testo fisso. */}
-                  {(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; if (!i || i.chiusoOggi) return null; return (
+                  {(() => { const i = window.byupCucinaInfo ? window.byupCucinaInfo() : null; if (!i || !i.localeAperto) return null; return (
                     <div data-cucina style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3 }}>
-                      {!i.localeAperto ? `Chiuso · apre alle ${i.apre}` : i.cucinaAperta ? `Cucina fino alle ${i.ultimaComanda}` : `Cucina chiusa dalle ${i.ultimaComanda}`}
+                      {i.cucinaAperta ? `Cucina fino alle ${i.ultimaComanda}` : `Cucina chiusa dalle ${i.ultimaComanda}`}
                     </div>
                   ); })()}
                   {/* Il coperto o il servizio si legge nel menù, prima di
@@ -2413,7 +2419,11 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
   // chiusa» (bevande, piatti freddi) restano ordinabili.
   const cucina = window.byupCucinaInfo ? window.byupCucinaInfo() : null;
   const cucinaBloccato = !!(cucina && cucina.localeAperto && !cucina.cucinaAperta && !dish.cucinaChiusaOk);
-  const canAdd = missingRequired.length === 0 && !cucinaBloccato;
+  // A locale chiuso (P-169) nessun piatto si aggiunge, eccezioni comprese:
+  // il menù si consulta, si ordina quando il locale è aperto.
+  const localeChiuso = !!(cucina && !cucina.localeAperto);
+  const localeChiusoMessaggio = localeChiuso && window.byupLocaleChiusoMessaggio ? window.byupLocaleChiusoMessaggio() : null;
+  const canAdd = missingRequired.length === 0 && !cucinaBloccato && !localeChiuso;
   const addToCart = () => {
     if (!canAdd) return;
     if (editing) {
@@ -2703,7 +2713,12 @@ function DishDetailScreen({ state, setState, ctx, goBack }) {
           }} aria-label="Aumenta"><I.Plus size={16} color={qty >= maxApply ? TEXT : '#fff'}/></button>
         </div>
         {/* Aggiungi all'ordine — disattivato finché le scelte obbligatorie mancano */}
-        {cucinaBloccato && (
+        {localeChiuso && (
+          <div data-locale-chiuso style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: '#FEF3C7', color: '#92400E', fontSize: 13, lineHeight: 1.4 }}>
+            {localeChiusoMessaggio}
+          </div>
+        )}
+        {cucinaBloccato && !localeChiuso && (
           <div data-cucina-chiusa style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: '#FEF3C7', color: '#92400E', fontSize: 13, lineHeight: 1.4 }}>
             <b>Cucina chiusa dalle {cucina.ultimaComanda}.</b> Questo piatto non si può più ordinare; le bevande e i piatti freddi restano disponibili.
           </div>
@@ -2943,6 +2958,16 @@ if (!window.byupCucinaInfo) {
   // Il locale della demo, quello del menù: per gli altri della scoperta non
   // conosciamo la cucina e non si inventa.
   window.byupAvvisoCucinaChiusa = () => { const i = window.byupCucinaInfo(); return !i.cucinaAperta && i.ultimaComanda ? `Cucina chiusa dalle ${i.ultimaComanda}: avvisa la cucina che la comanda è partita lo stesso` : null; };
+  // A locale chiuso (P-169 · D-117 completata, SFA 3.3 e 11.6) il menù si
+  // consulta ma non si ordina, e il QR non apre alcuna sessione: la riga che
+  // lo spiega ad app e webapp nasce qui. null = locale aperto. Il personale
+  // non ha questo blocco: chi è dentro il locale invia.
+  window.byupLocaleChiusoMessaggio = () => {
+    const i = window.byupCucinaInfo();
+    if (i.localeAperto) return null;
+    return i.chiusoOggi ? 'Oggi il locale è chiuso: il menù si consulta, si ordina quando è aperto.'
+      : `Il locale è chiuso, apre alle ${i.apre}: il menù si consulta, si ordina quando è aperto.`;
+  };
   window.byupCucinaChiusaPer = (nome) => { if (!/settembrini|maria grazia/i.test(String(nome || ''))) return false; const i = window.byupCucinaInfo(); return i.localeAperto && !i.cucinaAperta; };
 }
 

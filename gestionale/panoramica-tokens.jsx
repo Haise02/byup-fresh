@@ -1482,6 +1482,16 @@ if (!window.byupCucinaInfo) {
   // Il locale della demo, quello del menù: per gli altri della scoperta non
   // conosciamo la cucina e non si inventa.
   window.byupAvvisoCucinaChiusa = () => { const i = window.byupCucinaInfo(); return !i.cucinaAperta && i.ultimaComanda ? `Cucina chiusa dalle ${i.ultimaComanda}: avvisa la cucina che la comanda è partita lo stesso` : null; };
+  // A locale chiuso (P-169 · D-117 completata, SFA 3.3 e 11.6) il menù si
+  // consulta ma non si ordina, e il QR non apre alcuna sessione: la riga che
+  // lo spiega ad app e webapp nasce qui. null = locale aperto. Il personale
+  // non ha questo blocco: chi è dentro il locale invia.
+  window.byupLocaleChiusoMessaggio = () => {
+    const i = window.byupCucinaInfo();
+    if (i.localeAperto) return null;
+    return i.chiusoOggi ? 'Oggi il locale è chiuso: il menù si consulta, si ordina quando è aperto.'
+      : `Il locale è chiuso, apre alle ${i.apre}: il menù si consulta, si ordina quando è aperto.`;
+  };
   window.byupCucinaChiusaPer = (nome) => { if (!/settembrini|maria grazia/i.test(String(nome || ''))) return false; const i = window.byupCucinaInfo(); return i.localeAperto && !i.cucinaAperta; };
 }
 
