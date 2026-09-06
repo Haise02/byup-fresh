@@ -908,69 +908,19 @@ function DataRow({ label, value, mono, last }) {
   );
 }
 
-// ─── Statistiche — le cifre da sala del TITOLARE ────────────────────────────
-// Anche l'utenza del locale prende ordini al tavolo, come un cameriere: le
-// sue statistiche sono le STESSE della scheda staff — mesi di lavoro,
-// scontrino medio, mancia media, e sotto l'operatività del mese.
-
-// La mediana accanto al numero: un metro, non un giudizio. La usa questa
-// scheda e la usa quella dello staff — una veste sola.
-function drwVsMediana(v, m, fmt) {
-  if (m == null || v == null) return null;
-  return (
-    <React.Fragment>
-      {' · '}
-      <span style={{fontWeight:700, color: v >= m ? ADM.OK : ADM.MUTED_SOFT}}>{v >= m ? '↑' : '↓'}</span>
-      {' mediana ' + fmt(m)}
-    </React.Fragment>
-  );
-}
-
-// Le derivate da sala di un locale ATTIVO: lo scontrino è quello VERO del
-// business (l.ticketMedio, lo stesso numero della Panoramica — due
-// «scontrini medi» diversi nella stessa scheda erano una contraddizione),
-// il resto è stabile sul seme. Una formula sola: la usano la scheda e le
-// mediane qui sotto.
-function drwStatSala(l) {
-  const s = hubSeme('sta-' + l.id) % 1000;
-  const r = (n) => ((s * (n + 1) * 9301 + 49297) % 233280) / 233280;
-  return {
-    scontrino: l.ticketMedio || 14 + Math.round(r(1) * 52) / 2,
-    mancia: Math.round((0.8 + r(2) * 3.4) * 10) / 10,
-    ordiniMese: 40 + Math.floor(r(3) * 280),
-    coperti: 60 + Math.floor(r(4) * 380),
-  };
-}
-const DRW_STA_MEDIANE = (() => {
-  const med = (a) => {
-    const v = a.filter(x => x != null).sort((x, y) => x - y);
-    if (!v.length) return null;
-    const m = Math.floor(v.length / 2);
-    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
-  };
-  const righe = LOCALI.filter(x => x.stato === 'active').map(drwStatSala);
-  return {
-    scontrino: med(righe.map(x => x.scontrino)),
-    mancia: med(righe.map(x => x.mancia)),
-    ordiniMese: med(righe.map(x => x.ordiniMese)),
-    coperti: med(righe.map(x => x.coperti)),
-  };
-})();
-
+// ─── Statistiche — i dati del locale, e basta ──────────────────────────────
+// Le «cifre da cameriere» dell'utenza del titolare (scontrino medio, mancia
+// media, ordini e coperti della persona) sono uscite (P-166 · D-116): sono
+// indicatori individuali, che Hubble non espone — il documento tecnico 5.3 —
+// e che il locale legge nelle proprie Statistiche (D-30). Qui resta il
+// business del locale.
 function DrwStatisticheLocale({ locale: l }) {
-  // La tab tiene INSIEME due cose che non vanno confuse, e le etichetta:
-  // i dati del LOCALE (l'ex tab Panoramica: il business) e i dati da
-  // CAMERIERE dell'utenza del titolare (la persona al tavolo, le stesse
-  // cifre della scheda staff).
   const sezione = (titolo, sub) => (
     <div>
       <div style={{fontSize:11.5, fontWeight:800, letterSpacing:'0.07em', textTransform:'uppercase', color:ADM.MUTED_SOFT}}>{titolo}</div>
       <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:2}}>{sub}</div>
     </div>
   );
-  const st = drwStatSala(l);
-  const mesi = Math.max(1, Math.floor((Date.now() - l.dataIscrizione.getTime()) / (30.44 * 86400000)));
-  // camEur2 è il formatter delle cifre da sala (admin-camerieri): al centesimo.
   return (
     <div>
       <div style={{padding:'20px 24px 0'}}>
@@ -978,46 +928,6 @@ function DrwStatisticheLocale({ locale: l }) {
       </div>
       {/* L'ex Panoramica, per intero: vive qui dentro, non in una tab sua. */}
       <DrwPanoramica locale={l}/>
-
-      <div style={{padding:'0 24px 14px'}}>
-        {sezione('Dati da cameriere', 'L\'utenza del titolare al tavolo — le stesse cifre della scheda staff: la persona, non il business.')}
-      </div>
-      {!DRW_STATI_LIVE.includes(l.stato) ? (
-        // Un locale che non ha mai lavorato non prende ordini: la sezione
-        // dice perché è vuota invece di inventare un titolare che serve
-        // tavoli. Gli stati live invece le cifre le HANNO — anche i dormant e
-        // chi ha saltato la configurazione completa: i grafici qui sopra ne
-        // mostrano ordini e fatturato, e una sezione che li dichiara «non
-        // operativi» li smentirebbe.
-        <div style={{padding:'0 24px 24px'}}>
-          <AdmCard padding={0}>
-            <AdmEmpty icon="receipt" title="Nessuna cifra da sala"
-              desc={l.stato === 'churned'
-                ? 'Il contratto è cessato: le cifre da sala si sono fermate con il servizio.'
-                : 'Il locale non è ancora operativo: quando comincerà a lavorare, qui compariranno scontrino, mance e ordini del titolare.'}/>
-          </AdmCard>
-        </div>
-      ) : (
-        <div style={{padding:'0 24px 24px', display:'flex', flexDirection:'column', gap:14}}>
-          <AdmCard padding={0}>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
-              <MiniStat first label="Mesi di lavoro" value={fmtNum(mesi)} sub={'Dal ' + fmtDate(l.dataIscrizione)}/>
-              <MiniStat label="Scontrino medio" value={camEur2(st.scontrino)}
-                sub={<React.Fragment>Per ordine preso{drwVsMediana(st.scontrino, DRW_STA_MEDIANE.scontrino, camEur2)}</React.Fragment>}/>
-              <MiniStat label="Mancia media" value={camEur2(st.mancia)}
-                sub={<React.Fragment>Per conto chiuso{drwVsMediana(st.mancia, DRW_STA_MEDIANE.mancia, camEur2)}</React.Fragment>}/>
-            </div>
-          </AdmCard>
-          <AdmCard padding={0}>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
-              <MiniStat first label="Ordini mese" value={fmtNum(st.ordiniMese)}
-                sub={<React.Fragment>Presi al tavolo{drwVsMediana(st.ordiniMese, DRW_STA_MEDIANE.ordiniMese, fmtNum)}</React.Fragment>}/>
-              <MiniStat label="Coperti gestiti" value={fmtNum(st.coperti)}
-                sub={<React.Fragment>Mese corrente{drwVsMediana(st.coperti, DRW_STA_MEDIANE.coperti, fmtNum)}</React.Fragment>}/>
-            </div>
-          </AdmCard>
-        </div>
-      )}
     </div>
   );
 }

@@ -4513,26 +4513,9 @@ function DashCamerieri({ filtri }) {
           accent="INK" icon="users"/>
       </div>
 
-      {/* I soldi della sala, aggregati DAGLI STESSI numeri delle schede staff
-          (scontrinoMedio e manciaMedia dei singoli camerieri), con la mediana
-          come metro: la scheda di un cameriere e questa riga leggono la
-          stessa fonte, e non possono raccontare due sale diverse. */}
-      <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))', gap:14}}>
-        {(() => {
-          const cams = STAFF.filter(s => s.scontrinoMedio != null && (s.locali || []).some(l => idsSegmento.has(l.id)));
-          const media = (campo) => cams.length ? cams.reduce((a, s) => a + s[campo], 0) / cams.length : null;
-          return (
-            <React.Fragment>
-              <SparkStat label="Scontrino medio cameriere" value={camEur2(media('scontrinoMedio'))}
-                sub={`Per ordine preso al tavolo · media su ${fmtNum(cams.length)} camerieri · mediana ${camEur2(CAM_MEDIANE.scontrino)}`}
-                accent="INK" icon="receipt"/>
-              <SparkStat label="Mancia media cameriere" value={camEur2(media('manciaMedia'))}
-                sub={`Per conto chiuso · media su ${fmtNum(cams.length)} camerieri · mediana ${camEur2(CAM_MEDIANE.mancia)}`}
-                accent="INK" icon="receipt"/>
-            </React.Fragment>
-          );
-        })()}
-      </div>
+      {/* Niente scontrino medio né mancia media per cameriere, nemmeno in
+          aggregato (P-166 · D-116): sono indicatori individuali che Hubble non
+          tratta — li raccoglie il locale come datore di lavoro. */}
 
       {/* Riga 2 · Benchmark detail + abbandono */}
       <div style={{display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:14}}>

@@ -425,29 +425,18 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
         {/* ═══ TAB STATISTICHE — solo utenze cameriere ═══ */}
         {tab === 'statistiche' && (
         <div style={{flex:1, overflow:'auto', padding:'20px 24px', display:'flex', flexDirection:'column', gap:14, background:ADM.PANEL_SOFT}}>
-          {/* Le tre cifre della persona in sala: da quanto lavora, quanto
-              vale un suo ordine, quanto le lasciano. Al centesimo — uno
-              scontrino medio «€ 23» non è uno scontrino medio. */}
+          {/* Una cifra sola (P-166 · D-116): da quando l'utenza è registrata,
+              che serve all'assistenza. Scontrino medio, mancia media, ordini e
+              coperti della persona non si mostrano: il documento tecnico 5.3
+              dice che la vista di Hubble sullo staff non espone indicatori di
+              produttività individuale — quelle statistiche le raccoglie il
+              locale come datore di lavoro (art. 4 co. 3 dello Statuto) e le
+              legge nelle proprie Statistiche (D-30); Byup le tratta per suo
+              conto. Il marketplace dei camerieri, quando verrà, sarà un
+              prodotto a sé con l'adesione della persona. */}
           <AdmCard padding={0}>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(3, minmax(0,1fr))'}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(1, minmax(0,1fr))'}}>
               <MiniStat first label="Mesi di lavoro" value={fmtNum(mesiLavoro)} sub={'Dal ' + fmtDate(s.dataAssunzione)}/>
-              {/* Il metro: la mediana dei CAMERIERI accanto al numero —
-                  drwVsMediana è lo stesso helper della scheda locale. */}
-              <MiniStat label="Scontrino medio" value={camEur2(s.scontrinoMedio)}
-                sub={<React.Fragment>Per ordine preso{drwVsMediana(s.scontrinoMedio, CAM_MEDIANE.scontrino, camEur2)}</React.Fragment>}/>
-              <MiniStat label="Mancia media" value={camEur2(s.manciaMedia)}
-                sub={<React.Fragment>Per conto chiuso{drwVsMediana(s.manciaMedia, CAM_MEDIANE.mancia, camEur2)}</React.Fragment>}/>
-            </div>
-          </AdmCard>
-
-          {/* L'operatività del mese, che prima stava sparsa in cima alla
-              scheda: qui, sotto le cifre di sala. */}
-          <AdmCard padding={0}>
-            <div style={{display:'grid', gridTemplateColumns:'repeat(2, minmax(0,1fr))'}}>
-              <MiniStat first label="Ordini mese" value={fmtNum(s.ordiniMese)}
-                sub={<React.Fragment>Presi al tavolo{drwVsMediana(s.ordiniMese, CAM_MEDIANE.ordini, fmtNum)}</React.Fragment>}/>
-              <MiniStat label="Coperti gestiti" value={fmtNum(s.coperti)}
-                sub={<React.Fragment>Mese corrente{drwVsMediana(s.coperti, CAM_MEDIANE.coperti, fmtNum)}</React.Fragment>}/>
             </div>
           </AdmCard>
         </div>
@@ -520,23 +509,8 @@ function StaffDrawer({ staff: s, onClose, pieno }) {
 const camEur2 = (n) => n == null ? '—'
   : '€ ' + new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-// Le mediane dei CAMERIERI: il metro accanto alle cifre da sala — sui campi
-// veri del mock, non su formule doppie.
-const CAM_MEDIANE = (() => {
-  const med = (a) => {
-    const v = a.filter(x => x != null).sort((x, y) => x - y);
-    if (!v.length) return null;
-    const m = Math.floor(v.length / 2);
-    return v.length % 2 ? v[m] : (v[m - 1] + v[m]) / 2;
-  };
-  const cam = STAFF.filter(x => x.ruolo === 'cameriere');
-  return {
-    scontrino: med(cam.map(x => x.scontrinoMedio)),
-    mancia: med(cam.map(x => x.manciaMedia)),
-    ordini: med(cam.map(x => x.ordiniMese)),
-    coperti: med(cam.map(x => x.coperti)),
-  };
-})();
+// Le mediane dei camerieri (scontrino, mancia, ordini, coperti) non esistono
+// più (P-166 · D-116): non c'è nessuna cifra individuale accanto a cui metterle.
 
 // Il vocabolario del log staff: gli eventi dell'app Staff e dei dispositivi.
 const CAM_EVENTI = {
