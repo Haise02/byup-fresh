@@ -1042,6 +1042,19 @@ function postaRighe(m) {
   return hubApplica(base, m.filtri || [], null);
 }
 
+// Gli stati del messaggio all'app, per la colonna e per la pillola del
+// dettaglio. La definizione era caduta nel rifacimento di P-156.5 e i due
+// usi erano rimasti: la pagina andava in errore appena aperta.
+const POSTA_STATI = {
+  bozza:       { label: 'Bozza',       color: 'PLAN_FREE' },
+  programmata: { label: 'Programmata', color: 'INFO' },
+  pubblicata:  { label: 'Pubblicata',  color: 'OK' },
+};
+const postaStato = (stato) => POSTA_STATI[stato] || { label: stato, color: 'PLAN_FREE' };
+// La corsia del messaggio: servizio (canale dedicato, senza consenso) o
+// marketing (subordinato al consenso). Caduta nello stesso rifacimento.
+const postaCorsia = (c) => c === 'servizio' ? { label: 'Servizio', color: 'TEAL' } : { label: 'Marketing', color: 'HUB_MAGENTA' };
+
 function HubPostaPage() {
   const [cerca, setCerca] = useStateMk('');
   const [aperta, setAperta] = useStateMk(null);
@@ -1161,7 +1174,7 @@ function HubPostaDettaglio({ m, onChiudi }) {
         <span style={{ fontSize: 13.5, fontWeight: 700, color: ADM.TEXT }}>{m.nome}</span>
       </div>
       <HubTestata titolo={m.nome} sotto={`${k.label} · ${m.dove === 'app' ? 'bacheca dell\'app' : 'campanella del gestionale'} · ${HUB_POSTA_GENERI[m.genere].label}${m.localeId ? ' · ' + ((LOCALI.find(l => l.id === m.localeId) || {}).nome || m.localeId) : ''}`}
-        azioni={<HubPillola color={POSTA_STATI[m.stato].color}>{POSTA_STATI[m.stato].label}</HubPillola>}/>
+        azioni={<HubPillola color={postaStato(m.stato).color}>{postaStato(m.stato).label}</HubPillola>}/>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 320px', gap: 14, alignItems: 'start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {m.stato === 'pubblicata' ? (
@@ -1468,6 +1481,25 @@ function HubFormDettaglio({ form, onChiudi }) {
     </div>
   );
 }
+
+// Due famiglie e non una lista sola: c'è quello che CHIEDE qualcosa a chi
+// compila, e quello che gli DICE qualcosa. Un'immagine e un paragrafo non
+// sono campi — non producono un valore — ma stanno nello stesso modulo, e
+// tenerli fuori vuol dire farli aggiungere «dal sito» a qualcun altro.
+// (Caduto nel rifacimento di P-156.5 con gli usi rimasti: l'editor andava
+// in errore appena aperto.)
+const FRM_CAMPI = {
+  testo:    { label: 'Testo breve',   icona: 'type' },
+  email:    { label: 'Email',         icona: 'mail' },
+  telefono: { label: 'Telefono',      icona: 'phone' },
+  area:     { label: 'Testo lungo',   icona: 'list' },
+  scelta:   { label: 'Menu a tendina',icona: 'chevronDown' },
+  spunta:   { label: 'Spunta',        icona: 'check' },
+  consenso: { label: 'Consenso',      icona: 'shield' },
+  paragrafo:{ label: 'Paragrafo',     icona: 'pencil',  decorativo: true },
+  immagine: { label: 'Immagine o GIF',icona: 'image',   decorativo: true },
+  separa:   { label: 'Separatore',    icona: 'sliders', decorativo: true },
+};
 
 function HubFormEditor({ onChiudi }) {
   const [nome, setNome] = useStateMk('');
