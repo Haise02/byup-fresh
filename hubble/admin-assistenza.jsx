@@ -292,19 +292,17 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
   const [faq, setFaq] = useStateSrv(FAQ_SRV);
   const [argomenti, setArgomenti] = useStateSrv(GUIDE_ARGOMENTI);
   const [guide, setGuide] = useStateSrv(GUIDE_SRV);
-  const [ripristini, setRipristini] = useStateSrv(RIPRISTINI);
 
   const inAttesa = richiamate.filter(r => r.stato === 'attesa').length;
   const ticketAperti = (typeof COMUNICAZIONI !== 'undefined' ? COMUNICAZIONI : [])
     .filter(c => c.stato === 'nuova' || c.stato === 'in_corso').length;
 
-  const ripristiniAperti = ripristini.filter(r => r.outcome === 'pending').length;
   const tabs = [
     { id:'richiamate', label:'Chiamate', badge: inAttesa },
     { id:'ticket',     label:'Ticket',   badge: ticketAperti },
-    // La pratica del ripristino assistito (P-73): ha un ciclo di vita suo e
-    // nasce da qualunque canale, quindi non sta dentro il ticket.
-    { id:'ripristini', label:'Ripristini accesso', badge: ripristiniAperti },
+    // Niente voce «Ripristini accesso» (P-172 · D-121): la pratica vive nella
+    // scheda del locale, tab Account, e la richiesta pendente è un ticket in
+    // questa coda, con l'argomento «ripristino accesso».
     { id:'faq',        label:'FAQ' },
     { id:'guide',      label:'Guide' },
     // L'estrazione del registro operazioni (P-47 · D-38): registrare senza
@@ -314,7 +312,7 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
 
   // Chi ha due pannelli vuole tutta l'altezza, e ogni pannello scorre per
   // conto suo; le FAQ sono una pagina lunga che scorre intera.
-  const aDuePannelli = tab === 'richiamate' || tab === 'ticket' || tab === 'guide' || tab === 'ripristini';
+  const aDuePannelli = tab === 'richiamate' || tab === 'ticket' || tab === 'guide';
 
   return (
     <div style={{height:'100%', display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT}}>
@@ -332,7 +330,6 @@ function AdmAssistenzaPage({ initialTab, openTicket }) {
         overflow: aDuePannelli ? 'hidden' : 'auto'}}>
         {tab === 'richiamate' && <SrvRichiamate richiamate={richiamate} setRichiamate={setRichiamate}/>}
         {tab === 'ticket'     && <AdmComunicazioniPage openId={openTicket}/>}
-        {tab === 'ripristini' && <SrvRipristini ripristini={ripristini} setRipristini={setRipristini}/>}
         {tab === 'faq'        && <SrvFaq faq={faq} setFaq={setFaq}/>}
         {tab === 'guide'      && <SrvGuide argomenti={argomenti} setArgomenti={setArgomenti} guide={guide} setGuide={setGuide}/>}
         {tab === 'estrazioni' && <SrvEstrazioni/>}
@@ -2448,112 +2445,18 @@ Object.assign(window, { AdmAssistenzaPage, AdmServizioClientiKPI });
 
 
 // ════════════════════════════════════════════════════════════════════════════
-// 5. Ripristini di accesso (P-73 · D-57) — elenco a sinistra, pratica a destra
-// ════════════════════════════════════════════════════════════════════════════
-// Il modello e le sue note stanno nel commento di RIPRISTINI (data). Qui la
-// regola è visibile e costruttiva insieme: la riga dell'invariante sta in
-// testa a ogni pratica, la persona è in sola lettura, e non esiste un campo
-// né un pulsante che assegni l'accesso a qualcun altro — il cambio di chi sta
-// dietro un locale si nomina come la via giusta e non si offre.
-const srvDataOra = (d) => d ? d.toLocaleDateString('it-IT', { day:'numeric', month:'short' }).replace('.', '')
-  + ' · ' + d.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '—';
-
-function SrvRipristini({ ripristini, setRipristini }) {
-  const [vista, setVista] = useStateSrv('pending');
-  const [cerca, setCerca] = useStateSrv('');
-  const [selId, setSelId] = useStateSrv(null);
-  const viste = [
-    { id:'pending', label:'In attesa', count: ripristini.filter(r => r.outcome === 'pending').length },
-    { id:'chiuse',  label:'Chiuse',    count: ripristini.filter(r => r.outcome !== 'pending').length },
-    { id:'tutte',   label:'Tutte',     count: ripristini.length },
-  ];
-  const elenco = useMemoSrv(() => {
-    const q = cerca.trim().toLowerCase();
-    let r = vista === 'pending' ? ripristini.filter(x => x.outcome === 'pending')
-          : vista === 'chiuse'  ? ripristini.filter(x => x.outcome !== 'pending')
-          : ripristini;
-    if (q) r = r.filter(x => [x.id, x.localeNome, x.user.nome, x.note, x.refusal_reason].some(v => String(v || '').toLowerCase().includes(q)));
-    return [...r].sort((a, b) => b.richiestaIl - a.richiestaIl);
-  }, [ripristini, vista, cerca]);
-  const sel = elenco.find(r => r.id === selId) || elenco[0];
-  const aggiorna = (id, patch) => setRipristini(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
-
-  return (
-    <div style={{flex:1, minHeight:0, display:'flex', flexDirection:'column'}}>
-      <div style={{padding:'12px 28px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`,
-        display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', flexShrink:0}}>
-        {viste.map(v => {
-          const attivo = vista === v.id;
-          return (
-            <button key={v.id} className="adm-pill" onClick={()=>{ setVista(v.id); setSelId(null); }} style={{
-              display:'inline-flex', alignItems:'center', gap:7, padding:'6px 13px', borderRadius:99,
-              background: attivo ? ADM.TEXT : '#fff', color: attivo ? '#fff' : ADM.TEXT,
-              border:`1px solid ${attivo ? ADM.TEXT : ADM.BORDER}`,
-              fontSize:13.2, fontWeight:600, fontFamily:'inherit', cursor:'pointer',
-            }}>
-              {v.label}
-              <span style={{fontWeight:700, fontSize:12.4, color: attivo ? 'rgba(255,255,255,0.75)' : ADM.MUTED_SOFT}}>{v.count}</span>
-            </button>
-          );
-        })}
-        <div style={{flex:1}}/>
-        <span style={{display:'inline-flex', alignItems:'center', gap:7, fontSize:12.4, color:ADM.MUTED_SOFT, whiteSpace:'nowrap'}}>
-          <BuIcons.lock size={14} color={ADM.MUTED_LIGHT}/>
-          L'accesso torna sempre alla stessa persona · qui non si cambia titolare
-        </span>
-      </div>
-
-      <div style={{flex:1, display:'flex', minHeight:0}}>
-        <div style={{width:400, flexShrink:0, borderRight:`1px solid ${ADM.BORDER}`, background:'#fff',
-          display:'flex', flexDirection:'column', minHeight:0}}>
-          <div style={{padding:'12px 14px 10px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
-            <div style={{position:'relative'}}>
-              <span style={{position:'absolute', left:11, top:'50%', transform:'translateY(-50%)', color:ADM.MUTED_SOFT, pointerEvents:'none'}}><BuIcons.search size={17}/></span>
-              <input value={cerca} onChange={e=>setCerca(e.target.value)} placeholder="Pratica, locale, persona…"
-                style={{width:'100%', padding:'8px 12px 8px 33px', border:'none', borderRadius:8,
-                  fontSize:14, fontFamily:'inherit', outline:'none', background:ADM.PANEL_SOFT, boxSizing:'border-box', color:ADM.TEXT}}/>
-            </div>
-          </div>
-          <div style={{padding:'9px 16px 7px', fontSize:12.8, color:ADM.MUTED, fontWeight:500}}>
-            {elenco.length} {elenco.length === 1 ? 'pratica' : 'pratiche'}
-            <span style={{color:ADM.MUTED_SOFT}}> · {viste.find(v=>v.id===vista).label.toLowerCase()}</span>
-          </div>
-          <div style={{flex:1, overflowY:'auto'}}>
-            {elenco.length === 0 && <AdmEmpty icon="lock" title="Nessuna pratica" desc={cerca ? 'Nessun risultato per questa ricerca' : 'La coda è vuota'}/>}
-            {elenco.map(r => <SrvVoceRipristino key={r.id} r={r} attiva={sel && sel.id === r.id} onClick={()=>setSelId(r.id)}/>)}
-          </div>
-        </div>
-        <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', background:ADM.PANEL_SOFT, overflowY:'auto'}}>
-          {sel
-            ? <SrvDettaglioRipristino r={sel} onAggiorna={(patch)=>aggiorna(sel.id, patch)}/>
-            : <AdmEmpty icon="lock" title="Seleziona una pratica" desc="Dall'elenco a sinistra"/>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SrvVoceRipristino({ r, attiva, onClick }) {
-  const e = SRV_RIPRISTINO_ESITI[r.outcome];
-  return (
-    <button onClick={onClick} className="adm-actionrow" style={{
-      display:'block', width:'100%', textAlign:'left', fontFamily:'inherit', cursor:'pointer',
-      padding:'11px 16px 12px 13px', border:'none',
-      borderBottom:`1px solid ${ADM.BORDER_SOFT}`,
-      borderLeft:`3px solid ${attiva ? ADM.PINK : 'transparent'}`,
-      background: attiva ? ADM.PINK_BG_SOFT : 'transparent',
-    }}>
-      <div style={{display:'flex', alignItems:'baseline', gap:8}}>
-        <span style={{flex:1, minWidth:0, fontSize:14.2, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{r.user.nome}</span>
-        <SrvPastiglia testo={e.label} tono={e.tono}/>
-      </div>
-      <div style={{fontSize:12.8, color:ADM.MUTED, marginTop:3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-        {r.localeNome} · {SRV_RIPRISTINO_CANALI[r.request_channel]} · {srvDataOra(r.richiestaIl)} · {r.id}
-      </div>
-    </button>
-  );
-}
-
+// 5. La pratica del ripristino dell'accesso (P-73 · D-57; P-172 · D-121)
+// ═════════════════════════════════════════════════════════════════════
+// Non ha più una sezione: vive in una finestra nella scheda del locale, tab
+// Account («Non riesce ad accedere»), e la richiesta pendente è un ticket
+// nella coda, con l'argomento «ripristino accesso» e «Apri la pratica». Qui
+// resta il dettaglio che la finestra monta, senza togliere nulla: metodo di
+// verifica dell'identità dall'elenco chiuso, riferimento alla prova che non
+// è mai la copia del documento, nota, esito fra ripristinato, rifiutato con
+// causale e ritirata, e il nome di chi decide. Il ripristino manda un
+// collegamento al recapito censito che SCADE IN QUARANTOTTO ORE; scaduto, si
+// riemette e l'atto si registra come il primo. L'invariante di D-57 non
+// cambia: l'accesso torna alla stessa persona e non si trasferisce mai.
 function SrvDettaglioRipristino({ r, onAggiorna }) {
   const [metodo, setMetodo] = useStateSrv(r.identity_check_method);
   const [evidenza, setEvidenza] = useStateSrv(r.identity_evidence_ref || '');
@@ -2568,10 +2471,24 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
   // Il metodo regge la decisione: senza metodo, senza riferimento (e senza
   // nota se il metodo è «altro») non si ripristina.
   const pronta = !!metodo && evidenza.trim().length > 0 && (metodo !== 'altro' || note.trim().length > 0);
-  const chiudi = (outcome, extra) => onAggiorna({
-    outcome, identity_check_method: metodo, identity_evidence_ref: evidenza.trim(), note: note.trim(),
-    verified_by: SRV_IO, verified_at: new Date(), ...(extra || {}),
-  });
+  const chiudi = (outcome, extra) => {
+    const ora = new Date();
+    // Ripristinare manda il collegamento: scade in quarantotto ore (P-172).
+    const link = outcome === 'restored' ? { link_sent_at: ora, link_expires_at: new Date(ora.getTime() + 48 * 3600000), link_used_at: null } : {};
+    onAggiorna({
+      outcome, identity_check_method: metodo, identity_evidence_ref: evidenza.trim(), note: note.trim(),
+      verified_by: SRV_IO, verified_at: ora, ...link, ...(extra || {}),
+    });
+    if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: SRV_IO,
+      action: outcome === 'restored' ? 'ha ripristinato l\'accesso di' : outcome === 'refused' ? 'ha rifiutato il ripristino dell\'accesso di' : 'ha chiuso come ritirata la pratica di',
+      target: `${r.user.nome} · ${r.localeNome} · ${r.id}`, icon: 'lock', color: outcome === 'restored' ? 'OK' : 'DANGER', tipo: 'accessi', when: ora });
+  };
+  // Il collegamento scaduto si riemette, e l'atto si registra come il primo.
+  const riemetti = () => {
+    const ora = new Date();
+    onAggiorna({ link_sent_at: ora, link_expires_at: new Date(ora.getTime() + 48 * 3600000), link_used_at: null, riemissioni: [...(r.riemissioni || []), { il: ora, da: SRV_IO }] });
+    if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: SRV_IO, action: 'ha riemesso il collegamento di ripristino per', target: `${r.user.nome} · ${r.localeNome} · ${r.id}`, icon: 'lock', color: 'WARN', tipo: 'accessi', when: ora });
+  };
 
   const riga = (k, v) => (
     <div style={{display:'flex', gap:12, padding:'7px 0', borderBottom:`1px solid ${ADM.BORDER_SOFT}`, fontSize:13.4}}>
@@ -2638,11 +2555,34 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
         )}
       </AdmCard>
 
+      {/* La scadenza si vede (P-172): usato, valido o scaduto; scaduto, si riemette. */}
+      {r.outcome === 'restored' && (() => {
+        const scad = r.link_expires_at ? new Date(r.link_expires_at) : null;
+        const usato = r.link_used_at ? new Date(r.link_used_at) : null;
+        const scaduto = !usato && !!scad && scad.getTime() < Date.now();
+        return (
+          <AdmCard padding={18}>
+            <div style={{display:'flex', alignItems:'center', gap:10, flexWrap:'wrap'}}>
+              <div style={{flex:1, minWidth:220}}>
+                <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Il collegamento di ripristino</div>
+                <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, lineHeight:1.5}}>
+                  {r.link_sent_at ? <>Inviato il {srvDataOra(r.link_sent_at)} al recapito censito · scade in quarantotto ore{scad ? `, il ${srvDataOra(scad)}` : ''}.</> : 'Inviato al recapito censito · scade in quarantotto ore.'}
+                  {(r.riemissioni || []).length > 0 && <> Riemesso {r.riemissioni.length === 1 ? 'una volta' : `${r.riemissioni.length} volte`}, l'ultima da {r.riemissioni[r.riemissioni.length - 1].da}.</>}
+                </div>
+              </div>
+              {usato ? <SrvPastiglia testo={`Usato il ${srvDataOra(usato)}`} tono="OK" piena/>
+                : scaduto ? <React.Fragment><SrvPastiglia testo="Scaduto" tono="WARN" piena/><AdmButton variant="secondary" size="sm" icon="mail" data-riemetti onClick={riemetti}>Riemetti</AdmButton></React.Fragment>
+                : <SrvPastiglia testo="Valido" tono="OK" piena/>}
+            </div>
+          </AdmCard>
+        );
+      })()}
+
       {aperta && (
         <AdmCard padding={18}>
           <div style={{fontSize:14.2, fontWeight:700, color:ADM.TEXT}}>Esito</div>
           <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2, marginBottom:12}}>
-            Ripristinare reimposta le credenziali e le manda al recapito censito di {r.user.nome}. Non c'è, e non deve esserci, un esito che assegni l'accesso a un'altra persona.
+            Ripristinare manda al recapito censito di {r.user.nome} un collegamento per reimpostare le credenziali: <b style={{color:ADM.TEXT}}>scade in quarantotto ore</b>. Non c'è, e non deve esserci, un esito che assegni l'accesso a un'altra persona.
           </div>
           {!rifiuto ? (
             <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>

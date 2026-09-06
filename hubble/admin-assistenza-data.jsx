@@ -930,7 +930,10 @@ Object.assign(window, {
 //     ripristino riguarda le sole credenziali di accesso.
 //   request_channel — callback, email, chat, gestionale.
 // Coda registrata: l'operatore ha tre identità nei mock (SRV_IO, MY_ID,
-// TEAM isYou); qui vale SRV_IO. Il reset self-service dal login è solo testo.
+// TEAM isYou); qui vale SRV_IO. Il reset dal login del gestionale funziona
+// (P-172 · D-121): «Password dimenticata» manda il collegamento al recapito
+// dell'utenza, e il titolare reimposta il proprio personale da Impostazioni →
+// Personale. Qui arrivano solo i casi che quei due livelli non risolvono.
 const SRV_RIPRISTINO_METODI = [
   { id:'pec_del_locale',               label:'PEC del locale',                nota:'Risposta arrivata dalla PEC censita nei dati fiscali' },
   { id:'documento_di_identita',        label:'Documento d\'identità',         nota:'Esibito in videochiamata: si registra il riferimento all\'evidenza, mai la copia' },
@@ -939,6 +942,11 @@ const SRV_RIPRISTINO_METODI = [
   { id:'altro',                        label:'Altro',                         nota:'Va detto nelle note: senza, il metodo non regge la decisione' },
 ];
 const SRV_RIPRISTINO_CANALI = { callback:'Chiamata', email:'Email', chat:'Chat', gestionale:'Gestionale' };
+// Data e ora di una pratica, nel formato di Hubble. Mancava: la sezione dei
+// ripristini andava in errore appena si apriva una pratica (trovato con
+// P-172, che la porta nella scheda del locale).
+const srvDataOra = (d) => { if (!d) return '—'; const x = new Date(d); return `${typeof fmtDate === 'function' ? fmtDate(x) : x.toLocaleDateString('it-IT')} · ${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; };
+window.srvDataOra = srvDataOra;
 const SRV_RIPRISTINO_ESITI = {
   pending:   { label:'In attesa',  tono:'WARN' },
   restored:  { label:'Ripristinato', tono:'OK' },
@@ -954,11 +962,13 @@ const RIPRISTINI = [
     richiestaIl: new Date(Date.now() - 2 * SRV_ORA - 10 * SRV_MIN),
     identity_check_method:null, identity_evidence_ref:'', note:'', verified_by:null, verified_at:null, refusal_reason:null },
   { id:'AR-0139', outcome:'restored', request_channel:'email',
-    user:{ nome:'Elena Costa', ruolo:'titolare' }, localeNome:'Osteria del Ponte', localeCitta:'Roma',
+    user:{ nome:'Elena Costa', ruolo:'titolare' }, localeNome:'Osteria Francescana', localeCitta:'Modena', // il locale esiste in rubrica: la pratica si apre dalla sua scheda (P-172)
     richiestaIl: new Date(Date.now() - 3 * SRV_GIORNO - 5 * SRV_ORA),
     identity_check_method:'documento_di_identita', identity_evidence_ref:'EV-2026-0830-4F2A',
     note:'Videochiamata di dieci minuti, documento esibito e confrontato con l\'anagrafica.',
-    verified_by:'support1', verified_at: new Date(Date.now() - 3 * SRV_GIORNO - 4 * SRV_ORA), refusal_reason:null },
+    verified_by:'support1', verified_at: new Date(Date.now() - 3 * SRV_GIORNO - 4 * SRV_ORA), refusal_reason:null,
+    // Il collegamento mandato tre giorni fa non è stato usato: è scaduto, e la finestra offre «Riemetti» (P-172).
+    link_sent_at: new Date(Date.now() - 3 * SRV_GIORNO - 4 * SRV_ORA), link_expires_at: new Date(Date.now() - SRV_GIORNO - 4 * SRV_ORA), link_used_at: null },
   { id:'AR-0131', outcome:'refused', request_channel:'chat',
     user:{ nome:'Paolo Neri', ruolo:'titolare' }, localeNome:'Bar Mediterraneo', localeCitta:'Roma',
     richiestaIl: new Date(Date.now() - 10 * SRV_GIORNO - 6 * SRV_ORA),
@@ -967,3 +977,21 @@ const RIPRISTINI = [
     verified_by:'support1', verified_at: new Date(Date.now() - 10 * SRV_GIORNO - 5 * SRV_ORA),
     refusal_reason:'I dati fiscali forniti non corrispondono all\'anagrafica del locale: identità non dimostrata.' },
 ];
+// P-172 · D-121: la sezione «Ripristini accesso» non c'è più. La richiesta
+// pendente è un ticket nella coda che esiste già, con l'argomento «ripristino
+// accesso» e il pulsante che porta alla scheda del locale, tab Account, con
+// la finestra aperta. Questo file si carica dopo admin-comunicazioni.jsx:
+// aggiunge i ticket alla coda e la riordina per data.
+if (typeof COMUNICAZIONI !== 'undefined') {
+  RIPRISTINI.filter(r => r.outcome === 'pending').forEach(r => {
+    const locale = (typeof LOCALI !== 'undefined' ? LOCALI : []).find(l => l.nome === r.localeNome);
+    COMUNICAZIONI.push({
+      id: 'T-' + r.id, ripristinoId: r.id, certRequest: false, localeId: locale ? locale.id : null,
+      senderName: r.user.nome, senderEmail: locale ? locale.email : '',
+      oggetto: `Non riesce ad accedere · ${r.user.nome}`,
+      desc: `Richiesta di ripristino dell'accesso, arrivata via ${SRV_RIPRISTINO_CANALI[r.request_channel].toLowerCase()}. La pratica si chiude dalla scheda del locale, tab Account, con la finestra «Non riesce ad accedere»: metodo di verifica, riferimento alla prova, esito. L'accesso torna a ${r.user.nome} e non si trasferisce mai.\n\n${r.user.nome}\n${r.localeNome}`,
+      allegati: [], data: r.richiestaIl, stato: 'nuova', tags: ['ripristino accesso'], assignedTo: null,
+    });
+  });
+  COMUNICAZIONI.sort((a, b) => b.data - a.data);
+}

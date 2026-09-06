@@ -704,6 +704,14 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
 
         {/* Oggetto */}
         <div style={{fontSize:19.4, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.015em', lineHeight:1.25, marginBottom:8}}>{item.oggetto}</div>
+        {/* Il ticket di ripristino (P-172 · D-121) non si lavora qui: porta
+            alla scheda del locale, tab Account, con la finestra aperta. */}
+        {item.ripristinoId && (
+          <div data-apri-pratica style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', padding:'12px 14px', borderRadius:12, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderLeft:`3px solid ${ADM.PINK}`, marginBottom:12}}>
+            <div style={{flex:1, minWidth:220, fontSize:13.4, color:ADM.TEXT, lineHeight:1.5}}><b>Ripristino dell'accesso.</b> La pratica si chiude dalla scheda del locale, tab Account: metodo di verifica, riferimento alla prova, esito. Il collegamento scade in quarantotto ore, e l'accesso torna alla stessa persona.</div>
+            <AdmButton variant="primary" size="sm" icon="lock" onClick={() => window.hubVai && window.hubVai('locali', { openLocale: locale, tab: 'account', pratica: item.ripristinoId })}>Apri la pratica</AdmButton>
+          </div>
+        )}
 
         {/* Identity row */}
         <div style={{display:'flex', alignItems:'center', gap:12, flexWrap:'wrap', fontSize:14, color:ADM.MUTED}}>

@@ -897,6 +897,8 @@ const PN_AUDIT_TIPI = {
   email_changed: 'ha cambiato l\'email',
   phone_changed: 'ha cambiato il telefono',
   name_changed:  'ha cambiato il nome',
+  // Il titolare reimposta l'accesso del proprio personale (P-172 · D-121).
+  access_reset_sent: 'ha reimpostato l\'accesso di',
 };
 window.PN_AUDIT_TIPI = PN_AUDIT_TIPI;
 window.byupReadAuditEventi = function () {

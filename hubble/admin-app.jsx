@@ -361,7 +361,7 @@ function AdminApp({ tweaks }) {
     // Le tre vecchie forme di apertura diretta diventano un {tipo, ref} solo:
     // la rubrica sceglie da lì quale dei tre drawer montare.
     setContattoOpen(verso !== 'contatti' || !opts ? null
-      : opts.openLocale ? { tipo: 'locale', ref: opts.openLocale }
+      : opts.openLocale ? { tipo: 'locale', ref: opts.openLocale, tab: opts.tab || null, pratica: opts.pratica || null }
       : opts.openStaff ? { tipo: 'staff', ref: opts.openStaff }
       : opts.openUtente ? { tipo: 'utente', ref: opts.openUtente }
       : opts.openContatto || null);
@@ -379,6 +379,8 @@ function AdminApp({ tweaks }) {
     }
     setRouteRaw(verso);
   };
+  // La rotta si può chiamare da fuori dalla shell (P-172: il ticket apre la pratica nella scheda del locale).
+  window.hubVai = setRoute;
 
   // Una scorciatoia globale per navigare da dentro le pagine senza passare le
   // callback di mano in mano attraverso cinque livelli di componenti.

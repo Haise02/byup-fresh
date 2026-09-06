@@ -1729,7 +1729,7 @@ const HUB_AUDIT_KEY = 'byup_audit_events';
 // Ogni tipo che il gestionale scrive (byupScriviAuditEvento) deve stare qui,
 // altrimenti l'evento viene scritto e scartato in lettura (P-144): è quel che
 // succedeva a device_revoked, la disconnessione del monitor di cucina.
-const HUB_AUDIT_TIPI = { email_changed: 'Email dell\'account cambiata', phone_changed: 'Telefono dell\'account cambiato', name_changed: 'Nome dell\'account cambiato', device_revoked: 'Monitor di cucina disconnesso' };
+const HUB_AUDIT_TIPI = { email_changed: 'Email dell\'account cambiata', phone_changed: 'Telefono dell\'account cambiato', name_changed: 'Nome dell\'account cambiato', device_revoked: 'Monitor di cucina disconnesso', access_reset_sent: 'Accesso reimpostato dal titolare' };
 function hubAuditEventiDi(l) {
   if (!l || l.gestionaleId !== 'cp') return [];
   try { const s = localStorage.getItem(HUB_AUDIT_KEY); if (s) { const v = JSON.parse(s); if (Array.isArray(v)) return v.filter(e => e && e.at && HUB_AUDIT_TIPI[e.type]); } } catch (e) {}

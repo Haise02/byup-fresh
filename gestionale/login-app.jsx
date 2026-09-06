@@ -19,6 +19,11 @@ function LoginApp() {
   const [touched, setTouched] = React.useState({email: false, password: false});
   const [authError, setAuthError] = React.useState('');
   const [submitting, setSubmitting] = React.useState(false);
+  // Il reset dal login (P-172 · D-121): manda il collegamento al recapito
+  // dell'utenza e lo dichiara, con la scadenza. È il livello che svuota la
+  // coda dell'assistenza: chi legge la propria posta non passa da nessuno.
+  const [resetInviato, setResetInviato] = React.useState(null);
+  const mascheraRecapito = (v) => { const s = String(v || '').trim(); const i = s.indexOf('@'); return i < 1 ? s.slice(0, 1) + '•••' : s[0] + '•••' + s.slice(Math.max(1, i - 1)); };
 
   // Placeholder color sui input invertiti (D3 sunset glass card).
   // Non posso fare ::placeholder inline → un'unica injection a mount.
@@ -164,15 +169,28 @@ function LoginApp() {
               }
             />
 
-            <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: -8, marginBottom: 20}}>
-              <a href="#" style={{
-                fontSize: 15, color: '#F3F4F6', fontWeight: 500,
-                textDecoration: 'none',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.22)', paddingBottom: 1,
-              }}>
+            <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: -8, marginBottom: resetInviato ? 10 : 20}}>
+              <button type="button" data-password-dimenticata
+                onClick={() => { const e = email.trim(); setResetInviato(e ? { a: e } : { manca: true }); }}
+                style={{
+                  background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 15, color: '#F3F4F6', fontWeight: 500,
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.22)', paddingBottom: 1,
+                }}>
                 Password dimenticata?
-              </a>
+              </button>
             </div>
+            {resetInviato && (
+              <div role="status" data-reset-inviato style={{
+                padding: '10px 12px', marginBottom: 16, borderRadius: 8,
+                background: 'rgba(255, 255, 255, 0.10)', border: '1px solid rgba(255, 255, 255, 0.22)',
+                fontSize: 14.5, color: '#F3F4F6', lineHeight: 1.45,
+              }}>
+                {resetInviato.manca
+                  ? 'Scrivi qui sopra l\'email o il nome utente del tuo account, poi premi di nuovo «Password dimenticata?».'
+                  : <React.Fragment>Ti abbiamo mandato il collegamento per reimpostare la password a <b>{mascheraRecapito(resetInviato.a)}</b>, il recapito della tua utenza. Vale quarantotto ore: dopo, chiedilo di nuovo da qui.</React.Fragment>}
+              </div>
+            )}
 
             {authError && (
               <div role="alert" style={{

@@ -5,8 +5,11 @@ const { useState: useStateDrw } = React;
 // `pieno`: la stessa scheda, ma A PAGINA INTERA — niente velo, niente
 // finestra centrata: riempie il posto che il chiamante le dà (la rotta
 // Contatti), e a chiudere ci pensa la barra «torna» del chiamante.
-function LocaleDrawer({ locale: l, onClose, pieno }) {
-  const [tab, setTab] = useStateDrw('anagrafica');
+function LocaleDrawer({ locale: l, onClose, pieno, tabIniziale, pratica }) {
+  const [tab, setTab] = useStateDrw(tabIniziale || 'anagrafica');
+  // Chi arriva dal ticket di ripristino (P-172) atterra sulla tab Account,
+  // con la finestra della pratica aperta.
+  React.useEffect(() => { if (tabIniziale) setTab(tabIniziale); }, [tabIniziale, pratica]);
   // Il tick dei conteggi: quando una tab cambia i dati che la BARRA mostra
   // (eliminare una certificazione ne muove il badge), lo dice al drawer —
   // altrimenti il badge resta stantio fino al prossimo cambio tab.
@@ -90,7 +93,7 @@ function LocaleDrawer({ locale: l, onClose, pieno }) {
           {tab==='certificazioni' && <DrwCertificazioni locale={l} onCambia={contaCambio}/>}
           {tab==='contratti' && <DrwContratti locale={l}/>}
           {tab==='fatturazione' && <DrwFatturazione locale={l}/>}
-          {tab==='account' && <DrwAccount locale={l}/>}
+          {tab==='account' && <DrwAccount locale={l} praticaIniziale={pratica}/>}
         </div>
       </div>
 
@@ -556,7 +559,7 @@ function DrwAnagrafica({ locale: l }) {
   // compilato di là si legge e si corregge qui. Il fiscale ha la SUA tab.
   // Titolare ed email NON si modificano da qui (P-73 · D-57): cambiando
   // l'email e mandando il reset l'assistenza sostituiva il titolare in due
-  // gesti. Il ripristino assistito (Assistenza → Ripristini accesso)
+  // gesti. Il ripristino assistito (tab Account, «Non riesce ad accedere»)
   // restituisce l'accesso alla stessa persona e non lo trasferisce mai. Non
   // esiste un «cambio del titolare» né un «passaggio del locale» (D-104,
   // P-117): l'account è della persona, che cambia i propri recapiti e il
@@ -656,7 +659,7 @@ function DrwAnagrafica({ locale: l }) {
             <label style={drwLab}>Email del titolare</label>
             <div style={{...drwMono, background:ADM.PANEL_SOFT, color:ADM.MUTED}}>{l.email}</div>
             <div style={{fontSize:12.2, color:ADM.MUTED_SOFT, marginTop:5, lineHeight:1.5}}>
-              Titolare ed email non si modificano da qui. Chi ha perso l'accesso passa dal ripristino assistito (Assistenza → Ripristini accesso), che restituisce l'accesso alla stessa persona e non lo trasferisce mai. Non esiste un cambio del titolare né un passaggio del locale: i recapiti e il nome dell'account li cambia la persona dal proprio profilo nel gestionale, e ogni modifica resta nel registro (tab Log); il soggetto fiscale si cambia da Impostazioni → Dati fiscali e si conclude con la riaccettazione dei termini (tab Dati fiscali).
+              Titolare ed email non si modificano da qui. Chi ha perso l'accesso passa dal ripristino assistito (tab Account, «Non riesce ad accedere»), che restituisce l'accesso alla stessa persona e non lo trasferisce mai. Non esiste un cambio del titolare né un passaggio del locale: i recapiti e il nome dell'account li cambia la persona dal proprio profilo nel gestionale, e ogni modifica resta nel registro (tab Log); il soggetto fiscale si cambia da Impostazioni → Dati fiscali e si conclude con la riaccettazione dei termini (tab Dati fiscali).
             </div>
           </div>
           {Fld({k:'tel', label:'Telefono', monoStyle:true})}
@@ -1111,8 +1114,23 @@ function drwStoriaReferenza(l) {
 // La sospensione del servizio stava dentro Contratti, ma quella tab è un
 // fascicolo che si LEGGE: l'azione di gestione vive qui, con il suo popup
 // (motivo tipizzato art. 13, nota obbligatoria) e la scrittura nell'audit.
-function DrwAccount({ locale: l }) {
+function DrwAccount({ locale: l, praticaIniziale }) {
   const [, ridisegna] = useStateDrw(0);
+  // La pratica del ripristino (P-172 · D-121) vive in una finestra qui, accanto
+  // al reset: quella pendente del locale, altrimenti l'ultima, altrimenti una
+  // nuova per il titolare. Chi arriva dal ticket la trova già aperta.
+  const [praticaOpen, setPraticaOpen] = useStateDrw(!!praticaIniziale);
+  React.useEffect(() => { if (praticaIniziale) setPraticaOpen(true); }, [praticaIniziale]);
+  const praticaDelLocale = () => {
+    const tutte = (typeof RIPRISTINI !== 'undefined' ? RIPRISTINI : []);
+    const mie = tutte.filter(r => r.localeNome === l.nome).sort((a, b) => b.richiestaIl - a.richiestaIl);
+    const scelta = (praticaIniziale && tutte.find(r => r.id === praticaIniziale)) || mie.find(r => r.outcome === 'pending') || mie[0];
+    if (scelta) return scelta;
+    const n = 'AR-' + String(143 + tutte.length).padStart(4, '0');
+    const nuova = { id: n, outcome: 'pending', request_channel: 'gestionale', user: { nome: l.titolare, ruolo: 'titolare' }, localeNome: l.nome, localeCitta: l.citta,
+      richiestaIl: new Date(), identity_check_method: null, identity_evidence_ref: '', note: '', verified_by: null, verified_at: null, refusal_reason: null };
+    tutte.push(nuova); return nuova;
+  };
   const [popup, setPopup] = useStateDrw(false);        // 'sospendi' | 'revoca' | false
   const [motivo, setMotivo] = useStateDrw('morosita');
   const [nota, setNota] = useStateDrw('');
@@ -1187,8 +1205,29 @@ function DrwAccount({ locale: l }) {
             </div>
           </div>
           <AdmButton variant="secondary" size="sm" icon="mail" disabled={resetInviato} onClick={()=>setResetInviato(true)}>Invia email di reset</AdmButton>
+          {/* Quando l'email di reset non basta — la posta non la legge, o non
+              è più sua — la pratica: verifica dell'identità, prova, esito. */}
+          <AdmButton variant="secondary" size="sm" icon="lock" data-non-riesce onClick={()=>setPraticaOpen(true)}>Non riesce ad accedere</AdmButton>
         </div>
       </AdmCard>
+
+      {praticaOpen && (() => {
+        const r = praticaDelLocale();
+        return (
+          <div onClick={() => setPraticaOpen(false)} style={{position:'fixed', inset:0, zIndex:70, background:'rgba(15,17,21,0.45)', display:'grid', placeItems:'center', padding:24, backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', animation:'fadeIn 0.15s ease'}}>
+            <div data-pratica-ripristino onClick={e => e.stopPropagation()} style={{width:840, maxWidth:'96%', maxHeight:'90%', overflow:'auto', background:ADM.PANEL_SOFT, borderRadius:14, boxShadow:'0 24px 64px rgba(15,17,21,0.30)'}}>
+              <div style={{display:'flex', alignItems:'center', gap:12, padding:'16px 22px 12px', background:'#fff', borderBottom:`1px solid ${ADM.BORDER}`, position:'sticky', top:0, zIndex:1}}>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:16.5, fontWeight:800, color:ADM.TEXT}}>Non riesce ad accedere</div>
+                  <div style={{fontSize:12.6, color:ADM.MUTED, marginTop:2}}>Pratica {r.id} · {l.nome} · il collegamento di ripristino scade in quarantotto ore</div>
+                </div>
+                <AdmIconBtn icon="x" onClick={() => setPraticaOpen(false)} label="Chiudi"/>
+              </div>
+              <SrvDettaglioRipristino r={r} onAggiorna={(patch) => { Object.assign(r, patch); ridisegna(x => x + 1); }}/>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* L'esportazione: la portabilità non aspetta la cessazione — e a
           contratto cessato è la finestra dei 60 giorni dell'art. 5. */}

@@ -264,6 +264,17 @@ function ImpPersonale() {
       label: `${(PN_POS_STATI[r.fiscal_link_status] || PN_POS_STATI.pending_census).label} all'Agenzia` };
   };
 
+  // Il titolare reimposta l'accesso di una persona (P-172 · D-121): il
+  // collegamento parte verso il recapito di quella persona, la pagina lo dice
+  // con la scadenza, e l'evento finisce nel registro delle attività
+  // (byup_audit_events), che Hubble legge nella scheda del locale.
+  const [resetFatto, setResetFatto] = React.useState(null);
+  const reimpostaAccesso = (r) => {
+    const email = (r.dato && r.dato.email) || r.sotto || '';
+    if (window.byupScriviAuditEvento) window.byupScriviAuditEvento('access_reset_sent', null, `${r.nome} · ${email}`, (window.PN_UTENTE && PN_UTENTE.nome) || 'Mario Rossi');
+    setResetFatto({ nome: r.nome, email });
+    setTimeout(() => setResetFatto(null), 9000);
+  };
   const righe = [
     ...PERSONS.map(p => {
       const key = `p-${p.email}`;
@@ -497,6 +508,11 @@ function ImpPersonale() {
             </div>
           </div>
 
+          {resetFatto && (
+            <div data-reset-accesso role="status" style={{margin:'10px 14px 0', padding:'10px 12px', borderRadius: 10, background: PN.GREEN_SOFT, color: '#065F46', fontSize: 13.5, lineHeight: 1.45}}>
+              Collegamento per reimpostare l'accesso mandato a <b>{resetFatto.email}</b> ({resetFatto.nome}): vale quarantotto ore. L'atto è nel registro delle attività.
+            </div>
+          )}
           <div style={{
             display:'grid', gridTemplateColumns: GRIGLIA_ACCESSI,
             gap: 10, padding:'11px 14px',
@@ -517,6 +533,7 @@ function ImpPersonale() {
               onEditDevice={() => setMonitorAperto(r.dato)}
               onToggleAttivo={() => setAttivazioni(a => ({...a, [r.key]: !r.attivo}))}
               onCambiaRuolo={() => setCambiaRuolo(r)}
+              onReimposta={() => reimpostaAccesso(r)}
             />
           ))}
         </section>
@@ -762,7 +779,7 @@ function ScorciatoiaAccesso({ icona, colore, sfondo, titolo, sotto, onClick }) {
 }
 
 function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
-  onToggleAttivo, onCambiaRuolo }) {
+  onToggleAttivo, onCambiaRuolo, onReimposta }) {
   const [confermaRimozione, setConfermaRimozione] = React.useState(false);
   const aperto = openMenu === r.key;
   const iniziali = r.tipo === 'persona'
@@ -901,11 +918,15 @@ function RigaAccesso({ r, ultima, openMenu, setOpenMenu, onEditDevice,
                 <MenuItem icon={BuIcons.doc({size: 14, color: 'currentColor'})}
                   onClick={() => { setOpenMenu(null); window.dispatchEvent(new CustomEvent('byup-imp-goto', { detail: { id: 'fiscali', anchor: 'pos-censimento', da: 'personale', strumento: r.censimento.id } })); }}>Collegamento all'Agenzia</MenuItem>
               )}
-              {/* Niente «Resetta password» su una persona: la sua password è
-                  sua, la reimposta lei dal link che le arriva per email. Il
-                  titolare le toglie l'accesso, non le sceglie le credenziali —
-                  quelle le decide il titolare solo per i dispositivi, che una
-                  casella di posta non ce l'hanno. */}
+              {/* «Reimposta l'accesso» (P-172 · D-121): il titolare manda alla
+                  persona il collegamento per reimpostare la password — al suo
+                  recapito, con la scadenza di quarantotto ore — e l'atto va nel
+                  registro delle attività. Non le sceglie le credenziali: quelle
+                  le decide il titolare solo per i dispositivi, che una casella
+                  di posta non ce l'hanno. Nessuna richiesta a Byup per chi
+                  lavora nel locale. */}
+              <MenuItem icon={(BuIcons.mail || BuIcons.user)({size: 14, color: 'currentColor'})}
+                onClick={() => { setOpenMenu(null); onReimposta?.(); }}>Reimposta l'accesso</MenuItem>
               <MenuItem icon={BuIcons.pause({size: 14, color: 'currentColor'})}
                 onClick={() => { setOpenMenu(null); onToggleAttivo?.(); }}>
                 {r.attivo ? 'Disattiva accesso' : 'Attiva accesso'}
