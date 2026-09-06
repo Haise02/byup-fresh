@@ -950,6 +950,17 @@ function MenuScreen({ state, setState, goTo }) {
   };
 
   const submitTableOrder = () => {
+    // I limiti dei canali cliente (P-168 · D-118): tre invii in due minuti per
+    // tavolo, trenta righe per invio, cinque tavoli diversi in un'ora per
+    // dispositivo — i valori li governa Hubble. Oltre il limite l'invio è
+    // respinto con l'attesa scritta, mai un errore muto. Nessun cancello del
+    // pagamento: chi è al tavolo invia in cucina come gli altri. Se passa, il
+    // tavolo risulta aperto da un cliente col QR (orders.source_surface).
+    const tavoloN = state.tableNumber || (state.activeOrder?.table?.match(/\d+/)?.[0]) || '23';
+    const righe = state.cart.reduce((n, li) => n + (li.qty || 1), 0);
+    const esito = window.byupInvioConsentito ? window.byupInvioConsentito(tavoloN, righe) : { ok: true };
+    if (!esito.ok) { setState(s => ({ ...s, rifiuto: esito.messaggio })); return; }
+    if (window.byupSegnaTavoloQr) window.byupSegnaTavoloQr(tavoloN, 'byup_app');
     setConfirm(true);
     // P-103: il momento in cui la voce di coperto o servizio è stata esposta
     // e confermata finisce sull'ordine (orders.cover_disclosed_at). Su un menù
@@ -972,7 +983,7 @@ function MenuScreen({ state, setState, goTo }) {
           return {
             ...s,
             activeOrder: { ...s.activeOrder, items: merged, total: newTotal, cover_disclosed_at: s.activeOrder.cover_disclosed_at || coverDisclosedAt },
-            cart: [],
+            cart: [], rifiuto: null,
           };
         }
         return {
@@ -994,7 +1005,7 @@ function MenuScreen({ state, setState, goTo }) {
             // table-wide items added by waiter or other guests
             tableItems: [],
           },
-          cart: [],
+          cart: [], rifiuto: null,
         };
       });
       setConfirm(false);
@@ -2070,6 +2081,11 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
               }}><I.Trash size={18} color={TEXT}/></button>
             )}
           </div>
+          {state.rifiuto && (
+            <div data-rifiuto-invio role="alert" style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: '#FEF3C7', color: '#92400E', fontSize: 13, lineHeight: 1.4, fontWeight: 600 }}>
+              {state.rifiuto}
+            </div>
+          )}
           <button onClick={onSubmit} disabled={cartCount === 0} style={{
             width: '100%', height: 52, borderRadius: 999, border: 'none',
             background: cartCount === 0 ? CTA_DEAD : CTA_GRAD, color: '#fff',
@@ -2147,6 +2163,11 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, shee
                 </div>
               ) : null;
             })()}
+            {state.rifiuto && (
+              <div data-rifiuto-invio role="alert" style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: '#FEF3C7', color: '#92400E', fontSize: 13, lineHeight: 1.4, fontWeight: 600 }}>
+                {state.rifiuto}
+              </div>
+            )}
             <button onClick={onSubmit} disabled={cartCount === 0} style={{
               width: '100%', height: 52, borderRadius: 999, border: 'none',
               background: cartCount === 0 ? CTA_DEAD : CTA_GRAD,

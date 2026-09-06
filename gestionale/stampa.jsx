@@ -690,7 +690,16 @@ const pnDocEsercente = () => {
 // raggruppate per categoria e con portata, modificatori e allergeni — quel
 // che la cucina deve leggere al volo.
 // righe: [{ qty, name, category, course, modifiers:[{type,label}], allergen:{label}, note }]
-window.byupLayoutComanda = function ({ identita, righe, quando, stampante, anteprima }) {
+// sotto: la riga piccola sotto l'identità — «dal QR» quando la sessione del
+// tavolo l'ha aperta un cliente, «da verificare» se ha superato un limite
+// (P-168 · D-118). Chi chiama può passarla; altrimenti si ricava dal registro
+// dei tavoli aperti col QR, leggendo il numero nell'identità.
+window.byupLayoutComanda = function ({ identita, sotto, righe, quando, stampante, anteprima }) {
+  if (sotto === undefined && window.byupSegnoCanale) {
+    const m = /(?:tavolo|^T)\s*(\d+)/i.exec(String(identita || ''));
+    const seg = m ? window.byupSegnoCanale(m[1]) : null;
+    sotto = seg ? seg.testo : null;
+  }
   const perCat = {};
   (righe || []).forEach(r => { const k = r.category || 'Altro'; (perCat[k] = perCat[k] || []).push(r); });
   const corsi = { 1: 'antipasto', 2: 'primo', 3: 'secondo', 4: 'dessert' };
@@ -708,6 +717,7 @@ window.byupLayoutComanda = function ({ identita, righe, quando, stampante, antep
     <div class="c">COMANDA</div>
     <div class="hr"></div>
     <div class="c b g">${pnEsc(identita)}</div>
+    ${sotto ? `<div class="c">${pnEsc(sotto)}</div>` : ''}
     <div class="c">${pnEsc(pnOra(quando))}</div>
     <div class="hr"></div>
     ${blocchi}
@@ -834,11 +844,11 @@ window.byupStampaComanda = function (righe, identita, opts = {}) {
     const proto = PN_PRINTER_PROTOCOLLI[dev.printer_protocol] || {};
     const job = window.byupPrintJobAccoda({ device_id: dev.id, requested_device_id: dev.id, document_kind: opts.document_kind || 'kitchen_ticket', identita, categorie: opts.categorie || [] });
     const anteprima = `Anteprima della comanda accodata per «${dev.name}» (${proto.label || dev.printer_protocol}): nel prototipo il server che risponde al sondaggio della stampante non esiste e l'esito è simulato.`;
-    const html = window.byupLayoutComanda({ identita, righe, quando: opts.quando, stampante: `${dev.name} · ${dev.device_model}`, anteprima });
+    const html = window.byupLayoutComanda({ identita, sotto: opts.sotto, righe, quando: opts.quando, stampante: `${dev.name} · ${dev.device_model}`, anteprima });
     const r = opts.silenzioso ? { esito: 'accodata', vero: false } : window.byupStampaAnteprima(html);
     return Object.assign(r, { job, stampante: dev.name });
   }
-  const html = window.byupLayoutComanda({ identita, righe, quando: opts.quando, stampante: null, anteprima: null });
+  const html = window.byupLayoutComanda({ identita, sotto: opts.sotto, righe, quando: opts.quando, stampante: null, anteprima: null });
   return window.byupStampaBrowser(html);
 };
 
@@ -882,7 +892,7 @@ window.byupAccodaComande = function (righe, identita, opts = {}) {
   const esiti = [];
   perStampante.forEach(v => {
     const r = window.byupStampaComanda(v.righe, identita, {
-      stampante: v.stampante, quando: opts.quando, categorie: v.categorie, silenzioso: true,
+      stampante: v.stampante, quando: opts.quando, sotto: opts.sotto, categorie: v.categorie, silenzioso: true,
     });
     if (r.job) window.byupPrintJobSimula(r.job.id, (esito) => {
       // Non ha risposto: la coda di quella stampante scade e la fascia nasce

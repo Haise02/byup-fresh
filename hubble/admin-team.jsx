@@ -11,7 +11,7 @@ const ADM_SEZIONI = {
   // Le testate alla maniera di Hubble: entrambe le sezioni si presentano da
   // sole nel contenuto — da quando la governance è una voce sola, il titolone
   // di pagina non arriva più dall'header della shell.
-  sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica'],
+  sicurezza:    { pred:'accessi',     tabs:['accessi','audit','diagnostica','limiti'],
     testata: { titolo:'Sicurezza e sistemi',
       sotto:'Team, permessi, accessi, tracce e salute della piattaforma.' } },
   // Niente tab «Incaricati Fisconline» (P-116 · D-103): l'incaricato è della
@@ -72,6 +72,8 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
             { id:'piattaforma', label:'Piattaforma' },
             { id:'deleghe',     label:'Deleghe', badge: (typeof delInAvvicinamento === 'function' ? delInAvvicinamento().length : 0) },
             { id:'diagnostica', label:'Diagnostica' },
+            // I limiti dei canali cliente (P-168 · D-118): tre parametri e i rifiuti del giorno.
+            { id:'limiti',      label:'Limiti' },
           ].filter(t => sez.tabs.indexOf(t.id) !== -1)} active={tab} onChange={setTab}/>
           <div style={{flex:1}}/>
           {/* La matrice ruoli è materiale di consultazione: non cambia mai e non
@@ -91,6 +93,7 @@ function AdmTeamPage({ search, initialTab, sezione = 'sicurezza' }) {
         {tab === 'deleghe' && <HubDeleghePage/>}
         {tab === 'diagnostica' && <PlatformDiagnostica/>}
         {tab === 'audit' && <AuditLog/>}
+        {tab === 'limiti' && <TeamLimiti/>}
       </AdmCard>
 
       <InviteMemberModal open={inviteOpen} onClose={()=>setInviteOpen(false)} onInvite={handleInvite}/>
@@ -797,6 +800,8 @@ const AUDIT_TIPI = [
   // movimenti manuali sul saldo fedeltà; e la rimozione di una recensione.
   { value:'utenti',       label:'Utenti app' },
   { value:'moderazione',  label:'Moderazione' },
+  // I limiti dei canali cliente (P-168): ogni cambio porta il motivo.
+  { value:'limiti',       label:'Limiti dei canali' },
   { value:'piattaforma',  label:'Piattaforma' },
 ];
 
@@ -1323,6 +1328,127 @@ function DashAffidabilita({ a }) {
 // ─── Diagnostica piattaforma ─────────────────────────────────────────────────
 // Salute tecnica trasversale: uptime dei servizi, errori di pagamento aggregati,
 // code di elaborazione. Dati mock. Colore solo per gli stati.
+// ─── Limiti dei canali cliente (P-168 · D-118) ──────────────────────────────
+// I tre parametri che frenano il VOLUME degli invii da app e webapp: invii
+// per sessione nella finestra, righe per invio, tavoli diversi per
+// dispositivo nell'ora. Fermano il volume, non il cliente onesto; oltre il
+// limite l'invio è respinto con l'attesa scritta, e il tavolo passa a «da
+// verificare» in sala. Vivono nel registro condiviso byup_limiti che app e
+// webapp leggono; qui si cambiano uno alla volta, con il motivo scritto, e il
+// cambio finisce nell'audit log come i parametri di Piattaforma. Sotto, i
+// rifiuti del giorno per limite: quante volte, non chi — niente nomi, niente
+// tavoli, niente dispositivi. Niente verifica d'identità oltre il telefono
+// dell'app, niente ban sul dispositivo, niente blocco per indirizzo di rete.
+function TeamLimiti() {
+  const [, ridisegna] = React.useState(0);
+  React.useEffect(() => {
+    const f = () => ridisegna(x => x + 1);
+    ['byup-limiti-change', 'byup-limiti-rifiuti-change', 'storage'].forEach(e => window.addEventListener(e, f));
+    return () => ['byup-limiti-change', 'byup-limiti-rifiuti-change', 'storage'].forEach(e => window.removeEventListener(e, f));
+  }, []);
+  const limiti = window.byupReadLimiti ? window.byupReadLimiti() : { invii: { n: 3, minuti: 2 }, righe: 30, tavoli: { n: 5, minuti: 60 } };
+  const rifiutiOggi = window.byupReadRifiuti ? window.byupReadRifiuti() : { invii: 0, righe: 0, tavoli: 0 };
+  // La giornata del mockup parte da un fondo plausibile; i rifiuti veri che
+  // app e webapp scrivono nel registro si sommano sopra.
+  const FONDO = { invii: 4, righe: 1, tavoli: 0 };
+  const PARAMETRI = [
+    { id: 'invii',  label: 'Invii per sessione nella finestra', nota: 'Quante comande può mandare lo stesso tavolo in pochi minuti. Oltre, il cliente legge quanti secondi aspettare.',
+      valore: `${limiti.invii.n} in ${limiti.invii.minuti} min`, campi: [{ k: 'n', label: 'Invii', v: limiti.invii.n }, { k: 'minuti', label: 'Minuti', v: limiti.invii.minuti }] },
+    { id: 'righe',  label: 'Righe per invio', nota: 'Quante righe può portare una comanda sola. Oltre, il cliente manda quello che c\'è e il resto dopo.',
+      valore: `${limiti.righe}`, campi: [{ k: 'righe', label: 'Righe', v: limiti.righe }] },
+    { id: 'tavoli', label: 'Tavoli per dispositivo nell\'ora', nota: 'A quanti tavoli diversi può ordinare lo stesso telefono in un\'ora. Le reti mobili condividono l\'indirizzo fra molti: si conta il dispositivo, non la rete.',
+      valore: `${limiti.tavoli.n} in ${limiti.tavoli.minuti} min`, campi: [{ k: 'n', label: 'Tavoli', v: limiti.tavoli.n }, { k: 'minuti', label: 'Minuti', v: limiti.tavoli.minuti }] },
+  ];
+  const [edit, setEdit] = useStateTeam(null); // { id, valori:{k:v}, motivo }
+  const [salvato, setSalvato] = useStateTeam(null);
+  const apri = (p) => setEdit({ id: p.id, valori: Object.fromEntries(p.campi.map(c => [c.k, String(c.v)])), motivo: '' });
+  const numOk = (v) => Number.isInteger(parseInt(v, 10)) && parseInt(v, 10) >= 1;
+  const editOk = edit && Object.values(edit.valori).every(numOk) && edit.motivo.trim().length >= 3;
+  const salva = () => {
+    if (!editOk || !window.byupWriteLimiti) return;
+    const p = PARAMETRI.find(x => x.id === edit.id);
+    const n = (k) => parseInt(edit.valori[k], 10);
+    const nuovo = edit.id === 'righe' ? { righe: n('righe') } : { [edit.id]: { n: n('n'), minuti: n('minuti') } };
+    const prima = p.valore;
+    window.byupWriteLimiti(nuovo);
+    const dopo = edit.id === 'righe' ? `${n('righe')}` : `${n('n')} in ${n('minuti')} min`;
+    AUDIT_EVENTS.unshift({
+      who: (TEAM.find(t => t.isYou) || {}).nomeCompleto || 'Tu',
+      action: 'ha cambiato un limite dei canali cliente',
+      target: `${p.label}: ${prima} → ${dopo} · ${edit.motivo.trim()}`,
+      icon: 'lock', color: 'PURPLE', tipo: 'limiti', when: new Date(),
+    });
+    setSalvato(p.id); setEdit(null); ridisegna(x => x + 1);
+    setTimeout(() => setSalvato(null), 3000);
+  };
+  const inp = {width: 90, padding:'7px 10px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13.5, fontFamily:'inherit', color:ADM.TEXT, background:'#fff', outline:'none', boxSizing:'border-box'};
+  const lab = {fontSize:11, color:ADM.MUTED, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:5};
+  const totRifiuti = PARAMETRI.reduce((a, p) => a + FONDO[p.id] + (rifiutiOggi[p.id] || 0), 0);
+  return (
+    <div style={{padding:'18px 22px 22px'}}>
+      <div style={{fontSize:13, color:ADM.MUTED, lineHeight:1.55, marginBottom:16, maxWidth:720}}>
+        I limiti fermano il volume degli invii dall'app e dalla webapp, non il cliente: oltre il limite l'invio è respinto con l'attesa scritta e il tavolo passa a «da verificare» in sala. Ogni modifica chiede un motivo e finisce nell'audit log. Nessuna verifica d'identità, nessun ban sul dispositivo, nessun blocco per indirizzo di rete.
+      </div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:12, marginBottom:22}}>
+        {PARAMETRI.map(p => {
+          const inEdit = edit && edit.id === p.id;
+          return (
+            <div key={p.id} data-limite={p.id} style={{border:`1px solid ${ADM.BORDER}`, borderRadius:12, padding:'14px 16px', background:'#fff'}}>
+              <div style={{display:'flex', alignItems:'flex-start', gap:10}}>
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{fontSize:13.5, fontWeight:700, color:ADM.TEXT}}>{p.label}</div>
+                  <div style={{fontSize:12.5, color:ADM.MUTED, lineHeight:1.5, marginTop:3}}>{p.nota}</div>
+                </div>
+                <div style={{fontSize:20, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>{p.valore}</div>
+              </div>
+              {!inEdit && (
+                <div style={{display:'flex', alignItems:'center', gap:10, marginTop:12}}>
+                  <AdmButton variant="secondary" size="sm" onClick={() => apri(p)}>Modifica</AdmButton>
+                  {salvato === p.id && <span style={{fontSize:12.5, color:ADM.OK, fontWeight:600}}>Salvato e registrato in audit</span>}
+                </div>
+              )}
+              {inEdit && (
+                <div style={{marginTop:12, paddingTop:12, borderTop:`1px solid ${ADM.BORDER}`}}>
+                  <div style={{display:'flex', gap:10, flexWrap:'wrap', marginBottom:10}}>
+                    {p.campi.map(c => (
+                      <div key={c.k}>
+                        <label style={lab}>{c.label}</label>
+                        <input type="number" min="1" step="1" value={edit.valori[c.k]} style={inp}
+                          onChange={e => setEdit({ ...edit, valori: { ...edit.valori, [c.k]: e.target.value } })}/>
+                      </div>
+                    ))}
+                  </div>
+                  <label style={lab}>Motivo</label>
+                  <textarea value={edit.motivo} onChange={e => setEdit({ ...edit, motivo: e.target.value })} placeholder="Perché cambia: senza motivo non è evidenza" rows={2}
+                    style={{width:'100%', padding:'8px 11px', border:`1px solid ${ADM.BORDER}`, borderRadius:8, fontSize:13, fontFamily:'inherit', color:ADM.TEXT, resize:'vertical', boxSizing:'border-box', outline:'none'}}/>
+                  <div style={{display:'flex', justifyContent:'flex-end', gap:8, marginTop:10}}>
+                    <AdmButton variant="secondary" size="sm" onClick={() => setEdit(null)}>Annulla</AdmButton>
+                    <AdmButton variant="primary" size="sm" disabled={!editOk} onClick={salva}>Salva</AdmButton>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{fontSize:14, fontWeight:700, color:ADM.TEXT, marginBottom:4}}>Rifiuti di oggi</div>
+      <div style={{fontSize:12.5, color:ADM.MUTED, marginBottom:12}}>Quante volte un invio è stato respinto, per limite. Quante, non chi: qui non ci sono nomi, tavoli né dispositivi.</div>
+      <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, maxWidth:720}}>
+        {PARAMETRI.map(p => (
+          <div key={p.id} data-rifiuti={p.id} style={{border:`1px solid ${ADM.BORDER}`, borderRadius:12, padding:'12px 14px', background:ADM.PANEL_SOFT}}>
+            <div style={{fontSize:24, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums'}}>{FONDO[p.id] + (rifiutiOggi[p.id] || 0)}</div>
+            <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:2}}>{p.label}</div>
+          </div>
+        ))}
+        <div style={{border:`1px solid ${ADM.BORDER}`, borderRadius:12, padding:'12px 14px', background:'#fff'}}>
+          <div style={{fontSize:24, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em', fontVariantNumeric:'tabular-nums'}}>{totRifiuti}</div>
+          <div style={{fontSize:12.5, color:ADM.MUTED, marginTop:2}}>In tutto</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlatformDiagnostica() {
   const SERVIZI = [
     { nome:'App cliente',       uptime:'99,98%', latenza:'142 ms', stato:'ok' },

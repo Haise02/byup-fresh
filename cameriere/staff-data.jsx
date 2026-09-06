@@ -34,16 +34,19 @@ const STAFF_SETTINGS = { tolleranzaNoShow: 15, attesaComanda: 5, arrivoImminente
 //               immagine in card Sala — fa capire al volo cosa consegnare.
 // daInviare: numero di piatti ordinati (dal cameriere o dall'app cliente) in
 //            attesa che il cameriere li invii in cucina dal tavolo (default 0)
+// source_surface (orders.source_surface — P-168 · D-118): chi ha aperto la
+//            sessione: 'webapp_guest' | 'byup_app' = un cliente col QR, e la
+//            card porta «dal QR»; verifica: 'limite' | 'rete' = «da verificare».
 const TAVOLI = [
   { id: 23, n: 23, stato: 'occupato', coperti: 4, sedutiDa: 52, ordini: 7, saldo: 80, pronti: 3, piattiPronti: [{ nome: 'Carbonara', qty: 1 }, { nome: 'Carbonara', qty: 1 }, { nome: 'Amatriciana', qty: 1 }], daInviare: 0, allergie: ['glutine'], tags: ['Compleanno'], note: 'Candelina al dolce', cameriere: 'Marco', azione: 'In sala' },
   { id: 24, n: 24, stato: 'occupato', coperti: 2, sedutiDa: 18, ordini: 4, saldo: 180, pronti: 1, piattiPronti: [{ nome: 'Tagliere misto', qty: 1 }], daInviare: 0, allergie: [], note: null, cameriere: 'Marco', azione: 'Antipasti consegnati' },
   { id: 25, n: '25+32', stato: 'occupato', coperti: 8, sedutiDa: 35, ordini: 9, saldo: 280, pronti: 0, daInviare: 2, daInviareItems: [{ nome: 'Cacio e pepe', qty: 1 }, { nome: 'Amatriciana', qty: 1 }], allergie: ['lattosio', 'noci'], note: 'Tavolo unito · Bambini piccoli', cameriere: 'Marco', azione: 'Primi in cucina' },
   { id: 26, n: 26, stato: 'occupato', coperti: 2, sedutiDa: 78, ordini: 5, saldo: 60, pronti: 0, allergie: [], note: null, cameriere: 'Marco', azione: 'Conto richiesto' },
-  { id: 12, n: 12, stato: 'occupato', coperti: 3, sedutiDa: 8,  ordini: 2, saldo: 24, pronti: 0, allergie: [], note: null, cameriere: 'Giulia', azione: 'Hanno appena ordinato' },
+  { id: 12, n: 12, stato: 'occupato', coperti: 3, sedutiDa: 8,  ordini: 2, saldo: 24, pronti: 0, source_surface: 'byup_app', verifica: 'rete', allergie: [], note: null, cameriere: 'Giulia', azione: 'Hanno appena ordinato' },
   { id: 18, n: 18, stato: 'occupato', coperti: 4, sedutiDa: 65, ordini: 8, saldo: 156, pronti: 0, allergie: ['pesce'], note: null, cameriere: 'Marco', azione: 'In attesa secondi' },
   { id: 5,  n: 5,  stato: 'occupato', coperti: 2, sedutiDa: 22, ordini: 3, saldo: 46,  pronti: 0, daInviare: 0, allergie: [], note: null, cameriere: 'Marco', azione: 'Primi consegnati' },
   { id: 7,  n: 7,  stato: 'occupato', coperti: 5, sedutiDa: 40, ordini: 6, saldo: 132, pronti: 0, daInviare: 3, daInviareItems: [{ nome: 'Carbonara', qty: 1 }, { nome: 'Spaghetti aglio e olio', qty: 1 }, { nome: 'Aperol Spritz', qty: 1 }], allergie: ['glutine'], tags: ['Business'], note: null, cameriere: 'Giulia', azione: 'Ordine da inviare' },
-  { id: 9,  n: 9,  stato: 'occupato', coperti: 2, sedutiDa: 12, ordini: 2, saldo: 0,   pronti: 0, daInviare: 0, allergie: [], note: null, cameriere: 'Marco', azione: 'Hanno appena ordinato' },
+  { id: 9,  n: 9,  stato: 'occupato', coperti: 2, sedutiDa: 12, ordini: 2, saldo: 0,   pronti: 0, daInviare: 0, source_surface: 'webapp_guest', allergie: [], note: null, cameriere: 'Marco', azione: 'Hanno appena ordinato' },
   { id: 14, n: 14, stato: 'occupato', coperti: 6, sedutiDa: 55, ordini: 10, saldo: 210, pronti: 1, piattiPronti: [{ nome: 'Branzino al sale', qty: 1 }], daInviare: 0, allergie: ['lattosio'], note: 'Tavolo rumoroso', cameriere: 'Marco', azione: 'Secondi in cucina' },
   { id: 16, n: 16, stato: 'occupato', coperti: 3, sedutiDa: 70, ordini: 7, saldo: 95,  pronti: 0, daInviare: 0, allergie: [], note: null, cameriere: 'Luca', azione: 'In attesa dolci' },
   { id: 19, n: 19, stato: 'occupato', coperti: 4, sedutiDa: 30, ordini: 5, saldo: 120, pronti: 2, piattiPronti: [{ nome: 'Carciofi alla giudia', qty: 1 }, { nome: 'Carciofi alla giudia', qty: 1 }], daInviare: 0, allergie: ['pesce'], note: null, cameriere: 'Marco', azione: 'Antipasti pronti' },

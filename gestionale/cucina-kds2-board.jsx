@@ -406,7 +406,18 @@ function Kds2Chip({
         ? <Kds2Partner id={source.partner} size={misuraIcona}
             tono={quieta ? 'spento' : selezionata ? 'inverso' : 'normale'}/>
         : Canale && <span style={{color: colQual, display: 'flex', flexShrink: 0}}><Canale size={misuraIcona}/></span>}
-      <span style={Object.assign({}, stileId, {color: colTesto})}>{identita}</span>
+      {/* Sotto l'etichetta, piccolo: «dal QR» se la sessione l'ha aperta un
+          cliente, «da verificare» se ha superato un limite (P-168 · D-118).
+          Un dato, non un allarme: stesso colore del testo, più leggero. */}
+      {(() => {
+        const seg = source.delivery_mode === 'al_tavolo' && window.byupSegnoCanale ? window.byupSegnoCanale(source.label, source) : null;
+        return seg ? (
+          <span style={{display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.05}}>
+            <span style={Object.assign({}, stileId, {color: colTesto})}>{identita}</span>
+            <span data-segno-canale={seg.livello} style={{fontSize: mini ? 9 : 10.5, fontWeight: 600, letterSpacing: 0.3, color: colTesto, opacity: seg.livello === 'verifica' ? 0.95 : 0.7, whiteSpace: 'nowrap'}}>{seg.testo}</span>
+          </span>
+        ) : <span style={Object.assign({}, stileId, {color: colTesto})}>{identita}</span>;
+      })()}
       {conTempo && (
         <span style={Object.assign({}, stileOra, {color: colTempo})}>{tempo.testo}</span>
       )}
@@ -1654,7 +1665,7 @@ function Kds2Board({ porzioni: porzioniIniziali, focus, onToggleFocus, barra }) 
         const righeStampa = mie.map(p => ({ qty: p.quantity || 1, name: p.dishName, category: p.category, course: p.course || null, modifiers: p.modifiers || [], allergen: p.allergen || null }));
         return (
           <button type="button" data-kds2-interattivo="" data-stampa-comanda=""
-            onClick={() => window.byupStampaComanda(righeStampa, identita, { quando: mie[0].firedAt })}
+            onClick={() => window.byupStampaComanda(righeStampa, identita, { quando: mie[0].firedAt, sotto: (() => { const seg = window.byupSegnoCanale ? window.byupSegnoCanale(mie[0].source.label, mie[0].source) : null; return seg ? seg.testo : null; })() })}
             title={'Stampa la comanda di ' + identita}
             style={{
               position: 'absolute', right: barra ? 8 : PAD_X, bottom: 16, zIndex: 5,

@@ -578,6 +578,17 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
   };
 
   const submitTableOrder = () => {
+    // I limiti dei canali cliente (P-168 · D-118): tre invii in due minuti per
+    // tavolo, trenta righe per invio, cinque tavoli diversi in un'ora per
+    // dispositivo — i valori li governa Hubble. Oltre il limite l'invio è
+    // respinto con l'attesa scritta, mai un errore muto. Nessun cancello del
+    // pagamento: chi è al tavolo invia in cucina come gli altri. Se passa, il
+    // tavolo risulta aperto da un cliente col QR (orders.source_surface).
+    const tavoloN = state.tableNumber || (state.activeOrder?.table?.match(/\d+/)?.[0]) || '23';
+    const righe = state.cart.reduce((n, li) => n + (li.qty || 1), 0);
+    const esito = window.byupInvioConsentito ? window.byupInvioConsentito(tavoloN, righe) : { ok: true };
+    if (!esito.ok) { setState(s => ({ ...s, rifiuto: esito.messaggio })); return; }
+    if (window.byupSegnaTavoloQr) window.byupSegnaTavoloQr(tavoloN, 'webapp_guest');
     setConfirm(true);
     // P-103: il momento in cui la voce di coperto o servizio è stata esposta e
     // confermata finisce sull'ordine (orders.cover_disclosed_at). Su un menù
@@ -601,7 +612,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
           return {
             ...s,
             activeOrder: { ...s.activeOrder, items: merged, total: newTotal, cover_disclosed_at: s.activeOrder.cover_disclosed_at || coverDisclosedAt },
-            cart: [],
+            cart: [], rifiuto: null,
           };
         }
         return {
@@ -624,7 +635,7 @@ function MenuScreen({ state, setState, goTo, takeaway = false }) {
               { id: 'g3', name: 'Ospite', initial: '?', isGuest: true },
             ],
           },
-          cart: [],
+          cart: [], rifiuto: null,
         };
       });
       setConfirm(false);
@@ -1425,6 +1436,11 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
               }}><I.Trash size={18} color={TEXT}/></button>
             )}
           </div>
+          {state.rifiuto && (
+            <div data-rifiuto-invio role="alert" style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: '#FEF3C7', color: '#92400E', fontSize: 13, lineHeight: 1.4, fontWeight: 600 }}>
+              {state.rifiuto}
+            </div>
+          )}
           <button onClick={onSubmit} disabled={cartCount === 0} style={{
             width: '100%', height: 50, borderRadius: 999, border: 'none',
             background: cartCount === 0 ? '#d8c0c8' : WINE, color: '#fff',
@@ -1519,14 +1535,19 @@ function OrderSheet({ state, setState, cartCount, cartTotal, mode, setMode, dish
                 </div>
               </div>
             )}
-            {(() => { const spento = cartCount === 0 || (takeaway && !ritiro); return (
+            {(() => { const spento = cartCount === 0 || (takeaway && !ritiro); return (<>
+            {state.rifiuto && (
+              <div data-rifiuto-invio role="alert" style={{ marginBottom: 10, padding: '10px 12px', borderRadius: 12, background: '#FEF3C7', color: '#92400E', fontSize: 13, lineHeight: 1.4, fontWeight: 600 }}>
+                {state.rifiuto}
+              </div>
+            )}
             <button onClick={() => onSubmit(ritiro)} disabled={spento} style={{
               width: '100%', height: 50, borderRadius: 999, border: 'none',
               background: spento ? '#d8c0c8' : WINE, color: '#fff',
               fontSize: 15, fontWeight: 700, fontFamily: 'inherit',
               cursor: spento ? 'not-allowed' : 'pointer',
             }}>{takeaway ? (ritiro ? `Ordina d'asporto · ritiro ${ritiro}` : 'Scegli l\'orario di ritiro') : 'Ordina ora'} · {cartTotal.toFixed(2)}€</button>
-            ); })()}
+            </>); })()}
           </div>
         </>
       )}
@@ -2923,6 +2944,108 @@ if (!window.byupCucinaInfo) {
   // conosciamo la cucina e non si inventa.
   window.byupAvvisoCucinaChiusa = () => { const i = window.byupCucinaInfo(); return !i.cucinaAperta && i.ultimaComanda ? `Cucina chiusa dalle ${i.ultimaComanda}: avvisa la cucina che la comanda è partita lo stesso` : null; };
   window.byupCucinaChiusaPer = (nome) => { if (!/settembrini|maria grazia/i.test(String(nome || ''))) return false; const i = window.byupCucinaInfo(); return i.localeAperto && !i.cucinaAperta; };
+}
+
+// ─── I canali del cliente: il segno «dal QR» e i limiti (P-168 · D-118) ─────
+// Quando la sessione del tavolo nasce da una scansione del QR — dall'app o
+// dalla webapp — e non dal personale, la sala lo sa da un segno discreto,
+// perché quasi tutti quei tavoli sono clienti veri. Il tavolo che ha superato
+// un limite, o la cui rete non è della città del locale, porta «da verificare».
+// I limiti fermano il volume, non il cliente onesto: un invio respinto dice
+// sempre l'attesa residua, mai un errore muto. Nessun cancello del pagamento
+// sulla sala, nessuna verifica d'identità, nessun ban sul dispositivo, nessun
+// blocco per indirizzo di rete. I nomi sono quelli del modello:
+// orders.source_surface vale staff_web | webapp_guest | byup_app.
+// Registri sullo stesso dominio: byup_limiti (i tre parametri, che Hubble
+// governa), byup_tavoli_qr (i tavoli aperti da un cliente), byup_invii (la
+// storia recente per tavolo e per dispositivo), byup_limiti_rifiuti (quante
+// volte al giorno, per limite: quante, non chi). Rete di prova: ?rete=fuori.
+if (!window.byupInvioConsentito) {
+  const LIM_KEY = 'byup_limiti', TQR_KEY = 'byup_tavoli_qr', INV_KEY = 'byup_invii', RIF_KEY = 'byup_limiti_rifiuti', DISP_KEY = 'byup_dispositivo';
+  const LIMITI_SEME = { invii: { n: 3, minuti: 2 }, righe: 30, tavoli: { n: 5, minuti: 60 } };
+  const SESSIONE_MS = 6 * 60 * 60 * 1000; // un tavolo aperto da un cliente si dimentica dopo sei ore
+  const leggi = (k, seme) => { try { const v = JSON.parse(localStorage.getItem(k)); return v && typeof v === 'object' ? v : seme; } catch (e) { return seme; } };
+  const scrivi = (k, v, evento) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} try { window.dispatchEvent(new Event(evento)); } catch (e) {} };
+  const oggi = () => new Date().toISOString().slice(0, 10);
+  const num = (t) => String(t == null ? '' : t).replace(/\D+/g, '') || String(t);
+  window.byupReadLimiti = () => {
+    const v = leggi(LIM_KEY, {});
+    return {
+      invii: { n: Math.max(1, parseInt(v.invii && v.invii.n, 10) || LIMITI_SEME.invii.n), minuti: Math.max(1, parseInt(v.invii && v.invii.minuti, 10) || LIMITI_SEME.invii.minuti) },
+      righe: Math.max(1, parseInt(v.righe, 10) || LIMITI_SEME.righe),
+      tavoli: { n: Math.max(1, parseInt(v.tavoli && v.tavoli.n, 10) || LIMITI_SEME.tavoli.n), minuti: Math.max(1, parseInt(v.tavoli && v.tavoli.minuti, 10) || LIMITI_SEME.tavoli.minuti) },
+    };
+  };
+  window.byupWriteLimiti = (l) => scrivi(LIM_KEY, Object.assign({}, window.byupReadLimiti(), l || {}), 'byup-limiti-change');
+  window.byupDispositivoId = () => {
+    let id = null; try { id = localStorage.getItem(DISP_KEY); } catch (e) {}
+    if (!id) { id = 'd_' + Math.random().toString(36).slice(2, 10); try { localStorage.setItem(DISP_KEY, id); } catch (e) {} }
+    return id;
+  };
+  window.byupReteFuoriCitta = () => {
+    try {
+      const q = new URLSearchParams(window.location.search).get('rete');
+      if (q) sessionStorage.setItem('byup_rete_demo', q);
+      return sessionStorage.getItem('byup_rete_demo') === 'fuori';
+    } catch (e) { return false; }
+  };
+  // I tavoli aperti da un cliente: { [numero]: { source_surface, opened_at, verifica } }
+  window.byupReadTavoliQr = () => {
+    const t = leggi(TQR_KEY, {}), ora = Date.now(), out = {};
+    Object.keys(t).forEach(k => { const e = t[k]; if (e && e.opened_at && ora - Date.parse(e.opened_at) < SESSIONE_MS) out[k] = e; });
+    return out;
+  };
+  window.byupSegnaTavoloQr = (tavolo, source_surface) => {
+    const t = window.byupReadTavoliQr(), k = num(tavolo);
+    if (!t[k]) t[k] = { source_surface: source_surface || 'webapp_guest', opened_at: new Date().toISOString(), verifica: null };
+    if (!t[k].verifica && window.byupReteFuoriCitta()) t[k].verifica = 'rete';
+    scrivi(TQR_KEY, t, 'byup-tavoli-qr-change');
+    return t[k];
+  };
+  window.byupSegnaDaVerificare = (tavolo, motivo) => {
+    const t = window.byupReadTavoliQr(), k = num(tavolo);
+    if (!t[k]) t[k] = { source_surface: 'webapp_guest', opened_at: new Date().toISOString(), verifica: null };
+    t[k].verifica = motivo || 'limite';
+    scrivi(TQR_KEY, t, 'byup-tavoli-qr-change');
+  };
+  window.byupChiudiTavoloQr = (tavolo) => { const t = window.byupReadTavoliQr(); delete t[num(tavolo)]; scrivi(TQR_KEY, t, 'byup-tavoli-qr-change'); };
+  window.byupTavoloQr = (tavolo) => window.byupReadTavoliQr()[num(tavolo)] || null;
+  // Il segno che la sala disegna: il registro vince, il seme del mockup
+  // (source_surface e verifica sul tavolo o sulla sorgente) vale quando il
+  // registro tace. null = tavolo aperto dal personale, niente da disegnare.
+  window.byupSegnoCanale = (tavolo, seme) => {
+    const e = window.byupTavoloQr(tavolo) || (seme && seme.source_surface && seme.source_surface !== 'staff_web' ? seme : null);
+    if (!e) return null;
+    if (e.verifica) return { livello: 'verifica', testo: 'da verificare', motivo: e.verifica, source_surface: e.source_surface };
+    return { livello: 'qr', testo: 'dal QR', source_surface: e.source_surface };
+  };
+  // I rifiuti del giorno, per limite: { invii, righe, tavoli }
+  window.byupReadRifiuti = (giorno) => { const r = leggi(RIF_KEY, {}); return Object.assign({ invii: 0, righe: 0, tavoli: 0 }, r[giorno || oggi()] || {}); };
+  const contaRifiuto = (limite) => { const r = leggi(RIF_KEY, {}), g = oggi(); r[g] = r[g] || {}; r[g][limite] = (r[g][limite] || 0) + 1; scrivi(RIF_KEY, r, 'byup-limiti-rifiuti-change'); };
+  // L'invio di una comanda da un canale del cliente: passa, oppure dice quanto
+  // aspettare. Tre limiti: invii per tavolo nella finestra, righe per invio,
+  // tavoli diversi per dispositivo nell'ora. Il rifiuto segna il tavolo.
+  window.byupInvioConsentito = (tavolo, righe) => {
+    const L = window.byupReadLimiti(), ora = Date.now(), k = num(tavolo), disp = window.byupDispositivoId();
+    const inv = leggi(INV_KEY, {}); inv.tavoli = inv.tavoli || {}; inv.dispositivi = inv.dispositivi || {};
+    const rifiuta = (limite, messaggio) => { contaRifiuto(limite); window.byupSegnaDaVerificare(k, 'limite'); return { ok: false, limite, messaggio }; };
+    if ((righe || 0) > L.righe) return rifiuta('righe', `Sono troppe righe per un invio solo: al massimo ${L.righe}. Manda quello che c'è, il resto in un invio dopo.`);
+    const finestra = L.invii.minuti * 60000;
+    const recenti = (inv.tavoli[k] || []).filter(ts => ora - ts < finestra).sort((a, b) => a - b);
+    if (recenti.length >= L.invii.n) {
+      const attesa = Math.max(1, Math.ceil((recenti[0] + finestra - ora) / 1000));
+      return rifiuta('invii', attesa >= 90 ? `Aspetta ${Math.ceil(attesa / 60)} minuti prima di inviare ancora.` : `Aspetta ${attesa} secondi prima di inviare ancora.`);
+    }
+    const finestra2 = L.tavoli.minuti * 60000, miei = inv.dispositivi[disp] || {};
+    const altri = Object.keys(miei).filter(t2 => t2 !== k && ora - miei[t2] < finestra2);
+    if (!miei[k] && altri.length >= L.tavoli.n) {
+      const attesa = Math.max(1, Math.ceil(Math.min.apply(null, altri.map(t2 => miei[t2] + finestra2 - ora)) / 60000));
+      return rifiuta('tavoli', `Da questo telefono hai già ordinato a ${L.tavoli.n} tavoli nell'ultima ora: aspetta ${attesa} minuti prima di un tavolo nuovo.`);
+    }
+    recenti.push(ora); inv.tavoli[k] = recenti; miei[k] = ora; inv.dispositivi[disp] = miei;
+    scrivi(INV_KEY, inv, 'byup-invii-change');
+    return { ok: true };
+  };
 }
 
 function Root() {

@@ -108,10 +108,21 @@ function SalaTavoli({ tweaks, onOpenAdd, onOpenPay, onAddArticle, focus, onToggl
     if (alertCount === 0 && alertOnly) setAlertOnly(false);
   }, [alertCount, alertOnly]);
   const _stateOrder = { occupato: 0, prenotato: 1, dapulire: 2, libero: 3 };
-  // Lista: filtra + ordina per stato poi per numero tavolo
+  // I tavoli aperti da un cliente col QR (P-168 · D-118) stanno in cima agli
+  // occupati: il registro cambia quando app o webapp inviano, e la lista si
+  // ridisegna. Il segno lo disegnano la card e la tessera in mappa.
+  const [, ridisegnaCanali] = React.useState(0);
+  React.useEffect(() => {
+    const f = () => ridisegnaCanali(x => x + 1);
+    window.addEventListener('byup-tavoli-qr-change', f); window.addEventListener('storage', f);
+    return () => { window.removeEventListener('byup-tavoli-qr-change', f); window.removeEventListener('storage', f); };
+  }, []);
+  const _segnoCanale = (t) => (window.byupSegnoCanale ? window.byupSegnoCanale(t.id, t) : null);
+  // Lista: filtra + ordina per stato, poi i tavoli dal QR, poi per numero tavolo
   const visibili = tavoliBase.filter(matchTavolo).sort((a, b) => {
     const sd = (_stateOrder[a.state] ?? 99) - (_stateOrder[b.state] ?? 99);
     if (sd !== 0) return sd;
+    if (a.state === 'occupato') { const sq = (_segnoCanale(a) ? 0 : 1) - (_segnoCanale(b) ? 0 : 1); if (sq !== 0) return sq; }
     return (a.id || 0) - (b.id || 0);
   });
   // Mappa: tutti i tavoli sempre visibili (la disposizione fisica è significativa); i non-match sono dimmed
@@ -1198,7 +1209,8 @@ function SalaFloorPlan({ tavoli, dimmedIds, mergeMode, mergeSel, onToggleMergeSe
               <TableTile key={t.id}
                 numero={t.id} status={tDisplay.state}
                 seats={seats} shape={shape} orientation={orient}
-                badge={isAllergia && !dim && showOwnBadges ? ['ALLERGIA'] : []}
+                badge={(() => { const seg = window.byupSegnoCanale && !dim && showOwnBadges ? window.byupSegnoCanale(t.id, t) : null;
+                  return [...(isAllergia && !dim && showOwnBadges ? ['ALLERGIA'] : []), ...(seg ? [seg.livello === 'verifica' ? 'VERIFICA' : 'QR'] : [])]; })()}
                 hideChairSides={hideChairSides}
                 bodyExtend={bodyExtend}
                 // Il gruppo è UN tavolo: le tile non disegnano corpo, numero

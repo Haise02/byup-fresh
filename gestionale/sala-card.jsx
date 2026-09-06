@@ -734,6 +734,17 @@ function SalaCardExpanded({ t, alert, cta, note, noteMeta, extraNote, extraNoteM
               {/* Riga identità: solo il nome di chi è al tavolo. I coperti si
                   leggono dal numero in testata; per cambiarli c'è lo stepper
                   in Modifica, così qui niente controllo accanto al nome. */}
+              {/* Il segno del canale (P-168 · D-118): «dal QR» quando la sessione
+                  l'ha aperta un cliente, «da verificare» se ha superato un limite
+                  o la sua rete non è della città. Una spia, non un allarme. */}
+              {(() => { const seg = window.byupSegnoCanale ? window.byupSegnoCanale(t.id, t) : null; return seg ? (
+                <div data-segno-canale={seg.livello} title={seg.livello === 'verifica' ? (seg.motivo === 'rete' ? 'La rete del telefono non è della città del locale' : 'Ha superato un limite degli invii') : 'Tavolo aperto dal cliente con il QR'}
+                  style={{display:'inline-flex', alignItems:'center', gap: 6, fontSize: 12, fontWeight: 700, letterSpacing: 0.2,
+                    color: seg.livello === 'verifica' ? '#A16207' : '#6B7280'}}>
+                  <span style={{width: 7, height: 7, borderRadius: 999, background: seg.livello === 'verifica' ? '#F59E0B' : '#9CA3AF'}}/>
+                  {seg.testo}
+                </div>
+              ) : null; })()}
               {t.party && (
                 <div style={{fontSize: 19, fontWeight: 700, color:'#0F1115', letterSpacing:'-0.01em', lineHeight: 1.2,
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>

@@ -13,6 +13,8 @@ function _toMin(hhmm) {
 // kind = 'sala' | 'asporto' | 'delivery' | 'banco' (vista del monitor v1);
 // delivery_mode = il modo di consegna del modello (orders.delivery_mode, D-14 —
 // P-165): al_tavolo | asporto | consegna | al_banco. Il monitor v2 legge questo.
+// source_surface (orders.source_surface — P-168): chi ha aperto la sessione del
+// tavolo; 'webapp_guest' o 'byup_app' = un cliente col QR, e il ticket lo dice.
 // partner (solo delivery) = piattaforma che manda il rider: 'ubereats' | 'glovo'
 //   | 'deliveroo' — gli id di impostazioni-integrazioni.jsx, il KDS ci disegna
 //   il marchio al posto dello scooter.
@@ -20,7 +22,7 @@ function _toMin(hhmm) {
 // cliente. Il KDS riceve tutte le righe e filtra da sé per stazione.
 // course: 1=antipasto, 2=primo, 3=secondo, 4=dessert (null=portata unica)
 const CUC_TICKETS_ATTIVI = [
-  { id: 'a1', kind: 'sala', delivery_mode: 'al_tavolo', table: 9,  orderN: '#5678', time: '14:40', station: 'Pizza',  items: [
+  { id: 'a1', kind: 'sala', delivery_mode: 'al_tavolo', source_surface: 'webapp_guest', table: 9,  orderN: '#5678', time: '14:40', station: 'Pizza',  items: [
     { qty: 2, name: 'Margherita Pizza',   note: 'senza basilico',     allergen: false, state: 'todo', course: null },
     { qty: 1, name: 'Insalata Caesar',    note: 'aggiungi pollo',     allergen: false, state: 'todo', course: null },
   ]},

@@ -34,7 +34,9 @@ const fra = m => KDS2_T0 + m * 60000;   // dueAt   — ritiro fra m minuti
 // al_banco; `partner` sta accanto a `consegna`. Il vocabolario proprio del
 // monitor (table | takeaway | delivery | order) non esiste più.
 const T3  = { delivery_mode: 'al_tavolo',    label: 'T3'  };
-const T7  = { delivery_mode: 'al_tavolo',    label: 'T7'  };
+// Il 7 l'ha aperto un cliente col QR dalla webapp (orders.source_surface —
+// P-168 · D-118): il ticket lo dice sotto l'etichetta, piccolo.
+const T7  = { delivery_mode: 'al_tavolo',    label: 'T7', source_surface: 'webapp_guest' };
 const T9  = { delivery_mode: 'al_tavolo',    label: 'T9'  };
 const T12 = { delivery_mode: 'al_tavolo',    label: 'T12' };
 const T15 = { delivery_mode: 'al_tavolo',    label: 'T15' };

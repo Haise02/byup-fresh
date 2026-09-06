@@ -285,6 +285,14 @@ function TableTile({
         )}
       </div>
       )}
+      {/* La spia del canale (P-168 · D-118): un puntino in alto a destra, grigio
+          per il tavolo aperto dal cliente col QR, ambra per «da verificare». */}
+      {(badge.includes('VERIFICA') || badge.includes('QR')) && !dim && (
+        <span data-segno-canale={badge.includes('VERIFICA') ? 'verifica' : 'qr'}
+          title={badge.includes('VERIFICA') ? 'Da verificare' : 'Aperto dal cliente con il QR'}
+          style={{ position: 'absolute', top: -5, right: -5, width: 10, height: 10, borderRadius: 999,
+            background: badge.includes('VERIFICA') ? '#F59E0B' : '#9CA3AF', border: '1.5px solid #fff' }}/>
+      )}
       {/* Badge ALLERGIA — chip critico, a cavallo del bordo corpo */}
       {badge.includes('ALLERGIA') && !dim && (
         <div style={{

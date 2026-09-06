@@ -6,6 +6,10 @@
 // cucina. Prima qui c'era scritto che non poteva saperlo, ed era vero finché
 // il KDS non aveva un gesto per dirlo.
 // Origin: 'cameriere' | 'byup' (per distinguere chi ha mandato l'ordine)
+// source_surface (orders.source_surface — P-168 · D-118): chi ha APERTO la
+// sessione del tavolo. Assente o 'staff_web' = il personale; 'webapp_guest' o
+// 'byup_app' = un cliente col QR, e la sala lo vede da un segno discreto.
+// verifica: 'limite' | 'rete' quando il tavolo è «da verificare».
 
 const SALA_TAVOLI = [
   { id: 1,  state: 'occupato', posti: 4, coperti: 4, byup: 2, byupWeb: 0, party: 'Famiglia Robinson', sittingMin: 32, conto: 87.00, contoSaldato: false,
@@ -31,7 +35,7 @@ const SALA_TAVOLI = [
 
   // daIncassare < conto: la differenza è quanto già pagato in app (riga
   // "Pagato in app" nel blocco conto a scontrino della card espansa)
-  { id: 3,  state: 'occupato', posti: 6, coperti: 5, byup: 3, byupWeb: 1, party: 'Rachel Green + friends', sittingMin: 18, conto: 42.50, daIncassare: 24.50, contoSaldato: false,
+  { id: 3,  state: 'occupato', posti: 6, coperti: 5, byup: 3, byupWeb: 1, source_surface: 'byup_app', verifica: 'rete', party: 'Rachel Green + friends', sittingMin: 18, conto: 42.50, daIncassare: 24.50, contoSaldato: false,
     guests: [
       { id:'g3a', name:'Luca V.',    source:'byup' },
       { id:'g3b', name:'Sara V.',    source:'byup' },
@@ -127,7 +131,7 @@ const SALA_TAVOLI = [
 
   { id: 8,  state: 'libero',   posti: 2, ordini: [], nextReservation: null, minutiAllaPrenotazione: null },
 
-  { id: 9,  state: 'occupato', posti: 4, coperti: 3, byup: 0, byupWeb: 1, party: 'Di Caprio', sittingMin: 12, conto: 18.00, contoSaldato: false,
+  { id: 9,  state: 'occupato', posti: 4, coperti: 3, byup: 0, byupWeb: 1, source_surface: 'webapp_guest', party: 'Di Caprio', sittingMin: 12, conto: 18.00, contoSaldato: false,
     ordini: [
       { id:'o16', nome:'Aperitivo della casa', qty:3, prezzo:6, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup' },
     ],

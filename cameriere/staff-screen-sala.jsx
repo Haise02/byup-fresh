@@ -35,6 +35,10 @@ const daComandare = (t) => t.stato === 'occupato' && !(t.ordini > 0) && (t.sedut
 //   1  da pulire    → liberare il tavolo (spesso proprio per chi arriva)
 //   2  prenotato presente → in arrivo / in ritardo / no-show: gestire l'arrivo
 //   3  libero / lontano   → pronto all'uso
+// Il segno del canale (P-168 · D-118): «dal QR» se la sessione l'ha aperta un
+// cliente, «da verificare» se ha superato un limite o la rete non è della
+// città. Il registro condiviso vince sul seme; fra gli occupati stanno in cima.
+const segnoCanale = (t) => (window.byupSegnoCanale ? window.byupSegnoCanale(t.id, t) : null);
 const urgenzaTavolo = (t) => {
   if (t.stato === 'occupato') return 0;
   if (t.stato === 'da-pulire') return 1;
@@ -77,6 +81,11 @@ function ScreenSala({ nav, openModal }) {
     .sort((a, b) => {
       const d = urgenzaTavolo(a) - urgenzaTavolo(b);
       if (d !== 0) return d;
+      // Fra gli occupati, prima i tavoli aperti da un cliente col QR (P-168).
+      if (a.stato === 'occupato' && b.stato === 'occupato') {
+        const s = (segnoCanale(a) ? 0 : 1) - (segnoCanale(b) ? 0 : 1);
+        if (s !== 0) return s;
+      }
       // Solo i prenotati: in ordine di arrivo (chi arriva prima sta sopra).
       if (a.stato === 'prenotato' && b.stato === 'prenotato')
         return minutiPrenotazione(a) - minutiPrenotazione(b);
@@ -306,6 +315,7 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
   // L'unito NON cambia più head/sub: la composizione è nel tassello, quindi la
   // card si comporta come un singolo (nome o conteggio sulla riga forte).
   const sub = subParts.join(' · ');
+  const segno = isOccupato ? segnoCanale(t) : null;
 
   // Icona pre-attentiva (canale a11y, leggibile in controluce), colorata dal tono.
   // Non si mostra sui tavoli uniti: la riga forte è la composizione e il tassello
@@ -410,7 +420,7 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
           {/* Riga debole: dettaglio di supporto. Va a capo invece di troncare, così
               info corte ma importanti (es. "Saldato · da liberare", "prenot. tra X")
               non perdono pezzi accanto al bottone. La riga forte resta su una riga. */}
-          {(copertiSub != null || sub) && (
+          {(copertiSub != null || sub || segno) && (
             <div style={{
               fontSize: 12, color: ST.MUTED, fontWeight: 600, marginTop: 2, lineHeight: 1.3,
               display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap',
@@ -421,6 +431,15 @@ function TavoloCard({ t, onOpen, onAttiva, onLibera, onChiudi, onPulito, onInvia
                 </span>
               )}
               {sub && <span>{copertiSub != null ? `· ${sub}` : sub}</span>}
+              {/* La spia del canale: un puntino e due parole, non un allarme. */}
+              {segno && (
+                <span data-segno-canale={segno.livello} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 700,
+                  color: segno.livello === 'verifica' ? '#A16207' : ST.MUTED }}>
+                  {(copertiSub != null || sub) ? '· ' : ''}
+                  <span style={{ width: 6, height: 6, borderRadius: 999, background: segno.livello === 'verifica' ? '#F59E0B' : '#9CA3AF' }}/>
+                  {segno.testo}
+                </span>
+              )}
             </div>
           )}
         </div>

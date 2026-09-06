@@ -33,7 +33,7 @@ function _kds2Quando(hhmm) {
 // provvisorio (P-07) e finché vive non introduce nomi suoi.
 function _kds2Sorgente(t) {
   const delivery_mode = t.delivery_mode || 'al_tavolo';
-  if (delivery_mode === 'al_tavolo') return { delivery_mode, label: 'T' + t.table };
+  if (delivery_mode === 'al_tavolo') return { delivery_mode, label: 'T' + t.table, source_surface: t.source_surface || null, verifica: t.verifica || null };
   if (delivery_mode === 'al_banco')  return { delivery_mode, label: String(t.orderN || '').replace(/\D+/g, '') || 'Banco' };
   // La consegna porta anche la piattaforma: è lei che manda il rider, e il
   // board la disegna al posto dello scooter.

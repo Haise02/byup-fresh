@@ -51,9 +51,12 @@ const SOGLIA_RITIRO_MIN = 5;
 /**
  * @typedef {{ type: 'add'|'remove', label: string }} Kds2Modifier
  *
- * @typedef {{ delivery_mode: 'al_tavolo'|'asporto'|'consegna'|'al_banco', label: string, partner?: string }} Kds2Source
+ * @typedef {{ delivery_mode: 'al_tavolo'|'asporto'|'consegna'|'al_banco', label: string, partner?: string, source_surface?: 'staff_web'|'webapp_guest'|'byup_app', verifica?: 'limite'|'rete'|null }} Kds2Source
  *   delivery_mode è quello del modello (orders.delivery_mode, D-14 — P-165);
  *   partner è la piattaforma accanto a `consegna` (glovo, deliveroo, ubereats).
+ *   source_surface (P-168) dice chi ha aperto la sessione del tavolo: il board
+ *   scrive «dal QR» sotto l'etichetta quando non è il personale, «da verificare»
+ *   se il tavolo ha superato un limite o la rete non è della città.
  *   label: 'T12' per i tavoli, il nome di battesimo per asporto e consegna,
  *   il numero d'ordine ('042') per gli ordini di cassa senza tavolo.
  *
