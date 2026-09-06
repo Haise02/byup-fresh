@@ -748,7 +748,7 @@ const AREE = [
   // funzione arriverà, passerà sotto questo permesso. Preset: Super Admin
   // scrittura, Support lettura, Marketing nessuno.
   { id: 'autorita',   label: 'Richieste delle autorità', desc: 'Richieste di autorità pubbliche e giudiziarie: ricezione, trattazione e riscontro', predisposta: true },
-  { id: 'domini',     label: 'Domini e mittenti',   desc: 'Domini di invio, indirizzi, numeri SMS' },
+  { id: 'domini',     label: 'Recapiti e domini di invio',   desc: 'Domini di invio, indirizzi, numeri SMS' },
   { id: 'sicurezza',  label: 'Sicurezza e sistemi', desc: 'Membri del team, accessi, audit log e diagnostica' },
   // Piattaforma è RISERVATA: leve commerciali (prezzi, piani, soglie) del solo
   // Super Admin. Non è una cella su «Nessuno»: non compare proprio — né nella
@@ -2305,10 +2305,13 @@ function docPubblicaBozza(codice, dentroUnPacchetto) {
   if (!b || !d) return null;
   b.stato = 'pubblicata';
   b.pubblicata = new Date();
-  // Alla pubblicazione nasce la copia PDF/A della versione, con impronta e
-  // data: è quella che si esibisce. Il markdown resta la sorgente, l'HTML
-  // il testo che si accetta; il PDF/A è la resa d'archivio (6 settembre 2026).
-  b.copia = { formato: 'PDF/A-2b', generata: b.pubblicata };
+  // Alla pubblicazione nasce la copia PDF/A della versione, con la SUA
+  // impronta: due impronte distinte (P-177 · D-129) — quella del testo prova
+  // che il testo accettato è questo (document_hash, calcolata sul markdown),
+  // quella della copia prova che la copia è quella nata alla pubblicazione
+  // (archive_hash). Il markdown resta la sorgente, l'HTML il testo che si
+  // accetta, il PDF/A la resa d'archivio che si esibisce.
+  b.copia = { formato: 'PDF/A-2b', generata: b.pubblicata, impronta: window.ctrImprontaCopia ? window.ctrImprontaCopia(codice, b.v) : null };
   // Dentro un pacchetto l'atto a registro è uno solo: tre righe per un gesto
   // solo racconterebbero tre decisioni che non sono state prese.
   if (dentroUnPacchetto) return b;

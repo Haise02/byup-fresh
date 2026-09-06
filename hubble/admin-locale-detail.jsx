@@ -851,6 +851,13 @@ function DrwFiscali({ locale: l }) {
           })()}
           <div>
             <label style={drwLab}>Regime fiscale</label>
+            {/* La cassa fiscale non è disponibile per il forfettario (P-176 ·
+                D-128): Hubble lo vede qui, e il registro dei locali ci filtra. */}
+            {String(form.regime || '').toLowerCase().indexOf('forfett') === 0 && (
+              <div data-forfettario style={{marginBottom:6}}>
+                <HubPillola color="WARN" size="sm">Forfettario · cassa fiscale non disponibile</HubPillola>
+              </div>
+            )}
             <AdmSelect value={form.regime} onChange={F('regime')} block
               buttonStyle={{padding:'8px 11px', borderRadius:8, fontSize:13.5}}
               options={[
@@ -2271,6 +2278,11 @@ function ctrVersioneAllaData(codice, quando) {
 // la resa d'archivio che si esibisce, come fanno le piattaforme serie. Nel
 // prototipo la copia è una pagina di stampa fedele al formato, aperta a
 // parte: il giorno che l'archivio esiste cambia la sorgente, non la schermata.
+// L'impronta della copia archiviata: un'altra cosa dall'impronta del testo —
+// il testo prova che cosa è stato accettato, la copia che quel PDF/A è nato
+// alla pubblicazione. Simulata come l'altra, ma stabile e diversa.
+const ctrImprontaCopia = (codice, v) => ctrImpronta('archivio:' + codice, v);
+window.ctrImprontaCopia = ctrImprontaCopia;
 const ctrEsc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 function ctrMarkdownSemplice(md) {
   const righe = String(md || '').split(/\r?\n/); const out = []; let lista = false, par = [];
@@ -2290,6 +2302,7 @@ function ctrCopiaHtml(codice, v) {
   const ver = doc && doc.versioni ? doc.versioni.find(x => x.v === v) : null;
   if (!doc || !ver) return null;
   const impronta = ctrImpronta(codice, v);
+  const improntaCopia = (ver.copia && ver.copia.impronta) || ctrImprontaCopia(codice, v);
   const generata = ver.copia && ver.copia.generata ? new Date(ver.copia.generata) : ver.pubblicata;
   const corpo = ver.testo ? ctrMarkdownSemplice(ver.testo)
     : `<p class="nota">Nel prototipo il testo depositato di questa versione non è in archivio: la copia porta l'intestazione, l'impronta e la data. Nel prodotto qui c'è il testo integrale della versione, immutabile, cioè ciò che rende dimostrabile a quale testo la persona ha detto sì.</p>`;
@@ -2306,7 +2319,9 @@ function ctrCopiaHtml(codice, v) {
   main { font-size: 13.5px; line-height: 1.6; }
   main h2 { font-size: 16px; margin: 20px 0 6px; } main h3 { font-size: 14px; margin: 16px 0 4px; } main h4 { font-size: 13.5px; margin: 12px 0 4px; }
   main p { margin: 0 0 9px; } main ul { margin: 0 0 9px 18px; padding: 0; } .nota { color: #6E6E73; font-style: italic; }
-  .piede { position: absolute; left: 20mm; right: 20mm; bottom: 12mm; border-top: 1px solid #C5C5C7; padding-top: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: #6E6E73; display: flex; justify-content: space-between; gap: 12px; }
+  .piede { position: absolute; left: 20mm; right: 20mm; bottom: 12mm; border-top: 1px solid #C5C5C7; padding-top: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: #6E6E73; }
+  .piede .riga { display: flex; justify-content: space-between; gap: 12px; }
+  .piede .a-che-serve { font-family: -apple-system, Inter, system-ui, sans-serif; font-size: 8.6px; color: #8A8A90; margin-top: 3px; line-height: 1.4; }
   @media print { body { background: #fff; } .pagina { box-shadow: none; margin: 0; width: auto; min-height: auto; padding: 0; } .piede { position: fixed; } }
 </style></head><body>
 <div class="pagina">
@@ -2317,7 +2332,11 @@ function ctrCopiaHtml(codice, v) {
     <div class="copia">Copia archiviata · PDF/A-2b · generata il ${ctrEsc(fmtDate(generata))}</div>
   </div>
   <main>${corpo}</main>
-  <div class="piede"><span>SHA-256 ${ctrEsc(impronta)}</span><span>${ctrEsc(ctrRif(codice, v))} · ${ctrEsc(doc.codice)} v${ctrEsc(ver.v)}</span></div>
+  <div class="piede">
+    <div class="riga"><span>Impronta del testo · SHA-256 ${ctrEsc(impronta)}</span><span>${ctrEsc(doc.codice)} v${ctrEsc(ver.v)}</span></div>
+    <div class="riga"><span>Impronta di questa copia · SHA-256 ${ctrEsc(improntaCopia)}</span><span>${ctrEsc(ctrRif(codice, v))}</span></div>
+    <div class="a-che-serve">La prima prova che il testo accettato è questo; la seconda che questa copia è quella nata alla pubblicazione.</div>
+  </div>
 </div>
 </body></html>`;
 }
@@ -2337,7 +2356,10 @@ window.ctrVersioneAllaData = ctrVersioneAllaData;
 // Il rimando alla versione archiviata: si legge quale versione, e si apre
 // quella. Le accettazioni portano anche l'impronta, che è la parte che le
 // rende opponibili; le informative no — si ricevono, non si firmano.
-function CtrLinkVersione({ codice, v, impronta, testo }) {
+// L'impronta si mostra per TUTTI i documenti versionati (P-177 · D-129):
+// anche un'informativa ha un testo che si è ricevuto, e la copia archiviata
+// ha comunque la sua. Il parametro `impronta` resta per chi passa false.
+function CtrLinkVersione({ codice, v, impronta = true, testo }) {
   const [fatto, setFatto] = React.useState(false);
   if (!codice || !v) return <span style={{fontSize:12.4, color:ADM.MUTED}}>{testo || `v${v || '—'}`}</span>;
   return (
@@ -2349,9 +2371,9 @@ function CtrLinkVersione({ codice, v, impronta, testo }) {
           fontSize:12.4, fontWeight:700, color:ADM.PINK, textDecoration:'underline', textUnderlineOffset:3,
         }}>{fatto ? 'Aperta ✓' : (testo || `${codice} v${v}`)}</button>
       {impronta && (
-        <span title="Impronta del testo accettato: nel prototipo è simulata, ma stabile" style={{
+        <span title={`Impronta del testo ${ctrImpronta(codice, v)} · impronta della copia ${ctrImprontaCopia(codice, v)} — nel prototipo simulate, ma stabili`} style={{
           fontFamily:'ui-monospace,monospace', fontSize:11, color:ADM.MUTED_SOFT,
-        }}>{ctrImpronta(codice, v).slice(0, 8)}</span>
+        }}>{ctrImpronta(codice, v).slice(0, 8)} · {ctrImprontaCopia(codice, v).slice(0, 8)}</span>
       )}
     </span>
   );

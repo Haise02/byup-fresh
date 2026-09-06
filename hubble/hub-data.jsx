@@ -247,6 +247,13 @@ const HUB_PROPRIETA = [
   // Un utente bannato non deve essere invisibile in rubrica: la restrizione
   // attiva (dal registro di Utenti app) è una proprietà come le altre — la
   // si mette in colonna e ci si filtra sopra.
+  // Il regime fiscale del locale (P-176 · D-128): serve a trovare i
+  // forfettari quando la Soluzione Software arriverà, e sono i locali per cui
+  // oggi la cassa fiscale non parte. Si legge dal locale a ogni lettura.
+  { id: 'regime', label: 'Regime fiscale', gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
+    opzioni: [{ value: 'Ordinario', label: 'Ordinario' }, { value: 'Forfettario', label: 'Forfettario · cassa fiscale non disponibile' }, { value: 'Agricolo / Speciale', label: 'Agricolo / Speciale' }],
+    leggi: (c) => (c.tipo === 'locale' && c.ref) ? (c.ref.regime || null) : null,
+    nota: 'Solo per i locali: con il regime forfettario la cassa fiscale non è disponibile finché non arriva la Soluzione Software certificata' },
   { id: 'restrizione', label: 'Restrizione',      gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.05fr' },
     opzioni: [{ value: 'ban', label: 'Bannato' }, { value: 'review_suspension', label: 'Sospensione recensioni' }],
     // Nessun campo copiato sulla riga: si interroga il registro A OGNI lettura,
@@ -1080,25 +1087,58 @@ const HUB_TRACCIAMENTO = {
   cname: true, certificato: true, decisoIl: new Date(2025, 8, 2), verificatoIl: new Date(2025, 8, 2),
 };
 
+// Gli scopi di un mittente (P-175 · D-127): tengono separato quello che deve
+// restare separato — una comunicazione sulle informative non parte da un
+// mittente promozionale, e chi si oppone al marketing continua a ricevere il
+// servizio. Due mittenti possono avere lo stesso scopo; «avvisi sulle
+// informative» senza nessun mittente si segnala.
+const HUB_SCOPI_MITTENTE = {
+  promozioni: { label: 'Promozioni', color: 'HUB_MAGENTA' },
+  servizio:   { label: 'Servizio',   color: 'TEAL' },
+  informative:{ label: 'Avvisi sulle informative', color: 'PURPLE' },
+  assistenza: { label: 'Assistenza', color: 'INFO' },
+  legale:     { label: 'Legale',     color: 'PLAN_BUSINESS' },
+};
+// Il blocco identificativo in calce e il recapito per opporsi sono obblighi,
+// non decorazioni: stanno sul mittente perché è lui che li porta nel messaggio.
+// I dati societari sono SEGNAPOSTO come nei contratti: il numero vero entra
+// quando la società è costituita.
+const HUB_IDENTIFICATIVO = 'Byup S.r.l. · sede legale da completare · P.IVA da completare · iscritta al Registro imprese';
 const HUB_MITTENTI = [
-  { id: 'MT-1', nome: 'byup', indirizzo: 'ciao@byup.it', dominio: 'byup.it', stato: 'verificato', predefinito: true },
-  { id: 'MT-2', nome: 'byup', indirizzo: 'novita@byup.it', dominio: 'byup.it', stato: 'verificato' },
-  { id: 'MT-3', nome: 'byup', indirizzo: 'report@byup.it', dominio: 'mail.byup.it', stato: 'verificato' },
-  { id: 'MT-4', nome: 'byup Onboarding', indirizzo: 'onboarding@byup.it', dominio: 'byup.it', stato: 'verificato' },
-  { id: 'MT-5', nome: 'Chiara di byup', indirizzo: 'chiara@byup.it', dominio: 'byup.it', stato: 'verificato' },
-  { id: 'MT-6', nome: 'byup Prodotto', indirizzo: 'prodotto@byup.it', dominio: 'byup.it', stato: 'in attesa' },
+  { id: 'MT-1', nome: 'byup', indirizzo: 'ciao@byup.it', dominio: 'byup.it', stato: 'verificato', predefinito: true,
+    scopo: 'servizio', rispostaA: 'ciao@byup.it', identificativo: HUB_IDENTIFICATIVO, opposizione: 'Collegamento «non voglio più riceverle» in calce' },
+  { id: 'MT-2', nome: 'byup', indirizzo: 'novita@byup.it', dominio: 'byup.it', stato: 'verificato',
+    scopo: 'promozioni', rispostaA: 'ciao@byup.it', identificativo: HUB_IDENTIFICATIVO, opposizione: 'Collegamento «non voglio più riceverle» in calce' },
+  { id: 'MT-3', nome: 'byup', indirizzo: 'report@byup.it', dominio: 'mail.byup.it', stato: 'verificato',
+    scopo: 'servizio', rispostaA: 'ciao@byup.it', identificativo: HUB_IDENTIFICATIVO, opposizione: 'Dalle impostazioni dell\'account' },
+  { id: 'MT-4', nome: 'byup Onboarding', indirizzo: 'onboarding@byup.it', dominio: 'byup.it', stato: 'verificato',
+    scopo: 'servizio', rispostaA: 'ciao@byup.it', identificativo: HUB_IDENTIFICATIVO, opposizione: 'Dalle impostazioni dell\'account' },
+  { id: 'MT-5', nome: 'Chiara di byup', indirizzo: 'chiara@byup.it', dominio: 'byup.it', stato: 'verificato',
+    scopo: 'assistenza', rispostaA: 'chiara@byup.it', identificativo: HUB_IDENTIFICATIVO, opposizione: 'Rispondendo a questa email' },
+  { id: 'MT-6', nome: 'byup Prodotto', indirizzo: 'prodotto@byup.it', dominio: 'byup.it', stato: 'in attesa',
+    scopo: 'promozioni', rispostaA: 'ciao@byup.it', identificativo: HUB_IDENTIFICATIVO, opposizione: 'Collegamento «non voglio più riceverle» in calce' },
   // Il mittente delle email fiscali (P-51 · P-60): le due automatiche della
   // delega partono da qui, e un mittente che nessun dominio verificato copre
   // non può firmare un modello.
-  { id: 'MT-7', nome: 'byup', indirizzo: 'fiscale@byup.it', dominio: 'byup.it', stato: 'verificato' },
+  { id: 'MT-7', nome: 'byup', indirizzo: 'fiscale@byup.it', dominio: 'byup.it', stato: 'verificato',
+    scopo: 'legale', rispostaA: 'fiscale@byup.it', identificativo: HUB_IDENTIFICATIVO, opposizione: 'Non opponibile: comunicazione dovuta' },
 ];
 
+// I mittenti SMS portano le stesse cose dei mittenti email (P-175 · D-127):
+// scopo, identità riportata nel messaggio, modo con cui ci si oppone. La sigla
+// alfanumerica non riceve risposte: per lo scopo promozionale l'opposizione
+// deve essere un collegamento o il rimando all'app, mai «rispondi STOP».
 const HUB_NUMERI = [
-  { id: 'NM-1', etichetta: 'byup', tipo: 'Mittente alfanumerico', paesi: 'Italia', stato: 'attivo', usato: 9114 },
-  { id: 'NM-2', etichetta: '+39 351 000 4477', tipo: 'Numero con risposta', paesi: 'Italia', stato: 'attivo', usato: 312 },
-  { id: 'NM-3', etichetta: 'byupOTP', tipo: 'Mittente alfanumerico', paesi: 'Italia, San Marino', stato: 'in attesa', usato: 0 },
+  { id: 'NM-1', etichetta: 'byup', tipo: 'Mittente alfanumerico', paesi: 'Italia', stato: 'attivo', usato: 9114,
+    scopo: 'promozioni', identita: 'byup', opposizione: 'link', opposizioneTesto: 'Collegamento in coda al messaggio' },
+  { id: 'NM-2', etichetta: '+39 351 000 4477', tipo: 'Numero con risposta', paesi: 'Italia', stato: 'attivo', usato: 312,
+    scopo: 'servizio', identita: 'byup', opposizione: 'risposta', opposizioneTesto: 'Rispondendo STOP a questo numero' },
+  { id: 'NM-3', etichetta: 'byupOTP', tipo: 'Mittente alfanumerico', paesi: 'Italia, San Marino', stato: 'in attesa', usato: 0,
+    scopo: 'servizio', identita: 'byup', opposizione: 'nessuna', opposizioneTesto: 'Non opponibile: codici di accesso' },
 ];
 
+window.HUB_SCOPI_MITTENTE = HUB_SCOPI_MITTENTE;
+window.HUB_IDENTIFICATIVO = HUB_IDENTIFICATIVO;
 window.HUB_OPERATORI = HUB_OPERATORI;
 window.HUB_PROPRIETA = HUB_PROPRIETA;
 window.HUB_PROP = HUB_PROP;

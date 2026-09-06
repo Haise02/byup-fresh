@@ -518,6 +518,15 @@ function InvitiPending() {
 // del ridisegno (trattamenti puntati) si leggono ancora, risolte al numero. I
 // semi sono la copia guardata di panoramica-tokens.jsx (altro bundle). Tutto
 // riservato al Super Admin, con traccia in audit.
+// LA DATA DA CUI IL NUMERO VALE (P-174 · D-126). Una legge che cambia
+// un'aliquota la fa decorrere da un giorno che fissa lei, e quel numero è uno
+// per tutti i locali: senza un campo, qualcuno dovrebbe riscriverlo a
+// mezzanotte di quel giorno — in anticipo si emette male la fine del mese
+// prima, in ritardo si corregge una giornata di documenti uno per uno. Perciò
+// ogni lato accetta un cambio programmato, `prossima: { aliquota, dal }`, che
+// alla sua data entra da sé (hubTipologieNormalizza alla lettura; nel prodotto
+// lo fa il backend). Il gestionale non lo guarda: la riga d'ordine congela il
+// numero in vigore quando nasce.
 const HUB_TIPOLOGIE_SEME = [
   { id: 'piatti_preparati', ordine: 1, label: 'Piatti, panini, caffè, dolci e pasticceria', spiegazione: 'Quello che il locale prepara o serve.', locale: { aliquota: 10 }, asporto: { aliquota: 10 }, valida_dal: '2026-01-01', valida_al: null },
   { id: 'acqua_birra', ordine: 2, label: 'Acqua e birra', spiegazione: 'Anche in bottiglia o lattina sigillata.', locale: { aliquota: 10 }, asporto: { aliquota: 10 }, valida_dal: '2026-01-01', valida_al: null },
@@ -534,15 +543,40 @@ const hubLatoAliquota = (ref, trattamenti, g) => {
   const t = (trattamenti || []).find(x => x.id === profilo);
   return t && isFinite(Number(t.aliquota)) ? Number(t.aliquota) : 10;
 };
+const hubLatoLeggi = (ref, trattamenti, g) => {
+  const l = { aliquota: hubLatoAliquota(ref, trattamenti, g) };
+  // Il cambio programmato che ha raggiunto la sua data è già entrato:
+  // hubTipologieNormalizza lo scrive; qui si tiene solo quello futuro.
+  if (ref && ref.prossima && ref.prossima.dal > g && isFinite(Number(ref.prossima.aliquota))) l.prossima = { aliquota: Number(ref.prossima.aliquota), dal: ref.prossima.dal };
+  return l;
+};
 function hubTipologieRegistro() {
   try {
     const s = localStorage.getItem(HUB_TIPOLOGIE_KEY);
     if (s) { const v = JSON.parse(s); if (v && Array.isArray(v.tipologie)) {
       const g = hubOggiIso(0);
-      return { versione: v.versione || 0, aggiornato: v.aggiornato, tipologie: v.tipologie.map(t => ({ ...t, locale: { aliquota: hubLatoAliquota(t.locale, v.trattamenti, g) }, asporto: { aliquota: hubLatoAliquota(t.asporto, v.trattamenti, g) } })) };
+      return { versione: v.versione || 0, aggiornato: v.aggiornato, tipologie: v.tipologie.map(t => ({ ...t, locale: hubLatoLeggi(t.locale, v.trattamenti, g), asporto: hubLatoLeggi(t.asporto, v.trattamenti, g) })) };
     } }
   } catch (e) {}
   return { tipologie: HUB_TIPOLOGIE_SEME.map(t => ({ ...t, locale: { ...t.locale }, asporto: { ...t.asporto } })), versione: 0 };
+}
+// Quando la data arriva, il numero entra da sé: alla lettura, il cambio
+// programmato con data passata diventa il numero in vigore e sparisce dai
+// programmati. Nel prodotto lo fa il backend, alla mezzanotte della data.
+function hubTipologieNormalizza(reg) {
+  const g = hubOggiIso(0); let mosso = false;
+  const tipologie = reg.tipologie.map(t => {
+    const n = { ...t };
+    ['locale', 'asporto'].forEach(k => {
+      const l = n[k];
+      if (l && l.prossima && l.prossima.dal <= g) { n[k] = { aliquota: Number(l.prossima.aliquota) }; mosso = true; }
+    });
+    return n;
+  });
+  if (!mosso) return reg;
+  const nuovo = { ...reg, tipologie, versione: (reg.versione || 0) + 1, aggiornato: new Date().toISOString() };
+  try { localStorage.setItem(HUB_TIPOLOGIE_KEY, JSON.stringify(nuovo)); } catch (e) {}
+  return nuovo;
 }
 function hubTipologieScrivi(reg, action, target) {
   const nuovo = { ...reg, versione: (reg.versione || 0) + 1, aggiornato: new Date().toISOString() };
@@ -554,12 +588,24 @@ function hubTipologieScrivi(reg, action, target) {
 }
 window.hubTipologieRegistro = hubTipologieRegistro;
 
-// Il chip di un numero: l'etichetta piccola e l'aliquota grande. Nient'altro.
-function HubAliquotaChip({ etichetta, aliquota }) {
+// La data del cambio programmato, breve: «1 gen» o «1 gen 2027» se l'anno
+// non è questo — è quella che si legge nella pillola accanto al numero.
+const hubDataLunga = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+const hubDataBreve = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  const opz = { day: 'numeric', month: 'short' };
+  if (d.getFullYear() !== new Date().getFullYear()) opz.year = 'numeric';
+  return d.toLocaleDateString('it-IT', opz);
+};
+// Il chip di un numero: l'etichetta piccola, l'aliquota grande e, quando c'è
+// un cambio programmato, la pillola ambra che dice da quando e quanto.
+function HubAliquotaChip({ etichetta, lato }) {
   return (
-    <div data-fatto={etichetta} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px 8px 12px', borderRadius:11, border:`1px solid ${ADM.BORDER}`, background:'#fff' }}>
+    <div data-fatto={etichetta} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px 8px 12px', borderRadius:11, border:`1px solid ${lato.prossima ? '#F0DCB4' : ADM.BORDER}`, background: lato.prossima ? '#FFFCF5' : '#fff' }}>
       <div style={{ fontSize:10.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT, lineHeight:1.2, maxWidth:64 }}>{etichetta}</div>
-      <div style={{ fontSize:22, fontWeight:800, letterSpacing:'-0.03em', lineHeight:1, color:ADM.TEXT, fontVariantNumeric:'tabular-nums' }}>{aliquota}%</div>
+      <div style={{ fontSize:22, fontWeight:800, letterSpacing:'-0.03em', lineHeight:1, color:ADM.TEXT, fontVariantNumeric:'tabular-nums' }}>{lato.aliquota}%</div>
+      {lato.prossima && <HubPillola color="WARN" size="sm">dal {hubDataBreve(lato.prossima.dal)} → {lato.prossima.aliquota}%</HubPillola>}
     </div>
   );
 }
@@ -568,8 +614,8 @@ function HubAliquoteArticoli() {
   const [, ridisegna] = useStateTeam(0);
   const me = hubUtenteCorrente();
   const puo = me.ruolo === 'super_admin';
-  const reg = hubTipologieRegistro();
-  const oggi = hubOggiIso(0);
+  const reg = hubTipologieNormalizza(hubTipologieRegistro());
+  const oggi = hubOggiIso(0), domani = hubOggiIso(1);
   const voci = reg.tipologie.filter(t => hubInVigore(t, oggi)).slice().sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
   // Gli articoli di menù che indicano una voce: il conteggio lo scrive il
   // gestionale nel registro byup_tipologie_uso quando lo ha; qui si legge.
@@ -579,12 +625,17 @@ function HubAliquoteArticoli() {
   // Il pannello: una voce in modifica, oppure una nuova. Quattro cose: nome,
   // descrizione, i due numeri. In fondo, «Togli la voce…».
   const [pan, setPan] = useStateTeam(null);
-  const apri = (t) => setPan({ id: t.id, label: t.label, spiegazione: t.spiegazione, locale: String(t.locale.aliquota), asporto: String(t.asporto.aliquota), togli: null });
-  const nuova = () => setPan({ id: null, label: '', spiegazione: '', locale: '10', asporto: '10', togli: null });
+  // I due numeri e, per ciascuno, la data facoltativa da cui vale. Con la
+  // data vuota il numero vale da subito, com'era prima di P-174.
+  const apri = (t) => setPan({ id: t.id, label: t.label, spiegazione: t.spiegazione,
+    locale: String(t.locale.prossima ? t.locale.prossima.aliquota : t.locale.aliquota), dalLocale: t.locale.prossima ? t.locale.prossima.dal : '',
+    asporto: String(t.asporto.prossima ? t.asporto.prossima.aliquota : t.asporto.aliquota), dalAsporto: t.asporto.prossima ? t.asporto.prossima.dal : '', togli: null });
+  const nuova = () => setPan({ id: null, label: '', spiegazione: '', locale: '10', dalLocale: '', asporto: '10', dalAsporto: '', togli: null });
   const set = (k, v) => setPan(p => ({ ...p, [k]: v }));
   const originale = pan && pan.id ? reg.tipologie.find(x => x.id === pan.id) : null;
   const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n >= 0 && n <= 100 ? n : null; };
-  const valido = !!pan && pan.label.trim().length > 1 && pan.spiegazione.trim().length > 1 && num(pan.locale) != null && num(pan.asporto) != null;
+  const dataOk = (d) => !d || d >= domani;
+  const valido = !!pan && pan.label.trim().length > 1 && pan.spiegazione.trim().length > 1 && num(pan.locale) != null && num(pan.asporto) != null && dataOk(pan.dalLocale) && dataOk(pan.dalAsporto);
 
   const sposta = (t, verso) => {
     const idx = voci.findIndex(x => x.id === t.id); const j = idx + verso; if (j < 0 || j >= voci.length) return;
@@ -592,6 +643,9 @@ function HubAliquoteArticoli() {
     const nuovo = { ...reg, tipologie: reg.tipologie.map(x => ordine.includes(x.id) ? { ...x, ordine: ordine.indexOf(x.id) + 1 } : x) };
     salva(nuovo, 'ha riordinato le voci degli articoli', `${t.label} ${verso < 0 ? 'sale' : 'scende'} · prima proposta: ${(reg.tipologie.find(x => x.id === ordine[0]) || {}).label}`);
   };
+  // Un lato nuovo: con la data, il numero in vigore resta e si programma il
+  // cambio; senza, il numero entra subito e un programmato che ci fosse cade.
+  const latoNuovo = (vecchio, al, dal) => (dal && dal > oggi) ? { aliquota: vecchio.aliquota, prossima: { aliquota: al, dal } } : { aliquota: al };
   const salvaPannello = () => {
     if (!valido) return;
     const lab = pan.label.trim(), spi = pan.spiegazione.trim(), al = num(pan.locale), aa = num(pan.asporto);
@@ -600,16 +654,31 @@ function HubAliquoteArticoli() {
       if (reg.tipologie.some(x => x.id === id)) id += '_' + Date.now().toString(36);
       const nuovo = { ...reg, tipologie: [...reg.tipologie, { id, ordine: voci.length + 1, label: lab, spiegazione: spi, locale: { aliquota: al }, asporto: { aliquota: aa }, valida_dal: oggi, valida_al: null }] };
       salva(nuovo, 'ha aggiunto una voce degli articoli', `${lab} · sul posto ${al}% · da asporto ${aa}%`);
-    } else {
-      const t = originale;
-      const cambiato = lab !== t.label || spi !== t.spiegazione || al !== t.locale.aliquota || aa !== t.asporto.aliquota;
-      if (cambiato) {
-        const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, label: lab, spiegazione: spi, locale: { aliquota: al }, asporto: { aliquota: aa } } : x) };
-        const cosa = [lab !== t.label ? `nome → ${lab}` : null, spi !== t.spiegazione ? 'descrizione' : null, al !== t.locale.aliquota ? `sul posto ${t.locale.aliquota}% → ${al}%` : null, aa !== t.asporto.aliquota ? `da asporto ${t.asporto.aliquota}% → ${aa}%` : null].filter(Boolean).join(' · ');
-        salva(nuovo, 'ha modificato una voce degli articoli', `${t.label} · ${cosa}`);
-      }
+      setPan(null); return;
     }
+    const t = originale;
+    const nl = latoNuovo(t.locale, al, pan.dalLocale), na = latoNuovo(t.asporto, aa, pan.dalAsporto);
+    const eraL = t.locale.prossima ? `${t.locale.prossima.aliquota}% dal ${t.locale.prossima.dal}` : `${t.locale.aliquota}%`;
+    const eraA = t.asporto.prossima ? `${t.asporto.prossima.aliquota}% dal ${t.asporto.prossima.dal}` : `${t.asporto.aliquota}%`;
+    const oraL = nl.prossima ? `${nl.prossima.aliquota}% dal ${nl.prossima.dal}` : `${nl.aliquota}%`;
+    const oraA = na.prossima ? `${na.prossima.aliquota}% dal ${na.prossima.dal}` : `${na.aliquota}%`;
+    if (lab === t.label && spi === t.spiegazione && eraL === oraL && eraA === oraA) { setPan(null); return; }
+    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, label: lab, spiegazione: spi, locale: nl, asporto: na } : x) };
+    // Programmare e cambiare subito sono due atti diversi, e l'audit li dice
+    // con parole diverse: la data è il fatto che conta.
+    const programma = (nl.prossima && !t.locale.prossima) || (na.prossima && !t.asporto.prossima);
+    const dettaglio = (lato, era, ora, l) => era === ora ? null : l.prossima ? `${lato} ${era.split(' ')[0]} → ${l.prossima.aliquota}% dal ${hubDataLunga(l.prossima.dal)}` : `${lato} ${era} → ${ora}`;
+    const cosa = [lab !== t.label ? `nome → ${lab}` : null, spi !== t.spiegazione ? 'descrizione' : null,
+      dettaglio('sul posto', eraL, oraL, nl), dettaglio('da asporto', eraA, oraA, na)].filter(Boolean).join(' · ');
+    salva(nuovo, programma ? 'ha programmato l\'aliquota di una voce degli articoli' : 'ha modificato una voce degli articoli', `${t.label} · ${cosa}`);
     setPan(null);
+  };
+  // Un cambio programmato si annulla, con conferma e traccia.
+  const annullaProgrammato = (k) => {
+    const t = originale; const l = t[k]; if (!l || !l.prossima) return;
+    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, [k]: { aliquota: l.aliquota } } : x) };
+    salva(nuovo, 'ha annullato un cambio di aliquota programmato', `${t.label} · ${k === 'locale' ? 'sul posto' : 'da asporto'} · era ${l.prossima.aliquota}% dal ${hubDataLunga(l.prossima.dal)}`);
+    setPan(p => ({ ...p, [k]: String(l.aliquota), [k === 'locale' ? 'dalLocale' : 'dalAsporto']: '', conferma: null }));
   };
   const togli = () => {
     const r = pan && pan.togli; if (!r || !r.verso || !originale) return;
@@ -621,17 +690,48 @@ function HubAliquoteArticoli() {
   const H2 = { fontSize:11.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT };
   const frecciaStile = (spenta) => ({ width:22, height:18, border:'none', background:'transparent', padding:0, cursor: spenta ? 'default' : 'pointer', color: spenta ? ADM.MUTED_LIGHT : ADM.MUTED, display:'grid', placeItems:'center' });
   const campoStile = { width:'100%', padding:'9px 11px', borderRadius:9, border:`1px solid ${ADM.BORDER}`, fontFamily:'inherit', fontSize:13.5, color:ADM.TEXT, background:'#fff', boxSizing:'border-box' };
-  const numeroCampo = (k, tit, nota) => (
-    <div style={{ padding:'12px 13px', borderRadius:12, border:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT }}>
-      <div style={{ fontSize:13.5, fontWeight:700, color:ADM.TEXT }}>{tit}</div>
-      <div style={{ fontSize:12, color:ADM.MUTED_SOFT, marginTop:1, marginBottom:8 }}>{nota}</div>
-      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <input type="number" min="0" max="100" step="1" data-aliquota={k} value={pan[k]} onChange={e => set(k, e.target.value)} style={{ ...campoStile, width:110, fontSize:20, fontWeight:800, textAlign:'right', fontVariantNumeric:'tabular-nums' }}/>
-        <span style={{ fontSize:18, fontWeight:800, color:ADM.MUTED }}>%</span>
-        {originale && num(pan[k]) != null && num(pan[k]) !== originale[k].aliquota && <HubPillola color="WARN" size="sm">oggi {originale[k].aliquota}%</HubPillola>}
+  const numeroCampo = (k, tit, nota) => {
+    const chiaveData = k === 'locale' ? 'dalLocale' : 'dalAsporto';
+    const dal = pan[chiaveData];
+    const prog = originale && originale[k].prossima;
+    const inVigore = originale ? originale[k].aliquota : null;
+    return (
+      <div style={{ padding:'12px 13px', borderRadius:12, border:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT }}>
+        <div style={{ fontSize:13.5, fontWeight:700, color:ADM.TEXT }}>{tit}</div>
+        <div style={{ fontSize:12, color:ADM.MUTED_SOFT, marginTop:1, marginBottom:8 }}>{nota}</div>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <input type="number" min="0" max="100" step="1" data-aliquota={k} value={pan[k]} onChange={e => set(k, e.target.value)} style={{ ...campoStile, width:110, fontSize:20, fontWeight:800, textAlign:'right', fontVariantNumeric:'tabular-nums' }}/>
+          <span style={{ fontSize:18, fontWeight:800, color:ADM.MUTED }}>%</span>
+          {inVigore != null && num(pan[k]) != null && num(pan[k]) !== inVigore && <HubPillola color="WARN" size="sm">oggi {inVigore}%</HubPillola>}
+        </div>
+        {/* La data da cui il numero vale: vuota, vale da subito (P-174 · D-126). */}
+        <div style={{ marginTop:10 }}>
+          <div style={{ ...H2, marginBottom:5 }}>Da questa data</div>
+          <input type="date" min={domani} data-dal={k} value={dal || ''} onChange={e => set(chiaveData, e.target.value)} style={{ ...campoStile, width:180 }}/>
+          <div style={{ fontSize:11.8, color: dal && dal < domani ? ADM.DANGER : ADM.MUTED_SOFT, marginTop:4, lineHeight:1.45 }}>
+            {dal && dal < domani ? 'Non prima di domani: un numero che vale da ieri non si programma, si scrive.' : 'Vuoto: vale da subito.'}
+          </div>
+          {prog && (
+            <div style={{ marginTop:8, padding:'8px 10px', borderRadius:9, background:ADM.WARN_SOFT, border:'1px solid #F0DCB4', fontSize:12.2, color:'#7A4A0B', lineHeight:1.45 }}>
+              {pan.conferma === k ? (
+                <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                  <span>Il numero resta {inVigore}%: annullo il cambio a {prog.aliquota}% dal {hubDataLunga(prog.dal)}?</span>
+                  <div style={{ flex:1 }}/>
+                  <AdmButton variant="ghost" size="sm" onClick={() => set('conferma', null)}>No</AdmButton>
+                  <AdmButton variant="danger" size="sm" icon="x" onClick={() => annullaProgrammato(k)}>Annulla il cambio</AdmButton>
+                </div>
+              ) : (
+                <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                  <span>Programmato: <b>{prog.aliquota}%</b> dal {hubDataLunga(prog.dal)}.</span>
+                  <button data-annulla={k} onClick={() => set('conferma', k)} style={{ background:'transparent', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit', fontSize:12.2, fontWeight:700, color:ADM.DANGER, textDecoration:'underline', textUnderlineOffset:3 }}>Annulla il cambio programmato</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div data-aliquote style={{ display:'flex', flexDirection:'column', gap:14 }}>
@@ -639,7 +739,7 @@ function HubAliquoteArticoli() {
         <div style={{ flex:1, minWidth:280 }}>
           <div style={{ fontSize:17, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em' }}>Aliquote degli articoli</div>
           <div style={{ fontSize:13.2, color:ADM.MUTED, marginTop:3, lineHeight:1.5, maxWidth:720 }}>
-            Le voci che il ristoratore sceglie creando un articolo, nell'ordine in cui il gestionale le propone, con l'IVA al consumo sul posto e da asporto. Nome, descrizione e numeri valgono subito; se la legge cambia, cambi i numeri o dividi una voce.
+            Le voci che il ristoratore sceglie creando un articolo, nell'ordine in cui il gestionale le propone, con l'IVA al consumo sul posto e da asporto. Nome, descrizione e numeri valgono subito; se una legge fissa il giorno da cui l'aliquota cambia, lo scrivi nel campo «Da questa data» e il numero entra da sé quella notte.
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0, paddingTop:2 }}>
@@ -671,8 +771,8 @@ function HubAliquoteArticoli() {
               {uso[t.id] != null && <div style={{ fontSize:12, color:ADM.MUTED_SOFT, marginTop:6 }}>{uso[t.id]} articoli di menù la indicano</div>}
             </div>
             <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-              <HubAliquotaChip etichetta="Sul posto" aliquota={t.locale.aliquota}/>
-              <HubAliquotaChip etichetta="Da asporto" aliquota={t.asporto.aliquota}/>
+              <HubAliquotaChip etichetta="Sul posto" lato={t.locale}/>
+              <HubAliquotaChip etichetta="Da asporto" lato={t.asporto}/>
             </div>
             <div>{puo && <AdmButton variant="ghost" size="sm" icon="pencil" onClick={() => apri(t)}>Modifica</AdmButton>}</div>
           </div>

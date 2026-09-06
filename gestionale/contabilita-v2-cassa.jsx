@@ -982,6 +982,29 @@ function ContCassa({ cassaOpen = false, setCassaOpen, onApriConti }) {
         </div>
       )}
 
+      {/* La guardia del forfettario (P-176 · D-128): al posto dei documenti,
+          una fascia che dice perché e dove si cambia. Sta in cima, prima del
+          banner della cassa: senza documenti, il resto non ha un lavoro. */}
+      {window.byupForfettario && window.byupForfettario() && (
+        <div data-forfettario style={{
+          display:'flex', alignItems:'flex-start', gap: 12, marginBottom: 14,
+          padding:'14px 18px', borderRadius: C.R_MD,
+          background:'#FFFBEB', border:'1px solid #FCD34D',
+        }}>
+          <span style={{width:10, height:10, borderRadius:'50%', background: PN.AMBER, boxShadow:'0 0 0 4px #FCD34D55', marginTop: 5, flexShrink: 0}}/>
+          <div style={{flex:1, minWidth: 220}}>
+            <div style={{fontSize: C.T_SM, fontWeight: 700, color:'#92400E'}}>Cassa fiscale non disponibile: regime forfettario</div>
+            <div style={{fontSize: C.T_XS, color:'#B45309', marginTop: 3, lineHeight: 1.5}}>
+              {window.PN_FORFETTARIO_TESTO} Il menù, gli ordini e i conti funzionano; i documenti no.
+            </div>
+          </div>
+          <a href="byup Impostazioni.html?page=fiscali" style={{
+            padding:'8px 14px', borderRadius: C.R_PILL, background: PN.WHITE, color:'#92400E',
+            border:'1px solid #FCD34D', fontSize: C.T_SM, fontWeight: 700, textDecoration:'none', flexShrink: 0,
+          }}>Vai a Dati fiscali</a>
+        </div>
+      )}
+
       {/* Banner stato cassa — tre fasi: aperta · giornata chiusa col fondo
           ancora da contare (il caso nuovo di P-20) · quadrata. */}
       {(() => {

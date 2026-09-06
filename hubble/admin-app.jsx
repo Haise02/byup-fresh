@@ -57,14 +57,14 @@ const HUB_NAV = [
 
 // Le voci di governance non stanno più nella barra: vivono nel menu del
 // profilo, e da lì sono UNA voce — Impostazioni — distinta internamente in
-// Sicurezza e sistemi, Proprietà, Domini e mittenti e Piattaforma. Quattro
+// Sicurezza e sistemi, Proprietà, Recapiti e domini di invio, Piattaforma. Quattro
 // voci di menu per la stessa famiglia erano quattro ingressi da ricordare.
 // Piattaforma dentro Impostazioni si vede solo perché chi guarda È il Super
 // Admin: per chiunque altro non esiste, come non esiste nella matrice dei
 // permessi.
 const HUB_MENU_PROFILO = [
   { id: 'profilo',      label: 'Il mio profilo', icon: 'user',     desc: 'Password, 2FA, sessioni attive' },
-  { id: 'impostazioni', label: 'Impostazioni',   icon: 'settings', desc: 'Sicurezza e sistemi, proprietà, domini e mittenti — e Piattaforma' },
+  { id: 'impostazioni', label: 'Impostazioni',   icon: 'settings', desc: 'Sicurezza e sistemi, proprietà, recapiti e domini di invio — e Piattaforma' },
 ];
 
 // Le voci interne di Impostazioni. Le pagine restano quelle di prima: qui
@@ -72,7 +72,7 @@ const HUB_MENU_PROFILO = [
 const HUB_IMPOSTAZIONI_VOCI = [
   { id: 'sicurezza',   label: 'Sicurezza e sistemi' },
   { id: 'proprieta',   label: 'Proprietà' },
-  { id: 'domini',      label: 'Domini e mittenti' },
+  { id: 'domini',      label: 'Recapiti e domini di invio' },
   { id: 'piattaforma', label: 'Piattaforma' },
 ];
 
@@ -444,7 +444,7 @@ function AdminApp({ tweaks }) {
 
         {/* Profilo — la card apre il MENU, non una pagina. Dentro ci stanno
             l'account e Impostazioni, che tiene insieme tutta la governance:
-            sicurezza e sistemi, proprietà, domini e mittenti, le leve
+            sicurezza e sistemi, proprietà, recapiti e domini di invio, le leve
             commerciali. Erano voci di barra, ma sono cose che si toccano una
             volta al mese: occupavano lo spazio del lavoro quotidiano. */}
         <div style={{position:'relative', marginTop:10}}>

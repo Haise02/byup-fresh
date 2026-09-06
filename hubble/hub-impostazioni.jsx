@@ -1,4 +1,4 @@
-// Hubble · Impostazioni — domini e mittenti, catalogo delle proprietà.
+// Hubble · Impostazioni — recapiti e domini di invio, catalogo delle proprietà.
 //
 // Vivono nel menu del profilo e non nella barra: si toccano una volta al mese,
 // e stavano occupando lo spazio del lavoro di tutti i giorni. Insieme a loro,
@@ -14,6 +14,17 @@ const { useState: useStateIm, useMemo: useMemoIm } = React;
 // Le tre cose che decidono se un messaggio arriva davvero. Un dominio senza
 // SPF/DKIM/DMARC in ordine non è «configurato a metà»: è un dominio che
 // finisce nello spam, e la schermata deve dirlo in quelle parole.
+//
+// UN CRUSCOTTO E UNA RUBRICA (P-175 · D-127). I domini sono tre e sono nostri:
+// aggiungerne uno, mettere i record DNS e verificarli sono atti che si
+// compiono una volta sola, sul registrar e sulla console del fornitore di
+// invio. Questa schermata non li compie: li MOSTRA, e dichiara da dove
+// arrivano i valori. I mittenti invece si scrivono da qui, perché sono quelli
+// che l'editor delle campagne pesca e quelli che tengono separati gli scopi;
+// e portano ciò che un messaggio deve avere per legge — il recapito di
+// risposta, il blocco identificativo in calce, il modo con cui ci si oppone.
+// Un mittente si disattiva, non si cancella: le campagne già spedite lo
+// nominano.
 
 const IM_STATI_DOM = {
   verificato:  { label: 'Verificato', color: 'OK' },
@@ -42,114 +53,72 @@ function ImRecord({ ok, sigla, spiega }) {
 
 function HubDominiPage() {
   const [tab, setTab] = useStateIm('domini');
-  const [aggiungi, setAggiungi] = useStateIm(false);
-  const [nuovoDom, setNuovoDom] = useStateIm('');
-  // In uno stato, non sulla costante: «Aggiungi dominio» deve aggiungere
-  // davvero, e HUB_DOMINI non si muove.
-  const [domini, setDomini] = useStateIm(HUB_DOMINI);
-  // Esiti per dominio, non un flag solo: di card gialle può essercene più
-  // d'una a video, e l'esito deve restare accanto al bottone premuto.
-  const [copiato, setCopiato] = useStateIm(null);    // id del dominio coi record in clipboard
-  const [verifica, setVerifica] = useStateIm(null);  // { id, esito } — esito null = ricontrollo in corso
-
+  const domini = HUB_DOMINI;
+  const tracc = HUB_TRACCIAMENTO;
   const problemi = domini.filter(d => !(d.spf && d.dkim && d.dmarc)).length;
 
-  // ─── Il sottodominio di tracciamento (P-57 · D-48) ─────────────────────
-  // Uno per account e fuori dalla lista: non spedisce, riscrive. Ogni link
-  // nei messaggi, email e SMS, passa di qui per contare i clic — è il presidio
-  // dei clic che P-36 lascia in piedi, col limite di PRIV-07. Non ha SPF,
-  // DKIM o DMARC: ha UN CNAME verso il bordo del fornitore e il certificato
-  // che il fornitore emette quando il CNAME risponde, e la verifica è la sua.
-  // Va deciso prima del primo invio: i link già spediti puntano al dominio con
-  // cui sono stati riscritti, e cambiarlo dopo li rompe — a primo invio
-  // fatto il nome è in sola lettura. `?tracciamento=nuovo` mostra lo stato
-  // «da decidere» di chi non l'ha ancora scelto (demo).
-  const [tracc, setTracc] = useStateIm(() => {
-    let nuovo = false;
-    try { nuovo = new URLSearchParams(window.location.search).get('tracciamento') === 'nuovo'; } catch (e) {}
-    return nuovo
-      ? Object.assign({}, HUB_TRACCIAMENTO, { dominio: null, stato: 'da decidere', cname: false, certificato: false, decisoIl: null, verificatoIl: null })
-      : HUB_TRACCIAMENTO;
-  });
-  const [scegli, setScegli] = useStateIm(false);
-  const [nuovoTracc, setNuovoTracc] = useStateIm('');
-  const [verificaTracc, setVerificaTracc] = useStateIm(null); // null | 'corso' | testo dell'esito
-  // Il primo invio letto dalle campagne: da lì in poi i link spediti sono
-  // legati a questo nome.
-  const primoInvio = HUB_MAIL.filter(m => m.inviata).reduce((min, m) => (!min || m.inviata < min) ? m.inviata : min, null);
-  const traccBloccato = !!(tracc.dominio && tracc.decisoIl && primoInvio && primoInvio > tracc.decisoIl);
-  const decidiTracc = () => {
-    const dom = nuovoTracc.trim().toLowerCase();
-    if (!dom) return;
-    setTracc(t => Object.assign({}, t, { dominio: dom, stato: 'in attesa', cname: false, certificato: false, decisoIl: new Date(), verificatoIl: null }));
-    setNuovoTracc(''); setScegli(false); setVerificaTracc(null);
-  };
-  const verificaCname = () => {
-    setVerificaTracc('corso');
-    setTimeout(() => {
-      // Come per i domini: l'esito viene dal mock, non è un successo di
-      // cortesia. Il CNAME appena deciso non risponde ancora.
-      if (tracc.cname) {
-        setTracc(t => Object.assign({}, t, { stato: 'verificato', certificato: true, verificatoIl: t.verificatoIl || new Date() }));
-        setVerificaTracc('CNAME a posto e certificato emesso: i link riscritti rispondono.');
-      } else {
-        setVerificaTracc('Il CNAME non risponde ancora — la propagazione impiega fino a qualche ora. Finché non risponde, i link partono sul dominio del fornitore.');
-      }
-    }, 900);
-  };
+  // I mittenti si scrivono da qui, e restano in uno stato: aggiungerne uno
+  // deve aggiungerlo davvero, e le costanti non si muovono.
+  const [mittenti, setMittenti] = useStateIm(HUB_MITTENTI);
+  const [numeri, setNumeri] = useStateIm(HUB_NUMERI);
+  const [nuovo, setNuovo] = useStateIm(null);       // { locale, dominio, nome, scopo, rispostaA, opposizione }
+  const [modifica, setModifica] = useStateIm(null); // id del mittente con lo scopo aperto
+  const verificati = domini.filter(d => d.stato === 'verificato');
+  const scopi = Object.keys(HUB_SCOPI_MITTENTE);
+  const senzaInformative = !mittenti.some(m => m.scopo === 'informative' && m.stato !== 'disattivato');
 
-  const aggiungiDominio = () => {
-    const dom = nuovoDom.trim().toLowerCase();
-    if (!dom) return;
-    // Nasce coi tre record mancanti: la card gialla coi comandi per
-    // sistemarla è esattamente quello che il modale promette.
-    setDomini(prev => [...prev, {
-      id: 'DM-' + (prev.length + 1), dominio: dom, uso: 'Aggiunto ora — record DNS da mettere dal registrar',
-      stato: 'in attesa', spf: false, dkim: false, dmarc: false, verificato: null, reputazione: null,
-    }]);
-    setNuovoDom('');
-    setAggiungi(false);
+  const apriNuovo = () => setNuovo({ locale: '', dominio: verificati[0] ? verificati[0].dominio : '', nome: 'byup', scopo: 'servizio', rispostaA: '', opposizione: 'Collegamento «non voglio più riceverle» in calce' });
+  const nuovoValido = !!nuovo && /^[a-z0-9._%+-]+$/i.test(nuovo.locale.trim()) && !!nuovo.dominio && nuovo.nome.trim().length > 0;
+  const aggiungiMittente = () => {
+    if (!nuovoValido) return;
+    const indirizzo = `${nuovo.locale.trim().toLowerCase()}@${nuovo.dominio}`;
+    setMittenti(prev => [...prev, { id: 'MT-' + (prev.length + 1), nome: nuovo.nome.trim(), indirizzo, dominio: nuovo.dominio,
+      stato: 'verificato', scopo: nuovo.scopo, rispostaA: (nuovo.rispostaA || '').trim() || indirizzo,
+      identificativo: HUB_IDENTIFICATIVO, opposizione: nuovo.opposizione }]);
+    setNuovo(null);
   };
+  const cambiaScopo = (id, scopo) => { setMittenti(prev => prev.map(m => m.id === id ? { ...m, scopo } : m)); setModifica(null); };
+  // Si disattiva, non si cancella: le campagne già spedite lo nominano.
+  const disattiva = (id) => setMittenti(prev => prev.map(m => m.id === id ? { ...m, stato: m.stato === 'disattivato' ? 'verificato' : 'disattivato' } : m));
+  const cambiaScopoSms = (id, scopo) => { setNumeri(prev => prev.map(n => n.id === id ? { ...n, scopo } : n)); setModifica(null); };
+  const disattivaSms = (id) => setNumeri(prev => prev.map(n => n.id === id ? { ...n, stato: n.stato === 'attivo' ? 'disattivato' : 'attivo' } : n));
 
-  const copiaRecord = (d) => {
-    // Sempre tutti e tre: il registrar li vuole insieme, e copiare solo i
-    // mancanti costringerebbe a un secondo giro.
-    const txt = [
-      `TXT  ${d.dominio}  "v=spf1 include:_spf.byup.it ~all"`,
-      `TXT  byup._domainkey.${d.dominio}  "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC7…"`,
-      `TXT  _dmarc.${d.dominio}  "v=DMARC1; p=quarantine; rua=mailto:postmaster@byup.it"`,
-    ].join('\n');
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(() => {});
-    setCopiato(d.id);
-    setTimeout(() => setCopiato(c => c === d.id ? null : c), 2500);
-  };
-
-  const verificaAdesso = (d) => {
-    setVerifica({ id: d.id, esito: null });   // il ricontrollo si deve vedere partire
-    setTimeout(() => {
-      // L'esito viene dai record del mock, che non cambiano: la verifica dice
-      // la verità — mancano ancora — non un successo di cortesia.
-      const mancano = [!d.spf && 'SPF', !d.dkim && 'DKIM', !d.dmarc && 'DMARC'].filter(Boolean).join(' e ');
-      setVerifica(v => v && v.id === d.id
-        ? { id: d.id, esito: `Manca ancora ${mancano} — i record impiegano fino a qualche ora a propagarsi.` }
-        : v);
-    }, 900);
-  };
+  const IM_STATI_MITT = { verificato: { label: 'Verificato', color: 'OK' }, 'in attesa': { label: 'In attesa', color: 'WARN' }, disattivato: { label: 'Disattivato', color: 'PLAN_FREE' } };
+  const IM_STATI_SMS = { attivo: { label: 'Attivo', color: 'OK' }, 'in attesa': { label: 'In attesa', color: 'WARN' }, disattivato: { label: 'Disattivato', color: 'PLAN_FREE' } };
+  const chipScopo = (s) => { const d = HUB_SCOPI_MITTENTE[s] || { label: s || '—', color: 'PLAN_FREE' }; return <HubPillola color={d.color} size="sm">{d.label}</HubPillola>; };
+  const menuScopo = (id, corrente, onScegli) => (
+    <span style={{ position:'relative', display:'inline-flex' }}>
+      <button onClick={() => setModifica(modifica === id ? null : id)} style={{ background:'transparent', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap:5 }}>
+        {chipScopo(corrente)}
+        <BuIcons.chevronDown size={12} color={ADM.MUTED_SOFT}/>
+      </button>
+      {modifica === id && (
+        <span style={{ position:'absolute', top:24, left:0, zIndex:30, background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:10, boxShadow:'0 14px 34px rgba(15,17,21,0.16)', padding:5, minWidth:190 }}>
+          {scopi.map(s => (
+            <button key={s} onClick={() => onScegli(s)} className="adm-actionrow" style={{ display:'flex', alignItems:'center', gap:8, width:'100%', textAlign:'left', border:'none', background:'transparent', padding:'6px 8px', borderRadius:7, cursor:'pointer', fontFamily:'inherit' }}>
+              {chipScopo(s)}
+              {s === corrente && <span style={{ marginLeft:'auto', color:ADM.OK }}><BuIcons.check size={13}/></span>}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  );
 
   return (
     <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <HubStile/>
-      <HubTestata titolo="Domini e mittenti"
-        sotto="Da quali domini partono le email, con quali indirizzi si firmano, e con che nome arrivano gli SMS. Se qui qualcosa non è a posto, i messaggi partono lo stesso — e finiscono nello spam."
-        azioni={<HubStrumento forte icona="plus" onClick={() => setAggiungi(true)}>Aggiungi dominio</HubStrumento>}/>
+      <HubTestata titolo="Recapiti e domini di invio"
+        sotto="Da quali domini partono le email, con quali indirizzi si firmano, e con che nome arrivano gli SMS. I domini si configurano presso il fornitore di invio; i mittenti si scrivono qui."
+        azioni={<HubStrumento icona="externalLink" title="Nel prototipo non porta da nessuna parte: nel prodotto apre la console del fornitore di invio">Apri la console del fornitore</HubStrumento>}/>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0,1fr))', gap: 12 }}>
         <HubTile etichetta="Domini configurati" valore={domini.length} icona="globe"
           sotto={problemi ? `${problemi} con record incompleti` : 'tutti a posto'} tono={problemi ? 'WARN' : 'OK'}/>
-        <HubTile etichetta="Indirizzi mittente" valore={HUB_MITTENTI.length} icona="mail"
-          sotto={`${HUB_MITTENTI.filter(m => m.stato === 'verificato').length} verificati`}/>
-        <HubTile etichetta="Mittenti SMS" valore={HUB_NUMERI.length} icona="smartphone"
-          sotto={`${HUB_NUMERI.filter(n => n.stato === 'attivo').length} attivi`}/>
+        <HubTile etichetta="Indirizzi mittente" valore={mittenti.filter(m => m.stato !== 'disattivato').length} icona="mail"
+          sotto={`${mittenti.filter(m => m.stato === 'verificato').length} verificati`}/>
+        <HubTile etichetta="Mittenti SMS" valore={numeri.filter(n => n.stato !== 'disattivato').length} icona="smartphone"
+          sotto={`${numeri.filter(n => n.stato === 'attivo').length} attivi`}/>
         <HubTile etichetta="Reputazione media" valore={Math.round(
           domini.filter(d => d.reputazione).reduce((s, d) => s + d.reputazione, 0) /
           Math.max(1, domini.filter(d => d.reputazione).length)) + '/100'}
@@ -160,24 +129,27 @@ function HubDominiPage() {
         <div style={{ padding: '13px 18px', borderBottom: `1px solid ${ADM.BORDER}` }}>
           <HubSegmenti attivo={tab} onCambia={setTab} voci={[
             { id: 'domini', label: 'Domini', conteggio: domini.length },
-            { id: 'mittenti', label: 'Indirizzi mittente', conteggio: HUB_MITTENTI.length },
-            { id: 'numeri', label: 'Mittenti SMS', conteggio: HUB_NUMERI.length },
+            { id: 'mittenti', label: 'Indirizzi mittente', conteggio: mittenti.filter(m => m.stato !== 'disattivato').length },
+            { id: 'numeri', label: 'Mittenti SMS', conteggio: numeri.filter(n => n.stato !== 'disattivato').length },
           ]}/>
         </div>
 
         {tab === 'domini' && (
           <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 11 }}>
-            {/* In cima, prima dei domini di invio: è una cosa sola per tutto
-                l'account e si decide una volta. */}
-            <div style={{
-              border: `1px solid ${tracc.dominio ? ADM.BORDER : '#F0DCB4'}`, borderRadius: 13, padding: 16,
-              background: tracc.dominio ? '#fff' : '#FFFCF5',
-            }}>
+            {/* I domini sono tre e sono nostri: aggiungerne uno, mettere i
+                record DNS e verificarli sono atti che si compiono una volta,
+                sul registrar e sulla console del fornitore. Questa schermata
+                non li compie: li mostra (P-175 · D-127). */}
+            <div style={{ padding: '11px 13px', borderRadius: 11, background: '#fff', border: `1px solid ${ADM.BORDER}`, borderLeft: `3px solid ${ADM.PINK}`, fontSize: 12.9, color: ADM.TEXT, lineHeight: 1.55 }}>
+              Questi valori arrivano dal fornitore di invio. Domini e record DNS si configurano dal registrar e dalla console del fornitore, non da qui.
+            </div>
+
+            {/* Il sottodominio di tracciamento: uno per l'account, e riscrive
+                i link invece di spedire. Anche lui si legge e basta. */}
+            <div style={{ border: `1px solid ${ADM.BORDER}`, borderRadius: 13, padding: 16, background: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 13, flexWrap: 'wrap' }}>
-                <span style={{
-                  width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
-                  background: tracc.stato === 'verificato' ? ADM.OK_SOFT : tracc.dominio ? ADM.WARN_SOFT : ADM.DANGER_SOFT,
-                  color: tracc.stato === 'verificato' ? ADM.OK : tracc.dominio ? ADM.WARN : ADM.DANGER,
+                <span style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
+                  background: tracc.stato === 'verificato' ? ADM.OK_SOFT : ADM.WARN_SOFT, color: tracc.stato === 'verificato' ? ADM.OK : ADM.WARN,
                 }}><BuIcons.link size={18}/></span>
                 <div style={{ flex: 1, minWidth: 240 }}>
                   <div style={{ fontSize: 11.2, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: ADM.MUTED_SOFT }}>Sottodominio di tracciamento</div>
@@ -186,40 +158,14 @@ function HubDominiPage() {
                     <HubStato stato={tracc.stato} mappa={IM_STATI_TRACC}/>
                   </div>
                   <div style={{ fontSize: 13, color: ADM.MUTED, marginTop: 6, lineHeight: 1.5 }}>
-                    Ogni link nei messaggi, email e SMS, viene riscritto su questo dominio per contare i clic. Senza, sotto il pulsante il destinatario vede il dominio del fornitore, che non conosce, e i filtri lo trattano come phishing.
+                    Ogni link nei messaggi, email e SMS, viene riscritto su questo dominio per contare i clic. Senza, sotto il pulsante il destinatario vede il dominio del fornitore, che non conosce.
                   </div>
-                  <div style={{ fontSize: 13, color: ADM.MUTED, marginTop: 4, lineHeight: 1.5 }}>
-                    Si decide prima del primo invio: i link già spediti puntano al dominio con cui sono stati riscritti, e cambiarlo dopo li rompe.
-                  </div>
-                  {traccBloccato && (
-                    <div style={{ fontSize: 12.4, color: ADM.TEXT, marginTop: 8, fontWeight: 600 }}>
-                      Deciso il {fmtDate(tracc.decisoIl)} · primo invio il {fmtDate(primoInvio)} · il nome non si cambia più da qui
-                    </div>
-                  )}
+                  {tracc.decisoIl && <div style={{ fontSize: 12.4, color: ADM.MUTED_SOFT, marginTop: 6 }}>Deciso il {fmtDate(tracc.decisoIl)}{tracc.verificatoIl ? ` · verificato il ${fmtDate(tracc.verificatoIl)}` : ''}</div>}
                 </div>
-                {tracc.dominio && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                    <ImRecord ok={tracc.cname} sigla="CNAME" spiega={`${tracc.dominio} → ${tracc.bordo}`}/>
-                    <ImRecord ok={tracc.certificato} sigla="HTTPS" spiega="Il certificato che il fornitore emette quando il CNAME risponde"/>
-                  </div>
-                )}
-              </div>
-              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                {tracc.dominio ? (
-                  <React.Fragment>
-                    <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12.2, color: ADM.TEXT, background: ADM.NEUTRAL_SOFT, padding: '5px 9px', borderRadius: 7 }}>
-                      CNAME  {tracc.dominio}  →  {tracc.bordo}
-                    </span>
-                    <HubStrumento icona="refresh" onClick={verificaCname}>
-                      {verificaTracc === 'corso' ? 'Ricontrollo…' : 'Verifica il CNAME'}
-                    </HubStrumento>
-                    {verificaTracc && verificaTracc !== 'corso' && (
-                      <span style={{ fontSize: 12.6, fontWeight: 600, color: tracc.cname ? ADM.OK : ADM.WARN }}>{verificaTracc}</span>
-                    )}
-                  </React.Fragment>
-                ) : (
-                  <HubStrumento forte icona="plus" onClick={() => { setNuovoTracc('link.byup.it'); setScegli(true); }}>Scegli il sottodominio</HubStrumento>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <ImRecord ok={tracc.cname} sigla="CNAME" spiega={`${tracc.dominio} → ${tracc.bordo}`}/>
+                  <ImRecord ok={tracc.certificato} sigla="HTTPS" spiega="Il certificato che il fornitore emette quando il CNAME risponde"/>
+                </div>
               </div>
             </div>
 
@@ -251,28 +197,15 @@ function HubDominiPage() {
                       <div style={{ width: 120, flexShrink: 0 }}>
                         <div style={{ fontSize: 11.2, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: ADM.MUTED_SOFT, marginBottom: 5 }}>Reputazione {d.reputazione}</div>
                         <HubBarra valore={d.reputazione} max={100} color={d.reputazione > 90 ? 'OK' : 'WARN'} altezza={5}/>
+                        {d.verificato && <div style={{ fontSize: 11.4, color: ADM.MUTED_SOFT, marginTop: 4 }}>rilevata il {fmtDate(d.verificato)}</div>}
                       </div>
                     )}
                   </div>
+                  {/* La conseguenza, non il rimedio: si rimedia altrove. */}
                   {!ok && (
-                    <div style={{
-                      marginTop: 13, padding: 12, borderRadius: 10, background: '#fff',
-                      border: `1px solid ${ADM.BORDER}`, fontSize: 12.8, color: ADM.TEXT, lineHeight: 1.55,
-                    }}>
+                    <div style={{ marginTop: 13, padding: 12, borderRadius: 10, background: '#fff', border: `1px solid ${ADM.BORDER}`, fontSize: 12.8, color: ADM.TEXT, lineHeight: 1.55 }}>
                       <strong>Manca {[!d.spf && 'SPF', !d.dkim && 'DKIM', !d.dmarc && 'DMARC'].filter(Boolean).join(' e ')}.</strong>{' '}
-                      Finché non è a posto, questo dominio non può essere usato per spedire: le email partirebbero e verrebbero scartate.
-                      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <HubStrumento icona={copiato === d.id ? 'check' : 'copy'} acceso={copiato === d.id}
-                          onClick={() => copiaRecord(d)}>
-                          {copiato === d.id ? 'Record copiati' : 'Copia i record DNS'}
-                        </HubStrumento>
-                        <HubStrumento icona="refresh" onClick={() => verificaAdesso(d)}>
-                          {verifica && verifica.id === d.id && !verifica.esito ? 'Ricontrollo…' : 'Verifica adesso'}
-                        </HubStrumento>
-                        {verifica && verifica.id === d.id && verifica.esito && (
-                          <span style={{ fontSize: 12.6, fontWeight: 600, color: ADM.WARN }}>{verifica.esito}</span>
-                        )}
-                      </div>
+                      Finché manca, i messaggi di questo dominio finiscono nello spam. Si sistema dal registrar e dalla console del fornitore.
                     </div>
                   )}
                 </div>
@@ -282,75 +215,135 @@ function HubDominiPage() {
         )}
 
         {tab === 'mittenti' && (
-          <HubTabella
-            colonne={[
-              { id: 'nome',      label: 'Nome mittente', w: 'minmax(0,1.5fr)' },
-              { id: 'indirizzo', label: 'Indirizzo',     w: 'minmax(0,2fr)' },
-              { id: 'dominio',   label: 'Dominio',       w: '1.3fr' },
-              { id: 'stato',     label: 'Stato',         w: '1fr' },
-            ]}
-            righe={HUB_MITTENTI} chiave={m => m.id}
-            cella={(id, m) => {
-              if (id === 'nome') return (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: ADM.TEXT }}>{m.nome}</span>
-                  {m.predefinito && <HubPillola color="PINK" size="sm">predefinito</HubPillola>}
-                </span>
-              );
-              if (id === 'indirizzo') return <span style={{ fontSize: 13.6, color: ADM.TEXT, fontFamily: 'ui-monospace, monospace' }}>{m.indirizzo}</span>;
-              if (id === 'dominio') return <span style={{ fontSize: 13.4, color: ADM.MUTED }}>{m.dominio}</span>;
-              return <HubStato stato={m.stato} mappa={IM_STATI_DOM}/>;
-            }}
-            vuoto={<HubVuoto icona="mail" titolo="Nessun indirizzo mittente" desc="Aggiungine uno su un dominio verificato."/>}/>
+          <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 260, fontSize: 12.9, color: ADM.MUTED, lineHeight: 1.55 }}>
+                Gli indirizzi da cui partono le email, su un dominio verificato. Lo scopo tiene separato quello che deve restare separato: chi si oppone alle promozioni continua a ricevere il servizio.
+              </div>
+              <HubStrumento forte icona="plus" onClick={apriNuovo} title={verificati.length ? undefined : 'Serve almeno un dominio verificato: si configura presso il fornitore'}>Aggiungi mittente</HubStrumento>
+            </div>
+            {!verificati.length && (
+              <div style={{ padding: '10px 12px', borderRadius: 10, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', fontSize: 12.8, color: '#7A4A0B' }}>
+                Nessun dominio verificato: finché non ce n'è uno, un mittente non si può aggiungere.
+              </div>
+            )}
+            {senzaInformative && (
+              <div data-senza-informative style={{ padding: '10px 12px', borderRadius: 10, background: ADM.WARN_SOFT, border: '1px solid #F0DCB4', fontSize: 12.8, color: '#7A4A0B', lineHeight: 1.5 }}>
+                Nessun mittente per gli <b>avvisi sulle informative</b>. Quella comunicazione non può partire da un mittente promozionale: assegna lo scopo a uno di questi indirizzi.
+              </div>
+            )}
+            {mittenti.map(m => (
+              <div key={m.id} data-mittente={m.id} style={{ border: `1px solid ${ADM.BORDER}`, borderRadius: 13, padding: 15, background: m.stato === 'disattivato' ? ADM.PANEL_SOFT : '#fff', opacity: m.stato === 'disattivato' ? 0.75 : 1 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center', background: ADM.PINK_SOFT, color: ADM.PINK }}><BuIcons.mail size={16}/></span>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 14.6, fontWeight: 700, color: ADM.TEXT }}>{m.nome}</span>
+                      <span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 13, color: ADM.MUTED }}>{m.indirizzo}</span>
+                      {m.predefinito && <HubPillola color="PINK" size="sm">predefinito</HubPillola>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap' }}>
+                      {menuScopo(m.id, m.scopo, (s) => cambiaScopo(m.id, s))}
+                      <HubStato stato={m.stato} mappa={IM_STATI_MITT}/>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginTop: 10, fontSize: 12.4, color: ADM.MUTED, lineHeight: 1.5 }}>
+                      <div><b style={{ color: ADM.TEXT }}>Risposte a</b><br/><span style={{ fontFamily: 'ui-monospace, monospace' }}>{m.rispostaA || m.indirizzo}</span></div>
+                      <div><b style={{ color: ADM.TEXT }}>Ci si oppone</b><br/>{m.opposizione || '—'}</div>
+                      <div style={{ gridColumn: '1 / -1' }}><b style={{ color: ADM.TEXT }}>In calce</b><br/>{m.identificativo || HUB_IDENTIFICATIVO}</div>
+                    </div>
+                  </div>
+                  <HubStrumento icona={m.stato === 'disattivato' ? 'refresh' : 'pause'} onClick={() => disattiva(m.id)}
+                    title="Un mittente si disattiva, non si cancella: le campagne già spedite lo nominano">{m.stato === 'disattivato' ? 'Riattiva' : 'Disattiva'}</HubStrumento>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
         {tab === 'numeri' && (
-          <HubTabella
-            colonne={[
-              { id: 'etichetta', label: 'Mittente',  w: 'minmax(0,1.6fr)' },
-              { id: 'tipo',      label: 'Tipo',      w: 'minmax(0,1.5fr)' },
-              { id: 'paesi',     label: 'Paesi',     w: '1.3fr' },
-              { id: 'usato',     label: 'SMS spediti', w: '1fr', destra: true },
-              { id: 'stato',     label: 'Stato',     w: '1fr' },
-            ]}
-            righe={HUB_NUMERI} chiave={n => n.id}
-            cella={(id, n) => {
-              if (id === 'etichetta') return <span style={{ fontSize: 14, fontWeight: 700, color: ADM.TEXT }}>{n.etichetta}</span>;
-              if (id === 'tipo') return <span style={{ fontSize: 13.4, color: ADM.MUTED }}>{n.tipo}</span>;
-              if (id === 'paesi') return <span style={{ fontSize: 13.4, color: ADM.MUTED }}>{n.paesi}</span>;
-              if (id === 'usato') return <span style={{ fontSize: 13.6, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(n.usato)}</span>;
-              return <HubStato stato={n.stato === 'attivo' ? 'verificato' : 'in attesa'} mappa={IM_STATI_DOM}/>;
-            }}
-            vuoto={<HubVuoto icona="smartphone" titolo="Nessun mittente SMS" desc="In Italia il mittente alfanumerico va registrato prima di poterlo usare."/>}/>
+          <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 12.9, color: ADM.MUTED, lineHeight: 1.55 }}>
+              Con che nome arrivano gli SMS, per quale scopo, e come ci si oppone. Una sigla alfanumerica non riceve risposte: per le promozioni l'opposizione dev'essere un collegamento o il rimando all'app, mai «rispondi STOP».
+            </div>
+            {numeri.map(n => {
+              const male = n.scopo === 'promozioni' && n.tipo === 'Mittente alfanumerico' && n.opposizione === 'risposta';
+              return (
+                <div key={n.id} data-sms={n.id} style={{ border: `1px solid ${male ? '#F0DCB4' : ADM.BORDER}`, borderRadius: 13, padding: 15, background: male ? '#FFFCF5' : (n.stato === 'disattivato' ? ADM.PANEL_SOFT : '#fff'), opacity: n.stato === 'disattivato' ? 0.75 : 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center', background: ADM.TEAL_SOFT, color: ADM.TEAL }}><BuIcons.smartphone size={16}/></span>
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 14.6, fontWeight: 700, color: ADM.TEXT }}>{n.etichetta}</span>
+                        <span style={{ fontSize: 12.6, color: ADM.MUTED }}>{n.tipo} · {n.paesi}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 7, flexWrap: 'wrap' }}>
+                        {menuScopo(n.id, n.scopo, (s) => cambiaScopoSms(n.id, s))}
+                        <HubStato stato={n.stato} mappa={IM_STATI_SMS}/>
+                        <span style={{ fontSize: 12.4, color: ADM.MUTED_SOFT, fontVariantNumeric: 'tabular-nums' }}>{fmtNum(n.usato)} SMS spediti</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginTop: 10, fontSize: 12.4, color: ADM.MUTED, lineHeight: 1.5 }}>
+                        <div><b style={{ color: ADM.TEXT }}>Identità nel messaggio</b><br/>{n.identita || '—'}</div>
+                        <div><b style={{ color: ADM.TEXT }}>Ci si oppone</b><br/>{n.opposizioneTesto || '—'}</div>
+                      </div>
+                      {male && (
+                        <div style={{ marginTop: 9, padding: '9px 11px', borderRadius: 9, background: '#fff', border: '1px solid #F0DCB4', fontSize: 12.4, color: '#7A4A0B', lineHeight: 1.5 }}>
+                          Una sigla alfanumerica non riceve risposte: con lo scopo promozionale l'opposizione dev'essere un collegamento o il rimando all'app.
+                        </div>
+                      )}
+                    </div>
+                    <HubStrumento icona={n.stato === 'disattivato' ? 'refresh' : 'pause'} onClick={() => disattivaSms(n.id)}
+                      title="Si disattiva, non si cancella: i messaggi già spediti lo nominano">{n.stato === 'disattivato' ? 'Riattiva' : 'Disattiva'}</HubStrumento>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </AdmCard>
 
-      <HubModale open={aggiungi} onClose={() => setAggiungi(false)} larghezza={560}
-        titolo="Aggiungi un dominio" sotto="Dopo averlo aggiunto ti diamo tre record DNS da mettere dal tuo registrar."
+      <HubModale open={!!nuovo} onClose={() => setNuovo(null)} larghezza={560}
+        titolo="Aggiungi un indirizzo mittente" sotto="Su un dominio già verificato: i domini si configurano presso il fornitore di invio."
         footer={
           <React.Fragment>
             <div style={{ flex: 1 }}/>
-            <HubStrumento onClick={() => setAggiungi(false)}>Annulla</HubStrumento>
-            <HubStrumento forte icona="check" onClick={aggiungiDominio}>Aggiungi</HubStrumento>
+            <HubStrumento onClick={() => setNuovo(null)}>Annulla</HubStrumento>
+            <HubStrumento forte icona="check" onClick={aggiungiMittente}>Aggiungi</HubStrumento>
           </React.Fragment>
         }>
-        <HubCampo label="Dominio" nota="Meglio un sottodominio dedicato (es. mail.tuodominio.it): una campagna andata male non trascina la reputazione del dominio principale.">
-          <HubInput valore={nuovoDom} onCambia={setNuovoDom} placeholder="mail.byup.it"/>
-        </HubCampo>
-      </HubModale>
-
-      <HubModale open={scegli} onClose={() => setScegli(false)} larghezza={560}
-        titolo="Scegli il sottodominio di tracciamento" sotto="Un CNAME solo, da mettere dal registrar. Si decide una volta: dopo il primo invio i link spediti restano legati a questo nome."
-        footer={
-          <React.Fragment>
-            <div style={{ flex: 1 }}/>
-            <HubStrumento onClick={() => setScegli(false)}>Annulla</HubStrumento>
-            <HubStrumento forte icona="check" onClick={decidiTracc}>Decidi</HubStrumento>
-          </React.Fragment>
-        }>
-        <HubCampo label="Sottodominio" nota={`CNAME verso ${tracc.bordo}. È quello che il destinatario vede sotto il pulsante: un nome tuo, non del fornitore.`}>
-          <HubInput valore={nuovoTracc} onCambia={setNuovoTracc} placeholder="link.byup.it"/>
-        </HubCampo>
+        {nuovo && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <HubCampo label="Nome mittente" nota="È quello che il destinatario legge come «da».">
+              <HubInput valore={nuovo.nome} onCambia={v => setNuovo(n => ({ ...n, nome: v }))} placeholder="byup"/>
+            </HubCampo>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.2fr)', gap: 12, alignItems: 'end' }}>
+              <HubCampo label="Indirizzo">
+                <HubInput valore={nuovo.locale} onCambia={v => setNuovo(n => ({ ...n, locale: v.replace(/[^a-zA-Z0-9._%+-]/g, '') }))} placeholder="novita"/>
+              </HubCampo>
+              <HubCampo label="Dominio verificato">
+                <select value={nuovo.dominio} onChange={e => setNuovo(n => ({ ...n, dominio: e.target.value }))}
+                  style={{ width: '100%', padding: '9px 11px', borderRadius: 9, border: `1px solid ${ADM.BORDER}`, fontFamily: 'inherit', fontSize: 13.5, color: ADM.TEXT, background: '#fff', boxSizing: 'border-box', cursor: 'pointer' }}>
+                  {verificati.map(d => <option key={d.id} value={d.dominio}>@{d.dominio}</option>)}
+                </select>
+              </HubCampo>
+            </div>
+            <HubCampo label="Scopo" nota="Tiene separato quello che deve restare separato: una comunicazione sulle informative non parte da un mittente promozionale.">
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {scopi.map(s => (
+                  <button key={s} onClick={() => setNuovo(n => ({ ...n, scopo: s }))} style={{
+                    padding: '7px 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                    border: `1px solid ${nuovo.scopo === s ? ADM.TEXT : ADM.BORDER}`, background: nuovo.scopo === s ? ADM.TEXT : '#fff', color: nuovo.scopo === s ? '#fff' : ADM.TEXT,
+                  }}>{HUB_SCOPI_MITTENTE[s].label}</button>
+                ))}
+              </div>
+            </HubCampo>
+            <HubCampo label="Risposte a" nota="Vuoto: rispondono all'indirizzo stesso.">
+              <HubInput valore={nuovo.rispostaA} onCambia={v => setNuovo(n => ({ ...n, rispostaA: v }))} placeholder="ciao@byup.it"/>
+            </HubCampo>
+            <div style={{ fontSize: 12.4, color: ADM.MUTED, lineHeight: 1.5, padding: '10px 12px', borderRadius: 10, background: ADM.PANEL_SOFT }}>
+              In calce viene riportato il blocco identificativo: <b style={{ color: ADM.TEXT }}>{HUB_IDENTIFICATIVO}</b>. I dati societari sono segnaposto finché la società non è costituita.
+            </div>
+          </div>
+        )}
       </HubModale>
     </div>
   );

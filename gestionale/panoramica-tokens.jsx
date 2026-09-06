@@ -420,7 +420,10 @@ window.pnAllergeneLabel = (x) => { const a = window.pnAllergene(x); return a ? a
 // articolo propone queste voci, in quest'ordine, con questa descrizione.
 // Sulla riga d'ordine si congela il profilo risolto da voce × modo
 // (vat_rate_profiles): cambia il numero, cambia il profilo, e la riga scritta
-// prima resta col suo. Quello che qui sotto è una costante è il SEME.
+// prima resta col suo. Una voce può portare un cambio programmato
+// (`locale.prossima = { aliquota, dal }`, P-174 · D-126): non riguarda il
+// gestionale, che legge il numero in vigore — quando la data arriva, il
+// numero in vigore È quello, e Hubble ha già riscritto il registro. Quello che qui sotto è una costante è il SEME.
 const PN_TIPOLOGIE_SEME = [
   { id: 'piatti_preparati', ordine: 1, label: 'Piatti, panini, caffè, dolci e pasticceria', spiegazione: 'Quello che il locale prepara o serve.', locale: { aliquota: 10 }, asporto: { aliquota: 10 }, valida_dal: '2026-01-01', valida_al: null },
   { id: 'acqua_birra', ordine: 2, label: 'Acqua e birra', spiegazione: 'Anche in bottiglia o lattina sigillata.', locale: { aliquota: 10 }, asporto: { aliquota: 10 }, valida_dal: '2026-01-01', valida_al: null },
@@ -465,6 +468,19 @@ window.pnTipologia = (id) => { const l = window.pnTipologie(); return l.find(t =
 // Il profilo che si congela sulla riga: voce × modo dell'ordine.
 window.pnTipologiaProfilo = (id, asporto) => { const t = window.pnTipologia(id); return asporto ? t.asporto : t.locale; };
 window.pnTipologiaAliquota = (id, asporto) => window.pnTipologiaProfilo(id, asporto).aliquota;
+// Il ramo del regime forfettario (P-176 · D-128), SCRITTO E SPENTO: il
+// forfettario non addebita l'imposta e il documento porta la natura N2.2
+// («operazioni non soggette ad IVA»). Si accende quando il regime di
+// certificazione della sede è la Soluzione Software
+// (venue_fiscal_regimes.regime = software_solution); nel mockup non si
+// raggiunge mai, perché la guardia ferma prima l'emissione.
+window.pnRigaIvaRisolta = (id, asporto) => {
+  if (window.byupForfettario && window.byupForfettario() && window.pnRegimeSoluzione && window.pnRegimeSoluzione()) {
+    return { aliquota: 0, natura: 'N2.2', profilo: `${id}:${asporto ? 'asporto' : 'locale'}:0` };
+  }
+  const p = window.pnTipologiaProfilo(id, asporto);
+  return { aliquota: p.aliquota, natura: null, profilo: p.profilo };
+};
 // La spiegazione sotto il campo: la descrizione e i due numeri, così chi
 // batte vede l'effetto senza saperlo a memoria.
 window.pnTipologiaSpiegazione = (id) => {
@@ -1719,6 +1735,35 @@ window.byupDelegaCompleta = function () {
 // canale che nessuno legge. Le fatture, comprese le nostre, arrivano al
 // recapito del soggetto: PEC o codice destinatario suoi, dal foglio in Dati
 // anagrafici.
+
+// ─── Il regime del soggetto e la guardia del forfettario (P-176 · D-128) ────
+// Il locale in regime forfettario emette documenti SENZA IMPOSTA e con il
+// campo Natura; nel regime attuale il canale che usiamo non è accertato che
+// lo consenta, e il titolare ha deciso di escluderlo subito: si sceglie il
+// regime, si salva, ma la cassa fiscale non parte e la scheda lo dice in una
+// frase, senza promettere date. La regola sul documento si costruisce
+// comunque, spenta, e si accende con la Soluzione Software certificata.
+// Il regime vive nel registro condiviso del soggetto (byup_regime_fiscale),
+// che Dati fiscali scrive e che leggono la Cassa, le attivazioni fiscali e i
+// quattro punti di emissione.
+const PN_REGIME_KEY = 'byup_regime_fiscale';
+window.byupReadRegime = function () {
+  try { const s = localStorage.getItem(PN_REGIME_KEY); if (s) return JSON.parse(s); } catch (e) {}
+  return { regime: 'Ordinario' };
+};
+window.byupWriteRegime = function (regime) {
+  try { localStorage.setItem(PN_REGIME_KEY, JSON.stringify({ regime, quando: new Date().toISOString() })); } catch (e) {}
+  window.dispatchEvent(new Event('byup-regime-change'));
+};
+window.byupForfettario = () => String((window.byupReadRegime() || {}).regime || '').toLowerCase().indexOf('forfett') === 0;
+// La frase, una sola, detta ovunque con le stesse parole.
+window.PN_FORFETTARIO_TESTO = 'Con il regime forfettario oggi Byup non può emettere i tuoi scontrini: il canale che usiamo non emette documenti senza imposta. Con la nostra Soluzione Software certificata, in arrivo, sì.';
+// La guardia dei quattro punti di emissione, accanto a quella delle
+// credenziali: se torna qualcosa, il documento non nasce.
+window.byupRegimeBlocco = function () {
+  if (!window.byupForfettario()) return null;
+  return { titolo: 'Cassa fiscale non disponibile: regime forfettario', testo: window.PN_FORFETTARIO_TESTO, href: 'byup Impostazioni.html?page=fiscali' };
+};
 
 // ─── Il regime fiscale della sede (P-111 · P-89 · progetto tecnico §4.3) ────
 // Due regimi, e non convivono nella stessa sede: il REGIME ATTUALE, dove i

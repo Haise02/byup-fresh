@@ -30,9 +30,11 @@
 // Qui dentro si scrive solo il CONTORNO, che il documento non può contenere:
 // che cosa cambia in una riga, se è peggiorativa, se richiede un nuovo
 // consenso, da quando vale. ALLA PUBBLICAZIONE NASCE LA COPIA PDF/A della
-// versione — intestazione, impronta, data — che è la resa d'archivio da
-// esibire, come fanno le piattaforme serie: la sorgente resta il markdown,
-// il testo che si accetta resta l'HTML.
+// versione — intestazione, data e impronta PROPRIA — che è la resa d'archivio
+// da esibire, come fanno le piattaforme serie: la sorgente resta il markdown,
+// il testo che si accetta resta l'HTML. Le impronte sono DUE e dicono due cose
+// diverse (P-177 · D-129): quella del testo prova che il testo accettato è
+// questo, quella della copia che la copia è quella nata alla pubblicazione.
 
 const { useState: useStateDoc } = React;
 
@@ -281,7 +283,7 @@ function HubDocDettaglio({ codice, onChiudi }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <HubPillola color={corrente ? 'PINK' : 'PLAN_FREE'} forte={corrente} size="sm">v{v.v}</HubPillola>
                         {corrente && <span style={{ fontSize:12.5, fontWeight:700, color: futura ? ADM.INFO : ADM.OK }}>{futura ? 'In arrivo' : 'Corrente'}</span>}
-                        {v.editoriale && <AdmBadge color="INFO" size="xs">Editoriale</AdmBadge>}
+                        {v.editoriale && <span title="Correzione editoriale: non è una versione da accettare e non cambia l'impronta del testo già accettato"><AdmBadge color="INFO" size="xs">Editoriale</AdmBadge></span>}
                         {v.peggiorativa && <AdmBadge color="WARN" size="xs">Peggiorativa</AdmBadge>}
                         {v.nuovoConsenso && <AdmBadge color="DANGER" size="xs">Nuovo consenso</AdmBadge>}
                         {v.rilascio && <span style={{ fontFamily: 'ui-monospace,monospace', fontSize: 11.5, color: ADM.MUTED_SOFT }}>{v.rilascio}</span>}
@@ -293,7 +295,7 @@ function HubDocDettaglio({ codice, onChiudi }) {
                       <div style={{ fontSize: 13, color: ADM.TEXT, marginTop: 8, lineHeight: 1.5 }}>{v.cambiamento || '—'}</div>
                       {window.CtrLinkVersione && (
                         <div style={{ marginTop:8, display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap' }}>
-                          <CtrLinkVersione codice={codice} v={v.v} impronta={!doc.informativa} testo="Copia archiviata · PDF/A"/>
+                          <CtrLinkVersione codice={codice} v={v.v} testo="Copia archiviata · PDF/A"/>
                           <span style={{ fontSize:11.5, color:ADM.MUTED_SOFT }}>generata alla pubblicazione, {fmtDate(v.copia && v.copia.generata ? new Date(v.copia.generata) : v.pubblicata)}</span>
                         </div>
                       )}
@@ -314,6 +316,8 @@ function HubDocDettaglio({ codice, onChiudi }) {
             ? <>Si <b>riceve</b>, non si accetta: vale dalla pubblicazione, senza preavviso e senza recesso. A registro resta una presa visione.</>
             : <>Una modifica si comunica almeno <b>{DOC_PREAVVISO_GG} giorni</b> prima della decorrenza; nel termine il destinatario può opporsi, e il silenzio vale accettazione tacita.</>)}
           {voce('Accettazione', <span style={{ color:ADM.MUTED }}>Non si compie da qui: si raccoglie dove la persona è, ed è ciò che la rende opponibile.</span>)}
+          {/* I tre artefatti di una versione, detti una volta (P-177 · D-129). */}
+          {voce('Artefatti', <span style={{ color:ADM.MUTED }}>Markdown sorgente con impronta · HTML reso · copia PDF/A con impronta propria. <b style={{ color:ADM.TEXT }}>Si esibisce la copia</b>.</span>)}
         </div>
       </div>
 
@@ -571,7 +575,7 @@ function HubDocConferma({ doc, bozza, onAnnulla, onFatto }) {
               ? 'Peggiorativa: trenta giorni di recesso dal ricevimento, se le conseguenze non sono trascurabili'
               : 'Peggiorativa: il recesso resta quello esercitabile entro il preavviso, e il preavviso deve dirlo']] : []),
             ...(bozza.nuovoConsenso ? [['Consensi', 'Il consenso prestato prima non si estende: quella finalità si ferma finché non arriva il nuovo']] : []),
-            ['Copia archiviata', 'Nasce ora, in PDF/A, dal markdown depositato: intestazione, impronta e data. È quella che si esibisce; il markdown resta la sorgente'],
+            ['Copia archiviata', 'Nasce ora, in PDF/A, dal markdown depositato: intestazione, data e impronta propria, accanto a quella del testo. È quella che si esibisce; il markdown resta la sorgente'],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', gap: 10, fontSize: 12.8, lineHeight: 1.5 }}>
               <span style={{ width: 130, flexShrink: 0, color: ADM.MUTED, fontWeight: 600 }}>{k}</span>

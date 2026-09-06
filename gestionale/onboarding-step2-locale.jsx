@@ -56,6 +56,9 @@ function Step2Locale({
         scritto_il: new Date().toISOString(),
       }));
     } catch (e) {}
+    // Il regime scelto qui vale per tutti (P-176): la Cassa e Dati fiscali
+    // lo leggono dal registro condiviso.
+    if (window.byupWriteRegime) window.byupWriteRegime(venue.regime === 'forfettario' ? 'Forfettario' : venue.regime === 'agricolo' ? 'Agricolo / Speciale' : 'Ordinario');
     onNext();
   };
 
@@ -147,7 +150,7 @@ function Step2Locale({
               Indietro
             </SecondaryCta>
             <PrimaryCta onClick={avanti} disabled={!pronto}>
-              Continua
+              {venue.regime === 'forfettario' ? 'Continua senza cassa fiscale' : 'Continua'}
               <OnbIcon.ArrowRight size={14} color="#fff"/>
             </PrimaryCta>
           </div>
@@ -296,6 +299,17 @@ function SubStepInfo({venue, v, pronto}) {
             Seleziona regime fiscale
           </div>
           <RegimeRadioGroup value={venue.regime} onChange={(x) => v('regime', x)}/>
+          {/* La stessa riga di Dati fiscali (P-176 · D-128): il locale entra,
+              menù e ordini funzionano, la cassa fiscale no. */}
+          {venue.regime === 'forfettario' && (
+            <div data-forfettario style={{
+              marginTop: 12, padding: '10px 13px', borderRadius: 10,
+              background: 'rgba(217, 119, 6, 0.08)', border: '1px solid rgba(217, 119, 6, 0.28)',
+              fontSize: 15, color: ONB.TEXT, lineHeight: 1.45,
+            }}>
+              {window.PN_FORFETTARIO_TESTO || 'Con il regime forfettario oggi Byup non può emettere i tuoi scontrini: il canale che usiamo non emette documenti senza imposta. Con la nostra Soluzione Software certificata, in arrivo, sì.'}
+            </div>
+          )}
         </div>
 
         {venue.codiceInvito && venue.codiceInvito.length >= 4 && (

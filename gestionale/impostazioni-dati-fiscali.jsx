@@ -843,6 +843,14 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                   <select value={f.regime} onChange={setC('regime')} style={INP}>
                     <option>Ordinario</option><option>Forfettario</option><option>Semplificato</option>
                   </select>
+                  {/* La guardia del forfettario (P-176 · D-128): si sceglie e si
+                      salva, ma la cassa fiscale non parte, e lo dice qui dove
+                      la scelta si compie. Una frase, senza promettere date. */}
+                  {String(f.regime || '').toLowerCase().indexOf('forfett') === 0 && (
+                    <div data-forfettario style={{marginTop: 6, padding:'9px 11px', borderRadius: 9, background: PN.AMBER_SOFT, border:'1px solid rgba(180, 83, 9, 0.22)', fontSize: 13, color:'#7A4A0B', lineHeight: 1.45}}>
+                      {window.PN_FORFETTARIO_TESTO}
+                    </div>
+                  )}
                 </div>
                 <div style={{alignSelf:'end', fontSize: 12.5, color: f.piva && !pivaOk ? PN.AMBER : PN.MUTED, lineHeight: 1.4, paddingBottom: 2}}>
                   {f.piva ? (pivaOk ? 'P.IVA: formato valido · nessuna verifica presso l\'Agenzia' : 'P.IVA: formato non valido, IT e undici cifre') : 'P.IVA: IT e undici cifre'}
@@ -1062,6 +1070,9 @@ function AdeAttivazioniCard() {
 
   if (window.byupDelegaCompleta && window.byupDelegaCompleta()) return null;
 
+  // Il regime forfettario ferma tutto (P-176 · D-128): la riga 1 lo dice, le
+  // altre restano spente. Nessun documento parte, e la delega non è il punto.
+  const forfettario = !!(window.byupForfettario && window.byupForfettario());
   const senzaDelega = reg.delega === 'fai_da_te';
   const pastiglia = (tono, label) => {
     const T = { attesa: { bg: PN.AMBER_SOFT, fg: '#B45309' }, corso: { bg: '#F4F5F7', fg: PN.MUTED },
@@ -1074,17 +1085,20 @@ function AdeAttivazioniCard() {
       </span>
     );
   };
-  const statoDelega = fase === 'verifica' ? pastiglia('corso', 'Controllo in corso…')
+  const statoDelega = forfettario ? pastiglia('attesa', 'Non disponibile · regime forfettario')
+    : fase === 'verifica' ? pastiglia('corso', 'Controllo in corso…')
     : fase === 'errore' ? pastiglia('errore', 'Non trovata')
     : reg.delega === 'attiva' ? pastiglia('ok', 'Attiva')
     : senzaDelega ? pastiglia('attesa', 'Senza delega · fai da te')
     : pastiglia('attesa', 'Da dare');
   // Dichiarato è ambra, verificato è verde: la differenza resta visibile.
-  const statoConserv = reg.conservazione === 'attiva' ? pastiglia('ok', `Attiva${reg.conservazione_il ? ' · ' + gg(reg.conservazione_il) : ''}${reg.conservazione_da ? ' · ' + reg.conservazione_da : ''}`)
+  const statoConserv = forfettario ? pastiglia('corso', '—')
+    : reg.conservazione === 'attiva' ? pastiglia('ok', `Attiva${reg.conservazione_il ? ' · ' + gg(reg.conservazione_il) : ''}${reg.conservazione_da ? ' · ' + reg.conservazione_da : ''}`)
     : reg.conservazione === 'dichiarata' ? pastiglia('attesa', `Dichiarata il ${gg(reg.conservazione_il)}`)
     : reg.delega === 'attiva' ? pastiglia('corso', 'In attesa di Byup')
     : pastiglia('attesa', senzaDelega ? 'Da fare' : 'In attesa della delega');
-  const statoAccr = reg.accreditamento === 'attivo' ? pastiglia('ok', `Accreditato${reg.accreditamento_il ? ' · ' + gg(reg.accreditamento_il) : ''}${reg.accreditamento_da ? ' · ' + reg.accreditamento_da : ''}`)
+  const statoAccr = forfettario ? pastiglia('corso', '—')
+    : reg.accreditamento === 'attivo' ? pastiglia('ok', `Accreditato${reg.accreditamento_il ? ' · ' + gg(reg.accreditamento_il) : ''}${reg.accreditamento_da ? ' · ' + reg.accreditamento_da : ''}`)
     : reg.accreditamento === 'dichiarato' ? pastiglia('attesa', `Dichiarato il ${gg(reg.accreditamento_il)}`)
     : pastiglia('attesa', 'Da fare');
 
@@ -1124,7 +1138,12 @@ function AdeAttivazioniCard() {
   return (
     <ImpCard title="Attivazioni fiscali" sub="Tre cose: la delega la dai tu sul portale dell'Agenzia, l'adesione alla conservazione la fa una persona di Byup con quella delega, l'accreditamento come esercente lo fai tu dal portale" style={{marginBottom: 18}}>
       <style>{`@keyframes adeAttSpin { to { transform: rotate(360deg); } }`}</style>
-      <div>
+      {forfettario && (
+        <div data-forfettario-attivazioni style={{marginBottom: 12, padding:'11px 13px', borderRadius: 10, background: PN.AMBER_SOFT, border:'1px solid rgba(180, 83, 9, 0.22)', fontSize: 14, color:'#7A4A0B', lineHeight: 1.5}}>
+          <b>Cassa fiscale non disponibile: regime forfettario.</b> {window.PN_FORFETTARIO_TESTO} Le attivazioni qui sotto restano spente finché il regime è questo.
+        </div>
+      )}
+      <div style={{opacity: forfettario ? 0.55 : 1}}>
         {riga('1 · Delega all\'Agenzia delle Entrate', 'Un atto tuo, sul portale, con il tuo SPID. Byup controlla che sia arrivata. Le fatture partono comunque: con la delega Byup le conserva per te presso l\'Agenzia e ti accredita come esercente.', statoDelega)}
         {riga('2 · Adesione alla conservazione delle fatture', senzaDelega
           ? 'L\'adesione al servizio di conservazione dell\'Agenzia. Senza delega la fai tu sul portale e la dichiari qui sotto, in «Faccio da me».'
@@ -1132,7 +1151,7 @@ function AdeAttivazioniCard() {
         {riga('3 · Accreditamento come esercente', 'L\'iscrizione della tua partita IVA fra gli esercenti che trasmettono i corrispettivi: da lì ti compare il menù per collegare i POS all\'Agenzia. Lo fai tu dal portale.', statoAccr, accrExtra)}
       </div>
 
-      {senzaDelega && (
+      {!forfettario && senzaDelega && (
         <div data-faccio-da-me style={{marginTop: 14, padding:'13px 15px', borderRadius: 12, background: PN.AMBER_SOFT, border: '1px solid rgba(180, 83, 9, 0.22)'}}>
           <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>Faccio da me</div>
           <div style={{fontSize: 14, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
@@ -1148,7 +1167,7 @@ function AdeAttivazioniCard() {
         </div>
       )}
 
-      {reg.delega !== 'attiva' && !senzaDelega && (
+      {!forfettario && reg.delega !== 'attiva' && !senzaDelega && (
         <React.Fragment>
           <div style={{marginTop: 14, paddingTop: 14, borderTop: `1px solid ${PN.BORDER_SOFT}`}}>
             <div style={{fontSize: 15, fontWeight: 700, color: PN.TEXT}}>La delega, in due minuti</div>
@@ -1724,6 +1743,9 @@ function ImpDatiFiscali() {
   });
   // La forma scritta qui vale per tutti (P-152): la Cassa, le notifiche e
   // le guardie dei documenti la leggono dal registro condiviso del locale.
+  // Il regime vale per tutti (P-176): Cassa, attivazioni fiscali e le
+  // guardie dei documenti lo leggono dal registro condiviso.
+  React.useEffect(() => { if (window.byupWriteRegime) window.byupWriteRegime(data.regime); }, [data.regime]);
   React.useEffect(() => { if (window.byupWriteForma) window.byupWriteForma(data.legalForm); }, [data.legalForm]);
 
   const [dirty, setDirty] = React.useState(false);

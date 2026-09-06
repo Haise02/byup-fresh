@@ -3059,6 +3059,9 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
   // notte. Scadute, il documento non può nascere: il pulsante si spegne e il
   // testo dice chi deve rinnovare (il titolare, o l'incaricato del locale).
   const [credBlocco, setCredBlocco] = React.useState(() => (window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null));
+  // Il regime forfettario ferma l'emissione come le credenziali scadute
+  // (P-176 · D-128): stessa fascia, stesse parole, stesso pulsante spento.
+  const regimeBlocco = window.byupRegimeBlocco ? window.byupRegimeBlocco() : null;
   React.useEffect(() => {
     const ri = () => setCredBlocco(window.byupAdeCredBlocco ? window.byupAdeCredBlocco() : null);
     ['byup-ade-cred-change', 'byup-ade-incaricato-change', 'storage'].forEach(e => window.addEventListener(e, ri));
@@ -3834,11 +3837,24 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
                 // Come la notte, le credenziali scadute vincono su tutto: senza
                 // credenziale valida il documento commerciale non può nascere,
                 // e incassare senza emettere non è ammesso (P-120, PT §12.2).
-                const attivo = !notte.dentro && !credBlocco
+                const attivo = !notte.dentro && !credBlocco && !regimeBlocco
                   && (saldato || (residuo > 0 && preso >= Math.min(residuo, 0.01) && manca <= 0.004))
                   && (method !== 'buoni' || saldato || (!!window.byupBuoniValido && window.byupBuoniValido(buoni, residuo)));
                 return (
                   <React.Fragment>
+                  {regimeBlocco && (
+                    <div data-regime-blocco style={{
+                      display:'flex', gap: 10, alignItems:'flex-start',
+                      marginBottom: 12, padding:'12px 16px', borderRadius: 12,
+                      background:'#FEF3C7', color:'#92400E',
+                      fontSize: 14.5, lineHeight: 1.45,
+                    }}>
+                      <span>
+                        <b>{regimeBlocco.titolo}:</b> {regimeBlocco.testo}{' '}
+                        <a href={regimeBlocco.href} style={{color:'#92400E', fontWeight: 700}}>Vai a Dati fiscali</a>
+                      </span>
+                    </div>
+                  )}
                   {credBlocco && (
                     <div data-cred-blocco style={{
                       display:'flex', gap: 10, alignItems:'flex-start',
