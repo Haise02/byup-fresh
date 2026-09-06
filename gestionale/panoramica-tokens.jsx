@@ -407,99 +407,77 @@ window.pnAllergeneLabel = (x) => { const a = window.pnAllergene(x); return a ? a
 // Sulla riga d'ordine si congela il profilo (vat_rate_profiles, ERD v11)
 // risolto da tipologia × modo; al cambio di modo si ricalcola da solo. La
 // formulazione precedente (P-11) chiedeva l'aliquota e la ricavava da due
-// spunte con una regola sbagliata per acqua e birra, che stanno al 10% anche
-// da asporto (voci 81 e 82).
-// DIZIONARIO GOVERNATO DA HUBBLE (P-164 · D-112 e il suo emendamento). Le
-// cinque tipologie e i loro TRATTAMENTI (vat_rate_profiles) vivono in un
-// registro condiviso sullo stesso dominio (byup_tipologie_articolo): Hubble,
-// in Piattaforma → «Aliquote degli articoli», cura etichetta, spiegazione e
-// ordine — che valgono subito, sono parole — e cambia con una data il
-// trattamento che una tipologia punta; un trattamento in vigore non si
-// modifica, si chiude la sua vigenza e se ne apre uno nuovo, perché la riga
-// d'ordine ha congelato il profilo risolto e non lo rilegge. Il gestionale
-// LEGGE, non scrive: quello che qui sotto era una costante è il SEME, cioè
-// quel che vale finché Hubble non ha scritto nulla. I nomi di prima
-// (PN_TIPOLOGIE_ARTICOLO, PN_TIPOLOGIA_DEFAULT, pnTipologia…) restano e
-// leggono dal registro, così chi crea un articolo — anche il fuori menù —
-// propone queste tipologie, in quest'ordine, con questa spiegazione.
-// La modalità del trattamento ha QUATTRO valori (D-112 emendata): la
-// «cessione» copre l'oggetto non alimentare venduto al banco, che non è né
-// somministrazione né asporto. Il fondamento dell'asporto dei piatti
-// preparati è la voce 80 (L. 178/2020 art. 1 co. 40), non la 68; la quarta
-// tipologia dice anche che cosa cade fuori (dolci da forno, latte zuccherato,
-// frutta e verdura conservate o candite stanno al 10%).
-const PN_TRATTAMENTI_SEME = [
-  { id: 'somministrazione_10',       aliquota: 10, modalita: 'somministrazione',    fondamento: 'voce 121',              citazione: 'Tab. A parte III n. 121 DPR 633/1972: somministrazione di alimenti e bevande, al banco o al tavolo', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'asporto_preparato_10',      aliquota: 10, modalita: 'asporto_preparato',   fondamento: 'L. 178/2020 e voce 80', citazione: 'L. 178/2020 art. 1 co. 40, che interpreta il n. 80 della Tab. A parte III: piatti pronti e pasti preparati, anche da asporto', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'asporto_acqua_birra_10',    aliquota: 10, modalita: 'asporto_confezionato', fondamento: 'voci 81 e 82',         citazione: 'Tab. A parte III nn. 81 e 82 DPR 633/1972: acqua e birra, anche in bottiglia o lattina', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'asporto_confezionato_22',   aliquota: 22, modalita: 'asporto_confezionato', fondamento: 'aliquota ordinaria',   citazione: 'art. 16 DPR 633/1972: bibite, vino, superalcolici e dolciumi in confezione ceduti da asporto', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'asporto_alimentari_base_4', aliquota: 4,  modalita: 'asporto_confezionato', fondamento: 'Tabella A parte II',   citazione: 'Tab. A parte II nn. 3, 5, 6, 8, 15 DPR 633/1972: latte fresco non concentrato né zuccherato, frutta e ortaggi freschi o surgelati, pane comune', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'cessione_generica_22',              aliquota: 22, modalita: 'cessione',            fondamento: 'aliquota ordinaria',    citazione: 'art. 16 DPR 633/1972: cessione di beni non alimentari', valida_dal: '2026-01-01', valida_al: null },
-];
+// spunte con una regola sbagliata per acqua e birra.
+// DIZIONARIO GOVERNATO DA HUBBLE (P-164 · D-112; ridisegno del 6 settembre
+// 2026). Le voci vivono in un registro condiviso sullo stesso dominio
+// (byup_tipologie_articolo) che Hubble scrive in Piattaforma → «Aliquote degli
+// articoli» e il gestionale LEGGE: ogni voce ha un nome, una descrizione,
+// un'aliquota per il consumo sul posto e una da asporto. Niente altro nel
+// prototipo: i fondamenti di legge stanno nei documenti. Se la legge cambia,
+// l'operatore cambia i numeri o divide una voce — un giorno il pane sta al 4%,
+// un altro è una voce a sé — e i nomi di prima (PN_TIPOLOGIE_ARTICOLO,
+// PN_TIPOLOGIA_DEFAULT, pnTipologia…) leggono dal registro, così chi crea un
+// articolo propone queste voci, in quest'ordine, con questa descrizione.
+// Sulla riga d'ordine si congela il profilo risolto da voce × modo
+// (vat_rate_profiles): cambia il numero, cambia il profilo, e la riga scritta
+// prima resta col suo. Quello che qui sotto è una costante è il SEME.
 const PN_TIPOLOGIE_SEME = [
-  { id: 'piatti_preparati', ordine: 1, label: 'Piatti, panini, caffè, dolci e pasticceria',
-    spiegazione: 'Quello che il locale prepara o serve.',
-    locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_preparato_10' }, valida_dal: '2026-01-01', valida_al: null },
-  { id: 'acqua_birra', ordine: 2, label: 'Acqua e birra',
-    spiegazione: 'Anche in bottiglia o lattina sigillata.',
-    locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_acqua_birra_10' }, valida_dal: '2026-01-01', valida_al: null },
-  { id: 'bibite_alcolici_confezionati', ordine: 3, label: 'Bibite, vino, alcolici, dolciumi confezionati',
-    spiegazione: 'Bibite gassate, vino, superalcolici, cioccolato e dolciumi in confezione.',
-    locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_confezionato_22' }, valida_dal: '2026-01-01', valida_al: null },
-  { id: 'alimentari_base', ordine: 4, label: 'Pane, pasta, latte, formaggi, frutta e verdura',
-    spiegazione: 'Alimentari di base venduti così come sono: pane comune senza zuccheri, miele, uova o formaggio; latte fresco non concentrato né zuccherato; frutta e ortaggi freschi o surgelati. Non ci stanno dolci da forno, latte zuccherato, frutta e verdura conservate o candite, che da asporto vanno al 10%.',
-    locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_alimentari_base_4' }, valida_dal: '2026-01-01', valida_al: null },
-  { id: 'non_alimentari', ordine: 5, label: 'Oggetti non alimentari',
-    spiegazione: 'Gadget, tazze, magliette e tutto ciò che non si mangia né si beve.',
-    locale: { profilo: 'cessione_generica_22' }, asporto: { profilo: 'cessione_generica_22' }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'piatti_preparati', ordine: 1, label: 'Piatti, panini, caffè, dolci e pasticceria', spiegazione: 'Quello che il locale prepara o serve.', locale: { aliquota: 10 }, asporto: { aliquota: 10 }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'acqua_birra', ordine: 2, label: 'Acqua e birra', spiegazione: 'Anche in bottiglia o lattina sigillata.', locale: { aliquota: 10 }, asporto: { aliquota: 10 }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'bibite_alcolici_confezionati', ordine: 3, label: 'Bibite, vino, alcolici, dolciumi confezionati', spiegazione: 'Bibite gassate, vino, superalcolici, cioccolato e dolciumi in confezione.', locale: { aliquota: 10 }, asporto: { aliquota: 22 }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'alimentari_base', ordine: 4, label: 'Pane, pasta, latte, formaggi, frutta e verdura', spiegazione: 'Alimentari di base venduti così come sono: pane comune, latte fresco, frutta e ortaggi freschi o surgelati. Non ci stanno dolci da forno, latte zuccherato, frutta e verdura conservate o candite.', locale: { aliquota: 10 }, asporto: { aliquota: 4 }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'non_alimentari', ordine: 5, label: 'Oggetti non alimentari', spiegazione: 'Gadget, tazze, magliette e tutto ciò che non si mangia né si beve.', locale: { aliquota: 22 }, asporto: { aliquota: 22 }, valida_dal: '2026-01-01', valida_al: null },
 ];
-const PN_MODALITA_TRATTAMENTO = {
-  somministrazione:     'Somministrazione (al banco o al tavolo)',
-  asporto_preparato:    'Asporto di alimenti preparati',
-  asporto_confezionato: 'Asporto di alimenti confezionati',
-  cessione:             'Cessione di beni non alimentari',
-};
-window.PN_MODALITA_TRATTAMENTO = PN_MODALITA_TRATTAMENTO;
 const PN_TIPOLOGIE_KEY = 'byup_tipologie_articolo';
 const pnOggiIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const pnInVigore = (x, g) => (!x.valida_dal || x.valida_dal <= g) && (!x.valida_al || x.valida_al > g);
-window.byupReadTipologieRegistro = function () {
-  try { const s = localStorage.getItem(PN_TIPOLOGIE_KEY); if (s) { const v = JSON.parse(s); if (v && Array.isArray(v.tipologie) && Array.isArray(v.trattamenti)) return v; } } catch (e) {}
-  return { tipologie: PN_TIPOLOGIE_SEME, trattamenti: PN_TRATTAMENTI_SEME, versione: 0 };
+// Il numero di un lato. Le forme scritte prima del ridisegno (un trattamento
+// puntato, con un cambio programmato) si leggono ancora, risolte al numero.
+const pnLatoAliquota = (ref, trattamenti, g) => {
+  if (ref && ref.aliquota != null && isFinite(Number(ref.aliquota))) return Number(ref.aliquota);
+  const profilo = ref && ref.prossimo && ref.prossimo.dal <= g ? ref.prossimo.profilo : (ref ? ref.profilo : null);
+  const t = (trattamenti || []).find(x => x.id === profilo);
+  return t && isFinite(Number(t.aliquota)) ? Number(t.aliquota) : 10;
 };
-window.pnTrattamenti = (tutti) => { const g = pnOggiIso(); return window.byupReadTipologieRegistro().trattamenti.filter(t => tutti || pnInVigore(t, g)); };
-// Le tipologie in vigore oggi, nell'ordine di Hubble, con i due trattamenti
-// RISOLTI alla data: un cambio di trattamento programmato («da quando») vale
-// dalla mezzanotte scelta, prima resta quello di oggi.
+window.byupReadTipologieRegistro = function () {
+  try {
+    const s = localStorage.getItem(PN_TIPOLOGIE_KEY);
+    if (s) { const v = JSON.parse(s); if (v && Array.isArray(v.tipologie)) {
+      const g = pnOggiIso();
+      return { versione: v.versione || 0, tipologie: v.tipologie.map(t => ({ ...t, locale: { aliquota: pnLatoAliquota(t.locale, v.trattamenti, g) }, asporto: { aliquota: pnLatoAliquota(t.asporto, v.trattamenti, g) } })) };
+    } }
+  } catch (e) {}
+  return { tipologie: PN_TIPOLOGIE_SEME, versione: 0 };
+};
+// Le voci in vigore oggi, nell'ordine di Hubble, con i due numeri e il
+// profilo che la riga d'ordine congela (voce × modo × aliquota).
 window.pnTipologie = function () {
   const g = pnOggiIso(); const reg = window.byupReadTipologieRegistro();
-  const tr = (id) => reg.trattamenti.find(t => t.id === id) || { id, aliquota: 10, fondamento: '—', modalita: 'somministrazione' };
-  const lato = (ref) => { const profilo = (ref && ref.prossimo && ref.prossimo.dal <= g) ? ref.prossimo.profilo : (ref ? ref.profilo : 'somministrazione_10'); const t = tr(profilo); return { profilo, aliquota: t.aliquota, fondamento: t.fondamento, modalita: t.modalita }; };
+  const lato = (t, k) => { const a = Number((t[k] || {}).aliquota); const al = isFinite(a) ? a : 10; return { aliquota: al, profilo: `${t.id}:${k}:${al}` }; };
   return reg.tipologie.filter(t => pnInVigore(t, g)).slice().sort((a, b) => (a.ordine || 0) - (b.ordine || 0))
-    .map(t => ({ ...t, locale: lato(t.locale), asporto: lato(t.asporto) }));
+    .map(t => ({ ...t, locale: lato(t, 'locale'), asporto: lato(t, 'asporto') }));
 };
 Object.defineProperty(window, 'PN_TIPOLOGIE_ARTICOLO', { get: () => window.pnTipologie(), configurable: true });
 Object.defineProperty(window, 'PN_TIPOLOGIA_DEFAULT', { get: () => (window.pnTipologie()[0] || {}).id, configurable: true });
-// La voce dal suo id; se manca o non esiste, la prima: un articolo senza
-// tipologia dichiarata è «quello che il locale prepara o serve».
+// La voce di un articolo, con la prima come riserva: per un articolo la cui
+// voce è stata tolta, o creato prima del registro, vale la prima.
 window.pnTipologia = (id) => { const l = window.pnTipologie(); return l.find(t => t.id === id) || l[0]; };
-// Il profilo che si congela sulla riga: tipologia × modo dell'ordine.
+// Il profilo che si congela sulla riga: voce × modo dell'ordine.
 window.pnTipologiaProfilo = (id, asporto) => { const t = window.pnTipologia(id); return asporto ? t.asporto : t.locale; };
 window.pnTipologiaAliquota = (id, asporto) => window.pnTipologiaProfilo(id, asporto).aliquota;
-// La spiegazione sotto il campo: le due aliquote e il fondamento, così chi
+// La spiegazione sotto il campo: la descrizione e i due numeri, così chi
 // batte vede l'effetto senza saperlo a memoria.
 window.pnTipologiaSpiegazione = (id) => {
   const t = window.pnTipologia(id);
-  const unica = t.locale.aliquota === t.asporto.aliquota && t.locale.fondamento === t.asporto.fondamento;
-  return unica
-    ? `${t.spiegazione} ${t.locale.aliquota}% in ogni caso (${t.locale.fondamento})`
-    : `${t.spiegazione} Al banco o al tavolo ${t.locale.aliquota}% · Da asporto ${t.asporto.aliquota}% (${t.locale.fondamento}; ${t.asporto.fondamento})`;
+  return t.locale.aliquota === t.asporto.aliquota
+    ? `${t.spiegazione} IVA ${t.locale.aliquota}% in ogni caso.`
+    : `${t.spiegazione} Al banco o al tavolo ${t.locale.aliquota}% · da asporto ${t.asporto.aliquota}%.`;
 };
-// La tipologia a partire da un profilo congelato (righe scritte prima): si
-// cerca anche fra le tipologie ritirate, perché una riga vecchia le indica.
+// La voce a partire da un profilo congelato (righe scritte prima): si cerca
+// anche fra le voci tolte, perché una riga vecchia le indica.
 window.pnTipologiaDiProfilo = (profiloId) => {
-  const tutte = window.byupReadTipologieRegistro().tipologie;
-  return tutte.find(t => (t.locale && t.locale.profilo === profiloId) || (t.asporto && t.asporto.profilo === profiloId)) || null;
+  const id = String(profiloId || '').split(':')[0];
+  return window.byupReadTipologieRegistro().tipologie.find(t => t.id === id) || null;
 };
 
 const PN_PARTNER = {

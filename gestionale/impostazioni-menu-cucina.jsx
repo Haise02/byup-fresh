@@ -3977,8 +3977,8 @@ function MCDettagliPiatto({
 
             {/* P-108 (D-105): la tipologia dell'articolo, dopo il prezzo. Le
                 stesse cinque voci della cassa, la stessa spiegazione sotto
-                con le due aliquote e il fondamento: chi compila dichiara che
-                cosa vende, l'IVA la fissa la legge. */}
+                con le due aliquote: chi compila dichiara che cosa vende,
+                l'IVA la fissa la legge. */}
             {/* La tendina è la nostra (NMSelect), come le altre della pagina:
                 quella di sistema apriva la sua lista, con la sua tipografia e
                 la sua evidenziazione, dentro un pannello che parla un'altra
@@ -5990,8 +5990,8 @@ function DishEditModal({ dish, catName, fromLibrary, onClose, onSave, onDelete, 
             {/* riga 1b — la tipologia dell'articolo (P-108 · D-105), dopo il
                 prezzo e prima della categoria del menù. Le stesse cinque voci
                 della cassa, la prima proposta, la spiegazione sotto con le
-                due aliquote e il fondamento: chi compila dichiara che cosa
-                vende, l'IVA della riga d'ordine la fissa la legge. */}
+                due aliquote: chi compila dichiara che cosa vende, l'IVA
+                della riga d'ordine la fissa la legge. */}
             <div style={{display:'flex', gap:12, alignItems:'flex-start', flexWrap:'wrap'}}>
               <div style={{flex:'1 1 320px', minWidth:0}}>
                 <ImpField label="Tipologia articolo" hint={window.pnTipologiaSpiegazione ? window.pnTipologiaSpiegazione(tipologiaArticolo) : ''}>

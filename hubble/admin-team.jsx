@@ -505,131 +505,62 @@ function InvitiPending() {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════════════
-// ALIQUOTE DEGLI ARTICOLI (P-164 · D-112 e il suo emendamento)
-// ═══════════════════════════════════════════════════════════════════════════
-// Le tipologie dell'articolo (item_kinds) con i loro trattamenti IVA
-// (vat_rate_profiles): l'unico dizionario che il modello dice governato da
-// Hubble. Il registro è condiviso sullo stesso dominio (byup_tipologie_articolo)
-// e il gestionale lo LEGGE quando si crea un articolo o si batte un fuori
-// menù: le tipologie proposte sono queste, in quest'ordine, con questa
-// spiegazione. Regole: etichetta, spiegazione e ordine valgono subito (sono
-// parole); il trattamento puntato si cambia con una data, perché sposta
-// l'aliquota su ogni cassa; un trattamento in vigore NON si modifica — si
-// chiude la sua vigenza e se ne apre uno nuovo — perché la riga d'ordine ha
-// congelato il profilo risolto e i documenti già emessi restano leggibili col
-// diritto del loro tempo. Tutto riservato al Super Admin, con conferma
-// esplicita e traccia in audit (chi, quando, che cosa, da quando). I semi sono
-// la copia guardata di panoramica-tokens.jsx (altro bundle).
-const HUB_TRATTAMENTI_SEME = [
-  { id: 'somministrazione_10',       aliquota: 10, modalita: 'somministrazione',    fondamento: 'voce 121',              citazione: 'Tab. A parte III n. 121 DPR 633/1972: somministrazione di alimenti e bevande, al banco o al tavolo', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'asporto_preparato_10',      aliquota: 10, modalita: 'asporto_preparato',   fondamento: 'L. 178/2020 e voce 80', citazione: 'L. 178/2020 art. 1 co. 40, che interpreta il n. 80 della Tab. A parte III: piatti pronti e pasti preparati, anche da asporto', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'asporto_acqua_birra_10',    aliquota: 10, modalita: 'asporto_confezionato', fondamento: 'voci 81 e 82',         citazione: 'Tab. A parte III nn. 81 e 82 DPR 633/1972: acqua e birra, anche in bottiglia o lattina', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'asporto_confezionato_22',   aliquota: 22, modalita: 'asporto_confezionato', fondamento: 'aliquota ordinaria',   citazione: 'art. 16 DPR 633/1972: bibite, vino, superalcolici e dolciumi in confezione ceduti da asporto', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'asporto_alimentari_base_4', aliquota: 4,  modalita: 'asporto_confezionato', fondamento: 'Tabella A parte II',   citazione: 'Tab. A parte II nn. 3, 5, 6, 8, 15 DPR 633/1972: latte fresco non concentrato né zuccherato, frutta e ortaggi freschi o surgelati, pane comune', valida_dal: '2026-01-01', valida_al: null },
-  { id: 'cessione_generica_22',              aliquota: 22, modalita: 'cessione',            fondamento: 'aliquota ordinaria',    citazione: 'art. 16 DPR 633/1972: cessione di beni non alimentari', valida_dal: '2026-01-01', valida_al: null },
-];
+// ─── Aliquote degli articoli (P-164 · D-112; ridisegno del 6 settembre 2026) ─
+// Le voci che il ristoratore sceglie creando un articolo: un nome, una
+// descrizione, un'aliquota per il consumo sul posto e una da asporto. Si
+// aggiungono, si modificano, si tolgono, si dividono. Nome, descrizione e
+// ordine valgono subito nel gestionale, e i numeri anche: la riga d'ordine
+// congela il profilo risolto quando nasce e non lo rilegge. Qui non c'è un
+// fondamento di legge: sta nei documenti. Se la legge cambia, l'operatore
+// cambia i numeri o divide una voce — un giorno il pane sta al 4%, un altro è
+// una voce a sé. Registro condiviso sullo stesso dominio
+// (byup_tipologie_articolo), che il gestionale legge; le forme scritte prima
+// del ridisegno (trattamenti puntati) si leggono ancora, risolte al numero. I
+// semi sono la copia guardata di panoramica-tokens.jsx (altro bundle). Tutto
+// riservato al Super Admin, con traccia in audit.
 const HUB_TIPOLOGIE_SEME = [
-  { id: 'piatti_preparati', ordine: 1, label: 'Piatti, panini, caffè, dolci e pasticceria', spiegazione: 'Quello che il locale prepara o serve.', locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_preparato_10' }, valida_dal: '2026-01-01', valida_al: null },
-  { id: 'acqua_birra', ordine: 2, label: 'Acqua e birra', spiegazione: 'Anche in bottiglia o lattina sigillata.', locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_acqua_birra_10' }, valida_dal: '2026-01-01', valida_al: null },
-  { id: 'bibite_alcolici_confezionati', ordine: 3, label: 'Bibite, vino, alcolici, dolciumi confezionati', spiegazione: 'Bibite gassate, vino, superalcolici, cioccolato e dolciumi in confezione.', locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_confezionato_22' }, valida_dal: '2026-01-01', valida_al: null },
-  { id: 'alimentari_base', ordine: 4, label: 'Pane, pasta, latte, formaggi, frutta e verdura', spiegazione: 'Alimentari di base venduti così come sono: pane comune senza zuccheri, miele, uova o formaggio; latte fresco non concentrato né zuccherato; frutta e ortaggi freschi o surgelati. Non ci stanno dolci da forno, latte zuccherato, frutta e verdura conservate o candite, che da asporto vanno al 10%.', locale: { profilo: 'somministrazione_10' }, asporto: { profilo: 'asporto_alimentari_base_4' }, valida_dal: '2026-01-01', valida_al: null },
-  { id: 'non_alimentari', ordine: 5, label: 'Oggetti non alimentari', spiegazione: 'Gadget, tazze, magliette e tutto ciò che non si mangia né si beve.', locale: { profilo: 'cessione_generica_22' }, asporto: { profilo: 'cessione_generica_22' }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'piatti_preparati', ordine: 1, label: 'Piatti, panini, caffè, dolci e pasticceria', spiegazione: 'Quello che il locale prepara o serve.', locale: { aliquota: 10 }, asporto: { aliquota: 10 }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'acqua_birra', ordine: 2, label: 'Acqua e birra', spiegazione: 'Anche in bottiglia o lattina sigillata.', locale: { aliquota: 10 }, asporto: { aliquota: 10 }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'bibite_alcolici_confezionati', ordine: 3, label: 'Bibite, vino, alcolici, dolciumi confezionati', spiegazione: 'Bibite gassate, vino, superalcolici, cioccolato e dolciumi in confezione.', locale: { aliquota: 10 }, asporto: { aliquota: 22 }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'alimentari_base', ordine: 4, label: 'Pane, pasta, latte, formaggi, frutta e verdura', spiegazione: 'Alimentari di base venduti così come sono: pane comune, latte fresco, frutta e ortaggi freschi o surgelati. Non ci stanno dolci da forno, latte zuccherato, frutta e verdura conservate o candite.', locale: { aliquota: 10 }, asporto: { aliquota: 4 }, valida_dal: '2026-01-01', valida_al: null },
+  { id: 'non_alimentari', ordine: 5, label: 'Oggetti non alimentari', spiegazione: 'Gadget, tazze, magliette e tutto ciò che non si mangia né si beve.', locale: { aliquota: 22 }, asporto: { aliquota: 22 }, valida_dal: '2026-01-01', valida_al: null },
 ];
-const HUB_MODALITA_TRATTAMENTO = {
-  somministrazione: 'Somministrazione (al banco o al tavolo)', asporto_preparato: 'Asporto di alimenti preparati',
-  asporto_confezionato: 'Asporto di alimenti confezionati', cessione: 'Cessione di beni non alimentari',
-};
 const HUB_TIPOLOGIE_KEY = 'byup_tipologie_articolo';
 const hubOggiIso = (piu) => { const d = new Date(); d.setDate(d.getDate() + (piu || 0)); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const hubInVigore = (x, g) => (!x.valida_dal || x.valida_dal <= g) && (!x.valida_al || x.valida_al > g);
+const hubLatoAliquota = (ref, trattamenti, g) => {
+  if (ref && ref.aliquota != null && isFinite(Number(ref.aliquota))) return Number(ref.aliquota);
+  const profilo = ref && ref.prossimo && ref.prossimo.dal <= g ? ref.prossimo.profilo : (ref ? ref.profilo : null);
+  const t = (trattamenti || []).find(x => x.id === profilo);
+  return t && isFinite(Number(t.aliquota)) ? Number(t.aliquota) : 10;
+};
 function hubTipologieRegistro() {
-  try { const s = localStorage.getItem(HUB_TIPOLOGIE_KEY); if (s) { const v = JSON.parse(s); if (v && Array.isArray(v.tipologie) && Array.isArray(v.trattamenti)) return v; } } catch (e) {}
-  return { tipologie: HUB_TIPOLOGIE_SEME.map(t => ({ ...t, locale: { ...t.locale }, asporto: { ...t.asporto } })), trattamenti: HUB_TRATTAMENTI_SEME.map(t => ({ ...t })), versione: 0 };
+  try {
+    const s = localStorage.getItem(HUB_TIPOLOGIE_KEY);
+    if (s) { const v = JSON.parse(s); if (v && Array.isArray(v.tipologie)) {
+      const g = hubOggiIso(0);
+      return { versione: v.versione || 0, aggiornato: v.aggiornato, tipologie: v.tipologie.map(t => ({ ...t, locale: { aliquota: hubLatoAliquota(t.locale, v.trattamenti, g) }, asporto: { aliquota: hubLatoAliquota(t.asporto, v.trattamenti, g) } })) };
+    } }
+  } catch (e) {}
+  return { tipologie: HUB_TIPOLOGIE_SEME.map(t => ({ ...t, locale: { ...t.locale }, asporto: { ...t.asporto } })), versione: 0 };
 }
-function hubTipologieScrivi(reg, action, target, daQuando) {
+function hubTipologieScrivi(reg, action, target) {
   const nuovo = { ...reg, versione: (reg.versione || 0) + 1, aggiornato: new Date().toISOString() };
   try { localStorage.setItem(HUB_TIPOLOGIE_KEY, JSON.stringify(nuovo)); } catch (e) {}
   try { window.dispatchEvent(new Event('byup-tipologie-change')); } catch (e) {}
   const me = hubUtenteCorrente();
-  if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action, target: `${target}${daQuando ? ` · dal ${daQuando}` : ''}`, icon: 'tag', color: 'INFO', tipo: 'piattaforma', when: new Date() });
+  if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action, target, icon: 'tag', color: 'INFO', tipo: 'piattaforma', when: new Date() });
   return nuovo;
 }
 window.hubTipologieRegistro = hubTipologieRegistro;
 
-// ─── Aliquote degli articoli: la vista (ridisegno del 6 settembre 2026) ──────
-// Prima era un foglio di calcolo: campi, tendine e aree di testo accesi su
-// ogni riga, una seconda tabella dei trattamenti sotto, un banner di regole in
-// testa. Ora è una LISTA DI CARD che si legge, e DUE DIMENSIONI che si
-// modificano separatamente, perché sono due cose diverse:
-//   · le PAROLE della tipologia — etichetta, spiegazione, ordine — valgono
-//     subito e si cambiano dal pannello «Modifica»;
-//   · le ALIQUOTE — sul posto, da asporto — cambiano nel tempo perché cambia
-//     la legge, non perché si riscrive una spiegazione: si toccano dal loro
-//     chip, ognuna con la propria cronologia (com'era, com'è, come sarà) e con
-//     «Nuova aliquota da una data», che sceglie un trattamento in vigore o ne
-//     apre uno nuovo — aliquota, modalità, fondamento — senza mai riscrivere
-//     quello di oggi, così i documenti già emessi restano leggibili col
-//     diritto del loro tempo (D-112).
-// La sezione «Trattamenti IVA» non c'è più: i trattamenti restano nel
-// registro e nascono dal chip, quando servono. Le regole stanno in una «i».
-// Ogni lato porta `profilo` (oggi), `dal`, `prossimo` (il cambio programmato,
-// uno per volta: il gestionale lo risolve per data) e `storico` (i profili
-// passati, con dal e al); quando la data del programmato arriva, il registro
-// lo promuove a oggi e sposta il vecchio nello storico.
-const hubAliquotaFmt = (iso) => iso ? new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-function hubTipologieNormalizza(reg) {
-  const g = hubOggiIso(0); let cambiato = false;
-  const tipologie = reg.tipologie.map(t => {
-    const n = { ...t };
-    ['locale', 'asporto'].forEach(k => {
-      const l = n[k];
-      if (l && l.prossimo && l.prossimo.dal <= g) {
-        n[k] = { profilo: l.prossimo.profilo, dal: l.prossimo.dal, storico: [...(l.storico || []), { profilo: l.profilo, dal: l.dal || t.valida_dal || null, al: l.prossimo.dal }] };
-        cambiato = true;
-      }
-    });
-    return n;
-  });
-  if (!cambiato) return reg;
-  const nuovo = { ...reg, tipologie, versione: (reg.versione || 0) + 1, aggiornato: new Date().toISOString() };
-  try { localStorage.setItem(HUB_TIPOLOGIE_KEY, JSON.stringify(nuovo)); } catch (e) {}
-  return nuovo;
-}
-// La cronologia di un lato: i profili passati, quello di oggi, il programmato.
-function hubAliquotaCronologia(t, k) {
-  const l = t[k] || {};
-  return [
-    ...(l.storico || []).map(s => ({ ...s, stato: 'passata' })),
-    { profilo: l.profilo, dal: l.dal || t.valida_dal || null, al: l.prossimo ? l.prossimo.dal : null, stato: 'oggi' },
-    ...(l.prossimo ? [{ profilo: l.prossimo.profilo, dal: l.prossimo.dal, al: null, stato: 'programmata' }] : []),
-  ];
-}
-
-// Il chip dell'aliquota: il numero grande, il fondamento e la modalità
-// accanto, «dal quando»; se c'è un cambio programmato, la pillola ambra. Per
-// il Super Admin è un pulsante: apre la cronologia e il cambio.
-function HubAliquotaFatto({ etichetta, t, k, tr, onApri }) {
-  const lato = t[k];
-  const cur = tr(lato.profilo);
-  const pross = lato.prossimo ? tr(lato.prossimo.profilo) : null;
-  const passate = (lato.storico || []).length;
-  const Tag = onApri ? 'button' : 'div';
+// Il chip di un numero: l'etichetta piccola e l'aliquota grande. Nient'altro.
+function HubAliquotaChip({ etichetta, aliquota }) {
   return (
-    <Tag type={onApri ? 'button' : undefined} onClick={onApri} data-fatto={k} className={onApri ? 'hub-card' : undefined} title={onApri ? 'Cronologia e cambio da una data' : undefined}
-      style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 13px 9px 12px', borderRadius:11, border:`1px solid ${ADM.BORDER}`, background:'#fff', minWidth:0, textAlign:'left', fontFamily:'inherit', cursor: onApri ? 'pointer' : 'default' }}>
-      <div style={{ flexShrink:0 }}>
-        <div style={{ fontSize:10.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT }}>{etichetta}</div>
-        <div style={{ fontSize:22, fontWeight:800, letterSpacing:'-0.03em', lineHeight:1.05, color:ADM.TEXT, marginTop:2, fontVariantNumeric:'tabular-nums' }}>{cur.aliquota}%</div>
-      </div>
-      <div style={{ borderLeft:`1px solid ${ADM.BORDER_SOFT}`, paddingLeft:12, fontSize:12, color:ADM.MUTED, lineHeight:1.4, minWidth:0 }}>
-        <div style={{ color:ADM.TEXT, fontWeight:700 }}>{cur.fondamento}</div>
-        <div style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{HUB_MODALITA_TRATTAMENTO[cur.modalita] || ''}</div>
-        <div style={{ fontSize:11.2, color:ADM.MUTED_SOFT }}>dal {hubAliquotaFmt(lato.dal || t.valida_dal)}{passate ? ` · prima ${passate === 1 ? 'un\'altra' : passate + ' altre'}` : ''}</div>
-      </div>
-      {pross && <HubPillola color="WARN" size="sm">dal {hubAliquotaFmt(lato.prossimo.dal)} → {pross.aliquota}%</HubPillola>}
-      {onApri && <span style={{ color:ADM.MUTED_LIGHT, display:'grid', placeItems:'center', marginLeft:2 }}><BuIcons.pencil size={13}/></span>}
-    </Tag>
+    <div data-fatto={etichetta} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 14px 8px 12px', borderRadius:11, border:`1px solid ${ADM.BORDER}`, background:'#fff' }}>
+      <div style={{ fontSize:10.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT, lineHeight:1.2, maxWidth:64 }}>{etichetta}</div>
+      <div style={{ fontSize:22, fontWeight:800, letterSpacing:'-0.03em', lineHeight:1, color:ADM.TEXT, fontVariantNumeric:'tabular-nums' }}>{aliquota}%</div>
+    </div>
   );
 }
 
@@ -637,86 +568,70 @@ function HubAliquoteArticoli() {
   const [, ridisegna] = useStateTeam(0);
   const me = hubUtenteCorrente();
   const puo = me.ruolo === 'super_admin';
-  const reg = hubTipologieNormalizza(hubTipologieRegistro());
-  const oggi = hubOggiIso(0), domani = hubOggiIso(1);
-  const trVivi = reg.trattamenti.filter(t => hubInVigore(t, oggi));
-  const tr = (id) => reg.trattamenti.find(t => t.id === id) || { id, aliquota: '?', fondamento: '—', modalita: '' };
-  const tipVive = reg.tipologie.filter(t => hubInVigore(t, oggi)).slice().sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+  const reg = hubTipologieRegistro();
+  const oggi = hubOggiIso(0);
+  const voci = reg.tipologie.filter(t => hubInVigore(t, oggi)).slice().sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
+  // Gli articoli di menù che indicano una voce: il conteggio lo scrive il
+  // gestionale nel registro byup_tipologie_uso quando lo ha; qui si legge.
   const uso = (() => { try { return JSON.parse(localStorage.getItem('byup_tipologie_uso') || '{}') || {}; } catch (e) { return {}; } })();
-  const salva = (nuovo, action, target, daQuando) => { hubTipologieScrivi(nuovo, action, target, daQuando); ridisegna(x => x + 1); };
-  const optTr = trVivi.map(t => ({ value: t.id, label: `${t.aliquota}% · ${HUB_MODALITA_TRATTAMENTO[t.modalita] || t.modalita} · ${t.fondamento}` }));
-  const LATI = { locale: { tit: 'Sul posto', nota: 'al consumo al banco o al tavolo' }, asporto: { tit: 'Da asporto', nota: 'quando l\'articolo esce dal locale' } };
+  const salva = (nuovo, action, target) => { hubTipologieScrivi(nuovo, action, target); ridisegna(x => x + 1); };
 
-  // I due pannelli: le PAROLE di una tipologia (o una tipologia nuova), e
-  // l'ALIQUOTA di un lato con la sua cronologia.
+  // Il pannello: una voce in modifica, oppure una nuova. Quattro cose: nome,
+  // descrizione, i due numeri. In fondo, «Togli la voce…».
   const [pan, setPan] = useStateTeam(null);
-  const apriParole = (t) => setPan({ modo: 'parole', id: t.id, label: t.label, spiegazione: t.spiegazione, ritiro: null });
-  const apriNuova = () => setPan({ modo: 'parole', id: null, label: '', spiegazione: '', locale: trVivi[0] ? trVivi[0].id : '', asporto: trVivi[0] ? trVivi[0].id : '', dal: domani, ritiro: null });
-  const apriAliquota = (t, k) => setPan({ modo: 'aliquota', id: t.id, lato: k, scelta: '', nuovo: { aliquota: '', modalita: k === 'locale' ? 'somministrazione' : 'asporto_preparato', fondamento: '', citazione: '' }, dal: domani });
+  const apri = (t) => setPan({ id: t.id, label: t.label, spiegazione: t.spiegazione, locale: String(t.locale.aliquota), asporto: String(t.asporto.aliquota), togli: null });
+  const nuova = () => setPan({ id: null, label: '', spiegazione: '', locale: '10', asporto: '10', togli: null });
   const set = (k, v) => setPan(p => ({ ...p, [k]: v }));
   const originale = pan && pan.id ? reg.tipologie.find(x => x.id === pan.id) : null;
+  const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) && n >= 0 && n <= 100 ? n : null; };
+  const valido = !!pan && pan.label.trim().length > 1 && pan.spiegazione.trim().length > 1 && num(pan.locale) != null && num(pan.asporto) != null;
 
   const sposta = (t, verso) => {
-    const idx = tipVive.findIndex(x => x.id === t.id); const j = idx + verso; if (j < 0 || j >= tipVive.length) return;
-    const ordine = tipVive.map(x => x.id); [ordine[idx], ordine[j]] = [ordine[j], ordine[idx]];
+    const idx = voci.findIndex(x => x.id === t.id); const j = idx + verso; if (j < 0 || j >= voci.length) return;
+    const ordine = voci.map(x => x.id); [ordine[idx], ordine[j]] = [ordine[j], ordine[idx]];
     const nuovo = { ...reg, tipologie: reg.tipologie.map(x => ordine.includes(x.id) ? { ...x, ordine: ordine.indexOf(x.id) + 1 } : x) };
-    salva(nuovo, 'ha riordinato le tipologie', `${t.label} ${verso < 0 ? 'sale' : 'scende'} · prima proposta: ${(reg.tipologie.find(x => x.id === ordine[0]) || {}).label}`);
+    salva(nuovo, 'ha riordinato le voci degli articoli', `${t.label} ${verso < 0 ? 'sale' : 'scende'} · prima proposta: ${(reg.tipologie.find(x => x.id === ordine[0]) || {}).label}`);
   };
-
-  // ── Le parole ──
-  const paroleValide = !!pan && pan.modo === 'parole' && pan.label.trim().length > 1 && pan.spiegazione.trim().length > 3 && (pan.id || (!!pan.locale && !!pan.asporto && !!pan.dal));
-  const salvaParole = () => {
-    if (!paroleValide) return;
-    const lab = pan.label.trim(), spi = pan.spiegazione.trim();
+  const salvaPannello = () => {
+    if (!valido) return;
+    const lab = pan.label.trim(), spi = pan.spiegazione.trim(), al = num(pan.locale), aa = num(pan.asporto);
     if (!pan.id) {
-      const id = lab.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || ('tipologia_' + Date.now());
-      const nuovo = { ...reg, tipologie: [...reg.tipologie, { id, ordine: tipVive.length + 1, label: lab, spiegazione: spi, locale: { profilo: pan.locale, dal: pan.dal }, asporto: { profilo: pan.asporto, dal: pan.dal }, valida_dal: pan.dal, valida_al: null }] };
-      salva(nuovo, 'ha aggiunto una tipologia', `${lab} · ${pan.locale} / ${pan.asporto}`, pan.dal);
-    } else if (lab !== originale.label || spi !== originale.spiegazione) {
-      const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === originale.id ? { ...x, label: lab, spiegazione: spi } : x) };
-      salva(nuovo, lab !== originale.label ? 'ha rinominato la tipologia' : 'ha riscritto la spiegazione della tipologia', `${originale.label} → ${(lab !== originale.label ? lab : spi).slice(0, 80)}`);
+      let id = lab.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) || ('voce_' + Date.now());
+      if (reg.tipologie.some(x => x.id === id)) id += '_' + Date.now().toString(36);
+      const nuovo = { ...reg, tipologie: [...reg.tipologie, { id, ordine: voci.length + 1, label: lab, spiegazione: spi, locale: { aliquota: al }, asporto: { aliquota: aa }, valida_dal: oggi, valida_al: null }] };
+      salva(nuovo, 'ha aggiunto una voce degli articoli', `${lab} · sul posto ${al}% · da asporto ${aa}%`);
+    } else {
+      const t = originale;
+      const cambiato = lab !== t.label || spi !== t.spiegazione || al !== t.locale.aliquota || aa !== t.asporto.aliquota;
+      if (cambiato) {
+        const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, label: lab, spiegazione: spi, locale: { aliquota: al }, asporto: { aliquota: aa } } : x) };
+        const cosa = [lab !== t.label ? `nome → ${lab}` : null, spi !== t.spiegazione ? 'descrizione' : null, al !== t.locale.aliquota ? `sul posto ${t.locale.aliquota}% → ${al}%` : null, aa !== t.asporto.aliquota ? `da asporto ${t.asporto.aliquota}% → ${aa}%` : null].filter(Boolean).join(' · ');
+        salva(nuovo, 'ha modificato una voce degli articoli', `${t.label} · ${cosa}`);
+      }
     }
     setPan(null);
   };
-  const ritira = () => {
-    const r = pan && pan.ritiro; if (!r || !r.dal || !r.verso || !originale) return;
-    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === originale.id ? { ...x, valida_al: r.dal, passata_a: r.verso } : x) };
-    salva(nuovo, 'ha ritirato una tipologia', `${originale.label} · gli articoli passano a ${(reg.tipologie.find(x => x.id === r.verso) || {}).label || r.verso}`, r.dal);
-    setPan(null);
-  };
-
-  // ── L'aliquota ──
-  const nuovoAl = pan && pan.modo === 'aliquota' ? parseFloat(String(pan.nuovo.aliquota).replace(',', '.')) : NaN;
-  const nuovoValido = !!pan && pan.scelta === '__nuovo' && isFinite(nuovoAl) && nuovoAl >= 0 && nuovoAl <= 100 && !!pan.nuovo.modalita && pan.nuovo.fondamento.trim().length > 1;
-  const aliquotaValida = !!pan && pan.modo === 'aliquota' && !!pan.dal && ((pan.scelta && pan.scelta !== '__nuovo' && pan.scelta !== originale[pan.lato].profilo) || nuovoValido);
-  const programma = () => {
-    if (!aliquotaValida) return;
-    let cur = reg; let profilo = pan.scelta;
-    if (pan.scelta === '__nuovo') {
-      profilo = `${pan.nuovo.modalita}_${String(nuovoAl).replace('.', '_')}_${pan.dal.replace(/-/g, '')}`;
-      cur = { ...cur, trattamenti: [...cur.trattamenti, { id: profilo, aliquota: nuovoAl, modalita: pan.nuovo.modalita, fondamento: pan.nuovo.fondamento.trim(), citazione: (pan.nuovo.citazione || '').trim(), valida_dal: pan.dal, valida_al: null }] };
-      cur = hubTipologieScrivi(cur, 'ha aperto un trattamento', `${profilo} · ${nuovoAl}% · ${HUB_MODALITA_TRATTAMENTO[pan.nuovo.modalita]} · ${pan.nuovo.fondamento.trim()}`, pan.dal);
-    }
-    const t = originale, k = pan.lato, l = t[k];
-    const nuovoLato = pan.dal <= oggi
-      ? { profilo, dal: pan.dal, storico: [...(l.storico || []), { profilo: l.profilo, dal: l.dal || t.valida_dal || null, al: pan.dal }] }
-      : { ...l, prossimo: { profilo, dal: pan.dal } };
-    cur = { ...cur, tipologie: cur.tipologie.map(x => x.id === t.id ? { ...x, [k]: nuovoLato } : x) };
-    hubTipologieScrivi(cur, 'ha cambiato il trattamento di una tipologia', `${t.label} · ${k === 'locale' ? 'al consumo sul posto' : 'da asporto'} → ${profilo} (${tr(profilo).aliquota || nuovoAl}%)`, pan.dal);
-    ridisegna(x => x + 1); setPan(null);
-  };
-  const annullaProgrammato = () => {
-    const t = originale, k = pan.lato; const l = { ...t[k] }; if (!l.prossimo) return;
-    const era = l.prossimo; delete l.prossimo;
-    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === t.id ? { ...x, [k]: l } : x) };
-    salva(nuovo, 'ha annullato un cambio di trattamento programmato', `${t.label} · ${k === 'locale' ? 'al consumo sul posto' : 'da asporto'} · era ${era.profilo} dal ${era.dal}`);
+  const togli = () => {
+    const r = pan && pan.togli; if (!r || !r.verso || !originale) return;
+    const nuovo = { ...reg, tipologie: reg.tipologie.map(x => x.id === originale.id ? { ...x, valida_al: oggi, passata_a: r.verso } : x) };
+    salva(nuovo, 'ha tolto una voce degli articoli', `${originale.label} · gli articoli passano a ${(reg.tipologie.find(x => x.id === r.verso) || {}).label || r.verso}`);
     setPan(null);
   };
 
   const H2 = { fontSize:11.5, fontWeight:800, letterSpacing:'0.08em', textTransform:'uppercase', color:ADM.MUTED_SOFT };
   const frecciaStile = (spenta) => ({ width:22, height:18, border:'none', background:'transparent', padding:0, cursor: spenta ? 'default' : 'pointer', color: spenta ? ADM.MUTED_LIGHT : ADM.MUTED, display:'grid', placeItems:'center' });
-  const campoStile = { width:'100%', padding:'9px 11px', borderRadius:9, border:`1px solid ${ADM.BORDER}`, fontFamily:'inherit', fontSize:13, color:ADM.TEXT, background:'#fff', boxSizing:'border-box' };
-  const linkStile = (colore) => ({ background:'transparent', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:600, color: colore || ADM.MUTED, textDecoration:'underline', textUnderlineOffset:3 });
+  const campoStile = { width:'100%', padding:'9px 11px', borderRadius:9, border:`1px solid ${ADM.BORDER}`, fontFamily:'inherit', fontSize:13.5, color:ADM.TEXT, background:'#fff', boxSizing:'border-box' };
+  const numeroCampo = (k, tit, nota) => (
+    <div style={{ padding:'12px 13px', borderRadius:12, border:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT }}>
+      <div style={{ fontSize:13.5, fontWeight:700, color:ADM.TEXT }}>{tit}</div>
+      <div style={{ fontSize:12, color:ADM.MUTED_SOFT, marginTop:1, marginBottom:8 }}>{nota}</div>
+      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <input type="number" min="0" max="100" step="1" data-aliquota={k} value={pan[k]} onChange={e => set(k, e.target.value)} style={{ ...campoStile, width:110, fontSize:20, fontWeight:800, textAlign:'right', fontVariantNumeric:'tabular-nums' }}/>
+        <span style={{ fontSize:18, fontWeight:800, color:ADM.MUTED }}>%</span>
+        {originale && num(pan[k]) != null && num(pan[k]) !== originale[k].aliquota && <HubPillola color="WARN" size="sm">oggi {originale[k].aliquota}%</HubPillola>}
+      </div>
+    </div>
+  );
 
   return (
     <div data-aliquote style={{ display:'flex', flexDirection:'column', gap:14 }}>
@@ -724,33 +639,26 @@ function HubAliquoteArticoli() {
         <div style={{ flex:1, minWidth:280 }}>
           <div style={{ fontSize:17, fontWeight:800, color:ADM.TEXT, letterSpacing:'-0.02em' }}>Aliquote degli articoli</div>
           <div style={{ fontSize:13.2, color:ADM.MUTED, marginTop:3, lineHeight:1.5, maxWidth:720 }}>
-            Le tipologie che il ristoratore sceglie creando un articolo, nell'ordine in cui il gestionale le propone. Le parole si cambiano da «Modifica»; le aliquote dal loro chip, da una data, con la cronologia.{' '}
-            {typeof DocInfo === 'function' && (
-              <DocInfo largo={390}>
-                <b>Etichetta, spiegazione e ordine valgono subito</b>: sono le parole che il ristoratore legge, e la prima tipologia è quella proposta a tutti.
-                <b> Le aliquote sono un'altra cosa</b>: cambiano nel tempo perché cambia la legge, si programmano da una data — spostano l'aliquota su ogni cassa dalla mezzanotte scelta — e non riscrivono mai quella di oggi, così i documenti già emessi restano leggibili col diritto del loro tempo (D-112). Ogni aliquota tiene la sua cronologia.
-                {' '}Registro condiviso con il gestionale: <span style={{ fontFamily:'ui-monospace,monospace' }}>byup_tipologie_articolo</span>, versione {reg.versione || 0}.
-              </DocInfo>
-            )}
+            Le voci che il ristoratore sceglie creando un articolo, nell'ordine in cui il gestionale le propone, con l'IVA al consumo sul posto e da asporto. Nome, descrizione e numeri valgono subito; se la legge cambia, cambi i numeri o dividi una voce.
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0, paddingTop:2 }}>
-          <HubPillola color="PLAN_FREE" size="sm">{tipVive.length} tipologie · {trVivi.length} trattamenti in vigore</HubPillola>
+          <HubPillola color="PLAN_FREE" size="sm">{voci.length} voci</HubPillola>
           {puo
-            ? <AdmButton variant="primary" size="sm" icon="plus" onClick={apriNuova}>Aggiungi tipologia</AdmButton>
+            ? <AdmButton variant="primary" size="sm" icon="plus" onClick={nuova}>Aggiungi voce</AdmButton>
             : <HubPillola color="WARN" size="sm">Sola lettura · modifica il Super Admin</HubPillola>}
         </div>
       </div>
 
       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-        {tipVive.map((t, i) => (
-          <div key={t.id} data-tipologia={t.id} style={{ background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14, boxShadow:ADM.CARD_SHADOW, padding:'15px 18px 15px 14px', display:'grid', gridTemplateColumns:'40px minmax(0,1fr) auto', gap:14, alignItems:'start' }}>
+        {voci.map((t, i) => (
+          <div key={t.id} data-tipologia={t.id} style={{ background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:14, boxShadow:ADM.CARD_SHADOW, padding:'15px 18px 15px 14px', display:'grid', gridTemplateColumns:'40px minmax(0,1fr) auto auto', gap:14, alignItems:'center' }}>
             <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
               <span style={{ width:32, height:32, borderRadius:10, background: i === 0 ? ADM.PINK_SOFT : ADM.PANEL_SOFT, border:`1px solid ${i === 0 ? ADM.PINK_HOVER : ADM.BORDER_SOFT}`, color: i === 0 ? ADM.PINK_DARK : ADM.TEXT, display:'grid', placeItems:'center', fontFamily:'ui-monospace,monospace', fontWeight:800, fontSize:13 }}>{i + 1}</span>
               {puo && (
                 <div style={{ display:'flex', flexDirection:'column', marginTop:2 }}>
                   <button title="Sale" disabled={i === 0} onClick={() => sposta(t, -1)} style={frecciaStile(i === 0)}><BuIcons.chevronUp size={13}/></button>
-                  <button title="Scende" disabled={i === tipVive.length - 1} onClick={() => sposta(t, 1)} style={frecciaStile(i === tipVive.length - 1)}><BuIcons.chevronDown size={13}/></button>
+                  <button title="Scende" disabled={i === voci.length - 1} onClick={() => sposta(t, 1)} style={frecciaStile(i === voci.length - 1)}><BuIcons.chevronDown size={13}/></button>
                 </div>
               )}
             </div>
@@ -758,160 +666,63 @@ function HubAliquoteArticoli() {
               <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                 <span style={{ fontSize:15.5, fontWeight:700, color:ADM.TEXT, letterSpacing:'-0.01em' }}>{t.label}</span>
                 {i === 0 && <HubPillola color="PINK" size="sm">Proposta a tutti</HubPillola>}
-                <span style={{ fontFamily:'ui-monospace,monospace', fontSize:11, color:ADM.MUTED_SOFT }}>{t.id}</span>
               </div>
               <div style={{ fontSize:13.2, color:ADM.MUTED, marginTop:4, lineHeight:1.5, maxWidth:640 }}>{t.spiegazione}</div>
-              <div style={{ display:'flex', gap:8, marginTop:12, flexWrap:'wrap', alignItems:'center' }}>
-                <HubAliquotaFatto etichetta="Sul posto" t={t} k="locale" tr={tr} onApri={puo ? () => apriAliquota(t, 'locale') : null}/>
-                <HubAliquotaFatto etichetta="Da asporto" t={t} k="asporto" tr={tr} onApri={puo ? () => apriAliquota(t, 'asporto') : null}/>
-                {uso[t.id] != null && <span style={{ fontSize:12, color:ADM.MUTED_SOFT, paddingLeft:4 }}>{uso[t.id]} articoli di menù la indicano</span>}
-              </div>
+              {uso[t.id] != null && <div style={{ fontSize:12, color:ADM.MUTED_SOFT, marginTop:6 }}>{uso[t.id]} articoli di menù la indicano</div>}
             </div>
-            <div style={{ paddingTop:2 }}>
-              {puo && <AdmButton variant="ghost" size="sm" icon="pencil" onClick={() => apriParole(t)}>Modifica</AdmButton>}
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <HubAliquotaChip etichetta="Sul posto" aliquota={t.locale.aliquota}/>
+              <HubAliquotaChip etichetta="Da asporto" aliquota={t.asporto.aliquota}/>
             </div>
+            <div>{puo && <AdmButton variant="ghost" size="sm" icon="pencil" onClick={() => apri(t)}>Modifica</AdmButton>}</div>
           </div>
         ))}
       </div>
       <div style={{ fontSize:12, color:ADM.MUTED_SOFT, lineHeight:1.5 }}>
-        Il gestionale legge queste tipologie, in quest'ordine, con questa spiegazione, e le aliquote risolte alla data. Un trattamento in vigore non si modifica: se ne apre uno nuovo, da una data.
+        Il gestionale legge queste voci, in quest'ordine, con questa descrizione e questi numeri. La riga d'ordine congela l'aliquota quando nasce: cambiare un numero vale per le righe nuove.
       </div>
 
-      {/* ── Il pannello delle parole ── */}
-      <HubPannello open={!!pan && pan.modo === 'parole'} onClose={() => setPan(null)} larghezza={460} icona="tag"
-        titolo={pan && pan.modo === 'parole' ? (pan.id ? originale.label : 'Nuova tipologia') : ''}
-        sotto={pan && pan.modo === 'parole' ? (pan.id ? 'Le parole che il ristoratore legge: valgono subito. Le aliquote si cambiano dal loro chip.' : 'Nasce in fondo all\'elenco, da una data; le aliquote poi si cambiano dal loro chip.') : ''}
-        footer={pan && pan.modo === 'parole' && (
+      <HubPannello open={!!pan} onClose={() => setPan(null)} larghezza={460} icona="tag"
+        titolo={pan ? (pan.id ? originale.label : 'Nuova voce') : ''}
+        sotto={pan ? (pan.id ? 'Nome, descrizione e i due numeri: valgono subito nel gestionale.' : 'Nasce in fondo all\'elenco; si sposta poi con le frecce.') : ''}
+        footer={pan && (
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            {pan.id && !pan.ritiro && <button onClick={() => set('ritiro', { verso: (tipVive.find(x => x.id !== pan.id) || {}).id || '', dal: domani })} style={linkStile(ADM.DANGER)}>Ritira la tipologia…</button>}
+            {pan.id && !pan.togli && voci.length > 1 && <button onClick={() => set('togli', { verso: (voci.find(x => x.id !== pan.id) || {}).id || '' })} style={{ background:'transparent', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit', fontSize:12.5, fontWeight:600, color:ADM.DANGER, textDecoration:'underline', textUnderlineOffset:3 }}>Togli la voce…</button>}
             <div style={{ flex:1 }}/>
             <AdmButton variant="secondary" size="sm" onClick={() => setPan(null)}>Annulla</AdmButton>
-            <AdmButton variant="primary" size="sm" icon="check" disabled={!paroleValide} onClick={salvaParole}>{pan.id ? 'Salva' : 'Aggiungi'}</AdmButton>
+            <AdmButton variant="primary" size="sm" icon="check" disabled={!valido} onClick={salvaPannello}>{pan.id ? 'Salva' : 'Aggiungi'}</AdmButton>
           </div>
         )}>
-        {pan && pan.modo === 'parole' && (
+        {pan && (
           <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
             <div>
-              <div style={{ ...H2, marginBottom:6 }}>Etichetta</div>
+              <div style={{ ...H2, marginBottom:6 }}>Nome</div>
               <HubInput valore={pan.label} onCambia={v => set('label', v)} placeholder="Come la legge il ristoratore" autoFocus/>
             </div>
             <div>
-              <div style={{ ...H2, marginBottom:6 }}>Spiegazione</div>
-              <HubArea valore={pan.spiegazione} onCambia={v => set('spiegazione', v)} righe={4} placeholder="Che cosa entra e che cosa cade fuori"/>
-              <div style={{ fontSize:12, color:ADM.MUTED_SOFT, marginTop:4 }}>Sta sotto l'etichetta quando il ristoratore crea un articolo.</div>
+              <div style={{ ...H2, marginBottom:6 }}>Descrizione</div>
+              <HubArea valore={pan.spiegazione} onCambia={v => set('spiegazione', v)} righe={4} placeholder="Che cosa ci sta, e che cosa no"/>
+              <div style={{ fontSize:12, color:ADM.MUTED_SOFT, marginTop:4 }}>Sta sotto il nome quando il ristoratore crea un articolo.</div>
             </div>
-            {!pan.id && (
-              <div style={{ padding:'12px 13px', borderRadius:12, border:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:10 }}>
-                <div style={{ fontSize:12.5, color:ADM.MUTED, lineHeight:1.45 }}>Le aliquote con cui nasce. Cambiarle dopo si fa dal chip, da una data.</div>
-                {['locale', 'asporto'].map(k => (
-                  <div key={k}>
-                    <div style={{ ...H2, marginBottom:6 }}>{LATI[k].tit}</div>
-                    <select value={pan[k]} onChange={e => set(k, e.target.value)} style={{ ...campoStile, cursor:'pointer' }}>
-                      {optTr.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  </div>
-                ))}
-                <div>
-                  <div style={{ ...H2, marginBottom:6 }}>Vale dal</div>
-                  <input type="date" min={domani} value={pan.dal} onChange={e => set('dal', e.target.value)} style={{ ...campoStile, width:180 }}/>
-                </div>
-              </div>
-            )}
-            {pan.id && (
-              <div style={{ fontSize:12.5, color:ADM.MUTED, lineHeight:1.5, padding:'10px 12px', borderRadius:10, background:ADM.PANEL_SOFT }}>
-                Le aliquote di questa tipologia — sul posto {tr(originale.locale.profilo).aliquota}%, da asporto {tr(originale.asporto.profilo).aliquota}% — non si toccano da qui: si cambiano dal loro chip, da una data, con la cronologia.
-              </div>
-            )}
-            {pan.ritiro && (
-              <div data-ritiro style={{ padding:'12px 13px', borderRadius:12, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40` }}>
-                <div style={{ fontSize:13.2, fontWeight:700, color:'#7F1D1D' }}>Ritirare la tipologia</div>
+            {numeroCampo('locale', 'Sul posto', 'IVA al consumo al banco o al tavolo')}
+            {numeroCampo('asporto', 'Da asporto', 'IVA quando l\'articolo esce dal locale')}
+            {pan.togli && (
+              <div data-togli style={{ padding:'12px 13px', borderRadius:12, background:ADM.DANGER_SOFT, border:`1px solid ${ADM.DANGER}40` }}>
+                <div style={{ fontSize:13.2, fontWeight:700, color:'#7F1D1D' }}>Togliere la voce</div>
                 <div style={{ fontSize:12.4, color:'#7F1D1D', marginTop:3, lineHeight:1.45 }}>
-                  Chiude la vigenza da una data. Articoli di menù che la indicano oggi: {uso[pan.id] != null ? uso[pan.id] : '— (il conteggio arriva dal gestionale)'}. A quale tipologia passano?
+                  Sparisce dalle scelte del gestionale. Articoli di menù che la indicano oggi: {uso[pan.id] != null ? uso[pan.id] : '— (il conteggio arriva dal gestionale)'}. A quale voce passano?
                 </div>
-                <select value={pan.ritiro.verso} onChange={e => set('ritiro', { ...pan.ritiro, verso: e.target.value })} style={{ ...campoStile, marginTop:8, cursor:'pointer' }}>
-                  {tipVive.filter(x => x.id !== pan.id).map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
+                <select value={pan.togli.verso} onChange={e => set('togli', { verso: e.target.value })} style={{ ...campoStile, marginTop:8, cursor:'pointer' }}>
+                  {voci.filter(x => x.id !== pan.id).map(x => <option key={x.id} value={x.id}>{x.label}</option>)}
                 </select>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8 }}>
-                  <input type="date" min={domani} value={pan.ritiro.dal} onChange={e => set('ritiro', { ...pan.ritiro, dal: e.target.value })} style={{ ...campoStile, width:160 }}/>
-                  <div style={{ flex:1 }}/>
-                  <AdmButton variant="ghost" size="sm" onClick={() => set('ritiro', null)}>Annulla</AdmButton>
-                  <AdmButton variant="danger" size="sm" icon="x" disabled={!pan.ritiro.verso || !pan.ritiro.dal} onClick={ritira}>Ritira</AdmButton>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:8, justifyContent:'flex-end' }}>
+                  <AdmButton variant="ghost" size="sm" onClick={() => set('togli', null)}>Annulla</AdmButton>
+                  <AdmButton variant="danger" size="sm" icon="x" disabled={!pan.togli.verso} onClick={togli}>Togli</AdmButton>
                 </div>
               </div>
             )}
           </div>
         )}
-      </HubPannello>
-
-      {/* ── Il pannello dell'aliquota: la cronologia e il cambio da una data ── */}
-      <HubPannello open={!!pan && pan.modo === 'aliquota'} onClose={() => setPan(null)} larghezza={500} icona="receipt" colore="WARN"
-        titolo={pan && pan.modo === 'aliquota' ? `${LATI[pan.lato].tit} · ${originale.label}` : ''}
-        sotto={pan && pan.modo === 'aliquota' ? 'L\'aliquota cambia da una data, mai riscrivendo quella di oggi: i documenti già emessi restano leggibili col diritto del loro tempo.' : ''}
-        footer={pan && pan.modo === 'aliquota' && (
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            {originale[pan.lato].prossimo && <button onClick={annullaProgrammato} style={linkStile(ADM.DANGER)}>Annulla il cambio programmato</button>}
-            <div style={{ flex:1 }}/>
-            <AdmButton variant="secondary" size="sm" onClick={() => setPan(null)}>Chiudi</AdmButton>
-            <AdmButton variant="primary" size="sm" icon="check" disabled={!aliquotaValida} onClick={programma}>{pan.dal <= oggi ? 'Applica' : 'Programma il cambio'}</AdmButton>
-          </div>
-        )}>
-        {pan && pan.modo === 'aliquota' && (() => {
-          const cron = hubAliquotaCronologia(originale, pan.lato);
-          return (
-            <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
-              <div>
-                <div style={{ ...H2, marginBottom:8 }}>Cronologia</div>
-                <div data-cronologia-aliquota style={{ position:'relative', paddingLeft:22 }}>
-                  <div style={{ position:'absolute', left:6, top:10, bottom:10, width:2, background:ADM.BORDER, borderRadius:2 }}/>
-                  {cron.map((c, i) => {
-                    const x = tr(c.profilo); const oggiSi = c.stato === 'oggi'; const prog = c.stato === 'programmata';
-                    return (
-                      <div key={i} data-stato={c.stato} style={{ position:'relative', marginBottom: i === cron.length - 1 ? 0 : 8 }}>
-                        <span style={{ position:'absolute', left:-21, top:13, width:12, height:12, borderRadius:'50%', boxSizing:'border-box', background: oggiSi ? ADM.PINK : '#fff', border:`2.5px solid ${oggiSi ? ADM.PINK : prog ? ADM.WARN : ADM.INK_SOFT}`, boxShadow: oggiSi ? `0 0 0 4px ${ADM.PINK_SOFT}` : 'none' }}/>
-                        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 12px', borderRadius:10, border:`1px solid ${oggiSi ? ADM.PINK_HOVER : prog ? '#F0DCB4' : ADM.BORDER}`, background: prog ? ADM.WARN_SOFT : '#fff', opacity: c.stato === 'passata' ? 0.7 : 1 }}>
-                          <span style={{ fontSize:18, fontWeight:800, letterSpacing:'-0.03em', color:ADM.TEXT, fontVariantNumeric:'tabular-nums', minWidth:46 }}>{x.aliquota}%</span>
-                          <span style={{ flex:1, minWidth:0, fontSize:12.2, color:ADM.MUTED, lineHeight:1.4 }}>
-                            <span style={{ color:ADM.TEXT, fontWeight:700 }}>{x.fondamento}</span> · {HUB_MODALITA_TRATTAMENTO[x.modalita] || x.modalita}
-                            <span style={{ display:'block', fontSize:11.5, color:ADM.MUTED_SOFT }}>{c.stato === 'passata' ? `dal ${hubAliquotaFmt(c.dal)} al ${hubAliquotaFmt(c.al)}` : c.stato === 'oggi' ? `dal ${hubAliquotaFmt(c.dal)}${c.al ? ` al ${hubAliquotaFmt(c.al)}` : ''}` : `dal ${hubAliquotaFmt(c.dal)}`}</span>
-                          </span>
-                          {oggiSi && <HubPillola color="PINK" size="sm" forte>Oggi</HubPillola>}
-                          {prog && <HubPillola color="WARN" size="sm">Programmata</HubPillola>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div style={{ padding:'13px 14px', borderRadius:12, border:`1px solid ${ADM.BORDER}`, background:ADM.PANEL_SOFT, display:'flex', flexDirection:'column', gap:10 }}>
-                <div>
-                  <div style={{ fontSize:13.5, fontWeight:700, color:ADM.TEXT }}>Nuova aliquota da una data</div>
-                  <div style={{ fontSize:12.2, color:ADM.MUTED, marginTop:2, lineHeight:1.45 }}>Un trattamento in vigore, oppure uno nuovo se la legge è cambiata: aliquota, modalità e fondamento. {originale[pan.lato].prossimo ? 'Sostituisce il cambio già programmato.' : ''}</div>
-                </div>
-                <select value={pan.scelta} onChange={e => set('scelta', e.target.value)} style={{ ...campoStile, cursor:'pointer' }}>
-                  <option value="">Scegli il trattamento…</option>
-                  {optTr.filter(o => o.value !== originale[pan.lato].profilo).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  <option value="__nuovo">Nuovo trattamento… (la legge è cambiata)</option>
-                </select>
-                {pan.scelta === '__nuovo' && (
-                  <div data-nuovo-trattamento style={{ display:'grid', gridTemplateColumns:'90px minmax(0,1fr)', gap:10 }}>
-                    <div><div style={{ ...H2, marginBottom:6 }}>Aliquota</div><input placeholder="%" value={pan.nuovo.aliquota} onChange={e => set('nuovo', { ...pan.nuovo, aliquota: e.target.value })} style={{ ...campoStile, fontVariantNumeric:'tabular-nums' }}/></div>
-                    <div><div style={{ ...H2, marginBottom:6 }}>Modalità</div>
-                      <select value={pan.nuovo.modalita} onChange={e => set('nuovo', { ...pan.nuovo, modalita: e.target.value })} style={{ ...campoStile, cursor:'pointer' }}>
-                        {Object.entries(HUB_MODALITA_TRATTAMENTO).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                      </select></div>
-                    <div style={{ gridColumn:'1 / -1' }}><div style={{ ...H2, marginBottom:6 }}>Fondamento</div><input placeholder="es. voce 121, L. 178/2020" value={pan.nuovo.fondamento} onChange={e => set('nuovo', { ...pan.nuovo, fondamento: e.target.value })} style={campoStile}/></div>
-                    <div style={{ gridColumn:'1 / -1' }}><div style={{ ...H2, marginBottom:6 }}>Citazione della norma</div><textarea rows={2} placeholder="Il testo o gli estremi che reggono l'aliquota" value={pan.nuovo.citazione} onChange={e => set('nuovo', { ...pan.nuovo, citazione: e.target.value })} style={{ ...campoStile, resize:'vertical', lineHeight:1.4 }}/></div>
-                  </div>
-                )}
-                <div style={{ padding:'9px 11px', borderRadius:9, background:ADM.WARN_SOFT, border:'1px solid #F0DCB4' }}>
-                  <div style={{ fontSize:12, color:'#7A4A0B', fontWeight:700, marginBottom:6 }}>Vale dal — sposta l'aliquota su ogni cassa dalla mezzanotte scelta.</div>
-                  <input type="date" min={domani} value={pan.dal} onChange={e => set('dal', e.target.value)} style={{ ...campoStile, width:170 }}/>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
       </HubPannello>
     </div>
   );

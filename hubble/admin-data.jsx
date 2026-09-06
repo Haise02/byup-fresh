@@ -2305,12 +2305,16 @@ function docPubblicaBozza(codice, dentroUnPacchetto) {
   if (!b || !d) return null;
   b.stato = 'pubblicata';
   b.pubblicata = new Date();
+  // Alla pubblicazione nasce la copia PDF/A della versione, con impronta e
+  // data: è quella che si esibisce. Il markdown resta la sorgente, l'HTML
+  // il testo che si accetta; il PDF/A è la resa d'archivio (6 settembre 2026).
+  b.copia = { formato: 'PDF/A-2b', generata: b.pubblicata };
   // Dentro un pacchetto l'atto a registro è uno solo: tre righe per un gesto
   // solo racconterebbero tre decisioni che non sono state prese.
   if (dentroUnPacchetto) return b;
   const me = hubUtenteCorrente();
   AUDIT_EVENTS.unshift({ who: me.nomeCompleto || me.nome, action: 'ha pubblicato una versione di',
-    target: `${d.codice} v${b.v} · efficace dal ${fmtDate(b.efficace)}${b.editoriale ? ' · correzione editoriale, nessun preavviso' : ''}${b.peggiorativa ? ' · peggiorativa' : ''}${b.nuovoConsenso ? ' · richiede nuovo consenso' : ''}`,
+    target: `${d.codice} v${b.v} · efficace dal ${fmtDate(b.efficace)}${b.editoriale ? ' · correzione editoriale, nessun preavviso' : ''}${b.peggiorativa ? ' · peggiorativa' : ''}${b.nuovoConsenso ? ' · richiede nuovo consenso' : ''} · copia PDF/A generata`,
     icon: 'filePdf', color: 'PURPLE', tipo: 'documento', when: b.pubblicata });
   return b;
 }

@@ -2264,37 +2264,72 @@ function ctrVersioneAllaData(codice, quando) {
   const passate = doc.versioni.filter(x => x.efficace.getTime() <= t);
   return passate.length ? passate[passate.length - 1] : doc.versioni[0];
 }
-// Lo scarico della copia archiviata. Nel prodotto è il file che sta in
-// `document_ref`; qui è un segnaposto che porta l'intestazione vera — codice,
-// versione, pubblicazione, efficacia, impronta — e lo dichiara nel corpo.
-// Il meccanismo è quello giusto: il giorno che l'archivio esiste, cambia la
-// sorgente e non la schermata.
-function ctrScaricaVersione(codice, v) {
+// La copia archiviata: un PDF/A della versione, generato alla pubblicazione
+// dal markdown depositato, con l'intestazione — codice, versione, date —
+// l'impronta SHA-256 nel piede di ogni pagina e il riferimento in archivio.
+// Il markdown resta la sorgente e l'HTML il testo che si accetta; il PDF/A è
+// la resa d'archivio che si esibisce, come fanno le piattaforme serie. Nel
+// prototipo la copia è una pagina di stampa fedele al formato, aperta a
+// parte: il giorno che l'archivio esiste cambia la sorgente, non la schermata.
+const ctrEsc = (x) => String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function ctrMarkdownSemplice(md) {
+  const righe = String(md || '').split(/\r?\n/); const out = []; let lista = false, par = [];
+  const chiudiPar = () => { if (par.length) { out.push(`<p>${ctrEsc(par.join(' '))}</p>`); par = []; } };
+  const chiudiLista = () => { if (lista) { out.push('</ul>'); lista = false; } };
+  righe.forEach(r => {
+    const h = /^(#{1,3})\s+(.*)$/.exec(r); const li = /^\s*[-*]\s+(.*)$/.exec(r);
+    if (h) { chiudiPar(); chiudiLista(); out.push(`<h${h[1].length + 1}>${ctrEsc(h[2])}</h${h[1].length + 1}>`); }
+    else if (li) { chiudiPar(); if (!lista) { out.push('<ul>'); lista = true; } out.push(`<li>${ctrEsc(li[1])}</li>`); }
+    else if (!r.trim()) { chiudiPar(); chiudiLista(); }
+    else par.push(r.trim());
+  });
+  chiudiPar(); chiudiLista(); return out.join('\n');
+}
+function ctrCopiaHtml(codice, v) {
   const doc = ctrDoc(codice);
   const ver = doc && doc.versioni ? doc.versioni.find(x => x.v === v) : null;
-  if (!doc || !ver) return false;
-  const testo = [
-    `${doc.nome} (${doc.codice}) — versione ${ver.v}`,
-    `Pubblicata il ${fmtDate(ver.pubblicata)} · efficace dal ${fmtDate(ver.efficace)}`,
-    `Impronta SHA-256: ${ctrImpronta(codice, v)}`,
-    `Riferimento in archivio: ${ctrRif(codice, v)}`,
-    '',
-    `Che cosa cambiava: ${ver.cambiamento || '—'}`,
-    '',
-    '— — —',
-    'PROTOTIPO. Questo file è un segnaposto: contiene l\'intestazione della',
-    'versione, non il testo depositato. Nel prodotto qui c\'è la copia',
-    'archiviata di QUESTA versione, immutabile, che è ciò che rende',
-    'dimostrabile a quale testo la persona abbia detto sì.',
-  ].join('\n');
-  const blob = new Blob([testo], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `${codice}-v${v}.txt`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  if (!doc || !ver) return null;
+  const impronta = ctrImpronta(codice, v);
+  const generata = ver.copia && ver.copia.generata ? new Date(ver.copia.generata) : ver.pubblicata;
+  const corpo = ver.testo ? ctrMarkdownSemplice(ver.testo)
+    : `<p class="nota">Nel prototipo il testo depositato di questa versione non è in archivio: la copia porta l'intestazione, l'impronta e la data. Nel prodotto qui c'è il testo integrale della versione, immutabile, cioè ciò che rende dimostrabile a quale testo la persona ha detto sì.</p>`;
+  return `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>${ctrEsc(codice)} v${ctrEsc(v)} · copia archiviata PDF/A</title>
+<style>
+  @page { size: A4; margin: 22mm 20mm 24mm; }
+  body { margin: 0; background: #EEF0F3; font-family: Georgia, 'Times New Roman', serif; color: #16181D; }
+  .pagina { width: 210mm; min-height: 297mm; margin: 24px auto; background: #fff; box-shadow: 0 8px 30px rgba(15,17,21,0.12); padding: 22mm 20mm 24mm; box-sizing: border-box; position: relative; }
+  .testata { border-bottom: 1px solid #16181D; padding-bottom: 10px; margin-bottom: 22px; font-family: -apple-system, Inter, system-ui, sans-serif; }
+  .testata .codice { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #6E6E73; }
+  .testata h1 { font-size: 22px; margin: 4px 0 6px; letter-spacing: -0.01em; }
+  .testata .meta { font-size: 12px; color: #31353D; line-height: 1.6; }
+  .testata .copia { display: inline-block; margin-top: 8px; padding: 3px 9px; border: 1px solid #16181D; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+  main { font-size: 13.5px; line-height: 1.6; }
+  main h2 { font-size: 16px; margin: 20px 0 6px; } main h3 { font-size: 14px; margin: 16px 0 4px; } main h4 { font-size: 13.5px; margin: 12px 0 4px; }
+  main p { margin: 0 0 9px; } main ul { margin: 0 0 9px 18px; padding: 0; } .nota { color: #6E6E73; font-style: italic; }
+  .piede { position: absolute; left: 20mm; right: 20mm; bottom: 12mm; border-top: 1px solid #C5C5C7; padding-top: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: #6E6E73; display: flex; justify-content: space-between; gap: 12px; }
+  @media print { body { background: #fff; } .pagina { box-shadow: none; margin: 0; width: auto; min-height: auto; padding: 0; } .piede { position: fixed; } }
+</style></head><body>
+<div class="pagina">
+  <div class="testata">
+    <div class="codice">${ctrEsc(doc.codice)} · ${ctrEsc(doc.informativa ? 'Informativa' : 'Contratto')}</div>
+    <h1>${ctrEsc(doc.nome)}</h1>
+    <div class="meta">Versione ${ctrEsc(ver.v)} · pubblicata il ${ctrEsc(fmtDate(ver.pubblicata))} · efficace dal ${ctrEsc(fmtDate(ver.efficace))}${ver.cambiamento ? `<br>Che cosa cambia: ${ctrEsc(ver.cambiamento)}` : ''}</div>
+    <div class="copia">Copia archiviata · PDF/A-2b · generata il ${ctrEsc(fmtDate(generata))}</div>
+  </div>
+  <main>${corpo}</main>
+  <div class="piede"><span>SHA-256 ${ctrEsc(impronta)}</span><span>${ctrEsc(ctrRif(codice, v))} · ${ctrEsc(doc.codice)} v${ctrEsc(ver.v)}</span></div>
+</div>
+</body></html>`;
+}
+function ctrScaricaVersione(codice, v) {
+  const html = ctrCopiaHtml(codice, v);
+  if (!html) return false;
+  const w = window.open('', '_blank');
+  if (!w) return false;
+  w.document.open(); w.document.write(html); w.document.close();
   return true;
 }
+window.ctrCopiaHtml = ctrCopiaHtml;
 window.ctrScaricaVersione = ctrScaricaVersione;
 window.ctrImpronta = ctrImpronta;
 window.ctrVersioneAllaData = ctrVersioneAllaData;
@@ -2308,11 +2343,11 @@ function CtrLinkVersione({ codice, v, impronta, testo }) {
   return (
     <span style={{display:'inline-flex', alignItems:'baseline', gap:6, flexWrap:'wrap'}}>
       <button onClick={(e) => { e.stopPropagation(); if (ctrScaricaVersione(codice, v)) { setFatto(true); setTimeout(() => setFatto(false), 1800); } }}
-        title={`Apre la copia archiviata della ${codice} v${v}, non la versione pubblicata oggi`}
+        title={`Apre la copia archiviata PDF/A della ${codice} v${v}, con impronta e data — non la versione pubblicata oggi`}
         className="adm-pill" style={{
           background:'transparent', border:'none', padding:0, cursor:'pointer', fontFamily:'inherit',
           fontSize:12.4, fontWeight:700, color:ADM.PINK, textDecoration:'underline', textUnderlineOffset:3,
-        }}>{fatto ? 'Scaricata ✓' : (testo || `${codice} v${v}`)}</button>
+        }}>{fatto ? 'Aperta ✓' : (testo || `${codice} v${v}`)}</button>
       {impronta && (
         <span title="Impronta del testo accettato: nel prototipo è simulata, ma stabile" style={{
           fontFamily:'ui-monospace,monospace', fontSize:11, color:ADM.MUTED_SOFT,

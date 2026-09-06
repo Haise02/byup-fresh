@@ -29,7 +29,10 @@
 // né come estrarne le clausole vessatorie per la seconda firma.
 // Qui dentro si scrive solo il CONTORNO, che il documento non può contenere:
 // che cosa cambia in una riga, se è peggiorativa, se richiede un nuovo
-// consenso, da quando vale.
+// consenso, da quando vale. ALLA PUBBLICAZIONE NASCE LA COPIA PDF/A della
+// versione — intestazione, impronta, data — che è la resa d'archivio da
+// esibire, come fanno le piattaforme serie: la sorgente resta il markdown,
+// il testo che si accetta resta l'HTML.
 
 const { useState: useStateDoc } = React;
 
@@ -288,7 +291,12 @@ function HubDocDettaglio({ codice, onChiudi }) {
                         </span>
                       </div>
                       <div style={{ fontSize: 13, color: ADM.TEXT, marginTop: 8, lineHeight: 1.5 }}>{v.cambiamento || '—'}</div>
-                      {window.CtrLinkVersione && <div style={{ marginTop:8 }}><CtrLinkVersione codice={codice} v={v.v} impronta={!doc.informativa} testo="Copia archiviata"/></div>}
+                      {window.CtrLinkVersione && (
+                        <div style={{ marginTop:8, display:'flex', alignItems:'baseline', gap:8, flexWrap:'wrap' }}>
+                          <CtrLinkVersione codice={codice} v={v.v} impronta={!doc.informativa} testo="Copia archiviata · PDF/A"/>
+                          <span style={{ fontSize:11.5, color:ADM.MUTED_SOFT }}>generata alla pubblicazione, {fmtDate(v.copia && v.copia.generata ? new Date(v.copia.generata) : v.pubblicata)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -563,6 +571,7 @@ function HubDocConferma({ doc, bozza, onAnnulla, onFatto }) {
               ? 'Peggiorativa: trenta giorni di recesso dal ricevimento, se le conseguenze non sono trascurabili'
               : 'Peggiorativa: il recesso resta quello esercitabile entro il preavviso, e il preavviso deve dirlo']] : []),
             ...(bozza.nuovoConsenso ? [['Consensi', 'Il consenso prestato prima non si estende: quella finalità si ferma finché non arriva il nuovo']] : []),
+            ['Copia archiviata', 'Nasce ora, in PDF/A, dal markdown depositato: intestazione, impronta e data. È quella che si esibisce; il markdown resta la sorgente'],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', gap: 10, fontSize: 12.8, lineHeight: 1.5 }}>
               <span style={{ width: 130, flexShrink: 0, color: ADM.MUTED, fontWeight: 600 }}>{k}</span>
