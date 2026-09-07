@@ -248,8 +248,10 @@ Canvas 50 particelle, gravità + drift + rotazione, fade-out negli ultimi 600ms,
 ### Phone preview auto-scroll (Step 4)
 Translate Y 0 → -50% in 25s linear infinite, pause-on-hover. Lineare e lentissimo: comunica "anteprima viva" senza distrarre dal contenuto principale. Non è un'animazione di attenzione — è un display.
 
-### Cornice tratteggiata del prezzo (Salda conto → Modifica)
-`stroke-dashoffset` 0 → −20 in 850ms linear infinite su un `<rect>` SVG intorno al prezzo unitario (`saldaAnts` in `sala-salda-modal.jsx`). Non è un'animazione di attenzione: è una **affordance**, e vive solo dentro la modalità «Modifica» del conto — a riposo, nella lista normale, non esiste. Un numero fermo in una lista di numeri fermi non dichiara di essere un campo: la cornice che cammina lo dice senza una legenda accanto, che è l'alternativa. Rispetta `prefers-reduced-motion: reduce` — lì il tratteggio resta, fermo, e l'affordance sopravvive all'animazione.
+### Cornice tratteggiata del prezzo (Salda conto → Modifica) — ferma
+Un `<rect>` SVG tratteggiato in rosso brand intorno al prezzo unitario, dentro la modalità «Modifica» del conto e solo lì: a riposo, nella lista normale, non esiste. Un numero fermo in una lista di numeri fermi non dichiara di essere un campo; il tratteggio e il colore lo dicono senza una legenda accanto, che è l'alternativa.
+
+**Non si muove più.** Il tratteggio girava (`saldaAnts`, `stroke-dashoffset` 0 → −20 in 850ms linear infinite), e su un conto da dieci righe erano dieci cornici in movimento perpetuo intorno ai numeri che si stanno leggendo: un'affordance che non smette mai di animarsi non indica più niente, chiede l'occhio e basta. Il segno statico dice la stessa cosa e sta zitto. Il keyframe se n'è andato con la sua riga di `prefers-reduced-motion`, che ora non ha più niente da spegnere lì.
 
 ---
 

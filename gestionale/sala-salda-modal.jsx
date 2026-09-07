@@ -31,15 +31,13 @@ const PAY_FINE = 16000;
   el.id = 'salda-pay-kf';
   el.textContent = `
 @keyframes saldaPayPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.28; } }
-/* La cornice tratteggiata che gira intorno al prezzo mentre si corregge il
-   conto: dice che quel numero si può riscrivere senza doverlo scrivere da
-   nessuna parte. Il passo del tratteggio è 10 (6 di segno, 4 di vuoto) e lo
-   scorrimento arriva a 20, cioè due passi netti: il giro si richiude su sé
-   stesso e non si vede mai saltare. */
-@keyframes saldaAnts { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -20; } }
+/* Qui viveva saldaAnts, il tratteggio che girava intorno al prezzo in
+   modifica. Il segno resta — cornice tratteggiata rossa — ma fermo: dieci
+   righe corrette insieme facevano dieci cornici in movimento continuo, e
+   un'affordance che si muove sempre smette di indicare e comincia a
+   disturbare. */
 @media (prefers-reduced-motion: reduce) {
   [style*="saldaPayPulse"] { animation: none !important; }
-  [style*="saldaAnts"] { animation: none !important; }
 }`;
   document.head.appendChild(el);
 })();
@@ -576,6 +574,27 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
       return ns;
     });
   }
+  // IL «+» IN MODIFICA — la porzione in più sulla riga che c'è già. È il
+  // gemello del «−»: «di birre ne hanno prese quattro, non tre» è la stessa
+  // correzione al contrario, e chiederla da «Aggiungi articolo» vorrebbe dire
+  // cercare a mano un piatto che sta già sotto gli occhi, per aprire una
+  // seconda riga uguale alla prima. Sale la riga, non ne nasce un'altra.
+  // Nessun tetto: in su non c'è niente da proteggere — gli incassi già presi
+  // restano quelli, e una porzione aggiunta è denaro che il tavolo deve, non
+  // denaro che sparisce. Il freno vale solo in discesa, ed è il «−».
+  function addPortion(id) {
+    const o = allOrdini.find(x => x.id === id);
+    if (!o) return;
+    const nuova = r2(o.qty + 1);
+    setEditedOrdini(arr => arr.map(x => x.id === id ? { ...x, qty: nuova } : x));
+    // La selezione segue: la porzione appena messa sul conto è da incassare
+    // come le altre, e tornando indietro deve trovarsi già spuntata.
+    setSelectedItems(s => {
+      const ns = new Map(s);
+      ns.set(id, r2(nuova - qtyPagata(o)));
+      return ns;
+    });
+  }
   function addItemFromMenu(menuItem) {
     // Il piatto aggiunto da qui nasce su una riga SUA — mai dentro una riga
     // esistente, qualunque stato abbia — e SENZA STATO.
@@ -992,8 +1011,10 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                     nessuno: aggiungere un articolo non è un comando della
                     barra, è la prima riga della lista. */}
                 <div style={{
-                  padding:'2px 24px 6px',
-                  display:'flex', alignItems:'center', gap: 10, flexShrink: 0,
+                  padding:'2px 24px 10px', flexShrink: 0,
+                }}>
+                <div style={{
+                  display:'flex', alignItems:'center', gap: 10,
                 }}>
                   <span style={{...SALDA_LABEL, marginBottom: 0}}>
                     {edit ? 'Correggi il conto' : 'Cosa saldi'}
@@ -1024,6 +1045,24 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                       </button>
                     );
                   })()}
+                </div>
+
+                {/* UNA RIGA CHE DICE COSA SI STA FACENDO. I due modi hanno la
+                    stessa lista e comandi diversi, e il titolo da solo — «Cosa
+                    saldi», «Correggi il conto» — nomina il modo ma non dice
+                    con che gesti ci si sta dentro. Qui si dice, una volta,
+                    senza aprire un aiuto: nella selezione che si spunta e si
+                    conta, in modifica che si aggiunge, si toglie e si
+                    riscrive. Sotto il titolo perché è la sua didascalia, non
+                    un avviso. */}
+                <div style={{
+                  fontSize: 14, color:'#6B7280', lineHeight: 1.35,
+                  marginTop: 4, maxWidth: 720,
+                }}>
+                  {edit
+                    ? 'Aggiungi o togli articoli, cambia le porzioni con − e +, riscrivi nomi e prezzi. Qui non si incassa niente.'
+                    : 'Spunta gli articoli da far pagare adesso; con − e + scegli quante porzioni ne entrano.'}
+                </div>
                 </div>
 
                 {/* Qui stava l'intestazione della colonna dei numeri — «Saldo
@@ -1076,6 +1115,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
                               // può scendere.
                               giaPagate={qtyPagata(o)}
                               onUpdate={updateItem}
+                              onAdd={addPortion}
                               onDelete={deleteItem}/>
                           ))
                         : ordiniOrdinati.map(o => (
@@ -1740,7 +1780,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
 // documento da correggere: niente spunta, il − e il + cambiano la quantità
 // ORDINATA, il nome e il prezzo si riscrivono e il cestino toglie la riga.
 // Non valgono mai insieme.
-function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezione = true, modifica = false, saldoRiga, maxQty, giaPagate = 0, onUpdate, onDelete }) {
+function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezione = true, modifica = false, saldoRiga, maxQty, giaPagate = 0, onUpdate, onAdd, onDelete }) {
   // La webapp è anonima: «Guest 4» non è un nome, è un segnaposto, e una
   // pastiglia che dice un segnaposto non dice niente. Sulla riga compare solo
   // chi un nome ce l'ha — gli ospiti dell'app.
@@ -1846,9 +1886,11 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
         // per giunta lo stesso cestino cancellava la riga su una riga da uno
         // e apriva un menù su una da tre. Lo stesso pulsante non può fare due
         // cose diverse a seconda di cosa ha sotto.
-        // Il «+» non c'è: aggiungere porzioni è un altro ordine, e per quello
-        // c'è «Aggiungi articolo». Il suo posto resta vuoto, ed è quello che
-        // tiene il numero incolonnato con lo stepper del passo di selezione.
+        // E il «+» sta accanto, perché la correzione al contrario — «di birre
+        // ne hanno prese quattro» — si fa nello stesso posto e con lo stesso
+        // gesto. Prima il suo posto restava vuoto e quella porzione andava
+        // cercata in «Aggiungi articolo», che apre una riga NUOVA: due birre
+        // in due righe per un ordine solo. Qui la riga sale, e resta una.
         <div onClick={stop} style={{
           display:'inline-flex', alignItems:'center', justifyContent:'space-between',
           background:'#fff', border:'1px solid #E5E7EB', borderRadius: 9,
@@ -1864,7 +1906,11 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
             minWidth: 30, textAlign:'center', padding:'0 2px',
             whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums',
           }}>{fmtQty(o.qty)}</span>
-          <span aria-hidden="true" style={{width: 22, flexShrink: 0}}/>
+          <button
+            onClick={() => onAdd && onAdd(o.id)}
+            disabled={!onAdd}
+            title="Aggiungine una"
+            style={{...qtyBtn, opacity: onAdd ? 1 : 0.3}}>+</button>
         </div>
       ) : (
         <div onClick={stop} style={{
@@ -1978,7 +2024,12 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
       )}
 
       {/* PREZZO — in modifica è un campo che dichiara di esserlo: la cornice
-          tratteggiata gira intorno al numero e non ha bisogno di una legenda.
+          tratteggiata rossa sta intorno al numero e non ha bisogno di una
+          legenda. FERMA: girava, e in una lista di dieci righe erano dieci
+          cornici che camminavano tutte insieme, cioè un'animazione continua
+          addosso al lavoro invece di un segno. Il tratteggio e il rosso
+          dicono già «questo si riscrive»; il movimento non aggiungeva
+          niente e chiedeva l'occhio a ogni riga.
           Il numero è il prezzo UNITARIO, quello che si corregge; quando la
           riga ne ha più di uno, sotto compare il conto della riga — «×2 ·
           €12.00» — o si correggerebbe un prezzo guardando un totale. */}
@@ -2043,8 +2094,7 @@ function ItemRowV2({ o, selectedQty, onToggle, onSetQty, guest, pagato, selezion
               <svg width="92" height="34" viewBox="0 0 92 34" aria-hidden="true"
                 style={{position:'absolute', left: 0, top: 0, pointerEvents:'none'}}>
                 <rect x="1" y="1" width="90" height="32" rx="9" fill="none"
-                  stroke={SALDA_BRAND} strokeWidth="1.6" strokeDasharray="6 4"
-                  style={{animation:'saldaAnts 0.85s linear infinite'}}/>
+                  stroke={SALDA_BRAND} strokeWidth="1.6" strokeDasharray="6 4"/>
               </svg>
             </React.Fragment>
           )}
