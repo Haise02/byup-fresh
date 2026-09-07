@@ -195,6 +195,24 @@ const CATEGORIA_ALTRO = { viva: '#64748B', smorta: '#CBD0D7', tinta: '#F2F4F6' }
 const kds2ColoreTono = t => t === 'critica' ? K.ROSSO : t === 'attesa' ? K.AMBRA : K.VERDE;
 const kds2Categoria = nome => CATEGORIE[nome] || CATEGORIA_ALTRO;
 
+// Note e allergeni arrivano scritti in minuscolo, come li digita chi prende
+// l'ordine in sala. A schermo l'iniziale sale: è la regola del resto del
+// prodotto, e su una riga di due parole la maiuscola è il segnale che lì
+// comincia un'informazione e non la coda di quella sopra. Solo la prima
+// lettera — «Senza Glutine» sarebbe inglese, non italiano.
+const kds2Maiuscola = t => {
+  const s = String(t || '').trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+};
+
+// Altezza comune a TUTTE le carte. Senza, una carta con una nota sotto il nome
+// era mezza volta più alta di una senza, e la lista si leggeva a scalini: da
+// due metri l'irregolarità si nota prima del contenuto, e l'occhio la scambia
+// per una differenza di importanza che non c'è. È il valore che serve al caso
+// più alto — nome grande più una riga di modificatore o la pastiglia
+// dell'allergene — e le carte più corte lo raggiungono centrando il contenuto.
+const H_CARTA = 85;
+
 // Chi ha ridotto le animazioni di sistema non deve vedere nulla muoversi. Qui
 // resta usata dall'anello dell'azione in corso e dal respiro delle schede: dove
 // non si può animare, il riscontro è statico e basta.
@@ -491,62 +509,61 @@ function Kds2Chip({
 // volte. Il segno non è punteggiatura ma un OPERATORE — pastiglia propria,
 // glifo pesante, corpo maggiore del testo che governa.
 //
-// UN SOLO OGGETTO, ED È IL PALLINO DI NOTIFICA DEL GESTIONALE: tondo, corallo
-// pieno, con l'alone chiaro attorno — lo stesso `ImpPallinoNotifica` che in
-// Impostazioni segna la scheda da guardare (impostazioni-shared.jsx). Là dice
-// «qui c'è una cosa da sistemare», qui dice la stessa cosa su un piatto: questo
-// non è il piatto del listino, ha una deroga addosso.
+// IL SEGNO È PICCOLO E STA PER CONTO SUO: un «+» o un «−» nel corallo del
+// brand, alto quanto la parola che governa, senza pastiglia intorno. Il
+// riquadro pieno che lo conteneva pesava quanto il nome del piatto e faceva
+// crescere la carta di mezza volta: un modificatore è una precisazione su un
+// piatto, non un secondo titolo, e a due metri deve leggersi DOPO il nome, non
+// insieme.
 //
-// Prima erano due tinte, rosso per «togli» e verde per «metti». Era il canale
-// peggiore per portare quella distinzione — rosso contro verde è la coppia che
-// circa un uomo su dodici in cucina non separa — e per di più chiamava in causa
-// il rosso, che su questa schermata significa allergene. Ora LA TINTA NON PORTA
-// PIÙ NIENTE: a distinguere è il glifo, «+» contro «−», bianco su corallo
-// pieno, che si legge uguale in dicromia e a due metri.
+// Il terzo caso — la nota che non aggiunge e non toglie, «Al sangue», «Ben
+// cotta», «Salsa a parte» — non ha un operatore da mostrare: prende il puntino
+// di notifica del gestionale (`ImpPallinoNotifica`, impostazioni-shared.jsx),
+// tondo e corallo, ridotto a 5 px e senza niente dentro. Dice «qui c'è una cosa
+// in più da guardare» ed è esattamente ciò che una nota di cottura è.
 //
-// Il corallo non si confonde con il rosso dell'allergene perché i due non si
-// somigliano MAI per forma: l'allergene è una pastiglia larga, piena, col punto
-// esclamativo e la parola dentro, più bordo e barra sulla riga; il modificatore
-// è un pallino da 26 px con un segno.
+// La tinta non porta la distinzione fra togliere e aggiungere: la porta il
+// glifo. Rosso contro verde, che è come si distinguevano prima, è la coppia che
+// circa un uomo su dodici in cucina non separa — e chiamava in causa il rosso,
+// che su questa schermata significa allergene.
+//
+// LO SLOT DEL SEGNO È A LARGHEZZA FISSA, e serve solo a questo: «+», «−» e
+// puntino sono larghi diversamente, e senza slot i copy partirebbero ognuno da
+// un punto suo. Con lo slot cominciano tutti alla stessa x, carta dopo carta.
+const W_SEGNO_MOD = 11;
+
 function Kds2Modificatori({ modifiers, spenta }) {
   if (!modifiers || modifiers.length === 0) return null;
   return (
-    <div style={{display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 7}}>
+    <div style={{display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 3}}>
       {modifiers.map((m, i) => {
         const togli = m.type === 'remove';
         const metti = m.type === 'add';
-        // Terzo caso: la nota che non aggiunge e non toglie — «ben cotta»,
-        // «al sangue», «salsa a parte». Nel mock non esiste, negli ordini veri
-        // sì, e darle un «+» direbbe una cosa falsa. Segno neutro, stesso
-        // pallino: in cucina è un'istruzione come le altre.
-        const segno = togli ? '−' : metti ? '+' : '·';
         const tinta = spenta ? K.TESTO_OFF : K.BRAND;
         return (
-          <span key={i} style={{display: 'inline-flex', alignItems: 'center', gap: 11}}>
+          <span key={i} style={{display: 'inline-flex', alignItems: 'center', gap: 6}}>
             {/* Nascosto agli assistivi: il nome accessibile della riga dice già
                 «senza cipolla» / «con bacon» a parole, che è più chiaro di un
                 segno letto ad alta voce. */}
-            {/* Smorzato il pallino si SVUOTA invece di restare pieno: bianco su
-                grigio quiete starebbe a 2,7:1, illeggibile. Vuoto se ne va anche
-                l'alone — un alone attorno a niente è sporco — e il segno rientra
-                nella famiglia grigia di tutta la riga spenta. */}
             <span aria-hidden="true" style={{
-              width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+              width: W_SEGNO_MOD, flexShrink: 0,
               display: 'grid', placeItems: 'center',
-              background: spenta ? 'transparent' : tinta,
-              border: spenta ? '2px solid ' + tinta : 'none',
-              boxShadow: spenta ? 'none' : '0 0 0 3px rgba(255, 90, 95, 0.16)',
-              color: spenta ? tinta : K.RIGA,
-              fontSize: 19, fontWeight: 900, lineHeight: 1,
-            }}>{segno}</span>
-            {/* Il testo non prende il corallo pieno del pallino: su bianco si
-                ferma a 3,2:1. Prende l'inchiostro della stessa famiglia
-                (K.BRAND_INK, 5,9:1), così la coppia resta una cosa sola e si
-                legge da lontano. */}
+              color: tinta, fontSize: 17, fontWeight: 900, lineHeight: 1,
+            }}>
+              {togli ? '−' : metti ? '+' : (
+                <span style={{
+                  width: 5, height: 5, borderRadius: '50%', background: tinta,
+                }}/>
+              )}
+            </span>
+            {/* Il copy è inchiostro secondario, non corallo: il corallo è del
+                segno, che è la parte che si riconosce di sfuggita. Dare la
+                tinta anche alla parola raddoppiava il segnale e faceva
+                sembrare la nota più importante del piatto. */}
             <span style={{
-              fontSize: 19, fontWeight: 700, letterSpacing: '-0.01em',
-              color: spenta ? K.TESTO_OFF : K.BRAND_INK,
-            }}>{m.label}</span>
+              fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.2,
+              color: spenta ? K.TESTO_OFF : K.TESTO_2,
+            }}>{kds2Maiuscola(m.label)}</span>
           </span>
         );
       })}
@@ -630,6 +647,10 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
         // carte identiche una sotto l'altra si contino a colpo d'occhio senza
         // che la lista perda righe utili.
         borderRadius: 16, overflow: 'hidden', marginBottom: 13,
+        // Tutte le carte alte uguale, con o senza nota sotto il nome: vedi
+        // H_CARTA. Il contenuto si centra, quindi su una carta senza note il
+        // nome resta a metà altezza invece di appoggiarsi in alto.
+        minHeight: H_CARTA, boxSizing: 'border-box',
         boxShadow: spenta ? 'none' : PN.CARD_SHADOW,
         // Smorzata, la riga «sprofonda» al livello della pagina: perdere la
         // superficie bianca la toglie dal piano delle card senza toccare il
@@ -666,7 +687,10 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
       {/* Cosa · per chi · da quando, tutto su una linea sola. NESSUNA CIFRA
           davanti al nome: la quantità è il numero di carte, e «2 Margherita»
           si legge scorrendo due carte uguali, non decifrando un numero. */}
-      <div style={{flex: 1, minWidth: 0, padding: '12px 16px'}}>
+      <div style={{
+        flex: 1, minWidth: 0, padding: '12px 16px',
+        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+      }}>
         <div style={{display: 'flex', alignItems: 'center', gap: 16}}>
           <div style={{flexShrink: 0, minWidth: 0}}>
             <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
@@ -696,19 +720,27 @@ function Kds2Riga({ riga, ora, spenta, evidenziata, sorgenteSelezionata, onBumpP
               // a due metri si legge quando il rosso non basta — o non c'è,
               // perché un filtro ha smorzato la riga. Sta attaccato alla parola
               // che qualifica, non a sei centimetri di distanza su un'altra
-              // riga: «! senza glutine» si legge in un colpo d'occhio solo.
+              // riga: «! Senza glutine» si legge in un colpo d'occhio solo.
+              //
+              // La pastiglia sta sulla stessa riga bassa dei modificatori e ne
+              // ha la stessa statura — 20 px di altezza, copy da 15. Grande il
+              // doppio, com'era, faceva due cose sbagliate insieme: alzava la
+              // carta di mezza volta rispetto a tutte le altre, e metteva il
+              // rosso in concorrenza col nome del piatto invece che al suo
+              // servizio. Il segnale non sta nella taglia — stanno il bordo
+              // della carta, la barra doppia e il fondo pieno a portarlo.
               <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 10, marginTop: 8,
-                height: allergeneVisibile ? 36 : 'auto', padding: allergeneVisibile ? '0 15px' : 0,
-                borderRadius: 8,
+                display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 3,
+                height: allergeneVisibile ? 20 : 'auto', padding: allergeneVisibile ? '0 8px' : 0,
+                borderRadius: 6,
                 background: allergeneVisibile ? K.ROSSO : 'transparent',
                 color: allergeneVisibile ? K.RIGA : K.TESTO_OFF,
-                fontSize: 20, fontWeight: allergeneVisibile ? 800 : 700, letterSpacing: '-0.01em',
+                fontSize: 15, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.2,
               }}>
                 <span aria-hidden="true" style={{
-                  fontSize: 27, fontWeight: 900, lineHeight: 1, flexShrink: 0,
+                  fontSize: 16, fontWeight: 900, lineHeight: 1, flexShrink: 0,
                 }}>!</span>
-                {riga.allergen.label}
+                {kds2Maiuscola(riga.allergen.label)}
               </span>
             ) : (
               <Kds2Modificatori modifiers={riga.modifiers} spenta={quieta}/>

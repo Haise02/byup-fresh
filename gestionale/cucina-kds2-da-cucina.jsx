@@ -47,12 +47,17 @@ function _kds2Sorgente(t) {
 // distinzione: la si riconosce da come parla.
 const _KDS2_TOGLIE  = /^(senza|no)\s+/i;
 const _KDS2_AGGIUNGE = /^(extra|aggiungi|con|più|piu)\s+/i;
+// «Cottura al sangue» a schermo è «Al sangue»: la parola «cottura» la porta già
+// il piatto — nessuno chiede al sangue una patatina — e in una riga di due
+// parole ogni parola che non aggiunge niente si mangia lo spazio di una che
+// aggiunge. Vale solo in testa: «cottura» in mezzo alla nota resta.
+const _KDS2_COTTURA = /^cottura\s+/i;
 function _kds2Modificatori(nota) {
   const n = String(nota || '').trim();
   if (!n) return [];
   if (_KDS2_TOGLIE.test(n))   return [{ type: 'remove', label: n.replace(_KDS2_TOGLIE, '') }];
   if (_KDS2_AGGIUNGE.test(n)) return [{ type: 'add',    label: n.replace(_KDS2_AGGIUNGE, '') }];
-  return [{ type: 'note', label: n }];
+  return [{ type: 'note', label: n.replace(_KDS2_COTTURA, '') }];
 }
 
 // `station` del ticket è la categoria di cucina («Pizza», «Primi»): è già
