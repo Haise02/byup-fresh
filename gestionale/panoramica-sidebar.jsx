@@ -58,13 +58,16 @@ const BYUP_KDS_ATTIVO_KEY = 'byup_kds_attivo';
 // Gli id non sono più `PG1-<qualcosa>` (P-134): quel prefisso era il NOME
 // UTENTE con cui il monitor entrava, e il monitor non entra più con nome
 // utente e password — si collega con un codice che il titolare approva.
-// «Monitor cucina principale» nasce sulla board per PIATTO — la stessa di
-// «Monitor pizza» — e non più su quella per tavolo. La board per tavolo resta
-// nel prodotto e si sceglie collegando uno schermo: quello che cambia è cosa
-// trova aperto chi guarda la demo senza aver collegato niente, e lì deve
-// trovare la board su cui si sta lavorando, non quella di prima.
+// «Monitor cucina principale» nasce sulla board per TAVOLO: è il monitor
+// completo del servizio di sala, e la board per tavolo è quella che il
+// servizio di sala vuole — uscite, marcia, una portata alla volta. Il Pub
+// resta su «Monitor pizza», dove la board per PIATTO è la cosa giusta: in un
+// locale ad alta rotazione vuoi vedere «sei carbonare», non sei tavoli.
+// Le due visualizzazioni restano tutte e due nel prodotto e si scelgono
+// collegando uno schermo; qui si decide solo cosa trova aperto chi guarda la
+// demo senza aver collegato niente.
 const BYUP_KDS_DEFAULT = [
-  { id: 'mon-cucina', nome: 'Monitor cucina principale', vista: 'pub', collegato_il: null },
+  { id: 'mon-cucina', nome: 'Monitor cucina principale', vista: 'ristorante', collegato_il: null },
   { id: 'mon-pizza',  nome: 'Monitor pizza',             vista: 'pub', collegato_il: null },
 ];
 function _byupKdsNormalizza(m) {

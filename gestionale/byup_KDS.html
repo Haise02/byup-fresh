@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>byup — KDS</title>
+<link rel="icon" type="image/png" href="/assets/byup-icon.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #F7F5F5; color: #16181D;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  /* NIENTE SCALA. Il board occupa lo schermo vero, a qualunque misura sia.
+     Prima era disegnato a 1920x1080 e poi rimpicciolito per farcelo stare: su
+     un monitor a parete il fit e' 1:1 e non si notava, su un tablet da 1180
+     punti diventava 0,61x — e una riga da 44px si riduceva a 27 punti, cioe'
+     cinque millimetri. Scalare non aiuta mai i bersagli: rimpicciolisce
+     insieme dito e cosa da toccare, quindi il rapporto resta identico.
+     Quello che si adatta e' QUANTE card ci stanno, non quanto sono grandi. */
+  .frame { width: 100vw; height: 100vh; overflow: hidden; }
+  .board::-webkit-scrollbar { width: 12px; }
+  .board::-webkit-scrollbar-thumb { background: #D3C7C7; border-radius: 999px; border: 3px solid #F7F5F5; }
+  .board::-webkit-scrollbar-track { background: transparent; }
+  button:focus-visible, [tabindex]:focus-visible { outline: 3px solid #0F1115; outline-offset: -3px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .001ms !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Superficie touch: si dichiara PRIMA dei token, cosi' il foglio condiviso
+     manda solo il feedback di PRESSIONE e mai quello di passaggio del mouse.
+     Su un monitor appeso l'hover o non esiste o resta acceso dopo il tap. -->
+<script>window.__BYUP_TOUCH_SURFACE = true;</script>
+<!-- Il cache-buster non e' un vezzo: `python -m http.server` non manda header
+     di cache, e senza `?v=` il browser tiene la copia vecchia del foglio dei
+     token ed esegue codice di ieri. E' successo: `PN_PARTNER` risultava non
+     definito mentre il file servito lo conteneva. Si alza il numero quando i
+     token cambiano — e' la convenzione del repo. -->
+<script type="text/babel" src="panoramica-tokens.jsx?v=1"></script>
+
+<script type="text/babel" src="kds-tavoli.jsx?v=3"></script>
+<script type="text/babel" src="kds-tavoli-mock.jsx?v=2"></script>
+<script type="text/babel">
+// La route di anteprima: la board da sola, a tutto schermo, coi dati finti.
+// Dentro il gestionale la stessa board vive nella Cucina, alimentata dal
+// servizio vero — vedi `kds-tavoli-da-cucina.jsx`.
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <div className="frame" style={{ display:'flex', flexDirection:'column' }}>
+    <KdsTavoliBoard comande={window.KDS_TAVOLI_MOCK}
+      oraZero={window.KDS_TAVOLI_MOCK_ORA} orologio={6}/>
+  </div>
+);
+</script>
+
+</body>
+</html>
