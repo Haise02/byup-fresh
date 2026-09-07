@@ -251,7 +251,7 @@ const HUB_PROPRIETA = [
   // forfettari quando la Soluzione Software arriverà, e sono i locali per cui
   // oggi la cassa fiscale non parte. Si legge dal locale a ogni lettura.
   { id: 'regime', label: 'Regime fiscale', gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.15fr' },
-    opzioni: [{ value: 'Ordinario', label: 'Ordinario' }, { value: 'Forfettario', label: 'Forfettario · cassa fiscale non disponibile' }, { value: 'Agricolo / Speciale', label: 'Agricolo / Speciale' }],
+    opzioni: [{ value: 'Ordinario', label: 'Ordinario' }, { value: 'Forfettario', label: 'Forfettario · cassa fiscale non disponibile' }, { value: 'Semplificato', label: 'Semplificato' }, { value: 'Agricolo', label: 'Agricolo' }, { value: 'Agriturismo', label: 'Agriturismo' }],
     leggi: (c) => (c.tipo === 'locale' && c.ref) ? (c.ref.regime || null) : null,
     nota: 'Solo per i locali: con il regime forfettario la cassa fiscale non è disponibile finché non arriva la Soluzione Software certificata' },
   { id: 'restrizione', label: 'Restrizione',      gruppo: 'contatto', tipo: 'elenco', sistema: true, colonna: { w: '1.05fr' },

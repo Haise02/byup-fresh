@@ -859,11 +859,7 @@ function DrwFiscali({ locale: l }) {
             )}
             <AdmSelect value={form.regime} onChange={F('regime')} block
               buttonStyle={{padding:'8px 11px', borderRadius:8, fontSize:13.5}}
-              options={[
-                {value:'Ordinario', label:'Ordinario'},
-                {value:'Forfettario', label:'Forfettario'},
-                {value:'Agricolo / Speciale', label:'Agricolo / Speciale'},
-              ]}/>
+              options={(window.PN_REGIMI || ['Ordinario', 'Forfettario', 'Semplificato', 'Agricolo', 'Agriturismo']).map(r => ({ value: r, label: r }))}/>
           </div>
           <div>
             <label style={drwLab}>Codice ATECO</label>

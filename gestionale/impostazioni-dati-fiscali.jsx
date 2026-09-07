@@ -841,7 +841,7 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
                 <div style={{minWidth: 0}}>
                   <div style={LAB}>Regime fiscale</div>
                   <select value={f.regime} onChange={setC('regime')} style={INP}>
-                    <option>Ordinario</option><option>Forfettario</option><option>Semplificato</option>
+                    {(window.PN_REGIMI || ['Ordinario', 'Forfettario', 'Semplificato', 'Agricolo', 'Agriturismo']).map(r => <option key={r}>{r}</option>)}
                   </select>
                   {/* La guardia del forfettario (P-176 · D-128): si sceglie e si
                       salva, ma la cassa fiscale non parte, e lo dice qui dove

@@ -58,7 +58,7 @@ function Step2Locale({
     } catch (e) {}
     // Il regime scelto qui vale per tutti (P-176): la Cassa e Dati fiscali
     // lo leggono dal registro condiviso.
-    if (window.byupWriteRegime) window.byupWriteRegime(venue.regime === 'forfettario' ? 'Forfettario' : venue.regime === 'agricolo' ? 'Agricolo / Speciale' : 'Ordinario');
+    if (window.byupWriteRegime) window.byupWriteRegime({ ordinario: 'Ordinario', forfettario: 'Forfettario', semplificato: 'Semplificato', agricolo: 'Agricolo', agriturismo: 'Agriturismo' }[venue.regime] || 'Ordinario');
     onNext();
   };
 
@@ -391,11 +391,14 @@ function FormaGiuridicaGroup({value, onChange}) {
   );
 }
 
+// Le stesse cinque voci di Dati fiscali e di Hubble (P-181 · D-132).
 function RegimeRadioGroup({value, onChange}) {
   const options = [
-    {id: 'ordinario',   label: 'Ordinario'},
-    {id: 'forfettario', label: 'Forfettario'},
-    {id: 'agricolo',    label: 'Agricolo / Speciale'},
+    {id: 'ordinario',    label: 'Ordinario'},
+    {id: 'forfettario',  label: 'Forfettario'},
+    {id: 'semplificato', label: 'Semplificato'},
+    {id: 'agricolo',     label: 'Agricolo'},
+    {id: 'agriturismo',  label: 'Agriturismo'},
   ];
   return (
     <div style={{display: 'flex', gap: 8, flexWrap: 'wrap'}}>

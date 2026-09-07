@@ -88,19 +88,42 @@ const salaMaxTavoli = (s) =>
   Math.max(1, Math.floor(((s?.widthM || DEF_W) * (s?.depthM || DEF_D)) / MQ_PER_TAVOLO));
 
 
+// Sale e tavoli seguono la SEDE (P-186 · D-139): la schermata non chiede per
+// quale sede si sta configurando, lavora su quella in cui si è già dentro —
+// la sede attiva del gestionale, che si sceglie prima, dall'onboarding o dal
+// profilo. Le sale nascono sulla sede corrente, i tavoli sulla sala, e il
+// registro porta la sede, così passando da una sede all'altra si vede la
+// configurazione giusta. La testata lo dice come promemoria, senza selettore.
+const SALA_CFG_KEY = 'byup-sala-config';
+const salaSedeCorrente = () => (window.byupReadLocale ? window.byupReadLocale() : { id: 'cp', nome: 'Cacio e Pepe' });
+// Il registro è per sede: { [sedeId]: [sale] }. La forma vecchia — un array
+// solo, senza sede — si legge ancora e vale per la sede corrente.
+const salaLeggiConfig = (sedeId) => {
+  try {
+    const s = localStorage.getItem(SALA_CFG_KEY); if (!s) return null;
+    const v = JSON.parse(s);
+    if (Array.isArray(v)) return v.length ? v : null;
+    if (v && typeof v === 'object' && Array.isArray(v[sedeId])) return v[sedeId].length ? v[sedeId] : null;
+  } catch (e) {}
+  return null;
+};
+const salaScriviConfig = (sedeId, sale) => {
+  let tutto = {};
+  try { const s = localStorage.getItem(SALA_CFG_KEY); if (s) { const v = JSON.parse(s); if (v && !Array.isArray(v)) tutto = v; } } catch (e) {}
+  tutto[sedeId] = sale;
+  try { localStorage.setItem(SALA_CFG_KEY, JSON.stringify(tutto)); } catch (e) {}
+};
 function ImpSalaTavoli() {
+  const [sede, setSede] = React.useState(salaSedeCorrente);
   const [sale, setSale] = React.useState(() => {
-    // Riparte dall'ultima configurazione salvata (bottone "Salva")
+    // Riparte dall'ultima configurazione salvata di QUESTA sede.
     try {
-      const saved = localStorage.getItem('byup-sala-config');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length) {
-          return parsed.map(s => ({
-            tavoli: [], furniture: [], groups: [], ...s,
-            tavoli: (s.tavoli || []).map(t => ({ ...t, name: normalizzaNomeTavolo(t.name) })),
-          }));
-        }
+      const parsed = salaLeggiConfig(salaSedeCorrente().id);
+      if (Array.isArray(parsed) && parsed.length) {
+        return parsed.map(s => ({
+          tavoli: [], furniture: [], groups: [], ...s,
+          tavoli: (s.tavoli || []).map(t => ({ ...t, name: normalizzaNomeTavolo(t.name) })),
+        }));
       }
     } catch (e) { /* localStorage non disponibile o dato corrotto → default */ }
     return [
@@ -118,6 +141,20 @@ function ImpSalaTavoli() {
     setDirty(cur !== savedSnapRef.current);
   }, [sale]);
   const [activeId, setActiveId] = React.useState(1);
+  // La sede si cambia dal profilo, anche da un'altra scheda: qui si rilegge
+  // la sua configurazione, perché sale e tavoli sono della sede.
+  React.useEffect(() => {
+    const ri = () => {
+      const s = salaSedeCorrente();
+      setSede(prev => (prev.id === s.id ? prev : s));
+      if (s.id !== sede.id) {
+        const cfg = salaLeggiConfig(s.id);
+        if (cfg) setSale(cfg.map(x => ({ tavoli: [], furniture: [], groups: [], ...x, tavoli: (x.tavoli || []).map(t => ({ ...t, name: normalizzaNomeTavolo(t.name) })) })));
+      }
+    };
+    ['byup-locale-change', 'storage'].forEach(e => window.addEventListener(e, ri));
+    return () => ['byup-locale-change', 'storage'].forEach(e => window.removeEventListener(e, ri));
+  }, [sede.id]);
   const [editSala, setEditSala] = React.useState(null); // {id?, name, active} per nuova/edit
   const [salaMenu, setSalaMenu] = React.useState(null);
   const [view, setView] = React.useState('lista');
@@ -193,10 +230,11 @@ function ImpSalaTavoli() {
 
   const saveConfig = () => {
     const cur = JSON.stringify(sale);
-    try { localStorage.setItem('byup-sala-config', cur); } catch (e) { /* quota/privacy: salvataggio solo in sessione */ }
+    // Si salva sulla sede corrente: la configurazione è sua (P-186 · D-139).
+    salaScriviConfig(sede.id, sale);
     savedSnapRef.current = cur;
     setDirty(false);
-    showToast('Configurazione della sala salvata');
+    showToast(`Configurazione della sala salvata · ${sede.nome}`);
   };
   React.useEffect(() => {
     if (!toast) return;
@@ -528,9 +566,16 @@ function ImpSalaTavoli() {
   // Configurazione sale/tavoli — renderizzata solo quando il modulo Sala è
   // attivo (vedi return in fondo): da spenta resta solo la card di riattivazione.
   const configGrid = (
+    <React.Fragment>
+    {/* Su quale sede si sta lavorando: un promemoria, non un selettore. La
+        sede si sceglie prima, dal profilo o dall'onboarding (P-186 · D-139). */}
+    <div data-sede-sala style={{display:'flex', alignItems:'center', gap: 8, marginBottom: 12, fontSize: 13.5, color: PN.MUTED}}>
+      <PnI.Store size={14}/>
+      <span>Sale e tavoli di <b style={{color: PN.TEXT}}>{sede.nome}</b> · la sede si cambia dal profilo</span>
+    </div>
     <div style={{display:'grid', gridTemplateColumns:'260px 1fr', gap: 16}}>
       <aside>
-        <ImpCard title="Le tue sale" sub="Crea sale separate per gestire spazi diversi" action={
+        <ImpCard title="Le tue sale" sub={`Le sale di ${sede.nome}: crea spazi separati per gestire ambienti diversi`} action={
           <button
             onClick={() => setEditSala({ name: '', active: true })}
             title="Nuova sala"
@@ -1035,6 +1080,7 @@ function ImpSalaTavoli() {
         </div>
       )}
     </div>
+    </React.Fragment>
   );
 
   return (

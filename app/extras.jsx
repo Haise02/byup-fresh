@@ -653,6 +653,14 @@ function PagamentiView({ onBack, startAdd = false }) {
         </button>
       ) : (
         <div style={{ background: TINT_X, borderRadius: 16, padding: '16px' }}>
+          {/* IL CAMPO DELLA CARTA È UN RIQUADRO DEL PRESTATORE (P-179 · D-130).
+              A schermo non cambia nulla — con gli Elements del prestatore il
+              campo si vede così, dentro la nostra pagina, coi nostri colori —
+              ma numero, scadenza e codice di sicurezza NON transitano dai
+              nostri sistemi: li raccoglie il prestatore nel suo riquadro, e
+              noi riceviamo solo il riferimento al metodo salvato (documento
+              tecnico §8.8). Nel mockup i campi sono nostri e il numero non va
+              da nessuna parte; le validazioni restano per mostrare il modulo. */}
           <div style={{ fontSize: 14, fontWeight: 700, color: TEXT_X, marginBottom: 14 }}>Nuova carta</div>
           {[
             { label: 'Numero carta', value: newNum, set: setNewNum, placeholder: '•••• •••• •••• ••••' },

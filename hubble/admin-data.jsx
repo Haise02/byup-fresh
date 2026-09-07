@@ -460,7 +460,7 @@ const locPagante      = (l) => locLive(l) && l.piano !== 'free';
 // P-178): prima nasceva aprendo la scheda fiscale, quindi su una rubrica
 // appena caricata era vuoto per tutti e il filtro non trovava nessuno. Stessa
 // distribuzione di allora, calcolata dall'indice del locale.
-const LOC_REGIMI = ['Ordinario', 'Ordinario', 'Ordinario', 'Forfettario', 'Agricolo / Speciale'];
+const LOC_REGIMI = ['Ordinario', 'Ordinario', 'Ordinario', 'Forfettario', 'Agriturismo'];
 LOCALI.forEach((l, i) => { if (l.regime === undefined) l.regime = LOC_REGIMI[i % 5]; });
 const locConfigSaltata = (l) => locLive(l) && !ONB_CONFIG.some(s => (l.completedSteps || []).includes(s.id));
 

@@ -1746,6 +1746,16 @@ window.byupDelegaCompleta = function () {
 // Il regime vive nel registro condiviso del soggetto (byup_regime_fiscale),
 // che Dati fiscali scrive e che leggono la Cassa, le attivazioni fiscali e i
 // quattro punti di emissione.
+// I CINQUE REGIMI (P-181 · D-132), gli stessi nomi in tutte e tre le tendine
+// — onboarding, Dati fiscali, Hubble. Il regime dei minimi non c'è: è chiuso
+// ai nuovi dal 2015 e nel 2026 non ha più soggetti. Agricolo e Agriturismo
+// sono due voci distinte, perché nel tracciato della fattura sono due codici
+// diversi (RF04 e RF12). Solo il Forfettario ferma l'avvio (P-176 · D-128):
+// Agricolo e Agriturismo si comportano come Ordinario, perché non cambiano il
+// documento — l'imposta si applica con le aliquote proprie dei prodotti, e il
+// forfait sta sulla detrazione, che è contabilità del soggetto.
+const PN_REGIMI = ['Ordinario', 'Forfettario', 'Semplificato', 'Agricolo', 'Agriturismo'];
+window.PN_REGIMI = PN_REGIMI;
 const PN_REGIME_KEY = 'byup_regime_fiscale';
 window.byupReadRegime = function () {
   try { const s = localStorage.getItem(PN_REGIME_KEY); if (s) return JSON.parse(s); } catch (e) {}

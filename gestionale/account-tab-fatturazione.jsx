@@ -178,6 +178,15 @@ function AcPayModalFoot({ children }) {
 // Flusso "Aggiungi metodo di pagamento": anteprima carta live + form con
 // auto-formattazione. Il bottone si attiva solo a dati completi; al salvataggio
 // un check verde conferma e la carta entra in lista.
+// IL CAMPO DELLA CARTA È UN RIQUADRO DEL PRESTATORE (P-179 · D-130). A
+// schermo non cambia nulla — con gli Elements del prestatore il campo si vede
+// così, incorporato nella nostra pagina, con i nostri colori — ma il numero
+// della carta, la scadenza e il codice di sicurezza NON transitano dai nostri
+// sistemi: li raccoglie il prestatore dei pagamenti nel suo riquadro, e noi
+// riceviamo soltanto il riferimento al metodo salvato. È un invariante del
+// documento tecnico (§8.8), non una scelta di questa schermata. Nel mockup
+// quei campi sono nostri e il numero non va da nessuna parte; le validazioni
+// restano perché servono a far vedere come si comporta il modulo.
 function AcPayAddModal({ onClose, onAdd }) {
   const [num, setNum] = React.useState('');
   const [holder, setHolder] = React.useState('');
