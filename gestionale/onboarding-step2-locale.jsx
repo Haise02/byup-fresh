@@ -42,7 +42,7 @@ function Step2Locale({
   const soggettoEsistente = ONB_PIVA_ESISTENTI[pivaPulita] || null;
   const pronto = !soggettoEsistente && pieno(venue.legalForm) && pieno(venue.name) && pieno(venue.piva) &&
     (venue.legalForm !== 'ditta_individuale' ||
-      (pieno(venue.titolareCf) && pieno(venue.titolareNascita) && pieno(venue.titolareComuneNascita) && pieno(venue.titolareStatoNascita)));
+      (pieno(venue.titolareNome) && pieno(venue.titolareCognome) && pieno(venue.titolareCf) && pieno(venue.titolareNascita) && pieno(venue.titolareComuneNascita) && pieno(venue.titolareStatoNascita)));
   // Quello che è stato scritto qui lo ritrova Dati fiscali (altro bundle):
   // stessi nomi, un registro condiviso, nessun secondo modulo da compilare.
   const avanti = () => {
@@ -50,6 +50,7 @@ function Step2Locale({
     try {
       localStorage.setItem('byup_anagrafica_onboarding', JSON.stringify({
         legalForm: venue.legalForm, societaTipo: venue.societaTipo, name: venue.name, piva: venue.piva,
+        titolareNome: venue.titolareNome, titolareCognome: venue.titolareCognome,
         titolareCf: venue.titolareCf, titolareNascita: venue.titolareNascita,
         titolareComuneNascita: venue.titolareComuneNascita, titolareStatoNascita: venue.titolareStatoNascita,
         address: venue.address, civico: venue.civico, cap: venue.cap, city: venue.city, phone: venue.phone, regime: venue.regime,
@@ -226,6 +227,20 @@ function SubStepInfo({venue, v, pronto}) {
               nasceva sbagliato. Solo per la ditta individuale. */}
           {venue.legalForm === 'ditta_individuale' && (
             <>
+              {/* Nome e cognome del titolare (P-189 · rilievo G1-55): per la
+                  ditta individuale la denominazione del soggetto È la persona,
+                  e Dati fiscali la compone proprio da questi due campi. Senza,
+                  non c'era da nessuna parte. */}
+              <div style={{gridColumn: 'span 6'}}>
+                <OnbField label="Nome del titolare"
+                  value={venue.titolareNome} onChange={(x) => v('titolareNome', x)}
+                  placeholder="Mario"/>
+              </div>
+              <div style={{gridColumn: 'span 6'}}>
+                <OnbField label="Cognome del titolare"
+                  value={venue.titolareCognome} onChange={(x) => v('titolareCognome', x)}
+                  placeholder="Rossi"/>
+              </div>
               <div style={{gridColumn: 'span 12'}}>
                 <OnbField label="Codice fiscale del titolare"
                   value={venue.titolareCf}

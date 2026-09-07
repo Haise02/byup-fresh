@@ -47,6 +47,21 @@ function Step4Verifica({ onBack, onComplete}) {
   // uscite si apre il modale dedicato alla firma (ContrattoModal), e solo
   // l'accettazione lì dentro fa proseguire verso la destinazione scelta.
   const [contrattoModal, setContrattoModal] = React.useState(null); // null | 'panoramica' | 'config'
+  // La conferma del menù importato (P-184 · D-137). Il menù arriva
+  // dall'estrazione automatica, che compila da sola anche gli allergeni: da
+  // qui in poi quel contenuto va online, e chi lo manda online lo dichiara
+  // suo. La finestra nomina gli allergeni, perché sono la parte che, se
+  // sbagliata, fa male a qualcuno. Nessuna marcatura per campo: la conferma
+  // vale per il menù intero, e l'atto finisce nel registro delle attività.
+  const [confermaMenu, setConfermaMenu] = React.useState(null); // null | 'panoramica' | 'config'
+  const confermaIlMenu = (dest) => {
+    try {
+      if (window.byupScriviAuditEvento) window.byupScriviAuditEvento('menu_confermato', null,
+        `${menu.reduce((s, c) => s + c.dishes.length, 0)} piatti in ${menu.length} categorie · allergeni compresi`);
+    } catch (e) {}
+    setConfermaMenu(null);
+    setContrattoModal(dest);
+  };
   const completa = (dest) => {
     if (!onComplete) return;
     // La prova dell'accettazione: versione e momento. In demo resta locale;
@@ -57,6 +72,13 @@ function Step4Verifica({ onBack, onComplete}) {
       localStorage.setItem('byup_contratto_accettato', JSON.stringify({
         codice: TC01.codice, versione: TC01.versione, impronta: TC01.impronta, quando: new Date().toISOString(),
       }));
+      // L'accettazione vive nel registro condiviso che tutti leggono, per
+      // soggetto e per documento (P-189 · rilievo G1-21): la chiave di prima
+      // restava scritta da sola e nessuno la guardava.
+      if (window.byupFirmaTermini && window.byupSoggettiRappresentati) {
+        const ids = window.byupSoggettiRappresentati().map(s => s.id);
+        window.byupFirmaTermini(ids, { codice: TC01.codice, versione: TC01.versione, impronta: TC01.impronta });
+      }
     } catch (e) {}
     onComplete(dest);
   };
@@ -237,7 +259,7 @@ function Step4Verifica({ onBack, onComplete}) {
                 configurazione") — rossa e a pillola. Entrare subito nel prodotto
                 resta possibile ma anonimo, separato da un "oppure" discreto per
                 chiarire che è un bivio, non una sequenza. */}
-            <SecondaryCta onClick={() => setContrattoModal('panoramica')}>
+            <SecondaryCta onClick={() => setConfermaMenu('panoramica')}>
               Inizia a gestire il locale
             </SecondaryCta>
             <span style={{
@@ -246,11 +268,18 @@ function Step4Verifica({ onBack, onComplete}) {
             }}>
               oppure
             </span>
-            <PrimaryCtaArrow onClick={() => setContrattoModal('config')}>
+            <PrimaryCtaArrow onClick={() => setConfermaMenu('config')}>
               Completa la configurazione
             </PrimaryCtaArrow>
           </div>
         </div>
+
+        {confermaMenu && (
+          <ConfermaMenuModal
+            menu={menu}
+            onIndietro={() => setConfermaMenu(null)}
+            onConferma={() => confermaIlMenu(confermaMenu)}/>
+        )}
 
         {contrattoModal && (
           <ContrattoModal
@@ -1026,6 +1055,46 @@ window.Step4Verifica = Step4Verifica;
 // accettazione integrale + approvazione specifica delle vessatorie ex artt.
 // 1341-1342 c.c. (valida solo se le clausole sono elencate, non citate in
 // blocco). La CTA di accettazione si accende solo con entrambe le spunte.
+// ─── La conferma del menù importato (P-184 · D-137) ────────────────────────
+// Il menù è stato estratto da una foto o da un file, e l'estrazione ha
+// compilato anche gli allergeni: una volta importati sono indistinguibili da
+// quelli scritti a mano. Prima che il menù vada online, il ristoratore
+// conferma che è corretto — o torna indietro a correggerlo. La finestra
+// nomina gli allergeni perché sono la parte che, se sbagliata, fa male a
+// qualcuno; con la conferma il contenuto diventa una sua dichiarazione, e
+// l'atto va nel registro delle attività con la data.
+function ConfermaMenuModal({ menu, onIndietro, onConferma }) {
+  const piatti = menu.reduce((s, c) => s + c.dishes.length, 0);
+  return (
+    <div onClick={onIndietro} style={{
+      position: 'fixed', inset: 0, zIndex: 240, display: 'grid', placeItems: 'center', padding: 24,
+      background: 'rgba(15, 17, 21, 0.55)', animation: 'fadeIn 0.15s ease',
+    }}>
+      <div data-conferma-menu onClick={(e) => e.stopPropagation()} style={{
+        width: 560, maxWidth: '94%', background: '#fff', borderRadius: 16, padding: 26,
+        boxShadow: '0 32px 80px rgba(15, 17, 21, 0.32)',
+      }}>
+        <div style={{fontSize: 21, fontWeight: 700, color: ONB.TEXT, letterSpacing: '-0.02em', marginBottom: 8}}>
+          Il menù è corretto?
+        </div>
+        <div style={{fontSize: 16, color: ONB.MUTED, lineHeight: 1.55, marginBottom: 14}}>
+          Da qui il menù va online: {piatti} {piatti === 1 ? 'piatto' : 'piatti'} in {menu.length} {menu.length === 1 ? 'categoria' : 'categorie'}, con i loro prezzi e i loro <b style={{color: ONB.TEXT}}>allergeni</b>.
+        </div>
+        <div style={{
+          padding: '13px 15px', borderRadius: 12, background: 'rgba(217, 119, 6, 0.08)',
+          border: '1px solid rgba(217, 119, 6, 0.28)', fontSize: 15, color: ONB.TEXT, lineHeight: 1.5, marginBottom: 18,
+        }}>
+          Nomi, prezzi e <b>allergeni</b> li ha letti il sistema dal file che hai caricato: controllali. Confermando, il menù diventa una tua dichiarazione — gli allergeni compresi — ed è quella che leggono i tuoi clienti.
+        </div>
+        <div style={{display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end'}}>
+          <SecondaryCta onClick={onIndietro}>Torno a correggerlo</SecondaryCta>
+          <PrimaryCtaArrow onClick={onConferma}>Confermo, è corretto</PrimaryCtaArrow>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ContrattoModal({ onClose, onAccept }) {
   const [accTerms, setAccTerms] = React.useState(false);
   const [accVessatorie, setAccVessatorie] = React.useState(false);

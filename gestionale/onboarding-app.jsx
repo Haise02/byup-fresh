@@ -92,6 +92,8 @@ function OnboardingApp() {
     // di piattaforma (D.Lgs. 32/2023) e si chiedono nel momento in cui il
     // dato nasce, non fra sei mesi da Impostazioni. Stessi nomi di Dati
     // fiscali, così chi compila qui non se li ritrova da compilare due volte.
+    titolareNome: '',
+    titolareCognome: '',
     titolareNascita: '',
     titolareComuneNascita: '',
     titolareStatoNascita: 'IT',

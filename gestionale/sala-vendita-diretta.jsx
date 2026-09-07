@@ -3278,8 +3278,10 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
           stato: 'in_attesa', cliente: fattura,
           canale: takeaway ? 'asporto' : 'somministrazione',
           pagamento: come === 'carta' ? 'carta' : come === 'buoni' ? 'buoni' : 'contanti',
-          righe: svfRighe(lines, takeaway),
-          riepilogo: svRiepilogoIva(lines, takeaway),
+          // Lo sconto del conto entra nelle righe e nel riepilogo (P-189):
+          // la somma delle righe deve fare il totale del documento.
+          righe: svfRighe(lines, takeaway, -adjustDelta),
+          riepilogo: svRiepilogoIva(lines, takeaway, -adjustDelta),
           totale: finalTotal,
         });
       }
@@ -3991,6 +3993,7 @@ function SaIncassaModal({ open, total: subtotale, onClose, onConfirm, pagamenti:
         dov'era. Riaprirla da pillola accesa serve a correggere il cliente —
         una P.IVA dettata male si scopre rileggendola, non prima. */}
     <SvFatturaModal
+      sconto={-adjustDelta}
       open={fatturaOpen}
       lines={lines}
       takeaway={takeaway}

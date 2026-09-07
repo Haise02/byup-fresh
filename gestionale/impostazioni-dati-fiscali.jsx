@@ -927,7 +927,11 @@ function ImpSoggettoFoglio({ data, onClose, onSalva, onApplica, onDopo }) {
             <div onClick={e => e.stopPropagation()} style={{...MODAL_PANEL, width: 520, padding: '22px 24px', boxShadow: '0 24px 60px rgba(0,0,0,0.28)'}}>
               <div style={{fontSize: 21, fontWeight: 800, letterSpacing: -0.4, color: PN.TEXT}}>Sicuro?</div>
               <div style={{fontSize: 14.5, color: PN.TEXT, lineHeight: 1.55, marginTop: 8}}>
-                Il tuo collegamento a Stripe viene disabilitato e anche le deleghe dovranno essere rifatte: finché non le rifai non potrai emettere scontrini né ricevere pagamenti. Anche i POS andranno comunicati di nuovo all'Agenzia dal nuovo soggetto, e alla fine i termini e condizioni vanno riaccettati a nome suo: fino ad allora il cambiamento non è concluso.
+                {/* Due cose diverse, e si dicono separate (P-189 · rilievo G1-23):
+                    le credenziali abilitano la trasmissione, la delega la
+                    conservazione e l'accreditamento. Al cambio di soggetto
+                    servono entrambe, ma per ragioni diverse. */}
+                Al nuovo soggetto servono <b>credenziali sue</b> per trasmettere: finché non ci sono, gli scontrini non partono. E serve una <b>delega sua</b>, che è un'altra cosa: senza, le fatture partono lo stesso ma non le conserva l'Agenzia e il censimento dei dispositivi resta da fare a mano. Il collegamento a Stripe viene disabilitato: senza, non ricevi pagamenti.
               </div>
               <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5, marginTop: 6}}>
                 L'account Stripe è intestato a {data.legalForm === 'ditta_individuale' ? `${data.ownerNome} ${data.ownerCognome}` : data.ragione}: il nuovo soggetto ne apre uno suo, con la verifica di Stripe, da Integrazioni.
@@ -1373,7 +1377,7 @@ function ImpDopoSoggettoModal({ onClose, onDelega, onPos, onFirma }) {
         </div>
         <div className="pn-scroll" style={{...MODAL_BODY, padding: '16px 24px', display:'flex', flexDirection:'column', gap: 10, overflowY:'auto'}}>
           {riga('fiscal_updated', 'Dati fiscali aggiornati', `Il nuovo soggetto è ${c.nuovo.denominazione}; il precedente resta nella storia.`, null)}
-          {riga('delegations_renewed', 'Delega all\'Agenzia', 'La riconferisce chi rappresenta il nuovo soggetto, con il proprio SPID, e la precedente si revoca. Finché manca, niente scontrini.',
+          {riga('delegations_renewed', 'Delega all\'Agenzia', 'La riconferisce chi rappresenta il nuovo soggetto, con il proprio SPID, e la precedente si revoca. Senza, le fatture partono lo stesso ma non le conserva l\'Agenzia.',
             <ImpButton variant="primary" onClick={onDelega}>Rinnova la delega</ImpButton>)}
           {riga('credentials_verified', 'Credenziali del canale', 'Sono del nuovo soggetto: del titolare, o della persona che nomina incaricata sul portale. Si inseriscono in questa pagina e una trasmissione di prova le verifica.',
             <ImpButton variant="secondary" onClick={() => { onClose(); setTimeout(() => { const el = window.impAccendiSezione && window.impAccendiSezione('ade-credenziali'); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 120); }}>Vai alle credenziali</ImpButton>)}
@@ -1684,7 +1688,7 @@ function ImpSoggettoRiga({ data, onCambia }) {
         {inCorso && (
           <div style={{fontSize: 13.5, color: PN.AMBER, fontWeight: 600, marginTop: 2}}>
             Cambio di soggetto in corso · {manca.length ? `manca ${manca.map(p => p.label.toLowerCase()).join(', ')}` : 'ci siamo'}
-            {!c.steps.delegations_renewed ? ' · niente scontrini finché manca la delega' : ''}
+            {!c.steps.delegations_renewed ? ' · senza delega le fatture partono lo stesso, ma non sono conservate presso l\'Agenzia' : ''}
             {!c.steps.stripe_connected ? ' · niente pagamenti finché manca Stripe' : ''}
           </div>
         )}
@@ -1712,8 +1716,8 @@ function ImpDatiFiscali() {
     regime: 'Ordinario',
     ateco: '56.10.11',
     // Titolare (solo ditta individuale)
-    ownerNome: 'Mario',
-    ownerCognome: 'Rossi',
+    ownerNome: onb.titolareNome || 'Mario',
+    ownerCognome: onb.titolareCognome || 'Rossi',
     ownerNascita: onb.titolareNascita || '1978-03-21',
     ownerComuneNascita: onb.titolareComuneNascita || 'Roma',
     ownerStatoNascita: onb.titolareStatoNascita || 'IT',

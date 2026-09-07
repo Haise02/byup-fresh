@@ -50,17 +50,38 @@ function svAliquota(x, takeaway) {
   return 10;
 }
 
+// Lo SCONTO SI RIPARTISCE SULLE RIGHE (P-189 · rilievo G2-02). Il totale del
+// documento includeva lo sconto, mentre righe e riepilogo per aliquota si
+// calcolavano sulle righe piene: la somma delle righe non tornava con il
+// totale, ed è la prima cosa che salta all'occhio di chi la fattura la
+// controlla. Lo sconto si spalma in proporzione al lordo di ciascuna riga —
+// così ogni aliquota ne prende la sua parte — e l'ultima riga assorbe il
+// centesimo di differenza, perché la somma deve fare il totale esatto.
+function svfRipartisci(righe, sconto) {
+  const totale = righe.reduce((s, r) => s + r.lordo, 0);
+  const q = Math.min(Math.max(Number(sconto) || 0, 0), totale);
+  if (!(q > 0) || !(totale > 0)) return righe;
+  let dato = 0;
+  return righe.map((r, i) => {
+    const ultima = i === righe.length - 1;
+    const quota = ultima ? Math.round((q - dato) * 100) / 100 : Math.round((q * r.lordo / totale) * 100) / 100;
+    dato += quota;
+    return { ...r, lordo: Math.round((r.lordo - quota) * 100) / 100, scontoRiga: quota };
+  });
+}
+
 // Le righe della fattura, nella forma in cui il documento le vuole: nome,
 // quantità, lordo e l'aliquota che la riga porta con sé. Estratta a parte
 // perché la finestra la mostra e la chiusura dell'incasso la salva — due
 // momenti diversi che non devono poter calcolare l'aliquota in due modi.
-function svfRighe(lines, takeaway) {
-  return (lines || []).map(l => ({
+// `sconto` è quello applicato al conto, in euro: si ripartisce qui.
+function svfRighe(lines, takeaway, sconto) {
+  return svfRipartisci((lines || []).map(l => ({
     nome: l.displayName || l.piatto.name,
     qty: l.qty,
     lordo: l.lineTotal * l.qty,
     aliquota: l.aliquota != null ? l.aliquota : svAliquota(l, takeaway),
-  }));
+  })), sconto);
 }
 
 // Scorporo. I prezzi del menù sono LORDI — 9,00 è quello che il cliente paga e
@@ -69,11 +90,12 @@ function svfRighe(lines, takeaway) {
 // riga per riga, perché arrotondando ogni riga la somma delle imposte non
 // torna più con l'imposta del totale — ed è la prima cosa che salta all'occhio
 // di chi la fattura la controlla.
-function svRiepilogoIva(lines, takeaway) {
+// Si calcola sulle righe GIÀ SCONTATE, per la stessa ragione: il riepilogo
+// deve spiegare il totale del documento, non un totale che non esiste.
+function svRiepilogoIva(lines, takeaway, sconto) {
   const gruppi = new Map();
-  (lines || []).forEach(l => {
-    const a = l.aliquota != null ? l.aliquota : svAliquota(l, takeaway);
-    gruppi.set(a, (gruppi.get(a) || 0) + l.lineTotal * l.qty);
+  svfRighe(lines, takeaway, sconto).forEach(r => {
+    gruppi.set(r.aliquota, (gruppi.get(r.aliquota) || 0) + r.lordo);
   });
   return [...gruppi.entries()]
     .sort((x, y) => x[0] - y[0])
@@ -299,7 +321,7 @@ function SvfSegmento({ seg, onSeg }) {
 //   in giro una cornice di finestra dentro la finestra: due bordi, due ombre e
 //   una striscia sfocata in mezzo. Così invece è la stessa finestra che cambia
 //   contenuto — che è quello che succede davvero.
-function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, onRemove,
+function SvFatturaModal({ open, lines, takeaway, sconto = 0, cliente, onClose, onConfirm, onRemove,
   larghezza = 720, raggio = 26, maxAltezza = '100%', dentro = false }) {
   const [c, setC] = React.useState(SVF_VUOTO);
   const [query, setQuery] = React.useState('');
@@ -366,8 +388,8 @@ function SvFatturaModal({ open, lines, takeaway, cliente, onClose, onConfirm, on
     SVF_RUBRICA_SEGMENTI.includes(r.seg) && ((r.seg === 'estero') === (c.seg === 'estero')) && svfCorrisponde(r, q));
   const mostraLista = aperto && q.length >= 2;
 
-  const righe = svfRighe(lines, takeaway);
-  const riepilogo = svRiepilogoIva(lines, takeaway);
+  const righe = svfRighe(lines, takeaway, sconto);
+  const riepilogo = svRiepilogoIva(lines, takeaway, sconto);
   const totale = riepilogo.reduce((s, r) => s + r.lordo, 0);
 
   const sdiBloccato = svfSdiBloccato(c.seg);

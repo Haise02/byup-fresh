@@ -893,6 +893,9 @@ const PN_AUDIT_TIPI = {
   name_changed:  'ha cambiato il nome',
   // Il titolare reimposta l'accesso del proprio personale (P-172 · D-121).
   access_reset_sent: 'ha reimpostato l\'accesso di',
+  // La conferma del menù importato (P-184 · D-137): da lì il contenuto è una
+  // dichiarazione del ristoratore, allergeni compresi, e ne risponde lui.
+  menu_confermato: 'ha confermato il menù importato',
 };
 window.PN_AUDIT_TIPI = PN_AUDIT_TIPI;
 window.byupReadAuditEventi = function () {
