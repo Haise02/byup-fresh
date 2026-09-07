@@ -482,7 +482,7 @@ function Sezione({ chiave, stato, piatti, tempoDi, apertoDef, primo, minore,
 }
 
 // ─── Card tavolo ──────────────────────────────────────────────────────────
-function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa, consegnati }) {
+function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa }) {
   const [tog, setTog] = React.useState({});
   const on   = (k, def) => (tog[k] === undefined ? def : tog[k]);
   const flip = (k, def) => setTog(o => Object.assign({}, o, { [k]: !on(k, def) }));
@@ -515,7 +515,7 @@ function Card({ t, ora, sel, onScegli, onAvanti, onIndietro, fissato, onFissa, c
     <Sezione {...comuni} key="attesa" chiave="attesa" stato="attesa" piatti={resto}
       apertoDef={false} tempoDi={() => minuti(ora - t.arrivo)}/>
   );
-  if (f.length && consegnati !== false) blocchi.push(
+  if (f.length) blocchi.push(
     /* Sui pronti il tempo diventa l'ORA D'OROLOGIO invece dei minuti che
        scorrono. Stava sulla categoria, e togliendo la categoria sarebbe
        sparito — ma e' il numero giusto per una cosa chiusa: alla domanda «gli
@@ -631,11 +631,13 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
   // gestionale non possono avere due grammatiche.
   //   Canali     su cosa si sta lavorando — sala, asporto, delivery, banco
   //   Categorie  la stazione del piatto (Pizza, Primi, Secondi)
-  //   Consegnati se mostrare anche quello che e' gia' uscito
+  // «Ordini consegnati» no: nella barra e' un CONTEGGIO che apre un pannello a
+  // parte, non un filtro, e qui non servirebbe comunque — quello che e' uscito
+  // sta gia' nella sezione «Pronti» di ogni comanda, dove e' un registro
+  // sempre a portata di mano. La barra lo disegna solo a chi glielo passa.
   const TUTTI_C = 'Tutti i canali', TUTTE_CAT = 'Tutte le categorie';
   const [canale, setCanale] = React.useState(TUTTI_C);
   const [categoria, setCategoria] = React.useState(TUTTE_CAT);
-  const [consegnati, setConsegnati] = React.useState(true);
 
   const ETICHETTA_CANALE = c => (c.tipo ? TIPO[c.tipo] : 'Sala');
   const canali = [TUTTI_C].concat(
@@ -710,7 +712,15 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
     window.addEventListener('resize', r);
     return () => window.removeEventListener('resize', r);
   }, []);
-  const colonne = Math.max(1, Math.floor((larghezza - 24 + 12) / 372));
+  // TRE COLONNE AL MASSIMO. Sotto i 360 la card non scende mai — e' la misura
+  // in cui «3x Spaghetti aglio e olio» e il suo tempo stanno ancora sulla
+  // stessa riga — ma sopra si', e volentieri: su un monitor 1920 tre colonne
+  // fanno card da seicento pixel, dove il nome del piatto respira e i numeri
+  // si leggono da lontano. Cinque colonne di card strette mostravano piu'
+  // tavoli e li facevano leggere peggio, che sul monitor della cucina e' il
+  // baratto sbagliato: quello che conta non e' quanti tavoli entrano, e'
+  // quanto in fretta ne leggi uno.
+  const colonne = Math.min(3, Math.max(1, Math.floor((larghezza - 24 + 12) / 372)));
 
   const [fissati, setFissati] = React.useState([]);
   const fissa = id => setFissati(f => f.indexOf(id) >= 0 ? f.filter(x => x !== id) : [id].concat(f));
@@ -803,8 +813,7 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
           sola, dire come si chiama e' l'unica informazione di cui nessuno ha
           bisogno. */}
       {barra ? barra({ ora, canale, onCanale: setCanale, canali,
-                       categoria, onCategoria: setCategoria, categorie,
-                       consegnati, onConsegnati: setConsegnati }) : (
+                       categoria, onCategoria: setCategoria, categorie }) : (
         <div style={{ height:72, flexShrink:0, display:'flex', alignItems:'center', gap:18,
                       padding:'0 14px 0 22px', background: PN.WHITE, borderBottom:'1px solid ' + UI.bordo }}>
           <span style={{ fontSize:30, fontWeight:800, letterSpacing:'-0.02em', color: UI.testo,
@@ -833,7 +842,7 @@ function KdsTavoliBoard({ comande, barra, orologio, oraZero }) {
         {colonneCard.map((col, i) => (
           <div key={i} style={{ flex:'1 1 0', minWidth:0, display:'flex', flexDirection:'column', gap:12 }}>
             {col.map(t => (
-              <Card key={t.id} t={t} ora={ora} sel={sel} consegnati={consegnati}
+              <Card key={t.id} t={t} ora={ora} sel={sel}
                 fissato={fissati.indexOf(t.id) >= 0} onFissa={() => fissa(t.id)}
                 onScegli={scegli} onAvanti={avanti} onIndietro={indietro}/>
             ))}
