@@ -329,6 +329,12 @@ const HUB_PROPRIETA = [
   // di P-26; qui non arrivano ancora, e la proprietà resta finché non
   // arrivano.
   { id: 'sessioni',       label: 'Sessioni 30gg',   gruppo: 'attivita', tipo: 'numero', colonna: { w: '0.95fr' } },
+  // La disinstallazione (P-182 · D-135): un fatto, non una revoca. Toglie le
+  // sole notifiche push — senza app non hanno dove arrivare — mentre email e
+  // messaggi continuano. La cancellazione dell'account è altra cosa.
+  { id: 'disinstallato', label: 'App disinstallata', gruppo: 'attivita', tipo: 'bool', sistema: true, colonna: { w: '1.05fr' },
+    leggi: (c) => c.tipo === 'utente' && c.ref ? (c.ref.disinstallato === true) : null,
+    nota: 'Solo per gli utenti app: le notifiche non arrivano più, email e messaggi sì. Disinstallare non è revocare un consenso' },
 ];
 
 const HUB_PROP = HUB_PROPRIETA.reduce((m, p) => { m[p.id] = p; return m; }, {});
@@ -683,7 +689,9 @@ const HUB_SMS = [
 // tutti e sul telefono a chi il telefono lo permette (permesso del sistema,
 // non nostro); corsia di marketing in Posta a chi ha ALMENO UN canale
 // marketing acceso (email, messaggi o notifiche), sul telefono solo a chi ha
-// acceso Notifiche; le promozioni su misura solo con la profilazione. Per i
+// acceso Notifiche; le promozioni su misura — cioè i pubblici costruiti sul
+// comportamento — solo con il consenso alla profilazione, che il conteggio
+// controlla davvero (P-182 · D-133) e non soltanto qui a parole. Per i
 // ristoratori, che leggono nella campanella del gestionale, la corsia di
 // marketing poggia sul legittimo interesse con opposizione. Prima la Posta
 // controllava il consenso delle push, che è un altro canale: chi le aveva
@@ -733,21 +741,30 @@ const HUB_CONSENSO_POSTA = 'consensoMarketing';
 // il genere è «sulla restrizione» — la comunicazione della sospensione, col
 // motivo e la via per contestare, deve arrivare proprio a lui, e sopprimerlo
 // lì vorrebbe dire non dirgli mai perché.
-function hubInterrogaPosta(righe, corsia, genere) {
+function hubInterrogaPosta(righe, corsia, genere, filtri) {
   const sullaRestrizione = corsia === 'servizio' && genere === 'restrizione';
   const senzaConsenso = corsia === 'marketing' ? righe.filter(c => !hubConsensoMarketing(c)) : [];
+  // Il pubblico costruito sul comportamento è profilazione: chi non l'ha
+  // prestata esce, anche col canale acceso (P-182 · D-133).
+  const profilato = corsia === 'marketing' && hubFiltriDiComportamento(filtri);
+  const senzaProfilazione = profilato ? righe.filter(c => hubConsensoMarketing(c) && !hubConsensoProfilazione(c)) : [];
   const nonAttivi = righe.filter(c => c.tipo === 'utente' ? (c.ref && c.ref.attivo === false) : c.tipo === 'locale' ? !['active', 'dormant'].includes(c.ref && c.ref.stato) : true);
   const limitati = sullaRestrizione ? [] : righe.filter(c => c.tipo === 'utente' ? (hubLeggi(c, 'restrizione') != null)
     : c.tipo === 'locale' ? (typeof admProvvedimento === 'function' && c.ref && c.ref.stato && admProvvedimento(c.ref) !== 'none') : false);
   const minori = righe.filter(c => typeof hubRegimeProtettivo === 'function' && hubRegimeProtettivo(c));
   const soppressi = new Set([...nonAttivi, ...limitati, ...minori].map(c => c.key));
-  const fuori = new Set([...soppressi, ...senzaConsenso.map(c => c.key)]);
+  const fuori = new Set([...soppressi, ...senzaConsenso.map(c => c.key), ...senzaProfilazione.map(c => c.key)]);
   const netti = righe.filter(c => !fuori.has(c.key));
   // Sul telefono (la notifica in più): in corsia di marketing solo chi ha
   // acceso Notifiche; in corsia di servizio tutti i netti — il permesso del
   // sistema operativo non è un nostro consenso e qui non si conosce.
-  const nettoTelefono = corsia === 'marketing' ? netti.filter(hubConsensoTelefono).length : netti.length;
-  return { pubblico: righe.length, senzaConsenso: senzaConsenso.length, nonAttivi: nonAttivi.length, limitati: limitati.length, minori: minori.length,
+  // Sul telefono non arriva nulla a chi ha disinstallato: la push non ha dove
+  // arrivare (P-182 · D-135). Email e messaggi continuano, e infatti il netto
+  // non cambia: cambia solo il netto del telefono.
+  const conTelefono = netti.filter(c => !hubDisinstallato(c));
+  const nettoTelefono = corsia === 'marketing' ? conTelefono.filter(hubConsensoTelefono).length : conTelefono.length;
+  return { pubblico: righe.length, senzaConsenso: senzaConsenso.length, senzaProfilazione: senzaProfilazione.length, profilato,
+    nonAttivi: nonAttivi.length, limitati: limitati.length, minori: minori.length, disinstallati: netti.length - conTelefono.length,
     soppressi: soppressi.size, netto: netti.length, nettoTelefono, senzaTelefono: netti.length - nettoTelefono };
 }
 // Un pubblico di soli gusti non parte: le categorie non sono mai criterio da
@@ -1808,6 +1825,29 @@ const hubRegimeProtettivo = (c) => {
 };
 const HUB_CONSENSI_MKT = ['consensoMail', 'consensoSms', 'consensoPush'];
 const hubHaConsensoMkt = (c) => HUB_CONSENSI_MKT.some(k => hubLeggi(c, k) === true);
+// Il consenso alla PROFILAZIONE (P-182 · D-133) è un'altra cosa dal consenso
+// di canale: il canale dice dove si può scrivere, la profilazione se si può
+// costruire il messaggio sul comportamento della persona. Un pubblico fatto
+// di filtri di comportamento — ordini, valore, sessioni, ultima attività — è
+// profilazione, e chi non l'ha prestata resta fuori anche se ha il canale
+// acceso. Nel prototipo il consenso vive nel registro dei consensi
+// dell'utente app (profilazione_marketing, P-161 · D-115).
+const HUB_PROP_COMPORTAMENTO = ['ordini', 'valore', 'sessioni', 'ultimaAttivita', 'ultimaMail'];
+const hubFiltriDiComportamento = (filtri) => (filtri || []).some(f => f && HUB_PROP_COMPORTAMENTO.includes(f.prop));
+const hubConsensoProfilazione = (c) => {
+  if (c.tipo !== 'utente' || !c.ref) return true;   // i locali non si profilano
+  if (typeof admConsensiDi === 'function') {
+    const p = (admConsensiDi(c.ref) || []).find(x => x.id === 'profilazione_marketing');
+    if (p) return p.deciso === true && p.ok === true;
+  }
+  return hubLeggi(c, 'consensoProfilazione') === true;
+};
+// La DISINSTALLAZIONE (P-182 · D-135): l'app non c'è più sul telefono, quindi
+// una notifica push non ha dove arrivare. Non è una revoca: email e messaggi
+// continuano, perché il consenso a quel canale resta prestato. La
+// cancellazione dell'account è altra cosa e ferma tutto — lì il rapporto
+// finisce.
+const hubDisinstallato = (c) => c.tipo === 'utente' && !!c.ref && c.ref.disinstallato === true;
 
 // Un contatto è dentro un elenco ATTIVO se passa i suoi filtri: è la stessa
 // definizione che usa la pagina Elenchi. Gli statici hanno membri importati,

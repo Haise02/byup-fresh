@@ -641,6 +641,10 @@ function buildUtenti() {
       spesaTotale: ordini * (26 + Math.floor(r() * 13)),
       utilizzo,
       attivo,
+      // Chi ha tolto l'app dal telefono (P-182 · D-135): non è una revoca —
+      // email e messaggi continuano — ma le notifiche non hanno più dove
+      // arrivare. Capita soprattutto a chi non usa l'app da mesi.
+      disinstallato: utilizzo === 'perso' ? r() > 0.45 : r() > 0.94,
     };
   });
 }

@@ -159,6 +159,38 @@ const UTN_MEDIANE = (() => {
 // `pieno`: stessa scheda ma a pagina intera, senza velo né finestra centrata
 // — riempie il posto che la rotta Contatti le dà, e a chiudere ci pensa la
 // barra «torna» del chiamante.
+// I consensi dell'utente app, costruiti una volta sola: la scheda li mostra e
+// il conteggio dei destinatari li interroga (P-182 · D-133), che è la ragione
+// per cui stanno qui e non dentro il drawer.
+function admConsensiDi(u) {
+  const seed = hubSeme(u.id) % 1000;
+  const rnd = (n) => ((seed * (n + 1) * 9301 + 49297) % 233280) / 233280;
+  const consensi = [
+    { id: 'dietary_preferences',  label: 'Preferenze alimentari nel profilo · A3',
+      desc: 'Salvataggio di dieta e allergie per filtrare i menu — dato sensibile' },
+    { id: 'offers_on_preferences', label: 'Offerte su preferenze alimentari · A18',
+      desc: 'Promozioni costruite sul dato alimentare — vale solo con un canale marketing acceso' },
+    { id: 'marketing_email',        label: 'Marketing · Email · A6', desc: 'Novità e offerte via email' },
+    { id: 'marketing_sms',          label: 'Marketing · Messaggi · A6', desc: 'SMS e WhatsApp (marketing_whatsapp viaggia con lo stesso gesto)' },
+    { id: 'marketing_push',         label: 'Marketing · Notifiche · A6', desc: 'Le notifiche promozionali sul telefono' },
+    { id: 'profilazione_marketing', label: 'Promo su misura sui tuoi ordini', desc: 'La profilazione a fini promozionali: una finalità, non un canale' },
+  ].map((c, i) => {
+    const deciso = rnd(400 + i * 3) > 0.15;
+    const ok = deciso && rnd(401 + i * 3) > 0.35;
+    const quando = new Date(Math.min(Date.now() - 86400000,
+      u.dataRegistrazione.getTime() + Math.floor(rnd(402 + i * 3) * 200) * 86400000));
+    return { ...c, deciso, ok, quando: deciso ? quando : null, versione: '1.0' };
+  });
+  const consensoA3 = consensi.find(c => c.id === 'dietary_preferences');
+  const consensoA18 = consensi.find(c => c.id === 'offers_on_preferences');
+  const canaleMarketing = consensi.some(c => ['marketing_email', 'marketing_sms', 'marketing_push'].includes(c.id) && c.ok);
+  consensoA18.deciso = consensoA18.deciso && consensoA3.deciso;
+  if (!consensoA18.deciso) consensoA18.quando = null;
+  consensoA18.ok = consensoA18.deciso && consensoA18.ok && consensoA3.ok && canaleMarketing;
+  return consensi;
+}
+window.admConsensiDi = admConsensiDi;
+
 function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   const [tab, setTab] = useStateUtn('anagrafica');
 
@@ -375,22 +407,7 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
   // Ogni consenso porta {ok, quando, versione}: la versione è il documento
   // contro cui è stato espresso. Qualcuno non è mai stato interpellato: quello
   // è un terzo stato, non un «no».
-  const consensi = [
-    { id: 'dietary_preferences',  label: 'Preferenze alimentari nel profilo · A3',
-      desc: 'Salvataggio di dieta e allergie per filtrare i menu — dato sensibile' },
-    { id: 'offers_on_preferences', label: 'Offerte su preferenze alimentari · A18',
-      desc: 'Promozioni costruite sul dato alimentare — vale solo con un canale marketing acceso' },
-    { id: 'marketing_email',        label: 'Marketing · Email · A6', desc: 'Novità e offerte via email' },
-    { id: 'marketing_sms',          label: 'Marketing · Messaggi · A6', desc: 'SMS e WhatsApp (marketing_whatsapp viaggia con lo stesso gesto)' },
-    { id: 'marketing_push',         label: 'Marketing · Notifiche · A6', desc: 'Le notifiche promozionali sul telefono' },
-    { id: 'profilazione_marketing', label: 'Promo su misura sui tuoi ordini', desc: 'La profilazione a fini promozionali: una finalità, non un canale' },
-  ].map((c, i) => {
-    const deciso = rnd(400 + i * 3) > 0.15;
-    const ok = deciso && rnd(401 + i * 3) > 0.35;
-    const quando = new Date(Math.min(Date.now() - 86400000,
-      u.dataRegistrazione.getTime() + Math.floor(rnd(402 + i * 3) * 200) * 86400000));
-    return { ...c, deciso, ok, quando: deciso ? quando : null, versione: '1.0' };
-  });
+  const consensi = admConsensiDi(u);
   const consensoA3 = consensi.find(c => c.id === 'dietary_preferences');
   // A18 non vale mai da sola — lo dichiara la sua stessa desc. Le estrazioni
   // sono indipendenti, il registro dell'app no: la domanda A18 nasce nello
@@ -926,7 +943,13 @@ function UtenteDrawer({ utente: u, onClose, pieno, onDiario }) {
             <AdmCard padding={20}>
               <div style={{fontSize:14.4, fontWeight:600, color:ADM.TEXT, marginBottom:14}}>Attività account</div>
               <DataRow label="Registrato il" value={fmtDate(u.dataRegistrazione)}/>
-              <DataRow label="Ultima sessione" value={fmtRelative(u.lastSession)} last/>
+              <DataRow label="Ultima sessione" value={fmtRelative(u.lastSession)}/>
+              {/* La disinstallazione (P-182 · D-135): un fatto dell'app, non
+                  una revoca — le notifiche non arrivano più, email e messaggi
+                  sì. La cancellazione dell'account è altra cosa. */}
+              <DataRow label="App sul telefono" last value={u.disinstallato
+                ? <span style={{color:ADM.WARN, fontWeight:700}}>Disinstallata · niente notifiche, email e messaggi continuano</span>
+                : 'Installata'}/>
             </AdmCard>
 
             {/* Il log così come arriva dal tracking: un evento per riga, la

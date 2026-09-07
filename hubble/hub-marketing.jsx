@@ -1132,7 +1132,7 @@ function MktPostaAnteprima({ dove, corsia, titolo, anteprima }) {
 
 // Le due interrogazioni, rappresentate: conteggi e netto prima di partire.
 function MktPostaInterrogazioni({ corsia, dove, righe, filtri, genere }) {
-  const q = hubInterrogaPosta(righe, corsia, genere);
+  const q = hubInterrogaPosta(righe, corsia, genere, filtri);
   const soloGusti = hubSoloGusti(filtri);
   const riga = (chiave, label, n, nota) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}` }}>
@@ -1151,6 +1151,9 @@ function MktPostaInterrogazioni({ corsia, dove, righe, filtri, genere }) {
       {corsia === 'marketing'
         ? riga('consent_check', 'Senza un consenso di marketing', q.senzaConsenso, 'nessuno dei tre canali acceso: restano fuori, e il consenso si controlla al momento dell\'invio')
         : <div style={{ padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}`, fontSize: 12.6, color: ADM.MUTED }}><span style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11.5, color: ADM.MUTED_SOFT, marginRight: 10 }}>consent_check</span>Non si chiede: è servizio, canale dedicato. Vale finché non contiene una promozione.</div>}
+      {/* Il pubblico costruito sul comportamento è profilazione (P-182 ·
+          D-133): chi non l'ha prestata esce, e il conteggio lo dice. */}
+      {q.profilato && riga('profiling_check', 'Senza il consenso alla profilazione', q.senzaProfilazione, 'il pubblico è costruito sul comportamento: senza quel consenso restano fuori')}
       {riga('suppression_check', 'Soppressi per invariante', q.soppressi, `${q.nonAttivi} non attivi · ${q.limitati} limitati o bannati · ${q.minori} minori`)}
       <div style={{ padding: '8px 0', borderTop: `1px solid ${ADM.BORDER_SOFT}`, fontSize: 12.4, color: ADM.MUTED_SOFT }}>Le categorie particolari non sono mai criterio; i gusti da soli non fanno un pubblico (P-30).</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 8, paddingTop: 10, borderTop: `2px solid ${ADM.BORDER}` }}>
@@ -1221,7 +1224,7 @@ function HubPostaComposer({ onChiudi }) {
   const cambiaCorsia = (c) => { setCorsia(c); setGenere(c === 'servizio' ? 'novita' : 'promozione'); };
   const bozza = { corsia, dove, pubblico: elencoId, filtri };
   const righe = postaRighe(bozza);
-  const q = hubInterrogaPosta(righe, corsia, genere);
+  const q = hubInterrogaPosta(righe, corsia, genere, m.filtri);
   // Il blocco «cambia corsia»: le informative viaggiano su canale dedicato,
   // mai promiscuo. Una promozione scritta in corsia di servizio non parte.
   const promoInServizio = corsia === 'servizio' && hubSembraPromo(titolo + ' ' + anteprima + ' ' + corpo);
@@ -1233,7 +1236,7 @@ function HubPostaComposer({ onChiudi }) {
     const visibileDal = quando === 'subito' ? ora : new Date(data);
     const m = { id: 'PO-' + String(Math.max(0, ...HUB_POSTA.map(x => parseInt(x.id.slice(3), 10) || 0)) + 1).padStart(3, '0'), nome: nome.trim(), corsia, dove, genere, titolo: titolo.trim(), anteprima: anteprima.trim(), corpo: corpo.trim(),
       localeId: localeId || null, pubblico: elencoId, filtri, stato: quando === 'subito' ? 'pubblicata' : 'programmata', pubblicataIl: quando === 'subito' ? ora : null, visibileDal,
-      dest: quando === 'subito' ? q.netto : 0, letture: 0, esclusi: { consenso: q.senzaConsenso, soppressi: q.soppressi },
+      dest: quando === 'subito' ? q.netto : 0, letture: 0, esclusi: { consenso: q.senzaConsenso + q.senzaProfilazione, soppressi: q.soppressi },
       notifica, notificaDest: notifica ? q.nettoTelefono : 0 };
     HUB_POSTA.unshift(m);
     // La notifica sul telefono: una riga in più nell'archivio, legata al
