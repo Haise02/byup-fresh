@@ -31,20 +31,26 @@ function ImpAtterraggioStyle() {
 // Le sezioni delle impostazioni. Erano una fila di tab in cima alla pagina;
 // ora sono la colonna di sinistra del popup, che è il posto dove nel
 // gestionale si sceglie *dove* si sta lavorando.
+// Le sezioni passano dal permesso (P-185 · D-138). La voce Impostazioni
+// resta per tutti — ci si entra sempre, se non altro per il proprio profilo —
+// ma le sezioni dentro no: Dati fiscali ha la sua area, le altre passano da
+// «impostazioni». Chi non ha l'area non vede la sezione nella colonna, e
+// arrivandoci da un rimando trova il cancello dentro la pagina, perché a una
+// schermata si arriva anche da un avviso.
 const IMP_SEZIONI = [
-  { id: 'vetrina', label: 'Vetrina', icon: 'place-restaurant' },
-  { id: 'menu-cucina', label: 'Menù', icon: 'food-meal' },
-  { id: 'sala', label: 'Sala e tavoli', icon: 'place-table' },
-  { id: 'personale', label: 'Personale', icon: 'people-staff-group' },
+  { id: 'vetrina', label: 'Vetrina', icon: 'place-restaurant', area: 'impostazioni' },
+  { id: 'menu-cucina', label: 'Menù', icon: 'food-meal', area: 'impostazioni' },
+  { id: 'sala', label: 'Sala e tavoli', icon: 'place-table', area: 'impostazioni' },
+  { id: 'personale', label: 'Personale', icon: 'people-staff-group', area: 'impostazioni' },
   // P-128 (D-109) e P-134: la sezione Stampanti non esiste più, e la pagina
   // dove vivono si chiama «Integrazioni» — il POS non si collega più da lì,
   // perché il telefono si registra entrando. Dentro, il primo blocco continua
   // a chiamarsi «POS e strumenti di pagamento»: lì sta il censimento presso
   // l'Agenzia, e chi lo cerca lo cerca pensando «POS».
   // Le stampanti non stanno più in Personale: non entrano da nessuna parte.
-  { id: 'flussi', label: 'Servizio', icon: 'chart-workflow' },
-  { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt' },
-  { id: 'integrazioni', label: 'Integrazioni', icon: 'commerce-bank-cards' },
+  { id: 'flussi', label: 'Servizio', icon: 'chart-workflow', area: 'impostazioni' },
+  { id: 'fiscali', label: 'Dati fiscali', icon: 'commerce-receipt', area: 'dati_fiscali' },
+  { id: 'integrazioni', label: 'Integrazioni', icon: 'commerce-bank-cards', area: 'impostazioni' },
 ];
 
 // La seconda colonna: stessa cassa del menù globale del gestionale — vetro
@@ -96,7 +102,8 @@ function ImpNavSidebar({ active, onChange, collapsed }) {
         flex: 1, display: 'flex', flexDirection: 'column', gap: 2,
         minHeight: 0, overflowY: 'auto', position: 'relative',
       }}>
-        {IMP_SEZIONI.map(s => (
+        {/* La colonna mostra le sole sezioni del ruolo (P-185 · D-138). */}
+        {IMP_SEZIONI.filter(x => !x.area || !window.pnPuo || window.pnPuo(x.area)).map(s => (
           <PnNavItem key={s.id} label={s.label} icon={s.icon} collapsed={collapsed}
             active={active === s.id} onClick={() => onChange(s.id)}/>
         ))}
@@ -1033,3 +1040,33 @@ window.ImpSaveBar = ImpSaveBar;
 window.VetrinaMiniPreview = VetrinaMiniPreview;
 window.impAccendiSezione = impAccendiSezione;
 window.ImpAtterraggioStyle = ImpAtterraggioStyle;
+
+// ─── Il cancello di sezione (P-185 · D-138) ────────────────────────────────
+// Stessa cassa del cancello delle Statistiche: dice che cosa non è nel ruolo
+// e come si ottiene, senza fingere che la funzione non esista.
+function ImpGateSezione({ sezione }) {
+  const ruolo = (window.PN_UTENTE && PN_UTENTE.ruoloLabel) || 'tuo';
+  return (
+    <div data-imp-gate style={{
+      flex: 1, minHeight: 420, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '40px 28px', textAlign: 'center',
+    }}>
+      <div style={{ maxWidth: 420 }}>
+        <div style={{
+          width: 62, height: 62, borderRadius: 18, margin: '0 auto 18px', background: PN.WHITE,
+          border: `1px solid ${PN.BORDER}`, display: 'grid', placeItems: 'center', color: PN.MUTED,
+        }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+          </svg>
+        </div>
+        <div style={{ fontSize: 21, fontWeight: 800, color: PN.TEXT, letterSpacing: -0.4, marginBottom: 8 }}>
+          {sezione.label || 'Questa sezione'} non è nel tuo ruolo
+        </div>
+        <div style={{ fontSize: 15, color: PN.MUTED, lineHeight: 1.55 }}>
+          Nel ruolo {ruolo} questa sezione non c'è. La apre il titolare, da Impostazioni → Personale, dando l'area corrispondente al tuo ruolo.
+        </div>
+      </div>
+    </div>
+  );
+}

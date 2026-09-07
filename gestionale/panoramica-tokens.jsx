@@ -608,8 +608,13 @@ window.PN_SERVIZI_MAP = PN_SERVIZI.reduce((m, v) => { m[v.id] = v; return m; }, 
 // La sidebar condivisa (panoramica-sidebar.jsx) costruisce le sue voci da qui
 // (P-135): la voce di un'area non concessa non compare, nemmeno spenta. Il
 // cancello dentro la pagina resta, per chi arriva da un rimando diretto.
+// DIECI AREE (P-185 · D-138): «Dati fiscali» è un'area sua, distinta dal
+// resto di Impostazioni — le credenziali dell'Agenzia, la delega, il
+// censimento dei dispositivi non sono la vetrina né il menù, e chi tiene i
+// conti non è chi apparecchia. Chi non ce l'ha non vede la sezione nella
+// colonna e, arrivandoci da un rimando, trova il cancello.
 const PN_RUOLI_AREE = {
-  titolare:  ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni'],
+  titolare:  ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni','dati_fiscali'],
   cassa:     ['vendita','sala'],
   cameriere: ['app'],
 };

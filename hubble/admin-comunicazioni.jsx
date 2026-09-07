@@ -410,6 +410,10 @@ function StatoChip({ stato }) {
 // scheda utente, e la sua etichetta di P-71 lo dice nelle due varianti. Chi
 // decide è chi è collegato (hubUtenteCorrente), non un id fisso.
 function ModerationCard({ item, locale, onUpdate }) {
+  // Le azioni di moderazione chiedono Scrittura su Moderazione (P-185 ·
+  // D-140): qui erano scoperte, mentre nella scheda utente lo stesso popup
+  // già lo chiedeva. Una misura sulla persona non la prende chi legge.
+  const puoModerare = hubPuo('moderazione', 'scrittura');
   const mod = item.moderazione;
   const autore = (typeof UTENTI !== 'undefined' && UTENTI.find(x => x.id === mod.utenteId)) || { id: mod.utenteId, nome: 'Utente ' + mod.utenteId };
   const [popup, setPopup] = useStateCom(null); // 'rimuovi' | 'mantieni' | 'avvisa' | 'sospendi' | 'ban' | null
@@ -493,6 +497,13 @@ function ModerationCard({ item, locale, onUpdate }) {
   );
 
   return (
+    <React.Fragment>
+    {!puoModerare && (
+      <div data-mod-gate style={{padding:'10px 13px', borderRadius:10, background:ADM.WARN_SOFT, border:'1px solid #FDE68A', fontSize:13, color:'#78350F', lineHeight:1.5, marginBottom:10}}>
+        Rimuovere una recensione, avvisare o sospendere l'autore richiede <b>Scrittura su Moderazione</b>: il tuo ruolo qui legge.
+      </div>
+    )}
+    <div style={{opacity: puoModerare ? 1 : 0.55}}>
     <div style={{background:'#fff', border:`1px solid ${ADM.BORDER}`, borderRadius:12, overflow:'hidden', boxShadow:'0 1px 2px rgba(15,17,21,0.03)', position:'relative'}}>
       {/* La recensione segnalata */}
       <div style={{padding:'16px 18px', borderBottom:`1px solid ${ADM.BORDER_SOFT}`}}>
@@ -607,6 +618,8 @@ function ModerationCard({ item, locale, onUpdate }) {
         </div>
       )}
     </div>
+    </div>
+    </React.Fragment>
   );
 }
 
@@ -654,7 +667,11 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
     setRejectMode(false);
   };
 
-  const takeOver = () => onUpdate({ assignedTo: MY_ID, stato: item.stato === 'nuova' ? 'in_corso' : item.stato });
+  // Le azioni dell'assistenza chiedono Scrittura su Assistenza (P-185 ·
+  // D-140), come le certificazioni chiedono Scrittura su Conformità: chi
+  // legge soltanto guarda il ticket e non lo tocca.
+  const puoAssistenza = hubPuo('assistenza', 'scrittura');
+  const takeOver = () => { if (puoAssistenza) onUpdate({ assignedTo: MY_ID, stato: item.stato === 'nuova' ? 'in_corso' : item.stato }); };
 
   const ageH = Math.floor((Date.now() - item.data.getTime()) / 3600000);
   const isAssignedToMe = item.assignedTo === MY_ID;
@@ -696,7 +713,9 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               chiudere non deve risultare più invitante che rispondere. */}
           {isAssignedToMe && item.stato !== 'risolta' && !item.certRequest && (
             <AdmButton variant="secondary" size="sm" icon="check"
-              onClick={()=>onUpdate({ stato:'risolta', resolvedBy: MY_ID, resolvedAt: new Date() })}>
+              onClick={()=>{ if (hubPuo('assistenza', 'scrittura')) onUpdate({ stato:'risolta', resolvedBy: MY_ID, resolvedAt: new Date() }); }}
+              disabled={!hubPuo('assistenza', 'scrittura')}
+              title={hubPuo('assistenza', 'scrittura') ? undefined : 'Chiudere un ticket richiede Scrittura su Assistenza'}>
               Marca risolta
             </AdmButton>
           )}
@@ -895,7 +914,8 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                     Per rispondere devi prima prenderlo tu: così {assignedTeam.nome.split(' ')[0]} vede
                     che è passato di mano e non scrivete in due.
                   </div>
-                  <AdmButton variant="secondary" size="md" icon="user" onClick={takeOver}
+                  <AdmButton variant="secondary" size="md" icon="user" onClick={takeOver} disabled={!puoAssistenza}
+                    title={puoAssistenza ? undefined : 'Prendere in carico un ticket richiede Scrittura su Assistenza'}
                     style={{marginTop:3}}>Prendi tu il ticket</AdmButton>
                 </React.Fragment>
               ) : (
@@ -907,8 +927,14 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                     Assegnatelo per poter rispondere: finché è di nessuno, chiunque potrebbe
                     scrivere a {item.senderName.split(' ')[0]} nello stesso momento.
                   </div>
-                  <AdmButton variant="primary" size="lg" icon="user" onClick={takeOver}
+                  <AdmButton variant="primary" size="lg" icon="user" onClick={takeOver} disabled={!puoAssistenza}
+                    title={puoAssistenza ? undefined : 'Assegnarsi un ticket richiede Scrittura su Assistenza'}
                     style={{marginTop:5, paddingLeft:26, paddingRight:26}}>Assegna a me</AdmButton>
+                  {!puoAssistenza && (
+                    <div style={{fontSize:12.6, color:'#78350F', background:ADM.WARN_SOFT, border:'1px solid #FDE68A', borderRadius:9, padding:'8px 11px', marginTop:6, maxWidth:380, lineHeight:1.5}}>
+                      Il tuo ruolo qui <b>legge</b>: prendere in carico e rispondere chiedono <b>Scrittura su Assistenza</b>.
+                    </div>
+                  )}
                 </React.Fragment>
               )}
             </div>
@@ -1008,7 +1034,7 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
               <div style={{flex:1}}/>
               {(() => {
                 const handleSend = () => {
-                  if (!reply.trim()) return;
+                  if (!reply.trim() || !puoAssistenza) return;
                   // La risposta diventa un messaggio del thread, allegati
                   // compresi: senza traccia renderizzata, inviare e non
                   // inviare sarebbero la stessa cosa.
@@ -1022,7 +1048,8 @@ function Thread({ item, onUpdate, onAddTag, onRemoveTag }) {
                   setTimeout(()=>setInviata(false), 3000);
                 };
                 return (
-                  <button onClick={handleSend} disabled={!reply.trim()} style={{
+                  <button onClick={handleSend} disabled={!reply.trim() || !puoAssistenza}
+                    title={puoAssistenza ? undefined : 'Rispondere richiede Scrittura su Assistenza'} style={{
                     display:'inline-flex', alignItems:'center', gap:6,
                     padding:'8px 14px',
                     background: !reply.trim() ? '#E5E7EB' : 'linear-gradient(135deg, #FF1F5A, #C40B45)',

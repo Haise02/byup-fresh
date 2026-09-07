@@ -876,6 +876,9 @@ function SrvContesto({ r, locale, tutte }) {
 // prima di sapere se ha risposto vorrebbe dire far compilare campi che
 // nella metà dei casi vanno buttati.
 function SrvEsitoModale({ r, onChiudi, onSalva }) {
+  // Registrare l'esito di una chiamata è un'azione dell'assistenza (P-185 ·
+  // D-140): chi legge soltanto la guarda.
+  const puoAssistenza = hubPuo('assistenza', 'scrittura');
   const [risposto, setRisposto] = useStateSrv(null);
   const [problemaCat, setProblemaCat] = useStateSrv(null);
   const [risolto, setRisolto] = useStateSrv(null);
@@ -2471,7 +2474,11 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
   // Il metodo regge la decisione: senza metodo, senza riferimento (e senza
   // nota se il metodo è «altro») non si ripristina.
   const pronta = !!metodo && evidenza.trim().length > 0 && (metodo !== 'altro' || note.trim().length > 0);
+  // Chiudere o riemettere una pratica di ripristino chiede Scrittura su
+  // Assistenza (P-185 · D-140): con la sola lettura la pratica si guarda.
+  const puoAssistenza = hubPuo('assistenza', 'scrittura');
   const chiudi = (outcome, extra) => {
+    if (!puoAssistenza) return;
     const ora = new Date();
     // Ripristinare manda il collegamento: scade in quarantotto ore (P-172).
     const link = outcome === 'restored' ? { link_sent_at: ora, link_expires_at: new Date(ora.getTime() + 48 * 3600000), link_used_at: null } : {};
@@ -2485,6 +2492,7 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
   };
   // Il collegamento scaduto si riemette, e l'atto si registra come il primo.
   const riemetti = () => {
+    if (!puoAssistenza) return;
     const ora = new Date();
     onAggiorna({ link_sent_at: ora, link_expires_at: new Date(ora.getTime() + 48 * 3600000), link_used_at: null, riemissioni: [...(r.riemissioni || []), { il: ora, da: SRV_IO }] });
     if (typeof AUDIT_EVENTS !== 'undefined') AUDIT_EVENTS.unshift({ who: SRV_IO, action: 'ha riemesso il collegamento di ripristino per', target: `${r.user.nome} · ${r.localeNome} · ${r.id}`, icon: 'lock', color: 'WARN', tipo: 'accessi', when: ora });
@@ -2571,7 +2579,7 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
                 </div>
               </div>
               {usato ? <SrvPastiglia testo={`Usato il ${srvDataOra(usato)}`} tono="OK" piena/>
-                : scaduto ? <React.Fragment><SrvPastiglia testo="Scaduto" tono="WARN" piena/><AdmButton variant="secondary" size="sm" icon="mail" data-riemetti onClick={riemetti}>Riemetti</AdmButton></React.Fragment>
+                : scaduto ? <React.Fragment><SrvPastiglia testo="Scaduto" tono="WARN" piena/><AdmButton variant="secondary" size="sm" icon="mail" data-riemetti disabled={!puoAssistenza} onClick={riemetti}>Riemetti</AdmButton></React.Fragment>
                 : <SrvPastiglia testo="Valido" tono="OK" piena/>}
             </div>
           </AdmCard>
@@ -2585,12 +2593,19 @@ function SrvDettaglioRipristino({ r, onAggiorna }) {
             Ripristinare manda al recapito censito di {r.user.nome} un collegamento per reimpostare le credenziali: <b style={{color:ADM.TEXT}}>scade in quarantotto ore</b>. Non c'è, e non deve esserci, un esito che assegni l'accesso a un'altra persona.
           </div>
           {!rifiuto ? (
-            <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
-              <AdmButton variant="primary" size="md" icon="check" disabled={!pronta} onClick={()=>chiudi('restored')}>Ripristina l'accesso</AdmButton>
-              <AdmButton variant="danger" size="md" icon="x" onClick={()=>setRifiuto(true)}>Rifiuta</AdmButton>
-              <AdmButton variant="ghost" size="md" onClick={()=>chiudi('withdrawn')}>Ritirata dal richiedente</AdmButton>
+            <React.Fragment>
+            {!puoAssistenza && (
+              <div data-assistenza-gate style={{padding:'10px 13px', borderRadius:10, background:ADM.WARN_SOFT, border:'1px solid #FDE68A', fontSize:13, color:'#78350F', lineHeight:1.5, marginBottom:10}}>
+                Chiudere una pratica richiede <b>Scrittura su Assistenza</b>: il tuo ruolo qui legge.
+              </div>
+            )}
+            <div style={{display:'flex', gap:8, flexWrap:'wrap', opacity: puoAssistenza ? 1 : 0.5}}>
+              <AdmButton variant="primary" size="md" icon="check" disabled={!pronta || !puoAssistenza} onClick={()=>chiudi('restored')}>Ripristina l'accesso</AdmButton>
+              <AdmButton variant="danger" size="md" icon="x" disabled={!puoAssistenza} onClick={()=>setRifiuto(true)}>Rifiuta</AdmButton>
+              <AdmButton variant="ghost" size="md" disabled={!puoAssistenza} onClick={()=>chiudi('withdrawn')}>Ritirata dal richiedente</AdmButton>
               {!pronta && <span style={{alignSelf:'center', fontSize:12.4, color:ADM.MUTED_SOFT}}>Per ripristinare servono metodo e riferimento all'evidenza{metodo === 'altro' ? ', e la nota' : ''}.</span>}
             </div>
+            </React.Fragment>
           ) : (
             <div>
               <label style={SRV_ETI}>Causale del rifiuto · obbligatoria</label>

@@ -61,7 +61,7 @@ const ROLES = [
     color: '#0F766E', bg: '#CCFBF1',
     icon: 'crown',
     locked: true,
-    areas: ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni'],
+    areas: ['panoramica','sala','vendita','cucina','app','statistiche','contabilita','supporto','impostazioni','dati_fiscali'],
   },
   {
     id: 'cameriere',
@@ -118,6 +118,9 @@ const ALL_AREAS = [
   { id: 'contabilita', label: 'Contabilità', icon: 'money' },
   { id: 'supporto', label: 'Supporto', icon: 'chat' },
   { id: 'impostazioni', label: 'Impostazioni', icon: 'settings' },
+  // Dati fiscali è un'area sua (P-185 · D-138): sta dentro Impostazioni ma
+  // non si concede con essa.
+  { id: 'dati_fiscali', label: 'Dati fiscali', icon: 'receipt' },
 ];
 
 const SETTINGS_PAGES = [

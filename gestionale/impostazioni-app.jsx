@@ -120,6 +120,11 @@ function ImpApp() {
   }, []);
 
   const sezione = IMP_SEZIONI.find(s => s.id === active) || {};
+  // Il cancello dentro la pagina (P-185 · D-138): la colonna nasconde le
+  // sezioni che il ruolo non ha, ma a una schermata si arriva anche da un
+  // rimando, dalla ricerca rapida o da un avviso, e lì la colonna non è la
+  // porta. Il testo dice quale sezione, non «non hai i permessi».
+  const puoSezione = !sezione.area || !window.pnPuo || window.pnPuo(sezione.area);
 
   return (
     // Schermata piena, non finestra: le impostazioni sono un'applicazione
@@ -185,6 +190,10 @@ function ImpApp() {
           flex: 1, overflow: 'auto', minHeight: 0,
           padding: '14px 26px 26px',
         }}>
+          {/* Il cancello vale per OGNI sezione, non solo per l'ultima: a una
+              schermata si arriva anche da un rimando (P-185 · D-138). */}
+          {!puoSezione ? <ImpGateSezione sezione={sezione}/> : (
+          <React.Fragment>
           {active === 'vetrina' && <ImpVetrina/>}
           {active === 'menu-cucina' && <ImpMenuCucina/>}
           {active === 'sala' && <ImpSalaTavoli/>}
@@ -192,6 +201,7 @@ function ImpApp() {
           {active === 'flussi' && <ImpFlussi/>}
           {active === 'fiscali' && <ImpDatiFiscali/>}
           {active === 'integrazioni' && <ImpIntegrazioni/>}
+          </React.Fragment>)}
         </div>
 
         {/* Piede: una CTA sola, in basso a destra, per tutto il popup */}
