@@ -332,13 +332,18 @@ function IntegrationCard({ item, suggested, onApi, connessioni = [], onRevoca })
   // testo. Il margine automatico prima dello stato tiene i fondi allineati
   // anche quando una descrizione va a capo e l'altra no.
   const azione = { width:'100%', justifyContent:'center', padding:'9px 14px', fontSize: 14.5 };
+  // Il numero sulla sezione Integrazioni è questa tessera: ci si arriva sopra
+  // — l'anello dell'atterraggio, poi il pallino che resta — perché in una
+  // pagina di tredici tessere «c'è una cosa da collegare» non dice quale.
   return (
-    <div style={{
+    <div data-cfg-anchor={stripeGiu ? 'stripe' : undefined} style={{
+      position: 'relative',
       display:'flex', flexDirection:'column',
       minHeight: 236, padding: 18, borderRadius: 16,
       border: `1.5px solid ${item.status === 'connected' ? PN.GREEN_SOFT : item.status === 'todo' ? '#FCD34D' : PN.BORDER_SOFT}`,
       background: item.status === 'connected' ? '#F0FDF4' : item.status === 'todo' ? '#FFFBEB' : PN.WHITE,
     }}>
+      {stripeGiu && window.ImpPallinoNotifica && <window.ImpPallinoNotifica title={item.cta}/>}
       <div style={{
         width: 54, height: 54, borderRadius: 14,
         background: item.bg,

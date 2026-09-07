@@ -281,6 +281,14 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
     return () => { ev.forEach(e => window.removeEventListener(e, update)); };
   }, []);
 
+  // Le due attivazioni che mancano — Stripe e il collegamento all'Agenzia.
+  // Finché non sono fatte la voce Impostazioni porta il loro numero: è il
+  // conto delle cose da fare là dentro, e serve a decidere se vale la pena
+  // entrare. Da dentro diventa un pallino (PnSysItem): il numero l'hai letto,
+  // e le due sezioni lì accanto dicono già dove sono e quante. Tornando in
+  // Panoramica il numero torna, perché la cosa non è ancora fatta.
+  const attivazioni = window.byupUseAttivazioni ? window.byupUseAttivazioni() : { totale: 0 };
+
   // Le voci passano dal ruolo (P-135): una voce la cui area non è concessa a
   // chi guarda NON compare — nemmeno spenta, perché una voce disabilitata
   // racconta comunque che la funzione esiste e ti è negata, che al cameriere
@@ -404,7 +412,9 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
         paddingTop: 10, marginBottom: 10,
       }}>
         {sys.map(it => (
-          <PnSysItem key={it.id} {...it} collapsed={collapsed} active={active === it.id} onClick={() => navTo(it.id)} />
+          <PnSysItem key={it.id} {...it} collapsed={collapsed} active={active === it.id}
+            badge={it.id === 'impostazioni' && attivazioni.totale ? attivazioni.totale : undefined}
+            onClick={() => navTo(it.id)} />
         ))}
       </div>
 
@@ -485,7 +495,12 @@ function PnSidebar({ active = 'panoramica', onNav, badges, collapsed: collapsedP
   );
 }
 
-function PnNavItem({ label, icon, badge, active, onClick, collapsed }) {
+// `pallino`: mostra il segno tondo invece della cifra, com'è già da menù
+// stretto. Lo chiede la sezione in cui SEI: il numero dice quante cose ti
+// aspettano di là, e sulla schermata che stai guardando non conta più nulla —
+// il segno resta perché la cosa non è fatta, e sparisce quando la fai.
+function PnNavItem({ label, icon, badge, pallino, active, onClick, collapsed }) {
+  const soloPallino = collapsed || pallino;
   // Attivo = tinta brand piatta. Niente gloss verticale, bevel o shimmer:
   // il 2.5D sui bottoni è fuori dal design system.
   const activeStyle = active ? {
@@ -529,7 +544,7 @@ function PnNavItem({ label, icon, badge, active, onClick, collapsed }) {
         <Icon name={icon} size={collapsed ? 22 : 26}/>
       </span>
       {!collapsed && <span style={{flex: 1, position: 'relative', zIndex: 3}}>{label}</span>}
-      {!collapsed && badge != null && (
+      {badge != null && !soloPallino && (
         <span className={active ? 'glass-pulse-glow' : ''} style={{
           fontSize: 12.5, fontWeight: 700,
           color: PN.WHITE, background: PN.PINK,
@@ -538,7 +553,7 @@ function PnNavItem({ label, icon, badge, active, onClick, collapsed }) {
           position: 'relative', zIndex: 3,
         }}>{badge}</span>
       )}
-      {collapsed && badge != null && (
+      {badge != null && soloPallino && (
         <span style={{
           position: 'absolute', top: 7, right: 7,
           width: 7, height: 7, borderRadius: '50%',
@@ -550,11 +565,18 @@ function PnNavItem({ label, icon, badge, active, onClick, collapsed }) {
   );
 }
 
-function PnSysItem({ label, icon, active, onClick, collapsed }) {
+function PnSysItem({ label, icon, badge, active, onClick, collapsed }) {
   // Flat come i nav item principali.
   const activeStyle = active ? {
     background: PN.SIDE_ACTIVE_BG,
   } : {};
+  // La cifra finché non ci sei entrato; da dentro, il pallino. È la stessa
+  // regola di PnNavItem, e qui la usa la voce Impostazioni: quante cose ti
+  // aspettano di là è una notizia che serve prima di andarci. Una volta là,
+  // ripetere il totale sulla voce della schermata che stai guardando non
+  // decide più niente — quel totale è la somma dei numeri che hai davanti.
+  // Il pallino, però, resta: la cosa non è fatta, e sparisce quando la fai.
+  const soloPallino = collapsed || active;
 
   return (
     <button onClick={onClick} title={label}
@@ -581,7 +603,23 @@ function PnSysItem({ label, icon, active, onClick, collapsed }) {
       onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = PN.MUTED; } }}
     >
       <Icon name={icon} size={collapsed ? 18 : 21}/>
-      {!collapsed && <span>{label}</span>}
+      {!collapsed && <span style={{flex: 1}}>{label}</span>}
+      {badge != null && !soloPallino && (
+        <span style={{
+          fontSize: 12.5, fontWeight: 700,
+          color: PN.WHITE, background: PN.PINK,
+          padding: '2px 7px', borderRadius: 999,
+          minWidth: 18, textAlign: 'center', flexShrink: 0,
+        }}>{badge}</span>
+      )}
+      {badge != null && soloPallino && (
+        <span style={{
+          position: 'absolute', top: 6, right: 6,
+          width: 7, height: 7, borderRadius: '50%',
+          background: PN.PINK,
+          boxShadow: '0 0 0 1.5px white',
+        }}/>
+      )}
     </button>
   );
 }

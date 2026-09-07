@@ -135,6 +135,62 @@ function _byupNotificheAttivazione() {
   return out;
 }
 
+// ─── Che cosa manca, in un posto solo ───────────────────────────────────────
+// Le due attivazioni si dicono ormai in quattro punti — le due notifiche qui
+// sopra, il numero sulla voce Impostazioni del menù, i numeri sulle due
+// sezioni dentro le impostazioni, e il pallino sulla scheda che le risolve —
+// e quattro punti che leggono quattro condizioni scritte a mano prima o poi si
+// smentiscono. La condizione è questa, e la leggono tutti.
+// Non passa dalle notifiche lette: leggere un avviso non collega niente, e il
+// numero deve restare finché la cosa non è fatta.
+window.byupAttivazioniDaFare = function () {
+  let stripe = false, fiscale = false;
+  try {
+    // Stripe: tutto ciò che non è «connesso». Sono tre situazioni diverse —
+    // da collegare, limitato, disabilitato dal cambio di soggetto — ma per chi
+    // guarda il menù sono la stessa cosa: non stai incassando come dovresti, e
+    // si sistema tutto sulla stessa tessera.
+    const s = window.byupReadStripe ? window.byupReadStripe() : null;
+    stripe = !!s && s.status !== 'active';
+    // Fiscale: le credenziali di chi trasmette, mai inserite, e la delega, non
+    // ancora data — salvo chi ha scelto di fare da sé (P-170 · D-119). Sono
+    // due cose e un numero solo: quello che manca è il collegamento con
+    // l'Agenzia, e si sistema in una schermata sola.
+    const credMai = !!(window.byupAdeCredStato && !window.byupAdeCredStato().rinnovo);
+    const reg = window.byupReadDelega ? window.byupReadDelega() : null;
+    const delegaGiu = !!reg && reg.delega !== 'attiva' && reg.delega !== 'fai_da_te';
+    fiscale = credMai || delegaGiu;
+  } catch (e) {}
+  return { stripe, fiscale, totale: (stripe ? 1 : 0) + (fiscale ? 1 : 0) };
+};
+// Quale scheda porta il pallino, dentro Dati fiscali: le credenziali si
+// inseriscono la prima volta nella scheda dell'incaricato, la delega si dà in
+// quella delle attivazioni. Se mancano tutt'e due si atterra sulla prima,
+// perché senza credenziali non parte niente e senza delega parte quasi tutto.
+window.byupAncoraAttivazione = function (sezione) {
+  const a = window.byupAttivazioniDaFare();
+  if (sezione === 'integrazioni') return a.stripe ? 'stripe' : null;
+  if (sezione !== 'fiscali' || !a.fiscale) return null;
+  const credMai = !!(window.byupAdeCredStato && !window.byupAdeCredStato().rinnovo);
+  return credMai ? 'ade-incaricato' : 'ade-attivazioni';
+};
+// Il numero si rifà da solo: collegare Stripe da Integrazioni lo spegne nel
+// menù senza ricaricare la pagina, ed è lo stesso giro di eventi da cui si
+// rifanno le notifiche.
+window.byupUseAttivazioni = function () {
+  const [v, setV] = React.useState(() => window.byupAttivazioniDaFare());
+  React.useEffect(() => {
+    const up = () => setV(prec => {
+      const n = window.byupAttivazioniDaFare();
+      return (n.stripe === prec.stripe && n.fiscale === prec.fiscale) ? prec : n;
+    });
+    const ev = window.BYUP_NOTIF_EVENTI;
+    ev.forEach(e => window.addEventListener(e, up));
+    return () => { ev.forEach(e => window.removeEventListener(e, up)); };
+  }, []);
+  return v;
+};
+
 // ─── Le notifiche fiscali, derivate dai registri (P-105, P-104) ─────────────
 // Non sono scritte a mano: nascono dallo stato. Il censimento dei POS non sta
 // più nell'onboarding — ogni strumento nasce col suo collegamento (Stripe, un

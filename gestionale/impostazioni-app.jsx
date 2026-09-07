@@ -54,9 +54,29 @@ function ImpApp() {
     return () => window.removeEventListener('byup-imp-goto', go);
   }, []);
 
+  // Le sezioni che portano un numero — Dati fiscali e Integrazioni, finché il
+  // collegamento manca — non si limitano ad aprirsi: la scheda che risolve
+  // quel numero si accende per un attimo e si porta in vista. È lo stesso
+  // atterraggio dei rimandi (impAccendiSezione), e serve alla stessa cosa: un
+  // numero che ti porta in cima a una pagina lunga ti ha detto che c'è
+  // qualcosa, non dove. Il pallino sulla scheda resta anche dopo che l'anello
+  // si è spento, perché la cosa non è ancora fatta.
+  const atterraSuAttivazione = (id) => {
+    const anchor = window.byupAncoraAttivazione && window.byupAncoraAttivazione(id);
+    if (!anchor) return;
+    setTimeout(() => {
+      const el = window.impAccendiSezione && window.impAccendiSezione(anchor);
+      if (el) el.scrollIntoView({ block: anchor === 'stripe' ? 'center' : 'start', behavior: 'smooth' });
+    }, 180);
+  };
+
   // Scegliendo una sezione dal menù il rimando è finito: non c'è più un
   // «indietro» che voglia dire qualcosa.
-  const vaiA = (id) => { setActive(id); setRitorno(null); };
+  const vaiA = (id) => { setActive(id); setRitorno(null); atterraSuAttivazione(id); };
+
+  // Vale anche per chi ci arriva dritto — dalla campanella, dalla fascia in
+  // Panoramica, da un ?page= — che è la strada da cui ci si arriva più spesso.
+  React.useEffect(() => { atterraSuAttivazione(active); }, []);
 
   // Quante modifiche non salvate ci sono in giro: lo dicono le pagine
   // registrandosi (impostazioni-shared.jsx), non un indovino sugli eventi.
@@ -139,6 +159,10 @@ function ImpApp() {
       display: 'flex', flex: 1, minHeight: 0, position: 'relative',
       background: PN.BG,
     }}>
+      {/* L'anello dell'atterraggio: viveva solo dentro Vetrina e Configurazione
+          completa, e adesso lo usa anche l'arrivo su una sezione da collegare —
+          quindi sta qui, dove c'è qualunque sezione. */}
+      <ImpAtterraggioStyle/>
       <style>{`
         @keyframes impEntra {
           from { opacity: 0; transform: translateY(16px); }

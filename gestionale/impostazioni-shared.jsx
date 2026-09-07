@@ -63,6 +63,13 @@ const IMP_SEZIONI = [
 // `collapsed`: le due colonne si danno il cambio, una sola per volta è larga.
 // Da stretta questa resta la stessa fila di icone, solo senza le parole.
 function ImpNavSidebar({ active, onChange, collapsed }) {
+  // Il totale che sta sulla voce Impostazioni del menù accanto, qui si divide
+  // fra le due sezioni che lo compongono: uno su Dati fiscali, uno su
+  // Integrazioni. È la stessa notizia detta un gradino più in basso — chi è
+  // entrato per il «2» trova scritto dove sono quei due, senza aprire sette
+  // sezioni per cercarli.
+  const attivazioni = window.byupUseAttivazioni ? window.byupUseAttivazioni() : { stripe: false, fiscale: false };
+  const daFare = { fiscali: attivazioni.fiscale ? 1 : 0, integrazioni: attivazioni.stripe ? 1 : 0 };
   return (
     <aside style={{
       width: collapsed ? 68 : 272, flexShrink: 0,
@@ -105,6 +112,7 @@ function ImpNavSidebar({ active, onChange, collapsed }) {
         {/* La colonna mostra le sole sezioni del ruolo (P-185 · D-138). */}
         {IMP_SEZIONI.filter(x => !x.area || !window.pnPuo || window.pnPuo(x.area)).map(s => (
           <PnNavItem key={s.id} label={s.label} icon={s.icon} collapsed={collapsed}
+            badge={daFare[s.id] ? daFare[s.id] : undefined} pallino={active === s.id}
             active={active === s.id} onClick={() => onChange(s.id)}/>
         ))}
       </div>
@@ -175,9 +183,26 @@ function ImpSubTabs({ tabs, active, onChange }) {
   );
 }
 
+// Il segno tondo sulla scheda che risolve una notifica: sta in alto a destra,
+// dov'è sulla voce di menù da cui si è arrivati. È l'ultimo gradino di una
+// discesa che non perde mai il filo — 2 sulla voce Impostazioni, 1 sulla
+// sezione, il pallino sulla scheda — e resta finché la cosa non è collegata,
+// perché è lo stato a spegnerlo, non l'averlo guardato.
+function ImpPallinoNotifica({ title }) {
+  return (
+    <span title={title || 'Da collegare'} style={{
+      position: 'absolute', top: 12, right: 14, zIndex: 2,
+      width: 11, height: 11, borderRadius: '50%',
+      background: PN.PINK, boxShadow: '0 0 0 3px rgba(255, 90, 95, 0.16)',
+    }}/>
+  );
+}
+
 // `style`: override del contenitore — la coppia Dati anagrafici / Sede
 // operativa lo usa per pareggiare le altezze dentro la griglia.
-function ImpCard({ title, sub, children, action, aurora, anchor, style }) {
+// `notifica`: la scheda porta il pallino, perché è quella che risolve una
+// delle due attivazioni ancora da fare.
+function ImpCard({ title, sub, children, action, aurora, anchor, style, notifica }) {
   // L2 Aurora soft wash multi-color — pink + lavender + cream mesh su base
   // sfumata pink→lavender. Stesso DNA della variant L2 nella preview themes.
   // Sistema 75/15/10.
@@ -192,8 +217,10 @@ function ImpCard({ title, sub, children, action, aurora, anchor, style }) {
       border: `1px solid ${aurora ? 'rgba(190, 175, 220, 0.14)' : PN.BORDER_SOFT}`,
       borderRadius: 14,
       marginBottom: 16,
+      position: 'relative',
       ...style,
     }}>
+      {notifica && <ImpPallinoNotifica title={typeof notifica === 'string' ? notifica : undefined}/>}
       {(title || action) && (
         <div style={{
           display:'flex', alignItems:'flex-start', gap: 16,
@@ -1039,6 +1066,7 @@ window.ImpWithPreview = ImpWithPreview;
 window.ImpSaveBar = ImpSaveBar;
 window.VetrinaMiniPreview = VetrinaMiniPreview;
 window.impAccendiSezione = impAccendiSezione;
+window.ImpPallinoNotifica = ImpPallinoNotifica;
 window.ImpAtterraggioStyle = ImpAtterraggioStyle;
 
 // ─── Il cancello di sezione (P-185 · D-138) ────────────────────────────────

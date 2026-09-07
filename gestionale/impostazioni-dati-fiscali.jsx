@@ -92,8 +92,14 @@ function AdeIncaricatoCard({ forma, titolare }) {
       <input value={(edit && edit[chiave]) || ''} onChange={e => { const v = e.target.value; setEdit(x => ({ ...(x || {}), [chiave]: chiave === 'cf' ? v.toUpperCase() : v })); if (fase === 'errore') setFase('idle'); }} {...(extra || {})}/>
     </div>
   );
+  // Il pallino della notifica sta QUI e non sulla scheda del rinnovo: quella
+  // non c'è finché non si è mai trasmesso, e mandare un numero su una scheda
+  // che non esiste è mandarci a vuoto. Le credenziali si mettono la prima
+  // volta in questa.
   return (
     <ImpCard
+      anchor="ade-incaricato"
+      notifica={!credProvate ? 'Da collegare: senza credenziali scontrini e fatture non partono' : undefined}
       title={persona ? 'Credenziali Fisconline' : 'Incaricato Fisconline'}
       sub={persona
         ? 'Il canale trasmette i tuoi scontrini all\'Agenzia con le tue credenziali Fisconline: la password scade ogni novanta giorni e la rinnovi tu'
@@ -1140,7 +1146,9 @@ function AdeAttivazioniCard() {
   );
 
   return (
-    <ImpCard title="Attivazioni fiscali" sub="Tre cose: la delega la dai tu sul portale dell'Agenzia, l'adesione alla conservazione la fa una persona di Byup con quella delega, l'accreditamento come esercente lo fai tu dal portale" style={{marginBottom: 18}}>
+    <ImpCard anchor="ade-attivazioni"
+      notifica={(!forfettario && reg.delega !== 'attiva' && !senzaDelega) ? 'Da dare: la delega all\'Agenzia' : undefined}
+      title="Attivazioni fiscali" sub="Tre cose: la delega la dai tu sul portale dell'Agenzia, l'adesione alla conservazione la fa una persona di Byup con quella delega, l'accreditamento come esercente lo fai tu dal portale" style={{marginBottom: 18}}>
       <style>{`@keyframes adeAttSpin { to { transform: rotate(360deg); } }`}</style>
       {forfettario && (
         <div data-forfettario-attivazioni style={{marginBottom: 12, padding:'11px 13px', borderRadius: 10, background: PN.AMBER_SOFT, border:'1px solid rgba(180, 83, 9, 0.22)', fontSize: 14, color:'#7A4A0B', lineHeight: 1.5}}>
