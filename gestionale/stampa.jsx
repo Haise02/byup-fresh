@@ -630,10 +630,14 @@ const pnDataDoc = (d) => {
   const x = d ? new Date(d) : new Date();
   return `${pnDueCifre(x.getDate())}-${pnDueCifre(x.getMonth() + 1)}-${x.getFullYear()} ${pnDueCifre(x.getHours())}:${pnDueCifre(x.getMinutes())}`;
 };
-// L'aliquota della riga: quella congelata sulla riga d'ordine se c'è,
-// altrimenti quella che discende da tipologia × modo di consumo (P-108).
-// Senza né l'una né l'altra vale la somministrazione, che è il caso del
-// locale: al banco o al tavolo tutto sta al 10% (voce 121).
+// L'aliquota della riga si LEGGE, non si calcola (P-180 · D-131): la riga
+// nasce con la sua tipologia e con l'aliquota già risolta e congelata, e la
+// stampa scrive quello che trova. Il numero che cambia domani non riscrive i
+// documenti di ieri.
+// La tipologia senza aliquota è il caso delle righe di prima, che sapevano
+// che cos'erano ma non a quanto stavano: si risolve al volo. Il dieci resta
+// solo per le righe più vecchie ancora, che non portano né l'una né l'altra —
+// somministrazione, il caso del locale.
 const pnRigaIva = (r, asporto) => {
   if (r.iva != null) return Number(r.iva);
   if (r.tipologia && window.pnTipologiaAliquota) return window.pnTipologiaAliquota(r.tipologia, !!asporto);

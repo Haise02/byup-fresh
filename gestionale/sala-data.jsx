@@ -10,6 +10,10 @@
 // sessione del tavolo. Assente o 'staff_web' = il personale; 'webapp_guest' o
 // 'byup_app' = un cliente col QR, e la sala lo vede da un segno discreto.
 // verifica: 'limite' | 'rete' quando il tavolo è «da verificare».
+// tipologia (order_items.item_kind_id — P-180 · D-131): che cosa è quella
+// riga, nella lingua del dizionario di Hubble. La porta il piatto del menù e
+// si COPIA sulla riga quando l'ordine nasce; da lì discende l'aliquota, che
+// resta scritta. Senza, la stampa dovrebbe indovinare.
 
 const SALA_TAVOLI = [
   { id: 1,  state: 'occupato', posti: 4, coperti: 4, byup: 2, byupWeb: 0, party: 'Famiglia Robinson', sittingMin: 32, conto: 87.00, contoSaldato: false,
@@ -20,11 +24,11 @@ const SALA_TAVOLI = [
       { id:'g4', name:'Guest 4',      source:'guest' },
     ],
     ordini: [
-      { id:'o1', nome:'Tagliere misto',     qty:1, prezzo:14, stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
-      { id:'o2', nome:'Tagliatelle al ragù',qty:1, prezzo:13, stato:'in_cottura', minutiInPreparazione:8, minutiInCoda:0,  origin:'byup',     guestId:'g1' },
-      { id:'o2b',nome:'Tagliatelle al ragù',qty:1, prezzo:13, stato:'in_cottura', minutiInPreparazione:8, minutiInCoda:0,  origin:'byup',     guestId:'g2' },
-      { id:'o3', nome:'Bistecca fiorentina',qty:1, prezzo:38, stato:'in_cottura', minutiInPreparazione:14,minutiInCoda:0,  origin:'cameriere',guestId:null },
-      { id:'o4', nome:'Acqua naturale',     qty:2, prezzo:3,  stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere',guestId:null },
+      { id:'o1', nome:'Tagliere misto',     qty:1, prezzo:14, tipologia:'piatti_preparati', stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
+      { id:'o2', nome:'Tagliatelle al ragù',qty:1, prezzo:13, tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:8, minutiInCoda:0,  origin:'byup',     guestId:'g1' },
+      { id:'o2b',nome:'Tagliatelle al ragù',qty:1, prezzo:13, tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:8, minutiInCoda:0,  origin:'byup',     guestId:'g2' },
+      { id:'o3', nome:'Bistecca fiorentina',qty:1, prezzo:38, tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:14,minutiInCoda:0,  origin:'cameriere',guestId:null },
+      { id:'o4', nome:'Acqua naturale',     qty:2, prezzo:3,  tipologia:'acqua_birra', stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere',guestId:null },
     ],
     minutiSenzaOrdine: 8, timeSinceLastOrder: 8, note: null,
     nextReservation: null, minutiAllaPrenotazione: null },
@@ -48,12 +52,12 @@ const SALA_TAVOLI = [
       // dichiara `byupWeb: 1` e finora nessun piatto era suo, così la webapp
       // guest non compariva da nessuna parte — né nel conto, né nei gruppi
       // per canale del salda conto.
-      { id:'o5',  nome:'Bruschette miste',    qty:2, prezzo:8,  stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'guest',    guestId:'g3d' },
-      { id:'o6a', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3a' },
-      { id:'o6b', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3b' },
-      { id:'o6c', nome:'Pizza margherita',    qty:1, prezzo:9,  stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3c' },
-      { id:'o7a', nome:'Pizza diavola',       qty:1, prezzo:11, stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:5,  origin:'cameriere',guestId:null },
-      { id:'o7b', nome:'Pizza diavola',       qty:1, prezzo:11, stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:5,  origin:'cameriere',guestId:null },
+      { id:'o5',  nome:'Bruschette miste',    qty:2, prezzo:8,  tipologia:'piatti_preparati', stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'guest',    guestId:'g3d' },
+      { id:'o6a', nome:'Pizza margherita',    qty:1, prezzo:9,  tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3a' },
+      { id:'o6b', nome:'Pizza margherita',    qty:1, prezzo:9,  tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3b' },
+      { id:'o6c', nome:'Pizza margherita',    qty:1, prezzo:9,  tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:5, minutiInCoda:0,  origin:'byup',     guestId:'g3c' },
+      { id:'o7a', nome:'Pizza diavola',       qty:1, prezzo:11, tipologia:'piatti_preparati', stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:5,  origin:'cameriere',guestId:null },
+      { id:'o7b', nome:'Pizza diavola',       qty:1, prezzo:11, tipologia:'piatti_preparati', stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:5,  origin:'cameriere',guestId:null },
     ],
     // Incassi già arrivati su questo conto: due ospiti hanno pagato la loro
     // parte dall'app prima che il conto si chiudesse.
@@ -74,9 +78,9 @@ const SALA_TAVOLI = [
 
   { id: 5,  state: 'occupato', posti: 2, coperti: 2, byup: 0, byupWeb: 0, party: null, sittingMin: 65, conto: 60.00, contoSaldato: true,
     ordini: [
-      { id:'o8',  nome:'Antipasto della casa',qty:2, prezzo:10, stato:'consegnato', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
-      { id:'o9',  nome:'Risotto ai funghi',   qty:2, prezzo:14, stato:'consegnato', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
-      { id:'o10', nome:'Tiramisù',            qty:2, prezzo:6,  stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
+      { id:'o8',  nome:'Antipasto della casa',qty:2, prezzo:10, tipologia:'piatti_preparati', stato:'consegnato', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
+      { id:'o9',  nome:'Risotto ai funghi',   qty:2, prezzo:14, tipologia:'piatti_preparati', stato:'consegnato', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
+      { id:'o10', nome:'Tiramisù',            qty:2, prezzo:6,  tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere' },
     ],
     // Il tavolo saldato di questa sala: la card diceva «Conto saldato €56.00»
     // ma non c'era nessun incasso a dirlo, e il conto — che i piatti li somma
@@ -101,13 +105,13 @@ const SALA_TAVOLI = [
       { id:'g7d', name:'Chiara R.', source:'byup' },
     ],
     ordini: [
-      { id:'o11', nome:'Crostini misti',     qty:4, prezzo:7,  stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
-      { id:'o12a',nome:'Pappardelle cinghiale',qty:2, prezzo:14, stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7a' },
-      { id:'o12b',nome:'Pappardelle cinghiale',qty:1, prezzo:14, stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7b' },
-      { id:'o12c',nome:'Pappardelle cinghiale',qty:2, prezzo:14, stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7c' },
-      { id:'o13', nome:'Tagliata di manzo',  qty:3, prezzo:22, stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:18, origin:'cameriere', guestId:null },
-      { id:'o14', nome:'Pasta s/ glutine',   qty:1, prezzo:14, stato:'in_cottura', minutiInPreparazione:7, minutiInCoda:0,  origin:'byup',     guestId:'g7d', alert:'allergia', allergens:['gluten'] },
-      { id:'o15', nome:'Vino rosso',         qty:1, prezzo:24, stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere', guestId:null },
+      { id:'o11', nome:'Crostini misti',     qty:4, prezzo:7,  tipologia:'piatti_preparati', stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'byup',     guestId:null },
+      { id:'o12a',nome:'Pappardelle cinghiale',qty:2, prezzo:14, tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7a' },
+      { id:'o12b',nome:'Pappardelle cinghiale',qty:1, prezzo:14, tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7b' },
+      { id:'o12c',nome:'Pappardelle cinghiale',qty:2, prezzo:14, tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:6, minutiInCoda:0, origin:'byup',    guestId:'g7c' },
+      { id:'o13', nome:'Tagliata di manzo',  qty:3, prezzo:22, tipologia:'piatti_preparati', stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:18, origin:'cameriere', guestId:null },
+      { id:'o14', nome:'Pasta s/ glutine',   qty:1, prezzo:14, tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:7, minutiInCoda:0,  origin:'byup',     guestId:'g7d', alert:'allergia', allergens:['gluten'] },
+      { id:'o15', nome:'Vino rosso',         qty:1, prezzo:24, tipologia:'bibite_alcolici_confezionati', stato:'consegnato',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere', guestId:null },
     ],
     // Conto lungo pagato a pezzi: due quote dall'app, una in contanti al
     // banco. Serve a vedere i tre canali insieme nella finestra di saldo.
@@ -133,7 +137,7 @@ const SALA_TAVOLI = [
 
   { id: 9,  state: 'occupato', posti: 4, coperti: 3, byup: 0, byupWeb: 1, source_surface: 'webapp_guest', party: 'Di Caprio', sittingMin: 12, conto: 18.00, contoSaldato: false,
     ordini: [
-      { id:'o16', nome:'Aperitivo della casa', qty:3, prezzo:6, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup' },
+      { id:'o16', nome:'Aperitivo della casa', qty:3, prezzo:6, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup' },
     ],
     minutiSenzaOrdine: 2, timeSinceLastOrder: 2,
     note: { tipo:'generica', testo:'Servire al tavolo con tovaglia bianca' },
@@ -152,16 +156,16 @@ const SALA_TAVOLI = [
       { id:'g11d', name:'Aldo L.',   source:'byup' },
     ],
     ordini: [
-      { id:'o17a', nome:'Antipasto misto', qty:1, prezzo:11, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11a' },
-      { id:'o17b', nome:'Antipasto misto', qty:1, prezzo:11, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11b' },
-      { id:'o17c', nome:'Antipasto misto', qty:1, prezzo:11, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11c' },
-      { id:'o17d', nome:'Antipasto misto', qty:1, prezzo:11, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11d' },
-      { id:'o18a', nome:'Tagliolini tartufo',qty:1, prezzo:18, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11a' },
-      { id:'o18b', nome:'Tagliolini tartufo',qty:1, prezzo:18, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11b' },
-      { id:'o18c', nome:'Tagliolini tartufo',qty:1, prezzo:18, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11c' },
-      { id:'o18d', nome:'Tagliolini tartufo',qty:1, prezzo:18, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11d' },
-      { id:'o19',  nome:'Filetto al pepe', qty:4, prezzo:24, stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere', guestId:null },
-      { id:'o20',  nome:'Caffè',           qty:4, prezzo:2,  stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere', guestId:null },
+      { id:'o17a', nome:'Antipasto misto', qty:1, prezzo:11, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11a' },
+      { id:'o17b', nome:'Antipasto misto', qty:1, prezzo:11, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11b' },
+      { id:'o17c', nome:'Antipasto misto', qty:1, prezzo:11, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11c' },
+      { id:'o17d', nome:'Antipasto misto', qty:1, prezzo:11, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11d' },
+      { id:'o18a', nome:'Tagliolini tartufo',qty:1, prezzo:18, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11a' },
+      { id:'o18b', nome:'Tagliolini tartufo',qty:1, prezzo:18, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11b' },
+      { id:'o18c', nome:'Tagliolini tartufo',qty:1, prezzo:18, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11c' },
+      { id:'o18d', nome:'Tagliolini tartufo',qty:1, prezzo:18, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g11d' },
+      { id:'o19',  nome:'Filetto al pepe', qty:4, prezzo:24, tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere', guestId:null },
+      { id:'o20',  nome:'Caffè',           qty:4, prezzo:2,  tipologia:'piatti_preparati', stato:'pronto', minutiInPreparazione:0, minutiInCoda:0, origin:'cameriere', guestId:null },
     ],
     minutiSenzaOrdine: 32, timeSinceLastOrder: 32, note: null,
     nextReservation: { time: '22:15', name: 'Fabbri', posti: 4, inMin: 165 },
@@ -182,9 +186,9 @@ const SALA_TAVOLI = [
 
   { id: 15, state: 'occupato', posti: 6, coperti: 6, byup: 0, byupWeb: 0, party: 'Margaery Tyrell', sittingMin: 38, conto: 96.00, contoSaldato: false,
     ordini: [
-      { id:'o21', nome:'Tagliere salumi',  qty:1, prezzo:15, stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere' },
-      { id:'o22', nome:'Lasagna',          qty:4, prezzo:12, stato:'in_cottura', minutiInPreparazione:4, minutiInCoda:0,  origin:'cameriere' },
-      { id:'o23', nome:'Menù bambino',     qty:2, prezzo:9,  stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:18, origin:'cameriere' },
+      { id:'o21', nome:'Tagliere salumi',  qty:1, prezzo:15, tipologia:'piatti_preparati', stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0,  origin:'cameriere' },
+      { id:'o22', nome:'Lasagna',          qty:4, prezzo:12, tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:4, minutiInCoda:0,  origin:'cameriere' },
+      { id:'o23', nome:'Menù bambino',     qty:2, prezzo:9,  tipologia:'piatti_preparati', stato:'ordinato',   minutiInPreparazione:0, minutiInCoda:18, origin:'cameriere' },
     ],
     minutiSenzaOrdine: 12, timeSinceLastOrder: 12,
     note: { tipo:'generica', testo:'2 bambini · menù piccolo' },
@@ -199,9 +203,9 @@ const SALA_TAVOLI = [
       { id:'g17b', name:'Lara F.',  source:'byup' },
     ],
     ordini: [
-      { id:'o24a', nome:'Caprese',           qty:1, prezzo:9, stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g17a' },
-      { id:'o24b', nome:'Caprese',           qty:1, prezzo:9, stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g17b' },
-      { id:'o25',  nome:'Spaghetti pomodoro',qty:2, prezzo:10,stato:'in_cottura', minutiInPreparazione:3, minutiInCoda:0, origin:'cameriere', guestId:null },
+      { id:'o24a', nome:'Caprese',           qty:1, prezzo:9, tipologia:'piatti_preparati', stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g17a' },
+      { id:'o24b', nome:'Caprese',           qty:1, prezzo:9, tipologia:'piatti_preparati', stato:'pronto',     minutiInPreparazione:0, minutiInCoda:0, origin:'byup', guestId:'g17b' },
+      { id:'o25',  nome:'Spaghetti pomodoro',qty:2, prezzo:10,tipologia:'piatti_preparati', stato:'in_cottura', minutiInPreparazione:3, minutiInCoda:0, origin:'cameriere', guestId:null },
     ],
     minutiSenzaOrdine: 5, timeSinceLastOrder: 5, note: null,
     nextReservation: null, minutiAllaPrenotazione: null },
@@ -250,39 +254,41 @@ function getCodaSeverity(min) {
 }
 
 // Mini-menù realistico per il flow "+ Articolo"
+// Ogni piatto porta la sua TIPOLOGIA, come nel menù vero
+// (impostazioni-menu-cucina.jsx): è quella che viaggia sulla riga d'ordine.
 const SALA_MENU = {
   Antipasti: [
-    { id:'m-a1', nome:'Tagliere misto',         prezzo:14,
+    { id:'m-a1', nome:'Tagliere misto',         prezzo:14, tipologia:'piatti_preparati',
       ingredients:['Pecorino','Taleggio','Prosciutto','Salame','Miele','Marmellata'],
       extras:[{id:'e1',nome:'Miele extra',prezzo:1},{id:'e2',nome:'Marmellata di fichi',prezzo:1.5}] },
-    { id:'m-a2', nome:'Bruschette al pomodoro', prezzo:7,
+    { id:'m-a2', nome:'Bruschette al pomodoro', prezzo:7, tipologia:'piatti_preparati',
       ingredients:['Pomodoro','Aglio','Basilico','Olio EVO'],
       extras:[{id:'e1',nome:'Mozzarella',prezzo:2},{id:'e2',nome:'Acciughe',prezzo:2}] },
-    { id:'m-a3', nome:'Caprese di bufala',      prezzo:11,
+    { id:'m-a3', nome:'Caprese di bufala',      prezzo:11, tipologia:'piatti_preparati',
       ingredients:['Bufala','Pomodoro','Basilico'],
       extras:[{id:'e1',nome:'Pesto',prezzo:1.5}] },
-    { id:'m-a4', nome:'Antipasto della casa',   prezzo:13 },
+    { id:'m-a4', nome:'Antipasto della casa',   prezzo:13, tipologia:'piatti_preparati' },
   ],
   Primi: [
-    { id:'m-p1', nome:'Tagliatelle al ragù',    prezzo:13,
+    { id:'m-p1', nome:'Tagliatelle al ragù',    prezzo:13, tipologia:'piatti_preparati',
       ingredients:['Ragù di manzo','Tagliatelle','Parmigiano'],
       extras:[{id:'e1',nome:'Parmigiano extra',prezzo:1.5}],
       variants:[{id:'cottura',label:'Cottura pasta',options:['Al dente','Al punto','Ben cotta']}] },
-    { id:'m-p2', nome:'Spaghetti pomodoro',     prezzo:10,
+    { id:'m-p2', nome:'Spaghetti pomodoro',     prezzo:10, tipologia:'piatti_preparati',
       ingredients:['Pomodoro','Basilico','Aglio'],
       extras:[{id:'e1',nome:'Parmigiano',prezzo:1},{id:'e2',nome:'Peperoncino',prezzo:0}],
       variants:[{id:'cottura',label:'Cottura pasta',options:['Al dente','Al punto']}] },
-    { id:'m-p3', nome:'Risotto ai funghi',      prezzo:14,
+    { id:'m-p3', nome:'Risotto ai funghi',      prezzo:14, tipologia:'piatti_preparati',
       ingredients:['Funghi porcini','Brodo','Burro','Parmigiano','Prezzemolo'],
       extras:[{id:'e1',nome:'Tartufo nero',prezzo:8}] },
-    { id:'m-p4', nome:'Pappardelle cinghiale',  prezzo:14,
+    { id:'m-p4', nome:'Pappardelle cinghiale',  prezzo:14, tipologia:'piatti_preparati',
       ingredients:['Cinghiale','Pappardelle','Pomodoro','Vino rosso'],
       variants:[{id:'cottura',label:'Cottura pasta',options:['Al dente','Al punto']}] },
-    { id:'m-p5', nome:'Lasagna alla bolognese', prezzo:12,
+    { id:'m-p5', nome:'Lasagna alla bolognese', prezzo:12, tipologia:'piatti_preparati',
       ingredients:['Ragù','Besciamella','Parmigiano','Sfoglia'] },
   ],
   Secondi: [
-    { id:'m-s1', nome:'Bistecca fiorentina',    prezzo:38,
+    { id:'m-s1', nome:'Bistecca fiorentina',    prezzo:38, tipologia:'piatti_preparati',
       ingredients:['Manzo Chianina','Sale','Rosmarino'],
       extras:[{id:'e1',nome:'Patate al forno',prezzo:4},{id:'e2',nome:'Insalata mista',prezzo:5}],
       variants:[
@@ -290,15 +296,15 @@ const SALA_MENU = {
         {id:'taglio',label:'Taglio',options:['Costata','Filetto','Misto']},
         {id:'contorno',label:'Contorno incluso',options:['Patate','Insalata','Verdure grigliate']},
       ] },
-    { id:'m-s2', nome:'Tagliata di manzo',      prezzo:22,
+    { id:'m-s2', nome:'Tagliata di manzo',      prezzo:22, tipologia:'piatti_preparati',
       ingredients:['Manzo','Rucola','Grana','Aceto balsamico'],
       variants:[
         {id:'cottura',label:'Cottura',options:['Al sangue','Media','Ben cotta']},
         {id:'condimento',label:'Condimento',options:['Rucola e grana','Aceto balsamico','Senza condimento']},
       ] },
-    { id:'m-s3', nome:'Pollo arrosto',          prezzo:14,
+    { id:'m-s3', nome:'Pollo arrosto',          prezzo:14, tipologia:'piatti_preparati',
       ingredients:['Pollo','Patate','Rosmarino'] },
-    { id:'m-s4', nome:'Filetto al pepe verde',  prezzo:24,
+    { id:'m-s4', nome:'Filetto al pepe verde',  prezzo:24, tipologia:'piatti_preparati',
       ingredients:['Filetto','Pepe verde','Panna','Brandy'],
       variants:[
         {id:'cottura',label:'Cottura',options:['Al sangue','Media','Ben cotta']},
@@ -306,35 +312,35 @@ const SALA_MENU = {
       ] },
   ],
   Pizze: [
-    { id:'m-z1', nome:'Pizza margherita',       prezzo:9,
+    { id:'m-z1', nome:'Pizza margherita',       prezzo:9, tipologia:'piatti_preparati',
       ingredients:['Pomodoro','Mozzarella','Basilico'],
       extras:[{id:'e1',nome:'Bufala',prezzo:2},{id:'e2',nome:'Olive',prezzo:1},{id:'e3',nome:'Funghi',prezzo:1.5}] },
-    { id:'m-z2', nome:'Pizza diavola',          prezzo:11,
+    { id:'m-z2', nome:'Pizza diavola',          prezzo:11, tipologia:'piatti_preparati',
       ingredients:['Pomodoro','Mozzarella','Salame piccante'],
       extras:[{id:'e1',nome:'Peperoncino',prezzo:0},{id:'e2',nome:'Olive',prezzo:1}] },
-    { id:'m-z3', nome:'Pizza 4 formaggi',       prezzo:12,
+    { id:'m-z3', nome:'Pizza 4 formaggi',       prezzo:12, tipologia:'piatti_preparati',
       ingredients:['Mozzarella','Gorgonzola','Fontina','Parmigiano'] },
   ],
   Contorni: [
-    { id:'m-c1', nome:'Patate al forno',        prezzo:5 },
-    { id:'m-c2', nome:'Insalata mista',         prezzo:5 },
-    { id:'m-c3', nome:'Verdure grigliate',      prezzo:6 },
+    { id:'m-c1', nome:'Patate al forno',        prezzo:5, tipologia:'piatti_preparati' },
+    { id:'m-c2', nome:'Insalata mista',         prezzo:5, tipologia:'piatti_preparati' },
+    { id:'m-c3', nome:'Verdure grigliate',      prezzo:6, tipologia:'piatti_preparati' },
   ],
   Dolci: [
-    { id:'m-d1', nome:'Tiramisù',               prezzo:6,
+    { id:'m-d1', nome:'Tiramisù',               prezzo:6, tipologia:'piatti_preparati',
       ingredients:['Mascarpone','Savoiardi','Caffè','Cacao'] },
-    { id:'m-d2', nome:'Panna cotta',            prezzo:5,
+    { id:'m-d2', nome:'Panna cotta',            prezzo:5, tipologia:'piatti_preparati',
       variants:[{id:'topping',label:'Topping',options:['Frutti di bosco','Caramello','Cioccolato']}] },
-    { id:'m-d3', nome:'Torta della casa',       prezzo:6 },
+    { id:'m-d3', nome:'Torta della casa',       prezzo:6, tipologia:'piatti_preparati' },
   ],
   Bevande: [
-    { id:'m-b1', nome:'Acqua naturale 1L',      prezzo:3 },
-    { id:'m-b2', nome:'Acqua frizzante 1L',     prezzo:3 },
-    { id:'m-b3', nome:'Vino rosso (1/2)',       prezzo:14,
+    { id:'m-b1', nome:'Acqua naturale 1L',      prezzo:3, tipologia:'acqua_birra' },
+    { id:'m-b2', nome:'Acqua frizzante 1L',     prezzo:3, tipologia:'acqua_birra' },
+    { id:'m-b3', nome:'Vino rosso (1/2)',       prezzo:14, tipologia:'bibite_alcolici_confezionati',
       variants:[{id:'tipo',label:'Tipo',options:['Della casa','Chianti','Montepulciano']}] },
-    { id:'m-b4', nome:'Birra media',            prezzo:5,
+    { id:'m-b4', nome:'Birra media',            prezzo:5, tipologia:'acqua_birra',
       variants:[{id:'tipo',label:'Tipo',options:['Chiara','Rossa','Bianca']}] },
-    { id:'m-b5', nome:'Caffè',                  prezzo:2,
+    { id:'m-b5', nome:'Caffè',                  prezzo:2, tipologia:'piatti_preparati',
       variants:[{id:'tipo',label:'Tipo',options:['Espresso','Macchiato','Decaffeinato']}] },
   ],
 };

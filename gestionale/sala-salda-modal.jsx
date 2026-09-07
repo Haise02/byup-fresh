@@ -638,7 +638,7 @@ function SalaSaldaModal({ open, tavolo, onClose, onConfirm }) {
     const parziale = scope !== 'tutto';
     const dicoTutto = (testo) => { setToast({ type: 'success', text: testo }); setTimeout(() => setToast(null), 2800); };
     if (typeof window.byupStampaPreconto !== 'function') { setPreContoStampato(Date.now()); dicoTutto('Pre-conto stampato'); return; }
-    const righe = (editedOrdini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia }));
+    const righe = (editedOrdini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia, iva: o.iva }));
     const conto = { tavolo: `Tavolo ${tavolo.id}`, coperti: tavolo.coperti || 1, righe, totale: righe.reduce((s, r) => s + (r.qty || 1) * (r.prezzo || 0), 0) };
     const quale = parziale ? `Pre-conto parziale · ${scope}` : `Pre-conto · €${subtotale.toFixed(2)}`;
     const r = window.byupStampaPreconto(conto, {
@@ -2833,7 +2833,9 @@ function SaldaDoneV2({ tavolo, esito, onClose }) {
   // stampano: le toglie il layout, non chi chiama.
   const contoDaStampare = () => ({
     tavolo: tavolo ? `Tavolo ${tavolo.id}` : '',
-    righe: (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia })),
+    // L'aliquota congelata quando la riga è nata viaggia con la riga: il
+    // documento la stampa, non la ricalcola (P-180 · D-131).
+    righe: (tavolo && tavolo.ordini || []).map(o => ({ nome: o.nome, qty: o.qty, prezzo: o.prezzo, tipologia: o.tipologia, iva: o.iva })),
     totale: total,
     pagamenti: { contante: contanti, elettronico: carta, non_riscosso: buoni > 0 ? Math.min(buoni, total) : 0, resto: resto > 0 ? resto : 0, pagato: total },
     pagamento: buoni > 0 ? 'Buoni pasto' : carta > 0 ? 'Carta · Byup Staff' : 'Contanti',

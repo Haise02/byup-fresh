@@ -501,10 +501,17 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
   }
 
   // ─── Piatto custom ──────────────────────────────────────────
+  // Anche qui l'articolo che non sta nel menù dice CHE COSA è (P-180 · D-131):
+  // la prima voce del dizionario è già scelta e il modo è la somministrazione,
+  // perché l'ordine è del tavolo. Chi batte cambia voce con un tocco, e
+  // l'aliquota che si scriverà sulla riga si legge sotto.
   if (modal.kind === 'piatto-custom') {
     const [nome, setNome] = useStateMo('');
     const [prezzo, setPrezzo] = useStateMo('');
     const [note, setNote] = useStateMo('');
+    const [tipologia, setTipologia] = useStateMo(window.PN_TIPOLOGIA_DEFAULT);
+    const voci = window.PN_TIPOLOGIE_ARTICOLO || [];
+    const voce = window.pnTipologia ? window.pnTipologia(tipologia) : null;
     return (
       <ModalShell onClose={closeModal} sheet>
         <SheetHandle/>
@@ -514,6 +521,31 @@ function StaffModals({ modal, closeModal, openModal, nav }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Input label="Nome piatto" value={nome} onChange={setNome} placeholder="Inserisci nome"/>
             <Input label="Prezzo" value={prezzo} onChange={setPrezzo} placeholder="0.00 €"/>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: ST.MUTED, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 6 }}>Tipologia articolo</div>
+              {/* Righe intere invece di una tendina: sul telefono si sceglie
+                  col pollice, e le voci sono lunghe. */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {voci.map(t => {
+                  const on = voce && t.id === voce.id;
+                  return (
+                    <button key={t.id} onClick={() => setTipologia(t.id)} style={{
+                      textAlign: 'left', padding: '11px 13px', borderRadius: ST.R_MD,
+                      border: `1.5px solid ${on ? ST.PINK : ST.BORDER}`,
+                      background: on ? ST.PINK_BG : ST.SURF,
+                      color: on ? ST.PINK : ST.TEXT,
+                      fontSize: 13.5, fontWeight: on ? 700 : 500,
+                      fontFamily: 'inherit', cursor: 'pointer', lineHeight: 1.35,
+                    }}>{t.label}</button>
+                  );
+                })}
+              </div>
+              {voce && (
+                <div style={{ fontSize: 12, color: ST.MUTED, marginTop: 8, lineHeight: 1.45 }}>
+                  Al tavolo: <b style={{ color: ST.TEXT }}>IVA {voce.locale.aliquota}%</b>
+                </div>
+              )}
+            </div>
             <Input label="Note per la cucina" value={note} onChange={setNote} placeholder="Scrivi note per la cucina…" multiline/>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>

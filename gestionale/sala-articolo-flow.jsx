@@ -5,6 +5,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
   const [search, setSearch] = React.useState('');
   const [customizing, setCustomizing] = React.useState(null); // { item, removed, extras, variants, note, qty }
   const [confirmDiscard, setConfirmDiscard] = React.useState(false);
+  const [fuoriMenu, setFuoriMenu] = React.useState(false);
 
   if (!open || !tavolo) return null;
 
@@ -26,6 +27,21 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
     onClose();
   }
 
+  // L'ordine del tavolo è SOMMINISTRAZIONE: si mangia qui. Non c'è un
+  // interruttore banco/asporto come in Vendita diretta, e il modo con cui la
+  // riga nasce è questo.
+  const ASPORTO = false;
+  // Che cosa si scrive sulla riga quando nasce (P-180 · D-131): la tipologia
+  // del piatto — che il piatto porta con sé, come nel menù — e l'aliquota che
+  // ne discende, CONGELATA. Da qui in poi non si rilegge più: se domani quel
+  // numero cambia, questa riga resta com'era.
+  function rigaIva(tipologia) {
+    if (typeof window.pnTipologia !== 'function') return {};
+    const t = window.pnTipologia(tipologia);
+    const p = window.pnTipologiaProfilo(t.id, ASPORTO);
+    return { tipologia: t.id, iva: p.aliquota, ivaProfilo: p.profilo, ivaModo: ASPORTO };
+  }
+
   // La CATEGORIA viaggia con la riga: è lei a dire da quale stampante esce la
   // comanda (category_routings, P-128). Senza, l'invio non saprebbe dove
   // mandare che cosa.
@@ -33,8 +49,23 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
     const existing = cart?.items.find(x => x.id === it.id && !x.customized);
     const items = existing
       ? cart.items.map(x => (x.id === it.id && !x.customized) ? {...x, qty: x.qty + 1} : x)
-      : [...(cart?.items || []), {...it, qty: 1, categoria: category}];
+      : [...(cart?.items || []), {...it, qty: 1, categoria: category, ...rigaIva(it.tipologia)}];
     onCartChange({ tableId: tavolo.id, items });
+  }
+
+  // L'articolo che non sta nel menù si batte anche qui: nome, prezzo e
+  // tipologia, con la prima voce proposta e la somministrazione già scelta.
+  // La categoria è quella aperta nel listino, perché è lei a instradare la
+  // comanda.
+  function commitFuoriMenu(nome, prezzo, tipologia) {
+    const lineItem = {
+      id: `custom_${Date.now()}`, nome, prezzo, qty: 1,
+      categoria: category, custom: true,
+      lineKey: `custom-${Date.now()}`,
+      ...rigaIva(tipologia),
+    };
+    onCartChange({ tableId: tavolo.id, items: [...(cart?.items || []), lineItem] });
+    setFuoriMenu(false);
   }
 
   function handleItemClick(it) {
@@ -68,6 +99,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
       customized: true,
       mods: { removed: removedArr, extras: extrasArr, variants: variantsArr, note: c.note?.trim() || '' },
       lineKey: `${it.id}-${Date.now()}`,
+      ...rigaIva(it.tipologia),
     };
     onCartChange({ tableId: tavolo.id, items: [...(cart?.items || []), lineItem] });
     setCustomizing(null);
@@ -164,6 +196,7 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
               categories={categories} category={category} setCategory={setCategory}
               items={items} cart={cart}
               onItemClick={handleItemClick} onQuickAdd={quickAdd}
+              onFuoriMenu={() => setFuoriMenu(true)}
               hasCustomization={hasCustomization}/>
             {/* Carrello: colonna fissa a destra dentro la finestra — nel
                 formato largo il riepilogo sta accanto agli articoli, non
@@ -174,6 +207,10 @@ function SalaArticoloSheet({ open, tavolo, cart, onCartChange, onClose, onConfir
           </div>
         )}
       </div>
+
+      {fuoriMenu && (
+        <SalaFuoriMenuModal onClose={() => setFuoriMenu(false)} onConfirm={commitFuoriMenu}/>
+      )}
 
       {confirmDiscard && (
         <div style={{
@@ -298,7 +335,7 @@ function CartLine({ it, onRemove }) {
 }
 
 // ─── Browse: categorie + articoli ───────────────────────────
-function BrowseView({ search, setSearch, categories, category, setCategory, items, cart, onItemClick, onQuickAdd, hasCustomization }) {
+function BrowseView({ search, setSearch, categories, category, setCategory, items, cart, onItemClick, onQuickAdd, onFuoriMenu, hasCustomization }) {
   return (
     <>
       {/* Categorie — pill attiva come la voce accesa della sidebar,
@@ -329,8 +366,9 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
 
       {/* Ricerca + griglia articoli */}
       <div style={{flex:1, display:'flex', flexDirection:'column', minWidth: 0, minHeight: 0}}>
-        <div style={{padding:'14px 18px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, flexShrink: 0}}>
-          <div style={{position:'relative'}}>
+        <div style={{padding:'14px 18px', borderBottom:`1px solid ${PN.BORDER_SOFT}`, flexShrink: 0,
+          display:'flex', alignItems:'center', gap: 10}}>
+          <div style={{position:'relative', flex: 1, minWidth: 0}}>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Cerca articolo…"
               style={{
                 width:'100%', padding:'11px 14px 11px 38px',
@@ -345,6 +383,22 @@ function BrowseView({ search, setSearch, categories, category, setCategory, item
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
           </div>
+          {/* Quello che non sta nel listino si batte lo stesso: accanto alla
+              ricerca, dove si finisce quando non lo si trova. */}
+          <button onClick={onFuoriMenu} className="pn-btn-feedback" style={{
+            flexShrink: 0, display:'inline-flex', alignItems:'center', gap: 7,
+            padding:'11px 14px', borderRadius: 10,
+            background: PN.BTN_NEUTRAL, border:`1px solid ${PN.BORDER_LIGHT}`,
+            boxShadow: PN.INSET_HIGHLIGHT, color: PN.TEXT,
+            fontSize: 15.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+            whiteSpace:'nowrap',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14 M5 12h14"/>
+            </svg>
+            Fuori menù
+          </button>
         </div>
 
         <div className="pn-scroll" style={{flex:1, overflow:'auto', padding: 14, minHeight: 0}}>
@@ -821,6 +875,104 @@ function Section({ title, hint, children }) {
         {hint && <span style={{fontSize: 15, color: PN.MUTED_SOFT, marginLeft: 'auto'}}>{hint}</span>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// ─── Articolo fuori menù (P-180 · D-131) ────────────────────
+// La stessa cosa che in Vendita diretta si batte con «Articolo fuori menù»,
+// qui dentro l'ordine del tavolo: nome, prezzo e TIPOLOGIA. Chi batte non
+// sceglie un'aliquota — dice che cosa vende, e l'aliquota discende da lì. La
+// prima voce è già proposta e il modo è la somministrazione, perché l'ordine
+// è del tavolo: nel caso normale si scrivono due campi e si conferma.
+function SalaFuoriMenuModal({ onClose, onConfirm }) {
+  const [nome, setNome] = React.useState('');
+  const [prezzo, setPrezzo] = React.useState('');
+  const [tipologia, setTipologia] = React.useState(window.PN_TIPOLOGIA_DEFAULT);
+  const nomeRef = React.useRef(null);
+  React.useEffect(() => { nomeRef.current?.focus(); }, []);
+
+  const voce = window.pnTipologia ? window.pnTipologia(tipologia) : { id: tipologia, locale: { aliquota: 10 } };
+  const num = parseFloat(String(prezzo).replace(',', '.'));
+  const valid = nome.trim().length > 0 && !isNaN(num) && num > 0;
+  const conferma = () => { if (valid) onConfirm(nome.trim(), num, voce.id); };
+  const tasto = (e) => { if (e.key === 'Enter' && valid) conferma(); if (e.key === 'Escape') onClose(); };
+  // La tendina delle voci è la stessa di Vendita diretta: una scelta così
+  // delicata si fa con lo stesso gesto in tutto il gestionale.
+  const TipologiaSelect = window.SaTipologiaSelect;
+  const campo = { display:'flex', flexDirection:'column', gap: 7 };
+  const etichetta = { fontSize: 13.5, fontWeight: 700, color: PN.MUTED, letterSpacing: 0.3 };
+  const input = {
+    width:'100%', padding:'11px 13px', borderRadius: 10,
+    border:`1px solid ${PN.BORDER}`, background: PN.WHITE,
+    fontSize: 16.5, color: PN.TEXT, outline:'none', fontFamily:'inherit',
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position:'absolute', inset: 0, zIndex: 70,
+      background:'rgba(15,17,21,0.48)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding: 24,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'#fff', borderRadius: 18,
+        border:`1px solid ${PN.BORDER_HAIR}`,
+        padding:'24px 24px 20px', maxWidth: 420, width:'100%',
+        boxShadow:'0 32px 80px rgba(15,17,21,0.28), 0 2px 6px rgba(15,17,21,0.08)',
+        animation:'artPopSmall 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        <div style={{fontSize: 19, fontWeight: 800, color: PN.TEXT, letterSpacing:-0.2}}>Articolo fuori menù</div>
+        <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 5, lineHeight: 1.5}}>
+          Non è nel menù: dagli un nome, un prezzo e di&rsquo; che cos&rsquo;è.
+        </div>
+
+        <div style={{display:'flex', flexDirection:'column', gap: 14, marginTop: 18}}>
+          <div style={campo}>
+            <label style={etichetta}>Nome articolo</label>
+            <input ref={nomeRef} value={nome} onChange={e=>setNome(e.target.value)} onKeyDown={tasto}
+              placeholder="es. Coperto, Torta portata da casa…" style={input}/>
+          </div>
+          <div style={campo}>
+            <label style={etichetta}>Prezzo</label>
+            <div style={{position:'relative'}}>
+              <span style={{position:'absolute', left: 13, top:'50%', transform:'translateY(-50%)', fontSize: 16, color: PN.MUTED, pointerEvents:'none'}}>€</span>
+              <input value={prezzo} onChange={e=>setPrezzo(e.target.value)} onKeyDown={tasto}
+                placeholder="0,00" inputMode="decimal" style={{...input, paddingLeft: 29}}/>
+            </div>
+          </div>
+          <div style={campo}>
+            <label style={etichetta}>Tipologia articolo</label>
+            {TipologiaSelect ? <TipologiaSelect value={voce.id} onChange={setTipologia} takeaway={false}/> : null}
+            {/* Che cosa comporta la scelta, detto una volta: la descrizione
+                della voce e l'aliquota che vale per QUESTO ordine, che è al
+                tavolo. */}
+            <div style={{fontSize: 13.5, color: PN.MUTED, lineHeight: 1.5}}>
+              {window.pnTipologiaSpiegazione ? window.pnTipologiaSpiegazione(voce.id) : ''}
+              <span style={{display:'block', marginTop: 3, color: PN.TEXT, fontWeight: 600}}>
+                Al tavolo: IVA {voce.locale.aliquota}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{display:'flex', gap: 10, marginTop: 20}}>
+          <button onClick={onClose} className="pn-btn-feedback" style={{
+            flex: 1, padding:'12px 16px', borderRadius: 12,
+            border:`1px solid ${PN.BORDER}`, background: PN.WHITE, color: PN.TEXT,
+            fontSize: 15.5, fontWeight: 600, cursor:'pointer', fontFamily:'inherit',
+          }}>Annulla</button>
+          <button onClick={conferma} disabled={!valid} className="pn-btn-feedback" style={{
+            flex: 1, padding:'12px 16px', borderRadius: 12, border:'none',
+            background: valid ? PN.BTN_DARK : '#F4F5F7', color: valid ? PN.WHITE : PN.MUTED_SOFT,
+            fontSize: 15.5, fontWeight: 700, cursor: valid ? 'pointer' : 'not-allowed', fontFamily:'inherit',
+            display:'inline-flex', alignItems:'center', justifyContent:'center', gap: 8,
+          }}>
+            <span>Aggiungi</span>
+            {valid && <span style={{fontVariantNumeric:'tabular-nums'}}>€{num.toFixed(2)}</span>}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

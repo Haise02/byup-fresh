@@ -115,6 +115,25 @@ function SalaApp() {
         },
       });
     }
+    // La riga NASCE qui, ed entra nel tavolo con quello che si porta dietro:
+    // la categoria che l'ha instradata, la tipologia dell'articolo e
+    // l'aliquota già risolta e congelata (P-180 · D-131). Da qui in poi
+    // nessuno la ricalcola: il conto e il documento di cortesia leggono
+    // quello che c'è scritto.
+    const tavolo = tavoli.find(x => x.id === tableId);
+    if (tavolo) {
+      const nate = cart.items.map((i, k) => ({
+        id: `n${Date.now()}-${k}`, nome: i.nome, qty: i.qty, prezzo: i.prezzo,
+        categoria: i.categoria, tipologia: i.tipologia, iva: i.iva,
+        ivaProfilo: i.ivaProfilo, ivaModo: i.ivaModo,
+        stato: 'ordinato', minutiInPreparazione: 0, minutiInCoda: 0,
+        origin: 'cameriere', guestId: null,
+      }));
+      tavolo.ordini = [...(tavolo.ordini || []), ...nate];
+      tavolo.conto = (tavolo.conto || 0) + nate.reduce((s, r) => s + r.qty * (r.prezzo || 0), 0);
+      tavolo.timeSinceLastOrder = 0;
+      tavolo.minutiSenzaOrdine = 0;
+    }
     setCart({ tableId: null, items: [] });
     setArticoloSheet(null);
     const dove = accodate.length ? ` · comand${accodate.length === 1 ? 'a' : 'e'} a ${accodate.map(a => a.stampante.name).join(', ')}` : '';

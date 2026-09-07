@@ -4217,3 +4217,6 @@ if (typeof document !== 'undefined' && !document.getElementById('sv-anims')) {
 }
 
 window.SalaVenditaDiretta = SalaVenditaDiretta;
+// La tendina delle tipologie serve anche al fuori menù della Sala (P-180):
+// una sola tendina, un solo gesto, in tutto il gestionale.
+window.SaTipologiaSelect = SaTipologiaSelect;
