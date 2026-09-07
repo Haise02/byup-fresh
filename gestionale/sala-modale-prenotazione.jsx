@@ -16,10 +16,14 @@ const NP_TABLES = [
 // senza id, e mancava i Solfiti.
 const NP_ALLERGENI = window.PN_ALLERGENI || [];
 
+// Le occasioni sono un vocabolario condiviso con l'app (P-188): là si
+// scelgono coi chip in prenotazione, qui si leggono. Un'occasione che esiste
+// da una parte sola non serve a nessuno.
 const NP_TAG = [
   { id:'compleanno',  label:'Compleanno'  },
   { id:'aziendale',   label:'Cena aziendale'   },
   { id:'anniversario',label:'Anniversario'},
+  { id:'laurea',      label:'Laurea'      },
   { id:'altro',       label:'Altro'       },
 ];
 

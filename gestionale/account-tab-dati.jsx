@@ -618,9 +618,13 @@ function AccDatiGenerali() {
       {/* Chiude l'account, non cede il locale: non esiste un passaggio del
           locale fra persone (D-104), e il ripristino assistito restituisce
           l'accesso alla stessa persona (D-57). */}
+      {/* La verità, non la formula (P-188): i documenti fiscali si conservano
+          per legge, e quindi non è vero che «tutti i dati» si cancellano. Si
+          chiude l'account e si cancella quello che si può; il registro dei
+          documenti resta, e resta consultabile per quel che serve. */}
       <AcDangerZone
         titolo="Elimina account"
-        testo="Tutti i dati del ristorante — menu, ordini, conti e statistiche — verranno cancellati definitivamente."
+        testo="Chiude l'account e cancella menu, preferenze e impostazioni. I documenti fiscali già emessi restano, perché la legge impone di conservarli."
         nota="Chiude il tuo account: non cede il locale a nessuno, perché non esiste un passaggio del locale fra persone. Se a cambiare è il contribuente, il soggetto fiscale si cambia da Impostazioni → Dati fiscali."
         cta="Elimina account"
         onCta={() => setDeleteConfirm(true)}
@@ -649,7 +653,9 @@ function AccDatiGenerali() {
               <div style={{flex: 1}}>
                 <div style={{fontSize: 17, fontWeight: 700, color: PN.TEXT}}>Eliminare l'account?</div>
                 <div style={{fontSize: 14.5, color: PN.MUTED, marginTop: 3, lineHeight: 1.5}}>
-                  Tutti i dati del ristorante — menu, ordini, conti e statistiche — verranno cancellati <strong>definitivamente</strong>. Questa azione non può essere annullata.
+                  L'accesso si chiude e menu, preferenze e impostazioni si cancellano <strong>definitivamente</strong>.
+                  I documenti fiscali già emessi restano conservati, perché la legge lo impone.
+                  Questa azione non può essere annullata.
                 </div>
               </div>
             </div>

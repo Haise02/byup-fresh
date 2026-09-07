@@ -2015,9 +2015,16 @@ function ProfileScreen({ onBack, onTabHome, onOpenVenue }) {
               </>
             ) : (
               <>
+                {/* La verità, non la formula (P-188): lo storico degli ordini
+                    NON si cancella — i documenti fiscali si conservano per
+                    legge — ma resta senza il nome di chi li ha fatti.
+                    Promettere una cancellazione totale sarebbe una promessa
+                    che non possiamo mantenere. */}
                 <div style={{ fontSize: 18, fontWeight: 800, color: TEXT_X, marginBottom: 8 }}>Eliminare l'account?</div>
                 <div style={{ fontSize: 13.5, color: MUTED_X, lineHeight: 1.5, marginBottom: 22 }}>
-                  Tutti i tuoi dati, preferenze e storico ordini verranno eliminati definitivamente. Questa operazione non è reversibile.
+                  Il profilo e le preferenze si cancellano e non potrai più accedere. Lo storico
+                  degli ordini resta, ma senza il tuo nome: i documenti fiscali si conservano per
+                  legge. L'operazione non è reversibile.
                 </div>
                 <button style={{
                   width: '100%', padding: '14px', borderRadius: 14, border: 'none',
@@ -2050,8 +2057,27 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
   const [name, setName] = useState('Mario Rossi');
   const [phone, setPhone] = useState('+39 333 1234567');
   const [note, setNote] = useState('');
+  // Gli allergeni del tavolo sono un DATO, non una frase in fondo a una nota
+  // (P-188 · reservation_allergens): quattordici chip, gli stessi del
+  // gestionale, e chi ha già dichiarato le sue allergie nel profilo se li
+  // trova scelti — con la libertà di toglierli, perché stasera si prenota
+  // magari per qualcun altro. Viaggiano coi CODICI del modello, non con le
+  // etichette che si leggono a schermo.
+  const [allergeni, setAllergeni] = useState([]);
+  const [occasioni, setOccasioni] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
+  const ALLERG_APP = (window.ByupKit && window.ByupKit.ALLERGENI) || [];
+  // Le occasioni sono quelle che il gestionale già conosce: se ne aggiungo
+  // una qui, la sala non saprebbe che cosa farsene.
+  const OCCASIONI = [
+    { id: 'compleanno', label: 'Compleanno' },
+    { id: 'anniversario', label: 'Anniversario' },
+    { id: 'aziendale', label: 'Cena di lavoro' },
+    { id: 'laurea', label: 'Laurea' },
+    { id: 'altro', label: 'Altro' },
+  ];
+  const togglaIn = (set, id) => set(v => v.includes(id) ? v.filter(x => x !== id) : [...v, id]);
 
   useEffect(() => {
     if (open) {
@@ -2064,9 +2090,19 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
         setName(editBooking.name || 'Mario Rossi');
         setPhone(editBooking.phone || '+39 333 1234567');
         setNote(editBooking.note || '');
+        setAllergeni(editBooking.allergeni || []);
+        setOccasioni(editBooking.occasioni || []);
         setPrefilled(false);
-      } else if (defaultTime) { setTime(defaultTime); setPrefilled(true); }
-      else setPrefilled(false);
+      } else {
+        // Nuova prenotazione: gli allergeni dichiarati nel profilo arrivano
+        // già scelti, coi codici del modello.
+        const dichiarati = (window.ByupKit && window.ByupKit.allergeniDichiarati && window.ByupKit.allergeniDichiarati()) || {};
+        const mappa = (window.ByupKit && window.ByupKit.ALLERGENI_MAP) || {};
+        setAllergeni(Object.keys(dichiarati).filter(id => dichiarati[id] && mappa[id]).map(id => mappa[id].code));
+        setOccasioni([]);
+        if (defaultTime) { setTime(defaultTime); setPrefilled(true); }
+        else setPrefilled(false);
+      }
     }
   }, [open, defaultTime, editBooking]);
   // Giorni veri, e un giorno coperto da una chiusura non resta selezionato:
@@ -2158,6 +2194,35 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
                 {people > 6 ? `${people} persone — tocca per aggiungere` : 'Siete di più? Tocca qui'}
               </button>
 
+              {label('Allergie a tavola')}
+              {/* Quello che il locale legge per preparare il tavolo: un dato,
+                  non una frase da interpretare (P-188 · reservation_allergens). */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {ALLERG_APP.map(a => {
+                  const on = allergeni.includes(a.code);
+                  return (
+                    <button key={a.code} onClick={() => togglaIn(setAllergeni, a.code)}
+                      style={{ ...chip(on), padding: '9px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 12 }}>{a.icon}</span>{a.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {allergeni.length > 0 && (
+                <div style={{ fontSize: 11.5, color: MUTED_X, marginTop: 7, lineHeight: 1.45 }}>
+                  Il locale le vede sulla prenotazione. Restano tue: puoi toglierle qui senza
+                  toccare il tuo profilo.
+                </div>
+              )}
+
+              {label('Occasione')}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {OCCASIONI.map(o => (
+                  <button key={o.id} onClick={() => togglaIn(setOccasioni, o.id)}
+                    style={{ ...chip(occasioni.includes(o.id)), padding: '9px 12px' }}>{o.label}</button>
+                ))}
+              </div>
+
               {/* Dati già compilati, ripiegati */}
               <div style={{ marginTop: 14, background: TINT_X, borderRadius: 16, border: `1px solid ${BORDER_X}`, overflow: 'hidden' }}>
                 <button onClick={() => setDetailsOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', gap: 10,
@@ -2175,7 +2240,10 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
                   <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <Input value={name} onChange={setName}/>
                     <Input value={phone} onChange={setPhone}/>
-                    <Input value={note} onChange={setNote} placeholder="Note: allergie, occasioni, preferenze..." multi/>
+                    {/* Le allergie non si scrivono più qui (P-188): stanno
+                        nei chip sopra, come dato che il locale legge. Questa
+                        torna a essere una nota qualsiasi. */}
+                    <Input value={note} onChange={setNote} placeholder="Una nota per il locale (facoltativa)" multi/>
                   </div>
                 )}
               </div>
@@ -2194,6 +2262,9 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
                   localStorage.setItem('byup_booking', JSON.stringify({
                     venue: venue?.name || editBooking?.venue || 'Ristorante',
                     date, time, people, name, phone, note,
+                    // Strutturati, coi codici del modello: la sala li legge,
+                    // non li deve capire da una frase (P-188).
+                    allergeni, occasioni,
                     createdAt: Date.now(),
                   }));
                 } catch {}
@@ -2233,7 +2304,7 @@ function BookingSheet({ open, venue, defaultTime, editBooking, onClose, onConfir
               {note && <RowKV k="Note" v={note}/>}
             </div>
             <div style={{ fontSize: 12, color: MUTED_X, marginBottom: 12 }}>Riceverai un promemoria un'ora prima.</div>
-            <button onClick={() => { onConfirm?.({ date, time, people, name, phone, note }); }} style={{
+            <button onClick={() => { onConfirm?.({ date, time, people, name, phone, note, allergeni, occasioni }); }} style={{
               width: '100%', height: 50, background: PINK_X, color: '#fff',
               border: 'none', borderRadius: 999, fontSize: 15, fontWeight: 700,
               cursor: 'pointer', fontFamily: 'inherit',
